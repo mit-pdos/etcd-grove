@@ -10,9 +10,9 @@ sealed definitions of `Api.lean` (imported with `import all`).
   the pool, the inner store at the backend share's current physical names, the hook by its state
   (`writeCtxM`), the begin's step from the client's update (`writeCb_of_au`); the transaction the
   wrapper of the inner one, at the watchable store's names with the current physical names.
-  **Conditional on track A's handle contents** (`wwriterHyp`, a hypothesis of the theorem, not an
-  axiom: the certificate map's free entry, the write-back supply and the sole writer's certificate,
-  tokens, notified-log half and pin, which track A puts into the handle and the writer's state).
+  No hypothesis (2026-11-06; until then `wwriterHyp`): the certificate map's free entry from the
+  handle, the write-back supply from `mvccBackend`; the watchable store has no sole writer (the
+  inner store's writer state keeps the tokens and the pin, the lock the whole notified log).
 * `Txn.End` at `*watchableStoreTxnWrite` (`watchableStoreTxnWrite.End.spec`): the backend share's
   names are the transaction's, its `hookP`, the frozen state excluded by the share's token, the
   notify and commit steps from the client's update (`wsEndCbY_of_au`).
@@ -161,23 +161,33 @@ theorem watchableStore.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := 
   · ipureintro; exact hre
   iapply roWrap_zero
 
-/-- **What a writer of a watchable store needs of its handle** (track A's request 3), at the inner
-store's physical names `p`: the certificate map's free entry, the write-back supply, and the sole
-writer (its certificate, tokens, notified-log half and pin) at a log with room for a revision. -/
-def wwriterRes (γw : WsNames) (p : PhysNames) : IProp GF :=
-  iprop(certFree (γw.st.withPhys p) ∗ storeWT (γw.st.withPhys p) ∗
-    ∃ L : Log, watchWriter (γw.withPhys p) L ∗ ⌜L.length + 4 ≤ 2 ^ 63⌝)
+/-- **A write transaction's committed log is certified** (`isTxnWrite_cert` at any trace part). -/
+theorem isTxnWriteT_cert (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool)
+    (Tr : IProp GF) :
+    isTxnWriteT (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ld Tr ⊢
+      isTxnWriteT mw s γ trace ilog pend puts deletes putSize crev Z ld Tr ∗ idxCert γ.idx ilog := by
+  iintro H
+  iunfold isTxnWriteT at H
+  iNamed H
+  iunfold storeTxnWriteIs at Htw
+  iNamed Htw
+  iframe Hcert
+  iunfold isTxnWriteT
+  iexists tw, ranges
+  iframe Hmw Htrc
+  iunfold storeTxnWriteIs
+  iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+  simp only [named]
+  iframe
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
-/-- **The hypothesis**: a watchable handle's store gives a writer its resources, at any physical
-names (false of today's `isMvccWatchable`; track A's handle contents make it a law of the
-handle). -/
-abbrev wwriterHyp : Prop :=
-  ∀ (s st : Loc) (γw : WsNames) (p : PhysNames),
-    isWatchableStore (GF := GF) s st γw ⊢ |={⊤}=> wwriterRes γw p
-
-/-- **`KV.Write.contract` at `*watchableStore`**, under `wwriterHyp`. -/
-theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG))
-    (hres : wwriterHyp (GF := GF)) :
+/-- **`KV.Write.contract` at `*watchableStore`** (no hypothesis since 2026-11-06: the inner store's
+writer state keeps the revision tokens and the pin, the lock the whole notified log, so a writer
+needs nothing of a sole writer; the certificate map's free entry from the handle, the write-back
+supply from `mvccBackend`). -/
+theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     watchableStore.Write.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) trace te q B P Pre Q f R
   wp_start as ⟨Hmv, Htok, %Htrnn, Htrc, HB, #Hhk, Hpre, Hrun, Hau⟩
@@ -189,7 +199,7 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, #Hrp, #Hloc, -⟩
+  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, #Hrp, #Hloc, -, #Hfree⟩
   obtain ⟨Hk, hγ⟩ := Hk
   rw [interface_mkOk_inj] at Hk
   have hs : s = s' := go.intoVal_inj Hk.2
@@ -204,15 +214,11 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
   obtain ⟨hpk, hcm, hdB⟩ := Hd
   subst hdB
   rw [show (hookIs d f : IProp GF) = backend.plHookRO d.γB f from rfl] at *
-  -- the writer's resources (the hypothesis)
-  imod hres s st γw p $$ Hws0 with Hres
-  iunfold wwriterRes at Hres
-  icases Hres with ⟨#Hfree, Hwt, ⟨%L, Hww, %Hlen⟩⟩
-  iunfold watchWriter at Hww
+  -- the writer's resources: the certificate map's free entry the handle's, the write token from
+  -- the share's supply
+  ihave #Hfree' : certFree (GF := GF) (γw.st.withPhys p) $$ []
+  · rw [show certFree (GF := GF) (γw.st.withPhys p) = certFree γw.st from rfl]; iexact Hfree
   simp only [WsNames.withPhys_st]
-  icases Hww with ⟨#Hcert, Htoks, Hwlog, Hpin⟩
-  have hb : wBudget L = (wBudget L - 1) + 1 := by
-    unfold wBudget; omega
   imod crevLb_neg (γw.st.withPhys p).idx with #Hlb
   -- the hook's context, by the frozen hook's state
   ihave ⟨%hk, %dq, Hctx⟩ : (∃ (hk : Option val) (dq : DFrac),
@@ -249,36 +255,25 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
     iapply (slotF_share_excl (γ := γw.st.withPhys p) (a := γw.st.api) rfl q) $$ H
   ihave #HZ : □ (iprop(True) : IProp GF) $$ []
   · iintro !>; itrivial
-  rw [hb]
-  icases (ownToks_add 1 (wBudget L - 1) _).1 $$ Htoks with ⟨Htoks, H1⟩
   -- the reader, from the pool
   wp_auto_lc 1
   iapply fupd_wp
   imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok] with ⟨Hrd, Hback⟩
   imodintro
-  wp_apply (hW st (γw.st.withPhys p) trace P Pre Q hk dq te (-1) iprop(True) L _ o
+  wp_apply (hW st (γw.st.withPhys p) trace P Pre Q hk dq te (-1) iprop(True) _ o
       (api.shareTok γw.st.api q)
       (fun L c => iprop(∃ σ : MvccState, R σ ∗
         ⌜σ.log = L ∧ σ.crev = c ∧ σ.pending = none ∧ MvccReachable σ⌝)))
-    $$ [Hrd H1 Hwt Hctx Hcur HF Hcb Hpin Htrc]
+    $$ [Hrd Hctx Hcur HF Hcb Htrc]
     as %mw ⟨⟨%ilog, %crev, Htx, -, -, -, ⟨%σ, HR, %Hσ⟩⟩, Htrc, HQ, -, Hcur, HF⟩
   · rw [isStore_withPhys, storeReaderC_withPhys]
     iframe Hs Hrd Hctx Hcur HF Hcb Htrc Hx HZ Hlb
-    isplitl [Hwt]
-    · ileft; iexact Hwt
     isplitr
-    · ipureintro; exact Htrnn
-    iapply wrIn_of; unfold revToken; iframe H1 Hpin
+    · iright; iexact Hwts
+    ipureintro; exact Htrnn
   obtain ⟨hl, hc, hpn, hre⟩ := Hσ
   subst hl hc
-  -- the sole writer pins the transaction's committed log
-  iunfold isTxnWriteT at Htx
-  iNamed Htx
-  ihave %Heq := watchWriter_pins (γw.st.withPhys p) L σ.log [] tw st σ.crev $$ [$Hcert $Htoks $Htw]
-  subst Heq
-  ihave Htx : isTxnWriteT mw st (γw.st.withPhys p) trace σ.log [] (W64 0) (W64 0) (W64 0) σ.crev
-      iprop(True) false iprop(True) $$ [Hmw Htw Htrc]
-  · iunfold isTxnWriteT; iexists tw, ranges; iframe
+  icases isTxnWriteT_cert _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx with ⟨Htx, #Hcert⟩
   (try wp_auto)
   wp_alloc wtw as Hwtw
   ipersist Hwtw
@@ -296,7 +291,7 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
   iunfold mvccTxn
   simp only [mvccTxnI]
   iexists mw, st, p, (W64 0), (W64 0), (W64 0)
-  iframe Htx Hfree
+  iframe Htx Hfree'
   isplitr
   · ipureintro; exact ⟨hpn, hre⟩
   isplitl [Hback]
@@ -309,7 +304,7 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
   iunfold wsWrap
   rw [isWatchableStore_withPhys]
   simp only [WsNames.withPhys_st]
-  iframe Hwtw Hcert Htoks Hwlog Hws0
+  iframe Hwtw Hcert Hws0
 
 /-- **`Txn.End.contract` at `*watchableStoreTxnWrite`.** -/
 theorem watchableStoreTxnWrite.End.wp_api
@@ -364,7 +359,7 @@ theorem watchableStoreTxnWrite.End.wp_api
     · rw [hγw]; iexact Hhp
     wp_apply (hEnd trace t0 sw s γw σ₀.log pend puts deletes putSize P σ₀.crev false
         (api.shareTok γ.api q) Q iprop(True)) $$ [$Htw HP HF Hcb]
-      as ⟨Hrd, -, -, -, HF, HQ⟩
+      as ⟨Hrd, -, -, HF, HQ⟩
     · iframe HP HF Hcb Hx Hok Hhp'
     iunfold tokBack at Hback
     ihave Hrd : storeReaderC s (γ.withPhys p) $$ [Hrd]

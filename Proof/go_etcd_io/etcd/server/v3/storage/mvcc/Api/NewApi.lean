@@ -100,7 +100,7 @@ theorem New.wp_proof
   wp_apply +noauto (hNew lg _ le cfg (some bk) γl γl Pk #func.nil rd0 γi γok γl
       (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd Hro Hifresh Hok0]
-    as %ws ⟨%st, %γw, %Hγ, #Hws, ⟨%rd, Hro, -⟩, #Hhk, -, Htw, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret,
+    as %ws ⟨%st, %γw, %Hγ, #Hws, ⟨%rd, Hro, -⟩, #Hhk, Htw, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret,
       #Hcp, #Hwreg, Hnc, Hlc1⟩
   · iframe Hle Hro Hifresh Hok0
     isplitr

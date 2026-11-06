@@ -416,7 +416,7 @@ def txnEndPreH (γ : StoreNames) : TxnKind → IProp GF
 def txnEndPostH (γ : StoreNames) : TxnKind → IProp GF
   | .read _ _ => iprop(True)
   | .write ilog pend _ _ _ =>
-    iprop(idxCert γ.idx (commitLog ilog pend) ∗ logQPost γ ilog pend ∗ wrOut γ ilog pend)
+    iprop(idxCert γ.idx (commitLog ilog pend) ∗ logQPost γ ilog pend)
 
 theorem txnEndPreH_read (γ : StoreNames) (log : Log) (rev : w64) :
     ⊢ txnEndPreH (GF := GF) γ (.read log rev) := by
@@ -452,8 +452,8 @@ theorem txnEndPost_H (γ : StoreNames) (kind : TxnKind) :
     iintro -; itrivial
   | write ilog pend puts deletes putSize =>
     simp only [txnEndPost, txnEndPostH]
-    iintro ⟨⟨Hc, Hq, Ho⟩, Hf⟩
-    iframe Hc Hq Ho Hf
+    iintro ⟨⟨Hc, Hq⟩, Hf⟩
+    iframe Hc Hq Hf
 
 end defs
 

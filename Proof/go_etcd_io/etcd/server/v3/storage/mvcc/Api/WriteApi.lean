@@ -7,7 +7,7 @@ hypothesis `writerHyp`): the reader from the handle's readers' supply (`rdSupply
 later, which `store.Write`'s first step strips), the certificate map's free entry and that the store
 has no watchers (`isMvcc`'s plain disjunct), the write-back supply (`mvccBackend`'s, at the share's
 physical names); the revision token and the pin are the writer's state's (`wrState`, `wrPin`), so
-`store.Write` takes nothing of them from its caller (`wrIn_plain`).
+`store.Write` takes nothing of them from its caller.
 
 The proof: the handle's store, the backend share at its current names `p` (its objects' share pins
 the names for `store.Write`, its token excludes the frozen state, `slotF_share_excl`), the hook's
@@ -116,7 +116,6 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
   · rw [show tokBack (GF := GF) s (γ.withPhys p) = tokBack s γ from rfl]; iexact Hback
   ihave #Hfree' : certFree (GF := GF) (γ.withPhys p) $$ []
   · rw [show certFree (GF := GF) (γ.withPhys p) = certFree γ from rfl]; iexact Hfree
-  ihave Hpin := wrIn_plain (GF := GF) (γ.withPhys p) [] (by simpa using Hwq)
   ihave Hwt : (storeWT (GF := GF) (γ.withPhys p) ∨ □ (⧗ 1 ={⊤}=∗ storeWT (γ.withPhys p))) $$ []
   · iright; iexact Hwts
   imod crevLb_neg (γ.withPhys p).idx with #Hlb
@@ -155,10 +154,10 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     iapply (slotF_share_excl (γ := γ.withPhys p) (a := γ.api) rfl q) $$ H
   ihave #HZ : □ (iprop(True) : IProp GF) $$ []
   · iintro !>; itrivial
-  iapply (hW s (γ.withPhys p) trace P Pre Q hk dq te (-1) iprop(True) [] _ o
-      (api.shareTok γ.api q) _) $$ [Hrd Hwt Hctx Hcur HF Hcb Hpin Htrc] [HΦ Hback]
+  iapply (hW s (γ.withPhys p) trace P Pre Q hk dq te (-1) iprop(True) _ o
+      (api.shareTok γ.api q) _) $$ [Hrd Hwt Hctx Hcur HF Hcb Htrc] [HΦ Hback]
   · rw [isStore_withPhys]
-    iframe Hpkg Hs Hrd Hwt Hctx Hcur HF Hcb Hpin Htrc Hx HZ Hlb
+    iframe Hpkg Hs Hrd Hwt Hctx Hcur HF Hcb Htrc Hx HZ Hlb
     ipureintro; exact Htrnn
   inext
   iintro %mw ⟨⟨%ilog, %crev, Htx, -, -, -, ⟨%σ, HR, %Hσ⟩⟩, Htrc, HQ, -, Hcur, HF⟩

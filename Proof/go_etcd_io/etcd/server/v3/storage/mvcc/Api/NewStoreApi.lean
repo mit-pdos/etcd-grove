@@ -162,7 +162,7 @@ theorem NewStore.wp_proof
   wp_apply +noauto (hNewStore lg _ le cfg (some bk) γl γl Pk #func.nil rd0 false γi γok
       (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd Hro Hifresh Hok0]
-    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro⟩, Hcok, #Hhk, ⟨%rv, %wv, HrvF, #HrvI, HwvF, #HwvI⟩, Hrds, -, -, -, Hcl, -, -, Hfrag, -, Hcu, Hret,
+    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro⟩, Hcok, #Hhk, ⟨%rv, %wv, HrvF, #HrvI, HwvF, #HwvI⟩, Hrds, -, -, Hcl, -, -, Hfrag, Hcu, Hret,
       #Hcp, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc1⟩
   · iframe Hle Hro Hifresh Hok0
     isplitr

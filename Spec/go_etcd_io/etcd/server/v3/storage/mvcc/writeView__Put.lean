@@ -34,11 +34,11 @@ state excluded by the caller's `G` (`storeTxnWrite.End`'s). -/
 abbrev mvcc.writeView.Put.spec : Prop :=
   ∀ (wv s : Loc) (γ : mvcc.StoreNames) (P Pre Q Post : IProp GF) (f : val)
     (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (log : mvcc.Log)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
     (G R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ mvcc.storeWT γ ∗
-      mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.certFree γ ∗ key ↦*□ k ∗
+      mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.storeWT γ ∗
+      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.certFree γ ∗ key ↦*□ k ∗
       value ↦*□ v ∗ ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗ lease.leaseOwn γ.leases L I ∗
       □ (∀ ilog : mvcc.Log, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.pendItems ilog [] = I⌝) ∗
       ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗

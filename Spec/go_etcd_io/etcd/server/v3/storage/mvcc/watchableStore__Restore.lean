@@ -31,9 +31,10 @@ the fields and its deposit, `wsFields 1`, and the outer quarter of the committed
 `wlogQ`), then every synced watcher moved to the unsynced group with its `restore` flag set
 (`syncWatchers` then sends it the restored log's events from its `minRev`, or, past the restored
 log, moves it back: `chooseAll` clears the flag rather than panic), the synced group emptied;
-`nil`. The sole writer at the committed (and notified) log `L` (`watchWriter`) is at `L'` after, at
-the inner store's new physical names (with the writer's pin there, `writerPin`; M2's item 37,
-2026-11-02): the lock's notified log is `L'` (no watcher is synced: the restored revisions' events
+`nil`. The committed (and notified) log, a prefix of `L'` (the caller's premise over every
+certified log; 2026-11-06: until then the sole writer's `watchWriter`, whose tokens and pin the
+inner store's writer state now keeps, its notified-log half the lock's), is `L'` after: the lock's
+notified log is `L'` (no watcher is synced: the restored revisions' events
 go out through `syncWatchers`). A move delivers no event: each moved watcher keeps its delivered
 events, and the lock records it delivered up to its `minRev`, as far as its events go (`popFacts`:
 nothing of its range between its `minRev` and its delivery bound), so the clients' view of their
@@ -48,14 +49,14 @@ backend's readers and the new one's left over; off, as before compaction mode
 (`watchableStore.Restore.specOff_of_spec`). -/
 abbrev mvcc.watchableStore.Restore.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
-    (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs),
-  L <+: [[], []] ++ R → mvcc.restoreLogOk R → c ≤ r.crev →
+    (P' : IProp GF) (R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs),
+  mvcc.restoreLogOk R → c ≤ r.crev →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ.st r.finRev ∗
       mvcc.crevPermAt γ.st r.crev ∗
       mvcc.isWatchableStore s st γ ∗ ⌜∃ d, γ.st.kb = some d ∧ d'.cm = d.cm⌝ ∗
       mvcc.restoreRightM st γ.st c ∗ mvcc.writerFrag γ.st ∗ mvcc.writerOwn γ.st ∗
-      mvcc.watchWriter γ L ∗
+      □ (∀ C : mvcc.Log, mvcc.idxCert γ.st.idx C -∗ ⌜C <+: [[], []] ++ R⌝) ∗
       mvcc.certOk γ.st ([[], []] ++ R) ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
         mvcc.restoreFixM d' (γ.st.withPhys p) -∗ mvcc.storeBackendTR b' st (γ.st.withPhys p) P' r) ∗
@@ -73,7 +74,6 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
       mvcc.storeCloserM st (γ.st.withPhys p') r.crev ∗
       mvcc.writerFrag (γ.st.withPhys p') ∗ mvcc.writerOwn (γ.st.withPhys p') ∗
       mvcc.hookP (γ.st.withPhys p') P' ∗
-      mvcc.watchWriter { γ with st := γ.st.withPhys p' } ([[], []] ++ R) ∗
       mvcc.resumeHookM d' r ∗
       mvcc.compactJobResM γ.st.kb ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1 - mvcc.nJobRd γ.st.kb) (), mvcc.storeRT γ.st) ∗

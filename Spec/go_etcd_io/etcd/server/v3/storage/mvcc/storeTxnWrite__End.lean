@@ -38,9 +38,8 @@ transaction's compaction revision; the writer's check-in excludes the frozen sta
 `G` (given back). (M4, track B, 2026-11-06, the second internal change) The batch lock's invariant
 `P` by the store's name of it alone (`hookP`, which the API's `mvccBackend` holds), not the writer's
 hook (`hookIs`), and no writer's fragment back: the API's `End` has neither. (Track A, request 3,
-2026-11-06) The revision token (no change) and the pin come back to the caller only for a watchable
-store's sole writer (`wrOut`); a store without watchers' go back into the writer's state and the
-batch lock's resource (`wrState`, `wrPin`). -/
+2026-11-06) The revision token (no change) and the pin go back into the writer's state and the batch
+lock's resource (`wrState`, `wrPin`), not to the caller. -/
 abbrev mvcc.storeTxnWrite.End.spec : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (crev : Int)
@@ -51,7 +50,7 @@ abbrev mvcc.storeTxnWrite.End.spec : Prop :=
       G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.endCb γ ilog pend crev Y R }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
-      mvcc.logQPost γ ilog pend ∗ mvcc.wrOut γ ilog pend ∗ G ∗ R }}
+      mvcc.logQPost γ ilog pend ∗ G ∗ R }}
 
 end spec
 

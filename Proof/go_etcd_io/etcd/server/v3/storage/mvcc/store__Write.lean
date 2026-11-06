@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.spec (GF := GF) (hG := hG) := by
-  intro s γ trace P Pre Q hk dq te clb Z logP qf ow G F
-  wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Hwt, %Htrnn, Hctx, Hpinw, HG, #HFG, Hwcb, Hin, Htrc⟩
+  intro s γ trace P Pre Q hk dq te clb Z qf ow G F
+  wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Hwt, %Htrnn, Hctx, Hpinw, HG, #HFG, Hwcb, Htrc⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -172,16 +172,16 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   icases mvcc.ghostVar_join_halves γ.wv ilog L $$ [Hwv HwvW] with ⟨Hwv, %HL⟩
   · iframe Hwv HwvW
   subst HL
-  -- the revision token and the writer's pin (track A, request 3): the caller's (a watchable
-  -- store's sole writer) or the writer's state's and the batch lock's resource's
+  -- the revision token and the writer's pin (track A, request 3): the writer's state's and the
+  -- batch lock's resource's
   ihave %Hsm : ⌜mvcc.logCh ilog < 2 ^ 48⌝ $$ []
   · ihave %h1 := mvcc.idxSealed_small γ.idx ilog $$ [Hcert]
     · iapply mvcc.idxCert_sealed; iexact Hcert
     ipureintro; omega
-  icases mvcc.wr_take γ logP ilog Hsm $$ [$Hin $HwPin $Hrtk] with ⟨%logP', Htok, HpinP, Hrtk⟩
+  icases mvcc.wr_take γ ilog Hsm $$ [$HwPin $Hrtk] with ⟨Htok, HpinP, Hrtk⟩
   iunfold mvcc.writerPin at HpinP
   icases HpinP with ⟨HbvP, Hloan⟩
-  ihave Hbv := mvcc.bucketViewL_join2 γ (1 : Qp).half.half.half (1 : Qp).half.half ilog logP'
+  ihave Hbv := mvcc.bucketViewL_join2 γ (1 : Qp).half.half.half (1 : Qp).half.half ilog ilog
     $$ [Hbv HbvP]
   · iframe Hbv HbvP
   -- the begin's callback (§3, "`Write`'s begin"): the writer's slot at the committed log and the

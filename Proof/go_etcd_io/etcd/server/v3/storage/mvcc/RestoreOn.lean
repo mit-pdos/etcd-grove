@@ -47,12 +47,12 @@ def mvcc.restoreOnK (s : Loc) (γ : mvcc.StoreNames) (x : w64) : IProp GF :=
     (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half} x : IProp GF) ∗
     (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half.half} x : IProp GF) ∗ £ 1)
 
-/-- What the restore keeps of the caller's through `restore()`: the revision tokens not spent at the
-restored log, the outer quarter of the committed log's authority (a watchable store's) and the old
-pool's readers but the writer's and the job's. -/
+/-- What the restore keeps of the caller's through `restore()`: the outer quarter of the committed
+log's authority (a watchable store's) and the old pool's readers but the writer's and the job's.
+(2026-11-06: the revision tokens not spent at the restored log go into the writer's state at the
+finish, `restoreOnQ`'s.) -/
 def mvcc.restoreOnRest (γ : mvcc.StoreNames) (R : mvcc.Log) : IProp GF :=
-  iprop(ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗
-    (if γ.watchQ then mvcc.logQ γ ([[], []] ++ R) else iprop(True)) ∗
+  iprop((if γ.watchQ then mvcc.logQ γ ([[], []] ++ R) else iprop(True)) ∗
     ([∗list] _x ∈ List.replicate (mvcc.nReaders - 3) (), mvcc.storeRT γ))
 
 /-- What the switch leaves (`restore_switch`'s post but `s.revMu`'s resource, with the kept quarter
@@ -63,7 +63,7 @@ def mvcc.restoreOnQ (s : Loc) (γ : mvcc.StoreNames) (p' : mvcc.PhysNames) (o' :
     mvcc.curAt (γ.withPhys p') (DFrac.own (1 : Qp).half) o' ∗ mvcc.writerFrag (γ.withPhys p') ∗
     mvcc.curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' ∗
     mvcc.retiredAt γ 3 ∗ ghostVar γ.wsd (1 : Qp).half () ∗ mvcc.restoreWriter γ ([[], []] ++ R) ∗
-    mvcc.restoreOnRest γ R ∗
+    mvcc.restoreOnRest γ R ∗ ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗
     (if r.finRev = r.crev then ghostVar γ.wsd (1 : Qp).half.half () else iprop(True)) ∗
     (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half.half} (r.fin.getD (W64 (-1))) :
       IProp GF) ∗

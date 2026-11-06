@@ -142,9 +142,7 @@ def isWatchTxnWriteT (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (
                       s' := s } : watchableStoreTxnWrite) ∗
     "#Hws" ∷ isWatchableStore s st γ ∗
     "Htx" ∷ isTxnWriteT mw st γ.st trace ilog pend puts deletes putSize crev iprop(True) ld Tr ∗
-    "#Hcert" ∷ idxCert γ.st.idx ilog ∗
-    "Htoks" ∷ ownToks γ.st.revs (wBudget ilog - 1) ∗
-    "Hwlog" ∷ monoListAuthOwn γ.wlog (1 : Qp).half ilog)
+    "#Hcert" ∷ idxCert γ.st.idx ilog)
 
 theorem isWatchTxnWrite_T (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log)
     (pend : List Change) (puts deletes putSize : w64) (crev : Int) (ld : Bool) :
@@ -168,7 +166,7 @@ theorem isWatchTxnWriteT_tr (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog :
   iexists mw
   simp only [named]
   ihave Htx := Htx $$ %Tr' Htr'
-  iframe Htx Htoks Hwlog
+  iframe Htx
   iframe #
 
 /-- A watchable store reads only its inner store's logical names. -/

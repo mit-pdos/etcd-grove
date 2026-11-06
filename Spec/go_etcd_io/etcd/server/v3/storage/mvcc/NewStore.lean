@@ -27,9 +27,7 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `NewStore(lg, b, le, cfg)` on a fresh backend `b` returns a store `s` (`isStore`) at the
 initial committed log `[[], []]` (revision 0 and `currentRev = 1`, both empty), with its two
 views (owned: `newWatchableStore` overwrites them), all the reader slots of its locks
-(`storeReaderC`, one per slot) and the revision budget (`2 ^ 63 - 5` tokens: the batch lock's
-resource `writerRes` needs `ilog.length + ntok + 3 ≤ 2 ^ 63`, with the initial log of length 2),
-and the index's certificate of the initial log. The caller says whether the store is a
+(`storeReaderC`, one per slot) and the index's certificate of the initial log. The caller says whether the store is a
 watchable store's (`wq`, `γ.watchQ`, unit W-K); if so, it gets the outer quarter of the committed
 log's authority (`logQ`), which the watchable store's `s.mu` keeps. The index's names `γi` and
 the certificate map's `γok` are the caller's (fresh: `mvcc.idxFresh`, an empty map's authority,
@@ -75,7 +73,9 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
 * (M2's item 37, 2026-11-02) The writer's pin at the initial log (`writerPin γ [[], []]`: its
   quarter of the bucket's view and, for a store that does not compact, the backend's
   no-compaction token, which `restore` gives back, and its nothing-deletable fact, the premise
-  `kbNoDelOff kb`), for its sole writer's observations of a backend snapshot.
+  `kbNoDelOff kb`), for its sole writer's observations of a backend snapshot. (2026-11-06) It and
+  the revision budget (`2 ^ 63 - 5` tokens) stay in the store, for both kinds (`wrState`, `wrPin`):
+  a writer finds them after its checkout.
 * The backend records no compaction (`kbNoCmp`, consumed by `restore`: D19l (v) (A), D22 S-g,
   2026-10-19; until then the opaque premise `backendNoCompaction`), so `restore` schedules none.
 * Compaction (2026-10-13, unit 5a): the store starts at the compaction revision `-1`; the
@@ -134,10 +134,9 @@ abbrev mvcc.NewStore.spec : Prop :=
         mvcc.isWriteView wv s γ) ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd kb) (),
         mvcc.storeReaderC s γ) ∗
-      (if wq then ownToks γ.revs (2 ^ 63 - 5) else iprop(True)) ∗ mvcc.idxCert γ.idx [[], []] ∗
+      mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ mvcc.writerFrag γ ∗
-      (if wq then mvcc.writerPin γ [[], []] else iprop(True)) ∗
       mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
       mvcc.crevPermIs γ Perm ∗ mvcc.writerReg s γ ∗
       (∃ pr : Qp, ⌜mvcc.pndW γ + pr = 1⌝ ∗ mvcc.api.newClient γ.api [[], []] (-1) pr s) ∗ £ 1 }}

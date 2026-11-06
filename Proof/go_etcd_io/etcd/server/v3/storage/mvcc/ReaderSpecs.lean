@@ -84,11 +84,10 @@ theorem mvcc.store.Read.spec_R (h : mvcc.store.Read.spec (GF := GF) (hG := hG)) 
 
 /-- The readers' statement: the write transaction at the compaction revision it observed. -/
 abbrev mvcc.store.Write.specR : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
-    (log : mvcc.Log),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
-      mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+      mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
+      mvcc.hookIs γ P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
       traceutil.ownTrace trace te }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
@@ -100,8 +99,8 @@ open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (the tag `True`, the lower bound `-1`). -/
 theorem mvcc.store.Write.spec_R (h : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.specR (GF := GF) (hG := hG) := by
-  intro s γ trace P Pre Q f te log
-  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Htok, Hwt, %Ht, Hh, Hpin, Hpre, #Htr, Htrc⟩ HΦ
+  intro s γ trace P Pre Q f te
+  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Hwt, %Ht, Hh, Hpre, #Htr, Htrc⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC s γ $$ Hrd
   imod mvcc.crevLb_neg γ.idx with #Hlb
   -- (M4, track B) the hook set (`writeCtxM`'s `some`), the names pinned by the writer's fragment;
@@ -110,18 +109,16 @@ theorem mvcc.store.Write.spec_R (h : mvcc.store.Write.spec (GF := GF) (hG := hG)
   icases (mvcc.hookIs_split γ P f).1 $$ Hh with ⟨#Hh, Hfrag⟩
   iunfold mvcc.writerFrag at Hfrag
   icases Hfrag with ⟨%ow, Hfrag⟩
-  -- (track A, request 3) the token and pin the caller's for a watchable store's writer only
-  ihave Hpin := mvcc.wrIn_of γ log $$ [$Htok $Hpin]
   ihave Hwt : (mvcc.storeWT (GF := GF) γ ∨ □ (⧗ 1 ={⊤}=∗ mvcc.storeWT γ)) $$ [Hwt]
   · ileft; iexact Hwt
   ihave #Hx : □ (mvcc.slotF γ ∗ iprop(emp) -∗ False) $$ []
   · iintro !> H; iapply (mvcc.slotF_excl_M1 γ) $$ H
   ihave Hcb : mvcc.writeCb (GF := GF) γ (fun _ _ => iprop(True)) $$ []
   · iapply mvcc.writeCb_true
-  iapply (h s γ trace P Pre Q (some f) DFrac.discard te (-1) iprop(True) log _ ow iprop(emp)
-      (fun _ _ => iprop(True))) $$ %Φ [Hrd Hwt Hpre Htrc Hfrag Hpin Hcb]
+  iapply (h s γ trace P Pre Q (some f) DFrac.discard te (-1) iprop(True) _ ow iprop(emp)
+      (fun _ _ => iprop(True))) $$ %Φ [Hrd Hwt Hpre Htrc Hfrag Hcb]
   · rw [mvcc.writeCtxM_some]
-    iframe Hrd Hwt Hpre Htrc Hfrag Hpin Hcb Hh Htr Hx; iframe #
+    iframe Hrd Hwt Hpre Htrc Hfrag Hcb Hh Htr Hx; iframe #
     isplitr; · imodintro; itrivial
     ipureintro; exact Ht
   inext
@@ -263,7 +260,7 @@ abbrev mvcc.storeTxnWrite.End.specR : Prop :=
       G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.endCb γ ilog pend crev Y R }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader s γ ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
-      mvcc.logQPost γ ilog pend ∗ mvcc.writerFrag γ ∗ mvcc.wrOut γ ilog pend ∗ G ∗ R }}
+      mvcc.logQPost γ ilog pend ∗ mvcc.writerFrag γ ∗ G ∗ R }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (`storeReader_of`). -/
@@ -279,9 +276,9 @@ theorem mvcc.storeTxnWrite.End.spec_R (h : mvcc.storeTxnWrite.End.spec (GF := GF
     [Htw HP Hok Hq HG Hcb]
   · iframe Hpkg Htw HhP HP Hok Hq HG HFG Hcb
   inext
-  iintro ⟨Hr, -, Hc, Hq, Hout, HG, HR⟩
+  iintro ⟨Hr, -, Hc, Hq, HG, HR⟩
   iapply HΦ
-  iframe Hc Hq Hfrag Hout HG HR
+  iframe Hc Hq Hfrag HG HR
   iapply mvcc.storeReader_of $$ Hr
 
 /-! ### `metricsTxnWrite__Range` -/

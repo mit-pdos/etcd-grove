@@ -176,7 +176,7 @@ theorem mvcc.NewStore_backend
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hpin, Hcr, Hret,
+  iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Hc, -, Hcl, Hst, -, Hfrag, Hcr, Hret,
     #HcpIs, -⟩
   ihave Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk $Hfrag]
   iapply HΦ
@@ -188,10 +188,10 @@ theorem mvcc.NewStore_backend
 instance `d`, its write token the backend's write-back budget. -/
 theorem mvcc.store_Write_backend (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d) (trace : Loc)
-    (P Pre Q : IProp GF) (f : val) (te : Bool) (log : mvcc.Log) :
+    (P Pre Q : IProp GF) (f : val) (te : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ backend.wbTok d.γB ∗
-        ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗ Pre ∗
+        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ backend.wbTok d.γB ∗
+        ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ Pre ∗
         □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ traceutil.ownTrace trace te }}
       (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
@@ -203,7 +203,7 @@ theorem mvcc.store_Write_backend (hWrite : mvcc.store.Write.spec (GF := GF) (hG 
     unfold mvcc.storeWT mvcc.kbWT; rw [hk]
   rw [← hwt]
   iintro %Φ H HΦ
-  iapply (hWrite s γ trace P Pre Q f te log) $$ %Φ [H]
+  iapply (hWrite s γ trace P Pre Q f te) $$ %Φ [H]
   · iexact H
   inext
   iintro %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, -⟩

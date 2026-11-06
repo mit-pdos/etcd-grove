@@ -47,11 +47,12 @@ once `Scheduler.Stop` has waited for the jobs), the watchable store's quarter of
 deposit ghost (`fieldShare … ¼ ∗ wsDep`: `watchableStore.Restore` passes its lock's `wsFields 1`, so
 no `syncWatchers` has a reader slot out), the writer's fragment (`writerFrag`: the sole writer's,
 so no write transaction is open), the writer's retired backend tokens (`writerOwn γ`: on, with the
-compaction job's reader); both backends are the real one's instance (`γ.kb`, `d'`). The sole
-writer is at `L`: its certificate and every revision token not spent (`2 ^ 63 - 3 - |L|`: with the
-budget's bound `|ilog| + ntok + 3 ≤ 2 ^ 63` of the writer's state this makes the committed log
-`ilog` exactly `L`) and, for a watchable store's, the outer quarter of the committed log's
-authority (`logQ`, its lock's). The restored log `L' = [[], []] ++ R` extends `L` (`applySnapshot`
+compaction job's reader); both backends are the real one's instance (`γ.kb`, `d'`). The committed
+log is `L`: its certificate and the outer quarter of the committed log's authority at it (`logQ`,
+the watchable store's lock's: it agrees with the writer state's half, so the committed log `ilog`
+is exactly `L`; 2026-11-06: until then the caller's revision tokens pinned it, now the writer
+state's, which the takeover collects). Only a watchable store's inner store is restored
+(`γ.watchQ = true`). The restored log `L' = [[], []] ++ R` extends `L` (`applySnapshot`
 panics on a snapshot not newer, and the image is of a longer committed prefix of the same raft
 log), each of its revisions has a change, it is well formed and puts no lease (`restoreLogOk`), the
 caller certifies it (`certOk`), and, on, its receipt is persistent (`restoreRcptM`: `⧖ (logCh L')`,
@@ -100,18 +101,17 @@ steps, `store__Restore.lean` off, `RestoreOn.lean` on):
   record (on, the compaction revision raised to `r.finRev`, permitted, with the lag to `r.crev`
   after it, `muInvLag`); on a resumed compaction (`r.resumes`), its `compactLockfree(r.schedRev)`
   raises it to `r.crev` and schedules the job under the new compaction right.
-* After `restore` (`restore_finish`): the writer's state at `L'` (its persistent receipt) checked in
-  at `γ'`, with the new backend's registration pending (`writerReg`); the fields' shares at the new
+* After `restore` (`restore_finish`): the writer's state at `L'` (its persistent receipt, the
+  revision tokens not spent, and its pin: 2026-11-06, until then the caller's) checked in at `γ'`, with the new backend's registration pending (`writerReg`); the fields' shares at the new
   objects with what they are (`physOk` at `γ'`).
 * `defer s.mu.Unlock()` with `muInv s γ' 1` at the new objects, at `r.crev`.
 
 **Postcondition**: `nil`; at some physical names `p'` of the new backend's bucket and instance,
 what the caller's right becomes at the restored revision (`storeCloserM s γ' r.crev`: off, the new
 right to close; on, the new compaction right), the watchable store's quarter and deposit back, the
-writer's fragment at `γ'`, its retired tokens of the new backend (`writerOwn γ'`), its pin at `L'`
-(`writerPin γ' L'`, M2's item 37), the new batch lock's invariant recorded (`hookP γ' P'`: the
-server's hook is installed on the new backend later, `hookOk_of_init`), the certificate of `L'`, the
-revision tokens not spent at `L'`, for a watchable store's the outer quarter at `L'`, the new
+writer's fragment at `γ'`, its retired tokens of the new backend (`writerOwn γ'`), the new batch
+lock's invariant recorded (`hookP γ' P'`: the server's hook is installed on the new backend later,
+`hookOk_of_init`), the certificate of `L'`, for a watchable store's the outer quarter at `L'`, the new
 backend's unset hook back (`resumeHookM`), the old job's budgets (`compactJobResM γ.kb`: on, a
 reader's token and the safe-range slot) and the old pool's readers (`nReaders - 1 - nJobRd γ.kb`:
 the pool's and the writer's; with the job's and the storage-version monitor's retired one, all of
@@ -127,8 +127,8 @@ abbrev mvcc.store.Restore.spec : Prop :=
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ r.finRev ∗ mvcc.crevPermAt γ r.crev ∗
       mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d ∧ d'.cm = d.cm⌝ ∗
       mvcc.restoreRightM s γ c ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
-      mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.writerPin γ L ∗
-      mvcc.idxCert γ.idx L ∗ ownToks γ.revs (2 ^ 63 - 3 - L.length) ∗
+      mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗
+      mvcc.idxCert γ.idx L ∗
       (if γ.watchQ then mvcc.logQ γ L else iprop(True)) ∗
       mvcc.certOk γ ([[], []] ++ R) ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
@@ -147,10 +147,8 @@ abbrev mvcc.store.Restore.spec : Prop :=
       mvcc.storeCloserM s (γ.withPhys p') r.crev ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
       mvcc.writerFrag (γ.withPhys p') ∗ mvcc.writerOwn (γ.withPhys p') ∗
-      mvcc.writerPin (γ.withPhys p') ([[], []] ++ R) ∗
       mvcc.hookP (γ.withPhys p') P' ∗
       mvcc.idxCert γ.idx ([[], []] ++ R) ∗
-      ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗
       (if γ.watchQ then mvcc.logQ γ ([[], []] ++ R) else iprop(True)) ∗
       mvcc.resumeHookM d' r ∗
       mvcc.compactJobResM γ.kb ∗

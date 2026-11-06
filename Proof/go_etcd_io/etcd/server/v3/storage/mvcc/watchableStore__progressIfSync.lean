@@ -526,7 +526,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     -- the lock's fraction of the notified log, lent to the send (K2e-5)
     iunfold mvcc.wlogQ at Hwlog
     icases Hwlog with ⟨Hwl, Hla⟩
-    ihave Hwl : mvcc.notifiedLent γ (some (sync.rfrac.half, σ.Lmu)) $$ [Hwl]
+    ihave Hwl : mvcc.notifiedLent γ (some (sync.rfrac, σ.Lmu)) $$ [Hwl]
     · iunfold mvcc.notifiedLent
       isplitl [Hwl]
       · iexact Hwl
@@ -598,7 +598,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     ihave Hrel : mvcc.relAuth γ sync.rfrac σ.Lmu $$ [Hrel1 Hslot]
     · iunfold mvcc.relAuth; iframe Hrel1 Hslot
     wp_apply (hsend γ u γw rr fcs st0.ch sync.rfrac sync.rfrac.half [] d _ [] [] DFrac.discard cs
-        sync.rfrac.half (some (sync.rfrac.half, σ.Lmu)) CS)
+        sync.rfrac.half (some (sync.rfrac, σ.Lmu)) CS)
       $$ [$Hch $Hlv $HCS $Hca $Hwl] as %b ⟨Hch, Hlv, -, -, Hca, Hwl, HCS⟩
     · iframe #
       simp only [↓reduceIte, List.zip_nil_left]

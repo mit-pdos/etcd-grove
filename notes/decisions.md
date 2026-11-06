@@ -30563,3 +30563,63 @@ general parent (Perennial's specs do not say the child's `Value` at another key 
 pending law of `notes/perennial-changes.md`, as for `traceutil.ctxTraceIs`). Found on the way, open:
 `Tracer.Start`'s own axiom has the same flaw (it calls `SpanContext()`/`IsRecording()` on `ctx`'s
 span and the no-op tracer can return it as its span, for any `txnCtx`); its docstring records it.
+
+## `traceutil.Tracer.Start` and k8s's `tracing` axioms: a parent span, and contexts the tracers accept (2026-11-06 · the user · branch `mvcc-api`)
+
+**The findings** (`notes/axiom-review/otel-spanfromcontext-todo.md`, "Tracer.Start and k8s's
+tracing"). (1) `traceutil.Tracer.Start` (the no-op tracer, otel v1.47.0 `trace/noop/noop.go`) calls
+`SpanContext()` and `IsRecording()` on `ctx`'s span and can return that span itself, so for any
+`txnCtx` holding a span with a panicking method its claims (it returns; `isSpan sp`) were false. (2)
+k8s's `tracing.SpanFromContext` took any `ctx`: a `nil` one panics in `utiltrace.FromContext`, a
+context of the program's own may panic in `Value`. (3) `tracing.Span.End`/`AddEvent` took only
+`⌜sp ≠ null⌝`: a program-allocated `tracing.Span{}` (nil `otelSpan`) panics in both, and so does a
+span over a context's bad otel span. (4) `tracing.Start` calls `TracerProvider()` on `ctx`'s span,
+its tracer's `Start`, and `Value(ContextTraceKey{})`. **The fix (the user approved fixing axioms as
+needed).** `trace.isParentSpan` (`Proof/go_opentelemetry_io/otel/trace/Defs.lean`): `isSpan` plus
+`SpanContext()` and `IsRecording()` returning; `trace.spanCtxOk` now speaks of it (its laws in
+`SpanCtxLaws.lean` unchanged: they never build a span), and `trace.spanCtxNone` (`Value(currentSpanKey)`
+is `nil`; `spanCtxNone_background`, `spanCtxNone_cancelCtx_background`, `spanCtxOk_of_nil`).
+`Tracer.Start` takes `trace.spanCtxOk ctx` and returns `trace.spanCtxOk ctx'` (the wand is gone: the
+premise makes it unconditional). `isSpan` is kept as it was (the program's methods), so the
+callers' patterns on it are unchanged. k8s (`Proof/k8s_io/component_base/tracing/Defs.lean`):
+`tracing.isSpan sp` (its `End` and `AddEvent` return), `tracing.utilTraceCtxOk` (`Value(ContextTraceKey{})`
+returns), `tracing.ctxSpansOk ctx` (non-nil, `spanCtxOk`, `utilTraceCtxOk`: `SpanFromContext`'s
+premise) and `tracing.startCtxOk` (`spanCtxNone` and `utilTraceCtxOk`: `Start`'s premise; with no
+span the provider is otel's no-op one, so `TracerProvider()` of a context's span need not be
+specified, which `isParentSpan` would otherwise have to cover recursively). Both return
+`tracing.isSpan sp`; `Span.End`/`AddEvent` take it and are now **theorems** (two axioms fewer). The
+callers' specs take the new premises: the cacher's `getLatestSnapshotLocked`,
+`waitAndGetLatestSnapshot`, `WaitUntilFreshAndGet` and `Cacher.get` (`ctxSpansOk ctx`), the etcd3
+store's `Get`, `Create`, `GuaranteedUpdate` (`startCtxOk ci`) and `updateOnce` (`tracing.isSpan
+span` for `⌜span ≠ null⌝`); `k8setcd3.call` supplies them from `Background()`
+(`tracing.startCtxOk_background`). The server's `Tracer.Start` callers (`Range`, `Put`,
+`DeleteRange`, `Txn`, `Compact`, `LeaseRenew`) need `trace.spanCtxOk ctx` in their specs (left to
+the server's session).
+
+## The watchable store has no sole writer: the lock owns the notified log, the store the writer's tokens and pin (2026-11-06 · the session after the stopped coordinator · branch `mvcc-api`)
+
+**The problem.** `KV.Write.contract` gives a writer only the handle and `mvccBackend`, so the store
+must provide what a writer needs. For a store without watchers track A's request 3 had moved the
+revision tokens and the loan into the writer's state (`wrState` in `writerL`) and the pin's view
+into the batch lock's resource (`wrPin`); a watchable store still had a *sole writer*
+(`watchWriter`: certificate, tokens, half of the notified log `γ.wlog`, pin) that its caller
+brought (`wwriterHyp`, a hypothesis false of the handle). `writerL` is keyed on `StoreNames`, which
+cannot name `γ.wlog` (a `WsNames` field, allocated after the inner store).
+
+**The decision.** The writer's half of `γ.wlog` is not needed: under the watchable lock, the
+writer's committed log equals the notified one by the committed log's authority (the lock's
+quarter, `wlogQ`'s `idxLogAuth`, against the transaction's index writer's half;
+`wlogQ_auth_agree`), which is all `body_pin` used it for. So the lock owns all of `γ.wlog`
+(`wlogQ γ q L := monoListAuthOwn γ.wlog q L ∗ idxLogAuth … q/4 L`), and the writer's tokens, loan and
+pin are in the store for both kinds (`wrState`, `wrPin` unconditional; `wrIn`/`wrOut` and
+`watchWriter` deleted). Consequences: `store.Write`/`storeTxnWrite.End` take and give nothing of
+them; `watchableStore.Write`'s internal spec takes no `L` and returns the transaction's log;
+`isWatchTxnWrite`/`wsWrap` carry only the certificate; `NewStore`/`newWatchableStore`/`New` return
+no tokens or pin; `KV.Write` (so `KV.Put`, `KV.DeleteRange`) at `*watchableStore` has no hypothesis.
+`store.Restore`'s takeover collects the tokens from the writer's state (the committed log pinned
+by `logQ`) and `restore_finish` deposits the restored log's tokens, loan and pin (`restoreLog_ch`:
+a restored log has a change in each revision past the first two); `watchableStore.Restore` (and
+`specOff`) take no `L`: the committed log is the lock's notified log, and the prefix premise is
+persistent over every certified log (`□ ∀ C, idxCert C -∗ ⌜C <+: [[], []] ++ R⌝`), what
+`KV.Restore.contract`'s update gives (`σ.log <+: σ'.log`). Statements outside mvcc that used
+`watchWriter` (the server's `SnapApplyDefs`, red under the migration) follow the API instead.

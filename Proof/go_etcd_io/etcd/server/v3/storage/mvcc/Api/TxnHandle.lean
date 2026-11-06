@@ -53,12 +53,12 @@ def roWrap : Nat → GoInterface → Loc → IProp GF
       trw.[txnReadWrite, go!"TxnRead"] ↦ (interface.mkOk ty v : GoInterface) ∗
       roWrap n (interface.mkOk ty v) mw)
 
-/-- **A watchable store's wrapper of the write transaction `mw`** (`isWatchTxnWriteT`'s rest). -/
+/-- **A watchable store's wrapper of the write transaction `mw`** (`isWatchTxnWriteT`'s rest; no
+sole writer's tokens or notified-log half since 2026-11-06). -/
 def wsWrap (tw sw s : Loc) (γw : WsNames) (mw : Loc) (ilog : Log) : IProp GF :=
   iprop(tw ↦□ ({ TxnWrite' := interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw,
                  s' := sw } : watchableStoreTxnWrite) ∗
-    isWatchableStore sw s γw ∗ idxCert γw.st.idx ilog ∗ ownToks γw.st.revs (wBudget ilog - 1) ∗
-    monoListAuthOwn γw.wlog (1 : Qp).half ilog)
+    isWatchableStore sw s γw ∗ idxCert γw.st.idx ilog)
 
 /-- **The write transaction's interface value**: `*metricsTxnWrite` of a store without watchers, or a
 watchable store's wrapper (at the names `γ`, the current ones). -/
@@ -88,11 +88,11 @@ theorem wsWrap_join (tw sw s : Loc) (γw : WsNames) (mw : Loc) (trace : Loc) (il
       isWatchTxnWriteT tw sw s γw trace ilog pend puts deletes putSize crev ld Tr := by
   iintro ⟨H, Htx⟩
   iunfold wsWrap at H
-  icases H with ⟨#Htw, #Hws, #Hcert, Htoks, Hwlog⟩
+  icases H with ⟨#Htw, #Hws, #Hcert⟩
   iunfold isWatchTxnWriteT
   iexists mw
   simp only [named]
-  iframe Htw Hws Htx Hcert Htoks Hwlog
+  iframe Htw Hws Htx Hcert
 
 /-- The watchable transaction, split into its wrapper and the inner one. -/
 theorem wsWrap_split (tw sw s : Loc) (γw : WsNames) (trace : Loc) (ilog : Log)
@@ -106,7 +106,7 @@ theorem wsWrap_split (tw sw s : Loc) (γw : WsNames) (trace : Loc) (ilog : Log)
   iexists mw
   iframe Htx
   iunfold wsWrap
-  iframe Htw Hws Hcert Htoks Hwlog
+  iframe Htw Hws Hcert
 
 /-! ### The interface values' types -/
 

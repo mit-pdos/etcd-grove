@@ -14,8 +14,8 @@ at, which `End`'s update fixes, `σ = σ₀`). The hook between: `Write` runs it
 caller's `Q' ={⊤}=∗ P ∗ Post` gives `End` the lock's invariant back.
 
 At `*watchableStore` the write view is the watchable store's (`isWatchableStore`'s `HwvW`), and
-`KV.Write` is `WatchTxnApi.watchableStore.Write.wp_api`'s (under its `wwriterHyp`). At `*store` the
-plain handle has no write view yet (track A's handle contents): not here.
+`KV.Write` is `WatchTxnApi.watchableStore.Write.wp_api`'s; at `*store` the plain handle's write view
+(`isMvccPlain`'s) and `KV.Write` is `WriteApi.store.Write.wp_api`'s. Neither has a hypothesis.
 -/
 module
 
@@ -349,8 +349,7 @@ private theorem isMvcc_watchable (s : Loc) (γ : MvccName) :
   iframe Hws
   ipureintro; exact hγ
 
-/-- **`KV.Put.contract` at `*watchableStore`**, over its `KV.Write` (`wwriterHyp`, as
-`watchableStore.Write.wp_api`). -/
+/-- **`KV.Put.contract` at `*watchableStore`**, over its `KV.Write` (`watchableStore.Write.wp_api`). -/
 theorem watchableStore.Put.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (hW : watchableStore.Write.spec (GF := GF))
     (hTx : wtxnHyp (GF := GF)) :

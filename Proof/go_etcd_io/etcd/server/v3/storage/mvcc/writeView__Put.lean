@@ -36,8 +36,8 @@ theorem mvcc.writeView.Put.wp_proof
     mvcc.writeView.Put.spec (GF := GF) (hG := hG) := by
   have hWrite := mvcc.store.Write.spec_R hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_R hEnd
-  intro wv s γ P Pre Q Post f key value k v leaseID L I log G R
-  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hpin, Hcs, #Hfree, #Hkey, #Hval, %Hklen, Hown, #HI, %Hlease, %Hwq, HG, #HFG, Hcb⟩
+  intro wv s γ P Pre Q Post f key value k v leaseID L I G R
+  wp_start as ⟨#Hwv, Hrd, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hval, %Hklen, Hown, #HI, %Hlease, %Hwq, HG, #HFG, Hcb⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
   iunfold mvcc.csContract at Hcs
@@ -50,7 +50,7 @@ theorem mvcc.writeView.Put.wp_proof
   wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
   -- `wv.kv.Write(t)`
-  wp_apply (hWrite s γ t P Pre Q f true log) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpin $Hpre $Htr $Htrc]
+  wp_apply (hWrite s γ t P Pre Q f true) $$ [$Hs $Hrd $Hwt $Hhook $Hpre $Htr $Htrc]
     as %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook⟩
   · ipureintro; exact Ht
   -- the writer's hook back: its facts kept (D22 receiver epochs, S5b)
@@ -86,7 +86,7 @@ theorem mvcc.writeView.Put.wp_proof
     simp only [mvcc.txnEndX]
     iframe HG HFG Hcb
   simp only [mvcc.txnEndPost, mvcc.txnEndXPost, mvcc.commitLog, List.cons_ne_self, ↓reduceIte]
-  icases Hcert with ⟨Hcert, -, -, -⟩
+  icases Hcert with ⟨Hcert, -, -⟩
   icases HX with ⟨HG, HR⟩
   iapply HΦ
   iframe Hrd HPost HG HR

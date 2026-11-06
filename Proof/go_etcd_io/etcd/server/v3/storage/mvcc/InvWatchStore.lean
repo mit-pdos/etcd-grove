@@ -35,8 +35,8 @@ out), and whether it is live (an open channel) or cancelled (a closed channel ha
 watcher).
 
 **The lock invariant** (`watchStoreInv s st γ q`, the resource of `s.mu`, at the fraction `q`
-of the read side): the notified log `Lmu` (its certificate; half of `γ.wlog`, whose other half
-is the sole writer's, `watchWriter`), the two groups, the victim batches, every watcher's state
+of the read side): the notified log `Lmu` (its certificate; `γ.wlog`, the lock's alone since
+2026-11-06, until then half, the sole writer's the other), the two groups, the victim batches, every watcher's state
 (the cancelled ones included: `cancelWatcher` reads `wa.ch`) and half of the states of the
 victims out with the mover, the meta map's authority with the watcher budget (`watchBudget`:
 the watchers with names and the unspent watch tokens below `2 ^ 63 - 3`), and per live watcher
@@ -1752,12 +1752,14 @@ theorem watchTokPool_take (γ : WsNames) :
   unfold watchTok
   iexact Ht
 
-/-- **The notified log's ghosts** at the lock's fraction `q`: half of `γ.wlog` at it (the sole
-writer holds the other half) and `s.mu`'s quarter of the committed log's authority at it (the
-outer quarter, `logQ`; unit W-K: the commit happens under `s.mu` after the notify, so a reader
-under `s.mu` finds every certified log a prefix of the notified one, `wlogQ_cert_prefix`). -/
+/-- **The notified log's ghosts** at the lock's fraction `q`: `γ.wlog` at it (the lock's alone,
+2026-11-06: until then half, the sole writer holding the other half; under `s.mu` the writer's log
+is the lock's by the committed log's authority, `wlogQ_auth_agree`) and `s.mu`'s quarter of the
+committed log's authority at it (the outer quarter, `logQ`; unit W-K: the commit happens under
+`s.mu` after the notify, so a reader under `s.mu` finds every certified log a prefix of the notified
+one, `wlogQ_cert_prefix`). -/
 def wlogQ (γ : WsNames) (q : Qp) (L : Log) : IProp GF :=
-  iprop(monoListAuthOwn γ.wlog q.half L ∗ idxLogAuth γ.st.idx q.half.half L)
+  iprop(monoListAuthOwn γ.wlog q L ∗ idxLogAuth γ.st.idx q.half.half L)
 
 /-- **Every certified log is a prefix of the notified one** (unit W-K): under `s.mu`, from the
 lock's quarter of the committed log's authority. -/
@@ -1774,16 +1776,12 @@ theorem monoList_halves (g : GName) (L : Log) :
   rw [Qp.half_add_half] at h
   exact h
 
-/-- The two halves of the notified log, updated to a longer log. -/
-theorem wlog_update_halves (γ : WsNames) (L L' : Log) (h : L <+: L') :
-    ⊢ monoListAuthOwn (GF := GF) γ.wlog (1 : Qp).half L -∗ monoListAuthOwn γ.wlog (1 : Qp).half L ==∗
-      monoListAuthOwn γ.wlog (1 : Qp).half L' ∗ monoListAuthOwn γ.wlog (1 : Qp).half L' := by
-  iintro H1 H2
-  ihave Hf : monoListAuthOwn (GF := GF) γ.wlog 1 L $$ [H1 H2]
-  · iapply (monoList_halves γ.wlog L).2
-    iframe H1 H2
+/-- The notified log (the lock's, whole), updated to a longer log. -/
+theorem wlog_update (γ : WsNames) (L L' : Log) (h : L <+: L') :
+    ⊢ monoListAuthOwn (GF := GF) γ.wlog 1 L ==∗ monoListAuthOwn γ.wlog 1 L' := by
+  iintro Hf
   imod monoListAuthOwn_update L' h $$ Hf with ⟨Hf, -⟩
-  iapply (monoList_halves γ.wlog L').1 $$ Hf
+  imodintro; iexact Hf
 
 /-- **Under `s.mu`, the committed log is the notified one** (unit W-K): another fraction of the
 committed log's authority agrees with the lock's. -/
@@ -2148,19 +2146,13 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
 
 /-! ## The write transaction -/
 
-/-- The revision tokens the sole writer at the committed log `L` holds (every one not spent). -/
+/-- The revision tokens a writer at the committed log `L` finds (every one not spent). -/
 def wBudget (L : Log) : Nat := 2 ^ 63 - 3 - L.length
 
-/-- **The sole writer** of the watchable store at the committed (and notified) log `L`: its
-certificate, every revision token not spent, its half of the notified log, and the inner store's
-writer's pin at `L` (`writerPin`, M2's item 37, 2026-11-02). -/
-def watchWriter (γ : WsNames) (L : Log) : IProp GF :=
-  iprop(idxCert γ.st.idx L ∗ ownToks γ.st.revs (wBudget L) ∗ monoListAuthOwn γ.wlog (1 : Qp).half L ∗
-    writerPin γ.st L)
-
 /-- The write transaction `s.Write` returns (`tw`, a `watchableStoreTxnWrite`): its fields, the
-inner transaction (`isTxnWrite` of `metricsTxnWrite` `mw`) over the inner store `st`, and the
-sole writer's certificate, tokens but the transaction's and notified-log half. The struct is
+inner transaction (`isTxnWrite` of `metricsTxnWrite` `mw`) over the inner store `st`, and its
+log's certificate (2026-11-06: no sole writer's tokens or notified-log half; the inner store's
+writer state keeps the tokens, the lock the notified log). The struct is
 read-only (Go never writes it after `Write`; unit N4, D14a: the txn package's functions take the
 wrapper as an interface value over `mw`, `KVView.lean`'s `twWrap`). -/
 def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (pend : List Change)
@@ -2170,9 +2162,7 @@ def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (p
                       s' := s } : watchableStoreTxnWrite) ∗
     "#Hws" ∷ isWatchableStore s st γ ∗
     "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize crev (ld := ld) ∗
-    "#Hcert" ∷ idxCert γ.st.idx ilog ∗
-    "Htoks" ∷ ownToks γ.st.revs (wBudget ilog - 1) ∗
-    "Hwlog" ∷ monoListAuthOwn γ.wlog (1 : Qp).half ilog)
+    "#Hcert" ∷ idxCert γ.st.idx ilog)
 
 /-- **The lessor's delete under the watchable write transaction's lock** (leases T3, 2026-10-25;
 `storeTxnWriteIs_leaseDel`): the transaction's batch transaction `bt` deletes a key of the
@@ -2200,11 +2190,11 @@ theorem isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : WsNames) (trace : Loc) (i
   iapply Hd $$ %b %key %k %dq %r %Φ HL Hkey Hrb
   inext
   iintro Htx Hkey Hrb
-  iapply HΦ $$ [Htx Htoks Hwlog] Hkey Hrb
+  iapply HΦ $$ [Htx] Hkey Hrb
   iunfold isWatchTxnWrite
   iexists mw
   simp only [named]
-  iframe Htx Htoks Hwlog
+  iframe Htx
   iframe #
 
 /-- **The watchable write transaction's batch transaction is the backend's** (`storeBt`),
@@ -2218,7 +2208,6 @@ theorem isWatchTxnWrite_bt (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : 
   iunfold isWatchTxnWrite at H
   iNamed H
   irename Htw => Hwtw
-  irename Htoks => Hwtoks
   irename Hcert => Hwcert
   iunfold isTxnWrite at Htx
   icases Htx with ⟨%tw', %ranges, Hmw, Htw', Htrc⟩
@@ -2229,7 +2218,7 @@ theorem isWatchTxnWrite_bt (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : 
   · iunfold isWatchTxnWrite
     iexists mw
     simp only [named]
-    iframe Hwtw Hws Hwcert Hwtoks Hwlog
+    iframe Hwtw Hws Hwcert
     iunfold isTxnWrite
     iexists tw', ranges
     iframe Hmw Htrc
@@ -2243,19 +2232,19 @@ theorem isWatchTxnWrite_bt (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : 
 
 /-- **The range deleter `rd`** of the watchable store `s` (inner store `st`, names `γ`;
 persistent; leases T3, L2d (iii), 2026-10-25): `newWatchableStore` gives the lessor the closure
-`func() lease.TxnDelete { return s.Write(traceutil.TODO()) }`, which, called by the store's sole
-writer at its committed log `L` (what `watchableStore.Write` takes: a reader's slot, the write
-token, `watchWriter`, the post-lock hook run on the caller's `Pre`), opens a watchable write
-transaction on a fresh trace and returns it as a `lease.TxnDelete` (the lessor's `Revoke`
-deletes the lease's keys through it); not `nil` (`Revoke` tests it). -/
+`func() lease.TxnDelete { return s.Write(traceutil.TODO()) }`, which, called with what
+`watchableStore.Write` takes (a reader's slot, the write token, the post-lock hook run on the
+caller's `Pre`), opens a watchable write transaction on a fresh trace at the store's committed log
+and returns it as a `lease.TxnDelete` (the lessor's `Revoke` deletes the lease's keys through it);
+not `nil` (`Revoke` tests it). -/
 def rdIs (rd : GoFunc) (s st : Loc) (γ : WsNames) : IProp GF :=
-  iprop(⌜rd ≠ func.nil⌝ ∗ □ (∀ (L : Log) (P Pre Q : IProp GF) (f : val),
-    {{ storeReader st γ.st ∗ storeWT γ.st ∗ watchWriter γ L ∗ ⌜L.length + 4 ≤ 2 ^ 63⌝ ∗
+  iprop(⌜rd ≠ func.nil⌝ ∗ □ (∀ (P Pre Q : IProp GF) (f : val),
+    {{ storeReader st γ.st ∗ storeWT γ.st ∗
         hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
       (App (Val #rd) (Val #()))
     {{ (tw trace : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
-        (∃ crev : Int, isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev) ∗ Q ∗
-        hookIs γ.st P f }}))
+        (∃ (L : Log) (crev : Int), isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev) ∗
+        Q ∗ hookIs γ.st P f }}))
 
 instance rdIs_persistent (rd : GoFunc) (s st : Loc) (γ : WsNames) :
     Persistent (rdIs (GF := GF) rd s st γ) := by

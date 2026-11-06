@@ -56,7 +56,7 @@ theorem pt_open (t0 : Loc) (γ : StoreNames) (trace : Loc) (σ : MvccState) (pen
   iintro ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree, Hwrap⟩
   icases wrWrap_pt t0 _ s mw σ.log $$ Hwrap with ⟨%sw, %γw, %hγw, Hwrap⟩
   iunfold wsWrap at Hwrap
-  icases Hwrap with ⟨#Htw, #Hws, #Hcert, Htoks, Hwlog⟩
+  icases Hwrap with ⟨#Htw, #Hws, #Hcert⟩
   iexists mw, s, p, puts, deletes, putSize, sw
   iframe Htx Hback Hfree Htw
   isplitr
@@ -72,7 +72,7 @@ theorem pt_open (t0 : Loc) (γ : StoreNames) (trace : Loc) (σ : MvccState) (pen
   isplitr
   · ipureintro; exact ⟨rfl, hγw⟩
   iunfold wsWrap
-  iframe Htw Hws Hcert Htoks Hwlog
+  iframe Htw Hws Hcert
 
 /-- **`Txn.Rev.contract` at `*watchableStoreTxnWrite`.** -/
 theorem watchableStoreTxnWrite.Rev.wp_api

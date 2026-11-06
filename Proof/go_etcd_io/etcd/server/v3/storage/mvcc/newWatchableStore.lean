@@ -50,8 +50,8 @@ theorem mvcc.newWatchableStore.wp_proof
     iexists l; iexact lg
   wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Perm Hcfg0)
     $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
-    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
-      Hwsd, Hfrag, Hpin, Hright, Hret, #HcpIs, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc⟩
+    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, #Hcert, HlogQ, Hsclose, Hfw,
+      Hwsd, Hfrag, Hright, Hret, #HcpIs, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc⟩
   -- (M2, the storage side, P3) the right's half of the revision's authority by the mode: frozen
   -- when the store does not compact, handed to the caller when it does (`crevRight_split`); the
   -- closer, with the scheduler's stop token, goes to the caller (D19m (C))
@@ -88,10 +88,8 @@ theorem mvcc.newWatchableStore.wp_proof
   ipersist HWV
   -- the ghost state
   imod ghost_map_alloc_empty (K := Loc) (V := mvcc.WatcherNames) (GF := GF) with ⟨%γm, Hmeta⟩
-  imod mono_list_own_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwl, Hwl, -⟩
-  ihave ⟨Hwl1, Hwl2⟩ : iprop(monoListAuthOwn (GF := GF) γwl (1 : Qp).half ([[], []] : mvcc.Log) ∗
-      monoListAuthOwn γwl (1 : Qp).half ([[], []] : mvcc.Log)) $$ [Hwl]
-  · iapply (mvcc.monoList_halves γwl ([[], []] : mvcc.Log)).1 $$ Hwl
+  -- the notified log, the lock's whole (2026-11-06)
+  imod mono_list_own_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwl, Hwl1, -⟩
   imod ghostVar_alloc (GF := GF) mvcc.wsInit with ⟨%γwst, Hwst⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γt, Hta⟩
   imod ownTokAuth_add (2 ^ 63 - 3) γt 0 $$ Hta with ⟨Hta, Htw⟩
@@ -203,27 +201,22 @@ theorem mvcc.newWatchableStore.wp_proof
     iunfold mvcc.rdIs
     isplitr
     · ipureintro; intro h; injection h with _ _ h3; cases h3
-    iintro !> %L %Pw %Pre %Q %fw %Φ' !> ⟨Hrd, Hwt, Hww, %Hlen, Hh, Hpre, #Hfw⟩ HΦ'
+    iintro !> %Pw %Pre %Q %fw %Φ' !> ⟨Hrd, Hwt, Hh, Hpre, #Hfw⟩ HΦ'
     ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
     · iPkgInit
     ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
     · iPkgInit
     wp_auto
     wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
-    wp_apply (hWrite «$r0_ptr» st γ tr L Pw Pre Q fw true)
-      $$ [$Hrd $Hwt $Hww $Hh $Hpre $Htr] as %tw %crev ⟨Htw, HQ, Hh'⟩
+    wp_apply (hWrite «$r0_ptr» st γ tr Pw Pre Q fw true)
+      $$ [$Hrd $Hwt $Hh $Hpre $Htr] as %tw %ilog %crev ⟨Htw, HQ, Hh'⟩
     · iframe #
-      ipureintro; exact ⟨Hlen, Htrnn⟩
+      ipureintro; exact Htrnn
     iapply HΦ'
     iframe HQ Hh'
-    iexists crev
+    iexists ilog, crev
     iexact Htw
   iframe HhookP Hsclose Hcr wg Hfrag Hret
-  isplitr [Hmus Hreaders Hstop Htw Hok Hab Hpn Hcr2 Hcr4 Htok Hnl Hlc]
-  · iunfold mvcc.watchWriter
-    iframe Hcert Hwl2 Hpin
-    have hb : mvcc.wBudget [[], []] = 2 ^ 63 - 5 := by unfold mvcc.wBudget; rfl
-    rw [hb]; iexact Htoks
   isplitl [Htw]
   · iunfold mvcc.watchToks; iexact Htw
   isplitl [Hok]

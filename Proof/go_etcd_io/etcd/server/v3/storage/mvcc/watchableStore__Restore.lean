@@ -244,8 +244,8 @@ theorem mvcc.watchableStore.Restore.wp_proof
     (hAdd : mvcc.watcherGroup.add.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) := by
   have hAddG := mvcc.watcherGroup.add.spec_group hAdd
-  intro s st γ b' d' γb' P' L R c r hLR hR hcr
-  wp_start as ⟨Hrc, HpF, HpC, #Hws, %Hkb, Hright, Hfrag, Hown, Hww, #Hok', HbkT, #HcrT, Himg, Hnd, Hrr,
+  intro s st γ b' d' γb' P' R c r hR hcr
+  wp_start as ⟨Hrc, HpF, HpC, #Hws, %Hkb, Hright, Hfrag, Hown, #Hpre, #Hok', HbkT, #HcrT, Himg, Hnd, Hrr,
     Hreg, Hsr, Hwts, Hres, Hrts⟩
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
@@ -265,13 +265,11 @@ theorem mvcc.watchableStore.Restore.wp_proof
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb⟩
-  -- the sole writer's notified log is the lock's
-  iunfold mvcc.watchWriter at Hww
-  icases Hww with ⟨#HcL, Htoks, HwlW, Hpin⟩
+  -- the committed log is the lock's notified log (its certificate; 2026-11-06: no sole writer),
+  -- a prefix of the restored one (the caller's premise)
   iunfold mvcc.wlogQ at Hwlog
   icases Hwlog with ⟨HwlL, HlogQ⟩
-  ihave %HLL := monoListAuthOwn_agree γ.wlog _ _ _ _ $$ HwlW HwlL
-  obtain ⟨-, HLL⟩ := HLL
+  ihave %hLR := Hpre $$ %σ.Lmu Hcert
   -- the lock's share of the inner store's fields and its deposit (D22 receiver epochs, S5a/S5b)
   iunfold mvcc.wsFields at Hwsf
   icases Hwsf with ⟨%st', #Hst', Hfs, Hwsd⟩
@@ -281,25 +279,23 @@ theorem mvcc.watchableStore.Restore.wp_proof
   subst Hsteq
   -- `s.store.Restore(b)`
   (try wp_auto)
-  wp_apply (hRestore st γ.st b' d' γb' P' L R c r hLR hR hcr Hwq) $$ [Hrc HpF HpC Hright Hfs Hwsd Hfrag
-      Hown Htoks HlogQ HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts Hpin]
-    as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, Hpin, #HhP, #HcL', Htoks, HlogQ, Hres, Hjob, Hold,
+  wp_apply (hRestore st γ.st b' d' γb' P' σ.Lmu R c r hLR hR hcr Hwq) $$ [Hrc HpF HpC Hright Hfs Hwsd
+      Hfrag Hown HlogQ HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts]
+    as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, #HhP, #HcL', HlogQ, Hres, Hjob, Hold,
       Hnew'⟩
-  · simp only [mvcc.wBudget, Hwq, ↓reduceIte]
-    iframe Hrc HpF HpC Hright Hfs Hfrag Hown Htoks HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts Hpin
+  · simp only [Hwq, ↓reduceIte]
+    iframe Hrc HpF HpC Hright Hfs Hfrag Hown HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts
     iframe #
     isplitr
     · ipureintro; exact Hkb
     isplitl [Hwsd]
     · iunfold mvcc.wsDep; iexact Hwsd
     iunfold mvcc.logQ
-    rw [HLL]; iexact HlogQ
+    iexact HlogQ
   simp only [Hwq, ↓reduceIte]
   obtain ⟨hbk', hkb'⟩ := Hp'
-  ihave Hpin : mvcc.writerPin (GF := GF) (γ.st.withPhys p') ([[], []] ++ R : mvcc.Log) $$ [Hpin]
-  · iexact Hpin
   generalize hL' : ([[], []] ++ R : mvcc.Log) = L' at *
-  have hLL' : σ.Lmu.length ≤ L'.length := by rw [← HLL]; exact hLR.length_le
+  have hLL' : σ.Lmu.length ≤ L'.length := hLR.length_le
   (try wp_auto)
   -- the synced watchers, to the unsynced group with their restore flag set
   icases mvcc.ownWatcherGroup_fixed (mvcc.syncedAddr s) σ.Ws $$ Hsynced with ⟨Hsynced, #Hfx⟩
@@ -435,9 +431,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
   ihave Hsy := Hgv $$ %(mvcc.syncedAddr s) Hwg
   -- the lock's new state
   imod ghostVar_update (σ.restoreSt L') γ.wst σ $$ Hσ with Hσ
-  ihave HwlL : monoListAuthOwn γ.wlog (1 : Qp).half L $$ [HwlL]
-  · rw [HLL]; iexact HwlL
-  imod mvcc.wlog_update_halves γ L L' hLR $$ HwlW HwlL with ⟨HwlW, HwlL⟩
+  imod mvcc.wlog_update γ σ.Lmu L' hLR $$ HwlL with HwlL
   iunfold mvcc.relAuth at Hrel
   icases Hrel with ⟨Hrel, Hslot⟩
   imod mono_nat_own_update L'.length hLL' $$ Hrel with ⟨Hrel, -⟩
@@ -488,11 +482,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
   iapply HΦ
   iexists p'
   iframe Hcl Hfrag Hown HhP Hold Hnew' Hres Hjob
-  isplitr
-  · ipureintro; exact ⟨hbk', hkb'⟩
-  iunfold mvcc.watchWriter
-  simp only [mvcc.wBudget, mvcc.idxCert_withPhys, mvcc.StoreNames.withPhys_revs]
-  iframe HcL' Htoks HwlW Hpin
+  ipureintro; exact ⟨hbk', hkb'⟩
 
 end proof
 

@@ -34,9 +34,10 @@ lock gives its quarter of the fields and its deposit, `wsFields 1`, and the oute
 committed log's authority, `wlogQ`), then every synced watcher moved to the unsynced group with
 its `restore` flag set (`syncWatchers` then sends it the restored log's events from its
 `minRev`, or, past the restored log, moves it back: `chooseAll` clears the flag rather than
-panic), the synced group emptied; `nil`. The sole writer at the committed (and notified) log `L`
-(`watchWriter`) is at `L'` after, at the inner store's new physical names (with the writer's pin
-there, `writerPin`; M2's item 37, 2026-11-02): the lock's notified log is `L'` (no watcher is synced: the
+panic), the synced group emptied; `nil`. The committed (and notified) log, a prefix of `L'` (the
+caller's premise over every certified log; 2026-11-06: until then the sole writer's `watchWriter`,
+whose tokens and pin the inner store's writer state now keeps) is `L'` after: the lock's notified
+log is `L'` (no watcher is synced: the
 restored revisions' events go out through `syncWatchers`). A move delivers no event: each moved
 watcher keeps its delivered events, and the lock records it delivered up to its `minRev`, as
 far as its events go (`popFacts`: nothing of its range between its `minRev` and its delivery
@@ -47,12 +48,12 @@ back the new closer, fragment, token, the old backend's tokens and the new one's
 restore in compaction mode (`store.Restore`'s two `cm = false` premises, Q5-3/Q5-4). -/
 abbrev mvcc.watchableStore.Restore.specOff : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
-    (P' : IProp GF) (L R : mvcc.Log),
-  L <+: [[], []] ++ R → mvcc.restoreLogOk R →
+    (P' : IProp GF) (R : mvcc.Log),
+  mvcc.restoreLogOk R →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ ⌜∃ d, γ.st.kb = some d ∧ d.cm = false⌝ ∗ ⌜d'.cm = false⌝ ∗
       mvcc.storeCloser st γ.st ∗ mvcc.writerFrag γ.st ∗ mvcc.writerOwn γ.st ∗
-      mvcc.crevFrozen γ.st ∗ mvcc.watchWriter γ L ∗
+      mvcc.crevFrozen γ.st ∗ □ (∀ C : mvcc.Log, mvcc.idxCert γ.st.idx C -∗ ⌜C <+: [[], []] ++ R⌝) ∗
       mvcc.certOk γ.st ([[], []] ++ R) ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
         mvcc.storeBackendT b' st (γ.st.withPhys p) P') ∗
@@ -68,7 +69,6 @@ abbrev mvcc.watchableStore.Restore.specOff : Prop :=
       mvcc.storeCloser st (γ.st.withPhys p') ∗
       mvcc.writerFrag (γ.st.withPhys p') ∗ mvcc.writerOwn (γ.st.withPhys p') ∗
       mvcc.hookP (γ.st.withPhys p') P' ∗
-      mvcc.watchWriter { γ with st := γ.st.withPhys p' } ([[], []] ++ R) ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (), mvcc.storeRT γ.st) ∗
       mvcc.storeRT (γ.st.withPhys p') }}
 
@@ -76,17 +76,17 @@ abbrev mvcc.watchableStore.Restore.specOff : Prop :=
 theorem mvcc.watchableStore.Restore.specOff_of_spec
     (h : mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Restore.specOff (GF := GF) (hG := hG) := by
-  intro s st γ b' d' γb' P' L R hpre hR
-  iintro %Φ ⟨#Hpkg, #Hws, %Hd, %Hd', Hcl, Hwf, Hwo, #Hfrz, Hww, #Hok, Hbk, Hkc, Hv, Hnc, #Hnd, Hrr,
+  intro s st γ b' d' γb' P' R hR
+  iintro %Φ ⟨#Hpkg, #Hws, %Hd, %Hd', Hcl, Hwf, Hwo, #Hfrz, #Hpre, #Hok, Hbk, Hkc, Hv, Hnc, #Hnd, Hrr,
     Hrts⟩ HΦ
   obtain ⟨d, hγd, hdcm⟩ := Hd
   obtain ⟨hoff, -, hsr, hws, -⟩ := mvcc.cmOff_true (GF := GF) d' Hd'
   obtain ⟨hoffd, hj0d, -, -, -⟩ := mvcc.cmOff_true (GF := GF) d hdcm
   have hoffγ : ¬ mvcc.kbCmpM γ.st.kb := by rw [hγd]; exact hoffd
   have hc : (-1 : Int) ≤ mvcc.CmpRecs.empty.crev := by rw [mvcc.CmpRecs.crev_empty]; exact Int.le_refl _
-  iapply (h s st γ b' d' γb' P' L R (-1) mvcc.CmpRecs.empty hpre hR hc) $$
-    [Hcl Hwf Hwo Hww Hbk Hkc Hv Hnc Hrr Hrts]
-  · iframe Hpkg Hws Hwf Hwo Hww Hok Hrr Hrts
+  iapply (h s st γ b' d' γb' P' R (-1) mvcc.CmpRecs.empty hR hc) $$
+    [Hcl Hwf Hwo Hbk Hkc Hv Hnc Hrr Hrts]
+  · iframe Hpkg Hws Hwf Hwo Hpre Hok Hrr Hrts
     simp only [mvcc.kbNoDelOff, hoff, ↓reduceIte]
     iframe Hnd
     rw [mvcc.restoreRcptM_off d' _ Hd', mvcc.CmpRecs.finRev_empty, mvcc.CmpRecs.crev_empty]
@@ -121,13 +121,13 @@ theorem mvcc.watchableStore.Restore.specOff_of_spec
     all_goals itrivial
   have hr : mvcc.nReaders - 1 - mvcc.nJobRd γ.st.kb = mvcc.nReaders - 1 := by rw [hγd, hj0d]; rfl
   rw [hr]
-  iintro !> ⟨%p', %hp', Hcl', Hwf, Hwo, #Hhook, Hww, -, -, Hrd, Hrt⟩
+  iintro !> ⟨%p', %hp', Hcl', Hwf, Hwo, #Hhook, -, -, Hrd, Hrt⟩
   iapply HΦ
   iexists p'
   have hoffp : ¬ mvcc.kbCmpM (γ.st.withPhys p').kb := by
     rw [StoreNames.withPhys_kb, hp'.2]; exact hoff
   ihave Hcl' := (mvcc.storeCloserM_off st (γ.st.withPhys p') _ hoffp).1 $$ Hcl'
-  iframe Hcl' Hwf Hwo Hhook Hww Hrd Hrt
+  iframe Hcl' Hwf Hwo Hhook Hrd Hrt
   ipureintro; exact hp'
 
 end off

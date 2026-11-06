@@ -26,9 +26,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 contract at any of the store's names with the bucket `γb`, the empty bucket's view, the lessor):
 a watchable store (`isWatchableStore`: the inner store with its read view pointed at the
 watchable store, the lock's guard with its invariant at the initial log `[[], []]`, no watcher,
-the victims' wake-up channel, the stop channel), the post-lock hook recorded, the sole writer at
-the initial log (`watchWriter`: the certificate, every revision token and its half of the
-notified log), every watch token (`watchToks`: a registration costs one), every reader slot of the two stores' locks (`watchReader`), the right to close the
+the victims' wake-up channel, the stop channel), the post-lock hook recorded (2026-11-06: no sole
+writer; the inner store keeps the revision tokens and the pin, the lock the whole notified log),
+every watch token (`watchToks`: a registration costs one), every reader slot of the two stores' locks (`watchReader`), the right to close the
 stop channel (`stopCloser`) and the inner store (`storeCloser`), and the zero wait group (for
 `New`). The backend records no compaction (`kbNoCmp`, `NewStore`'s; D19l (v) (A), D22 S-g), and the inner store's closer holds its scheduler's stop token (D19m (C), 2026-10-18). The lessor's `SetRangeDeleter` takes the deleter closure as an opaque value (its later
 calls of it are outside the model, as in `NewStore`). The index's names `γi` and the
@@ -63,7 +63,7 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
       (Val #b)) (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl ∧ γ.st.kb = kb ∧
         γ.st.idx = γi ∧ γ.st.cok = γok ∧ γ.tag = γtag ∧ γ.st.cm = decide (mvcc.kbCmpM kb)⌝ ∗
-      mvcc.isWatchableStore s st γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ) ∗ mvcc.hookInit γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
+      mvcc.isWatchableStore s st γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ) ∗ mvcc.hookInit γ.st P f ∗
       mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd kb) (),
         mvcc.watchReader s st γ) ∗

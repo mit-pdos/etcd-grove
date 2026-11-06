@@ -47,7 +47,7 @@ abbrev mvcc.watchableStoreTxnWrite.End.spec : Prop :=
       G ∗ □ (mvcc.slotF γ.st ∗ G -∗ False) ∗ mvcc.wsEndCbY γ ilog pend crev R }}
     (App (Val (tw @!! go.GoType.PointerType watchableStoreTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReaderC st γ.st ∗ mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗
-      mvcc.watchWriter γ (mvcc.commitLog ilog pend) ∗ Tr ∗ G ∗ R }}
+      Tr ∗ G ∗ R }}
 
 end spec
 
