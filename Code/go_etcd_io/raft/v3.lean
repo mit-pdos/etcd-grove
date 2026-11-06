@@ -7,7 +7,7 @@ public import Code.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.fmt
 public import Perennial.Code.io
 public import Perennial.Code.log
-public import Perennial.Code.os
+public import Code.os
 public import Perennial.Code.sync
 public import Perennial.Code.context
 public import Perennial.Code.bytes

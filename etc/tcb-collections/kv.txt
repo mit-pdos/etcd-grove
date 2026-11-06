@@ -45,6 +45,12 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/(Link|Results)\.lea
 # untranslated initializers are goose `trusted` no-op models (`TrustedCode/`), raftpb's two
 # descriptor literals translated. `os`'s and `strconv`'s (Perennial's names-only packages) remain.
 axiom DescribeConfChange.wp_proof
+axiom Perennial.io.fs.opaqueInitsOk
+axiom Perennial.os.Stderr_init
+axiom Perennial.os.initFuncsOk
+axiom Perennial.os.opaqueInitsOk
+axiom Perennial.syscall.initFuncsOk
+axiom Perennial.syscall.opaqueInitsOk
 axiom ccDecodeV2_nil
 axiom context.ErrAny.wp_proof
 axiom fmt.Errorf.wp_proof

@@ -1221,7 +1221,8 @@ def pwCell (sz off : Nat) (data : List w8) (k : Nat) (xs : List (w8 × Bool)) (i
   toCellVal (if i < pwSize sz off k then some (pwByte off data k (min off sz) xs i) else none)
 
 /-- The second step of `pwrite(fd, data, off)`: it writes the first `k` bytes of `data`, all of
-them with errno 0, or a prefix with a nonzero errno. What the first step took comes back: the
+them with errno 0, or a prefix with a nonzero errno. Within one aligned OS page (`off % osPageSize = 0`,
+at most `osPageSize` bytes) the prefix is all of `data` or nothing (bbolt D22). What the first step took comes back: the
 `OsMeta` with the new size, the bytes `[min off size, min (off + n) size')` (the zero gap, the data
 written, then the old bytes), the bytes past the written prefix with the clean flags they had in
 `xs` (the write left them untouched), the others not clean, and the client's halves of the mapped cells, which show
@@ -1229,7 +1230,8 @@ the new bytes. -/
 theorem wp_osPWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) (q : Qp)
     (m : OsMeta) (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ pwTok (L := L) t p off data q m xs -∗
-      (∀ k : Nat, ∀ e : w64, ⌜k ≤ data.length ∧ (k = data.length ∧ e = 0 ∨ e ≠ 0)⌝ -∗
+      (∀ k : Nat, ∀ e : w64, ⌜k ≤ data.length ∧ (k = data.length ∧ e = 0 ∨ e ≠ 0) ∧
+          (off % osPageSize = 0 ∧ data.length ≤ osPageSize → k = 0 ∨ k = data.length)⌝ -∗
         osMeta (L := L) p (DFrac.own q)
           (some { pwMeta m off data.length with size := pwSize m.size off k }) -∗
         osBytes (L := L) p (min off m.size) (DFrac.own 1) (pwBytes m.size off data k xs) -∗
@@ -1279,7 +1281,7 @@ theorem wp_osPWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) 
     obtain ⟨-, -, hwfk, -⟩ := hfin data.length (Nat.le_refl _)
     refine ⟨_, renderHeap (({ st with inflight := GMap.delete t st.inflight } : OsState).setFile p
       (pwFile f off data data.length)) h, _, ⟨t, p, off, data, f, data.length, 0, rfl,
-      by rw [hct, hc], hf, Nat.le_refl _, .inl ⟨rfl, rfl⟩, rfl, rfl⟩, ?_, ?_⟩
+      by rw [hct, hc], hf, Nat.le_refl _, .inl ⟨rfl, rfl⟩, fun _ => .inr rfl, rfl, rfl⟩, ?_, ?_⟩
     · exact mapsFresh_same (by rw [pwFinish_state st t p off data f _ hf]; rfl)
     · rw [pwFinish_state st t p off data f _ hf]
       exact heapRendered_render hwfk rfl Hh
@@ -1287,7 +1289,7 @@ theorem wp_osPWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) 
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsOsStep] at Hst
-  obtain ⟨t', p', off', data', f', k, e, hv, hinfl, hf', hk, hke, hst', rfl⟩ := Hst
+  obtain ⟨t', p', off', data', f', k, e, hv, hinfl, hf', hk, hke, hal, hst', rfl⟩ := Hst
   have htt : t' = t := by injection hv with hv; exact (extVal_inj hv).symm
   subst htt
   rw [hct, hc] at hinfl; cases hinfl
@@ -1473,7 +1475,7 @@ theorem wp_osPWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) 
     iapply htc $$ Htok
   iapply wp_value'
   unfold osMeta osBytes
-  iapply HΦ $$ %k %e %(And.intro hk hke) Hm Hbs
+  iapply HΦ $$ %k %e %(And.intro hk (And.intro hke hal)) Hm Hbs
   unfold mcells
   iapply (BigSepM.bigSepM_toList (Φ := fun (b : Loc) (len : Nat) =>
     cellsR b (min (min off m.size) len) (min (off + data.length) len - min (min off m.size) len)

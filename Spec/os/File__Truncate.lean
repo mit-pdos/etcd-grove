@@ -13,6 +13,7 @@ counterpart).
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -45,7 +46,8 @@ abbrev os.File.Truncate.spec : Prop :=
        (⌜err ≠ interface.nil⌝ ∗
          (osGrown d.path m sz.toNat hi ∨
           (osMeta d.path (DFrac.own 1) (some (ftMeta m sz.toNat)) ∗
-            mcellsAny m.maps m.size hi)))) }}
+            mcellsAny m.maps m.size hi)))) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 

@@ -15,7 +15,11 @@ domain of `files` name distinct regular files on a local ext4 or xfs filesystem;
 process touches them; the device honours cache flushes, writes each sector atomically and has no
 media errors (a torn sector would garble durable neighbours of a dirty byte, and a read error on
 a mapped page is SIGBUS where the model's load succeeds). Opening any other path is stuck, so
-path resolution is never modelled.
+path resolution is never modelled. The process's `RLIMIT_FSIZE` is unlimited (etcd's
+default) or a multiple of the OS page size (bbolt D22, below: Linux shortens a write that crosses
+the limit, overwrites included, to end at it, and Go ignores `SIGXFSZ` and retries into `EFBIG`,
+so a limit inside a page would tear a one-page write; the filesystem's own `s_maxbytes` is
+page-aligned).
 
 **Soundness discipline.** The model is never more defined than Linux:
 * *Misuse is stuck* (D6): a closed, forged or wrong-mode fd, an unsupported flag, `PROT_WRITE`,
@@ -23,7 +27,23 @@ path resolution is never modelled.
 * *Environmental failure is a nondeterministic errno*: every operation that makes a system call
   may fail with any nonzero errno. On failure, `Open`, `ftruncate` and `Munmap` may or may not
   have had their effect; a failed `pread` read a prefix; a failed `pwrite` wrote a prefix (as
-  `generic_perform_write` does, and Go's loop reports); a failed `fsync` loses the
+  `generic_perform_write` does, and Go's loop reports), except that a `pwrite` within one aligned
+  OS page (`off % osPageSize = 0`, at most `osPageSize` bytes) wrote all of it or nothing (bbolt
+  D22, the user's decision, 2026-11-03; `notes/bbolt-spec-decisions.md`). Why Linux does that,
+  for OsFs's buffered I/O on ext4/xfs: `generic_perform_write` (`mm/filemap.c`) handles the
+  range one page-cache folio at a time, `write_begin` (allocate or reserve the block, lock the
+  page), a `memcpy` from the user buffer (`copy_folio_from_iter_atomic`), `write_end`. Its
+  failures (`ENOSPC`, `EDQUOT`, `ENOMEM`) come before the page's copy, so nothing is written. The
+  copy is short only if the user buffer faults: for a folio that is not uptodate `write_end`
+  commits nothing and the page is retried from its start; for an uptodate one the copied prefix
+  is committed and the loop continues within the same page, after faulting the source in again;
+  either way the page stays torn only if that fault-in fails (an unmapped source, `EFAULT`, which
+  a live Go slice never is) or a fatal signal arrives in between, which kills the process: a
+  crash, outside the in-process rules (the torn durable image is `OsCrash`'s, unchanged). Device
+  errors (`EIO`) surface at write-back, not in `pwrite`. Large folios do not change this: a
+  page-sized range is one copy into one folio. (From memory of `mm/filemap.c`, `fs/buffer.c` and
+  iomap; the environment's `RLIMIT_FSIZE` hypothesis above rules out the one shortening that
+  splits a page.) Unaligned and multi-page writes keep their prefixes. A failed `fsync` loses the
   writeback of the dirty bytes, which later syncs do not redo (D2).
 * *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`) is two steps
   (`PWriteStart`/`PWriteFinish`, `FtruncateStart`/`FtruncateFinish`), and between them any
@@ -353,10 +373,12 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        st.inflight !! t = none ∧ st' = { st with inflight := <[t := c]> st.inflight }) ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ (#written, #errno)`. A prefix of the data is written: all of
-  it and errno 0, or any prefix and a nonzero errno. -/
+  it and errno 0, or any prefix and a nonzero errno; within one aligned OS page, all of it or
+  none, whatever the errno (the header's "Soundness discipline": bbolt D22). -/
   | "PWriteFinish" => ∃ (t : Nat) (p : GoString) (off : Nat) (data : List w8) (f : OsFile)
       (k : Nat) (e : w64), v = osTokV t ∧ st.inflight !! t = some ⟨p, .write off data⟩ ∧
       st.file p = some f ∧ k ≤ data.length ∧ (k = data.length ∧ e = 0 ∨ e ≠ 0) ∧
+      (off % osPageSize = 0 ∧ data.length ≤ osPageSize → k = 0 ∨ k = data.length) ∧
       (let st1 := { st with inflight := GMap.delete t st.inflight }
        st' = if k = 0 then st1 else
          st1.setFile p (f.change (writeBytes f.cur off (data.take k)) (min off f.cur.length)

@@ -390,7 +390,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
   cases err1 with
   | ok ie =>
     (try wp_auto)
-    wp_apply wp_FClose f fd path _ $$ [Hf Hfdo] as %e Hf
+    wp_apply wp_FClose f fd path _ $$ [Hf Hfdo] as %e ⟨Hf, -⟩
     · iframe; iframe #
     (try wp_auto)
     iapply HΦ
@@ -402,7 +402,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
   (try wp_auto)
   icases (csOwn_idle00 path γc m0 (F.map (·, true))).1 $$ Hown with ⟨Hv, Hm, Hb, %Hl⟩
   wp_apply wp_Stat f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) _ m0
-      $$ [Hf Hfdo Hm] as %fi %err2 ⟨Hf, Hfdo, Hm, Hfi⟩
+      $$ [Hf Hfdo Hm] as %fi %err2 ⟨Hf, Hfdo, Hm, Hfi, #_, -⟩
   · iframe; iframe #; iexact Hm
   ihave Hown := (csOwn_idle00 path γc m0 (F.map (·, true))).2 $$ [Hv Hm Hb]
   · iframe; ipureintro; exact Hl

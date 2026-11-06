@@ -3,6 +3,7 @@ The proof of `Spec/os/File__Truncate.lean`: the model's `EINTR` loop, by Löb in
 -/
 module
 
+public import Proof.os.ErrorOk
 public import Spec.os.File__Truncate
 
 @[expose] public section
@@ -88,7 +89,9 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
         rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
         simp only [Bool.not_true]
         wp_auto
+        ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption
@@ -98,8 +101,10 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
       · have he0' : ¬ e = W64 0 := he
         rw [decide_eq_false he0']
         wp_auto
-        wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+        ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption
@@ -146,7 +151,9 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
         rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
         simp only [Bool.not_true]
         wp_auto
+        ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption
@@ -156,8 +163,10 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
       · have he0' : ¬ e = W64 0 := he
         rw [decide_eq_false he0']
         wp_auto
-        wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+        ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption

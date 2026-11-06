@@ -1,0 +1,3 @@
+# Project bbolt (etc/goose.py): the freelist (array and hashmap), with bodies.
+translate = ["*"]
+imports = ["*"]

@@ -37,6 +37,7 @@ public import Proof.k8s_io.apiserver.pkg.features.Init
 public import Proof.k8s_io.apiserver.pkg.util.feature.Init
 public import Proof.path.Init
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Proof.k8s_io.apimachinery.pkg.labels.Everything
 public import Proof.k8s_io.apimachinery.pkg.fields.Everything
 public import Proof.runtime.PkgInitExt
@@ -131,17 +132,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of RangeStream))
   -- translated initializer of Everything))
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %_ -
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %_ -
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %_ -
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %_ -
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %_ -
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %_ -
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
   try wp_auto
   wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap
   try wp_auto

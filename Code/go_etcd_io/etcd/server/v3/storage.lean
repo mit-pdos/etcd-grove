@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Code.fmt
-public import Perennial.Code.os
+public import Code.os
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.server.v3.config
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.snap

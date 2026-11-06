@@ -41,7 +41,7 @@ theorem backend.batchTx.UnsafeDeleteBucket.wp_proof
   · iPkgInit
   ihave Hei : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hep
-  icases Hei with ⟨%e, #He, %Hel⟩
+  icases Hei with ⟨%e, #He, %Hel, -⟩
   obtain ⟨Hptr, Hleaf, HIs⟩ := Hel
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩

@@ -14,6 +14,7 @@ module
 
 public import Perennial.Golang.Defn
 public import GooseLang.Ext.OsFs.Impl
+public import Perennial.TrustedCode.fmt
 
 @[expose] public section
 
@@ -48,6 +49,26 @@ stuck on an fd that is not open (D6). A blocking `flock` that never returns is a
 need not contain. -/
 noncomputable def Flock.impl : val :=
   λ: "fd" "how", model.errno (ExternalOp osFsExt.name "Flock" ("fd", "how"))
+
+/-- `(Errno).Error() string` (`syscall_unix.go`): some string. Go's body
+
+```go
+	if 0 <= int(e) && int(e) < len(errors) {
+		s := errors[e]
+		if s != "" {
+			return s
+		}
+	}
+	return "errno " + strconv.Itoa(int(e))
+```
+
+reads the read-only table `errors` (`zerrors_linux_amd64.go`, whose initializer goose does not
+translate) inside its bounds, and calls `strconv.Itoa`: it returns a string, never panics, and
+touches no memory a caller owns. The model returns an arbitrary string (Perennial's
+`fmt.arbitraryString`, which can return every string), so every result of Go's is one of the
+model's. -/
+noncomputable def Errno.Error.impl : val :=
+  λ: "e" <>, _root_.Perennial.fmt.arbitraryString #()
 
 end code
 end syscall
