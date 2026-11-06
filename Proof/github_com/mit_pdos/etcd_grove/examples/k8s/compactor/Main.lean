@@ -183,8 +183,9 @@ theorem Main.wp_proof
     icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
     icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
     ihave Hslots := client.etcdGrpcSlots_of_started srv R.E ρ.rd 1 (64 - 2) 64
-        (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
-        (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+        etcdstart.memberReadN 64 (by omega) (by omega)
+        etcdstart.one_le_memberReadN
+        (by omega)
         $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
     · iframe
     ihave Hwslots := client.watchRunSlots_of R 1 64 1 (by omega) (by omega) $$ [HWRs Hrd1]

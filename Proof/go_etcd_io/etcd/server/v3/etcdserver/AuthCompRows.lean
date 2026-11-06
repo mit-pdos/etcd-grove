@@ -168,6 +168,8 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;
     -- until then `2 ^ 31`, `GoAttach`'s)
     "%Hbound" ∷ ⌜threadBound GF ≤ backend.rdPoolN⌝ ∗
+    -- (revoke-open, 2026-11-06) what `NewServer` built for the revocation
+    "#Hrvkb" ∷ srvRevokeBuilt s E ∗
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
     "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗
     "Hdone" ∷ (∃ c : Loc, srvDoneAddr s ↦ c) ∗
@@ -239,6 +241,8 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
     "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v SP ∗
+    -- (revoke-open, 2026-11-06) the revocation's bundle (`run`'s expiry arm, revocable mode)
+    "#Hrvk" ∷ srvRevokeCtx s E ρ γr γg ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
@@ -458,13 +462,13 @@ theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM 
     unfold isServerBuiltM isServerBuilt isServerBuiltC
     simp only [AuthC.isOn, srvReqBuiltM_false, srvAppliedInvM_false, srvCM_false]
     constructor
-    · iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    · iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
+      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
       isplitr
       · iapply hK.1 $$ Hkvi
       iapply hA.1 $$ Happ
-    · iintro ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    · iintro ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb, Hsk⟩
+      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
       isplitr
       · iapply hK.2 $$ Hkvi
       iapply hA.2 $$ Happ
@@ -474,13 +478,13 @@ theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM 
     unfold isServerBuiltM isServerBuiltOn isServerBuiltC
     simp only [AuthC.isOn]
     constructor
-    · iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    · iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
+      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
       isplitr
       · iapply hK.1 $$ Hkvi
       iapply hA.1 $$ Happ
-    · iintro ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    · iintro ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb, Hsk⟩
+      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
       isplitr
       · iapply hK.2 $$ Hkvi
       iapply hA.2 $$ Happ
@@ -559,15 +563,15 @@ theorem isServerRun_C (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
   unfold isServerRun isServerRunC
   simp only [AuthC.isOn, srvCM_false]
   constructor
-  · iintro ⟨⟨#Hsrv, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩, Hsk⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
+  · iintro ⟨⟨#Hsrv, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, #Hrvk, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩, Hsk⟩
+    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hrvk Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
     isplitr
     · iapply hS.1 $$ Hsrv
     isplitr
     · iapply acLessor_off
     iapply hA.1 $$ Hstart
-  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg, Hsk⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
+  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, #Hrvk, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg, Hsk⟩
+    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hrvk Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
     isplitr
     · iapply hS.2 $$ Hsrv
     iapply hA.2 $$ Hstart
@@ -589,15 +593,15 @@ theorem isServerRunOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci :
   unfold isServerRunOn isServerRunC
   simp only [AuthC.isOn]
   constructor
-  · iintro ⟨⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩, Hsk⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
+  · iintro ⟨⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, #Hrvk, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩, Hsk⟩
+    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hrvk Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
     isplitr
     · iapply hS.1 $$ Hsrv
     isplitr
     · iapply hL.2 $$ Hlnil
     iapply hA.1 $$ Hstart
-  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg, Hsk⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
+  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, #Hrvk, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg, Hsk⟩
+    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hrvk Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
     isplitr
     · iapply hS.2 $$ Hsrv
     isplitr

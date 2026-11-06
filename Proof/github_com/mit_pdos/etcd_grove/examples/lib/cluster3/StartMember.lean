@@ -257,8 +257,9 @@ theorem StartMember.wp_proof
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
   ihave Hslots := EtcdGrove.client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+      etcdstart.memberReadN 64 (by omega) (by omega)
+      etcdstart.one_le_memberReadN
+      (by omega)
       $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
   -- (W2) the watch server's environment is the server's; one watch run slot: two of the

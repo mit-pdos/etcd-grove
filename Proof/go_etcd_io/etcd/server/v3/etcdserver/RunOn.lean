@@ -112,6 +112,8 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
     "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
+    -- (revoke-open, 2026-11-06) the revocation's bundle (`run`'s expiry arm, revocable mode)
+    "#Hrvk" ∷ srvRevokeCtx s E ρ γr γg ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗

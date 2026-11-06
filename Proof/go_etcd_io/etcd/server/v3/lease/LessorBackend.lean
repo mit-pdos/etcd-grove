@@ -160,6 +160,23 @@ instance expiredLeases_persistent (GA : w64 → IProp GF) [∀ id, Persistent (G
     Persistent (expiredLeases GA ls) := by
   unfold expiredLeases; infer_instance
 
+/-- **What a reader of an expired slice reads** (revoke-open review round 1, S1, 2026-11-06; the
+server's `revokeExpiredLeases`): the slice's elements, read-only, each a non-null lease with its `ID`
+read-only. -/
+theorem expiredLeases_read (GA : w64 → IProp GF) (ls : GoSlice) :
+    expiredLeases GA ls ⊢
+      ∃ ps : List Loc, ls ↦*□ ps ∗ [∗list] p ∈ ps, ⌜p ≠ null⌝ ∗ ∃ id : w64, lsF go!"ID" p ↦□ id := by
+  iintro H
+  iunfold expiredLeases at H
+  icases H with ⟨%ps, -, Hls, Hps⟩
+  iexists ps
+  iframe Hls
+  iapply (BigSepL.bigSepL_mono_of_forall (fun {_ _} => by
+    iintro ⟨%Hp, %id, Hid, -⟩
+    isplitr
+    · ipureintro; exact Hp
+    iexists id; iexact Hid)) $$ Hps
+
 /-- The lessor's `expiredC` (persistent): read-only, a channel of slices of leases each meeting the
 grant guard `GA` (D19n; the lease-expiry plan's X3, 2026-11-04: the slice's elements, read-only,
 with their `ID`s, `expiredLeases`; until then only "some lease of each meets `GA`"), (the lease-grant

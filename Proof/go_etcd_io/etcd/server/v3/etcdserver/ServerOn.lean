@@ -517,6 +517,8 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;
     -- until then `2 ^ 31`, `GoAttach`'s)
     "%Hbound" ∷ ⌜threadBound GF ≤ backend.rdPoolN⌝ ∗
+    -- (revoke-open, 2026-11-06) what `NewServer` built for the revocation
+    "#Hrvkb" ∷ srvRevokeBuilt s E ∗
     "Hua" ∷ srvUberRowM on s E x₀ ∗
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)

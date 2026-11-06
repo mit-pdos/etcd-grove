@@ -14,6 +14,15 @@ stage's Draft, `AuthSplitDraft.lean`, decision 2: readers backed by thread token
   auth share.
 - `newPost_pool`/`newPostK_pool`: the constructor's post with its slots split into the pool and
   the stock (`newPostP`, `newPostKP`), for a thread bound within the pool.
+
+What the partition counts (2026-11-06, `notes/axiom-review/authrdn-count.md`, attack 6): the
+`actualMaxReaders` slots are the `readTx.mu` read locks taken with an `rdTok` (every one the verified
+backend code takes, and those of the auth store's tickets), not every Go reader of `readTx.mu`.
+`EtcdServer.monitorStorageVersion`'s goroutine read-locks it (`StorageVersion` →
+`schema.DetectSchemaVersion`, `schema.go:85-88`) without one: its spec (`srvSVRes`) holds no
+`rdTok`, so Go's `readTx.mu` can have one reader more than the slots count. Go's limit
+(`2 ^ 30 - 1` readers) is still not reached: each reader is a live goroutine, at most the thread
+bound (`≤ 2 ^ 28` in every closed theorem through `NewServer`).
 -/
 module
 
@@ -41,8 +50,12 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
 /-- **The auth store's share of a backend's reader slots** (the auth-on snapshot plan's N4,
 2026-11-03): the auth store's reader resource is a ticket, of which the server hands out at most
-`authRdN` copies, each backed by one of these slots of the backend current when it is redeemed. -/
-@[word_unfold] def authRdN : Nat := 2 ^ 7
+`authRdN` copies, each backed by one of these slots of the backend current when it is redeemed.
+(revoke-open Q6 (a), 2026-11-06: `rdPoolN` more, until then `2 ^ 7`, for the revocation's inner
+pool's copies of the server's `E.RD`, a pool's worth (`srvRevokePoolN = rdPoolN - 1`); written over
+`rdPoolN` since review round 1, NIT 3.6, so that the two stay in step. A backend constant sized by a
+consumer two packages up, the server.) -/
+@[word_unfold] def authRdN : Nat := rdPoolN + 2 ^ 7
 
 /-- The reader slots the constructor's post leaves counted, past the pool's `rdPoolN` and the auth
 share's `authRdN`. (Irreducible, 2026-11-02: a unifier unfolding it would evaluate `Nat.sub` by
@@ -50,7 +63,9 @@ share's `authRdN`. (Irreducible, 2026-11-02: a unifier unfolding it would evalua
 @[irreducible] def rdStockN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - rdPoolN - authRdN
 
 /-- The pool, the auth share and the stock are the constructor's `actualMaxReaders` slots
-(2026-11-02, the backend-auth-split stage; the auth share 2026-11-03). -/
+(2026-11-02, the backend-auth-split stage; the auth share 2026-11-03): every `rdTok`, so every
+`readTx.mu` reader that holds one; not `monitorStorageVersion`'s, which holds none (the file
+header). -/
 theorem rdPoolN_add_rdStockN :
     rdPoolN + authRdN + rdStockN = Int.toNat sync.rwmutex.actualMaxReaders := by
   unfold rdStockN rdPoolN authRdN
@@ -58,8 +73,9 @@ theorem rdPoolN_add_rdStockN :
   decide
 
 /-- The stock's size (2026-11-02, the backend-auth-split stage; less the auth share 2026-11-03):
-`2 ^ 30 - 1 - 2 ^ 28 - 2 ^ 7`, for the consumers' arithmetic. -/
-theorem rdStockN_val : rdStockN = 805306239 := by
+`2 ^ 30 - 1 - 2 ^ 28 - (2 ^ 28 + 2 ^ 7)` (revoke-open, 2026-11-06; until then `805306239`), for the
+consumers' arithmetic. -/
+theorem rdStockN_val : rdStockN = 536870783 := by
   unfold rdStockN rdPoolN authRdN
   rw [sync.rwmutex.actualMaxReaders_unseal]
   decide

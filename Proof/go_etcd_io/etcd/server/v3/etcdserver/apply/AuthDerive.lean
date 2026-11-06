@@ -444,6 +444,31 @@ theorem isAuthStoreAdmin_on (ai : GoInterfaceOk) (γ : mvcc.StoreNames) (P : IPr
 
 end proof
 
+section laws
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **`IsAuthEnabled` of a store `st` the contract names by its pointer** (revoke-open review round
+1, S3, 2026-11-06): `isAuthStore`'s `IsAuthEnabled` clause at the concrete method, the shape
+`auth.authStore.WithRoot.spec` takes (so that the server's caller does not open the contract). -/
+theorem isAuthStore_isAuthEnabled (st : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
+    (RD : IProp GF) (M : auth.AuthMode) (RW : IProp GF) :
+    isAuthStore (auth.authIface st) γ P f RD M RW ⊢
+      □ ({{ RD }} (App (Val (st @!! go.GoType.PointerType auth.authStore.ty @!! go!"IsAuthEnabled"))
+          (Val #()))
+        {{ (b : Bool), RET #b; RD ∗ auth.enabledVerdict M b }}) := by
+  iintro #H
+  iunfold isAuthStore at H
+  icases H with ⟨%ai, %Hai, -, -, -, -, -, #HEn, -⟩
+  have Hai' : ai = interface.mk (go.GoType.PointerType auth.authStore.ty) #st := by
+    unfold auth.authIface at Hai; cases Hai; rfl
+  subst Hai'
+  iexact HEn
+
+end laws
+
 end apply
 end EtcdGrove
 end Perennial

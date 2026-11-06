@@ -31,11 +31,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The cluster revokes leases** (see the file header): two scope restrictions, the KV names'
-lease mode `revocable` (the cluster's requests may revoke leases, `revokePropOk`) and auth off
-(the auth-on apply row admits no revocation, `plainCover`). -/
-def srvRevokesLeases (E : apply.AEnv GF) (ρ : ReqNames) : Prop :=
-  ρ.rd.kv.lm = .revocable ∧ E.authOn = false
+-- `srvRevokesLeases` (the cluster revokes leases): `RevokeCtx.lean` (2026-11-06, revoke-open: the
+-- revocation's spec, below this module, names it).
 
 /-- **A decoded `*pb.LeaseRevokeRequest` `r`**: not `null` (the proposal's `LeaseRevoke` field
 needs it, `apply.leaseRevokeIs`; Go's type assertion on the response panics on a nil request,

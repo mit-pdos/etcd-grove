@@ -51,6 +51,11 @@ S2–S4 removed it, 2026-11-05). Sealed; `run` opens it with `srvRevokeOpen_spec
 /-- The open case's triple (`run`'s expiry arm in the revocable mode). -/
 theorem srvRevokeOpen_spec :
     srvRevokeOpen (GF := GF) → EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) := id
+
+/-- (revoke-open, 2026-11-06) The open case, from a proof of the spec (`leaseexpiry`'s
+`MainLinked`). -/
+theorem srvRevokeOpen_intro (h : EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG)) :
+    srvRevokeOpen (GF := GF) (hG := hG) := h
 end defs
 
 -- `lease.Mode`: `Proof/go_etcd_io/etcd/server/v3/lease/LessorBackend.lean` (2026-11-04, X2: `srvSnapRO`
@@ -68,14 +73,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `lm` and the lease mode `m`: `lm` is `m` (the lease-expiry plan's X7 option (iii), 2026-11-04: until
 then the grant flag `lg` with `lg = decide (m ≠ none)`); in the monotone mode, no lease expires
 during the run; in the revocable mode, the open case of the expiry arm (`srvRevokeOpen`; the expiry
-stage's Part X-a, 2026-11-04: until then `m = revocable → False`). (Until the plan's S2–S4,
+stage's Part X-a, 2026-11-04: until then `m = revocable → False`), with the level bound its goroutines
+need (`srvRevokeLevels`, revoke-open Q1 (a2), 2026-11-06). (Until the plan's S2–S4,
 2026-11-05, also in a granting mode the open case of a granting cluster's snapshot job,
 `srvGrantOpen`: `run`'s snapshot job now restores a snapshot with leases, `applyAll.specSnap` at
 every lease mode.) The server's inner predicates carry `∃ m, lease.runCfg lm m`
 (`lease.runCfg_none`, `lease.runCfg_mono` and `lease.runCfg_revocable` give it; `_noExpiry`,
 `_revoke`, `_lm` and `LeaseApi.lean`'s `lease.bootCfg_of_run` use it). -/
 @[no_expose] def lease.runCfg (lm : lease.Mode) (m : lease.Mode) : Prop :=
-  lm = m ∧ (m = .mono → lease.leasesNoExpiry) ∧ (m = .revocable → srvRevokeOpen (GF := GF) (hG := hG))
+  lm = m ∧ (m = .mono → lease.leasesNoExpiry) ∧
+    (m = .revocable → srvRevokeLevels (GF := GF) ∧ srvRevokeOpen (GF := GF) (hG := hG))
 
 /-- `lease.runCfg` for a cluster that grants no lease. -/
 theorem lease.runCfg_none : lease.runCfg (GF := GF) .none .none := by
@@ -88,11 +95,13 @@ theorem lease.runCfg_mono (hne : lease.leasesNoExpiry) : lease.runCfg (GF := GF)
   refine ⟨rfl, fun _ => hne, ?_⟩
   intro h; cases h
 
-/-- `lease.runCfg` for a cluster that grants revocable leases: the open case of the expiry arm. -/
-theorem lease.runCfg_revocable (hrev : srvRevokeOpen (GF := GF) (hG := hG)) :
+/-- `lease.runCfg` for a cluster that grants revocable leases: the level bound and the open case of
+the expiry arm. -/
+theorem lease.runCfg_revocable (hlev : srvRevokeLevels (GF := GF))
+    (hrev : srvRevokeOpen (GF := GF) (hG := hG)) :
     lease.runCfg (GF := GF) .revocable .revocable := by
   unfold lease.runCfg
-  refine ⟨rfl, ?_, fun _ => hrev⟩
+  refine ⟨rfl, ?_, fun _ => ⟨hlev, hrev⟩⟩
   intro h; cases h
 
 /-- **The KV names' mode is the mode** (X7 option (iii); until then `lease.runCfg_lg`). -/
@@ -104,10 +113,10 @@ during the run (against the expired slice's `¬ leasesNoExpiry`: the arm is dead
 theorem lease.runCfg_noExpiry {lm : lease.Mode} (h : lease.runCfg (GF := GF) lm .mono) :
     lease.leasesNoExpiry := h.2.1 rfl
 
-/-- **What `run`'s expiry arm takes from `lease.runCfg` in the revocable mode**: the open case
-(`srvRevokeOpen`, opened by `srvRevokeOpen_spec`). -/
+/-- **What `run`'s expiry arm takes from `lease.runCfg` in the revocable mode**: the level bound
+(`srvRevokeLevels`) and the open case (`srvRevokeOpen`, opened by `srvRevokeOpen_spec`). -/
 theorem lease.runCfg_revoke {lm : lease.Mode} (h : lease.runCfg (GF := GF) lm .revocable) :
-    srvRevokeOpen (GF := GF) (hG := hG) := h.2.2 rfl
+    srvRevokeLevels (GF := GF) ∧ srvRevokeOpen (GF := GF) (hG := hG) := h.2.2 rfl
 
 end runCfg
 

@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.GoAttachTok
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__GetTo
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__CloseNotify
@@ -138,9 +139,9 @@ theorem EtcdServer.sendMergedSnap.wp_proof
   iunfold stopChan at Hstg
   icases Hstg with ⟨%γsg, #Hstg⟩
   icases srvGoRes_open s $$ Hgr with ⟨%γg, Hgr⟩
-  wp_apply hGA s γg _ (ownSliceCap go_uber_org.zap.zapcore.Field _ (DFrac.own 1)) $$ [Hgr Hlr Hfcap]
-    as ⟨Hgr, Hlr⟩
-  · iframe Hgr Hlr Hfcap
+  wp_apply wp_GoAttach_tok hGA s γg _ (ownSliceCap go_uber_org.zap.zapcore.Field _ (DFrac.own 1)) $$ [Hgr Hfcap]
+    as Hgr
+  · iframe Hgr Hfcap
     iintro !> %Φ' ⟨Hfcap, Hrun⟩ HΦ'
     ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto_lc 2

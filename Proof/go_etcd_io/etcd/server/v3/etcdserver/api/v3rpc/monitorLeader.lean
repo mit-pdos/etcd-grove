@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.monitorLeader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.GoAttachTok
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__StoppingNotify
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Perennial.Proof.time.Link
@@ -51,8 +52,8 @@ theorem v3rpc.monitorLeader.wp_proof
   ipersist s
   ipersist smap
   icases srvGoRes_open s $$ Hgr with ⟨%γg, Hgr⟩
-  wp_apply wp_GoAttach s γg _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok wp_GoAttach s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
     iintro !> %Φ' ⟨-, Hrun⟩ HΦ'

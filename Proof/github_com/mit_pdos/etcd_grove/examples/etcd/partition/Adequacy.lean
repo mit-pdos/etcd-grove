@@ -229,7 +229,7 @@ theorem etcd_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
     steps Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

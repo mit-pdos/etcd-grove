@@ -226,7 +226,7 @@ theorem applySnapshot_walk
   icases Hfl with ⟨#Hlgf, %Hlgnn, -⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, -, -, ⟨%gg, #Hgg, #Hggs⟩⟩
+  icases Hinit with ⟨-, -, -, -, ⟨%gg, #Hgg, #Hggs⟩, -⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hpbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []

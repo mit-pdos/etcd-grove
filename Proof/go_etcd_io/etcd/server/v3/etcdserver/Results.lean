@@ -2240,7 +2240,9 @@ theorem server_Start [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.Start.s
 /-- **`start` gives the request path's views** (the request path's unit 4c): from the construction
 premise, `start` returns the views `range_linearizable`, `txn_applied` and the v3rpc results take
 (`isServerReq`, `isServerRead`), the read loop's `server` contract over them (`read_server`), and
-the read loop's lock's reader slots (`srvRdCall`'s `srvReadReader`): those results are conditional
+the read loop's lock's reader slots that `start` hands on (`srvRdCall`'s `srvReadReader`;
+`srvStartReadN`: revoke-open, 2026-11-06, `actualMaxReaders` less those `start` keeps for the
+revocation's outer goroutine, `srvRevokeCtx`): those results are conditional
 on `isServerBuilt` and the stop's slot (`srvStop.slot`, R2c-3) alone (and each call's own
 resources). The slot is what `NewServer` keeps for the stop (`NewServer.specG`'s post, the sealed
 `srvStop.keep`), at the raft environment `Er` whose transport stop right is that slot's
@@ -2255,8 +2257,7 @@ theorem start_gives_views [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
     {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
         isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
           (idCred ρ.ids 1) ∗
-        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-          srvReadReader s γr }} := by
+        [∗list] _x ∈ List.replicate srvStartReadN (), srvReadReader s γr }} := by
   iintro %Φ ⟨#Hpkg, Hb, Hsk⟩ HΦ
   -- `start.spec` at the slot's `off`
   imod isServerBuilt_offC s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb Hsk] with ⟨%hm, Hb, Hl⟩

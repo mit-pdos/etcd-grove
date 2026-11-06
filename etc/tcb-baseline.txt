@@ -820,4 +820,3 @@ sorry Perennial.go_etcd_io.bbolt.Options.Options_into_val_typed
 sorry Perennial.go_etcd_io.bbolt.Options.Options_typed_pointsto
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry srvRevokeOpen_open

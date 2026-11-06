@@ -164,7 +164,7 @@ def etcdstart.memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Lo
           isServerRead s E ρ.rd ∗
             srvGoRes s ∗
               srvLgReader s ∗
-                ([∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), srvReadReader s ρ.rd) ∗
+                ([∗list] _x ∈ List.replicate etcdstart.memberReadN (), srvReadReader s ρ.rd) ∗
                   srvWatchBuilt s E ∗
                     srvServeFacts s E cfg ∗
                       srvBemuReader s ∗
@@ -199,6 +199,11 @@ theorem etcdstart.grpcUpM_false [v3rpc_sem :
     ReqNames) (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64) (R :
     v3rpc.WSrv GF) : etcdstart.grpcUpM false s E ρ γr gs lis addr cid mid R ⊢ etcdstart.grpcUp s E ρ
     γr gs lis addr cid mid R
+
+theorem etcdstart.one_le_memberReadN : 1 ≤ etcdstart.memberReadN
+
+def etcdstart.memberReadN : Nat :=
+  srvStartReadN
 
 def etcdstart.httpURL (host : GoString) : net.url.URL :=
   { Scheme' := go!"http", Opaque' := [], User' := null, Host' := host, Path' := [], Fragment' := [],
@@ -237,7 +242,7 @@ def etcdstart.memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
             srvAuthLb s E ∗
               srvGoRes s ∗
                 srvLgReader s ∗
-                  ([∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), srvReadReader s ρ.rd) ∗
+                  ([∗list] _x ∈ List.replicate etcdstart.memberReadN (), srvReadReader s ρ.rd) ∗
                     srvWatchBuilt s E ∗
                       srvServeFacts s E cfg ∗
                         srvBemuReader s ∗
