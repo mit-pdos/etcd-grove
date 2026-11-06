@@ -148,6 +148,80 @@ theorem rnCfgAtR_back_true (γ : RNNames) (rp : RestartPt) (L ce : List EntryMod
   iintro ⟨-, H⟩
   iexact H
 
+/-- A normal entry keeps a view over any log (`dvView_normal`'s, at `pre = []`). -/
+theorem srvCfgView_normal1 (γs : ServerRaftNames) (n : Loc) (X : List EntryModel) (m : EntryModel)
+    (hm : m.typ = W32 0) :
+    srvCfgView (GF := GF) γs n [] X ⊢ srvCfgView γs n [] (X ++ [m]) := by
+  unfold srvCfgView
+  iintro ⟨%v, Hc, %Hok⟩
+  iexists v
+  iframe Hc
+  ipureintro
+  rw [List.nil_append] at Hok ⊢
+  refine srvCfgOk_snoc_noConf Hok _ ?_
+  unfold LogEntry.isConfChange
+  simp only [EntryModel.toLE, hm]
+  intro h
+  rcases h with h | h <;> simp at h
+
+/-- Normal entries keep a view over any log. -/
+theorem srvCfgView_normal (γs : ServerRaftNames) (n : Loc) (d : List EntryModel)
+    (h : ∀ m, m ∈ d → m.typ = W32 0) :
+    ∀ X, srvCfgView (GF := GF) γs n [] X ⊢ srvCfgView γs n [] (X ++ d) := by
+  induction d with
+  | nil => intro X; rw [List.append_nil]
+  | cons m d IH =>
+    intro X
+    refine (srvCfgView_normal1 γs n X m (h m List.mem_cons_self)).trans ?_
+    rw [show X ++ m :: d = (X ++ [m]) ++ d by simp]
+    exact IH (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')) _
+
+/-- **The ghost log after a batch extends the one before by a suffix of the batch** (R2d'a A6,
+DRAFT): when Go's log through the batch and the backend's agree (one a prefix of the other, as two
+committed logs, `srvRLogLb_prefix`). Inside the window nothing is added; across or past it, the
+batch's entries past the backend's log. -/
+theorem ghostOf_batch (rp : RestartPt) (G ce : List EntryModel)
+    (hc : G ++ ce <+: rp.A₀ ∨ rp.A₀ <+: G ++ ce) :
+    ∃ d, ghostOf rp (G ++ ce) = ghostOf rp G ++ d ∧ ∀ m, m ∈ d → m ∈ ce := by
+  rcases hc with hin | hpast
+  · exact ⟨[], by rw [ghostOf_replay rp G ce hin, List.append_nil], fun _ h => absurd h (by simp)⟩
+  · have hg' : ghostOf rp (G ++ ce) = G ++ ce :=
+      ghostOf_past rp _ hpast.length_le
+    by_cases hG : rp.A₀.length ≤ G.length
+    · refine ⟨ce, by rw [hg', ghostOf_past rp G hG], fun _ h => h⟩
+    · -- straddling: the ghost log before is the backend's, a prefix of Go's through the batch
+      have hGA : G <+: rp.A₀ :=
+        List.prefix_of_prefix_length_le (List.prefix_append G ce) hpast (by omega)
+      rw [ghostOf_in rp G hGA]
+      obtain ⟨u, hu⟩ := hGA
+      obtain ⟨t, ht⟩ := hpast
+      have hut : u ++ t = ce := by
+        rw [← hu, List.append_assoc] at ht; exact List.append_cancel_left ht
+      refine ⟨t, by rw [hg', ← ht], fun m hm => ?_⟩
+      rw [← hut]; exact List.mem_append_right _ hm
+
+/-- **A batch of normal entries keeps the loop's view over the ghost log** (R2d'a A6, DRAFT;
+`rnCfgAt_normal`'s restart form, finding (h)): the raft loop's handed log through the batch and the
+backend's log agree (`hc`). -/
+theorem rnCfgAtR_normal (γ : RNNames) (rp : RestartPt) (L ce : List EntryModel)
+    (h : ∀ m, m ∈ ce → m.typ = W32 0)
+    (hc : γ.pre ++ L ++ ce <+: rp.A₀ ∨ rp.A₀ <+: γ.pre ++ L ++ ce) :
+    rnCfgAtR (GF := GF) γ rp L ⊢ rnCfgAtR γ rp (L ++ ce) := by
+  unfold rnCfgAtR
+  obtain ⟨d, hd, hdm⟩ := ghostOf_batch rp (γ.pre ++ L) ce hc
+  rw [← List.append_assoc, hd]
+  exact srvCfgView_normal γ.srv γ.nl d (fun m hm => h m (hdm m hm)) _
+
+/-- **The loop's view after a batch with no `ConfChange` entry** (R2d'a A6, DRAFT;
+`rnCfgAt_back_false`'s restart form). -/
+theorem rnCfgAtR_back_false (γ : RNNames) (rp : RestartPt) (ai₀ : w64) (L ce : List EntryModel)
+    (hidx : srvIdxOkW ai₀ (L ++ ce)) (hcc : ccIn ce = false)
+    (hc : γ.pre ++ L ++ ce <+: rp.A₀ ∨ rp.A₀ <+: γ.pre ++ L ++ ce) :
+    (if rnHands γ ce then iprop(True) else rnCfgAtR (GF := GF) γ rp L) ⊢ rnCfgAtR γ rp (L ++ ce) := by
+  have hh : rnHands γ ce = false := by unfold rnHands; simp [hcc]
+  rw [ite_eq_right (by rw [hh]; decide)]
+  exact rnCfgAtR_normal γ rp L ce (ccIn_false_normal ai₀ L ce hidx hcc) hc
+
 end view
 
 end EtcdGrove
