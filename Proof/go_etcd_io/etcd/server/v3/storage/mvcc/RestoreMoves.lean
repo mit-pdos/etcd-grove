@@ -135,10 +135,10 @@ history's authority. Returned: `currentRev` and `compactMainRev` whole (the latt
 store never compacted; M2's item 15: at the compaction revision `c`), the restoring flag whole and
 down, `s.revMu`'s and the writer's eighths of the current objects and names, and `restoreHeld`. -/
 theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log) (c c' : Int)
-    (Rr : IProp GF) (hc : -1 ≤ c) (hw : γ.watchQ = true) :
+    (Rr : IProp GF) (hc : -1 ≤ c) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ revMuInv s γ 1 -∗
       dghostVar γ.rst (DFrac.own (1 : Qp).half) false -∗ curAt γ (DFrac.own (1 : Qp).half) o -∗
-      ghostVar γ.wr 1 () -∗ idxCert γ.idx L -∗
+      ghostVar γ.wr 1 () -∗
       (if γ.watchQ then logQ γ L else iprop(True)) -∗
       crevUB γ.idx (1 : Qp).half.half c -∗
       (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half} (W64 c : w64) : IProp GF) -∗
@@ -150,9 +150,9 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
       crevUB γ.idx (1 : Qp).half.half c ∗ restoreHeld γ L' c ∗
       monoListLbOwn γ.idx.hist (histShape L' []) ∗
       slotFl γ (1 : Qp).half false ∗ (∃ cw : Int, api.wcrPart γ.api (1 : Qp).half cw) ∗
-      ⌜L <+: L' ∧ c ≤ c'⌝ ∗ slotX γ 1 L' c' ∗ api.absPart γ.api (1 : Qp).half.half L' c' ∗
+      ⌜(γ.watchQ = true → L <+: L') ∧ c ≤ c'⌝ ∗ slotX γ 1 L' c' ∗ api.absPart γ.api (1 : Qp).half.half L' c' ∗
       api.pndPart γ.api (pndW γ) none ∗ api.nlLb γ.api L' ∗ Rr := by
-  iintro Hlc #Hwi HR Hrst Hcur Hwr #HcL HlogQ Hcrev Hcmp Hfr Hcb
+  iintro Hlc #Hwi HR Hrst Hcur Hwr HlogQ Hcrev Hcmp Hfr Hcb
   -- `s.revMu`'s body, at the current names
   icases revMuInv_open_cur s γ 1 _ _ o $$ [HR Hrst Hcur] with ⟨HB, HT, Hrst, Hcur⟩
   · iframe HR Hrst Hcur
@@ -204,13 +204,22 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   icases ghostVar_join_halves γ.clog log ilog $$ [HclogB Hclog] with ⟨Hclog, %Hlog⟩
   · iframe HclogB Hclog
   subst Hlog
-  ihave HlogQ : logQ (GF := GF) γ L $$ [HlogQ]
-  · rw [hw]; simp only [↓reduceIte]; iexact HlogQ
-  iunfold logQ at HlogQ
-  ihave %Hag := monoListAuthOwn_agree γ.idx.log _ _ _ _ $$ Hlw HlogQ
-  obtain ⟨-, hLeq⟩ := Hag
-  have hLeq' := hLeq.symm
-  subst hLeq'
+  -- at a watchable store, the committed log is the caller's `L` (the outer quarter's)
+  ihave ⟨%hLw, HlogQ, Hlw⟩ : ⌜γ.watchQ = true → log = L⌝ ∗
+      (if γ.watchQ then logQ (GF := GF) γ log else iprop(True)) ∗ idxLogAuth γ.idx (1 : Qp).half log
+      $$ [HlogQ Hlw]
+  · by_cases hw : γ.watchQ = true
+    · rw [hw]; simp only [↓reduceIte]
+      iunfold logQ at HlogQ
+      ihave %Hag := monoListAuthOwn_agree γ.idx.log _ _ _ _ $$ Hlw HlogQ
+      obtain ⟨-, hLeq⟩ := Hag
+      subst hLeq
+      iframe Hlw
+      iunfold logQ; iframe HlogQ
+      ipureintro; intro _; rfl
+    · simp only [hw, Bool.false_eq_true, ↓reduceIte]
+      iframe Hlw
+      ipureintro; intro h; exact h.elim
   iunfold wrState at Hrtk
   icases Hrtk with ⟨Hrv, -, -⟩
   icombine HtoksB Htoks gives %Hn
@@ -219,28 +228,26 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   ihave Htoks : ownTokAuth γ.revs ntb $$ [HtoksB Htoks]
   · iapply (ownTokAuth_halves γ.revs ntb).2; iframe HtoksB Htoks
   icombine Htoks Hrv gives %Hge
-  ihave HlogQ : (if γ.watchQ then logQ (GF := GF) γ L else iprop(True)) $$ [HlogQ]
-  · rw [hw]; simp only [↓reduceIte]; iunfold logQ; iexact HlogQ
   -- the committed log's authority, whole, at `L'`
   -- the client's step (`restoreCb`): `s.revMu`'s slot and the writer's view at `L'`, which extends
   -- the committed log
   iunfold mvcc.restoreCb at Hcb
-  ihave Hcb := Hcb $$ %L %cb %cw [HXB HYa HYp]
+  ihave Hcb := Hcb $$ %log %cb %cw [HXB HYa HYp]
   · iframe HXB HYa HYp
   imod fupd_mask_subseteq (mask_diff_ndot (nroot .@ "mvcc") "writer") with Hmask
   imod Hcb with ⟨%Hlc, HXn, HYa, HYp, #HnlLb, HRr⟩
   obtain ⟨hLL, hcc⟩ := Hlc
   imod Hmask with -
-  ihave Hla := logAuth_gather γ L $$ [Hlw HlogB HlogQ]
+  ihave Hla := logAuth_gather γ log $$ [Hlw HlogB HlogQ]
   · iframe Hlw HlogB HlogQ
   imod monoListAuthOwn_update L' hLL $$ Hla with ⟨Hla, #Hllb⟩
-  imod ghostVar_update L' γ.clog L $$ Hclog with Hclog
+  imod ghostVar_update L' γ.clog log $$ Hclog with Hclog
   -- the index's history at `L'`
   rw [histShape_nil]
   imod monoListAuthOwn_update (histOf L') (histOf_mono hLL) $$ Hhist with ⟨Hhist, #Hhlb⟩
   -- the revision budget: the writer's state's tokens are all of it
-  imod ownTokAuth_sub (2 ^ 63 - 3 - L.length) γ.revs ntb $$ Htoks Hrv with Htoks
-  rw [show ntb - (2 ^ 63 - 3 - L.length) = 0 by omega]
+  imod ownTokAuth_sub (2 ^ 63 - 3 - log.length) γ.revs ntb $$ Htoks Hrv with Htoks
+  rw [show ntb - (2 ^ 63 - 3 - log.length) = 0 by omega]
   -- the compaction revision: `c`
   ihave %Hcb := crevUB_agree γ.idx _ _ cb c HcB1 hc $$ HcrevB Hcrev
   subst Hcb
@@ -249,7 +256,7 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
       $$ [HcmpB Hcmp]
   · iapply (typedPointsto_parts (GF := GF) _ _ (1 : Qp).half (1 : Qp).half (Qp.half_add_half 1)).2
     iframe HcmpB Hcmp
-  ihave Hcr : (s.[store, go!"currentRev"] ↦{DFrac.own 1} (W64 ((L.length : Int) - 1) : w64) :
+  ihave Hcr : (s.[store, go!"currentRev"] ↦{DFrac.own 1} (W64 ((log.length : Int) - 1) : w64) :
       IProp GF) $$ [HrevB Hcur]
   · iapply (typedPointsto_parts (GF := GF) _ _ (1 : Qp).half (1 : Qp).half (Qp.half_add_half 1)).2
     iframe HrevB Hcur
@@ -289,7 +296,7 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   isplitl [Hwc]
   · iexists cw; iexact Hwc
   iframe HXn HYa HYp HnlLb HRr
-  ipureintro; exact ⟨hLL, hcc⟩
+  ipureintro; exact ⟨fun hw => hLw hw ▸ hLL, hcc⟩
 
 /-- `a + b` copies of `P`, in two parts. -/
 theorem rep_split (P : IProp GF) (a b : Nat) :

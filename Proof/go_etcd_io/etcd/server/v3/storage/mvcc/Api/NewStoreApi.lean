@@ -160,7 +160,7 @@ theorem NewStore.wp_proof
   wp_apply +noauto (hNewStore lg _ le cfg (some bk) γl γl Pk #func.nil rd0 false γi γok
       (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd Hro Hifresh Hok0]
-    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro, #Hrc⟩, Hcok, #Hhk, ⟨%rv, %wv, HrvF, #HrvI, HwvF, #HwvI⟩, Hrds, -, -, Hcl, -, -, Hfrag, Hcu, Hret,
+    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro, #Hrc⟩, Hcok, #Hhk, ⟨%rv, %wv, HrvF, #HrvI, HwvF, #HwvI⟩, Hrds, #HcL0, -, Hcl, HfsQ, Hwsd, Hfrag, Hcu, Hret,
       #Hcp, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc1⟩
   · iframe Hle Hro Hifresh Hok0
     isplitr
@@ -237,7 +237,7 @@ theorem NewStore.wp_proof
     isplitl
     · iunfold isMvccPlain
       iexists s
-      iframe Hs Hloc Hcp Hsupp Hfree'
+      iframe Hs Hloc Hcp Hsupp Hfree' HcL0
       isplitr
       · ipureintro; rfl
       iexists rv, wv
@@ -257,7 +257,7 @@ theorem NewStore.wp_proof
     simp only [MvccState.notifiedLog]
     iframe Hab Hpn Hcr2 Hnl
     iframe Hr0'; ipureintro; exact MvccReachable.start
-  isplitl [Hright Hcr4 HRT HRTw Hret]
+  isplitl [Hright Hcr4 HRT HRTw Hret HfsQ Hwsd]
   · iunfold mvccOpen
     iexists s, γ.phys, (-1)
     rw [StoreNames.withPhys_self]
@@ -280,7 +280,7 @@ theorem NewStore.wp_proof
     simp only [Bool.false_eq_true, ↓reduceIte]
     isplitr
     · ipureintro; show kbCmpM γ.phys.kb; rw [show γ.phys.kb = some bk from hγk]; exact hcm
-    itrivial
+    iframe HfsQ Hwsd
   isplitl [Htok Hcur]
   · iunfold mvccBackend
     iframe Htok

@@ -168,7 +168,7 @@ private def isMvccPlain (kv : GoInterface) (γ : MvccName) : IProp GF :=
   iprop(∃ s : Loc, ⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∗
     isStore s (γ : StoreNames) ∗ api.locIs (γ : StoreNames).api s ∗
     crevPermIs (γ : StoreNames) (fun _ => iprop(True)) ∗
-    rdSupply s (γ : StoreNames) ∗ certFree (γ : StoreNames) ∗
+    rdSupply s (γ : StoreNames) ∗ certFree (γ : StoreNames) ∗ idxCert (γ : StoreNames).idx [[], []] ∗
     (∃ rv wv : Loc,
       s.[store, go!"ReadView"] ↦□ (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
       isReadView rv s (γ : StoreNames) ∗
@@ -205,7 +205,7 @@ private def openRest (γ : MvccName) (p : PhysNames) (s : Loc) : IProp GF :=
       rv.[readView, go!"kv"] ↦□
         (interface.mkOk (go.GoType.PointerType watchableStore.ty) #w : GoInterface) ∗
       w.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter w)
-    else iprop(True))
+    else iprop(fieldShare s (γ : StoreNames) (1 : Qp).half.half ∗ wsDep (γ : StoreNames)))
 
 /-- **The store's open token** (exclusive): `Compact`, `Restore` and `Close` take it, the first two
 give it back. A compaction schedules its job after releasing `s.mu`, on a scheduler `Close` stops and

@@ -87,7 +87,7 @@ theorem mvcc.store.Restore.wp_proof
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG))
     (hCLF : mvcc.store.compactLockfree.spec (GF := GF) (hG := hG)) :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) := by
-  intro s γ b' d' γb' P' L R c r Ls Rr hkH dqh PreH QH PostH XH YH hR hwq
+  intro s γ b' d' γb' P' L R c r Ls Rr hkH dqh PreH QH PostH XH YH hR
   by_cases hon : mvcc.kbCmpM γ.kb
   · -- (M2's item 15) on: both backends compact
     wp_start as ⟨#Hrc0, #HpF, #HpC, #Hs, %Hkb, Hright, Hfs, Hwsd, Hfrag, Hown, #HcL,
@@ -203,8 +203,8 @@ theorem mvcc.store.Restore.wp_proof
     -- (with the client's step, `restoreCb`: `s.revMu`'s slot and the writer's view at the restored
     -- log)
     imod (mvcc.restore_takeover s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ L ([[], []] ++ R) c0 r.crev Rr
-        HcM hwq) $$
-        Hlc2 Hwi HR Hfrst Hcur Hwr HcL HlogQ HcrevM HcmpM Hfr Hcb
+        HcM) $$
+        Hlc2 Hwi HR Hfrst Hcur Hwr HlogQ HcrevM HcmpM Hfr Hcb
       with ⟨⟨%v0, Hcr⟩, Hcm, Hrst, Hcur, HcurR, HcurW, HcrevM, Hheld, #Hhlb, HfzK, ⟨%cw, Hwc⟩,
         %HLc, HXn, HYa, HYp, #HnlLb, HRr⟩
     obtain ⟨hLR, hc0r⟩ := HLc
@@ -895,8 +895,8 @@ theorem mvcc.store.Restore.wp_proof
   -- (with the client's step, `restoreCb`: `s.revMu`'s slot and the writer's view at the restored log)
   rw [mvcc.CmpRecs.crev_empty]
   imod (mvcc.restore_takeover s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ L ([[], []] ++ R) (-1) (-1) Rr
-      (by decide) hwq) $$
-      Hlc2 Hwi HR Hfrst Hcur Hwr HcL HlogQ HcrevM HcmpM Hfr Hcb
+      (by decide)) $$
+      Hlc2 Hwi HR Hfrst Hcur Hwr HlogQ HcrevM HcmpM Hfr Hcb
     with ⟨⟨%v0, Hcr⟩, Hcm, Hrst, Hcur, HcurR, HcurW, HcrevM, Hheld, #Hhlb, HfzK, ⟨%cw, Hwc⟩,
       %HLc, HXn, HYa, HYp, #HnlLb, HRr⟩
   obtain ⟨hLR, -⟩ := HLc

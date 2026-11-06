@@ -59,8 +59,12 @@ private theorem mvccOpen_at (γ : mvcc.StoreNames) (s : Loc) :
   iunfold openRest at Hor
   icases Hor with ⟨%hcm, Hw⟩
   iexists p, c
-  iframe Hright Hw
-  ipureintro; simp only [StoreNames.withPhys_kb]; exact hcm
+  iframe Hright
+  isplitr
+  · ipureintro; simp only [StoreNames.withPhys_kb]; exact hcm
+  cases hw : γ.watchQ
+  · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+  · simp only [↓reduceIte]; iexact Hw
 
 /-- **`KV.Close.contract` at `*store`.** -/
 theorem store.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)) :

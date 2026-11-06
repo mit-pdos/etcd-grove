@@ -424,7 +424,7 @@ private theorem isMvcc_plain (s : Loc) (γ : MvccName) :
   iunfold isMvcc at Hmv
   icases Hmv with #(⟨Hmv, -⟩ | Hmv)
   · iunfold isMvccPlain at Hmv
-    icases Hmv with ⟨%s', %Hk, -, -, -, #Hsup, -, ⟨%rv, %wv, #Hrv, #HrvI, -⟩⟩
+    icases Hmv with ⟨%s', %Hk, -, -, -, #Hsup, -, -, ⟨%rv, %wv, #Hrv, #HrvI, -⟩⟩
     have hs : s = s' := mkOk_loc_inj _ Hk
     subst hs
     iexists rv

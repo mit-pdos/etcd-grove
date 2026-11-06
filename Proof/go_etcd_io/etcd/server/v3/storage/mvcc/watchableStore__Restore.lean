@@ -278,10 +278,10 @@ theorem mvcc.watchableStore.Restore.wp_proof
   subst Hsteq
   -- `s.store.Restore(b)`
   (try wp_auto)
-  wp_apply (hRestore st γ.st b' d' γb' P' σ.Lmu R c r Ls Rr hkH dqh PreH QH PostH XH YH hR Hwq) $$ [Hrc HpF HpC Hright Hfs Hwsd
+  wp_apply (hRestore st γ.st b' d' γb' P' σ.Lmu R c r Ls Rr hkH dqh PreH QH PostH XH YH hR) $$ [Hrc HpF HpC Hright Hfs Hwsd
       Hfrag Hown HlogQ HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts HLo Hfr Hcb]
     as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, #HhP, #Hreg', #HcL', HlogQ, Hres, Hjob, Hold,
-      Hnew', HLo, Hfr, #HnlLb, HRr, %hLR⟩
+      Hnew', HLo, Hfr, #HnlLb, HRr, %hLRw⟩
   · simp only [Hwq, ↓reduceIte]
     iframe Hrc HpF HpC Hright Hfs Hfrag Hown HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts HLo Hfr Hcb
     iframe #
@@ -292,6 +292,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
     iunfold mvcc.logQ
     iframe HlogQ
     ipureintro; exact Hlok
+  have hLR := hLRw Hwq
   simp only [Hwq, ↓reduceIte]
   obtain ⟨hbk', hkb'⟩ := Hp'
   generalize hL' : ([[], []] ++ R : mvcc.Log) = L' at *
