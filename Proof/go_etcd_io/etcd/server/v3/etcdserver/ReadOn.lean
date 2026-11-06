@@ -174,6 +174,56 @@ theorem rangeReadOkM_false (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : 
     (o : OpFull) (resp : Loc) (Q : List EntryModel → IProp GF) :
     rangeReadOkM (GF := GF) false E γr c F o resp Q = rangeReadOk E γr c F o resp Q := rfl
 
+/-- **A failed `Range`'s read facts** (k8s etcd3 7c-2 part 2, S3, 2026-11-06): what `rangeReadOkM`
+says of a successful read, at the error: a certified log `log` extending the floor `F`, read after
+the read index unless serializable, the deposit's result at a committed raft log whose model is
+`log` (the deposit fires at the read index, before the store's read), and the store's compaction
+revision `crev` read with it (`mvcc.crevLb`), where `P log crev` (the future revision's
+`rangeFutureAt`, the compacted one's `rangeCompactedAt`). -/
+def rangeErrAt (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (o : OpFull) (Q : List EntryModel → IProp GF) (P : mvcc.Log → Int → Prop) : IProp GF :=
+  iprop(∃ (log : mvcc.Log) (crev : Int), mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
+    mvcc.crevLb E.γ.idx crev ∗
+    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧ P log crev⌝ ∗
+    (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
+    (if o.base.serializable then iprop(True) else
+      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L))
+
+instance rangeErrAt_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (P : mvcc.Log → Int → Prop) :
+    Persistent (rangeErrAt on E γr c F o Q P) := by
+  unfold rangeErrAt; infer_instance
+
+/-- The future revision at the log `log` (`txn.rangeResult`'s first case): the request's revision
+above the log's last. -/
+def rangeFutureAt (o : OpFull) (log : mvcc.Log) (_crev : Int) : Prop :=
+  sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev
+
+/-- The compacted revision at the log `log` and compaction revision `crev` (`txn.rangeResult`'s
+fourth case): the revision read below `crev`. -/
+def rangeCompactedAt (o : OpFull) (log : mvcc.Log) (crev : Int) : Prop :=
+  sint.Z o.base.rev ≤ sint.Z (W64 ((log.length : Int) - 1)) ∧
+    sint.Z (mvcc.rangeRev (W64 ((log.length : Int) - 1)) o.base.rev) < crev
+
+/-- **Which error a failed `Range` returns** (k8s etcd3 7c-2 part 2, S3, 2026-11-06): mvcc's
+`ErrFutureRev` or `ErrCompacted`, each with the read's facts at the error (`rangeErrAt`); an auth
+package variable (`authErrVarIs`: `doSerialize`'s, S3a); the read index's (`readErrIs`, S3b); or
+the read's context error wrapped by `fmt.Errorf`'s `%w` (`mvcc.ctxErrorf`: `rangeKeys`, F1). -/
+def rangeErrOut (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface) : IProp GF :=
+  iprop((∃ ef : GoInterfaceOk,
+      (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ GoInterface.ok ef : IProp GF) ∗
+      ⌜err = GoInterface.ok ef⌝ ∗ rangeErrAt on E γr c F o Q (rangeFutureAt o)) ∨
+    (∃ ec : GoInterfaceOk,
+      (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ GoInterface.ok ec : IProp GF) ∗
+      ⌜err = GoInterface.ok ec⌝ ∗ rangeErrAt on E γr c F o Q (rangeCompactedAt o)) ∨
+    authErrVarIs err ∨ readErrIs err ∨ mvcc.ctxErrorf err)
+
+instance rangeErrOut_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface) :
+    Persistent (rangeErrOut on E γr c F o Q err) := by
+  unfold rangeErrOut; infer_instance
+
 /-- **A successful read-only `Txn` in the auth mode `on`** (`txnReadOk` with the deposit's committed
 log `L` at the mode's model, `kvModelM on`; `txnReadOk` at `on = false`, by definition; E3v). -/
 def txnReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
