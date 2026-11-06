@@ -58,7 +58,9 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     wp_apply hFill $$ [Hw Hin] as ⟨Hfd, %rv', -⟩
     · iframe; iframe #
     wp_auto
+    ihave #HSn := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF) $$ []
     iapply HΦ
+    iframe HSn
     iframe HS Hg
     iunfold v3rpc.leaseGrantOut
     ileft
@@ -78,9 +80,10 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     | nil => exact absurd rfl Hen
     | ok ei =>
       wp_auto
-      wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e %He
+      wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSn⟩
       · iframe #
       iapply HΦ
+      iframe HSn
       iframe HS
       isplitl []
       · iunfold v3rpc.leaseGrantOut

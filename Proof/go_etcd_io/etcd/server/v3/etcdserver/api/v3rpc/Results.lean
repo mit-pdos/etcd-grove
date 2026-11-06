@@ -871,11 +871,13 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
     try (ipureintro; exact ⟨Hrn, Hn⟩)
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci cd [] m.name Qa resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
   iframe Hed
   iframe Hs
+  iframe HSe
   iintro %He
   iexists ()
   isplitr
@@ -912,11 +914,13 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     ipureintro; exact Hn
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleAdd m) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
   iframe Hed
   iframe Hs
+  iframe HSe
   iintro %He
   iexists ()
   isplitr
@@ -953,11 +957,13 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
     ipureintro; exact Hn
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrUserGrantRole m.1 m.2) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
   iframe Hed
   iframe Hs
+  iframe HSe
   iintro %He
   iexists ()
   isplitr
@@ -994,11 +1000,13 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
     ipureintro; exact Hn
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleGrantPermission m.1 (some m.2)) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
   iframe Hed
   iframe Hs
+  iframe HSe
   iintro %He
   iexists ()
   isplitr
@@ -1034,11 +1042,13 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     iframe; iframe #
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci irrAuthEnable Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
   iframe Hed
   iframe Hs
+  iframe HSe
   iintro %He
   iexists ()
   isplitr

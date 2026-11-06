@@ -1040,6 +1040,11 @@ which they pass through unused. The client asks for no outcome yet: `attemptPre`
 **Gate (etcd-grove-82, 2026-11-06): 7c-2 does not fill `handlerDescs` before HS-5 is fixed** (`questions.md`, "7c-1b attacks"): with the descriptions in it, `grpcInvokerOk`'s claim that only a handler makes them, false in Go, would no longer be vacuous.
 **For 7c-2/7c-3 (etcd-grove-82, 2026-11-06):** prometheus `StreamServerInterceptor`: the same
 error-shape check as HS-6 (its `PostCall`'s `status.FromError` of the handler's error).
+**7c: left (out of scope; etcd-grove-82, 2026-11-06):** grpc over etcd's HTTP mux (`ServeHTTP`):
+unmodeled. `grpcDecOk` covers `Server.Serve`'s HTTP/2 transport only (the one `grpc.start` covers);
+under `ServeHTTP` (etcd's TLS+HTTP on one port, `embed/serve.go:260, 314-324`), `mapRecvMsgError`
+returns a raw `transport.ConnectionError`, not a leaf (`notes/axiom-review/hs6.md`). Nothing is
+widened for it; also a gap of `/shared/tmp/k8s-server-trace.md` (row 15).
 **Moved to 7c-2:** filling `handlerDescs`, and `etcdRangeSpecM`'s `Ψe` facts. Range's handler
 proves `Ψe` at the two descriptions only from `EtcdServer.Range`'s error post (HS-3 (a)), which
 is 7c-2's. Filled earlier, the Range handler's proof has nothing to prove it from.

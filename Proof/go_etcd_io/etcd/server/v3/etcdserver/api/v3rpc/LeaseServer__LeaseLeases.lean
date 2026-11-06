@@ -90,7 +90,9 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     ihave ⟨HR, %dq', Hrev, %Hrr⟩ := v3rpc.hdrRev_out A.revR w.Header' hv.Revision' r' $$ [Hkeep Hout]
     · iframe
     (try wp_auto)
+    ihave #HSn := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF) $$ []
     iapply HΦ
+    iframe HSn
     iframe HS HR
     iunfold v3rpc.leaseLeasesOut
     ileft
@@ -126,10 +128,11 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
       cases b1 with
       | false =>
         wp_auto
-        wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e %He
+        wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSn⟩
         · iapply srvErrIs_of_applyErrIs _ Hen $$ Hae
         (try wp_auto)
         iapply HΦ
+        iframe HSn
         iframe HS HR
         iunfold v3rpc.leaseLeasesOut
         iright
@@ -168,7 +171,9 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
           ihave ⟨HR, %dq', Hrev, -⟩ := v3rpc.hdrRev_out A.revR «$v0_ptr» _ r' $$ [Hkeep Hout]
           · iframe
           (try wp_auto)
+          ihave #HSn := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF) $$ []
           iapply HΦ
+          iframe HSn
           iframe HS HR
           iunfold v3rpc.leaseLeasesOut
           ileft

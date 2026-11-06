@@ -78,6 +78,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
   cases hc : v3rpc.txnCheck (sint.Z n) cs ts es with
   | some e =>
     simp only [v3rpc.checkRes]
+    ihave #HSe := v3rpc.checkErr_statusErrOk e err $$ Hpkg Herr
     iunfold txn.errVarIs at Herr
     icases Herr with ⟨%ee, #Hee, %Herr⟩
     subst Herr
@@ -86,6 +87,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
     rw [show v3rpc.txnAllCheck (sint.Z n) cs ts es = some e by unfold v3rpc.txnAllCheck; rw [hc]]
     dsimp only
     iframe Hcall
+    iframe HSe
     iunfold v3rpc.checkOut
     iunfold txn.errVarIs
     iframe #
@@ -99,6 +101,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
     · iframe #; ipureintro; exact Hdc.1
     cases hts : v3rpc.ivCheck ts with
     | none =>
+      ihave #HSe := v3rpc.checkErr_statusErrOk .duplicateKey e1 $$ Hpkg Hiv1
       iunfold txn.errVarIs at Hiv1
       icases Hiv1 with ⟨%ee, #Hee, %He1⟩
       subst He1
@@ -107,6 +110,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
       rw [v3rpc.txnAllCheck_ts hc hts]
       dsimp only
       iframe Hcall
+      iframe HSe
       iunfold v3rpc.checkOut
       iunfold txn.errVarIs
       iframe #
@@ -119,6 +123,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
       · iframe #; ipureintro; exact Hdc.2
       cases hes : v3rpc.ivCheck es with
       | none =>
+        ihave #HSe := v3rpc.checkErr_statusErrOk .duplicateKey e2 $$ Hpkg Hiv2
         iunfold txn.errVarIs at Hiv2
         icases Hiv2 with ⟨%ee, #Hee, %He2⟩
         subst He2
@@ -127,6 +132,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
         rw [v3rpc.txnAllCheck_es hc hts hes]
         dsimp only
         iframe Hcall
+        iframe HSe
         iunfold v3rpc.checkOut
         iunfold txn.errVarIs
         iframe #
@@ -151,6 +157,9 @@ theorem v3rpc.kvServer.Txn.wp_proof
           iapply HΦ
           rw [v3rpc.txnAllCheck_ok hc hts hes]
           dsimp only
+          isplitl
+          rotate_left
+          · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
           iunfold v3rpc.kvOut
           ileft
           isplitr
@@ -165,11 +174,12 @@ theorem v3rpc.kvServer.Txn.wp_proof
           | nil => exact absurd rfl Hen
           | ok ei =>
             wp_auto
-            wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e %He
+            wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSe⟩
             · iframe #
             iapply HΦ
             rw [v3rpc.txnAllCheck_ok hc hts hes]
             dsimp only
+            iframe HSe
             iunfold v3rpc.kvOut
             iright
             isplitr

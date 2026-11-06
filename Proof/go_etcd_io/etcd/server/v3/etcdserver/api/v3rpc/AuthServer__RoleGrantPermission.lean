@@ -50,7 +50,7 @@ theorem v3rpc.AuthServer.RoleGrantPermission.wp_proof
   · subst Hres
     rcases err with ei | _
     · (try wp_auto)
-      wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e %Hne
+      wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%Hne, #HSe⟩
       · iframe #
         iapply (v3rpc.srvErrIs_applyErrIs (GoInterface.ok ei) (by intro h; cases h)) $$ Herr
       (try wp_auto)
@@ -59,6 +59,7 @@ theorem v3rpc.AuthServer.RoleGrantPermission.wp_proof
       iright
       isplitr
       · ipureintro; exact ⟨rfl, Hne⟩
+      iframe HSe
       iexists (GoInterface.ok ei)
       iframe HQ
       ipureintro; exact He
