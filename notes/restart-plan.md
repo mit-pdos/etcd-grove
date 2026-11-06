@@ -3049,3 +3049,50 @@ the same edit. Then A3 was unblocked (Q22 (1) (a), user-approved) and took prior
 - `#print axioms` of `apply.wp_proofROn`, `applyEntries.wp_proofBatchROnC`,
   `applyEntries.wp_proofBatchR`, `applyAll.wp_proofBatchR` and `applyEntryNormal.wp_proofRepOn`:
   no `sorryAx`. Their repository axioms are all in `etc/tcb-baseline.txt`; no axiom was added.
+
+##### A9 + A10: stopped at a gap before any edit (2026-11-06)
+
+**The gap.** In `RunR`/`StartR`/`ViewR`, the apply side counts the restart from index 1:
+`ai₀ = 0`, the apply side's `γr.raft.pre = []`, and Go's log `A` includes the prefix `P` handed
+before the start (`run_job_bodyR`'s `ha00`/`hpre`, `applyResR_start`'s `ai = ai₀ + |P|`). A
+restarted raft node's loop starts after its snapshot: `γn.pre = P`, `|P| = σ.b`. But the raft
+side's environment ties the two together. `rnEnvOk` (`InvRaftNode.lean:472-484`) has
+`E.γr.raft.pre = γ.pre ∧ uint.Z E.γr.raft.ai0 = |γ.pre|`, and `run.wp_proof` reads both (`Hnm`):
+`Hpre0`, `hpre : γn.pre = ρ.raft.pre` for `rnApR_dv`/`rnApGive_dv`, `hdvs`. Every handout the
+loop receives is stated after `γ.pre`:
+- `rnApplyTok_recv` gives `□ E.C (A ++ ce)`, and `E.C` is over the apply side's log after its
+  `pre`;
+- `rnAdvChan` is at `(γ.pre ++ A ++ ce).length`.
+
+So with `σ.b > 0`, `γn.pre = P` forces `ai₀ = |P|` and the apply side's `pre = P`. That
+contradicts the drafted design. A10, as scoped (`run.wp_proof` and `isServerRunC`'s texts only),
+cannot hold both. The drafts' other premise, a conf entry's view only at `pre = [] ∧ ai0 = 0`
+(`hdvs`, the one-mode repair), is why they chose `ai₀ = 0`.
+
+Checked on the way: `Hsnap`'s restart form is true of Go. At a restart, the snapshot's
+`ConfState` is rebuilt from the backend's members (`bootstrap.go:107-116`,
+`buildConfStateFromV3store`, even with no WAL snapshot). `epCsAt γ A₀ cs` therefore holds, even
+though a replayed conf entry does not update `ep.confState` (`server.go:2051-2054`).
+
+**Options.**
+- (a) **The raft side's restart data, as drafted.** `rnEnvOk` at a restart:
+  `E.γr.raft.pre = []`, `ai0 = 0`, `γ.pre <+: A₀`, and the bound `|A₀| + 1 < 2^64`. The loop's
+  handouts are restated at the apply side's log `γ.pre ++ L`: `rnApplyTok_recv`'s `E.C`, the
+  snapshot arm, `rnApR`/`rnApGive` → `ViewR`'s `rnApRR`/`rnApGiveR`, and `NodeBridge`'s and
+  `InvRaftNode`'s readers of `Henv`. This touches `raftNode.start`'s proof (1800 lines, 25 uses
+  of `.pre`) and `InvRaftNode`/`InvRaftLoop` (about 40). It is A6's hub part, finding (h). Est.
+  1.5-2.5 wk (est.) on top of A10.
+- (b) **Re-base the drafts on `pre = P`** (`ai₀ = |P|`, Go's log after `P`, `rp = ⟨0, A₀ after
+  P⟩`). `rnEnvOk` and the raft loop stay. But every conf entry after a restart with `σ.b > 0`
+  then needs the view at `pre ≠ []`. That means generalizing `hdvs`, `dvOk` and `applyConfChange`'s
+  view rows, which are frozen specs. Est. 2-3 wk (est.), and it reworks the probe's drafts.
+- (c) **R2d'a at `σ.b = 0` only** (a restart before the first WAL snapshot, so `P = []`): the
+  recommendation. `rnEnvOk` holds unchanged (`γn.pre = [] = ` the apply side's, `ai₀ = 0`), and
+  `RunR`/`StartR` apply as drafted (`rp = ⟨0, A₀⟩`). A9's texts:
+  - `%HEr`: today's conjuncts plus `∃ A₀`, its types normal or conf, and `ai₀ + |A₀| + 1 < 2^64`;
+  - `Hsnap` = `rnSnapOnceR … 0 0 γr.raft A₀`;
+  - `Hstart` = `srvRestartAtR … A₀ 0`;
+  - the first-start laws at `A₀ = []`: `rnSnapOnceR_first`, `srvRestartAtR_first`.
+
+  A10 is then `run.wp_proof` over `applyResR` with no raft-side change. `σ.b > 0` goes to a later
+  item, (a), with R2d'b's `RestartNode`. Est.: A10 as estimated (1.5-2.5 wk (est.)).
