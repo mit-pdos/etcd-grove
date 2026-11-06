@@ -1842,3 +1842,20 @@ and `#print axioms` lines mention these specs).
    transaction each, the step's callbacks), `mvccDeleter` (`mvccDeleter_M1`), and
    `mvccTxn_leaseDelete.law`.
 3. `PR` (`*txnReadWrite`): `mvccTxnI`'s read arm at `PR` for `NewReadOnlyTxnWrite`.
+
+**Done (2026-11-06, `4bcd8499ea`): the store keeps two counted reader slots fewer** (the server's
+request, decided by the coordinator): `etcdStorage_open.law` takes `rdStockN - 2` open shares and
+gives two `backend.rdTok`s back after `backendRest`; `mvccStorageFor`/`storageRest` at `rdStockN - 2`
+(`mvcc.nReaders := rdStockN - 2`); `mvccReaderN := rdStockN - 5`. The new statement was sent to the
+server agent.
+
+**Request 3, the coordinator's decisions (2026-11-06) on track B's notes, for the next session:**
+`⌜γ.watchQ = false⌝` goes in `isMvcc`'s plain disjunct (`isMvccPlain kv γ ∗ ⌜γ.watchQ = false⌝`), not
+in `isMvccPlain` (which `CmpCb`'s watchable `Compact` builds for the inner store); the write-back
+supply goes in `mvccBackend`, at the share's names (`□ (⧗ 1 ={⊤}=∗ storeWT (γ.withPhys p))` under its
+`∃ p`), where track B's `writerHyp` expects it. The handle must give track B's hypotheses
+(`Api/ReadApi.readerHyp`, `Api/WriteApi.writerHyp`) so they can be discharged: `readerHyp` from the
+reader supply (`rdSupply`, above: borrow a copy with the thread token, `threadPool.borrow_timeless`
+if `storeReaderC`/`watchReader` are timeless, else `borrow_lc` with a credit the hypothesis must
+then take; `tokBack` by the copy's wand and `giveBack`); `writerHyp`'s `certFree` and `watchQ` from
+the handle, `storeWT` from `mvccBackend`, `revToken`/`writerPin` from `writerL` (the joint commit).
