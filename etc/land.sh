@@ -8,6 +8,7 @@
 # Under `flock $ETCD_GROVE_LAND_LOCK` (default /shared/tmp/etcd-grove-land.lock), held from the check
 # through the fast-forward:
 # 1. `lean` must be an ancestor of HEAD (else: merge `lean` first, outside the lock, and rerun);
+# 1b. the append-only notes (notes/status-history.md) must not be shorter than on `lean`;
 # 2. if the branch changes only files under notes/ and top-level *.md files (against `lean`; none
 #    of them is read by a gate), the gates are skipped;
 #    otherwise etc/gates.sh runs under the full-build lock (`flock $ETCD_GROVE_BUILD_LOCK`, default
@@ -31,6 +32,14 @@ if ! flock -n 9; then echo "land: another landing holds $land_lock; waiting"; fl
 if ! git merge-base --is-ancestor lean HEAD; then
   echo "land: lean ($(git rev-parse --short lean)) is not in $branch: merge lean, then rerun"; exit 1
 fi
+# Append-only files (CLAUDE.md): a landing never shortens them (a6ace74079 cut status-history.md
+# from 19021 lines to 2 by rewriting it, 2026-11-06).
+for f in notes/status-history.md; do
+  old=$(git show "lean:$f" 2>/dev/null | wc -l); new=$(git show "HEAD:$f" 2>/dev/null | wc -l)
+  if [ "$new" -lt "$old" ]; then
+    echo "land: $f is append-only, but $branch shortens it ($old -> $new lines); lean unchanged"; exit 1
+  fi
+done
 if [ -z "$(git diff --name-only lean HEAD -- . ':!notes' ':(exclude,top,glob)*.md')" ]; then
   echo "land: notes and top-level docs only, gates skipped"
 else
