@@ -33007,3 +33007,51 @@ outer one holds up to three locks' slots at once. Perennial guarantees only `1 <
 today into `start_gives_views`'s post (server `Results.lean`) and etcdstart's `memberUp`,
 `memberUpOn`, `kvServeStocks`: their count becomes `actualMaxReaders - srvRevokePoolN`. A
 `Results.lean` statement: brought to the user (the plan's §F.1).
+
+
+## `Range`'s read errors through gRPC: `KVAns.errP`, `rangeErrDesc`, the two Range premises, `handlerDescs` filled (2026-11-06 · k8s etcd3 7c-2 part 2, S4-S7; the S6 route (a premise for refused checks, `□ ∀ d, Ψe d` with auth on) approved by etcd-grove-82 under the user's delegation, pending the user's review; the rest decided by the agent · branch `k8s-etcd3-7c`; DRAFT until 7c-2 part 2's Freeze)
+
+What a failed `Range` tells its caller, from mvcc's two read errors to the client's error outcome.
+
+- **S4, the answer's error description** (`InvKV.lean`). `KVAns` gains `errP : KVReq → GoString →
+  Prop` (default `True`): what the request's errors' `Error()` returns (`errMsgP`). `kvAnswer`'s
+  error carries it, and `kvOut`'s error goes out through `grpcErrOut (A.errP q)`: a pass-through
+  context error, a mapped one, or one whose description satisfies `errP`. The server's answer
+  (`srvKVAnsM`) sets `errP (.range _) := rangeErrMsgOk` (neither read error's gRPC description) and
+  `True` for the other requests. The Range producer proves it from `rangeErrOut`'s cases
+  (`errMsgP_of_rangeErrOut`: mvcc's two variables, auth's, the read index's, `rangeKeys`' `%w`
+  error, whose `Error()` now has the prefix `"rangeKeys: context cancelled: "`, `mvcc.rangeKeysErr`).
+- **S5, what the gRPC error says** (`ReadOn.lean`, `rangeErrDesc`): with the future revision's
+  gRPC description, `Range`'s error was mvcc's `ErrFutureRev`, with the read's facts at it
+  (`rangeErrAt`); likewise the compacted one. `range_end_to_endM`'s error post gives it
+  (`rangeErrDesc_of_grpcErrOut`, from `grpcErrMapOk`'s two descriptions, G2-a).
+- **S6, the client's spec** (`KVServiceOn.lean`). `etcdRangeSpecM` gains two premises:
+  `⌜v3rpc.rangeCheck o ≠ none⌝ -∗ □ ∀ d, Ψe d` (a request the check refuses fails with no
+  information) and the two wands `rangeErrReply … (rangeFutureAt o) -∗ Ψe futureRevDesc`,
+  `… (rangeCompactedAt o) -∗ Ψe compactedDesc`, `rangeErrReply` being `rangeReplyOk`'s facts of the
+  log read without a reply. `etcdRangeSpecOn` (auth on) gains `□ ∀ d, Ψe d`, as the other auth-on
+  KV specs (HS-4). The route proved over the alternative of trusting the check's errors' descriptions:
+  no trust growth.
+- **S7, `handlerDescs := [futureRevDesc, compactedDesc]`** (`InvGrpc.lean`). `handlerErr_none` is
+  gone: `handlerErr_nil` at a success, `handlerErr_all` from a spec's `□ ∀ d, Ψe d`. The trusted
+  `grpcDecOk` and `srvInterceptorOk` now say their errors carry neither description; the
+  interceptor's four errors are proved so from `rpctypes`' descriptions (`interceptorErrsNotRead`),
+  the client's context errors from `ContextReadErrs.descs` (`ErrorsNewOk`, `chanCtx_ok`, which now
+  takes the instance, as do the k8s compactor proofs and the k8s etcd3 Links: `etc/gen-link.py`'s
+  `LC_EXTRA_VARS`; `k8s_etcd3_safe` already took it, `Hctx`).
+
+**Follow-up (after 7c, not done): an `*errors.errorString`'s description is its text.** The
+mvcc-desc attack (`notes/axiom-review/mvcc-desc-g2a.md`, "Suggestion") proposes one general fact,
+`errDesc (interface.mkOk (PointerType errorString.ty) #x) = msg` given `x`'s cell holds `msg` (true
+by `status.FromError`'s fallback for an error without `GRPCStatus`), the analogue of
+`rpctypes.errDesc_etcdError`. It is not Perennial's: `errDesc` and the `FromError` boundary are this
+repository's (`Proof/google_golang_org/grpc/status/ErrDesc.lean`,
+`Spec/google_golang_org/grpc/status/FromError.lean`), so it would be stated next to them, not in
+`notes/perennial-changes.md`. It would replace the per-variable conjuncts:
+- `grpcErrMapOk`'s `errDesc kf = "mvcc: required revision is a future revision"` and `errDesc kc =
+  "mvcc: required revision has been compacted"` (`v3rpc/Base.lean`, asserted by
+  `toGRPCErrorMap_init`'s axiom; derivable from mvcc's `errVarCell`s);
+- `ContextReadErrs.descs`'s `context.Canceled` half (`read/Init.lean`; `DeadlineExceeded` is a
+  struct, not an `*errorString`, and keeps its conjunct), and so `v3rpc.ctxErrDescs`'s;
+and serve every other `errors.New` variable whose description a proof needs (`etcdserver/errors`,
+`auth`, `lease`). Same trust, one statement instead of one per variable.
