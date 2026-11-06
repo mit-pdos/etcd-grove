@@ -4,16 +4,16 @@ lease-expiry example, 2026-11-05, `notes/lease-expiry-plan.md`; as leasegrant's)
 Rocq counterpart).
 
 The steps: `Main`'s premises in the shared start's form; the ghost state `NewServer` takes, at KV
-names whose lessor is revocable (`etcdstart.alloc1` at the mode `.revocable`, with the open cases
-`srvGrantOpen` and `srvRevokeOpen`); `etcdstart.StartServer`, whose post has the first start's
+names whose lessor is revocable (`etcdstart.alloc1` at the mode `.revocable`, with the open case
+`srvRevokeOpen`); `etcdstart.StartServer`, whose post has the first start's
 lease-TTL row (`leaseTTLRowR`); `go holdToken()`; `etcdstart.Serve` with
 `etcdstart.kv_lease_served` at `.revocable` (the live grant, `TimeToLive` and `Leases` contracts
 registered at the address); `etcdstart.NewClient`; `cli.Lease.Grant(1)` (`Q`: the lease live in
-the lessor's history from an index, with its read-only `ttl` field at least the requested `1`).
+the lessor's history from an index, with its request `1`, `leaseReqIs`).
 The poll loop keeps "`gone` → the lease absent from the history at an index at or after the
 grant's": a `TimeToLive` answer `TTL = -1 ∧ GrantedTTL = 0` is, under the row (`leaseTTLRow`, from
 `leaseTTLRowR` and the history's empty first snapshot), either the lease's recorded TTL `0` at a
-later index, which `lease.leaseTTLAt_ttl_agree` refutes (it is the lease's `ttl ≥ 1`), or its
+later index, which `lease.leaseTTLAt_ge_req` refutes (the lease was requested at `1`), or its
 absence. After the loop, `Leases()` is asked at the absence's index: the listing is a snapshot at
 or after it, where the lease is still absent (`lease.lessorAt_absent_stays`: an id is granted once),
 so the final loop finds nothing and does not panic. Every step's error ends `Main` (`return`).
@@ -74,12 +74,15 @@ theorem Main.wp_proof
     (wp_Grant : lessor.Grant.spec (GF := GF) (hG := hG))
     (wp_TimeToLive : lessor.TimeToLive.spec (GF := GF) (hG := hG))
     (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG))
-    -- the open cases of a cluster that grants leases (`srvGrantOpen`) and of `run`'s expiry arm
-    -- (`srvRevokeOpen`): this example's names grant revocable leases
-    (hslg : srvGrantOpen (GF := GF)) (hrev : srvRevokeOpen (GF := GF) (hG := hG)) :
+    -- the open case of `run`'s expiry arm (`srvRevokeOpen`): this example's names grant revocable
+    -- leases (until the lease-expiry plan's S2–S4, also `srvGrantOpen`, a granting cluster's
+    -- snapshot job)
+    (hrev : srvRevokeOpen (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP Hms hAs
-  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
+  wp_start as ⟨Hstart, Htok, #Hprem⟩
+  -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
+  icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
@@ -113,7 +116,7 @@ theorem Main.wp_proof
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (leaseexpiryDir id)
       (dirOne_member id _) (by omega) (by omega) false 0 .revocable .revocable
-      (lease.runCfg_revocable hslg hrev)) $$ Hmarsh
+      (lease.runCfg_revocable hrev)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlgρ⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
@@ -121,11 +124,13 @@ theorem Main.wp_proof
   -- `StartServer("leaseexpiry", peerAddr, clientAddr, lg)`
   have Hdirok : netDirOk (leaseexpiryDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
+  -- (hub step 7) no peer address: the start bundle is the fresh bundle at the network `γn`
+  ihave Hfresh := etcdstart.memberStartRes_fresh _ _ γn rfl $$ Hstart
   wp_apply (wp_StartServer N go!"leaseexpiry" go!"127.0.0.1:23986" go!"127.0.0.1:23976" lg
       (LogEntry.toEntries boot 0) ctxs (leaseexpiryDir id) id γ ρ E₀ Φs γn .revocable Htb Hrb48
       HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [leaseexpiryDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq
-      Hdbo) $$ [Htok Hmb Hwdf]
+      Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, #Hrow⟩)
@@ -221,11 +226,11 @@ theorem Main.wp_proof
     as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
   (try wp_auto)
   -- `cli.Lease.Grant(gctx, grantTTL)`, `Q`: the lease live in the history from an index, its
-  -- `ttl` at least `1`
+  -- request `1`
   wp_apply (wp_Grant lp [go!"127.0.0.1:23976"]
       (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) E.γ.leases)
-      (fun m => iprop(∃ (i : Nat) (l : Loc) (t : w64), lease.leaseLiveFrom E.γ.leases i m.id l ∗
-        lease.lsF go!"ttl" l ↦□ t ∗ ⌜sint.Z (W64 1) ≤ sint.Z t⌝)) gctx gcd) as %gr %gerr Hgr
+      (fun m => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom E.γ.leases i m.id l ∗
+        lease.leaseReqIs E.γ.leases m.id (W64 1))) gctx gcd) as %gr %gerr Hgr
   · iframe #
     imodintro; inext
     iunfold etcdLeaseGrantSpecLive
@@ -248,7 +253,7 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Hgerr
   (try wp_auto)
-  icases HQg with ⟨%gi, %gl, %gt, #Hlive, #Hgttl, %Hgt⟩
+  icases HQg with ⟨%gi, %gl, #Hlive, #Hgreq⟩
   ihave #Hlive' := Hlive
   iunfold lease.leaseLiveFrom at Hlive'
   icases Hlive' with ⟨%i0, %σg, %Hσg, #Hσat⟩
@@ -321,14 +326,14 @@ theorem Main.wp_proof
         lease.leaseAbsentFrom E.γ.leases i0 mg.id)) $$ []
     · ihave Hdis := Hmt $$ Hrow2
       icases Hdis with (⟨%j, %Hj, #Httl0⟩ | #Habs)
-      · imod lease.leaseTTLAt_ttl_agree E.γ.leases gi j mt.id gl gt mt.grantedTtl ⊤ (by simp)
-          $$ [HrdInv Hlive Hgttl Httl0] with %Heq
+      · -- (the lease-expiry plan's S2–S4, Q-S8) every TTL of the lease at least its request, `1`
+        imod lease.leaseTTLAt_ge_req E.γ.leases j mt.id (W64 1) mt.grantedTtl ⊤ (by simp)
+          $$ [HrdInv Hgreq Httl0] with %Hge
         · rw [Hmid]; iframe #
         imodintro; ileft; ipureintro
         intro h0
-        rw [h0] at Heq
-        subst Heq
-        simp at Hgt
+        rw [h0] at Hge
+        simp at Hge
       · imodintro; iright
         rw [← Hmid]
         iexact Habs

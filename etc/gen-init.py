@@ -1023,12 +1023,19 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
          ''],
     imports=['Perennial.Golang.Theory.TypeSet'],
     custom={
-        'ErrFutureRev': dict(doc='/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description. -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e',
-                             pat='⟨%e@, H@, #S@⟩'),
-        'ErrCompacted': dict(doc='/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description. -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e',
-                             pat='⟨%e@, H@, #S@⟩'),
+        'ErrFutureRev': dict(doc='/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCFutureRev`\'s (k8s etcd3 7c). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.futureRevDesc⌝',
+                             pat='⟨%e@, H@, #S@, %D@⟩'),
+        'ErrCompacted': dict(doc='/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCCompacted`\'s (k8s etcd3 7c). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.compactedDesc⌝',
+                             pat='⟨%e@, H@, #S@, %D@⟩'),
+        # (k8s etcd3 7c) the server-side read errors `togRPCError` maps mvcc's to
+        'ErrGRPCFutureRev': dict(doc='/-- `ErrGRPCFutureRev = status.Error(codes.OutOfRange, "etcdserver: mvcc: required revision is a future revision")` (`error.go`): with that description (k8s etcd3 7c). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCFutureRev ↦ GoInterface.ok e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.futureRevDesc⌝',
+                             pat='⟨%e@, H@, %D@⟩'),
+        'ErrGRPCCompacted': dict(doc='/-- `ErrGRPCCompacted = status.Error(codes.OutOfRange, "etcdserver: mvcc: required revision has been compacted")` (`error.go`): with that description (k8s etcd3 7c). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCCompacted ↦ GoInterface.ok e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.compactedDesc⌝',
+                             pat='⟨%e@, H@, %D@⟩'),
         'errStringToError': dict(doc='/-- `errStringToError = map[string]error{...}` (`error.go`): a map whose values are `ErrGRPC*` errors, `status.Error(...)`s: `*status.Error`s, leaf errors whose `Error()`, `GRPCStatus()` and `Is` return. -/',
                                  post=f'∃ (mref : Loc) (m : GMap GoString GoInterface), globalAddr errStringToError ↦ mref ∗ mref ↦$□ m ∗ □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → {CV3}.statusErrOk v) ∗ ⌜∀ (k : GoString) (v : GoInterface), m !! k = some v → {CV3}.errDesc v = k⌝',
                                  pat='⟨%mref@, %m@, H@, #M@, #S@, %D@⟩'),
@@ -1055,7 +1062,8 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
                              post='∃ x : EtcdError, globalAddr ErrAuthNotEnabled ↦ interface.mkOk EtcdError.ty #x',
                              pat='⟨%x@, H@⟩'),
     },
-    finish=['ipersist HErrFutureRev', 'ipersist HErrCompacted', 'ipersist HerrStringToError',
+    finish=['ipersist HErrFutureRev', 'ipersist HErrCompacted', 'ipersist HErrGRPCFutureRev',
+            'ipersist HErrGRPCCompacted', 'ipersist HerrStringToError',
             'ipersist HErrUserEmpty', 'ipersist HErrInvalidAuthToken', 'ipersist HErrAuthOldRevision',
             'ipersist HErrGRPCNotSupportedForLearner', 'ipersist HErrNoLeader', 'ipersist HErrAuthNotEnabled',
             'ihave #HFRS : iprop(□ ∀ e : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok e -∗',
@@ -1066,8 +1074,10 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
             '  iexact SErrFutureRev'] + FIN_PRE[:6] + [
             'imodintro', 'unfold go_etcd_io.etcd.cache.v3.rpctypesInit', 'iframe #',
             'ipureintro',
-            'refine ⟨by assumption, ?_, by assumption, by assumption, by assumption, by assumption, by assumption⟩',
-            'exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs⟩'],
+            'repeat\' (first',
+            '  | assumption',
+            '  | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs⟩',
+            '  | constructor)'],
 )
 
 SPECIAL['go_etcd_io.etcd.client.v3'] = dict(
@@ -1244,9 +1254,24 @@ _RERRS = ['ErrGRPCEmptyKey', 'ErrGRPCInvalidSortOption', 'ErrGRPCValueProvided',
           'ErrGRPCNotCapable', 'ErrGRPCInvalidClientAPIVersion', 'ErrGRPCNoLeader']
 _RKEYS = {'MetadataClientAPIVersionKey': 'client-api-version', 'MetadataRequireLeaderKey': 'hasleader',
           'MetadataHasLeader': 'true'}
+# (k8s etcd3 7c, HS-1) with their descriptions: no one of them is a read error's (`handlerDescs`)
+_RERRDESCS = {
+           'ErrGRPCEmptyKey': ('InvalidArgument', 'etcdserver: key is not provided'),
+           'ErrGRPCKeyNotFound': ('InvalidArgument', 'etcdserver: key not found'),
+           'ErrGRPCValueProvided': ('InvalidArgument', 'etcdserver: value is provided'),
+           'ErrGRPCLeaseProvided': ('InvalidArgument', 'etcdserver: lease is provided'),
+           'ErrGRPCTooManyOps': ('InvalidArgument', 'etcdserver: too many operations in txn request'),
+           'ErrGRPCDuplicateKey': ('InvalidArgument', 'etcdserver: duplicate key given in txn request'),
+           'ErrGRPCInvalidClientAPIVersion': ('InvalidArgument', 'etcdserver: invalid client api version'),
+           'ErrGRPCInvalidSortOption': ('InvalidArgument', 'etcdserver: invalid sort option'),
+           'ErrGRPCNoSpace': ('ResourceExhausted', 'etcdserver: mvcc: database space exceeded'),
+           'ErrGRPCNoLeader': ('Unavailable', 'etcdserver: no leader'),
+           'ErrGRPCNotCapable': ('FailedPrecondition', 'etcdserver: not capable')}
 for x in _RERRS:
-    _R['custom'][x] = dict(doc=f'/-- `{x} = status.Error(...)` (`error.go`): a non-nil error. -/',
-                           post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e', pat='⟨%e@, H@⟩')
+    c, m = _RERRDESCS[x]
+    _R['custom'][x] = dict(doc=f'/-- `{x} = status.Error(codes.{c}, "{m}")` (`error.go`): with that description (k8s etcd3 7c). -/',
+                           post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"{m}"⌝',
+                           pat='⟨%e@, H@, %D@⟩')
 for x, v in _RKEYS.items():
     _R['custom'][x] = dict(doc=f'/-- `{x} = "{v}"` (`metadatafields.go`): a string. -/',
                            post=f'∃ k : GoString, globalAddr {x} ↦ k', pat='⟨%k@, H@⟩')
@@ -1611,9 +1636,9 @@ names) and the four
                  'metricsServerLock': '_root_.Perennial.sync.Mutex'},
     custom={
         'toGRPCErrorMap': dict(
-            doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil. -/',
-            post='∃ (mp : Loc) (M : GMap GoInterface GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k v, M !! k = some v → v ≠ GoInterface.nil⌝',
-            pat='⟨%mp@, %M@, H@, #S@, %P@⟩'),
+            doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc\'s `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions (k8s etcd3 7c: `grpcErrMapOk`). -/',
+            post='∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ ⌜grpcErrMapOk M kf kc⌝',
+            pat='⟨%mp@, %M@, %kf@, %kc@, H@, #S@, #F@, #C@, %P@⟩'),
         'clientRequests': promvec('clientRequests', 'Counter', ['type', 'client_api_version']),
         # (D19j, 2026-10-18) the watch server's metrics (`metrics.go`)
         'streamFailures': promvec('streamFailures', 'Counter', ['Type', 'API']),
@@ -1625,7 +1650,7 @@ names) and the four
     finish=(['ipersist HtoGRPCErrorMap', 'ipersist HclientRequests',
              'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd22',
-             'icases Hri with ⟨-, #RCP, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, ' +
+             'icases Hri with ⟨-, ⟨%eRCP, #RCPa, #RCPs, -⟩, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, ' +
              ', '.join(f'#V{i}' for i in range(len(_V_ERRS) + 3)) + ', ' +
              ', '.join(f'#RW{i}' for i in range(len(_V_WERRS))) + ', -⟩',
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',
@@ -1668,6 +1693,9 @@ names) and the four
              'ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR',
              'ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI',
              '-- `rpctypes`\'',
+             'ihave #RCP : iprop(∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e ∗',
+             '    go_etcd_io.etcd.cache.v3.errorStringSpec e) $$ []',
+             '· iexists eRCP; iframe #',
              'ihave #MCP := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RCP'] +
             [f'ihave #MRW{i} := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW{i}' for i in range(len(_V_WERRS))] +
             ['-- the metrics',

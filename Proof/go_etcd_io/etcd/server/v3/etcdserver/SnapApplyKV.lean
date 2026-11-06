@@ -67,7 +67,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hγw : γw.st = E.γ)
     (hwq : E.γ.watchQ = true)
     (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
-    (hrbw : receiptBound GF ≤ backend.wbInit - 6) (hlg : E.lg = false) (c' : Int) (on : Bool)
+    (hrbw : receiptBound GF ≤ backend.wbInit - 6) (L : List w64) (c' : Int) (on : Bool)
     (st : auth.AuthState) :
     -- (P6.2, 2026-11-03) the new applier at `E'` (until then the wand `NewUberApplier` gives, with
     -- `E'`'s options), the auth part by the mode at `E'` (`kvAuthM`; until then `srvAuthApplyRes`
@@ -82,8 +82,8 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
       (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
       mvcc.bkRTx d'.γB d'.P d'.be ∗
-      lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗
-      lease.rdAt E.γ.leases E.s ∗ E.RD ∗
+      lease.leaseOwn E.γ.leases L ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases L ∗
+      apply.ltHalf E L ∗ lease.rdAt E.γ.leases E.s ∗ E.RD ∗
       srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
       dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d' ∗
       srvBeRO d' ∗ backend.bkRPool d'.γB d'.P d'.be ∗
@@ -100,11 +100,11 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
   have hrb : receiptBound GF ≤ 2 ^ 48 := by
     have : backend.wbInit = 2 ^ 40 - 1 := rfl
     omega
-  iintro ⟨#Hub, #Hws, Huo, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, Hrdat, HRD, Hbe, Hγbe, #Hro, Hpl, Hra, Hauar, #Hw,
+  iintro ⟨#Hub, #Hws, Huo, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HLt, Hrdat, HRD, Hbe, Hγbe, #Hro, Hpl, Hra, Hauar, #Hw,
     #Hwok, HRD0, Hcmp⟩
   ihave Hkv := kvOwn_snap E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d' γw ws R hkb'
-    hγw hwq hRok hrb hlg $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
-  · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD
+    hγw hwq hRok hrb L $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HLt HRD]
+  · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HLt HRD
   imodintro
   iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn false false, c'⟩
   isplitr

@@ -32339,3 +32339,97 @@ by the marked `sorry` `revRoom` (D30n), false as stated.
 **Unchanged.** `Main.spec`, `k8setcd3_safe`, `NewServer`/`bootOk`, the etcdstart starters, every
 exported result. No axiom; the trust base loses the `sorry` `k8s_etcd3.revRoom`.
 
+
+## The members' start bundles: Draft steps 1-6 (2026-11-05 · hub plan step 7, Scope approved by the user via etcd-grove-82 (Q1-Q4), D1-D4 accepted by the coordinator · branch `hub-step7`)
+
+**What changed.** Program start's per-member resources (`walDirFresh` of the member's WAL directory,
+`netAddrFree`/`httpProtoFree` of its peer address, `netAddrFree` of its client address) were
+threaded token by token through every `Main.spec` and every `etcdstart` starter (34 spec files). They
+are now three sealed bundles in `etcdstart/StartRes.lean` (`memberStartRes name a`, what a `Main`
+takes; `memberFreshRes name a γn`, what a first-start starter takes; `memberRestartRes name a γn γ ρ
+id`, what a restart starter takes), with optional addresses (`MemberAddrs`, D3) and narrow laws
+(`_client`, `_peer`, `_fresh`, `_boot`, the introduction `memberStartRes_intro` up to order, D2). The
+cluster's allocation `alloc3` turns three start bundles into three fresh bundles at the network's
+names. The 12 one-member Mains, putget3's Main, the `etcdstart` starters (`newServerMode`,
+`newServer`, `BuildServer.spec`, `Start{,Compacting,Periodic}Server`, `NewMember`, `StartMember`) and
+`auth.startServer` take the bundles (`notes/spec-first-plan.md`, "Step 7 Draft"). Why: a new start
+resource (the restart's next files) changes a bundle's sealed body and one law, not 34 statements; no
+closed theorem's text changes (their `HAs`/`HDs` lists are reached by the introduction).
+
+**Choices made in the Draft (pending the user, `questions.md` D6-D10):** `etcd_adequate_members` in a
+module of its own (`AdequacyMembers.lean`, D6: `StartRes` imports the server, which the raft examples
+importing `Adequacy.lean` must not); two temporary pass-throughs until steps 7-8 (`alloc3Http`, the
+old `alloc3`, and `memberFreshRes_intro_peer`, D7); `BuildServer.specStop` left to step 8 with
+restart's `startMember` (D8); `newServer.specCompact` deleted now (Q2, D9).
+
+**Trust base.** 785 axioms and 4 `sorry`s, unchanged; 50 of 51 collections unchanged. `authkv`'s gains
+`axiom httpProtoFree` (rewritten with `--check --update`): its root `authkv_Main` states
+`etcd_auth.Main.spec`, whose precondition is now `memberStartRes go!"authkv" ⟨none, some …⟩`, and the
+bundle's body names the axiomatized token `httpProtoFree` in its peer branch (unused here: the peer is
+`none`). A predicate constant the statement is written in, not a new assumption; the other examples'
+collections already had it (their closed theorems' `startRights`).
+
+**Steps 7-8 (2026-11-05).** Step 7 gave the three-member cluster a bundle of its own,
+`cluster3.startRes cfg` (sealed, `cluster3/StartRes.lean`; the members' start bundles and the bridges'
+listen rights; D11-D13), taken by `cluster3.StartCluster`, partition's `startCluster`, `Main`,
+`MainWatch` and K6's `MainPartition`. Step 8 moved the restart onto the bundles: `BuildServer.specStop`
+and `specRestart` (drafts, their preconditions only), restart's `startMember.spec`/`specRestart`,
+`stop`'s post (the restart bundle; its binder `dd` became the member's `name`) and `Run`'s `runRes`
+over `alloc3`; one new law, `memberRestartRes_raft` (D14-D17). The pass-throughs are gone
+(`memberFreshRes_intro_peer` deleted, `alloc3Http` private). `run.specStop` and its scope premises are
+unchanged, left for R2c. Statements naming a start resource: the five consumers only. Trust base
+unchanged (`notes/spec-first-plan.md`, "Step 8 glue list", "Where the Draft stands").
+
+## gRPC specs with an error outcome: the metadata-indexed form (2026-11-06 · k8s etcd3 7c-1a; the Scope's Q7c-1 E1, approved by the user via etcd-grove-82; the form decided by the agent · branch `k8s-etcd3-7c`)
+
+**Was.** A gRPC method's spec spoke of its success only. `GrpcSpecMd Req Rep` (the auth plan's
+E3zb) was `GrpcMd → Req.M → (Rep.M → IProp) → IProp`. Every handler contract's error side was
+"non-nil", and so was the trusted attempt's (`grpcInvokerOk`). The client could not learn from an
+error that the server's store refused a read for a future or compacted revision, which k8s's
+`listReadError` and `interpretListError` branch on (7c).
+
+**Now.** `GrpcSpecMd` takes a fourth argument `Ψe : GoString → IProp`, the caller's outcome at
+the error's description (`errDesc`, D29's).
+- The Md contracts (`grpcHandlerOkMd`, `grpcHandlerOwnOkMd`, `grpcMethodOkMd`) quantify over
+  `Ψe`. On an error whose description is in `handlerDescs` they give `Ψe` at it.
+- `grpcInvokerOk` passes `Ψe` through.
+- `GrpcSpec`, the plain form, is unchanged and embedded by `GrpcSpec.md S := fun _ m Φ Ψe =>
+  S m Φ ∗ □ ∀ d, Ψe d`. The `*_md` laws stay equivalences, proved instead of `rfl`.
+
+**Why the conditional, `handlerDescs`.** An error before the handler runs (grpc's decoding, the
+server's interceptors, the quota check) has no `Ψe` to give. The descriptions a handler's spec
+speaks of are ones no other step makes.
+
+**Why the Md form only.** Most specs are plain and do not change. The alternative the Scope
+sketched (a continuation over `Rep.M ⊕ GoString`) would have changed every spec and handler.
+
+**7c-1a, the early landing (82's condition):** mechanical.
+- `handlerDescs := []`, so the new conjuncts are vacuous (`handlerErr_none`, removed in 7c-1b).
+- The client asks for no outcome yet (`attemptPre` at `Ψe := fun _ => True`).
+- The Md specs ignore their `Ψe`.
+- The trusted statements (`grpc.ClientConn.Invoke.spec` through `grpcInvokerOk`, and
+  `grpc.Server.Serve`/`RegisterService` through `GrpcMethod.spec`) change only by the quantifier.
+
+7c-1b fills `handlerDescs` with the two mvcc descriptions, and attacks each restated statement
+with the axiom skill (Q7c-2).
+
+**Why the axiom attacks wait for 7c-1b** (etcd-grove-82's ruling, 2026-11-06, at the landing of
+7c-1a). With `handlerDescs = []`, the trusted statements' new quantifier `Ψe` is vacuous: no
+description satisfies the conjunct that mentions it, so each statement means what it meant
+before. The user's Q7c-2 condition, every restated statement attacked before 7c's Freeze, applies
+to 7c-1b, where the descriptions first make the statements say something new. See `notes/k8s-etcd3-plan.md`, "7c-1: Draft".
+
+**7c-1b: the trusted statements first, `handlerDescs` with Range** (2026-11-06; decided by the
+agent, reported to etcd-grove-82). 7c-1b restates every trusted statement the error outcome rests
+on, at the text 7c-2 uses:
+- the rpctypes descriptions (HS-1);
+- `toGRPCErrorMap`'s `grpcErrMapOk`;
+- `grpcDecOk`'s and `srvInterceptorOk`'s errors outside `handlerDescs`.
+It also gives the non-Range Md specs `□ ∀ d, Ψe d` (HS-4, DRAFT), and attacks every statement at
+`handlerDescs`'s 7c-2 value. Filling `handlerDescs` itself moves to 7c-2. With the two
+descriptions in it, Range's handler must prove `Ψe` at them. It can only do so from
+`EtcdServer.Range`'s error post (HS-3 (a)), and that post is 7c-2's. Filled in 7c-1b, the Range
+handler's proof would have nothing to prove it from.
+Two attacks failed in Go (HS-5 and HS-6, `questions.md`). The trust base grows by two axioms,
+both approved under HS-1 and both attacked: `rpctypes.ErrGRPCFutureRev_init` and
+`rpctypes.ErrGRPCCompacted_init`, the two read errors' descriptions.

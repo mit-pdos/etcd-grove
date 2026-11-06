@@ -126,23 +126,242 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG) := by
-  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok r hcc hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hany hauthI γnc hlgE
+  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta st b hle al ast lp cl x A hRO hwq R hpre hRok r hcc hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hAA' hA' hleaseI hpre0 hlmk hany hauthI γnc
     iintro %Φ Hpre HΦ
-    icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, Htk, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, #Hlrev, Hkvc, #Hkvex, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #HmetaB⟩
-    -- (the lease-grant stage, 2.9) the revocable lessor: a cluster that grants none
-    -- (the lease-expiry plan's X2) a cluster that grants none (`specSnapM`'s premise until S4)
+    icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, Htk, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #HAlb, #Hlinv, #Hlpf, #Hlrev, Hkvc, #Hkvex, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #HmetaB⟩
+    -- (the lease-expiry plan's S2–S4, 2026-11-05) a cluster that grants leases restores the image's
+    -- records (`Recover` at the lessor's mode, the records `imageLeasesAt_recs`)
+    cases hlgE : E.lg
+    case true =>
+      -- the KV invariant: auth off (with auth on a cluster grants no lease, `srvKVInvsM_lg`)
+      ihave #Hsrv3 := Hsrv
+      iunfold isServerM at Hsrv3
+      icases Hsrv3 with ⟨-, -, -, #Hat3, -, -, -⟩
+      iunfold srvAtomicsM at Hat3
+      icases Hat3 with ⟨-, -, #HkM⟩
+      ihave %Hon := srvKVInvsM_lg _ _ _ _ $$ HkM
+      have hklg : γr.kv.lg = true := by
+        rw [KVNames.lg_eq, ← hlmk, ← apply.AEnv.lg_eq]; exact hlgE
+      have hon : E.authOn = false := by
+        cases hao : E.authOn
+        · rfl
+        · rw [Hon hao] at hklg; cases hklg
+      have ekv : srvKVInvsM (GF := GF) E.authOn s E γr = srvKVInvs E γr := by rw [hon]; rfl
+      ihave #HkO : srvKVInvs E γr $$ []
+      · rw [← ekv]; iexact HkM
+      iunfold srvKVInvs at HkO
+      icases HkO with ⟨#HkI, -, #HrI, -⟩
+      imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HAlb with %Hpl0
+      imod kv_grantLog_nodup γr.raft γr.kv A' $$ HkI HrI HAlb with %Hnd
+      -- the apply thread's rest buckets, opened
+      ihave ⟨%f0, %Hf0, HRO, HL0, #HGI, #HRq, HEv⟩ := srvRest_open E γr A $$ HRS
+      ihave ⟨%U, HEvU, %HUok⟩ := srvEver_open E A $$ HEv
+      have hsI : ∀ X : List w64, srvIds E X = X := fun X => by simp [srvIds, hlgE]
+      have eG : srvGrantIf (GF := GF) E = srvGrantable E := by
+        unfold srvGrantIf; rw [hlgE]; rfl
+      have eQ : srvReqsIf (GF := GF) E (appliedTable γr A) = srvReqs E (appliedTable γr A) := by
+        unfold srvReqsIf; rw [hlgE]; rfl
+      ihave #HGr : srvGrantable E $$ []
+      · rw [← eG]; iexact HGI
+      ihave #HRq2 : srvReqs E (appliedTable γr A) $$ []
+      · rw [← eQ]; iexact HRq
+      iunfold srvGrantable at HGr
+      icases HGr with ⟨#HGall, -⟩
+      iunfold srvReqs at HRq2
+      -- the image's records (`imageLeasesAt_recs`) and their TTLs
+      obtain ⟨recs, hbe, hperm', -, hge⟩ := imageLeasesAt_recs hleaseI
+      obtain ⟨f, hfT, hfb⟩ := hleaseI
+      have hnT' : (appliedTable γr A').ids.Nodup := appliedTable_nodup γr A'
+      have hmodes : E.lm = .mono ∨ E.lm = .revocable := by
+        have hc := hlgE
+        rw [apply.AEnv.lg_eq] at hc
+        revert hc
+        cases E.lm
+        · intro hc; simp at hc
+        · intro _; exact Or.inl rfl
+        · intro _; exact Or.inr rfl
+      have hpl : E.lm = .mono → plainLogM γr.kv.cmp .mono A' := fun h => by
+        have := Hpl0.1; rw [← hlmk, h] at this; exact this
+      have hnd' : E.lm = .revocable → (srvGrantLog A').Nodup := fun h => Hnd (by rw [← hlmk]; exact h)
+      -- (S2, F7) a record whose id the lessor had is the applied table's lease, its request the table's
+      have hUq : (decide (E.lm = .mono) = true → ∀ u ∈ U, u ∈ srvIds E (appliedTable γr A).ids) →
+          ∀ x ∈ recs, x.1 ∈ U → ∃ q ∈ appliedTable γr A, q.1 = x.1 ∧
+            q.2 = tableReq (appliedTable γr A') x.1 := by
+        intro hmU x hx hxU
+        have hxT' : x.1 ∈ (appliedTable γr A').ids := hperm'.mem_iff.1 (List.mem_map.2 ⟨x, hx, rfl⟩)
+        obtain ⟨q, hq, hq1⟩ := List.mem_map.1 hxT'
+        refine ⟨q, ?_, hq1, ?_⟩
+        · rcases hmodes with hm | hm
+          · have hxT : x.1 ∈ (appliedTable γr A).ids := by
+              have := hmU (by simp [hm]) x.1 hxU; rwa [hsI] at this
+            obtain ⟨q0, hq0, hq01⟩ := List.mem_map.1 hxT
+            have hq0' := appliedTable_mono_mem γr hAA' (hpl hm) q0 hq0
+            have heq := table_eq_of_id hnT' hq0' hq (hq01.trans hq1.symm)
+            rw [← heq]; exact hq0
+          · exact appliedTable_rev_mem γr hAA' (hnd' hm) q
+              (by rw [hq1]; exact HUok.2 hm x.1 hxU) hq
+        · rw [← hq1, tableReq_of_mem hnT' hq]
+      have hrmono : decide (E.lm = .mono) = true →
+          ∀ id ∈ srvIds E (appliedTable γr A).ids, id ∈ recs.map (·.1) := by
+        intro hm id hid
+        rw [hsI] at hid
+        exact hperm'.mem_iff.2 (appliedTable_mono_sub γr hAA' (hpl (of_decide_eq_true hm)) id hid)
+      have hrUL : decide (E.lm = .mono) = false →
+          ∀ id ∈ recs.map (·.1), id ∈ U → id ∈ srvIds E (appliedTable γr A).ids := by
+        intro hm id hid hU
+        rw [hsI]
+        have hr : E.lm = .revocable := by
+          rcases hmodes with h | h
+          · simp [h] at hm
+          · exact h
+        exact appliedTable_granted_live γr hAA' (hnd' hr) id (HUok.2 hr id hU) (hperm'.mem_iff.1 hid)
+      have hreq : ∀ x ∈ recs, sint.Z (tableReq (appliedTable γr A') x.1) ≤ sint.Z x.2.1 := by
+        intro x hx
+        obtain ⟨q, hq, hq1⟩ := List.mem_map.1 (hperm'.mem_iff.1 (List.mem_map.2 ⟨x, hx, rfl⟩))
+        rw [← hq1, tableReq_of_mem hnT' hq]
+        exact hge x hx q hq hq1
+      have hperm : (srvIds E (appliedTable γr A').ids).Perm (recs.map (·.1)) := by
+        rw [hsI]; exact hperm'.symm
+      -- the walk's lessor premises
+      ihave #HRqs : □ (⌜decide (E.lm = .mono) = true → ∀ u ∈ U, u ∈ srvIds E (appliedTable γr A).ids⌝ -∗
+          [∗list] x ∈ recs, ⌜x.1 ∉ U⌝ ∨
+            lease.leaseReqIs E.γ.leases x.1 (tableReq (appliedTable γr A') x.1)) $$ []
+      · iintro !> %hmU
+        have key : □ (∀ p : w64 × w64, ⌜p ∈ appliedTable γr A⌝ -∗
+            lease.leaseReqIs E.γ.leases p.1 p.2) ⊢
+            [∗list] x ∈ recs, (⌜x.1 ∉ U⌝ ∨
+              lease.leaseReqIs (GF := GF) E.γ.leases x.1 (tableReq (appliedTable γr A') x.1)) := by
+          apply BigSepL.bigSepL_intro
+          intro k x hk
+          refine intuitionistically_elim.trans ?_
+          iintro #H
+          by_cases hxU : x.1 ∈ U
+          · obtain ⟨q, hq, hq1, hq2⟩ := hUq hmU x (List.mem_of_getElem? hk) hxU
+            iright
+            rw [← hq2, ← hq1]
+            iapply H; ipureintro; exact hq
+          · ileft; ipureintro; exact hxU
+        iapply key
+        iexact HRq2
+      ihave #HGrs : □ ([∗list] id ∈ recs.map (·.1), lease.leaseGranted E.γ.leases id) $$ []
+      · iintro !>
+        have key : □ (∀ id : w64, lease.leaseGranted (GF := GF) E.γ.leases id) ⊢
+            [∗list] id ∈ recs.map (·.1), lease.leaseGranted E.γ.leases id := by
+          apply BigSepL.bigSepL_intro
+          intro k x hk
+          refine intuitionistically_elim.trans ?_
+          iintro #H; iapply H
+        iapply key; iexact HGall
+      iapply wp_fupd
+      iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) (decide (E.lm = .mono)) recs U
+        (tableReq (appliedTable γr A')) (srvIds E (appliedTable γr A').ids)
+        (srvIds E (appliedTable γr A).ids) hbe hrmono hrUL (fun _ => hlgE) hreq hperm
+        (fun h => by rw [hlgE] at h; cases h)
+        (apply.restLeasesWith f0 (srvIds E (appliedTable γr A).ids)
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok r hcc hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hAA' hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR hWrite hTODO) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
+      · iframe #
+        iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR
+      iintro !> ⟨Hw, Hrcv, Htk⟩
+      have hUok' : srvEverOk E A' (U ++ recs.map (·.1)) := by
+        refine ⟨fun h => (by rw [hlgE] at h; cases h), fun hr u hu => ?_⟩
+        rcases List.mem_append.1 hu with h | h
+        · exact srvGrantLog_prefix hAA' u (HUok.2 hr u h)
+        · exact appliedTable_ids_granted γr hpre0 A' u (hperm'.mem_iff.1 h)
+      have hbkG := snap_bkG E.authMode γr d.P D A' hany hA'.1 f (srvIds E (appliedTable γr A').ids)
+        (by rw [hsI]; exact hfb)
+      have hreqT : E.lg = true → ∀ p ∈ appliedTable γr A', ∃ x ∈ recs, x.1 = p.1 ∧
+          tableReq (appliedTable γr A') x.1 = p.2 := by
+        intro _ p hp
+        obtain ⟨x, hx, hx1⟩ := List.mem_map.1 (hperm'.mem_iff.2 (List.mem_map.2 ⟨p, hp, rfl⟩))
+        exact ⟨x, hx, hx1, by rw [hx1, tableReq_of_mem hnT' hp]⟩
+      ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl tI hmeta st b hle al ast lp cl x A hRO hwq R hpre hRok r hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hany (srvIds E (appliedTable γr A').ids) recs U
+        (tableReq (appliedTable γr A')) f rfl hUok' hbkG (fun _ => hfT) hreqT) $$ [Hw]
+      · iframe #
+        iframe Hw
+      imod Hpost
+      imodintro
+      iapply HΦ
+      iframe Hrcv Htk
+      iapply (srvSnapAppliedM_of_G s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl hany)
+      iexact Hpost
+    -- a cluster that grants none (`specSnapM`'s premise until S2–S4): the image's lease bucket
+    -- empty, the lessor revocable
     have Hlg0 := hlgE
+    -- (review r2 S1) the image's log grants none: its committed log is plain in the mode (auth
+    -- off: `kv_log_plain` at the lease mode `.none`; on: `kv_log_plainOn`)
+    have hlm0 : γr.kv.lm = .none := by rw [← hlmk]; exact apply.AEnv.lm_of_lg_false hlgE
+    ihave #Hsrv4 := Hsrv
+    iunfold isServerM at Hsrv4
+    icases Hsrv4 with ⟨-, -, -, #Hat4, -, -, -⟩
+    iunfold srvAtomicsM at Hat4
+    icases Hat4 with ⟨-, -, #HkM⟩
+    ihave Hnil : |={⊤}=> ⌜(appliedTable γr A').ids = []⌝ $$ []
+    · by_cases hon : E.authOn = true
+      · have ekv : srvKVInvsM (GF := GF) E.authOn s E γr =
+            iprop(srvKVInvsOn E γr srvAuthSt0 ∗ srvUberOn s) := by rw [hon]; rfl
+        ihave #HkO : iprop(srvKVInvsOn E γr srvAuthSt0 ∗ srvUberOn s) $$ []
+        · rw [← ekv]; iexact HkM
+        icases HkO with ⟨#HkO, -⟩
+        iunfold srvKVInvsOn at HkO
+        icases HkO with ⟨#HkI, -, #HrI, -⟩
+        imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HAlb with %Hpl
+        imodintro; ipureintro
+        unfold appliedTable kvLeases; rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' Hpl]; rfl
+      · have ekv : srvKVInvsM (GF := GF) E.authOn s E γr = srvKVInvs E γr := by
+          rw [show E.authOn = false by simpa using hon]; rfl
+        ihave #HkO : srvKVInvs E γr $$ []
+        · rw [← ekv]; iexact HkM
+        iunfold srvKVInvs at HkO
+        icases HkO with ⟨#HkI, -, #HrI, -⟩
+        imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HAlb with %Hpl0
+        imodintro; ipureintro
+        have Hpl' : plainLogM γr.kv.cmp .none A' := hlm0 ▸ Hpl0.1
+        unfold appliedTable kvLeases
+        rw [hpre0, List.nil_append, kvTableOf_plainM _ _ _ A' Hpl']; rfl
+    imod Hnil with %hTnil
+    have hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅ :=
+      imageLeasesAt_nil hTnil hleaseI
+    ihave #Hlrev2 : lease.lessorRevocable E.γ.leases $$ []
+    · have heq : lease.lessorModeIs (GF := GF) E.γ.leases (decide (E.lm = .mono)) =
+          lease.lessorRevocable E.γ.leases := by
+        rw [apply.AEnv.lm_of_lg_false hlgE]; rfl
+      rw [← heq]; iexact Hlrev
     ihave HRS : E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) $$ [HRS]
     · rw [← srvRest_false E γr A Hlg0]; iexact HRS
-    rw [← srvRest_false E γr A Hlg0]
+    have hbe0 : backend.bktEnts (((backend.rbData d.P D).lookup go!"lease").getD ∅) =
+        ([] : List (w64 × w64 × w64)).map lease.leaseRecEnc := by
+      rw [hlease]
+      exact List.eq_nil_of_length_eq_zero ((mvcc.bktEnts_length ∅).trans GMap.map_size_empty)
+    have hids : srvIds E (appliedTable γr A').ids = [] := by simp [srvIds, hlgE]
+    have hLr : ([] : List w64) = srvIds E (appliedTable γr A').ids := hids.symm
+    have hUok : srvEverOk E A' (([] : List w64) ++ ([] : List (w64 × w64 × w64)).map (·.1)) :=
+      ⟨fun _ => rfl, fun _ u hu => by simp at hu⟩
+    have hbkG : ∀ n, membership.clusterBkts n ∨ restSet E.authMode n →
+        (apply.restLeasesWith (fun _ => 0) (srvIds E (appliedTable γr A').ids)
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A'))).bk.lookup n =
+        (<[go!"alarm" := ∅]> (<[go!"lease" := ((backend.rbData d.P D).lookup go!"lease").getD ∅]>
+          (backend.rbData d.P D))).lookup n := by
+      intro n hn
+      rw [hids, apply.restLeasesWith_nil, hlease]
+      exact snapRestImgM_bk E.authMode γr d.P D A' hany hA'.1 n hn
     iapply wp_fupd
-    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) hlease hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok r hcc hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR hWrite hTODO Hlg0) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
+    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) false [] [] (fun _ => 0) [] []
+      hbe0 (fun h => by cases h) (by simp) (fun h => by cases h) (by simp) List.Perm.nil
+      (fun _ => ⟨rfl, rfl⟩) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok r hcc hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hAA' hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR hWrite hTODO) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
     · iframe #
       iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR
+      rw [apply.ltHalf_false E [] hlgE, apply.everOwn_false E [] hlgE]
+      simp only [List.map_nil]
+      isplitr; · itrivial
+      isplitr; · itrivial
+      isplitr; · iintro !> -; iapply BigSepL.bigSepL_nil; iempintro
+      iintro !>; iapply BigSepL.bigSepL_nil; iempintro
     iintro !> ⟨Hw, Hrcv, Htk⟩
-    ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl tI hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok r hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hany Hlg0) $$ [Hw]
+    ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl tI hmeta st b hle al ast lp cl x A hRO hwq R hpre hRok r hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hA' hany [] [] [] (fun _ => 0) (fun _ => 0) hLr hUok hbkG
+      (fun h => by rw [hlgE] at h; cases h) (fun h => by rw [hlgE] at h; cases h)) $$ [Hw]
     · iframe #
       iframe Hw
+      unfold srvGrantIf; rw [hlgE]; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     imod Hpost
     imodintro
     iapply HΦ

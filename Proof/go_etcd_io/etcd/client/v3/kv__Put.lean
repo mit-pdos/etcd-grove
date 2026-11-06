@@ -38,8 +38,8 @@ theorem kv.Put.wp_generic
   wp_auto
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api conn addr ci cd opv (opPutModel key val gs) Sp Qp (fun _ _ _ => iprop(False))
-      (fun _ => iprop(True)) (fun _ _ _ => iprop(False)) (fun _ => iprop(True)) $$ [Hrun]
+  wp_apply wp_Do api conn addr ci cd opv (opPutModel key val gs) Sp Qp (fun _ _ _ _ => iprop(False))
+      (fun _ => iprop(True)) (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) $$ [Hrun]
     as %r %err Hout
   · iframe #
     isplitl [Hrun]; rotate_left

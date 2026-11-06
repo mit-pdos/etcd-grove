@@ -14,6 +14,7 @@ the premises the members share: an error with the thread token, or the server st
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 
 @[expose] public section
@@ -59,8 +60,9 @@ abbrev StartServer.spec : Prop :=
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
+      -- (2026-11-03, the WAL's API, change 6; 2026-11-05, hub step 7, its start bundle) the
+      -- member's WAL directory fresh: a first start
+      memberFreshRes name {} γn }}
     (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer))
       (Val #name)) (Val #peerAddr)) (Val #client)) (Val #lg))

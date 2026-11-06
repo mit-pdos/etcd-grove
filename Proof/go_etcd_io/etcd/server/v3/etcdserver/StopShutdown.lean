@@ -269,7 +269,8 @@ theorem stop_mergedObsP (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames)
     (A : List EntryModel) (x : apply.ApplyKV) (d : mvcc.KBReal) (f : w64 → w64) (st : ApplyState)
     (D : backend.Data) (hkb : E.γ.kb = some d) (hcK : ciKeys d.P)
     (hRB : ∀ n ∈ restBuckets, d.P.RB n = true) (hcm : d.cm = E.cmp) (hoffc : d.cm = false)
-    (hci : ciEff γA st.k = ai) (Hwf : mvcc.IdxWf x.log []) :
+    (hci : ciEff γA st.k = ai) (Hwf : mvcc.IdxWf x.log [])
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     freezeY (GF := GF) γA st ∗
       backend.rbOwnIn d.γB membership.clusterBkts
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
@@ -309,7 +310,7 @@ theorem stop_mergedObsP (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames)
     iframe Hrc Hrn Hnone
   ipureintro
   obtain ⟨⟨hciO, hrbD, -⟩, ⟨-, hex⟩, hwo⟩ := h
-  exact mergedObsM_of_obs E γr ai A x d f D hcK hRB hcm (hci ▸ hciO) hrbD hex hwo hnc Hwf
+  exact mergedObsM_of_obs E γr ai A x d f D hcK hRB hcm (hci ▸ hciO) hrbD hex hwo hnc Hwf hfb
 
 /-! ## The image's configuration point -/
 
@@ -379,7 +380,7 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
     · exact absurd h0 hne
     · exact hmem e hin h1 cc hd
   -- the `members` bucket is the rest model's
-  obtain ⟨-, -, -, ⟨f, hf⟩, -⟩ := himg
+  obtain ⟨-, -, -, ⟨f, -, hf⟩, -⟩ := himg
   have hD : D.lookup go!"members" =
       (restModel (W64 0) γ.raft.boot (γ.raft.boot.map EntryModel.ofM ++ R)).bk.lookup
         go!"members" := by
@@ -625,13 +626,13 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     · word
   have hRB : ∀ n ∈ restBuckets, d.P.RB n = true := fun n hn => by
     simp [mvcc.KBReal.P, hn]
-  ihave ⟨%f, HRs, -, -⟩ := srvRest_open B.E C.γr A $$ HRs
+  ihave ⟨%f, %Hfb, HRs, -, -, -⟩ := srvRest_open B.E C.γr A $$ HRs
   rw [hRO]
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, -⟩
   iunfold srvRestOwn at Hro
   icases Hro with ⟨Hrc, Hrn', -, -⟩
-  ihave %hobsM := stop_mergedObsP B.γ B.E C.γr ai A x d f st D hkb hcK hRB hcm hdcm hci Hwf
+  ihave %hobsM := stop_mergedObsP B.γ B.E C.γr ai A x d f st D hkb hcK hRB hcm hdcm hci Hwf Hfb
     $$ [HY Hrc Hrn' Hpin Hsv]
   · iframe HY Hrc Hrn' Hpin Hsv
   have hobs := mergedObs_of_M hBam hobsM

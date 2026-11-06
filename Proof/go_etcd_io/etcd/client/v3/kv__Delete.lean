@@ -38,8 +38,8 @@ theorem kv.Delete.wp_generic
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api conn addr ci cd opv (opDeleteModel key gs) (fun _ _ _ => iprop(False))
-      (fun _ => iprop(True)) (fun _ _ _ => iprop(False)) (fun _ => iprop(True)) Sd Qd $$ [Hrun]
+  wp_apply wp_Do api conn addr ci cd opv (opDeleteModel key gs) (fun _ _ _ _ => iprop(False))
+      (fun _ => iprop(True)) (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) Sd Qd $$ [Hrun]
     as %r %err Hout
   · iframe #
     isplitl [Hrun]; rotate_left

@@ -44,7 +44,7 @@ theorem startServer.wp_proof
     startServer.spec (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
+  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   iunfold etcdstart.commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   iunfold etcdstart.memberBootOn at Hmb
@@ -110,7 +110,7 @@ theorem startServer.wp_proof
       (etcdstart.bootCfgOk_of _ Hlg rfl rfl rfl rfl)
       ⟨rfl, etcdstart.discoveryZero_len, etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty⟩
       HwbN)
-    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -126,9 +126,9 @@ theorem startServer.wp_proof
       iexact Hsls
     isplitl [Hreg]
     · iunfold memStorRegAuth; iexact Hreg
-    -- the WAL's slot (`wal.bootRes`), from the member's fresh WAL directory
-    isplitl [Hwdf]
-    · iapply wal.bootRes_intro _ _ _ rfl rfl; iexact Hwdf
+    -- the WAL's slot (`wal.bootRes`), from the member's fresh bundle
+    isplitl [Hfresh]
+    · iapply etcdstart.memberFreshRes_boot go!"authkv" _ _ rfl rfl; iexact Hfresh
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Haf

@@ -45,7 +45,8 @@ buckets after it (`grantIds`, `grantRest`, the identity but for a grant dispatch
 answer (`grantRes`), and its outcome the lessor's verdict at `T` (`grantOutOk`; amendment (C),
 2026-11-03). (The lease-expiry plan's E3 (c), 2026-11-05) The apply thread's half of the ids the
 lessor ever had, `U` (`everOwn`), a grant's id new to them unless the lessor is monotone
-(`grantFresh`), given back with an applied grant's id added (`grantIds`). -/
+(`grantFresh`), given back with an applied grant's id added (`grantIds`). (The lease-expiry plan's S2–S4, Q-S6 (A-ii), 2026-11-05) The
+record's TTL `t` at least the grant's request (`grantTTLOk`). -/
 abbrev apply.uberApplier.dispatch.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (c : apply.Chain) (a : GoInterface)
     (r : Loc) (rq : IRRModel) (skip v3 : Bool) (log F : mvcc.Log) (Pre Q Post : IProp GF)
@@ -69,7 +70,7 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
         apply.kvOwn E (o.logAfter log) ∗
         apply.ltHalf E (apply.revokeIds rq v3 o (apply.grantIds rq v3 o T)) ∗
         apply.everOwn E (apply.grantIds rq v3 o U) ∗ apply.revokeOwn E rq ∗
-        (∃ t : w64, E.RO (apply.revokeRest T rq v3 o
+        (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRest T rq v3 o
           (apply.grantRest t rq v3 o (apply.restAfter rq v3 rs)))) ∗
         ⌜apply.grantOutOk c rq v3 T o⌝ ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep c rq v3 log o ∧ apply.chainAfter rq v3 c c' ∧

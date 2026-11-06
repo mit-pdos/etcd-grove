@@ -660,6 +660,8 @@ theorem setup_pre_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
   iunfold attemptPre
   iintro %md %hmd
   iunfold v3rpc.etcdUserAddSpec
+  isplitr
+  · imodintro; iintro %_; itrivial
   iexists (fun _ => effLb ρ.kv j)
   isplitr
   · ipureintro; exact hlen
@@ -688,6 +690,8 @@ theorem setup_pre_userGrantRole (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
   iunfold attemptPre
   iintro %md %hmd
   iunfold v3rpc.etcdUserGrantRoleSpec
+  isplitr
+  · imodintro; iintro %_; itrivial
   iexists (fun _ => effLb ρ.kv j)
   isplitr
   · ipureintro; exact hlen
@@ -713,6 +717,8 @@ theorem setup_pre_roleAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
   iunfold attemptPre
   iintro %md %hmd
   iunfold v3rpc.etcdRoleAddSpec
+  isplitr
+  · imodintro; iintro %_; itrivial
   iexists (fun _ => effLb ρ.kv j)
   isplitr
   · ipureintro; exact hlen
@@ -739,6 +745,8 @@ theorem setup_pre_roleGrantPermission (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iunfold attemptPre
   iintro %md %hmd
   iunfold v3rpc.etcdRoleGrantPermissionSpec
+  isplitr
+  · imodintro; iintro %_; itrivial
   iexists (fun _ => effLb ρ.kv j)
   isplitr
   · ipureintro; exact hlen
@@ -763,6 +771,8 @@ theorem setup_pre_authEnable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn
   iunfold attemptPre
   iintro %md %hmd
   iunfold v3rpc.etcdAuthEnableSpec
+  isplitr
+  · imodintro; iintro %_; itrivial
   iexists setupDone ρ.raft ρ.kv γz
   isplitr
   · iapply client.clientHistAu_attempt s E ρ conn ctx md _ _ hmd

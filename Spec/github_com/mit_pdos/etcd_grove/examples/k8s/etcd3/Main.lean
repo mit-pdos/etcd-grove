@@ -21,6 +21,7 @@ fact the store asks of the driver's objects (`objTyOk`: `*Obj` is a `runtime.Obj
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjSpec
@@ -61,9 +62,10 @@ abbrev Main.spec : Prop :=
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23896" ∗ threadTok ∗ premises N id ctxs boot ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
-      walDirFresh (config.walDirOf go!"k8setcd3.etcd" go!"") }}
+      -- (2026-11-05, hub step 7) the member's start bundle: its WAL directory fresh and the right
+      -- to listen on its client address (`netAddrFree`, which program start gives once: D19d)
+      etcdstart.memberStartRes (GF := GF) go!"k8setcd3" ⟨none, some go!"127.0.0.1:23896"⟩ ∗
+      threadTok ∗ premises N id ctxs boot }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main)) (Val #clients))
       (Val #ops))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}

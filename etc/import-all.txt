@@ -37,3 +37,12 @@ sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
 # (2026-11-05, the restart plan's R2b-3d; hub request H1) the stop's slot in the boot hub: what
 # `NewServer` keeps for the server's stop, sealed; callers use its laws only.
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.StopApi
+
+# (2026-11-05, hub plan step 7) the members' start bundles (`memberStartRes`, `memberFreshRes`,
+# `memberRestartRes`), sealed; callers use their laws only. The cluster's allocation (`alloc3`) turns
+# start bundles into fresh ones.
+sealed Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
+allow Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3
+# (2026-11-05, hub plan step 7's E2, D1) the cluster's start bundle (`cluster3.startRes`), sealed;
+# its laws are in its own module, so no module imports it whole.
+sealed Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes

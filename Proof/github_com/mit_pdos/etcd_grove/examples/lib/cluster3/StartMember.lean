@@ -65,8 +65,10 @@ theorem StartMember.wp_proof
   intro CS cfg N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn cmp lm Hcfg
     Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hrf Hdbo Hms
-  wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
-    #Hnet, Hpown, Hwdf⟩
+  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  -- the client address's listen right, out of the fresh bundle (to the client listener); the rest
+  -- to `NewMember`
+  icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfresh with ⟨Hcaddr, Hfresh⟩
   ihave #Hcom' := Hcom
   iunfold etcdstart.commonPremises at Hcom'
   icases Hcom' with ⟨-, -, -, -, #Hnrl⟩
@@ -102,7 +104,7 @@ theorem StartMember.wp_proof
       (by omega) Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf3 (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf2
-        (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf1 etcdstart.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown Hwdf] as %srv %err Hres
+        (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf1 etcdstart.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %srv %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `NewMember` failed: the error returned

@@ -20,6 +20,7 @@ assumptions, with the context-error classes (`compactwatch`'s).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Inv
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
@@ -65,9 +66,10 @@ abbrev Main.spec : Prop :=
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗
-      netAddrFree (GF := GF) clientAddr ∗ threadTok ∗
+      -- (2026-11-05, hub step 7) the member's start bundle: its WAL directory fresh and the right
+      -- to listen on its client address
+      etcdstart.memberStartRes (GF := GF) memberName ⟨none, some clientAddr⟩ ∗ threadTok ∗
       etcdstart.premises memberName peerAddr clientAddr N id ctxs boot ∗
-      walDirFresh (config.walDirOf (memberName ++ go!".etcd") go!"") ∗
       k8s.regAuth (∅ : GMap GoString GName) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main)) (Val #()))
   {{ RET #(); True }}

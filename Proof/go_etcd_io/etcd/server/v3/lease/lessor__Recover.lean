@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 theorem lease.lessor.Recover.wp_proof
     (hIR : lease.lessor.initAndRecover.spec (GF := GF) (hG := hG)) :
     lease.lessor.Recover.spec (GF := GF) (hG := hG) := by
-  intro lp γl oldbe d W Pk qo S r rd rd0 L I mono recs U hS hLp hrecs hmono hU
-  wp_start as ⟨#Hinv, #Hcfg, #Hmode, HUo, Hbo, Hown, Hrvk, Hro, #Hgr, #HB, Ho, Htoks, Hrb⟩
+  intro lp γl oldbe d W Pk qo S r rd rd0 L I mono recs U reqOf Lr hS hLp hrecs hmono hU hrq hLr
+  wp_start as ⟨#Hinv, #Hcfg, #Hmode, HUo, #Hrq, Hbo, Hown, Hrvk, Hro, #Hgr, #HB, Ho, Htoks, Hrb⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hinv' := Hinv
@@ -99,20 +99,33 @@ theorem lease.lessor.Recover.wp_proof
   icases ownMap_halves_split im' (∅ : GMap LeaseItem w64) $$ HI' with ⟨HI', HI''⟩
   iapply fupd_wp
   ihave HUo : iprop(⌜recs.zip ls = []⌝ ∨ leaseEver (GF := GF) γl U) $$ [HUo]
-  · icases HUo with (%Hx | HUo)
-    · ileft; ipureintro; rw [Hx]; rfl
-    · iright; iexact HUo
+  · by_cases hr : recs = []
+    · ileft; ipureintro; rw [hr]; rfl
+    · irevert HUo; rw [if_neg hr]; iintro HUo
+      iright; iexact HUo
+  ihave #Hrq' : iprop([∗list] id ∈ (recs.zip ls).map (·.1.1),
+      ⌜id ∉ U⌝ ∨ leaseReqIs (GF := GF) γl id (reqOf id)) $$ []
+  · rw [hids, BigSepL.bigSepL_map (fun x : w64 × w64 × w64 => x.1)
+      (Φ := fun _ id => iprop(⌜id ∉ U⌝ ∨ leaseReqIs (GF := GF) γl id (reqOf id)))]
+    iexact Hrq
   imod closers_recover γl lp lp L M C I I' mono mt (recs.zip ls) im' γga γcl ⊤
-      (fun _ _ => CoPset.mem_full) HL hnd hmono' U (by rw [hids]; exact hU)
-    $$ [$Hrd $Hmode $HUo $Ha $Hg $Hown $Hp $Hcs $Hch $Hhist $Hrvk $Himw' $HI'' $Hgr' $Hrl]
-    with ⟨Ha, Hg, Hown, Hrvk, Hhist, #Hlos, Hmetas, HUo, %i, #Hat⟩
-  ihave HUo : iprop(⌜recs = []⌝ ∨ leaseEver (GF := GF) γl (U ++ (recs.zip ls).map (·.1.1))) $$ [HUo]
-  · icases HUo with (%Hx | HUo)
-    · ileft; ipureintro
-      have := congrArg List.length Hx
-      rw [List.length_zip, Hlen, Nat.min_self] at this
-      exact List.length_eq_zero_iff.1 this
-    · iright; iexact HUo
+      (fun _ _ => CoPset.mem_full) HL hnd hmono' U (by rw [hids]; exact hU) reqOf
+      (fun p hp => hrq p.1 (List.of_mem_zip hp).1)
+    $$ [$Hrd $Hmode $HUo $Hrq' $Ha $Hg $Hown $Hp $Hcs $Hch $Hhist $Hrvk $Himw' $HI'' $Hgr' $Hrl]
+    with ⟨Ha, Hg, Hown, Hrvk, Hhist, #Hlos, Hmetas, HUo, #HrqOut, %i, #Hat⟩
+  -- (S2–S4, Q-S7) the live set in the caller's order
+  have hLr' : Lr.Perm ((recs.zip ls).map (·.1.1)) := by rw [hids]; exact hLr
+  imod lessor_live_perm γl lp _ Lr _ ∅ hLr' $$ [$Ha $Hg $Hown $Hrvk] with ⟨Ha, Hg, Hown, Hrvk⟩
+  ihave HUo : iprop(if recs = [] then iprop(True)
+      else leaseEver (GF := GF) γl (U ++ (recs.zip ls).map (·.1.1))) $$ [HUo]
+  · by_cases hr : recs = []
+    · rw [if_pos hr]; itrivial
+    · rw [if_neg hr]
+      icases HUo with (%Hx | HUo)
+      · have := congrArg List.length Hx
+        rw [List.length_zip, Hlen, Nat.min_self] at this
+        exact absurd (List.length_eq_zero_iff.1 this) hr
+      · iexact HUo
   imodintro
   ihave #Hsz' : ⧖ (GMap.size (recMap (recs.zip ls))) $$ []
   · iapply (preceipt_mono (GF := GF) (m := GMap.size (recMap (recs.zip ls)))
@@ -128,14 +141,18 @@ theorem lease.lessor.Recover.wp_proof
   · iframe #
     inext
     iunfold lessorMu
-    iexists lm', im', recMap (recs.zip ls), ∅, rd, (recs.zip ls).map (·.1.1)
+    iexists lm', im', recMap (recs.zip ls), ∅, rd, Lr
     iframe
     iframe Hsz' Hlos
-    ipureintro; intro x; exact (recMap_isSome _ x).symm
+    ipureintro; intro x; rw [hLr'.mem_iff]; exact (recMap_isSome _ x).symm
   (try wp_auto)
+  ihave #HrqR : iprop([∗list] x ∈ recs, leaseReqIs (GF := GF) γl x.1 (reqOf x.1)) $$ []
+  · rw [← BigSepL.bigSepL_map (fun x : w64 × w64 × w64 => x.1)
+      (Φ := fun _ id => leaseReqIs (GF := GF) γl id (reqOf id)), ← hids]
+    iexact HrqOut
   iapply HΦ
   rw [← hids]
-  iframe Hown Hrvk Ho HUo
+  iframe Hown Hrvk Ho HUo HrqR
   isplitl [Hb]
   · iunfold lessorBeOn; iexact Hb
   isplitl [Hrdw]

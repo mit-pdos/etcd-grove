@@ -1095,12 +1095,12 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       go!"Put") (etcdRunSlot s E γr) (etcdPutSpecM E.authOn s E ρ cid mid) := by
   iintro ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR⟩
   unfold grpcHandlerOkMd
-  iintro %o %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
+  iintro %o %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
   rw [show (pbPutRequest (GF := GF)).recv r o = txn.putRequestIs r o from rfl]
   iunfold etcdPutSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
-  icases Hspec with ⟨%F, #HF, Hspec⟩
+  icases Hspec with ⟨-, %F, #HF, Hspec⟩
   ihave ⟨%d, Hdep, %Hdp, Hk⟩ : iprop(∃ d : v3rpc.KVDep GF,
       v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d ∗
       ⌜v3rpc.kvDepPreM E.authOn d (.put o)⌝ ∗
@@ -1157,7 +1157,9 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iunfold txn.errVarIs at Hev
     icases Hev with ⟨%e', -, %He'⟩
     imodintro
+    ihave Hed := handlerErr_none (GF := GF) Ψe err
     iapply HΨ
+    iframe Hed
     isplitl [Hlt Hc0]
     · iapply etcdRunSlot_back s E γr (W64 0)
       iframe
@@ -1211,7 +1213,9 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       ipersist Hl
       imod Hrv with #Hrv
       imodintro
+      ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
       iapply HΨ
+      iframe Hed
       isplitl [Hlt Hc0]
       · iapply etcdRunSlot_back s E γr (W64 0)
         iframe
@@ -1238,7 +1242,9 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     · iunfold v3rpc.putErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
+      ihave Hed := handlerErr_none (GF := GF) Ψe err
       iapply HΨ
+      iframe Hed
       isplitl [Hlt Hc0]
       · iapply etcdRunSlot_back s E γr (W64 0)
         iframe
@@ -1260,7 +1266,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
       go!"Range") (etcdRunSlot s E γr) (etcdRangeSpecM E.authOn s E γr cid mid) := by
   iintro ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR⟩
   unfold grpcHandlerOkMd
-  iintro %o %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
+  iintro %o %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
   rw [show (pbRangeRequest (GF := GF)).recv r o = txn.rangeRequestIs r o from rfl]
   iunfold etcdRangeSpecM at Hspec
@@ -1315,7 +1321,9 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     iunfold txn.errVarIs at Hev
     icases Hev with ⟨%e', -, %He'⟩
     imodintro
+    ihave Hed := handlerErr_none (GF := GF) Ψe err
     iapply HΨ
+    iframe Hed
     isplitl [Hlt Hcr]
     · iapply etcdRunSlot_back s E γr c
       iframe
@@ -1347,7 +1355,9 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
       ipersist Ht
       ipersist Hl
       imodintro
+      ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
       iapply HΨ
+      iframe Hed
       isplitl [Hlt Hcr]
       · iapply etcdRunSlot_back s E γr c
         iframe
@@ -1370,7 +1380,9 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
         ipureintro
         exact ⟨Hkeys, Hlog.1, Hlog.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2⟩
     · imodintro
+      ihave Hed := handlerErr_none (GF := GF) Ψe err
       iapply HΨ
+      iframe Hed
       isplitl [Hlt Hcr]
       · iapply etcdRunSlot_back s E γr c
         iframe
@@ -1394,12 +1406,12 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
         (etcdRunSlot s E γr) (etcdDeleteSpecM E.authOn s E ρ cid mid) := by
   iintro ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR⟩
   unfold grpcHandlerOkMd
-  iintro %o %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
+  iintro %o %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
   rw [show (pbDeleteRangeRequest (GF := GF)).recv r o = txn.deleteRangeRequestIs r o from rfl]
   iunfold etcdDeleteSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
-  icases Hspec with ⟨%Hsh, %F, #HF, %Q, %Hz, Hau, Hk⟩
+  icases Hspec with ⟨-, %Hsh, %F, #HF, %Q, %Hz, Hau, Hk⟩
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
     (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) F (.op1 (.deleteRange o) Q) 0 (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
@@ -1439,7 +1451,9 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     iunfold txn.errVarIs at Hev
     icases Hev with ⟨%e', -, %He'⟩
     imodintro
+    ihave Hed := handlerErr_none (GF := GF) Ψe err
     iapply HΨ
+    iframe Hed
     isplitl [Hlt Hc0]
     · iapply etcdRunSlot_back s E γr (W64 0)
       iframe
@@ -1468,7 +1482,9 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       ipersist Ht
       ipersist Hl
       imodintro
+      ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
       iapply HΨ
+      iframe Hed
       isplitl [Hlt Hc0]
       · iapply etcdRunSlot_back s E γr (W64 0)
         iframe
@@ -1497,7 +1513,9 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     · iunfold v3rpc.deleteErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
+      ihave Hed := handlerErr_none (GF := GF) Ψe err
       iapply HΨ
+      iframe Hed
       isplitl [Hlt Hc0]
       · iapply etcdRunSlot_back s E γr (W64 0)
         iframe
@@ -1701,13 +1719,13 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       go!"Txn") (etcdRunSlot s E γr) (etcdTxnSpecM E.authOn s E ρ γr cid mid) := by
   iintro ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR⟩
   unfold grpcHandlerOkMd
-  iintro %t %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
+  iintro %t %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
   rw [show (pbTxnRequest (GF := GF)).recv r t = iprop(txn.txnRequestIs r t ∗ txnWireOk r t)
     from rfl]
   iunfold etcdTxnSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
-  icases Hspec with ⟨%Hpl, %Q, Hnp, %c, %F, %na, #Hc0, #HF, #Hna, Hspec⟩
+  icases Hspec with ⟨-, %Hpl, %Q, Hnp, %c, %F, %na, #Hc0, #HF, #Hna, Hspec⟩
   obtain ⟨hin, hsh⟩ := Hpl
   icases Hr with ⟨#Hreq, #Hw⟩
   ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t $$ [$Hreq $Hw]
@@ -1789,7 +1807,9 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iunfold txn.errVarIs at Hev
     icases Hev with ⟨%e', -, %He'⟩
     imodintro
+    ihave Hed := handlerErr_none (GF := GF) Ψe err
     iapply HΨ
+    iframe Hed
     isplitl [Hlt Hcr]
     · iapply etcdRunSlot_back s E γr c
       iframe
@@ -1822,7 +1842,9 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         imod (txnRespMsg_of_server false resp h _ t _ _ cid mid) $$ [$Hh $Hf $Hres]
           with ⟨%m, #Hm, %Hmm⟩
         imodintro
+        ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
         iapply HΨ
+        iframe Hed
         isplitl [Hlt Hcr]
         · iapply etcdRunSlot_back s E γr c
           iframe
@@ -1912,7 +1934,9 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         imod (txnRespMsg_of_server skip resp h _ t'' _ _ cid mid) $$ [$Hh $Hf $Hres]
           with ⟨%m, #Hm, %Hmm⟩
         imodintro
+        ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
         iapply HΨ
+        iframe Hed
         isplitl [Hlt Hcr]
         · iapply etcdRunSlot_back s E γr c
           iframe
@@ -1939,7 +1963,9 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         · rw [h4]; exact h5
     · obtain ⟨-, Hne⟩ := Herr
       imodintro
+      ihave Hed := handlerErr_none (GF := GF) Ψe err
       iapply HΨ
+      iframe Hed
       isplitl [Hlt Hcr]
       · iapply etcdRunSlot_back s E γr c
         iframe
@@ -1985,11 +2011,14 @@ theorem etcd_compactMethodOk (q : Loc) (E : apply.AEnv GF)
   iapply (v3rpc.etcdserverpb.wp__KV_Compact_Handler pbCompactionRequest pbCompactionResponse
     (GrpcSpec.md (etcdCompactSpec E γr cid mid))
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
+    S ics Rs v3rpc.learnerReqOk m Φ (fun _ => iprop(True)) ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
-  · iframe; iframe #
+  · simp only [GrpcSpec.md]
+    iframe; iframe #
+    iintro !> %_
+    itrivial
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, -⟩
   iapply HΨ
   iframe
 
@@ -2010,7 +2039,7 @@ theorem etcd_putMethodMd (q : Loc) (S : IProp GF) (ics : List GoFunc) (Rs : List
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.PutRequest) -∗
       (pbPutRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbPutRequest]; iexact Hl
@@ -2020,11 +2049,11 @@ theorem etcd_putMethodMd (q : Loc) (S : IProp GF) (ics : List GoFunc) (Rs : List
     iapply putReq_learnerOk
   iapply (v3rpc.etcdserverpb.wp__KV_Put_Handler pbPutRequest pbPutResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
   iapply HΨ
   iframe
 
@@ -2039,7 +2068,7 @@ theorem etcd_rangeMethodMd (q : Loc) (S : IProp GF) (ics : List GoFunc) (Rs : Li
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.RangeRequest) -∗
       (pbRangeRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbRangeRequest]; iexact Hl
@@ -2051,11 +2080,11 @@ theorem etcd_rangeMethodMd (q : Loc) (S : IProp GF) (ics : List GoFunc) (Rs : Li
     iexact Hr
   iapply (v3rpc.etcdserverpb.wp__KV_Range_Handler pbRangeRequest pbRangeResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
   iapply HΨ
   iframe
 
@@ -2070,7 +2099,7 @@ theorem etcd_deleteMethodMd (q : Loc) (S : IProp GF) (ics : List GoFunc) (Rs : L
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.DeleteRangeRequest) -∗
       (pbDeleteRangeRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbDeleteRangeRequest]; iexact Hl
@@ -2080,11 +2109,11 @@ theorem etcd_deleteMethodMd (q : Loc) (S : IProp GF) (ics : List GoFunc) (Rs : L
     iapply deleteReq_learnerOk
   iapply (v3rpc.etcdserverpb.wp__KV_DeleteRange_Handler pbDeleteRangeRequest pbDeleteRangeResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
   iapply HΨ
   iframe
 
@@ -2099,7 +2128,7 @@ theorem etcd_txnMethodMd (q : Loc) (S : IProp GF) (ics : List GoFunc) (Rs : List
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.TxnRequest) -∗
       (pbTxnRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbTxnRequest]; iexact Hl
@@ -2109,11 +2138,11 @@ theorem etcd_txnMethodMd (q : Loc) (S : IProp GF) (ics : List GoFunc) (Rs : List
     iapply txnReq_learnerOk
   iapply (v3rpc.etcdserverpb.wp__KV_Txn_Handler pbTxnRequest pbTxnResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
   iapply HΨ
   iframe
 
@@ -2150,12 +2179,14 @@ theorem etcd_compactMethodM (p q s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
     · iframe #
     ihave #Hmc' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmc
     unfold etcdGrpcSlot
-    iapply (grpcMethodOkMd_mono _ _ _ _ _ _ (fun _ _ _ => by
-      simp only [GrpcSpec.md, etcdCompactSpecM]; iintro ⟨-, H⟩; iexact H)) $$ Hmc'
+    iapply (grpcMethodOkMd_mono _ _ _ _ _ _ (fun _ _ _ _ => by
+      simp only [GrpcSpec.md, etcdCompactSpecM]; iintro ⟨⟨-, H⟩, #Hd⟩; isplitl [H]
+      · iexact H
+      · iexact Hd)) $$ Hmc'
   · unfold grpcMethodOkMd
-    iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨-, -, -, -, -, HSpec⟩ -
+    iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨-, -, -, -, -, HSpec⟩ -
     simp only [GrpcSpec.md, etcdCompactSpecM]
-    icases HSpec with ⟨%h, -⟩
+    icases HSpec with ⟨⟨%h, -⟩, -⟩
     cases h
 
 /-- **A method meeting `Spec` with the slot `S` meets it with any slot `S'` that holds `S` and
@@ -2167,14 +2198,14 @@ theorem grpcMethodOkMd_slot {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfac
     grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S' Spec := by
   iintro #Hh
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS', #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS', #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave ⟨HS, HF⟩ := h1 $$ HS'
-  iapply Hh $$ %m %Φ %ci %cd %dec %ui [HS HSpec]
+  iapply Hh $$ %m %Φ %Ψe %ci %cd %dec %ui [HS HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, Hres⟩
+  iintro %resp %err ⟨HS, Hres, Hed⟩
   iapply HΨ
-  iframe Hres
+  iframe Hres Hed
   iapply h2
   iframe
 
@@ -3567,11 +3598,14 @@ theorem etcd_leaseGrantMethodOk (q : Loc)
   iapply (v3rpc.etcdserverpb.wp__Lease_LeaseGrant_Handler pbLeaseGrantRequest pbLeaseGrantResponse
     (GrpcSpec.md Spec) ⟨go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
+    S ics Rs v3rpc.learnerReqOk m Φ (fun _ => iprop(True)) ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
     $$ [HS HRs HSpec]
-  · iframe; iframe #
+  · simp only [GrpcSpec.md]
+    iframe; iframe #
+    iintro !> %_
+    itrivial
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, -⟩
   iapply HΨ
   iframe
 

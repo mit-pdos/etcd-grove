@@ -83,7 +83,7 @@ theorem restartCheck.wp_proof
   · iPkgInit
   (try wp_auto)
   -- `stop(m)`
-  wp_apply (wp_stop m s pl γ id peerAddr γn ρ (name ++ go!".etcd")) $$ [Hmst] as ⟨Himg, Hpa, Hpown⟩
+  wp_apply (wp_stop m s pl γ id peerAddr γn ρ name) $$ [Hmst] as Hrr
   · iframe; ipureintro; rw [hboot]; exact hb3
   (try wp_auto)
   -- the puts of `k ↦ v2`: once one returned `nil`, the put's flag
@@ -126,7 +126,7 @@ theorem restartCheck.wp_proof
   have Hu : Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL caddr], M, iu⟩ := HU
   wp_apply (wp_startMemberR N name peerAddr caddr peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
       HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hu Hlg Hck Haf Hbuq Hdbo)
-    $$ [Hpa Htok Himg Hpown] as %mR %err Hr
+    $$ [Htok Hrr] as %mR %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %sR, %plR, %ρ', %E₀', %Hρ', Hup, Hst⟩)
   · cases err with

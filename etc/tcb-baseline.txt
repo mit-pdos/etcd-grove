@@ -50,8 +50,10 @@ axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthOldRevision_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision_init
+axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDuplicateKey_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCEmptyKey_init
+axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCFutureRev_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidSortOption_init
@@ -814,5 +816,4 @@ sorry Perennial.go_etcd_io.bbolt.Options.Options_into_val_typed
 sorry Perennial.go_etcd_io.bbolt.Options.Options_typed_pointsto
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry srvGrantOpen_open
 sorry srvRevokeOpen_open

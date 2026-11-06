@@ -564,17 +564,19 @@ theorem srvRest_applyP (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
     (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut) (f : w64 → w64)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
-    (hp : plainOrCmp rq) (hs : apply.applyStep rq v3 x x' out) :
-    srvGrantIf E ∗ ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
+    (hp : plainOrCmp rq) (hs : apply.applyStep rq v3 x x' out)
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
+    srvGrantIf E ∗ srvReqsIf E (appliedTable γr A) ∗ grantReqA E rq v3 out ∗
+      ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
       apply.ltHalf E (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
-      (∃ t : w64, E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
+      (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ∗
       srvEver E (A ++ [m]) ⊢
       srvRest E γr (A ++ [m]) :=
   have hk := plainOrCmp_nonLease rq hp
   srvRest_applyG E γr A m rq v3 x x' out f ht hd hdec hv3 hch hk.2 (fun h => absurd h hk.1)
-    (fun r => restOut_plainOrCmp rq v3 x x' out r hp hs) hs
+    (fun r => restOut_plainOrCmp rq v3 x x' out r hp hs) hs hfb
 
 /-- `srvRest_applyP` for a triple whose post carries no grant conjuncts (`kvSpecL`'s): a plain
 request or a compaction grants nothing, so its ids, its rest and `grantOutOkA` are the identity's. -/
@@ -582,17 +584,20 @@ theorem srvRest_applyP0 (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut) (f : w64 → w64)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
-    (hp : plainOrCmp rq) (hs : apply.applyStep rq v3 x x' out) :
-    srvGrantIf E ∗ apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗
+    (hp : plainOrCmp rq) (hs : apply.applyStep rq v3 x x' out)
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
+    srvGrantIf E ∗ srvReqsIf E (appliedTable γr A) ∗ apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗
       E.RO (apply.restOut rq v3 out
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))) ∗
       srvEver E (A ++ [m]) ⊢
       srvRest E γr (A ++ [m]) := by
   have hk := (plainOrCmp_nonLease rq hp).1
-  iintro ⟨HGI, HLt, HR, HU⟩
-  iapply srvRest_applyP E γr A m rq v3 x x' out f ht hd hdec hv3 hch hp hs
-  iframe HGI HU
+  iintro ⟨HGI, HRq, HLt, HR, HU⟩
+  iapply srvRest_applyP E γr A m rq v3 x x' out f ht hd hdec hv3 hch hp hs hfb
+  iframe HGI HRq HU
+  isplitl []
+  · iapply grantReqA_nonGrant E rq v3 out hk
   isplitl []
   · ipureintro
     cases out with
@@ -600,7 +605,9 @@ theorem srvRest_applyP0 (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     | _ => trivial
   rw [apply.grantIdsA_nonGrant _ _ _ _ hk]
   iframe HLt
-  iexists (0 : w64)
+  iexists (apply.grantTTLW rq)
+  isplitr
+  · ipureintro; exact apply.grantTTLOk_w rq
   rw [apply.grantRestA_nonGrant _ _ _ _ _ hk]
   iexact HR
 
@@ -637,8 +644,8 @@ request not dispatched as a revocation leaves `revokeIdsA`/`revokeRestA` the ide
 theorem revokeA_drop (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut)
     (L T : List w64) (R : w64 → apply.RestM) (hk : apply.dispatchKind rq ≠ .leaseRevoke) :
     apply.ltHalf E (apply.revokeIdsA rq v3 out L) ∗
-      (∃ t : w64, E.RO (apply.revokeRestA T rq v3 out (R t))) ⊢
-      apply.ltHalf E L ∗ ∃ t : w64, E.RO (R t) := by
+      (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA T rq v3 out (R t))) ⊢
+      apply.ltHalf E L ∗ ∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (R t) := by
   rw [apply.revokeIdsA_nonRevoke _ _ _ _ hk]
   simp only [apply.revokeRestA_nonRevoke _ _ _ _ _ hk]
   iintro H; iexact H
@@ -681,17 +688,19 @@ theorem srvRest_applyPG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut) (f : w64 → w64)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
-    (hp : plainOrCmp rq ∨ grantPropOk E.lm rq) (hs : apply.applyStep rq v3 x x' out) :
-    srvGrantIf E ∗ ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
+    (hp : plainOrCmp rq ∨ grantPropOk E.lm rq) (hs : apply.applyStep rq v3 x x' out)
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
+    srvGrantIf E ∗ srvReqsIf E (appliedTable γr A) ∗ grantReqA E rq v3 out ∗
+      ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
       apply.ltHalf E (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
-      (∃ t : w64, E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
+      (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ∗
       srvEver E (A ++ [m]) ⊢
       srvRest E γr (A ++ [m]) :=
   have hp' : plainOrCmpG E.lm rq := by rcases hp with h | h; exact Or.inl h; exact Or.inr (Or.inl h)
   srvRest_applyG E γr A m rq v3 x x' out f ht hd hdec hv3 hch (plainOrCmpG_rev _ rq hp)
-    (plainOrCmpG_grant _ rq hp') (fun r => restOut_plainOrCmpG E.lm rq v3 x x' out r hp' hs) hs
+    (plainOrCmpG_grant _ rq hp') (fun r => restOut_plainOrCmpG E.lm rq v3 x x' out r hp' hs) hs hfb
 
 /-- A revocation is no cluster request (its rest effect, `restAfter`, the identity). -/
 theorem dispatchKind_leaseRevoke_noCluster (rq : apply.IRRModel)
@@ -785,10 +794,11 @@ theorem srvRest_applyR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
     (hch0 : γr.kv.ch0 = apply.alarmChain false false false)
-    (hr : revokePropOk E.lm rq) (hs : apply.applyStep rq v3 x x' out) :
-    srvGrantIf E ∗
+    (hr : revokePropOk E.lm rq) (hs : apply.applyStep rq v3 x x' out)
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
+    srvGrantIf E ∗ srvReqsIf E (appliedTable γr A) ∗
       apply.ltHalf E (apply.revokeIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
-      (∃ t : w64, E.RO (apply.revokeRestA (srvIds E (appliedTable γr A).ids) rq v3 out
+      (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA (srvIds E (appliedTable γr A).ids) rq v3 out
         (apply.restOut rq v3 out (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ∗
       srvEver E (A ++ [m]) ⊢
@@ -805,13 +815,22 @@ theorem srvRest_applyR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
   obtain ⟨hT, hR⟩ := revokeA_table γr A m rq v3 x x' out f ht hd hdec hv3 hch hch0 hr.2 hs
     (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))
     (fun id => restRevoke_restModel id _ _ _)
-  unfold srvRest srvRestAt srvGrantIf srvIds
+  have hsub : ∀ p ∈ appliedTable γr (A ++ [m]), p ∈ appliedTable γr A := by
+    have htab : appliedTable γr (A ++ [m]) =
+        dispatchTable γr.kv.ch0 rq v3 (appliedTable γr A) := by
+      rw [appliedTable_snoc]; unfold kvTable; rw [if_pos ht, if_neg hd]; simp only [hdec]; rw [← hv3]
+    rw [htab]
+    exact dispatchTable_sub_nonGrant _ rq v3 _ (by rw [hk]; decide)
+  unfold srvRest srvRestAt srvGrantIf srvIds srvReqsIf
   simp only [hlg, ↓reduceIte, hro]
   rw [hR, ← hT, hre]
-  iintro ⟨#HG, HL, ⟨%t, HR⟩, HU⟩
+  iintro ⟨#HG, #HQ, HL, ⟨%t, -, HR⟩, HU⟩
   iframe HL HG HU
-  iexists f
-  iexact HR
+  isplitl [HR]
+  · iexists f
+    iframe HR
+    ipureintro; exact leaseTTLsGeReq_sub (hfb hlg) hsub
+  iapply srvReqs_sub E _ _ hsub $$ HQ
 
 open Iris.ProofMode in
 /-- **`srvRest` one entry later, through `Apply`'s post** (its revocation wrappers over the grant's):
@@ -821,11 +840,13 @@ theorem srvRest_applyPGR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
     (hch0 : γr.kv.ch0 = apply.alarmChain false false false)
-    (hp : plainOrCmpG E.lm rq) (hs : apply.applyStep rq v3 x x' out) :
-    srvGrantIf E ∗ ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
+    (hp : plainOrCmpG E.lm rq) (hs : apply.applyStep rq v3 x x' out)
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
+    srvGrantIf E ∗ srvReqsIf E (appliedTable γr A) ∗ grantReqA E rq v3 out ∗
+      ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
       apply.ltHalf E (apply.revokeIdsA rq v3 out
         (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids))) ∗
-      (∃ t : w64, E.RO (apply.revokeRestA (srvIds E (appliedTable γr A).ids) rq v3 out
+      (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA (srvIds E (appliedTable γr A).ids) rq v3 out
         (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
           (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))))))) ∗
@@ -840,14 +861,14 @@ theorem srvRest_applyPGR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
     have hng : apply.dispatchKind rq ≠ .leaseGrant := by rw [hk]; decide
     rw [apply.grantIdsA_nonGrant _ _ _ _ hng]
     simp only [apply.grantRestA_nonGrant _ _ _ _ _ hng]
-    iintro ⟨#HG, -, HL, HR, HU⟩
-    iapply srvRest_applyR E γr A m rq v3 x x' out f ht hd hdec hv3 hch hch0 hr hs
-    iframe HG HL HR HU
-  · iintro ⟨#HG, %Hgo, HL, HR, HU⟩
+    iintro ⟨#HG, #HQ, -, -, HL, HR, HU⟩
+    iapply srvRest_applyR E γr A m rq v3 x x' out f ht hd hdec hv3 hch hch0 hr hs hfb
+    iframe HG HQ HL HR HU
+  · iintro ⟨#HG, #HQ, #HGr, %Hgo, HL, HR, HU⟩
     ihave ⟨HL, HR⟩ := revokeA_drop E rq v3 out _ _ _ hk $$ [$HL $HR]
     iapply srvRest_applyPG E γr A m rq v3 x x' out f ht hd hdec hv3 hch
-      (plainOrCmpG_nonRev _ rq hp hk) hs
-    iframe HG HL HR HU
+      (plainOrCmpG_nonRev _ rq hp hk) hs hfb
+    iframe HG HQ HGr HL HR HU
     ipureintro; exact Hgo
 
 open Iris.ProofMode in
@@ -1089,6 +1110,37 @@ theorem kv_entry_grantFresh (γ : ServerRaftNames) (γk : KVNames)
   have hnd : (logRevGrantIds γk.lm L).Nodup := by
     rw [HU.1]; exact leaseIdMask_nodup_of_pfx U (kvPfx γk) HU.2.1 HU.2.2
   exact grantId_fresh_transfer γk.lm A L m Hp.2.1 Hp.2.2 hnd hd gid hg
+
+open Iris.ProofMode in
+/-- **The applied log's grant ids have no repeat** (the revocable mode; `kv_entry_grantFresh`'s
+argument for the whole log): from the KV invariant's (`kvGrantIds`). What a snapshot's
+`appliedTable_rev_mem`/`appliedTable_granted_live` take (the lease-expiry plan's S2–S4, Probe 4). -/
+theorem kv_grantLog_nodup (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ A ={⊤}=∗
+      ⌜γk.lm = .revocable → (srvGrantLog A).Nodup⌝ := by
+  iintro #Hinv #Hr #HB
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    L A $$ Hr HL HB with ⟨HL, %Hp⟩
+  iunfold kvGrantIds at HG
+  icases HG with ⟨%U, %HU, HUs⟩
+  imod Hclose $$ [HL Hσ HUs] with -
+  · inext; iexists L; iframe HL Hσ Hw
+    isplitr
+    · ipureintro; exact Hok
+    iunfold kvGrantIds; iexists U; iframe HUs; ipureintro; exact HU
+  imodintro
+  ipureintro
+  intro hlm
+  have hnd : (logRevGrantIds γk.lm L).Nodup := by
+    rw [HU.1]; exact leaseIdMask_nodup_of_pfx U (kvPfx γk) HU.2.1 HU.2.2
+  have h1 := Hp.2.2.filterMap (leRevGrantId γk.lm)
+  rw [filterMap_leRevGrantId_opsOf, ← logRevGrantIds_noFill γk.lm L Hp.2.1] at h1
+  have hn := hnd.sublist h1.sublist
+  rw [← logRevGrantIds_filter_data, hlm] at hn
+  exact hn
 
 /-- A grant the entry carries is in a cluster that grants leases. -/
 theorem plainOrCmpG_lg (E : apply.AEnv GF) (rq : apply.IRRModel) (hp : plainOrCmpG E.lm rq) :
@@ -1367,6 +1419,82 @@ theorem applyResultIs_notNoSpace_grant (E : apply.AEnv GF) (rq : apply.IRRModel)
       · ipureintro; exact hnn
       iexists v; iframe Hvv Hans HeI
     iright; iexists v.Err'; iframe Hn; iapply apply.result_err_ro; iexact Hvv
+
+open Iris.ProofMode in
+/-- **An applied grant's request from `Apply`'s answer** (the lease-expiry plan's S2–S4, F7, DRAFT
+2026-11-05; given back): a grant applied with `v3` has a result (`dispatchResult`), whose answer
+has no error (`grantRes`'s tie), so the success arm of `grantAnswer`, with its `leaseReqIs`. -/
+theorem grantReqA_of_res (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool) (log : mvcc.Log)
+    (ar : Loc) (out : apply.ApplyOut) :
+    apply.grantResA E rq out ar ∗ apply.applyResultIs rq v3 log ar out ⊢
+      apply.grantResA E rq out ar ∗ apply.applyResultIs rq v3 log ar out ∗
+        grantReqA E rq v3 out := by
+  by_cases hk : apply.dispatchKind rq = .leaseGrant
+  rotate_left
+  · iintro ⟨Hg, H⟩; iframe Hg H; iapply grantReqA_nonGrant E rq v3 out hk
+  cases v3
+  · iintro ⟨Hg, H⟩; iframe Hg H; iapply grantReqA_noV3 E rq out
+  cases out with
+  | skipped =>
+    iintro ⟨Hg, H⟩; iframe Hg H
+    iapply grantReqA_vac
+    rintro g ⟨-, -, -, o, sk, l, ns, h, -⟩; cases h
+  | rejected =>
+    iintro ⟨Hg, H⟩; iframe Hg H
+    iapply grantReqA_vac
+    rintro g ⟨-, -, -, o, sk, l, ns, h, -⟩; cases h
+  | dispatched o sk =>
+    cases o with
+    | rejected e =>
+      iintro ⟨Hg, H⟩; iframe Hg H
+      iapply grantReqA_vac
+      rintro g ⟨-, -, -, o, sk', l, ns, h, h'⟩; cases h; cases h'
+    | applied l ns =>
+      cases hgl : rq.leaseGrant with
+      | none =>
+        iintro ⟨Hg, H⟩; iframe Hg H
+        iapply grantReqA_vac
+        rintro g ⟨-, -, h, -⟩; rw [hgl] at h; cases h
+      | some g =>
+        simp only [apply.applyResultIs, apply.dispatchResult, _root_.or_true, ↓reduceIte]
+        iintro ⟨Hg, ⟨%hnn, %v, #Hvv, Hans, #HeI⟩⟩
+        simp only [apply.grantResA]
+        unfold apply.grantRes
+        rw [if_pos ⟨hk, hnn⟩]
+        icases Hg with ⟨%v', #Hvv', Hga, Hwb, %Hap⟩
+        have he : v'.Err' = GoInterface.nil := Hap ⟨l, ns, rfl⟩
+        irevert Hga
+        unfold apply.grantAnswer
+        simp only [hgl]
+        iintro ⟨%r, %hresp, Hor⟩
+        icases Hor with (⟨%he', Hri, %i, %lc, #Hlf, #Hrq⟩ | %hne)
+        rotate_left
+        · exact absurd he hne
+        isplitl [Hri Hwb]
+        · iexists v'
+          iframe Hvv' Hwb
+          isplitl [Hri]
+          · iexists r
+            isplitr
+            · ipureintro; exact hresp
+            ileft
+            iframe Hri
+            isplitr
+            · ipureintro; exact he'
+            iexists i, lc
+            iframe Hlf Hrq
+          · ipureintro; exact Hap
+        isplitl [Hans]
+        · isplitr
+          · ipureintro; exact hnn
+          iexists v
+          iframe Hvv Hans HeI
+        unfold grantReqA
+        iintro !> %g' %hg'
+        obtain ⟨-, -, hg2, -⟩ := hg'
+        rw [hgl] at hg2
+        cases hg2
+        iexact Hrq
 
 /-- **`apply.Apply`'s result for a revocation** at the start's chain: applied, its error `nil` or
 `ErrLeaseNotFound` (`revokeErrIs`), not `ErrNoSpace`'s. -/

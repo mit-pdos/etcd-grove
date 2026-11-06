@@ -27,6 +27,7 @@ which the server's and the client's lemmas take (their files' section variables)
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Defs
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
@@ -61,9 +62,10 @@ abbrev Main.spec : Prop :=
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.putget ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23790" ∗ threadTok ∗ premises N id ctxs boot ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
-      walDirFresh (config.walDirOf go!"putget.etcd" go!"") }}
+      -- (2026-11-05, hub step 7) the member's start bundle: its WAL directory fresh and the right
+      -- to listen on its client address (`netAddrFree`, which program start gives once: D19d)
+      etcdstart.memberStartRes (GF := GF) go!"putget" ⟨none, some go!"127.0.0.1:23790"⟩ ∗
+      threadTok ∗ premises N id ctxs boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.putget.Main)) (Val #()))
   {{ RET #(); True }}
 

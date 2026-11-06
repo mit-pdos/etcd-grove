@@ -24,6 +24,8 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAlloc
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
+import all Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 
 @[expose] public section
 
@@ -155,8 +157,10 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   rw [hiss', Hiss]
   iexact H0
 
-/-- **What `Main` takes of the ghost state, for its cluster** (see the file header). -/
-theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
+/-- **The cluster's ghost state, from the peers' unregistered HTTP protocols** (`alloc3`'s
+allocation, on the start bundles' pieces; until hub step 7's steps 7-8 also used directly by the
+partition and restart examples and `cluster3`, which do not yet take the bundles). -/
+private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
     (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
@@ -278,6 +282,55 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁
     show kvModelSt ρ₁.rd.kv (bootEntries γ.boot) = kvModelSt γk (bootEntries γ.boot) by
       unfold kvModelSt kvLeases kvModel; rw [hc0₁, hch₁, hlog₁]]
   iexact Hetcd
+
+/-- **What `Main` takes of the ghost state, for its cluster** (see the file header; hub step 7's
+R, 2026-11-05): `alloc3Http` on the members' start bundles (`memberStartRes`, each with its peer
+address `aᵢ` and its optional client address `cᵢ`), the peers' unregistered protocols reserved for
+the network's raft protocol: each member's start bundle becomes its fresh bundle at the network
+`γn` (`memberFreshRes`), what its first-start starter takes. -/
+theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
+    (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
+    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
+    (HB : BootLog ps ctxs boot)
+    (Hcc : bootCCOk ps (LogEntry.toEntries boot 0))
+    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
+    (dir : w64 → List GoString)
+    (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
+    (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
+    (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
+    (n₁ n₂ n₃ : GoString) (c₁ c₂ c₃ : Option GoString)
+    (cmp : Bool := false) (cret : Nat := 0) :
+    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
+      memberStartRes (GF := GF) n₁ ⟨some a₁, c₁⟩ -∗ memberStartRes (GF := GF) n₂ ⟨some a₂, c₂⟩ -∗
+      memberStartRes (GF := GF) n₃ ⟨some a₃, c₃⟩ ={⊤}=∗
+      ∃ (γ : SrvRaft) (reg₁ reg₂ reg₃ : GName) (ρ₁ ρ₂ ρ₃ : ReqNames)
+        (E₁ E₂ E₃ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
+        (γn : NetNames GF),
+      ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧
+        γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
+        ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧
+        kvModel ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧ kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧
+        ρ₂.rd.kv.log0 = [[], []] ∧ ρ₃.rd.kv.log0 = [[], []] ∧
+        kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧
+        ρ₁.rd.kv.cmp = cmp ∧ ρ₁.rd.kv.cret = cret⌝ ∗
+      memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ cmp ∗
+      (netHttpOk γn id₁ ∗ memberFreshRes n₁ ⟨some a₁, c₁⟩ γn) ∗
+      memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ cmp ∗
+      (netHttpOk γn id₂ ∗ memberFreshRes n₂ ⟨some a₂, c₂⟩ γn) ∗
+      memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ cmp ∗
+      (netHttpOk γn id₃ ∗ memberFreshRes n₃ ⟨some a₃, c₃⟩ γn) ∗
+      etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
+  simp only [memberStartRes, memberFreshRes]
+  iintro #Hmarsh ⟨Hw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨Hw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨Hw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
+  imod (alloc3Http id₁ id₂ id₃ ps hperm ctxs boot Hlow Hlow0 HB Hcc Hurl dir a₁ a₂ a₃ Hd0 Hhost Hrb
+      Hrb2 cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
+    with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,
+      Hb₂, ⟨Hn₂, Ho₂⟩, Hb₃, ⟨Hn₃, Ho₃⟩, Hetcd⟩
+  imodintro
+  iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃, E₁, E₂, E₃, Φs, γn
+  iframe
+  ipureintro; exact Hγ
 
 end alloc
 

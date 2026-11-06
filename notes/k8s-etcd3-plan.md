@@ -846,6 +846,217 @@ are internal (the driver's invariant, `InvSteps`' continuations, D5's read updat
 `k8s.txt`: + T1). `etc/tcb-baseline.txt` unchanged (785 axioms, 6 `sorry`s); `k8s_compactor_safe`
 reaches no `sorry`.
 
+### 7c: Scope (2026-11-05, branch `k8s-etcd3-7c`; approved by the user 2026-11-05)
+
+**Approved (the user, 2026-11-05, via etcd-grove-82), every recommendation:** Q7c-1 (E1); Q7c-2, the
+four restatements, each attacked by the `axiom` skill in the round that writes it; Q7c-3 (T2 (c) in
+7c); Q7d (a); Q7e (a). Order (the coordinator's condition on the hub request): 7c-0, then 7c-1's
+`GrpcSpec` change and mechanical migration as a separate early landing.
+
+**What 7c proves.** `kubernetes.Client.Get` at any revision (`opts.Revision ≥ 0`). On success the
+answer is the key at the state the response read. On error, the soundness of the two read errors
+(the user's choice: *soundness only*; completeness later): an `ErrFutureRev` returned to the client
+means the revision was above the state the read was served at; an `ErrCompacted` means it was below
+that state's compaction revision. Both are stated by the error's description (`errDesc`, D29), so that
+both of the store's tests (`errors.Is(err, etcdrpc.ErrFutureRev)` in `listReadError`,
+`err == etcdrpc.ErrCompacted` in `interpretListError`) reduce to them. 7c has no consumer in the
+driver yet: the first one is 7e's `getList` (its non-recursive branch calls `Client.Get` with
+`options.Revision`, `store.go:1088`). So 7c ends with the client-layer statements proved, the
+driver's traffic unchanged and `k8setcd3_safe`/`k8s_compactor_safe` still closed (their calls pass
+revision 0).
+
+**What exists.** The success side at a revision is already carried up to the client:
+- `txn.rangeResult` (M2) answers `stateAt log (rangeRev rev o.rev)`;
+- `rangeReplyOk` (the client's view of a reply) keeps it;
+- `client_Get_kv` states it, `(σ.at (σ.readRev rev)).kvs`.
+
+Only `kubernetes.Client.Get.spec`'s premise `opts.Revision' = 0` restricts it. The error side has
+identity at one layer only. `txn.rangeResult` returns mvcc's `ErrFutureRev` exactly when
+`rev < o.rev`, and `ErrCompacted` when `rangeRev < crev`. Every layer above drops this:
+- `EtcdServer.Range`'s post: `applyErrIs` only;
+- `togRPCError`: "non-nil";
+- the Range handler's contract: nothing on error (`grpcHandlerOk`'s post is `err = nil -∗ …`);
+- the gRPC attempt (`grpcInvokerOk`): "a client error … nothing about whether the handler ran";
+- `kvErr` at the client.
+
+**The design question: error identity across gRPC, per call.** The soundness is about the call's own
+read (its revision against the state the read was served at, a state after the call began), so it
+cannot be a member-wide fact like D29's `noRefusalAt`. A state the member had before the request
+arrived says nothing. It has to travel with the call, from the handler's run to the attempt's error
+post. That is a change to the gRPC specs' shape and to the gRPC trust boundary.
+
+- **(E1) The gRPC specs get an error outcome (recommended).** Three changes:
+  - A method's spec also states what its errors mean. Among the forms, the one with the least churn
+    gives `GrpcSpec`'s continuation an error case, `Φ : Rep.M ⊕ GoString → IProp` (a description in
+    the error case). Each spec says which descriptions it covers, `D`, empty for every method but
+    `Range`.
+  - The handler contract (`grpcHandlerOk(Md)`) gains on its error side
+    `errDesc err ∈ D → Φ (.inr (errDesc err))`.
+  - The attempt contract (`grpcInvokerOk`, inside the trusted `grpc.ClientConn.Invoke.spec`) gains
+    the same, for descriptions grpc itself never produces. As D29's: a status the server sends is
+    forwarded unchanged, and grpc's own errors carry grpc's messages; the two descriptions are
+    etcd's own (`rpctypes/error.go:32-33`).
+
+  Range's spec (`etcdRangeSpec`) then covers `D = {futureRevDesc, compactedDesc}`. Its caller's `Φ`
+  at an error gets the read's facts: `readLogOk γr c log` (and the read update `□ Q (kvStateOf log)`
+  for a linearizable read), with `o.rev > len log - 1`, or `rangeRev < crev`. These are the facts
+  `rangeReplyOk` gives on success. Cost: every `GrpcSpec` definition is rewritten `Φ m` to
+  `Φ (.inl m)` (about 160 sites in 84 files, mechanical), and every handler proof's last step gains
+  a trivial error case (about 40 files; a lemma for `D = ∅`). This is shared vocabulary of the
+  server, the client and the examples, so it is filed as a hub request too.
+- (E2) A member-wide trust-boundary axiom, as D29's `noRefusalAt` ("a member sends `ErrFutureRev`
+  only for a revision above its state"). Not sound as a per-call statement: rejected.
+- (E3) No error identity: the driver's model (7e) treats `TooLargeResourceVersion`/410 on a list as
+  a failed read. A weaker theorem and a deviation from `correctness.Model`, which rejects them for a
+  valid revision. The fallback if E1's cost is refused.
+
+**The statements touched (old → new)**, under E1. Each is written in full in Draft:
+
+| Statement | Old | New |
+| --- | --- | --- |
+| `GrpcSpec`/`GrpcSpecMd` (`InvGrpc.lean`), `grpcHandlerOk(Md)`, `grpcMethodOk(Md)`, `isGrpcRpc(Md)` | continuation `Rep.M → IProp`; handler post `err = nil -∗ ∃ m', send ∗ Φ m'` | continuation over `Rep.M ⊕ GoString`; post adds `⌜err ≠ nil ∧ errDesc err ∈ D⌝ -∗ Φ (.inr (errDesc err))` |
+| **trusted** `grpcInvokerOk` (in `grpc.ClientConn.Invoke.spec`) and `grpc.Server.Serve.spec`'s handler side | error: `clientErr`, `statusErrOk`, `errCellOk`, `noRefusal` | adds the handler's error outcome for `errDesc err ∈ D` |
+| **trusted** `rpctypes` initializers (`ErrFutureRev_init`, `ErrCompacted_init`, the server-side `ErrGRPCFutureRev`/`ErrGRPCCompacted`) | an `EtcdError` / non-nil | adds `errDesc = "etcdserver: mvcc: required revision is a future revision"` / `"… has been compacted"` (as D29's refusals) |
+| **trusted** v3rpc's `grpcErrMap` (`toGRPCErrorMap`'s package fact) | values non-nil | adds: mvcc's `ErrFutureRev`/`ErrCompacted` map to those two; no other key does; the default case's `err.Error()` is neither (the server's error messages, `applyErrIs`) |
+| `v3rpc.togRPCError.spec` (proved) | non-nil | the mapped error's description for the two |
+| `EtcdServer.Range.spec` (M2's, frozen) | error: `applyErrIs` | adds the two errors' conditions with the read's log facts (DRAFT batch: a frozen statement) |
+| `kvServer.Range`, the served `etcd_rangeHandlerM` (stage 5), `etcdRangeSpec` | no error side | the error outcome |
+| client: `kv.Get`/`Do`/`toErr` chain, `client_range_any`, `client_Get_kv`, `client_Get_st` | `kvErr err` | adds `rangeErrSound o Q err` (description → `∃ σ, □ Q σ ∗ ⌜σ.rev < o.rev⌝`, or `⌜o.rev < σ.compacted⌝`) |
+| `kubernetes.Client.Get.spec` | premise `opts.Revision' = 0`; answer `findKey key σ.kvs`; error `kvErr` | no premise; answer `findKey key (σ.at (σ.readRev opts.Revision')).kvs`, the prophesied `m` its mod revision there; error adds `rangeErrSound` |
+| callers of `Client.Get` (the store: `Get`, `getCurrentState`, `refreshOnError`, …; the compactor's `getCompactRev`) | – | re-proved at revision 0 (`σ.at σ.rev = σ`); the error pattern gains a field |
+
+**Hubs.** `InvGrpc.lean` (`GrpcSpec`) is shared by the server, the client and every example: a hub
+request to etcd-grove-82, whatever E1's form. None of the listed hubs (NewServer, bootOk, etcdstart,
+the records) changes.
+
+**Trust base.** No new axiom by count. Restated (a hard stop, each attacked by the `axiom` skill
+before the Freeze):
+- `grpc.ClientConn.Invoke.spec` (`grpcInvokerOk`);
+- `grpc.Server.Serve.spec`'s handler contract;
+- rpctypes' four initializers;
+- v3rpc's `toGRPCErrorMap` fact.
+
+The claim behind them is D29's (descriptions are forwarded, and grpc never makes etcd's), applied
+to two more etcd strings.
+
+**Related item, proposed into 7c.** "The client's errors are not `*apierrors.StatusError`s" (T2 (c)
+of 7b, approved as a later change): `clientErr` strengthened. 7c rewrites the same error posts, and
+7e needs it (`listReadError`'s `TooLargeResourceVersion` is a `*StatusError` the driver must tell
+apart). Recommended in 7c if the gRPC boundary already fixes the error's dynamic type (to be checked
+in Draft); otherwise its own step.
+
+**Sub-steps (sizes are estimates, changed lines):**
+- 7c-0, Go first: a Go test in the driver's module (in-process etcd). `Get` at a past revision
+  returns the value then. A future revision gives `errors.Is(err, rpctypes.ErrFutureRev)`. A
+  compacted one gives `err == rpctypes.ErrCompacted`. Both descriptions are what the trust statements
+  say. ~100 lines of Go.
+- 7c-1, Draft: the gRPC error outcome (definitions and the trusted statements) and the mechanical
+  migration (~600, mostly one-line); the rpctypes/v3rpc facts (~80).
+- 7c-2, Draft: the server's error side (`EtcdServer.Range`, `togRPCError`, `kvServer.Range`, the
+  handler), statements and glue (~250).
+- 7c-3, Draft: the client chain and `kubernetes.Client.Get`, statements, and the glue of its callers
+  (~300).
+- Then Review, Test (the tester on `Client.Get` at revisions), Probe (easy: `togRPCError`; hard:
+  `EtcdServer.Range`'s error path firing the read update), Freeze (with the axiom attacks), Prove
+  (~500).
+
+In all ≈ 1,800 changed lines, ≈ 800 of them new proof.
+
+**Found while scoping** (Draft records them in `nonissues/`, documentation only).
+`kubernetes.Interface.List`'s doc says `Count` is "the total number of keys with the specified
+prefix". The code counts from `opts.Continue` when it is set (`client.go:76`, `rangeStart`).
+
+**Questions for the user (the Scope's batch):**
+- **Q7c-1. Error identity across gRPC.** (E1) per-call error outcomes in the gRPC specs; (E3) no
+  identity, the driver treats the two list errors as failed reads. Recommended: (E1).
+- **Q7c-2. The trust statements restated as listed.** Recommended: yes.
+- **Q7c-3. The `*StatusError` exclusion (7b's T2 (c)) in 7c.** Recommended: yes, if the boundary
+  gives the dynamic type.
+- **Q7d. The replay in the driver's `Check`.** (a) A Go copy of `correctness.Replay` (as D30m's copy
+  of the Model). It would be trusted as a statement, with Go tests that compare it against the real
+  `Replay` on random histories; 7g replaces it with the translation. (b) Translate the real
+  `correctness` package now (7g first: `reflect.DeepEqual`, the object and list accessors at the
+  trust boundary). Recommended: (a). (b) puts 7g's whole trust question in front of 7d, and the copy
+  is checked against the real one by test.
+- **Q7e. The shape of `kubernetes.Client.List`'s spec.** (a) As `Client.Get`'s:
+  - the members' read update `Q R`, which knows the response's revision through a prophecy. This is
+    a prophecy patch, `etc/proph-patches`, not a fork change; `Get`'s prophecy is in the fork from
+    before the patches;
+  - the answer at the state the read was served at: the keys of `[start, prefixEnd)` at the revision
+    read, sorted, the first `limit` (`0`: all), where `start` is `opts.Continue` if set, else
+    `prefix`;
+  - `Count` the number of keys in that range;
+  - `Revision` the state's revision;
+  - errors as `Get`'s, with 7c's soundness.
+
+  (b) No prophecy: the update fires at any state. The driver could not commit a list at the state
+  its answer reflects, which is D30n's reason for `Get`'s. Recommended: (a). The spec follows the
+  code's `Count`, not the doc's.
+
+### 7c-1: Draft, the gRPC error outcome (2026-11-06; design decided by the agent, to the user via 82 with the landing)
+
+**Form.** The error outcome goes into the metadata-indexed form only, the general one since the
+auth plan's E3zb. The plain form is embedded in it, as for metadata. (The alternative, the
+continuation over `Rep.M ⊕ GoString` the Scope sketched, would have changed every spec.)
+
+- `GrpcSpecMd Req Rep := GrpcMd → Req.M → (Rep.M → IProp) → (GoString → IProp) → IProp`. The new
+  last argument `Ψe` is the caller's error outcome, at the error's description (`errDesc`, D29's).
+- `GrpcSpec Req Rep` is unchanged: a spec with no error outcome.
+- `GrpcSpec.md S := fun _ m Φ Ψe => S m Φ ∗ □ (∀ d, Ψe d)`. A plain spec's caller gives every
+  error's outcome; a caller that wants none passes `Ψe := fun _ => True`.
+- **`handlerDescs`** (`InvGrpc.lean`): the descriptions of the errors a handler's spec may speak
+  of, which no other step of a call (grpc's decoding, the server's interceptors, the transport)
+  makes. The Md contracts (`grpcHandlerOkMd`, `grpcHandlerOwnOkMd`, `grpcMethodOkMd`) quantify
+  over `Ψe`. Their error post gains `⌜err ≠ nil ∧ errDesc err ∈ handlerDescs⌝ -∗ Ψe (errDesc err)`.
+  It is conditional because an error before the handler runs (`grpcDecOk`, `srvInterceptorsOk`,
+  the quota check) has no `Ψe` to give; 7c-1b shows those descriptions are not in `handlerDescs`.
+- The plain contracts keep their definitions. The laws `*_md` (`grpcHandlerOk h S Spec ⊣⊢
+  grpcHandlerOkMd h S (GrpcSpec.md Spec)`, `grpcHandlerOwnOk_md`, `grpcMethodOk_md`,
+  `isGrpcRpc(s)_md`) stay equivalences, now proved rather than `rfl`: left to right, the error gets
+  `Ψe` from `□ ∀ d, Ψe d`; right to left, `Ψe := fun _ => True`.
+- **The trusted attempt** (`grpcInvokerOk`, in `grpc.ClientConn.Invoke.spec`): `∀ Ψe`, the
+  precondition `Spec md m Φ Ψe` at every attempt's metadata, and on an error
+  `⌜errDesc err ∈ handlerDescs⌝ -∗ Ψe (errDesc err)`: such an error is the handler's own.
+
+**7c-1a, the early landing (82's condition): mechanical.** `handlerDescs := []`, so every new
+conjunct is vacuous, and every proof discharges it by `simp [handlerDescs]`. The trusted
+statements (`grpc.ClientConn.Invoke.spec` through `grpcInvokerOk`; `grpc.Server.Serve` and
+`RegisterService` through `GrpcMethod.spec : GrpcSpecMd`) change only by the quantifier `Ψe`,
+which they pass through unused. The client asks for no outcome yet: `attemptPre` instantiates
+`Ψe := fun _ => True`. The Md specs (`etcd*SpecM`, `etcd*SpecOn`, the auth service's) ignore their
+`Ψe`.
+
+**7c-1b** (the trusted statements, so that they are attacked once, at their final text):
+- The rpctypes initializer axioms say what the two read errors' descriptions are (`futureRevDesc`,
+  `compactedDesc`, cache/v3 `Base.lean`), for `ErrFutureRev`/`ErrCompacted` and
+  `ErrGRPCFutureRev`/`ErrGRPCCompacted`, and the eleven other errors' literal descriptions (HS-1).
+- The `toGRPCErrorMap` fact (`grpcErrMapOk`): non-nil values; mvcc's `ErrFutureRev` and
+  `ErrCompacted` map to the two descriptions, and no other key does.
+- The decoder's (`grpcDecOk`) and the interceptors' (`srvInterceptorOk`) errors are not in
+  `handlerDescs`.
+- HS-4 (DRAFT): the Md specs other than Range's take `□ ∀ d, Ψe d`.
+- Each restated trusted statement is attacked with the axiom skill (Q7c-2), at `handlerDescs`'s
+  7c-2 value.
+**Gate (etcd-grove-82, 2026-11-06): 7c-2 does not fill `handlerDescs` before HS-5 is fixed** (`questions.md`, "7c-1b attacks"): with the descriptions in it, `grpcInvokerOk`'s claim that only a handler makes them, false in Go, would no longer be vacuous.
+**Moved to 7c-2:** filling `handlerDescs`, and `etcdRangeSpecM`'s `Ψe` facts. Range's handler
+proves `Ψe` at the two descriptions only from `EtcdServer.Range`'s error post (HS-3 (a)), which
+is 7c-2's. Filled earlier, the Range handler's proof has nothing to prove it from.
+**The attacks (2026-11-06).** The rpctypes and `toGRPCErrorMap` facts survive
+(`notes/axiom-review/7c1b-init.md`, branch `axiom/7c1b-init` 7174bc28bd), and so does `grpcDecOk`.
+Two claims fail in Go (`notes/axiom-review/7c1b-grpc.md`, branch `axiom/7c1b-grpc` 95e694f82a; Stuck
+in Lean). First, `grpcInvokerOk`'s "only a handler makes these descriptions": a caller's context
+whose `Err()` is `rpctypes.ErrCompacted`, or a per-RPC credentials error, carries `compactedDesc` with
+no handler run. Second, already before 7c, a handler's error whose `Error()` panics makes
+grpc-prometheus's interceptor and grpc's server panic, which `srvInterceptorOk` and `grpcMethodOk` do
+not exclude. Both go to etcd-grove-82 as hard stops (`questions.md`, "7c-1b attacks").
+7c-2 also needs `status.Error.spec` to state its description (`errDesc err = msg`).
+
+**Why this form.**
+- Most specs are plain (`GrpcSpec`) and do not change. Their handlers prove the plain contracts
+  unchanged.
+- Only the Md specs gain the argument (`fun md o Φ` becomes `fun md o Φ _`).
+- The precedent is `GrpcSpec.md` itself: one family, the plain form embedded in it.
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error

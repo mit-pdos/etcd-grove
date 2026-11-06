@@ -14,6 +14,7 @@ v3rpc's method sets (`v3rpc.Server`'s). Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Defs
 
 @[expose] public section
@@ -57,7 +58,7 @@ abbrev StartMember.spec : Prop :=
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗
-      netAddrFree (GF := GF) peerAddr ∗ netAddrFree (GF := GF) client ∗ threadTok ∗
+      threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗
       cluster ↦$□ GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂
         (GMap.insert cfg.Name1' sl₁ ∅)) ∗
@@ -67,10 +68,12 @@ abbrev StartMember.spec : Prop :=
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp lm ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
-      -- side for it and the right to serve its peer address with the raft protocol
-      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
+      -- side for it
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6; 2026-11-05, hub step 7's E1, its fresh bundle) the
+      -- member's WAL directory fresh (a first start), the right to listen on its peer address and
+      -- to serve it with the network's raft protocol, and the right to listen on its client address
+      etcdstart.memberFreshRes name ⟨some peerAddr, some client⟩ γn }}
     (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster))

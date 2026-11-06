@@ -18,6 +18,7 @@ watch environment of the prefix `pfx`, the caller's choice, and etcd's KV at the
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Defs
 
 @[expose] public section
@@ -49,17 +50,11 @@ abbrev startCluster.spec : Prop :=
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.partition ∗
-      netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
-      netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
-      netAddrFree (GF := GF) clientAddr₂ ∗ netAddrFree (GF := GF) clientAddr₃ ∗
-      netAddrFree (GF := GF) bridgeAddr₁ ∗ netAddrFree (GF := GF) bridgeAddr₂ ∗
-      netAddrFree (GF := GF) bridgeAddr₃ ∗
-      httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-      httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot ∗
-      -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
-      walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!"") }}
+      -- (2026-11-05, hub step 7, D1) the cluster's start bundle: each member's (its WAL directory
+      -- fresh, its peer and client addresses free, the peer's HTTP protocol unregistered) and the
+      -- bridges' addresses free
+      cluster3.startRes (GF := GF) clusterCfg ∗
+      threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.startCluster)) (Val #lg))
   {{ (srvs brs clis : GoSlice) (ok : Bool), RET (PairV (PairV (PairV #srvs #brs) #clis) #ok);
       ⌜ok = false⌝ ∨

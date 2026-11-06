@@ -44,8 +44,8 @@ theorem v3rpc.quotaKV_putHandlerOkMd_of
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
   unfold grpcHandlerOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
-  iapply (wp_Put Req Rep Spec q s kv S m Φ ci cd r) $$ [HS Hqr HSpec]
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  iapply (wp_Put Req Rep Spec q s kv S m Φ Ψe ci cd r) $$ [HS Hqr HSpec]
   · iframe; iframe #
     unfold grpcHandlerOkMd
     iexact Hh
@@ -64,8 +64,13 @@ theorem v3rpc.quotaKV_putHandlerOk_of
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Put" kv.v) S Spec ⊢
       grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Put")
-        iprop(S ∗ v3rpc.quotaRd s) Spec :=
-  v3rpc.quotaKV_putHandlerOkMd_of wp_Put (GrpcSpec.md Spec) q s kv S
+        iprop(S ∗ v3rpc.quotaRd s) Spec := by
+  iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
+  iapply (grpcHandlerOk_md _ _ Spec).2
+  iapply (v3rpc.quotaKV_putHandlerOkMd_of wp_Put (GrpcSpec.md Spec) q s kv S)
+  iframe #
+  iapply (grpcHandlerOk_md _ _ Spec).1
+  iexact Hh
 
 /-- **`quotaKVServer.Txn` meets (the vertical slice's unit V2; as `Put`'s) the embedded service's
 spec** (metadata-indexed, E3zb), with the quota check's reader slots (`quotaRd`, from its spec). -/
@@ -80,8 +85,8 @@ theorem v3rpc.quotaKV_txnHandlerOkMd_of
         iprop(S ∗ v3rpc.quotaRd s) Spec := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
   unfold grpcHandlerOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
-  iapply (wp_Txn Req Rep Spec q s kv S m Φ ci cd r) $$ [HS Hqr HSpec]
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  iapply (wp_Txn Req Rep Spec q s kv S m Φ Ψe ci cd r) $$ [HS Hqr HSpec]
   · iframe; iframe #
     unfold grpcHandlerOkMd
     iexact Hh
@@ -100,8 +105,13 @@ theorem v3rpc.quotaKV_txnHandlerOk_of
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Txn" kv.v) S Spec ⊢
       grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Txn")
-        iprop(S ∗ v3rpc.quotaRd s) Spec :=
-  v3rpc.quotaKV_txnHandlerOkMd_of wp_Txn (GrpcSpec.md Spec) q s kv S
+        iprop(S ∗ v3rpc.quotaRd s) Spec := by
+  iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
+  iapply (grpcHandlerOk_md _ _ Spec).2
+  iapply (v3rpc.quotaKV_txnHandlerOkMd_of wp_Txn (GrpcSpec.md Spec) q s kv S)
+  iframe #
+  iapply (grpcHandlerOk_md _ _ Spec).1
+  iexact Hh
 
 /-- **A promoted method of `quotaKVServer`** (`Range`, `DeleteRange`: the embedded service's)
 meets what the embedded service's meets. -/
@@ -164,11 +174,11 @@ theorem v3rpc.quotaKV_promotedHandlerOkMd {Req Rep : ProtoMsg GF} (Spec : GrpcSp
   iunfold v3rpc.quotaKVServerAt at Hq
   icases Hq with ⟨%Hqn, #Hkv, -⟩
   unfold grpcHandlerOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ Hpre HΨ
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ Hpre HΨ
   rw [hm.method_unfold]
   wp_pures
   wp_auto
-  iapply Hh $$ %m %Φ %ci %cd %r Hpre
+  iapply Hh $$ %m %Φ %Ψe %ci %cd %r Hpre
   inext
   iexact HΨ
 

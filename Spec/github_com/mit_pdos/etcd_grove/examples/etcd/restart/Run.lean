@@ -43,19 +43,14 @@ def runPure (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (b
   ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk
 
 /-- `Run`'s and `Main`'s resources (putget3's `Main`'s, with all three client addresses and a
-second thread token). -/
+second thread token): each member's start bundle (`etcdstart.memberStartRes`, at its peer and its
+client address; hub step 8, E6). -/
 def runRes (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) : IProp GF :=
-  iprop(netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
-    netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
-    netAddrFree (GF := GF) clientAddr₂ ∗ netAddrFree (GF := GF) clientAddr₃ ∗
-    httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-    httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ threadTok ∗
-    premises N id₁ id₂ id₃ ps ctxs boot ∗
-    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
-    walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
-    walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
-    walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!""))
+  iprop(etcdstart.memberStartRes (GF := GF) name₁ ⟨some peerAddr₁, some clientAddr₁⟩ ∗
+    etcdstart.memberStartRes (GF := GF) name₂ ⟨some peerAddr₂, some clientAddr₂⟩ ∗
+    etcdstart.memberStartRes (GF := GF) name₃ ⟨some peerAddr₃, some clientAddr₃⟩ ∗
+    threadTok ∗ threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot)
 
 /-- See the file header. -/
 abbrev Run.spec : Prop :=

@@ -65,7 +65,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     ⟨Hrt, #HeI, Hres'⟩
   ihave Hwo := Hrdb $$ Hrt
   icases Hres' with (⟨%Hne, #HlE, HPre, Hown, Hrvk, HRO, HU⟩ |
-    ⟨%Hok, HPost, Hown, Hrvk, #Hlease, #Hlf, HU, ⟨%t, #Hlt, %Htge, HRO⟩⟩)
+    ⟨%Hok, HPost, Hown, Hrvk, #Hlease, #Hlf, HU, #Hreq, ⟨%t, #Hlt, %Htge, HRO⟩⟩)
   · ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
     · iright; iexact HPre
     ihave Hlive : apply.leasesLive E (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk HltL]
@@ -102,7 +102,10 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       rw [apply.grantIds_rejected, apply.grantIds_rejected]
       iframe HltT HU
       isplitl [HRO]
-      · iexists (W64 0); rw [apply.grantRest_rejected]; iexact HRO
+      · iexists g.ttl
+        isplitr
+        · ipureintro; exact apply.grantTTLOk_of rq g _ Hg (Int.le_refl _)
+        rw [apply.grantRest_rejected]; iexact HRO
       iunfold apply.grantAnswer
       rw [Hg]
       iexists _
@@ -158,7 +161,10 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     rw [apply.grantIds_applied rq g log false L Hk Hg, apply.grantIds_applied rq g log false U Hk Hg]
     iframe HltT HU
     isplitl [HRO]
-    · iexists t; rw [apply.grantRest_applied t rq g log false rs Hk Hg]; iexact HRO
+    · iexists t
+      isplitr
+      · ipureintro; exact apply.grantTTLOk_of rq g t Hg Htge
+      rw [apply.grantRest_applied t rq g log false rs Hk Hg]; iexact HRO
     iunfold apply.grantAnswer
     rw [Hg]
     iexists _
@@ -191,9 +197,9 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       ipureintro
       refine ⟨?_, Hlen.1, Hlen.2⟩
       word
-    iexists 0, l, t
-    iframe Hlf Hlt
-    ipureintro; exact Htge
+    iexists 0, l
+    iframe Hlf
+    iexact Hreq
 
 end proof
 

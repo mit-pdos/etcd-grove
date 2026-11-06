@@ -71,7 +71,7 @@ theorem v3rpc.togRPCError.wp_proof
   · iapply HΦ
     ipureintro; exact Hnn
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMap at Hmap
-  icases Hmap with ⟨%mp, %M, #Hmp, #HM, %HMv⟩
+  icases Hmap with ⟨%mp, %M, %kf, %kc, #Hmp, #HM, -, -, %HMv⟩
   wp_auto
   haveI := Hsafe
   wp_apply wp_map_lookup2 $$ HM as -
@@ -80,7 +80,7 @@ theorem v3rpc.togRPCError.wp_proof
     simp only [Option.getD_some, Option.isSome_some, decide_true]
     wp_auto
     iapply HΦ
-    ipureintro; exact HMv err v hk
+    ipureintro; exact go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk_ne HMv err v hk
   | none =>
     simp only [Option.getD_none, Option.isSome_none]
     wp_auto

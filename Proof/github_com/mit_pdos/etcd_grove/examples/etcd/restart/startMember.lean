@@ -47,7 +47,8 @@ theorem startMember.wp_proof
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn
     ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown, Hwdf⟩
+  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  icases etcdstart.memberFreshRes_peer _ _ _ _ rfl $$ Hfresh with ⟨⟨Haddr, Hpown⟩, Hfresh⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   ihave #Pcom : isPkgInit (PROP := IProp GF)
@@ -62,7 +63,7 @@ theorem startMember.wp_proof
   -- `etcdstart.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
       ps bootLog ctxs dir id γ ρ E₀ Φs γn .none HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
-      Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
+      Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
@@ -143,19 +144,20 @@ theorem startMember.wp_proofRestart
     startMember.specRestart (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
     ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Himg, #Hnet, Hpown⟩
+  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, #Hnet, Hrr⟩
+  icases etcdstart.memberRestartRes_peer _ _ _ _ _ _ _ rfl $$ Hrr with ⟨⟨Haddr, Hpown⟩, Hrr⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
   · iPkgInit
   -- the image's raft names are the cluster's
-  icases srvDiskImage_raft γ ρ id _ $$ Himg with ⟨%Hγρ, Himg⟩
+  icases etcdstart.memberRestartRes_raft _ _ _ _ _ _ $$ Hrr with ⟨%Hγρ, Hrr⟩
   (try wp_auto)
   -- `etcdstart.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
       ps bootLog ctxs dir id γ ρ γn HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
-      Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Himg] as %s %err Hres
+      Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hrr] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, Hsr, Hkeep⟩)
   · -- `BuildServer` failed: the error returned, with the thread token

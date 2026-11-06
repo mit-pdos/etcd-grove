@@ -91,7 +91,7 @@ Freeze, amendment (D)): with no live lease, `bkRestAtL`'s records are none. -/
 theorem bkRestAt_of_L [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel}
     {D : Data} (hn : (kvLeases γk L).ids = []) (h : bkRestAtL γk bootLog L D) :
     bkRestAt γk.c0 bootLog L D := by
-  obtain ⟨f, hf⟩ := h
+  obtain ⟨f, -, hf⟩ := h
   intro n hn'
   rw [hf n hn', hn, apply.restLeasesWith_nil]; rfl
 
@@ -100,7 +100,7 @@ with no live lease, `bkRestAtL`'s records are none. -/
 theorem bkRestAtL_of_nil [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel}
     {D : Data} (hn : (kvLeases γk L).ids = []) (h : bkRestAt γk.c0 bootLog L D) :
     bkRestAtL γk bootLog L D := by
-  refine ⟨fun _ => W64 0, fun n hn' => ?_⟩
+  refine ⟨fun _ => W64 0, leaseTTLsGeReq_of_ids_nil hn _, fun n hn' => ?_⟩
   rw [h n hn', hn, apply.restLeasesWith_nil]; rfl
 
 /-! ## The image -/

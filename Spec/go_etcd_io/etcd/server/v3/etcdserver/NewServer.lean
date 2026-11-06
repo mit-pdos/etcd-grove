@@ -225,8 +225,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
   -- (2026-11-04, the lease-expiry plan's Part C; the slot convention) the lease subsystem's boot
   -- premise at the mode `m` (`lease.bootCfg`, `LeaseApi.lean`): the KV names' grant flag the mode's,
-  -- with auth on no lease granted (lease-grant 2.13), in a granting cluster no lease expiring and
-  -- the open cases (`srvGrantOpen`; lease-grant D2), and the lessor's checkpointer's effects
+  -- with auth on no lease granted (lease-grant 2.13), in a granting cluster no lease expiring (and
+  -- until the lease-expiry plan's S2–S4, 2026-11-05, the open cases, `srvGrantOpen`; lease-grant
+  -- D2), and the lessor's checkpointer's effects
   -- (`ckptEffectsOk`, `NewLessor`'s premise; D14e, unit N4); until then inline here
   lease.bootCfg (GF := GF) ρ.rd.kv.lm m on →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
