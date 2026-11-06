@@ -613,6 +613,282 @@ theorem treeWf_rmdir {R : List (GoString × Ino)} {m : Tree} {j : Ino} {b : GoSt
     · split at h2
       · cases h2
       · exact hw.2.2.2.2 x1 c1 x2 c2 n h1 h2
+
+/-! ## Paths are unique; a rename of a directory -/
+
+theorem walk_append (m : Tree) (n : Node) (a c : List GoString) :
+    walk m n (a ++ c) = (walk m n a).bind (fun n' => walk m n' c) := by
+  induction a generalizing n with
+  | nil => rfl
+  | cons x a ih =>
+    cases n with
+    | dir j =>
+      simp only [List.cons_append, walk]
+      cases m.entry j x with
+      | none => rfl
+      | some n' => exact ih n'
+    | file i => rfl
+
+theorem belowP_of_walk {m : Tree} : ∀ {ds : List GoString} {J x : Ino},
+    walk m (.dir J) ds = some (.dir x) → BelowP m J x
+  | [], J, x, h => by simp [walk] at h; subst h; exact .self _
+  | c :: ds, J, x, h => by
+    simp only [walk] at h
+    cases he : m.entry J c with
+    | none => rw [he] at h; cases h
+    | some n =>
+      rw [he] at h; simp only at h
+      cases n with
+      | dir J' => exact .step J c J' x he (belowP_of_walk h)
+      | file i => cases ds <;> simp [walk] at h
+
+theorem walk_of_belowP {R : List (GoString × Ino)} {m : Tree} (hw : TreeWf R m) {J x : Ino}
+    (h : BelowP m J x) : ∃ ds, (∀ d ∈ ds, NameOk d) ∧ walk m (.dir J) ds = some (.dir x) := by
+  induction h with
+  | self J => exact ⟨[], by simp, rfl⟩
+  | step J c J' x he _ ih =>
+    obtain ⟨ds, hds, hw'⟩ := ih
+    refine ⟨c :: ds, ?_, by simp only [walk, he]; exact hw'⟩
+    intro d hd; simp only [List.mem_cons] at hd
+    rcases hd with rfl | hd
+    · exact (hw.2.2.1 J d _ he).1
+    · exact hds d hd
+
+theorem walk_last {m : Tree} {n : Node} {cs : List GoString} {x : Ino} (hne : cs ≠ [])
+    (h : walk m n cs = some (.dir x)) :
+    ∃ y, walk m n cs.dropLast = some (.dir y) ∧ m.entry y (cs.getLast hne) = some (.dir x) := by
+  have hcs := List.dropLast_concat_getLast hne
+  rw [← hcs, walk_snoc] at h
+  cases hw : walk m n cs.dropLast with
+  | none => rw [hw] at h; cases h
+  | some n' =>
+    rw [hw] at h
+    cases n' with
+    | dir y => exact ⟨y, rfl, h⟩
+    | file i => cases h
+
+/-- **A directory has one path from the roots**: its inode, and the components. -/
+theorem path_unique {R : List (GoString × Ino)} {m : Tree} (hw : TreeWf R m) :
+    ∀ (n : Nat) {r1 r2 : GoString} {j1 j2 x : Ino} {cs1 cs2 : List GoString},
+      cs1.length + cs2.length ≤ n → (r1, j1) ∈ R → (r2, j2) ∈ R →
+      walk m (.dir j1) cs1 = some (.dir x) → walk m (.dir j2) cs2 = some (.dir x) →
+      j1 = j2 ∧ cs1 = cs2 := by
+  intro n
+  induction n with
+  | zero =>
+    intro r1 r2 j1 j2 x cs1 cs2 hl _ _ h1 h2
+    have h1' : cs1 = [] := List.eq_nil_of_length_eq_zero (by omega)
+    have h2' : cs2 = [] := List.eq_nil_of_length_eq_zero (by omega)
+    subst h1' h2'
+    simp [walk] at h1 h2; subst h1 h2; exact ⟨rfl, rfl⟩
+  | succ n ih =>
+    intro r1 r2 j1 j2 x cs1 cs2 hl hr1 hr2 h1 h2
+    by_cases e1 : cs1 = [] <;> by_cases e2 : cs2 = []
+    · subst e1 e2; simp [walk] at h1 h2; subst h1 h2; exact ⟨rfl, rfl⟩
+    · subst e1; simp [walk] at h1; subst h1
+      obtain ⟨y, -, hy⟩ := walk_last e2 h2
+      exact absurd hr1 (hw.2.2.2.1 _ _ _ hy r1)
+    · subst e2; simp [walk] at h2; subst h2
+      obtain ⟨y, -, hy⟩ := walk_last e1 h1
+      exact absurd hr2 (hw.2.2.2.1 _ _ _ hy r2)
+    · obtain ⟨y1, hw1, hy1⟩ := walk_last e1 h1
+      obtain ⟨y2, hw2, hy2⟩ := walk_last e2 h2
+      obtain ⟨rfl, hc⟩ := hw.2.2.2.2 _ _ _ _ _ hy1 hy2
+      have hl1 := List.length_dropLast (xs := cs1)
+      have hl2 := List.length_dropLast (xs := cs2)
+      have hp1 : 0 < cs1.length := List.length_pos_iff.2 e1
+      have hp2 : 0 < cs2.length := List.length_pos_iff.2 e2
+      obtain ⟨rfl, hd⟩ := ih (by omega) hr1 hr2 hw1 hw2
+      refine ⟨rfl, ?_⟩
+      rw [← List.dropLast_concat_getLast e1, ← List.dropLast_concat_getLast e2, hd, hc]
+
+/-- A directory below the directory at `s` is at a path under `s`. -/
+theorem isUnder_of_belowP {st : OsState} (hr : RootsOk st.fs.roots) (hw : TreeWf st.fs.roots st.tree)
+    {s p : GoString} {J x : Ino} (hs : st.lookup s = some (.dir J)) (hp : st.lookup p = some (.dir x))
+    (hb : BelowP st.tree J x) : IsUnder s p := by
+  obtain ⟨r, j, cs, hrj, hcs, rfl, hw1⟩ := lookup_some hs
+  obtain ⟨r', j', cs', hrj', hcs', rfl, hw2⟩ := lookup_some hp
+  obtain ⟨ds, hds, hw3⟩ := walk_of_belowP hw hb
+  have hw4 : walk st.tree (.dir j) (cs ++ ds) = some (.dir x) := by
+    rw [walk_append, hw1]; exact hw3
+  obtain ⟨rfl, hc⟩ := path_unique hw _ (Nat.le_refl _) hrj hrj' hw4 hw2
+  have : r = r' := by
+    have := eq_of_nodup_map (f := (·.2)) hr.2.1 hrj hrj' rfl
+    simp only [Prod.mk.injEq] at this; exact this.1
+  subst this; subst hc
+  rw [joinPath_append]
+  rcases ds with _ | ⟨d, ds⟩
+  · left; simp [joinPath]
+  · right; exact ⟨d ++ ds.flatMap (slashB :: ·), by simp [joinPath]⟩
+
+/-- The directory `J` named `b` in the reachable `j0` renamed to `b'` in the reachable `j1`, not in
+`J`'s subtree, onto nothing or an empty directory. -/
+theorem treeWf_renameDir {R : List (GoString × Ino)} {m : Tree} {j0 j1 J : Ino} {b b' : GoString}
+    (hw : TreeWf R m) (hj0 : Reach R m j0) (hj1 : Reach R m j1) (hb' : NameOk b')
+    (he : m.entry j0 b = some (.dir J)) (hne : ¬ (j0 = j1 ∧ b = b'))
+    (ht : m.entry j1 b' = none ∨ ∃ J2, m.entry j1 b' = some (.dir J2) ∧ ∀ c, m.entry J2 c = none)
+    (hnot : ¬ BelowP m J j1) (n : Node) (old : Option Node) :
+    TreeWf R ((MetaOp.rename j0 b j1 b' n old).apply m) := by
+  simp only [MetaOp.apply, he]
+  generalize hm' : (m.upd j0 (fun d => GMap.delete b d)).upd j1 (fun d => <[b' := Node.dir J]> d) = m'
+  have hent : ∀ x c, m'.entry x c =
+      if j1 = x ∧ b' = c then some (.dir J)
+      else if j0 = x ∧ b = c then none else m.entry x c := by
+    intro x c; rw [← hm', entry_upd]
+    by_cases h1 : j1 = x
+    · subst h1
+      by_cases h2 : b' = c
+      · subst h2; simp
+      · simp only [h2, and_false, ↓reduceIte]
+        rw [GMap.lookup_insert_ne _ _ h2, getD_lookup]
+        show (m.upd j0 (fun d => GMap.delete b d)).entry j1 c = _
+        rw [entry_upd]
+        by_cases h3 : j0 = j1
+        · subst h3
+          by_cases h4 : b = c
+          · subst h4; simp
+          · simp [h4, Tree.entry, getD_lookup]
+        · simp [h3]
+    · simp only [h1, false_and, ↓reduceIte]
+      rw [entry_upd]
+      by_cases h3 : j0 = x
+      · subst h3
+        by_cases h4 : b = c
+        · subst h4; simp
+        · simp [h4, Tree.entry, getD_lookup]
+      · simp [h3]
+  have hj0m := hw.1 _ hj0
+  have hj1m := hw.1 _ hj1
+  have hmem : ∀ x, x ∈ m' ↔ x ∈ m := by
+    intro x; rw [← hm', mem_upd, mem_upd]; constructor
+    · rintro (rfl | rfl | h); exact hj1m; exact hj0m; exact h
+    · exact fun h => .inr (.inr h)
+  have honlyJ : ∀ x c, m.entry x c = some (.dir J) → x = j0 ∧ c = b := fun x c h =>
+    hw.2.2.2.2 x c j0 b _ h he
+  -- the replaced directory, if any
+  have hJ2 : ∀ J2, m.entry j1 b' = some (.dir J2) → (∀ c, m.entry J2 c = none) := by
+    intro J2 h; rcases ht with ht | ⟨J2', h', hemp⟩
+    · rw [ht] at h; cases h
+    · rw [h'] at h; cases h; exact hemp
+  have hJne : ∀ J2, m.entry j1 b' = some (.dir J2) → J ≠ J2 := by
+    intro J2 h hJ; subst hJ; exact hne (by obtain ⟨h1, h2⟩ := honlyJ _ _ h; exact ⟨h1.symm, h2.symm⟩)
+  have hJr : ∀ r, (r, J) ∉ R := hw.2.2.2.1 j0 b J he
+  -- reachability
+  have hA : ∀ x, Reach R m x → ¬ BelowP m J x → (∀ J2, m.entry j1 b' = some (.dir J2) → x ≠ J2) →
+      Reach R m' x := by
+    intro x hx
+    induction hx with
+    | root r x hr => intro _ _; exact .root r x hr
+    | child y c x' hyr hy ih =>
+      intro hnb hnj
+      have hyb : ¬ BelowP m J y := fun h => hnb (h.snoc hy)
+      have hyj : ∀ J2, m.entry j1 b' = some (.dir J2) → y ≠ J2 := by
+        intro J2 h2 hy2; subst hy2; rw [hJ2 _ h2 c] at hy; cases hy
+      refine .child y c x' (ih hyb hyj) ?_
+      rw [hent]
+      rw [if_neg (by rintro ⟨rfl, rfl⟩; exact hnj x' hy rfl)]
+      rw [if_neg (by rintro ⟨rfl, rfl⟩; rw [he] at hy; cases hy; exact hnb (.self _))]
+      exact hy
+  have hRJ : Reach R m' J := by
+    have hj1J2 : ∀ J2, m.entry j1 b' = some (.dir J2) → j1 ≠ J2 := by
+      intro J2 h2 h; subst h; rw [hJ2 _ h2 b'] at h2; cases h2
+    exact .child j1 b' J (hA j1 hj1 hnot hj1J2) (by rw [hent]; simp)
+  have hC : ∀ J0 x, BelowP m J0 x → BelowP m J J0 → Reach R m' J0 → Reach R m' x := by
+    intro J0 x hb
+    induction hb with
+    | self J0 => intro _ h; exact h
+    | step J0 c J'' x he' _ ih =>
+      intro hbJ hr0
+      apply ih (hbJ.snoc he')
+      by_cases h1 : j1 = J0 ∧ b' = c
+      · obtain ⟨rfl, rfl⟩ := h1; exact absurd hbJ hnot
+      by_cases h2 : j0 = J0 ∧ b = c
+      · obtain ⟨rfl, rfl⟩ := h2; rw [he] at he'; cases he'; exact hRJ
+      · exact .child J0 c J'' hr0 (by rw [hent, if_neg h1, if_neg h2]; exact he')
+  have hreach : ∀ x, Reach R m' x ↔
+      Reach R m x ∧ ∀ J2, m.entry j1 b' = some (.dir J2) → x ≠ J2 := by
+    intro x; constructor
+    · intro h
+      induction h with
+      | root r x hr =>
+        refine ⟨.root r x hr, fun J2 h2 hx => ?_⟩; subst hx
+        exact hw.2.2.2.1 j1 b' _ h2 r hr
+      | child y c x' _ hy ih =>
+        rw [hent] at hy
+        split at hy
+        · cases hy
+          exact ⟨.child j0 b J hj0 he, hJne⟩
+        · split at hy
+          · cases hy
+          · rename_i hn1 hn2
+            refine ⟨.child y c x' ih.1 hy, fun J2 h2 hx => ?_⟩; subst hx
+            obtain ⟨rfl, rfl⟩ := hw.2.2.2.2 _ _ _ _ _ hy h2
+            exact hn1 ⟨rfl, rfl⟩
+    · rintro ⟨h, hn2⟩
+      by_cases hb : BelowP m J x
+      · exact hC J x hb (.self J) hRJ
+      · exact hA x h hb hn2
+  refine ⟨fun x hx => (hmem x).2 (hw.1 x ((hreach x).1 hx).1), fun x hx => ?_,
+    fun x c n h => ?_, fun x c y h => ?_, fun x1 c1 x2 c2 n h1 h2 => ?_⟩
+  · have hxm := (hmem x).1 hx
+    by_cases hx2 : ∃ J2, m.entry j1 b' = some (.dir J2) ∧ x = J2
+    · obtain ⟨J2, h2, rfl⟩ := hx2
+      have hemp := hJ2 _ h2
+      have hx0 : j0 ≠ x := fun h => by subst h; rw [hemp b] at he; cases he
+      have hx1 : j1 ≠ x := fun h => by subst h; rw [hemp b'] at h2; cases h2
+      refine .inr ⟨fun c => ?_, fun x0 c0 h0 => ?_⟩
+      · rw [hent, if_neg (fun h => hx1 h.1), if_neg (fun h => hx0 h.1)]; exact hemp c
+      rw [hent] at h0; split at h0
+      · cases h0; exact hJne _ h2 rfl
+      · split at h0
+        · cases h0
+        · rename_i hn1 _
+          obtain ⟨rfl, rfl⟩ := hw.2.2.2.2 _ _ _ _ _ h0 h2
+          exact hn1 ⟨rfl, rfl⟩
+    · have hnj : ∀ J2, m.entry j1 b' = some (.dir J2) → x ≠ J2 := fun J2 h2 hx => hx2 ⟨J2, h2, hx⟩
+      by_cases hrx : Reach R m x
+      · exact .inl ((hreach x).2 ⟨hrx, hnj⟩)
+      · obtain ⟨hem, hun⟩ : (∀ c, m.entry x c = none) ∧ ∀ x0 c0, m.entry x0 c0 ≠ some (.dir x) := by
+          rcases hw.2.1 x hxm with h | h
+          · exact absurd h hrx
+          · exact h
+        have hx0 : j0 ≠ x := fun h => hrx (h ▸ hj0)
+        have hx1 : j1 ≠ x := fun h => hrx (h ▸ hj1)
+        refine .inr ⟨fun c => ?_, fun x0 c0 h0 => ?_⟩
+        · rw [hent, if_neg (fun h => hx1 h.1), if_neg (fun h => hx0 h.1)]; exact hem c
+        rw [hent] at h0; split at h0
+        · cases h0; exact hrx (.child j0 b J hj0 he)
+        · split at h0
+          · cases h0
+          · exact hun x0 c0 h0
+  · rw [hent] at h; split at h
+    · rename_i hh; obtain ⟨-, rfl⟩ := hh; cases h
+      exact ⟨hb', fun y hy => by
+        simp [Node.dirIno] at hy; subst hy; exact (hmem _).2 (treeWf_named_mem hw he)⟩
+    · split at h
+      · cases h
+      · exact ⟨(hw.2.2.1 x c n h).1, fun y hy => (hmem y).2 ((hw.2.2.1 x c n h).2 y hy)⟩
+  · rw [hent] at h; split at h
+    · cases h; exact hJr
+    · split at h
+      · cases h
+      · exact hw.2.2.2.1 x c y h
+  · rw [hent] at h1 h2
+    split at h1 <;> split at h2
+    · rename_i hh1 hh2; obtain ⟨rfl, rfl⟩ := hh1; obtain ⟨rfl, rfl⟩ := hh2; exact ⟨rfl, rfl⟩
+    · cases h1
+      split at h2
+      · cases h2
+      · rename_i hn2; obtain ⟨rfl, rfl⟩ := honlyJ _ _ h2; exact absurd ⟨rfl, rfl⟩ hn2
+    · cases h2
+      split at h1
+      · cases h1
+      · rename_i hn1; obtain ⟨rfl, rfl⟩ := honlyJ _ _ h1; exact absurd ⟨rfl, rfl⟩ hn1
+    · split at h1
+      · cases h1
+      · split at h2
+        · cases h2
+        · exact hw.2.2.2.2 _ _ _ _ _ h1 h2
 end Fs
 end Perennial
 
