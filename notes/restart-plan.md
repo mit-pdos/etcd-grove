@@ -2310,6 +2310,15 @@ R2d / R2d' / R2e").
 - **R2e**: the restart's closed result. HS2's static-cluster premise goes in R2e's Scope (Q14 caveat
   (ii)): the restarted storage's conf state is the backend's at `i` (`bootstrap.go:107-115`), which
   `confStateIs` the membership at the WAL snapshot's index only in a static cluster.
+  (2026-11-06, Q20's decision 3, decided by etcd-grove-82 under the user's delegation, pending the
+  user's review) **R2e's Scope also revisits HS2's `i ≤ σ.commit`**: `bootstrapRestartContract`
+  (trusted) takes it in its premise, but the stop's image no longer gives it (the Q16-3 review's
+  finding 2: `wal.stopImage` keeps only `σ.b ≤ i`). Evidence it is false of Go: a member that stops
+  inside an install window (it installed a merged snapshot whose image is at the sender's consistent
+  index above the snapshot's index, R2s's motivating case) leaves its backend's consistent index above
+  its WAL's HardState commit, and etcd itself expects that case (`bootstrap.go:613-621` handles
+  `consistent_index > Commit`). Left as is in R2d; R2e decides (weaken the contract's premise, an
+  `axiom`-skill review, or a scope premise).
   (2026-11-06, the Q16-3 review's item 2, decided by etcd-grove-82 under the user's delegation,
   pending the user's review) **R2e's closed theorem carries neither `winNoConf` nor
   `winNoMergedSend`**: it waits for R2d' (which discharges the first) and R2s (the second). The order
@@ -2432,3 +2441,26 @@ R2d-2's statements move to Freeze 2.
 
 **Sorries on `r2d`** (all `-- DRAFT`): `apply.wp_proof`'s and `applyEntries.wp_proofBatch`'s window
 forms. `applyAll.wp_proofBatch` and `RunWindow.lean` have none.
+
+**The restage (2026-11-06, Q20, decided by etcd-grove-82 under the user's delegation, user offline,
+pending the user's review; supersedes the R2d / R2d' contents of "R2d Draft, round 2" and the Freeze
+split of Q18; `notes/decisions.md`, "R2d restaged: the restart's prerequisites").**
+- **R2d = the restart's prerequisites.** The window-form apply chain (Q13, Q19, Q17 F2/F4, the Q16-3
+  review's finding 6); Q14's stop certificate with `srvDiskImage`/`wal.stopImage` (finding 2);
+  `setAppliedIndex.spec`'s replay case; `kvCongr`/`restartNames` (Q8 (a)); HS1; raft's additive laws
+  (`snapMade_timeless`, `snapshotValid_timeless`, `ownSnapsMade_snapshotValid_data`); the two
+  assumptions `winNoConf` and `winNoMergedSend` with their laws. One Freeze (no Freeze 2). R2d lands
+  once `apply.wp_proof`'s and `applyEntries.wp_proofBatch`'s window forms are proved. **Estimate:
+  1-2 weeks (est.)**, mostly those two proofs.
+- **R2d' = `run` and `NewServer` at a restart**: R2d-2's hub edit (`%HEr`, `Hstart`/`Happ`, and
+  `Hsnap`'s restart form, Q20), R2d-5 (`run`'s proof over the window), R2d-6 (`memStorRestarted`,
+  `newRaftNode`'s `RestartNode` path), R2d-7 (`NewServer.specG`'s boot argument), B1 (`NewStore`'s
+  restoring case), the `winNoConf` discharge. **Estimate: 5-7 weeks (est.)**.
+- Then **R2s** (snapshots across windows, discharging `winNoMergedSend`), then **R2e** (the closed
+  result).
+- **`RunWindow.lean`** (R2d''s starting point, imported by nothing, sorry-free): not worth landing
+  with R2d. Its R2d-2 definitions (`srvRestartAt`, `applyResCW`) will be restated once `Hsnap`'s
+  restart form is decided (the glue lemma `applyResCW_start` takes exactly what that form must give),
+  and nothing in R2d uses them or `run_firstBatch_window`; landing them would freeze-review dead
+  DRAFT vocabulary. Recommendation: drop the file from R2d's landing commit range (or move it to an
+  `r2d-prime` branch) and carry it into R2d'.

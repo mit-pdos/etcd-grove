@@ -32598,3 +32598,24 @@ states the configuration point `∃ p ∈ [σ.b, σ.commit], confAt cl p m` (the
 the ghost log, but `run`'s `n` is raft's delivered log, Go's; now `(A.take ai ++ unapplied ai
 ms).length ≤ n`, the same at no window, as F4 did for `srvFrozenTerms`. Its one use is the merged
 send's length argument, where the window is over (Go's log is the ghost log).
+
+## R2d restaged: the restart's prerequisites; `run` and `NewServer` at a restart move to R2d' (2026-11-06 · Q20, decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
+
+**Supersedes in part "R2d: the split R2d / R2d' / R2e"** (above: R2d carried `run` at a restart) and
+Q18's Freeze split. R2d-2's probe extension stopped at `isServerRunC`'s `Hsnap`, a first start's
+(`rnSnapOnce … ai₀ at₀`: the storage's snapshot at `ai₀ = 0`, `memSnapNone`), whose restart form
+needs R2d-6's `memStorRestarted`; and once the hub takes the restart form, `run.wp_proof` needs its
+restart branch (R2d-5), or every first-start closed theorem reaches a DRAFT `sorry`. So the hub edit,
+`run`'s restart proof and the restart's construction belong together: they move to R2d' (R2d-2, -5,
+-6, -7, B1, the `winNoConf` discharge). R2d keeps what they rest on and what is proved or nearly so
+(the window-form apply chain, the stop's certificate and WAL slot, `setAppliedIndex`'s replay case,
+`kvCongr`, HS1, raft's additive laws, the two assumptions with their laws), one Freeze, landing once
+the two remaining window proofs are done. Order: R2d, R2d', R2s, R2e.
+
+**`winNoMergedSend` stays wide (decision 2's check).** It excludes a `MsgSnap` sent by any member, not
+only this one's. Narrowing to the member's own sends needs the id of the `msgSnapC` bag's raft names
+(`isServerApplyAll`'s existential `γm`, whose `γm.id` the bag's `rnSnapMsg` sends from) tied to a name
+the spec has (`γn.id`, or `srvMemberIDAddr s`'s value): `applyAll`'s proof has no such fact, and
+providing it changes `isServerApplyAll` (the persistent bundle `NewServer` builds, read by every apply
+proof), a statement change beyond Freeze 1's set for an assumption R2s removes anyway. The wide form's
+extra strength is stated with its cost (`questions.md`, the assumptions list).
