@@ -32988,3 +32988,18 @@ outer one holds up to three locks' slots at once. Perennial guarantees only `1 <
 today into `start_gives_views`'s post (server `Results.lean`) and etcdstart's `memberUp`,
 `memberUpOn`, `kvServeStocks`: their count becomes `actualMaxReaders - srvRevokePoolN`. A
 `Results.lean` statement: brought to the user (the plan's §F.1).
+
+## bbolt's read transactions and the backend's snapshots pay for their reader slot (2026-11-06 · the user's decision via etcd-grove-82 · stage `begin-tok`)
+
+`bbolt.DB.Begin_kv.wp_proof` (with `Open_kv`, `DB.Close_kv`, `Tx.Rollback_kv`) is refuted
+(`notes/axiom-review/backend-snapshot-begin.md`): a read transaction holds one of `db.mmaplock`'s
+reader slots, and the axioms let a program hold `2 ^ 30` of them from one goroutine, after which
+`Close` and a `Rollback` reach Go's `RUnlock` fatal; `backend.backend.Snapshot.wp_proof` has the same
+gap. Rule: a trust-boundary spec of an operation that holds a lock's reader slot past its return
+charges for it, as the proved specs do (a `threadTok`, or a slot of the owner's pool, held by the
+object and given back by its close); "the verified code never gets near `2 ^ 30`" is an argument
+outside the logic, not a reason to leave a slot unpaid. The fix (D1 of
+`notes/bbolt-spec-decisions.md`): read transactions through bbolt's proved `DB.Begin.spec`, or, where
+that is impractical, `Begin_kv`'s read half takes a `threadTok` held by the transaction and returned
+by `Rollback_kv`; `backend.Snapshot` takes a `threadTok` until `snapshot.Close`. Accepted when the
+counterexample `axiomcx/bboltrd` no longer verifies.
