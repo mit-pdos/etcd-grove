@@ -2248,3 +2248,29 @@ across one `ClusterVersionSet`); easy, R2d-1 (`restartNames` to `kvInv_congr`). 
   `memStorRestarted`), that is a trust change in R2d: stop and ask.
 - If the reviewer finds `imageAt`'s `A` insufficient to give `kvApplied … A₀ x₀` (the backend's log
   at `i`), the image's statement changes (`InvImage.lean`, a frozen predicate).
+
+### R2d Draft, round 1 (2026-11-06, branch `r2d`)
+
+Done, proved without `sorry` or a new axiom (`notes/decisions.md`, "R2d: the server's restart chain,
+first round"; one full build after merging `lean` `aa4449beb6`):
+- **R2d-1 (Q8 (a)).** `kvCongr` (`InvRequest.lean`), `kvInv_congr` over it (moved from
+  `NewServerAlloc`), `restartNames` = raft's names, `kvCongr`, the ids' `issued`/`pfx`; the easy probe
+  `kvInv_restartNames`; laws `restartNames_st`, `restartNames_kvModel` (`restartCheck` uses the
+  first instead of a positional `obtain`).
+- **R2d-4.** `setAppliedIndex.spec`'s replay case (`rep = true`, `v' ≤ v`: the ghost unchanged).
+- **HS1.** `auth.NewAuthStore.spec`'s auth bucket `∅ ∨ authBoot`; `authUsers`/`authRoles` unchanged
+  (etcd-grove-82's ruling); the attack is in the axiom's docstring and `notes/decisions.md`. The
+  trust baseline lists axioms by name: no line changes.
+
+**Stopped: the hard probe fails at the Scope's statement list (Q13, the worktree's `questions.md`).**
+A window batch reaches `applyAll.specBatch` with Go's `ai = σ.b` and the ghost log `A₀` of length
+`i`; `applyAll.specBatch` (`uint.Z ai = A.length`, `ciEff ≤ ai`), `kvBatch` (`ai = ai0 + |A|`),
+`applyEntries.specBatch` and `apply.spec` all tie Go's index to the ghost log's length and append
+the batch to it. (d) needs a window form of the four, which item 11 does not list. Not started
+until the user answers: R2d-2 (its `applyRes`/`applyStart` shape is what the window form decides),
+R2d-3, R2d-5, R2d-7, R2d-8. Independent of Q13 and left for the next round: R2d-6's constructors
+(`mvcc.New`/`NewStore`'s restoring case, `newRaftNode`'s `RestartNode` path, `memStorRestarted`
+defined). Coordination for the next round (etcd-grove-83, 2026-11-06): revoke-open lands first
+and changes `run.spec`'s `threadTok`, `isServerRun*`/`isServerBuilt*`/`srvBuiltG`; R2d's `%HEr`
+change goes in a named conjunct of its own, and the proofs use laws, not positional unfolds.
+
