@@ -18,12 +18,14 @@ listing of member 3 lists every lease granted there. That a listing still lists 
 has installed the leader's snapshot is the monotone lessor's (S2–S4's `Recover` premise, `mono → L ⊆
 recs`, proved inside the server's apply loop): `run` itself does not reason about the catch-up.
 
-**The pure premises:** `StartCluster`'s (the bootstrap facts, `cluster3.BootFacts`; the thread and
-time-receipt bounds; the write budget; the server's named workload and effect premises), at the
-monotone lease mode: no lease the cluster grants expires while the program runs
+**The pure premises** (in the precondition, the `⌜…⌝` conjuncts; review r1's SF5): `StartCluster`'s
+(the bootstrap facts, `cluster3.BootFacts`; the thread and time-receipt bounds; the write budget;
+the server's named workload and effect premises), at the monotone lease mode: no lease of any lessor
+the program creates (granted, or reloaded by `Recover`) expires while the program runs
 (`lease.leasesNoExpiry`, which gives `lease.runCfg .mono .mono`; leases are granted for an hour, the
 run takes seconds) and the lease reads' deployment premise (`leasePeersOk`); the client's context
-premises (`ContextReadErrs`, `ContextErrsClient`, `errors.As`'s target), as leasegrant's `Main`.
+premises (`ContextReadErrs`, `ContextErrsClient`, instances, and `errors.As`'s target), as
+leasegrant's `Main`.
 -/
 module
 
@@ -55,16 +57,15 @@ abbrev run.spec : Prop :=
     [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (lg : Loc),
-  cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot → lg ≠ null →
-  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  N + 7 + bootWB ≤ backend.wbInit →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
-  leasePeersOk → lease.leasesNoExpiry →
-  v3rpc.ServerMethodSets →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup ∗
       cluster3.startRes (GF := GF) clusterCfg ∗
-      threadTok ∗ cluster3.premises clusterCfg N id₁ id₂ id₃ ps ctxs boot }}
+      threadTok ∗ cluster3.premises clusterCfg N id₁ id₂ id₃ ps ctxs boot ∗
+      ⌜cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot ∧ lg ≠ null⌝ ∗
+      ⌜threadBound GF ≤ 2 ^ 28 ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧
+        N + 7 + bootWB ≤ backend.wbInit⌝ ∗
+      ⌜ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk⌝ ∗
+      ⌜leasePeersOk ∧ lease.leasesNoExpiry⌝ ∗
+      ⌜v3rpc.ServerMethodSets ∧ errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.run)) (Val #lg))
   {{ (r : w64), RET #r; True }}
 

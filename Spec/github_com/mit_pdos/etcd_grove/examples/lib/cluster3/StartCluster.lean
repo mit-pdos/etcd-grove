@@ -10,8 +10,9 @@ addresses (and to serve the peer addresses with HTTP), the thread token, the clu
 premises (`premises`) and the members' WAL directories fresh, `StartCluster(cfg, lg)`, at a logger
 `lg` (not null), returns the members, the bridges and `ok`: `false` (a step failed, nothing else
 promised), or `true` with the thread token and the cluster up (`clusterUp`: every member at its
-bridge with its KV and watch registrations and its place in the network, every bridge owned and not
-blackholed, and etcd's KV at the start store). The clients are the caller's (`NewClient`).
+bridge with its watch registration, its KV or lease registrations by the lease mode (below), and its
+place in the network, every bridge owned and not blackholed, and, in the mode `none`, etcd's KV at
+the start store). The clients are the caller's (`NewClient`).
 
 **The pure premises:** the configuration's (`cfgOk`), `bootstrap`'s results (`BootFacts`), and
 `StartMember`'s.

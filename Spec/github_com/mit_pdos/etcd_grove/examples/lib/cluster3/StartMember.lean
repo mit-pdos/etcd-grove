@@ -8,7 +8,8 @@ snapshot settings, member names and URLs (`cluster3.bootPremise`, `cluster3.init
 cluster's compaction mode (`cmp`), plus a listener at the member's client address (before
 `Start`) and, after `Start`, etcd's gRPC server (`v3rpc.Server(s, nil, nil, opt)`) served on it. Its
 success is `memberServed` (`Defs.lean`): the member's views, its thread token (`srvGoRes`), its
-place in the network and etcd's KV and watch services at its client address. The premises are
+place in the network and, at its client address, etcd's watch service and, by the lease mode (below),
+etcd's KV calls or the lease services. The premises are
 `NewMember`'s plus the configuration's (`cfgOk`), the right to listen at the client address and
 v3rpc's method sets (`v3rpc.Server`'s). Lean-first (no Rocq counterpart).
 
@@ -52,7 +53,7 @@ abbrev StartMember.spec : Prop :=
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (cmp : Bool)
     (lm : lease.Mode),
   cfgOk cfg →
-  -- (W4 of `notes/watch-cut-plan.md`) the members' workload, granting no lease
+  -- (W4 of `notes/watch-cut-plan.md`) the members' workload
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →

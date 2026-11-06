@@ -62,8 +62,8 @@ theorem etcdstart.alloc3 [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v
     (LogEntry.toEntries boot 0)) (dir : w64 → List GoString) (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 =
     []) (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61) (n₁ n₂ n₃ :
-    GoString) (c₁ c₂ c₃ : Option GoString) (cmp : Bool := false) (cret : Nat := 0) (lm : lease.Mode)
-    (hrun : lease.runCfg lm lm) (hrev : lm ≠ lease.Mode.revocable) : ⊢ bootMarshal ps ctxs
+    GoString) (c₁ c₂ c₃ : Option GoString) (lm : lease.Mode) (hrun : lease.runCfg lm lm) (hrev : lm
+    ≠ lease.Mode.revocable) (cmp : Bool := false) (cret : Nat := 0) : ⊢ bootMarshal ps ctxs
     (LogEntry.toEntries boot 0) -∗ etcdstart.memberStartRes n₁ { peer := some a₁, client := c₁ } -∗
     etcdstart.memberStartRes n₂ { peer := some a₂, client := c₂ } -∗ etcdstart.memberStartRes n₃ {
     peer := some a₃, client := c₃ } ={⊤}=∗ ∃ γ reg₁ reg₂ reg₃ ρ₁ ρ₂ ρ₃ E₁ E₂ E₃ Φs γn, ⌜γ.vs = ps ∧

@@ -34,16 +34,15 @@ abbrev Main.spec : Prop :=
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry),
-  cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot →
-  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  N + 7 + bootWB ≤ backend.wbInit →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
-  leasePeersOk → lease.leasesNoExpiry →
-  v3rpc.ServerMethodSets →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup ∗
       cluster3.startRes (GF := GF) clusterCfg ∗
-      threadTok ∗ cluster3.premises clusterCfg N id₁ id₂ id₃ ps ctxs boot }}
+      threadTok ∗ cluster3.premises clusterCfg N id₁ id₂ id₃ ps ctxs boot ∗
+      ⌜cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot⌝ ∗
+      ⌜threadBound GF ≤ 2 ^ 28 ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧
+        N + 7 + bootWB ≤ backend.wbInit⌝ ∗
+      ⌜ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk⌝ ∗
+      ⌜leasePeersOk ∧ lease.leasesNoExpiry⌝ ∗
+      ⌜v3rpc.ServerMethodSets ∧ errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Main)) (Val #()))
   {{ RET #(); True }}
 

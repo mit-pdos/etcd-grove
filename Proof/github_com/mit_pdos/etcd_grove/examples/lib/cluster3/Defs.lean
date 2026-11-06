@@ -25,7 +25,10 @@ gives the client's `etcdKV`; in a mode that grants leases it registers instead t
 (`client.etcdLeaseReadAt`) and the lease mode's grant and listing (`etcdstart.etcdLeaseServedAt`, as
 lease-grant's `kv_lease_served` does: the KV calls make no claim in a cluster that grants leases, and
 no client's `etcdKV` exists there, `srvClusterBoot_alloc`). At `.none` every definition below is
-today's text (the `example`s after each, by `rfl`).
+its text before lease-mono3 (the `_none` laws after each: `clusterAt_none` and `clusterUp_none` by
+`rfl`, `memberServed_none` and `memberAt_none` by `etcdKVAt`'s unfolding and the `∗`s'
+associativity); in the monotone mode a member of the started cluster gives its bridge's grant and
+listing registrations (`memberAt_mono`).
 
 **What a started member gives** (`memberServed`), **what a bridge's start gives** (`forwards`: the
 bridge's address serves what the member's does, from the bridge's trust-boundary spec of `New`,
@@ -161,31 +164,25 @@ instance premises_persistent (cfg : github_com.mit_pdos.etcd_grove.examples.lib.
     Persistent (premises (GF := GF) cfg N id₁ id₂ id₃ ps ctxs boot) := by
   unfold premises; infer_instance
 
-/-- **What a served member registers at its client address `c`, by the lease mode `m`, before
-`rest`** (lease-mono3, 2026-11-06, Q2; `memberServed`'s and `memberAt`'s): etcd's `Put`, `Range`,
-`DeleteRange`, `Txn` and `Compact` at the server's views in the mode `none` (the text before
-lease-mono3, `rest` after them, so that `.none` is it by `rfl`); in a mode that grants leases the
-lease reads (`client.etcdLeaseReadAt`) and the mode's lease registrations
+/-- **What a served member registers at its client address `c`, by the lease mode `m`**
+(lease-mono3, 2026-11-06, Q2; `memberServed`'s and `memberAt`'s): etcd's KV calls at the server's
+views in the mode `none` (`etcdstart.etcdKVAt`, `etcdLeaseServedAt`'s at `none`); in a mode that
+grants leases the lease reads (`client.etcdLeaseReadAt`) and the mode's lease registrations
 (`etcdstart.etcdLeaseServedAt`: the grant and the listing at the lessor's history in the monotone
 mode), lease-grant's `kv_lease_served`'s post. -/
 def servedRegs (m : lease.Mode) (c : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
-    (cid mid : w64) (rest : IProp GF) : IProp GF :=
+    (cid mid : w64) : IProp GF :=
   match m with
-  | .none => iprop(
-    isGrpcRpc c go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
-    isGrpcRpc c go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
-    isGrpcRpc c go!"/etcdserverpb.KV/DeleteRange"
-      (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
-    isGrpcRpc c go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
-    isGrpcRpc c go!"/etcdserverpb.KV/Compact" (EtcdGrove.client.etcdCompactSpec E ρ.rd cid mid) ∗
-    rest)
-  | m => iprop(EtcdGrove.client.etcdLeaseReadAt c ∗
-    etcdstart.etcdLeaseServedAt m c s E ρ ρ.rd cid mid ∗ rest)
+  | .none => etcdstart.etcdKVAt c E ρ ρ.rd cid mid
+  | m => iprop(EtcdGrove.client.etcdLeaseReadAt c ∗ etcdstart.etcdLeaseServedAt m c s E ρ ρ.rd cid mid)
 
 instance servedRegs_persistent (m : lease.Mode) (c : GoString) (s : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (cid mid : w64) (rest : IProp GF) [Persistent rest] :
-    Persistent (servedRegs m c s E ρ cid mid rest) := by
-  cases m <;> unfold servedRegs <;> (try unfold etcdstart.etcdLeaseServedAt) <;> infer_instance
+    (ρ : ReqNames) (cid mid : w64) : Persistent (servedRegs m c s E ρ cid mid) := by
+  cases m <;> unfold servedRegs <;> infer_instance
+
+/-- `(P ∗ Q) ∗ R` is `P ∗ Q ∗ R`, as an equation (for the `_none` laws). -/
+private theorem sep_assoc_eq (P Q R : IProp GF) : iprop((P ∗ Q) ∗ R) = iprop(P ∗ Q ∗ R) :=
+  BI.sep_assoc.to_eq
 
 /-- **A member started and served** (the success of `StartMember`): the shared start's
 `etcdstart.memberUp` reduced to what a cluster's user needs of it -- the server's request and read
@@ -202,17 +199,17 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
     ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗
     isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvGoRes s ∗
     etcdstart.srvPeerCtl γn s id ∗
-    servedRegs m client s E ρ cid mid
+    servedRegs m client s E ρ cid mid ∗
     -- (W2 of `notes/watch-cut-plan.md`, 2026-10-21) the member's watch server, its `Watch` stream
     -- served at the client address
-    iprop((∃ (pw : Loc) (R : v3rpc.WSrv GF), v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
+    (∃ (pw : Loc) (R : v3rpc.WSrv GF), v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
       isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) client
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
         (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn)) ∗
     -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
-    ⌜noRefusalAt client⌝))
+    ⌜noRefusalAt client⌝)
 
-/-- `memberServed` at the mode `none` is its text before lease-mono3 (`rfl`). -/
+/-- `memberServed` at the mode `none` is its text before lease-mono3 (`etcdKVAt` unfolded). -/
 theorem memberServed_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (client : GoString) :
     memberServed γn s id ρ E₀ client .none =
@@ -233,7 +230,8 @@ theorem memberServed_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqName
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
         (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn)) ∗
     -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
-    ⌜noRefusalAt client⌝) := rfl
+    ⌜noRefusalAt client⌝) := by
+  simp only [memberServed, servedRegs, etcdstart.etcdKVAt, sep_assoc_eq]
 
 end defs
 
@@ -323,7 +321,7 @@ def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply
     (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) (cmp : Bool)
     (m : lease.Mode := .none) : IProp GF :=
   iprop(forwards b c ∗ isServerRead s E ρ.rd ∗
-    servedRegs m c s E ρ cid mid iprop(
+    servedRegs m c s E ρ cid mid ∗
     ⌜noRefusalAt c⌝ ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
     isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) c
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
@@ -332,9 +330,9 @@ def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply
       ρ.rd.kv.ch0 = apply.alarmChain false false false ∧ ρ.rd.kv.log0 = [[], []] ∧
       -- (M2, the storage side, review round 2's N1, the approval's item 13) the member's server in
       -- the cluster's mode
-      E.γ.cm = cmp⌝))
+      E.γ.cm = cmp⌝)
 
-/-- `memberAt` at the mode `none` is its text before lease-mono3 (`rfl`). -/
+/-- `memberAt` at the mode `none` is its text before lease-mono3 (`etcdKVAt` unfolded). -/
 theorem memberAt_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
     (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) (cmp : Bool) :
     memberAt γn s id ρ E cid mid R b c γ cmp .none =
@@ -353,12 +351,32 @@ theorem memberAt_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (
       ρ.rd.kv.ch0 = apply.alarmChain false false false ∧ ρ.rd.kv.log0 = [[], []] ∧
       -- (M2, the storage side, review round 2's N1, the approval's item 13) the member's server in
       -- the cluster's mode
-      E.γ.cm = cmp⌝) := rfl
+      E.γ.cm = cmp⌝) := by
+  simp only [memberAt, servedRegs, etcdstart.etcdKVAt, sep_assoc_eq]
 
 instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames)
     (E : apply.AEnv GF) (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft)
     (cmp : Bool) (m : lease.Mode) : Persistent (memberAt γn s id ρ E cid mid R b c γ cmp m) := by
   unfold memberAt; infer_instance
+
+/-- **A member of the started cluster in the monotone mode gives its bridge's grant and listing**
+(lease-mono3's review r1, SF2): `LeaseGrant` and `LeaseLeases` registered at the bridge's address
+`b` at the specs at the member's lessor history (`etcdLeaseGrantSpec`, `etcdLeaseLeasesSpec` of
+`E.γ.leases`), its client address's registrations forwarded (`isGrpcRpc_forwards`). -/
+theorem memberAt_mono (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
+    (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) (cmp : Bool) :
+    memberAt γn s id ρ E cid mid R b c γ cmp .mono ⊢
+      isGrpcRpc b go!"/etcdserverpb.Lease/LeaseGrant"
+          (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
+        isGrpcRpc b go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases) := by
+  iintro #Hm
+  iunfold memberAt at Hm
+  icases Hm with ⟨#Hfw, -, Hs, -⟩
+  isimp only [servedRegs, etcdstart.etcdLeaseServedAt, etcdstart.etcdLeaseGrantAt] at Hs
+  icases Hs with ⟨-, #HG, #HL⟩
+  isplitl
+  · iapply isGrpcRpc_forwards b c; iframe #
+  · iapply isGrpcRpc_forwards b c; iframe #
 
 /-- **The cluster started, at given names** (`clusterUp`'s body, its names as parameters, so that a
 caller can state what it builds on them: the partition example's clients, at `watchEnv` of the
@@ -381,11 +399,10 @@ def clusterAt (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config
     -- (lease-mono3) the client's `etcdKV` in the mode `none` only: a cluster that grants leases
     -- has none (`srvClusterBoot_alloc`)
     (match m with
-    | .none => iprop(etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries bootLog)) ∗
-      ⌜kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧ ρ₁.rd.kv.cmp = cmp ∧
-        ρ₁.rd.kv.cret = 0⌝)
-    | _ => iprop(⌜kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧ ρ₁.rd.kv.cmp = cmp ∧
-        ρ₁.rd.kv.cret = 0⌝)))
+    | .none => etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries bootLog))
+    | _ => iprop(True)) ∗
+    ⌜kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧ ρ₁.rd.kv.cmp = cmp ∧
+      ρ₁.rd.kv.cret = 0⌝)
 
 /-- `clusterAt` at the mode `none` is its text before lease-mono3 (`rfl`). -/
 theorem clusterAt_none (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (cmp : Bool)

@@ -41,10 +41,10 @@ abbrev grant.spec : Prop :=
     (cl : Loc) (eps : List GoString) (V : client.WEnv GF)
     (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
     (Q : LeaseGrantRespM → IProp GF),
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup ∗
       isNewClient cl eps V ∗
-      isGrpcRpcs eps go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ □ ▷ Spec (grantTTL, W64 0) Q }}
+      isGrpcRpcs eps go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ □ ▷ Spec (grantTTL, W64 0) Q ∗
+      ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.grant)) (Val #cl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseGrantRespM,

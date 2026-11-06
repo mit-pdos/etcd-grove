@@ -64,10 +64,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Ass
 /-- `servedRegs` in a mode that grants leases, from `kv_lease_served_watch`'s registrations (at the
 request names with the wait registry's `w`, which the mode's registrations do not read). -/
 private theorem servedRegs_of_lease (m : lease.Mode) (hm : m ≠ .none) (c : GoString) (s : Loc)
-    (E : apply.AEnv GF) (ρ : ReqNames) (w : GName) (cid mid : w64) (rest : IProp GF) :
+    (E : apply.AEnv GF) (ρ : ReqNames) (w : GName) (cid mid : w64) :
     EtcdGrove.client.etcdLeaseReadAt c ∗
-        etcdstart.etcdLeaseServedAt m c s E { ρ with wait := w } ρ.rd cid mid ∗ rest ⊢
-      servedRegs m c s E ρ cid mid rest := by
+        etcdstart.etcdLeaseServedAt m c s E { ρ with wait := w } ρ.rd cid mid ⊢
+      servedRegs m c s E ρ cid mid := by
   cases m with
   | none => exact absurd rfl hm
   | mono => exact .rfl
@@ -242,9 +242,10 @@ theorem StartMember.wp_proof
     isplitl []; · iexact Hrd
     isplitl [Hgo]; · iexact Hgo
     isplitl [Hctl]; · iexact Hctl
-    iapply (servedRegs_of_lease lm hlm client srv E ρ γw cid mid)
-    isplitl []; · iexact Hlr
-    isplitl [Hls]; · iexact Hls
+    isplitl [Hls]
+    · iapply (servedRegs_of_lease lm hlm client srv E ρ γw cid mid)
+      isplitl []; · iexact Hlr
+      iexact Hls
     isplitl []
     · iexists pw', R
       iframe #

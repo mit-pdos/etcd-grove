@@ -183,12 +183,12 @@ private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
-    -- (2026-11-05, the compactor's three-member stage) the compaction mode and the cluster's
-    -- retention (any at retention `0`: compactions only a client's)
-    (cmp : Bool := false) (cret : Nat := 0)
     -- (lease-mono3, 2026-11-06, Scope §1, `alloc1`'s) the cluster's lease mode, not the revocable one
     -- (a scope premise: the revocable mode's grant ids are one member's prefix's, step 2's)
-    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable) :
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable)
+    -- (2026-11-05, the compactor's three-member stage) the compaction mode and the cluster's
+    -- retention (any at retention `0`: compactions only a client's)
+    (cmp : Bool := false) (cret : Nat := 0) :
     -- (2026-10-24, rafthttp stage 6d) the program start's HTTP rights of the peer addresses
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       httpProtoFree (GF := GF) a₁ -∗ httpProtoFree (GF := GF) a₂ -∗ httpProtoFree (GF := GF) a₃ ={⊤}=∗
@@ -315,8 +315,8 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (n₁ n₂ n₃ : GoString) (c₁ c₂ c₃ : Option GoString)
-    (cmp : Bool := false) (cret : Nat := 0)
-    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable) :
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable)
+    (cmp : Bool := false) (cret : Nat := 0) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       memberStartRes (GF := GF) n₁ ⟨some a₁, c₁⟩ -∗ memberStartRes (GF := GF) n₂ ⟨some a₂, c₂⟩ -∗
       memberStartRes (GF := GF) n₃ ⟨some a₃, c₃⟩ ={⊤}=∗
@@ -341,7 +341,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁
   simp only [memberStartRes, memberFreshRes]
   iintro #Hmarsh ⟨Hw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨Hw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨Hw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
   imod (alloc3Http id₁ id₂ id₃ ps hperm ctxs boot Hlow Hlow0 HB Hcc Hurl dir a₁ a₂ a₃ Hd0 Hhost Hrb
-      Hrb2 cmp cret lm hrun hrev) $$ Hmarsh Hf₁ Hf₂ Hf₃
+      Hrb2 lm hrun hrev cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,
       Hb₂, ⟨Hn₂, Ho₂⟩, Hb₃, ⟨Hn₃, Ho₃⟩, Hetcd⟩
   imodintro

@@ -6,8 +6,8 @@
 # (over cluster3's, etcdstart's, the server's, v3rpc's and the client's linked results and the
 # trust-boundary axioms, among them the lease reads' `EtcdServer.leaseTimeToLive`) and the closed
 # theorem `etcd_leasecatchup_safe`/`etcd_leasecatchup_adequate`, which also rests on the package
-# initializers' axioms. Draft (pass 2(b)): the `sorry`s are cluster3's StartMember/StartCluster at the
-# monotone mode (`-- DRAFT lease-mono3`), which pass 2(a) proves.
+# initializers' axioms. No `sorry` (pass 2(a) proved cluster3's StartMember/StartCluster at the
+# monotone mode, `-- DRAFT lease-mono3` no longer appears).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/leasecatchup.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/leasecatchup.txt --check    against the lines below

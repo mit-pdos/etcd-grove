@@ -34,9 +34,8 @@ theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_run : run.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP HnE
-    Hms hAs
-  wp_start as ⟨Hstart, Htok, #Hprem⟩
+  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot
+  wp_start as ⟨Hstart, Htok, #Hprem, %Hbf, %Hp₂, %Hp₃, %Hp₄, %Hp₅⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Plc : isPkgInit (PROP := IProp GF)
@@ -45,9 +44,9 @@ theorem Main.wp_proof
   (try wp_auto)
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
-  wp_apply (wp_run N id₁ id₂ id₃ ps ctxs boot lg Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo
-      HlP HnE Hms hAs) $$ [Hstart Htok] as %r -
+  wp_apply (wp_run N id₁ id₂ id₃ ps ctxs boot lg) $$ [Hstart Htok] as %r -
   · iframe; iframe #
+    ipureintro; exact ⟨⟨Hbf, Hlg⟩, Hp₂, Hp₃, Hp₄, Hp₅⟩
   (try wp_auto)
   iapply HΦ; itrivial
 

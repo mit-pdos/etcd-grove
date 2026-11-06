@@ -99,6 +99,11 @@ def etcdLeaseServedAt (m : lease.Mode) (addr : GoString) (s : Loc) (E : apply.AE
   | .mono => etcdLeaseGrantAt addr E
   | .revocable => etcdLeaseGrantLiveAt addr s E
 
+instance etcdLeaseServedAt_persistent (m : lease.Mode) (addr : GoString) (s : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) :
+    Persistent (etcdLeaseServedAt m addr s E ρ γr cid mid) := by
+  cases m <;> unfold etcdLeaseServedAt <;> infer_instance
+
 /-- **`kv_lease_served`, with what the watch service needs** (lease-mono3's pass 2(c),
 2026-11-06): its post, and the `GoAttach` resources `grpcUp` holds (`srvGoRes`), the stream
 registrations `grpc.start` gives (`grpcStreamServerAt`, from `etcd_kv_started_with`), the watch

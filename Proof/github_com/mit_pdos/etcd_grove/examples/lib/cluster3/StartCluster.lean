@@ -14,8 +14,8 @@ address (the bridge owned, its address serving the member's, `forwards`) and the
 
 (lease-mono3's pass 2(a), 2026-11-06, `notes/lease-mono3-plan.md`) One proof for the modes `none`
 and `mono` (the revocable mode is excluded by the scope premise): `alloc3` and `StartMember` at the
-mode, each member's registrations kept whole (`servedRegs`, split off the rest of `memberServed` and
-put back under `memberAt` by `servedRegs_sep` and `servedRegs_join`), and the client's `etcdKV`
+mode, each member's registrations kept whole (`servedRegs`, from `memberServed` to `memberAt`), and
+the client's `etcdKV`
 (`alloc3`'s `if`) in the mode `none` only, as `clusterAt`'s `match`.
 -/
 module
@@ -48,30 +48,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions]
-
-/-- A member's registrations split off what follows them (`memberServed`'s watch stream). -/
-private theorem servedRegs_sep (m : lease.Mode) (c : GoString) (s : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (cid mid : w64) (P : IProp GF) :
-    servedRegs m c s E ρ cid mid P ⊢ servedRegs m c s E ρ cid mid iprop(True) ∗ P := by
-  cases m <;> simp only [servedRegs]
-  · iintro ⟨H1, H2, H3, H4, H5, HP⟩
-    iframe
-  · iintro ⟨H1, H2, HP⟩
-    iframe
-  · iintro ⟨H1, H2, HP⟩
-    iframe
-
-/-- A member's registrations put back before what follows them (`memberAt`'s). -/
-private theorem servedRegs_join (m : lease.Mode) (c : GoString) (s : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (cid mid : w64) (P : IProp GF) :
-    servedRegs m c s E ρ cid mid iprop(True) ∗ P ⊢ servedRegs m c s E ρ cid mid P := by
-  cases m <;> simp only [servedRegs]
-  · iintro ⟨⟨H1, H2, H3, H4, H5, -⟩, HP⟩
-    iframe
-  · iintro ⟨⟨H1, H2, -⟩, HP⟩
-    iframe
-  · iintro ⟨⟨H1, H2, -⟩, HP⟩
-    iframe
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 8192 in
@@ -148,8 +124,8 @@ theorem StartCluster.wp_proof
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
   imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls (dir3 cfg id₁ id₂ id₃)
       cfg.Peer1' cfg.Peer2' cfg.Peer3' Hdok.1 (dir3_host cfg id₁ id₂ id₃) (by omega) (by omega)
-      cfg.Name1' cfg.Name2' cfg.Name3' (some cfg.Client1') (some cfg.Client2') (some cfg.Client3') cmp 0
-      lm Hrun Hrev)
+      cfg.Name1' cfg.Name2' cfg.Name3' (some cfg.Client1') (some cfg.Client2') (some cfg.Client3') lm Hrun Hrev
+      cmp 0)
       $$ Hmarsh Hs₁ Hs₂ Hs₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Hfr₁⟩, Hmb₂,
     ⟨#Hsl₂, Hfr₂⟩, Hmb₃, ⟨#Hsl₃, Hfr₃⟩, Hetcd⟩
@@ -179,9 +155,8 @@ theorem StartCluster.wp_proof
   subst Herr
   wp_auto
   iunfold memberServed at Hup₁
-  icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁, Hctl₁, Hsr₁⟩
-  ihave ⟨#Hsr₁, ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hstr₁⟩, %Hnr₁⟩ :=
-    servedRegs_sep lm _ _ _ _ _ _ _ $$ Hsr₁
+  icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁, Hctl₁, #Hsr₁,
+    ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hstr₁⟩, %Hnr₁⟩
   iunfold srvGoRes at Hgo₁
   icases Hgo₁ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₂
@@ -206,9 +181,8 @@ theorem StartCluster.wp_proof
   subst Herr
   wp_auto
   iunfold memberServed at Hup₂
-  icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂, Hctl₂, Hsr₂⟩
-  ihave ⟨#Hsr₂, ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hstr₂⟩, %Hnr₂⟩ :=
-    servedRegs_sep lm _ _ _ _ _ _ _ $$ Hsr₂
+  icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂, Hctl₂, #Hsr₂,
+    ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hstr₂⟩, %Hnr₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₃
@@ -233,9 +207,8 @@ theorem StartCluster.wp_proof
   subst Herr
   wp_auto
   iunfold memberServed at Hup₃
-  icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃, Hctl₃, Hsr₃⟩
-  ihave ⟨#Hsr₃, ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hstr₃⟩, %Hnr₃⟩ :=
-    servedRegs_sep lm _ _ _ _ _ _ _ $$ Hsr₃
+  icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃, Hctl₃, #Hsr₃,
+    ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hstr₃⟩, %Hnr₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   iclear Hb₁ Hb₂ Hb₃ Hcom Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm
@@ -309,9 +282,7 @@ theorem StartCluster.wp_proof
   isplitr
   · iunfold memberAt
     iframe #
-    iapply servedRegs_join
-    isplitr; · iexact Hsr₁
-    iframe #; isplitr
+    isplitr
     · ipureintro; exact Hnr₁
     isplitr
     · ipureintro; exact HR₁
@@ -319,9 +290,7 @@ theorem StartCluster.wp_proof
   isplitr
   · iunfold memberAt
     iframe #
-    iapply servedRegs_join
-    isplitr; · iexact Hsr₂
-    iframe #; isplitr
+    isplitr
     · ipureintro; exact Hnr₂
     isplitr
     · ipureintro; exact HR₂
@@ -329,9 +298,7 @@ theorem StartCluster.wp_proof
   isplitr
   · iunfold memberAt
     iframe #
-    iapply servedRegs_join
-    isplitr; · iexact Hsr₃
-    iframe #; isplitr
+    isplitr
     · ipureintro; exact Hnr₃
     isplitr
     · ipureintro; exact HR₃
@@ -346,6 +313,7 @@ theorem StartCluster.wp_proof
     ipureintro; exact ⟨hst₂, hst₃, hcmp₁, hcret₁⟩
   | mono =>
     dsimp only
+    isplitl []; · itrivial
     ipureintro; exact ⟨hst₂, hst₃, hcmp₁, hcret₁⟩
 
 end proof

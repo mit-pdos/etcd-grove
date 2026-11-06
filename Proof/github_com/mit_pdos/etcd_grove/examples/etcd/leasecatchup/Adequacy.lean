@@ -15,8 +15,9 @@ if it has one, is `#()`, no thread is stuck, and no thread has ended in a panic.
 As `examples/etcd/partition`'s and `k8s_compactor_partition_adequate`'s (`etcd_adequate_members`
 with the cluster's members and its bridges, hub step 7's A3), at this program's configuration,
 with leasegrant's lease hypotheses: `leasePeersOk` (the peers answer the lease handler's path as
-etcd's lease handler does) and `lease.leasesNoExpiry` (no lease the cluster grants expires during
-the run: the leases are granted for an hour, the run takes seconds; Scope §2's time budget).
+etcd's lease handler does) and `lease.leasesNoExpiry` (no lease of any lessor the program creates,
+granted or reloaded by `Recover`, expires while the program runs: the leases are granted for an
+hour, the run takes seconds; Scope §2's time budget).
 
 **What is new** over leasegrant's theorem: a configuration in which the leased restore actually
 happens in Go (`examples/etcd/leasecatchup/leasecatchup_test.go` counts, in every run, a merged
@@ -166,12 +167,13 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hprem' := Hprem hG
   iintro #Hinit Htok Hres
   ihave Hstart := cluster3.startRes_intro etcd_leasecatchup.clusterCfg $$ Hres
-  have hM := etcd_leasecatchup.wp_Main (GF := leasecatchupGF) n id₁ id₂ id₃ ps ctxs boot Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega)
-    (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo Hlp Hlne inferInstance
-    EtcdGrove.rpctypesEtcdError_asTarget
+  have hM := etcd_leasecatchup.wp_Main (GF := leasecatchupGF) n id₁ id₂ id₃ ps ctxs boot
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
+    ipureintro
+    exact ⟨Hbf, ⟨by rw [HT]; omega, by rw [HN]; omega, by rw [HN]; omega,
+      by unfold bootWB backend.wbInit; omega⟩, ⟨Hck, Haf, Hbuq, Hrf, Hdbo⟩, ⟨Hlp, Hlne⟩,
+      ⟨inferInstance, EtcdGrove.rpctypesEtcdError_asTarget⟩⟩
   ipureintro
   rfl
 

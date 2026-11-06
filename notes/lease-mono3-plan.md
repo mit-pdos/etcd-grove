@@ -450,3 +450,75 @@ baseline needs the package's lines at landing (`etc/bounds-baseline.txt`, not ch
     (554 s, then 571 s alone). It fails the same way at `lean` `6691b46860`, which has no
     `holdToken` (575 s), so R1 did not cause it. Its cause is not investigated: it may be machine
     load or a regression on `lean`. It needs a look before landing, under the gates.
+
+## Review round 1 fixes (2026-11-06)
+
+The findings of `notes/spec-review/lease-mono3-r1.md` (round 1, on `2a4632ab5c`), fixed on branch
+`lease-mm` as DRAFT under the batching rule: each frozen, exported or new statement that changed is
+listed old → new with its cause. No axiom, trusted model or `sorry` was added.
+
+### Frozen statements (text only; docstrings and comments)
+
+| statement | old | new | cause |
+|---|---|---|---|
+| `cluster3.StartMember.spec` (FROZEN, E1) | header: "etcd's KV and watch services at its client address"; comment on the bounds: "the members' workload, granting no lease" | "etcd's watch service and, by the lease mode (below), etcd's KV calls or the lease services"; "the members' workload" | r1 §1 NIT (stale at a lease mode); the triple's text is unchanged |
+| `cluster3.StartCluster.spec` (FROZEN, E2) | header: "every member at its bridge with its KV and watch registrations …, and etcd's KV at the start store" | "with its watch registration, its KV or lease registrations by the lease mode (below), …, and, in the mode `none`, etcd's KV at the start store" | r1 §1 NIT; the triple's text is unchanged |
+
+The frozen specs keep their pure premises as Lean implications (r1 §1's third NIT): about twenty
+older implications, and converting only the three new ones would mix the two styles in one triple.
+The rule ("convert one when you change it") applies at their next statement change.
+
+### Exported statements (`cluster3`'s vocabulary, etcdstart's API)
+
+| statement | old | new | cause |
+|---|---|---|---|
+| `cluster3.servedRegs` (`Defs.lean`) | `servedRegs m c s E ρ cid mid rest`: at `.none` an inline copy of the five KV registrations then `rest`; otherwise `etcdLeaseReadAt c ∗ etcdLeaseServedAt m … ∗ rest` | `servedRegs m c s E ρ cid mid` (no `rest`): `.none => etcdstart.etcdKVAt c E ρ ρ.rd cid mid`, otherwise `etcdLeaseReadAt c ∗ etcdstart.etcdLeaseServedAt m c s E ρ ρ.rd cid mid` | SF3: built from etcdstart's definitions, no continuation parameter |
+| `cluster3.memberServed`, `memberAt` (`Defs.lean`) | `… ∗ servedRegs m … iprop(<the rest>)` | `… ∗ servedRegs m … ∗ <the rest>` | SF3 |
+| `cluster3.memberServed_none`, `memberAt_none` | `=` by `rfl` | the same equations (statement text unchanged), proved by unfolding `servedRegs` and `etcdKVAt` and reassociating `∗` (a private `sep_assoc_eq`, `BI.sep_assoc.to_eq`) | SF3: `rfl` no longer holds |
+| `cluster3.memberAt_mono` (new, `Defs.lean`) | — | `memberAt γn s id ρ E cid mid R b c γ cmp .mono ⊢ isGrpcRpc b "/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗ isGrpcRpc b "/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases)` | SF2: the bridge's registrations, `isGrpcRpc_forwards` folded in; leasecatchup's `run` uses it in place of unfolding `memberAt`, `servedRegs`, `etcdLeaseServedAt` and `etcdLeaseGrantAt` (it still unfolds `clusterUp`/`clusterAt`, the bundles every cluster3 client destructures) |
+| `cluster3.clusterAt` (`Defs.lean`) | `(match m with \| .none => etcdKV … ∗ ⌜P⌝ \| _ => ⌜P⌝)` | `(match m with \| .none => etcdKV … \| _ => True) ∗ ⌜P⌝` | r1 §2 NIT: the pure conjunct once; `clusterAt_none` still `rfl` |
+| `etcdstart.etcdLeaseServedAt_persistent` (new instance, `ServedLease.lean`) | — | `Persistent (etcdLeaseServedAt m addr s E ρ γr cid mid)` | SF4; `servedRegs_persistent` uses it instead of unfolding |
+| `etcdstart.alloc3` (etcdstart API), `alloc3Http` (private) | `… (cmp := false) (cret := 0) (lm) (hrun) (hrev)` | `… (lm) (hrun) (hrev) (cmp := false) (cret := 0)` | r1 §3 NIT: the defaults serve their callers again (putget3 and restart drop `false 0`) |
+
+`cluster3.servedRegs_persistent` lost its `[Persistent rest]` argument. `StartMember`'s private
+`servedRegs_of_lease` lost `rest`; `StartCluster`'s private `servedRegs_sep`/`servedRegs_join` are
+gone (the registrations are a conjunct of their own now).
+
+### New statements (leasecatchup)
+
+| statement | old | new | cause |
+|---|---|---|---|
+| `etcd_leasecatchup.run.spec` | the pure premises as implications before the triple | the same premises as `⌜…⌝` conjuncts at the end of the precondition, grouped: `⌜BootFacts … ∧ lg ≠ null⌝`, `⌜threadBound GF ≤ 2 ^ 28 ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧ N + 7 + bootWB ≤ backend.wbInit⌝`, `⌜ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk⌝`, `⌜leasePeersOk ∧ lease.leasesNoExpiry⌝`, `⌜v3rpc.ServerMethodSets ∧ errors.AsTarget …⌝`; the bound premises stay `run.spec`'s (etcd-grove-82) | SF5 (the 2026-11-03 rule) |
+| `etcd_leasecatchup.Main.spec` | the same, without `lg` | the same conversion | SF5 |
+| `etcd_leasecatchup.grant.spec`, `leases.spec` | `errors.AsTarget … →` | `… ∗ ⌜errors.AsTarget …⌝` in the precondition | SF5 |
+
+The closed theorems (`etcd_leasecatchup_safe`, `_adequate`, `leasecatchup_Main`) are unchanged:
+`Adequacy` discharges the precondition's pure conjuncts where it passed the implications' arguments.
+The header of `run.spec` and of `Adequacy.lean` now paraphrase `leasesNoExpiry` by its own wording
+("no lease of any lessor the program creates, granted or reloaded by `Recover`, expires while the
+program runs"; r1 §5 NIT). `etc/tcb-collections/leasecatchup.txt`'s header no longer speaks of
+DRAFT `sorry`s (r1 §5 NIT).
+
+### Left, with the reason
+
+- **The duplicated `LeaseLeases` registration** (r1 §2 (a)): at `.mono`, `servedRegs` holds
+  `LeaseLeases` at `etcdLeaseLeasesSpecAny` (inside `client.etcdLeaseReadAt`) and at
+  `etcdLeaseLeasesSpec E.γ.leases` (inside `etcdLeaseGrantAt`). Dropping one is not trivial: it
+  needs a TTL-only registration predicate in the client's API or a change to `etcdLeaseGrantAt`, both
+  exported, and `kv_lease_served(_watch)`'s posts would change with them. The surplus is harmless
+  (both are persistent, and the `Any` one is derivable from the other).
+- **The TTL read in `memberServed`** (r1 §2 (b), and §1's SHOULD-FIX on the two lease axioms the
+  `.none` closed results gained): kept for step 2, as `notes/decisions.md`'s R1 entry ("A thread
+  token for a cluster member's lease reads", Rejected) decided; the axioms' growth is H1 (A),
+  recorded there and in the committed baselines (`e9ec46b4b1`). Putting it before the user at
+  Freeze stays open.
+- **`alloc3`'s `if decide` gate** (r1 §3 NIT): consistent with `alloc1`; not in this round's list.
+
+### Checks
+
+`lake build` of the eight importer leaves (lease, leasecatchup, leaseexpiry, leasegrant, partition,
+putget3, k8s compactor `Results`, restart `Run`) passes. `etc/gen-interface.py etc/api/etcdstart.txt`:
+`Alloc3.txt` (the binder order) and `ServedLease.txt` (the new instance) moved, `--check` passes;
+`etc/api-check.py` passes. `etc/tcb-report.py --check`: 785 axioms, 3 `sorry`s, as the baseline;
+collections leasecatchup (624, 0), linkv3p (635, 0), k8scompactor (684, 0), putget3 (611, 0) match.
+`etc/bounds-check.py --check`: 390, baseline 390. No Go changed.

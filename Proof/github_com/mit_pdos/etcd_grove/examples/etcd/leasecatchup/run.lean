@@ -3,10 +3,9 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/run.lea
 step 1, 2026-11-06, `notes/lease-mono3-plan.md`, Scope §2). Lean-first.
 
 The steps: `config()`; `cluster3.StartCluster` at the monotone lease mode (`lease.runCfg_mono`,
-`leasePeersOk`), whose success gives each member at its bridge (`cluster3.memberAt … .mono`) with
-the lease reads and the grant and listing at its lessor's history registered at its client address
-(`cluster3.servedRegs .mono`, `etcdstart.etcdLeaseGrantAt`), forwarded to the bridge
-(`cluster3.isGrpcRpc_forwards`); `etcdstart.NewClients` of member 3's bridge, then of member 1's;
+`leasePeersOk`), whose success gives each member at its bridge (`cluster3.memberAt … .mono`), and
+of it the grant and listing at its lessor's history registered at the bridge's address
+(`cluster3.memberAt_mono`); `etcdstart.NewClients` of member 3's bridge, then of member 1's;
 `grant(c3)` at `etcdLeaseGrantSpec E₃.γ.leases`, `Q` keeping `g1` granted at an index of member 3's
 lessor history; the two cuts (`cluster3.PeerStep`, over the members' `srvPeerCtl`s); the fillers
 (`grant(c1)` at member 1's spec, `Q = True`: only the last filler's id is kept); the two mends; the
@@ -62,9 +61,13 @@ theorem run.wp_proof
     (wp_listed : listed.spec (GF := GF) (hG := hG))
     (wp_PeerStep : cluster3.PeerStep.spec (GF := GF) (hG := hG)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot lg Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo
-    HlP HnE Hms hAs
-  wp_start as ⟨Hstart, Htok, #Hprem⟩
+  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot lg
+  wp_start as ⟨Hstart, Htok, #Hprem, %Hp₁, %Hp₂, %Hp₃, %Hp₄, %Hp₅⟩
+  obtain ⟨Hbf, Hlg⟩ := Hp₁
+  obtain ⟨Htb, Hrb48, HrbN, HwbN⟩ := Hp₂
+  obtain ⟨Hck, Haf, Hbuq, Hrf, Hdbo⟩ := Hp₃
+  obtain ⟨HlP, HnE⟩ := Hp₄
+  obtain ⟨Hms, hAs⟩ := Hp₅
   ihave #Pc3 : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 $$ []
   · iPkgInit
@@ -92,26 +95,9 @@ theorem run.wp_proof
     %mid₃, %R₁, %R₂, %R₃, %s₁, %s₂, %s₃, %br₁, %br₂, %br₃, Hcl⟩
   iunfold cluster3.clusterAt at Hcl
   icases Hcl with ⟨#Hsrvs, #Hbrs, #Hm₁, -, #Hm₃, Hctl₁, Hctl₂, Hctl₃, -, -, -, -⟩
-  -- members 1 and 3: the grant and the listing at their lessors' histories, through their bridges
-  iunfold cluster3.memberAt at Hm₁ Hm₃
-  icases Hm₁ with ⟨#Hfw₁, -, Hs₁⟩
-  icases Hm₃ with ⟨#Hfw₃, -, Hs₃⟩
-  isimp only [cluster3.servedRegs, etcdstart.etcdLeaseServedAt, etcdstart.etcdLeaseGrantAt]
-    at Hs₁ Hs₃
-  icases Hs₁ with ⟨-, ⟨#HG₁, -⟩, -⟩
-  icases Hs₃ with ⟨-, ⟨#HG₃, #HL₃⟩, -⟩
-  ihave #HG₁b := cluster3.isGrpcRpc_forwards clusterCfg.Bridge1' clusterCfg.Client1'
-    go!"/etcdserverpb.Lease/LeaseGrant" _
-    $$ [Hfw₁ HG₁]
-  · iframe #
-  ihave #HG₃b := cluster3.isGrpcRpc_forwards clusterCfg.Bridge3' clusterCfg.Client3'
-    go!"/etcdserverpb.Lease/LeaseGrant" _
-    $$ [Hfw₃ HG₃]
-  · iframe #
-  ihave #HL₃b := cluster3.isGrpcRpc_forwards clusterCfg.Bridge3' clusterCfg.Client3'
-    go!"/etcdserverpb.Lease/LeaseLeases" _
-    $$ [Hfw₃ HL₃]
-  · iframe #
+  -- members 1 and 3: the grant and the listing at their lessors' histories, at their bridges
+  ihave ⟨#HG₁b, -⟩ := cluster3.memberAt_mono _ _ _ _ _ _ _ _ _ _ _ _ $$ Hm₁
+  ihave ⟨#HG₃b, #HL₃b⟩ := cluster3.memberAt_mono _ _ _ _ _ _ _ _ _ _ _ _ $$ Hm₃
   -- `c3, err := etcdstart.NewClients([]string{cfg.Bridge3}, lg)`
   wp_apply wp_slice_literal (V := GoString) (l := [clusterCfg.Bridge3'])
   try (isplitr; (ipureintro; rfl))
@@ -157,8 +143,9 @@ theorem run.wp_proof
   -- 1. `g1, err := grant(c3)`, `Q`: `g1` granted at an index of member 3's lessor history
   wp_apply (wp_grant c3 [clusterCfg.Bridge3'] _
       (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₃) E₃.γ.leases)
-      (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt E₃.γ.leases i m.id)) hAs) as %g1 %gerr Hg1
+      (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt E₃.γ.leases i m.id))) as %g1 %gerr Hg1
   · iframe #
+    isplitl; rotate_left; · ipureintro; exact hAs
     imodintro; inext
     iunfold etcdLeaseGrantSpec
     iintro %m - - Hgi
@@ -211,8 +198,9 @@ theorem run.wp_proof
       exact h
     wp_apply (wp_grant c1 [clusterCfg.Bridge1'] _
         (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₁) E₁.γ.leases)
-        (fun _ => iprop(True)) hAs) as %f %ferr Hf
+        (fun _ => iprop(True))) as %f %ferr Hf
     · iframe #
+      isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext
       iunfold etcdLeaseGrantSpec
       iintro %m - - -
@@ -262,8 +250,9 @@ theorem run.wp_proof
       have h : sint.Z q < sint.Z (W64 60) := by simpa using Hif
       exact h
     wp_apply (wp_leases c3 [clusterCfg.Bridge3'] _ (etcdLeaseLeasesSpec E₃.γ.leases)
-        (fun m => iprop(⌜mg.id ∈ m.ids⌝)) hAs) as %ls %lerr Hls
+        (fun m => iprop(⌜mg.id ∈ m.ids⌝))) as %ls %lerr Hls
     · iframe #
+      isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext
       iunfold etcdLeaseLeasesSpec
       iexists [mg.id]

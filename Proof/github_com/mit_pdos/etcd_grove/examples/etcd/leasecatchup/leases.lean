@@ -37,8 +37,8 @@ theorem leases.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG)) :
     leases.spec (GF := GF) (hG := hG) := by
-  intro CRE CEC cl eps V Spec Q hAs
-  wp_start as ⟨#Hnc, #Hrpc, #HS⟩
+  intro CRE CEC cl eps V Spec Q
+  wp_start as ⟨#Hnc, #Hrpc, #HS, %hAs⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []

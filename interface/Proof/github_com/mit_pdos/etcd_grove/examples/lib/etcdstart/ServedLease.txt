@@ -62,6 +62,11 @@ def etcdstart.etcdLeaseGrantAt [v3rpc_sem :
         go!"/etcdserverpb.Lease/LeaseLeases"
         (etcdLeaseLeasesSpec E.γ.leases))
 
+theorem etcdstart.etcdLeaseServedAt_persistent [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (m : lease.Mode) (addr : GoString)
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) : Persistent
+    (etcdstart.etcdLeaseServedAt m addr s E ρ γr cid mid)
+
 theorem etcdstart.etcdLeaseGrantLiveAt.congr_simp [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr addr✝ : GoString) (e_addr :
     addr = addr✝) (s s✝ : Loc) (e_s : s = s✝) (E E✝ : apply.AEnv GF) (e_E : E = E✝) :
