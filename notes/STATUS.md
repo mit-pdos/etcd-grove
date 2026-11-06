@@ -29,7 +29,17 @@ reaches `EtcdServer.Range`'s and `Txn`'s error posts. Since k8s etcd3 7c-2 part 
 The rule now (`notes/decisions.md`, "`fmt.Errorf` with `%w`: no fact from the model", which
 supersedes the 2026-10-13 entry): no fact from the model for a `%w` format. A faithful,
 attacked spec of `%w` replaces it, and the handler contract is restated for a
-context-wrapping error. Which closed theorems' statements are exposed is being traced. Decided by
+context-wrapping error.
+
+**Exposure: no closed theorem's statement is false of Go** (etcd-grove-56's trace, accepted by
+etcd-grove-82, 2026-11-06). The false facts reach only the premise of the `Serve`/prometheus
+axioms (`grpcHandlerOk`/`grpcMethodOk`/`srvInterceptorOk`'s `statusErrOk err`), whose conclusion
+holds of Go for this error: the probe `examples/axiomcx/wrapctx` (branch `axiom/hs6-wrapctx`,
+6b02b4180b) serves the wrapped error through grpc's server and grpc-prometheus without a panic,
+the client receiving `Canceled`/`DeadlineExceeded` with the full message. And `handlerDescs` is
+empty, so no client-side fact (`Ψe`) rests on the error's description. Caveat: a structural argument plus a
+probe, not a trace of each closed theorem. The exposure becomes real when 7c-2 part 2 fills
+`handlerDescs`; its Freeze package carries a per-theorem trace. Decided by
 etcd-grove-82 under the user's delegation (user offline, pending the user's review). The general
 fix is Perennial's (`notes/perennial-changes.md`).
 
