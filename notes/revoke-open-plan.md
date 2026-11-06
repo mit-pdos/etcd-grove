@@ -1186,7 +1186,8 @@ N6's laws at the merge") became:
   attack 6; harmless: Go's readers are live goroutines, at most the thread bound).
 - **Checks** (after the merge, green build): `etc/tcb-report.py --check` reports exactly the five
   DRAFT sorries of §M as new and nothing else (no axiom added or removed). `leaseExpired.init`'s
-  axiom is gone from `Code/.../etcdserver.lean` (pass 2's translation), but `etc/tcb-baseline.txt`
-  never listed it, so the check shows no removal. Interfaces: etcdstart's `Defs`/`Served` (the
+  axiom is gone from `Code/.../etcdserver.lean` (pass 2's translation), but the TCB counts the
+  untranslated initializers through the package's one `etcdserver.opaqueInitsOk` axiom, which stays
+  (the other variables), so the check shows no removal: `leaseExpired` left its list (`Init.lean`). Interfaces: etcdstart's `Defs`/`Served` (the
   count's name, `memberReadN` and its law added), backend's unchanged; `etc/api-check.py` and the
   layout checks pass for both; `etc/bounds-check.py --check`: ok (389).
