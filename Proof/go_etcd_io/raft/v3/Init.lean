@@ -9,17 +9,9 @@ the package's `isPkgInit` (`Base.lean`). For raft that is `isInitialized`: the e
 variables (non-`nil`, and for the three the proofs compare against, of a pointer type, from
 `errors.New`), `globalRand` with its mutex, `emptyState`, the message tables.
 
-Three things are not facts of the model, and are premises:
-* `os`'s initializer is only partly translated (the standard library's names-only `os`,
-  Perennial's, whose initializers with translated callees are translated since Perennial
-  `11ac2f242`, so `os.wp_initialize'` initializes `io/fs`, `sync` and `errors`; `strconv`'s is Perennial's own since it translates `strconv`, 24bef275e), so it calls opaque values `X.init`: the
-  trust-boundary axioms `<pkg>.opaqueInitsOk` say these run (the generated `Init.lean` files'
-  method, `etc/gen-init.py`), `os.initFuncsOk` that its untranslated `func init()`s (`init.0`, as
-  gc names it) return (2026-10-19, when Goose began calling a package's `init`s by name), and
-  `os.Stderr_init` that `Stderr`'s gives the variable some `*File`, which `os`'s fact reads
-  (2026-10-18; until then the four `wp_initialize'` were `sorry`). `raftpb`'s and `proto`'s
-  untranslated initializers and `init`s are trusted no-op models (2026-10-20, until then axioms
-  like these: `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`,
+Two things are not facts of the model, and are premises:
+* `raftpb`'s and `proto`'s untranslated initializers and `init`s are trusted no-op models
+  (2026-10-20: `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`,
   `TrustedCode/google_golang_org/protobuf/proto.lean`), and raftpb's descriptor tables
   `file_raft_proto_goTypes` and `_depIdxs` are translated. `raftpb`'s and `proto`'s call the
   generated `protoreflect`/`protoimpl` theorems, so they (and `quorum`'s, `tracker`'s,
@@ -27,9 +19,12 @@ Three things are not facts of the model, and are premises:
   (Raft v3.7, stage R4: `proto` is new, raft imports it; `reflect` is gone, `ConfState.Equivalent`
   no longer calling `reflect.DeepEqual`; `emptyState` is a pointer, `&pb.HardState{}`.)
 * `log.New` (raft's `defaultLogger`, `discardLogger`) is not modelled by Perennial: the
-  class `log.NewModel` says that the name `log.New` stands for `log.New.model`, a function
-  that returns a new `*Logger` (what raft needs of it; the Go function allocates and
-  initializes a `Logger`, without failing).
+  class `log.NewModel` (`Proof/log/NewModel.lean`) says that the name `log.New` stands for a
+  function that returns a new `*Logger`.
+
+`os`'s `wp_initialize'` was here until 2026-11-03; it is now generated (`Proof/os/Init.lean`,
+`etc/gen-init.py`), with its trust-boundary axioms (`os.opaqueInitsOk`, `os.Stderr_init`,
+`os.initFuncsOk`), since every project translates against this repository's `os` (project bboltfs's).
 -/
 module
 
@@ -37,11 +32,8 @@ public import Perennial.Proof.strconv.Link
 public import Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.context.NewErrorString
-public import Perennial.Proof.io.fs
-public import Perennial.Proof.syscall.Link
-public import Perennial.Proof.internal.poll.Link
-public import Perennial.Proof.os.Models
-public import Perennial.Proof.errors.NewVar
+public import Proof.log.NewModel
+public import Proof.os.Init
 public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
 public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 
@@ -56,157 +48,10 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-namespace log
-
-/-- A model of `log.New(out, prefix, flag)`: a fresh pointer. `Logger` is an opaque type in
-Perennial's `log` (no layout, so no typed allocation), and raft only stores the pointer (in
-`DefaultLogger`, whose methods the register's `quietLogger` replaces), so the model
-allocates an untyped cell: what Go returns is a fresh, non-`nil` `*Logger`. -/
-def New.model [GooseExts] [GoGlobalContext] : val :=
-  λ: "out" "prefix" "flag", Alloc (Val #())
-
-/-- The name `log.New` stands for `New.model`: an assumption about the semantics, like the
-`FuncUnfold` fields of a package's `Assumptions` (Perennial translates `log` without
-`New`). -/
-class NewModel [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
-  New_unfold : FuncUnfold log.New [] New.model
-
-attribute [instance] NewModel.New_unfold
-
-section wps
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : log.Assumptions] [NewModel]
-
-theorem wp_New (out : GoInterface) (pfx : GoString) (flag : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (App (Val (@! log.New)) (Val #out)) (Val #pfx)) (Val #flag))
-    {{ (l : Loc), RET #l; True }} := by
-  wp_start
-  wp_apply (wp_alloc_untyped _ (isPanic_intoVal _)) as %l Hl
-  iapply HΦ
-  itrivial
-
-end wps
-
-end log
-
-
 
 /-- `x ∈ [a, ..., x, ...]`, linear in the list. -/
 local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-omit package_sem in
-/-- `internal/poll`'s fact (`isInit`), as `io.fs.isInit_access`. -/
-theorem internal_poll_isInit_access :
-    isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢ internal.poll.isInit (GF := GF) := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll
-
-omit package_sem in
-theorem os.wp_initialize' [os.Assumptions] (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.os get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val os.initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.os }} := by
-  wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  iapply wp_fupd
-  wp_apply wp_GlobalAlloc (V := GoFunc) os.pollSplice _ as _
-  wp_apply wp_GlobalAlloc (V := GoFunc) os.pollCopyFileRange _ as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.errPatternHasSeparator go.error as _
-  wp_apply wp_GlobalAlloc (V := GoSlice) os.Args _ as _
-  wp_apply wp_GlobalAlloc (V := GoFunc) os.checkPidfdOnce _ as _
-  wp_apply wp_GlobalAlloc (V := Bool) os.checkWrapErr go.bool as _
-  wp_apply wp_GlobalAlloc (V := GoFunc) os.lstat _ as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.errPathEscapes go.error as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.errWriteAtInAppendMode go.error as _
-  wp_apply wp_GlobalAlloc (V := os.Signal) os.Kill _ as _
-  wp_apply wp_GlobalAlloc (V := os.Signal) os.Interrupt _ as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrNoHandle go.error as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.errProcessReleased go.error as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrProcessDone go.error as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrDeadlineExceeded go.error as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrNoDeadline go.error as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrClosed go.error as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrNotExist go.error as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrExist go.error as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrPermission go.error as _
-  wp_apply wp_GlobalAlloc (V := GoInterface) os.ErrInvalid go.error as _
-  wp_apply wp_GlobalAlloc (V := sync.Pool) os.dirBufPool sync.Pool.ty as _
-  wp_apply errors.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Herrors⟩
-  wp_apply internal.poll.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hpoll⟩
-  wp_apply syscall.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hsys⟩
-  wp_apply sync.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hsync⟩
-  wp_apply io.fs.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hfs⟩
-  -- `ErrInvalid = fs.ErrInvalid`, ...: io/fs's error variables, which its fact gives
-  ihave #Hfsi := io.fs.isInit_access $$ Hfs
-  icases Hfsi with ⟨#VIn, #VPe, #VEx, #VNE, #VCl, -⟩
-  iunfold errors.newVar at VIn VPe VEx VNE VCl
-  icases VIn with ⟨%_, #_, -⟩
-  icases VPe with ⟨%_, #_, -⟩
-  icases VEx with ⟨%_, #_, -⟩
-  icases VNE with ⟨%_, #_, -⟩
-  icases VCl with ⟨%_, #_, -⟩
-  -- `ErrNoDeadline = errNoDeadline()`, ...: internal/poll's, which its fact gives
-  ihave #Hpi := internal_poll_isInit_access $$ Hpoll
-  icases Hpi with ⟨#HpN, ⟨%_, #_⟩⟩
-  iunfold errors.newVar at HpN
-  icases HpN with ⟨%_, #_, -⟩
-  -- `dirBufPool`'s `New`, a function literal
-  rw [recv_eq_func_mk BAnon BAnon]
-  wp_auto
-  -- `errNoDeadline()`, `errDeadlineExceeded()`: internal/poll's variables
-  wp_func_call
-  wp_call
-  try wp_auto
-  wp_func_call
-  wp_call
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
-  try wp_auto
-  wp_apply os.wp_Stdin_init
-  wp_apply os.wp_Stdout_init
-  wp_apply os.wp_Stderr_init as ⟨%stderr, Hstderr⟩
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
-  try wp_auto
-  -- `checkPidfdOnce = sync.OnceValue(checkPidfd)` (translated since Perennial `a2a531d4d`)
-  wp_apply sync.wp_OnceValue $$ [$Hsync] as %_ -
-  try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
-  try wp_auto
-  -- `func init() { Args = runtime_args() ... }` (`proc.go`), `runtime_args` a trusted model
-  wp_func_call
-  wp_call
-  try wp_auto
-  wp_func_call
-  wp_apply os.wp_runtime_args_impl as %_ -
-  try wp_auto
-  ipersist Hstderr
-  iframe Hown
-  imodintro
-  isplitr
-  · ipureintro
-    exact isPanic_intoVal _
-  is_pkg_init_finish
-
-end init
 
 section init_lc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -480,7 +325,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   repeat (first
     | (wp_apply log.wp_New as %_ _)
-    | (wp_apply _root_.Perennial.context.wp_New_errorString as %_ ⟨-, #_⟩)
+    | (wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_)
     | wp_auto)
   iStructNamed «$r0»
   imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[lockedRand, go!"mu"]) $$ mu [] with #Hmu

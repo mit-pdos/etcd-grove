@@ -58,7 +58,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   iStructNamed Hdb
   rw [show (W64 2 ||| W64 64 : w64) = W64 0x42 from rfl]
   wp_apply wp_OpenFile path (W32 438) (DFrac.own 1) mo (fun _ => rfl) $$ [Hm]
-    as %f %err (⟨%fd, %Hfd, Hf, Hfdo, Hm⟩ | ⟨%Herr, %mo', -, Hm⟩)
+    as %f %err ⟨(⟨%fd, %Hfd, Hf, Hfdo, Hm⟩ | ⟨%Herr, %mo', -, Hm⟩), -⟩
   · iframe; iframe #
   rotate_left
   · obtain ⟨Herr, rfl⟩ := Herr
@@ -83,7 +83,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   cases err1 with
   | ok ie =>
     (try wp_auto)
-    wp_apply wp_FClose f fd path _ $$ [Hf Hfdo] as %e Hf
+    wp_apply wp_FClose f fd path _ $$ [Hf Hfdo] as %e ⟨Hf, -⟩
     · iframe; iframe #
     (try wp_auto)
     iapply HΦ
@@ -94,7 +94,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   | nil =>
   (try wp_auto)
   wp_apply wp_Stat f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) _ m $$ [Hf Hfdo Hm]
-    as %fi %err2 ⟨Hf, Hfdo, Hm, Hfi⟩
+    as %fi %err2 ⟨Hf, Hfdo, Hm, Hfi, #_, -⟩
   · iframe; iframe #
   icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
   rotate_left

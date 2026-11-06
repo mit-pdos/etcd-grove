@@ -130,11 +130,6 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.cmp, isPkgInit pkg_id.cmp),
    (pkg_id.math, isPkgInit pkg_id.math),
    (pkg_id.io, isPkgInit pkg_id.io),
-   (pkg_id.io.fs, isPkgInit pkg_id.io.fs),
-   (pkg_id.syscall, isPkgInit pkg_id.syscall),
-   (pkg_id.internal.poll, isPkgInit pkg_id.internal.poll),
-   (pkg_id.internal.syscall.unix, isPkgInit pkg_id.internal.syscall.unix),
-   (pkg_id.internal.oserror, isPkgInit pkg_id.internal.oserror),
    (pkg_id.errors, isPkgInit pkg_id.errors),
    (pkg_id.go_etcd_io.raft.v3.raftpb, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb),
    (pkg_id.google_golang_org.protobuf.proto, isPkgInit pkg_id.google_golang_org.protobuf.proto),
@@ -160,6 +155,8 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.bytes, isPkgInit pkg_id.bytes),
    (pkg_id.time, isPkgInit pkg_id.time),
    (pkg_id.os, isPkgInit pkg_id.os),
+   (pkg_id.io.fs, isPkgInit pkg_id.io.fs),
+   (pkg_id.syscall, isPkgInit pkg_id.syscall),
    (pkg_id.log, isPkgInit pkg_id.log)]
 
 /-- `get_is_pkg_init` for the store's program: a package's entry in `pkgInitTable`. -/

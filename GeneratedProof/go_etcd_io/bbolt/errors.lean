@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.errors
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.bbolt.errors
 

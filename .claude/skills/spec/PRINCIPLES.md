@@ -29,6 +29,15 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   A trusted contract states what the code computes (the wrapping `TickMs * Millisecond`), not a
   property of it the code does not ensure (`heartbeat ≠ 0`); the caller that needs the property
   takes it as its own premise. (The boot premises, 2026-11-03, `notes/decisions.md`.)
+- **An assumption states the physical fact the code relies on, never a universal that is false
+  somewhere.** A Lean axiom "FNV-64a has no collisions" is false (it has them), so the logic becomes
+  inconsistent and proves everything. Find what the code really relies on and state that, in the
+  model of the environment, with its environment hypothesis: bbolt's meta write is one aligned OS
+  page, which Linux's `pwrite` writes all or nothing in-process (if `RLIMIT_FSIZE` is unlimited or
+  page-aligned), so OsFs's rule says that and no collision premise is needed. Before proposing a
+  restriction instead, check it is what it is claimed to be: bbolt's P2 ("no torn meta that
+  validates") was described as a collision premise, yet removed no real execution and excluded
+  constructible ones. (`bbolt-api.md`, D22)
 - **Complete: sufficient for every caller**: each caller can establish the precondition and gets from
   the postcondition what its proof needs. All callers, not the one in mind; when the vocabulary
   changes, the callers as restated. A contract an implementation must meet (an environment's
@@ -81,6 +90,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   check Go's stack and memory there too (a recursion per level of a deep message). (`irr-depth.md`) (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
 - **A law over a free mode (or any index) holds at every value of it**: check it at each literal against the variance of every resource it mentions. An atomic update's grant is the committer's to supply (contravariant: `kvAu1G G ⊢ kvAu1G G'` needs `G' ⊢ G`), so a gated grant `⌜on = true⌝ → X` can be added at any mode, removed only at `false`, and identified with `X` only at `true`. A law that holds at one mode only is stated at that literal, where the mode gate counts it, not over a free `on` with an `(h : on = b)` premise. (The auth component's stage 4, round 3: three "any `on`" laws false at one mode; `examples/auth-component.md`, stage 4.) The premise is not a way to lower the gate's count: the count is the gate's measure of what still depends on one mode, and the literal is that dependence (stage 5: the 5-2 laws took `(hon : on = false)`, the count fell below the plan's, and 5-4 had to restate them; `examples/auth-component.md`, stage 5).
 - **A bridge between two statements is stated from its consumer's goal**, not from the direction the author has in mind: write down the goal of the proof that applies it, and check the law it rests on for variance (`raftKV_mono s A A' : raftKV s A' ⊢ raftKV s A` is contravariant in the answers). (The auth component's stage 5, round 4: `raftKV_srvKVAnsM_false` stated old → merged where its consumer needed merged → old; `examples/auth-component.md`, stage 5.)
+
+## Asking the user
+
+- **Explain a finding in plain terms before asking for a decision**: what the code does, when it
+  goes wrong and what a user would see, then the options with what each costs; not the predicate
+  names and round numbers. A decision taken on a wrong picture comes back (bbolt's D22: chosen as
+  "a probabilistic premise", then re-asked when it turned out not to be one; D21's write-up, "two
+  copies of the table of contents", is the shape). (`bbolt-api.md`)
 
 ## Preferences: strength
 
@@ -220,6 +237,11 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   never the slot's body restated, or the hub's proof changes with the body. (`notes/spec-first-plan.md`, "The slot convention",
   approved 2026-11-03; the WAL the first.)
 - **One general spec; special cases are instances**: a hard rule ("One spec per function", above).
+- **An instance binder a statement must carry goes inside the statement** (`∀ [HasExt osFsExt] …`
+  at the head of the triple, and in each vocabulary predicate's signature): Lean drops a section
+  variable from a definition that does not use it, so a section `variable [HasExt …]` silently
+  states the triple for every semantics. Check with `#check`/`#print` that it is there.
+  (`bbolt-api.md`, round 10)
 - **After a change, drop what existed only for what it changed.** (`range.md`, critique 2)
 
 ## Preferences: resources

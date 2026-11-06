@@ -5,12 +5,14 @@ file, so that the open may create it). The model (`TrustedCode/os.lean`) is the 
 (`wp_osOpen`) with `O_CLOEXEC` added, retried on `EINTR`. On success a fresh `*os.File` on a fresh
 fd (non-negative, which `Truncate` needs), readable and writable, and the file exists
 (`openMeta`); on failure `nil` and a non-nil
-error, and the file may have been created. Proved in `Proof/os/OpenFile.lean`. Lean-first (no
+error, and the file may have been created; the error is one `fmt` formats (`fmtErrorOkOrNil`, batch
+37.10: a `*PathError` around the errno, proved from the model). Proved in `Proof/os/OpenFile.lean`. Lean-first (no
 Rocq counterpart).
 -/
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -35,10 +37,11 @@ abbrev os.OpenFile.spec : Prop :=
   {{ osInv (GF := GF) ∗ osMeta (GF := GF) path q mo }}
     (App (App (App (Val (@! os.OpenFile)) (Val #path)) (Val #(W64 0x42))) (Val #perm))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
-      (∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd path (DFrac.own 1) ∗
+      ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd path (DFrac.own 1) ∗
           osFd fd (DFrac.own 1) ⟨path, true, true⟩ ∗ osMeta path q (openMeta mo true)) ∨
       (⌜err ≠ interface.nil ∧ f = null⌝ ∗
-        ∃ mo' : Option OsMeta, ⌜mo' = mo ∨ mo' = openMeta mo true⌝ ∗ osMeta path q mo') }}
+        ∃ mo' : Option OsMeta, ⌜mo' = mo ∨ mo' = openMeta mo true⌝ ∗ osMeta path q mo')) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 

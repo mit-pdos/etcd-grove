@@ -1,6 +1,8 @@
 # Types and names only (project etcd, which owns `hash`): the FNV hash the DaemonSet controller's
-# `controller.ComputeHash` writes into (notes/k8s-daemonset-goose.md).
-translate = ["!*"]
+# `controller.ComputeHash` writes into (notes/k8s-daemonset-goose.md); FNV-1a 64 with bodies.
+translate = ["!*",
+  # (2026-11-04) with bodies: FNV-1a 64, which bbolt's `Meta.Sum64` computes (the meta's checksum)
+  "sum64a", "offset64", "prime64", "New64a", "sum64a.Write", "sum64a.Sum64"]
 imports = ["!*", "hash"]
 
 # translate the definitions of all type declarations goose supports

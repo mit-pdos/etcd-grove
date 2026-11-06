@@ -399,7 +399,7 @@ theorem wp_osPWriteFinish_cf (t : Nat) (p : GoString) (off : Nat) (data : List w
     · iapply (invRes_idle _ _ _).2; iframe
     ipureintro; exact hok k hk
   imodintro
-  iapply HΦ $$ %k %e %hke
+  iapply HΦ $$ %k %e %(And.intro hke.1 hke.2.1)
   iframe
   ipureintro; exact ⟨hlen, Hwf.2⟩
 

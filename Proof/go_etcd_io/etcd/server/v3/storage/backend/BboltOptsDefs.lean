@@ -39,12 +39,34 @@ structure OptsM where
 /-- `bolt.Options{}`'s fields. -/
 def optsZero : OptsM := ⟨false, W64 0, func.nil, GoInterface.nil⟩
 
-/-- Options `Open` accepts here: read-write, the default page size, the default `OpenFile`. -/
-def OptsM.ok (o : OptsM) : Prop := o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.openFile = func.nil
-
-theorem optsZero_ok : optsZero.ok := ⟨rfl, rfl, rfl⟩
-
 end types
+
+section ok
+variable [GooseExts] [GoGlobalContext]
+
+/-- The logger is nil, or a value of a pointer type that is a location (batch 38.1 of
+`notes/bbolt-proof-plan.md`, user-approved 2026-11-04): bbolt's own `bbolt.loggerPtrOk`
+(`Spec/go_etcd_io/bbolt/Options.lean`), restated here because importing bbolt's `Options` module
+would make the name `OptsM` ambiguous in the backend's statements. -/
+def loggerPtrOk : GoInterface → Prop
+  | .nil => True
+  | .ok li => ∃ (t : go.GoType) (l : Loc), li.ty = go.GoType.PointerType t ∧ li.v = #l
+
+/-- Options `Open` accepts here: read-write, the default page size, the default `OpenFile`, and
+(batch 38.1 of `notes/bbolt-proof-plan.md`, user-approved 2026-11-04) a logger nil or a value of a
+pointer type that is a location (`loggerPtrOk`, bbolt's, which its `Open` spec takes: `Open`
+compares the logger with `discardLogger`, a pointer comparison). -/
+def OptsM.ok (o : OptsM) : Prop :=
+  o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.openFile = func.nil ∧ loggerPtrOk o.logger
+
+theorem optsZero_ok : optsZero.ok := ⟨rfl, rfl, rfl, trivial⟩
+
+/-- Setting a logger that is `loggerPtrOk` keeps the options acceptable. -/
+theorem OptsM.ok_withLogger (o : OptsM) (l : GoInterface) (h : o.ok)
+    (hl : loggerPtrOk l) : ({ o with logger := l } : OptsM).ok :=
+  ⟨h.1, h.2.1, h.2.2.1, hl⟩
+
+end ok
 
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp]

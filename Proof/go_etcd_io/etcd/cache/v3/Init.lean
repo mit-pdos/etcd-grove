@@ -23,6 +23,7 @@ public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Proof.fmt.Link
 public import Proof.runtime.PkgInitExt
 

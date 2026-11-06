@@ -4,12 +4,15 @@ the file's `OsMeta`, so that no change in flight resizes it and the size is exac
 (`TrustedCode/os.lean`) is the extension's `Fstat` (`wp_osFstat`), retried on `EINTR`, whose size
 it stores in a fresh `fileStat`. On success the result is that `*fileStat` as a `FileInfo`, holding
 the size (`os.ownFileStat`, read by `Size`, `Spec/os/fileStat__Size.lean`); on failure a nil
-`FileInfo` and a non-nil error. Proved in `Proof/os/File__Stat.lean`. Lean-first (no Rocq
-counterpart).
+`FileInfo` and a non-nil error. The error is one `fmt` formats (`fmtErrorOkOrNil`) and, if
+non-nil, a pointer error (`IsPointerError`: the model's fresh `*PathError`), as `fmt.Errorf`'s.
+Proved in `Proof/os/File__Stat.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
+public import Perennial.Proof.errors.Base
 
 @[expose] public section
 
@@ -38,7 +41,9 @@ abbrev os.File.Stat.spec : Prop :=
       ((∃ fs : Loc, ⌜err = interface.nil ∧
           fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
           os.ownFileStat fs (W64 m.size)) ∨
-       ⌜err ≠ interface.nil ∧ fi = interface.nil⌝) }}
+       ⌜err ≠ interface.nil ∧ fi = interface.nil⌝) ∗
+      fmtErrorOkOrNil err ∗
+      ⌜∀ ii, err = GoInterface.ok ii → _root_.Perennial.errors.IsPointerError ii⌝ }}
 
 end spec
 
