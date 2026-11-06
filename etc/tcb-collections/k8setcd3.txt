@@ -12,13 +12,14 @@
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/(Results|MainLinked)\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
+axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -368,6 +369,8 @@ axiom bbolt.Tx.Stats_kv.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
+axiom bridge.New.wp_proof
+axiom bridge.bridgeAt
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
@@ -394,6 +397,7 @@ axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
+axiom errors.AsLeaf.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
@@ -408,6 +412,7 @@ axiom fields.Everything.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.ErrorfWrap.wp_proof
+axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom fmt.SprintfNamed.wp_proof
@@ -418,6 +423,9 @@ axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
+axiom grpc.GenericServerStream.Context.wp_proof
+axiom grpc.GenericServerStream.Recv.wp_proof
+axiom grpc.GenericServerStream.Send.wp_proof
 axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
@@ -436,6 +444,7 @@ axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
 axiom grpc.WithUnaryInterceptor.wp_proof
 axiom grpc.serve
+axiom grpc.serveStream
 axiom grpc.start
 axiom grpcConn
 axiom grpcConn_persistent
@@ -449,6 +458,7 @@ axiom grpcServeTok
 axiom grpcServerAt
 axiom grpcServes
 axiom grpcServesStream
+axiom grpcServesStream_persistent
 axiom grpcServes_persistent
 axiom grpcSrvNew
 axiom grpcSrvOpt
@@ -467,24 +477,38 @@ axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom heap.Init_.wp_proof
 axiom http.CloseIdleConnections_ok
+axiom http.Error_ok
 axiom http.Flush_ok
+axiom http.Handle_ok
 axiom http.HeaderGetOwnPtr_ok
 axiom http.HeaderGetPtr_ok
 axiom http.HeaderSetPtr_ok
+axiom http.HeaderSet_ok
 axiom http.NewBuffer_ok
 axiom http.NewRequest_ok
+axiom http.NewServeMux_ok
 axiom http.ReadAll_any_ok
+axiom http.ReadAll_ok
 axiom http.ReadAll_resp_ok
 axiom http.ReadFull_resp_ok
+axiom http.ReadFull_stream_ok
 axiom http.RespCloseAny_ok
 axiom http.RespClose_ok
+axiom http.RespHeader_ok
+axiom http.Serve_ok
 axiom http.StatusText_ok
 axiom http.URLStringAny_ok
 axiom http.URLString_ok
 axiom http.WithContext_ok
+axiom http.bodyRead_ok
+axiom http.bodyStreamRead_ok
+axiom http.mux_handlerOk_ok
 axiom http.readerHas_nil
+axiom http.register
 axiom http.reqURL_ok
+axiom http.reserve
 axiom http.respReadAny_of_ok
+axiom http.respWriteHeader_ok
 axiom http.respWrite_ok
 axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
@@ -518,6 +542,7 @@ axiom metrics.NewEtcdMetricsTracker.wp_proof
 axiom metrics.OperationLatencyTracker.Record.wp_proof
 axiom metrics.RecordEtcdRequest.wp_proof
 axiom monitorFileDescriptor.wp_proof
+axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
@@ -533,6 +558,7 @@ axiom otelgrpc.NewServerHandler.wp_proof
 axiom pbEnc_ok
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom peer.Peer.String.wp_proof
+axiom probing.NewHandler.wp_proof
 axiom probing.NewProber.wp_proof
 axiom promSrvMetrics
 axiom promSrvMetricsOpt
@@ -577,6 +603,7 @@ axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
+axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
@@ -615,6 +642,8 @@ axiom snap.Message.GetTo.wp_proof
 axiom snap.Message.fields.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom snap.Snapshotter.SaveDBFrom.wp_proof
+axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
 axiom sort.StringSlice.Sort.wp_proof
 axiom status.Code.wp_proof
@@ -634,6 +663,7 @@ axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
+axiom time.Duration.String_ptr.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
@@ -652,6 +682,7 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.ID.String.wp_proof
 axiom types.ID.String_ptr.wp_proof
+axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom types.URLs.StringSlice.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
@@ -664,6 +695,7 @@ axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
+axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof

@@ -21,6 +21,15 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   any, is `Ok` or `Unknown`; under k8setcd3's hypotheses at k8setcd3's configuration, the
   Kubernetes packages' semantics assumptions (the method-set facts `objTyOk` and
   `storageErrTyOk` follow from them).
+* **`k8setcd3_MainCluster`** (`MainLinked.lean`'s `k8s_etcd3.wp_MainCluster`; step 1 of "k8s etcd3
+  over cluster3" in `notes/k8s-etcd3-plan.md`, 2026-11-06): `MainCluster(clients, ops)` -- `Main`
+  over a three-member cluster (`cluster3`, the client of its three bridges with etcd's default
+  retries) -- does not panic and returns `Ok` or `Unknown`
+  (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean`).
+* **`k8s_etcd3_cluster_safe`** (`Adequacy.lean`'s `k8s_etcd3_cluster_adequate`): its closed
+  theorem, `k8s_etcd3_safe`'s conclusion for `MainCluster(clients, ops)`, under the cluster's
+  hypotheses (its boot facts and premises at `clusterCfg`, its nine addresses unclaimed, its three
+  WAL directories distinct and absent) for the one member's.
 -/
 module
 
@@ -54,6 +63,12 @@ theorem k8setcd3_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Sema
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)] :
     k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_Main
+
+/-- **`MainCluster` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainCluster`). -/
+theorem k8setcd3_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)] :
+    k8s_etcd3.MainCluster.spec (GF := GF) (hG := hG) :=
+  k8s_etcd3.wp_MainCluster
 
 end results
 
@@ -97,11 +112,52 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
   k8s_etcd3_adequate Hctx id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
     Hmul HNs HAs HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
+
+/-- **The Kubernetes etcd3 store's linearizability instance over three members is safe, in the
+operational semantics** (`k8s_etcd3_cluster_adequate`, see the file header and `Adequacy.lean`). -/
+theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+    [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
+    [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
+    [k8s_io.apiserver.pkg.storage.value.Assumptions]
+    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [log.NewModel]
+    (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
+    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
+    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
+    (clients ops : w64)
+    (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
+    (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
+    (HNs : prometheus.namesUnclaimed (k8setcd3CProgram clients ops) k8setcd3Names)
+    (HAs : addrsUnclaimed (k8setcd3CProgram clients ops) k8setcd3CAddrs)
+    (HDsNd : k8setcd3CWalDirs.Nodup)
+    (HDs : walDirsAbsent (k8setcd3CProgram clients ops) k8setcd3CWalDirs)
+    (n : Nat)
+    (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
+      ⊢ cluster3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k8s_etcd3.clusterCfg n
+        id₁ id₂ id₃ ps ctxs boot)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([k8setcd3CProgram clients ops], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 2 ≤ 2 ^ 28) :
+    (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+  k8s_etcd3_cluster_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops
+    Hc0 Hc31 Hops Hmul HNs HAs HDsNd HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+
 end adequacy
 
 #print axioms k8setcd3_Main
 #print axioms k8s_etcd3_adequate
 #print axioms k8s_etcd3_safe
+#print axioms k8setcd3_MainCluster
+#print axioms k8s_etcd3_cluster_adequate
+#print axioms k8s_etcd3_cluster_safe
 
 end EtcdGrove
 end Perennial

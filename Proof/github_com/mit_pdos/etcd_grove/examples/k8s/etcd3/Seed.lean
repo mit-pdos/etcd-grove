@@ -230,6 +230,37 @@ theorem seed_au (γs : GName) (γk : KVNames) (op : KVOp) (σ : KVState) :
   · ihave %Hbad := ghostVar_valid_2 γs σ' 1 σ (1 : Qp).half $$ Hfull Hs
     exact (qp_one_add _ Hbad.1).elim
 
+/-- **The seed put's updates at every member** (the client's `[∧list]` over its members): each
+member's from its `seedInv` and `Main`'s one half, which every conjunct shares. -/
+theorem seed_aus (γs : GName) (ms : List (EtcdGrove.client.SrvAt GF)) (op : KVOp) (σ : KVState) :
+    ([∗list] y ∈ ms, seedInv γs y.γr.kv) ∗ ghostVar γs (1 : Qp).half σ ⊢
+      [∧list] y ∈ ms, kvOpAu1 (GF := GF) y.γr.kv op
+        (fun σ' => iprop(ghostVar γs (1 : Qp).half (kvOpStep op σ) ∗ ⌜σ' = σ⌝)) := by
+  refine BigAndL.bigAndL_intro (fun k y hk => ?_)
+  iintro ⟨#Hsi, Hs⟩
+  ihave #Hy := BigSepL.bigSepL_lookup hk $$ Hsi
+  iapply seed_au γs y.γr.kv op σ
+  iframe Hy Hs
+
+/-- `seedInv` reads only the KV state's ghost name (`kvSame`'s first part): one invariant serves
+every member of a cluster. -/
+theorem seedInv_same (γs : GName) (γk γk' : KVNames) (hs : kvSame γk' γk) :
+    seedInv (GF := GF) γs γk' = seedInv γs γk := by
+  unfold seedInv etcdKV; rw [hs.1]
+
+/-- One `seedInv` at the cluster's KV names is one at every member's (`seedInv_same`). -/
+theorem seedInvs_of_same (γs : GName) (γk : KVNames) (ms : List (EtcdGrove.client.SrvAt GF))
+    (h : ∀ x ∈ ms, kvSame x.γr.kv γk) :
+    seedInv (GF := GF) γs γk ⊢ [∗list] y ∈ ms, seedInv γs y.γr.kv := by
+  induction ms with
+  | nil => iintro _; iapply BigSepL.bigSepL_nil.2; itrivial
+  | cons y ys ih =>
+    iintro #H
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · rw [seedInv_same γs _ _ (h y (by simp))]; iexact H
+    · iapply (ih (fun x hx => h x (List.mem_cons_of_mem _ hx))); iexact H
+
 /-- **The seeding's end**: `Main` hands its half in for etcd's state. -/
 theorem seedInv_cancel (γs : GName) (γk : KVNames) (σ : KVState) :
     seedInv γs γk ∗ ghostVar γs (1 : Qp).half σ ⊢ |={⊤}=> etcdKV (GF := GF) γk σ := by
