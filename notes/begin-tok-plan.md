@@ -329,3 +329,74 @@ builds under the `systemd-run MemoryMax` cap.
 - Conflicts: proof-level only. The etcdserver files listed in §3 may also be edited by R2d' and the
   restart work. No hub statement changes.
 - The memory cap: the server's applyAll files are among the larger compiles. Build under the cap.
+
+## Draft (2026-11-06)
+
+Built on branch `begin-tok` (worktree `/shared/etcd-grove-axbk`). Commits: `049391d451` (the trusted
+statements alone, for the independent axiom review), `c7b1a35a28` (the backend, `OpenSnapshotBackend`,
+`bboltnan`), then the server's snapshot path. Every statement change, old → new:
+
+**Trusted** (the same axiom names; docstrings cite bbolt `743299d8cec8` `db.go:875` RLock, `:879/:886`
+error-path RUnlocks, `:951` RUnlock in `removeTx`, `tx.go:303→313→353→378`; etcd `backend.go:386`,
+`:393`, `:1131-1132`; `storage/backend.go:79`):
+
+| axiom | old → new |
+|---|---|
+| `bbolt.DB.Begin_kv` | pre `(if w then wrTok γ else iprop(True))` → `(if w then wrTok γ else threadTok)`; error branch the same |
+| `bbolt.Tx.Rollback_kv` | post `txDone tx` → `txDone tx ∗ threadTok` |
+| `bbolt.Open_kv` | `∀ (path …)` → `∀ [ThreadBoundLe GF (2 ^ 29)] (path …)`; triple unchanged |
+| `backend.backend.Snapshot` | `∀ [ThreadBoundLe GF (2 ^ 29)]` added; pre `… wbTok γ ∗ R ∗ …` → `… wbTok γ ∗ threadTok ∗ R ∗ …` |
+| `backend.snapshot.Close` | post `True` → `threadTok` |
+| `storage.OpenBackend` | `∀ [ThreadBoundLe GF (2 ^ 29)]` added; triple unchanged |
+
+**Internal** (backend, storage, etcdserver; the generated interfaces of `etc/api/{bbolt,backend}.txt` change only in these functions' spec and proof files, regenerated; no API module changes):
+
+| statement | old → new |
+|---|---|
+| `backend.unsafeBegin.spec`, `backend.begin.spec` | pre `(if w then wrTok γd else iprop(True))` → `(if w then wrTok γd else threadTok)` |
+| `backend.newBatchTxBuffered.spec` | pre `… ∗ wrTok γd` → `… ∗ wrTok γd ∗ threadTok` |
+| `batchTxBuffered.unsafeCommit.spec`, `batchTxBuffered.commit.spec` | post's stop branch `… ∗ bStopped γ ∗ bDBOutG γ P` → `… ∗ bDBOutG γ P ∗ threadTok` |
+| `batchTxBuffered.CommitAndStop.spec` | post `bStopped γ ∗ bDBOut γ P W Pk ∗ Y` → `… ∗ Y ∗ threadTok` |
+| `backend.run.spec` | post `True` → `threadTok` |
+| `backend.newBackend.spec`, `backend.New.spec` | `∀ [ThreadBoundLe GF (2 ^ 29)]` added; pre `+ threadTok`; success post `… ∗ bFile γ cfg.Path'` → `… ∗ bFile γ cfg.Path' ∗ threadTok` |
+| `storage.OpenSnapshotBackend.spec` | `∀ [ThreadBoundLe GF (2 ^ 29)]` added |
+| `newSnapshotReaderCloser.spec` | post `snapOpenQ … ½ -∗ readerStreams …` → `threadTok ∗ (snapOpenQ … ½ -∗ readerStreams …)` |
+| `EtcdServer.createMergedSnapshotMessage.spec` | pre `… ∗ epCsOk cs` → `… ∗ epCsOk cs ∗ threadTok`; post `… ∗ srvBeAddr s ↦{dq} be ∗ ∃ …` → `… ∗ srvBeAddr s ↦{dq} be ∗ threadTok ∗ ∃ …` |
+| `srvBeSnapOk` (def, `InvSnapSend.lean`) | `{{ RS }}` → `{{ RS ∗ threadTok }}` |
+| `srvBeSnapOk_of_backend`, `srvBeSnapOk_window` | a leading `[ThreadBoundLe GF (2 ^ 29)]` |
+| `backend.backend.Snapshot.spec_of_specF2` | its statement `∀ [ThreadBoundLe GF (2 ^ 29)]`, pre `+ threadTok` |
+| `examples/axiomcx/bboltnan/Run.lean` | the section's `variable [ThreadBoundLe GF (2 ^ 29)]` |
+
+**Exported: none.** `mergedCreate_window`'s statement is unchanged (it reads the instance off `isServerM`'s
+`threadBound GF ≤ rdPoolN`); `SnapApplyWalk` does the same before `OpenSnapshotBackend`; the three
+`applyAll` proofs unfold `srvGoRes` around `createMergedSnapshotMessage` for its token.
+
+Token flow as in §2: `wp_fork_tok_self` at `unsafeCommit`'s rollback goroutine (the fresh token to the
+new read transaction, or to the post at the stop), at `newBackend`'s `go b.run()` and at
+`newSnapshotReaderCloser`'s goroutine.
+
+**Re-attack** (`f37d8ce925`, `examples/axiomcx/bboltrd`, cherry-picked on a scratch copy of `begin-tok`,
+not committed): `Run.lean` no longer builds. `Run.lean:88`: `failed to synthesize ThreadBoundLe GF (2 ^ 29)`
+at `Open_kv`. With the instance supplied as a section variable, the read `Begin_kv`s fail
+(`Run.lean:106`, the first `Begin(false)`, and `:126`, the loop's), both with the unsolved goal `threadTok`. The
+counterexample took `2 ^ 30` read transactions from one goroutine, so it would need `2 ^ 30` thread tokens,
+and the instance bounds them below `2 ^ 29`.
+
+**Gate** `etc/reader-slot-check.py` (in `etc/gates.sh`; pairs `etc/reader-slot-pairs.txt`, allow list
+`etc/reader-slot-allow.txt`). It scans the Go sources, not the translations, so names-only functions such as
+`backend.Snapshot` are scanned too. Calls are resolved by type, and a literal `bool` argument is specialised.
+On `lean` `007725626e` (with this branch's script and lists) it FAILS, naming exactly `bbolt.DB.Begin_kv`
+and `backend.backend.Snapshot`. On `begin-tok` it PASSES with 3 slot holders: `Begin_kv` and `Snapshot`
+are paid and paired; `storage.OpenBackend` is allowed (paid by the run goroutine's fork token,
+`notes/axiom-review/begin-tok-restated.md`, A9). The first, untyped version also flagged `Open_kv`,
+`Tx.Commit_kv`, `newKVHasher` and `monitorKVHash`; all were name-resolution artifacts, cleared by the
+typed resolution with no allow entries. Limits, stated in the docstring:
+- 190 axioms are unscanned: 164 have no Go source here, 26 are variants with no Go function of that name.
+- The A10 hazard: a callback run inside `db.View`.
+
+**Checks** (branch at `fca702da30`):
+- Full build: 13384 jobs, no error.
+- `etc/tcb-report.py --check`: 817 axioms, 4 `sorry`s, unchanged. Every `etc/tcb-collections/*.txt --check` passes.
+- Interfaces regenerated for `etc/api/{backend,bbolt,etcdstart,raft}.txt`: only bbolt's and backend's changed, in the files of the restated functions.
+- api-check and `--layout` pass for all four. bounds-check: 389, the baseline. errorf-wrap and errdesc pass. gen-init `--check` passes.
+- Closed theorems (`*_safe`/`*_adequate`): 55 compared with `lean` `007725626e`, none differs. `srvBeSnapOk` occurs in no hub definition.
