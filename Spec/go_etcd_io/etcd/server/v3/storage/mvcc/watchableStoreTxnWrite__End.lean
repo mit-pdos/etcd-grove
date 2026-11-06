@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WsTxnSteps
 
 @[expose] public section
 
@@ -32,18 +32,22 @@ store's, `hookIs`) back. (M4, track B, 2026-11-06; `Api/TxnSteps.lean`) The API'
 moves by the caller's step (`wsEndCb`): with a change, its notification under `s.mu` (with the
 lock's slot) before the watchers are sent the revision's events, then the commit's step at the
 inner `End`'s bump; with none, the commit's step; the frozen state excluded by the caller's `G`
-(given back). -/
+(given back). (M4, track B, 2026-11-06, the watchable write transaction of the API) The transaction's
+trace part any `Tr` (`isWatchTxnWriteT`, given back: the API's transaction holds none); the batch
+lock's invariant by the store's name of it alone (`hookP`, as the plain `End`), no writer's
+fragment back, the reader back as `storeReaderC`; and the step at the writer slot's compaction
+revision (`wsEndCbY`: `slotYc`, the transaction's), so that the API's step can tell the state it
+fires at is the one the transaction began at. -/
 abbrev mvcc.watchableStoreTxnWrite.End.spec : Prop :=
   ∀ (trace : Loc) (tw s st : Loc) (γ : mvcc.WsNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (puts deletes putSize : w64) (P : IProp GF) (f : val) (crev : Int) (ld : Bool) (G R : IProp GF),
+    (puts deletes putSize : w64) (P : IProp GF) (crev : Int) (ld : Bool) (G R Tr : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize crev ld ∗ mvcc.hookIs γ.st P f ∗ P ∗
-      mvcc.certOkNext γ.st ilog pend ∗
-      G ∗ □ (mvcc.slotF γ.st ∗ G -∗ False) ∗ mvcc.wsEndCb γ ilog pend crev R }}
+      mvcc.isWatchTxnWriteT tw s st γ trace ilog pend puts deletes putSize crev ld Tr ∗
+      mvcc.hookP γ.st P ∗ P ∗ mvcc.certOkNext γ.st ilog pend ∗
+      G ∗ □ (mvcc.slotF γ.st ∗ G -∗ False) ∗ mvcc.wsEndCbY γ ilog pend crev R }}
     (App (Val (tw @!! go.GoType.PointerType watchableStoreTxnWrite.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvcc.storeReader st γ.st ∗ mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗
-      mvcc.watchWriter γ (mvcc.commitLog ilog pend) ∗ (∃ te : Bool, traceutil.ownTrace trace te) ∗
-      mvcc.writerFrag γ.st ∗ G ∗ R }}
+  {{ RET #(); mvcc.storeReaderC st γ.st ∗ mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗
+      mvcc.watchWriter γ (mvcc.commitLog ilog pend) ∗ Tr ∗ G ∗ R }}
 
 end spec
 

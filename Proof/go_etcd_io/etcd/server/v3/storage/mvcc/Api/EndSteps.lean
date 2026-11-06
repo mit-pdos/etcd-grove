@@ -110,6 +110,74 @@ theorem absPart_halves (a : AbsNames) (L : Log) (c : Int) :
   rw [Qp.half_add_half] at h
   exact h.1
 
+/-- **The commit's step with no change, from the client's update** (both steps by agreement at the
+check-in; any store). -/
+theorem endCb_nil_of_au (γ : StoreNames) (σ₀ : MvccState) (crev : Int) (Q : IProp GF)
+    (hp : σ₀.pending = none) :
+    endAU γ σ₀ [] Q ⊢ endCb γ σ₀.log [] crev (Yat γ σ₀) Q := by
+  iintro Hau
+  iapply (endCb_nil_iff γ σ₀.log crev _ Q).2
+  iintro #Hcert HY
+  iunfold Yat at HY
+  icases HY with ⟨HYa, HYp, HYr, HYw⟩
+  ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤)
+    (fun _ _ => CoPset.mem_full) $$ Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, Hσ, Hucl⟩
+  icases Hucl with ⟨-, Hcommit⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+  iunfold mvccStateI at Hσ
+  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach⟩
+  ihave %Hag := absPart_agree _ _ _ _ _ _ _ $$ [Ha HYa]
+  · iframe Ha HYa
+  ihave %Hpg := pndPart_agree _ _ _ _ _ $$ [Hp HYp]
+  · iframe Hp HYp
+  have hσ : σ = σ₀ := MvccState.ext' Hag.1 Hag.2 (by rw [Hpg, hp])
+  subst hσ
+  ihave #Hr := idxCert_rcpt _ _ $$ Hcert
+  ihave #Hr' : ⧖ (logCh (σ.log ++ [[]])) $$ []
+  · rw [logCh_append_nil]; iexact Hr
+  imod Hcommit $$ [Ha Hp Hcr Hnl] with Hau2
+  · isplitr
+    · ipureintro; rfl
+    rw [notify_nil_of hp]
+    iframe Hr'
+    iunfold mvccStateI
+    iframe Ha Hp Hcr Hnl
+    ipureintro; exact Hreach
+  ihave Hau2 := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤)
+    (fun _ _ => CoPset.mem_full) $$ Hau2
+  ihave Hacc := aupd_aacc $$ Hau2
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ', Hσ, Hucl⟩
+  icases Hucl with ⟨-, Hcommit⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+  iunfold mvccStateI at Hσ
+  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach'⟩
+  ihave %Hag' := absPart_agree _ _ _ _ _ _ _ $$ [Ha HYa]
+  · iframe Ha HYa
+  ihave %Hpg' := pndPart_agree _ _ _ _ _ $$ [Hp HYp]
+  · iframe Hp HYp
+  have hσ' : σ' = σ := MvccState.ext' Hag'.1 Hag'.2 (by rw [Hpg', hp])
+  subst hσ'
+  imod Hcommit $$ [Ha Hp Hcr Hnl] with HQ
+  · isplitr
+    · ipureintro; exact (notify_nil_of hp).symm
+    rw [commitPending_of_none hp]
+    iunfold mvccStateI
+    iframe Ha Hp Hcr Hnl
+    ipureintro; exact Hreach'
+  imodintro
+  iframe HQ
+  iapply Yat_slotY
+  iunfold Yat
+  iframe HYa HYp HYr HYw
+
 /-- **The commit's step from the client's update** (a store without watchers; see the header). -/
 theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : List Change) (crev : Int)
     (Q : IProp GF) (hw : γ.watchQ = false) (hl : σ₀.log = ilog)
@@ -118,70 +186,9 @@ theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : L
   have hpw : pndW γ = (1 : Qp).half := by
     unfold pndW; rw [hw]; rfl
   subst hl
-  iintro Hau
   by_cases hpe : pend = []
-  · subst hpe
-    iapply (endCb_nil_iff γ σ₀.log crev _ Q).2
-    iintro #Hcert HY
-    iunfold Yat at HY
-    icases HY with ⟨HYa, HYp, HYr, HYw⟩
-    ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤)
-      (fun _ _ => CoPset.mem_full) $$ Hau
-    ihave Hacc := aupd_aacc $$ Hau
-    unfold atomic_acc
-    imod Hacc with Hacc
-    isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
-    icases Hacc with ⟨%σ, Hσ, Hucl⟩
-    icases Hucl with ⟨-, Hcommit⟩
-    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-    iunfold mvccStateI at Hσ
-    icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach⟩
-    ihave %Hag := absPart_agree _ _ _ _ _ _ _ $$ [Ha HYa]
-    · iframe Ha HYa
-    ihave %Hpg := pndPart_agree _ _ _ _ _ $$ [Hp HYp]
-    · iframe Hp HYp
-    have hσ : σ = σ₀ := MvccState.ext' Hag.1 Hag.2 (by rw [Hpg, hp])
-    subst hσ
-    ihave #Hr := idxCert_rcpt _ _ $$ Hcert
-    ihave #Hr' : ⧖ (logCh (σ.log ++ [[]])) $$ []
-    · rw [logCh_append_nil]; iexact Hr
-    imod Hcommit $$ [Ha Hp Hcr Hnl] with Hau2
-    · isplitr
-      · ipureintro; rfl
-      rw [notify_nil_of hp]
-      iframe Hr'
-      iunfold mvccStateI
-      iframe Ha Hp Hcr Hnl
-      ipureintro; exact Hreach
-    ihave Hau2 := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤)
-      (fun _ _ => CoPset.mem_full) $$ Hau2
-    ihave Hacc := aupd_aacc $$ Hau2
-    unfold atomic_acc
-    imod Hacc with Hacc
-    isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
-    icases Hacc with ⟨%σ', Hσ, Hucl⟩
-    icases Hucl with ⟨-, Hcommit⟩
-    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-    iunfold mvccStateI at Hσ
-    icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach'⟩
-    ihave %Hag' := absPart_agree _ _ _ _ _ _ _ $$ [Ha HYa]
-    · iframe Ha HYa
-    ihave %Hpg' := pndPart_agree _ _ _ _ _ $$ [Hp HYp]
-    · iframe Hp HYp
-    have hσ' : σ' = σ := MvccState.ext' Hag'.1 Hag'.2 (by rw [Hpg', hp])
-    subst hσ'
-    imod Hcommit $$ [Ha Hp Hcr Hnl] with HQ
-    · isplitr
-      · ipureintro; exact (notify_nil_of hp).symm
-      rw [commitPending_of_none hp]
-      iunfold mvccStateI
-      iframe Ha Hp Hcr Hnl
-      ipureintro; exact Hreach'
-    imodintro
-    iframe HQ
-    iapply Yat_slotY
-    iunfold Yat
-    iframe HYa HYp HYr HYw
+  · subst hpe; exact endCb_nil_of_au γ σ₀ crev Q hp
+  iintro Hau
   · iapply (endCb_cons_iff γ σ₀.log pend hpe crev _ Q).2
     iintro #Hcert ⟨HX, HY⟩
     iunfold Yat at HY

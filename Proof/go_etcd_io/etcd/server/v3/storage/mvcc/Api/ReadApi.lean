@@ -130,9 +130,11 @@ theorem store.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := hG))
   iframe HQ
   iunfold mvccTxn
   simp only [mvccTxnI]
-  iexists mw, s
+  iexists mw, s, 0
   iframe Htx Hback
-  ipureintro; exact ⟨by trivial, hre⟩
+  isplitr
+  · ipureintro; exact hre
+  iapply roWrap_zero
 
 end proof
 

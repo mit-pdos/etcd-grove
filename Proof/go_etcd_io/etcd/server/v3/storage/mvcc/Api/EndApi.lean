@@ -95,9 +95,9 @@ theorem metricsTxnWrite.End.wp_api (hEnd : mvcc.metricsTxnWrite.End.spec (GF := 
   cases k with
   | read σ =>
     simp only [mvccTxnI]
-    icases Htx with ⟨%mw, %s, %Hk0, Htx, Hback⟩
-    obtain ⟨Hk0, -⟩ := Hk0
-    have hm : t0 = mw := mkOk_loc_inj _ Hk0
+    icases Htx with ⟨%mw, %s, %n, -, Htx, Hback, Hwrap⟩
+    ihave %Hmw := roWrap_pm n t0 mw $$ Hwrap
+    obtain ⟨hm, -⟩ := Hmw
     subst hm
     ihave Hte : isTxnEndY t0 s γ trace (.read σ.log (W64 ((σ.log.length : Int) - 1))) σ.crev iprop(True)
         iprop(True) iprop(True) $$ [Htx]
@@ -119,9 +119,10 @@ theorem metricsTxnWrite.End.wp_api (hEnd : mvcc.metricsTxnWrite.End.spec (GF := 
     iframe Htok
   | write σ₀ pend =>
     simp only [mvccTxnI]
-    icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree⟩
-    obtain ⟨Hk0, Hwq, Hpn, -⟩ := Hk0
-    have hm : t0 = mw := mkOk_loc_inj _ Hk0
+    icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree, Hwrap⟩
+    obtain ⟨Hpn, -⟩ := Hk0
+    ihave %Hw := wrWrap_pm t0 _ s mw σ₀.log $$ Hwrap
+    obtain ⟨hm, Hwq⟩ := Hw
     subst hm
     icases Hk with ⟨HB, HP, Hau⟩
     -- the backend share, at the transaction's names

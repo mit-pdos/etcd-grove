@@ -60,9 +60,9 @@ theorem metricsTxnWrite.Rev.wp_api (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := 
   cases k with
   | read σ =>
     simp only [mvccTxnI, MTxn.state]
-    icases Htx with ⟨%mw, %s, %Hk0, Htx, Hback⟩
-    obtain ⟨Hk0, hre⟩ := Hk0
-    have hm : t0 = mw := mkOk_loc_inj _ Hk0
+    icases Htx with ⟨%mw, %s, %n, %hre, Htx, Hback, Hwrap⟩
+    ihave %Hmw := roWrap_pm n t0 mw $$ Hwrap
+    obtain ⟨hm, -⟩ := Hmw
     subst hm
     ihave Htx : isTxnT t0 s γ trace (.read σ.log (W64 ((σ.log.length : Int) - 1))) σ.crev
         iprop(True) iprop(True) $$ [Htx]
@@ -77,15 +77,18 @@ theorem metricsTxnWrite.Rev.wp_api (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := 
     iapply HΦ
     iunfold mvccTxn
     simp only [mvccTxnI]
-    iexists t0, s
+    iexists t0, s, 0
     simp only [isTxnT]
     iframe Htx Hback
-    ipureintro; exact ⟨by trivial, hre⟩
+    isplitr
+    · ipureintro; exact hre
+    iapply roWrap_zero
   | write σ pend =>
     simp only [mvccTxnI, MTxn.state]
-    icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree⟩
-    obtain ⟨Hk0, Hwq, Hpn, hre⟩ := Hk0
-    have hm : t0 = mw := mkOk_loc_inj _ Hk0
+    icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree, Hwrap⟩
+    obtain ⟨Hpn, hre⟩ := Hk0
+    ihave %Hw := wrWrap_pm t0 _ s mw σ.log $$ Hwrap
+    obtain ⟨hm, Hwq⟩ := Hw
     subst hm
     ihave Htx : isTxnT t0 s (γ.withPhys p) trace (.write σ.log pend puts deletes putSize) σ.crev
         iprop(True) iprop(True) $$ [Htx]
@@ -103,7 +106,9 @@ theorem metricsTxnWrite.Rev.wp_api (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := 
     iexists t0, s, p, puts, deletes, putSize
     simp only [isTxnT]
     iframe Htx Hback Hfree
-    ipureintro; exact ⟨by trivial, Hwq, Hpn, hre⟩
+    isplitr
+    · ipureintro; exact ⟨Hpn, hre⟩
+    iunfold wrWrap; ileft; ipureintro; exact ⟨rfl, Hwq⟩
 
 end proof
 
