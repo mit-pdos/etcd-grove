@@ -227,6 +227,13 @@ end bytes
 /-- The state of a file just created, of inode `i`: empty, idle, nothing frozen. -/
 def csNew (i : Ino) : CState := some (i, ⟨newMeta, [], 0, 0, .idle⟩)
 
+/-- The state of the file at `d/b` and the history after an `open(O_CREAT)` of it succeeds, from
+the state `s` and the history `V`, the file being `i`: created (`d` being the directory `j`) if `s`
+has none, unchanged otherwise. -/
+def csOpenSt (j : Ino) (b : GoString) (V : Hist) (i : Ino) : CState → CState × Hist
+  | none => (csNew i, V.push ⟨.create j b i, V.2.length⟩)
+  | some x => (some x, V)
+
 /-- The state after a successful sync of an idle state `H ++ (F ++ T)` (`F` frozen): of `T`,
 keeping `H` (shown clean) in the durable bytes known; or (`hd`) of `H`. -/
 def csSynced (hd : Bool) (m : OsMeta) (H F T : List (w8 × Bool)) (fa fb : Nat) : CSt :=
@@ -746,7 +753,7 @@ theorem wp_osFsync_cs (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : Go
 /-- `mmap` of a file in a crash invariant, idle: on success, a new mapping (`Ok` shown by the
 caller for any base), the file's bytes otherwise unchanged. -/
 theorem wp_osMmap_cs (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Namespace)
-    (γ : GName) (Ok : CState → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat)
+    (P : GoString) (R : Roots) (γ : GName) (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat)
     (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hrd : d.readable = true) (hoff : off = 0)
     (hlen : 0 < len.toInt) (hprot : prot.toNat = PROT_READ)
     (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE)
@@ -1017,6 +1024,61 @@ theorem wp_osOpenCreate_cs (d b : GoString) (N : Namespace) (R : Roots) (γ : GN
     iframe Hv Hth Ht2
     ipureintro; exact ⟨hwf i, hpath i⟩
 
+
+/-! ### The specs' loops -/
+
+/-- What an `open(O_CREAT)` loop of the file at `d/b` may have made of the state `s` and the
+history `V` so far: nothing, or `csOpenSt` of them (a failed attempt may have created the
+file). -/
+def CsOpenInv (j : Ino) (b : GoString) (V : Hist) (s s' : CState) (V' : Hist) : Prop :=
+  (s' = s ∧ V' = V) ∨ ∃ i, (s', V') = csOpenSt j b V i s
+
+/-- With a file at the path, it is idle, and it is what `csOpenSt` makes of `s`. -/
+theorem csOpenInv_some {j : Ino} {b : GoString} {V V' : Hist} {s : CState} {i : Ino} {y : CSt}
+    (hs : s = none ∨ ∃ i m bs fa fb, s = some (i, ⟨m, bs, fa, fb, .idle⟩))
+    (h : CsOpenInv j b V s (some (i, y)) V') :
+    (s = none ∨ sIno s = some i) ∧ (some (i, y), V') = csOpenSt j b V i s ∧ y.busy = .idle := by
+  rcases h with ⟨h1, h2⟩ | ⟨i1, h⟩
+  · subst h1 h2
+    rcases hs with h | ⟨i0, m, bs, fa, fb, h⟩
+    · cases h
+    · cases h; exact ⟨.inr rfl, rfl, rfl⟩
+  · cases s with
+    | none =>
+      simp only [csOpenSt, csNew, Prod.mk.injEq, Option.some.injEq] at h
+      obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h
+      exact ⟨.inl rfl, rfl, rfl⟩
+    | some x =>
+      simp only [csOpenSt, Prod.mk.injEq, Option.some.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      rcases hs with h | ⟨i0, m, bs, fa, fb, h⟩
+      · cases h
+      · cases h; exact ⟨.inr rfl, rfl, rfl⟩
+
+theorem csOwnF_wf (γ : GName) (s : CState) : csOwnF (L := L) γ s ⊢ ⌜CsWf s⌝ := by
+  unfold csOwnF; iintro ⟨-, -, %h⟩; ipureintro; exact h
+
+/-- The caller's part of no file at `p`. -/
+theorem csOwn_none (p : GoString) (R : Roots) (γ : GName) (V : Hist) :
+    csOwn (L := L) p R γ none V ⊢ ghostVar γ (1 : Qp).half (none : CState) ∗
+      osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗ ⌜lookupH R V p = none⌝ := by
+  unfold csOwn csOwnF; dsimp only [thrResS]
+  iintro ⟨⟨Hv, -, -⟩, Ht, %h⟩; iframe; ipureintro; exact h
+
+/-- The caller's part of the file `i` at `p`: its half of the history, lent out. -/
+theorem csOwn_tree (p : GoString) (R : Roots) (γ : GName) (i : Ino) (x : CSt) (V : Hist) :
+    csOwn (L := L) p R γ (some (i, x)) V ⊢ osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗
+      ⌜lookupH R V p = some (.file i)⌝ ∗
+      (osTree (L := L) (DFrac.own (1 : Qp).half) R V -∗ csOwn (L := L) p R γ (some (i, x)) V) := by
+  unfold csOwn
+  iintro ⟨Hf, Ht, %h⟩
+  iframe Ht
+  isplitr
+  · ipureintro; exact h
+  iintro Ht
+  iframe
+  ipureintro; exact h
+
 /-! ### Freezing more bytes -/
 
 instance osByte_discard_persistent (p : Ino) (k : Nat) (x : w8 × Bool) :
@@ -1030,7 +1092,8 @@ theorem osByte_persist (p : Ino) (k : Nat) (dq : DFrac) (x : w8 × Bool) :
 
 /-- **Freeze more bytes** of an idle file in a crash invariant (a superset of the frozen ones, at
 most all of them), which the caller shows `Ok`: the caller gets their discarded copies. -/
-theorem cs_freeze (N : Namespace) (p : Ino) (γ : GName) (Ok : CState → Prop) (m : OsMeta)
+theorem cs_freeze (N : Namespace) (P : GoString) (R : Roots) (p : Ino) (γ : GName)
+    (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta)
     (bs : List (w8 × Bool)) (fa fb fa' fb' : Nat) (E : CoPset) (hE : ↑N ⊆ E)
     (hab' : fa' ≤ fb') (hfb' : fb' ≤ m.size) (hsub : fa < fb → fa' ≤ fa ∧ fb ≤ fb')
     (hok : Ok (some (p, ⟨m, bs, fa', fb', .idle⟩))) :
