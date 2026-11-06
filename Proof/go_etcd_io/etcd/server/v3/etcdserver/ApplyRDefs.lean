@@ -119,6 +119,23 @@ theorem srvRestRp_model (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   unfold srvRestRp srvRest; rfl
 
 open Iris.ProofMode in
+/-- **The replay arm as `srvRest`'s two parts** (R2d'a A3, DRAFT; `srvRest_eq_at`'s form): the rest
+buckets at the backend's table and the image, and the ids ever. -/
+theorem srvRestRp_eq_at (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
+    srvRestRp (GF := GF) E γr A r ⊣⊢ srvRestAt E (appliedTable γr A) r ∗ srvEver E A := by
+  unfold srvRestRp
+  cases h : E.lg
+  · have hat : srvRestAt (GF := GF) E (appliedTable γr A) r = E.RO r := by
+      unfold srvRestAt; rw [h]; rfl
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    rw [hat]
+    constructor
+    · iintro H; iframe H; iapply srvEver_false E A h
+    · iintro ⟨H, -⟩; iexact H
+  · simp only [↓reduceIte]
+    exact .rfl
+
+open Iris.ProofMode in
 /-- **The replay arm's `E.RO`** (R2d'a A4, DRAFT): the rest resource at an image whose members are
 the arm's image's, given back unchanged (what a replayed `AddNode` takes, `applyConfChange.specRep`). -/
 theorem srvRestRp_ro (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
@@ -298,7 +315,10 @@ promote the lessor; otherwise `apply.Apply(…, false)` dispatches v2-only (`app
 image goes to `restEntryV2 m r` (the attribute write in memory); the attribute's member is a voter
 (`entryWaitOk`'s `attrEntryOk`), which the image's members include (Go's `UpdateAttributes` panics on
 an unknown, unremoved member, `membership/cluster.go:467-496`). The entry at or below the effective
-consistent index; the store's write token spent (`apply.Apply`'s). -/
+consistent index; the store's write token spent (`apply.Apply`'s). (R2d'a A3, 2026-11-06, DRAFT
+fix: the backend's log committed, `srvRLogLb γr.raft A₀`, with the entry in it, a premise the caller
+has (`kvBatchR`'s): the KV invariant's shape of a committed entry, `kv_log_plain`, is what makes a
+skipped or rejected request leave the members, as `restEntryV2` says.) -/
 abbrev EtcdServer.applyEntryNormal.specRepOff : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (x : apply.ApplyKV)
@@ -308,6 +328,7 @@ abbrev EtcdServer.applyEntryNormal.specRepOff : Prop :=
       isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
       applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗
       mvcc.storeWT E.γ ∗ srvFS s ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
+      srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
       ⌜st.pending = false ∧ entryOk E.lm x m ∧ m.typ = W32 0 ∧
         uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧
         ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝ }}

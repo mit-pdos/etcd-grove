@@ -912,7 +912,9 @@ theorem EtcdServer.apply.wp_proofROff
               (restReplay γr rp (A ++ ms.take (sint.nat j))) hAuthOff)
               $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt HRS]
             as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1⟩, HRS, Hst⟩
-          · iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hcm HRS
+          · iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hcm HRS HlbA0
+            isplitr
+            · ipureintro; exact hpA.subset (List.mem_append_right _ (List.mem_singleton_self m))
             ipureintro
             refine ⟨hpend'', hOk1 h0, h0, by rw [hlc]; omega, fun k hk => ?_⟩
             rw [restReplay_memKeys]; exact Hmc k hk
