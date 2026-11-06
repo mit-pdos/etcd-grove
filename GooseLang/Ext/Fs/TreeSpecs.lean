@@ -77,6 +77,129 @@ theorem exists_fresh2 {A B : Type} (M1 : GMap Nat A) (M2 : GMap Nat B) :
         (List.mem_map.2 ⟨(n, v), (GMap.mem_toList _ _ _).2 h, rfl⟩)
       omega
 
+
+/-! ## A metadata step's state facts -/
+
+theorem reach_of_walk {R : Roots} {m : Tree} : ∀ {cs : List GoString} {j x : Ino},
+    Reach R m j → walk m (.dir j) cs = some (.dir x) → Reach R m x
+  | [], j, x, hj, h => by simp [walk] at h; subst h; exact hj
+  | c :: cs, j, x, hj, h => by
+    simp only [walk] at h
+    cases he : m.entry j c with
+    | none => rw [he] at h; cases h
+    | some n =>
+      rw [he] at h; simp only at h
+      cases n with
+      | dir j' => exact reach_of_walk (.child j c j' hj he) h
+      | file i => cases cs <;> simp [walk] at h
+
+/-- A directory a path names is reachable from a root. -/
+theorem reach_of_lookup {st : OsState} {p : GoString} {j : Ino}
+    (h : st.lookup p = some (.dir j)) : Reach st.fs.roots st.tree j := by
+  obtain ⟨r, j0, cs, hrj, -, -, hw⟩ := lookup_some h
+  exact reach_of_walk (.root r j0 hrj) hw
+
+/-- A file a path names is named in the tree. -/
+theorem named_of_walk {m : Tree} : ∀ {cs : List GoString} {j i : Ino},
+    walk m (.dir j) cs = some (.file i) → Named m i
+  | [], _, _, h => by simp [walk] at h
+  | c :: cs, j, i, h => by
+    simp only [walk] at h
+    cases he : m.entry j c with
+    | none => rw [he] at h; cases h
+    | some n =>
+      rw [he] at h; simp only at h
+      cases n with
+      | dir j' => exact named_of_walk h
+      | file i' => cases cs with
+        | nil => simp [walk] at h; subst h; exact ⟨j, c, he⟩
+        | cons _ _ => simp [walk] at h
+
+theorem named_of_lookup {st : OsState} {p : GoString} {i : Ino}
+    (h : st.lookup p = some (.file i)) : Named st.tree i := by
+  obtain ⟨r, j0, cs, -, -, -, hw⟩ := lookup_some h
+  exact named_of_walk hw
+
+theorem apply_mem_mono (o : MetaOp) (m : Tree) (x : Ino) (h : x ∈ m) : x ∈ o.apply m := by
+  cases o with
+  | create j b i => simp only [MetaOp.apply]; rw [mem_upd]; exact .inr h
+  | mkdir j b j' =>
+    simp only [MetaOp.apply]; rw [GMap.mem_iff]
+    by_cases hx : j' = x
+    · subst hx; simp
+    · rw [GMap.lookup_insert_ne _ _ hx, ← GMap.mem_iff, mem_upd]; exact .inr h
+  | remove j b n => simp only [MetaOp.apply]; rw [mem_upd]; exact .inr h
+  | rename j b j' b' n old =>
+    simp only [MetaOp.apply]
+    split
+    · rw [mem_upd, mem_upd]; exact .inr (.inr h)
+    · exact h
+
+/-- **A logged operation keeps the tree well formed**, given what it makes of the tree now. -/
+theorem fsTreeWf_meta {st st' : OsState} (hw : FsTreeWf st) {o : MetaOp} {s : Nat}
+    (hroots : st'.fs.roots = st.fs.roots) (hdur : st'.fs.treeDur = st.fs.treeDur)
+    (hlog : st'.fs.metaLog = st.fs.metaLog ++ [⟨o, s⟩])
+    (hfiles : ∀ i f, st.fs.files !! i = some f → ∃ f', st'.fs.files !! i = some f')
+    (hnext : st.fs.nextIno ≤ st'.fs.nextIno)
+    (htw : TreeWf st.fs.roots (o.apply st.tree))
+    (hnamed : ∀ i, Named (o.apply st.tree) i → ∃ f, st'.fs.files !! i = some f)
+    (hlt : ∀ j, j ∈ o.apply st.tree → j < st'.fs.nextIno)
+    (hdfds : ∀ fd df, st'.proc.dfds !! fd = some df → df.ino ∈ st.tree)
+    (hdisj : ∀ fd, st'.proc.fds !! fd ≠ none → st'.proc.dfds !! fd = none)
+    (hflt : ∀ i, i ∈ st'.fs.files → i < st'.fs.nextIno) : FsTreeWf st' := by
+  have htree : st'.tree = o.apply st.tree := by
+    simp only [OsState.tree, hlog, hdur, List.map_append, List.map_cons, List.map_nil]
+    rw [replay_snoc]
+  refine ⟨hroots ▸ hw.roots, fun n hn => ?_, fun fd df h => ?_, hdisj, hflt⟩
+  · rw [hlog] at hn ⊢; rw [hdur, hroots]
+    by_cases hle : n ≤ st.fs.metaLog.length
+    · rw [List.take_append_of_le_length hle]
+      obtain ⟨h1, h2, h3⟩ := hw.hist n hle
+      refine ⟨h1, fun i hi => ?_, fun j hj => Nat.lt_of_lt_of_le (h3 j hj) hnext⟩
+      obtain ⟨f, hf⟩ := h2 i hi; exact hfiles i f hf
+    · have hn' : n = st.fs.metaLog.length + 1 := by simp at hn; omega
+      subst hn'
+      rw [List.take_of_length_le (by simp)]
+      have : replay ((st.fs.metaLog ++ [(⟨o, s⟩ : LogEntry)]).map (·.op)) st.fs.treeDur =
+          o.apply st.tree := by
+        simp only [List.map_append, List.map_cons, List.map_nil]; rw [replay_snoc]; rfl
+      rw [this]
+      exact ⟨htw, hnamed, hlt⟩
+  · rw [htree]; exact apply_mem_mono o st.tree _ (hdfds fd df h)
+
+/-- **The coherence after a step that held the whole history** (no directory fd open, no other call
+in flight): the history with the entry logged. -/
+theorem treeCoh_meta {st st' : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)}
+    {Γc : GMap Nat (Nat × Qp)} (hc : TreeCoh st V Γdf Γc) (hΓdf : Γdf = ∅) {k s : Nat} {q : Qp}
+    (hk : Γc !! k = some (s, q)) (hΓc : GMap.delete k Γc = ∅) {o : MetaOp}
+    (hlog : st'.fs.metaLog = st.fs.metaLog ++ [⟨o, s⟩]) (hdur : st'.fs.treeDur = st.fs.treeDur)
+    (hdfds : st'.proc.dfds = ∅) (hcalls : st'.proc.calls = GMap.delete k st.proc.calls) :
+    TreeCoh st' (V.push ⟨o, s⟩) ∅ ∅ := by
+  have hs : s = st.fs.metaLog.length := hc.start k _ hk
+  refine ⟨?_, ?_, fun fd => ?_, fun fd x df hx => by simp at hx, fun fd x hx => by simp at hx,
+    fun t => ?_, fun t x hx => by simp at hx⟩
+  · rw [hc.hist, hlog, hdur]; rfl
+  · rw [hlog, hs]; exact sequential_snoc hc.seq
+  · rw [hdfds]; simp
+  · rw [hcalls]
+    simp only [GMap.lookup_empty, Option.map_none]
+    by_cases ht : k = t
+    · subst ht; rw [GMap.lookup_delete_eq]
+    · rw [GMap.lookup_delete_ne _ ht, ← hc.calls t]
+      have := congrArg (· !! t) hΓc
+      simp only [GMap.lookup_delete_ne _ ht, GMap.lookup_empty] at this
+      rw [this]; rfl
+
+/-- With no directory fd in the ghost state, none in the state. -/
+theorem dfds_empty {st : OsState} {V : Hist} {Γc : GMap Nat (Nat × Qp)}
+    (hc : TreeCoh st V ∅ Γc) : st.proc.dfds = ∅ := by
+  apply GMap.ext; intro fd
+  have := hc.fds fd
+  simp only [GMap.lookup_empty, Option.map_none] at this ⊢
+  cases h : st.proc.dfds !! fd with
+  | none => rfl
+  | some df => rw [h] at this; cases this
+
 section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
   [go.BasicIntoValInj]
