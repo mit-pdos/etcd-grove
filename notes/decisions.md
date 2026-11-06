@@ -32398,3 +32398,55 @@ N4).
 - F6-F8: docstrings.
 
 **Left.** R2d (a restarted member's `run`, `Start_builtR_spec`, `BuildServer.specRestart`).
+
+## R2d: the server's restart chain, first round (2026-11-06 · the R2d Scope's S1 (B), Q8 (a), Q9 (d), Q10-Q12, HS1 (a), decided by etcd-grove-82 under the user's delegation · branch `r2d`; DRAFT)
+
+**Q9: (d), the restart is a jump; supersedes R2c's leaning (a)** ("R2c: what a restart needs of
+the cluster's id state", `notes/restart-plan.md`). R2c leaned to generalizing `%HEr` to `ai₀ = σ.b`,
+`c₀ = i`. That does not typecheck against the names a restart keeps: `kvRun γr ai₀ c₀ A x` forces
+`γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀` (`InvRunRes.lean:256`), and the names are the cluster's
+(`NewServer` fixes `ai0 = 0`, `c0 = 0`; `restartNames` keeps them), so (a) holds only at
+`σ.b = i = 0`. (d) keeps `ai₀ = c₀ = 0` and starts the ghost applied log at the backend's index;
+Go's `ep.appliedi` lags.
+
+**Done in this round** (proved, no `sorry`, no new axiom):
+- *R2d-1 (Q8 (a)).* `kvCongr γk γk'` (`InvRequest.lean`), the 11 fields `kvInv` reads, is
+  `kvInv_congr`'s hypothesis (the theorem moved next to it from `NewServerAlloc`, so that it and
+  `restartNames` see one definition); `restartNames ρ ρ'` keeps `ρ'.rd.raft = ρ.rd.raft`,
+  `kvCongr ρ.rd.kv ρ'.rd.kv` and the ids' `issued`/`pfx` (until then 6 of the 11 fields, so a
+  restarted member could not reuse the cluster's `kvInv`). The probe: `kvInv_restartNames`
+  (`InvRestart.lean`). `restartNames_st`, `restartNames_kvModel` give the old conjuncts.
+- *R2d-4.* `setAppliedIndex.spec` gains `rep : Bool`: at `rep = true` (a replay below the ghost
+  applied index, `uint.Z v' ≤ uint.Z v`) the store keeps the apply thread's half at `v` and the
+  invariant (`srvAppliedBody`'s `v ≤ a` lets the atomic lag); at `false` the spec as before. One
+  spec with a case, not a second family. `apply`'s proofs take the `false` case.
+- *HS1 (trust: one widened axiom).* `auth.NewAuthStore.spec`'s pure premise
+  `(r.lookup "auth").getD ∅ = ∅` becomes `… = ∅ ∨ … = authBoot`; `authUsers`/`authRoles` stay `∅`
+  (etcd-grove-82's ruling: only the auth bucket widens). The attack, at the pins: (i) on `authBoot`
+  `UnsafeReadAuthEnabled` finds no `authEnabled` key (false), `UnsafeReadAuthRevision` one value,
+  big-endian `1` (`schema/auth.go:123-144`), so `Revision() = 1 ≠ 0` and `commitRevision` is
+  skipped; a first start's `commitRevision` (`store.go:1012-1015`) takes the in-memory revision
+  `0 → 1` and puts `authRevision = 1`: both end at revision `1`, the bucket at `authBoot`.
+  (ii) `refreshRangePermCache` (`range_perm_cache.go:131`) reads `authUsers` (and `authRoles` only per
+  user), not `auth`; the premise on them is unchanged, and a restarted member in scope meets it: the
+  image's rest buckets are `bkRestAt`'s, `bkRestAt_boot` (`InvImage.lean:249`) gives `authUsers`
+  and `authRoles` `some ∅`. (iii) `CreateAuthBuckets` (`schema/auth.go:50-57`) calls
+  `UnsafeCreateBucket`, which is bbolt's `CreateBucketIfNotExists` (`backend/batch_tx.go:136-145`);
+  at bbolt v1.5.0 (`bucket.go:230-250`) an existing bucket is returned and nothing written; the
+  `pending++` only schedules a commit, which the two write-back tokens already cover. (iv) Excluded
+  by the premise: an `authEnabled` key (`authBoot` has none; enabling would call the provider's
+  `enable`), any revision but `0`/`1`, any user or role; the in-memory revision is `1` in both
+  cases. No panic and no different post found. Trust baseline: the axiom's line changes, the
+  count does not.
+
+**Stopped (Q13 in the worktree's `questions.md`, pending the user).** The hard probe (run's first
+replay-window batch) fails at the Scope's statement list: every spec of the apply chain ties Go's
+applied index to the ghost log's length (`applyAll.specBatch`'s `uint.Z ai = A.length` and
+`ciEff ≤ ai`; `kvBatch`'s `ai = ai0 + |A|`, which `applyEntries.specBatch` and `apply.spec` take;
+their posts append the batch to the ghost log). A window batch has Go's `ai = σ.b < |A₀|`, and its
+entries are already in `A₀`. So (d) needs a window form of `applyAll`, `applyEntries`, `apply` and
+`kvBatch` too, which the Scope's item 11 does not list. R2d-2, -3, -5, -7 and -8 depend on the
+window's vocabulary (`applyRes`'s `aiGo`, `applyStart` at `A₀`: what `NewServer`'s restart case
+must establish) and were not started; R2d-6's constructors (`mvcc.New`/`NewStore`'s restoring
+case, `newRaftNode`'s `RestartNode` path, `memStorRestarted` defined) are independent of it and
+left for the next round.

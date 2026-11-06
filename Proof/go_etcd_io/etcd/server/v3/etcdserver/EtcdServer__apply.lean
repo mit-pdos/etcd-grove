@@ -149,6 +149,9 @@ theorem EtcdServer.apply.wp_proofOff
     (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.specOff (GF := GF) (hG := hG) := by
+  -- (R2d-4) `setAppliedIndex`'s first case: not a replay
+  have hSet1 := fun s E γr v v' L => hSet1 s E γr v v' L false
+  simp only [Bool.false_eq_true, ↓reduceIte] at hSet1
   have hAEN := EtcdServer.applyEntryNormal.spec_off hAEN
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
@@ -1018,6 +1021,9 @@ theorem EtcdServer.apply.wp_proofOn
     (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.specOn (GF := GF) (hG := hG) := by
+  -- (R2d-4) `setAppliedIndex`'s first case: not a replay
+  have hSet1 := fun s E γr v v' L => hSet1 s E γr v v' L false
+  simp only [Bool.false_eq_true, ↓reduceIte] at hSet1
   have hAEN := EtcdServer.applyEntryNormal.spec_on hAEN
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT

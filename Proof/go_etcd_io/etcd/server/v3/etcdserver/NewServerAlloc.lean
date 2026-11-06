@@ -64,19 +64,6 @@ theorem newServerNames_alloc :
   iexists idx, cok, rev
   iframe
 
-/-- **The KV invariant reads only the cluster's KV names** (stage M4): the state's variable, the
-start values and the claims' map; not a member's certificate map, its applied
-height or its slots and prefix. -/
-theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
-    (h : γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
-      γk.ids.issued = γk'.ids.issued ∧ γk.ids.wn = γk'.ids.wn ∧ γk.cmp = γk'.cmp ∧
-      γk.rlog = γk'.rlog ∧ γk.cret = γk'.cret ∧ γk.lm = γk'.lm ∧ kvPfx γk = kvPfx γk') :
-    kvInv (GF := GF) γs γk = kvInv γs γk' := by
-  obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12⟩ := h
-  unfold kvInv kvWork kvGrantIds idUnclaimed entryClaim kvModelSt kvLeases kvModel idRegdAt idWaitIs cmpLogOk
-    cmpEntryOk kvModel kvStQ KVNames.lg kvLogSmall
-  rw [h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12]
-
 /-- The client's `etcdKV` reads only the state's variable. -/
 theorem etcdKV_congr (γk γk' : KVNames) (h : γk.st = γk'.st) (σ : KVState) :
     etcdKV (GF := GF) γk σ = etcdKV γk' σ := by

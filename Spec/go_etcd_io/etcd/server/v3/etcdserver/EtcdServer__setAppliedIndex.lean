@@ -30,14 +30,23 @@ ahead as the log applied through `v' = v + 1` (`srvAppliedPre γr v v' L`, `appl
 before the entry's result goes to its proposer), and the store publishes it. In the environment's auth mode (the auth-mode merge, 2026-10-29;
 until then `spec` off and `specM on`, E3p): the applied index's invariant over the mode's KV model
 (`srvAppliedInvM`), and (E3u) with auth on the auth state at the log through `v'` published
-(`appliedPubM`, which the invariant keeps of the current applied index; `True` off). -/
+(`appliedPubM`, which the invariant keeps of the current applied index; `True` off).
+
+(R2d-4, 2026-11-06; Q9 (d)) **A replay (`rep = true`), below the ghost applied index.** After a
+restart Go's `ep.appliedi` (the WAL snapshot's index) lags the ghost applied index (the backend's
+consistent index `i`, where the ghost applied log starts), and `apply` replays the entries between,
+calling `setAppliedIndex(e.Index)` for each (`server.go:1980`): the store of an index `v'` at most
+the ghost's `v` changes no ghost state (the invariant lets the atomic lag the ghost,
+`srvAppliedBody`'s `v ≤ a`); the apply thread's half stays at `v`. -/
 abbrev EtcdServer.setAppliedIndex.spec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64) (L : mvcc.Log),
+  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64) (L : mvcc.Log) (rep : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAppliedInvM E.authOn s E γr ∗ srvAppliedPre γr v v' L ∗ mvcc.idxCert E.γ.idx L ∗
-      appliedPubM E.authOn E γr v' }}
+      srvAppliedInvM E.authOn s E γr ∗
+      (if rep then srvAppliedOwn γr v ∗ ⌜uint.Z v' ≤ uint.Z v⌝ else
+        srvAppliedPre γr v v' L ∗ mvcc.idxCert E.γ.idx L ∗ appliedPubM E.authOn E γr v') }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setAppliedIndex")) (Val #v'))
-  {{ RET #(); srvAppliedOwn γr v' ∗ appliedAtLeast γr v' ∗ appliedLogAt γr v' L }}
+  {{ RET #(); if rep then srvAppliedOwn γr v else
+      srvAppliedOwn γr v' ∗ appliedAtLeast γr v' ∗ appliedLogAt γr v' L }}
 
 end spec
 

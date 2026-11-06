@@ -578,11 +578,38 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
 end boot
 
 /-- **A restarted incarnation's names agree with the stopped one's where the cluster sees them**
-(see the file header). -/
+(see the file header): raft's names, the KV names wherever the KV invariant reads them
+(`kvCongr`, R2d-1, Q8 (a), 2026-11-06: so the restarted member reuses the cluster's `kvInv`,
+`kvInv_restartNames`; until then the state's variable, the model and `c0` only), and the claims'
+map and prefix of the request ids. -/
 def restartNames [GooseExts] (ρ ρ' : ReqNames) : Prop :=
-  ρ'.rd.raft = ρ.rd.raft ∧ ρ'.rd.kv.st = ρ.rd.kv.st ∧ kvModel ρ'.rd.kv = kvModel ρ.rd.kv ∧
-    ρ'.rd.kv.c0 = ρ.rd.kv.c0 ∧
+  ρ'.rd.raft = ρ.rd.raft ∧ kvCongr ρ.rd.kv ρ'.rd.kv ∧
     ρ'.ids.issued = ρ.ids.issued ∧ ρ'.ids.pfx = ρ.ids.pfx
+
+/-- The restarted names' state variable is the stopped one's. -/
+theorem restartNames_st [GooseExts] {ρ ρ' : ReqNames} (h : restartNames ρ ρ') :
+    ρ'.rd.kv.st = ρ.rd.kv.st := h.2.1.1.symm
+
+/-- The restarted names' KV model is the stopped one's. -/
+theorem restartNames_kvModel [GooseExts] {ρ ρ' : ReqNames} (h : restartNames ρ ρ') :
+    kvModel ρ'.rd.kv = kvModel ρ.rd.kv := by
+  obtain ⟨-, h2, h3, h4, -⟩ := h.2.1
+  funext L; unfold kvModel; rw [h2, h3, h4]
+
+section restartKV
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- **A restarted member reuses the cluster's KV invariant** (R2d-1, Q8 (a), the Scope's easy
+probe): `kvInv` reads only the fields `restartNames` keeps (`kvCongr`, `kvInv_congr`). -/
+theorem kvInv_restartNames (γs : ServerRaftNames) {ρ ρ' : ReqNames} (h : restartNames ρ ρ') :
+    kvInv (GF := GF) γs ρ'.rd.kv = kvInv γs ρ.rd.kv :=
+  (kvInv_congr γs _ _ h.2.1).symm
+
+end restartKV
 
 end EtcdGrove
 end Perennial
