@@ -62,6 +62,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hPers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     (hReach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
+    (hImg : mvcc.api.mvccImage_snapshot.law (GF := GF) (hG := hG))
     (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -247,7 +248,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x' _ $$ [$Hsrv $HKV $Hka] with ⟨%Hoff, HKV, Hka⟩
   ihave #HsrvM : isServerM false s γ ci TM E ρ γr $$ []
   · rw [isServerM_false]; iexact Hsrv
-    iunfold srvGoRes at Hgr
+  iunfold srvGoRes at Hgr
   icases Hgr with ⟨Hwg, Htt⟩
   wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off hSINC s E ρ.wait γ ci b γr ep st'
       ai' at' cs' a' t' x' mst γs nk γp (w + (unapplied ai ms).length) TM ρ q Hoff hok'
@@ -378,26 +379,23 @@ theorem EtcdServer.applyAll.wp_proofBatch
             (try wp_auto)
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
             icases srvApplyKV_core s E ρ.wait x' $$ HKV with ⟨%ua, HKVc, HKVk⟩
-            icases Hkv with ⟨%kv, #Hkvf, #Hkvi⟩
-            imod mergedCreate_window hsh hSnap hOn hSave hPut hUR hID hName hSafe false s γ ci TM E ρ
-                γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE hpos hlenZ
-              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2]
-              with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
-            · iframe Hpkg HsrvM Hkvf Hkvi HW Hlog' HlbB Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
-            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS'
-                (mergedObs γr E.cmp ai' (A ++ unapplied ai ms) x'.log x'.crev))
+            icases Hkv with ⟨%kv, #Hkvf, #Hkvi, -⟩
+            -- the apply goroutine's token, lent to the commit
+            iunfold srvGoRes at Hgr
+            icases Hgr with ⟨HgrW, HthT⟩
+            imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe false s γ
+                ci TM E ρ γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE
+              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT]
+              with ⟨%be, %dq, %RC, %RC', %RS, %RS', %Qd, Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
+            · iframe Hpkg HsrvM Hkvf Hkvi HW Hr1 Hl1 HthT Hst Hbe Happ HKVc HRS
+            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd)
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
-              as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
+              as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
-            imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, %Hst3⟩
+            imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, %Hst3⟩
             ihave HKV := HKVk $$ HKVc
-            ihave #Hkvi : srvKVInvs E γr $$ []
-            · iunfold isServer at Hsrv
-              icases Hsrv with ⟨-, -, -, #Hat, -⟩
-              iunfold srvAtomics at Hat
-              icases Hat with ⟨-, -, #Hk⟩
-              iexact Hk
-            imod srvApplyKV_writer hPers hReach s E γr ρ.wait x' $$ Hkvi HKV with ⟨HKV, -, -, #Hrcx, -⟩
+            ihave Hgr : srvGoRes s $$ [HgrW HthT]
+            · iunfold srvGoRes; iframe HgrW HthT
             -- the merged message sent: of a term committed through the applied index (the batch's
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt
@@ -425,7 +423,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             ihave Hmi : |={⊤}=> kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗
                 □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ [Hka]
             · iapply (merged_image s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' D hlenZ Hkv0)
-              iframe Hsrv Hka Hrcx; ipureintro; exact HQd
+              iframe Hsrv Hka Hmimg
             imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id c ai' at' D Hty
               $$ [Hml Hsm' Hrs Himg] with Hbun
@@ -470,6 +468,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hPers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     (hReach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
+    (hImg : mvcc.api.mvccImage_snapshot.law (GF := GF) (hG := hG))
     (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -651,7 +650,7 @@ theorem EtcdServer.applyAll.wp_proofOn
     · iright; iunfold epCsCfg; rw [← hρr]
       iapply epCsAt_ne _ _ _ hL $$ Hcv'
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
-    iunfold srvGoRes at Hgr
+  iunfold srvGoRes at Hgr
   icases Hgr with ⟨Hwg, Htt⟩
   wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on hSINC s E ρ.wait γ ci b γr ep st'
       ai' at' cs' a' t' x' mst γs nk γp (w + (unapplied ai ms).length) TM ρ sa' q
@@ -786,19 +785,23 @@ theorem EtcdServer.applyAll.wp_proofOn
             (try wp_auto)
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
             icases srvApplyKVOn_core s E ρ.wait x' sa' $$ HKV with ⟨%ua, HKVc, HKVk⟩
-            icases Hkv with ⟨%kv, #Hkvf, #Hkvi⟩
-            imod mergedCreate_window hsh hSnap hOn hSave hPut hUR hID hName hSafe true s γ ci TM E ρ
-                γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE hpos hlenZ
-              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2]
-              with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
-            · iframe Hpkg Hsrv Hkvf Hkvi HW Hlog' HlbB Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS
-            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS'
-                (mergedObs γr E.cmp ai' (A ++ unapplied ai ms) x'.log x'.crev))
+            icases Hkv with ⟨%kv, #Hkvf, #Hkvi, -⟩
+            -- the apply goroutine's token, lent to the commit
+            iunfold srvGoRes at Hgr
+            icases Hgr with ⟨HgrW, HthT⟩
+            imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe true s γ
+                ci TM E ρ γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE
+              $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT]
+              with ⟨%be, %dq, %RC, %RC', %RS, %RS', %Qd, Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
+            · iframe Hpkg Hsrv Hkvf Hkvi HW Hr1 Hl1 HthT Hst Hbe Happ HKVc HRS
+            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd)
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
-              as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQd⟩
+              as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
-            imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, %Hst3⟩
+            imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, -, %Hst3⟩
             ihave HKV := HKVk $$ HKVc
+            ihave Hgr : srvGoRes s $$ [HgrW HthT]
+            · iunfold srvGoRes; iframe HgrW HthT
             -- the merged message sent: of a term committed through the applied index (the batch's
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt
@@ -871,6 +874,7 @@ theorem EtcdServer.applyAll.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hPers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     (hReach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
+    (hImg : mvcc.api.mvccImage_snapshot.law (GF := GF) (hG := hG))
     (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -880,8 +884,8 @@ theorem EtcdServer.applyAll.wp_proof
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
-  ⟨EtcdServer.applyAll.wp_proofBatch hASnap.1 hAE.1 hBk hLg hV hSINC.1 hGT hGS hGM hGI hCM hSMS hsh hPers hReach hSnap hOn hSave hPut hUR hID hName hSafe,
-    EtcdServer.applyAll.wp_proofSnap hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hsh hPers hReach hSnap hOn hSave hPut hUR hID hName hSafe⟩
+  ⟨EtcdServer.applyAll.wp_proofBatch hASnap.1 hAE.1 hBk hLg hV hSINC.1 hGT hGS hGM hGI hCM hSMS hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe,
+    EtcdServer.applyAll.wp_proofSnap hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe⟩
 
 end proof
 

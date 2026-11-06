@@ -271,6 +271,103 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
     `snapshot` (the KV row the store handle), `applyConfChange` (`BkRef` at the tie, `bkWT d`/`bkRT d`,
     `hookRun (E.Pk d) E.f`).
 - **Next**: see "Left (eighth session)" below.
+## Ninth session (2026-11-06): the snapshot send and receive over mvcc's API (C3)
+
+**The send, proved** (no `sorry`; `SnapSendBranch`'s `M1-REPLACE` removed):
+- **`InvImage.dbImage` restated in place as the draft's `dbImageA`** (`KVStoreApi.lean`'s `dbImageA`,
+  `imageRestAt` are now aliases): `∃ A u, srvRLogLb γ A ∗ ⌜i = ai0 + |A| ∧ imageRestAt … ∧
+  imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗ mvccImage D (kvModel γk A) (crevOf γk A) u`. **Choice
+  (minor, the server's own certificate): the extra pure conjunct `imageStOk L c := MvccReachable
+  (stAt L c) ∧ L.length + 3 ≤ 2 ^ 63`**, the sender's writer's facts (`writer_facts`), carried to the
+  receiver: `KV.Restore.contract` takes the restored state reachable and the receiver's KV ghost-state
+  jump (`kv_cert_jump`) a length bound, and `mvccImage` (sealed) gives neither. In place of the
+  draft's `kvModel_reachable.law` (a model lemma over the committed log, not proved, not needed now);
+  the image's `IdxWf` conjunct played that part until M1. `srvImage` (the network's, `srvNet`'s `img`)
+  is unchanged over it; `dbImage_kv_congr` needs no mode, `dbImage_of_srvImage` (moved to `InvImage`,
+  no KV invariant) replaces `dbImage_of_srvImage_mode`. `imageAt` stays (the restart's, `InvRestart`).
+- `KVStoreLaws.snapImageG` (new): the API's `mvccImage_snapshot.law` at `au_snap`'s update from the
+  store invariant and the writer's half, which comes back with `imageStOk` (`writer_facts`), in either
+  compaction mode. **`senderImage.law` proved** (`senderImage_holds`, over it; takes
+  `mvccState_reachable.law`); `dbImageA_of_send` takes the `imageStOk` fact.
+- **`srvBeSnapOk`'s observation a resource** (`Qd : Data → IProp`, was `Prop`), and
+  **`createMergedSnapshotMessage.spec` restated** (post `Qd D` in place of `⌜Qd D⌝`; the server's own
+  spec, the image being mvcc's persistent `mvccImage` and the writer's half coming back with it); its
+  proof adapted (builds).
+- **`mergedCreate_window` proved** over `KV.Commit.contract` (`srvKVCommitOk_of_kv`) and `snapImageG`:
+  statement changed (the server's own lemma): takes `persistent.law`, `mvccState_reachable.law`,
+  `mvccImage_snapshot.law`, the apply goroutine's `threadTok` (the commit's; given back), one `⧗ 1 ∗ £ 1`
+  (the snapshot's write-back token; the commit takes none), no `appliedLogAt`/`srvRLogLb`/`hpos`/`hlen`;
+  gives `∃ Qd`, its back wand `∀ D, RS' -∗ Qd D -∗ …` returning `mergedImg γr ai A x.log x.crev D`
+  (persistent: `imageRestAt`, `imageStOk`, `mvccImage`; replaces the pure `mergedObs`). The store
+  invariant comes from `isServerM_kvStoreInv` (either auth mode, with `envWitOk`).
+  `snapObsA` (the window's observation without `backend.Snapshot`'s view) replaces `snapObs_window`;
+  `srvBeSnapOk_of_backend`, `srvBeSnapOk_window`, `srvBeSnapOk_mono`, `storeReq_freeze` deleted.
+- **`srvBeHooked` records `E.Pk B = batchLockInv γ (metaTM B.γB B.P)`** (pure; the server's own): the
+  window's commit request (`commitReq_freeze`) and observation are at that invariant, `mvccBackend`'s
+  at `E.Pk B`; nothing tied `TM` to the backend's `metaTM`. Its makers (`NewServer`,
+  `SnapApplyIsServer`, red) must add it (`E.Pk = fun _ => batchLockInv γ (metaTM d.γB d.P)` there).
+- `merged_image` over `mergedImg` (no receipt premise): `dbImage` at the fresh start, so `srvImage`.
+- `applyAll`'s two merge branches and `ApplyAllSnap`'s: lend `srvGoRes`'s `threadTok` to the window
+  and back; `wp_proofBatch`/`wp_proofOn`/`wp_proof`/`wp_proofSnap` take `hImg :
+  mvccImage_snapshot.law` (before `hSnap`). `#7-on` (the image with auth on) is unchanged.
+
+**The receive, restated** (statements; the proof of `applySnapshot` is not migrated):
+- **`applySnapshot.specSnap` restated** over the API (the server's own spec): `hkb : E.BkTie =
+  srvBkTie d` (was `E.γ.kb = some d`); `hwq`, `R`, `hpre`, `hRok`, `r`, `hcc`, `hkI` gone; new `A'`
+  (moved up), `u`, `hAA : A <+: A'`, `hxA : x.log = kvModel γr.kv A ∧ x.crev = crevOf γr.kv A`, `hst :
+  imageStOk (kvModel γr.kv A') (crevOf γr.kv A')`; resources: `srvKVCloserW`, the watchable store,
+  `certOk`, `restoreRcptM`, `crevPermAt` gone; `srvKVAddr s ↦□ E.kv`, `srvRLogLb γr.raft A'`,
+  `mvccImage D (kvModel A') (crevOf A') u`, `E.Cp (crevOf A')` new (what `dbImageA_open.law` and
+  `restoreArgs.law` take); the lessor's invariant at `mvccLeases E.γ`. No longer imports
+  `SnapApplyDefs` or mvcc's `RestoreImageOpen`.
+- **`srvSnapApplied` restated and moved to `SnapRO.lean`** (out of `SnapApplyDefs`, which the walk
+  keeps): `E'.BkTie = srvBkTie d'`, `x'.log = kvModel γr.kv A'`, `x'.crev = crevOf γr.kv A'`, no
+  `d'.cm`, no `srvKVCloserW`, the KV `∃ kv, srvKVAddr ↦□ kv ∗ □ isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝`.
+- **`SnapRecvFacts` restated**: `SnapImageFacts` without `log`/`hpre`/`hkI`/`crev`/`hRok`/`hlen`, with
+  `hst : imageStOk …`; `snapRecv_image` gives `∃ A' u`, the facts, `mvccImage …` and `E.Cp (crevOf
+  A')` (`crevOf_permit`, `crevOf_offM`); `snapRecv_kv_jump` without `certOk`; `kvApplied_facts` new;
+  `kvModel_split`, `kvModel_len_of_rok`, `image_restoreRes`, the KV-invariant `dbImage_of_srvImage`
+  deleted.
+- **`applyAll.specSnap` takes no `E.cmp = false`** (compacting stores covered); `run_job_snap`'s case
+  split and **`run_job_snap_cmp` (a `sorry`) deleted** (`EtcdServer__run.lean`, not built: `run` is
+  red on `specBatch`'s `receiptBound`, item 4 of the eighth session's list).
+- `ApplyAllSnap` over all of it (`srvSnapRO`'s restated pattern, `srvSnapRes` without the closer,
+  `srvSnapRO_succ` without the mode).
+
+**Built at the worktree's state** (mvcc's uncommitted edits included): `InvImage`, `KVStoreApi`,
+`KVStoreLaws`, `InvSnapSend`, `SnapSendBranch`, `createMergedSnapshotMessage` (spec, proof), `SnapRO`,
+`SnapRecvFacts`, `applySnapshot`'s spec, `ApplyAllSnap`, **`EtcdServer__applyAll`** (also fixed: two
+mis-indented `iunfold srvGoRes` lines and the KV's `⌜kv = E.kv⌝` pattern, the eighth session's unbuilt
+edits). `#print axioms`: `applyAll.wp_proof`, `wp_proofBatch`, `wp_proofSnap`,
+`createMergedSnapshotMessage.wp_proof`, `mergedCreate_window`, `merged_image`, `senderImage_holds`: no
+`sorryAx` (the type axioms only); `applyAll.wp_proofOn`: `sorryAx`, SNAPSHOT-SORRY #7-on (unchanged).
+`applyAll.wp_proof` takes `applySnapshot.spec` as a hypothesis, whose proof is not migrated (below).
+
+**Callers outside this track's scope broken:** `etcdserver/Link.lean` (generated, `etc/gen-link.py`):
+`applyAll.wp_proof` takes `hImg : mvccImage_snapshot.law` (before `hSnap`); `applySnapshot`'s proof red.
+None outside `etcdserver/`. In scope, red, not fixed: `Results.lean` (`applyAll.wp_proofOn`'s new
+argument), `NewServer`/`SnapApplyIsServer` (`srvBeHooked`'s new conjunct), the `SnapApply*` walk
+(`srvSnapApplied` moved and restated, `SnapImageFacts`), `EtcdServer__run` (edited, not built).
+
+**Placeholders:** none added; `run_job_snap_cmp`'s `sorry` deleted, `SnapSendBranch`'s `M1-REPLACE`
+discharged. No axiom; no trust-boundary axiom's conclusion restated.
+
+**Left, in order:**
+1. **`applySnapshot`'s proof** (`SnapApplyWalk`, `SnapApplyPost`, `SnapApplyOpen`, `SnapApplyKV*`,
+   `SnapApplyOpts*`, `SnapApplyIsServer`, `SnapApplyCloser`, `SnapApplyNames`, `SnapApplyRest`,
+   `SnapApplyDefs.snapWalkPost`, `RestorePre`, `RestorePreM`, `SnapRestoreM`: ~3k lines, red, over
+   mvcc's internal restore). Over the API: `mvccW_alloc.law` before `OpenSnapshotBackend` (at
+   `W := mvccW gx`), `dbImageA_open.law` at its `newPostKP` (with `bridgeParams`, `bk.cm = true`,
+   `keySized`, the payment rights from the new backend's `bFresh`), `KV.Restore.contract` at
+   `kvAus`' restore builder (`restoreArgs.law`, stated, to prove in `KVStoreLaws` from `au_restore`;
+   its `pendItems` premise from the plain log: no leased put), the old backend's `storageRest`
+   (reader slots' shares) to the closing goroutine, `srvBeHooked` at the new backend with the `E.Pk`
+   tie, `envWitOk` and the ties at `E'`. `RestorePre` (`restorePre_of_apply`, the sole writer's) and
+   `SnapRestoreM` are obsolete under it: delete with the walk's redesign. The `M2*Draft*` modules
+   likewise.
+2. The boot (item 3 of the task): not started.
+3. Callers (below).
+
 ## Left (eighth session, 2026-11-06; in order)
 
 **Done** (commits `529b608f48` and the one after it; each builds at the worktree's state, mvcc's

@@ -1,4 +1,8 @@
 /-
+(2026-11-06, the server track's ninth session: `dbImageA` (§3c) landed in place as `InvImage.lean`'s
+`dbImage` with one more pure conjunct, `imageStOk (kvModel γk A) (crevOf γk A)` (reachable, history
+short: the sender's `writer_facts`), so `kvModel_reachable.law` is not needed; `senderImage.law` is
+proved (`KVStoreLaws.senderImage_holds`, over `snapImageG`), `dbImageA_of_send` takes the fact.)
 (2026-11-06, decided by the coordinator: `lessor.Revoke.specA` takes its update only for a live
 lease, `if decide (id ∈ L) then auBegin … else True`, and does not give it back in the not-live arm;
 §5.)

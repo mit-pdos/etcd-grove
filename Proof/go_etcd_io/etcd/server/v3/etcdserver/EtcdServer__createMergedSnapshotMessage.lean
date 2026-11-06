@@ -90,7 +90,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   wp_bind (App (Val #(methods bi.ty go!"Snapshot" bi.v)) (Val #()))
   iapply Hsnap $$ HRS
   inext
-  iintro %sp %D ⟨Hsn, HRS', %HQ⟩
+  iintro %sp %D ⟨Hsn, HRS', HQ⟩
   iunfold backend.snapOpen at Hsn
   icases Hsn with ⟨%γd, Hsn⟩
   (try wp_auto)
@@ -150,13 +150,11 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   simp only [mergedSt]
   iframe Hlr HRS' Hbef
   iexists rc, D, c
-  iframe Hm Hc Hrs
-  isplitr
-  · iunfold mergedMsg
-    iframe Hmi
-    iexists tsz, cc, γc
-    iframe Htsz Hcc Hccb
-  ipureintro; exact HQ
+  iframe Hm Hc Hrs HQ
+  iunfold mergedMsg
+  iframe Hmi
+  iexists tsz, cc, γc
+  iframe Htsz Hcc Hccb
 
 end proof
 

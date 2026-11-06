@@ -563,11 +563,14 @@ the apply protocol's resource at the consistent index's keys (`batchLockInv γ (
 its hooks the server's `BackendHooks` `bh`, `s.beHooks` (`backend.hooksAt`) over the consistent index `ci`
 (`isBackendHooks`), at parameters with the hooks' keys (`ciKeys`, `hooksParams`) (strict M1: the
 epoch's backend `B` of the tie, opened at mvcc's write invariant `mvccW gx`). What the merged
-snapshot's window needs to freeze the stored index (`storeReq_freeze`). Made where the backend is:
+snapshot's window needs to freeze the stored index (`commitReq_freeze`; strict M1, 2026-11-06: with
+the epoch's batch-lock invariant `E.Pk B` that one, which the window's commit request and snapshot
+observation name). Made where the backend is:
 `NewServer` (`bootOk`'s), `applySnapshot` (`OpenSnapshotBackend`'s). -/
 def srvBeHooked (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ (B : mvcc.KBReal) (bh lgh : Loc) (gx : GName),
-    ⌜E.BkTie = srvBkTie B ∧ ciKeys B.P ∧ storage.hooksParams B.P⌝ ∗
+    ⌜E.BkTie = srvBkTie B ∧ ciKeys B.P ∧ storage.hooksParams B.P ∧
+      E.Pk B = batchLockInv γ (metaTM B.γB B.P)⌝ ∗
     structFieldRef EtcdServer go!"beHooks" s ↦□ bh ∗
     storage.isBackendHooks bh
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩

@@ -4,9 +4,12 @@ out"): the vocabulary of the specs of `createMergedSnapshotMessage`, `newSnapsho
 `sendMergedSnap` (`snapshot_merge.go`, `server.go`). Lean-first (no Rocq counterpart).
 
 * `srvKVCommitOk kv RC RC'`, `srvBeSnapOk b RS RS' Qd`: the contracts of the two interface calls
-  `createMergedSnapshotMessage` makes, `s.KV().Commit()` (mvcc's `WatchableKV`; since D22 S-l's sender items
-  discharged from the proved `store.Commit`, `srvKVCommitOk_of_kv`) and `s.be.Snapshot()` (the backend's `Snapshot`, whose observation `Qd` of the
-  committed data the caller chooses: `backend.Snapshot.spec`'s `Q`, `srvBeSnapOk_of_backend`). The
+  `createMergedSnapshotMessage` makes, `s.KV().Commit()` (mvcc's `WatchableKV`; strict M1,
+  2026-11-06: from the API's `KV.Commit.contract`, `srvKVCommitOk_of_kv`) and `s.be.Snapshot()`
+  (whose observation `Qd D` of the committed data `D` the caller chooses; strict M1: a resource, in
+  place of a pure fact, since the snapshot's image is mvcc's persistent `mvccImage` and the writer's
+  half comes back with it: `mvccImage_snapshot.law` at the writer's update,
+  `SnapSendBranch.mergedCreate_window`). The
   caller (`applyAll`'s `msgSnapC` branch, live from S-l) discharges them; the resources they move
   (`RC`, `RS`: a write session's token, the backend's read token and open share, the observation's
   resource) are its own; `RS` comes from what `Commit()` gives back (`RC' -∗ RS`: the stored-index
@@ -52,13 +55,13 @@ def srvKVCommitOk (kv : GoInterface) (RC RC' : IProp GF) : IProp GF :=
 
 /-- **`b`'s `Snapshot()`** (see the file header): from `RS`, a snapshot open over some committed
 `D` with `Qd D`, and `RS'`. -/
-def srvBeSnapOk (b : GoInterface) (RS RS' : IProp GF) (Qd : backend.Data → Prop) : IProp GF :=
+def srvBeSnapOk (b : GoInterface) (RS RS' : IProp GF) (Qd : backend.Data → IProp GF) : IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     {{ RS }} (App (Val #(methods bi.ty go!"Snapshot" bi.v)) (Val #()))
     {{ (sp : Loc) (D : backend.Data),
         RET #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp);
-        backend.snapOpen sp D ∗ RS' ∗ ⌜Qd D⌝ }})
+        backend.snapOpen sp D ∗ RS' ∗ Qd D }})
 
 /-- **The merged message's content** (see the file header). -/
 def mergedSt (st : MsgSt) (c : ConfStateM) (i t : w64) : MsgSt :=

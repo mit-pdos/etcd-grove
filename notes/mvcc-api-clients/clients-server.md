@@ -279,6 +279,14 @@ In the compaction-off mode, the interleaving has no obstacle:
 - **The model tie** cannot be read inside the update, but is not needed there: the pure facts
   `log = kvModel A`, `c = crevOf A` come from the apply thread's `kvApplied`, outside the update.
 
+(Superseded 2026-11-06, the server track's ninth session: `dbImageA` landed in place as
+`InvImage.lean`'s `dbImage`, with one more pure conjunct, `imageStOk (kvModel γk A) (crevOf γk A)`:
+the image's state reachable and its history `+ 3 ≤ 2 ^ 63`, the sender's writer's facts
+(`writer_facts`), carried to the receiver; so `kvModel_reachable.law` below is not needed, and the
+receiver's KV ghost-state jump has its length bound. The send is `KVStoreLaws.snapImageG` (the
+API's `mvccImage_snapshot.law` at `au_snap`, either compaction mode), `senderImage.law` proved over
+it (`senderImage_holds`); `srvBeSnapOk`'s observation is a resource, `Qd : Data → IProp`.)
+
 **`dbImageA γ γk i D`** (§3c, restating `InvImage.lean:148`) is
 `∃ A u, srvRLogLb γ A ∗ ⌜i = ai0 + |A| ∧ imageRestAt …⌝ ∗ mvccImage D (kvModel γk A) (crevOf γk A) u`.
 - `imageRestAt` is `imageAt` without its store part: the stored index, a term, `bkRestAt`.

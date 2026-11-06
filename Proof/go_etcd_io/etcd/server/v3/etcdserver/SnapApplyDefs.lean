@@ -7,6 +7,7 @@ are in `SnapRO.lean` since D22 J1a): `snapWalkPost`, what `applySnapshot`'s code
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApply
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
@@ -166,45 +167,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsk ↦□ stck ∗
     mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk)
 
-/-- **What `applySnapshot` gives back after a non-empty snapshot** (`applySnapshot.spec`'s second
-part, S8d): `applyAll`'s post shape at the snapshot's backend `d'` (`beSucc`: the protocol's names
-`γ'` and the environment `E'` at it, the server's view `isServer` there, the apply thread's
-resources with the applied index at the snapshot's `sv.Metadata'.Index'` and the KV at the restored
-log `[[], []] ++ R`, the rest buckets at the snapshot's entries `A'`), and what the next snapshot
-takes again at the new backend: its stop channels and the constructors' half of its open token
-(W7), the KV's closer, the snapshot-taken counter at the snapshot's index, the backend's path `bp` (2026-10-31, `os.Rename`
-restated: until then the snapshot file's) and the transport's live state (W8: with every other member re-added, `L`).
-(Until 2026-11-01, J8a-5, also the alarm store's resource `Tal`.) The KV's model (`kvApplied`) is S-j1's (`kv_cert_jump`). The new
-backend's instance at the old one's mode (`d'.cm = d.cm`; until M2's item 15 `d'.cm = false`), the
-apply thread's compaction revision the image's records' (`x'.crev = r.crev`), the closer by the
-mode (`srvKVCloserW`). (2026-11-01, J8a-1, item 5) Also: the new
-applier's chain, with no alarm (2026-11-01, J8a-5: `Recover` empties the store; until then only
-under `zal`) the start's (`alarmChain E.authOn false false`, what
-`kvApplied_of_jump` takes), and the KV at `E'` (`txn.isKV`, `applyRes`'s), the watchable store at
-the new physical names; (2026-11-01, J8a-5) `ep.confState` the snapshot's (`csOptA`, what
-`applyAll.specSnap` reads the voters off). -/
-def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log) (r : mvcc.CmpRecs) (A' : List EntryModel)
-    (ss : Loc) (bp : GoString) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds)
-    (idm : w64) (lp al ast cl : Loc) : IProp GF :=
-  iprop(∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
-      (st' : ApplyState) (d' : mvcc.KBReal) (x' : apply.ApplyKV) (cs' : Loc) (L : List w64),
-    ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.cm = d.cm ∧ d'.P = d.P ∧
-      E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be) ∧
-      loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
-      x'.log = [[], []] ++ R ∧ x'.crev = r.crev ∧ x'.chain = apply.alarmChain E.authOn false false ∧
-      (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L)⌝ ∗
-    isServer s γ' ci TM' E' ρ γr ∗
-    epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
-    epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
-    epConfState ep cs' ∗ csOptA cs' DFrac.discard sv.Metadata'.ConfState' ∗
-    applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
-    srvApplyKV s E' ρ.wait x' ∗ srvRest E' γr A' ∗ srvKVCloserW s E' ∗
-    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗
-    monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
-    backend.pathOwn bp ∗
-    trLive γn t c L ∗
-    (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ))
+
 
 end proof
 end EtcdGrove

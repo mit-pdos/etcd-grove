@@ -129,6 +129,89 @@ theorem srvKVInvs_of (Hp : persistent.law (GF := GF)) (E : apply.AEnv GF)
 
 end laws
 
+/-! ## The sender's image (§3b-§3c) -/
+
+section snap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [bk_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
+/-- **The snapshot at the writer's state, generic** (§3b's composition): `mvccImage_snapshot.law`
+at the update `kvAus`' snapshot builder makes from the store invariant (`au_snap`) and the writer's
+half `wSt γs log c` (given back): the snapshot's data `D` is the image of `(log, c)`, the client's
+observation `Q` holds. What `senderImage.law` (the mode off, at the model's state) and the merged
+snapshot's window (`SnapSendBranch.mergedCreate_window`, either auth mode) use. -/
+theorem snapImageG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.law (GF := GF))
+    (hImg : mvccImage_snapshot.law (GF := GF) (hG := hG))
+    (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
+    (Nx : mvcc.Log → IProp GF) (Cp : Int → IProp GF)
+    [∀ l, Persistent (Nx l)] [∀ l, Timeless (Nx l)] [∀ c, Persistent (Cp c)]
+    [∀ c, Timeless (Cp c)] (kv : GoInterface) (γ : MvccName)
+    (γs : KVSNames) (log : mvcc.Log) (c : Int) (bk : mvcc.KBReal) (Pk : IProp GF) (qo : Qp)
+    (R : IProp GF)
+    (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      kvStoreInvG kv γ Nx Cp γs ∗ wSt γs log c ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
+      backend.bOpen bk.γB qo ∗ backend.wbTok bk.γB ∗ R ∗
+      □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
+        R -∗ Pk -∗ backend.hkOwn bk.γB d -∗ backend.rbOwn bk.γB r -∗ ⌜Q d r⌝) }}
+    (App (Val (bk.be @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty
+      @!! go!"Snapshot")) (Val #()))
+  {{ (sp : Loc) (D : backend.Data),
+      RET #(interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp);
+      backend.snapOpen sp D ∗ backend.bOpen bk.γB qo ∗ R ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
+      wSt γs log c ∗ ⌜Q (backend.hkData bk.P D) (backend.rbData bk.P D)⌝ ∗
+      ⌜imageStOk log c⌝ ∗ ∃ u : Bool, mvccImage D log c u }} := by
+  haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
+  iintro %Ψ ⟨#Hpkg, #Hk, Hw, HB, Ho, Hwb, HR, #HQ⟩ HΨ
+  -- the writer's state reachable (the image certificate carries it to the receiver's `Restore`)
+  imod writer_facts Nx Cp Hp Hr kv γ γs log c $$ Hk Hw with ⟨Hw, -, -, -, %Hre⟩
+  ihave HAU := au_snap Nx Cp Hp kv γ γs log c (wSt γs log c) $$ Hk Hw []
+  · iintro H; iexact H
+  ihave #Hk' := Hk
+  iunfold kvStoreInvG at Hk'
+  icases Hk' with ⟨#Hm, -⟩
+  iunfold auSnap at HAU
+  iapply (hImg hSnap kv γ bk Pk qo R Q (fun σ => iprop(⌜σ = stAt log c⌝ ∗ wSt γs log c)))
+    $$ [HB Ho Hwb HR HAU]
+  · iframe #; iframe
+  iintro !> %sp %D ⟨Hsn, Ho, HR, HB, %HQD, %σ, %u, ⟨%Hσ, Hw⟩, #Him⟩
+  subst Hσ
+  iapply HΨ
+  iframe
+  isplitr
+  · ipureintro; exact HQD
+  isplitr
+  · ipureintro; exact Hre
+  iexists u
+  rw [show (stAt log c).log = log from rfl, show (stAt log c).crev = c from rfl]
+  iexact Him
+
+/-- **The merged snapshot's send** (`senderImage.law`, proved): `snapImageG` at the model's state
+`(kvModel A, crevOf A)`, the image certificate `dbImageA` from the client's observation
+(`dbImageA_of_send`). -/
+theorem senderImage_holds (Hp : persistent.law (GF := GF))
+    (Hr : mvccState_reachable.law (GF := GF)) : senderImage.law (GF := GF) := by
+  intro hSnap hImg _ kv γ γr γs i A B Pk qo R Q hQ hi
+  rw [kvStoreInv_eq]
+  haveI := kvStoreInvG_persistent Hp kv γ (kvNx γr false) (crevOk γr) γs
+  iintro %Ψ ⟨#Hpkg, #Hk, Hw, #Hlb, HB, Ho, Hwb, HR, #HQ⟩ HΨ
+  iapply (snapImageG Hp Hr hImg hSnap (kvNx γr false) (crevOk γr) kv γ γs (kvModel γr.kv A)
+    (crevOf γr.kv A) B Pk qo R Q) $$ [Hw HB Ho Hwb HR]
+  · iframe #; iframe
+  iintro !> %sp %D ⟨Hsn, Ho, HR, HB, Hw, %HQD, %Hre, %u, #Him⟩
+  iapply HΨ
+  iframe
+  iapply (dbImageA_of_send γr.raft γr.kv i D A u hi (hQ D HQD) Hre)
+  iframe Hlb Him
+
+end snap
+
 end srvApi
 end EtcdGrove
 end Perennial

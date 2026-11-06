@@ -226,41 +226,35 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [bk_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-open backend go_etcd_io.etcd.server.v3.storage in
-/-- **`D`'s parts the server's model fixes, besides the store's** (pure; `imageAt` without its
-`Key`-bucket/compaction-records and `IdxWf` conjuncts, which move into `mvccImage`): the stored
-consistent index `i`, some stored term, the other buckets the committed log's (`bkRestAt`). -/
-def imageRestAt (γk : KVNames) (bootLog : List EntryM) (i : w64) (L : List EntryModel) (D : Data) :
-    Prop :=
-  dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
-    (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
-    bkRestAt γk.c0 bootLog L D
+/-- **`D`'s parts the server's model fixes, besides the store's**: `InvImage.lean`'s
+`imageRestAt` (the draft's, moved there beside `dbImage`, 2026-11-06). -/
+abbrev imageRestAt (γk : KVNames) (bootLog : List EntryM) (i : w64) (L : List EntryModel)
+    (D : backend.Data) : Prop :=
+  EtcdGrove.imageRestAt γk bootLog i L D
 
-/-- **The image certificate, restated** (`dbImage`): `D` the image of the KV model of a committed
-prefix `A` ending at `i` (the store's part: `mvccImage`, its receipt inside, in place of
-`imageAt`'s `keyImageM`/records, `IdxWf` and the separate `⧖ (logCh (kvModel γk A))`), and the
-server's parts (`imageRestAt`). The sender makes it by `mvccImage_snapshot.law` at its update
-(`senderImage.law`, `dbImageA_of_send`): the state the apply thread's at `(kvModel γk A, crevOf γk
-A)` (its `wSt` and `kvApplied` at `A`), its observation `Q` (the stored index in the window, the
-tracked buckets' `restModel`: today's `srvBeSnapOk_window`, `bkRestAt_of_rb`); the receiver opens
-the snapshot backend with it (`dbImageA_open.law`). -/
-def dbImageA (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : backend.Data) : IProp GF :=
-  iprop(∃ (A : List EntryModel) (u : Bool), srvRLogLb γ A ∗
-    ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageRestAt γk γ.raft.boot i (γ.pre ++ A) D⌝ ∗
-    mvccImage D (kvModel γk A) (crevOf γk A) u)
+/-- **The image certificate, restated**: `InvImage.lean`'s `dbImage`, restated in place as the
+draft's `dbImageA` (2026-11-06): `D` the image of the KV model of a committed prefix `A` ending at
+`i` (the store's part: `mvccImage`, its receipt inside, in place of `imageAt`'s
+`keyImageM`/records, `IdxWf` and the separate `⧖ (logCh (kvModel γk A))`), and the server's parts
+(`imageRestAt`). The sender makes it by `mvccImage_snapshot.law` at its update
+(`SnapSendBranch.mergedCreate_window`, `merged_image`); the receiver opens the snapshot backend
+with it (`dbImageA_open.law`). -/
+abbrev dbImageA (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : backend.Data) : IProp GF :=
+  dbImage γ γk i D
 
 /-- **The sender's image, from the snapshot's** (proved; the step after `mvccImage_snapshot.law`):
 the image of the pinned state's history, with the server's parts the client's observation gave. -/
 theorem dbImageA_of_send (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : backend.Data)
     (A : List EntryModel) (u : Bool)
-    (hi : uint.Z i = uint.Z γ.ai0 + A.length) (hr : imageRestAt γk γ.raft.boot i (γ.pre ++ A) D) :
+    (hi : uint.Z i = uint.Z γ.ai0 + A.length) (hr : imageRestAt γk γ.raft.boot i (γ.pre ++ A) D)
+    (hre : imageStOk (kvModel γk A) (crevOf γk A)) :
     srvRLogLb (GF := GF) γ A ∗
       mvccImage D (kvModel γk A) (crevOf γk A) u ⊢ dbImageA γ γk i D := by
   iintro ⟨#Hlb, Him⟩
-  iunfold dbImageA
+  unfold dbImageA dbImage
   iexists A, u
   iframe Hlb Him
-  ipureintro; exact ⟨hi, hr⟩
+  ipureintro; exact ⟨hi, hr, hre⟩
 
 /-- **The merged snapshot's send** (`createMergedSnapshotMessage`'s `s.be.Snapshot()`, after
 `s.KV().Commit()`), derived from the API's `mvccImage_snapshot.law` (its `isMvcc` from `kvStoreInv`)
