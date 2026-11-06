@@ -1,0 +1,4 @@
+# Each axiom that returns holding an RWMutex reader slot, and the axiom that gives it back
+# (etc/reader-slot-check.py): the holder's spec takes a token, the closer's post returns it.
+bbolt.DB.Begin_kv            bbolt.Tx.Rollback_kv
+backend.backend.Snapshot     backend.snapshot.Close

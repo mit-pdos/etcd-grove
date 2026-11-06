@@ -1,0 +1,2 @@
+# Slot-holding axioms whose spec takes no token, each with why it is sound (etc/reader-slot-check.py).
+storage.OpenBackend  # paid: the slot is the read tx of the backend's batch tx, held by the run goroutine OpenBackend's newBackend forks; its fork token pays it, through every commit's re-begin (notes/axiom-review/begin-tok-restated.md, A9). Valid while backend.newBackend, run and unsafeCommit's proofs carry that flow (wp_fork_tok_self at `go b.run()`, the token into each Begin(false), Rollback_kv's token back).
