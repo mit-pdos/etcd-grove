@@ -70,8 +70,9 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proof
   · (try wp_auto)
     ihave %Hon := enabledVerdict_true_isOn E.authMode $$ Hb
     wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd)
-      $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hbnd, -⟩
+      $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hbnd, -⟩
     · iframe #
+    ihave #Herr := authApplyErrIs_apply _ $$ Herr0
     -- auth on here (`Hon`): the binding's gate open
     ihave #Hbnd : ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a $$ []
     · iapply Hbnd; ipureintro; exact Hon
