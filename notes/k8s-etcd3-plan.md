@@ -1220,6 +1220,21 @@ small step, since the store and client specs never mention the member.
   member after a blackhole. This is where the cluster setup pays most.
   - The test's watch behaviours (slow, stalled consumers) are orthogonal to it.
 
+#### The order with the ServeHTTP stage
+
+The user queued "gRPC over etcd's HTTP mux" (`ServeHTTP`) as the next stage after 7c (above, "Next
+stage after 7c"). The two stages are independent:
+- `cluster3` serves gRPC with `gs.Serve` on its insecure client listener (`cluster3.go:123`), as
+  `etcdstart` does (`common.go:200`). That is the path `grpcDecOk` covers, so the cluster stage
+  touches no `ServeHTTP` statement.
+- The ServeHTTP stage changes a trusted statement (`grpcDecOk`'s error branch under
+  `ServeHTTP`), and its closed results are about a TLS listener that no example uses yet.
+
+Recommended: cluster3 step 1 first, then the ServeHTTP stage, then cluster3 step 2. Step 1 is
+small and touches nothing trusted. ServeHTTP is a soundness-shaped gap that the user queued
+first, so it goes before the longer memory work of step 2. Once both have landed, a TLS variant of
+the cluster driver is a listener change in `clusterConfig`.
+
 #### Questions for the user
 
 - **Qc-1.** The two steps as above: step 1 lands alone, then step 2. Recommended: yes.
@@ -1229,6 +1244,8 @@ small step, since the store and client specs never mention the member.
   not a new package, as compactorp did. Recommended: yes.
 - **Qc-4.** Compaction off in both steps, with the compacted list case left to 7e's choice.
   Recommended: yes.
+- **Qc-5.** The order with the queued ServeHTTP stage: cluster3 step 1, then ServeHTTP, then
+  cluster3 step 2. Recommended: yes (they are independent; see "The order with the ServeHTTP stage").
 
 ## What blocks where
 
