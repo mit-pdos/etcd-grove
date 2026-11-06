@@ -460,6 +460,220 @@ theorem wp_osMkdirG (d b : GoString) (j : Ino) (hb : NameOk b) (R : Roots) (V : 
     · exact ⟨e, rfl, (metaPost_end hp).1, .inr ⟨he, (metaPost_end hp).2⟩⟩
 
 
+/-! ## `rename(2)` -/
+
+/-- What a rename of `d/bs` (`d` the directory `j`) to `d'/bt` (`d'` the directory `j'`) logs, the
+source naming `n`. -/
+def renameOp (R : Roots) (V : Hist) (j : Ino) (bs : GoString) (j' : Ino) (d' bt : GoString)
+    (n : Node) : MetaOp :=
+  .rename j bs j' bt n (lookupH R V (child d' bt))
+
+/-- What a rename leaves: the operation logged (on a failure, logged or not), the history unchanged
+(a rename of an entry to itself, or a failure). -/
+def RenamePost (V : Hist) (o : MetaOp) (e : w64) (V' : Hist) : Prop :=
+  (e = 0 ∧ V' = V.push ⟨o, V.2.length⟩) ∨
+  (e ≠ 0 ∧ (V' = V ∨ V' = V.push ⟨o, V.2.length⟩)) ∨
+  (e = 0 ∧ V' = V)
+
+theorem tokPair_inj [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] {k k' : Nat}
+    {a a' b b' : GoString}
+    (h : PairV (osTokV k') (PairV (#a') (#b')) = PairV (osTokV k) (PairV (#a) (#b))) :
+    k' = k ∧ a' = a ∧ b' = b := by
+  injection h with h1 h2
+  injection h2 with h3 h4
+  refine ⟨?_, go.intoVal_inj h3, go.intoVal_inj h4⟩
+  injection h1 with h1; exact extVal_inj h1
+
+theorem not_isUnder_child_self (d b : GoString) : ¬ IsUnder (child d b) d := by
+  intro h
+  rcases h with h | h
+  · have := congrArg List.length h; simp at this
+  · have := h.length_le; simp at this; omega
+
+theorem child_inj {d b b' : GoString} (h : child d b = child d b') : b = b' := by
+  have := List.append_cancel_left h; simpa using this
+
+/-- The rename's step from what the spec knows of the source's and target's directories. -/
+theorem renameOp_eq {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp : MetaPre st R V k s')
+    {d bs d' bt : GoString} {j j' : Ino} (hbs : NameOk bs) (hbt : NameOk bt)
+    (hd : st.lookup d = some (.dir j)) (hd' : st.lookup d' = some (.dir j')) {n : Node}
+    (hs : st.lookup (child d bs) = some n) {o : MetaOp}
+    (ho : RenameOp st (child d bs) (child d' bt) o) : o = renameOp R V j bs j' d' bt n := by
+  obtain ⟨js, bs', jt, bt', n', h1, h2, h3, rfl⟩ := ho
+  rw [parent_child hd hbs] at h1; rw [parent_child hd' hbt] at h2
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h1)
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h2)
+  rw [hs] at h3; cases h3
+  simp only [renameOp, ← lookup_pre hp]
+
+/-- **`rename(2)` of a file** `d/bs` (`d` the directory `j`) to `d'/bt` (`d'` the directory `j'`),
+which names no directory, by the call `k`, with the rest of the history. -/
+theorem wp_osRenameFileG (d bs d' bt : GoString) (j j' i : Ino) (hbs : NameOk bs) (hbt : NameOk bt)
+    (R : Roots) (V : Hist) (q1 q : Qp) (k s' : Nat) (hq : q1 + q = 1)
+    (hd : lookupH R V d = some (.dir j)) (hd' : lookupH R V d' = some (.dir j'))
+    (hs : lookupH R V (child d bs) = some (.file i))
+    (ht : ∀ J, lookupH R V (child d' bt) ≠ some (.dir J)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+      (∀ (e : w64) (V' : Hist), ⌜RenamePost V (renameOp R V j bs j' d' bt (.file i)) e V'⌝ -∗
+        osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rename"
+        (Val (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} := by
+  refine wp_metaStep "Rename" _ (by simp [val.isPanic]) R V q1 q k s' hq _ ?_ ?_ hE Φ
+  · intro st hp
+    have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
+    have hdd' : st.lookup d' = some (.dir j') := (lookup_pre hp d').trans hd'
+    exact ⟨_, st.metaEnd k, ⟨child d bs, child d' bt, k, s', rfl, treeName_child hdd hbs,
+      treeName_child hdd' hbt, by rw [hp.calls]; simp,
+      fun _ k'' s'' h => by rw [hp.calls] at h; simp at h; exact h.1.symm,
+      .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+  · intro st e' st' hp hst
+    have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
+    have hdd' : st.lookup d' = some (.dir j') := (lookup_pre hp d').trans hd'
+    have hss : st.lookup (child d bs) = some (.file i) := (lookup_pre hp _).trans hs
+    have hroots := hp.wf.roots
+    obtain ⟨htw, -, hlt⟩ := wf_tree hp.wf
+    obtain ⟨s0, t0, k', start, hv, -, -, hk', -, hres⟩ := hst
+    obtain ⟨rfl, rfl, rfl⟩ := tokPair_inj hv
+    obtain rfl := start_eq hp hk'
+    rcases hres with ⟨-, o, ho, hr⟩ | ⟨-, -, rfl, rfl⟩ | ⟨e, he, rfl, rfl⟩
+    · obtain rfl := renameOp_eq hp hbs hbt hdd hdd' hss ho
+      have hent : st.tree.entry j bs = some (.file i) := by
+        rw [← lookup_child hroots hdd hbs]; exact hss
+      have hnt : ∀ J, st.tree.entry j' bt ≠ some (.dir J) := fun J => by
+        rw [← lookup_child hroots hdd' hbt, lookup_pre hp]; exact ht J
+      have hpost := metaPost_doEnd hp (renameOp R V j bs j' d' bt (.file i))
+        (treeWf_renameFile htw (reach_of_lookup hdd) (reach_of_lookup hdd') hbt hent hnt _ _)
+        (named_rename _ _ _ _ _ _ _)
+        (fun x hx => by
+          rcases mem_rename _ _ _ _ _ _ _ _ hx with rfl | rfl | hx
+          · exact hlt _ (mem_of_reach htw (reach_of_lookup hdd))
+          · exact hlt _ (mem_of_reach htw (reach_of_lookup hdd'))
+          · exact hlt _ hx)
+      rcases hr with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl | rfl⟩
+      · exact ⟨0, rfl, hpost.1, .inl ⟨rfl, hpost.2⟩⟩
+      · exact ⟨e, rfl, (metaPost_end hp).1, .inr (.inl ⟨he, .inl (metaPost_end hp).2⟩)⟩
+      · exact ⟨e, rfl, hpost.1, .inr (.inl ⟨he, .inr hpost.2⟩)⟩
+    · exact ⟨0, rfl, (metaPost_end hp).1, .inr (.inr ⟨rfl, (metaPost_end hp).2⟩)⟩
+    · exact ⟨e, rfl, (metaPost_end hp).1, .inr (.inl ⟨he, .inl (metaPost_end hp).2⟩)⟩
+
+/-- What a directory's rename leaves: the operation logged (on a failure, logged or not). -/
+def RenameDirPost (V : Hist) (o : MetaOp) (e : w64) (V' : Hist) : Prop :=
+  (e = 0 ∧ V' = V.push ⟨o, V.2.length⟩) ∨ (e ≠ 0 ∧ (V' = V ∨ V' = V.push ⟨o, V.2.length⟩))
+
+/-- **`rename(2)` of a directory** `d/bs` (`d` the directory `j`; the source the directory `J`) to
+`d/bt`, absent, by the call `k`, with the rest of the history (so no other call is in flight). -/
+theorem wp_osRenameDirG (d bs bt : GoString) (j J : Ino) (hbs : NameOk bs) (hbt : NameOk bt)
+    (hne : bs ≠ bt) (R : Roots) (V : Hist) (q1 q : Qp) (k s' : Nat) (hq : q1 + q = 1)
+    (hd : lookupH R V d = some (.dir j)) (hs : lookupH R V (child d bs) = some (.dir J))
+    (ht : lookupH R V (child d bt) = none) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+      (∀ (e : w64) (V' : Hist), ⌜RenameDirPost V (.rename j bs j bt (.dir J) none) e V'⌝ -∗
+        osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rename"
+        (Val (PairV (osTokV k) (PairV (#(child d bs)) (#(child d bt)))))) @ s; E {{ Φ }} := by
+  refine wp_metaStep "Rename" _ (by simp [val.isPanic]) R V q1 q k s' hq _ ?_ ?_ hE Φ
+  · intro st hp
+    have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
+    exact ⟨_, st.metaEnd k, ⟨child d bs, child d bt, k, s', rfl, treeName_child hdd hbs,
+      treeName_child hdd hbt, by rw [hp.calls]; simp,
+      fun _ k'' s'' h => by rw [hp.calls] at h; simp at h; exact h.1.symm,
+      .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+  · intro st e' st' hp hst
+    have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
+    have hss : st.lookup (child d bs) = some (.dir J) := (lookup_pre hp _).trans hs
+    have htt : st.lookup (child d bt) = none := (lookup_pre hp _).trans ht
+    have hroots := hp.wf.roots
+    obtain ⟨htw, -, hlt⟩ := wf_tree hp.wf
+    obtain ⟨s0, t0, k', start, hv, -, -, hk', -, hres⟩ := hst
+    obtain ⟨rfl, rfl, rfl⟩ := tokPair_inj hv
+    obtain rfl := start_eq hp hk'
+    rcases hres with ⟨-, o, ho, hr⟩ | ⟨hst', -, -, -⟩ | ⟨e, he, rfl, rfl⟩
+    · have ho' := renameOp_eq hp hbs hbt hdd hdd hss ho
+      simp only [renameOp, ht] at ho'
+      subst ho'
+      have hent : st.tree.entry j bs = some (.dir J) := by
+        rw [← lookup_child hroots hdd hbs]; exact hss
+      have hnt : st.tree.entry j bt = none := by rw [← lookup_child hroots hdd hbt]; exact htt
+      have hnot : ¬ BelowP st.tree J j := fun hb =>
+        not_isUnder_child_self d bs (isUnder_of_belowP hroots htw hss hdd hb)
+      have hpost := metaPost_doEnd hp (.rename j bs j bt (.dir J) none)
+        (treeWf_renameDir htw (reach_of_lookup hdd) (reach_of_lookup hdd) hbt hent
+          (fun h => hne h.2) (.inl hnt) hnot _ _)
+        (named_rename _ _ _ _ _ _ _)
+        (fun x hx => by
+          rcases mem_rename _ _ _ _ _ _ _ _ hx with rfl | rfl | hx
+          · exact hlt _ (mem_of_reach htw (reach_of_lookup hdd))
+          · exact hlt _ (mem_of_reach htw (reach_of_lookup hdd))
+          · exact hlt _ hx)
+      rcases hr with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl | rfl⟩
+      · exact ⟨0, rfl, hpost.1, .inl ⟨rfl, hpost.2⟩⟩
+      · exact ⟨e, rfl, (metaPost_end hp).1, .inr ⟨he, .inl (metaPost_end hp).2⟩⟩
+      · exact ⟨e, rfl, hpost.1, .inr ⟨he, .inr hpost.2⟩⟩
+    · exact absurd (child_inj hst') hne
+    · exact ⟨e, rfl, (metaPost_end hp).1, .inr ⟨he, .inl (metaPost_end hp).2⟩⟩
+
+/-- **`rename(2)` of an absent source** `d/bs` (the retry of a rename that moved it) to `d'/bt`, by
+the call `k`, with the rest of the history: it fails, unchanged. -/
+theorem wp_osRenameAbsentG (d bs d' bt : GoString) (j j' : Ino) (hbs : NameOk bs) (hbt : NameOk bt)
+    (R : Roots) (V : Hist) (q1 q : Qp) (k s' : Nat) (hq : q1 + q = 1)
+    (hd : lookupH R V d = some (.dir j)) (hd' : lookupH R V d' = some (.dir j'))
+    (hs : lookupH R V (child d bs) = none) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+      (∀ (e : w64), ⌜e ≠ 0⌝ -∗ osTree (L := L) (DFrac.own 1) R V -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rename"
+        (Val (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} := by
+  have hprog : ∀ st, MetaPre st R V k s' → ∃ e' st',
+      IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st e' st' ∧
+        FilesSame st st' := by
+    intro st hp
+    have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
+    have hdd' : st.lookup d' = some (.dir j') := (lookup_pre hp d').trans hd'
+    exact ⟨_, st.metaEnd k, ⟨child d bs, child d' bt, k, s', rfl, treeName_child hdd hbs,
+      treeName_child hdd' hbt, by rw [hp.calls]; simp,
+      fun _ k'' s'' h => by rw [hp.calls] at h; simp at h; exact h.1.symm,
+      .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+  have hpost : ∀ st e' st', MetaPre st R V k s' →
+      IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st e' st' →
+      ∃ e : w64, e' = Val (#e) ∧ MetaPost st st' ∧
+        (fun (e : w64) (V' : Hist) => e ≠ 0 ∧ V' = V) e (st'.fs.treeDur, st'.fs.metaLog) := by
+    intro st e' st' hp hst
+    have hss : st.lookup (child d bs) = none := (lookup_pre hp _).trans hs
+    obtain ⟨s0, t0, k', start, hv, -, -, hk', -, hres⟩ := hst
+    obtain ⟨rfl, rfl, rfl⟩ := tokPair_inj hv
+    obtain rfl := start_eq hp hk'
+    rcases hres with ⟨hok, -⟩ | ⟨-, hn, -, -⟩ | ⟨e, he, rfl, rfl⟩
+    · obtain ⟨-, -, -, hm⟩ := hok
+      rw [hss] at hm; exact hm.elim
+    · exact absurd hss hn
+    · exact ⟨e, rfl, (metaPost_end hp).1, he, (metaPost_end hp).2⟩
+  iintro #Hinv Hh Hk HΦ
+  iapply wp_metaStep "Rename" _ (by simp [val.isPanic]) R V q1 q k s' hq
+    (fun e V' => e ≠ 0 ∧ V' = V) hprog hpost hE Φ $$ Hinv Hh Hk
+  iintro %e %V' %hQ HV
+  obtain ⟨he, rfl⟩ := hQ
+  iapply HΦ $$ %e %he HV
+
+/-- **The entries after a directory's rename** in its directory `j`, onto an absent name: the
+directory at the new name, nothing at the old, every other entry as it was. -/
+theorem renameDir_entries (m : Tree) (j : Ino) (bs bt : GoString) (J : Ino) (hne : bs ≠ bt)
+    (hs : m.entry j bs = some (.dir J)) (x : Ino) (c : GoString) :
+    ((MetaOp.rename j bs j bt (.dir J) none).apply m).entry x c =
+      if x = j ∧ c = bt then some (.dir J) else if x = j ∧ c = bs then none else m.entry x c := by
+  simp only [MetaOp.apply, hs]
+  rw [entry_upd]
+  by_cases hx : j = x
+  · subst hx
+    simp only [if_pos rfl, Tree.upd, GMap.lookup_insert, Option.getD_some, true_and]
+    by_cases hc : bt = c
+    · subst hc; simp
+    · rw [GMap.lookup_insert_ne _ _ hc, if_neg (Ne.symm hc)]
+      by_cases hc' : bs = c
+      · subst hc'; simp
+      · rw [GMap.lookup_delete_ne _ hc', if_neg (Ne.symm hc'), getD_lookup]; rfl
+  · rw [if_neg hx, entry_upd, if_neg hx]
+    simp [Ne.symm hx]
+
+
 end specs
 
 end Fs
