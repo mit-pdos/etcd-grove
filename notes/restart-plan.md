@@ -3797,3 +3797,21 @@ closed theorem carries none. At a first start each is proved or vacuous.
 `T > t0`: it led at `T`, and leading needs `becomeCandidate` at a term above `t0` (`raft.go:902-911`,
 `r.reset(r.Term + 1)` from at least `T₀`), so `T ≥ t0 + 1`. The step-down (`becomeFollower`'s
 `reset`) does not clear `r.msgs`, which is why the bound is per message, not per role.
+
+#### R2d'a A10 item 4 / task B: DRAFT `run.wp_proofR` (2026-11-06; DRAFT, one `sorry`)
+
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/RunRestart.lean` (new; no closed theorem imports it):
+`isServerRunCR` (`isServerRunC` with `%HEr`, `Hsnap`, `Hstart` replaced by A9's `srvRunRestartR`; the
+hub is untouched, Q20), `EtcdServer.run.specR` and `EtcdServer.run.wp_proofR`, the proof generated from
+`run.wp_proofG`'s text and adapted:
+- start: `srvRunRestartR` unfolded, `srvSnapBagN s γn` built from the member-id cell and γn's bag,
+  `Hwpend` opened (`token γwp`, its □ wand), `rnLoopTok_restartOk` before `hRS`, the loop resources
+  from `applyResR_start … ⟨0, A₀⟩`;
+- the loop invariant: `applyResR C ctx ⟨0, A₀⟩ A ∗ nodeRunning … ∗ token γwp`, and `#HlbA :
+  srvRLogLb ρ.raft A` (Go's handed log committed, for the stop inside the window);
+- batch arm: `run_job_bodyR hAB … (token γwp)` (the token is the `T` frame of `winNoMergedSendR`),
+  `#Hwnm` from `Hwpend`'s wand;
+- stop arm: inside the window (`A.length < A₀.length`) `stop_splitR`, `raftNode.stop.spec` (unchanged),
+  `rnRestartOk_commit`, `stopCleanupImageR.spec` (`hClR`); past it `applyResR_past` and the frozen path;
+- **the one `sorry`: the snapshot arm** (`RunRestart.lean`, `rotate_left` after `rnApplyTok_recv`),
+  closed by task 4 (`applyAll.specSnapMR` over the ids-only `clusterImageOk_restModel`).
