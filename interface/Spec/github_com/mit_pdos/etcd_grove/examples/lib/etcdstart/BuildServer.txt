@@ -109,8 +109,7 @@ def etcdstart.BuildServer.specRestart : Prop :=
                                                         ∃ ρ' E₀',
                                                           ⌜restartNames ρ ρ'⌝ ∗
                                                             etcdstart.memberBuiltR s ρ' E₀' lg γn id N false ∗
-                                                              srvDataDir s (name ++ go!".etcd") ∗
-                                                                ∃ cfg E γrn γk, srvStop.keep s cfg E γrn γk) -∗
+                                                              srvDataDir s (name ++ go!".etcd")) -∗
                                                   Φ (intoVal s, intoVal err)) -∗
                                             WP
                                               (((((((((intoVal

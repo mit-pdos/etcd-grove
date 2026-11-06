@@ -38,9 +38,7 @@ def Start_builtR_spec : Prop :=
   ∀ (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64)
     (N : Nat) (sv : Bool) (dd : GoString) [ReceiptBoundLe GF (N + 1)],
     ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-          memberBuiltR s ρ E₀ lg γn id N sv ∗ srvDataDir s dd ∗
-          (∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (E : apply.AEnv GF)
-            (γrn : RNNames) (γk : GName), srvStop.keep s cfg E γrn γk) ∗ threadTok }}
+          memberBuiltR s ρ E₀ lg γn id N sv ∗ srvDataDir s dd ∗ threadTok }}
         (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
       {{ RET #(); memberUp s ρ E₀ lg γn id }}
 

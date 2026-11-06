@@ -204,6 +204,12 @@ def etcdstart.httpURL (host : GoString) : net.url.URL :=
   { Scheme' := go!"http", Opaque' := [], User' := null, Host' := host, Path' := [], Fragment' := [],
     RawQuery' := [], RawPath' := [], RawFragment' := [], ForceQuery' := false, OmitHost' := false }
 
+theorem etcdstart.memberUp_stop [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (ρ : ReqNames) (E₀ :
+    apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (m : lease.Mode) : etcdstart.memberUp s
+    ρ E₀ lg γn id m ⊢ (∃ E γw, isServerReq s E { wait := γw, rd := ρ.rd } ∗ srvGoRes s) ∗ ∃ E dd,
+    srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ ⌜E.authOn = false ∧ E.cmp = E₀.cmp⌝ ∗ srvStopReaders E
+
 def etcdstart.srvPeerCtl (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
   iprop(∃ τ, srvNetMember γn s id τ ∗ srvTrTok γn τ)
 

@@ -158,7 +158,7 @@ theorem startMember.wp_proofRestart
       ps bootLog ctxs dir id γ ρ γn HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hrr] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, #Hsr, Hkeep⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, #Hsr⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -206,8 +206,8 @@ theorem startMember.wp_proofRestart
   (try wp_auto)
   -- `s.Start()`
   wp_apply (wp_StartR s ρ' E₀ lg γn id N true (name ++ go!".etcd"))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hkeep] as Hup
-  · iframe Htok Hsr Hkeep
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
+  · iframe Htok Hsr
     iframe #
     iunfold etcdstart.memberBuiltR
     iexists ai₀, at₀, c₀, x₀

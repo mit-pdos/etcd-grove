@@ -172,6 +172,17 @@ def srvBootApplied (ρ : ReqNames) : IProp GF :=
 instance srvBootApplied_persistent (ρ : ReqNames) : Persistent (srvBootApplied (GF := GF) ρ) := by
   unfold srvBootApplied; infer_instance
 
+/-- **The boot evidence from an applied index** (R2c review F4): an index the server applied at
+least, past the bootstrap log. -/
+theorem srvBootApplied_of_applied (ρ : ReqNames) (v : w64)
+    (h : ρ.rd.raft.raft.boot.length ≤ uint.nat v) :
+    appliedAtLeast ρ.rd v ⊢ srvBootApplied (GF := GF) ρ := by
+  unfold srvBootApplied
+  iintro H
+  iexists v
+  iframe H
+  ipureintro; exact h
+
 /-- A reader's view of the server holds the applied index's invariant (`AppliedIndex()`'s
 premise). -/
 theorem isServerRead_applied (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -233,6 +244,16 @@ registry `start` makes (R2c-4). -/
 theorem srvStopReq_wait (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (w : GName) (dd : GoString) :
     srvStopReq (GF := GF) s E { ρ with wait := w } dd = srvStopReq s E ρ dd := rfl
 
+/-- **A stop request made** (R2c review F4): the boot evidence, the scope, the data directory and
+the serving readers. -/
+theorem srvStopReq_intro (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString)
+    (hsc : srvStop.scope E) :
+    srvBootApplied ρ ∗ srvDataDir s dd ∗ srvStopReaders E ⊢ srvStopReq (GF := GF) s E ρ dd := by
+  unfold srvStopReq
+  iintro ⟨#Hb, #Hdd, Hr⟩
+  iframe Hb Hdd Hr
+  ipureintro; exact hsc
+
 /-- The escrow names only the request names' read side (`ρ.rd`) (R2c-4). -/
 theorem srvDoneInv_wait (γ : SrvRaft) (ρ : ReqNames) (w : GName) (id : w64) (dd : GoString)
     (c : GName) : srvDoneInv (GF := GF) γ { ρ with wait := w } id dd c = srvDoneInv γ ρ id dd c :=
@@ -244,8 +265,10 @@ then the request carried `srvBootApplied ρ` only; `run` receives it), and
 `s.done`, whose close announces the image escrowed for the claim `c` (`srvDoneInv`), with the claim.
 `start` makes both channels, so `Start` gives the right (R2b-2: until then `NewServer`, in the
 draft). The data directory `dd` is the configuration's `DataDir` (R2c review F2; R2c-2: the right
-records the field, so that a holder who knows the directory, `srvDataDir`, learns `dd`). -/
-def srvStopRight (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
+records the field, so that a holder who knows the directory, `srvDataDir`, learns `dd`). Sealed (R2c
+review F5, 2026-11-06): a client sees the name and its laws (`srvStopRight_dd`); `start` makes it
+(`srvStopRight_intro`) and `HardStop` opens it (`srvStopRight_open`). -/
+@[no_expose] def srvStopRight (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
     (dd : GoString) : IProp GF :=
   iprop(∃ (stc dnc : Loc) (γst γd : ChanNames) (c : GName),
     srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvStopReq s E ρ dd) ∗
@@ -264,6 +287,33 @@ theorem srvStopRight_dd (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNa
   · ipureintro; exact Heq
   iexists stc, dnc, γst, γd, c
   iframe Hs Hb Hd Hdn Hc Hdd
+
+/-- **The stop right made** (`start`'s proof; R2c review F5): the two channels at the stop request
+and the escrow, the claim and the configuration's data directory field. -/
+theorem srvStopRight_intro (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
+    (dd : GoString) (stc dnc : Loc) (γst γd : ChanNames) (c : GName) :
+    srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvStopReq s E ρ dd) ∗
+      srvDoneAddr s ↦□ dnc ∗ ownBroadcastChan dnc γd (srvDoneInv γ ρ id dd c) .Unknown ∗
+      token c ∗ srvCfgFieldAddr s go!"DataDir" ↦□ dd ⊢
+    srvStopRight (GF := GF) s E γ ρ id dd := by
+  unfold srvStopRight
+  iintro ⟨#Hs, #Hb, #Hd, Hdn, Hc, #Hdd⟩
+  iexists stc, dnc, γst, γd, c
+  iframe Hs Hb Hd Hdn Hc Hdd
+
+/-- **The stop right opened** (`HardStop`'s proof; R2c review F5): the stop channel to send the
+request on, the `done` channel and the claim on its escrow. -/
+theorem srvStopRight_open (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
+    (dd : GoString) :
+    srvStopRight (GF := GF) s E γ ρ id dd ⊢
+      ∃ (stc dnc : Loc) (γst γd : ChanNames) (c : GName),
+        srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvStopReq s E ρ dd) ∗
+        srvDoneAddr s ↦□ dnc ∗ ownBroadcastChan dnc γd (srvDoneInv γ ρ id dd c) .Unknown ∗
+        token c := by
+  unfold srvStopRight
+  iintro ⟨%stc, %dnc, %γst, %γd, %c, #Hs, #Hb, #Hd, Hdn, Hc, -⟩
+  iexists stc, dnc, γst, γd, c
+  iframe Hs Hb Hd Hdn Hc
 
 /-- (R2b-2's draft; defined 2026-11-05, R2b-3d stage 5b) **What `Cleanup` closes besides the apply
 thread's resources**: the server's auth store with its `Close` (`authCloseOk`, `NewAuthStore`'s

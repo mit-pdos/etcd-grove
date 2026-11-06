@@ -212,8 +212,7 @@ theorem EtcdServer.start.wp_proof
   ihave Hright : iprop(∃ dd : GoString, srvStopRight (GF := GF) s E ρ.rd.raft.raft ρ γn.id dd)
       $$ [Hcs]
   · iexists cfgk.DataDir'
-    iunfold srvStopRight
-    iexists stc, dch, γst, γd, cs
+    iapply srvStopRight_intro s E ρ.rd.raft.raft ρ γn.id cfgk.DataDir' stc dch γst γd cs
     iframe Hcs
     iframe #
   -- the stop's slot, for `run`'s shutdown

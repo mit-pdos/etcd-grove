@@ -477,7 +477,7 @@ schedule_job__Do:
 schedule_NewJob: schedule_job__Do
 schedule_Scheduler__Schedule:
 schedule_Scheduler__Stop:
-EtcdServer__run: schedule_Scheduler__Stop =raftNode.stop.wp_proofStop EtcdServer__Cleanup storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule
+EtcdServer__run: schedule_Scheduler__Stop raftNode__stop EtcdServer__Cleanup storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule
 # The server's `start` and `Start` (server.go; the request path's unit 4c, see InvStart.lean):
 # `start` with its body (the registries, the channels, the context, the read loop's `*Read`, the
 # leader-change notifier, `GoAttach`'s protocol, `go s.run()`); `Start` with its body (`start`,

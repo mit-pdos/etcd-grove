@@ -850,7 +850,7 @@ thread's token (which `stopped` brings), the loop's view half and its token, the
 view's durable state (the loop's own, `raftState`), between whose base and commit the handed log
 ends. The invariant is left in its taken state.
 
-(Round 3 review M2, still open for `raftNode.stop.specStop`: the order is at the view's handed log
+(Round 3 review M2, still open for `raftNode.stop.spec`: the order is at the view's handed log
 `v.l`, the stop's post at the apply side's `pre ++ A` (`rnApplyTok γ A`); equating them needs every
 sent batch received.) -/
 theorem rnDur_take (ν : WalNames) (w : Loc) (v : WalView) (hp : v.pend = none) :

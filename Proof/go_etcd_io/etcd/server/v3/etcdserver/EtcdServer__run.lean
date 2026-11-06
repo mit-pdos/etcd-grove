@@ -738,7 +738,7 @@ stage 2c, 2026-11-04): the loop's resources `applyResC C`, the jobs over `applyA
 (`run_job_body`, `run_job_snapC`). -/
 theorem EtcdServer.run.wp_proofG
     (hSStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
-    (hRStop : raftNode.stop.specStop (GF := GF) (hG := hG))
+    (hRStop : raftNode.stop.spec (GF := GF) (hG := hG))
     (hCl : stopCleanupImage.spec (GF := GF) (hG := hG))
     (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
@@ -1356,8 +1356,8 @@ theorem EtcdServer.run.wp_proofG
     inext
     iintro %err Hf
     iexfalso; iexact Hf
-  -- `<-s.stop`: nothing is sent on it (D19m: no `Stop`/`HardStop` in the runs covered); so `run`
-  -- never returns, and its deferred shutdown (`Cleanup` among it) is never reached
+  -- `<-s.stop`: a stop request (`srvStopReq`, `HardStop`'s; R2c-4: until then nothing was sent on
+  -- it, D19m): `run` returns, and its deferred shutdown runs (below)
   iapply BigAndL.bigAndL_cons.2
   isplit
   · icases Hscb with ⟨%γst, #Hstb⟩
@@ -1460,7 +1460,7 @@ theorem EtcdServer.run.wp_proofG
 /-- `run.spec`: `wp_proofG` over `Cleanup`'s and the image's callees (`stop_cleanup_image`). -/
 theorem EtcdServer.run.wp_proof
     (hSStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
-    (hRStop : raftNode.stop.specStop (GF := GF) (hG := hG))
+    (hRStop : raftNode.stop.spec (GF := GF) (hG := hG))
     (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))

@@ -1927,6 +1927,15 @@ reaches the three axioms of the image's configuration (`apply.memberKey_inj`,
 `lease.lessor.Stop.wp_proof`. The bounds gate
 holds (`srvStopReaders`, the stop's owner's name for the readers' count).
 
+**Review round 1 (2026-11-06, a fresh `spec-reviewer`, `/shared/tmp/r2c-review.md`):**
+- F1: the R2d drafts no longer duplicate the slot.
+- F2: `raftNode.stop` has one spec.
+- F3: the stop's scope restriction is stated: only a member that never served gRPC can be stopped.
+- F4: clients use laws, not unfolds.
+- F5: `srvStopRight` is sealed.
+- F6-F8: docstrings.
+
+Details are in `notes/decisions.md`, "The stop chain for a first start".
+
 **Left (R2d):** a restarted member's `run`, `Start_builtR_spec`, `BuildServer.specRestart`,
-`startMember.specRestart`, Q8, Q9. `raftNode.stop` keeps two specs (`spec`, which `run` no longer
-uses, and `specStop`). Next: a fresh `spec-reviewer` on the stop chain, then the Freeze.
+`startMember.specRestart`, Q8, Q9.

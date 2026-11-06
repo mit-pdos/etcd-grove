@@ -22,23 +22,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `r.stop()`, from any goroutine, with the right to stop the transport (`E.ST`, which it sends on
-`stopped` to the loop's `onStop`; D43 M5c): returns once `done` is closed. -/
-abbrev raftNode.stop.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
-      E.ST ∗
-      -- (2026-10-30, the repair) the apply side's half of the node's running token, which
-      -- `stopped` carries to the loop (`rnStopBag`)
-      (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
-      -- (2026-10-31) and its share of the WAL (2026-11-03, R2b-1 stage 6: with its token), for
-      -- `onStop`'s `Close`
-      rnWalTokA γ r (1 : Qp).half }}
-    (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
-  {{ RET #(); True }}
-
 /-- (R2b-1/R2b-2, 2026-11-02; `notes/restart-plan.md`, "R2b: the stop") **`r.stop()` at
-the server's stop**: `spec`'s, with the claim on the loop's stop escrow (`rnStopClaim`) and the
+the server's stop** (R2c review F2, 2026-11-06: the one spec; until then `specStop`, beside a
+`spec` without the claim and the image, which only the `run.spec` R2c-4 removed used): from any
+goroutine, with the right to stop the transport (`E.ST`, which it sends on `stopped` to the loop's
+`onStop`; D43 M5c), the apply side's half of the node's running token (`rnStopBag`) and its share of
+the WAL with its token (`rnWalTokA`, for `onStop`'s `Close`), with the claim on the loop's stop escrow (`rnStopClaim`) and the
 apply side's token at the committed log `A` handed to it (`rnApplyTok`, `run`'s once the scheduler
 has run every job), giving back what the loop's `onStop` left: the node's id vacant (`node.Stop`'s
 `nodeVacant`), its durable state `S` (`raftState`) and the WAL closed with records `σ` holding it
@@ -54,7 +43,7 @@ the records hold the durable state at every stop exit; `applyc` is synchronous, 
 loop handed is the apply side's `A` (review M2). The image's order is at the backend's consistent
 index, which equals `|pre ++ A|` once every job ran and the backend's last commit saved the index:
 R2b-3c's. -/
-abbrev raftNode.stop.specStop : Prop :=
+abbrev raftNode.stop.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc) (A : List EntryModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
       E.ST ∗

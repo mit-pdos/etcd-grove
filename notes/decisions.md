@@ -32360,5 +32360,21 @@ scope, the 128 readers), split off `memberUp` by `memberUp_stopRes` out of compa
 them, and no linked result reached it. The global baseline and 14 collections are updated (the
 collections also gain `lease.lessor.Stop.wp_proof`, which the shutdown uses).
 
-**Left.** R2d (a restarted member's `run`, `Start_builtR_spec`, `BuildServer.specRestart`);
-`raftNode.stop` still has two specs (`spec`, now unused by `run`, and `specStop`).
+**A scope restriction (the review's F3).** The stop request takes back the store readers of the
+serving stocks (`srvStopReaders`). Only a member that never served gRPC can give them: once a
+member serves, its stocks go to `Serve`, and no spec gives them back (there is no `grpc.Server.Stop`
+spec). So until a gRPC `Stop` spec exists, only such a member can be stopped. That is `restart3`'s
+case: its stopped member never serves. `HardStop.spec`'s header states this.
+
+**Review round 1 (2026-11-06, a fresh `spec-reviewer`).**
+- F1: `BuildServer.specRestart`'s post and `Start_builtR_spec`'s pre lose their second copy of the
+  slot. Since R2c-3 the slot is inside `memberBuiltR`, and two copies would allow a double
+  `lessor.Stop`, a panic in Go.
+- F2: `raftNode.stop` has one spec, the former `specStop`.
+- F3/F4: the client unfolds of the stop's definitions are replaced by laws: `srvStopReaders_intro`,
+  `srvStop.slot_intro`, `srvStopReq_intro`, `srvBootApplied_of_applied` and
+  `etcdstart.memberUp_stop`.
+- F5: `srvStopRight` is sealed.
+- F6-F8: docstrings.
+
+**Left.** R2d (a restarted member's `run`, `Start_builtR_spec`, `BuildServer.specRestart`).

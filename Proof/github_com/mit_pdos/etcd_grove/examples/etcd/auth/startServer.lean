@@ -178,9 +178,9 @@ theorem startServer.wp_proof
   rw [isServerBuiltM_true] at hB
   ihave Hsb := hB.1 $$ [Hsb Hkeep]
   · iframe Hsb
-    iunfold srvStop.slot
-    iexists _, γk
-    iframe Hkeep
+    iapply srvStop.slot_intro
+    isplitl [Hkeep]
+    · iexact Hkeep
     ipureintro; rw [hEr]; rfl
   ihave #HLnil := hL.2 $$ HLnil
   have h' := wp_Start srv γA ci TM (.on γa) E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N

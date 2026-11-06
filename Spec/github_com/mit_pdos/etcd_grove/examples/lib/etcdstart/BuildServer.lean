@@ -115,10 +115,7 @@ abbrev BuildServer.specRestart : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
-          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd") ∗
-          -- (R2d's: inside `memberBuiltR`, at its names, as `memberBuiltS`)
-          ∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (E : apply.AEnv GF)
-            (γrn : RNNames) (γk : GName), srvStop.keep s cfg E γrn γk) }}
+          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd")) }}
 
 end spec
 

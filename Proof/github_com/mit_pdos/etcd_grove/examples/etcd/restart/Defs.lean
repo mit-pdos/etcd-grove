@@ -13,9 +13,11 @@ one stopped), its restart case (`etcdstart.bootPremiseR`, R2c); `proto.Marshal`'
 bootstrap log (`bootMarshal`); the members' shared premises (`etcdstart.commonPremises`).
 
 **A stoppable member** (`memberStop`): what `startMember` returns besides the started member
-(`etcdstart.memberUp`) and `stop` takes: the `member` record, the right to stop its server
-(`srvStopRight`, R2b), and the right to close its peer listener
-(`http.httpListenerCloser`, the draft boundary of `Proof/net/http/ListenerClose.lean`).
+(`etcdstart.memberUp`) and `stop` takes: the `member` record, its server's data directory
+(`srvDataDir`), and the right to close its peer listener (`http.httpListenerCloser`, the draft
+boundary of `Proof/net/http/ListenerClose.lean`). The right to stop its server is in `memberUp`
+(R2c-4); what the stop takes of the started member (the right, the stop's scope, the unused serving
+readers) is `memberStopRes`, split off `memberUp` by `memberUp_stopRes`.
 -/
 module
 
@@ -131,13 +133,12 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64)
   unfold premises; infer_instance
 
 /-- **A stoppable member** (DRAFT; see the file header): the `member` record at `m` (its server
-`s`, its peer listener `pl`), the right to stop `s` once started, at the request names `ρ`, and
-the right to close `pl`, served at `peerAddr` with member `id`'s raft protocol in the network `γn`;
-(R2b-2, 2026-11-02) the raft names `ρ` records the cluster's `γ`, and the applied index's
-invariant (`srvAppliedInv`, `AppliedIndex()`'s premise: `stop` waits on it until the bootstrap log
-is applied); (R2c-2, 2026-11-05) with the right, what the stop request carries besides
-(`srvStopReq`): the server's apply environment in the stop's scope (`srvStop.scope`: auth off, no
-compaction mode; the member was built so) and the data directory `dd` (`srvDataDir`). -/
+`s`, its peer listener `pl`), the server's data directory `dd` (`srvDataDir`, which the stop
+request carries), and the right to close `pl`, served at `peerAddr` with member `id`'s raft
+protocol in the network `γn`; (R2b-2, 2026-11-02) the raft names `ρ` record the cluster's `γ`, and
+the applied index's invariant (`srvAppliedInv`, `AppliedIndex()`'s premise: `stop` waits on it until
+the bootstrap log is applied). (R2c-4, 2026-11-05: the right to stop `s`, with the stop's scope, is
+no longer here: it is `memberStopRes`'s, out of `memberUp`.) -/
 def memberStop (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
     (γn : NetNames GF) (ρ : ReqNames) (dd : GoString) : IProp GF :=
   iprop(m ↦ (github_com.mit_pdos.etcd_grove.examples.etcd.restart.member.mk s pl) ∗
@@ -162,27 +163,12 @@ theorem memberUp_stopRes (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
       (∃ (E : apply.AEnv GF) (γw : GName), isServerReq s E { ρ with wait := γw } ∗ srvGoRes s) ∗
         memberStopRes s ρ id := by
   iintro Hup
-  iunfold etcdstart.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, -, Hgo, -, -, -, -, -, -, -, -, Hsts, -, -, HWR, -,
-    %dd, Hr⟩
-  isplitl [Hgo]
-  · iexists E, γw
-    iframe Hreq Hgo
+  icases etcdstart.memberUp_stop s ρ E₀ lg γn id .none $$ Hup with ⟨Hl, %E, %dd, Hr, %hsc, Hrd⟩
+  iframe Hl
   iunfold memberStopRes
   iexists E, dd
-  iframe Hr
-  isplitr
-  · ipureintro; exact ⟨HEc.2.1, by rw [HEc.1.2.2.2.1, hcmp]⟩
-  unfold srvStopReaders
-  rw [← List.replicate_append_replicate]
-  iapply BigSepL.bigSepL_append.2
-  iframe Hsts
-  iunfold srvWatchReaders at HWR
-  icases HWR with ⟨%wsl, %γws, -, -, %Hst, -, -, Hws⟩
-  rw [← Hst]
-  iapply BigSepL.bigSepL_impl $$ Hws
-  iintro !> %k %x %_ H
-  iapply mvcc.watchReader_storeReader $$ H
+  iframe Hr Hrd
+  ipureintro; exact ⟨hsc.1, by rw [hsc.2, hcmp]⟩
 
 /-- A started member's applied index's invariant (from its reader's view, `isServerRead`). -/
 theorem memberUp_applied (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)

@@ -1808,7 +1808,7 @@ the stop image's `srvFiles` is made of (R2b-3c). -/
 def rnWalClosedW (γ : RNNames) (w : Loc) (σ : StorContents) : IProp GF :=
   iprop(∃ cid : w64, walFiles (walDirOf w) γ.id cid σ)
 
-/-- **The wrapper `r`'s WAL, closed, its records `σ`** (`raftNode.stop.specStop`'s): `rnWalClosedW` at
+/-- **The wrapper `r`'s WAL, closed, its records `σ`** (`raftNode.stop.spec`'s): `rnWalClosedW` at
 the WAL of `r`'s storage. -/
 def rnWalClosed (γ : RNNames) (r : Loc) (σ : StorContents) : IProp GF :=
   iprop(∃ st : GoInterface, rnStorageAddr r ↦□ st ∗ rnWalClosedW γ (storage.walOf st) σ)
@@ -1835,7 +1835,7 @@ instance rnDoneEsc_persistent (γ : RNNames) (w : Loc) : Persistent (rnDoneEsc (
   unfold rnDoneEsc; infer_instance
 
 /-- **The claim on the raft loop's stop escrow** (R2b-3b; until then an opaque draft): `newRaftNode`
-allocates it, and `raftNode.stop`'s stop variant (`specStop`) takes it, to take the image out of
+allocates it, and `raftNode.stop`'s spec takes it, to take the image out of
 `done`'s escrow. -/
 def rnStopClaim (γ : RNNames) : IProp GF := token γ.sc
 

@@ -38,7 +38,7 @@ what `HardStop` sends: the evidence that the bootstrap log was applied, `srvBoot
 scope, `srvStop.scope`; the data directory `dd`, `srvDataDir`; the store's readers of the serving
 stocks); on one it returns and its deferred shutdown runs: `close(stopping)`, `cancel()`,
 `sched.Stop()` (the pending `applyAll` jobs run, the last one's post `applyRes` at the log handed to
-the apply thread), `s.wg.Wait()`, `s.r.stop()` (`raftNode.stop.specStop`, with the stop's slot that
+the apply thread), `s.wg.Wait()`, `s.r.stop()` (`raftNode.stop.spec`, with the stop's slot that
 `isServerRunC` carries, `srvStop.slot`), `Cleanup()` (the backend closed), and `close(done)`, which
 announces the image of member `γn.id`'s data directory `dd` at the request names `ρ`, escrowed for
 the stop right's claim `c` (`srvDoneInv`).
@@ -46,7 +46,11 @@ the stop right's claim `c` (`srvDoneInv`).
 One spec (R2c-4, the R2b-2 review's F4; until then `spec`, whose callers never stopped the server,
 with `done` announcing `True` and no request ever sent, and the draft `specStop`, with the shutdown's
 resources and the scope as premises). Scope: a first start (`isServerRun`'s `HEr`: `ai₀ = 0`,
-`γn.pre = []`; a restarted member's `run` is R2d's); the `errorc` path stays closed. -/
+`γn.pre = []`; a restarted member's `run` is R2d's); the `errorc` path stays closed. What it rests
+on: the stop branch rests on the three axioms of the image's configuration (`apply.memberKey_inj`,
+`apply.memberEnc_id_learner`, `membership.membersOf_decode`, through `stop_imageConf`), so every result
+over `run` does, including those whose callers never stop the server (approved by the user,
+2026-11-06). -/
 abbrev EtcdServer.run.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)

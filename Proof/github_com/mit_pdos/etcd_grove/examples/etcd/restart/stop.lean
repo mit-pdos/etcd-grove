@@ -70,14 +70,9 @@ theorem stop.wp_proof
   wp_apply (wp_HardStop s Es ρ.rd.raft.raft ρ id (name ++ go!".etcd")) $$ [Hsr Hrds] as Himg
   · iframe Hsr
     iframe #
-    iunfold srvStopReq
+    iapply srvStopReq_intro s Es ρ (name ++ go!".etcd") Hsc
     isplitr
-    · iunfold srvBootApplied
-      iexists v
-      iframe Hv
-      ipureintro; exact Hba
-    isplitr
-    · ipureintro; exact Hsc
+    · iapply srvBootApplied_of_applied ρ v Hba $$ Hv
     isplitr
     · iexact Hdd
     iexact Hrds

@@ -5,7 +5,7 @@ Lean-first (no Rocq counterpart).
 
 `run.spec`'s proof (`EtcdServer__run.lean`, `wp_proofG`, at a stop request) runs the deferred
 shutdown: `close(stopping)` under `wgMu`, `cancel()`, `sched.Stop()` (the apply thread's resources
-at the handed log `A` back, `applyResC`), `s.wg.Wait()`, `s.r.stop()` (`raftNode.stop.specStop`),
+at the handed log `A` back, `applyResC`), `s.wg.Wait()`, `s.r.stop()` (`raftNode.stop.spec`),
 `s.Cleanup()`, `close(done)` with the image escrowed. This file has the two steps that are about the
 apply thread's resources rather than the control flow:
 * `stop_split`: what `raftNode.stop` takes out of `applyResC` (the WAL's apply half, the live
@@ -394,7 +394,7 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
 resources at the handed log `A` (`applyResStop`), the stop's slot but its raft part, the caller's
 unused serving readers (`srvStopReq`'s, R2c-4), the stop request's evidence and data directory
 (`srvBootApplied`, `srvDataDir`: `srvStopReq`'s), and what `raftNode.stop` returned
-(`raftNode.stop.specStop`'s post), the member's image at the stopped incarnation's names. Scope (the
+(`raftNode.stop.spec`'s post), the member's image at the stopped incarnation's names. Scope (the
 stop request's, `srvStop.scope`): a first start (`ai₀ = 0`, `pre = []`), auth off, no compactor
 (R2c-2: from no compaction mode, `srvStop.census_readers`; until then a premise); and (2026-11-05) a
 store that does not compact

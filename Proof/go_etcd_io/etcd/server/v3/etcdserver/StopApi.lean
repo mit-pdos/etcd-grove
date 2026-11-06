@@ -17,7 +17,7 @@ sealed body and these laws, not the hub's text. Until 2026-11-05 the pieces were
 consumers' parts (sealed too), each with one narrow elimination into what its consumer takes, all
 used by `run`'s deferred shutdown (`run.spec`):
 * `srvStop.raft_stop`: with the live transport, the raft loop's stop claim and the raft
-  environment's `ST` (`srvTrStopK γk`), what `raftNode.stop.specStop` takes;
+  environment's `ST` (`srvTrStopK γk`), what `raftNode.stop.spec` takes;
 * `srvStop.cleanup_pieces`: the lessor's stop right and, with auth off, the auth store's closer,
   what `Cleanup.spec` takes besides the apply thread's;
 * `srvStop.census_readers`: out of compaction mode, no compactor and the kept store readers;
@@ -27,6 +27,7 @@ used by `run`'s deferred shutdown (`run.spec`):
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
 
 @[expose] public section
 
@@ -189,6 +190,36 @@ separately. -/
 def srvStop.slot (s : Loc) (E : apply.AEnv GF) (γrn : RNNames) (Er : RNEnv GF) : IProp GF :=
   iprop(∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γk : GName),
     srvStop.keep s cfg E γrn γk ∗ ⌜Er.ST = srvTrStopK γk⌝)
+
+/-- **The slot from what `NewServer` kept** (R2c review F4): its `srvStop.keep`, at the transport
+key the raft environment's stop right names. -/
+theorem srvStop.slot_intro (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) (Er : RNEnv GF) :
+    srvStop.keep s cfg E γrn γk ∗ ⌜Er.ST = srvTrStopK γk⌝ ⊢ srvStop.slot (GF := GF) s E γrn Er := by
+  iintro ⟨H, %h⟩
+  iunfold srvStop.slot
+  iexists cfg, γk
+  iframe H
+  ipureintro; exact h
+
+/-- **The stop's serving readers from the stocks `NewServer` hands out** (R2c review F3): its 64
+store readers and its watchable store's 64 (`srvWatchReaders`), each holding a reader of the
+store. -/
+theorem srvStopReaders_intro [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (s : Loc)
+    (E : apply.AEnv GF) :
+    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗ srvWatchReaders s E 64 ⊢
+      srvStopReaders (GF := GF) E := by
+  unfold srvStopReaders
+  rw [← List.replicate_append_replicate]
+  iintro ⟨Hsts, HWR⟩
+  iapply BigSepL.bigSepL_append.2
+  iframe Hsts
+  iunfold srvWatchReaders at HWR
+  icases HWR with ⟨%wsl, %γws, -, -, %Hst, -, -, Hws⟩
+  rw [← Hst]
+  iapply BigSepL.bigSepL_impl $$ Hws
+  iintro !> %k %x %_ H
+  iapply mvcc.watchReader_storeReader $$ H
 
 /-- **The configuration's data directory field** (persistent; R2c-4): the slot's `DataDir`, which
 `start` records in the stop right (`srvStopRight`) so that the stop's image names it. -/

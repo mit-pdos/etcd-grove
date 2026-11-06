@@ -5,12 +5,21 @@ shutdown: the scheduler stopped, the server's goroutines waited for (`s.wg`), th
 transport stopped (`raftNode.stop`), `Cleanup` (the lessor, the KV store, the auth store, the
 backend and the compactor closed), `done` closed. Lean-first (no Rocq counterpart).
 
+**Scope (R2c review F3, 2026-11-06):** besides `srvStop.scope`, the request takes the serving
+stocks' readers back, which only a member that never served gRPC can give: once a member serves, its
+stocks go to `Serve` and no spec gives them back (there is no `grpc.Server.Stop` spec). So a member
+can be stopped only if it never served (`restart3`'s stopped member), until a gRPC `Stop` spec returns
+the stocks (whether etcd's `embed` stops its gRPC servers before the server's `Stop`, which
+would match that reading, is not checked here).
+
 **The triple:** from the right to stop the server (`srvStopRight`, which `Start` gives: `start`
 makes the channels `stop` and `done`) and the stop request it sends (`srvStopReq`, R2c-2): evidence
 that the server applied the cluster's bootstrap log (`srvBootApplied`: the image needs it, R2c
 review F4; R2b-2 review F2), the server's configuration in the stop's scope (`srvStop.scope`: auth
-off, no compaction mode; the user's Q2 (b): until then `run.specStop`'s premises) and its data
-directory with no dedicated WAL directory (`srvDataDir`), `HardStop` returns with member `id`'s data directory as its
+off, no compaction mode; the user's Q2 (b): until then `run.specStop`'s premises), its data
+directory with no dedicated WAL directory (`srvDataDir`) and the store readers of the serving stocks
+`NewServer` handed out (`srvStopReaders`, R2c-4: the backend's `Close` needs every reader back),
+`HardStop` returns with member `id`'s data directory as its
 stop left it (`srvDiskImage`, R2c), at the request names `ρ` the right records, from which the
 member can be started again. It sends a stop request on `stop` (or finds `done` already closed),
 waits for `done`, and takes the image `run`'s shutdown escrowed there with the right's claim

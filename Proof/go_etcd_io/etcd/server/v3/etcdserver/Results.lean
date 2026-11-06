@@ -2236,7 +2236,9 @@ premise, `start` returns the views `range_linearizable`, `txn_applied` and the v
 (`isServerReq`, `isServerRead`), the read loop's `server` contract over them (`read_server`), and
 the read loop's lock's reader slots (`srvRdCall`'s `srvReadReader`): those results are conditional
 on `isServerBuilt` and the stop's slot (`srvStop.slot`, R2c-3) alone (and each call's own
-resources). -/
+resources). The slot is what `NewServer` keeps for the stop (`NewServer.specG`'s post, the sealed
+`srvStop.keep`), at the raft environment `Er` whose transport stop right is that slot's
+(`srvEr`'s `ST`, `srvTrStopK γk`; `srvStop.slot_intro`). -/
 theorem start_gives_views [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)

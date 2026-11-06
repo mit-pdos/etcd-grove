@@ -356,6 +356,31 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗
     (∃ dd : GoString, srvStopRight s E ρ.rd.raft.raft ρ id dd))
 
+/-- **A started member that will not serve, split for its stop** (R2c review F4, 2026-11-06): the
+request view and the `GoAttach` resources (what `AppliedIndex()` and the goroutines need), and what a
+stop request takes of it: the right to stop it (`srvStopRight`) at its apply environment `E`, which
+has auth off and `E₀`'s compaction mode, with its unused serving stocks (`srvStopReaders`). The rest
+of `memberUp` (its serving stocks' other parts) is dropped. -/
+theorem memberUp_stop (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (m : lease.Mode) :
+    memberUp (GF := GF) s ρ E₀ lg γn id m ⊢
+      (∃ (E : apply.AEnv GF) (γw : GName), isServerReq s E { ρ with wait := γw } ∗ srvGoRes s) ∗
+      ∃ (E : apply.AEnv GF) (dd : GoString), srvStopRight s E ρ.rd.raft.raft ρ id dd ∗
+        ⌜E.authOn = false ∧ E.cmp = E₀.cmp⌝ ∗ srvStopReaders E := by
+  iintro Hup
+  iunfold memberUp at Hup
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, -, Hgo, -, -, -, -, -, -, -, -, Hsts, -, -, HWR, -,
+    %dd, Hr⟩
+  isplitl [Hgo]
+  · iexists E, γw
+    iframe Hreq Hgo
+  iexists E, dd
+  iframe Hr
+  isplitr
+  · ipureintro; exact ⟨HEc.2.1, HEc.1.2.2.2.1⟩
+  iapply srvStopReaders_intro s E
+  iframe Hsts HWR
+
 /-- **The Lease service `v3rpc.Server` registered** (persistent; the closed lease example,
 2026-11-02): its unary methods among the registrations `regs` (`leaseRegs`), on the
 `*quotaLeaseServer` `ql` over the `*LeaseServer` `pl` of the server `s`, its header at the KV answers

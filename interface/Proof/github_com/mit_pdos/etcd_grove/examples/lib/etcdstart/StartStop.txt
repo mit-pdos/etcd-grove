@@ -9,8 +9,7 @@ def etcdstart.Start_builtR_spec : Prop :=
       □
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-              etcdstart.memberBuiltR s ρ E₀ lg γn id N sv ∗
-                srvDataDir s dd ∗ (∃ cfg E γrn γk, srvStop.keep s cfg E γrn γk) ∗ threadTok -∗
+              etcdstart.memberBuiltR s ρ E₀ lg γn id N sv ∗ srvDataDir s dd ∗ threadTok -∗
             ▷ (etcdstart.memberUp s ρ E₀ lg γn id -∗ Φ (intoVal ())) -∗
               WP
                 ((intoVal
