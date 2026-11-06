@@ -98,7 +98,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   {{ (r : Loc), RET #r;
       ∃ (n : Loc) (γw : RNNames) (f : GoFunc) (st : GoInterface),
         ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
-          γw.γs = γs ∧ γw.wal = ν ∧ γw.a0 = []⌝ ∗
+          γw.γs = γs ∧ γw.wal = ν ∧ γw.a0 = [] ∧ γw.t0 = W64 0⌝ ∗
         -- the node API's node, its driver at the storage's key (the wrapper's, `γw.key`: raft
         -- names it at the attach), and (2026-11-01, durability layer 4) the node's durable state,
         -- unchanged by the update; (2026-11-05, the lease-expiry plan's E2 revision 5) made by

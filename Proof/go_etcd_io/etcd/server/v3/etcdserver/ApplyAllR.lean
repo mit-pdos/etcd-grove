@@ -202,10 +202,10 @@ theorem EtcdServer.applyAll.wp_proofBatchR
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk
-    q γn rt n rp g
+    q γn rt n rp g T
   simp only [srvRunH_applyAll_specBatchR]
   wp_start as ⟨%hP, #HsrvC, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hwin, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, #Hwin, HT, #Hbagn, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
   obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hdv, hAL, hAT, Hdisk, hciA, hcia, hg0, hγn, hpre, hnA⟩ := hP
   have hon : E.authOn = C.isOn := by rw [apply.AEnv.authOn_eq, hM, AuthC.mode_isOn]
   -- (the auth component's stage 2c) the slot's rows at the mode's
@@ -223,7 +223,7 @@ theorem EtcdServer.applyAll.wp_proofBatchR
   icases Hfl with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
-  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γm, %Hγm, #Hmidm, #Hmscb⟩, #Hsc,
+  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, -, #Hsc,
     ⟨%stg, #Hstgf, #Hstgc⟩, -, #Hinf, -, ⟨%tr, %γN, %lid, %SN, %TSN, #Htrf, #Htr, %HγN⟩, %Hkv0⟩
   ihave #HstgS := Hstgc
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -345,7 +345,7 @@ theorem EtcdServer.applyAll.wp_proofBatchR
       iframe HsrvC Hlnil
       isplitr
       · ipureintro; exact beSucc_refl γ E
-      iframe Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
+      iframe HT Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
       isplitl [Hao]
       · iexact Hao
       isplitr
@@ -434,8 +434,8 @@ theorem EtcdServer.applyAll.wp_proofBatchR
       applyThread γ stF -∗ applyBackend γ ci b -∗ ciApplying ci a' t' -∗ srvLgReader s -∗
       srvGoRes s -∗ srvApplyKVC C s E ρ.wait x' sa' -∗
       kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ unapplied ai ms)) x' sa' -∗
-      srvRestR E γr rp (A ++ unapplied ai ms) -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT HtokR Hso]
-  · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+      srvRestR E γr rp (A ++ unapplied ai ms) -∗ T -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT HtokR Hso]
+  · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS HT
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
     ihave HtokR : acTok C (ciEff γ stF.k) $$ [HtokR]
@@ -445,7 +445,7 @@ theorem EtcdServer.applyAll.wp_proofBatchR
     iframe HsrvC Hlnil
     isplitr
     · ipureintro; exact beSucc_refl γ E
-    iframe Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
+    iframe HT Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
     isplitl [Hao]
     · iexact Hao
     isplitr
@@ -465,6 +465,12 @@ theorem EtcdServer.applyAll.wp_proofBatchR
       hat'⟩
   -- `select { case m := <-s.r.msgSnapC: ...; default: }` (2026-10-31, S1: a `MsgSnap` raft handed
   -- out, merged with the backend's image and sent when the guard holds)
+  -- (R2d'a A10 item 5) the merged send's receive through the raft node's bag at the run's names
+  -- `γn` (`srvSnapBagN`: its `MsgSnap`s above `γn.t0`), the same channel as `isServerApplyAll`'s
+  iunfold srvSnapBagN at Hbagn
+  icases Hbagn with ⟨#Hmidm, %msc', #Hmscf', #Hmscb⟩
+  ihave %Hmsceq := typedPointsto_agree_wand _ _ _ _ _ $$ Hmscf Hmscf'
+  subst Hmsceq
   iunfold isRNMsgSnapC at Hmscb
   icases Hmscb with ⟨%γc, #Hmscb⟩
   ihave #Hmscch := is_bag_is_chan γc msc _ $$ Hmscb
@@ -487,25 +493,30 @@ theorem EtcdServer.applyAll.wp_proofBatchR
       · iapply chanBag_nbRecv γc msc _ _ $$ Hmscb
         iintro %m HP
         iunfold rnSnapMsg at HP
-        icases HP with ⟨%sm, Hm, %Hty, #Hsm, -⟩
-        rw [Hγm]
+        icases HP with ⟨%sm, Hm, %Htyb, #Hsm, -⟩
+        obtain ⟨Hty, Hsbt⟩ := Htyb
+        rw [hγn]
         -- (R2d'a A7) past the window after the batch, or no merged send at the batch's term
         -- (`winNoMergedSendR`, this member's `MsgSnap`: `isServerApplyAll`'s member id)
-        ihave ⟨%Hwt, Hm⟩ : iprop(⌜rp.A₀.length ≤ (A ++ unapplied ai ms).length ∨ sm.msg.Term' ≠ rt⌝ ∗
-            msgOwn m (DFrac.own 1) sm) $$ [Hwin Hm]
+        ihave ⟨%Hwt, Hm, HT⟩ : iprop(⌜rp.A₀.length ≤ (A ++ unapplied ai ms).length ∨ sm.msg.Term' ≠ rt⌝ ∗
+            msgOwn m (DFrac.own 1) sm ∗ T) $$ [Hm HT]
         · iunfold winNoMergedSendR at Hwin
-          icases Hwin with (%Hnil | Hwin)
-          · iframe Hm; ipureintro; left
+          icases Hwin with (%Hnil | #Hwin)
+          · iframe Hm HT; ipureintro; left
             exact Nat.le_of_not_lt (fun h => by
               have := List.length_drop (l := rp.A₀) (i := (A ++ unapplied ai ms).length)
               rw [Hnil] at this; simp at this; omega)
-          · rw [← Hγm]
-            ihave ⟨%Hn, Hm⟩ := Hwin $$ %γm.id %m %sm Hmidm Hm Hsm
-            iframe Hm; ipureintro; right; exact Hn Hty
+          · rw [← hγn]
+            by_cases hlt : uint.Z γn.t0 < uint.Z rt
+            · ihave ⟨%Hn, Hm, HT⟩ := Hwin $$ %hlt HT %γn.id %m %sm Hmidm Hm Hsm
+              iframe Hm HT; ipureintro; right; exact Hn Hty
+            · -- `rt ≤ t0`: the bag's `MsgSnap` is above `t0` (`rnSnapMsg`'s bound)
+              iframe Hm HT; ipureintro; right
+              intro h; rw [h] at Hsbt; exact hlt Hsbt
         letI := srvStor (GF := GF) γr.raft.raft
         ihave %Hsh := sentMsg_shape _ _ _ _ $$ Hsm
         obtain ⟨sn, hsn, -⟩ := Hsh.2 Hty
-        ihave %Hsnp := srv_sentSnap_pos γr γm.id sm sn Hty hsn $$ [Hrli' Hsm]
+        ihave %Hsnp := srv_sentSnap_pos γr γn.id sm sn Hty hsn $$ [Hrli' Hsm]
         · iframe Hrli' Hsm
         -- two Go steps' time receipts (`m`'s zero value, `GetTerm`'s method value), for the merge
         -- window's write tokens
@@ -612,7 +623,7 @@ theorem EtcdServer.applyAll.wp_proofBatchR
             · iframe Hcso Hc0
             subst Hcc
             ihave %h61 := srvFrozenTerm_bound γs ai' at' $$ Hft
-            imod srv_merged_sent γr (A ++ unapplied ai ms) ai' at' c γm.id ct sm sn hpos h61 hsz hlenZ
+            imod srv_merged_sent γr (A ++ unapplied ai ms) ai' at' c γn.id ct sm sn hpos h61 hsz hlenZ
                 hltA Hcs0 Hty hsn (by word) (by have := hnA; have := uint_nat_eq ai'; omega)
               $$ [Hrli' HlbB Hsm Hct] with #Hsm'
             · iframe Hrli' HlbB Hsm Hct
@@ -623,7 +634,7 @@ theorem EtcdServer.applyAll.wp_proofBatchR
                 Hkv0)
               iframe Hsrv Hka Hrcx; ipureintro; exact HQd
             imod Hmi with ⟨Hka, #Himg⟩
-            imod srvMerged_bundle γr.raft.raft m rc sm γm.id c ai' at' D Hty
+            imod srvMerged_bundle γr.raft.raft m rc sm γn.id c ai' at' D Hty
               $$ [Hml Hsm' Hrs Himg] with Hbun
             · iframe Hml Hsm' Hrs Himg
             (try wp_auto)
@@ -633,17 +644,17 @@ theorem EtcdServer.applyAll.wp_proofBatchR
             (try wp_auto)
             have hF3 : loopOk γ st3 ai' ∧ ciEff γ st3.k = ciEff γ st'.k :=
               ⟨Hst3.1, by rw [Hst3.2]; exact Hst''.2⟩
-            iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+            iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS HT
           · (try wp_auto)
-            iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+            iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS HT
         · (try wp_auto)
-          iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+          iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS HT
       · itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial
   · -- `default`
     (try wp_auto)
-    iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+    iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS HT
 
 end proof
 

@@ -573,7 +573,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
         ⌜γ.a0 = [] ∨ γ.a0.length ≤ uint.nat l.snap.Metadata'.Index'⌝) $$ [Hdrv]
     · iunfold rnRestartOk at Hrok
       icases Hrok with (%Ha | ⟨-, -, #Hwia, -⟩)
-      · iframe Hdrv; ipureintro; left; exact Ha
+      · iframe Hdrv; ipureintro; left; exact Ha.1
       · iunfold rnWinInstallAbove at Hwia
         ihave ⟨Hdrv, %h⟩ := Hwia $$ %_ %(es.map EntryModel.toM) %l %rfl Hdrv
         iframe Hdrv; ipureintro; right; exact Nat.le_of_lt h

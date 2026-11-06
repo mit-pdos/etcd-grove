@@ -175,7 +175,7 @@ in every cluster), the loop's half of the running token, and `applyc`'s halves w
 `[[]]` (`newRaftNode`'s). (2026-10-27: over the node API. 2026-11-01, durability layer 4: the
 driver at the storage's key `γ.key`, and the node's durable state at `RaftState.init`, which goes
 into the loop's token beside the driver.) -/
-theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = []) (ha : γ.a0 = [])
+theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = []) (ha : γ.a0 = []) (ht : γ.t0 = W64 0)
     (hcfg : srvCfgOk γ.node.cfg [] ⟨0, Membership.simple γ.node.cfg⟩) :
     (letI := srvStor (GF := GF) γ.node;
       iprop(nodeDriver γ.nl γ.node.cl srvClusterN
@@ -202,7 +202,7 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = []) (ha : γ.a0 = [])
         simp [rnDrvSt, NodeDriverState.init, srvLE, RNNames.srv, hpre]
       rw [h]
       iframe Hdrv HrS
-      iapply ((rnView_first γ ha).1 []).2
+      iapply ((rnView_first γ ha).1 ht []).2
       unfold srvCfgView
       iexists ⟨0, Membership.simple γ.node.cfg⟩
       iframe Hcfg
@@ -505,7 +505,7 @@ theorem raftNode_of_StartNode
     exact ⟨Hcfg, Hhb, Hwal⟩
   icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hsfresh, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
     %Hstss, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
-  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwa0⟩ := Hnames
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hwt0⟩ := Hnames
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
   obtain ⟨Hrvlg, Hrvcfg⟩ := Hrv
@@ -527,7 +527,7 @@ theorem raftNode_of_StartNode
       (1 : Qp).half).1 $$ [Hrun] with ⟨Hrun1, Hrun2⟩
   · rw [Qp.half_add_half]; iexact Hrun
   -- the tokens
-  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw Hwpre Hwa0
+  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw Hwpre Hwa0 Hwt0
       (by
         rw [Hwnode]
         unfold SrvRaft.cfg

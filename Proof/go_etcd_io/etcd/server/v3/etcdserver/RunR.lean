@@ -48,18 +48,38 @@ open go_etcd_io.raft.v3 in
 `winNoMergedSend`, `ApplyWindow.lean:277`): with entries `R` of the window left after the batch,
 the message the batch takes from this member's bag (`msgOwn m 1`, sent from the server's
 `memberID`) is not a `MsgSnap` at the batch's raft term `rt` (Go merges only one at `rt`,
-`server.go:1018`). -/
-def winNoMergedSendR (γ : SrvRaft) (s : Loc) (R : List EntryModel) (rt : w64) : IProp GF :=
+`server.go:1018`). (R2d'a A10 item 5, approved by 82: narrowed to `t0 < rt`, `Hwpend`'s guard) Only
+for a term above the start term `t0`: at `rt ≤ t0` the bag's `MsgSnap` is above `t0` (`rnSnapMsg`'s
+bound), so not at `rt`. (A10 item 4) Persistent, over a resource `T` it borrows and gives back
+(`Hwpend`'s window token, which the batch's `applyAll.specBatchR` takes and returns: the loop keeps
+it across the window's batches). -/
+def winNoMergedSendR (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF) (R : List EntryModel)
+    (rt : w64) : IProp GF :=
   letI := srvStor (GF := GF) γ
   iprop(⌜R = []⌝ ∨
-    (∀ (id : w64) (m : Loc) (st : MsgSt),
+    □ (⌜uint.Z t0 < uint.Z rt⌝ -∗ T -∗ ∀ (id : w64) (m : Loc) (st : MsgSt),
       srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗ sentMsg γ.cl srvClusterN id st -∗
-        ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st))
+        ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st ∗ T))
 
-theorem winNoMergedSendR_nil (γ : SrvRaft) (s : Loc) (rt : w64) :
-    ⊢ winNoMergedSendR (GF := GF) γ s [] rt := by
+instance winNoMergedSendR_persistent (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF)
+    (R : List EntryModel) (rt : w64) : Persistent (winNoMergedSendR (GF := GF) γ s t0 T R rt) := by
+  unfold winNoMergedSendR; infer_instance
+
+theorem winNoMergedSendR_nil (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF) (rt : w64) :
+    ⊢ winNoMergedSendR (GF := GF) γ s t0 T [] rt := by
   unfold winNoMergedSendR
   ileft; ipureintro; rfl
+
+/-- (R2d'a A10 item 5) **The raft node's `MsgSnap` bag, at the server** (persistent; `isServerRunC`'s
+`#Hmid` and `#Hrn`'s): the server's member id the node's, and `msgSnapC` the node's bag of
+`rnSnapMsg γn`, whose `MsgSnap`s are above `γn.t0`. `applyAll`'s merged-send case receives through
+it at `rt ≤ γn.t0` (`isServerApplyAll`'s bag names are existential). -/
+def srvSnapBagN (s : Loc) (γn : RNNames) : IProp GF :=
+  iprop(srvMemberIDAddr s ↦□ γn.id ∗
+    (∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗ isRNMsgSnapC γn msc))
+
+instance srvSnapBagN_persistent (s : Loc) (γn : RNNames) : Persistent (srvSnapBagN (GF := GF) s γn) := by
+  unfold srvSnapBagN; infer_instance
 
 /-- **The apply thread's resources at Go's log `A`, in restart form** (DRAFT): `applyResC`'s rows,
 with the ghost rows at `ghostOf rp A` (the applied index `g`, the KV model, the rest buckets
@@ -160,7 +180,8 @@ abbrev EtcdServer.applyAll.specBatchR : Prop :=
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (sa : auth.AuthState) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : WTNames) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat) (rp : RestartPt) (g : w64),
+    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat) (rp : RestartPt) (g : w64)
+    (T : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the component the environment's, and the batch's premises (`specBatchOff`'s, the shapes in
       -- the mode, `logShapeM`)
@@ -199,7 +220,8 @@ abbrev EtcdServer.applyAll.specBatchR : Prop :=
       kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestR E γr rp A ∗
       kvBatchR γr (ciEff γ st.k) ai rp A (unapplied ai ms) ∗
       -- (R2d' A7) no merged snapshot send while the window is left (`winNoMergedSend`)
-      winNoMergedSendR γr.raft.raft s (rp.A₀.drop (A ++ unapplied ai ms).length) rt ∗
+      winNoMergedSendR γr.raft.raft s γn.t0 T (rp.A₀.drop (A ++ unapplied ai ms).length) rt ∗ T ∗
+      srvSnapBagN s γn ∗
       dvView ρ.raft dv (ghostOf rp A) ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗
       srvApRes s γr (ghostOf rp A) ∗
       -- (2026-10-30, the repair) with a view, the apply side's half of the running token
@@ -226,7 +248,7 @@ abbrev EtcdServer.applyAll.specBatchR : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc) (g' : w64),
-        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ acLessor C s ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ T ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ acLessor C s ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai ms)) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
@@ -285,7 +307,7 @@ theorem run_job_bodyR (hAA : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG
     -- consistent index at most its applied one (`isServerRun`'s)
     (γn : RNNames) (rt : w64) (hγn : γn.node = C.γr.raft.raft) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀)
     -- (2026-11-03, R2b-1 stage 5) a fresh start's log, the context's raft names `γn` (the WAL's)
-    (hpre : C.γr.raft.pre = []) (hrn : C.rn = γn) :
+    (hpre : C.γr.raft.pre = []) (hrn : C.rn = γn) (T : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         acLessor K C.s ∗ isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
@@ -303,16 +325,17 @@ theorem run_job_bodyR (hAA : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG
         srvSnapDisk C.s C.γr ∗
         (letI : MemStorReg GF := ⟨C.γr.raft.raft.reg⟩; memStorInv C.ms C.γs C.γr.raft.raft.cl nk) ∗
         taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length ∗
-        winNoMergedSendR C.γr.raft.raft C.s (rp.A₀.drop (A ++ ce).length) rt }}
+        winNoMergedSendR C.γr.raft.raft C.s γn.t0 T (rp.A₀.drop (A ++ ce).length) rt ∗ T ∗
+        srvSnapBagN C.s γn }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
-    {{ RET #(); schedule.schedRunning γs ∗ applyResR K C rp (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
+    {{ RET #(); schedule.schedRunning γs ∗ T ∗ applyResR K C rp (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
   have hR : ∀ dv : Option Loc, (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) =
       srvRunH (GF := GF) C.ρ.raft dv := fun dv => by cases dv <;> rfl
   simp only [EtcdServer.applyAll.specBatchR] at hAA
   rw [hR]
   iintro %Φ ⟨#Hpkg, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
-    #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok, Hwnm⟩ HΦ
+    #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok, #Hwnm, HT, #Hbagn⟩ HΦ
   iunfold applyResR at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA⟩, HtokR, Hso, %Hpure⟩
@@ -405,8 +428,8 @@ theorem run_job_bodyR (hAA : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG
   ihave Hbr : iprop(srvBemuReaderAt C.s B.E.γbe) $$ [Hbr]
   · rw [beSucc_γbe HB]; iexact Hbr
   iapply (hAA C.s B.γ C.ci B.TM K B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x sa A
-      C.ms C.γs C.wt dv γnc w nk (1 : Qp).half γn rt (rnLogOf γn (A ++ ce)).length rp g)
-    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal Hso Hwnm]
+      C.ms C.γs C.wt dv γnc w nk (1 : Qp).half γn rt (rnLogOf γn (A ++ ce)).length rp g T)
+    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal Hso HT]
   · isplitr
     · iexact Hpkg
     isplitr
@@ -415,7 +438,7 @@ theorem run_job_bodyR (hAA : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG
         by have := uint_nat_eq C.ai₀; omega, Hlt, hdisk, Hci, hcia, by rw [Hkc.2]; exact Hg0, hγn, hpre,
         by rw [hun]; simp [rnLogOf]⟩
     rw [hun]
-    iframe Hwnm
+    iframe Hwnm HT Hbagn
     iframe Hsd Hmsinv HKVf Hwal Hrtf Hrtok
     iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hlnil Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa
     iframe
@@ -425,7 +448,7 @@ theorem run_job_bodyR (hAA : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG
     · iexact Hdvr
     iExactEq Hrh; cases dv <;> rfl
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', Hrh, #Hsrv', -, HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
+  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', HT, Hrh, #Hsrv', -, HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, #HKVf', Hwal, Hso, %Hpost⟩
   ihave Hwal : rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [hrn]; iexact Hwal
@@ -435,7 +458,7 @@ theorem run_job_bodyR (hAA : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG
   icases Hgr with ⟨Hwr, Htok⟩
   iapply HΦ
   iunfold schedule.schedRunning
-  iframe Hrt Htok
+  iframe Hrt Htok HT
   isplitr [Hrh]
   rotate_left
   · iExactEq Hrh; cases dv <;> rfl

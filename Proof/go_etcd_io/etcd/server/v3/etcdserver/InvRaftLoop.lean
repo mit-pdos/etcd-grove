@@ -227,7 +227,7 @@ theorem rnCfgAt_normal (γ : RNNames) (γs : ServerRaftNames) (L ce : List Entry
   iframe Hr
   icases Hr with (%Ha | ⟨%Hp, #HA, -⟩)
   · unfold rnView rnGhost
-    rw [Ha]
+    rw [Ha.1]
     simp only [List.drop_nil, List.append_nil]
     rw [← List.append_assoc]
     iapply srvCfgView_nil_normal γ.srv γ.nl ce h $$ Hv

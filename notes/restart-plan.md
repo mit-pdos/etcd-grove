@@ -3740,3 +3740,42 @@ first-start disjunct. Not started: the restart conjunct ("this incarnation's `Ms
   - (c) Leave `rnSnapMsg` unbounded, and close the `rt ≤ t0` case of `winNoMergedSendR` with
     `Hwpend` widened back to `rt ≤ t0`. Reverts 82's narrowing.
   - Needs the user's or 82's choice.
+
+#### R2d'a A10 item 5, part 2 done: Q28 (i) and Q29 (d) in, `winNoMergedSendR` narrowed (2026-11-06; DRAFT)
+
+- **Q28 (i).** `bootstrappedRaft.newRaftNode.spec`'s post gains `∧ γw.t0 = W64 0`, `newRaftNode.spec`'s
+  `∧ γ.t0 = W64 0` (proved from `newRaftNode`'s literal); `NodeStartSpec` unchanged. `rnRestartOk`'s
+  first-start disjunct is `⌜γ.a0 = [] ∧ γ.t0 = W64 0⌝`; `rnToks_of_start` takes `t0 = 0`; `rnView_first`'s
+  part 1 takes it (`γ.t0 = W64 0 → ∀ L, …`).
+- **Q29 (d).** `rnRestartOk`'s restart disjunct gains a fifth conjunct, `rnSnapTermAbove γ`
+  (`InvRaftNode.lean`). **One deviation from the approved text, forced:** the approved form took
+  `nodeDriver γ.nl … st` beside `readyRest … st …`, but the two are never held together: the receive
+  (`isReadyChan_recvAu`) consumes the `nodeDriver` and gives `readyGot` (which holds the `readyRest`),
+  and *enter* gives the driver back only after the `readyRest` is taken apart. So the premise is
+  anchored at the driver state the receive was at instead: `readyRest γ.node.cl srvClusterN γ.id rd
+  (rnDrvSt γ L p S r) … ms …`, whose storage `memStorIface γ.ms` and key `γ.key` are this
+  incarnation's (an earlier incarnation's `Ready` is at another storage). Same binders as
+  `readyRest` (`InvNode.lean:612`), same conclusion
+  (`⌜∀ q ∈ ms, q.st.msg.Type' = MsgSnap → uint.Z γ.t0 < uint.Z q.st.msg.Term'⌝`). For 82 to confirm.
+  - `rn_ready_recv` applies it to the receive's `readyRest` (`rnRestartOk_snapTerm`, from the view's
+    restart data, `rnCfgAt_restartOk`) and records the result in `rnRawMsgs` as the pure
+    `rnSnapTermOk γ ms` (`t0 = 0`, or every `MsgSnap` above `t0`).
+  - `rnMsgOk_of_api` combines the two cases: at `t0 = 0` the `MsgSnap`'s nonzero term
+    (`sentMsg_shape`, `msgSnap_not_termless`), at a restart the premise's bound.
+  - `rnSnapMsg`'s pure is `⌜st.msg.Type' = MsgSnap ∧ uint.Z γ.t0 < uint.Z st.msg.Term'⌝`, the approved
+    text; its readers (`applyAll`, `ApplyAllSnap(On)`, `processMessages`) take the first half.
+- **`winNoMergedSendR` narrowed** (`RunR.lean`): it takes `t0` and its wand is guarded by
+  `⌜uint.Z t0 < uint.Z rt⌝`; `applyAll.specBatchR` and `run_job_bodyR` pass `γn.t0`. **One more DRAFT
+  conjunct, found while proving the `rt ≤ t0` case:** `isServerApplyAll`'s bag names `γm` are
+  existential (`InvApplyAll.lean:128`, a frozen spec's precondition), so its `MsgSnap`s are above
+  `γm.t0`, not `γn.t0`. `applyAll.specBatchR` and `run_job_bodyR` take `srvSnapBagN s γn` (persistent:
+  `srvMemberIDAddr s ↦□ γn.id`, and `msgSnapC` the node's bag of `rnSnapMsg γn`), which `run` has from
+  `isServerRunC`'s `#Hmid` and `#Hrn` (`isRaftNode`'s `#Hmsc`/`#Hmsci`). `wp_proofBatchR` receives
+  through that bag (the same channel: `typedPointsto_agree_wand`); at `rt ≤ γn.t0` the message's term is
+  above `γn.t0`, so not `rt`. No frozen text changes; not a restart-only premise (true at every start).
+- **`Hwpend`'s token across the window's batches (found for Task B).** `Hwpend`'s wand takes the
+  token and gives it back, but `winNoMergedSendR` held its wand alone, so a batch would consume the
+  token and a later batch in the window would have none. `winNoMergedSendR γ s t0 T R rt` is now
+  persistent over a borrowed resource `T` (`□ (⌜t0 < rt⌝ -∗ T -∗ ∀ id m st, … -∗ ⌜…⌝ ∗ msgOwn … ∗ T)`);
+  `applyAll.specBatchR` and `run_job_bodyR` take `T` and give it back (`T := token γwp` in `run`).
+  DRAFT files only (`RunR.lean`, `ApplyAllR.lean`).

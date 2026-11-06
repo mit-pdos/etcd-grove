@@ -57,7 +57,7 @@ abbrev newRaftNode.spec : Prop :=
   {{ (r : Loc), RET #r;
       ∃ γ : RNNames,
         ⌜γ.node = node ∧ γ.id = id ∧ γ.nl = nl ∧ γ.pre = pre ∧ γ.ms = ms ∧ γ.γs = γs ∧
-          γ.key = key ∧ γ.wal = wal ∧ γ.a0 = []⌝ ∗
+          γ.key = key ∧ γ.wal = wal ∧ γ.a0 = [] ∧ γ.t0 = W64 0⌝ ∗
         rnBuilt E γ r cv }}
 
 end spec
