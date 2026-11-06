@@ -36,10 +36,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
     (_hms : γ1.ms = γ2.ms) (hγs : γ1.γs = γ2.γs) (hpre : γ1.pre = γ2.pre)
     (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) (hid : γ1.id = γ2.id) (hkey : γ1.key = γ2.key)
-    (hwal : γ1.wal = γ2.wal) :
+    (hwal : γ1.wal = γ2.wal) (ha : γ1.a0 = γ2.a0) :
     rnApP E γ1 = rnApP E γ2 := by
-  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnCfgAt rnRtOk rnLogOf RNNames.srv rnWalHanded
-  rw [h, hγs, hpre, hn, hnl, hid, hkey, hwal]
+  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnView rnGhost rnRtOk rnLogOf RNNames.srv
+    rnWalHanded
+  rw [h, hγs, hpre, hn, hnl, hid, hkey, hwal, ha]
 
 set_option maxHeartbeats 0 in
 theorem newRaftNode.wp_proof
@@ -93,22 +94,22 @@ theorem newRaftNode.wp_proof
   ihave #Hcum0 := monoListIdxOwn_get (γ := cum) 0 ([] : List EntryModel) (by simp) $$ Hlb
   imod start_bag (V := ReadState) (srvReadStateOk E.γr.raft E.RQ) _ rsc γrs (by simp)
     $$ Hrsc Hrso with #Hrsb
-  imod start_bag (V := Loc) (rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩) _
+  imod start_bag (V := Loc) (rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc, []⟩) _
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
   imod start_bag (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) node;
       nodeRunning nl node.cl srvClusterN (1 : Qp).half) ∗
       storage.walOpen (storage.walOf cv.storage') (1 : Qp).half ∗ token wal.app)) _ stc γst (by trivial)
     $$ Hstc Hsto with #Hstb
   imod start_sspsc (V := toApply) apc
-    (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩)
+    (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc, []⟩)
     (fun _ => iprop(False)) γap $$ Hapc Hapo with ⟨%γsp, #Hspsc, Hprod, Hcons⟩
   -- (2026-11-03, R2b-3b) the claim on the stop's escrow, which `done`'s close announces
   imod alloc_broadcast_chan (E := ⊤)
-    (rnDoneEsc ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
+    (rnDoneEsc ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc, []⟩
       (storage.walOf cv.storage')) γd dnc $$ Hdnc Hdno with Hdc
   icases ownBroadcastChan_open _ _ _ _ $$ Hdc with ⟨%γdi, #Hdint, Hdtok⟩
   ihave #HdcU : ownBroadcastChan (GF := GF) dnc γd
-      (rnDoneEsc ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
+      (rnDoneEsc ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc, []⟩
         (storage.walOf cv.storage')) .Unknown $$ []
   · iapply ownBroadcastChan_close _ _ _ _ γdi; iframe #
   ihave Hdc := ownBroadcastChan_close _ _ _ .Pending γdi $$ [$Hdint $Hdtok]
@@ -125,10 +126,10 @@ theorem newRaftNode.wp_proof
   · ipureintro; exact Hhb
   ihave #Htki := isRNTicker_of_time wp_TStop tk tch γt $$ Htk
   (try wp_auto)
-  ihave Hsc : rnStopClaim (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩ $$ [Hsc]
+  ihave Hsc : rnStopClaim (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc, []⟩ $$ [Hsc]
   · iunfold rnStopClaim; iexact Hsc
   iapply HΦ
-  iexists ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
+  iexists ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc, []⟩
   isplitr
   · ipureintro; simp
   iunfold rnBuilt
@@ -149,14 +150,14 @@ theorem newRaftNode.wp_proof
   · ipureintro; exact Hlg
   isplitr
   · iunfold isRNMsgSnapC; iexists γms
-    have hsm : rnSnapMsg (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩ =
-        rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩ := by
+    have hsm : rnSnapMsg (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc, []⟩ =
+        rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc, []⟩ := by
       unfold rnSnapMsg; rfl
     rw [hsm]; iexact Hmsb
   isplitr
   · iunfold isRNApplyc
-    rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
-      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩ rfl rfl rfl rfl rfl rfl rfl rfl rfl]
+    rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc, []⟩
+      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc, []⟩ rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl]
     iexact Hspsc
   isplitr
   · iunfold isRNReadStateC; iunfold isReadStateC; iexists γrs; iexact Hrsb

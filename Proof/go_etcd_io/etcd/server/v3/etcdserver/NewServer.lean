@@ -1032,7 +1032,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14, Hrn15, Hrnwal⟩ := Hrnames
+  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrna0, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14, Hrn15, Hrnwal⟩ := Hrnames
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl
@@ -2171,7 +2171,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         iPkgInit
   isplitr
   · ipureintro
-    refine ⟨?_, rfl, ⟨Int.le_refl _, Hrn6, rfl⟩⟩
+    refine ⟨?_, rfl, ⟨Int.le_refl _, Hrn6, rfl⟩, Hrna0⟩
     unfold srvErM
     simp only
     exact (srvCM_agree on ρ _ E₀ (W64 0) (W64 0) (bootKVOf on) hγs).symm

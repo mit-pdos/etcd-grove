@@ -750,7 +750,7 @@ theorem EtcdServer.run.wp_proofG
   obtain ⟨hM, hRB⟩ := hP
   iunfold isServerRunC at Hpre
   iNamed Hpre
-  obtain ⟨HEC, HEγr, Hc0a⟩ := HEr
+  obtain ⟨HEC, HEγr, Hc0a, Ha0n⟩ := HEr
   icases HWB with ⟨%γp, #HWB, #HWA0, #HWreg⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv' := (isServerM_C C s γ ci TM E ρ γr).2 $$ Hsrv
@@ -1175,9 +1175,9 @@ theorem EtcdServer.run.wp_proofG
     have hpre : γn.pre = ρ.raft.pre := by rw [hρ]; exact Hnm.2.1.symm
     have hnd0 : ρ.raft.raft = γn.node := by rw [hρ, Hnm.1]
     ihave #Hncb : isNotify γnc apv.notifyc' (dvView ρ.raft (rnDv γn ce) (A ++ ce)) $$ []
-    · rw [← rnApR_dv γn ρ.raft hpre hnd0 A ce]; iexact Hncb0
+    · rw [← rnApR_dv γn ρ.raft Ha0n hpre hnd0 A ce]; iexact Hncb0
     ihave #Hdyn := srvRaftNodeCC_of_isRaftNode Er γn s $$ Hrn
-    icases rnApGive_dv s γn ρ.raft hpre hnd0 A ce $$ [Hdyn HG] with ⟨Hdv, #Hdvr⟩
+    icases rnApGive_dv s γn ρ.raft Ha0n hpre hnd0 A ce $$ [Hdyn HG] with ⟨Hdv, #Hdvr⟩
     · iframe Hdyn HG
     have hdvn : rnDv γn ce = none → ∀ m, m ∈ ce → m.typ ≠ W32 1 := by
       intro h

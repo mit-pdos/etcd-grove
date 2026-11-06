@@ -3257,3 +3257,43 @@ proof and `EtcdServer__run`.
   This drops the "A6 separately" condition.
 
 **Recommendation: (a).**
+
+### R2d'a A6 (approved by 82, option (a)): done, DRAFT (2026-11-06)
+
+A6 is one commit: the raft side's view is over the ghost log, `σ.b = 0` only (Q24 (c)); the first
+start is the case `γ.a0 = []`.
+
+**Raft side (the six files).**
+- `RNNames` gains `a0 : List EntryModel`, the restart point's backend log (`[]` at a first start:
+  `newRaftNode`'s literals).
+- `rnCfgAt γ L` was `srvCfgView γ.srv γ.nl γ.pre L`. It is now `rnView γ L ∗ rnRestartOk γ`:
+  - `rnView γ L := srvCfgView γ.srv γ.nl [] (rnGhost γ L)`;
+  - `rnGhost γ L := (γ.pre ++ L) ++ γ.a0.drop (γ.pre ++ L).length`;
+  - `rnRestartOk γ := ⌜γ.a0 = []⌝ ∨ (⌜γ.pre = []⌝ ∗ srvRLogLb γ.srv γ.a0 ∗ rnWinInstallAbove γ)`
+    is persistent restart data;
+  - `rnWinInstallAbove` is A8's premise on the raft side: a snapshot `Advance` inside a window
+    installs at or above `|A₀|`.
+- `rnApR`/`rnApGive` are over `rnView` (the "R" forms, under their old names).
+- `rnView_first` (in `InvRaftNode`) proves that at `γ.a0 = []` the three are the old ones. It is
+  the Freeze package's citation.
+- `isRaftNode`, `rnLoopTok`, `raftNode.start.spec` and `rnEnvOk` keep their texts.
+- New premises in the loop's lemmas:
+  - `rnCfgAt_normal` and `rnCfgAt_back_false` take `srvRLogLb γs (L ++ ce)` (the loop holds it as
+    `HLb`) and `rnEnvOk`'s names facts;
+  - `rnCfgAt_back_true` takes `rnRestartOk γ`;
+  - `rnApR_dv`/`rnApGive_dv` take `γ.a0 = []`.
+
+**Following uses.**
+- `bootstrappedRaft.newRaftNode.spec` (frozen; approved via 82) and `newRaftNode.spec`'s post gain
+  `γ.a0 = []`.
+- `NodeStartSpec`'s post (exported `server_raft_node_start`) gains `γw.a0 = []` after
+  `γw.wal = ν`. This is a strengthened post that threads the frozen addition to `NewServer`.
+- `%HEr` gains a fourth conjunct `γn.a0 = []` in `isServerBuiltC`, `isServerRunC` (`AuthCompRows`),
+  `isServerBuilt` (`InvBuild`), the old `InvStart`/`InvRun` hubs, `RunOn`, `StartOn` and `ServerOn`.
+- `NewServer` proves it from `NodeStartSpec`'s post. `run` reads it for `rnApR_dv`/`rnApGive_dv`.
+- `ViewR`'s `_first` lemmas are restated:
+  - `rnCfgAtR_first` is now `= srvCfgView γ.srv γ.nl γ.pre L`;
+  - `rnApRR_first` and `rnApGiveR_first` take `γ.a0 = []`.
+- No sorry and no axiom were added.
+
+**Next:** A9 turns `isServerRunC`'s conjunct into `∃ A₀, γn.a0 = A₀ ∧ …`.

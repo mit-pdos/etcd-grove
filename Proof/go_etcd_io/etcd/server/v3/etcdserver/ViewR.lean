@@ -52,10 +52,11 @@ restart form, finding 1): the view after `ghostOf rp (pre ++ L)`, the raft loop'
 def rnCfgAtR (γ : RNNames) (rp : RestartPt) (L : List EntryModel) : IProp GF :=
   srvCfgView γ.srv γ.nl [] (ghostOf rp (γ.pre ++ L))
 
-/-- A first start's is `rnCfgAt`. -/
+/-- A first start's is the driver's view over Go's log (`rnCfgAt`'s at `γ.a0 = []`, `rnView_first`;
+R2d'a A6: `rnCfgAt` itself is over the ghost log since). -/
 theorem rnCfgAtR_first (γ : RNNames) (L : List EntryModel) :
-    rnCfgAtR (GF := GF) γ RestartPt.first L = rnCfgAt γ L := by
-  unfold rnCfgAtR rnCfgAt srvCfgView
+    rnCfgAtR (GF := GF) γ RestartPt.first L = srvCfgView γ.srv γ.nl γ.pre L := by
+  unfold rnCfgAtR srvCfgView
   rw [ghostOf_first, List.nil_append]
 
 /-- **What comes back with a batch** (DRAFT; `rnApR`'s restart form). -/
@@ -70,13 +71,13 @@ def rnApGiveR (γ : RNNames) (rp : RestartPt) (F ce : List EntryModel) : IProp G
     iprop(rnCfgAtR γ rp F ∗ deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (F ++ ce)))
   else iprop(True)
 
-theorem rnApRR_first (γ : RNNames) (F ce : List EntryModel) :
+theorem rnApRR_first (γ : RNNames) (ha : γ.a0 = []) (F ce : List EntryModel) :
     rnApRR (GF := GF) γ RestartPt.first F ce = rnApR γ F ce := by
-  unfold rnApRR rnApR; rw [rnCfgAtR_first]
+  rw [(rnView_first γ ha).2.1]; unfold rnApRR; rw [rnCfgAtR_first]
 
-theorem rnApGiveR_first (γ : RNNames) (F ce : List EntryModel) :
+theorem rnApGiveR_first (γ : RNNames) (ha : γ.a0 = []) (F ce : List EntryModel) :
     rnApGiveR (GF := GF) γ RestartPt.first F ce = rnApGive γ F ce := by
-  unfold rnApGiveR rnApGive; rw [rnCfgAtR_first]
+  rw [(rnView_first γ ha).2.2]; unfold rnApGiveR; rw [rnCfgAtR_first]
 
 /-- **What comes back, as the apply side states it** (the apply side's `pre = []`, its log Go's
 `γ.pre ++ F`; the view over the ghost log). -/

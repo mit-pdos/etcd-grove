@@ -156,24 +156,96 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
   ipureintro; exact Hsnap
 
 
-/-- (D43 M3) A normal entry keeps the view. -/
-theorem rnCfgAt_normal1 (γ : RNNames) (L : List EntryModel) (m : EntryModel)
-    (hm : m.typ = W32 0) :
-    rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ [m]) := by
-  have := dvView_normal (GF := GF) γ.srv (some γ.nl) L m hm
-  unfold dvView at this
-  exact this
+/-- (D43 M3; R2d'a A6, 2026-11-06: over any log, at `pre = []`) A normal entry keeps a view. -/
+theorem srvCfgView_nil_normal1 (γs : ServerRaftNames) (n : Loc) (X : List EntryModel)
+    (m : EntryModel) (hm : m.typ = W32 0) :
+    srvCfgView (GF := GF) γs n [] X ⊢ srvCfgView γs n [] (X ++ [m]) := by
+  unfold srvCfgView
+  iintro ⟨%v, Hc, %Hok⟩
+  iexists v
+  iframe Hc
+  ipureintro
+  rw [List.nil_append] at Hok ⊢
+  refine srvCfgOk_snoc_noConf Hok _ ?_
+  unfold LogEntry.isConfChange
+  simp only [EntryModel.toLE, hm]
+  intro h
+  rcases h with h | h <;> simp at h
 
-/-- (D43 M3) A batch of normal entries keeps the view. -/
-theorem rnCfgAt_normal (γ : RNNames) (ce : List EntryModel)
-    (h : ∀ m, m ∈ ce → m.typ = W32 0) : ∀ L, rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ ce) := by
-  induction ce with
-  | nil => intro L; rw [List.append_nil]
-  | cons m ce IH =>
-    intro L
-    refine (rnCfgAt_normal1 γ L m (h m List.mem_cons_self)).trans ?_
-    rw [show L ++ m :: ce = (L ++ [m]) ++ ce by simp]
+/-- (D43 M3; R2d'a A6) Normal entries keep a view over any log. -/
+theorem srvCfgView_nil_normal (γs : ServerRaftNames) (n : Loc) (d : List EntryModel)
+    (h : ∀ m, m ∈ d → m.typ = W32 0) :
+    ∀ X, srvCfgView (GF := GF) γs n [] X ⊢ srvCfgView γs n [] (X ++ d) := by
+  induction d with
+  | nil => intro X; rw [List.append_nil]
+  | cons m d IH =>
+    intro X
+    refine (srvCfgView_nil_normal1 γs n X m (h m List.mem_cons_self)).trans ?_
+    rw [show X ++ m :: d = (X ++ [m]) ++ d by simp]
     exact IH (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')) _
+
+/-- (R2d'a A6, 2026-11-06; ViewR's `ghostOf_batch`) **The ghost log after a batch extends the one
+before by a suffix of the batch**, when the log through the batch and the backend's are
+prefix-comparable (two committed logs). -/
+theorem ghost_batch (A₀ G ce : List EntryModel) (hc : G ++ ce <+: A₀ ∨ A₀ <+: G ++ ce) :
+    ∃ d, (G ++ ce) ++ A₀.drop (G ++ ce).length = (G ++ A₀.drop G.length) ++ d ∧
+      ∀ m, m ∈ d → m ∈ ce := by
+  rcases hc with hin | hpast
+  · refine ⟨[], ?_, fun _ h => absurd h (by simp)⟩
+    rw [List.append_nil, List.prefix_iff_eq_append.1 hin,
+      List.prefix_iff_eq_append.1 ((List.prefix_append G ce).trans hin)]
+  · have hl := hpast.length_le
+    rw [List.drop_eq_nil_of_le hl, List.append_nil]
+    by_cases hG : A₀.length ≤ G.length
+    · exact ⟨ce, by rw [List.drop_eq_nil_of_le hG, List.append_nil], fun _ h => h⟩
+    · have hGA : G <+: A₀ :=
+        List.prefix_of_prefix_length_le (List.prefix_append G ce) hpast (by omega)
+      rw [List.prefix_iff_eq_append.1 hGA]
+      obtain ⟨u, hu⟩ := hGA
+      obtain ⟨t, ht⟩ := hpast
+      have hut : u ++ t = ce := by
+        rw [← hu, List.append_assoc] at ht; exact List.append_cancel_left ht
+      refine ⟨t, ht.symm, fun m hm => ?_⟩
+      rw [← hut]; exact List.mem_append_right _ hm
+
+/-- (R2d'a A6, 2026-11-06) The restart data is part of the view. -/
+theorem rnCfgAt_restart (γ : RNNames) (L : List EntryModel) :
+    rnCfgAt (GF := GF) γ L ⊢ rnView γ L ∗ rnRestartOk γ := by
+  unfold rnCfgAt; exact .rfl
+
+/-- (D43 M3; R2d'a A6, 2026-11-06: over the ghost log, given the batch committed, `srvRLogLb` at
+the environment's names `γs`, `rnEnvOk`'s) **A batch of normal entries keeps the view**: at a first
+start the ghost log is the handed one; at a restart (`pre = []`) the batch's log and the backend's
+are prefix-comparable (`srvRLogLb_prefix`) and the ghost log grows by a suffix of the batch
+(`ghost_batch`). -/
+theorem rnCfgAt_normal (γ : RNNames) (γs : ServerRaftNames) (L ce : List EntryModel)
+    (hnm : γs.raft = γ.node ∧ γs.pre = γ.pre ∧ uint.Z γs.ai0 = γ.pre.length)
+    (h : ∀ m, m ∈ ce → m.typ = W32 0) :
+    srvRLogLb γs (L ++ ce) ∗ rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ ce) := by
+  unfold rnCfgAt rnRestartOk
+  iintro ⟨#Hlb, Hv, #Hr⟩
+  iframe Hr
+  icases Hr with (%Ha | ⟨%Hp, #HA, -⟩)
+  · unfold rnView rnGhost
+    rw [Ha]
+    simp only [List.drop_nil, List.append_nil]
+    rw [← List.append_assoc]
+    iapply srvCfgView_nil_normal γ.srv γ.nl ce h $$ Hv
+  · have hγs : γs = γ.srv := by
+      obtain ⟨h1, h2, h3⟩ := hnm
+      rw [Hp] at h2 h3
+      simp only [List.length_nil] at h3
+      have h0 : γs.ai0 = W64 0 := by word
+      cases γs; simp only at h1 h2 h0; subst h1 h2 h0
+      unfold RNNames.srv; rw [Hp]
+    ihave %Hc := srvRLogLb_prefix γ.srv γ.a0 (L ++ ce) $$ [HA Hlb]
+    · iframe HA; rw [← hγs]; iexact Hlb
+    have hc : γ.pre ++ L ++ ce <+: γ.a0 ∨ γ.a0 <+: γ.pre ++ L ++ ce := by
+      rw [Hp, List.nil_append]; exact Hc.symm
+    obtain ⟨d, hd, hdm⟩ := ghost_batch γ.a0 (γ.pre ++ L) ce hc
+    unfold rnView rnGhost
+    rw [← List.append_assoc, hd]
+    iapply srvCfgView_nil_normal γ.srv γ.nl d (fun m hm => h m (hdm m hm)) $$ Hv
 
 /-- (D43 M3) A batch with no `ConfChange` entry (Go's scan) of the server's committed log
 (`srvIdxOkW`: normal entries and `ConfChange`s) is all normal entries. -/
@@ -191,23 +263,25 @@ theorem ccIn_false_normal (ai₀ : w64) (L ce : List EntryModel) (hidx : srvIdxO
 
 /-- (D43 M3) **The view after a batch with no `ConfChange` entry**: the loop kept it (`rnHands`
 is false), and the batch, of the server's committed log, is normal entries. -/
-theorem rnCfgAt_back_false (γ : RNNames) (ai₀ : w64) (L ce : List EntryModel)
+theorem rnCfgAt_back_false (γ : RNNames) (γs : ServerRaftNames) (ai₀ : w64) (L ce : List EntryModel)
+    (hnm : γs.raft = γ.node ∧ γs.pre = γ.pre ∧ uint.Z γs.ai0 = γ.pre.length)
     (hidx : srvIdxOkW ai₀ (L ++ ce)) (hcc : ccIn ce = false) :
-    (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ⊢ rnCfgAt γ (L ++ ce) := by
+    srvRLogLb γs (L ++ ce) ∗ (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ⊢
+      rnCfgAt γ (L ++ ce) := by
   have hh : rnHands γ ce = false := by unfold rnHands; simp [hcc]
   rw [ite_eq_right (by rw [hh]; decide)]
-  exact rnCfgAt_normal γ ce (ccIn_false_normal ai₀ L ce hidx hcc) L
+  exact rnCfgAt_normal γ γs L ce hnm (ccIn_false_normal ai₀ L ce hidx hcc)
 
 /-- (D43 M3) **The view after a batch with a `ConfChange` entry**: the second `notifyc` send's
 (`rnApR`; 2026-10-30, the repair: one mode, until then in the static mode the one the loop kept). -/
 theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce = true) :
-    (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ∗ rnApR γ L ce ⊢
+    rnRestartOk γ ∗ (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ∗ rnApR γ L ce ⊢
       rnCfgAt γ (L ++ ce) := by
   have hh : rnHands γ ce = true := hcc
-  unfold rnApR
+  unfold rnApR rnCfgAt
   rw [ite_eq_left hh, ite_eq_left hh]
-  iintro ⟨-, H⟩
-  iexact H
+  iintro ⟨#Hr, -, H⟩
+  iframe H Hr
 
 /-- (D43 M3) The batch's view option at the apply side: the node's names when the view goes along
 (`rnHands`). -/
@@ -215,28 +289,31 @@ def rnDv (γ : RNNames) (ce : List EntryModel) : Option Loc :=
   if rnHands γ ce then some γ.nl else none
 
 /-- (D43 M3) What the apply thread's receive deposits, as the apply side states it. -/
-theorem rnApR_dv (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.pre = γs.pre)
+theorem rnApR_dv (γ : RNNames) (γs : ServerRaftNames) (ha : γ.a0 = []) (hpre : γ.pre = γs.pre)
     (hraft : γs.raft = γ.node) (A ce : List EntryModel) :
     rnApR (GF := GF) γ A ce = dvView γs (rnDv γ ce) (A ++ ce) := by
-  unfold rnApR rnDv dvView
+  rw [(rnView_first γ ha).2.1]
+  unfold rnDv dvView
   by_cases h : rnHands γ ce
   · rw [ite_eq_left h, ite_eq_left h]
-    unfold rnCfgAt srvCfgView
+    unfold srvCfgView
     rw [hraft, ← hpre]
   · rw [ite_eq_right h, ite_eq_right h]
 
 /-- (D43 M3) What goes along with the batch, as the apply side states it, with the node's
 conf-change contract (`isRaftNodeIfc`'s). -/
-theorem rnApGive_dv (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.pre = γs.pre)
+theorem rnApGive_dv (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (ha : γ.a0 = [])
+    (hpre : γ.pre = γs.pre)
     (hraft : γs.raft = γ.node) (A ce : List EntryModel) :
     srvRaftNodeCC (GF := GF) s γ.srv γ.nl ∗ rnApGive γ A ce ⊢
       dvView γs (rnDv γ ce) A ∗ dvRes s γs (rnDv γ ce) (A ++ ce) := by
-  unfold rnApGive rnDv dvView dvRes
+  rw [(rnView_first γ ha).2.2]
+  unfold rnDv dvView dvRes
   by_cases h : rnHands γ ce
   · rw [ite_eq_left h, ite_eq_left h]
     simp only
     rw [srvRaftNodeCC_congr s γs γ.srv γ.nl hraft]
-    unfold rnCfgAt srvCfgView srvLE
+    unfold srvCfgView srvLE
     rw [hraft, ← hpre]
     iintro ⟨#Hn, Hv, #Hd⟩
     iframe Hv Hn Hd

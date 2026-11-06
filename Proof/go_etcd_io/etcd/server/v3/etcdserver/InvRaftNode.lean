@@ -104,6 +104,10 @@ structure RNNames [GooseExts] where
   wal : WalNames
   -- (2026-11-03, R2b-3b) the claim on the loop's stop escrow (`rnStopClaim`, `rnDoneEsc`)
   sc : GName
+  -- (R2d'a A6, 2026-11-06; DRAFT) the restart point's backend log `A₀` (the backend's ghost applied
+  -- log through its consistent index, `bootstrap.go:255-273` at the etcd pin `673da07c8`), over
+  -- which the driver's view is stated (`rnCfgAt`); `[]` at a first start (`newRaftNode`'s)
+  a0 : List EntryModel
 
 /-- The `MemoryStorage` registry's name: the cluster's (2026-10-27; until then a field). -/
 abbrev RNNames.reg [GooseExts] (γ : RNNames) : GName := γ.node.reg
@@ -344,11 +348,53 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
     ⌜WalSaveStep ⟨S, p, none, srvLE γ.srv d⟩ ⟨S', p', none, srvLE γ.srv (d ++ ce)⟩ hs.toM
       (es.map EntryModel.toM)⌝)
 
+/-- (R2d'a A6, 2026-11-06; DRAFT) **The ghost log after the committed log `L`**: the log handed out,
+`pre ++ L`, completed by the restart point's backend log past it (`γ.a0`; ViewR's `ghostOf ⟨|pre|,
+a0⟩ (pre ++ L)`). At a first start (`a0 = []`) it is `pre ++ L`. -/
+def rnGhost (γ : RNNames) (L : List EntryModel) : List EntryModel :=
+  (γ.pre ++ L) ++ γ.a0.drop (γ.pre ++ L).length
+
+/-- (R2d'a A6, 2026-11-06; DRAFT) **The driver's view of the configuration after the committed log
+`L`, over the ghost log** (ViewR's `rnCfgAtR`): the view after `rnGhost γ L`, every conf entry of it
+applied (`srvCfgView`, `InvCfgView.lean`). At a restart, raft's view is at the backend's consistent
+index (`RestartNode`, `bootstrap.go:597`; `notes/restart-plan.md`, R2d' finding 1), past Go's log
+while the replay window is open; at a first start it is the view after `pre ++ L`. -/
+def rnView (γ : RNNames) (L : List EntryModel) : IProp GF :=
+  srvCfgView γ.srv γ.nl [] (rnGhost γ L)
+
+/-- (R2d'a A6, 2026-11-06; DRAFT; R2d'a's A8, a restart-only assumption) **No snapshot below the
+restart point**: every snapshot `Ready` the node hands this incarnation's driver is at or above the
+backend's log `a0`. True of every Go execution (raft's `restore` refuses an index at or below its
+committed one, `raft.go:1876-1880` at `565c2bd`, and the backend's consistent index is at most the
+WAL's commit), but raft's API does not say so (`notes/restart-plan.md`, R2d' finding 2, H5 (a));
+R2s discharges it. -/
+def rnWinInstallAbove (γ : RNNames) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(□ ∀ (st : NodeDriverState) (es : List EntryM) (l : SnapLoan),
+    ⌜st.handling = some (es, some l)⌝ -∗ nodeDriver γ.nl γ.node.cl srvClusterN st -∗
+      nodeDriver γ.nl γ.node.cl srvClusterN st ∗
+      ⌜γ.a0.length ≤ uint.nat l.snap.Metadata'.Index'⌝)
+
+instance rnWinInstallAbove_persistent (γ : RNNames) :
+    Persistent (rnWinInstallAbove (GF := GF) γ) := by
+  unfold rnWinInstallAbove; infer_instance
+
+/-- (R2d'a A6, 2026-11-06; DRAFT) **The restart data** (persistent): a first start (`a0 = []`), or a
+restart before the WAL's first snapshot (`pre = []`, R2d'a's `σ.b = 0` restriction) whose backend
+log `a0` is committed (`srvRLogLb`), with R2d'a's A8 (`rnWinInstallAbove`). -/
+def rnRestartOk (γ : RNNames) : IProp GF :=
+  iprop(⌜γ.a0 = []⌝ ∨ (⌜γ.pre = []⌝ ∗ srvRLogLb γ.srv γ.a0 ∗ rnWinInstallAbove γ))
+
+instance rnRestartOk_persistent (γ : RNNames) : Persistent (rnRestartOk (GF := GF) γ) := by
+  unfold rnRestartOk; infer_instance
+
 /-- **The driver's view of the configuration after the committed log `L`** (D43 M3; 2026-10-30,
-the repair: raft's one mode, the old dynamic one's): the view after `pre ++ L`, every conf entry of
-it applied (`srvCfgView`, `InvCfgView.lean`); until the repair nothing in a static cluster. -/
+the repair: raft's one mode, the old dynamic one's; R2d'a A6, 2026-11-06, DRAFT: over the ghost
+log, `rnView`, with the restart data `rnRestartOk`; until then the view after `pre ++ L`, which it
+is at a first start, `rnView_first`): every conf entry of the ghost log applied (`srvCfgView`,
+`InvCfgView.lean`); until the repair nothing in a static cluster. -/
 def rnCfgAt (γ : RNNames) (L : List EntryModel) : IProp GF :=
-  srvCfgView γ.srv γ.nl γ.pre L
+  iprop(rnView γ L ∗ rnRestartOk γ)
 
 /-- The driver's state at the committed log `L` handed out and the hard state `p`, idle, at the
 storage's key `γ.key`, the durable state `S` and the role `r` (2026-11-01, durability layer 4). -/
@@ -1629,15 +1675,48 @@ theorem rnWalHanded_intro (γ : RNNames) (L : List EntryModel) :
 /-- (D43 M3) What the apply thread's `notifyc` receive deposits: the view after the batch, if it
 went along. -/
 def rnApR (γ : RNNames) (F ce : List EntryModel) : IProp GF :=
-  if rnHands γ ce then rnCfgAt γ (F ++ ce) else iprop(True)
+  if rnHands γ ce then rnView γ (F ++ ce) else iprop(True)
 
 /-- (D43 M3) What goes along with the batch: the view after `F` and the committed log handed out
 through the batch (`dlvLb`), if `rnHands`. -/
 def rnApGive (γ : RNNames) (F ce : List EntryModel) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   if rnHands γ ce then
-    iprop(rnCfgAt γ F ∗ deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (F ++ ce)))
+    iprop(rnView γ F ∗ deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (F ++ ce)))
   else iprop(True)
+
+/-- (R2d'a A6, 2026-11-06) No conf entry in a range of a log, in its prefix. -/
+theorem NoConfChangeIn_prefix (l r : List LogEntry) (lo : Nat)
+    (h : NoConfChangeIn (l ++ r) lo (l ++ r).length) : NoConfChangeIn l lo l.length := by
+  intro k e hk1 hk2 he
+  exact h k e hk1 (by simp; omega) (by rw [List.getElem?_append_left hk2]; exact he)
+
+/-- (R2d'a A6, 2026-11-06) **At a first start (`a0 = []`) the view, what goes along with a batch and
+what comes back are today's texts** (until A6: `rnCfgAt γ L := srvCfgView γ.srv γ.nl γ.pre L`,
+`rnApR`'s and `rnApGive`'s over it). -/
+theorem rnView_first (γ : RNNames) (h : γ.a0 = []) :
+    (∀ L, rnCfgAt (GF := GF) γ L ⊣⊢ srvCfgView γ.srv γ.nl γ.pre L) ∧
+    (∀ F ce, rnApR (GF := GF) γ F ce =
+      if rnHands γ ce then srvCfgView γ.srv γ.nl γ.pre (F ++ ce) else iprop(True)) ∧
+    (∀ F ce, rnApGive (GF := GF) γ F ce =
+      letI := srvStor (GF := GF) γ.node
+      if rnHands γ ce then
+        iprop(srvCfgView γ.srv γ.nl γ.pre F ∗
+          deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (F ++ ce)))
+      else iprop(True)) := by
+  have hv : ∀ L, rnView (GF := GF) γ L = srvCfgView γ.srv γ.nl γ.pre L := by
+    intro L
+    unfold rnView rnGhost srvCfgView
+    rw [h]
+    simp
+  refine ⟨fun L => ?_, fun F ce => ?_, fun F ce => ?_⟩
+  · unfold rnCfgAt rnRestartOk
+    rw [hv L]
+    constructor
+    · iintro ⟨H, -⟩; iexact H
+    · iintro H; iframe H; ileft; ipureintro; exact h
+  · unfold rnApR; rw [hv]
+  · unfold rnApGive; rw [hv]
 
 /-- The `i`th payload on `applyc` with committed entries: the log `F` forwarded before it (`cum[i]`)
 and the batch `ce` it extends it with (`cum[i + 1] = F ++ ce`, committed), no snapshot, and its two
