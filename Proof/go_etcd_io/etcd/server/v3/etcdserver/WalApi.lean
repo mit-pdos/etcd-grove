@@ -240,9 +240,13 @@ convention, `notes/spec-first-plan.md`, "The slot convention": the WAL's facts m
 as the WAL next changes the hub, which the certificate does). Sealed; `wal.stopImage_intro` builds
 it. The WAL's records `σ` hold the node's durable state `S` (`StorageHolds`, what `RestartNode`'s
 update checks); their snapshot is at or below the backend's consistent index `i` and `i` at or below
-their commit (etcd's order: a snapshot is of the applied state, an entry is applied after the `Save`
-of its commit), so that `bootstrap` keeps the backend file; and their snapshot certificate
-(`walSnapCert`, Q14 (a)): at index `0`, or their snapshot, of no data at their base, valid.
+their commit (etcd's order: a snapshot is of the applied state; and the raft loop, which hands a
+batch to the apply thread before it saves the batch's `HardState` (`r.applyc <- ap`,
+`server/etcdserver/raft.go:240`, before `r.storage.Save(rd.HardState, …)`, `:264`, at the pin
+`673da07c8`), finishes that `Save` before it can observe `stopped`; `r.stop()` waits for the loop to
+end (`:425-435`), and the stop commits the backend after it (`s.r.stop()` then `s.Cleanup()`,
+`server.go:831-833`): so the order holds at a graceful stop, not at every instant); the first so
+that `bootstrap` keeps the backend file; and their snapshot certificate (`walSnapCert`, Q14 (a)): at index `0`, or their snapshot, of no data at their base, valid.
 
 **Margin.** The certificate is of the records' snapshot. `bootstrap` replaces that snapshot's
 `ConfState` by the backend's at `i` (`bootstrap.go:107-115`, `buildConfStateFromV3store`) before

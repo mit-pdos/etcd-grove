@@ -2007,24 +2007,27 @@ after R2e. The old label "R2e raft's restart" is retired (`RestartNode` is prove
 - **G-c. A restarted `run` lags its own KV.** `run` sets `ep.appliedi` from raft storage's snapshot
   (`server.go:760`, `:808-814`): the WAL snapshot's `σ.b`. The backend holds the KV through its
   consistent index `i ≥ σ.b` (`srvDiskImage`, `InvRestart.lean:130`). `applyEntries` skips only
-  entries `≤ ep.appliedi` (`:1209-1233`), so `(σ.b, i]` is applied again, each with
-  `shouldApplyV3 = ApplyV2storeOnly` (`:1933-1937`, `e.Index <= ConsistentIndex`), which writes no
+  entries `≤ ep.appliedi` (`:1215-1239`), so `(σ.b, i]` is applied again, each with
+  `shouldApplyV3 = ApplyV2storeOnly` (`:1939-1943`, `e.Index <= ConsistentIndex`), which writes no
   KV. The model already has this shape: `batchStep`'s `v3 = decide (c < m.index)`
   (`InvApplier.lean:221`), `loopOk`'s `p = max ciEff a` (`:105`), `ciJ`'s second disjunct
   (`InvRunRes.lean:56`), and the snapshot install's jump (`applied_jump`, `InvRequest.lean:2284`;
   `kvApplied_of_jump`, `snapRecv_kv_jump`), where the ghost applied index runs ahead of Go's.
 - **G-d. The replay window is not invisible to the rest buckets' in-memory model.** With `v3 = false`:
-  `apply` still calls `Apply` (`server.go:1969-2000`); the uber applier dispatches
+  `apply` still calls `Apply` (`server.go:1975-2006`); the uber applier dispatches
   `ClusterVersionSet`, `ClusterMemberAttrSet` and `DowngradeInfoSet` before its `!v3` return
   (`apply/uber_applier.go:82-127`); `UpdateAttributes` and `SetVersion` set the in-memory
   attributes and version even when v2-only (`membership/cluster.go:467-477`, `:589-623`);
-  `applyConfChange` still calls `SetConfState` and `transport.AddPeer` (`server.go:2031-2101`) while
-  `AddMember` v2-only is a no-op (`cluster.go:394-425`). So during the window the in-memory version
+  `applyConfChange` still calls `SetConfState` and `transport.AddPeer` (`server.go:2037-2110`) while
+  `AddMember` v2-only is a no-op (`cluster.go:394-425`), and a replayed removal of the member itself
+  still returns `removedSelf = true` (`server.go:2087-2089`), so `apply` returns `shouldStop`
+  (`:1959`) and `applyEntries` stops the server (`stopWithDelay`, `:1236-1237`) (added 2026-11-06, the
+  Freeze 1b review's N5; line numbers in G-c/G-d at the pin `673da07c8`). So during the window the in-memory version
   and attributes go back to older values and forward again; at the window's end they are the
   image's again (last writer wins over the same entries). `restAfter`/`restUpdateAttrs`
   (`apply/RestModel.lean:118-128`) already model the v3-false writes. A documented behavior
   (`shouldApplyV3`'s comment), not a bug: nothing filed.
-- **G-e. `s.appliedIndex` starts at 0 at a restart.** `setAppliedIndex` (`server.go:1713`) is the only
+- **G-e. `s.appliedIndex` starts at 0 at a restart.** `setAppliedIndex` (`server.go:1719`) is the only
   writer; nothing sets it from `ep.appliedi` before the first batch. Readers of `AppliedIndex()`
   (the read-index loop's wait, `linearizableReadLoop`) see 0 until the first applied entry.
   `srvAppliedBody` already lets the atomic lag the ghost (J5, `InvRequest.lean:2141`); the restart
@@ -2302,14 +2305,19 @@ R2d / R2d' / R2e").
   delegation, 2026-11-06, pending the user's review; `questions.md`, "Assumptions R2d carries for
   R2d'"). R2d's restart `%HEr` carries the named conjunct `winNoConf W` (`ApplyWindow.lean`: no conf
   entry in the window; `winNoConf_nil` at a first start, `W = []`). R2d' removes it by proving the
-  window's conf changes (`server.go:1948-1950` calls `applyConfChange` with `shouldApplyV3` false)
+  window's conf changes (`server.go:1954-1956` at the pin `673da07c8` calls `applyConfChange` with `shouldApplyV3` false)
   over what Go does with one (corrected 2026-11-06: an earlier brief said such a replay is applied to
   raft and the v2 membership, which is false): at the pin a replayed conf change (`shouldApplyV3` false) is applied neither to raft nor to the
   membership: `ValidateConfigurationChange` returns `nil` at once (`membership/cluster.go:306-308`),
-  `ApplyConfChange` runs only `if shouldApplyV3` (`server.go:2050-2056`, so raft is not told and
+  `ApplyConfChange` runs only `if shouldApplyV3` (`server.go:2053-2059`, so raft is not told and
   `ep.confState` is unchanged), `AddMember`/`RemoveMember` only log (`membership/cluster.go:402-424`);
   what does run is `beHooks.SetConfState` (of the unchanged `ep.confState`), the transport's
-  `AddPeer`/`RemovePeer`/`UpdatePeer` and `w.Trigger` (the Freeze 1 review's F6; not a Go bug).
+  `AddPeer`/`RemovePeer`/`UpdatePeer` and `w.Trigger` (the Freeze 1 review's F6; not a Go bug), and, for
+  a removal of the member itself, the server's stop: `removedSelf = true` at `v3 = false` too
+  (`server.go:2087-2089`), so `apply` returns `shouldStop` and `applyEntries` stops the server
+  (`:1236-1237`); R2d''s `v3 = false` case of `applyConfChange.spec` must model it (the Freeze 1b
+  review's N5; not a Go bug: a replayed self-removal was valid when first applied, or the member was
+  already removed).
   **Re-check of the discharge plan (2026-11-06): it still holds, at a cost not listed before.**
   Nothing changes raft's or the membership's state, so `run`'s and `srvRest`'s rows are kept by such a
   replay; but `applyConfChange.spec` has no `v3 = false` case (it requires `dv = some n → v3 = true`,
@@ -2356,7 +2364,7 @@ from `wp_srv_createSnapshot`'s certificate, the received one from raft's `rnRead
 conjunct added). No `walFiles` axiom; the trust base unchanged.
 - **Caveat (i) settled:** a received snapshot's raft data is nil. The cluster's snapshot registry
   now holds only nil-data snapshots (`srvSnapsReg`, in `srvClusterOk`: the server registers only
-  `CreateSnapshot(…, nil)`'s, `server.go:2131`; the merged snapshot's `Data` is unset,
+  `CreateSnapshot(…, nil)`'s, `server.go:2137`; the merged snapshot's `Data` is unset,
   `snapshot_merge.go:43-50`), so a valid snapshot has nil data (`srv_snapshotValid_dataNil`) and is its
   WAL record's (`srv_snapshotValid_record`).
 - One raft API addition: `snapMade_timeless` (so `snapshotValid` is timeless at a client).
@@ -2366,7 +2374,10 @@ offline, pending the user's review).** The hard probe on the window form (`apply
 found: (1) the window form's `lastTermIs A at0` cannot hold at a restart (Go's `ep.appliedt` is the
 WAL snapshot's term, `server.go:812-813`): now `lastTermIs (A.take (uint.nat ai)) at0`; (2) the local
 snapshot after a window batch is at Go's applied log `take ai A ++ unapplied ai ms` (a proof matter,
-a list lemma); (3) (**superseded 2026-11-06 by R2s**, "R2d Draft, round 3" below) a merged snapshot sent in a window (`server.go:1010-1015`) carries an image at the
+a list lemma); (3) (**superseded 2026-11-06 by R2s**, "R2d Draft, round 3" below) a merged snapshot sent in a window (`server.go:1008-1023` at the pin `673da07c8`; Go merges a
+`MsgSnap` only at the batch's raft term and at or below `ep.appliedi`, `m.GetTerm() == apply.raftTerm
+&& m.GetSnapshot().GetMetadata().GetIndex() <= ep.appliedi`, `:1018`, calling
+`createMergedSnapshotMessage`, `snapshot_merge.go:32`, at `:1019`) carries an image at the
 backend's consistent index `j` above its metadata index: the network's image certificate
 (`srvNet`'s `img`) becomes "an image at some `j ≥ i`", and the receiver's install (`applied_jump`,
 `applyAll.specSnap`/`specSnapM`) gains the same replay window (Q13's `ApplyWindow`), so one notion of
@@ -2411,16 +2422,22 @@ window (Go 60, backend and ghost 100) sends F a merged snapshot at 60 with its i
 it (raft commit 60, Go 60, ghost 100). Leadership moves to L2, applied to 70, its log compacted past
 61; L2 probes F, finds it behind its first index and sends a merged snapshot at 70, image at 70. F's
 raft accepts it (above its commit 60, `raft.go:1877`), Go accepts it (above `ep.appliedi` 60,
-`server.go:1045`), F's backend goes from 100 back to 70 and Go re-applies 71..100 with v3. The ghost
+`server.go:1051` at the pin `673da07c8`), F's backend goes from 100 back to 70 and Go re-applies 71..100 with v3. The ghost
 cannot follow: `applied_jump` moves a monotone counter forward only (`InvRequest.lean:2312`), and the
 snapshot directory's removal fact is keyed by the ghost index (`SnapRO.lean:345,358`).
 
 **Assumptions R2d carries** (`questions.md`, "Assumptions R2d carries for R2d'/R2s"): `winNoConf`
-(R2d' discharges it) and `winNoMergedSend` (R2s discharges it). `winNoMergedSend γ W`
-(`ApplyWindow.lean`): with replays pending, no member sends a `MsgSnap`; beside `winNoConf` in the
-restart's starting point and `applyAll.specBatch`'s premise; trivial at a first start
-(`winNoMergedSend_nil`). Its cost: it does not hold of every Go execution (a leader in its window does
-send). `applyAll.wp_proofBatch`'s merged-send branch at a pending window is refuted by it: the
+(R2d' discharges it) and `winNoMergedSend` (R2s discharges it). `winNoMergedSend γ s R rt`
+(`ApplyWindow.lean`, narrowed by the Freeze 1 review's F2): with a window left after the batch
+(`R ≠ []`), every wholly owned message member `id` (the server's `memberID`) sent is not a `MsgSnap`
+at the batch's raft term `rt`; `applyAll.specBatch`'s premise; trivial with no window left
+(`winNoMergedSend_nil`). What it asserts (corrected 2026-11-06, the Freeze 1b review's N1): `sentMsg`
+is persistent and keyed by the member id, not the incarnation, so in practice member `id` has never,
+in any incarnation, sent a `MsgSnap` at `rt`. R2d' supplies it per batch from a persistent assumption
+of the restart's starting point: no `MsgSnap` from this member from its restart term on, nor at that
+term before the stop. Its cost: it does not hold of every Go execution: a leader in its window does
+send one, and a leader at term `T` that sent a snapshot, stopped without a leadership transfer and
+restarted at term `T` with a window violates it though Go merges nothing in the window. `applyAll.wp_proofBatch`'s merged-send branch at a pending window is refuted by it: the
 window form's proof is sorry-free.
 
 **The review's other items, done on `r2d`** (`questions.md`, the Freeze list): item 4, Q16 (3)'s
@@ -2484,7 +2501,11 @@ split of Q18; `notes/decisions.md`, "R2d restaged: the restart's prerequisites")
   (`winRest W (unapplied ai ms)`): the batch takes from `msgSnapC` no `MsgSnap` of this member at the
   batch's raft term; `isServerApplyAll`/`srvApplyAllBuilt` gain `srvMemberIDAddr s ↦□ γm.id`,
   `NewServer`'s proof supplying it. R2d' supplies the premise per batch from the restart's starting
-  point (`run`'s loop over batches, each of its own term).
+  point (`run`'s loop over batches, each of its own term). (Corrected 2026-11-06, the Freeze 1b
+  review's N1: `sentMsg` is keyed by the member id, not the incarnation, so the premise says member
+  `id` never sent a `MsgSnap` at `rt` in any incarnation; R2d' supplies it from the assumption that
+  this member sends no `MsgSnap` from its restart term on, nor sent one at that term before the stop;
+  "Assumptions R2d carries" above.)
 - **The stop's `i ≤ σ.commit` stays in R2d** (the Q16-3 review's finding 2 reverted; `wal.stopImage`'s
   slot form and its elimination law kept). **R2s** carries its weakening, together with the trusted
   `bootstrapRestartContract`'s premise `uint.nat i ≤ σ.commit` (a trust change, with its `axiom`-skill
@@ -2519,7 +2540,7 @@ split of Q18; `notes/decisions.md`, "R2d restaged: the restart's prerequisites")
   `leasecatchup`, `leaseexpiry`, `linkv3p`, `k8setcd3`, `k8scompactor` (`etc/tcb-collections/`).
   Nothing on `r2d` uses the widening (only `authStoreKit_off`'s `Or.inl`); `RunWindow.lean` goes to
   `r2d-prime`.
-- **`winNoConf`'s R2d' discharge, re-checked** against `server.go:2050-2056` and
+- **`winNoConf`'s R2d' discharge, re-checked** against `server.go:2053-2059` and
   `membership/cluster.go:306-308`: a replayed conf change is neither validated nor applied to raft, and
   the membership only logs (`cluster.go:402-424`). What changes: the discharge is not "applyConfChange's
   v2-only case" of today's spec (it has none: `dv = some n → v3 = true`); R2d' adds a `v3 = false` case

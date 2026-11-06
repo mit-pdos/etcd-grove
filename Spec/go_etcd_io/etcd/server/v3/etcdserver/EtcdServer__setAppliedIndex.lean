@@ -35,8 +35,8 @@ until then `spec` off and `specM on`, E3p): the applied index's invariant over t
 (R2d-4, 2026-11-06; Q9 (d)) **A replay (`rep = true`), below the ghost applied index.** After a
 restart Go's `ep.appliedi` (the WAL snapshot's index) lags the ghost applied index (the backend's
 consistent index `i`, where the ghost applied log starts), and `apply` replays the entries between,
-calling `setAppliedIndex(e.Index)` for each (`server.go:1980`): the store of an index `v'` at most
-the ghost's `v` changes no ghost state (the invariant lets the atomic lag the ghost,
+calling `setAppliedIndex(e.Index)` for each (`server.go:1949`, `:1957` at the pin `673da07c8`): the
+store of an index `v'` at most the ghost's `v` changes no ghost state (the invariant lets the atomic lag the ghost,
 `srvAppliedBody`'s `v ≤ a`); the apply thread's half stays at `v`. -/
 abbrev EtcdServer.setAppliedIndex.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64) (L : mvcc.Log) (rep : Bool),

@@ -706,8 +706,8 @@ instance srvLogInv_persistent (γ : ServerRaftNames) : Persistent (srvLogInv (GF
 
 /-- (R2d, Q14 caveat (i), 2026-11-06; DRAFT) **The cluster's snapshot registry** (`srvClusterOk`'s
 invariant): the snapshots made (`ownSnapsMade`), every one of `nil` data. Go: the server's raft
-snapshots carry no data (`CreateSnapshot(ep.appliedi, ep.confState, nil)`, `server.go:2131`, and the merged
-snapshot's `Data` unset, `createMergedSnapshotMessage`, `snapshot_merge.go:43-50`); the image travels
+snapshots carry no data (`CreateSnapshot(ep.appliedi, ep.confState, nil)`, `server.go:2137` at the pin
+`673da07c8`, and the merged snapshot's `Data` unset, `createMergedSnapshotMessage`, `snapshot_merge.go:43-50`); the image travels
 as `srvImage`. So a received snapshot's data is `nil` too (`srv_snapshotValid_dataNil`), and a WAL
 record's snapshot (`walSaveSnap`'s, of no data) is as valid as the snapshot it records. -/
 def srvSnapsReg (cl : Cluster) : IProp GF :=

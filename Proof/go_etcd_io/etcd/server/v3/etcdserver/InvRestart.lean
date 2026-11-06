@@ -106,9 +106,10 @@ def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
 - the backend's part (the bbolt file): `D` is the image of a committed prefix `A` of the server's
   log through the consistent index `i` (`imageAt`, the snapshot path's certificate, `dbImage`'s
   content at the stopped incarnation's names), its stored term `t` (`metaIs`);
-- between them (in the WAL's slot): the WAL's snapshot at or below the backend's index, the
-  backend's index at or below the WAL's commit, so that `bootstrap` keeps the file
-  (`recoverSnapshot` opens a `.snap.db` only when the file's index is below the snapshot's);
+- between them (in the WAL's slot): the WAL's snapshot at or below the backend's index, so that
+  `bootstrap` keeps the file (`recoverSnapshot` opens a `.snap.db` only when the file's index is
+  below the snapshot's), and the backend's index at or below the WAL's commit (the raft loop saves
+  every batch it handed to apply before it stops; `wal.stopImage`);
 - the configuration point raft restarts with: `bootstrap` replaces the WAL snapshot's `ConfState`
   by the backend's (`buildConfStateFromV3store`, `v3ConfStateIs`): every conf state it can build is the
   membership at `i`; `RestartNode` takes any point from the storage's base to its commit;

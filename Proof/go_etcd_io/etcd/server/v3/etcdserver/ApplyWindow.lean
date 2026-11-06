@@ -7,7 +7,7 @@ A restarted member's ghost applied log starts at its backend's consistent index 
 a jump, as a snapshot's install: `applied_jump`), while Go's `ep.appliedi` starts at the WAL
 snapshot's index `σ.b ≤ i`. Raft hands the entries from `σ.b + 1` again; those in `(σ.b, i]` are
 already in the ghost log and Go applies them v2-only (`shouldApplyV3`'s `e.Index <=
-ConsistentIndex`, `server.go:1933-1937`): no KV write, no rest-bucket write, but their in-memory
+ConsistentIndex`, `server.go:1939-1943` at the pin `673da07c8`): no KV write, no rest-bucket write, but their in-memory
 effects happen again (R2d review F8):
 * the members' attributes (`UpdateAttributes` v2-only, `membership/cluster.go:467-477`): modeled,
   `RestM.mem` (`restUpdateAttrs`, `restReplay` below);
@@ -16,10 +16,12 @@ effects happen again (R2d review F8):
   downgrade's writers take `AEnv.RW`);
 * a replayed conf change (`applyConfChange` at `shouldApplyV3` false): it is not validated
   (`ValidateConfigurationChange` returns `nil`, `membership/cluster.go:306-308`), not applied to
-  raft (`ApplyConfChange` only `if shouldApplyV3`, `server.go:2050-2056`) nor to the membership
+  raft (`ApplyConfChange` only `if shouldApplyV3`, `server.go:2053-2059`) nor to the membership
   (`AddMember`/`RemoveMember` only log, `membership/cluster.go:402-424`); what happens is
   `beHooks.SetConfState` with the unchanged conf state, the transport's `AddPeer`/`RemovePeer`/
-  `UpdatePeer` and the wait's trigger. Not stated in R2d: the apply chain's specs take
+  `UpdatePeer` and the wait's trigger; and a replayed removal of the member itself still returns
+  `removedSelf = true` (`server.go:2087-2089`), so `apply` returns `shouldStop` (`:1959`) and
+  `applyEntries` stops the server (`stopWithDelay`, `:1236-1237`). Not stated in R2d: the apply chain's specs take
   `winNoConf` (no conf change in the window), which R2d' discharges at the restart (with a
   `v3 = false` case of `applyConfChange.spec`; `notes/restart-plan.md`, the R2d' list).
 The apply chain's specs (`apply.spec`, `applyEntries.specBatch`, `applyAll.specBatch`) are stated
@@ -108,10 +110,11 @@ delegation, 2026-11-06, pending the user's review; DRAFT): no entry the restart 
 change. A premise of the apply chain's window specs (`apply.spec`, `applyEntries.specBatch`,
 `applyAll.specBatch`; the Freeze 1 review's F1), to be a named conjunct of the restart's starting
 point in R2d', an assumption R2d carries for R2d' (`notes/restart-plan.md`, the R2d' list). Go
-replays a conf change in the window v2-only (`server.go:1949`, `applyConfChange` at
-`shouldApplyV3` false, `:2031-2101`): unvalidated (`membership/cluster.go:306-308`), applied
-neither to raft (`server.go:2050-2056`) nor to the membership (`membership/cluster.go:402-424`),
-only its transport calls and `SetConfState` happen; `applyConfChange.spec` has no case for it. -/
+replays a conf change in the window v2-only (`server.go:1956` at the pin `673da07c8`, `applyConfChange` at
+`shouldApplyV3` false, `:2037-2110`): unvalidated (`membership/cluster.go:306-308`), applied
+neither to raft (`server.go:2053-2059`) nor to the membership (`membership/cluster.go:402-424`),
+only its transport calls, `SetConfState` and, for a removal of the member itself, the server's
+stop (`removedSelf`, `server.go:2087-2089`) happen; `applyConfChange.spec` has no case for it. -/
 def winNoConf [GooseExts] (W : List EntryModel) : Prop := ∀ m ∈ W, m.typ ≠ W32 1
 
 /-- A first start's window is empty: trivially no conf change. -/
@@ -260,20 +263,35 @@ theorem srvRestW_nil (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel)
 /-- **No merged snapshot in this batch while a window remains** (the Q16-3 review's finding 1;
 narrowed by the Freeze 1 review's F2; decided by etcd-grove-82 under the user's delegation (user
 offline), 2026-11-06, pending the user's review; DRAFT): while a window remains after this batch
-(`R`, `winRest W (unapplied ai ms)` in `applyAll.specBatch`, is not `[]`), this member does not merge
-a `MsgSnap` of the batch's raft term `rt`. Stated over the message the batch takes from `msgSnapC`
-(raft's bag, `rnSnapMsg`: whole ownership `msgOwn m 1`, sent from this member's id, the server's
-`memberID`, `isServerApplyAll`'s): such a message is not a `MsgSnap` at `rt`; Go merges only one at
-the batch's term (`server.go:1012`), and its merge (`createMergedSnapshotMessage`, `server.go:1045`)
-would write an image at Go's index below the ghost one (the review's scenario, `InvRequest.lean:2312`,
-`SnapRO.lean:345,358`). Not persistent: one batch's premise, spent by its one receive.
+(`R`, `winRest W (unapplied ai ms)` in `applyAll.specBatch`, is not `[]`), every message wholly owned
+(`msgOwn m 1`) that member `id` (the server's `memberID`, `isServerApplyAll`'s) sent (`sentMsg`) is not
+a `MsgSnap` at the batch's raft term `rt`. The proof uses it on the message the batch takes from
+`msgSnapC` (raft's bag, `rnSnapMsg`). Go merges one only at the batch's term and only if its snapshot
+is at or below Go's applied index (`m.GetTerm() == apply.raftTerm && m.GetSnapshot().GetMetadata().
+GetIndex() <= ep.appliedi`, `server.go:1018` at the pin `673da07c8`), and its merge
+(`createMergedSnapshotMessage`, `snapshot_merge.go:32`, called at `server.go:1019`) would write an
+image at Go's index below the ghost one (the review's scenario, `InvRequest.lean:2312`,
+`SnapRO.lean:345,358`).
 
-`applyAll.specBatch`'s premise, to be supplied per batch from the restart's starting point in R2d';
-an assumption R2d carries for R2s (`notes/restart-plan.md`, "Assumptions R2d carries for R2d'/R2s").
-Its cost: it does not hold of every Go execution: a leader in its window does send one (raft sends a
-snapshot to a follower behind its log's first index, `raft.go:1877`, whatever the application's
-applied index), and `applyAll` merges it. R2s discharges it (the snapshots across windows). With no
-window left it holds trivially (`winNoMergedSend_nil`). -/
+What it asserts (the Freeze 1b review's N1): `sentMsg` is persistent and keyed by the member id, not
+by the incarnation, and `msgOwn m 1` is any wholly owned message, not only one of this incarnation's
+`msgSnapC`; so the only way to supply it, with no exclusive resource of the incarnation, is the fact
+that member `id` never sent a `MsgSnap` at term `rt`, in any incarnation (before or after a restart).
+The wand is not persistent, but its content is not one batch's. It excludes runs in which Go merges
+nothing: a leader at term `T` sends a snapshot to a lagging follower (`raft.go:1877`), stops without
+a leadership transfer (the transfer can time out and the stop goes on), and restarts at term `T` with
+a window; its first batch's `rt` is `T`, Go merges nothing in the window (the new incarnation's
+`msgSnapC` holds none of the old messages), yet the premise is unprovable, the old `sentMsg` at `T`
+existing.
+
+`applyAll.specBatch`'s premise, to be supplied per batch from the restart's starting point in R2d',
+by assuming that this member sends no `MsgSnap` from its restart term on (nor sent one at that term
+before the stop: the batches of one window can carry different raft terms); an assumption R2d
+carries for R2s (`notes/restart-plan.md`, "Assumptions R2d carries for R2d'/R2s"). Its cost: it does
+not hold of every Go execution: besides the run above, a leader in its window does send one (raft
+sends a snapshot to a follower behind its log's first index, `raft.go:1877`, whatever the
+application's applied index), and `applyAll` merges it. R2s removes it (the snapshots across
+windows). With no window left it holds trivially (`winNoMergedSend_nil`). -/
 def winNoMergedSend (γ : SrvRaft) (s : Loc) (R : List EntryModel) (rt : w64) : IProp GF :=
   letI := srvStor (GF := GF) γ
   iprop(⌜R = []⌝ ∨

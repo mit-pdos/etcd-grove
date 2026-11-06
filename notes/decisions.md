@@ -32561,7 +32561,7 @@ of that design (`/shared/tmp/r2d-review-q16-3.md`, F1) found it wrong, not unfin
 install from a window sender, a second snapshot from a member without a window can move the
 receiver's backend *backward* (L1 in its window sends F an image at 100 for index 60; L2, applied to
 70, then sends F a snapshot at 70, which raft accepts above its commit 60, `raft.go:1877`, and Go
-above its applied index 60, `server.go:1045`). Go is correct (it re-applies 71..100 v3), but the
+above its applied index 60, `server.go:1051` at the pin `673da07c8`). Go is correct (it re-applies 71..100 v3), but the
 ghost cannot follow: `applied_jump` moves a monotone counter forward only (`InvRequest.lean:2312`),
 and the snapshot directory's removal fact is keyed by the ghost index (`SnapRO.lean:345,358`). A
 restart's window and an install's differ in exactly the invariant the receive path relies on (the
@@ -32635,7 +32635,7 @@ The repairs (review `/shared/tmp/r2d-review-freeze1.md`):
 - *F1.* `winNoConf W` is a premise of the three window specs (`apply.spec`, `applyEntries.specBatch`,
   `applyAll.specBatch`); the `…_noWin` laws pass `winNoConf_nil`. Without it R2d states nothing about a
   replayed conf change, which Go replays v2-only.
-- *F6, the Go fact.* A replayed conf change is applied neither to raft (`server.go:2050-2056`) nor to the
+- *F6, the Go fact.* A replayed conf change is applied neither to raft (`server.go:2053-2059` at the pin `673da07c8`) nor to the
   membership (`membership/cluster.go:402-424`) and is not validated (`:306-308`); `SetConfState`, the
   transport's peer calls and the wait's trigger do happen. The earlier text (applied to raft and the v2
   membership) was wrong; R2d''s discharge of `winNoConf` needs a `v3 = false` case of
@@ -32649,10 +32649,19 @@ The repairs (review `/shared/tmp/r2d-review-freeze1.md`):
   subsystem's slot comes from its API module, as `wal.bootOk`), with `wal.stopImage_elim`.
 - *F2, the narrowed `winNoMergedSend`* (decided by etcd-grove-82 under the user's delegation (user
   offline), 2026-11-06, pending the user's review): while a window remains after this batch, this
-  member does not merge a MsgSnap of the batch's raft term. `winNoMergedSend γ s R rt` (not
-  persistent) over the message the batch takes from `msgSnapC` (`msgOwn m 1`, exclusive, so one batch's
-  premise), sent from this member's id (`srvMemberIDAddr s ↦□ id`), at the batch's term `rt`, with `R :=
-  winRest W (unapplied ai ms)`. The wide form (`□ ∀ sentMsg`, persistent) said no `MsgSnap` was ever
+  member does not merge a MsgSnap of the batch's raft term (Go merges one only at the batch's term and
+  at or below `ep.appliedi`, `server.go:1018` at the pin `673da07c8`; the proof's second
+  `wp_if_destruct`). `winNoMergedSend γ s R rt` (not
+  persistent) over the message the batch takes from `msgSnapC` (`msgOwn m 1`), sent from this member's
+  id (`srvMemberIDAddr s ↦□ id`), at the batch's term `rt`, with `R := winRest W (unapplied ai ms)`.
+  (Corrected 2026-11-06, the Freeze 1b review's N1: neither the wand's non-persistence nor `msgOwn`'s
+  exclusivity makes its content one batch's. `sentMsg` is persistent and keyed by the member id, not
+  the incarnation, and `msgOwn m 1` is any wholly owned message, so in practice it says member `id`
+  never sent a `MsgSnap` at term `rt`, before or after a restart. A leader at term `T` that sends a
+  snapshot, stops without a leadership transfer and restarts at term `T` with a window: Go merges
+  nothing in the window, yet the premise is unprovable. R2d' supplies it per batch by assuming no
+  `MsgSnap` from this member from its restart term on (nor at that term before the stop); R2s removes
+  it.) The wide form (`□ ∀ sentMsg`, persistent) said no `MsgSnap` was ever
   sent in the cluster, false of every run with a snapshot transfer. The id costs one conjunct in the hub
   bundles `isServerApplyAll` and `srvApplyAllBuilt` (`srvMemberIDAddr s ↦□ γm.id`), which `NewServer`'s
   proof supplies; nothing at a first start.

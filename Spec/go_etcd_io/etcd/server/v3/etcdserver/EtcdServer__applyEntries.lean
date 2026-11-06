@@ -41,6 +41,7 @@ at the new consistent index after.
 (R2d, Q13 (a), 2026-11-06; DRAFT, the window form, `ApplyWindow.lean`) **In a restarted member's
 replay window**, as `apply.spec`'s: the replays `W` pending and `D` done (`winOk` on the batch's
 unapplied entries; no window `W = D = []`, every row the one before, `applyEntries.specBatch_noWin`);
+no conf change among the pending replays (`winNoConf`, the Freeze 1 review's F1, as `apply.spec`'s);
 the ghost applied index `winGhost` of Go's; the ghost log grown by the new entries
 (`winNew W (unapplied ai ms)`); the rest buckets' resources the window's (`srvRestW`). -/
 abbrev EtcdServer.applyEntries.specBatch : Prop :=

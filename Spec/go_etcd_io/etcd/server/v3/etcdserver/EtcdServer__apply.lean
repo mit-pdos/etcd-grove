@@ -42,7 +42,8 @@ the voters once an entry is applied (`epCsAt`: the first is a validated conf cha
 replay window**: the replays `W` pending and `D` done (`winOk`; no window `W = D = []`, where every
 row is the one before, `apply.spec_noWin`). The batch starts with the pending replays, which `apply`
 applies v2-only (their indices at most the consistent index, the premise F2 added: `entriesStep`'s
-`v3` false); the
+`v3` false), none of them a conf change (`winNoConf`, the Freeze 1 review's F1: a replayed conf
+change is applied v2-only, which `applyConfChange.spec` has no case for, R2d''s); the
 ghost applied index is `winGhost` of Go's (`f0 - 1` before, `appliedi` after; `setAppliedIndex`'s
 replay case below it); the ghost log grows by the new entries only (`winNew W ms`); the rest
 buckets' resources are the window's (`srvRestW`, the replays after `A`'s model; `srvRest`'s again at
@@ -62,7 +63,7 @@ abbrev EtcdServer.apply.spec : Prop :=
   -- (R2d, DRAFT) the replay window
   winOk A D W ms →
   -- (R2d, Q17 F2) the pending replays at or below the consistent index (Go's `shouldApplyV3`,
-  -- `server.go:1933-1937`)
+  -- `server.go:1939-1943` at the pin `673da07c8`)
   (∀ m ∈ W, uint.Z m.index ≤ uint.Z (ciEff γ st.k)) →
   -- (R2d, the Freeze 1 review's F1) no conf change in the window (`winNoConf`; a replayed one is
   -- applied v2-only, which `applyConfChange.spec` has no case for: R2d''s)
