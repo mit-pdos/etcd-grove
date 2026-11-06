@@ -30519,3 +30519,15 @@ about its backend. Open point for the restatement: `mvccImage_snapshot.law` obse
 backend's snapshot; either the storage contract gets a snapshot operation of its own, or that law
 stays a fact of etcd's backend stated in the server's (or the bridge's) terms. The principle is in
 the `spec` skill (`PRINCIPLES.md`, "An API is stated over the abstractions it builds on").
+
+## `trace.SpanFromContext`'s axiom admits `context.TODO()` (2026-11-06 · the user · branch `mvcc-api`)
+
+**What it was.** The axiom (`Spec/go_opentelemetry_io/otel/trace/SpanFromContext.lean`) required
+`context.isContext ctx cd`; mvcc's `watchStream.Watch` hands its context to it, and the mvcc tester
+calls `ws.Watch(context.TODO(), …)`, which is not an `isContext` (its `Done()` is `nil`).
+**Decision (the user: "Weaken the axiom", over the coordinator's recommendation to have the tester
+pass a real context).** Its premise is `⌜ctx = trace.todoCtx⌝ ∨ context.isContext ctx cd`:
+faithful, otel's `SpanFromContext` only calls `ctx.Value(currentSpanKey)`, which `context.TODO()`
+answers `nil`, giving the no-op span. `WatchStream.Watch.contract` takes the same disjunction. To be
+attacked with the `axiom` skill.
+

@@ -108,6 +108,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
 import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamGhost
 import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
+import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnHandle
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -211,8 +212,10 @@ view. Still to add (§2): the restore's pieces (`Restore`). -/
     storeRT ((γ : StoreNames).withPhys p) ∗ kbWTSupplyM p.kb ∗ ⌜-1 ≤ c⌝ ∗ openRest γ p s)
 
 /-- **`t` is a transaction of `γ`, begun with `trace`, at `k`** (exclusive; it holds the caller's
-thread token until its `End`, not the trace). -/
-opaque mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
+thread token until its `End`, not the trace). Defined (M4, track B, 2026-11-06; `Api/TxnHandle.lean`): the
+internal transaction without its trace, at the state it began at, with the thread token's way back. -/
+@[no_expose] def mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF :=
+  api.mvccTxnI t (γ : StoreNames) trace k
 
 /-- The rest of a stream's handle: its channel (buffered) and the channel's invariant, at a
 watchable store `s` of `γ` (stage 2, the watch chain, 2026-11-05: what `wsChan_recv.law` needs);
@@ -685,7 +688,8 @@ abbrev WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
            wsState ι (S.register id
              ⟨watchRangeOf kk e endk startRev id, fs, watchLo σ startRev, k, true⟩)),
       COMM Q σ S id }>)
-  {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗ context.isContext ctx cd ∗
+  {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗
+      (⌜ctx = interface.mk context.todoCtx.ty #(zero_val context.todoCtx)⌝ ∨ context.isContext ctx cd) ∗
       key ↦*□ kk ∗ endk ↦*□ e ∗ filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗ au }}
     (App (App (App (App (App (App (Val #(methods ty go!"Watch" v)) (Val #(GoInterface.ok ctx)))
       (Val #(W64 0))) (Val #key)) (Val #endk)) (Val #startRev)) (Val #fcs))

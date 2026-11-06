@@ -881,3 +881,7 @@ so "a range's state is etcd's state" (client/v3's `Get`) could not be proved ove
 committed raft log, witnessed by `srvApi.kvNx`), which both a read's log and `histLb` give; no
 frozen statement changed (`notes/mvcc-migration/v3rpc.md`).
 
+**`WatchStream.Watch.contract` at `context.TODO()` (2026-11-06, the user).** Its context premise is
+`⌜ctx = todo⌝ ∨ context.isContext ctx cd` (a weaker premise), with `trace.SpanFromContext`'s axiom
+weakened the same way (`notes/decisions.md`); the tester's `register` passes `context.TODO()`.
+
