@@ -174,7 +174,9 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
           stepOneL x y ((gs.take (sint.nat j)).foldl (stepOneL x y) []) g := by
         rw [show sint.nat (j + W64 1) = sint.nat j + 1 by word, List.take_add_one, Hg_lookup]
         simp
-      generalize (gs.take (sint.nat j)).foldl (stepOneL x y) [] = acc at Htake ⊢
+      have Hacc : CfgSorted ((gs.take (sint.nat j)).foldl (stepOneL x y) []) :=
+        sorted_foldl_stepOneL x y _ [] List.Pairwise.nil
+      generalize (gs.take (sint.nat j)).foldl (stepOneL x y) [] = acc at Htake Hacc ⊢
       ihave HJ : (∃ (k : w64) (d0 : mcfg) (sn' : GoSlice) (ncs' : List mcfg),
           "i" ∷ i_ptr ↦ k ∗ "d" ∷ d_ptr ↦ d0 ∗ "next" ∷ next_ptr ↦ sn' ∗ "Hn" ∷ sn' ↦* ncs' ∗
           "Hncap" ∷ ownSliceCap mcfg sn' (DFrac.own 1) ∗
@@ -202,6 +204,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
         ihave #Hd := BigSepL2.bigSepL2_lookup (Φ := fun _ c' g' => cfgOwn (GF := GF) c' g')
           Hd_lookup Hg'_lookup $$ Hrcs
         wp_apply wp_addConfig sn' ncs' _ d g' $$ [$Hn $Hncap $Hncs $Hd] as %sn'' %ncs'' ⟨Hn, Hncap, #Hncs'⟩
+        · ipureintro; exact sorted_foldl_addConfigL _ acc Hacc
         wp_for_post
         iframe
         iexists k + W64 1, _, sn'', ncs''

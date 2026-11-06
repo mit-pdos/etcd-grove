@@ -1,7 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
-`addConfig(s, c)` (etcd_txnlin.go): `s`, or `s` with `c` appended if no configuration of `s`
-equals it (`addConfigL`).
+`addConfig(s, c)` (linkvtxn.go): for `s` sorted by `cmpConfig` without duplicates (`CfgSorted`),
+`s`, or `s` with `c` inserted in order if no configuration of `s` equals it (`addConfigL`; the
+result is sorted again, `sorted_addConfigL`).
 -/
 module
 
@@ -30,7 +31,7 @@ abbrev addConfig.spec : Prop :=
   ∀ (s : GoSlice) (cs : List mcfg) (gs : List GCfg) (c : mcfg) (g : GCfg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
       s ↦* cs ∗ ownSliceCap mcfg s (DFrac.own 1) ∗
-      ([∗list] c';g' ∈ cs;gs, cfgOwn c' g') ∗ cfgOwn c g }}
+      ([∗list] c';g' ∈ cs;gs, cfgOwn c' g') ∗ cfgOwn c g ∗ ⌜CfgSorted gs⌝ }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.addConfig)) (Val #s)) (Val #c))
   {{ (s' : GoSlice) (cs' : List mcfg), RET #s';
       s' ↦* cs' ∗ ownSliceCap mcfg s' (DFrac.own 1) ∗
