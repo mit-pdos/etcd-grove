@@ -3,8 +3,10 @@ package etcd3
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/anishathalye/porcupine"
+	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
@@ -76,5 +78,95 @@ func TestMemberIDs(t *testing.T) {
 			t.Fatalf("member %x: low 16 bits %#x zero or repeated", uint64(id), low)
 		}
 		seen[low] = true
+	}
+}
+
+// partitionSchedules are TestMainPartition's schedules, by name.
+func partitionSchedules() map[string][]cluster3.Step {
+	ms := time.Millisecond
+	// each member isolated in turn from the two others (both directions), then mended: the
+	// leader is isolated in one of the three rounds
+	var isolate []cluster3.Step
+	for m := 0; m < 3; m++ {
+		first := true
+		for o := 0; o < 3; o++ {
+			if o != m {
+				d := time.Duration(0)
+				if first {
+					d = 150 * ms
+					first = false
+				}
+				isolate = append(isolate, cluster3.Step{Delay: d, Kind: cluster3.PeerCut, A: m, B: o})
+			}
+		}
+		first = true
+		for o := 0; o < 3; o++ {
+			if o != m {
+				d := time.Duration(0)
+				if first {
+					d = 300 * ms
+					first = false
+				}
+				isolate = append(isolate, cluster3.Step{Delay: d, Kind: cluster3.PeerMend, A: m, B: o})
+			}
+		}
+	}
+	return map[string][]cluster3.Step{
+		"isolate": isolate,
+		// member 0's clients cut off it (every byte dropped) for 20s, then back: keepalive closes
+		// the dead transport and the client fails over
+		"blackhole": {
+			{Delay: 100 * ms, Kind: cluster3.ClientBlackhole, A: 0},
+			{Delay: 20 * time.Second, Kind: cluster3.ClientUnblackhole, A: 0},
+		},
+		// the clients' connections to each member closed, repeatedly
+		"drop": {
+			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 0},
+			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 1},
+			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 2},
+			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 0},
+			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 1},
+			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 2},
+		},
+		// as the k8s compactor's TestMainPartition: member 0 isolated with member 2's bridge
+		// blackholed, then mended, member 2 unblackholed and member 1's connections dropped
+		"mixed": {
+			{Delay: 100 * ms, Kind: cluster3.PeerCut, A: 0, B: 1},
+			{Kind: cluster3.PeerCut, A: 0, B: 2},
+			{Kind: cluster3.ClientBlackhole, A: 2},
+			{Delay: 300 * ms, Kind: cluster3.PeerMend, A: 0, B: 1},
+			{Kind: cluster3.PeerMend, A: 0, B: 2},
+			{Kind: cluster3.ClientUnblackhole, A: 2},
+			{Kind: cluster3.ClientDrop, A: 1},
+		},
+	}
+}
+
+// TestMainPartition runs MainPartition once per schedule (K8SETCD3_SCHED names one; all by
+// default), each in a fresh data directory: the store's history over the partitioned cluster is
+// linearizable under Model (MainPartition panics otherwise), and the run reaches the check.
+func TestMainPartition(t *testing.T) {
+	only := os.Getenv("K8SETCD3_SCHED")
+	for name, sched := range partitionSchedules() {
+		if only != "" && name != only {
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			// a data directory the test does not remove: MainPartition leaves its cluster running,
+			// and removing the members' files under them (t.TempDir's cleanup) makes a member's
+			// next snapshot panic ("failed to release wal"), after the check
+			dir, err := os.MkdirTemp("", "k8setcd3p-")
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("data directory %s", dir)
+			t.Chdir(dir)
+			start := time.Now()
+			r := MainPartition(4, 60, sched)
+			t.Logf("%s: %v in %v", name, r, time.Since(start))
+			if r != porcupine.Ok {
+				t.Fatalf("MainPartition(%s): %v, want Ok", name, r)
+			}
+		})
 	}
 }

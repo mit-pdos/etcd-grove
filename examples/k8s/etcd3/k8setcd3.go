@@ -1164,3 +1164,43 @@ func MainCluster(clients int, ops int) porcupine.CheckResult {
 	}
 	return r
 }
+
+// MainPartition is MainCluster under the partition schedule sched: once the store is made, the
+// schedule runs (cluster3.Partitioner, on a goroutine of its own) while Check's clients run. A call
+// to a member cut off from its clients ends when keepalive closes its dead transport (etcdstart's
+// KeepAliveTime/KeepAliveTimeout); a read is then retried on another endpoint, a write fails, and
+// the model keeps it pending (it takes effect later or never).
+func MainPartition(clients int, ops int, sched []cluster3.Step) porcupine.CheckResult {
+	lg := zap.NewNop()
+	cfg := clusterConfig()
+	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
+	if !ok {
+		return porcupine.Unknown
+	}
+	kc, err := kubernetes.New(clientv3.Config{
+		Endpoints:            []string{cfg.Bridge1, cfg.Bridge2, cfg.Bridge3},
+		DialTimeout:          etcdstart.DialTimeout,
+		DialKeepAliveTime:    etcdstart.KeepAliveTime,
+		DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
+		Logger:               lg,
+	})
+	if err != nil {
+		return porcupine.Unknown
+	}
+	st0, ok := seed(kc.Client)
+	if !ok {
+		return porcupine.Unknown
+	}
+	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
+		schema.GroupResource{Resource: "objs"}, identity{}, etcd3.NewDefaultLeaseManagerConfig(),
+		decoder{}, versioner{})
+	if err != nil {
+		return porcupine.Unknown
+	}
+	go cluster3.Partitioner(srvs, brs, sched)
+	r := Check(s, st0, clients, ops, 0)
+	if r == porcupine.Illegal {
+		panic("k8setcd3: porcupine found the partitioned cluster's history not linearizable")
+	}
+	return r
+}
