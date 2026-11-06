@@ -1664,3 +1664,20 @@ field-load automation finding the instance at any fraction.
   spec that states the wrapped errors. Without `%w` the present model (`errors.New`) is faithful
   up to the message's formatting.
 - **Status.** Recorded only.
+
+## `iframe` over a large `List.replicate` materializes the list (2026-11-06, revoke-open)
+
+- **What happened.** A bare `iframe` in revoke-open's `NewServer.lean` (the goal two `[∗list] _ ∈
+  List.replicate srvRevokePoolN ()` conjuncts, `2 ^ 28 - 1` copies each) tried every hypothesis of
+  the context against them; on a big-list hypothesis whose element did not match, the unifier
+  unfolded `[∗list]` and built `List.replicate (2 ^ 28 - 1) ()` element by element: 80 GB of RSS
+  after 36 minutes before it was killed (a normal compile of the file peaks at 5.4–5.8 GB).
+- **Local workaround.** Frame explicitly (`isplitl [H]; · iexact H; · iexact H'`); never a bare
+  `iframe`, or any search over the whole context, where a `[∗list]` over a large replicate is in
+  scope.
+- **Proposed (general; record only, nothing changed in Perennial).** `iframe`'s candidate matching
+  should not unfold big separating lists: match a `[∗list]` hypothesis against a `[∗list]` goal only
+  syntactically (same list term, same element up to reducible unfolding), or with the unifier at
+  reducible transparency, so that a mismatch fails fast instead of reducing `List.replicate n` for a
+  literal `n`.
+- **Status.** Recorded only.
