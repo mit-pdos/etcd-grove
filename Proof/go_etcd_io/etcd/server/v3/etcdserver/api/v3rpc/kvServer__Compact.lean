@@ -80,7 +80,7 @@ theorem v3rpc.kvServer.Compact.wp_proof
       iframe HRD
       isplitl
       rotate_left
-      · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+      · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
       iunfold v3rpc.compactOut
       ileft
       isplitr

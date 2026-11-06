@@ -32502,3 +32502,37 @@ passes. What breaks is then fixed:
 The general fix is Perennial's: `perennial-changes.md`, "`fmt.Errorf`'s model can be unfolded to
 learn facts false of Go".
 
+
+## `fmt.Errorf` with `%w`, built: a disjunctive `ErrorfWrap`, `srvErrOk` in the handler contracts (2026-11-06 · errorf-wrap's N1-N5, decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `errorf-wrap`; DRAFT until its Freeze)
+
+The fix the entry above calls for. What was built, and why each shape:
+
+- **N1, the spec of a `%w` call** (`Spec/fmt/ErrorfWrap.lean`, axiom `fmt.ErrorfWrap.wp_proof`):
+  `Errorf(pre ++ "%w", [inner])`, `%` not in `pre`, returns `fmt.errorfWrapIs err inner pre`,
+  **either** Perennial's model (`fmt.modelErrIs`: an `*errors.errorString` whose `Error()` returns)
+  **or** Go's `*fmt.wrapError` (`fmt.wrapErrIs`: a pointer whose only methods are `Error`, returning
+  `pre ++ s`, and `Unwrap`, returning `inner`). The first draft stated Go's side only, which the
+  model refutes on the same call; a trusted statement that contradicts the trusted model is a trap
+  for later proofs, so the post is the disjunction (82's decision). A proof can then use nothing
+  that holds of one side only: what it needs is proved of both (`fmt.wrapChain`, whose model case
+  ends the chain). Attacked: `notes/axiom-review/errorf-wrap.md`, survives.
+- **N2, `mvcc.wp_Errorf_errorfIs` restricted** to formats without `%` (premise `(W8 37) ∉
+  format`, no arguments), the fast path where Go's `Errorf` is `errors.New(format)`; the one caller
+  left is `scheduleCompaction`'s.
+- **N3, the `%w` errors' vocabulary**: `ctxWrapErr` (a non-empty `wrapChain` ending at a
+  `context.isCtxErr` value), `mvcc.ctxErrorf := ctxWrapErr` (`rangeKeys`' and `executeTxn`'s
+  errors, in place of `errorfIs`), and `applyErrIs` of such a chain (`applyErrIs_ctxWrap`, by
+  `errorWalkNode` over the chain: each node is a model leaf or a wrap node whose `Unwrap` is the
+  next).
+- **N4, the handler contracts** (`grpcHandlerOk*`, `grpcMethodOk*`, `srvInterceptorOk`) and
+  `applyErrIs`: `srvErrOk := statusErrOk ∨ ctxWrapErr` in place of `statusErrOk`. This widens
+  what `Serve`, `RegisterService` and prometheus's interceptor are trusted to handle; the attack
+  (`wrapctx_test.go`, `n1_test.go`) runs Go's server with handlers returning each `ctxWrapErr`
+  shape, one level and the Txn's two: no panic, the client sees `Canceled`/`DeadlineExceeded`.
+- **N5, the callers restated**: `togRPCError`'s post `srvErrOk`, `EtcdServer.Range`/`Txn`'s
+  error facts through `applyErrIs_ctxErrorf`, and every v3rpc and handler spec at `srvErrOk`.
+
+No closed theorem changed (`examples/`' results, text-identical). The trust base grows by the one
+axiom (N1). A cheap gate, `etc/errorf-wrap-check.py` (in `etc/gates.sh`), refuses a new proof that
+steps into Perennial's `Errorf` model outside the reviewed files (post `True`, or a format without
+`%`).

@@ -30,6 +30,7 @@ public import Perennial.Proof.time
 public import Perennial.Proof.io
 public import Perennial.Proof.strings.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
+public import Spec.fmt.ErrorfWrap
 
 @[expose] public section
 
@@ -695,6 +696,105 @@ theorem statusErrOk_nil : ⊢ statusErrOk (GF := GF) GoInterface.nil := by
   iintro !> %e %h
   cases h
 
+/-- **A context error wrapped by `%w`** (one or more levels; errorf-wrap, 2026-11-06; persistent):
+`rangeKeys`' `fmt.Errorf("rangeKeys: context cancelled: %w", ctx.Err())` (`kvstore_txn.go:121`) and
+`executeTxn`'s wrapping of it (`txn.go:162`): a chain of `fmt.Errorf` `%w` errors (`fmt.wrapChain`,
+each level the model's error or Go's `*fmt.wrapError`) ending at `context.Canceled`'s or
+`context.DeadlineExceeded`'s value (`context.isCtxErr`). -/
+def ctxWrapErr (err : GoInterface) : IProp GF :=
+  iprop(∃ (pres : List GoString) (c : GoInterface),
+    ⌜pres ≠ []⌝ ∗ EtcdGrove.fmt.wrapChain pres err c ∗ context.isCtxErr c)
+
+instance ctxWrapErr_persistent (err : GoInterface) : Persistent (ctxWrapErr (GF := GF) err) := by
+  unfold ctxWrapErr; infer_instance
+
+/-- **A handler's error, as grpc's server and the prometheus interceptor take it** (errorf-wrap,
+2026-11-06; persistent): one grpc's `status` accepts (`statusErrOk`), or a context error wrapped by
+`%w` (`ctxWrapErr`), which `togRPCError` passes through as it is (`errors.Is` sees the context
+error). Go's server answers the latter with the context error's code (`status.FromContextError`),
+grpc-prometheus's `FromError` with `Unknown`, neither panicking (`notes/axiom-review/errorf-wrap.md`).
+The handler contracts' result (`grpcHandlerOk`, `grpcMethodOk`, `srvInterceptorOk`). -/
+def srvErrOk (err : GoInterface) : IProp GF :=
+  iprop(statusErrOk err ∨ ctxWrapErr err)
+
+instance srvErrOk_persistent (err : GoInterface) : Persistent (srvErrOk (GF := GF) err) := by
+  unfold srvErrOk; infer_instance
+
+theorem srvErrOk_of_statusErrOk (err : GoInterface) :
+    statusErrOk (GF := GF) err ⊢ srvErrOk err := by
+  iintro #H
+  unfold srvErrOk
+  ileft
+  iexact H
+
+theorem srvErrOk_nil : ⊢ srvErrOk (GF := GF) GoInterface.nil := by
+  iapply srvErrOk_of_statusErrOk
+  iapply statusErrOk_nil
+
+/-- **A `%w` of a context error is a `ctxWrapErr`** (`rangeKeys`'). -/
+theorem ctxWrapErr_wrap (ii : GoInterfaceOk) (c : GoInterface) (pre : GoString) :
+    EtcdGrove.fmt.errorfWrapIs (GF := GF) ii c pre -∗ context.isCtxErr c -∗
+      ctxWrapErr (GoInterface.ok ii) := by
+  iintro #Hw #Hc
+  unfold ctxWrapErr
+  iexists [pre], c
+  isplitr
+  · ipureintro; simp
+  iframe Hc
+  rw [EtcdGrove.fmt.wrapChain_cons]
+  iexists ii
+  isplitr
+  · ipureintro; rfl
+  iunfold EtcdGrove.fmt.errorfWrapIs at Hw
+  icases Hw with (#Hm | #Hw)
+  · ileft; iexact Hm
+  · iright; iexists c; iframe Hw; (try rw [EtcdGrove.fmt.wrapChain_nil]); ipureintro; rfl
+
+/-- **A `%w` of a `ctxWrapErr` is one** (`executeTxn`'s wrapping of `rangeKeys`' error). -/
+theorem ctxWrapErr_wrap2 (ii : GoInterfaceOk) (e : GoInterface) (pre : GoString) :
+    EtcdGrove.fmt.errorfWrapIs (GF := GF) ii e pre -∗ ctxWrapErr e -∗
+      ctxWrapErr (GoInterface.ok ii) := by
+  iintro #Hw #He
+  unfold ctxWrapErr
+  icases He with ⟨%pres, %c, -, #Hch, #Hc⟩
+  iexists (pre :: pres), c
+  isplitr
+  · ipureintro; simp
+  iframe Hc
+  rw [EtcdGrove.fmt.wrapChain_cons]
+  iexists ii
+  isplitr
+  · ipureintro; rfl
+  iunfold EtcdGrove.fmt.errorfWrapIs at Hw
+  icases Hw with (#Hm | #Hw)
+  · ileft; iexact Hm
+  · iright; iexists e; iframe Hw Hch
+
+/-- **A `ctxWrapErr`'s `Error()` returns**, as `fmt` needs of a `%w` argument. -/
+theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoInterfaceOk) :
+    ctxWrapErr (GF := GF) (GoInterface.ok ii) ⊢ EtcdGrove.fmt.stringMethodSpec ii go!"Error" := by
+  iintro #He
+  unfold ctxWrapErr
+  icases He with ⟨%pres, %c, %Hp, #Hch, -⟩
+  cases pres with
+  | nil => exact absurd rfl Hp
+  | cons pre ps =>
+    rw [EtcdGrove.fmt.wrapChain_cons]
+    icases Hch with ⟨%ii', %Hii, Hch⟩
+    cases Hii
+    icases Hch with (#Hm | ⟨%mid, #Hw, -⟩)
+    · iunfold EtcdGrove.fmt.modelErrIs at Hm
+      icases Hm with ⟨-, #Hs⟩
+      rw [EtcdGrove.fmt.stringMethodSpec_unfold]
+      iexact Hs
+    · iunfold EtcdGrove.fmt.wrapErrIs at Hw
+      icases Hw with ⟨-, ⟨%s, #Hs⟩, -⟩
+      unfold EtcdGrove.fmt.stringMethodSpec
+      iintro !> %Φ HΦ
+      iapply Hs
+      inext
+      iapply HΦ
+
 /-- An error grpc's `status` accepts has an `Error()` returning some string. -/
 theorem errStrOk_of_statusErrOk (err : GoInterface) :
     statusErrOk (GF := GF) err ⊢ errStrOk err := by
@@ -805,6 +905,26 @@ theorem errCellOk_ptr (ii : GoInterfaceOk) :
   · ipureintro; exact fun h => absurd h ht
 
 end errstr
+
+section ctxErrStr
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A context error's `Error()` returns** (`context.wp_isCtxErr_Error`), as `fmt` needs of a
+`%w` argument. -/
+theorem isCtxErr_stringMethodSpec [context.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    (ii : GoInterfaceOk) :
+    context.isCtxErr (GF := GF) (GoInterface.ok ii) ⊢ EtcdGrove.fmt.stringMethodSpec ii go!"Error" := by
+  iintro #He
+  unfold EtcdGrove.fmt.stringMethodSpec
+  iintro !> %Φ HΦ
+  wp_apply (context.wp_isCtxErr_Error (GoInterface.ok ii) ii rfl) $$ He as %s -
+  iapply HΦ
+
+end ctxErrStr
+
 
 end go_etcd_io.etcd.cache.v3
 

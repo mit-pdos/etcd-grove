@@ -78,7 +78,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
   cases hc : v3rpc.txnCheck (sint.Z n) cs ts es with
   | some e =>
     simp only [v3rpc.checkRes]
-    ihave #HSe := v3rpc.checkErr_statusErrOk e err $$ Hpkg Herr
+    ihave #HSe := v3rpc.checkErr_srvErrOk e err $$ Hpkg Herr
     iunfold txn.errVarIs at Herr
     icases Herr with ⟨%ee, #Hee, %Herr⟩
     subst Herr
@@ -101,7 +101,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
     · iframe #; ipureintro; exact Hdc.1
     cases hts : v3rpc.ivCheck ts with
     | none =>
-      ihave #HSe := v3rpc.checkErr_statusErrOk .duplicateKey e1 $$ Hpkg Hiv1
+      ihave #HSe := v3rpc.checkErr_srvErrOk .duplicateKey e1 $$ Hpkg Hiv1
       iunfold txn.errVarIs at Hiv1
       icases Hiv1 with ⟨%ee, #Hee, %He1⟩
       subst He1
@@ -123,7 +123,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
       · iframe #; ipureintro; exact Hdc.2
       cases hes : v3rpc.ivCheck es with
       | none =>
-        ihave #HSe := v3rpc.checkErr_statusErrOk .duplicateKey e2 $$ Hpkg Hiv2
+        ihave #HSe := v3rpc.checkErr_srvErrOk .duplicateKey e2 $$ Hpkg Hiv2
         iunfold txn.errVarIs at Hiv2
         icases Hiv2 with ⟨%ee, #Hee, %He2⟩
         subst He2
@@ -159,7 +159,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
           dsimp only
           isplitl
           rotate_left
-          · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+          · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
           iunfold v3rpc.kvOut
           ileft
           isplitr

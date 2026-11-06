@@ -86,7 +86,7 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
     ihave ⟨HR, %dq', Hrev, -⟩ := v3rpc.hdrRev_out A.revR w.Header' hv.Revision' r' $$ [Hkeep Hout]
     · iframe
     (try wp_auto)
-    ihave #HSn := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
+    ihave #HSn := go_etcd_io.etcd.cache.v3.srvErrOk_nil (GF := GF)
     iapply HΦ
     iframe HSn
     iframe HS HR Hr
@@ -164,7 +164,7 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
           ihave ⟨HR, %dq', Hrev, -⟩ := v3rpc.hdrRev_out A.revR «$v0_ptr» _ r' $$ [Hkeep Hout]
           · iframe
           (try wp_auto)
-          ihave #HSn := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
+          ihave #HSn := go_etcd_io.etcd.cache.v3.srvErrOk_nil (GF := GF)
           iapply HΦ
           iframe HSn
           iframe HS HR Hr

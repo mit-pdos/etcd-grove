@@ -37,6 +37,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseR
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.executeRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.executeTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.filterRangeResults
+public import Proof.fmt.ErrorfWrap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.getPrevKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.isNil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate__Less
@@ -235,6 +236,10 @@ theorem traceutil.Trace.wp_StopSubTrace :
     EtcdGrove.traceutil.Trace.StopSubTrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Trace.StopSubTrace.wp_proof
 
+theorem fmt.wp_ErrorfWrap :
+    EtcdGrove.fmt.ErrorfWrap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.fmt.ErrorfWrap.wp_proof
+
 theorem zap.wp_Error :
     EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Error.wp_proof
@@ -397,7 +402,7 @@ theorem wp_executeRange [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem wp_executeTxn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.executeTxn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.executeTxn.wp_proof traceutil.wp_Get traceutil.Trace.wp_StartSubTrace mvcc.metricsTxnWrite.wp_Rev mvcc.txnReadWrite.wp_Rev mvcc.metricsTxnWrite.wp_Changes mvcc.txnReadWrite.wp_Changes wp_executeRange traceutil.Trace.wp_StopSubTrace proto.wp_Size wp_getPrevKV wp_put wp_deleteRange
+  EtcdGrove.txn.executeTxn.wp_proof traceutil.wp_Get traceutil.Trace.wp_StartSubTrace mvcc.metricsTxnWrite.wp_Rev mvcc.txnReadWrite.wp_Rev mvcc.metricsTxnWrite.wp_Changes mvcc.txnReadWrite.wp_Changes wp_executeRange traceutil.Trace.wp_StopSubTrace proto.wp_Size wp_getPrevKV wp_put wp_deleteRange fmt.wp_ErrorfWrap
 
 theorem wp_txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.txn.spec (GF := GF) (hG := hG) :=

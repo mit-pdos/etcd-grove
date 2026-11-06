@@ -30,13 +30,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`togRPCError(err)`** of an error it can take (`srvErrIs`) whose `Error()` returns a message
 with `P` (`errMsgP`): a non-nil error, `err` itself (a context error), the error map's value, or a
 `status` error with code `Unknown` whose description has `P` (`grpcErrOut`; k8s etcd3 7c-2: it was
-only the non-nil error). `togRPCError_plain` is the triple at `P := fun _ => True`. -/
+only the non-nil error); an error grpc's server takes (`srvErrOk`: on the context branch `err`
+itself, a status-safe error otherwise; errorf-wrap, 2026-11-06). `togRPCError_plain` is the triple at `P := fun _ => True`. -/
 abbrev v3rpc.togRPCError.spec : Prop :=
   ∀ (P : GoString → Prop) (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.srvErrIs err ∗ v3rpc.errMsgP err P }}
     (App (Val (@! v3rpc.togRPCError)) (Val #err))
-  {{ (e : GoInterface), RET #e; ⌜e ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk e ∗ v3rpc.grpcErrOut P err e }}
+  {{ (e : GoInterface), RET #e; ⌜e ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk e ∗ v3rpc.grpcErrOut P err e }}
 
 end spec
 

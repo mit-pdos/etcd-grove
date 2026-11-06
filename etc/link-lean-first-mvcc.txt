@@ -61,7 +61,9 @@ storeTxnRead__End:
 sliceCapWithLimit:
 traceutil_Trace__Step:
 proto_Unmarshal:
-storeTxnCommon__rangeKeys: treeIndex__CountRevisions treeIndex__Range treeIndex__Revisions sliceCapWithLimit NewRevBytes RevToBytes traceutil_Trace__Step proto_Unmarshal
+# `fmt.Errorf`'s `%w` of the context's error (errorf-wrap, 2026-11-06): the trust boundary.
+fmt_ErrorfWrap:
+storeTxnCommon__rangeKeys: treeIndex__CountRevisions treeIndex__Range treeIndex__Revisions sliceCapWithLimit NewRevBytes RevToBytes traceutil_Trace__Step proto_Unmarshal fmt_ErrorfWrap
 storeTxnCommon__Range: storeTxnCommon__Rev storeTxnCommon__rangeKeys
 # The write transactions (kvstore_txn.go): `Write` takes the batch lock (the writer's
 # resources: the index writer's handle, the committed log's half, the revision budget),

@@ -29,6 +29,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCom
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.encoding.binary.bigEndian__Uint64
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add
+public import Proof.fmt.ErrorfWrap
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isRecreatedAt
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
@@ -385,6 +386,10 @@ theorem mvcc.eventBatch.wp_add :
     mvcc.eventBatch.add.spec (GF := GF) (hG := hG) :=
   mvcc.eventBatch.add.wp_proof
 
+theorem fmt.wp_ErrorfWrap :
+    fmt.ErrorfWrap.spec (GF := GF) (hG := hG) :=
+  fmt.ErrorfWrap.wp_proof
+
 theorem mvcc.generation.wp_isRecreatedAt :
     mvcc.generation.isRecreatedAt.spec (GF := GF) (hG := hG) :=
   mvcc.generation.isRecreatedAt.wp_proof mvcc.generation.wp_isEmpty
@@ -695,7 +700,7 @@ theorem mvcc.treeIndex.wp_Revisions [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem mvcc.storeTxnCommon.wp_rangeKeys [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnCommon.rangeKeys.wp_proof mvcc.treeIndex.wp_CountRevisions mvcc.treeIndex.wp_Range mvcc.treeIndex.wp_Revisions mvcc.wp_sliceCapWithLimit mvcc.wp_NewRevBytes mvcc.wp_RevToBytes traceutil.Trace.wp_Step proto.wp_Unmarshal
+  mvcc.storeTxnCommon.rangeKeys.wp_proof mvcc.treeIndex.wp_CountRevisions mvcc.treeIndex.wp_Range mvcc.treeIndex.wp_Revisions mvcc.wp_sliceCapWithLimit mvcc.wp_NewRevBytes mvcc.wp_RevToBytes traceutil.Trace.wp_Step proto.wp_Unmarshal fmt.wp_ErrorfWrap
 
 theorem mvcc.storeTxnCommon.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) :=

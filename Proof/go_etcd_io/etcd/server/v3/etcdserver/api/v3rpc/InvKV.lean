@@ -442,6 +442,14 @@ theorem checkErr_statusErrOk (e : CheckErr) (err : GoInterface) :
   · iapply errVarIs_statusErrOk _ err $$ H7 Hv
   · iapply errVarIs_statusErrOk _ err $$ H6 Hv
 
+/-- `checkErr_statusErrOk` at `srvErrOk`, the handler contracts' (errorf-wrap). -/
+theorem checkErr_srvErrOk (e : CheckErr) (err : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ⊢
+      txn.errVarIs e.var err -∗ go_etcd_io.etcd.cache.v3.srvErrOk err := by
+  iintro #Hpkg #Hv
+  iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
+  iapply checkErr_statusErrOk e err $$ Hpkg Hv
+
 /-- **The server's `Range`** on a checked request (one conjunct of `raftKV`). -/
 def kvRangeOk (s : Loc) (A : KVAns GF) : IProp GF :=
   iprop(∀ (ctx : GoInterface) (r : Loc) (o : OpFull),

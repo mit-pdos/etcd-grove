@@ -194,7 +194,7 @@ local macro "txn_tail" : tactic => `(tactic| (
            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv)) ∨
-       (mvcc.errorfIs errv ∗ txn.roTxnRespRd respv ∗
+       (mvcc.ctxErrorf errv ∗ txn.roTxnRespRd respv ∗
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv))) ∗
       (∃ te, traceutil.ownTrace trc te)) (fun info => apply.txnClass E.authMode info t) trc false)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
@@ -294,13 +294,13 @@ local macro "txn_tail" : tactic => `(tactic| (
           txn_close_err
         · cases Hn
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
-          · iapply applyErrIs_errorf _ Hleaf $$ He
+          · iapply applyErrIs_ctxErrorf _ Hleaf $$ He HCtxE
           txn_ret_rd
           txn_close_err
       · icases Hres with (⟨%Hn, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨#He, -⟩)
         · exact absurd rfl Hn.2
         rotate_left
-        · ihave %Hne := mvcc.errorfIs_ne_nil _ $$ He
+        · ihave %Hne := mvcc.ctxErrorf_ne_nil _ $$ He
           exact absurd rfl Hne
         ihave #Hrd := txn.roTxnRespRd_of _ _ _ t _ _ hro $$ Hr
         -- the read deposit's result at the log read (unit W-M3, as `Range`'s)
@@ -423,7 +423,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv)) ∨
-       (mvcc.errorfIs errv ∗ txn.roTxnRespRd respv ∗
+       (mvcc.ctxErrorf errv ∗ txn.roTxnRespRd respv ∗
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv))) ∗
       (∃ te, traceutil.ownTrace trc te)) (fun info => txnClassFrom (.on γa) nA info t) trc false)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
@@ -524,13 +524,13 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
           txn_close_err
         · cases Hn
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
-          · iapply applyErrIs_errorf _ Hleaf $$ He
+          · iapply applyErrIs_ctxErrorf _ Hleaf $$ He HCtxE
           txn_ret_rd
           txn_close_err
       · icases Hres with (⟨%Hn, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨#He, -⟩)
         · exact absurd rfl Hn.2
         rotate_left
-        · ihave %Hne := mvcc.errorfIs_ne_nil _ $$ He
+        · ihave %Hne := mvcc.ctxErrorf_ne_nil _ $$ He
           exact absurd rfl Hne
         ihave #Hrd := txn.roTxnRespRd_of _ _ _ t _ _ hro $$ Hr
         -- the read deposit's result at the log read (unit W-M3, as `Range`'s)
@@ -697,6 +697,7 @@ theorem EtcdServer.Txn.wp_proof
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨⟨%hist, #Hhist, %Hhl⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩
+  ihave #HCtxE := applyErrIs_of_isCtxErr $$ Hpkg
   ihave #Papply : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
   ihave #Ptxn : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn $$ []

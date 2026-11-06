@@ -50,7 +50,7 @@ abbrev v3rpc.LeaseServer.LeaseTimeToLive.spec : Prop :=
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseTimeToLive"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ A.revR ∗ r ↦{dq} v ∗
-      v3rpc.leaseTTLOut s E γl ci n m v cid mid resp err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }}
+      v3rpc.leaseTTLOut s E γl ci n m v cid mid resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

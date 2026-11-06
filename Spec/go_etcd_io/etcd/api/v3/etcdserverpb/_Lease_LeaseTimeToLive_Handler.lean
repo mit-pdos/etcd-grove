@@ -52,7 +52,7 @@ abbrev etcdserverpb._Lease_LeaseTimeToLive_Handler.spec : Prop :=
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
         ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      go_etcd_io.etcd.cache.v3.statusErrOk err }}
+      go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

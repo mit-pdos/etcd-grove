@@ -61,23 +61,24 @@ instance authInnerOk_persistent (s : Loc) (m : GoString) (ctx : GoInterface) (r 
   unfold authInnerOk; infer_instance
 
 /-- **A wrapper's outcome**: the server's response with `Q resp nil`, or `nil` and a non-nil error
-(one grpc's `status.FromError` accepts, `statusErrOk`: k8s etcd3 7c, HS-6) with `Q null` of the
+(one grpc's server handles, `srvErrOk`: a `status` error, k8s etcd3 7c, HS-6, or a `%w` chain to a
+context error, errorf-wrap) with `Q null` of the
 server's (non-nil) error. -/
 def authWrapOut (Q : Loc → GoInterface → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ Q resp GoInterface.nil) ∨
-    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
       ∃ e0 : GoInterface, ⌜e0 ≠ GoInterface.nil⌝ ∗ Q null e0))
 
 open Iris.ProofMode in
 /-- A wrapper's error is one grpc's `status.FromError` accepts (`nil` on success). -/
-theorem authWrapOut_statusErrOk (Q : Loc → GoInterface → IProp GF) (resp : Loc) (err : GoInterface) :
-    authWrapOut Q resp err ⊢ go_etcd_io.etcd.cache.v3.statusErrOk err ∗ authWrapOut Q resp err := by
+theorem authWrapOut_srvErrOk (Q : Loc → GoInterface → IProp GF) (resp : Loc) (err : GoInterface) :
+    authWrapOut Q resp err ⊢ go_etcd_io.etcd.cache.v3.srvErrOk err ∗ authWrapOut Q resp err := by
   iintro Hout
   iunfold authWrapOut at Hout
   icases Hout with (⟨%Hn, HQ⟩ | ⟨%Hn, #Hse, HQ⟩)
   · subst Hn
     isplitr
-    · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+    · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
     iunfold authWrapOut; ileft; iframe HQ; ipureintro; rfl
   · iframe Hse
     iunfold authWrapOut; iright; iframe HQ Hse; ipureintro; exact Hn
