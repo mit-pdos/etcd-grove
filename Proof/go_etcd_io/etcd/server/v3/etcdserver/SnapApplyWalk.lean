@@ -498,9 +498,10 @@ theorem applySnapshot_walk
   ihave HEv : apply.everOwn E (U ++ recs.map (·.1)) $$ [HEvP HEvK]
   · by_cases hrn : recs = []
     · irevert HEvK
-      rw [if_pos hrn, hrn, List.map_nil, List.append_nil]
+      simp only [if_pos hrn]
+      rw [hrn, List.map_nil, List.append_nil]
       iintro H; iexact H
-    · irevert HEvP; rw [if_neg hrn]; iintro H
+    · irevert HEvP; simp only [if_neg hrn]; iintro H
       cases hl : E.lg
       · exact absurd (hlgf hl).1 hrn
       · iapply apply.everOwn_to_lg _ _ hl $$ H
