@@ -14860,6 +14860,10 @@ refusal-freedom is assumed (choice (P) of R1, chosen by the user), and the rest 
 **Decision.** `refusalDescs`, the six strings above, and `noRefusal err := err = nil ∨ errDesc err
 ∉ refusalDescs`. Four trust-boundary changes, none a new kind:
 
+*Items 1 and 2 superseded in part (2026-11-06): "a function of the error" is false for an error
+whose `Error()` reads mutable state; see "`status.FromError`: an error's description from a stable
+`Error()`".*
+
 1. **An error's description, a function of the error** (`errDesc : GoInterface → GoString`,
    opaque, beside `statusCode`). `status.FromError(err)`'s `s.Message()` returns `errDesc err`
    (it returned some string), and when `FromError` says the error is not a status error, its
@@ -33036,3 +33040,46 @@ outer one holds up to three locks' slots at once. Perennial guarantees only `1 <
 today into `start_gives_views`'s post (server `Results.lean`) and etcdstart's `memberUp`,
 `memberUpOn`, `kvServeStocks`: their count becomes `actualMaxReaders - srvRevokePoolN`. A
 `Results.lean` statement: brought to the user (the plan's §F.1).
+
+---
+
+## `status.FromError`: an error's description from a stable `Error()` (2026-11-06 · decided by the user via etcd-grove-82, option (b), a stage of its own, first · supersedes D29's items 1 and 2 in part · the fix is the stage `fromerror-stable`)
+
+**What was wrong.** D29 (item 1) made an error's description `errDesc` an opaque function of the
+error value, and `status.FromError.wp_proof` says that `s.Message()` returns it, and so does every
+`Error()` call on an error that is not a status error. The premise `statusErrOk err` asks only
+that `Error()` return some string (`errorStringSpec`). But Go's `FromError` calls `err.Error()` on
+each call (grpc v1.84 `status/status.go:126`), and a leaf error whose `Error()` reads mutable state
+meets the premise and returns different strings. From the axiom alone, Lean proves a program that
+panics in Go does not panic (`examples/axiomcx/flipdesc`, branch `axiom/invoker-filled`
+`f7bc4fb7e4`; `notes/axiom-review/invoker-filled.md`). `statusCode` has the same flaw, through a
+`GRPCStatus()` that reads state, and so does item 2 (`errors.Is` on a leaf).
+
+This is a soundness bug since 2026-10-21. No closed theorem is known to be false: every error that
+reaches `FromError` on the verified paths has a fixed `Error()`. Those are `*errors.errorString`
+(`s` persistent), `*status.Error`, `rpctypes.EtcdError`, `*fmt.wrapError`, the context errors,
+and bcrypt's and grpc's own errors. But that is an argument, not a proof. Found by k8s etcd3 7c-2
+part 2's re-attack of `grpcInvokerOk` at the filled `handlerDescs`. That stage's Freeze is void
+until the fix lands, and then it rebases onto the fix.
+
+**The rule now (b).** A described error's methods are stable.
+- `errorStringSpec` (inside `statusErrOk`) says `Error()` returns one fixed `m`
+  (`∃ m, □ … Φ #m`), not "some string".
+- `grpcErrMethodsOk` says `GRPCStatus()`, if present, returns one fixed status.
+- `FromError.spec` gives `⌜errDesc err = m⌝`; this is true now, since nothing it reads can change.
+- `statusCode` and the `errors.Is`-on-leaf axiom get the same premise.
+- Each trusted producer of `statusErrOk` is restated and re-attacked: rpctypes' initializers,
+  `status.Error`, `toGRPCErrorMap_init`, `grpcDecOk`, bcrypt's error, the `ContextReadErrs` leaf
+  facts and `fmt.ErrorfWrap`'s `wrapErrIs`.
+- Proved producers show stability from their persistent cells.
+- `flipdesc` must no longer verify.
+- An `*errors.errorString`'s description being its text then follows from `FromError`, which
+  replaces the follow-up of "`Range`'s read errors through gRPC" (7c-2 part 2, on its branch).
+
+**Rejected.**
+- (a) A description per call: `FromError` returns the `m` it read, with no `errDesc` function.
+  `errDesc` is the cross-process identity that `handlerDescs`, `grpcErrMapOk`, the client's
+  `ErrCompacted` match and rpctypes' descriptions compare, so all of D29 would be redesigned.
+- (c) Restating the server's specs to take the description the server re-reads. Connecting what a
+  handler knows to what the server reads needs stability anyway.
+
