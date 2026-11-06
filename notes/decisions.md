@@ -32230,3 +32230,43 @@ by the marked `sorry` `revRoom` (D30n), false as stated.
 **Unchanged.** `Main.spec`, `k8setcd3_safe`, `NewServer`/`bootOk`, the etcdstart starters, every
 exported result. No axiom; the trust base loses the `sorry` `k8s_etcd3.revRoom`.
 
+
+## The members' start bundles: Draft steps 1-6 (2026-11-05 · hub plan step 7, Scope approved by the user via etcd-grove-82 (Q1-Q4), D1-D4 accepted by the coordinator · branch `hub-step7`)
+
+**What changed.** Program start's per-member resources (`walDirFresh` of the member's WAL directory,
+`netAddrFree`/`httpProtoFree` of its peer address, `netAddrFree` of its client address) were
+threaded token by token through every `Main.spec` and every `etcdstart` starter (34 spec files). They
+are now three sealed bundles in `etcdstart/StartRes.lean` (`memberStartRes name a`, what a `Main`
+takes; `memberFreshRes name a γn`, what a first-start starter takes; `memberRestartRes name a γn γ ρ
+id`, what a restart starter takes), with optional addresses (`MemberAddrs`, D3) and narrow laws
+(`_client`, `_peer`, `_fresh`, `_boot`, the introduction `memberStartRes_intro` up to order, D2). The
+cluster's allocation `alloc3` turns three start bundles into three fresh bundles at the network's
+names. The 12 one-member Mains, putget3's Main, the `etcdstart` starters (`newServerMode`,
+`newServer`, `BuildServer.spec`, `Start{,Compacting,Periodic}Server`, `NewMember`, `StartMember`) and
+`auth.startServer` take the bundles (`notes/spec-first-plan.md`, "Step 7 Draft"). Why: a new start
+resource (the restart's next files) changes a bundle's sealed body and one law, not 34 statements; no
+closed theorem's text changes (their `HAs`/`HDs` lists are reached by the introduction).
+
+**Choices made in the Draft (pending the user, `questions.md` D6-D10):** `etcd_adequate_members` in a
+module of its own (`AdequacyMembers.lean`, D6: `StartRes` imports the server, which the raft examples
+importing `Adequacy.lean` must not); two temporary pass-throughs until steps 7-8 (`alloc3Http`, the
+old `alloc3`, and `memberFreshRes_intro_peer`, D7); `BuildServer.specStop` left to step 8 with
+restart's `startMember` (D8); `newServer.specCompact` deleted now (Q2, D9).
+
+**Trust base.** 785 axioms and 4 `sorry`s, unchanged; 50 of 51 collections unchanged. `authkv`'s gains
+`axiom httpProtoFree` (rewritten with `--check --update`): its root `authkv_Main` states
+`etcd_auth.Main.spec`, whose precondition is now `memberStartRes go!"authkv" ⟨none, some …⟩`, and the
+bundle's body names the axiomatized token `httpProtoFree` in its peer branch (unused here: the peer is
+`none`). A predicate constant the statement is written in, not a new assumption; the other examples'
+collections already had it (their closed theorems' `startRights`).
+
+**Steps 7-8 (2026-11-05).** Step 7 gave the three-member cluster a bundle of its own,
+`cluster3.startRes cfg` (sealed, `cluster3/StartRes.lean`; the members' start bundles and the bridges'
+listen rights; D11-D13), taken by `cluster3.StartCluster`, partition's `startCluster`, `Main`,
+`MainWatch` and K6's `MainPartition`. Step 8 moved the restart onto the bundles: `BuildServer.specStop`
+and `specRestart` (drafts, their preconditions only), restart's `startMember.spec`/`specRestart`,
+`stop`'s post (the restart bundle; its binder `dd` became the member's `name`) and `Run`'s `runRes`
+over `alloc3`; one new law, `memberRestartRes_raft` (D14-D17). The pass-throughs are gone
+(`memberFreshRes_intro_peer` deleted, `alloc3Http` private). `run.specStop` and its scope premises are
+unchanged, left for R2c. Statements naming a start resource: the five consumers only. Trust base
+unchanged (`notes/spec-first-plan.md`, "Step 8 glue list", "Where the Draft stands").

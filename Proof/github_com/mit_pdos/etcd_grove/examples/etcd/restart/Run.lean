@@ -143,7 +143,7 @@ theorem Run.wp_proof
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   wp_start as Hres
   iunfold runRes at Hres
-  icases Hres with ⟨Ha₁, Ha₂, Ha₃, Hac₁, Hac₂, Hac₃, Hf₁, Hf₂, Hf₃, Htok, Htok2, #Hprem, Hw₁, Hw₂, Hw₃⟩
+  icases Hres with ⟨Hs₁, Hs₂, Hs₃, Htok, Htok2, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #HbR₂, #HbR₃, #Hmarsh, #Hcom⟩
   ihave #Hcom' := Hcom
@@ -233,9 +233,14 @@ theorem Run.wp_proof
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
   imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls
       (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
-      (dir3_host id₁ id₂ id₃) (by omega) (by omega)) $$ Hmarsh Hf₁ Hf₂ Hf₃
+      (dir3_host id₁ id₂ id₃) (by omega) (by omega) name₁ name₂ name₃ (some clientAddr₁)
+      (some clientAddr₂) (some clientAddr₃)) $$ Hmarsh Hs₁ Hs₂ Hs₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
-    Hmb₁, ⟨#Hnet₁, Hpo₁⟩, Hmb₂, ⟨#Hnet₂, Hpo₂⟩, Hmb₃, ⟨#Hnet₃, Hpo₃⟩, Hetcd⟩
+    Hmb₁, ⟨#Hnet₁, Hfr₁⟩, Hmb₂, ⟨#Hnet₂, Hfr₂⟩, Hmb₃, ⟨#Hnet₃, Hfr₃⟩, Hetcd⟩
+  -- the client addresses' listen rights, to `serveClient` and `restartCheck`
+  icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₁ with ⟨Hac₁, Hfr₁⟩
+  icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₂ with ⟨Hac₂, Hfr₂⟩
+  icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₃ with ⟨Hac₃, Hfr₃⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog₁, hst₂, hst₃, -⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hd₁ : go!"http://" ++ peerAddr₁ ∈ dir3 id₁ id₂ id₃ id₁ := by simp [dir3]
@@ -254,7 +259,7 @@ theorem Run.wp_proof
       (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
       HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₁
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁ Hw₁]
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb₁ Hfr₁]
     as %m₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₁, %pl₁, Hup₁, Hst₁⟩)
@@ -277,7 +282,7 @@ theorem Run.wp_proof
       (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
       HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂ Hw₂]
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb₂ Hfr₂]
     as %m₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₂, %pl₂, Hup₂, Hst₂⟩)
@@ -299,7 +304,7 @@ theorem Run.wp_proof
       (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
       HwbN hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃ Hw₃]
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb₃ Hfr₃]
     as %m₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, %s₃, %pl₃, Hup₃, Hst₃⟩)

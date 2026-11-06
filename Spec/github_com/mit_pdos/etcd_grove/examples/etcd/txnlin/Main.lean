@@ -16,6 +16,7 @@ gRPC's method sets, `errors.As`'s target, the method-set classes of `*errorStrin
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Base
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
@@ -54,9 +55,10 @@ abbrev Main.spec : Prop :=
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23796" ∗ threadTok ∗ premises N id ctxs boot ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh
-      walDirFresh (config.walDirOf go!"linkvtxn.etcd" go!"") }}
+      -- (2026-11-05, hub step 7) the member's start bundle: its WAL directory fresh and the right
+      -- to listen on its client address (`netAddrFree`, which program start gives once: D19d)
+      etcdstart.memberStartRes (GF := GF) go!"linkvtxn" ⟨none, some go!"127.0.0.1:23796"⟩ ∗
+      threadTok ∗ premises N id ctxs boot }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main)) (Val #clients))
       (Val #ops))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}

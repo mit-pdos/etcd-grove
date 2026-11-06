@@ -5,12 +5,14 @@
 linkv3p's `startMember`s did before `Start`. Lean-first (no Rocq counterpart).
 
 **The triple:** `newServer`'s (any snapshot settings; either compaction mode `cmp` with the
-auto-compactor off, since 2026-11-05), plus the right to listen on the peer address (`netAddrFree`, D19d)
-and, for `http.Serve`, `http://peerAddr` one of the member's peer URLs in the directory: an error,
-or the member built (`memberBuilt`).
+auto-compactor off, since 2026-11-05), its fresh bundle with the peer address (`memberFreshRes`, hub
+step 7: also the right to listen on the peer address and to serve it with the network's raft
+protocol) and, for `http.Serve`, `http://peerAddr` one of the member's peer URLs in the directory:
+an error, or the member built (`memberBuilt`).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 
 @[expose] public section
@@ -53,7 +55,6 @@ abbrev NewMember.spec : Prop :=
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-      netAddrFree (GF := GF) peerAddr ∗
       -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
@@ -61,10 +62,12 @@ abbrev NewMember.spec : Prop :=
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp lm ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
-      -- side for it and the right to serve its peer address with the raft protocol
-      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
+      -- side for it
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6; 2026-11-05, hub step 7, its fresh bundle) the
+      -- member's WAL directory fresh (a first start), the right to listen on its peer address and
+      -- to serve it with the network's raft protocol
+      memberFreshRes name ⟨some peerAddr, none⟩ γn }}
     (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #token))

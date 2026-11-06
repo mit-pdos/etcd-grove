@@ -15,7 +15,7 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/watch 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/k8s/compactor 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/k8s/etcd3 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/cluster3 3
-spec-thread github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 10
+spec-thread github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 9
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw 3
 spec-thread go_etcd_io/etcd/server/v3/etcdserver 9
 spec-thread go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
@@ -37,7 +37,7 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/k8s/compactor 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/k8s/etcd3 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/cluster3 4
-spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 16
+spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 14
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest 1
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter 1
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv 1

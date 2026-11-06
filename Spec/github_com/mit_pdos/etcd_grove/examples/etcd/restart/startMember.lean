@@ -9,8 +9,9 @@ and the peer listener registered closable: an error (with the thread token), or 
 (`etcdstart.memberUp`) and a stoppable member's record (`memberStop`).
 
 **`specRestart`, a start after a stop** (R2c, R2d): the same, from the data directory the stop left
-(`srvDiskImage`, at the stopped incarnation's names `ρ`) and `bootstrap`'s restart contract
-(`etcdstart.bootPremiseR`), the peer address and its protocol's right as the stop gave them back: the
+(`srvDiskImage`, at the stopped incarnation's names `ρ`), the peer address and its protocol's right,
+as the stop gave them back (`etcdstart.memberRestartRes`), and `bootstrap`'s restart contract
+(`etcdstart.bootPremiseR`): the
 member started at new names `ρ'` that agree with `ρ` where the cluster sees them (`restartNames`).
 -/
 module
@@ -54,14 +55,14 @@ abbrev startMember.spec : Prop :=
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
-      netAddrFree (GF := GF) peerAddr ∗ threadTok ∗
+      threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       etcdstart.bootPremise N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
       context.isClosedchanInit ∗
       etcdstart.memberBoot γ ctxs ρ E₀ Φs id ∗
-      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
+      netHttpOk γn id ∗
+      -- (hub step 8, E3) the member's fresh bundle with its peer address: a first start
+      etcdstart.memberFreshRes name ⟨some peerAddr, none⟩ γn }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.startMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #lg))
@@ -88,12 +89,13 @@ abbrev startMember.specRestart : Prop :=
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
-      netAddrFree (GF := GF) peerAddr ∗ threadTok ∗
+      threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
       context.isClosedchanInit ∗
-      srvDiskImage γ ρ id (name ++ go!".etcd") ∗
-      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
+      netHttpOk γn id ∗
+      -- (hub step 8, E4) the member's restart bundle with its peer address: what its stop gave back
+      etcdstart.memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.startMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #lg))

@@ -226,6 +226,7 @@ axiom http.readerHas_nil
 axiom http.reqURL_ok
 axiom http.respReadAny_of_ok
 axiom http.respWrite_ok
+axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
 axiom insecure.NewCredentials.wp_proof
 axiom io.MultiReader.wp_proof

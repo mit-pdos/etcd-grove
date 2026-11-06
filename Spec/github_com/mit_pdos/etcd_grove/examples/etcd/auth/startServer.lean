@@ -16,6 +16,7 @@ names `γa` of the store `NewServer` built).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Defs
@@ -61,8 +62,9 @@ abbrev startServer.spec : Prop :=
       etcdstart.commonPremises ∗ context.isClosedchanInit ∗
       etcdstart.memberBootOn γ ctxs ρ E₀ Φs id ∗
       netHttpOk γn id ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      walDirFresh (config.walDirOf go!"authkv.etcd" go!"") }}
+      -- (2026-11-03, the WAL's API, change 6; 2026-11-05, hub step 7, its fresh bundle) the
+      -- member's WAL directory fresh: a first start
+      etcdstart.memberFreshRes go!"authkv" {} γn }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨

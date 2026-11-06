@@ -34,7 +34,7 @@ theorem stop.wp_proof
     (wp_HardStop : EtcdServer.HardStop.spec (GF := GF) (hG := hG))
     (hClose : http.ListenerClose_spec (GF := GF) (hG := hG)) :
     stop.spec (GF := GF) (hG := hG) := by
-  intro m s pl γ id peerAddr γn ρ dd
+  intro m s pl γ id peerAddr γn ρ name
   wp_start as ⟨Hm, %Hb3⟩
   iunfold memberStop at Hm
   icases Hm with ⟨Hrec, Hsr, %Hli, Hcl, %Hγρ, #Hai⟩
@@ -62,7 +62,7 @@ theorem stop.wp_proof
   have Hba : ρ.rd.raft.raft.boot.length ≤ uint.nat v := by
     rw [Hγρ]; word
   -- `m.s.HardStop()`
-  wp_apply (wp_HardStop s γ ρ id dd) $$ [Hsr] as Himg
+  wp_apply (wp_HardStop s γ ρ id (name ++ go!".etcd")) $$ [Hsr] as Himg
   · iframe
     iunfold srvBootApplied
     iexists v
@@ -72,6 +72,7 @@ theorem stop.wp_proof
   wp_apply (hClose _ li peerAddr (raftProto (netRh γn)) rfl) $$ [Hcl] as %err ⟨Haddr, Hown⟩
   · iexact Hcl
   iapply HΦ
+  iapply etcdstart.memberRestartRes_intro
   iframe
 
 end proof

@@ -18,6 +18,7 @@ blackholed, and etcd's KV at the start store). The clients are the caller's (`Ne
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Defs
 
 @[expose] public section
@@ -50,17 +51,11 @@ abbrev StartCluster.spec : Prop :=
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗
-      netAddrFree (GF := GF) cfg.Peer1' ∗ netAddrFree (GF := GF) cfg.Peer2' ∗
-      netAddrFree (GF := GF) cfg.Peer3' ∗ netAddrFree (GF := GF) cfg.Client1' ∗
-      netAddrFree (GF := GF) cfg.Client2' ∗ netAddrFree (GF := GF) cfg.Client3' ∗
-      netAddrFree (GF := GF) cfg.Bridge1' ∗ netAddrFree (GF := GF) cfg.Bridge2' ∗
-      netAddrFree (GF := GF) cfg.Bridge3' ∗
-      httpProtoFree (GF := GF) cfg.Peer1' ∗ httpProtoFree (GF := GF) cfg.Peer2' ∗
-      httpProtoFree (GF := GF) cfg.Peer3' ∗ threadTok ∗ premises cfg N id₁ id₂ id₃ ps ctxs boot ∗
-      -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
-      walDirFresh (config.walDirOf (cfg.Name1' ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (cfg.Name2' ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (cfg.Name3' ++ go!".etcd") go!"") }}
+      -- (2026-11-05, hub step 7's E2, D1) the cluster's start bundle: each member's (its WAL
+      -- directory fresh, its peer and client addresses free, the peer's HTTP protocol unregistered)
+      -- and the bridges' addresses free
+      startRes (GF := GF) cfg ∗
+      threadTok ∗ premises cfg N id₁ id₂ id₃ ps ctxs boot }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartCluster))
       (Val #cfg)) (Val #lg))
   {{ (srvs brs : GoSlice) (ok : Bool), RET (PairV (PairV #srvs #brs) #ok);

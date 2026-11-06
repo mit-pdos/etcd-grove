@@ -47,7 +47,7 @@ theorem newServerMode.wp_proof
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
     HU HU8 Hlg Hmode Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
+  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
@@ -95,7 +95,7 @@ theorem newServerMode.wp_proof
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (bootCfgOk_of _ Hlg rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8⟩ HwbN)
-    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwdf] as %srv %err Hres
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -111,9 +111,9 @@ theorem newServerMode.wp_proof
       iexact Hsls
     isplitl [Hreg]
     · iunfold memStorRegAuth; iexact Hreg
-    -- the WAL's slot (`wal.bootRes`), from the member's fresh WAL directory
-    isplitl [Hwdf]
-    · iapply wal.bootRes_intro _ _ _ rfl rfl; iexact Hwdf
+    -- the WAL's slot (`wal.bootRes`), from the member's fresh bundle
+    isplitl [Hfresh]
+    · iapply memberFreshRes_boot _ _ _ rfl rfl; iexact Hfresh
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Haf

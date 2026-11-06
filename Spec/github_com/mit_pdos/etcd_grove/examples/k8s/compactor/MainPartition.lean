@@ -22,6 +22,7 @@ sets, `errors.As`'s target).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Cluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Inv
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
@@ -59,17 +60,12 @@ abbrev MainPartition.spec : Prop :=
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗
-      netAddrFree (GF := GF) clusterCfg.Peer1' ∗ netAddrFree (GF := GF) clusterCfg.Peer2' ∗
-      netAddrFree (GF := GF) clusterCfg.Peer3' ∗ netAddrFree (GF := GF) clusterCfg.Client1' ∗
-      netAddrFree (GF := GF) clusterCfg.Client2' ∗ netAddrFree (GF := GF) clusterCfg.Client3' ∗
-      netAddrFree (GF := GF) clusterCfg.Bridge1' ∗ netAddrFree (GF := GF) clusterCfg.Bridge2' ∗
-      netAddrFree (GF := GF) clusterCfg.Bridge3' ∗
-      httpProtoFree (GF := GF) clusterCfg.Peer1' ∗ httpProtoFree (GF := GF) clusterCfg.Peer2' ∗
-      httpProtoFree (GF := GF) clusterCfg.Peer3' ∗ sched ↦*□ steps ∗ threadTok ∗
+      -- (2026-11-05, hub step 7, D1) the cluster's start bundle: each member's (its WAL directory
+      -- fresh, its peer and client addresses free, the peer's HTTP protocol unregistered) and the
+      -- bridges' addresses free
+      cluster3.startRes (GF := GF) clusterCfg ∗
+      sched ↦*□ steps ∗ threadTok ∗
       cluster3.premises clusterCfg N id₁ id₂ id₃ ps ctxs boot ∗
-      walDirFresh (config.walDirOf (clusterCfg.Name1' ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (clusterCfg.Name2' ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (clusterCfg.Name3' ++ go!".etcd") go!"") ∗
       k8s.regAuth (∅ : GMap GoString GName) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainPartition)) (Val #sched))
   {{ RET #(); True }}
