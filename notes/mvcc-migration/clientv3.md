@@ -232,7 +232,15 @@ API states them (the API's laws: mvcc track; the coordinator decides).
 ## Left (in order)
 
 1. **`watchGRPCStream__run.lean`** (red; the only module of the watch path not restated): over
-   `WatchRun`'s restated lemmas. The sites, by line (as of `879234f04c`): 207-215 (`watchMemberFacts`
+   `WatchRun`'s restated lemmas. **Edited, not yet checked** (the other tracks' rebuilds held the
+   lock and deleted imported `.olean`s; first thing next session: `lake env lean` / `lean-check.py`
+   it and fix): the member facts (`⟨#Hwl, #Honce, #Hlaws, #Hkvf⟩`, `Hpfx`), the token pool gone,
+   `respInfo` gone, `respcE_at … hmi hmw`, `watchDn`'s run (`⟨%r, %Hrr, #Haux, %Hcm, Hcase⟩`,
+   `hrR hrW hrs`), `ctrlOk`'s new shape, the registration (`Hidp` over `ctrlWatcher r`, `regSnap`
+   from `createdAfter r`, `regFacts`, `evsSoFar_fresh` pure, `cpl_lo`, `cur2Ok_init` not an update),
+   the mvcc branch (`mvccOk_dup`, `mvccOk`'s pure facts at `(nx, ρ)`, `compactResp`,
+   `mvccOk_bcast`, `bcast_covAll`/`bcast_elem`/`reg_pre_any`/`reg_post` at the new arguments). The
+   sites as they were (lines as of `879234f04c`): 207-215 (`watchMemberFacts`
    is `srvWLaws ∗ srvOnce ∗ watchLaws ∗ srvKVFacts`: no `Htoks`/`Hsmall`/`Hnoc`; drop
    `srvProgressAllAnswers_holds`, keep `srvEventIdsAssigned_holds V.R V.W` only if needed: `WatchRun`
    no longer takes it); 525, 1652, 2801 (`mvcc.watchTokPool_take`: gone, `watchUp_create` takes no
