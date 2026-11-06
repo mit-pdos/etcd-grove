@@ -207,6 +207,13 @@ RESTART-RCPT). No compactor follows from the latter (`NewServer` makes one only 
 that every started server's `run` has one spec. -/
 def srvStop.scope (E : apply.AEnv GF) : Prop := E.authOn = false ∧ E.cmp = false
 
+/-- **The stop's serving readers** (R2c-4): the store readers a member's serving stocks hold (the
+API's and the watch server's, `64 + 64`), which the stop request returns for the backend's `Close`
+(`storeReaders_retire`); named here, by the stop's owner, so that a client of the stop request names
+no count (`etc/bounds-check.py`). -/
+abbrev srvStopReaders (E : apply.AEnv GF) : IProp GF :=
+  iprop([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader E.s E.γ)
+
 /-- **A stop request** (2026-11-05, R2c-2; what `HardStop` sends on `s.stop` and `run` receives):
 evidence that the server at the request names `ρ` applied the bootstrap log (`srvBootApplied`,
 R2b-2 review F2), the stop's scope at the server's apply environment `E` (`srvStop.scope`), and the
@@ -219,8 +226,7 @@ request carried only `srvBootApplied ρ`, and `run.specStop` took the scope as p
 the readers were `run.specStop`'s (`srvShutdownPre`), which a serving member cannot give at its
 start. -/
 def srvStopReq (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString) : IProp GF :=
-  iprop(srvBootApplied ρ ∗ ⌜srvStop.scope E⌝ ∗ srvDataDir s dd ∗
-    ([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader E.s E.γ))
+  iprop(srvBootApplied ρ ∗ ⌜srvStop.scope E⌝ ∗ srvDataDir s dd ∗ srvStopReaders E)
 
 /-- The stop request names only the request names' read side (`ρ.rd`): the same at the wait
 registry `start` makes (R2c-4). -/

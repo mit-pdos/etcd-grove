@@ -152,7 +152,7 @@ def memberStop (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAdd
 64 store readers and its watchable store's 64), which the stop request hands `run`'s shutdown. -/
 def memberStopRes (s : Loc) (ρ : ReqNames) (id : w64) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (dd : GoString), srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ ⌜srvStop.scope E⌝ ∗
-    [∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader E.s E.γ)
+    srvStopReaders E)
 
 /-- (R2c-4) **A started member that will not serve, split for its stop**: its request view and
 `GoAttach` resources, and what its stop takes (`memberStopRes`), out of compaction mode. -/
@@ -173,6 +173,7 @@ theorem memberUp_stopRes (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
   iframe Hr
   isplitr
   · ipureintro; exact ⟨HEc.2.1, by rw [HEc.1.2.2.2.1, hcmp]⟩
+  unfold srvStopReaders
   rw [← List.replicate_append_replicate]
   iapply BigSepL.bigSepL_append.2
   iframe Hsts
