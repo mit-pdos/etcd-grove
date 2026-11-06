@@ -52,7 +52,9 @@ abbrev raftNode.stop.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
   {{ RET #(); nodeVacant γ.node.cl γ.id ∗
       ∃ (S : RaftState) (σ : StorContents), raftState γ.node.cl γ.id S ∗ rnWalClosed γ r σ ∗
-        ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit⌝ }}
+        ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit⌝ ∗
+        -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate (the restart's storage needs it)
+        walSnapCert γ.node.cl σ }}
 
 end spec
 

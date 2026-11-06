@@ -136,6 +136,10 @@ def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IPr
       imageAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) A D⌝ ∗
     ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i⌝ ∗
     confAt γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
+    -- (R2d, Q14 (a), 2026-11-06; DRAFT) the WAL records' snapshot certificate: at index `0`, or
+    -- their snapshot (of no data, at their base) valid, what the restart's `MemoryStorage` attaches
+    -- with (`restartStorage`)
+    walSnapCert γ.cl σ ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
     srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd))
 

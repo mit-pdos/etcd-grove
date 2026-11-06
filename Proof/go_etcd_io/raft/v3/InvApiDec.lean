@@ -175,6 +175,10 @@ instance snapMadeU_persistent (γ : Cluster) (s : SnapRec) :
     Persistent (snapMadeU (GF := GF) γ s) := by
   unfold snapMadeU; infer_instance
 
+instance snapMadeU_timeless (γ : Cluster) (s : SnapRec) :
+    Timeless (snapMadeU (GF := GF) γ s) := by
+  unfold snapMadeU; infer_instance
+
 /-- A fresh node's dynamic ghost state, from the allocation's (as `raft_dyn_alloc`'s). -/
 theorem ownRaftGhostR_rinit (γr : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64) :
     ownRaftGhost (GF := GF) γr id initPState true ⊢ ownRaftGhostR γr dec c0 id (rinit c0) := by

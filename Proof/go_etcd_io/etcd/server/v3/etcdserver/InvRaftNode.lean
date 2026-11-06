@@ -1378,7 +1378,7 @@ rules out the stop's taken state), and the durability invariant; `run` gives it 
 `raftNode.stop` (`rnStopBag`). -/
 def rnWalTokA (γ : RNNames) (r : Loc) (q : Qp) : IProp GF :=
   iprop(∃ st : GoInterface, rnStorageAddr r ↦□ st ∗ storage.walOpen (storage.walOf st) q ∗
-    token γ.wal.app ∗ rnDurInv γ.wal (storage.walOf st))
+    token γ.wal.app ∗ rnDurInv γ.node.cl γ.wal (storage.walOf st))
 
 /-- (2026-11-03, R2b-1 stage 6) **The loop's share of the WAL**: half the open token, the stop's
 claim (`ν.stop`) and what `Close` takes besides the records (the member's metadata, the purge's
@@ -1823,7 +1823,9 @@ def rnStopImage (γ : RNNames) (w : Loc) : IProp GF :=
     ∃ (S : RaftState) (σ : StorContents) (sent : List toApply) (L : List EntryModel),
       raftState γ.node.cl γ.id S ∗ rnWalClosedW γ w σ ∗
       sspscProducer γ.ap sent ∗ monoListIdxOwn γ.cum sent.length L ∗
-      ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ L).length ∧ (γ.pre ++ L).length ≤ σ.commit⌝)
+      ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ L).length ∧ (γ.pre ++ L).length ≤ σ.commit⌝ ∗
+      -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate (`rnDur_take`'s)
+      walSnapCert γ.node.cl σ)
 
 /-- **`done`'s close announces the stop's escrow** (persistent, R2b-3b; until then `True`): the stop
 image, or the claim (`rnStopClaim`) once its holder took the image. `onStop` allocates it with the
@@ -1858,7 +1860,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Hms" ∷ rnRaftStorageAddr r ↦□ ms ∗ "%Hmsγ" ∷ ⌜ms = γ.ms⌝ ∗ "#Hmsi" ∷ isRNMemStor γ ms ∗
     "#Hst" ∷ rnStorageAddr r ↦□ st ∗ "#Hsti" ∷ isWalStorage st ∗
     -- (2026-11-03, R2b-1 stage 3c) the WAL's durability invariant
-    "#Hdur" ∷ rnDurInv γ.wal (storage.walOf st) ∗
+    "#Hdur" ∷ rnDurInv γ.node.cl γ.wal (storage.walOf st) ∗
     "#Hhb" ∷ rnHeartbeatAddr r ↦□ hb ∗
     "#Htr" ∷ rnTransportAddr r ↦□ tr ∗ "#Htri" ∷ isRNTransport E tr ∗
     "#Hmsc" ∷ rnMsgSnapCAddr r ↦□ msc ∗
@@ -1901,7 +1903,8 @@ theorem rn_esc_take (E : RNEnv GF) (γ : RNNames) (c w : Loc) (A : List EntryMod
     ⊢ isRNApplyc E γ c -∗ rnDoneEsc γ w -∗ rnStopClaim γ -∗ rnApplyTok γ A -∗ £ 1 -∗ £ 1 ={⊤}=∗
       nodeVacant γ.node.cl γ.id ∗ ∃ (S : RaftState) (σ : StorContents),
         raftState γ.node.cl γ.id S ∗ rnWalClosedW γ w σ ∗
-        ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit⌝ := by
+        ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit⌝ ∗
+        walSnapCert γ.node.cl σ := by
   iintro #Hapc #Hesc Hsc Happ Hlc1 Hlc2
   iunfold rnStopClaim at Hsc
   iunfold rnDoneEsc at Hesc
@@ -1913,7 +1916,7 @@ theorem rn_esc_take (E : RNEnv GF) (γ : RNNames) (c w : Loc) (A : List EntryMod
   imod Hclose $$ [Hsc] with -
   · inext; iright; iexact Hsc
   iunfold rnStopImage at Himg
-  icases Himg with ⟨Hvac, %S, %σ, %sent, %L, HrS, Hcl, Hprod, #Hidx, %Hord⟩
+  icases Himg with ⟨Hvac, %S, %σ, %sent, %L, HrS, Hcl, Hprod, #Hidx, %Hord, #Hσc⟩
   iunfold rnApplyTok at Happ
   icases Happ with ⟨%rcv, Hcons, #HidxA⟩
   iunfold isRNApplyc at Hapc
@@ -1924,7 +1927,7 @@ theorem rn_esc_take (E : RNEnv GF) (γ : RNNames) (c w : Loc) (A : List EntryMod
   imodintro
   iframe Hvac
   iexists S, σ
-  iframe HrS Hcl
+  iframe HrS Hcl Hσc
   ipureintro; exact Hord
 
 end defs

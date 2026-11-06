@@ -433,7 +433,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (2026-11-03, the WAL's API) the opened WAL's parts (its records, metadata and the purge's right
   -- are not used yet: R2b-1's stage 4)
   -- (R2b-1 stage 3c) the WAL's durability allocated over the fresh records (`wal.bootOk_start`)
-  imod wal.bootOk_start _ _ _ _ $$ Hwal with
+  imod wal.bootOk_start _ _ _ _ γ.cl $$ Hwal with
     ⟨%νw, #Hdur, Hwview, Hwok, Hwstop, Hwapp, #Hwlb, Hwalo, %HwalR, Hwmeta, Hwpurge, %HwDir⟩
   -- `bootOk` names two rows `Hmeta`: the storage's hard state, and the backend's
   irename : (memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) : IProp GF) =>
@@ -1072,7 +1072,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     icombine storageC Hst0 gives %Hsteq
     have Hsteq' : st0 = rvr.raftNodeConfig'.storage' := by
       first | exact Hsteq.symm | exact Hsteq.2.symm
-    rw [Hsteq', Hrnwal]; iexact Hdur
+    rw [Hsteq', Hrnwal, Hrn1]; iexact Hdur
   ihave Hwtl : rnWalTokL γrn (srvRAddr s) $$ [Hwtl Hwstop Hwmeta Hwpurge]
   · iunfold rnWalTokL
     rw [Hrnν]

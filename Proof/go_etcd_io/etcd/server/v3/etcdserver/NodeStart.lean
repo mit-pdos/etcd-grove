@@ -126,7 +126,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
       ⌜rv.raftNodeConfig'.raftStorage' = γ.ms⌝ ∗ isRNMemStor γ γ.ms ∗
       isWalStorage rv.raftNodeConfig'.storage' ∗
       -- (2026-11-03, R2b-1 stage 3c) the WAL's durability invariant
-      rnDurInv γ.wal (storage.walOf rv.raftNodeConfig'.storage') ∗
+      rnDurInv γ.node.cl γ.wal (storage.walOf rv.raftNodeConfig'.storage') ∗
       isRNTransport E rv.raftNodeConfig'.transport' ∗
       rnParts E γ rv ∗
       rnFixed a rv ∗ rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' ∗
@@ -397,7 +397,7 @@ abbrev NodeStartSpec : Prop :=
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (2026-11-03, R2b-1 stage 3c) the WAL's durability (`wal.bootOk_start`): its invariant, the
         -- loop's view at the start and its token
-        "#Hdur" ∷ rnDurInv ν wal ∗ "Hwview" ∷ ghostVar ν.view (1 : Qp).half walView0 ∗
+        "#Hdur" ∷ rnDurInv γr.cl ν wal ∗ "Hwview" ∷ ghostVar ν.view (1 : Qp).half walView0 ∗
         "Hwok" ∷ token ν.ok }}
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
@@ -588,7 +588,7 @@ theorem raftNode_of_StartNode
     isplitr
     · ipureintro; exact Hwms.symm
     isplitr
-    · rw [Hwwal, Hstss.2]; iexact Hdur
+    · rw [Hwwal, Hstss.2, Hwnode]; iexact Hdur
     -- the components are the same (`transport` is no component)
     iunfold rnParts at Hparts
     iunfold rnParts

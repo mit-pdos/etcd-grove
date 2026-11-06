@@ -217,9 +217,9 @@ invariant, the raft loop's view at the start and its "not failed" token, the sto
 thread's token, the handed log's lower bound), and what `NewStorage` and `Close` take: the open
 token, whole, the WAL read, its metadata and the purge's right. -/
 theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
-    (w : Loc) :
+    (w : Loc) (cl : Cluster) :
     wal.bootOk (GF := GF) cfg id cid w ⊢
-      |={⊤}=> ∃ ν : WalNames, rnDurInv ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
+      |={⊤}=> ∃ ν : WalNames, rnDurInv cl ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
         token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] ∗
         storage.walOpen w 1 ∗ ⌜storage.walReady w⌝ ∗ walMetaIs w id cid ∗
         walPurgeRight (walDirOf w) ∗
@@ -228,7 +228,7 @@ theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (
   unfold wal.bootOk
   iintro ⟨Hw, Hp⟩
   icases walOpened_elim _ _ _ _ _ $$ Hw with ⟨Ho, Hr, Hm, %Hrd⟩
-  imod rnDur_alloc w $$ Hr with ⟨%ν, #Hinv, Hv, Hok, Hst, Hap, #Hlb⟩
+  imod rnDur_alloc cl w $$ Hr with ⟨%ν, #Hinv, Hv, Hok, Hst, Hap, #Hlb⟩
   imodintro
   iexists ν
   rw [Hrd.2]

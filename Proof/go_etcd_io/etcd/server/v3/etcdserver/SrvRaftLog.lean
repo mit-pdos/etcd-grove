@@ -704,6 +704,18 @@ def srvLogInv (γ : ServerRaftNames) : IProp GF :=
 instance srvLogInv_persistent (γ : ServerRaftNames) : Persistent (srvLogInv (GF := GF) γ) := by
   unfold srvLogInv; infer_instance
 
+/-- (R2d, Q14 caveat (i), 2026-11-06; DRAFT) **The cluster's snapshot registry** (`srvClusterOk`'s
+invariant): the snapshots made (`ownSnapsMade`), every one of `nil` data. Go: the server's raft
+snapshots carry no data (`CreateSnapshot(ep.appliedi, ep.confState, nil)`, `server.go:2131`, and the merged
+snapshot's `Data` unset, `createMergedSnapshotMessage`, `snapshot_merge.go:43-50`); the image travels
+as `srvImage`. So a received snapshot's data is `nil` too (`srv_snapshotValid_dataNil`), and a WAL
+record's snapshot (`walSaveSnap`'s, of no data) is as valid as the snapshot it records. -/
+def srvSnapsReg (cl : Cluster) : IProp GF :=
+  iprop(∃ S : List SnapRec, ownSnapsMade cl S ∗ ⌜∀ r ∈ S, r.data = []⌝)
+
+instance srvSnapsReg_timeless (cl : Cluster) : Timeless (srvSnapsReg (GF := GF) cl) := by
+  unfold srvSnapsReg; infer_instance
+
 /-- **The cluster** (persistent; 2026-10-30, the repair: one kind of cluster, raft's unified API):
 the node API's cluster at the server's storage model (`srvStor`); its conf entries decided by the
 server's rule (`confPolicy` at `γ.raft.rule`; `rnEnvOk` ties it to `srvRule`); the voters it started
@@ -718,7 +730,9 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
   letI := srvStor (GF := GF) γ.raft
   iprop(isCluster γ.raft.cl srvClusterN ∗ confPolicy γ.raft.cl srvConfN γ.raft.rule ∗
     confAt γ.raft.cl 0 (Membership.simple γ.raft.cfg) ∗ readyFits γ.raft.cl srvClusterN ∗
-    ⌜γ.raft.cl.dup = false⌝ ∗ inv srvSnapsN (∃ S, ownSnapsMade γ.raft.cl S) ∗
+    ⌜γ.raft.cl.dup = false⌝ ∗
+    -- (R2d, Q14 caveat (i), DRAFT) every snapshot registered of `nil` data (`srvSnapsReg`)
+    inv srvSnapsN (srvSnapsReg γ.raft.cl) ∗
     ⌜srvRuleKeeps γ.raft.rule γ.raft.cfg⌝ ∗
     -- (2026-11-01, J8a) the cluster's snapshot directories the members' (`snapLoc`)
     ⌜γ.raft.cl.snapLoc = γ.raft.snapLoc⌝ ∗

@@ -17,6 +17,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapCert
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Spec.go_uber_org.zap.Uint64
@@ -596,7 +597,14 @@ theorem raftNode.start.wp_proof
           ihave Hwo := rnWalTok_open r _ (1 : Qp).half $$ [$Hst $Hwt]
           iunfold rnWalView at Hwv
           icases Hwv with ⟨Hwv, Hwok⟩
-          ihave HAU := rnDur_saveSnap_au γ.wal _ _ _ HwSteps.1 $$ Hdur Hwv Hwok
+          -- (R2d, Q14 (a)) the received snapshot's WAL record valid: its data `nil`
+          -- (`srv_snapshotValid_record`, the server's registry)
+          ihave #HenvR := Henv
+          iunfold rnEnvOk at HenvR
+          icases HenvR with ⟨-, %HEnR, -, #HRL, -⟩
+          imod srv_snapshotValid_record E.γr.raft γ.node.cl (by rw [HEnR.1]) l.snap $$ [$HRL $HsvV]
+            with #HsvW
+          ihave HAU := rnDur_saveSnap_au γ.node.cl γ.wal _ _ _ HwSteps.1 $$ Hdur Hwv Hwok HsvW
           -- (R2b-1 stage 4) the received snapshot's `SaveSnap` (`rnDur_saveSnap_au`)
           ihave #HSaveSnap := walSaveSnap_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
           wp_apply HSaveSnap $$ [$Hwo $HM1 $Hm1 $HAU] as %err ⟨Hwo, -, -, Hres⟩
@@ -613,7 +621,7 @@ theorem raftNode.start.wp_proof
           ihave Hwo := rnWalTok_open r _ (1 : Qp).half $$ [$Hst $Hwt]
           iunfold rnWalView at Hwv
           icases Hwv with ⟨Hwv, Hwok⟩
-          ihave HAU := rnDur_save_au γ.wal _ _ _ _ _ HwSteps.2 $$ Hdur Hwv Hwok
+          ihave HAU := rnDur_save_au γ.node.cl γ.wal _ _ _ _ _ HwSteps.2 $$ Hdur Hwv Hwok
           -- (R2b-1 stage 4) the `Save` as the WAL contract's atomic update (`rnDur_save_au`)
           ihave #HSave := walSave_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
           wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesa $HAU] as %err ⟨Hwo, Hres⟩
@@ -1316,7 +1324,7 @@ theorem raftNode.start.wp_proof
         ihave Hwo := rnWalTok_open r _ (1 : Qp).half $$ [$Hst $Hwt]
         iunfold rnWalView at Hwv
         icases Hwv with ⟨Hwv, Hwok⟩
-        ihave HAU := rnDur_save_au γ.wal _ _ _ _ _ HwStep $$ Hdur Hwv Hwok
+        ihave HAU := rnDur_save_au γ.node.cl γ.wal _ _ _ _ _ HwStep $$ Hdur Hwv Hwok
         -- (R2b-1 stage 4) the `Save` as the WAL contract's atomic update (`rnDur_save_au`)
         ihave #HSave := walSave_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
         wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesa $HAU] as %err ⟨Hwo, Hres⟩

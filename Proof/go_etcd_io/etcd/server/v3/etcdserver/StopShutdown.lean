@@ -426,7 +426,9 @@ abbrev stopCleanupImage.spec : Prop :=
         (∃ (S : RaftState) (σ : StorContents), raftState C.rn.node.cl C.rn.id S ∗
           rnWalClosed C.rn (srvRAddr C.s) σ ∗
           ⌜StorageHolds S σ ∧ σ.b ≤ (C.rn.pre ++ A).length ∧
-            (C.rn.pre ++ A).length ≤ σ.commit⌝) ∗
+            (C.rn.pre ++ A).length ≤ σ.commit⌝ ∗
+          -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate (`raftNode.stop`'s)
+          walSnapCert C.rn.node.cl σ) ∗
         srvWTPool C.E C.wt ∗ isServerApplyAll C.s C.γr ∗ £ 2 ∗
         -- (H2, 2026-11-05) the budget's register at `GoAttach`'s receipts, and `Wait` returned
         dghostVar C.wt.reg DFrac.discard (some γg.run) ∗ goWaited γg }}
@@ -446,7 +448,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     stopCleanupImage.spec (GF := GF) (hG := hG) := by
   intro K C A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
   iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
-    ⟨%S, %σ, Hrst, Hwc, %hσ⟩, #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
+    ⟨%S, %σ, Hrst, Hwc, %hσ, #Hσc⟩, #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
   -- auth off
   cases K with
   | on γa =>
@@ -708,7 +710,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   rw [hρ] at *
   iunfold srvFiles
   rw [← hwd, ← hγ]
-  iframe Hvac Hrst HA HM Hpath Hfh Hconf Hw
+  iframe Hvac Hrst HA HM Hpath Hfh Hconf Hw Hσc
   ipureintro
   have h1 := hp.2.1
   have h2 := hσ.2.1

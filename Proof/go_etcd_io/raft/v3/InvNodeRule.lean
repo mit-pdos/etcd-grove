@@ -139,6 +139,12 @@ instance snapMade_persistent (γ : Cluster) (s : SnapRec) :
     Persistent (snapMade (GF := GF) γ s) := by
   unfold snapMade; exact ApiImpl.snapMadeU_persistent γ s
 
+/-- (R2d, Q14, 2026-11-06) No later credit to open an invariant holding it (a WAL record's
+certificate in the server's durability invariant, `walSnapCert`). -/
+instance snapMade_timeless (γ : Cluster) (s : SnapRec) :
+    Timeless (snapMade (GF := GF) γ s) := by
+  unfold snapMade; exact ApiImpl.snapMadeU_timeless γ s
+
 -- (2026-11-01, durability stage I-7) `nodeFounder` and `nodeJoin` deleted: allocation and
 -- `joinAuth_join` give the id's durable state at `RaftState.init` and its vacant slot
 -- (`raftState`, `nodeVacant`, `InvNode.lean`) in their place.

@@ -2284,3 +2284,50 @@ defined). Coordination for the next round (etcd-grove-83, 2026-11-06): revoke-op
 and changes `run.spec`'s `threadTok`, `isServerRun*`/`isServerBuilt*`/`srvBuiltG`; R2d's `%HEr`
 change goes in a named conjunct of its own, and the proofs use laws, not positional unfolds.
 
+
+### R2d Draft, round 2: the window form and Q14 (2026-11-06, branch `r2d`)
+
+**The split (Q15 (c), decided by etcd-grove-82 under the user's delegation, pending the user's
+review): R2d / R2d' / R2e.** Supersedes the Scope's S1 split (`notes/decisions.md`, "R2d: the split
+R2d / R2d' / R2e").
+- **R2d** (this stage): `run` at a restart (R2d-2, -3, -5), the window form (Q13 (a)) and the WAL
+  snapshot's certificate (Q14 (a)). R2d-6 shrinks to what `run` needs: `NewAuthStore` (HS1, done),
+  `memStorRestarted` defined over the certificate (below), `newRaftNode`'s `RestartNode` path. R2d has
+  no closed result.
+- **R2d'** (after R2d, before R2e): `mvcc.New`/`NewStore`'s restoring case with the `lateWBR`/`lateWB`
+  merge (B1), R2d-7 (`NewServer.specG` with the boot argument, its restart branch) and R2d-8
+  (etcdstart over both boots). The `Hnew` row's trusted-text change is a hard stop at R2d''s Scope.
+- **R2e**: the restart's closed result. HS2's static-cluster premise goes in R2e's Scope (Q14 caveat
+  (ii)): the restarted storage's conf state is the backend's at `i` (`bootstrap.go:107-115`), which
+  `confStateIs` the membership at the WAL snapshot's index only in a static cluster.
+
+**The window form (Q13 (a)), DRAFT; stopped for review before `run`'s proof.**
+- `ApplyWindow.lean`: the window's vocabulary over the pending replays `W` and the done ones `D`
+  (`winGhost`, `winNew`, `winRest`, `winDone`, `winAgree`, `winOk`; `kvBatchW`, `restReplay`,
+  `srvRestW`). Each reduces to the no-window one *by definition* at `W = D = []`.
+- `apply.spec`, `applyEntries.specBatch`, `applyAll.specBatch` restated over it (one spec per
+  function; `kvBatch` is `kvBatchW` at `[]`). The ghost rows (applied index, ghost log, `srvRest`,
+  `kvBatch`) at `winGhost`/`A ++ winNew W …`; Go's rows unchanged.
+- `ApplyWindowLaws.lean`: today's texts kept as `…NoWin`, and the laws `apply.spec_noWin`,
+  `applyEntries.specBatch_noWin`, `applyAll.specBatch_noWin` (instantiation at `winOk_nil`, glue).
+  The first-start callers go through them: `run_job_body`, `ModeSpecs`' `apply.spec_off`/`spec_on`,
+  `applyAll`'s call of `applyEntries`. No frozen or exported statement changes (`run.spec`,
+  `start`/`Start.spec`, `isServerRun*`/`isServerBuilt*`, `NewServer.specG` untouched).
+- The three window forms' `wp_proof`s are `sorry -- DRAFT (R2d window form; proof after the Freeze)`;
+  the old proofs stay, proving the `…NoWin` texts (`wp_proofNoWin`, `wp_proofBatchNoWin`).
+- The `applied_jump` reuse (condition 3) is for `run`'s proof: the window's start is the snapshot
+  install's jump of the ghost index, `winGhost` its only notion of replay.
+
+**Q14 (a), DRAFT, all proved.** `walSnapCert cl σ` (`InvWal.lean`: the records at index `0`, or
+their snapshot, of no data at their base, valid) is carried in the WAL's durability invariant
+(`walAsViewed`, `rnDurInv` over the cluster), supplied by the two `SaveSnap` AUs (the apply thread's
+from `wp_srv_createSnapshot`'s certificate, the received one from raft's `rnReadySnap` through
+`srv_snapshotValid_record`), returned by `rnDur_take`, through `rnStopImage`, `rn_esc_take`,
+`raftNode.stop.spec` and `stopCleanupImage.spec` into `srvDiskImage` (a frozen R2c predicate: one
+conjunct added). No `walFiles` axiom; the trust base unchanged.
+- **Caveat (i) settled:** a received snapshot's raft data is nil. The cluster's snapshot registry
+  now holds only nil-data snapshots (`srvSnapsReg`, in `srvClusterOk`: the server registers only
+  `CreateSnapshot(…, nil)`'s, `server.go:2131`; the merged snapshot's `Data` is unset,
+  `snapshot_merge.go:43-50`), so a valid snapshot has nil data (`srv_snapshotValid_dataNil`) and is its
+  WAL record's (`srv_snapshotValid_record`).
+- One raft API addition: `snapMade_timeless` (so `snapshotValid` is timeless at a client).

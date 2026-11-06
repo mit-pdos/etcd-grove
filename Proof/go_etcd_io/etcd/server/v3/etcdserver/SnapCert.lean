@@ -93,14 +93,21 @@ theorem srv_snap_cert (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c 
   -- registered in the cluster's registry
   iinv Hreg with >Hb Hclose
   all_goals first | exact (fun _ _ => CoPset.mem_full) | skip
-  icases Hb with ⟨%S, Hown⟩
+  iunfold srvSnapsReg at Hb
+  icases Hb with ⟨%S, Hown, %HSd⟩
   imod snapshotCert_make γr.raft.raft.cl srvClusterN (⊤ \ ↑srvSnapsN) (srvLE γr.raft A) ai at' []
       (Membership.simple γr.raft.raft.cfg) c S srvClusterN_snapsN hl hlt Hok hcs
     $$ Hc Hl Ha Hown with ⟨Hown, #Hcert⟩
   imod Hclose $$ [Hown] with -
   · inext
+    iunfold srvSnapsReg
     iexists S ++ [⟨(srvLE γr.raft A).length, Membership.simple γr.raft.raft.cfg, []⟩]
-    iexact Hown
+    iframe Hown
+    ipureintro
+    intro r hr
+    rcases List.mem_append.1 hr with hr | hr
+    · exact HSd r hr
+    · simp only [List.mem_singleton] at hr; subst hr; rfl
   imodintro
   iframe Hl
   isplitl
@@ -174,7 +181,9 @@ theorem wp_srv_createSnapshot
     {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err); memSnapLb γs (uint.nat ai) ∗
         ((⌜err = interface.nil⌝ ∗ ∃ c : ConfStateM,
             ⌜confStateIs c (Membership.simple γr.raft.raft.cfg)⌝ ∗
-            ownSnapV snap (DFrac.own 1) (memSnapMade ai at' c [])) ∨
+            ownSnapV snap (DFrac.own 1) (memSnapMade ai at' c []) ∗
+            -- (R2d, Q14 (a)) its certificate, for the WAL record's (`rnDur_ownSnap_au`)
+            snapshotValid γr.raft.raft.cl (memSnapMade ai at' c [])) ∨
          ⌜snap = null ∧ err = eood⌝) }} := by
   iintro %Φ ⟨#Hpkg, Hstor, #Hecs, #Hft, #Hlb0, #Heood⟩ HΦ
   iunfold srvSnapStor at Hstor
@@ -212,10 +221,53 @@ theorem wp_srv_createSnapshot
     isplitr
     · ipureintro; exact Herr
     iexists c
-    iframe Hsn
+    iframe Hsn HSV
     ipureintro; exact Hcs
   · iright
     ipureintro; exact Herr
+
+/-- (R2d, Q14 caveat (i), 2026-11-06) **A valid snapshot of the server's cluster has `nil` data**:
+the registry holds only the server's own snapshots, of no data (`srvSnapsReg`). So a received
+snapshot (a `Ready`'s, valid by raft's storage contract, `rnReadySnap`) is the snapshot its WAL
+record makes (`walSaveSnap`'s `SnapshotM.mk [] m`, `srv_snapshotValid_record`). -/
+theorem srv_snapshotValid_dataNil (γ : ServerRaftNames) (cl : Cluster) (hcl : γ.raft.cl = cl)
+    (sv : SnapshotM) :
+    letI := srvStor (GF := GF) γ.raft
+    srvRaftLogInv (GF := GF) γ ∗ snapshotValid cl sv ⊢ |={⊤}=> ⌜sv.Data' = []⌝ := by
+  letI := srvStor (GF := GF) γ.raft
+  subst hcl
+  iintro ⟨#Hinv, #Hsv⟩
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨-, #Hcl, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨-, -, -, -, -, #Hreg, -⟩
+  iunfold snapshotValid at Hsv
+  icases Hsv with ⟨%l, %m, -, -, #Hmade, -⟩
+  iinv Hreg with >Hb Hclose
+  iunfold srvSnapsReg at Hb
+  icases Hb with ⟨%S, Hown, %HSd⟩
+  ihave %Hin := snapMade_elem γ.raft.cl S _ $$ [$Hown $Hmade]
+  imod Hclose $$ [Hown] with -
+  · inext; iunfold srvSnapsReg; iexists S; iframe Hown; ipureintro; exact HSd
+  imodintro
+  ipureintro
+  exact HSd _ Hin
+
+/-- (R2d, Q14 caveat (i)) **A valid snapshot's WAL record is valid**: the snapshot of no data at its
+metadata (`walSaveSnap`'s) is the snapshot itself (`srv_snapshotValid_dataNil`). -/
+theorem srv_snapshotValid_record (γ : ServerRaftNames) (cl : Cluster) (hcl : γ.raft.cl = cl)
+    (sv : SnapshotM) :
+    letI := srvStor (GF := GF) γ.raft
+    srvRaftLogInv (GF := GF) γ ∗ snapshotValid cl sv ⊢
+      |={⊤}=> snapshotValid cl (SnapshotM.mk [] sv.Metadata') := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro ⟨#Hinv, #Hsv⟩
+  imod srv_snapshotValid_dataNil γ cl hcl sv $$ [$Hinv $Hsv] with %Hd
+  imodintro
+  cases sv
+  simp only at Hd
+  subst Hd
+  iexact Hsv
 
 end cert
 

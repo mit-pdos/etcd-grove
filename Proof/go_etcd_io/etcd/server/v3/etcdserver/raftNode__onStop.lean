@@ -51,8 +51,8 @@ theorem raftNode.onStop.wp_proof :
   iunfold rnWalView at Hwvo
   icases Hwvo with ⟨Hwv, Hwok⟩
   -- (R2b-1 stage 6) the records, taken out of the durability invariant (`rnDur_take`)
-  imod rnDur_take γ.wal (storage.walOf stm) _ rfl $$ Hdur Hwst Hwap Hwv Hwok
-    with ⟨%σ, Hrecs, %Hσ⟩
+  imod rnDur_take γ.node.cl γ.wal (storage.walOf stm) _ rfl $$ Hdur Hwst Hwap Hwv Hwok
+    with ⟨%σ, Hrecs, %Hσ, #Hσc⟩
   iunfold rnDoneTok at Hdone
   icases Hdone with ⟨%dnc', %st2, #Hdnc', #Hst2, Hbc⟩
   icombine Hdnc Hdnc' gives %Heq
@@ -87,7 +87,7 @@ theorem raftNode.onStop.wp_proof :
     iunfold rnStopImage
     iframe Hvac
     iexists S, σ, sent, L
-    iframe HrS Hprod Hidx
+    iframe HrS Hprod Hidx Hσc
     isplitl [Hfiles]
     · iunfold rnWalClosedW; iexists cid; iframe Hfiles
     ipureintro

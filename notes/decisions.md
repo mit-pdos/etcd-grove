@@ -32487,3 +32487,45 @@ window's vocabulary (`applyRes`'s `aiGo`, `applyStart` at `A₀`: what `NewServe
 must establish) and were not started; R2d-6's constructors (`mvcc.New`/`NewStore`'s restoring
 case, `newRaftNode`'s `RestartNode` path, `memStorRestarted` defined) are independent of it and
 left for the next round.
+
+## R2d: the split R2d / R2d' / R2e; the window form; the WAL snapshot's certificate (2026-11-06 · Q13 (a), Q14 (a), Q15 (c), decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
+
+**The split supersedes the R2d Scope's S1 (B)** (`notes/restart-plan.md`, "R2d Scope", S1: R2d to
+carry `run` at a restart *and* the constructors `NewStore`/`NewServer` over both boots). S1's (B) is
+now three stages: R2d (`run` at a restart, the window form, Q14's certificate), R2d' (`NewStore`'s
+restoring case with B1's `lateWBR`/`lateWB` merge, R2d-7's `NewServer.specG` restart branch, R2d-8's
+etcdstart) and R2e (the closed result). Why: (1) Q15 found `NewStore`'s restoring case needs B1, a
+third widening of R2d after the window form (Q13) and the certificate (Q14); (2) R2d-7 changes
+`NewServer.specG`/`isServerBuilt*`, which revoke-open (landing before R2d) also changes; (3) a smaller
+R2d lands sooner. R2d has no closed result, and R2e needs R2d' anyway, so the split delays nothing.
+The `Hnew` row's change to trusted text becomes a hard stop at R2d''s Scope.
+
+**The window form (Q13 (a)).** The restart is a jump (Q9 (d)): the ghost applied log starts at the
+backend's consistent index `i`, Go's `ep.appliedi` at `σ.b ≤ i`, and the entries of `(σ.b, i]` come
+again, v2-only. Every spec of the apply chain tied Go's index to the ghost log's length, so each gets
+a window form over the pending replays `W` and the done ones `D` (`ApplyWindow.lean`). Choices:
+- *Definitional reduction.* Each window definition (`winGhost ai [] = ai`, `winNew [] ms = ms`,
+  `winRest [] _ = []`, `winDone _ [] _ = []`, `kvBatchW … [] … = kvBatch …`, `srvRestW … [] =
+  srvRest …`) is the no-window one by definition, so the laws `…_noWin` are instantiations and a
+  first start's callers change by one line (condition 2). A pair of indices (Go's, ghost's) with an
+  equation would have made every caller prove the equation.
+- *`winOk` a Lean premise of `applyAll.specBatch`* (not in its precondition's pure conjunct): then
+  the no-window instance is today's triple, with no Iris reasoning in the law.
+- *Today's texts kept* as `…NoWin` in `ApplyWindowLaws.lean`, the old proofs proving them: the
+  window forms' proofs are `run`'s round, after the Freeze, and the old proofs stay checked meanwhile.
+- *Matchers.* The no-window texts' `match dv with …` elaborate to matchers that `SDRun`'s
+  `srvRunH_*` lemmas (stated over named matchers) do not rewrite; `srvRunH_noWin` states the match
+  itself, so it is about whichever matcher the texts reuse.
+
+**The certificate (Q14 (a)).** A restart's `MemoryStorage` attaches at the WAL records' base with
+their snapshot (`bootstrap.go:443-460`: the last WAL snapshot record's index and term, no data), so
+it needs that snapshot's `snapshotValid`. Carried in the WAL durability invariant as
+`walSnapCert cl σ` over the records themselves (`recsOf v σ`, what `walRecs` holds), so that `Save`
+keeps it by definition and each `SaveSnap` supplies it. The invariant now names the cluster
+(`rnDurInv cl ν w`), not a new field of `WalNames`: the cluster is the raft wrapper's `γ.node.cl`
+at every use. Caveat (i), a received snapshot's data nil, is settled by the cluster's registry
+(`srvSnapsReg`: every registered snapshot of nil data), which is what the code does (the server's
+snapshots `CreateSnapshot(…, nil)`, the merged message's `Data` unset), not by a premise. Caveat
+(ii) (the restarted conf state is the backend's at `i`, `confStateIs` of the membership at `σ.b` only
+in a static cluster) is HS2's static-cluster premise, for R2e's Scope. `snapMade` gains a `Timeless`
+instance in raft's API (the invariant holds `snapshotValid`).
