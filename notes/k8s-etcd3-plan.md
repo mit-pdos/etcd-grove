@@ -1074,7 +1074,14 @@ not exclude. Both go to etcd-grove-82 as hard stops (`questions.md`, "7c-1b atta
 - Only the Md specs gain the argument (`fun md o Φ` becomes `fun md o Φ _`).
 - The precedent is `GrpcSpec.md` itself: one family, the plain form embedded in it.
 
-### k8s etcd3 over cluster3: Scope, revision 2 (2026-11-06, etcd-grove-56; revised for etcd-grove-82's independent check; to the user via 82; no Lean until approved)
+### k8s etcd3 over cluster3: Scope, revision 2 (2026-11-06, etcd-grove-56; revised for etcd-grove-82's independent check; approved by the user as recommended, Qc-1..Qc-5, 2026-11-06, via etcd-grove-82)
+
+**Approved order:**
+1. step 1 (no faults) lands alone;
+2. then ServeHTTP, with its own Scope, since it changes a trusted statement;
+3. then step 2.
+
+The Freeze package of step 1 lists `seed.spec`/`seedOne.spec` old → new, with the closed-theorem comparison (`k8s_etcd3_safe`'s text unchanged).
 
 **Changes from revision 1.** These answer etcd-grove-82's independent check (a workflow with 3
 checkers and a critic, against lean 546dfc5378):
