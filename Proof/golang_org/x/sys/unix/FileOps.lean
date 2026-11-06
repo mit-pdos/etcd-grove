@@ -7,7 +7,7 @@ module
 
 public import GeneratedProof.golang_org.x.sys.unix
 public import Proof.syscall.Base
-public import GooseLang.Ext.OsFs.Falloc
+public import GooseLang.Ext.Fs.Falloc
 
 @[expose] public section
 
@@ -17,9 +17,10 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -30,16 +31,16 @@ to `max size (off + len)`; on failure the client keeps the fd only. -/
 theorem golang_org.x.sys.unix.Fallocate.wp_grow (fd off len : w64) (dq : DFrac) (d : OsFd)
     (m : OsMeta) (hi : Nat) (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hlen : 0 < len.toInt)
     (hhi : MapsBelow m.maps hi) :
-    {{ osInv (GF := GF) ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.path (DFrac.own 1) (some m) ∗
+    {{ osInv (GF := GF) ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
         mcellsAny (GF := GF) m.maps m.size hi }}
       (App (App (App (App (Val (@! golang_org.x.sys.unix.Fallocate)) (Val #fd)) (Val #(W32 0)))
         (Val #off)) (Val #len))
     {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
-        ((⌜e = 0⌝ ∗ osGrown d.path m (max m.size (off.toNat + len.toNat)) hi) ∨ ⌜e ≠ 0⌝) }} := by
+        ((⌜e = 0⌝ ∗ osGrown d.ino m (max m.size (off.toNat + len.toNat)) hi) ∨ ⌜e ≠ 0⌝) }} := by
   wp_start as ⟨#Hinv, Hfd, Hm, Hc⟩
   wp_apply wp_osFallocStart fd off len dq d m hi CoPset.subseteq_top hwr hoff hlen hhi
     $$ Hinv Hfd Hm Hc as %t Hfd Ht
-  wp_apply wp_osFallocFinish t d.path _ m hi CoPset.subseteq_top (Nat.le_max_left _ _) hhi
+  wp_apply wp_osFallocFinish t d.ino _ m hi CoPset.subseteq_top (Nat.le_max_left _ _) hhi
     $$ Hinv Ht as %e Hr
   iapply wp_errno
   iapply HΦ

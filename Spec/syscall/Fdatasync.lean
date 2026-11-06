@@ -18,9 +18,10 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI
+open Fs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -30,14 +31,14 @@ variable [syscall.Assumptions]
 abbrev syscall.Fdatasync.spec : Prop :=
   ∀ (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (xs : List (w8 × Bool)),
   {{ osInv (GF := GF) ∗ osFd (GF := GF) fd dq d ∗
-      osMeta (GF := GF) d.path (DFrac.own 1) (some m) ∗
-      osBytes (GF := GF) d.path lo (DFrac.own 1) xs }}
+      osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
+      osBytes (GF := GF) d.ino lo (DFrac.own 1) xs }}
     (App (Val (@! syscall.Fdatasync)) (Val #fd))
   {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
-      ((⌜e = 0⌝ ∗ osMeta d.path (DFrac.own 1) (some (m.synced lo xs)) ∗
-          osBytes d.path lo (DFrac.own 1) (syncedBytes m xs)) ∨
-       (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta d.path (DFrac.own 1) (some { m with ok := false }) ∗
-          osBytes d.path lo (DFrac.own 1) xs)) }}
+      ((⌜e = 0⌝ ∗ osMeta d.ino (DFrac.own 1) (m.synced lo xs) ∗
+          osBytes d.ino lo (DFrac.own 1) (syncedBytes m xs)) ∨
+       (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta d.ino (DFrac.own 1) ({ m with ok := false }) ∗
+          osBytes d.ino lo (DFrac.own 1) xs)) }}
 
 end spec
 

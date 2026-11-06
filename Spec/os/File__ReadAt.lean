@@ -19,9 +19,10 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI
+open Fs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -31,20 +32,20 @@ variable [os.Assumptions]
 abbrev os.File.ReadAt.spec : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
     (off : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta) (xs : List (w8 × Bool)),
-  d.readable = true → 0 ≤ off.toInt → vs.length ≤ 0x40000000 →
+  d.readable = true → 0 ≤ off.toInt → vs.length ≤ 0x40000000 → off.toNat + vs.length < 2 ^ 63 →
   off.toNat + vs.length ≤ m.size → xs.length = vs.length →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
-      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.path dqm (some m) ∗
-      osBytes (GF := GF) d.path off.toNat dqb xs }}
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino dqm m ∗
+      osBytes (GF := GF) d.ino off.toNat dqb xs }}
     (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"ReadAt")) (Val #sl))
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osMeta d.path dqm (some m) ∗
-      osBytes d.path off.toNat dqb xs ∗
+      os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osMeta d.ino dqm m ∗
+      osBytes d.ino off.toNat dqb xs ∗
       ∃ vs' : List w8, sl ↦* vs' ∗
         ⌜vs'.length = vs.length ∧
           ((n = W64 vs.length ∧ err = interface.nil ∧ vs' = xs.map Prod.fst) ∨
-           (n = W64 0 ∧ err ≠ interface.nil))⌝ }}
+           err ≠ interface.nil)⌝ }}
 
 /-- A racing `f.ReadAt(b, off)` (minibolt's `Snapshot`, which reads while the writer may write
 past what it knows, or a meta page it does not hold): no `OsMeta`, and bytes of the file held at
@@ -62,20 +63,19 @@ abbrev os.File.ReadAt.specRacy : Prop :=
   d.readable = true → 0 ≤ off.toInt → vs.length ≤ 0x40000000 → off.toNat + vs.length < 2 ^ 63 →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
       osFd (GF := GF) fd dq d ∗
-      ([∗list] r ∈ rs, osBytes (GF := GF) d.path r.1 r.2.1 r.2.2) ∗
+      ([∗list] r ∈ rs, osBytes (GF := GF) d.ino r.1 r.2.1 r.2.2) ∗
       globalAddr io.EOF ↦□ eof }}
     (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"ReadAt")) (Val #sl))
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ([∗list] r ∈ rs, osBytes d.path r.1 r.2.1 r.2.2) ∗
+      ([∗list] r ∈ rs, osBytes d.ino r.1 r.2.1 r.2.2) ∗
       ∃ vs' : List w8, sl ↦* vs' ∗
         ⌜vs'.length = vs.length ∧ n.toNat ≤ vs.length ∧
           (∀ i b, os.heldByte rs i b → off.toNat ≤ i → i < off.toNat + n.toNat →
             vs'[i - off.toNat]? = some b) ∧
           ((err = interface.nil ∧ n.toNat = vs.length) ∨
-           (err = eof ∧ ∀ i b, os.heldByte rs i b → off.toNat ≤ i →
-              i < off.toNat + vs.length → i < off.toNat + n.toNat) ∨
+           err = eof ∨
            (∃ pe : Loc, err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe))⌝ }}
 
 end spec

@@ -15,7 +15,7 @@ module
 
 public import GeneratedProof.os
 public import Proof.syscall.Base
-public import GooseLang.Ext.OsFs.Truncate
+public import GooseLang.Ext.Fs.Truncate
 
 @[expose] public section
 
@@ -26,6 +26,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open Fs
 
 namespace os
 

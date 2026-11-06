@@ -22,9 +22,10 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI
+open Fs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -37,14 +38,14 @@ abbrev os.File.Truncate.spec : Prop :=
   ∀ (hi : Nat), 0 ≤ fd.toInt → d.writable = true → 0 ≤ sz.toInt → m.size ≤ sz.toNat →
   MapsBelow m.maps hi →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
-      osMeta (GF := GF) d.path (DFrac.own 1) (some m) ∗
+      osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
       mcellsAny (GF := GF) m.maps m.size hi }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ((⌜err = interface.nil⌝ ∗ osGrown d.path m sz.toNat hi) ∨
+      ((⌜err = interface.nil⌝ ∗ osGrown d.ino m sz.toNat hi) ∨
        (⌜err ≠ interface.nil⌝ ∗
-         (osGrown d.path m sz.toNat hi ∨
-          (osMeta d.path (DFrac.own 1) (some (ftMeta m sz.toNat)) ∗
+         (osGrown d.ino m sz.toNat hi ∨
+          (osMeta d.ino (DFrac.own 1) (ftMeta m sz.toNat) ∗
             mcellsAny m.maps m.size hi)))) }}
 
 end spec

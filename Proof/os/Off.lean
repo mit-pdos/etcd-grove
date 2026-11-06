@@ -7,7 +7,7 @@ module
 
 public import Proof.os.Base
 public import Spec.os.File__WriteAt
-public import GooseLang.Ext.OsFs.Specs
+public import GooseLang.Ext.Fs.Specs
 
 @[expose] public section
 
@@ -17,9 +17,10 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -105,11 +106,11 @@ size, the offset set to it; or an error, the offset unchanged. -/
 theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (o : w64)
     (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hsz : m.size < 2 ^ 62) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o ∗
-        osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.path dqm (some m) }}
+        osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino dqm m }}
       (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Seek")) (Val #(W64 0)))
         (Val #(W64 2)))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err); os.ownFile f fd name dqf ∗
-        osFd fd dq d ∗ osMeta d.path dqm (some m) ∗
+        osFd fd dq d ∗ osMeta d.ino dqm m ∗
         ((⌜n = W64 m.size ∧ err = interface.nil⌝ ∗ os.ownOff f (W64 m.size)) ∨
          (⌜err ≠ interface.nil⌝ ∗ os.ownOff f o)) }} := by
   unfold os.ownFile os.ownOff
@@ -164,20 +165,20 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
       · ipureintro; intro h; cases h
       iexists inner; iframe; iassumption
 
-/-- `f.Write(b)` at the offset `o` (`0 ≤ o`, `o + len(b) < 2^62`), over `WriteAt`'s spec at `o`:
+/-- `f.Write(b)` at the offset `o` (`0 ≤ o ≤ size`, `o + len(b) < 2^62`), over `WriteAt`'s spec at `o`:
 `WriteAt`'s result and state; the offset moves past `b` on success, and becomes unknown (-1) on
 an error. -/
 theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
     (dqs : DFrac) (o : w64) (dq : DFrac) (d : OsFd) (q : Qp) (m : OsMeta) (xs : List (w8 × Bool))
-    (hwr : d.writable = true) (h0 : 0 ≤ o.toInt) (hn : 0 < data.length)
+    (hwr : d.writable = true) (h0 : 0 ≤ o.toInt) (hle : o.toNat ≤ m.size) (hn : 0 < data.length)
     (hn2 : data.length ≤ 0x40000000)
-    (hxs : xs.length = min (o.toNat + data.length) m.size - min o.toNat m.size)
+    (hxs : xs.length = min (o.toNat + data.length) m.size - o.toNat)
     (hq : m.size < o.toNat + data.length → q = 1) (hmax : o.toInt + data.length < 2 ^ 62) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o ∗
-        sl ↦*{dqs} data ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.path (DFrac.own q) (some m) ∗
-        osBytes (GF := GF) d.path (min o.toNat m.size) (DFrac.own 1) xs ∗
-        mcellsAny (GF := GF) m.maps (min o.toNat m.size) (o.toNat + data.length) }}
+        sl ↦*{dqs} data ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own q) m ∗
+        osBytes (GF := GF) d.ino o.toNat (DFrac.own 1) xs ∗
+        mcellsAny (GF := GF) m.maps o.toNat (o.toNat + data.length) }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Write")) (Val #sl))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
@@ -186,9 +187,9 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
             ys.map Prod.fst = (pwBytes m.size o.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
             ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
              (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
-          osMeta d.path (DFrac.own q) (some { m with size := pwSize m.size o.toNat j, hi := h }) ∗
-          osBytes d.path (min o.toNat m.size) (DFrac.own 1) ys ∗
-          mcellsAny m.maps (min o.toNat m.size) (o.toNat + data.length)) ∗
+          osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size o.toNat j, hi := h }) ∗
+          osBytes d.ino o.toNat (DFrac.own 1) ys ∗
+          mcellsAny m.maps o.toNat (o.toNat + data.length)) ∗
         ((⌜err = interface.nil⌝ ∗ os.ownOff f (o + W64 data.length)) ∨
          (⌜err ≠ interface.nil⌝ ∗ os.ownOff f (W64 (-1)))) }} := by
   unfold os.ownOff
@@ -211,7 +212,9 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
   rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (o + W64 (data.length : Int)) by
     rw [hsum, show sint.Z (W64 0x4000000000000000) = 2 ^ 62 from rfl]; omega)]
   wp_auto
-  wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d q m xs hwr h0 hn hn2 hxs hq
+  have h63 : o.toNat + data.length < 2 ^ 63 := by
+    have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
+  wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d q m xs hwr h0 hle h63 hn hn2 hxs hq
     $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %ys, %h, %Hres, Hm, Hbs, Hmc⟩
   · iframe; iexact Hinv
   cases err with
@@ -241,22 +244,23 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     iexists inner; iframe; iassumption
 
 /-- `f.Read(b)` at the offset `o` of a non-empty `b` of at most `maxRW` bytes inside the file
-(`o + len(b) ≤ size`, `< 2^62`), the bytes held at any fractions: `b` filled with them and the
-offset moved past them; or an error, the offset unchanged. -/
+(`o + len(b) ≤ size`, `< 2^62`), the bytes held at any fractions: a non-empty prefix of `b` (one
+`read(2)`, which may be short) filled with the first of them and the offset moved past it; or an
+error, the offset unchanged. -/
 theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice)
     (vs : List w8) (o : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta) (xs : List (w8 × Bool))
     (hrd : d.readable = true) (h0 : 0 ≤ o.toInt) (hn : 0 < vs.length) (hn2 : vs.length ≤ 0x40000000)
     (hin : o.toNat + vs.length ≤ m.size) (hxl : xs.length = vs.length)
     (hmax : o.toInt + vs.length < 2 ^ 62) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o ∗
-        sl ↦* vs ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.path dqm (some m) ∗
-        osBytes (GF := GF) d.path o.toNat dqb xs }}
+        sl ↦* vs ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino dqm m ∗
+        osBytes (GF := GF) d.ino o.toNat dqb xs }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Read")) (Val #sl))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-        os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osMeta d.path dqm (some m) ∗
-        osBytes d.path o.toNat dqb xs ∗ ∃ vs' : List w8, sl ↦* vs' ∗ ⌜vs'.length = vs.length⌝ ∗
-        ((⌜n = W64 vs.length ∧ err = interface.nil ∧ vs' = xs.map Prod.fst⌝ ∗
-            os.ownOff f (o + W64 vs.length)) ∨
+        os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osMeta d.ino dqm m ∗
+        osBytes d.ino o.toNat dqb xs ∗ ∃ vs' : List w8, sl ↦* vs' ∗ ⌜vs'.length = vs.length⌝ ∗
+        ((∃ k : Nat, ⌜0 < k ∧ k ≤ vs.length ∧ n = W64 k ∧ err = interface.nil ∧
+              vs' = (xs.map Prod.fst).take k ++ vs.drop k⌝ ∗ os.ownOff f (o + W64 k)) ∨
          (⌜n = W64 0 ∧ err ≠ interface.nil⌝ ∗ os.ownOff f o)) }} := by
   unfold os.ownFile os.ownOff
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
@@ -302,10 +306,10 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     iapply IH $$ Hosfd Hm Hbs Hsl Ho Hfd HΦ
   rw [decide_eq_false he4]
   wp_auto
-  rcases hre with ⟨rfl, rfl⟩ | ⟨he0, -⟩
+  obtain ⟨k, hkl, rfl, hke0⟩ := hre
+  by_cases he0 : e = W64 0
   rotate_left
-  · have he0' : ¬ e = W64 0 := he0
-    simp only [decide_eq_false he0', Bool.not_false]
+  · simp only [decide_eq_false he0, Bool.not_false]
     wp_auto
     wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
     iapply HΦ
@@ -320,20 +324,32 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     isplitr
     · ipureintro; exact ⟨rfl, by intro h; cases h⟩
     iexists inner; iframe; iassumption
-  rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
+  subst he0
+  have hk0 : 0 < k := by
+    rcases hke0 rfl with h | h
+    · exact h
+    · rw [h] at hxl; simp at hxl; omega
+  rw [show decide ((W64 0) = W64 0) = true from decide_eq_true rfl]
   simp only [Bool.not_true]
   wp_auto
-  wp_apply wp_string_to_bytes (xs.map Prod.fst) as %tmp ⟨Htmp, -⟩
-  wp_apply wp_slice_copy sl vs tmp (xs.map Prod.fst) (DFrac.own 1) $$ [Hsl Htmp] as %mm ⟨%hmm, Hsl, -⟩
+  wp_apply wp_string_to_bytes ((xs.map Prod.fst).take k) as %tmp ⟨Htmp, -⟩
+  wp_apply wp_slice_copy sl vs tmp ((xs.map Prod.fst).take k) (DFrac.own 1) $$ [Hsl Htmp]
+    as %mm ⟨%hmm, Hsl, -⟩
   · iframe
-  have hrl' : (xs.map Prod.fst).length = vs.length := by simp [hxl]
-  have hmmv : sint.nat mm = vs.length := by rw [hmm, hrl']; exact Nat.min_self _
-  have hmmeq : mm = sl.len := by
+  have hrl : ((xs.map Prod.fst).take k).length = k := by simp; omega
+  have hmmv : sint.nat mm = k := by rw [hmm, hrl]; omega
+  have hmmeq : mm = W64 k := by
     apply BitVec.eq_of_toInt_eq
     simp only [sint.nat, sint.Z] at hmmv hslz
+    rw [show (W64 (k : Int)).toInt = k by
+      rw [BitVec.toInt_eq_toNat_cond]; simp only [BitVec.toNat_ofInt]; split <;> omega]
     omega
   subst hmmeq
-  rw [decide_eq_false hl0]
+  have hk0' : ¬ (W64 (k : Int)) = W64 0 := by
+    intro h
+    have := congrArg BitVec.toNat h
+    simp only [BitVec.toNat_ofInt] at this; omega
+  rw [decide_eq_false hk0']
   wp_auto
   iapply HΦ
   iframe Hosfd Hm Hbs
@@ -344,11 +360,11 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
   isplitr
   · ipureintro; simp; omega
   ileft
+  iexists k
   isplitr
   · ipureintro
-    refine ⟨hsl, rfl, ?_⟩
-    rw [← hrl', List.take_length, List.drop_eq_nil_of_le (by rw [hrl']; exact Nat.le_refl _), List.append_nil]
-  rw [hsl]
+    refine ⟨hk0, by omega, rfl, rfl, ?_⟩
+    rw [hrl, List.take_of_length_le (by rw [hrl]; omega)]
   iexists inner; iframe; iassumption
 
 end proof

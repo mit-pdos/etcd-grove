@@ -1,14 +1,15 @@
 /-
-Specs of `os`'s trusted models (`TrustedCode/os.lean`) on the namespace (`notes/walfs-ext-plan.md`):
-`OpenFile` read-only of a directory and of a file of one, `(*File).Readdirnames(-1)`, and a
-directory fd's `Sync` and `Close`. Over the extension's specs (`GooseLang/Ext/OsFs/NsSpecs*.lean`).
+Specs of `os`'s trusted models (`TrustedCode/os.lean`) on the directory tree: `OpenFile`
+read-only of a directory and of a file, `(*File).Readdirnames(-1)`, and a directory fd's `Sync` and
+`Close`. Over the extension's tree specs (`GooseLang/Ext/Fs/TreeSpecsOpen.lean`,
+`TreeSpecsDirFd.lean`): each open attempt a `CallBegin` taking the fraction `q` of the caller's
+history to the call, which a directory fd keeps (its read's view) and `Close` gives back.
 Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.os.OpenFile
 public import Proof.os.File__Close
-public import GooseLang.Ext.OsFs.CrashNs
 
 @[expose] public section
 
@@ -18,33 +19,37 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
 
-/-- `os.OpenFile(d, O_RDONLY, perm)` of a directory of the namespace, with a fraction `q` of the
-history: a directory fd, not read, holding the fraction; or an error, the fraction back. -/
-theorem os.OpenFile.wp_dir (d : GoString) (perm : w32) (q : Qp) (g : DirG) :
-    {{ osInv (GF := GF) ∗ osDir (GF := GF) d (DFrac.own q) g }}
-      (App (App (App (Val (@! os.OpenFile)) (Val #d)) (Val #(W64 0))) (Val #perm))
+/-- `os.OpenFile(p, O_RDONLY, perm)` of a directory `j` of the tree, with the fractions `q1 + q` of
+the history: a directory fd, not read, holding `q` (its view of `j` the history's), `q1` back; or
+an error, `q1 + q` back. -/
+theorem os.OpenFile.wp_dir (p : GoString) (perm : w32) (q1 q : Qp) (R : Roots) (V : Hist) (j : Ino)
+    (hl : lookupH R V p = some (.dir j)) :
+    {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own (q1 + q)) R V }}
+      (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
-        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd d (DFrac.own 1) ∗
-            osDirFd fd (DFrac.own 1) (d, .idle g q)) ∨
-         (⌜err ≠ interface.nil ∧ f = null⌝ ∗ osDir d (DFrac.own q) g)) }} := by
-  wp_start as ⟨#Hinv, Hd⟩
-  iloeb as IH generalizing Hd HΦ
-  wp_apply wp_osRegimeNs d d (DFrac.own q) g (.inl rfl) CoPset.subseteq_top $$ Hinv Hd as Hd
+        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
+            osTree (DFrac.own q1) R V ∗ osDirFd fd (DFrac.own 1) (j, .idle (dview V j) q)) ∨
+         (⌜err ≠ interface.nil ∧ f = null⌝ ∗ osTree (DFrac.own (q1 + q)) R V)) }} := by
+  wp_start as ⟨#Hinv, Hh⟩
+  iloeb as IH generalizing Hh HΦ
+  wp_apply wp_osCallBegin R V q1 q CoPset.subseteq_top $$ Hinv Hh as %t Hh Hk
   rw [os.file_ty_eq, os.File_ty_eq]
   rw [show (W64 0 ||| W64 524288) = flRO from by decide]
-  wp_apply wp_osNsOpenDir d q g CoPset.subseteq_top $$ Hinv Hd as %fd %e %hres Hfd
+  (try wp_auto)
+  wp_apply wp_osOpenDir p R V q1 q t _ j hl CoPset.subseteq_top $$ Hinv Hh Hk as %fd %e %hres Hr
   by_cases he0 : e = W64 0
   · subst he0
-    ihave Hfd : osDirFd fd (DFrac.own 1) (d, .idle g q) $$ [Hfd]
-    · simp only [show (W64 0 = (0 : w64)) = True from eq_self _, ↓reduceIte]; iexact Hfd
+    rw [if_pos (show W64 0 = (0 : w64) from rfl)]
+    icases Hr with ⟨Hh, Hfd⟩
     rw [decide_eq_true rfl]
     wp_auto
     iStructNamed inner
@@ -56,15 +61,14 @@ theorem os.OpenFile.wp_dir (d : GoString) (perm : w32) (q : Qp) (g : DirG) :
     iapply HΦ
     ileft
     iexists fd
-    iframe Hfd
+    iframe Hfd Hh
     isplitr
     · ipureintro; rfl
     unfold os.ownFile
     iexists inner_ptr
     iframe
     isplitl [] <;> iassumption
-  · ihave Hd : osDir d (DFrac.own q) g $$ [Hfd]
-    · simp only [show (e = (0 : w64)) = False from eq_false he0, ↓reduceIte]; iexact Hfd
+  · rw [if_neg (show ¬ e = (0 : w64) from he0)]
     rw [decide_eq_false he0]
     wp_auto
     by_cases he4 : e = W64 4
@@ -72,33 +76,34 @@ theorem os.OpenFile.wp_dir (d : GoString) (perm : w32) (q : Qp) (g : DirG) :
       wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
-      iapply IH $$ Hd HΦ
+      iapply IH $$ Hr HΦ
     · rw [decide_eq_false he4]
       wp_auto
       unfold os.model.pathError
       wp_apply wp_errno
       iapply HΦ
       iright
-      iframe Hd
+      iframe Hr
       ipureintro; exact ⟨(fun h => by cases h), rfl⟩
 
-/-- `os.Open(d)` of a directory of the namespace: `OpenFile(d, O_RDONLY, 0)`. -/
-theorem os.Open.wp_dir (d : GoString) (q : Qp) (g : DirG) :
-    {{ osInv (GF := GF) ∗ osDir (GF := GF) d (DFrac.own q) g }}
-      (App (Val (@! os.Open)) (Val #d))
+/-- `os.Open(p)` of a directory of the tree: `OpenFile(p, O_RDONLY, 0)`. -/
+theorem os.Open.wp_dir (p : GoString) (q1 q : Qp) (R : Roots) (V : Hist) (j : Ino)
+    (hl : lookupH R V p = some (.dir j)) :
+    {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own (q1 + q)) R V }}
+      (App (Val (@! os.Open)) (Val #p))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
-        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd d (DFrac.own 1) ∗
-            osDirFd fd (DFrac.own 1) (d, .idle g q)) ∨
-         (⌜err ≠ interface.nil ∧ f = null⌝ ∗ osDir d (DFrac.own q) g)) }} := by
-  wp_start as ⟨#Hinv, Hd⟩
+        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
+            osTree (DFrac.own q1) R V ∗ osDirFd fd (DFrac.own 1) (j, .idle (dview V j) q)) ∨
+         (⌜err ≠ interface.nil ∧ f = null⌝ ∗ osTree (DFrac.own (q1 + q)) R V)) }} := by
+  wp_start as ⟨#Hinv, Hh⟩
   wp_auto
-  wp_apply os.OpenFile.wp_dir d (W32 0) q g $$ [Hinv Hd] as %f %err Hr
+  wp_apply os.OpenFile.wp_dir p (W32 0) q1 q R V j hl $$ [Hinv Hh] as %f %err Hr
   · iframe; iexact Hinv
   iapply HΦ
   iexact Hr
 
 /-- `f.Close()` of a directory fd: any error; the fd gone, and what its read held back. -/
-theorem os.File.Close.wp_dir (f : Loc) (fd : w64) (name : GoString) (x : GoString × DirPh) :
+theorem os.File.Close.wp_dir (f : Loc) (fd : w64) (name : GoString) (x : Ino × DirPh) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name (DFrac.own 1) ∗
         osDirFd (GF := GF) fd (DFrac.own 1) x }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
@@ -125,7 +130,7 @@ theorem os.File.Close.wp_dir (f : Loc) (fd : w64) (name : GoString) (x : GoStrin
 
 /-- `f.Sync()` of a directory fd: any error, the fd as it was (`DirSync`, `EINTR` retried). -/
 theorem os.File.Sync.wp_dir (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac)
-    (x : GoString × DirPh) :
+    (x : Ino × DirPh) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osDirFd (GF := GF) fd dq x }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
     {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osDirFd fd dq x }} := by
@@ -164,7 +169,7 @@ theorem os.File.Sync.wp_dir (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFr
 the history fraction it holds: every name of `g.now`, once each, the fd read; or an error. The
 fraction stays with the fd either way (`Close` gives it back). -/
 theorem os.File.Readdirnames.wp_dir (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
-    (d : GoString) (q : Qp) (g : DirG) (n : w64) (hn : sint.Z n ≤ 0) :
+    (d : Ino) (q : Qp) (g : DirG) (n : w64) (hn : sint.Z n ≤ 0) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗
         osDirFd (GF := GF) fd (DFrac.own 1) (d, .idle g q) }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Readdirnames")) (Val #n))
@@ -256,29 +261,31 @@ theorem os.File.Readdirnames.wp_dir (f : Loc) (fd : w64) (name : GoString) (dqf 
       iexists rs
       iexact Hosfd
 
-/-- `os.OpenFile(d/b, O_RDONLY, perm)` of the file `b` of a directory `d` of the namespace (of key
-`k`), with a fraction of `k`'s `OsMeta`: the file exists (`mo ≠ none`); a read-only fd on `k`, or
-an error. -/
-theorem os.OpenFile.wp_nsRO (d b k : GoString) (hb : NameOk b) (perm : w32) (dq : DFrac)
-    (g : DirG) (hf : g.now !! b = some (.file k)) (dqm : DFrac) (mo : Option OsMeta) :
-    {{ osInv (GF := GF) ∗ osDir (GF := GF) d dq g ∗ osMeta (GF := GF) k dqm mo }}
-      (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0))) (Val #perm))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); ⌜mo ≠ none⌝ ∗ osDir d dq g ∗
-        osMeta k dqm mo ∗
-        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
-            osFd fd (DFrac.own 1) ⟨k, true, false⟩) ∨
+/-- `os.OpenFile(p, O_RDONLY, perm)` of a file `i` of the tree, with a fraction of the history,
+which comes back: a read-only fd on `i`, or an error. -/
+theorem os.OpenFile.wp_nsRO (p : GoString) (perm : w32) (q : Qp) (R : Roots) (V : Hist) (i : Ino)
+    (hl : lookupH R V p = some (.file i)) :
+    {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own q) R V }}
+      (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osTree (DFrac.own q) R V ∗
+        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
+            osFd fd (DFrac.own 1) ⟨i, true, false⟩) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
-  wp_start as ⟨#Hinv, Hd, Hm⟩
-  iloeb as IH generalizing Hd Hm HΦ
-  wp_apply wp_osRegimeNs (child d b) d dq g (.inr ⟨b, hb, rfl⟩) CoPset.subseteq_top $$ Hinv Hd as Hd
+  wp_start as ⟨#Hinv, Hh⟩
+  iloeb as IH generalizing Hh HΦ
+  ihave Hh := (osTree_halves q R V).1 $$ Hh
+  wp_apply wp_osCallBegin R V q.half q.half CoPset.subseteq_top $$ Hinv Hh as %t Hh Hk
   rw [os.file_ty_eq, os.File_ty_eq]
   rw [show (W64 0 ||| W64 524288) = flRO from by decide]
-  wp_apply wp_osNsOpenFile d b k dq g hb hf dqm mo CoPset.subseteq_top $$ Hinv Hd Hm
-    as %fd %e %hmo %hres Hd Hm Hfd
+  (try wp_auto)
+  wp_apply wp_osOpenFile p flRO R V q.half q.half t _ i flRO_ok (by decide) hl
+    CoPset.subseteq_top $$ Hinv Hh Hk as %fd %e %hres Hh Hfd
+  ihave Hh := (osTree_halves q R V).2 $$ Hh
   by_cases he0 : e = W64 0
   · subst he0
     rw [decide_eq_true rfl]
-    rw [if_pos (show W64 0 = (0 : w64) from rfl)]
+    rw [if_pos (show W64 0 = (0 : w64) from rfl),
+      show openFd i flRO = ⟨i, true, false⟩ by simp [openFd, O_WRONLY, O_RDONLY]]
     wp_auto
     iStructNamed inner
     iapply wp_fupd
@@ -287,9 +294,7 @@ theorem os.OpenFile.wp_nsRO (d b k : GoString) (hb : NameOk b) (perm : w32) (dq 
     ipersist f
     imodintro
     iapply HΦ
-    iframe Hd Hm
-    isplitr
-    · ipureintro; exact hmo
+    iframe Hh
     ileft
     iexists fd
     iframe Hfd
@@ -307,15 +312,13 @@ theorem os.OpenFile.wp_nsRO (d b k : GoString) (hb : NameOk b) (perm : w32) (dq 
       wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
-      iapply IH $$ Hd Hm HΦ
+      iapply IH $$ Hh HΦ
     · rw [decide_eq_false he4]
       wp_auto
       unfold os.model.pathError
       wp_apply wp_errno
       iapply HΦ
-      iframe Hd Hm
-      isplitr
-      · ipureintro; exact hmo
+      iframe Hh
       iright
       ipureintro; exact ⟨(fun h => by cases h), rfl⟩
 

@@ -6,7 +6,7 @@ extension's `GooseLang/Ext/OsFs/TruncateShrink.lean`), as `fileutil.ZeroToEnd` d
 module
 
 public import Proof.os.Base
-public import GooseLang.Ext.OsFs.TruncateShrink
+public import GooseLang.Ext.Fs.TruncateShrink
 
 @[expose] public section
 
@@ -16,9 +16,10 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -32,11 +33,11 @@ theorem os.File.Truncate.wp_shrink (f : Loc) (fd : w64) (name : GoString) (dqf :
     (hwr : d.writable = true) (hsz : 0 ≤ sz.toInt) (hshr : sz.toNat ≤ m.size) (hmaps : m.maps = ∅)
     (hxs : xs.length = m.size - sz.toNat) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
-        osMeta (GF := GF) d.path (DFrac.own 1) (some m) ∗
-        osBytes (GF := GF) d.path sz.toNat (DFrac.own 1) xs }}
+        osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
+        osBytes (GF := GF) d.ino sz.toNat (DFrac.own 1) xs }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
     {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-        ((⌜err = interface.nil⌝ ∗ osMeta d.path (DFrac.own 1) (some (m.shrunk sz.toNat))) ∨
+        ((⌜err = interface.nil⌝ ∗ osMeta d.ino (DFrac.own 1) (m.shrunk sz.toNat)) ∨
          ⌜err ≠ interface.nil⌝) }} := by
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm, Hb⟩
@@ -55,14 +56,14 @@ theorem os.File.Truncate.wp_shrink (f : Loc) (fd : w64) (name : GoString) (dqf :
   wp_auto
   ihave HS : ∃ (m0 : OsMeta) (xs0 : List (w8 × Bool)), ⌜m0.shrunk sz.toNat = m.shrunk sz.toNat ∧
       m0.maps = ∅ ∧ sz.toNat ≤ m0.size ∧ xs0.length = m0.size - sz.toNat⌝ ∗
-      osMeta d.path (DFrac.own 1) (some m0) ∗ osBytes d.path sz.toNat (DFrac.own 1) xs0 $$ [Hm Hb]
+      osMeta d.ino (DFrac.own 1) (m0) ∗ osBytes d.ino sz.toNat (DFrac.own 1) xs0 $$ [Hm Hb]
   · iexists m, xs; iframe; ipureintro; exact ⟨rfl, hmaps, hshr, hxs⟩
   iloeb as IH generalizing HS Hosfd Hfd HΦ
   icases HS with ⟨%m0, %xs0, %hm0, Hm, Hb⟩
   obtain ⟨hs0, hmp0, hsh0, hxl0⟩ := hm0
   wp_apply wp_osFtruncateShrinkStart fd sz dq d m0 xs0 CoPset.subseteq_top hwr hsz hsh0 hmp0 hxl0
     $$ Hinv Hosfd Hm Hb as %t Hosfd Ht
-  wp_apply wp_osFtruncateShrinkFinish t d.path sz.toNat m0 xs0 CoPset.subseteq_top hsh0 hmp0
+  wp_apply wp_osFtruncateShrinkFinish t d.ino sz.toNat m0 xs0 CoPset.subseteq_top hsh0 hmp0
     $$ Hinv Ht as %e Hr
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]

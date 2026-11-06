@@ -13,9 +13,10 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -39,27 +40,27 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
   rw [decide_eq_false h2]
   wp_auto
   have hpost : ∀ (m0 : OsMeta) (e : w64), (m0 = m ∨ m0 = ftMeta m sz.toNat) →
-      (((⌜e = 0⌝ ∗ osGrown (GF := GF) d.path m0 sz.toNat hi) ∨
-        (⌜e ≠ 0⌝ ∗ (osGrown d.path m0 sz.toNat hi ∨
-          (osMeta d.path (DFrac.own 1) (some (ftMeta m0 sz.toNat)) ∗
+      (((⌜e = 0⌝ ∗ osGrown (GF := GF) d.ino m0 sz.toNat hi) ∨
+        (⌜e ≠ 0⌝ ∗ (osGrown d.ino m0 sz.toNat hi ∨
+          (osMeta d.ino (DFrac.own 1) (ftMeta m0 sz.toNat) ∗
             mcellsAny m0.maps m0.size hi)))) ⊢
-      ((⌜e = 0⌝ ∗ osGrown d.path m sz.toNat hi) ∨
-        (⌜e ≠ 0⌝ ∗ (osGrown d.path m sz.toNat hi ∨
-          (osMeta d.path (DFrac.own 1) (some (ftMeta m sz.toNat)) ∗
+      ((⌜e = 0⌝ ∗ osGrown d.ino m sz.toNat hi) ∨
+        (⌜e ≠ 0⌝ ∗ (osGrown d.ino m sz.toNat hi ∨
+          (osMeta d.ino (DFrac.own 1) (ftMeta m sz.toNat) ∗
             mcellsAny m.maps m.size hi))))) := by
     rintro m0 e (rfl | rfl)
     · exact .rfl
     · have h1 : ftMeta (ftMeta m sz.toNat) sz.toNat = ftMeta m sz.toNat := by
         cases m; simp only [ftMeta, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
-      have h2 : osGrown (GF := GF) d.path (ftMeta m sz.toNat) sz.toNat hi =
-          osGrown d.path m sz.toNat hi := by
+      have h2 : osGrown (GF := GF) d.ino (ftMeta m sz.toNat) sz.toNat hi =
+          osGrown d.ino m sz.toNat hi := by
         have : (ftMeta m sz.toNat).grown sz.toNat = m.grown sz.toNat := by
           cases m; simp only [ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
         unfold osGrown; rw [this]; rfl
       rw [h1, h2]; exact .rfl
   ihave HS : (∃ m0, ⌜m0 = m ∨ m0 = ftMeta m sz.toNat⌝ ∗
-      osMeta d.path (DFrac.own 1) (some m0) ∗ mcellsAny m.maps m.size hi) ∨
-      osGrown d.path m sz.toNat hi $$ [Hm Hc]
+      osMeta d.ino (DFrac.own 1) (m0) ∗ mcellsAny m.maps m.size hi) ∨
+      osGrown d.ino m sz.toNat hi $$ [Hm Hc]
   · ileft; iexists m; iframe; ipureintro; exact .inl rfl
   iloeb as IH generalizing HS Hosfd Hfd HΦ
   icases HS with (⟨%m0, %hm0, Hm, Hc⟩ | Hg)
@@ -69,7 +70,7 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
     have hhi0 : MapsBelow m0.maps hi := by rcases hm0 with rfl | rfl <;> exact hhi
     wp_apply wp_osFtruncateStart fd sz dq d m0 hi CoPset.subseteq_top hwr hsz hgrow0 hhi0
       $$ Hinv Hosfd Hm Hc as %t Hosfd Ht
-    wp_apply wp_osFtruncateFinish t d.path sz.toNat m0 hi CoPset.subseteq_top hgrow0 hhi0
+    wp_apply wp_osFtruncateFinish t d.ino sz.toNat m0 hi CoPset.subseteq_top hgrow0 hhi0
       $$ Hinv Ht as %e Hr0
     ihave Hr := hpost m0 e hm0 $$ Hr0
     by_cases he4 : e = W64 4
@@ -107,7 +108,7 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
         iframe
         ipureintro; intro h; cases h
   · unfold osGrown
-    icases Hg with ⟨Hm, Hbs, Hcs, Hc⟩
+    icases Hg with ⟨%zs, %hzs, Hm, Hbs, Hcs, Hc⟩
     have hgg : (m.grown sz.toNat).grown sz.toNat = m.grown sz.toNat := by
       simp [OsMeta.grown]
     have hgf : ftMeta (m.grown sz.toNat) sz.toNat = m.grown sz.toNat := by
@@ -116,19 +117,20 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
       mcellsAny (m.grown sz.toNat).maps (m.grown sz.toNat).size hi by simp only [OsMeta.grown]; iintro H; iexact H) $$ Hc
     wp_apply wp_osFtruncateStart fd sz dq d (m.grown sz.toNat) hi CoPset.subseteq_top hwr hsz
       (Nat.le_refl _) hhi $$ Hinv Hosfd Hm Hc as %t Hosfd Ht
-    wp_apply wp_osFtruncateFinish t d.path sz.toNat (m.grown sz.toNat) hi CoPset.subseteq_top
+    wp_apply wp_osFtruncateFinish t d.ino sz.toNat (m.grown sz.toNat) hi CoPset.subseteq_top
       (Nat.le_refl _) hhi $$ Hinv Ht as %e Hr0
-    ihave Hr : (⌜e = 0⌝ ∗ osGrown d.path m sz.toNat hi) ∨
-        (⌜e ≠ 0⌝ ∗ (osGrown d.path m sz.toNat hi ∨
-          (osMeta d.path (DFrac.own 1) (some (ftMeta m sz.toNat)) ∗
+    ihave Hr : (⌜e = 0⌝ ∗ osGrown d.ino m sz.toNat hi) ∨
+        (⌜e ≠ 0⌝ ∗ (osGrown d.ino m sz.toNat hi ∨
+          (osMeta d.ino (DFrac.own 1) (ftMeta m sz.toNat) ∗
             mcellsAny m.maps m.size hi))) $$ [Hr0 Hbs Hcs]
     · unfold osGrown
-      icases Hr0 with (⟨%he, ⟨Hm, -, -, Hc⟩⟩ | ⟨%he, (⟨Hm, -, -, Hc⟩ | ⟨Hm, Hc⟩)⟩)
-      · ileft; rw [hgg]; iframe; ipureintro; exact he
+      icases Hr0 with (⟨%he, ⟨%zs', -, Hm, -, -, Hc⟩⟩ | ⟨%he, (⟨%zs', -, Hm, -, -, Hc⟩ | ⟨Hm, Hc⟩)⟩)
+      · ileft; isplitr; · ipureintro; exact he
+        iexists zs; rw [hgg]; iframe; ipureintro; exact hzs
       · iright; isplitr; · ipureintro; exact he
-        ileft; rw [hgg]; iframe
+        ileft; iexists zs; rw [hgg]; iframe; ipureintro; exact hzs
       · iright; isplitr; · ipureintro; exact he
-        ileft; rw [hgf]; iframe
+        ileft; iexists zs; rw [hgf]; iframe; ipureintro; exact hzs
     unfold osGrown
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]

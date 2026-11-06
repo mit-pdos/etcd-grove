@@ -26,9 +26,10 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI
+open Fs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -39,13 +40,14 @@ abbrev os.File.WriteAt.spec : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
     (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (q : Qp) (m : OsMeta)
     (xs : List (w8 × Bool)),
-  d.writable = true → 0 ≤ off.toInt → 0 < data.length → data.length ≤ 0x40000000 →
-  xs.length = min (off.toNat + data.length) m.size - min off.toNat m.size →
+  d.writable = true → 0 ≤ off.toInt → off.toNat ≤ m.size → off.toNat + data.length < 2 ^ 63 →
+  0 < data.length → data.length ≤ 0x40000000 →
+  xs.length = min (off.toNat + data.length) m.size - off.toNat →
   (m.size < off.toNat + data.length → q = 1) →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
-      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.path (DFrac.own q) (some m) ∗
-      osBytes (GF := GF) d.path (min off.toNat m.size) (DFrac.own 1) xs ∗
-      mcellsAny (GF := GF) m.maps (min off.toNat m.size) (off.toNat + data.length) }}
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own q) m ∗
+      osBytes (GF := GF) d.ino (off.toNat) (DFrac.own 1) xs ∗
+      mcellsAny (GF := GF) m.maps (off.toNat) (off.toNat + data.length) }}
     (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
@@ -55,9 +57,9 @@ abbrev os.File.WriteAt.spec : Prop :=
           ys.map Prod.fst = (pwBytes m.size off.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
-        osMeta d.path (DFrac.own q) (some { m with size := pwSize m.size off.toNat j, hi := h }) ∗
-        osBytes d.path (min off.toNat m.size) (DFrac.own 1) ys ∗
-        mcellsAny m.maps (min off.toNat m.size) (off.toNat + data.length) }}
+        osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := h }) ∗
+        osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
+        mcellsAny m.maps (off.toNat) (off.toNat + data.length) }}
 
 end spec
 
