@@ -3715,3 +3715,28 @@ Order: Task A's rest, Task B (`run.wp_proofR`), item 3, item 2.
   - at the stop, split on `|A| < |A₀|`. In the window: `stop_splitR`, `raftNode.stop.spec`, then
     `rnRestartOk_commit` for `|A₀| ≤ σ.commit`, and `stop_cleanup_imageR` with `srvRLogLb A` (from
     the loop's lb on the handed log). Past it: the frozen path.
+
+#### R2d'a A10 item 5, part 2 (`rnSnapMsg`'s `t0 < Term'`): stopped at the restart conjunct's form (2026-11-06)
+
+Q28 (i) is approved: `t0 = W64 0` in the two frozen posts, and `⌜γ.a0 = [] ∧ γ.t0 = W64 0⌝` as the
+first-start disjunct. Not started: the restart conjunct ("this incarnation's `MsgSnap`s are above
+`t0`") has no sound form over what the producer holds.
+- **What the producer holds.** It is `rnMsgOk_of_api`, by way of `rnRawMsgs_sent`/`_leader` at
+  `raftNode.start`'s `Ready`. Each message comes with `msgOwn q.loc (readyDq q.st) q.st`,
+  `msgCredits` and `sentMsg`/`readyMsgs … γ.id`. All of these are per member id, not per
+  incarnation. `NodeDriverState` (the one per-incarnation resource, `nodeDriver γ.nl`) records no
+  messages.
+- **Why the obvious forms are false of Go.** A premise such as `□ ∀ st, sentMsg … γ.id st -∗
+  ⌜MsgSnap → t0 < Term'⌝`, or one over a whole `msgOwn` with it, is also met by an earlier
+  incarnation's `MsgSnap` at a term `≤ T₀` (point 1 of the probe section). That is 82's attack
+  target, and it would make the restart branch vacuous.
+- **Options:**
+  - (a) A raft-side fact at the `Ready` receive: a `MsgSnap` in a `Ready` is at the driver's
+    `hardState` term, the role is leader, and this incarnation's driver leads only above `T₀`.
+    That is a `node.Ready.spec` post addition (raft's API) or a restart premise over `nodeDriver
+    γ.nl` (per incarnation): `□ ∀ st, nodeDriver γ.nl … st -∗ ⌜leader⌝ -∗ nodeDriver … st ∗
+    ⌜t0 < st.hardState.Term'⌝`, plus the raft fact relating the messages to that term.
+  - (b) A per-incarnation ghost tag on the `Ready`'s messages: a change to raft's node API.
+  - (c) Leave `rnSnapMsg` unbounded, and close the `rt ≤ t0` case of `winNoMergedSendR` with
+    `Hwpend` widened back to `rt ≤ t0`. Reverts 82's narrowing.
+  - Needs the user's or 82's choice.
