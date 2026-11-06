@@ -1106,3 +1106,42 @@ Interfaces regenerated: `etcdstart` (`Adequacy`, `AdequacyMembers`, `Defs`, `Ser
 - **Reviews**: the `axiom` skill on `ensureLeadership.wp_proof` (`levelTok l`) and on
   `authSchemaSrv`'s count; the Go stats test (Q11).
 - **At the merge with N6**: redo §L's first item over `memberUp`'s laws.
+
+## Draft pass 2: auth (2026-11-06)
+
+§N's item **auth**, both by the Scope's preferred route (Q10): no axiom, no `sorry`, no trust growth.
+
+- **`WithRoot`'s translation.** `Code/go_etcd_io/etcd/server/v3/auth.toml`: `"authStore.WithRoot"`
+  added to `translate`; `etc/goose.py --project etcd` regenerated `Code/.../auth.lean` (the body,
+  `store.go:1175`, and `authStore.TypeAssumptions`' `ptr_WithRoot_unfold`). Goose's reach was already
+  translated or names-only (`context.WithValue`, `metadata.New`/`NewIncomingContext`,
+  `tokenSimple.genTokenPrefix`, `TokenProvider.assign`, `zap.Error`); `etc/goose.py --check` passes.
+- **`authStore.WithRoot.wp_proof`** (`Proof/go_etcd_io/etcd/server/v3/auth/authStore__WithRoot.lean`,
+  new): I.3's statement unchanged; the proof applies the precondition's `IsAuthEnabled` triple and
+  takes the `return ctx` branch (the auth-on branch is unreachable under `b = false`). Not linked yet:
+  `revokeExpiredLeases`' proof cites it (`gen-link` with that proof).
+- **`leaseExpired`'s initializer** (F.5). `Code/.../etcdserver.toml`: `"leaseExpired"` added to
+  `translate` (`etcdserver.lean`: `leaseExpired.init`'s axiom gone, the initializer is
+  `prometheus.NewCounter(prometheus.CounterOpts{...})`, a `GlobalAlloc` of a `Counter`).
+  `etc/gen-init.py`'s `SPECIAL[...etcdserver]`: `alloc_types` `GoInterface`, `before` its two steps
+  (`EtcdGrove.prometheus.wp_counterOptsLit`, `NewCounter.wp_proof`: the read package's existing
+  trust-boundary axioms, no new one), `ipersist HleaseExpired`, the import of `NewCounter`; the
+  regenerated `etcdserver/Init.lean` drops `leaseExpired.init` from `opaqueInitsOk`'s list;
+  `etc/gen-init.py --check` passes.
+- **The fact** (an exported definition, applied as DRAFT): `srvApplyLoopInit` (`BaseApply.lean`)
+  gains a last conjunct, old → new:
+
+  ```lean
+  -- old (last conjunct)
+      (∃ g : GoInterfaceOk, globalAddr applySnapshotInProgress ↦□ GoInterface.ok g ∗
+        go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec g))
+  -- new
+      (∃ g : GoInterfaceOk, globalAddr applySnapshotInProgress ↦□ GoInterface.ok g ∗
+        go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec g) ∗
+      (∃ c : GoInterfaceOk, globalAddr leaseExpired ↦□ GoInterface.ok c ∗
+        go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c))
+  ```
+
+  `revokeExpiredLeases`' proof takes the counter from `isPkgInit` (`icases Hinit with ⟨-, -, -, -, -,
+  ⟨%c, #Hc, #Hcs⟩⟩`). The only pattern it broke: `SnapApplyWalk.lean`'s `⟨-, -, -, -, ⟨%gg, #Hgg,
+  #Hggs⟩⟩` → `⟨…, ⟨%gg, #Hgg, #Hggs⟩, -⟩`.

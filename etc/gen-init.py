@@ -1465,10 +1465,20 @@ errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
 package's initializer. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
 guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
-reads `raftStatus` under the mutex).""",
+reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
+(`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
+axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), which
+`revokeExpiredLeases` increments.""",
+    imports=['Proof.github_com.prometheus.client_golang.prometheus.NewCounter'],
     custom=_srv_custom,
-    alloc_types={'raftStatusMu': '_root_.Perennial.sync.Mutex', 'raftStatus': 'GoFunc'},
-    finish=([f'ipersist H{x}' for x in _srv_custom] +
+    alloc_types={'raftStatusMu': '_root_.Perennial.sync.Mutex', 'raftStatus': 'GoFunc',
+                 'leaseExpired': 'GoInterface'},
+    # (revoke-open, 2026-11-06) `leaseExpired`'s translated initializer: the literal, `NewCounter`
+    before={'leaseExpired': [
+        'wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %oLE %HoLE', 'try wp_auto',
+        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ HoLE (by decide) as %cLE ⟨#CLE, -⟩',
+        'try wp_auto']},
+    finish=([f'ipersist H{x}' for x in _srv_custom] + ['ipersist HleaseExpired'] +
             ['imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM',
              '· inext', '  iexists _', '  iframe HraftStatus'] +
             sum([errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', x, m,

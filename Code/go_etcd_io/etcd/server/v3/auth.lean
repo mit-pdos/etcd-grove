@@ -4545,6 +4545,143 @@ noncomputable def NewTokenProvider.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "tokenType") (Var "$r0"))))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad TokenProvider.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
+/-- go: store.go:1175:22 -/
+noncomputable def authStore.WithRoot.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "as"
+  (Lam "ctx"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "as" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authStore.ty)))) (Var "as"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "ctxForAssign" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctxForAssign"))
+  (Let "$a1" (Val #(go!"root"))
+  (Let "$a2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #()))
+  (App (App (App (App (Val (GoInstruction (MethodResolve TokenProvider.ty go!"assign"))) (App (Val (GoInstruction (GoLoad TokenProvider.ty))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"tokenProvider"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC))) (Val #())))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.string (Var "$v1")))]))))
+  (Let "mdMap" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "mdMap"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.metadata.New []))) (Val #())) (Var "$a0")))
+  (Let "tokenMD" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Var "tokenMD"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.metadata.NewIncomingContext []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Pair (Var "tokenMD") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "mdMap") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to assign token for lease revoking"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Error"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "token") (Var "$r0"))))))))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType tokenSimple.ty)))) (App (Val (GoInstruction (GoLoad TokenProvider.ty))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"tokenProvider"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "ts" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenSimple.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType tokenSimple.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType tokenSimple.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "ts")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType tokenSimple.ty)))) (Val UntypedNil))))) (Val #false))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert AuthenticateParamIndex.ty go.any))) (App (Val (GoInstruction (CompositeLiteral AuthenticateParamIndex.ty))) (LiteralValue [])))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.uint64 go.any))) (Val #(W64 0)))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithValue []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "ctx1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType tokenSimple.ty) go!"genTokenPrefix"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tokenSimple.ty)))) (Var "ts"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "prefix" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx1"))
+  (Let "$a1" (App (Val (GoInstruction (Convert AuthenticateParamSimpleTokenPrefix.ty go.any))) (App (Val (GoInstruction (CompositeLiteral AuthenticateParamSimpleTokenPrefix.ty))) (LiteralValue [])))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "prefix")))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithValue []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctxForAssign") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to generate prefix of internally used token"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Error"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "prefix") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx1") (Var "$r0")))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctxForAssign") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType tokenSimple.ty)))) (Pair (Var "ts") (Var "$r0"))))))))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"IsAuthEnabled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "$res0"))))))
+
 /-- go: store.go:1215:22 -/
 noncomputable def authStore.HasRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
@@ -5514,6 +5651,7 @@ class authStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserGrantRole" authStore.UserGrantRole.impl
   ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserList" authStore.UserList.impl
   ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"UserRevokeRole" authStore.UserRevokeRole.impl
+  ptr_WithRoot_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"WithRoot" authStore.WithRoot.impl
   ptr_authInfoFromToken_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"authInfoFromToken" authStore.authInfoFromToken.impl
   ptr_commitRevision_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"commitRevision" authStore.commitRevision.impl
   ptr_isOpPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"isOpPermitted" authStore.isOpPermitted.impl
@@ -5576,6 +5714,7 @@ attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.ptr_UserGrantRole_unfold
   authStore.TypeAssumptions.ptr_UserList_unfold
   authStore.TypeAssumptions.ptr_UserRevokeRole_unfold
+  authStore.TypeAssumptions.ptr_WithRoot_unfold
   authStore.TypeAssumptions.ptr_authInfoFromToken_unfold
   authStore.TypeAssumptions.ptr_commitRevision_unfold
   authStore.TypeAssumptions.ptr_isOpPermitted_unfold

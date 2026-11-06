@@ -367,8 +367,6 @@ axiom requestDurationSec.init [GooseExts] [GoGlobalContext] : val
 noncomputable def leaseExpired [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.leaseExpired"
 
-axiom leaseExpired.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def currentVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.currentVersion"
 
@@ -9939,6 +9937,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"server"))
+  (Let "$v2" (Val #(go!"lease_expired_total"))
+  (Let "$v3" (Val #(go!"The total number of expired leases."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -9972,7 +9977,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val currentVersion.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val leaseExpired.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaseExpired))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val requestDurationSec.init) (Val #()))))))
   (App (Val doExecute)
@@ -10113,6 +10118,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.golang_org.x.crypto.bcrypt.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc leaseExpired _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc raftStatusMu _root_.Perennial.sync.Mutex.ty)) (Val #()))))))
   (App (Val doExecute)
