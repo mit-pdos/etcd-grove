@@ -1038,6 +1038,8 @@ which they pass through unused. The client asks for no outcome yet: `attemptPre`
 - Each restated trusted statement is attacked with the axiom skill (Q7c-2), at `handlerDescs`'s
   7c-2 value.
 **Gate (etcd-grove-82, 2026-11-06): 7c-2 does not fill `handlerDescs` before HS-5 is fixed** (`questions.md`, "7c-1b attacks"): with the descriptions in it, `grpcInvokerOk`'s claim that only a handler makes them, false in Go, would no longer be vacuous.
+**For 7c-2/7c-3 (etcd-grove-82, 2026-11-06):** prometheus `StreamServerInterceptor`: the same
+error-shape check as HS-6 (its `PostCall`'s `status.FromError` of the handler's error).
 **Moved to 7c-2:** filling `handlerDescs`, and `etcdRangeSpecM`'s `Ψe` facts. Range's handler
 proves `Ψe` at the two descriptions only from `EtcdServer.Range`'s error post (HS-3 (a)), which
 is 7c-2's. Filled earlier, the Range handler's proof has nothing to prove it from.
