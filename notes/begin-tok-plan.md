@@ -441,13 +441,60 @@ Lean changed, so the build at `94d520de7e` stands):
 
 ## Follow-ups (after landing)
 
-Weaknesses of the reader-slot gate, recorded for later, not fixed in this stage:
+Weaknesses of the reader-slot gate, recorded at the Freeze. **All four done** (2026-11-06, branch
+`gate-hardening`, `64302d638b`; gate script and its data files only, no Lean changed):
 
-- (a) The token test is a regular expression over the whole spec file (comments stripped): a token
-  mentioned anywhere in the file, not necessarily in the precondition of the holding triple, passes.
-- (b) An allow entry (`etc/reader-slot-allow.txt`) is matched by the axiom's name only; it should also
-  name the lock it covers and the pairing it relies on, and the check should match both.
-- (c) The release heuristic: when a holder's result is not bound to a variable, any later resolved call
-  of a releaser of the same lock in the caller clears it, whether or not it releases that slot.
-- (d) A lock's identity is (package, field name): two `RWMutex` fields of the same name in one package
-  are one lock to the check.
+- (a) The token test was a regular expression over the whole spec file (comments stripped): a token
+  mentioned anywhere in the file, not necessarily in the precondition of the holding triple, passed.
+  **Done:** the gate reads only the declaration `abbrev <F>.spec` (comments, docstrings and the file's
+  other declarations ignored), which must be one triple `{{ pre }} e {{ binders, RET v; post }}`
+  (and the axiom must state `<F>.spec`). A holder's pre must consume a token as a separating
+  conjunct (through parentheses, `iprop(...)`, `∃ x,`, in every disjunct, or in either branch of an
+  `if`: `Begin_kv`'s `if w then wrTok γ else threadTok`); a closer's post, after `RET v;`, must
+  return one (every branch of an `if`). A token under a wand, `□`, `⌜⌝` or a nested triple does not
+  count.
+- (b) An allow entry was matched by the axiom's name only. **Done:** an entry is `NAME
+  lock=PKG.TYPE.FIELD... (closer=AXIOM | held-for-life-by=PKG.[TYPE.]FUNC) # why`; its locks must be
+  exactly those the gate finds the axiom holding, and the pairing is checked (a closer is an axiom of
+  the same tree whose Go function releases the locks; a goroutine is started by a `go` statement in
+  a function the holder reaches, and itself holds or releases them). `storage.OpenBackend`'s entry
+  states `go.etcd.io/bbolt.DB.mmaplock`, held for life by `backend.backend.run` (started in
+  `backend.newBackend`). A paired closer (`etc/reader-slot-pairs.txt`) must now also release the
+  holder's locks in Go.
+- (c) The release heuristic: when a holder's result was not bound to a variable, any later resolved
+  call of a releaser of the same lock in the caller cleared it, whether or not it released that
+  slot. **Done:** a result is released only when it is bound to a variable or a field (`t, err :=`,
+  `if t, err :=`, `x.tx =`) and a later releaser is called on it or with it as an argument; a result
+  returned, discarded, unbound (expression statement, argument, channel send) or run by `go` or
+  `defer` is held. (`if t, err := ...` now also types `t`, so its `t.Rollback()` resolves.)
+- (d) A lock's identity was (package, field name). **Done:** (package, owner type, field), the
+  field's declaring struct resolved by type from the lock expression (promoted fields to their
+  declaring struct, an embedded mutex to its struct's `RWMutex`); an unresolved owner is `?` and
+  matches no resolved lock, so an unresolved release leaves a holder held (`-v` lists them: two
+  `tx.RLock()`s through the `ReadTx` interface, in `authStore.lockedReadTx` and `store.Read`).
+
+**Results.** On `lean` `007725626e` (scratch worktree, this branch's script and lists, the Go trees
+of `.lake/goose`) the gate FAILS naming exactly `bbolt.DB.Begin_kv` and `backend.backend.Snapshot`
+("its spec's pre ... consumes no token"). On the branch (= `lean` `b87e0dbbbf`) it PASSES with the
+same 3 holders: `Begin_kv` and `Snapshot` paid and paired with `Tx.Rollback_kv` and
+`snapshot.Close` (each releasing `bbolt.DB.mmaplock` in Go and returning a `threadTok`),
+`storage.OpenBackend` allowed with its lock and pairing; 401 axioms, 200 scanned (floor 200). The
+holder set over all Go functions the scan loads is the old script's, 53 functions; only the locks'
+names are finer. No axiom newly flagged. Mutation tests (scratch copies; the old script passes
+each, the new one fails each): (1) `Begin_kv` with `threadTok` only in the post's error branch,
+only in docstrings and another declaration of the file, or under a wand in the pre, and
+`snapshot.Close` with post `True` and `threadTok` in a later declaration; (2) the allow entry naming
+`backend.backend.mu` or `bbolt.DB.statlock`, a goroutine nobody starts (`backend.Close`), or a
+closer that releases nothing (`DB.Info_kv`); (3) a scratch bbolt whose `DB.Info` discards a
+`db.Begin(false)` (or runs it with `go`) and then rolls back another transaction: `DB.Info_kv`
+flagged; bound and rolled back (also as `if t, err := ...; defer t.Rollback()`, which both scripts
+flagged before the binding fix) it passes; (4) a scratch bbolt with a second type `shadowLock`
+whose field `mmaplock` `removeTx` unlocks instead of `DB.mmaplock`: both closers flagged as not
+releasing `bbolt.DB.mmaplock`, and `Open_kv` and `Tx.Commit_kv` (their transient readers no longer
+released) flagged. Fail-closed, as at the Freeze (`READER_SLOT_GOOSE` at scratch directories of
+symlinks, `.lake/goose` untouched): without `bbolt`, `etcd`, `raft` or `raft-witness`, and with an
+empty directory, exit 1 naming the tree; without `go` on PATH exit 1; a copy with the floor at 201
+exit 1; a copy whose token pattern matches nothing fails on exactly `Begin_kv` and `Snapshot`.
+Limit left (docstring): release is path-insensitive beyond a literal `bool` argument, so
+`Tx.Commit` counts as releasing `mmaplock` (it reaches `tx.close()`); a `closer=bbolt.Tx.Commit_kv`
+allow entry would pass the release check.
