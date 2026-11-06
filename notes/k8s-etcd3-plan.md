@@ -1047,6 +1047,12 @@ returns a raw `transport.ConnectionError`, not a leaf (`notes/axiom-review/hs6.m
 path of the insecure listener the examples use (through cmux); etcd's TLS path (`embed/serve.go`,
 `grpcHandlerFunc`) goes through `ServeHTTP`, and that is how Kubernetes normally connects (82's
 precision, 2026-11-06). Nothing is widened for it; also a gap of `/shared/tmp/k8s-server-trace.md` (row 15).
+**Next stage after 7c (queued by the user, 2026-11-06): gRPC over etcd's HTTP mux.** Model
+`grpc.Server.ServeHTTP` (the TLS path Kubernetes uses: `embed/serve.go`'s `grpcHandlerFunc`), starting
+from the finding above: `mapRecvMsgError` (`handler_server.go:449,493-506`) returns a raw
+`transport.ConnectionError`, not a leaf, so `grpcDecOk`'s error branch does not hold of that
+transport as stated; the stage states the decoder's errors under `ServeHTTP` (or widens them, by
+the attack), and carries the closed results to the TLS listener.
 **Moved to 7c-2:** filling `handlerDescs`, and `etcdRangeSpecM`'s `Ψe` facts. Range's handler
 proves `Ψe` at the two descriptions only from `EtcdServer.Range`'s error post (HS-3 (a)), which
 is 7c-2's. Filled earlier, the Range handler's proof has nothing to prove it from.
