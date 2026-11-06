@@ -2297,6 +2297,15 @@ R2d / R2d' / R2e").
 - **R2d'** (after R2d, before R2e): `mvcc.New`/`NewStore`'s restoring case with the `lateWBR`/`lateWB`
   merge (B1), R2d-7 (`NewServer.specG` with the boot argument, its restart branch) and R2d-8
   (etcdstart over both boots). The `Hnew` row's trusted-text change is a hard stop at R2d''s Scope.
+- **R2d' discharges `winNoConf`** (R2d review F1, decided by etcd-grove-82 under the user's
+  delegation, 2026-11-06, pending the user's review; `questions.md`, "Assumptions R2d carries for
+  R2d'"). R2d's restart `%HEr` carries the named conjunct `winNoConf W` (`ApplyWindow.lean`: no conf
+  entry in the window; `winNoConf_nil` at a first start, `W = []`). R2d' removes it by proving the
+  window's conf changes: through `applyConfChange`'s v2-only case (`v3 = false`: `server.go:1949`
+  calls it with `shouldApplyV3`, `:2031-2101`; `ValidateConfigurationChange` returns `nil` at once,
+  `membership/cluster.go:307-309`; the transport's peers by `ccPeersAfter`'s `v3 = false` case) and
+  `dvOk`'s window form, **not** through `bootLen ≤ σ.b` (which would rule out only the bootstrap
+  log's conf entries, not a later one in `(σ.b, i]`).
 - **R2e**: the restart's closed result. HS2's static-cluster premise goes in R2e's Scope (Q14 caveat
   (ii)): the restarted storage's conf state is the backend's at `i` (`bootstrap.go:107-115`), which
   `confStateIs` the membership at the WAL snapshot's index only in a static cluster.

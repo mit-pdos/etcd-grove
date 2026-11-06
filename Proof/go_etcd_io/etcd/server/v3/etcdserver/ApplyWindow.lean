@@ -92,6 +92,18 @@ def winOk [GooseExts] (A D W ms : List EntryModel) : Prop :=
 theorem winOk_nil [GooseExts] (A ms : List EntryModel) : winOk A [] [] ms :=
   ⟨List.nil_suffix, trivial⟩
 
+/-- **No conf change in the window** (R2d review F1, decided by etcd-grove-82 under the user's
+delegation, 2026-11-06, pending the user's review; DRAFT): no entry the restart replays is a conf
+change. A named conjunct of the restart's `%HEr` (R2d-2), an assumption R2d carries for R2d'
+(`notes/restart-plan.md`, "R2d Draft, round 2", the R2d' list): Go replays a conf change in the
+window v2-only (`server.go:1949`, `applyConfChange` at `shouldApplyV3` false, `:2031-2101`;
+`ValidateConfigurationChange` accepts it, `membership/cluster.go:307-309`), which R2d does not
+state. -/
+def winNoConf [GooseExts] (W : List EntryModel) : Prop := ∀ m ∈ W, m.typ ≠ W32 1
+
+/-- A first start's window is empty: trivially no conf change. -/
+theorem winNoConf_nil [GooseExts] : winNoConf [] := fun _ hm => nomatch hm
+
 /-! ## The window's resources -/
 
 section defs
