@@ -32862,7 +32862,8 @@ outer one holds up to three locks' slots at once. Perennial guarantees only `1 <
 - *`ensureLeadership`'s axiom takes `levelTok l` (Q5 (a)).* Its faithfulness argument (tickMu's readers
   are at most the live goroutines) never used the token's identity. Restated axiom: the `axiom` skill
   before the Freeze.
-- *`E.RD`'s supply (Q6 (a)).* `backend.authRdN = 2 ^ 28 + 2 ^ 7` (true of Go; `rdStockN_val = 536870783`);
+- *`E.RD`'s supply (Q6 (a)).* `backend.authRdN = 2 ^ 28 + 2 ^ 7` (written `rdPoolN + 2 ^ 7` since
+  revoke-open review round 1, NIT 3.6: the same value; true of Go; `rdStockN_val = 536870783`);
   `authSchemaSrv`'s text unchanged, its count larger: the `axiom` skill before the Freeze.
 - *Where the pools are built (Q7).* `I` and the auth store's concrete pointer in `NewServer`
   (`srvRevokeBuilt`, a conjunct of `srvBuiltG`/`isServerBuilt*`), `B` in `start` from `srvStarted`'s

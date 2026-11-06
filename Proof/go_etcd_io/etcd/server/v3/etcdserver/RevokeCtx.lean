@@ -299,15 +299,18 @@ theorem srvRevokeCtx_views (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   ipureintro; exact h
 
 /-- **`WithRoot`'s premise** (review round 1, S3, 2026-11-06): with auth off, the auth store's
-pointer and its `IsAuthEnabled` contract with the mode's verdict, at `E.RD` (the store's contract,
-`srvAuthAt`, at the pointer `NewServer` recorded). -/
+pointer and its `IsAuthEnabled` contract with the verdict of the mode `off`, at `E.RD` (the store's
+contract, `srvAuthAt`, at the pointer `NewServer` recorded). (Review round 2, N1, 2026-11-06: until
+then the verdict at `E.authMode`, which the caller equated with `.off`; the bridge,
+`AuthMode.isOn_false_iff`, as in `apply.AEnv.authMode_off_of_authOn`, is now here, under this law's
+gate `E.authOn = false`.) -/
 theorem srvRevokeCtx_withRoot (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (γg : GoNames) (h : E.authOn = false) :
     srvRevokeCtx (GF := GF) s E ρ γr γg ⊢
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
         □ ({{ E.RD }} (App (Val (stl @!! go.GoType.PointerType
             go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"IsAuthEnabled")) (Val #()))
-          {{ (b : Bool), RET #b; E.RD ∗ auth.enabledVerdict E.authMode b }}) := by
+          {{ (b : Bool), RET #b; E.RD ∗ auth.enabledVerdict .off b }}) := by
   iintro #H
   ihave #Hvw := srvRevokeCtx_views s E ρ γr γg h $$ H
   ihave #Hauth := srvAuthAt_of_views s E ρ γr $$ Hvw
@@ -315,13 +318,16 @@ theorem srvRevokeCtx_withRoot (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   icases H with ⟨#Hb, -, -, -, -⟩
   iunfold srvRevokeBuilt at Hb
   icases Hb with ⟨-, -, ⟨%stl, #Hauf⟩, -⟩
-  iunfold srvAuthAt at Hauth
-  icases Hauth with ⟨%st, %cca, %P, %f, #Hst, -, -, -, #HAS⟩
+  ihave ⟨%st, %P, %f, #Hst, #HAS⟩ := srvAuthAt_isAuthStore s E $$ Hauth
   icombine Hauf Hst gives %e0
   subst e0
   iexists stl
   iframe Hauf
-  iapply apply.isAuthStore_isAuthEnabled $$ HAS
+  ihave #HEn := apply.isAuthStore_isAuthEnabled $$ HAS
+  -- `apply.AEnv.authMode_off_of_authOn`'s content: that law carries `apply.Assumptions` (a section
+  -- instance of `Chain.lean`), which this module does not have
+  rw [(auth.AuthMode.isOn_false_iff E.authMode).1 h]
+  iexact HEn
 
 /-- The request names' credential (`LeaseRevoke`'s). -/
 theorem srvRevokeCtx_cred (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)

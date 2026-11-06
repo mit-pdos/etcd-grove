@@ -26,9 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.authStore.WithRoot.wp_proof :
     auth.authStore.WithRoot.spec (GF := GF) (hG := hG) := by
-  intro st RD M ctx
-  wp_start as ⟨HRD, %HM, #HIE⟩
-  subst HM
+  intro st RD ctx
+  wp_start as ⟨HRD, #HIE⟩
   wp_method_call; wp_call
   (try wp_auto)
   wp_method_call

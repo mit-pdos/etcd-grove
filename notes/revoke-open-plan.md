@@ -1412,3 +1412,63 @@ slots for the inner pool, uniformly in both modes; the rest are dropped. In the 
 revocation never runs (`srvRevokesLeases`), so the inner pool's `2 ^ 28 - 1` copies stay idle: the
 count is what is intended (the inner pool built the same way in both modes), and its only cost is
 the backend stock's `2 ^ 28` fewer slots (`rdStockN_val`: `536870783`).
+
+## Review round 2 fixes (2026-11-06)
+
+The findings of `notes/spec-review/revoke-open-r2.md` (round 2: no BLOCKER, one SHOULD-FIX, seven
+NITs). The batching rule applies: the statement changes below are DRAFT, logged old → new, to be
+brought to the user once with round 1's.
+
+**Statement changes (DRAFT):**
+
+- **`auth.authStore.WithRoot.spec`** (exported; N1, N2). Old: `∀ st RD M ctx, {{ pkg ∗ RD ∗
+  ⌜M = .off⌝ ∗ □ {{ RD }} st.IsAuthEnabled() {{ b, RD ∗ auth.enabledVerdict M b }} }} st.WithRoot(ctx)
+  {{ RET #ctx; RD }}`. New: `∀ st RD ctx, {{ pkg ∗ RD ∗ □ {{ RD }} st.IsAuthEnabled() {{ b, RD ∗
+  auth.enabledVerdict .off b }} }} st.WithRoot(ctx) {{ RET #ctx; RD }}`: a law that holds at one mode
+  is stated at the literal (PRINCIPLES, "A law over a free mode … holds at every value of it"; round
+  1's S3 (b) proposed the free `M`, which was wrong). The docstring now says both departures: the
+  scope restriction (auth off: the root-token branch, `store.go:1180-1212`, is not proved) and the
+  implementation's own call taken (`IsAuthEnabled`'s contract, not `authInv st R .off ∗ enabledRd st
+  .off`), because the server's off-mode store is `NewAuthStore`'s axiom (`authStoreKit_off`), which
+  gives contracts, not `authInv`.
+- **`srvRevokeCtx_withRoot`** (etcdserver law; N1): post `… {{ b, E.RD ∗ auth.enabledVerdict
+  E.authMode b }}` → `… {{ b, E.RD ∗ auth.enabledVerdict .off b }}`; its proof rewrites the
+  contract from `apply.isAuthStore_isAuthEnabled` by `AuthMode.isOn_false_iff` at the law's gate
+  `h : E.authOn = false`, so the bridge moved from the caller into the law. (Not by
+  `apply.AEnv.authMode_off_of_authOn` itself, whose content it is: that law takes
+  `apply.Assumptions`, a section instance `Chain.lean` includes though the law does not use it, and
+  `RevokeCtx.lean` has none. Dropping the instance, `omit package_sem in`, changes `Chain.lean`'s
+  public `.olean`, which 1587 modules import: left as a cleanup.)
+- **New `srvAuthAt_isAuthStore`** (`AuthGuard.lean`; N5): `srvAuthAt s E ⊢ ∃ st P f,
+  structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ apply.isAuthStore st E.γ P f E.RD E.authMode
+  E.RW`. `srvRevokeCtx_withRoot`'s proof uses it in place of `iunfold srvAuthAt`. (The other seven
+  `iunfold srvAuthAt` (two inside `AuthGuard.lean`), older and on `lean`, are left: they take
+  other conjuncts.)
+
+**Proofs and docstrings, no statement change:**
+
+- N3: `revokeExpiredLeases`' proof loses the `try (ipureintro; exact hM)` (with N1 the step and `hM`
+  are gone). The `ihave #Hauth := srvAuthAt_of_views …` is not dead, contrary to the report: it is
+  `LeaseRevoke.spec`'s precondition `srvAuthAt s E`, which that call's `iframe #` takes (without it
+  the call fails, "`srvAuthAt s E ∗ …` is not pure"); kept, with a comment saying so.
+- N4: the proof reads `hlevK : srvRevokeK ≤ threadBound GF` from `hlev` (until then `hlev4 : 4 ≤ …`)
+  and its twelve thread-level side goals close by `word` (until then `omega`, which needed the
+  literal); `realThreadsBelow_mono`'s docstring (`Proof/runtime/Threads.lean`) says
+  `max (n + 2) srvRevokeK`.
+- N7: `etcdstart.memberReadN`'s docstring says why the alias exists (the hub's vocabulary, so that
+  `memberUp`'s consumers name nothing of the server).
+- N8: `notes/decisions.md`'s `E.RD` supply entry says `authRdN` is written `rdPoolN + 2 ^ 7` since
+  round 1.
+
+**Not done:**
+
+- r1's NIT 3.7 (`srvInit` destructured by position, `mvcc.counterSpec` unfolded): not cheap. The two
+  laws it needs belong in `etcdserver/BaseApply.lean` (an elimination of `srvApplyLoopInit`'s
+  `leaseExpired` counter) and `storage/mvcc/Base.lean` (`counterSpec_inc`), whose public `.olean`s
+  3051 and 4311 modules import (`etc/importers.py --count`), against about 1050 for this round's
+  other changes. Left for a round that touches those modules anyway.
+- N6 (follow-up): `srvStartReaders`' wait-group half (`actualMaxReaders - 2 - srvRevokePoolN`) stays
+  literal, and the two hubs that take `Start`'s post (`etcdstart/Start.lean:74`,
+  `etcd/auth/startServer.lean:190`) `iunfold srvStartReaders`. An older pattern, also on `lean`.
+  The follow-up: an elimination `srvStartReaders_read : srvStartReaders s γr ⊢ [∗list] _ ∈ replicate
+  srvStartReadN (), srvReadReader s γr` in `InvStart.lean`, used by both hubs.

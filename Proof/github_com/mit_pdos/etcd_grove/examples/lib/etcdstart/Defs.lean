@@ -331,7 +331,9 @@ def srvPeerCtl (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
 /-- **The read loop's reader slots a started member keeps** (revoke-open F.1, 2026-11-06): the
 server's count, `srvStartReadN` (`start_gives_views`'s; review round 1, S2: until then this body
 spelled the server's arithmetic). Named, with its law `one_le_memberReadN`, so that the consumers
-of `memberUp`'s and `kvServeStocks`'s stocks do not restate the count. -/
+of `memberUp`'s and `kvServeStocks`'s stocks do not restate the count. An alias of the server's name,
+deliberately (review round 2, N7): the hub's vocabulary, so that `memberUp`'s consumers name nothing
+of the server; a change of the server's count is a change of `srvStartReadN` alone. -/
 def memberReadN : Nat := srvStartReadN
 
 /-- What the consumers take of the read loop's slots: at least one (each splits off one gRPC slot,

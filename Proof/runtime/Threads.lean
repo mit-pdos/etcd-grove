@@ -64,7 +64,7 @@ theorem realThreadsBelow_of_one {n : Nat} {ρ : List Expr × CfgState} (h1 : ρ.
   omega
 
 /-- `RealThreadsBelow` is monotone in the bound (revoke-open Q1 (a2): the etcd adequacy lemmas'
-`T = max (n + 2) 4`). -/
+`T = max (n + 2) srvRevokeK`, the revocation's thread levels). -/
 theorem realThreadsBelow_mono {T T' n : Nat} {ρ : List Expr × CfgState} (hT : T ≤ T')
     (h : RealThreadsBelow T n ρ) : RealThreadsBelow T' n ρ := by
   intro k κs ρ' hk hsteps
