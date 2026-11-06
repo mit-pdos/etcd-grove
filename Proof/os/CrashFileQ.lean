@@ -47,14 +47,47 @@ def CrashOkQ (Q : OsState → OsState → Prop) (Good : Option OsFile → Prop) 
     (R : Roots) (s : CFile) (V : Hist) : Prop :=
   TreeOk Good p R s V ∧ ∀ i x, s = some (i, x) → FileOkQ Q Good i x
 
+/-- A write in flight starts inside the file (`pwTok`'s `off ≤ m.size`). -/
+def OffOk : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8) → Prop
+  | (m, _, some (_, off, _)) => off ≤ m.size
+  | _ => True
+
 theorem fileOk_Q {Q : OsState → OsState → Prop} {Good : Option OsFile → Prop} {i : Ino}
-    {x : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8)} (h : FileOk Good x) :
-    FileOkQ Q Good i x :=
-  fun f hc _ => h f hc
+    {x : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8)} (hoff : OffOk x)
+    (h : FileOk Good x) : FileOkQ Q Good i x := by
+  intro f hc hs
+  rcases x with ⟨m, bs, _ | ⟨t, off, data⟩⟩
+  · refine h f hc (crashSeen_runsKept hs (fun x hx => by cases hx)) (fun b h1 h2 => ?_) trivial
+    rcases crashSeen_tailKept hs (fun x hx => by cases hx) f rfl b h1 h2 with h | ⟨x, hx, -⟩
+    · exact h
+    · cases hx
+  · have hgap : off ≤ m.size := hoff
+    have hrk : RunsKept (fRuns (m, bs, some (t, off, data))) (some f) := by
+      refine crashSeen_runsKept hs (fun x hx => ⟨off, data, ?_, fun r hr k hk hkm => ?_⟩)
+      · simp only [cToks, List.mem_singleton] at hx; subst hx; rfl
+      · simp only [fRuns, List.mem_cons, List.not_mem_nil, or_false] at hr
+        have hsz : (fMeta (m, bs, some (t, off, data))).size = m.size := rfl
+        rw [hsz] at hkm
+        rcases hr with rfl | rfl
+        · left; simp only [List.length_take] at hk; unfold cfLo at hk; dsimp only; omega
+        · right; dsimp only; unfold cfHi at hkm ⊢; omega
+    have htk := crashSeen_tailKept hs (fun x hx => ⟨off, data, by
+      simp only [cToks, List.mem_singleton] at hx; subst hx; rfl, by
+      simp only [cToks, List.mem_singleton] at hx; subst hx; exact hgap⟩)
+    refine h f hc hrk (fun b h1 h2 => ?_) (fun j x hx hj => ?_)
+    · rcases htk f rfl b h1 h2 with h | ⟨x, hx, off', data', hk, h3, h4, h5⟩
+      · exact .inl h
+      · simp only [cToks, List.mem_singleton] at hx; subst hx
+        simp only [OsChangeKind.write.injEq] at hk; obtain ⟨rfl, rfl⟩ := hk
+        exact .inr ⟨h3, h4, h5⟩
+    · have := crashSeen_tokKept hs List.mem_cons_self rfl rfl hgap f rfl j x.1
+        (by simp [List.getElem?_map, hx]) hj
+      simpa [List.getElem?_map, hx] using this
 
 theorem crashOk_Q {Q : OsState → OsState → Prop} {Good : Option OsFile → Prop} {p : GoString}
-    {R : Roots} {s : CFile} {V : Hist} (h : CrashOk Good p R s V) : CrashOkQ Q Good p R s V :=
-  ⟨h.1, fun i x hs => fileOk_Q (h.2 i x hs)⟩
+    {R : Roots} {s : CFile} {V : Hist} (hoff : ∀ i x, s = some (i, x) → OffOk x)
+    (h : CrashOk Good p R s V) : CrashOkQ Q Good p R s V :=
+  ⟨h.1, fun i x hs => fileOk_Q (hoff i x hs) (h.2 i x hs)⟩
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]

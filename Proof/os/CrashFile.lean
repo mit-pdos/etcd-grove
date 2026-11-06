@@ -27,7 +27,7 @@ invariant of a single file; mappings are not covered (`CfWf` asks for none).
 module
 
 public import Proof.os.Base
-public import GooseLang.Ext.Fs.CrashTok
+public import GooseLang.Ext.Fs.CrashKept
 public import GooseLang.Ext.Fs.TreeSpecsOpen
 
 @[expose] public section
@@ -144,10 +144,32 @@ def fRuns : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8) →
       [(0, DFrac.own (1 : Qp).half, bs.take (cfLo m off)),
        (cfHi m off data.length, DFrac.own (1 : Qp).half, bs.drop (cfHi m off data.length))]
 
-/-- Every file a crash may leave of an existing file `x` is `Good`. Not of its inode. -/
+/-- What a crash leaves past the old size of an existing file `x`: clean bytes, or, with a write in
+flight, the bytes it writes there. -/
+def TailOk : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8) → OsFile → Prop
+  | (m, _, none), f => ∀ b, m.size ≤ b → b < f.size → CleanPhys f b
+  | (m, _, some (_, off, data)), f => ∀ b, m.size ≤ b → b < f.size → CleanPhys f b ∨
+      (off ≤ b ∧ b < off + data.length ∧ f.contents[b]? = data[b - off]?)
+
+/-- What a crash leaves of the bytes under a write in flight (`x`'s bytes `cfRange` from `off`):
+each the write's byte, or its old byte (clean if it was), or a clean byte (a machine crash puts it
+on disk). -/
+def TokOk : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8) → OsFile → Prop
+  | (_, _, none), _ => True
+  | (m, bs, some (_, off, data)), f => ∀ j x, (cfRange m bs off data.length)[j]? = some x →
+      off + j < f.size →
+      f.contents[off + j]? = data[j]? ∨
+      (f.contents[off + j]? = some x.1 ∧ (x.2 = true → CleanPhys f (off + j))) ∨
+      CleanPhys f (off + j)
+
+/-- Every file a crash may leave of an existing file `x` is `Good`: its clean bytes kept
+(`FileCrashedR`), every byte of its runs what it was or clean (`RunsKept`: a restart keeps the page
+cache, a machine crash puts the file on disk), and past the old size clean bytes or a write's data
+(`TailOk`), and under a write in flight its byte or the old one (`TokOk`). Not of its inode. -/
 def FileOk (Good : Option OsFile → Prop) (x : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8)) :
     Prop :=
-  ∀ f, FileCrashedR (fMeta x) (fRuns x) (some f) → Good (some f)
+  ∀ f, FileCrashedR (fMeta x) (fRuns x) (some f) → RunsKept (fRuns x) (some f) → TailOk x f →
+    TokOk x f → Good (some f)
 
 /-- Every crash of the history `V` leaves `p` naming nothing (and then `Good none`) or the file
 `io`, if any. -/
@@ -405,7 +427,10 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       $$ Hr Hm [Hb] with ⟨%fo, %hfo, Hf, Hr, Hm, Hb⟩
     · iapply BigSepL.bigSepL_singleton.2; iexact Hb
     icases BigSepL.bigSepL_singleton.1 $$ Hb with Hb
-    obtain ⟨hfc, hnm, -⟩ := hfo
+    obtain ⟨hfc, hnm, hseen⟩ := hfo
+    have hrk : RunsKept [(0, DFrac.own (1 : Qp).half, bs)] fo :=
+      crashSeen_runsKept hseen (fun x hx => by cases hx)
+    have htk := crashSeen_tailKept hseen (fun x hx => by cases hx)
     rcases hto with ⟨hn, hg⟩ | ⟨i', hi, hl⟩
     · iexists none
       iframe Ht' Hm Hb Ht
@@ -419,7 +444,11 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       iexists (some f)
       iframe Ht' Hm Hb Ht
       isplitr
-      · ipureintro; exact hok.2 i _ rfl f hfc
+      · ipureintro
+        refine hok.2 i _ rfl f hfc hrk (fun b h1 h2 => ?_) trivial
+        rcases htk f rfl b h1 h2 with h | ⟨x, hx, -⟩
+        · exact h
+        · cases hx
       isplitl [Hf]
       · unfold startAt; rw [hl]; iexists f; isplitr
         · ipureintro; rfl
@@ -439,7 +468,19 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     unfold fRuns
     icases BigSepL.bigSepL_cons.1 $$ Hbs with ⟨Hb1, Hbs⟩
     icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb2
-    obtain ⟨hfc, hnm, -⟩ := hfo
+    obtain ⟨hfc, hnm, hseen⟩ := hfo
+    have hrk : RunsKept (fRuns (m, bs, some (t, off, data))) fo := by
+      refine crashSeen_runsKept hseen (fun x hx => ⟨off, data, ?_, fun r hr k hk hkm => ?_⟩)
+      · simp only [List.mem_singleton] at hx; subst hx; rfl
+      · simp only [fRuns, List.mem_cons, List.not_mem_nil, or_false] at hr
+        have hsz : (pwMeta m off data.length).size = m.size := rfl
+        rw [hsz] at hkm
+        rcases hr with rfl | rfl
+        · left; simp only [List.length_take] at hk; unfold cfLo at hk; dsimp only; omega
+        · right; dsimp only; unfold cfHi at hkm ⊢; omega
+    have htk := crashSeen_tailKept hseen (fun x hx => ⟨off, data, by
+      simp only [List.mem_singleton] at hx; subst hx; rfl, by
+      simp only [List.mem_singleton] at hx; subst hx; exact hgap⟩)
     rcases hto with ⟨hn, hg⟩ | ⟨i', hi, hl⟩
     · iexists none
       iframe Ht' Ht
@@ -455,7 +496,17 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       iexists (some f)
       iframe Ht' Ht
       isplitr
-      · ipureintro; exact hok.2 i _ rfl f hfc
+      · ipureintro
+        refine hok.2 i _ rfl f hfc hrk (fun b h1 h2 => ?_) (fun j x hx hj => ?_)
+        rotate_left
+        · have := crashSeen_tokKept hseen List.mem_cons_self rfl rfl hgap f rfl j x.1
+            (by simp [List.getElem?_map, hx]) hj
+          simpa [List.getElem?_map, hx] using this
+        rcases htk f rfl b h1 h2 with h | ⟨x, hx, off', data', hk, h3, h4, h5⟩
+        · exact .inl h
+        · simp only [List.mem_singleton] at hx; subst hx
+          simp only [OsChangeKind.write.injEq] at hk; obtain ⟨rfl, rfl⟩ := hk
+          exact .inr ⟨h3, h4, h5⟩
       isplitl [Hf]
       · unfold startAt; rw [hl]; iexists f; isplitr
         · ipureintro; rfl

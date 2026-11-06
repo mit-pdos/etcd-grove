@@ -176,29 +176,42 @@ theorem openInv_some {j : Ino} {b : GoString} {V V' : Hist} {s : CFile} {i : Ino
       · cases h
       · cases h; exact ⟨.inr rfl, rfl, m, bs, rfl⟩
 
-/-- An attempt of a write's loop, `nn` of its bytes written (the next from `o = off + nn`), the
-first `k` of the rest written by it: the narrowing, the size and the bytes written so far. -/
-theorem wa_step {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {off nn o k : Nat} {data : List w8}
-    (hgap : off ≤ m.size) (hNar : Narrow m bs off data m' bs') (hS : off + nn ≤ m'.size)
-    (hpre : ∀ i < nn, (bs'[off + i]?).map Prod.fst = data[i]?) (ho : o = off + nn)
-    (hnn : nn ≤ data.length) (hk : k ≤ (data.drop nn).length) :
+/-- An attempt of a write's loop, `w` of its bytes written so far, the attempt from `nn ≤ w` (the
+next from `o = off + nn`), the first `k` of the rest written by it: the narrowing, the size, the
+bytes written so far (`max w (nn + k)` of them) and the bytes past them unchanged. -/
+theorem wa_step {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {off nn w o k : Nat} {data : List w8}
+    (hgap : off ≤ m.size) (hNar : Narrow m bs off data m' bs') (hS : off + w ≤ m'.size)
+    (hnw : nn ≤ w) (hw : w ≤ data.length)
+    (hpre : ∀ i < w, (bs'[off + i]?).map Prod.fst = data[i]?)
+    (hmid : ∀ i, off + w ≤ i → bs'[i]? = bs[i]?) (ho : o = off + nn)
+    (hk : k ≤ (data.drop nn).length) (hU : m'.size ≤ max m.size (off + w)) :
     Narrow m bs off data (finMeta m' o (data.drop nn) k) (finBytes m' bs' o (data.drop nn) k) ∧
-      off + nn + k ≤ (finMeta m' o (data.drop nn) k).size ∧
-      ∀ i < nn + k, ((finBytes m' bs' o (data.drop nn) k)[off + i]?).map Prod.fst = data[i]? := by
+      off + max w (nn + k) ≤ (finMeta m' o (data.drop nn) k).size ∧
+      (finMeta m' o (data.drop nn) k).size ≤ max m.size (off + max w (nn + k)) ∧
+      (∀ i < max w (nn + k), ((finBytes m' bs' o (data.drop nn) k)[off + i]?).map Prod.fst = data[i]?) ∧
+      ∀ i, off + max w (nn + k) ≤ i → (finBytes m' bs' o (data.drop nn) k)[i]? = bs[i]? := by
   subst ho
   have hdl : (data.drop nn).length = data.length - nn := List.length_drop
-  refine ⟨narrow_fin hNar hgap nn hnn hk, ?_, ?_⟩
-  · show off + nn + k ≤ pwSize m'.size (off + nn) k
+  refine ⟨narrow_fin hNar hgap nn (by omega) hk, ?_, ?_, ?_, ?_⟩
+  · show off + max w (nn + k) ≤ pwSize m'.size (off + nn) k
+    unfold pwSize; split <;> omega
+  · show pwSize m'.size (off + nn) k ≤ _
     unfold pwSize; split <;> omega
   · intro i hi
     by_cases hin : i < nn
     · rw [finBytes_pre hNar.len (off + i) (by unfold cfLo; omega)]
-      exact hpre i hin
+      exact hpre i (by omega)
+    by_cases hik : i < nn + k
     · have := finBytes_written (m := m') (bs := bs') (off := off + nn) (data := data.drop nn)
-        (k := k) hNar.len hS hk (i - nn) (by omega)
+        (k := k) hNar.len (by omega) hk (i - nn) (by omega)
       rw [show off + nn + (i - nn) = off + i by omega, List.getElem?_drop,
         show nn + (i - nn) = i by omega] at this
       exact this
+    · rw [finBytes_mid hNar.len (by omega) hk (off + i) (by omega)]
+      exact hpre i (by omega)
+  · intro i hi
+    rw [finBytes_mid hNar.len (by omega) hk i (by omega)]
+    exact hmid i (by omega)
 
 section ops
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]

@@ -194,9 +194,9 @@ theorem crashSeenR_sub {Q : OsState → OsState → Prop} {i : Ino} {m : OsMeta}
     {rs rs' : List (Nat × DFrac × List (w8 × Bool))} {ts : List (Nat × TokInfo)}
     {fo : Option OsFile} (hs : RunsSub rs' rs) (h : CrashSeenR Q i m rs ts fo) :
     CrashSeenR Q i m rs' ts fo := by
-  obtain ⟨st, st', Γb, Γm, Γf, Γt, hcoh, hcr, hQ, hst', hm, hxs, hts, hoth⟩ := h
+  obtain ⟨st, st', Γb, Γm, Γf, Γt, hcoh, hcr, hQ, hst', hm, hxs, hts, hoth, hwfs⟩ := h
   refine ⟨st, st', Γb, Γm, Γf, Γt, hcoh, hcr, hQ, hst', hm, fun r' hr' k hk => ?_, hts,
-    fun t ti hti hp => ?_⟩
+    fun t ti hti hp => ?_, hwfs⟩
   · obtain ⟨r, hr, k', hk', he, hpos⟩ := hs r' hr' k hk
     rw [← hpos, ← he]; exact hxs r hr k' hk'
   · rcases hoth t ti hti hp with h | ⟨hq, h⟩

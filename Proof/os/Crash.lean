@@ -203,14 +203,21 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
   obtain ⟨bs', hbs'⟩ : ∃ bs', bs' = bs := ⟨_, rfl⟩
   have hNar : Narrow m bs off.toNat data m' bs' := by
     subst hm' hbs'; exact narrow_refl _ _ hlen
+  obtain ⟨w, hw0⟩ : ∃ w : Nat, w = 0 := ⟨_, rfl⟩
   have hnn : nnv.toNat < data.length := by subst hnnv; exact hn
-  have hS : off.toNat + nnv.toNat ≤ m'.size := by subst hnnv hm'; exact hgap
-  have hpre : ∀ i < nnv.toNat, (bs'[off.toNat + i]?).map Prod.fst = data[i]? := by
-    subst hnnv; intro i hi; exact absurd hi (Nat.not_lt_zero _)
+  have hnw : nnv.toNat ≤ w := by subst hnnv hw0; exact Nat.le_refl _
+  have hw : w ≤ data.length := by subst hw0; omega
+  have hS : off.toNat + w ≤ m'.size := by subst hw0 hm'; exact hgap
+  have hU : m'.size ≤ max m.size (off.toNat + w) := by subst hw0 hm'; omega
+  have hpre : ∀ i < w, (bs'[off.toNat + i]?).map Prod.fst = data[i]? := by
+    subst hw0; intro i hi; exact absurd hi (Nat.not_lt_zero _)
+  have hmid : ∀ i, off.toNat + w ≤ i → bs'[i]? = bs[i]? := by
+    subst hbs'; intro i _; rfl
   ihave Hown := (show cfOwn (GF := GF) p R γ (some (d.ino, m, bs, none)) V ⊢
     cfOwn p R γ (some (d.ino, m', bs', none)) V by rw [hm', hbs']) $$ Hown
-  clear hm' hbs' hnnv
-  iloeb as IH generalizing %m' %bs' %nnv %hNar %hnn %hS %hpre Hown Hosfd Hsl Hfd HΦ
+  clear hm' hbs' hnnv hw0
+  iloeb as IH generalizing %m' %bs' %nnv %w %hNar %hnn %hnw %hw %hS %hU %hpre %hmid Hown Hosfd Hsl
+    Hfd HΦ
   -- one attempt, from `nn`
   have hnnz : sint.Z nnv = nnv.toNat := by
     simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_of_lt (by omega)]
@@ -237,20 +244,22 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
   have hoffv' : 0 ≤ (off + nnv).toInt := by
     rw [BitVec.toInt_eq_toNat_of_lt (by rw [hoffv]; omega)]; omega
   have hdl : (data.drop nnv.toNat).length = data.length - nnv.toNat := List.length_drop
-  have hgap' : (off + nnv).toNat ≤ m'.size := by rw [hoffv]; exact hS
+  have hgap' : (off + nnv).toNat ≤ m'.size := by rw [hoffv]; omega
   have hW1 : FileOk Good (cfWriting m' bs' (off + nnv).toNat (data.drop nnv.toNat)) := by
-    rw [hoffv]; exact (fileOk_narrow hW hlen hgap hNar).2 0 nnv.toNat (by omega)
+    rw [hoffv]; exact (fileOk_narrow hW hlen hgap hNar nnv.toNat w hnw hw hS hU hpre hmid).2 0
   wp_apply wp_osPWriteStart_cf fd (off + nnv) (data.drop nnv.toNat) dq d N p R γ Good m' bs' V
     hN hwr hoffv' hgap' hW1 $$ Hos Hinv Hosfd Hown as %t Hosfd Hown
   have hW2 : ∀ k ≤ (data.drop nnv.toNat).length,
       FileOk Good (finMeta m' (off + nnv).toNat (data.drop nnv.toNat) k,
         finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k, none) := by
-    intro k hk; rw [hoffv]
-    exact (fileOk_narrow hW hlen hgap (narrow_fin hNar hgap nnv.toNat (by omega) hk)).1
+    intro k hk
+    obtain ⟨hN1, hS1, hU1, hpre1, hmid1⟩ := wa_step hgap hNar hS hnw hw hpre hmid hoffv hk hU
+    exact (fileOk_narrow hW hlen hgap hN1 (nnv.toNat + k) (max w (nnv.toNat + k)) (by omega)
+      (by omega) hS1 hU1 hpre1 hmid1).1
   wp_apply wp_osPWriteFinish_cf t d.ino (off + nnv).toNat (data.drop nnv.toNat) N p R γ Good m' bs'
     V hN hW2 $$ Hos Hinv Hown as %k %e %hke Hown
   obtain ⟨hk, hke, -⟩ := hke
-  obtain ⟨hNar', hS', hpre'⟩ := wa_step hgap hNar hS hpre hoffv (by omega) hk
+  obtain ⟨hNar', hS', hU', hpre', hmid'⟩ := wa_step hgap hNar hS hnw hw hpre hmid hoffv hk hU
   rw [hdl] at hk
   have hsln : sl.len = W64 data.length := by
     apply BitVec.eq_of_toInt_eq
@@ -259,8 +268,8 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_pure
-    iapply IH $$ %_ %_ %nnv %hNar' %hnn %(by omega) %(fun i hi => hpre' i (by omega))
-      Hown Hosfd Hsl Hfd HΦ
+    iapply IH $$ %_ %_ %nnv %(max w (nnv.toNat + k)) %hNar' %hnn %(by omega) %(by omega) %hS' %hU'
+      %hpre' %hmid' Hown Hosfd Hsl Hfd HΦ
   · rw [decide_eq_false he4]
     wp_auto
     have hWk : (W64 k).toNat = k := by
@@ -303,8 +312,8 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         have hne : nnv.toNat + k ≠ data.length := by
           intro hc; apply hfull; apply BitVec.eq_of_toNat_eq
           rw [hnk, hsln]; simp only [W64]; rw [BitVec.toNat_ofInt]; omega
-        iapply IH $$ %_ %_ %(nnv + W64 k) %hNar' %(by rw [hnk]; omega) %(by rw [hnk]; omega)
-          %(fun i hi => hpre' i (by rw [hnk] at hi; omega)) Hown Hosfd Hsl Hfd HΦ
+        iapply IH $$ %_ %_ %(nnv + W64 k) %(max w (nnv.toNat + k)) %hNar' %(by rw [hnk]; omega)
+          %(by rw [hnk]; omega) %(by omega) %hS' %hU' %hpre' %hmid' Hown Hosfd Hsl Hfd HΦ
       · rw [decide_eq_false he0]
         simp only [Bool.not_false]
         wp_auto
