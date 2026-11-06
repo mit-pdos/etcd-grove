@@ -747,26 +747,16 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     iframe Hrun
     iapply (applyResC_on γa C A' hM).2 $$ HR
 
-/-- A conditional proposition at a true condition. -/
-theorem iteE_pos {b : Bool} {P Q : IProp GF} {R : IProp GF → IProp GF} (h : b = true) :
-    R (if b then P else Q) ⊢ R P := by simp [h]
-
-/-- A conditional proposition at a false condition. -/
-theorem iteE_neg {b : Bool} {P Q : IProp GF} {R : IProp GF → IProp GF} (h : ¬ b = true) :
-    R (if b then P else Q) ⊢ R Q := by simp [h]
-
 set_option maxHeartbeats 0 in
-/-- **`run`, stoppable or not** (2026-11-05, the restart plan's R2b-3d stage 5d): `run.spec`'s proof
-(`stp = false`: no stop request, `done` announcing `True`) and `run.specStop`'s (`stp = true`: stop
-requests carrying `srvStopReq`, `done` announcing the escrowed image, with the shutdown's
-resources), one proof: the two differ only in the loop's stop branch, where `run` returns and its
-deferred shutdown runs. The shutdown's callees are needed only when `stp = true`. In both auth
-modes (the auth component's stage 2c, 2026-11-04: one proof over the component `C`, the
-environment's; until then `wp_proofOff` and `wp_proofOn`): the loop's resources `applyResC C`, the
-jobs over `applyAll.spec` (`run_job_body`, `run_job_snapC`). -/
-theorem EtcdServer.run.wp_proofG (stp : Bool)
-    (hStop : stp = true → schedule.Scheduler.Stop.spec (GF := GF) (hG := hG) ∧
-      raftNode.stop.specStop (GF := GF) (hG := hG) ∧ stopCleanupImage.spec (GF := GF) (hG := hG))
+/-- **`run`** (R2c-4: one spec, the R2b-2 review's F4; until then `wp_proofG` over a flag `stp`,
+`run.spec`'s proof without a stop and `run.specStop`'s with): `run.spec` over the shutdown's
+image (`stopCleanupImage.spec`, `stop_cleanup_image`'s). In both auth modes (the auth component's
+stage 2c, 2026-11-04): the loop's resources `applyResC C`, the jobs over `applyAll.spec`
+(`run_job_body`, `run_job_snapC`). -/
+theorem EtcdServer.run.wp_proofG
+    (hSStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
+    (hRStop : raftNode.stop.specStop (GF := GF) (hG := hG))
+    (hCl : stopCleanupImage.spec (GF := GF) (hG := hG))
     (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
@@ -783,22 +773,9 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
     (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
     (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
-    ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC)
-      (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
-      (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
-      (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (dd : GoString) (c : GName) (γk : GName),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C⌝ ∗
-        isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
-          (if stp then srvStopReq s E ρ dd else iprop(False))
-          (if stp then srvDoneInv ρ.rd.raft.raft ρ γn.id dd c else iprop(True)) ∗
-        (if stp then iprop(∃ cfg : go_etcd_io.etcd.server.v3.config.ServerConfig,
-          srvShutdownPre s cfg E γn γk ∗ ⌜Er.ST = srvTrStopK γk⌝)
-          else iprop(True)) }}
-      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
-    {{ RET #(); True }} := by
-  intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ dd c γk
-  wp_start as ⟨%hP, Hpre, Hsd⟩
+    EtcdServer.run.spec (GF := GF) (hG := hG) := by
+  intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ dd c
+  wp_start as ⟨%hP, Hpre⟩
   obtain ⟨hM, hRB⟩ := hP
   iunfold isServerRunC at Hpre
   iNamed Hpre
@@ -1410,18 +1387,14 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     iapply bag_recv_au γst v.stop _ _ $$ [$Hlc1 $Hlc2] Hstb
     inext
     iintro %u HSP
-    by_cases hst : stp = true
-    rotate_left
-    · iexfalso; iapply (iteE_neg (R := fun X => X) hst) $$ HSP
-    -- (R2b-3d stage 5d) a stop request: `run` returns, and its deferred shutdown runs
-    obtain ⟨hSStop, hRStop, hCl⟩ := hStop hst
-    ihave HSP := (iteE_pos (R := fun X => X) hst) $$ HSP
-    ihave Hsd := (iteE_pos (R := fun X => X) hst) $$ Hsd
-    icases Hsd with ⟨%cfg, Hpre, %hST⟩
+    -- (R2b-3d stage 5d) a stop request: `run` returns, and its deferred shutdown runs, with the
+    -- stop's slot (R2c-4: `isServerRunC`'s) and the request's readers (R2c-4: until then
+    -- `srvShutdownPre`'s)
+    iunfold srvStop.slot at Hskeep
+    icases Hskeep with ⟨%cfg, %γk, Hkeep, %hST⟩
     iunfold srvStopReq at HSP
-    icases HSP with ⟨#HSP, %hsc, #Hdd⟩
+    icases HSP with ⟨#HSP, %hsc, #Hdd, Hrds⟩
     obtain ⟨hoff, hcmp⟩ := hsc
-    ihave Hdc := (iteE_pos (R := fun D => ownBroadcastChan v.done γd D .Pending) hst) $$ Hdc
     (try wp_auto)
     wp_for_post
     -- the deferred shutdown: `wgMu.Lock(); close(s.stopping); wgMu.Unlock()`
@@ -1473,8 +1446,6 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     wp_apply wp_goAttach_Wait s γg $$ [$Hsync $Hwg $Hinv $Hwz $Hwwt] as Hgw
     -- `s.r.stop()`: the WAL's apply half, the transport's stop right (`Er.ST`), the stop claim
     icases stop_split C _ A $$ Hres with ⟨Hwta, Htrs, Hres⟩
-    iunfold srvShutdownPre at Hpre
-    icases Hpre with ⟨Hkeep, Hrds⟩
     icases (srvStop.keep_split s cfg E γn γk) $$ Hkeep with ⟨Hrp, Hclp, Hcsp, Himp⟩
     icases srvStop.raft_stop s γn γk $$ [$Hrp $Htrs] with ⟨Hsc, HST⟩
     rw [← hST]
@@ -1503,37 +1474,8 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
   iapply BigAndL.bigAndL_nil.2
   itrivial
 
-/-- `run.spec`: `wp_proofG` with no stop. -/
+/-- `run.spec`: `wp_proofG` over `Cleanup`'s and the image's callees (`stop_cleanup_image`). -/
 theorem EtcdServer.run.wp_proof
-    (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
-    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
-    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
-    (hGT : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
-    (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
-    (hGL : EtcdServer.getLead.spec (GF := GF) (hG := hG))
-    (hSL : EtcdServer.setLead.spec (GF := GF) (hG := hG))
-    (hIL : EtcdServer.isLeader.spec (GF := GF) (hG := hG))
-    (hN : notify.Notifier.Notify.spec (GF := GF) (hG := hG))
-    (hBL : v2stats.ServerStats.BecomeLeader.spec (GF := GF) (hG := hG))
-    (hGCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
-    (hSCI : EtcdServer.setCommittedIndex.spec (GF := GF) (hG := hG))
-    (hRS : raftNode.start.spec (GF := GF) (hG := hG))
-    (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
-    (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
-    (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
-    EtcdServer.run.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
-  have h := EtcdServer.run.wp_proofG false (fun h => nomatch h) hAA hLg hGI hGT hFifo hGL hSL hIL
-    hN hBL hGCI hSCI hRS hRA hNJ hSch s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ [] γd.1
-    γd.1
-  simp only [Bool.false_eq_true, ↓reduceIte] at h
-  iintro %Φ ⟨#Hi, %hP, Hpre⟩ HΦ
-  iapply h $$ [Hpre] HΦ
-  iframe Hi Hpre
-  ipureintro; exact hP
-
-/-- (R2b-3d stage 5d) `run.specStop`: `wp_proofG` with the stop. -/
-theorem EtcdServer.run.wp_proofStop
     (hSStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
     (hRStop : raftNode.stop.specStop (GF := GF) (hG := hG))
     (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
@@ -1560,21 +1502,10 @@ theorem EtcdServer.run.wp_proofStop
     (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
     (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
     (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
-    EtcdServer.run.specStop (GF := GF) (hG := hG) := by
-  intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ dd c cfg γk
-  have h := EtcdServer.run.wp_proofG true (fun _ => ⟨hSStop, hRStop,
-    stop_cleanup_image hCl hOn hSave hPut hUR hID hName hSafe⟩) hAA hLg hGI hGT hFifo
-    hGL hSL hIL hN hBL hGCI hSCI hRS hRA hNJ hSch s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀
-    c₀ x₀ dd c γk
-  simp only [↓reduceIte] at h
-  iintro %Φ ⟨#Hi, %hP, Hpre, Hsd, %Hsp⟩ HΦ
-  iapply h $$ [Hpre Hsd] HΦ
-  iframe Hi Hpre
-  isplitr
-  · ipureintro; exact hP
-  iexists cfg
-  iframe Hsd
-  ipureintro; exact Hsp
+    EtcdServer.run.spec (GF := GF) (hG := hG) :=
+  EtcdServer.run.wp_proofG hSStop hRStop
+    (stop_cleanup_image hCl hOn hSave hPut hUR hID hName hSafe) hAA hLg hGI hGT hFifo
+    hGL hSL hIL hN hBL hGCI hSCI hRS hRA hNJ hSch
 
 end proof
 

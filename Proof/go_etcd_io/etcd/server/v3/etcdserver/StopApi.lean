@@ -15,7 +15,7 @@ sealed body and these laws, not the hub's text. Until 2026-11-05 the pieces were
 
 **Laws.** `srvStop.keep_intro` (`NewServer`'s proof); `srvStop.keep_split` into the four
 consumers' parts (sealed too), each with one narrow elimination into what its consumer takes, all
-used by `run`'s deferred shutdown (`run.specStop`):
+used by `run`'s deferred shutdown (`run.spec`):
 * `srvStop.raft_stop`: with the live transport, the raft loop's stop claim and the raft
   environment's `ST` (`srvTrStopK γk`), what `raftNode.stop.specStop` takes;
 * `srvStop.cleanup_pieces`: the lessor's stop right and, with auth off, the auth store's closer,
@@ -180,7 +180,7 @@ theorem srvStop.image_inputs (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.S
   rw [Hw, Heq1, Heq2, he]
 
 /-- **The stop's slot where `start` and `run` take it** (2026-11-05, the restart plan's R2c-3; the
-user's Q5 (a), adapted, `questions.md` D5): what `NewServer` kept for the stop (`srvStop.keep`) at
+user's Q5 (a), adapted: `questions.md` D-d): what `NewServer` kept for the stop (`srvStop.keep`) at
 the raft wrapper's names `γrn`, at some configuration `cfg` and transport key `γk`, the key the one
 the raft environment's transport stop right `Er.ST` names (a fact of the construction, `srvErM`'s:
 D1, until then `run.specStop`'s premise). A conjunct of `start`'s construction premise
@@ -190,20 +190,17 @@ def srvStop.slot (s : Loc) (E : apply.AEnv GF) (γrn : RNNames) (Er : RNEnv GF) 
   iprop(∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γk : GName),
     srvStop.keep s cfg E γrn γk ∗ ⌜Er.ST = srvTrStopK γk⌝)
 
-/-- **What `run`'s shutdown needs besides `isServerRun`** (R2b-2's draft; restated 2026-11-04,
-R2b-3d, and 2026-11-05 over the stop's slot): what `NewServer` kept for the stop (`srvStop.keep`, at
-the configuration `cfg`, the apply environment `E`, the raft wrapper's names `γn` and the transport
-key's name `γk`) (R2c-2: the data directory, `srvDataDir`, moved into the stop request,
-`srvStopReq`), and (R2b-3d stage 5b) the store's readers of the serving stocks the server
-never used (`srvServeBuilt`'s 64 request readers and `srvWatchReaders`' 64 watch readers,
-`mvcc.watchReader_storeReader`): with the slot's and the apply thread's, every reader of the store,
-for the backend's `Close` (gap 4's census). The caller gives them back: the request path stopped
-first (in `restart3` the member never served). `NewServer` gives the slot; `start` hands it to
-`run`. -/
-def srvShutdownPre (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (E : apply.AEnv GF) (γn : RNNames) (γk : GName) : IProp GF :=
-  iprop(srvStop.keep s cfg E γn γk ∗
-    ([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader E.s E.γ))
+/-- **The configuration's data directory field** (persistent; R2c-4): the slot's `DataDir`, which
+`start` records in the stop right (`srvStopRight`) so that the stop's image names it. -/
+theorem srvStop.dataDirField (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) :
+    srvStop.keep (GF := GF) s cfg E γrn γk ⊢
+      srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗ srvStop.keep s cfg E γrn γk := by
+  unfold srvStop.keep srvStop.imagePart
+  iintro ⟨Hr, Hc, Hcs, Hreg, #Hdd, #Hwd, Hst⟩
+  iframe Hdd
+  iframe
+  iexact Hwd
 
 end slot
 

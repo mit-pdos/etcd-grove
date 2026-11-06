@@ -141,10 +141,47 @@ compaction mode; the member was built so) and the data directory `dd` (`srvDataD
 def memberStop (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
     (γn : NetNames GF) (ρ : ReqNames) (dd : GoString) : IProp GF :=
   iprop(m ↦ (github_com.mit_pdos.etcd_grove.examples.etcd.restart.member.mk s pl) ∗
-    (∃ E : apply.AEnv GF, srvStopRight s E γ ρ id dd ∗ ⌜srvStop.scope E⌝ ∗ srvDataDir s dd) ∗
+    srvDataDir s dd ∗
     ⌜∃ li : GoInterfaceOk, pl = GoInterface.ok li⌝ ∗
     http.httpListenerCloser pl peerAddr (raftProto (netRh γn)) ∗
     ⌜ρ.rd.raft.raft = γ⌝ ∗ (∃ E : apply.AEnv GF, srvAppliedInv s E ρ.rd))
+
+/-- (R2c-4) **What a member's stop takes of the started member**: the right to stop its server
+(`srvStopRight`, `Start`'s, inside `etcdstart.memberUp`), at an apply environment in the stop's scope
+(`srvStop.scope`), and the store's readers of the serving stocks the member never used (`memberUp`'s
+64 store readers and its watchable store's 64), which the stop request hands `run`'s shutdown. -/
+def memberStopRes (s : Loc) (ρ : ReqNames) (id : w64) : IProp GF :=
+  iprop(∃ (E : apply.AEnv GF) (dd : GoString), srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ ⌜srvStop.scope E⌝ ∗
+    [∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader E.s E.γ)
+
+/-- (R2c-4) **A started member that will not serve, split for its stop**: its request view and
+`GoAttach` resources, and what its stop takes (`memberStopRes`), out of compaction mode. -/
+theorem memberUp_stopRes (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
+    (γn : NetNames GF) (id : w64) (hcmp : E₀.cmp = false) :
+    etcdstart.memberUp (GF := GF) s ρ E₀ lg γn id ⊢
+      (∃ (E : apply.AEnv GF) (γw : GName), isServerReq s E { ρ with wait := γw } ∗ srvGoRes s) ∗
+        memberStopRes s ρ id := by
+  iintro Hup
+  iunfold etcdstart.memberUp at Hup
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, -, Hgo, -, -, -, -, -, -, -, -, Hsts, -, -, HWR, -,
+    %dd, Hr⟩
+  isplitl [Hgo]
+  · iexists E, γw
+    iframe Hreq Hgo
+  iunfold memberStopRes
+  iexists E, dd
+  iframe Hr
+  isplitr
+  · ipureintro; exact ⟨HEc.2.1, by rw [HEc.1.2.2.2.1, hcmp]⟩
+  rw [← List.replicate_append_replicate]
+  iapply BigSepL.bigSepL_append.2
+  iframe Hsts
+  iunfold srvWatchReaders at HWR
+  icases HWR with ⟨%wsl, %γws, -, -, %Hst, -, -, Hws⟩
+  rw [← Hst]
+  iapply BigSepL.bigSepL_impl $$ Hws
+  iintro !> %k %x %_ H
+  iapply mvcc.watchReader_storeReader $$ H
 
 /-- A started member's applied index's invariant (from its reader's view, `isServerRead`). -/
 theorem memberUp_applied (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)

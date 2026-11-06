@@ -11,23 +11,7 @@ def etcdstart.Start_builtR_spec : Prop :=
           isPkgInit pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
               etcdstart.memberBuiltR s ρ E₀ lg γn id N sv ∗
                 srvDataDir s dd ∗ (∃ cfg E γrn γk, srvStop.keep s cfg E γrn γk) ∗ threadTok -∗
-            ▷ (etcdstart.memberUp s ρ E₀ lg γn id ∗ srvStopRight s ρ.rd.raft.raft ρ id dd -∗ Φ (intoVal ())) -∗
-              WP
-                ((intoVal
-                    (methods go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty.PointerType
-                      go!"Start" (intoVal s)))
-                  (intoVal ()))
-                {{ Φ }}
-
-def etcdstart.Start_builtS_spec : Prop :=
-  ∀ (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (N : Nat) (sv : Bool)
-    (dd : GoString) [ReceiptBoundLe GF (N + 1)],
-    ⊢
-      □
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-              etcdstart.memberBuiltS s ρ E₀ lg γn id N sv ∗ srvDataDir s dd ∗ threadTok -∗
-            ▷ (etcdstart.memberUp s ρ E₀ lg γn id ∗ srvStopRight s ρ.rd.raft.raft ρ id dd -∗ Φ (intoVal ())) -∗
+            ▷ (etcdstart.memberUp s ρ E₀ lg γn id -∗ Φ (intoVal ())) -∗
               WP
                 ((intoVal
                     (methods go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty.PointerType

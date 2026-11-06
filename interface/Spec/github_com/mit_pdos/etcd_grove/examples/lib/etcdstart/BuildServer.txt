@@ -106,7 +106,8 @@ def etcdstart.BuildServer.specStop : Prop :=
                                                 ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
                                                     ⌜err = GoInterface.nil⌝ ∗
                                                       threadTok ∗
-                                                        etcdstart.memberBuiltS s ρ E₀ lg γn id N false lm ∗
+                                                        etcdstart.memberBuilt s ρ E₀ lg γn id N false (W64 0) (W64 0)
+                                                            (W64 0) bootKV lm ∗
                                                           srvDataDir s (name ++ go!".etcd") -∗
                                                   Φ (intoVal s, intoVal err)) -∗
                                             WP

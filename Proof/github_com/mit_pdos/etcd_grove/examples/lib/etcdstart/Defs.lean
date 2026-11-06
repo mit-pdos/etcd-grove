@@ -334,7 +334,10 @@ progress-notify interval; what `Start` returns (the request and read views, the 
 resources with the thread token, a `lgMu` reader slot, the read loop's readers) and what
 `NewServer` left for serving (`srvServeBuilt`'s resources, two of its `lgMu` slots spent on
 `Start`; the watchable store's readers), and its place in the network `γn`; (the lease-expiry
-plan's X2, 2026-11-04) the lease subsystem at the member's lease mode `m` (default `none`). -/
+plan's X2, 2026-11-04) the lease subsystem at the member's lease mode `m` (default `none`);
+(2026-11-05, the restart plan's R2c-4) and `Start`'s right to stop the server (`srvStopRight`, at
+`E`, the member id `id` and the configuration's data directory), at the environment of the
+serving stocks a stop request hands back. -/
 def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (m : lease.Mode := .none) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
@@ -350,7 +353,8 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E m)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗
+    (∃ dd : GoString, srvStopRight s E ρ.rd.raft.raft ρ id dd))
 
 /-- **The Lease service `v3rpc.Server` registered** (persistent; the closed lease example,
 2026-11-02): its unary methods among the registrations `regs` (`leaseRegs`), on the

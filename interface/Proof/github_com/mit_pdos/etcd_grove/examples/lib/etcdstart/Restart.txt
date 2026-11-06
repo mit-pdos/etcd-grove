@@ -17,8 +17,3 @@ def etcdstart.bootPremiseR (N : Nat) (ps : List w64) (bootLog : List EntryM) (ct
       ∀ cfg U γ,
         ⌜etcdstart.cfgOk token name cfg ∧ Uok U ∧ γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧ γ.boot = bootLog⌝ -∗
           bootstrapRestartContract cfg U γ id N dir)
-
-def etcdstart.memberBuiltS (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames
-    GF) (id : w64) (N : Nat) (served : Bool) (m : lease.Mode := lease.Mode.none) : IProp GF :=
-  etcdstart.memberBuilt s ρ E₀ lg γn id N served (W64 0) (W64 0) (W64 0) bootKV m fun γrn cfg E γk =>
-    srvStop.keep s cfg E γrn γk

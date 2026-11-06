@@ -242,6 +242,9 @@ theorem Run.wp_proof
   icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₂ with ⟨Hac₂, Hfr₂⟩
   icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₃ with ⟨Hac₃, Hfr₃⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog₁, hst₂, hst₃, -⟩ := Hal
+  -- (R2c-4) members 2 and 3 out of compaction mode (their boot bundles'): their stops' scope
+  icases etcdstart.memberBoot_cmp _ _ _ _ _ _ false $$ Hmb₂ with ⟨%hc₂, Hmb₂⟩
+  icases etcdstart.memberBoot_cmp _ _ _ _ _ _ false $$ Hmb₃ with ⟨%hc₃, Hmb₃⟩
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hd₁ : go!"http://" ++ peerAddr₁ ∈ dir3 id₁ id₂ id₃ id₁ := by simp [dir3]
   have hd₂ : go!"http://" ++ peerAddr₂ ∈ dir3 id₁ id₂ id₃ id₂ := by simp [dir3, hn12.symm]
@@ -293,8 +296,8 @@ theorem Run.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₂
-  icases Hup₂ with ⟨%E₂', %cfg₂, %γw₂, -, #Hreq₂, -, Hgo₂, -⟩
+  -- (R2c-4) member 2 never serves: what its stop takes, out of its started bundle
+  icases memberUp_stopRes _ _ _ _ _ _ hc₂ $$ Hup₂ with ⟨⟨%E₂', %γw₂, #Hreq₂, Hgo₂⟩, Hsres₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
@@ -315,8 +318,7 @@ theorem Run.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₃
-  icases Hup₃ with ⟨%E₃', %cfg₃, %γw₃, -, #Hreq₃, -, Hgo₃, -⟩
+  icases memberUp_stopRes _ _ _ _ _ _ hc₃ $$ Hup₃ with ⟨⟨%E₃', %γw₃, #Hreq₃, Hgo₃⟩, Hsres₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   ihave Hgo : srvGoRes s₁ $$ [Hwgr Htok]
@@ -400,7 +402,7 @@ theorem Run.wp_proof
         hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
         ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₂; decide) Hlg Hck Haf
-        Hbuq Hrf Hdbo Hms hAs) $$ [Hst₂ Hac₂ Htok2]
+        Hbuq Hrf Hdbo Hms hAs) $$ [Hst₂ Hsres₂ Hac₂ Htok2]
     · iframe; iframe #
     iapply HΦ; itrivial
   · -- member 3 stopped and started again
@@ -415,7 +417,7 @@ theorem Run.wp_proof
         hvs hrule hboot hblen hb3 hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
         (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
         ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ (by unfold plainEndpoint clientAddr₃; decide) Hlg Hck Haf
-        Hbuq Hrf Hdbo Hms hAs) $$ [Hm₃ Hsr₃ Hcl₃ Hac₃ Htok2]
+        Hbuq Hrf Hdbo Hms hAs) $$ [Hm₃ Hsr₃ Hcl₃ Hsres₃ Hac₃ Htok2]
     · iframe; iframe #
       iunfold memberStop
       iframe

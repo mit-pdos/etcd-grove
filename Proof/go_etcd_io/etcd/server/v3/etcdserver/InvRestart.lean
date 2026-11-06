@@ -211,14 +211,26 @@ def srvStop.scope (E : apply.AEnv GF) : Prop := E.authOn = false ∧ E.cmp = fal
 evidence that the server at the request names `ρ` applied the bootstrap log (`srvBootApplied`,
 R2b-2 review F2), the stop's scope at the server's apply environment `E` (`srvStop.scope`), and the
 server's data directory `dd` with no dedicated WAL directory (`srvDataDir`, which the image names:
-the scope's other half). Until R2c-2 the request carried only `srvBootApplied ρ`, and `run.specStop`
-took the scope as premises. -/
+the scope's other half), and (R2c-4, F-e) the store's readers of the serving stocks the server no
+longer uses (`srvServeBuilt`'s 64 request readers and `srvWatchReaders`' 64 watch readers,
+`mvcc.watchReader_storeReader`): with the slot's and the apply thread's, every reader of the store,
+for the backend's `Close` (gap 4's census); the sender stopped serving first. Until R2c-2 the
+request carried only `srvBootApplied ρ`, and `run.specStop` took the scope as premises; until R2c-4
+the readers were `run.specStop`'s (`srvShutdownPre`), which a serving member cannot give at its
+start. -/
 def srvStopReq (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString) : IProp GF :=
-  iprop(srvBootApplied ρ ∗ ⌜srvStop.scope E⌝ ∗ srvDataDir s dd)
+  iprop(srvBootApplied ρ ∗ ⌜srvStop.scope E⌝ ∗ srvDataDir s dd ∗
+    ([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader E.s E.γ))
 
-instance srvStopReq_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString) :
-    Persistent (srvStopReq (GF := GF) s E ρ dd) := by
-  unfold srvStopReq; infer_instance
+/-- The stop request names only the request names' read side (`ρ.rd`): the same at the wait
+registry `start` makes (R2c-4). -/
+theorem srvStopReq_wait (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (w : GName) (dd : GoString) :
+    srvStopReq (GF := GF) s E { ρ with wait := w } dd = srvStopReq s E ρ dd := rfl
+
+/-- The escrow names only the request names' read side (`ρ.rd`) (R2c-4). -/
+theorem srvDoneInv_wait (γ : SrvRaft) (ρ : ReqNames) (w : GName) (id : w64) (dd : GoString)
+    (c : GName) : srvDoneInv (GF := GF) γ { ρ with wait := w } id dd c = srvDoneInv γ ρ id dd c :=
+  rfl
 
 /-- **The right to stop the started server `s`** (DRAFT, R2b-2; see the file header): `s.stop` (a
 channel a stop request is sent on, `srvStopReq` at the server's apply environment `E`: R2c-2; until

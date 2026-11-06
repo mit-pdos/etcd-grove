@@ -465,9 +465,9 @@ EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdSer
 # committed index's and the leader's setters (with bodies), the raft storage snapshot's
 # metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
 # trust boundary (`axiom … .wp_proof`): v2stats' `BecomeLeader`. (`revokeExpiredLeases`, the expired
-# leases' receive, is unreachable since D19n, 2026-10-18.) (`Cleanup`, `raftNode.stop`, the scheduler's `Stop` and the warning
-# were its shutdown's, which D19m (2026-10-18) made unreachable: `raftNode.stop` stays linked,
-# proved.)
+# leases' receive, is unreachable since D19n, 2026-10-18.) Its shutdown (R2c-4, one spec: a stop
+# request on `stop`): the scheduler's `Stop`, `raftNode.stop` (`specStop`), `Cleanup` and the
+# image's reads and write (`stop_cleanup_image`).
 SnapshotMetadata__GetTerm: @
 EtcdServer__setCommittedIndex:
 EtcdServer__setLead:
@@ -477,7 +477,7 @@ schedule_job__Do:
 schedule_NewJob: schedule_job__Do
 schedule_Scheduler__Schedule:
 schedule_Scheduler__Stop:
-EtcdServer__run: EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule
+EtcdServer__run: schedule_Scheduler__Stop =raftNode.stop.wp_proofStop EtcdServer__Cleanup storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule
 # The server's `start` and `Start` (server.go; the request path's unit 4c, see InvStart.lean):
 # `start` with its body (the registries, the channels, the context, the read loop's `*Read`, the
 # leader-change notifier, `GoAttach`'s protocol, `go s.run()`); `Start` with its body (`start`,

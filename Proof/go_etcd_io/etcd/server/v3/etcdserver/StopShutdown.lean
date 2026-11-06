@@ -3,14 +3,14 @@
 (the restart plan's R2b-3d stage 5c/5d, 2026-11-05; `notes/restart-plan.md`, "R2b-3d stage 5").
 Lean-first (no Rocq counterpart).
 
-`run.specStop`'s proof (`EtcdServer__run.lean`, `wp_proofG` at `stp = true`) runs the deferred
+`run.spec`'s proof (`EtcdServer__run.lean`, `wp_proofG`, at a stop request) runs the deferred
 shutdown: `close(stopping)` under `wgMu`, `cancel()`, `sched.Stop()` (the apply thread's resources
 at the handed log `A` back, `applyResC`), `s.wg.Wait()`, `s.r.stop()` (`raftNode.stop.specStop`),
 `s.Cleanup()`, `close(done)` with the image escrowed. This file has the two steps that are about the
 apply thread's resources rather than the control flow:
 * `stop_split`: what `raftNode.stop` takes out of `applyResC` (the WAL's apply half, the live
   transport for `Er.ST`), the rest kept as `applyResStop`;
-* `stop_cleanup_image`: `s.Cleanup()` from the rest, the stop's slot (`srvShutdownPre`) and what
+* `stop_cleanup_image`: `s.Cleanup()` from the rest, the stop's slot (`srvStop.slot`) and what
   `raftNode.stop` returned, giving the stopped member's image (`srvDiskImage`): `Cleanup`'s
   precondition by gap 4's census (every store reader retired, the backend's whole open token) and
   the stop commit's request (`commitReq_freeze`), then the image from `Cleanup`'s post
@@ -391,7 +391,7 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
 
 /-- **`s.Cleanup()` at the stop, and the image** (see the file header): from the apply thread's
 resources at the handed log `A` (`applyResStop`), the stop's slot but its raft part, the caller's
-unused serving readers (`srvShutdownPre`'s), the stop request's evidence and data directory
+unused serving readers (`srvStopReq`'s, R2c-4), the stop request's evidence and data directory
 (`srvBootApplied`, `srvDataDir`: `srvStopReq`'s), and what `raftNode.stop` returned
 (`raftNode.stop.specStop`'s post), the member's image at the stopped incarnation's names. Scope (the
 stop request's, `srvStop.scope`): a first start (`ai₀ = 0`, `pre = []`), auth off, no compactor

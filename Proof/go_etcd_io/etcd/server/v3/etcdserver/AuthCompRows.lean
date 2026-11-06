@@ -207,7 +207,8 @@ def applyStartC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     srvSnapOwn s ci E γr γ ai₀)
 
 /-- **What `run` needs** (`isServerRun` off, `isServerRunOn` on; the stop requests' `SP` and the
-done channel's `DQ` as `isServerRun`'s). -/
+done channel's `DQ` as `isServerRun`'s; R2c-4: and the stop's slot, `srvStop.slot`, which the
+import graph keeps out of `isServerRun`). -/
 def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
@@ -255,7 +256,10 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- (J8a-3, 2026-11-01) the two configuration fields `start` writes, read-only from then on:
     -- with `srvSnapRO`'s rebuild, the whole configuration read-only (`specSnap`'s `srvCfgAddr s ↦□`)
     "#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
-      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu))
+      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu) ∗
+    -- (R2c-4) the stop's slot (`srvStop.slot`), from `start`'s construction premise, for the
+    -- deferred shutdown
+    "Hskeep" ∷ srvStop.slot s E γn Er)
 
 /-- **The apply thread's resources at the log `A`** (`applyRes` off, `applyResOn` on: `run`'s
 loop invariant and its jobs' `Prev`/`Post`), over the component `K`: the server's view, the
@@ -545,7 +549,8 @@ theorem isServerRun_C (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
     (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (SP DQ : IProp GF)
     (hC : E.authMode = AuthC.off.mode) :
-    isServerRun (GF := GF) s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ SP DQ ⊣⊢
+    isServerRun (GF := GF) s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ SP DQ ∗
+        srvStop.slot s E γn Er ⊣⊢
       isServerRunC .off s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ SP DQ := by
   have hS := isServerM_C (GF := GF) .off s γ ci TM E ρ γr
   have hA := applyStart_C (GF := GF) s γ ci b E γr ai₀ c₀ x₀ ρ.wait hC
@@ -554,15 +559,15 @@ theorem isServerRun_C (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
   unfold isServerRun isServerRunC
   simp only [AuthC.isOn, srvCM_false]
   constructor
-  · iintro ⟨#Hsrv, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg
+  · iintro ⟨⟨#Hsrv, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩, Hsk⟩
+    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
     isplitr
     · iapply hS.1 $$ Hsrv
     isplitr
     · iapply acLessor_off
     iapply hA.1 $$ Hstart
-  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg
+  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg, Hsk⟩
+    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
     isplitr
     · iapply hS.2 $$ Hsrv
     iapply hA.2 $$ Hstart
@@ -574,7 +579,8 @@ theorem isServerRunOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci :
     (γn : RNNames) (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (hC : E.authMode = (AuthC.on γa).mode) :
-    isServerRunOn (GF := GF) s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ ⊣⊢
+    isServerRunOn (GF := GF) s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ ∗
+        srvStop.slot s E γn Er ⊣⊢
       isServerRunC (.on γa) s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ := by
   have hS := isServerM_C (GF := GF) (.on γa) s γ ci TM E ρ γr
   have hA := applyStartOn_C (GF := GF) γa s γ ci b E γr ai₀ c₀ x₀ ρ.wait hC
@@ -583,15 +589,15 @@ theorem isServerRunOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci :
   unfold isServerRunOn isServerRunC
   simp only [AuthC.isOn]
   constructor
-  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg
+  · iintro ⟨⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩, Hsk⟩
+    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
     isplitr
     · iapply hS.1 $$ Hsrv
     isplitr
     · iapply hL.2 $$ Hlnil
     iapply hA.1 $$ Hstart
-  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg
+  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg, Hsk⟩
+    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
     isplitr
     · iapply hS.2 $$ Hsrv
     isplitr

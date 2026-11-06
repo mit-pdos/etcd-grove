@@ -35,9 +35,14 @@ theorem stop.wp_proof
     (hClose : http.ListenerClose_spec (GF := GF) (hG := hG)) :
     stop.spec (GF := GF) (hG := hG) := by
   intro m s pl γ id peerAddr γn ρ name
-  wp_start as ⟨Hm, %Hb3⟩
+  wp_start as ⟨Hm, Hres, %Hb3⟩
   iunfold memberStop at Hm
-  icases Hm with ⟨Hrec, ⟨%Es, Hsr, %Hsc, #Hdd⟩, %Hli, Hcl, %Hγρ, #Hai⟩
+  icases Hm with ⟨Hrec, #Hdd, %Hli, Hcl, %Hγρ, #Hai⟩
+  subst Hγρ
+  iunfold memberStopRes at Hres
+  icases Hres with ⟨%Es, %dd, Hsr, %Hsc, Hrds⟩
+  icases srvStopRight_dd s Es _ ρ id dd _ $$ [$Hsr $Hdd] with ⟨%Hdd', Hsr⟩
+  subst Hdd'
   icases Hai with ⟨%E, #Hai⟩
   obtain ⟨li, rfl⟩ := Hli
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -60,9 +65,9 @@ theorem stop.wp_proof
   wp_auto
   dsimp only
   have Hba : ρ.rd.raft.raft.boot.length ≤ uint.nat v := by
-    rw [Hγρ]; word
+    word
   -- `m.s.HardStop()`
-  wp_apply (wp_HardStop s Es γ ρ id (name ++ go!".etcd")) $$ [Hsr] as Himg
+  wp_apply (wp_HardStop s Es ρ.rd.raft.raft ρ id (name ++ go!".etcd")) $$ [Hsr Hrds] as Himg
   · iframe Hsr
     iframe #
     iunfold srvStopReq
@@ -73,7 +78,9 @@ theorem stop.wp_proof
       ipureintro; exact Hba
     isplitr
     · ipureintro; exact Hsc
-    iexact Hdd
+    isplitr
+    · iexact Hdd
+    iexact Hrds
   -- `m.pl.Close()`
   wp_apply (hClose _ li peerAddr (raftProto (netRh γn)) rfl) $$ [Hcl] as %err ⟨Haddr, Hown⟩
   · iexact Hcl
