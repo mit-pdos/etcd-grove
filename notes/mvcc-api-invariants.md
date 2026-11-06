@@ -1743,3 +1743,31 @@ follows from the transaction's `slotY` and `muHeld` (`wcrPart_agree`).
   writer's and moves them to the restored compaction revision (`r.crev`; `-1` off), `s.mu`'s half
   into the restored `muInvLag`/`muInvAt`; the writer's half is dropped until the finish's writer slot
   placeholder goes (then into its `slotY`). `wcrRestore_M1` is gone.
+
+**Next for track A (a design for request 3 with one pool; not started, 2026-11-06):**
+- **The reader supply** (new, `Api.lean` beside `isMvccPlain`, private): `rdSupply s γ := ∃ (N : Namespace)
+  (γp : GName) (R : IProp GF), ⌜N = storeRdPoolN ∨ N = watchRdPoolN⌝ ∗ threadPool.isThreadPool N γp R ∗
+  □ (R -∗ storeReaderC s γ ∗ (storeReaderC s γ -∗ R))`: a pool whose copies each lend a
+  `storeReaderC` and take it back. A plain store's pool is of `storeReaderC s γ` (the wand trivial);
+  a watchable store's is its `watchReader w s γw` pool (`watchReader = storeReader ∗` the outer lock's
+  slot: the slot stays in the wand). `isMvccPlain` gains `rdSupply s γ ∗ certFree γ ∗ □ (⧗ 1 ={⊤}=∗
+  storeWT γ)` (track B's shapes) at its end; `CmpCb`'s watchable `Compact` builds the inner store's
+  `isMvccPlain` from the watchable handle's pool (the same `γp`, `N := watchRdPoolN`), so there is one
+  pool and `mvccReaderN = rdStockN - 3` stands. Users of `isMvccPlain`'s pattern (`CmpCb` 319/493/512,
+  `SnapLaws` 61, `watchableStore__NewWatchStream` 98, `CloseApi`) take one more `-` or name it.
+- `NewStoreApi`: the pool by `threadPool.init storeRdPoolN` from the `rdStockN - 2` readers left after
+  the compactor's (`threadBound ≤ rdStockN - 3 ≤ (rdStockN - 2 - 1) + 1`); `certFree` by
+  `ghost_map_insert_persist (W64 0) []` on `NewStore`'s `ghostMapAuth γ.cok 1 ∅`; the supply from
+  `mvccStorageFor`'s `□ (⧗ 1 ={⊤}=∗ wbTok)` (`kbWTSupply` at the compacting instance). `NewApi`
+  likewise for the watchable handle (`New.spec` returns `ghostMapAuth γ.st.cok`).
+- The supply "at the current names": `storeWT γ` is at `γ.kb`, the first backend's; after a `Restore`
+  the writer needs the new backend's. Either the handle's supply is `□ ∀ p, ⧗ 1 ={⊤}=∗ storeWT
+  (γ.withPhys p)` for the instances the store may hold (each restored backend's supply is
+  `mvccStorageFor`'s, so the store must collect it: a `Restore` would add it, not the handle), or the
+  supply lives in `mvccBackend` (re-given by `Restore` at `B'`). The latter fits: `mvccBackend` is what
+  `Write` takes, and `Restore` replaces it. A design question for track B (`store.Write`'s premise).
+- **The revision tokens and pin in `writerL`** (track B's shape): an `InvStore` change (`writerL`'s
+  checked-in state gains `ownToks γ.revs (2^63 - 3 - |ilog|) ∗ writerPin γ ilog`), with `NewStore`
+  (the initial `writerL`), `store.Write` (takes them after its checkout), the `End`s (put them back),
+  `RestoreMoves` (the takeover takes them out, the finish puts the restored ones in) and `SnapFreeze`
+  (the frozen writer's) adapted: one commit across both tracks' files, to be scheduled with track B.
