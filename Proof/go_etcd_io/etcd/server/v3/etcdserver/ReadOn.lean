@@ -208,7 +208,8 @@ def rangeCompactedAt (o : OpFull) (log : mvcc.Log) (crev : Int) : Prop :=
 /-- **Which error a failed `Range` returns** (k8s etcd3 7c-2 part 2, S3, 2026-11-06): mvcc's
 `ErrFutureRev` or `ErrCompacted`, each with the read's facts at the error (`rangeErrAt`); an auth
 package variable (`authErrVarIs`: `doSerialize`'s, S3a); the read index's (`readErrIs`, S3b); or
-the read's context error wrapped by `fmt.Errorf`'s `%w` (`mvcc.ctxErrorf`: `rangeKeys`, F1). -/
+the read's context error wrapped by `fmt.Errorf`'s `%w`, its description's prefix `rangeKeys`'
+(`mvcc.rangeKeysErr`: F1, G2-a). -/
 def rangeErrOut (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface) : IProp GF :=
   iprop((∃ ef : GoInterfaceOk,
@@ -217,7 +218,7 @@ def rangeErrOut (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F :
     (∃ ec : GoInterfaceOk,
       (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ GoInterface.ok ec : IProp GF) ∗
       ⌜err = GoInterface.ok ec⌝ ∗ rangeErrAt on E γr c F o Q (rangeCompactedAt o)) ∨
-    authErrVarIs err ∨ readErrIs err ∨ mvcc.ctxErrorf err)
+    authErrVarIs err ∨ readErrIs err ∨ mvcc.rangeKeysErr err)
 
 instance rangeErrOut_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
     (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface) :

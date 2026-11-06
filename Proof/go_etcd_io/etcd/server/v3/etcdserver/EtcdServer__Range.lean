@@ -122,7 +122,7 @@ theorem rangeResult_nil_ne (resp : Loc) (log : mvcc.Log) (rev : w64) (crev : Int
   iunfold txn.rangeResult
   iintro (⟨-, %ef, -, %He⟩ | ⟨-, #He⟩ | ⟨-, %kvs, %more, #Hr, -⟩ | ⟨-, %ec, -, %He⟩)
   · cases He
-  · ihave %Hn := mvcc.ctxErrorf_ne_nil _ $$ He
+  · ihave %Hn := mvcc.rangeKeysErr_ne_nil _ $$ He
     exact absurd rfl Hn
   · iunfold txn.rangeResponseIs at Hr
     icases Hr with ⟨%Hn, -⟩
@@ -148,7 +148,8 @@ theorem rangeResult_errIs [_root_.Perennial.errors.Assumptions] (resp : Loc) (er
     iexists ef; iframe Hef; ipureintro; exact He
   · isplitr
     · ipureintro; exact H.2.2.2.1
-    iapply applyErrIs_ctxErrorf _ hleaf $$ He Hctx
+    ihave #He' := mvcc.rangeKeysErr_ctxErrorf _ $$ He
+    iapply applyErrIs_ctxErrorf _ hleaf $$ He' Hctx
   · exact absurd H.2.1 hne
   · isplitr
     · ipureintro; exact H.2.2

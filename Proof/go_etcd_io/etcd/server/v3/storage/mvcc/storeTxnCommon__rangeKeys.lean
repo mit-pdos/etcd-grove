@@ -685,10 +685,13 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 ihave #Hcs := go_etcd_io.etcd.cache.v3.isCtxErr_stringMethodSpec ci $$ Hce
                 rw [show (go!"rangeKeys: context cancelled: %w" : GoString) = go!"rangeKeys: context cancelled: " ++ go!"%w" from rfl]
                 wp_apply (hWrap go!"rangeKeys: context cancelled: " _ ci (DFrac.own 1) (by decide))
-                  $$ [$Hasl $Hcs] as %e0 ⟨-, #Hw, -⟩
-                ihave #He' : mvcc.ctxErrorf (GoInterface.ok e0) $$ []
-                · iunfold mvcc.ctxErrorf
-                  iapply go_etcd_io.etcd.cache.v3.ctxWrapErr_wrap $$ Hw Hce
+                  $$ [$Hasl $Hcs] as %e0 ⟨-, #Hw, %Hpre⟩
+                ihave #He' : mvcc.rangeKeysErr (GoInterface.ok e0) $$ []
+                · iunfold mvcc.rangeKeysErr
+                  isplitl
+                  · iunfold mvcc.ctxErrorf
+                    iapply go_etcd_io.etcd.cache.v3.ctxWrapErr_wrap $$ Hw Hce
+                  ipureintro; exact Hpre
                 (try wp_auto)
                 wp_for_post
                 (try wp_auto)
