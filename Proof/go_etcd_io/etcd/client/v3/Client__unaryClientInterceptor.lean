@@ -174,10 +174,10 @@ theorem Client.unaryClientInterceptor.wp_proof
     · cases once
       · simp only [Bool.false_eq_true, ↓reduceIte, laterHid]; icases Hpre with #Hpre; iexact Hpre
       · simp only [↓reduceIte, laterHid]; iexact Hpre
-    ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ')
+    ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ' (fun _ => iprop(True)))
       $$ [Hsp]
     · inext; iapply (attemptPre_attempt conn _ _ vver Hver) $$ Hsp
-    wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
+    wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %(fun _ => iprop(True)) %ci
         %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
       as %err ⟨Hsend, -, Hres⟩
     · iframe Hg' Hctx' Hrpc
@@ -268,10 +268,10 @@ theorem Client.unaryClientInterceptor.wp_proof
           isplitl [Hp]
           · iapply Hp; ipureintro; exact Ha0
           · iintro %h; exfalso; rw [Ha0] at h; revert h; decide
-      ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ')
+      ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ' (fun _ => iprop(True)))
         $$ [Hsp]
       · inext; iapply (attemptPre_attempt conn _ _ vver Hver) $$ Hsp
-      wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
+      wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %(fun _ => iprop(True)) %ci
           %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
         as %err ⟨Hsend, Hpbs, Hres⟩
       · iframe Hg' Hctx' Hrpc
@@ -283,7 +283,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         iapply BigSepL.bigSepL_nil.2
         itrivial
       icases Hpbs with ⟨Hpb, -⟩
-      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, %Hnr⟩)
+      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, %Hnr, -⟩)
       · subst He
         (try wp_auto)
         wp_for_post

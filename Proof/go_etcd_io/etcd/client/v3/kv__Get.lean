@@ -38,8 +38,8 @@ theorem kv.Get.wp_generic
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api conn addr ci cd opv (opGetModel key gs) (fun _ _ _ => iprop(False))
-      (fun _ => iprop(True)) Sr Qr (fun _ _ _ => iprop(False)) (fun _ => iprop(True)) $$ []
+  wp_apply wp_Do api conn addr ci cd opv (opGetModel key gs) (fun _ _ _ _ => iprop(False))
+      (fun _ => iprop(True)) Sr Qr (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) $$ []
     as %r %err Hout
   · iframe #
     isplitl []; rotate_left

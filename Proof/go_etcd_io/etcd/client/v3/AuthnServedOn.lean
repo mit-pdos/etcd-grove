@@ -103,7 +103,8 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
         (authnSlot s E γr) (GrpcSpec.md (etcdAuthenticateSpec γa)) := by
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #Hrdv, #HNR, #Hast, #Hauthn⟩
   unfold grpcHandlerOwnOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hpw, Hspec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hpw, Hspec⟩ HΨ
+  icases Hspec with ⟨Hspec, -⟩
   simp only [pbAuthenticateRequest]
   icases Hr with ⟨%Hrn, #HN⟩
   iunfold authnSlot at Hslot
@@ -155,7 +156,9 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   · iframe #; iframe Hpw Hlt Hlg Hrr Hrd
   inext
   iintro %resp %err Hout
+  ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
+  iframe Hed
   iunfold v3rpc.authWrapOut at Hout
   icases Hout with (⟨%He, Ha⟩ | ⟨%Hre, %e0, %He0, Ha⟩)
   · iunfold authnAns at Ha
@@ -190,7 +193,7 @@ theorem etcd_authenticateMethodOk (p : Loc)
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthenticateRequest) -∗
       (pbAuthenticateRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbAuthenticateRequest]; iexact Hl
@@ -200,11 +203,11 @@ theorem etcd_authenticateMethodOk (p : Loc)
     iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthenticateRequest.ty, etcdserverpb.RangeRequest.ty]))
   iapply (v3rpc.etcdserverpb.wp__Auth_Authenticate_Handler pbAuthenticateRequest pbAuthenticateResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.authServer_isAuthServer)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.authServer_isAuthServer)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
   iapply HΨ
   iframe
 
