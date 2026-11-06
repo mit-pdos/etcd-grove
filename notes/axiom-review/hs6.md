@@ -21,6 +21,11 @@ by the checkout), output `hs6/gotest.log`. No Lean counterexample: nothing was r
 | 3. `toGRPCErrorMap_init`'s values gain `statusErrOk` (planned) | **survives** (two values are `EtcdError`s, not status errors; still `statusErrOk`) |
 | 4. `status.Error.spec`: `err ≠ nil ∗ statusErrOk err ∗ errDesc err = msg` | **survives** |
 | 5. prometheus `UnaryServerInterceptor` with the restated `srvInterceptorOk`, `grpcHandlerOk*`, `grpcMethodOk*` | **survives**: 7c1b-grpc's refutation is repaired |
+| 6. `EtcdGrove.ContextReadErrs` (premise class) with `errLeaf`'s and `ctxDeadlineLeaf`'s new `GRPCStatus = none` conjunct (uncommitted draft) | **survives** |
+| 7. `bcrypt.GenerateFromPassword.wp_proof`'s error branch with `GRPCStatus = none` (uncommitted draft) | **survives**; the two-error list is complete (no `KeySizeError`, no `rand` error) |
+
+Items 6 and 7 were added at the coordinator's request; both read the uncommitted draft in
+`/shared/etcd-grove-7c` on 2026-11-06.
 
 Findings in Go: one in etcd (verified code, recorded as
 `nonissues/etcd-v3rpc-togrpcerror-etcderror-unknown-code.md`), one in grpc (trust base, here only).
@@ -187,6 +192,73 @@ requires it on the early return.
   unchanged: the fact rides in `Ψ` (`srvChainWP_of_ok`), so grpc is promised to do nothing new.
   `grpcDecOk` is the one new promise grpc makes (1). The client side (`grpcInvokerOk`) is unchanged
   by HS-6 (`git diff 6b49f77e01 da6390e83b`). Nothing promised is false.
+
+## 6. `EtcdGrove.ContextReadErrs` with the `GRPCStatus` conjuncts — survives
+
+Read in the uncommitted draft of `/shared/etcd-grove-7c` (`git diff` on 2026-11-06). The class
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/read/Init.lean:68-71`) is unchanged: `isPkgInit
+context ⊢ errVarLeaf context.Canceled ∗ ctxDeadlineLeaf` (`read/Init.lean` has no diff). What
+changes is the two definitions it is written in:
+
+- `errLeaf` (`apply/Base.lean:71-74`): `IsPointerError e ∧ isLeafError e ∧ no Is ∧`
+  **`methodSet e.ty !! "GRPCStatus" = none`**; `errVarLeaf g` (`:316`) is `g ↦□ ok e ∗ ⌜errLeaf e⌝ ∗
+  errMsgOk e`, unchanged.
+- `ctxDeadlineLeaf` (`BaseApply.lean:309-318`): `isLeafError e ∧ no Is ∧ not a pointer type ∧
+  SafeMapKey ∧` **`methodSet e.ty !! "GRPCStatus" = none`**, then `errMsgOk e`, otherwise unchanged.
+
+go1.27.3 (`src/context/context.go:168`): `var Canceled = errors.New("context canceled")`, a
+`*errors.errorString`, whose only method is `Error` (`src/errors/errors.go:73`): a pointer, a
+leaf, no `Is`, no `GRPCStatus`, and `Error()` returns. `:172-178`: `var DeadlineExceeded error =
+deadlineExceededError{}`, an empty struct with the value methods `Error`, `Timeout`, `Temporary`:
+not a pointer, a leaf, no `Is`, no `GRPCStatus`, comparable (a safe map key), `Error()` returns
+the constant `"context deadline exceeded"`. Every conjunct, old and new, holds of both together;
+the new one is independent of the others (a method-set lookup at a name none of them mentions).
+The repository side is consistent with it: `ErrorStringLeaf` gains `noGRPC`, derived from goose's
+method set of `*errorString` (`Proof/errors/NewVar.lean`, `errorStringLeaf_inst`), so the other
+`errVarLeaf` facts (`errVarLeaf_of_newVar`) are proved, not assumed. The class stays a premise of
+the closed theorems (`txnlin`, `leasegrant`, `leaseexpiry`, `watch` `Results`/`Adequacy`): it is
+now harder to discharge, never easier.
+
+## 7. `bcrypt.GenerateFromPassword.wp_proof` with `GRPCStatus = none` — survives
+
+Read in the uncommitted draft (`Spec/golang_org/x/crypto/bcrypt/GenerateFromPassword.lean`: the
+error branch's pure facts gain `methodSet ei.ty !! "GRPCStatus" = none`, the docstring cites
+`bcrypt.go:50-52, 87`). Go: x/crypto v0.57.0, go1.27.3. Probe `hs6/bcrypt_test.go.txt`, output
+`hs6/gotest-bcrypt.log`.
+
+**The two errors.** `ErrPasswordTooLong = errors.New(…)` (`bcrypt.go:87`): a `*errors.errorString`,
+methods `[Error]`. `InvalidCostError int` (`:50-54`): methods `[Error]` (value receiver,
+`fmt.Sprintf`). Neither has `GRPCStatus` (reflection in `TestErrorMethods`; `grep GRPCStatus` in
+`bcrypt/` finds nothing).
+
+**Every other error path** of `GenerateFromPassword` (`:96-104`) → `newFromPassword` (`:139-165`):
+
+- `checkCost` (`:299-304`): only `InvalidCostError`, only for `cost > MaxCost = 31` (a cost below
+  `MinCost` becomes `DefaultCost`, `:140-142`). In the list.
+- (a) `io.ReadFull(rand.Reader, unencodedSalt)` (`:153`). go1.27.3: `crypto/rand.Reader =
+  rand.Reader` (`src/crypto/rand/rand.go:34`), `crypto/internal/rand`'s `reader{}`
+  (`src/crypto/internal/rand/rand.go:38`), whose `Read` (`:22-31`) returns `len(b), nil` after
+  `drbg.Read(b)`, or panics if the BoringCrypto reader fails; `drbg.Read`
+  (`src/crypto/internal/fips140/drbg/rand.go:33-77`) has no error result: it reads the testing
+  reader (set only by `testing/cryptotest`), or `sysrand.Read`, which calls `runtime.fatal` on a
+  failure (`src/crypto/internal/sysrand/rand.go:37-51`), or the DRBG over `sysrand`. So `ReadFull`
+  of 16 bytes gets `n = 16, nil`: **no error**, unless the program replaces `rand.Reader` (etcd does
+  not; the spec's docstring says so, as `gentokenprefix.md` found).
+- (b) `bcrypt(password, cost, salt)` (`:159`, `:202-221`) fails only through
+  `expensiveBlowfishSetup` (`:223-241`):
+  - `base64Decode(salt)` (`base64.go:23-35`): the salt is `base64Encode` of 16 bytes (`:157`):
+    24 characters with the two `=` stripped, 22 characters of `alphabet`; `22 % 4 = 2`, so two `=`
+    are appended back and the 24 characters decode to the 16 bytes (the encoder zeroes the
+    trailing bits; `bcEncoding` is not `Strict` anyway). **No error.**
+  - `blowfish.NewSaltedCipher(ckey, csalt)` (`blowfish/cipher.go:52-63`): `csalt` has 16 bytes, so
+    the `len(salt) == 0 → NewCipher` branch (the one with the 1..56 bound, `:38-46`) is not taken;
+    the salted branch returns `KeySizeError` only for `len(key) < 1`, and `ckey = append(key, 0)`
+    (`:232`) has at least one byte. No upper bound in that branch (73 bytes are fine). **`KeySizeError`
+    is unreachable.**
+
+`TestNoOtherError`: every password length 0..72, bytes `0x00`, `'a'`, `0xff`, cost 4 (and a sample
+at costs -1, 0, 3, i.e. `DefaultCost`): no error, a 60-byte hash. **The spec's two-error list is
+complete.**
 
 ## Not tried
 

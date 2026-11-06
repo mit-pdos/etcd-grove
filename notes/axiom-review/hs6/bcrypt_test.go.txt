@@ -1,0 +1,55 @@
+// GenerateFromPassword's error paths at x/crypto v0.57.0 (HS-7 review, item 7).
+package hs6bcrypt
+
+import (
+	"bytes"
+	"reflect"
+	"testing"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+func methods(v any) []string {
+	t := reflect.TypeOf(v)
+	var ms []string
+	for i := 0; i < t.NumMethod(); i++ {
+		ms = append(ms, t.Method(i).Name)
+	}
+	return ms
+}
+
+func TestErrorMethods(t *testing.T) {
+	_, e1 := bcrypt.GenerateFromPassword(bytes.Repeat([]byte{'a'}, 73), 4)
+	_, e2 := bcrypt.GenerateFromPassword([]byte("x"), 32)
+	t.Logf("too long: %T %v methods %v", e1, e1 == bcrypt.ErrPasswordTooLong, methods(e1))
+	t.Logf("cost 32: %T methods %v", e2, methods(e2))
+	for _, e := range []error{e1, e2} {
+		if _, ok := e.(interface{ GRPCStatus() any }); ok {
+			t.Fatal("GRPCStatus")
+		}
+		if reflect.TypeOf(e).NumMethod() != 1 {
+			t.Fatal("extra methods")
+		}
+	}
+}
+
+// Every length 0..72, all byte values at the boundary, cost 4 (MinCost) and below: no error.
+func TestNoOtherError(t *testing.T) {
+	for n := 0; n <= 72; n++ {
+		for _, b := range []byte{0, 'a', 0xff} {
+			for _, cost := range []int{-1, 0, 3, 4} {
+				if cost < 4 && n%24 != 0 {
+					continue // cost < MinCost means DefaultCost (10): sample only
+				}
+				h, err := bcrypt.GenerateFromPassword(bytes.Repeat([]byte{b}, n), cost)
+				if err != nil {
+					t.Fatalf("len %d byte %#x cost %d: %v", n, b, cost, err)
+				}
+				if len(h) != 60 {
+					t.Fatalf("hash length %d", len(h))
+				}
+			}
+		}
+	}
+	t.Log("no error for any password of 0..72 bytes")
+}
