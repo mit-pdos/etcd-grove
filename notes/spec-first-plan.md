@@ -431,6 +431,15 @@ and what depends on the answer, and goes on with what does not; the orchestrator
 the user and the answers back by message. It ends its turn only at a hard stop with nothing left that
 does not depend on it.
 
+**Wait on notifications, not on sleeps** (2026-11-06, the user's; from the dsverify skill,
+`5409306`). A session or agent that waits for another agent, a build or a landing runs it in the
+background and acts when its completion notification arrives; it never waits with `sleep`, an
+`until` loop over a file or a commit, or a fixed timeout, and it does not end its turn just to wait.
+Between notifications it does the work that does not depend on them: the next brief, the review
+bundle, the decisions on requests already filed. (The dsverify lab's `ablate-craq-spec-3`: 49 polls
+and 47 minutes with no agent running while the main session slept; here, the restart agent ended its
+turn twice "waiting" for a subagent, 2026-11-05.)
+
 *Where, and what counts as approved* (2026-11-05, the user's). The stage's worktree and branch are
 made at Scope, not at the freeze, so that `questions.md` is always at the worktree's root (not in a
 session's scratchpad, where no one else finds it). An entry the coordinator or the user's session

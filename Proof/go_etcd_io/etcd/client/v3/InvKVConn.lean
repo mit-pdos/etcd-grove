@@ -1271,10 +1271,11 @@ abbrev clientAttemptMd (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop :=
 /-- **A call's precondition at every attempt** (the auth plan's E3zc): the metadata-indexed `Spec`'s
 for the request `m` and the caller's `Φ`, at every metadata an attempt of the call on `conn` with
 the context `ctx` may deliver (`clientAttemptMd`). At a plain spec (`GrpcSpec.md`) it is the
-spec's (`attemptPre_md`). -/
+spec's (`attemptPre_md`). The error outcome is not asked for (`fun _ => True`): no client spec
+speaks of a failed call's description yet. -/
 def attemptPre {Req Rep : ProtoMsg GF} (conn : Loc) (ctx : GoInterface) (Spec : GrpcSpecMd Req Rep)
     (m : Req.M) (Φ : Rep.M → IProp GF) : IProp GF :=
-  iprop(∀ md, ⌜clientAttemptMd conn ctx md⌝ -∗ Spec md m Φ)
+  iprop(∀ md, ⌜clientAttemptMd conn ctx md⌝ -∗ Spec md m Φ (fun _ => iprop(True)))
 
 /-- A plain spec's precondition is one at every attempt. -/
 theorem attemptPre_md {Req Rep : ProtoMsg GF} (conn : Loc) (ctx : GoInterface)
@@ -1283,7 +1284,12 @@ theorem attemptPre_md {Req Rep : ProtoMsg GF} (conn : Loc) (ctx : GoInterface)
   iintro H
   unfold attemptPre
   iintro %md -
-  iexact H
+  simp only [GrpcSpec.md]
+  isplitl [H]
+  · iexact H
+  · imodintro
+    iintro %_
+    itrivial
 
 /-- The precondition at every attempt gives the attempt contract's, on `withVersion(ctx)`'s
 context `c` (`withVersion.spec`'s outgoing metadata). -/
@@ -1291,7 +1297,8 @@ theorem attemptPre_attempt {Req Rep : ProtoMsg GF} (conn : Loc) (ctx c : GoInter
     (hc : metadata.outgoingOf c =
       metadata.mdSet (metadata.outgoingOf ctx) go!"client-api-version" [v])
     (Spec : GrpcSpecMd Req Rep) (m : Req.M) (Φ : Rep.M → IProp GF) :
-    attemptPre conn ctx Spec m Φ ⊢ ∀ md, ⌜grpcAttemptMd conn c md⌝ -∗ Spec md m Φ := by
+    attemptPre conn ctx Spec m Φ ⊢
+      ∀ md, ⌜grpcAttemptMd conn c md⌝ -∗ Spec md m Φ (fun _ => iprop(True)) := by
   iintro H %md %h
   unfold attemptPre
   iapply H
