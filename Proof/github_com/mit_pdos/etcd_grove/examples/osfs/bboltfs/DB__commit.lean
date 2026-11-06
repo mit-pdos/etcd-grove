@@ -652,9 +652,9 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
         iframe
         isplitr
         · ipureintro; exact ⟨rfl, Herr2⟩
-        iapply commitErr_of γ db f fd p mp hwm base len γm (m'.grown len).failed mxc tail2
-          m'.size _ _ ⟨Hmaps, Nat.le_refl _, Hbase, Hl41, h2, by simp [OsMeta.grown, OsMeta.failed]; omega, hmx8,
-            by simp [OsMeta.grown, OsMeta.failed]; exact Htl2⟩
+        iapply commitErr_of γ db f fd p mp hwm base len γm { m'.grown len with ok := false } mxc tail2
+          m'.size _ _ ⟨Hmaps, Nat.le_refl _, Hbase, Hl41, h2, by simp [OsMeta.grown]; omega, hmx8,
+            by simp [OsMeta.grown]; exact Htl2⟩
         iframe; iframe #
     · cases err with
       | nil => exact absurd rfl Herr
@@ -671,8 +671,8 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨rfl, Herr⟩
       iapply commitErr_of γ db f fd p mp hwm base len γm (m'.grown len) mxc tail2
-        m'.size _ _ ⟨Hmaps, Nat.le_refl _, Hbase, Hl41, h2, by simp [OsMeta.grown, OsMeta.failed]; omega, hmx8,
-          by simp [OsMeta.grown, OsMeta.failed]; exact Htl2⟩
+        m'.size _ _ ⟨Hmaps, Nat.le_refl _, Hbase, Hl41, h2, by simp [OsMeta.grown]; omega, hmx8,
+          by simp [OsMeta.grown]; exact Htl2⟩
       iframe; iframe #
     · cases err with
       | nil => exact absurd rfl Herr
@@ -792,7 +792,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     · ipureintro; exact hne
     ihave Herr := dataErr γ db f fd p mp hwm base len γm { m2 with size := m2.size, hi := h } mxc ys
       (tail2.drop 4096) m2.size _ _ ⟨Hmaps, Hsz, Hbase, Hl41, Hwf.1, hin, Hwf.2.2.1, hys,
-        by simp only [List.length_drop, OsMeta.failed]; omega⟩
+        by simp only [List.length_drop]; omega⟩
       $$ [Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest]
     · iframe Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest
       iframe #
@@ -813,9 +813,9 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     iright
     isplitr
     · ipureintro; simp
-    ihave Herr := dataErr γ db f fd p mp hwm base len γm ({ m2 with size := m2.size, hi := h } : OsMeta).failed
+    ihave Herr := dataErr γ db f fd p mp hwm base len γm { m2 with size := m2.size, hi := h, ok := false }
       mxc ys (tail2.drop 4096) m2.size _ _ ⟨Hmaps, Hsz, Hbase, Hl41, Hwf.1, hin, Hwf.2.2.1, hys,
-        by simp only [List.length_drop, OsMeta.failed]; omega⟩
+        by simp only [List.length_drop]; omega⟩
       $$ [Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest]
     · iframe Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest
       iframe #
@@ -830,7 +830,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     have := pwBytes_inside m2.size (4096 * hwm) (dataPage mv.pgid' v) (List.take 4096 tail2)
       (by rw [dataPage_length]; omega) (by omega)
     rwa [dataPage_length] at this
-  have hsyn : syncedBytes { m2 with size := m2.size, hi := h } (4096 * hwm) ys =
+  have hsyn : syncedBytes { m2 with size := m2.size, hi := h } ys =
       (dataPage mv.pgid' v).map (·, true) := by
     unfold syncedBytes
     rw [ite_eq_left (show ({ m2 with size := m2.size, hi := h } : OsMeta).ok = true from Hok2), ← hysB,
@@ -1057,7 +1057,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     ihave Hpc := cellsB_any base _ _ $$ Hpc
     rw [dataPage_length]
     ihave Herr := dataErrT γ db f fd p mx hwm base len γm
-      ({ m4 with size := m4.size, hi := h2 } : OsMeta).failed X
+      { m4 with size := m4.size, hi := h2, ok := false } X
       ((dataPage mv.pgid' v).map (·, true)) (tail2.drop 4096) m2.size _ _
       ⟨hm4m, by rw [hm4s]; exact Hsz, Hbase, Hl41, Hwf.1, by show 4096 * hwm + 4096 ≤ m4.size; omega, hXl,
         by simp only [List.length_map, dataPage_length],
@@ -1075,7 +1075,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     rw [← hX, ← hmx]; unfold setPage
     rw [show 4096 * (i + 1) = 4096 * i + 4096 by omega]
     simp only [List.map_append, List.map_take, List.map_drop, hys2B, List.drop_drop]
-  have hsynX : syncedBytes { m4 with size := m4.size, hi := h2 } 0 X =
+  have hsynX : syncedBytes { m4 with size := m4.size, hi := h2 } X =
       (setPage mx i (metaPageOf mv)).map (·, true) := by
     unfold syncedBytes
     rw [ite_eq_left (show ({ m4 with size := m4.size, hi := h2 } : OsMeta).ok = true from hm4o), ← hXB,

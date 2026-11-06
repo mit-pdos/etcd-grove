@@ -96,6 +96,9 @@ end res
 
 /-! ## Pure facts of the crash views -/
 
+theorem syncedBytes_length (m : OsMeta) (bs : List (w8 × Bool)) :
+    (syncedBytes m bs).length = bs.length := by
+  unfold syncedBytes; split <;> simp
 
 /-- `TreeOk` depends on the state's inode only. -/
 theorem treeOk_ino {Good : Option OsFile → Prop} {p : GoString} {R : Roots} {s s' : CFile}
@@ -112,7 +115,7 @@ theorem pathOk_ino {p : GoString} {R : Roots} {i : Ino} {x x' : OsMeta × List (
 
 /-- What a crash may leave does not depend on `ok`. -/
 theorem fileOk_notOk {Good : Option OsFile → Prop} {m : OsMeta} {bs : List (w8 × Bool)}
-    (h : FileOk Good (m, bs, none)) : FileOk Good (m.failed, bs, none) :=
+    (h : FileOk Good (m, bs, none)) : FileOk Good ({ m with ok := false }, bs, none) :=
   h
 
 /-- The number of a write's token does not matter to a crash. -/
@@ -273,14 +276,14 @@ theorem cf_open (N : Namespace) (p : GoString) (R : Roots) (γ : GName) (Good : 
 shows a crash of `Good`; on failure, its `ok` is lost. -/
 theorem wp_osFsync_cf (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (p : GoString) (R : Roots)
     (γ : GName) (Good : Option OsFile → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (V : Hist)
-    (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hok : FileOk Good (m.synced 0 bs, syncedBytes m 0 bs, none))
+    (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hok : FileOk Good (m.synced 0 bs, syncedBytes m bs, none))
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ cfInv (L := L) N p R γ Good -∗ osFd (L := L) fd dq d -∗
       cfOwn (L := L) p R γ (some (d.ino, m, bs, none)) V -∗
       (∀ e : w64,
-        ((⌜e = 0⌝ ∗ cfOwn (L := L) p R γ (some (d.ino, m.synced 0 bs, syncedBytes m 0 bs, none)) V) ∨
+        ((⌜e = 0⌝ ∗ cfOwn (L := L) p R γ (some (d.ino, m.synced 0 bs, syncedBytes m bs, none)) V) ∨
          (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗
-            cfOwn (L := L) p R γ (some (d.ino, m.failed, bs, none)) V)) -∗
+            cfOwn (L := L) p R γ (some (d.ino, { m with ok := false }, bs, none)) V)) -∗
         osFd (L := L) fd dq d -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Fsync" (Val (#fd))) {{ Φ }} := by
   unfold cfOwn
@@ -300,9 +303,9 @@ theorem wp_osFsync_cf (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (p : Go
   icases Hres with (⟨%he, Hm, Hb⟩ | ⟨%he, Hm, Hb⟩)
   · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
     icases (osBytes_halves _ _ _).1 $$ Hb with ⟨Hb1, Hb2⟩
-    imod ghostVar_update_halves (some (d.ino, m.synced 0 bs, syncedBytes m 0 bs, none)) γ _ _
+    imod ghostVar_update_halves (some (d.ino, m.synced 0 bs, syncedBytes m bs, none)) γ _ _
       $$ Hv Hv' with ⟨Hv, Hv'⟩
-    have hok2 : CrashOk Good p R (some (d.ino, m.synced 0 bs, syncedBytes m 0 bs, none)) V :=
+    have hok2 : CrashOk Good p R (some (d.ino, m.synced 0 bs, syncedBytes m bs, none)) V :=
       ⟨treeOk_ino rfl Hok'.1, by rintro i x hx; cases hx; exact hok⟩
     imod Hclose $$ %_ %V Hv' [Hm2 Hb2] Hti %hok2 with -
     · dsimp only [invRes]; iframe
@@ -316,9 +319,9 @@ theorem wp_osFsync_cf (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (p : Go
     exact ⟨⟨by rw [syncedBytes_length]; exact Hwf.1.1, Hwf.1.2⟩, Hwf.2⟩
   · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
     icases (osBytes_halves _ _ _).1 $$ Hb with ⟨Hb1, Hb2⟩
-    imod ghostVar_update_halves (some (d.ino, m.failed, bs, none)) γ _ _ $$ Hv Hv'
+    imod ghostVar_update_halves (some (d.ino, { m with ok := false }, bs, none)) γ _ _ $$ Hv Hv'
       with ⟨Hv, Hv'⟩
-    have hok2 : CrashOk Good p R (some (d.ino, m.failed, bs, none)) V :=
+    have hok2 : CrashOk Good p R (some (d.ino, { m with ok := false }, bs, none)) V :=
       ⟨treeOk_ino rfl Hok'.1, by rintro i x hx; cases hx; exact fileOk_notOk (Hok'.2 _ _ rfl)⟩
     imod Hclose $$ %_ %V Hv' [Hm2 Hb2] Hti %hok2 with -
     · dsimp only [invRes]; iframe
@@ -499,10 +502,9 @@ theorem wp_osPWriteFinish_cf (t : Nat) (i : Ino) (off : Nat) (data : List w8)
   unfold pwTok
   icases Htok with ⟨Htok, %hgap⟩
   imodintro
-  iapply wp_osPWriteFinish false t i off data 1 m (cfRange m bs off data.length) hN $$ Hos [Htok]
+  iapply wp_osPWriteFinish t i off data 1 m (cfRange m bs off data.length) hN $$ Hos [Htok]
   · unfold pwTok; iframe; ipureintro; exact hgap
   iintro %k %e %hke Hm Hrg -
-  rw [pwFinMeta_false]
   have hk := hke.1
   have hlen : (finBytes m bs off data k).length = (finMeta m off data k).size :=
     finBytes_length Hwf.1.1 hk

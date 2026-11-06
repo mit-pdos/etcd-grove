@@ -154,7 +154,7 @@ abbrev os.File.Sync.specCrashS : Prop :=
     (m : OsMeta) (H F T : List (w8 × Bool)) (fa fb : Nat) (hd : Bool),
   H.length = fa → fa + F.length = fb → (hd = false → ∀ y ∈ H, y.2 = true) →
   ↑osN ⊆ (⊤ : CoPset) \ ↑N → Ok (some (d.ino, csSynced hd m H F T fa fb)) →
-  Ok (some (d.ino, ⟨m.failed, H ++ (F ++ T), fa, fb, .idle⟩)) →
+  Ok (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)) →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good Ok ∗ os.ownFile (GF := GF) f fd name dqf ∗
       osFd (GF := GF) fd dq d ∗
       csOwnF (GF := GF) γ (some (d.ino, ⟨m, H ++ (F ++ T), fa, fb, .idle⟩)) }}
@@ -162,7 +162,7 @@ abbrev os.File.Sync.specCrashS : Prop :=
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
       ((⌜err = interface.nil⌝ ∗ csOwnF γ (some (d.ino, csSynced hd m H F T fa fb))) ∨
        (⌜err ≠ interface.nil⌝ ∗
-         csOwnF γ (some (d.ino, ⟨m.failed, H ++ (F ++ T), fa, fb, .idle⟩)))) }}
+         csOwnF γ (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)))) }}
 
 variable [syscall.Assumptions] in
 /-- See the file header. -/
@@ -172,14 +172,14 @@ abbrev syscall.Fdatasync.specCrashS : Prop :=
     (fa fb : Nat) (hd : Bool),
   H.length = fa → fa + F.length = fb → (hd = false → ∀ y ∈ H, y.2 = true) →
   ↑osN ⊆ (⊤ : CoPset) \ ↑N → Ok (some (d.ino, csSynced hd m H F T fa fb)) →
-  Ok (some (d.ino, ⟨m.failed, H ++ (F ++ T), fa, fb, .idle⟩)) →
+  Ok (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)) →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good Ok ∗ osFd (GF := GF) fd dq d ∗
       csOwnF (GF := GF) γ (some (d.ino, ⟨m, H ++ (F ++ T), fa, fb, .idle⟩)) }}
     (App (Val (@! syscall.Fdatasync)) (Val #fd))
   {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
       ((⌜e = 0⌝ ∗ csOwnF γ (some (d.ino, csSynced hd m H F T fa fb))) ∨
        (⌜e ≠ 0⌝ ∗
-         csOwnF γ (some (d.ino, ⟨m.failed, H ++ (F ++ T), fa, fb, .idle⟩)))) }}
+         csOwnF γ (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)))) }}
 
 variable [golang_org.x.sys.unix.Assumptions] in
 /-- See the file header. -/

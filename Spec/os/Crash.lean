@@ -82,13 +82,13 @@ variable [syscall.Assumptions] in
 abbrev syscall.Fdatasync.specCrash : Prop :=
   ∀ (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (p : GoString) (R : Roots) (γ : GName)
     (Good : Option OsFile → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (V : Hist),
-  ↑osN ⊆ (⊤ : CoPset) \ ↑N → FileOk Good (m.synced 0 bs, syncedBytes m 0 bs, none) →
+  ↑osN ⊆ (⊤ : CoPset) \ ↑N → FileOk Good (m.synced 0 bs, syncedBytes m bs, none) →
   {{ osInv (GF := GF) ∗ cfInv (GF := GF) N p R γ Good ∗ osFd (GF := GF) fd dq d ∗
       cfOwn (GF := GF) p R γ (some (d.ino, m, bs, none)) V }}
     (App (Val (@! syscall.Fdatasync)) (Val #fd))
   {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
-      ((⌜e = 0⌝ ∗ cfOwn p R γ (some (d.ino, m.synced 0 bs, syncedBytes m 0 bs, none)) V) ∨
-       (⌜e ≠ 0⌝ ∗ cfOwn p R γ (some (d.ino, m.failed, bs, none)) V)) }}
+      ((⌜e = 0⌝ ∗ cfOwn p R γ (some (d.ino, m.synced 0 bs, syncedBytes m bs, none)) V) ∨
+       (⌜e ≠ 0⌝ ∗ cfOwn p R γ (some (d.ino, { m with ok := false }, bs, none)) V)) }}
 
 end spec
 

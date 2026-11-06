@@ -233,9 +233,9 @@ theorem shFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
       refine ⟨f', hfk, ⟨rfl,
         by show ti.om.lo ≤ _; rw [hg.sizeLo]; have := hmo.lo; have := htg.1; omega,
         by show _ ≤ ti.om.hi; rw [hg.sizeHi]; exact hmo.hi,
-        fun k hok hd => by
+        fun hok k hd => by
           rw [hg.ok k hd]
-          exact hmo.ok k (by simpa [OsMeta.SecOk, shMeta, OsMeta.shrunk] using hok) (by rw [← hg.ok k hd]; exact hd),
+          exact hmo.ok hok k (by rw [← hg.ok k hd]; exact hd),
         hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_, fun hz => by
           rcases hg.either with rfl | rfl
           · exact zero_truncate _ (hmo.zero hz)
@@ -412,7 +412,7 @@ theorem wp_osFtruncateShrinkStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsM
     ⟨rfl, rfl, rfl, Nat.min_le_left _ _, Nat.le_refl _,
       by rw [← hc]; simp only [OsChange.target, shMeta]; omega,
       by rw [← hc]; simp only [OsChange.target, shMeta]; have := hmo.hi; have := hmo.size
-         have := hszf.2; omega, rfl, rfl, rfl⟩
+         have := hszf.2; omega, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi', hxs]) (fun k hk => by rw [hlo]; exact Hbl k hk)
   -- the cells: the file is unmapped, so none changes

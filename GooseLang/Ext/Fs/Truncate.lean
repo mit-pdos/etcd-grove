@@ -237,9 +237,9 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     · rename_i hpq; subst hpq; cases hm
       refine ⟨f', hfk, ⟨rfl, by rw [hg.sizeLo]; exact hmo.lo,
         by rw [hg.sizeHi]; have := hmo.hi; have := hg.size_le; dsimp only; omega,
-        fun k hok hd => by
+        fun hok k hd => by
           rw [hg.ok k hd]
-          exact hmo.ok k (by simpa [OsMeta.SecOk, ftMeta, OsMeta.grown] using hok) (by rw [← hg.ok k hd]; exact hd),
+          exact hmo.ok hok k (by rw [← hg.ok k hd]; exact hd),
         hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_,
         fun hz => hg.zero (hmo.zero hz)⟩⟩
       · obtain ⟨h1, n1⟩ := hdel t' c' h1
@@ -434,7 +434,7 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
     ⟨rfl, rfl, rfl, Nat.le_refl _, Nat.le_max_left _ _,
       by rw [← hc]; simp only [OsChange.target, ftMeta]; have := hmo.lo; have := hmo.size
          have := (hwf.sizes d.ino f hf).1; omega,
-      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl, rfl⟩
+      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi']; simp) (fun k hk => by simp at hk)
   -- the cells: the client's halves of the cells past the size go to the invariant
