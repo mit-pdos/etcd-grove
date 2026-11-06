@@ -3517,3 +3517,59 @@ session). Nothing goes into a hub until 82 approves the narrowed text below.
      of the approved text unchanged). The use site:
      - `rt ≤ t0`: by (2), the bag's message has `Term > t0 ≥ rt`;
      - `rt > t0`: the wand.
+- **82's decisions (2026-11-06, as hub owner, via the main session).**
+  - Draft 1-3 above is approved: `RNNames.t0`, `rnSnapMsg`'s `t0 < Term'`, and `Hwpend`'s guard
+    `n < |a0| ∧ t0 < rt`.
+  - (2)'s restart fact is carried in `rnRestartOk`'s restart disjunct until R2d'b's `RestartNode`
+    supplies it; at `t0 = 0` it is proved, not assumed.
+  - `rnWinInstallAbove` `≤` → `<` is approved.
+  - All of these go in at item 5.
+  - **The restart-only premises, and who discharges them:**
+    - `Hwpend` (A7): R2s;
+    - `rnWinInstallAbove` (A8, now strict): R2s, or raft's API;
+    - the `MsgSnap` term bound of (2): R2d'b's `RestartNode`.
+
+    R2e's closed theorem carries none of them.
+
+#### Q26: the axiom question, answered (2026-11-06; read-only, no edits)
+
+- **(1) `c0` and `pre`.** At `σ.b = 0`, A9's `%HEr` keeps `c₀ ≤ ai₀ ∧ ai₀ = 0`, and `kvRunM_split` gives
+  `γr.kv.c0 = C.c₀`. So the axiom's `γ.pre = []` and `c0 = W64 0` hold at the window call site, with
+  `L := pre ++ Γ` and `Γ = A₀` inside the window. The restored consistent index lives only in `rp`
+  (`ai₀ + |A₀| ≤ ciEff`). `clusterImageOk` (`InvRest.lean:615`) is the opaque `memBucketsOk c ms …` at the
+  image's members; the current members enter only through the axiom's `clusterMem` premise. So the
+  ids form is the whole generalization.
+- **(2a) A proved lemma without the axiom: not possible.** The replay's members are `restModel A₀`'s,
+  overwritten by `G`'s `ClusterMemberAttrSet`s, which is generally not the model of any prefix.
+  - Counterexample: `A₀ = [boot, attr(Y,c), attr(Y,d), attr(X,b)]`, `G = [boot, attr(Y,c)]`. The replay
+    has `X=b, Y=c`, and every prefix with `X=b` has `Y=d`.
+  - `clusterMem` is the real Go map, and `clusterImageOk` is opaque.
+- **(2b) The cut (no install while the window is pending): 0.5-1 d, but it only defers.**
+  - The premise: `rnWinInstallAbove` also requires `|a0| ≤` the delivered log at the snapshot's
+    `Advance`. The snapshot arm then runs past the window (`applyResR_past`, the frozen
+    `run_job_snapC`).
+  - It cuts the split-replay restarts (`MaxCommittedSizePerReady`, 1 MB by default) that receive a
+    `MsgSnap` mid-replay, the usual case after a long outage with a large log. The probe does not
+    measure this.
+  - It is false of those runs, so R2d'b would owe the window snapshot arm, item 2 again.
+  - Recommendation unchanged: (a), the ids form of the axiom.
+
+#### Item 3 (the stop arm): stopped at a frozen statement (2026-11-06)
+
+- **The gap.** At a stop inside the window, `stopCleanupImage` must give `srvDiskImage`, which holds
+  `wal.stopImage … σ i` with `i ≤ σ.commit` (`InvRestart.lean:131-142`) at the backend's index
+  `i = ai₀ + |ghostOf rp A| = |A₀|`.
+  - `raftNode.stop.spec`'s post (frozen, `Spec/…/raftNode__stop.lean:55`) gives only
+    `(γ.pre ++ A).length ≤ σ.commit` for Go's handed log `A`, which is shorter than `A₀`.
+  - No raft law bounds `raftState`'s commit from below: `StorageHolds` has `σ.commit ≤ S.commit` and
+    `wcommit ≤ σ.commit`.
+  - Go: `σ.commit` is monotone from the restored commit, which is `≥ i` (`bootstrapRestartContract`).
+- **Options.**
+  - **(i) Recommended.** `raftNode.stop.spec`'s post gains `⌜γ.a0.length ≤ σ.commit⌝` (a frozen
+    change). It is proved from the loop's records and a restart-data fact in `rnRestartOk` (the WAL's
+    stored commit `≥ |a0|`), carried until R2d'b's `RestartNode` and trivial at `a0 = []`. Est.
+    1-1.5 d. Then `applyResStopR`, `stop_splitR` and a restart form of `stopCleanupImage` (the image
+    at the ghost rows): about 1 d (est.).
+  - **(ii) Cut: no stop while the window is pending.** False of Go (a member can be stopped
+    mid-replay). Rejected.
+- Sent to the main session for 82.
