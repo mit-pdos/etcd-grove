@@ -9,13 +9,15 @@ public import Proof.syscall.Base
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -23,26 +25,26 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 
 /-- The mapping `db.dataref` holds: none (`slice.nil`), or a whole mapping `⟨base, len, len⟩` of
 the file `p`, with the whole of its `OsMeta` `m` and its cells' client halves. -/
-def mappingRes (p : GoString) (m : OsMeta) (sl : GoSlice) : IProp GF :=
+def mappingRes (p : Ino) (m : OsMeta) (sl : GoSlice) : IProp GF :=
   iprop(⌜sl = slice.nil⌝ ∨
     ∃ (base : Loc) (len : w64) (vf : Nat → val),
       ⌜sl = ⟨base, len, len⟩ ∧ 0 < base.addr ∧ 0 < len.toInt ∧ m.maps !! base = some len.toNat⌝ ∗
-      osInv (GF := GF) ∗ osMeta (GF := GF) p (DFrac.own 1) (some m) ∗
+      osInv (GF := GF) ∗ osMeta (GF := GF) p (DFrac.own 1) m ∗
       cellsR (GF := GF) base 0 len.toNat vf)
 
 /-- What is left of a mapping (`mappingRes p m sl`) after `munmap` returns `err`. -/
-def unmappedRes (p : GoString) (m : OsMeta) (sl : GoSlice) (err : GoInterface) : IProp GF :=
+def unmappedRes (p : Ino) (m : OsMeta) (sl : GoSlice) (err : GoInterface) : IProp GF :=
   iprop(⌜sl = slice.nil ∧ err = interface.nil⌝ ∨
     ∃ (base : Loc) (len : w64) (vf : Nat → val) (e : w64),
       ⌜sl = ⟨base, len, len⟩ ∧ err = errnoErr e⌝ ∗
-      ((⌜e = 0⌝ ∗ osMeta (GF := GF) p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps })) ∨
+      ((⌜e = 0⌝ ∗ osMeta (GF := GF) p (DFrac.own 1) ({ m with maps := GMap.delete base m.maps })) ∨
        (⌜e ≠ 0⌝ ∗
-         (osMeta (GF := GF) p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps }) ∨
-          (osMeta (GF := GF) p (DFrac.own 1) (some m) ∗ cellsR (GF := GF) base 0 len.toNat vf)))))
+         (osMeta (GF := GF) p (DFrac.own 1) ({ m with maps := GMap.delete base m.maps }) ∨
+          (osMeta (GF := GF) p (DFrac.own 1) m ∗ cellsR (GF := GF) base 0 len.toNat vf)))))
 
 /-- See the file header. -/
 abbrev DB.munmap.spec : Prop :=
-  ∀ (db : Loc) (dq : DFrac) (sl : GoSlice) (dsz : w64) (m0 m1 : Loc) (p : GoString) (m : OsMeta),
+  ∀ (db : Loc) (dq : DFrac) (sl : GoSlice) (dsz : w64) (m0 m1 : Loc) (p : Ino) (m : OsMeta),
   (sl ≠ slice.nil → dq = DFrac.own 1) →
   {{ db.[DB, go!"dataref"] ↦{dq} sl ∗ db.[DB, go!"datasz"] ↦{dq} dsz ∗ db.[DB, go!"meta0"] ↦{dq} m0 ∗
       db.[DB, go!"meta1"] ↦{dq} m1 ∗ mappingRes (GF := GF) p m sl }}

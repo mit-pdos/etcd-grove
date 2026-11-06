@@ -25,13 +25,15 @@ set_option linter.iris.style.nameCheck false
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -132,7 +134,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ b : Bool, valid_ptr ↦ b ∗
       validSt (GF := GF) path t vo n m b ∗ db_ptr ↦ db ∗
       os.ownFile (GF := GF) f fd path (DFrac.own 1) ∗
-      osFd (GF := GF) fd (DFrac.own 1) ⟨path, true, true⟩ ∗ osMeta (GF := GF) path (DFrac.own 1) (some m) ∗
+      osFd (GF := GF) fd (DFrac.own 1) ⟨path, true, true⟩ ∗ osMeta (GF := GF) path (DFrac.own 1) m ∗
       db.[DB, go!"dataref"] ↦ (zero_val DB).dataref' ∗ db.[DB, go!"datasz"] ↦ (zero_val DB).datasz' ∗
       db.[DB, go!"meta0"] ↦ (zero_val DB).meta0' ∗ db.[DB, go!"meta1"] ↦ (zero_val DB).meta1' ∗
       «$res0_ptr» ↦ zero_val Loc ∗ «$res1_ptr» ↦ GoInterface.nil) ∨
@@ -225,7 +227,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   (try wp_auto)
   -- `init` when no meta is valid
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ m' : OsMeta,
-      db.[DB, go!"filesz"] ↦ W64 (m'.size : Int) ∗ osMeta (GF := GF) path (DFrac.own 1) (some m') ∗
+      db.[DB, go!"filesz"] ↦ W64 (m'.size : Int) ∗ osMeta (GF := GF) path (DFrac.own 1) m' ∗
       dbStoredAt (GF := GF) path t vo n m' ∗ db_ptr ↦ db ∗
       os.ownFile (GF := GF) f fd path (DFrac.own 1) ∗
       osFd (GF := GF) fd (DFrac.own 1) ⟨path, true, true⟩ ∗

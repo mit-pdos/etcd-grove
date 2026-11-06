@@ -25,13 +25,15 @@ public import Perennial.Proof.sync.Results
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -54,11 +56,11 @@ theorem commitErr_of (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp :
       ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
       ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
-      mapInv (GF := GF) γ p base len γm ∗ writerCells (GF := GF) base hwm len ∗
+      mapInv (GF := GF) γ γ.ino base len γm ∗ writerCells (GF := GF) base hwm len ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
       osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
-      osMeta (GF := GF) p (DFrac.own 1) (some m2) ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
+      osMeta (GF := GF) p (DFrac.own 1) m2 ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
       osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ⊢
       commitErr (GF := GF) γ db f fd p t := by
   iintro ⟨Hown, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, Hwc, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail⟩
@@ -90,7 +92,7 @@ theorem grown_writer (p : GoString) (base : Loc) (m' : OsMeta) (len hwm : Nat)
     (hsz : m'.size ≤ len) (h4 : 4096 * hwm ≤ m'.size) (htl : tail.length = m'.size - 4096 * hwm) :
     osGrown (GF := GF) p m' len len ∗ osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
       cellsR (GF := GF) base (4096 * hwm) (m'.size - 4096 * hwm) vf ⊢
-      ∃ tail2, ⌜tail2.length = len - 4096 * hwm⌝ ∗ osMeta (GF := GF) p (DFrac.own 1) (some (m'.grown len)) ∗
+      ∃ tail2, ⌜tail2.length = len - 4096 * hwm⌝ ∗ osMeta (GF := GF) p (DFrac.own 1) (m'.grown len) ∗
         osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail2 ∗
         cellsAny (GF := GF) base (4096 * hwm) (len - 4096 * hwm) := by
   iintro ⟨Hg, Htail, Hlow⟩
@@ -219,7 +221,7 @@ theorem dataErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List
       ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
       ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
-      mapInv (GF := GF) γ p base len γm ∗
+      mapInv (GF := GF) γ γ.ino base len γm ∗
       ((∃ vf, cellsR (GF := GF) base 0 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 80 4016 vf) ∗
         (∃ vf, cellsR (GF := GF) base 4096 16 vf) ∗ (∃ vf, cellsR (GF := GF) base 4176 4016 vf)) ∗
       cellsAny (GF := GF) base (4096 * hwm) 4096 ∗
@@ -227,7 +229,7 @@ theorem dataErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
       osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
-      osMeta (GF := GF) p (DFrac.own 1) (some m3) ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
+      osMeta (GF := GF) p (DFrac.own 1) m3 ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
       osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
       osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
       commitErr (GF := GF) γ db f fd p t := by
@@ -306,13 +308,13 @@ theorem dataErrT (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : Lis
       ghostVar γ.map (1 : Qp).half (some (base, len, γm)) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
       ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
-      mapInv (GF := GF) γ p base len γm ∗ hdrTail (GF := GF) base 0 ∗ hdrTail (GF := GF) base 1 ∗
+      mapInv (GF := GF) γ γ.ino base len γm ∗ hdrTail (GF := GF) base 0 ∗ hdrTail (GF := GF) base 1 ∗
       cellsAny (GF := GF) base (4096 * hwm) 4096 ∗
       cellsAny (GF := GF) base (4096 * hwm + 4096) (len - 4096 * hwm - 4096) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
       osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
-      osMeta (GF := GF) p (DFrac.own 1) (some m3) ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
+      osMeta (GF := GF) p (DFrac.own 1) m3 ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
       osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
       osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
       commitErr (GF := GF) γ db f fd p t := by
@@ -581,7 +583,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (m2 : OsMeta) (tail2 : List (w8 × Bool)),
       ⌜m2.maps = {[base := len]} ∧ m2.size ≤ len ∧ (hwm + 2) * 4096 ≤ m2.size ∧ m2.ok = true ∧
         tail2.length = m2.size - 4096 * hwm ∧ 4 * 4096 ≤ m2.size ∧ m2.size ≤ 2 ^ 30⌝ ∗
-      osMeta (GF := GF) p (DFrac.own 1) (some m2) ∗ db.[DB, go!"filesz"] ↦ W64 m2.size ∗
+      osMeta (GF := GF) p (DFrac.own 1) m2 ∗ db.[DB, go!"filesz"] ↦ W64 m2.size ∗
       osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail2 ∗ writerCells (GF := GF) base hwm len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
       osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗

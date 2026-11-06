@@ -13,13 +13,15 @@ public import Proof.os.CrashStSpec
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -345,7 +347,7 @@ theorem DB.mmap.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG :
     rw [List.length_take, List.length_drop, List.length_map, hmxc]; rfl
   iunfold writerExtra at Hx
   icases Hx with ⟨Hcur2, Hf2, Hfd2⟩
-  ihave Hc : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells γ p base sz.toNat
+  ihave Hc : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells γ γ.ino base sz.toNat
       $$ [Hcur2 Hps Ho Hc0 Hc1]
   · iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells
     iexists mp, fl, hwm

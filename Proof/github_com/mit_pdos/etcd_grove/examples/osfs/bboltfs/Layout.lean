@@ -17,6 +17,8 @@ noncomputable section
 
 namespace Perennial
 
+open Fs
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std OFE
 
 namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs

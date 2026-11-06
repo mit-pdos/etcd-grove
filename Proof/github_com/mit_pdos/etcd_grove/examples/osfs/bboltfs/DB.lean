@@ -82,6 +82,8 @@ noncomputable section
 
 namespace Perennial
 
+open Fs
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
@@ -127,6 +129,8 @@ end pure
 
 /-- The ghost names of an open database (see the file header). -/
 structure DBNames where
+  /-- The database file's inode (its `OsMeta`, bytes and fds are keyed by it). -/
+  ino : Ino
   cur : GName
   map : GName
   out : GName
@@ -140,24 +144,24 @@ structure DBNames where
   vp : Nat → Option w64 → Prop
 
 section preds
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : Assumptions]
 
-/-- Committed page `r` of the file `p` holds `B`, clean (synced), forever. -/
-def pageIs (p : GoString) (r : Nat) (B : List w8) : IProp GF :=
-  iprop(⌜B.length = 4096⌝ ∗ osBytes (GF := GF) p (4096 * r) DFrac.discard (B.map (·, true)))
+/-- Committed page `r` of the file of inode `i` holds `B`, clean (synced), forever. -/
+def pageIs (i : Ino) (r : Nat) (B : List w8) : IProp GF :=
+  iprop(⌜B.length = 4096⌝ ∗ osBytes (GF := GF) i (4096 * r) DFrac.discard (B.map (·, true)))
 
-instance osBytes_discard_persistent (p : GoString) (off : Nat) (xs : List (w8 × Bool)) :
+instance osBytes_discard_persistent (p : Ino) (off : Nat) (xs : List (w8 × Bool)) :
     Persistent (osBytes (GF := GF) p off DFrac.discard xs) := by
   unfold osBytes bytesG
   refine BigSepL.bigSepL_persistent ?_
   intro k x _
   unfold gElem; infer_instance
 
-instance pageIs_persistent (p : GoString) (r : Nat) (B : List w8) :
+instance pageIs_persistent (p : Ino) (r : Nat) (B : List w8) :
     Persistent (pageIs (GF := GF) p r B) := by
   unfold pageIs; infer_instance
 
@@ -205,7 +209,7 @@ theorem dbOwnerOpt_agree (γ : DBNames) (o : Option (Nat × Nat)) (t n : Nat) :
 
 /-- The mapping invariant's contents: the committed pages' cells, and the meta cells unless the
 writer took them (`out`), holding the metas while not failed. -/
-def mapCells (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) : IProp GF :=
+def mapCells (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) : IProp GF :=
   iprop(∃ (mp : List w8) (fl : Bool) (hwm : Nat),
     ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ⌜4096 * hwm ≤ len⌝ ∗
     ([∗list] r ∈ List.range' 2 (hwm - 2),
@@ -251,7 +255,7 @@ def metaLent (γ : DBNames) (γm γl : GName) (base : Loc) (mc : List w8) : IPro
 /-- The mapping invariant's contents, as `mapCells` but with each group of cells lendable
 (`lentCells`, `metaLent`), and the authority `K` over the loan tokens: key 0 for the metas,
 `r` for committed page `r`. -/
-def mapLend (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName) : IProp GF :=
+def mapLend (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName) : IProp GF :=
   iprop(∃ (mp : List w8) (fl : Bool) (hwm : Nat) (K : GMap Nat (List w8)),
     ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ⌜4096 * hwm ≤ len⌝ ∗
     ghostMapAuth γl 1 K ∗ ⌜∀ k, 0 < k → hwm ≤ k → K.lookup k = none⌝ ∗
@@ -267,7 +271,7 @@ def mapN : Namespace := nroot .@ "minibolt_map"
 
 /-- The invariant of the mapping at `base`, closable with the whole of `γm`'s token (and then
 holding `mapCells`, `mapInv_close`), with its loan tokens at `γl`; its length is an `int`. -/
-def mapInv (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) : IProp GF :=
+def mapInv (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName) : IProp GF :=
   iprop(⌜len < 2 ^ 63⌝ ∗ ∃ γl, inv mapN iprop(mapLend (GF := GF) γ p base len γm γl ∨ ghostVar γm 1 ()))
 
 /-- The state of the mapping: `some (base, len, γm)`, the mapping at `base` of length `len`,
@@ -293,12 +297,12 @@ the fraction `q/2` of its invariant's token (the writer holds the other half), t
 the fraction `q/2` of the file and its fd for `Snapshot`'s `ReadAt` (the writer holds the other
 half, and all of it while there is no mapping). -/
 def mapRest (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (q : Qp) : MapSt → IProp GF
-  | some (base, len, γm) => iprop(⌜0 < base.addr⌝ ∗ ghostVar γm q.half () ∗ mapInv (GF := GF) γ p base len γm ∗
+  | some (base, len, γm) => iprop(⌜0 < base.addr⌝ ∗ ghostVar γm q.half () ∗ mapInv (GF := GF) γ γ.ino base len γm ∗
       os.ownFile (GF := GF) f fd p (DFrac.own q.half) ∗
-      osFd (GF := GF) fd (DFrac.own q.half) ⟨p, true, true⟩)
+      osFd (GF := GF) fd (DFrac.own q.half) ⟨γ.ino, true, true⟩)
   | none => emp
 
-instance mapInv_persistent (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) :
+instance mapInv_persistent (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName) :
     Persistent (mapInv (GF := GF) γ p base len γm) := by
   unfold mapInv; infer_instance
 
@@ -362,9 +366,9 @@ theorem mapBody_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString)
     haveI := ghostVar_half_fractional (GF := GF) γm ()
     haveI : Fractional (fun q : Qp => os.ownFile (GF := GF) f fd p (DFrac.own q.half)) :=
       fractional_half_of (ownFile_fractional (GF := GF) f fd p)
-    haveI : Fractional (fun q : Qp => osFd (GF := GF) fd (DFrac.own q.half) ⟨p, true, true⟩) :=
-      fractional_half_of (osFd_fractional (GF := GF) fd ⟨p, true, true⟩)
-    haveI : Persistent (mapInv (GF := GF) γ p base len γm) := by unfold mapInv; infer_instance
+    haveI : Fractional (fun q : Qp => osFd (GF := GF) fd (DFrac.own q.half) ⟨γ.ino, true, true⟩) :=
+      fractional_half_of (osFd_fractional (GF := GF) fd ⟨γ.ino, true, true⟩)
+    haveI : Persistent (mapInv (GF := GF) γ γ.ino base len γm) := by unfold mapInv; infer_instance
     infer_instance
 
 instance mapR_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) :
@@ -407,7 +411,7 @@ def metaR (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
   iprop(∃ (b : Bool) (mp mx : List (w8)) (hwm : Nat) (mxc : List (w8 × Bool))
       (T : GMap Nat (Option w64)),
     db.[DB, go!"failed"] ↦ b ∗ ghostVar γ.cur (1 : Qp).half (mp, b, hwm) ∗
-    ((osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗ ghostVar γ.cls (1 : Qp).half false) ∨
+    ((osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗ ghostVar γ.cls (1 : Qp).half false) ∨
       ghostVar γ.cls (1 : Qp).half true) ∗ ⌜mxc.length = 8192 ∧ mxc.map Prod.fst = mx⌝ ∗
     ghostMapAuth γ.txs 1 T ∗ ghostVar γ.out (1 : Qp).half.half false ∗
     match b with
@@ -417,7 +421,7 @@ def metaR (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
         ∀ k, (curMeta mp).txid'.toNat < k → T !! k = none⌝ ∗
       monoNatAuthOwn γ.last 1 (curMeta mp).txid'.toNat ∗
       ghostVar γ.own (1 : Qp).half ((curMeta mp).txid'.toNat, hwm) ∗
-      ∃ B, pageIs (GF := GF) p (curRoot mp) B ∗ dbTx γ (curMeta mp).txid'.toNat (pageVal B) ∗
+      ∃ B, pageIs (GF := GF) γ.ino (curRoot mp) B ∗ dbTx γ (curMeta mp).txid'.toNat (pageVal B) ∗
         ⌜T !! (curMeta mp).txid'.toNat = some (pageVal B)⌝)
 
 /-- The client halves of the mapped cells at `base` the writer holds: the meta pages' headers
@@ -433,10 +437,10 @@ def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
   iprop(∃ (mxc tail : List (w8 × Bool)) (fsz : Nat),
     db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
-    osMeta (GF := GF) p (DFrac.own 1) (some m) ∗
-    osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
-    osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+    osMeta (GF := GF) γ.ino (DFrac.own 1) m ∗
+    osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗
+    osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) tail ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧ mxc.length = 8192 ∧ tail.length = m.size - 4096 * hwm ∧
       (fl = false → mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x.2 = true) ∧ fsz = m.size ∧
         0 ≤ fd.toInt ∧ 4 * 4096 ≤ m.size ∧ m.size ≤ 2 ^ 30 ∧ mapLen st ≤ 2 ^ 30)⌝)
@@ -447,7 +451,7 @@ def writerExtra (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List w8
     (hwm : Nat) : IProp GF :=
   iprop(ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩)
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩)
 
 /-- `rwlock`'s resource (see the file header): the writer's part of an open database, with a
 mapping or, after a failed remap, without one (and the handle failed); or, once closed, the
@@ -461,7 +465,7 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
-      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
+      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ γ.ino base len γm ∗
       writerCells (GF := GF) base hwm len
     | none => dbFailed (GF := GF) γ ∗ writerExtra (GF := GF) γ f fd p mp fl hwm) ∨
    ((∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x) ∗ ghostVar γ.cls (1 : Qp).half true ∗

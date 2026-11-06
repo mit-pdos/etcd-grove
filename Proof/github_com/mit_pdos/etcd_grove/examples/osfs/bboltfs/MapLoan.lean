@@ -22,6 +22,8 @@ noncomputable section
 
 namespace Perennial
 
+open Fs
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
@@ -30,7 +32,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 def metasOf (mp : List w8) : List w8 := (mp.drop 16).take 64 ++ (mp.drop 4112).take 64
 
 section loans
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -38,7 +40,7 @@ variable [package_sem : Assumptions]
 
 /-- The mapping's invariant, at its loan tokens `γl`. -/
 abbrev mapInvL (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName) : IProp GF :=
-  inv mapN iprop(mapLend (GF := GF) γ p base len γm γl ∨ ghostVar γm 1 ())
+  inv mapN iprop(mapLend (GF := GF) γ γ.ino base len γm γl ∨ ghostVar γm 1 ())
 
 /-- What a resource proves, keeping it. -/
 theorem keep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ P ∗ ⌜φ⌝ := by

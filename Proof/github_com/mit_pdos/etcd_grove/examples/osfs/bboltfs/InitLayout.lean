@@ -13,6 +13,8 @@ noncomputable section
 
 namespace Perennial
 
+open Fs
+
 namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section pure

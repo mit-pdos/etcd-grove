@@ -20,6 +20,8 @@ set_option linter.iris.style.nameCheck false
 
 namespace Perennial
 
+open Fs
+
 namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 

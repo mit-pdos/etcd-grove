@@ -12,6 +12,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.OpenLem
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
@@ -21,7 +23,7 @@ theorem w64_of_toNat (x : w64) (n : Nat) (h : x.toNat = n) : x = W64 (n : Int) :
   subst h; apply BitVec.eq_of_toNat_eq; simp
 
 section lemmas
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

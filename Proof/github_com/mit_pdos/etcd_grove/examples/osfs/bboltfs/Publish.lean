@@ -12,13 +12,15 @@ set_option linter.iris.style.nameCheck false
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section lemmas
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -41,7 +43,7 @@ into the invariant, unlent under its fresh loan key `hwm`. -/
 theorem metas_publish (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
     (mp mp' : List w8) (hwm : Nat) (B : List w8) (hl : 4096 * (hwm + 1) ≤ len) (h2 : 2 ≤ hwm)
     (hmp' : mp'.length = 8192) :
-    mapInv (GF := GF) γ p base len γm ∗ ghostVar γm (1 : Qp).half () ∗
+    mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗
       ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗ ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗
       ghostVar γ.out (1 : Qp).half.half true ∗ ghostVar γ.out (1 : Qp).half.half true ∗
       cellsB (GF := GF) base 16 ((mp'.drop 16).take 64) ∗
@@ -127,7 +129,7 @@ failed, the meta cells back in the invariant holding whatever the failed write l
 theorem meta_fail (γ : DBNames) (db : Loc) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
     (mp : List w8) (hwm : Nat) (mc : List w8) (hmc : mc.length = 128) (X : List (w8 × Bool))
     (hX : X.length = 8192) (T : GMap Nat (Option w64)) (x : Nat × Nat) (t n : Nat) :
-    mapInv (GF := GF) γ p base len γm ∗ ghostVar γm (1 : Qp).half () ∗
+    mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗
       ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗ ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗
       ghostVar γ.out (1 : Qp).half.half true ∗ ghostVar γ.out (1 : Qp).half.half true ∗
       cellsB (GF := GF) base 16 (mc.take 64) ∗ cellsB (GF := GF) base 4112 (mc.drop 64) ∗

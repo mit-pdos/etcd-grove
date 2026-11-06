@@ -9,13 +9,15 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -29,10 +31,10 @@ bytes from the high water mark on, whole. The mapping is gone, and the file is a
 and at most 1 GiB: what `Open` accepts (`dbClosed_reopen`). -/
 def dbClosed (γ : DBNames) (p : GoString) (t n : Nat) : IProp GF :=
   iprop(∃ (m : OsMeta) (mp : List w8) (mxc tail : List (w8 × Bool)) (B : List w8),
-    osMeta (GF := GF) p (DFrac.own 1) (some m) ∗ osBytes (GF := GF) p 0 (DFrac.own 1) mxc ∗
-    ([∗list] r ∈ List.range' 2 (curPgid mp - 2), ∃ B', pageIs (GF := GF) p r B') ∗
-    osBytes (GF := GF) p (4096 * curPgid mp) (DFrac.own 1) tail ∗
-    pageIs (GF := GF) p (curRoot mp) B ∗ dbTx (GF := GF) γ t (pageVal B) ∗
+    osMeta (GF := GF) γ.ino (DFrac.own 1) m ∗ osBytes (GF := GF) γ.ino 0 (DFrac.own 1) mxc ∗
+    ([∗list] r ∈ List.range' 2 (curPgid mp - 2), ∃ B', pageIs (GF := GF) γ.ino r B') ∗
+    osBytes (GF := GF) γ.ino (4096 * curPgid mp) (DFrac.own 1) tail ∗
+    pageIs (GF := GF) γ.ino (curRoot mp) B ∗ dbTx (GF := GF) γ t (pageVal B) ∗
     ⌜mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x.2 = true) ∧ metaPagesOk mp ∧
       (curMeta mp).txid'.toNat = t ∧ curPgid mp = n ∧ 4096 * curPgid mp ≤ m.size ∧
       tail.length = m.size - 4096 * curPgid mp ∧ m.ok = true ∧ m.maps = ∅ ∧

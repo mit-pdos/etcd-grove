@@ -15,12 +15,14 @@ noncomputable section
 
 namespace Perennial
 
+open Fs
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section lemmas
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -30,11 +32,11 @@ instance cellsR_timeless (base : Loc) (lo n : Nat) (vf : Nat → val) :
     Timeless (cellsR (GF := GF) base lo n vf) := by
   unfold cellsR; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
 
-instance osBytes_timeless' (p : GoString) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) :
+instance osBytes_timeless' (p : Ino) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) :
     Timeless (osBytes (GF := GF) p off dq xs) := by
   unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
 
-instance mapCells_timeless (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) :
+instance mapCells_timeless (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) :
     Timeless (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells (GF := GF) γ p base len) := by
   unfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells
   haveI : ∀ r, Timeless iprop(∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) := by
@@ -48,7 +50,7 @@ instance mapCells_timeless (γ : DBNames) (p : GoString) (base : Loc) (len : Nat
   infer_instance
 
 /-- Two halves of the same bytes of a file, as the whole (they agree). -/
-theorem osBytes_join (p : GoString) :
+theorem osBytes_join (p : Ino) :
     ∀ (xs ys : List (w8 × Bool)) (off : Nat), xs.length = ys.length →
     osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs ∗
       osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) ys ⊢
@@ -249,7 +251,7 @@ instance lentCells_timeless (γm γl : GName) (k : Nat) (l : Loc) (B : List w8) 
   refine @exists_timeless _ _ _ _ (fun o => ?_)
   rcases o with _ | d <;> dsimp only <;> infer_instance
 
-instance mapLend_timeless (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName) :
+instance mapLend_timeless (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName) :
     Timeless (mapLend (GF := GF) γ p base len γm γl) := by
   unfold mapLend metaLent metaBytes
   haveI : ∀ r B, Timeless (pageIs (GF := GF) p r B) := by intro r B; unfold pageIs; infer_instance
@@ -276,7 +278,7 @@ instance mapLend_timeless (γ : DBNames) (p : GoString) (base : Loc) (len : Nat)
   · infer_instance
 
 /-- The pages of a `mapLend`, with the whole of `γm`: none is lent. -/
-theorem pages_unlend (p : GoString) (base : Loc) (γm γl : GName) : ∀ L : List Nat,
+theorem pages_unlend (p : Ino) (base : Loc) (γm γl : GName) : ∀ L : List Nat,
     ([∗list] r ∈ L, ∃ B, pageIs (GF := GF) p r B ∗
         lentCells (GF := GF) γm γl r (base +ₗ ((4096 * r : Nat) : Int)) B) ∗ ghostVar γm 1 () ⊢
       ([∗list] r ∈ L, ∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) ∗
@@ -297,7 +299,7 @@ theorem pages_unlend (p : GoString) (base : Loc) (γm γl : GName) : ∀ L : Lis
     iapply (cellsB_bytes base B (4096 * r)).2; iexact Hb
 
 /-- The pages of a `mapCells`, lendable, with their loan tokens. -/
-theorem pages_lend (p : GoString) (base : Loc) (γm γl : GName) : ∀ (n s : Nat) (K : GMap Nat (List w8)),
+theorem pages_lend (p : Ino) (base : Loc) (γm γl : GName) : ∀ (n s : Nat) (K : GMap Nat (List w8)),
     (∀ k, s ≤ k → K.lookup k = none) →
     ghostMapAuth γl 1 K ∗
       ([∗list] r ∈ List.range' s n, ∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) ⊢
@@ -336,7 +338,7 @@ theorem pages_lend (p : GoString) (base : Loc) (γm γl : GName) : ∀ (n s : Na
     iapply (cellsB_bytes base B (4096 * s)).1; iexact Hc
 
 /-- With the whole of `γm`, the invariant's contents as `mapCells`. -/
-theorem mapLend_full (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName) :
+theorem mapLend_full (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName) :
     mapLend (GF := GF) γ p base len γm γl ∗ ghostVar γm 1 () ⊢
       mapCells (GF := GF) γ p base len ∗ ghostVar γm 1 () := by
   iintro ⟨Hc, Hm⟩
@@ -372,7 +374,7 @@ theorem mapLend_full (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm
       have := metaDep.2; grind
 
 /-- `mapCells`, lendable, with a fresh authority over its loan tokens. -/
-theorem mapLend_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) :
+theorem mapLend_alloc (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName) :
     mapCells (GF := GF) γ p base len ⊢ |==> ∃ γl, mapLend (GF := GF) γ p base len γm γl := by
   iintro Hc
   unfold mapCells
@@ -427,7 +429,7 @@ theorem mapLend_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γ
     · iapply (cellsB_bytes base _ 16).1; iexact Hc0
     · iapply (cellsB_bytes base _ 4112).1; iexact Hc1
 
-theorem mapInv_close (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName) :
+theorem mapInv_close (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName) :
     mapInv (GF := GF) γ p base len γm ∗ ghostVar γm 1 () ⊢ |={⊤}=> ▷ mapCells (GF := GF) γ p base len := by
   iintro ⟨#Hinv, Htok⟩
   unfold mapInv
@@ -444,7 +446,7 @@ theorem mapInv_close (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm
     simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at Hbad
     grind
 
-theorem mapInv_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (hlen : len < 2 ^ 63) :
+theorem mapInv_alloc (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (hlen : len < 2 ^ 63) :
     mapCells (GF := GF) γ p base len ⊢
       |={⊤}=> ∃ γm, ghostVar γm 1 () ∗ mapInv (GF := GF) γ p base len γm := by
   iintro Hc
@@ -461,7 +463,7 @@ theorem mapInv_alloc (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (hle
   iexact Hinv
 
 /-- The invariant's pages `[s, s + k)`: their contents, and their cells as one range. -/
-theorem pagesCells_split (p : GoString) (base : Loc) :
+theorem pagesCells_split (p : Ino) (base : Loc) :
     ∀ k s, ([∗list] r ∈ List.range' s k, ∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) ⊢
       ([∗list] r ∈ List.range' s k, ∃ B, pageIs (GF := GF) p r B) ∗
         cellsAny (GF := GF) base (4096 * s) (4096 * k)
@@ -611,13 +613,13 @@ section agree
 variable [go.BasicIntoValInj] {s : Stuckness} {E : CoPset}
 
 /-- The new mapping's cells of the committed pages hold their bytes. -/
-theorem pages_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFrac) (m : OsMeta)
+theorem pages_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (m : OsMeta)
     (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ∀ (k r0 : Nat) (vf : Nat → val), 4096 * (r0 + k) ≤ len →
-    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p dqm (some m) -∗
+    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p dqm m -∗
       ([∗list] r ∈ List.range' r0 k, ∃ B, pageIs (GF := GF) p r B) -∗
       cellsR (GF := GF) base (4096 * r0) (4096 * k) vf -∗
-      (osMeta (GF := GF) p dqm (some m) -∗
+      (osMeta (GF := GF) p dqm m -∗
         ([∗list] r ∈ List.range' r0 k, ∃ B, pageIs (GF := GF) p r B ∗ cellsB (GF := GF) base (4096 * r) B) -∗
         WP e @ s; E {{ Φ }}) -∗
       WP e @ s; E {{ Φ }}
@@ -649,13 +651,13 @@ theorem pages_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFra
     unfold pageIs; iframe HBs; ipureintro; exact HBl
 
 /-- The new mapping's cells of a window `[a, a + n)` of bytes the client holds a fraction of. -/
-theorem window_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFrac) (m : OsMeta)
+theorem window_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (m : OsMeta)
     (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (hE : ↑osN ⊆ E) (Φ : val → IProp GF)
     (dq : DFrac) (xs : List (w8 × Bool)) (a n : Nat) (vf : Nat → val) (h : a + n ≤ xs.length)
     (hl : a + n ≤ len) :
-    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p dqm (some m) -∗ osBytes (GF := GF) p 0 dq xs -∗
+    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p dqm m -∗ osBytes (GF := GF) p 0 dq xs -∗
       cellsR (GF := GF) base a n vf -∗
-      (osMeta (GF := GF) p dqm (some m) -∗ osBytes (GF := GF) p 0 dq xs -∗
+      (osMeta (GF := GF) p dqm m -∗ osBytes (GF := GF) p 0 dq xs -∗
         cellsB (GF := GF) base a (((xs.map Prod.fst).drop a).take n) -∗ WP e @ s; E {{ Φ }}) -∗
       WP e @ s; E {{ Φ }} := by
   iintro #Hinv Hm Hb Hc HΦ

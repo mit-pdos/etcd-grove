@@ -18,13 +18,15 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.MapInv
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -33,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 /-- What `munmap` leaves the writer besides `mappingRes`, in the state `st`. -/
 def unmapRest (p : GoString) (m : OsMeta) : MapSt → IProp GF
   | some (base, len, _) => iprop(⌜m.maps = {[base := len]} ∧ 0 < base.addr⌝)
-  | none => iprop(osMeta (GF := GF) p (DFrac.own 1) (some m) ∗ ⌜m.maps = ∅⌝)
+  | none => iprop(osMeta (GF := GF) p (DFrac.own 1) m ∗ ⌜m.maps = ∅⌝)
 
 /-- Before `munmap`: with a mapping, close its invariant and gather its cells; without one, the
 writer has what the precondition gives. Either way, the writer then has `writerExtra`, the
@@ -41,7 +43,7 @@ invariant's half of `out`, and the committed pages. -/
 theorem mmap_prep (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List w8) (fl : Bool)
     (hwm : Nat) (m : OsMeta) (st : MapSt) (h2 : 2 ≤ hwm) (hsz : 4096 * hwm ≤ m.size) :
     osInv (GF := GF) ∗ ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
-      ghostVar γ.out (1 : Qp).half.half false ∗ osMeta (GF := GF) p (DFrac.own 1) (some m) ∗
+      ghostVar γ.out (1 : Qp).half.half false ∗ osMeta (GF := GF) p (DFrac.own 1) m ∗
       mmapPre (GF := GF) γ f fd p mp fl hwm m st ∗ mapRest (GF := GF) γ f fd p 1 st ⊢
     |={⊤}=> ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
       ghostVar γ.out (1 : Qp).half.half false ∗ writerExtra (GF := GF) γ f fd p mp fl hwm ∗
@@ -107,7 +109,7 @@ theorem errnoErr_ne_nil (e : w64) (h : e ≠ 0) : errnoErr e ≠ interface.nil :
 /-- After `munmap`: the file's `OsMeta`, of the same size, with no mapping if it succeeded. -/
 theorem mmap_unmapped (p : GoString) (m : OsMeta) (st : MapSt) (err : GoInterface) :
     unmappedRes (GF := GF) p m (mapSlice st) err ∗ unmapRest (GF := GF) p m st ⊢
-      ∃ m', osMeta (GF := GF) p (DFrac.own 1) (some m') ∗
+      ∃ m', osMeta (GF := GF) p (DFrac.own 1) m' ∗
         ⌜m'.size = m.size ∧ m'.ok = m.ok ∧ (err = interface.nil → m'.maps = ∅)⌝ := by
   rcases st with _ | ⟨base, len, γm⟩
   · dsimp only [unmapRest]
@@ -270,7 +272,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     wp_apply wp_Munmap base sz p { m1 with maps := <[base := sz.toNat]> m1.maps } _ Hsz0
       (GMap.lookup_insert _ _ _) $$ [Hm Hcells] as %e3 Hm3
     · iframe; iframe #
-    ihave Hm : ∃ m2 : OsMeta, osMeta (GF := GF) p (DFrac.own 1) (some m2) ∗
+    ihave Hm : ∃ m2 : OsMeta, osMeta (GF := GF) p (DFrac.own 1) m2 ∗
         ⌜m2.size = m.size ∧ m2.ok = m.ok⌝ $$ [Hm3]
     · icases Hm3 with (⟨-, Hm⟩ | ⟨-, (Hm | ⟨Hm, -⟩)⟩) <;>
         (iexists _; iframe; ipureintro; exact ⟨Hm1.1, Hm1.2.1⟩)
@@ -320,7 +322,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     rw [List.length_take, List.length_drop, List.length_map, hmxc]; rfl
   iunfold writerExtra at Hx
   icases Hx with ⟨Hcur2, Hf2, Hfd2⟩
-  ihave Hc : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells γ p base sz.toNat
+  ihave Hc : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells γ γ.ino base sz.toNat
       $$ [Hcur2 Hps Ho Hc0 Hc1]
   · iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells
     iexists mp, fl, hwm

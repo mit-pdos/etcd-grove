@@ -25,6 +25,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Open
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
@@ -67,7 +69,7 @@ def goodImg (img : List w8) : Prop :=
 /-- **minibolt's crash invariant**: the database file is absent, or a `Good` image. -/
 def Good : Option OsFile → Prop
   | none => True
-  | some f => goodImg f.cur
+  | some f => goodImg f.contents
 
 theorem goodImg_fileOk (img : List w8) (h : goodImg img) :
     fileOk (img.map (·, true)) := by

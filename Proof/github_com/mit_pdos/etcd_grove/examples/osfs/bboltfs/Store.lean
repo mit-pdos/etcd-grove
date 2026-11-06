@@ -10,7 +10,7 @@ file `xs`.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Pages
-public import GooseLang.Ext.OsFs.Write
+public import GooseLang.Ext.Fs.Write
 
 @[expose] public section
 
@@ -19,6 +19,8 @@ set_option linter.iris.style.nameCheck false
 noncomputable section
 
 namespace Perennial
+
+open Fs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
@@ -55,11 +57,11 @@ theorem fileMeta_window (xs : List w8) (i n : Nat) (h : 80 ≤ n) :
 end bytes
 
 section osbytes
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
 /-- The window `[a, a + n)` of a file's bytes, and back. -/
-theorem osBytes_window (p : GoString) (dq : DFrac) (xs : List (w8 × Bool)) (a n : Nat)
+theorem osBytes_window (p : Ino) (dq : DFrac) (xs : List (w8 × Bool)) (a n : Nat)
     (h : a + n ≤ xs.length) :
     osBytes (L := L) p 0 dq xs ⊣⊢
       osBytes (L := L) p 0 dq (xs.take a) ∗ osBytes (L := L) p a dq ((xs.drop a).take n) ∗

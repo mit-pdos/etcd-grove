@@ -14,13 +14,15 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.MapInv
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -46,7 +48,7 @@ size, with no mapping. -/
 theorem close_unmapped (p : GoString) (m : OsMeta) (base : Loc) (len : Nat) (err : GoInterface)
     (hm : m.maps = {[base := len]}) (hb : 0 < base.addr) (herr : err = interface.nil) :
     unmappedRes (GF := GF) p m ⟨base, W64 len, W64 len⟩ err ⊢
-      ∃ m', osMeta (GF := GF) p (DFrac.own 1) (some m') ∗
+      ∃ m', osMeta (GF := GF) p (DFrac.own 1) m' ∗
         ⌜m'.size = m.size ∧ m'.ok = m.ok ∧ m'.maps = ∅⌝ := by
   unfold unmappedRes
   iintro (%Hnil | ⟨%b, %l, %vf, %e, %Heq, Hu⟩)

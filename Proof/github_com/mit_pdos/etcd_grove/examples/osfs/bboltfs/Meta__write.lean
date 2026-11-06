@@ -10,6 +10,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page__me
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 

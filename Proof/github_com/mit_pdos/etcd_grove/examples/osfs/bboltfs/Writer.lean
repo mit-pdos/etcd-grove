@@ -14,6 +14,8 @@ set_option linter.iris.style.nameCheck false
 noncomputable section
 
 namespace Perennial
+
+open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
@@ -206,7 +208,7 @@ theorem pwBytes_inside (sz off : Nat) (data : List w8) (xs : List (w8 × Bool)) 
 end pure
 
 section lemmas
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -227,7 +229,7 @@ theorem cellsB_meta (base : Loc) (lo : Nat) (B : List w8) (hB : B.length = 64)
 of the invariant's token, so the invariant is open), holding the metas. -/
 theorem metas_out (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
     (mp : List w8) (hwm : Nat) :
-    mapInv (GF := GF) γ p base len γm ∗ ghostVar γm (1 : Qp).half () ∗
+    mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗
       ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
       ghostVar γ.out (1 : Qp).half.half false ∗ ghostVar γ.out (1 : Qp).half.half false ⊢
       |={⊤}=> ghostVar γm (1 : Qp).half () ∗ ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
@@ -291,7 +293,7 @@ theorem metas_out (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : 
 theorem metas_in (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
     (mp : List w8) (fl : Bool) (hwm : Nat) (mc : List w8) (hmc : mc.length = 128)
     (hmp : fl = false → mc = (mp.drop 16).take 64 ++ (mp.drop 4112).take 64) :
-    mapInv (GF := GF) γ p base len γm ∗ ghostVar γm (1 : Qp).half () ∗
+    mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗
       ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
       ghostVar γ.out (1 : Qp).half.half true ∗ ghostVar γ.out (1 : Qp).half.half true ∗
       cellsB (GF := GF) base 16 (mc.take 64) ∗ cellsB (GF := GF) base 4112 (mc.drop 64) ⊢
@@ -343,7 +345,7 @@ theorem metas_in (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : G
 /-- The meta pages' state, failed: `cur`'s three parts, the invariant's in the invariant. -/
 theorem fail_cur_inv (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
     (mp : List w8) (hwm : Nat) :
-    mapInv (GF := GF) γ p base len γm ∗ ghostVar γm (1 : Qp).half () ∗
+    mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗
       ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
       ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ⊢
       |={⊤}=> ghostVar γm (1 : Qp).half () ∗ ghostVar γ.cur (1 : Qp).half.half (mp, true, hwm) ∗
