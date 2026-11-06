@@ -347,7 +347,7 @@ theorem Open.wp_proof [sync.Assumptions]
   opt_rd (optsAt_freelist_rd opts dq o)
   opt_rdt (optsAt_mlock_rd opts dq o)
   opt_rd (optsAt_int_rd opts dq o go!"MaxSize" (by decide))
-  simp only [internal.common.DefaultMaxBatchSize, internal.common.DefaultMaxBatchDelay,
+  try simp only [internal.common.DefaultMaxBatchSize, internal.common.DefaultMaxBatchDelay,
     internal.common.DefaultAllocSize]
   try wp_auto
   -- the statistics
