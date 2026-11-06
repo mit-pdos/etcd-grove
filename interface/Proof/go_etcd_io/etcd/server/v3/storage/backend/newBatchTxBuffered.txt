@@ -20,7 +20,7 @@ theorem backend.newBatchTxBuffered.wp_proof (hBegin : backend.backend.begin.spec
                           sync.rwmutex.ownRWMutex γrw (rwmutex.RLocked 0) ∗
                             (sync.ownRWMutex (backend.bF go!"mu" b) fun q =>
                                 typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
-                              backend.ownDB db γd D ∗ backend.wrTok γd -∗
+                              backend.ownDB db γd D ∗ backend.wrTok γd ∗ threadTok -∗
           (▷
               ∀ t,
                 (∃ wtx rtx,

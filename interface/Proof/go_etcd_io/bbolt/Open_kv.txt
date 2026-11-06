@@ -4,7 +4,8 @@
 
 axiom bbolt.Open_kv.wp_proof : bbolt.Open_kv.spec
   -- `Perennial.EtcdGrove.bbolt.Open_kv.spec`, unfolded:
-  ∀ (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : backend.OptsM) (D : backend.Data),
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : backend.OptsM)
+    (D : backend.Data),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.bbolt ∗
