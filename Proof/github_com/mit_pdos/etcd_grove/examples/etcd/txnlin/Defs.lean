@@ -220,11 +220,43 @@ def storeOwn (s : store) (g : GSt) : IProp GF := iprop(s.kvs' ↦*□ g.kvs ∗ 
 instance storeOwn_persistent (s : store) (g : GSt) : Persistent (storeOwn (GF := GF) s g) := by
   unfold storeOwn; infer_instance
 
+omit package_sem in
+/-- An entry's fields, read-only. -/
+theorem entry_fields_disc (l : Loc) (v : entry) :
+    (l ↦□ v : IProp GF) ⊢ l.[entry, go!"key"] ↦□ v.key' ∗ l.[entry, go!"r"] ↦□ v.r' := by
+  iintro #H
+  icases (AccessStrict.access_strict (A := l.[entry, go!"key"] ↦□ v.key')
+      (A' := l.[entry, go!"key"] ↦□ v.key') (P := l ↦□ v)) $$ H with ⟨H1, -⟩
+  icases (AccessStrict.access_strict (A := l.[entry, go!"r"] ↦□ v.r')
+      (A' := l.[entry, go!"r"] ↦□ v.r') (P := l ↦□ v)) $$ H with ⟨H2, -⟩
+  isplitl [H1]
+  · iexact H1
+  · iexact H2
+
 /-- A Go configuration holds `g` (see the file header). -/
 def cfgOwn (c : mcfg) (g : GCfg) : IProp GF := iprop(storeOwn c.st' g.st ∗ c.pend' ↦*□ g.pend)
 
 instance cfgOwn_persistent (c : mcfg) (g : GCfg) : Persistent (cfgOwn (GF := GF) c g) := by
   unfold cfgOwn; infer_instance
+
+omit package_sem in
+/-- Configurations with one inserted at `lo` (`addConfig`'s insertion). -/
+theorem cfgOwn_insert (cs : List mcfg) (gs : List GCfg) (lo : Nat) (c : mcfg) (g : GCfg)
+    (hlen : cs.length = gs.length) :
+    ([∗list] c';g' ∈ cs;gs, cfgOwn (GF := GF) c' g') ∗ cfgOwn c g ⊢
+      [∗list] c';g' ∈ cs.take lo ++ c :: cs.drop lo;gs.take lo ++ g :: gs.drop lo, cfgOwn c' g' := by
+  conv => lhs; rw [← List.take_append_drop lo cs, ← List.take_append_drop lo gs]
+  have hl : (cs.take lo).length = (gs.take lo).length := by simp [hlen]
+  iintro ⟨H, Hc⟩
+  icases (BigSepL2.bigSepL2_append (Φ := fun _ c' g' => cfgOwn (GF := GF) c' g')
+    (Or.inl hl)).1 $$ H with ⟨H1, H2⟩
+  iapply (BigSepL2.bigSepL2_append (Φ := fun _ c' g' => cfgOwn (GF := GF) c' g') (Or.inl hl)).2
+  isplitl [H1]
+  · iexact H1
+  · iapply BigSepL2.bigSepL2_cons.2
+    isplitl [Hc]
+    · iexact Hc
+    · iexact H2
 
 /-- A Go state value represents `S`, its configurations `Bounded n` (see the file header). -/
 def stRepB (n : Nat) (v : GoInterface) (S : linkv.PSet MS MI) : IProp GF :=
