@@ -231,11 +231,11 @@ methods `[Error]`. `InvalidCostError int` (`:50-54`): methods `[Error]` (value r
 `fmt.Sprintf`). Neither has `GRPCStatus` (reflection in `TestErrorMethods`; `grep GRPCStatus` in
 `bcrypt/` finds nothing).
 
-**Every other error path** of `GenerateFromPassword` (`:96-104`) → `newFromPassword` (`:139-165`):
+**Every other error path** of `GenerateFromPassword` (`:95-104`) → `newFromPassword` (`:139-165`):
 
 - `checkCost` (`:299-304`): only `InvalidCostError`, only for `cost > MaxCost = 31` (a cost below
   `MinCost` becomes `DefaultCost`, `:140-142`). In the list.
-- (a) `io.ReadFull(rand.Reader, unencodedSalt)` (`:153`). go1.27.3: `crypto/rand.Reader =
+- (a) `io.ReadFull(rand.Reader, unencodedSalt)` (`:154`). go1.27.3: `crypto/rand.Reader =
   rand.Reader` (`src/crypto/rand/rand.go:34`), `crypto/internal/rand`'s `reader{}`
   (`src/crypto/internal/rand/rand.go:38`), whose `Read` (`:22-31`) returns `len(b), nil` after
   `drbg.Read(b)`, or panics if the BoringCrypto reader fails; `drbg.Read`
@@ -244,16 +244,16 @@ methods `[Error]`. `InvalidCostError int` (`:50-54`): methods `[Error]` (value r
   failure (`src/crypto/internal/sysrand/rand.go:37-51`), or the DRBG over `sysrand`. So `ReadFull`
   of 16 bytes gets `n = 16, nil`: **no error**, unless the program replaces `rand.Reader` (etcd does
   not; the spec's docstring says so, as `gentokenprefix.md` found).
-- (b) `bcrypt(password, cost, salt)` (`:159`, `:202-221`) fails only through
-  `expensiveBlowfishSetup` (`:223-241`):
-  - `base64Decode(salt)` (`base64.go:23-35`): the salt is `base64Encode` of 16 bytes (`:157`):
+- (b) `bcrypt(password, cost, salt)` (`:160`, `:196-215`) fails only through
+  `expensiveBlowfishSetup` (`:217-235`):
+  - `base64Decode(salt)` (`base64.go:23-35`): the salt is `base64Encode` of 16 bytes (`:159`):
     24 characters with the two `=` stripped, 22 characters of `alphabet`; `22 % 4 = 2`, so two `=`
     are appended back and the 24 characters decode to the 16 bytes (the encoder zeroes the
     trailing bits; `bcEncoding` is not `Strict` anyway). **No error.**
   - `blowfish.NewSaltedCipher(ckey, csalt)` (`blowfish/cipher.go:52-63`): `csalt` has 16 bytes, so
     the `len(salt) == 0 → NewCipher` branch (the one with the 1..56 bound, `:38-46`) is not taken;
     the salted branch returns `KeySizeError` only for `len(key) < 1`, and `ckey = append(key, 0)`
-    (`:232`) has at least one byte. No upper bound in that branch (73 bytes are fine). **`KeySizeError`
+    (`:226`) has at least one byte. No upper bound in that branch (73 bytes are fine). **`KeySizeError`
     is unreachable.**
 
 `TestNoOtherError`: every password length 0..72, bytes `0x00`, `'a'`, `0xff`, cost 4 (and a sample
