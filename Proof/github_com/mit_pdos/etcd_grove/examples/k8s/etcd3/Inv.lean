@@ -608,6 +608,12 @@ instance kInv_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : 
     Persistent (kInv (GF := GF) γ c g0 γk) := by
   unfold kInv; infer_instance
 
+/-- `kInv` reads only the KV state's ghost name (`kvSame`'s first part): the invariant at one
+member's names is the invariant at any member's of the same cluster. -/
+theorem kInv_same (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk γk' : KVNames)
+    (hs : kvSame γk' γk) : kInv (GF := GF) γ c g0 γk' = kInv γ c g0 γk := by
+  unfold kInv kInvBody etcdKV; rw [hs.1]
+
 /-- **`lintest`'s linearization point** for the input `i`, the continuation `Φ`: the atomic
 triple's update, its `▷` stripped. -/
 def linU (γ : KNames) (g0 : GSt) (i : GoInterface) (Φ : val → IProp GF) : IProp GF :=

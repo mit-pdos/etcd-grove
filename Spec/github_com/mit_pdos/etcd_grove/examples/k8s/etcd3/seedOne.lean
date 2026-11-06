@@ -33,14 +33,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 /-- See the file header. -/
 abbrev seedOne.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    (cl : Loc) (x : client.SrvAt GF) (V : client.WEnv GF) (γs : GName) (s0 : mstore) (g : GSt)
+    (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γs : GName) (s0 : mstore) (g : GSt)
     (k : GoString) (σ : KVState),
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → ms ≠ [] →
   k.length < 256 → g.items.length + 1 < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient cl [x.addr] V ∗ client.clientWriteOnce cl [x.addr] ∗ client.kvRegsAt x ∗
-      seedInv γs x.γr.kv ∗ ghostVar γs (1 : Qp).half σ ∗ storeOwn s0 g }}
+      isNewClient cl (ms.map (·.addr)) V ∗ client.clientWriteOnce cl (ms.map (·.addr)) ∗
+      ([∗list] y ∈ ms, client.kvRegsAt y) ∗ ([∗list] y ∈ ms, seedInv γs y.γr.kv) ∗ ghostVar γs (1 : Qp).half σ ∗ storeOwn s0 g }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seedOne)) (Val #cl)) (Val #s0)) (Val #k))
   {{ (s' : mstore) (ok : Bool), RET (PairV #s' #ok);
       ⌜ok = false⌝ ∨
