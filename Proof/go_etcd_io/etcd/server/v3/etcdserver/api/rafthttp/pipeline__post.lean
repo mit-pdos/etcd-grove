@@ -231,7 +231,7 @@ theorem rafthttp.pipeline.post.wp_proof
       (errors.treeTyped_pointer e _ Hel.1) $$ [] as %b ⟨-, -, %h3⟩
     · iframe #
       isplitl
-      · iapply errors.errorIsTree_leaf e (fun _ => False) _ Hel.2.1 Hel.2.2
+      · iapply errors.errorIsTree_leaf e (fun _ => False) _ Hel.2.1 Hel.2.2.1
       ipureintro; rfl
     cases b
     · wp_auto

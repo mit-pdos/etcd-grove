@@ -37,10 +37,11 @@ abbrev v3rpc.kvServer.Txn.spec : Prop :=
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.kvServer.ty @!! go!"Txn")) (Val #ctx))
       (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      match v3rpc.txnAllCheck (sint.Z n) cs ts es with
+      (match v3rpc.txnAllCheck (sint.Z n) cs ts es with
       | some e => v3rpc.checkOut e resp err ∗ A.call ctx
       | none => v3rpc.kvOut A cid mid (.txn cs ts es)
-          (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) resp err }}
+          (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) resp err) ∗
+      go_etcd_io.etcd.cache.v3.statusErrOk err }}
 
 end spec
 

@@ -29,7 +29,8 @@ handler's request is only that its `HashedPassword` is some base64 encoding
 (`encoding.base64.stdEnc`). Faithful to the Go code (v0.57.0, under go1.27.3): an error for a
 password longer than 72 bytes (`ErrPasswordTooLong`, an `errors.New` error: a pointer to an
 `errorString`) or for a cost above `MaxCost` (`InvalidCostError`, an `int`: not a pointer, a safe
-map key); either has no `Is` or `Unwrap` method, and its `Error()` returns (`errors.New`'s message,
+map key); either has no `Is`, `Unwrap` or `GRPCStatus` method (`GRPCStatus` since k8s etcd3 7c, HS-7, DRAFT:
+bcrypt.go:50-52, 87), and its `Error()` returns (`errors.New`'s message,
 `fmt.Sprintf`'s). No other error: reading the salt from `crypto/rand.Reader` does not fail (the
 default reader, which etcd never replaces, `crypto/internal/rand.reader`, returns `len(b), nil` or
 crashes the program), the salt it encodes decodes, and `blowfish.NewSaltedCipher`'s key (the
@@ -45,6 +46,7 @@ abbrev bcrypt.GenerateFromPassword.spec : Prop :=
       pw ↦*{dp} p ∗
       ((∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧
           methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
+          methodSet ei.ty !! go!"GRPCStatus" = none ∧
           (_root_.Perennial.errors.IsPointerError ei ∨
             ((∀ T, ei.ty ≠ go.GoType.PointerType T) ∧ SafeMapKey (GF := GF) go.error err))⌝ ∗
           {{ True }} (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #()))

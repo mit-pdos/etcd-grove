@@ -613,7 +613,7 @@ theorem v3rpc.checkIntervals.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨-, -, -, -, -, #Hdup, -⟩, -, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at Hdup
-  icases Hdup with ⟨%edup, #Hdup⟩
+  icases Hdup with ⟨%edup, #Hdup, #Sedup⟩
   wp_apply hNew as %tl Htl
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   ihave %Hlen := v3rpc.ci_reqOpsIs_len ps us $$ Hps

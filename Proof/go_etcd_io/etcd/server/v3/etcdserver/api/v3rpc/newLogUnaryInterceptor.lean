@@ -53,8 +53,8 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
   iunfold srvHandlerCall at Hk
   wp_bind (App (App (Val #h) _) _)
   iapply (wp_wand (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-    (srvLgReader s -∗ Ψ v)))) $$ Hk
-  iintro %v ⟨%resp, %err, %Hv, HΨ⟩
+    go_etcd_io.etcd.cache.v3.statusErrOk err ∗ (srvLgReader s -∗ Ψ v)))) $$ Hk
+  iintro %v ⟨%resp, %err, %Hv, -, HΨ⟩
   subst Hv
   wp_auto
   wp_apply wp_Logger s lg $$ [HR] as ⟨-, HR⟩

@@ -77,7 +77,7 @@ theorem ContextError.wp_proof
       · wp_auto
         wp_apply HCode
         wp_if_destruct
-        · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 - -
+        · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 - - -
           cases e2 with
           | nil =>
             wp_auto
@@ -86,7 +86,7 @@ theorem ContextError.wp_proof
           | ok e2 =>
             simp only [reduceCtorEq, ↓reduceIte]
             wp_auto
-            wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3
+            wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 -
             · iexact He2
             ihave #Hcl3' : iprop(□ (go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok ei) -∗
                 go_etcd_io.etcd.cache.v3.errCellOk e3)) $$ []
@@ -94,7 +94,7 @@ theorem ContextError.wp_proof
             iapply HΦ
             iframe #; ipureintro; exact ⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩
         · wp_if_destruct
-          · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 - -
+          · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 - - -
             cases e2 with
             | nil =>
               wp_auto
@@ -103,7 +103,7 @@ theorem ContextError.wp_proof
             | ok e2 =>
               simp only [reduceCtorEq, ↓reduceIte]
               wp_auto
-              wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3
+              wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 -
               · iexact He2
               ihave #Hcl3' : iprop(□ (go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok ei) -∗
                   go_etcd_io.etcd.cache.v3.errCellOk e3)) $$ []

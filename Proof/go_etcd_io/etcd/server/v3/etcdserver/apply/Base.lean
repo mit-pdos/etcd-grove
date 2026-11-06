@@ -66,10 +66,12 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 /-- **An `errors.New` error, as `errors.Is` sees it**: a pointer error (an `*errorString`,
 `errors.IsPointerError`: Go's `==` on it is Lean's equality), a leaf of an error tree without an
 `Is` method (`*errorString` has only `Error`; the model's method sets are uninterpreted, so this
-is stated, not derived; as the recipes' `errNewLeaf`). -/
+is stated, not derived; as the recipes' `errNewLeaf`), nor a `GRPCStatus` method (k8s etcd3 7c,
+HS-6: grpc's `status.FromError` accepts it, `statusErrOk`). -/
 def errLeaf (e : GoInterfaceOk) : Prop :=
   _root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
-    methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])
+    methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
+    methodSet e.ty !! go!"GRPCStatus" = none
 
 end errIs
 
@@ -148,13 +150,18 @@ The tree is exact (2026-11-01, the lease rows at the gRPC level): its `Is` and `
 have one answer each (`errors.errorWalkTree` at functional relations, `exactRels`), so that two
 `errors.Is` calls of one error and target answer the same (`errors.isWalk_det`), as Go's do:
 `v3rpc/lease.go` tests `errors.Is(err, ErrLeaseNotFound)` twice. `applyErrIs_tree` is the
-over-approximating tree the other callers take. -/
+over-approximating tree the other callers take.
+
+(k8s etcd3 7c, HS-6, 2026-11-06) And grpc's `status.FromError` accepts it (`statusErrOk`: `nil`, or
+a leaf whose `Error()` returns and whose `GRPCStatus`/`Is`, if any, return), so that `togRPCError`,
+which returns a context error as it is, returns a handler error grpc's server and the prometheus
+interceptor can take. Every error the server's request path returns is a leaf. -/
 def applyErrIs (err : GoInterface) : IProp GF :=
   iprop((□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
       (U : GoInterfaceOk → List GoInterface → Prop),
     _root_.Perennial.errors.errorWalkTree (GF := GF) S I U target ∗
     ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧ exactRels I U⌝) ∗
-    errKeyMsg err)
+    errKeyMsg err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err)
 
 instance applyErrIs_persistent (err : GoInterface) :
     Persistent (applyErrIs (GF := GF) err) := by
@@ -170,8 +177,43 @@ theorem applyErrIs_walk (err : GoInterface) :
         ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧
           exactRels I U⌝ := by
   iunfold applyErrIs
-  iintro ⟨#H, -⟩
+  iintro ⟨#H, -, -⟩
   iexact H
+
+/-- The error of an `applyErrIs` error is one grpc's `status.FromError` accepts. -/
+theorem applyErrIs_statusErrOk (err : GoInterface) :
+    applyErrIs (GF := GF) err ⊢ go_etcd_io.etcd.cache.v3.statusErrOk err := by
+  iunfold applyErrIs
+  iintro ⟨-, -, #H⟩
+  iexact H
+
+/-- **A leaf error without `Is` or `GRPCStatus`, whose `Error()` returns, is one grpc's `status`
+accepts** (k8s etcd3 7c, HS-6). -/
+theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors.isLeafError e)
+    (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none) :
+    errMsgOk (GF := GF) e ⊢ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) := by
+  iintro #Hm
+  unfold go_etcd_io.etcd.cache.v3.statusErrOk
+  iintro !> %e' %he
+  cases he
+  isplitr
+  · unfold go_etcd_io.etcd.cache.v3.errorStringSpec
+    iintro !> %Ψ HΨ
+    iunfold errMsgOk at Hm
+    iapply Hm $$ [] [HΨ]
+    · itrivial
+    inext
+    iintro %msg -
+    iapply HΨ
+  isplitr
+  · ipureintro; exact hl
+  unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
+  isplitl
+  · iintro %h
+    rw [hG] at h; cases h
+  · iintro %h
+    exact absurd h hIs
 
 /-- The error tree of an `applyErrIs` error, over-approximated (what this repository's
 `errors.Is.spec` takes). -/
@@ -204,7 +246,9 @@ theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
   iunfold applyErrIs
   isplitl
   rotate_left
-  · iunfold errKeyMsg; ileft; ipureintro; rfl
+  · isplitl
+    · iunfold errKeyMsg; ileft; ipureintro; rfl
+    · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
   iintro !> %target
   iexists (· = GoInterface.nil), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
@@ -222,34 +266,40 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
   iunfold applyErrIs
   isplitl
   rotate_left
-  · iunfold errKeyMsg; iright
-    isplitr
-    · ipureintro; exact safeMapKey_ptrErr e h.1
-    iexists e; iframe Hm; ipureintro; rfl
+  · isplitl
+    · iunfold errKeyMsg; iright
+      isplitr
+      · ipureintro; exact safeMapKey_ptrErr e h.1
+      iexists e; iframe Hm; ipureintro; rfl
+    · iapply statusErrOk_of_leafMsg e h.2.1 h.2.2.1 h.2.2.2 $$ Hm
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
-  · iapply _root_.Perennial.errors.errorWalkTree_leaf e target h.2.1 h.2.2
+  · iapply _root_.Perennial.errors.errorWalkTree_leaf e target h.2.1 h.2.2.1
   ipureintro
   exact ⟨rfl, fun _ => _root_.Perennial.errors.treeTyped_pointer e target h.1, exactRels_leaf⟩
 
 /-- **A leaf error that is not a pointer** (as `context.DeadlineExceeded`'s
 `deadlineExceededError{}`): no `Is`, `As` or `Unwrap` method, a dynamic type that is not a pointer
 type (so no pointer target has its type: `TreeTyped` holds of every target `wp_Is` takes), a safe
-key of a map (its `==` with itself does not panic), whose `Error()` returns. -/
+key of a map (its `==` with itself does not panic), without a `GRPCStatus` method (k8s etcd3 7c,
+HS-6), whose `Error()` returns. -/
 theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk) (hleaf : _root_.Perennial.errors.isLeafError e)
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
-    (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e)) :
+    (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e))
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none) :
     errMsgOk (GF := GF) e ⊢ applyErrIs (GoInterface.ok e) := by
   iintro #Hm
   iunfold applyErrIs
   isplitl
   rotate_left
-  · iunfold errKeyMsg; iright
-    isplitr
-    · ipureintro; exact hkey
-    iexists e; iframe Hm; ipureintro; rfl
+  · isplitl
+    · iunfold errKeyMsg; iright
+      isplitr
+      · ipureintro; exact hkey
+      iexists e; iframe Hm; ipureintro; rfl
+    · iapply statusErrOk_of_leafMsg e hleaf hIs hG $$ Hm
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl

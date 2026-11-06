@@ -124,6 +124,7 @@ theorem ctxErrClient_todo (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rp
       exact ⟨hAs, fun ii h => by cases h⟩
     · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
     · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
+    · ipureintro; left; rfl
 
 /-- **A descriptor for `context.TODO()`** (see the file header): quiet, with `ctxErrClient`. -/
 theorem todo_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
@@ -180,6 +181,7 @@ theorem ctxErrClient_background
       exact ⟨hAs, fun ii h => by cases h⟩
     · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
     · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
+    · ipureintro; left; rfl
 
 /-- **A descriptor for `context.Background()`** (as `todo_ctx`): quiet, with `ctxErrClient`. -/
 theorem background_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :

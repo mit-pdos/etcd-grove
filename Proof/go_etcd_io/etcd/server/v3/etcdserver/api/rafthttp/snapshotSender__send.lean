@@ -288,7 +288,7 @@ theorem rafthttp.snapshotSender.send.wp_proof
           (errors.treeTyped_pointer ei _ Hel.1) $$ [] as %b ⟨-, -, %h3⟩
         · iframe #
           isplitl
-          · iapply errors.errorIsTree_leaf ei (fun _ => False) _ Hel.2.1 Hel.2.2
+          · iapply errors.errorIsTree_leaf ei (fun _ => False) _ Hel.2.1 Hel.2.2.1
           ipureintro; rfl
         cases b
         · iapply HΨ; itrivial

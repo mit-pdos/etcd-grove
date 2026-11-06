@@ -98,7 +98,7 @@ theorem etcd_leaseTTLHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
     $$ [HS Hrev]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, Hrev, -, Hout⟩
+  iintro %resp %err ⟨HS, Hrev, -, Hout, #HSe⟩
   iunfold v3rpc.leaseTTLOut at Hout
   icases Hout with (⟨%Hok, %w, Hw, %Hid, Hh, -⟩ | %Herr)
   · ihave %Hnn := typedPointsto_not_null $$ Hw
@@ -119,7 +119,7 @@ theorem etcd_leaseTTLHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
     ipersist Keys_f
     imodintro
     iapply HΨ
-    iframe HS Hrev
+    iframe HS Hrev HSe
     iintro -
     iexists (LeaseTTLRespM.mk (HdrM.mk cid mid rv t ld) w.ID' w.TTL' w.GrantedTTL')
     isplitl []
@@ -137,7 +137,7 @@ theorem etcd_leaseTTLHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
       rw [Hid, ← Hvm]
   · imodintro
     iapply HΨ
-    iframe HS Hrev
+    iframe HS Hrev HSe
     iintro %Hnil
     exact absurd Hnil Herr.2
 
@@ -176,7 +176,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iapply (v3rpc.LeaseServer.wp_LeaseLeases lp s A cid mid E γl S ci cd r n m) $$ [HS Hrev]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, Hrev, Hout⟩
+  iintro %resp %err ⟨HS, Hrev, Hout, #HSe⟩
   iunfold v3rpc.leaseLeasesOut at Hout
   icases Hout with (⟨%Hok, %w, Hw, Hres⟩ | %Herr)
   · ihave %Hnn := typedPointsto_not_null $$ Hw
@@ -204,7 +204,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
       imod Hps' with #Hps'
       imodintro
       iapply HΨ
-      iframe HS Hrev
+      iframe HS Hrev HSe
       iintro -
       iexists (LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) ids)
       isplitl []
@@ -230,7 +230,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
       ipersist Hl
       imodintro
       iapply HΨ
-      iframe HS Hrev
+      iframe HS Hrev HSe
       iintro -
       iexists (LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) [])
       isplitl []
@@ -251,7 +251,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
         ipureintro; exact List.nodup_nil
   · imodintro
     iapply HΨ
-    iframe HS Hrev
+    iframe HS Hrev HSe
     iintro %Hnil
     exact absurd Hnil Herr.2.1
 

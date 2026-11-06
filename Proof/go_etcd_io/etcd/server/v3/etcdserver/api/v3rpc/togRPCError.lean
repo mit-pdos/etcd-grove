@@ -34,10 +34,11 @@ theorem v3rpc.togRPCError.wp_proof
     (hDE : errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG))
     (hErr : status.Error.spec (GF := GF) (hG := hG)) :
     v3rpc.togRPCError.spec (GF := GF) (hG := hG) := by
-  intro err
-  wp_start as #Herr
+  intro P err
+  wp_start as ⟨#Herr, #HP⟩
   iunfold v3rpc.srvErrIs at Herr
-  icases Herr with ⟨%Hnn, #HIs, %Hsafe, %ei, %Hei, #HErrM⟩
+  icases Herr with ⟨%Hnn, #HIs, %Hsafe, %ei, %Hei, -⟩
+  ihave #HSe := applyErrIs_statusErrOk err $$ HIs
   ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -47,6 +48,8 @@ theorem v3rpc.togRPCError.wp_proof
   ihave #Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨#Hmap, -, -, #Hcanc, -⟩
+  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMap at Hmap
+  icases Hmap with ⟨%mp, %Mg, %kf, %kc, #Hmp, #HM, #HF, #HC, #HMS, %HMv⟩
   ihave #Hctx : (_root_.Perennial.context.isInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pctx
   icases Hctx with ⟨-, -, -, ⟨%de, #Hde, -⟩, -⟩
@@ -62,30 +65,49 @@ theorem v3rpc.togRPCError.wp_proof
   wp_if_destruct
   rotate_left
   · iapply HΦ
-    ipureintro; exact Hnn
+    isplitr
+    · ipureintro; exact Hnn
+    iframe HSe
+    iunfold v3rpc.grpcErrOut
+    iexists mp, Mg, kf, kc
+    iframe #
+    ipureintro; exact ⟨HMv, Or.inl rfl⟩
   ihave ⟨%S', %M', #Htree', %HS'⟩ := HIsT $$ %de
   wp_apply hDE S' M' err de $$ [$Htree'] as %b2 -
   · iframe #; ipureintro; exact HS'.1
   wp_if_destruct
   rotate_left
   · iapply HΦ
-    ipureintro; exact Hnn
-  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMap at Hmap
-  icases Hmap with ⟨%mp, %M, %kf, %kc, #Hmp, #HM, -, -, %HMv⟩
-  wp_auto
+    isplitr
+    · ipureintro; exact Hnn
+    iframe HSe
+    iunfold v3rpc.grpcErrOut
+    iexists mp, Mg, kf, kc
+    iframe #
+    ipureintro; exact ⟨HMv, Or.inl rfl⟩
   haveI := Hsafe
   wp_apply wp_map_lookup2 $$ HM as -
-  cases hk : M !! err with
+  cases hk : Mg !! err with
   | some v =>
     simp only [Option.getD_some, Option.isSome_some, decide_true]
     wp_auto
     iapply HΦ
-    ipureintro; exact go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk_ne HMv err v hk
+    isplitr
+    · ipureintro; exact go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk_ne HMv err v hk
+    isplitr
+    · iapply HMS; ipureintro; exact hk
+    iunfold v3rpc.grpcErrOut
+    iexists mp, Mg, kf, kc
+    iframe #
+    ipureintro; exact ⟨HMv, Or.inr (Or.inl hk)⟩
   | none =>
     simp only [Option.getD_none, Option.isSome_none]
     wp_auto
     subst Hei
-    wp_apply HErrM as %msg _
+    iunfold v3rpc.errMsgP at HP
+    icases HP with ⟨%ei', %Hei', #HPM⟩
+    cases Hei'
+    wp_apply HPM as %msg %Hmsg
     wp_bind (App (App (Val #(functions google_golang_org.grpc.status.Error [])) (Val #(W32 2))) (Val #msg))
     iapply (hErr (W32 2) msg) $$ [] 
     · iframe #
@@ -93,10 +115,16 @@ theorem v3rpc.togRPCError.wp_proof
       simp only [google_golang_org.grpc.codes.OK]
       exact fun h => absurd (go.intoVal_inj h) (by decide)
     inext
-    iintro %e ⟨%He, -⟩
+    iintro %e ⟨%He, #Hse, %Hd⟩
     wp_auto
     iapply HΦ
-    ipureintro; exact He
+    isplitr
+    · ipureintro; exact He
+    iframe Hse
+    iunfold v3rpc.grpcErrOut
+    iexists mp, Mg, kf, kc
+    iframe #
+    ipureintro; exact ⟨HMv, Or.inr (Or.inr ⟨hk, by rw [Hd]; exact Hmsg⟩)⟩
 
 end proof
 

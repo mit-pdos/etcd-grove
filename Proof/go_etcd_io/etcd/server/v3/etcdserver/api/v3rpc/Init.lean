@@ -108,10 +108,10 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc's `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions (k8s etcd3 7c: `grpcErrMapOk`). -/
+/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc's `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions, nor has one itself (k8s etcd3 7c: `grpcErrMapOk`); every value is one grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: the `status.Error`s and the two `EtcdError`s, leaves with only `Code` and `Error`). -/
 axiom toGRPCErrorMap_init :
     {{ (True : IProp GF) }} (App (Val toGRPCErrorMap.init) (Val #()))
-    {{ RET #(); ∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ ⌜grpcErrMapOk M kf kc⌝ }}
+    {{ RET #(); ∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ ⌜grpcErrMapOk M kf kc⌝ }}
 
 /-- `clientRequests = prometheus.NewCounterVec(..., []string{"type", "client_api_version"})`
 (`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
@@ -280,14 +280,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply watchSendLoopWatchStreamDurationPerEvent_init as ⟨%hwatchSendLoopWatchStreamDurationPerEvent, HwatchSendLoopWatchStreamDurationPerEvent, #SwatchSendLoopWatchStreamDurationPerEvent⟩
   wp_apply watchSendLoopControlStreamDuration_init as ⟨%hwatchSendLoopControlStreamDuration, HwatchSendLoopControlStreamDuration, #SwatchSendLoopControlStreamDuration⟩
   wp_apply watchSendLoopProgressDuration_init as ⟨%hwatchSendLoopProgressDuration, HwatchSendLoopProgressDuration, #SwatchSendLoopProgressDuration⟩
-  wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, %kftoGRPCErrorMap, %kctoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, #FtoGRPCErrorMap, #CtoGRPCErrorMap, %PtoGRPCErrorMap⟩
+  wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, %kftoGRPCErrorMap, %kctoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, #FtoGRPCErrorMap, #CtoGRPCErrorMap, #VtoGRPCErrorMap, %PtoGRPCErrorMap⟩
   -- translated initializer of progressReportInterval))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HtoGRPCErrorMap
   ipersist HclientRequests
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd22
-  icases Hri with ⟨-, ⟨%eRCP, #RCPa, #RCPs, -⟩, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, #V0, #V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13, #RW0, #RW1, #RW2, #RW3, #RW4, -⟩
+  icases Hri with ⟨-, ⟨%eRCP, #RCPa, #RCPs, -⟩, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -, -, #SNSL⟩, -, -, #V0, #V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13, #RW0, #RW1, #RW2, #RW3, #RW4, -⟩
   ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd2
   icases Hpi with ⟨#HSO, #HST, #HDescs⟩

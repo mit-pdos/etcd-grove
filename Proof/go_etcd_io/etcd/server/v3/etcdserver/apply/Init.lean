@@ -95,7 +95,7 @@ theorem EtcdGrove.errVarLeaf_of_newVar (X msg : GoString) :
   iexists _
   iframe Hx
   isplitr
-  · ipureintro; exact EtcdGrove.errorString_leaf x
+  · ipureintro; first | exact EtcdGrove.errorString_errLeaf x | exact EtcdGrove.errorString_leaf x
   unfold EtcdGrove.errMsgOk
   iapply EtcdGrove.errorMsg_triple
   iexact Hm

@@ -125,6 +125,7 @@ theorem chanCtx_ok (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
       · ipureintro; exact ⟨hAs, fun ii h => by cases h⟩
       · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
       · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
+      · ipureintro; left; rfl
     · ihave ⟨%Hne, #Hs, #Hcell⟩ := canceledOk_of_init hAs err $$ [Pctx Hc]
       · iframe Pctx Hc
       iapply HΦ
@@ -135,6 +136,7 @@ theorem chanCtx_ok (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
       · ipureintro; exact Hne.2
       · iexact Hs
       · iexact Hcell
+      · ipureintro; right; simp [handlerDescs]
   isplitr
   · iapply ctxOk_of_errs $$ He
   rw [ctxErrClient_eq_errs]; iexact He

@@ -44,7 +44,7 @@ abbrev v3rpc.kvServer.Compact.spec : Prop :=
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.kvServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗
-      v3rpc.compactOut A cid mid Pin Q resp err }}
+      v3rpc.compactOut A cid mid Pin Q resp err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }}
 
 end spec
 

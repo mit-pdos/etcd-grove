@@ -121,7 +121,7 @@ theorem eofVar_of_init [_root_.Perennial.io.Assumptions]
   iframe Hpt
   isplitr
   · ipureintro
-    exact ⟨errorString_leaf x, by simp only [context.isTypedErr]; go_type_set⟩
+    exact ⟨errorString_errLeaf x, by simp only [context.isTypedErr]; go_type_set⟩
   iunfold errMsgOk
   iapply (errorMsg_triple (GF := GF)) $$ Hmsg
 

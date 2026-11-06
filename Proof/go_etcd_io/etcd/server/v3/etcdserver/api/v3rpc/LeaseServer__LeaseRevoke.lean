@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseRevoke
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 
 @[expose] public section
@@ -60,7 +61,9 @@ theorem v3rpc.LeaseServer.LeaseRevoke.wp_proof
     wp_apply hFill $$ [Hw Hin] as ⟨Hfd, %rv', -⟩
     · iframe; iframe #
     wp_auto
+    ihave #HSn := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
     iapply HΦ
+    iframe HSn
     iframe
     iunfold v3rpc.leaseRevokeOut
     ileft
@@ -78,9 +81,10 @@ theorem v3rpc.LeaseServer.LeaseRevoke.wp_proof
     | nil => exact absurd rfl Hen
     | ok ei =>
       wp_auto
-      wp_apply hTog $$ [] as %e %He
+      wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSn⟩
       · iframe #
       iapply HΦ
+      iframe HSn
       iframe
       iunfold v3rpc.leaseRevokeOut
       iright

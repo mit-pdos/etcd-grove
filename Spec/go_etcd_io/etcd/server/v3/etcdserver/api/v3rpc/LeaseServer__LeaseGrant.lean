@@ -49,7 +49,8 @@ abbrev v3rpc.LeaseServer.LeaseGrant.spec : Prop :=
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseGrantOut E cid mid resp err ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
-        structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id) }}
+        structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id) ∗
+      go_etcd_io.etcd.cache.v3.statusErrOk err }}
 
 end spec
 

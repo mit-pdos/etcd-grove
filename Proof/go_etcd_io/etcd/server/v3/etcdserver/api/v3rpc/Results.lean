@@ -210,7 +210,7 @@ theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
   iapply (kvServer.wp_Put p s (srvKVAns s E ρ γr c F d) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
   · iframe #; simp only [srvKVAns]; iframe Hc Hc0 Hdep HF; ipureintro; exact ⟨trivial, Hpre⟩
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, -⟩
   iapply HΦ
   cases hc : putCheck o with
   | some e =>
@@ -249,7 +249,7 @@ theorem deleteRange_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
   iapply (kvServer.wp_DeleteRange p s (srvKVAns s E ρ γr c F d) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
   · iframe #; simp only [srvKVAns]; iframe Hc Hc0 Hdep HF; ipureintro; exact ⟨trivial, Hpre⟩
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, -⟩
   iapply HΦ
   cases hc : deleteCheck o with
   | some e =>
@@ -293,7 +293,7 @@ theorem range_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   iapply (kvServer.wp_Range p s (srvKVAns s E ρ γr c F d) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
   · iframe #; simp only [srvKVAns]; iframe Hc Hc0 Hdep HF; ipureintro; exact ⟨trivial, Hpre⟩
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, -⟩
   iapply HΦ
   cases hc : rangeCheck o with
   | some e =>
@@ -345,7 +345,7 @@ theorem txn_end_to_end
     ctx r cs ts es) $$ [Hc Hc0 Hdep]
   · iframe #; simp only [srvKVAns]; iframe Hc Hc0 Hdep HF; ipureintro; exact ⟨Hin, Hpre⟩
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, -⟩
   iapply HΦ
   cases hc : txnAllCheck (sint.Z n) cs ts es with
   | some e =>
@@ -370,7 +370,7 @@ theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Put")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        match putCheck o with
+        (match putCheck o with
         | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
@@ -379,7 +379,8 @@ theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
               putAppliedOk s E ρ.rd F o (opDepQ d) resp rv ∗
               (⌜E.authOn = true⌝ → writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrPut o))) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
-            srvRdCall s E γr c ∗ putErrOk s E ρ F o e) }} := by
+            srvRdCall s E γr c ∗ putErrOk s E ρ F o e)) ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
   iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
   ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
   · iframe #; ipureintro; exact Hany
@@ -388,8 +389,9 @@ theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
   · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna; ipureintro
     first | exact ⟨trivial, Hpre⟩ | exact ⟨fun _ => rfl, trivial, Hpre⟩ | exact ⟨trivial, trivial, Hpre⟩ | exact ⟨fun _ => trivial, trivial, Hpre⟩
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, #HSe⟩
   iapply HΦ
+  iframe HSe
   cases hc : putCheck o with
   | some e =>
     simp only [hc, srvKVAnsM]
@@ -412,7 +414,7 @@ theorem deleteRange_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"DeleteRange")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        match deleteCheck o with
+        (match deleteCheck o with
         | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
@@ -421,7 +423,8 @@ theorem deleteRange_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
               srvRdCall s E γr c ∗ deleteAppliedOk s E ρ.rd F o (opDepQ d) resp rv ∗
               (⌜E.authOn = true⌝ → writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrDeleteRange o))) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
-            srvRdCall s E γr c ∗ deleteErrOk s E ρ F o e) }} := by
+            srvRdCall s E γr c ∗ deleteErrOk s E ρ F o e)) ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
   iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
   ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
   · iframe #; ipureintro; exact Hany
@@ -430,8 +433,9 @@ theorem deleteRange_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
   · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna; ipureintro
     first | exact ⟨trivial, Hpre⟩ | exact ⟨fun _ => rfl, trivial, Hpre⟩ | exact ⟨trivial, trivial, Hpre⟩ | exact ⟨fun _ => trivial, trivial, Hpre⟩
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, #HSe⟩
   iapply HΦ
+  iframe HSe
   cases hc : deleteCheck o with
   | some e =>
     simp only [hc, srvKVAnsM]
@@ -454,7 +458,7 @@ theorem range_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Range")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        match rangeCheck o with
+        (match rangeCheck o with
         | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
@@ -464,7 +468,8 @@ theorem range_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
               rangeAnsOkM E.authOn E γr c F o resp rv (rangeDepQM E.authOn γr.kv d) ∗
               (⌜E.authOn = true⌝ → rangeAuthed s E γr c na (auth.ctxTokenOf ctx) o)) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ _e : GoInterface,
-            srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s) }} := by
+            srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s)) ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
   iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
   ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
   · iframe #; ipureintro; exact Hany
@@ -473,8 +478,9 @@ theorem range_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna; ipureintro
     first | exact ⟨trivial, Hpre⟩ | exact ⟨fun _ => rfl, trivial, Hpre⟩ | exact ⟨trivial, trivial, Hpre⟩ | exact ⟨fun _ => trivial, trivial, Hpre⟩
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, #HSe⟩
   iapply HΦ
+  iframe HSe
   cases hc : rangeCheck o with
   | some e =>
     simp only [hc, srvKVAnsM]
@@ -500,7 +506,7 @@ theorem txn_end_to_endM
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Txn")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        match txnAllCheck (sint.Z n) cs ts es with
+        (match txnAllCheck (sint.Z n) cs ts es with
         | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
@@ -517,7 +523,8 @@ theorem txn_end_to_endM
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
             ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
-              if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e) }} := by
+              if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e)) ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
   iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, #Hw, %Hin, Hdep, %Hpre⟩ HΦ
   ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
   · iframe #; ipureintro; exact Hany
@@ -527,8 +534,9 @@ theorem txn_end_to_endM
   · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna; ipureintro
     first | exact ⟨Hin, Hpre⟩ | exact ⟨fun _ => rfl, Hin, Hpre⟩ | exact ⟨trivial, Hin, Hpre⟩ | exact ⟨fun _ => trivial, Hin, Hpre⟩
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, #HSe⟩
   iapply HΦ
+  iframe HSe
   cases hc : txnAllCheck (sint.Z n) cs ts es with
   | some e =>
     simp only [hc, srvKVAnsM]
@@ -792,7 +800,7 @@ theorem authWrapOut_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx :
         (⌜err = GoInterface.nil⌝ -∗ userAddReplied s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) name Qa) := by
   iintro H
   iunfold v3rpc.authWrapOut at H
-  icases H with (⟨%He, H⟩ | ⟨%Hr, %e0, %He0, H⟩)
+  icases H with (⟨%He, H⟩ | ⟨%Hr, -, %e0, %He0, H⟩)
   · subst He
     iunfold userAddAnsOn at H
     icases H with (⟨%Hc, -⟩ | H)
@@ -871,11 +879,13 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
     try (ipureintro; exact ⟨Hrn, Hn⟩)
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci cd [] m.name Qa resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
   iframe Hed
   iframe Hs
+  iframe HSe
   iintro %He
   iexists ()
   isplitr
@@ -912,11 +922,13 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     ipureintro; exact Hn
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleAdd m) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
   iframe Hed
   iframe Hs
+  iframe HSe
   iintro %He
   iexists ()
   isplitr
@@ -953,11 +965,13 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
     ipureintro; exact Hn
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrUserGrantRole m.1 m.2) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
   iframe Hed
   iframe Hs
+  iframe HSe
   iintro %He
   iexists ()
   isplitr
@@ -994,11 +1008,13 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
     ipureintro; exact Hn
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleGrantPermission m.1 (some m.2)) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
   iframe Hed
   iframe Hs
+  iframe HSe
   iintro %He
   iexists ()
   isplitr
@@ -1034,11 +1050,13 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     iframe; iframe #
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci irrAuthEnable Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
   iframe Hed
   iframe Hs
+  iframe HSe
   iintro %He
   iexists ()
   isplitr

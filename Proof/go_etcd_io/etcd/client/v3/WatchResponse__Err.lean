@@ -85,12 +85,12 @@ theorem WatchResponse.Err.wp_proof
         · ipureintro; simp
         imodintro; iintro -; iapply errStrOk_ok; iexact HeFRs
       · -- a cancel reason: `rpctypes.Error(status.Error(codes.FailedPrecondition, reason))`
-        wp_apply wp_status_Error as %e1 ⟨%He1, #He1s⟩
+        wp_apply wp_status_Error as %e1 ⟨%He1, #He1s, -⟩
         · ipureintro
           simp only [google_golang_org.grpc.codes.OK]
           exact fun h => absurd (go.intoVal_inj h) (by decide)
-        wp_apply wp_rpctypes_Error e1 $$ [$He1s] as %e2 ⟨%He2, #Hw, -⟩
-        · ipureintro; exact He1
+        wp_apply wp_rpctypes_Error e1 $$ [] as %e2 ⟨%He2, #Hw, -⟩
+        · iframe #; ipureintro; exact He1
         iapply HΦ
         iframe
         isplitl []

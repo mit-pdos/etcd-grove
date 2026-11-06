@@ -461,7 +461,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   unfold srvInit srvRaftInit srvReqInit srvApplyLoopInit srvErrVars
   iframe #
   ipureintro
-  exact fun x => EtcdGrove.errorString_leaf x
+  first | exact fun x => EtcdGrove.errorString_errLeaf x | exact fun x => EtcdGrove.errorString_leaf x
 
 /-- Perennial's form with the resource (decision D16), from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

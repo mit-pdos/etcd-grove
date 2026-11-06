@@ -32325,6 +32325,27 @@ Two attacks failed in Go (HS-5 and HS-6, `questions.md`). The trust base grows b
 both approved under HS-1 and both attacked: `rpctypes.ErrGRPCFutureRev_init` and
 `rpctypes.ErrGRPCCompacted_init`, the two read errors' descriptions.
 
+**HS-6: a handler's error is a status-safe leaf, `statusErrOk`, carried from where it is made**
+(2026-11-06; HS-6 approved by the user via etcd-grove-82, its further restatements and HS-7/HS-7b by
+etcd-grove-82 under the user's delegation, pending the user's review; DRAFT until 7c-2's Freeze).
+grpc-prometheus's `PostCall` and grpc's server call `status.FromError` on a handler's error, which
+calls its `Error()` (and `GRPCStatus()`, if present): the handler posts (`grpcHandlerOk`,
+`grpcMethodOk`, `srvInterceptorOk`'s continuation) now end in `statusErrOk err` (trivial at `nil`).
+The fact is made where the error is made and carried, not rebuilt at the handler:
+- trusted, restated (attacked: `notes/axiom-review/hs6.md`, all seven items survive): the rpctypes
+  `ErrGRPC*_init` posts and `toGRPCErrorMap`'s values (gen-init's `SPECIAL`), `grpcDecOk`'s error
+  branch (Serve only; ServeHTTP is in the plan's "left" list), `bcrypt.GenerateFromPassword`'s error
+  (HS-7b), and `ContextReadErrs` through `errLeaf`/`ctxDeadlineLeaf` (HS-7: no `GRPCStatus` method);
+- proved: `applyErrIs` (every server error on the request path) gains `statusErrOk`
+  (`applyErrIs_statusErrOk`; its producers are leaves, `statusErrOk_of_leafMsg`), so
+  `togRPCError` passes it through and its map branch takes the map's; the kv, lease, auth and
+  maintenance handlers and the `*_end_to_endM` results carry it (`checkErr_statusErrOk` for the
+  request checks' errors, `authWrapOut_statusErrOk` for the auth wrapper); `quotaAlarmer.check`'s
+  post says it returns `nil` (its only behavior with the quota off).
+Stated as `statusErrOk err`, not the approved `⌜err ≠ nil⌝ -∗ statusErrOk err`: the two are
+equivalent (`statusErrOk_nil`), and the unguarded form needs no case split at the consumers. No
+closed theorem's text changed; the trust base's axiom count did not (790/3).
+
 
 ## The stop chain for a first start: the scope in the request, the slot in the built part, one `run.spec` (2026-11-06 · R2c, the restart plan's Scope (A) and Q2 (b) approved by the user, Q3-Q7 (a) decided, Q5 (a) accepted as a hub request · branch `r2c`; DRAFT until R2c's Freeze)
 

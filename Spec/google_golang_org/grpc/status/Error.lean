@@ -27,14 +27,16 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `status.Error(c, msg)` (`New(c, msg).Err()`) for a code other than `codes.OK` returns a
 non-nil error (a `*status.Error`), one grpc's `status` accepts (`statusErrOk`, unit P3a; it was
 `errStrOk`): a leaf error whose `Error()` (it formats the code and the message) and `GRPCStatus()`
-return. Only what `WatchResponse.Err` needs: nothing about which error, nor
-about `codes.OK` (for which it returns `nil`). -/
+return; its description (`errDesc`, what `status.FromError(err).Message()` and
+`rpctypes.ErrorDesc` return) is `msg` (k8s etcd3 7c-2: `togRPCError`'s fallback
+`status.Error(codes.Unknown, err.Error())` carries the message as its description). Nothing about
+the code, nor about `codes.OK` (for which it returns `nil`). -/
 abbrev status.Error.spec : Prop :=
   ∀ (c : w32) (msg : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗
       ⌜(#c : val) ≠ google_golang_org.grpc.codes.OK⌝ }}
     (App (App (Val (@! google_golang_org.grpc.status.Error)) (Val #c)) (Val #msg))
-  {{ (err : GoError), RET #err; ⌜err ≠ interface.nil⌝ ∗ statusErrOk err }}
+  {{ (err : GoError), RET #err; ⌜err ≠ interface.nil⌝ ∗ statusErrOk err ∗ ⌜errDesc err = msg⌝ }}
 
 end spec
 
