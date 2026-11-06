@@ -28,4 +28,8 @@ stock ^Proof/go_etcd_io/etcd/server/v3/auth/InvAuth\.lean$
 # server's stop returns every reader for the backend's `Close` (`storeReaders_retire`,
 # `storeRTs_shares`), as `NewServer`'s error path does (R-D1). (Stage 5, 2026-11-05) The stop's slot
 # keeps them (`StopApi`), and the shutdown's census retires them all (`StopShutdown`).
-stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(InvRestart|StopApi|StopShutdown)\.lean$
+stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(InvRestart|StopApi|StopShutdown|StopReaders)\.lean$
+# The watchable store's readers `NewServer` hands out (`srvWatchReaders`, its count a parameter), by
+# their owner, the module that defines them, with their law into the store's readers (R2c review
+# round 2's N3, 2026-11-06).
+stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/InvWatchBuilt\.lean$
