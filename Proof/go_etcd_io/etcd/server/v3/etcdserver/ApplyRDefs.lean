@@ -3,9 +3,9 @@
 2026-11-06; DRAFT: nothing here is frozen, `notes/restart-plan.md`, "R2d' Scope (approved
 2026-11-06)", its probe). Lean-first (no Rocq counterpart).
 
-At the etcd pin `673da07c8`, a restarted member's `apply` (`server.go:1919-1973`) sees the committed
+At the etcd pin `673da07c8`, a restarted member's `apply` (`server.go:1922-1972`) sees the committed
 entries from Go's start index `σ.b + 1` on; those at or below the backend's consistent index `i`
-(`shouldApplyV3 = e.Index > ConsistentIndex()`, `server.go:1939`) are replayed v2-only:
+(`shouldApplyV3 = e.Index > ConsistentIndex()`, `server.go:1940`) are replayed v2-only:
 `applyEntryNormal(e, false)` returns after `apply.Apply` without `Trigger` (`server.go:2002-2005`),
 `applyConfChange(cc, ep, false)` skips the validation (`membership/cluster.go:306-309`), raft
 (`server.go:2053-2059`) and the membership's writes (`AddMember`, `membership/cluster.go:402-424`).

@@ -6,7 +6,7 @@
 At a restart (etcd pin `673da07c8`) Go's applied index `ep.appliedi` starts at the WAL snapshot's
 index `σ.b` (`server.go:808-814`), the backend's consistent index `i` above it; raft hands the
 committed entries from `σ.b + 1` again (`bootstrap.go:580-599`: no `Applied`), and `apply` replays
-those at or below `i` v2-only (`shouldApplyV3 = e.Index > ConsistentIndex()`, `server.go:1939-1944`):
+those at or below `i` v2-only (`shouldApplyV3 = e.Index > ConsistentIndex()`, `server.go:1940-1944`):
 * a normal entry through `applyEntryNormal(e, false)` (`server.go:1975-2005`): `apply.Apply(…, false)`
   dispatches the cluster kinds v2-only (`apply/uber_applier.go:93-127`): `ClusterMemberAttrSet`'s
   `UpdateAttributes(…, false)` sets the in-memory member's attributes

@@ -68,7 +68,7 @@ form). Go's rows at Go's log `A` (the log raft handed this incarnation): the bat
 index `f0 - 1` (`kvBatchR`), `loopOk`, the returned index and term. The ghost rows at the ghost log
 `ghostOf rp A`: the applied index `g` and its log, the KV model, `ep.confState`'s voters, the view,
 the membership resource; the rest buckets `srvRestR` (the replay arm inside the window). At the pin
-`673da07c8` (`server.go:1919-1973`) the entries at or below the effective consistent index are
+`673da07c8` (`server.go:1922-1972`) the entries at or below the effective consistent index are
 replayed v2-only (`shouldApplyV3` false): the ghost rows stay (`setAppliedIndex`'s replay case), the
 rest buckets' image takes the attribute writes (`restEntryV2`), and the replay closes on the model
 when Go's log reaches the backend's (`restReplay_closeI`). The view's premise at the ghost index
