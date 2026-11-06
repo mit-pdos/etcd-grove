@@ -301,7 +301,8 @@ log is sequential (the metadata calls of a verified program do not overlap: the 
 history), a ghost entry for every directory fd, on its directory, its read as the state's, and a
 directory being read the view of the history (unchanged since the read began: a read holds a
 fraction of the history); a ghost entry for every call on a path in flight, with its start and the
-fraction of the history it holds (`callRes`). -/
+fraction of the history it holds (`callRes`), its start the log's length (the log changes only by a
+step holding the whole history, when no other call can be in flight). -/
 structure TreeCoh (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
     (Γc : GMap Nat (Nat × Qp)) : Prop where
   hist : V = (st.fs.treeDur, st.fs.metaLog)
@@ -310,17 +311,19 @@ structure TreeCoh (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
   ph : ∀ fd x df, Γdf !! fd = some x → st.proc.dfds !! fd = some df → PhOk x.2 df.rd
   rd : ∀ fd x, Γdf !! fd = some x → x.2.g = dview V x.1
   calls : ∀ t, (Γc !! t).map (·.1) = st.proc.calls !! t
+  start : ∀ t x, Γc !! t = some x → x.1 = st.fs.metaLog.length
 
 /-- `TreeCoh` depends on the durable tree, the log, the directory fds and the calls only. -/
 theorem TreeCoh.congr {st st' : OsState} {V Γdf Γc} (h : TreeCoh st V Γdf Γc)
     (hd : st'.fs.treeDur = st.fs.treeDur) (hl : st'.fs.metaLog = st.fs.metaLog)
     (hf : st'.proc.dfds = st.proc.dfds) (hc : st'.proc.calls = st.proc.calls) :
     TreeCoh st' V Γdf Γc := by
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
-  refine ⟨by rw [hd, hl]; exact h1, by rw [hl]; exact h2, ?_, ?_, h5, ?_⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
+  refine ⟨by rw [hd, hl]; exact h1, by rw [hl]; exact h2, ?_, ?_, h5, ?_, ?_⟩
   · intro fd; rw [hf]; exact h3 fd
   · intro fd x df hx hdf; rw [hf] at hdf; exact h4 fd x df hx hdf
   · intro t; rw [hc]; exact h6 t
+  · intro t x hx; rw [hl]; exact h7 t x hx
 
 theorem TreeFrame.coh {st st' : OsState} {V Γdf Γc} (h : TreeFrame st st')
     (hc : TreeCoh st V Γdf Γc) : TreeCoh st' V Γdf Γc :=
@@ -855,7 +858,7 @@ fd. -/
 theorem fsInit_tree {st : OsState} (h : FsInit st) :
     FsTreeWf st ∧ TreeCoh st (st.fs.treeDur, []) ∅ ∅ := by
   obtain ⟨hproc, hlog, -, hroots, hwf, hnamed, -, hfiles, hdirs⟩ := h
-  refine ⟨⟨hroots, fun n _ => ?_, ?_, ?_, hfiles⟩, ⟨by rw [hlog], by rw [hlog]; intro x e he; simp at he, ?_, ?_, ?_, ?_⟩⟩
+  refine ⟨⟨hroots, fun n _ => ?_, ?_, ?_, hfiles⟩, ⟨by rw [hlog], by rw [hlog]; intro x e he; simp at he, ?_, ?_, ?_, ?_, ?_⟩⟩
   · rw [hlog]; simp only [List.take_nil, List.map_nil, replay, List.foldl_nil]
     refine ⟨hwf, fun i hi => ?_, hdirs⟩
     have := hnamed i hi
@@ -868,6 +871,7 @@ theorem fsInit_tree {st : OsState} (h : FsInit st) :
   · intro fd x df hx; simp at hx
   · intro fd x hx; simp at hx
   · intro t; simp [hproc, ProcState.empty]
+  · intro t x hx; simp at hx
 
 theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState) (h : FsInit st) :
     ⊢@{IProp GF} |==> ∃ hL : OsGS GF, osCtx hL st ∗ osStart hL st := by
