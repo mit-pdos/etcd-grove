@@ -1321,8 +1321,20 @@ TLS cluster driver is a listener change.
   cluster axioms join the collection.
 - No new axiom or `sorry`.
 
-**Bounds.** `MainCluster.spec`'s entry premises raise `examples/k8s/etcd3`'s bounds baseline by 3,
-as K4/K6 did for the compactor's entry specs. This is flagged for approval in the Freeze package.
+**Bounds.** `MainCluster.spec` takes the adequacy constants as instance binders
+(`[ThreadBoundLe GF (2^28)] [ReceiptBoundLe GF (2^48)] [ReceiptBoundLe GF (N+1)]`), the B1 form of
+`notes/bounds-plan.md`, as `examples/etcd/restart`'s `Main.spec`; `k8s_etcd3_cluster_adequate` builds
+them with `haveI`. The bounds baseline does not move. (The Freeze package first raised it by 3, as
+K6 did in `076cc37625`; the user, via etcd-grove-82, approved the Freeze on the condition that it
+did not.) `Main.spec` keeps its premises.
+
+**Noted, not fixed (2026-11-06, etcd-grove-82's review of the Freeze).**
+- `MainCluster`'s Go doc comment says a write is retried only after a refusal. That misses
+  clientv3's `isSafeRetryMutableRPC`, which also retries a mutable RPC on "no address/connection
+  available". There the request never left the client, so a write still reaches the servers at
+  most once and the proof's `clientWriteOnce` is unaffected; only the comment is incomplete.
+- The seed's `Put` runs on `context.Background()`, with no deadline. While the cluster has no
+  leader, it relies on the server's own request timeout to return.
 
 The size came in under the estimate: `MainCluster.lean` is ~330 lines, and Adequacy, Results and
 links ~200.

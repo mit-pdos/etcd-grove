@@ -293,8 +293,11 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hprem' := Hprem hG
   iintro #Hinit Htok Hres
   ihave Hstart := cluster3.startRes_intro k8s_etcd3.clusterCfg $$ Hres
+  haveI : ThreadBoundLe k8setcd3GF (2 ^ 28) := ⟨by rw [HT]; word⟩
+  haveI : ReceiptBoundLe k8setcd3GF (2 ^ 48) := ⟨by rw [HN]; omega⟩
+  haveI : ReceiptBoundLe k8setcd3GF (n + 1) := ⟨by rw [HN]; omega⟩
   have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops Hbf
-    (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega)
+    (by unfold bootWB backend.wbInit; omega)
     Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]

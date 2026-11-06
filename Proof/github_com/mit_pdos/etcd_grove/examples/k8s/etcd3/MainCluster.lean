@@ -72,8 +72,11 @@ theorem MainCluster.wp_proof
     (wp_RV : Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     MainCluster.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA N id₁ id₂ id₃ ps ctxs boot clients ops Hbf Htb Hrb48 HrbN HwbN Hck Haf
-    Hbuq Hrf Hdbo Hms hAs hse Hty H0 H31 Hops Hmul
+  intro CS EK RT SC ST VA N id₁ id₂ id₃ ps ctxs boot clients ops ThB RcB RcN Hbf HwbN Hck
+    Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 H31 Hops Hmul
+  have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
+  have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
+  have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
     wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk Hty)
   wp_start as ⟨Hstart, Htok, #Hprem⟩
@@ -193,7 +196,6 @@ theorem MainCluster.wp_proof
   · iPkgInit
   let V : client.WEnv GF :=
     EtcdGrove.client.srvWEnv R₁ clusterCfg.Bridge1' [] null null [] null default
-  haveI : ThreadBoundLe GF (2 ^ 28) := ⟨Htb⟩
   wp_apply (wp_kNew _ [clusterCfg.Bridge1', clusterCfg.Bridge2', clusterCfg.Bridge3'] V (fun _ => iprop(True))) $$ []
     as %kc %cerr Hcl
   · iframe #

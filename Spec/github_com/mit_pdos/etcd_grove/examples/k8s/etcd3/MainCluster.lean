@@ -14,7 +14,10 @@ unregistered, the bridges' addresses free), the main thread's token and the clus
 (`cluster3.premises` at `clusterCfg`), `MainCluster(clients, ops)` does not panic and returns `Ok`
 (the check ran: the history is linearizable) or `Unknown` (a step before the check failed). The pure
 premises are `Main`'s (`Main.spec`), with the cluster's boot facts (`cluster3.BootFacts`) for the one
-member's (`etcd_putget.BootFacts`), as the k8s compactor's `MainPartition` takes them.
+member's (`etcd_putget.BootFacts`), as the k8s compactor's `MainPartition` takes them. The bounds the
+adequacy theorem fixes (`threadBound`, `receiptBound`) are instance binders (`ThreadBoundLe`,
+`ReceiptBoundLe`), the form `notes/bounds-plan.md` prefers (as `examples/etcd/restart`'s `Main.spec`),
+not `Main.spec`'s premises.
 -/
 module
 
@@ -47,9 +50,9 @@ abbrev MainCluster.spec : Prop :=
     [k8s_io.apimachinery.pkg.runtime.Assumptions] [k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
     [k8s_io.apiserver.pkg.storage.Assumptions] [k8s_io.apiserver.pkg.storage.value.Assumptions]
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (clients ops : w64),
+    (clients ops : w64)
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot →
-  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   N + 7 + bootWB ≤ backend.wbInit →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
