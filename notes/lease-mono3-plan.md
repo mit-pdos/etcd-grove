@@ -522,3 +522,65 @@ putget3, k8s compactor `Results`, restart `Run`) passes. `etc/gen-interface.py e
 `etc/api-check.py` passes. `etc/tcb-report.py --check`: 785 axioms, 3 `sorry`s, as the baseline;
 collections leasecatchup (624, 0), linkv3p (635, 0), k8scompactor (684, 0), putget3 (611, 0) match.
 `etc/bounds-check.py --check`: 390, baseline 390. No Go changed.
+
+## Test (2026-11-06)
+
+`examples/etcd/leasecatchup/leasecatchup_premises_test.go` (tests only; `leasecatchup.go` is
+unchanged, so the translation is too). Each test runs Main's steps (`scenario`: `run`'s six steps,
+with observations between them, the same helpers `config`/`grant`/`leases`/`listed`) on a cluster of
+its own addresses (`configAt`: 241xx, 242xx, 243xx, 244xx, 245xx), because `run` never stops its
+members and TestMainRun holds 240xx. The lessor is read through `EtcdServer`'s unexported field, as
+leasesnap's test does. `leasecatchup_test.go` only gains `memberIDsOf` (memberIDs at a config).
+**Five tests, 3 of 3 runs pass** (go1.27.3, `go test ./etcd/leasecatchup -count=1 -v`, three
+separate processes; `go vet` and `gofmt` clean). **Nothing contradicts a spec or a premise.**
+
+- **`TestLeasePeersOk`** (`leasePeersOk`, `LeaseRead.lean`). At every peer URL, after the start and
+  after the catch-up, it sends `POST /leases/internal` (a marshalled `LeaseInternalRequest`, as
+  `TimeToLiveHTTP` sends it) and `POST /leases` (the lease handler's other path, the renew). Both
+  answer **404**, never 200, so the premise's "200 only with a full `LeaseInternalResponse`" holds
+  trivially. etcd's own `leasehttp.TimeToLiveHTTP` reads the reply as `ErrLeaseNotFound`, as
+  `leaseTimeToLive.spec`'s docstring says. `GET /raft/probing` answers 200, so the probed address is
+  the member's raft handler, not a closed port. 3/3, 6 probes × 3 peers each.
+- **`TestLeasesNoExpiry`** (`lease.leasesNoExpiry`, TTL 3600). After the catch-up it checks:
+  - every member's lessor and lease bucket hold all 21 leases granted (g1 and the fillers), with
+    TTL 3600;
+  - on the leader (the only lessor with finite expiries; the others are demoted, `Remaining` =
+    forever) the least remaining time is 59m59.7s, so `findExpiredLeases` finds nothing and nothing
+    goes on `expiredC`;
+  - the process's `etcd_debugging_lease_revoked_total` counter (every `Revoke`, where an expiry
+    ends) moved by **+0**, while `lease_granted_total` moved by +43. That is 3 for g1 plus 2 × 20
+    for the fillers: members 1 and 2 applied every filler's grant, and member 3 got all of them
+    from the snapshot, none by entries.
+
+  `expiredC` itself is not read: it is the server's run loop's channel, and a test that read it
+  would take the leases from the server. The test observes it through its consumer instead
+  (revoke) and through its producer's condition (`Remaining() > 0`). Runs take 1.3–10.3 s against
+  the 3600 s TTL. 3/3.
+- **`TestCatchUpClaim`** (`run.spec`'s claim, and that it is not vacuous). Once member 3's listing
+  has the last filler, it has g1, and member 3's recovered lessor holds g1 (`Lookup`). To show the
+  case is not vacuous (`requireRestore3`, shared by every scenario test), the test also checks:
+  - member 3's lessor lacked the last filler while cut off;
+  - its backend field `b` was replaced, so `Recover` ran on member 3's lessor, not on another
+    member's;
+  - raft on member 3 restored a snapshot at index 29, above both member 3's applied index when g1's
+    grant returned (7–9) and the filler count, so the grant through member 3 came before the
+    restore;
+  - one snapshot was sent to member 3, and one lease store was restored.
+
+  3/3. In two runs one filler timed out during a re-election (19 fillers, 8–10 s), and the restore
+  was still at 29.
+- **`TestCatchUpMutant`** (the check is not blind). The cluster is `cluster3`'s steps, except that
+  member 3's lessor field is replaced, before `Start`, by `dropLessor`. Its `Recover` deletes, from
+  the snapshot's lease bucket, the leases the lessor held before (as if the snapshot had not
+  carried them), then calls the real `Recover`. Every other method delegates to the real lessor.
+  The restore happens exactly as in the real runs (`requireRestore3` passes, at index 29). Member 3
+  then lists the last filler but **not g1**: `run`'s `panic` condition holds. In each of the 3/3
+  runs it dropped exactly g1. This is feasible in-process because `applySnapshot` calls `Recover`
+  through `s.lessor`, and setting that field before `Start` changes no etcd code.
+- **`TestHoldTokenPerMember`** (cluster3's `go holdToken()`). It calls `cluster3.StartMember` three
+  times. After each call the goroutines running `cluster3.holdToken` rise by exactly 1 (+1, +2,
+  +3), and those created by `cluster3.StartMember` (holdToken and `gs.Serve`) by exactly 2. After a
+  grant served by the cluster, the three `holdToken` goroutines are still there (it never returns).
+  The process's raw goroutine count rises by about 50–70 per member (etcd's own), so this test
+  counts by stack frame and creator instead. 3/3.
+

@@ -12,6 +12,8 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 )
 
 // The events the test counts, each by the message etcd or raft logs for it (etcd's at info level,
@@ -100,8 +102,10 @@ func (c runCounts) Write(e zapcore.Entry, fs []zapcore.Field) error {
 
 // memberIDs returns the ids etcd computes for config's members (from the peer URLs and the token),
 // in member order, as types.ID prints them.
-func memberIDs(t *testing.T) []string {
-	cfg := config()
+func memberIDs(t *testing.T) []string { return memberIDsOf(t, config()) }
+
+// memberIDsOf is memberIDs for the configuration cfg.
+func memberIDsOf(t *testing.T, cfg cluster3.Config) []string {
 	urls, err := types.NewURLsMap(cfg.Name1 + "=http://" + cfg.Peer1 + "," + cfg.Name2 + "=http://" +
 		cfg.Peer2 + "," + cfg.Name3 + "=http://" + cfg.Peer3)
 	if err != nil {
