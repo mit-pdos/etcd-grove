@@ -473,13 +473,13 @@ theorem errTreeOk_chain [_root_.Perennial.errors.Assumptions]
     subst Hii
     icases Hb with (#Hm | ⟨%mid, #Hw, #Hch⟩)
     · iunfold EtcdGrove.fmt.modelErrIs at Hm
-      icases Hm with ⟨%Hx, ⟨%s, #Hs⟩⟩
+      icases Hm with ⟨%Hx, %s0, #Hs⟩
       obtain ⟨x, rfl⟩ := Hx
       ihave #HA : applyErrIs (GoInterface.ok
           ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩) $$ []
       · iapply applyErrIs_leaf _ (hleaf x)
         iunfold errMsgOk
-        iexists s
+        iexists _
         iexact Hs
       iapply applyErrIs_walk $$ HA
     · iapply errTreeOk_wrap ii mid pre $$ Hw
@@ -516,7 +516,7 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
       iright
       icases Hb with (#Hm | ⟨%mid, #Hw2, -⟩)
       · iunfold EtcdGrove.fmt.modelErrIs at Hm
-        icases Hm with ⟨%Hx, ⟨%s, #Hs⟩⟩
+        icases Hm with ⟨%Hx, %s0, #Hs⟩
         obtain ⟨x, rfl⟩ := Hx
         isplitr
         · ipureintro; exact safeMapKey_ptrErr _ ⟨_, x, rfl, rfl⟩
@@ -524,7 +524,7 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
         isplitr
         · ipureintro; rfl
         iunfold errMsgOk
-        iexists s
+        iexists _
         iexact Hs
       · iunfold EtcdGrove.fmt.wrapErrIs at Hw2
         icases Hw2 with ⟨%Hm, ⟨%s, #Hs⟩, -⟩

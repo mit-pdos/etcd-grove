@@ -69,7 +69,7 @@ theorem v3rpc.kvServer.Put.wp_proof
     wp_apply HPut $$ [Hcall] as %resp %err' Hans
     · iframe; iframe #; ipureintro; exact ⟨hc, Hpre⟩
     iunfold v3rpc.kvAnswer at Hans
-    icases Hans with (⟨%Hok, %h, %rv, #Hhf, Hw, Hrev, HA⟩ | ⟨#Hse, HA⟩)
+    icases Hans with (⟨%Hok, %h, %rv, #Hhf, Hw, Hrev, HA⟩ | ⟨#Hse, #Hmp, HA⟩)
     · obtain ⟨He, Hrn⟩ := Hok
       subst He
       wp_auto
@@ -94,7 +94,7 @@ theorem v3rpc.kvServer.Put.wp_proof
       | nil => exact absurd rfl Hen
       | ok ei =>
         wp_auto
-        wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSe⟩
+        wp_apply hTog (A.errP (.put o)) _ $$ [] as %e ⟨%He, #HSe, #Hgo⟩
         · iframe #
         iapply HΦ
         iframe HSe
@@ -102,8 +102,10 @@ theorem v3rpc.kvServer.Put.wp_proof
         iright
         isplitr
         · ipureintro; exact ⟨rfl, He⟩
-        iexists _
-        iexact HA
+        iexists (GoInterface.ok ei)
+        isplitr
+        · ipureintro; exact Hen
+        iframe HA Hgo
 
 end proof
 

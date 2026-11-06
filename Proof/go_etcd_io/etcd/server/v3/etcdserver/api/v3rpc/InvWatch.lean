@@ -140,7 +140,7 @@ theorem watchVars_of_init :
   iintro ⟨#Hpkg, #Heof⟩
   ihave Hi : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨-, -, -, -, -, -, -, #Hw⟩
+  icases Hi with ⟨-, -, -, -, -, -, -, #Hw, -⟩
   iunfold watchVars
   iframe Heof Hw
 

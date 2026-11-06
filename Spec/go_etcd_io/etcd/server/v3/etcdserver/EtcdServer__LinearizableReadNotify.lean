@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.LinearizableReadNotify(ctx)`, a one-line delegation to the read loop's (`isReadNotify`, met by
 `read.NewRead`'s result, the request path's unit 4a): `nil` only once the applied index reached
-the committed index `c` the caller knew of (`readIndexOk`), else an error the gRPC layer can take;
+the committed index `c` the caller knew of (`readIndexOk`), else an error the gRPC layer can take, one of `readErrIs`'s (k8s etcd3 7c-2 part 2, S3b);
 the caller's reader slot of the read loop's lock (`readReader`) is given back. -/
 abbrev EtcdServer.LinearizableReadNotify.spec : Prop :=
   ∀ (s r : Loc) (γr : ReadNames) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
@@ -34,7 +34,7 @@ abbrev EtcdServer.LinearizableReadNotify.spec : Prop :=
       readReader r γr ∗ savedPredOwn g DFrac.discard Q ∗ kvDep γr.kv Q }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LinearizableReadNotify"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗ readErrIs err ∗
       (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c ∗ readServed γr c g) }}
 
 end spec

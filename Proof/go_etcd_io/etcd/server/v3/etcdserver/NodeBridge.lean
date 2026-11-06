@@ -154,6 +154,29 @@ theorem applyErrIs_of_nodeErr (cd : context.ContextDesc (IProp GF)) (err : GoInt
     iexact Ha
   · iapply applyErrIs_of_ctxErr cd err $$ Hpkg Hcerr
 
+/-- **The error of raft's `ReadIndex`, identified** (`nodeReadErrIs`; k8s etcd3 7c-2 part 2, S3b):
+`nil`, raft's `ErrStopped`, or a done context's error (`context.isCtxErr`, from `context`'s
+initializer). -/
+theorem nodeReadErrIs_of_nodeErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
+      nodeErr cd err -∗ nodeReadErrIs err := by
+  iintro #Hpkg #Herr
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  iunfold nodeErr at Herr
+  iunfold nodeReadErrIs
+  icases Herr with (%Hnil | #Hstop | #Hcerr)
+  · ileft; ipureintro; exact Hnil
+  · iunfold errStopped at Hstop
+    icases Hstop with ⟨#He, -⟩
+    iright; ileft; iexact He
+  · iunfold ctxErr at Hcerr
+    icases Hcerr with ⟨-, -, -, #Hval⟩
+    iunfold ctxErrVal at Hval
+    icases Hval with ⟨-, (#Hc | #Hd)⟩
+    · iright; iright; iapply context.isCtxErr_of_Canceled $$ Pctx Hc
+    · iright; iright; iapply context.isCtxErr_of_DeadlineExceeded $$ Pctx Hd
+
 /-- **A proposal's own result is one the gRPC layer can take**: raft's `stepErr` (`nil` or
 `ErrProposalDropped`), by the server's package facts (`srvErrVars`' `errVarLeaf` of raft's
 `ErrProposalDropped`). -/
@@ -697,10 +720,12 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     wp_apply wp_ReadIndex γ.nl γ.node.cl srvClusterN γ.id sl (beBytes id)
       (srvReadQ E.γr.raft Qr) ctx cd $$ [] as %err #Herr
     · iframe #
+    ihave #Herr' := nodeErrS_nodeErr _ _ _ cd err $$ Herr
     iapply HΦ
     isplitr
-    · ihave #Herr' := nodeErrS_nodeErr _ _ _ cd err $$ Herr
-      iapply applyErrIs_of_nodeErr cd err $$ Hpkg Herr'
+    · iapply applyErrIs_of_nodeErr cd err $$ Hpkg Herr'
+    isplitr
+    · iapply nodeReadErrIs_of_nodeErr cd err $$ Hpkg Herr'
     · iintro %_
       rw [HRQ]
       iunfold srvRQ

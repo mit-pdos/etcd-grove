@@ -43,7 +43,7 @@ abbrev read.Read.LinearizableReadNotify.spec : Prop :=
       savedPredOwn g DFrac.discard Q ∗ kvDep γr.kv Q F }}
     (App (Val (r @!! go.GoType.PointerType Read.ty @!! go!"LinearizableReadNotify"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗ readErrIs err ∗
       (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c ∗ readServed γr c g) }}
 
 end spec

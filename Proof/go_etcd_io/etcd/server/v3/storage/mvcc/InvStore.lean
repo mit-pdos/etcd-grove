@@ -5943,11 +5943,42 @@ theorem ctxErrorf_ok (err : GoInterface) :
   | nil => exact absurd rfl Hn
   | ok ii => iexists ii; ipureintro; rfl
 
+/-- **`rangeKeys`' error for a done context** (persistent; k8s etcd3 7c-2 part 2, G2-a,
+2026-11-06): `ctxErrorf`, with the description `fmt.ErrorfWrap`'s post gives it (N1b): it starts
+with the format's text before `%w`, `"rangeKeys: context cancelled: "` (`kvstore_txn.go:121`), so
+that it is not one of the descriptions the gRPC layer gives mvcc's read errors; and its `Error()`
+returns a message with that text first (the model's error or Go's `*fmt.wrapError`,
+`fmt.errorfWrapIs`; S5: what `togRPCError`'s fallback makes a description of). -/
+def rangeKeysErr (err : GoInterface) : IProp GF :=
+  iprop(ctxErrorf err ∗
+    ⌜go!"rangeKeys: context cancelled: " <+: go_etcd_io.etcd.cache.v3.errDesc err⌝ ∗
+    ∃ (ii : GoInterfaceOk) (s : GoString), ⌜err = GoInterface.ok ii⌝ ∗
+      □ ∀ Φ : val → IProp GF, ▷ Φ #(go!"rangeKeys: context cancelled: " ++ s) -∗
+        WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }})
+
+omit package_sem in
+instance rangeKeysErr_persistent (err : GoInterface) : Persistent (rangeKeysErr (GF := GF) err) := by
+  unfold rangeKeysErr; infer_instance
+
+omit package_sem in
+theorem rangeKeysErr_ctxErrorf (err : GoInterface) :
+    rangeKeysErr (GF := GF) err ⊢ ctxErrorf err := by
+  iunfold rangeKeysErr
+  iintro ⟨#H, -⟩
+  iexact H
+
+omit package_sem in
+theorem rangeKeysErr_ne_nil (err : GoInterface) :
+    rangeKeysErr (GF := GF) err ⊢ ⌜err ≠ GoInterface.nil⌝ := by
+  iintro #H
+  ihave #H' := rangeKeysErr_ctxErrorf err $$ H
+  iapply ctxErrorf_ne_nil err $$ H'
+
 /-- What `rangeKeys(ctx, key, end, rev, ro)` returns (`r`, `err`) of the committed log `log`
 at the transaction's revision `rev`, for `[k, e)` (`endNil`: no end key):
 * a future revision (`ro.Rev > rev`): `ErrFutureRev` and a count of `-1`;
 * the context done (a full read only): no result and `fmt.Errorf`'s `%w` of the context's error
-  (`ctxErrorf`);
+  (`ctxErrorf`, with its description's prefix: `rangeKeysErr`, k8s etcd3 7c-2 part 2, G2-a);
 * else the answer at `rangeRev rev ro.Rev`: the count alone (`CountOnly`), or the key-values
   of the index's answers (at most the limit), keys and revisions only (`FastKeysOnly`) or the
   state's key-values from the bucket, with the index's count. -/
@@ -5958,7 +5989,7 @@ def rangeOutcome (r : Loc) (err : GoInterface) (log : Log) (rev : w64) (endNil :
       (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
       r ↦ ({ KVs' := slice.nil, Rev' := rev, Count' := W64 (-1) } : RangeResult)) ∨
     (⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗ ⌜ro.CountOnly' = false ∧ ro.FastKeysOnly' = false⌝ ∗
-      ⌜r = null⌝ ∗ ctxErrorf err) ∨
+      ⌜r = null⌝ ∗ rangeKeysErr err) ∨
     (⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗ ⌜err = GoInterface.nil⌝ ∗
       if ro.CountOnly' then
         r ↦ ({

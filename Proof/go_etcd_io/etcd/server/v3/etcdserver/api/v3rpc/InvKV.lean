@@ -281,18 +281,70 @@ theorem errMsgP_of_srvErrIs (err : GoInterface) :
   iapply HΦ
   ipureintro; trivial
 
+open Iris.ProofMode in
+/-- `errMsgP_of_srvErrIs` at any `P` that always holds (a `KVAns`'s default `errP`). -/
+theorem errMsgP_of_srvErrIs_of (err : GoInterface) (P : GoString → Prop) (hP : ∀ m, P m) :
+    srvErrIs (GF := GF) err ⊢ errMsgP err P := by
+  iintro #Hs
+  iunfold srvErrIs at Hs
+  icases Hs with ⟨-, -, -, %ei, %Hei, #HM⟩
+  iunfold errMsgP
+  iexists ei
+  isplitr
+  · ipureintro; exact Hei
+  iintro %Φ !> - HΦ
+  iapply HM $$ []
+  · itrivial
+  inext
+  iintro %msg -
+  iapply HΦ
+  ipureintro; exact hP msg
+
+open Iris.ProofMode in
+/-- `errMsgP` is monotone in its property. -/
+theorem errMsgP_mono (err : GoInterface) (P P' : GoString → Prop) (hP : ∀ m, P m → P' m) :
+    errMsgP (GF := GF) err P ⊢ errMsgP err P' := by
+  iintro #Hs
+  iunfold errMsgP at Hs
+  icases Hs with ⟨%ei, %Hei, #HM⟩
+  iunfold errMsgP
+  iexists ei
+  isplitr
+  · ipureintro; exact Hei
+  iintro %Φ !> - HΦ
+  iapply HM $$ []
+  · itrivial
+  inext
+  iintro %msg %Hm
+  iapply HΦ
+  ipureintro; exact hP msg Hm
+
+/-- **Why `togRPCError` passed `err` through** (persistent; k8s etcd3 7c-2 part 2, G1-a′): its
+`errors.Is` checks said `err` is (wraps) `context.Canceled` or `DeadlineExceeded`; for a leaf
+without an `Is` method (an error tree of itself alone) that is: `err` is one of the two values. -/
+def ctxPassed (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ ei : GoInterfaceOk,
+    ⌜err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧
+      methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])⌝ -∗
+    ((globalAddr _root_.Perennial.context.Canceled ↦□ err : IProp GF) ∨
+      (globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ err : IProp GF)))
+
+instance ctxPassed_persistent (err : GoInterface) : Persistent (ctxPassed (GF := GF) err) := by
+  unfold ctxPassed; infer_instance
+
 /-- **What `togRPCError` made of `err`** (persistent; k8s etcd3 7c-2): at the error map `M`
 (`grpcErrMap`'s pieces, with mvcc's two read errors `kf` and `kc`), `err` itself (a context error,
-which grpc's server converts), the map's value at `err`, or, for an error the map does not have,
-an error whose description has `P` (`status.Error(codes.Unknown, err.Error())`, of description
-`err.Error()`: `errMsgP err P`). -/
+which grpc's server converts; why, `ctxPassed`: k8s etcd3 7c-2 part 2, G1-a′), the map's value at
+`err`, or, for an error the map does not have, an error whose description has `P`
+(`status.Error(codes.Unknown, err.Error())`, of description `err.Error()`: `errMsgP err P`). -/
 def grpcErrOut (P : GoString → Prop) (err e : GoInterface) : IProp GF :=
   iprop(∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface),
     globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap ↦□ mp ∗ mp ↦$□ M ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗
-    ⌜go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk M kf kc ∧
-      (e = err ∨ M !! err = some e ∨ (M !! err = none ∧ P (go_etcd_io.etcd.cache.v3.errDesc e)))⌝)
+    ⌜go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk M kf kc⌝ ∗
+    ((⌜e = err⌝ ∗ ctxPassed err) ∨ ⌜M !! err = some e⌝ ∨
+      ⌜M !! err = none ∧ P (go_etcd_io.etcd.cache.v3.errDesc e)⌝))
 
 instance grpcErrOut_persistent (P : GoString → Prop) (err e : GoInterface) :
     Persistent (grpcErrOut (GF := GF) P err e) := by
@@ -373,6 +425,9 @@ structure KVAns [GooseExts] (GF : BundledGFunctors) where
   ok : KVReq → Loc → Loc → w64 → IProp GF
   /-- An error answer to `q`. -/
   err : KVReq → GoInterface → IProp GF
+  /-- What an error answer's `Error()` returns (k8s etcd3 7c-2 part 2, S5: what `togRPCError`'s
+  fallback makes the gRPC error's description of, `grpcErrOut`). -/
+  errP : KVReq → GoString → Prop := fun _ _ => True
   /-- What the KV's `Rev()` needs and gives back. -/
   revR : IProp GF
 
@@ -384,21 +439,22 @@ variable [sem : go.Semantics]
 
 /-- **The server's answer** to `q` (`hf`: the address of the response's `Header` field): no
 error and a response whose header the handler can fill, or an error `togRPCError` can take
-(and any response: the handler returns `nil`; a read-only `Txn` whose context is done returns
+whose `Error()` returns a message with `A.errP q` (and any response: the handler returns `nil`; a read-only `Txn` whose context is done returns
 its partly filled response with the error, 2026-10-12, unit 3b). -/
 def kvAnswer (A : KVAns GF) (q : KVReq) (hf resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (r : w64),
       hf ↦□ h ∗ hdrW h ∗ hdrRevIn A.revR h r ∗ A.ok q resp h r) ∨
-    (srvErrIs err ∗ A.err q err))
+    (srvErrIs err ∗ errMsgP err (A.errP q) ∗ A.err q err))
 
 /-- **The handler's answer** to `q` past its check (`cid`, `mid`: its header's ids): the
-server's answer with the header filled, or `nil` and a non-nil error (the server's, through
-`togRPCError`). -/
+server's answer with the header filled, or `nil` and a non-nil error: what `togRPCError` made of
+the server's error answer `e` (`grpcErrOut`; k8s etcd3 7c-2 part 2, S5). -/
 def kvOut (A : KVAns GF) (cid mid : w64) (q : KVReq) (hf resp : Loc) (err : GoInterface) :
     IProp GF :=
   iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (r r' : w64),
       hf ↦□ h ∗ hdrFilled h cid mid ∗ hdrRevOut A.revR h r r' ∗ A.ok q resp h r) ∨
-    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface, A.err q e))
+    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface, ⌜e ≠ GoInterface.nil⌝ ∗ A.err q e ∗
+      grpcErrOut (A.errP q) e err))
 
 /-- A handler's check error: the `rpctypes` variable of `e` holds it, no response. -/
 def checkOut (e : CheckErr) (resp : Loc) (err : GoInterface) : IProp GF :=

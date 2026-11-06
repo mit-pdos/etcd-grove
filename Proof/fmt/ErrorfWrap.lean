@@ -25,8 +25,9 @@ variable [package_sem : _root_.Perennial.fmt.Assumptions]
 `pre ++ "%w"` (`pre` copied verbatim, having no `%`; `%w` as `%v` of `inner`, its `Error()`) and,
 with exactly one `%w`, returns `&wrapError{msg: s, err: inner}`, whose methods are `Error()`
 (`return e.msg`) and `Unwrap()` (`return e.err`): the right side of the post. The left side is
-Perennial's model (`errors.New(format)`), so that the axiom contradicts no proof that steps into
-the model. Only reads the arguments' slice (`a[i].(error)` copies the value). Checked in Go:
+Perennial's model (`errors.New(format)`, whose `Error()` returns `format = pre ++ "%w"`), so that
+the axiom contradicts no proof that steps into the model; both sides give the message's prefix
+`pre` (N1a, k8s etcd3 7c-2 part 2, 2026-11-06). Only reads the arguments' slice (`a[i].(error)` copies the value). Checked in Go:
 `notes/axiom-review/errorf-wrap.md` (survives). -/
 axiom fmt.ErrorfWrap.wp_proof : fmt.ErrorfWrap.spec (GF := GF) (hG := hG)
 

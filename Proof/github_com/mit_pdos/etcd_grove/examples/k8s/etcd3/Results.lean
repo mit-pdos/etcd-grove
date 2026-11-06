@@ -11,7 +11,9 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   porcupine's checker), and a panic if porcupine answers `Illegal` -- does not panic and returns
   `Ok` or `Unknown`. From `isPkgInit k8setcd3`, the right to listen on `127.0.0.1:23896`, the main
   thread's token and `Main`'s named premises
-  (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Main.lean`).
+  (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Main.lean`), at the context errors'
+  premise `ContextReadErrs` (k8s etcd3 7c-2 part 2, S7: the compactor's channel context's errors'
+  descriptions; `k8s_etcd3_safe` already took it, `Hctx`).
 * **`k8s_etcd3_safe`** (`Adequacy.lean`'s `k8s_etcd3_adequate`): the closed theorem. Every real
   execution of `n` steps of `k8setcd3`'s initialization followed by `Main(clients, ops)`, from a
   fresh state with one thread, has no stuck thread, no thread ended in a panic (so never
@@ -49,7 +51,7 @@ variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`Link.lean`'s `k8s_etcd3.wp_Main`). -/
 theorem k8setcd3_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)] :
     k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_Main
 

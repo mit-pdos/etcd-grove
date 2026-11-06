@@ -688,7 +688,10 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iexists log
     iframe Hc Hri Hlog Hres Hown
     ipureintro; exact Hl
-  · iright; iexact H
+  · iright
+    icases H with ⟨%Hn, #He, -⟩
+    iframe He
+    ipureintro; exact Hn
 
 /-- **`range_serializable`** (see the section header): in the client model's terms, for a
 request whose sort is not cut early (a serializable one's whole answer: it takes no read index;
@@ -747,7 +750,10 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     icases Hres with ⟨%crev, #Hres⟩
     iexists crev
     iapply txn.rangeResult_client _ _ _ _ crev o true Hset hcut $$ Hres
-  · iright; iexact H
+  · iright
+    icases H with ⟨%Hn, #He, -⟩
+    iframe He
+    ipureintro; exact Hn
 
 /-- **`txn_readonly`** (see the section header). -/
 theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)

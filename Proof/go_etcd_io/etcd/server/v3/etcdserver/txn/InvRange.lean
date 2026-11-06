@@ -55,7 +55,8 @@ def rangeResultIs (rr : Loc) (rev count : w64) (vs : List EtcdKv) : IProp GF :=
 the committed log `log` at revision `rev` whose compaction revision is `crev`, with `withTotal`:
 * a future revision (`o.base.rev > rev`): no response, mvcc's `ErrFutureRev`;
 * the context done (mvcc's `rangeOutcome`: a full read checks `ctx.Done()`) at a revision read not
-  below `crev`: no response and `fmt.Errorf`'s error (`mvcc.ctxErrorf`: an `*errors.errorString` in Perennial's model; 2026-10-12,
+  below `crev`: no response and `fmt.Errorf`'s error (`mvcc.ctxErrorf`, with its description's prefix:
+  `mvcc.rangeKeysErr`, k8s etcd3 7c-2 part 2, G2-a; an `*errors.errorString` in Perennial's model; 2026-10-12,
   the request path's unit 3b);
 * else (the revision read not below `crev`) a response at header revision `rev`, its key-values and `More` the server's selection
   of the state at the revision read (`rangeRev rev o.base.rev`: `srvRangeOk`), its count
@@ -68,7 +69,7 @@ def rangeResult (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (c
     (⌜sint.Z rev < sint.Z o.base.rev ∧ resp = null⌝ ∗
       ∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
     (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ o.base.countOnly = false ∧ fastKeysOnly o = false ∧
-      resp = null ∧ crev ≤ sint.Z (mvcc.rangeRev rev o.base.rev)⌝ ∗ mvcc.ctxErrorf err) ∨
+      resp = null ∧ crev ≤ sint.Z (mvcc.rangeRev rev o.base.rev)⌝ ∗ mvcc.rangeKeysErr err) ∨
     (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ err = GoInterface.nil ∧
       crev ≤ sint.Z (mvcc.rangeRev rev o.base.rev)⌝ ∗ ∃ (kvs : List EtcdKv) (more : Bool),
       rangeResponseIs resp rev kvs more

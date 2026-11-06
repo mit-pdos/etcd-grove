@@ -64,8 +64,9 @@ theorem read.Read.sendReadIndex.wp_proof
   wp_apply HRT as %d -
   wp_apply hWT d $$ [] as %cctx %cd %cancel ⟨#Hcancel, #Hcctx⟩
   · iframe #
-  wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr] as %err ⟨#HerrE, Hrq⟩
+  wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr] as %err ⟨#HerrE, #HnE, Hrq⟩
   · iframe #; iframe Hfr
+  ihave #HlE := readLoopErrIs_of_node err $$ HnE
   (try wp_auto)
   wp_apply Hcancel
   wp_apply read_wp_Is_var hIs err eR HlR as %b -
@@ -90,14 +91,14 @@ theorem read.Read.sendReadIndex.wp_proof
       wp_apply HInc
       (try wp_auto)
       iapply HΦ
-      iframe HLR HerrE Hrq
+      iframe HLR HerrE HlE Hrq
     | nil =>
       wp_auto
       iapply HΦ
-      iframe HLR HerrE Hrq
+      iframe HLR HerrE HlE Hrq
   · wp_auto
     iapply HΦ
-    iframe HLR HerrE Hrq
+    iframe HLR HerrE HlE Hrq
 
 end proof
 

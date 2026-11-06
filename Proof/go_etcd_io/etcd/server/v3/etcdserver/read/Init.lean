@@ -69,6 +69,14 @@ class EtcdGrove.ContextReadErrs : Prop where
   errs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
     EtcdGrove.errVarLeaf _root_.Perennial.context.Canceled ∗
       go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeaf
+  /-- The two errors' gRPC descriptions (k8s etcd3 7c-2 part 2, S1, HS-2): neither is a status
+  error, so `errDesc` is its `Error()`, `"context canceled"` and `"context deadline exceeded"`
+  (`context.go`). -/
+  descs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
+    (∃ e : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ e ∗
+        ⌜go_etcd_io.etcd.cache.v3.errDesc e = go!"context canceled"⌝) ∗
+      (∃ d : GoInterface, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ d ∗
+        ⌜go_etcd_io.etcd.cache.v3.errDesc d = go!"context deadline exceeded"⌝)
 
 end ctxFacts
 

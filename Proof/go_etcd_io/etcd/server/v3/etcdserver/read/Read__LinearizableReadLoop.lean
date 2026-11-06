@@ -41,6 +41,8 @@ local macro "loop_tail" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hNotify nc γn γr GoInterface.nil $$ [Hown]
   · iframe #; iframe Hown
+    isplitr
+    · iapply readErrIs_nil
     iintro -
     iunfold frozenOk
     iexists n, ci, _, gs
@@ -154,9 +156,9 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     ihave #HRA := Hcomp' $$ %gs Hregs
     wp_apply sync.RWMutex.wp_Unlock_guard (readMuAddr r) (readMuP r γr) $$ [Hwl Hpt Hg]
     · iframe #; iframe Hwl; iunfold readMuP; iexists nc', γn'; iframe Hpt Hg
-    wp_apply hRCI r γr RQ LR NR lcn n (readQs gs) F $$ [HLR] as %ci %err ⟨HLR, #HaE, Hci⟩
+    wp_apply hRCI r γr RQ LR NR lcn n (readQs gs) F $$ [HLR] as %ci %err ⟨HLR, #HaE, #HrE, Hci⟩
     · iframe #; iframe HLR
-    wp_apply hStopped err $$ [] as %bst -
+    wp_apply hStopped err $$ [] as %bst Hns
     · iframe #
     cases bst
     rotate_left
@@ -167,8 +169,15 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     cases err with
     | ok ei =>
       wp_auto
-      wp_apply hNotify nc γn γr (GoInterface.ok ei) $$ [Hown]
-      · iframe #; iframe Hown; iintro %h; cases h
+      wp_apply hNotify nc γn γr (GoInterface.ok ei) $$ [Hown Hns]
+      · iframe #; iframe Hown
+        isplitl [Hns]
+        · iunfold readLoopErrIs at HrE
+          icases HrE with (#H | #H)
+          · iexact H
+          · ihave %Hne := Hns $$ %(GoInterface.ok ei) %rfl H
+            exact absurd rfl Hne
+        iintro %h; cases h
       wp_for_post
       iframe
     | nil =>
