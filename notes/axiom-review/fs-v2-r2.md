@@ -321,3 +321,17 @@ still holds in a run without a crash: a shrink's new versions are cut at the new
   `RENAME_EXCHANGE`/`RENAME_WHITEOUT` (Go's `os.Rename` uses neither).
 - No search for an inconsistency (`⊢ False`) in the definitions beyond checking that a crash and a
   restart are always possible.
+
+## Disposition (2026-11-06, by the author of the semantics)
+
+- R1: the cheaper fix. Every call on a path begins with `CallBegin` (the former `MetaBegin`, now
+  also for `open` without `O_CREAT` and `lstat`), and a rename of a directory is stuck while any
+  other call on a path is in flight (`Rename`'s premise). Sound (less defined); etcd and bbolt never
+  rename a directory while another call walks a path. The precise model (each component resolved in
+  a tree no older than the previous one's) is not done.
+- R2: as proposed. `Follows` compares `MetaOp.locks`, which leaves out the directory a rename moves;
+  `lastTouch` still uses `MetaOp.dirs`.
+- R3: the assumption, worded as proposed (`Impl.lean`'s header, "Restart").
+- R4: the header's journal sentences rewritten (transactions in order; which calls join which;
+  what a directory `fsync` commits; Linux 6.x).
+- The test docstring: `crash_overlap` now overlaps a file's rename with a create, which Linux has.

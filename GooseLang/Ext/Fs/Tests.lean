@@ -8,9 +8,9 @@ executions: each test exhibits the model's outcome. Untrusted (a check of the tr
   its version from before the failed sync (Linux marked it clean; the later sync did not write it).
 * `restart_keeps_dirty`: a process restart keeps the page cache's contents and their dirty sectors,
   so a later machine crash may still lose them.
-* `crash_overlap`: two overlapping calls in disjoint directories (a rename of `c` to `d`, and a
-  create in `c/x` begun before the rename took effect): a crash may keep the create without the
-  rename, and the tree it leaves has the file in `x` back at `c/x`.
+* `crash_overlap`: two overlapping calls in disjoint directories (a rename of the file `a` to `d`,
+  and a create in `c/x` begun before the rename took effect): a crash may keep the create without
+  the rename.
 * `dirsync_new_dir` (a guarantee): after a successful `fsync` of the root, every crash keeps the
   directory made in it during the same run.
 * `rmdir_open_fd`: `rmdir` of an empty directory succeeds while an fd is open on it.
@@ -185,52 +185,58 @@ theorem restart_keeps_dirty :
     simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits, h0]
     exact (secOf_far _ (by simp) n hn).symm
 
-/-! ## Overlapping calls: a create kept without an ancestor's rename -/
+/-! ## Overlapping calls in disjoint directories: either may survive alone -/
 
 def cB : GoString := go!"c"
 def dB : GoString := go!"d"
 def xB : GoString := go!"x"
 def yB : GoString := go!"y"
 
-/-- `/r/c/x`, directories 4 and 5. -/
-def tree3 : Tree := <[1 := {[cB := .dir 4]}]> (<[4 := {[xB := .dir 5]}]> {[5 := ∅]})
+/-- `/r/a`, a file (inode 7); `/r/c/x`, directories 4 and 5. -/
+def tree3 : Tree :=
+  <[1 := <[aB := .file 7]> {[cB := .dir 4]}]> (<[4 := {[xB := .dir 5]}]> {[5 := ∅]})
 
-/-- Two overlapping calls: the rename of `c` to `d` took effect first; the create of `y` in `x`
-(by then `/r/d/x`) had begun before it did. -/
+/-- Two overlapping calls: the rename of the file `a` to `d` took effect first; the create of `y` in
+`/r/c/x` had begun before it did. -/
 def stOv : OsState :=
   { fs := { roots := [(rootP, 1)], treeDur := tree3,
-            metaLog := [⟨.rename 1 cB 1 dB (.dir 4) none, 0⟩, ⟨.create 5 yB 6, 0⟩],
-            committed := fun _ => False, files := {[6 := newFile]}, nextIno := 7 },
+            metaLog := [⟨.rename 1 aB 1 dB (.file 7) none, 0⟩, ⟨.create 5 yB 6, 0⟩],
+            committed := fun _ => False, files := <[6 := newFile]> {[7 := newFile]}, nextIno := 8 },
     proc := ProcState.empty }
 
 /-- After a crash that kept the create but not the rename. -/
 def stOv' : OsState :=
   { fs := { roots := [(rootP, 1)], treeDur := replay [.create 5 yB 6] tree3,
-            metaLog := [], committed := fun _ => False, files := {[6 := OsFile.ofBytes []]},
-            nextIno := 7 },
+            metaLog := [], committed := fun _ => False,
+            files := <[6 := OsFile.ofBytes []]> {[7 := OsFile.ofBytes []]}, nextIno := 8 },
     proc := ProcState.empty }
 
-theorem named_ov (i : Ino) : Named stOv'.fs.treeDur i ↔ i = 6 := by
+theorem named_ov (i : Ino) : Named stOv'.fs.treeDur i ↔ i = 6 ∨ i = 7 := by
   constructor
   · rintro ⟨j, b, h⟩
     simp [stOv', tree3, replay, MetaOp.apply, Tree.upd, Tree.entry] at h
     by_cases h5 : 5 = j
     · simp [h5] at h
       by_cases hb : yB = b
-      · simp [hb] at h; exact h.symm
+      · simp [hb] at h; exact .inl h.symm
       · simp [hb] at h
     · simp [h5] at h
       by_cases h1 : 1 = j
       · simp [h1] at h
+        by_cases hb : aB = b
+        · simp [hb] at h; exact .inr h.symm
+        · simp [hb] at h
       · simp [h1] at h
         by_cases h4 : 4 = j
         · simp [h4] at h
         · simp [h4] at h
-  · rintro rfl
-    exact ⟨5, yB, by simp [stOv', tree3, replay, MetaOp.apply, Tree.upd, Tree.entry]⟩
+  · rintro (rfl | rfl)
+    · exact ⟨5, yB, by simp [stOv', tree3, replay, MetaOp.apply, Tree.upd, Tree.entry]⟩
+    · exact ⟨1, aB, by simp [stOv', tree3, replay, MetaOp.apply, Tree.upd, Tree.entry]⟩
 
-/-- **Overlapping calls in disjoint directories**: a crash may keep the create in `/r/d/x` (now back
-at `/r/c/x`) without the rename that took effect before it. -/
+/-- **Overlapping calls in disjoint directories**: a crash may keep the create in `/r/c/x` without
+the rename of `/r/a` that took effect before it (they lock no common directory; the create's call
+began before the rename took effect, so the journal may have either first). -/
 theorem crash_overlap : OsCrash stOv stOv' := by
   left
   refine ⟨rfl, rfl, rfl, fun _ h => h, rfl,
@@ -241,14 +247,18 @@ theorem crash_overlap : OsCrash stOv stOv' := by
     have : y = 0 := by omega
     subst this
     simp [stOv] at hex hey; subst hex; subst hey
-    simp [MetaOp.dirs, MetaOp.crossRename, Node.dirIno] at h
+    simp [MetaOp.locks, MetaOp.crossRename, Node.dirIno] at h
   · simp [keptOps, stOv, List.range_succ]; rfl
-  · obtain rfl := (named_ov i).1 hi
-    refine ⟨newFile, OsFile.ofBytes [], by simp [stOv], ⟨0, secOf [], ⟨.inl ?_, .inl ?_⟩,
-      fun n => .inl ?_, rfl⟩, by simp [stOv']⟩ <;>
+  · have hf : ∃ f, stOv.fs.files !! i = some f ∧ f = newFile ∧
+        stOv'.fs.files !! i = some (OsFile.ofBytes []) := by
+      rcases (named_ov i).1 hi with rfl | rfl <;> exact ⟨newFile, by simp [stOv, stOv']⟩
+    obtain ⟨f, hfi, rfl, hfi'⟩ := hf
+    refine ⟨newFile, OsFile.ofBytes [], hfi, ⟨0, secOf [], ⟨.inl ?_, .inl ?_⟩,
+      fun n => .inl ?_, rfl⟩, hfi'⟩ <;>
       simp [newFile, OsFile.ofBytes, OsFile.ofDisk]
-  · have : i ≠ 6 := fun h => hi ((named_ov i).2 h)
-    simp [stOv', Ne.symm this]
+  · have h6 : i ≠ 6 := fun h => hi ((named_ov i).2 (.inl h))
+    have h7 : i ≠ 7 := fun h => hi ((named_ov i).2 (.inr h))
+    simp [stOv', Ne.symm h6, Ne.symm h7]
 
 /-! ## A directory's `fsync` makes a directory made in the same run durable -/
 
@@ -287,7 +297,7 @@ theorem dirsync_new_dir [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] (st' 
 def stRm : OsState :=
   { fs := { roots := [(rootP, 1)], treeDur := <[1 := {[go!"m" := .dir 2]}]> {[2 := ∅]},
             metaLog := [], committed := fun _ => False, files := ∅, nextIno := 3 },
-    proc := { ProcState.empty with dfds := {[W64 3 := ⟨2, .idle⟩]}, metaCalls := {[0 := 0]} } }
+    proc := { ProcState.empty with dfds := {[W64 3 := ⟨2, .idle⟩]}, calls := {[0 := 0]} } }
 
 /-- **`rmdir` succeeds although an fd is open on the directory** (the fd keeps it, empty). -/
 theorem rmdir_open_fd [GooseExts] [GoGlobalContext] :

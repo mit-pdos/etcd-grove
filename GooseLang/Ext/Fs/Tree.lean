@@ -17,7 +17,7 @@ a set of logged operations closed under `Follows` (`Impl.lean`, `MachineCrash`),
 order: an operation that took effect before another's call began is journaled before it; two that
 change a common directory are serialized by that directory's lock, so the journal has them in the
 log's order; two renames across directories are serialized by the filesystem's rename lock. Two
-operations related by none of these change disjoint directories, so they commute.
+operations related by none of these change the entries of disjoint directories, so they commute.
 -/
 module
 
@@ -91,6 +91,16 @@ def MetaOp.dirs : MetaOp → List Ino
   | .remove j _ n => j :: n.dirIno
   | .rename j _ j' _ n old => [j, j'] ++ n.dirIno ++ (old.map Node.dirIno).getD []
 
+/-- The directories an operation locks (Linux's `i_rwsem`), which order it against the others: as
+`dirs`, but not a directory a rename moves (Linux locks it on no same-directory rename, and before
+6.5 on no rename at all; the rename does not change its entries, so it commutes with operations in
+it). -/
+def MetaOp.locks : MetaOp → List Ino
+  | .create j _ _ => [j]
+  | .mkdir j _ j' => [j, j']
+  | .remove j _ n => j :: n.dirIno
+  | .rename j _ j' _ _ old => [j, j'] ++ (old.map Node.dirIno).getD []
+
 /-- A rename from one directory to another (Linux serializes them per filesystem). -/
 def MetaOp.crossRename : MetaOp → Bool
   | .rename j _ j' _ _ _ => decide (j ≠ j')
@@ -117,11 +127,11 @@ structure LogEntry where
   start : Nat
 
 /-- The entry `y` of the log must survive a crash that keeps the entry `x`: `y` took effect before
-`x`'s call began, or `y` is earlier and they change or lock a common directory, or both are renames
+`x`'s call began, or `y` is earlier and they lock a common directory (`locks`), or both are renames
 across directories. -/
 def Follows (log : List LogEntry) (x y : Nat) : Prop :=
   y < x ∧ ∃ ex ey, log[x]? = some ex ∧ log[y]? = some ey ∧
-    (y < ex.start ∨ (∃ j, j ∈ ex.op.dirs ∧ j ∈ ey.op.dirs) ∨
+    (y < ex.start ∨ (∃ j, j ∈ ex.op.locks ∧ j ∈ ey.op.locks) ∨
       (ex.op.crossRename = true ∧ ey.op.crossRename = true))
 
 /-- A set of entries closed under `Follows`: what a crash may keep. -/

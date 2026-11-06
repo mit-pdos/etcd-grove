@@ -200,6 +200,11 @@ The three stuck cases above are lifted by one change (`Tree.lean`, `Impl.lean`):
   its inode, not its path. `wal.Create`'s `fsync` of a directory made in the same run now commits
   (`dirsync_new_dir`).
 - Inodes are allocated from a counter (`FsState.nextIno`), for files and directories.
+- After the second review (`notes/axiom-review/fs-v2-r2.md`): a path is resolved at the call's step,
+  but Linux walks it component by component, so every call on a path begins with `CallBegin` and a
+  directory's rename is stuck while another such call is in flight; `Follows` orders by the
+  directories an operation locks (`MetaOp.locks`: not a directory a rename moves); a restart begins
+  after the old process has left the kernel (assumed).
 
 ## Environment assumptions (hypotheses of the adequacy statement)
 
