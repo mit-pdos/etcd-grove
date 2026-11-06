@@ -48,8 +48,13 @@ roots' trees are given a meaning: a step on any other path is stuck.
 * *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`, `fallocate`) is two steps
   (`…Start`/`…Finish`, the change in flight between them, `ProcState.inflight`); a mapped load that
   could see part of it is stuck (a hole), a racing `pread` or `fstat` returns any mix, and a crash
-  may find any prefix of it landed. Metadata calls overlap freely; a crash keeps a set of them that
-  respects the journal's order (`Tree.lean`, `Follows`).
+  may find any prefix of it landed. Path calls (`CallBegin` … step) overlap, except that a rename
+  of a directory is stuck while any other path call is in flight: Linux walks a path a component at
+  a time, and the model resolves it at one instant, which agrees with Linux only when no directory
+  is moved during the walk. This stuck case depends on other threads, so the model contains Linux's
+  behaviours for the runs of programs proved not stuck (every WP is), which never have that
+  overlap. A crash keeps a set of logged operations that respects the journal's order (`Tree.lean`,
+  `Follows`).
 * *Mappings*: a mapped cell is an ordinary byte cell; a store to it succeeds in the model, which on
   Linux is a fatal fault (`PROT_READ`), so the model's extra behaviours there are never Go's (Go's
   runtime makes the fault fatal unless `runtime/debug.SetPanicOnFault`, which Perennial does not
@@ -653,8 +658,11 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   /- The start of a system call on a path (`open`, `rename`, `unlink`, `rmdir`, `mkdir`, `lstat`):
   `#() ↦ tok`, a token recording the length of the log now (the operations that have taken effect
   before the call began: the journal has them before it, and the call's walk of its path sees them).
-  The trusted models make it just before the call; the call's step ends it. Not a system call; calls
-  overlap freely, but a directory's rename waits for every other one (see `Rename`). -/
+  The call's step ends it. Not a system call; calls overlap freely, but a directory's rename waits
+  for every other one (see `Rename`). A trusted model makes one `CallBegin` per system-call attempt
+  (inside Go's `EINTR` retry loop), before the attempt enters the kernel, and passes its token to
+  that attempt's step only. A model that returns without the step leaves the call in flight for
+  good, which makes every later directory rename stuck. -/
   | "CallBegin" => ∃ t : Nat, v = #() ∧ st.proc.calls !! t = none ∧
       st.proc.inflight !! t = none ∧
       st' = st.setProc { st.proc with calls := <[t := st.fs.metaLog.length]> st.proc.calls } ∧

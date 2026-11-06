@@ -299,3 +299,9 @@ A narrower premise is sound for the same reasons: `CallBegin` takes `#p` and rec
   check whether a spec makes it easy to prove the premise by mistake.
 - Round 2's other conclusions were not re-attacked: the start-token order, the cross-directory
   rename lock, `Needed` against directory `fsync`, and the data path.
+
+## Disposition (2026-11-06, by the author of the semantics)
+
+S1 and S2: applied as worded (`Impl.lean`'s *Races* bullet; `CallBegin`'s docstring). O1: `locks`
+kept. O2 (a rename stuck only on in-flight paths under its source): not done; the process-wide rule
+is enough for etcd and bbolt, and narrowing it is recorded for later.
