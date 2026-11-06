@@ -255,8 +255,7 @@ type store struct {
 	rev int64
 }
 
-// A configuration: a store and the failed writes that may still take effect (a multiset, sorted by
-// cmpInput).
+// A configuration: a store and the failed writes that may still take effect.
 type mcfg struct {
 	st   store
 	pend []Input
@@ -495,6 +494,18 @@ func storeEqual(a, b store) bool {
 	return true
 }
 
+func configEqual(a, b mcfg) bool {
+	if !storeEqual(a.st, b.st) || len(a.pend) != len(b.pend) {
+		return false
+	}
+	for i := range a.pend {
+		if !inputEqual(a.pend[i], b.pend[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // cmpInt is -1, 0 or 1 as a is below, equal to or above b.
 func cmpInt(a, b int64) int {
 	if a < b {
@@ -515,16 +526,6 @@ func cmpStr(a, b string) int {
 		return 1
 	}
 	return 0
-}
-
-func cmpBool(a, b bool) int {
-	if a == b {
-		return 0
-	}
-	if b {
-		return -1
-	}
-	return 1
 }
 
 func cmpTOp(a, b TOp) int {
@@ -614,8 +615,8 @@ func cmpStore(a, b store) int {
 	return 0
 }
 
-// cmpConfig is a total order on configurations (the store, then the pending writes, both sorted
-// lists compared by length, then element by element; 0 exactly when configEqual).
+// cmpConfig is a total order on configurations (the store, then the pending writes compared by
+// length, then element by element; 0 exactly when configEqual).
 func cmpConfig(a, b mcfg) int {
 	if c := cmpStore(a.st, b.st); c != 0 {
 		return c
@@ -629,10 +630,6 @@ func cmpConfig(a, b mcfg) int {
 		}
 	}
 	return 0
-}
-
-func configEqual(a, b mcfg) bool {
-	return cmpConfig(a, b) == 0
 }
 
 // addConfig returns s with c (s sorted by cmpConfig without duplicates, and so the result): a
@@ -661,25 +658,7 @@ func addConfig(s state, c mcfg) state {
 	return s
 }
 
-// insertInput returns pend (sorted by cmpInput) with in, sorted (a new slice; duplicates kept:
-// pend is a multiset).
-func insertInput(pend []Input, in Input) []Input {
-	out := make([]Input, 0, len(pend)+1)
-	done := false
-	for _, p := range pend {
-		if !done && cmpInput(in, p) <= 0 {
-			out = append(out, in)
-			done = true
-		}
-		out = append(out, p)
-	}
-	if !done {
-		out = append(out, in)
-	}
-	return out
-}
-
-// removeAt returns pend without its i-th input (a new slice; sorted if pend is).
+// removeAt returns pend without its i-th input (a new slice).
 func removeAt(pend []Input, i int) []Input {
 	out := make([]Input, 0, len(pend))
 	out = append(out, pend[:i]...)
@@ -699,10 +678,6 @@ func closure(s state) state {
 			continue
 		}
 		for i, w := range c.pend {
-			// equal pending writes give the same configuration: take the first
-			if i > 0 && inputEqual(c.pend[i-1], w) {
-				continue
-			}
 			st, _ := mstep(w, c.st)
 			work = append(work, mcfg{st: st, pend: removeAt(c.pend, i)})
 		}
@@ -711,12 +686,15 @@ func closure(s state) state {
 }
 
 // step returns the configurations c steps to by (in, out): a call that returned no error took
-// effect and answered the model's output; a failed write becomes pending (kept sorted); a failed
-// read does nothing.
+// effect and answered the model's output; a failed write becomes pending; a failed read does
+// nothing.
 func step(c mcfg, in Input, out Output) []mcfg {
 	if out.Err {
 		if isWrite(in) {
-			return []mcfg{{st: c.st, pend: insertInput(c.pend, in)}}
+			pend := make([]Input, 0, len(c.pend)+1)
+			pend = append(pend, in)
+			pend = append(pend, c.pend...)
+			return []mcfg{{st: c.st, pend: pend}}
 		}
 		return []mcfg{c}
 	}
@@ -727,57 +705,9 @@ func step(c mcfg, in Input, out Output) []mcfg {
 	return []mcfg{{st: st, pend: c.pend}}
 }
 
-// hashStr mixes s into h (FNV-1a).
-func hashStr(h uint64, s string) uint64 {
-	for i := 0; i < len(s); i++ {
-		h = (h ^ uint64(s[i])) * 1099511628211
-	}
-	return (h ^ 255) * 1099511628211
-}
-
-// hashU64 mixes n into h.
-func hashU64(h uint64, n uint64) uint64 {
-	return (h ^ n) * 1099511628211
-}
-
-func hashTOp(h uint64, op TOp) uint64 {
-	return hashStr(hashStr(hashU64(h, uint64(op.Kind)), op.Key), op.Val)
-}
-
-func hashInput(h uint64, in Input) uint64 {
-	h = hashStr(hashStr(hashU64(h, uint64(in.Kind)), in.Key), in.Val)
-	h = hashU64(h, uint64(in.NCmps))
-	h = hashStr(hashStr(hashU64(h, uint64(in.Cmp0.Kind)), in.Cmp0.Key), in.Cmp0.Val)
-	h = hashU64(h, uint64(in.Cmp0.Num))
-	h = hashU64(h, uint64(in.NThen))
-	h = hashTOp(hashTOp(hashTOp(h, in.Then0), in.Then1), in.Then2)
-	h = hashU64(h, uint64(in.NElse))
-	return hashTOp(h, in.Else0)
-}
-
-// hashState is a hash of a state (of its canonical form: equal states have equal hashes).
-func hashState(s state) uint64 {
-	h := uint64(14695981039346656037)
-	for _, c := range s {
-		h = hashU64(h, uint64(c.st.rev))
-		h = hashU64(h, uint64(len(c.st.kvs)))
-		for _, e := range c.st.kvs {
-			h = hashStr(hashStr(h, e.key), e.r.Val)
-			h = hashU64(hashU64(h, uint64(e.r.Mod)), uint64(e.r.Ver))
-		}
-		h = hashU64(h, uint64(len(c.pend)))
-		for _, in := range c.pend {
-			h = hashInput(h, in)
-		}
-	}
-	return h
-}
-
 // Model is etcd's KV as a porcupine model: the store starts empty at revision 1; a call that
 // returned no error took effect at once and answered as the model; a failed write may take
-// effect at any later time, or never; a failed read constrains nothing. A state is kept sorted
-// by cmpConfig without duplicates, and each configuration's pending writes sorted by cmpInput, so
-// that a set of configurations has one form: Equal is list equality, Hash a hash of the list.
+// effect at any later time, or never; a failed read constrains nothing.
 func Model() porcupine.Model {
 	return porcupine.Model{
 		Init: func() any { return state{mcfg{st: store{rev: 1}}} },
@@ -805,9 +735,6 @@ func Model() porcupine.Model {
 				}
 			}
 			return true
-		},
-		Hash: func(s any) uint64 {
-			return hashState(s.(state))
 		},
 	}
 }

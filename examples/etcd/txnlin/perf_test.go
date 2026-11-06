@@ -1,9 +1,9 @@
 package txnlin
 
-// The performance measurement of the model's canonical form (notes/txnlin-perf-plan.md, "Go first"):
-// oldModel is the model before it (pending writes in arrival order, a state an unordered list
-// deduplicated by a linear scan, no Hash), kept here to compare with Model on a saved history
-// (TestPerfHistory) and on random ones (TestOldNewDifferential).
+// The performance measurement of the model's sorted state (notes/txnlin-perf-plan.md, "Go first" and
+// "(b): the model change"): oldModel is the model before it (a state an unordered list deduplicated
+// by a linear scan), kept here to compare with Model on a saved history (TestPerfHistory) and on
+// random ones (TestOldNewDifferential).
 
 import (
 	"encoding/gob"
@@ -16,7 +16,7 @@ import (
 	"github.com/anishathalye/porcupine"
 )
 
-// oldCfg and oldState are mcfg and state before the canonical form.
+// oldCfg and oldState are mcfg and state before the sorted state.
 type oldCfg struct {
 	st   store
 	pend []Input
