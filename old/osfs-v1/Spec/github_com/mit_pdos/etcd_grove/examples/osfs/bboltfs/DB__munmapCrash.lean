@@ -14,8 +14,6 @@ public import Spec.os.CrashSt
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
@@ -25,7 +23,7 @@ theorem dbCrashN_disj : ↑osN ⊆ (⊤ : CoPset) \ ↑dbCrashN :=
   mask_ndot_ne' nroot "osfs" "minibolt_crash" (by decide)
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -58,7 +56,7 @@ def unmappedResC (p : GoString) (γc : GName) (m : OsMeta) (bs : List (w8 × Boo
 
 /-- See the file header. -/
 abbrev DB.munmap.specCrash : Prop :=
-  ∀ (db : Loc) (dq : DFrac) (sl : GoSlice) (dsz : w64) (m0 m1 : Loc) (p : Ino) (γc : GName)
+  ∀ (db : Loc) (dq : DFrac) (sl : GoSlice) (dsz : w64) (m0 m1 : Loc) (p : GoString) (γc : GName)
     (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat),
   (sl ≠ slice.nil → dq = DFrac.own 1) →
   {{ db.[DB, go!"dataref"] ↦{dq} sl ∗ db.[DB, go!"datasz"] ↦{dq} dsz ∗ db.[DB, go!"meta0"] ↦{dq} m0 ∗

@@ -11,15 +11,13 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__Clo
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -104,7 +102,7 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
     · iframe
     dsimp only [mapSlice, mapPtr0, mapPtr1, mapLen]
     wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd p
-        ⟨γ.ino, true, true⟩ p γc m bs 8192 (4096 * hwm) (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd]
+        ⟨p, true, true⟩ p γc m bs 8192 (4096 * hwm) (fun _ => rfl) $$ [Hd Hdsz H0 H1 Hf Hfd]
       as %errc ⟨Hd, Hdsz, H0, H1, -, -, -⟩
     · iframe; iframe #; unfold mappingResC; ileft; ipureintro; rfl
     (try simp only [↓reduceIte])
@@ -138,7 +136,7 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
     icases Hrest0 with ⟨-, Htok0, #Hinv, Hf2, Hfd2⟩
     ihave Htok := (ghostVar_split_half γm 1 ()).2 $$ [Htok1 Htok0]
     · iframe
-    imod mapInv_close γ γ.ino base len γm $$ [Htok] with Hc
+    imod mapInv_close γ p base len γm $$ [Htok] with Hc
     · iframe; iframe #
     icases Hc with >Hc
     iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells at Hc
@@ -147,7 +145,7 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
     cases Heq
     icases Hmo with (Hout2 | ⟨Hout2, %mc, Hc0, Hc1, %Hmc⟩)
     · icombine Hout1 Hout2 gives % ⟨_, Hbad⟩; cases Hbad
-    icases pagesCells_split γ.ino base (hwm - 2) 2 $$ Hpages with ⟨Hps, Hpc⟩
+    icases pagesCells_split p base (hwm - 2) 2 $$ Hpages with ⟨Hps, Hpc⟩
     rw [show 4096 * 2 = 8192 by rfl]
     ihave Hcells := mapCells_gather base hwm len Hw.1 Hl mc Hmc.1 $$ [Hwc Hc0 Hc1 Hpc]
     · iframe
@@ -168,7 +166,7 @@ theorem DB.Close.wp_proof_crash (wp_close : DB.close.specCrash (GF := GF) (hG :=
       intro h; have := congrArg GoSlice.ptr h; simp [slice.nil] at this; subst this
       simp [null] at Hbase
     wp_apply wp_close db (DFrac.own 1) ⟨base, W64 len, W64 len⟩ (W64 len) (base +ₗ 16)
-        (base +ₗ 4112) f DFrac.discard fd p ⟨γ.ino, true, true⟩ p γc m bs 8192 (4096 * hwm) (fun _ => rfl)
+        (base +ₗ 4112) f DFrac.discard fd p ⟨p, true, true⟩ p γc m bs 8192 (4096 * hwm) (fun _ => rfl)
         $$ [Hd Hdsz H0 H1 Hf Hfd Hm Hcells]
       as %errc ⟨Hd, Hdsz, H0, H1, ⟨%err, Hun, %Herr⟩, -, -⟩
     · iframe; iframe #

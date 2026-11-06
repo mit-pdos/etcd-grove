@@ -20,8 +20,6 @@ public import Proof.os.CrashSt
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 

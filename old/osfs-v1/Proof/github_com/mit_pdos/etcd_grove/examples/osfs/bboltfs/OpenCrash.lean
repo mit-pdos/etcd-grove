@@ -27,8 +27,6 @@ set_option linter.iris.style.nameCheck false
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
@@ -243,7 +241,7 @@ theorem ready_init {m : OsMeta} {F : List w8} {t : Nat} {vo : Option w64} {n : N
 end pure
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -253,8 +251,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 theorem csOwn_idle00 (p : GoString) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool)) :
     csOwn (GF := GF) p γ (some ⟨m, bs, 0, 0, .idle⟩) ⊣⊢
       ghostVar γ (1 : Qp).half (some ⟨m, bs, 0, 0, .idle⟩ : CState) ∗
-      osMeta (GF := GF) γ.ino (DFrac.own (1 : Qp).half) m ∗
-      osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) bs ∗ ⌜bs.length = m.size⌝ := by
+      osMeta (GF := GF) p (DFrac.own (1 : Qp).half) (some m) ∗
+      osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) bs ∗ ⌜bs.length = m.size⌝ := by
   have h := idle_thrBytes (GF := GF) p m [] [] bs 0 0 rfl rfl
   rw [List.nil_append, List.nil_append] at h
   constructor
@@ -274,7 +272,7 @@ theorem csOwn_idle00 (p : GoString) (γ : GName) (m : OsMeta) (bs : List (w8 × 
     · ipureintro; exact ⟨Hl, Nat.le_refl _, Nat.zero_le _, trivial⟩
 
 /-- The committed pages of a clean file, frozen (`cs_freeze`), as pages. -/
-theorem ready_pages (p : Ino) (bs : List (w8 × Bool)) (n : Nat)
+theorem ready_pages (p : GoString) (bs : List (w8 × Bool)) (n : Nat)
     (hcl : ∀ x ∈ bs, x.2 = true) (h : 4096 * n ≤ bs.length) (h2 : 2 ≤ n) :
     osBytes (GF := GF) p 8192 DFrac.discard ((bs.drop 8192).take (4096 * n - 8192)) ⊢
       |==> [∗list] r ∈ List.range' 2 (n - 2), pageIs (GF := GF) p r (pageOf (bs.map Prod.fst) r) := by
@@ -288,7 +286,7 @@ theorem ready_pages (p : Ino) (bs : List (w8 × Bool)) (n : Nat)
 theorem open_ghostC (db : Loc) (p : GoString) (mp : List w8) (B : List w8)
     (t : Nat) (vo : Option w64) (vp : Nat → Option w64 → Prop) (hvp : vp t vo)
     (hmp : metaPagesOk mp) (ht : (curMeta mp).txid'.toNat = t) (hvo : pageVal B = vo) :
-    db.[DB, go!"failed"] ↦ false ∗ pageIs (GF := GF) γ.ino (curRoot mp) B ⊢
+    db.[DB, go!"failed"] ↦ false ∗ pageIs (GF := GF) p (curRoot mp) B ⊢
       |==> ∃ γ : DBNames, ⌜γ.vp = vp⌝ ∗ metaRC (GF := GF) γ db p ∗
         ghostVar γ.cur (1 : Qp).half.half (mp, false, curPgid mp) ∗
         ghostVar γ.cur (1 : Qp).half.half (mp, false, curPgid mp) ∗

@@ -12,15 +12,13 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__munm
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -46,7 +44,7 @@ abbrev DB.mmap.specCrash : Prop :=
       ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (len : Nat) (γm : GName),
           ⌜st' = some (base, len, γm) ∧ m'.maps = {[base := len]} ∧ m.size ≤ len ∧
             sint.Z minsz ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
-          ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ γ.ino base len γm ∗
+          ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
           writerCells (GF := GF) base hwm len) ∨
        (⌜err ≠ interface.nil ∧ st' = none⌝ ∗ writerExtra (GF := GF) γ f fd p mp fl hwm)) }}
 

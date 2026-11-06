@@ -18,8 +18,6 @@ public import Perennial.ProgramLogic.Bounds
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
@@ -31,7 +29,7 @@ def startImg : Option OsFile → List w8
   | some f => f.cur
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

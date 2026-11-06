@@ -30,15 +30,13 @@ most `2 ^ 30` live threads, Go's `rwmutexMaxReaders`). It is a `def`:
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB
-public import GooseLang.Ext.Fs.Adequacy
+public import GooseLang.Ext.OsFs.CrashP1
 
 @[expose] public section
 
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
@@ -71,8 +69,8 @@ def BootCrashSafety [GoGlobalContext] [lctx : GoLocalContext]
     (dir : GoString) : Prop :=
   ∀ (σ : state) (g : GlobalState),
     σ.goState.goLctx = lctx → σ.goState.packageState = ∅ →
-    OsInit (extLocal (h := osFsExts_hasOsFs.toElemExt) fsExt σ.world) →
-    (extLocal (h := osFsExts_hasOsFs.toElemExt) fsExt σ.world).files !! (dir ++ go!"/db") =
+    OsInit (extLocal (h := osFsExts_hasOsFs.toElemExt) osFsExt σ.world) →
+    (extLocal (h := osFsExts_hasOsFs.toElemExt) osFsExt σ.world).files !! (dir ++ go!"/db") =
       some none →
     σ.threads = 1 →
     ∀ (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool),

@@ -30,8 +30,6 @@ set_option linter.iris.style.nameCheck false
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
@@ -65,7 +63,7 @@ theorem bootOk_next (x : w64) (h1 : 1 ≤ x.toNat) (h : x.toNat + 1 < 2 ^ 64) :
 end pure
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

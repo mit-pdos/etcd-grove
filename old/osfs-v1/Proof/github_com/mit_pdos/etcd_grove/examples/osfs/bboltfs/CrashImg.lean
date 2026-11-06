@@ -31,8 +31,6 @@ public import Proof.os.CrashWReach
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 

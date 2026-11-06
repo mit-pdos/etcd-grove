@@ -37,8 +37,6 @@ set_option linter.iris.style.nameCheck false
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
@@ -118,7 +116,7 @@ theorem init_commitClean {m : OsMeta} {xs : List (w8 × Bool)} (hsz : m.size ≤
 end pure
 
 section preds
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -133,7 +131,7 @@ def writerFileC (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
   iprop(∃ fsz : Nat,
     db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
     csOwn (GF := GF) p γc (some ⟨m, bs, 8192, 4096 * hwm, .idle⟩) ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧
       (∀ M : GMap Loc Nat, dbOk p (some ⟨{ m with maps := M }, bs, 8192, 4096 * hwm, .idle⟩)) ∧
@@ -153,7 +151,7 @@ def metaRC (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
         ∀ k, (curMeta mp).txid'.toNat < k → T !! k = none⌝ ∗
       monoNatAuthOwn γ.last 1 (curMeta mp).txid'.toNat ∗
       ghostVar γ.own (1 : Qp).half ((curMeta mp).txid'.toNat, hwm) ∗
-      ∃ B, pageIs (GF := GF) γ.ino (curRoot mp) B ∗ dbTx γ (curMeta mp).txid'.toNat (pageVal B) ∗
+      ∃ B, pageIs (GF := GF) p (curRoot mp) B ∗ dbTx γ (curMeta mp).txid'.toNat (pageVal B) ∗
         ⌜T !! (curMeta mp).txid'.toNat = some (pageVal B)⌝)
 
 /-- `rwlock`'s resource over the crash invariant `γc`: `rwR`'s, with `writerFileC`. -/
@@ -166,7 +164,7 @@ def rwRC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoString) : I
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗
-      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ γ.ino base len γm ∗
+      ghostVar γm (1 : Qp).half () ∗ mapInv (GF := GF) γ p base len γm ∗
       writerCells (GF := GF) base hwm len
     | none => dbFailed (GF := GF) γ ∗ writerExtra (GF := GF) γ f fd p mp fl hwm) ∨
    ((∃ x : Nat × Nat, ghostVar γ.own (1 : Qp).half x) ∗ ghostVar γ.cls (1 : Qp).half true ∗

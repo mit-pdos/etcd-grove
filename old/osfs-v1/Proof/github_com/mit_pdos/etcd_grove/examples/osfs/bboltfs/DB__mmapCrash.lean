@@ -13,22 +13,20 @@ public import Proof.os.CrashStSpec
 noncomputable section
 
 namespace Perennial
-
-open Fs
 namespace EtcdGrove
 namespace osfs_bboltfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
 /-- The writer's half of its idle state's bytes (`writerFileC`): the meta pages and the tail. -/
-theorem writer_thrBytes (p : Ino) (m : OsMeta) (bs : List (w8 × Bool)) (hwm : Nat)
+theorem writer_thrBytes (p : GoString) (m : OsMeta) (bs : List (w8 × Bool)) (hwm : Nat)
     (h2 : 2 ≤ hwm) (hl : 4096 * hwm ≤ bs.length) :
     thrBytes (GF := GF) p ⟨m, bs, 8192, 4096 * hwm, .idle⟩ ⊣⊢
       osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) (bs.take 8192) ∗
@@ -60,7 +58,7 @@ theorem mmap_prepC (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List
     |={⊤}=> ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
       ghostVar γ.out (1 : Qp).half.half false ∗ writerExtra (GF := GF) γ f fd p mp fl hwm ∗
       ghostVar γ.out (1 : Qp).half false ∗
-      ([∗list] r ∈ List.range' 2 (hwm - 2), ∃ B, pageIs (GF := GF) γ.ino r B) ∗
+      ([∗list] r ∈ List.range' 2 (hwm - 2), ∃ B, pageIs (GF := GF) p r B) ∗
       mappingResC (GF := GF) p γc m bs fa fb (mapSlice st) ∗
       unmapRestC (GF := GF) p γc m bs fa fb st ∗
       ⌜∀ base len γm, st = some (base, len, γm) → 0 < base.addr⌝ := by
@@ -79,7 +77,7 @@ theorem mmap_prepC (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List
     iintro ⟨#Hos, #Hci, Hcur, Hout, Hm, ⟨%Hf, Htok, Hwc⟩, ⟨-, Htok2, #Hinv, Hf2, Hfd2⟩⟩
     obtain ⟨Hmaps, Hlen, Hbase, Hlen41⟩ := Hf
     icombine Htok Htok2 as Htok
-    ihave Hc := mapInv_close γ γ.ino base len γm $$ [Htok]
+    ihave Hc := mapInv_close γ p base len γm $$ [Htok]
     · iframe; iframe #
     imod Hc
     icases Hc with >Hc
@@ -91,7 +89,7 @@ theorem mmap_prepC (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List
     icases Hmc with (Hout2 | ⟨Hout2, %mc, Hm0, Hm1, %Hmc⟩)
     · icombine Hout Hout2 gives % ⟨_, Heq⟩
       cases Heq
-    icases pagesCells_split γ.ino base (hwm - 2) 2 $$ Hpc with ⟨Hps, Hpc⟩
+    icases pagesCells_split p base (hwm - 2) 2 $$ Hpc with ⟨Hps, Hpc⟩
     rw [show 4096 * 2 = 8192 by rfl]
     ihave Hall := mapCells_gather base hwm len h2 Hl mc Hmc.1 $$ [Hwc Hm0 Hm1 Hpc]
     · iframe
@@ -347,7 +345,7 @@ theorem DB.mmap.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG :
     rw [List.length_take, List.length_drop, List.length_map, hmxc]; rfl
   iunfold writerExtra at Hx
   icases Hx with ⟨Hcur2, Hf2, Hfd2⟩
-  ihave Hc : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells γ γ.ino base sz.toNat
+  ihave Hc : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells γ p base sz.toNat
       $$ [Hcur2 Hps Ho Hc0 Hc1]
   · iunfold _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.mapCells
     iexists mp, fl, hwm
