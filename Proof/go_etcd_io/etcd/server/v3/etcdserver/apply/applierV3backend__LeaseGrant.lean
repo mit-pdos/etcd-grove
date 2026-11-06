@@ -32,8 +32,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro E p r rq g log T rs U Pre Q Post info
-  -- MERGE-TODO(proof): `lean`'s proof (the lease-grant stage's triple) with ours' backend's
-  -- tokens (`mPreW_split`, `mPostW_backend`, `threadTok`, `newHeader`'s `E.Nx`); not yet checked
+  -- `lean`'s proof (the lease-grant stage's triple) with the backend's tokens (`mPreW_split`,
+  -- `mPostW_backend`, `threadTok`, `newHeader`'s `E.Nx`)
   wp_start as ⟨#Hb, Htt, Hgp⟩
   iunfold apply.grantPre at Hgp
   icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hpre, -, HU, HUf⟩
@@ -133,6 +133,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     iStructNamed Hr0
     wp_auto
     wp_apply HTTL as %tt -
+    iapply wp_fupd
     wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, %Hh, Hhf, Hrev, Hnx, %Hlen⟩
     ipersist ID
     ipersist TTL

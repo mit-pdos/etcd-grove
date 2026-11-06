@@ -143,7 +143,7 @@ theorem apply.newAuthApplierV3.wp_proof
     imodintro
     iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
     imodintro
-    -- MERGE-TODO(proof): `lean`'s promoted grant over ours' `mPreW`/`mPostW` and `threadTok`
+    -- `lean`'s promoted grant over `mPreW`/`mPostW` and `threadTok`
     iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty) (m := go!"LeaseGrant")]
     wp_call

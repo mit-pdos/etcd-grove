@@ -9,6 +9,7 @@ public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
 
 @[expose] public section
 
@@ -105,7 +106,8 @@ theorem apply.applierV3backend.Compaction.wp_proof
   icases Hinit with ⟨-, ⟨%ec, #HeC⟩, -⟩
   ihave Hau := HauC $$ %log %crev %rev %Hadm.2 Hw Hcro HCp
   iunfold srvApi.auCompact at Hau
-  ihave #Hcq := backend.commitReq_true B.γB B.P (E.Pk B) B.b
+  ihave #Hcq : mvcc.api.storageReq B (E.Pk B) iprop(True) iprop(True) $$ []
+  · rw [mvcc.api.etcdStorage_req]; iapply backend.commitReq_true
   ihave Hkv' : □ mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
   · rw [← Hkveq]; imodintro; iexact Hkv
   icases Hkv' with #Hkv'

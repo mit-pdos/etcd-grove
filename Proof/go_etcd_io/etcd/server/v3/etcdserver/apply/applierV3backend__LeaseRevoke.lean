@@ -56,9 +56,8 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.LeaseRevoke.spec (GF := GF) (hG := hG) := by
   intro E p r rq id log T rs Pre Q Post info
-  -- MERGE-TODO(proof): ours' proof over the API (`revokeClause`, `envAus`) with `lean`'s revoke-open
-  -- (`revokeRes`'s revocable lessor and half of the live set `T`, the post by the outcome, X6's
-  -- answer); not yet checked
+  -- the proof over the API (`revokeClause`, `envAus`) with `lean`'s revoke-open (`revokeRes`'s
+  -- revocable lessor and half of the live set `T`, the post by the outcome, X6's answer)
   wp_start as ⟨#Hb, Htt, Hpre⟩
   iunfold apply.revokePre at Hpre
   icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre, Hrr⟩
@@ -185,6 +184,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
     simp only [srvApi.stAt] at *
     imod apply.ltHalf_update E L L (L.filter (· != id)) $$ HltL HltT with ⟨HltL, HltT⟩
     (try wp_auto)
+    iapply wp_fupd
     wp_apply (hHdr E p (apply.revokeLog log id) c) $$ [$Hb $Htt $Hw]
       as %h ⟨Htt, Hw, %Hh, Hhf, Hrv, Hnxh, %Hlen⟩
     icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hr0, %Hnn⟩

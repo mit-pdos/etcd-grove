@@ -48,7 +48,6 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.RestModel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.RestLease
-public import Proof.go_etcd_io.etcd.server.v3.lease.RangeDeleter
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
@@ -381,8 +380,8 @@ def isApplyLessor (le : GoInterface) (γ : MvccName) (Pk : mvcc.KBReal → IProp
   iprop(txn.isTxnLessor le (mvccLeases γ) ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id ttl : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
         (B : mvcc.KBReal) (rs : RestM) (Pre Q Post : IProp GF) (U : List w64),
-      -- MERGE-TODO(lessorBackend): the grant writes `le.b` through `RO rs` (lean's) beside the
-      -- backend's tokens (ours); which resource `lessorBackend` lends `le.b` from is track LA's
+      -- the grant writes `le.b` through `RO rs` (lean's `lessorBackend` lent part `Ln`, from the
+      -- rest resource's lens: `LessorDerive.revokeLens`) beside the backend's tokens
       {{ csContractA (Pk B) f Pre Q Post ∗ lease.leaseOwn (mvccLeases γ) L I ∗
           lease.leaseRevokers (mvccLeases γ) L ∗ bkWT B ∗ bkRT B ∗ BT B ∗
           lease.leaseGranted (mvccLeases γ) id ∗ RO rs ∗ lease.leaseEver (mvccLeases γ) U ∗

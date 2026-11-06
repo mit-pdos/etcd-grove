@@ -32,9 +32,9 @@ theorem apply.applierV3backend.newHeader.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG)) :
     apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG) := by
   intro E p log c
-  -- MERGE-TODO(proof): ours' proof (`KV.Rev.contract` at `envAus`'s read update) with `lean`'s
-  -- stronger post (2.11a: `hdrFields`, the `Revision` the log's last, `E.Nx log` in place of
-  -- `certOk`, from `envAus`'s writer facts); not yet checked
+  -- ours' proof (`KV.Rev.contract` at `envAus`'s read update) with `lean`'s stronger post (2.11a:
+  -- `hdrFields`, the `Revision` the log's last, `E.Nx log` in place of `certOk`, from `envAus`'s
+  -- writer facts)
   wp_start as ⟨#Hb, Htt, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
@@ -84,9 +84,11 @@ theorem apply.applierV3backend.newHeader.wp_proof
   · iunfold apply.hdrFields
     iexists _, _, _, _
     iframe
-  -- MERGE-TODO(proof): `v` is the read state's revision `σ.rev`, `log.length - 1` at `σ = stAt log c`
+  -- `v` is the read state's revision, `log.length - 1` at `σ = stAt log c`
   subst Hσ
-  rw [← Hv]
+  have hrv : ((srvApi.stAt log c).rev : Int) = (log.length : Int) - 1 := by
+    simp only [srvApi.stAt, mvcc.api.MvccState.rev]; omega
+  rw [← hrv, ← Hv]
   iframe Revision
   ipureintro; exact ⟨Hlen2, Hreach.2⟩
 

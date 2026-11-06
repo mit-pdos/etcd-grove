@@ -612,8 +612,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     ihave HEv := apply.everOwn_of_lg E U hlgT $$ HEv
     iunfold apply.grantFresh at HGf
     ihave #HGf' := HGf $$ %hk %x %hs
-    -- MERGE-TODO(proof): `lean`'s grant arm over ours' `kvOwnPre` (`kvOwnPre_mPreW`, the grant's
-    -- `mPostW` giving the reader token back) and `threadTok`; not yet checked
+    -- the grant over `kvOwnPre` (`kvOwnPre_mPreW`; `mPostW` gives the reader token back)
     ihave Hmp := apply.kvOwnPre_mPreW E c _ info log Pre Q Post $$ [$Hkv $Hres]
     wp_apply HGrant $$ %lLG %rq %x %log %T %(apply.restAfter rq true rs) %U %Pre %Q %Post %info
       [Htt HLt HRO Hmp HEv] as %resp %err ⟨Htt, %o, Hpost⟩
@@ -621,7 +620,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iunfold apply.grantPre
       isplitr
       · ipureintro; exact ⟨by simpa [apply.AEnv.lg_eq] using hok.1, hs, hk⟩
-      iframe HR HSp HGf' Hmp
+      iframe HR HSp HGf' Hmp HLt HRO HEv
       iapply Hgr $$ %x %hs
     iunfold apply.grantPost at Hpost
     icases Hpost with ⟨Hmp, #HeI, HlE, %Hst, HLt, HRO, HEv, Hans⟩
@@ -689,24 +688,20 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .leaseRevoke := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, hs]
     -- (the lease-expiry plan's X7) admitted at the revocable mode: the chain's revocation triple,
     -- with the range deleter, the live set's half `T` and the rest buckets
-    have hok : E.lm = .revocable ∧ putOk log := by
-      have h := Hok.1
-      simp only [rqOk, hk] at h
-      revert h; cases E.lm <;> simp <;> intro _ h <;> exact h
+    have hok : E.lm = .revocable ∧ putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62 := by
+      have h := (apply.rqOk_leaseRevoke _ _ _ hk).1 Hok.1
+      exact ⟨h.1, h.2.2.1, h.2.2.2⟩
     iunfold apply.revokeOwn at Hrv
     rw [if_pos hk] at *
     icases Hrv with ⟨Hrdat, #Hrev⟩
-    -- MERGE-TODO(proof): `lean`'s revocation arm over ours' `kvOwnPre` (`kvOwnPre_mPre`) and
-    -- `threadTok`; not yet checked. MERGE-TODO(revokeSize): ours' `revokePre` also takes
-    -- `(mvcc.stateAfter log).length ≤ 2 ^ 62` (the lessor's sort premise), which neither `rqOk`'s
-    -- revocation arm nor `dispatch.spec` gives yet
+    -- the state's size (the lessor's sort premise) from `rqOk`'s revocation arm
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
     wp_apply HRev $$ %lLR %rq %x %log %T %(apply.restAfter rq true rs) %Pre %Q %Post %info
       [Htt Hmp Hrdat HLt HRO] as %resp %err ⟨Hpost, Htt⟩
     · iframe Htt
       iunfold apply.revokePre
       isplitr
-      · ipureintro; exact ⟨hs, hk, hok.2, hsz⟩  -- MERGE-TODO(revokeSize): no `hsz` yet
+      · ipureintro; exact ⟨hs, hk, hok.2.1, hok.2.2⟩
       iframe HR Hcp Hmp
       iunfold apply.revokeRes
       iframe

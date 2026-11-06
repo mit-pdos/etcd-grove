@@ -31,8 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
     apply.quotaApplierV3.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro E c inner p r rq g log T rs U Pre Q Post info
-  -- MERGE-TODO(proof): `lean`'s proof (the grant triple) with ours' `mPreW`/`mPostW` and
-  -- `threadTok`; not yet checked
+  -- `lean`'s proof (the grant triple) with `mPreW`/`mPostW` and `threadTok`
   wp_start as ⟨#Hq, #Hin, Htt, Hgp⟩
   iunfold apply.grantPre at Hgp
   icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hpre, #Hsp, HU, HUf⟩

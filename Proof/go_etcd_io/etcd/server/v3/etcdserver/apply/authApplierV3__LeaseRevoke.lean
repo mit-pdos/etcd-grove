@@ -31,8 +31,8 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
     (hLP : apply.checkLeasePuts.spec (GF := GF) (hG := hG)) :
     apply.authApplierV3.LeaseRevoke.spec (GF := GF) (hG := hG) := by
   intro E c inner p r rq id log T rs Pre Q Post info
-  -- MERGE-TODO(proof): ours' over `mPreRest` with `lean`'s revocation post by the outcome; not yet
-  -- checked (`mPreRest_lend` keeps the half of the live set `ltHalf` inside its way back)
+  -- over `mPreRest` with `lean`'s revocation post by the outcome (`mPreRest_lend` keeps the half
+  -- of the live set `ltHalf` inside its way back)
   wp_start as ⟨#Hauth, #Hinner, Htt, Hpre⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩

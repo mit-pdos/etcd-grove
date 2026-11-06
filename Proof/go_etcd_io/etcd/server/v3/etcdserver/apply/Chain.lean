@@ -282,7 +282,11 @@ and role's name within the key bound for `UserAdd`/`RoleAdd`). (The lease-grant 
 `KVNames.lg`), a grant the apply thread admits (`grantKindOk`); in one that grants none, no grant,
 as before (`rqOk_false_leaseGrant`), so `rqOk .none` means what `rqOk` meant until then. (X7 option
 (iii), 2026-11-04) Indexed by the cluster's lease mode `lm` (`KVNames.lm`), the grant arm at
-`lm ≠ .none`. -/
+`lm ≠ .none`. (The mvcc merge, 2026-11-06) The revocation arm also bounds the state's size
+(`(stateAfter log).length ≤ 2 ^ 62`, the lessor's sort premise, `lease.lessor.Revoke.spec`), as the
+transaction arm's `TxnPreA` bounds the log's changes: `dispatch` cannot derive it (the writer's
+receipt `⧖ (logCh log)` bounds it only under a bound on `receiptBound GF`, which no premise of
+`dispatch` or `Apply` states); the server derives it at its small log (`srvApplyKV_small`). -/
 def rqOk (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .put => putOk log
@@ -293,7 +297,7 @@ def rqOk (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
     | .none => False
     | _ => grantKindOk rq
   | .leaseRevoke => match lm with
-    | .revocable => revokeKindOk rq ∧ putOk log
+    | .revocable => revokeKindOk rq ∧ putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62
     | _ => False
   | .leaseCheckpoint => False
   | .clusterVersionSet => ∀ v, rq.clusterVersionSet = some v → semverValid v ∧ semverAtMostServer v
@@ -389,10 +393,11 @@ theorem rqOk_leaseGrant (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel)
   cases lm <;> simp [rqOk, hk]
 
 /-- **A revocation is admitted only at the revocable mode** (`rqOk`'s revocation arm; the lease-expiry
-plan's X7). -/
+plan's X7; the mvcc merge, 2026-11-06: with the state's size, the lessor's sort premise). -/
 theorem rqOk_leaseRevoke (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel)
     (hk : dispatchKind rq = .leaseRevoke) :
-    rqOk lm log rq ↔ lm = .revocable ∧ revokeKindOk rq ∧ putOk log := by
+    rqOk lm log rq ↔ lm = .revocable ∧ revokeKindOk rq ∧ putOk log ∧
+      (mvcc.stateAfter log).length ≤ 2 ^ 62 := by
   cases lm <;> simp [rqOk, hk]
 
 /-! ## The compaction arm, pure (M2, the apply side, 2026-10-31) -/
