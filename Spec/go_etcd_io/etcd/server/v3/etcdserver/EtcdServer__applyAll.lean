@@ -47,8 +47,9 @@ the ghost log grown by `winNew W (unapplied ai ms)`; Go's rows (`loopOk`, the sn
 resources) at Go's index, the driver's view `dvOk` at the ghost index `winGhost (ai + 1) W` (Q19).
 Over Go's log `A.take ai`: its last term (`lastTermIs`, Go's `ep.appliedt`) and the frozen terms
 (`srvFrozenTerms`); the length bound `(A.take ai ++ unapplied ai ms).length ≤ n`. No conf change in
-the window (`winNoConf`, the Freeze 1 review's F1), and no merged-snapshot send while it is pending
-(`winNoMergedSend`; trivial at no window). -/
+the window (`winNoConf`, the Freeze 1 review's F1), and, while a window remains after this batch,
+this member does not merge a `MsgSnap` of the batch's raft term (`winNoMergedSend`; trivial with no
+window left). -/
 abbrev EtcdServer.applyAll.specBatch : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
@@ -81,9 +82,10 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         -- at no window), which raft's log `n` is about
         (A.take (uint.nat ai) ++ unapplied ai ms).length ≤ n⌝ ∗
       isServerC C s γ ci TM E ρ γr ∗ acLessor C s ∗ isServerApplyAll s γr ∗
-      -- (R2d, the Q16-3 review's finding 1; DRAFT, an assumption for R2s) no merged-snapshot send
-      -- while the window is pending (`winNoMergedSend`; at no window nothing)
-      winNoMergedSend γr.raft.raft W ∗ batchWaitOk ρ E ms ∗
+      -- (R2d, the Q16-3 review's finding 1, narrowed by the Freeze 1 review's F2; DRAFT, an
+      -- assumption for R2s) while a window remains after this batch, this member does not merge a
+      -- `MsgSnap` of the batch's raft term (`winNoMergedSend`; with no window left nothing)
+      winNoMergedSend γr.raft.raft s (winRest W (unapplied ai ms)) rt ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
       -- the node's (on the storage of key `nk`) applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the

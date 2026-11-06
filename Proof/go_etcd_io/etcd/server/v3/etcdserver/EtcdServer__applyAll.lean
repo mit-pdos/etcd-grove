@@ -97,7 +97,7 @@ theorem EtcdServer.applyAll.wp_proofBatchNoWin
   icases Hfl with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
-  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γm, %Hγm, #Hmscb⟩, #Hsc,
+  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γm, %Hγm, #Hmid', #Hmscb⟩, #Hsc,
     ⟨%stg, #Hstgf, #Hstgc⟩, -, #Hinf, -, ⟨%tr, %γN, %lid, %SN, %TSN, #Htrf, #Htr, %HγN⟩, %Hkv0⟩
   ihave #HstgS := Hstgc
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -513,7 +513,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   intro s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk
     q γn rt n W D hwin hwnc
   simp only [srvRunH_applyAll_spec]
-  wp_start as ⟨%hP, #HsrvC, #Hlnil, #Hsa, #Hnms, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
+  wp_start as ⟨%hP, #HsrvC, #Hlnil, #Hsa, Hnms, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
   obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hdv, hAL, hAT, Hdisk, hciA, hcia, hγn, hpre, hnA⟩ := hP
   have hon : E.authOn = C.isOn := by rw [apply.AEnv.authOn_eq, hM, AuthC.mode_isOn]
@@ -547,7 +547,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   icases Hfl with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
-  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γm, %Hγm, #Hmscb⟩, #Hsc,
+  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γm, %Hγm, #Hmid', #Hmscb⟩, #Hsc,
     ⟨%stg, #Hstgf, #Hstgc⟩, -, #Hinf, -, ⟨%tr, %γN, %lid, %SN, %TSN, #Htrf, #Htr, %HγN⟩, %Hkv0⟩
   ihave #HstgS := Hstgc
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -853,10 +853,16 @@ theorem EtcdServer.applyAll.wp_proofBatch
             -- (`winNoMergedSend`, an assumption R2s discharges)
             by_cases hR : winRest W (unapplied ai ms) = []
             rotate_left
-            · have hW : W ≠ [] := fun hW0 => hR (by rw [hW0]; rfl)
-              ihave %hns := winNoMergedSend_elim _ W hW _ _ $$ [Hnms Hsm]
-              · isplitl []; iexact Hnms; iexact Hsm
-              exact absurd Hty hns
+            · -- (the guard `m.GetTerm() == raftTerm` substituted the batch's term `rt`)
+              iexfalso
+              iapply (winNoMergedSend_elim _ s _ _ γm.id m sm hR Hty rfl)
+              isplitl [Hnms]
+              · iexact Hnms
+              isplitr
+              · iexact Hmid'
+              isplitl [Hm]
+              · iexact Hm
+              iexact Hsm
             -- the window over: the ghost log is Go's applied log
             have hnl := winRest_nil_len W (unapplied ai ms) hR
             have hGlen : (A ++ winNew W (unapplied ai ms)).length = uint.nat ai' := by

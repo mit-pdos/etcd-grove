@@ -257,40 +257,49 @@ def srvRestW (E : apply.AEnv GF) (γr : ReadNames) (A D : List EntryModel) : IPr
 theorem srvRestW_nil (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
     srvRestW (GF := GF) E γr A [] = srvRest E γr A := rfl
 
-/-- **No merged-snapshot send while a window is pending** (the Q16-3 review's finding 1, decided by
-etcd-grove-82 under the user's delegation, 2026-11-06, pending the user's review; DRAFT): with the
-replays `W` pending, no member of the cluster `γ` sends a `MsgSnap` (`sentMsg` of that type), so
-none reaches `msgSnapC` and `applyAll`'s merge (`createMergedSnapshotMessage`, `server.go:1045`)
-does not run in a window. `applyAll.specBatch`'s premise, to be a named conjunct of the
-restart's starting point beside `winNoConf` in R2d' (the wide form here; its narrowing to this
-member's own batch is pending etcd-grove-82's review, `/shared/tmp/r2d-wnms-design.md`); an assumption R2d carries for R2s
-(`notes/restart-plan.md`, "Assumptions R2d carries for R2d'/R2s"). Its cost: it does not hold of
-every Go execution: a leader in its window does send (raft sends a snapshot to a follower behind its
-log's first index, `raft.go:1877`, whatever the application's applied index), and its merge then
-writes an image at Go's index below the ghost one (the review's scenario, `InvRequest.lean:2312`,
-`SnapRO.lean:345,358`). R2s discharges it (the snapshots across windows). At no window it holds
-trivially (`winNoMergedSend_nil`). -/
-def winNoMergedSend (γ : SrvRaft) (W : List EntryModel) : IProp GF :=
+/-- **No merged snapshot in this batch while a window remains** (the Q16-3 review's finding 1;
+narrowed by the Freeze 1 review's F2; decided by etcd-grove-82 under the user's delegation (user
+offline), 2026-11-06, pending the user's review; DRAFT): while a window remains after this batch
+(`R`, `winRest W (unapplied ai ms)` in `applyAll.specBatch`, is not `[]`), this member does not merge
+a `MsgSnap` of the batch's raft term `rt`. Stated over the message the batch takes from `msgSnapC`
+(raft's bag, `rnSnapMsg`: whole ownership `msgOwn m 1`, sent from this member's id, the server's
+`memberID`, `isServerApplyAll`'s): such a message is not a `MsgSnap` at `rt`; Go merges only one at
+the batch's term (`server.go:1012`), and its merge (`createMergedSnapshotMessage`, `server.go:1045`)
+would write an image at Go's index below the ghost one (the review's scenario, `InvRequest.lean:2312`,
+`SnapRO.lean:345,358`). Not persistent: one batch's premise, spent by its one receive.
+
+`applyAll.specBatch`'s premise, to be supplied per batch from the restart's starting point in R2d';
+an assumption R2d carries for R2s (`notes/restart-plan.md`, "Assumptions R2d carries for R2d'/R2s").
+Its cost: it does not hold of every Go execution: a leader in its window does send one (raft sends a
+snapshot to a follower behind its log's first index, `raft.go:1877`, whatever the application's
+applied index), and `applyAll` merges it. R2s discharges it (the snapshots across windows). With no
+window left it holds trivially (`winNoMergedSend_nil`). -/
+def winNoMergedSend (γ : SrvRaft) (s : Loc) (R : List EntryModel) (rt : w64) : IProp GF :=
   letI := srvStor (GF := GF) γ
-  iprop(⌜W = []⌝ ∨ □ (∀ (id : w64) (st : MsgSt), sentMsg γ.cl srvClusterN id st -∗ ⌜st.msg.Type' ≠ MsgSnap⌝))
+  iprop(⌜R = []⌝ ∨
+    (∀ (id : w64) (m : Loc) (st : MsgSt),
+      srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗ sentMsg γ.cl srvClusterN id st -∗
+        ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st))
 
-instance winNoMergedSend_persistent (γ : SrvRaft) (W : List EntryModel) :
-    Persistent (winNoMergedSend (GF := GF) γ W) := by
-  unfold winNoMergedSend; infer_instance
-
-/-- A first start's window is empty: no pending window, nothing assumed. -/
-theorem winNoMergedSend_nil (γ : SrvRaft) : ⊢ winNoMergedSend (GF := GF) γ [] := by
+/-- No window left after the batch (a first start's, or the batch that closes the window): nothing
+assumed. -/
+theorem winNoMergedSend_nil (γ : SrvRaft) (s : Loc) (rt : w64) :
+    ⊢ winNoMergedSend (GF := GF) γ s [] rt := by
   unfold winNoMergedSend
   ileft; ipureintro; rfl
 
-/-- With the replays `W` pending, a sent message is not a `MsgSnap`. -/
-theorem winNoMergedSend_elim (γ : SrvRaft) (W : List EntryModel) (hW : W ≠ []) (id : w64) (st : MsgSt) :
+/-- With a window left after the batch, the batch's message from this member's bag is not a
+`MsgSnap` at the batch's term. -/
+theorem winNoMergedSend_elim (γ : SrvRaft) (s : Loc) (R : List EntryModel) (rt id : w64) (m : Loc)
+    (st : MsgSt) (hR : R ≠ []) (hty : st.msg.Type' = MsgSnap) (hrt : st.msg.Term' = rt) :
     letI := srvStor (GF := GF) γ
-    winNoMergedSend (GF := GF) γ W ∗ sentMsg γ.cl srvClusterN id st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := by
+    winNoMergedSend (GF := GF) γ s R rt ∗ srvMemberIDAddr s ↦□ id ∗ msgOwn m (DFrac.own 1) st ∗
+      sentMsg γ.cl srvClusterN id st ⊢ False := by
   unfold winNoMergedSend
-  iintro ⟨(%hW0 | #H), #Hs⟩
-  · exact absurd hW0 hW
-  · iapply H; iexact Hs
+  iintro ⟨(%hR0 | H), #Hid, Hm, #Hs⟩
+  · exact absurd hR0 hR
+  · ihave ⟨%hne, -⟩ := H $$ %id %m %st Hid Hm Hs
+    exact absurd hrt (hne hty)
 
 end defs
 
