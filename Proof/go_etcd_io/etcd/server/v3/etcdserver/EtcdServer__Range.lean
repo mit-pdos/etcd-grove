@@ -250,7 +250,7 @@ local macro "range_tail" : tactic => `(tactic| (
       ihave #HpE := authApplyErrIs_apply perr $$ HpE0
       wp_auto
       iapply HΦ'
-      iframe Ha Hard HpE
+      iframe Ha Hard HpE0
       iintro %Hpn
       subst Hpn
       ihave %Hel := ownSlice_len _ _ _ $$ Hes
@@ -382,7 +382,8 @@ local macro "range_tail" : tactic => `(tactic| (
         isplitl [Hsr Hlr Hrr Hard]
         · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
         iright
-        iframe HsE
+        ihave #HsE1 := authApplyErrIs_apply _ $$ HsE
+        iframe HsE1
         ipureintro; exact ⟨rfl, by intro h; cases h⟩
       · ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
         wp_auto
@@ -391,7 +392,8 @@ local macro "range_tail" : tactic => `(tactic| (
         isplitl [Hsr Hlr Hrr Hard]
         · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
         iright
-        iframe HsE
+        ihave #HsE1 := authApplyErrIs_apply _ $$ HsE
+        iframe HsE1
         ipureintro; exact ⟨rfl, by intro h; cases h⟩))
 
 set_option hygiene false in
@@ -422,7 +424,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
       ihave #HpE := authApplyErrIs_apply perr $$ HpE0
       wp_auto
       iapply HΦ'
-      iframe Ha Hard HpE
+      iframe Ha Hard HpE0
       iintro %Hpn
       subst Hpn
       ihave %Hel := ownSlice_len _ _ _ $$ Hes
@@ -551,7 +553,8 @@ local macro "range_tailOn" : tactic => `(tactic| (
         isplitl [Hsr Hlr Hrr Hard]
         · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
         iright
-        iframe HsE
+        ihave #HsE1 := authApplyErrIs_apply _ $$ HsE
+        iframe HsE1
         ipureintro; exact ⟨rfl, by intro h; cases h⟩
       · ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
         wp_auto
@@ -560,7 +563,8 @@ local macro "range_tailOn" : tactic => `(tactic| (
         isplitl [Hsr Hlr Hrr Hard]
         · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
         iright
-        iframe HsE
+        ihave #HsE1 := authApplyErrIs_apply _ $$ HsE
+        iframe HsE1
         ipureintro; exact ⟨rfl, by intro h; cases h⟩))
 
 set_option maxRecDepth 20000 in

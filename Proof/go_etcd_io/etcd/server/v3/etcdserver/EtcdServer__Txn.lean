@@ -210,7 +210,7 @@ local macro "txn_tail" : tactic => `(tactic| (
         ipureintro; intro _; exact hro
       ihave #HcE := authApplyErrIs_apply cerr $$ HcE0
       iapply HΦ'
-      iframe Ha Hard HcE
+      iframe Ha Hard HcE0
       iintro %Hn
       ihave ⟨#Hc, -⟩ := Hcl $$ %Hn
       iexact Hc
@@ -361,7 +361,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       | nil => exact absurd rfl Hs0
       | ok sei =>
         ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
-        · iexact HsE
+        · iapply authApplyErrIs_apply _ $$ HsE
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
           ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hres, Hown⟩)
         · wp_auto
@@ -437,7 +437,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         ipureintro; exact apply.readonlyW_of_txnReadonly tw (by rw [Htw]; exact hro)
       ihave #HcE := authApplyErrIs_apply cerr $$ HcE0
       iapply HΦ'
-      iframe Ha Hard HcE
+      iframe Ha Hard HcE0
       iintro %Hn
       ihave ⟨%L, %HL, #Hv⟩ := Hcl $$ %Hn
       iunfold txnClassFrom
@@ -588,7 +588,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
       | nil => exact absurd rfl Hs0
       | ok sei =>
         ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
-        · iexact HsE
+        · iapply authApplyErrIs_apply _ $$ HsE
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
           ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hres, Hown⟩)
         · wp_auto

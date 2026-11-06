@@ -2579,7 +2579,8 @@ def authInfoOpt (a : Loc) : IProp GF :=
 /-- **The auth store's request side** (persistent): `AuthInfoFromCtx(ctx)`, with the caller's
 reader resource `RD` (held and given back; 2026-10-14, unit A2: the real method read-locks
 `enabledMu`), returns an auth info (or `nil`) and an error (`nil`, or one the gRPC layer can take:
-`applyErrIs`; 2026-10-12, unit 3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`). Of the real
+`applyErrIs`; 2026-10-12, unit 3a; and `nil` or one of the auth package's error variables,
+`authApplyErrIs`, so that the gRPC layer's description of it is known: k8s etcd3 7c-2 part 2, S3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`). Of the real
 store: `isReqAuth_of_authInv` (`AuthReqDerive.lean`). The permission checks and `Revision` are the
 apply package's `isAuthStore`. -/
 def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
@@ -2588,7 +2589,7 @@ def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
       {{ mvcc.txnCtx ctx cd ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
-          applyErrIs err }}) ∗
+          authApplyErrIs err }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
       {{ mvcc.txnCtx ctx cd }}
         (App (Val #(methods ai.ty go!"AuthInfoFromTLS" ai.v)) (Val #(GoInterface.ok ctx)))

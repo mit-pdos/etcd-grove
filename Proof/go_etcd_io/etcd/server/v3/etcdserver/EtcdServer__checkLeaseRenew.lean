@@ -75,8 +75,9 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
   | true =>
   (try wp_auto)
   -- `authInfo, err := s.AuthInfoFromCtx(ctx)`
-  wp_apply (hAI s _ E.RD E.authMode cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb, -⟩
+  wp_apply (hAI s _ E.RD E.authMode cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -⟩
   · iframe #
+  ihave #Herr := authApplyErrIs_apply _ $$ Herr0
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
