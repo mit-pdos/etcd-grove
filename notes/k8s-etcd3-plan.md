@@ -1026,14 +1026,29 @@ which they pass through unused. The client asks for no outcome yet: `attemptPre`
 `Ψe := fun _ => True`. The Md specs (`etcd*SpecM`, `etcd*SpecOn`, the auth service's) ignore their
 `Ψe`.
 
-**7c-1b.**
-- `handlerDescs` gets the two mvcc descriptions.
-- The rpctypes initializer axioms say what those descriptions are.
-- The `toGRPCErrorMap` fact.
-- The decoder's, the interceptors' and the quota check's error descriptions are not in
+**7c-1b** (the trusted statements, so that they are attacked once, at their final text):
+- The rpctypes initializer axioms say what the two read errors' descriptions are (`futureRevDesc`,
+  `compactedDesc`, cache/v3 `Base.lean`), for `ErrFutureRev`/`ErrCompacted` and
+  `ErrGRPCFutureRev`/`ErrGRPCCompacted`, and the eleven other errors' literal descriptions (HS-1).
+- The `toGRPCErrorMap` fact (`grpcErrMapOk`): non-nil values; mvcc's `ErrFutureRev` and
+  `ErrCompacted` map to the two descriptions, and no other key does.
+- The decoder's (`grpcDecOk`) and the interceptors' (`srvInterceptorOk`) errors are not in
   `handlerDescs`.
-- `etcdRangeSpecM` gets the `Ψe` facts for the two descriptions.
-- Each restated trusted statement is attacked with the axiom skill (Q7c-2).
+- HS-4 (DRAFT): the Md specs other than Range's take `□ ∀ d, Ψe d`.
+- Each restated trusted statement is attacked with the axiom skill (Q7c-2), at `handlerDescs`'s
+  7c-2 value.
+**Moved to 7c-2:** filling `handlerDescs`, and `etcdRangeSpecM`'s `Ψe` facts. Range's handler
+proves `Ψe` at the two descriptions only from `EtcdServer.Range`'s error post (HS-3 (a)), which
+is 7c-2's. Filled earlier, the Range handler's proof has nothing to prove it from.
+**The attacks (2026-11-06).** The rpctypes and `toGRPCErrorMap` facts survive
+(`notes/axiom-review/7c1b-init.md`, branch `axiom/7c1b-init` 7174bc28bd), and so does `grpcDecOk`.
+Two claims fail in Go (`notes/axiom-review/7c1b-grpc.md`, branch `axiom/7c1b-grpc` 95e694f82a; Stuck
+in Lean). First, `grpcInvokerOk`'s "only a handler makes these descriptions": a caller's context
+whose `Err()` is `rpctypes.ErrCompacted`, or a per-RPC credentials error, carries `compactedDesc` with
+no handler run. Second, already before 7c, a handler's error whose `Error()` panics makes
+grpc-prometheus's interceptor and grpc's server panic, which `srvInterceptorOk` and `grpcMethodOk` do
+not exclude. Both go to etcd-grove-82 as hard stops (`questions.md`, "7c-1b attacks").
+7c-2 also needs `status.Error.spec` to state its description (`errDesc err = msg`).
 
 **Why this form.**
 - Most specs are plain (`GrpcSpec`) and do not change. Their handlers prove the plain contracts
