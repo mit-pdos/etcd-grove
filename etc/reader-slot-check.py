@@ -328,6 +328,11 @@ class Sources:
                 self.goroot = pathlib.Path(r.stdout.strip()) / 'src'
         except (OSError, subprocess.TimeoutExpired):
             pass
+        if self.goroot is None:
+            # without the toolchain's sources every standard-library axiom would go unscanned and
+            # the check would pass on less; refuse instead (etc/gates.sh puts go on PATH)
+            sys.exit('reader-slot: `go env GOROOT` failed: put go on PATH '
+                     '(export PATH=$PATH:/usr/local/go/bin)')
         self.pkgs = {}          # import path -> [Func] or None
 
     def std(self, p):
