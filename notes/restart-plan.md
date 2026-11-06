@@ -3125,3 +3125,77 @@ though a replayed conf entry does not update `ep.confState` (`server.go:2051-205
 - `Link.lean` is unchanged (`gen-link.py --server`). The axioms of `wp_applyEntryNormal`, `wp_apply`
   and `request_delivered` are unchanged; there is no `sorry`. Targeted builds pass: `Results`
   (6227 jobs) and `ApplyAllR`.
+
+##### A9 + A10 (Q24 (c)): stopped at a gap before any edit (2026-11-06)
+
+Q24 (c) took R2d'a to `σ.b = 0` and said no raft-side change was needed. That is true of `pre` and
+`ai0`: at `σ.b = 0`, `γn.pre = [] =` the apply side's `pre`, and `rnEnvOk` holds unchanged. It is
+**not true of the driver's view**. Finding 1 and A6 ("the driver's view over the ghost", a hub on the
+raft loop's side; ViewR's finding (h)) still apply at `σ.b = 0`. Nothing was edited: no hub, no
+proof, no statement. Step 0's full build of the merged tree (`c30b39864d`) is reported below.
+
+**The gap: `run`'s batch arm inside the window.**
+- **What `run_job_bodyR` needs.** `applyAll.specBatchR` takes the view over the ghost log
+  (`dvView ρ.raft dv (ghostOf rp A)`, `RunR.lean:203`). It deposits the view on `notifyc` over the
+  ghost too (`isNotify γnc nc (dvView ρ.raft dv (ghostOf rp (A ++ ce)))`, `RunR.lean:193`). That
+  follows the Scope's design (`dvOk` at `g + 1`, Q19).
+- **What the raft loop hands.** `rnApplyTok_recv` (`InvRaftLoop.lean:87-108`) gives `rnApGive γn A
+  ce`, the view `rnCfgAt γn A = srvCfgView γn.srv γn.nl γn.pre A` over **Go's** log
+  (`InvRaftNode.lean:350`). It waits for `rnApR γn A ce = rnCfgAt γn (A ++ ce)`, also over Go's log.
+  `rnApR_dv`/`rnApGive_dv` (`InvRaftLoop.lean:218-245`) turn these into `dvView … A`/`… (A ++ ce)`.
+- **The two do not meet inside the window.** `srvCfgOk V D v` (`InvCfgView.lean:150`) requires
+  `v.applied ≤ |D|` and no conf entry of `D` past `v.applied`. Neither direction holds:
+  - Go-log view → ghost view: from `srvCfgOk V A v`, you cannot derive `srvCfgOk V (ghostOf rp A) v`.
+    `A₀` has conf entries past `|A|`.
+  - The return trip over Go's log: after a replayed conf entry, Go calls no `ApplyConfChange`
+    (`server.go:2053-2058`), so the view stays `v`. But `srvCfgOk V (A ++ ce) v` is false when `ce`
+    holds a conf entry past `v.applied ≤ |A|`.
+  - ViewR's `rnCfgR_replay` closes the trip only over `rnCfgAtR`, the ghost-indexed loop names.
+- **It is the common case at `σ.b = 0`.** The window is `(0, i]`. Every committed log starts with the
+  boot log, whose entries are the initial members' `AddNode`s at indices `1..` (`srv_committed_ccBoot`,
+  `SrvRaftLog.lean:1003`). So for every restart with `i ≥ 1`, the first batch has a conf entry inside
+  the window: `rnHands` is true, and the view goes along.
+- **The raft-side names are also false at a real restart.** `RestartNode`'s view is at `i` (finding
+  1; `ViewR.lean`'s header). So `rnCfgAt γn []`, which is part of the loop token `rnLoopTok γn []`
+  (`rnDrv`, `InvRaftNode.lean:367-371`), has `v.applied = i > 0` and is false. R2d'b's `NewServer`
+  could not build it. A restart branch proved over today's raft-loop names would be vacuous for
+  every restart with `i ≥ 1`.
+
+**Options.**
+- **(a) A6's raft-side view now, at `σ.b = 0` only. Recommended.**
+  - `rnCfgAt` becomes the ghost-indexed `rnCfgAtR`. Its name and arguments stay, so the text of
+    `isRaftNode`, `rnLoopTok` and `raftNode.start.spec` is unchanged; only definitions under them
+    change.
+  - `A₀` goes in the raft loop's names, for instance a field of `RNNames` (an anonymous-constructor
+    sweep), with `srvRLogLb` of it as persistent restart data.
+  - `rnApGive`/`rnApR` become ViewR's `rnApGiveR`/`rnApRR`, and the bridges become
+    `rnApGiveR_dv`/`rnApRR_dv` (already proved).
+  - The raft loop's laws take the prefix-comparability premise (`rnCfgAtR_normal`/`_back_false`,
+    proved). Its source is the handed log's `E.C` with `srvRLogLb A₀`.
+  - `NodeBridge`'s snapshot/`Advance` step (`NodeBridge.lean:516-612`) is past the window, since the
+    snapshot is above `i` (A8).
+  - `NodeStart`/`newRaftNode` set `A₀ = []` (`rnCfgAtR_first`).
+  - `rnEnvOk` is untouched.
+  - Uses touched: `InvRaftNode` 17, `InvRaftLoop` 22, `raftNode__start` 8, `NodeBridge` 4,
+    `NodeStart` 1, `newRaftNode` 1.
+  - It is a raft-side change, which Q24's answer excluded, so it needs the user's go (through 82).
+  - **Est. 3-5 d (est.)**, before A10's batch arm.
+- **(b) Restrict R2d'a further, to restarts with no conf entry in the window.** At `σ.b = 0` that
+  means `i = 0`, which is a first start. The branch would be vacuous. Rejected.
+- **(c) Do Q24's item (a) now, the whole raft-side restart data (`σ.b > 0` too) together with the
+  view.** It removes the `σ.b = 0` cut, but costs 1.5-2.5 wk (est.) on top of A10.
+
+**A10's other parts are unchanged** (part of A10's scope, not new gaps; listed for the estimate):
+- **The snapshot jobs in a window.** The frozen `applyAll.specSnapM` has `uint.Z ai = |A|` and
+  `ciEff ≤ ai`, with the ghost rows at `ai`. Inside the window, Go's `ai = |A|` is below the ghost's
+  `g = |A₀| ≤ ciEff`. So the jobs need a window form of `specSnapM`: Go's rows at `ai`, the ghost
+  rows at `g`, and A8's `winInstallAbove`. Its proof is `ApplyAllSnap`/`ApplyAllSnapOn`'s.
+- **The stop at a restart.** `stop_split`/`applyResStop` (`StopShutdown.lean:114`) are over
+  `applyResC` at Go's log.
+- **A7's supply: the "window pending" token wand (H6 (a)).** It is a hub conjunct beside `%HEr`.
+
+A10's estimate (1.5-2.5 wk (est.)) stands. With (a): **R2d'a's remainder is about 2-3 wk (est.)**.
+
+**Step 0** (before any edit): the full build of the merged tree (`c30b39864d`, which merged lean's
+`3f9a18065c` revoke-open) passed: 13378 jobs, no error, and no merge fallout to fix. `etc/tcb-report.py
+--check` matches `etc/tcb-baseline.txt` (817 axioms, 4 sorries).
