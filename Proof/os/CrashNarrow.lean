@@ -1,9 +1,10 @@
 /-
 Pure facts of the crash-aware write (`Proof/os/CrashFile.lean`): every state a `WriteAt` passes
-through, retries included, is a narrowing (`Narrow`) of the file it started from, and a crash of a
-narrowing, idle or with the next attempt in flight, leaves a file that a crash of the first
-attempt in flight could leave (`crashOk_narrow`). So the caller shows `CrashOk` of one state, the
-first attempt's (`cfWriting`).
+through, retries included, is a narrowing (`Narrow`) of the file it started from (an attempt
+writes the rest of the data, from `off + nn`, after a short write left `nn` bytes written), and a
+crash of a narrowing, idle or with the next attempt in flight, leaves a file that a crash of the
+first attempt in flight could leave (`fileOk_narrow`). So the caller shows `FileOk` of one state,
+the first attempt's (`cfWriting`).
 -/
 module
 
@@ -15,7 +16,7 @@ noncomputable section
 
 namespace Perennial
 
-open Iris
+open Iris Fs
 
 /-- The file after an attempt that wrote the first `k` bytes of `data` at `off`: its `OsMeta`... -/
 def finMeta (m : OsMeta) (off : Nat) (data : List w8) (k : Nat) : OsMeta :=
@@ -33,7 +34,6 @@ unchanged. -/
 structure Narrow (m : OsMeta) (bs : List (w8 × Bool)) (off : Nat) (data : List w8)
     (m' : OsMeta) (bs' : List (w8 × Bool)) : Prop where
   lo : m'.lo = m.lo
-  named : m'.named = m.named
   ok : m'.ok = m.ok
   maps : m'.maps = m.maps
   hi : m'.hi ≤ max m.hi (off + data.length)
@@ -46,12 +46,12 @@ structure Narrow (m : OsMeta) (bs : List (w8 × Bool)) (off : Nat) (data : List 
 
 theorem narrow_refl {m : OsMeta} {bs : List (w8 × Bool)} (off : Nat) (data : List w8)
     (hlen : bs.length = m.size) : Narrow m bs off data m bs :=
-  ⟨rfl, rfl, rfl, rfl, by omega, Nat.le_refl _, hlen, fun _ _ => rfl, fun _ _ _ => rfl, by omega⟩
+  ⟨rfl, rfl, rfl, by omega, Nat.le_refl _, hlen, fun _ _ => rfl, fun _ _ _ => rfl, by omega⟩
 
 section fin
 variable {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data : List w8} {k : Nat}
 
-theorem pwSize_ge (sz off k : Nat) : sz ≤ pwSize sz off k := by
+theorem pwSize_ge' (sz off k : Nat) : sz ≤ pwSize sz off k := by
   unfold pwSize; split <;> omega
 
 theorem pwBytes_len' (_hlen : bs.length = m.size) :
@@ -75,7 +75,7 @@ theorem finBytes_pre (hlen : bs.length = m.size) (i : Nat) (hi : i < cfLo m off)
 theorem finBytes_suf (hlen : bs.length = m.size) (hk : k ≤ data.length)
     (hs : off + data.length ≤ m.size) (i : Nat) (hi : off + data.length ≤ i) :
     (finBytes m bs off data k)[i]? = bs[i]? := by
-  have hP := pwSize_ge m.size off k
+  have hP := pwSize_ge' m.size off k
   have h1 : (bs.take (cfLo m off) ++ pwBytes m.size off data k (cfRange m bs off data.length)).length =
       off + data.length := by
     simp only [List.length_append, List.length_take, pwBytes_len' hlen]
@@ -108,41 +108,47 @@ theorem finBytes_data (hlen : bs.length = m.size) (hn : 0 < data.length) (i : Na
   rw [h2, if_neg (by omega), if_pos (by omega)]
   simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi]
 
+/-- **An attempt keeps the narrowing**: after `nn` of the bytes were written, the rest of the data
+at `off + nn` (the write starts inside the file). -/
 theorem narrow_fin {m' : OsMeta} {bs' : List (w8 × Bool)} (hN : Narrow m bs off data m' bs')
-    (hk : k ≤ data.length) :
-    Narrow m bs off data (finMeta m' off data k) (finBytes m' bs' off data k) := by
+    (hoff : off ≤ m.size) (nn : Nat) (hnn : nn ≤ data.length) (hk : k ≤ (data.drop nn).length) :
+    Narrow m bs off data (finMeta m' (off + nn) (data.drop nn) k)
+      (finBytes m' bs' (off + nn) (data.drop nn) k) := by
   have hs := hN.size
-  refine ⟨hN.lo, hN.named, hN.ok, hN.maps, ?_, ?_, finBytes_length hN.len hk, ?_, ?_, ?_⟩
-  · show max m'.hi (off + data.length) ≤ _
-    have := hN.hi; omega
-  · show m.size ≤ pwSize m'.size off k
-    have := pwSize_ge m'.size off k; omega
+  have hdl : (data.drop nn).length = data.length - nn := List.length_drop
+  have he : off + nn + (data.drop nn).length = off + data.length := by rw [hdl]; omega
+  refine ⟨hN.lo, hN.ok, hN.maps, ?_, ?_, finBytes_length hN.len hk, ?_, ?_, ?_⟩
+  · show max m'.hi (off + nn + (data.drop nn).length) ≤ _
+    rw [he]; have := hN.hi; omega
+  · show m.size ≤ pwSize m'.size (off + nn) k
+    have := pwSize_ge' m'.size (off + nn) k; omega
   · intro i hi
     rw [finBytes_pre hN.len i (by unfold cfLo at hi ⊢; omega)]
     exact hN.pre i hi
   · intro hs' i hi
-    rw [finBytes_suf hN.len hk (by omega) i hi]
+    rw [finBytes_suf hN.len hk (by omega) i (by omega)]
     exact hN.suf hs' i hi
-  · show pwSize m'.size off k ≤ _
+  · show pwSize m'.size (off + nn) k ≤ _
     have := hN.szhi; unfold pwSize; split <;> omega
 
 end fin
 
-/-- A crash of a narrowing of `m`, `bs`, idle or with the write's next attempt in flight, leaves
-a file a crash of the first attempt in flight may leave. -/
-theorem crashOk_narrow {Good : Option OsFile → Prop} {m m' : OsMeta}
+/-- A crash of a narrowing of `m`, `bs`, idle or with the write's next attempt in flight (the rest
+of the data from `off + nn`), leaves a file a crash of the first attempt in flight may leave. -/
+theorem fileOk_narrow {Good : Option OsFile → Prop} {m m' : OsMeta}
     {bs bs' : List (w8 × Bool)} {off : Nat} {data : List w8}
-    (hW : CrashOk Good (cfWriting m bs off data)) (hlen : bs.length = m.size)
+    (hW : FileOk Good (cfWriting m bs off data)) (hlen : bs.length = m.size) (hoff : off ≤ m.size)
     (hN : Narrow m bs off data m' bs') :
-    CrashOk Good (some (m', bs', none)) ∧ ∀ t, CrashOk Good (some (m', bs', some (t, off, data))) := by
+    FileOk Good (m', bs', none) ∧ ∀ t nn, nn ≤ data.length →
+      FileOk Good (m', bs', some (t, off + nn, data.drop nn)) := by
   -- the clean bytes the first attempt's crash keeps are where a run of `bs'` has them
   have hcov : ∀ (rs1 : List (Nat × DFrac × List (w8 × Bool))),
       (∀ i, (i < cfLo m off ∨ (off + data.length ≤ m.size ∧ off + data.length ≤ i)) →
         i < bs.length → ∃ r' ∈ rs1, ∃ k', r'.2.2[k']? = bs[i]? ∧ r'.1 + k' = i) →
-      ∀ r ∈ cRuns (cfWriting m bs off data), ∀ k x, r.2.2[k]? = some x → x.2 = true →
+      ∀ r ∈ fRuns (cfWriting m bs off data), ∀ k x, r.2.2[k]? = some x → x.2 = true →
         ∃ r' ∈ rs1, ∃ k', r'.2.2[k']? = some x ∧ r'.1 + k' = r.1 + k := by
     intro rs1 H r hr k x hk _
-    simp only [cRuns, List.mem_cons, List.not_mem_nil, or_false] at hr
+    simp only [fRuns, List.mem_cons, List.not_mem_nil, or_false] at hr
     rcases hr with rfl | rfl
     · simp only [List.getElem?_take] at hk
       split at hk
@@ -155,33 +161,36 @@ theorem crashOk_narrow {Good : Option OsFile → Prop} {m m' : OsMeta}
       have hhi : cfHi m off data.length = off + data.length := by unfold cfHi; omega
       obtain ⟨r', hr', k', h1, h2⟩ := H (cfHi m off data.length + k) (.inr ⟨hs, by omega⟩) hlt
       exact ⟨r', hr', k', h1.trans hk, h2⟩
-  refine ⟨fun fo h => hW fo ?_, fun t fo h => hW fo ?_⟩
-  · refine fileCrashedR_mono (m1 := m') (rs1 := cRuns (some (m', bs', none)))
-      (Nat.le_of_eq hN.lo.symm) (by have := hN.hi; show _ ≤ max m.hi _; omega)
-      (fun h => by show m.named = false; rw [← hN.named]; exact h) (hcov _ ?_) h
+  refine ⟨fun f h => hW f ?_, fun t nn hnn f h => hW f ?_⟩
+  · refine fileCrashedR_mono (m1 := m') (rs1 := fRuns (m', bs', none))
+      (Nat.le_of_eq hN.lo.symm) (by have := hN.hi; show _ ≤ max m.hi _; omega) (hcov _ ?_) h
     intro i hi hib
     refine ⟨(0, DFrac.own (1 : Qp).half, bs'), List.mem_singleton_self _, i, ?_, by simp⟩
     rcases hi with hi | ⟨hs, hi⟩
     · exact hN.pre i hi
     · exact hN.suf hs i hi
-  · refine fileCrashedR_mono (m1 := pwMeta m' off data.length)
-      (rs1 := cRuns (some (m', bs', some (t, off, data))))
-      (Nat.le_of_eq hN.lo.symm) (by have := hN.hi; show max m'.hi _ ≤ max m.hi _; omega)
-      (fun h => by show m.named = false; rw [← hN.named]; exact h) (hcov _ ?_) h
+  · have hdl : (data.drop nn).length = data.length - nn := List.length_drop
+    have he : off + nn + (data.drop nn).length = off + data.length := by rw [hdl]; omega
+    refine fileCrashedR_mono (m1 := pwMeta m' (off + nn) (data.drop nn).length)
+      (rs1 := fRuns (m', bs', some (t, off + nn, data.drop nn)))
+      (Nat.le_of_eq hN.lo.symm)
+      (by have := hN.hi; show max m'.hi _ ≤ max m.hi _; rw [he]; omega) (hcov _ ?_) h
     intro i hi hib
     have hsz := hN.size
     rcases hi with hi | ⟨hs, hi⟩
-    · refine ⟨(0, DFrac.own (1 : Qp).half, bs'.take (cfLo m' off)), List.mem_cons_self, i, ?_,
+    · refine ⟨(0, DFrac.own (1 : Qp).half, bs'.take (cfLo m' (off + nn))), List.mem_cons_self, i, ?_,
         by simp⟩
       rw [List.getElem?_take_of_lt (by unfold cfLo at hi ⊢; omega)]
       exact hN.pre i hi
-    · refine ⟨(cfHi m' off data.length, DFrac.own (1 : Qp).half, bs'.drop (cfHi m' off data.length)),
-        List.mem_cons_of_mem _ (List.mem_singleton_self _), i - cfHi m' off data.length, ?_, ?_⟩
-      · simp only [List.getElem?_drop]
-        rw [show cfHi m' off data.length + (i - cfHi m' off data.length) = i by
-          unfold cfHi; omega]
+    · have hhi : cfHi m' (off + nn) (data.drop nn).length = off + data.length := by
+        unfold cfHi; rw [he]; omega
+      refine ⟨(cfHi m' (off + nn) (data.drop nn).length, DFrac.own (1 : Qp).half,
+          bs'.drop (cfHi m' (off + nn) (data.drop nn).length)),
+        List.mem_cons_of_mem _ (List.mem_singleton_self _), i - (off + data.length), ?_, ?_⟩
+      · simp only [List.getElem?_drop, hhi]
+        rw [show off + data.length + (i - (off + data.length)) = i by omega]
         exact hN.suf hs i hi
-      · show cfHi m' off data.length + (i - cfHi m' off data.length) = i
-        unfold cfHi; omega
+      · show cfHi m' (off + nn) (data.drop nn).length + (i - (off + data.length)) = i
+        rw [hhi]; omega
 
 end Perennial
