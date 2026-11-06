@@ -449,11 +449,14 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · ipureintro; rfl
         iintro %optsl -
         wp_auto
-        wp_apply hStart tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -⟩
+        wp_apply hStart tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -, #Hspw⟩
         · iframe #
           iunfold mvcc.txnCtx
           iright; iexact Hctxis
         ihave #Hctx'' := Hctxw $$ Hctxis
+        -- the run's context's span is a span (`grpcRunCtx`), and so is the traced context's
+        ihave #Hspc := Hspw $$ [Hrunctx]
+        · iapply spanCtxOk_of_runCtx; iexact Hrunctx
         -- the filters: none (`watchReqOk`)
         ihave #Hfi : mvcc.filtersImpl (GF := GF) fsl [] $$ []
         · iunfold mvcc.filtersImpl

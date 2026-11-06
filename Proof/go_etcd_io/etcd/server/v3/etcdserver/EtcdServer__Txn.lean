@@ -763,7 +763,7 @@ theorem EtcdServer.Txn.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, -⟩
   · iframe Htr; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
@@ -1172,7 +1172,7 @@ theorem EtcdServer.Txn.wp_proofOnR
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, -⟩
   · iframe Htr; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
@@ -1437,7 +1437,7 @@ theorem EtcdServer.Txn.wp_proofOn
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, -⟩
   · iframe Htr; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp

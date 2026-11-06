@@ -152,3 +152,14 @@ Either is a change to a trusted statement: for the user.
 
 The `isSpan` clauses' other methods (`AddEvent`, `RecordError`) at the no-op span: empty bodies, as
 `End`. A `nil` `ctx` (the spec takes `GoInterface.ok ctx`: excluded).
+
+## Superseded verdict (2026-11-06)
+
+**2026-11-06, fixed (the user approved):** the `isContext` arm now also takes `trace.spanCtxOk ctx`
+(`Value(currentSpanKey)` returns `nil` or a span), the review's restatement with `nil ∨ isSpan` in
+place of "not a `Span` or `isSpan`"; `grpcRunCtx` and `traceutil.Tracer.Start`'s post supply it,
+`Proof/go_opentelemetry_io/otel/trace/SpanCtxLaws.lean` proves it of `Background()`,
+`WithCancel(Background())` and `WithValue` children (`notes/decisions.md`, "`trace.SpanFromContext`'s
+`isContext` arm"). The counterexample's `spanCtx` has no `spanCtxOk`. Same root, open:
+`traceutil.Tracer.Start`'s axiom (the no-op tracer returns `ctx`'s span, after calling its
+`SpanContext()` and `IsRecording()`).

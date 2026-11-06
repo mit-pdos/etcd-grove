@@ -30541,3 +30541,25 @@ constructors' specs give) in place of `l ≠ null`. It touches 144 files across 
 most being migrated in parallel, so it is done after the mvcc migration settles, with the
 baselines and the `Link` regeneration, then attacked with the `axiom` skill.
 
+
+## `trace.SpanFromContext`'s `isContext` arm: a span-key fact `trace.spanCtxOk` (2026-11-06 · the user · branch `mvcc-api`)
+
+**The finding** (`notes/axiom-review/otel-spanfromcontext-todo.md`): the axiom's `isContext` arm was
+false. `context.isContext` specifies `Value` only at `&cancelCtxKey`, so a program's own context
+type (a `*cancelCtx` wrapper answering every other key with a span whose `End` panics) is an
+`isContext`, and the axiom promised `trace.isSpan` of that span. **The fix (the user approved
+it).** `trace.spanCtxOk ctx` (`Proof/go_opentelemetry_io/otel/trace/Defs.lean`, with `isSpan`
+moved there): `ctx.Value(currentSpanKey)` returns a value satisfying a pure `R`, and every value
+satisfying `R` is `nil` or a span (through a pure property, so that `context.WithValue`'s
+pure-property delegation to its parent carries it). The premise is `⌜ctx = trace.todoCtx⌝ ∨
+(context.isContext ctx cd ∗ trace.spanCtxOk ctx)`, and `WatchStream.Watch.contract` takes the same.
+Where it comes from: `grpcRunCtx` (the trusted run context, which `grpc.serve`/`grpc.serveStream`
+give a handler) now includes it (`spanCtxOk_of_runCtx`; grpc and etcd's interceptors store no span,
+otelgrpc's stats handler its tracer's), `traceutil.Tracer.Start`'s post carries it from `ctx` to
+`ctx'` (`□ (spanCtxOk ctx -∗ spanCtxOk ctx')`; both strengthenings of trusted statements, justified
+in their docstrings), and `SpanCtxLaws.lean` proves it of `Background()`, `WithCancel(Background())`
+and a `WithValue` child at another key. Not covered: a `WithCancel`/`WithTimeout` child of a
+general parent (Perennial's specs do not say the child's `Value` at another key is the parent's: the
+pending law of `notes/perennial-changes.md`, as for `traceutil.ctxTraceIs`). Found on the way, open:
+`Tracer.Start`'s own axiom has the same flaw (it calls `SpanContext()`/`IsRecording()` on `ctx`'s
+span and the no-op tracer can return it as its span, for any `txnCtx`); its docstring records it.

@@ -971,6 +971,7 @@ theorem ctxTraceIs_none_of_runCtx (ci : GoInterfaceOk) :
     grpcRunCtx (GF := GF) ci ⊢ traceutil.ctxTraceIs ci none := by
   iintro #H
   iunfold grpcRunCtx at H
+  icases H with ⟨#H, -⟩
   unfold traceutil.ctxTraceIs
   iintro !> %Φ HΦ
   simp only [traceutil.traceKeyVal, go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty]
