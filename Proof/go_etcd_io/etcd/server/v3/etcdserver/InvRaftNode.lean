@@ -391,14 +391,46 @@ instance rnWinInstallAbove_persistent (γ : RNNames) :
     Persistent (rnWinInstallAbove (GF := GF) γ) := by
   unfold rnWinInstallAbove; infer_instance
 
+/-- (R2d'a A10 item 3, Q27 (i), 2026-11-06; DRAFT, approved by the user; a restart-only premise)
+**The WAL's stored commit is never below the restart point's backend log**: whatever durable state
+`S` the node has, records `σ` holding it (`StorageHolds S σ`) have a stored commit at least `|a0|`.
+True of Go: the restored WAL's commit is at least the backend's consistent index
+(`bootstrapRestartContract`), `σ.commit ≥ S.wcommit` (`StorageHolds`), and the commit raft writes
+only grows. Raft's API does not say so; **R2d'b's target** (`RestartNode` supplies it, from the
+restored records). At a first start it is not needed (`rnRestartOk`'s first disjunct, `a0 = []`).
+The stop's image takes the bound (`rnRestartOk_commit`). -/
+def rnWalCommitAbove (γ : RNNames) : IProp GF :=
+  iprop(□ ∀ (S : RaftState) (σ : StorContents), raftState γ.node.cl γ.id S -∗ ⌜StorageHolds S σ⌝ -∗
+    raftState γ.node.cl γ.id S ∗ ⌜γ.a0.length ≤ σ.commit⌝)
+
+instance rnWalCommitAbove_persistent (γ : RNNames) :
+    Persistent (rnWalCommitAbove (GF := GF) γ) := by
+  unfold rnWalCommitAbove; infer_instance
+
 /-- (R2d'a A6, 2026-11-06; DRAFT) **The restart data** (persistent): a first start (`a0 = []`), or a
 restart before the WAL's first snapshot (`pre = []`, R2d'a's `σ.b = 0` restriction) whose backend
-log `a0` is committed (`srvRLogLb`), with R2d'a's A8 (`rnWinInstallAbove`). -/
+log `a0` is committed (`srvRLogLb`), with R2d'a's A8 (`rnWinInstallAbove`) and (A10 item 3, Q27 (i))
+the WAL's stored commit above `a0` (`rnWalCommitAbove`). -/
 def rnRestartOk (γ : RNNames) : IProp GF :=
-  iprop(⌜γ.a0 = []⌝ ∨ (⌜γ.pre = []⌝ ∗ srvRLogLb γ.srv γ.a0 ∗ rnWinInstallAbove γ))
+  iprop(⌜γ.a0 = []⌝ ∨
+    (⌜γ.pre = []⌝ ∗ srvRLogLb γ.srv γ.a0 ∗ rnWinInstallAbove γ ∗ rnWalCommitAbove γ))
 
 instance rnRestartOk_persistent (γ : RNNames) : Persistent (rnRestartOk (GF := GF) γ) := by
   unfold rnRestartOk; infer_instance
+
+/-- (R2d'a A10 item 3, Q27 (i)) **The stop's records are at or above the restart point**: from the
+restart data, records `σ` holding the node's durable state have a stored commit at least `|a0|`;
+at a first start (`a0 = []`) trivially. -/
+theorem rnRestartOk_commit (γ : RNNames) (S : RaftState) (σ : StorContents)
+    (h : StorageHolds S σ) :
+    rnRestartOk (GF := GF) γ ⊢ raftState γ.node.cl γ.id S -∗
+      raftState γ.node.cl γ.id S ∗ ⌜γ.a0.length ≤ σ.commit⌝ := by
+  unfold rnRestartOk
+  iintro #Hr HS
+  icases Hr with (%Ha | ⟨-, -, -, #Hc⟩)
+  · iframe HS; ipureintro; rw [Ha]; exact Nat.zero_le _
+  · iunfold rnWalCommitAbove at Hc
+    iapply Hc $$ HS %h
 
 /-- **The driver's view of the configuration after the committed log `L`** (D43 M3; 2026-10-30,
 the repair: raft's one mode, the old dynamic one's; R2d'a A6, 2026-11-06, DRAFT: over the ghost
@@ -1874,6 +1906,33 @@ def rnLoopTokP (γ : RNNames) (L : List EntryModel) (p : HardStateM) (b : Bool) 
 the raft term it records). -/
 def rnLoopTok (γ : RNNames) (L : List EntryModel) : IProp GF :=
   iprop(∃ p : HardStateM, rnLoopTokP γ L p false)
+
+/-- (R2d'a A10 item 3) **The loop's token carries the restart data** (persistent, in its view,
+`rnCfgAt`): `run` reads it before handing the token to `raftNode.start`, for the stop's bound
+(`rnRestartOk_commit`). -/
+theorem rnLoopTok_restartOk (γ : RNNames) (L : List EntryModel) :
+    rnLoopTok (GF := GF) γ L ⊢ rnLoopTok γ L ∗ rnRestartOk γ := by
+  iintro H
+  iunfold rnLoopTok at H
+  icases H with ⟨%p, H⟩
+  iunfold rnLoopTokP at H
+  icases H with ⟨%sent, %cums, %S, %r, Hdrv, Hrest⟩
+  iunfold rnDrv at Hdrv
+  icases Hdrv with ⟨Hd, HrS, Hcfg⟩
+  iunfold rnCfgAt at Hcfg
+  icases Hcfg with ⟨Hv, #Hr⟩
+  isplitl [Hd HrS Hv Hrest]
+  · iunfold rnLoopTok
+    iexists p
+    iunfold rnLoopTokP
+    iexists sent, cums, S, r
+    isplitl [Hd HrS Hv]
+    · iunfold rnDrv
+      iframe Hd HrS
+      iunfold rnCfgAt
+      iframe Hv Hr
+    iexact Hrest
+  iexact Hr
 
 /-- The apply side's ghost state: `applyc`'s consumer half, and `cum` at the number of
 payloads received, the log `A` forwarded so far. -/

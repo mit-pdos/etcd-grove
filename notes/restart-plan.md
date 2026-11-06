@@ -3686,3 +3686,32 @@ approved (`raftNode.stop.spec`'s post gains `⌜γ.a0.length ≤ σ.commit⌝`, 
 "the WAL's stored commit ≥ |a0|", then item 3); Q26 (a) approved and cleared by the axiom attack
 (`/shared/tmp/axiom-review-clusterimage-ids.md`, survives), then item 2 with the axiom's ids form.
 Order: Task A's rest, Task B (`run.wp_proofR`), item 3, item 2.
+
+#### R2d'a A10 item 3 (the stop arm's pieces): done, DRAFT, sorry-free; no frozen text changed (2026-11-06)
+
+- **No change to `raftNode.stop.spec`.** Q27 (i) approved its post gaining `⌜γ.a0.length ≤ σ.commit⌝`,
+  but its proof cannot reach the restart data: `rnRestartOk` lives in the loop's view (`rnCfgAt`,
+  inside `rnLoopTok`/`rnDrv`), and neither `raftNode.stop`'s precondition (`isRaftNode`, `E.ST`, the
+  running half, `rnWalTokA`, `rnStopClaim`, `rnApplyTok`) nor `onStop`'s reaches it. Proving that
+  post would need one more statement change (`rnRestartOk` in `raftNode.stop.spec`'s or
+  `onStop.spec`'s pre, or in `isRaftNode`). It is not needed: the unchanged post already gives
+  `raftState S` and `StorageHolds S σ`, so `run` derives the bound itself from the restart data
+  (`rnRestartOk_commit`), which it reads from the loop's token before handing it to
+  `raftNode.start` (`rnLoopTok_restartOk`).
+- **The restart conjunct** (`InvRaftNode.lean`): `rnWalCommitAbove γ := □ ∀ S σ, raftState γ.node.cl
+  γ.id S -∗ ⌜StorageHolds S σ⌝ -∗ raftState … S ∗ ⌜γ.a0.length ≤ σ.commit⌝`, the fourth conjunct of
+  `rnRestartOk`'s restart disjunct. Its docstring names it R2d'b's target. `rnRestartOk_commit` gives
+  the bound and is trivial at `a0 = []`.
+- **`StopR.lean`** (new, DRAFT, imported by nothing):
+  - `applyResStopR` and `stop_splitR`: `applyResStop`/`stop_split` over `applyResR`;
+  - `restReplay_bk` and `restLeasesWith_bk_congr`: the replay changes only the members, so the
+    backend's buckets stay the model's at `A₀`;
+  - `stopCleanupImageR.spec` and `stop_cleanup_imageR`: the frozen proof at the ghost rows, inside
+    the window (`|A| < |A₀|`). It takes Go's log committed (`srvRLogLb C.ρ.raft A`, so `A <+: A₀`)
+    and `|A₀| ≤ σ.commit`, and gives the image at `A₀` and the backend's index. Past the window the
+    stop arm is the frozen path (`applyResR_past`, `stop_split`, `stopCleanupImage.spec`).
+- **For `run.wp_proofR`'s stop arm:**
+  - read `rnLoopTok_restartOk` before `raftNode.start`;
+  - at the stop, split on `|A| < |A₀|`. In the window: `stop_splitR`, `raftNode.stop.spec`, then
+    `rnRestartOk_commit` for `|A₀| ≤ σ.commit`, and `stop_cleanup_imageR` with `srvRLogLb A` (from
+    the loop's lb on the handed log). Past it: the frozen path.
