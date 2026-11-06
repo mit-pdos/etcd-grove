@@ -35,19 +35,22 @@ auth is off), it returns (Go: `s.GoAttach` of the round, which checks leadership
 `LeaseRevoke` per lease, each in a goroutine of its own; the caller waits for none).
 
 (revoke-open, 2026-11-06, Q8; `notes/revoke-open-plan.md`, "Draft pass 1", I.1) In a cluster that
-revokes leases (`srvRevokesLeases`), with levels 0–3 of a thread token (`srvRevokeLevels`), the
-revocation's persistent bundle (`srvRevokeCtx`: the pools its goroutines borrow from, the request
-side's views, the server context) and the caller's thread token, which it returns (it lends level 1
-to the round's `GoAttach` and borrows the outer pool with level 2 for it). -/
+revokes leases (the KV names' lease mode `revocable`; auth off follows from the slice's grant guard,
+`srvGrantGuard_expired`, and with it `srvRevokesLeases`), with levels `0 … srvRevokeK - 1` of a
+thread token (`srvRevokeLevels`), the revocation's persistent bundle (`srvRevokeCtx`: the pools its
+goroutines borrow from, the request side's views, the server context) and the caller's thread
+token, which it returns (its goroutines' reader slots come from pools backed by it). (Review round 1,
+NIT 1.1–1.2, 2026-11-06: the premises a `⌜…⌝` conjunct, until then Lean implications, and the lease
+mode alone, until then `srvRevokesLeases E ρ`.) -/
 abbrev EtcdServer.revokeExpiredLeases.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (v : SrvFields) (γr : ReadNames) (γg : GoNames)
     (γcx : context.ContextNames) (rv : RunFields) (SP : IProp GF) (ls : GoSlice),
-  srvRevokesLeases E ρ → srvRevokeLevels (GF := GF) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvFieldsAt s γ ci TM E ρ v ∗ srvRunFieldsAt s γr γg γcx rv SP ∗
       lease.expiredLeases (srvGrantGuard E.lg E.authMode.isOn) ls ∗
-      srvRevokeCtx s E ρ γr γg ∗ threadTok }}
+      srvRevokeCtx s E ρ γr γg ∗ ⌜ρ.rd.kv.lm = .revocable ∧ srvRevokeLevels (GF := GF)⌝ ∗
+      threadTok }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"revokeExpiredLeases")) (Val #ls))
   {{ RET #(); threadTok }}
 

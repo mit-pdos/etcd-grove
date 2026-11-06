@@ -84,16 +84,6 @@ theorem lease.bootCfg_mono (lm : lease.Mode) (on : Bool) (hlm : lm = .mono) (hon
   subst hlm hon
   refine ⟨rfl, ?_, fun _ => hne, ?_, hck⟩ <;> intro h <;> cases h
 
-/-- `lease.bootCfg` for a cluster that grants revocable leases (the expiry stage's Part X-a): auth
-off, the open case of `run`'s expiry arm. -/
-theorem lease.bootCfg_revocable (lm : lease.Mode) (on : Bool) (hlm : lm = .revocable)
-    (hon : on = false) (hlev : srvRevokeLevels (GF := GF))
-    (hrev : srvRevokeOpen (GF := GF) (hG := hG))
-    (hck : ckptEffectsOk) : lease.bootCfg (GF := GF) lm .revocable on := by
-  unfold lease.bootCfg
-  subst hlm hon
-  refine ⟨rfl, ?_, ?_, fun _ => ⟨hlev, hrev⟩, hck⟩ <;> intro h <;> cases h
-
 /-- **The KV names' mode is the mode** (X7 option (iii); until then `lease.bootCfg_lg`, the grant
 flag `lg = decide (m ≠ none)`, which follows). -/
 theorem lease.bootCfg_lm {lm : lease.Mode} {m : lease.Mode} {on : Bool}

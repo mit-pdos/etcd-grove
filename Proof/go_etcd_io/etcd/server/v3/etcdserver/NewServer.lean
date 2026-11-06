@@ -232,17 +232,6 @@ private theorem rep_cast (P : IProp GF) (a b : Nat) :
   subst h
   iexact H
 
-/-- **The inner pool, from a pool of `leadTimeMu`'s slots** (`NewServer`, which pairs the slots
-in their own form: `srvLeadTimeReader` unfolded). -/
-theorem srvRevokeInnerPool_intro (s : Loc) (E : apply.AEnv GF) (γ : GName) :
-    threadPool.isThreadPoolL srvRevokeInnerN 1 γ
-        iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ E.RD) ⊢
-      srvRevokeInnerPool s E := by
-  unfold srvRevokeInnerPool srvLeadTimeReader
-  iintro #H
-  iexists γ
-  iexact H
-
 /-- `time.Duration(ttl) * time.Second` is positive for a TTL in `(0, 2 ^ 32)` seconds. -/
 theorem tokenTTL_pos (x : w64) (h1 : 0 < uint.Z x) (h2 : uint.Z x < 2 ^ 32) :
     0 < sint.Z (x * W64 1000000000) := by

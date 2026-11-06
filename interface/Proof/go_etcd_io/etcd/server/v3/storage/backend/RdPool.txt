@@ -98,7 +98,7 @@ theorem backend.newPostKP_named (γ : backend.BNames) (P : backend.BParams) (W P
     P D ∗ "HnSr" ∷ backend.srSlot b
 
 def backend.authRdN : Nat :=
-  2 ^ 28 + 2 ^ 7
+  backend.rdPoolN + 2 ^ 7
 
 def backend.rdAuth (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
   [∗list] _x ∈ List.replicate backend.authRdN (), backend.rdTok γ P b

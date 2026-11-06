@@ -35,7 +35,8 @@ it). The caller gets its slot and its level back.
 (`levelTok 1`), `wg.Add`'s pending deposit, back at the `go` statement (stopped: the level that
 borrows `Logger()`'s `lgMu` slot from `raftPool`, `srvGoAttachOk`'s, so no `srvLgReader` is taken);
 `f` runs on the fresh token's levels from 1 (`threadTokFrom 1`; level 0 is in the wait group until
-its `Done`). A caller with a whole token and an `lgMu` slot uses `wp_GoAttach_tok`
+its `Done`). The level is `raftPool`'s (`Net.lean`, level 1), which the stopped branch borrows with
+it: a change of one moves the other. A caller with a whole token uses `wp_GoAttach_tok`
 (`GoAttachTok.lean`), today's triple. -/
 abbrev EtcdServer.GoAttach.spec : Prop :=
   ∀ (s : Loc) (γ : GoNames) (f : GoFunc) (P : IProp GF),

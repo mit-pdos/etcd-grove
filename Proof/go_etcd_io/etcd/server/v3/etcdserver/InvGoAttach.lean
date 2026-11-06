@@ -135,6 +135,20 @@ instance srvGoAttachOk_persistent (s : Loc) (γ : GoNames) :
     Persistent (srvGoAttachOk (GF := GF) s γ) := by
   unfold srvGoAttachOk; infer_instance
 
+/-- **The `stopping` channel, out of the protocol** (revoke-open review round 1, S1, 2026-11-06; the
+revocation's outer loop `select`s on it): its address and a receiver's view of it. -/
+theorem srvGoAttachOk_stopping (s : Loc) (γ : GoNames) :
+    srvGoAttachOk (GF := GF) s γ ⊢
+      ∃ ch : Loc, srvStoppingAddr' s ↦□ ch ∗ ownStopChan ch γ.ch iprop(True) .Unknown := by
+  iintro #H
+  iunfold srvGoAttachOk at H
+  icases H with ⟨%ch, %c, #Hch, #Hint, -, -, -, -, -, -, -⟩
+  iexists ch
+  iframe Hch
+  iunfold ownStopChan
+  iexists γ.chi
+  iframe Hint
+
 /-- **A reader slot of `s.wgMu`** at the protocol's names `γ`, with the protocol. -/
 def srvWgReaderAt (s : Loc) (γ : GoNames) : IProp GF :=
   iprop(srvGoAttachOk s γ ∗ sync.ownRWMutex (srvWgMuAddr s) (wgMuP γ))

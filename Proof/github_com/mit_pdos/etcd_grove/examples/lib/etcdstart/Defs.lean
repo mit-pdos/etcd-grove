@@ -328,17 +328,15 @@ network (`srvNetMember`, with its transport `τ`) and one of its transport's rea
 def srvPeerCtl (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
   iprop(∃ τ : SrvTr GF, srvNetMember γn s id τ ∗ srvTrTok γn τ)
 
-/-- **The read loop's reader slots a started member keeps** (revoke-open F.1, 2026-11-06): `read.mux`'s
-`actualMaxReaders` less the revocation's outer pool's `srvRevokePoolN`, which `start` takes
-(`srvStarted`'s count, `start_gives_views`'s). Named, with its law `one_le_memberReadN`, so that the
-consumers of `memberUp`'s and `kvServeStocks`'s stocks do not restate the count. -/
-def memberReadN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN
+/-- **The read loop's reader slots a started member keeps** (revoke-open F.1, 2026-11-06): the
+server's count, `srvStartReadN` (`start_gives_views`'s; review round 1, S2: until then this body
+spelled the server's arithmetic). Named, with its law `one_le_memberReadN`, so that the consumers
+of `memberUp`'s and `kvServeStocks`'s stocks do not restate the count. -/
+def memberReadN : Nat := srvStartReadN
 
 /-- What the consumers take of the read loop's slots: at least one (each splits off one gRPC slot,
-`client.etcdGrpcSlots_of_started`'s `N ≤ M`). -/
-theorem one_le_memberReadN : 1 ≤ memberReadN := by
-  unfold memberReadN
-  rw [sync.rwmutex.actualMaxReaders_unseal]; simp only [srvRevokePoolN, backend.rdPoolN]; omega
+`client.etcdGrpcSlots_of_started`'s `N ≤ M`): the server's law. -/
+theorem one_le_memberReadN : 1 ≤ memberReadN := one_le_srvStartReadN
 
 /-- **A member started** (`Start`'s success from `memberBuilt`): the server `s` started with its
 request names `ρ` (the wait registry's `γw`) at an apply environment `E` agreeing with the stand-in

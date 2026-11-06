@@ -1319,14 +1319,15 @@ theorem EtcdServer.run.wp_proofG
       -- (revoke-open, 2026-11-06) the revocation with `#Hrvk` and the loop's thread token
       obtain ⟨hlev, hrevo⟩ := lease.runCfg_revoke Hmo
       have hrev := srvRevokeOpen_spec hrevo
-      have hRL : srvRevokesLeases E ρ := ⟨by rw [Hlgt.1]; exact lease.runCfg_lm Hmo, Hg.2⟩
+      have hlm : ρ.rd.kv.lm = .revocable := by rw [Hlgt.1]; exact lease.runCfg_lm Hmo
       ihave #Hfa : srvFieldsAt s γ ci TM E ρ fv $$ []
       · rw [← srvFieldsAtM_false, ← hCoff]; iexact Hfv
       ihave #Hpe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
       · iPkgInit
       (try wp_auto)
-      wp_apply hrev s γ ci TM E ρ fv γr γg γcx v _ ls hRL hlev $$ [Htok] as Htok
+      wp_apply hrev s γ ci TM E ρ fv γr γg γcx v _ ls $$ [Htok] as Htok
       · iframe #; iframe Htok
+        ipureintro; exact ⟨hlm, hlev⟩
       (try wp_auto)
       wp_for_post
       iframe

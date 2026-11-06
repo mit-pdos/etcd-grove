@@ -203,7 +203,7 @@ theorem etcdstart.grpcUpM_false [v3rpc_sem :
 theorem etcdstart.one_le_memberReadN : 1 ≤ etcdstart.memberReadN
 
 def etcdstart.memberReadN : Nat :=
-  sync.rwmutex.actualMaxReaders.toNat - srvRevokePoolN
+  srvStartReadN
 
 def etcdstart.httpURL (host : GoString) : net.url.URL :=
   { Scheme' := go!"http", Opaque' := [], User' := null, Host' := host, Path' := [], Fragment' := [],

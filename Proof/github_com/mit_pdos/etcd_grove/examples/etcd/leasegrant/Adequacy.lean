@@ -156,7 +156,7 @@ theorem etcd_leasegrant_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hprem' := Hprem hG
   iintro #Hinit Htok ⟨Hms, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
-  have hM := etcd_leasegrant.wp_Main (GF := leasegrantGF) n id ctxs boot Hbf (by rw [HT]; omega)
+  have hM := etcd_leasegrant.wp_Main (GF := leasegrantGF) n id ctxs boot Hbf (by rw [HT]; word)
     (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo Hlp Hlne inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

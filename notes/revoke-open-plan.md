@@ -1325,3 +1325,90 @@ its own data directory, so this concerns only the test harness.
 Runs: before the final version, 1 run (the three other tests passed; `TestRevokeBothArms` failed at
 150 ms, above), 2 runs of the four tests alone (pass), and 2 whole-package runs that died by the
 hazard. Then 3 whole-package runs of the final file, all passing.
+
+## Review round 1 fixes (2026-11-06)
+
+The findings of `notes/spec-review/revoke-open-r1.md` (round 1: no BLOCKER, four SHOULD-FIXes). The
+batching rule applies: the frozen and exported statement changes below are DRAFT, logged here
+old → new with their causes, to be brought to the user once.
+
+**Statement changes (DRAFT):**
+
+- **`EtcdServer.revokeExpiredLeases.spec`** (frozen; NIT 1.1, 1.2). Old:
+  `srvRevokesLeases E ρ → srvRevokeLevels (GF := GF) → {{ … ∗ srvRevokeCtx s E ρ γr γg ∗ threadTok }}`.
+  New: `{{ … ∗ srvRevokeCtx s E ρ γr γg ∗ ⌜ρ.rd.kv.lm = .revocable ∧ srvRevokeLevels (GF := GF)⌝ ∗
+  threadTok }}`. The premises are a `⌜…⌝` conjunct (PRINCIPLES "Pure premises go in the
+  precondition"), and the auth half of `srvRevokesLeases` is gone: it follows from the slice's grant
+  guard (`srvGrantGuard_expired`), and the proof derives `srvRevokesLeases` for `LeaseRevoke.spec`.
+  `run` discharges the conjunct by `ipureintro` (`hlm`, `hlev`).
+- **`auth.authStore.WithRoot.spec`** (exported; S3, option (b)). Old: `∀ st RD ctx, {{ pkg ∗ RD ∗
+  □ {{ RD }} st.IsAuthEnabled() {{ b, RD ∗ ⌜b = false⌝ }} }} … {{ RET #ctx; RD }}`. New: `∀ st RD M ctx,
+  {{ pkg ∗ RD ∗ ⌜M = .off⌝ ∗ □ {{ RD }} st.IsAuthEnabled() {{ b, RD ∗ auth.enabledVerdict M b }} }} …`:
+  the verdict in the store's vocabulary, the shape `apply.isAuthStore` holds. Option (a)
+  (`authInv st R M ∗ enabledRd st M`) is not a local change: in the mode `off` the server's store is
+  `NewAuthStore`'s axiom (`authStoreKit_off`), which gives contracts, not `authInv`, so the server
+  holds no `authInv` to hand over. Kept at (b); (a) needs the off-mode store proved.
+- **The four etcd adequacy lemmas** (`etcdstart/Adequacy.lean`: `etcd_adequate_alloc`,
+  `etcd_adequate`; `AdequacyMembers.lean`: both) (S4): `threadBound GF = max (n + 2) 4` →
+  `threadBound GF = max (n + 2) srvRevokeK` (the name only; `srvRevokeK : Nat := 4`, `@[word_unfold]`,
+  new module `etcdserver/RevokeLevels.lean`, which the lemmas import). The closed theorems' texts are
+  unchanged; their proofs discharge `threadBound ≤ 2 ^ 28` by `rw [HT]; word` (until then `omega`,
+  which does not see through the name), and leaseexpiry's `srvRevokeLevels` by the new law
+  `srvRevokeLevels_of_max HT` (until then `show 4 ≤ threadBound _`: NIT 1.3).
+- **`srvRevokeLevels`**: `4 ≤ threadBound GF` → `srvRevokeK ≤ threadBound GF` (S4).
+- **`start_gives_views`** (exported; S2): its post's count `Int.toNat sync.rwmutex.actualMaxReaders -
+  srvRevokePoolN` → `srvStartReadN` (the name only, approved F.1's text otherwise). New, in
+  `InvStart.lean`: `srvStartReadN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN`
+  with `one_le_srvStartReadN`. `srvStarted`'s `Hrds` and `srvStartReaders`' first stock use it
+  (the wait group's `- 2 - srvRevokePoolN` stays literal: no client outside etcdserver names it).
+- **`etcdstart.memberReadN`** (S2): body `Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN` →
+  `srvStartReadN`; `one_le_memberReadN` is now `one_le_srvStartReadN` (no unfolding of backend or
+  sync in etcdstart).
+- **`srvRevokeCtx`'s body** (sealed; NIT 3.3): − `⌜E.authOn = false → E.authMode = .off⌝` (true of
+  every `E`; now the law `apply.AEnv.authMode_off_of_authOn`, `apply/Chain.lean`).
+  `srvRevokeCtx_intro` loses the same conjunct.
+- **`wp_GoAttach_tok`** (NIT 3.1): pre `srvGoResAt s γ ∗ srvLgReader s ∗ P ∗ …` → `srvGoResAt s γ ∗ P ∗
+  …`, post `srvGoResAt s γ ∗ srvLgReader s` → `srvGoResAt s γ`. Its 12 uses (`Start` ×10,
+  `sendMergedSnap`, `monitorLeader`) keep the slot in their frames.
+- **`backend.authRdN`** (NIT 3.6): `2 ^ 28 + 2 ^ 7` → `rdPoolN + 2 ^ 7` (same value; `rdStockN_val`
+  unchanged).
+- **Removed**: `lease.bootCfg_revocable` (NIT 3.5: no caller); `srvRevokeBuilt_parts`,
+  `srvRevokeCtx_parts` (S1).
+
+**S1, the laws** (`RevokeCtx.lean`). The pools and their loans are sealed (`@[no_expose]`
+`srvRevokeOuterPool`, `srvRevokeInnerPool`, new `srvRevokeOuterLoan`, `srvRevokeInnerLoan`), with
+intro laws for their builders (`srvRevokeOuterPool_intro` for `start`; `srvRevokeInnerPool_intro`,
+moved from `NewServer.lean`). One narrow elimination per use in `revokeExpiredLeases`' proof:
+`srvRevokeCtx_outerBorrow`/`srvRevokeOuterLoan_giveBack` (level 2), `srvRevokeCtx_innerBorrow`/
+`srvRevokeInnerLoan_giveBack` (level 1), `srvRevokeCtx_raftPool`, `srvRevokeCtx_bound`
+(`threadBound GF ≤ 2 ^ 30 - 1`), `srvRevokeCtx_views` (auth off), `srvRevokeCtx_withRoot` (auth off:
+the store's pointer and `IsAuthEnabled`'s contract with the verdict, `WithRoot`'s premise: the
+converted contract, so the proof's 20 lines of glue are gone), `srvRevokeCtx_cred`,
+`srvRevokeCtx_ctx`. Laws added in other packages' modules for facts of their definitions:
+`apply.isAuthStore_isAuthEnabled` (`apply/AuthDerive.lean`), `lease.expiredLeases_read`
+(`lease/LessorBackend.lean`), and in etcdserver `srvGoAttachOk_stopping` (`InvGoAttach.lean`). The
+proof no longer unfolds the pools, `srvGoAttachOk`, `apply.isAuthStore`, `auth.enabledVerdict`,
+`lease.expiredLeases`, `backend.rdPoolN` or `srvRevokeLevels` (it reads `4 ≤ threadBound` from
+`hlev` by definitional equality, the owner's own constant). Left: `srvFieldsAt`/`srvRunFieldsAt`
+(its own package's) and `mvcc.counterSpec` (NIT 3.7, not in this round's list).
+
+**Docstrings**: NIT 1.4 (`run.spec`), NIT 2.1 (`Adequacy.lean`'s header), NIT 2.2
+(`start_gives_views`), NIT 3.2 (`GoAttach.spec`: the level is `raftPool`'s).
+
+**Not done**: NIT 3.4 (`srvRevokeBuilt` keeps `threadBound GF ≤ backend.rdPoolN`; the consumer-shaped
+bound is the law `srvRevokeCtx_bound`), NIT 3.7 (`srvApplyLoopInit`'s positional conjunct, mvcc's
+`Inc` law), P1 (the baselines were already updated at `368a196acc`).
+
+**The auth-on copies (the reviewer's unverified item).** In the mode `on γa`, `E.RD` is
+`auth.authRd stl R (.on γa)` = a reader slot of each of the store's three locks (`enabledMu`,
+`rangePermCacheMu`, `beMu` with its currency ticket) and a backend ticket `R`. `newAuthStore_on`
+hands out `authRdN - 1 = 2 ^ 28 + 127` of them, under its premise `authRdN - 1 ≤ actualMaxReaders`
+(`AuthSrv.lean`): each lock's copies come from that lock's own `actualMaxReaders = 2 ^ 30 - 1` slots,
+so `2 ^ 28 + 127` of each is within Go's limit; the tickets are counted by `authRdTotal` (`2 * N`);
+the `R`s are `authSchemaSrv`'s `authRdN` copies, backed by the backend's `authRdN` slots, inside
+the partition (`rdPoolN_add_rdStockN`). `NewServer` uses 67 of them (the auth applier, the KV, 64
+request goroutines, the compactor) and pairs `srvRevokePoolN = 2 ^ 28 - 1` with `leadTimeMu`'s
+slots for the inner pool, uniformly in both modes; the rest are dropped. In the mode `on` the
+revocation never runs (`srvRevokesLeases`), so the inner pool's `2 ^ 28 - 1` copies stay idle: the
+count is what is intended (the inner pool built the same way in both modes), and its only cost is
+the backend stock's `2 ^ 28` fewer slots (`rdStockN_val`: `536870783`).

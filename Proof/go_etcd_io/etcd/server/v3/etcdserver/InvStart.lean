@@ -59,6 +59,18 @@ abbrev srvSnapCountAddr (s : Loc) : Loc := srvCfgFieldAddr s go!"SnapshotCount"
 abbrev srvSnapCatchUpAddr (s : Loc) : Loc := srvCfgFieldAddr s go!"SnapshotCatchUpEntries"
 end addrs
 
+/-- **The read loop's reader slots `start` hands on** (revoke-open review round 1, S2, 2026-11-06):
+`read.mux`'s `actualMaxReaders` less the revocation's outer pool's `srvRevokePoolN`, which `start`
+keeps (`srvStarted`'s and `srvStartReaders`' count, `start_gives_views`'s). Named here, where the
+slots are owned, so that a change of the revocation's pool changes this body and no exported text;
+the members' stocks are written with it (`etcdstart.memberReadN`). -/
+def srvStartReadN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN
+
+/-- At least one slot (each consumer splits off one gRPC slot). -/
+theorem one_le_srvStartReadN : 1 ≤ srvStartReadN := by
+  unfold srvStartReadN
+  rw [sync.rwmutex.actualMaxReaders_unseal]; simp only [srvRevokePoolN, backend.rdPoolN]; omega
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -316,8 +328,7 @@ def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 →
       isReadLoopPre r γr RQ (srvReadLR s) (idCred ρ.ids 1) F) ∗
     "HLR" ∷ srvReadLR s ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
-    "Hrds" ∷ ([∗list] _x ∈ List.replicate
-      (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) (), srvReadReader s γr) ∗
+    "Hrds" ∷ ([∗list] _x ∈ List.replicate srvStartReadN (), srvReadReader s γr) ∗
     "Hwgs" ∷ ([∗list] _x ∈ List.replicate
       (Int.toNat sync.rwmutex.actualMaxReaders - 2 - srvRevokePoolN) (), srvWgReader s) ∗
     "Hlcs" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
@@ -326,10 +337,10 @@ def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 →
 /-- **`Start`'s reader slots** (its post's; the auth component's stage 2, 2026-11-04, named once so
 that `Start`'s merged spec and its corollaries share one count of the stocks): the read loop's
 lock's `actualMaxReaders` slots and the wait group's lock's but two, less (revoke-open, 2026-11-06)
-the revocation's outer pool's `srvRevokePoolN` of each (`start` carves it). -/
+the revocation's outer pool's `srvRevokePoolN` of each (`start` carves it; the read loop's count
+`srvStartReadN`, review round 1). -/
 def srvStartReaders (s : Loc) (γr : ReadNames) : IProp GF :=
-  iprop(([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN)
-      (), srvReadReader s γr) ∗
+  iprop(([∗list] _x ∈ List.replicate srvStartReadN (), srvReadReader s γr) ∗
     ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2 - srvRevokePoolN) (),
       srvWgReader s))
 

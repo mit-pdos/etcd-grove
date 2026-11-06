@@ -51,8 +51,8 @@ on: the stop branch rests on the three axioms of the image's configuration (`app
 `apply.memberEnc_id_learner`, `membership.membersOf_decode`, through `stop_imageConf`), so every result
 over `run` does, including those whose callers never stop the server (approved by the user,
 2026-11-06). (revoke-open, 2026-11-06, Q8 (a)) `run` holds a thread token, which it returns
-(`start` forks it with `wp_fork_tok_body`): its expiry arm lends level 1 to the round's `GoAttach`
-and borrows the revocation's outer pool with level 2 (`isServerRunC`'s `#Hrvk`). -/
+(`start` forks it with `wp_fork_tok_body`): its expiry arm starts goroutines whose reader slots are
+backed by it (`isServerRunC`'s `#Hrvk`). -/
 abbrev EtcdServer.run.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)

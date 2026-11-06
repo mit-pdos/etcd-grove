@@ -139,9 +139,9 @@ theorem EtcdServer.sendMergedSnap.wp_proof
   iunfold stopChan at Hstg
   icases Hstg with ⟨%γsg, #Hstg⟩
   icases srvGoRes_open s $$ Hgr with ⟨%γg, Hgr⟩
-  wp_apply wp_GoAttach_tok hGA s γg _ (ownSliceCap go_uber_org.zap.zapcore.Field _ (DFrac.own 1)) $$ [Hgr Hlr Hfcap]
-    as ⟨Hgr, Hlr⟩
-  · iframe Hgr Hlr Hfcap
+  wp_apply wp_GoAttach_tok hGA s γg _ (ownSliceCap go_uber_org.zap.zapcore.Field _ (DFrac.own 1)) $$ [Hgr Hfcap]
+    as Hgr
+  · iframe Hgr Hfcap
     iintro !> %Φ' ⟨Hfcap, Hrun⟩ HΦ'
     ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto_lc 2

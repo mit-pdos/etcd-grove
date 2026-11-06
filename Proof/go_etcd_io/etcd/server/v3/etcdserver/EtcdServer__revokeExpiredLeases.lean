@@ -61,31 +61,28 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hSpf : fmt.SprintfID.spec (GF := GF) (hG := hG)) :
     EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ v γr γg γcx rv SP ls hRL hlev
-  wp_start as ⟨#Hf, #Hrf, #Hexp, #Hrvk, Htok⟩
-  unfold srvRevokeLevels at hlev
-  have hoff : E.authOn = false := hRL.2
-  -- the bundle's pieces
-  icases srvRevokeCtx_parts s E ρ γr γg $$ Hrvk
-    with ⟨#Hbuilt, #HB, %Hmode, #Hviews, #Hcred, ⟨%ctx, %cd, #Hctxf, #Hctx⟩⟩
-  have hM : E.authMode = auth.AuthMode.off := Hmode hoff
-  icases srvRevokeBuilt_parts s E $$ Hbuilt with ⟨#HI, #HrP, ⟨%stl, #Hauf⟩, %Hbnd⟩
-  unfold backend.rdPoolN at Hbnd
-  icases Hviews $$ %hoff with ⟨#Hreq, #Hrd⟩
+  intro s γ ci TM E ρ v γr γg γcx rv SP ls
+  wp_start as ⟨#Hf, #Hrf, #Hexp, #Hrvk, %Hpre, Htok⟩
+  obtain ⟨hlm, hlev⟩ := Hpre
+  have hlev4 : 4 ≤ threadBound GF := hlev
+  -- auth off, from the slice's grant guard
+  ihave %Hg := srvGrantGuard_expired E.lg E.authMode.isOn ls $$ Hexp
+  have hoff : E.authOn = false := Hg.2
+  have hRL : srvRevokesLeases E ρ := ⟨hlm, hoff⟩
+  -- the bundle's laws
+  ihave %Hbnd30 := srvRevokeCtx_bound s E ρ γr γg $$ Hrvk
+  ihave ⟨#Hreq, #Hrd⟩ := srvRevokeCtx_views s E ρ γr γg hoff $$ Hrvk
   ihave #Hauth := srvAuthAt_of_views s E ρ γr $$ [$Hreq $Hrd]
-  iunfold srvRevokeOuterPool at HB
-  icases HB with ⟨%γB, #HB⟩
-  iunfold srvRevokeInnerPool at HI
-  icases HI with ⟨%γI, #HI⟩
+  ihave #HrP := srvRevokeCtx_raftPool s E ρ γr γg $$ Hrvk
+  ihave #Hcred := srvRevokeCtx_cred s E ρ γr γg $$ Hrvk
+  ihave ⟨%ctx, %cd, #Hctxf, #Hctx⟩ := srvRevokeCtx_ctx s E ρ γr γg $$ Hrvk
+  ihave ⟨%stl, #Hauf, #HEn⟩ := srvRevokeCtx_withRoot s E ρ γr γg hoff $$ Hrvk
+  have hM : E.authMode = auth.AuthMode.off := apply.AEnv.authMode_off_of_authOn E hoff
   iunfold srvFieldsAt at Hf
   icases Hf with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -, -⟩
   iunfold srvRunFieldsAt at Hrf
   icases Hrf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
-  ihave #Hgok' := Hgok
-  iunfold srvGoAttachOk at Hgok'
-  icases Hgok' with ⟨%sch, %c0, #Hsch, #Hint, -, -, -, -, -, -, -⟩
-  ihave #Hstop : ownStopChan sch γg.ch iprop(True) .Unknown $$ []
-  · iunfold ownStopChan; iexists γg.chi; iframe Hint
+  ihave ⟨%sch, #Hsch, #Hstop⟩ := srvGoAttachOk_stopping s γg $$ Hgok
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
@@ -95,35 +92,14 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, ⟨-, -, -, ⟨%cnt, #Hcnt, #Hcnts⟩⟩⟩
-  -- `WithRoot`'s premise: the store's `IsAuthEnabled` answers `false` (auth off)
-  ihave #HEn : ({{ E.RD }} (App (Val (stl @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
-      go!"IsAuthEnabled")) (Val #()))
-    {{ (b : Bool), RET #b; E.RD ∗ ⌜b = false⌝ }} : IProp GF) $$ []
-  · iunfold srvAuthAt at Hauth
-    icases Hauth with ⟨%st, %cca, %P, %f, #Hst, -, -, -, #HAS⟩
-    icombine Hauf Hst gives %e0
-    iunfold apply.isAuthStore at HAS
-    icases HAS with ⟨%ai, %Hai, -, -, -, -, -, #HEn0, -⟩
-    subst Hai
-    rcases ai with ⟨aty, av⟩
-    simp only [auth.authIface, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at e0
-    obtain ⟨rfl, rfl⟩ := e0
-    iintro !> %Φ' HRD HΦ'
-    iapply HEn0 $$ HRD
-    inext
-    iintro %b ⟨HRD, Hv⟩
-    rw [hM]
-    iunfold auth.enabledVerdict at Hv
-    iapply HΦ'
-    iframe
   -- the caller's levels: 0, 1 (lent to `GoAttach`), 2 (`B`), the rest
   icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Ht1⟩
   icases (threadTokFrom_succ (GF := GF) 1 (by omega)).1 $$ Ht1 with ⟨H1, Ht2⟩
   icases (threadTokFrom_succ (GF := GF) 2 (by omega)).1 $$ Ht2 with ⟨H2, Ht3⟩
   wp_auto_lc 1
-  imod threadPool.borrowL_lc srvRevokeOuterN 2 γB iprop(srvWgReaderAt s γg ∗ srvReadReader s γr) ⊤ (fun _ _ => CoPset.mem_full)
-    $$ [Hlc1 HB H2] with ⟨⟨Hwr, Hrdr⟩, HloanB⟩
-  · iframe; iframe #
+  imod srvRevokeCtx_outerBorrow s E ρ γr γg ⊤ (fun _ _ => CoPset.mem_full)
+    $$ [Hlc1 Hrvk H2] with ⟨⟨Hwr, Hrdr⟩, HloanB⟩
+  · iframe Hlc1 H2; iexact Hrvk
   ipersist s
   ipersist leases
   iapply wp_fupd
@@ -138,12 +114,12 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     icases (threadTokFrom_succ (GF := GF) 2 (by omega)).1 $$ Gt2 with ⟨G2, Gt3⟩
     icases (threadTokFrom_succ (GF := GF) 3 (by omega)).1 $$ Gt3 with ⟨G3, Gt4⟩
     wp_auto_lc 2
-    imod threadPool.borrowL_lc srvRevokeOuterN 2 γB iprop(srvWgReaderAt s γg ∗ srvReadReader s γr) ⊤ (fun _ _ => CoPset.mem_full)
-      $$ [Hlc1 HB G2] with ⟨⟨Gwr, Grdr⟩, GloanB⟩
-    · iframe; iframe #
+    imod srvRevokeCtx_outerBorrow s E ρ γr γg ⊤ (fun _ _ => CoPset.mem_full)
+      $$ [Hlc1 Hrvk G2] with ⟨⟨Gwr, Grdr⟩, GloanB⟩
+    · iframe Hlc1 G2; iexact Hrvk
     imod raftPool_borrowL (srvLgReader s) ⊤ (fun _ _ => CoPset.mem_full) $$ [Hlc2 HrP G1]
       with ⟨Glr, GloanR⟩
-    · iframe; iframe #
+    · iframe Hlc2 G1; iexact HrP
     wp_apply hLg s v.lg $$ [Glr] as ⟨%Hl, Glr⟩
     · iframe #; iframe Glr; ipureintro; exact Hlgnn
     (try wp_auto)
@@ -156,12 +132,12 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     · iframe
     ipersist lg
     -- the goroutine's exit: `B` given back, its levels recombined
-    ihave Hexit : iprop(srvWgReaderAt s γg ∗ srvReadReader s γr ∗ threadPool.ownThreadLoan γB ∗
+    ihave Hexit : iprop(srvWgReaderAt s γg ∗ srvReadReader s γr ∗ srvRevokeOuterLoan s γr γg ∗
         levelTok 1 ∗ levelTok 3 ∗ threadTokFrom 4 ∗ goRunning γg -∗ |={⊤}=> Φ' #()) $$ [HΦ']
     · iintro ⟨Gwr, Grdr, GloanB, G1, G3, Gt4, Hrun⟩
-      imod threadPool.giveBackL srvRevokeOuterN 2 γB iprop(srvWgReaderAt s γg ∗ srvReadReader s γr) ⊤ (fun _ _ => CoPset.mem_full)
-        $$ [HB GloanB Gwr Grdr] with G2
-      · iframe #; iframe
+      imod srvRevokeOuterLoan_giveBack s γr γg ⊤ (fun _ _ => CoPset.mem_full)
+        $$ [GloanB Gwr Grdr] with G2
+      · iframe GloanB Gwr Grdr
       imodintro
       iapply HΦ'
       iframe Hrun
@@ -194,8 +170,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     imod start_bag (fun _ : Unit => iprop(True)) _ ch γc (by decide) $$ Hch Hoc with #Hbag
     (try wp_auto)
     ipersist c
-    iunfold lease.expiredLeases at Hexp
-    icases Hexp with ⟨%ps, %Hps, #Hls, #Hps⟩
+    icases lease.expiredLeases_read _ ls $$ Hexp with ⟨%ps, #Hls, #Hps⟩
     ihave %Hlsl := ownSlice_len _ _ _ $$ Hls
     (try wp_auto)
     ihave IH : iprop(∃ (j : w64) (cl : Loc),
@@ -211,7 +186,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
       have Hbnd : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z ls.len := ⟨Hj, Hif⟩
       obtain ⟨p, Hp⟩ : ∃ p, ps[(sint.Z j).toNat]? = some p :=
         ⟨_, List.getElem?_eq_getElem hjl⟩
-      ihave ⟨%Hpnn, %id, #Hid, -⟩ := BigSepL.bigSepL_lookup Hp $$ Hps
+      ihave ⟨%Hpnn, %id, #Hid⟩ := BigSepL.bigSepL_lookup Hp $$ Hps
       simp only [Hbnd, _root_.and_self, ↓reduceIte]
       wp_apply (lc := 2) wp_load_slice_index ls (sint.Z j) _ _ p Hj $$ [] as -
       · iframe #; ipureintro; exact Hp
@@ -238,13 +213,14 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
           iapply wp_fupd
           icases (threadTokFrom_succ (GF := GF) 1 (by omega)).1 $$ Ifr with ⟨I1, It2⟩
           wp_auto_lc 1
-          imod threadPool.borrowL_lc srvRevokeInnerN 1 γI iprop(srvLeadTimeReader s ∗ E.RD) ⊤ (fun _ _ => CoPset.mem_full)
-            $$ [Hlc1 HI I1] with ⟨⟨Ilt, IRD⟩, IloanI⟩
-          · iframe; iframe #
+          imod srvRevokeCtx_innerBorrow s E ρ γr γg ⊤ (fun _ _ => CoPset.mem_full)
+            $$ [Hlc1 Hrvk I1] with ⟨⟨Ilt, IRD⟩, IloanI⟩
+          · iframe Hlc1 I1; iexact Hrvk
           -- (`wp_apply hWR stl E.RD …` aborts without an error: the call by hand)
           wp_bind (App (Val _) (Val #(GoInterface.ok ctx)))
-          iapply hWR stl E.RD (GoInterface.ok ctx) $$ [IRD] [Irun HΨ It2 Ilt IloanI]
+          iapply hWR stl E.RD E.authMode (GoInterface.ok ctx) $$ [IRD] [Irun HΨ It2 Ilt IloanI]
           · iframe #; iframe IRD
+            try (ipureintro; exact hM)
           inext
           iintro IRD
           (try wp_auto)
@@ -258,9 +234,9 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
             ipureintro; exact Hrnn
           (try wp_auto)
           ihave Hdone : iprop(|={⊤}=> Ψ #()) $$ [HΨ Irun It2 IloanI Ilt IRD]
-          · imod threadPool.giveBackL srvRevokeInnerN 1 γI iprop(srvLeadTimeReader s ∗ E.RD) ⊤ (fun _ _ => CoPset.mem_full)
-              $$ [HI IloanI Ilt IRD] with I1
-            · iframe #; iframe
+          · imod srvRevokeInnerLoan_giveBack s E ⊤ (fun _ _ => CoPset.mem_full)
+              $$ [IloanI Ilt IRD] with I1
+            · iframe IloanI Ilt IRD
             imodintro
             iapply HΨ
             iframe Irun
@@ -341,9 +317,9 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
       iapply Hexit
       iframe
   -- the caller: `B` given back, its token recombined
-  imod threadPool.giveBackL srvRevokeOuterN 2 γB iprop(srvWgReaderAt s γg ∗ srvReadReader s γr) ⊤ (fun _ _ => CoPset.mem_full)
-    $$ [HB HloanB Hwr Hrdr] with H2
-  · iframe #; iframe
+  imod srvRevokeOuterLoan_giveBack s γr γg ⊤ (fun _ _ => CoPset.mem_full)
+    $$ [HloanB Hwr Hrdr] with H2
+  · iframe HloanB Hwr Hrdr
   imodintro
   iapply HΦ
   iapply (threadTok_level0 (GF := GF)).2

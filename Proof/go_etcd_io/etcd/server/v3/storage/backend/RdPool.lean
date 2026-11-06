@@ -51,9 +51,11 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 /-- **The auth store's share of a backend's reader slots** (the auth-on snapshot plan's N4,
 2026-11-03): the auth store's reader resource is a ticket, of which the server hands out at most
 `authRdN` copies, each backed by one of these slots of the backend current when it is redeemed.
-(revoke-open Q6 (a), 2026-11-06: `2 ^ 28` more, until then `2 ^ 7`, for the revocation's inner pool's
-copies of the server's `E.RD`.) -/
-@[word_unfold] def authRdN : Nat := 2 ^ 28 + 2 ^ 7
+(revoke-open Q6 (a), 2026-11-06: `rdPoolN` more, until then `2 ^ 7`, for the revocation's inner
+pool's copies of the server's `E.RD`, a pool's worth (`srvRevokePoolN = rdPoolN - 1`); written over
+`rdPoolN` since review round 1, NIT 3.6, so that the two stay in step. A backend constant sized by a
+consumer two packages up, the server.) -/
+@[word_unfold] def authRdN : Nat := rdPoolN + 2 ^ 7
 
 /-- The reader slots the constructor's post leaves counted, past the pool's `rdPoolN` and the auth
 share's `authRdN`. (Irreducible, 2026-11-02: a unifier unfolding it would evaluate `Nat.sub` by

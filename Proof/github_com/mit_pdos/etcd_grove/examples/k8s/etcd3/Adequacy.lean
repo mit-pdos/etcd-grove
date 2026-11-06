@@ -192,7 +192,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := k8s_etcd3.wp_Main (GF := k8setcd3GF) n id ctxs boot clients ops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

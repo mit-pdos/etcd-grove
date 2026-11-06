@@ -585,12 +585,7 @@ theorem EtcdServer.start.wp_proof
   · iapply srvRevokeCtx_intro
     iframe Hrvkb
     isplitr
-    · iunfold srvRevokeOuterPool; iexists γB; iexact HBp
-    isplitr
-    · ipureintro; intro h
-      revert h
-      rw [apply.AEnv.authOn_eq]
-      cases E.authMode <;> simp [auth.AuthMode.isOn]
+    · iapply srvRevokeOuterPool_intro s γr γg γB $$ HBp
     isplitr
     · iintro !> %Hoff
       have hCoff : C.isOn = false := by
@@ -677,7 +672,9 @@ theorem EtcdServer.start.wp_proof
     iexists lcn
     iframe Hlc Hlc1
   isplitl [Hrslots]
-  · iapply replicate_map _ _ (srvReadAddr s ↦□ rd) $$ [$Hread $Hrslots]
+  · -- (the count's name, `srvStartReadN`, unfolded in this conjunct's goal only)
+    unfold srvStartReadN
+    iapply replicate_map _ _ (srvReadAddr s ↦□ rd) $$ [$Hread $Hrslots]
     iintro ⟨#Hr, Hslot⟩
     iunfold srvReadReader
     iexists rd
