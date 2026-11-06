@@ -51,10 +51,11 @@ theorem rpctypes_etcdError_statusErrOk
   iintro !> %e %he
   cases he
   isplitr
-  · unfold errorStringSpec
+  · iexists x.desc'
+    unfold errorMsgIs
     iintro !> %Φ HΦ
     wp_apply wp_EErr x
-    iapply HΦ
+    iexact HΦ
   isplitr
   · ipureintro; exact hty.1 #x
   · unfold grpcErrMethodsOk
@@ -112,7 +113,7 @@ theorem rpctypes.Error.wp_proof
     simp only [Option.getD_some, Option.isSome_some]
     wp_auto
     ihave #Hv := Hmv $$ %d %v %hk
-    wp_apply wp_FromError v $$ [$Hst $Hv] as %ev %ok ⟨%Hnil, #HCode, #HMsg, #HErr⟩
+    wp_apply wp_FromError v $$ [$Hst $Hv] as %ev %ok ⟨%Hnil, #HCode, #HMsg, #HErr, -⟩
     cases ok
     · obtain ⟨ve, rfl⟩ : ∃ ve, v = GoInterface.ok ve := by
         cases v with
