@@ -80,7 +80,7 @@ def mvcc.restoreOnReady (s : Loc) (γ : mvcc.StoreNames) (p' : mvcc.PhysNames) (
     mvcc.retiredAt γ 3 ∗ ghostVar γ.wsd (1 : Qp).half () ∗
     mvcc.restoreOnRest γ R ∗
     (if r.finRev = r.crev then ghostVar γ.wsd (1 : Qp).half.half () else iprop(True)) ∗
-    mvcc.idxCert γ.idx ([[], []] ++ R))
+    mvcc.idxCert γ.idx ([[], []] ++ R) ∗ mvcc.slotFr γ)
 
 /-- `restore()`'s end (after its resumed compaction, if any). -/
 def mvcc.restoreOnFin (s : Loc) (γ : mvcc.StoreNames) (p' : mvcc.PhysNames) (o' : mvcc.StoreObjs)
@@ -91,7 +91,7 @@ def mvcc.restoreOnFin (s : Loc) (γ : mvcc.StoreNames) (p' : mvcc.PhysNames) (o'
     mvcc.storeRT (γ.withPhys p') ∗ mvcc.writerFrag (γ.withPhys p') ∗ mvcc.resumeHookM d' r ∗
     ghostVar γ.wsd (1 : Qp).half.half () ∗ mvcc.retiredAt γ 3 ∗ ghostVar γ.wsd (1 : Qp).half () ∗
     mvcc.restoreOnRest γ R ∗
-    mvcc.idxCert γ.idx ([[], []] ++ R)))
+    mvcc.idxCert γ.idx ([[], []] ++ R) ∗ mvcc.slotFr γ))
 
 end defs
 

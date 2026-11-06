@@ -50,14 +50,13 @@ backend's readers and the new one's left over, the leases attached (the owner's 
 (`watchableStore.Restore.specOff_of_spec`). -/
 abbrev mvcc.watchableStore.Restore.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
-    (P' : IProp GF) (R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64),
+    (P' : IProp GF) (R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64) (Rr : IProp GF),
   mvcc.restoreLogOk R → c ≤ r.crev →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ.st r.finRev ∗
       mvcc.crevPermAt γ.st r.crev ∗
       mvcc.isWatchableStore s st γ ∗ ⌜∃ d, γ.st.kb = some d ∧ d'.cm = d.cm⌝ ∗
       mvcc.restoreRightM st γ.st c ∗ mvcc.writerFrag γ.st ∗ mvcc.writerOwn γ.st ∗
-      □ (∀ C : mvcc.Log, mvcc.idxCert γ.st.idx C -∗ ⌜C <+: [[], []] ++ R⌝) ∗
       mvcc.certOk γ.st ([[], []] ++ R) ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
         mvcc.restoreFixM d' (γ.st.withPhys p) -∗ mvcc.storeBackendTR b' st (γ.st.withPhys p) P' r) ∗
@@ -71,7 +70,8 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) ∗
       lease.leaseOwn γ.st.leases Ls ∅ ∗
       ⌜∀ it lid, (mvcc.pendItems ([[], []] ++ R) []).lookup it = some lid →
-        lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ }}
+        lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗
+      mvcc.api.shareTok γ.st.api 1 ∗ mvcc.restoreCb γ.st ([[], []] ++ R) r.crev Rr }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Restore")) (Val #b'))
   {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
       ⌜p'.bucket = γb' ∧ p'.kb = some d'⌝ ∗
@@ -82,7 +82,8 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
       mvcc.compactJobResM γ.st.kb ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1 - mvcc.nJobRd γ.st.kb) (), mvcc.storeRT γ.st) ∗
       mvcc.storeRT (γ.st.withPhys p') ∗
-      lease.leaseOwn γ.st.leases Ls (mvcc.pendItems ([[], []] ++ R) []) }}
+      lease.leaseOwn γ.st.leases Ls (mvcc.pendItems ([[], []] ++ R) []) ∗
+      mvcc.api.shareTok γ.st.api 1 ∗ Rr }}
 
 end spec
 

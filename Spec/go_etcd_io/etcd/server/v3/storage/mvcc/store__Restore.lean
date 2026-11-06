@@ -107,6 +107,12 @@ steps, `store__Restore.lean` off, `RestoreOn.lean` on):
 * The leases (2026-11-06): `restore` attaches each restored key with a lease through the store's
   lessor (`isStore`'s `isLessor le γ.leases`), from the caller's owner part `leaseOwn γ.leases Ls ∅`,
   each restored item's lease live and its key short; the owner's map becomes `pendItems L' []`.
+* The API's view (2026-11-06): the restorer's whole share token (`mvccBackend γ 1`'s) excludes the
+  frozen state at the takeover and is the restoring state's deposit until the finish; right after
+  the takeover the caller's ghost step (`restoreCb`, fired by the takeover) moves `s.revMu`'s slot and the writer's part
+  of the view to `L'` at `r.crev` (the client's update: `KV.Restore.contract`), which the switch
+  and the finish install, mints the notified log's lower bound at `L'` and gives `L <+: L'` (the
+  client's history extends to the restored one; until 2026-11-06 a premise).
 * `defer s.mu.Unlock()` with `muInv s γ' 1` at the new objects, at `r.crev`.
 
 **Postcondition**: `nil`; at some physical names `p'` of the new backend's bucket and instance,
@@ -124,8 +130,8 @@ they are current, and no fact names a field `Restore` writes (`b`, `kvindex`, `f
 `currentRev`, `compactMainRev`: their points-to are in the shares and the locks). -/
 abbrev mvcc.store.Restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
-    (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64),
-  L <+: [[], []] ++ R → mvcc.restoreLogOk R → c ≤ r.crev → γ.watchQ = true →
+    (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64) (Rr : IProp GF),
+  mvcc.restoreLogOk R → c ≤ r.crev → γ.watchQ = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ r.finRev ∗ mvcc.crevPermAt γ r.crev ∗
       mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d ∧ d'.cm = d.cm⌝ ∗
@@ -146,7 +152,8 @@ abbrev mvcc.store.Restore.spec : Prop :=
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) ∗
       lease.leaseOwn γ.leases Ls ∅ ∗
       ⌜∀ it lid, (mvcc.pendItems ([[], []] ++ R) []).lookup it = some lid →
-        lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ }}
+        lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗
+      mvcc.api.shareTok γ.api 1 ∗ mvcc.restoreCb γ ([[], []] ++ R) r.crev Rr }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #b'))
   {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
       ⌜p'.bucket = γb' ∧ p'.kb = some d'⌝ ∗
@@ -160,7 +167,8 @@ abbrev mvcc.store.Restore.spec : Prop :=
       mvcc.compactJobResM γ.kb ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1 - mvcc.nJobRd γ.kb) (), mvcc.storeRT γ) ∗
       mvcc.storeRT (γ.withPhys p') ∗
-      lease.leaseOwn γ.leases Ls (mvcc.pendItems ([[], []] ++ R) []) }}
+      lease.leaseOwn γ.leases Ls (mvcc.pendItems ([[], []] ++ R) []) ∗
+      mvcc.api.shareTok γ.api 1 ∗ mvcc.api.nlLb γ.api ([[], []] ++ R) ∗ Rr ∗ ⌜L <+: [[], []] ++ R⌝ }}
 
 end spec
 

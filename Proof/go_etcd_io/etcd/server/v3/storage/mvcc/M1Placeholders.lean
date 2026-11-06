@@ -28,6 +28,9 @@ gone: `newWatchableStore` makes it from the client's parts `NewStore` returns (t
 (track B's, 2026-11-06) is gone: `store.Restore` moves `s.mu`'s and the old writer's halves to the
 restored compaction revision (track A). `hookNilRO_M1` (2026-11-06) is gone: §4.8, a store without
 a hook (`batchTxSpecG`'s nil-hook clause at any share of the hook at `nil`, `kbHookNilAt`).
+`wsSlot_step_M1` and `RestoreMoves`' four (2026-11-06) are gone: `store.Restore`'s takeover fires its
+caller's ghost step (`restoreCb`, from `KV.Restore.contract`'s update) and holds the restorer's whole
+share token (`slotFr`) while restoring.
 -/
 module
 
@@ -60,21 +63,6 @@ theorem slotF_excl_M1 (γ : StoreNames) : slotF (GF := GF) γ ∗ iprop(emp) ⊢
 
 end placeholders
 
-section placeholdersW
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-/-- **(Placeholder, false in general.)** The watchable store's lock's slot moved to a new notified
-log without the client's update. M1-REPLACE: `KV.Restore.contract` (the watchable `End`'s use is gone:
-its caller's notify step `wsEndCb`, M4 track B, 2026-11-06). -/
-theorem wsSlot_step_M1 {γ : WsNames} {q : Qp} {L : Log} (L' : Log) :
-    wsSlot (GF := GF) γ q L ⊢ wsSlot γ q L' := by
-  sorry -- M1-REPLACE: KV.Restore.contract
-
-end placeholdersW
 
 end mvcc
 end EtcdGrove
