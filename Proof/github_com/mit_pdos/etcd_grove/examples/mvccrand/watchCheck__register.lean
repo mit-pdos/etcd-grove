@@ -117,7 +117,7 @@ theorem watchCheck.register.wp_proof
         sk se slice.nil kk e [] (W64 1 + x) (fun _ _ _ => iprop(True)))
       $$ [$Hmpkg $Hws $Htt $Hsk $Hse $Hflt $Hau]
     · isplitl []
-      · sorry -- M1-REPLACE: WatchStream.Watch.contract's isContext excludes context.TODO()
+      · ileft; ipureintro; rfl
       · ipureintro; word
     iintro %id %err ⟨Htt, Hres⟩
     icases Hres with (⟨%Hi, #Herr, -⟩ | ⟨%Hne, -⟩)
@@ -177,7 +177,7 @@ theorem watchCheck.register.wp_proof
       sk se slice.nil kk e [] (W64 1 + x) (regQ γ W «$r0_ptr» kk e se (W64 1 + x)))
     $$ [$Hmpkg $Hws $Htt $Hsk $Hse $Hflt $Hau]
   · isplitl []
-    · sorry -- M1-REPLACE: WatchStream.Watch.contract's isContext excludes context.TODO()
+    · ileft; ipureintro; rfl
     · ipureintro; word
   iintro %id %err ⟨Htt, Hres⟩
   icases Hres with (⟨%Hi, -, -⟩ | ⟨-, %σ, %S, HQ, Herr⟩)

@@ -299,4 +299,4 @@ range's update, handed back unconsumed, must be committable with no resources); 
 - Perennial (for the coordinator's `notes/perennial-changes.md`): `isSpsc` keeps its invariant at
   `nroot` (a caller with another invariant open cannot send); no `chan.wp_len` wrapper (as
   `chan.wp_cap`); the slice literal of map literals needed a local `wp_slice_literal_ex`.
-- Placeholders (`M1-REPLACE`): the two in `watchCheck__register.lean` above, nothing else.
+- Placeholders (`M1-REPLACE`): none. `register`'s two closed by the contract's fix (`b4bc6a538c`, the left disjunct); the lessor finding fixed by `1b56c352f8` (`lessorApplyOk`'s token `wbTok`, `le.b` lent in `R`).
