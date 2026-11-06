@@ -2445,13 +2445,13 @@ feasibility probe of its hard stops 6–7, then the open points.
 
 The sorry can be removed without new axioms, but the change is not small and has more hard stops than the five needs listed in the lease-expiry plan. Two resource supplies are too small for any thread-token design, and those two are where I am least sure. No upstream (Go) change is needed, and no Perennial change: P1 at `84d538063` is enough.
 
-## 0. Go code: no bug found
+#### 0. Go code: no bug found
 
 I read `server.go:860-905` and `GoAttach` at `:2435`. Nothing panics as long as each `*Lease` in the slice is non-nil, which `lease.expiredLeases` gives.
 
 If an inner `GoAttach` is skipped because the server is stopping, nothing ever runs `<-c`. The outer `select` still exits, because `stopping` is closed by then, so this is not a deadlock either. Nothing goes in `issues/`.
 
-## 1. Threads
+#### 1. Threads
 
 **Why pools are unavoidable.** Each round leaves up to 16 inner goroutines alive. `run` starts a new round every tick without waiting, and an inner goroutine may block forever, as far as the proof can see. So the number of live outer and inner goroutines is unbounded.
 
@@ -2502,7 +2502,7 @@ abbrev EtcdServer.GoAttach.spec : Prop :=
 
 **`ensureLeadership`'s trusted contract** (`Spec/.../EtcdServer__ensureLeadership.lean:44-49`): `threadTok` becomes `levelTok l` for a caller-chosen `l`, in and out. Its faithfulness argument (`tickMu` readers ≤ live goroutines < 2^30) never used the token's identity, only adequacy's thread bound. The other caller, `LeaseRenew`, splits off one level.
 
-## 2. The restated spec (frozen: hard stop)
+#### 2. The restated spec (frozen: hard stop)
 
 Old: the text at `Spec/.../EtcdServer__revokeExpiredLeases.lean:39-47`, whose precondition ends with `lease.expiredLeases …` and whose post is `True`. New:
 
@@ -2564,7 +2564,7 @@ Frozen or exported statements this changes (all hard stops):
 
 Unchanged: `srvRevokeOpen`'s text, `Main.spec`, `isServerReq`.
 
-## 3. Callee specs that don't exist yet
+#### 3. Callee specs that don't exist yet
 
 | Callee | What exists | Proposal |
 |---|---|---|
@@ -2584,7 +2584,7 @@ def isAuthRoot (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF
 
 Unsure: whether goose's reach for `WithRoot` (gRPC `metadata`, `tokenSimple`) needs new names-only packages. If it cannot be translated, the fallback is a contract axiom, which is trust-base growth.
 
-## 4. Bounds accounting
+#### 4. Bounds accounting
 
 - `spec-thread`: the spec mentions no `threadBound`; the pools hide it. `ensureLeadership.spec`'s `≤ 2^30 − 1` stays. Expected Δ = 0.
 - `stock`: same number of `List.replicate` matches; only the counts change.
@@ -2602,7 +2602,7 @@ Each pool lives in its lock's owner:
 
 They are bundled once, sealed, in `LeaseRun`.
 
-## 5. Commit order and size (each step proves only true statements)
+#### 5. Commit order and size (each step proves only true statements)
 
 1. **Leveled `s.wg`.** `goAttachInv`, Add/Done, the `2T` bound, the generalized `GoAttach.spec`, `wp_GoAttach_tok`, the 6 call sites. About 300 lines; everything proved.
 2. **`ensureLeadership` contract to `levelTok l`.** Run the `axiom` skill first, then `LeaseRenew`. About 30 lines; needs user approval.
@@ -2612,7 +2612,7 @@ They are bundled once, sealed, in `LeaseRun`.
 
 Total: about 1,400–1,800 lines over 5 commits.
 
-## Hard stops
+#### Hard stops
 
 1. **Frozen spec restated:** `EtcdServer.revokeExpiredLeases.spec`.
 2. **Trusted axiom restated:** `ensureLeadership.spec`, `threadTok` to `levelTok l`.
@@ -2828,3 +2828,70 @@ committed when proved.
 26. `EtcdServer.applySnapshot.specSnapM`: + `(hpre0 : γr.raft.pre = [])`, + `(hlmk : E.lm =
    γr.kv.lm)`. Cause: Probe 4 (the walk's monotone and revocable arms need the KV invariant's log
    at the server's mode).
+
+## S2–S4 Freeze package (2026-11-06; for etcd-grove-82, then the user)
+
+Branch `lease-snap`, HEAD after `a49ec29bd9`, on lean `5a00eca26c`. A full build and `etc/gates.sh` pass:
+785 axioms, **3 `sorry`s** (`srvGrantOpen_open` gone, none added), all 51 collections match,
+bounds 383, mode 292, api ok; the backend, etcdstart and raft interfaces are as committed.
+
+**What S2–S4 does.** Snapshots carry leases. A follower's restore recovers the lessor's leases
+(`lessor.Recover`, proved), and `applySnapshot`/`applyAll` are proved in every lease mode, so the
+gated `sorry` `srvGrantOpen_open` and `lease.bootCfg`/`runCfg`'s open clause are deleted. A lease's TTL
+as a member reports it is bounded below by its grant's request (`leaseTTLAt_ge_req`); the old
+"one TTL per lease" law was false of Go (`nonissues/etcd-lease-ttl-differs-across-members.md`).
+
+**Approved before the Freeze** (the user, via etcd-grove-82, 2026-11-05): the Scope with alternative
+(a), Q-S2 (Recover's ever-set premise), Q-S4/Q-S6 (A-ii: the requested-TTL bound, the ghost-only map
+in NewLessor's post), Q-S5 (specSnapM's `lessorModeIs`), Q-S7 (`Lr`), Q-S8 (`leaseReqIs` up the grant chain),
+and the batching rule.
+
+**The batch for the user** (each item old → new with its cause in the sections above):
+- *The grant chain* (Q-S8, items 1–5, 16):
+  - `isApplyLessor`'s Grant clause, `grantAnswer`, `leaseGrantedResp`, `v3rpc.grantLiveG` and
+    `etcdLeaseGrantSpecLive` (the client's exported contract) carry `leaseReqIs`;
+  - the dead `ttl ↦□ t ∗ ⌜req ≤ t⌝` conjunct is dropped everywhere but `isApplyLessor`;
+  - etcdstart's `etcdLeaseGrantLiveAt` changes meaning with it, which its interface cannot show.
+- *The TTL bound* (Q-S6, items 9–13, 17, 18): `grantPost`'s `grantTTLOk`; `dispatch.spec`/`Apply.spec`
+  and the ApplyRec triples; `srvRestAt` over a `LeaseTable` with `leaseTTLsGeReq`; the sender's
+  `bkRestAtM`/`mergedObsM` (`mergedObs`'s text is unchanged); `bkRestAtL` (lease-grant's Freeze, #7's
+  `imageAt`) and `imageLeasesAt`.
+- *The snapshot specs* (items 6, 14, 15, 22, 26, 29, 30): `specSnapM` takes `A <+: A'`,
+  `srvRLogLb γr.raft A'`, `γr.raft.pre = []` and `E.lm = γr.kv.lm` in both auth modes, and
+  `imageLeasesAt` as its lease fact. The empty-table fact is derived, not assumed. `SnapImageFacts(On)`
+  follow. `snapRecv_image` drops its `lg = false` premise. The auth-on arms no longer repeat the
+  log facts.
+- *Recover* (Q-S2, Q-S7, items 19, 27): the ever-set premise is gated on the records
+  (`if recs = [] then True else leaseEver γl U`), and so is the post; the caller-chosen `Lr` and the
+  requests `reqOf`.
+- *The lessor's invariant and laws* (items 7, 8, 20, 21, 23, 24, 31): `lessor_live_perm`,
+  `histCover` with `ever_live_mono`, `reqOk`, ids-only `histOnce`, `lessorInv_rdInv`, and the
+  `ImageLeases` lemmas over the log after the prefix (all proved).
+- *The server's request record* (item 25): `srvReqs`, `srvReqsIf` and `grantReqA` through `srvRest`
+  and the apply arms.
+- *Interfaces* (item 28): etcdstart's `memberBoot`/`memberBootOn` lose the `[v3rpc.Assumptions]`
+  binder (the deletion of `srvGrantOpen`).
+- *Tidying* (item 32): no statement changed.
+
+**The trusted statement changed:** `lease.NewLessor`'s post allocates the requested-TTL ghost map
+(ghost only). Attacked with the `axiom` skill: **survives**
+(`notes/axiom-review/newlessor-reqmap.md`, the audit row).
+
+**Top-level statements unchanged:** `etcd_leaseexpiry_safe`, `leaseexpiry_Main`,
+`etcd_leasegrant_safe`, `leasegrant_Main`; their trust base drops `srvGrantOpen_open`.
+
+**Evidence.**
+- Review rounds 1 and 2: `notes/spec-review/lease-snap-r{1,2}.md`; every finding was fixed or answered.
+- Test: `examples/etcd/leasesnap/leasesnap_test.go`, a 3-member etcd cluster with minimum TTLs 1/30/90
+  and three forced follower restores; all claims PASS.
+- Probe: all five proofs done (section "S2–S4 Probe").
+
+**Scope** (F6, for the user). In the revocable mode only one member of a cluster can be booted
+(`srvMemberBoot_alloc`'s `hpfx`, `kvInv_congr`). The only multi-member allocation (`alloc3`) runs in
+the mode `.none`. So the lease results are single-member today, and no closed result exercises a
+multi-member lease cluster's restore: S2–S4 makes the generic `run` proof sound for leased snapshots.
+The multi-member lease example (monotone on `cluster3`, the user's request) is queued after S2–S4
+lands.
+
+**After the Freeze.** There is nothing left to Prove: the Probe proved every `sorry`. What remains:
+the STATUS entry, a merge of lean, `etc/land.sh` through etcd-grove-82.
