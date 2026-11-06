@@ -710,14 +710,16 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   rw [hρ] at *
   iunfold srvFiles
   rw [← hwd, ← hγ]
-  iframe Hvac Hrst HA HM Hpath Hfh Hconf Hw Hσc
-  ipureintro
   have h1 := hp.2.1
   have h2 := hσ.2.1
   have h3 := hσ.2.2
   rw [hpre] at h2 h3
-  refine ⟨hσ.1, ⟨rfl, hc0'⟩, ⟨by rw [hk0.2]; exact h1, by rw [hpre'] at himg ⊢; exact himg⟩,
-    ⟨by simp at h2; omega, by simp at h3; omega, by rw [HbL]; omega⟩, hconf⟩
+  ihave Hσc := wal.stopImage_intro _ S σ ai hσ.1 (by simp at h2; omega) (by simp at h3; omega)
+    $$ Hσc
+  iframe Hvac Hrst HA HM Hpath Hfh Hconf Hw Hσc
+  ipureintro
+  refine ⟨⟨rfl, hc0'⟩, ⟨by rw [hk0.2]; exact h1, by rw [hpre'] at himg ⊢; exact himg⟩,
+    by rw [HbL]; omega, hconf⟩
 
 end proof
 
