@@ -43,8 +43,8 @@ roots' trees are given a meaning: a step on any other path is stuck.
 * *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`, `fallocate`) is two steps
   (`…Start`/`…Finish`, the change in flight between them, `ProcState.inflight`); a mapped load that
   could see part of it is stuck (a hole), a racing `pread` or `fstat` returns any mix, and a crash
-  may find any prefix of it landed. Two metadata calls never overlap: `MetaBegin` is stuck while
-  one is between its start and its step (their journal order is the model's order).
+  may find any prefix of it landed. Metadata calls overlap freely; a crash keeps a set of them that
+  respects the journal's order (`Tree.lean`, `Follows`).
 * *Mappings*: a mapped cell is an ordinary byte cell; a store to it succeeds in the model, which on
   Linux is a fatal fault (`PROT_READ`), so the model's extra behaviours there are never Go's (Go's
   runtime makes the fault fatal unless `runtime/debug.SetPanicOnFault`, which Perennial does not
@@ -56,7 +56,8 @@ cells of every mapping show the file; a removed mapping's cells are gone; every 
 unchanged.
 
 **Crash** (`OsCrash`): a machine crash, or a restart of the process alone. A machine crash keeps the
-durable tree with a prefix of the metadata operations since replayed; every file that tree names
+durable tree with a set of the metadata operations since replayed (the committed ones, closed under
+the journal's order, `Follows`); every file that tree names
 becomes a crash image (a size it had since its last successful sync, or one an in-flight change
 gives it; each sector one of the versions it had since its last successful sync, or the current one
 with part of an in-flight change; the bytes of a sector past the size are those of the chosen version,
@@ -152,35 +153,39 @@ inductive OsDirRead where
   | reading (untouched seen returned : GoString → Bool)
   | done
 
-/-- An open directory: its path when opened (a directory with an open fd is never moved or
-removed: the steps that would are stuck), and its read. -/
+/-- An open directory: its inode (it follows the directory across renames, and outlives its
+removal: a removed directory reads as empty), and its read. -/
 structure OsDirFd where
-  path : GoString
+  ino : Ino
   rd : OsDirRead
 
-/-- The machine's state: the roots, the tree as of the last journal commit the model knows of and
-the metadata operations since (the tree now is derived: `OsState.tree`), and the files. Every inode
-the durable tree or the log names is in `files`; a file stays there after its last name goes (its
-fds may still use it), until a crash. -/
+/-- The machine's state: the roots (each a path and its directory's inode); the tree as of the boot
+(or the last crash) and the metadata operations since, in the order they took effect (the tree now
+is derived: `OsState.tree`); the entries of the log a directory `fsync` made durable (`committed`);
+the files; and the next inode number to allocate (every inode in use is below it). A file stays in
+`files` after its last name goes (its fds may still use it), until a crash. -/
 structure FsState where
-  roots : List GoString
+  roots : List (GoString × Ino)
   treeDur : Tree
-  metaLog : List MetaOp
+  metaLog : List LogEntry
+  committed : Nat → Prop
   files : GMap Ino OsFile
+  nextIno : Nat
 
 /-- The process's state: its fds (of files and of directories, with distinct numbers), its changes
 in flight (by the token their first step returned, `osTokV`), its mappings (by base address), and
-whether one of its metadata calls is between `MetaBegin` and its step. -/
+its metadata calls in flight (by the token `MetaBegin` returned: the length of the log when the call
+began). The two kinds of token are distinct. -/
 structure ProcState where
   fds : GMap w64 OsFd
   dfds : GMap w64 OsDirFd
   inflight : GMap Nat OsChange
   maps : GMap Loc OsMap
-  metaBusy : Bool
+  metaCalls : GMap Nat Nat
 
 /-- A process with nothing open or in flight. -/
 def ProcState.empty : ProcState :=
-  { fds := ∅, dfds := ∅, inflight := ∅, maps := ∅, metaBusy := false }
+  { fds := ∅, dfds := ∅, inflight := ∅, maps := ∅, metaCalls := ∅ }
 
 /-- A node's state: the machine's and the process's. -/
 structure OsState where
@@ -188,7 +193,9 @@ structure OsState where
   proc : ProcState
 
 instance : Inhabited OsState :=
-  ⟨{ fs := { roots := [], treeDur := ∅, metaLog := [], files := ∅ }, proc := ProcState.empty }⟩
+  ⟨{ fs := { roots := [], treeDur := ∅, metaLog := [], committed := fun _ => False,
+                files := ∅, nextIno := 0 }
+     proc := ProcState.empty }⟩
 
 /-- The Linux file extension. Its values are the tokens of in-flight changes; it has no global
 state. -/
@@ -292,7 +299,7 @@ section derived
 variable (st : OsState)
 
 /-- The tree now: the durable tree with the operations since replayed. -/
-def OsState.tree : Tree := replay st.fs.metaLog st.fs.treeDur
+def OsState.tree : Tree := replay (st.fs.metaLog.map (·.op)) st.fs.treeDur
 
 /-- The file of inode `i`. -/
 def OsState.file (i : Ino) : Option OsFile := st.fs.files !! i
@@ -387,81 +394,114 @@ def OsState.setFile (st : OsState) (i : Ino) (f : OsFile) : OsState :=
 /-- The process's state replaced. -/
 def OsState.setProc (st : OsState) (p : ProcState) : OsState := { st with proc := p }
 
-/-- A read of the directory `df.path` told of the operation `o`: the names it touches there are no
+/-- The node the components `cs` lead to from `n` in `m`. -/
+def walk (m : Tree) : Node → List GoString → Option Node
+  | n, [] => some n
+  | .dir j, c :: cs => match m.entry j c with
+    | some n => walk m n cs
+    | none => none
+  | .file _, _ :: _ => none
+
+open Classical in
+/-- What the path `p` names now: a root followed by valid components, walked from the root's
+directory (the roots' forms make the split unique: `RootsOk`); nothing for any other path. -/
+def OsState.lookup (st : OsState) (p : GoString) : Option Node :=
+  if h : ∃ (rj : GoString × Ino) (cs : List GoString), rj ∈ st.fs.roots ∧ (∀ c ∈ cs, NameOk c) ∧
+      p = joinPath rj.1 cs then
+    walk st.tree (.dir h.choose.2) h.choose_spec.choose
+  else none
+
+/-- `p` is a path that may be created, renamed or removed: canonical, strictly in a root's tree. -/
+def OsState.TreeName (st : OsState) (p : GoString) : Prop := ∃ rj ∈ st.fs.roots, CanonBelow rj.1 p
+
+/-- `p` is a path of the roots' trees: a root, or a `TreeName`. -/
+def OsState.TreePath (st : OsState) (p : GoString) : Prop :=
+  (∃ rj ∈ st.fs.roots, rj.1 = p) ∨ st.TreeName p
+
+/-- The directory `p` is in (its inode) and `p`'s last component, if that directory exists. -/
+def OsState.parent (st : OsState) (p : GoString) : Option (Ino × GoString) :=
+  match parentOf p with
+  | some d => match st.lookup d with
+    | some (.dir j) => some (j, baseOf p)
+    | _ => none
+  | none => none
+
+/-- The directory `p` is in exists. -/
+def OsState.ParentDir (st : OsState) (p : GoString) : Prop := ∃ jb, st.parent p = some jb
+
+/-- A read of the directory `df.ino` told of the operation `o`: the names it touches there are no
 longer untouched and may be returned again, and those it adds have been seen. -/
 def OsDirFd.note (o : MetaOp) (df : OsDirFd) : OsDirFd :=
   match df.rd with
   | .reading u s r =>
-    let u' : GoString → Bool := fun b => u b && decide (b ∉ o.touched df.path)
-    let s' : GoString → Bool := fun b => s b || decide (b ∈ o.adds df.path)
-    let r' : GoString → Bool := fun b => r b && decide (b ∉ o.touched df.path)
+    let u' : GoString → Bool := fun b => u b && decide (b ∉ o.touched df.ino)
+    let s' : GoString → Bool := fun b => s b || decide (b ∈ o.adds df.ino)
+    let r' : GoString → Bool := fun b => r b && decide (b ∉ o.touched df.ino)
     { df with rd := OsDirRead.reading u' s' r' }
   | _ => df
 
-/-- `st` after the metadata operation `o`: `o` logged (the tree now changes with it), the directory
-reads told. -/
-def OsState.metaDo (st : OsState) (o : MetaOp) : OsState :=
-  { fs := { st.fs with metaLog := st.fs.metaLog ++ [o] },
+/-- `st` with the metadata call `t` done (after its step). -/
+def OsState.metaEnd (st : OsState) (t : Nat) : OsState :=
+  { st with proc := { st.proc with metaCalls := GMap.delete t st.proc.metaCalls } }
+
+/-- `st` after the metadata operation `o` of a call that began when the log had `start` entries:
+`o` logged (the tree now changes with it), the directory reads told. -/
+def OsState.metaDo (st : OsState) (o : MetaOp) (start : Nat) : OsState :=
+  { fs := { st.fs with metaLog := st.fs.metaLog ++ [⟨o, start⟩] },
     proc := { st.proc with dfds := GMap.fmap (·.note o) st.proc.dfds } }
 
-/-- `st` with no metadata call in flight (after one's step). -/
-def OsState.metaFree (st : OsState) : OsState :=
-  { st with proc := { st.proc with metaBusy := false } }
+/-- `st` with the next inode number taken. -/
+def OsState.takeIno (st : OsState) : OsState :=
+  { st with fs := { st.fs with nextIno := st.fs.nextIno + 1 } }
 
-/-- `st` with the first `n` operations of its log committed. -/
-def OsState.metaCommit (st : OsState) (n : Nat) : OsState :=
-  { st with fs := { st.fs with treeDur := replay (st.fs.metaLog.take n) st.fs.treeDur,
-                               metaLog := st.fs.metaLog.drop n } }
-
-/-- `p` is a path that may be created, renamed or removed: canonical, strictly in a root's tree. -/
-def OsState.TreeName (st : OsState) (p : GoString) : Prop := ∃ r ∈ st.fs.roots, CanonBelow r p
-
-/-- `p` is a path of the roots' trees: a root, or a `TreeName`. -/
-def OsState.TreePath (st : OsState) (p : GoString) : Prop := p ∈ st.fs.roots ∨ st.TreeName p
-
-/-- The directory `p` is in exists. -/
-def OsState.ParentDir (st : OsState) (p : GoString) : Prop :=
-  ∃ d, parentOf p = some d ∧ st.tree !! d = some .dir
+/-- `st` with the entry `x` of its log, and what it follows, durable. -/
+def OsState.commitThrough (st : OsState) (x : Nat) : OsState :=
+  { st with fs := { st.fs with committed := fun y => st.fs.committed y ∨ Needed st.fs.metaLog x y } }
 
 /-- A new file: empty. Whether its name survives a crash is the tree's question. -/
 def newFile : OsFile := OsFile.ofBytes []
 
-/-- What `open(p)` does before its fd (`st1`), and what the fd will be on: an existing file
-(`some i`, truncated with `trunc`); a new file of a fresh inode `i`, with `create p i` logged
-(`O_CREAT`, in an existing directory); or a directory (`none`), opened read-only without `O_CREAT`
-or `O_TRUNC` (Linux refuses the rest, `EISDIR`). An inode is fresh if `files` lacks it: every inode
-the durable tree or the log names is there. -/
-def OpenEffect (st : OsState) (p : GoString) (acc : Nat) (creat trunc : Bool) (st1 : OsState)
-    (tgt : Option Ino) : Prop :=
-  match st.tree !! p with
-  | some .dir => acc = O_RDONLY ∧ creat = false ∧ trunc = false ∧ st1 = st ∧ tgt = none
+/-- What `open(p)` does before its fd (`st1`), and what the fd will be on (`tgt`): an existing file
+(truncated with `trunc`); a new file of a fresh inode, with its `create` logged (`O_CREAT`, in an
+existing directory; `start` the call's start); or a directory, opened read-only without `O_CREAT` or
+`O_TRUNC` (Linux refuses the rest, `EISDIR`). -/
+def OpenEffect (st : OsState) (p : GoString) (acc : Nat) (creat trunc : Bool) (start : Nat)
+    (st1 : OsState) (tgt : Node) : Prop :=
+  match st.lookup p with
+  | some (.dir j) => acc = O_RDONLY ∧ creat = false ∧ trunc = false ∧ st1 = st ∧ tgt = .dir j
   | some (.file i) => (∃ f, st.file i = some f ∧
-      st1 = (if trunc then st.setFile i (f.truncate 0) else st)) ∧ tgt = some i
-  | none => creat = true ∧ p ∉ st.fs.roots ∧ st.ParentDir p ∧
-      ∃ i, i ∉ st.fs.files ∧ st1 = (st.setFile i newFile).metaDo (.create p i) ∧ tgt = some i
+      st1 = (if trunc then st.setFile i (f.truncate 0) else st)) ∧ tgt = .file i
+  | none => creat = true ∧ ∃ j b, st.parent p = some (j, b) ∧
+      st1 = ((st.setFile st.fs.nextIno newFile).takeIno).metaDo (.create j b st.fs.nextIno) start ∧
+      tgt = .file st.fs.nextIno
 
-/-- The directory `d` has no entries. -/
-def EmptyDir (st : OsState) (d : GoString) : Prop :=
-  st.tree !! d = some .dir ∧ ∀ b, ¬ entryIn st.tree d b
+/-- The path `p` is an empty directory, of inode `j`. -/
+def EmptyDir (st : OsState) (p : GoString) (j : Ino) : Prop :=
+  st.lookup p = some (.dir j) ∧ ∀ b, st.tree.entry j b = none
 
 /-- A `rename(2)` that Linux performs (all else fails): of an existing entry to another name in an
 existing directory; a file onto nothing or onto a file (replaced: an fd of the replaced file keeps
 it); a directory onto nothing or onto an empty directory (replaced), not into its own tree. -/
 def RenameOk (st : OsState) (s t : GoString) : Prop :=
   s ≠ t ∧ st.ParentDir s ∧ st.ParentDir t ∧
-  match st.tree !! s with
-  | some (.file _) => st.tree !! t ≠ some .dir
-  | some .dir => ¬ IsUnder s t ∧ (st.tree !! t = none ∨ EmptyDir st t)
+  match st.lookup s with
+  | some (.file _) => ∀ j, st.lookup t ≠ some (.dir j)
+  | some (.dir _) => ¬ IsUnder s t ∧ (st.lookup t = none ∨ ∃ j, EmptyDir st t j)
   | none => False
 
-/-- Whether `b` is now a name in the directory `d`. -/
-def present (st : OsState) (d : GoString) (b : GoString) : Bool :=
-  decide (NameOk b) && (st.tree !! (d ++ slashB :: b)).isSome
+/-- The rename of `s` to `t`, as logged. -/
+def RenameOp (st : OsState) (s t : GoString) (o : MetaOp) : Prop :=
+  ∃ js bs jt bt n, st.parent s = some (js, bs) ∧ st.parent t = some (jt, bt) ∧
+    st.lookup s = some n ∧ o = .rename js bs jt bt n (st.lookup t)
+
+/-- Whether `b` is now a name in the directory `j`. -/
+def present (st : OsState) (j : Ino) (b : GoString) : Bool :=
+  decide (NameOk b) && (st.tree.entry j b).isSome
 
 /-- A directory fd's read, as its next step finds it: begun now if it was not. -/
-def OsDirRead.cur (st : OsState) (d : GoString) :
+def OsDirRead.cur (st : OsState) (j : Ino) :
     OsDirRead → Option ((GoString → Bool) × (GoString → Bool) × (GoString → Bool))
-  | .idle => some (present st d, present st d, fun _ => false)
+  | .idle => some (present st j, present st j, fun _ => false)
   | .reading u s r => some (u, s, r)
   | .done => none
 
@@ -504,27 +544,28 @@ open Classical in
 the success branch and its premises, then the failure branch (any nonzero errno). -/
 def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) : Prop :=
   match op with
-  /- `open(p, flags)` of a path of the roots' trees: `(#p, #flags) ↦ (#fd, #errno)`, as
-  `OpenEffect` says, with a fresh fd (of a file, on its inode, or of a directory). On failure, the
-  effect may or may not have happened, without the fd. With `O_CREAT`, after `MetaBegin` (it may
-  create). -/
-  | "Open" => ∃ (p : GoString) (fl : w64), v = PairV (#p) (#fl) ∧ st.TreePath p ∧
-      OpenFlagsOk fl.toNat ∧
+  /- `open(p, flags)` of a path of the roots' trees: `(tok, #p, #flags) ↦ (#fd, #errno)`, as
+  `OpenEffect` says, with a fresh fd (of a file, on its inode, or of a directory, on its inode). On
+  failure, the effect may or may not have happened, without the fd. With `O_CREAT` (it may create),
+  `tok` is the token of a metadata call (`MetaBegin`), which the step ends; otherwise `#()`. -/
+  | "Open" => ∃ (tv : val) (p : GoString) (fl : w64) (t start : Nat),
+      v = PairV tv (PairV (#p) (#fl)) ∧ st.TreePath p ∧ OpenFlagsOk fl.toNat ∧
       let acc := fl.toNat % 4
       let creat := decide (fl.toNat / O_CREAT % 2 = 1)
       let trunc := decide (fl.toNat / O_TRUNC % 2 = 1)
-      let st0 := if creat then st.metaFree else st
-      (creat = true → st.proc.metaBusy = true) ∧
-      ((∃ (st1 : OsState) (tgt : Option Ino) (fd : w64),
-          OpenEffect st0 p acc creat trunc st1 tgt ∧ FdFree st fd ∧
+      let st0 := if creat then st.metaEnd t else st
+      (creat = true → tv = osTokV t ∧ st.proc.metaCalls !! t = some start) ∧
+      (creat = false → tv = #()) ∧
+      ((∃ (st1 : OsState) (tgt : Node) (fd : w64),
+          OpenEffect st0 p acc creat trunc start st1 tgt ∧ FdFree st fd ∧
           st' = (match tgt with
-            | some i => st1.setProc { st1.proc with
+            | .file i => st1.setProc { st1.proc with
                 fds := <[fd := ⟨i, acc ≠ O_WRONLY, acc ≠ O_RDONLY⟩]> st1.proc.fds }
-            | none => st1.setProc { st1.proc with
-                dfds := <[fd := ⟨p, .idle⟩]> st1.proc.dfds }) ∧
+            | .dir j => st1.setProc { st1.proc with
+                dfds := <[fd := ⟨j, .idle⟩]> st1.proc.dfds }) ∧
           e' = osRes (#fd) 0) ∨
        (∃ e : w64, e ≠ 0 ∧ e' = osRes (#(-1 : w64)) e ∧
-          (st' = st0 ∨ ∃ tgt, OpenEffect st0 p acc creat trunc st' tgt)))
+          (st' = st0 ∨ ∃ tgt, OpenEffect st0 p acc creat trunc start st' tgt)))
   /- `pread(fd, n, off)`: `(#fd, #off, #n) ↦ (#data, #errno)`, as `ReadSees` allows. On success,
   a non-empty prefix (Linux returns a short count when page allocation fails part way, F4), or
   nothing at EOF; on failure, any prefix. -/
@@ -539,7 +580,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       v = PairV (#fd) (PairV (#off) (#data)) ∧ FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧
       (let c : OsChange := ⟨d.ino, .write off.toNat data⟩
        (∀ b, Affects st c b → ¬ InflightAt st d.ino b) ∧
-       st.proc.inflight !! t = none ∧ st' = st.addInflight t c) ∧
+       st.proc.inflight !! t = none ∧ st.proc.metaCalls !! t = none ∧ st' = st.addInflight t c) ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ (#written, #errno)`. A prefix of the data is written: with errno
   0, all of it or a non-empty part (a short write, F6); with a nonzero errno, any prefix. -/
@@ -556,7 +597,8 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   cannot fail. No other change may be in flight on the file. -/
   | "FtruncateStart" => ∃ (fd sz : w64) (t : Nat) (d : OsFd), v = PairV (#fd) (#sz) ∧
       FdOpen st fd d ∧ d.writable ∧ 0 ≤ sz.toInt ∧ ¬ BusyAt st d.ino ∧
-      st.proc.inflight !! t = none ∧ st' = st.addInflight t ⟨d.ino, .truncate sz.toNat⟩ ∧
+      st.proc.inflight !! t = none ∧ st.proc.metaCalls !! t = none ∧
+      st' = st.addInflight t ⟨d.ino, .truncate sz.toNat⟩ ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ #errno`. On failure the file may or may not be resized. -/
   | "FtruncateFinish" => ∃ (t : Nat) (i : Ino) (sz : Nat) (f : OsFile), v = osTokV t ∧
@@ -605,21 +647,22 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       ((∃ d, st.proc.fds !! fd = some d) ∧ e' = Val (#(0 : w64)) ∨
        st.proc.fds !! fd = none ∧ (∃ df, st.proc.dfds !! fd = some df) ∧ e' = Val (#(1 : w64)))
   /- The start of a system call that changes the tree (`open` with `O_CREAT`, `rename`, `unlink`,
-  `rmdir`, `mkdir`): `#() ↦ #()`. Stuck while another one is between its start and its step, so that
-  two such calls of the model never overlap in time (of two calls that do not overlap, the journal
-  has the earlier one first; of two that overlap, it may have either first, which the model does not
-  contain, so it is stuck there; the trusted models make it just before the call). Not a system
-  call. -/
-  | "MetaBegin" => v = #() ∧ st.proc.metaBusy = false ∧
-      st' = st.setProc { st.proc with metaBusy := true } ∧ e' = Val (#())
-  /- `fsync(fd)` of a directory: `#fd ↦ #errno`. Success commits the log up to the last operation
-  that changed the directory's entries (`dirCommitLen`: nothing while the log holds an operation
-  that made, removed or moved the directory's path or one above it, as the path may then have named
-  another directory when an operation was logged); a failure may have committed any part of that. -/
-  | "DirSync" => ∃ (fd : w64) (df : OsDirFd) (n : Nat), v = #fd ∧ st.proc.dfds !! fd = some df ∧
-      n ≤ dirCommitLen df.path st.fs.metaLog ∧ st' = st.metaCommit n ∧
-      (n = dirCommitLen df.path st.fs.metaLog ∧ e' = Val (#(0 : w64)) ∨
-       ∃ e : w64, e ≠ 0 ∧ e' = Val (#e))
+  `rmdir`, `mkdir`): `#() ↦ tok`, a token recording the length of the log now (the operations that
+  have taken effect before the call began: the journal has them before it). The trusted models make
+  it just before the call. Not a system call; calls overlap freely. -/
+  | "MetaBegin" => ∃ t : Nat, v = #() ∧ st.proc.metaCalls !! t = none ∧
+      st.proc.inflight !! t = none ∧
+      st' = st.setProc { st.proc with metaCalls := <[t := st.fs.metaLog.length]> st.proc.metaCalls } ∧
+      e' = Val (osTokV t)
+  /- `fsync(fd)` of a directory: `#fd ↦ #errno`. Success makes the last logged operation that
+  changed or locked the directory durable, with everything it follows (`Needed`: ext4 commits the
+  whole journal, xfs forces its log through the directory's last change); a failure guarantees
+  nothing more (whatever it committed, a crash may keep anyway). -/
+  | "DirSync" => ∃ (fd : w64) (df : OsDirFd), v = #fd ∧ st.proc.dfds !! fd = some df ∧
+      ((st' = (match lastTouch st.fs.metaLog df.ino with
+          | some x => st.commitThrough x
+          | none => st) ∧ e' = Val (#(0 : w64))) ∨
+       ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st)
   /- `close(fd)` of a directory: `#fd ↦ #errno`; the fd is freed whatever the errno. -/
   | "DirClose" => ∃ (fd e : w64) (df : OsDirFd), v = #fd ∧ st.proc.dfds !! fd = some df ∧
       st' = st.setProc { st.proc with dfds := GMap.delete fd st.proc.dfds } ∧ e' = Val (#e)
@@ -627,14 +670,15 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   the directory had at some point since the read began, not returned since it was last touched; or
   the end, once it has returned every name the directory had when the read began, still has, and
   that no operation touched since (POSIX's `readdir`: an entry added or removed meanwhile may or may
-  not be returned); or an errno, the read unchanged. After the end, a second read is stuck. -/
+  not be returned); or an errno, the read unchanged. After the end, a second read is stuck. A
+  removed directory has no names. -/
   | "DirReadNext" => ∃ (fd : w64) (df : OsDirFd) (u s r : GoString → Bool), v = #fd ∧
-      st.proc.dfds !! fd = some df ∧ df.rd.cur st df.path = some (u, s, r) ∧
+      st.proc.dfds !! fd = some df ∧ df.rd.cur st df.ino = some (u, s, r) ∧
       ((∃ b, s b = true ∧ r b = false ∧
           st' = st.setProc { st.proc with dfds := <[fd := { df with
             rd := .reading u s (fun x => r x || decide (x = b)) }]> st.proc.dfds } ∧
           e' = Val (PairV (#b) (PairV (#(0 : w64)) (#(0 : w64))))) ∨
-       ((∀ b, u b = true → present st df.path b = true → r b = true) ∧
+       ((∀ b, u b = true → present st df.ino b = true → r b = true) ∧
           st' = st.setProc { st.proc with dfds := <[fd := { df with rd := .done }]> st.proc.dfds } ∧
           e' = Val (PairV (#([] : GoString)) (PairV (#(1 : w64)) (#(0 : w64))))) ∨
        (∃ e : w64, e ≠ 0 ∧
@@ -646,45 +690,50 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   returns then; `#0` otherwise, and for a directory too (the `lstat` failed: `Rename`'s model then
   goes on to `rename(2)`, as Go does). -/
   | "LstatDir" => ∃ (p : GoString) (isDir e : w64), v = #p ∧ st.TreePath p ∧ st' = st ∧
-      (st.tree !! p = some .dir ∧ isDir = 1 ∧ e ≠ 0 ∨ isDir = 0) ∧
+      ((∃ j, st.lookup p = some (.dir j)) ∧ isDir = 1 ∧ e ≠ 0 ∨ isDir = 0) ∧
       e' = Val (PairV (#isDir) (#e))
-  /- `rename(2)`, after `MetaBegin`: `(#s, #t) ↦ #errno`. As `RenameOk` says, or a no-op on an
-  entry renamed to itself; any case may fail, a failure with or without the effect. Stuck while a
-  directory fd is open on `t`, or, for a directory `s`, in `s`'s tree. Open fds of a moved file keep
-  it (they hold its inode). -/
-  | "Rename" => ∃ s t : GoString, v = PairV (#s) (#t) ∧ st.TreeName s ∧ st.TreeName t ∧
-      st.proc.metaBusy = true ∧
-      (∀ fd df, st.proc.dfds !! fd = some df →
-        (st.tree !! s = some .dir → ¬ IsUnder s df.path) ∧ df.path ≠ t) ∧
-      ((RenameOk st s t ∧ (st' = st.metaFree.metaDo (.rename s t) ∧ e' = Val (#(0 : w64)) ∨
-          ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
-            (st' = st.metaFree ∨ st' = st.metaFree.metaDo (.rename s t)))) ∨
-       (s = t ∧ st.tree !! s ≠ none ∧ st' = st.metaFree ∧ e' = Val (#(0 : w64))) ∨
-       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st.metaFree))
-  /- `unlink(2)`, after `MetaBegin`: `#p ↦ #errno`. A file's name is removed (its fds keep the
-  file, which stays in `files`); any case may fail, a failure with or without the effect. -/
-  | "Unlink" => ∃ p : GoString, v = #p ∧ st.TreeName p ∧ st.proc.metaBusy = true ∧
-      (((∃ i, st.tree !! p = some (.file i)) ∧
-          (st' = st.metaFree.metaDo (.remove p) ∧ e' = Val (#(0 : w64)) ∨
-          ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
-            (st' = st.metaFree ∨ st' = st.metaFree.metaDo (.remove p)))) ∨
-       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st.metaFree))
-  /- `rmdir(2)`, after `MetaBegin`: `#p ↦ #errno`. An empty directory is removed; any case may fail,
-  a failure with or without the effect. Stuck while a directory fd is open on `p`. -/
-  | "Rmdir" => ∃ p : GoString, v = #p ∧ st.TreeName p ∧ st.proc.metaBusy = true ∧
-      (∀ fd df, st.proc.dfds !! fd = some df → df.path ≠ p) ∧
-      ((EmptyDir st p ∧ (st' = st.metaFree.metaDo (.remove p) ∧ e' = Val (#(0 : w64)) ∨
-          ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
-            (st' = st.metaFree ∨ st' = st.metaFree.metaDo (.remove p)))) ∨
-       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st.metaFree))
-  /- `mkdir(2)`, after `MetaBegin`: `#p ↦ #errno`. A new directory where nothing is, in an existing
-  directory; any case may fail, a failure with or without the effect. -/
-  | "Mkdir" => ∃ p : GoString, v = #p ∧ st.TreeName p ∧ st.proc.metaBusy = true ∧
-      ((st.tree !! p = none ∧ st.ParentDir p ∧
-          (st' = st.metaFree.metaDo (.mkdir p) ∧ e' = Val (#(0 : w64)) ∨
-          ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
-            (st' = st.metaFree ∨ st' = st.metaFree.metaDo (.mkdir p)))) ∨
-       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st.metaFree))
+  /- `rename(2)` of a metadata call (`tok`, from `MetaBegin`): `(tok, #s, #t) ↦ #errno`. As
+  `RenameOk` says, or a no-op on an entry renamed to itself; any case may fail, a failure with or
+  without the effect. Open fds of a moved file or directory keep it (they hold its inode). -/
+  | "Rename" => ∃ (s t : GoString) (k start : Nat), v = PairV (osTokV k) (PairV (#s) (#t)) ∧
+      st.TreeName s ∧ st.TreeName t ∧ st.proc.metaCalls !! k = some start ∧
+      let st0 := st.metaEnd k
+      ((RenameOk st s t ∧ ∃ o, RenameOp st s t o ∧
+          (st' = st0.metaDo o start ∧ e' = Val (#(0 : w64)) ∨
+           ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st0 ∨ st' = st0.metaDo o start))) ∨
+       (s = t ∧ st.lookup s ≠ none ∧ st' = st0 ∧ e' = Val (#(0 : w64))) ∨
+       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st0))
+  /- `unlink(2)` of a metadata call: `(tok, #p) ↦ #errno`. A file's name is removed (its fds keep
+  the file, which stays in `files`); any case may fail, a failure with or without the effect. -/
+  | "Unlink" => ∃ (p : GoString) (k start : Nat), v = PairV (osTokV k) (#p) ∧ st.TreeName p ∧
+      st.proc.metaCalls !! k = some start ∧
+      let st0 := st.metaEnd k
+      ((∃ i j b, st.lookup p = some (.file i) ∧ st.parent p = some (j, b) ∧
+          (st' = st0.metaDo (.remove j b (.file i)) start ∧ e' = Val (#(0 : w64)) ∨
+           ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
+            (st' = st0 ∨ st' = st0.metaDo (.remove j b (.file i)) start))) ∨
+       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st0))
+  /- `rmdir(2)` of a metadata call: `(tok, #p) ↦ #errno`. An empty directory is removed (an fd on it
+  keeps it, empty); any case may fail, a failure with or without the effect. -/
+  | "Rmdir" => ∃ (p : GoString) (k start : Nat), v = PairV (osTokV k) (#p) ∧ st.TreeName p ∧
+      st.proc.metaCalls !! k = some start ∧
+      let st0 := st.metaEnd k
+      ((∃ j' j b, EmptyDir st p j' ∧ st.parent p = some (j, b) ∧
+          (st' = st0.metaDo (.remove j b (.dir j')) start ∧ e' = Val (#(0 : w64)) ∨
+           ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
+            (st' = st0 ∨ st' = st0.metaDo (.remove j b (.dir j')) start))) ∨
+       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st0))
+  /- `mkdir(2)` of a metadata call: `(tok, #p) ↦ #errno`. A new directory of a fresh inode where
+  nothing is, in an existing directory; any case may fail, a failure with or without the effect. -/
+  | "Mkdir" => ∃ (p : GoString) (k start : Nat), v = PairV (osTokV k) (#p) ∧ st.TreeName p ∧
+      st.proc.metaCalls !! k = some start ∧
+      let st0 := st.metaEnd k
+      let o (j : Ino) (b : GoString) := MetaOp.mkdir j b st.fs.nextIno
+      ((∃ j b, st.lookup p = none ∧ st.parent p = some (j, b) ∧
+          (st' = st0.takeIno.metaDo (o j b) start ∧ e' = Val (#(0 : w64)) ∨
+           ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
+            (st' = st0 ∨ st' = st0.takeIno.metaDo (o j b) start))) ∨
+       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st0))
   /- The first step of `fallocate(fd, 0, off, len)`: `(#fd, #off, #len) ↦ token`, a resize to
   `max size (off + len)` in flight (its visible effect is `ftruncate`'s to that size: zeros past the
   end; the blocks it allocates are not modelled). As `FtruncateStart`: no other change may be in
@@ -692,6 +741,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "FallocStart" => ∃ (fd off len : w64) (t : Nat) (d : OsFd),
       v = PairV (#fd) (PairV (#off) (#len)) ∧ FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧
       0 < len.toInt ∧ ¬ BusyAt st d.ino ∧ st.proc.inflight !! t = none ∧
+      st.proc.metaCalls !! t = none ∧
       st' = st.addInflight t ⟨d.ino, .truncate (max (st.size d.ino) (off.toNat + len.toNat))⟩ ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ #errno`. On failure the file may have grown to any size between its
@@ -743,23 +793,29 @@ def CrashFile (st : OsState) (i : Ino) (f f' : OsFile) : Prop :=
      (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target st)) ∧
     (∀ n, SecCand st i f n (vs n)) ∧ f' = OsFile.ofDisk vs sz
 
-/-- A machine crash: the roots stay; the tree is the durable one with a prefix of the operations
-since replayed, all of it durable; every file it names is what a crash may leave of its file
-(`CrashFile`); every other file is gone; the process has nothing open or in flight. -/
+/-- The file `i` is named in the tree `m`. -/
+def Named (m : Tree) (i : Ino) : Prop := ∃ j b, m.entry j b = some (.file i)
+
+/-- A machine crash: the roots stay; the tree is the durable one with a set of the logged operations
+replayed in log order, a set that holds the committed ones and is closed under `Follows` (what the
+journal may have on disk), all of it durable; every file it names is what a crash may leave of its
+file (`CrashFile`); every other file is gone; the process has nothing open or in flight. -/
 def MachineCrash (st st' : OsState) : Prop :=
   st'.proc = ProcState.empty ∧ st'.fs.roots = st.fs.roots ∧ st'.fs.metaLog = [] ∧
-  (∃ n, n ≤ st.fs.metaLog.length ∧
-    st'.fs.treeDur = replay (st.fs.metaLog.take n) st.fs.treeDur) ∧
-  ∀ i, ((∃ p, st'.fs.treeDur !! p = some (.file i)) →
+  (∀ y, ¬ st'.fs.committed y) ∧ st'.fs.nextIno = st.fs.nextIno ∧
+  (∃ S : Nat → Prop, (∀ x, S x → x < st.fs.metaLog.length) ∧ (∀ y, st.fs.committed y → S y) ∧
+    Closed st.fs.metaLog S ∧ st'.fs.treeDur = replay (keptOps st.fs.metaLog S) st.fs.treeDur) ∧
+  ∀ i, (Named st'.fs.treeDur i →
       ∃ f f', st.fs.files !! i = some f ∧ CrashFile st i f f' ∧ st'.fs.files !! i = some f') ∧
-    ((¬ ∃ p, st'.fs.treeDur !! p = some (.file i)) → st'.fs.files !! i = none)
+    (¬ Named st'.fs.treeDur i → st'.fs.files !! i = none)
 
 /-- A restart of the process alone: the machine's state stays, each change in flight landed as some
-prefix (a killed process's system call has done part of its work); the process has nothing open or
-in flight. Dirty sectors stay dirty: the page cache outlives the process. -/
+prefix (a killed process's system call has done part of its work); a metadata call that had not
+taken its step did nothing; the process has nothing open or in flight. Dirty sectors stay dirty: the page cache outlives the process. -/
 def ProcRestart (st st' : OsState) : Prop :=
   st'.proc = ProcState.empty ∧ st'.fs.roots = st.fs.roots ∧
   st'.fs.treeDur = st.fs.treeDur ∧ st'.fs.metaLog = st.fs.metaLog ∧
+  st'.fs.committed = st.fs.committed ∧ st'.fs.nextIno = st.fs.nextIno ∧
   ∀ i, match st.fs.files !! i with
     | none => st'.fs.files !! i = none
     | some f => ∃ ks f', ks.Perm (changesOn st i) ∧ Landed ks f f' ∧ st'.fs.files !! i = some f'
@@ -767,15 +823,16 @@ def ProcRestart (st st' : OsState) : Prop :=
 /-- A crash: of the machine, or of the process alone. -/
 def OsCrash (st st' : OsState) : Prop := MachineCrash st st' ∨ ProcRestart st st'
 
-/-- A state a program may start in: the process has nothing open; nothing logged; the roots and the
-tree well formed; every inode the tree names is a file, every file named (no orphan at boot) and all
-of it on disk (the environment's "durable at first start"). -/
+/-- A state a program may start in: the process has nothing open; nothing logged or committed; the
+roots and the tree well formed; every inode the tree names is a file, every file named (no orphan
+at boot) and all of it on disk (the environment's "durable at first start"); every inode in use
+below `nextIno`. -/
 def FsInit (st : OsState) : Prop :=
-  st.proc = ProcState.empty ∧ st.fs.metaLog = [] ∧ RootsOk st.fs.roots ∧
-  TreeShape st.fs.roots st.fs.treeDur ∧
-  (∀ p i, st.fs.treeDur !! p = some (.file i) → st.fs.files !! i ≠ none) ∧
-  (∀ i f, st.fs.files !! i = some f →
-    (∃ p, st.fs.treeDur !! p = some (.file i)) ∧ ∃ vs sz, f = OsFile.ofDisk vs sz)
+  st.proc = ProcState.empty ∧ st.fs.metaLog = [] ∧ (∀ y, ¬ st.fs.committed y) ∧
+  RootsOk st.fs.roots ∧ TreeWf st.fs.roots st.fs.treeDur ∧
+  (∀ i, Named st.fs.treeDur i → st.fs.files !! i ≠ none) ∧
+  (∀ i f, st.fs.files !! i = some f → Named st.fs.treeDur i ∧ ∃ vs sz, f = OsFile.ofDisk vs sz) ∧
+  (∀ i, i ∈ st.fs.files → i < st.fs.nextIno) ∧ (∀ j, j ∈ st.fs.treeDur → j < st.fs.nextIno)
 
 instance fs_semantics : ExtSemantics fsExt where
   step := FsStep

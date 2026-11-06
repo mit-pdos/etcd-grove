@@ -177,6 +177,30 @@ open on the tree is stuck, and etcd keeps one open on the WAL directory for its 
 directory `fsync` commits nothing for a directory made or moved since the log's start
 (`dirCommitLen`'s rebinding rule), which `wal.Create`'s `fsync` relies on.
 
+## Directories as inodes; overlapping metadata calls (2026-11-06)
+
+The three stuck cases above are lifted by one change (`Tree.lean`, `Impl.lean`):
+
+- **Directories have inodes.** The tree is every directory by inode, with its entries (name ↦ file
+  or directory); paths resolve by walking from a root (`OsState.lookup`). A rename moves an entry,
+  and the directory's subtree with it. A directory fd holds the directory's inode, so a rename or
+  rmdir with an fd open is no longer stuck (a removed directory reads as empty).
+- **Operations are journaled by directory inode and name** (`MetaOp`), so replaying a subset of
+  them gives a tree whatever the others did to the paths above.
+- **Metadata calls overlap.** `MetaBegin` returns a token recording the log's length when the call
+  began; the call's step takes it. A crash keeps a set of logged entries holding the committed ones
+  and closed under `Follows`: an entry that took effect before another's call began, an earlier
+  entry changing or locking a common directory, and an earlier rename across directories (the
+  filesystem's rename lock) must be kept with it. Entries related by none of these change disjoint
+  directories, so they commute, and replaying the set in log order gives what the journal's own
+  order would. (Review round 1's finding 4: an observer can order two overlapping calls against the
+  journal, so neither order can be assumed; this keeps both.)
+- **A directory `fsync`** makes the directory's last logged change durable, with everything it
+  follows (`Needed`); a failure guarantees nothing. The rebinding rule is gone: the directory is
+  its inode, not its path. `wal.Create`'s `fsync` of a directory made in the same run now commits
+  (`dirsync_new_dir`).
+- Inodes are allocated from a counter (`FsState.nextIno`), for files and directories.
+
 ## Environment assumptions (hypotheses of the adequacy statement)
 
 As now for the roots (one local ext4 or xfs filesystem, one journal; regular files and directories

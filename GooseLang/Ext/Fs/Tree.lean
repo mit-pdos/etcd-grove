@@ -1,19 +1,23 @@
 /-
-The directory tree of the Linux file extension [Trusted definitions!]: what a path names, the
-metadata operations and their replay, what a directory `fsync` commits. The state and the steps
-that use them are in `Impl.lean`; the design is `notes/fs-semantics-v2.md`.
+The directory tree of the Linux file extension [Trusted definitions!]: directories and their
+entries, the metadata operations and their replay, the order a crash must respect. The state and
+the steps that use them are in `Impl.lean`; the design is `notes/fs-semantics-v2.md`.
 
-**The tree.** Every canonical path in a root's tree that exists, and what it is: a directory, or a
-file, by its inode number (`Ino`: internal to the model; no step takes or returns one). Directories
-have no identity of their own: a directory is its path. POSIX calls the tree the file hierarchy;
-Linux implements it as directory entries.
+**The tree.** Every directory, by its inode number, with its entries: a name, and the file or
+directory it names (`Node`). Inode numbers (`Ino`) are internal to the model: no step takes or
+returns one. Paths are resolved by walking from a root (`Impl.lean`, `OsState.lookup`). POSIX calls
+the tree the file hierarchy; Linux implements it as directory entries (dentries), and journals each
+change as a change of a directory's entries.
 
-**Metadata operations.** `create`, `mkdir`, `remove`, `rename` (`MetaOp`), each atomic, recorded in
-order in the log of operations made since the last journal commit the model knows of
-(`FsState.metaLog`); `MetaOp.apply` is the effect of one on a tree, `replay` of a list. A crash
-keeps a prefix of the log (`Impl.lean`, `OsCrash`): ext4 and xfs put metadata operations in their
-journal in the order they are made and commit the journal in order. A `create` records the inode
-the step chose, so that a replay names the file the program has been using.
+**Metadata operations** (`MetaOp`): `create`, `mkdir`, `remove`, `rename`, by directory inode and
+name, as the journal records them (so that replaying some of them gives a tree whatever the others
+did to the paths above). Each is atomic and logged in the order the calls took effect
+(`FsState.metaLog`), with the length of the log when its call began (`LogEntry.start`). A crash keeps
+a set of logged operations closed under `Follows` (`Impl.lean`, `MachineCrash`), replayed in log
+order: an operation that took effect before another's call began is journaled before it; two that
+change a common directory are serialized by that directory's lock, so the journal has them in the
+log's order; two renames across directories are serialized by the filesystem's rename lock. Two
+operations related by none of these change disjoint directories, so they commute.
 -/
 module
 
@@ -26,117 +30,140 @@ noncomputable section
 namespace Perennial
 namespace Fs
 
-/-- An inode number: a file's identity, internal to the model. -/
+/-- An inode number: a file's or a directory's identity, internal to the model. -/
 abbrev Ino := Nat
 
-/-- What a path of the tree is: a file (its inode) or a directory. -/
+/-- What a directory entry names: a file or a directory, by inode. -/
 inductive Node where
   | file (i : Ino)
-  | dir
+  | dir (j : Ino)
   deriving DecidableEq
 
-/-- A directory tree: every canonical path in a root's tree that exists, and what it is. -/
-abbrev Tree := GMap GoString Node
+/-- A directory's entries: each name (a valid one, `NameOk`), and what it names. -/
+abbrev Dir := GMap GoString Node
 
-/-- `x` renamed by the move of `s` to `t`: in `s`'s tree, the same place in `t`'s. -/
-def rekey (s t x : GoString) : GoString :=
-  if IsUnder s x then t ++ x.drop s.length else x
+/-- The directories, by inode. -/
+abbrev Tree := GMap Ino Dir
 
-/-- The tree `m` with the entry `s`, and its subtree if it is a directory, moved to `t` (nothing
-at `t` or in its tree). -/
-def moveTree (m : Tree) (s t : GoString) : Tree :=
-  GMap.ofList (m.toList.map (fun kv => (rekey s t kv.1, kv.2)))
+/-- The directory inode a node is, if it is one. -/
+def Node.dirIno : Node → List Ino
+  | .file _ => []
+  | .dir j => [j]
 
-/-- A metadata operation, with the paths as they were when it was made. -/
+/-- What the entry `b` of the directory `j` names. -/
+def Tree.entry (m : Tree) (j : Ino) (b : GoString) : Option Node := (m !! j).bind (· !! b)
+
+/-- `m` with the entries of the directory `j` changed by `f`. -/
+def Tree.upd (m : Tree) (j : Ino) (f : Dir → Dir) : Tree := <[j := f ((m !! j).getD ∅)]> m
+
+/-- A metadata operation, as journaled: by directory inode and name. A removal and a rename also
+record what they removed or moved, and what a rename replaced (which they lock, and which a crash's
+order must respect). -/
 inductive MetaOp where
-  /-- A new file at `p`, the file of inode `i`. -/
-  | create (p : GoString) (i : Ino)
-  /-- A new directory at `p`. -/
-  | mkdir (p : GoString)
-  /-- `p` (a file, or an empty directory) removed. -/
-  | remove (p : GoString)
-  /-- `s` (and its subtree) moved to `t`, replacing a file or an empty directory at `t`. -/
-  | rename (s t : GoString)
+  /-- A new file of inode `i`, named `b` in the directory `j`. -/
+  | create (j : Ino) (b : GoString) (i : Ino)
+  /-- A new, empty directory of inode `j'`, named `b` in the directory `j`. -/
+  | mkdir (j : Ino) (b : GoString) (j' : Ino)
+  /-- The entry `b` of the directory `j` removed: it named `n` (a file, or an empty directory). -/
+  | remove (j : Ino) (b : GoString) (n : Node)
+  /-- The entry `b` of the directory `j`, naming `n`, moved to the name `b'` of the directory `j'`,
+  replacing what that named (`old`: a file, or an empty directory). -/
+  | rename (j : Ino) (b : GoString) (j' : Ino) (b' : GoString) (n : Node) (old : Option Node)
 
-/-- The effect of an operation on a tree. A rename of a file moves its entry (replacing one at
-`t`); of a directory, its subtree (`moveTree`; an empty directory at `t` is replaced). -/
+/-- The effect of an operation on a tree. A directory's subtree moves with its entry. A removed
+directory's inode keeps its (empty) entries. -/
 def MetaOp.apply : MetaOp → Tree → Tree
-  | .create p i, m => <[p := .file i]> m
-  | .mkdir p, m => <[p := .dir]> m
-  | .remove p, m => GMap.delete p m
-  | .rename s t, m => match m !! s with
-    | some (.file i) => <[t := .file i]> (GMap.delete s m)
-    | _ => moveTree (GMap.delete t m) s t
+  | .create j b i, m => m.upd j (fun d => <[b := .file i]> d)
+  | .mkdir j b j', m => <[j' := ∅]> (m.upd j (fun d => <[b := .dir j']> d))
+  | .remove j b _, m => m.upd j (fun d => GMap.delete b d)
+  | .rename j b j' b' _ _, m => match m.entry j b with
+    | some n => (m.upd j (fun d => GMap.delete b d)).upd j' (fun d => <[b' := n]> d)
+    | none => m
 
 /-- The operations `ops`, in order, replayed on `m`. -/
 def replay (ops : List MetaOp) (m : Tree) : Tree := ops.foldl (fun m o => o.apply m) m
 
-/-- The directories whose entries the operation changes: the parent of each path it adds or
-removes. -/
-def MetaOp.dirs : MetaOp → List GoString
-  | .create p _ => (parentOf p).toList
-  | .mkdir p => (parentOf p).toList
-  | .remove p => (parentOf p).toList
-  | .rename s t => (parentOf s).toList ++ (parentOf t).toList
+/-- The directories an operation changes or locks: the directories whose entries it changes, the
+directory it creates, and a directory it removes, moves or replaces. -/
+def MetaOp.dirs : MetaOp → List Ino
+  | .create j _ _ => [j]
+  | .mkdir j _ j' => [j, j']
+  | .remove j _ n => j :: n.dirIno
+  | .rename j _ j' _ n old => [j, j'] ++ n.dirIno ++ (old.map Node.dirIno).getD []
 
-/-- How much of the log `ops` an fsync of the directory `d` commits: up to and including the last
-operation that changed `d`'s entries (nothing if none did). The journal commits in order, so
-everything before it is committed too. -/
-def commitLen (d : GoString) : List MetaOp → Nat
-  | [] => 0
-  | o :: os =>
-    let n := commitLen d os
-    if 0 < n then n + 1 else if d ∈ o.dirs then 1 else 0
+/-- A rename from one directory to another (Linux serializes them per filesystem). -/
+def MetaOp.crossRename : MetaOp → Bool
+  | .rename j _ j' _ _ _ => decide (j ≠ j')
+  | _ => false
 
-/-- The operation made, removed or moved the path `d` or one above it: before it, `d` may have
-named another directory, or none. -/
-def MetaOp.rebinds (d : GoString) : MetaOp → Bool
-  | .create p _ => decide (IsUnder p d)
-  | .mkdir p => decide (IsUnder p d)
-  | .remove p => decide (IsUnder p d)
-  | .rename s t => decide (IsUnder s d) || decide (IsUnder t d)
+/-- The names an operation adds to the directory `j`. -/
+def MetaOp.adds (j : Ino) : MetaOp → List GoString
+  | .create j0 b _ => if j0 = j then [b] else []
+  | .mkdir j0 b _ => if j0 = j then [b] else []
+  | .remove _ _ _ => []
+  | .rename _ _ j1 b' _ _ => if j1 = j then [b'] else []
 
-/-- How much of the log an fsync of the directory at `d` is known to commit: `commitLen`, unless
-an operation of the log rebinds `d` (then the operations recorded with the path `d` may be of
-another directory, and nothing is known to be committed: the journal commits up to the last change
-of the directory the fd is on, which the path does not identify). -/
-def dirCommitLen (d : GoString) (ops : List MetaOp) : Nat :=
-  if ops.any (·.rebinds d) then 0 else commitLen d ops
+/-- The names an operation adds to, removes from or changes in the directory `j`. -/
+def MetaOp.touched (j : Ino) : MetaOp → List GoString
+  | .create j0 b _ => if j0 = j then [b] else []
+  | .mkdir j0 b _ => if j0 = j then [b] else []
+  | .remove j0 b _ => if j0 = j then [b] else []
+  | .rename j0 b j1 b' _ _ => (if j0 = j then [b] else []) ++ (if j1 = j then [b'] else [])
 
-/-- The names (last components) an operation adds to the directory `d`. -/
-def MetaOp.adds (d : GoString) : MetaOp → List GoString
-  | .create p _ => if parentOf p = some d then [baseOf p] else []
-  | .mkdir p => if parentOf p = some d then [baseOf p] else []
-  | .remove _ => []
-  | .rename _ t => if parentOf t = some d then [baseOf t] else []
+/-- A logged operation and the length of the log when its call began: the operations before that
+had taken effect (and returned) before it began. -/
+structure LogEntry where
+  op : MetaOp
+  start : Nat
 
-/-- The names an operation adds to, removes from or changes in the directory `d`. -/
-def MetaOp.touched (d : GoString) : MetaOp → List GoString
-  | .create p _ => if parentOf p = some d then [baseOf p] else []
-  | .mkdir p => if parentOf p = some d then [baseOf p] else []
-  | .remove p => if parentOf p = some d then [baseOf p] else []
-  | .rename s t => (if parentOf s = some d then [baseOf s] else []) ++
-      (if parentOf t = some d then [baseOf t] else [])
+/-- The entry `y` of the log must survive a crash that keeps the entry `x`: `y` took effect before
+`x`'s call began, or `y` is earlier and they change or lock a common directory, or both are renames
+across directories. -/
+def Follows (log : List LogEntry) (x y : Nat) : Prop :=
+  y < x ∧ ∃ ex ey, log[x]? = some ex ∧ log[y]? = some ey ∧
+    (y < ex.start ∨ (∃ j, j ∈ ex.op.dirs ∧ j ∈ ey.op.dirs) ∨
+      (ex.op.crossRename = true ∧ ey.op.crossRename = true))
 
-/-- `b` is a name in the directory `d` of the tree `m`. -/
-def entryIn (m : Tree) (d b : GoString) : Prop := NameOk b ∧ (m !! (d ++ slashB :: b)).isSome
+/-- A set of entries closed under `Follows`: what a crash may keep. -/
+def Closed (log : List LogEntry) (S : Nat → Prop) : Prop :=
+  ∀ x y, S x → Follows log x y → S y
 
-/-- A root's form: canonical and absolute (`/c₁/…/cₙ`, `n ≥ 1`), so that textual nesting is
-nesting and no root is relative to a working directory. -/
+/-- The entries that must be on disk once `x` is: `x`, and what it follows, transitively. -/
+inductive Needed (log : List LogEntry) (x : Nat) : Nat → Prop where
+  | self : Needed log x x
+  | step (y z : Nat) : Needed log x y → Follows log y z → Needed log x z
+
+open Classical in
+/-- The operations of the entries of `log` in `S`, in log order. -/
+def keptOps (log : List LogEntry) (S : Nat → Prop) : List MetaOp :=
+  (List.range log.length).filterMap (fun k => if S k then (log[k]?).map (·.op) else none)
+
+/-- The last entry of the log that changes or locks the directory `j`. -/
+def lastTouch (log : List LogEntry) (j : Ino) : Option Nat :=
+  ((List.range log.length).filter (fun k => decide (∃ e, log[k]? = some e ∧ j ∈ e.op.dirs))).getLast?
+
+/-- The roots: distinct paths, canonical and absolute (`RootForm`), none in another's tree. -/
 def RootForm (r : GoString) : Prop :=
   ∃ cs, cs ≠ [] ∧ (∀ c ∈ cs, NameOk c) ∧ r = joinPath [] cs
 
-/-- The roots: distinct, canonical, none in another's tree. -/
-def RootsOk (roots : List GoString) : Prop :=
-  roots.Nodup ∧ ∀ r ∈ roots, RootForm r ∧ ∀ r' ∈ roots, r ≠ r' → ¬ IsUnder r r'
+def RootsOk (roots : List (GoString × Ino)) : Prop :=
+  (roots.map (·.1)).Nodup ∧ (roots.map (·.2)).Nodup ∧
+  ∀ r ∈ roots, RootForm r.1 ∧ ∀ r' ∈ roots, r.1 ≠ r'.1 → ¬ IsUnder r.1 r'.1
 
-/-- `m` is a tree over `roots`: each root a directory; every other path canonical in a root's
-tree, in a directory of `m`; no file named twice (no hard links). -/
-def TreeShape (roots : List GoString) (m : Tree) : Prop :=
-  (∀ r ∈ roots, m !! r = some .dir) ∧
-  (∀ p x, m !! p = some x → p ∈ roots ∨
-    ((∃ r ∈ roots, CanonBelow r p) ∧ ∃ d, parentOf p = some d ∧ m !! d = some .dir)) ∧
-  (∀ p q i, m !! p = some (.file i) → m !! q = some (.file i) → p = q)
+/-- The directory `j` is reachable from a root of `roots` in `m`. -/
+inductive Reach (roots : List (GoString × Ino)) (m : Tree) : Ino → Prop where
+  | root (r : GoString) (j : Ino) : (r, j) ∈ roots → Reach roots m j
+  | child (j : Ino) (b : GoString) (j' : Ino) :
+      Reach roots m j → m.entry j b = some (.dir j') → Reach roots m j'
+
+/-- `m` is a tree over `roots`: every directory reachable from a root; each directory named once
+(by a root or by one entry, so no cycle) and each file named once (no hard links); every entry's
+name valid and every directory it names one of `m`'s. -/
+def TreeWf (roots : List (GoString × Ino)) (m : Tree) : Prop :=
+  (∀ j, j ∈ m ↔ Reach roots m j) ∧
+  (∀ j b n, m.entry j b = some n → NameOk b ∧ ∀ j' ∈ n.dirIno, j' ∈ m) ∧
+  (∀ j b j', m.entry j b = some (.dir j') → ∀ r, (r, j') ∉ roots) ∧
+  (∀ j1 b1 j2 b2 n, m.entry j1 b1 = some n → m.entry j2 b2 = some n → j1 = j2 ∧ b1 = b2)
 
 end Fs
 end Perennial
