@@ -1,8 +1,9 @@
 /-
 `(*EtcdServer).revokeExpiredLeases(leases)` (`server.go`). Lean-first (no Rocq counterpart); the
-lease-expiry plan's X5 (`notes/lease-expiry-plan.md`, Part X and "Plumbing: Part X-a"). Names-only
-for now: `run` takes it through the sealed open premise `srvRevokeOpen` (`LeaseRun.lean`), which
-only a revocable-lease cluster's results discharge.
+lease-expiry plan's X5 (`notes/lease-expiry-plan.md`, Part X and "Plumbing: Part X-a"). Translated
+and proved (revoke-open pass 2, 2026-11-06; until then names-only): `run` takes it through the
+sealed premise `srvRevokeOpen` (`LeaseRun.lean`), which only a revocable-lease cluster's results
+discharge, with the linked proof (`srvRevokeOpen_intro`).
 -/
 module
 

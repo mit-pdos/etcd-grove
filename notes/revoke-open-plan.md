@@ -1191,3 +1191,38 @@ N6's laws at the merge") became:
   (the other variables), so the check shows no removal: `leaseExpired` left its list (`Init.lean`). Interfaces: etcdstart's `Defs`/`Served` (the
   count's name, `memberReadN` and its law added), backend's unchanged; `etc/api-check.py` and the
   layout checks pass for both; `etc/bounds-check.py --check`: ok (389).
+
+## Draft pass 2: etcdserver (2026-11-06)
+
+§N's etcdserver items. Statement changes, old → new, with their causes (the batching rule: applied
+as DRAFT, brought to the user once):
+
+- **`GoNames` gains a field `pend : GName`** (`InvGoAttach.lean`; built by `goAttach_init`,
+  `InvStart.lean`), and **`goAttachInv` a conjunct** `ownTokAuth γ.pend q` (after
+  `ownTokAuthDfrac γ.run dq d`): the authority over the pending adds' receipts, `goPending γ :=
+  ownToks γ.pend 1` (new). Cause: D.3's invariant counts the pending adds (`q`, their level-1
+  tokens) but nothing told the `go` statement that its own `Add` is among them; without it the fork
+  cannot take a level-1 token out (`q` could be `0` for all the invariant says). The `Add` mints the
+  pending receipt, the fork (`goAttach_fork`, new) spends it. `StopShutdown.lean`'s destructuring
+  of the invariant gains a `-`.
+- **`wp_goAttach_Add`** (the lemma; pass 1's text took a `threadTok` and returned `goRunning`):
+  pre `… ∗ ghostVar γ.b q true ∗ threadTok` → `… ∗ ghostVar γ.b q true ∗ levelTok 1`, post
+  `goRunning γ ∗ ghostVar γ.b q true` → `goPending γ ∗ ghostVar γ.b q true`. New:
+  `goAttach_fork (γ) : inv goAttachN (goAttachInv γ) ∗ goPending γ ∗ threadTok ⊢ |={⊤}=> levelTok 1 ∗
+  goRunning γ ∗ threadTokFrom 1`. `wp_goAttach_Done` unchanged (pass 1's).
+- **`srvRevokeBuilt`'s body** (`RevokeCtx.lean`, sealed): + `⌜threadBound GF ≤ backend.rdPoolN⌝`.
+  Cause: `ensureLeadership`'s pre asks `threadBound GF ≤ 2 ^ 30 - 1`, and nothing in
+  `revokeExpiredLeases`' pre bounded the thread bound from above (`srvGoAttachOk` gives only
+  `2 * threadBound GF ≤ 2 ^ 31`); `NewServer` has the premise (`threadBound GF ≤ 2 ^ 28`). New laws
+  (`RevokeCtx.lean`): `srvRevokeBuilt_intro`/`_parts`, `srvRevokeCtx_intro`/`_parts` (the sealed
+  bundles' pieces, for `NewServer`, `start` and the revocation's proof).
+- **The Goose configuration** (`Code/go_etcd_io/etcd/server/v3/etcdserver.toml`): + translated
+  `EtcdServer.revokeExpiredLeases` and `maxPendingRevokes` (until then an `axiom … : val`, now
+  `#(16 : Int)`). Cause: the revocation's proof needs the body and the channel's capacity.
+
+Lesson (2026-11-06): never a bare `iframe` (or `iframe ∗`) where a `[∗list] _ ∈ List.replicate N ()` with
+`N` a big count (`2 ^ 28 - 1`) is in scope: a hypothesis whose element does not match syntactically
+makes the unifier unfold `List.replicate N ()` (NewServer's compile reached 80 GB); split and
+`iexact` each list, its element already in the hypothesis's own form (`replicate_map`, or a law
+for the predicate built from it); no `unfold`/`generalize` of NewServer's whole goal either (a
+second blowup, at 10 GB, went away only once the step rewrote nothing).
