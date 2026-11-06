@@ -105,8 +105,9 @@ Built of record (`lake build` under the lock), commit `879234f04c` and the next:
 (new), `WatchStateDefs`, `WatchContent`, `WatchFire`, `WatchCompl`, `WatchResumeSrv`, `WatchEpoch`,
 `WatchResume`, `WatchClientModel`, `watchGRPCStream__serveSubstream`, `WatchRun`, and again the
 foundation (`InvWatch`, `InvClientNewResult`, `WatchLawsHist`, `WatchCheck`, `ServerWatcher`,
-`watcher__Watch`'s spec); `WatchRecon` checked with `lake env lean` (its `lake build` was queued
-behind the other tracks' rebuilds). No mvcc internal is left in these but the API's own
+`watcher__Watch`'s spec); `WatchRecon` checked with `lake env lean` (its `lake build` then
+failed in the server's `ModeSpecs`, another track's work in progress, which the client imports:
+rebuild of record once it builds). No mvcc internal is left in these but the API's own
 vocabulary (`evIs`, `kvPtrFixed`, `watchEvents`, `WatchRange`, the `api` names).
 
 ### The bridges (`WatchBridges.lean`, the draft's §8 over v3rpc's `mvccOk`/`rcvSnap`)
