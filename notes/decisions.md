@@ -32536,3 +32536,36 @@ No closed theorem changed (`examples/`' results, text-identical). The trust base
 axiom (N1). A cheap gate, `etc/errorf-wrap-check.py` (in `etc/gates.sh`), refuses a new proof that
 steps into Perennial's `Errorf` model outside the reviewed files (post `True`, or a format without
 `%`).
+
+## `memberUp` through laws (2026-11-06 · N6, lease-mono3 r3's N3; an etcdstart API addition accepted by etcd-grove-82 · branch `n6`)
+
+**Why.** The examples took `etcdstart.memberUp` (and `memberUpOn`) apart by position (`iunfold
+memberUp at Hup; icases Hup with ⟨…, HWR, #HLR, -⟩`), in 17 places outside etcdstart. Every new
+conjunct of `memberUp` broke all of them: R2c's stop right did, and revoke-open's reader count and
+R2d's changes would next. A definition's body is the package's internals; its clients should see laws.
+
+**Decision.** Three laws in `etcdstart/Served.lean` (with R2c's `memberUp_stop`, in `Defs.lean`, for
+the stop side), each naming only what a kind of consumer uses and dropping the rest:
+
+- `memberUp_served`: `memberUp … m ⊢ ∃ E cfg γw, ⌜…⌝ ∗` the views, `srvServeFacts`, `srvGoRes`, an
+  `lgMu` and a `bemu` slot, `srvWatchReaders`, `kvServeStocks s E ρ.rd` (the gRPC runs' reader
+  stocks), `srvPeerCtl` and `srvLeaseRd s E m`: what `Serve`, `v3rpc.Server` and the ghost steps
+  take (every serving `Main`/`Run`, `cluster3.StartMember`, restart's `memberUp_applied`, putget3's
+  members 2 and 3 for their thread token). The stop right and `srvWatchBuilt` are dropped.
+- `memberUpOn_served`: the same for auth on, the views at `E.authOn` (what `Serve` takes; `true` by
+  the pure `E.authMode = .on γa`), `srvAuthLb`, the TLS fallback off, `srvAuthStoreOn` (authkv's
+  `Main`).
+- `memberUpOn_intro`: the converse, for the one producer outside the package (authkv's
+  `startServer`).
+
+They are in `Served.lean`, not `Defs.lean`, to state the stocks as `kvServeStocks` (defined there)
+rather than restate its six `[∗list]`s three times, and the views at `E.authOn` rather than at a
+literal `true`: a restatement is counted by `etc/bounds-check.py` (`stock`) and `etc/mode-check.py`
+(`lit-mode`), whose baselines may only go down. Five consumers that did not reach `Served` import it
+(it is in etcdstart's importable list).
+
+`memberUp`'s and `memberUpOn`'s bodies are unchanged (no split into named parts: laws suffice), and
+so is every statement. A new conjunct of `memberUp` now changes only these laws' proofs (and
+`memberUpOn_intro`'s premise, whose producer must supply it anyway); a change to a conjunct a
+consumer uses still reaches that consumer, through the law's statement. No consumer outside
+etcdstart unfolds `memberUp` or `memberUpOn` (`grep -rn "unfold.*memberUp" Proof`).
