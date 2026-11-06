@@ -14,7 +14,7 @@ world), and the tree's resources and their laws. Untrusted.
 * `osFd fd dq d`: `fd` is open, on the file `d.ino`, with `d`'s access mode; fractional.
 * `osTree dq V`: (a fraction of) the tree's history `V`. `osDir j dq g`: the directory of inode `j`,
   as `g` says: a fraction of the history, of which `g` is `j`'s view. `osDirFd fd dq x`: `fd` is an
-  open directory fd, on `x.1`, its read at `x.2`. `osCall t s`: the call on a path `t` is in flight,
+  open directory fd, on `x.1`, its read at `x.2`. `osCall t s q`: the call on a path `t` is in flight,
   begun when the log had `s` entries.
 * `osInv`: the invariant of the generation's mapped cells; every spec takes it, with `↑osN ⊆ E`.
 -/
@@ -214,15 +214,16 @@ def osDir (j : Ino) (dq : DFrac) (g : DirG) : IProp GF :=
 def osDirFd (fd : w64) (dq : DFrac) (x : Ino × DirPh) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf fd dq x
 
-/-- The call on a path `t` is in flight, begun when the log had `s` entries. -/
-def osCall (t : Nat) (s : Nat) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc t (DFrac.own 1) s
+/-- The call on a path `t` is in flight, begun when the log had `s` entries; the state
+interpretation holds the fraction `q` of the history for it, which its step gives back. -/
+def osCall (t : Nat) (s : Nat) (q : Qp) : IProp GF :=
+  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc t (DFrac.own 1) (s, q)
 
 instance osTree_timeless (dq : DFrac) (V : Hist) : Timeless (osTree (L := L) dq V) := by
   unfold osTree; infer_instance
 instance osDir_timeless (j : Ino) (dq : DFrac) (g : DirG) : Timeless (osDir (L := L) j dq g) := by
   unfold osDir; infer_instance
-instance osCall_timeless (t s : Nat) : Timeless (osCall (L := L) t s) := by
+instance osCall_timeless (t s : Nat) (q : Qp) : Timeless (osCall (L := L) t s q) := by
   unfold osCall; infer_instance
 
 /-- The history held, with the authoritative one: they agree. -/
@@ -283,9 +284,9 @@ theorem osTree_dir (dq : DFrac) (V : Hist) (j : Ino) :
   iintro H; iexists V; iframe; ipureintro; rfl
 
 /-- A call held, with the authoritative calls: it is in flight, with its start. -/
-theorem osCall_auth (C : GMap Nat Nat) (t s : Nat) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc C -∗ osCall (L := L) t s -∗
-      ⌜C !! t = some s⌝ := by
+theorem osCall_auth (C : GMap Nat (Nat × Qp)) (t s : Nat) (q : Qp) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc C -∗ osCall (L := L) t s q -∗
+      ⌜C !! t = some (s, q)⌝ := by
   iintro HA Hc
   unfold osCall
   iapply gAuth_lookup $$ HA Hc
@@ -420,12 +421,13 @@ def osWorld (st : OsState) (Γb : GMap (Ino × Nat) (w8 × Bool))
 
 /-- What a tree operation's proof works with of the tree: the state's facts, the ghost maps of the
 history, the directory fds and the calls in flight, and the fractions the reads in progress hold. -/
-def treeWorld (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh)) : IProp GF :=
-  iprop(⌜FsTreeWf st ∧ TreeCoh st V Γdf⌝ ∗
+def treeWorld (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
+    (Γc : GMap Nat (Nat × Qp)) : IProp GF :=
+  iprop(⌜FsTreeWf st ∧ TreeCoh st V Γdf Γc⌝ ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf ∗
-    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc st.proc.calls ∗
-    rdRes (gooseOsGS (L := L)) Γdf)
+    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc Γc ∗
+    rdRes (gooseOsGS (L := L)) Γdf ∗ callRes (gooseOsGS (L := L)) Γc)
 
 /-- The lifting of a data operation `o`: from the files' world before the step, the step exists, and
 every step leads to a world after it, and the rest of the program. The tree is left alone
@@ -486,11 +488,11 @@ theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPani
 theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
     (hE : ↑osN ⊆ E) :
     ⊢ osInv (L := L) -∗
-      (∀ st Γb Γm Γf Γt V Γdf h, osWorld st Γb Γm Γf Γt h -∗ treeWorld st V Γdf ==∗
+      (∀ st Γb Γm Γf Γt V Γdf Γc h, osWorld st Γb Γm Γf Γt h -∗ treeWorld st V Γdf Γc ==∗
         ⌜∃ e' h' st', FsStep o v h st () e' h' st' ()⌝ ∗
         ▷ ∀ e' h' st', ⌜FsStep o v h st () e' h' st' ()⌝ ==∗
-          ∃ Γb' Γm' Γf' Γt' V' Γdf', osWorld st' Γb' Γm' Γf' Γt' h' ∗
-            treeWorld st' V' Γdf' ∗ WP e' @ s; E {{ Φ }}) -∗
+          ∃ Γb' Γm' Γf' Γt' V' Γdf' Γc', osWorld st' Γb' Γm' Γf' Γt' h' ∗
+            treeWorld st' V' Γdf' Γc' ∗ WP e' @ s; E {{ Φ }}) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv HF
   iapply wp_extStep o v Φ hv
@@ -498,7 +500,7 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
   unfold osCtx osCtxF treeCtx
   icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩,
-    ⟨%V, %Γdf, %Hns, HAd, HAdf, HAc, Hrd⟩⟩
+    ⟨%V, %Γdf, %Γc, %Hns, HAd, HAdf, HAc, Hrd, Hcr⟩⟩
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with >Hi
@@ -506,8 +508,8 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   icases gVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl⟩ := Heq
-  imod HF $$ %σ %Γb %Γm %Γf %Γt %V %Γdf %h [HAb HAm HAf HAt Htok Hcells Hheap]
-    [HAd HAdf HAc Hrd] with ⟨%Hex, Hcont⟩
+  imod HF $$ %σ %Γb %Γm %Γf %Γt %V %Γdf %Γc %h [HAb HAm HAf HAt Htok Hcells Hheap]
+    [HAd HAdf HAc Hrd Hcr] with ⟨%Hex, Hcont⟩
   · unfold osWorld; iframe; ipureintro; exact Hwc
   · unfold treeWorld; iframe; ipureintro; exact Hns
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ E \ ↑osN from Std.LawfulSet.empty_subset)
@@ -519,7 +521,7 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   inext
   iintro %e' %h' %σ' %g' %Hst -
   imod Hclose2
-  imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', %V', %Γdf', Hw, Hn, Hwp⟩
+  imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', %V', %Γdf', %Γc', Hw, Hn, Hwp⟩
   unfold osWorld
   icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hheap⟩
   imod gVar_update _ _ _ (cellView σ', GMap.size σ'.proc.inflight) $$ Hv Hv' with ⟨Hv, Hv'⟩
@@ -535,8 +537,8 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
       iframe
       ipureintro; exact Hwc'
     · unfold treeWorld
-      icases Hn with ⟨%Hns', HAd, HAdf, HAc, Hrd⟩
-      iexists V', Γdf'
+      icases Hn with ⟨%Hns', HAd, HAdf, HAc, Hrd, Hcr⟩
+      iexists V', Γdf', Γc'
       iframe
       ipureintro; exact Hns'
   · have : (ExtInterp.globalCtx (E := fsExt) (extGlobalGS fsExt) g' : IProp GF) =

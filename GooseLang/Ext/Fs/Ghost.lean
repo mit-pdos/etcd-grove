@@ -300,25 +300,31 @@ def PhOk : DirPh → OsDirRead → Prop
 log is sequential (the metadata calls of a verified program do not overlap: the specs take the whole
 history), a ghost entry for every directory fd, on its directory, its read as the state's, and a
 directory being read the view of the history (unchanged since the read began: a read holds a
-fraction of the history). -/
-structure TreeCoh (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh)) : Prop where
+fraction of the history); a ghost entry for every call on a path in flight, with its start and the
+fraction of the history it holds (`callRes`). -/
+structure TreeCoh (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
+    (Γc : GMap Nat (Nat × Qp)) : Prop where
   hist : V = (st.fs.treeDur, st.fs.metaLog)
   seq : Sequential st.fs.metaLog
   fds : ∀ fd, (Γdf !! fd).map (·.1) = (st.proc.dfds !! fd).map (·.ino)
   ph : ∀ fd x df, Γdf !! fd = some x → st.proc.dfds !! fd = some df → PhOk x.2 df.rd
   rd : ∀ fd x, Γdf !! fd = some x → x.2.g = dview V x.1
+  calls : ∀ t, (Γc !! t).map (·.1) = st.proc.calls !! t
 
-/-- `TreeCoh` depends on the durable tree, the log and the directory fds only. -/
-theorem TreeCoh.congr {st st' : OsState} {V Γdf} (h : TreeCoh st V Γdf)
+/-- `TreeCoh` depends on the durable tree, the log, the directory fds and the calls only. -/
+theorem TreeCoh.congr {st st' : OsState} {V Γdf Γc} (h : TreeCoh st V Γdf Γc)
     (hd : st'.fs.treeDur = st.fs.treeDur) (hl : st'.fs.metaLog = st.fs.metaLog)
-    (hf : st'.proc.dfds = st.proc.dfds) : TreeCoh st' V Γdf := by
-  obtain ⟨h1, h2, h3, h4, h5⟩ := h
-  refine ⟨by rw [hd, hl]; exact h1, by rw [hl]; exact h2, ?_, ?_, h5⟩
+    (hf : st'.proc.dfds = st.proc.dfds) (hc : st'.proc.calls = st.proc.calls) :
+    TreeCoh st' V Γdf Γc := by
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+  refine ⟨by rw [hd, hl]; exact h1, by rw [hl]; exact h2, ?_, ?_, h5, ?_⟩
   · intro fd; rw [hf]; exact h3 fd
   · intro fd x df hx hdf; rw [hf] at hdf; exact h4 fd x df hx hdf
+  · intro t; rw [hc]; exact h6 t
 
-theorem TreeFrame.coh {st st' : OsState} {V Γdf} (h : TreeFrame st st') (hc : TreeCoh st V Γdf) :
-    TreeCoh st' V Γdf := hc.congr h.treeDur h.metaLog h.dfds
+theorem TreeFrame.coh {st st' : OsState} {V Γdf Γc} (h : TreeFrame st st')
+    (hc : TreeCoh st V Γdf Γc) : TreeCoh st' V Γdf Γc :=
+  hc.congr h.treeDur h.metaLog h.dfds h.calls
 
 section cells
 attribute [local instance] Classical.propDecidable
@@ -710,22 +716,27 @@ def rdPart (hL : OsGS GF) (x : Ino × DirPh) : IProp GF :=
 def rdRes (hL : OsGS GF) (Γdf : GMap w64 (Ino × DirPh)) : IProp GF :=
   iprop([∗map] _fd ↦ x ∈ Γdf, rdPart hL x)
 
+/-- What the state interpretation holds of each call on a path in flight: the fraction of the
+history its `CallBegin` took, so that no one changes the tree while it is in flight (and the holder
+of the rest of the history knows that no other call is). -/
+def callRes (hL : OsGS GF) (Γc : GMap Nat (Nat × Qp)) : IProp GF :=
+  iprop([∗map] _t ↦ x ∈ Γc, ∃ V : Hist, gElem hL hL.γd () (DFrac.own x.2) V)
+
 /-- The tree's history, as a ghost map of one entry. -/
 def histMap (V : Hist) : GMap Unit Hist := {[() := V]}
 
 /-- The interpretation of the tree of `st`. -/
 def treeCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
-  iprop(∃ (V : Hist) (Γdf : GMap w64 (Ino × DirPh)),
-    ⌜FsTreeWf st ∧ TreeCoh st V Γdf⌝ ∗ gAuth hL hL.γd (histMap V) ∗ gAuth hL hL.γdf Γdf ∗
-    gAuth hL hL.γc st.proc.calls ∗ rdRes hL Γdf)
+  iprop(∃ (V : Hist) (Γdf : GMap w64 (Ino × DirPh)) (Γc : GMap Nat (Nat × Qp)),
+    ⌜FsTreeWf st ∧ TreeCoh st V Γdf Γc⌝ ∗ gAuth hL hL.γd (histMap V) ∗ gAuth hL hL.γdf Γdf ∗
+    gAuth hL hL.γc Γc ∗ rdRes hL Γdf ∗ callRes hL Γc)
 
 /-- A step that leaves the tree alone keeps its interpretation. -/
 theorem treeCtx_frame (hL : OsGS GF) {st st' : OsState} (h : TreeFrame st st') :
     treeCtx hL st ⊢ treeCtx hL st' := by
   unfold treeCtx
-  iintro ⟨%V, %Γdf, %hw, Had, Haf, Hac, Hrd⟩
-  iexists V, Γdf
-  rw [h.calls]
+  iintro ⟨%V, %Γdf, %Γc, %hw, Had, Haf, Hac, Hrd, Hcr⟩
+  iexists V, Γdf, Γc
   iframe
   ipureintro
   exact ⟨h.wf hw.1, h.coh hw.2⟩
@@ -842,9 +853,9 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
 /-- An initial tree is well formed, and coherent with the history of nothing logged on it, and no
 fd. -/
 theorem fsInit_tree {st : OsState} (h : FsInit st) :
-    FsTreeWf st ∧ TreeCoh st (st.fs.treeDur, []) ∅ := by
+    FsTreeWf st ∧ TreeCoh st (st.fs.treeDur, []) ∅ ∅ := by
   obtain ⟨hproc, hlog, -, hroots, hwf, hnamed, -, hfiles, hdirs⟩ := h
-  refine ⟨⟨hroots, fun n _ => ?_, ?_, ?_, hfiles⟩, ⟨by rw [hlog], by rw [hlog]; intro x e he; simp at he, ?_, ?_, ?_⟩⟩
+  refine ⟨⟨hroots, fun n _ => ?_, ?_, ?_, hfiles⟩, ⟨by rw [hlog], by rw [hlog]; intro x e he; simp at he, ?_, ?_, ?_, ?_⟩⟩
   · rw [hlog]; simp only [List.take_nil, List.map_nil, replay, List.foldl_nil]
     refine ⟨hwf, fun i hi => ?_, hdirs⟩
     have := hnamed i hi
@@ -856,6 +867,7 @@ theorem fsInit_tree {st : OsState} (h : FsInit st) :
   · intro fd; simp [hproc, ProcState.empty]
   · intro fd x df hx; simp at hx
   · intro fd x hx; simp at hx
+  · intro t; simp [hproc, ProcState.empty]
 
 theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState) (h : FsInit st) :
     ⊢@{IProp GF} |==> ∃ hL : OsGS GF, osCtx hL st ∗ osStart hL st := by
@@ -872,7 +884,7 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imod ghost_map_alloc (GF := GF) (histMap ((st.fs.treeDur, ([] : List LogEntry)) : Hist))
     with ⟨%γd, Had, Hd⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (Ino × DirPh)) with ⟨%γdf, Hadf, -⟩
-  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat Nat) with ⟨%γc, Hac, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γc, Hac, -⟩
   imodintro
   iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv, γd, γdf, γc⟩ : OsGS GF)
   isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac]
@@ -885,12 +897,12 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
       isplitr
       · ipureintro; exact ⟨hwf, hcoh⟩
       · iapply BigSepM.bigSepM_empty.2; itrivial
-    · iexists ((st.fs.treeDur, ([] : List LogEntry)) : Hist), ∅
-      rw [show st.proc.calls = ∅ by rw [hproc]; rfl]
+    · iexists ((st.fs.treeDur, ([] : List LogEntry)) : Hist), ∅, ∅
       iframe Had Hadf Hac
       isplitr
       · ipureintro; exact ⟨htw, htc⟩
-      · iapply BigSepM.bigSepM_empty.2; itrivial
+      unfold callRes
+      isplitl [] <;> iapply BigSepM.bigSepM_empty.2 <;> itrivial
   · unfold osStart osStartF treeStart gElem gVar histMap
     ihave Hd := (show ([∗map] k ↦ v ∈ ({[() := ((st.fs.treeDur, ([] : List LogEntry)) : Hist)]} :
         GMap Unit Hist), ghostMapElem (GF := GF) γd k (DFrac.own 1) v) ⊢
