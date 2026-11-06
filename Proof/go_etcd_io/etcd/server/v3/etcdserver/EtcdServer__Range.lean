@@ -368,10 +368,10 @@ local macro "range_tail" : tactic => `(tactic| (
     rcases errv with ei | _
     · wp_auto_lc 6
       ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
-          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM false γr.kv L = log⌝ ∗ □ Q L)) $$
+          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L)) $$
           [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
       · cases hso : o.base.serializable
-        · simp only [hso, Bool.false_eq_true, ↓reduceIte, kvModelM_false]
+        · simp only [hso, Bool.false_eq_true, ↓reduceIte]
           icases HwO with ⟨%g', #Hw'⟩
           ihave #Hw'' := readWitAt_mono γr Q g' logR log Hlog.1 $$ Hw'
           iapply readWit_fire s E γr Q g' log $$ Hainv Hkvi Hw'' Hrok
@@ -386,7 +386,8 @@ local macro "range_tail" : tactic => `(tactic| (
         have := Hlog.1.length_le
         exact ⟨by omega, by omega, HFR.trans Hlog.1, Hlog.2.2.2⟩
       ihave #HeO := rangeErrOut_of_result false E γr c F o Q respv ei log crev hlL $$
-        Hcert Hrok Hclb HrlL HQf Hres
+        Hcert Hrok Hclb HrlL [] Hres
+      · simp only [kvModelM_false]; iexact HQf
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
@@ -564,10 +565,10 @@ local macro "range_tailOn" : tactic => `(tactic| (
     rcases errv with ei | _
     · wp_auto_lc 6
       ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
-          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = log⌝ ∗ □ Q L)) $$
+          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelOn γr.kv srvAuthSt0 L = log⌝ ∗ □ Q L)) $$
           [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
       · cases hso : o.base.serializable
-        · simp only [hso, Bool.false_eq_true, ↓reduceIte]
+        · simp only [hso, Bool.false_eq_true, ↓reduceIte, ← kvModelM_true]
           icases HwO with ⟨%g', #Hw'⟩
           ihave #Hw'' := readWitAt_mono γr Q g' logR log Hlog.1 $$ Hw'
           iapply readWit_fireOn s E γr Q g' log $$ Hainv Hkvi Hw'' Hrok
@@ -582,7 +583,8 @@ local macro "range_tailOn" : tactic => `(tactic| (
         have := Hlog.1.length_le
         exact ⟨by omega, by omega, HFR.trans Hlog.1, Hlog.2.2.2⟩
       ihave #HeO := rangeErrOut_of_result true E γr c F o Q respv ei log crev hlL $$
-        Hcert Hrok Hclb HrlL HQf Hres
+        Hcert Hrok Hclb HrlL [] Hres
+      · simp only [kvModelM_true]; iexact HQf
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
@@ -591,10 +593,10 @@ local macro "range_tailOn" : tactic => `(tactic| (
       ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
     · wp_auto_lc 6
       ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
-          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = log⌝ ∗ □ Q L)) $$
+          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelOn γr.kv srvAuthSt0 L = log⌝ ∗ □ Q L)) $$
           [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
       · cases hso : o.base.serializable
-        · simp only [hso, Bool.false_eq_true, ↓reduceIte]
+        · simp only [hso, Bool.false_eq_true, ↓reduceIte, ← kvModelM_true]
           icases HwO with ⟨%g', #Hw'⟩
           ihave #Hw'' := readWitAt_mono γr Q g' logR log Hlog.1 $$ Hw'
           iapply readWit_fireOn s E γr Q g' log $$ Hainv Hkvi Hw'' Hrok
@@ -631,7 +633,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
       isplitr
       · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
       isplitr
-      · iexact HQf
+      · simp only [kvModelM_true]; iexact HQf
       iunfold txn.rangeHdr at Hhdr
       iapply Hhdr
       ipureintro; rfl
