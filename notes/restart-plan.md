@@ -2817,3 +2817,103 @@ axiom; steps 3-5 not reached in the session (no gap found; what is left is liste
     - A10: 1.5-2.5 wk. The job body and the start's glue are done; still to do are the run loop's
       wiring, the snapshot jobs in a window, and the stop.
     - R2d'a in all: **4.5-6.5 weeks (est.)**.
+
+#### R2d'a Draft (2026-11-06, branch `r2dp`; DRAFT, nothing frozen)
+
+Tasks A3, A4, A5, then the auth-on copies. A4 is proved. A3 and A5 stopped under H9, each with a
+proposal below. The auth-on copies were not started, because their replay hypothesis is A3's
+statement. Lean was frozen, so nothing landed.
+
+- **A4, proved** (`ApplyConfChangeR.lean`, `EtcdServer.applyConfChange.wp_proofRep`, from the body
+  over the callee specs of lean's `applyConfChange.wp_proof`). Go at `673da07c8`: the validation
+  returns `nil` without reading (`membership/cluster.go:306-309`), raft is not called
+  (`server.go:2053-2059`), `SetConfState(ep.confState)`, the context unmarshalled, `AddMember(…,
+  false)` (`cluster.go:395-424`) and `AddPeer` of a known peer. **DRAFT statement change**
+  (`specRep`, a premise the caller already had): `E.RO rs` in and out, with the frozen spec's
+  `HRO` shape, and the members' size bound. `ValidateConfigurationChange.spec` and
+  `AddMember.spec` take the cluster's `be` field even at `v3 = false`, and `AddMember` takes its
+  in-memory members (`clusterMem`) and their bound. Only `E.RO` holds them. The caller
+  (`ApplyR.lean`'s replay branch) supplies them through `srvRestRp_ro`, and the bound through
+  `srvApRes_ccRep`, whose pure conjunct now also gives the bound for any image with the keys of
+  `restModel A₀` (`restReplay_memKeys`). `ApplyR`, `ApplyEntriesR`, `RunR`, `StartR`, `ViewR`
+  rebuilt. `#print axioms`: no `sorryAx`; the axioms are a subset of lean's
+  `applyConfChange.wp_proof`'s (`apply.wp_proofROff` adds three that are already in
+  `etc/tcb-baseline.txt`).
+- **A3, STOPPED (H9): `applyEntryNormal.specRepOff` cannot be proved from the frozen leaf
+  specs.** `apply.Apply.specRec` (`apply/ApplyRec.lean:67`), `uberApplier.Apply.spec` and
+  `uberApplier.dispatch.spec` require these premises at every `v3`: `grantFresh E rq U` (the
+  request's grant id not in the lessor's ever-ids `U`, unless the lessor is monotone),
+  `cmpAdmit`, `cmpPermRq` and `grantPermRq`. Go at `v3 = false` reads none of them:
+  `dispatch` returns `nil` after its first `switch` (`apply/uber_applier.go:117-119`), and the
+  proof of `dispatch` uses them only in its `v3` branch (`uberApplier__dispatch.lean:389`, then
+  :549, :608-613). For a replayed revocable-mode `LeaseGrant`, `grantFresh` is **false**:
+  `everOwn E U` is the exact half of the lessor's ever-set (`lease.leaseEver`, a ghost variable),
+  and the replayed grant's lease, when it is still live, is in that set. No premise the caller has
+  can give it. `cmpAdmit` and `cmpPermRq` of a replayed compaction would also need the KV model
+  (`kvApplied` at the ghost log, `kv_entry_claim` for an entry inside the log), which
+  `specRepOff`'s pre does not take. The other premises have sources: `rqOk`/`dispatchOk` from
+  `entryOk`, `restReqOk` from the members premise (`restLeasesWith_mem`), `ltHalf`/`everOwn` from
+  `srvRestRp`'s `srvRestAt`/`srvEver`, `revokeOwn` from `srvApplyKV`.
+  - Options. **(a)** Guard the four premises by `v3` (`if v3 then … else True`) in
+    `dispatch.spec`, `uberApplier.Apply.spec` and `Apply.specRec`. These are frozen, internal
+    statements, and the change only weakens their preconditions. The proof edits are small:
+    `dispatch` already splits on `v3` first, the other two pass the premises through, and the
+    callers (`applyEntryNormal`'s off/on proofs, which reach these specs through `spec_rec`)
+    weaken with one lemma per premise. Est. 1-1.5 d plus the Freeze review. **(b)** New
+    `v3 = false` triples (`dispatch.specV2`, `uberApplier.Apply.specV2`, `Apply.specRecV2`) proved
+    beside the frozen ones, with no frozen statement changed. This duplicates `dispatch`'s first
+    `switch` (about 200 lines) and two pass-through proofs. Est. 2-2.5 d. **(c)** Exclude
+    replayed revocable grants from `specRepOff`. This is false of Go runs; rejected.
+  - **Recommendation: (a).** It states what Go does: a `v2`-only apply reads no grant,
+    compaction or permission state. It fits H2's one `applyEntryNormal.spec` with a `v3` case,
+    and it costs least. It needs 82's go, since it edits frozen statements.
+- **A5, STOPPED (the brief's rule: the merged-send branch needs more than `winNoMergedSendR`).**
+  The branch's message comes from `msgSnapC`'s bag (`isRNMsgSnapC γm`, `rnSnapMsg`). It is a
+  `MsgSnap` that `γm.id` sent (`sentMsg … γm.id st`). `winNoMergedSendR` speaks of the
+  messages of `id` with `srvMemberIDAddr s ↦□ id`. On `lean`, `isServerApplyAll`
+  (`InvApplyAll.lean:119-147`) relates `γm` to the server only by `γm.node = γr.raft.raft`, and
+  nothing in `specBatchR`'s pre ties `γm.id` to the member id (the transport's `lid` is not tied
+  either). So the merged-send branch inside a window cannot use the premise. This is A7's
+  "member-id conjunct" (frozen at `r2d-freeze1`, not on `lean`). Options:
+  - **(a)** Bring A7's `isServerApplyAll`/`srvApplyAllBuilt` conjunct `γm.id = memberID` into
+    this branch: a hub edit, which `NewServer` already knows (est. 0.5-1 d with its supply).
+  - **(b)** State `winNoMergedSendR` over the bag's names (`∀ γm, γm.node = γ → isRNMsgSnapC γm
+    msc → …γm.id…`). This moves the same fact to A7's supplier at `run`, which needs the same
+    link. Not simpler.
+  - **(c)** Quantify over every sender. This would say no member sends a `MsgSnap` at `rt` while
+    the window is pending, which is false (the leader does). Rejected.
+  - **Recommendation: (a).** Two more facts, needed outside the window as well: lean's proof of
+    the merged branch (`EtcdServer__applyAll.lean:375-450`) uses the KV at Go's index (`hciE`,
+    `merged_imageC` at `A ++ batch`). It therefore applies unchanged only once the window closes
+    after the batch. That is exactly when `winNoMergedSendR` is `R = []`, and there
+    `ghostOf_past` and `srvRestR_past` turn every row into lean's. `snapshotIfNeeded…`'s spec
+    (`hSINC`) takes Go's rows only (`srvSnapStor` at `A ++ batch`, `ai' ≤ ciEff`, which holds
+    inside the window since `ai' ≤ g' ≤ ciEff`). Separately, `applyAll`'s R proof also needs a
+    mode-generic `applyEntries.specBatchR`, the window form of `specBatch` (`ApplyEntriesR.lean`
+    has only the off form). Its proof from the off and on forms is `wp_proofBatch`'s case split
+    (about 60 lines).
+- **The auth-on copies (`apply.specROn`, `applyEntries.specBatchROn`): not started.** They take a
+  hypothesized auth-on replay spec, `applyEntryNormal.specRepOn`. With A3's recommended shape,
+  that becomes one mode-generic statement (H2), so drafting an on-only copy now would be redone.
+  The copy itself is mechanical: lean's `apply.wp_proofOn` (`EtcdServer__apply.lean:1005`, 830
+  lines) with the probe's ~180-line window edit. Est. 2-3 d.
+- **The row `ai₀ + |A₀| + 1 < 2^64` (`applyResR`; the coordinator's question): no existing
+  statement supplies it at a restart.**
+  - `bootstrapRestartContract` (`InvRestart.lean:563-583`) gives the image's consistent index `i`
+    as a `w64` with `uint.nat i ≤ σ.commit` (:567-570). So `ai₀ + |A₀| = i < 2^64`, but not `+ 1`.
+    `imageAt` (`InvImage.lean:114-119`) adds nothing about indices.
+  - `srvIdxOk` (`KVModelDefs.lean:249-250`, `ai₀ + 1 + |L| < 2^64`) holds only of logs raft hands
+    (`rnEnvOk`'s `E.C`, `InvRaftNode.lean:483-486`). `A₀` is handed only when Go's log reaches
+    `i`, which closes the window. Inside the window it bounds only Go's shorter log.
+  - `srvRLogLb` (`SrvRaftLog.lean:395-396`) carries only `srvIdxOkW` (consecutive indices).
+  - The cindex specs bound nothing. `NewServer`'s restart branch is R2d'b (B5) and does not
+    exist yet.
+  - The candidates: a premise of `bootstrapRestartContract` (`uint.Z i + 1 < 2^64`, a fact about
+    the data directory, like `N + 7 + bootWB ≤ wbInit`), or the raft loop's restart data (raft
+    must already prove `E.C`'s introduction law, `ai₀ + 1 + |L| < 2^64`, for the log through
+    `σ.commit ≥ i` that it will hand). The second is cheaper to justify, since it is raft's own
+    obligation.
+- **Revised R2d'a (est.):** A3 with (a) 1-1.5 d; the on copies 2-3 d; A5 0.5-1 d for the A7
+  conjunct plus 3-4 d for the proof (lean's 420 lines and the merged `applyEntries.specBatchR`);
+  the rest as in "Revised R2d'a" above. **R2d'a in all: 4.5-6.5 weeks (est.), unchanged.** The
+  stops add no new work item; they move A7's conjunct earlier.
