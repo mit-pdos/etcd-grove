@@ -33,7 +33,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
 /-- What `munmap` leaves the writer besides `mappingRes`, in the state `st`. -/
-def unmapRest (p : GoString) (m : OsMeta) : MapSt → IProp GF
+def unmapRest (p : Ino) (m : OsMeta) : MapSt → IProp GF
   | some (base, len, _) => iprop(⌜m.maps = {[base := len]} ∧ 0 < base.addr⌝)
   | none => iprop(osMeta (GF := GF) p (DFrac.own 1) m ∗ ⌜m.maps = ∅⌝)
 
@@ -49,7 +49,7 @@ theorem mmap_prep (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List 
       ghostVar γ.out (1 : Qp).half.half false ∗ writerExtra (GF := GF) γ f fd p mp fl hwm ∗
       ghostVar γ.out (1 : Qp).half false ∗
       ([∗list] r ∈ List.range' 2 (hwm - 2), ∃ B, pageIs (GF := GF) γ.ino r B) ∗
-      mappingRes (GF := GF) γ.ino m (mapSlice st) ∗ unmapRest (GF := GF) p m st ∗
+      mappingRes (GF := GF) γ.ino m (mapSlice st) ∗ unmapRest (GF := GF) γ.ino m st ∗
       ⌜∀ base len γm, st = some (base, len, γm) → 0 < base.addr⌝ := by
   rcases st with _ | ⟨base, len, γm⟩
   · dsimp only [mmapPre, mapRest, mapSlice, unmapRest]
@@ -107,9 +107,9 @@ theorem errnoErr_ne_nil (e : w64) (h : e ≠ 0) : errnoErr e ≠ interface.nil :
   unfold errnoErr; rw [if_neg h]; simp
 
 /-- After `munmap`: the file's `OsMeta`, of the same size, with no mapping if it succeeded. -/
-theorem mmap_unmapped (p : GoString) (m : OsMeta) (st : MapSt) (err : GoInterface) :
-    unmappedRes (GF := GF) γ.ino m (mapSlice st) err ∗ unmapRest (GF := GF) p m st ⊢
-      ∃ m', osMeta (GF := GF) γ.ino (DFrac.own 1) m' ∗
+theorem mmap_unmapped (p : Ino) (m : OsMeta) (st : MapSt) (err : GoInterface) :
+    unmappedRes (GF := GF) p m (mapSlice st) err ∗ unmapRest (GF := GF) p m st ⊢
+      ∃ m', osMeta (GF := GF) p (DFrac.own 1) m' ∗
         ⌜m'.size = m.size ∧ m'.ok = m.ok ∧ (err = interface.nil → m'.maps = ∅)⌝ := by
   rcases st with _ | ⟨base, len, γm⟩
   · dsimp only [unmapRest]
@@ -183,12 +183,12 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   imod Hp with ⟨Hcur, Hout, Hx, Ho, Hps, Hmr, Hrest, %Hpos⟩
   icases (mapFields_join db st).1 $$ [Hflds Hflds0] with ⟨Hd, H0, H1⟩
   · iframe
-  wp_apply wp_munmap db (DFrac.own 1) (mapSlice st) (W64 (mapLen st)) (mapPtr0 st) (mapPtr1 st) p m (fun _ => rfl)
+  wp_apply wp_munmap db (DFrac.own 1) (mapSlice st) (W64 (mapLen st)) (mapPtr0 st) (mapPtr1 st) γ.ino m (fun _ => rfl)
     $$ [Hd Hdsz H0 H1 Hmr] as %err ⟨Hd, Hdsz, H0, H1, Hun⟩
   · iframe
   rw [mapSlice_ite st Hpos (fun st => W64 (mapLen st)) (W64 0) rfl,
     mapSlice_ite st Hpos mapPtr0 null rfl, mapSlice_ite st Hpos mapPtr1 null rfl]
-  ihave Hm := mmap_unmapped p m st err $$ [Hun Hrest]
+  ihave Hm := mmap_unmapped γ.ino m st err $$ [Hun Hrest]
   · iframe
   icases Hm with ⟨%m1, Hm, %Hm1⟩
   imod ghostVar_update_halves none γ.map st st $$ Hmap Hmap0 with ⟨Hmap, Hmap0⟩
@@ -222,7 +222,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   · iexact Hf
   (try wp_auto)
   have Hsz0 : 0 < (sz).toInt := by simp only [sint.Z] at Hsz2; omega
-  wp_apply wp_Mmap fd (W64 0) sz _ _ _ ⟨p, true, true⟩ m1 rfl rfl Hsz0 (by decide) (by left; decide)
+  wp_apply wp_Mmap fd (W64 0) sz _ _ _ ⟨γ.ino, true, true⟩ m1 rfl rfl Hsz0 (by decide) (by left; decide)
     $$ [Hfd Hm] as %sl %e ⟨Hfd, Hres⟩
   · iframe; iframe #
   icases Hres with (⟨%base, %Hok, Hm, %bs, %Hbs, Hcells⟩ | ⟨%Herr, Hm⟩)
@@ -269,10 +269,10 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   | true =>
     have he2 := Hbb rfl
     (try wp_auto)
-    wp_apply wp_Munmap base sz p { m1 with maps := <[base := sz.toNat]> m1.maps } _ Hsz0
+    wp_apply wp_Munmap base sz γ.ino { m1 with maps := <[base := sz.toNat]> m1.maps } _ Hsz0
       (GMap.lookup_insert _ _ _) $$ [Hm Hcells] as %e3 Hm3
     · iframe; iframe #
-    ihave Hm : ∃ m2 : OsMeta, osMeta (GF := GF) p (DFrac.own 1) m2 ∗
+    ihave Hm : ∃ m2 : OsMeta, osMeta (GF := GF) γ.ino (DFrac.own 1) m2 ∗
         ⌜m2.size = m.size ∧ m2.ok = m.ok⌝ $$ [Hm3]
     · icases Hm3 with (⟨-, Hm⟩ | ⟨-, (Hm | ⟨Hm, -⟩)⟩) <;>
         (iexists _; iframe; ipureintro; exact ⟨Hm1.1, Hm1.2.1⟩)
@@ -305,13 +305,13 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   have hb : ({ m1 with maps := <[base := sz.toNat]> m1.maps } : OsMeta).maps !! base = some sz.toNat :=
     GMap.lookup_insert _ _ _
   rw [show 8192 = 4096 * 2 by rfl]
-  iapply pages_agree _ rfl p _ _ base sz.toNat hb (by simp) _ (hwm - 2) 2 _ (by omega)
+  iapply pages_agree _ rfl γ.ino _ _ base sz.toNat hb (by simp) _ (hwm - 2) 2 _ (by omega)
     $$ Hos Hm Hps Hpc
   iintro Hm Hps
-  iapply window_agree _ rfl p _ _ base sz.toNat hb (by simp) _ _ mxc 16 64 _ (by omega) (by omega)
+  iapply window_agree _ rfl γ.ino _ _ base sz.toNat hb (by simp) _ _ mxc 16 64 _ (by omega) (by omega)
     $$ Hos Hm Hmx Hc0
   iintro Hm Hmx Hc0
-  iapply window_agree _ rfl p _ _ base sz.toNat hb (by simp) _ _ mxc 4112 64 _ (by omega) (by omega)
+  iapply window_agree _ rfl γ.ino _ _ base sz.toNat hb (by simp) _ _ mxc 4112 64 _ (by omega) (by omega)
     $$ Hos Hm Hmx Hc1
   iintro Hm Hmx Hc1
   -- the new mapping's invariant
@@ -337,7 +337,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     ipureintro
     refine ⟨by simp only [List.length_append, hw0, hw1], fun hfl => ?_⟩
     rw [(Hw.2.2.2.2 hfl).1]
-  ihave Hinv := mapInv_alloc γ p base sz.toNat (by have := Hsz2.2.1; word) $$ Hc
+  ihave Hinv := mapInv_alloc γ γ.ino base sz.toNat (by have := Hsz2.2.1; word) $$ Hc
   imod Hinv with ⟨%γm, Htok, #Hinv⟩
   icases (ghostVar_split_half γm 1 ()).1 $$ Htok with ⟨Htok, Htok2⟩
   imod ghostVar_update_halves (some (base, sz.toNat, γm)) γ.map none none $$ Hmap Hmap0 with ⟨Hmap, Hmap0⟩

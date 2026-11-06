@@ -57,7 +57,7 @@ theorem DB.readPageSize.wp_proof
     ihave %Hbl := ownSlice_len $$ Hbuf
     have hw : 4096 * sint.nat j + 4096 ≤ xs.length := by
       show 4096 * (sint.Z j).toNat + 4096 ≤ xs.length; omega
-    icases (osBytes_window d.path dqb xs (4096 * sint.nat j) 4096 hw).1 $$ Hb with ⟨Hb0, Hw, Hb2⟩
+    icases (osBytes_window d.ino dqb xs (4096 * sint.nat j) 4096 hw).1 $$ Hb with ⟨Hb0, Hw, Hb2⟩
     (try wp_auto)
     have hoff : (j * W64 4096).toNat = 4096 * sint.nat j := by
       show (j * W64 4096).toNat = 4096 * (sint.Z j).toNat
@@ -65,18 +65,18 @@ theorem DB.readPageSize.wp_proof
       rw [this]; congr 1; word
     wp_apply wp_ReadAt f fd name dqf buf vs (j * W64 4096) dq dqm dqb d m
         ((xs.drop (4096 * sint.nat j)).take 4096) hrd (by word) (by omega)
-        (by rw [hoff]; omega) (by simp; omega) $$ [Hinv Hf Hbuf Hfd Hm Hw]
+        (by rw [hoff]; omega) (by rw [hoff]; omega) (by simp; omega) $$ [Hinv Hf Hbuf Hfd Hm Hw]
       as %n %err ⟨Hf, Hfd, Hm, Hw, %vs', Hbuf, %Hres⟩
     · rw [hoff]; iframe; iframe #
     rw [hoff]
-    ihave Hb := (osBytes_window d.path dqb xs (4096 * sint.nat j) 4096 hw).2 $$ [Hb0 Hw Hb2]
+    ihave Hb := (osBytes_window d.ino dqb xs (4096 * sint.nat j) 4096 hw).2 $$ [Hb0 Hw Hb2]
     · iframe
     have hlen : buf.len = W64 4096 := by
       have h1 : (sint.Z buf.len).toNat = 4096 := by rw [← Hvs]; exact Hbl.1.symm
       have h2 := Hbl.2
       have : sint.Z buf.len = 4096 := by omega
       word
-    obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | ⟨rfl, hne⟩⟩ := Hres
+    obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | hne⟩ := Hres
     · have hl4 : vs'.length = 4096 := by omega
       ihave %Hpos := ownSlice_ptr_pos buf vs' _ (by intro h; rw [h] at hl4; simp at hl4) $$ Hbuf
       (try rw [Hvs])
