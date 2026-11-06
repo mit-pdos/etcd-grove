@@ -49,7 +49,7 @@ theorem v3rpc.kvServer.Range.wp_proof
   cases hc : v3rpc.rangeCheck o with
   | some e =>
     simp only [v3rpc.checkRes]
-    ihave #HSe := v3rpc.checkErr_statusErrOk e err $$ Hpkg Herr
+    ihave #HSe := v3rpc.checkErr_srvErrOk e err $$ Hpkg Herr
     iunfold txn.errVarIs at Herr
     icases Herr with ⟨%ee, #Hee, %Herr⟩
     subst Herr
@@ -79,7 +79,7 @@ theorem v3rpc.kvServer.Range.wp_proof
       iapply HΦ
       isplitl
       rotate_left
-      · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+      · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
       iunfold v3rpc.kvOut
       ileft
       isplitr

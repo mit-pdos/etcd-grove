@@ -122,7 +122,7 @@ theorem rangeResult_nil_ne (resp : Loc) (log : mvcc.Log) (rev : w64) (crev : Int
   iunfold txn.rangeResult
   iintro (⟨-, %ef, -, %He⟩ | ⟨-, #He⟩ | ⟨-, %kvs, %more, #Hr, -⟩ | ⟨-, %ec, -, %He⟩)
   · cases He
-  · ihave %Hn := mvcc.errorfIs_ne_nil _ $$ He
+  · ihave %Hn := mvcc.ctxErrorf_ne_nil _ $$ He
     exact absurd rfl Hn
   · iunfold txn.rangeResponseIs at Hr
     icases Hr with ⟨%Hn, -⟩
@@ -130,15 +130,16 @@ theorem rangeResult_nil_ne (resp : Loc) (log : mvcc.Log) (rev : w64) (crev : Int
   · cases He
 
 /-- A range's error: no response, and one the gRPC layer can take (mvcc's `ErrFutureRev`, or
-the context's `fmt.Errorf` error, by the leaf fact of `*errors.errorString`, or (M2, S1) mvcc's
+the context's error wrapped by `fmt.Errorf`'s `%w` (`applyErrIs_ctxErrorf`), or (M2, S1) mvcc's
 `ErrCompacted`). -/
 theorem rangeResult_errIs [_root_.Perennial.errors.Assumptions] (resp : Loc) (err : GoInterface)
     (log : mvcc.Log) (rev : w64) (crev : Int) (o : OpFull) (wt : Bool) (hne : err ≠ GoInterface.nil)
     (hleaf : ∀ x : Loc, errLeaf ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩) :
     errVarLeaf (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ⊢
       errVarLeaf (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted -∗
+      (□ ∀ c : GoInterface, context.isCtxErr c -∗ applyErrIs c) -∗
       txn.rangeResult resp err log rev crev o wt -∗ ⌜resp = null⌝ ∗ applyErrIs err := by
-  iintro #Hv #Hvc
+  iintro #Hv #Hvc #Hctx
   iunfold txn.rangeResult
   iintro (⟨%H, %ef, #Hef, %He⟩ | ⟨%H, #He⟩ | ⟨%H, -⟩ | ⟨%H, %ec, #Hec, %He⟩)
   · isplitr
@@ -147,7 +148,7 @@ theorem rangeResult_errIs [_root_.Perennial.errors.Assumptions] (resp : Loc) (er
     iexists ef; iframe Hef; ipureintro; exact He
   · isplitr
     · ipureintro; exact H.2.2.2.1
-    iapply applyErrIs_errorf _ hleaf $$ He
+    iapply applyErrIs_ctxErrorf _ hleaf $$ He Hctx
   · exact absurd H.2.1 hne
   · isplitr
     · ipureintro; exact H.2.2
@@ -303,7 +304,7 @@ local macro "range_tail" : tactic => `(tactic| (
     ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
     rcases errv with ei | _
     · range_defer
-      ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut HCmp Hres
+      ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut HCmp HCtxE Hres
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
@@ -475,7 +476,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
     ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
     rcases errv with ei | _
     · range_defer
-      ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut HCmp Hres
+      ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut HCmp HCtxE Hres
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
@@ -610,6 +611,7 @@ theorem EtcdServer.Range.wp_proof
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨⟨%hist, #Hhist, %Hhl⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩
+  ihave #HCtxE := applyErrIs_of_isCtxErr $$ Hpkg
   ihave #Papply : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
   ihave #HaInit : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []

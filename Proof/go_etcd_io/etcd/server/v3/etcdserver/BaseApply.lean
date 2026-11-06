@@ -368,7 +368,7 @@ An assumption about those packages' initialization (each `var X = errors.New(...
 rather than in their packages' facts, as the apply package's `applyErrVars`. And (2026-10-12,
 the request path's unit 3b) a
 method-set fact: `*errors.errorString` (the dynamic type of an `errors.New` error and, in
-Perennial's model, of a `fmt.Errorf` error: `mvcc.errorfIs`) has no `Is`, `As` or `Unwrap`
+Perennial's model, of a `fmt.Errorf` error, the left side of `fmt.ErrorfWrap`) has no `Is`, `As` or `Unwrap`
 method (`EtcdGrove.errLeaf`), as Go's `errors` package defines it (its only method is
 `Error()`; `ErrorStringLeaf`, from the method set goose emits), so the read side's context errors need it to be errors the gRPC
 layer can take (`applyErrIs`). -/

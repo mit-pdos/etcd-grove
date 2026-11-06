@@ -39,7 +39,7 @@ abbrev v3rpc.kvServer.Range.spec : Prop :=
       | some e => v3rpc.checkOut e resp err ∗ A.call ctx
       | none => v3rpc.kvOut A cid mid (.range o)
           (structFieldRef etcdserverpb.RangeResponse go!"Header" resp) resp err) ∗
-      go_etcd_io.etcd.cache.v3.statusErrOk err }}
+      go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

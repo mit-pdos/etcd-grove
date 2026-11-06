@@ -37,7 +37,7 @@ transaction's states are small by its receipts, D19c, 2026-10-18, which replaced
 room for the run's changes), the leases its puts name known (`checkTxn`'s) and
 those of the state (not for the read-only wrapper). At a context that may be done (`nd = false`,
 only for the read-only wrapper; 2026-10-12, the request path's unit 3b), a range may fail with
-the context error: `executeTxn` returns `fmt.Errorf`'s wrapping of it (`mvcc.errorfIs`), the
+the context error: `executeTxn` returns `fmt.Errorf`'s wrapping of it (`mvcc.ctxErrorf`), the
 responses partly filled, read-only (`roRespsRd`: the ranges before the failed one answered, the
 others' `ResponseRange` still `nil`; unit P4, 2026-10-14, for the server's warning of a slow
 read-only transaction, `txn.WarnOfExpensiveReadOnlyTxnRequest`).
@@ -79,7 +79,7 @@ abbrev txn.executeTxn.spec : Prop :=
         (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ (txn.srvOps
           (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (txn.pendState ilog pend)
           (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1)))) ∨
-      (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗
+      (⌜nd = false⌝ ∗ mvcc.ctxErrorf err ∗
         (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend' crev) ∗
         txn.roRespsRd tresp) }}
 

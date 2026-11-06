@@ -4688,7 +4688,7 @@ change broke etcd-grove's imports now). The port to `d0324b842` is kept on branc
 
 ## `fmt.Errorf`'s `%w` errors: the model's body, not the axiom
 
-**2026-10-13 · accepted (the merge of `origin/lean`, Perennial `a54e1999f`)**
+**2026-10-13 · accepted (the merge of `origin/lean`, Perennial `a54e1999f`)** · *superseded* 2026-11-06 by "`fmt.Errorf` with `%w`: no fact from the model (a soundness bug since 2026-10-12)" (below): the facts learned from the model are false of Go.
 
 **Decision:** the two `fmt.Errorf("...: %w", err)` calls whose error reaches the gRPC layer
 (`mvcc.storeTxnCommon.rangeKeys`' `ctx.Err()`, the txn package's `executeTxn` wrapping it) keep
@@ -32457,6 +32457,121 @@ delegation, 2026-11-06).
 - Dropping `client.etcdLeaseReadAt` from `memberServed` (leasecatchup does not read TTLs), with a
   serving lemma whose slot needs no token when the TTL read is not registered. This is an exported
   change to `cluster3`'s and etcdstart's API, and the TTL read would come back with step 2.
+
+---
+
+## `fmt.Errorf` with `%w`: no fact from the model (a soundness bug since 2026-10-12)
+
+**2026-11-06 · decided by etcd-grove-82 under the user's delegation (user offline, pending the
+user's review) · supersedes "`fmt.Errorf`'s `%w` errors: the model's body, not the axiom"
+(2026-10-13) · the fix is the stage `errorf-wrap` (branch `errorf-wrap`)**
+
+**What was wrong.** Perennial's model of `fmt.Errorf` is `errors.New(format)`: it ignores the
+arguments and does not model `%w` (`Perennial/TrustedCode/fmt.lean`). The 2026-10-13 entry knew
+this and still let `mvcc.wp_Errorf_errorfIs` step into the model for the two `%w` calls whose
+errors reach the gRPC layer: `rangeKeys`' `fmt.Errorf("rangeKeys: context cancelled: %w",
+ctx.Err())` (`kvstore_txn.go:121`) and `executeTxn`'s three (`txn.go:162, 174, 182`). From the model
+the proofs learn facts that are false of Go, where a `%w` error is a `*fmt.wrapError`:
+- its type, an `*errors.errorString`;
+- that it is a leaf, with no `Unwrap`, hence `applyErrIs` and, since k8s etcd3 7c-2 part 1,
+  `statusErrOk`;
+- that `errors.Is(err, context.Canceled)` is false. In Go it is true, so `togRPCError` passes the
+  error through instead of building a status error;
+- that its message is the format string.
+
+A proof about the model is not a proof about Go when the model is wrong. The trusted model was
+used outside what its own spec promises (`fmt.wp_Errorf`: a non-nil error whose `Error()`
+returns), and that is a soundness bug: since 2026-10-12 (unit 3b) the read and Txn paths'
+error facts are false of Go for a cancelled context. It was found by k8s etcd3 7c-2 part 2's
+review of `EtcdServer.Range`'s errors and reported to etcd-grove-82, 2026-11-06.
+
+**The rule now.** No proof may learn an `Errorf` result's type, `Is` behaviour or message from the
+model when the format contains `%w`. Lemmas that step into the model (`mvcc.wp_Errorf_errorfIs`
+and the like) are kept only for formats without `%w`, which Go's `Errorf` returns as
+`errors.New(s)`, and their statements say so with a premise on the format. A `%w` call goes through
+a faithful spec: an opaque error that need not be a leaf, with an `Unwrap` chain ending at the
+wrapped error if a proof needs one. That spec is axiomatized here with its own docstring and
+attack, a growth of the trust base approved under the delegation on condition that the attack
+passes. What breaks is then fixed:
+- `applyErrIs_errorf`;
+- `EtcdServer.Range`'s and `Txn`'s error posts;
+- `togRPCError`'s `statusErrOk` on its context branch, through a restated handler contract
+  accepting an error with no `GRPCStatus` whose `Unwrap` chain ends at a context error. That
+  restatement is brought to etcd-grove-82 as old → new, with its attack, before it is built on.
+
+The general fix is Perennial's: `perennial-changes.md`, "`fmt.Errorf`'s model can be unfolded to
+learn facts false of Go".
+
+
+## `fmt.Errorf` with `%w`, built: a disjunctive `ErrorfWrap`, `srvErrOk` in the handler contracts (2026-11-06 · errorf-wrap's N1-N5, decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `errorf-wrap`; frozen by etcd-grove-82 2026-11-06, tag `errorf-wrap-frozen`)
+
+The fix the entry above calls for. What was built, and why each shape:
+
+- **N1, the spec of a `%w` call** (`Spec/fmt/ErrorfWrap.lean`, axiom `fmt.ErrorfWrap.wp_proof`):
+  `Errorf(pre ++ "%w", [inner])`, `%` not in `pre`, returns `fmt.errorfWrapIs err inner pre`,
+  **either** Perennial's model (`fmt.modelErrIs`: an `*errors.errorString` whose `Error()` returns)
+  **or** Go's `*fmt.wrapError` (`fmt.wrapErrIs`: a pointer whose only methods are `Error`, returning
+  `pre ++ s`, and `Unwrap`, returning `inner`). The first draft stated Go's side only, which the
+  model refutes on the same call; a trusted statement that contradicts the trusted model is a trap
+  for later proofs, so the post is the disjunction (82's decision). A proof can then use nothing
+  that holds of one side only: what it needs is proved of both (`fmt.wrapChain`, whose model case
+  ends the chain). Attacked: `notes/axiom-review/errorf-wrap.md`, survives.
+- **N2, `mvcc.wp_Errorf_errorfIs` restricted** to formats without `%` (premise `(W8 37) ∉
+  format`, no arguments), the fast path where Go's `Errorf` is `errors.New(format)`; the one caller
+  left is `scheduleCompaction`'s.
+- **N3, the `%w` errors' vocabulary**: `ctxWrapErr` (a non-empty `wrapChain` ending at a
+  `context.isCtxErr` value), `mvcc.ctxErrorf := ctxWrapErr` (`rangeKeys`' and `executeTxn`'s
+  errors, in place of `errorfIs`), and `applyErrIs` of such a chain (`applyErrIs_ctxWrap`, by
+  `errorWalkNode` over the chain: each node is a model leaf or a wrap node whose `Unwrap` is the
+  next).
+- **N4, the handler contracts** (`grpcHandlerOk*`, `grpcMethodOk*`, `srvInterceptorOk`) and
+  `applyErrIs`: `srvErrOk := statusErrOk ∨ ctxWrapErr` in place of `statusErrOk`. This widens
+  what `Serve`, `RegisterService` and prometheus's interceptor are trusted to handle; the attack
+  (`wrapctx_test.go`, `n1_test.go`) runs Go's server with handlers returning each `ctxWrapErr`
+  shape, one level and the Txn's two: no panic, the client sees `Canceled`/`DeadlineExceeded`.
+- **N5, the callers restated**: `togRPCError`'s post `srvErrOk`, `EtcdServer.Range`/`Txn`'s
+  error facts through `applyErrIs_ctxErrorf`, and every v3rpc and handler spec at `srvErrOk`.
+
+No closed theorem changed (`examples/`' results, text-identical). The trust base grows by the one
+axiom (N1). A cheap gate, `etc/errorf-wrap-check.py` (in `etc/gates.sh`), refuses a new proof that
+steps into Perennial's `Errorf` model outside the reviewed files (post `True`, or a format without
+`%`).
+
+## `memberUp` through laws (2026-11-06 · N6, lease-mono3 r3's N3; an etcdstart API addition accepted by etcd-grove-82 · branch `n6`)
+
+**Why.** The examples took `etcdstart.memberUp` (and `memberUpOn`) apart by position (`iunfold
+memberUp at Hup; icases Hup with ⟨…, HWR, #HLR, -⟩`), in 17 places outside etcdstart. Every new
+conjunct of `memberUp` broke all of them: R2c's stop right did, and revoke-open's reader count and
+R2d's changes would next. A definition's body is the package's internals; its clients should see laws.
+
+**Decision.** Three laws in `etcdstart/Served.lean` (with R2c's `memberUp_stop`, in `Defs.lean`, for
+the stop side), each naming only what a kind of consumer uses and dropping the rest:
+
+- `memberUp_served`: `memberUp … m ⊢ ∃ E cfg γw, ⌜…⌝ ∗` the views, `srvServeFacts`, `srvGoRes`, an
+  `lgMu` and a `bemu` slot, `srvWatchReaders`, `kvServeStocks s E ρ.rd` (the gRPC runs' reader
+  stocks), `srvPeerCtl` and `srvLeaseRd s E m`: what `Serve`, `v3rpc.Server` and the ghost steps
+  take (every serving `Main`/`Run`, `cluster3.StartMember`, restart's `memberUp_applied`, putget3's
+  members 2 and 3 for their thread token). The stop right and `srvWatchBuilt` are dropped.
+- `memberUpOn_served`: the same for auth on, the views at `E.authOn` (what `Serve` takes; `true` by
+  the pure `E.authMode = .on γa`), `srvAuthLb`, the TLS fallback off, `srvAuthStoreOn` (authkv's
+  `Main`).
+- `memberUpOn_intro`: the converse, for the one producer outside the package (authkv's
+  `startServer`).
+
+They are in `Served.lean`, not `Defs.lean`, to state the stocks as `kvServeStocks` (defined there)
+rather than restate its six `[∗list]`s three times, and the views at `E.authOn` rather than at a
+literal `true`: a restatement is counted by `etc/bounds-check.py` (`stock`) and `etc/mode-check.py`
+(`lit-mode`), whose baselines may only go down. Five consumers that did not reach `Served` import it
+(it is in etcdstart's importable list).
+
+`memberUp`'s and `memberUpOn`'s bodies are unchanged (no split into named parts: laws suffice), and
+so is every statement. A new conjunct of `memberUp` now changes only these laws' proofs (and
+`memberUpOn_intro`'s premise, whose producer must supply it anyway); a change to a conjunct a
+consumer uses still reaches that consumer, through the law's statement. No consumer outside
+etcdstart unfolds `memberUp` or `memberUpOn` (`grep -rn "unfold.*memberUp" Proof`).
+
+---
+
 ## R2d: the server's restart chain, first round (2026-11-06 · the R2d Scope's S1 (B), Q8 (a), Q9 (d), Q10-Q12, HS1 (a), decided by etcd-grove-82 under the user's delegation · branch `r2d`; DRAFT)
 
 **Q9: (d), the restart is a jump; supersedes R2c's leaning (a)** ("R2c: what a restart needs of

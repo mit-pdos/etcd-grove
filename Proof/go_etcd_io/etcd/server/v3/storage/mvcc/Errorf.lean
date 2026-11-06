@@ -1,13 +1,13 @@
 /-
-`fmt.Errorf`'s error, with its exact type in Perennial's model (`mvcc.errorfIs`): `errors.New` of
-the format, an `*errors.errorString`. Perennial's `fmt.wp_Errorf` keeps only that `Error()`
-returns; the request path's read side (2026-10-12, unit 3b) needs the type to tell the gRPC layer
-the error is a pointer leaf (`applyErrIs`). Lean-first (no Rocq counterpart).
+`fmt.Errorf`'s error, with its exact type, for a format without verbs and no arguments
+(`mvcc.errorfIs`): `errors.New(format)`, an `*errors.errorString`, in Go (`fmt/errors.go:23-31`'s fast
+path) and in Perennial's model alike. Perennial's `fmt.wp_Errorf` keeps only that `Error()` returns;
+the compaction's caller needs the type (a pointer leaf). Lean-first (no Rocq counterpart).
 
-This steps into Perennial's model of `Errorf` (`errors.New(format)`), outside the arguments
-Perennial's `fmt.wp_Errorf` admits (`fmt.ArgsWf`); etcd-grove's axiom for the others
-(`Spec/fmt/Errorf.lean`) does not give the leaf, which Go's `%w` error is not
-(`notes/decisions.md`, "`fmt.Errorf`'s `%w` errors: the model's body, not the axiom").
+This steps into Perennial's model of `Errorf` (`errors.New(format)`), which is faithful only on that
+path: since 2026-11-06 (errorf-wrap) its premises are that path's, no `%` in the format and no
+arguments. A `%w` error goes through `fmt.ErrorfWrap` (`Spec/fmt/ErrorfWrap.lean`;
+`notes/decisions.md`, "`fmt.Errorf` with `%w`: no fact from the model").
 -/
 module
 
@@ -55,10 +55,11 @@ theorem wp_New_errorString (msg : GoString) :
   wp_auto
   iexact HΦ
 
-/-- **`fmt.Errorf(format, args...)`** returns an error `errorfIs` describes (Perennial's model:
-`errors.New(format)`). -/
-theorem wp_Errorf_errorfIs (format : GoString) (args_sl : GoSlice) (args : List GoAny) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args }}
+/-- **`fmt.Errorf(format)`, without verbs or arguments**, returns an error `errorfIs` describes
+(`errors.New(format)`, in Go as in Perennial's model: the fast path; errorf-wrap, 2026-11-06). -/
+theorem wp_Errorf_errorfIs (format : GoString) (args_sl : GoSlice)
+    (_hfmt : (W8 37 : w8) ∉ format) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* ([] : List GoAny) }}
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
     {{ (err : GoInterface), RET #err; errorfIs err }} := by
   wp_start as _

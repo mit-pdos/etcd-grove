@@ -60,6 +60,7 @@ public import Spec.go_etcd_io.etcd.client.v3.WithRange
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Permitted
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.RootWatch
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCalls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 
 @[expose] public section
 
@@ -158,9 +159,8 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUpOn at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, #Htls, #HBF⟩
+  icases etcdstart.memberUpOn_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd0,
+    #Hlb, #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, #Htls, #HBF⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
   -- `Serve(s, clientAddr)`, with the ghost steps `ak_served_kv` (the KV methods with auth on, the
@@ -180,10 +180,6 @@ theorem Main.wp_proof
   · iframe; iframe #
     isplitr
     · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, by rw [HEo]; simp⟩
-    isplitr
-    · rw [hon]; iexact Hreq
-    isplitr
-    · rw [hon]; iexact Hrd
     iintro %gs %lis %cid %mid %R Hg
     rw [hon]
     ihave Hg := etcdstart.grpcUpM_true _ _ _ _ _ _ _ _ _ _ $$ Hg
@@ -329,8 +325,10 @@ theorem Main.wp_proof
   -- the auth state fixed after the set-up (S6, `akAuthFixed_alloc`), from `SetUp`'s post
   rw [ite_eq_left rfl]
   icases Hok with ⟨%γz, %hs, %Lset, %kpub, %rset, #Hfz, #Hllb, %Hadm, #Hpub, #Hsst⟩
-  ihave #Hfix := akAuthFixed_alloc srv E γa { ρ with wait := γw } γz hs Lset kpub rset HEo
-    $$ [Hrd Hfz Hllb Hpub Hsst]
+  -- (N6) `memberUpOn_served`'s read view is at the mode `E.authOn`, which is `true`
+  have hfix := akAuthFixed_alloc srv E γa { ρ with wait := γw } γz hs Lset kpub rset HEo
+  rw [← hon] at hfix
+  ihave #Hfix := hfix $$ [Hrd0 Hfz Hllb Hpub Hsst]
   · iframe #; ipureintro; exact Hadm
   -- the workloads: `for _, who := range Principals() { ...; wg.Add(1); go func() { Work(c, who);
   -- wg.Done() }() }`, then `wg.Wait()`

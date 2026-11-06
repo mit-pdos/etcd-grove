@@ -17,7 +17,7 @@ public import Spec.google_golang_org.protobuf.proto.Size
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.getPrevKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.deleteRange
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
+public import Spec.fmt.ErrorfWrap
 
 @[expose] public section
 
@@ -140,7 +140,7 @@ theorem txn.responseOpIs_txn_et (skip : Bool) (s0 : List EtcdKv) (p w r h : Loc)
   cases cs.all (cmpHolds s0) <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> iexact Hops
 
 /-- A range of a transaction (revision `0`) at a context that may be done: the response, or
-the context's error (`fmt.Errorf`'s, `mvcc.errorfIs`). -/
+the context's error (`fmt.Errorf`'s, `mvcc.ctxErrorf`). -/
 theorem txn.rangeResult_txn_or_err_et (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64)
     (crev : Int) (o : OpFull) (hrev0 : o.base.rev = W64 0) (h0 : 0 ≤ sint.Z rev)
     (hcrev : crev ≤ sint.Z rev)
@@ -152,7 +152,7 @@ theorem txn.rangeResult_txn_or_err_et (resp : Loc) (err : GoInterface) (log : mv
           rangeResponseIs resp rev kvs more
             (W64 ((rangeIn (mvcc.stateAt log (sint.nat rev)) o).length : Int)) ∗
           ⌜∃ kvs', rangeKvsOk o (rangeSel (mvcc.stateAt log (sint.nat rev)) o) kvs' ∧
-            kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝) ∨ mvcc.errorfIs err := by
+            kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝) ∨ mvcc.ctxErrorf err := by
   iintro #H
   ihave #H2 := H
   iunfold rangeResult at H2
@@ -181,7 +181,8 @@ theorem txn.executeTxn.wp_proof
     (hSize : proto.Size.spec (GF := GF) (hG := hG))
     (hPrev : txn.getPrevKV.spec (GF := GF) (hG := hG))
     (hPut : txn.put.spec (GF := GF) (hG := hG))
-    (hDel : txn.deleteRange.spec (GF := GF) (hG := hG)) :
+    (hDel : txn.deleteRange.spec (GF := GF) (hG := hG))
+    (hWrap : fmt.ErrorfWrap.spec (GF := GF) (hG := hG)) :
     txn.executeTxn.spec (GF := GF) (hG := hG) := by
   intro trace ctx cd nd lg s γ tw ro ilog pend rt t pl rest tresp skip L crev
   iloeb as IH generalizing %pend %rt %t %pl %rest %tresp
@@ -332,7 +333,7 @@ theorem txn.executeTxn.wp_proof
               ⌜∃ kvs', rangeKvsOk o (rangeSel stn o) kvs' ∧ kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝) ∨
           (∃ e' : GoInterface, ⌜v = returnVal #()⌝ ∗ ⌜nd = false⌝ ∗
             txns_ptr ↦ (W64 0 : w64) ∗ err_ptr ↦ e' ∗
-            mvcc.errorfIs e' ∗ ∃ pend' : List mvcc.Change,
+            mvcc.ctxErrorf e' ∗ ∃ pend' : List mvcc.Change,
               txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend' crev)))
         with [resp err txnWrite ctx lg tv txns Htw]
       · -- the range, at the transaction's state
@@ -356,7 +357,7 @@ theorem txn.executeTxn.wp_proof
           with (⟨%Herr, %kvs, %more, #Hresp, %Hkvs⟩ | #He)
         rotate_left
         · -- the context done: `fmt.Errorf`'s error, returned
-          ihave %Hen := mvcc.errorfIs_ne_nil err $$ He
+          ihave %Hen := mvcc.ctxErrorf_ne_nil err $$ He
           have hndf : nd = false := by
             cases nd
             · rfl
@@ -368,8 +369,7 @@ theorem txn.executeTxn.wp_proof
               · rw [hRR] at h; omega
           ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
           · iPkgInit
-          iunfold mvcc.errorfIs at He
-          icases He with ⟨%x, %Hx, -⟩
+          ihave ⟨%x, %Hx⟩ := mvcc.ctxErrorf_ok _ $$ He
           subst Hx
           wp_auto
           wp_apply wp_slice_literal
@@ -377,9 +377,18 @@ theorem txn.executeTxn.wp_proof
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
           wp_auto
-          wp_apply mvcc.wp_Errorf_errorfIs $$ [$Hfmt $Hasl] as %e' #He'
+          -- `%w` of `rangeKeys`' error: no fact from Perennial's model (errorf-wrap)
+          ihave #He2 := He
+          iunfold mvcc.ctxErrorf at He2
+          ihave #Hxs := go_etcd_io.etcd.cache.v3.ctxWrapErr_stringMethodSpec x $$ He2
+          rw [show (go!"applyTxn: failed Range: %w" : GoString) = go!"applyTxn: failed Range: " ++ go!"%w" from rfl]
+          wp_apply (hWrap go!"applyTxn: failed Range: " _ x (DFrac.own 1) (by decide))
+            $$ [$Hfmt $Hasl $Hxs] as %e0 ⟨-, #Hw⟩
+          ihave #He' : mvcc.ctxErrorf (GoInterface.ok e0) $$ []
+          · iunfold mvcc.ctxErrorf
+            iapply go_etcd_io.etcd.cache.v3.ctxWrapErr_wrap2 $$ Hw He2
           iright
-          iexists e'
+          iexists (GoInterface.ok e0)
           isplitr
           · ipureintro; rfl
           isplitr

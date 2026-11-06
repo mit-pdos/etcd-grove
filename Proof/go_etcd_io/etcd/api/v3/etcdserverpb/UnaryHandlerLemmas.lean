@@ -178,7 +178,7 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
         ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
       (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
+        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   intro Req Rep Spec srv S ics Rs Q m Φ' Ψe ci cd dec ui hReq hRep hsrv
   wp_start as ⟨#Hblank, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hchain, HSpec⟩
   wp_auto
@@ -189,7 +189,8 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
   iapply Hd2 $$ Hb
   inext
   iintro %err Herr
-  icases Herr with (⟨%Herr, #Hr, Ho⟩ | ⟨%Herr, #Hse⟩)
+  icases Herr with (⟨%Herr, #Hr, Ho⟩ | ⟨%Herr, #Hse0⟩)
+  all_goals try ihave #Hse := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk _ $$ Hse0
   · subst Herr
     wp_auto
     wp_if_destruct
@@ -308,7 +309,7 @@ theorem wp_unaryHandlerMd (h : GoString) (srvTy reqTy repTy : go.GoType) (meth f
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
         ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
       (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
+        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   intro Req Rep Spec srv S ics Rs Q m Φ' Ψe ci cd dec ui hReq hRep hsrv
   iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
   ihave #Hh' := grpcHandlerOkMd_own _ S Spec $$ Hh
@@ -349,7 +350,7 @@ theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth 
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
         ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
+      go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   intro Req Rep Spec srv S ics Rs Q m Φ' ci cd dec ui hReq hRep hsrv
   iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
   ihave #Hh' := (grpcHandlerOwnOk_md _ S Spec).1 $$ Hh
@@ -394,7 +395,7 @@ theorem wp_unaryHandler (h : GoString) (srvTy reqTy repTy : go.GoType) (meth ful
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
         ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
+      go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   intro Req Rep Spec srv S ics Rs Q m Φ' ci cd dec ui hReq hRep hsrv
   iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
   ihave #Hh' := (grpcHandlerOk_md _ S Spec).1 $$ Hh

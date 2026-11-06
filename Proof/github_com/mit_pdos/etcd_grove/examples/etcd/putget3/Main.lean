@@ -279,9 +279,8 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₁
-  icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
+    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
   iunfold srvGoRes at Hgo
   icases Hgo with ⟨Hwgr, Htok⟩
   wp_apply (wp_StartMember N name₂ peerAddr₂ clientAddr₂ go!"putget3"
@@ -306,8 +305,8 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₂
-  icases Hup₂ with ⟨%E', %cfg', %γw', -, -, -, Hgo₂, -⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup₂ with
+    ⟨%E', %cfg', %γw', -, -, -, -, Hgo₂, -⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   wp_apply (wp_StartMember N name₃ peerAddr₃ clientAddr₃ go!"putget3"
@@ -332,8 +331,8 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup₃
-  icases Hup₃ with ⟨%E'', %cfg'', %γw'', -, -, -, Hgo₃, -⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup₃ with
+    ⟨%E'', %cfg'', %γw'', -, -, -, -, Hgo₃, -⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   ihave Hgo : srvGoRes s₁ $$ [Hwgr Htok]

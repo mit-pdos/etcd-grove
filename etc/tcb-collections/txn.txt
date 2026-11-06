@@ -18,6 +18,7 @@ axiom backend.rtxStats
 axiom backend.txDB
 axiom backend.txLive
 axiom context.WithValue.wp_proof
+axiom fmt.ErrorfWrap.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof

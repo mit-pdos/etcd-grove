@@ -46,7 +46,7 @@ abbrev v3rpc.LeaseServer.LeaseLeases.spec : Prop :=
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseLeases"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ A.revR ∗
-      v3rpc.leaseLeasesOut s E γl ci n m cid mid resp err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }}
+      v3rpc.leaseLeasesOut s E γl ci n m cid mid resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 
