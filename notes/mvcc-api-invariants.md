@@ -1859,3 +1859,76 @@ reader supply (`rdSupply`, above: borrow a copy with the thread token, `threadPo
 if `storeReaderC`/`watchReader` are timeless, else `borrow_lc` with a credit the hypothesis must
 then take; `tokBack` by the copy's wand and `giveBack`); `writerHyp`'s `certFree` and `watchQ` from
 the handle, `storeWT` from `mvccBackend`, `revToken`/`writerPin` from `writerL` (the joint commit).
+
+## Hand-off: M4, track B, the transaction contracts at the three types (2026-11-06)
+
+**Done** (no axiom, no `sorry`, no placeholder added; no frozen statement changed):
+- **`mvccTxnI` over the three interface types** (`Api/TxnHandle.lean`): a read transaction is
+  `*metricsTxnWrite`, or `NewReadOnlyTxnWrite`'s `*txnReadWrite` around a read transaction **to any
+  depth** (`roWrap n t mw`, the wrappers' chain down to the internal one: `NewReadOnlyTxnWrite.spec`
+  takes any read transaction, a wrapper included, so a depth-1 arm would make it unprovable); a write
+  transaction is `*metricsTxnWrite` of a store without watchers or the watchable store's wrapper
+  around it (`wrWrap`/`wsWrap`: `isWatchTxnWriteT`'s rest, at `WsNames.withPhys p`, the inner store's
+  current physical names; `isWatchableStore_withPhys` is `rfl`). Type lemmas `roWrap_pm/_pt/_pr`,
+  `wrWrap_pm/_pt/_pr`.
+- **The watchable `End`** (`watchableStoreTxnWrite.End.spec`, changed; used only by mvcc's `Link`):
+  over `hookP` (no writer's fragment back), the reader back as `storeReaderC`, the transaction at any
+  trace part (`isWatchTxnWriteT`, `Api/WsTxnSteps.lean`) and the step `wsEndCbY` (TxnSteps' `wsEndCb`
+  with the writer's slot at the transaction's compaction revision, `slotYc`, which
+  `storeTxnWriteCore_takeYc` takes out of the core by `muHeld_wcr`). `wsEndCb` (TxnSteps) is unused
+  now (left: removing it rebuilds TxnSteps' importers). `Api/WsEndSteps.lean`: `wsEndCbY_of_au` (the
+  notify step: the pending revision from the client's half, the writer's quarter and `wsSlot`'s, the
+  notified log's authority extended and its lower bound minted, the receipt and `LogWf` from the
+  sealed log; the commit at the bump); `EndSteps.endCb_nil_of_au` (no watchQ premise) factored out.
+- **Proved** (`#print axioms`: no `sorryAx`; only the translation's axiomatized types):
+  `KV.Read` at `*watchableStore` (`Api/WatchTxnApi.lean`, **no hypothesis**: the reader from
+  `isMvccWatchable`'s pool, `watchReader_borrow`, its `s.mu` slot kept in `tokBack`);
+  `Txn.End` at `*watchableStoreTxnWrite` (`isTxnWriteT_names`, `wsEndCbY_of_au`) and at
+  `*txnReadWrite`; `Txn.Rev`, `Txn.FirstRev` (a write transaction's `0`: `metricsTxnWrite_FirstRevW`),
+  `Txn.Changes`, `Txn.Range`, `Txn.Put`, `Txn.DeleteRange` at all three types (`Api/TxnOpsApi.lean`,
+  `RoTxnApi.lean`, `RangeApi.lean`, `WriteOpsApi.lean`, `WsOpsApi.lean`; at `*txnReadWrite` by
+  induction on the chain, `ro_End`/`ro_Rev`/`ro_FirstRev`/`ro_Range`, its `Put`/`DeleteRange`
+  vacuous); `NewReadOnlyTxnWrite.spec` (the API's); **`stateOk`** (`Api/StateOk.lean`, pure:
+  `stateOk_at`, every state of a well formed log of `< 2^63` revisions and `≤ 2^62` changes, from
+  `WatchPos.stateAfter_pos` and `stateAfter_length_le`; the logs' bounds from the read
+  transaction's certificate, `isTxnReadT_small`, and the write transaction's index writer,
+  `isTxnWriteT_small`: `IdxWf`, `idxWriter_lt`, `isStore`'s `receiptBound ≤ 2^48`). `Range` and `Put`
+  lend the caller's trace at its emptiness `te` (`metricsTxnWrite_RangeT`, `_PutT`: the internal
+  specs' `isTxn` keeps `∃ te`, the contracts give `te` back). **Conditionally**: `KV.Write` at
+  `*watchableStore` under `wwriterHyp` (`certFree`, `storeWT` and `∃ L, watchWriter (γw.withPhys p) L
+  ∗ ⌜|L| + 4 ≤ 2^63⌝` from `isWatchableStore`): watchableStore.Write's code over `store.Write.spec`.
+  None is linked (`Link.lean` is generated); the `wp_api` theorems take the internal specs as
+  hypotheses.
+
+**Statements changed that modules outside mvcc use**: none (`watchableStoreTxnWrite.End.spec` is
+used only by mvcc's `Link`; its interface file, `interface/Spec/.../watchableStoreTxnWrite__End.txt`,
+needs regenerating).
+
+**Left** (none a frozen statement found false):
+1. **`KV.Rev`/`FirstRev`/`Range` at `*watchableStore` are proved, no hypothesis** (`Api/ReadOpsApi.lean`:
+   `readView_Rev_cb`/`_FirstRev_cb`/`_Range_cb`, a read view's method by the caller's update, the
+   read's callback through `kvOver_ReadCb`, the reader back through `tokBack`; the watchable store's
+   read view from `isWatchableStore`, `watchable_view`; the reader from the handle's pool). **At
+   `*store`** they need the store's read view in the plain handle (`isMvccPlain` has no
+   `s.ReadView ↦□ rv ∗ isReadView rv s γ`) and a reader (track A's `rdSupply`, with a credit:
+   `readView`'s promoted call has steps before the read, so `wp_auto_lc` pays it): **a request to
+   track A** (the read view's two persistent conjuncts, from `NewStore`'s post); then the same proof
+   as at `*watchableStore` with `wp_method_call` for the promoted method. `KV.Put`/`DeleteRange` at
+   both types need the write view (`isWriteView`; the watchable store's write view's `kv` is the
+   watchable store, which `isWriteView` does not admit today: a `kvOver` there) and are `KV.Write` +
+   `Txn.Put`/`DeleteRange` + `Txn.End` (the code is `writeView.Put`: `kv.Write(TODO()); defer
+   tw.End(); tw.Put(...)`), the client's single update split: peek at it for `Write`'s update (abort,
+   keeping `pendItems σ.log [] = I` and `σ₀`), then the `End`'s nested update from it (its `⌜σ = σ₀⌝`
+   is the implementation's), the hook's `Q' ={⊤}=∗ P ∗ Post` between.
+2. **`mvccDeleter`** (`mvccDeleter_M1`, in `NewStoreApi`/`NewApi`, track A's files): the constructors'
+   internal specs give the closure only as `rdIs` (over the old `watchableStore.Write` shape); they
+   must expose it as `s.Write(traceutil.TODO())`'s code, then `mvccDeleter` follows from
+   `KV.Write.contract` at the store's type (with `traceutil.TODO.spec`). `mvccTxn_leaseDelete.law`:
+   from `isTxnWrite_leaseDel`/`isWatchTxnWrite_leaseDel` and the internal `End`s at `ld = true`.
+3. **When track A's handle lands** (its message of 2026-11-06: `isMvcc`'s plain disjunct with
+   `⌜watchQ = false⌝`, `rdSupply`/`certFree` in the handles, the supply in `mvccBackend`,
+   `Api/HandleLaws.lean`'s `rdSupply_lend` with a `£ 1`): `readerHyp` goes (`rdSupply_lend`, the credit
+   from a `wp_auto_lc`), `writerHyp`'s `watchQ`/`certFree`/`storeWT`/reader parts go; its
+   `revToken`/`writerPin` after track A's second commit (tokens and pin in `writerL`); `wwriterHyp`
+   keeps the watchable sole writer (`watchWriter`, with the `wlog` half `writerL` cannot name) until
+   that design.
