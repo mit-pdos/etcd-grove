@@ -4032,3 +4032,41 @@ premises are common (the replay's peer and size premises were the old ones under
   (the premise arguments regrouped; the frame frames `storeWT` and the hook rows flat); `ApplyR`/
   `ApplyROn` derive the replay case `hACCR` from `hACC` at `false` (no `hACCR` hypothesis).
 - `Link.lean` unchanged (callee list the same). No exported result restates `applyConfChange.spec`.
+
+#### Swap batch 2: the leaves `rnApplyTok_recv`, `applySnapshot.specSnapM`, `applyAll.specSnapM` (2026-11-06; review F1, the swap the user approved)
+
+Step 0, begin-tok's `threadTok` ported into the restart copies (`8da52a8cfd`): `ApplyAllR.lean`'s
+merged-send branch and `ApplyAllSnapR.lean`'s two `wp_apply (hCM …)` sites lend `srvGoRes`'s token as
+the frozen proofs do; `mergedCreate_window`'s statement did not change; `ApplySnapshotR.lean` needed
+nothing (`SnapApplyWalk`'s `ThreadBoundLe` instance is inside the walk).
+
+The swap (`040ea7f5e0`), each R statement under the frozen name, the frozen proof deleted:
+- **`rnApplyTok_recv`** (`InvRaftLoop.lean`) is `rnApplyTok_recvR`'s statement: the snapshot case's
+  pure gains `∧ (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length)` (A8's bound, from `rnApSnap`).
+  `rnApplyTok_recvR` is deleted; the frozen `EtcdServer__run.lean` drops the conjunct (`-`).
+- **`applySnapshot.specSnapM`** (Spec): binder `r0 : apply.RestM` after `A`, `srvRestRp E γr A r0`
+  in place of `srvRest E γr A`. Its proof `wp_proof_snapM` is the R proof (`srvRestRp_open`, the walk
+  at `r0`). `ApplySnapshotR.lean` is deleted; `srvRestRp_open`, `srvRestRp_false` (from it) and
+  `srvRestRp_close` (from `ApplyAllR.lean`) are in `ApplyRDefs.lean`.
+- **`applyAll.specSnapM`** (Spec): binders `g`, `r0`; `ai ≤ g`, `g < snapIdx` (was `ai < snapIdx`),
+  `uint.Z g = |A|`, `ciEff ≤ g`, `hids`; `srvAppliedOwn γr g ∗ appliedLogAt γr g x.log`,
+  `srvRestRp E γr A r0`; post unchanged. Its proof `wp_proofSnapM` (one proof, both modes) is the R
+  proof, in `ApplyAllSnap.lean` with `kvAppliedOn_sa` and `snapRecv_imageR`/`snapRecv_imageOnR`
+  (moved from `ApplyAllSnapOn.lean`/`ApplyAllR.lean`). The frozen `wp_proofSnap` (off),
+  `wp_proofSnapM` (on, over `hSnapOff`), `ApplyAllSnapOn.lean` and `ApplyAllSnapR.lean` are deleted.
+  `applyAll.wp_proof` is `⟨wp_proofBatch …, wp_proofSnapM hASnap.2 …⟩`.
+- **Kept**: `applyAll.specSnap` and `specSnap_of_M` (`ModeSpecs.lean`): the frozen `run_job_snap`
+  (off) takes `specSnap`; they go with the run swap (pair 9).
+- **First-start callers** (`specSnap_of_M`, `run_snap_jobOn`): `g := ai`, `r0 :=` the model of `A`,
+  `hids := fun _ => rfl`, `Int.le_refl`, then `rw [srvRestRp_model]` (no new law needed).
+- `run_job_snapCR`, `run.wp_proofR` take `applyAll.specSnapM` (renamed); `RunSnapR` imports `ApplyAllR`.
+- `Link.lean`: `etc/gen-link.py --server`'s output is identical to the committed file (the callee lists
+  did not change). `Results.lean`: `server_apply_all_snap_m`'s text (`EtcdServer.applyAll.specSnapM`,
+  `EtcdServer.wp_applyAll.2`) unchanged, its meaning the restart form (strictly stronger; docstring
+  updated); its import `ApplyAllSnapOn` → `ApplyAllSnap`. No closed theorem's statement changed.
+- `etc/mode-allow.txt`: the deleted `ApplyAllSnapOn.lean`'s line removed. `etc/mode-check.py --check`
+  fails before and after this batch (the R drafts' `isServerM true` in `ApplyROn`/`ApplyEntriesROn`,
+  297 → 295 against the baseline's 291); not this batch's to fix, for the batch-chain swap (pairs 5-6).
+
+Next: the batch chain (pairs 5-7), the merged `stopCleanupImage` (pair 8), the run swap with the hub
+edit (pair 9), as in `/shared/tmp/r2dpa-swap-estimate.md`.
