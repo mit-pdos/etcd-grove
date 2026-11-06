@@ -32457,3 +32457,29 @@ delegation, 2026-11-06).
 - Dropping `client.etcdLeaseReadAt` from `memberServed` (leasecatchup does not read TTLs), with a
   serving lemma whose slot needs no token when the TTL read is not registered. This is an exported
   change to `cluster3`'s and etcdstart's API, and the TTL read would come back with step 2.
+
+## `memberUp` through laws (2026-11-06 · N6, lease-mono3 r3's N3; an etcdstart API addition accepted by etcd-grove-82 · branch `n6`)
+
+**Why.** The examples took `etcdstart.memberUp` (and `memberUpOn`) apart by position (`iunfold
+memberUp at Hup; icases Hup with ⟨…, HWR, #HLR, -⟩`), in 17 places outside etcdstart. Every new
+conjunct of `memberUp` broke all of them: R2c's stop right did, and revoke-open's reader count and
+R2d's changes would next. A definition's body is the package's internals; its clients should see laws.
+
+**Decision.** Three laws in `etcdstart/Defs.lean`, beside R2c's `memberUp_stop` (the stop side), each
+naming only what a kind of consumer uses and dropping the rest:
+
+- `memberUp_served`: `memberUp … m ⊢ ∃ E cfg γw, ⌜…⌝ ∗` the views, `srvServeFacts`, `srvGoRes`, an
+  `lgMu` and a `bemu` slot, `srvWatchReaders`, the gRPC runs' reader stocks (`kvServeStocks`'s body,
+  grouped), `srvPeerCtl` and `srvLeaseRd s E m`: what `Serve`, `v3rpc.Server` and the ghost steps
+  take (every serving `Main`/`Run`, `cluster3.StartMember`, restart's `memberUp_applied`, putget3's
+  members 2 and 3 for their thread token). The stop right and `srvWatchBuilt` are dropped.
+- `memberUpOn_served`: the same for auth on (the views in the mode `on`, `srvAuthLb`, the TLS
+  fallback off, `srvAuthStoreOn`; authkv's `Main`).
+- `memberUpOn_intro`: the converse, for the one producer outside the package (authkv's
+  `startServer`).
+
+`memberUp`'s and `memberUpOn`'s bodies are unchanged (no split into named parts: laws suffice), and
+so is every statement. A new conjunct of `memberUp` now changes only these laws' proofs (and
+`memberUpOn_intro`'s premise, whose producer must supply it anyway); a change to a conjunct a
+consumer uses still reaches that consumer, through the law's statement. No consumer outside
+etcdstart unfolds `memberUp` or `memberUpOn` (`grep -rn "unfold.*memberUp" Proof`).

@@ -200,9 +200,38 @@ theorem etcdstart.grpcUpM_false [v3rpc_sem :
     v3rpc.WSrv GF) : etcdstart.grpcUpM false s E ρ γr gs lis addr cid mid R ⊢ etcdstart.grpcUp s E ρ
     γr gs lis addr cid mid R
 
+theorem etcdstart.memberUpOn_intro [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (ρ : ReqNames) (E₀ :
+    apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv
+    GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) : ⌜envAgree E E₀ ∧
+    E.authMode = auth.AuthMode.on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+    cfg.WatchProgressNotifyInterval' = 0⌝ ∗ isServerReqM true s E { wait := γw, rd := ρ.rd } ∗
+    isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗ srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
+    srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗ (([∗list] _x ∈
+    List.replicate 64 (), srvLeadTimeReader s) ∗ ([∗list] _x ∈ List.replicate (64 - 2) (),
+    srvLgReader s) ∗ ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗ ([∗list] _x ∈ List.replicate 64 (),
+    mvcc.storeReader E.s E.γ) ∗ ([∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (),
+    srvReadReader s ρ.rd) ∗ [∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
+    etcdstart.srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ⊢
+    etcdstart.memberUpOn s ρ E₀ lg γn id γa
+
 def etcdstart.httpURL (host : GoString) : net.url.URL :=
   { Scheme' := go!"http", Opaque' := [], User' := null, Host' := host, Path' := [], Fragment' := [],
     RawQuery' := [], RawPath' := [], RawFragment' := [], ForceQuery' := false, OmitHost' := false }
+
+theorem etcdstart.memberUpOn_served [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (ρ : ReqNames) (E₀ :
+    apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) :
+    etcdstart.memberUpOn s ρ E₀ lg γn id γa ⊢ ∃ E cfg γw, ⌜envAgree E E₀ ∧ E.authMode =
+    auth.AuthMode.on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+    cfg.WatchProgressNotifyInterval' = 0⌝ ∗ isServerReqM true s E { wait := γw, rd := ρ.rd } ∗
+    isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗ srvServeFacts s E cfg ∗ srvGoRes s ∗ srvLgReader s
+    ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗ (([∗list] _x ∈ List.replicate 64 (),
+    srvLeadTimeReader s) ∗ ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗ ([∗list] _x ∈
+    List.replicate 64 (), E.RD) ∗ ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), srvReadReader s ρ.rd) ∗
+    [∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗ etcdstart.srvPeerCtl γn s id ∗ □ (srvTLSId
+    s -∗ False) ∗ srvAuthStoreOn s E.RD
 
 theorem etcdstart.memberUp_stop [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (ρ : ReqNames) (E₀ :
@@ -315,6 +344,19 @@ theorem etcdstart.srvLeaseRd_persistent (s : Loc) (E : apply.AEnv GF) (m : lease
 
 def etcdstart.bootCCOk (ps : List w64) (bootLog : List EntryM) : Prop :=
   ∀ (e : EntryM), e ∈ bootLog → ccIdOf e.Data' = W64 0 ∧ ccBootOk (listToSet ps) e.Data'
+
+theorem etcdstart.memberUp_served [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (ρ : ReqNames) (E₀ :
+    apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (m : lease.Mode) : etcdstart.memberUp s
+    ρ E₀ lg γn id m ⊢ ∃ E cfg γw, ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧
+    cfg.TracerOptions' = slice.nil ∧ cfg.WatchProgressNotifyInterval' = 0⌝ ∗ isServerReq s E { wait
+    := γw, rd := ρ.rd } ∗ isServerRead s E ρ.rd ∗ srvServeFacts s E cfg ∗ srvGoRes s ∗ srvLgReader s
+    ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗ (([∗list] _x ∈ List.replicate 64 (),
+    srvLeadTimeReader s) ∗ ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗ ([∗list] _x ∈
+    List.replicate 64 (), E.RD) ∗ ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), srvReadReader s ρ.rd) ∗
+    [∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗ etcdstart.srvPeerCtl γn s id ∗
+    etcdstart.srvLeaseRd s E m
 
 theorem etcdstart.discoveryZero_len : (zero_val
     go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig).ConfigSpec'.Endpoints'.len

@@ -382,6 +382,40 @@ theorem memberUp_stop (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc
   iapply srvStopReaders_intro s E
   iframe Hsts HWR
 
+/-- **A started member, for serving** (N6, 2026-11-06; what `Serve`, `v3rpc.Server` and the
+examples' ghost steps take of `memberUp`): at its apply environment `E` (agreeing with `E₀`, auth
+off), configuration `cfg` (with the logger `lg`, no tracer options, no progress-notify interval) and
+wait-registry name `γw`, the request and read views, the serving facts, the `GoAttach` resources, an
+`lgMu` and a `bemu` reader slot, the watchable store's readers, the reader stocks the gRPC runs take
+(`kvServeStocks`'s body, in its order), the partitioner's part (`srvPeerCtl`) and the lease
+subsystem's reader side (`srvLeaseRd`). The rest of `memberUp` (the right to stop it, ...) is
+dropped. The examples reach `memberUp` through this law and `memberUp_stop`, never its body, so that
+a new conjunct of `memberUp` changes only these laws' proofs. -/
+theorem memberUp_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
+    (γn : NetNames GF) (id : w64) (m : lease.Mode) :
+    memberUp (GF := GF) s ρ E₀ lg γn id m ⊢
+      ∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
+        ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+          cfg.WatchProgressNotifyInterval' = 0⌝ ∗
+        isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvServeFacts s E cfg ∗
+        srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
+        (([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
+          ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
+          ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
+          ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+            srvReadReader s ρ.rd) ∗
+          ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s)) ∗
+        srvPeerCtl γn s id ∗ srvLeaseRd s E m := by
+  iintro Hup
+  iunfold memberUp at Hup
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, #Hsf, Hbemu, Hlts, Hlgs,
+    Hrds, Hsts, Hbms, Hctl, HWR, #HLR, -⟩
+  iexists E, cfg, γw
+  isplitr; · ipureintro; exact HEc
+  iframe Hreq Hrd Hsf Hgo Hlg3 Hbemu HWR Hctl HLR
+  iframe
+
 /-- **The Lease service `v3rpc.Server` registered** (persistent; the closed lease example,
 2026-11-02): its unary methods among the registrations `regs` (`leaseRegs`), on the
 `*quotaLeaseServer` `ql` over the `*LeaseServer` `pl` of the server `s`, its header at the KV answers
@@ -493,6 +527,64 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
     -- configuration's `false`, `srvTLSId_false`) and the auth store's cost field (`BcryptCost()`'s)
     -- and (C1's A4, 2026-10-31) its `Authenticate` side (`srvAuthStoreOn`)
     □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD)
+
+/-- **A member started with auth on, from its parts** (N6, 2026-11-06; `memberUpOn`'s introduction,
+for a starter outside the package, authkv's `startServer`): its conjuncts, the reader stocks the
+gRPC runs take grouped as in `memberUp_served`. -/
+theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
+    (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv GF)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) :
+    ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+        cfg.WatchProgressNotifyInterval' = 0⌝ ∗
+      isServerReqM true s E { ρ with wait := γw } ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗
+      srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
+      srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
+      (([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
+        ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
+        ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
+        ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          srvReadReader s ρ.rd) ∗
+        ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s)) ∗
+      srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ⊢
+    memberUpOn (GF := GF) s ρ E₀ lg γn id γa := by
+  iintro ⟨%HEc, #Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, HWR,
+    ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hctl, #Htls, #HBF⟩
+  iunfold memberUpOn
+  iexists E, cfg, γw
+  isplitr; · ipureintro; exact HEc
+  iframe Hreq Hrd Hlb Hwb Hsf Htls HBF
+  iframe
+
+/-- **A member started with auth on, for serving** (N6, 2026-11-06; `memberUp_served`'s): what
+`Serve` and authkv's ghost steps take of `memberUpOn`, the views in the mode `on`, the store's range
+check (`srvAuthLb`), the TLS fallback off and the auth store's `Authenticate` side besides. The rest
+(`srvWatchBuilt`) is dropped. -/
+theorem memberUpOn_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
+    (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) :
+    memberUpOn (GF := GF) s ρ E₀ lg γn id γa ⊢
+      ∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
+        ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+          cfg.WatchProgressNotifyInterval' = 0⌝ ∗
+        isServerReqM true s E { ρ with wait := γw } ∗ isServerReadM true s E ρ.rd ∗
+        srvAuthLb s E ∗ srvServeFacts s E cfg ∗
+        srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
+        (([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
+          ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
+          ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
+          ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+            srvReadReader s ρ.rd) ∗
+          ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s)) ∗
+        srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD := by
+  iintro Hup
+  iunfold memberUpOn at Hup
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, -, #Hsf, Hbemu, Hlts,
+    Hlgs, Hrds, Hsts, Hbms, Hctl, HWR, #Htls, #HBF⟩
+  iexists E, cfg, γw
+  isplitr; · ipureintro; exact HEc
+  iframe Hreq Hrd Hlb Hsf Hgo Hlg3 Hbemu HWR Hctl Htls HBF
+  iframe
 
 /-- **What `v3rpc.Server` and `Listen` return, with auth on** (the auth plan's E3zb; `grpcUp`'s): at
 the KV answers with auth on (`srvKVAnsOn … 0 none`), and with the Auth service's registrations on

@@ -176,8 +176,8 @@ theorem memberUp_applied (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
     etcdstart.memberUp (GF := GF) s ρ E₀ lg γn id ⊢
       etcdstart.memberUp s ρ E₀ lg γn id ∗ ∃ E : apply.AEnv GF, srvAppliedInv s E ρ.rd := by
   refine persistent_entails_left ?_
-  unfold etcdstart.memberUp
-  iintro ⟨%E, %cfg, %γw, -, -, #Hrd, -⟩
+  iintro Hup
+  icases etcdstart.memberUp_served s ρ E₀ lg γn id .none $$ Hup with ⟨%E, %cfg, %γw, -, -, #Hrd, -⟩
   iexists E
   iapply isServerRead_applied
   iexact Hrd

@@ -193,8 +193,7 @@ theorem startServer.wp_proof
   iright
   isplitr; · ipureintro; rfl
   iexists γa
-  iunfold etcdstart.memberUpOn
-  iexists E, _, γw
+  iapply etcdstart.memberUpOn_intro _ _ _ _ _ _ _ E _ γw
   iframe
   iframe #
   isplitr
