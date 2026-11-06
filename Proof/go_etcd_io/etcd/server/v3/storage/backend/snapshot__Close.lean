@@ -33,7 +33,13 @@ returns nil; bbolt returns an error (`ErrTxClosed`) only for a transaction alrea
 `lg.Panic` on a failed close in `newSnapshotReaderCloser` is not reached. What would discharge it:
 `snapOpen` made concrete (the snapshot's fields, the stop/done channels with the warning
 goroutine's protocol, and bbolt's read transaction open), over which the translated body is
-proved with bbolt's `Tx.Rollback`. -/
+proved with bbolt's `Tx.Rollback`. (2026-11-06, branch `begin-tok`, `notes/begin-tok-plan.md`)
+Why the post's `threadTok`: the rollback (`backend.go:1132`) releases the read transaction's
+`mmaplock` reader slot (bbolt `tx.go:303` → `tx.go:378` → `db.mmaplock.RUnlock()`, `db.go:951`)
+that `Snapshot`'s `b.db.Begin(false)` took (`backend.go:386`, bbolt `db.go:875`), and `<-s.donec`
+(`:1131`) waits for the warning goroutine to exit: the token `Snapshot` took for both is free
+again. `snapOpenQ sp D γ 1`'s `ghostVar γ 1 ()` is exclusive and only `Snapshot` makes it, so each
+token comes back once. -/
 axiom backend.snapshot.Close.wp_proof : backend.snapshot.Close.spec (GF := GF) (hG := hG)
 
 end proof

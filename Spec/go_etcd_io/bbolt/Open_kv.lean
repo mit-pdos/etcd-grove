@@ -14,10 +14,17 @@ Until then the spec took no options at all, which was false of bbolt for read-on
 database's data is `fileHolds path D`: for a new member's empty file, `D = ∅` (`Open` creates the
 file and writes its meta pages). (2026-11-04, R2b-3c, the user's approval) The success case also
 records which file the database is (`dbFile db path`), which `DB.Close_kv` gives back.
+
+(2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q2) Under
+`[ThreadBoundLe GF (2 ^ 29)]`, as the proved `Open.spec` (`notes/bbolt-spec-decisions.md`, D3): the
+read transactions each hold a thread's token (`DB.Begin_kv`), so fewer than `2 ^ 29` live threads
+keep `mmaplock`'s readers below `sync.RWMutex`'s `2 ^ 30` (`rwmutexMaxReaders`). Without it a
+thread could collect `2 ^ 30` tokens from forks that never exit.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -36,9 +43,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `bolt.Open(path, mode, opts)`: the database the file holds, open, or an error; the options
-read and given back. -/
+read and given back. Under fewer than `2 ^ 29` live threads (the read transactions' tokens). -/
 abbrev bbolt.Open_kv.spec : Prop :=
-  ∀ (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM) (D : Data),
+  ∀ [ThreadBoundLe GF (2 ^ 29)]
+    (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM) (D : Data),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ fileHolds path D ∗ optsAt opts dq o ∗
       ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ boltLogger o.logger) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
