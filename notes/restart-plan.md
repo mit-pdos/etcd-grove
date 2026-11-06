@@ -3329,3 +3329,50 @@ texts are drafted as a definition beside the hub.
   - the stop arm (`stop_split`/`applyResStop` over `applyResR`);
   - A7's "window pending" token-wand supply, which is a hub conjunct;
   - then the hub edit: `isServerRunC`'s three conjuncts become `srvRunRestartR`'s.
+
+### R2d'a A10: `Hwpend` approved; the snapshot jobs' window form needs `applySnapshot`'s (2026-11-06)
+
+**A7's hub conjunct `Hwpend`: approved by 82 as written.** It goes in at item 5, together with A9's
+hub edit, once `run`'s restart branch is proved. Its text:
+```
+"Hwpend" ∷ (∃ γwp : GName, token γwp ∗
+   □ (∀ (rt : w64) (n : Nat), token γwp -∗ ⌜n < γn.a0.length⌝ -∗ rnRtOk γn rt n -∗
+        ∀ (id : w64) (m : Loc) (st : MsgSt),
+          srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗ sentMsg γr.raft.cl srvClusterN id st -∗
+            ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st ∗ token γwp))
+```
+It goes in `isServerRunC` and `isServerBuiltC`, and is passed through `InvBuild`, `InvStart`,
+`InvRun`, `RunOn`, `StartOn` and `ServerOn`.
+
+82's conditions:
+1. Prove `srvWinPend_first` (at `γn.a0 = []` the wand is vacuous), and have `NewServer` allocate
+   `γwp`. No closed theorem's premise may grow.
+2. Stop if it needs any file beyond A6's list.
+3. Record these three points about the premise:
+   - **R2s discharges it.**
+   - **R2e's closed theorem must not carry it.**
+   - **It gets an `axiom`-skill attack before R2d'b's Freeze.** One target: a former leader that
+     sent a `MsgSnap` at term `rt` and then restarted with its first window batch at `rt`
+     (`sentMsg` is persistent and keyed by member id, not incarnation; N1).
+
+**Finding: the window form of `applyAll.specSnapM` also needs a restart form of
+`applySnapshot.specSnapM`.** It needs no frozen change, but it is one more DRAFT copy than A10's
+estimate counted.
+- **What decouples.** The frozen `applySnapshot.specSnapM`
+  (`Spec/…/EtcdServer__applySnapshot.lean:75`) takes Go's `ai` only in `hi : ai < snapIdx` and
+  `ep`'s field, and the log `A` separately. So `applyAll`'s window form can call it with Go's `ai`
+  and `A :=` the ghost log `ghostOf rp A`.
+- **What does not.** Its pre has `srvRest E γr A`, the rest buckets at `restModel (pre ++ A)`.
+  Inside the window, `applyResR` holds `srvRestR … rp A = srvRestRp E γr A₀ (restReplay γr rp A)`
+  (`ApplyRDefs.lean:69`), at the replay image, which is not the model at `A₀`.
+- **How it is used.** `applySnapshot`'s proof opens `srvRest` (`srvRest_open`,
+  `EtcdServer__applySnapshot.lean:157`). It passes the model to `applySnapshot_walk` as an explicit
+  argument (:261), which appears to be generic in it.
+- **The plan.** A DRAFT `applySnapshot.specSnapMR`, beside the frozen one, with
+  `srvRestRp E γr A₀ r` in place of `srvRest E γr A`. Its proof is a copy of the 450-line proof,
+  with an `srvRestRp_open` analog. `applyAll.specSnapMR` is then `ApplyAllSnap`/`ApplyAllSnapOn`'s
+  proof:
+  - Go's rows at `ai`, the ghost rows at `g = ai₀ + |ghostOf rp A|`;
+  - `ciEff ≤ snapIdx` and `g ≤ snapIdx` from A8 (`rnWinInstallAbove`);
+  - the post as the frozen one's, with `ghostOf rp A <+: A'`.
+- **Est. +1.5-2.5 d (est.)** over A10's 1.5-2.5 wk.
