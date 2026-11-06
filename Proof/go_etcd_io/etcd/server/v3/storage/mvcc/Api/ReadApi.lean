@@ -2,9 +2,9 @@
 **`KV.Read.contract` at `*store`** (M4, track B, 2026-11-06). Lean-first (no Rocq counterpart). Over
 the sealed definitions of `Api.lean` (imported with `import all`).
 
-**Conditional on track A's readers' pool** (`readerHyp`, a hypothesis of the theorem, not an axiom):
-a plain handle does not yet hold the readers' pool, here a thread token turned into a reader of the
-store with its way back (`tokBack`). The read's update fires under `s.revMu` (§3) by agreement with
+The reader from the handle's readers' supply (track A, request 3, 2026-11-06: `rdSupply_lendL`,
+under a later, which `store.Read`'s first step strips; until then the hypothesis `readerHyp`), with
+the thread token's way back (`tokBack`). The read's update fires under `s.revMu` (§3) by agreement with
 the lock's slot (`readCbC`: the state's log and compaction revision are the slot's, which are the
 transaction's), and the transaction is `mvccTxnI`'s read arm, without its trace.
 -/
@@ -36,13 +36,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-/-- **The hypothesis**: a plain handle's store lends a reader for a thread token (track A's readers'
-pool; see the header). -/
-abbrev readerHyp : Prop :=
-  ∀ (s : Loc) (γ : StoreNames),
-    isStore (GF := GF) s γ ∗ api.locIs γ.api s ⊢ |={⊤}=>
-      (threadTok ={⊤}=∗ storeReaderC s γ ∗ tokBack s γ)
 
 /-- The read's step, from the client's update (see the header). -/
 theorem readCbC_of_au (γ : StoreNames) (Q : MvccState → IProp GF) :
@@ -80,9 +73,8 @@ theorem readCbC_of_au (γ : StoreNames) (Q : MvccState → IProp GF) :
   iframe HQ
   ipureintro; exact ⟨Hag.1, Hag.2, Hreach⟩
 
-/-- **`KV.Read.contract` at `*store`**, under `readerHyp`. -/
-theorem store.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := hG))
-    (hres : readerHyp (GF := GF)) :
+/-- **`KV.Read.contract` at `*store`.** -/
+theorem store.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := hG)) :
     store.Read.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) mode trace te Q
   iintro %Φ ⟨#Hpkg, Hmv, Htok, %Htrnn, Htrc, Hau⟩ HΦ
@@ -97,12 +89,10 @@ theorem store.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := hG))
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccPlain at Hmv
-  icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -⟩
+  icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -, #Hsup, -⟩
   have hs : s = s' := mkOk_loc_inj _ Hk
   subst hs
-  imod hres s γ $$ [Hs Hloc] with Hpool
-  · iframe Hs Hloc
-  imod Hpool $$ Htok with ⟨Hrd, Hback⟩
+  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Htok] with ⟨Hrd, Hback⟩
   imod crevLb_neg γ.idx with #Hlb
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   ihave #Hs0 := Hs

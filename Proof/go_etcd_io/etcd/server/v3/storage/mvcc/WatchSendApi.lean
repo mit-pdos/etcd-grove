@@ -86,7 +86,8 @@ theorem watchEvents_transfer {L' L : Log} (hp : L' <+: L) (r : WatchRange) {lo d
 
 /-- **A watcher's own response's fact** (`watcher.send`'s, id its watcher's): its shape from the
 response's own facts and `rev < |L|`; its delivery and, without events, its progress, from the
-certificates. -/
+certificates; without events, its revision at least its watcher's first less one (`covFact`) and
+every earlier event-less response's (`respRev`). -/
 theorem holds_own (pre : List api.WResp) (r : api.WResp) (rg : WatchRange) (fs : List (EvM → Bool))
     (lo : Nat) (L : Log) (c0 : Int) (dead : List w64)
     (hid : r.id ≠ W64 (-1)) (hc : r.compactRev = W64 0)
@@ -95,10 +96,13 @@ theorem holds_own (pre : List api.WResp) (r : api.WResp) (rg : WatchRange) (fs :
     (hdel : api.onceUpTo L lo c0 → ∃ hi, hi ≤ L.length ∧
       api.recvEvs (pre ++ [r]) r.id = filtered fs (watchEvents L rg lo hi))
     (hprog : r.evs = [] → api.onceUpTo L lo c0 →
-      api.recvEvs (pre ++ [r]) r.id = filtered fs (watchEvents L rg lo (sint.nat r.rev + 1))) :
+      api.recvEvs (pre ++ [r]) r.id = filtered fs (watchEvents L rg lo (sint.nat r.rev + 1)))
+    (hlo : r.evs = [] → (lo : Int) ≤ sint.Z r.rev + 1)
+    (hmono : r.evs = [] → ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z r.rev) :
     api.sent.SentFact.holds pre ⟨r, rg, fs, lo, L, c0, [], dead⟩ := by
   refine ⟨⟨hle, fun _ => hrev, fun h => absurd hc h, fun h => absurd h hid, hpos⟩,
-    fun _ hon => hdel hon, fun _ he _ hon => hprog he hon, fun h => absurd h hid⟩
+    fun _ hon => hdel hon, fun _ he _ hon => hprog he hon, fun h => absurd h hid,
+    fun he _ => ⟨fun _ => hlo he, fun h => absurd h hid, hmono he⟩⟩
 
 /-- **A compaction response's fact** (`chooseAll`'s: no events, revision `0`, its watcher's id): its
 shape from its compaction revision's bounds; its delivery from the certificate. -/
@@ -111,21 +115,25 @@ theorem holds_cmp (pre : List api.WResp) (r : api.WResp) (rg : WatchRange) (fs :
     api.sent.SentFact.holds pre ⟨r, rg, fs, lo, L, c0, [], dead⟩ := by
   refine ⟨⟨fun ev hev => by simp [he] at hev, fun h => absurd h hc,
     fun _ => ⟨he, hid, hr, hc1, hc2⟩, fun h => absurd h hid, fun ev hev => by simp [he] at hev⟩,
-    fun _ hon => hdel hon, fun _ _ h => absurd h hc, fun h => absurd h hid⟩
+    fun _ hon => hdel hon, fun _ _ h => absurd h hc, fun h => absurd h hid, fun _ h => absurd h hc⟩
 
 /-- **A stream-wide (`-1`) progress response's fact** (`progressAll`'s): its shape from its
 completeness facts and `rev < |L|`; each covered watcher's events up to its revision from the
-certificates. -/
+certificates; its revision at least each covered watcher's first less one (`covEntry`) and every
+earlier event-less response's (`respRev`). -/
 theorem holds_all (pre : List api.WResp) (r : api.WResp) (L : Log) (c0 : Int)
     (cov : List api.sent.CovEntry) (dead : List w64) (rg : WatchRange) (fs : List (EvM → Bool))
     (lo : Nat) (hid : r.id = W64 (-1)) (he : r.evs = []) (hc : r.compactRev = W64 0)
     (h1 : 1 ≤ sint.Z r.rev) (hrev : sint.nat r.rev < L.length)
     (hcov : ∀ c ∈ cov, api.onceUpTo L c.lo c0 →
-      api.recvEvs (pre ++ [r]) c.id = filtered c.fs (watchEvents L c.rg c.lo (sint.nat r.rev + 1))) :
+      api.recvEvs (pre ++ [r]) c.id = filtered c.fs (watchEvents L c.rg c.lo (sint.nat r.rev + 1)))
+    (hlo : ∀ c ∈ cov, (c.lo : Int) ≤ sint.Z r.rev + 1)
+    (hmono : ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z r.rev) :
     api.sent.SentFact.holds pre ⟨r, rg, fs, lo, L, c0, cov, dead⟩ := by
   refine ⟨⟨fun ev hev => by simp [he] at hev, fun _ => hrev, fun h => absurd hc h,
     fun _ => ⟨he, hc, h1⟩, fun ev hev => by simp [he] at hev⟩,
-    fun h => absurd hid h, fun h => absurd hid h, fun _ => hcov⟩
+    fun h => absurd hid h, fun h => absurd hid h, fun _ => hcov,
+    fun _ _ => ⟨fun h => absurd hid h, fun _ => hlo, hmono⟩⟩
 
 /-! ## Delivery certificates -/
 
@@ -360,6 +368,30 @@ theorem covFact_recv (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w
       filtered fs0 (D.map Prod.fst).flatten := by
     rw [Hp.1, deliv_sent_flatten fs0 D HDfs]
   iapply delivCert_mono γ.st.api (fun L c0 h hon => by rw [hsent, h hon]) $$ Hc
+
+/-- **A covered watcher's first revision is at most the response's revision plus one** (`covFact`). -/
+theorem covFact_lo (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc) (rev : w64)
+    (γw : WatcherNames) :
+    covFact (GF := GF) γ γc pre w' rev ∗ watcherMeta γ w' γw ⊢ ⌜(γw.lo : Int) ≤ sint.Z rev + 1⌝ := by
+  unfold covFact
+  iintro ⟨⟨%γw', %r, %fcs, %D, %L', %d, #Hm', -, -, -, -, -, %Hp⟩, #Hm⟩
+  ihave %Hγ := watcherMeta_agree _ _ _ _ $$ Hm Hm'
+  subst Hγ
+  ipureintro; exact Hp.2.2.2.2.2
+
+/-- **An event-less response's revision is at least every earlier event-less response's**
+(`respRev`, as the stream's history records the responses). -/
+theorem respRev_mono (γ : WsNames) (pre : List RespM) (x : RespM) :
+    respRev (GF := GF) γ pre x ⊢ ⌜x.evs = [] → x.compactRev = W64 0 →
+      ∀ y ∈ pre.map RespM.toW, y.evs = [] → sint.Z y.rev ≤ sint.Z x.rev⌝ := by
+  unfold respRev
+  iintro ⟨(%h | ⟨%L, -, %h⟩ | %h), -⟩
+  · ipureintro; intro he; exact absurd he h
+  · ipureintro
+    intro _ _ y hy hye
+    obtain ⟨y', hy', rfl⟩ := List.mem_map.1 hy
+    exact h.2 y' hy' hye
+  · ipureintro; intro _ hc; exact absurd hc h.1
 
 end cert
 
@@ -727,6 +759,7 @@ theorem chanApi_send_resp (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (clos
   obtain ⟨hmw, hdec, hrid, hrecv', hpos⟩ := Hown
   iunfold respCov at Hrc
   icases Hrc with ⟨#Hcf, #Hcompl, %Hself, #Hrr⟩
+  ihave %hmono := respRev_mono γ sent x $$ Hrr
   iunfold respRev at Hrr
   icases Hrr with ⟨-, -, (%hcne | #Hra)⟩
   · exact absurd hc hcne
@@ -748,6 +781,12 @@ theorem chanApi_send_resp (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (clos
         ihave #C := covFact_recv γ γc sent x.w x.rev (hrev0 he) γw r fcs fs $$ [$Hcw $Hm $Hf $Hsf]
         iapply delivCert_mono _ (fun L c0 h _ => h) $$ C
       · iapply delivCert_mono _ (fun L c0 _ h => absurd h he) $$ Hcr
+    ihave %hlo : ⌜x.evs = [] → (γw.lo : Int) ≤ sint.Z x.rev + 1⌝ $$ []
+    · by_cases he : x.evs = []
+      · ihave #Hcw := Hcf $$ %x.w %(Hself he hc)
+        ihave %h := covFact_lo γ γc sent x.w x.rev γw $$ [$Hcw $Hm]
+        ipureintro; exact fun _ => h
+      · ipureintro; exact fun h => absurd h he
     ihave #J := delivCert_join γ.st.api (fun L _ => sint.nat x.rev < L.length)
       (fun L c0 => api.onceUpTo L γw.lo c0 → ∃ hi, hi ≤ L.length ∧
         (((sent ++ [x]).filter (fun y => decide (y.w = x.w))).map RespM.evs).flatten =
@@ -764,7 +803,8 @@ theorem chanApi_send_resp (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (clos
       refine stepOk_own dec l Hwf x.toW γw.fg r γw.lo NL c0 hmw hxid hrid ?_
       rw [Hsl, hdec]
       refine holds_own _ x.toW r fs γw.lo NL c0 [] (hxid ▸ hrid) hc hle hrevL
-        (fun ev hev => hpos ev ?_) (fun hon => ?_) (fun he hon => ?_)
+        (fun ev hev => hpos ev ?_) (fun hon => ?_) (fun he hon => ?_) hlo
+        (fun he => hmono he hc)
       · rw [hsplit]; simp only [List.flatten_append, List.flatten_singleton]
         exact List.mem_append_right _ hev
       · obtain ⟨hi, hhi, heq⟩ := hdel hon
@@ -814,6 +854,14 @@ theorem chanApi_send_resp (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (clos
       $$ [$Ha $Hreg $Hwit $Hall' $Hcp] with ⟨%hst, ⟨Ha, Hreg, -⟩⟩
     icases delivCert_elim γ.st.api _ $$ Hcc with ⟨%NL, %c0, #Hn, Hc0, %HP⟩
     obtain ⟨hrevL, hcovs⟩ := HP
+    ihave %hclo : ⌜∀ c ∈ cs, (c.γw.lo : Int) ≤ sint.Z x.rev + 1⌝ $$ []
+    · iapply pure_forall.2; iintro %c
+      iapply pure_forall.2; iintro %hc
+      iunfold covPre at Hcp
+      icases BigSepL.bigSepL_mem_acc hc $$ Hcp with ⟨Hce, -⟩
+      iunfold covEntry at Hce
+      icases Hce with ⟨-, -, -, -, -, %h, -⟩
+      ipureintro; exact h.2.2
     let covR : List api.sent.CovRec := cs.map (fun c => (c.r.id, c.r, c.γw.fg, c.γw.lo))
     have hxid : x.toW.id = W64 (-1) := hid
     have hok : api.sent.stepOk dec (api.sent.replay dec l)
@@ -827,7 +875,13 @@ theorem chanApi_send_resp (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (clos
         · exact Or.inl ⟨_, List.mem_map_of_mem hc, rfl⟩
         · exact Or.inr hd
       · rw [Hsl]
-        refine holds_all _ x.toW NL c0 _ _ r (dec γw.fg) γw.lo hxid hevs hc h1 hrevL ?_
+        refine holds_all _ x.toW NL c0 _ _ r (dec γw.fg) γw.lo hxid hevs hc h1 hrevL ?_ ?_
+          (hmono hevs hc)
+        rotate_left
+        · intro c hc
+          obtain ⟨c1, hc1, rfl⟩ := List.mem_map.1 hc
+          obtain ⟨c', hc', rfl⟩ := List.mem_map.1 hc1
+          exact hclo c' hc'
         intro c hc hon
         obtain ⟨c1, hc1, rfl⟩ := List.mem_map.1 hc
         obtain ⟨c', hc', rfl⟩ := List.mem_map.1 hc1

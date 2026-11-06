@@ -509,7 +509,7 @@ backend's registration pending (`writerReg`: the right to register, the batch lo
 the new key, half the new view log, half the new bucket's view, the certificate, the compaction's
 fresh record). `s.mu`'s deposit ghost back. -/
 theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNames) (L' : Log)
-    (hwf : IdxWf L' []) (hne : L' ≠ []) :
+    (hwf : IdxWf L' []) (hne : L' ≠ []) (hw : γ.watchQ = true) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗
       curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' -∗ restoreWriter γ L' -∗
       (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 ((L'.length : Int) - 1) : w64) :
@@ -563,14 +563,17 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
   ihave Hhist := hh.2 $$ [Hh Hhist]
   · iframe Hh Hhist
   icases ghostVar_halves p'.wv L' $$ Hwv with ⟨Hwv, HwvR⟩
+  -- (track A, request 3) a watchable store's writer keeps no tokens or pin in the store
+  ihave HwPin := wrPin_watch (GF := GF) (γ.withPhys p') L' hw
+  ihave HwSt := wrState_watch (GF := GF) (γ.withPhys p') (2 ^ 63 - 3 - L'.length) L' hw
   -- the registration, pending (M2's item 15: an invariant, `storeW_open`)
-  imod writerReg_allocP s (γ.withPhys p') _ $$ [Hwk HwvR Hbv Hcres Hrr] with #Hrg
+  imod writerReg_allocP s (γ.withPhys p') _ $$ [Hwk HwvR Hbv Hcres Hrr HwPin] with #Hrg
   · isplitl [Hrr]
     · simp only [StoreNames.withPhys_kb]; iexact Hrr
     iunfold writerRes
     iexists L'
     simp only [named, idxCert_withPhys]
-    iframe Hbv Hcres
+    iframe Hbv Hcres HwPin
     iframe #
     isplitl [Hwk]
     · iunfold writerKey; simp only [StoreNames.withPhys_wk]; iexact Hwk
@@ -579,7 +582,7 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
     ipureintro; exact hne
   ihave HY : slotY (GF := GF) (γ.withPhys p') L' $$ []
   · exact sorry -- M1-REPLACE: KV.Restore.contract (the writer's slot at the restored log)
-  imod Hclose $$ [Hc Htoks Hhist Hlw Hclog Hwv Hcur Hlrd Hfl HY] with -
+  imod Hclose $$ [Hc Htoks Hhist Hlw Hclog Hwv Hcur Hlrd Hfl HY HwSt] with -
   · inext
     iunfold writerInvBody
     ileft
@@ -588,13 +591,13 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
     ileft
     iframe Hfl
     ileft
-    isplitl [Htoks Hhist Hlw Hclog Hwv Hcur Hlrd HY]
+    isplitl [Htoks Hhist Hlw Hclog Hwv Hcur Hlrd HY HwSt]
     · iunfold writerL
       iexists L', ntok
       simp only [named]
       withPhys_simp
       simp only [StoreNames.withPhys_wv]
-      iframe Htoks Hclog Hwv Hcur Hlrd HY
+      iframe Htoks Hclog Hwv Hcur Hlrd HY HwSt
       iframe #
       isplitr
       · ipureintro; exact Hbudget

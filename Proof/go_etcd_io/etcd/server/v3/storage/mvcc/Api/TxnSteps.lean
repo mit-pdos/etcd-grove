@@ -87,7 +87,7 @@ def storeTxnWriteCoreY (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
-    "Hcres" ∷ (compactRes γ ilog ∗ writerLoan γ) ∗
+    "Hcres" ∷ (compactRes γ ilog ∗ writerLoan γ ∗ wrToks γ (2 ^ 63 - 4 - ilog.length) ilog) ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
@@ -416,8 +416,7 @@ def txnEndPreH (γ : StoreNames) : TxnKind → IProp GF
 def txnEndPostH (γ : StoreNames) : TxnKind → IProp GF
   | .read _ _ => iprop(True)
   | .write ilog pend _ _ _ =>
-    iprop(idxCert γ.idx (commitLog ilog pend) ∗ (if pend = [] then revToken γ else iprop(True)) ∗
-      logQPost γ ilog pend ∗ writerPin γ (commitLog ilog pend))
+    iprop(idxCert γ.idx (commitLog ilog pend) ∗ logQPost γ ilog pend ∗ wrOut γ ilog pend)
 
 theorem txnEndPreH_read (γ : StoreNames) (log : Log) (rev : w64) :
     ⊢ txnEndPreH (GF := GF) γ (.read log rev) := by
@@ -453,8 +452,8 @@ theorem txnEndPost_H (γ : StoreNames) (kind : TxnKind) :
     iintro -; itrivial
   | write ilog pend puts deletes putSize =>
     simp only [txnEndPost, txnEndPostH]
-    iintro ⟨⟨Hc, Ht, Hq, Hp⟩, Hf⟩
-    iframe Hc Ht Hq Hp Hf
+    iintro ⟨⟨Hc, Hq, Ho⟩, Hf⟩
+    iframe Hc Hq Ho Hf
 
 end defs
 

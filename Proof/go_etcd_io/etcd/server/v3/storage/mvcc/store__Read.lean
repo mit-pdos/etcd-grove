@@ -34,9 +34,10 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamed Hs
+  wp_auto_lc 1
+  imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.storeReaderC s γ)) $$ Hlc1 Hrd with Hrd
   iunfold mvcc.storeReaderC at Hrd
   iNamedSuffix Hrd "R"
-  (try wp_auto)
   -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or above
   -- the caller's lower bound
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩

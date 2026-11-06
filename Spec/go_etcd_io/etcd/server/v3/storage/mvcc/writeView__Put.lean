@@ -50,7 +50,6 @@ abbrev mvcc.writeView.Put.spec : Prop :=
       (Val #value)) (Val #leaseID))
   {{ (rev : w64), RET #rev; mvcc.storeReader s γ ∗ Post ∗ G ∗ R ∗
       ∃ ilog : mvcc.Log, mvcc.idxCert γ.idx (ilog ++ [[.put k v leaseID]]) ∗
-        mvcc.writerPin γ (ilog ++ [[.put k v leaseID]]) ∗
         lease.leaseOwn γ.leases L (mvcc.pendItems ilog [.put k v leaseID]) ∗
         ⌜rev = W64 (ilog.length : Int)⌝ }}
 

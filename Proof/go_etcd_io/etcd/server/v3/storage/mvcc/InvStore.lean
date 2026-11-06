@@ -3254,6 +3254,12 @@ theorem bucketViewL_join (γ : StoreNames) (q : Qp) (L1 L2 : Log) :
   iapply (bucketView_halves γ q m1).2
   iframe H1 H2
 
+/-- **The writer's pin's view a store without watchers keeps in its batch lock's resource** (track
+A, request 3, 2026-11-06): a quarter of the bucket's view at the log; nothing for a watchable store's
+(its sole writer keeps its pin). -/
+def wrPin (γ : StoreNames) (L : Log) : IProp GF :=
+  if γ.watchQ then iprop(True) else bucketViewL γ (1 : Qp).half.half L
+
 /-- The batch lock's resource for the store (`W` of `isKeyBackend`; physical, per backend: D22
 receiver epochs, S2, 2026-10-22, until then also the writer's state, now `writerL`): the batch
 lock's key, half the ghost of the log `L` the bucket's view is of (the other half is the
@@ -3269,7 +3275,8 @@ def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
     "Hbv" ∷ bucketViewL γ (1 : Qp).half.half.half L ∗
     "#Hcert" ∷ idxCert γ.idx L ∗
     "%Hne" ∷ ⌜L ≠ []⌝ ∗
-    "Hcres" ∷ compactRes γ L)
+    "Hcres" ∷ compactRes γ L ∗
+    "Hpin" ∷ wrPin γ L)
 
 /-- **The backend of the instance `kb` has nothing deletable** (persistent): for the real
 backend, its creator fixed its deletable keys at none (`backend.dlNoDel`: a store that does not
@@ -3314,6 +3321,26 @@ deletable; no compaction key with the no-compaction token. Not persistent. -/
 def writerPin (γ : StoreNames) (log : Log) : IProp GF :=
   iprop(bucketViewL γ (1 : Qp).half.half log ∗ writerLoan γ)
 
+/-- **The revision tokens and the loan a writer of a store without watchers keeps in the writer's
+state** (track A, request 3, 2026-11-06): `n` of the revision budget's tokens (all not spent), the
+writer's loan (`writerLoan`), and the committed log `L` with a change in every revision past the
+first two (so, with its receipt, below the receipts' bound: one token is free). Nothing for a
+watchable store's (its sole writer keeps them, `watchWriter`). -/
+def wrState (γ : StoreNames) (n : Nat) (L : Log) : IProp GF :=
+  if γ.watchQ then iprop(True)
+  else iprop(ownToks γ.revs n ∗ writerLoan γ ∗ ⌜L.length ≤ logCh L + 2⌝)
+
+/-- **The rest of the revision tokens a write transaction of a store without watchers holds**
+(track A, request 3, 2026-11-06; the loan is the transaction's, `storeTxnWriteIs`'s `Hcres`). -/
+def wrToks (γ : StoreNames) (n : Nat) (L : Log) : IProp GF :=
+  if γ.watchQ then iprop(True) else iprop(ownToks γ.revs n ∗ ⌜L.length ≤ logCh L + 2⌝)
+
+/-- **What `store.Write` takes of its caller**: a watchable store's sole writer's revision token and
+pin; nothing of a store without watchers' (the writer's state and the batch lock's resource keep
+them, `wrState`, `wrPin`). -/
+def wrIn (γ : StoreNames) (L : Log) : IProp GF :=
+  if γ.watchQ then iprop(revToken γ ∗ writerPin γ L) else iprop(True)
+
 /-- **The writer's state** (D22 receiver epochs, S2, 2026-10-22; until then in the batch lock's
 resource, which `store.Restore` never takes): the index writer's handle at the committed log
 `ilog` with no pending change, half the committed-log ghost variable (the other half under
@@ -3334,7 +3361,8 @@ def writerL (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
-    "HY" ∷ slotY γ ilog)
+    "HY" ∷ slotY γ ilog ∗
+    "Hrtk" ∷ wrState γ (2 ^ 63 - 3 - ilog.length) ilog)
 
 /-! ### The batch lock's resource, late-bound (the real backend)
 
@@ -3458,6 +3486,9 @@ instance bucketView_timeless (γ : StoreNames) (q : Qp) (m : Bucket) :
   unfold bucketView; infer_instance
 instance compactRes_timeless (γ : StoreNames) (L : Log) : Timeless (compactRes (GF := GF) γ L) := by
   unfold compactRes metaCompact mwSlot mwKey; split <;> infer_instance
+instance wrPin_timeless (γ : StoreNames) (L : Log) : Timeless (wrPin (GF := GF) γ L) := by
+  unfold wrPin; split <;> infer_instance
+
 instance writerRes_timeless (s : Loc) (γ : StoreNames) : Timeless (writerRes (GF := GF) s γ) := by
   unfold writerRes writerKey; simp only [named]; infer_instance
 instance kbRegRight_timeless (kb : Option KBReal) : Timeless (kbRegRight (GF := GF) kb) := by
@@ -5765,7 +5796,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
-    "Hcres" ∷ (compactRes γ ilog ∗ writerLoan γ) ∗
+    "Hcres" ∷ (compactRes γ ilog ∗ writerLoan γ ∗ wrToks γ (2 ^ 63 - 4 - ilog.length) ilog) ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
@@ -5812,7 +5843,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
-    "Hcres" ∷ (compactRes γ ilog ∗ writerLoan γ) ∗
+    "Hcres" ∷ (compactRes γ ilog ∗ writerLoan γ ∗ wrToks γ (2 ^ 63 - 4 - ilog.length) ilog) ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
@@ -6131,6 +6162,172 @@ change (else no revision is made). -/
 def commitLog (ilog : Log) (pend : List Change) : Log :=
   if pend = [] then ilog else ilog ++ [pend]
 
+/-- **What `storeTxnWrite.End` gives back**: a watchable store's sole writer's revision token (no
+change) and pin at the committed log; nothing of a store without watchers' (track A, request 3). -/
+def wrOut (γ : StoreNames) (ilog : Log) (pend : List Change) : IProp GF :=
+  if γ.watchQ then iprop((if pend = [] then revToken γ else iprop(True)) ∗
+    writerPin γ (commitLog ilog pend)) else iprop(True)
+
+section wrlemmas
+open Iris.ProofMode
+
+/-- **What `store.Write` gets of a writer's resources** (track A, request 3): a revision token and a
+pin, from the caller's (`wrIn`, a watchable store's) or from the writer's state and the batch lock's
+resource (`wrState`, `wrPin`, a store without watchers', whose log below the receipts' bound leaves
+a token free); the rest of the tokens for the transaction. -/
+theorem wr_take (γ : StoreNames) (L ilog : Log) (h : logCh ilog < 2 ^ 48) :
+    wrIn (GF := GF) γ L ∗ wrPin γ ilog ∗ wrState γ (2 ^ 63 - 3 - ilog.length) ilog ⊢
+      ∃ logP : Log, revToken γ ∗ writerPin γ logP ∗ wrToks γ (2 ^ 63 - 4 - ilog.length) ilog := by
+  iintro ⟨Hin, Hpin, Ht⟩
+  unfold wrIn wrPin wrState wrToks
+  by_cases hw : γ.watchQ
+  · simp only [hw, ↓reduceIte]
+    icases Hin with ⟨Htok, HP⟩
+    iexists L
+    iframe Htok HP
+  · simp only [hw, Bool.false_eq_true, ↓reduceIte]
+    icases Ht with ⟨Ht, Hl, %hl⟩
+    have he : 2 ^ 63 - 3 - ilog.length = (2 ^ 63 - 4 - ilog.length) + 1 := by omega
+    rw [he]
+    icases (ownToks_add 1 (2 ^ 63 - 4 - ilog.length) γ.revs).1 $$ Ht with ⟨Ht, H1⟩
+    iexists ilog
+    iunfold revToken
+    iunfold writerPin
+    iframe H1 Hpin Hl Ht
+    ipureintro; exact hl
+
+/-- **A transaction without a change gives its token, loan and pin's view back**: to the writer's
+state and the batch lock's resource, or to a watchable store's caller. -/
+theorem wr_nil (γ : StoreNames) (L : Log) (h : logCh L < 2 ^ 48) :
+    revToken (GF := GF) γ ∗ wrToks γ (2 ^ 63 - 4 - L.length) L ∗ bucketViewL γ (1 : Qp).half.half L ∗
+      writerLoan γ ⊢ wrState γ (2 ^ 63 - 3 - L.length) L ∗ wrPin γ L ∗ wrOut γ L [] := by
+  iintro ⟨H1, Ht, Hb, Hl⟩
+  unfold wrToks wrState wrPin wrOut commitLog
+  by_cases hw : γ.watchQ
+  · simp only [hw, ↓reduceIte]
+    isplitl []
+    · itrivial
+    isplitl []
+    · itrivial
+    iframe H1
+    iunfold writerPin; iframe Hb Hl
+  · simp only [hw, Bool.false_eq_true, ↓reduceIte]
+    icases Ht with ⟨Ht, %hl⟩
+    have he : 2 ^ 63 - 3 - L.length = (2 ^ 63 - 4 - L.length) + 1 := by omega
+    rw [he]
+    iunfold revToken at H1
+    iframe Hb Hl
+    isplitl [Ht H1]
+    · iapply (ownToks_add 1 (2 ^ 63 - 4 - L.length) γ.revs).2; iframe Ht H1
+    ipureintro; exact hl
+
+/-- **A commit's tokens and loan**: the rest of the transaction's tokens and its loan are the
+writer's state at the committed log (a watchable store's loan goes back to its caller). -/
+theorem wr_commit (γ : StoreNames) (L : Log) (pend : List Change) (h : pend ≠ []) :
+    wrToks (GF := GF) γ (2 ^ 63 - 4 - L.length) L ∗ writerLoan γ ⊢
+      wrState γ (2 ^ 63 - 3 - (L ++ [pend]).length) (L ++ [pend]) ∗
+        (if γ.watchQ then writerLoan γ else iprop(True)) := by
+  iintro ⟨Ht, Hl⟩
+  unfold wrToks wrState
+  by_cases hw : γ.watchQ
+  · simp only [hw, ↓reduceIte]; iframe Hl
+  · simp only [hw, Bool.false_eq_true, ↓reduceIte]
+    icases Ht with ⟨Ht, %hl⟩
+    have hp : 0 < pend.length := List.length_pos_iff.2 h
+    have he : 2 ^ 63 - 3 - (L ++ [pend]).length = 2 ^ 63 - 4 - L.length := by
+      simp only [List.length_append, List.length_singleton]; omega
+    rw [he, logCh_snoc]
+    iframe Ht Hl
+    ipureintro; simp only [List.length_append, List.length_singleton]; omega
+
+/-- **A commit's pin**: the new view's quarter into the batch lock's resource, or with the loan to
+a watchable store's caller. -/
+theorem wr_commit_pin (γ : StoreNames) (L : Log) :
+    bucketViewL (GF := GF) γ (1 : Qp).half.half L ∗
+      (if γ.watchQ then writerLoan γ else iprop(True)) ⊢
+      wrPin γ L ∗ (if γ.watchQ then writerPin γ L else iprop(True)) := by
+  iintro ⟨Hb, Hl⟩
+  unfold wrPin
+  by_cases hw : γ.watchQ
+  · simp only [hw, ↓reduceIte]
+    isplitl []
+    · itrivial
+    iunfold writerPin; iframe Hb Hl
+  · simp only [hw, Bool.false_eq_true, ↓reduceIte]
+    iframe Hb
+
+/-- A pin's view where it goes (`NewStore`): the batch lock's resource's, or the caller's. -/
+theorem wrPin_split (γ : StoreNames) (L : Log) :
+    bucketViewL (GF := GF) γ (1 : Qp).half.half L ⊢
+      wrPin γ L ∗ (if γ.watchQ then bucketViewL γ (1 : Qp).half.half L else iprop(True)) := by
+  iintro Hb
+  unfold wrPin
+  by_cases hw : γ.watchQ
+  · simp only [hw, ↓reduceIte]
+    isplitl []
+    · itrivial
+    iexact Hb
+  · simp only [hw, Bool.false_eq_true, ↓reduceIte]
+    iframe Hb
+
+/-- `End`'s give-back after a commit. -/
+theorem wrOut_cons (γ : StoreNames) (L : Log) (pend : List Change) (h : pend ≠ []) :
+    (if γ.watchQ then writerPin (GF := GF) γ (L ++ [pend]) else iprop(True)) ⊢ wrOut γ L pend := by
+  unfold wrOut commitLog
+  by_cases hw : γ.watchQ
+  · simp only [hw, h, ↓reduceIte]
+    iintro H
+    isplitl []
+    · itrivial
+    iexact H
+  · simp only [hw, Bool.false_eq_true, ↓reduceIte]; iintro -; itrivial
+
+/-- A watchable store's caller gives `store.Write` its token and pin. -/
+theorem wrIn_of (γ : StoreNames) (L : Log) :
+    revToken (GF := GF) γ ∗ writerPin γ L ⊢ wrIn γ L := by
+  unfold wrIn
+  by_cases hw : γ.watchQ
+  · simp only [hw, ↓reduceIte]; iintro H; iexact H
+  · simp only [hw, Bool.false_eq_true, ↓reduceIte]; iintro -; itrivial
+
+/-- A watchable store's caller gets them back. -/
+theorem wrOut_watch (γ : StoreNames) (L : Log) (pend : List Change) (hw : γ.watchQ = true) :
+    wrOut (GF := GF) γ L pend ⊢
+      (if pend = [] then revToken γ else iprop(True)) ∗ writerPin γ (commitLog L pend) := by
+  unfold wrOut; simp only [hw, ↓reduceIte]; iintro H; iexact H
+
+/-- At a watchable store, `wrState`, `wrToks` and `wrPin` are nothing. -/
+theorem wrState_watch (γ : StoreNames) (n : Nat) (L : Log) (hw : γ.watchQ = true) :
+    ⊢ wrState (GF := GF) γ n L := by
+  unfold wrState; simp only [hw, ↓reduceIte]; iintro; itrivial
+
+theorem wrToks_watch (γ : StoreNames) (n : Nat) (L : Log) (hw : γ.watchQ = true) :
+    ⊢ wrToks (GF := GF) γ n L := by
+  unfold wrToks; simp only [hw, ↓reduceIte]; iintro; itrivial
+
+theorem wrPin_watch (γ : StoreNames) (L : Log) (hw : γ.watchQ = true) :
+    ⊢ wrPin (GF := GF) γ L := by
+  unfold wrPin; simp only [hw, ↓reduceIte]; iintro; itrivial
+
+/-- A store without watchers' writer gives `store.Write` nothing. -/
+theorem wrIn_plain (γ : StoreNames) (L : Log) (hw : γ.watchQ = false) :
+    ⊢ wrIn (GF := GF) γ L := by
+  unfold wrIn; simp only [hw, Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+
+/-- A watchable store's caller gets its token and pin back from a transaction without a change. -/
+theorem wrOut_nil_watch (γ : StoreNames) (L : Log) (hw : γ.watchQ = true) :
+    wrOut (GF := GF) γ L [] ⊢ revToken γ ∗ writerPin γ L := by
+  unfold wrOut commitLog; simp only [hw, ↓reduceIte]; iintro H; iexact H
+
+/-- A watchable store's caller gets its pin back at the committed log. -/
+theorem wrOut_cons_watch (γ : StoreNames) (L : Log) (pend : List Change) (h : pend ≠ [])
+    (hw : γ.watchQ = true) :
+    wrOut (GF := GF) γ L pend ⊢ writerPin γ (L ++ [pend]) := by
+  unfold wrOut commitLog; simp only [hw, h, ↓reduceIte]; iintro ⟨-, H⟩; iexact H
+
+
+end wrlemmas
+
 open Iris.ProofMode in
 open Iris.ProofMode in
 /-- **Before a commit**: `s.revMu`'s fraction (`revQ γ 1`) and the caller's `logQPre` make the
@@ -6255,8 +6452,8 @@ writer's fragment back (D22 receiver epochs, S5b: `txnEndPre`'s `hookIs`). -/
 def txnEndPost (γ : StoreNames) : TxnKind → IProp GF
   | .read _ _ => iprop(True)
   | .write ilog pend _ _ _ =>
-    iprop(idxCert γ.idx (commitLog ilog pend) ∗ (if pend = [] then revToken γ else iprop(True)) ∗
-      logQPost γ ilog pend ∗ writerFrag γ ∗ writerPin γ (commitLog ilog pend))
+    iprop(idxCert γ.idx (commitLog ilog pend) ∗ logQPost γ ilog pend ∗ writerFrag γ ∗
+      wrOut γ ilog pend)
 
 /-- What `End` takes of a transaction: nothing of a read one; of a write one, the batch lock's
 invariant `P` (the store's: `hookIs`), which `Unlock` takes back, and the outer quarter of the
@@ -6290,11 +6487,10 @@ theorem txnEndPre_write_plain (γ : StoreNames) (P : IProp GF) (f : val) (ilog :
 theorem txnEndPost_plain (γ : StoreNames) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (h : γ.watchQ = false) :
     txnEndPost (GF := GF) γ (.write ilog pend puts deletes putSize) ⊢
-      idxCert γ.idx (commitLog ilog pend) ∗ (if pend = [] then revToken γ else iprop(True)) ∗
-        writerFrag γ ∗ writerPin γ (commitLog ilog pend) := by
+      idxCert γ.idx (commitLog ilog pend) ∗ writerFrag γ := by
   simp only [txnEndPost]
-  iintro ⟨Hc, Ht, -, Hf, Hp⟩
-  iframe Hc Ht Hf Hp
+  iintro ⟨Hc, -, Hf, -⟩
+  iframe Hc Hf
 
 /-- The store's `writeView` (`kv_view.go`): its `kv` is the store `s`. -/
 def isWriteView (wv s : Loc) (γ : StoreNames) : IProp GF :=
@@ -6516,7 +6712,7 @@ theorem writerInv_checkoutG (s : Loc) (γ : StoreNames) (G : IProp GF)
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ G -∗ curAt γ dq o -∗ storeW s γ -∗ wDep γ ={⊤}=∗
       writerL s γ ∗ storeRegd s γ ∗ G ∗
       (∃ L : Log, ghostVar γ.wv (1 : Qp).half L ∗ bucketViewL γ (1 : Qp).half.half.half L ∗
-        idxCert γ.idx L ∗ ⌜L ≠ []⌝ ∗ compactRes γ L) ∗ curAt γ dq o := by
+        idxCert γ.idx L ∗ ⌜L ≠ []⌝ ∗ compactRes γ L ∗ wrPin γ L) ∗ curAt γ dq o := by
   iintro Hlc #Hi HG Hpin HW Hd
   iunfold writerInv at Hi
   imod inv_acc (E := ⊤) (N := writerN) (P := writerInvBody (GF := GF) s γ)
@@ -6535,14 +6731,14 @@ theorem writerInv_checkoutG (s : Loc) (γ : StoreNames) (G : IProp GF)
   icases HP with (⟨Hfz, (⟨HL, Hrg⟩ | ⟨Hk', -, #Hreg'⟩)⟩ | ⟨-, HF⟩)
   · imod writerReg_get s γ _ (by solve_ndisj) $$ [$HW $Hrg $Hfz] with ⟨HWr, #Hreg, Hfz⟩
     iunfold writerRes at HWr
-    icases HWr with ⟨%L, Hwk, Hwv, Hbv, #Hcert, %Hne, Hcres⟩
+    icases HWr with ⟨%L, Hwk, Hwv, Hbv, #Hcert, %Hne, Hcres, Hpin'⟩
     imod Hclose $$ [Hc Hwk Hd Hfz] with -
     · inext; iunfold writerInvBody; ileft; iexists γ.phys, o'; rw [StoreNames.withPhys_self]
       iframe Hc; ileft; iframe Hfz; iright; iframe Hwk Hd Hreg
     imodintro
     iframe HL Hreg Hpin HG
     iexists L
-    iframe Hwv Hbv Hcert Hcres
+    iframe Hwv Hbv Hcert Hcres Hpin'
     ipureintro; exact Hne
   · ihave HWr := storeW_get s γ $$ [$Hreg' $HW]
     iunfold writerRes at HWr

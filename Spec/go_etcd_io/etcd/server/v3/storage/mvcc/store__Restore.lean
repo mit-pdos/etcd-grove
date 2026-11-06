@@ -122,7 +122,7 @@ they are current, and no fact names a field `Restore` writes (`b`, `kvindex`, `f
 abbrev mvcc.store.Restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
     (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs),
-  L <+: [[], []] ++ R → mvcc.restoreLogOk R → c ≤ r.crev →
+  L <+: [[], []] ++ R → mvcc.restoreLogOk R → c ≤ r.crev → γ.watchQ = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ r.finRev ∗ mvcc.crevPermAt γ r.crev ∗
       mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d ∧ d'.cm = d.cm⌝ ∗

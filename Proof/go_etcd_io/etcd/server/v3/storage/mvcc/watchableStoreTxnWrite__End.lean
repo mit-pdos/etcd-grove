@@ -204,7 +204,10 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
       simp only [mvcc.txnEndX]
       iframe HG HFG Hcb
     simp only [mvcc.txnEndPostH, mvcc.txnEndXPost, mvcc.commitLog, ↓reduceIte, mvcc.logQPost_nil]
-    icases Hpost with ⟨#Hc, Htok, -, Hpin⟩
+    icases Hpost with ⟨#Hc, -, Hout⟩
+    ihave %Hwq : ⌜γ.st.watchQ = true⌝ $$ []
+    · iunfold mvcc.isWatchableStore at Hws; iNamed Hws; ipureintro; exact Hwq
+    icases mvcc.wrOut_nil_watch γ.st ilog Hwq $$ Hout with ⟨Htok, Hpin⟩
     icases HX with ⟨HG, HR⟩
     (try wp_auto)
     iapply HΦ
@@ -526,7 +529,8 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   have hcl : mvcc.commitLog ilog pend = ilog ++ [pend] := by
     unfold mvcc.commitLog; rw [if_neg hne]
   simp only [mvcc.txnEndPostH, hcl, mvcc.logQPost_ne γ.st ilog pend hne Hwq]
-  icases Hpost with ⟨#Hc, -, Hq, Hpin⟩
+  icases Hpost with ⟨#Hc, Hq, Hout⟩
+  ihave Hpin := mvcc.wrOut_cons_watch γ.st ilog pend hne Hwq $$ Hout
   rw [← hLmu'] at *
   imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(⟨by simpa using hab, List.prefix_append _ _⟩) Hwlog Hc Hq
     with ⟨HP, Hwlog⟩

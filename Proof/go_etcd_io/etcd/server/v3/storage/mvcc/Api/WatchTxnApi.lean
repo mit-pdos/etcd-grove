@@ -263,9 +263,12 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
     $$ [Hrd H1 Hwt Hctx Hcur HF Hcb Hpin Htrc]
     as %mw ⟨⟨%ilog, %crev, Htx, -, -, -, ⟨%σ, HR, %Hσ⟩⟩, Htrc, HQ, -, Hcur, HF⟩
   · rw [isStore_withPhys, storeReaderC_withPhys]
-    iframe Hs Hrd Hwt Hctx Hcur HF Hcb Hpin Htrc Hx HZ Hlb
-    unfold revToken; iframe H1
-    ipureintro; exact Htrnn
+    iframe Hs Hrd Hctx Hcur HF Hcb Htrc Hx HZ Hlb
+    isplitl [Hwt]
+    · ileft; iexact Hwt
+    isplitr
+    · ipureintro; exact Htrnn
+    iapply wrIn_of; unfold revToken; iframe H1 Hpin
   obtain ⟨hl, hc, hpn, hre⟩ := Hσ
   subst hl hc
   -- the sole writer pins the transaction's committed log

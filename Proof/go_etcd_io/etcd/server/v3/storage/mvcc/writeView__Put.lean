@@ -86,12 +86,12 @@ theorem mvcc.writeView.Put.wp_proof
     simp only [mvcc.txnEndX]
     iframe HG HFG Hcb
   simp only [mvcc.txnEndPost, mvcc.txnEndXPost, mvcc.commitLog, List.cons_ne_self, ↓reduceIte]
-  icases Hcert with ⟨Hcert, -, -, -, Hpin⟩
+  icases Hcert with ⟨Hcert, -, -, -⟩
   icases HX with ⟨HG, HR⟩
   iapply HΦ
   iframe Hrd HPost HG HR
   iexists ilog
-  iframe Hcert Hown Hpin
+  iframe Hcert Hown
   try (ipureintro; rfl)
 
 end proof

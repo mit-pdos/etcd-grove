@@ -51,8 +51,6 @@ abbrev mvcc.writeView.DeleteRange.spec : Prop :=
       ∃ ilog : mvcc.Log,
         mvcc.idxCert γ.idx (mvcc.commitLog ilog
           ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del)) ∗
-        mvcc.writerPin γ (mvcc.commitLog ilog
-          ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del)) ∗
         lease.leaseOwn γ.leases L
           (mvcc.pendItems ilog ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del)) ∗
         ⌜n = W64 ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).length : Int) ∧

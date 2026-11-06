@@ -153,7 +153,18 @@ being committed):
    revisions `[lo, hi)` of `L`, for some `hi`, those its filters keep;
 3. such a watcher's progress (a response without events and not a compaction's, the `j`-th
    received, at revision `P`, its own, or the stream's `-1` when the watcher is live and registered
-   before it was sent) comes after exactly its kept events up to `P`.
+   before it was sent) comes after exactly its kept events up to `P`;
+4. every watcher's progress (as in 3, without its condition) is at a revision at least its first
+   less one: `lo ≤ P + 1` (`progressIfSync` sends it only to synced watchers, at the store's
+   revision, at least the watcher's start revision, or, started at `0`, the revision it registered
+   at);
+5. the revisions of the responses without events never decrease along the stream (a compaction
+   response's is `0`; a progress response's the store's revision, read and sent under `s.mu`, which
+   only grows).
+
+4-5 were added after the freeze (client/v3's migration, finding F-W1, decided by the coordinator,
+2026-11-06: `notes/mvcc-api-candidate.md`): client/v3's completeness contract needs a progress
+notification at or past its cursor.
 
 The condition of 2-3 is the case the code delivers exactly: a compaction at `c` keeps only the last
 change of a key at `c`, and a watcher reading revision `c` after it gets only that one
@@ -180,7 +191,13 @@ def wsRecvOk (σ : MvccState) (S : StreamState) (rs : List WResp) : Prop :=
     r.compactRev = W64 0 → S.ws !! id = some w → onceUpTo σ.notifiedLog w.lo σ.crev →
     (r.id = id ∨ (r.id = W64 (-1) ∧ w.live = true ∧ w.k ≤ j)) →
     recvEvs (rs.take (j + 1)) id =
-      filtered w.fs (watchEvents σ.notifiedLog w.rg w.lo (sint.nat r.rev + 1)))
+      filtered w.fs (watchEvents σ.notifiedLog w.rg w.lo (sint.nat r.rev + 1))) ∧
+  (∀ (j : Nat) (r : WResp) (id : w64) (w : WInfo), rs[j]? = some r → r.evs = [] →
+    r.compactRev = W64 0 → S.ws !! id = some w →
+    (r.id = id ∨ (r.id = W64 (-1) ∧ w.live = true ∧ w.k ≤ j)) →
+    (w.lo : Int) ≤ sint.Z r.rev + 1) ∧
+  (∀ (i j : Nat) (y x : WResp), i < j → rs[i]? = some y → rs[j]? = some x → y.evs = [] →
+    x.evs = [] → x.compactRev = W64 0 → sint.Z y.rev ≤ sint.Z x.rev)
 
 /-- **A live key-value's values are positive** (round 16: its creation and modification revisions
 and its version, a count of its puts since its creation, none wrapped): what makes etcd's own

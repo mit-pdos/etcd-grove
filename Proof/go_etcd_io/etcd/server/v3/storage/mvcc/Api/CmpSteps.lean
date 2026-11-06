@@ -203,7 +203,7 @@ theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : 
   imod storeW_open s γ (⊤ \ ↑writerN) (by solve_ndisj) (slotFl γ 1 false) (slotFl_regLent γ)
     $$ Hrg Hfz HW with ⟨HWr, #Hreg, Hfz⟩
   iunfold writerRes at HWr
-  icases HWr with ⟨%Lb, HwkB, HwvB, HbvB, #HcertB, %HneB, Hcres⟩
+  icases HWr with ⟨%Lb, HwkB, HwvB, HbvB, #HcertB, %HneB, Hcres, HpinB⟩
   icases HT with (⟨Hwl, #Hwreg⟩ | ⟨Hwk', -, -⟩)
   rotate_left 1
   · iexfalso
@@ -247,7 +247,7 @@ theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : 
     with ⟨HYw, HwcM⟩
   · iframe HYw HwcM
   -- the writer's state back, at the moved view
-  imod Hclose $$ [Hc Hfz HYa HYp HYr HYw Htoks Hw Hclog Hwv Hcur Hlrd] with -
+  imod Hclose $$ [Hc Hfz HYa HYp HYr HYw Htoks Hw Hclog Hwv Hcur Hlrd Hrtk] with -
   · inext
     iunfold writerInvBody
     ileft
@@ -261,7 +261,7 @@ theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : 
     iunfold writerL
     iexists L, ntok
     simp only [named]
-    iframe Htoks Hw Hclog Hwv Hcur Hlrd Hcert
+    iframe Htoks Hw Hclog Hwv Hcur Hlrd Hcert Hrtk
     isplitr
     · ipureintro; exact Hbudget
     isplitr
@@ -291,7 +291,7 @@ theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : 
   iframe Hreg
   iunfold writerRes
   iexists L
-  iframe HwkB HwvB HbvB HcertB
+  iframe HwkB HwvB HbvB HcertB HpinB
   isplitr
   · ipureintro; exact HneB
   iunfold compactRes

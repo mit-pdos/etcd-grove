@@ -110,14 +110,18 @@ theorem mvcc.store.Write.spec_R (h : mvcc.store.Write.spec (GF := GF) (hG := hG)
   icases (mvcc.hookIs_split γ P f).1 $$ Hh with ⟨#Hh, Hfrag⟩
   iunfold mvcc.writerFrag at Hfrag
   icases Hfrag with ⟨%ow, Hfrag⟩
+  -- (track A, request 3) the token and pin the caller's for a watchable store's writer only
+  ihave Hpin := mvcc.wrIn_of γ log $$ [$Htok $Hpin]
+  ihave Hwt : (mvcc.storeWT (GF := GF) γ ∨ □ (⧗ 1 ={⊤}=∗ mvcc.storeWT γ)) $$ [Hwt]
+  · ileft; iexact Hwt
   ihave #Hx : □ (mvcc.slotF γ ∗ iprop(emp) -∗ False) $$ []
   · iintro !> H; iapply (mvcc.slotF_excl_M1 γ) $$ H
   ihave Hcb : mvcc.writeCb (GF := GF) γ (fun _ _ => iprop(True)) $$ []
   · iapply mvcc.writeCb_true
   iapply (h s γ trace P Pre Q (some f) DFrac.discard te (-1) iprop(True) log _ ow iprop(emp)
-      (fun _ _ => iprop(True))) $$ %Φ [Hrd Htok Hwt Hpre Htrc Hfrag Hpin Hcb]
+      (fun _ _ => iprop(True))) $$ %Φ [Hrd Hwt Hpre Htrc Hfrag Hpin Hcb]
   · rw [mvcc.writeCtxM_some]
-    iframe Hrd Htok Hwt Hpre Htrc Hfrag Hpin Hcb Hh Htr Hx; iframe #
+    iframe Hrd Hwt Hpre Htrc Hfrag Hpin Hcb Hh Htr Hx; iframe #
     isplitr; · imodintro; itrivial
     ipureintro; exact Ht
   inext
@@ -259,8 +263,7 @@ abbrev mvcc.storeTxnWrite.End.specR : Prop :=
       G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.endCb γ ilog pend crev Y R }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader s γ ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
-      (if pend = [] then mvcc.revToken γ else iprop(True)) ∗ mvcc.logQPost γ ilog pend ∗
-      mvcc.writerFrag γ ∗ mvcc.writerPin γ (mvcc.commitLog ilog pend) ∗ G ∗ R }}
+      mvcc.logQPost γ ilog pend ∗ mvcc.writerFrag γ ∗ mvcc.wrOut γ ilog pend ∗ G ∗ R }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (`storeReader_of`). -/
@@ -276,9 +279,9 @@ theorem mvcc.storeTxnWrite.End.spec_R (h : mvcc.storeTxnWrite.End.spec (GF := GF
     [Htw HP Hok Hq HG Hcb]
   · iframe Hpkg Htw HhP HP Hok Hq HG HFG Hcb
   inext
-  iintro ⟨Hr, -, Hc, Ht, Hq, Hpin, HG, HR⟩
+  iintro ⟨Hr, -, Hc, Hq, Hout, HG, HR⟩
   iapply HΦ
-  iframe Hc Ht Hq Hfrag Hpin HG HR
+  iframe Hc Hq Hfrag Hout HG HR
   iapply mvcc.storeReader_of $$ Hr
 
 /-! ### `metricsTxnWrite__Range` -/

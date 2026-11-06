@@ -99,6 +99,43 @@ theorem rdSupply_lend (s : Loc) (γ : StoreNames) :
   iapply threadPool.giveBack N γp R ⊤ (fun _ _ => CoPset.mem_full)
   iframe Hp Hloan HR
 
+/-- **A reader under a later for a thread token**, with the token's way back (`tokBack`), without
+a later credit: `store.Read`/`store.Write` take the reader under a later (their first step strips
+it). The copy goes back into the pool under the later (the pool's invariant is). -/
+theorem rdSupply_lendL (s : Loc) (γ : StoreNames) :
+    rdSupply (GF := GF) s γ ∗ threadTok ⊢ |={⊤}=> ▷ storeReaderC s γ ∗ api.tokBack s γ := by
+  iintro ⟨#Hsup, Htok⟩
+  iunfold rdSupply at Hsup
+  icases Hsup with ⟨%N, %γp, %R, #Hp, #Hw⟩
+  imod threadPool.borrow N γp R ⊤ (fun _ _ => CoPset.mem_full) $$ [$Hp $Htok] with ⟨HR, Hloan⟩
+  ihave HR : ▷ (storeReaderC s γ ∗ (storeReaderC s γ -∗ R)) $$ [HR]
+  · inext; iapply Hw; iexact HR
+  icases HR with ⟨Hrd, Hback⟩
+  imodintro
+  iframe Hrd
+  iunfold api.tokBack
+  iintro Hrd
+  ihave HR : ▷ R $$ [Hback Hrd]
+  · inext; iapply Hback; iexact Hrd
+  iunfold threadPool.isThreadPool at Hp
+  iunfold threadPool.ownThreadLoan at Hloan
+  iinv Hp with Hi Hclose
+  iunfold threadPool.poolInv at Hi
+  icases Hi with ⟨%b, %m, >Hauth, >Htoks, HRs, >%Hle⟩
+  icombine Hauth Hloan gives %Hb
+  obtain ⟨b', rfl⟩ : ∃ b', b = b' + 1 := ⟨b - 1, by omega⟩
+  imod ownTokAuth_delete_S γp b' $$ Hauth Hloan with Hauth
+  icases (threadToks_add b' 1).1 $$ Htoks with ⟨Htoks, Htok⟩
+  imod Hclose $$ [Hauth Htoks HR HRs] with _
+  · inext
+    iunfold threadPool.poolInv
+    iexists b', m + 1
+    simp only [List.replicate]
+    iframe
+    ipureintro; omega
+  imodintro
+  iexact Htok
+
 end proof
 
 end mvcc

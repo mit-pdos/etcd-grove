@@ -461,12 +461,13 @@ theorem mvcc.NewStore.wp_proof
   have hone : (W64 1 : w64) = W64 (((([[], []] : mvcc.Log).length : Int)) - 1) := rfl
   ihave Hlrd : lease.lessorRdOf γ.leases $$ [Hlrd]
   · rw [hγl]; iexact Hlrd
-  ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hwk Hwv2 Hbv1 Hcres]
+  icases mvcc.wrPin_split γ [[], []] $$ HbvP with ⟨HwPin, HbvP⟩
+  ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hwk Hwv2 Hbv1 Hcres HwPin]
   · iunfold mvcc.writerRes
     iexists [[], []]
     simp only [named]
     iunfold mvcc.writerKey
-    iframe Hwk Hwv2 Hbv1 Hcres
+    iframe Hwk Hwv2 Hbv1 Hcres HwPin
     iframe #
     ipureintro; simp
   imod mvcc.storeW_register «$r0_ptr» γ $$ [$HWi $Hrg $HW] with ⟨HW, #Hregd⟩
@@ -552,6 +553,47 @@ theorem mvcc.NewStore.wp_proof
   · iexact Hrt1
   ispecialize Hrts $$ Hrt1
   (try wp_auto)
+  -- the no-compaction token: a compacting store's write right (in `mwInv`), else the writer's loan
+  -- (M2's item 37)
+  ihave Hloan : mvcc.writerLoan (GF := GF) γ ∗
+      (if mvcc.kbCmpM γ.kb then mvcc.kbMWf γ.kb γ.bucket else iprop(True)) $$ [Hmw HvalsL]
+  · iunfold mvcc.writerLoan
+    by_cases hcm : mvcc.kbCmpM γ.kb
+    · simp only [hcm, ↓reduceIte]
+      isplitl []
+      · itrivial
+      iapply mvcc.kbNoCmpF_MWf _ _ $$ Hmw
+    · simp only [hcm, ↓reduceIte]
+      isplitl [Hmw HvalsL Hnd]
+      · isplitl [Hmw HvalsL]
+        · iapply (mvcc.kbNoCmp_split _ _).2
+          iframe Hmw
+          iapply HvalsL
+          ipureintro; simp
+        rw [hγk] at hcm ⊢
+        iapply (show mvcc.kbNoDelOff (GF := GF) kb ⊢ mvcc.kbNoDel kb from by
+          unfold mvcc.kbNoDelOff; rw [if_neg hcm]) $$ Hnd
+      itrivial
+  icases Hloan with ⟨Hloan, Hmw⟩
+  -- (track A, request 3) the revision tokens and the loan: the writer's state's (no watchers), or
+  -- the caller's
+  ihave Hrtk : mvcc.wrState (GF := GF) γ (2 ^ 63 - 3 - ([[], []] : mvcc.Log).length) [[], []] ∗
+      (if γ.watchQ then ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.writerLoan γ else iprop(True))
+      $$ [Htoks Hloan]
+  · unfold mvcc.wrState
+    by_cases hw : γ.watchQ
+    · simp only [hw, ↓reduceIte]
+      isplitl []
+      · itrivial
+      iframe Htoks Hloan
+    · simp only [hw, Bool.false_eq_true, ↓reduceIte]
+      isplitl
+      · iframe Hloan
+        isplitl
+        · iexact Htoks
+        ipureintro; simp [mvcc.logCh]
+      itrivial
+  icases Hrtk with ⟨Hrtk, HtoksO⟩
   -- the writer's state, in the writer's invariant (D22 receiver epochs, S2)
   ihave HY : mvcc.slotY γ [[], []] $$ [HYa Hrcv1 HwY]
   · unfold mvcc.slotY mvcc.pndW; rw [hγapi, hγw]
@@ -559,12 +601,12 @@ theorem mvcc.NewStore.wp_proof
     icases HYa with ⟨HYa1, HYa2⟩
     iframe HYa1 HYa2 HwY
     iapply mvcc.rcvW_intro; iexact Hrcv1
-  ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd HY]
+  ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd HY Hrtk]
   · iunfold mvcc.writerL
     iexists [[], []], 2 ^ 63 - 5
     simp only [named]
     rw [← hone]
-    iframe Hauth Hiw Hc1 Hwv1 HcurA Hlrd HY
+    iframe Hauth Hiw Hc1 Hwv1 HcurA Hlrd HY Hrtk
     iframe #
     ipureintro
     exact ⟨by simp, by simp⟩
@@ -653,24 +695,20 @@ theorem mvcc.NewStore.wp_proof
   -- registration and the write-back supply, when the store compacts
   -- the no-compaction token: a compacting store's write right (in `mwInv`), else the writer's loan
   -- (M2's item 37)
-  ihave HpinW : mvcc.writerPin (GF := GF) γ [[], []] ∗
-      (if mvcc.kbCmpM γ.kb then mvcc.kbMWf γ.kb γ.bucket else iprop(True)) $$ [HbvP Hmw HvalsL]
-  · iunfold mvcc.writerPin; iunfold mvcc.writerLoan
-    by_cases hcm : mvcc.kbCmpM γ.kb
-    · simp only [hcm, ↓reduceIte]
-      iframe HbvP
-      iapply mvcc.kbNoCmpF_MWf _ _ $$ Hmw
-    · simp only [hcm, ↓reduceIte]
-      iframe HbvP
-      isplitl [Hmw HvalsL]
-      · iapply (mvcc.kbNoCmp_split _ _).2
-        iframe Hmw
-        iapply HvalsL
-        ipureintro; simp
-      rw [hγk] at hcm ⊢
-      iapply (show mvcc.kbNoDelOff (GF := GF) kb ⊢ mvcc.kbNoDel kb from by
-        unfold mvcc.kbNoDelOff; rw [if_neg hcm]) $$ Hnd
-  icases HpinW with ⟨HpinW, Hmw⟩
+  -- (track A, request 3) a watchable store's caller's tokens and pin
+  ihave HtoksF : (if wq then ownToks γ.revs (2 ^ 63 - 5) else iprop(True) : IProp GF) ∗
+      (if wq then mvcc.writerPin γ [[], []] else iprop(True)) $$ [HtoksO HbvP]
+  · rw [← hγw]
+    by_cases hw : γ.watchQ
+    · simp only [hw, ↓reduceIte]
+      icases HtoksO with ⟨Ht, Hl⟩
+      iframe Ht
+      iunfold mvcc.writerPin; iframe HbvP Hl
+    · simp only [hw, Bool.false_eq_true, ↓reduceIte]
+      isplitl []
+      · itrivial
+      itrivial
+  icases HtoksF with ⟨Htoks, HpinW⟩
   imod mvcc.physCmp_alloc «$r0_ptr» γ $$ [$Hmrest $Hmw $HrgI] with #HmwP
   -- what the objects are (D22 receiver epochs, S5b: until then `isStore`'s)
   ihave #Hpay : mvcc.stopPayAt γ.sx γ.sch (⟨GoInterface.ok bi, ti, sc, stopc⟩ : mvcc.StoreObjs) $$ []

@@ -892,3 +892,25 @@ rdTok ∗ bOpen rdOpen`), so `etcdStorage_open.law` takes `rdStockN - 2` open sh
 `rdTok`s back beside `backendRest`; `mvccStorageFor` and `storageRest` hold `rdStockN - 2` (mvcc's
 `nReaders`). The statements of `New.spec`/`NewStore.spec` are unchanged in text; the premise is
 three slots stronger again, and the server's `threadBound ≤ 2 ^ 28` still meets it.
+
+**client/v3's migration, F-W1: decided by the coordinator, 2026-11-06.** `wsRecvOk` gains two
+conjuncts (4 and 5) client/v3's completeness contract (`watchStateRespOk`) needs and the code
+guarantees (`notes/mvcc-migration/clientv3.md`, F-W1; until M1 mvcc's internal `covFact` and
+`respRev` gave them):
+```
+(∀ (j : Nat) (r : WResp) (id : w64) (w : WInfo), rs[j]? = some r → r.evs = [] →
+  r.compactRev = W64 0 → S.ws !! id = some w →
+  (r.id = id ∨ (r.id = W64 (-1) ∧ w.live = true ∧ w.k ≤ j)) →
+  (w.lo : Int) ≤ sint.Z r.rev + 1) ∧
+(∀ (i j : Nat) (y x : WResp), i < j → rs[i]? = some y → rs[j]? = some x → y.evs = [] →
+  x.evs = [] → x.compactRev = W64 0 → sint.Z y.rev ≤ sint.Z x.rev)
+```
+4: a watcher's progress (its own, or the stream's `-1` covering it) is at a revision at least its
+first less one (`progressIfSync`: only synced watchers, at `s.rev() ≥ w.startRev`, or, started at
+`0`, at least the revision it registered at). 5: the event-less responses' revisions never decrease
+(a compaction response's is `0`; a progress response's is `s.rev()`, read and sent under `s.mu`,
+which only grows). Proved: each send records them (`SentFact.holds`'s last conjunct: its revision
+against its watcher's, or each covered watcher's, first revision, and every earlier event-less
+response's), from the channel invariant's `covFact`/`covEntry` and `respRev` (`WatchSendApi`'s
+`covFact_lo`, `respRev_mono`); `wsRecvOk_of_sent` concludes them. Appended at the end, so a client's
+`hok.2.2` (conjunct 3) is now `hok.2.2.1`.

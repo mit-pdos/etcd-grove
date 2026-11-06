@@ -134,10 +134,10 @@ abbrev mvcc.NewStore.spec : Prop :=
         mvcc.isWriteView wv s γ) ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd kb) (),
         mvcc.storeReaderC s γ) ∗
-      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
+      (if wq then ownToks γ.revs (2 ^ 63 - 5) else iprop(True)) ∗ mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ mvcc.writerFrag γ ∗
-      mvcc.writerPin γ [[], []] ∗
+      (if wq then mvcc.writerPin γ [[], []] else iprop(True)) ∗
       mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
       mvcc.crevPermIs γ Perm ∗ mvcc.writerReg s γ ∗
       (∃ pr : Qp, ⌜mvcc.pndW γ + pr = 1⌝ ∗ mvcc.api.newClient γ.api [[], []] (-1) pr s) ∗ £ 1 }}

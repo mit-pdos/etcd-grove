@@ -106,6 +106,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamGhost
 import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
 import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnHandle
@@ -699,7 +700,8 @@ abbrev WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
              ⟨watchRangeOf kk e endk startRev id, fs, watchLo σ startRev, k, true⟩)),
       COMM Q σ S id }>)
   {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗
-      (⌜ctx = interface.mk context.todoCtx.ty #(zero_val context.todoCtx)⌝ ∨ context.isContext ctx cd) ∗
+      (⌜ctx = interface.mk context.todoCtx.ty #(zero_val context.todoCtx)⌝ ∨
+        (context.isContext ctx cd ∗ trace.spanCtxOk ctx)) ∗
       key ↦*□ kk ∗ endk ↦*□ e ∗ filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗ au }}
     (App (App (App (App (App (App (Val #(methods ty go!"Watch" v)) (Val #(GoInterface.ok ctx)))
       (Val #(W64 0))) (Val #key)) (Val #endk)) (Val #startRev)) (Val #fcs))

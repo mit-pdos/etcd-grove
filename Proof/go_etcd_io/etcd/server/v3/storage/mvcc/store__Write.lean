@@ -7,6 +7,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpSteps
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -29,18 +30,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.spec (GF := GF) (hG := hG) := by
   intro s γ trace P Pre Q hk dq te clb Z logP qf ow G F
-  wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Htok, Hwt, %Htrnn, Hctx, Hpinw, HG, #HFG, Hwcb, HpinP, Htrc⟩
-  -- the writer's pin: its quarter of the view, joined below with `writerRes`'s, and its loan
-  iunfold mvcc.writerPin at HpinP
-  icases HpinP with ⟨HbvP, Hloan⟩
+  wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Hwt, %Htrnn, Hctx, Hpinw, HG, #HFG, Hwcb, Hin, Htrc⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamed Hs
+  wp_auto_lc 2
+  ihave Hlc0 := Hlc1
+  imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.storeReaderC s γ)) $$ Hlc2 Hrd with Hrd
   iunfold mvcc.storeReaderC at Hrd
   iNamedSuffix Hrd "R"
-  wp_auto_lc 1
-  ihave Hlc0 := Hlc1
   -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or
   -- above the caller's lower bound
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
@@ -73,8 +72,14 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB, -⟩
   rw [Hbi]
-  (try wp_auto)
+  -- the backend's write token: the caller's, or from its supply with this step's receipt
+  wp_take_receipt as Hrcp
   wp_apply HB as %bt #Hbt
+  ihave Hwt : |={⊤}=> mvcc.storeWT (GF := GF) γ $$ [Hwt Hrcp]
+  · icases Hwt with (Hwt | #Hsup)
+    · imodintro; iexact Hwt
+    · iapply Hsup; iexact Hrcp
+  imod Hwt
   (try wp_auto)
   ihave Hfs : mvcc.fieldShareAt s γ sync.rfrac.half ow $$ [Hcur Hfb Hfidx Hfsch Hfstop Hfrst]
   · iunfold mvcc.fieldShareAt
@@ -159,7 +164,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   -- by the caller's `G`
   imod mvcc.writerInv_checkoutG s γ iprop(G ∗ □ (mvcc.slotF γ ∗ G -∗ False))
       (mvcc.slotF_excl_of γ G) _ ow $$ Hlc2 Hwi [HG] Hpinw HW Hwr
-    with ⟨HL, #Hreg, ⟨HG, -⟩, ⟨%L, HwvW, Hbv, #HcertW, %HneW, Hcres⟩, Hpinw⟩
+    with ⟨HL, #Hreg, ⟨HG, -⟩, ⟨%L, HwvW, Hbv, #HcertW, %HneW, Hcres, HwPin⟩, Hpinw⟩
   · iframe HG HFG
   iunfold mvcc.writerL at HL
   icases HL with ⟨%ilog, %ntok, HL⟩
@@ -167,7 +172,16 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   icases mvcc.ghostVar_join_halves γ.wv ilog L $$ [Hwv HwvW] with ⟨Hwv, %HL⟩
   · iframe Hwv HwvW
   subst HL
-  ihave Hbv := mvcc.bucketViewL_join2 γ (1 : Qp).half.half.half (1 : Qp).half.half ilog logP
+  -- the revision token and the writer's pin (track A, request 3): the caller's (a watchable
+  -- store's sole writer) or the writer's state's and the batch lock's resource's
+  ihave %Hsm : ⌜mvcc.logCh ilog < 2 ^ 48⌝ $$ []
+  · ihave %h1 := mvcc.idxSealed_small γ.idx ilog $$ [Hcert]
+    · iapply mvcc.idxCert_sealed; iexact Hcert
+    ipureintro; omega
+  icases mvcc.wr_take γ logP ilog Hsm $$ [$Hin $HwPin $Hrtk] with ⟨%logP', Htok, HpinP, Hrtk⟩
+  iunfold mvcc.writerPin at HpinP
+  icases HpinP with ⟨HbvP, Hloan⟩
+  ihave Hbv := mvcc.bucketViewL_join2 γ (1 : Qp).half.half.half (1 : Qp).half.half ilog logP'
     $$ [Hbv HbvP]
   · iframe Hbv HbvP
   -- the begin's callback (§3, "`Write`'s begin"): the writer's slot at the committed log and the
@@ -209,7 +223,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists ow.ti, bt, Locked, chs, [], ntok, Ph, (#() : val), Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmuh HrevMuR HtiR HrtR Hcres Hloan Hlrd
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmuh HrevMuR HtiR HrtR Hcres Hloan Hrtk Hlrd
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

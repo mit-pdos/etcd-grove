@@ -726,7 +726,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · iunfold mvcc.compactedAt
       iapply monoNatLbOwn_le _ (Nat.le_max_right _ _) $$ Hflb
     wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-    iapply HUnlU $$ %c0 [HU HwkW HwvW HbvW Hmeta Hfin Hmk HbmC HtrC HP]
+    iapply HUnlU $$ %c0 [HU HwkW HwvW HbvW Hmeta Hfin Hmk HbmC HtrC HP HpinW]
     · iframe HU HP
       iapply mvcc.storeW_put s γ
       iframe Hreg
@@ -828,7 +828,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave HcresW : mvcc.compactRes γ ilog $$ [Hmeta Hfin Hmk HbmC HtrC]
   · iunfold mvcc.compactRes; iexists sched, fin, nf, mC; iframe; ipureintro; exact Hnf
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnlU $$ %(c0 + 1) [HU HwkW HwvW HbvW HcresW HP]
+  iapply HUnlU $$ %(c0 + 1) [HU HwkW HwvW HbvW HcresW HP HpinW]
   · iframe HU HP
     iapply mvcc.storeW_put s γ
     iframe Hreg

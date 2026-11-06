@@ -1941,7 +1941,8 @@ def watchReader (s st : Loc) (γ : WsNames) : IProp GF :=
 -- `isStopChan`: `InvStore.lean` (2026-10-13: the store's stop channel uses it too).
 
 /-- **The watchable store** `s` over the store `st` (persistent): the inner store and its read
-view (`newWatchableStore` points it at `s`: unit 3b; `rev()` reads through it), the lock's guard, the victims' wake-up
+view (`newWatchableStore` points it at `s`: unit 3b; `rev()` reads through it) and write view (at
+`s` too: `Put`/`DeleteRange`), the lock's guard, the victims' wake-up
 channel (a bag channel, never closed), the stop channel, and the meta map's facts; the inner
 store is a watchable store's (`γ.st.watchQ`, unit W-K: `s.mu` holds the outer quarter). -/
 def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
@@ -1952,6 +1953,11 @@ def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
       (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
     "#Hrvkv" ∷ rv.[readView, go!"kv"] ↦□
       (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s : GoInterface) ∗
+    -- (M4, track B, 2026-11-06) the inner store's write view, over `s` (`KV.Put`/`DeleteRange`)
+    "#HwvW" ∷ (∃ wv : Loc, st.[store, go!"WriteView"] ↦□
+        (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
+      wv.[writeView, go!"kv"] ↦□
+        (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s : GoInterface)) ∗
     "#Hmu" ∷ sync.isRWMutexGuard (wsMuAddr s) (watchStoreInv s γ) ∗
     "#Hvc" ∷ s.[watchableStore, go!"victimc"] ↦□ vc ∗
     "#Hvcb" ∷ isChanBag (V := Unit) γv vc (fun _ => iprop(True)) ∗

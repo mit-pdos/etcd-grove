@@ -48,16 +48,23 @@ state excluded by the caller's `G` (`□ (slotF γ ∗ G -∗ False)`, given bac
 `slotF_share_excl`), in place of the placeholder `slotF_excl_M1`; and the begin's callback
 (`writeCb`), run with the writer's slot at the committed log `ilog` and the transaction's compaction
 revision `crev`, its `F ilog crev` returned; the transaction without its trace (`isTxnWriteT` at
-`True`), the trace given back. -/
+`True`), the trace given back.
+
+**Track A, request 3, 2026-11-06**: the revision token and the writer's pin are the caller's only for
+a watchable store's sole writer (`wrIn`); a store without watchers' writer finds them after its
+checkout, in the writer's state (`wrToks`, every token not spent) and the batch lock's resource
+(`wrPin`), so concurrent writers need nothing of each other. The reader under a later (its first step strips
+it: a pool's loan, `rdSupply`, is under one) and the backend's write token or its supply (a step's
+receipt buys one: the API's `mvccBackend` holds the supply). -/
 abbrev mvcc.store.Write.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (hk : Option val)
     (dq : DFrac) (te : Bool) (c : Int) (Z : IProp GF) (log : mvcc.Log) (qf : Qp)
     (o : mvcc.StoreObjs) (G : IProp GF) (F : mvcc.Log → Int → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.crevLb γ.idx c ∗ mvcc.revToken γ ∗
-      mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
+      mvcc.isStore s γ ∗ ▷ mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.crevLb γ.idx c ∗
+      (mvcc.storeWT γ ∨ □ (⧗ 1 ={⊤}=∗ mvcc.storeWT γ)) ∗ ⌜trace ≠ null⌝ ∗
       mvcc.writeCtxM γ P hk Pre Q dq ∗ mvcc.curAt γ (DFrac.own qf) o ∗
-      G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.writeCb γ F ∗ mvcc.writerPin γ log ∗
+      G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.writeCb γ F ∗ mvcc.wrIn γ log ∗
       traceutil.ownTrace trace te }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);

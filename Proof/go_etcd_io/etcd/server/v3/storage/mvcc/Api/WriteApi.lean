@@ -2,15 +2,12 @@
 **`KV.Write.contract` at `*store`** (M4, track B, 2026-11-06). Lean-first (no Rocq counterpart). Over
 the sealed definitions of `Api.lean` (imported with `import all`).
 
-**Conditional on track A's handle contents** (`writerHyp`, a hypothesis of the theorem, not an axiom:
-request 3, `notes/mvcc-api-invariants.md`, "M4, track B, the writer's compaction revision"): a plain
-handle does not yet hold what a writer needs, the readers' pool (here: a thread token turned into a
-reader of the store with its way back, `tokBack`), the certificate map's free entry (`certFree`), the
-write-back supply (`storeWT`), the writer's revision token and pin (which track A puts into the
-writer's state, `writerL`, after which `store.Write` takes them from its checkout), and that the
-handle's store has no watchers (`γ.watchQ = false`: `isMvccPlain` admits the inner store of a
-watchable one, which `KV.Compact`'s watchable arm builds). Once they are in `isMvccPlain`, the
-hypothesis goes and the proof takes them from the handle.
+**The writer's resources from the handle** (track A, request 3, 2026-11-06; until then the
+hypothesis `writerHyp`): the reader from the handle's readers' supply (`rdSupply_lendL`, under a
+later, which `store.Write`'s first step strips), the certificate map's free entry and that the store
+has no watchers (`isMvcc`'s plain disjunct), the write-back supply (`mvccBackend`'s, at the share's
+physical names); the revision token and the pin are the writer's state's (`wrState`, `wrPin`), so
+`store.Write` takes nothing of them from its caller (`wrIn_plain`).
 
 The proof: the handle's store, the backend share at its current names `p` (its objects' share pins
 the names for `store.Write`, its token excludes the frozen state, `slotF_share_excl`), the hook's
@@ -47,18 +44,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-/-- **What a writer of a plain store needs of its handle** (track A's request 3; see the header):
-at the store's physical names `γ`. -/
-def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
-  iprop(⌜γ.watchQ = false⌝ ∗ (threadTok ={⊤}=∗ storeReaderC s γ ∗ tokBack s γ) ∗ certFree γ ∗
-    storeWT γ ∗ revToken γ ∗ ∃ log : Log, writerPin γ log)
-
-/-- **The hypothesis**: a plain handle's store gives a writer its resources, at any physical names
-(false of today's `isMvccPlain`; track A's handle contents make it a law of the handle). -/
-abbrev writerHyp : Prop :=
-  ∀ (s : Loc) (γ : StoreNames) (p : PhysNames),
-    isStore (GF := GF) s γ ∗ api.locIs γ.api s ⊢ |={⊤}=> writerRes s (γ.withPhys p)
 
 /-- The begin's step, from the client's update (see the header). -/
 theorem writeCb_of_au (γ : StoreNames) (p : PhysNames) (R : MvccState → IProp GF) :
@@ -97,9 +82,8 @@ theorem writeCb_of_au (γ : StoreNames) (p : PhysNames) (R : MvccState → IProp
   iframe HR
   ipureintro; exact ⟨Hag.1, Hag.2, Hpg, Hreach⟩
 
-/-- **`KV.Write.contract` at `*store`**, under `writerHyp`. -/
-theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG))
-    (hres : writerHyp (GF := GF)) :
+/-- **`KV.Write.contract` at `*store`.** -/
+theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     store.Write.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) trace te q B P Pre Q f R
   iintro %Φ ⟨#Hpkg, Hmv, Htok, %Htrnn, Htrc, HB, #Hhk, Hpre, Hrun, Hau⟩ HΦ
@@ -114,7 +98,7 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG))
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccPlain at Hmv
-  icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -⟩
+  icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -, #Hsup, #Hfree⟩
   have hs : s = s' := mkOk_loc_inj _ Hk
   subst hs
   -- the backend share at the store's current names
@@ -123,12 +107,18 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG))
   obtain ⟨hpk, hcm, hdB⟩ := Hd
   subst hdB
   rw [show (hookIs d f : IProp GF) = backend.plHookRO d.γB f from rfl] at *
-  -- the writer's resources (the hypothesis)
-  imod hres s γ p $$ [Hs Hloc] with Hres
-  · iframe Hs Hloc
-  iunfold writerRes at Hres
-  icases Hres with ⟨%Hwq, Hpool, #Hfree, Hwt, Hrt, ⟨%log, Hpin⟩⟩
-  imod Hpool $$ Htok with ⟨Hrd, Hback⟩
+  -- the writer's resources: the reader from the handle's supply, the write-back supply the share's,
+  -- the token and the pin the writer's state's (a store without watchers)
+  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Htok] with ⟨Hrd, Hback⟩
+  ihave Hrd : ▷ storeReaderC (GF := GF) s (γ.withPhys p) $$ [Hrd]
+  · rw [storeReaderC_withPhys]; iexact Hrd
+  ihave Hback : tokBack (GF := GF) s (γ.withPhys p) $$ [Hback]
+  · rw [show tokBack (GF := GF) s (γ.withPhys p) = tokBack s γ from rfl]; iexact Hback
+  ihave #Hfree' : certFree (GF := GF) (γ.withPhys p) $$ []
+  · rw [show certFree (GF := GF) (γ.withPhys p) = certFree γ from rfl]; iexact Hfree
+  ihave Hpin := wrIn_plain (GF := GF) (γ.withPhys p) [] (by simpa using Hwq)
+  ihave Hwt : (storeWT (GF := GF) (γ.withPhys p) ∨ □ (⧗ 1 ={⊤}=∗ storeWT (γ.withPhys p))) $$ []
+  · iright; iexact Hwts
   imod crevLb_neg (γ.withPhys p).idx with #Hlb
   -- the hook's context, by the frozen hook's state
   ihave ⟨%hk, %dq, Hctx⟩ : (∃ (hk : Option val) (dq : DFrac),
@@ -165,10 +155,10 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG))
     iapply (slotF_share_excl (γ := γ.withPhys p) (a := γ.api) rfl q) $$ H
   ihave #HZ : □ (iprop(True) : IProp GF) $$ []
   · iintro !>; itrivial
-  iapply (hW s (γ.withPhys p) trace P Pre Q hk dq te (-1) iprop(True) log _ o
-      (api.shareTok γ.api q) _) $$ [Hrd Hrt Hwt Hctx Hcur HF Hcb Hpin Htrc] [HΦ Hback]
+  iapply (hW s (γ.withPhys p) trace P Pre Q hk dq te (-1) iprop(True) [] _ o
+      (api.shareTok γ.api q) _) $$ [Hrd Hwt Hctx Hcur HF Hcb Hpin Htrc] [HΦ Hback]
   · rw [isStore_withPhys]
-    iframe Hpkg Hs Hrd Hrt Hwt Hctx Hcur HF Hcb Hpin Htrc Hx HZ Hlb
+    iframe Hpkg Hs Hrd Hwt Hctx Hcur HF Hcb Hpin Htrc Hx HZ Hlb
     ipureintro; exact Htrnn
   inext
   iintro %mw ⟨⟨%ilog, %crev, Htx, -, -, -, ⟨%σ, HR, %Hσ⟩⟩, Htrc, HQ, -, Hcur, HF⟩
@@ -187,7 +177,7 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG))
   iunfold mvccTxn
   simp only [mvccTxnI]
   iexists mw, s, p, (W64 0), (W64 0), (W64 0)
-  iframe Htx Hback Hfree
+  iframe Htx Hback Hfree'
   isplitr
   · ipureintro; exact ⟨hpn, hre⟩
   iunfold wrWrap; ileft; ipureintro; exact ⟨rfl, by simpa using Hwq⟩

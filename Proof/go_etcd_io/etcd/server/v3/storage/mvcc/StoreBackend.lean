@@ -123,10 +123,9 @@ theorem mvcc.NewStore_backend
           mvcc.isWriteView wv s γ) ∗
         ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd (some d)) (),
           mvcc.storeReaderC s γ) ∗
-        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
+        mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
-        mvcc.retiredAt γ (mvcc.nJobRd (some d)) ∗ mvcc.crevPermIs γ Perm ∗
-        mvcc.writerPin γ [[], []] }} := by
+        mvcc.retiredAt γ (mvcc.nJobRd (some d)) ∗ mvcc.crevPermIs γ Perm }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
@@ -182,7 +181,7 @@ theorem mvcc.NewStore_backend
   ihave Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk $Hfrag]
   iapply HΦ
   iexists γ
-  iframe Hs Hro Hok Hh Hv Hr Ht Hc Hcl Hst Hcr Hret HcpIs Hpin
+  iframe Hs Hro Hok Hh Hv Hr Hc Hcl Hst Hcr Hret HcpIs
   ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1⟩
 
 /-- **`store.Write` over the real backend**: the generic `store.Write` at a store of the real

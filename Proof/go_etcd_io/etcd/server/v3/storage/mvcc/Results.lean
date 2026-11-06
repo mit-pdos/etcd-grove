@@ -296,9 +296,9 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
           mvcc.isWriteView wv s γ) ∗
         ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd (some d)) (),
           mvcc.storeReaderC s γ) ∗
-        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
+        mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
-        mvcc.crevPermIs γ Perm ∗ mvcc.writerPin γ [[], []] }} := by
+        mvcc.crevPermIs γ Perm }} := by
   iintro %Φ H HΦ
   iapply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
       backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
@@ -371,9 +371,9 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
           mvcc.isWriteView wv s γ) ∗
         ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (),
           mvcc.storeReaderC s γ) ∗
-        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
+        mvcc.idxCert γ.idx [[], []] ∗
         mvcc.compactRightR s γ (-1) ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗
-        mvcc.retiredAt γ 1 ∗ mvcc.crevPermIs γ Perm ∗ mvcc.writerPin γ [[], []] }} := by
+        mvcc.retiredAt γ 1 ∗ mvcc.crevPermIs γ Perm }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfk, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm,
     Hrts, Hlrd, #Hle, Hro⟩ HΦ
   iapply wp_fupd
@@ -391,8 +391,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
         lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb Perm)
       $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro]
-    as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, Htoks, #Hc, Hcl, Hfs, Hright, Hret, #HcpIs,
-      Hpin⟩
+    as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, #Hc, Hcl, Hfs, Hright, Hret, #HcpIs⟩
   · iframe #; iframe Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro
     iintro !> %_; itrivial
   have hj : mvcc.nJobRd (some d) = 1 := by unfold mvcc.nJobRd; simp [hcm]
@@ -406,7 +405,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
     refine ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2, ?_⟩
     show mvcc.kbCmpM γ.kb
     rw [Hγ.2.2.1]; exact hcm
-  iframe Hrd Hcok Hhk' Hviews Hrds Htoks Hcr Hfs Hret Hpin
+  iframe Hrd Hcok Hhk' Hviews Hrds Hcr Hfs Hret
   iframe #
 
 /-- **The store's backend contract of the real backend, linked** (`storeBackend_of_backend` with

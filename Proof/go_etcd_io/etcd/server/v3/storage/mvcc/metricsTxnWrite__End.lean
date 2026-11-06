@@ -100,10 +100,10 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
       -- the deferred `tw.TxnWrite.End()`: `storeTxnWrite.End`
       wp_apply (hEndW trace tw s γ ilog pend chs ps sealed P crev Z ld Y G R)
         $$ [$Htw $Hhook $HP $Hok $Hq $HG $HFG $Hcb]
-        as ⟨Hrd, #HZ, #Hcert, Htok, HqP, Hpin, HG, HR⟩
+        as ⟨Hrd, #HZ, #Hcert, HqP, Hout, HG, HR⟩
       (try wp_auto)
       iapply HΦ
-      iframe Hrd HZ Htok Hcert Htrc HqP Hpin HG HR
+      iframe Hrd HZ Hcert Htrc HqP Hout HG HR
 
 end proof
 

@@ -110,7 +110,7 @@ def writerLR (s : Loc) (γ : StoreNames) (L : Log) : IProp GF :=
     idxWriter γ.idx L [] ∗ ghostVar γ.clog (1 : Qp).half L ∗
     (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 ((L.length : Int) - 1) : w64) :
       IProp GF) ∗
-    ⌜L ≠ []⌝ ∗ lease.lessorRdOf γ.leases)
+    ⌜L ≠ []⌝ ∗ lease.lessorRdOf γ.leases ∗ wrState γ (2 ^ 63 - 3 - L.length) L)
 
 /-- **The writer's state, split** at its log: the view of the log, the API's slot and the
 certificate (timeless: the freezer holds them out of the later), and the rest. -/
@@ -120,13 +120,13 @@ theorem writerL_split (s : Loc) (γ : StoreNames) :
   unfold writerL writerLR
   simp only [named]
   constructor
-  · iintro ⟨%L, %n, Ht, %Hb, Hw, Hcl, Hwv, Hcur, #Hc, %Hne, Hl, HY⟩
+  · iintro ⟨%L, %n, Ht, %Hb, Hw, Hcl, Hwv, Hcur, #Hc, %Hne, Hl, HY, Hrt⟩
     iexists L
     iframe Hwv HY Hc
     iexists n
     iframe
     ipureintro; exact ⟨Hb, Hne⟩
-  · iintro ⟨%L, Hwv, HY, #Hc, %n, Ht, %Hb, Hw, Hcl, Hcur, %Hne, Hl⟩
+  · iintro ⟨%L, Hwv, HY, #Hc, %n, Ht, %Hb, Hw, Hcl, Hcur, %Hne, Hl, Hrt⟩
     iexists L, n
     iframe
     iframe #
@@ -444,7 +444,7 @@ theorem snapObs_writerRes (s' : Loc) (γ : StoreNames) (d : KBReal) (hk : γ.kb 
       ⌜snapObsOk L c vd v⌝ := by
   iintro ⟨HW, Hwv, Hrc, Hva, Hdl, Hfk⟩
   iunfold writerRes at HW
-  icases HW with ⟨%L', -, Hwv', -, -, -, Hcres⟩
+  icases HW with ⟨%L', -, Hwv', -, -, -, Hcres, -⟩
   ihave %HL := ghostVar_agree γ.wv _ _ _ _ $$ Hwv Hwv'
   subst HL
   iunfold compactRes at Hcres

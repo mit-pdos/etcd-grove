@@ -82,6 +82,10 @@ theorem mvcc.newWatchableStore.wp_proof
   iStructNamed Hrv
   ipersist kv
   ipersist HRV
+  -- the write view too
+  iStructNamedSuffix Hwv "W"
+  ipersist kvW
+  ipersist HWV
   -- the ghost state
   imod ghost_map_alloc_empty (K := Loc) (V := mvcc.WatcherNames) (GF := GF) with ⟨%γm, Hmeta⟩
   imod mono_list_own_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwl, Hwl, -⟩
@@ -176,6 +180,8 @@ theorem mvcc.newWatchableStore.wp_proof
     iexists vc, stc, rv, γv
     simp only [named]
     iframe store Hst HRV kv Hmug victimc Hvcb stopc Hfrz
+    isplitr
+    · iexists wv; iframe HWV kvW
     isplitr
     · iunfold mvcc.isStopChan
       iexists γstc; iexact Hstop0

@@ -97,7 +97,10 @@ def respShape (r : WResp) (L : Log) (c0 : Int) : Prop :=
 the cumulative delivery of its watcher (while `onceUpTo L lo c0`, the watcher's events sent so
 far, this response's included, are its kept events of `[lo, hi)` of `L`, some `hi`); a progress
 response's (no events, no compaction) `hi` its revision `+ 1`; a `-1` response's coverage (each
-covered watcher's events so far its kept events up to the response's revision). -/
+covered watcher's events so far its kept events up to the response's revision); a progress
+response's revision at least its watcher's (or each covered watcher's) first revision less one, and
+at least every event-less response's sent before it (`wsRecvOk`'s conjuncts 4-5, F-W1,
+2026-11-06). -/
 def SentFact.holds (pre : List WResp) (f : SentFact) : Prop :=
   respShape f.r f.L f.c0 ∧
   (f.r.id ≠ W64 (-1) → onceUpTo f.L f.lo f.c0 →
@@ -107,7 +110,11 @@ def SentFact.holds (pre : List WResp) (f : SentFact) : Prop :=
     recvEvs (pre ++ [f.r]) f.r.id =
       filtered f.fs (watchEvents f.L f.rg f.lo (sint.nat f.r.rev + 1))) ∧
   (f.r.id = W64 (-1) → ∀ c ∈ f.cov, onceUpTo f.L c.lo f.c0 →
-    recvEvs (pre ++ [f.r]) c.id = filtered c.fs (watchEvents f.L c.rg c.lo (sint.nat f.r.rev + 1)))
+    recvEvs (pre ++ [f.r]) c.id = filtered c.fs (watchEvents f.L c.rg c.lo (sint.nat f.r.rev + 1))) ∧
+  (f.r.evs = [] → f.r.compactRev = W64 0 →
+    (f.r.id ≠ W64 (-1) → (f.lo : Int) ≤ sint.Z f.r.rev + 1) ∧
+    (f.r.id = W64 (-1) → ∀ c ∈ f.cov, (c.lo : Int) ≤ sint.Z f.r.rev + 1) ∧
+    ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z f.r.rev)
 
 /-! ## The premises -/
 
@@ -275,7 +282,7 @@ theorem deliv_of_sent (σ : MvccState) (S : StreamState) :
 theorem wsRecvOk_of_sent' (σ : MvccState) (S : StreamState) (D : List w64) (F : List SentFact)
     (h : SentInv σ S D F) : wsRecvOk σ S (F.map SentFact.r) := by
   obtain ⟨hch, hlb, hreg, hdead, hdin, hst⟩ := h
-  refine ⟨?_, deliv_of_sent σ S F hch hlb hreg, ?_⟩
+  refine ⟨?_, deliv_of_sent σ S F hch hlb hreg, ?_, ?_, ?_⟩
   · -- conjunct 1: each response's shape
     intro r hr
     obtain ⟨f, hfF, rfl⟩ := List.mem_map.1 hr
@@ -316,12 +323,55 @@ theorem wsRecvOk_of_sent' (σ : MvccState) (S : StreamState) (D : List w64) (F :
         rw [hw] at hw'
         cases hw'
         have hon' : onceUpTo f.L c.lo f.c0 := hlo ▸ onceUpTo_mono hpf hcf hon
-        rw [hf.2.2.2 hneg c hc hon', ← hrg, ← hfs, ← hlo, watchEvents_prefix hpf _ hP]
+        rw [hf.2.2.2.1 hneg c hc hon', ← hrg, ← hfs, ← hlo, watchEvents_prefix hpf _ hP]
       · obtain ⟨w', hw', hl⟩ := hdead id (hdin f hfF id hd)
         rw [hw] at hw'
         cases hw'
         rw [hlive] at hl
         cases hl
+  · -- conjunct 4: a progress response's revision against its watchers' first revisions
+    intro j r id w hj hev hcr hw hcase
+    rw [List.getElem?_map] at hj
+    cases hFj : F[j]? with
+    | none => rw [hFj] at hj; cases hj
+    | some f =>
+    rw [hFj] at hj
+    cases hj
+    have hfF : f ∈ F := List.mem_of_getElem? hFj
+    obtain ⟨hown, hall, -⟩ := (hch j f hFj).2.2.2.2 hev hcr
+    rcases hcase with hid | ⟨hneg, hlive, hk⟩
+    · have hneg : f.r.id ≠ W64 (-1) := by
+        intro hn; rw [← hid, hn, hreg.1] at hw; cases hw
+      obtain ⟨w', hw', -, -, hlo⟩ := (hreg.2 f hfF).1 hneg
+      rw [hid, hw] at hw'
+      cases hw'
+      rw [hlo]; exact hown hneg
+    · rcases hst j f hFj hneg id w hw hk with ⟨c, hc, rfl⟩ | hd
+      · obtain ⟨w', hw', -, -, hlo⟩ := (hreg.2 f hfF).2 hneg c hc
+        rw [hw] at hw'
+        cases hw'
+        rw [hlo]; exact hall hneg c hc
+      · obtain ⟨w', hw', hl⟩ := hdead id (hdin f hfF id hd)
+        rw [hw] at hw'
+        cases hw'
+        rw [hlive] at hl
+        cases hl
+  · -- conjunct 5: the event-less responses' revisions never decrease
+    intro i j y x hij hi hj hye hxe hxc
+    rw [List.getElem?_map] at hi hj
+    cases hFj : F[j]? with
+    | none => rw [hFj] at hj; cases hj
+    | some f =>
+    rw [hFj] at hj
+    cases hj
+    obtain ⟨-, -, hmono⟩ := (hch j f hFj).2.2.2.2 hxe hxc
+    refine hmono y ?_ hye
+    rw [List.mem_iff_getElem?]
+    refine ⟨i, ?_⟩
+    rw [List.getElem?_take_of_lt hij, List.getElem?_map]
+    cases hFi : F[i]? with
+    | none => rw [hFi] at hi; cases hi
+    | some g => rw [hFi] at hi; exact hi
 
 /-- **The probe's statement** (unbundled, as asked). -/
 theorem wsRecvOk_of_sent (σ : MvccState) (S : StreamState) (D : List w64) (F : List SentFact) :

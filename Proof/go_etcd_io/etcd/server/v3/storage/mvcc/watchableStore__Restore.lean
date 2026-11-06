@@ -281,7 +281,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
   subst Hsteq
   -- `s.store.Restore(b)`
   (try wp_auto)
-  wp_apply (hRestore st γ.st b' d' γb' P' L R c r hLR hR hcr) $$ [Hrc HpF HpC Hright Hfs Hwsd Hfrag
+  wp_apply (hRestore st γ.st b' d' γb' P' L R c r hLR hR hcr Hwq) $$ [Hrc HpF HpC Hright Hfs Hwsd Hfrag
       Hown Htoks HlogQ HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts Hpin]
     as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, Hpin, #HhP, #HcL', Htoks, HlogQ, Hres, Hjob, Hold,
       Hnew'⟩
