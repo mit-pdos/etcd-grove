@@ -45,13 +45,18 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Psrv, Hmb, Htok⟩ HΦ
   iunfold memberBuilt at Hmb
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
-    Hlgm, Hrc, #Hnm, Htokp, -, HWR, #Hlr, -⟩
+    Hlgm, Hrc, #Hnm, Htokp, -, HWR, #Hlr, Hkeep⟩
   iunfold srvServeBuilt at Hserve
   icases Hserve with ⟨#Hsf, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   -- `Start.spec` at the slot's `off`
   imod isServerBuilt_offC s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
-    γrn b (W64 0) (W64 0) (W64 0) bootKV N $$ Hsb with ⟨%hm, Hsb, Hl⟩
+    γrn b (W64 0) (W64 0) (W64 0) bootKV N $$ [Hsb Hkeep] with ⟨%hm, Hsb, Hl⟩
+  · iframe Hsb
+    iunfold srvStop.slot
+    iexists cfg, γk
+    iframe Hkeep
+    ipureintro; rfl
   have h' := wp_Start s γA ci TM .off E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
     γrn b (W64 0) (W64 0) (W64 0) bootKV N
   simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false] at h'

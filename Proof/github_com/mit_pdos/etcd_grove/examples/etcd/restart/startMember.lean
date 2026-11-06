@@ -88,7 +88,6 @@ theorem startMember.wp_proof
     iapply HΦ; ileft; iframe Htok; ipureintro; simp
   subst Hlerr
   wp_auto
-  iunfold etcdstart.memberBuiltS at Hmb
   iunfold etcdstart.memberBuilt at Hmb
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
@@ -117,7 +116,6 @@ theorem startMember.wp_proof
     $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Hlrd Htok Hkeep] as ⟨Hup, %Es, Hright, %HEs⟩
   · iframe Htok
     iframe #
-    iunfold etcdstart.memberBuiltS
     iunfold etcdstart.memberBuilt
     iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
     simp only [↓reduceIte]

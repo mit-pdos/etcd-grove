@@ -119,7 +119,7 @@ abbrev BuildServer.specStop : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuiltS s ρ E₀ lg γn id N false lm ∗
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
           srvDataDir s (name ++ go!".etcd")) }}
 
 /-- See the file header (`specRestart`). -/

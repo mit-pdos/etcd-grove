@@ -300,14 +300,13 @@ what `http.Serve`'s request goroutines borrow, `srvServeRes`, until the peer add
 `served`). (2026-11-02, the restart plan) The apply thread's starting state `ai₀ at₀ c₀ x₀`, a
 first start's (`0` and the boot store) unless given: a restarted member's (`Restart.lean`). (The
 lease-expiry plan's X2, 2026-11-04) The lease subsystem at the member's lease mode `m` (default
-`none`; `memberBoot`'s). (2026-11-04, the restart plan's R2b-3d) And `K` of the raft wrapper's
-names, the configuration, the apply environment and (2026-11-05) the transport key's name, `True`
-unless given: what `NewServer` kept for the stop (its slot, `srvStop.keep`), `memberBuiltS`'s. -/
+`none`; `memberBoot`'s). (2026-11-04, the restart plan's R2b-3d) And what `NewServer` kept for the
+stop (its slot, `srvStop.keep`) at the raft wrapper's names, the configuration, the apply
+environment and the transport key's name, which `Start` hands `run` (2026-11-05, R2c-3: until then a
+parameter `K`, `True` unless given, and `memberBuiltS` the member with the slot). -/
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (N : Nat) (served : Bool) (ai₀ at₀ c₀ : w64 := W64 0)
-    (x₀ : apply.ApplyKV := bootKV) (m : lease.Mode := .none)
-    (K : RNNames → go_etcd_io.etcd.server.v3.config.ServerConfig → apply.AEnv GF → GName →
-      IProp GF := fun _ _ _ _ => iprop(True)) :
+    (x₀ : apply.ApplyKV := bootKV) (m : lease.Mode := .none) :
     IProp GF :=
   iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
       (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
@@ -320,7 +319,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-    srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗ K γrn cfg E γk)
+    srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 
 /-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
 network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens

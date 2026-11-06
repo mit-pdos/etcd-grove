@@ -179,6 +179,17 @@ theorem srvStop.image_inputs (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.S
   have he : stringToGoString "" = [] := by simp [stringToGoString]
   rw [Hw, Heq1, Heq2, he]
 
+/-- **The stop's slot where `start` and `run` take it** (2026-11-05, the restart plan's R2c-3; the
+user's Q5 (a), adapted, `questions.md` D5): what `NewServer` kept for the stop (`srvStop.keep`) at
+the raft wrapper's names `γrn`, at some configuration `cfg` and transport key `γk`, the key the one
+the raft environment's transport stop right `Er.ST` names (a fact of the construction, `srvErM`'s:
+D1, until then `run.specStop`'s premise). A conjunct of `start`'s construction premise
+(`isServerBuiltC`) and, R2c-4, of `run`'s (`isServerRunC`), so that no caller of `Start` hands it
+separately. -/
+def srvStop.slot (s : Loc) (E : apply.AEnv GF) (γrn : RNNames) (Er : RNEnv GF) : IProp GF :=
+  iprop(∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γk : GName),
+    srvStop.keep s cfg E γrn γk ∗ ⌜Er.ST = srvTrStopK γk⌝)
+
 /-- **What `run`'s shutdown needs besides `isServerRun`** (R2b-2's draft; restated 2026-11-04,
 R2b-3d, and 2026-11-05 over the stop's slot): what `NewServer` kept for the stop (`srvStop.keep`, at
 the configuration `cfg`, the apply environment `E`, the raft wrapper's names `γn` and the transport
