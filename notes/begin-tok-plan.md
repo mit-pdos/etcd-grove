@@ -391,12 +391,63 @@ are paid and paired; `storage.OpenBackend` is allowed (paid by the run goroutine
 `notes/axiom-review/begin-tok-restated.md`, A9). The first, untyped version also flagged `Open_kv`,
 `Tx.Commit_kv`, `newKVHasher` and `monitorKVHash`; all were name-resolution artifacts, cleared by the
 typed resolution with no allow entries. Limits, stated in the docstring:
-- 190 axioms are unscanned: 164 have no Go source here, 26 are variants with no Go function of that name.
+- 190 axioms are unscanned: 164 have no Go source here, 26 are variants with no Go function of that name
+  (superseded by the fail-closed version: "Freeze conditions" below).
 - The A10 hazard: a callback run inside `db.View`.
 
 **Checks** (branch at `fca702da30`):
 - Full build: 13384 jobs, no error.
 - `etc/tcb-report.py --check`: 817 axioms, 4 `sorry`s, unchanged. Every `etc/tcb-collections/*.txt --check` passes.
-- Interfaces regenerated for `etc/api/{backend,bbolt,etcdstart,raft}.txt`: only bbolt's and backend's changed, in the files of the restated functions.
+- Interfaces regenerated for `etc/api/{backend,bbolt,etcdstart,raft}.txt`: only bbolt's and backend's changed (19 files against `lean` `2aff086a7f`): the five restated axioms, in their spec and proof files (bbolt `DB.Begin_kv`, `Open_kv`, `Tx.Rollback_kv`; backend `backend.Snapshot`, `snapshot.Close`), and the proof files of nine proved backend functions whose specs changed (the Internal table): `New`, `newBackend`, `newBatchTxBuffered`, `backend.begin`, `backend.unsafeBegin`, `backend.run`, `batchTxBuffered.commit`, `batchTxBuffered.unsafeCommit`, `batchTxBuffered.CommitAndStop`. No API module's interface changed.
 - api-check and `--layout` pass for all four. bounds-check: 389, the baseline. errorf-wrap and errdesc pass. gen-init `--check` passes.
 - Closed theorems (`*_safe`/`*_adequate`): 55 compared with `lean` `007725626e`, none differs. `srvBeSnapOk` occurs in no hub definition.
+
+## Freeze conditions (2026-11-06)
+
+The user approved the Freeze on condition of these fixes, made at `b8fc89f509` (gate script only; no
+Lean changed, so the build at `94d520de7e` stands):
+
+1. **Fail closed.** `etc/reader-slot-check.py` exits 1, naming the tree, when a Go source tree it needs is
+   missing: `.lake/goose/bbolt` and `.lake/goose/etcd` always, and the project of every axiom's package
+   (`PROJECTS`, per part: main raft is `raft`, RaftWitness's `raft-witness`, `github_com/mit_pdos/etcd_grove`
+   this repository); also a missing package in such a tree, a package resolved to another tree than its
+   project's (`bbolt-bank` standing in for `bbolt`, `raft-witness` for `raft`), a standard-library package
+   absent from GOROOT, and a sourceless package not in the explicit `THIRD_PARTY` list. `go env GOROOT`
+   failing exits 1 (`56ce2e5fd6`). A floor: `MIN_SCANNED = 200` (the docstring says to raise it to the
+   printed count when axioms are added). Tested with `READER_SLOT_GOOSE` pointing at a scratch directory of
+   symlinks to all trees but one (`.lake/goose` untouched): without `bbolt` exit 1 (`Go source tree
+   .../bbolt is missing or has no go.mod (always needed ...)`, then each bbolt axiom "found in
+   .../bbolt-bank, not in project bbolt"); without `etcd` exit 1; without `raft` exit 1 (4 errors: the
+   tree, and 3 axioms resolved to `raft-witness`); without `raft-witness` exit 1 (3 errors); an empty
+   directory exit 1 (all four trees named); without `go` on PATH exit 1; a copy with the floor at 201
+   exit 1 (`200 axioms scanned, below the floor`); a copy whose token pattern matches nothing fails on
+   exactly `bbolt.DB.Begin_kv` and `backend.backend.Snapshot`.
+2. **Duplicate axiom names.** Every file is now checked, each tree against its own sources (RaftWitness's
+   raft against `raft-witness`; the package cache and struct table are per tree). Before: 400 axiom
+   lines matched, 13 duplicate names silently dropped (RaftWitness's copies of `DescribeConfChange`,
+   `raftpb.ConfChangeType.String`, `strconv.FormatUint` and 9 `proto.*`, and `k8s.io/api/apps/v1`'s
+   `Resource`), and `zap.Int'` missed by the name pattern: 387 checked, 197 scanned, 190 unscanned. After:
+   401 axioms in 401 files, 200 scanned (the 3 RaftWitness raft/strconv copies added), 201 unscanned (175
+   third-party, 26 variants with no Go function of the name). Still 3 holders, all paid and paired or
+   allowed; the gate passes, also as `etc/gates.sh` runs it (its PATH, `GOTOOLCHAIN=go1.27.1`).
+3. **Rechecks at `56ce2e5fd6`/`b8fc89f509`** (lean `2aff086a7f` merged):
+   - Closed theorems: every `*_safe`/`*_adequate` statement compared with `lean` `2aff086a7f` by
+     source text (the Draft's method): 55 compared, 0 differ; no changed `.lean` file declares one, and in
+     `.lake/tcb.json` (at `94d520de7e`) `srvBeSnapOk` is in the statement definitions only of the linked
+     `EtcdServer.wp_createMergedSnapshotMessage`, of no closed theorem.
+   - `etc/gen-interface.py etc/api/<pkg>.txt --check` for backend, bbolt, etcdstart, raft: all pass;
+     `--layout`: 0 new violations each. `etc/api-check.py --check`: all four pass (the warnings are
+     `lean`'s). The changed interfaces against `lean` are those listed under Checks above (corrected).
+
+## Follow-ups (after landing)
+
+Weaknesses of the reader-slot gate, recorded for later, not fixed in this stage:
+
+- (a) The token test is a regular expression over the whole spec file (comments stripped): a token
+  mentioned anywhere in the file, not necessarily in the precondition of the holding triple, passes.
+- (b) An allow entry (`etc/reader-slot-allow.txt`) is matched by the axiom's name only; it should also
+  name the lock it covers and the pairing it relies on, and the check should match both.
+- (c) The release heuristic: when a holder's result is not bound to a variable, any later resolved call
+  of a releaser of the same lock in the caller clears it, whether or not it releases that slot.
+- (d) A lock's identity is (package, field name): two `RWMutex` fields of the same name in one package
+  are one lock to the check.
