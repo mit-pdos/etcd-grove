@@ -78,6 +78,9 @@ instance Qp.countable : Pos.Countable Qp :=
       simp only [Prod.mk.injEq] at h
       exact Subtype.ext (Rat.ext h.1 h.2))
 
+/-- The roots of the tree: each a path and its directory's inode. -/
+abbrev Roots := List (GoString × Ino)
+
 /-- Where a directory fd's read is, as the ghost state knows it: not begun; begun, with the names
 returned `rs`; done. In every phase the fd holds a fraction `q` of the tree's history (in the state
 interpretation, `rdRes`), from its open to its close, of which `g` is the directory's view: so the
@@ -714,7 +717,7 @@ def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap Nat TokInfo) : IProp GF :=
 /-- What the state interpretation holds of each directory fd: the fraction of the history its open
 took, so that no one changes the directory while it is open. -/
 def rdPart (hL : OsGS GF) (x : Ino × DirPh) : IProp GF :=
-  iprop(∃ V : Hist, gElem hL hL.γd () (DFrac.own x.2.q) V ∗ ⌜x.2.g = dview V x.1⌝)
+  iprop(∃ RV : Roots × Hist, gElem hL hL.γd () (DFrac.own x.2.q) RV ∗ ⌜x.2.g = dview RV.2 x.1⌝)
 
 def rdRes (hL : OsGS GF) (Γdf : GMap w64 (Ino × DirPh)) : IProp GF :=
   iprop([∗map] _fd ↦ x ∈ Γdf, rdPart hL x)
@@ -723,15 +726,16 @@ def rdRes (hL : OsGS GF) (Γdf : GMap w64 (Ino × DirPh)) : IProp GF :=
 history its `CallBegin` took, so that no one changes the tree while it is in flight (and the holder
 of the rest of the history knows that no other call is). -/
 def callRes (hL : OsGS GF) (Γc : GMap Nat (Nat × Qp)) : IProp GF :=
-  iprop([∗map] _t ↦ x ∈ Γc, ∃ V : Hist, gElem hL hL.γd () (DFrac.own x.2) V)
+  iprop([∗map] _t ↦ x ∈ Γc, ∃ RV : Roots × Hist, gElem hL hL.γd () (DFrac.own x.2) RV)
 
-/-- The tree's history, as a ghost map of one entry. -/
-def histMap (V : Hist) : GMap Unit Hist := {[() := V]}
+/-- The tree's roots and history, as a ghost map of one entry. -/
+def histMap (RV : Roots × Hist) : GMap Unit (Roots × Hist) := {[() := RV]}
 
 /-- The interpretation of the tree of `st`. -/
 def treeCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
   iprop(∃ (V : Hist) (Γdf : GMap w64 (Ino × DirPh)) (Γc : GMap Nat (Nat × Qp)),
-    ⌜FsTreeWf st ∧ TreeCoh st V Γdf Γc⌝ ∗ gAuth hL hL.γd (histMap V) ∗ gAuth hL hL.γdf Γdf ∗
+    ⌜FsTreeWf st ∧ TreeCoh st V Γdf Γc⌝ ∗ gAuth hL hL.γd (histMap (st.fs.roots, V)) ∗
+    gAuth hL hL.γdf Γdf ∗
     gAuth hL hL.γc Γc ∗ rdRes hL Γdf ∗ callRes hL Γc)
 
 /-- A step that leaves the tree alone keeps its interpretation. -/
@@ -740,6 +744,7 @@ theorem treeCtx_frame (hL : OsGS GF) {st st' : OsState} (h : TreeFrame st st') :
   unfold treeCtx
   iintro ⟨%V, %Γdf, %Γc, %hw, Had, Haf, Hac, Hrd, Hcr⟩
   iexists V, Γdf, Γc
+  rw [h.roots]
   iframe
   ipureintro
   exact ⟨h.wf hw.1, h.coh hw.2⟩
@@ -747,7 +752,8 @@ theorem treeCtx_frame (hL : OsGS GF) {st st' : OsState} (h : TreeFrame st st') :
 /-- The start resources of the tree: its history, whole (nothing logged on the tree it starts
 with). -/
 def treeStart (hL : OsGS GF) (st : OsState) : IProp GF :=
-  gElem hL hL.γd () (DFrac.own 1) ((st.fs.treeDur, ([] : List LogEntry)) : Hist)
+  gElem hL hL.γd () (DFrac.own 1) ((st.fs.roots, ((st.fs.treeDur, ([] : List LogEntry)) : Hist)) :
+    Roots × Hist)
 
 /-- The interpretation of the files of `st`. -/
 def osCtxF (hL : OsGS GF) (st : OsState) : IProp GF :=
@@ -885,8 +891,8 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat TokInfo) with ⟨%γt, Hat, -⟩
   imod ghostVar_alloc (GF := GF) ((∅ : GMap Loc (Option w8 × Bool)), 0) with ⟨%γv, Hv⟩
   icases (ghostVar_split_half γv 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
-  imod ghost_map_alloc (GF := GF) (histMap ((st.fs.treeDur, ([] : List LogEntry)) : Hist))
-    with ⟨%γd, Had, Hd⟩
+  imod ghost_map_alloc (GF := GF)
+    (histMap (st.fs.roots, ((st.fs.treeDur, ([] : List LogEntry)) : Hist))) with ⟨%γd, Had, Hd⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (Ino × DirPh)) with ⟨%γdf, Hadf, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γc, Hac, -⟩
   imodintro
@@ -908,11 +914,14 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
       unfold callRes
       isplitl [] <;> iapply BigSepM.bigSepM_empty.2 <;> itrivial
   · unfold osStart osStartF treeStart gElem gVar histMap
-    ihave Hd := (show ([∗map] k ↦ v ∈ ({[() := ((st.fs.treeDur, ([] : List LogEntry)) : Hist)]} :
-        GMap Unit Hist), ghostMapElem (GF := GF) γd k (DFrac.own 1) v) ⊢
-        ghostMapElem γd () (DFrac.own 1) ((st.fs.treeDur, ([] : List LogEntry)) : Hist) from
+    ihave Hd := (show ([∗map] k ↦ v ∈ ({[() := (st.fs.roots,
+          ((st.fs.treeDur, ([] : List LogEntry)) : Hist))]} : GMap Unit (Roots × Hist)),
+          ghostMapElem (GF := GF) γd k (DFrac.own 1) v) ⊢
+        ghostMapElem γd () (DFrac.own 1)
+          ((st.fs.roots, ((st.fs.treeDur, ([] : List LogEntry)) : Hist)) : Roots × Hist) from
       (BigSepM.bigSepM_singleton (M := GMap Unit)
-        (Φ := fun (k : Unit) (v : Hist) => ghostMapElem (GF := GF) γd k (DFrac.own 1) v)).1) $$ Hd
+        (Φ := fun (k : Unit) (v : Roots × Hist) =>
+          ghostMapElem (GF := GF) γd k (DFrac.own 1) v)).1) $$ Hd
     iframe
 
 /-- The ghost state of the Linux file extension. The program gets every file and byte of the initial

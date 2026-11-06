@@ -200,15 +200,15 @@ theorem osInv_alloc (E : CoPset) :
   iframe Hv
   unfold cellsRes; iapply BigSepM.bigSepM_empty.2; iempintro
 
-/-- (A fraction `dq` of) the tree's history `V`: the tree the generation booted with, and the
-entries logged since. -/
-def osTree (dq : DFrac) (V : Hist) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd () dq V
+/-- (A fraction `dq` of) the tree's roots `R` and history `V`: the tree the generation booted with,
+and the entries logged since. -/
+def osTree (dq : DFrac) (R : Roots) (V : Hist) : IProp GF :=
+  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd () dq (R, V)
 
 /-- The directory of inode `j`, as `g` says: a fraction of the history, of which `g` is `j`'s view.
 -/
 def osDir (j : Ino) (dq : DFrac) (g : DirG) : IProp GF :=
-  iprop(∃ V : Hist, osTree dq V ∗ ⌜g = dview V j⌝)
+  iprop(∃ (R : Roots) (V : Hist), osTree dq R V ∗ ⌜g = dview V j⌝)
 
 /-- The directory fd `fd`, on `x.1`, its read at `x.2`. -/
 def osDirFd (fd : w64) (dq : DFrac) (x : Ino × DirPh) : IProp GF :=
@@ -219,7 +219,8 @@ interpretation holds the fraction `q` of the history for it, which its step give
 def osCall (t : Nat) (s : Nat) (q : Qp) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc t (DFrac.own 1) (s, q)
 
-instance osTree_timeless (dq : DFrac) (V : Hist) : Timeless (osTree (L := L) dq V) := by
+instance osTree_timeless (dq : DFrac) (R : Roots) (V : Hist) :
+    Timeless (osTree (L := L) dq R V) := by
   unfold osTree; infer_instance
 instance osDir_timeless (j : Ino) (dq : DFrac) (g : DirG) : Timeless (osDir (L := L) j dq g) := by
   unfold osDir; infer_instance
@@ -227,61 +228,61 @@ instance osCall_timeless (t s : Nat) (q : Qp) : Timeless (osCall (L := L) t s q)
   unfold osCall; infer_instance
 
 /-- The history held, with the authoritative one: they agree. -/
-theorem osTree_auth (V V' : Hist) (dq : DFrac) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) -∗ osTree (L := L) dq V' -∗
-      ⌜V' = V⌝ := by
+theorem osTree_auth (R R' : Roots) (V V' : Hist) (dq : DFrac) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V)) -∗
+      osTree (L := L) dq R' V' -∗ ⌜R' = R ∧ V' = V⌝ := by
   iintro HA Hh
   unfold osTree
   icases gAuth_lookup _ _ _ _ _ _ $$ HA Hh with %h
   ipureintro
-  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq] at h
-  exact h.symm
+  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at h
+  exact ⟨h.1.symm, h.2.symm⟩
 
 /-- A directory held, with the authoritative history: its view. -/
-theorem osDir_view (V : Hist) (j : Ino) (dq : DFrac) (g : DirG) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) -∗ osDir (L := L) j dq g -∗
-      ⌜g = dview V j⌝ := by
+theorem osDir_view (R : Roots) (V : Hist) (j : Ino) (dq : DFrac) (g : DirG) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V)) -∗
+      osDir (L := L) j dq g -∗ ⌜g = dview V j⌝ := by
   unfold osDir
-  iintro HA ⟨%V', Hh, %hg⟩
-  icases osTree_auth V V' dq $$ HA Hh with %h
-  subst h
+  iintro HA ⟨%R', %V', Hh, %hg⟩
+  icases osTree_auth R R' V V' dq $$ HA Hh with %h
+  obtain ⟨rfl, rfl⟩ := h
   ipureintro; exact hg
 
 /-- The history updated, with the whole of it. -/
-theorem osTree_update (V V' : Hist) (W : Hist) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) -∗
-      osTree (L := L) (DFrac.own 1) W ==∗
-      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V') ∗
-      osTree (L := L) (DFrac.own 1) V' := by
+theorem osTree_update (R : Roots) (V V' : Hist) (R' : Roots) (W : Hist) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V)) -∗
+      osTree (L := L) (DFrac.own 1) R' W ==∗
+      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V')) ∗
+      osTree (L := L) (DFrac.own 1) R V' := by
   iintro HA Hh
   unfold osTree
-  imod gAuth_update _ _ _ _ _ V' $$ HA Hh with ⟨HA, Hh⟩
-  have : (<[() := V']> (histMap V)) = histMap V' := by
+  imod gAuth_update _ _ _ _ _ (R, V') $$ HA Hh with ⟨HA, Hh⟩
+  have : (<[() := (R, V')]> (histMap (R, V))) = histMap (R, V') := by
     apply GMap.ext; intro u; cases u; simp [histMap]
   rw [this]
   imodintro; iframe
 
 /-- A directory held whole, with the authoritative history, updated to the history `V'`, its view
 there `g'`. -/
-theorem osDir_update (V V' : Hist) (j : Ino) (g g' : DirG) (hg' : g' = dview V' j) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) -∗
+theorem osDir_update (R : Roots) (V V' : Hist) (j : Ino) (g g' : DirG) (hg' : g' = dview V' j) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V)) -∗
       osDir (L := L) j (DFrac.own 1) g ==∗
-      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V') ∗
+      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V')) ∗
       osDir (L := L) j (DFrac.own 1) g' := by
   unfold osDir
-  iintro HA ⟨%W, Hh, -⟩
-  imod osTree_update V V' W $$ HA Hh with ⟨HA, Hh⟩
+  iintro HA ⟨%R', %W, Hh, -⟩
+  imod osTree_update R V V' R' W $$ HA Hh with ⟨HA, Hh⟩
   imodintro
   iframe HA
-  iexists V'
+  iexists R, V'
   iframe Hh
   ipureintro; exact hg'
 
 /-- The history is a directory's view (of any directory). -/
-theorem osTree_dir (dq : DFrac) (V : Hist) (j : Ino) :
-    osTree (L := L) dq V ⊢ osDir (L := L) j dq (dview V j) := by
+theorem osTree_dir (dq : DFrac) (R : Roots) (V : Hist) (j : Ino) :
+    osTree (L := L) dq R V ⊢ osDir (L := L) j dq (dview V j) := by
   unfold osDir
-  iintro H; iexists V; iframe; ipureintro; rfl
+  iintro H; iexists R, V; iframe; ipureintro; rfl
 
 /-- A call held, with the authoritative calls: it is in flight, with its start. -/
 theorem osCall_auth (C : GMap Nat (Nat × Qp)) (t s : Nat) (q : Qp) :
@@ -424,7 +425,7 @@ history, the directory fds and the calls in flight, and the fractions the reads 
 def treeWorld (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
     (Γc : GMap Nat (Nat × Qp)) : IProp GF :=
   iprop(⌜FsTreeWf st ∧ TreeCoh st V Γdf Γc⌝ ∗
-    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) ∗
+    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (st.fs.roots, V)) ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc Γc ∗
     rdRes (gooseOsGS (L := L)) Γdf ∗ callRes (gooseOsGS (L := L)) Γc)
