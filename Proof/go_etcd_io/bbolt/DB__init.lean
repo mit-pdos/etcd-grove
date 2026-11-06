@@ -329,11 +329,11 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     try wp_auto
     wp_apply hMeta l hlp (by omega)
     try wp_auto
-    rw [show Magic = #(W32 3977042669) from rfl]
+    try rw [show Magic = #(W32 3977042669) from rfl]
     wp_apply hSetMagic $$ [Hm0] as Hm0
     · iframe #; iframe
     try wp_auto
-    rw [show Version = #(W32 2) from rfl]
+    try rw [show Version = #(W32 2) from rfl]
     wp_apply hSetVersion $$ [Hm0] as Hm0
     · iframe #; iframe
     try wp_auto
@@ -584,7 +584,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         unfold goarchAmd64 at hgoarch
         clear hysp hysl Hm2 hpr hsr hres hjle hm0
         try wp_auto
-        rw [hgoos, hgoarch]
+        try rw [hgoos, hgoarch]
         wp_apply wp_slice_literal
         isplitr
         · ipureintro; rfl
@@ -714,7 +714,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           unfold goarchAmd64 at hgoarch
           clear hysp hysl Hm2 hpr hsr hres hjle hm0 hysp2 hres2 hys2 Hm3
           try wp_auto
-          rw [hgoos, hgoarch]
+          try rw [hgoos, hgoarch]
           wp_apply wp_slice_literal
           isplitr
           · ipureintro; rfl

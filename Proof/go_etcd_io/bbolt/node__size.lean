@@ -43,7 +43,8 @@ private theorem node.pageElementSize.wp_spec (nl : Loc) (nv : node) (dq : DFrac)
     (App (Val (nl @!! go.GoType.PointerType node.ty @!! go!"pageElementSize")) (Val #()))
   {{ RET #(W64 16); nl ↦{dq} nv }} := by
   wp_start as Hn
-  unfold internal.common.BranchPageElementSize internal.common.LeafPageElementSize
+  try unfold internal.common.BranchPageElementSize
+  try unfold internal.common.LeafPageElementSize
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
   iStructNamed Hn
   wp_auto
@@ -65,8 +66,8 @@ theorem node.size.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :
   wp_auto
   wp_apply node.pageElementSize.wp_spec $$ [$Hn] as Hn
   try wp_auto
-  unfold internal.common.PageHeaderSize
-  wp_auto
+  try unfold internal.common.PageHeaderSize
+  try wp_auto
   ihave IH : (∃ (j : w64),
       "i" ∷ i_ptr ↦ j ∗ "sz" ∷ sz_ptr ↦ W64 (insSize (ins.take (sint.nat j)) : Int) ∗
       "Hs" ∷ nv.inodes' ↦*{dqs} ins ∗ "Hn" ∷ nl ↦{dq} nv ∗

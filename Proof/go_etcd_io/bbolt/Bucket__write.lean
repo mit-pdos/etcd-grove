@@ -45,7 +45,7 @@ theorem Bucket.write.wp_proof (hSize : node.size.spec (GF := GF) (hG := hG))
   try wp_auto
   generalize hL : (pageBody true ms).length = L at *
   rw [Hsz]
-  simp only [internal.common.BucketHeaderSize]
+  try simp only [internal.common.BucketHeaderSize]
   rw [show W64 16 + W64 ((16 + L : Nat) : Int) = W64 ((32 + L : Nat) : Int) by push_cast; word]
   have hNZ : sint.Z (W64 ((32 + L : Nat) : Int)) = ((32 + L : Nat) : Int) :=
     sint_Z_W64_nat _ (by omega)

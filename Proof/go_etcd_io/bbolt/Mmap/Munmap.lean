@@ -93,7 +93,7 @@ theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
       ⟨⟨syscall.Errno.ty, #e⟩, by simp only [errnoErr, he, ↓reduceIte, interface.mkOk]⟩
     rw [hii] at hS ⊢
     ihave #HeS := hS
-    rw [hgoos, hgoarch]
+    try rw [hgoos, hgoarch]
     wp_auto
     wp_apply wp_slice_literal
     isplitr

@@ -285,6 +285,8 @@ def main(root, perennial, argv0, results_file=False):
     for x in decls:
         if not x["mod"].startswith("Proof.go_etcd_io.bbolt.") or x["kind"] not in ("theorem", "axiom"):
             continue
+        if x["mod"].endswith((".Link", ".Results")):
+            continue  # this generator's own output (its results are not proofs to link)
         s = concl_spec(x)
         if not s:
             continue

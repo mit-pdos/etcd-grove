@@ -136,7 +136,8 @@ theorem Bucket.inlineable.wp_proof (hK : internal.common.Inode.Key.spec (GF := G
       iapply HΦ
       rw [ite_eq_right_of_eq_false _ _ (eq_false hnull)]
       iframe
-    · unfold internal.common.PageHeaderSize internal.common.LeafPageElementSize
+    · try unfold internal.common.PageHeaderSize
+      try unfold internal.common.LeafPageElementSize
       wp_auto
       ihave IH : (∃ (j : w64),
           "i" ∷ i_ptr ↦ j ∗ "size" ∷ size_ptr ↦ W64 (insSize (ins.take (sint.nat j)) : Int) ∗

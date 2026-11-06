@@ -79,7 +79,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 theorem node.pageElementSize.wp_proof : node.pageElementSize.spec (GF := GF) (hG := hG) := by
   intro nl nv dq
   wp_start as Hn
-  unfold internal.common.BranchPageElementSize internal.common.LeafPageElementSize
+  try unfold internal.common.BranchPageElementSize
+  try unfold internal.common.LeafPageElementSize
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
   iStructNamed Hn
   wp_auto
@@ -100,8 +101,8 @@ theorem node.sizeLessThan.wp_proof (hK : internal.common.Inode.Key.spec (GF := G
   wp_auto
   wp_apply node.pageElementSize.wp_proof $$ [$Hn] as Hn
   try wp_auto
-  unfold internal.common.PageHeaderSize
-  wp_auto
+  try unfold internal.common.PageHeaderSize
+  try wp_auto
   ihave IH : (∃ (j : w64),
       "i" ∷ i_ptr ↦ j ∗ "sz" ∷ sz_ptr ↦ W64 (insSize (ins.take (sint.nat j)) : Int) ∗
       "Hs" ∷ nv.inodes' ↦*{dqs} ins ∗ "Hn" ∷ nl ↦{dq} nv ∗
@@ -195,7 +196,8 @@ theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF)
   wp_start as ⟨Hn, Hs⟩
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
-  unfold internal.common.PageHeaderSize internal.common.MinKeysPerPage
+  try unfold internal.common.PageHeaderSize
+  try unfold internal.common.MinKeysPerPage
   wp_auto
   ihave IH : (∃ (j idx : w64) (sz : Nat),
       "i" ∷ i_ptr ↦ j ∗ "index" ∷ index_ptr ↦ idx ∗ "sz" ∷ sz_ptr ↦ W64 (sz : Int) ∗

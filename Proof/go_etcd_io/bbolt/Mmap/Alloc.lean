@@ -350,13 +350,14 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · iapply goarchAmd64_of_pkgInit $$ Hpkg
           unfold goosLinux at hgoos
           unfold goarchAmd64 at hgoarch
-          rw [hgoos]
+          try rw [hgoos]
           wp_auto
           wp_apply hGrowSize $$ []
           · iframe #
           try wp_auto
           by_cases hgt : sint.Z mx < sint.Z (growSizeOf nms ((pg + count + W64 1) * W64 4096))
-          · rw [decide_eq_true hgt, hgoarch]
+          · rw [decide_eq_true hgt]
+            try rw [hgoarch]
             wp_auto
             wp_apply wp_slice_literal
             isplitr

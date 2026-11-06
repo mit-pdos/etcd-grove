@@ -715,7 +715,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         unfold goosLinux at hgoos
         unfold goarchAmd64 at hgoarch
         try wp_auto
-        rw [hgoos, hgoarch]
+        try rw [hgoos, hgoarch]
         wp_apply wp_slice_literal
         isplitr
         · ipureintro; rfl
@@ -880,6 +880,9 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             try rw [decide_eq_false (show ¬ ((#false : val) = #true) from
               fun h => Bool.false_ne_true (GoGlobalContext.intoVal_inj_bool h))]
             try simp only [Bool.false_eq_true, ↓reduceIte]
+            try wp_auto
+            try rw [if_pos (by decide)]
+            try simp only [decide_true, ↓reduceIte]
             try wp_auto
             wp_apply sync.Pool.wp_Put _ pf (poolR _ _ iprop(True)) pageBuf _ $$ [Hbuf]
             · iframe #

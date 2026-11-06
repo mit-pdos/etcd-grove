@@ -366,7 +366,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         unfold goosLinux at hgoos
         unfold goarchAmd64 at hgoarch
         wp_auto
-        rw [hgoos, hgoarch]
+        try rw [hgoos, hgoarch]
         wp_apply wp_slice_literal
         isplitr
         · ipureintro; rfl

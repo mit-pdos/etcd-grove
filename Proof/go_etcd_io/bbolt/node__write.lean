@@ -56,7 +56,8 @@ theorem node.write.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG := 
   try wp_auto
   wp_apply hA
   try wp_auto
-  unfold internal.common.LeafPageFlag internal.common.BranchPageFlag
+  try unfold internal.common.LeafPageFlag
+  try unfold internal.common.BranchPageFlag
   wp_join iprop(p_ptr ↦ p ∗
       p ↦ ({ hdr with flags' := (if nv.isLeaf' then W16 2 else W16 1) } : internal.common.Page))
     at next with [Hp p] as ⟨p, Hp⟩

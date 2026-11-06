@@ -138,8 +138,8 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     ileft; ipureintro; rfl
   simp only [Bool.not_false]
   wp_auto
-  rw [hgoos]
-  wp_auto
+  try rw [hgoos]
+  try wp_auto
   -- the new size `S`: the mapping's length up to `AllocSize`, else `sz + AllocSize`
   have hk10 := hok.2.2.2.2.2.2.2.2.2.1 v.base (mapLen w.ms) hms
   have hfacts : 0 ≤ (growSizeOf (W64 (mapLen w.ms : Int)) sz).toInt ∧
@@ -257,7 +257,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
     try wp_auto
-    rw [hgoarch]
+    try rw [hgoarch]
     simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl,
       show sint.nat (W64 (0 + 1 + 1 + 1)) = 3 from rfl, List.set_cons_succ, List.set_cons_zero]
     wp_apply wp_boltLog li _ _ [W8 115, W8 115, W8 100, W8 118] _
@@ -302,7 +302,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
     try wp_auto
-    rw [hgoarch]
+    try rw [hgoarch]
     simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl, show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl,
       show sint.nat (W64 (0 + 1 + 1 + 1)) = 3 from rfl,
       show sint.nat (W64 (0 + 1 + 1 + 1 + 1)) = 4 from rfl, List.set_cons_succ, List.set_cons_zero]

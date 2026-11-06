@@ -305,7 +305,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   iintro %Hms
   obtain ⟨rfl, hnsz⟩ := Hms
   try wp_auto
-  rw [hgoos]
+  try rw [hgoos]
   wp_join with [size fileSize db]
   · try wp_auto
     wp_if_destruct
@@ -438,7 +438,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     cases e with
     | nil => exact absurd rfl he.1
     | ok ii =>
-    rw [hgoarch]
+    try rw [hgoarch]
     try wp_auto
     wp_apply wp_slice_literal
     isplitr
