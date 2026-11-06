@@ -1932,3 +1932,47 @@ needs regenerating).
    `revToken`/`writerPin` after track A's second commit (tokens and pin in `writerL`); `wwriterHyp`
    keeps the watchable sole writer (`watchWriter`, with the `wlog` half `writerL` cannot name) until
    that design.
+
+## Hand-off: M4, the stopped tracks' work finished and the plain handle's contracts (2026-11-06)
+
+A new session took over after the coordinator and its tracks were stopped (the user). **Done**
+(`2ae87164cb`, `6ec0af699c`; every mvcc module builds but `Link`/`Results`; no axiom, no `sorry`, no
+placeholder added):
+- **Track A's request 3 (2)** finished and repaired: a store without watchers keeps the writer's
+  revision tokens and loan in the writer's state (`wrState` in `writerL`) and the pin's quarter view
+  in the batch lock's resource (`wrPin` in `writerRes`); a watchable store's sole writer still brings
+  them (`wrIn`) and gets them back (`wrOut`). `store.Restore.spec` takes `γ.watchQ = true` (only a
+  watchable store's inner store is restored). Repairs: `NewStore`'s loan split, `RestoreMoves`,
+  `TxnSteps`' copy of `storeTxnWriteCore` (its `Hcres` with `wrToks`), `store.Write`'s receipt (taken
+  at `BatchTx`'s resolution: after it the method is already resolved), the watchable `End`'s nil
+  branch, `writeView.DeleteRange`'s post (no pin), `watchableStore.Restore`.
+- **`KV.Write` at `*store` has no hypothesis** (`writerHyp` gone).
+- **F-W1** (`wsRecvOk`'s conjuncts 4-5, decided by the coordinator): proved.
+- **`KV.Put`/`DeleteRange` at both types** (`Api/WriteViewApi.lean`; track B's draft, repaired:
+  `opAU_write`/`opAU_end` simplify only the destructured state, so the aborted update stays `opAU`;
+  a statement mentioning `(γ : StoreNames)` for `γ : MvccName` must be `private`, the module system
+  hiding `MvccName`'s body from a public statement). At `*store` over `store.Write.wp_api`; at
+  `*watchableStore` over `watchableStore.Write.spec` (so under `wwriterHyp`).
+- **`KV.Rev`/`FirstRev`/`Range` at `*store`, no hypothesis** (`Api/ReadOpsApi.lean`): `isMvccPlain`
+  gains the store's read and write views (`NewStore`'s, persisted by `NewStoreApi`); the watchable
+  `Compact` no longer builds a plain handle of its inner store (`CmpCb`'s private `Compact.plain`
+  takes the store, its location and the permit).
+
+**Left, in order of what it unblocks:**
+1. **The watchable store's writer state** (`wwriterHyp`): `KV.Write` at `*watchableStore` needs the
+   sole writer's `watchWriter` (certificate, tokens, `γ.wlog` half, pin) from the store, not the
+   caller. Design: as for a plain store, the tokens and pin in the writer's state for both kinds
+   (`wrState`/`wrPin` unconditional), and the `γ.wlog` half in `writerL` for a watchable store, which
+   needs the name in `StoreNames` (`NewStore` allocates it; `WsNames.wlog` becomes `γ.st.wlog`; only
+   `newWatchableStore` constructs a `WsNames`). The watchable `End`'s notify step already runs inside
+   the inner `End`'s callback, before the writer's check-in, so the half is back at the committed log
+   when `writerL` is rebuilt. Then `KV.Write`, `Put`, `DeleteRange` at `*watchableStore` lose their
+   hypothesis.
+2. **`mvccDeleter_M1`**: the constructors' posts state that `rd()` runs `s.Write(traceutil.TODO())`
+   (a generic `rdCalls rd ty v`: from any triple of the type's `Write` at a fresh trace, the same of
+   `rd()`); then `mvccDeleter` from `KV.Write.contract` (`NewStore`'s now; `New`'s after 1).
+3. `mvccTxn_leaseDelete.law`; `KV.Restore.contract` and `RestoreMoves`' placeholders (track A's list
+   above, with the coordinator's decision 1 still to apply).
+4. The tracing cluster in the worktree (otel `isParentSpan`, k8s `tracing.isSpan`; another agent's,
+   uncommitted): unfinished, three k8s cacher proofs fail on the new premises (`watchCache__*`);
+   left as it was.
