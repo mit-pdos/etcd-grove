@@ -374,8 +374,11 @@ adapt: `apply.LessorDerive.isApplyLessor_of_lessorInv`, `SnapApplyOptsLemmas.sna
    mvcc's internal restore). Over the API: `mvccW_alloc.law` before `OpenSnapshotBackend` (at
    `W := mvccW gx`), `dbImageA_open.law` at its `newPostKP` (with `bridgeParams`, `bk.cm = true`,
    `keySized`, the payment rights from the new backend's `bFresh`), `KV.Restore.contract` at
-   `kvAus`' restore builder (`restoreArgs.law`, stated, to prove in `KVStoreLaws` from `au_restore`;
-   its `pendItems` premise from the plain log: no leased put), the old backend's `storageRest`
+   `kvAus`' restore builder (`restoreArgs.law`, stated, to prove in `KVStoreLaws` from `au_restore`
+   at `kvNx γr on`/`crevOk γr`, with `crevOf_mono` and the models' prefix lemmas: off
+   `kvRaftOf_prefix`; on `kvRaftOfOn_prefix`/`kvRaftOfOn_extends`, which live in `KVReadOn`/`KVApplyOn`,
+   above `KVStoreLaws`: move them, with `kvEntryOn_grow`, down to `KVAuthModel`; its `pendItems`
+   premise from the plain log: no leased put), the old backend's `storageRest`
    (reader slots' shares) to the closing goroutine, `srvBeHooked` at the new backend with the `E.Pk`
    tie, `envWitOk` and the ties at `E'`. `RestorePre` (`restorePre_of_apply`, the sole writer's) and
    `SnapRestoreM` are obsolete under it: delete with the walk's redesign. The `M2*Draft*` modules
