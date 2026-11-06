@@ -604,5 +604,4 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry srvGrantOpen_open
 sorry srvRevokeOpen_open
