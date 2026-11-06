@@ -255,13 +255,15 @@ type store struct {
 	rev int64
 }
 
-// A configuration: a store and the failed writes that may still take effect.
+// A configuration: a store and the failed writes that may still take effect (a multiset, sorted by
+// cmpInput).
 type mcfg struct {
 	st   store
 	pend []Input
 }
 
-// A state is the set of configurations the history may have reached (no duplicates).
+// A state is the set of configurations the history may have reached: sorted by cmpConfig, without
+// duplicates.
 type state []mcfg
 
 func lookup(kvs []entry, k string) (VR, bool) {
@@ -493,28 +495,191 @@ func storeEqual(a, b store) bool {
 	return true
 }
 
-func configEqual(a, b mcfg) bool {
-	if !storeEqual(a.st, b.st) || len(a.pend) != len(b.pend) {
-		return false
+// cmpInt is -1, 0 or 1 as a is below, equal to or above b.
+func cmpInt(a, b int64) int {
+	if a < b {
+		return -1
+	}
+	if a > b {
+		return 1
+	}
+	return 0
+}
+
+// cmpStr is -1, 0 or 1 as a is below, equal to or above b.
+func cmpStr(a, b string) int {
+	if a < b {
+		return -1
+	}
+	if a > b {
+		return 1
+	}
+	return 0
+}
+
+func cmpBool(a, b bool) int {
+	if a == b {
+		return 0
+	}
+	if b {
+		return -1
+	}
+	return 1
+}
+
+func cmpTOp(a, b TOp) int {
+	if c := cmpInt(int64(a.Kind), int64(b.Kind)); c != 0 {
+		return c
+	}
+	if c := cmpStr(a.Key, b.Key); c != 0 {
+		return c
+	}
+	return cmpStr(a.Val, b.Val)
+}
+
+func cmpCmp(a, b Cmp) int {
+	if c := cmpInt(int64(a.Kind), int64(b.Kind)); c != 0 {
+		return c
+	}
+	if c := cmpStr(a.Key, b.Key); c != 0 {
+		return c
+	}
+	if c := cmpStr(a.Val, b.Val); c != 0 {
+		return c
+	}
+	return cmpInt(a.Num, b.Num)
+}
+
+// cmpInput is a total order on inputs (field by field; 0 exactly when inputEqual).
+func cmpInput(a, b Input) int {
+	if c := cmpInt(int64(a.Kind), int64(b.Kind)); c != 0 {
+		return c
+	}
+	if c := cmpStr(a.Key, b.Key); c != 0 {
+		return c
+	}
+	if c := cmpStr(a.Val, b.Val); c != 0 {
+		return c
+	}
+	if c := cmpInt(int64(a.NCmps), int64(b.NCmps)); c != 0 {
+		return c
+	}
+	if c := cmpCmp(a.Cmp0, b.Cmp0); c != 0 {
+		return c
+	}
+	if c := cmpInt(int64(a.NThen), int64(b.NThen)); c != 0 {
+		return c
+	}
+	if c := cmpTOp(a.Then0, b.Then0); c != 0 {
+		return c
+	}
+	if c := cmpTOp(a.Then1, b.Then1); c != 0 {
+		return c
+	}
+	if c := cmpTOp(a.Then2, b.Then2); c != 0 {
+		return c
+	}
+	if c := cmpInt(int64(a.NElse), int64(b.NElse)); c != 0 {
+		return c
+	}
+	return cmpTOp(a.Else0, b.Else0)
+}
+
+func cmpVR(a, b VR) int {
+	if c := cmpStr(a.Val, b.Val); c != 0 {
+		return c
+	}
+	if c := cmpInt(a.Mod, b.Mod); c != 0 {
+		return c
+	}
+	return cmpInt(a.Ver, b.Ver)
+}
+
+// cmpStore is a total order on stores (the revision, the size, then the entries in order).
+func cmpStore(a, b store) int {
+	if c := cmpInt(a.rev, b.rev); c != 0 {
+		return c
+	}
+	if c := cmpInt(int64(len(a.kvs)), int64(len(b.kvs))); c != 0 {
+		return c
+	}
+	for i := range a.kvs {
+		if c := cmpStr(a.kvs[i].key, b.kvs[i].key); c != 0 {
+			return c
+		}
+		if c := cmpVR(a.kvs[i].r, b.kvs[i].r); c != 0 {
+			return c
+		}
+	}
+	return 0
+}
+
+// cmpConfig is a total order on configurations (the store, then the pending writes, both sorted
+// lists compared by length, then element by element; 0 exactly when configEqual).
+func cmpConfig(a, b mcfg) int {
+	if c := cmpStore(a.st, b.st); c != 0 {
+		return c
+	}
+	if c := cmpInt(int64(len(a.pend)), int64(len(b.pend))); c != 0 {
+		return c
 	}
 	for i := range a.pend {
-		if !inputEqual(a.pend[i], b.pend[i]) {
-			return false
+		if c := cmpInput(a.pend[i], b.pend[i]); c != 0 {
+			return c
 		}
 	}
-	return true
+	return 0
 }
 
+func configEqual(a, b mcfg) bool {
+	return cmpConfig(a, b) == 0
+}
+
+// addConfig returns s with c (s sorted by cmpConfig without duplicates, and so the result): a
+// binary search for c's place, then an insertion there unless c is already in s. It may reuse
+// s's array: s is the caller's own.
 func addConfig(s state, c mcfg) state {
-	for _, d := range s {
-		if configEqual(c, d) {
+	lo := 0
+	hi := len(s)
+	for lo < hi {
+		mid := lo + (hi-lo)/2
+		r := cmpConfig(s[mid], c)
+		if r == 0 {
 			return s
 		}
+		if r < 0 {
+			lo = mid + 1
+		} else {
+			hi = mid
+		}
 	}
-	return append(s, c)
+	s = append(s, c)
+	for j := len(s) - 1; j > lo; j-- {
+		s[j] = s[j-1]
+	}
+	s[lo] = c
+	return s
 }
 
-// removeAt returns pend without its i-th input (a new slice).
+// insertInput returns pend (sorted by cmpInput) with in, sorted (a new slice; duplicates kept:
+// pend is a multiset).
+func insertInput(pend []Input, in Input) []Input {
+	out := make([]Input, 0, len(pend)+1)
+	done := false
+	for _, p := range pend {
+		if !done && cmpInput(in, p) <= 0 {
+			out = append(out, in)
+			done = true
+		}
+		out = append(out, p)
+	}
+	if !done {
+		out = append(out, in)
+	}
+	return out
+}
+
+// removeAt returns pend without its i-th input (a new slice; sorted if pend is).
 func removeAt(pend []Input, i int) []Input {
 	out := make([]Input, 0, len(pend))
 	out = append(out, pend[:i]...)
@@ -534,6 +699,10 @@ func closure(s state) state {
 			continue
 		}
 		for i, w := range c.pend {
+			// equal pending writes give the same configuration: take the first
+			if i > 0 && inputEqual(c.pend[i-1], w) {
+				continue
+			}
 			st, _ := mstep(w, c.st)
 			work = append(work, mcfg{st: st, pend: removeAt(c.pend, i)})
 		}
@@ -542,15 +711,12 @@ func closure(s state) state {
 }
 
 // step returns the configurations c steps to by (in, out): a call that returned no error took
-// effect and answered the model's output; a failed write becomes pending; a failed read does
-// nothing.
+// effect and answered the model's output; a failed write becomes pending (kept sorted); a failed
+// read does nothing.
 func step(c mcfg, in Input, out Output) []mcfg {
 	if out.Err {
 		if isWrite(in) {
-			pend := make([]Input, 0, len(c.pend)+1)
-			pend = append(pend, in)
-			pend = append(pend, c.pend...)
-			return []mcfg{{st: c.st, pend: pend}}
+			return []mcfg{{st: c.st, pend: insertInput(c.pend, in)}}
 		}
 		return []mcfg{c}
 	}
@@ -561,9 +727,57 @@ func step(c mcfg, in Input, out Output) []mcfg {
 	return []mcfg{{st: st, pend: c.pend}}
 }
 
+// hashStr mixes s into h (FNV-1a).
+func hashStr(h uint64, s string) uint64 {
+	for i := 0; i < len(s); i++ {
+		h = (h ^ uint64(s[i])) * 1099511628211
+	}
+	return (h ^ 255) * 1099511628211
+}
+
+// hashU64 mixes n into h.
+func hashU64(h uint64, n uint64) uint64 {
+	return (h ^ n) * 1099511628211
+}
+
+func hashTOp(h uint64, op TOp) uint64 {
+	return hashStr(hashStr(hashU64(h, uint64(op.Kind)), op.Key), op.Val)
+}
+
+func hashInput(h uint64, in Input) uint64 {
+	h = hashStr(hashStr(hashU64(h, uint64(in.Kind)), in.Key), in.Val)
+	h = hashU64(h, uint64(in.NCmps))
+	h = hashStr(hashStr(hashU64(h, uint64(in.Cmp0.Kind)), in.Cmp0.Key), in.Cmp0.Val)
+	h = hashU64(h, uint64(in.Cmp0.Num))
+	h = hashU64(h, uint64(in.NThen))
+	h = hashTOp(hashTOp(hashTOp(h, in.Then0), in.Then1), in.Then2)
+	h = hashU64(h, uint64(in.NElse))
+	return hashTOp(h, in.Else0)
+}
+
+// hashState is a hash of a state (of its canonical form: equal states have equal hashes).
+func hashState(s state) uint64 {
+	h := uint64(14695981039346656037)
+	for _, c := range s {
+		h = hashU64(h, uint64(c.st.rev))
+		h = hashU64(h, uint64(len(c.st.kvs)))
+		for _, e := range c.st.kvs {
+			h = hashStr(hashStr(h, e.key), e.r.Val)
+			h = hashU64(hashU64(h, uint64(e.r.Mod)), uint64(e.r.Ver))
+		}
+		h = hashU64(h, uint64(len(c.pend)))
+		for _, in := range c.pend {
+			h = hashInput(h, in)
+		}
+	}
+	return h
+}
+
 // Model is etcd's KV as a porcupine model: the store starts empty at revision 1; a call that
 // returned no error took effect at once and answered as the model; a failed write may take
-// effect at any later time, or never; a failed read constrains nothing.
+// effect at any later time, or never; a failed read constrains nothing. A state is kept sorted
+// by cmpConfig without duplicates, and each configuration's pending writes sorted by cmpInput, so
+// that a set of configurations has one form: Equal is list equality, Hash a hash of the list.
 func Model() porcupine.Model {
 	return porcupine.Model{
 		Init: func() any { return state{mcfg{st: store{rev: 1}}} },
@@ -591,6 +805,9 @@ func Model() porcupine.Model {
 				}
 			}
 			return true
+		},
+		Hash: func(s any) uint64 {
+			return hashState(s.(state))
 		},
 	}
 }
