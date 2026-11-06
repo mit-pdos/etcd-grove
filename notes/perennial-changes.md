@@ -1543,3 +1543,11 @@ fails. **Worked around locally** (2026-11-06): `wp_slice_literal_ex` in
 Perennial's section variables (`[GoSemanticsFunctions] [go.PreSemantics]`); `newHistory` is proved
 over it. **The general change**: Perennial's `wp_slice_literal`(`_nonnull`) with `∃ l` in the array
 literal's post (the current statements are its instances at a fixed `l`), then delete the local copy.
+
+## `isSpsc`'s invariant at `nroot`; no `chan.wp_len` (2026-11-06, the mvcc tester)
+
+Met proving `examples/mvccrand`'s ticks channel (`WriterRun.lean`, `notes/mvcc-migration/mvccrand.md`):
+Perennial's single-producer channel `isSpsc` keeps its invariant at `nroot`, so a caller that holds
+another invariant open (the tester's, under its own namespace) cannot send on it; and there is no
+`chan.wp_len` wrapper beside `chan.wp_cap`. Local: the tester sends outside its invariant. The
+general changes: `isSpsc` parameterized by its namespace; a `chan.wp_len` lemma.
