@@ -4070,3 +4070,61 @@ The swap (`040ea7f5e0`), each R statement under the frozen name, the frozen proo
 
 Next: the batch chain (pairs 5-7), the merged `stopCleanupImage` (pair 8), the run swap with the hub
 edit (pair 9), as in `/shared/tmp/r2dpa-swap-estimate.md`.
+
+#### Swap batch 3: the batch chain `apply`, `applyEntries`, `applyAll.specBatch` (2026-11-06; review F1, the swap the user approved)
+
+Each restart statement under the frozen name, its frozen proof replaced by the R proof:
+- **`apply.spec`** (Spec) is `apply.specAt (· ≠ .any)`, `specAt P` the one mode-generic restart text
+  (the old `ApplyR`'s `specROff`/`ApplyROn`'s `specROn` merged over `E.authOn`, no literal mode):
+  binders `rp : RestartPt`, `g : w64` added; premise `P E.authMode` (was `E.authMode ≠ .any`);
+  `dvOk … (g + 1) ms` (was `f0`); pre `epCsAt (ghostOf rp A)`, `srvAppliedOwn γr g`,
+  `appliedLogAt γr g x.log`, `kvAppliedM … (ghostOf rp A)`, `srvRestR E γr rp A`,
+  `kvBatchR γr (ciEff γ st.k) (f0 - 1) rp A ms`, `⌜uint.Z g = ai0 + |ghostOf rp A|⌝`, the view and
+  `srvApRes` at the ghost log; post `∃ … g'`, `uint.Z g' = ai0 + |ghostOf rp (A ++ ms)|`. Proof
+  (`Proof/…/EtcdServer__apply.lean`): `wp_proofOff : specAt (· = .off)` (ApplyR's body, after
+  `isServerM_false`/`srvLessorNilM_false`/`srvApplyKVM_false`/`kvAppliedM_false`/`logShapeM_false`),
+  `wp_proofOn : specAt (∃ γa, · = .on γa)` (ApplyROn's, the `_true` laws), `wp_proof` by cases on
+  `E.authMode`. **Why stronger**: `rp := RestartPt.first`, `g := f0 - 1` gives the old text:
+  `ghostOf_first` (ghost log = `A`), `srvRestR_first` (`srvRest`), `kvBatchR_first` (from `kvBatch`
+  and `srvRLogLb γr.raft []`, given `c0 ≤ ai0 ≤ ciEff`, a first start's `ai0 = 0`), the ghost
+  index's equation `uint.Z (f0 - 1) = ai0 + |A|` (`kvBatch`'s), `dvOk` at `(f0 - 1) + 1 = f0`; after,
+  `g'` is the last index (`srvIdxOk_batch_last`).
+- **`apply.specOff`/`specOn`, `spec_off`/`spec_on`** (`ModeSpecs.lean`): deleted, no caller left.
+  **Why stronger**: they are `specAt (· = .off)`/`specAt (∃ γa, · = .on γa)` at `rp := first`,
+  `g := f0 - 1` as above, with the mode laws (`isServerM_false`, `srvLessorNilM_false/_true`,
+  `srvApplyKVM_false/_true`, `kvAppliedM_false/_true`, `logShapeM_false/_true`) rewriting the rows.
+- **`applyEntries.specBatch`** (Spec) is `applyEntries.specBatchAt (· ≠ .any)`, the old
+  `specBatchRAt` with `srvRunH` written as its match and `⌜uint.Z g = ai0 + |ghostOf rp A|⌝`;
+  `specNil`, `spec` unchanged. One proof `wp_proofBatch (hApply : apply.spec)` (ApplyEntriesROn's
+  body, generic); the frozen `wp_proofOff/On/Batch` and `ModeSpecs`' `applyEntries.specOff/specOn`
+  deleted. **Why stronger**: `rp := first`, `g := ai` (Go's applied index), as for `apply`.
+- **`applyAll.specBatch`** (Spec) is RunR's `specBatchR`: binders `rp g T`, pre
+  `winNoMergedSendR … T (rp.A₀.drop |A ++ ce|) rt ∗ T ∗ srvSnapBagN s γn`, the ghost rows at
+  `ghostOf rp`, `kvBatchR`, `srvRestR`; post `T` and `g'`. Proof: ApplyAllR's `wp_proofBatchR`,
+  renamed `wp_proofBatch`. **Why stronger**: `rp := first`, `g := ai`, `T := True`:
+  `winNoMergedSendR_nil` (`[].drop _ = []`), `kvBatchR_first`, `srvSnapBagN` built by the frozen
+  `run.wp_proofG` from the hub's `#Hmid` and `isRaftNode`'s rows (as `RunRestart` does), so `run`'s
+  statement is unchanged.
+- **Exported results**, texts unchanged, meaning the restart form (docstrings updated):
+  `applied_log_at` (`apply.spec`: instance `rp := first`, `g := f0 - 1`), `applyEntries_model`
+  (`applyEntries.spec`, whose `specBatch` instance is `rp := first`, `g := ai`), `applyAll_model`
+  (`applyAll.spec`, `specBatch` at `rp := first`, `g := ai`, `T := True`).
+- **New law** `kvBatchR_first` (`ApplyRDefs.lean`): `kvBatch γr c ai G ms ∗ srvRLogLb γr.raft [] ⊢
+  kvBatchR γr c ai RestartPt.first G ms` under `c0 ≤ ai0 ≤ c`. Moved to `ApplyRDefs.lean` from RunR:
+  `winNoMergedSendR` (+ `_nil`), `srvSnapBagN`, `ghostOf_length`.
+- **Deleted**: `ApplyR.lean` (1102 lines), `ApplyROn.lean` (1100), `ApplyEntriesR.lean` (302),
+  `ApplyEntriesROn.lean` (304), `ApplyAllR.lean` (670); `ModeSpecs.lean` −282+; net 4522 − 1108 lines.
+- **Callers**: the frozen `EtcdServer__run.lean` (`run_job_body` at `RestartPt.first`, `True`,
+  `Hwnm`/`HkbR`/`Hbagn` built; `run.wp_proofG` builds `#Hbagn`), `RunR` (`run_job_bodyR` over
+  `applyAll.specBatch`; its spec section gone), `RunRestart` (`hAB : applyAll.specBatch`,
+  `run_job_bodyR_match` over `run_job_bodyR.match_1`), `RunSnapR` (import), `SDRun` (match lemmas
+  renamed). `Link.lean`: `etc/gen-link.py --server`'s output identical to the committed file.
+- **Checks**: full build ok; `tcb-report --check` 817 axioms, 4 sorries (baseline); api, import-all ok.
+  `etc/mode-check.py --check` FAILS: 290 against 289 after lowering lit-mode 146→145 and twin
+  17→16 (this batch's decrease); match-mode 70 > 69, from `applyEntryNormal.spec`'s two
+  `if E.authOn` (Q23(a), lines 83/99), not this batch's. `etc/bounds-check.py --check` FAILS on this
+  branch before this batch too: stock +1 (`StopR.lean`'s `List.replicate (64 + 64)`, A10 item 3),
+  spec-receipt +1 (`applyEntryNormal.spec`'s `receiptBound`, Q23(a)).
+
+Next: the merged `stopCleanupImage` (pair 8), the run swap with the hub edit (pair 9); before landing,
+the match-mode and the two bounds rows above.

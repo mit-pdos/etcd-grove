@@ -16,7 +16,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunR
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyAll
 
 @[expose] public section
 

@@ -100,7 +100,10 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
         applyResC K C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft (A ++ ce) ∗
         srvSnapDisk C.s C.γr ∗
         (letI : MemStorReg GF := ⟨C.γr.raft.raft.reg⟩; memStorInv C.ms C.γs C.γr.raft.raft.cl nk) ∗
-        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length }}
+        taRaftTermAddr apL ↦□ rt ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length ∗
+        -- (R2d'a swap batch 3) the raft node's `MsgSnap` bag (`applyAll.specBatch`'s, unused at a
+        -- first start: no window)
+        srvSnapBagN C.s γn }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyResC K C (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
@@ -109,7 +112,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
   simp only [EtcdServer.applyAll.specBatch, srvRunH_applyAll_specBatch] at hAA
   rw [hR]
   iintro %Φ ⟨#Hpkg, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
-    #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok⟩ HΦ
+    #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok, #Hbagn⟩ HΦ
   iunfold applyResC at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HKVf, Hwal, ⟨%w, #HWA⟩, HtokR, Hso, %Hpure⟩
@@ -182,6 +185,19 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     ipureintro
     refine ⟨by rw [Hkc.2]; exact Hai0, fun m hm => ?_⟩
     rw [Hkc.1]; exact hcong m hm
+  -- (R2d'a swap batch 3) `applyAll.specBatch` at a first start (`RestartPt.first`, `g = ai`,
+  -- `T = True`): the batch's window form (`kvBatchR_first`, the start's `ai₀ = 0`), no window left
+  -- (`winNoMergedSendR_nil`)
+  ihave #Hlb0 : srvRLogLb C.γr.raft [] $$ []
+  · iapply (srvRLogLb_mono C.γr.raft [] (A ++ ce) List.nil_prefix); rw [← Hρr]; iexact Hlbr
+  ihave #HkbR : iprop(kvBatchR C.γr (ciEff B.γ st.k) ai RestartPt.first A ce) $$ []
+  · iapply (kvBatchR_first C.γr (ciEff B.γ st.k) ai A ce (by rw [Hkc.1, Hkc.2]; exact hc0)
+      (by rw [Hkc.2]; have h0 : uint.Z C.ai₀ = 0 := by have := uint_nat_eq C.ai₀; omega
+          rw [h0]; word))
+    iframe Hkb Hlb0
+  ihave #Hwnm : winNoMergedSendR C.γr.raft.raft C.s γn.t0 iprop(True)
+      (RestartPt.first.A₀.drop (A ++ ce).length) rt $$ []
+  · simp only [RestartPt.first, List.drop_nil]; iapply winNoMergedSendR_nil
   -- (D19i part 1) the floor past the batch, at its last index (`srvIdxOk_batch_last`)
   have e1 : (max (uint.Z ai) (((ce.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat =
       uint.nat C.ai₀ + (A ++ ce).length := by
@@ -202,28 +218,40 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
   ihave Hbr : iprop(srvBemuReaderAt C.s B.E.γbe) $$ [Hbr]
   · rw [beSucc_γbe HB]; iexact Hbr
   iapply (hAA C.s B.γ C.ci B.TM K B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x sa A
-      C.ms C.γs C.wt dv γnc w nk (1 : Qp).half γn rt (rnLogOf γn (A ++ ce)).length)
+      C.ms C.γs C.wt dv γnc w nk (1 : Qp).half γn rt (rnLogOf γn (A ++ ce)).length RestartPt.first ai
+      iprop(True))
     $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal Hso]
   · isplitr
     · iexact Hpkg
     isplitr
     · ipureintro
       exact ⟨by rw [beSucc_authMode HB]; exact hM, hRB, hms, hb1, Hloop, hok', hdv,
-        by have := uint_nat_eq C.ai₀; omega, Hlt, hdisk, Hci, hcia, hγn, hpre,
+        by have := uint_nat_eq C.ai₀; omega, Hlt, hdisk, Hci, hcia,
+        by rw [ghostOf_first, Hkc.2]; exact Hai0, hγn, hpre,
         by rw [hun]; simp [rnLogOf]⟩
+    simp only [ghostOf_first, srvRestR_first]
     rw [hun]
+    iframe Hwnm Hbagn HkbR
     iframe Hsd Hmsinv HKVf Hwal Hrtf Hrtok
-    iframe HWc' Hracc' Hcv Hkb Hbw' HWA Hlog Hsrv Hlnil Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa
+    iframe HWc' Hracc' Hcv Hbw' HWA Hlog Hsrv Hlnil Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa
     iframe
     iunfold srvGoRes
     iframe
     iexact Hdvr
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', Hrh, #Hsrv', -, HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
+  simp only [ghostOf_first, srvRestR_first]
+  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', -, Hrh, #Hsrv', -, HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, #HKVf', Hwal, Hso, %Hpost⟩
   ihave Hwal : rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [hrn]; iexact Hwal
-  obtain ⟨hloop', hai', hci', hciN, hat'⟩ := Hpost
+  obtain ⟨hg', hloop', hai', hci', hciN, hat'⟩ := Hpost
+  -- (swap batch 3) at a first start the ghost index after the batch is Go's
+  have hge : ai' = g' := by
+    have hl := srvIdxOk_batch_last C.ai₀ ai A ce hidx Hai0
+    rw [hun, Hkc.2] at hg'
+    have h1 : uint.Z ai' = uint.Z g' := by rw [hai', hl, hg']
+    word
+  subst hge
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨Hwr, Htok⟩
   iapply HΦ
@@ -753,6 +781,16 @@ theorem EtcdServer.run.wp_proofG
   iunfold isServerRunC at Hpre
   iNamed Hpre
   obtain ⟨HEC, HEγr, Hc0a, Ha0n⟩ := HEr
+  -- (R2d'a swap batch 3) the raft node's `MsgSnap` bag at `γn` (`run.wp_proofR`'s), for
+  -- `applyAll.specBatch`'s restart form (`run_job_body`)
+  ihave #Hbagn : srvSnapBagN s γn $$ []
+  · iunfold srvSnapBagN
+    iframe Hmid
+    ihave #Hrn0 := Hrn
+    iunfold isRaftNode at Hrn0
+    iNamed Hrn0
+    iexists _
+    iframe Hmsc Hmsci
   icases HWB with ⟨%γp, #HWB, #HWA0, #HWreg⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv' := (isServerM_C C s γ ci TM E ρ γr).2 $$ Hsrv

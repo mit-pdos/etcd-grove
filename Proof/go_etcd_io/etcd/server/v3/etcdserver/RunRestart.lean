@@ -5,7 +5,7 @@ counterpart).
 
 `run.wp_proofG` over the restart's conjuncts (A9's `srvRunRestartR`, `σ.b = 0`): the apply thread's
 loop resources in restart form (`applyResR` at the restart point `⟨0, A₀⟩`, from `applyResR_start`),
-the batch jobs over `applyAll.specBatchR` (`run_job_bodyR`, with `Hwpend`'s window token borrowed by
+the batch jobs over `applyAll.specBatch` (the restart form since swap batch 3) (`run_job_bodyR`, with `Hwpend`'s window token borrowed by
 `winNoMergedSendR`), the stop inside the window over `StopR.lean`'s pieces and past it the frozen path.
 The snapshot jobs over `applyAll.specSnapM` (`run_job_snapCR`, `RunSnapR.lean`), inside the window
 or past it; inside it the snapshot above the backend's log (`|A₀| < |A'|`, A8's `rnWinInstallAbove`,
@@ -135,7 +135,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `run_job_bodyR`'s running half, as `srvRunH` (`run_job_body_match`'s). -/
 theorem run_job_bodyR_match (γs : ServerRaftNames) (dv : Option Loc) :
-    EtcdServer.applyAll.specBatchR.match_1 (fun _ => IProp GF) dv (fun _ => iprop(True))
+    run_job_bodyR.match_1 (fun _ => IProp GF) dv (fun _ => iprop(True))
       (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning (GF := GF) n γs.raft.cl srvClusterN (1 : Qp).half) =
       srvRunH (GF := GF) γs dv := by
   cases dv <;> rfl
@@ -176,7 +176,7 @@ theorem EtcdServer.run.wp_proofR
     (hRStop : raftNode.stop.spec (GF := GF) (hG := hG))
     (hCl : stopCleanupImage.spec (GF := GF) (hG := hG))
     (hClR : stopCleanupImageR.spec (GF := GF) (hG := hG))
-    (hAB : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG))
+    (hAB : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     (hAS : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))

@@ -193,7 +193,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The apply loop implements the client model over the committed entries** (`s.applyEntries
 (ep, ap)`, linked): the consistent-index protocol kept (`loopOk`, `ep.appliedi` advanced to the
 last entry), and the apply thread's KV taken from `x` to `x'` by `entriesStep c (unapplied ai ms)`
-(`c` the consistent index at the start), under the entries' shapes (`logShape`). -/
+(`c` the consistent index at the start), under the entries' shapes (`logShape`). (R2d'a swap batch
+3, 2026-11-06) At a restart point: `applyEntries.specBatch` is the restart form (Go's rows at Go's
+log, the ghost rows at `ghostOf rp A`, `kvBatchR`, `srvRestR`), strictly stronger than the
+first-start form it replaces, its instance at `rp = RestartPt.first`, `g = ai`. -/
 theorem applyEntries_model : EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyEntries
 
@@ -205,7 +208,11 @@ x'.log`), the applied index's waiters through `ai'` released (`applyWait.Trigger
 no-snapshot contract (`ap.snapshot = nil`) and the snapshot, compaction and merged-snapshot
 contracts. (2026-10-26) Under `ErrorStringLeaf`: the compaction (`compactRaftLog`, proved since)
 decides `errors.Is(err, raft.ErrCompacted)` of an `errors.New` error. (The auth component's stage 2, 2026-11-04) In both auth modes: the
-batch over the component `C`, the snapshot payload `specSnapM` (its off corollary deleted in stage 3: no caller used it). -/
+batch over the component `C`, the snapshot payload `specSnapM` (its off corollary deleted in stage 3: no caller used it). (R2d'a swap
+batches 2-3, 2026-11-06) Both at a restart point: the batch `specBatch` the restart form (the ghost
+rows at `ghostOf rp`, `kvBatchR`, `srvRestR`, the window's `winNoMergedSendR` over a borrowed `T`,
+`srvSnapBagN`), strictly stronger than the first-start form, its instance at `rp =
+RestartPt.first`, `g = ai`, `T = True`. -/
 theorem applyAll_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll
 
@@ -216,7 +223,10 @@ ahead since unit C2a, 2026-10-14, `srvAppliedPre`, `applied_predeposit`); `apply
 (linked) does it for every entry, so its result's index has the KV's log after the batch; and the
 log applied through an index is unique. Together with `range_linearizable`: a linearizable read at
 the committed index `c` returns the state of a log extending the one applied through some index
-`ci₀ ≥ c`, and that log is exactly the apply thread's after the entry at `ci₀`. -/
+`ci₀ ≥ c`, and that log is exactly the apply thread's after the entry at `ci₀`. (R2d'a swap batch 3,
+2026-11-06) `apply.spec` is the restart form (`apply.specAt (· ≠ .any)`: the applied index `g` the
+ghost's, `appliedLogAt γr g'` after), strictly stronger than the first-start form, its instance at
+`rp = RestartPt.first`, `g = f0 - 1`. -/
 theorem applied_log_at :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) ∧
     EtcdServer.apply.spec (GF := GF) (hG := hG) ∧

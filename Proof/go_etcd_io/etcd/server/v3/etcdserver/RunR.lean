@@ -11,11 +11,8 @@ history) at the ghost log `ghostOf rp A` while Go's rows (`ep.appliedi`, `loopOk
 state) stay at `A`; past the window it is `applyResC` (`applyResR_past`), and a first start's is
 `applyResC`'s (`applyResR_first`).
 
-* `winNoMergedSendR`: a DRAFT copy of R2d's `winNoMergedSend` (branch `r2d-prime`,
-  `ApplyWindow.lean`; not on `lean`), the batch's premise that no merged snapshot is sent at its
-  raft term while the window is left (`server.go:1018-1020`'s guard and
-  `createMergedSnapshotMessage`);
-* `applyAll.specBatchR`: the hypothesized window form of `applyAll.specBatch` (a theorem argument);
+* (swap batch 3, 2026-11-06) `winNoMergedSendR` and `srvSnapBagN` moved to `ApplyRDefs.lean`, and
+  `applyAll.specBatchR` became `applyAll.specBatch` (the Spec file);
 * `run_job_bodyR`: `run_job_body` over `applyResR`, for a batch inside, straddling or past the
   window.
 -/
@@ -43,43 +40,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-open go_etcd_io.raft.v3 in
-/-- **No merged snapshot send while a window is left** (DRAFT copy of `r2d-prime`'s
-`winNoMergedSend`, `ApplyWindow.lean:277`): with entries `R` of the window left after the batch,
-the message the batch takes from this member's bag (`msgOwn m 1`, sent from the server's
-`memberID`) is not a `MsgSnap` at the batch's raft term `rt` (Go merges only one at `rt`,
-`server.go:1018`). (R2d'a A10 item 5, approved by 82: narrowed to `t0 < rt`, `Hwpend`'s guard) Only
-for a term above the start term `t0`: at `rt ≤ t0` the bag's `MsgSnap` is above `t0` (`rnSnapMsg`'s
-bound), so not at `rt`. (A10 item 4) Persistent, over a resource `T` it borrows and gives back
-(`Hwpend`'s window token, which the batch's `applyAll.specBatchR` takes and returns: the loop keeps
-it across the window's batches). -/
-def winNoMergedSendR (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF) (R : List EntryModel)
-    (rt : w64) : IProp GF :=
-  letI := srvStor (GF := GF) γ
-  iprop(⌜R = []⌝ ∨
-    □ (⌜uint.Z t0 < uint.Z rt⌝ -∗ T -∗ ∀ (id : w64) (m : Loc) (st : MsgSt),
-      srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗ sentMsg γ.cl srvClusterN id st -∗
-        ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st ∗ T))
-
-instance winNoMergedSendR_persistent (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF)
-    (R : List EntryModel) (rt : w64) : Persistent (winNoMergedSendR (GF := GF) γ s t0 T R rt) := by
-  unfold winNoMergedSendR; infer_instance
-
-theorem winNoMergedSendR_nil (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF) (rt : w64) :
-    ⊢ winNoMergedSendR (GF := GF) γ s t0 T [] rt := by
-  unfold winNoMergedSendR
-  ileft; ipureintro; rfl
-
-/-- (R2d'a A10 item 5) **The raft node's `MsgSnap` bag, at the server** (persistent; `isServerRunC`'s
-`#Hmid` and `#Hrn`'s): the server's member id the node's, and `msgSnapC` the node's bag of
-`rnSnapMsg γn`, whose `MsgSnap`s are above `γn.t0`. `applyAll`'s merged-send case receives through
-it at `rt ≤ γn.t0` (`isServerApplyAll`'s bag names are existential). -/
-def srvSnapBagN (s : Loc) (γn : RNNames) : IProp GF :=
-  iprop(srvMemberIDAddr s ↦□ γn.id ∗
-    (∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗ isRNMsgSnapC γn msc))
-
-instance srvSnapBagN_persistent (s : Loc) (γn : RNNames) : Persistent (srvSnapBagN (GF := GF) s γn) := by
-  unfold srvSnapBagN; infer_instance
 
 /-- **The apply thread's resources at Go's log `A`, in restart form** (DRAFT): `applyResC`'s rows,
 with the ghost rows at `ghostOf rp A` (the applied index `g`, the KV model, the rest buckets
@@ -116,10 +76,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-theorem ghostOf_length (rp : RestartPt) (G : List EntryModel) :
-    (ghostOf rp G).length = G.length + (rp.A₀.length - G.length) := by
-  simp [ghostOf]
 
 /-- **Past the window, `applyResR` is `applyResC`** (the ghost log Go's, the ghost index Go's). -/
 theorem applyResR_past (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List EntryModel)
@@ -159,119 +115,6 @@ theorem applyResR_first (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel)
 
 end laws
 
-section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **`s.applyAll(ep, ap)` on a batch, in restart form** (R2d' probe, DRAFT; a hypothesis of the
-probe, not proved): `applyAll.specBatch` (`server.go:984-1030` at `673da07c8`: `applySnapshot`,
-`applyEntries`, the read-index notification, the snapshot trigger and the merged snapshot's receive)
-with the ghost rows at `ghostOf rp`: the applied index `g`/`g'` the ghost's, the consistent index
-equal to it at the start (the window's `ciJ`), the KV model, `epCsAt`, the view and `srvApRes` at the
-ghost log, the rest buckets `srvRestR`, the kv side's batch `kvBatchR`, and, while a window is left
-after the batch, `winNoMergedSendR`. Go's rows (`ep.appliedi`, `loopOk`, the snapshot state, the
-frozen terms, `dvRes`) at Go's log. -/
-abbrev EtcdServer.applyAll.specBatchR : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
-    (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
-    (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (sa : auth.AuthState) (A : List EntryModel)
-    (mst : Loc) (γs : MemStorNames) (γp : WTNames) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat) (rp : RestartPt) (g : w64)
-    (T : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      -- the component the environment's, and the batch's premises (`specBatchOff`'s, the shapes in
-      -- the mode, `logShapeM`)
-      ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C ∧
-        (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) ∧ uint.Z ai + 1 < 2 ^ 64 ∧
-        loopOk γ st ai ∧ logShapeM C.isOn E.lm (unapplied ai ms) ∧
-        dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) (unapplied ai ms) ∧
-        uint.Z ai = A.length ∧ lastTermIs A at0 ∧
-        storage.diskOk ∧ uint.Z g ≤ uint.Z (ciEff γ st.k) ∧
-        uint.Z (ciEff γ st.k) ≤ uint.Z g ∧ uint.Z g = uint.Z γr.raft.ai0 + (ghostOf rp A).length ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
-        (A ++ unapplied ai ms).length ≤ n⌝ ∗
-      isServerC C s γ ci TM E ρ γr ∗ acLessor C s ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
-      taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
-      -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
-      -- the node's (on the storage of key `nk`) applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the
-      -- storage's floor)
-      rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
-        iprop(nodeAppliedLb ρ.raft.raft.cl nk
-          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗ nodeCommitLb ρ.raft.raft.cl nk
-          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
-          -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
-          srvFrozenRange γs (uint.nat ai + 1)
-            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
-          -- (2026-10-31, the snapshot track: #11's S3) with their terms
-          srvFrozenTerms γs 1 (A ++ unapplied ai ms) ∗
-          -- (2026-11-03, R2b-1 stage 5) the batch's log handed at its WAL `Save`
-          rnWalHanded γn (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat)) ∗
-          taSnapshotAddr ap ↦□ (null : Loc) ∗
-      -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
-      taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (ghostOf rp (A ++ unapplied ai ms))) ∗
-      notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft (ghostOf rp A) cs ∗
-      srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVC C s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗
-      appliedLogAt γr g x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗
-      kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestR E γr rp A ∗
-      kvBatchR γr (ciEff γ st.k) ai rp A (unapplied ai ms) ∗
-      -- (R2d' A7) no merged snapshot send while the window is left (`winNoMergedSend`)
-      winNoMergedSendR γr.raft.raft s γn.t0 T (rp.A₀.drop (A ++ unapplied ai ms).length) rt ∗ T ∗
-      srvSnapBagN s γn ∗
-      dvView ρ.raft dv (ghostOf rp A) ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗
-      srvApRes s γr (ghostOf rp A) ∗
-      -- (2026-10-30, the repair) with a view, the apply side's half of the running token
-      (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
-      -- (2026-10-31, #11) what the snapshot takes: the disk snapshot's storage, the server's KV over
-      -- the store, the storage's invariant at the storage key `nk`, the apply side's half of the WAL token
-      srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
-      (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; memStorInv mst γs γr.raft.raft.cl nk) ∗
-      rnWalTokA γn (srvRAddr s) q ∗
-      -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
-      -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
-      -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
-      -- (`srvSnapOwn`), passed through the batch
-      srvSnapOwn s ci E γr γ ai ∗
-      -- the rights to issue tokens at the consistent index
-      acTok C (ciEff γ st.k) }}
-    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
-      (Val #ap))
-  {{ RET #();
-      -- (D22 receiver epochs, S7f, 2026-10-23) the apply thread's backend after the batch: the
-      -- protocol's names `γ'` and the environment `E'` at some backend's (`beSucc`), with the
-      -- server's view at them (`applySnapshot` moves the backend; without a snapshot they are
-      -- `γ`, `TM`, `E`, `b`)
-      ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
-        (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc) (g' : w64),
-        ⌜beSucc γ E γ' E'⌝ ∗ T ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ acLessor C s ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
-        epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
-        epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai ms)) cs' ∗
-        srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr g' ∗ appliedAtLeast γr g' ∗
-        srvWTTaken γp.cnt (w + (unapplied ai ms).length) ∗
-        (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVC C s E' ρ.wait x' sa' ∗
-          ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr g' x'.log ∗
-          kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ unapplied ai ms)) x' sa' ∗
-          srvRestR E' γr rp (A ++ unapplied ai ms)) ∗
-        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTokA γn (srvRAddr s) q ∗
-        -- (D22 J1b) the snapshot resources, at the batch's end
-        srvSnapOwn s ci E' γr γ' ai' ∗
-        ⌜uint.Z g' = uint.Z γr.raft.ai0 + (ghostOf rp (A ++ unapplied ai ms)).length ∧ loopOk γ' st' ai' ∧
-          uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
-          (ciEff γ' st'.k = ciEff γ st.k ∨
-            uint.Z (ciEff γ' st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
-          -- (2026-10-31, the snapshot track: S1) the consistent index stays at least the applied one
-          (uint.Z g ≤ uint.Z (ciEff γ st.k) → uint.Z g' ≤ uint.Z (ciEff γ' st'.k)) ∧
-          -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
-          termAfter at0 (unapplied ai ms) at'⌝ }}
-
-end spec
-
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -281,9 +124,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **A job's body in restart form** (R2d' probe, DRAFT): `run_job_body` over `applyResR`, for a
 batch `ce` inside, straddling or past the window (`s.applyAll(&ep, &ap)`, `server.go:846` at
-`673da07c8`), from `applyAll.specBatchR` (a hypothesis). Its new premises: the notifier's payload at
+`673da07c8`), from `applyAll.specBatch` (the restart form since swap batch 3). Its new premises: the notifier's payload at
 the ghost log, and the window's `winNoMergedSendR` for the window left after the batch. -/
-theorem run_job_bodyR (hAA : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG))
+theorem run_job_bodyR (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (rp : RestartPt) (A ce : List EntryModel)
     (K : AuthC) (hM : C.E.authMode = K.mode) (hRB : acReceiptOk (GF := GF) K)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
@@ -332,7 +175,7 @@ theorem run_job_bodyR (hAA : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG
     {{ RET #(); schedule.schedRunning γs ∗ T ∗ applyResR K C rp (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
   have hR : ∀ dv : Option Loc, (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) =
       srvRunH (GF := GF) C.ρ.raft dv := fun dv => by cases dv <;> rfl
-  simp only [EtcdServer.applyAll.specBatchR] at hAA
+  simp only [EtcdServer.applyAll.specBatch] at hAA
   rw [hR]
   iintro %Φ ⟨#Hpkg, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok, #Hwnm, HT, #Hbagn⟩ HΦ

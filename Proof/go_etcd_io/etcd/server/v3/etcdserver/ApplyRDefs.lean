@@ -19,6 +19,8 @@ the ghost log `ghostOf rp G` (`RestReplay.lean`) while Go's rows walk `G`.
   the model's past the window.
 * a replayed conf change is `applyConfChange.spec`'s `v3 = false` case (swap batch 1, 2026-11-06),
   a replayed normal entry `applyEntryNormal.spec`'s (Q23 (a), 2026-11-06).
+* `winNoMergedSendR`, `srvSnapBagN`: `applyAll.specBatch`'s window rows (moved from `RunR.lean` by
+  swap batch 3, 2026-11-06, for the spec's text).
 -/
 module
 
@@ -27,6 +29,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyNormalOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 
 @[expose] public section
 
@@ -87,6 +90,44 @@ def kvBatchR (γr : ReadNames) (c ai : w64) (rp : RestartPt) (G ms : List EntryM
 instance kvBatchR_persistent (γr : ReadNames) (c ai : w64) (rp : RestartPt) (G ms : List EntryModel) :
     Persistent (kvBatchR (GF := GF) γr c ai rp G ms) := by
   unfold kvBatchR; infer_instance
+
+open go_etcd_io.raft.v3 in
+/-- **No merged snapshot send while a window is left** (DRAFT copy of `r2d-prime`'s
+`winNoMergedSend`, `ApplyWindow.lean:277`): with entries `R` of the window left after the batch,
+the message the batch takes from this member's bag (`msgOwn m 1`, sent from the server's
+`memberID`) is not a `MsgSnap` at the batch's raft term `rt` (Go merges only one at `rt`,
+`server.go:1018`). (R2d'a A10 item 5, approved by 82: narrowed to `t0 < rt`, `Hwpend`'s guard) Only
+for a term above the start term `t0`: at `rt ≤ t0` the bag's `MsgSnap` is above `t0` (`rnSnapMsg`'s
+bound), so not at `rt`. (A10 item 4) Persistent, over a resource `T` it borrows and gives back
+(`Hwpend`'s window token, which the batch's `applyAll.specBatch` takes and returns: the loop keeps
+it across the window's batches). -/
+def winNoMergedSendR (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF) (R : List EntryModel)
+    (rt : w64) : IProp GF :=
+  letI := srvStor (GF := GF) γ
+  iprop(⌜R = []⌝ ∨
+    □ (⌜uint.Z t0 < uint.Z rt⌝ -∗ T -∗ ∀ (id : w64) (m : Loc) (st : MsgSt),
+      srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗ sentMsg γ.cl srvClusterN id st -∗
+        ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st ∗ T))
+
+instance winNoMergedSendR_persistent (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF)
+    (R : List EntryModel) (rt : w64) : Persistent (winNoMergedSendR (GF := GF) γ s t0 T R rt) := by
+  unfold winNoMergedSendR; infer_instance
+
+theorem winNoMergedSendR_nil (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF) (rt : w64) :
+    ⊢ winNoMergedSendR (GF := GF) γ s t0 T [] rt := by
+  unfold winNoMergedSendR
+  ileft; ipureintro; rfl
+
+/-- (R2d'a A10 item 5) **The raft node's `MsgSnap` bag, at the server** (persistent; `isServerRunC`'s
+`#Hmid` and `#Hrn`'s): the server's member id the node's, and `msgSnapC` the node's bag of
+`rnSnapMsg γn`, whose `MsgSnap`s are above `γn.t0`. `applyAll`'s merged-send case receives through
+it at `rt ≤ γn.t0` (`isServerApplyAll`'s bag names are existential). -/
+def srvSnapBagN (s : Loc) (γn : RNNames) : IProp GF :=
+  iprop(srvMemberIDAddr s ↦□ γn.id ∗
+    (∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗ isRNMsgSnapC γn msc))
+
+instance srvSnapBagN_persistent (s : Loc) (γn : RNNames) : Persistent (srvSnapBagN (GF := GF) s γn) := by
+  unfold srvSnapBagN; infer_instance
 
 end defs
 
@@ -329,6 +370,24 @@ theorem srvRestRp_close (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   iexists f
   iframe H1 H2 H3 H4
   ipureintro; exact Hf
+
+
+theorem ghostOf_length (rp : RestartPt) (G : List EntryModel) :
+    (ghostOf rp G).length = G.length + (rp.A₀.length - G.length) := by
+  simp [ghostOf]
+
+/-- **A first start's batch** (swap batch 3, 2026-11-06): `kvBatch` at the empty backend log is
+`kvBatchR` at `RestartPt.first`, given the empty log's bound and the start's `c0 ≤ ai0 ≤ c` (a
+first start's `ai0 = 0`). -/
+theorem kvBatchR_first (γr : ReadNames) (c ai : w64) (G ms : List EntryModel)
+    (h0 : uint.Z γr.kv.c0 ≤ uint.Z γr.raft.ai0) (h1 : uint.Z γr.raft.ai0 ≤ uint.Z c) :
+    kvBatch (GF := GF) γr c ai G ms ∗ srvRLogLb γr.raft [] ⊢ kvBatchR γr c ai RestartPt.first G ms := by
+  unfold kvBatch kvBatchR
+  iintro ⟨⟨#Hlb, %H⟩, #Hlb0⟩
+  simp only [RestartPt.first]
+  iframe Hlb Hlb0
+  ipureintro
+  refine ⟨H.1, Nat.zero_le _, by simpa using h1, h0, by simp, fun m hm _ => H.2 m hm⟩
 
 end laws
 
