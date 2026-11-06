@@ -356,6 +356,79 @@ theorem wp_osCallBegin (R : Roots) (V : Hist) (q1 q2 : Qp) (hE : ↑osN ⊆ E) (
   have hl : V.2.length = st.fs.metaLog.length := by rw [hc.hist]
   unfold osCall; rw [hl]; iexact Hk
 
+/-! ## `lstat`'s directory test -/
+
+/-- **`LstatDir(p)`** of a call `k`, with a fraction of the history in which `p`, a path of the
+roots' trees, is no directory: `isDir = 0`; the call's fraction comes back. -/
+theorem wp_osLstatDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s' : Nat)
+    (hp : (Hist.st R V).TreePath p) (hnd : ∀ j, lookupH R V p ≠ some (.dir j)) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
+      (∀ e : w64, osTree (L := L) (DFrac.own (q1 + q)) R V -∗ Φ (PairV (#(0 : w64)) (#e))) -∗
+      WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV k) (#p)))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hh Hk HΦ
+  iapply wp_fs_stepT "LstatDir" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  unfold osWorld treeWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  obtain ⟨hw, hc⟩ := Hns
+  icases osTree_auth _ _ _ _ _ $$ HAd Hh with %Heq
+  obtain ⟨rfl, rfl⟩ := Heq
+  icases osCall_auth Γc k s' q $$ HAc Hk with %hk
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hcall : st.proc.calls !! k = some s' := by rw [← hc.calls k, hk]; rfl
+  have hV : V = (st.fs.treeDur, st.fs.metaLog) := hc.hist
+  subst hV
+  have hs : FilesSame st (st.metaEnd k) := ⟨rfl, rfl, rfl, rfl⟩
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf hs Hag
+    exact ⟨_, h, _, ⟨p, 0, 0, k, s', rfl, hp, hcall, rfl, .inr rfl, rfl⟩, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsFsStep] at Hst
+  obtain ⟨p', isDir, e, k', s0, hv, -, hk', rfl, hres, rfl⟩ := Hst
+  injection hv with h1 h2
+  have hkk : k' = k := by injection h1 with h1; exact (extVal_inj h1).symm
+  subst hkk
+  cases go.intoVal_inj h2
+  have hres' : isDir = 0 := by
+    rcases hres with ⟨⟨j, hj⟩, -, -⟩ | h0
+    · exact absurd hj (hnd j)
+    · exact h0
+  subst hres'
+  imod osWorld_filesSame (st := st) (st' := st.metaEnd k') hs Hr Hfr
+    $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
+  · unfold osWorld; iframe; ipureintro; exact ⟨hwf, hcoh⟩
+  imod call_end _ _ Γc k' s' q $$ HAd HAc Hcr Hk with ⟨%hk2, HAd, HAc, Hcr, Hq⟩
+  imodintro
+  iexists Γb, Γm, Γf, Γt, (st.fs.treeDur, st.fs.metaLog), Γdf, GMap.delete k' Γc
+  unfold osWorld
+  isplitl [Hw]
+  · iexact Hw
+  isplitl [HAd HAdf HAc Hrd Hcr]
+  · simp only [OsState.metaEnd]
+    iframe
+    ipureintro
+    refine ⟨⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩,
+      ⟨hc.hist, hc.seq, hc.fds, hc.ph, hc.rd, fun t0 => ?_, fun t0 x hx => ?_⟩⟩
+    · show _ = (GMap.delete k' st.proc.calls) !! t0
+      by_cases h0 : k' = t0
+      · subst h0; simp
+      · rw [GMap.lookup_delete_ne _ h0, GMap.lookup_delete_ne _ h0]; exact hc.calls t0
+    · by_cases h0 : k' = t0
+      · subst h0; simp at hx
+      · rw [GMap.lookup_delete_ne _ h0] at hx; exact hc.start t0 x hx
+  iapply wp_value'
+  iapply HΦ $$ %e
+  iapply (osTree_split q1 q _ _).2
+  iframe
+
+
 end specs
 
 end Fs
