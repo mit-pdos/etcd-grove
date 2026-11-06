@@ -31,7 +31,10 @@ abbrev backend.batchTxBuffered.commit.spec : Prop :=
       payIn γ st stop m u ∗ X ∗ commitReq γ P Pk b X Y }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"commit")) (Val #stop))
   {{ RET #(); Y ∗ Pk ∗ payOut γ stop m ∗
-      (if stop then iprop(sync.ownMutex (muOf t) ∗ pendOf t ↦ W64 0 ∗ bStopped γ ∗ bDBOutG γ P)
+      (if stop then iprop(sync.ownMutex (muOf t) ∗ pendOf t ↦ W64 0 ∗ bStopped γ ∗ bDBOutG γ P ∗
+         -- (2026-11-06, `notes/begin-tok-plan.md`) the rollback goroutine's fork token: no new
+         -- read transaction takes it at the stop
+         threadTok)
        else iprop(∃ (st' : BSess) (db : Loc), sync.ownMutex (muOf t) ∗ batchPhys γ b t db st' ∗
          batchGhostAt γ P st' true ∗
          ⌜freeOk P st' ∧ vData P (st'.C, st'.R) = sData P st.S ∧ st'.pend = W64 0⌝ ∗

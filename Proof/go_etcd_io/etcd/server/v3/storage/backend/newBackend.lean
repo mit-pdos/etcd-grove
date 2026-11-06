@@ -65,8 +65,8 @@ theorem backend.newBackend.wp_proof
     (hNew : backend.newBatchTxBuffered.spec (GF := GF) (hG := hG))
     (hRun : backend.backend.run.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
-  intro cfg P D W Pk K
-  wp_start as ⟨Hfile, %HP, #Hhk, Hmk⟩
+  intro _ cfg P D W Pk K
+  wp_start as ⟨Hfile, %HP, #Hhk, Hmk, Htok⟩
   -- `boltOpenOptions`: the backend's package fact (item 8)
   ihave #Hboo : (boltOpenOptionsOk : IProp GF) $$ []
   · ihave Hbi : (go_etcd_io.etcd.server.v3.storage.backend.backendInit : IProp GF) $$ []
@@ -210,7 +210,7 @@ theorem backend.newBackend.wp_proof
     iframe #
     ipureintro; exact Hlg
   -- `b.batchTx = newBatchTxBuffered(b)`
-  wp_apply (hNew «$r0_ptr» «$v5_ptr» db cfg.BatchLimit' γrw γd D) $$ [hooks rtx Hst Hmu1 Hown Hwr]
+  wp_apply (hNew «$r0_ptr» «$v5_ptr» db cfg.BatchLimit' γrw γd D) $$ [hooks rtx Hst Hmu1 Hown Hwr Htok]
     as %t ⟨%wtx, %rtx, Hmx, Htxf, Hpend, Hdel, Hwb, #Hbe, hooks, rtx, Hst, Hmu1, Hown, Hwtx, #Hwdb,
       Hlive, #Hsnap, Hstats, #Hrdb⟩
   · iframe
@@ -233,22 +233,25 @@ theorem backend.newBackend.wp_proof
   iunfold newPostK at Hpost
   icases Hpost with ⟨#Hb, Hpost⟩
   -- `go b.run()`
-  wp_apply wp_fork $$ [Hdcp Hrtok Hopnr Husedr]
+  -- (2026-11-06, `notes/begin-tok-plan.md`) the fork's fresh token comes back to the creator; `run`
+  -- exits with one (`CommitAndStop`'s)
+  wp_apply wp_fork_tok_self $$ [Hdcp Hrtok Hopnr Husedr] as Htok
   · wp_apply (hRun γ P (W γ) (Pk γ) «$r0_ptr» sc dc γsc γdc 0 cfg.BatchInterval') $$
-      [Hdcp Hrtok Hopnr Husedr]
+      [Hdcp Hrtok Hopnr Husedr] as Htok
     · iframe
       iframe #
+    iframe Htok
     itrivial
   iapply HΦ
   ileft
   iexists «$r0_ptr», γ
   isplitr
   · ipureintro; rfl
-  isplitl
+  isplitl [Hpost]
   · unfold newPostK
     iframe Hb
     iexact Hpost
-  iframe Hbfile
+  iframe Hbfile Htok
   unfold hooksAt
   iexact hooks
 
