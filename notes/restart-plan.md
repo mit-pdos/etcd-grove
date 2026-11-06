@@ -3815,3 +3815,56 @@ hub is untouched, Q20), `EtcdServer.run.specR` and `EtcdServer.run.wp_proofR`, t
   `rnRestartOk_commit`, `stopCleanupImageR.spec` (`hClR`); past it `applyResR_past` and the frozen path;
 - **the one `sorry`: the snapshot arm** (`RunRestart.lean`, `rotate_left` after `rnApplyTok_recv`),
   closed by task 4 (`applyAll.specSnapMR` over the ids-only `clusterImageOk_restModel`).
+
+#### R2d'a task 4: the axiom's ids form and the window receive in; `applyAll.specSnapMR` next (2026-11-06; checkpoint)
+
+**In** (branch `r2dp`):
+- `bf5e464d84`: `membership.clusterImageOk_restModel`'s members premise is ids-only (Q26 (a)). After
+  the `ccBootOk` premise: `∀ mem, (∀ k, (mem !! k).isSome = ((restModel c0 γ.raft.boot L).mem !!
+  k).isSome) → ⊢ … clusterMem c mem -∗ clusterMem c mem ∗ ⌜…⌝`. The docstring has the review's
+  bullet verbatim and cites `notes/axiom-review/clusterimage-ids.md` (copied in, README row; new
+  `notes/audit.md` row in the `etcdserver` table, since there was none). Callers
+  (`snapRecv_image`, `snapRecv_imageOn`) pass `_ (fun _ => rfl)`. No interface file covers it.
+  `etc/tcb-baseline.txt` and the collections list only the name, so they do not change.
+- `c1df9d8c71`: `srvRestRp_close`, `snapRecv_imageR`, `snapRecv_imageOnR` (`ApplyAllR.lean`,
+  section `recvR`). These are the frozen proofs over `srvRestRp E γr A r0` with
+  `hids : ∀ k, (r0.mem !! k).isSome = ((restModel … (pre ++ A)).mem !! k).isSome`. Inside the
+  window `r0 = restReplay γr rp G` and `hids` is `restReplay_memKeys` (at `A := rp.A₀`).
+
+**Next: `applyAll.specSnapMR` and its proof** (in `ApplyAllR.lean`, which now imports
+`ApplySnapshotR` and `SnapRecvOn`). The design point found while scoping it: **inside the window
+the applied index splits.**
+- `applyResR` keeps Go's index `ai = ai₀ + |G|` in `epAppliedI`, `srvSnapState` and `srvSnapOwn`.
+- It keeps the ghost index `g = ai₀ + |A₀|` in `srvAppliedOwn` and `appliedLogAt`.
+- `specSnapM` has one `ai` for all five.
+
+So `specSnapMR` = `specSnapM` with these changes:
+- binders `g` and `r0`;
+- `srvAppliedOwn γr g ∗ appliedLogAt γr g x.log`;
+- `uint.Z g = A.length` (`A` the ghost log `A₀`) and `uint.Z ai ≤ uint.Z g`;
+- `uint.Z g < uint.Z sv.Metadata'.Index'`, from `rnWinInstallAbove`'s `<` (the receive's strict
+  bound, finding 2 of items 1-2);
+- `srvRestRp E γr A r0` with `hids`.
+
+The post is `specSnapM`'s: past the window, every index is the snapshot's.
+
+The proof copies `ApplyAllSnap.wp_proofSnap` (off) and `ApplyAllSnapOn.wp_proofSnapM` (on), and in
+the copies:
+- `snapDir_take` at `g` (`hnt'` from `nt ≤ ai ≤ g < i`);
+- `snapRecv_imageR`/`snapRecv_imageOnR` at `ai := g`, `r0`, `hids`;
+- `hASnap` := `applySnapshot.wp_proof_snapMR` at Go's `ai` (its `hi` from `ai ≤ g < i`) and `r0`;
+- the `applied_jump(M)` step from `g`.
+
+The text can be generated from the frozen ones as `ApplySnapshotR`'s was. Est. 1.5-2 d.
+
+**Then the snapshot arm of `run.wp_proofR`** (`RunRestart.lean`, the one `sorry`):
+- **Past the window** (`A₀.length ≤ A.length`): `applyResR_past`, then the frozen `run_job_snapC`.
+  It needs `applyResR` back from `applyResC` past the window (the converse of `applyResR_past`;
+  write it if missing).
+- **Inside the window**: a copy `run_job_snapCR` of `run_job_snapC`/`run_job_snap`/`run_snap_jobOn`
+  (`EtcdServer__run.lean:285-720`) over `applyResR` and `specSnapMR`. It opens
+  `srvRestR … rp A` to `srvRestRp … A₀ (restReplay …)`. Its post is `applyResR … ⟨0, A₀⟩ A'` past
+  the window (`|A₀| < snapIdx = |A'|`), with Go's `A <+: A₀ <+: A'`.
+- The `rnWinInstallAbove` bound reaches the arm through `#Hrok` (`rnRestartOk`'s restart disjunct;
+  at the first start `a0 = []`, so there is no window).
+- Est. 1-1.5 d.
