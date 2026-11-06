@@ -1166,7 +1166,7 @@ theorem dataC_length : dataC.length = 8 := rfl
 /-- The data written and synced: every crash leaves it, clean. -/
 theorem synced_good (m : OsMeta) (hok : m.ok = true) (hsz : m.size = 8) (ys : List (w8 × Bool))
     (hys : ys.map Prod.fst = dataC) :
-    ∀ fo, FileCrashedR (m.synced 0 ys) [(0, DFrac.own (1 : Qp).half, syncedBytes m ys)] fo →
+    ∀ fo, FileCrashedR (m.synced 0 ys) [(0, DFrac.own (1 : Qp).half, syncedBytes m 0 ys)] fo →
       DataGood fo := by
   intro fo hfc f hf
   obtain ⟨hlo, -, hr⟩ := hfc f hf
@@ -1174,7 +1174,7 @@ theorem synced_good (m : OsMeta) (hok : m.ok = true) (hsz : m.size = 8) (ys : Li
     have := congrArg List.length hys; simp only [List.length_map] at this; rw [this]; rfl
   refine ⟨by simpa [OsMeta.synced, hsz] using hlo, fun b hb => ?_⟩
   have hyb : b < ys.length := by omega
-  have hx : (syncedBytes m ys)[b]? = some ((ys[b]'hyb).1, true) := by
+  have hx : (syncedBytes m 0 ys)[b]? = some ((ys[b]'hyb).1, true) := by
     simp [syncedBytes, hok, List.getElem?_map, List.getElem?_eq_getElem hyb]
   obtain ⟨hc, hcl⟩ := hr _ (List.mem_singleton_self _) b _ hx rfl
   simp only [Nat.zero_add] at hc hcl
@@ -1182,7 +1182,7 @@ theorem synced_good (m : OsMeta) (hok : m.ok = true) (hsz : m.size = 8) (ys : Li
   rw [hc, ← hys, List.getElem?_map, List.getElem?_eq_getElem hyb]; rfl
 
 theorem checkOk_synced (m : OsMeta) (hok : m.ok = true) (hsz : m.size = 8) (ys : List (w8 × Bool))
-    (hys : ys.map Prod.fst = dataC) : CheckOk (m.synced 0 ys) (syncedBytes m ys) := by
+    (hys : ys.map Prod.fst = dataC) : CheckOk (m.synced 0 ys) (syncedBytes m 0 ys) := by
   have hl : ys.length = 8 := by
     have := congrArg List.length hys; simp only [List.length_map] at this; rw [this]; rfl
   refine ⟨by simp [OsMeta.synced, hsz], by simp [syncedBytes, hok, hl], ?_⟩

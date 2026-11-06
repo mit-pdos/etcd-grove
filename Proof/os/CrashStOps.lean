@@ -238,8 +238,8 @@ def csOpenSt (j : Ino) (b : GoString) (V : Hist) (i : Ino) : CState → CState �
 keeping `H` (shown clean) in the durable bytes known; or (`hd`) of `H`. -/
 def csSynced (hd : Bool) (m : OsMeta) (H F T : List (w8 × Bool)) (fa fb : Nat) : CSt :=
   match hd with
-  | true => ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩
-  | false => ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩
+  | true => ⟨m.synced 0 H, syncedBytes m 0 H ++ (F ++ T), fa, fb, .idle⟩
+  | false => ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m fb T), fa, fb, .idle⟩
 
 section ops
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
@@ -379,8 +379,9 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8)
   dsimp only [invResS, metaRes]
   icases Hr with ⟨Ht, Hb2⟩
   imodintro
-  iapply wp_osPWriteFinish t p off data 1 m (cfRange m bs off data.length) hN $$ Hos Ht
+  iapply wp_osPWriteFinish false t p off data 1 m (cfRange m bs off data.length) hN $$ Hos Ht
   iintro %k %e %hke Hm Hrg Hc
+  rw [pwFinMeta_false]
   have hk := hke.1
   icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
   icases (osBytes_halves _ _ _).1 $$ Hrg with ⟨Hr1, Hr2⟩
@@ -626,13 +627,13 @@ theorem wp_osFsync_cs (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : Go
     (hH : H.length = fa) (hF : fa + F.length = fb) (hd : Bool)
     (hc : hd = false → ∀ y ∈ H, y.2 = true) (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N)
     (hok : Ok (some (d.ino, csSynced hd m H F T fa fb)))
-    (hokF : Ok (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩))) (Φ : val → IProp GF) :
+    (hokF : Ok (some (d.ino, ⟨m.failed, H ++ (F ++ T), fa, fb, .idle⟩))) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ csInv (L := L) N P R γ Good Ok -∗ osFd (L := L) fd dq d -∗
       csOwnF (L := L) γ (some (d.ino, ⟨m, H ++ (F ++ T), fa, fb, .idle⟩)) -∗
       (∀ e : w64,
         ((⌜e = 0⌝ ∗ csOwnF (L := L) γ (some (d.ino, csSynced hd m H F T fa fb))) ∨
          (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗
-           csOwnF (L := L) γ (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)))) -∗
+           csOwnF (L := L) γ (some (d.ino, ⟨m.failed, H ++ (F ++ T), fa, fb, .idle⟩)))) -∗
         osFd (L := L) fd dq d -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Fsync" (Val (#fd))) {{ Φ }} := by
   iintro #Hos #Hinv Hfd Hown HΦ
@@ -673,18 +674,18 @@ theorem wp_osFsync_cs (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : Go
   · iapply wp_osFsync_keep fd dq d m fb T 0 (DFrac.own 1) H (hc rfl) hN $$ Hos Hfd Hm HT HH
     iintro %e Hres HH Hfd
     icases Hres with (⟨%he, Hm, HT⟩ | ⟨%he, Hm, HT⟩)
-    · icases hback _ H (syncedBytes m T) hH $$ [Hm HH HF HT] with ⟨Hi, Ht⟩
+    · icases hback _ H (syncedBytes m fb T) hH $$ [Hm HH HF HT] with ⟨Hi, Ht⟩
       · iframe
-      imod ghostVar_update_halves (some (d.ino, ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩) : CState) γ _ _
+      imod ghostVar_update_halves (some (d.ino, ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m fb T), fa, fb, .idle⟩) : CState) γ _ _
         $$ Hv Hv' with ⟨Hv, Hv'⟩
       imod Hclose $$ [Hv' Hi] with -
-      · inext; iexists (some (d.ino, ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩)); iframe Hv'; isplitl
+      · inext; iexists (some (d.ino, ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m fb T), fa, fb, .idle⟩)); iframe Hv'; isplitl
         · iapply (invResS_idle _ _ rfl).2; iexact Hi
         ipureintro; exact ⟨hok, rfl⟩
       imodintro
       iapply HΦ $$ %e [Hv Ht] Hfd
       ileft; isplitr; · ipureintro; exact he
-      iapply (show csOwnF (L := L) γ (some (d.ino, ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m T), fa, fb, .idle⟩)) ⊢
+      iapply (show csOwnF (L := L) γ (some (d.ino, ⟨m.syncedKeep fb T 0 H, H ++ (F ++ syncedBytes m fb T), fa, fb, .idle⟩)) ⊢
         csOwnF (L := L) γ (some (d.ino, csSynced false m H F T fa fb)) from .rfl)
       iapply (csOwnF_idle _ _ _ rfl).2
       iframe
@@ -693,12 +694,12 @@ theorem wp_osFsync_cs (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : Go
         simp only [OsMeta.syncedKeep, OsMeta.synced, List.length_append, syncedBytes_length] at hl ⊢
       · exact hl
       · omega
-    · icases hback { m with ok := false } H T hH $$ [Hm HH HF HT] with ⟨Hi, Ht⟩
+    · icases hback m.failed H T hH $$ [Hm HH HF HT] with ⟨Hi, Ht⟩
       · iframe
-      imod ghostVar_update_halves (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩) : CState)
+      imod ghostVar_update_halves (some (d.ino, ⟨m.failed, H ++ (F ++ T), fa, fb, .idle⟩) : CState)
         γ _ _ $$ Hv Hv' with ⟨Hv, Hv'⟩
       imod Hclose $$ [Hv' Hi] with -
-      · inext; iexists (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)); iframe Hv'
+      · inext; iexists (some (d.ino, ⟨m.failed, H ++ (F ++ T), fa, fb, .idle⟩)); iframe Hv'
         isplitl
         · iapply (invResS_idle _ _ rfl).2; iexact Hi
         ipureintro; exact ⟨hokF, rfl⟩
@@ -711,19 +712,19 @@ theorem wp_osFsync_cs (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : Go
   · iapply wp_osFsync fd dq d m 0 H hN $$ Hos Hfd Hm HH
     iintro %e Hres Hfd
     icases Hres with (⟨%he, Hm, HH⟩ | ⟨%he, Hm, HH⟩)
-    · icases hback _ (syncedBytes m H) T (by rw [syncedBytes_length]; exact hH) $$ [Hm HH HF HT]
+    · icases hback _ (syncedBytes m 0 H) T (by rw [syncedBytes_length]; exact hH) $$ [Hm HH HF HT]
         with ⟨Hi, Ht⟩
       · iframe
-      imod ghostVar_update_halves (some (d.ino, ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩) : CState) γ _ _
+      imod ghostVar_update_halves (some (d.ino, ⟨m.synced 0 H, syncedBytes m 0 H ++ (F ++ T), fa, fb, .idle⟩) : CState) γ _ _
         $$ Hv Hv' with ⟨Hv, Hv'⟩
       imod Hclose $$ [Hv' Hi] with -
-      · inext; iexists (some (d.ino, ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩)); iframe Hv'; isplitl
+      · inext; iexists (some (d.ino, ⟨m.synced 0 H, syncedBytes m 0 H ++ (F ++ T), fa, fb, .idle⟩)); iframe Hv'; isplitl
         · iapply (invResS_idle _ _ rfl).2; iexact Hi
         ipureintro; exact ⟨hok, rfl⟩
       imodintro
       iapply HΦ $$ %e [Hv Ht] Hfd
       ileft; isplitr; · ipureintro; exact he
-      iapply (show csOwnF (L := L) γ (some (d.ino, ⟨m.synced 0 H, syncedBytes m H ++ (F ++ T), fa, fb, .idle⟩)) ⊢
+      iapply (show csOwnF (L := L) γ (some (d.ino, ⟨m.synced 0 H, syncedBytes m 0 H ++ (F ++ T), fa, fb, .idle⟩)) ⊢
         csOwnF (L := L) γ (some (d.ino, csSynced true m H F T fa fb)) from .rfl)
       iapply (csOwnF_idle _ _ _ rfl).2
       iframe
@@ -732,12 +733,12 @@ theorem wp_osFsync_cs (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : Go
         simp only [OsMeta.synced, List.length_append, syncedBytes_length] at hl ⊢
       · exact hl
       · omega
-    · icases hback { m with ok := false } H T hH $$ [Hm HH HF HT] with ⟨Hi, Ht⟩
+    · icases hback m.failed H T hH $$ [Hm HH HF HT] with ⟨Hi, Ht⟩
       · iframe
-      imod ghostVar_update_halves (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩) : CState)
+      imod ghostVar_update_halves (some (d.ino, ⟨m.failed, H ++ (F ++ T), fa, fb, .idle⟩) : CState)
         γ _ _ $$ Hv Hv' with ⟨Hv, Hv'⟩
       imod Hclose $$ [Hv' Hi] with -
-      · inext; iexists (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)); iframe Hv'
+      · inext; iexists (some (d.ino, ⟨m.failed, H ++ (F ++ T), fa, fb, .idle⟩)); iframe Hv'
         isplitl
         · iapply (invResS_idle _ _ rfl).2; iexact Hi
         ipureintro; exact ⟨hokF, rfl⟩

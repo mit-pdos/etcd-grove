@@ -38,8 +38,8 @@ abbrev os.File.Sync.spec : Prop :=
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
       ((⌜err = interface.nil⌝ ∗ osMeta d.ino (DFrac.own 1) (m.synced lo xs) ∗
-          osBytes d.ino lo (DFrac.own 1) (syncedBytes m xs)) ∨
-       (⌜err ≠ interface.nil⌝ ∗ osMeta d.ino (DFrac.own 1) ({ m with ok := false }) ∗
+          osBytes d.ino lo (DFrac.own 1) (syncedBytes m lo xs)) ∨
+       (⌜err ≠ interface.nil⌝ ∗ osMeta d.ino (DFrac.own 1) (m.failed) ∗
           osBytes d.ino lo (DFrac.own 1) xs)) }}
 
 end spec

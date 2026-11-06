@@ -36,8 +36,8 @@ abbrev syscall.Fdatasync.spec : Prop :=
     (App (Val (@! syscall.Fdatasync)) (Val #fd))
   {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
       ((⌜e = 0⌝ ∗ osMeta d.ino (DFrac.own 1) (m.synced lo xs) ∗
-          osBytes d.ino lo (DFrac.own 1) (syncedBytes m xs)) ∨
-       (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta d.ino (DFrac.own 1) ({ m with ok := false }) ∗
+          osBytes d.ino lo (DFrac.own 1) (syncedBytes m lo xs)) ∨
+       (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta d.ino (DFrac.own 1) (m.failed) ∗
           osBytes d.ino lo (DFrac.own 1) xs)) }}
 
 end spec

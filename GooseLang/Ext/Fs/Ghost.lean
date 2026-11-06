@@ -53,6 +53,32 @@ structure OsMeta where
   /-- The page cache holds zeros past the size (true for a file created in this generation: every
   version a change makes is zero past the size it gives; a crash may leave other bytes there, F3). -/
   zero : Bool
+  /-- Byte ranges `[lo, hi)` changed since the last failed sync, while `ok` is false: a sector one
+  of them meets is not lost (it was dirtied after the failure; a successful sync then collapses
+  it). Empty while `ok`. -/
+  fixed : List (Nat × Nat)
+
+/-- Sector `n` meets one of the byte ranges `fs`. -/
+def Fixed (fs : List (Nat × Nat)) (n : Nat) : Prop := ∃ r ∈ fs, secHits r.1 r.2 n = true
+
+instance (fs : List (Nat × Nat)) (n : Nat) : Decidable (Fixed fs n) := by
+  unfold Fixed; infer_instance
+
+/-- Sector `n` of the file `m` describes is known not lost: no sync failed, or a range changed since
+meets it. -/
+def OsMeta.SecOk (m : OsMeta) (n : Nat) : Prop := m.ok = true ∨ Fixed m.fixed n
+
+instance (m : OsMeta) (n : Nat) : Decidable (m.SecOk n) := by
+  unfold OsMeta.SecOk; infer_instance
+
+/-- `m` after a change of the bytes `[lo, hi)`: while a sector may be lost, the range is recorded
+(the sectors it meets are dirty now). -/
+def OsMeta.fix (m : OsMeta) (lo hi : Nat) : OsMeta :=
+  if m.ok then m else { m with fixed := m.fixed ++ [(lo, hi)] }
+
+/-- `m` after a failed sync: any sector may be lost (the dirty ones were, and the ranges recorded
+since are dirty no longer). -/
+def OsMeta.failed (m : OsMeta) : OsMeta := { m with ok := false, fixed := [] }
 
 /-- An in-flight change, as the ghost state records it. -/
 structure TokInfo where
@@ -68,11 +94,11 @@ structure TokInfo where
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.zero))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.zero, m.fixed))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h; subst h1 h2 h3 h4 h5 h6 h7; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -198,7 +224,7 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   size : m.size = f.size
   lo : m.lo ≤ f.sizeLo
   hi : f.sizeHi ≤ m.hi
-  ok : m.ok = true → ∀ n, (f.secs n).dirty = false → (f.secs n).vers.length ≤ 1
+  ok : ∀ n, m.SecOk n → (f.secs n).dirty = false → (f.secs n).vers.length ≤ 1
   maps : ∀ b len, m.maps !! b = some len ↔ st.proc.maps !! b = some ⟨i, len⟩
   targets : ∀ t c, st.proc.inflight !! t = some c → c.ino = i →
     m.lo ≤ c.target st ∧ c.target st ≤ m.hi
@@ -689,7 +715,7 @@ end bytes
 
 /-- The ghost `OsMeta` of a file as on disk: all of it durable. -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some, false⟩
+  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some, false, []⟩
 
 /-- The bytes of the files of `st`, all clean. -/
 def bytesMap (st : OsState) : GMap (Ino × Nat) (w8 × Bool) :=
