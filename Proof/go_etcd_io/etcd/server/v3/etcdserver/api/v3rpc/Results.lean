@@ -844,7 +844,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
         (authSlot s E) (etcdUserAddSpec s E ρ) := by
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR, #Hast, #Hcost⟩
   unfold grpcHandlerOwnOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Ho, Hspec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Ho, Hspec⟩ HΨ
   simp only [pbAuthUserAddRequest]
   icases Hr with ⟨%Hrn, #HN, %o, #Ho', #Hopts⟩
   iunfold userOptsFalse at Hopts
@@ -872,7 +872,9 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   inext
   iintro %resp %err Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci cd [] m.name Qa resp err $$ Hout
+  ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
+  iframe Hed
   iframe Hs
   iintro %He
   iexists ()
@@ -892,7 +894,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
         (authSlot s E) (etcdRoleAddSpec s E ρ) := by
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
   iunfold etcdRoleAddSpec at Hspec
@@ -911,7 +913,9 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   inext
   iintro %resp %err Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleAdd m) Qa [] _ resp err $$ Hout
+  ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
+  iframe Hed
   iframe Hs
   iintro %He
   iexists ()
@@ -931,7 +935,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
         (authSlot s E) (etcdUserGrantRoleSpec s E ρ) := by
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
   iunfold etcdUserGrantRoleSpec at Hspec
@@ -950,7 +954,9 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   inext
   iintro %resp %err Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrUserGrantRole m.1 m.2) Qa [] _ resp err $$ Hout
+  ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
+  iframe Hed
   iframe Hs
   iintro %He
   iexists ()
@@ -970,7 +976,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
         (authSlot s E) (etcdRoleGrantPermissionSpec s E ρ) := by
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
   iunfold etcdRoleGrantPermissionSpec at Hspec
@@ -989,7 +995,9 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   inext
   iintro %resp %err Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleGrantPermission m.1 (some m.2)) Qa [] _ resp err $$ Hout
+  ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
+  iframe Hed
   iframe Hs
   iintro %He
   iexists ()
@@ -1009,7 +1017,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         (authSlot s E) (etcdAuthEnableSpec s E ρ) := by
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hk⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hk⟩ HΨ
   simp only [pbAuthEnableRequest] at *
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
@@ -1027,7 +1035,9 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   inext
   iintro %resp %err Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci irrAuthEnable Qa [] _ resp err $$ Hout
+  ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
+  iframe Hed
   iframe Hs
   iintro %He
   iexists ()
@@ -1050,7 +1060,7 @@ theorem etcd_userAddMethodOk (p : Loc) (Spec : GrpcSpecMd (GF := GF) pbAuthUserA
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthUserAddRequest) -∗
       (pbAuthUserAddRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbAuthUserAddRequest]; iexact Hl
@@ -1060,11 +1070,11 @@ theorem etcd_userAddMethodOk (p : Loc) (Spec : GrpcSpecMd (GF := GF) pbAuthUserA
     iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthUserAddRequest.ty, etcdserverpb.RangeRequest.ty]))
   iapply (v3rpc.etcdserverpb.wp__Auth_UserAdd_Handler pbAuthUserAddRequest pbAuthUserAddResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl authServer_isAuthServer)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl authServer_isAuthServer)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
   iapply HΨ
   iframe
 
@@ -1081,7 +1091,7 @@ theorem etcd_roleAddMethodOk (p : Loc) (Spec : GrpcSpecMd (GF := GF) pbAuthRoleA
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthRoleAddRequest) -∗
       (pbAuthRoleAddRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbAuthRoleAddRequest]; iexact Hl
@@ -1091,11 +1101,11 @@ theorem etcd_roleAddMethodOk (p : Loc) (Spec : GrpcSpecMd (GF := GF) pbAuthRoleA
     iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthRoleAddRequest.ty, etcdserverpb.RangeRequest.ty]))
   iapply (v3rpc.etcdserverpb.wp__Auth_RoleAdd_Handler pbAuthRoleAddRequest pbAuthRoleAddResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl authServer_isAuthServer)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl authServer_isAuthServer)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
   iapply HΨ
   iframe
 
@@ -1112,7 +1122,7 @@ theorem etcd_userGrantRoleMethodOk (p : Loc) (Spec : GrpcSpecMd (GF := GF) pbAut
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthUserGrantRoleRequest) -∗
       (pbAuthUserGrantRoleRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbAuthUserGrantRoleRequest]; iexact Hl
@@ -1122,11 +1132,11 @@ theorem etcd_userGrantRoleMethodOk (p : Loc) (Spec : GrpcSpecMd (GF := GF) pbAut
     iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthUserGrantRoleRequest.ty, etcdserverpb.RangeRequest.ty]))
   iapply (v3rpc.etcdserverpb.wp__Auth_UserGrantRole_Handler pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl authServer_isAuthServer)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl authServer_isAuthServer)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
   iapply HΨ
   iframe
 
@@ -1143,7 +1153,7 @@ theorem etcd_roleGrantPermissionMethodOk (p : Loc) (Spec : GrpcSpecMd (GF := GF)
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthRoleGrantPermissionRequest) -∗
       (pbAuthRoleGrantPermissionRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbAuthRoleGrantPermissionRequest]; iexact Hl
@@ -1153,11 +1163,11 @@ theorem etcd_roleGrantPermissionMethodOk (p : Loc) (Spec : GrpcSpecMd (GF := GF)
     iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthRoleGrantPermissionRequest.ty, etcdserverpb.RangeRequest.ty]))
   iapply (v3rpc.etcdserverpb.wp__Auth_RoleGrantPermission_Handler pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl authServer_isAuthServer)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl authServer_isAuthServer)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
   iapply HΨ
   iframe
 
@@ -1174,7 +1184,7 @@ theorem etcd_authEnableMethodOk (p : Loc) (Spec : GrpcSpecMd (GF := GF) pbAuthEn
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthEnableRequest) -∗
       (pbAuthEnableRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbAuthEnableRequest]; iexact Hl
@@ -1184,11 +1194,11 @@ theorem etcd_authEnableMethodOk (p : Loc) (Spec : GrpcSpecMd (GF := GF) pbAuthEn
     iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthEnableRequest.ty, etcdserverpb.RangeRequest.ty]))
   iapply (v3rpc.etcdserverpb.wp__Auth_AuthEnable_Handler pbAuthEnableRequest pbAuthEnableResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl authServer_isAuthServer)
+    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl authServer_isAuthServer)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
   iapply HΨ
   iframe
 

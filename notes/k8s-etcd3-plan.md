@@ -993,6 +993,54 @@ prefix". The code counts from `opts.Continue` when it is set (`client.go:76`, `r
   its answer reflects, which is D30n's reason for `Get`'s. Recommended: (a). The spec follows the
   code's `Count`, not the doc's.
 
+### 7c-1: Draft, the gRPC error outcome (2026-11-06; design decided by the agent, to the user via 82 with the landing)
+
+**Form.** The error outcome goes into the metadata-indexed form only, the general one since the
+auth plan's E3zb. The plain form is embedded in it, as for metadata. (The alternative, the
+continuation over `Rep.M ⊕ GoString` the Scope sketched, would have changed every spec.)
+
+- `GrpcSpecMd Req Rep := GrpcMd → Req.M → (Rep.M → IProp) → (GoString → IProp) → IProp`. The new
+  last argument `Ψe` is the caller's error outcome, at the error's description (`errDesc`, D29's).
+- `GrpcSpec Req Rep` is unchanged: a spec with no error outcome.
+- `GrpcSpec.md S := fun _ m Φ Ψe => S m Φ ∗ □ (∀ d, Ψe d)`. A plain spec's caller gives every
+  error's outcome; a caller that wants none passes `Ψe := fun _ => True`.
+- **`handlerDescs`** (`InvGrpc.lean`): the descriptions of the errors a handler's spec may speak
+  of, which no other step of a call (grpc's decoding, the server's interceptors, the transport)
+  makes. The Md contracts (`grpcHandlerOkMd`, `grpcHandlerOwnOkMd`, `grpcMethodOkMd`) quantify
+  over `Ψe`. Their error post gains `⌜err ≠ nil ∧ errDesc err ∈ handlerDescs⌝ -∗ Ψe (errDesc err)`.
+  It is conditional because an error before the handler runs (`grpcDecOk`, `srvInterceptorsOk`,
+  the quota check) has no `Ψe` to give; 7c-1b shows those descriptions are not in `handlerDescs`.
+- The plain contracts keep their definitions. The laws `*_md` (`grpcHandlerOk h S Spec ⊣⊢
+  grpcHandlerOkMd h S (GrpcSpec.md Spec)`, `grpcHandlerOwnOk_md`, `grpcMethodOk_md`,
+  `isGrpcRpc(s)_md`) stay equivalences, now proved rather than `rfl`: left to right, the error gets
+  `Ψe` from `□ ∀ d, Ψe d`; right to left, `Ψe := fun _ => True`.
+- **The trusted attempt** (`grpcInvokerOk`, in `grpc.ClientConn.Invoke.spec`): `∀ Ψe`, the
+  precondition `Spec md m Φ Ψe` at every attempt's metadata, and on an error
+  `⌜errDesc err ∈ handlerDescs⌝ -∗ Ψe (errDesc err)`: such an error is the handler's own.
+
+**7c-1a, the early landing (82's condition): mechanical.** `handlerDescs := []`, so every new
+conjunct is vacuous, and every proof discharges it by `simp [handlerDescs]`. The trusted
+statements (`grpc.ClientConn.Invoke.spec` through `grpcInvokerOk`; `grpc.Server.Serve` and
+`RegisterService` through `GrpcMethod.spec : GrpcSpecMd`) change only by the quantifier `Ψe`,
+which they pass through unused. The client asks for no outcome yet: `attemptPre` instantiates
+`Ψe := fun _ => True`. The Md specs (`etcd*SpecM`, `etcd*SpecOn`, the auth service's) ignore their
+`Ψe`.
+
+**7c-1b.**
+- `handlerDescs` gets the two mvcc descriptions.
+- The rpctypes initializer axioms say what those descriptions are.
+- The `toGRPCErrorMap` fact.
+- The decoder's, the interceptors' and the quota check's error descriptions are not in
+  `handlerDescs`.
+- `etcdRangeSpecM` gets the `Ψe` facts for the two descriptions.
+- Each restated trusted statement is attacked with the axiom skill (Q7c-2).
+
+**Why this form.**
+- Most specs are plain (`GrpcSpec`) and do not change. Their handlers prove the plain contracts
+  unchanged.
+- Only the Md specs gain the argument (`fun md o Φ` becomes `fun md o Φ _`).
+- The precedent is `GrpcSpec.md` itself: one family, the plain form embedded in it.
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error

@@ -32270,3 +32270,36 @@ over `alloc3`; one new law, `memberRestartRes_raft` (D14-D17). The pass-throughs
 (`memberFreshRes_intro_peer` deleted, `alloc3Http` private). `run.specStop` and its scope premises are
 unchanged, left for R2c. Statements naming a start resource: the five consumers only. Trust base
 unchanged (`notes/spec-first-plan.md`, "Step 8 glue list", "Where the Draft stands").
+
+## gRPC specs with an error outcome: the metadata-indexed form (2026-11-06 · k8s etcd3 7c-1a; the Scope's Q7c-1 E1, approved by the user via etcd-grove-82; the form decided by the agent · branch `k8s-etcd3-7c`)
+
+**Was.** A gRPC method's spec spoke of its success only. `GrpcSpecMd Req Rep` (the auth plan's
+E3zb) was `GrpcMd → Req.M → (Rep.M → IProp) → IProp`. Every handler contract's error side was
+"non-nil", and so was the trusted attempt's (`grpcInvokerOk`). The client could not learn from an
+error that the server's store refused a read for a future or compacted revision, which k8s's
+`listReadError` and `interpretListError` branch on (7c).
+
+**Now.** `GrpcSpecMd` takes a fourth argument `Ψe : GoString → IProp`, the caller's outcome at
+the error's description (`errDesc`, D29's).
+- The Md contracts (`grpcHandlerOkMd`, `grpcHandlerOwnOkMd`, `grpcMethodOkMd`) quantify over
+  `Ψe`. On an error whose description is in `handlerDescs` they give `Ψe` at it.
+- `grpcInvokerOk` passes `Ψe` through.
+- `GrpcSpec`, the plain form, is unchanged and embedded by `GrpcSpec.md S := fun _ m Φ Ψe =>
+  S m Φ ∗ □ ∀ d, Ψe d`. The `*_md` laws stay equivalences, proved instead of `rfl`.
+
+**Why the conditional, `handlerDescs`.** An error before the handler runs (grpc's decoding, the
+server's interceptors, the quota check) has no `Ψe` to give. The descriptions a handler's spec
+speaks of are ones no other step makes.
+
+**Why the Md form only.** Most specs are plain and do not change. The alternative the Scope
+sketched (a continuation over `Rep.M ⊕ GoString`) would have changed every spec and handler.
+
+**7c-1a, the early landing (82's condition):** mechanical.
+- `handlerDescs := []`, so the new conjuncts are vacuous (`handlerErr_none`, removed in 7c-1b).
+- The client asks for no outcome yet (`attemptPre` at `Ψe := fun _ => True`).
+- The Md specs ignore their `Ψe`.
+- The trusted statements (`grpc.ClientConn.Invoke.spec` through `grpcInvokerOk`, and
+  `grpc.Server.Serve`/`RegisterService` through `GrpcMethod.spec`) change only by the quantifier.
+
+7c-1b fills `handlerDescs` with the two mvcc descriptions, and attacks each restated statement
+with the axiom skill (Q7c-2). See `notes/k8s-etcd3-plan.md`, "7c-1: Draft".
