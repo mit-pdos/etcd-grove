@@ -1639,3 +1639,27 @@ field-load automation finding the instance at any fraction.
   `poolOpen γc q`, `initC`, `borrowC`, `giveBackC`, `cancel` and `reclaim`. It is a proved library
   addition (tier 3) that adds nothing to the trusted base. `land.sh prepare` passed and the trusted
   review recorded OK. **Landed** (the user's push, 2026-11-04: Perennial `lean` `e3ceb1520`); the pin moved to it the same day (branch `r2b3`).
+
+## `fmt.Errorf`'s model can be unfolded to learn facts false of Go (2026-11-06, k8s etcd3 7c-2, branch `k8s-etcd3-7c`)
+
+- **The gap.** Perennial's model of `fmt.Errorf` (`Perennial/TrustedCode/fmt.lean:19-28`) is
+  `errors.New(format)`: it ignores the arguments and does not model `%w`. The spec
+  (`fmt.wp_Errorf`, `Spec/fmt/Errorf.lean`) deliberately promises only a non-nil error whose
+  `Error()` returns some string, with no type. But nothing stops a client proof from unfolding the
+  model (`wp_start` on a call of `Errorf`) and learning facts that are false of Go, where a `%w`
+  format returns a `*fmt.wrapError`:
+  - its type (`*errors.errorString`);
+  - that it is a leaf (no `Unwrap`), and so `statusErrOk`;
+  - that `errors.Is(err, target)` is false for the wrapped error;
+  - that its message is the format string.
+- **Where it bit here.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Errorf.lean`'s
+  `wp_Errorf_errorfIs` (since 2026-10-12, unit 3b; `notes/decisions.md`, "`fmt.Errorf`'s `%w`
+  errors: the model's body, not the axiom"). It is used for `rangeKeys`' and `executeTxn`'s `%w`
+  errors (`kvstore_txn.go:121`; `txn.go:162, 174, 182`), which then reach `applyErrIs` (a leaf
+  with `statusErrOk`, since k8s etcd3 7c-2 part 1) through `applyErrIs_errorf`. False of Go for a
+  cancelled context: reported to etcd-grove-82, 2026-11-06; the local fix is k8s etcd3 7c-2's.
+- **Proposed (general; record only, nothing changed in Perennial).** Make `Errorf.impl` opaque to
+  clients (sealed, `@[no_expose]`, with only `wp_Errorf` exported), so that no proof can reason
+  about an `Errorf` result beyond the spec; or model `%w` (a `*fmt.wrapError` with `Unwrap`, its
+  message the formatted string), with a spec that states the wrapped errors.
+- **Status.** Recorded only.
