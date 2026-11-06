@@ -41,7 +41,8 @@ the voters once an entry is applied (`epCsAt`: the first is a validated conf cha
 (R2d, Q13 (a), 2026-11-06; DRAFT, the window form, `ApplyWindow.lean`) **In a restarted member's
 replay window**: the replays `W` pending and `D` done (`winOk`; no window `W = D = []`, where every
 row is the one before, `apply.spec_noWin`). The batch starts with the pending replays, which `apply`
-applies v2-only (their indices at most the consistent index: `entriesStep`'s `v3` false); the
+applies v2-only (their indices at most the consistent index, the premise F2 added: `entriesStep`'s
+`v3` false); the
 ghost applied index is `winGhost` of Go's (`f0 - 1` before, `appliedi` after; `setAppliedIndex`'s
 replay case below it); the ghost log grows by the new entries only (`winNew W ms`); the rest
 buckets' resources are the window's (`srvRestW`, the replays after `A`'s model; `srvRest`'s again at

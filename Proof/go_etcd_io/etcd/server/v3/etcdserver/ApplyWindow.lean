@@ -7,8 +7,16 @@ A restarted member's ghost applied log starts at its backend's consistent index 
 a jump, as a snapshot's install: `applied_jump`), while Go's `ep.appliedi` starts at the WAL
 snapshot's index `σ.b ≤ i`. Raft hands the entries from `σ.b + 1` again; those in `(σ.b, i]` are
 already in the ghost log and Go applies them v2-only (`shouldApplyV3`'s `e.Index <=
-ConsistentIndex`, `server.go:1933-1937`): no KV write, no rest-bucket write, but the in-memory
-members' attributes are set again (`UpdateAttributes` v2-only, `membership/cluster.go:467-477`).
+ConsistentIndex`, `server.go:1933-1937`): no KV write, no rest-bucket write, but their in-memory
+effects happen again (R2d review F8):
+* the members' attributes (`UpdateAttributes` v2-only, `membership/cluster.go:467-477`): modeled,
+  `RestM.mem` (`restUpdateAttrs`, `restReplay` below);
+* the cluster version (`SetVersion`, `membership/cluster.go:589-623`) and the downgrade info: not
+  modeled (`RestM` has neither; `restSetVersion` at `v3 = false` is the identity, and the
+  downgrade's writers take `AEnv.RW`);
+* a replayed conf change's transport calls (`AddPeer`/`RemovePeer`): modeled by `ccPeersAfter`'s
+  `v3 = false` case. In R2d the window has no conf change (the restart's named conjunct
+  `winNoConf`, `notes/restart-plan.md`'s R2d' list), so none happens there.
 The apply chain's specs (`apply.spec`, `applyEntries.specBatch`, `applyAll.specBatch`) are stated
 over the window's state:
 * `W`, the window's entries still to be replayed (a suffix of the ghost log `A`), and `D`, those
