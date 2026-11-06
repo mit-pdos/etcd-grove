@@ -76,9 +76,11 @@ abbrev apply.Apply.specRec : Prop :=
        else iprop(True)) ∗ Pre ∗
       apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗ apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk E.lm x.log rq ∧
-        apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq ∧ apply.restReqOk rq rs⌝ ∗
-      apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗
-      apply.grantFresh E rq U ∗ apply.revokeOwn E rq ∗
+        apply.dispatchOk E.authOn rq ∧ (v3 = true → apply.cmpAdmit E.γ.kb x.log rq) ∧
+        apply.restReqOk rq rs⌝ ∗
+      □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
+      apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
+      apply.revokeOwn E rq ∗
       mvcc.idxCert E.γ.idx F ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
@@ -104,6 +106,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+
+omit package_sem in
+open Iris.ProofMode in
+/-- A persistent premise gives its `v3`-guarded form (R2d'a A3, DRAFT: `Apply.specRec`'s,
+`uberApplier.Apply.spec`'s and `dispatch.spec`'s premises read only by `dispatch`'s `v3` cases). -/
+theorem apply.v3Gate (b : Bool) (X : IProp GF) [Persistent X] : X ⊢ □ (⌜b = true⌝ → X) := by
+  iintro #H
+  imodintro
+  iintro _
+  iexact H
 
 /-- **`Apply.specRec` from `Apply.spec`**: the method contract is `uberApplier.Apply.spec` at
 `applierFor`'s pointer, its pre the applier state and the write's resources, its post
