@@ -1771,3 +1771,74 @@ follows from the transaction's `slotY` and `muHeld` (`wcrPart_agree`).
   (the initial `writerL`), `store.Write` (takes them after its checkout), the `End`s (put them back),
   `RestoreMoves` (the takeover takes them out, the finish puts the restored ones in) and `SnapFreeze`
   (the frozen writer's) adapted: one commit across both tracks' files, to be scheduled with track B.
+
+## Hand-off: M4, track B, the transaction's handle and the first contracts (2026-11-06)
+
+**Done** (no axiom, no `sorry`, no placeholder added; no frozen statement changed):
+- **The trace part a parameter** (`45b5c7d450`; `Api/TxnSteps.lean`): `isTxnReadT`, `isTxnWriteT`,
+  `isTxnT` (today's `isTxnRead`/`isTxnWrite`/`isTxn` with `"Htrc" ∷ Tr`, equal by `rfl` at the
+  default), `isTxnWriteCoreY`/`isTxnEndY` with a last `Tr` (default today's); the swaps `*_tr`,
+  `isTxnRead_ofT`, `isTxnWrite_toT/_ofT`, `isTxnWriteCoreY_core`, `isTxnReadT_rev`.
+  `metricsTxnWrite.{End,Rev,FirstRev,Changes,DeleteRange}.spec` at any `Tr` (a last binder);
+  `store.Read`/`store.Write` return the transaction at `Tr := True` **and the caller's `ownTrace
+  trace te` itself** (today's posts lost `te`, which `KV.Read`/`Write` return).
+- **`End` over `hookP`**: `storeTxnWrite.End.spec` takes `hookP γ P` (no `f`) and gives no writer's
+  fragment; `metricsTxnWrite.End.spec` takes `txnEndPreH` and gives `txnEndPostH` (TxnSteps). The
+  write transaction's hook fact is `hookP γ Pw` (`InvStore`, in track A's `d9df3fd825`), so a store
+  without a hook has write transactions. The `specR` corollaries keep today's shapes
+  (`txnEndPre_H`, `txnEndPost_H`), so `writeView.*`, the watchable `End` and the read callers are
+  unchanged but for `txnEndPreH` in the read callers.
+- **Request 4** (`Api/WriteCtx.lean`): `writeCtxM γ P hk Pre Q dq` (set: `hookOk`, `Pre`, the hook's
+  triple; nil: `hookP`, `kbHookNilAt γ.kb dq`, `Pre`, `P ∗ Pre ={⊤}=∗ Q`), given back as `lockBackM`;
+  `store.Write` at any `curAt γ (own qf) o` (given back), the frozen state excluded by the caller's
+  `G`, and the begin's callback `writeCb γ F` (§3: after the checkout, with the writer's slot's
+  `absPart ¼`/`pndPart`; `F ilog crev` returned, the slot's compaction revision the transaction's,
+  `muHeld_wcr`). `slotF_excl_M1`'s `store.Write` use moved to `store.Write.spec_R` (today's callers:
+  `writeView.*`, `watchableStore.Write`, `store_Write_backend`, which hold no backend share).
+- **`mvccTxn` defined** (`Api.lean`: `@[no_expose] def mvccTxn … := api.mvccTxnI …`, `Api/TxnHandle.lean`,
+  imported non-publicly): `.read σ` at `*metricsTxnWrite`, `isTxnReadT mw s γ trace σ.log (W64
+  (|σ.log| - 1)) σ.crev True True`, `MvccReachable σ`, and `tokBack s γ` (`storeReaderC s γ ={⊤}=∗
+  threadTok`: the pool's loan, whatever the pool); `.write σ pend` at `*metricsTxnWrite`, at the
+  current physical names `p`, `isTxnWriteT … σ.log pend … σ.crev True false True`, `γ.watchQ = false`,
+  `σ.pending = none`, reachable, `tokBack`, `certFree`. **Not yet covered (`False` today, so their
+  contracts hold vacuously only where `mvccTxn` is not produced): the watchable store's write
+  transaction (`*watchableStoreTxnWrite`) and `NewReadOnlyTxnWrite`'s `*txnReadWrite`.**
+- **Proved** (`#print axioms`: no `sorryAx`; only the translation's axiomatized types):
+  `api.metricsTxnWrite.End.wp_api` (`Txn.End.contract` at `PM`, both kinds; `Api/EndApi.lean`: the
+  backend share's names are the transaction's, `isTxnWriteT_endY`, `Yat` from the slot by
+  `muHeld_wcr`, the step `endCb_of_au`); `api.metricsTxnWrite.Rev.wp_api` (`Txn.Rev.contract` at `PM`,
+  `Api/TxnOpsApi.lean`, `reach_ne`/`reach_rev`); **conditionally** (a Lean hypothesis of the theorem,
+  false of today's handle, not an axiom): `api.store.Write.wp_api` (`KV.Write.contract` at `PS`,
+  `Api/WriteApi.lean`, under `writerHyp`) and `api.store.Read.wp_api` (`KV.Read.contract` at `PS`,
+  `Api/ReadApi.lean`, under `readerHyp`). None is linked (`Link.lean` is generated).
+
+**The hypotheses (what track A's handle must give; then they go):**
+- `readerHyp`: `isStore s γ ∗ locIs γ.api s ⊢ |={⊤}=> (threadTok ={⊤}=∗ storeReaderC s γ ∗ tokBack s γ)`:
+  follows from track A's `rdSupply` (borrow, the wand's two halves, `giveBack`).
+- `writerHyp`: at any physical names `γ.withPhys p`, `⌜watchQ = false⌝`, the reader as above,
+  `certFree`, `storeWT`, `revToken`, a `writerPin`. Shapes for track A: (1) **`watchQ = false` is
+  needed at `PS`** (`endCb_of_au`: a plain store's two steps at the bump); `isMvccPlain` cannot record
+  it (`CmpCb` builds one of a watchable store's inner store), so `isMvcc`'s plain disjunct should
+  (`□ (isMvccPlain kv γ ∗ ⌜γ.watchQ = false⌝ ∨ isMvccWatchable kv γ)`). (2) The supply **in
+  `mvccBackend`** (track A's second option): `KV.Write` takes it at the share's names `p`, which is
+  where `writerHyp` has it. (3) The revision token and pin from `writerL` (track A's plan): then
+  `store.Write.spec` drops `revToken γ`/`writerPin γ log` and `storeTxnWrite.End.spec`'s post drops
+  them (they go back into `writerL`); `WriteApi` loses those two conjuncts of `writerHyp`.
+
+**Statements changed that modules outside mvcc use**: none (outside mvcc only names in docstrings
+and `#print axioms` lines mention these specs).
+
+**Left, in order** (none a frozen statement found false):
+1. The watchable write transaction in `mvccTxnI` (`isWatchTxnWrite` at `Tr := True`: an
+   `isWatchTxnWriteT` in TxnSteps; `watchableStoreTxnWrite.End.spec` over `hookP`/`txnEndPreH`, as
+   the plain one), `KV.Write`/`Read` at `PW` (the reader from `isMvccWatchable`'s pool, its
+   `watchReader` slot kept in `tokBack`), and a watchable `endCb_of_au` (the notify step with
+   `wsSlot`'s quarter, `wsEndCb`; its no-change arm at `Yat`).
+2. `Txn.FirstRev` (read: `metricsTxnWrite.FirstRev.spec`; write: no internal spec yet, the
+   `firstRev` field is `0`), `Txn.Changes` (write: `metricsTxnWrite.Changes.spec` then
+   `isTxnWrite_join` back; read: `txnReadWrite.Changes`), `Txn.Range` (`metricsTxnWrite.Range.spec`
+   with the trace lent, `isTxnT_tr`; `stateOk` still unproved), `Txn.Put` (as `Range`),
+   `Txn.DeleteRange` (with `LogWf'`), then `KV.Put`/`DeleteRange`/`Range`/`Rev`/`FirstRev` (one
+   transaction each, the step's callbacks), `mvccDeleter` (`mvccDeleter_M1`), and
+   `mvccTxn_leaseDelete.law`.
+3. `PR` (`*txnReadWrite`): `mvccTxnI`'s read arm at `PR` for `NewReadOnlyTxnWrite`.
