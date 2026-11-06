@@ -86,11 +86,13 @@ instance srvRevokeInnerPool_persistent (s : Loc) (E : apply.AEnv GF) :
   unfold srvRevokeInnerPool; infer_instance
 
 /-- **What `NewServer` builds for the revocation** (sealed; persistent): the inner pool, the
-transport's pool of `lgMu` readers (`raftPool`, leveled at 1, Q3) and the auth store's concrete
-pointer (`WithRoot`'s receiver). -/
+transport's pool of `lgMu` readers (`raftPool`, leveled at 1, Q3), the auth store's concrete
+pointer (`WithRoot`'s receiver) and (revoke-open pass 2, 2026-11-06) the server's thread bound
+within the backend's pool of readers (`NewServer`'s premise: what `ensureLeadership`'s bound
+`threadBound GF ≤ 2 ^ 30 - 1` comes from in the revocation's outer goroutine). -/
 @[no_expose] def srvRevokeBuilt (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(srvRevokeInnerPool s E ∗ raftPool (srvLgReader s) ∗
-    (∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl))
+    (∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl) ∗ ⌜threadBound GF ≤ backend.rdPoolN⌝)
 
 instance srvRevokeBuilt_persistent (s : Loc) (E : apply.AEnv GF) :
     Persistent (srvRevokeBuilt (GF := GF) s E) := by
@@ -102,8 +104,27 @@ theorem srvRevokeBuilt_raftPool (s : Loc) (E : apply.AEnv GF) :
     srvRevokeBuilt (GF := GF) s E ⊢ raftPool (srvLgReader s) := by
   iintro #H
   iunfold srvRevokeBuilt at H
-  icases H with ⟨-, #Hp, -⟩
+  icases H with ⟨-, #Hp, -, -⟩
   iexact Hp
+
+/-- **The revocation's built part, from its pieces** (`NewServer`). -/
+theorem srvRevokeBuilt_intro (s : Loc) (E : apply.AEnv GF) (stl : Loc) :
+    srvRevokeInnerPool (GF := GF) s E ∗ raftPool (srvLgReader s) ∗
+      srvAuthStoreAddr s ↦□ auth.authIface stl ∗ ⌜threadBound GF ≤ backend.rdPoolN⌝ ⊢
+    srvRevokeBuilt s E := by
+  iintro ⟨#HI, #Hp, #Ha, %Hb⟩
+  iunfold srvRevokeBuilt
+  iframe HI Hp
+  isplitl
+  · iexists stl; iexact Ha
+  ipureintro; exact Hb
+
+/-- **The revocation's built part, split** (`revokeExpiredLeases`). -/
+theorem srvRevokeBuilt_parts (s : Loc) (E : apply.AEnv GF) :
+    srvRevokeBuilt (GF := GF) s E ⊢
+      srvRevokeInnerPool s E ∗ raftPool (srvLgReader s) ∗
+      (∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl) ∗ ⌜threadBound GF ≤ backend.rdPoolN⌝ := by
+  unfold srvRevokeBuilt; exact .rfl
 
 /-- **The revocation's persistent bundle** (sealed): `srvRevokeBuilt`, the outer pool at `start`'s
 names, with auth off the mode `off` (`WithRoot`'s premise, the `IsAuthEnabled` verdict) and the
@@ -123,6 +144,30 @@ auth on the revocation never runs, `srvRevokesLeases`). -/
 instance srvRevokeCtx_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (γg : GoNames) : Persistent (srvRevokeCtx (GF := GF) s E ρ γr γg) := by
   unfold srvRevokeCtx; infer_instance
+
+/-- **The revocation's bundle, from its pieces** (`start`). -/
+theorem srvRevokeCtx_intro (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (γg : GoNames) :
+    srvRevokeBuilt (GF := GF) s E ∗ srvRevokeOuterPool s γr γg ∗
+      ⌜E.authOn = false → E.authMode = auth.AuthMode.off⌝ ∗
+      □ (⌜E.authOn = false⌝ → isServerReq s E ρ ∗ isServerRead s E γr) ∗
+      □ (|==> idCred ρ.ids 1) ∗
+      (∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+        srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd) ⊢
+    srvRevokeCtx s E ρ γr γg := by
+  unfold srvRevokeCtx; exact .rfl
+
+/-- **The revocation's bundle, split** (`revokeExpiredLeases`). -/
+theorem srvRevokeCtx_parts (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (γg : GoNames) :
+    srvRevokeCtx (GF := GF) s E ρ γr γg ⊢
+      srvRevokeBuilt s E ∗ srvRevokeOuterPool s γr γg ∗
+      ⌜E.authOn = false → E.authMode = auth.AuthMode.off⌝ ∗
+      □ (⌜E.authOn = false⌝ → isServerReq s E ρ ∗ isServerRead s E γr) ∗
+      □ (|==> idCred ρ.ids 1) ∗
+      (∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+        srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd) := by
+  unfold srvRevokeCtx; exact .rfl
 
 end defs
 

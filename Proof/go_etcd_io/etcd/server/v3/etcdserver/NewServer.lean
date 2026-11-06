@@ -232,6 +232,17 @@ private theorem rep_cast (P : IProp GF) (a b : Nat) :
   subst h
   iexact H
 
+/-- **The inner pool, from a pool of `leadTimeMu`'s slots** (`NewServer`, which pairs the slots
+in their own form: `srvLeadTimeReader` unfolded). -/
+theorem srvRevokeInnerPool_intro (s : Loc) (E : apply.AEnv GF) (γ : GName) :
+    threadPool.isThreadPoolL srvRevokeInnerN 1 γ
+        iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ E.RD) ⊢
+      srvRevokeInnerPool s E := by
+  unfold srvRevokeInnerPool srvLeadTimeReader
+  iintro #H
+  iexists γ
+  iexact H
+
 /-- `time.Duration(ttl) * time.Second` is positive for a TTL in `(0, 2 ^ 32)` seconds. -/
 theorem tokenTTL_pos (x : w64) (h1 : 0 < uint.Z x) (h2 : uint.Z x < 2 ^ 32) :
     0 < sint.Z (x * W64 1000000000) := by
@@ -1971,6 +1982,24 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe storageC
     ipureintro
     rw [Hrnwal]; exact HwDir
+  -- (revoke-open, 2026-11-06) the revocation's inner pool: `srvRevokePoolN` of `leadTimeMu`'s rest
+  -- and of the auth store's stock of tickets (`authRdN`'s `2 ^ 28`), paired, at level 1
+  icases replicate_takeN _ srvRevokePoolN _ (by
+      unfold srvRevokePoolN backend.rdPoolN; rw [sync.rwmutex.actualMaxReaders_unseal]; decide)
+    $$ HltRest with ⟨HltI, -⟩
+  icases replicate_takeN _ srvRevokePoolN _ (by unfold srvRevokePoolN backend.rdPoolN; omega)
+    $$ HRDstock with ⟨HRDI, -⟩
+  -- (2026-11-06) the lists are paired at their elements' own forms (`leadTimeMu`'s slot, not
+  -- `srvLeadTimeReader`): no tactic rewrites the goal, no bare `iframe` compares the lists (a
+  -- mismatched `[∗list]` unfolds the `List.replicate`; this step reached 80 GB before)
+  ihave HIp := replicate_sep (sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s)) RD
+    srvRevokePoolN $$ [HltI HRDI]
+  · isplitl [HltI]
+    · iexact HltI
+    · iexact HRDI
+  imod threadPool.initL srvRevokeInnerN 1
+      iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ RD) _ srvRevokePoolN
+      (by unfold srvRevokePoolN backend.rdPoolN; omega) $$ HIp with ⟨%γI, #HIp⟩
   imodintro
   wp_auto
   iapply HΦ
@@ -2009,8 +2038,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexact HB
   -- (revoke-open, 2026-11-06) the revocation's built part: the inner pool from `leadTimeMu`'s rest
   -- and the auth store's stock of tickets (`authRdN`'s `2 ^ 28`), `raftPool`, the store's pointer
-  ihave #Hrvkb : srvRevokeBuilt s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret, ρ.rd.kv.lm, γlt⟩ : apply.AEnv GF) $$ [HltRest HRDstock]
-  · sorry -- DRAFT revoke-open (`NewServer` builds the inner pool, revoke-open Q6, Q7)
+  ihave #Hrvkb : srvRevokeBuilt s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret, ρ.rd.kv.lm, γlt⟩ : apply.AEnv GF) $$ []
+  · iapply srvRevokeBuilt_intro s _ astl
+    isplitr
+    · iapply srvRevokeInnerPool_intro s _ γI
+      iexact HIp
+    iframe HrPool
+    rw [← Hastl]
+    iframe authStore
+    ipureintro; unfold backend.rdPoolN; omega
   unfold srvBuiltG
   iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
   isplitr

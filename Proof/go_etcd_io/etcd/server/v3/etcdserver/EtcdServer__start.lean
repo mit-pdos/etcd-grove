@@ -567,8 +567,40 @@ theorem EtcdServer.start.wp_proof
   icases replicate_takeN _ srvRevokePoolN _ (by
       unfold srvRevokePoolN backend.rdPoolN; rw [sync.rwmutex.actualMaxReaders_unseal]; decide)
     $$ Hrslots with ⟨HrdB, Hrslots⟩
-  ihave #Hrvk : srvRevokeCtx s E { ρ with wait := γw } γr γg $$ [HwgB HrdB]
-  · sorry -- DRAFT revoke-open (the outer pool from `HwgB`/`HrdB`; the bundle's views and context)
+  ihave HBp : [∗list] _x ∈ List.replicate srvRevokePoolN (),
+      iprop(srvWgReaderAt s γg ∗ srvReadReader s γr) $$ [HwgB HrdB]
+  · -- (no bare `iframe` over these `2 ^ 28 - 1`-long lists: a mismatched `[∗list]` unfolds the
+    -- `List.replicate`)
+    iapply BigSepL.bigSepL_sep_eqv.2
+    isplitl [HwgB]
+    · iexact HwgB
+    · iapply replicate_map _ _ (srvReadAddr s ↦□ rd) $$ [$Hread $HrdB]
+      iintro ⟨#Hr, Hslot⟩
+      iunfold srvReadReader
+      iexists rd
+      iframe Hr Hslot
+  imod threadPool.initL srvRevokeOuterN 2 iprop(srvWgReaderAt s γg ∗ srvReadReader s γr) ⊤
+      srvRevokePoolN (by unfold srvRevokePoolN; omega) $$ HBp with ⟨%γB, #HBp⟩
+  ihave #Hrvk : srvRevokeCtx s E { ρ with wait := γw } γr γg $$ []
+  · iapply srvRevokeCtx_intro
+    iframe Hrvkb
+    isplitr
+    · iunfold srvRevokeOuterPool; iexists γB; iexact HBp
+    isplitr
+    · ipureintro; intro h
+      revert h
+      rw [apply.AEnv.authOn_eq]
+      cases E.authMode <;> simp [auth.AuthMode.isOn]
+    isplitr
+    · iintro !> %Hoff
+      have hCoff : C.isOn = false := by
+        rw [← AuthC.mode_isOn, ← hm, ← apply.AEnv.authOn_eq]; exact Hoff
+      isplitr
+      · rw [← isServerReqM_false, ← hCoff]; iexact Hreq
+      · rw [← isServerReadM_false, ← hCoff]; iexact Hrd
+    iframe HNR
+    iexists cctx, _
+    iframe Hctx Hcctx
   -- (revoke-open Q8 (a)) `run` forked with the fresh thread token
   wp_apply wp_fork_tok_body $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh
       Hwth Hwtl Hskeep]
