@@ -1226,3 +1226,102 @@ makes the unifier unfold `List.replicate N ()` (NewServer's compile reached 80 G
 `iexact` each list, its element already in the hypothesis's own form (`replicate_map`, or a law
 for the predicate built from it); no `unfold`/`generalize` of NewServer's whole goal either (a
 second blowup, at 10 GB, went away only once the step rewrote nothing).
+
+## Test (2026-11-06)
+
+`examples/etcd/leaseexpiry/expire_revoke_test.go` (tests only; `leaseexpiry.go` is unchanged, and
+`etc/goose.py --check --project leaseexpiry` says the translation is up to date). It is Q11's
+`revoke_stats_test.go`, renamed so that it sorts before `leaseexpiry_test.go` (see "A harness
+hazard" below). Each test starts one member of its own (`127.0.0.1:2471x`/`2472x`, not Main's)
+with `etcdstart.BuildServer`. Before `Start`, the test replaces the server's `lessor` field (through
+reflection, as leasecatchup's `dropLessor`) by `obsLessor` and rebuilds `uberApply` over it with
+`s.NewUberApplier()`, as `applySnapshot` rebuilds it. `obsLessor` changes no etcd code:
+- it records every slice the real lessor sends on `expiredC` and forwards it unchanged on the
+  channel `run` reads;
+- its `Revoke` (the apply of a `LeaseRevoke`) first sleeps a delay, as a slow disk would.
+
+**Four tests; 3 of 3 runs of the final file pass** (go1.27.3, `go test ./etcd/leaseexpiry -count=1
+-v`, the whole package with `TestMainRun`, three separate processes; `go vet` and `gofmt` clean).
+**Nothing contradicts a spec or a premise.**
+
+- **`TestRevokeBothArms`** (`revokeExpiredLeases.spec`'s round, both result arms; `lease.expiredLeases`).
+  - 40 leases of TTL 1 are granted at once; the applies are slowed to 250 ms each, so the 40
+    revokes take 10 s. That is longer than the lessor's retry interval, which is the server's
+    `ReqTimeout` (7 s at 10 ticks of 100 ms, `server.go:351`), not the lessor's 3 s default. The
+    leases still in the lessor at that point are therefore delivered again.
+  - Every run delivered one slice of 40 (once, 1 then 39), then one of 10 or 11.
+  - Every lease is revoked once: `etcd_debugging_server_lease_expired_total` (`leaseExpired`, the
+    success arm; Q11 called it `etcd_server_lease_expired_total`) moved by +40, and the lessor's
+    `etcd_debugging_lease_revoked_total` by +40.
+  - Every delivered lease is tried exactly once by its round: the successes plus the `"failed to
+    revoke lease"` warnings equal the leases delivered (50–53).
+  - The re-delivered ones reach the failure arm, always with `lease not found`
+    (`ErrLeaseNotFound`).
+  - Every slice is non-empty and has only non-nil leases, each granted here, with an `ID` unchanged
+    since delivery (`expiredLeases`).
+  - No round took the not-leader branch.
+
+  An earlier run, at 150 ms per apply (6 s, below the 7 s interval), never re-delivered, so the
+  failure arm was not reached. The delay was raised for that reason.
+- **`TestRevokeGoroutines`** (Q9's accounting, by stack frame). It runs the same scenario and dumps
+  every goroutine's stack every 2 ms (7000–8100 samples), classifying each goroutine by the frames
+  `revokeExpiredLeases.func1` (outer) and `func1.1.1` (inner). In every sample:
+  - every goroutine of the revocation is created by `GoAttach`, so it is counted by `s.wg`;
+  - each outer goroutine is created in `run`'s goroutine (level 1 of `run`'s token);
+  - each inner goroutine is created by a goroutine that is neither `run`'s nor any other goroutine
+    seen, so it is an outer one. In the runs, the second, short round's outer goroutine was usually
+    too brief to be sampled.
+  - no inner goroutine creates one, and nothing is created by the closures directly. The tree is
+    `run` → outer → inner, two levels below `run`, which is what levels 1–3 under
+    `srvRevokeLevels` (`threadBound ≥ 4`) provide.
+
+  The inner goroutines holding a slot of their round's `c` (their `func1.1.1` frame above the
+  `<-c` line, read from `server.go`) are at most `maxPendingRevokes = 16` per round, and the bound
+  is reached (the 40-lease round blocks on `c`). Across rounds they are not bounded by 16: the
+  peaks were 22–26 when a re-delivered round overlapped the first. This is Q9's point that rounds
+  overlap without bound, so the bound is the tokens', not the channel's.
+- **`TestRevokeStop`** (Stop during a round: the `stopping` exits).
+  - Setup: 40 leases, applies at 300 ms. The test waits until the 40-lease round has 16 inner
+    goroutines holding slots, so the outer goroutine is blocked on the full `c`; then it calls
+    `s.Stop()`.
+  - `Stop` returns in 4.85 s (`sched.Stop` lets the queued applies finish).
+  - Afterwards no outer or inner goroutine is left: `run`'s deferred `s.wg.Wait()` waited for them.
+  - The round is cut: 24 leases are left, and `lease_expired_total` moved by +0.
+  - The 16 in-flight revokes took the failure arm with `etcdserver: request cancelled`. Their
+    entries were applied all the same: 16 leases are gone. The failure arm therefore does not mean
+    "not revoked", which the spec does not claim either.
+  - No `"skipping GoAttach"` warning appeared: the outer goroutine left through the `stopping` arm
+    of its `select`.
+  - Nothing panicked: a panic in any goroutine would end the test binary.
+- **`TestGoAttachStop`** (the leveled `GoAttach.spec`'s two branches, nested once as the revocation
+  nests them, with a mutant).
+  - Before Stop, `GoAttach(f)` returns while `f` runs in a goroutine, and `f` itself
+    `GoAttach`es `g`. `Stop` does not return while `f` or `g` runs: it waits 3 s, then 2 s after
+    `f` ends. It returns once `g` ends: both are counted by `s.wg`.
+  - The mutant: a goroutine started with a plain `go` statement (not counted) is still running when
+    `Stop` returns, so the check does tell a counted goroutine from an uncounted one.
+  - After Stop, `GoAttach(f)` returns, logs `"server has stopped; skipping GoAttach"` once, and `f`
+    never runs.
+
+**Q11's item (4), a mutant `ensureLeadership` returning false, was not built: not cheap.**
+- `ensureLeadership` is unexported and called directly, so no test-only wrapper can replace it.
+- On a single member it is true: `isActive` holds while raft ticks, and otherwise the linearizable
+  read and leader check succeed.
+- A follower's lessor is demoted and sends nothing on `expiredC`.
+
+So the not-leader branch is reached only when leadership is lost between the expiry and the check,
+which needs a multi-member cluster and a timed partition. Instead, `TestRevokeBothArms` checks that
+the branch is never taken on the single member, and `TestGoAttachStop` carries the mutant check.
+
+**A harness hazard (not a finding about etcd or a spec).** `TestMainRun` leaves Main's member
+running, and its relative `DataDir` lies in a temporary directory that is removed when
+`TestMainRun` ends. Thirty seconds after that member started, its file purge (`purgeFileInterval`,
+`server.go:611-620`) fails, and it calls `lg.Fatal`. With Main's `zap.NewNop()` that exits the
+test binary silently, in whichever test is running then. Two whole-package runs with the file named
+`revoke_stats_test.go` (so after `TestMainRun`) died this way in `TestRevokeGoroutines`, both at
+30.05 s. Named to sort first, the new tests end before Main starts. Main as deployed does not remove
+its own data directory, so this concerns only the test harness.
+
+Runs: before the final version, 1 run (the three other tests passed; `TestRevokeBothArms` failed at
+150 ms, above), 2 runs of the four tests alone (pass), and 2 whole-package runs that died by the
+hazard. Then 3 whole-package runs of the final file, all passing.
