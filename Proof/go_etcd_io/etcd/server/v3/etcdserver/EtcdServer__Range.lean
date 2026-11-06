@@ -764,7 +764,7 @@ theorem EtcdServer.Range.wp_proof
         icombine Hread Hrd0 gives %Hrdeq
         subst Hrdeq
         imod saved_pred_alloc Q DFrac.discard trivial with ⟨%g, #Hg⟩
-        wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
+        wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, #HrdE, Hri⟩
         · iframe #; iframe Hrr
         ihave Hrr : srvReadReader s γr $$ [Hrr]
         · iunfold srvReadReader; iexists _; iframe Hread Hrr
@@ -884,7 +884,7 @@ theorem EtcdServer.Range.wp_proof
         icombine Hread Hrd0 gives %Hrdeq
         subst Hrdeq
         imod saved_pred_alloc Q DFrac.discard trivial with ⟨%g, #Hg⟩
-        wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
+        wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, #HrdE, Hri⟩
         · iframe #; iframe Hrr
         ihave Hrr : srvReadReader s γr $$ [Hrr]
         · iunfold srvReadReader; iexists _; iframe Hread Hrr

@@ -1168,7 +1168,7 @@ theorem EtcdServer.Txn.wp_proof
           ihave #Hdep : kvDep (GF := GF) γr.kv Qr $$ [Hnp]
           · iexact Hnp
           wp_apply HisRead' $$ %ctx2 %_ %c %g %Qr [Hrr]
-            as %rerr ⟨Hrr, #HrE, Hri⟩
+            as %rerr ⟨Hrr, #HrE, #HrdE, Hri⟩
           · iframe Hdep Hg Hctx2 Hcal; iframe Hrr
           ihave Hrr : srvReadReader s γr $$ [Hrr]
           · iunfold srvReadReader; iexists _; iframe Hread Hrr
@@ -1292,7 +1292,7 @@ theorem EtcdServer.Txn.wp_proof
           ihave #Hdep : kvDep (GF := GF) γr.kv Qr (kvStM true γr.kv) $$ [Hnp]
           · iexact Hnp
           wp_apply HisRead' $$ %ctx2 %_ %c %g %Qr [Hrr]
-            as %rerr ⟨Hrr, #HrE, Hri⟩
+            as %rerr ⟨Hrr, #HrE, #HrdE, Hri⟩
           · iframe Hdep Hg Hctx2 Hcal; iframe Hrr
           ihave Hrr : srvReadReader s γr $$ [Hrr]
           · iunfold srvReadReader; iexists _; iframe Hread Hrr
