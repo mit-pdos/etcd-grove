@@ -1,7 +1,7 @@
 /-
 Trusted Go model of `syscall` (namespace of the generated package; project bboltfs of
 `etc/goose.py`, `Code/syscall.toml`), in terms of the Linux file extension of
-`GooseLang.Ext.OsFs.Impl` (`osFsExt`, `ExternalOp osFsExt.name "Fsync"`, ...), for any program
+`GooseLang.Ext.Fs.Impl` (`Fs.fsExt`, `ExternalOp Fs.fsExt.name "Fsync"`, ...), for any program
 whose extensions include it. linux/amd64.
 
 The functions are `zsyscall_linux_amd64.go`'s system-call stubs: one `Syscall` and
@@ -13,7 +13,7 @@ a `w64`, the value of an `Errno` (`uintptr`).
 module
 
 public import Perennial.Golang.Defn
-public import GooseLang.Ext.OsFs.Impl
+public import GooseLang.Ext.Fs.Impl
 
 @[expose] public section
 
@@ -37,7 +37,7 @@ noncomputable def model.errno : val :=
 all the metadata the extension has): its `Fsync` (stuck on an fd that is not open, else success
 or any nonzero errno). -/
 noncomputable def Fdatasync.impl : val :=
-  λ: "fd", model.errno (ExternalOp osFsExt.name "Fsync" "fd")
+  λ: "fd", model.errno (ExternalOp Fs.fsExt.name "Fsync" "fd")
 
 /-- `Flock(fd int, how int) error`: `flock(2)`, trivial (`notes/osfs-ext-plan.md`, D7): the
 specifications are about one process, which never contends with itself for a lock it holds
@@ -47,7 +47,7 @@ held elsewhere (`EWOULDBLOCK` with `LOCK_NB`), `EINTR`, `EINVAL` for a bad `how`
 stuck on an fd that is not open (D6). A blocking `flock` that never returns is a run the model
 need not contain. -/
 noncomputable def Flock.impl : val :=
-  λ: "fd" "how", model.errno (ExternalOp osFsExt.name "Flock" ("fd", "how"))
+  λ: "fd" "how", model.errno (ExternalOp Fs.fsExt.name "Flock" ("fd", "how"))
 
 end code
 end syscall

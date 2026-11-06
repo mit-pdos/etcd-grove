@@ -1,7 +1,7 @@
 /-
 Trusted Go model of `golang.org/x/sys/unix` (namespace of the generated package; project bboltfs
 of `etc/goose.py`, `Code/golang_org/x/sys/unix.toml`), in terms of the Linux file extension of
-`GooseLang.Ext.OsFs.Impl` (`osFsExt`), for any program whose extensions include it.
+`GooseLang.Ext.Fs.Impl` (`Fs.fsExt`), for any program whose extensions include it.
 linux/amd64, `golang.org/x/sys` v0.48.0 (`examples/go.mod`).
 
 `unix.Errno` is an alias of `syscall.Errno`, and `errnoErr` boxes it as `syscall`'s does
@@ -10,7 +10,7 @@ linux/amd64, `golang.org/x/sys` v0.48.0 (`examples/go.mod`).
 module
 
 public import Perennial.Golang.Defn
-public import GooseLang.Ext.OsFs.Impl
+public import GooseLang.Ext.Fs.Impl
 public import TrustedCode.syscall
 
 @[expose] public section
@@ -51,7 +51,7 @@ noncomputable def Mmap.impl : val :=
   λ: "fd" "offset" "length" "prot" "flags",
     if: "length" ≤⟨go.int⟩ #(W64 0) then (#slice.nil, syscall.model.errno #(W64 22)) -- EINVAL
     else
-      let: "r" := ExternalOp osFsExt.name "Mmap" ("fd", ("offset", ("length", ("prot", "flags")))) in
+      let: "r" := ExternalOp Fs.fsExt.name "Mmap" ("fd", ("offset", ("length", ("prot", "flags")))) in
       if: Snd "r" ≠⟨go.uintptr⟩ #(W64 0) then (#slice.nil, syscall.model.errno (Snd "r"))
       else
         ((FuncResolve «unsafe».Slice [go.byte, go.int]) #()
@@ -89,7 +89,7 @@ noncomputable def Munmap.impl : val :=
     if: ("len" =⟨go.int⟩ #(W64 0)) || ("len" ≠⟨go.int⟩ "cap") then
       syscall.model.errno #(W64 22) -- EINVAL
     else
-      syscall.model.errno (ExternalOp osFsExt.name "Munmap"
+      syscall.model.errno (ExternalOp Fs.fsExt.name "Munmap"
         (Convert (go.PointerType go.byte) «unsafe».Pointer
           (IndexRef (go.GoType.SliceType go.byte) ("b", #(W64 0))), ("len", "cap")))
 
@@ -113,10 +113,10 @@ collapsing, inserting) are not modelled: a panic, never reached by a proved prog
 noncomputable def Fallocate.impl : val :=
   λ: "fd" "mode" "off" "len",
     if: "mode" =⟨go.uint32⟩ #(W32 0) then
-      syscall.model.errno (ExternalOp osFsExt.name "FallocFinish"
-        (ExternalOp osFsExt.name "FallocStart" ("fd", ("off", "len"))))
+      syscall.model.errno (ExternalOp Fs.fsExt.name "FallocFinish"
+        (ExternalOp Fs.fsExt.name "FallocStart" ("fd", ("off", "len"))))
     else if: "mode" =⟨go.uint32⟩ #(W32 1) then
-      syscall.model.errno (ExternalOp osFsExt.name "FallocKeep" ("fd", ("off", "len")))
+      syscall.model.errno (ExternalOp Fs.fsExt.name "FallocKeep" ("fd", ("off", "len")))
     else Panic "golang.org/x/sys/unix.Fallocate: mode not modelled"
 
 /-- `FcntlFlock(fd uintptr, cmd int, lk *Flock_t) error` (`fcntl.go`: one `fcntl(2)` with the
@@ -130,7 +130,7 @@ noncomputable def FcntlFlock.impl : val :=
   λ: "fd" "cmd" "lk",
     if: ("cmd" =⟨go.int⟩ #(W64 6)) || ("cmd" =⟨go.int⟩ #(W64 7)) ||
         ("cmd" =⟨go.int⟩ #(W64 37)) || ("cmd" =⟨go.int⟩ #(W64 38)) then
-      syscall.model.errno (ExternalOp osFsExt.name "OfdLock" ("fd", "cmd"))
+      syscall.model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", "cmd"))
     else Panic "golang.org/x/sys/unix.FcntlFlock: a command that sets no lock is not modelled"
 
 end code
