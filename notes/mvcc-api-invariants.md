@@ -2006,3 +2006,63 @@ three); `mvccTxn_leaseDelete.law`; `snapObs_M1`; then `Link`/`Results` regenerat
 (`etc/gen-interface.py`), the TCB baseline. The tracing cluster in the worktree (otel `isParentSpan`,
 k8s `tracing.isSpan`; another agent's) is unfinished and uncommitted: three k8s cacher proofs fail
 on its new premises.
+
+## Hand-off: M4, Restore's groundwork (2026-11-06)
+
+**Done** (every mvcc module builds but `Link`/`Results`; no axiom, no `sorry` in mvcc; the last M1
+placeholders removed and `M1Placeholders.lean` deleted):
+- **Leases at restore** (`KeyToLease.lean`, `KeyToLeaseCut.lean`): `restoreChunk` over any
+  `keyToLease` map (`ktlApply`); `store.restore` attaches each key of the map to its lease through
+  the store's lessor (`isLessor le γl`, `Attach` returning `nil`: each restored item's lease live,
+  its key short), the owner's map going from `∅` to `pendItems L' []` (`ktlApply_cut_of_idxWf`: the
+  compacted image's map is the restored state's item map, a key cut whole ends in a tombstone).
+  `restoreLogOk` no longer forbids leases. `store.Restore`, `watchableStore.Restore` (and `specOff`)
+  take `leaseOwn γ.leases Ls ∅` with the items' facts and give `leaseOwn … (pendItems L' [])`:
+  `KV.Restore.contract`'s lease clauses.
+- **The restore's ghost step** (`RestoreVocab.restoreCb`, at the update's mask `⊤ \ ↑mvccN`): the
+  takeover (`restore_takeover`, inside the writer's invariant) fires it with `s.revMu`'s slot and the
+  writer's part of the view, gets them at `(L', c')`, `nlLb L'` and `⌜L <+: L'⌝` (no longer a
+  premise of `store.Restore`; `watchableStore.Restore`'s persistent certificate-prefix premise,
+  unprovable by a client, is gone). The switch installs the new `slotX`, the finish the new `slotY`
+  (with the fresh `rcv` half and the writer's `wcrPart` half the store kept).
+  `Api/RestoreCbAu.restoreCb_of_au` makes it from the contract's AU and the open token's
+  `crevAuth` quarter (its `R`: that quarter at `σ'.crev` and `Q σ`).
+- **The restorer's share token** (`api.shareTok γ.api 1`, `mvccBackend γ 1`'s): `store.Restore`
+  takes it and gives it back; the takeover refutes the frozen state with it and deposits it in the
+  restoring state (`slotFr`), the finish takes it back (`restoreOnReady`/`restoreOnFin` carry it),
+  and the resumed compaction (`compactLockfree`, which now takes and returns it) excludes the frozen
+  state by it (`wr_frozen_excl`, `wrFr_restoring_excl`).
+- **The frozen state's excluder at every `Write`**: `store.Write.specR`, `watchableStore.Write`,
+  the deleter's `rdIs` and `store_Write_backend` take the caller's `G ∗ □ (slotF γ ∗ G -∗ False)`
+  (the API's backend share), as `store.Write.spec` does.
+
+**Left for `KV.Restore.contract`** (in order; then `Link`/`Results`, interfaces, TCB):
+1. **The open token's restore pieces** (`mvccOpen`): `writerOwn` (`storeRT γ ∗ retiredAt γ (2 +
+   nJobRd)` at the current names: the accounting of `NewApi`/`NewStoreApi`'s retired readers to be
+   worked out; `New` returns `retiredAt (nJobRd kb)` and retires one reader for the open token's
+   `storeRT`), so `KV.Compact`/`Close`'s unfoldings of `mvccOpen` take one more part.
+2. **`writerReg` out of `store.Restore`** (persistent; the finish makes it, inside `Hprep`: add it to
+   `restoreOnReady`/`restoreOnFin` and the posts), for the rebuilt `mvccBackend γ 1 B' Pk'`.
+3. **The resumed compaction's hook and commit**: `compactLockfree` fixes an empty lock context
+   (`lockCtxM_none`, the new backend's hook unset: `resumeHookM`) and `X = Y = True`; the contract
+   runs the hook `f` once (`hookRun`) and commits once (`storageReq B' Pk' X Y`). Generalize
+   `compactLockfree` to `lockCtxM γ P hk Pre Q Post dq ∗ X ∗ storeReq γ X Y` (as `updateCompactRev`
+   is) and `store.Restore`'s `resumeHookM` to that context at the new names (`∀ p'` with the new
+   backend's facts, since `p'` is allocated inside).
+4. **The bridge from `mvccStorageFor B' Pk' σ'.log σ'.crev u`** to the internal premises at the image's
+   records `r` (`imageOk` gives `r.crev = σ'.crev` and `u = r.resumes`): `restoreRcptM`
+   (its `⧖`), `restoreImageM` (`RestoreImageOpen.restoreImageM_of_openOn`), `storeBackendTR`
+   (`BackendRecsSnap.storeBackendTR_of_backendC`), `keyCleanReadR`, `restoreRegM` (`dlInit`),
+   `kbRegRight` (`lateReg`), `kbSRM` (`srSlot`), `kbWTSupplyM`, the `nReaders` reader tokens; the
+   constructors' API proofs (`NewApi`, `NewStoreApi`) do the same for a fresh store.
+5. **The watchable store at the current names**: the handle's `isWatchableStore s st γw` has
+   `γw.st = γ` (the first backend's names); the internal spec at `γw` with `st := γ.withPhys p`
+   (`mvccOpen`'s `p`) needs `isWatchableStore` at it (as `isStore_withPhys`).
+6. **`watchableStore.Restore.wp_api`**: `certOk L'` from the handle's `certFree` (its third
+   disjunct); the old storage's `storageRest B` from the old reader tokens (`kbRT` holds `bOpen`):
+   the post's `nReaders - 1 - nJobRd` `storeRT γ`, the job's (`compactJobResM`) and the old open
+   token's; the rebuilt `mvccOpen` at `p'`, `r.crev` (`storeCloserM`, the callback's quarter) and
+   `mvccBackend γ 1 B' Pk'`.
+7. **`store.Restore.wp_api`** (a plain store): the internal `store.Restore` takes `γ.watchQ = true`
+   (the takeover pins the committed log by the watchable lock's `logQ`); generalize it to a store
+   without watchers (the log from the writer's state alone).
