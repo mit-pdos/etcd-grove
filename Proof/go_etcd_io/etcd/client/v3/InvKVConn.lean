@@ -1478,7 +1478,8 @@ def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IP
          | .Done => iprop(⌜err ≠ interface.nil⌝)
          | _ => if err = interface.nil then iprop(True)
                 else context.ContextClosed cd.Done_gn) -∗
-        ⌜clientErr err⌝ -∗ statusErrOk err -∗ errCellOk err -∗ Φ #err) -∗
+        ⌜clientErr err⌝ -∗ statusErrOk err -∗ errCellOk err -∗
+        ⌜err = interface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 
 instance ctxErrClient_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :

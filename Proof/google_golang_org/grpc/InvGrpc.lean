@@ -1016,8 +1016,10 @@ instance ctxQuiet_persistent (ci : GoInterfaceOk) : Persistent (ctxQuiet (GF := 
 K4 of `notes/k8s-compactor-plan.md`, the user's approval): `Err()` returns `nil`, or, once the
 context is done (`ContextClosed cd.Done_gn`), a non-nil error; a non-nil error means it is done, and
 is a client error grpc's `status` accepts (`clientErr`, `statusErrOk`, `errCellOk`: true of
-`context.Canceled` and `DeadlineExceeded`, the only errors Go lets `Err()` return). Nothing about
-`Done()`. The client's `ctxErrClient` has this body (`ctxErrClient_eq_errs`). It is what a context
+`context.Canceled` and `DeadlineExceeded`, the only errors Go lets `Err()` return), whose
+description is not a handler's (`handlerDescs`; k8s etcd3 7c, HS-5 (a), approved by the user
+2026-11-06 via etcd-grove-82: grpc returns `status.FromContextError(ctx.Err())`, which keeps the
+message, so an attempt's error would carry it with no handler run). Nothing about `Done()`. The client's `ctxErrClient` has this body (`ctxErrClient_eq_errs`). It is what a context
 outside Perennial's model meets: k8s's `wait.ContextForChannel(stopCh)` (a `channelContext`, whose
 `Done()` is `stopCh` and whose `Err()` is `Canceled` once `stopCh` is closed; not an `isContext`,
 whose `parentCancelCtx` finds a `*cancelCtx`). -/
@@ -1032,7 +1034,8 @@ def ctxErrs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp G
          | _ => if err = interface.nil then iprop(True)
                 else context.ContextClosed cd.Done_gn) -∗
         ⌜clientErr err⌝ -∗ go_etcd_io.etcd.cache.v3.statusErrOk err -∗
-        go_etcd_io.etcd.cache.v3.errCellOk err -∗ Φ #err) -∗
+        go_etcd_io.etcd.cache.v3.errCellOk err -∗
+        ⌜err = interface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 
 instance ctxErrs_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
@@ -1206,8 +1209,9 @@ def credsMapIs (mp : Loc) (cm : GrpcMd) : IProp GF :=
     ⌜cm = (some fun k => (m !! k).map fun v => [v]) ∧ ∀ k v, m !! k = some v → metadata.lowerKey k⌝)
 
 /-- **The per-RPC credentials `pc` return metadata meeting `Q`** (persistent; the auth plan's C1,
-2026-10-28): each call of `pc.GetRequestMetadata(ctx, uri...)` that returns no error returns a map
-whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`); and
+2026-10-28): each call of `pc.GetRequestMetadata(ctx, uri...)` returns no error or one whose
+description is not a handler's (`handlerDescs`; k8s etcd3 7c, HS-5 (a): grpc passes such an error
+through as the attempt's), and, with no error, a map whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`); and
 `pc.RequireTransportSecurity()` can be called (grpc calls it at the dial to refuse credentials that
 need a secure transport on an insecure one; C1's review, F4). -/
 def perRPCCredsOk (pc : GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
@@ -1217,7 +1221,8 @@ def perRPCCredsOk (pc : GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
           google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"GetRequestMetadata")))
         (Val #pc)) (Val #ctx)) (Val #sl))
     {{ (mp : Loc) (err : GoInterface), RET (PairV #mp #err);
-        ⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ □ Q cm }}) ∗
+        ⌜err = GoInterface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ ∗
+        (⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ □ Q cm) }}) ∗
     □ {{ True }}
       (App (App (Val (GoInstruction (MethodResolve
           google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"RequireTransportSecurity")))

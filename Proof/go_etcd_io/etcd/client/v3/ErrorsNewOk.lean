@@ -237,6 +237,7 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
     · ipureintro; exact ⟨hAs, fun ii h => by cases h⟩
     · iapply statusErrOk_nil
     · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
+    · ipureintro; left; rfl
   · icombine Hv Hec gives %Heq
     subst Heq
     iapply HΦ $$ Hpost
@@ -246,6 +247,7 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
       rw [Hx]
       iapply go_etcd_io.etcd.cache.v3.errCellOk_of_cell x _
         (by simp [go_etcd_io.etcd.cache.v3.clientErrMsgs]) $$ Hcell
+    · ipureintro; right; simp [handlerDescs]
   · icombine Hv Hed gives %Heq
     subst Heq
     iapply HΦ $$ Hpost
@@ -253,6 +255,7 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
     · iexact Hsd
     · -- (D37) `DeadlineExceeded` is of no `*errorString` type
       iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty ed (Hnd ed rfl)
+    · ipureintro; right; simp [handlerDescs]
 
 end proofs
 
