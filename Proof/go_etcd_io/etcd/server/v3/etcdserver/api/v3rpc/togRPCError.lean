@@ -49,7 +49,7 @@ theorem v3rpc.togRPCError.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨#Hmap, -, -, #Hcanc, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMap at Hmap
-  icases Hmap with ⟨%mp, %Mg, %kf, %kc, #Hmp, #HM, #HF, #HC, #HMS, %HMv⟩
+  icases Hmap with ⟨%mp, %Mg, %kf, %kc, #Hmp, #HM, #HF, #HC, #HMS, #HMK, %HMv⟩
   ihave #Hctx : (_root_.Perennial.context.isInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pctx
   icases Hctx with ⟨-, -, -, ⟨%de, #Hde, -⟩, -⟩
