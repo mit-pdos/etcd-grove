@@ -1897,7 +1897,11 @@ land together). Glue (Draft's list, the "decides nothing" rule): R2c-5's `BuildS
 - Lifting the compactor premise later by a share-free reader changes the compactor's slot (the
   k8s compactor's specs): K-track coordination.
 
-### R2c Draft (2026-11-06, branch `r2c`, DRAFT until R2c's Freeze)
+### R2c Draft (2026-11-06, branch `r2c`; frozen 2026-11-06, tag `r2c-frozen`)
+
+**Frozen** as listed in the Freeze package (S1-S3, statement changes 1-21, Q3/Q4/Q6/Q7, D1-D3,
+D-a-D-f): decided by etcd-grove-82 under the user's delegation (user offline), 2026-11-06, pending the
+user's review.
 
 Sub-steps R2c-1 to R2c-5 as in the Scope (A), proved, no `sorry`, no axiom: `e086ccfcc9` (R2c-1),
 `4623b75b93` (R2c-2), `84792dae13` (R2c-3), `53b9d60e74` (R2c-4), `5fd553525e` (R2c-5). What changed
