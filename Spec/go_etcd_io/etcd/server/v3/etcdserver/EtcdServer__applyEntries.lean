@@ -56,6 +56,8 @@ abbrev EtcdServer.applyEntries.specBatch : Prop :=
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
   -- (R2d, DRAFT) the replay window
   winOk A D W (unapplied ai ms) →
+  -- (R2d, Q17 F2) the pending replays at or below the consistent index (Go's `shouldApplyV3`)
+  (∀ m ∈ W, uint.Z m.index ≤ uint.Z (ciEff γ st.k)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ batchWaitOk ρ E ms ∗ taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗

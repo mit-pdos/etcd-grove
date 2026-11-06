@@ -58,6 +58,9 @@ abbrev EtcdServer.apply.spec : Prop :=
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
   -- (R2d, DRAFT) the replay window
   winOk A D W ms →
+  -- (R2d, Q17 F2) the pending replays at or below the consistent index (Go's `shouldApplyV3`,
+  -- `server.go:1933-1937`)
+  (∀ m ∈ W, uint.Z m.index ≤ uint.Z (ciEff γ st.k)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗
       entriesAt ents ms ∗

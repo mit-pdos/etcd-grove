@@ -34,7 +34,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `apply.spec` before the window (its text at lean `aa4449beb6`). -/
+/-- `apply.spec` before the window (its text at lean `6b49f77e01`, unchanged through `aa4449beb6`). -/
 abbrev EtcdServer.apply.specNoWin : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
@@ -80,9 +80,9 @@ theorem EtcdServer.apply.spec_noWin (h : EtcdServer.apply.spec (GF := GF) (hG :=
     EtcdServer.apply.specNoWin (GF := GF) (hG := hG) :=
   fun s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w sa h1 h2 h3 h4 h5 h6 h7 =>
     h s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w sa [] [] h1 h2 h3 h4 h5 h6 h7
-      (winOk_nil _ _)
+      (winOk_nil _ _) (fun _ hm => nomatch hm)
 
-/-- `applyEntries.specBatch` before the window (its text at lean `aa4449beb6`). -/
+/-- `applyEntries.specBatch` before the window (its text at lean `6b49f77e01`, unchanged through `aa4449beb6`). -/
 abbrev EtcdServer.applyEntries.specBatchNoWin : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
@@ -132,9 +132,9 @@ theorem EtcdServer.applyEntries.specBatch_noWin
     EtcdServer.applyEntries.specBatchNoWin (GF := GF) (hG := hG) :=
   fun s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w sa h1 h2 h3 h4 h5 h6 h7 =>
     h s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w sa [] [] h1 h2 h3 h4 h5
-      h6 h7 (winOk_nil _ _)
+      h6 h7 (winOk_nil _ _) (fun _ hm => nomatch hm)
 
-/-- `applyAll.specBatch` before the window (its text at lean `aa4449beb6`). -/
+/-- `applyAll.specBatch` before the window (its text at lean `6b49f77e01`, unchanged through `aa4449beb6`). -/
 abbrev EtcdServer.applyAll.specBatchNoWin : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
@@ -227,11 +227,19 @@ abbrev EtcdServer.applyAll.specBatchNoWin : Prop :=
 /-- **`applyAll.specBatch` at no window**. -/
 theorem EtcdServer.applyAll.specBatch_noWin
     (h : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG)) :
-    EtcdServer.applyAll.specBatchNoWin (GF := GF) (hG := hG) :=
-  fun s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk
-      q γn rt n =>
-    h s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk q
-      γn rt n [] [] (winOk_nil _ _)
+    EtcdServer.applyAll.specBatchNoWin (GF := GF) (hG := hG) := by
+  intro s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk
+    q γn rt n
+  have h' := h s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv
+    γnc w nk q γn rt n [] [] (winOk_nil _ _)
+  -- the term row at Go's index: the whole ghost log at no window (`uint.Z ai = A.length`)
+  by_cases hlen : uint.Z ai = A.length
+  · have htake : A.take (uint.nat ai) = A := List.take_of_length_le (by
+      have := uint_nat_eq ai; omega)
+    rw [htake] at h'
+    exact h'
+  · iintro %Φ ⟨-, %hP, -⟩ -
+    exact absurd hP.2.2.2.2.2.2.2.1 hlen
 
 /-- **The no-window texts' running-token match is `srvRunH`** (stated with the match itself, so that
 it is about the matcher the texts above elaborate to: `SDRun`'s lemmas name their specs' matchers). -/

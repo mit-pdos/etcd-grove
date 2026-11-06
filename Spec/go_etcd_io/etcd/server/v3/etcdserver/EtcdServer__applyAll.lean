@@ -63,8 +63,11 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) ∧ uint.Z ai + 1 < 2 ^ 64 ∧
         loopOk γ st ai ∧ logShapeM C.isOn E.lm (unapplied ai ms) ∧
         dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) ∧
-        uint.Z (winGhost ai W) = A.length ∧ lastTermIs A at0 ∧
-        storage.diskOk ∧ uint.Z ai ≤ uint.Z (ciEff γ st.k) ∧
+        -- (R2d, Q16 (1)) Go's applied term, at Go's index (`ep.appliedt`: at a restart the WAL
+        -- snapshot's, `server.go:812-813`)
+        uint.Z (winGhost ai W) = A.length ∧ lastTermIs (A.take (uint.nat ai)) at0 ∧
+        -- (R2d, Q17 F2) the pending replays at or below the consistent index
+        storage.diskOk ∧ uint.Z (winGhost ai W) ≤ uint.Z (ciEff γ st.k) ∧
         uint.Z (ciEff γ st.k) ≤ uint.Z (winGhost ai W) ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
         (A ++ winNew W (unapplied ai ms)).length ≤ n⌝ ∗
       isServerC C s γ ci TM E ρ γr ∗ acLessor C s ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
