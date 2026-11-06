@@ -30531,3 +30531,13 @@ faithful, otel's `SpanFromContext` only calls `ctx.Value(currentSpanKey)`, which
 answers `nil`, giving the no-op span. `WatchStream.Watch.contract` takes the same disjunction. To be
 attacked with the `axiom` skill.
 
+## The `zap.Logger` axioms: the fix scheduled after the migration (2026-11-06 · the user · branch `mvcc-api`)
+
+The axiom review of `lease.NewLessor` found, on the side, that the `zap.Logger` method axioms
+(`Spec/go_uber_org/zap/Logger__*.lean`) take only `l ≠ null`, while a zero `&zap.Logger{}` panics in
+`Info`/`Fatal`/... (a nil core). The user approved the fix ("Go ahead and fix axioms as needed"): a
+persistent `zap.isLogger l` (a logger made by a constructor, which `NewNop`'s and the other
+constructors' specs give) in place of `l ≠ null`. It touches 144 files across nearly every package,
+most being migrated in parallel, so it is done after the mvcc migration settles, with the
+baselines and the `Link` regeneration, then attacked with the `axiom` skill.
+
