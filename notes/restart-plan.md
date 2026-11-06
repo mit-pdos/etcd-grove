@@ -2331,3 +2331,16 @@ conjunct added). No `walFiles` axiom; the trust base unchanged.
   `snapshot_merge.go:43-50`), so a valid snapshot has nil data (`srv_snapshotValid_dataNil`) and is its
   WAL record's (`srv_snapshotValid_record`).
 - One raft API addition: `snapMade_timeless` (so `snapshotValid` is timeless at a client).
+
+**Scope amendment 2 (2026-11-06, Q16; decided by etcd-grove-82 under the user's delegation, user
+offline, pending the user's review).** The hard probe on the window form (`applyAll.wp_proofBatch`)
+found: (1) the window form's `lastTermIs A at0` cannot hold at a restart (Go's `ep.appliedt` is the
+WAL snapshot's term, `server.go:812-813`): now `lastTermIs (A.take (uint.nat ai)) at0`; (2) the local
+snapshot after a window batch is at Go's applied log `take ai A ++ unapplied ai ms` (a proof matter,
+a list lemma); (3) a merged snapshot sent in a window (`server.go:1010-1015`) carries an image at the
+backend's consistent index `j` above its metadata index: the network's image certificate
+(`srvNet`'s `img`) becomes "an image at some `j ≥ i`", and the receiver's install (`applied_jump`,
+`applyAll.specSnap`/`specSnapM`) gains the same replay window (Q13's `ApplyWindow`), so one notion of
+window covers restart and install (design: `/shared/tmp/r2d-merged-design.md`, to be moved into this
+plan when drafted). This is R2d's last widening: another Scope-level gap stops with a proposal to move
+it to R2d' or a new stage. **Estimate: R2d now about 5-7 weeks.**
