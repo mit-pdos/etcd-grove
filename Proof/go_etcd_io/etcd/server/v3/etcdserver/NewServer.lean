@@ -2109,10 +2109,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr
     · iexists γrn
       iframe NHmsci
-      isplitr
-      · ipureintro; simp [Hrn1, HρRaft]
-      have hidr : γrn.id = id := by rw [Hrn5, Hrid]
-      rw [hidr, ← Hid]; iexact memberID
+      ipureintro; simp [Hrn1, HρRaft]
     isplitr
     · iexists (transportIface t), γn, id, srvTrKey γn γk, iprop(False)
       iframe Htrf Htrall

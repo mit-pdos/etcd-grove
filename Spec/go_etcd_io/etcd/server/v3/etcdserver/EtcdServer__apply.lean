@@ -8,7 +8,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyNormalOn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyWindow
 
 @[expose] public section
 
@@ -36,65 +35,41 @@ model's auth state `sa`, unconstrained off), the apply thread's model (`kvApplie
 `srvAuthSt0`). **With auth on** (only): the server's lessor finds no lease (`srvLessorNilM`), the
 receipts' bound, and the rights to issue tokens at the consistent index (`srvTokRights`, `True` off),
 at the new consistent index after. (2026-10-31, the snapshot track's S5) `ep.confState` reports
-the voters once an entry is applied (`epCsAt`: the first is a validated conf change).
-
-(R2d, Q13 (a), 2026-11-06; DRAFT, the window form, `ApplyWindow.lean`) **In a restarted member's
-replay window**: the replays `W` pending and `D` done (`winOk`; no window `W = D = []`, where every
-row is the one before, `apply.spec_noWin`). The batch starts with the pending replays, which `apply`
-applies v2-only (their indices at most the consistent index, the premise F2 added: `entriesStep`'s
-`v3` false), none of them a conf change (`winNoConf`, the Freeze 1 review's F1: a replayed conf
-change is applied v2-only, which `applyConfChange.spec` has no case for, R2d''s); the
-ghost applied index is `winGhost` of Go's (`f0 - 1` before, `appliedi` after; `setAppliedIndex`'s
-replay case below it); the ghost log grows by the new entries only (`winNew W ms`); the rest
-buckets' resources are the window's (`srvRestW`, the replays after `A`'s model; `srvRest`'s again at
-the window's end, last writer wins). Go's own rows (`ep`'s fields, the consistent index, the write
-tokens, one per entry, `entriesStep` over the whole batch) are as before. -/
+the voters once an entry is applied (`epCsAt`: the first is a validated conf change). -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
-    (A : List EntryModel) (γp : WTNames) (dv : Option Loc) (w : Nat) (sa : auth.AuthState)
-    (W D : List EntryModel),
+    (A : List EntryModel) (γp : WTNames) (dv : Option Loc) (w : Nat) (sa : auth.AuthState),
   E.authMode ≠ .any → (E.authOn = true → receiptBound GF ≤ 2 ^ 48) →
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeM E.authOn E.lm ms →
-  -- (R2d, Q19) at the ghost index's next (`winGhost f0 W`: `f0` with no window, the ghost index
-  -- `+ 1` in one)
-  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (winGhost f0 W) ms →
-  -- (R2d, DRAFT) the replay window
-  winOk A D W ms →
-  -- (R2d, Q17 F2) the pending replays at or below the consistent index (Go's `shouldApplyV3`,
-  -- `server.go:1939-1943` at the pin `673da07c8`)
-  (∀ m ∈ W, uint.Z m.index ≤ uint.Z (ciEff γ st.k)) →
-  -- (R2d, the Freeze 1 review's F1) no conf change in the window (`winNoConf`; a replayed one is
-  -- applied v2-only, which `applyConfChange.spec` has no case for: R2d''s)
-  winNoConf W →
+  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗
       entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr (winGhost (f0 - 1) W) ∗
-      appliedLogAt γr (winGhost (f0 - 1) W) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr (f0 - 1) ∗
+      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTTaken γp.cnt w ∗ srvFS s ∗
-      kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRestW E γr A D ∗
-      kvBatchW γr (ciEff γ st.k) (f0 - 1) W A ms ∗
-      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ winNew W ms) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ srvApRes s γr A ∗
+      kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+      kvBatch γr (ciEff γ st.k) (f0 - 1) A ms ∗
+      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ srvApRes s γr A ∗
       -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
       srvTokRights E (ciEff γ st.k) }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
-      RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗ dvView ρ.raft dv (A ++ winNew W ms) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
-      srvApRes s γr (A ++ winNew W ms) ∗
+      RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗ dvView ρ.raft dv (A ++ ms) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
+      srvApRes s γr (A ++ ms) ∗
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ srvTokRights E (ciEff γ st'.k) ∗ applyBackend γ ci b ∗
         ciApplying ci a' at' ∗
-        epConfState ep csl ∗ epCsAt ρ.raft (A ++ winNew W ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
-        srvAppliedOwn γr (winGhost appliedi (winRest W ms)) ∗
+        epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
+        srvAppliedOwn γr appliedi ∗
         srvWTTaken γp.cnt (w + ms.length) ∗
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVM E.authOn s E ρ.wait x' sa' ∗
-          ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr (winGhost appliedi (winRest W ms)) x'.log ∗
-          kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (A ++ winNew W ms) x' sa' ∗
-            srvRestW E γr (A ++ winNew W ms) (winDone D W ms)) ∗
+          ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr appliedi x'.log ∗
+          kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (A ++ ms) x' sa' ∗ srvRest E γr (A ++ ms)) ∗
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
           (ms.getLast?).map EntryModel.term = some appliedt ∧
           loopOk γ st' appliedi ∧

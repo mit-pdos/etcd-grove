@@ -42,6 +42,18 @@ theorem srvRunH_some (γs : ServerRaftNames) (n : Loc) :
     srvRunH (GF := GF) γs (some n) =
       (letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) := rfl
 
+theorem srvRunH_apply_spec (γs : ServerRaftNames) (dv : Option Loc) :
+    _root_.Perennial.EtcdGrove.EtcdServer.apply.spec.match_1 (fun _ => IProp GF) dv (fun _ => iprop(True))
+      (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) =
+      srvRunH γs dv := by
+  cases dv <;> rfl
+
+theorem srvRunH_applyEntries_spec (γs : ServerRaftNames) (dv : Option Loc) :
+    _root_.Perennial.EtcdGrove.EtcdServer.applyEntries.specBatch.match_1 (fun _ => IProp GF) dv (fun _ => iprop(True))
+      (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) =
+      srvRunH γs dv := by
+  cases dv <;> rfl
+
 theorem srvRunH_applyAll_spec (γs : ServerRaftNames) (dv : Option Loc) :
     _root_.Perennial.EtcdGrove.EtcdServer.applyAll.specBatch.match_1 (fun _ => IProp GF) dv (fun _ => iprop(True))
       (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) =

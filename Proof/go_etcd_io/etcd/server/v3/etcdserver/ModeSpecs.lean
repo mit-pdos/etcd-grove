@@ -27,7 +27,6 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__DeleteRange
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SDRun
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyWindowLaws
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AppliedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
@@ -444,10 +443,8 @@ the server's view, `authOn_false_of_off`). -/
 theorem EtcdServer.apply.spec_off
     (h : EtcdServer.apply.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.specOff (GF := GF) (hG := hG) := by
-  -- (R2d, DRAFT) a first start's callers: the window form at no window
-  replace h := EtcdServer.apply.spec_noWin h
-  unfold EtcdServer.apply.specNoWin at h
-  simp only [srvRunH_noWin] at h
+  unfold EtcdServer.apply.spec at h
+  simp only [srvRunH_apply_spec] at h
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w hne hfrom hok hEok hdv
   iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hents, Hst, Hbe, Happ, Hcs, Hcv, Hlr, Hgr, HKV, Hao, Hlog0, Hbc,
     HWP, HWA0, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR⟩ HΦ
@@ -480,10 +477,8 @@ theorem EtcdServer.apply.spec_off
 theorem EtcdServer.apply.spec_on
     (h : EtcdServer.apply.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.specOn (GF := GF) (hG := hG) := by
-  -- (R2d, DRAFT) a first start's callers: the window form at no window
-  replace h := EtcdServer.apply.spec_noWin h
-  unfold EtcdServer.apply.specNoWin at h
-  simp only [srvRunH_noWin] at h
+  unfold EtcdServer.apply.spec at h
+  simp only [srvRunH_apply_spec] at h
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w γa sa hM hRB hne hfrom hok
     hEok hdv
   have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl

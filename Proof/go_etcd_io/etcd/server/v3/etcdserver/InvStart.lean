@@ -149,9 +149,8 @@ raft's `MsgSnap`s (2026-10-30, the repair: snapshots allowed; until then it neve
 raft sent no `MsgSnap`). -/
 def srvApplyAllBuilt (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`); (R2d,
-    -- 2026-11-06) its node's id the server's member id (`isServerApplyAll`'s)
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc) ∗
+    -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`)
+    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ isRNMsgSnapC γm msc) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
     srvInflight s ∗
     -- (2026-10-31, S1) the started transport, of the server's network

@@ -32626,6 +32626,8 @@ left for the next round.
 
 ## R2d: the split R2d / R2d' / R2e; the window form; the WAL snapshot's certificate (2026-11-06 · Q13 (a), Q14 (a), Q15 (c), decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
 
+*Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): the window form (Q13 (a)) is not in R2d; it moved to R2d' (branch `r2d-prime`, tag `r2d-freeze1`). Q14's certificate and the split stay.*
+
 **The split supersedes the R2d Scope's S1 (B)** (`notes/restart-plan.md`, "R2d Scope", S1: R2d to
 carry `run` at a restart *and* the constructors `NewStore`/`NewServer` over both boots). S1's (B) is
 now three stages: R2d (`run` at a restart, the window form, Q14's certificate), R2d' (`NewStore`'s
@@ -32667,6 +32669,8 @@ in a static cluster) is HS2's static-cluster premise, for R2e's Scope. `snapMade
 instance in raft's API (the invariant holds `snapshotValid`).
 
 ## R2s: snapshots across windows; no merged send in a window; the stop's WAL slot without `i ≤ σ.commit` (2026-11-06 · the Q16-3 review's items 1-4 decided by etcd-grove-82 under the user's delegation, pending the user's review; findings 2 and 6 decided by the agent, pending the user's review, under etcd-grove-82's delegation · branch `r2d`; DRAFT)
+
+*Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): `winNoMergedSend`, F2, F4 and finding 6 left R2d with the window form, to R2d'; R2s's own items are unchanged.*
 
 **Supersedes Q16 (3) and Q18's R2d-3m** (`notes/restart-plan.md`, "Scope amendment 2" item (3) and
 the R2d-3m row of the R2d sub-steps; `questions.md` Q16 (3), Q18). Q16 (3) planned to follow a
@@ -32716,6 +32720,8 @@ send's length argument, where the window is over (Go's log is the ghost log).
 
 ## R2d restaged: the restart's prerequisites; `run` and `NewServer` at a restart move to R2d' (2026-11-06 · Q20, decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
 
+*Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): the window-form apply chain (Q13, Q19, F2, F4, finding 6) and the assumptions `winNoConf`/`winNoMergedSend` moved from R2d to R2d'.*
+
 **Supersedes in part "R2d: the split R2d / R2d' / R2e"** (above: R2d carried `run` at a restart) and
 Q18's Freeze split. R2d-2's probe extension stopped at `isServerRunC`'s `Hsnap`, a first start's
 (`rnSnapOnce … ai₀ at₀`: the storage's snapshot at `ai₀ = 0`, `memSnapNone`), whose restart form
@@ -32736,6 +32742,8 @@ proof), a statement change beyond Freeze 1's set for an assumption R2s removes a
 extra strength is stated with its cost (`questions.md`, the assumptions list).
 
 ## R2d Freeze 1 review: the repairs; HS1 and the stop slot's weakening moved out of R2d (2026-11-06 · the Freeze 1 review's F1, F4-F7 decided by the agent, pending the user's review, under etcd-grove-82's delegation; the held items (finding 2's revert, HS1 to R2d', narrowing `winNoMergedSend`) decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
+
+*Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): F1 (`winNoConf`), the window list laws of F7, the narrowed `winNoMergedSend` and its hub conjunct (`srvMemberIDAddr s ↦□ γm.id` in `isServerApplyAll`/`srvApplyAllBuilt`) moved to R2d' with the window form; F5's `wal.stopImage`, F7's `srvSnapsReg` laws and F4's `restartNames` stay.*
 
 **Supersedes in part** "R2s: snapshots across windows; …" (above: its finding 2, the stop's WAL slot
 without `i ≤ σ.commit`, is reverted: `wal.stopImage` keeps `σ.b ≤ i ≤ σ.commit`, which
@@ -32781,3 +32789,34 @@ The repairs (review `/shared/tmp/r2d-review-freeze1.md`):
   bundles `isServerApplyAll` and `srvApplyAllBuilt` (`srvMemberIDAddr s ↦□ γm.id`), which `NewServer`'s
   proof supplies; nothing at a first start.
 - *`RunWindow.lean`* moved to branch `r2d-prime` (R2d''s starting point), deleted on `r2d`.
+
+## R2d cut: the window-form apply chain moves to R2d' (2026-11-06 · Q21 (b), decided by etcd-grove-82 under the user's delegation (user offline), 2026-11-06, pending the user's review · branch `r2d`)
+
+**What.** The post-Freeze proof round found the two window-form proofs unprovable as frozen (Q21,
+`notes/restart-plan.md`, "R2d cut (Q21)"): a replayed normal entry has no triple
+(`applyEntryNormal.spec` grows the ghost log at the ghost index), and closing the window needs
+`restReplay γr A D = restModel … (pre ++ A)`, false for a conf change in `D`. Rather than widen R2d
+again (option (a), a Freeze 1b with `applyEntryNormal.specRep` and stronger `winOk`/`winNoConf`), R2d
+lands without the window form. **R2d keeps:** Q14's WAL certificate chain (`walSnapCert`,
+`rnDurInv`/`walAsViewed` over `cl`, the `rnDur_*` laws, `wal.stopImage` with `_intro`/`_elim`,
+`srvDiskImage`'s slot, `raftNode.stop.spec`/`rnStopImage`/`rn_esc_take`/`stopCleanupImage.spec`'s
+`walSnapCert`, `isRaftNode`/`rnWalTokA`'s `rnDurInv γ.node.cl …`), `srvSnapsReg` (with
+`srv_snapshotValid_dataNil`/`_record` and `wp_srv_createSnapshot`'s post), `setAppliedIndex.spec`'s
+replay case (`rep : Bool`), `kvCongr`/`restartNames`, raft's three additive laws and
+`rnEnvOk_logInv`. **Back to lean's text:** the specs and proofs of `EtcdServer.apply`,
+`applyEntries.specBatch` and `applyAll.specBatch` (no `…NoWin`, no `_noWin` glue), `ApplyWindow.lean`
+and `ApplyWindowLaws.lean` (deleted), `winNoConf`, `winNoMergedSend`, the `isServerApplyAll`/
+`srvApplyAllBuilt` member-id conjunct (and `NewServer`'s proof of it), Q19's `dvOk` index, F2, F4,
+finding 6, Q16 (1)'s `lastTermIs`, the `_noWin` callers (`run_job_body`, `ModeSpecs`, `applyAll`'s
+use of `applyEntries`) and `SDRun`'s `srvRunH_apply_spec`/`_applyEntries_spec` (lean has them, and
+`ModeSpecs` uses them again). The one remaining line of the cut in `apply`'s proof file: `wp_proofOff`
+and `wp_proofOn` specialise `hSet1` to `rep = false` (three lines each), because `setAppliedIndex.spec`
+is kept. R2d then has no DRAFT `sorry`, no trust change and no hub change.
+
+**Where the window work is.** Tags `r2d-freeze1` (`aadfa610b7`) and `r2d-window-full`
+(`54869e2e28`), and branch `r2d-prime` (R2d''s starting point, with `RunWindow.lean`).
+
+**Why.** The last-widening rule (R2d's round 2), and the window's `srvRestW`/`winDone` part needed
+rework anyway; R2d' must design `run`'s window over the same definitions. **The lesson:** the window
+failed three probes when designed from the apply chain upward; R2d' designs it from `run`'s window
+downward, with a probe through `run`'s restart batch before any spec is frozen.

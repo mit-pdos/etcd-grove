@@ -2291,6 +2291,8 @@ change goes in a named conjunct of its own, and the proofs use laws, not positio
 
 ### R2d Draft, round 2: the window form and Q14 (2026-11-06, branch `r2d`)
 
+*Superseded in part (2026-11-06, "R2d cut (Q21)" below): the window form (Q13 (a)) moved from R2d to R2d'; Q14 stays in R2d.*
+
 **The split (Q15 (c), decided by etcd-grove-82 under the user's delegation, pending the user's
 review): R2d / R2d' / R2e.** Supersedes the Scope's S1 split (`notes/decisions.md`, "R2d: the split
 R2d / R2d' / R2e").
@@ -2404,6 +2406,8 @@ freezes entries only through Go's end, a restarted `MemoryStorage` only up to it
   receive window and `run`'s snapshot job together.
 
 ### R2d Draft, round 3: R2s, the Q16-3 review, R2d-2's statements (2026-11-06, branch `r2d`)
+
+*Superseded in part (2026-11-06, "R2d cut (Q21)" below): the window-form apply chain, `winNoConf`, `winNoMergedSend` (and its hub conjunct), Q19, F2, F4 and finding 6 moved from R2d to R2d'; the restage's R2d list is now the cut's.*
 
 **R2s, "snapshots across windows"** (the Q16-3 review's item 1, decided by etcd-grove-82 under the
 user's delegation, pending the user's review; supersedes Q16 (3) and Q18's R2d-3m; `notes/decisions.md`,
@@ -2548,3 +2552,47 @@ split of Q18; `notes/decisions.md`, "R2d restaged: the restart's prerequisites")
   conf state; the transport's peers by `ccPeersAfter`'s `v3 = false` case; `w.Trigger`), a statement
   change for R2d''s Scope. Until then the three window specs take `winNoConf W` (the Freeze 1 review's
   F1).
+
+### R2d cut (Q21): the window-form apply chain moves to R2d' (2026-11-06, branch `r2d`)
+
+**Decided by etcd-grove-82 under the user's delegation (user offline), 2026-11-06, pending the user's
+review** (Q21 (b); `notes/decisions.md`, "R2d cut: the window-form apply chain moves to R2d'"). The
+post-Freeze proof round found `apply.wp_proof`'s and `applyEntries.wp_proofBatch`'s window forms
+unprovable as frozen. R2d lands without the window form:
+- **R2d keeps** Q14's WAL certificate chain (`walSnapCert`, `rnDurInv`/`walAsViewed` over `cl`, the
+  `rnDur_*` laws, `wal.stopImage` with `_intro`/`_elim`, `srvDiskImage`'s slot, the stop chain's
+  `walSnapCert`, `isRaftNode`/`rnWalTokA`'s `rnDurInv γ.node.cl …`), `srvSnapsReg`,
+  `setAppliedIndex.spec`'s replay case, `kvCongr`/`restartNames`, raft's three additive laws and
+  `rnEnvOk_logInv`. No DRAFT `sorry`, no trust change, no hub change.
+- **Back to lean's text:** `apply.spec`, `applyEntries.specBatch`, `applyAll.specBatch` and their
+  proofs, `isServerApplyAll`/`srvApplyAllBuilt`, `ModeSpecs`, `run_job_body`, `SDRun`;
+  `ApplyWindow.lean`/`ApplyWindowLaws.lean` deleted. (`apply`'s proof file keeps only the
+  specialisation of `setAppliedIndex.spec` to `rep = false`.)
+- **To R2d'** (tags `r2d-freeze1`, `r2d-window-full`; branch `r2d-prime`): the window vocabulary,
+  `winNoConf`, `winNoMergedSend` and its member-id conjunct, Q19's `dvOk` index, F2, F4, finding 6
+  and Q16 (1)'s `lastTermIs`.
+
+**Constraints R2d''s window design must meet** (Q21's two findings, checked against Go at the pin
+`673da07c8`):
+1. **A replayed normal entry needs its own triple.** In Go every replayed normal entry goes through
+   `applyEntryNormal(e, ApplyV2storeOnly)` (`server.go:1938-1949`), which runs `apply.Apply` with
+   `shouldApplyV3` false (`:1975-2000`): it updates v2 member attributes, and on an empty entry it
+   notifies `firstCommitInTerm` and may promote the lessor. Today's `applyEntryNormal.spec` cannot
+   be used for it: its pre needs `m.index = v + 1` at the ghost index `v` (`srvAppliedOwn γr v`, half
+   of a monotone counter), and its post grows the ghost log (`A ++ [m]`); in a window the ghost
+   index is above `m.index` and the ghost log must stay unchanged. R2d' needs a replay case of
+   `applyEntryNormal.spec` (ghost and KV unchanged; the rest model stepped by `restEntry` at the
+   ghost index, `restReplay`'s step), a new statement, provable from the existing `v3 = false`
+   branch.
+2. **Closing the window needs an identity that is false for conf changes.** When the window closes
+   (`winRest W ms = []`) or nothing is applied, the post needs `restReplay γr A D = restModel …
+   (pre ++ A)`. With a conf change in the replayed `D` this is false: `D = [attr(X,a), add X]`
+   (in `restModel` the attribute update of a not-yet-member is a no-op; in `restReplay`, over the
+   members already added, it sets X's attributes). And `winOk` allowed `W = []` with `D ≠ []`. The
+   design must exclude conf changes over all of `D ++ W` (or model them), tie `W = []` to `D = []`
+   (or carry `D` in a `winDone` that keeps it), and prove the identity for normal entries (last writer
+   wins; `restSetVersion false` the identity).
+
+**The lesson for R2d''s Scope.** The window failed three probes when designed from the apply chain
+upward. Design it from `run`'s window downward, with a probe through `run`'s restart batch before any
+spec is frozen.
