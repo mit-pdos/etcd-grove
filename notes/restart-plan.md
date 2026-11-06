@@ -2947,3 +2947,18 @@ statement. Lean was frozen, so nothing landed.
   `rnCfgAtR_back_false`, `ghostOf_batch`): no `sorryAx`, and no axiom outside lean's
   `applyAll.wp_proofBatch`'s.
 - Left: A3 (with the user), then `specBatchROn`'s and `apply.specROn`'s proofs (2-3 d after A3).
+
+##### A9: stopped before the hub edit (Q20; 2026-11-06)
+
+`run.wp_proof` (`EtcdServer__run.lean`) reads `%HEr`'s first-start conjuncts, `γn.pre = []` and
+`ai₀ = 0`, in every job arm. The snapshot arm (:1129-1130), the normal arm (:1206-1212, `hdvs`'s
+`ρ.raft.pre = []`) and the batch arm (:1242-1243, `rnAdvChan`'s `uint.nat ai₀ + |A ++ ce| = |γn.pre
+++ A ++ ce|`) all use them. So do `run`'s helpers (:86, :301, :508, :685: `hpre : γn.pre = []`,
+`ha00`) and `RunOn.lean:99-100`. With `%HEr` at `P <+: A₀` and `Hstart = srvRestartAtR`, the proof
+would have to handle every `A₀`, which is A10. So the hub edit cannot land without A10's proof
+unless `run` reaches a DRAFT `sorry`, which Q20 forbids. Not edited. The plan: A9's texts
+(`InvRun.lean:53-54`, `InvStart.lean:240-241`, `RunOn.lean:99-100`, `Hsnap`, `Hstart`) are written
+together with A10's restart branch of `run.wp_proof`, and both land as one change. The
+first-start supply goes through `rnSnapOnceR_first`/`srvRestartAtR_first` (`StartR.lean`) at
+`⟨0, []⟩`. The bound `ai₀ + |A₀| + 1 < 2^64` becomes a conjunct of the raft side's restart data in
+the same edit. Then A3 was unblocked (Q22 (1) (a), user-approved) and took priority.
