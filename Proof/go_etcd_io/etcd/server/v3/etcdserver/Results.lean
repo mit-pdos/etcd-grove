@@ -2249,7 +2249,7 @@ theorem start_gives_views [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
     {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
         isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
           (idCred ρ.ids 1) ∗
-        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) (),
           srvReadReader s γr }} := by
   iintro %Φ ⟨#Hpkg, Hb, Hsk⟩ HΦ
   -- `start.spec` at the slot's `off`

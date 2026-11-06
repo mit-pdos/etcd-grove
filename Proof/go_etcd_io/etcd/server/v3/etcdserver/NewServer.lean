@@ -928,7 +928,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- thread's auth row's, what the store's `Recover` reads a snapshot's backend with), one for the
   -- KV's (D14i)
   -- (P1/N4) of the auth store's supply, `authRdN - 1` tickets
-  have hAN : backend.authRdN = 128 := rfl
+  have hAN : backend.authRdN = 2 ^ 28 + 128 := rfl
   iunfold authRdSupply at HRDs
   icases replicate_take1 _ _ (by omega) $$ HRDs with ⟨HRD, HRDs⟩
   icases replicate_take1 _ _ (by omega) $$ HRDs with ⟨HRD2, HRDs⟩
@@ -1416,7 +1416,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (D19g (b)) `leadTimeMu`'s reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hltslots with ⟨Hlts, Hltslots⟩
   -- (M2) one for the compactor's calls (`srvCompactR`)
-  icases replicate_take1 _ _ (by omega) $$ Hltslots with ⟨HltC, -⟩
+  icases replicate_take1 _ _ (by omega) $$ Hltslots with ⟨HltC, HltRest⟩
   -- (D22 receiver epochs, S7b) half of `s.be` the apply thread's (`srvBeOwn`); until then (D19i
   -- part 2) kept out of `bemu` for good, the storage version monitor's
   icases (typedPointsto_dfractional (GF := GF) (srvBeAddr s) (srvBeIface d.be)).dfractional
@@ -2007,8 +2007,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       mvcc.lateWD_boot ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal) rfl]
     simp only
     iexact HB
+  -- (revoke-open, 2026-11-06) the revocation's built part: the inner pool from `leadTimeMu`'s rest
+  -- and the auth store's stock of tickets (`authRdN`'s `2 ^ 28`), `raftPool`, the store's pointer
+  ihave #Hrvkb : srvRevokeBuilt s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret, ρ.rd.kv.lm, γlt⟩ : apply.AEnv GF) $$ [HltRest HRDstock]
+  · sorry -- DRAFT revoke-open (`NewServer` builds the inner pool, revoke-open Q6, Q7)
   unfold srvBuiltG
-  iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn
+  iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
   isplitr
   · -- `#Hfb`
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',

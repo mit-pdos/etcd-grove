@@ -31,6 +31,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Perennial.Proof.sync
 public import Perennial.Ghost.Token
 
@@ -94,32 +95,38 @@ def stopPart (γ : GoNames) (b : Bool) (q : Qp) : IProp GF :=
 def wgMuP (γ : GoNames) (q : Qp) : IProp GF :=
   iprop(∃ b : Bool, ghostVar γ.b q.half b ∗ stopPart γ b q)
 
-/-- **The counter's invariant**: the other half of `open`; the wait group's counter `ctr`, `k`
-goroutines started (their receipts' authority) with their thread tokens deposited; while open,
+/-- **The counter's invariant**: the other half of `open`; the wait group's counter `ctr`, `d`
+goroutines started (their receipts' authority) with their level-0 tokens deposited and `q` adds
+pending with their callers' level-1 tokens (revoke-open Q4, 2026-11-06: until then `k` started
+goroutines with their whole thread tokens; `GoAttach`'s `Add` deposits the caller's `levelTok 1`,
+the `go` statement deposits the fresh token's level 0 and returns the pending level 1, so the
+counter `d + q` is below `2 * threadBound GF`); while open,
 no waiter (and the waiter's token); once closed, the closer's token (so `run`'s shutdown, holding
 it, knows it closes an open channel). (H2, 2026-11-05) The receipts' authority is whole, or, once
 the shutdown's `Wait` has seen the counter at `0` (with the protocol closed), half of it at `0`: the
 other half is the waiter's `goWaited`, which no running receipt survives (`goWaited_running`); the
 waiter's token is then deposited, so there is one `goWaited`. -/
 def goAttachInv (γ : GoNames) : IProp GF :=
-  iprop(∃ (b : Bool) (ctr : w32) (k : Nat) (dq : DFrac), ghostVar γ.b (1 : Qp).half b ∗
-    sync.ownWaitGroup γ.wg ctr ∗ threadToks k ∗ ownTokAuthDfrac γ.run dq k ∗
-    ⌜0 ≤ sint.Z ctr ∧ sint.nat ctr = k⌝ ∗
-    ⌜dq = DFrac.own 1 ∨ (dq = DFrac.own (1 : Qp).half ∧ k = 0 ∧ b = false)⌝ ∗
+  iprop(∃ (b : Bool) (ctr : w32) (d q : Nat) (dq : DFrac), ghostVar γ.b (1 : Qp).half b ∗
+    sync.ownWaitGroup γ.wg ctr ∗ levelToks 0 d ∗ levelToks 1 q ∗ ownTokAuthDfrac γ.run dq d ∗
+    ⌜0 ≤ sint.Z ctr ∧ sint.nat ctr = d + q⌝ ∗
+    ⌜dq = DFrac.own 1 ∨ (dq = DFrac.own (1 : Qp).half ∧ d = 0 ∧ q = 0 ∧ b = false)⌝ ∗
     (⌜b = false⌝ ∗ token γ.close ∗ (⌜dq = DFrac.own 1⌝ ∨ token γ.wt) ∨
       ⌜b = true⌝ ∗ sync.ownWaitGroupWaiters γ.wg 0 ∗ token γ.wt))
 
 /-- **`GoAttach`'s protocol at `s`** (persistent): the `stopping` channel, the wait group, the
 counter's invariant, `wgMu`'s write side, the context field (set by `start` before any goroutine,
-read by the apply thread's alarm goroutine), the logger (`GoAttach` warns when stopped), and the
-bound on live goroutines. -/
+read by the apply thread's alarm goroutine), the logger (`GoAttach` warns when stopped; revoke-open
+Q3, 2026-11-06: with the transport's pool of `lgMu` readers, `raftPool`, from which the stopped branch
+borrows with the caller's level-1 token), and the bound on live goroutines (`2 * threadBound GF ≤
+2 ^ 31`: the counter counts started goroutines and pending adds). -/
 def srvGoAttachOk (s : Loc) (γ : GoNames) : IProp GF :=
   iprop(∃ (ch : Loc) (c : GoInterface), srvStoppingAddr' s ↦□ ch ∗
     isStopChanInternal ch γ.ch γ.chi iprop(True) ∗
     sync.isWaitGroup (srvWgAddr s) γ.wg goAttachWGN ∗ inv goAttachN (goAttachInv γ) ∗
     sync.isRWMutexGuard (srvWgMuAddr s) (wgMuP γ) ∗ srvCtxAddr s ↦□ c ∗
-    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝) ∗
-    ⌜threadBound GF ≤ 2 ^ 31⌝)
+    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝) ∗ raftPool (srvLgReader s) ∗
+    ⌜2 * threadBound GF ≤ 2 ^ 31⌝)
 
 instance srvGoAttachOk_persistent (s : Loc) (γ : GoNames) :
     Persistent (srvGoAttachOk (GF := GF) s γ) := by
@@ -226,9 +233,11 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : sync.Assumptions]
 
 /-- **`s.wg.Add(1)`, by a reader that saw `open`** (a fraction of the flag at `true`), depositing
-its thread token: a receipt. -/
+its thread token's level 0 as a started goroutine's: a receipt. (revoke-open, 2026-11-06: the
+counter counts started goroutines and pending adds, hence the doubled bound; the levelled
+`GoAttach`, which deposits a pending `levelTok 1`, is pass 2's, `notes/revoke-open-plan.md`.) -/
 theorem wp_goAttach_Add (s : Loc) (γ : GoNames) (q : Qp)
-    (Hbound : threadBound GF ≤ 2 ^ 31) :
+    (Hbound : 2 * threadBound GF ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (srvWgAddr s) γ.wg goAttachWGN ∗
         inv goAttachN (goAttachInv γ) ∗ ghostVar γ.b q true ∗ threadTok }}
       (App (Val (srvWgAddr s @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 1)))
@@ -241,18 +250,20 @@ theorem wp_goAttach_Add (s : Loc) (γ : GoNames) (q : Qp)
   iintro Hmask
   inext
   iunfold goAttachInv at Hi
-  icases Hi with ⟨%b, %ctr, %k, %dq, Hbi, Hwgo, Hk, Hrun, ⟨%Hctr, %Hkd⟩, %Hdq, Hw⟩
+  icases Hi with ⟨%b, %ctr, %k, %pq, %dq, Hbi, Hwgo, Hk, Hq, Hrun, ⟨%Hctr, %Hkd⟩, %Hdq, Hw⟩
   ihave %Hag := ghostVar_agree γ.b _ _ _ _ $$ Hb Hbi
   cases Hag
   have Hdq1 : dq = DFrac.own 1 := by
-    rcases Hdq with h | ⟨-, -, h⟩
+    rcases Hdq with h | ⟨-, -, -, h⟩
     · exact h
     · cases h
   subst Hdq1
   icases Hw with (⟨%Hf, -⟩ | ⟨-, Hw, Hwt⟩)
   · cases Hf
-  icases threadToks_add_one_lt k $$ [Htok Hk] with ⟨%Hlt, Hk⟩
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Htok, -⟩
+  icases levelToks_add_one_lt 0 k $$ [Htok Hk] with ⟨%Hlt, Hk⟩
   · iframe
+  icases (persistent_entails_left (levelToks_lt (GF := GF) 1 pq)) $$ Hq with ⟨Hq, %Hqlt⟩
   have h1 : sint.Z (W32 (sint.Z (W64 1))) = 1 := by decide
   have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
   have hle : sint.Z ctr + 1 ≤ 2 ^ 31 - 1 := by omega
@@ -267,12 +278,12 @@ theorem wp_goAttach_Add (s : Loc) (γ : GoNames) (q : Qp)
   iintro Hw Hwgo
   imod Hmask with -
   imod ownTokAuth_S γ.run k $$ Hrun with ⟨Hrun, Hrtok⟩
-  imod Hclose $$ [Hbi Hwgo Hk Hrun Hw Hwt] with -
+  imod Hclose $$ [Hbi Hwgo Hk Hq Hrun Hw Hwt] with -
   · inext
     iunfold goAttachInv
-    iexists true, ctr + W32 (sint.Z (W64 1)), k + 1, DFrac.own 1
+    iexists true, ctr + W32 (sint.Z (W64 1)), k + 1, pq, DFrac.own 1
     rw [hn]
-    iframe Hbi Hwgo Hk Hrun
+    iframe Hbi Hwgo Hk Hq Hrun
     isplitr
     · ipureintro
       have : sint.Z (ctr + W32 (sint.Z (W64 1))) = sint.Z ctr + 1 := by
@@ -288,13 +299,13 @@ theorem wp_goAttach_Add (s : Loc) (γ : GoNames) (q : Qp)
   iunfold goRunning
   iframe
 
-/-- **`s.wg.Done()`, with a receipt**: the goroutine gets a deposited thread token back (to exit
-with). -/
+/-- **`s.wg.Done()`, with a receipt**: the goroutine gets a deposited level-0 token back (to exit
+with; revoke-open, 2026-11-06: until then a whole thread token). -/
 theorem wp_goAttach_Done (s : Loc) (γ : GoNames) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (srvWgAddr s) γ.wg goAttachWGN ∗
         inv goAttachN (goAttachInv γ) ∗ goRunning γ }}
       (App (Val (srvWgAddr s @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
-    {{ RET #(); threadTok }} := by
+    {{ RET #(); levelTok 0 }} := by
   iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hrtok⟩ HΦ
   iapply sync.WaitGroup.wp_Done (srvWgAddr s) γ.wg goAttachWGN $$ [] [Hrtok HΦ]
   · iframe #
@@ -303,11 +314,11 @@ theorem wp_goAttach_Done (s : Loc) (γ : GoNames) :
   iintro Hmask
   inext
   iunfold goAttachInv at Hi
-  icases Hi with ⟨%b, %ctr, %k, %dq, Hbi, Hwgo, Hk, Hrun, ⟨%Hctr, %Hkd⟩, %Hdq, Hw⟩
+  icases Hi with ⟨%b, %ctr, %k, %pq, %dq, Hbi, Hwgo, Hk, Hq, Hrun, ⟨%Hctr, %Hkd⟩, %Hdq, Hw⟩
   iunfold goRunning at Hrtok
   icombine Hrun Hrtok gives %Hle
   have Hdq1 : dq = DFrac.own 1 := by
-    rcases Hdq with h | ⟨-, h, -⟩
+    rcases Hdq with h | ⟨-, h, -, -⟩
     · exact h
     · omega
   subst Hdq1
@@ -317,7 +328,7 @@ theorem wp_goAttach_Done (s : Loc) (γ : GoNames) :
   have hlt : sint.Z ctr < 2 ^ 31 := by word
   have hz : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
   obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
-  icases (threadToks_add k' 1).1 $$ Hk with ⟨Hk, Htok⟩
+  icases (levelToks_add 0 k' 1).1 $$ Hk with ⟨Hk, Htok⟩
   iexists ctr
   iframe Hwgo
   isplitr
@@ -325,10 +336,10 @@ theorem wp_goAttach_Done (s : Loc) (γ : GoNames) :
   iintro Hwgo
   imod Hmask with -
   imod ownTokAuth_delete_S γ.run k' $$ Hrun Hrtok with Hrun
-  imod Hclose $$ [Hbi Hwgo Hk Hrun Hw] with -
+  imod Hclose $$ [Hbi Hwgo Hk Hq Hrun Hw] with -
   · inext
     iunfold goAttachInv
-    iexists b, ctr - W32 1, k', DFrac.own 1
+    iexists b, ctr - W32 1, k', pq, DFrac.own 1
     rw [hn]
     iframe
     ipureintro
@@ -349,23 +360,23 @@ theorem goAttach_close (γ : GoNames) (b : Bool) :
   iintro ⟨#Hinv, Htok, Hb⟩
   iinv Hinv with Hi Hclose
   iunfold goAttachInv at Hi
-  icases Hi with ⟨%b', %ctr, %k, %dq, >Hbi, Hwgo, Hk, Hrun, Hc, >%Hdq, Hw⟩
+  icases Hi with ⟨%b', %ctr, %k, %pq, %dq, >Hbi, Hwgo, Hk, Hq, Hrun, Hc, >%Hdq, Hw⟩
   ihave %Hag := ghostVar_agree γ.b _ _ _ _ $$ Hb Hbi
   subst Hag
   icases Hw with (⟨>%Hf, >Htok', -⟩ | ⟨>%Ht, >Hw, >Hwt⟩)
   · iexfalso; iapply token_exclusive γ.close $$ Htok Htok'
   subst Ht
   have Hdq1 : dq = DFrac.own 1 := by
-    rcases Hdq with h | ⟨-, -, h⟩
+    rcases Hdq with h | ⟨-, -, -, h⟩
     · exact h
     · cases h
   subst Hdq1
   imod ghostVar_update_halves false γ.b _ _ $$ Hb Hbi with ⟨Hb, Hbi⟩
-  imod Hclose $$ [Hbi Hwgo Hk Hrun Hc Htok] with -
+  imod Hclose $$ [Hbi Hwgo Hk Hq Hrun Hc Htok] with -
   · inext
     iunfold goAttachInv
-    iexists false, ctr, k, DFrac.own 1
-    iframe Hbi Hwgo Hk Hrun Hc
+    iexists false, ctr, k, pq, DFrac.own 1
+    iframe Hbi Hwgo Hk Hq Hrun Hc
     isplitr
     · ipureintro; exact Or.inl rfl
     ileft
@@ -402,7 +413,7 @@ theorem wp_goAttach_Wait (s : Loc) (γ : GoNames) :
   iintro Hmask
   inext
   iunfold goAttachInv at Hi
-  icases Hi with ⟨%b, %ctr, %k, %dq, Hbi, Hwgo, Hk, Hrun, ⟨%Hctr, %Hkd⟩, %Hdq, Hc⟩
+  icases Hi with ⟨%b, %ctr, %k, %pq, %dq, Hbi, Hwgo, Hk, Hq, Hrun, ⟨%Hctr, %Hkd⟩, %Hdq, Hc⟩
   iexists ctr
   iframe Hwgo
   iintro %Hz Hwgo
@@ -412,22 +423,22 @@ theorem wp_goAttach_Wait (s : Loc) (γ : GoNames) :
   · iexfalso; iapply token_exclusive γ.wt $$ Hwt Hwt'
   · iexfalso; iapply token_exclusive γ.wt $$ Hwt Hwt'
   subst Hd1
-  have hk0 : k = 0 := by
+  have hk0 : k = 0 ∧ pq = 0 := by
     have hc : ((sint.nat ctr : Nat) : Int) = sint.Z ctr := Int.toNat_of_nonneg Hctr
     omega
-  subst hk0
+  obtain ⟨rfl, rfl⟩ := hk0
   icases (ownTokAuth_fractional (GF := GF) γ.run 0).fractional (1 : Qp).half (1 : Qp).half |>.1
     $$ [Hrun] with ⟨Hrun, Hwd⟩
   · rw [Qp.half_add_half]; iexact Hrun
-  imod Hclose $$ [Hbi Hwgo Hk Hrun Hcl Hwt] with -
+  imod Hclose $$ [Hbi Hwgo Hk Hq Hrun Hcl Hwt] with -
   · inext
     iunfold goAttachInv
-    iexists b, ctr, 0, DFrac.own (1 : Qp).half
-    iframe Hbi Hwgo Hk Hrun
+    iexists b, ctr, 0, 0, DFrac.own (1 : Qp).half
+    iframe Hbi Hwgo Hk Hq Hrun
     isplitr
     · ipureintro; exact ⟨Hctr, Hkd⟩
     isplitr
-    · ipureintro; exact Or.inr ⟨rfl, rfl, Hbf⟩
+    · ipureintro; exact Or.inr ⟨rfl, rfl, rfl, Hbf⟩
     ileft
     iframe Hcl
     isplitr

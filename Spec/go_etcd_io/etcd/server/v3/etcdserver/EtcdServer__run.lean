@@ -50,7 +50,9 @@ resources and the scope as premises). Scope: a first start (`isServerRun`'s `HEr
 on: the stop branch rests on the three axioms of the image's configuration (`apply.memberKey_inj`,
 `apply.memberEnc_id_learner`, `membership.membersOf_decode`, through `stop_imageConf`), so every result
 over `run` does, including those whose callers never stop the server (approved by the user,
-2026-11-06). -/
+2026-11-06). (revoke-open, 2026-11-06, Q8 (a)) `run` holds a thread token, which it returns
+(`start` forks it with `wp_fork_tok_body`): its expiry arm lends level 1 to the round's `GoAttach`
+and borrows the revocation's outer pool with level 2 (`isServerRunC`'s `#Hrvk`). -/
 abbrev EtcdServer.run.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)
@@ -59,9 +61,9 @@ abbrev EtcdServer.run.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C⌝ ∗
       isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvStopReq s E ρ dd)
-        (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) }}
+        (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 

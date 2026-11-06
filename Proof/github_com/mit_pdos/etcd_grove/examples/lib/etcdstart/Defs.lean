@@ -345,7 +345,7 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvGoRes s ∗ srvLgReader s ∗
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) (),
       srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
     srvBemuReader s ∗
@@ -479,7 +479,7 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     isServerReqM true s E { ρ with wait := γw } ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗
     srvGoRes s ∗ srvLgReader s ∗
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) (),
       srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
     srvBemuReader s ∗

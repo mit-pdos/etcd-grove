@@ -315,8 +315,9 @@ theorem Main.wp_proof
     icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
     icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
     ihave Hslots := client.etcdGrpcSlots_of_started srv R.E ρ.rd 1 (64 - 2) 64
-        (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
-        (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+        (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) 64 (by omega) (by omega)
+        (by rw [sync.rwmutex.actualMaxReaders_unseal]; simp only [srvRevokePoolN, backend.rdPoolN] <;> omega)
+        (by omega)
         $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
     · iframe
     -- (D23) one watch run slot: two of the watchable store's readers, one of the request path's

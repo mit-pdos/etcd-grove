@@ -164,7 +164,8 @@ def etcdstart.memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Lo
           isServerRead s E ρ.rd ∗
             srvGoRes s ∗
               srvLgReader s ∗
-                ([∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), srvReadReader s ρ.rd) ∗
+                ([∗list] _x ∈ List.replicate (sync.rwmutex.actualMaxReaders.toNat - srvRevokePoolN) (),
+                    srvReadReader s ρ.rd) ∗
                   srvWatchBuilt s E ∗
                     srvServeFacts s E cfg ∗
                       srvBemuReader s ∗
@@ -237,7 +238,8 @@ def etcdstart.memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
             srvAuthLb s E ∗
               srvGoRes s ∗
                 srvLgReader s ∗
-                  ([∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), srvReadReader s ρ.rd) ∗
+                  ([∗list] _x ∈ List.replicate (sync.rwmutex.actualMaxReaders.toNat - srvRevokePoolN) (),
+                      srvReadReader s ρ.rd) ∗
                     srvWatchBuilt s E ∗
                       srvServeFacts s E cfg ∗
                         srvBemuReader s ∗

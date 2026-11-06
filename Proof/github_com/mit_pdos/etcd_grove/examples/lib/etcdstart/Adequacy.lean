@@ -139,7 +139,8 @@ first** (2026-11-05, Q1 (c) of `notes/k8s-compactor-plan.md`): as `etcd_adequate
 program whose proof needs ghost state allocated before its initializer's triple is chosen (a ghost
 name an instance of the proof carries, as the compactor registry's, `k8s.CompactorRegistry`):
 `T x` is allocated (at some `x`), then given to the body with `B`, and the program's proof may
-depend on `x`. -/
+depend on `x`. (revoke-open, 2026-11-06) At the thread bound `max (n + 2) 4`, as
+`etcd_adequate`. -/
 theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (As : List GoString) (hAs : As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup)
@@ -151,7 +152,7 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : walDirsAbsent (init #() ;; body) Ds)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = n + 2 →
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = max (n + 2) 4 →
       ∃ (X : Type) (T : X → IProp GF),
         (⊢ (|==> ∃ x, T x : IProp GF)) ∧
         ∀ x, progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
@@ -160,9 +161,10 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   apply adequate_of_unrecovered
-  refine goose_adequacy_start (GF := GF) (n + 1) (n + 2) _ σ g φ hφ Hinitg Hinitw
+  refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) 4) _ σ g φ hφ Hinitg Hinitw
     [read.slowReadIndexName, read.readIndexFailedName] As Ds (by decide) hAs hDs HNs HAs HDs ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
+    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
+    (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
   intro hG HN HT HL
   obtain ⟨X, T, Halloc, Hp⟩ := Hprog hG HN HT
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
@@ -186,7 +188,8 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
 `init_adequate`, for a program whose initializer takes the read package's two metric names and
 whose body the addresses `As`, each with its HTTP protocol unregistered (`httpProtoFree`, 2026-10-24,
 rafthttp stage 6a, D39a), and (2026-11-03, the WAL's API) the members' WAL directories `Ds` fresh
-(`walDirFresh`). -/
+(`walDirFresh`). (revoke-open, 2026-11-06) At the thread bound `max (n + 2) 4` (until then
+`n + 2`): the revocation's goroutines use levels 0–3 of a thread token (`srvRevokeLevels`). -/
 theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (As : List GoString) (hAs : As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup)
@@ -198,16 +201,17 @@ theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : walDirsAbsent (init #() ;; body) Ds)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = n + 2 →
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = max (n + 2) 4 →
       progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
         iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
           ([∗list] d ∈ Ds, walDirFresh d)) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   apply adequate_of_unrecovered
-  refine goose_adequacy_start (GF := GF) (n + 1) (n + 2) _ σ g φ hφ Hinitg Hinitw
+  refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) 4) _ σ g φ hφ Hinitg Hinitw
     [read.slowReadIndexName, read.readIndexFailedName] As Ds (by decide) hAs hDs HNs HAs HDs ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
+    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
+    (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
   intro hG HN HT HL
   have Hp := Hprog hG HN HT
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG

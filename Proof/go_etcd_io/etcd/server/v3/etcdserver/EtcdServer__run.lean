@@ -758,7 +758,7 @@ theorem EtcdServer.run.wp_proofG
     (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ dd c
-  wp_start as ⟨%hP, Hpre⟩
+  wp_start as ⟨%hP, Hpre, Htok⟩
   obtain ⟨hM, hRB⟩ := hP
   iunfold isServerRunC at Hpre
   iNamed Hpre
@@ -1328,20 +1328,8 @@ theorem EtcdServer.run.wp_proofG
       iexfalso; ipureintro
       exact Hnx (lease.runCfg_noExpiry Hmo)
     | revocable =>
-      have hrev := srvRevokeOpen_spec (lease.runCfg_revoke Hmo)
-      ihave #Hfa : srvFieldsAt s γ ci TM E ρ fv $$ []
-      · rw [← srvFieldsAtM_false, ← hCoff]; iexact Hfv
-      ihave #Hpe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
-      · iPkgInit
-      (try wp_auto)
-      wp_apply hrev s γ ci TM E ρ fv γr γg γcx v _ ls $$ []
-      · iframe #
-      (try wp_auto)
-      wp_for_post
-      iframe
-      iexists A, Ps, pl, Q, R
-      iframe
-      iframe #
+      -- (revoke-open, 2026-11-06) the revocation with `#Hrvk` and the loop's thread token
+      sorry -- DRAFT revoke-open (run's expiry arm: `revokeExpiredLeases`'s new pre and post)
   -- `err := <-s.errorc`: nothing is sent on it (D19m: `apply` never asks `stopWithDelay` to
   -- stop the server, the transport has no peer that reports this member removed)
   iapply BigAndL.bigAndL_cons.2
@@ -1453,7 +1441,7 @@ theorem EtcdServer.run.wp_proofG
     · imodintro; iunfold srvDoneInv; iexact Hdi
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iexact Htok
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

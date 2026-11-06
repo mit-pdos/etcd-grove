@@ -977,3 +977,132 @@ The `axiom` skill before the Freeze.
 
 No other trust item: no new axiom, model or non-DRAFT `sorry` (G removes the Scope's fallback
 `isAuthRoot` route entirely; `leaseExpired`'s fallback axiom only if F.5's translation fails, a stop).
+
+### K. For the Freeze: the consumers of `read.mux`'s reader slots (2026-11-06, the coordinator's condition on F.1)
+
+`read.mux` has `actualMaxReaders = 2 ^ 30 - 1` reader slots (`sync.init_RWMutex` in `start`). After
+the stage: `srvRevokePoolN = 2 ^ 28 - 1` go to the outer pool `B` (`start`); the rest,
+`actualMaxReaders - srvRevokePoolN = 805306368` (`3 * 2 ^ 28`), are `srvStarted`'s `"Hrds"` and flow
+on unchanged in kind. Every split point, the count it splits off, and the check (`≤ 2 ^ 28`, so far
+below the `805306368` available):
+
+| consumer | where | what it splits off | check |
+|---|---|---|---|
+| `start` → `B` | `EtcdServer__start.lean` (pass 2) | `srvRevokePoolN = 2 ^ 28 - 1` (pool items) | `= 2 ^ 28 - 1 ≤ 2 ^ 28` ✓ |
+| `start_gives_views` | server `Results.lean` | none: returns all `805306368` | — |
+| `Start` → `srvStartReaders` | `EtcdServer__Start.lean` | none: passes all on | — |
+| `etcdstart.Start` (`memberUp`) | `etcdstart/Start.lean:74` | none: keeps `Hrslots` whole | — |
+| `auth/startServer` (`memberUpOn`) | `examples/etcd/auth/startServer.lean:189` | none | — |
+| `etcdstart.kv_served` (`kvServeStocks`) | `etcdstart/Served.lean:136` | `1` (`etcdGrpcSlots_of_started … 1`, premise `N ≤ M`) | `1 ≤ 2 ^ 28` ✓ |
+| `etcdstart` lease serving | `etcdstart/ServedLease.lean:177` | `1` (same lemma) | ✓ |
+| `cluster3.StartMember` | `examples/lib/cluster3/StartMember.lean:260` | `1` | ✓ |
+| `watch` `Main` | `examples/etcd/watch/Main.lean:242` | `1` | ✓ |
+| `auth` `Main` | `examples/etcd/auth/Main.lean:197` | `1` | ✓ |
+| `cache` `Main` | `examples/etcd/cache/Main.lean:317` | `1` | ✓ |
+| `compactwatch` `Main` | `examples/etcd/compactwatch/Main.lean:218` | `1` | ✓ |
+| `k8s/compactor` `Main` | `examples/k8s/compactor/Main.lean:186` | `1` | ✓ |
+| `k8s/etcd3` `Main` (the k8s chain) | `examples/k8s/etcd3/Main.lean:170` | through `etcdstart.kv_served`: `1` | ✓ |
+| the other examples (`putget`, `putget3`, `txnlin`, `lease`, `leasegrant`, `leaseexpiry`, `compacted`, `restart`) | their `Main`s | through `kv_served`/`ServedLease`: `1` each | ✓ |
+
+Each split takes `1` slot (one gRPC slot, `N = 1`); the rest is dropped. No consumer needs more than
+the new count: no stop. (The `cache` example's other `maxReaders` arithmetic, `Main.lean:462–477`, is
+the cache's own lock, not `read.mux`.) Which of these proofs needed an edit, and whether only for
+positional destructuring (N6's laws), is in §L.
+
+### L. Step B: what was edited, and why (2026-11-06)
+
+The statements of A–J are in the Lean files; the build is green with five `DRAFT revoke-open`
+sorries (M). Proofs edited, by cause:
+
+- **The count `actualMaxReaders − srvRevokePoolN` (F.1)**, one argument at each consumer of §K
+  (`etcdGrpcSlots_of_started`'s `M`, and its `1 ≤ M` side condition, now `rw
+  [actualMaxReaders_unseal]; simp only [srvRevokePoolN, backend.rdPoolN] <;> omega`):
+  `etcdstart/Served.lean`, `etcdstart/ServedLease.lean`, `cluster3/StartMember.lean`, and the `Main`s
+  of `watch`, `auth`, `cache`, `compactwatch`, `k8s/compactor`. **To redo over N6's laws at the
+  merge** (they read `memberUp`'s/`kvServeStocks`'s stock directly). None of them broke for
+  positional destructuring alone: the destructuring patterns of `memberUp` were unchanged (the count
+  is inside a conjunct's type).
+- **Positional destructuring of the server's rows** (`#Hrvkb` in the built rows, `#Hrvk` in the run
+  rows; package-internal, not N6's): `BuildGap.lean` (`isServerBuilt_of_gap`), `StartOn.lean`
+  (`isServerBuilt_of_gapOn`), `AuthCompRows.lean` (the four `isServerBuilt`↔`C` and four
+  `isServerRun`↔`C` patterns), `ModeSpecs.lean` (`isServerBuilt_off`); and `InvBuild.lean`'s
+  `srvBuilt` gains `#Hrvkb` (it is `srvBuiltG false` by `rfl`, **Δ**: not in C's list).
+- **`goAttachInv` (D)**: `InvGoAttach.lean`'s lemmas re-proved over `levelToks 0 d ∗ levelToks 1 q`:
+  `wp_goAttach_Add` deposits the token's level 0 (premise now `2 * threadBound GF ≤ 2 ^ 31`, **Δ**),
+  `wp_goAttach_Done` returns `levelTok 0` (was `threadTok`, **Δ**), `goAttach_close` and
+  `wp_goAttach_Wait` (the counter at `0` gives `d = q = 0`) unchanged in statement;
+  `StopShutdown.lean`'s destructuring of the invariant. The `GoAttach` proof is pass 2's (M.1); its
+  final lemma set (a pending `Add`, the fork's move from pending to started) is pass 2's design.
+- **`run` (B)**: the thread token is in the loop's context (`wp_for` keeps the whole context) and
+  returned at the stop; the revocable expiry arm is a DRAFT sorry (M.3).
+- **`start` (C)**: `B`'s `srvRevokePoolN` items split off `Hwgs`/`Hrslots` (`replicate_takeN`,
+  import `InvServe`), `#Hrvk` (M.4), `run` forked with `wp_fork_tok_body`.
+- **`NewServer` (C, H)**: `leadTimeMu`'s rest kept (`HltRest`), `#Hrvkb` from it and the auth store's
+  stock `HRDstock` (M.5).
+- **`LeaseRenew` (Q5)**: `ensureLeadership` at level 0 (`threadTok_level0` split and rejoined).
+- **`GoAttach` callers**: `wp_apply wp_GoAttach_tok hGA …` (`Start`, `sendMergedSnap`,
+  `monitorLeader`); `goAttach_init` (round 2: `raftPool` premise, the doubled bound).
+
+### M. The DRAFT sorries (pass 1) and their reach
+
+1. `EtcdServer.GoAttach.wp_proof` (`EtcdServer__GoAttach.lean`): `GoAttach` by levels.
+2. `wp_GoAttach_tok` (`GoAttachTok.lean`): the old triple from the new spec.
+3. `run`'s revocable expiry arm (`EtcdServer__run.lean`).
+4. `start`'s `#Hrvk` (`EtcdServer__start.lean`): the outer pool and the bundle.
+5. `NewServer`'s `#Hrvkb` (`NewServer.lean`): the inner pool.
+
+1, 2, 4 and 5 reach every result over the server (every `Start`/`GoAttach` user); 3 reaches the
+revocable configuration only (leaseexpiry), which already rested on the sorry `srvRevokeOpen_open`.
+`etc/tcb-report.py --check` (after the green build, 2026-11-06): exactly these five are new
+(`sorry EtcdServer.GoAttach.wp_proof`, `EtcdServer.run.wp_proofG`, `EtcdServer.start.wp_proof`,
+`NewServer.wp_proofG`, `wp_GoAttach_tok`); no axiom added or removed, no other change. The
+baseline is not updated: pass 2 removes them. Every `Results.lean` and top-level `Adequacy`
+statement is unchanged against `lean` (`aa4449beb6`) except the approved ones: the server's
+`start_gives_views` (F.1) and the four etcd adequacy lemmas' `Hprog` (A, `max (n + 2) 4`).
+Interfaces regenerated: `etcdstart` (`Adequacy`, `AdequacyMembers`, `Defs`, `Served`) and `backend`
+(`RdPool`); `raft` unchanged. `etc/bounds-check.py --check`: ok (389).
+
+### Δ against the Scope (for the Freeze package; consolidated)
+
+1. `RevokeCtx.lean` holds `srvRevokesLeases` (moved from `LeaseRevoke.lean`), `srvRevokeLevels`,
+   `srvRevokePoolN`, the pools and the bundles (the spec of `revokeExpiredLeases` names them and
+   `LeaseRun.lean` imports that spec).
+2. One `ρ` in `srvRevokeCtx` (no `ρq`): `run` is called with `{ ρ with wait := γw }`.
+3. `run`'s token is in `run.spec` (pre and post), not in `isServerRun*` (Q8 (a)'s text).
+4. `wp_GoAttach_tok` in its own module (`GoAttachTok.lean`), imported by the callers.
+5. `auth.authStore.WithRoot.spec`'s name; no `isAuthRoot` and no kit change (G).
+6. `lease.bootCfg`'s revocable arm carries `srvRevokeLevels` too (E).
+7. `srvStarted`'s counts (`"Hrds"`, `"Hwgs"`) minus `srvRevokePoolN` (C).
+8. F.1: the count `actualMaxReaders − srvRevokePoolN` in `start_gives_views`, `memberUp`,
+   `memberUpOn`, `kvServeStocks` (accepted by etcd-grove-82).
+9. `goAttach_init`: premise `2 * threadBound GF ≤ 2 ^ 31` and `raftPool (srvLgReader s)`.
+10. `InvGoAttach.lean` imports `api.rafthttp.Net` (`raftPool` in `srvGoAttachOk`).
+11. `raftPool` at level 1: `raftPool_borrowL`/`raftLoanL_giveBack` (proved).
+12. `srvBuilt` (`InvBuild.lean`) gains `#Hrvkb` with `srvBuiltG` (L).
+13. `wp_goAttach_Add`'s doubled bound, `wp_goAttach_Done`'s `levelTok 0` (L).
+14. `EtcdServer__start.lean` imports `InvServe` (`replicate_takeN`).
+15. F.5 (`WithRoot`'s translation, `leaseExpired`'s initializer) deferred to pass 2.
+
+### N. Pass-2 work list
+
+- **etcdserver, `GoAttach`** (`InvGoAttach.lean`, `EtcdServer__GoAttach.lean`, `GoAttachTok.lean`):
+  the leveled lemmas (a pending `Add` depositing `levelTok 1`; the `go` statement with
+  `wp_fork_tok_upd` moving the fresh token's level 0 into `d` and returning the pending level 1;
+  `Done`), `GoAttach.wp_proof` (stopped branch: `raftPool_borrowL` with the caller's `levelTok 1`),
+  `wp_GoAttach_tok` (split `threadTok` into level 1 for `GoAttach` and the rest for `f`).
+- **etcdserver, `start`** (`EtcdServer__start.lean`): `#Hrvk`: `threadPool.initL srvRevokeOuterN 2`
+  over `HwgB`/`HrdB` (`threadBound ≤ srvRevokePoolN + 1` from `%Hbound`), the off-mode views (from
+  `start`'s `isServerReq`/`isServerRead`), `idCred`, `s.ctx`'s contract, `#Hrvkb`.
+- **etcdserver, `NewServer`** (`NewServer.lean`): `#Hrvkb`: `initL srvRevokeInnerN 1` over
+  `srvRevokePoolN` of `HltRest` and of `HRDstock` (`2 ^ 28 + 60` left), `HrPool`, the auth store's
+  pointer.
+- **etcdserver, `run`** (`EtcdServer__run.lean`): the revocable arm: `lease.runCfg_revoke Hmo` gives
+  `⟨hlev, hrev⟩`, `srvRevokesLeases` from `Hmo` and `hCoff`, the call with `#Hrvk` and the token.
+- **etcdserver, `revokeExpiredLeases`**: its `wp_proof` (new `Proof/…/EtcdServer__revokeExpiredLeases.lean`)
+  over `GoAttach`, `ensureLeadership` (level 3), `WithRoot`, `LeaseRevoke`, `Logger`; `MainLinked`
+  links `srvRevokeOpen_intro` and the sorry `srvRevokeOpen_open` goes; `gen-link` regenerated.
+- **auth**: translate `WithRoot` (`auth.toml`) and prove `authStore__WithRoot.spec`; `leaseExpired`'s
+  initializer (`etcdserver.toml`, `etc/gen-init.py` `SPECIAL`).
+- **Reviews**: the `axiom` skill on `ensureLeadership.wp_proof` (`levelTok l`) and on
+  `authSchemaSrv`'s count; the Go stats test (Q11).
+- **At the merge with N6**: redo §L's first item over `memberUp`'s laws.
