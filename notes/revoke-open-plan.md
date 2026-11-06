@@ -1,6 +1,8 @@
 # revoke-open: discharging `srvRevokeOpen_open`, the gated `sorry` of lease expiry
 
-Phase: **Scope** (drafted read-only on branch `revoke-open` = lean `aa4449beb6`; nothing edited or
+Phase: **Draft, pass 1** (step A written 2026-11-06: "Draft pass 1" below; the Scope approved as
+recommended, Q1 (a2), Q2 K = 4, Q3–Q8, Q10, Q11, by etcd-grove-82 under the user's delegation,
+2026-11-06). Scope: drafted read-only on branch `revoke-open` = lean `aa4449beb6`; nothing edited or
 built). It replaces the parked candidate in `notes/lease-expiry-plan.md`, "Scope candidate:
 discharging `srvRevokeOpen_open`" (2026-11-05), which this Scope re-checks against today's lean
 (after S2–S4, lease-mono3 and R2c) in §9. A hard stop: the user's Scope.
@@ -408,3 +410,570 @@ with the text above; Q10 the preferred routes; Q11 no Go-first requirement, the 
 Hard stops for the user: this Scope; the frozen statements and the adequacy lemmas above; the
 restated `ensureLeadership` axiom and `authSchemaSrv`'s count (each after the `axiom` skill); the
 Goose configuration changes.
+
+## Draft pass 1 (2026-11-06)
+
+Pass 1, step A (`notes/spec-first-plan.md`, "A large Draft: pass 1 small, pass 2 wide"): every
+statement the stage changes or adds that more than one package names, old → new, in exact Lean text,
+written before any build. Step B applies them (proofs that break become `sorry -- DRAFT revoke-open`).
+Where a statement differs from the Scope's text, the item says why (**Δ**). §F lists the changes
+found necessary in step A that the Scope did not list (the batching rule: applied as DRAFT, brought
+to the user once); one of them touches a `Results.lean` statement, which the brief forbids without a
+decision: **§F.1 needs an answer before step B**.
+
+Notation: `actualMaxReaders` is `sync.rwmutex.actualMaxReaders` (`2 ^ 30 - 1`).
+
+### A. The hub statements: the four etcd adequacy lemmas (etcdstart API; a request to etcd-grove-82)
+
+**A.0 New lemma** (`Proof/runtime/Threads.lean`, beside `realThreadsBelow_of_one`):
+
+```lean
+/-- `RealThreadsBelow` is monotone in the bound (revoke-open Q1 (a2): the etcd adequacy lemmas'
+`T = max (n + 2) 4`). -/
+theorem realThreadsBelow_mono {T T' n : Nat} {ρ : List Expr × CfgState} (hT : T ≤ T')
+    (h : RealThreadsBelow T n ρ) : RealThreadsBelow T' n ρ
+```
+
+**A.1–A.4** `etcd_adequate`, `etcd_adequate_alloc` (`etcdstart/Adequacy.lean`),
+`etcd_adequate_members`, `etcd_adequate_alloc_members` (`etcdstart/AdequacyMembers.lean`): in each,
+the one line of `Hprog`'s binder
+
+```lean
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = n + 2 →
+```
+
+becomes
+
+```lean
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = max (n + 2) 4 →
+```
+
+Everything else in the four statements is unchanged. Proofs: `etcd_adequate`/`etcd_adequate_alloc`
+pass `(max (n + 2) 4)` for `T` to `goose_adequacy_start` and `(realThreadsBelow_mono
+(Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))` for `Hlive`; the two `_members` lemmas are
+unchanged. Docstrings: each says "(revoke-open, 2026-11-06) at the thread bound `max (n + 2) 4`: the
+revocation's goroutines use levels 0–3 of a thread token (`srvRevokeLevels`)". Unchanged:
+`init_adequate`, `init_adequate_start`, `durable_init_adequate`, `k8s_etcd3_adequate` (`n + 2`).
+
+The closed theorems over them (the 15 of §1) keep their statements (`Hn : n + 2 ≤ 2 ^ 28`): their
+`(by rw [HT]; omega)` sites see `max (n + 2) 4`, which `omega` handles. Only docstrings that say "the
+thread bound `n + 2`" change.
+
+### B. `run.spec` (frozen at `r2c-frozen`)
+
+In `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__run.lean`, old:
+
+```lean
+      isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvStopReq s E ρ dd)
+        (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
+  {{ RET #(); True }}
+```
+
+new:
+
+```lean
+      isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvStopReq s E ρ dd)
+        (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) ∗ threadTok }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
+  {{ RET #(); threadTok }}
+```
+
+Docstring: "+ `run` holds a thread token, which it returns (revoke-open Q8 (a): `start` forks it with
+`wp_fork_tok_body`; its expiry arm gives level 1 to the outer `GoAttach` and borrows the outer pool
+with level 2)". **Δ** Q8 put `threadTok` in `isServerRun`/`isServerRunC`; here it is in `run.spec`'s
+own pre, beside the post that returns it (a spec takes its `threadTok` itself, CLAUDE.md "Bounds"),
+and `isServerRun*` gain only `#Hrvk`.
+
+### C. `isServerRun*`, `isServerBuilt*`/`srvBuiltG`, `srvStartReaders` (exported definitions)
+
+**C.0 New module** `Proof/go_etcd_io/etcd/server/v3/etcdserver/RevokeCtx.lean` (public imports
+`InvRunRes` and `AuthGuard`). **Δ** The Scope put `srvRevokeLevels` and `srvRevokeCtx` in
+`LeaseRun.lean`; but `LeaseRun` imports `EtcdServer__revokeExpiredLeases`'s spec, whose pre names
+them, so they live in a module below the spec, which the spec imports. For the same reason
+`srvRevokesLeases` moves here from `LeaseRevoke.lean` (text unchanged: `LeaseRevoke.lean` reaches
+`LeaseRun`, which imports the spec). Its text:
+
+```lean
+/-- **The level bound the revocation's goroutines need** (revoke-open Q1 (a2), Q2 (ii)): levels 0–3
+of a thread token exist (level 0 a started goroutine's slot in `s.wg`; 1 `wg.Add`'s pending token,
+`raftPool`, the inner pool; 2 the outer pool; 3 `ensureLeadership`'s). Only the revocable run
+configuration carries it (`lease.runCfg`), so no other spec names the bound. -/
+def srvRevokeLevels : Prop := 4 ≤ threadBound GF
+
+/-- The copies in each of the revocation's pools: one fewer than the server's thread bound's limit
+(`threadBound GF ≤ backend.rdPoolN`, `isServerBuilt`'s `%Hbound`), what `threadPool.initL` needs. -/
+@[word_unfold] def srvRevokePoolN : Nat := backend.rdPoolN - 1
+
+def srvRevokeOuterN : Namespace := nroot .@ "srvRevokeOuter"
+def srvRevokeInnerN : Namespace := nroot .@ "srvRevokeInner"
+
+/-- **The outer pool `B`** (revoke-open Q7; level 2): what the outer goroutine holds for its loop,
+a reader slot of `wgMu` at `GoAttach`'s names `γg` (its `GoAttach`es) and one of the read loop's lock
+(`ensureLeadership`'s `LinearizableReadNotify`). Carved by `start` from `srvStarted`'s stocks. -/
+def srvRevokeOuterPool (s : Loc) (γr : ReadNames) (γg : GoNames) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL srvRevokeOuterN 2 γ
+    iprop(srvWgReaderAt s γg ∗ srvReadReader s γr))
+
+/-- **The inner pool `I`** (revoke-open Q7; level 1): what an inner goroutine holds for its
+`WithRoot` and `LeaseRevoke`, a reader slot of `leadTimeMu` and the auth store's reader resource.
+Built by `NewServer` from `leadTimeMu`'s rest and `E.RD`'s supply (Q6). -/
+def srvRevokeInnerPool (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL srvRevokeInnerN 1 γ
+    iprop(srvLeadTimeReader s ∗ E.RD))
+
+/-- **What `NewServer` builds for the revocation** (sealed; persistent): the inner pool, the
+transport's pool of `lgMu` readers (`raftPool`, leveled at 1, Q3) and the auth store's concrete
+pointer (`WithRoot`'s receiver). -/
+@[no_expose] def srvRevokeBuilt (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(srvRevokeInnerPool s E ∗ raftPool (srvLgReader s) ∗
+    (∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl))
+
+/-- **The revocation's persistent bundle** (sealed): `srvRevokeBuilt`, the outer pool at `start`'s
+names, with auth off the request side's and the reader's views (from which `srvAuthAt`,
+`srvAuthAt_of_views`) and the mode `off` (`WithRoot`'s premise, the `IsAuthEnabled` verdict), the
+request names' credential, and the server context's contract (`s.ctx`, `WithRoot`'s argument and
+`LeaseRevoke`'s). -/
+@[no_expose] def srvRevokeCtx (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (γg : GoNames) : IProp GF :=
+  iprop(srvRevokeBuilt s E ∗ srvRevokeOuterPool s γr γg ∗
+    ⌜E.authOn = false → E.authMode = auth.AuthMode.off⌝ ∗
+    □ (⌜E.authOn = false⌝ → isServerReq s E ρ ∗ isServerRead s E γr) ∗
+    □ (|==> idCred ρ.ids 1) ∗
+    (∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+      srvCtxAddr s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd))
+```
+
+with `Persistent` instances for both sealed predicates (laws of the module). **Δ** No `srvWithRootOk`
+and no `isAuthRoot` (Q10): `isServerReq ∗ isServerRead` give `srvAuthAt`, whose `apply.isAuthStore`
+already carries `IsAuthEnabled`'s contract at `E.RD` (`Contracts.lean:27`), and `WithRoot`'s spec
+(§I.3) takes that contract as a premise; so the auth store's construction post is unchanged (§G).
+The guards on the off-mode views: `isServerRun*` carry `#Hrvk` in both auth modes; with auth on the
+revocation never runs (`srvRevokesLeases`). (`isServerReqM` cannot be used: `ReqOn` reaches `LeaseRun`.)
+
+**C.1** `isServerRun` (`InvRun.lean`), `isServerRunOn` (`RunOn.lean`), `isServerRunC`
+(`AuthCompRows.lean`): after the conjunct
+
+```lean
+    "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v SP ∗
+```
+
+insert
+
+```lean
+    -- (revoke-open, 2026-11-06) the revocation's bundle (`run`'s expiry arm, revocable mode)
+    "#Hrvk" ∷ srvRevokeCtx s E ρ γr γg ∗
+```
+
+(in `isServerRunOn`, after its `#Hrf`). Nothing else changes in the three.
+
+**C.2** `isServerBuilt` (`InvStart.lean`), `isServerBuiltOn` (`StartOn.lean`), `isServerBuiltC`
+(`AuthCompRows.lean`), `srvBuiltG` (`ServerOn.lean`): after the conjunct
+
+```lean
+    "%Hbound" ∷ ⌜threadBound GF ≤ backend.rdPoolN⌝ ∗
+```
+
+insert
+
+```lean
+    -- (revoke-open, 2026-11-06) what `NewServer` built for the revocation
+    "#Hrvkb" ∷ srvRevokeBuilt s E ∗
+```
+
+`NewServer.specG`'s text is unchanged (its post names `srvBuiltG`).
+
+**C.3** `srvStartReaders` (`InvStart.lean`), old:
+
+```lean
+def srvStartReaders (s : Loc) (γr : ReadNames) : IProp GF :=
+  iprop(([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+      srvReadReader s γr) ∗
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (), srvWgReader s))
+```
+
+new:
+
+```lean
+def srvStartReaders (s : Loc) (γr : ReadNames) : IProp GF :=
+  iprop(([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) (),
+      srvReadReader s γr) ∗
+    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2 - srvRevokePoolN) (),
+      srvWgReader s))
+```
+
+and the same two counts in `srvStarted`'s `"Hrds"` and `"Hwgs"` (`InvStart.lean`; `start.spec`'s
+post, text unchanged): `Int.toNat sync.rwmutex.actualMaxReaders` → `Int.toNat
+sync.rwmutex.actualMaxReaders - srvRevokePoolN`, `Int.toNat sync.rwmutex.actualMaxReaders - 2` →
+`Int.toNat sync.rwmutex.actualMaxReaders - 2 - srvRevokePoolN` (805306368 and 805306366). **Δ**
+`srvStarted` was not in the Scope's list; and the read slots reach further than the Scope said: §F.1.
+
+### D. `GoAttach.spec`, `srvGoAttachOk`, `goAttachInv`, `wp_GoAttach_tok`
+
+**D.1** `EtcdServer.GoAttach.spec` (`Spec/.../EtcdServer__GoAttach.lean`), old:
+
+```lean
+abbrev EtcdServer.GoAttach.spec : Prop :=
+  ∀ (s : Loc) (γ : GoNames) (f : GoFunc) (P : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvGoResAt s γ ∗ srvLgReader s ∗ P ∗
+      {{ P ∗ goRunning γ }} (App (Val #f) (Val #())) {{ RET #(); goRunning γ }} }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"GoAttach")) (Val #f))
+  {{ RET #(); srvGoResAt s γ ∗ srvLgReader s }}
+```
+
+new:
+
+```lean
+abbrev EtcdServer.GoAttach.spec : Prop :=
+  ∀ (s : Loc) (γ : GoNames) (f : GoFunc) (P : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvWgReaderAt s γ ∗ levelTok 1 ∗ P ∗
+      {{ P ∗ goRunning γ ∗ threadTokFrom 1 }} (App (Val #f) (Val #()))
+        {{ RET #(); goRunning γ ∗ threadTokFrom 1 }} }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"GoAttach")) (Val #f))
+  {{ RET #(); srvWgReaderAt s γ ∗ levelTok 1 }}
+```
+
+Docstring: the caller's level-1 token is `wg.Add`'s pending deposit, back at the `go` statement (or,
+stopped, the `lgMu` borrow from `raftPool` for `Logger()`); `f` runs on the fresh token's levels from
+1 (level 0 is in the wait group until its `Done`).
+
+**D.2** `srvGoAttachOk` (`InvGoAttach.lean`), old last two lines:
+
+```lean
+    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝) ∗
+    ⌜threadBound GF ≤ 2 ^ 31⌝)
+```
+
+new:
+
+```lean
+    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝) ∗ raftPool (srvLgReader s) ∗
+    ⌜2 * threadBound GF ≤ 2 ^ 31⌝)
+```
+
+`InvGoAttach.lean` gains `public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net`
+(`Net` does not reach `InvApplier`, so no cycle; `InvRunRes` already reaches `Net`).
+
+**D.3** `goAttachInv` (`InvGoAttach.lean`; the invariant body), old:
+
+```lean
+def goAttachInv (γ : GoNames) : IProp GF :=
+  iprop(∃ (b : Bool) (ctr : w32) (k : Nat) (dq : DFrac), ghostVar γ.b (1 : Qp).half b ∗
+    sync.ownWaitGroup γ.wg ctr ∗ threadToks k ∗ ownTokAuthDfrac γ.run dq k ∗
+    ⌜0 ≤ sint.Z ctr ∧ sint.nat ctr = k⌝ ∗
+    ⌜dq = DFrac.own 1 ∨ (dq = DFrac.own (1 : Qp).half ∧ k = 0 ∧ b = false)⌝ ∗
+    (⌜b = false⌝ ∗ token γ.close ∗ (⌜dq = DFrac.own 1⌝ ∨ token γ.wt) ∨
+      ⌜b = true⌝ ∗ sync.ownWaitGroupWaiters γ.wg 0 ∗ token γ.wt))
+```
+
+new (`d` goroutines started, each with its level-0 token deposited and its receipt counted; `q`
+`Add`s pending, each with its caller's level-1 token; the counter their sum, below `2 * threadBound`):
+
+```lean
+def goAttachInv (γ : GoNames) : IProp GF :=
+  iprop(∃ (b : Bool) (ctr : w32) (d q : Nat) (dq : DFrac), ghostVar γ.b (1 : Qp).half b ∗
+    sync.ownWaitGroup γ.wg ctr ∗ levelToks 0 d ∗ levelToks 1 q ∗ ownTokAuthDfrac γ.run dq d ∗
+    ⌜0 ≤ sint.Z ctr ∧ sint.nat ctr = d + q⌝ ∗
+    ⌜dq = DFrac.own 1 ∨ (dq = DFrac.own (1 : Qp).half ∧ d = 0 ∧ q = 0 ∧ b = false)⌝ ∗
+    (⌜b = false⌝ ∗ token γ.close ∗ (⌜dq = DFrac.own 1⌝ ∨ token γ.wt) ∨
+      ⌜b = true⌝ ∗ sync.ownWaitGroupWaiters γ.wg 0 ∗ token γ.wt))
+```
+
+Ownership: allocated by `start` (as today); opened by `GoAttach` (its `Add` deposits `levelTok 1`,
+`q + 1`; at the `go` statement, `wp_fork_tok_upd`, the fresh token's level 0 is deposited, `d + 1`,
+the receipt minted, and the pending level-1 token returned, `q - 1`, the goroutine keeping
+`threadTokFrom 1`), by the goroutine's `Done` (takes a level 0 back with its receipt, `d - 1`) and by
+`run`'s shutdown `Wait` (as H2). `ownAdder` exclusivity is why `sync.tokJoinL` is not reused (Q4).
+
+**D.4** New lemma `wp_GoAttach_tok`, in a new module
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/GoAttachTok.lean` (imports the spec). **Δ** The Scope put it
+in `InvGoAttach.lean`, which the spec imports; a lemma about the spec sits above it. Its statement
+is today's spec text:
+
+```lean
+/-- **`GoAttach` with a whole thread token** (revoke-open Q4 (i)): today's triple, from
+`GoAttach.spec` (the token split `levelTok 0 ∗ levelTok 1 ∗ threadTokFrom 2`, level 1 lent, the rest
+and `srvLgReader s` framed, `threadTokFrom 1` framed through `f`). The six callers of `GoAttach`
+before the stage apply it. -/
+theorem wp_GoAttach_tok (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
+    (s : Loc) (γ : GoNames) (f : GoFunc) (P : IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        srvGoResAt s γ ∗ srvLgReader s ∗ P ∗
+        {{ P ∗ goRunning γ }} (App (Val #f) (Val #())) {{ RET #(); goRunning γ }} }}
+      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"GoAttach")) (Val #f))
+    {{ RET #(); srvGoResAt s γ ∗ srvLgReader s }}
+```
+
+**D.5** `raftPool` at level 1 (`api/rafthttp/Net.lean`; no `etc/api`; Q3 (i)). Old:
+
+```lean
+def raftPool (R : IProp GF) : IProp GF := iprop(∃ γ : GName, threadPool.isThreadPool raftPoolN γ R)
+def raftLoan (R : IProp GF) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPool raftPoolN γ R ∗ threadPool.ownThreadLoan γ)
+```
+
+new:
+
+```lean
+def raftPool (R : IProp GF) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL raftPoolN 1 γ R)
+/-- An `R` lent out for a whole thread token: the loan and the token's other levels. -/
+def raftLoan (R : IProp GF) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL raftPoolN 1 γ R ∗ threadPool.ownThreadLoan γ ∗
+    levelTok 0 ∗ threadTokFrom 2)
+/-- An `R` lent out for a level-1 token. -/
+def raftLoanL (R : IProp GF) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL raftPoolN 1 γ R ∗ threadPool.ownThreadLoan γ)
+
+theorem raftPool_borrowL (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) :
+    £ 1 ∗ raftPool R ∗ levelTok 1 ⊢ |={E}=> R ∗ raftLoanL R
+theorem raftLoanL_giveBack (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) :
+    raftLoanL R ∗ R ⊢ |={E}=> levelTok 1
+```
+
+`raftPool_init`, `raftPool_borrow` and `raftLoan_giveBack` keep their statements (`initL`;
+`threadTokFrom_succ` at `0` and `1`, `1 < threadBound GF` from `ThreadGS.threadBound_gt`).
+
+### E. `lease.runCfg` with `srvRevokeLevels` (and `lease.bootCfg`)
+
+**E.1** `lease.runCfg` (`LeaseRun.lean`), old:
+
+```lean
+@[no_expose] def lease.runCfg (lm : lease.Mode) (m : lease.Mode) : Prop :=
+  lm = m ∧ (m = .mono → lease.leasesNoExpiry) ∧ (m = .revocable → srvRevokeOpen (GF := GF) (hG := hG))
+```
+
+new:
+
+```lean
+@[no_expose] def lease.runCfg (lm : lease.Mode) (m : lease.Mode) : Prop :=
+  lm = m ∧ (m = .mono → lease.leasesNoExpiry) ∧
+    (m = .revocable → srvRevokeLevels (GF := GF) ∧ srvRevokeOpen (GF := GF) (hG := hG))
+```
+
+**E.2** `lease.runCfg_revocable`, old → new:
+
+```lean
+theorem lease.runCfg_revocable (hrev : srvRevokeOpen (GF := GF) (hG := hG)) :
+    lease.runCfg (GF := GF) .revocable .revocable
+```
+```lean
+theorem lease.runCfg_revocable (hlev : srvRevokeLevels (GF := GF))
+    (hrev : srvRevokeOpen (GF := GF) (hG := hG)) :
+    lease.runCfg (GF := GF) .revocable .revocable
+```
+
+**E.3** `lease.runCfg_revoke`, old → new:
+
+```lean
+theorem lease.runCfg_revoke {lm : lease.Mode} (h : lease.runCfg (GF := GF) lm .revocable) :
+    srvRevokeOpen (GF := GF) (hG := hG)
+```
+```lean
+theorem lease.runCfg_revoke {lm : lease.Mode} (h : lease.runCfg (GF := GF) lm .revocable) :
+    srvRevokeLevels (GF := GF) ∧ srvRevokeOpen (GF := GF) (hG := hG)
+```
+
+**E.4** New (`LeaseRun.lean`; `srvRevokeOpen` is sealed, so `MainLinked` needs the intro law):
+
+```lean
+/-- The open case, from a proof of the spec (`leaseexpiry`'s `MainLinked`). -/
+theorem srvRevokeOpen_intro (h : EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG)) :
+    srvRevokeOpen (GF := GF) (hG := hG)
+```
+
+**E.5** **Δ** (not in the Scope's list) `lease.bootCfg` (`LeaseApi.lean`) has the same revocable arm,
+and `lease.bootCfg_of_run` relates the two: its body's `(m = .revocable → srvRevokeOpen (GF := GF)
+(hG := hG))` becomes `(m = .revocable → srvRevokeLevels (GF := GF) ∧ srvRevokeOpen (GF := GF) (hG :=
+hG))`, and `lease.bootCfg_revocable` gains `(hlev : srvRevokeLevels (GF := GF))` before `hrev`.
+
+### F. Further changes found in step A (the batch; not in the Scope)
+
+**F.1 The read loop's reader slots reach a `Results.lean` statement. Needs a decision.** The outer
+pool `B` takes `srvRevokePoolN` of `read.mux`'s `actualMaxReaders` reader slots in `start`, before
+`go s.run()`; every one of those slots is in `srvStarted`'s `"Hrds"` today and flows on, by name of
+the count, into:
+- `start_gives_views` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/Results.lean:2236`), whose post
+  ends `[∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), srvReadReader s
+  γr`: an exported server result; the brief says no `Results.lean` statement may change;
+- `etcdstart.memberUp` and `etcdstart.memberUpOn` (`etcdstart/Defs.lean:348,482`, hub step 7's;
+  `interface/.../etcdstart/Defs.txt:167,240`), each `([∗list] _x ∈ List.replicate (Int.toNat
+  sync.rwmutex.actualMaxReaders) (), srvReadReader s ρ.rd)`;
+- `etcdstart.kvServeStocks` (`etcdstart/Served.lean:115`, `Served.txt:59`), the same count at `γr`.
+
+The change, in all four: `Int.toNat sync.rwmutex.actualMaxReaders` →
+`Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN` (805306368 slots; the gRPC slot takes 1,
+`client.etcdGrpcSlots_of_started`'s count premises still hold). `start_gives_views`'s change is a
+weakening (fewer slots returned). No closed (adequacy) theorem changes.
+Alternatives considered: (b) carve `B` only in the revocable mode: the counts become a mode-dependent
+expression, still a text change of the four; (c) drop `srvReadReader` from `ensureLeadership`'s
+axiom (so `B` needs no read slot): unsound, since other holders of `read.mux`'s slots may assemble
+all of them and conclude no reader, while the axiom's hidden reader exists (the `tickMu` argument
+works only because no slot of `tickMu` is held by anyone); rejected. **Recommendation: (a), the
+count change in the four**, `start_gives_views` included. If it is not accepted, step B cannot
+proceed as designed.
+
+**F.2** `srvRevokesLeases` moves from `LeaseRevoke.lean` to `RevokeCtx.lean` (text unchanged; C.0).
+
+**F.3** `lease.bootCfg`/`lease.bootCfg_revocable` (E.5).
+
+**F.4** `srvStarted`'s counts (C.3).
+
+**F.5** `auth.toml`: `"authStore.WithRoot"` added to `translate` (the Scope's Goose configuration
+item; regenerate with `etc/goose.py --project etcd`); `etcdserver.toml`/`etc/gen-init.py` `SPECIAL`
+for `leaseExpired` (the Scope's preferred route). Both are pass-2 work but change generated files
+other packages import; step B does them if the translation goes through, else records it.
+
+### G. The auth store's post: unchanged (**Δ** from Q10)
+
+Q10 proposed `isAuthRoot st RD M` in the construction's post and `srvWithRootOk`. Not needed:
+`srvAuthAt s E` (from `isServerReq ∗ isServerRead`, `srvAuthAt_of_views`) holds
+`apply.isAuthStore st E.γ P f E.RD E.authMode E.RW`, whose `IsAuthEnabled` clause (`{{ RD }}
+IsAuthEnabled() {{ b, RD ∗ auth.enabledVerdict M b }}`, `enabledVerdict .off b = ⌜b = false⌝`) is what
+`WithRoot`'s body needs; `WithRoot`'s spec (I.3) takes it as a premise, and the receiver's concrete
+pointer is `srvRevokeBuilt`'s (from `authStoreKit`'s `⌜st = auth.authIface stl⌝`, already in its post).
+So neither `auth.NewAuthStore.spec` (an axiom) nor `authStoreKit`'s post changes.
+
+### H. backend `authRdN`/`rdStockN_val` (Q6 (a))
+
+`Proof/go_etcd_io/etcd/server/v3/storage/backend/RdPool.lean`, old → new:
+
+```lean
+@[word_unfold] def authRdN : Nat := 2 ^ 7
+```
+```lean
+@[word_unfold] def authRdN : Nat := 2 ^ 28 + 2 ^ 7
+```
+
+```lean
+theorem rdStockN_val : rdStockN = 805306239 := by
+```
+```lean
+theorem rdStockN_val : rdStockN = 536870783 := by
+```
+
+and `mvcc.nReaders_val` (`InvStore.lean:5040`): `nReaders = 805306239` → `nReaders = 536870783`;
+`NewServer`'s `hAN : backend.authRdN = 128` → `= 2 ^ 28 + 128`. Docstrings: `authRdN` "(revoke-open
+Q6, 2026-11-06: `2 ^ 28` more, the inner pool's `E.RD` copies)", `rdStockN_val`'s value
+`2 ^ 30 - 1 - 2 ^ 28 - 2 ^ 28 - 2 ^ 7`. Interface `RdPool.txt` regenerated.
+
+### I. The frozen `revokeExpiredLeases.spec`, leaseexpiry's `Main.spec`, and the callee specs
+
+**I.1** `EtcdServer.revokeExpiredLeases.spec` (frozen at `lease-expiry-frozen`), old:
+
+```lean
+abbrev EtcdServer.revokeExpiredLeases.spec : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (ρ : ReqNames) (v : SrvFields) (γr : ReadNames) (γg : GoNames)
+    (γcx : context.ContextNames) (rv : RunFields) (SP : IProp GF) (ls : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvFieldsAt s γ ci TM E ρ v ∗ srvRunFieldsAt s γr γg γcx rv SP ∗
+      lease.expiredLeases (srvGrantGuard E.lg E.authMode.isOn) ls }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"revokeExpiredLeases")) (Val #ls))
+  {{ RET #(); True }}
+```
+
+new:
+
+```lean
+abbrev EtcdServer.revokeExpiredLeases.spec : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (ρ : ReqNames) (v : SrvFields) (γr : ReadNames) (γg : GoNames)
+    (γcx : context.ContextNames) (rv : RunFields) (SP : IProp GF) (ls : GoSlice),
+  srvRevokesLeases E ρ → srvRevokeLevels (GF := GF) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvFieldsAt s γ ci TM E ρ v ∗ srvRunFieldsAt s γr γg γcx rv SP ∗
+      lease.expiredLeases (srvGrantGuard E.lg E.authMode.isOn) ls ∗
+      srvRevokeCtx s E ρ γr γg ∗ threadTok }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"revokeExpiredLeases")) (Val #ls))
+  {{ RET #(); threadTok }}
+```
+
+The spec module's import becomes `RevokeCtx` (which imports `InvRunRes`). **Δ** The Scope's text had
+a separate `ρq`; `run` is called with `{ ρ with wait := γw }` (`EtcdServer__start.lean:561`), so
+`run`'s `ρ` is already the request names `Start` hands out: one `ρ` (Q8's "Draft check", resolved).
+At `run`'s call site: `srvRevokesLeases E ρ` from `runCfg_lm` and `hCoff`; `srvRevokeLevels` and the
+spec from `lease.runCfg_revoke`; `srvRevokeCtx` from `#Hrvk`; `threadTok` from `run`'s own.
+
+**I.2** leaseexpiry's `Main.spec` (`Spec/.../examples/etcd/leaseexpiry/Main.lean`, frozen at
+`lease-expiry-frozen`), old line:
+
+```lean
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+```
+
+new:
+
+```lean
+  threadBound GF ≤ 2 ^ 28 → srvRevokeLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 →
+    receiptBound GF ≤ N + 1 →
+```
+
+`Main.wp_proof`: `hrev` stays; `lease.runCfg_revocable hrev` → `lease.runCfg_revocable Hlev hrev`.
+`MainLinked`: `srvRevokeOpen_open` → `(srvRevokeOpen_intro (EtcdServer.revokeExpiredLeases.wp_proof
+…callees…))`. `etcd_leaseexpiry_adequate` (statement unchanged) passes `(by unfold srvRevokeLevels;
+rw [HT]; omega)`. Bounds: `spec-thread` +0 (named Prop).
+
+**I.3** The callee specs the proof cites (new; cross-package or new):
+- `auth.authStore.WithRoot.spec` (new, `Spec/go_etcd_io/etcd/server/v3/auth/authStore__WithRoot.lean`):
+
+```lean
+/-- **`as.WithRoot(ctx)`, auth off** (the only case a caller of the stage needs; `server.go`'s
+revocation runs with auth off): given `IsAuthEnabled`'s contract answering `false` at the caller's
+reader resource `RD`, it returns `ctx` itself (`if !as.IsAuthEnabled() { return ctx }`). -/
+abbrev auth.authStore.WithRoot.spec : Prop :=
+  ∀ (st : Loc) (RD : IProp GF) (ctx : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ RD ∗
+      □ ({{ RD }} (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsAuthEnabled"))
+          (Val #()))
+        {{ (b : Bool), RET #b; RD ∗ ⌜b = false⌝ }}) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"WithRoot")) (Val #ctx))
+  {{ RET #ctx; RD }}
+```
+
+  **Δ** named `spec`, not `specOff` (one spec of the function; its scope in the docstring).
+- `EtcdServer.ensureLeadership.spec` (the restated axiom, §J).
+- Unchanged and cited: `GoAttach.spec` (D.1), `Logger.spec`, `LeaseRevoke.spec`,
+  `zap.Logger.Warn`, `zap.Uint64`/`String`/`Error`, `MemberID`, `fmt.Sprintf`, `prometheus`'s
+  `Counter.Inc` (through `leaseExpired`'s initializer, F.5).
+
+### J. The trust items
+
+**J.1** `EtcdServer.ensureLeadership.spec` (`Spec/.../EtcdServer__ensureLeadership.lean`; its proof
+the axiom `EtcdServer.ensureLeadership.wp_proof`, text unchanged), old:
+
+```lean
+abbrev EtcdServer.ensureLeadership.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLgReader s ∗
+      srvReadReader s γr ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ensureLeadership")) (Val #()))
+  {{ (b : Bool), RET #b; srvLgReader s ∗ srvReadReader s γr ∗ threadTok }}
+```
+
+new:
+
+```lean
+abbrev EtcdServer.ensureLeadership.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (l : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLgReader s ∗
+      srvReadReader s γr ∗ levelTok l ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ensureLeadership")) (Val #()))
+  {{ (b : Bool), RET #b; srvLgReader s ∗ srvReadReader s γr ∗ levelTok l }}
+```
+
+Faithfulness paragraph: "the thread bound (a level token, `levelTok l`, any level: the caller is a
+live goroutine; `threadBound GF ≤ 2 ^ 30 - 1`)" in place of "(`threadTok`, ...)". A restated axiom:
+the `axiom` skill before the Freeze. `LeaseRenew`'s proof passes `l = 0` (`threadTok_level0`-style
+split, `threadTokFrom 1` framed); its statement is unchanged.
+
+**J.2** `authSchemaSrv` (`AuthSrv.lean`): text unchanged; its `([∗list] _x ∈ List.replicate
+backend.authRdN (), R)` now counts `2 ^ 28 + 2 ^ 7` tickets (and takes as many slots, `authRdSlots`).
+The `axiom` skill before the Freeze.
+
+No other trust item: no new axiom, model or non-DRAFT `sorry` (G removes the Scope's fallback
+`isAuthRoot` route entirely; `leaseExpired`'s fallback axiom only if F.5's translation fails, a stop).
