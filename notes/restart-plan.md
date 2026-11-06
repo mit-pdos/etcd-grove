@@ -2229,7 +2229,7 @@ statements, and HS1 is a fourth, needed already by R2d.
 | R2d-3 | `srvRest`'s window form; last-writer-wins lemma | new `apply/RestReplay.lean` (no statement of `InvRest` changes) | high | no (new module) |
 | R2d-4 | `setAppliedIndex.spec` below-ghost case | its spec and proof | medium | 386, with R2d-2 |
 | R2d-5 | `run`'s proof over the generalized start (window batches, `run_snap_job` at `aiGo < ai`) | `EtcdServer__run.lean` proof and its lemma files | high | no (proofs) |
-| R2d-3m | (Q18 (c), decided by etcd-grove-82 under the user's delegation, 2026-11-06, pending the user's review) after R2d-5: the merged snapshot sent in a window and received (Q16 (3)): `srvNet`'s `img` at some `j ≥ i`, `srvSnapRO`'s key, `applyAll.specSnap`/`specSnapM`'s window posts and laws (`specSnapMNoWin`), the receive proofs from `i` to `j` (about 800 lines), `run`'s snapshot-job lemmas over the window, and `applyAll.wp_proofBatch`'s merged send at `W ≠ []` (until then a marked DRAFT sorry inside it). Its statements stay DRAFT until its own probe, then go to **Freeze 2** (R2d's Freeze is split: Freeze 1 everything else) | `InvApplyAll.lean:84`, `SnapRO.lean:452`, `InvRun.lean:113`, `EtcdServer__applyAll.lean` spec (146, 237), `ApplyAllSnap*.lean`, `SnapRecvFacts`, `EtcdServer__run.lean:299-730`, `SnapSendBranch`, `MergedImageOn`, `AuthCompRows` | high | yes (`srvNet`) |
+| R2d-3m | (**Superseded 2026-11-06 by R2s**, "R2d Draft, round 3" below and `notes/decisions.md`, "R2s: snapshots across windows": the design it carried is wrong, not unfinished.) (Q18 (c), decided by etcd-grove-82 under the user's delegation, 2026-11-06, pending the user's review) after R2d-5: the merged snapshot sent in a window and received (Q16 (3)): `srvNet`'s `img` at some `j ≥ i`, `srvSnapRO`'s key, `applyAll.specSnap`/`specSnapM`'s window posts and laws (`specSnapMNoWin`), the receive proofs from `i` to `j` (about 800 lines), `run`'s snapshot-job lemmas over the window, and `applyAll.wp_proofBatch`'s merged send at `W ≠ []` (until then a marked DRAFT sorry inside it). Its statements stay DRAFT until its own probe, then go to **Freeze 2** (R2d's Freeze is split: Freeze 1 everything else) | `InvApplyAll.lean:84`, `SnapRO.lean:452`, `InvRun.lean:113`, `EtcdServer__applyAll.lean` spec (146, 237), `ApplyAllSnap*.lean`, `SnapRecvFacts`, `EtcdServer__run.lean:299-730`, `SnapSendBranch`, `MergedImageOn`, `AuthCompRows` | high | yes (`srvNet`) |
 | R2d-6 | Constructors over data: `mvcc.New`/`NewStore` restoring case; `NewAuthStore` widened (HS1); `newRaftNode`'s `RestartNode` path; `memStorRestarted` defined | specs `NewStore` (393), `New` (414), `NewAuthStore` (465), `newRaftNode` (788) | medium-high | yes |
 | R2d-7 | `NewServer.specG` with the boot argument; proof's restart branch (`bootstrap.go:77` `haveWAL`, `:112`, `:437`) | `NewServer.lean` spec (462), proof (2865 lines) | high | 462 |
 | R2d-8 | etcdstart: `memberBuilt` over both boots, `BuildServer` one spec, `Start_builtR_spec` deleted; restart's `startMember` | `Defs.lean:308` (188), `Restart.lean` (63), `BuildServer` (47), `StartStop.lean`, restart `startMember.lean` | low | no (188) |
@@ -2310,6 +2310,10 @@ R2d / R2d' / R2e").
 - **R2e**: the restart's closed result. HS2's static-cluster premise goes in R2e's Scope (Q14 caveat
   (ii)): the restarted storage's conf state is the backend's at `i` (`bootstrap.go:107-115`), which
   `confStateIs` the membership at the WAL snapshot's index only in a static cluster.
+  (2026-11-06, the Q16-3 review's item 2, decided by etcd-grove-82 under the user's delegation,
+  pending the user's review) **R2e's closed theorem carries neither `winNoConf` nor
+  `winNoMergedSend`**: it waits for R2d' (which discharges the first) and R2s (the second). The order
+  is R2d, R2d', R2s, R2e.
 
 **The window form (Q13 (a)), DRAFT; stopped for review before `run`'s proof.**
 - `ApplyWindow.lean`: the window's vocabulary over the pending replays `W` and the done ones `D`
@@ -2347,7 +2351,7 @@ offline, pending the user's review).** The hard probe on the window form (`apply
 found: (1) the window form's `lastTermIs A at0` cannot hold at a restart (Go's `ep.appliedt` is the
 WAL snapshot's term, `server.go:812-813`): now `lastTermIs (A.take (uint.nat ai)) at0`; (2) the local
 snapshot after a window batch is at Go's applied log `take ai A ++ unapplied ai ms` (a proof matter,
-a list lemma); (3) a merged snapshot sent in a window (`server.go:1010-1015`) carries an image at the
+a list lemma); (3) (**superseded 2026-11-06 by R2s**, "R2d Draft, round 3" below) a merged snapshot sent in a window (`server.go:1010-1015`) carries an image at the
 backend's consistent index `j` above its metadata index: the network's image certificate
 (`srvNet`'s `img`) becomes "an image at some `j ≥ i`", and the receiver's install (`applied_jump`,
 `applyAll.specSnap`/`specSnapM`) gains the same replay window (Q13's `ApplyWindow`), so one notion of
@@ -2366,9 +2370,65 @@ freezes entries only through Go's end, a restarted `MemoryStorage` only up to it
   lines), `ApplyAllSnapOn.lean` (550), `SnapRecvFacts` generalized to the image at the consistent
   index `j ≥ i` (the install at `j`: `image_restoreRes`, `dbImage_of_srvImage`, `applied_jump` to `j`;
   Go's rows at `i`), about 800 lines, its own sub-step after the Freeze.
-- **Q16 (3) stopped before its Lean edits (Q18, open).** `srvSnapRO` keys the snapshot directory by
+- (**Superseded 2026-11-06 by R2s**, "R2d Draft, round 3" below.) **Q16 (3) stopped before its Lean edits (Q18, open).** `srvSnapRO` keys the snapshot directory by
   `srvImageM` itself (`SnapRO.lean:452`), so the network certificate's change reaches every receive
   proof at once, and `run`'s three snapshot-job lemmas (`EtcdServer__run.lean:299, 506, 683`) would
   receive a window post that `run`'s invariant (R2d-5's window) cannot take yet: a 5th DRAFT sorry, or
   R2d-5 brought forward. Proposed cut: a sub-step R2d-3m after R2d-5 doing the certificate, the
   receive window and `run`'s snapshot job together.
+
+### R2d Draft, round 3: R2s, the Q16-3 review, R2d-2's statements (2026-11-06, branch `r2d`)
+
+**R2s, "snapshots across windows"** (the Q16-3 review's item 1, decided by etcd-grove-82 under the
+user's delegation, pending the user's review; supersedes Q16 (3) and Q18's R2d-3m; `notes/decisions.md`,
+"R2s: snapshots across windows"). A new stage, ordered **R2d, R2d', R2s, R2e**. It carries:
+- the KV ghost reset at an install (the monotone applied index at Go's index, the KV ghost
+  `appliedLogAt`/`kvApplied` the backend's, reset at an install to the image's committed prefix, which
+  may be shorter; `srvSnapRm` keyed by Go's applied index);
+- the raft fact "a snapshot's index is above the receiver's commit" (a raft API change, decided at
+  R2s's Scope);
+- `applySnapshot.specSnapM` and `srvSnapApplied*` restated (their `ciEff ≤ sv.Index` and `A <+: A'`);
+- Q16 (3)'s certificate (the merged image at the sender's consistent index) and `srvSnapRO`'s key;
+- the discharge of `winNoMergedSend` (below).
+
+*Its motivating case* (the review's F1; Go is correct, nothing for `issues/`): leader L1 in a restart
+window (Go 60, backend and ghost 100) sends F a merged snapshot at 60 with its image at 100; F installs
+it (raft commit 60, Go 60, ghost 100). Leadership moves to L2, applied to 70, its log compacted past
+61; L2 probes F, finds it behind its first index and sends a merged snapshot at 70, image at 70. F's
+raft accepts it (above its commit 60, `raft.go:1877`), Go accepts it (above `ep.appliedi` 60,
+`server.go:1045`), F's backend goes from 100 back to 70 and Go re-applies 71..100 with v3. The ghost
+cannot follow: `applied_jump` moves a monotone counter forward only (`InvRequest.lean:2312`), and the
+snapshot directory's removal fact is keyed by the ghost index (`SnapRO.lean:345,358`).
+
+**Assumptions R2d carries** (`questions.md`, "Assumptions R2d carries for R2d'/R2s"): `winNoConf`
+(R2d' discharges it) and `winNoMergedSend` (R2s discharges it). `winNoMergedSend γ W`
+(`ApplyWindow.lean`): with replays pending, no member sends a `MsgSnap`; beside `winNoConf` in the
+restart's starting point and `applyAll.specBatch`'s premise; trivial at a first start
+(`winNoMergedSend_nil`). Its cost: it does not hold of every Go execution (a leader in its window does
+send). `applyAll.wp_proofBatch`'s merged-send branch at a pending window is refuted by it: the
+window form's proof is sorry-free.
+
+**The review's other items, done on `r2d`** (`questions.md`, the Freeze list): item 4, Q16 (3)'s
+sender-side statements are not in R2d (none is in the Lean; the receive specs as on lean); finding 2,
+`wal.stopImage` keeps only `σ.b ≤ i` and states the configuration point at some `p ∈ [σ.b, σ.commit]`
+(`bootstrapRestartContract`, trusted, still takes `i ≤ σ.commit`: R2e's Scope); finding 6,
+`applyAll.specBatch`'s `≤ n` over Go's applied log.
+
+**R2d-2's statements: drafted, not in the hub predicates; the probe extension stops at `Hsnap`
+(`questions.md` Q20).** In `RunWindow.lean` (DRAFT, for Freeze 2): `srvRestartPt P A₀` (`P <+: A₀`,
+`winNoConf` of the window), `srvCMW` (`srvCM` after `P`), `srvRestartAt` (`applyStartC` at `A₀`, Go's
+rows at `winGhost ai₀ P`, with `winNoMergedSend`), `applyResCW` (`applyResC` in a restart's window,
+Go's index `ai₀ + |P ++ A|` below the ghost one), each today's at a first start by a law
+(`srvCMW_nil`, `srvRestartAt_nil`, `applyResCW_nil`). The probe's glue, all proved: `applyResCW_start`
+(the loop's resources at a restart's start, from `srvRestartAt` and Go's fields) and
+`applyResCW_firstBatch` (the first batch's `winOk`, through `run_firstBatch_window`). It stops at
+three premises of `applyResCW_start` that `isServerRunC` cannot give at a restart, all a first
+start's `Hsnap` (`rnSnapOnce … ai₀ at₀`: the storage's snapshot at `ai₀ = 0`, `memSnapNone`), which
+is not in Q12's list. Proposed cut: `rnSnapOnce` gains the handed log `P` (index `winGhost ai₀ P`,
+term `P`'s, the conf state at `A₀`, the restarted storage's token: R2d-6's `memStorRestarted`),
+today's at `P = []`; the hub edit (with `%HEr`, `Hstart`/`Happ`, `Hsnap`) after R2d-6, and with
+R2d-5's `run` proof (else every first-start closed theorem reaches `run`'s DRAFT restart branch).
+R2d-2's statements move to Freeze 2.
+
+**Sorries on `r2d`** (all `-- DRAFT`): `apply.wp_proof`'s and `applyEntries.wp_proofBatch`'s window
+forms. `applyAll.wp_proofBatch` and `RunWindow.lean` have none.

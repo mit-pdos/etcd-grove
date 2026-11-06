@@ -32550,3 +32550,51 @@ snapshots `CreateSnapshot(…, nil)`, the merged message's `Data` unset), not by
 (ii) (the restarted conf state is the backend's at `i`, `confStateIs` of the membership at `σ.b` only
 in a static cluster) is HS2's static-cluster premise, for R2e's Scope. `snapMade` gains a `Timeless`
 instance in raft's API (the invariant holds `snapshotValid`).
+
+## R2s: snapshots across windows; no merged send in a window; the stop's WAL slot without `i ≤ σ.commit` (2026-11-06 · the Q16-3 review's items 1-4 decided by etcd-grove-82 under the user's delegation, pending the user's review; findings 2 and 6 decided by the agent, pending the user's review, under etcd-grove-82's delegation · branch `r2d`; DRAFT)
+
+**Supersedes Q16 (3) and Q18's R2d-3m** (`notes/restart-plan.md`, "Scope amendment 2" item (3) and
+the R2d-3m row of the R2d sub-steps; `questions.md` Q16 (3), Q18). Q16 (3) planned to follow a
+merged snapshot sent in a window as an image at some `j ≥ i` and to give the receiver's install the
+restart's replay window, as one notion of window; Q18 moved that after R2d-5 as R2d-3m. The review
+of that design (`/shared/tmp/r2d-review-q16-3.md`, F1) found it wrong, not unfinished: after an
+install from a window sender, a second snapshot from a member without a window can move the
+receiver's backend *backward* (L1 in its window sends F an image at 100 for index 60; L2, applied to
+70, then sends F a snapshot at 70, which raft accepts above its commit 60, `raft.go:1877`, and Go
+above its applied index 60, `server.go:1045`). Go is correct (it re-applies 71..100 v3), but the
+ghost cannot follow: `applied_jump` moves a monotone counter forward only (`InvRequest.lean:2312`),
+and the snapshot directory's removal fact is keyed by the ghost index (`SnapRO.lean:345,358`). A
+restart's window and an install's differ in exactly the invariant the receive path relies on (the
+ghost at most raft's commit, which the stop's `i ≤ σ.commit` gave), so they are not one notion.
+
+**New stage R2s, "snapshots across windows"**, ordered R2d, R2d', R2s, R2e. It carries the KV ghost
+reset at an install (the review's (a): the monotone applied index at Go's index, the KV ghost the
+backend's, `srvSnapRm` keyed by Go's index), the raft fact "a snapshot's index is above the
+receiver's commit" (a raft API change, decided at R2s's Scope), the `applySnapshot.specSnapM` and
+`srvSnapApplied*` restatements, Q16 (3)'s certificate and `srvSnapRO`, and the discharge of
+`winNoMergedSend`. The review's (b), a scope restriction "no snapshot below the receiver's
+consistent index", was rejected: no caller can establish it and it is false of Go.
+
+**R2d instead assumes no merged send in a window** (`winNoMergedSend γ W`, `ApplyWindow.lean`: at a
+pending window no member sends a `MsgSnap`), beside `winNoConf` in the restart's starting point and as
+`applyAll.specBatch`'s premise; `applyAll.wp_proofBatch`'s merged-send branch at a pending window is
+refuted by it (the proof is sorry-free). It is an assumption carried for R2s, not a fact: a leader in
+its window does send. Why an iProp disjunction (`⌜W = []⌝ ∨ □ ∀ id st, sentMsg … id st -∗ ⌜not a
+MsgSnap⌝`) and not a Lean premise: what it excludes is a ghost fact (`sentMsg`), and the no-window
+law supplies its left case, so the first start's text is unchanged. Its cost is stated where it is
+listed (`questions.md`, "Assumptions R2d carries for R2d'/R2s"). R2e's closed theorem carries neither
+`winNoConf` nor `winNoMergedSend`: it waits for R2d' and R2s.
+
+**The stop's WAL slot (finding 2).** `wal.stopImage` said `i ≤ σ.commit`, justified by "an entry is
+applied after the `Save` of its commit"; an install from a window sender gives the backend entries
+above the receiver's commit, so a graceful stop there breaks it (etcd itself expects
+`consistent_index > Commit`, `bootstrap.go:613-621`). Its two uses need less: `bootstrap` keeping the
+backend file needs `σ.b ≤ i` (`storage/backend.go:111-113`), and `RestartNode`'s configuration point
+needs a point in `[σ.b, σ.commit]` with the image's membership. So the slot keeps `σ.b ≤ i` and
+states the configuration point `∃ p ∈ [σ.b, σ.commit], confAt cl p m` (the slot gains the membership
+`m`). `bootstrapRestartContract` (trusted, HS2) still takes `i ≤ σ.commit`; R2e's Scope revisits it.
+
+**`applyAll.specBatch`'s bound over Go's log (finding 6).** `(A ++ winNew W …).length ≤ n` was over
+the ghost log, but `run`'s `n` is raft's delivered log, Go's; now `(A.take ai ++ unapplied ai
+ms).length ≤ n`, the same at no window, as F4 did for `srvFrozenTerms`. Its one use is the merged
+send's length argument, where the window is over (Go's log is the ghost log).
