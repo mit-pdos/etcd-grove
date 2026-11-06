@@ -563,20 +563,13 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     iintro !> %d %A' %es %p %l %S %r %Φ !> ⟨Hbusy, Hrc, #Hcert, Hrun⟩ HΦ
     iunfold rnBusyS at Hbusy
     icases Hbusy with ⟨⟨Hdrv, HrS⟩, Hcv, %Hsn⟩
-    obtain ⟨hA', hd, hdl, hpos, h61⟩ := Hsn
+    obtain ⟨hA', hd, hdl, hpos, h61, hwa⟩ := Hsn
     iunfold rnCfgAt at Hcv
     icases Hcv with ⟨Hcv, #Hrok⟩
     -- (R2d'a A6) at a restart, the snapshot at or above the backend's log (R2d'a's A8,
-    -- `rnWinInstallAbove`)
-    ihave ⟨Hdrv, %Hab⟩ : iprop((letI := srvStor (GF := GF) γ.node; nodeDriver γ.nl γ.node.cl srvClusterN
-        ⟨memStorIface γ.ms, srvLE γ.srv A', p, some (es.map EntryModel.toM, some l), γ.key, S, r⟩) ∗
-        ⌜γ.a0 = [] ∨ γ.a0.length ≤ uint.nat l.snap.Metadata'.Index'⌝) $$ [Hdrv]
-    · iunfold rnRestartOk at Hrok
-      icases Hrok with (%Ha | ⟨-, -, #Hwia, -⟩)
-      · iframe Hdrv; ipureintro; left; exact Ha.1
-      · iunfold rnWinInstallAbove at Hwia
-        ihave ⟨Hdrv, %h⟩ := Hwia $$ %_ %(es.map EntryModel.toM) %l %rfl Hdrv
-        iframe Hdrv; ipureintro; right; exact Nat.le_of_lt h
+    -- `rnWinInstallAbove`, recorded at the receive: `rnBusyS`'s pure, R2d'a task 4)
+    have Hab : γ.a0 = [] ∨ γ.a0.length ≤ uint.nat l.snap.Metadata'.Index' :=
+      hwa.imp_right Nat.le_of_lt
     iunfold rnView at Hcv
     iunfold srvCfgView at Hcv
     icases Hcv with ⟨%v, Hcfg, %Hok⟩

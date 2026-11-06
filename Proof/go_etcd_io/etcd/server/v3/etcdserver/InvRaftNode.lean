@@ -382,31 +382,6 @@ while the replay window is open; at a first start it is the view after `pre ++ L
 def rnView (γ : RNNames) (L : List EntryModel) : IProp GF :=
   srvCfgView γ.srv γ.nl [] (rnGhost γ L)
 
-/-- (R2d'a A6, 2026-11-06; DRAFT; R2d'a's A8, a restart-only assumption; A10 item 5, approved by 82:
-strict, until then `≤`) **No snapshot at or below the restart point**: every snapshot `Ready` the node
-hands this incarnation's driver is strictly above the backend's log `a0` (`|a0| < snapIdx`). Why `<`
-is true of Go (raft v3.7.0 at `565c2bd`, etcd at `673da07c8`):
-- `a0` is a committed prefix of the restarted node's *own* WAL log (`rnRestartOk`'s `srvRLogLb` is
-  `isCommittedLogLb`), so a real install inside the replay window has `snapIdx > |a0|`;
-- for `snapIdx ≤ |a0|` the local entry at `snapIdx` is the committed one, so its term matches the
-  snapshot's: raft fast-forwards its commit and installs nothing (`raft.go:1912-1918`); above the
-  local commit, `raft.go:1861` is not the binding check (`restore` refuses an index at or below its
-  committed one, `raft.go:1876-1880`).
-
-Raft's API does not say so (`notes/restart-plan.md`, R2d' finding 2, H5 (a)). R2s (or raft's API)
-discharges it; R2d'b's obligation for it: `RestartNode` supplies that `a0` is a committed prefix of
-the restored WAL log. R2e's closed theorem must not carry it. -/
-def rnWinInstallAbove (γ : RNNames) : IProp GF :=
-  letI := srvStor (GF := GF) γ.node
-  iprop(□ ∀ (st : NodeDriverState) (es : List EntryM) (l : SnapLoan),
-    ⌜st.handling = some (es, some l)⌝ -∗ nodeDriver γ.nl γ.node.cl srvClusterN st -∗
-      nodeDriver γ.nl γ.node.cl srvClusterN st ∗
-      ⌜γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝)
-
-instance rnWinInstallAbove_persistent (γ : RNNames) :
-    Persistent (rnWinInstallAbove (GF := GF) γ) := by
-  unfold rnWinInstallAbove; infer_instance
-
 /-- (R2d'a A10 item 3, Q27 (i), 2026-11-06; DRAFT, approved by the user; a restart-only premise)
 **The WAL's stored commit is never below the restart point's backend log**: whatever durable state
 `S` the node has, records `σ` holding it (`StorageHolds S σ`) have a stored commit at least `|a0|`.
@@ -428,6 +403,36 @@ storage's key `γ.key`, the durable state `S` and the role `r` (2026-11-01, dura
 def rnDrvSt (γ : RNNames) (L : List EntryModel) (p : HardStateM) (S : RaftState) (r : StateType) :
     NodeDriverState :=
   ⟨memStorIface γ.ms, srvLE γ.srv L, p, none, γ.key, S, r⟩
+
+/-- (R2d'a A6, 2026-11-06; DRAFT; R2d'a's A8, a restart-only assumption; A10 item 5, approved by 82:
+strict, until then `≤`; task 4, 2026-11-06, approved by 82 as a hub decision: anchored at the
+receive's `readyRest`, until then on the busy `nodeDriver`, which the raft loop holds only after it
+has sent the payload on `applyc`) **No snapshot at or below the restart point**: every snapshot
+`Ready` this incarnation's node hands its driver (`readyRest` at the driver's idle state `rnDrvSt γ …`,
+this incarnation's storage and key, as `rnSnapTermAbove`) is strictly above the backend's log `a0`
+(`|a0| < snapIdx`). Why `<` is true of Go (raft v3.7.0 at `565c2bd`, etcd at `673da07c8`):
+- `a0` is a committed prefix of the restarted node's *own* WAL log (`rnRestartOk`'s `srvRLogLb` is
+  `isCommittedLogLb`), so a real install inside the replay window has `snapIdx > |a0|`;
+- for `snapIdx ≤ |a0|` the local entry at `snapIdx` is the committed one, so its term matches the
+  snapshot's: raft fast-forwards its commit and installs nothing (`raft.go:1912-1918`); above the
+  local commit, `raft.go:1861` is not the binding check (`restore` refuses an index at or below its
+  committed one, `raft.go:1876-1880`). The snapshot a `Ready` carries is the one the driver installs.
+
+Raft's API does not say so (`notes/restart-plan.md`, R2d' finding 2, H5 (a)). R2s (or raft's API)
+discharges it; R2d'b's obligation for it: `RestartNode` supplies that `a0` is a committed prefix of
+the restored WAL log. R2e's closed theorem must not carry it. -/
+def rnWinInstallAbove (γ : RNNames) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(□ ∀ (rd : Ready) (L : List EntryModel) (p : HardStateM) (S : RaftState) (r : StateType)
+      (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (Lo : Option SnapLoan)
+      (ms : List QMsg) (ss : Option (w64 × StateType)),
+    readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗
+      readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss ∗
+      ⌜∀ l, Lo = some l → γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝)
+
+instance rnWinInstallAbove_persistent (γ : RNNames) :
+    Persistent (rnWinInstallAbove (GF := GF) γ) := by
+  unfold rnWinInstallAbove; infer_instance
 
 /-- (R2d'a A10 item 5, Q29 (d), 2026-11-06; DRAFT, approved by 82 as hub owner; a restart-only
 premise) **This incarnation's `MsgSnap`s are above its start term**: every `MsgSnap` in a `Ready`
@@ -502,6 +507,26 @@ theorem rnRestartOk_snapTerm (γ : RNNames) (L : List EntryModel) (p : HardState
   · iframe H; ipureintro; exact Or.inl Ha.2
   · iunfold rnSnapTermAbove at Hs
     ihave ⟨H, %hb⟩ := Hs $$ %rd %L %p %S %r %ce %es %h %Lo %ms %ss H
+    iframe H; ipureintro; exact Or.inr hb
+
+/-- (R2d'a task 4) **A `Ready`'s snapshot above the restart point**: from the restart data, at a
+first start `a0 = []`, at a restart `rnWinInstallAbove`. -/
+theorem rnRestartOk_winAbove (γ : RNNames) (L : List EntryModel) (p : HardStateM) (S : RaftState)
+    (r : StateType) (rd : Ready) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+    (Lo : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    rnRestartOk (GF := GF) γ ⊢
+      (letI := srvStor (GF := GF) γ.node;
+        readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss) -∗
+      (letI := srvStor (GF := GF) γ.node;
+        readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss) ∗
+      ⌜γ.a0 = [] ∨ ∀ l, Lo = some l → γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝ := by
+  letI := srvStor (GF := GF) γ.node
+  unfold rnRestartOk
+  iintro #Hr H
+  icases Hr with (%Ha | ⟨-, -, #Hw, -, -⟩)
+  · iframe H; ipureintro; exact Or.inl Ha.1
+  · iunfold rnWinInstallAbove at Hw
+    ihave ⟨H, %hb⟩ := Hw $$ %rd %L %p %S %r %ce %es %h %Lo %ms %ss H
     iframe H; ipureintro; exact Or.inr hb
 
 /-- **The driver's view of the configuration after the committed log `L`** (D43 M3; 2026-10-30,
@@ -816,7 +841,9 @@ def rnBusyS (γ : RNNames) (d A' es : List EntryModel) (p : HardStateM) (l : Sna
     rnCfgAt γ d ∗
     ⌜srvLE γ.srv A' = strip l.dlv ∧ srvLE γ.srv d <+: strip l.dlv ∧
       l.dlv.length = uint.nat l.snap.Metadata'.Index' ∧
-      0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2 ^ 61⌝)
+      0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2 ^ 61 ∧
+      -- (R2d'a task 4) the snapshot above the restart point (A8, `rnWinInstallAbove`)
+      (γ.a0 = [] ∨ γ.a0.length < uint.nat l.snap.Metadata'.Index')⌝)
 
 /-- (2026-11-03, R2b-3) The busy state after a snapshot `Ready`. -/
 abbrev rnBusyStS (γ : RNNames) (A' es : List EntryModel) (p : HardStateM) (l : SnapLoan) (S : RaftState)
@@ -831,7 +858,9 @@ def rnBusySP (γ : RNNames) (d A' es : List EntryModel) (p p' : HardStateM) (l :
     rnCfgAt γ d ∗
     ⌜srvLE γ.srv A' = strip l.dlv ∧ srvLE γ.srv d <+: strip l.dlv ∧
       l.dlv.length = uint.nat l.snap.Metadata'.Index' ∧
-      0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2 ^ 61⌝)
+      0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2 ^ 61 ∧
+      -- (R2d'a task 4) the snapshot above the restart point (A8, `rnWinInstallAbove`)
+      (γ.a0 = [] ∨ γ.a0.length < uint.nat l.snap.Metadata'.Index')⌝)
 
 /-- (2026-11-03, R2b-3) **Firing *enter* after a snapshot `Ready`'s `Save`** (`rn_enter`'s): the busy
 driver and the entered durable state (`rnBusyS`'s first part). -/
@@ -1158,6 +1187,8 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   -- (R2d'a A10 item 5, Q29 (d)) the `MsgSnap`s' terms, from the restart data
   ihave ⟨Hcfg, #Hrok⟩ := rnCfgAt_restartOk γ L $$ Hcfg
   ihave ⟨Hrest, %Hsb⟩ := rnRestartOk_snapTerm γ L p S r rd ce es h Lo ms ss $$ Hrok Hrest
+  -- (R2d'a task 4) a snapshot's index above the restart point (A8)
+  ihave ⟨Hrest, %Hwa⟩ := rnRestartOk_winAbove γ L p S r rd ce es h Lo ms ss $$ Hrok Hrest
   iunfold readyLeaderMsgs at Hlead
   simp only [committedEntriesAt, rnDrvSt]
   ihave #Henv' := Henv
@@ -1343,7 +1374,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
         iExactEq Henter
         simp only [rnBusyStS, rnDrvSt, EntryModel.map_toM_ofM, hA']
       ipureintro
-      exact ⟨hA', Hpfx, Hdl, Hpos, H61⟩
+      exact ⟨hA', Hpfx, Hdl, Hpos, H61, Hwa.imp_right (fun h => h l rfl)⟩
     isplitr
     · iunfold rnHsC
       icases Hhsc with (%Hz | ⟨#Hc, %Hle⟩)
@@ -1909,7 +1940,9 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :
       -- (2026-11-01, J8a-5) the index's bound (raft's `readySnap`)
       uint.Z sv.Metadata'.Index' < 2 ^ 61 ∧
       -- (J8b, 2026-11-01) past the boot log (`rnReadySnap_bootLen`, open)
-      (γ.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index'⌝ ∗
+      (γ.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' ∧
+      -- (R2d'a task 4) above the restart point (A8's bound, from the receive: `rnBusySP`)
+      (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length)⌝ ∗
     -- (2026-11-01, J8a-5) no committed entries with a snapshot (raft's `readySnap`: `ce = []`)
     ap.entries' ↦*□ ([] : List Loc) ∗
     ownSnapM ap.snapshot' DFrac.discard sv ∗

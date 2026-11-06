@@ -3788,7 +3788,7 @@ closed theorem carries none. At a first start each is proved or vacuous.
 | Premise | Text | Go evidence | At a first start | Discharge (est.) |
 |---|---|---|---|---|
 | `Hwpend` (A7) | `srvWinPend s γr γn` (`InvRun.lean:48`): a `token γwp` and `□ ∀ rt n, token -∗ ⌜n < \|a0\| ∧ uint.Z γn.t0 < uint.Z rt⌝ -∗ rnRtOk γn rt n -∗ ∀ id m st, … -∗ ⌜MsgSnap → Term ≠ rt⌝ ∗ …`, in `isServerRunC`/`isServerBuiltC` and the hubs | `/shared/tmp/winpend-probe`: 0 of ~4250 former-leader restarts fail it with etcd's drained handout; 2-3% with a slow handout (one entry per `Ready`), ~3% without PreVote; the failing runs are elected at `T' > T₀` mid-replay, then a `MsgSnap` at `T'` | `srvWinPend_first` (`InvRun.lean:60`): at `a0 = []` the guard `n < 0` is false, a token gives it | **R2s** (the elected-at-`T' > T₀` case; R2s's Scope, no estimate yet); `axiom`-skill attack before R2d'b's Freeze |
-| `rnWinInstallAbove` (A8, strict) | `InvRaftNode.lean:399`: `□ ∀ st es l, ⌜st.handling = some (es, some l)⌝ -∗ nodeDriver γ.nl … st -∗ nodeDriver … st ∗ ⌜\|γ.a0\| < snapIdx⌝` | probe follow-up (ii): of ~400 in-window installs per run, 0 at or below the commit at restart (23-35 below / 0-4 equal to the restored log's last index, all from its uncommitted tail, seed 356); `raft.go:1876-1880` (`restore` refuses `index ≤ committed`), `raft.go:1912-1918` | vacuous: `rnRestartOk`'s first disjunct (`a0 = []`) is taken; `NodeBridge` reads `a0 = []` there | **R2s or raft's API** (H5 (b), the raft fact "a snapshot's index is above the receiver's commit"), with R2d'b's `RestartNode` supplying the own-WAL condition (row 5); no estimate yet (R2s's Scope) |
+| `rnWinInstallAbove` (A8, strict; task 4: at the receive's `readyRest`, 82's hub decision) | `InvRaftNode.lean:424`: `□ ∀ rd L p S r ce es h Lo ms ss, readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ l, Lo = some l → \|γ.a0\| < snapIdx⌝` (was: `□ ∀ st es l, ⌜st.handling = some (es, some l)⌝ -∗ nodeDriver γ.nl … st -∗ nodeDriver … st ∗ ⌜\|γ.a0\| < snapIdx⌝`) | probe follow-up (ii): of ~400 in-window installs per run, 0 at or below the commit at restart (23-35 below / 0-4 equal to the restored log's last index, all from its uncommitted tail, seed 356); `raft.go:1876-1880` (`restore` refuses `index ≤ committed`), `raft.go:1912-1918` | vacuous: `rnRestartOk`'s first disjunct (`a0 = []`) is taken; `NodeBridge` reads `a0 = []` there | **R2s or raft's API** (H5 (b), the raft fact "a snapshot's index is above the receiver's commit"), with R2d'b's `RestartNode` supplying the own-WAL condition (row 5); no estimate yet (R2s's Scope) |
 | `rnWalCommitAbove` (Q27 (i)) | `InvRaftNode.lean:418`: `□ ∀ S σ, raftState γ.node.cl γ.id S -∗ ⌜StorageHolds S σ⌝ -∗ raftState … S ∗ ⌜\|γ.a0\| ≤ σ.commit⌝` | not probed; Go: the restored WAL's commit is at least the backend's consistent index (`bootstrapRestartContract`), `σ.commit ≥ S.wcommit`, and the commit raft writes only grows | trivial: `rnRestartOk_commit`'s first case (`a0 = []`) | **R2d'b** (`RestartNode` supplies it from the restored records; within B1, 1 wk (est.)) |
 | snap-term bound (Q29 (d)) | `rnSnapTermAbove γ` (`InvRaftNode.lean:446`): `□ ∀ rd L p S r ce es h Lo ms ss, readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ q ∈ ms, MsgSnap → uint.Z γ.t0 < uint.Z q.st.msg.Term'⌝` (anchored at the driver state, not `nodeDriver`: see part 2 above) | probe follow-up (i): 0 of ~7,300 `MsgSnap`s per run from restarted incarnations had `Term ≤` the restored term | not used: the first disjunct has `t0 = 0`, and `rnMsgOk_of_api` bounds the `MsgSnap` by its nonzero term (`sentMsg_shape`) | **R2d'b**: every `MsgSnap` an instance puts in a `Ready` has `Term >` its start term; needs a raft-struct invariant (`reset(term)` does not clear `r.msgs`) and a `StartNode`/`RestartNode` post change, 5-8 d (est.) |
 | own-WAL committed prefix | no Lean conjunct of its own: cited by `rnWinInstallAbove`'s docstring (`InvRaftNode.lean:385-397`) as why its `<` is true; `rnRestartOk`'s `srvRLogLb γ.srv γ.a0` (cluster-committed) is the nearest text | probe follow-up (ii) above: measured against the commit at restart, 0 installs at or below; the equal/below cases against the restored log's last index come only from its uncommitted tail | vacuous (`a0 = []`) | **R2d'b**'s `RestartNode` (`a0` a committed prefix of the restored WAL log), within B1, 1 wk (est.) |
@@ -3955,3 +3955,27 @@ snapshot disjunct (`rnBusySP`'s pure, or a new conjunct), from which `raftNode__
 `InvRaftNode.lean` (A8's text, `rnBusySP`/`rnBusyS` pure, `rn_ready_recv`, `rnApSnap`),
 `raftNode__start.lean`, `InvRaftLoop.lean`, `NodeBridge.lean`, `RunRestart.lean`. Est. 0.5-1 d.
 Nothing edited; `run.wp_proofR` keeps its one `sorry` (`hab`).
+
+#### R2d'a task 4, `hab` closed: A8 at the receive's `readyRest` (82's hub decision; 2026-11-06; DRAFT)
+
+- **A8 restated** (`InvRaftNode.lean`, `rnWinInstallAbove`, moved after `rnDrvSt`), as `rnSnapTermAbove`
+  is: old `□ ∀ (st : NodeDriverState) (es : List EntryM) (l : SnapLoan), ⌜st.handling = some (es, some
+  l)⌝ -∗ nodeDriver γ.nl γ.node.cl srvClusterN st -∗ nodeDriver γ.nl γ.node.cl srvClusterN st ∗
+  ⌜γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝` → new `□ ∀ (rd : Ready) (L : List EntryModel) (p :
+  HardStateM) (S : RaftState) (r : StateType) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+  (Lo : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)), readyRest γ.node.cl
+  srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ l, Lo = some l →
+  γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝`. Docstring kept (Go argument, R2d'b's obligation),
+  with why the anchor moved. Still five restart-only premises (the table's A8 row updated).
+- `rnRestartOk_winAbove` (new, beside `rnRestartOk_snapTerm`); `rn_ready_recv` applies it and records
+  `γ.a0 = [] ∨ |γ.a0| < snapIdx` as a sixth conjunct of `rnBusySP`'s (and `rnBusyS`'s) pure.
+- `rnApSnap`'s pure gains `∧ (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length)` (proved at the send in
+  `raftNode__start.lean` from `rnBusySP`'s conjunct and `hlenA`).
+- `InvRaftLoop.lean`: `rnApplyTok_recv` keeps its statement (its frozen consumer
+  `EtcdServer__run.lean` destructures four conjuncts; it drops the new one); `rnApplyTok_recvR` (new,
+  its copy) passes the conjunct through; `run.wp_proofR` uses it.
+- `NodeBridge.lean`: the `Advance`-after-snapshot reads the bound from `rnBusyS`'s pure (no more
+  `nodeDriver` use of A8).
+- `RunRestart.lean`: `hab` closed (`a0 = []` contradicts the window; else `Ha0`, `hp0`).
+- Checks: full build clean (13400 jobs); `etc/tcb-report.py --check` matches the baseline (817 axioms,
+  4 sorries); `#print axioms EtcdServer.run.wp_proofR`: no `sorryAx`. `run.wp_proofR` is sorry-free.

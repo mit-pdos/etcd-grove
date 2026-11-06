@@ -8,9 +8,8 @@ loop resources in restart form (`applyResR` at the restart point `⟨0, A₀⟩`
 the batch jobs over `applyAll.specBatchR` (`run_job_bodyR`, with `Hwpend`'s window token borrowed by
 `winNoMergedSendR`), the stop inside the window over `StopR.lean`'s pieces and past it the frozen path.
 The snapshot jobs over `applyAll.specSnapMR` (`run_job_snapCR`, `RunSnapR.lean`), inside the window
-or past it. One `sorry` left, a pure fact: inside the window, the snapshot above the backend's log
-(`|A₀| < |A'|`, A8's `rnWinInstallAbove`), which the raft loop holds at the snapshot's `Ready` but
-the payload `rnApSnap` does not carry to the apply thread (task 4's report).
+or past it; inside it the snapshot above the backend's log (`|A₀| < |A'|`, A8's `rnWinInstallAbove`,
+recorded at the `Ready`'s receive and carried by `rnApSnap`, `rnApplyTok_recvR`). Sorry-free.
 * `isServerRunCR`: `isServerRunC` with `%HEr`, `Hsnap` and `Hstart` replaced by `srvRunRestartR`
   (A9's texts; the hub edit waits for the go, Q20);
 * `run.specR`: `run.spec` over `isServerRunCR`;
@@ -171,8 +170,7 @@ local macro "ul_tail" : tactic => `(tactic| (
     ul_stats))
 
 set_option maxHeartbeats 0 in
-/-- **`run` at a restart** (R2d'a A10 item 4, DRAFT): `run.wp_proofG` over `isServerRunCR`. Its one
-`sorry`: the snapshot arm's in-window bound `|A₀| < |A'|` (`hwin`; see the header). -/
+/-- **`run` at a restart** (R2d'a A10 item 4, DRAFT): `run.wp_proofG` over `isServerRunCR`. Sorry-free. -/
 theorem EtcdServer.run.wp_proofR
     (hSStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
     (hRStop : raftNode.stop.spec (GF := GF) (hG := hG))
@@ -572,14 +570,14 @@ theorem EtcdServer.run.wp_proofR
       iexfalso; iexact Hf
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
-    icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
+    icases rnApplyTok_recvR Er γn rcv A apv $$ Hcons Hidx HP with
       (⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl, #Hrtok⟩ | Hsnp)
     rotate_left
     · -- (R2d'a task 4, DRAFT) the snapshot arm: `run_job_snapCR` over `applyAll.specSnapMR`, inside
       -- the window or past it, `Hwpend`'s token framed; scheduled as the frozen arm's
       icases Hsnp with ⟨%A', %sv, Happly, %Hlen, #Hes, #Hsn, #Hcert, #Hloc, #HC, Hnc, #Hrac, #Hcl,
         #Hrtok⟩
-      obtain ⟨hlt, hlenA, h61, hboot⟩ := Hlen
+      obtain ⟨hlt, hlenA, h61, hboot, hwa⟩ := Hlen
       icases Hnc with ⟨%γnc, #Hncb, Hnrc⟩
       have hρ : ρ.raft = Er.γr.raft := by rw [HEγr, ← Hrd]
       have hρC : ρ.raft = γr.raft := by rw [hρ, HEγr]
@@ -588,12 +586,14 @@ theorem EtcdServer.run.wp_proofR
       have hp0 : γn.pre = [] := Hc0a.2.1
       have ha0 : uint.nat ai₀ = 0 := by rw [Hc0a.2.2]; rfl
       -- the snapshot above the ghost log: past the window Go's `|A| < |A'|`; inside it A8's bound
-      -- (`rnWinInstallAbove`), which the raft loop holds at the snapshot's `Ready` but which the
-      -- payload (`rnApSnap`) does not carry to the apply thread: the one gap left (task 4's report)
+      -- (`rnWinInstallAbove`, recorded at the `Ready`'s receive, carried by `rnApSnap`)
       have hwin : (ghostOf ⟨0, A₀⟩ A).length < A'.length := by
         by_cases hw : A₀.length ≤ A.length
         · rw [ghostOf_past ⟨0, A₀⟩ A hw]; exact hlt
-        · have hab : A₀.length < A'.length := sorry
+        · have hab : A₀.length < A'.length := by
+            rcases hwa with h | h
+            · rw [Ha0] at h; subst h; simp at hw
+            · rw [Ha0, hp0, List.nil_append] at h; exact h
           have := ghostOf_length ⟨0, A₀⟩ A
           simp only at this
           omega

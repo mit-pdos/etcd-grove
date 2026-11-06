@@ -219,7 +219,7 @@ theorem raftNode.start.wp_proof
         icases Hsnap with ⟨%es, %A', %p', %l, %S', %r', %qms, Hdata, Hbusy, #Hhsc, %HidxN⟩
         iunfold rnBusySP at Hbusy
         icases Hbusy with ⟨Hpend, Hbcv, %Hbs⟩
-        obtain ⟨HbA, HbPre, HbD, HbPos, Hb61⟩ := Hbs
+        obtain ⟨HbA, HbPre, HbD, HbPos, Hb61, Hbwa⟩ := Hbs
         icases rnReadySnap_bootLen E γ _ _ _ _ _ _ _ $$ Henv Hdata with ⟨Hdata, %Hbb⟩
         iunfold rnReadySnap at Hdata
         icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, %HwSteps, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa,
@@ -543,7 +543,7 @@ theorem raftNode.start.wp_proof
             simp only [Int.toNat_natCast]
             iframe Hcn Hcn1 HC Hc2M Hcert HsnLoc Hcal
             isplitr
-            · ipureintro; exact ⟨HLA, hlenA, Hb61, Hbb⟩
+            · ipureintro; exact ⟨HLA, hlenA, Hb61, Hbb, Hbwa.imp_right (fun h => by rw [hlenA]; exact h)⟩
             isplitr
             · ihave %HceL : iprop(⌜ceL.length = ([] : List EntryModel).length⌝) $$ []
               · iunfold entriesAt at Hcea; icases Hcea with ⟨%H, -⟩; ipureintro; exact H
@@ -751,7 +751,7 @@ theorem raftNode.start.wp_proof
               (by simp only [List.length_append] at hlenA; omega) Hlast
             iframe HcpS Hdum
           ihave Hbusy : rnBusyS γ L' A' es p' l S' r' $$ [Hbdrv Hbcv]
-          · iunfold rnBusyS; iframe Hbdrv Hbcv; ipureintro; exact ⟨HbA, HbPre, HbD, HbPos, Hb61⟩
+          · iunfold rnBusyS; iframe Hbdrv Hbcv; ipureintro; exact ⟨HbA, HbPre, HbD, HbPos, Hb61, Hbwa⟩
           -- the confChange scan (`confChanged` only decides an extra `notifyc` send)
           ihave %Hcelen := ownSlice_len _ _ _ $$ Hce
           ihave #Hcea' := Hcea

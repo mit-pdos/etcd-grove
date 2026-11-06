@@ -138,7 +138,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
       iframe Hcons
       simp only [List.length_append, List.length_singleton]
       iexact HFA
-    ipureintro; exact Hlen
+    ipureintro; exact ⟨Hlen.1, Hlen.2.1, Hlen.2.2.1, Hlen.2.2.2.1⟩
   ileft
   iunfold rnApN at HP
   icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt⟩
@@ -155,6 +155,80 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
     iexact HFce
   ipureintro; exact Hsnap
 
+/-- (R2d'a task 4, DRAFT) **`rnApplyTok_recv` with a snapshot above the restart point** (`rnApSnap`'s
+A8 conjunct, passed through; `run.wp_proofR`'s). -/
+theorem rnApplyTok_recvR (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : List EntryModel)
+    (ap : toApply) :
+    ⊢ sspscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
+      rnApP E γ (rcv.length : Int) ap -∗
+      (∃ (ce : List EntryModel) (ceL : List Loc),
+        rnApplyTok γ (A ++ ce) ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (A ++ ce) ∗
+        ⌜ap.snapshot' = null⌝ ∗
+        (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' (rnApR γ A ce) ∗ notifyRcv γnc) ∗
+        rnApGive γ A ce ∗
+        rnAdvChan ap.raftAdvancedC'
+          (letI := srvStor (GF := GF) γ.node
+           iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗
+            srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1) ∗
+            srvFrozenTerms γ.γs (γ.pre.length + 1) (A ++ ce) ∗
+            rnWalHanded γ (γ.pre ++ A ++ ce).length)) ∗
+        committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
+      -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
+      (∃ (A' : List EntryModel) (sv : SnapshotM),
+        rnApplyTok γ A' ∗
+        ⌜A.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
+          uint.Z sv.Metadata'.Index' < 2 ^ 61 ∧
+          (γ.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' ∧
+          -- (R2d'a task 4) above the restart point (`rnApSnap`'s, A8's bound)
+          (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length)⌝ ∗
+        ap.entries' ↦*□ ([] : List Loc) ∗ ownSnapM ap.snapshot' DFrac.discard sv ∗
+        (letI := srvStor (GF := GF) γ.node
+         snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
+        nodeSnapLocal γ.node.cl γ.id sv.Metadata'.Index' ∗
+        □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc' iprop(True) iprop(True) ∗ notifyRcvN γnc 0) ∗
+        rnAdvChan ap.raftAdvancedC'
+          (letI := srvStor (GF := GF) γ.node
+           iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
+            srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length ∗
+            rnWalHanded γ (γ.pre ++ A').length)) ∗
+        committedAtLeast E.γr sv.Metadata'.Index' ∗
+        -- (2026-11-01, J8a) its term good for the jumped log (`applyAll`'s merge after the jump)
+        rnRtOk γ ap.raftTerm' (rnLogOf γ A').length) := by
+  iintro Hcons #HA HP
+  iunfold rnApP at HP
+  icases HP with (HP | HP)
+  rotate_left
+  · -- a snapshot payload: `cum`'s agreement at `rcv.length` (`A` is `F`), the token at `A'`
+    iright
+    iunfold rnApSnap at HP
+    icases HP with ⟨%F, %A', %sv, #HF, #HFA, %Hlen, #Hes, #Hsn, #Hcert, #Hloc, #HC, Hn, #Hrac, #Hcl, #Hrt⟩
+    simp only [Int.toNat_natCast] at *
+    ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
+    subst Heq
+    iexists A', sv
+    iframe Hes Hsn Hcert Hloc HC Hn Hrac Hcl Hrt
+    isplitl [Hcons]
+    · iunfold rnApplyTok
+      iexists rcv ++ [ap]
+      iframe Hcons
+      simp only [List.length_append, List.length_singleton]
+      iexact HFA
+    ipureintro; exact Hlen
+  ileft
+  iunfold rnApN at HP
+  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt⟩
+  simp only [Int.toNat_natCast] at *
+  ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
+  subst Heq
+  iexists ce, ceL
+  iframe Hsl Hents HC Hn HG Hrac Hcl Hrt
+  isplitl [Hcons]
+  · iunfold rnApplyTok
+    iexists rcv ++ [ap]
+    iframe Hcons
+    simp only [List.length_append, List.length_singleton]
+    iexact HFce
+  ipureintro; exact Hsnap
 
 /-- (D43 M3; R2d'a A6, 2026-11-06: over any log, at `pre = []`) A normal entry keeps a view. -/
 theorem srvCfgView_nil_normal1 (γs : ServerRaftNames) (n : Loc) (X : List EntryModel)
