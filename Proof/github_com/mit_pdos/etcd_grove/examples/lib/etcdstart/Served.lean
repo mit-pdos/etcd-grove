@@ -155,6 +155,99 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
 
 end served
 
+section memberUp
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- **A started member, for serving** (N6, 2026-11-06; what `Serve`, `v3rpc.Server` and the
+examples' ghost steps take of `memberUp`): at its apply environment `E` (agreeing with `E₀`, auth
+off), configuration `cfg` (with the logger `lg`, no tracer options, no progress-notify interval) and
+wait-registry name `γw`, the request and read views, the serving facts, the `GoAttach` resources, an
+`lgMu` and a `bemu` reader slot, the watchable store's readers, the reader stocks the gRPC runs take
+(`kvServeStocks`), the partitioner's part (`srvPeerCtl`) and the lease
+subsystem's reader side (`srvLeaseRd`). The rest of `memberUp` (the right to stop it, ...) is
+dropped. The examples reach `memberUp` through this law and `memberUp_stop`, never its body, so that
+a new conjunct of `memberUp` changes only these laws' proofs. -/
+theorem memberUp_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
+    (γn : NetNames GF) (id : w64) (m : lease.Mode) :
+    memberUp (GF := GF) s ρ E₀ lg γn id m ⊢
+      ∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
+        ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+          cfg.WatchProgressNotifyInterval' = 0⌝ ∗
+        isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvServeFacts s E cfg ∗
+        srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
+        kvServeStocks s E ρ.rd ∗
+        srvPeerCtl γn s id ∗ srvLeaseRd s E m := by
+  iintro Hup
+  iunfold memberUp at Hup
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, #Hsf, Hbemu, Hlts, Hlgs,
+    Hrds, Hsts, Hbms, Hctl, HWR, #HLR, -⟩
+  iexists E, cfg, γw
+  isplitr; · ipureintro; exact HEc
+  iframe Hreq Hrd Hsf Hgo Hlg3 Hbemu HWR Hctl HLR
+  unfold kvServeStocks
+  iframe
+
+/-- **A member started with auth on, from its parts** (N6, 2026-11-06; `memberUpOn`'s introduction,
+for a starter outside the package, authkv's `startServer`): its conjuncts, the views in its mode (`E.authOn`, `true`), the reader stocks the
+gRPC runs take (`kvServeStocks`). -/
+theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
+    (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv GF)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) :
+    ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+        cfg.WatchProgressNotifyInterval' = 0⌝ ∗
+      isServerReqM E.authOn s E { ρ with wait := γw } ∗ isServerReadM E.authOn s E ρ.rd ∗
+      srvAuthLb s E ∗ srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
+      srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
+      kvServeStocks s E ρ.rd ∗
+      srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ⊢
+    memberUpOn (GF := GF) s ρ E₀ lg γn id γa := by
+  unfold kvServeStocks
+  iintro ⟨%HEc, H⟩
+  have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
+  irevert H
+  rw [hon]
+  iintro ⟨#Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, HWR,
+    ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hctl, #Htls, #HBF⟩
+  iunfold memberUpOn
+  iexists E, cfg, γw
+  isplitr; · ipureintro; exact HEc
+  iframe Hreq Hrd Hlb Hwb Hsf Htls HBF
+  iframe
+
+/-- **A member started with auth on, for serving** (N6, 2026-11-06; `memberUp_served`'s): what
+`Serve` and authkv's ghost steps take of `memberUpOn`, the views in its mode (`E.authOn`, which is `true`: what `Serve` takes), the store's range
+check (`srvAuthLb`), the TLS fallback off and the auth store's `Authenticate` side besides. The rest
+(`srvWatchBuilt`) is dropped. -/
+theorem memberUpOn_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
+    (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) :
+    memberUpOn (GF := GF) s ρ E₀ lg γn id γa ⊢
+      ∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
+        ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+          cfg.WatchProgressNotifyInterval' = 0⌝ ∗
+        isServerReqM E.authOn s E { ρ with wait := γw } ∗ isServerReadM E.authOn s E ρ.rd ∗
+        srvAuthLb s E ∗ srvServeFacts s E cfg ∗
+        srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
+        kvServeStocks s E ρ.rd ∗
+        srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD := by
+  iintro Hup
+  iunfold memberUpOn at Hup
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, -, #Hsf, Hbemu, Hlts,
+    Hlgs, Hrds, Hsts, Hbms, Hctl, HWR, #Htls, #HBF⟩
+  have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
+  iexists E, cfg, γw
+  isplitr; · ipureintro; exact HEc
+  rw [hon]
+  iframe Hreq Hrd Hlb Hsf Hgo Hlg3 Hbemu HWR Hctl Htls HBF
+  unfold kvServeStocks
+  iframe
+
+end memberUp
+
 end etcdstart
 end EtcdGrove
 end Perennial

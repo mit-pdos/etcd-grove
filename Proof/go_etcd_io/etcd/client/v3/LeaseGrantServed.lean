@@ -141,7 +141,7 @@ theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
     $$ [HS Hid]
   · iframe; iframe #; try (ipureintro; exact HRm)
   inext
-  iintro %resp %err ⟨HS, Hout, Hg⟩
+  iintro %resp %err ⟨HS, Hout, Hg, #HSe⟩
   iunfold v3rpc.leaseGrantOut at Hout
   icases Hout with (⟨%Hok, Hh, #Hf⟩ | %Herr)
   · icases Hg with (%Hne | ⟨%id', #Hid', Hgr⟩)
@@ -160,7 +160,7 @@ theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
     subst Hii
     imodintro
     iapply HΨ
-    iframe HS
+    iframe HS HSe
     iintro -
     iexists (LeaseGrantRespM.mk (HdrM.mk cid mid rv t ld) id ttl e)
     isplitl []
@@ -178,7 +178,7 @@ theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
       · iexact Hgr
   · imodintro
     iapply HΨ
-    iframe HS
+    iframe HS HSe
     iintro %Hnil
     exact absurd Hnil Herr.2
 
@@ -237,7 +237,7 @@ theorem etcd_leaseLeasesHandlerOkL (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   iapply (v3rpc.LeaseServer.wp_LeaseLeases lp s A cid mid E γl S ci cd r n m) $$ [HS Hrev]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, Hrev, Hout⟩
+  iintro %resp %err ⟨HS, Hrev, Hout, #HSe⟩
   iunfold v3rpc.leaseLeasesOut at Hout
   icases Hout with (⟨%Hok, %w, Hw, Hres⟩ | %Herr)
   · ihave %Hnn := typedPointsto_not_null $$ Hw
@@ -269,7 +269,7 @@ theorem etcd_leaseLeasesHandlerOkL (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
     imod Hps' with #Hps'
     imodintro
     iapply HΨ
-    iframe HS Hrev
+    iframe HS Hrev HSe
     iintro -
     iexists (LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) ids)
     isplitl []
@@ -284,7 +284,7 @@ theorem etcd_leaseLeasesHandlerOkL (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
       ipureintro; exact ⟨Hnd, HGl⟩
   · imodintro
     iapply HΨ
-    iframe HS Hrev
+    iframe HS Hrev HSe
     iintro %Hnil
     exact absurd Hnil Herr.2.1
 
@@ -435,7 +435,7 @@ theorem etcd_leaseTTLHandlerOkLive (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
     $$ [HS Hrev]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, Hrev, -, Hout⟩
+  iintro %resp %err ⟨HS, Hrev, -, Hout, #HSe⟩
   iunfold v3rpc.leaseTTLOut at Hout
   icases Hout with (⟨%Hok, %w, Hw, %Hid, Hh, Harm⟩ | %Herr)
   · ihave #Hf : □ (leaseTTLRow s γl -∗
@@ -464,7 +464,7 @@ theorem etcd_leaseTTLHandlerOkLive (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
     ipersist Keys_f
     imodintro
     iapply HΨ
-    iframe HS Hrev
+    iframe HS Hrev HSe
     iintro -
     iexists (LeaseTTLRespM.mk (HdrM.mk cid mid rv t ld) w.ID' w.TTL' w.GrantedTTL')
     isplitl []
@@ -484,7 +484,7 @@ theorem etcd_leaseTTLHandlerOkLive (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
       iexact Hf
   · imodintro
     iapply HΨ
-    iframe HS Hrev
+    iframe HS Hrev HSe
     iintro %Hnil
     exact absurd Hnil Herr.2
 
@@ -509,7 +509,7 @@ theorem etcd_leaseLeasesHandlerOkLive (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid
   iapply (v3rpc.LeaseServer.wp_LeaseLeases lp s A cid mid E γl S ci cd r n m) $$ [HS Hrev]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, Hrev, Hout⟩
+  iintro %resp %err ⟨HS, Hrev, Hout, #HSe⟩
   iunfold v3rpc.leaseLeasesOut at Hout
   icases Hout with (⟨%Hok, %w, Hw, Hres⟩ | %Herr)
   · ihave %Hnn := typedPointsto_not_null $$ Hw
@@ -538,7 +538,7 @@ theorem etcd_leaseLeasesHandlerOkLive (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid
     imod Hps' with #Hps'
     imodintro
     iapply HΨ
-    iframe HS Hrev
+    iframe HS Hrev HSe
     iintro -
     iexists (LeaseLeasesRespM.mk (HdrM.mk cid mid rv t ld) ids)
     isplitl []
@@ -555,7 +555,7 @@ theorem etcd_leaseLeasesHandlerOkLive (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid
       ipureintro; exact Hmi
   · imodintro
     iapply HΨ
-    iframe HS Hrev
+    iframe HS Hrev HSe
     iintro %Hnil
     exact absurd Hnil Herr.2.1
 

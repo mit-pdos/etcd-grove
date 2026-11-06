@@ -38,22 +38,18 @@ theorem v3rpc.quotaLeaseServer.LeaseGrant.wp_proof
   icases Hq with ⟨%Hqn, #Hkv, #Hqa⟩
   wp_auto
   wp_apply wp_check _ s ci r (go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty) (Or.inr (Or.inr rfl))
-    $$ [Hqr] as %err Hqr
+    $$ [Hqr] as %err ⟨%Herr, Hqr⟩
   · iframe; iframe #
   cases err with
-  | ok ei =>
-    wp_auto
-    iapply HΦ
-    iframe
-    iintro %Hc
-    cases Hc
+  | ok ei => cases Herr
   | nil =>
     wp_auto
     iunfold grpcHandlerOwnOk at Hh
-    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS Hown HSpec] as %resp %err' ⟨HS, Hres⟩
+    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS Hown HSpec] as %resp %err' ⟨HS, Hres, #Hse⟩
     · iframe; iframe #
     iapply HΦ
     iframe
+    iframe Hse
 
 end proof
 

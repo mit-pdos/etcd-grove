@@ -36,10 +36,11 @@ abbrev v3rpc.kvServer.Put.spec : Prop :=
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.kvServer.ty @!! go!"Put")) (Val #ctx))
       (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      match v3rpc.putCheck o with
+      (match v3rpc.putCheck o with
       | some e => v3rpc.checkOut e resp err ∗ A.call ctx
       | none => v3rpc.kvOut A cid mid (.put o)
-          (structFieldRef etcdserverpb.PutResponse go!"Header" resp) resp err }}
+          (structFieldRef etcdserverpb.PutResponse go!"Header" resp) resp err) ∗
+      go_etcd_io.etcd.cache.v3.statusErrOk err }}
 
 end spec
 

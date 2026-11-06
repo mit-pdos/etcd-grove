@@ -263,7 +263,7 @@ theorem wp_Is_notNoSpace (hIs : errors.Is.spec (GF := GF) (hG := hG)) (err : GoI
       (_root_.Perennial.errors.treeTyped_pointer e _ hl.1) $$ []
     · iframe Hp
       isplitl
-      · iapply _root_.Perennial.errors.errorIsTree_leaf e (fun _ => False) _ hl.2.1 hl.2.2
+      · iapply _root_.Perennial.errors.errorIsTree_leaf e (fun _ => False) _ hl.2.1 hl.2.2.1
       ipureintro; rfl
     iintro !> %b ⟨-, -, %h3⟩
     cases b

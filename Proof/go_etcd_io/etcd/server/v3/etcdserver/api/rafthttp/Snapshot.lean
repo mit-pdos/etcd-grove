@@ -149,7 +149,7 @@ theorem snapPostErr_errorString (x xR : Loc) (m mR : GoString) (hm : m ≠ mR) :
   iright; iright
   iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
   isplitr
-  · ipureintro; exact ⟨rfl, errorString_leaf x⟩
+  · ipureintro; exact ⟨rfl, errorString_errLeaf x⟩
   imodintro
   iintro %eR #HeR
   icombine Hg HeR gives %Heq

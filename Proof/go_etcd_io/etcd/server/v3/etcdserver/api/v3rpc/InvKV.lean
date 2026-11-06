@@ -250,6 +250,54 @@ def srvErrIs (err : GoInterface) : IProp GF :=
 instance srvErrIs_persistent (err : GoInterface) : Persistent (srvErrIs (GF := GF) err) := by
   unfold srvErrIs; infer_instance
 
+/-- **`err.Error()` returns a message with `P`** (persistent; k8s etcd3 7c-2): what a caller of
+`togRPCError` knows of the message its default case makes a description of
+(`status.Error(codes.Unknown, err.Error())`). `srvErrIs` gives it at `P := fun _ => True`
+(`errMsgP_of_srvErrIs`). -/
+def errMsgP (err : GoInterface) (P : GoString → Prop) : IProp GF :=
+  iprop(∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗
+    {{ True }} (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #()))
+    {{ (msg : GoString), RET #msg; ⌜P msg⌝ }})
+
+instance errMsgP_persistent (err : GoInterface) (P : GoString → Prop) :
+    Persistent (errMsgP (GF := GF) err P) := by
+  unfold errMsgP; infer_instance
+
+open Iris.ProofMode in
+theorem errMsgP_of_srvErrIs (err : GoInterface) :
+    srvErrIs (GF := GF) err ⊢ errMsgP err (fun _ => True) := by
+  iintro #Hs
+  iunfold srvErrIs at Hs
+  icases Hs with ⟨-, -, -, %ei, %Hei, #HM⟩
+  iunfold errMsgP
+  iexists ei
+  isplitr
+  · ipureintro; exact Hei
+  iintro %Φ !> - HΦ
+  iapply HM $$ []
+  · itrivial
+  inext
+  iintro %msg -
+  iapply HΦ
+  ipureintro; trivial
+
+/-- **What `togRPCError` made of `err`** (persistent; k8s etcd3 7c-2): at the error map `M`
+(`grpcErrMap`'s pieces, with mvcc's two read errors `kf` and `kc`), `err` itself (a context error,
+which grpc's server converts), the map's value at `err`, or, for an error the map does not have,
+an error whose description has `P` (`status.Error(codes.Unknown, err.Error())`, of description
+`err.Error()`: `errMsgP err P`). -/
+def grpcErrOut (P : GoString → Prop) (err e : GoInterface) : IProp GF :=
+  iprop(∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface),
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap ↦□ mp ∗ mp ↦$□ M ∗
+    globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗
+    globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗
+    ⌜go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk M kf kc ∧
+      (e = err ∨ M !! err = some e ∨ (M !! err = none ∧ P (go_etcd_io.etcd.cache.v3.errDesc e)))⌝)
+
+instance grpcErrOut_persistent (P : GoString → Prop) (err e : GoInterface) :
+    Persistent (grpcErrOut (GF := GF) P err e) := by
+  unfold grpcErrOut; infer_instance
+
 /-- **A check's result** `err` for the outcome `c` of its pure check: `nil`, or the error the
 `rpctypes` variable of `c` holds. -/
 def checkRes : Option CheckErr → GoInterface → IProp GF
@@ -359,6 +407,40 @@ def checkOut (e : CheckErr) (resp : Loc) (err : GoInterface) : IProp GF :=
 instance checkOut_persistent (e : CheckErr) (resp : Loc) (err : GoInterface) :
     Persistent (checkOut (GF := GF) e resp err) := by
   unfold checkOut; infer_instance
+
+open Iris.ProofMode in
+/-- The error a variable `errVarSet` holds is one grpc's `status.FromError` accepts. -/
+theorem errVarIs_statusErrOk (g : GoString) (err : GoInterface) :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet (GF := GF) g ⊢
+      txn.errVarIs g err -∗ go_etcd_io.etcd.cache.v3.statusErrOk err := by
+  iintro #Hs #Hv
+  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at Hs
+  icases Hs with ⟨%e', #He', #Hse⟩
+  iunfold txn.errVarIs at Hv
+  icases Hv with ⟨%e, #He, %Heq⟩
+  icombine He He' gives %Hq
+  subst Heq
+  cases Hq
+  iexact Hse
+
+open Iris.ProofMode in
+/-- **A check's error is one grpc's `status.FromError` accepts** (k8s etcd3 7c, HS-6): the
+`rpctypes` variable of `e` holds a `*status.Error` (`checkErrVars`, the package's facts). -/
+theorem checkErr_statusErrOk (e : CheckErr) (err : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ⊢
+      txn.errVarIs e.var err -∗ go_etcd_io.etcd.cache.v3.statusErrOk err := by
+  iintro #Hpkg #Hv
+  ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hinit with ⟨-, ⟨#H1, #H2, #H3, #H4, #H5, #H6, #H7⟩, -⟩
+  cases e <;> simp only [CheckErr.var]
+  · iapply errVarIs_statusErrOk _ err $$ H1 Hv
+  · iapply errVarIs_statusErrOk _ err $$ H2 Hv
+  · iapply errVarIs_statusErrOk _ err $$ H3 Hv
+  · iapply errVarIs_statusErrOk _ err $$ H4 Hv
+  · iapply errVarIs_statusErrOk _ err $$ H5 Hv
+  · iapply errVarIs_statusErrOk _ err $$ H7 Hv
+  · iapply errVarIs_statusErrOk _ err $$ H6 Hv
 
 /-- **The server's `Range`** on a checked request (one conjunct of `raftKV`). -/
 def kvRangeOk (s : Loc) (A : KVAns GF) : IProp GF :=

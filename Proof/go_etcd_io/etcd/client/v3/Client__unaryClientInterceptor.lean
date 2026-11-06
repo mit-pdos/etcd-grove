@@ -352,7 +352,7 @@ theorem Client.unaryClientInterceptor.wp_proof
           -- `wait.ContextForChannel`), as an `isContext`'s
           (try wp_auto)
           iunfold ctxErrs at HE
-          wp_apply HE $$ %Broadcast.Pending as %ce Hce' - - -
+          wp_apply HE $$ %Broadcast.Pending as %ce Hce' - - - -
           cases ce with
           | ok cei =>
             (try wp_auto)

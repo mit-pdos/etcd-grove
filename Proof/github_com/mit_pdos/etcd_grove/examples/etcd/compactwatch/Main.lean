@@ -185,9 +185,8 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
+    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
   -- facts at the address; watches across a compaction, W4: the store's fact for watches, no

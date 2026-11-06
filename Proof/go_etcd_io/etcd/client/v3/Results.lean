@@ -1146,7 +1146,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iframe H0
     ipureintro; exact Hdp
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, #HSe⟩
   cases hc : v3rpc.putCheck o with
   | some e =>
     icases Hpost with ⟨#Hco, Hc, Hc0, -⟩
@@ -1159,7 +1159,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     imodintro
     ihave Hed := handlerErr_none (GF := GF) Ψe err
     iapply HΨ
-    iframe Hed
+    iframe Hed HSe
     isplitl [Hlt Hc0]
     · iapply etcdRunSlot_back s E γr (W64 0)
       iframe
@@ -1215,7 +1215,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       imodintro
       ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
       iapply HΨ
-      iframe Hed
+      iframe Hed HSe
       isplitl [Hlt Hc0]
       · iapply etcdRunSlot_back s E γr (W64 0)
         iframe
@@ -1244,7 +1244,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       imodintro
       ihave Hed := handlerErr_none (GF := GF) Ψe err
       iapply HΨ
-      iframe Hed
+      iframe Hed HSe
       isplitl [Hlt Hc0]
       · iapply etcdRunSlot_back s E γr (W64 0)
         iframe
@@ -1310,7 +1310,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     iframe Hc0
     ipureintro; exact ⟨Hdp, fun _ => trivial⟩
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, #HSe⟩
   cases hc : v3rpc.rangeCheck o with
   | some e =>
     icases Hpost with ⟨#Hco, Hc, Hcr, -⟩
@@ -1323,7 +1323,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     imodintro
     ihave Hed := handlerErr_none (GF := GF) Ψe err
     iapply HΨ
-    iframe Hed
+    iframe Hed HSe
     isplitl [Hlt Hcr]
     · iapply etcdRunSlot_back s E γr c
       iframe
@@ -1357,7 +1357,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
       imodintro
       ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
       iapply HΨ
-      iframe Hed
+      iframe Hed HSe
       isplitl [Hlt Hcr]
       · iapply etcdRunSlot_back s E γr c
         iframe
@@ -1382,7 +1382,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     · imodintro
       ihave Hed := handlerErr_none (GF := GF) Ψe err
       iapply HΨ
-      iframe Hed
+      iframe Hed HSe
       isplitl [Hlt Hcr]
       · iapply etcdRunSlot_back s E γr c
         iframe
@@ -1440,7 +1440,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     iframe H0
     ipureintro; exact ⟨⟨⟨Q, rfl⟩, Hz⟩, Hsh⟩
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, #HSe⟩
   cases hc : v3rpc.deleteCheck o with
   | some e =>
     icases Hpost with ⟨#Hco, Hc, Hc0, -⟩
@@ -1453,7 +1453,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     imodintro
     ihave Hed := handlerErr_none (GF := GF) Ψe err
     iapply HΨ
-    iframe Hed
+    iframe Hed HSe
     isplitl [Hlt Hc0]
     · iapply etcdRunSlot_back s E γr (W64 0)
       iframe
@@ -1484,7 +1484,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       imodintro
       ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
       iapply HΨ
-      iframe Hed
+      iframe Hed HSe
       isplitl [Hlt Hc0]
       · iapply etcdRunSlot_back s E γr (W64 0)
         iframe
@@ -1515,7 +1515,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       imodintro
       ihave Hed := handlerErr_none (GF := GF) Ψe err
       iapply HΨ
-      iframe Hed
+      iframe Hed HSe
       isplitl [Hlt Hc0]
       · iapply etcdRunSlot_back s E γr (W64 0)
         iframe
@@ -1658,7 +1658,7 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
     simp only [Pin]
     iframe
   inext
-  iintro %resp %err ⟨Hrd, Hout⟩
+  iintro %resp %err ⟨Hrd, Hout, #HSe⟩
   iunfold v3rpc.compactOut at Hout
   icases Hout with (⟨%Herr, %h, %rv, %rv', #Hh, Hf, Hro, Hlt, Hlg, Hsr⟩ |
     ⟨%Herr, (⟨Hlt, Hlg, Hsr⟩ | ⟨Hlt, Hlg, Hsr, -, -⟩)⟩)
@@ -1678,6 +1678,7 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
     imod Hrevm with #Hrev
     imodintro
     iapply HΨ
+    iframe HSe
     isplitl [Hlt Hlg Hsr Hrd Hrr]
     · unfold etcdRunSlot; iframe
     iintro -
@@ -1698,6 +1699,7 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   all_goals
     imodintro
     iapply HΨ
+    iframe HSe
     isplitl [Hlt Hlg Hsr Hrd Hrr]
     · unfold etcdRunSlot; iframe
     iintro %Hnil
@@ -1795,7 +1797,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     cases ht'
     exact hsh hon hro tw htw
   inext
-  iintro %resp %err Hpost
+  iintro %resp %err ⟨Hpost, #HSe⟩
   cases hc : v3rpc.txnAllCheck (sint.Z n) t.cmps ts es with
   | some e =>
     simp only [hc]
@@ -1809,7 +1811,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     imodintro
     ihave Hed := handlerErr_none (GF := GF) Ψe err
     iapply HΨ
-    iframe Hed
+    iframe Hed HSe
     isplitl [Hlt Hcr]
     · iapply etcdRunSlot_back s E γr c
       iframe
@@ -1844,7 +1846,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         imodintro
         ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
         iapply HΨ
-        iframe Hed
+        iframe Hed HSe
         isplitl [Hlt Hcr]
         · iapply etcdRunSlot_back s E γr c
           iframe
@@ -1936,7 +1938,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         imodintro
         ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
         iapply HΨ
-        iframe Hed
+        iframe Hed HSe
         isplitl [Hlt Hcr]
         · iapply etcdRunSlot_back s E γr c
           iframe
@@ -1965,7 +1967,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       imodintro
       ihave Hed := handlerErr_none (GF := GF) Ψe err
       iapply HΨ
-      iframe Hed
+      iframe Hed HSe
       isplitl [Hlt Hcr]
       · iapply etcdRunSlot_back s E γr c
         iframe
@@ -2018,9 +2020,9 @@ theorem etcd_compactMethodOk (q : Loc) (E : apply.AEnv GF)
     iintro !> %_
     itrivial
   inext
-  iintro %resp %err ⟨HS, HRs, Hres, -⟩
+  iintro %resp %err ⟨HS, HRs, Hres, -, #HSe⟩
   iapply HΨ
-  iframe
+  iframe; iframe HSe
 
 theorem txnReq_learnerOk (l : Loc) :
     ⊢ v3rpc.learnerReqOk (GF := GF)
@@ -3470,7 +3472,7 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
       ci cd r m) $$ [HS Hid]
   · iframe; iframe #; try (ipureintro; trivial)
   inext
-  iintro %resp %err ⟨HS, Hout, -⟩
+  iintro %resp %err ⟨HS, Hout, -, #HSe⟩
   iunfold v3rpc.leaseGrantOut at Hout
   icases Hout with (⟨%Hok, Hh, #Hf⟩ | %Herr)
   · iunfold v3rpc.leaseHdrOut at Hh
@@ -3485,7 +3487,7 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
     icases Hf with ⟨%id, %ttl, %e, #Hid, %Hid0, #Httl, #He⟩
     imodintro
     iapply HΨ
-    iframe HS
+    iframe HS HSe
     iintro -
     iexists (LeaseGrantRespM.mk (HdrM.mk cid mid rv t ld) id ttl e)
     isplitl []
@@ -3502,7 +3504,7 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
       · iexact Hreach
   · imodintro
     iapply HΨ
-    iframe HS
+    iframe HS HSe
     iintro %Hnil
     exact absurd Hnil Herr.2
 
@@ -3523,7 +3525,7 @@ theorem etcd_leaseRevokeHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid E S ci cd r m) $$ [HS]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, Hout⟩
+  iintro %resp %err ⟨HS, Hout, #HSe⟩
   iunfold v3rpc.leaseRevokeOut at Hout
   icases Hout with (⟨%Hok, Hh⟩ | %Herr)
   · iunfold v3rpc.leaseHdrOut at Hh
@@ -3536,7 +3538,7 @@ theorem etcd_leaseRevokeHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
     ipersist Hl
     imodintro
     iapply HΨ
-    iframe HS
+    iframe HS HSe
     iintro -
     iexists (LeaseRevokeRespM.mk (HdrM.mk cid mid rv t ld))
     isplitl []
@@ -3552,7 +3554,7 @@ theorem etcd_leaseRevokeHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
       iexact Hreach
   · imodintro
     iapply HΨ
-    iframe HS
+    iframe HS HSe
     iintro %Hnil
     exact absurd Hnil Herr.2
 
@@ -3605,9 +3607,9 @@ theorem etcd_leaseGrantMethodOk (q : Loc)
     iintro !> %_
     itrivial
   inext
-  iintro %resp %err ⟨HS, HRs, Hres, -⟩
+  iintro %resp %err ⟨HS, HRs, Hres, -, #HSe⟩
   iapply HΨ
-  iframe
+  iframe; iframe HSe
 
 /-- **etcd's `LeaseRevoke`, as grpc runs it** (as `etcd_leaseGrantMethodOk`). -/
 theorem etcd_leaseRevokeMethodOk (q : Loc)

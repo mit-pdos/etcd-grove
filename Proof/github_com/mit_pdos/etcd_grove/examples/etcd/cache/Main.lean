@@ -72,6 +72,7 @@ public import Proof.go_etcd_io.etcd.client.v3.KMClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Boot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Served
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 
 @[expose] public section
 
@@ -284,9 +285,8 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Herr
   wp_auto
-  iunfold etcdstart.memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, -⟩
+  icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, #Hsf,
+    Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
   -- facts at the address), the member refusal-free (D29) first

@@ -176,8 +176,8 @@ theorem read.Read.LinearizableReadNotify.wp_proof
         · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
           icombine Hcv HeD gives %Hce
           cases Hce
-          obtain ⟨hl, hIs, hty, hkey⟩ := HDl
-          ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey $$ HDm
+          obtain ⟨hl, hIs, hty, hkey, hG⟩ := HDl
+          ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey hG $$ HDm
           iapply HΦ; iunfold readReader; iframe Hrr Ha; iintro %h; cases h
     iapply BigAndL.bigAndL_cons.2
     isplit

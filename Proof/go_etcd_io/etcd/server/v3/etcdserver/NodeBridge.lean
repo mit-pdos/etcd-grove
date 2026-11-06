@@ -128,8 +128,8 @@ theorem applyErrIs_of_ctxErr (cd : context.ContextDesc (IProp GF)) (err : GoInte
     · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
       icombine Hcv HeD gives %Hce
       cases Hce
-      obtain ⟨hl, hIs, hty, hkey⟩ := HDl
-      iapply applyErrIs_valLeaf _ hl hIs hty hkey $$ HDm
+      obtain ⟨hl, hIs, hty, hkey, hG⟩ := HDl
+      iapply applyErrIs_valLeaf _ hl hIs hty hkey hG $$ HDm
 
 /-- **The error of a `node` call that hands a message to `run`** (`nodeErr`: `nil`, `ErrStopped`,
 or the context's), as the gRPC layer takes it (`applyErrIs`). -/

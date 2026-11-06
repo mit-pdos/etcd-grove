@@ -42,7 +42,8 @@ abbrev v3rpc.LeaseServer.LeaseRevoke.spec : Prop :=
       context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseRevokeReqIs r m }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseRevoke"))
       (Val #(GoInterface.ok ci))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseRevokeOut E cid mid resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseRevokeOut E cid mid resp err ∗
+      go_etcd_io.etcd.cache.v3.statusErrOk err }}
 
 end spec
 
