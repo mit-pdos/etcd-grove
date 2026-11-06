@@ -233,10 +233,11 @@ theorem txnReadWrite.End.wp_api (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF)
     inext
     iintro Hrd
     iunfold tokBack at Hback
-    imod Hback $$ Hrd with Htok
+    imod Hback $$ Hrd with ⟨Htok, Hrt⟩
     imodintro
     iapply HΦ
-    iframe Htok
+    iunfold mvccReaders
+    iframe Htok Hrt
   | write σ₀ pend =>
     simp only [mvccTxnI]
     icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, -, -, -, -, Hwrap⟩

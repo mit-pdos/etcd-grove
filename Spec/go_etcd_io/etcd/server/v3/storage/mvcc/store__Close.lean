@@ -7,10 +7,6 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
--- MERGE-TODO(shutdown): the `lean` merge (2026-11-06) kept mvcc-api's `store.Close` (post `True`), not
--- `lean`'s R-D1 post (the loops' readers, `compactJobResM`): the readers' names change at `Restore`;
--- settled with the API's `Close` (the plan's risk 1). `ReaderRetire.lean` is not built meanwhile.
-
 noncomputable section
 
 namespace Perennial
@@ -36,13 +32,18 @@ item 23) The right to close by the mode at the store's compaction revision `c` (
 off, `storeCloser`; on, the restorable compaction right `compactRightR`, whose queue is at `c`, not
 `-1`: `storeCloser`'s queue is at `-1`, which a store that compacted cannot give,
 `compactQueue_mono` only going up). Unreachable today (the server's `run` never returns, so
-`Cleanup` never closes the KV): what a modelled shutdown takes. -/
+`Cleanup` never closes the KV): what a modelled shutdown takes. (R-D1, 2026-11-04, ported to the
+API's reader tokens 2026-11-06) It gives back the last job's budget (`compactJobResM`: the job's
+backend reader, once the scheduler has stopped) and the closer's part of the store's current objects
+and physical names (`curAt`, what the API's shutdown law pins the readers' pool with), with a later
+credit of its steps (the law opens the pool's invariant). -/
 abbrev mvcc.store.Close.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeCloserM s γ c }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Close")) (Val #()))
-  {{ RET #(GoInterface.nil); True }}
+  {{ RET #(GoInterface.nil); mvcc.compactJobResM γ.kb ∗ £ 1 ∗
+      ∃ (dq : DFrac) (o : mvcc.StoreObjs), mvcc.curAt γ dq o }}
 
 end spec
 

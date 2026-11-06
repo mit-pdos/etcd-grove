@@ -64,7 +64,7 @@ theorem etcdStorage_rest (bk : KBReal) :
       iprop([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen bk.γB backend.rdOpen) :=
   by rfl
 
-theorem mvccReaderN_eq : mvccReaderN = backend.rdStockN - 6 := by rfl
+theorem mvccReaderN_eq : mvccReaderN = backend.rdStockN - 7 := by rfl
 
 /-! ### etcd's backend's own vocabulary -/
 
@@ -99,8 +99,8 @@ alarm, auth, membership), the reader pool (`rdPool`), the auth store's share of 
 the stop channels at some client resources, `isStopChansE`, since `lean`'s `isStopChans` names the
 batch lock's `W Pk`; MERGE-TODO(shutdown): a client that needs `Close`'s `bStopView` at the store's
 own `W := mvccW gx` needs them at it: settled with the API's `Close`, the plan's risk 1.) (The store's reader slots' open
-shares come back at the `Restore` that replaces the backend; not at `Close`, shutdown being out of
-scope.) Sealed; its parts by `backendRest_open.law` (the tester's migration, 2026-11-06, G1: until
+shares come back at the `Restore` that replaces the backend, and, after the store's `Close`, from
+`mvccClosed_rest.law` with every reader token: the reader tokens, 2026-11-06.) Sealed; its parts by `backendRest_open.law` (the tester's migration, 2026-11-06, G1: until
 then opaque at `True`, which left the client no hook to set, no lessor and no `K`). -/
 @[no_expose] def backendRest (γB : backend.BNames) (P : backend.BParams) (K : backend.BNames → IProp GF)
     (b : Loc) (D : backend.Data) : IProp GF :=
@@ -212,7 +212,7 @@ abbrev mvccTxn_leaseDelete.law : Prop :=
                 <{ ⌜σ1 = σ⌝ ∗ mvccState γ (σ1.notify pend) ∗ ⧖ (logCh (σ1.log ++ [pend])), COMM
                     AU <{ ∃∃ (σ2 : MvccState), mvccState γ σ2 }> @ ⊤ \ ↑mvccN, ∅
                       <{ ⌜σ2 = σ.notify pend⌝ ∗ mvccState γ σ2.commitPending, COMM Q }> }> -∗
-            ▷ (threadTok ∗ mvccBackend γ q (etcdStorage bk) Pk ∗ Q -∗ Ψ #()) -∗
+            ▷ (threadTok ∗ mvccReaders γ 1 ∗ mvccBackend γ q (etcdStorage bk) Pk ∗ Q -∗ Ψ #()) -∗
             WP (App (Val #(methods tw.ty go!"End" tw.v)) (Val #())) {{ Ψ }}) -∗ Φ #()) ⊢
   WP (App (App (Val #(methods (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"UnsafeDelete" #t))

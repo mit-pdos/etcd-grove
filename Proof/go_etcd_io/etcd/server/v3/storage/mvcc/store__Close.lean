@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Stop
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreCmp
 
 @[expose] public section
 
@@ -51,11 +52,11 @@ theorem mvcc.store.Close.wp_proof
   (try wp_auto)
   iunfold mvcc.stopCloser at Hcl
   icases Hcl with ⟨%γc, Hcl⟩
-  wp_apply wp_broadcast_chan_close _ γc iprop(True) $$ [$Hcl] as #Hdone
+  wp_apply +noauto wp_broadcast_chan_close _ γc iprop(True) $$ [$Hcl] as #Hdone
   · imodintro; itrivial
   -- (M2, the storage side, item 34) the scheduler's payload: its stop channel closed
   ihave #Hsp := mvcc.stopPay_of_done γ.sx γ.sch ⟨b, ti, ssched, sstop⟩ γc $$ [$Hpay $Hdone]
-  (try wp_auto)
+  wp_auto_lc 2
   ihave #Hfifo' := HisSched
   iunfold schedule.isFifo at Hfifo'
   icases Hfifo' with ⟨%Hnn, -⟩
@@ -63,13 +64,19 @@ theorem mvcc.store.Close.wp_proof
   | nil => exact absurd rfl Hnn
   | ok fi =>
   iunfold mvcc.compactQueue at Hq
-  icases Hq with ⟨%Ps, %p, %Q, %R, Hq, -, -, -⟩
+  icases Hq with ⟨%Ps, %p, %Q, %R, Hq, #HpQ, HR, HQR⟩
   (try wp_auto)
-  wp_apply wp_Stop fi γ.sch (Ps ++ [p]) $$ [Htok Hq] as -
+  -- (R-D1) the last job's payload once the scheduler has stopped: the job's budget back
+  wp_apply +noauto wp_Stop fi γ.sch (Ps ++ [p]) $$ [Htok Hq] as ⟨HlastP, -⟩
   · iframe; iframe #
+  imod mvcc.compactQueue_stopped γ c' Ps p Q R $$ HlastP HpQ HR HQR Hlc1 with Hct
+  iunfold mvcc.compactTok at Hct
+  icases Hct with ⟨-, Hjob, -⟩
   (try wp_auto)
   iapply HΦ
-  itrivial
+  iframe Hjob Hlc2
+  iexists _, _
+  iexact Hcur
 
 end proof
 

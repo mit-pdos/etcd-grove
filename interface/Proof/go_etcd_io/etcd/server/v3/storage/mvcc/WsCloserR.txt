@@ -13,15 +13,15 @@ theorem mvcc.wsCloserR_of_wsCloser (s st : Loc) (γs : mvcc.StoreNames) (h : γs
 
 theorem mvcc.wsCloserR_iff (s st : Loc) (γs : mvcc.StoreNames) (c : Int) : mvcc.wsCloserR s st γs c
     ⊣⊢ ∃ stc, typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore
-    go!"stopc" s) stc DFrac.discard ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter s ∗ mvcc.compactRightR st
-    γs c
+    go!"stopc" s) stc DFrac.discard ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter s st γs ∗
+    mvcc.compactRightR st γs c
 
 theorem mvcc.wsCloserM_off (s st : Loc) (γs : mvcc.StoreNames) (c : Int) (h : ¬mvcc.kbCmpM γs.kb) :
     mvcc.wsCloserM s st γs c ⊣⊢ mvcc.wsCloser s st γs
 
 theorem mvcc.wsCloserM_close (s st : Loc) (γs : mvcc.StoreNames) (c : Int) : mvcc.wsCloserM s st γs
     c ⊢ ∃ stc, typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore
-    go!"stopc" s) stc DFrac.discard ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter s ∗ mvcc.storeCloserM st
-    γs c
+    go!"stopc" s) stc DFrac.discard ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter s st γs ∗
+    mvcc.storeCloserM st γs c
 
 def (sealed) mvcc.wsCloserR (s st : Loc) (γs : mvcc.StoreNames) (c : Int) : IProp GF

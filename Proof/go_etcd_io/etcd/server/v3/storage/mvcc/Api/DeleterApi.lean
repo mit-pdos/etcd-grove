@@ -52,15 +52,15 @@ theorem mvccDeleter_of (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
   iunfold mvccDeleter
   isplitr
   · ipureintro; exact hnn
-  iintro !> %q %B %P %Pre %Q %f %R %Φ !> ⟨Htok, HB, #Hhk, HPre, Hrun, Hau⟩ HΦ
-  ihave Hc' := Hc $$ %(iprop(threadTok ∗ mvccBackend γ q B P ∗ Pre ∗ hookRun P f Pre Q ∗
+  iintro !> %q %B %P %Pre %Q %f %R %Φ !> ⟨Htok, Hrt, HB, #Hhk, HPre, Hrun, Hau⟩ HΦ
+  ihave Hc' := Hc $$ %(iprop(threadTok ∗ mvccReaders γ 1 ∗ mvccBackend γ q B P ∗ Pre ∗ hookRun P f Pre Q ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
         <{ ⌜σ.pending = none⌝ ∗ mvccState γ σ, COMM R σ }>))
       %(fun t => iprop(mvccBackend γ q B P ∗
         (∃ (trace : Loc) (σ : MvccState), mvccTxn t γ trace (.write σ []) ∗ R σ) ∗ Q)) %hTODO
   ihave Hc'' := Hc' $$ []
-  · iintro !> %tr %Ψ' !> ⟨⟨Htok, HB, HPre, Hrun, Hau⟩, %Htr, Htrc⟩ HΨ'
-    wp_apply (hW γ tr true q B P Pre Q f R) $$ [$Hpkg $Hmv $Htok $Htrc $HB $Hhk $HPre $Hrun $Hau]
+  · iintro !> %tr %Ψ' !> ⟨⟨Htok, Hrt, HB, HPre, Hrun, Hau⟩, %Htr, Htrc⟩ HΨ'
+    wp_apply (hW γ tr true q B P Pre Q f R) $$ [$Hpkg $Hmv $Htok $Hrt $Htrc $HB $Hhk $HPre $Hrun $Hau]
       as %t ⟨-, HB, ⟨%σ, Htx, HR⟩, HQ⟩
     · ipureintro; exact Htr
     iapply HΨ'
@@ -68,8 +68,8 @@ theorem mvccDeleter_of (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     iframe HB HQ
     iexists tr, σ
     iframe Htx HR
-  iapply Hc'' $$ [Htok HB HPre Hrun Hau] HΦ
-  iframe Htok HB HPre Hrun Hau
+  iapply Hc'' $$ [Htok Hrt HB HPre Hrun Hau] HΦ
+  iframe Htok Hrt HB HPre Hrun Hau
 
 end proof
 

@@ -232,6 +232,9 @@ theorem mvcc.KBReal.P_withCm (d : mvcc.KBReal) (c : Bool) : { γB := d.γB, BT :
 
 theorem mvcc.muInv_fractional (s : Loc) (γ : mvcc.StoreNames) : Fractional (mvcc.muInv s γ)
 
+def mvcc.ctxErrorf (err : GoInterface) : IProp GF :=
+  go_etcd_io.etcd.cache.v3.ctxWrapErr err
+
 theorem mvcc.storeTxnWriteIs_split {trace : Loc} (tw s : Loc) (γ : mvcc.StoreNames) (ilog :
     mvcc.Log) (pend : List mvcc.Change) (crev : Int) (Z : IProp GF := iprop(True)) (ld : Bool :=
     false) : mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ld ⊢ ∃ chs ps,
@@ -879,7 +882,7 @@ theorem mvcc.mwSwap_frameU (K W MW : IProp GF) : □ (W ={⊤}=∗ K ∗ (K ={�
 theorem mvcc.StoreNames.withPhys_api (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : (γ.withPhys p).api
     = γ.api
 
-theorem mvcc.nReaders_val : mvcc.nReaders = 805306365
+theorem mvcc.nReaders_val : mvcc.nReaders = 536870781
 
 theorem mvcc.rangeOutcomeC_live (r : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (crev :
     Int) (endNil : Bool) (k e : GoString) (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)
@@ -962,7 +965,7 @@ def mvcc.rangeOutcome (r : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64)
               ⌜err = GoInterface.ok ef⌝) ∗
           typedPointsto r { KVs' := slice.nil, Rev' := rev, Count' := W64 (-1) } (DFrac.own 1) ∨
       ⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗
-          ⌜ro.CountOnly' = false ∧ ro.FastKeysOnly' = false⌝ ∗ ⌜r = null⌝ ∗ mvcc.errorfIs err ∨
+          ⌜ro.CountOnly' = false ∧ ro.FastKeysOnly' = false⌝ ∗ ⌜r = null⌝ ∗ mvcc.ctxErrorf err ∨
         ⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗
           ⌜err = GoInterface.nil⌝ ∗
             if ro.CountOnly' = true then
@@ -1021,6 +1024,8 @@ theorem mvcc.slotFl_withPhys (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : mvcc.
 
 def mvcc.storeRb (γ : mvcc.StoreNames) : GMap GoString backend.BktData → IProp GF :=
   mvcc.kbRb γ.kb
+
+theorem mvcc.ctxErrorf_ok (err : GoInterface) : mvcc.ctxErrorf err ⊢ ∃ ii, ⌜err = GoInterface.ok ii⌝
 
 theorem mvcc.metaPutCap_persistent (bt : GoInterfaceOk) (X : IProp GF) (Y : GoString → GoString →
     IProp GF) : Persistent (mvcc.metaPutCap bt X Y)
@@ -2308,6 +2313,8 @@ theorem mvcc.snapThin_trans (m1 m2 m3 : mvcc.Bucket) (Del : GoString → IProp G
 theorem mvcc.storeW_pending (s : Loc) (γ : mvcc.StoreNames) : ⊢ mvcc.storeW s γ ∗ mvcc.kbRegRight
     γ.kb ∗ mvcc.writerRes s γ ==∗ mvcc.writerRes s γ ∗ mvcc.storeRegd s γ
 
+theorem mvcc.ctxErrorf_ne_nil (err : GoInterface) : mvcc.ctxErrorf err ⊢ ⌜err ≠ GoInterface.nil⌝
+
 theorem mvcc.keyReaderD_thin (rt : GoInterfaceOk) (mv m : mvcc.Bucket) (R : IProp GF) (Del :
     GoString → IProp GF) : mvcc.keyReaderD rt m R Del ∗ mvcc.snapThin mv m Del ⊢ mvcc.keyReaderD rt
     mv R Del
@@ -2503,6 +2510,8 @@ def mvcc.kbPutMax (kb : Option mvcc.KBReal) : Nat :=
   match kb with
   | none => 2 ^ 63
   | some val => 2 ^ 56
+
+theorem mvcc.ctxErrorf_persistent (err : GoInterface) : Persistent (mvcc.ctxErrorf err)
 
 theorem mvcc.isTxnWrite_leaseDel (mw s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (ilog : mvcc.Log)
     (pend : List mvcc.Change) (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) :
@@ -2832,11 +2841,10 @@ def mvcc.kvPtrIs (full : Bool) (p : Loc) (kv : EtcdKv) : IProp GF :=
 def mvcc.bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse
     (fun x =>
-      (x.dls, x.fkd, x.rbD, x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur,
-        x.hook, x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
-    (fun pr000 =>
-      have pr00 := pr000.snd;
-      have pr := pr00.snd;
+      ((x.dls, x.fkd, x.dbf, x.rq), x.rbD, x.fkv, x.fk, x.dlb, x.dlg, x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist,
+        x.cached, x.cur, x.hook, x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
+    (fun pr0 =>
+      have pr := pr0.snd;
       have r0' := pr.snd;
       have r := r0'.snd;
       have r' := r.snd;
@@ -2857,8 +2865,8 @@ def mvcc.bNames_countable : Pos.Countable backend.BNames :=
         cls := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         sdn := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         stk := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd, hkd := p.fst, rbk := q.fst,
-        cln := q0.fst, dlg := r0.fst, dlb := r'.fst, fk := r.fst, fkv := r0'.fst, rbD := pr.fst, fkd := pr00.fst,
-        dls := pr000.fst })
+        cln := q0.fst, dlg := r0.fst, dlb := r'.fst, fk := r.fst, fkv := r0'.fst, dbf := pr0.fst.snd.snd.fst,
+        rq := pr0.fst.snd.snd.snd, rbD := pr.fst, fkd := pr0.fst.snd.fst, dls := pr0.fst.fst })
     mvcc.bNames_countable._proof_1
 
 theorem mvcc.readerPool_checkin (γ : mvcc.StoreNames) (dq : DFrac) (o : mvcc.StoreObjs) : ⊢ £ 1 -∗

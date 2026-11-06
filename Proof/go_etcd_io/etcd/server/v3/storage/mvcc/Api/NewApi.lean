@@ -146,11 +146,13 @@ theorem New.wp_proof
   -- (2026-11-06) and one for the writer's own (`writerOwn`, which `Restore` takes)
   imod storeReader_retire2 st γw.st _ o 1 $$ Hlc1 Hs Hcur Hrd1 Hrd2 Hret with ⟨HRT, HRTw, Hret, Hcur⟩
   have hpool : threadBound GF ≤ (nReaders - 5) + 1 := by
-    have h1 : mvccReaderN = backend.rdStockN - 6 := rfl
+    have h1 : mvccReaderN = backend.rdStockN - 7 := rfl
     have h2 : nReaders = backend.rdStockN - 2 := rfl
-    have : 6 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
+    have : 7 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
     omega
-  imod threadPool.init watchRdPoolN (watchReader ws st γw) ⊤ _ hpool $$ Hrds with ⟨%γp, #Hpool⟩
+  -- (the reader tokens, 2026-11-06) the readers' tickets the client's, their locks' slots the pool
+  imod watchReaders_split ws st γw _ $$ Hrds with ⟨Hrds, Htks⟩
+  imod threadPool.init watchRdPoolN (watchSlots ws st γw) ⊤ _ hpool $$ Hrds with ⟨%γp, #Hpool⟩
   have hrb' : receiptBound GF ≤ 2 ^ 63 - 2 := by omega
   imod watchTokPool_alloc γw ⊤ hrb' $$ Htw with #Htp
   -- the certificate map's free entry (track A, request 3)
@@ -236,6 +238,13 @@ theorem New.wp_proof
     isplitr
     · iexact Hwts
     ipureintro; exact hlp
+  isplitl [Htks]
+  · iunfold mvccReaders
+    have hN : nReaders - 5 = mvccReaderN := by
+      have h1 : mvccReaderN = backend.rdStockN - 7 := rfl
+      have h2 : nReaders = backend.rdStockN - 2 := rfl
+      omega
+    rw [← hN]; iexact Htks
   iexists rd
   iframe Hro
   iapply (mvccDeleter_of hTODO _ _ (watchableStore.Write.wp_api hWr ws) rd γw.st) $$ [$Hpkg $Hmv $Hrc]

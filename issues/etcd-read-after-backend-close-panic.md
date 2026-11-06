@@ -62,10 +62,17 @@ dereferences.
 
 ## Proof
 
-no: closing and shutdown are out of scope (the user's decision, 2026-11-03): `KV.Close.contract`
-gives nothing back, so no proof closes the backend after the store while reads may run
-(`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`), and etcd's linked results do not reach
-`Cleanup` or the stop path.
+no: shutdown is in scope since 2026-11-06 (the user's decision, `notes/decisions.md`, "mvcc's API:
+the store's readers as client-held tokens"), and the API rules this crash out. Every mvcc call that
+reads the backend takes a reader token (`mvccReaders γ 1`; a transaction keeps it until its `End`)
+and gives it back; `KV.Close.contract` gives no part of the backend back, only `mvccClosed γ`; the
+backend's open shares the store holds come back only through `mvccClosed_rest.law`, from
+`mvccClosed γ` with **every** reader token (`mvccReaders γ mvccReaderN`)
+(`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`). `backend.Close` needs the whole open token,
+so a proved client can close the backend only once it holds every token back, that is once no read
+of the store is in flight: exactly what etcd's `Cleanup` does not wait for. A proof of etcd's stop
+path over this API has to add that wait (the gate in the notes below), so the bug cannot survive
+it. Reading during or after mvcc's own `Close` is allowed (it touches no backend), as in etcd.
 
 ## Notes
 

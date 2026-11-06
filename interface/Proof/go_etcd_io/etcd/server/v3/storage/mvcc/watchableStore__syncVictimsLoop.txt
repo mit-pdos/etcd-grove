@@ -9,7 +9,7 @@ theorem mvcc.watchableStore.syncVictimsLoop.wp_proof (hMove : mvcc.watchableStor
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isWatchableStore s st γ ∗ mvcc.watchReader s st γ ∗ mvcc.wsDone s -∗
+            mvcc.isWatchableStore s st γ ∗ mvcc.watchReader s st γ ∗ mvcc.wsDone s st γ.st -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP
               ((intoVal

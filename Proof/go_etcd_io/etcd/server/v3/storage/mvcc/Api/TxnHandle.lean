@@ -42,8 +42,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The thread token's way back, from the reader the transaction holds. -/
-def tokBack (s : Loc) (γ : StoreNames) : IProp GF := iprop(storeReaderC s γ ={⊤}=∗ threadTok)
+/-- The thread token's and the reader ticket's way back, from the reader the transaction holds
+(the reader tokens, 2026-11-06: the ticket is the client's, the API's `mvccReaders γ 1`). -/
+def tokBack (s : Loc) (γ : StoreNames) : IProp GF :=
+  iprop(storeReaderC s γ ={⊤}=∗ threadTok ∗ ownToks γ.tk 1)
 
 /-- **The read-only wrappers' chain**, `n` deep, from `t` down to the read transaction `mw`. -/
 def roWrap : Nat → GoInterface → Loc → IProp GF

@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF := GF) (hG := hG)) :
     mvcc.watchStream.Watch.spec (GF := GF) (hG := hG) := by
   intro w γ ι ctx cd key endk fcs kk e fs startRev Q
-  wp_start as ⟨Hws, Htt, #Hctx, #Hk, #He, #Hfi, %Hsr, Hau⟩
+  wp_start as ⟨Hws, Htt, Hrt, #Hctx, #Hk, #He, #Hfi, %Hsr, Hau⟩
   icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
     ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, #Htp, #Hrp, -⟩
   obtain ⟨hι, hγ⟩ := hι
@@ -83,7 +83,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
   rotate_left
   -- `key ≥ end`: the empty range, the update untouched
   iapply HΦ
-  iframe Htt
+  iframe Htt Hrt
   ileft
   iframe Heer Hau
   ipureintro
@@ -125,7 +125,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
         ipureintro; exact Hrel
       iexact Hcl
     iapply HΦ
-    iframe Htt
+    iframe Htt Hrt
     iright
     isplitr
     · ipureintro; exact hne
@@ -142,8 +142,9 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     wp_auto_lc 1
     -- the store's reader slot, from the handle's pool (given back after the registration)
     iapply fupd_wp
-    imod threadPool.borrow_lc mvcc.watchRdPoolN γp _ ⊤ (fun _ _ => CoPset.mem_full)
-      $$ [$Hlc1 $Hrp $Htt] with ⟨HPR, Hloan⟩
+    ihave Hrt : ownToks (GF := GF) γw.st.tk 1 $$ [Hrt]
+    · iunfold mvcc.api.mvccReaders at Hrt; (try rw [hγ]); iexact Hrt
+    imod mvcc.watchReader_lend s st γw γp $$ [$Hlc1 $Hrp $Htt $Hrt] with ⟨HPR, Hloan⟩
     imodintro
     -- `AutoWatchID`: the first free id from `nextID`
     ihave IH : iprop(∃ n : w64, "HnextID" ∷ w.[watchStream, go!"nextID"] ↦ n ∗
@@ -215,8 +216,9 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
         iframe #
         ipureintro; exact ⟨Hsr, hidm⟩
       iapply fupd_wp
-      imod threadPool.giveBack mvcc.watchRdPoolN γp _ ⊤ (fun _ _ => CoPset.mem_full)
-        $$ [$Hrp $Hloan $HPR] with Htt
+      imod Hloan $$ HPR with ⟨Htt, Hrt⟩
+      ihave Hrt : mvcc.api.mvccReaders (GF := GF) γw.st 1 $$ [Hrt]
+      · iunfold mvcc.api.mvccReaders; (try rw [← hγ]); iexact Hrt
       imodintro
       iunfold mvcc.api.watchBack at HBack
       icases HBack with ⟨⟨%σ, %S, HQ, %HSc⟩, Hids, %lm', Hm, %Hrep⟩
@@ -327,7 +329,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
           · iright
             iexact Hc0
       iapply HΦ
-      iframe Htt
+      iframe Htt Hrt
       iright
       isplitr
       · ipureintro; exact hne

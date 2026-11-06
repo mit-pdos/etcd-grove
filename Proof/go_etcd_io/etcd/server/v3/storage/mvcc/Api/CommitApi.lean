@@ -60,7 +60,8 @@ private theorem storeReq_of_storage (γ : StoreNames) (p : PhysNames) (d : KBRea
 theorem store.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) :
     store.Commit.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) q B Pk X Y
-  iintro %Φ ⟨#Hpkg, Hmv, Htok, HB, HX, Hrq⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hmv, Htok, Hrt, HB, HX, Hrq⟩ HΦ
+  iunfold mvccReaders at Hrt
   iunfold isMvcc at Hmv
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   rotate_left 1
@@ -79,7 +80,7 @@ theorem store.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) 
   obtain ⟨hpk, hcm, hdB⟩ := Hd
   subst hdB
   iapply wp_fupd
-  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Htok] with ⟨Hrd, Hback⟩
+  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Htok $Hrt] with ⟨Hrd, Hback⟩
   ihave Hrd : ▷ storeReaderC (GF := GF) s (γ.withPhys p) $$ [Hrd]
   · rw [storeReaderC_withPhys]; iexact Hrd
   ihave #Hreq := storeReq_of_storage γ p d hpk Pk X Y $$ [$Hbk $Hrq]
@@ -92,10 +93,11 @@ theorem store.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) 
   ihave Hrd : storeReaderC (GF := GF) s γ $$ [Hrd]
   · rw [← storeReaderC_withPhys s γ p]; iexact Hrd
   iunfold tokBack at Hback
-  imod Hback $$ Hrd with Htok
+  imod Hback $$ Hrd with ⟨Htok, Hrt⟩
   imodintro
   iapply HΦ
-  iframe Htok HY
+  iunfold mvccReaders
+  iframe Htok Hrt HY
   iunfold mvccBackend
   iframe HF
   iexists p, o, d
@@ -106,7 +108,8 @@ theorem store.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) 
 theorem watchableStore.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) :
     watchableStore.Commit.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) q B Pk X Y
-  wp_start as ⟨Hmv, Htok, HB, HX, Hrq⟩
+  wp_start as ⟨Hmv, Htok, Hrt, HB, HX, Hrq⟩
+  iunfold mvccReaders at Hrt
   iunfold isMvcc at Hmv
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   · iunfold isMvccPlain at Hmv
@@ -130,7 +133,7 @@ theorem watchableStore.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG
   subst hdB
   wp_auto_lc 1
   iapply fupd_wp
-  imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok] with ⟨Hrd, Hback⟩
+  imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok $Hrt] with ⟨Hrd, Hback⟩
   imodintro
   iapply wp_fupd
   ihave Hrd : ▷ storeReaderC (GF := GF) st (γw.st.withPhys p) $$ [Hrd]
@@ -143,10 +146,11 @@ theorem watchableStore.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG
   ihave Hrd : storeReaderC (GF := GF) st γw.st $$ [Hrd]
   · rw [← storeReaderC_withPhys st γw.st p]; iexact Hrd
   iunfold tokBack at Hback
-  imod Hback $$ Hrd with Htok
+  imod Hback $$ Hrd with ⟨Htok, Hrt⟩
   imodintro
   iapply HΦ
-  iframe Htok HY
+  iunfold mvccReaders
+  iframe Htok Hrt HY
   iunfold mvccBackend
   iframe HF
   iexists p, o, d

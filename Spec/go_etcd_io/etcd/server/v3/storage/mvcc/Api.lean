@@ -91,8 +91,9 @@ Scratch file (outside the repository, never committed); typechecks against the r
 
 ## The vocabulary
 
-Opaque Iris predicates (8): `mvccState`, `isMvcc`, `mvccOpen`, `mvccBackend`, `mvccTxn`,
-`isMvccWatchStream`, `wsState`, `wsRecv`; and at the storage boundary (the design "mvcc's API over
+Opaque Iris predicates (10): `mvccState`, `isMvcc`, `mvccOpen`, `mvccBackend`, `mvccTxn`,
+`isMvccWatchStream`, `wsState`, `wsRecv`, and (the reader tokens, 2026-11-06) `mvccReaders`,
+`mvccClosed`; and at the storage boundary (the design "mvcc's API over
 its storage abstraction", approved by the user, 2026-11-06: no name of etcd's backend here; etcd's
 backend is one storage, `mvcc/EtcdBackend.lean`): `MvccStorage`, `storageVal`, `storageHook`,
 `storageReq`, `storageRest`, `mvccReaderN`, `mvccStorageFor`. Opaque pure names: the types `MvccName`, `WsName`;
@@ -177,7 +178,8 @@ private def isMvccPlain (kv : GoInterface) (γ : MvccName) : IProp GF :=
 
 /-- A watchable store's handle (stage 2, 2026-11-05: what `NewWatchStream` needs, §2): the
 watchable store `s` over its inner store `st`, at names `γw` whose store is `γ`, the watch tokens'
-pool (a registration's cost) and a thread pool of its readers' slots (`watchReader`), which every
+pool (a registration's cost) and a thread pool of its readers' locks' slots (`watchSlots`: a
+`watchReader` but its ticket, which is the client's, `mvccReaders`; 2026-11-06), which every
 stream of it draws on. Still to add (§2): the write-back supply, the store's own goroutines'
 readers from the same pool. (`KV.Compact.contract`, 2026-11-06) The inner store's location and its
 compaction permit `True`, as a plain store's. (Track A, request 3, 2026-11-06) The certificate
@@ -186,7 +188,7 @@ private def isMvccWatchable (kv : GoInterface) (γ : MvccName) : IProp GF :=
   iprop(∃ (s st : Loc) (γw : WsNames) (γp : GName),
     ⌜kv = interface.mkOk (go.GoType.PointerType watchableStore.ty) #s ∧ γw.st = (γ : StoreNames)⌝ ∗
     isWatchableStore s st γw ∗ watchTokPool γw ∗
-    threadPool.isThreadPool watchRdPoolN γp (watchReader s st γw) ∗
+    threadPool.isThreadPool watchRdPoolN γp (watchSlots s st γw) ∗
     api.locIs (γ : StoreNames).api st ∗ crevPermIs (γ : StoreNames) (fun _ => iprop(True)) ∗
     certFree (γ : StoreNames))
 
@@ -197,15 +199,19 @@ private def isMvccWatchable (kv : GoInterface) (γ : MvccName) : IProp GF :=
 /-- The open token's closer pieces (track A, `New.spec`, 2026-11-06): the store's current backend
 (at physical names `p`) compacting, and, of a watchable store, its own closer: the watchable store
 `w` the inner store `s`'s read view points at, its stop channel's close and the loops' waiter
-(`watchableStore.Close`'s, beside the inner store's right). -/
+(`watchableStore.Close`'s, beside the inner store's right; the reader tokens, 2026-11-06: with the
+claim on the readers its two loops leave at their `Done`, `wsWaiter`'s); of a plain store, the
+tickets of two readers (the reader tokens, 2026-11-06: what a watchable store's loops hold, so that
+both kinds give `mvccReaderN` tokens and `Close` the same two more, `mvccClosed`). -/
 private def openRest (γ : MvccName) (p : PhysNames) (s : Loc) : IProp GF :=
   iprop(⌜kbCmpM p.kb⌝ ∗ if (γ : StoreNames).watchQ then iprop(∃ (w rv stc : Loc),
       s.[store, go!"ReadView"] ↦□
         (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
       rv.[readView, go!"kv"] ↦□
         (interface.mkOk (go.GoType.PointerType watchableStore.ty) #w : GoInterface) ∗
-      w.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter w)
-    else iprop(fieldShare s (γ : StoreNames) (1 : Qp).half.half ∗ wsDep (γ : StoreNames)))
+      w.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter w s (γ : StoreNames))
+    else iprop(fieldShare s (γ : StoreNames) (1 : Qp).half.half ∗ wsDep (γ : StoreNames) ∗
+      ownToks (γ : StoreNames).tk 2))
 
 /-- **The store's open token** (exclusive): `Compact`, `Restore` and `Close` take it, the first two
 give it back. A compaction schedules its job after releasing `s.mu`, on a scheduler `Close` stops and
@@ -238,7 +244,8 @@ internal transaction without its trace, at the state it began at, with the threa
 watchable store `s` of `γ` (stage 2, the watch chain, 2026-11-05: what `wsChan_recv.law` needs);
 the stream `ws` itself (`isWatchStreamAt`, over the store at that channel), and the store's
 pools its calls draw on: the watch tokens (`watchTokPool`, a registration's cost) and the
-readers' slots (a thread pool of `watchReader`s, lent to each call of the store); and the channel's
+readers' locks' slots (a thread pool of `watchSlots`, lent with the caller's ticket as a
+`watchReader` to each call of the store); and the channel's
 progress fact (`progFact`, what a `-1` response the store sends on it carries). -/
 private def isMvccWatchStreamRest (ws : GoInterface) (γ : MvccName) (ι : WsName) : IProp GF :=
   iprop(∃ (γw : WsNames) (γc : WatchChanNames) (w s st : Loc) (γo : WsStreamNames) (γp : GName),
@@ -248,7 +255,7 @@ private def isMvccWatchStreamRest (ws : GoInterface) (γ : MvccName) (ι : WsNam
     inv watchN (watchChanInv γw (ι : api.WsAbs).ch γc) ∗
     isWatchStreamAt w (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s)
       (storeWatchParams s st γw) γo (ι : api.WsAbs).ch γc ∗
-    watchTokPool γw ∗ threadPool.isThreadPool watchRdPoolN γp (watchReader s st γw) ∗
+    watchTokPool γw ∗ threadPool.isThreadPool watchRdPoolN γp (watchSlots s st γw) ∗
     progFact γc.prog)
 
 /-- **`ws` (the `WatchStream` `NewWatchStream` returned) is a stream of `γ`, named `ι`**
@@ -294,14 +301,40 @@ the old storage). -/
 @[no_expose] def storageRest (B : MvccStorage) : IProp GF :=
   iprop([∗list] _x ∈ List.replicate nReaders (), backend.bOpen (B : KBReal).γB backend.rdOpen)
 
-/-- **The number of the store's readers** (sealed): a store admits at most this many threads. (Track
-A, `New.spec`, 2026-11-06: the backend's counted stock less three, the watchable store's two loops'
-and the compactor's reader slots, held for good, so that the readers' pool a watchable store's
-handle holds, `isMvccWatchable`, has a slot for every thread but one. The server's request,
-2026-11-06, decided by the coordinator: two fewer again, `rdStockN - 5`, the backend's opener keeping
-two counted slots for good, `etcdStorage_open.law`.) (2026-11-06) One fewer again, `rdStockN - 6`:
-the open token keeps the writer's retired reader too (`writerOwn`, which `Restore` takes). -/
-@[no_expose] def mvccReaderN : Nat := backend.rdStockN - 6
+/-- **The number of the store's reader tokens** (sealed): what `New` and `NewStore` give
+(`mvccReaders γ mvccReaderN`); a store admits at most this many threads (`New`'s premise
+`threadBound ≤ mvccReaderN`, which the store's locks' pools need). The backend's counted stock less
+seven: the opener's two (`etcdStorage_open.law`), the compactor's and the writer's own (the open
+token's, retired), the compaction job's, and two more (a watchable store's loops'; a plain store's
+open token keeps two tickets in their place), which `Close` gives back (`mvccClosed`). (Until the
+reader tokens, 2026-11-06, `rdStockN - 6`, a thread pool's size: the readers' tickets were in the
+handle's pool, which has a slot for every thread but one.) -/
+@[no_expose] def mvccReaderN : Nat := backend.rdStockN - 7
+
+/-- **`n` of the store's reader tokens** (exclusive, counted, timeless; sealed; the user's decision,
+2026-11-06, `notes/decisions.md`, "mvcc's API: the store's readers as client-held tokens"): each is
+the right to borrow one of the storage's reader slots, which the store keeps (with their shares of
+the storage's open token) at its current storage, so `Restore` leaves the tokens alone. `New` and
+`NewStore` give `mvccReaderN` of them; a contract whose call reads the storage takes one and gives
+it back (`KV.Read`'s and `KV.Write`'s transaction keeps it until its `End`). A client holding all
+of them, with `Close`'s post (`mvccClosed`), gets the storage's rest back (`mvccClosed_rest.law`):
+no read of the store is then in flight. They split and join (`mvccReaders_split.law`). Defined:
+tickets of the store's readers' pool (`ownToks γ.tk n`). -/
+@[no_expose] def mvccReaders (γ : MvccName) (n : Nat) : IProp GF := ownToks (γ : StoreNames).tk n
+
+/-- **The store is closed** (exclusive; sealed; `Close`'s post, the reader tokens, 2026-11-06): what
+`Close` regains, which with every reader token and a share of the store's backend gives the
+storage's rest back (`mvccClosed_rest.law`). Defined: at the store's current physical names `p`, a
+part of the current objects and names (the closer's), the writer's and the compactor's retired
+readers and the retired count (the open token's), two more readers' tickets (a watchable store's
+loops', taken after `Wait`; a plain store's open token's), the compaction job's reader (the
+stopped scheduler's), the readers' pool, and a later credit. -/
+@[no_expose] def mvccClosed (γ : MvccName) : IProp GF :=
+  iprop(∃ (p : PhysNames) (dq : DFrac) (o : StoreObjs), £ 1 ∗ readerPool (γ : StoreNames) ∗
+    curAt ((γ : StoreNames).withPhys p) dq o ∗
+    retiredAt ((γ : StoreNames).withPhys p) (2 + nJobRd ((γ : StoreNames).withPhys p).kb) ∗
+    storeRT ((γ : StoreNames).withPhys p) ∗ storeRT ((γ : StoreNames).withPhys p) ∗
+    ownToks (γ : StoreNames).tk 2 ∗ compactJobResM ((γ : StoreNames).withPhys p).kb)
 
 /-- **A share `q` of the store's backend: it is `B`, its batch lock's invariant `Pk`**
 (fractional; `New`'s or `NewStore`'s, then `Restore`'s). Defined at stage 2 (M2, 2026-11-05;
@@ -385,7 +418,7 @@ def hashStoreOk (h : GoInterface) : IProp GF :=
 server draft's S2: `lessor.Revoke` checks it). -/
 def mvccDeleter (rd : GoFunc) (γ : MvccName) : IProp GF :=
   iprop(⌜rd ≠ func.nil⌝ ∗ □ ∀ (q : Qp) (B : MvccStorage) (P Pre Q : IProp GF) (f : GoFunc) (R : MvccState → IProp GF),
-    {{ threadTok ∗ mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q ∗
+    {{ threadTok ∗ mvccReaders γ 1 ∗ mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q ∗
         AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
           <{ ⌜σ.pending = none⌝ ∗ mvccState γ σ, COMM R σ }> }}
       (App (Val #rd) (Val #()))
@@ -410,10 +443,11 @@ after the contracts). -/
 
 /-! ### `KV` (and `WatchableKV`) -/
 
-/-- **`Read(mode, trace)`**: a read transaction at the state, by the caller's update. -/
+/-- **`Read(mode, trace)`**: a read transaction at the state, by the caller's update. The
+transaction holds the thread token and the reader token until its `End`. -/
 abbrev KV.Read.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (mode : w32) (trace : Loc) (te : Bool) (Q : MvccState → IProp GF),
-  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗
+  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccReaders γ 1 ∗ ⌜trace ≠ null⌝ ∗
       traceutil.ownTrace trace te ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
     (App (App (Val #(methods ty go!"Read" v)) (Val #mode)) (Val #trace))
@@ -421,11 +455,12 @@ abbrev KV.Read.contract (ty : go.GoType) (v : val) : Prop :=
       ∃ σ : MvccState, mvccTxn t γ trace (.read σ) ∗ Q σ }}
 
 /-- **`Write(trace)`**: a write transaction begun at the state, by the caller's update (at its
-begin revision; nothing pending); the hook run under the batch lock, `Pre` to `Q`. -/
+begin revision; nothing pending); the hook run under the batch lock, `Pre` to `Q`. The transaction
+holds the thread token and the reader token until its `End`. -/
 abbrev KV.Write.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (te : Bool) (q : Qp) (B : MvccStorage) (P Pre Q : IProp GF)
     (f : GoFunc) (R : MvccState → IProp GF),
-  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗
+  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccReaders γ 1 ∗ ⌜trace ≠ null⌝ ∗
       traceutil.ownTrace trace te ∗ mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
         <{ ⌜σ.pending = none⌝ ∗ mvccState γ σ, COMM R σ }> }}
@@ -436,18 +471,19 @@ abbrev KV.Write.contract (ty : go.GoType) (v : val) : Prop :=
 /-- **`Rev()`**: the state's revision, by the caller's update. -/
 abbrev KV.Rev.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (Q : MvccState → IProp GF),
-  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗
+  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccReaders γ 1 ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
     (App (Val #(methods ty go!"Rev" v)) (Val #()))
-  {{ (r : w64), RET #r; threadTok ∗ ∃ σ : MvccState, Q σ ∗ ⌜r = W64 (σ.rev : Int)⌝ }}
+  {{ (r : w64), RET #r; threadTok ∗ mvccReaders γ 1 ∗ ∃ σ : MvccState, Q σ ∗
+      ⌜r = W64 (σ.rev : Int)⌝ }}
 
 /-- **`FirstRev()`**: the state's compaction revision, by the caller's update. -/
 abbrev KV.FirstRev.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (Q : MvccState → IProp GF),
-  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗
+  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccReaders γ 1 ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
     (App (Val #(methods ty go!"FirstRev" v)) (Val #()))
-  {{ (r : w64), RET #r; threadTok ∗ ∃ σ : MvccState, Q σ ∗ ⌜r = W64 σ.crev⌝ }}
+  {{ (r : w64), RET #r; threadTok ∗ mvccReaders γ 1 ∗ ∃ σ : MvccState, Q σ ∗ ⌜r = W64 σ.crev⌝ }}
 
 /-- **`Range(ctx, key, end, ro)`** (a read transaction of one range): the outcome at the state, and
 every state it could read safe to sort (`stateOk`, round 15: what the caller's sort of the results
@@ -456,13 +492,13 @@ migration, 2026-11-05: decided by the coordinator, A). -/
 abbrev KV.Range.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
     (key endk : GoSlice) (kk e : GoString) (ro : RangeOptions) (Q : MvccState → IProp GF),
-  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ rangeCtx todo ctx cd ∗
+  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccReaders γ 1 ∗ rangeCtx todo ctx cd ∗
       key ↦*□ kk ∗ endk ↦*□ e ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
     (App (App (App (App (Val #(methods ty go!"Range" v)) (Val #(GoInterface.ok ctx))) (Val #key))
       (Val #endk)) (Val #ro))
-  {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); threadTok ∗ ⌜todo = true → r ≠ null⌝ ∗
-      ∃ σ : MvccState, Q σ ∗
+  {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); threadTok ∗ mvccReaders γ 1 ∗
+      ⌜todo = true → r ≠ null⌝ ∗ ∃ σ : MvccState, Q σ ∗
         rangeOutcomeC r err σ.log (W64 (σ.rev : Int)) σ.crev (decide (endk = slice.nil)) kk e ro ∗
         ⌜∀ r' : Nat, σ.crev ≤ (r' : Int) → r' ≤ σ.rev → stateOk (stateAt σ.log r')⌝ ∗
         ⌜LogWf' σ.log ∧ ∀ cs ∈ σ.log, cs.length < 2 ^ 63⌝ }}
@@ -473,7 +509,8 @@ abbrev KV.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (q : Qp) (B : MvccStorage)
     (P Pre Q' Post : IProp GF) (f : GoFunc) (Q : MvccState → IProp GF),
-  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ key ↦*□ k ∗ value ↦*□ vv ∗
+  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccReaders γ 1 ∗ key ↦*□ k ∗
+      value ↦*□ vv ∗
       ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
       lease.leaseOwn (mvccLeases γ) L I ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
       mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
@@ -484,7 +521,8 @@ abbrev KV.Put.contract (ty : go.GoType) (v : val) : Prop :=
               <{ ⌜σ' = σ.notify [.put k vv leaseID]⌝ ∗ mvccState γ σ'.commitPending,
                  COMM Q σ }> }> }}
     (App (App (App (Val #(methods ty go!"Put" v)) (Val #key)) (Val #value)) (Val #leaseID))
-  {{ (rev : w64), RET #rev; threadTok ∗ mvccBackend γ q B P ∗ Post ∗ ∃ σ : MvccState, Q σ ∗
+  {{ (rev : w64), RET #rev; threadTok ∗ mvccReaders γ 1 ∗ mvccBackend γ q B P ∗ Post ∗
+      ∃ σ : MvccState, Q σ ∗
       lease.leaseOwn (mvccLeases γ) L (pendItems σ.log [.put k vv leaseID]) ∗
       ⌜rev = W64 (σ.log.length : Int)⌝ }}
 
@@ -495,15 +533,15 @@ abbrev KV.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (q : Qp) (B : MvccStorage)
     (P Pre Q' Post : IProp GF) (f : GoFunc) (Q : MvccState → IProp GF),
   let ds (σ : MvccState) := (delKeys σ.log [] (decide (endk = slice.nil)) k e).map Change.del
-  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ key ↦*□ k ∗ endk ↦*□ e ∗
-      lease.leaseOwn (mvccLeases γ) L I ∗
+  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccReaders γ 1 ∗ key ↦*□ k ∗
+      endk ↦*□ e ∗ lease.leaseOwn (mvccLeases γ) L I ∗
       mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜pendItems σ.log [] = I⌝ }> @ ⊤ \ ↑mvccN, ∅
         <{ ⌜σ.pending = none⌝ ∗ mvccState γ (σ.notify (ds σ)) ∗ ⧖ (logCh (σ.log ++ [ds σ])), COMM
             AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
               <{ ⌜σ' = σ.notify (ds σ)⌝ ∗ mvccState γ σ'.commitPending, COMM Q σ }> }> }}
     (App (App (Val #(methods ty go!"DeleteRange" v)) (Val #key)) (Val #endk))
-  {{ (n rev : w64), RET (PairV #n #rev); threadTok ∗ mvccBackend γ q B P ∗ Post ∗
+  {{ (n rev : w64), RET (PairV #n #rev); threadTok ∗ mvccReaders γ 1 ∗ mvccBackend γ q B P ∗ Post ∗
       ∃ σ : MvccState, Q σ ∗ lease.leaseOwn (mvccLeases γ) L (pendItems σ.log (ds σ)) ∗
       ⌜n = W64 ((ds σ).length : Int) ∧ rev = W64 ((writeRev σ.log (ds σ) : Nat) : Int)⌝ }}
 
@@ -536,10 +574,10 @@ abbrev KV.Compact.contract (ty : go.GoType) (v : val) : Prop :=
 /-- **`Commit()`**: the backend's forced commit (`X` to `Y`). -/
 abbrev KV.Commit.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (q : Qp) (B : MvccStorage) (Pk X Y : IProp GF),
-  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccBackend γ q B Pk ∗ X ∗
-      storageReq B Pk X Y }}
+  {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccReaders γ 1 ∗ mvccBackend γ q B Pk ∗
+      X ∗ storageReq B Pk X Y }}
     (App (Val #(methods ty go!"Commit" v)) (Val #()))
-  {{ RET #(); threadTok ∗ mvccBackend γ q B Pk ∗ Y }}
+  {{ RET #(); threadTok ∗ mvccReaders γ 1 ∗ mvccBackend γ q B Pk ∗ Y }}
 
 /-- **`Restore(b')`** from the backend `B'` holding the history `σ'.log` compacted at `σ'.crev`
 (decision 3, the user, 2026-11-03: at any share of the new backend's post-lock hook): by the
@@ -585,17 +623,20 @@ abbrev KV.HashStorage.contract (ty : go.GoType) (v : val) : Prop :=
     (App (Val #(methods ty go!"HashStorage" v)) (Val #()))
   {{ (h : GoInterface), RET #h; hashStoreOk h }}
 
-/-- **`Close()`**: the whole open token; `nil`. **Shutdown is out of scope** (the user, 2026-11-03):
-nothing about the backend comes back, so no proof closes the backend after the store. The store's
-half of the backend's open token cannot come back here anyway: `store.Close` takes no lock and a
-read may still hold a reader's part of it, which is etcd's shutdown crash
-(`issues/etcd-read-after-backend-close-panic.md`). This minimal contract stays because etcd's linked
-`NewServer` calls `kv.Close()` on its error path. -/
+/-- **`Close()`**: the whole open token; `nil`, and the store closed (`mvccClosed`: what `Close`
+regains, the loops' readers after their `Wait`, the compaction job's after the scheduler's `Stop`,
+the open token's). **Shutdown** (the reader tokens, 2026-11-06, superseding "out of scope" of
+2026-11-03): `store.Close` takes no lock, so a read may still be in flight and hold one of the
+storage's reader slots; closing the storage under it is etcd's shutdown crash
+(`issues/etcd-read-after-backend-close-panic.md`). So `Close` gives no part of the storage back: the
+client gets the storage's rest from `mvccClosed` only with every reader token
+(`mvccClosed_rest.law`), which it holds when its reads are done. Reading concurrently with `Close`,
+or after it, is no bug (`Close` touches no storage), and the contracts allow it. -/
 abbrev KV.Close.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName),
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ mvccOpen γ }}
     (App (Val #(methods ty go!"Close" v)) (Val #()))
-  {{ RET #(GoInterface.nil); True }}
+  {{ RET #(GoInterface.nil); mvccClosed γ }}
 
 /-- **`NewWatchStream()`**: a stream of the store, open, without watchers, nothing received. -/
 abbrev WatchableKV.NewWatchStream.contract (ty : go.GoType) (v : val) : Prop :=
@@ -673,7 +714,8 @@ abbrev Txn.Changes.contract (ty : go.GoType) (v : val) : Prop :=
   {{ (chs : GoSlice), RET #chs; mvccTxn (interface.mkOk ty v) γ trace k ∗
       ⌜uint.nat chs.len = k.pend.length ∧ 0 ≤ sint.Z chs.len⌝ }}
 
-/-- A read transaction's gives the thread token back; a write transaction's commits in two steps of
+/-- A read transaction's gives the thread token and the reader token back (a write transaction's
+too); a write transaction's commits in two steps of
 the caller's updates at the state it began at (`σ₀`), with the batch lock's invariant `P` back. The
 notify step gives the update the receipt of the history it makes (`⧖ (logCh ..)`, round 16: what the
 caller's model of the history needs, client/v3's `kvLogOk`, at the step that makes it; `Put`,
@@ -689,7 +731,7 @@ abbrev Txn.End.contract (ty : go.GoType) (v : val) : Prop :=
                 AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
                   <{ ⌜σ' = σ₀.notify pend⌝ ∗ mvccState γ σ'.commitPending, COMM Q }> }>) }}
     (App (Val #(methods ty go!"End" v)) (Val #()))
-  {{ RET #(); threadTok ∗
+  {{ RET #(); threadTok ∗ mvccReaders γ 1 ∗
       match k with
       | .read _ => iprop(True)
       | .write _ _ => iprop(mvccBackend γ q B P ∗ Q) }}
@@ -713,13 +755,13 @@ abbrev WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
            wsState ι (S.register id
              ⟨watchRangeOf kk e endk startRev id, fs, watchLo σ startRev, k, true⟩)),
       COMM Q σ S id }>)
-  {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗
+  {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗ mvccReaders γ 1 ∗
       (⌜ctx = interface.mk context.todoCtx.ty #(zero_val context.todoCtx)⌝ ∨
         (context.isContext ctx cd ∗ trace.spanCtxOk ctx)) ∗
       key ↦*□ kk ∗ endk ↦*□ e ∗ filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗ au }}
     (App (App (App (App (App (App (Val #(methods ty go!"Watch" v)) (Val #(GoInterface.ok ctx)))
       (Val #(W64 0))) (Val #key)) (Val #endk)) (Val #startRev)) (Val #fcs))
-  {{ (id : w64) (err : GoInterface), RET (PairV #id #err); threadTok ∗
+  {{ (id : w64) (err : GoInterface), RET (PairV #id #err); threadTok ∗ mvccReaders γ 1 ∗
       ((⌜e ≠ [] ∧ ¬ go.GoStringLt kk e ∧ id = W64 (-1)⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err ∗
           au) ∨
        (⌜e = [] ∨ go.GoStringLt kk e⌝ ∗ ∃ (σ : MvccState) (S : StreamState), Q σ S id ∗
@@ -734,15 +776,15 @@ abbrev WatchStream.Chan.contract (ty : go.GoType) (v : val) : Prop :=
 
 abbrev WatchStream.RequestProgress.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (ι : WsName) (id : w64),
-  {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok }}
+  {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗ mvccReaders γ 1 }}
     (App (Val #(methods ty go!"RequestProgress" v)) (Val #id))
-  {{ RET #(); threadTok }}
+  {{ RET #(); threadTok ∗ mvccReaders γ 1 }}
 
 abbrev WatchStream.RequestProgressAll.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (ι : WsName),
-  {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok }}
+  {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗ mvccReaders γ 1 }}
     (App (Val #(methods ty go!"RequestProgressAll" v)) (Val #()))
-  {{ (b : Bool), RET #b; threadTok }}
+  {{ (b : Bool), RET #b; threadTok ∗ mvccReaders γ 1 }}
 
 /-- By the caller's update (at its first check), the watcher `id`, if any, not live; `nil` only for
 a watcher of an open stream; `ErrWatcherNotExist` never for a live watcher of an open stream. -/
@@ -768,10 +810,11 @@ abbrev WatchStream.Close.contract (ty : go.GoType) (v : val) : Prop :=
 
 abbrev WatchStream.Rev.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (ι : WsName) (Q : MvccState → IProp GF),
-  {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗
+  {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗ mvccReaders γ 1 ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
     (App (Val #(methods ty go!"Rev" v)) (Val #()))
-  {{ (r : w64), RET #r; threadTok ∗ ∃ σ : MvccState, Q σ ∗ ⌜r = W64 (σ.rev : Int)⌝ }}
+  {{ (r : w64), RET #r; threadTok ∗ mvccReaders γ 1 ∗ ∃ σ : MvccState, Q σ ∗
+      ⌜r = W64 (σ.rev : Int)⌝ }}
 
 /-! ### The bundles (an interface value's methods meet the contracts; cf. `sync.isLocker`) -/
 
@@ -871,11 +914,14 @@ abbrev watchStream.Watch.spec : Prop := ∀ w : Loc, WatchStream.Watch.contract 
 
 /-- **`mvcc.New(lg, be, le, cfg)`**: the watchable store over the backend `B` (holding the empty
 history), with the real lessor; the state at `mvccStart`, the open token, the backend's token, the
-range deleter. Each reader of the store (a read transaction, the compaction's job, the sync
-loops, a progress request's read) holds a thread token and one of the backend's counted reader
-slots, of which the store has `rdStockN` (about `2 ^ 29`; the rest of the `2 ^ 30 - 1` Go's
-`RWMutex` admits are the client's pool): so at most `rdStockN` threads (the review of round 13's
-decisions, D1; the server has `threadBound ≤ 2 ^ 28`). -/
+range deleter, and the store's reader tokens (`mvccReaders γ mvccReaderN`; the reader tokens,
+2026-11-06). Each reader of the store (a read transaction, the compaction's job, the sync loops, a
+progress request's read) holds one of the backend's counted reader slots, of which the store has
+`rdStockN - 2` (about `2 ^ 29`; the rest of the `2 ^ 30 - 1` Go's `RWMutex` admits are the client's
+pool): the store's own (the loops', the job's, the compactor's, the writer's) for good, a client's
+call's for a reader token; and a thread token, for its slots of the store's locks, of which the
+store has enough for `mvccReaderN + 1` threads (the review of round 13's decisions, D1; the server
+has `threadBound ≤ 2 ^ 28`). -/
 abbrev New.spec : Prop :=
   ∀ (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (B : MvccStorage) (Pk : IProp GF)
     (γl : GName) (rd0 : GoFunc),
@@ -890,9 +936,11 @@ abbrev New.spec : Prop :=
   {{ (ws : Loc), RET #(interface.mkOk PW #ws);
       ∃ γ : MvccName, ⌜mvccLeases γ = γl⌝ ∗
         isMvcc (interface.mkOk PW #ws) γ ∗ mvccState γ mvccStart ∗ mvccOpen γ ∗
-        mvccBackend γ 1 B Pk ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvccDeleter rd γ) }}
+        mvccBackend γ 1 B Pk ∗ mvccReaders γ mvccReaderN ∗
+        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvccDeleter rd γ) }}
 
-/-- **`mvcc.NewStore(lg, be, le, cfg)`**: as `New`, a store without watchers. -/
+/-- **`mvcc.NewStore(lg, be, le, cfg)`**: as `New`, a store without watchers (its open token keeps
+the tickets of the two readers a watchable store's loops hold, so that `Close` gives as much back). -/
 abbrev NewStore.spec : Prop :=
   ∀ (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (B : MvccStorage) (Pk : IProp GF)
     (γl : GName) (rd0 : GoFunc),
@@ -907,7 +955,8 @@ abbrev NewStore.spec : Prop :=
   {{ (s : Loc), RET #s;
       ∃ γ : MvccName, ⌜mvccLeases γ = γl⌝ ∗
         isMvcc (interface.mkOk PS #s) γ ∗ mvccState γ mvccStart ∗ mvccOpen γ ∗
-        mvccBackend γ 1 B Pk ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvccDeleter rd γ) }}
+        mvccBackend γ 1 B Pk ∗ mvccReaders γ mvccReaderN ∗
+        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvccDeleter rd γ) }}
 
 /-- **`mvcc.NewReadOnlyTxnWrite(t)`** of a read transaction. -/
 abbrev NewReadOnlyTxnWrite.spec : Prop :=
@@ -933,6 +982,7 @@ abbrev persistent.law : Prop :=
   (∀ ι n, Persistent (wsSentLb (GF := GF) ι n)) ∧
   (∀ B f, Persistent (hookIs (GF := GF) B f)) ∧ (∀ B Pk X Y, Persistent (storageReq (GF := GF) B Pk X Y)) ∧
   (∀ γ σ, Timeless (mvccState (GF := GF) γ σ)) ∧ (∀ ι S, Timeless (wsState (GF := GF) ι S)) ∧
+  (∀ γ n, Timeless (mvccReaders (GF := GF) γ n)) ∧
   (∀ ι rs, Timeless (wsRecv (GF := GF) ι rs)) ∧
   (∀ γ B Pk, Fractional (fun q => mvccBackend (GF := GF) γ q B Pk))
 
@@ -952,6 +1002,20 @@ abbrev errVars.law : Prop :=
     EtcdGrove.errorsNewVar ErrCompacted go!"mvcc: required revision has been compacted" ∗
     EtcdGrove.errorsNewVar ErrFutureRev go!"mvcc: required revision is a future revision" ∗
     EtcdGrove.errorsNewVar ErrEmptyWatcherRange go!"mvcc: watcher range is empty"
+
+/-- **The reader tokens split and join** (the reader tokens, 2026-11-06). -/
+abbrev mvccReaders_split.law : Prop :=
+  ∀ γ n m, mvccReaders (GF := GF) γ (n + m) ⊣⊢ mvccReaders γ n ∗ mvccReaders γ m
+
+/-- **Shutdown: the storage's rest back** (the reader tokens, 2026-11-06; the user's decision,
+`notes/decisions.md`, "mvcc's API: the store's readers as client-held tokens"): the closed store
+(`Close`'s post), every reader token (no read in flight) and a share of the store's backend give
+the storage's rest (`storageRest B`, what `Restore` gives of an old storage: at etcd's backend, the
+store's `rdStockN - 2` shares of the open token, `etcdStorage_rest`), the share back. -/
+abbrev mvccClosed_rest.law : Prop :=
+  ∀ γ (q : Qp) B (Pk : IProp GF),
+    mvccClosed (GF := GF) γ ∗ mvccReaders γ mvccReaderN ∗ mvccBackend γ q B Pk ={⊤}=∗
+      storageRest B ∗ mvccBackend γ q B Pk
 
 abbrev mvccBackend_agree.law : Prop :=
   ∀ γ q q' B B' (Pk Pk' : IProp GF), mvccBackend (GF := GF) γ q B Pk ∗ mvccBackend γ q' B' Pk' ⊢ ⌜B = B'⌝

@@ -638,6 +638,9 @@ def mvcc.regWit (γc : mvcc.WatchChanNames) (l : List mvcc.api.sent.SEv) : IProp
       ∀ id rg fg lo,
         ⌜mvcc.api.sent.SEv.reg id rg fg lo ∈ l⌝ -∗ ∃ w fcs, w ↪[γc.reg]□ () ∗ mvcc.watcherFixed w rg fcs ∗ ⌜id = rg.id⌝)
 
+theorem mvcc.isWatchableStore_agree (s1 s2 st : Loc) (γ1 γ2 : mvcc.WsNames) : mvcc.isWatchableStore
+    s1 st γ1 ∗ mvcc.isWatchableStore s2 st γ2 ⊢ ⌜s1 = s2⌝
+
 theorem mvcc.findSome_isSome_of_mem {B : GMap Loc mvcc.EventBatch} {l : List (GMap Loc
     mvcc.EventBatch)} {w : Loc} (hB : B ∈ l) (hw : (B !! w).isSome = true) : (List.findSome? (fun x
     => x !! w) l).isSome = true

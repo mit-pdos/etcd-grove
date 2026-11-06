@@ -30,7 +30,7 @@ theorem mvcc.keyCleanRead_of_backendC_holds : mvcc.keyCleanRead_of_backendC_stmt
 theorem mvcc.wsCloserR_split (s st : Loc) (γs : mvcc.StoreNames) (c : Int) (h : mvcc.kbCmpM γs.kb) :
     mvcc.wsCloserR s st γs c ⊢ mvcc.restoreRightM st γs c ∗ ∃ stc, typedPointsto (structFieldRef
     go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" s) stc DFrac.discard ∗
-    mvcc.stopCloser stc ∗ mvcc.wsWaiter s
+    mvcc.stopCloser stc ∗ mvcc.wsWaiter s st γs
 
 def mvcc.restoreBoundM (d' : mvcc.KBReal) (L : mvcc.Log) : Prop :=
   d'.cm = true → mvcc.logCh L < receiptBound GF
@@ -38,6 +38,6 @@ def mvcc.restoreBoundM (d' : mvcc.KBReal) (L : mvcc.Log) : Prop :=
 theorem mvcc.wsCloserR_join (s st : Loc) (γs : mvcc.StoreNames) (c : Int) (h : mvcc.kbCmpM γs.kb) :
     (mvcc.storeCloserM st γs c ∗ ∃ stc, typedPointsto (structFieldRef
     go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" s) stc DFrac.discard ∗
-    mvcc.stopCloser stc ∗ mvcc.wsWaiter s) ⊢ mvcc.wsCloserR s st γs c
+    mvcc.stopCloser stc ∗ mvcc.wsWaiter s st γs) ⊢ mvcc.wsCloserR s st γs c
 
 theorem mvcc.kbCmpM_some_iff (d : mvcc.KBReal) : mvcc.kbCmpM (some d) ↔ d.cm = true

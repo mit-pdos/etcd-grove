@@ -33,7 +33,9 @@ def mvcc.api.mvccTxn_leaseDelete.law : Prop :=
                                                 ⌜σ2 = σ.notify pend⌝ ∗ mvcc.api.mvccState γ σ2.commitPending, COMM
                                                 Q }> }> -∗
                                   ▷
-                                      (threadTok ∗ mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage bk) Pk ∗ Q -∗
+                                      (threadTok ∗
+                                          mvcc.api.mvccReaders γ 1 ∗
+                                            mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage bk) Pk ∗ Q -∗
                                         Ψ (intoVal ())) -∗
                                     WP ((intoVal (methods tw.ty go!"End" tw.v)) (intoVal ())) {{ Ψ }}) -∗
                               Φ (intoVal ())) ⊢
@@ -45,7 +47,7 @@ def mvcc.api.mvccTxn_leaseDelete.law : Prop :=
             (intoVal key))
           {{ Φ }}
 
-theorem mvcc.api.mvccReaderN_eq : mvcc.api.mvccReaderN = backend.rdStockN - 6
+theorem mvcc.api.mvccReaderN_eq : mvcc.api.mvccReaderN = backend.rdStockN - 7
 
 def mvcc.api.etcdStorage_open.law : Prop :=
   ∀ (bk : mvcc.KBReal) (Pk K : backend.BNames → IProp GF) (D : backend.Data) (L : mvcc.Log) (c : Int) (u : Bool),
@@ -122,8 +124,10 @@ def (sealed) mvcc.api.etcdStorage (bk : mvcc.KBReal) : mvcc.api.MvccStorage
 def mvcc.api.backendRest_open.law : Prop :=
   ∀ (γB : backend.BNames) (P : backend.BParams) (K : backend.BNames → IProp GF) (b : Loc) (D : backend.Data),
     mvcc.api.backendRest γB P K b D ⊢
-      backend.isStopChans γB b ∗
-        K γB ∗ backend.plHook γB func.nil ∗ backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b
+      backend.isStopChansE γB P b ∗
+        K γB ∗
+          backend.plHook γB func.nil ∗
+            backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b ∗ backend.rdAuth γB P b
 
 def mvcc.api.mvccImage_fresh.law : Prop :=
   ∀ (D : backend.Data),

@@ -77,11 +77,6 @@ def Perennial.go_etcd_io.etcd.pkg.v3.schedule.get_isPkgInit_wf_inst : GetIsPkgIn
             GetIsPkgInitProp pkg_id.go_uber_org.zap get_is_pkg_init ∧
               GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.pkg.v3.verify get_is_pkg_init ∧ True }
 
-def Perennial.hash.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.hash :=
-  {
-    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
-      get_is_pkg_init pkg_id.hash = isPkgInit pkg_id.hash ∧ GetIsPkgInitProp pkg_id.io get_is_pkg_init ∧ True }
-
 def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.histSpec (h : GoInterfaceOk) : IProp GF :=
   iprop(□
       ∀ x,
@@ -360,9 +355,6 @@ def Perennial.go_opentelemetry_io.otel.trace.get_isPkgInit_wf_inst : GetIsPkgIni
 def Perennial.go_opentelemetry_io.otel.attribute.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.go_opentelemetry_io.otel.attribute :=
   { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
-
-def Perennial.hash.isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.hash :=
-  { isPkgInitDeps := iprop(isPkgInit pkg_id.io ∗ True), isPkgInitDef := iprop(True) }
 
 theorem Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.histSpec_persistent (h : GoInterfaceOk) :
     Persistent (go_etcd_io.etcd.server.v3.storage.mvcc.histSpec h)

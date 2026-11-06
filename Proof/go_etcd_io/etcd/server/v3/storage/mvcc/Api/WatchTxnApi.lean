@@ -24,6 +24,7 @@ import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WsEndSteps
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.Instance
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnHandle
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ReadApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WriteApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
@@ -82,31 +83,22 @@ theorem isTxnWriteT_names (mw s : Loc) (γ : StoreNames) (p p' : PhysNames) (tra
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
   ipureintro; exact Hv.2
 
-/-- The watchable handle's reader, for a thread token, with its way back (the pool's loan and the
-watchable store's `s.mu` slot kept). -/
+/-- The watchable handle's reader of its inner store, for a thread token and a reader ticket, with
+their way back (the locks' pool's loan, the watchable store's `s.mu` slot kept in it). -/
 theorem watchReader_borrow (s st : Loc) (γw : WsNames) (γp : GName) :
-    £ 1 ∗ threadPool.isThreadPool watchRdPoolN γp (watchReader s st γw) ∗ threadTok ⊢
-      |={⊤}=> storeReaderC st γw.st ∗ tokBack st γw.st := by
-  iintro ⟨Hlc, #Hrp, Htok⟩
-  imod threadPool.borrow_lc watchRdPoolN γp _ ⊤ (fun _ _ => CoPset.mem_full)
-    $$ [$Hlc $Hrp $Htok] with ⟨HPR, Hloan⟩
-  iunfold watchReader at HPR
-  icases HPR with ⟨Hrd, Hslot⟩
-  imodintro
-  isplitl [Hrd]
-  · iapply storeReader_toC; iexact Hrd
-  iunfold tokBack
-  iintro Hrd
-  iapply threadPool.giveBack watchRdPoolN γp _ ⊤ (fun _ _ => CoPset.mem_full) $$ [$Hrp $Hloan Hrd Hslot]
-  iunfold watchReader
-  iframe Hslot
-  iapply storeReader_of; iexact Hrd
+    £ 1 ∗ threadPool.isThreadPool watchRdPoolN γp (watchSlots s st γw) ∗ threadTok ∗
+      ownToks γw.st.tk 1 ⊢
+      |={⊤}=> (storeReaderC st γw.st ∗ tokBack st γw.st) := by
+  iintro ⟨Hlc, #Hrp, Htok, Htk⟩
+  ihave #Hsup := mvcc.rdSupply_watch γp s st γw $$ Hrp
+  iapply mvcc.rdSupply_lend st γw.st $$ [$Hsup $Hlc $Htok $Htk]
 
 /-- **`KV.Read.contract` at `*watchableStore`.** -/
 theorem watchableStore.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := hG)) :
     watchableStore.Read.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) mode trace te Q
-  wp_start as ⟨Hmv, Htok, %Htrnn, Htrc, Hau⟩
+  wp_start as ⟨Hmv, Htok, Hrt, %Htrnn, Htrc, Hau⟩
+  iunfold mvccReaders at Hrt
   iunfold isMvcc at Hmv
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   · iunfold isMvccPlain at Hmv
@@ -129,7 +121,7 @@ theorem watchableStore.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := 
   iNamed Hs0
   wp_auto_lc 1
   iapply fupd_wp
-  imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok] with ⟨Hrd, Hback⟩
+  imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok $Hrt] with ⟨Hrd, Hback⟩
   imod crevLb_neg γw.st.idx with #Hlb
   imod ownToks_0 (GF := GF) γw.st.revs with Hnone
   iunfold mvccState at Hau
@@ -190,7 +182,8 @@ supply from `mvccBackend`). -/
 theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     watchableStore.Write.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) trace te q B P Pre Q f R
-  wp_start as ⟨Hmv, Htok, %Htrnn, Htrc, HB, #Hhk, Hpre, Hrun, Hau⟩
+  wp_start as ⟨Hmv, Htok, Hrt, %Htrnn, Htrc, HB, #Hhk, Hpre, Hrun, Hau⟩
+  iunfold mvccReaders at Hrt
   iunfold isMvcc at Hmv
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   · iunfold isMvccPlain at Hmv
@@ -258,7 +251,7 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
   -- the reader, from the pool
   wp_auto_lc 1
   iapply fupd_wp
-  imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok] with ⟨Hrd, Hback⟩
+  imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok $Hrt] with ⟨Hrd, Hback⟩
   imodintro
   wp_apply (hW st (γw.st.withPhys p) trace P Pre Q hk dq te (-1) iprop(True) _ o
       (api.shareTok γw.st.api q)
@@ -364,10 +357,13 @@ theorem watchableStoreTxnWrite.End.wp_api
     iunfold tokBack at Hback
     ihave Hrd : storeReaderC s (γ.withPhys p) $$ [Hrd]
     · rw [← hγw]; iexact Hrd
-    imod Hback $$ Hrd with Htok
+    imod Hback $$ Hrd with ⟨Htok, Hrt⟩
+    ihave Hrt : ownToks (GF := GF) γ.tk 1 $$ [Hrt]
+    · rw [← StoreNames.withPhys_tk γ p]; iexact Hrt
     imodintro
     iapply HΦ
-    iframe Htok HQ
+    iunfold mvccReaders
+    iframe Htok Hrt HQ
     iunfold mvccBackend
     iframe HF
     iexists p, o', d

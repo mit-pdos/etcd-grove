@@ -125,7 +125,8 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
     wp_auto
     wp_for_post
     wp_apply hStop $$ [$Ht]
-    wp_apply mvcc.wp_wsDone s $$ [$Hsync $Hdone]
+    ihave Hsrd := mvcc.watchReader_storeReader s st γ $$ HR
+    wp_apply mvcc.wp_wsDone s st γ.st $$ [$Hsync $Hdone $Hsrd]
     iapply HΦ
     itrivial
   iapply BigAndL.bigAndL_nil.2

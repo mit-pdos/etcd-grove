@@ -8,7 +8,7 @@ theorem mvcc.store.Close.wp_proof (wp_Stop : schedule.Scheduler.Stop.spec) : mvc
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isStore s γ ∗ mvcc.storeCloserM s γ c -∗
-          ▷ (True -∗ Φ (intoVal GoInterface.nil)) -∗
+          ▷ ((mvcc.compactJobResM γ.kb ∗ £ 1 ∗ ∃ dq o, mvcc.curAt γ dq o) -∗ Φ (intoVal GoInterface.nil)) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType go!"Close"

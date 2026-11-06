@@ -3,8 +3,8 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 theorem mvcc.wp_Errorf_errorfIs [errors_sem : errors.Assumptions] [fmt_sem : fmt.Assumptions]
-    (format : GoString) (args_sl : GoSlice) (args : List GoAny) : ⊢ ∀ Φ, isPkgInit pkg_id.fmt ∗
-    ownSlice args_sl args (DFrac.own 1) -∗ (▷ ∀ err, mvcc.errorfIs err -∗ Φ (intoVal err)) -∗ WP
+    (format : GoString) (args_sl : GoSlice) (_hfmt : ¬W8 37 ∈ format) : ⊢ ∀ Φ, isPkgInit pkg_id.fmt
+    ∗ ownSlice args_sl [] (DFrac.own 1) -∗ (▷ ∀ err, mvcc.errorfIs err -∗ Φ (intoVal err)) -∗ WP
     (((intoVal (functions fmt.Errorf [])) (intoVal format)) (intoVal args_sl)) {{ Φ }}
 
 theorem mvcc.wp_New_errorString [errors_sem : errors.Assumptions] [fmt_sem : fmt.Assumptions] (msg :

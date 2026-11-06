@@ -210,12 +210,21 @@ theorem NewStore.wp_proof
     with ⟨HRT, HRTw, Hret, Hcur⟩
   -- the readers' supply from the rest (track A, request 3): every thread but one
   have hpool : threadBound GF ≤ (nReaders - nJobRd (some bk) - 2) + 1 := by
-    have h1 : mvccReaderN = backend.rdStockN - 6 := rfl
+    have h1 : mvccReaderN = backend.rdStockN - 7 := rfl
     have h2 : nReaders = backend.rdStockN - 2 := rfl
-    have : 6 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
+    have : 7 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
     have : nJobRd (some bk) ≤ 1 := nJobRd_le (some bk)
     omega
-  imod rdSupply_init ((nroot .@ "mvcc") .@ "storeRdPool") s γ _ hpool $$ Hrds with #Hsupp
+  imod rdSupply_init ((nroot .@ "mvcc") .@ "storeRdPool") s γ _ hpool $$ Hrds with ⟨#Hsupp, Htks⟩
+  -- (the reader tokens, 2026-11-06) the tickets: `mvccReaderN` the client's, two the open token's
+  have hN : nReaders - nJobRd (some bk) - 2 = 2 + mvccReaderN := by
+    have h1 : mvccReaderN = backend.rdStockN - 7 := rfl
+    have h2 : nReaders = backend.rdStockN - 2 := rfl
+    have : 7 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
+    have : nJobRd (some bk) = 1 := by simp [nJobRd, hcm]
+    omega
+  rw [hN] at *
+  icases (ownToks_add mvccReaderN 2 γ.tk).1 $$ Htks with ⟨Htk2, Htks⟩
   -- the certificate map's free entry
   imod ghost_map_insert_persist (W64 0) ([] : Log) (GMap.lookup_empty _) $$ Hcok with ⟨-, #Hfree⟩
   ihave #Hfree' : certFree (GF := GF) γ $$ []
@@ -257,7 +266,7 @@ theorem NewStore.wp_proof
     simp only [MvccState.notifiedLog]
     iframe Hab Hpn Hcr2 Hnl
     iframe Hr0'; ipureintro; exact MvccReachable.start
-  isplitl [Hright Hcr4 HRT HRTw Hret HfsQ Hwsd]
+  isplitl [Hright Hcr4 HRT HRTw Hret HfsQ Hwsd Htk2]
   · iunfold mvccOpen
     iexists s, γ.phys, (-1)
     rw [StoreNames.withPhys_self]
@@ -280,7 +289,7 @@ theorem NewStore.wp_proof
     simp only [Bool.false_eq_true, ↓reduceIte]
     isplitr
     · ipureintro; show kbCmpM γ.phys.kb; rw [show γ.phys.kb = some bk from hγk]; exact hcm
-    iframe HfsQ Hwsd
+    iframe HfsQ Hwsd Htk2
   isplitl [Htok Hcur]
   · iunfold mvccBackend
     iframe Htok
@@ -298,6 +307,8 @@ theorem NewStore.wp_proof
     isplitr
     · iexact Hwts
     ipureintro; exact hlp
+  isplitl [Htks]
+  · iunfold mvccReaders; iexact Htks
   iexists rd
   iframe Hro
   iapply (mvccDeleter_of hTODO _ _ (store.Write.wp_api hWr s) rd γ) $$ [$Hpkg $Hmv $Hrc]

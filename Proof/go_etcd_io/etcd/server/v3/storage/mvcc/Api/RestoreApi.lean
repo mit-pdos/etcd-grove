@@ -673,7 +673,7 @@ theorem store.Restore.wp_api
   -- the plain open token's fields' quarter and deposit
   iunfold openRest at Hor
   simp only [Hwq, Bool.false_eq_true, ↓reduceIte]
-  icases Hor with ⟨%hcmo, HfsQ, Hwsd⟩
+  icases Hor with ⟨%hcmo, HfsQ, Hwsd, Htk2⟩
   -- the internal `Restore`, at the store's current names (the first log as its `L`)
   iapply (hRst s ((γ : StoreNames).withPhys p) (storageVal (d' : MvccStorage)) d'
       γ.bucket Pk' [[], []] R c r L iprop(crevAuth γ.api (1 : Qp).half.half r.crev ∗ ∃ σ, Q σ)
@@ -743,7 +743,7 @@ theorem store.Restore.wp_api
     rw [show ((γ : StoreNames).withPhys p).kb = some d from hpk]; simp [nJobRd, hcm]
   iapply HΦ
   iframe Htt Hres Hhook
-  isplitl [Hcl Hcra' Hnew HfsQ Hwsd Hwo']
+  isplitl [Hcl Hcra' Hnew HfsQ Hwsd Hwo' Htk2]
   · iunfold mvccOpen
     iexists s, p'', r.crev
     iframe Hloc
@@ -754,7 +754,7 @@ theorem store.Restore.wp_api
     · rw [show p''.kb = some d' from hp''.2]; iexact Hwts'
     isplitr
     · ipureintro; exact CmpRecs.crev_ge _ r hrec
-    isplitl [HfsQ Hwsd]
+    isplitl [HfsQ Hwsd Htk2]
     · iunfold openRest
       simp only [Hwq, Bool.false_eq_true, ↓reduceIte]
       isplitr
@@ -765,7 +765,9 @@ theorem store.Restore.wp_api
         iexists p0, o0
         simp only [StoreNames.withPhys_withPhys] at *
         iexact Hf
-      iunfold wsDep at Hwsd; iunfold wsDep; simp only [StoreNames.withPhys_wsd] at *; iexact Hwsd
+      isplitl [Hwsd]
+      · iunfold wsDep at Hwsd; iunfold wsDep; simp only [StoreNames.withPhys_wsd] at *; iexact Hwsd
+      iexact Htk2
     iexact Hwo'
   isplitl [HF Hfrag]
   · iunfold mvccBackend

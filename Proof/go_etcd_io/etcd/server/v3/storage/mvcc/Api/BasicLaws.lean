@@ -67,8 +67,9 @@ theorem reach_len (σ : MvccState) (h : MvccReachable σ) :
 theorem persistent.law_holds : persistent.law (GF := GF) := by
   refine ⟨fun kv γ => inferInstance, fun ws γ ι => inferInstance, fun ι n => inferInstance,
     fun B f => inferInstance, fun B Pk X Y => ?_, fun γ σ => inferInstance,
-    fun ι S => inferInstance, fun ι rs => inferInstance, fun γ B Pk => inferInstance⟩
-  unfold storageReq; infer_instance
+    fun ι S => inferInstance, fun γ n => ?_, fun ι rs => inferInstance, fun γ B Pk => inferInstance⟩
+  · unfold storageReq; infer_instance
+  · unfold mvccReaders; infer_instance
 
 /-- The store's receipt bound, from its handle. -/
 theorem isMvcc_rb (kv : GoInterface) (γ : MvccName) :

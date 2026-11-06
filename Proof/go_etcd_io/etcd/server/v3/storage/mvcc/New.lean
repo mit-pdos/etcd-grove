@@ -59,12 +59,19 @@ theorem mvcc.New.wp_proof
   imod ownTokAuth_alloc (GF := GF) with ⟨%γd, Hauth⟩
   imod ownTokAuth_add 2 γd 0 $$ Hauth with ⟨Hauth, Hdone⟩
   icases (ownToks_add 1 1 γd).1 $$ Hdone with ⟨Hd1, Hd2⟩
-  imod inv_alloc mvcc.wsWgN ⊤ (mvcc.wsWgInv γwg γd) $$ [Hctr Hauth] with #Hinv
+  -- (R-D1) the closer's claim on the loops' readers
+  imod token_alloc (GF := GF) with ⟨%γw, Hγw⟩
+  imod inv_alloc mvcc.wsWgN ⊤ (mvcc.wsWgInv st γ.st γwg γd γw) $$ [Hctr Hauth] with #Hinv
   · inext
     iunfold mvcc.wsWgInv
-    iexists W32 2, 0 + 2
+    iexists W32 2, 0 + 2, 0
     iframe Hctr Hauth
-    ipureintro; decide
+    isplitr
+    · ipureintro; exact ⟨by decide, rfl⟩
+    ileft
+    rw [List.replicate_zero]
+    iapply BigSepL.bigSepL_nil_intro
+    iempintro
   have hN : 2 ≤ mvcc.nReaders - mvcc.nJobRd kb := by
     have := mvcc.nReaders_val
     have := mvcc.nJobRd_le kb
@@ -74,14 +81,14 @@ theorem mvcc.New.wp_proof
   wp_apply wp_fork $$ [Hr1 Hd1]
   · wp_apply hSWL s st γ $$ [$Hws $Hr1 Hd1]
     · iunfold mvcc.wsDone
-      iexists γwg, γd
+      iexists γwg, γd, γw
       iframe HisWg Hinv Hd1
     itrivial
   (try wp_auto)
   wp_apply wp_fork $$ [Hr2 Hd2]
   · wp_apply hSVL s st γ $$ [$Hws $Hr2 Hd2]
     · iunfold mvcc.wsDone
-      iexists γwg, γd
+      iexists γwg, γd, γw
       iframe HisWg Hinv Hd2
     itrivial
   (try wp_auto)
@@ -94,8 +101,8 @@ theorem mvcc.New.wp_proof
   iexists stc
   iframe Hstc Hstop Hsclose
   iunfold mvcc.wsWaiter
-  iexists γwg, γd
-  iframe HisWg Hinv Hwaiters
+  iexists γwg, γd, γw
+  iframe HisWg Hinv Hwaiters Hγw
 
 end proof
 

@@ -5,8 +5,8 @@
 theorem mvcc.storeTxnCommon.rangeKeys.wp_proof (hCount : mvcc.treeIndex.CountRevisions.spec) (hRange
     : mvcc.treeIndex.Range.spec) (hRevs : mvcc.treeIndex.Revisions.spec) (hCap :
     mvcc.sliceCapWithLimit.spec) (hNew : mvcc.NewRevBytes.spec) (hRevTo : mvcc.RevToBytes.spec)
-    (hStep : traceutil.Trace.Step.spec) (hUnm : proto.Unmarshal.spec) :
-    mvcc.storeTxnCommon.rangeKeys.spec
+    (hStep : traceutil.Trace.Step.spec) (hUnm : proto.Unmarshal.spec) (hWrap : fmt.ErrorfWrap.spec)
+    : mvcc.storeTxnCommon.rangeKeys.spec
   -- `Perennial.EtcdGrove.mvcc.storeTxnCommon.rangeKeys.spec`, unfolded:
   ∀ (txc s trace ti : Loc) (rt : GoInterfaceOk) (dq : DFrac) (m : mvcc.Bucket) (R : IProp GF) (γ : mvcc.StoreNames)
     (kn : mvcc.IdxKnow) (log : mvcc.Log) (rev : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))

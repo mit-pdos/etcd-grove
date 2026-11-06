@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchStream.RequestProgressAll.wp_proof :
     mvcc.watchStream.RequestProgressAll.spec (GF := GF) (hG := hG) := by
   intro w γ ι
-  wp_start as ⟨Hws, Htt⟩
+  wp_start as ⟨Hws, Htt, Hrt⟩
   icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
     ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, #Htp, #Hrp, #Hpf⟩
   obtain ⟨hι, hγ⟩ := hι
@@ -41,8 +41,9 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
   iNamed Hws
   wp_auto_lc 1
   iapply fupd_wp
-  imod threadPool.borrow_lc mvcc.watchRdPoolN γp _ ⊤ (fun _ _ => CoPset.mem_full)
-    $$ [$Hlc1 $Hrp $Htt] with ⟨HPR, Hloan⟩
+  ihave Hrt : ownToks (GF := GF) γw.st.tk 1 $$ [Hrt]
+  · iunfold mvcc.api.mvccReaders at Hrt; (try rw [hγ]); iexact Hrt
+  imod mvcc.watchReader_lend s st γw γp $$ [$Hlc1 $Hrp $Htt $Hrt] with ⟨HPR, Hloan⟩
   imodintro
   ihave HPR : (mvcc.storeWatchParams s st γw).R $$ [HPR]
   · simp only [mvcc.storeWatchParams]; iexact HPR
@@ -85,11 +86,12 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
       iframe #
       ipureintro; exact ⟨Hdom, Hnn⟩
     simp only [mvcc.storeWatchParams]
-    imod threadPool.giveBack mvcc.watchRdPoolN γp _ ⊤ (fun _ _ => CoPset.mem_full)
-      $$ [$Hrp $Hloan $HPR] with Htt
+    imod Hloan $$ HPR with ⟨Htt, Hrt⟩
+    ihave Hrt : mvcc.api.mvccReaders (GF := GF) γ 1 $$ [Hrt]
+    · iunfold mvcc.api.mvccReaders; (try rw [← hγ]); iexact Hrt
     imodintro
     iapply HΦ
-    iframe Htt
+    iframe Htt Hrt
   | false =>
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hcl with ⟨%L, HCR, #HL, %Hcnt⟩
@@ -111,11 +113,12 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
       iframe #
       ipureintro; exact ⟨Hdom, Hnn, Hcnt⟩
     simp only [mvcc.storeWatchParams]
-    imod threadPool.giveBack mvcc.watchRdPoolN γp _ ⊤ (fun _ _ => CoPset.mem_full)
-      $$ [$Hrp $Hloan $HPR] with Htt
+    imod Hloan $$ HPR with ⟨Htt, Hrt⟩
+    ihave Hrt : mvcc.api.mvccReaders (GF := GF) γ 1 $$ [Hrt]
+    · iunfold mvcc.api.mvccReaders; (try rw [← hγ]); iexact Hrt
     imodintro
     iapply HΦ
-    iframe Htt
+    iframe Htt Hrt
 
 end proof
 

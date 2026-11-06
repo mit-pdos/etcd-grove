@@ -86,7 +86,8 @@ theorem writeCb_of_au (γ : StoreNames) (p : PhysNames) (R : MvccState → IProp
 theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     store.Write.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) trace te q B P Pre Q f R
-  iintro %Φ ⟨#Hpkg, Hmv, Htok, %Htrnn, Htrc, HB, #Hhk, Hpre, Hrun, Hau⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hmv, Htok, Hrt, %Htrnn, Htrc, HB, #Hhk, Hpre, Hrun, Hau⟩ HΦ
+  iunfold mvccReaders at Hrt
   -- the handle: a plain store
   iunfold isMvcc at Hmv
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
@@ -109,7 +110,7 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
   rw [show (hookIs d f : IProp GF) = backend.plHookRO d.γB f from rfl] at *
   -- the writer's resources: the reader from the handle's supply, the write-back supply the share's,
   -- the token and the pin the writer's state's (a store without watchers)
-  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Htok] with ⟨Hrd, Hback⟩
+  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Htok $Hrt] with ⟨Hrd, Hback⟩
   ihave Hrd : ▷ storeReaderC (GF := GF) s (γ.withPhys p) $$ [Hrd]
   · rw [storeReaderC_withPhys]; iexact Hrd
   ihave Hback : tokBack (GF := GF) s (γ.withPhys p) $$ [Hback]

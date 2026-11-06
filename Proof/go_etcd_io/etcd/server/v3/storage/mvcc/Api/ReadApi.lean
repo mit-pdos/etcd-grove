@@ -77,7 +77,8 @@ theorem readCbC_of_au (γ : StoreNames) (Q : MvccState → IProp GF) :
 theorem store.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := hG)) :
     store.Read.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) mode trace te Q
-  iintro %Φ ⟨#Hpkg, Hmv, Htok, %Htrnn, Htrc, Hau⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hmv, Htok, Hrt, %Htrnn, Htrc, Hau⟩ HΦ
+  iunfold mvccReaders at Hrt
   -- the handle: a plain store
   iunfold isMvcc at Hmv
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
@@ -92,7 +93,7 @@ theorem store.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := hG)) :
   icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -, #Hsup, -⟩
   have hs : s = s' := mkOk_loc_inj _ Hk
   subst hs
-  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Htok] with ⟨Hrd, Hback⟩
+  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Htok $Hrt] with ⟨Hrd, Hback⟩
   imod crevLb_neg γ.idx with #Hlb
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   ihave #Hs0 := Hs

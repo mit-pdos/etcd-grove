@@ -2095,3 +2095,69 @@ placeholders removed and `M1Placeholders.lean` deleted):
 build, which the server's migration (red: `SnapApplyDefs`, `EtcdServer.*`, the old `watchWriter`
 and `rdIs` users) blocks; the mvcc collection's report then. The server's and the tester's
 migration onto the API (other tracks).
+
+## Hand-off: the reader tokens (2026-11-06)
+
+The decision `notes/decisions.md`, "mvcc's API: the store's readers as client-held tokens",
+implemented. No `AU` of any contract changed; no axiom, no `sorry`; `ApiResults.lean` (68 linked
+results: the 66, and the two new laws) and `Results.lean` (127) print no `sorryAx`.
+
+**The design as built.** A store reader (`storeReaderC s γ`) is the slots of the store's two locks
+(`storeSlots`: `s.mu`, `s.revMu`) and a ticket of the readers' pool (`ownToks γ.tk 1`), the pool
+(`readerPool`, in `isStore`) holding the backend's reader slots at the current storage (S4/S5a's
+design, unchanged; `Restore` already swapped them). The token is the ticket:
+`mvccReaders γ n := ownToks γ.tk n` (sealed; phys-independent, so `Restore` leaves it alone). The
+lock slots stay in the handles' thread pools (`rdSupply`, `isMvccWatchable`'s and the stream's pool,
+now of `watchSlots`: a `watchReader` without its ticket), borrowed for a `threadTok` as before
+(`Api/RdSupply.lean`: `storeReaderC_split`, `watchReader_split`, `rdSupply_lend[L]` and
+`watchReader_lend` take a thread token **and** a ticket; `tokBack` gives both back).
+
+**Counts.** `mvccReaderN := rdStockN - 7` (was `- 6`): the store's `nReaders = rdStockN - 2`
+readers less the job's, the compactor's and the writer's (retired, the open token's), and two more:
+a watchable store's loops' (left at their `Done` and taken back by `Close` after `Wait`: lean's R-D1
+wait-group invariant ported, `wsWgInv st γs ...`, `wsDone s st γs`, `wsWaiter s st γs`, at names
+without physical part); a plain store keeps two tickets in `openRest` instead, so both kinds give
+`mvccReaderN` tokens and `Close` the same two more. The pools' sizes did not change, so `New`'s
+premise `threadBound ≤ mvccReaderN` still suffices (needed: `≤ mvccReaderN + 1`).
+
+**Contracts that gained `mvccReaders γ 1`** (each borrows a backend reader slot: `store.Read`/`Write`/
+`Commit`, a read view's `Rev`/`FirstRev`/`Range` through `store.Read`, the watchable store's calls
+through a `watchReader`): `KV.Read`, `KV.Write` (the transaction keeps it; `Txn.End` gives
+`threadTok ∗ mvccReaders γ 1` for both kinds), `KV.Rev`, `KV.FirstRev`, `KV.Range`, `KV.Put`,
+`KV.DeleteRange`, `KV.Commit`, `WatchStream.Watch`, `WatchStream.RequestProgress`,
+`WatchStream.RequestProgressAll`, `WatchStream.Rev`, `mvccDeleter`'s triple (a `Write`), and
+`mvccTxn_leaseDelete.law`'s `End` continuation. Not: `Compact` (the open token's compactor reader),
+`Restore` (no read), `HashStorage`, `NewWatchStream`, `WatchStream.Chan/Cancel/Close`, the `Txn.*`
+calls (the transaction holds its reader), `Close`.
+
+**New.** `mvccReaders`, `mvccClosed` (sealed); `New`/`NewStore` post `mvccReaders γ mvccReaderN`;
+`KV.Close.contract` posts `mvccClosed γ` (the closer's `curAt` part, the open token's two retired
+readers and retired count, two tickets, the job's reader `compactJobResM`, `readerPool`, `£ 1`);
+`mvccReaders_split.law`, `mvccClosed_rest.law` (`mvccClosed γ ∗ mvccReaders γ mvccReaderN ∗
+mvccBackend γ q B Pk ={⊤}=∗ storageRest B ∗ mvccBackend γ q B Pk`, `Api/ClosedLaw.lean`: one bulk
+retirement, `ReaderRetire.readerPool_retireN`, then `storeRTs_shares` at `nReaders`); `persistent.law`
+gains the tokens' timelessness. Internal specs: `store.Close` posts `compactJobResM γ.kb ∗ £ 1 ∗ ∃ dq
+o, curAt γ dq o` (lean's R-D1 proof, plus the pin and a credit); `watchableStore.Close` the loops'
+readers too; the loops' specs take `wsDone s st γ.st`. `ReaderRetire.lean` built again.
+
+**For etcd's server** (other tracks; not edited here): the census becomes, with the server's own
+pieces as on `lean` (the backend's half open token, the pool's and the auth store's shares, its two
+counted slots from `etcdStorage_open.law`, each `rdTok ∗ bOpen rdOpen`):
+`mvccClosed γ ∗ mvccReaders γ mvccReaderN ∗ mvccBackend γ q (etcdStorage d) Pk ={⊤}=∗
+storageRest (etcdStorage d) ∗ …`, `etcdStorage_rest` unfolding `storageRest` to
+`rdStockN - 2` shares of `bOpen d.γB rdOpen`; those, the two kept slots' shares (`rdStockN` in all),
+the half and the pool's shares give `bOpen d.γB 1` (`backend.bOpen_one_pool`), in place of
+`stop_census`'s `wsCloseRes … ={⊤}=∗ bOpen d.γB 1`. The server must hold every reader token back
+before `be.Close()`: its read paths (apply, request path, v3rpc, the lessor's deleter, the storage
+version monitor) each hold one per call; `Cleanup` needs a gate that waits for them (the crash in
+`issues/etcd-read-after-backend-close-panic.md` is exactly a read still holding one).
+
+**Checks**: every module of `{Proof,Spec}/.../storage/mvcc` builds (441); interfaces regenerated
+(`etc/gen-interface.py etc/api/mvcc.txt`; also refreshes five interfaces the `lean` merge had left
+stale: `Base`, `Errorf`, `InvStore`, `InvWatchStore`, `storeTxnCommon__rangeKeys`); `--layout`: no
+new violation; `etc/api-check.py etc/api/mvcc.txt --check`: mvcc's own modules pass (its two errors
+are the server's `NewServer`/`StopShutdown` importing `ReaderRetire`, `lean`'s census, to be
+replaced by the law).
+
+**Left**: the clients (server, apply, txn, lease,
+v3rpc, client/v3, examples, the tester) to thread the tokens; the TCB baseline after a full build.

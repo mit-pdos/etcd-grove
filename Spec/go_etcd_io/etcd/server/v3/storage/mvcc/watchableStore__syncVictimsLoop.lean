@@ -24,11 +24,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `s.syncVictimsLoop()` (a goroutine `New` starts), with reader slots of the store and a done
 token of its wait group: resends the victims' batches (`moveVictims`, while it moves some), then
 waits for a tick (if victims are left), a new victim (`victimc`) or the stop channel's close,
-until the latter, then `s.wg.Done()`. It returns (no panic). -/
+until the latter, then `s.wg.Done()`. It returns (no panic), (R-D1) its reader of the inner store
+left at its deferred `Done`, for the closer (`wsWgInv`). -/
 abbrev mvcc.watchableStore.syncVictimsLoop.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchableStore s st γ ∗ mvcc.watchReader s st γ ∗ mvcc.wsDone s }}
+      mvcc.isWatchableStore s st γ ∗ mvcc.watchReader s st γ ∗ mvcc.wsDone s st γ.st }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"syncVictimsLoop")) (Val #()))
   {{ RET #(); True }}
 

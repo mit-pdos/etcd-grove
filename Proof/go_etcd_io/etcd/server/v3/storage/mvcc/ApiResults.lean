@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.BasicLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CloseApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ClosedLaw
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpCb
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CommitApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.EndApi
@@ -224,6 +225,12 @@ theorem mvccApi_wsChan_recv_law_holds : wsChan_recv.law (GF := GF) :=
 theorem mvccApi_excl_law_holds : excl.law (GF := GF) :=
   excl.law_holds
 
+theorem mvccApi_mvccReaders_split_law_holds : mvccReaders_split.law (GF := GF) :=
+  mvccReaders_split.law_holds
+
+theorem mvccApi_mvccClosed_rest_law_holds : mvccClosed_rest.law (GF := GF) :=
+  mvccClosed_rest.law_holds
+
 theorem mvccApi_watchableStore_Read_wp_api : watchableStore.Read.spec (GF := GF) :=
   watchableStore.Read.wp_api
     mvcc.store.wp_Read
@@ -381,6 +388,8 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_wsSentLb_zero_law_holds
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_wsChan_recv_law_holds
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_excl_law_holds
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_mvccReaders_split_law_holds
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_mvccClosed_rest_law_holds
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStore_Read_wp_api
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStore_Write_wp_api
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStoreTxnWrite_End_wp_api

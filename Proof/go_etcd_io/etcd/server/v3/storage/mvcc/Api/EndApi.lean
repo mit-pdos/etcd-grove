@@ -113,10 +113,11 @@ theorem metricsTxnWrite.End.wp_api (hEnd : mvcc.metricsTxnWrite.End.spec (GF := 
     inext
     iintro ⟨Hrd, -, -, -, -⟩
     iunfold tokBack at Hback
-    imod Hback $$ Hrd with Htok
+    imod Hback $$ Hrd with ⟨Htok, Hrt⟩
     imodintro
     iapply HΦ
-    iframe Htok
+    iunfold mvccReaders
+    iframe Htok Hrt
   | write σ₀ pend =>
     simp only [mvccTxnI]
     icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree, Hwrap⟩
@@ -158,10 +159,13 @@ theorem metricsTxnWrite.End.wp_api (hEnd : mvcc.metricsTxnWrite.End.spec (GF := 
     simp only [txnEndXPost]
     icases HGR with ⟨HF, HQ⟩
     iunfold tokBack at Hback
-    imod Hback $$ Hrd with Htok
+    imod Hback $$ Hrd with ⟨Htok, Hrt⟩
+    ihave Hrt : ownToks (GF := GF) γ.tk 1 $$ [Hrt]
+    · rw [← StoreNames.withPhys_tk γ p]; iexact Hrt
     imodintro
     iapply HΦ
-    iframe Htok HQ
+    iunfold mvccReaders
+    iframe Htok Hrt HQ
     iunfold mvccBackend
     iframe HF
     iexists p, o', d

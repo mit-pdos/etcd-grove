@@ -8,7 +8,10 @@ def mvcc.watchableStore.Close.spec : Prop :=
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.isWatchableStore s st γ ∗ mvcc.wsCloserM s st γ.st c -∗
-          ▷ (True -∗ Φ (intoVal GoInterface.nil)) -∗
+          ▷
+              ((([∗list] _x ∈ List.replicate mvcc.wsLoopN (), mvcc.storeReader st γ.st) ∗
+                  mvcc.compactJobResM γ.st.kb ∗ £ 1 ∗ ∃ dq o, mvcc.curAt γ.st dq o) -∗
+                Φ (intoVal GoInterface.nil)) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType

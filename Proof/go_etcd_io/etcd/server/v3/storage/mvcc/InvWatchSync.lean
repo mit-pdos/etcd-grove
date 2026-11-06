@@ -27,6 +27,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Perennial.Proof.sync
+public import Perennial.Ghost.Token
 
 @[expose] public section
 
@@ -96,22 +97,49 @@ def moverRes (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) : IProp 
 
 /-! ## The loops' wait group and stop channel -/
 
-/-- The store's wait-group counter (an invariant, in `wsWgN`): the counter is the number `n` of
-done tokens out (`γd`: one per running loop, `wsDone`). -/
-def wsWgInv (γwg : sync.WaitGroupNames) (γd : GName) : IProp GF :=
-  iprop(∃ (ctr : w32) (n : Nat), sync.ownWaitGroup γwg ctr ∗ ownTokAuth γd n ∗
-    ⌜sint.Z ctr = (n : Int)⌝)
+/-- **The number of the store's loops** (`syncWatchersLoop`, `syncVictimsLoop`): `New`'s
+`s.wg.Add(2)`, the readers `New` lends them and `watchableStore.Close` returns (R-D1, 2026-11-04;
+ported onto mvcc-api's API, 2026-11-06: the readers at names without physical part). -/
+abbrev wsLoopN : Nat := 2
 
-/-- A loop's right to call `s.wg.Done()` once (a done token). -/
-def wsDone (s : Loc) : IProp GF :=
-  iprop(∃ (γwg : sync.WaitGroupNames) (γd : GName),
-    sync.isWaitGroup (wsWgAddr s) γwg wsWgWGN ∗ inv wsWgN (wsWgInv γwg γd) ∗ ownToks γd 1)
+/-- The store's wait-group counter (an invariant, in `wsWgN`; allocated by `New` after
+`s.wg.Add(2)`, at `n = wsLoopN`, `d = 0`): the counter is the number `n` of done tokens out (`γd`:
+one per running loop, `wsDone`); (R-D1) each loop that has called `Done` has left its reader of the
+inner store `st` there (`d` of them, `n + d = wsLoopN`), until the closer, after `Wait` (`n = 0`),
+takes them with its claim `token γw` (`wsWaiter`). The readers are at the inner store's names `γs`,
+of which they read no physical part (`storeReader_withPhys`), so a restore leaves them alone. -/
+def wsWgInv (st : Loc) (γs : StoreNames) (γwg : sync.WaitGroupNames) (γd γw : GName) : IProp GF :=
+  iprop(∃ (ctr : w32) (n d : Nat), sync.ownWaitGroup γwg ctr ∗ ownTokAuth γd n ∗
+    ⌜sint.Z ctr = (n : Int) ∧ n + d = wsLoopN⌝ ∗
+    (([∗list] _x ∈ List.replicate d (), storeReader st γs) ∨ token γw))
 
-/-- The closer's right to call `s.wg.Wait()` (no other waiter, no more `Add`). -/
-def wsWaiter (s : Loc) : IProp GF :=
-  iprop(∃ (γwg : sync.WaitGroupNames) (γd : GName),
-    sync.isWaitGroup (wsWgAddr s) γwg wsWgWGN ∗ inv wsWgN (wsWgInv γwg γd) ∗
-    sync.ownWaitGroupWaiters γwg 0)
+/-- A loop's right to call `s.wg.Done()` once (a done token), leaving there its reader of `st`
+(R-D1). -/
+def wsDone (s st : Loc) (γs : StoreNames) : IProp GF :=
+  iprop(∃ (γwg : sync.WaitGroupNames) (γd γw : GName),
+    sync.isWaitGroup (wsWgAddr s) γwg wsWgWGN ∗ inv wsWgN (wsWgInv st γs γwg γd γw) ∗ ownToks γd 1)
+
+/-- The closer's right to call `s.wg.Wait()` (no other waiter, no more `Add`), and (R-D1) to take
+the loops' readers of `st` after it (`token γw`). -/
+def wsWaiter (s st : Loc) (γs : StoreNames) : IProp GF :=
+  iprop(∃ (γwg : sync.WaitGroupNames) (γd γw : GName),
+    sync.isWaitGroup (wsWgAddr s) γwg wsWgWGN ∗ inv wsWgN (wsWgInv st γs γwg γd γw) ∗
+    sync.ownWaitGroupWaiters γwg 0 ∗ token γw)
+
+/-- A loop's reader of the watchable store holds a reader of the inner store (what it leaves at its
+`Done`, R-D1). -/
+theorem watchReader_storeReader (s st : Loc) (γ : WsNames) :
+    watchReader (GF := GF) s st γ ⊢ storeReader st γ.st := by
+  iintro H
+  iunfold watchReader at H
+  icases H with ⟨H, -⟩
+  iexact H
+
+/-- The waiter at other physical names is the same (the restore path's closers): the readers it
+waits for read no physical part of the names. -/
+theorem wsWaiter_withPhys (s st : Loc) (γs : StoreNames) (p : PhysNames) :
+    wsWaiter (GF := GF) s st (γs.withPhys p) = wsWaiter s st γs := by
+  rfl
 
 -- `stopCloser`: `InvStore.lean` (2026-10-13: the store's stop channel uses it too).
 
@@ -119,7 +147,7 @@ def wsWaiter (s : Loc) : IProp GF :=
 channel's close, the wait for the loops, and the inner store's close (`storeCloser`, at the
 inner store's names `γs`: its scheduler's stop token, D19m (C), 2026-10-18). -/
 def wsCloser (s st : Loc) (γs : StoreNames) : IProp GF :=
-  iprop(∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s ∗
+  iprop(∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s st γs ∗
     storeCloser st γs)
 
 theorem wsWg_maskW : (↑wsWgWGN : CoPset) ⊆ ⊤ \ ↑wsWgN :=
@@ -128,22 +156,22 @@ theorem wsWg_maskW : (↑wsWgWGN : CoPset) ⊆ ⊤ \ ↑wsWgN :=
 theorem wsWg_maskN : (↑wsWgN : CoPset) ⊆ ⊤ \ ↑wsWgWGN :=
   sync.wg_mask_ndot_ne (nroot .@ "mvcc") "wgCounter" "waitGroup" (by decide)
 
-/-- `s.wg.Done()` with a done token. -/
-theorem wp_wsDone (s : Loc) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ wsDone s }}
+/-- `s.wg.Done()` with a done token, leaving the loop's reader of `st` (R-D1). -/
+theorem wp_wsDone (s st : Loc) (γs : StoreNames) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ wsDone s st γs ∗ storeReader st γs }}
       (App (Val (wsWgAddr s @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
     {{ RET #(); True }} := by
-  iintro %Φ ⟨#Hsync, Hd⟩ HΦ
+  iintro %Φ ⟨#Hsync, Hd, Hrd⟩ HΦ
   iunfold wsDone at Hd
-  icases Hd with ⟨%γwg, %γd, #Hwg, #Hinv, Htok⟩
-  iapply sync.WaitGroup.wp_Done (wsWgAddr s) γwg wsWgWGN $$ [] [Htok HΦ]
+  icases Hd with ⟨%γwg, %γd, %γw, #Hwg, #Hinv, Htok⟩
+  iapply sync.WaitGroup.wp_Done (wsWgAddr s) γwg wsWgWGN $$ [] [Htok Hrd HΦ]
   · iframe #
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro wsWg_maskW
   iintro Hmask
   inext
   iunfold wsWgInv at Hi
-  icases Hi with ⟨%ctr, %n, Hwgo, Hauth, %Hctr⟩
+  icases Hi with ⟨%ctr, %n, %d, Hwgo, Hauth, %Hctr, Hdep⟩
   icombine Hauth Htok gives %Hle
   obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
   have hlt : sint.Z ctr < 2 ^ 31 := by word
@@ -154,14 +182,21 @@ theorem wp_wsDone (s : Loc) :
   iintro Hwgo
   imod Hmask with -
   imod ownTokAuth_delete_S γd n' $$ Hauth Htok with Hauth
-  imod Hclose $$ [Hwgo Hauth] with -
+  imod Hclose $$ [Hwgo Hauth Hdep Hrd] with -
   · inext
     iunfold wsWgInv
-    iexists ctr - W32 1, n'
-    iframe
-    ipureintro
-    have : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
-    omega
+    iexists ctr - W32 1, n', d + 1
+    iframe Hwgo Hauth
+    isplitr
+    · ipureintro
+      have : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
+      omega
+    icases Hdep with (Hl | Hr)
+    · ileft
+      simp only [List.replicate_succ]
+      iapply BigSepL.bigSepL_cons.2
+      iframe Hrd Hl
+    · iright; iexact Hr
   imodintro
   iapply HΦ
   itrivial

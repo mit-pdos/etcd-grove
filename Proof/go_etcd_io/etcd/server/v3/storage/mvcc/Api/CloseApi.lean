@@ -1,14 +1,18 @@
 /-
-**`KV.Close.contract` at both store types** (track A, 2026-11-06). Lean-first (no Rocq
-counterpart). Over the sealed definitions of `Api.lean` (imported with `import all`).
+**`KV.Close.contract` at both store types** (track A, 2026-11-06; its post `mvccClosed`, the reader
+tokens, 2026-11-06). Lean-first (no Rocq counterpart). Over the sealed definitions of `Api.lean`
+(imported with `import all`).
 
-* `store.Close.wp_api`: a plain store's `Close` from `store.Close.spec` (the trust boundary): the
-  open token at the store's location and current names gives the restorable compaction right, the
-  store's right to close in compaction mode (`storeCloserM_on`, by `openRest`'s mode).
+* `store.Close.wp_api`: a plain store's `Close` from `store.Close.spec`: the open token at the store's
+  location and current names gives the restorable compaction right, the store's right to close in
+  compaction mode (`storeCloserM_on`, by `openRest`'s mode); `mvccClosed` from the open token's
+  retired readers, its two tickets (`openRest`) and `store.Close`'s post (the job's reader, the
+  closer's part of the current names).
 * `watchableStore.Close.wp_api`: a watchable store's, as `watchableStore.Close.wp_proof` (its stop
-  channel closed, the loops waited for, the inner store closed), with the watchable store's own closer
-  from the open token's `openRest` (found through the inner store's read view, which points at the
-  receiver) and the inner store's right as the plain store's.
+  channel closed, the loops waited for, their readers taken, the inner store closed), with the
+  watchable store's own closer from the open token's `openRest` (found through the inner store's read
+  view, which points at the receiver) and the inner store's right as the plain store's; the loops'
+  two readers' tickets in `mvccClosed`.
 -/
 module
 
@@ -16,6 +20,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 
 @[expose] public section
 
@@ -38,33 +43,50 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- The open token at the store `s` (its location's): the restorable right at its current names, in
-compaction mode, and the rest of `openRest`. -/
+compaction mode, the compactor's retired reader, the writer's own (`writerOwn`), and the rest of
+`openRest`. -/
 private theorem mvccOpen_at (γ : mvcc.StoreNames) (s : Loc) :
     api.locIs γ.api s ∗ mvccOpen (GF := GF) γ ⊢
       ∃ (p : PhysNames) (c : Int), compactRightR s (γ.withPhys p) c ∗
-        ⌜kbCmpM (γ.withPhys p).kb⌝ ∗
+        ⌜kbCmpM (γ.withPhys p).kb⌝ ∗ storeRT (γ.withPhys p) ∗ writerOwn (γ.withPhys p) ∗
         (if γ.watchQ then iprop(∃ (w rv stc : Loc),
           s.[store, go!"ReadView"] ↦□
             (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
           rv.[readView, go!"kv"] ↦□
             (interface.mkOk (go.GoType.PointerType watchableStore.ty) #w : GoInterface) ∗
-          w.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter w)
-        else iprop(True)) := by
+          w.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter w s γ)
+        else iprop(ownToks γ.tk 2)) := by
   iintro ⟨#Hloc, Hopen⟩
   iunfold mvccOpen at Hopen
-  icases Hopen with ⟨%s2, %p, %c, #Hloc2, Hright, -, -, -, -, Hor, -⟩
+  icases Hopen with ⟨%s2, %p, %c, #Hloc2, Hright, -, HRT, -, -, Hor, Hwo⟩
   ihave %Hss := api.locIs_agree γ.api s s2 $$ [Hloc Hloc2]
   · iframe Hloc Hloc2
   cases Hss
   iunfold openRest at Hor
   icases Hor with ⟨%hcm, Hw⟩
   iexists p, c
-  iframe Hright
+  iframe Hright HRT Hwo
   isplitr
   · ipureintro; simp only [StoreNames.withPhys_kb]; exact hcm
   cases hw : γ.watchQ
-  · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-  · simp only [↓reduceIte]; iexact Hw
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hw with ⟨-, -, Ht⟩
+    iexact Ht
+  · simp only [↓reduceIte]
+    iexact Hw
+
+/-- **`mvccClosed`, assembled** from the store's pool, a part of the current names, the open
+token's retired readers, two tickets and the job's reader. -/
+private theorem mvccClosed_of (γ : mvcc.StoreNames) (p : PhysNames) (dq : DFrac) (o : StoreObjs) :
+    £ 1 ∗ readerPool (GF := GF) γ ∗ curAt (γ.withPhys p) dq o ∗ storeRT (γ.withPhys p) ∗
+      writerOwn (γ.withPhys p) ∗ ownToks γ.tk 2 ∗ compactJobResM (γ.withPhys p).kb ⊢
+      mvccClosed (γ : MvccName) := by
+  iintro ⟨Hlc, #Hpool, Hcur, HRT, Hwo, Ht, Hjob⟩
+  iunfold writerOwn at Hwo
+  icases Hwo with ⟨HRTw, Hret⟩
+  iunfold mvccClosed
+  iexists p, dq, o
+  iframe Hlc Hpool Hcur HRT HRTw Hret Ht Hjob
 
 /-- **`KV.Close.contract` at `*store`.** -/
 theorem store.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)) :
@@ -84,14 +106,24 @@ theorem store.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)
   icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -⟩
   have hs : s = s' := mkOk_loc_inj _ Hk
   subst hs
-  icases mvccOpen_at γ s $$ [Hloc Hopen] with ⟨%p, %c, Hright, %hcm, -⟩
+  icases mvccOpen_at γ s $$ [Hloc Hopen] with ⟨%p, %c, Hright, %hcm, HRT, Hwo, Ht⟩
   · iframe Hloc Hopen
-  wp_apply (hClose s (γ.withPhys p) c) $$ [Hright]
+  rw [Hwq]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  ihave #Hs0 := Hs
+  iunfold isStore at Hs0
+  iNamed Hs0
+  wp_apply (hClose s (γ.withPhys p) c) $$ [Hright] as ⟨Hjob, Hlc1, %dq, %o, Hcur⟩
   · rw [isStore_withPhys]
     iframe Hs
     iapply (storeCloserM_on s _ c hcm).2
     iexact Hright
-  iapply HΦ; itrivial
+  iapply HΦ
+  ihave Hjob : compactJobResM (GF := GF) (γ.withPhys p).kb $$ [Hjob]
+  · simp only [StoreNames.withPhys_kb]; iexact Hjob
+  ihave Hcur : curAt (GF := GF) (γ.withPhys p) dq o $$ [Hcur]
+  · iexact Hcur
+  iapply mvccClosed_of γ p dq o $$ [$Hlc1 $Hpool $Hcur $HRT $Hwo $Ht $Hjob]
 
 /-- **`KV.Close.contract` at `*watchableStore`.** -/
 theorem watchableStore.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)) :
@@ -116,7 +148,7 @@ theorem watchableStore.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (
   · iPkgInit
   iunfold isWatchableStore at Hws
   iNamed Hws
-  icases mvccOpen_at γw.st st $$ [Hloc Hopen] with ⟨%p, %c, Hright, %hcm, Hw⟩
+  icases mvccOpen_at γw.st st $$ [Hloc Hopen] with ⟨%p, %c, Hright, %hcm, HRT, Hwo, Hw⟩
   · iframe Hloc Hopen
   rw [Hwq]
   simp only [↓reduceIte]
@@ -129,11 +161,14 @@ theorem watchableStore.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (
   subst hw
   icombine Hstopc Hstc' gives %Hst1
   subst Hst1
+  ihave #Hs0 := Hs
+  iunfold isStore at Hs0
+  iNamed Hs0
   iunfold stopCloser at Hstop
   icases Hstop with ⟨%γc, Hstop⟩
   iunfold wsWaiter at Hwait
-  icases Hwait with ⟨%γwg, %γd, #HisWg, #Hinv, Hwt⟩
-  wp_auto
+  icases Hwait with ⟨%γwg, %γd, %γx, #HisWg, #Hinv, Hwt, Hγx⟩
+  wp_auto_lc 1
   wp_apply wp_broadcast_chan_close stc γc iprop(True) $$ [$Hstop] as -
   · imodintro; itrivial
   (try wp_auto)
@@ -143,15 +178,27 @@ theorem watchableStore.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (
     with ⟨-, Htok⟩
   imod Hmask with -
   imodintro
-  wp_apply wp_wsWg_Wait s γwg γd $$ [$Htok]
+  wp_apply mvcc.wp_wsWg_Wait s st γw.st γwg γd γx $$ [$Htok $Hγx] as Hrds
   · iframe #
   (try wp_auto)
-  wp_apply (hClose st (γw.st.withPhys p) c) $$ [Hright]
+  -- the loops' readers' tickets
+  rw [show wsLoopN = 1 + 1 from rfl, List.replicate_succ, List.replicate_succ]
+  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hr1, Hrds⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hr2, -⟩
+  iunfold storeReader at Hr1 Hr2
+  icases (mvcc.storeReaderC_split st γw.st).1 $$ Hr1 with ⟨-, Ht1⟩
+  icases (mvcc.storeReaderC_split st γw.st).1 $$ Hr2 with ⟨-, Ht2⟩
+  ihave Ht : ownToks (GF := GF) γw.st.tk 2 $$ [Ht1 Ht2]
+  · iapply (ownToks_add 1 1 γw.st.tk).2; iframe Ht1 Ht2
+  wp_apply (hClose st (γw.st.withPhys p) c) $$ [Hright] as ⟨Hjob, -, %dq, %o, Hcur⟩
   · rw [isStore_withPhys]
     iframe Hs
     iapply (storeCloserM_on st _ c hcm).2
     iexact Hright
-  iapply HΦ; itrivial
+  iapply HΦ
+  ihave Hjob : compactJobResM (GF := GF) (γw.st.withPhys p).kb $$ [Hjob]
+  · simp only [StoreNames.withPhys_kb]; iexact Hjob
+  iapply mvccClosed_of γw.st p dq o $$ [$Hlc1 $Hpool $Hcur $HRT $Hwo $Ht $Hjob]
 
 end proof
 

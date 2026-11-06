@@ -25,36 +25,46 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `s.wg.Wait()` by the store's one waiter. -/
-theorem mvcc.wp_wsWg_Wait (s : Loc) (γwg : sync.WaitGroupNames) (γd : GName) :
+/-- `s.wg.Wait()` by the store's one waiter, which (R-D1, 2026-11-04) then takes the loops' readers
+of the inner store with its claim (`token γw`): the counter at `0`, every loop has called `Done`. -/
+theorem mvcc.wp_wsWg_Wait (s st : Loc) (γs : mvcc.StoreNames) (γwg : sync.WaitGroupNames)
+    (γd γw : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (mvcc.wsWgAddr s) γwg mvcc.wsWgWGN ∗
-        inv mvcc.wsWgN (mvcc.wsWgInv γwg γd) ∗ sync.ownWaitGroupWaitToken γwg }}
+        inv mvcc.wsWgN (mvcc.wsWgInv st γs γwg γd γw) ∗ sync.ownWaitGroupWaitToken γwg ∗ token γw }}
       (App (Val (mvcc.wsWgAddr s @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Wait")) (Val #()))
-    {{ RET #(); True }} := by
-  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Htok⟩ HΦ
-  iapply sync.WaitGroup.wp_Wait (mvcc.wsWgAddr s) γwg mvcc.wsWgWGN $$ [Htok] [HΦ]
+    {{ RET #(); [∗list] _x ∈ List.replicate mvcc.wsLoopN (), mvcc.storeReader st γs }} := by
+  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Htok, Hγw⟩ HΦ
+  iapply sync.WaitGroup.wp_Wait (mvcc.wsWgAddr s) γwg mvcc.wsWgWGN $$ [Htok] [HΦ Hγw]
   · iframe #
     iframe
-  iinv Hinv with >Hi Hclose
+  iinv Hinv with Hi Hclose
   · exact mvcc.wsWg_maskN
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
   iunfold mvcc.wsWgInv at Hi
-  icases Hi with ⟨%ctr, %n, Hwgo, Hauth, %Hctr⟩
+  icases Hi with ⟨%ctr, %n, %d, Hwgo, Hauth, %Hctr, Hdep⟩
   iexists ctr
   iframe Hwgo
   iintro %H0 Hwgo
   imod Hmask with -
-  imod Hclose $$ [Hwgo Hauth] with -
-  · unfold mvcc.wsWgInv
-    iexists ctr, n
-    iframe
-    ipureintro; exact Hctr
-  imodintro
-  iintro -
-  iapply HΦ
-  itrivial
+  have hd : d = mvcc.wsLoopN := by omega
+  icases Hdep with (Hl | Hr)
+  · imod Hclose $$ [Hwgo Hauth Hγw] with -
+    · inext
+      unfold mvcc.wsWgInv
+      iexists ctr, n, d
+      iframe Hwgo Hauth
+      isplitr
+      · ipureintro; exact Hctr
+      iright; iexact Hγw
+    imodintro
+    iintro -
+    iapply HΦ
+    rw [← hd]
+    iexact Hl
+  · iexfalso
+    iapply token_exclusive $$ Hr Hγw
 
 theorem mvcc.watchableStore.Close.wp_proof
     (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)) :
@@ -69,7 +79,7 @@ theorem mvcc.watchableStore.Close.wp_proof
   iunfold mvcc.stopCloser at Hstop
   icases Hstop with ⟨%γc, Hstop⟩
   iunfold mvcc.wsWaiter at Hwait
-  icases Hwait with ⟨%γwg, %γd, #HisWg, #Hinv, Hwt⟩
+  icases Hwait with ⟨%γwg, %γd, %γw, #HisWg, #Hinv, Hwt, Hγw⟩
   wp_auto
   wp_apply wp_broadcast_chan_close stc γc iprop(True) $$ [$Hstop] as -
   · imodintro; itrivial
@@ -80,13 +90,13 @@ theorem mvcc.watchableStore.Close.wp_proof
     with ⟨-, Htok⟩
   imod Hmask with -
   imodintro
-  wp_apply mvcc.wp_wsWg_Wait s γwg γd $$ [$Htok]
+  wp_apply mvcc.wp_wsWg_Wait s st γ.st γwg γd γw $$ [$Htok $Hγw] as Hrds
   · iframe #
   (try wp_auto)
-  wp_apply hClose st γ.st c $$ [$Hsc]
+  wp_apply hClose st γ.st c $$ [$Hsc] as ⟨Hjob, Hlc, Hcur⟩
   · iframe #
   iapply HΦ
-  itrivial
+  iframe Hrds Hjob Hlc Hcur
 
 end proof
 

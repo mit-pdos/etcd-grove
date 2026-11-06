@@ -24,6 +24,7 @@ contracts' proofs `import all` it.
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 set_option linter.unusedSectionVars false
@@ -52,7 +53,7 @@ theorem isMvccWatchStream_open (w : Loc) (γ : MvccName) (ι : WsName) :
         inv watchN (watchChanInv γw (ι : WsAbs).ch γc) ∗
         isWatchStreamAt w (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s)
           (storeWatchParams s st γw) γo (ι : WsAbs).ch γc ∗
-        watchTokPool γw ∗ threadPool.isThreadPool watchRdPoolN γp (watchReader s st γw) ∗
+        watchTokPool γw ∗ threadPool.isThreadPool watchRdPoolN γp (watchSlots s st γw) ∗
         progFact γc.prog := by
   unfold isMvccWatchStream isMvccWatchStreamRest
   iintro ⟨-, #⟨%γw, %γc, %w', %s, %st, %γo, %γp, %h, -, #Hinv, #Hws, #Ht, #Hp, #Hpf⟩⟩
