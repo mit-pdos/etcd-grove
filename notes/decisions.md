@@ -4688,7 +4688,7 @@ change broke etcd-grove's imports now). The port to `d0324b842` is kept on branc
 
 ## `fmt.Errorf`'s `%w` errors: the model's body, not the axiom
 
-**2026-10-13 · accepted (the merge of `origin/lean`, Perennial `a54e1999f`)**
+**2026-10-13 · accepted (the merge of `origin/lean`, Perennial `a54e1999f`)** · *superseded* 2026-11-06 by "`fmt.Errorf` with `%w`: no fact from the model (a soundness bug since 2026-10-12)" (below): the facts learned from the model are false of Go.
 
 **Decision:** the two `fmt.Errorf("...: %w", err)` calls whose error reaches the gRPC layer
 (`mvcc.storeTxnCommon.rangeKeys`' `ctx.Err()`, the txn package's `executeTxn` wrapping it) keep
@@ -32457,3 +32457,48 @@ delegation, 2026-11-06).
 - Dropping `client.etcdLeaseReadAt` from `memberServed` (leasecatchup does not read TTLs), with a
   serving lemma whose slot needs no token when the TTL read is not registered. This is an exported
   change to `cluster3`'s and etcdstart's API, and the TTL read would come back with step 2.
+
+---
+
+## `fmt.Errorf` with `%w`: no fact from the model (a soundness bug since 2026-10-12)
+
+**2026-11-06 · decided by etcd-grove-82 under the user's delegation (user offline, pending the
+user's review) · supersedes "`fmt.Errorf`'s `%w` errors: the model's body, not the axiom"
+(2026-10-13) · the fix is the stage `errorf-wrap` (branch `errorf-wrap`)**
+
+**What was wrong.** Perennial's model of `fmt.Errorf` is `errors.New(format)`: it ignores the
+arguments and does not model `%w` (`Perennial/TrustedCode/fmt.lean`). The 2026-10-13 entry knew
+this and still let `mvcc.wp_Errorf_errorfIs` step into the model for the two `%w` calls whose
+errors reach the gRPC layer: `rangeKeys`' `fmt.Errorf("rangeKeys: context cancelled: %w",
+ctx.Err())` (`kvstore_txn.go:121`) and `executeTxn`'s three (`txn.go:162, 174, 182`). From the model
+the proofs learn facts that are false of Go, where a `%w` error is a `*fmt.wrapError`:
+- its type, an `*errors.errorString`;
+- that it is a leaf, with no `Unwrap`, hence `applyErrIs` and, since k8s etcd3 7c-2 part 1,
+  `statusErrOk`;
+- that `errors.Is(err, context.Canceled)` is false. In Go it is true, so `togRPCError` passes the
+  error through instead of building a status error;
+- that its message is the format string.
+
+A proof about the model is not a proof about Go when the model is wrong. The trusted model was
+used outside what its own spec promises (`fmt.wp_Errorf`: a non-nil error whose `Error()`
+returns), and that is a soundness bug: since 2026-10-12 (unit 3b) the read and Txn paths'
+error facts are false of Go for a cancelled context. It was found by k8s etcd3 7c-2 part 2's
+review of `EtcdServer.Range`'s errors and reported to etcd-grove-82, 2026-11-06.
+
+**The rule now.** No proof may learn an `Errorf` result's type, `Is` behaviour or message from the
+model when the format contains `%w`. Lemmas that step into the model (`mvcc.wp_Errorf_errorfIs`
+and the like) are kept only for formats without `%w`, which Go's `Errorf` returns as
+`errors.New(s)`, and their statements say so with a premise on the format. A `%w` call goes through
+a faithful spec: an opaque error that need not be a leaf, with an `Unwrap` chain ending at the
+wrapped error if a proof needs one. That spec is axiomatized here with its own docstring and
+attack, a growth of the trust base approved under the delegation on condition that the attack
+passes. What breaks is then fixed:
+- `applyErrIs_errorf`;
+- `EtcdServer.Range`'s and `Txn`'s error posts;
+- `togRPCError`'s `statusErrOk` on its context branch, through a restated handler contract
+  accepting an error with no `GRPCStatus` whose `Unwrap` chain ends at a context error. That
+  restatement is brought to etcd-grove-82 as old → new, with its attack, before it is built on.
+
+The general fix is Perennial's: `perennial-changes.md`, "`fmt.Errorf`'s model can be unfolded to
+learn facts false of Go".
+

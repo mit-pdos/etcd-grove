@@ -1658,8 +1658,9 @@ field-load automation finding the instance at any fraction.
   errors (`kvstore_txn.go:121`; `txn.go:162, 174, 182`), which then reach `applyErrIs` (a leaf
   with `statusErrOk`, since k8s etcd3 7c-2 part 1) through `applyErrIs_errorf`. False of Go for a
   cancelled context: reported to etcd-grove-82, 2026-11-06; the local fix is k8s etcd3 7c-2's.
-- **Proposed (general; record only, nothing changed in Perennial).** Make `Errorf.impl` opaque to
-  clients (sealed, `@[no_expose]`, with only `wp_Errorf` exported), so that no proof can reason
-  about an `Errorf` result beyond the spec; or model `%w` (a `*fmt.wrapError` with `Unwrap`, its
-  message the formatted string), with a spec that states the wrapped errors.
+- **Proposed (general; record only, nothing changed in Perennial).** When the format contains `%w`,
+  `Errorf`'s model returns an opaque error, so that no proof can reason about it beyond the spec;
+  or it models `%w`: a `*fmt.wrapError` with `Unwrap`, its message the formatted string, with a
+  spec that states the wrapped errors. Without `%w` the present model (`errors.New`) is faithful
+  up to the message's formatting.
 - **Status.** Recorded only.
