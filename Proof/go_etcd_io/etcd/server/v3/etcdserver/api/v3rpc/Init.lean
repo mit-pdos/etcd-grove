@@ -108,7 +108,7 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc's `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions (k8s etcd3 7c: `grpcErrMapOk`). -/
+/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc's `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions, nor has one itself (k8s etcd3 7c: `grpcErrMapOk`). -/
 axiom toGRPCErrorMap_init :
     {{ (True : IProp GF) }} (App (Val toGRPCErrorMap.init) (Val #()))
     {{ RET #(); ∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ ⌜grpcErrMapOk M kf kc⌝ }}

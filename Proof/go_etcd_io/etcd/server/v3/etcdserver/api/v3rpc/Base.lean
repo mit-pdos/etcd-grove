@@ -62,11 +62,15 @@ instance errVarSet_persistent (g : GoString) : Persistent (errVarSet (GF := GF) 
 `ErrFutureRev` (the key `kf`) and `ErrCompacted` (`kc`) map to errors with the two read errors'
 descriptions (`rpctypes.ErrGRPCFutureRev`, `ErrGRPCCompacted`), and no other key maps to an error
 with one of them (`util.go`: each other value is another `rpctypes` error, with its own
-description). -/
+description); no key has one of the two descriptions itself (the keys are the server's own
+errors, `mvcc: …`, `etcdserver: …`, `lease: …`, `auth: …`: `togRPCError` may return a key unchanged
+when its context-error checks say yes, `grpcErrOut`). -/
 def grpcErrMapOk (M : GMap GoInterface GoInterface) (kf kc : GoInterface) : Prop :=
   (∀ k v, M !! k = some v → v ≠ GoInterface.nil ∧
     (go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.futureRevDesc → k = kf) ∧
-    (go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.compactedDesc → k = kc)) ∧
+    (go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.compactedDesc → k = kc) ∧
+    go_etcd_io.etcd.cache.v3.errDesc k ≠ go_etcd_io.etcd.cache.v3.futureRevDesc ∧
+    go_etcd_io.etcd.cache.v3.errDesc k ≠ go_etcd_io.etcd.cache.v3.compactedDesc) ∧
   (∃ v, M !! kf = some v ∧ go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.futureRevDesc) ∧
   (∃ v, M !! kc = some v ∧ go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.compactedDesc)
 

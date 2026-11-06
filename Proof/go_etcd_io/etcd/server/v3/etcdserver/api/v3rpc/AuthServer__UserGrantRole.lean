@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserGrantRole
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 
 @[expose] public section
 
@@ -49,7 +50,7 @@ theorem v3rpc.AuthServer.UserGrantRole.wp_proof
   · subst Hres
     rcases err with ei | _
     · (try wp_auto)
-      wp_apply hTog $$ [] as %e %Hne
+      wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e %Hne
       · iframe #
         iapply (v3rpc.srvErrIs_applyErrIs (GoInterface.ok ei) (by intro h; cases h)) $$ Herr
       (try wp_auto)

@@ -2,6 +2,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__leaseKeepAlive
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr
 public import Perennial.Spec.errors.Is
@@ -285,7 +286,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
           ka_send (W64 0)
         | false =>
           wp_auto
-          wp_apply hTog $$ [] as %e -
+          wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e -
           · iapply srvErrIs_of_applyErrIs _ Hne $$ Hae
           (try wp_auto)
           wp_for_post

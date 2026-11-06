@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__Defragment
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__isPermitted
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 
 @[expose] public section
 
@@ -46,7 +47,7 @@ theorem v3rpc.authMaintenanceServer.Defragment.wp_proof
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
-    wp_apply hTog $$ [] as %e %He
+    wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e %He
     · iframe #
       iapply (v3rpc.srvErrIs_applyErrIs (GoInterface.ok ei) (by intro h; cases h)) $$ Herr
     (try wp_auto)

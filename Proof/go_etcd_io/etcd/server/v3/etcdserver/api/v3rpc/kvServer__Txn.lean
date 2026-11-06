@@ -7,6 +7,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Txn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkIntervals
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckLemmas
 
@@ -164,7 +165,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
           | nil => exact absurd rfl Hen
           | ok ei =>
             wp_auto
-            wp_apply hTog $$ [] as %e %He
+            wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e %He
             · iframe #
             iapply HΦ
             rw [v3rpc.txnAllCheck_ok hc hts hes]

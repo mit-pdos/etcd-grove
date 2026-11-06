@@ -1526,7 +1526,7 @@ names) and the four
                  'metricsServerLock': '_root_.Perennial.sync.Mutex'},
     custom={
         'toGRPCErrorMap': dict(
-            doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc\'s `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions (k8s etcd3 7c: `grpcErrMapOk`). -/',
+            doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc\'s `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions, nor has one itself (k8s etcd3 7c: `grpcErrMapOk`). -/',
             post='∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ ⌜grpcErrMapOk M kf kc⌝',
             pat='⟨%mp@, %M@, %kf@, %kc@, H@, #S@, #F@, #C@, %P@⟩'),
         'clientRequests': promvec('clientRequests', 'Counter', ['type', 'client_api_version']),
