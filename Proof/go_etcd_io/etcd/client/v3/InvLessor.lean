@@ -298,7 +298,7 @@ theorem errAuthNotEnabled_of_init :
   iintro #Hp
   ihave Hi : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hp
-  icases Hi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%x, #Hx⟩⟩
+  icases Hi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%x, #Hx⟩, -⟩
   iexists x
   iexact Hx
 

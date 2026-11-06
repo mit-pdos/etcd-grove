@@ -67,6 +67,13 @@ theorem mem_refusalDescs_balancer (d : GoString)
     d ∈ refusalDescs := by
   rcases h with rfl | rfl <;> simp [refusalDescs]
 
+/-- **The two read errors' descriptions** (k8s etcd3 stage 7c): `rpctypes.ErrGRPCFutureRev`'s and
+`rpctypes.ErrGRPCCompacted`'s (`error.go:32-33`), which the server's `togRPCError` maps mvcc's
+`ErrFutureRev` and `ErrCompacted` to, and the client's `rpctypes.ErrFutureRev`/`ErrCompacted` carry. -/
+def futureRevDesc : GoString := go!"etcdserver: mvcc: required revision is a future revision"
+
+def compactedDesc : GoString := go!"etcdserver: mvcc: required revision has been compacted"
+
 /-- **An error that is not a refusal** (D29): `nil`, or one whose description is not a refusal's. -/
 def noRefusal [GooseExts] (err : GoInterface) : Prop :=
   err = GoInterface.nil ∨ errDesc err ∉ refusalDescs
@@ -358,10 +365,12 @@ from `auth`'s facts, so that `rpctypes`' initializer proves them) the token keys
 auth plan's E2c). -/
 abbrev rpctypesInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk,
-      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e) ∗
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e ∗
+      -- (k8s etcd3 7c) its description
+      ⌜errDesc (GoInterface.ok e) = futureRevDesc⌝) ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e ∗
-      errorStringSpec e) ∗
+      errorStringSpec e ∗ ⌜errDesc (GoInterface.ok e) = compactedDesc⌝) ∗
     □ (∀ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e -∗
       errorStringSpec e) ∗
@@ -427,7 +436,50 @@ abbrev rpctypesInit : IProp GF :=
     -- `getToken` compares `Authenticate`'s error with it)
     (∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthNotEnabled ↦□
-        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x))
+        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∗
+    -- (k8s etcd3 7c) the server-side errors `togRPCError` maps mvcc's two read errors to, with
+    -- their descriptions
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCFutureRev ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = futureRevDesc⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCompacted ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = compactedDesc⌝) ∗
+    -- (k8s etcd3 7c, HS-1) the descriptions of the `ErrGRPC*` errors `v3rpc`'s checks and
+    -- interceptors return (`error.go`)
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCEmptyKey ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: key is not provided"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: key not found"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCValueProvided ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: value is provided"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseProvided ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: lease is provided"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTooManyOps ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: too many operations in txn request"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDuplicateKey ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: duplicate key given in txn request"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: invalid client api version"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidSortOption ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: invalid sort option"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: mvcc: database space exceeded"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: no leader"⌝) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable ↦□ GoInterface.ok e ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: not capable"⌝))
 
 instance rpctypes_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=

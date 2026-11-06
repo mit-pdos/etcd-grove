@@ -1311,7 +1311,7 @@ theorem snapErr_ne_nil (res : SnapResult) (err : GoInterface) (h : ∀ r m, res 
   icases Hci with ⟨⟨%eNR, #HeNR⟩, -⟩
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩, -⟩
+  icases Hri with ⟨⟨%eFR, #HeFR, -⟩, ⟨%eCP, #HeCP, -⟩, -⟩
   cases res with
   | ok r m => exact absurd rfl (h r m)
   | notReady =>
