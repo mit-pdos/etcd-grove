@@ -1681,3 +1681,17 @@ field-load automation finding the instance at any fraction.
   reducible transparency, so that a mismatch fails fast instead of reducing `List.replicate n` for a
   literal `n`.
 - **Status.** Recorded only.
+
+## `wp_apply` of a hypothesis spec can give up silently, leaving a `sorry` (2026-11-06, revoke-open)
+
+- **What happened.** In revoke-open's `EtcdServer__revokeExpiredLeases.lean`, `wp_apply hWR stl
+  E.RD (GoInterface.ok ctx)` (a callee spec taken as a hypothesis, `authStore.WithRoot`'s) failed
+  without an error: the declaration only got the warning "declaration uses sorry". A proof author
+  who reads errors only would take it for done; `etc/tcb-report.py` and the build's sorry warnings
+  catch it.
+- **Local workaround.** `wp_bind (App (Val _) (Val #(GoInterface.ok ctx)))`, then `iapply hWR …
+  $$ [IRD] …`.
+- **Proposed (general; record only, nothing changed in Perennial).** When `wp_apply` cannot use the
+  term it is given, it should fail with an error naming the mismatch, never close the goal with an
+  admitted proof.
+- **Status.** Recorded only; not reduced to a minimal example.
