@@ -178,6 +178,8 @@ theorem mvcc.NewStore_backend
   inext
   iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Hc, -, Hcl, Hst, -, Hfrag, Hcr, Hret,
     #HcpIs, -⟩
+  ihave Hro : (∃ rd : GoFunc, lease.rdOwn γl rd) $$ [Hro]
+  · icases Hro with ⟨%rd, Hro, -⟩; iexists rd; iexact Hro
   ihave Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk $Hfrag]
   iapply HΦ
   iexists γ

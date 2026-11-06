@@ -237,6 +237,8 @@ theorem mvcc.NewStore.wp_proof
   iunfold mvcc.isLessor at Hlessor
   icases Hlessor with ⟨%lp, %Hli, -, -, -, -, #HSetRD⟩
   subst Hli
+  -- the store's variable, for good: the deleter closure reads it (`rdCalls`)
+  ipersist s
   (try wp_auto)
   wp_apply HSetRD $$ [$Hro] as Hro
   (try wp_auto)
@@ -741,8 +743,22 @@ theorem mvcc.NewStore.wp_proof
     ipureintro; exact ⟨Hlgnn, Hcfg2, Hrb0⟩
   ihave Hok' : (ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) : IProp GF) $$ [Hok]
   · rw [hγok]; iexact Hok
-  ihave Hro : (∃ rd : GoFunc, lease.rdOwn γl rd) $$ [Hro]
-  · iexists _; iexact Hro
+  ihave Hro : (∃ rd : GoFunc, lease.rdOwn γl rd ∗
+      mvcc.rdCalls rd (go.GoType.PointerType store.ty) #«$r0_ptr») $$ [Hro]
+  · iexists _; iframe Hro
+    -- the deleter: `s.Write(traceutil.TODO())`, as a `lease.TxnDelete`
+    iunfold mvcc.rdCalls
+    isplitr
+    · ipureintro; intro h; injection h with _ _ h3; cases h3
+    iintro !> %Pre %Ψ %hTODO #Hw %Φ' !> HPre HΦ'
+    ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
+    · iPkgInit
+    wp_auto
+    wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
+    wp_apply Hw $$ [$HPre $Htr] as %t Ht
+    · ipureintro; exact Htrnn
+    (try wp_auto)
+    iapply HΦ'; iexact Ht
   iapply HΦ
   iexists γ
   isplitr

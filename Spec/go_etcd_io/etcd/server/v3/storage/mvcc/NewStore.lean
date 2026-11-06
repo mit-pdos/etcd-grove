@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RdCalls
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -124,7 +125,8 @@ abbrev mvcc.NewStore.spec : Prop :=
   {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
       ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = kb ∧ γ.watchQ = wq ∧ γ.idx = γi ∧ γ.cok = γok ∧
         γ.cm = decide (mvcc.kbCmpM kb)⌝ ∗
-      mvcc.isStore s γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd) ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookInit γ P f ∗
+      mvcc.isStore s γ ∗
+      (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdCalls rd (go.GoType.PointerType store.ty) #s) ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookInit γ P f ∗
       (∃ rv wv : Loc,
         s.[store, go!"ReadView"] ↦
           (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗

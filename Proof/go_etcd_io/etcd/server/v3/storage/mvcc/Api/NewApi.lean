@@ -9,8 +9,8 @@ counterpart). Over the sealed definitions of `Api.lean` (imported with `import a
   `True`), `mvccState γ mvccStart` (the client's parts the internal `New` returns, the lock's quarter
   of the pending revision gone into its slot), `mvccOpen` (the compaction right from the inner
   closer, its quarter of the authority, a reader retired, the supply, and the watchable store's own
-  closer, `openRest`) and the whole backend share (`mvccBackend γ 1`). The range deleter by
-  `mvccDeleter_M1` (`Api/NewStoreApi.lean`, listed).
+  closer, `openRest`) and the whole backend share (`mvccBackend γ 1`). The range deleter from
+  `New`'s `rdCalls` and `KV.Write.contract` at `*watchableStore` (`mvccDeleter_of`, 2026-11-06).
 -/
 module
 
@@ -19,6 +19,7 @@ import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.NewStoreApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WatchTxnApi
 
 @[expose] public section
 
@@ -70,7 +71,9 @@ theorem New.wp_proof
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
-    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG)) :
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    (hWr : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
   intro lg le cfg B Pk γl rd0 hcfg hrb htb
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, Hfor, Hlrd, #Hle, Hro⟩ HΦ
@@ -100,7 +103,7 @@ theorem New.wp_proof
   wp_apply +noauto (hNew lg _ le cfg (some bk) γl γl Pk #func.nil rd0 γi γok γl
       (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd Hro Hifresh Hok0]
-    as %ws ⟨%st, %γw, %Hγ, #Hws, ⟨%rd, Hro, -⟩, #Hhk, Htw, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret,
+    as %ws ⟨%st, %γw, %Hγ, #Hws, ⟨%rd, Hro, -, #Hrc⟩, #Hhk, Htw, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret,
       #Hcp, #Hwreg, Hnc, Hlc1⟩
   · iframe Hle Hro Hifresh Hok0
     isplitr
@@ -158,19 +161,24 @@ theorem New.wp_proof
   rw [show crevRightM (GF := GF) γw.st = crevUB γw.st.idx (1 : Qp).half (-1) from by
     unfold crevRightM; simp [hcm']]
   imod compactRightR_of_closer st γw.st ⊤ $$ Hscl Hcr with Hright
-  imodintro
-  iapply HΦ
-  iexists γw.st
-  isplitr
-  · ipureintro; exact hγl
-  isplitr
-  · iunfold isMvcc
+  -- the handle
+  ihave #Hmv : □ isMvcc (GF := GF) (interface.mkOk (go.GoType.PointerType watchableStore.ty) #ws)
+      γw.st $$ []
+  · iintro !>
+    iunfold isMvcc
     iintro !>
     iright
     iunfold isMvccWatchable
     iexists ws, st, γw, γp
     iframe Hws Htp Hpool Hloc Hcp Hfree'
     ipureintro; exact ⟨rfl, rfl⟩
+  imodintro
+  iapply HΦ
+  iexists γw.st
+  isplitr
+  · ipureintro; exact hγl
+  isplitr
+  · iexact Hmv
   isplitl [Hab Hpn Hcr2 Hnl]
   · iunfold mvccState
     iunfold api.mvccStateI
@@ -213,7 +221,7 @@ theorem New.wp_proof
     iexact Hwts
   iexists rd
   iframe Hro
-  iapply (mvccDeleter_M1 (GF := GF) rd γw.st)
+  iapply (mvccDeleter_of hTODO _ _ (watchableStore.Write.wp_api hWr ws) rd γw.st) $$ [$Hpkg $Hmv $Hrc]
 
 end proof
 

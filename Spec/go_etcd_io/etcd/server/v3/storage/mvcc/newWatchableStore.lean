@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RdCalls
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -63,7 +64,8 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
       (Val #b)) (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl ∧ γ.st.kb = kb ∧
         γ.st.idx = γi ∧ γ.st.cok = γok ∧ γ.tag = γtag ∧ γ.st.cm = decide (mvcc.kbCmpM kb)⌝ ∗
-      mvcc.isWatchableStore s st γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ) ∗ mvcc.hookInit γ.st P f ∗
+      mvcc.isWatchableStore s st γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ ∗
+        mvcc.rdCalls rd (go.GoType.PointerType watchableStore.ty) #s) ∗ mvcc.hookInit γ.st P f ∗
       mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd kb) (),
         mvcc.watchReader s st γ) ∗

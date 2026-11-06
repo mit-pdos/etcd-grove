@@ -1976,3 +1976,33 @@ placeholder added):
 4. The tracing cluster in the worktree (otel `isParentSpan`, k8s `tracing.isSpan`; another agent's,
    uncommitted): unfinished, three k8s cacher proofs fail on the new premises (`watchCache__*`);
    left as it was.
+
+## Hand-off: M4, no sole writer and the deleter (2026-11-06)
+
+**Done** (`321d2baa08` and the next commit; every mvcc module builds but `Link`/`Results`; no axiom,
+no `sorry` added; one placeholder removed):
+- **No sole writer at the watchable store** (`notes/decisions.md`, "The watchable store has no sole
+  writer"): `wlogQ` owns the whole notified log, `watchWriter`/`wrIn`/`wrOut` deleted, the writer's
+  tokens, loan and pin in the store for both kinds; Restore collects and deposits them
+  (`restore_takeover`, `restore_finish`, `restoreLog_ch`); `watchableStore.Restore` takes no `L`
+  (a persistent prefix premise over certified logs). **`KV.Write`, `KV.Put`, `KV.DeleteRange` at
+  `*watchableStore` have no hypothesis** (`wwriterHyp` gone).
+- **`mvccDeleter`** (`mvccDeleter_M1` gone): `RdCalls.lean` (`rdCalls rd ty v`: `rd()` is the
+  handle's `Write` at a fresh trace), in `NewStore`'s and `newWatchableStore`'s (so `New`'s) posts,
+  proved of the closures; `Api/DeleterApi.lean`'s `mvccDeleter_of` from it and `KV.Write.contract`.
+  `NewStore.wp_proof`/`New.wp_proof` (the API's) take `traceutil.TODO.spec` and the internal
+  `store.Write.spec` (for `Link.lean`, generated).
+
+**Statements changed that modules outside mvcc use** (all red under the migration): `store.Write`'s
+and `storeTxnWrite.End`'s (no token, pin or `log`), `watchableStore.Write`'s (no `L`,
+`watchWriter`), `watchableStoreTxnWrite.End`'s post, `store.Restore`/`watchableStore.Restore`(`specOff`)
+(no tokens, pin, `watchWriter`, `L`), `NewStore`/`newWatchableStore`/`New`'s posts (no tokens, pin,
+`watchWriter`; `rdCalls` beside the deleter), `rdIs` (no `L`). The server's `SnapApplyDefs` still
+names `watchWriter` (it moves to the API).
+
+**Left** (in order): `KV.Restore.contract` (track A's list above: the restorer's API parts through
+`store.Restore`, the coordinator's decision 1 (b), `wsSlot_step_M1`, `slotF_excl_M1`, `RestoreMoves`'
+three); `mvccTxn_leaseDelete.law`; `snapObs_M1`; then `Link`/`Results` regenerated, the interfaces
+(`etc/gen-interface.py`), the TCB baseline. The tracing cluster in the worktree (otel `isParentSpan`,
+k8s `tracing.isSpan`; another agent's) is unfinished and uncommitted: three k8s cacher proofs fail
+on its new premises.

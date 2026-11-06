@@ -50,7 +50,7 @@ theorem mvcc.newWatchableStore.wp_proof
     iexists l; iexact lg
   wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Perm Hcfg0)
     $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
-    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, #Hcert, HlogQ, Hsclose, Hfw,
+    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro, -⟩, Hok, #HhookP, Hviews, Hreaders, #Hcert, HlogQ, Hsclose, Hfw,
       Hwsd, Hfrag, Hright, Hret, #HcpIs, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc⟩
   -- (M2, the storage side, P3) the right's half of the revision's authority by the mode: frozen
   -- when the store does not compact, handed to the caller when it does (`crevRight_split`); the
@@ -197,25 +197,39 @@ theorem mvcc.newWatchableStore.wp_proof
   · iexact Hws
   isplitl [Hro]
   · iexists _; rw [← hγl]; iframe Hro
-    -- the deleter: `s.Write(traceutil.TODO())`, as a `lease.TxnDelete`
-    iunfold mvcc.rdIs
+    isplitl []
+    · -- the deleter: `s.Write(traceutil.TODO())`, as a `lease.TxnDelete`
+      iunfold mvcc.rdIs
+      isplitr
+      · ipureintro; intro h; injection h with _ _ h3; cases h3
+      iintro !> %Pw %Pre %Q %fw %Φ' !> ⟨Hrd, Hwt, Hh, Hpre, #Hfw⟩ HΦ'
+      ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
+      · iPkgInit
+      ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+      · iPkgInit
+      wp_auto
+      wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
+      wp_apply (hWrite «$r0_ptr» st γ tr Pw Pre Q fw true)
+        $$ [$Hrd $Hwt $Hh $Hpre $Htr] as %tw %ilog %crev ⟨Htw, HQ, Hh'⟩
+      · iframe #
+        ipureintro; exact Htrnn
+      iapply HΦ'
+      iframe HQ Hh'
+      iexists ilog, crev
+      iexact Htw
+    -- the same closure, generically: `rd()` is the watchable store's `Write` at a fresh trace
+    iunfold mvcc.rdCalls
     isplitr
     · ipureintro; intro h; injection h with _ _ h3; cases h3
-    iintro !> %Pw %Pre %Q %fw %Φ' !> ⟨Hrd, Hwt, Hh, Hpre, #Hfw⟩ HΦ'
+    iintro !> %Pre %Ψ %hTODO' #Hw %Φ' !> HPre HΦ'
     ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
     · iPkgInit
-    ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
-    · iPkgInit
     wp_auto
-    wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
-    wp_apply (hWrite «$r0_ptr» st γ tr Pw Pre Q fw true)
-      $$ [$Hrd $Hwt $Hh $Hpre $Htr] as %tw %ilog %crev ⟨Htw, HQ, Hh'⟩
-    · iframe #
-      ipureintro; exact Htrnn
-    iapply HΦ'
-    iframe HQ Hh'
-    iexists ilog, crev
-    iexact Htw
+    wp_apply hTODO' as %tr ⟨%Htrnn, Htr⟩
+    wp_apply Hw $$ [$HPre $Htr] as %t Ht
+    · ipureintro; exact Htrnn
+    (try wp_auto)
+    iapply HΦ'; iexact Ht
   iframe HhookP Hsclose Hcr wg Hfrag Hret
   isplitl [Htw]
   · iunfold mvcc.watchToks; iexact Htw

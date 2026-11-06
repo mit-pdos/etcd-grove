@@ -12,8 +12,9 @@ counterpart). Over the sealed definitions of `Api.lean` (imported with `import a
   `mvccState γ mvccStart` (the client's parts `api.newClient`), `mvccOpen` (the compaction right
   from the closer, its quarter of the authority, a reader retired from the pool, the supply) and the
   whole backend share (`mvccBackend γ 1`).
-* `mvccDeleter_M1` (**placeholder**, listed in `M1Placeholders.lean`'s header): the range deleter's
-  contract, which is `KV.Write.contract`'s at the store (M1-REPLACE: `KV.Write.contract`).
+* The range deleter's contract (`mvccDeleter`): `NewStore`'s `rdCalls` (the closure is the store's
+  `Write` at a fresh trace) and `KV.Write.contract` at `*store` (`mvccDeleter_of`, 2026-11-06; until
+  then the placeholder `mvccDeleter_M1`).
 -/
 module
 
@@ -23,6 +24,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.DeleterApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WriteApi
 
 @[expose] public section
 
@@ -77,14 +80,6 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 variable [backend_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **(Placeholder, false in general.)** The range deleter `NewStore` gives the lessor
-(`SetRangeDeleter(func() TxnDelete { return s.Write(traceutil.TODO()) })`) meets `mvccDeleter`: it
-is the store's `Write`, whose contract is `KV.Write.contract`'s at `*store` (`New`'s, track A: the
-watchable store's `Write`, at `*watchableStore`). M1-REPLACE: `KV.Write.contract` (and `mvccTxn`
-defined). -/
-theorem mvccDeleter_M1 (rd : GoFunc) (γ : MvccName) : ⊢ mvccDeleter (GF := GF) rd γ := by
-  sorry -- M1-REPLACE: KV.Write.contract (the deleter is the store's Write)
-
 /-- Each reader slot's token with the reader's share of the open token (`bkRTx`). -/
 theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) : ∀ n : Nat,
     ([∗list] _x ∈ List.replicate n (), backend.rdTok (GF := GF) γ P b) ∗
@@ -132,7 +127,9 @@ theorem NewStore.wp_proof
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
-    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG)) :
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    (hWr : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     NewStore.spec (GF := GF) (hG := hG) := by
   intro lg le cfg B Pk γl rd0 hcfg hrb hth
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, Hfor, Hlrd, #Hle, Hro⟩ HΦ
@@ -162,7 +159,7 @@ theorem NewStore.wp_proof
   wp_apply +noauto (hNewStore lg _ le cfg (some bk) γl γl Pk #func.nil rd0 false γi γok
       (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd Hro Hifresh Hok0]
-    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro⟩, Hcok, #Hhk, ⟨%rv, %wv, HrvF, #HrvI, HwvF, #HwvI⟩, Hrds, -, -, Hcl, -, -, Hfrag, Hcu, Hret,
+    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro, #Hrc⟩, Hcok, #Hhk, ⟨%rv, %wv, HrvF, #HrvI, HwvF, #HwvI⟩, Hrds, -, -, Hcl, -, -, Hfrag, Hcu, Hret,
       #Hcp, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc1⟩
   · iframe Hle Hro Hifresh Hok0
     isplitr
@@ -221,13 +218,10 @@ theorem NewStore.wp_proof
   · unfold storeWT kbWT; rw [show γ.kb = some bk from hγk]; iexact Hsup
   -- the compaction right from the closer
   imod compactRightR_of_closer s γ ⊤ $$ Hcl Hcu with Hright
-  imodintro
-  iapply HΦ
-  iexists γ
-  isplitr
-  · ipureintro; exact hγl
-  isplitr
-  · iunfold isMvcc
+  -- the handle
+  ihave #Hmv : □ isMvcc (GF := GF) (interface.mkOk (go.GoType.PointerType store.ty) #s) γ $$ []
+  · iintro !>
+    iunfold isMvcc
     iintro !>
     ileft
     isplitl
@@ -239,6 +233,13 @@ theorem NewStore.wp_proof
       iexists rv, wv
       iframe HrvF HrvI HwvF HwvI
     ipureintro; exact hγw
+  imodintro
+  iapply HΦ
+  iexists γ
+  isplitr
+  · ipureintro; exact hγl
+  isplitr
+  · iexact Hmv
   isplitl [Hab Hpn Hcr2 Hnl]
   · iunfold mvccState
     iunfold api.mvccStateI
@@ -280,7 +281,7 @@ theorem NewStore.wp_proof
     iexact Hwts
   iexists rd
   iframe Hro
-  iapply (mvccDeleter_M1 (GF := GF) rd γ)
+  iapply (mvccDeleter_of hTODO _ _ (store.Write.wp_api hWr s) rd γ) $$ [$Hpkg $Hmv $Hrc]
 
 end proof
 

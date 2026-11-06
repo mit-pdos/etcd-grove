@@ -8,8 +8,8 @@ Today's specs of the methods that move it (`storeTxnWrite.End`, `store.updateCom
 take the API's steps; each such step is one of the lemmas below, **false in general** and proved
 by `sorry`, marked `M1-REPLACE` with the API contract whose proof replaces it at stage 2 (the
 proofs using them are rewritten against the API's contracts, and this module goes). Nothing new
-may use them. (Elsewhere, listed: `RestoreMoves`' five local ones; `Api/NewStoreApi.lean`'s `mvccDeleter_M1`, the
-range deleter's contract, M1-REPLACE: `KV.Write.contract`.)
+may use them. (Elsewhere, listed: `RestoreMoves`' local ones. `Api/NewStoreApi.lean`'s `mvccDeleter_M1`
+is gone, 2026-11-06: `Api/DeleterApi.lean`'s `mvccDeleter_of`.)
 (M4 track B, 2026-11-06) `slotX_step_M1` and `slotY_step_M1` are gone, and `slotF_excl_M1`'s and
 `wsSlot_step_M1`'s uses by the `End`s: the internal `End`s take the moves of the API's slots as their
 caller's ghost steps (`Api/TxnSteps.lean`: `endCb`, `wsEndCb`) and the frozen state's excluder `G`.
