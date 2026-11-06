@@ -856,7 +856,7 @@ other untranslated initializers run.''',
             'ihave #VTL : (EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" : IProp GF) $$ []',
             '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseTTLTooLarge CTL'] + FIN_PRE[:6] + [
             'imodintro', 'unfold leaseInit leaseErrVar', 'iframe #', 'dsimp only', 'iframe #',
-            'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))'],
+            'repeat (first | (isplitl []; · (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _)) | (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _))'],
 )
 
 SPECIAL['go_etcd_io.etcd.pkg.v3.wait'] = dict(
@@ -938,9 +938,9 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
         'ErrAuthOldRevision': dict(doc='/-- `ErrAuthOldRevision = Error(ErrGRPCAuthOldRevision)` (`error.go`): an `EtcdError`, with `ErrGRPCAuthOldRevision`\'s description (D29). -/',
                              post='∃ x : EtcdError, globalAddr ErrAuthOldRevision ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc\' = go!"etcdserver: revision of auth store is old"⌝',
                              pat='⟨%x@, H@, %D@⟩'),
-        'ErrGRPCNotSupportedForLearner': dict(doc='/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, "etcdserver: rpc not supported for learner")` (`error.go`): a `*status.Error`, a pointer error, with that description (D29). -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝',
-                             pat='⟨%e@, H@, %P@, %D@⟩'),
+        'ErrGRPCNotSupportedForLearner': dict(doc='/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, "etcdserver: rpc not supported for learner")` (`error.go`): a `*status.Error`, a pointer error, with that description (D29), which grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝ ∗ {CV3}.statusErrOk (GoInterface.ok e)',
+                             pat='⟨%e@, H@, %P@, %D@, #S@⟩'),
         # (item 1, the client lease, 2026-10-18: the lessor's keep-alive loop compares a stream's
         # error with it, `errors.Is`)
         'ErrNoLeader': dict(doc='/-- `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go`): an `EtcdError`. -/',
@@ -1101,9 +1101,9 @@ initializers are untranslated (`opaqueInitsOk`).''',
             '  iexists _; iframe HreportCurrentAuthRev',
             'ihave ⟨-, #GRP⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP'] + FIN_PRE[:6] + [
             'imodintro', 'unfold authInit authErrVar', 'iframe #', 'dsimp only', 'iframe #',
-            'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))',
+            'repeat (first | (isplitl []; · (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _)) | (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _))',
             # the keeper's tick (S5e): `1 * time.Second`, read-only; then E2g's error variable
-            'all_goals first | (ipureintro; decide) | (ipureintro; exact EtcdGrove.errorString_leaf _) | (ipureintro; exact ⟨by decide, EtcdGrove.errorString_leaf _⟩)'],
+            'all_goals first | (ipureintro; decide) | (ipureintro; exact EtcdGrove.errorString_errLeaf _) | (ipureintro; exact EtcdGrove.errorString_leaf _) | (ipureintro; exact ⟨by decide, EtcdGrove.errorString_errLeaf _⟩) | (ipureintro; exact ⟨by decide, EtcdGrove.errorString_leaf _⟩)'],
 )
 
 # Item 8, step 3 (2026-10-17): facts moved into their owners' packages.
@@ -1159,9 +1159,9 @@ _RERRDESCS = {
            'ErrGRPCNotCapable': ('FailedPrecondition', 'etcdserver: not capable')}
 for x in _RERRS:
     c, m = _RERRDESCS[x]
-    _R['custom'][x] = dict(doc=f'/-- `{x} = status.Error(codes.{c}, "{m}")` (`error.go`): with that description (k8s etcd3 7c). -/',
-                           post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"{m}"⌝',
-                           pat='⟨%e@, H@, %D@⟩')
+    _R['custom'][x] = dict(doc=f'/-- `{x} = status.Error(codes.{c}, "{m}")` (`error.go`): a `*status.Error`, which grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/',
+                           post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e ∗ {CV3}.statusErrOk (GoInterface.ok e) ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"{m}"⌝',
+                           pat='⟨%e@, H@, #S@, %D@⟩')
 for x, v in _RKEYS.items():
     _R['custom'][x] = dict(doc=f'/-- `{x} = "{v}"` (`metadatafields.go`): a string. -/',
                            post=f'∃ k : GoString, globalAddr {x} ↦ k', pat='⟨%k@, H@⟩')
@@ -1364,7 +1364,7 @@ _ERRLEAF_PRE = [
     '  iexists _',
     '  iframe Hx',
     '  isplitr',
-    '  · ipureintro; exact EtcdGrove.errorString_leaf x',
+    '  · ipureintro; first | exact EtcdGrove.errorString_errLeaf x | exact EtcdGrove.errorString_leaf x',
     '  unfold EtcdGrove.errMsgOk',
     '  iapply EtcdGrove.errorMsg_triple',
     '  iexact Hm',
@@ -1495,7 +1495,7 @@ reads `raftStatus` under the mutex).""",
              'icases Hsi with ⟨-, -, -, -, #HAB, -, -⟩'] +
             FIN_PRE[:6] +
             ['imodintro', 'unfold srvInit srvRaftInit srvReqInit srvApplyLoopInit srvErrVars', 'iframe #',
-             'ipureintro', 'exact fun x => EtcdGrove.errorString_leaf x']),
+             'ipureintro', 'first | exact fun x => EtcdGrove.errorString_errLeaf x | exact fun x => EtcdGrove.errorString_leaf x']),
 )
 
 _V_ERRS = ['ErrGRPCEmptyKey', 'ErrGRPCInvalidSortOption', 'ErrGRPCValueProvided', 'ErrGRPCLeaseProvided',
@@ -1526,9 +1526,9 @@ names) and the four
                  'metricsServerLock': '_root_.Perennial.sync.Mutex'},
     custom={
         'toGRPCErrorMap': dict(
-            doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc\'s `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions, nor has one itself (k8s etcd3 7c: `grpcErrMapOk`). -/',
-            post='∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ ⌜grpcErrMapOk M kf kc⌝',
-            pat='⟨%mp@, %M@, %kf@, %kc@, H@, #S@, #F@, #C@, %P@⟩'),
+            doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc\'s `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions, nor has one itself (k8s etcd3 7c: `grpcErrMapOk`); every value is one grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: the `status.Error`s and the two `EtcdError`s, leaves with only `Code` and `Error`). -/',
+            post='∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ ⌜grpcErrMapOk M kf kc⌝',
+            pat='⟨%mp@, %M@, %kf@, %kc@, H@, #S@, #F@, #C@, #V@, %P@⟩'),
         'clientRequests': promvec('clientRequests', 'Counter', ['type', 'client_api_version']),
         # (D19j, 2026-10-18) the watch server's metrics (`metrics.go`)
         'streamFailures': promvec('streamFailures', 'Counter', ['Type', 'API']),
@@ -1540,7 +1540,7 @@ names) and the four
     finish=(['ipersist HtoGRPCErrorMap', 'ipersist HclientRequests',
              'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd22',
-             'icases Hri with ⟨-, ⟨%eRCP, #RCPa, #RCPs, -⟩, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, ' +
+             'icases Hri with ⟨-, ⟨%eRCP, #RCPa, #RCPs, -⟩, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -, -, #SNSL⟩, -, -, ' +
              ', '.join(f'#V{i}' for i in range(len(_V_ERRS) + 3)) + ', ' +
              ', '.join(f'#RW{i}' for i in range(len(_V_WERRS))) + ', -⟩',
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',

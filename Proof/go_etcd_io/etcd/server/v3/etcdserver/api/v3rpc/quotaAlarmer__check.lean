@@ -55,6 +55,7 @@ theorem v3rpc.quotaAlarmer.check.wp_proof
   iapply HΦ
   iunfold v3rpc.quotaRd
   iframe
+  ipureintro; rfl
 
 end proof
 

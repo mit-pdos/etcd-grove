@@ -304,14 +304,17 @@ request path's unit 4a: `LinearizableReadNotify` returns a done context's `Err()
 `Canceled` or `DeadlineExceeded`, `context.ErrDone`): Go's `deadlineExceededError{}` (an empty
 struct, not a pointer: `context.go`'s `var DeadlineExceeded error = deadlineExceededError{}`), whose
 method set is `Error`, `Timeout`, `Temporary` (no `Is`, `As` or `Unwrap`: a leaf), comparable (an
-empty struct: `==` on it does not panic, a safe map key), and whose `Error()` returns. Method sets
+empty struct: `==` on it does not panic, a safe map key), and whose `Error()` returns; no `GRPCStatus`
+either (k8s etcd3 7c, HS-7, DRAFT). Method sets
 are uninterpreted in the semantics, so this is stated, as `srvErrVars`' `errLeaf`. -/
 abbrev ctxDeadlineLeaf : IProp GF :=
   iprop(∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ GoInterface.ok e ∗
     ⌜_root_.Perennial.errors.isLeafError e ∧
       methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
       (∀ T, e.ty ≠ go.GoType.PointerType T) ∧
-      SafeMapKey (GF := GF) go.error (GoInterface.ok e)⌝ ∗
+      SafeMapKey (GF := GF) go.error (GoInterface.ok e) ∧
+      -- (k8s etcd3 7c, HS-7, DRAFT) no `GRPCStatus` method (grpc's `status.FromError` accepts it)
+      methodSet e.ty !! go!"GRPCStatus" = none⌝ ∗
     EtcdGrove.errMsgOk e)
 
 /-- **The read package's facts** (`server/v3/etcdserver/read`; 2026-10-13, the request path's unit

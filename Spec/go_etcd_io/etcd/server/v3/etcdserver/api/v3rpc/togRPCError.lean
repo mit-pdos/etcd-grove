@@ -36,7 +36,7 @@ abbrev v3rpc.togRPCError.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.srvErrIs err ∗ v3rpc.errMsgP err P }}
     (App (Val (@! v3rpc.togRPCError)) (Val #err))
-  {{ (e : GoInterface), RET #e; ⌜e ≠ GoInterface.nil⌝ ∗ v3rpc.grpcErrOut P err e }}
+  {{ (e : GoInterface), RET #e; ⌜e ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk e ∗ v3rpc.grpcErrOut P err e }}
 
 end spec
 

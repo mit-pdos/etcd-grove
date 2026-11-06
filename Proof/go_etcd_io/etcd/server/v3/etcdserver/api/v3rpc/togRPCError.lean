@@ -38,6 +38,7 @@ theorem v3rpc.togRPCError.wp_proof
   wp_start as ⟨#Herr, #HP⟩
   iunfold v3rpc.srvErrIs at Herr
   icases Herr with ⟨%Hnn, #HIs, %Hsafe, %ei, %Hei, -⟩
+  ihave #HSe := applyErrIs_statusErrOk err $$ HIs
   ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -48,7 +49,7 @@ theorem v3rpc.togRPCError.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨#Hmap, -, -, #Hcanc, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMap at Hmap
-  icases Hmap with ⟨%mp, %Mg, %kf, %kc, #Hmp, #HM, #HF, #HC, %HMv⟩
+  icases Hmap with ⟨%mp, %Mg, %kf, %kc, #Hmp, #HM, #HF, #HC, #HMS, %HMv⟩
   ihave #Hctx : (_root_.Perennial.context.isInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pctx
   icases Hctx with ⟨-, -, -, ⟨%de, #Hde, -⟩, -⟩
@@ -66,6 +67,7 @@ theorem v3rpc.togRPCError.wp_proof
   · iapply HΦ
     isplitr
     · ipureintro; exact Hnn
+    iframe HSe
     iunfold v3rpc.grpcErrOut
     iexists mp, Mg, kf, kc
     iframe #
@@ -78,6 +80,7 @@ theorem v3rpc.togRPCError.wp_proof
   · iapply HΦ
     isplitr
     · ipureintro; exact Hnn
+    iframe HSe
     iunfold v3rpc.grpcErrOut
     iexists mp, Mg, kf, kc
     iframe #
@@ -91,6 +94,8 @@ theorem v3rpc.togRPCError.wp_proof
     iapply HΦ
     isplitr
     · ipureintro; exact go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk_ne HMv err v hk
+    isplitr
+    · iapply HMS; ipureintro; exact hk
     iunfold v3rpc.grpcErrOut
     iexists mp, Mg, kf, kc
     iframe #
@@ -110,11 +115,12 @@ theorem v3rpc.togRPCError.wp_proof
       simp only [google_golang_org.grpc.codes.OK]
       exact fun h => absurd (go.intoVal_inj h) (by decide)
     inext
-    iintro %e ⟨%He, -, %Hd⟩
+    iintro %e ⟨%He, #Hse, %Hd⟩
     wp_auto
     iapply HΦ
     isplitr
     · ipureintro; exact He
+    iframe Hse
     iunfold v3rpc.grpcErrOut
     iexists mp, Mg, kf, kc
     iframe #

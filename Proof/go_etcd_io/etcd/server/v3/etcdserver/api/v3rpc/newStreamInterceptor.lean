@@ -79,9 +79,9 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   icases Hiv with ⟨#HeNS, #HeNC, #HeNL, #HeIV, #HeNoL, ⟨%kv, #Hkv⟩, ⟨%kl, #Hkl⟩,
     ⟨%hl, #Hhl⟩, ⟨%cv, #Hcv, %Hcvl⟩⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeNS HeNC HeNL HeIV HeNoL
-  icases HeNC with ⟨%eNC, #HeNC⟩
-  icases HeNL with ⟨%eNL, #HeNL⟩
-  icases HeIV with ⟨%eIV, #HeIV⟩
+  icases HeNC with ⟨%eNC, #HeNC, #SeNC⟩
+  icases HeNL with ⟨%eNL, #HeNL, #SeNL⟩
+  icases HeIV with ⟨%eIV, #HeIV, #SeIV⟩
   wp_pures
   wp_alloc_auto
   wp_pures

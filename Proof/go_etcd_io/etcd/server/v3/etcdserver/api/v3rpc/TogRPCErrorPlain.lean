@@ -35,12 +35,13 @@ theorem v3rpc.togRPCError_plain (hTog : v3rpc.togRPCError.spec (GF := GF) (hG :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         v3rpc.srvErrIs err }}
       (App (Val (@! v3rpc.togRPCError)) (Val #err))
-    {{ (e : GoInterface), RET #e; ⌜e ≠ GoInterface.nil⌝ }} := by
+    {{ (e : GoInterface), RET #e; ⌜e ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk e }} := by
   wp_start_folded as #Herr
   ihave #HP := v3rpc.errMsgP_of_srvErrIs err $$ Herr
-  wp_apply hTog (fun _ => True) err $$ [] as %e ⟨%Hne, -⟩
+  wp_apply hTog (fun _ => True) err $$ [] as %e ⟨%Hne, #Hse, -⟩
   · iframe #
   iapply HΦ
+  iframe Hse
   ipureintro; exact Hne
 
 end lemmas

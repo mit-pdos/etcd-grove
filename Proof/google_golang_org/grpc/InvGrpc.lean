@@ -427,7 +427,12 @@ instance grpcSrvChain_persistent (ics : List GoFunc) (ui : GoFunc) :
 /-- **grpc's `dec` for a call whose request is at `m`** (persistent; part of the trusted
 runtime: the codec's unmarshaling of the request's bytes): called on a zero `*T` the caller owns
 (`Req.blank`) of the method's request type, it decodes the request into it (`Req.recv l m`: the
-decoded copy, read-only; `Req.recvOwn l m`: what the caller still owns of it) or fails. -/
+decoded copy, read-only; `Req.recvOwn l m`: what the caller still owns of it) or fails, with an
+error `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: `serverStream.RecvMsg`'s
+`*status.Error`s and the raw `io.ErrUnexpectedEOF` of its second `recv`, a leaf). That holds for
+`Server.Serve`'s HTTP/2 transport only, the one `grpc.start` covers: under `ServeHTTP`,
+`mapRecvMsgError` returns a raw `transport.ConnectionError`, not a leaf
+(`notes/axiom-review/hs6.md`). -/
 def grpcDecOk (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) : IProp GF :=
   iprop(∀ l : Loc, {{ Req.blank l }}
       (App (Val #dec) (Val #(interface.mkOk (go.GoType.PointerType Req.ty) #l : GoInterface)))

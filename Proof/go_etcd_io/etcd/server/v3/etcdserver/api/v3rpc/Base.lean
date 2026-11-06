@@ -51,9 +51,11 @@ variable [sem : go.Semantics]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 
-/-- The package variable `g` holds a fixed non-nil error (persistent). -/
+/-- The package variable `g` holds a fixed non-nil error (persistent), one grpc's `status.FromError`
+accepts (`statusErrOk`; k8s etcd3 7c, HS-6: the `rpctypes.ErrGRPC*` errors, `*status.Error`s). -/
 def errVarSet (g : GoString) : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e)
+  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗
+    go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e))
 
 instance errVarSet_persistent (g : GoString) : Persistent (errVarSet (GF := GF) g) := by
   unfold errVarSet; infer_instance
@@ -78,14 +80,16 @@ def grpcErrMapOk (M : GMap GoInterface GoInterface) (kf kc : GoInterface) : Prop
 gRPC errors (each an `rpctypes.ErrGRPC*`/`ErrTooManyRequests`/`ErrMemberNotEnoughStarted`, all
 `status` errors), as `grpcErrMapOk` says: non-nil values, and mvcc's two read errors (the cells of
 `mvcc.ErrFutureRev` and `mvcc.ErrCompacted`) the only keys mapped to the read errors'
-descriptions (k8s etcd3 7c). Which other keys it has is left open: `togRPCError` returns the mapped
-error for a key, or `status.Error(codes.Unknown, err.Error())`. -/
+descriptions (k8s etcd3 7c), and every value one grpc's `status.FromError` accepts (`statusErrOk`;
+k8s etcd3 7c, HS-6: `ErrTooManyRequests` and `ErrMemberNotEnoughStarted` are `EtcdError`s, leaves
+with only `Code` and `Error`; `notes/axiom-review/hs6.md`). Which other keys it has is left open:
+`togRPCError` returns the mapped error for a key, or `status.Error(codes.Unknown, err.Error())`. -/
 def grpcErrMap : IProp GF :=
   iprop(∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface),
     globalAddr toGRPCErrorMap ↦□ mp ∗ mp ↦$□ M ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗
-    ⌜grpcErrMapOk M kf kc⌝)
+    □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ ⌜grpcErrMapOk M kf kc⌝)
 
 /-- The values of the gRPC error map are non-nil (`grpcErrMapOk`'s first part). -/
 theorem grpcErrMapOk_ne {M : GMap GoInterface GoInterface} {kf kc : GoInterface}
