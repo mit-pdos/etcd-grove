@@ -14860,6 +14860,10 @@ refusal-freedom is assumed (choice (P) of R1, chosen by the user), and the rest 
 **Decision.** `refusalDescs`, the six strings above, and `noRefusal err := err = nil ∨ errDesc err
 ∉ refusalDescs`. Four trust-boundary changes, none a new kind:
 
+*Items 1 and 2 superseded in part (2026-11-06): "a function of the error" is false for an error
+whose `Error()` reads mutable state; see "`status.FromError`: an error's description from a stable
+`Error()`".*
+
 1. **An error's description, a function of the error** (`errDesc : GoInterface → GoString`,
    opaque, beside `statusCode`). `status.FromError(err)`'s `s.Message()` returns `errDesc err`
    (it returned some string), and when `FromError` says the error is not a status error, its
@@ -33007,6 +33011,104 @@ outer one holds up to three locks' slots at once. Perennial guarantees only `1 <
 today into `start_gives_views`'s post (server `Results.lean`) and etcdstart's `memberUp`,
 `memberUpOn`, `kvServeStocks`: their count becomes `actualMaxReaders - srvRevokePoolN`. A
 `Results.lean` statement: brought to the user (the plan's §F.1).
+
+---
+
+## `status.FromError`: an error's description from a stable `Error()` (2026-11-06 · decided by the user via etcd-grove-82, option (b), a stage of its own, first · supersedes D29's items 1 and 2 in part · the fix is the stage `fromerror-stable`)
+
+**What was wrong.** D29 (item 1) made an error's description `errDesc` an opaque function of the
+error value, and `status.FromError.wp_proof` says that `s.Message()` returns it, and so does every
+`Error()` call on an error that is not a status error. The premise `statusErrOk err` asks only
+that `Error()` return some string (`errorStringSpec`). But Go's `FromError` calls `err.Error()` on
+each call (grpc v1.84 `status/status.go:126`), and a leaf error whose `Error()` reads mutable state
+meets the premise and returns different strings. From the axiom alone, Lean proves a program that
+panics in Go does not panic (`examples/axiomcx/flipdesc`, branch `axiom/invoker-filled`
+`f7bc4fb7e4`; `notes/axiom-review/invoker-filled.md`). `statusCode` has the same flaw, through a
+`GRPCStatus()` that reads state, and so does item 2 (`errors.Is` on a leaf).
+
+This is a soundness bug since 2026-10-21. No closed theorem is known to be false: every error that
+reaches `FromError` on the verified paths has a fixed `Error()`. Those are `*errors.errorString`
+(`s` persistent), `*status.Error`, `rpctypes.EtcdError`, `*fmt.wrapError`, the context errors,
+and bcrypt's and grpc's own errors. But that is an argument, not a proof. Found by k8s etcd3 7c-2
+part 2's re-attack of `grpcInvokerOk` at the filled `handlerDescs`. That stage's Freeze is void
+until the fix lands, and then it rebases onto the fix.
+
+**The rule now (b).** A described error's methods are stable.
+- `errorStringSpec` (inside `statusErrOk`) says `Error()` returns one fixed `m`
+  (`∃ m, □ … Φ #m`), not "some string".
+- `grpcErrMethodsOk` says `GRPCStatus()`, if present, returns one fixed status.
+- `FromError.spec` gives `⌜errDesc err = m⌝`; this is true now, since nothing it reads can change.
+- `statusCode` and the `errors.Is`-on-leaf axiom get the same premise.
+- Each trusted producer of `statusErrOk` is restated and re-attacked: rpctypes' initializers,
+  `status.Error`, `toGRPCErrorMap_init`, `grpcDecOk`, bcrypt's error, the `ContextReadErrs` leaf
+  facts and `fmt.ErrorfWrap`'s `wrapErrIs`.
+- Proved producers show stability from their persistent cells.
+- `flipdesc` must no longer verify.
+- An `*errors.errorString`'s description being its text then follows from `FromError`, which
+  replaces the follow-up of "`Range`'s read errors through gRPC" (7c-2 part 2, on its branch).
+
+**Rejected.**
+- (a) A description per call: `FromError` returns the `m` it read, with no `errDesc` function.
+  `errDesc` is the cross-process identity that `handlerDescs`, `grpcErrMapOk`, the client's
+  `ErrCompacted` match and rpctypes' descriptions compare, so all of D29 would be redesigned.
+- (c) Restating the server's specs to take the description the server re-reads. Connecting what a
+  handler knows to what the server reads needs stability anyway.
+
+**As built (2026-11-06, branch `fromerror-stable`, etcd-grove-56).**
+- `errorStringSpec` itself stays "some string": it is `fmt.stringMethodSpec e "Error"` by `rfl`, and
+  the printing paths (the cache's `validate*`, the `fmt.Errorf` specs) need nothing more. The
+  stable form is a new persistent predicate, `errorMsgIs e m := □ ∀ Φ, ▷ Φ #m -∗ WP e.Error()`, with
+  the law `errorMsgIs_errorStringSpec`. `statusErrOk` now holds `∃ m, errorMsgIs e m`.
+- `grpcErrMethodsOk`: `GRPCStatus()` returns one fixed `*Status`, which grpc never mutates, and `Is(target)`
+  answers `true` only when `errDesc (ok e) = errDesc target`. That last clause fixes a second,
+  independent flaw: an `Is` that always answers `true` refuted `errors.IsStatusErr`'s post even with
+  a constant `Error()` (`examples/axiomcx/flipdesc`'s `MainIs`, branch `axiom/is-desc`
+  `1ae8b405e4`, `notes/axiom-review/is-desc.md` there).
+- `status.FromError.spec`'s new conjunct is
+  `□ ∀ e m, ⌜ok = false ∧ err = ok e⌝ → errorMsgIs e m -∗ ⌜errDesc err = m⌝`: any `m` that `Error()`
+  stably returns is the description.
+- The same stable form is used by:
+  - the server's `errMsgOk`, and through it `errVarLeaf`, `ctxDeadlineLeaf` and the premise class
+    `ContextReadErrs`;
+  - auth's `authErrVar` and lease's `leaseErrVar`;
+  - `bcrypt.GenerateFromPassword`'s error;
+  - `fmt.modelErrIs`. Go's `wrapErrIs` already had it.
+- `v3rpc.msgErrVar` takes `errorStringSpec`, since the watch server only prints its errors. The
+  lemma `errMsgOk_of_errorStringSpec`, which is false under the new `errMsgOk`, is deleted.
+- Re-attacks: both counterexamples replayed onto the branch fail.
+  - flipdesc's `Main` is stuck at `∃ m, errorMsgIs flipErr m`.
+  - `MainIs` is stuck at `errDesc (alwaysIs) = errDesc target`.
+- Gate: `etc/errdesc-check.py` (in `etc/gates.sh`) lists every trusted statement that names the
+  description, the code or the stability predicates, with why it is true of Go. A new one fails
+  until it is reviewed.
+- A caveat, recorded and not fixed. `errDesc` and `statusCode` are fixed Lean functions of the
+  error value, which for a pointer error includes its location. Within one execution this agrees
+  with Go: locations are not reused, and the premise makes the methods stable. Across executions
+  one location can hold another error. So the axiom is justified per execution, not as one triple
+  over all executions. `notes/audit.md`'s `withtimeout-md` row records the same kind of caveat for
+  `outgoingOf`. The fully semantic version would be a ghost agreement map in place of `errDesc`,
+  a redesign of D29.
+- Closed theorems: their text is unchanged (no `Results`/`Adequacy` file in the diff). Their
+  premise class `ContextReadErrs` is stronger: context's two errors have a stable `Error()`, which
+  is true of Go (an `errors.New` cell, and a constant). The trust base is unchanged: 817 axioms,
+  4 `sorry`s, and every collection the same.
+
+---
+
+## bbolt's read transactions and the backend's snapshots pay for their reader slot (2026-11-06 · the user's decision via etcd-grove-82 · stage `begin-tok`)
+
+`bbolt.DB.Begin_kv.wp_proof` (with `Open_kv`, `DB.Close_kv`, `Tx.Rollback_kv`) is refuted
+(`notes/axiom-review/backend-snapshot-begin.md`): a read transaction holds one of `db.mmaplock`'s
+reader slots, and the axioms let a program hold `2 ^ 30` of them from one goroutine, after which
+`Close` and a `Rollback` reach Go's `RUnlock` fatal; `backend.backend.Snapshot.wp_proof` has the same
+gap. Rule: a trust-boundary spec of an operation that holds a lock's reader slot past its return
+charges for it, as the proved specs do (a `threadTok`, or a slot of the owner's pool, held by the
+object and given back by its close); "the verified code never gets near `2 ^ 30`" is an argument
+outside the logic, not a reason to leave a slot unpaid. The fix (D1 of
+`notes/bbolt-spec-decisions.md`): read transactions through bbolt's proved `DB.Begin.spec`, or, where
+that is impractical, `Begin_kv`'s read half takes a `threadTok` held by the transaction and returned
+by `Rollback_kv`; `backend.Snapshot` takes a `threadTok` until `snapshot.Close`. Accepted when the
+counterexample `axiomcx/bboltrd` no longer verifies.
 
 
 ## `Range`'s read errors through gRPC: `KVAns.errP`, `rangeErrDesc`, the two Range premises, `handlerDescs` filled (2026-11-06 · k8s etcd3 7c-2 part 2, S4-S7; the S6 route (a premise for refused checks, `□ ∀ d, Ψe d` with auth on) approved by etcd-grove-82 under the user's delegation, pending the user's review; the rest decided by the agent · branch `k8s-etcd3-7c`; DRAFT until 7c-2 part 2's Freeze)

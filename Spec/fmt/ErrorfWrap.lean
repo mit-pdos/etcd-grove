@@ -28,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **Perennial's model of `fmt.Errorf`'s error, with message prefix `pre`** (`errors.New(format)`,
-`format = pre ++ "%w"`): an `*errors.errorString` whose `Error()` always returns one string,
+`format = pre ++ "%w"`): an `*errors.errorString` whose `Error()` always returns one string (stable: fromerror-stable needs it too),
 `pre ++ s` (the model's `s` is `"%w"`; N1a, 2026-11-06: the prefix is what both sides share). -/
 def fmt.modelErrIs (ii : GoInterfaceOk) (pre : GoString) : IProp GF :=
   iprop(⌜∃ x : Loc, ii = ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩⌝ ∗

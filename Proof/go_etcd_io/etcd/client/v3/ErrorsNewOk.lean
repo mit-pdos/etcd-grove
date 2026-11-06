@@ -116,11 +116,9 @@ theorem errorsNewOk_of
   iintro !> %e %he
   cases he
   isplitr
-  · unfold errorStringSpec
-    iintro !> %Ψ HΨ
-    iapply Herr
-    inext
-    iapply HΨ
+  · iexists msg
+    unfold errorMsgIs
+    iexact Herr
   isplitr
   · ipureintro; exact ErrorStringLeaf.leaf _
   unfold grpcErrMethodsOk
@@ -155,14 +153,7 @@ theorem clientErr_statusErrOk_of_leaf (e : GoInterfaceOk) (hl : errors.isLeafErr
   iintro !> %e' %he
   cases he
   isplitr
-  · unfold errorStringSpec
-    iintro !> %Ψ HΨ
-    iunfold EtcdGrove.errMsgOk at Hm
-    iapply Hm $$ [] [HΨ]
-    · itrivial
-    inext
-    iintro %msg -
-    iapply HΨ
+  · iapply EtcdGrove.errMsgOk_msgIs $$ Hm
   isplitr
   · ipureintro; exact hl
   unfold grpcErrMethodsOk

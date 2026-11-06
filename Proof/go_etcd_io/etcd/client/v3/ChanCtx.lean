@@ -73,15 +73,11 @@ theorem canceledOk_of_init
   ihave #Hm : EtcdGrove.errMsgOk (GF := GF)
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ $$ []
   · iunfold EtcdGrove.errMsgOk
-    iintro %Φ !> - HΦ
-    iapply (context.wp_isCtxErr_Error
-      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) _ rfl) $$ [] HΦ
-    unfold context.isCtxErr
-    ileft
-    iframe Hx
-    iexists x
-    iframe Hcell
-    ipureintro; rfl
+    iexists go!"context canceled"
+    iintro !> %Φ HΦ
+    rw [method_unfold]
+    wp_auto
+    iexact HΦ
   have hl := errorString_leaf x
   have hty : go.GoType.PointerType _root_.Perennial.errors.errorString.ty ≠
       go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by

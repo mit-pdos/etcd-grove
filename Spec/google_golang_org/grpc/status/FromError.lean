@@ -44,7 +44,21 @@ now `statusCode err`, an opaque function (a refinement grpc meets).
 (2026-10-21, D29) `s.Message()` returns the error's description (`errDesc err`; it returned some
 string), and when the error is not a status error (`ok = false`) its `Error()` returns the
 description too: grpc's `FromError` builds `Unknown` with `err.Error()` as the message for an error
-without a status. A refinement grpc meets, as `statusCode` was. -/
+without a status. A refinement grpc meets, as `statusCode` was.
+(fromerror-stable, 2026-11-06) That refinement was false: `statusErrOk` asked only that `Error()`
+return some string on each call, and `FromError` calls it again on each call, so an error whose
+`Error()` reads mutable state has no one description (`examples/axiomcx/flipdesc`, branch
+`axiom/invoker-filled`: a program that panics in Go, proved not to; `notes/axiom-review/
+invoker-filled.md`); likewise for the code, through a `GRPCStatus()` that reads state. The premise
+now asks for a stable `Error()` (`errorMsgIs`: one string `m`) and a stable `GRPCStatus()` (one
+`*Status`, which grpc never mutates), and the post says the description is that `m`
+(`⌜errDesc err = m⌝`, for any `m` `Error()` stably returns), which is true of grpc: the description
+is what `Message()` returns, `err.Error()` for an error without a status.
+The description and the code are fixed Lean functions of the error value, which for a pointer error
+is its location: within an execution this agrees with Go (locations are not reused, and the premise
+makes `Error()` and `GRPCStatus()` stable); across executions one location may hold another error,
+and the axiom is justified per execution, not as one triple for all of them (`notes/decisions.md`,
+"`status.FromError`: an error's description from a stable `Error()`"). -/
 abbrev status.FromError.spec : Prop :=
   ∀ (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err }}
@@ -59,7 +73,9 @@ abbrev status.FromError.spec : Prop :=
           (Val #())) {{ Φ }}) ∗
       □ (∀ e : GoInterfaceOk, ⌜ok = false ∧ err = GoInterface.ok e⌝ → ∀ Φ : val → IProp GF,
         ▷ Φ #(errDesc err) -∗
-        WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }}) }}
+        WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }}) ∗
+      □ (∀ (e : GoInterfaceOk) (m : GoString), ⌜ok = false ∧ err = GoInterface.ok e⌝ →
+        errorMsgIs e m -∗ ⌜errDesc err = m⌝) }}
 
 end spec
 

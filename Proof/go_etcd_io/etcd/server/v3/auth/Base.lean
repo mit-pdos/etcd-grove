@@ -64,15 +64,15 @@ end golang_org.x.crypto.bcrypt
 namespace go_etcd_io.etcd.server.v3.auth
 
 /-- The error variable `g` holds an `errors.New` error: a leaf pointer error without an `Is`
-method (nor a `GRPCStatus` one: k8s etcd3 7c, HS-6) whose `Error()` returns (the shape of the apply package's `errVarLeaf`, which the auth
+method (nor a `GRPCStatus` one: k8s etcd3 7c, HS-6) whose `Error()` returns one string (fromerror-stable, 2026-11-06; the shape of the apply package's `errVarLeaf`, which the auth
 package cannot import: the apply package imports it). -/
 def authErrVar (g : GoString) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗
     ⌜_root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
       methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
       methodSet e.ty !! go!"GRPCStatus" = none⌝ ∗
-    {{ True }} (App (Val #(methods e.ty go!"Error" e.v)) (Val #()))
-      {{ (msg : GoString), RET #msg; True }})
+    ∃ m : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
+      WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }})
 
 instance authErrVar_persistent (g : GoString) : Persistent (authErrVar (GF := GF) g) := by
   unfold authErrVar; infer_instance

@@ -93,18 +93,17 @@ abbrev errorsNewVarInit (init : val) (X msg : GoString) : Prop :=
           go!"Error" #x)) (Val #())) {{ Φ }} }}
 
 /-- The `Error()` of an error whose message is known (`errors.New`'s, `context.wp_New_errorString`)
-returns some string, as a triple (the form of the server's `errMsgOk`, the lease's and auth's
-error-variable facts). -/
+returns one string on every call (the form of the server's `errMsgOk`, the lease's and auth's
+error-variable facts; fromerror-stable, 2026-11-06: it was a triple returning some string, which
+`status.FromError` cannot take as the error's description). -/
 theorem errorMsg_triple (ty : go.GoType) (v : val) (msg : GoString) :
     iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
       WP (App (Val #(methods ty go!"Error" v)) (Val #())) {{ Φ }}) ⊢
-    {{ (True : IProp GF) }} (App (Val #(methods ty go!"Error" v)) (Val #()))
-      {{ (m : GoString), RET #m; True }} := by
-  iintro #H %Φ !> - HΦ
-  iapply H
-  inext
-  iapply HΦ
-  itrivial
+    ∃ m : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
+      WP (App (Val #(methods ty go!"Error" v)) (Val #())) {{ Φ }} := by
+  iintro #H
+  iexists msg
+  iexact H
 
 /-- **`X` holds an `errors.New(msg)` error** (persistent; a package fact): a fixed `*errorString`
 whose `Error()` returns `msg`. What `errorsNewVarInit` gives, made persistent. -/
