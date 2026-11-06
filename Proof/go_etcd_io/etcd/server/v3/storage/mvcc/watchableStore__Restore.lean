@@ -3,7 +3,7 @@ Proof of the spec of the same name (D22 receiver epochs, S6). Lean-first (no Roc
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__add
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup

@@ -36,7 +36,7 @@ theorem mvcc.store.compactLockfree.wp_proof
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
   intro s γ rev cp P hk Pre Q Post hcmp hlt h1r
-  wp_start as ⟨#Hs, Hmu, Hright, #HpermR, Hctx, HRTok, #HsupM, Hwr⟩
+  wp_start as ⟨#Hs, Hmu, Hright, #HpermR, Hctx, HRTok, #HsupM, Hwr, Hfr⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)
@@ -49,10 +49,10 @@ theorem mvcc.store.compactLockfree.wp_proof
   -- the compaction revision is already `rev`: the identity step, `s.mu`'s deposit ghost the excluder
   ihave Hcb := mvcc.cmpCb_refl (GF := GF) γ (sint.Z rev) cp
   ihave #Hreq0 := mvcc.storeReq_true (GF := GF) γ
-  wp_apply (h1 s γ rev (sint.Z rev) cp P hk (DFrac.own (1 : Qp).half) Pre Q Post iprop(ghostVar γ.wr 1 ()) iprop(True)
+  wp_apply (h1 s γ rev (sint.Z rev) cp P hk (DFrac.own (1 : Qp).half) Pre Q Post iprop(ghostVar γ.wr 1 () ∗ mvcc.slotFr γ) iprop(True)
       iprop(True) iprop(False) iprop(True) iprop(True) hcmp (fun _ => Int.le_refl _) h1r (mvcc.wr_frozen_excl γ)
-      (mvcc.wr_restoring_excl γ))
-    $$ [$Hmu $Hright $Hctx $HRTok $Hwr $Hcb] as %ch %prev %err ⟨HRTok, Hhook, Hwr, Hres⟩
+      (mvcc.wrFr_restoring_excl γ))
+    $$ [$Hmu $Hright $Hctx $HRTok $Hwr $Hfr $Hcb] as %ch %prev %err ⟨HRTok, Hhook, ⟨Hwr, Hfr⟩, Hres⟩
   · iframe #
   (try wp_auto)
   icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, %Hle'⟩, Hmu, Hright, HPost, #Hjob, Hlag, -, -⟩ |
@@ -67,7 +67,7 @@ theorem mvcc.store.compactLockfree.wp_proof
     ihave Hright := Hrclose $$ Hfs Hq
     (try wp_auto)
     iapply HΦ
-    iframe HRTok Hhook Hwr
+    iframe HRTok Hhook Hwr Hfr
     iframe Hmu HPost Hch' Hlag
     isplitr
     · ipureintro; rfl

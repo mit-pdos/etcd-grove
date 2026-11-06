@@ -5,7 +5,7 @@ mode: in compaction mode `RestoreOn.lean`'s proof (M2's item 15); off, the proof
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpSteps
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
@@ -698,16 +698,18 @@ theorem mvcc.store.Restore.wp_proof
         have hlt' : r.finRev < sint.Z (r.sched.getD (W64 0)) := by rw [hsr]; exact hlt
         wp_apply (hCLF s (γ.withPhys p') (r.sched.getD (W64 0)) r.finRev P' none iprop(True)
             iprop(True) iprop(True) (by exact hon') hlt' h1r)
-          $$ [Hmu' Hright HrtA Hhn Hwr] as %ch %err ⟨HrtA, Hback, Hwr, %Herr, Hmu, Hright, -, -, -, Hlag⟩
+          $$ [Hmu' Hright HrtA Hhn Hwr Hfr] as %ch %err ⟨HrtA, Hback, Hwr, Hfr, %Herr, Hmu, Hright, -, -, -, Hlag⟩
         · rw [mvcc.isStore_withPhys, mvcc.crevPermAt_withPhys, hsr, mvcc.lockCtxM_none,
-            mvcc.kbHookNilAt_half, mvcc.StoreNames.withPhys_wr]
-          iframe Hmu' Hright HrtA Hs HpC Hwr
+            mvcc.kbHookNilAt_half, mvcc.StoreNames.withPhys_wr,
+            show mvcc.slotFr (GF := GF) (γ.withPhys p') = mvcc.slotFr γ from rfl]
+          iframe Hmu' Hright HrtA Hs HpC Hwr Hfr
           iunfold mvcc.hookP
           simp only [mvcc.StoreNames.withPhys_hook, mvcc.StoreNames.withPhys_kb, hk]
           iframe Hh' Hhn Hwts
           repeat' (first | isplitl [] | (ipureintro; exact hcl) |
             (iintro ⟨HP, -⟩; imodintro; iframe HP) | itrivial)
-        rw [mvcc.lockBackM_none, mvcc.kbHookNilAt_half]
+        rw [mvcc.lockBackM_none, mvcc.kbHookNilAt_half,
+          show mvcc.slotFr (GF := GF) (γ.withPhys p') = mvcc.slotFr γ from rfl]
         icases Hback with ⟨-, Hhn⟩
         ihave Hmu : mvcc.muInvAt (GF := GF) s (γ.withPhys p') 1 r.crev $$ [Hmu]
         · rw [← hsr]; iexact Hmu

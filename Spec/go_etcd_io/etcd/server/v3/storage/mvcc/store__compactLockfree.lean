@@ -38,10 +38,11 @@ abbrev mvcc.store.compactLockfree.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.muInvLag s γ (sint.Z rev) cp ∗ mvcc.compactRightR s γ (sint.Z rev) ∗
       mvcc.crevPermAt γ (sint.Z rev) ∗
-      mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ ghostVar γ.wr 1 () }}
+      mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ ghostVar γ.wr 1 () ∗
+      mvcc.slotFr γ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactLockfree")) (Val #rev))
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk ∗
-      ghostVar γ.wr 1 () ∗ ⌜err = GoInterface.nil⌝ ∗ mvcc.muInvAt s γ 1 (sint.Z rev) ∗
+      ghostVar γ.wr 1 () ∗ mvcc.slotFr γ ∗ ⌜err = GoInterface.nil⌝ ∗ mvcc.muInvAt s γ 1 (sint.Z rev) ∗
       mvcc.compactRightR s γ (sint.Z rev) ∗ mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗
       mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev)) ∗ mvcc.lagTok γ (sint.Z rev) cp }}
 

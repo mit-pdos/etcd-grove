@@ -28,17 +28,18 @@ notify. As `store.Write`, the inner `LockInsideApply` runs the store's post-lock
 store's writer state keeps the revision tokens and the pin, the lock the whole notified log, so the
 caller brings nothing of them and learns the log from the transaction. -/
 abbrev mvcc.watchableStore.Write.spec : Prop :=
-  ∀ (s st : Loc) (γ : mvcc.WsNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
+    (G : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.storeWT γ.st ∗
       ⌜trace ≠ null⌝ ∗
       mvcc.hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
-      traceutil.ownTrace trace te }}
+      traceutil.ownTrace trace te ∗ G ∗ □ (mvcc.slotF γ.st ∗ G -∗ False) }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Write")) (Val #trace))
   {{ (tw : Loc) (ilog : mvcc.Log) (crev : Int),
       RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
       mvcc.isWatchTxnWrite tw s st γ trace ilog [] (W64 0) (W64 0) (W64 0) crev ∗ Q ∗
-      mvcc.hookIs γ.st P f }}
+      mvcc.hookIs γ.st P f ∗ G }}
 
 end spec
 

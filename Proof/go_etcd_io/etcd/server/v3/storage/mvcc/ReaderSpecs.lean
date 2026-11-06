@@ -11,7 +11,7 @@ compaction revision are the frozen ones, unchanged.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
@@ -82,47 +82,47 @@ theorem mvcc.store.Read.spec_R (h : mvcc.store.Read.spec (GF := GF) (hG := hG)) 
 
 /-! ### `store__Write` -/
 
-/-- The readers' statement: the write transaction at the compaction revision it observed. -/
+/-- The readers' statement: the write transaction at the compaction revision it observed. The
+caller's resource `G` excludes the frozen state (2026-11-06: the API's backend share; until then the
+placeholder `slotF_excl_M1`), given back. -/
 abbrev mvcc.store.Write.specR : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
+    (G : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
       mvcc.hookIs γ P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
-      traceutil.ownTrace trace te }}
+      traceutil.ownTrace trace te ∗ G ∗ □ (mvcc.slotF γ ∗ G -∗ False) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       (∃ (ilog : mvcc.Log) (crev : Int),
         mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev ∗ mvcc.crevLb γ.idx crev) ∗
-      Q ∗ mvcc.hookIs γ P f }}
+      Q ∗ mvcc.hookIs γ P f ∗ G }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (the tag `True`, the lower bound `-1`). -/
 theorem mvcc.store.Write.spec_R (h : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.specR (GF := GF) (hG := hG) := by
-  intro s γ trace P Pre Q f te
-  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Hwt, %Ht, Hh, Hpre, #Htr, Htrc⟩ HΦ
+  intro s γ trace P Pre Q f te G
+  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Hwt, %Ht, Hh, Hpre, #Htr, Htrc, HG, #Hx⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC s γ $$ Hrd
   imod mvcc.crevLb_neg γ.idx with #Hlb
   -- (M4, track B) the hook set (`writeCtxM`'s `some`), the names pinned by the writer's fragment;
-  -- these callers hold no backend share, so the frozen state's excluder is the placeholder
-  -- (`slotF_excl_M1`, M1-REPLACE: `KV.Write.contract`, whose caller's share excludes it)
+  -- the frozen state's excluder is the caller's `G`
   icases (mvcc.hookIs_split γ P f).1 $$ Hh with ⟨#Hh, Hfrag⟩
   iunfold mvcc.writerFrag at Hfrag
   icases Hfrag with ⟨%ow, Hfrag⟩
   ihave Hwt : (mvcc.storeWT (GF := GF) γ ∨ □ (⧗ 1 ={⊤}=∗ mvcc.storeWT γ)) $$ [Hwt]
   · ileft; iexact Hwt
-  ihave #Hx : □ (mvcc.slotF γ ∗ iprop(emp) -∗ False) $$ []
-  · iintro !> H; iapply (mvcc.slotF_excl_M1 γ) $$ H
   ihave Hcb : mvcc.writeCb (GF := GF) γ (fun _ _ => iprop(True)) $$ []
   · iapply mvcc.writeCb_true
-  iapply (h s γ trace P Pre Q (some f) DFrac.discard te (-1) iprop(True) _ ow iprop(emp)
-      (fun _ _ => iprop(True))) $$ %Φ [Hrd Hwt Hpre Htrc Hfrag Hcb]
+  iapply (h s γ trace P Pre Q (some f) DFrac.discard te (-1) iprop(True) _ ow G
+      (fun _ _ => iprop(True))) $$ %Φ [Hrd Hwt Hpre Htrc Hfrag Hcb HG]
   · rw [mvcc.writeCtxM_some]
-    iframe Hrd Hwt Hpre Htrc Hfrag Hcb Hh Htr Hx; iframe #
+    iframe Hrd Hwt Hpre Htrc Hfrag Hcb Hh Htr Hx HG; iframe #
     isplitr; · imodintro; itrivial
     ipureintro; exact Ht
   inext
-  iintro %mw ⟨⟨%ilog, %crev, Htx, #Hlb', -⟩, Htrc, HQ, Hh', Hfrag, -⟩
+  iintro %mw ⟨⟨%ilog, %crev, Htx, #Hlb', -⟩, Htrc, HQ, Hh', Hfrag, HG⟩
   rw [mvcc.lockBackM_some]
   -- the trace back into the transaction (today's callers' `isTxnWrite`)
   icases mvcc.isTxnWriteT_tr _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx with ⟨-, Htx⟩
@@ -130,7 +130,7 @@ theorem mvcc.store.Write.spec_R (h : mvcc.store.Write.spec (GF := GF) (hG := hG)
   · iexists te; iexact Htrc
   ihave Htx := mvcc.isTxnWrite_ofT _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx
   iapply HΦ
-  iframe HQ
+  iframe HQ HG
   isplitr [Hfrag Hh']
   · iexists ilog, crev; iframe Htx Hlb'
   iunfold mvcc.hookIs; iframe Hh'; iunfold mvcc.writerFrag; iexists ow; iexact Hfrag

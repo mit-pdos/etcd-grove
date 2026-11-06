@@ -2238,13 +2238,14 @@ caller's `Pre`), opens a watchable write transaction on a fresh trace at the sto
 and returns it as a `lease.TxnDelete` (the lessor's `Revoke` deletes the lease's keys through it);
 not `nil` (`Revoke` tests it). -/
 def rdIs (rd : GoFunc) (s st : Loc) (γ : WsNames) : IProp GF :=
-  iprop(⌜rd ≠ func.nil⌝ ∗ □ (∀ (P Pre Q : IProp GF) (f : val),
+  iprop(⌜rd ≠ func.nil⌝ ∗ □ (∀ (P Pre Q : IProp GF) (f : val) (G : IProp GF),
     {{ storeReader st γ.st ∗ storeWT γ.st ∗
-        hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+        hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+        G ∗ □ (slotF γ.st ∗ G -∗ False) }}
       (App (Val #rd) (Val #()))
     {{ (tw trace : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
         (∃ (L : Log) (crev : Int), isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev) ∗
-        Q ∗ hookIs γ.st P f }}))
+        Q ∗ hookIs γ.st P f ∗ G }}))
 
 instance rdIs_persistent (rd : GoFunc) (s st : Loc) (γ : WsNames) :
     Persistent (rdIs (GF := GF) rd s st γ) := by

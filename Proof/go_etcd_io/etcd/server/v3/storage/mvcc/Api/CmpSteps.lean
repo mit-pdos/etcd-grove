@@ -15,7 +15,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpTrack
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
 

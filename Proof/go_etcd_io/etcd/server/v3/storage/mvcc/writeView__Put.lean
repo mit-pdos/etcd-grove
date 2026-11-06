@@ -50,8 +50,8 @@ theorem mvcc.writeView.Put.wp_proof
   wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
   -- `wv.kv.Write(t)`
-  wp_apply (hWrite s γ t P Pre Q f true) $$ [$Hs $Hrd $Hwt $Hhook $Hpre $Htr $Htrc]
-    as %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook⟩
+  wp_apply (hWrite s γ t P Pre Q f true G) $$ [$Hs $Hrd $Hwt $Hhook $Hpre $Htr $Htrc $HG $HFG]
+    as %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook, HG⟩
   · ipureintro; exact Ht
   -- the writer's hook back: its facts kept (D22 receiver epochs, S5b)
   icases (mvcc.hookIs_split γ P f).1 $$ Hhook with ⟨#HhookOk, Hfrag⟩

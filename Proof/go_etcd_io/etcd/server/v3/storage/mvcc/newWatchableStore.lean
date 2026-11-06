@@ -202,19 +202,19 @@ theorem mvcc.newWatchableStore.wp_proof
       iunfold mvcc.rdIs
       isplitr
       · ipureintro; intro h; injection h with _ _ h3; cases h3
-      iintro !> %Pw %Pre %Q %fw %Φ' !> ⟨Hrd, Hwt, Hh, Hpre, #Hfw⟩ HΦ'
+      iintro !> %Pw %Pre %Q %fw %G %Φ' !> ⟨Hrd, Hwt, Hh, Hpre, #Hfw, HG, #HFG⟩ HΦ'
       ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
       · iPkgInit
       ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
       · iPkgInit
       wp_auto
       wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
-      wp_apply (hWrite «$r0_ptr» st γ tr Pw Pre Q fw true)
-        $$ [$Hrd $Hwt $Hh $Hpre $Htr] as %tw %ilog %crev ⟨Htw, HQ, Hh'⟩
+      wp_apply (hWrite «$r0_ptr» st γ tr Pw Pre Q fw true G)
+        $$ [$Hrd $Hwt $Hh $Hpre $Htr $HG] as %tw %ilog %crev ⟨Htw, HQ, Hh', HG⟩
       · iframe #
         ipureintro; exact Htrnn
       iapply HΦ'
-      iframe HQ Hh'
+      iframe HQ Hh' HG
       iexists ilog, crev
       iexact Htw
     -- the same closure, generically: `rd()` is the watchable store's `Write` at a fresh trace

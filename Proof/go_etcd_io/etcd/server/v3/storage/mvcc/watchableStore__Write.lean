@@ -28,15 +28,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Write.spec (GF := GF) (hG := hG) := by
   have hWrite := mvcc.store.Write.spec_R hWrite
-  intro s st γ trace P Pre Q f te
-  wp_start as ⟨#Hws, Hrd, Hwt, %Htrnn, Hhook, Hpre, #Htr, Htrc⟩
+  intro s st γ trace P Pre Q f te G
+  wp_start as ⟨#Hws, Hrd, Hwt, %Htrnn, Hhook, Hpre, #Htr, Htrc, HG, #HFG⟩
   ihave #Hws0 : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   iunfold mvcc.isWatchableStore at Hws
   iNamed Hws
   (try wp_auto)
-  wp_apply (hWrite st γ.st trace P Pre Q f te) $$ [$Hs $Hrd $Hwt $Hhook $Hpre $Htr $Htrc]
-    as %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook⟩
+  wp_apply (hWrite st γ.st trace P Pre Q f te G) $$ [$Hs $Hrd $Hwt $Hhook $Hpre $Htr $Htrc $HG $HFG]
+    as %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook, HG⟩
   · ipureintro; exact Htrnn
   icases mvcc.isTxnWrite_cert _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx with ⟨Htx, #Hcert⟩
   (try wp_auto)
@@ -44,7 +44,7 @@ theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF :
   ipersist Hwtw
   (try wp_auto)
   iapply HΦ
-  iframe HQ Hhook
+  iframe HQ Hhook HG
   iunfold mvcc.isWatchTxnWrite
   iexists mw
   simp only [named]

@@ -11,14 +11,15 @@ counterpart). Over the sealed definitions of `Api.lean` (imported with `import a
   its batch lock's invariant the store's; the hook's contract set (`csContract`) or `nil` (the unset
   arm at the hook frozen at `nil`, `DFrac.discard`: §4.8, a store without a hook).
 * `watchableStore.Compact.wp_proof`: the promoted method, `store.Compact`'s at the inner store.
-* `restore()`'s excluders (`wr_restoring_excl`, `wr_frozen_excl`, the latter by `slotF_excl_M1`).
+* `restore()`'s excluders (`wr_restoring_excl`, `wrFr_restoring_excl`, `wr_frozen_excl`: `s.mu`'s
+  deposit ghost and the restorer's share token).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.Instance
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 
@@ -282,15 +283,23 @@ theorem mvcc.wr_restoring_excl (γ : mvcc.StoreNames) :
   ihave %Hv := ghostVar_valid_2 γ.wr () 1 () 1 $$ H1 H2
   exact absurd Hv.1 (Qp_one_add_not_le _)
 
-/-- `restore()`'s excluder of the frozen state: none yet (the placeholder `slotF_excl_M1`;
-M1-REPLACE: `KV.Restore.contract`, the restorer's share of the backend token). -/
+/-- `restore()`'s excluder of the frozen state (2026-11-06; until then the placeholder
+`slotF_excl_M1`): the restorer's whole share token, which it holds again after the finish. -/
 theorem mvcc.wr_frozen_excl (γ : mvcc.StoreNames) :
-    mvcc.slotF (GF := GF) γ ∗ ghostVar γ.wr 1 () ⊢ False := by
-  iintro ⟨HF, -⟩
-  iapply (mvcc.slotF_excl_M1 γ)
-  isplitl [HF]
-  · iexact HF
-  · iempintro
+    mvcc.slotF (GF := GF) γ ∗ (ghostVar γ.wr 1 () ∗ mvcc.slotFr γ) ⊢ False := by
+  iintro ⟨HF, -, HFr⟩
+  iunfold mvcc.slotF at HF
+  iunfold mvcc.slotFr at HFr
+  iapply (mvcc.api.shareTok_excl (GF := GF) γ.api 1) $$ [HF HFr]
+  iframe HF HFr
+
+/-- `restore()`'s excluder of the restoring state, with the restorer's token: `s.mu`'s deposit
+ghost whole. -/
+theorem mvcc.wrFr_restoring_excl (γ : mvcc.StoreNames) :
+    ghostVar (GF := GF) γ.wr 1 () ∗ mvcc.slotFr γ ∗ (ghostVar γ.wr 1 () ∗ mvcc.slotFr γ) ⊢ False := by
+  iintro ⟨H1, -, H2, -⟩
+  ihave %Hv := ghostVar_valid_2 γ.wr () 1 () 1 $$ H1 H2
+  exact absurd Hv.1 (Qp_one_add_not_le _)
 
 
 /-- `restore`'s and a writer's restoring state excluded by a share of the backend token. -/
