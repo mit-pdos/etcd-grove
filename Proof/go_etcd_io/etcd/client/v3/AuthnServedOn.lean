@@ -156,9 +156,10 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   · iframe #; iframe Hpw Hlt Hlg Hrr Hrd
   inext
   iintro %resp %err Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
-  iframe Hed
+  iframe Hed HSe
   iunfold v3rpc.authWrapOut at Hout
   icases Hout with (⟨%He, Ha⟩ | ⟨%Hre, -, %e0, %He0, Ha⟩)
   · iunfold authnAns at Ha
