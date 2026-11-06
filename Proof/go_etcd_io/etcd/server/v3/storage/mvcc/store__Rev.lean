@@ -85,8 +85,8 @@ theorem mvcc.store.Rev.wp_proof
   ihave Htx' : mvcc.isTxn mw s γ t (.read log rev) crev iprop(True) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev iprop(True) $$ Htx'
-  ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
-  · simp only [mvcc.txnEndPre]; itrivial
+  ihave Hep : mvcc.txnEndPreH γ (.read log rev) $$ []
+  · simp only [mvcc.txnEndPreH]; itrivial
   ihave Htx' := mvcc.isTxnEnd_Y_read _ _ _ _ _ _ crev iprop(True) iprop(True) $$ Htx'
   ihave Hx : mvcc.txnEndX γ (.read log rev) crev iprop(True) iprop(True) iprop(True) $$ []
   · simp only [mvcc.txnEndX]; itrivial

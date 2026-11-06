@@ -35,8 +35,8 @@ theorem mvcc.txnReadWrite.End.wp_proof
   ihave Htx' : mvcc.isTxn mw s γ trace (.read log rev) crev Z $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev Z $$ Htx'
-  ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
-  · simp only [mvcc.txnEndPre]; itrivial
+  ihave Hep : mvcc.txnEndPreH γ (.read log rev) $$ []
+  · simp only [mvcc.txnEndPreH]; itrivial
   ihave Htx' := mvcc.isTxnEnd_Y_read _ _ _ _ _ _ crev Z iprop(True) $$ Htx'
   ihave Hx : mvcc.txnEndX γ (.read log rev) crev iprop(True) iprop(True) iprop(True) $$ []
   · simp only [mvcc.txnEndX]; itrivial

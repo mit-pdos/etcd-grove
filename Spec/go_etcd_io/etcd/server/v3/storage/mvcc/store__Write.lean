@@ -3,7 +3,8 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WriteCtx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -36,22 +37,36 @@ names are the store's current ones; D22 receiver epochs, S5b) is given back. The
 (`spec_R`, `ReaderSpecs.lean`). 
 The transaction's compaction revision is permitted (`crevPermAt`, C3's store law, 2026-11-02).
 The writer's pin (`writerPin`, M2's item 37, 2026-11-02) goes into the transaction, which holds
-the writer's half of the bucket's view; `End` gives it back at the new log. -/
+the writer's half of the bucket's view; `End` gives it back at the new log.
+
+**M4, track B, 2026-11-06** (request 4, `Api/WriteCtx.lean`): the hook by its state (`writeCtxM`:
+set, its facts and triple; unset, `LockInsideApply`'s nil arm at the share `dq` of the hook at
+`nil`, the caller's view shift from the batch lock's invariant and `Pre`), given back as
+`lockBackM`; the names pinned by any share `qf` of the store's current objects (`curAt`: the API's
+`mvccBackend` holds an eighth of `q`), given back, in place of the writer's fragment; the frozen
+state excluded by the caller's `G` (`□ (slotF γ ∗ G -∗ False)`, given back: the API's backend share,
+`slotF_share_excl`), in place of the placeholder `slotF_excl_M1`; and the begin's callback
+(`writeCb`), run with the writer's slot at the committed log `ilog` and the transaction's compaction
+revision `crev`, its `F ilog crev` returned; the transaction without its trace (`isTxnWriteT` at
+`True`), the trace given back. -/
 abbrev mvcc.store.Write.spec : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
-    (c : Int) (Z : IProp GF) (log : mvcc.Log),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (hk : Option val)
+    (dq : DFrac) (te : Bool) (c : Int) (Z : IProp GF) (log : mvcc.Log) (qf : Qp)
+    (o : mvcc.StoreObjs) (G : IProp GF) (F : mvcc.Log → Int → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.crevLb γ.idx c ∗ mvcc.revToken γ ∗
       mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
-      mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗
-      Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+      mvcc.writeCtxM γ P hk Pre Q dq ∗ mvcc.curAt γ (DFrac.own qf) o ∗
+      G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.writeCb γ F ∗ mvcc.writerPin γ log ∗
       traceutil.ownTrace trace te }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       (∃ (ilog : mvcc.Log) (crev : Int),
-        mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev Z ∗ mvcc.crevLb γ.idx crev ∗
+        mvcc.isTxnWriteT mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev Z false iprop(True) ∗
+        mvcc.crevLb γ.idx crev ∗
         mvcc.crevPermAt γ crev ∗
-        ⌜c ≤ crev⌝) ∗ Q ∗ mvcc.hookIs γ P f }}
+        ⌜c ≤ crev⌝ ∗ F ilog crev) ∗ traceutil.ownTrace trace te ∗ Q ∗ mvcc.lockBackM γ P hk dq ∗
+      mvcc.curAt γ (DFrac.own qf) o ∗ G }}
 
 end spec
 

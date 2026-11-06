@@ -28,8 +28,6 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     mvcc.store.Read.spec (GF := GF) (hG := hG) := by
   intro s γ mode trace m log₀ te clb Z oa F
   wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn, Htrc, HoA, Hcb⟩
-  ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
-  · iexists te; iexact Htrc
   iunfold mvcc.idxCert at Hc0
   icases Hc0 with ⟨-, -, #Hl0, -⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
@@ -175,16 +173,16 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     iStructNamedPrefix Htrw "W"
     iapply HΦ
     iexists log, (W64 ((log.length : Int) - 1)), cm
-    isplitr [Hmine HoA HF]
+    isplitr [Hmine HoA HF Htrc]
     rotate_left
-    · iframe Hmine Hlbc Hok HoA HF
+    · iframe Hmine Hlbc Hok HoA HF Htrc
       isplitr
       · iexact HpM
       ipureintro; exact ⟨⟨Hpre.2, by omega, Hclbc⟩, HoaL⟩
-    iunfold mvcc.isTxnRead
+    iunfold mvcc.isTxnReadT
     iexists p, trw, tr, o.ti, rt, (W64 0)
     simp only [named]
-    iframe Hmw HrevMuR HtiR WTxnRead Hmuh Htrc
+    iframe Hmw HrevMuR HtiR WTxnRead Hmuh
     isplitl []
     · iexact Hs0
     isplitl []

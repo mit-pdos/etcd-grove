@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ReadCbC
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -42,7 +43,9 @@ The transaction's compaction revision is permitted (`crevPermAt`, C3's store law
 (Stage 2 of the mvcc API, 2026-11-05) the caller's read callback (`readCb`) runs at the read, under
 `s.revMu`, with its slot of the API's view at the log read: a read's update fires there (§3); its
 result `F log` is returned. (M4, track B, 2026-11-06) The callback is given the compaction revision
-too (`readCbC`: the slot's, which is the transaction's), and its result `F log crev` returned. -/
+too (`readCbC`: the slot's, which is the transaction's), and its result `F log crev` returned. The
+transaction is returned without its trace (`isTxnReadT` at `True`), the trace given back (the API's
+`KV.Read` returns the caller's `ownTrace trace te` itself). -/
 abbrev mvcc.store.Read.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool)
     (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)) (F : mvcc.Log → Int → IProp GF),
@@ -52,7 +55,8 @@ abbrev mvcc.store.Read.spec : Prop :=
       mvcc.readCbC γ F }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-      ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rev crev Z ∗
+      ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnReadT mw s γ trace log rev crev Z iprop(True) ∗
+        traceutil.ownTrace trace te ∗
         ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.crevPermAt γ crev ∗ mvcc.certOk γ log ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
         ⌜∀ q L, oa = some (q, L) → log = L⌝ ∗ F log crev }}

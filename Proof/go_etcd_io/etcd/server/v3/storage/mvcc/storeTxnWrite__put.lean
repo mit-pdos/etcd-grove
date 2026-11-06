@@ -174,7 +174,7 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
         $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
-      iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
+      iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok, Pw, fw, Dep
       simp only [named]
       rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
       simp only [mvcc.revOf, mvcc.Change.isDel]

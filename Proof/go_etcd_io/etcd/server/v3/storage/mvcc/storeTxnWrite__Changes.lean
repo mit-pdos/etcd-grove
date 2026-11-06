@@ -36,7 +36,7 @@ theorem mvcc.storeTxnWrite.Changes.wp_proof :
   isplitl []
   · ipureintro; exact Hps
   iunfold mvcc.storeTxnWriteCore
-  iexists ti, bt, Locked, ntok
+  iexists ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, mvcc.idxWriterB_false]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #

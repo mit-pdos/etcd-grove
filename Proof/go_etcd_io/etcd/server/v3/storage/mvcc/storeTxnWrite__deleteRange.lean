@@ -62,7 +62,7 @@ local macro "del_range_tail" : tactic => `(tactic| (
       iapply HΦ
       iframe Hown
       iunfold mvcc.storeTxnWriteIs
-      iexists ti, bt, Locked, chs, ps, ntok
+      iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
@@ -74,7 +74,7 @@ local macro "del_range_tail" : tactic => `(tactic| (
       ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z
           $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd]
       · iunfold mvcc.storeTxnWriteIs
-        iexists ti, bt, Locked, chs, ps, ntok
+        iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
         simp only [named]
         iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
         iframe #

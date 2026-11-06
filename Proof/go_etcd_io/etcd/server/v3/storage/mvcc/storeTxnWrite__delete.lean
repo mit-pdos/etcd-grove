@@ -174,7 +174,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
       $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hkv]
   · iintro Htw Hlrd
     iunfold mvcc.storeTxnWriteIs
-    iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
+    iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok, Pw, fw, Dep
     simp only [named]
     rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
     simp only [mvcc.revOf, mvcc.Change.isDel]

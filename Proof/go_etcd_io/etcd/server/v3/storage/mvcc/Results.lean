@@ -603,7 +603,8 @@ theorem mvcc_store_Read_after_Compact (s : Loc) (γ : mvcc.StoreNames) (mode : w
     · ipureintro; exact Ht
     unfold mvcc.logLent; itrivial
   inext
-  iintro %mw ⟨%log, %rv, %crev, Htx, Hm, #Hlb', -, #Hrok, %Hp, -, -, -⟩
+  iintro %mw ⟨%log, %rv, %crev, Htx, Htrc, Hm, #Hlb', -, #Hrok, %Hp, -, -, -⟩
+  ihave Htx := mvcc.isTxnRead_ofT _ _ _ _ _ _ _ _ _ _ $$ [$Htx $Htrc]
   iapply HΦ
   iexists log, rv, crev
   iframe Htx Hm Hlb' Hrok

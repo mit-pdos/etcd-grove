@@ -35,19 +35,21 @@ one the lessor's delete from `Lease` left (`ld`, leases T3, 2026-10-25). The rea
 (`endCb`): with no change at the check-in, with a change at the bump, under `s.revMu`, from the
 writer's slot `Y` (the transaction's, `storeTxnWriteCoreY`) and the lock's slot at the
 transaction's compaction revision; the writer's check-in excludes the frozen state by the caller's
-`G` (given back). -/
+`G` (given back). (M4, track B, 2026-11-06, the second internal change) The batch lock's invariant
+`P` by the store's name of it alone (`hookP`, which the API's `mvccBackend` holds), not the writer's
+hook (`hookIs`), and no writer's fragment back: the API's `End` has neither. -/
 abbrev mvcc.storeTxnWrite.End.spec : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val) (crev : Int)
+    (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (crev : Int)
     (Z : IProp GF) (ld : Bool) (Y G R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteCoreY tw s γ trace ilog pend chs ps sealed crev Z ld Y ∗ mvcc.hookIs γ P f ∗ P ∗
+      mvcc.storeTxnWriteCoreY tw s γ trace ilog pend chs ps sealed crev Z ld Y ∗ mvcc.hookP γ P ∗ P ∗
       mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend ∗
       G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.endCb γ ilog pend crev Y R }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
       (if pend = [] then mvcc.revToken γ else iprop(True)) ∗ mvcc.logQPost γ ilog pend ∗
-      mvcc.writerFrag γ ∗ mvcc.writerPin γ (mvcc.commitLog ilog pend) ∗ G ∗ R }}
+      mvcc.writerPin γ (mvcc.commitLog ilog pend) ∗ G ∗ R }}
 
 end spec
 

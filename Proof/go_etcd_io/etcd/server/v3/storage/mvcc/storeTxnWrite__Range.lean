@@ -141,7 +141,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     · ipureintro; exact Htodo
     iframe Hout Hown
     iunfold mvcc.storeTxnWriteIs
-    iexists ti, bt, Locked, chs, ps, ntok
+    iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
     simp only [named]
     iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #

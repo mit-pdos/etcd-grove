@@ -3,8 +3,8 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpSteps
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite
 
@@ -28,16 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.spec (GF := GF) (hG := hG) := by
-  intro s γ trace P Pre Q f te clb Z logP
-  wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Htok, Hwt, %Htrnn, HhookC, HpinP, Hpre, #Htriple, Htrc⟩
+  intro s γ trace P Pre Q hk dq te clb Z logP qf ow G F
+  wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Htok, Hwt, %Htrnn, Hctx, Hpinw, HG, #HFG, Hwcb, HpinP, Htrc⟩
   -- the writer's pin: its quarter of the view, joined below with `writerRes`'s, and its loan
   iunfold mvcc.writerPin at HpinP
   icases HpinP with ⟨HbvP, Hloan⟩
-  -- the caller's hook: its facts and the writer's fragment (D22 receiver epochs, S5b: the caller's
-  -- names are the current ones)
-  icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, Hfrag⟩
-  iunfold mvcc.writerFrag at Hfrag
-  icases Hfrag with ⟨%ow, Hpinw⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -53,7 +48,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
   icases HmuP with ⟨%cm, HmuP, Hwr, Hfs⟩
-  -- the share of the fields at the writer's names (its fragment pins them; S5b)
+  -- the share of the fields at the caller's names (its share of the current objects pins them)
   icases mvcc.fieldShare_pin s γ _ _ ow $$ [Hpinw Hfs] with ⟨Hpinw, Hfs⟩
   · iframe Hpinw Hfs
   iunfold mvcc.fieldShareAt at Hfs
@@ -61,19 +56,6 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   ihave #Hph0 := Hph
   iunfold mvcc.physOk at Hph0
   iNamed Hph0
-  -- the caller's hook is the store's
-  imod mvcc.hookP_agree_lc ⊤ γ P Ph f $$ [$Hlc0 $HhookC $Hhook] with ⟨#HPP0, #HP0P⟩
-  ihave #HhookC' := HhookC
-  iunfold mvcc.hookOk at HhookC'
-  icases HhookC' with ⟨-, #Hhf⟩
-  ihave #HhookW : mvcc.hookOk γ Ph f $$ []
-  · iunfold mvcc.hookOk; iframe Hhook Hhf
-  ihave #Htr0 : □ ({{ Ph ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) $$ []
-  · iintro !> %Φ !> ⟨HP0, Hpre⟩ HΦ
-    iapply Htriple $$ %Φ [HP0 Hpre] HΦ
-    iframe Hpre
-    iapply HP0P
-    iexact HP0
   -- a slot of the index's lock, out of the readers' pool (D22 receiver epochs, S4)
   icases (mvcc.wDep_halves γ).1 $$ Hwr with ⟨Hwr, Hwr2⟩
   imod mvcc.readerPool_checkout γ _ ow $$ Hlc3 Hpool Hpinw HtkR Hwr2 with ⟨Hslot, Htko, Hpinw⟩
@@ -111,24 +93,74 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
     iframe Hfs
     ipureintro; rfl
   iunfold mvcc.isBatchTxG at Hbt
-  icases Hbt with ⟨%Locked, %LockedO, #Hbt, -, #HbtB⟩
-  ihave #Hbt := mvcc.batchTxSpecG_noNil _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hbt
+  icases Hbt with ⟨%Locked, %LockedO, #HbtF, -, #HbtB⟩
+  ihave #Hbt := mvcc.batchTxSpecG_noNil _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ HbtF
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
       (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) Dep (mvcc.storeCmp γ) Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
       (mvcc.kbMWv γ.kb γ.bucket) $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -⟩
-  -- `tx.LockInsideApply()`: the writer's resources, the hook run on the caller's `Pre`
-  ihave #HLock' := HLock $$ %Pre %Q %f
-  wp_apply HLock' $$ [$Hpre $Htr0 $HrtR $Hwt $Hhf] as ⟨Hlocked, HW, HQ, HrtR⟩
+  -- `tx.LockInsideApply()`, by the hook's state (request 4): set, the hook run on the caller's
+  -- `Pre` (its invariant the store's); unset, the nil arm (`lockNilSpec`, the share `dq` of the hook
+  -- at `nil` lent) and the caller's view shift from the lock's invariant and `Pre`
+  wp_bind (App (Val #(methods bt.ty go!"LockInsideApply" bt.v)) (Val #()))
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ Locked [] ∗ mvcc.storeW s γ ∗ (|={⊤}=> Q) ∗
+      mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk dq))) $$ [Hctx HrtR Hwt Hlc0]
+  · cases hk with
+    | some f =>
+      rw [mvcc.writeCtxM_some, mvcc.lockBackM_some]
+      icases Hctx with ⟨#HhookC, Hpre, #Htriple⟩
+      -- the caller's hook is the store's
+      imod mvcc.hookP_agree_lc ⊤ γ P Ph f $$ [$Hlc0 $HhookC $Hhook] with ⟨#HPP0, #HP0P⟩
+      ihave #HhookC' := HhookC
+      iunfold mvcc.hookOk at HhookC'
+      icases HhookC' with ⟨-, #Hhf⟩
+      ihave #Htr0 : □ ({{ Ph ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) $$ []
+      · iintro !> %Φ !> ⟨HP0, Hpre⟩ HΦ
+        iapply Htriple $$ %Φ [HP0 Hpre] HΦ
+        iframe Hpre
+        iapply HP0P
+        iexact HP0
+      ihave #HLock' := HLock $$ %Pre %Q %f
+      iapply HLock' $$ [$Hpre $Htr0 $HrtR $Hwt $Hhf]
+      inext
+      iintro ⟨Hlocked, HW, HQ, HrtR⟩
+      iframe Hlocked HW HrtR HhookC
+      isplitr
+      · ipureintro; rfl
+      imodintro; iexact HQ
+    | none =>
+      rw [mvcc.writeCtxM_none, mvcc.lockBackM_none]
+      icases Hctx with ⟨#HhP, Hnil, Hpre, Hupd⟩
+      -- the caller's invariant is the store's
+      imod mvcc.hookP_agree_lc2 ⊤ γ P Ph $$ [$Hlc0 $HhP $Hhook] with ⟨#HPP0, #HP0P⟩
+      ihave #HbtF' := HbtF
+      iunfold mvcc.batchTxSpecG at HbtF'
+      icases HbtF' with ⟨-, -, -, -, -, -, -, -, -, #HLN⟩
+      ispecialize HLN $$ %dq
+      iunfold mvcc.lockNilSpec at HLN
+      ihave #HLN' := HLN $$ %Pre
+      iapply HLN' $$ [$Hpre $HrtR $Hwt $Hnil]
+      inext
+      iintro ⟨Hlocked, HW, HP0, Hpre, HrtR, Hnil⟩
+      ihave HP := HP0P $$ HP0
+      ihave HQ : iprop(|={⊤}=> Q) $$ [Hupd HP Hpre]
+      · iapply Hupd; iframe HP Hpre
+      iframe Hlocked HW HQ HrtR HhP Hnil
+      ipureintro; rfl
+  iintro %v ⟨%Hv, Hlocked, HW, HQ, HrtR, Hback⟩
+  subst Hv
+  imod HQ with HQ
   (try wp_auto)
   -- the writer's state, checked out of the writer's invariant (D22 receiver epochs, S2): the
   -- batch lock's key and the transaction's part of `s.mu`'s deposit ghost deposited; the store
-  -- registered in its backend (S6: now, if a restore left it pending)
-  imod mvcc.writerInv_checkoutG s γ iprop(emp) (mvcc.slotF_excl_M1 γ) _ ow $$ Hlc2 Hwi [] Hpinw HW Hwr
-    with ⟨HL, #Hreg, -, ⟨%L, HwvW, Hbv, #HcertW, %HneW, Hcres⟩, Hpinw⟩
-  · iempintro
+  -- registered in its backend (S6: now, if a restore left it pending); the frozen state excluded
+  -- by the caller's `G`
+  imod mvcc.writerInv_checkoutG s γ iprop(G ∗ □ (mvcc.slotF γ ∗ G -∗ False))
+      (mvcc.slotF_excl_of γ G) _ ow $$ Hlc2 Hwi [HG] Hpinw HW Hwr
+    with ⟨HL, #Hreg, ⟨HG, -⟩, ⟨%L, HwvW, Hbv, #HcertW, %HneW, Hcres⟩, Hpinw⟩
+  · iframe HG HFG
   iunfold mvcc.writerL at HL
   icases HL with ⟨%ilog, %ntok, HL⟩
   iNamed HL
@@ -138,6 +170,16 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   ihave Hbv := mvcc.bucketViewL_join2 γ (1 : Qp).half.half.half (1 : Qp).half.half ilog logP
     $$ [Hbv HbvP]
   · iframe Hbv HbvP
+  -- the begin's callback (§3, "`Write`'s begin"): the writer's slot at the committed log and the
+  -- transaction's compaction revision (the writer slot's half of `wcr` agrees with `s.mu`'s)
+  iunfold mvcc.slotY at HY
+  icases HY with ⟨%cy, HYa, HYp, HYr, HYw⟩
+  icases mvcc.muHeld_wcr s γ cm ow.ti _ cy $$ [$Hmuh $HYw] with ⟨Hmuh, HYw, %Hcy⟩
+  subst Hcy
+  iunfold mvcc.writeCb at Hwcb
+  imod Hwcb $$ %ilog %cm [$HYa $HYp] with ⟨HYa, HYp, HF⟩
+  ihave HY : mvcc.slotY γ ilog $$ [HYa HYp HYr HYw]
+  · iunfold mvcc.slotY; iexists cm; iframe HYa HYp HYr HYw
   -- the compaction revision is a revision of the committed log (`s.mu`'s certified log is below
   -- the writer's)
   iunfold mvcc.crevSafe at HclM0
@@ -151,23 +193,20 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   wp_apply (hNew _) as %mw Hmw
   (try wp_auto)
   iapply HΦ
-  iframe HQ
-  isplitr [Hpinw]
-  rotate_left
-  · iunfold mvcc.hookIs; iframe HhookC; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
+  iframe HQ Hback Hpinw HG Htrc
   iexists ilog, cm
-  iframe Hlbc HpM
+  iframe Hlbc HpM HF
   isplitl
   rotate_left
   · ipureintro; exact Hclbc
-  iunfold mvcc.isTxnWrite
+  iunfold mvcc.isTxnWriteT
   iexists «$r0_ptr», W64 0
   iframe Hmw
-  isplitr [Htrc]
+  isplitl
   rotate_left
-  · iexists te; iexact Htrc
+  · itrivial
   iunfold mvcc.storeTxnWriteIs
-  iexists ow.ti, bt, Locked, chs, [], ntok, Ph, f, Dep
+  iexists ow.ti, bt, Locked, chs, [], ntok, Ph, (#() : val), Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
   iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmuh HrevMuR HtiR HrtR Hcres Hloan Hlrd

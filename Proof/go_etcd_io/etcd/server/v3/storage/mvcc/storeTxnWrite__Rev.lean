@@ -31,7 +31,7 @@ theorem mvcc.storeTxnWrite.Rev.wp_proof : mvcc.storeTxnWrite.Rev.spec (GF := GF)
   (try wp_auto)
   iapply HΦ
   iunfold mvcc.storeTxnWriteCore
-  iexists ti, bt, Locked, ntok
+  iexists ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #

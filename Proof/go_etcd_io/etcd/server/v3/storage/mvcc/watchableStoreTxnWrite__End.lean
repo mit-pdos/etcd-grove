@@ -65,7 +65,7 @@ theorem mvcc.isTxnWriteCore_room (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvc
     iexists tw, ranges
     iframe Hmw Htrc
     iunfold mvcc.storeTxnWriteCore
-    iexists ti, bt, Locked, ntok
+    iexists ti, bt, Locked, ntok, Pw, fw, Dep
     simp only [named]
     unfold mvcc.revToken
     iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
@@ -193,7 +193,9 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   (try wp_auto)
   rw [method_unfold (t := go.GoType.PointerType watchableStoreTxnWrite.ty) (m := go!"Changes")]; wp_call
   (try wp_auto)
+  ihave Htx := mvcc.isTxnWrite_toT _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx
   wp_apply (hCh trace mw st γ.st ilog pend puts deletes putSize crev iprop(True) ld) $$ [$Htx] as %chs %ps ⟨Hchs, Hkvs, %Hps, Hcore⟩
+  ihave Hcore := mvcc.isTxnWriteCoreY_core _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hcore
   ihave %Hlen := ownSlice_len _ _ _ $$ Hchs
   icases mvcc.isTxnWriteCore_room _ _ _ _ _ _ _ _ _ _ _ crev ld $$ Hcore with ⟨Hcore, %Hroom⟩
   (try wp_auto)

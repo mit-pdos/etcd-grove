@@ -29,7 +29,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
     (hEnd : mvcc.storeTxnRead.End.spec (GF := GF) (hG := hG))
     (hEndW : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ kind crev Z Y G R
+  intro trace mw s γ kind crev Z Y G R Tr
   wp_start as ⟨Htx, Hpre, Hx⟩
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -44,8 +44,8 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
   icases HgS with ⟨-, -, #HgA⟩
   cases kind with
   | read log rev =>
-    simp only [mvcc.isTxnEndY, mvcc.txnEndPost, mvcc.txnEndXPost]
-    iunfold mvcc.isTxnRead at Htx
+    simp only [mvcc.isTxnEndY, mvcc.txnEndPostH, mvcc.txnEndXPost]
+    iunfold mvcc.isTxnReadT at Htx
     iNamed Htx
     wp_apply wp_with_defer as %defer defer
     (try wp_auto)
@@ -77,8 +77,8 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
       iframe Hrd HZ Htrc
       (try itrivial)
   | write ilog pend puts deletes putSize =>
-    simp only [mvcc.isTxnEndY, mvcc.txnEndPost, mvcc.txnEndPre, mvcc.txnEndX, mvcc.txnEndXPost]
-    icases Hpre with ⟨%P, %f, Hhook, HP, #Hok, Hq⟩
+    simp only [mvcc.isTxnEndY, mvcc.txnEndPostH, mvcc.txnEndPreH, mvcc.txnEndX, mvcc.txnEndXPost]
+    icases Hpre with ⟨%P, #Hhook, HP, #Hok, Hq⟩
     icases Hx with ⟨HG, #HFG, Hcb⟩
     icases Htx with ⟨%chs, %ps, %sealed, %ld, Htx⟩
     iunfold mvcc.isTxnWriteCoreY at Htx
@@ -98,12 +98,12 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
       wp_apply HcdA
       (try wp_auto)
       -- the deferred `tw.TxnWrite.End()`: `storeTxnWrite.End`
-      wp_apply (hEndW trace tw s γ ilog pend chs ps sealed P f crev Z ld Y G R)
+      wp_apply (hEndW trace tw s γ ilog pend chs ps sealed P crev Z ld Y G R)
         $$ [$Htw $Hhook $HP $Hok $Hq $HG $HFG $Hcb]
-        as ⟨Hrd, #HZ, #Hcert, Htok, HqP, Hfrag, Hpin, HG, HR⟩
+        as ⟨Hrd, #HZ, #Hcert, Htok, HqP, Hpin, HG, HR⟩
       (try wp_auto)
       iapply HΦ
-      iframe Hrd HZ Htok Hcert Htrc HqP Hfrag Hpin HG HR
+      iframe Hrd HZ Htok Hcert Htrc HqP Hpin HG HR
 
 end proof
 

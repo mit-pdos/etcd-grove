@@ -25,10 +25,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend chs ps sealed P f crev Z ld Y G R
-  wp_start as ⟨Htw, HhookC, HP, #HokN, Hq, HG, #HFG, Hcb⟩
-  -- the caller's hook: its facts, and the writer's fragment, given back (D22 receiver epochs, S5b)
-  icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, Hfrag⟩
+  intro trace tw s γ ilog pend chs ps sealed P crev Z ld Y G R
+  wp_start as ⟨Htw, #HhookC, HP, #HokN, Hq, HG, #HFG, Hcb⟩
   iunfold mvcc.storeTxnWriteCoreY at Htw
   iNamed Htw
   icases Hcres with ⟨Hcres, Hloan⟩
@@ -54,7 +52,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       exact List.length_eq_zero_iff.1 (by rw [← Hps, h1]; rfl)
   wp_auto_lc 3
   -- the caller's invariant is the store's
-  imod mvcc.hookOk_agree_lc ⊤ γ P Pw f fw $$ [$Hlc1 $HhookC $Hhook] with ⟨-, #HPPw, -⟩
+  imod mvcc.hookP_agree_lc2 ⊤ γ Pw P $$ [$Hlc1 $Hhook $HhookC] with ⟨#HPwP, #HPPw⟩
   ihave HP := HPPw $$ HP
   -- `len(tw.changes) != 0`
   wp_if_destruct
@@ -123,7 +121,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     unfold mvcc.commitLog
     rw [ite_eq_left rfl, mvcc.logQPost_nil]
     try rw [if_pos rfl]
-    iframe Hcert Htok Hfrag HG HR
+    iframe Hcert Htok HG HR
     iunfold mvcc.writerPin; iframe HbvP Hloan
 
   · -- a change: commit the pending revision under `s.revMu`
@@ -291,7 +289,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       unfold mvcc.commitLog
       rw [ite_eq_right hne']
       try rw [ite_eq_right hne']
-      iframe Hcert' Hq Hfrag HG HR
+      iframe Hcert' Hq HG HR
       iunfold mvcc.writerPin; iframe HbvP Hloan
 end proof
 

@@ -27,9 +27,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.metricsTxnWrite.FirstRev.wp_proof
     (hRev : mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.FirstRev.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ log rev crev Z
+  intro trace mw s γ log rev crev Z Tr
   wp_start as Htx
-  iunfold mvcc.isTxnRead at Htx
+  iunfold mvcc.isTxnReadT at Htx
   iNamed Htx
   ihave #HtrT := Htr
   iunfold mvcc.storeTxnReadIs at HtrT
@@ -42,7 +42,7 @@ theorem mvcc.metricsTxnWrite.FirstRev.wp_proof
   wp_apply (hRev (mvcc.txCommon tr) _) $$ [$HfirstRevT]
   (try wp_auto)
   iapply HΦ
-  iunfold mvcc.isTxnRead
+  iunfold mvcc.isTxnReadT
   iexists p, trw, tr, ti, rt, ranges
   iframe
   iframe #

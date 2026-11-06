@@ -59,11 +59,12 @@ theorem mvcc.watchableStore.rev.wp_proof
   ihave Hcb := mvcc.readCbC_of γ.st F $$ Hcb
   wp_apply (hRead st γ.st _ t 0 [[], []] true (-1) iprop(True) oa (fun L _ => F L))
       $$ [$Hs $Hrd $Hnone $Hc0S $Hlbn $Htrc $HoA $Hcb]
-    as %mw ⟨%log, %rev, %crev, Htx, -, -, -, -, %Hpre0, HoA, %HoaL, HF⟩
+    as %mw ⟨%log, %rev, %crev, Htx, Htrc, -, -, -, -, %Hpre0, HoA, %HoaL, HF⟩
   · isplitr
     · iintro !>; itrivial
     ipureintro; exact Ht
   (try wp_auto)
+  ihave Htx := mvcc.isTxnRead_ofT _ _ _ _ _ _ _ _ _ _ $$ [$Htx $Htrc]
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx
   ihave #HtrT := Htr
@@ -85,8 +86,8 @@ theorem mvcc.watchableStore.rev.wp_proof
   ihave Htx' : mvcc.isTxn mw st γ.st t (.read log rev) crev iprop(True) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev iprop(True) $$ Htx'
-  ihave Hep : mvcc.txnEndPre γ.st (.read log rev) $$ []
-  · simp only [mvcc.txnEndPre]; itrivial
+  ihave Hep : mvcc.txnEndPreH γ.st (.read log rev) $$ []
+  · simp only [mvcc.txnEndPreH]; itrivial
   ihave Htx' := mvcc.isTxnEnd_Y_read _ _ _ _ _ _ crev iprop(True) iprop(True) $$ Htx'
   ihave Hx : mvcc.txnEndX γ.st (.read log rev) crev iprop(True) iprop(True) iprop(True) $$ []
   · simp only [mvcc.txnEndX]; itrivial
