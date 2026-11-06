@@ -166,11 +166,13 @@ inductive Reach (roots : List (GoString × Ino)) (m : Tree) : Ino → Prop where
   | child (j : Ino) (b : GoString) (j' : Ino) :
       Reach roots m j → m.entry j b = some (.dir j') → Reach roots m j'
 
-/-- `m` is a tree over `roots`: every directory reachable from a root; each directory named once
-(by a root or by one entry, so no cycle) and each file named once (no hard links); every entry's
-name valid and every directory it names one of `m`'s. -/
+/-- `m` is a tree over `roots`: every directory reachable from a root is one of `m`'s, and every
+other directory of `m` is a removed one (empty, named by no entry: an fd may still be open on it);
+each directory named once (by a root or by one entry, so no cycle) and each file named once (no
+hard links); every entry's name valid and every directory it names one of `m`'s. -/
 def TreeWf (roots : List (GoString × Ino)) (m : Tree) : Prop :=
-  (∀ j, j ∈ m ↔ Reach roots m j) ∧
+  (∀ j, Reach roots m j → j ∈ m) ∧
+  (∀ j, j ∈ m → Reach roots m j ∨ ((∀ b, m.entry j b = none) ∧ ∀ j0 b, m.entry j0 b ≠ some (.dir j))) ∧
   (∀ j b n, m.entry j b = some n → NameOk b ∧ ∀ j' ∈ n.dirIno, j' ∈ m) ∧
   (∀ j b j', m.entry j b = some (.dir j') → ∀ r, (r, j') ∉ roots) ∧
   (∀ j1 b1 j2 b2 n, m.entry j1 b1 = some n → m.entry j2 b2 = some n → j1 = j2 ∧ b1 = b2)

@@ -206,6 +206,11 @@ The three stuck cases above are lifted by one change (`Tree.lean`, `Impl.lean`):
   directories an operation locks (`MetaOp.locks`: not a directory a rename moves); a restart begins
   after the old process has left the kernel (assumed).
 
+- `TreeWf` (2026-11-06, during the port) allows removed directories: unreachable, empty, named by
+  no entry (an `rmdir`, or a rename onto an empty directory, leaves its inode in the tree so that an
+  fd on it keeps working). It weakens a premise of `FsInit` only (the adequacy statement assumes
+  less).
+
 ## Environment assumptions (hypotheses of the adequacy statement)
 
 As now for the roots (one local ext4 or xfs filesystem, one journal; regular files and directories
