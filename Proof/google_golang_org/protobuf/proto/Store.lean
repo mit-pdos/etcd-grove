@@ -560,6 +560,78 @@ theorem treeWp_sliceTree {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
     iapply H $$ %xs %sl %(⟨Hl, fun h => by subst h; exact absurd (List.eq_nil_of_length_eq_zero Hlen) hts⟩ :
       xs.length < 2 ^ 63 ∧ (xs = [] → sl = slice.nil)) Hxs Hs Hc
 
+/-- **A pointer node, its referent frozen or shared at once** (the post may update the ghost
+state, at mask `⊤`). -/
+theorem treeWp_ptr_fupd {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    [IntoValTyped (GF := GF) V ty] (t : VTree) (Φ : val → IProp GF) :
+    treeWp t (fun v => iprop(∃ x : V, ⌜v = #x⌝ ∗ ∀ p : Loc, p ↦ x ={⊤}=∗ Φ #p)) ⊢
+      treeWp (.ptr ty t) Φ := by
+  simp only [treeWp]
+  refine treeWp_mono t _ _ fun v => ?_
+  iintro ⟨%x, %Hx, H⟩
+  subst Hx
+  iapply wp_fupd
+  wp_alloc p as Hp
+  iapply H $$ Hp
+
+/-- **Trees of typed results, one per element** (`f a`'s spec `Q a`, proved once for every `a`). -/
+theorem treeWpL_map {A V : Type} (f : A → VTree) (Q : A → V → IProp GF)
+    (hf : ∀ (a : A) (Φ : val → IProp GF), (∀ x : V, Q a x -∗ Φ #x) ⊢ treeWp (f a) Φ) :
+    ∀ (ys : List A) (acc : List val) (Ψ : List val → IProp GF),
+    (∀ xs : List V, ([∗list] a;x ∈ ys;xs, Q a x) -∗ Ψ (acc ++ xs.map fun x => #x)) ⊢
+      treeWpL (ys.map f) acc Ψ
+  | [], acc, Ψ => by
+    simp only [List.map_nil, treeWpL]
+    iintro H
+    ihave H := H $$ %([] : List V)
+    simp only [List.map_nil, List.append_nil]
+    iapply H
+    iempintro
+  | a :: ys, acc, Ψ => by
+    simp only [List.map_cons, treeWpL]
+    iintro HΨ
+    iapply hf a
+    iintro %x Hx
+    isplitr
+    · ipureintro; exact isPanic_intoVal x
+    iapply treeWpL_map f Q hf ys (acc ++ [(#x)]) Ψ
+    iintro %xs Hxs
+    ihave H := HΨ $$ %(x :: xs) [Hx Hxs]
+    · iframe
+    simp only [List.map_cons, List.append_assoc, List.singleton_append]
+    iexact H
+
+/-- **A repeated message field of trees of typed results**, `nil` if empty. -/
+theorem treeWp_sliceMap {A V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    [IntoValTyped (GF := GF) V ty] (f : A → VTree) (Q : A → V → IProp GF)
+    (hf : ∀ (a : A) (Φ : val → IProp GF), (∀ x : V, Q a x -∗ Φ #x) ⊢ treeWp (f a) Φ)
+    (ys : List A) (Φ : val → IProp GF) :
+    (∀ (xs : List V) (sl : GoSlice), ⌜xs.length < 2 ^ 63 ∧ (xs = [] → sl = slice.nil)⌝ -∗
+        ([∗list] a;x ∈ ys;xs, Q a x) -∗ sl ↦* xs -∗ ownSliceCap V sl (DFrac.own 1) -∗ Φ #sl) ⊢
+      treeWp (sliceTree ty (ys.map f)) Φ := by
+  unfold sliceTree
+  by_cases has : ys = []
+  · subst has
+    rw [if_pos List.map_nil]
+    simp only [treeWp]
+    iintro H
+    ihave Hs := ownSlice_nil (V := V) (GF := GF) (DFrac.own 1)
+    ihave Hc := ownSliceCap_nil (V := V) (GF := GF)
+    iapply H $$ %([] : List V) %slice.nil %(by simp) [] Hs Hc
+    iempintro
+  · rw [if_neg (by simpa using has)]
+    simp only [treeWp]
+    iintro H
+    iapply treeWpL_map f Q hf ys [] _
+    iintro %xs Hxs
+    ihave %Hl := BigSepL2.bigSepL2_length $$ Hxs
+    simp only [List.nil_append, List.length_map]
+    rw [Hl]
+    iapply wp_sliceLit_vals xs Φ
+    iintro %sl %Hlen Hs Hc
+    iapply H $$ %xs %sl %(⟨Hlen, fun h => by subst h; exact absurd (List.eq_nil_of_length_eq_zero Hl) has⟩ :
+      xs.length < 2 ^ 63 ∧ (xs = [] → sl = slice.nil)) Hxs Hs Hc
+
 end wps
 
 end EtcdGrove

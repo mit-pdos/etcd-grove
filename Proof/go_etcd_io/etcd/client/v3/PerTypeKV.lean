@@ -127,6 +127,182 @@ theorem pbPutRequestT_reqSat : (pbPutRequestT (GF := GF)).ReqSat := by
     exact hfin
   · ipureintro; trivial
 
+/-- **The store of a response header** (always present: the sender's is not nil). -/
+def hdrTree (h : HdrM) : VTree :=
+  .ptr etcdserverpb.ResponseHeader.ty (.strct etcdserverpb.ResponseHeader.ty
+    [(go!"ClusterId", go.uint64), (go!"MemberId", go.uint64), (go!"Revision", go.int64),
+     (go!"RaftTerm", go.uint64), (go!"LeaderId", go.uint64)]
+    [.leaf #h.clusterId, .leaf #h.memberId, .leaf #h.revision, .leaf #h.raftTerm, .leaf #h.leaderId])
+
+/-- **The store of a key-value** (`nil` key and value if empty). -/
+def kvTree (v : EtcdKv) : VTree :=
+  .ptr mvccpb.KeyValue.ty (.strct mvccpb.KeyValue.ty
+    [(go!"Key", go.GoType.SliceType go.byte), (go!"CreateRevision", go.int64),
+     (go!"ModRevision", go.int64), (go!"Version", go.int64),
+     (go!"Value", go.GoType.SliceType go.byte), (go!"Lease", go.int64)]
+    [bytesTree go.byte v.key, .leaf #v.createRev, .leaf #v.modRev, .leaf #v.version,
+     bytesTree go.byte v.value, .leaf #v.lease])
+
+/-- **The store of a range response**: its header, its key-values (`nil` if none), `More`,
+`Count`. -/
+def rangeRespTree (m : RangeRespM) : VTree :=
+  .strct etcdserverpb.RangeResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
+     (go!"Kvs", go.GoType.SliceType (go.GoType.PointerType mvccpb.KeyValue.ty)),
+     (go!"More", go.bool), (go!"Count", go.int64)]
+    [hdrTree m.hdr, sliceTree (go.GoType.PointerType mvccpb.KeyValue.ty) (m.kvs.map kvTree),
+     .leaf #m.more, .leaf #m.count]
+
+/-- **`pbRangeResponse` with its store.** -/
+def pbRangeResponseT : ProtoMsgT GF :=
+  { pbRangeResponse with tree := rangeRespTree }
+
+theorem treeWp_hdr (h : HdrM) (Φ : val → IProp GF) :
+    (∀ p : Loc, hdrFull p h -∗ Φ #p) ⊢ treeWp (hdrTree h) Φ := by
+  iintro H
+  unfold hdrTree
+  iapply (treeWp_ptr_fupd (V := etcdserverpb.ResponseHeader))
+  simp only [treeWp, treeWpL, isPanic_intoVal]
+  simp [litBody, strctKes, kesσ, envσ]
+  isplitr; · ipureintro; trivial
+  isplitr; · ipureintro; trivial
+  isplitr; · ipureintro; trivial
+  isplitr; · ipureintro; trivial
+  isplitr; · ipureintro; trivial
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  iintro %p Hp
+  ihave %Hnn := typedPointsto_not_null $$ Hp
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨-, HC, HM, HR, HT, HL, -, -, -⟩
+  imod (typedPointsto_dfractional (GF := GF) _ h.clusterId).dfractional_persist _ $$ HC with #HC
+  imod (typedPointsto_dfractional (GF := GF) _ h.memberId).dfractional_persist _ $$ HM with #HM
+  imod (typedPointsto_dfractional (GF := GF) _ h.revision).dfractional_persist _ $$ HR with #HR
+  imod (typedPointsto_dfractional (GF := GF) _ h.raftTerm).dfractional_persist _ $$ HT with #HT
+  imod (typedPointsto_dfractional (GF := GF) _ h.leaderId).dfractional_persist _ $$ HL with #HL
+  imodintro
+  iapply H
+  unfold hdrFull
+  iframe HC HM HR HT HL
+  ipureintro; exact Hnn
+
+theorem treeWp_kv (v : EtcdKv) (Φ : val → IProp GF) :
+    (∀ p : Loc, txn.kvIs p v -∗ Φ #p) ⊢ treeWp (kvTree v) Φ := by
+  iintro H
+  unfold kvTree
+  iapply (treeWp_ptr_fupd (V := mvccpb.KeyValue))
+  simp only [treeWp, treeWpL]
+  iapply treeWp_bytes
+  iintro %ksl %Hks Hks -
+  repeat (isplitr; · ipureintro; exact isPanic_intoVal _)
+  iapply treeWp_bytes
+  iintro %vsl %Hvs Hvs -
+  repeat (isplitr; · ipureintro; exact isPanic_intoVal _)
+  simp [litBody, strctKes, kesσ, envσ]
+  repeat (isplitr; · ipureintro; trivial)
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  iintro %p Hp
+  ihave %Hnn := typedPointsto_not_null $$ Hp
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨-, HK, HC, HM, HV, HVa, HL, -, -, -⟩
+  imod (typedPointsto_dfractional (GF := GF) _ ksl).dfractional_persist _ $$ HK with #HK
+  imod (typedPointsto_dfractional (GF := GF) _ v.createRev).dfractional_persist _ $$ HC with #HC
+  imod (typedPointsto_dfractional (GF := GF) _ v.modRev).dfractional_persist _ $$ HM with #HM
+  imod (typedPointsto_dfractional (GF := GF) _ v.version).dfractional_persist _ $$ HV with #HV
+  imod (typedPointsto_dfractional (GF := GF) _ vsl).dfractional_persist _ $$ HVa with #HVa
+  imod (typedPointsto_dfractional (GF := GF) _ v.lease).dfractional_persist _ $$ HL with #HL
+  imod ownSlice_persist _ _ _ $$ Hks with #Hks
+  imod ownSlice_persist _ _ _ $$ Hvs with #Hvs
+  imodintro
+  iapply H
+  unfold txn.kvIs
+  iexists ksl, vsl
+  iframe HK Hks HC HM HV HVa Hvs HL
+
+theorem kvsIs_of_sepL2 (kvs : List EtcdKv) (ps : List Loc) :
+    ([∗list] v;p ∈ kvs;ps, txn.kvIs (GF := GF) p v) ⊢ txn.kvsIs ps kvs := by
+  iintro #H
+  ihave %Hl := BigSepL2.bigSepL2_length $$ H
+  unfold txn.kvsIs
+  isplitr
+  · ipureintro; exact Hl.symm
+  imodintro
+  iintro %i %p %v %Hp %Hv
+  iapply (BigSepL2.bigSepL2_lookup Hv Hp) $$ H
+
+/-- **`pbRangeResponseT`'s reply model is satisfiable.** -/
+theorem pbRangeResponseT_repSat : (pbRangeResponseT (GF := GF)).RepSat := by
+  refine ⟨⟨etcdserverpb.RangeResponse, inferInstance, inferInstance,
+      (inferInstance : IntoValTyped etcdserverpb.RangeResponse etcdserverpb.RangeResponse.ty),
+      fun l => .rfl⟩,
+    ⟨etcdserverpb.RangeResponse, inferInstance, inferInstance,
+      (inferInstance : IntoValTyped etcdserverpb.RangeResponse etcdserverpb.RangeResponse.ty),
+      fun l => .rfl⟩,
+    ?_, ?_⟩
+  · intro m
+    simp only [pbRangeResponseT, pbRangeResponse, rangeRespMsg]
+    iintro ⟨%H, -⟩
+    exact absurd rfl H
+  intro ls l m
+  simp only [pbRangeResponseT, pbRangeResponse]
+  iintro ⟨Hs, ⟨%x0, Hl⟩⟩
+  iapply wp_fupd
+  iapply (storeInto_wp_typed (V := etcdserverpb.RangeResponse)
+    (ty := etcdserverpb.RangeResponse.ty) l x0)
+  simp only [rangeRespTree, treeWp, treeWpL]
+  iapply treeWp_hdr
+  iintro %h Hh
+  isplitr
+  · ipureintro; exact isPanic_intoVal h
+  iapply (treeWp_sliceMap (V := Loc) kvTree (fun v p => txn.kvIs (GF := GF) p v)
+    (fun a Φ => treeWp_kv a Φ))
+  iintro %ps %sl %Hps Hkvs Hsl -
+  isplitr
+  · ipureintro; exact isPanic_intoVal sl
+  simp only [isPanic_intoVal]
+  simp [litBody, strctKes, kesσ, envσ]
+  isplitr; · ipureintro; trivial
+  isplitr; · ipureintro; trivial
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  iframe Hl
+  iintro Hl
+  ihave %Hnn := typedPointsto_not_null $$ Hl
+  icases typedPointsto_split _ _ _ $$ Hl with Hl
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hl with ⟨-, HH, HK, HM, HC, -, -, -⟩
+  imod (typedPointsto_dfractional (GF := GF) _ h).dfractional_persist _ $$ HH with #HH
+  imod (typedPointsto_dfractional (GF := GF) _ sl).dfractional_persist _ $$ HK with #HK
+  imod (typedPointsto_dfractional (GF := GF) _ m.more).dfractional_persist _ $$ HM with #HM
+  imod (typedPointsto_dfractional (GF := GF) _ m.count).dfractional_persist _ $$ HC with #HC
+  imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
+  ihave #Hkvs := kvsIs_of_sepL2 m.kvs ps $$ Hkvs
+  imodintro
+  iframe Hs
+  unfold rangeRespMsg
+  isplitr
+  · ipureintro; exact Hnn
+  iexists h, sl, ps
+  iframe HH Hh HK Hsl Hkvs HM HC
+
+/-- **`PutRequest`'s registration** (prototype-only axiom; the Scope's R, `[v5]`'s split
+registries: a method's request). -/
+axiom pbPutRequestT_reg :
+    grpcReqModelOf GF etcdserverpb.PutRequest.ty = some (pbPutRequestT (GF := GF))
+
+/-- **`RangeResponse`'s registration** (prototype-only axiom: a method's reply). -/
+axiom pbRangeResponseT_reg :
+    grpcRepModelOf GF etcdserverpb.RangeResponse.ty = some (pbRangeResponseT (GF := GF))
+
 end defs
 
 end EtcdGrove

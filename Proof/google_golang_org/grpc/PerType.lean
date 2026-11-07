@@ -11,7 +11,7 @@ R and V for `ProtoMsg` and `StreamMsg`, revisions 4, 5 and 5a). Prototype only: 
     gives `recv` and `recvOwn`;
   - `ProtoMsgT.RepSat`: from an `own` (what a failed attempt leaves), no `wireLen` premise, the
     store gives `recv`;
-  - `StreamMsgT.Sat`: the `own` form.
+  - `StreamMsgT.ReqSat`/`RepSat`: the `own` form, a request's with its `wireLen` premise.
   Each with the laws that make its resources satisfiable: `blank` the zero struct, `own` any
   struct (`OwnAny`), `send` at `nil` false.
 -/
@@ -63,11 +63,26 @@ def ProtoMsgT.RepSat (T : ProtoMsgT GF) : Prop :=
   ∀ (ls l : Loc) (m : T.M),
     T.send ls m ∗ T.own l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
 
-/-- **A stream message model is satisfiable** (`[v5]`): the `own` form. -/
-def StreamMsgT.Sat (T : StreamMsgT GF) : Prop :=
-  OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧
+/-- **A stream request's store gives its decoded model** (the `own` form; with the request's
+`wireLen` below `grpcMsgMax`, as `ReqSat`: `createReqOwn` needs the key's length bound). -/
+def StreamMsgT.ReqStore (T : StreamMsgT GF) : Prop :=
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ ⌜T.wireLen m < grpcMsgMax⌝ ∗ T.own l ⊢
+      WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
+
+/-- **A stream reply's store gives its decoded model** (no `wireLen` premise: a reply's `wireLen`
+is `grpcMsgMax` by default, which would make the premise false). -/
+def StreamMsgT.RepStore (T : StreamMsgT GF) : Prop :=
   ∀ (ls l : Loc) (m : T.M),
     T.send ls m ∗ T.own l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
+
+/-- **A stream request model is satisfiable** (`[v5]`, the `own` form, with the request's bound). -/
+def StreamMsgT.ReqSat (T : StreamMsgT GF) : Prop :=
+  OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧ T.ReqStore
+
+/-- **A stream reply model is satisfiable** (`[v5]`, the `own` form). -/
+def StreamMsgT.RepSat (T : StreamMsgT GF) : Prop :=
+  OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧ T.RepStore
 
 /-- **The registry of request models** (`[v5]`: split by role). -/
 opaque grpcReqModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp]
