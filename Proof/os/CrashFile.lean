@@ -381,12 +381,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalCont
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
 /-- The new generation's file at `p`, in the history `V'`: none, or the file of the inode `p`
-names, whole, as the crash left it. -/
+names, whole, as the crash left it: on disk, all of it clean (`osFileStart`); never a directory. -/
 def startAt (L' : GooseLocalGS GF) (p : GoString) (R : Roots) (V' : Hist) (fo : Option OsFile) :
     IProp GF :=
   match lookupH R V' p with
-  | some (.file i) => iprop(∃ f, ⌜fo = some f⌝ ∗ osFileStartG (L := L') i f)
-  | _ => iprop(⌜fo = none⌝)
+  | some (.file i) => iprop(∃ f, ⌜fo = some f⌝ ∗ osFileStart (L := L') i f)
+  | none => iprop(⌜fo = none⌝)
+  | some (.dir _) => iprop(False)
 
 /-- What a crash of the old generation's state `s` leaves: the file's crash, through the runs, if
 there is a file. -/
@@ -402,7 +403,8 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     (hD : ∀ i, cIno s = some i → i ∉ D) (hok : CrashOk Good p R s V) :
     ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' -∗ invRes (L := L) s -∗
       osTree (L := L) (DFrac.own (1 : Qp).half) R V -∗
-      ∃ fo, ⌜Good fo⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗ startAt L' p R V' fo ∗
+      ∃ fo, ⌜TreeCrashed V V' ∧ Good fo⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗
+        startAt L' p R V' fo ∗
         (∃ D', crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D' true V') ∗
         invRes (L := L) s ∗ osTree (L := L) (DFrac.own (1 : Qp).half) R V := by
   iintro Hr Hs Ht
@@ -414,7 +416,7 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     · iexists none
       iframe Ht' Hs Ht
       isplitr
-      · ipureintro; exact hg
+      · ipureintro; exact ⟨htc, hg⟩
       isplitr
       · unfold startAt; rw [hn]; ipureintro; rfl
       iexists D; iexact Hr
@@ -434,7 +436,7 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     · iexists none
       iframe Ht' Hm Hb Ht
       isplitr
-      · ipureintro; exact hg
+      · ipureintro; exact ⟨htc, hg⟩
       isplitr
       · unfold startAt; rw [hn]; ipureintro; rfl
       iexists (i :: D); iexact Hr
@@ -444,12 +446,14 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       iframe Ht' Hm Hb Ht
       isplitr
       · ipureintro
-        exact hok.2 i _ rfl f hfc hrk (fun b h1 h2 => htk f rfl b h1 h2) trivial
+        exact ⟨htc, hok.2 i _ rfl f hfc hrk (fun b h1 h2 => htk f rfl b h1 h2) trivial⟩
       isplitl [Hf]
       · unfold startAt; rw [hl]; iexists f; isplitr
         · ipureintro; rfl
-        iapply (show osFileStartO (L := L') _ (some f) ⊢ osFileStartG (L := L') _ f from
-          BIBase.Entails.rfl) $$ Hf
+        obtain ⟨vs, sz, rfl⟩ := crashSeen_ofDisk hseen
+        iapply (osFileStartG_ofDisk (L := L') _ vs sz).1
+        iapply (show osFileStartO (L := L') _ (some (OsFile.ofDisk vs sz)) ⊢
+            osFileStartG (L := L') _ (OsFile.ofDisk vs sz) from BIBase.Entails.rfl) $$ Hf
       iexists (i :: D); iexact Hr
   · -- a write in flight
     dsimp only [invRes]
@@ -480,7 +484,7 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     · iexists none
       iframe Ht' Ht
       isplitr
-      · ipureintro; exact hg
+      · ipureintro; exact ⟨htc, hg⟩
       isplitr
       · unfold startAt; rw [hn]; ipureintro; rfl
       isplitl [Hr]
@@ -492,7 +496,7 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       iframe Ht' Ht
       isplitr
       · ipureintro
-        refine hok.2 i _ rfl f hfc hrk (fun b h1 h2 => ?_) (fun j x hx hj => ?_)
+        refine ⟨htc, hok.2 i _ rfl f hfc hrk (fun b h1 h2 => ?_) (fun j x hx hj => ?_)⟩
         rotate_left
         · exact .inr (.inr (crashSeen_tokKept hseen List.mem_cons_self rfl rfl hgap f rfl j x.1
             (by simp [List.getElem?_map, hx]) hj))
@@ -500,8 +504,10 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       isplitl [Hf]
       · unfold startAt; rw [hl]; iexists f; isplitr
         · ipureintro; rfl
-        iapply (show osFileStartO (L := L') _ (some f) ⊢ osFileStartG (L := L') _ f from
-          BIBase.Entails.rfl) $$ Hf
+        obtain ⟨vs, sz, rfl⟩ := crashSeen_ofDisk hseen
+        iapply (osFileStartG_ofDisk (L := L') _ vs sz).1
+        iapply (show osFileStartO (L := L') _ (some (OsFile.ofDisk vs sz)) ⊢
+            osFileStartG (L := L') _ (OsFile.ofDisk vs sz) from BIBase.Entails.rfl) $$ Hf
       isplitl [Hr]
       · iexists _; iexact Hr
       iframe; ipureintro; exact hgap

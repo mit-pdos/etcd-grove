@@ -181,8 +181,10 @@ theorem cfInvQ_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalG
       isplitl [Hf]
       · unfold startAt; rw [hl]; iexists f; isplitr
         · ipureintro; rfl
-        iapply (show osFileStartO (L := L') _ (some f) ⊢ osFileStartG (L := L') _ f from
-          BIBase.Entails.rfl) $$ Hf
+        obtain ⟨vs, sz, rfl⟩ := crashSeen_ofDisk hseen
+        iapply (osFileStartG_ofDisk (L := L') _ vs sz).1
+        iapply (show osFileStartO (L := L') _ (some (OsFile.ofDisk vs sz)) ⊢
+            osFileStartG (L := L') _ (OsFile.ofDisk vs sz) from BIBase.Entails.rfl) $$ Hf
       iexists (i :: D); iexact Hr
   · -- a write in flight
     dsimp only [invRes]
@@ -217,8 +219,10 @@ theorem cfInvQ_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalG
       isplitl [Hf]
       · unfold startAt; rw [hl]; iexists f; isplitr
         · ipureintro; rfl
-        iapply (show osFileStartO (L := L') _ (some f) ⊢ osFileStartG (L := L') _ f from
-          BIBase.Entails.rfl) $$ Hf
+        obtain ⟨vs, sz, rfl⟩ := crashSeen_ofDisk hseen
+        iapply (osFileStartG_ofDisk (L := L') _ vs sz).1
+        iapply (show osFileStartO (L := L') _ (some (OsFile.ofDisk vs sz)) ⊢
+            osFileStartG (L := L') _ (OsFile.ofDisk vs sz) from BIBase.Entails.rfl) $$ Hf
       isplitl [Hr]
       · iexists _; iexact Hr
       iframe; ipureintro; exact hgap

@@ -168,6 +168,18 @@ theorem affects_affRange {st : OsState} {c : OsChange} {b : Nat} (ha : Affects s
 section seen
 variable {Q : OsState → OsState → Prop}
 
+/-- **A crashed file is on disk** (`MachineCrash`'s files). -/
+theorem crashSeen_ofDisk {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × List (w8 × Bool))}
+    {ts : List (Nat × TokInfo)} {f : OsFile} (h : CrashSeenR Q i m rs ts (some f)) :
+    ∃ vs sz, f = OsFile.ofDisk vs sz := by
+  obtain ⟨st, st', Γb, Γm, Γf, Γt, -, hcr, -, hfo, -⟩ := h
+  obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hcr
+  by_cases hn : Named st'.fs.treeDur i
+  · obtain ⟨f0, f'', -, ⟨sz, vs, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
+    rw [h''] at hfo; cases hfo
+    exact ⟨vs, sz, rfl⟩
+  · rw [(hfiles i).2 hn] at hfo; cases hfo
+
 /-- **A crash leaves the runs' bytes clean** (a crashed file is on disk). -/
 theorem crashSeen_runsKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × List (w8 × Bool))}
     {ts : List (Nat × TokInfo)} {fo : Option OsFile} (h : CrashSeenR Q i m rs ts fo)
