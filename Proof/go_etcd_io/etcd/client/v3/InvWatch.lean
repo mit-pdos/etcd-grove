@@ -377,6 +377,23 @@ def srvKVFacts (V : WEnv GF) : IProp GF :=
 instance srvKVFacts_persistent (V : WEnv GF) : Persistent (srvKVFacts V) := by
   unfold srvKVFacts; infer_instance
 
+/-- **The watch condition of a cluster that never compacts** (`v3rpc.srvOnce`, the client's
+premise in place of `mvcc.watchNoDup`): at the member's watch facts the server's permits
+(`W.crevOk = srvApi.crevOk γr`, `srvKVFacts`' tie), with the compaction mode off, every permitted
+compaction revision is `-1`, and `onceUpTo` below `0` is vacuous. -/
+theorem srvOnce_noCmp (W : v3rpc.SrvW GF) (γr : ReadNames) (hC : W.crevOk = srvApi.crevOk γr)
+    (hcmp : γr.kv.cmp = false) : ⊢ v3rpc.srvOnce W := by
+  unfold v3rpc.srvOnce
+  rw [hC]
+  iintro !> %L %c %lo - Hc
+  iunfold srvApi.crevOk at Hc
+  icases Hc with ⟨-, %h⟩
+  have hc := h hcmp
+  imodintro
+  ipureintro
+  intro r _ hr
+  omega
+
 /-- **A member's KV facts, from its server's KV core in a mode** (`srvKVCoreM_of_readM`), at the
 member's watch facts the server's (strict M1: `hH`, `hC`). -/
 theorem srvKVFacts_intro (V : WEnv GF) (on : Bool) (γr : ReadNames)
