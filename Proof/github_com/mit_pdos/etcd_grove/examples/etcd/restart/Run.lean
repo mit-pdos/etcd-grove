@@ -136,7 +136,7 @@ theorem Run.wp_proof
     (wp_Leader : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (wp_restartCheck : restartCheck.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Run.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC lg N id₁ id₂ id₃ ps ctxs boot ThB RcB RcN HwbN Hlg Hp Hms hAs
   obtain ⟨Hbf, Hck, Haf, Hbuq, Hrf, Hdbo⟩ := Hp
@@ -304,7 +304,7 @@ theorem Run.wp_proof
   subst Herr
   wp_auto
   -- (R2c-4) member 2 never serves: what its stop takes, out of its started bundle
-  icases memberUp_stopRes _ _ _ _ _ _ hc₂ $$ Hup₂ with ⟨⟨%E₂', %γw₂, #Hreq₂, Hgo₂⟩, Hsres₂⟩
+  icases memberUp_stopRes hRS _ _ _ _ _ _ hc₂ $$ Hup₂ with ⟨⟨%E₂', %γw₂, #Hreq₂, Hgo₂⟩, Hsres₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
@@ -327,7 +327,7 @@ theorem Run.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  icases memberUp_stopRes _ _ _ _ _ _ hc₃ $$ Hup₃ with ⟨⟨%E₃', %γw₃, #Hreq₃, Hgo₃⟩, Hsres₃⟩
+  icases memberUp_stopRes hRS _ _ _ _ _ _ hc₃ $$ Hup₃ with ⟨⟨%E₃', %γw₃, #Hreq₃, Hgo₃⟩, Hsres₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   ihave Hgo : srvGoRes s₁ $$ [Hwgr Htok]
