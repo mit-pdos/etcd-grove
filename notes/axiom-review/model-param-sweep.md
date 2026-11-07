@@ -44,9 +44,24 @@ bodies, the scan found:
 | `grpc.CustomCodec`, `v3rpc.codec_proto`, `grpcSrvOpt` (`SrvOptKind`, an inductive) | `InvGrpcServer.lean:96-102`, `InvGrpcStart.lean:287` | Opaque `Prop`s about values, with no model chosen by the caller. |
 | `memberEnc_id_learner`, `memberKey_inj`, `membership.membersOf_decode`, `swMsgBound_phys`, `collectorName`, `counterOpts`, `reqsValid` | various | Facts about fixed definitions or opaque predicates, with no model binder. Cleared of this shape only; the sweep's other targets cover `swMsgBound_phys` (B2-1). |
 
-## A different shape: the environment record
+## A different shape: the environment record (cleared)
 
 `etcd_noRefusal` and `etcd_noOtherRefusal` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/
-NoRefusal.lean:55,85`) take `E : apply.AEnv`. Their premise `E.authOn = false` is tied to the server
-only through `isServerReq`, which pins `E.RD` but may not pin `E.authMode`. This is being checked.
-If the check refutes them, the result goes in its own record, not this one.
+NoRefusal.lean:55,85`) take `E : apply.AEnv`. They are **cleared** (2026-11-07). Their premise
+`E.authOn = false` is tied to the real server through its wait registry:
+
+- `isServerReq s E ρ` needs `waitInv v.w ρ E`, and `s.w ↦□ v.w` pins the registry;
+- `waitInv` contains `isWait v.w … (reqWaitR ρ E)`, whose predicate is chosen once at `wait.New`
+  (a proved spec);
+- an auth-on server's registry carries `reqWaitRM true` (`resultΨOn …`), which differs from the off
+  one (`resultΨ …`);
+- `isWait` has no monotonicity law: `Register` would need `□R_off ⊢ □R_on`, `Trigger` would need
+  `waitTrig R_off ⊢ waitTrig R_on`, and neither holds;
+- a fresh registry would need the list's exclusive state;
+- the other parts that depend on `E` do not fix the mode, but they do not need to:
+  `srvIndexInvs`, `srvAppliedBody` and `srvFloorFact` read only `E.γ.idx`, and `isReqAuth` reads
+  only `E.RD`.
+
+**Not checked, outside this pattern.** Mode off means "auth never enabled", and `dispatchOk false`
+excludes `AuthEnable`. Whether a client's `AuthEnable` can reach an off-mode server's apply thread
+through its Auth service is a separate question about the workload premise.
