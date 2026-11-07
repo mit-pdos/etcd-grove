@@ -1,20 +1,21 @@
 /-
 **Per-type prototype: one restated axiom and its one user** (stage A prototype; the Scope's E,
 `[v5]` "The `*Pb` specs' premises"): `proto.Marshal` at a registered type (`proto.MarshalPbC.spec`,
-the restated trust boundary: the registry premise, the wire content `c` from the caller, `roC l c`,
+`Spec/google_golang_org/protobuf/proto/MarshalPbC.lean`, the restated trust boundary: the registry premise, the wire content `c` from the caller, `roC l c`,
 `marshals`, and `size c < 2^48`, Go's `maxAlloc`), and its one user, `pbutil.MustMarshalMessage`,
 proved from it (`pbutil.MustMarshalMessageC.wp_proof`). The encoding's facts come from the generic
 `pbEncC_ok` (a theorem), not from the spec: the restated spec says only which bytes `Marshal`
 returns.
 
-Prototype only: the restated spec is a definition here, taken as the proof's hypothesis, not an
-axiom; the real stage replaces `proto.MarshalPb.spec` and its axiom.
+Since CP2 the restated spec is the trust boundary's (`Spec/google_golang_org/protobuf/proto/
+MarshalPbC.lean`, its axiom in `Proof/…/MarshalPbC.lean`), next to today's `proto.MarshalPb.spec`;
+the proof takes it as its callee's spec.
 -/
 module
 
 public import Proof.google_golang_org.protobuf.proto.InvProto
 public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage
-public import Spec.google_golang_org.protobuf.proto.MarshalPb
+public import Spec.google_golang_org.protobuf.proto.MarshalPbC
 
 @[expose] public section
 
@@ -30,18 +31,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **`proto.Marshal(m)` at a registered type** (the restated trust boundary): of a frozen `*T`
-holding the wire content `c`, which marshals and is shorter than `maxAlloc`, a fresh slice of its
-encoding `pbEncC T c`, and `nil`. -/
-abbrev proto.MarshalPbC.spec : Prop :=
-  ∀ (T : PbTypeC GF), pbModelOf GF T.data.ty = some T →
-  ∀ (l : Loc) (c : T.data.C), T.data.marshals (T.data.modelOf c) → T.data.size c < 2 ^ 48 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ T.data.roC l c }}
-    (App (Val (@! google_golang_org.protobuf.proto.Marshal))
-      (Val #(interface.mkOk (go.GoType.PointerType T.data.ty) #l)))
-  {{ (d : GoSlice), RET (PairV #d #(GoInterface.nil));
-      d ↦* pbEncC T c ∗ ownSliceCap w8 d (DFrac.own 1) }}
 
 /-- **`MustMarshalMessage(m)` at a registered type**: a fresh slice of the encoding, an encoding of
 the model of exactly its size. -/
