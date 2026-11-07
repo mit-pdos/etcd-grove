@@ -9,9 +9,10 @@ R and V for `PbType`, revisions 4, 5 and 5a). Prototype only: the real stage put
   holding exactly `c`, `modelOf c` its model.
 - **The unknown fields' validity** (`ufWire`, one fixed definition): the bytes protobuf-go's decoder
   leaves in a level's unknown fields, read against the level's schema (`FieldSchema`): a sequence
-  of well-formed fields whose tags are minimal varints (the decoder re-appends each tag with
-  `AppendTag`), groups balanced with matching numbers and nested less than 10000 deep
-  (`DefaultRecursionLimit`), values verbatim, each field's number undeclared in the level or
+  of well-formed fields, each top-level field's start tag a minimal varint (the decoder re-appends
+  it with `AppendTag`; inside a group, tags and end tags are kept verbatim, possibly not minimal),
+  groups balanced with matching numbers at every level and nested at most 10001 deep (measured:
+  10001 decodes, 10002 fails), values verbatim, each field's number undeclared in the level or
   declared with a wire type its decoder does not take (`internal/impl/decode.go`'s `errUnknown`
   path). `ufValid c` is `ufWire` at every level (`T.levels c`): a wrong schema only weakens it;
   it is never `False` (`[]` satisfies it).
@@ -98,10 +99,11 @@ def Routed (s : FieldSchema) (num wt : Nat) : Prop :=
   ∀ p ∈ s, p.1 = num → wt ∉ p.2
 
 /-- **`uf` is what protobuf-go's decoder leaves in the unknown fields of a level of schema `s`**:
-whole fields, each with a minimal tag, groups at most 9999 deep, each routed there. -/
+whole fields, each with a minimal outer start tag (inner tags and end tags verbatim), groups at
+most 10001 deep, each routed there. -/
 inductive ufWire (s : FieldSchema) : List w8 → Prop
   | nil : ufWire s []
-  | cons (num wt : Nat) (tag v rest : List w8) : TagOk true num wt tag → WVal 9999 num wt v →
+  | cons (num wt : Nat) (tag v rest : List w8) : TagOk true num wt tag → WVal 10001 num wt v →
       Routed s num wt → ufWire s rest → ufWire s (tag ++ v ++ rest)
 
 theorem ufWire_nil (s : FieldSchema) : ufWire s [] := .nil
