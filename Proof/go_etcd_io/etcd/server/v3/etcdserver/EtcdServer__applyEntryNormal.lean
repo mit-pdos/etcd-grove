@@ -434,10 +434,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
-      -- MERGE-TODO(lease): `kv_certPre_M` (over the raft witness `E.Nx`, this branch's) at `lean`'s
-      -- lease mode (`plainOrCmpG E.lm`, `Hnl`, `kvTableOf_ne0`): `lean`'s `kv_certPre_G` (over
-      -- mvcc's `E.γ.cok`) to restate in `ApplyCmpArm` as `kv_certPre_M`'s generalization
-      ihave #Hcp := kv_certPre_M E γr.raft γr.kv HNx γr.kv.c0 (kvLeases γr.kv A) x m rq false E.lm
+      -- the entry's certificate at `lean`'s lease mode (`kv_certPre_G`, over the raft witness)
+      ihave #Hcp := kv_certPre_G E γr.raft γr.kv HNx γr.kv.c0 (kvLeases γr.kv A) x m rq false E.lm
         (Hpl rq hdata hdec) Hoff Htyp
         hdata hdec HkA.2 Hnl (kvTableOf_ne0 _ _ [] A (by simp [LeaseTable.ids])) $$ Hkc
       ihave HFSE : E.FS $$ [HFS]
@@ -605,8 +603,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
-      -- MERGE-TODO(lease): `kv_certPre_M` at `lean`'s lease mode, as in `wp_proofOff`
-      ihave #Hcp := kv_certPre_M E γr.raft γr.kv HNx γr.kv.c0 (kvLeases γr.kv A) x m rq true E.lm
+      -- the entry's certificate at `lean`'s lease mode, as in `wp_proofOff`
+      ihave #Hcp := kv_certPre_G E γr.raft γr.kv HNx γr.kv.c0 (kvLeases γr.kv A) x m rq true E.lm
         (Hpl rq hdata hdec) Hoff Htyp
         hdata hdec HkA.2 Hnl (kvTableOf_ne0 _ _ [] A (by simp [LeaseTable.ids])) $$ Hkc
       obtain ⟨HEP, HEf, HEnn⟩ := HE
@@ -1199,7 +1197,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   · iapply srvKVInvsM_true; iexact Hkvi
   ihave #Hkvi' := Hkvi
   iunfold srvKVInvsOn at Hkvi'
-  icases Hkvi' with ⟨-, -, -, #Htie0, #HsI, %Hktie, %HNx⟩
+  icases Hkvi' with ⟨-, -, -, #Htie0, #HsI, %Hktie, %HNx, -⟩
   have HwOk := Hktie.1
   have ⟨hNxP, hNxT, hCpP, hCpT⟩ := HwOk
   imod srvApplyKVOn_writer hPers hReach s E γr srvAuthSt0 ρ.wait x sa $$ Hkvi HKV with

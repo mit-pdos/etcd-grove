@@ -431,7 +431,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
               as %mg ⟨Hlr, HRS', Hbeo, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
-            imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, HAr, #Hmimg, %Hst3⟩
+            imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
             ihave HKV := HKVk $$ HKVc HAr
             iunfold apply.applyTok at HthT
             icases HthT with ⟨HthT, Hmr⟩
@@ -466,6 +466,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             · iapply (merged_imageC C s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' sa' D hM hlenZ
                 Hkv0 Hcr)
               iframe Hsrv Hka Hmimg
+              ipureintro; exact Hst3.1
             imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id c ai' at' D Hty
               $$ [Hml Hsm' Hrs Himg] with Hbun
@@ -476,7 +477,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             · iframe #; iframe Hgr Hlr; rw [HγN]; iframe Hbun; ipureintro; exact Hlgnn
             (try wp_auto)
             have hF3 : loopOk γ st3 ai' ∧ ciEff γ st3.k = ciEff γ st'.k :=
-              ⟨Hst3.1, by rw [Hst3.2]; exact Hst''.2⟩
+              ⟨Hst3.2.1, by rw [Hst3.2.2]; exact Hst''.2⟩
             iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
           · (try wp_auto)
             iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS

@@ -76,7 +76,7 @@ theorem EtcdServer.applyEntries.wp_proofOff
     (hApply : EtcdServer.apply.specOff (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.specOff (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
-  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok hEok hdv
+  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w hRB Hms Hai1 Hok hEok hdv
   unfold EtcdServer.apply.specOff at hApply
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv, Hst, Hbe, Happ, Hlr, Hgr, Hmr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, Hrun, HAR⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
@@ -204,7 +204,7 @@ theorem EtcdServer.applyEntries.wp_proofOff
       iapply Hbc
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
-      (ai + 1) ep cs rac st a t x γr A γp dv w hne' hfrom' hok' hEok hdv
+      (ai + 1) ep cs rac st a t x γr A γp dv w hRB hne' hfrom' hok' hEok hdv
       $$ [Hst Hbe Happ Hcs Hcv Hlr Hgr Hmr HKV Hao Hfs Hka HRS Hdv Hrun HAR]
       as %appt %appi %stop ⟨Hfs, Hdv, Hrun, HAR, %st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, #Hcv', Hlr, Hgr, Hmr, Hao, #HWA',
         ⟨%x', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
@@ -528,7 +528,7 @@ theorem EtcdServer.applyEntries.wp_proofBatch
     simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false, hT]
     iintro %Φ ⟨#Hpkg, #Hsrv, -, Hbw, Hes, Hrac, Hesl, Hentsat, Hai, Hat, Hcs, Hcv, Hst, Hbe, Happ, Hlr, Hgr, Hmr,
       HKV, Hao, Hlog, Hbc, HW, HWA, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR, -⟩ HΦ
-    iapply (hOff s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok
+    iapply (hOff s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w hRB Hms Hai1 Hok
       hEok hdv) $$ [Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr Hmr HKV Hao Hlog Hbc HW HWA
       Hfs Hka HRS Hkb Hdv Hdvr Hrun HAR] [HΦ]
     · iframe Hpkg Hsrv Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr Hmr HKV Hao Hlog Hbc HW
@@ -547,7 +547,7 @@ theorem EtcdServer.applyEntries.wp_proofBatch
     rw [hon] at hEok ⊢
     simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true]
     exact hOn s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hm
-      (hRB hon) Hms Hai1 Hok hEok hdv
+      hRB Hms Hai1 Hok hEok hdv
 
 /-- `specNil`: the empty batch's early return. -/
 theorem EtcdServer.applyEntries.wp_proofNil :
