@@ -910,14 +910,13 @@ variable [sem : go.Semantics]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **A run's slot** (see the file header): the reader slots a run of etcd's KV handlers holds
-and gives back: `s.leadTimeMu`'s (`srvCall`'s), a thread token and a reader token of the store (`threadTok ∗ mvccReaders
-E.γ 1`, `srvRdCall`'s, in place of `lean`'s store reader slot: gRPC's unary contract lends the run
-no thread token; the server's slots give the reader tokens, `srvServeBuilt`), the logger's, the read loop's and the
+and gives back: `s.leadTimeMu`'s (`srvCall`'s), a reader token of the store (`mvccReaders E.γ 1`, `srvRdCall`'s, in place of
+`lean`'s store reader slot; the server's slots give them, `srvServeBuilt`), the logger's, the read loop's and the
 auth store's reader resource (`E.RD`, 2026-10-14, unit A2; `srvRdCall`'s). The server hands the
 gRPC runtime a number of them when it serves (bounded `RWMutex` slots: at most that many runs at
 a time). -/
 def etcdRunSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(srvLeadTimeReader s ∗ (threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗ srvLgReader s ∗ srvReadReader s γr ∗
+  iprop(srvLeadTimeReader s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗ srvReadReader s γr ∗
     E.RD)
 
 /-- **A get of `key` after the put of `key ↦ val` read the put** (persistent; unit C2a,
@@ -1073,7 +1072,7 @@ theorem etcdRunSlot_back (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w6
     srvLeadTimeReader (GF := GF) s ∗ srvRdCall s E γr c ⊢ etcdRunSlot s E γr := by
   iintro ⟨Hlt, Hrd⟩
   unfold srvRdCall etcdRunSlot
-  icases Hrd with ⟨Htt, Hsr, Hlg, -, Hrr, Hard⟩
+  icases Hrd with ⟨Hsr, Hlg, -, Hrr, Hard⟩
   iframe
 
 /-- **A run's context carries no trace** (`traceutil.ctxTraceIs ci none`, what `v3rpc.srvCall`
@@ -1142,7 +1141,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
     (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) F d 0 (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
-  icases Hslot with ⟨Hlt, ⟨Htt, Hsr⟩, Hlg, Hrd, Hard⟩
+  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   ihave Hu := HNR
   imod Hu with Hid
@@ -1150,7 +1149,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna
   iapply wp_fupd
   iapply (v3rpc.put_end_to_endM p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o F d 0) $$
-    [Hlt Htt Hsr Hlg Hrd Hard Hid Hdep]
+    [Hlt Hsr Hlg Hrd Hard Hid Hdep]
   · iframe #
     unfold v3rpc.srvCall srvRdCall committedAtLeast
     isplitl []
@@ -1255,8 +1254,8 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
           (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none))
           [Htok HQv] Hrv Hg
         unfold putReplied
-        ihave #Hsc : srvLogCert E x'.log $$ [Hrcpt]
-        · unfold srvLogCert; iframe #; iframe Hrcpt; ipureintro; exact Hwf
+        ihave #Hsc : srvLogCert E x'.log $$ []
+        · unfold srvLogCert; iframe #; ipureintro; exact Hwf
         iexists hm, x, x', l, skip
         iframe Htok HQv
         iframe #
@@ -1313,14 +1312,14 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
     (v3rpc.srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
-  icases Hslot with ⟨Hlt, ⟨Htt, Hsr⟩, Hlg, Hrd, Hard⟩
+  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   ihave Hu := HNR
   imod Hu with Hid
   imod (v3rpc.kvDepOwnM_of_dep E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d) $$ Hdep with Hdep
   iapply wp_fupd
   iapply (v3rpc.range_end_to_endM p s E ρ γr c cid mid n (GoInterface.ok ci) r o F d na) $$
-    [Hlt Htt Hsr Hlg Hrd Hard Hid Hdep]
+    [Hlt Hsr Hlg Hrd Hard Hid Hdep]
   · iframe #
     unfold v3rpc.srvCall srvRdCall
     isplitl []
@@ -1360,7 +1359,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
       iunfold v3rpc.rangeAnsOkM at Hans
       ihave %Hew := envWitOk_of_readM E.authOn s E γr $$ Hsrd
       have : ∀ l, Persistent (E.Nx l) := Hew.1
-      icases Hans with ⟨%log, #Hcert, #Hcok, Hrcpt, %Hlog, #Hrl, HQl, Hres⟩
+      icases Hans with ⟨%log, #Hcert, #Hcok, #Hrcpt, %Hlog, #Hrl, HQl, Hres⟩
       imod readM_keys E.authOn s E γr log $$ Hsrd Hcok with %Hkeys
       ihave #HQl' := readQ_of_ansM E.authOn γr d Q o.base.serializable log Hdd $$ HQl
       icases Hres with ⟨%crev, Hres⟩
@@ -1401,8 +1400,8 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
         ipureintro; exact Hh2n
       · iapply Hk $$ [] Hau
         unfold rangeReplyOk
-        ihave #Hsc : srvLogCert E log $$ [Hrcpt]
-        · unfold srvLogCert; iframe #; iframe Hrcpt; ipureintro; exact ⟨Hlog.1, Hlog.2.2.1⟩
+        ihave #Hsc : srvLogCert E log $$ []
+        · unfold srvLogCert; iframe #; ipureintro; exact ⟨Hlog.1, Hlog.2.2.1⟩
         iexists log
         iframe #
         ipureintro
@@ -1443,7 +1442,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
     (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) F (.op1 (.deleteRange o) Q) 0 (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
-  icases Hslot with ⟨Hlt, ⟨Htt, Hsr⟩, Hlg, Hrd, Hard⟩
+  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   ihave Hu := HNR
   imod Hu with Hid
@@ -1454,7 +1453,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       from rfl]
   iapply wp_fupd
   iapply (v3rpc.deleteRange_end_to_endM p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o F
-      (.op1 (.deleteRange o) Q) 0) $$ [Hlt Htt Hsr Hlg Hrd Hard Hid Hau]
+      (.op1 (.deleteRange o) Q) 0) $$ [Hlt Hsr Hlg Hrd Hard Hid Hau]
   · iframe # Hau
     unfold v3rpc.srvCall srvRdCall committedAtLeast
     isplitl []
@@ -1535,8 +1534,8 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
         ipureintro; exact Hh2n
       · iapply Hk $$ [Htok HQv] Hg
         unfold deleteReplied
-        ihave #Hsc : srvLogCert E x'.log $$ [Hrcpt]
-        · unfold srvLogCert; iframe #; iframe Hrcpt; ipureintro; exact Hwf
+        ihave #Hsc : srvLogCert E x'.log $$ []
+        · unfold srvLogCert; iframe #; ipureintro; exact Hwf
         iexists hm, rq', op', x, x', l, skip
         iframe Htok HQv
         iframe #
@@ -1604,16 +1603,16 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   ihave #Hkis := v3rpc.kvServerIs_of_at p s _ cid mid n $$ [$Hat $Hkv]
   -- the run's slot
   iunfold etcdRunSlot at Hslot
-  icases Hslot with ⟨Hlt, ⟨Htt, Hsr⟩, Hlg, Hrr, Hrd⟩
+  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrr, Hrd⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   imod HNR with Hid
   ihave #Hrv' : kvRevLbZ ρ.rd.kv (sint.Z req.Revision' + ρ.rd.kv.cret) $$ []
   · iexact Hrv
   -- the server's `Compact`, guarded: the caller's readers, credit and request in, back out
-  let Pin : IProp GF := iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ (threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗
+  let Pin : IProp GF := iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ mvcc.api.mvccReaders E.γ 1 ∗
     idCred ρ.ids 1 ∗ r ↦ req)
   let Q : Loc → IProp GF := fun _ =>
-    iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ (threadTok ∗ mvcc.api.mvccReaders E.γ 1))
+    iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ mvcc.api.mvccReaders E.γ 1)
   ihave #Hcok : v3rpc.compactOk s E (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) Pin
       (GoInterface.ok ci) r Q $$ []
   · iunfold v3rpc.compactOk
@@ -1639,13 +1638,20 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
       ihave %Hhn := typedPointsto_not_null _ _ _ $$ Hh
       iStructNamed Hh
       ipersist Revision
+      -- the header's log is short: a floor of the store's committed log (`kvLogLb_len`)
+      ihave #Hkvi2 := srvKVInvs_of_read s E ρ.rd $$ Hsrd'
+      iunfold srvKVInvs at Hkvi2
+      icases Hkvi2 with ⟨-, -, -, #Hks, %Hks2, -⟩
+      obtain ⟨-, -, ⟨hNxP, hNxT, hCpP, hCpT⟩, -⟩ := Hks2
+      imod (kvLogLb_len mvcc.api.mvccApi_persistent_law_holds
+        mvcc.api.mvccApi_mvccState_reachable_law_holds E.kv E.γ E.Nx E.Cp E.γs log) $$ Hks Hlc
+        with %Hlp
       imodintro
       iapply HΨ'
       iframe Hrd
       ileft
       isplitr
       · ipureintro; exact Herr
-      ihave %Hlp := v3rpc.idxCert_pure E.γ.idx log $$ Hlc
       iexists h, v.Revision'
       iframe Hhd
       isplitl [ClusterId MemberId RaftTerm LeaderId]
@@ -1661,7 +1667,7 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
         · ipureintro
           rw [Hl.2.2]
           have h2 := Hl.2.1
-          have h3 := Hlp.2
+          have h3 := Hlp
           intro heq
           have := congrArg (fun w : w64 => uint.Z w) heq
           word
@@ -1807,12 +1813,12 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
     (v3rpc.srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
-  icases Hslot with ⟨Hlt, ⟨Htt, Hsr⟩, Hlg, Hrd⟩
+  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   ihave Hu := HNR
   imod Hu with Hid
   iapply wp_fupd
-  iapply (v3rpc.txn_end_to_endM p s E ρ γr c cid mid n (GoInterface.ok ci) r t.cmps ts es F d na) $$ [Hlt Htt Hsr Hlg Hrd Hid Hdep]
+  iapply (v3rpc.txn_end_to_endM p s E ρ γr c cid mid n (GoInterface.ok ci) r t.cmps ts es F d na) $$ [Hlt Hsr Hlg Hrd Hid Hdep]
   · iframe #
     unfold v3rpc.srvCall srvRdCall
     isplitl []
@@ -1866,7 +1872,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         iunfold v3rpc.txnReadAnsM at Hans
         ihave %Hew := envWitOk_of_readM E.authOn s E γr $$ Hsrd
         have : ∀ l, Persistent (E.Nx l) := Hew.1
-        icases Hans with ⟨%log, #Hcert, #Hcok, Hrcpt, %Hlog, #Hrl, HQl, Hres⟩
+        icases Hans with ⟨%log, #Hcert, #Hcok, #Hrcpt, %Hlog, #Hrl, HQl, Hres⟩
         imod readM_keys E.authOn s E γr log $$ Hsrd Hcok with %Hkeys
         have hdq : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q := by
           rcases HdQ with ⟨-, h⟩ | ⟨h, -⟩
@@ -1896,8 +1902,8 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         iapply Hspec $$ %m [] Hrv Ha
         unfold txnReplied
         simp only [hro, ↓reduceIte]
-        ihave #Hsc : srvLogCert E log $$ [Hrcpt]
-        · unfold srvLogCert; iframe #; iframe Hrcpt; ipureintro; exact ⟨Hlog.1, Hlog.2.2.1⟩
+        ihave #Hsc : srvLogCert E log $$ []
+        · unfold srvLogCert; iframe #; ipureintro; exact ⟨Hlog.1, Hlog.2.2.1⟩
         iexists log
         iframe #
         ipureintro
@@ -1993,11 +1999,11 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
           obtain ⟨h1, -⟩ := Hmm
           rw [h1]
           iapply HrvT; ipureintro; exact hon
-        iapply Hspec $$ %m [Hcert HMint Hwit Hcok Hrcpt HQv] Hrv Ha
+        iapply Hspec $$ %m [HMint HQv] Hrv Ha
         unfold txnReplied
         simp only [hro, Bool.false_eq_true, ↓reduceIte]
-        ihave #Hsc : srvLogCert E x'.log $$ [Hrcpt]
-        · unfold srvLogCert; iframe #; iframe Hrcpt; ipureintro; exact Hwf
+        ihave #Hsc : srvLogCert E x'.log $$ []
+        · unfold srvLogCert; iframe #; ipureintro; exact Hwf
         iexists tw, hm, rq', t'', x, x', l, skip
         iframe HMint HQv
         iframe #
