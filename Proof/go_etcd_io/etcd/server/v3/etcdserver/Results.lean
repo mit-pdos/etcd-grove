@@ -195,8 +195,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 last entry), and the apply thread's KV taken from `x` to `x'` by `entriesStep c (unapplied ai ms)`
 (`c` the consistent index at the start), under the entries' shapes (`logShape`). (R2d'a swap batch
 3, 2026-11-06) At a restart point: `applyEntries.specBatch` is the restart form (Go's rows at Go's
-log, the ghost rows at `ghostOf rp A`, `kvBatchR`, `srvRestR`), strictly stronger than the
-first-start form it replaces, its instance at `rp = RestartPt.first`, `g = ai`. -/
+log, the ghost rows at `ghostOf rp A`, `kvBatchR`, `srvRestR`), in place of the first-start form,
+its instance at `rp = RestartPt.first`, `g = ai`; stronger at every caller with `ai0 ≤ ciEff` (every
+existing caller). -/
 theorem applyEntries_model : EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyEntries
 
@@ -211,8 +212,8 @@ decides `errors.Is(err, raft.ErrCompacted)` of an `errors.New` error. (The auth 
 batch over the component `C`, the snapshot payload `specSnapM` (its off corollary deleted in stage 3: no caller used it). (R2d'a swap
 batches 2-3, 2026-11-06) Both at a restart point: the batch `specBatch` the restart form (the ghost
 rows at `ghostOf rp`, `kvBatchR`, `srvRestR`, the window's `winNoMergedSendR` over a borrowed `T`,
-`srvSnapBagN`), strictly stronger than the first-start form, its instance at `rp =
-RestartPt.first`, `g = ai`, `T = True`. -/
+`srvSnapBagN`), in place of the first-start form, its instance at `rp = RestartPt.first`, `g = ai`,
+`T = True`, given `srvSnapBagN` (which `run` supplies) and `ai0 ≤ ciEff` (every existing caller). -/
 theorem applyAll_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll
 
@@ -225,8 +226,9 @@ log applied through an index is unique. Together with `range_linearizable`: a li
 the committed index `c` returns the state of a log extending the one applied through some index
 `ci₀ ≥ c`, and that log is exactly the apply thread's after the entry at `ci₀`. (R2d'a swap batch 3,
 2026-11-06) `apply.spec` is the restart form (`apply.specAt (· ≠ .any)`: the applied index `g` the
-ghost's, `appliedLogAt γr g'` after), strictly stronger than the first-start form, its instance at
-`rp = RestartPt.first`, `g = f0 - 1`. -/
+ghost's, `appliedLogAt γr g'` after), in place of the first-start form, its instance at
+`rp = RestartPt.first`, `g = f0 - 1`; stronger at every caller with `ai0 ≤ ciEff` (every existing
+caller). -/
 theorem applied_log_at :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) ∧
     EtcdServer.apply.spec (GF := GF) (hG := hG) ∧

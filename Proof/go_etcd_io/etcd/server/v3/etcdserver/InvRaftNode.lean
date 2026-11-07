@@ -468,7 +468,10 @@ instance rnSnapTermAbove_persistent (γ : RNNames) :
 (`pre = []`, R2d'a's `σ.b = 0` restriction) whose backend log `a0` is committed (`srvRLogLb`), with
 R2d'a's A8 (`rnWinInstallAbove`), (A10 item 3, Q27 (i)) the WAL's stored commit above `a0`
 (`rnWalCommitAbove`) and (A10 item 5, Q29 (d)) this incarnation's `MsgSnap`s above `t0`
-(`rnSnapTermAbove`). -/
+(`rnSnapTermAbove`). Of the eight restart-only premises (`notes/restart-plan.md`, "R2d'a
+restart-only premises"), the restart disjunct carries four: `rnWinInstallAbove` (2),
+`rnWalCommitAbove` (3), `rnSnapTermAbove` (4) and `srvRLogLb γ.srv γ.a0` (8); R2d'b produces 3,
+4 and 8, and 2 is R2s's or raft's API's (with R2d'b's raft commit at the start, row 5). -/
 def rnRestartOk (γ : RNNames) : IProp GF :=
   iprop(⌜γ.a0 = [] ∧ γ.t0 = W64 0⌝ ∨
     (⌜γ.pre = []⌝ ∗ srvRLogLb γ.srv γ.a0 ∗ rnWinInstallAbove γ ∗ rnWalCommitAbove γ ∗

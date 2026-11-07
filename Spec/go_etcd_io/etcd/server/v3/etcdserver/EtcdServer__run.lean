@@ -53,8 +53,8 @@ only, a restart before the WAL's first snapshot (`ai₀ = 0`, `γn.pre = []`): t
 `A₀ = γn.a0` is replayed through the window `(0, |A₀|]` (a first start is `A₀ = []`). `σ.b > 0` is
 R2d'b's.
 
-**The five restart-only premises** (`notes/restart-plan.md`, "R2d'a restart-only premises"; each
-proved or vacuous at a first start):
+**The eight restart-only premises** (`notes/restart-plan.md`, "R2d'a restart-only premises"; each
+proved or vacuous at a first start; the producers of 2-8 are in the table, R2s removes 1):
 * `srvWinPend` (`isServerRunC`'s `Hwpend`, A7): no merged snapshot sent at a new raft term while the
   replay window is pending. **False of some default-flag Go runs (replays over 1 MB with a
   mid-replay election); R2s removes it** (by following the merged snapshot in the ghost).
@@ -65,6 +65,11 @@ proved or vacuous at a first start):
   incarnation's start term.
 * raft's commit at the start `≥ |a0|`: no Lean conjunct of its own, the restart fact from which
   `rnWalCommitAbove` and (with raft's) `rnWinInstallAbove` follow (R2d'b's `RestartNode`).
+* `ai₀ + |A₀| + 1 < 2^64` (`srvRunRestartR`'s): room past the replayed log.
+* every entry of `A₀` has `typ` 0 or 1 (`EntryNormal`/`EntryConfChange`, no `EntryConfChangeV2`;
+  `srvRunRestartR`'s): etcd proposes only v1 `ConfChange`s (`configure`'s `ProposeConfChange`).
+* `srvRLogLb γ.srv γ.a0` (`rnRestartOk`'s restart disjunct): the backend's log `A₀` is
+  cluster-committed.
 
 **Vacuity** (2026-11-07): every `_safe` result currently rests on `pbEnc_ok`, which proves `False`
 (lean `cffe36ea9d`, `notes/pbenc-ok-inconsistent.md`), and on the refuted grpc message-model axioms

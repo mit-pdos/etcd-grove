@@ -141,8 +141,9 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
       -- (R2d'a A6, DRAFT) a first start: the restart point's backend log `γn.a0` empty
       γn.a0 = []⌝ ∗
     -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
-    -- raft term while the replay window is pending (`srvWinPend`; a restart-only premise, R2s's
-    -- target; free at a first start, `srvWinPend_first`)
+    -- raft term while the replay window is pending (`srvWinPend`; false of some default-flag Go
+    -- runs (replays over 1 MB with a mid-replay election); R2s removes it; free at a first start,
+    -- `srvWinPend_first`)
     "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
@@ -260,7 +261,9 @@ handed before the start (`γn.pre = []`, `ai₀ = 0`: `rnEnvOk` unchanged), Go's
 and the backend's ghost log `A₀` (`γn.a0`, A6's field) is replayed through the window `(0, |A₀|]`.
 `σ.b > 0` is R2d'b's, with the raft side's restart data (Q24 (a)).
 - `%HEr`: today's conjuncts with `γn.a0 = A₀` for some `A₀` (was `γn.a0 = []`), `A₀`'s entries
-  normal or conf changes, and room past it (`ai₀ + |A₀| + 1 < 2^64`);
+  normal or conf changes, and room past it (`ai₀ + |A₀| + 1 < 2^64`); the last two are restart-only
+  premises 6 and 7 of the eight (`notes/restart-plan.md`, "R2d'a restart-only premises"; R2d'b
+  produces both; 7 holds of etcd's logs because etcd proposes only v1 `ConfChange`s);
 - `Hsnap`: `rnSnapOnceR` at index `ai₀` (`= 0`), the conf state at `A₀`;
 - `Hstart`: `srvRestartAtR` at `A₀`, Go's index `ai₀`.
 At `A₀ = []` they are today's (`srvRunRestartR_first`). -/
@@ -300,8 +303,9 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- state at it, the apply thread's ghost rows at it
     "HRr" ∷ srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ ρ.wait ∗
     -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
-    -- raft term while the replay window is pending (`srvWinPend`; a restart-only premise, R2s's
-    -- target; free at a first start, `srvWinPend_first`)
+    -- raft term while the replay window is pending (`srvWinPend`; false of some default-flag Go
+    -- runs (replays over 1 MB with a mid-replay election); R2s removes it; free at a first start,
+    -- `srvWinPend_first`)
     "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
@@ -338,26 +342,6 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- (R2c-4) the stop's slot (`srvStop.slot`), from `start`'s construction premise, for the
     -- deferred shutdown
     "Hskeep" ∷ srvStop.slot s E γn Er)
-
-/-- **The apply thread's resources at the log `A`** (`applyRes` off, `applyResOn` on: `run`'s
-loop invariant and its jobs' `Prev`/`Post`), over the component `K`: the server's view, the
-applier row and the KV's ghost state at the mode's, the token rights the component's. -/
-def applyResC (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
-  iprop(∃ (B : ApplyBe GF) (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV)
-      (sa : auth.AuthState),
-    ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServerC K C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
-    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗ epCsAt C.ρ.raft A cs ∗
-    srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
-    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVC K C.s B.E C.γw x sa ∗
-    srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ A x sa ∗
-    srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
-    rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
-    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
-    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
-    ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
-      uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
-      lastTermIs A at'⌝)
 
 end defs
 
@@ -830,60 +814,6 @@ theorem kvRunM_false (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) 
 theorem kvRunM_true (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : apply.ApplyKV)
     (st : auth.AuthState) : kvRunM (GF := GF) true γr ai₀ c₀ A x st = kvRunAtOn γr ai₀ c₀ A x st :=
   rfl
-
-/-- **`applyResC` off is `applyRes`** (the component's auth state unused). -/
-theorem applyResC_off (C : ApplyCtx GF) (A : List EntryModel) :
-    applyResC (GF := GF) .off C A ⊣⊢ applyRes C A := by
-  have hS := fun B : ApplyBe GF => isServerM_C (GF := GF) .off C.s B.γ C.ci B.TM B.E C.ρ C.γr
-  have hK := fun (B : ApplyBe GF) x sa => srvApplyKVM_C (GF := GF) .off C.s B.E C.γw x sa
-  simp only [AuthC.isOn, isServerM_false, srvApplyKVM_false] at hS hK
-  unfold applyResC applyRes
-  simp only [AuthC.isOn, acTok_off, kvRunM_false]
-  constructor
-  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
-      H9, H10, H11, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, -, H19, %Hp⟩
-    ihave #Hsrv := (hS B).2 $$ Hsrv
-    ihave HKV := (hK B x sa).2 $$ HKV
-    iexists B, st, ai, at', a, t, cs, x
-    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 HKV H12 H13 Hkr H14 H15 H16 H17 H18 H19
-    ipureintro; exact ⟨HB, Hp⟩
-  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
-      H9, H10, H11, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, H19, %Hp⟩
-    ihave #Hsrv := (hS B).1 $$ Hsrv
-    ihave HKV := (hK B x srvAuthSt0).1 $$ HKV
-    iexists B, st, ai, at', a, t, cs, x, srvAuthSt0
-    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 HKV H12 H13 Hkr H14 H15 H16 H17 H18 H19
-    ipureintro; exact ⟨HB, Hp⟩
-
-/-- **`applyResC` on is `applyResOn`**, the environment's mode the component's. -/
-theorem applyResC_on (γa : auth.AuthNames) (C : ApplyCtx GF) (A : List EntryModel)
-    (hM : C.E.authMode = .on γa) :
-    applyResC (GF := GF) (.on γa) C A ⊣⊢ applyResOn C A := by
-  have hS := fun B : ApplyBe GF => isServerM_C (GF := GF) (.on γa) C.s B.γ C.ci B.TM B.E C.ρ C.γr
-  have hK := fun (B : ApplyBe GF) x sa => srvApplyKVM_C (GF := GF) (.on γa) C.s B.E C.γw x sa
-  simp only [AuthC.isOn, srvApplyKVM_true] at hS hK
-  have hT : ∀ (B : ApplyBe GF) k, beSucc C.γ C.E B.γ B.E →
-      acTok (GF := GF) (.on γa) k = srvTokRights B.E k := fun B k hB =>
-    (srvTokRights_eq (.on γa) B.E k ((beSucc_authMode hB).trans hM)).symm
-  unfold applyResC applyResOn
-  simp only [AuthC.isOn, kvRunM_true]
-  constructor
-  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
-      H9, H10, H11, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, Htok, H19, %Hp⟩
-    ihave #Hsrv := (hS B).2 $$ Hsrv
-    ihave HKV := (hK B x sa).2 $$ HKV
-    rw [hT B _ HB]
-    iexists B, st, ai, at', a, t, cs, x, sa
-    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 HKV H12 H13 Hkr H14 H15 H16 H17 H18 Htok H19
-    ipureintro; exact ⟨HB, Hp⟩
-  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
-      H9, H10, H11, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, Htok, H19, %Hp⟩
-    ihave #Hsrv := (hS B).1 $$ Hsrv
-    ihave HKV := (hK B x sa).1 $$ HKV
-    iexists B, st, ai, at', a, t, cs, x, sa
-    rw [hT B _ HB]
-    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 HKV H12 H13 Hkr H14 H15 H16 H17 H18 Htok H19
-    ipureintro; exact ⟨HB, Hp⟩
 
 /-- **The server's view's names** (`isServer_lg`'s): the request names' reads the view's, and off
 the KV names' lease mode the environment's. -/

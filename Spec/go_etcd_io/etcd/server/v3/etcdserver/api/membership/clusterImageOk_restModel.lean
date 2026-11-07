@@ -41,9 +41,10 @@ members premise is at any map `mem` with the model's ids at `L` (2026-11-06), no
 
 Why it is true of the Go code (etcd: `schema/membership.go`, `api/membership/cluster.go`,
 `version/downgrade.go`) and the deployment (a fresh static cluster, every member running the same
-binary, `bootOk`). Pins: the first, second and fourth bullets were checked at `bc9c3868c`
-(2026-10-26), the third (the ids) at `673da07c8`, the pin today, whose line numbers it cites. Between
-the two, `schema/membership.go` and `version/downgrade.go` (whose `:42-55` the fourth cites) are
+binary, `bootOk`). Pin: etcd `673da07c8`; every line number below is at it (rechecked 2026-11-07:
+`cluster.go:256-260` and `:265-302`, `schema/membership.go:83-120`, `server.go:1160-1171`,
+`bootstrap.go:522`, `downgrade.go:42-55`). The first, second and fourth bullets were first checked at
+`bc9c3868c` (2026-10-26); between the two, `schema/membership.go` and `version/downgrade.go` are
 unchanged, and `cluster.go` changes only in `IsLocalMemberLearner`, which no bullet cites:
 
 * *The buckets decode, to the model's members.* The rest model is what every member's apply

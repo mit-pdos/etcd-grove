@@ -112,8 +112,9 @@ abbrev EtcdServer.applyEntries.specBatchAt (P : auth.AuthMode → Prop) : Prop :
           termAfter at0 (unapplied ai ms) at'⌝ }}
 
 /-- **`s.applyEntries(…)`** in the environment's auth mode (`.any` excluded), at a restart point
-(`specBatchAt`; R2d'a swap batch 3, 2026-11-06: the restart form, strictly stronger than the
-first-start form it replaces, which is its instance at `rp = RestartPt.first`, `g = ai`). -/
+(`specBatchAt`; R2d'a swap batch 3, 2026-11-06: the restart form, which replaces the first-start
+form, its instance at `rp = RestartPt.first`, `g = ai`; stronger than it at every caller with
+`ai0 ≤ ciEff`, which every existing caller has: `applyAll` supplies `ai ≤ ciEff`). -/
 abbrev EtcdServer.applyEntries.specBatch : Prop :=
   EtcdServer.applyEntries.specBatchAt (GF := GF) (hG := hG) (· ≠ .any)
 

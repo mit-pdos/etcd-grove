@@ -122,8 +122,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 
 /-- **The apply thread's resources at Go's log `A`, in restart form** (`run`'s loop invariant and its
-jobs' `Prev`/`Post`; from `RunR.lean`, swap batch 5): `applyResC`'s rows,
-with the ghost rows at `ghostOf rp A` (the applied index `g`, the KV model, the rest buckets
+jobs' `Prev`/`Post`; from `RunR.lean`, swap batch 5): the first-start `applyResC`'s rows
+(`applyResC` deleted 2026-11-07), with the ghost rows at `ghostOf rp A` (the applied index `g`, the KV model, the rest buckets
 `srvRestR`, `srvApRes`, the conf state's history), Go's at `A`; the backend's log `A₀` committed
 (`srvRLogLb`), its entries normal or conf changes (raft's `EntryNormal`/`EntryConfChange`, the ones
 `apply` replays), and through the consistent index (`ai₀ + |A₀| ≤ ciEff`, `bootstrap.go:255-273`). -/

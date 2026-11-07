@@ -317,8 +317,9 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
       -- (R2d'a A6, DRAFT) a first start: the restart point's backend log `γn.a0` empty
       γn.a0 = []⌝ ∗
     -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
-    -- raft term while the replay window is pending (`srvWinPend`; a restart-only premise, R2s's
-    -- target; free at a first start, `srvWinPend_first`)
+    -- raft term while the replay window is pending (`srvWinPend`; false of some default-flag Go
+    -- runs (replays over 1 MB with a mid-replay election); R2s removes it; free at a first start,
+    -- `srvWinPend_first`)
     "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token (`dvRun`), which
     -- `run` gives the raft loop with `raftNode.stop` (`rnStopBag`)
