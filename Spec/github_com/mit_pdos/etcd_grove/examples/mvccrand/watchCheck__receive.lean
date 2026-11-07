@@ -34,7 +34,6 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 abbrev watchCheck.receive.spec : Prop :=
   ∀ (c : Loc) (γ : RandNames) (h : Loc) (wm : GoMap) (rs : List WResp) (r : WResp)
     (resp : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (ne : w64),
-  0 ≤ sint.Z ne → sint.Z ne + r.evs.length < 2 ^ 63 →
   {{ wcCtx c γ h wm ∗ histRd h γ.h ∗ wsRecv γ.ws (rs ++ [r]) ∗ wrespIs resp r ∗
       ghostVar γ.rcv (1 : Qp).half rs ∗ cF go!"events" c ↦ ne }}
     (App (Val (c @!! go.GoType.PointerType watchCheck.ty @!! go!"receive")) (Val #resp))

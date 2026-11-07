@@ -310,8 +310,29 @@ range's update, handed back unconsumed, must be committable with no resources); 
 **Still to do**:
 - `watchCheck.receive`, `complete`: proved (`6c1e217111`; `WatchLock.lean`, `c.mu`'s invariant
   `cmuInv` with `rcvKnown`; `World.lean`'s registry `regOk`, the registration `RegInfo`, `γ.rcv`).
-- `runChecks` (spec: the configuration bounds; post: the report, or `backend.New`'s panic): blocked for
-  more than one grant by the lessor finding above. Then `Main`, `Link.lean`, `Results.lean`.
+- `runChecks`: **proved** (R5, 2026-11-07; spec and proof, over the stopped agent's drafts of
+  `wip/mvcc-api-stray` brought to the current API): `RunChecksBackend.lean` (the backend's
+  parameters `rcP`/`rcKB`, its write-back tokens and receipt-backed stock, `rc_open`: `backend.New`'s
+  post opened for the store, `mvccStorageFor`, and the client's rest), `RunChecksWorld.lean` (the
+  world, history and `c.mu` allocations), `RunChecksWriter.lean` (`writerLe_start`: `NewLessor`'s
+  post at `mono = false`, `lessorApplyOk` at the lens `RW := lessorBeOn lp b`, `R := apply.bkRT`; the
+  draft's placeholder for a second `lessorBeOn` is gone with the lent part `Ln`), `RunChecksJoin.lean`
+  (`wg.Add(2 + Readers)` with one `Done` resource each). The store's reader tokens: `New`'s
+  `mvccReaders γ mvccReaderN` split (`mvccReaders_split.law`, a hypothesis) into the writer's (also
+  the main thread's `kv.Rev()` before the fork), the registrar's and one per reader; so the spec's
+  premise is now `Readers + 2 ≤ 2 ^ 28` (was `≤ 2 ^ 30 - 1`, the history's lock's slots; `mvccReaderN =
+  rdStockN - 7 = 536870776 ≥ 2 ^ 28`). `watchCheck.receive.spec` lost its premise on `c.events`
+  (`0 ≤ ne`, `ne + |evs| < 2 ^ 63`, unused by its proof: Go's `int` wraps), which closed the draft's
+  `sorry` in the receiver's loop. **One placeholder left**, `RunChecksBackend.backend_defaults_M1`
+  (`sorry -- M1-REPLACE`), below. Then `Main` (unverified: `Run`'s tail), `Link.lean`, `Results.lean`.
+- **For the coordinator (backend's package fact, outside this track's paths):**
+  `backend.DefaultBackendConfig` loads `defaultBatchInterval`, `defaultBatchLimit` (`10000`) and
+  `InitialMmapSize`, which nothing writes after the backend's initializer, but `backendInit`
+  (`Proof/.../storage/backend/Base.lean`, from `etc/gen-init.py`'s backend entry) states none of
+  them, so no client can load them: `runChecks`' `wp_DefaultBackendConfig` rests on
+  `backend_defaults_M1` (`isPkgInit backend ⊢ ∃ bi ms, defaultBatchInterval ↦□ bi ∗ defaultBatchLimit
+  ↦□ W64 10000 ∗ InitialMmapSize ↦□ ms`). The fix: those three in `backendInit` (the initializer's
+  translated stores, persisted). (The server does not hit it: `storage.OpenBackend` is an axiom.)
 - **For the coordinator, `etc/gen-init.py`'s entry for `mvccrand`**: needed only for the closed
   theorem (`Init.lean`'s `wp_initialize'`, then `PkgTable.lean`). The fact is `Base.lean`'s
   `mvccrandInit`: `keys` and `extraEnds` each hold a read-only slice of their literal (`keyList`,
@@ -321,4 +342,4 @@ range's update, handed back unconsumed, must be committable with no resources); 
 - Perennial (for the coordinator's `notes/perennial-changes.md`): `isSpsc` keeps its invariant at
   `nroot` (a caller with another invariant open cannot send); no `chan.wp_len` wrapper (as
   `chan.wp_cap`); the slice literal of map literals needed a local `wp_slice_literal_ex`.
-- Placeholders (`M1-REPLACE`): none. `register`'s two closed by the contract's fix (`b4bc6a538c`, the left disjunct); the lessor finding fixed by `1b56c352f8` (`lessorApplyOk`'s token `wbTok`, `le.b` lent in `R`).
+- Placeholders (`M1-REPLACE`): `backend_defaults_M1` (above). `register`'s two closed by the contract's fix (`b4bc6a538c`, the left disjunct); the lessor finding fixed by `1b56c352f8` (`lessorApplyOk`'s token `wbTok`, `le.b` lent in `R`).

@@ -48,7 +48,7 @@ theorem watchCheck.receive.wp_proof
     (wp_advance : watcher.advance.spec (GF := GF) (hG := hG))
     (wp_checkKV : checkKV.spec (GF := GF) (hG := hG)) :
     watchCheck.receive.spec (GF := GF) (hG := hG) := by
-  intro c γ h wm rs r resp ne hne0 hne1
+  intro c γ h wm rs r resp ne
   haveI := fun kv => hpers.1 kv γ.kv
   haveI := fun ws => hpers.2.1 ws γ.kv γ.ws
   wp_start as ⟨Hctx, Hrd, Hrcv, Hresp, Hhalf, Hev⟩
