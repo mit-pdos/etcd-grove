@@ -163,9 +163,9 @@ def TokOk : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8) → Os
       CleanPhys f (off + j)
 
 /-- Every file a crash may leave of an existing file `x` is `Good`: its clean bytes kept
-(`FileCrashedR`), every byte of its runs what it was or clean (`RunsKept`: a restart keeps the page
-cache, a machine crash puts the file on disk), and past the old size clean bytes or a write's data
-(`TailOk`), and under a write in flight its byte or the old one (`TokOk`). Not of its inode. -/
+(`FileCrashedR`), every byte of its runs clean (`RunsKept`: a crashed file is on disk), and past
+the old size clean bytes or a write's data (`TailOk`), and under a write in flight its byte or the
+old one or a clean one (`TokOk`). Not of its inode. -/
 def FileOk (Good : Option OsFile → Prop) (x : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8)) :
     Prop :=
   ∀ f, FileCrashedR (fMeta x) (fRuns x) (some f) → RunsKept (fRuns x) (some f) → TailOk x f →
@@ -229,23 +229,22 @@ theorem lookupH_congr {R : Roots} {V W : Hist} (p : GoString) (h : V.now = W.now
 /-- A crash of a history with one more entry: a crash of the old one, or the new tree. -/
 theorem treeCrashed_push {V V' : Hist} {e : LogEntry} (h : TreeCrashed (V.push e) V') :
     TreeCrashed V V' ∨ V'.now = (V.push e).now := by
-  rcases h with rfl | ⟨n, hn, rfl⟩
-  · exact .inr rfl
-  · by_cases hn' : n ≤ V.2.length
-    · left; right
-      refine ⟨n, hn', ?_⟩
-      show (replay (((V.2 ++ [e]).take n).map (·.op)) V.1, ([] : List LogEntry)) = _
-      rw [List.take_append_of_le_length hn']
-    · right
-      have : n = V.2.length + 1 := by simp [Hist.push] at hn; omega
-      subst this
-      show replay [] (replay (((V.2 ++ [e]).take (V.2.length + 1)).map (·.op)) V.1) =
-        replay ((V.2 ++ [e]).map (·.op)) V.1
-      rw [List.take_of_length_le (by simp)]
-      rfl
+  obtain ⟨n, hn, rfl⟩ := h
+  by_cases hn' : n ≤ V.2.length
+  · left
+    refine ⟨n, hn', ?_⟩
+    show (replay (((V.2 ++ [e]).take n).map (·.op)) V.1, ([] : List LogEntry)) = _
+    rw [List.take_append_of_le_length hn']
+  · right
+    have : n = V.2.length + 1 := by simp [Hist.push] at hn; omega
+    subst this
+    show replay [] (replay (((V.2 ++ [e]).take (V.2.length + 1)).map (·.op)) V.1) =
+      replay ((V.2 ++ [e]).map (·.op)) V.1
+    rw [List.take_of_length_le (by simp)]
+    rfl
 
-/-- A crash of the history keeps the tree now, as a restart does: `PathOk`'s `p`. -/
-theorem treeCrashed_refl (V : Hist) : TreeCrashed V V := .inl rfl
+/-- A crash may keep the tree now: `PathOk`'s `p`. -/
+theorem treeCrashed_refl (V : Hist) : TreeCrashed V (V.now, []) := treeCrashed_self V
 
 /-! ## The invariant -/
 
@@ -445,10 +444,7 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       iframe Ht' Hm Hb Ht
       isplitr
       · ipureintro
-        refine hok.2 i _ rfl f hfc hrk (fun b h1 h2 => ?_) trivial
-        rcases htk f rfl b h1 h2 with h | ⟨x, hx, -⟩
-        · exact h
-        · cases hx
+        exact hok.2 i _ rfl f hfc hrk (fun b h1 h2 => htk f rfl b h1 h2) trivial
       isplitl [Hf]
       · unfold startAt; rw [hl]; iexists f; isplitr
         · ipureintro; rfl
@@ -471,7 +467,7 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     obtain ⟨hfc, hnm, hseen⟩ := hfo
     have hrk : RunsKept (fRuns (m, bs, some (t, off, data))) fo := by
       refine crashSeen_runsKept hseen (fun x hx => ⟨off, data, ?_, fun r hr k hk hkm => ?_⟩)
-      · simp only [List.mem_singleton] at hx; subst hx; rfl
+      · rw [List.mem_singleton] at hx; rw [hx]
       · simp only [fRuns, List.mem_cons, List.not_mem_nil, or_false] at hr
         have hsz : (pwMeta m off data.length).size = m.size := rfl
         rw [hsz] at hkm
@@ -479,8 +475,7 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
         · left; simp only [List.length_take] at hk; unfold cfLo at hk; dsimp only; omega
         · right; dsimp only; unfold cfHi at hkm ⊢; omega
     have htk := crashSeen_tailKept hseen (fun x hx => ⟨off, data, by
-      simp only [List.mem_singleton] at hx; subst hx; rfl, by
-      simp only [List.mem_singleton] at hx; subst hx; exact hgap⟩)
+      rw [List.mem_singleton] at hx; rw [hx], hgap⟩)
     rcases hto with ⟨hn, hg⟩ | ⟨i', hi, hl⟩
     · iexists none
       iframe Ht' Ht
@@ -499,14 +494,9 @@ theorem cfInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       · ipureintro
         refine hok.2 i _ rfl f hfc hrk (fun b h1 h2 => ?_) (fun j x hx hj => ?_)
         rotate_left
-        · have := crashSeen_tokKept hseen List.mem_cons_self rfl rfl hgap f rfl j x.1
-            (by simp [List.getElem?_map, hx]) hj
-          simpa [List.getElem?_map, hx] using this
-        rcases htk f rfl b h1 h2 with h | ⟨x, hx, off', data', hk, h3, h4, h5⟩
-        · exact .inl h
-        · simp only [List.mem_singleton] at hx; subst hx
-          simp only [OsChangeKind.write.injEq] at hk; obtain ⟨rfl, rfl⟩ := hk
-          exact .inr ⟨h3, h4, h5⟩
+        · exact .inr (.inr (crashSeen_tokKept hseen List.mem_cons_self rfl rfl hgap f rfl j x.1
+            (by simp [List.getElem?_map, hx]) hj))
+        exact .inl (htk f rfl b h1 h2)
       isplitl [Hf]
       · unfold startAt; rw [hl]; iexists f; isplitr
         · ipureintro; rfl

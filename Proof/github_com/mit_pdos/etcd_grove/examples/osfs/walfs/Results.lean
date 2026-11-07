@@ -94,9 +94,8 @@ theorem start_check (f : OsFile) (hg : DataGood (some f)) :
       List.getElem?_eq_none (by rw [dataC_length]; omega)]
 
 theorem treeCrashed_nil {m : Tree} {V' : Hist} (h : TreeCrashed (m, []) V') : V' = (m, []) := by
-  rcases h with rfl | ⟨n, hn, rfl⟩
-  · rfl
-  · simp only [List.length_nil, Nat.le_zero] at hn; subst hn; rfl
+  obtain ⟨n, hn, rfl⟩ := h
+  simp only [List.length_nil, Nat.le_zero] at hn; subst hn; rfl
 
 section gen
 variable [GoGlobalContext] {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF]

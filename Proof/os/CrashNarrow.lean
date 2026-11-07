@@ -211,9 +211,7 @@ theorem runByte {m1 : OsMeta} {rs1 : List (Nat × DFrac × List (w8 × Bool))} {
   by_cases hx2 : x.2 = true
   · obtain ⟨hc, hcl⟩ := (hR f rfl).2.2 r hr k x hx hx2
     exact .inl ⟨hc, fun _ => hcl⟩
-  · rcases hK f rfl r hr k x hx hb with hc | hc
-    · exact .inl ⟨hc, fun h => absurd h hx2⟩
-    · exact .inr hc
+  · exact .inr (hK f rfl r hr k x hx hb)
 
 /-- A crash of a narrowing of `m`, `bs` after `w` of the bytes were written, idle or with an
 attempt from `nn ≤ w` in flight (the rest of the data from `off + nn`), leaves a file a crash of the

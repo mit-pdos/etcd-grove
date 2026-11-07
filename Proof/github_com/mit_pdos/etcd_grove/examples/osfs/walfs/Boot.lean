@@ -88,7 +88,7 @@ def MonoH (j : Ino) (V : Hist) : Prop :=
 def SegNoneH (j : Ino) (V : Hist) : Prop := ∀ V', TreeCrashed V V' → V'.now.entry j segB = none
 
 theorem safeH_now {j : Ino} {ko : Option Ino} {V : Hist} (h : SafeH j ko V) : SafeT j ko V.now :=
-  h V (treeCrashed_refl V)
+  h (V.now, []) (treeCrashed_refl V)
 
 theorem safeH_push {j : Ino} {ko : Option Ino} {V : Hist} {e : LogEntry} (h : SafeH j ko V)
     (he : SafeT j ko (e.op.apply V.now)) : SafeH j ko (V.push e) := by
@@ -122,27 +122,18 @@ theorem safeH_rekey {j : Ino} {ko ko' : Option Ino} {V : Hist} (h : SafeH j ko V
 
 /-- A crash of a crash is a crash. -/
 theorem treeCrashed_trans {V V' V'' : Hist} (h1 : TreeCrashed V V') (h2 : TreeCrashed V' V'') :
-    TreeCrashed V V'' := by
-  rcases h1 with rfl | ⟨n, hn, rfl⟩
-  · exact h2
-  · rcases h2 with rfl | ⟨n', hn', rfl⟩
-    · exact .inr ⟨n, hn, rfl⟩
-    · have : n' = 0 := by simpa using hn'
-      subst this
-      exact .inr ⟨n, hn, by simp [replay]⟩
+    TreeCrashed V V'' := Fs.treeCrashed_trans h1 h2
 
 theorem safeH_crash {j : Ino} {ko : Option Ino} {V V' : Hist} (h : SafeH j ko V)
     (hc : TreeCrashed V V') : SafeH j ko V' := fun V'' hc' => h V'' (treeCrashed_trans hc hc')
 
 theorem monoH_crash {j : Ino} {V V' : Hist} (h : MonoH j V) (hc : TreeCrashed V V') : MonoH j V' := by
   intro V'' hc' hs
-  rcases hc with rfl | ⟨n, hn, rfl⟩
-  · exact h V'' hc' hs
-  · rcases hc' with rfl | ⟨n', hn', rfl⟩
-    · exact hs
-    · have : n' = 0 := by simpa using hn'
-      subst this
-      simpa [replay, Hist.now, Hist.ops] using hs
+  obtain ⟨n, hn, rfl⟩ := hc
+  obtain ⟨n', hn', rfl⟩ := hc'
+  have : n' = 0 := by simpa using hn'
+  subst this
+  simpa [replay, Hist.now, Hist.ops] using hs
 
 /-! ## The operations on `seg.tmp` and `seg` -/
 

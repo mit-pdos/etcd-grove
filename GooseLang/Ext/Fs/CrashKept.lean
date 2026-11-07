@@ -1,15 +1,11 @@
 /-
 What a crash keeps of a file besides its clean bytes (`CrashFiles.lean`'s `FileCrashedR`), from the
 facts a take lemma returns (`CrashSeenR`, `CrashTok.lean`). Untrusted. A crash is a machine crash
-(`Impl.lean`); the first case of each disjunction below (a restart) was an earlier version's and is
-not produced, but kept so that the statements need not change.
+(`Impl.lean`): a crashed file is on disk, so every byte of it below its size is clean.
 
-* `RunsKept`: every byte of the runs the taker held, below the new size, is either the byte it was
-  (a restart: the page cache outlives the process, and no change in flight takes a held byte) or
-  clean (a machine crash: a crashed file is on disk).
-* `TailKept`: every byte past the old size, below the new one, is clean (a machine crash), or the
-  byte a taken `pwrite` writes there (a restart: only a change in flight that reaches past the size
-  can grow the file, and it is alone on the file, so it is one of the taken ones).
+* `RunsKept`: every byte of the runs the taker held, below the new size, is clean.
+* `TailKept`: every byte past the old size, below the new one, is clean.
+* `crashSeen_tokKept`: every byte a taken write takes, below the new size, is clean.
 -/
 module
 
@@ -136,17 +132,15 @@ theorem tail_landed {off : Nat} {data : List w8} {s0 : Nat} (hoff : off ≤ s0) 
 
 /-! ## From a take lemma's facts -/
 
-/-- Every byte of the runs `rs`, below the new size, is what it was, or clean. -/
+/-- Every byte of the runs `rs`, below the new size, is clean. -/
 def RunsKept (rs : List (Nat × DFrac × List (w8 × Bool))) (fo : Option OsFile) : Prop :=
   ∀ f', fo = some f' → ∀ r ∈ rs, ∀ k x, r.2.2[k]? = some x → r.1 + k < f'.size →
-    f'.contents[r.1 + k]? = some x.1 ∨ CleanPhys f' (r.1 + k)
+    CleanPhys f' (r.1 + k)
 
-/-- Every byte past the old size `s`, below the new one, is clean, or the byte one of the taken
-writes `ts` writes there. -/
-def TailKept (s : Nat) (ts : List (Nat × TokInfo)) (fo : Option OsFile) : Prop :=
-  ∀ f', fo = some f' → ∀ b, s ≤ b → b < f'.size → CleanPhys f' b ∨
-    ∃ x ∈ ts, ∃ off data, x.2.c.kind = .write off data ∧ off ≤ b ∧ b < off + data.length ∧
-      f'.contents[b]? = data[b - off]?
+/-- Every byte past the old size `s`, below the new one, is clean (`ts`, the taken writes, is
+unused: a crashed file is on disk). -/
+def TailKept (s : Nat) (_ts : List (Nat × TokInfo)) (fo : Option OsFile) : Prop :=
+  ∀ f', fo = some f' → ∀ b, s ≤ b → b < f'.size → CleanPhys f' b
 
 /-- An in-flight change on the file: one of the taken tokens, or another token's (not reaching,
 and clear of the runs). -/
@@ -174,8 +168,7 @@ theorem affects_affRange {st : OsState} {c : OsChange} {b : Nat} (ha : Affects s
 section seen
 variable {Q : OsState → OsState → Prop}
 
-/-- **A crash keeps the runs' bytes**, or makes them clean, when the taken writes are clear of
-them. -/
+/-- **A crash leaves the runs' bytes clean** (a crashed file is on disk). -/
 theorem crashSeen_runsKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × List (w8 × Bool))}
     {ts : List (Nat × TokInfo)} {fo : Option OsFile} (h : CrashSeenR Q i m rs ts fo)
     (hts : ∀ x ∈ ts, ∃ off data, x.2.c.kind = .write off data ∧
@@ -198,7 +191,6 @@ theorem crashSeen_runsKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Li
   rw [← hfo] at hf'
   have hc := hcr
   · -- a machine crash: the file is on disk
-    right
     obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
     by_cases hn : Named st'.fs.treeDur i
     · obtain ⟨f0, f'', -, ⟨sz, vs, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
@@ -206,8 +198,7 @@ theorem crashSeen_runsKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Li
       exact ofDisk_clean vs sz _ hbs
     · rw [(hfiles i).2 hn] at hf'; cases hf'
 
-/-- **A crash grows the file only with a taken write's data**, or makes the new bytes clean, when
-the taken writes start inside the file. -/
+/-- **A crash leaves the bytes past the old size clean** (a crashed file is on disk). -/
 theorem crashSeen_tailKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × List (w8 × Bool))}
     {ts : List (Nat × TokInfo)} {fo : Option OsFile} (h : CrashSeenR Q i m rs ts fo)
     (hts : ∀ x ∈ ts, ∃ off data, x.2.c.kind = .write off data ∧ off ≤ m.size) :
@@ -217,8 +208,7 @@ theorem crashSeen_tailKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Li
   rw [← hfo] at hf'
   obtain ⟨f, hf, hok⟩ := hcoh.meta_some i m hm
   have hc := hcr
-  · left
-    obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
+  · obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
     by_cases hn : Named st'.fs.treeDur i
     · obtain ⟨f0, f'', -, ⟨sz, vs, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
       rw [h''] at hf'; cases hf'
@@ -313,14 +303,12 @@ theorem landed_tok {s b off : Nat} {data : List w8} (hob : off ≤ b) :
 section seen2
 variable {Q : OsState → OsState → Prop}
 
-/-- **A crash leaves a byte a taken write takes** as that write's, as it was, or clean. -/
+/-- **A crash leaves a byte a taken write takes** clean (a crashed file is on disk). -/
 theorem crashSeen_tokKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × List (w8 × Bool))}
     {ts : List (Nat × TokInfo)} {fo : Option OsFile} (h : CrashSeenR Q i m rs ts fo)
     {t : Nat} {ti : TokInfo} (hx : (t, ti) ∈ ts) (hci : ti.c.ino = i) {off : Nat} {data : List w8}
     (hkind : ti.c.kind = .write off data) (hoff : off ≤ m.size) :
     ∀ f', fo = some f' → ∀ j y, ti.saved[j]? = some y → off + j < f'.size →
-      f'.contents[off + j]? = data[j]? ∨
-      (f'.contents[off + j]? = some y ∧ (ti.cl[j]? = some true → CleanPhys f' (off + j))) ∨
       CleanPhys f' (off + j) := by
   obtain ⟨st, st', Γb, Γm, Γf, Γt, hcoh, hcr, -, hfo, hm, -, hts', -, hwfs⟩ := h
   intro f' hf' j y hy hjs
@@ -352,8 +340,7 @@ theorem crashSeen_tokKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Lis
   have hraw : f.rawAt (off + j) = y := by
     rw [← hy, List.getD_eq_getElem?_getD, contents_getElem?, if_pos hbf]; rfl
   have hc := hcr
-  · right; right
-    obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
+  · obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
     by_cases hn : Named st'.fs.treeDur i
     · obtain ⟨f1, f'', -, ⟨sz, vs, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
       rw [h''] at hf'; cases hf'

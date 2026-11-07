@@ -145,7 +145,7 @@ def MonoH (j : Ino) (V : Hist) : Prop :=
     ∀ J, V.now.entry j walB = some (.dir J) → V'.now.entry J segB = V.now.entry J segB
 
 theorem safeH_now {j : Ino} {ko : Option Ino} {V : Hist} (h : SafeH j ko V) : SafeT j ko V.now :=
-  h V (treeCrashed_refl V)
+  h (V.now, []) (treeCrashed_refl V)
 
 theorem safeT_none {j : Ino} {ko : Option Ino} {m : Tree} (h : m.entry j walB = none) :
     SafeT j ko m :=
@@ -206,36 +206,25 @@ theorem inv_unnamed {j k : Ino} {V : Hist} (h : SafeH j (some k) V ∧ MonoH j V
 
 /-- A crash of a crash is a crash. -/
 theorem treeCrashed_trans {V V' V'' : Hist} (h1 : TreeCrashed V V') (h2 : TreeCrashed V' V'') :
-    TreeCrashed V V'' := by
-  rcases h1 with rfl | ⟨n, hn, rfl⟩
-  · exact h2
-  · rcases h2 with rfl | ⟨n', hn', rfl⟩
-    · exact .inr ⟨n, hn, rfl⟩
-    · have : n' = 0 := by simpa using hn'
-      subst this
-      exact .inr ⟨n, hn, by simp [replay]⟩
+    TreeCrashed V V'' := Fs.treeCrashed_trans h1 h2
 
 /-- The invariant's facts of a crash. -/
 theorem inv_crash {j : Ino} {ko : Option Ino} {V V' : Hist} (h : SafeH j ko V ∧ MonoH j V)
     (hc : TreeCrashed V V') : SafeH j ko V' ∧ MonoH j V' := by
   refine ⟨fun V'' hc' => h.1 V'' (treeCrashed_trans hc hc'), ?_⟩
-  rcases hc with rfl | ⟨n, hn, rfl⟩
-  · exact h.2
-  · intro V'' hc' _
-    rcases hc' with rfl | ⟨n', hn', rfl⟩
-    · exact ⟨rfl, fun _ _ => rfl⟩
-    · refine ⟨?_, fun _ _ => ?_⟩ <;> simp [replay, Hist.now]
+  obtain ⟨n, hn, rfl⟩ := hc
+  intro V'' hc' _
+  obtain ⟨n', hn', rfl⟩ := hc'
+  refine ⟨?_, fun _ _ => ?_⟩ <;> simp [replay, Hist.now]
 
 /-- A history with nothing logged: its only crash is itself. -/
 theorem inv_nil {j : Ino} {ko : Option Ino} {t : Tree} (h : SafeT j ko t) :
     SafeH j ko (t, []) ∧ MonoH j (t, []) := by
   refine ⟨fun V' hc => ?_, fun V' hc _ => ?_⟩
-  · rcases hc with rfl | ⟨n, -, rfl⟩
-    · exact h
-    · simpa [replay, Hist.now, Hist.ops] using h
-  · rcases hc with rfl | ⟨n, -, rfl⟩
-    · exact ⟨rfl, fun _ _ => rfl⟩
-    · refine ⟨?_, fun _ _ => ?_⟩ <;> simp [replay, Hist.now]
+  · obtain ⟨n, -, rfl⟩ := hc
+    simpa [replay, Hist.now, Hist.ops] using h
+  · obtain ⟨n, -, rfl⟩ := hc
+    refine ⟨?_, fun _ _ => ?_⟩ <;> simp [replay, Hist.now]
 
 /-! ## The invariant -/
 

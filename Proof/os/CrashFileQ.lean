@@ -57,14 +57,12 @@ theorem fileOk_Q {Q : OsState → OsState → Prop} {Good : Option OsFile → Pr
     (h : FileOk Good x) : FileOkQ Q Good i x := by
   intro f hc hs
   rcases x with ⟨m, bs, _ | ⟨t, off, data⟩⟩
-  · refine h f hc (crashSeen_runsKept hs (fun x hx => by cases hx)) (fun b h1 h2 => ?_) trivial
-    rcases crashSeen_tailKept hs (fun x hx => by cases hx) f rfl b h1 h2 with h | ⟨x, hx, -⟩
-    · exact h
-    · cases hx
+  · exact h f hc (crashSeen_runsKept hs (fun x hx => by cases hx))
+      (fun b h1 h2 => crashSeen_tailKept hs (fun x hx => by cases hx) f rfl b h1 h2) trivial
   · have hgap : off ≤ m.size := hoff
     have hrk : RunsKept (fRuns (m, bs, some (t, off, data))) (some f) := by
       refine crashSeen_runsKept hs (fun x hx => ⟨off, data, ?_, fun r hr k hk hkm => ?_⟩)
-      · simp only [cToks, List.mem_singleton] at hx; subst hx; rfl
+      · rw [cToks, List.mem_singleton] at hx; rw [hx]
       · simp only [fRuns, List.mem_cons, List.not_mem_nil, or_false] at hr
         have hsz : (fMeta (m, bs, some (t, off, data))).size = m.size := rfl
         rw [hsz] at hkm
@@ -72,17 +70,10 @@ theorem fileOk_Q {Q : OsState → OsState → Prop} {Good : Option OsFile → Pr
         · left; simp only [List.length_take] at hk; unfold cfLo at hk; dsimp only; omega
         · right; dsimp only; unfold cfHi at hkm ⊢; omega
     have htk := crashSeen_tailKept hs (fun x hx => ⟨off, data, by
-      simp only [cToks, List.mem_singleton] at hx; subst hx; rfl, by
-      simp only [cToks, List.mem_singleton] at hx; subst hx; exact hgap⟩)
-    refine h f hc hrk (fun b h1 h2 => ?_) (fun j x hx hj => ?_)
-    · rcases htk f rfl b h1 h2 with h | ⟨x, hx, off', data', hk, h3, h4, h5⟩
-      · exact .inl h
-      · simp only [cToks, List.mem_singleton] at hx; subst hx
-        simp only [OsChangeKind.write.injEq] at hk; obtain ⟨rfl, rfl⟩ := hk
-        exact .inr ⟨h3, h4, h5⟩
-    · have := crashSeen_tokKept hs List.mem_cons_self rfl rfl hgap f rfl j x.1
-        (by simp [List.getElem?_map, hx]) hj
-      simpa [List.getElem?_map, hx] using this
+      rw [cToks, List.mem_singleton] at hx; rw [hx], hgap⟩)
+    refine h f hc hrk (fun b h1 h2 => .inl (htk f rfl b h1 h2)) (fun j x hx hj => ?_)
+    exact .inr (.inr (crashSeen_tokKept hs List.mem_cons_self rfl rfl hgap f rfl j x.1
+      (by simp [List.getElem?_map, hx]) hj))
 
 theorem crashOk_Q {Q : OsState → OsState → Prop} {Good : Option OsFile → Prop} {p : GoString}
     {R : Roots} {s : CFile} {V : Hist} (hoff : ∀ i x, s = some (i, x) → OffOk x)
