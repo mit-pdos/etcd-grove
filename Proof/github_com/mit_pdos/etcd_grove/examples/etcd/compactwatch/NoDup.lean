@@ -14,7 +14,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Rounds
-public import Proof.go_etcd_io.etcd.client.v3.WatchFire
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OnceUpTo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.RespChan
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 
@@ -97,28 +97,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- See the file header. -/
-theorem noDupKeys_of_rounds [go_etcd_io.raft.v3.Assumptions] [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+theorem srvOnce_of_rounds [go_etcd_io.raft.v3.Assumptions] [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (val : GoString) :
     client.srvKVFacts V ∗ kvReadAu γ (fun σ => iprop(⌜oneValW val σ.changes⌝)) ⊢
-      mvcc.noDupKeys V.R.E.γ := by
-  iintro ⟨#Hkf, #Hau⟩
-  iunfold client.srvKVFacts at Hkf
-  icases Hkf with ⟨%on, %γr, #Hinvs, #H00, %Hkr, -⟩
-  iunfold mvcc.noDupKeys
-  iintro !> %log #Hev
-  iunfold mvcc.evLog at Hev
-  icases Hev with ⟨#Hs, #Hc⟩
-  ihave #Hs' := Hs
-  iunfold mvcc.idxSealed at Hs'
-  icases Hs' with ⟨-, %Hwf, -⟩
-  iunfold kvReadAu at Hau
-  iunfold kvAu at Hau
-  imod (srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hkr.1]) Hkr.2.1 log
-      (fun σ => iprop(⌜oneValW val σ.changes⌝))) $$ Hinvs H00 Hs Hc Hau with ⟨%C, #HQ, %Hp⟩
-  icases HQ with %Hov
-  imodintro
-  ipureintro
-  exact oneChange_of_oneVal val log C Hov Hp Hwf.1
+      v3rpc.srvOnce V.W :=
+  etcdstart.srvOnce_of_plan V γ hst (oneValW val) (fun _ hov cs hcs => by
+    rcases hov cs hcs with h | ⟨k, l, h⟩
+    · subst h; simp
+    · subst h; simp)
 
 /-- **One response of `compactkv`'s watch** (`Collect`'s premise at the Watch spec's responses,
 `stateOk` at the rounds' read update `oneValW`): every event is of value `val`. -/
