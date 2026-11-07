@@ -45,7 +45,7 @@ theorem v3compactor.newRevision.wp_proof :
   iapply wp_fupd
   wp_apply _root_.Perennial.context.wp_Background
   -- `WithCancel(Background())`, carrying no trace (M2's freeze repair)
-  wp_apply traceutil.wp_WithCancelBackground_noTrace as %ctx %γctx %cancel ⟨#Hcs, #Hctx, #Htr⟩
+  wp_apply traceutil.wp_WithCancelBackground_noTrace as %ctx %γctx %cancel ⟨#Hcs, #Hctx, #Htr, #Hspc⟩
   ipersist lg
   ipersist clock
   ipersist retention

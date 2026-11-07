@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Base
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.Ghost.DGhostVar
 
@@ -106,8 +107,8 @@ than any revision `n` the caller knows the store had reached (the revision never
 periodic mode's `0 < r` rests on it, `periodic.go` having no `rev <= 0` check). -/
 def revGetterOk (RevLb : Int → IProp GF) (rg : GoInterface) (R : IProp GF) : IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜rg = GoInterface.ok ri⌝ ∗
-    □ (∀ n : Int, {{ R ∗ □ RevLb n }} (App (Val #(methods ri.ty go!"Rev" ri.v)) (Val #()))
-        {{ (v : w64), RET #v; R ∗ □ RevLb (sint.Z v) ∗ ⌜n ≤ sint.Z v ∧ 0 ≤ sint.Z v⌝ }}))
+    □ (∀ n : Int, {{ R ∗ threadTok ∗ □ RevLb n }} (App (Val #(methods ri.ty go!"Rev" ri.v)) (Val #()))
+        {{ (v : w64), RET #v; R ∗ threadTok ∗ □ RevLb (sint.Z v) ∗ ⌜n ≤ sint.Z v ∧ 0 ≤ sint.Z v⌝ }}))
 
 instance revGetterOk_persistent (RevLb : Int → IProp GF) (rg : GoInterface) (R : IProp GF) :
     Persistent (revGetterOk (GF := GF) RevLb rg R) := by
@@ -135,9 +136,10 @@ and an error `errors.Is` can test. (Until M2's freeze test, 2026-10-28, any cont
 def compactableOk (c : GoInterface) (P : Int → IProp GF) (R : IProp GF) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜c = GoInterface.ok ci⌝ ∗
     □ (∀ (r : Int) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (p : Loc),
-        {{ P r ∗ R ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗ compactReqIs p r }}
+        {{ P r ∗ R ∗ threadTok ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx none ∗
+            compactReqIs p r }}
           (App (App (Val #(methods ci.ty go!"Compact" ci.v)) (Val #(GoInterface.ok ctx))) (Val #p))
-        {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗ errTreeOk err }}))
+        {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗ threadTok ∗ errTreeOk err }}))
 
 instance compactableOk_persistent (c : GoInterface) (P : Int → IProp GF) (R : IProp GF) :
     Persistent (compactableOk (GF := GF) c P R) := by
@@ -255,7 +257,7 @@ def isPeriodic (pc : Loc) (E : CompactEnv GF) (period : Int) : IProp GF :=
     structFieldRef v3compactor.Periodic go!"c" pc ↦□ E.c ∗
     structFieldRef v3compactor.Periodic go!"ctx" pc ↦□ GoInterface.ok ctx ∗
     context.isContext ctx cd ∗
-    traceutil.ctxTraceIs ctx none ∗
+    traceutil.ctxTraceIs ctx none ∗ trace.spanCtxOk ctx ∗
     structFieldRef v3compactor.Periodic go!"cancel" pc ↦□ cancel ∗
     context.cancelSpec cancel γctx iprop(True) ∗
     sync.isRWMutexGuard (structFieldRef v3compactor.Periodic go!"mu" pc) (perPausedInv pc))
@@ -291,7 +293,7 @@ def isRevision (rc : Loc) (E : CompactEnv GF) (ret : Int) : IProp GF :=
     structFieldRef v3compactor.Revision go!"c" rc ↦□ E.c ∗
     structFieldRef v3compactor.Revision go!"ctx" rc ↦□ GoInterface.ok ctx ∗
     context.isContext ctx cd ∗
-    traceutil.ctxTraceIs ctx none ∗
+    traceutil.ctxTraceIs ctx none ∗ trace.spanCtxOk ctx ∗
     structFieldRef v3compactor.Revision go!"cancel" rc ↦□ cancel ∗
     context.cancelSpec cancel γctx iprop(True) ∗
     sync.isMutex (structFieldRef v3compactor.Revision go!"mu" rc) (revPausedInv rc))

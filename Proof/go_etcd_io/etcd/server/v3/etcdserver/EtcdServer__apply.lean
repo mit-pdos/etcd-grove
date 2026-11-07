@@ -545,6 +545,18 @@ theorem EtcdServer.apply.wp_proofOff
         iunfold hookSpec at Hhook2
         ihave #Hh := Hhook2 $$ %(stLoaded γ st') %m.index %m.term %b
         obtain ⟨HEP, HEf, HEnn⟩ := HE
+        -- (R8, 2026-11-07) the backend at the batch lock `E.Pk dB` (`srvBeHooked`, in `Halm`) and its
+        -- frozen hook (the KV resources'), for `applyConfChange`'s restated member writes
+        ihave ⟨HKV, #HplhB⟩ := srvApplyKV_hookRO s E ρ.wait xj dB hkbB $$ HKV
+        ihave #HbhB : srvBeHooked s γ ci E $$ []
+        · icases Halm with ⟨-, #Hbh⟩; iexact Hbh
+        iunfold srvBeHooked at HbhB
+        icases HbhB with ⟨%Bh, %bhh, %lghh, %gxh, %Hbhp, -, -, -, #HisBh⟩
+        obtain ⟨HtieB, -, -, HPkB⟩ := Hbhp
+        have hBh : Bh = dB := (srvBkTie_inj dB Bh (hkbB.symm.trans HtieB)).symm
+        subst Bh
+        ihave #HisBkE : backend.isBackend dB.γB dB.P (mvcc.api.mvccW gxh) (E.Pk dB) dB.be $$ []
+        · rw [HPkB]; iexact HisBh
         icases srvApplyKV_ua_rt_pool s E ρ.wait xj $$ HKV with ⟨%ua, %dP, %HdP, Hua, #Happlier, Hrt, HplP, #HbeRO, HKVk⟩
         -- (2026-11-02, the backend-auth-split stage) the current backend's reader pool, for
         -- `applyConfChange`, and the apply thread's token (`srvGoRes`'s)
@@ -642,6 +654,12 @@ theorem EtcdServer.apply.wp_proofOff
               (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
           isplitl [Hwt]
           · iframe Hwt
+            isplitr
+            · iexists _; iexact HisBkE
+            isplitr
+            · iexact HplhB
+            isplitr
+            · ipureintro; exact HEnn
             isplitr
             · rw [mvcc.api.hookRun, if_neg HEnn]
               first | iexact Hh | (imodintro; iexact Hh) | (imodintro; imodintro; iexact Hh)
@@ -1445,6 +1463,18 @@ theorem EtcdServer.apply.wp_proofOn
         iunfold hookSpec at Hhook2
         ihave #Hh := Hhook2 $$ %(stLoaded γ st') %m.index %m.term %b
         obtain ⟨HEP, HEf, HEnn⟩ := HE
+        -- (R8, 2026-11-07) the backend at the batch lock `E.Pk dB` (`srvBeHooked`, in `Halm`) and its
+        -- frozen hook (the KV resources'), for `applyConfChange`'s restated member writes
+        ihave ⟨HKV, #HplhB⟩ := srvApplyKVOn_hookRO s E ρ.wait xj saj dB hkbB $$ HKV
+        ihave #HbhB : srvBeHooked s γ ci E $$ []
+        · icases Halm with ⟨-, #Hbh⟩; iexact Hbh
+        iunfold srvBeHooked at HbhB
+        icases HbhB with ⟨%Bh, %bhh, %lghh, %gxh, %Hbhp, -, -, -, #HisBh⟩
+        obtain ⟨HtieB, -, -, HPkB⟩ := Hbhp
+        have hBh : Bh = dB := (srvBkTie_inj dB Bh (hkbB.symm.trans HtieB)).symm
+        subst Bh
+        ihave #HisBkE : backend.isBackend dB.γB dB.P (mvcc.api.mvccW gxh) (E.Pk dB) dB.be $$ []
+        · rw [HPkB]; iexact HisBh
         icases srvApplyKVOn_ua_rt_pool s E ρ.wait xj saj $$ HKV with ⟨%ua, %dP, %HdP, Hua, #Happlier, Hrt, HplP, #HbeRO, HKVk⟩
         -- (2026-11-02, the backend-auth-split stage) the current backend's reader pool, for
         -- `applyConfChange`, and the apply thread's token (`srvGoRes`'s)
@@ -1542,6 +1572,12 @@ theorem EtcdServer.apply.wp_proofOn
               (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
           isplitl [Hwt]
           · iframe Hwt
+            isplitr
+            · iexists _; iexact HisBkE
+            isplitr
+            · iexact HplhB
+            isplitr
+            · ipureintro; exact HEnn
             isplitr
             · rw [mvcc.api.hookRun, if_neg HEnn]
               first | iexact Hh | (imodintro; iexact Hh) | (imodintro; imodintro; iexact Hh)

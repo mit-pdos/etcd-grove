@@ -134,7 +134,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     wp_auto
     wp_apply HTTL as %tt -
     iapply wp_fupd
-    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, %Hh, Hhf, Hrev, Hnx, %Hlen⟩
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, %Hh, Hhf, Hrev, Hnx, Hlbh, %Hlen⟩
     ipersist ID
     ipersist TTL
     ipersist Error
@@ -175,7 +175,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    isplitl [Hhf Hnx]
+    isplitl [Hhf Hnx Hlbh]
     · iunfold apply.grantRespIs
       isplitr
       · ipureintro; exact Hnn
@@ -195,7 +195,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
         iunfold apply.hdrFields at Hhf
         iexact Hhf
       iexists h, _
-      iframe Header Hrev Hnx
+      iframe Header Hrev Hnx Hlbh
       ipureintro
       refine ⟨?_, Hlen.1, Hlen.2⟩
       word

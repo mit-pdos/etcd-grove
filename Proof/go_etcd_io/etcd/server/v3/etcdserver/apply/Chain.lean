@@ -825,7 +825,10 @@ def leasesLive (E : AEnv GF) (s : List EtcdKv) : IProp GF :=
 /-- **The builders the chain uses** (persistent; in `backendOptsOk`'s KV clause; the draft's
 `envAus`): `kvAus.law`'s apply-thread conjuncts at `E.Nx`/`E.Cp`, and (strict M1, 2026-11-05, the
 migration's choice: the KV methods' floor `floorOkO`, which the sole writer's pin gave until M1)
-the writer's floor: its log extends every floor `kvLogLb E.γs F` (`KVStoreCore.writer_floor`). -/
+the writer's floor: its log extends every floor `kvLogLb E.γs F` (`KVStoreCore.writer_floor`).
+(R8, 2026-11-07) The writer's facts include a floor of its log, `kvLogLb E.γs log`, as
+`KVStoreCore.writer_facts` gives, and the witness persistent (the server's `kvNx` is) (for
+`newHeader`'s, so the lease responses' headers, `grantHdr`, whose `srvRevLb` needs both). -/
 def envAus (E : AEnv GF) : IProp GF :=
   iprop(□ (∀ log c (X : IProp GF), wSt E.γs log c -∗ (wSt E.γs log c -∗ X) -∗
         auBegin E.γ (stAt log c) X) ∗
@@ -836,8 +839,8 @@ def envAus (E : AEnv GF) : IProp GF :=
     □ (∀ log c (rev : w64), ⌜sint.Z rev < log.length⌝ → wSt E.γs log c -∗ crOwn E.γs c -∗
         E.Cp (sint.Z rev) -∗ auCompact E.γ rev (fun σ => iprop(⌜σ = stAt log c⌝ ∗
           wSt E.γs log (cmpRevAfter c rev) ∗ crOwn E.γs (cmpRevAfter c rev)))) ∗
-    □ (∀ log c, wSt E.γs log c ={⊤}=∗ wSt E.γs log c ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
-        ⌜MvccReachable (stAt log c) ∧ log.length + 3 ≤ 2 ^ 63⌝) ∗
+    □ (∀ log c, wSt E.γs log c ={⊤}=∗ wSt E.γs log c ∗ kvLogLb E.γs log ∗ □ E.Nx log ∗
+        ⧖ (mvcc.logCh log) ∗ ⌜MvccReachable (stAt log c) ∧ log.length + 3 ≤ 2 ^ 63⌝) ∗
     □ (∀ log c F, wSt E.γs log c -∗ kvLogLb E.γs F ={⊤}=∗ wSt E.γs log c ∗ ⌜F <+: log⌝))
 
 instance envAus_persistent (E : AEnv GF) : Persistent (envAus E) := by
@@ -1320,11 +1323,13 @@ def revokeOutcomeIs (resp : Loc) (err : GoInterface) : Outcome → IProp GF
 2026-11-03): its id fields owned (`txn.respHdrOwn`) and its revision read-only, the last of the
 committed log `log`, which is witnessed (`E.Nx`, the server's `kvNx`; the merge of `lean`,
 2026-11-06: in place of mvcc's `idxCert`, `certOk`, as `certPre`): what `newHeader` gives at the
-writer (2.11a). Not `appliedHdr` (`+ 4`), which no grant callee gives. -/
+writer (2.11a). Not `appliedHdr` (`+ 4`), which no grant callee gives. (R8, 2026-11-07, the
+coordinator's decision on R6's blocker 3) Also the log a floor of the store's (`kvLogLb E.γs
+log`, `newHeader`'s): the server's lease responses' `srvRevLb` needs it. -/
 def grantHdr (E : AEnv GF) (log : mvcc.Log) (hf : Loc) : IProp GF :=
   iprop(txn.respHdrOwn hf ∗ ∃ (h : Loc) (rv : w64), hf ↦□ h ∗
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv ∗
-    E.Nx log ∗
+    □ E.Nx log ∗ kvLogLb E.γs log ∗
     ⌜sint.Z rv = (log.length : Int) - 1 ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **A granted lease's `*pb.LeaseGrantResponse` `r`** (2.6): its `ID` the grant's, its `TTL` and

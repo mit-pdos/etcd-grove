@@ -920,6 +920,28 @@ theorem srvApplyKVOn_small [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   simp only [srvApi.stAt] at this
   omega
 
+/-- The frozen hook (`applyKV_hookRO`, R8, 2026-11-07), from the apply thread's applier state in
+the mode `on`. -/
+theorem srvApplyKVOn_hookRO (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
+    srvApplyKVOn (GF := GF) s E γw x st ⊢ srvApplyKVOn s E γw x st ∗ backend.plHookRO d.γB E.f := by
+  iintro H
+  iunfold srvApplyKVOn at H
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hrest⟩
+  ihave ⟨Hkv, #Hh⟩ := applyKV_hookRO E ua x d hd $$ Hkv
+  iframe Hh
+  iunfold srvApplyKVOn
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hb
+  isplitr
+  · iexact Hap
+  isplitl [Hkv]
+  · iexact Hkv
+  iexact Hrest
+
 /-- **The uber-applier, the current backend's reader pool and the apply thread's reader token,
 lent, with auth on** (`srvApplyKV_ua_rt_pool`'s, for `applyConfChange`). -/
 theorem srvApplyKVOn_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)

@@ -88,7 +88,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
     unfold apply.backendStep; rw [Hrq.2.1]; exact ⟨id, Hrq.1, rfl⟩
   ihave Hnx := apply.certPre_backend_applied E rq log (apply.revokeLog log id) false hstep $$ Hcp
   -- the writer's facts: its state reachable
-  imod Hfacts $$ %log %c Hw with ⟨Hw, -, -, %Hreach⟩
+  imod Hfacts $$ %log %c Hw with ⟨Hw, -, -, -, %Hreach⟩
   -- the revocation's update, for a live lease only: the deleter's begin, its payload the end of
   -- the lease's deletions; otherwise the writer's half kept
   ihave Hau2 : (if decide (id ∈ L) then srvApi.auBegin E.γ (srvApi.stAt log c)
@@ -190,7 +190,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
     (try wp_auto)
     iapply wp_fupd
     wp_apply (hHdr E p (apply.revokeLog log id) c) $$ [$Hb $Htt $Hw]
-      as %h ⟨Htt, Hw, %Hh, Hhf, Hrv, Hnxh, %Hlen⟩
+      as %h ⟨Htt, Hw, %Hh, Hhf, Hrv, Hnxh, Hlbh, %Hlen⟩
     icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hr0, %Hnn⟩
     iStructNamed Hr0
     ipersist Header
@@ -202,7 +202,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
     isplitr
     · ipureintro; exact hstep
     simp only [apply.revokeOutcomeIs, apply.Outcome.logAfter]
-    isplitl [Hhf Hnxh Hrdat HltT HRO]
+    isplitl [Hhf Hnxh Hlbh Hrdat HltT HRO]
     · isplitr
       · isplitr
         · ipureintro; exact Hnn
@@ -238,7 +238,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
         iunfold apply.hdrFields at Hhf
         iexact Hhf
       iexists h, _
-      iframe Header Hrv Hnxh
+      iframe Header Hrv Hnxh Hlbh
       ipureintro
       refine ⟨?_, Hlen.1, Hlen.2⟩
       word

@@ -39,7 +39,7 @@ abbrev apply.applierV3backend.newHeader.spec : Prop :=
   {{ (h : Loc), RET #h; apply.applyTok E ∗ srvApi.wSt E.γs log c ∗ ⌜h ≠ null⌝ ∗
       apply.hdrFields h ∗
       structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦ W64 ((log.length : Int) - 1) ∗
-      E.Nx log ∗ ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ }}
+      □ E.Nx log ∗ srvApi.kvLogLb E.γs log ∗ ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ }}
 
 end spec
 

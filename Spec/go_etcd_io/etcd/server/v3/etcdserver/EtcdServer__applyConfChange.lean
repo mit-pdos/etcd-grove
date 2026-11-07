@@ -29,7 +29,9 @@ the change `cc` (`ValidateConfigurationChange`, reading the member backend: its 
 the tracked buckets) and applies it to the cluster (`s.cluster`, whose backend is the server's:
 the batch lock `E.Pk d` with the post-lock hook `E.f` (strict M1, 2026-11-06: the backend `d` a
 `mvcc.KBReal`, named by the tie `E.BkTie`; its write-back and reader tokens `bkWT d`/`bkRT d` in place of
-mvcc's `storeWT`/`storeRT`; the hook's triple `hookRun`), `mvcc.hookOk` from the uber applier), to raft
+mvcc's `storeWT`/`storeRT`; the hook's triple `hookRun`; R8, 2026-11-07: in place of `mvcc.hookOk`
+from the uber applier, the caller's `isBackend` of `d` at `E.Pk d` and the frozen hook
+`plHookRO d.γB E.f`, not `nil`, which the restated member backend's contracts take), to raft
 (`s.r.ApplyConfChange`: raft's static mode's clause of `srvRaftNode`, or the dynamic contract
 `srvRaftNodeDyn`), to `ep.confState` and the backend hooks' conf state (`s.beHooks`,
 `isBackendHooks`), and to the transport (`s.r.transport`, `ccMembRes`). For `v3` (`ApplyBoth`)
@@ -98,6 +100,8 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
       srvMemberIDAddr s ↦□ lid ∗ ccMembRes γs cl tl lid prs ∗ apply.bkRT d ∗
       ⌜membership.membersDecode rs.bk⌝ ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok ∗ srvBeRO d ∗
       (if v3 then iprop(apply.bkWT d ∗
+          (∃ W : IProp GF, backend.isBackend d.γB d.P W (E.Pk d) d.be) ∗
+          backend.plHookRO d.γB E.f ∗ ⌜E.f ≠ func.nil⌝ ∗
           mvcc.api.hookRun (E.Pk d) E.f Pre Q ∗
           (Q ={⊤}=∗ E.Pk d ∗ Post) ∗
           (Pre -∗ ciApplying ci i t ∗ (ciApplying ci i t -∗ Pre)) ∗

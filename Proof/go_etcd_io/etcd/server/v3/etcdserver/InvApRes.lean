@@ -553,6 +553,56 @@ theorem srvApplyKV_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : a
   · iexact Hbo
   iexact Hrest
 
+/-- **The apply thread's backend's frozen post-lock hook** (R8, 2026-11-07, for `applyConfChange`'s
+member writes, whose restated contracts take it in place of `mvcc.hookOk`): the KV resources'
+`hookIs` of the tie's backend (`kvBk`), kept. -/
+theorem applyKV_hookRO (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV)
+    (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
+    apply.applyKV (GF := GF) E ua x ⊢ apply.applyKV E ua x ∗ backend.plHookRO d.γB E.f := by
+  iintro Hkv
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hpe, Huo, Hko, Hcmp⟩
+  iunfold apply.kvOwn at Hko
+  icases Hko with ⟨Hsw, Hbk, Hll, Hrd⟩
+  iunfold apply.kvBk at Hbk
+  icases Hbk with ⟨%B, Hmb, #Hhk, Htie⟩
+  ihave %HB : ⌜B = d⌝ $$ [Htie]
+  · rw [hd]; iunfold srvBkTie at Htie; iexact Htie
+  subst HB
+  isplitl [Huo Hcmp Hsw Hll Hrd Hmb]
+  · iunfold apply.applyKV
+    iexists p
+    isplitr
+    · ipureintro; exact Hpe
+    iframe Huo Hcmp
+    iunfold apply.kvOwn
+    iframe Hsw Hll Hrd
+    iunfold apply.kvBk
+    iexists B
+    iframe Hmb Hhk
+    rw [hd]; iunfold srvBkTie; ipureintro; rfl
+  rw [← mvcc.api.etcdStorage_hookIs]
+  iexact Hhk
+
+/-- The frozen hook (`applyKV_hookRO`), from the apply thread's applier state. -/
+theorem srvApplyKV_hookRO (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
+    srvApplyKV (GF := GF) s E γw x ⊢ srvApplyKV s E γw x ∗ backend.plHookRO d.γB E.f := by
+  iintro H
+  iunfold srvApplyKV at H
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hrest⟩
+  ihave ⟨Hkv, #Hh⟩ := applyKV_hookRO E ua x d hd $$ Hkv
+  iframe Hh
+  iunfold srvApplyKV
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hap
+  isplitl [Hkv]
+  · iexact Hkv
+  iexact Hrest
+
 /-- **The uber-applier and the apply thread's reader token, lent** (for a normal entry's `Apply`,
 which takes the token in `kvOwnPre` and gives it back as `apply.bkRTOf E`, `bkRTOf_srv`). -/
 theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :

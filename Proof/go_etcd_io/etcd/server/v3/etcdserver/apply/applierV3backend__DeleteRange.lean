@@ -62,7 +62,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   obtain ⟨hdel, hk, hlen⟩ := Hrq
   -- the writer's facts: its floor, its log's witness and reachability
   imod Hfloor $$ %log %c %F Hw HF with ⟨Hw, %HFl⟩
-  imod Hfacts $$ %log %c Hw with ⟨Hw, Hnx0, -, %Hreach⟩
+  imod Hfacts $$ %log %c Hw with ⟨Hw, -, #Hnx0, -, %Hreach⟩
   have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
   have hstep : apply.backendStep rq log
       (.applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false) := by
@@ -70,7 +70,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   -- the delete's updates (either outcome of its range read)
   ihave Hau : txn.delAU E.γ o (mvcc.leaseItemsOf (mvcc.stateAfter log))
       (fun σ ok => iprop(⌜σ = srvApi.stAt log c⌝ ∗
-        srvApi.wSt E.γs (mvcc.commitLog log (txn.delPend o σ ok)) c)) $$ [Hw Hnx0]
+        srvApi.wSt E.γs (mvcc.commitLog log (txn.delPend o σ ok)) c)) $$ [Hw]
   · unfold txn.delAU
     iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
     iapply HauB $$ %log %c %_ Hw
@@ -81,7 +81,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     iapply apply.commitAU_of_auEnd
     cases ok
     · simp only [txn.delPend, Bool.false_eq_true, ↓reduceIte]
-      ihave Hnx : E.Nx (mvcc.commitLog log []) $$ [Hnx0]
+      ihave Hnx : E.Nx (mvcc.commitLog log []) $$ []
       · unfold mvcc.commitLog; simp only [↓reduceIte]; iexact Hnx0
       ihave He := HauE $$ %log %c %_ Hw Hnx
       iapply apply.auEnd_wand $$ He

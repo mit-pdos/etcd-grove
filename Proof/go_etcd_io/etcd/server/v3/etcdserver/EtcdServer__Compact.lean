@@ -8,6 +8,7 @@ from a context carrying no trace), and the response's header at the store's revi
 -/
 module
 
+public import Proof.go_opentelemetry_io.otel.trace.SpanCtxLaws
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Compact
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Spec.go_opentelemetry_io.otel.trace.WithAttributes
@@ -223,7 +224,7 @@ theorem EtcdServer.Compact.wp_proof
   have hPIRRO := EtcdServer.processInternalRaftRequestOnce.spec_off hPIRRO0
   intro s E ρ ctx cd p r Hr1
   haveI := Hp.1
-  wp_start as ⟨#Hsrv, %Hcmp, #Hsrd, Hlt, Hlr, Hrd, Htt, Hmr, #Hcred, #Hctx, #Htrc, #Hlb, Hreq⟩
+  wp_start as ⟨#Hsrv, %Hcmp, #Hsrd, Hlt, Hlr, Hrd, Htt, Hmr, #Hcred, #Hctx, #Hspc, #Htrc, #Hlb, Hreq⟩
   ihave ⟨%logS, #Hc0, %HlogS⟩ := isServerRead_log0 s E ρ.rd $$ Hsrd
   -- the store invariant (the readers' view's KV invariants), for `s.kv.Rev()`
   ihave #Hkvi := isServerRead_kvInvs s E ρ.rd $$ Hsrd
@@ -273,9 +274,10 @@ theorem EtcdServer.Compact.wp_proof
   iintro %osl ⟨-, -⟩
   (try wp_auto)
   -- the span, over the caller's context (which carries no trace: `Htrc`, kept by `Start`)
-  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, -⟩
+  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hspc1 := Hspw $$ Hspc
   ihave #Htrc1 := Hctr1 $$ %none Htrc
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
@@ -294,7 +296,7 @@ theorem EtcdServer.Compact.wp_proof
   (try wp_auto)
   -- the trace: a new one (the context carries none)
   wp_apply hEnsure ctx1 _ none false v.lg _ slice.nil $$ []
-    as %ctx2 %trc ⟨⟨%Htrcnn, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2t, Hctx2w⟩
+    as %ctx2 %trc ⟨⟨%Htrcnn, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2t, Hctx2w, #Hspw2⟩
   · iframe Hctx1t
     isplitr
     · iexact Htrc1
@@ -302,6 +304,7 @@ theorem EtcdServer.Compact.wp_proof
     · unfold traceutil.ownTraceOpt; itrivial
     iapply traceutil.ownFields_nil
   ihave #Hctx2 := Hctx2w $$ Hctx1
+  ihave #Hspc2 := Hspw2 $$ Hspc1
   (try wp_auto)
   -- `&pb.InternalRaftRequest{Compaction: r}`, read-only but for its header; the request's revision,
   -- read-only from here on (the caller gave it)

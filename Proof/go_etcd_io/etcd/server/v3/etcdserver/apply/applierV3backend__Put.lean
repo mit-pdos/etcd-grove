@@ -80,11 +80,11 @@ theorem apply.applierV3backend.Put.wp_proof
   icases Hle with ⟨#Hle, -⟩
   -- the writer's facts: its floor, its log's witness and reachability
   imod Hfloor $$ %log %c %F Hw HF with ⟨Hw, %HFl⟩
-  imod Hfacts $$ %log %c Hw with ⟨Hw, Hnx0, -, %Hreach⟩
+  imod Hfacts $$ %log %c Hw with ⟨Hw, -, #Hnx0, -, %Hreach⟩
   have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
   have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
   -- the witness of the log the put commits
-  ihave Hnx : E.Nx (mvcc.commitLog log (txn.putPend o (srvApi.stAt log c))) $$ [Hnx0]
+  ihave Hnx : E.Nx (mvcc.commitLog log (txn.putPend o (srvApi.stAt log c))) $$ []
   · rcases apply.putPend_cases o log c with ⟨-, -, hp⟩ | ⟨hn, hp⟩
     · rw [hp]; unfold mvcc.commitLog; simp only [↓reduceIte]; iexact Hnx0
     · rw [hp]

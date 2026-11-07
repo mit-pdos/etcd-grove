@@ -70,7 +70,7 @@ theorem apply.applierV3backend.newHeader.wp_proof
   simp only [interface.mkOk]
   wp_apply (hRevC E.γ _) $$ [$Hkv' $Htt $Hmr $Hau] as %v ⟨Htt, Hmr, %σ, ⟨%Hσ, Hsw⟩, %Hv⟩
   -- the writer's facts: its log's witness, reachable (so at least `NewStore`'s two revisions)
-  imod Hfacts $$ %log %c Hsw with ⟨Hsw, Hnx, -, %Hreach⟩
+  imod Hfacts $$ %log %c Hsw with ⟨Hsw, Hlb, #Hnx, -, %Hreach⟩
   have Hlen2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
   wp_apply HTerm as %tm -
   wp_apply HLead as %ld -
@@ -80,7 +80,7 @@ theorem apply.applierV3backend.newHeader.wp_proof
   iStructNamed Hh
   iapply HΦ
   iunfold apply.applyTok
-  iframe Htt Hmr Hsw Hnx
+  iframe Htt Hmr Hsw Hnx Hlb
   isplitr
   · ipureintro; exact Hhn
   isplitl [ClusterId MemberId RaftTerm LeaderId]

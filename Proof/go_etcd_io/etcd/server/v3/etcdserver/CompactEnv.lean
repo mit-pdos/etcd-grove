@@ -65,12 +65,13 @@ theorem errTreeOk_of_compactOutIs (E : apply.AEnv GF) (resp : Loc) (err : GoInte
   · iapply errTreeOk_of_applyErrIs; iexact Herr
 
 /-- **What a compactor's `Compact` call borrows and gives back** on the server `s`: the caller's
-reader slots (the lead-time and logger mutexes', the auth store's, `E.RD`), a thread token and a
-reader token of the store (`KV.Rev.contract`'s; the `lean` merge, R6, 2026-11-07: until then the
-store's compaction-aware reader `mvcc.storeReaderC`, whose lock slots the API borrows for a
-`threadTok`). -/
+reader slots (the lead-time and logger mutexes', the auth store's, `E.RD`) and a reader token of
+the store (`KV.Rev.contract`'s; the `lean` merge, R6, 2026-11-07: until then the store's
+compaction-aware reader `mvcc.storeReaderC`). (R8, 2026-11-07: the call's thread token is not here
+but the compactor goroutine's own, the one its `go` statement gives, which `v3compactor`'s
+`revGetterOk`/`compactableOk` lend beside this; R6 had put one here, which no one could supply.) -/
 def srvCompactR (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗ threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+  iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ E.RD ∗ mvcc.api.mvccReaders E.γ 1)
 
 /-- **A floor of the store's committed log is short** (`mvccState_reachable.law`'s bound at the
 store invariant's state, which the floor is a prefix of). -/
@@ -122,10 +123,10 @@ theorem compactableOk_server_of (hC : EtcdServer.Compact.spec (GF := GF) (hG := 
   isplitr
   · ipureintro; rfl
   imodintro
-  iintro %r %ctx %cd %p %Φ !> ⟨Hpm, HR, #Hctx, #Htr, Hreq⟩ HΦ
+  iintro %r %ctx %cd %p %Φ !> ⟨Hpm, HR, Htt, #Hctx, #Hspc, #Htr, Hreq⟩ HΦ
   ihave ⟨%Hr, #Hlb⟩ := hP r $$ Hpm
   iunfold srvCompactR at HR
-  icases HR with ⟨Hlt, Hlr, Hrd, Htt, Hmr⟩
+  icases HR with ⟨Hlt, Hlr, Hrd, Hmr⟩
   ihave #Hkvi := srvKVInvs_of_read s E ρ.rd $$ Hsrd
   iunfold srvKVInvs at Hkvi
   icases Hkvi with ⟨#Hkv, -, #Hrl, #HkS, %Hm, %HNx, -⟩
@@ -169,7 +170,7 @@ theorem compactableOk_server_of (hC : EtcdServer.Compact.spec (GF := GF) (hG := 
   iintro %resp %err ⟨Hlt, Hlr, Hrd, Htt, Hmr, Hout⟩
   iapply HΦ
   iunfold srvCompactR
-  iframe Hlt Hlr Hrd Htt Hmr
+  iframe Hlt Hlr Hrd Hmr Htt
   iapply errTreeOk_of_compactOutIs; iexact Hout
 
 /-- **The server is the revision compactor's `Compactable`**: its permit at a retention at least
@@ -271,9 +272,9 @@ theorem revGetterOk_server (Hp : mvcc.api.persistent.law (GF := GF))
   isplitr
   · ipureintro; rfl
   imodintro
-  iintro %n %Φ !> ⟨HR, #Hlb⟩ HΦ
+  iintro %n %Φ !> ⟨HR, Htt, #Hlb⟩ HΦ
   iunfold srvCompactR at HR
-  icases HR with ⟨Hlt, Hlr, Hrd, Htt, Hmr⟩
+  icases HR with ⟨Hlt, Hlr, Hrd, Hmr⟩
   iunfold srvRevLb at Hlb
   icases Hlb with ⟨%log₀, #Hc0, -, %Hn⟩
   ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) Hp Hr E.kv E.γ E.γs log₀ $$ HkS Hc0
@@ -296,7 +297,7 @@ theorem revGetterOk_server (Hp : mvcc.api.persistent.law (GF := GF))
     rw [this]; word
   iapply HΦ
   iunfold srvCompactR
-  iframe Hlt Hlr Hrd Htt Hmr
+  iframe Hlt Hlr Hrd Hmr Htt
   isplitl
   · imodintro
     iunfold srvRevLb

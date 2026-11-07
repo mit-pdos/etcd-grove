@@ -63,7 +63,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   obtain ⟨ht, hk, hpre⟩ := Hrq
   -- the writer's facts: its floor, its reachability
   imod Hfloor $$ %log %c %F Hw HF with ⟨Hw, %HFl⟩
-  imod Hfacts $$ %log %c Hw with ⟨Hw, -, -, %Hreach⟩
+  imod Hfacts $$ %log %c Hw with ⟨Hw, -, -, -, %Hreach⟩
   have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
   have hlen : log.length + 3 ≤ 2 ^ 63 := Hreach.2
   -- the read update, at the writer's state
