@@ -7,7 +7,7 @@ update with no event (the client's state closed, `-1`); an open one picks the fi
 `nextID` and registers the watcher with the store, whose registration callback (built from the
 update, `Api/StreamHandle.watch_regCb`) fires the update at the registration, with the store's
 state in hand and the stream's history open. The store's reader slot and the registration's watch
-token come from the handle's pools (a thread token's loan, a time receipt).
+token come from the handle's pools (a reader token's loan, a time receipt).
 -/
 module
 
@@ -38,9 +38,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF := GF) (hG := hG)) :
     mvcc.watchStream.Watch.spec (GF := GF) (hG := hG) := by
   intro w γ ι ctx cd key endk fcs kk e fs startRev Q
-  wp_start as ⟨Hws, Htt, Hrt, #Hctx, #Hk, #He, #Hfi, %Hsr, Hau⟩
+  wp_start as ⟨Hws, Hrt, #Hctx, #Hk, #He, #Hfi, %Hsr, Hau⟩
   icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
-    ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, #Htp, #Hrp, -⟩
+    ⟨%γw, %γc, %s, %st, %γo, %hι, #Hinv, #Hws, #Htp, #Hrp, -⟩
   obtain ⟨hι, hγ⟩ := hι
   generalize hch : (ι : api.WsAbs).ch = ch at hι
   have hι' : ι = (mvcc.wsAbsOf γw ch γc : api.WsAbs) := hι
@@ -83,7 +83,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
   rotate_left
   -- `key ≥ end`: the empty range, the update untouched
   iapply HΦ
-  iframe Htt Hrt
+  iframe Hrt
   ileft
   iframe Heer Hau
   ipureintro
@@ -125,7 +125,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
         ipureintro; exact Hrel
       iexact Hcl
     iapply HΦ
-    iframe Htt Hrt
+    iframe Hrt
     iright
     isplitr
     · ipureintro; exact hne
@@ -142,9 +142,9 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     wp_auto_lc 1
     -- the store's reader slot, from the handle's pool (given back after the registration)
     iapply fupd_wp
-    ihave Hrt : ownToks (GF := GF) γw.st.tk 1 $$ [Hrt]
+    ihave Hrt : ownToks (GF := GF) γw.st.api.rdk 1 $$ [Hrt]
     · iunfold mvcc.api.mvccReaders at Hrt; (try rw [hγ]); iexact Hrt
-    imod mvcc.watchReader_lend s st γw γp $$ [$Hlc1 $Hrp $Htt $Hrt] with ⟨HPR, Hloan⟩
+    imod mvcc.watchReader_lend s st γw $$ [$Hlc1 $Hrp $Hrt] with ⟨HPR, Hloan⟩
     imodintro
     -- `AutoWatchID`: the first free id from `nextID`
     ihave IH : iprop(∃ n : w64, "HnextID" ∷ w.[watchStream, go!"nextID"] ↦ n ∗
@@ -216,7 +216,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
         iframe #
         ipureintro; exact ⟨Hsr, hidm⟩
       iapply fupd_wp
-      imod Hloan $$ HPR with ⟨Htt, Hrt⟩
+      imod Hloan $$ HPR with Hrt
       ihave Hrt : mvcc.api.mvccReaders (GF := GF) γw.st 1 $$ [Hrt]
       · iunfold mvcc.api.mvccReaders; (try rw [← hγ]); iexact Hrt
       imodintro
@@ -329,7 +329,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
           · iright
             iexact Hc0
       iapply HΦ
-      iframe Htt Hrt
+      iframe Hrt
       iright
       isplitr
       · ipureintro; exact hne

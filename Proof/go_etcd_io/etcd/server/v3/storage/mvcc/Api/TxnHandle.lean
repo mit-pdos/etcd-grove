@@ -6,8 +6,8 @@ sealed `mvccTxn` as `mvccTxnI`.
 A transaction of the API is the internal transaction (`isTxnReadT`, `isTxnWriteT`) **without its
 trace** (`Tr := True`: `KV.Read`/`Write` give the trace back to the caller, which lends it to `Range`
 and `Put`), at the state it began at (`σ.log`, `σ.crev`; nothing pending, reachable), with the
-thread token's way back (`storeReaderC s γ ={⊤}=∗ threadTok`: the readers' pool's loan, whatever the
-pool is; `End` gives the reader back through it), as an interface value of one of three types:
+reader token's way back (`storeReaderC s γ ={⊤}=∗ ownToks γ.api.rdk 1`: the readers' pool's loan,
+whatever the pool is; `End` gives the reader back through it), as an interface value of one of three types:
 * a read transaction is `*metricsTxnWrite` (`store.Read`'s), or `NewReadOnlyTxnWrite`'s
   `*txnReadWrite` around a read transaction, to any depth (`roWrap n t mw`: the wrappers' chain down
   to the internal transaction `mw`; `NewReadOnlyTxnWrite` takes any read transaction);
@@ -42,10 +42,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The thread token's and the reader ticket's way back, from the reader the transaction holds
-(the reader tokens, 2026-11-06: the ticket is the client's, the API's `mvccReaders γ 1`). -/
+/-- The reader token's way back, from the reader the transaction holds (the reader tokens,
+2026-11-06; 2026-11-07: the token, the API's `mvccReaders γ 1`, is the right to a whole reader, its
+lock slots and ticket, from the handle's pool `rdkPool`; no thread token). -/
 def tokBack (s : Loc) (γ : StoreNames) : IProp GF :=
-  iprop(storeReaderC s γ ={⊤}=∗ threadTok ∗ ownToks γ.tk 1)
+  iprop(storeReaderC s γ ={⊤}=∗ ownToks γ.api.rdk 1)
 
 /-- **The read-only wrappers' chain**, `n` deep, from `t` down to the read transaction `mw`. -/
 def roWrap : Nat → GoInterface → Loc → IProp GF

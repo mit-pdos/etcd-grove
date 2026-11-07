@@ -2226,3 +2226,78 @@ an opened storage no store took gives back its rest (sound: no store, so no read
 `Api.lean`, proved in `Api/ClosedLaw.lean` (`mvccStorageFor`'s last conjunct is `storageRest`'s
 definition), linked in `ApiResults.lean` (`mvccApi_mvccStorageFor_rest_law_holds`). For
 `NewServer`'s token-provider error path (`notes/mvcc-merge/r8.md`).
+
+## Hand-off: the reader token carries the store's lock slots; no `threadTok` (2026-11-07)
+
+The decision `notes/decisions.md`, "mvcc's reader token carries the store's lock slots; mvcc's reads
+take no `threadTok`" (the user, option 2), implemented. No `AU` changed; no axiom, no `sorry`; the
+split law, `mvccClosed_rest.law`, `mvccImage_stop.law`, `mvccStorageFor_rest.law` and the tokens'
+timelessness (`persistent.law`) unchanged in statement.
+
+**The design as built.** The token is still a counted ghost token, now of a name of its own:
+`mvccReaders γ n := ownToks γ.api.rdk n` (new field `AbsNames.rdk`, allocated with the API's names
+by `absNames_alloc`, its authority at `0` in `api.newClient`). The handle holds the pool of the
+tokens (`Api/RdSupply.lean`, `rdkPool γ R := inv rdkPoolN (∃ k, ownTokAuth γ.api.rdk k ∗ ownToks
+γ.tk k ∗ [∗ k] R)`): for each token out, a copy of `R` (a reader's lock slots: `storeSlots` of a
+plain store, `watchSlots` of a watchable one, i.e. `s.mu`, `s.revMu` and the watchable `s.mu`) and
+the ticket of the store's readers' pool (`γ.tk`, the backend reader slot's right). So a token is a
+whole reader (`storeReaderC`/`watchReader`) on loan, no thread token: `rdkPool_borrow[L]`,
+`_giveBack`, `_init`, `_take` (the census: `n` tokens give back `n` tickets for good, the slots stay).
+The pool replaces the thread pools of `isMvccWatchable`/`isMvccWatchStreamRest`
+(`threadPool.isThreadPool watchRdPoolN γp (watchSlots …)` → `rdkPool γw.st (watchSlots …)`) and
+`rdSupply`'s (now `∃ R, rdkPool γ R ∗ □ (R -∗ storeSlots ∗ …)`); `tokBack s γ := storeReaderC s γ
+={⊤}=∗ ownToks γ.api.rdk 1` (was `… ∗ threadTok ∗ ownToks γ.tk 1`). Why a new ghost name and not the
+slots in the token itself: a token keyed only by `γ` could not name the watchable store's `WsNames`
+(its `s.mu`'s invariant), which `γ` does not determine; the pool, inside the handle, knows them.
+
+**Counts.** Unchanged: `mvccReaderN = rdStockN - 7`. The tokens' lock slots are the store's
+`nReaders = rdStockN - 2` readers' (each `storeReaderC` already carried a slot of `s.mu` and
+`s.revMu`; `2 ^ 30 - 1` each cover them, `nReaders` being about `2 ^ 29`), less the same five as
+before (the job's, the compactor's, the writer's, the two loops' or the plain open token's two
+tickets). `New`/`NewStore` no longer need `threadBound ≤ mvccReaderN` (it was for the thread pools'
+`init`): dropped.
+
+**Every changed contract (old → new; the rest of each triple unchanged):**
+- `KV.Read`: pre `threadTok ∗ mvccReaders γ 1 ∗ …` → `mvccReaders γ 1 ∗ …` (the transaction holds
+  the token until `End`). `KV.Write`: the same.
+- `KV.Rev`, `KV.FirstRev`, `KV.Range`, `KV.Put`, `KV.DeleteRange`, `KV.Commit`: pre and post
+  `threadTok ∗ mvccReaders γ 1` → `mvccReaders γ 1`.
+- `KV.Compact`: pre `mvccOpen γ ∗ threadTok ∗ …` → `mvccOpen γ ∗ …`, post `mvccOpen γ ∗ threadTok ∗ …`
+  → `mvccOpen γ ∗ …` (its `threadTok` paid for nothing: the proof only framed it).
+- `KV.Restore`: pre `threadTok ∗ mvccOpen γ ∗ …` → `mvccOpen γ ∗ …`; post likewise (framed only).
+- `Txn.End`: post `threadTok ∗ mvccReaders γ 1 ∗ match …` → `mvccReaders γ 1 ∗ match …`.
+- `WatchStream.Watch`, `RequestProgress`, `RequestProgressAll`, `WatchStream.Rev`: pre and post
+  `threadTok ∗ mvccReaders γ 1` → `mvccReaders γ 1`.
+- `WatchStream.Cancel`, `WatchStream.Close`: pre and post `threadTok ∗ …` → `…` (framed only: the
+  watchable store's `s.mu` is taken exclusively through the watcher's cancel, which needs no slot
+  from the caller).
+- `mvccDeleter`'s triple: pre `threadTok ∗ mvccReaders γ 1 ∗ …` → `mvccReaders γ 1 ∗ …`.
+- `mvccTxn_leaseDelete.law` (`EtcdBackend.lean`): the `End` continuation's `▷ (threadTok ∗
+  mvccReaders γ 1 ∗ mvccBackend … ∗ Q -∗ Ψ #())` → `▷ (mvccReaders γ 1 ∗ mvccBackend … ∗ Q -∗ Ψ #())`.
+- `New.spec`, `NewStore.spec`: the premise `threadBound GF ≤ mvccReaderN →` dropped.
+- Definitions: `mvccReaders` (above); `mvccClosed` gains `∃ R, rdkPool γ R` (what the law takes the
+  tickets back from); `isMvccWatchable`, `isMvccWatchStreamRest` (pools), `mvccReaderN`'s docstring.
+No contract still needs `threadTok`: the watch tokens' pool (`watchTokPool`) is paid by receipts,
+never by thread tokens; `HashStorage`, `NewWatchStream`, `Chan`, `Close`, the `Txn.*` calls but
+`End` took none before.
+
+**For the clients** (txn, apply, lease, server, v3rpc, client/v3, examples, tester): drop the
+`threadTok` they give and take back at every call above (and stop threading it into `Read`/`Write`
+transactions: `End` gives back only the reader token); drop the `threadBound ≤ mvccReaderN` argument
+to `New.spec`/`NewStore.spec` (and any lemma producing it, unless used elsewhere); a client storing
+reader tokens per request slot (the server, as on `lean`) needs no thread token for mvcc's calls.
+Proofs that destructure the handle are inside mvcc only.
+
+**Internal changes**: `AbsNames.rdk` (`Api/Ghost.lean`; `newClient`, `absNames_alloc[_store]`),
+`NewStore.lean`, `newWatchableStore.lean` (thread the new authority), `Api/RdSupply.lean` (the pool
+and its lemmas; `rdSupply_init` without a thread bound), `TxnHandle.tokBack`, `WatchTxnApi.
+watchReader_borrow`, `NewApi`/`NewStoreApi` (the pool from the readers), `CloseApi`/`ClosedLaw` (the
+pool into `mvccClosed`, `rdkPool_take` before the bulk retirement), and the contracts' proofs.
+`InvWatchStore.watchRdPoolN` is now unused (left, to avoid rebuilding InvWatchStore's importers).
+
+**Checks**: every module of `{Proof,Spec}/.../storage/mvcc` builds (441); `ApiResults` and `Results`
+print no `sorryAx` (205 `#print axioms` lines); interfaces regenerated (`Api`, `Api/Ghost`,
+`EtcdBackend`); `etc/api-check.py etc/api/mvcc.txt --check`: 0 errors; `--layout`: one violation not
+in the baseline, `EtcdBackend`'s `mvccImage_stop.law` (from the previous hand-off, not this change;
+`etc/api/mvcc-layout.txt` not updated here). Downstream (server, v3rpc, client/v3, ...) not built:
+the clients' tracks follow.

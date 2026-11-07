@@ -48,21 +48,21 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- **What a stream's handle holds** (`isMvccWatchStream` unsealed). -/
 theorem isMvccWatchStream_open (w : Loc) (γ : MvccName) (ι : WsName) :
     isMvccWatchStream (GF := GF) (interface.mkOk (go.GoType.PointerType watchStream.ty) #w) γ ι ⊢
-      ∃ (γw : WsNames) (γc : WatchChanNames) (s st : Loc) (γo : WsStreamNames) (γp : GName),
+      ∃ (γw : WsNames) (γc : WatchChanNames) (s st : Loc) (γo : WsStreamNames),
         ⌜(ι : WsAbs) = wsAbsOf γw (ι : WsAbs).ch γc ∧ γw.st = (γ : StoreNames)⌝ ∗
         inv watchN (watchChanInv γw (ι : WsAbs).ch γc) ∗
         isWatchStreamAt w (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s)
           (storeWatchParams s st γw) γo (ι : WsAbs).ch γc ∗
-        watchTokPool γw ∗ threadPool.isThreadPool watchRdPoolN γp (watchSlots s st γw) ∗
+        watchTokPool γw ∗ rdkPool γw.st (watchSlots s st γw) ∗
         progFact γc.prog := by
   unfold isMvccWatchStream isMvccWatchStreamRest
-  iintro ⟨-, #⟨%γw, %γc, %w', %s, %st, %γo, %γp, %h, -, #Hinv, #Hws, #Ht, #Hp, #Hpf⟩⟩
+  iintro ⟨-, #⟨%γw, %γc, %w', %s, %st, %γo, %h, -, #Hinv, #Hws, #Ht, #Hp, #Hpf⟩⟩
   obtain ⟨hι, hγ, -, hw⟩ := h
   have hw' : w' = w := by
     rw [interface_mkOk_inj] at hw
     exact (go.intoVal_inj hw.2).symm
   subst hw'
-  iexists γw, γc, s, st, γo, γp
+  iexists γw, γc, s, st, γo
   iframe Hinv Hws Ht Hp Hpf
   ipureintro; exact ⟨hι, hγ⟩
 

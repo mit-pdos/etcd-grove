@@ -76,7 +76,7 @@ theorem New.wp_proof
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (hWr : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro lg le cfg B Pk γl rd0 hcfg hrb htb
+  intro lg le cfg B Pk γl rd0 hcfg hrb
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, Hfor, Hlrd, #Hle, Hro⟩ HΦ
   iunfold mvccStorageFor at Hfor
   icases Hfor with ⟨%bk, %D, %Hf, #Hrc, #Hb, #Hsz, Hv, Hdl, Hfk, Hsr, Hrs, Hrg, Hw1, Hw2, #Hsup,
@@ -128,7 +128,7 @@ theorem New.wp_proof
   icases Hws' with ⟨%vc, %stc0, %rv, %γv, Hws'⟩
   iNamed Hws'
   iunfold api.newClient at Hnc
-  icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hlb, Htok, Hnl, #Hloc⟩
+  icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hlb, Htok, Hnl, #Hloc, Hrdk⟩
   -- a reader retired from the slots for the open token's reader (the compactor's), the rest the
   -- readers' pool
   iunfold writerFrag at Hfrag
@@ -145,14 +145,11 @@ theorem New.wp_proof
   icases Hrd2 with ⟨Hrd2, -⟩
   -- (2026-11-06) and one for the writer's own (`writerOwn`, which `Restore` takes)
   imod storeReader_retire2 st γw.st _ o 1 $$ Hlc1 Hs Hcur Hrd1 Hrd2 Hret with ⟨HRT, HRTw, Hret, Hcur⟩
-  have hpool : threadBound GF ≤ (nReaders - 5) + 1 := by
-    have h1 : mvccReaderN = backend.rdStockN - 7 := rfl
-    have h2 : nReaders = backend.rdStockN - 2 := rfl
-    have : 7 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
-    omega
-  -- (the reader tokens, 2026-11-06) the readers' tickets the client's, their locks' slots the pool
+  -- (the reader tokens, 2026-11-06; 2026-11-07) the readers, their locks' slots and tickets, in the
+  -- pool of the client's reader tokens
   imod watchReaders_split ws st γw _ $$ Hrds with ⟨Hrds, Htks⟩
-  imod threadPool.init watchRdPoolN (watchSlots ws st γw) ⊤ _ hpool $$ Hrds with ⟨%γp, #Hpool⟩
+  imod rdkPool_init γw.st (watchSlots ws st γw) _ $$ [Hrdk Htks Hrds] with ⟨#Hpool, Htks⟩
+  · iframe Hrdk Htks Hrds
   have hrb' : receiptBound GF ≤ 2 ^ 63 - 2 := by omega
   imod watchTokPool_alloc γw ⊤ hrb' $$ Htw with #Htp
   -- the certificate map's free entry (track A, request 3)
@@ -179,7 +176,7 @@ theorem New.wp_proof
     iintro !>
     iright
     iunfold isMvccWatchable
-    iexists ws, st, γw, γp
+    iexists ws, st, γw
     iframe Hws Htp Hpool Hloc Hcp Hfree'
     ipureintro; exact ⟨rfl, rfl⟩
   imodintro

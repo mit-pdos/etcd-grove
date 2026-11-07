@@ -2,7 +2,7 @@
 Proof of the spec of the same name: `WatchStream.RequestProgressAll.contract` at `*watchStream` (stage 2 of the
 mvcc API, 2026-11-05). Lean-first (no Rocq counterpart).
 
-The store's reader slot is borrowed from the handle's pool with the thread token; the channel's
+The store's reader slot is borrowed from the handle's pool with the reader token; the channel's
 progress fact is the handle's.
 -/
 module
@@ -32,18 +32,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchStream.RequestProgressAll.wp_proof :
     mvcc.watchStream.RequestProgressAll.spec (GF := GF) (hG := hG) := by
   intro w γ ι
-  wp_start as ⟨Hws, Htt, Hrt⟩
+  wp_start as ⟨Hws, Hrt⟩
   icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
-    ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, #Htp, #Hrp, #Hpf⟩
+    ⟨%γw, %γc, %s, %st, %γo, %hι, #Hinv, #Hws, #Htp, #Hrp, #Hpf⟩
   obtain ⟨hι, hγ⟩ := hι
   generalize hch : (ι : api.WsAbs).ch = ch at hι
   iunfold mvcc.isWatchStreamAt at Hws
   iNamed Hws
   wp_auto_lc 1
   iapply fupd_wp
-  ihave Hrt : ownToks (GF := GF) γw.st.tk 1 $$ [Hrt]
+  ihave Hrt : ownToks (GF := GF) γw.st.api.rdk 1 $$ [Hrt]
   · iunfold mvcc.api.mvccReaders at Hrt; (try rw [hγ]); iexact Hrt
-  imod mvcc.watchReader_lend s st γw γp $$ [$Hlc1 $Hrp $Htt $Hrt] with ⟨HPR, Hloan⟩
+  imod mvcc.watchReader_lend s st γw $$ [$Hlc1 $Hrp $Hrt] with ⟨HPR, Hloan⟩
   imodintro
   ihave HPR : (mvcc.storeWatchParams s st γw).R $$ [HPR]
   · simp only [mvcc.storeWatchParams]; iexact HPR
@@ -86,12 +86,12 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
       iframe #
       ipureintro; exact ⟨Hdom, Hnn⟩
     simp only [mvcc.storeWatchParams]
-    imod Hloan $$ HPR with ⟨Htt, Hrt⟩
+    imod Hloan $$ HPR with Hrt
     ihave Hrt : mvcc.api.mvccReaders (GF := GF) γ 1 $$ [Hrt]
     · iunfold mvcc.api.mvccReaders; (try rw [← hγ]); iexact Hrt
     imodintro
     iapply HΦ
-    iframe Htt Hrt
+    iframe Hrt
   | false =>
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hcl with ⟨%L, HCR, #HL, %Hcnt⟩
@@ -113,12 +113,12 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
       iframe #
       ipureintro; exact ⟨Hdom, Hnn, Hcnt⟩
     simp only [mvcc.storeWatchParams]
-    imod Hloan $$ HPR with ⟨Htt, Hrt⟩
+    imod Hloan $$ HPR with Hrt
     ihave Hrt : mvcc.api.mvccReaders (GF := GF) γ 1 $$ [Hrt]
     · iunfold mvcc.api.mvccReaders; (try rw [← hγ]); iexact Hrt
     imodintro
     iapply HΦ
-    iframe Htt Hrt
+    iframe Hrt
 
 end proof
 

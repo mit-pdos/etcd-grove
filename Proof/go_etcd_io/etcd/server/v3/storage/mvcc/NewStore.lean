@@ -309,7 +309,7 @@ theorem mvcc.NewStore.wp_proof
   -- (the mvcc API, strict M1) the API's ghost names at the start: the lock's and the writer's slots
   -- and the frozen flag kept; the client's parts dropped (today's spec returns none of them)
   obtain ⟨pr, hpr⟩ := mvcc.pndW_compl wq
-  imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr «$r0_ptr») with ⟨%γa, HXa, HYa, HFla, HCa, HCp, HCc1, HCc4, #HClb, HCt, HCn, #HCl0, HwY, HwM⟩
+  imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr «$r0_ptr») with ⟨%γa, HXa, HYa, HFla, HCa, HCp, HCc1, HCc4, #HClb, HCt, HCn, #HCl0, HwY, HwM, HCrdk⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
       hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγcp, hγapi, hγrcv, hγjc, hγrcl⟩ :
       ∃ γ : mvcc.StoreNames,
@@ -840,7 +840,7 @@ theorem mvcc.NewStore.wp_proof
   · ipureintro; unfold mvcc.pndW; rw [hγw]; exact hpr
   rw [hγapi]
   iunfold mvcc.api.newClient
-  iframe HCa HCp HCc1 HCc4 HClb HCt HCn HCl0
+  iframe HCa HCp HCc1 HCc4 HClb HCt HCn HCl0 HCrdk
 
 end proof
 

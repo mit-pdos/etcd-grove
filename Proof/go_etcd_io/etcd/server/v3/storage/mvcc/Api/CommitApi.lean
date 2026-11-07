@@ -60,13 +60,13 @@ private theorem storeReq_of_storage (γ : StoreNames) (p : PhysNames) (d : KBRea
 theorem store.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) :
     store.Commit.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) q B Pk X Y
-  iintro %Φ ⟨#Hpkg, Hmv, Htok, Hrt, HB, HX, Hrq⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hmv, Hrt, HB, HX, Hrq⟩ HΦ
   iunfold mvccReaders at Hrt
   iunfold isMvcc at Hmv
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   rotate_left 1
   · iunfold isMvccWatchable at Hmv
-    icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
+    icases Hmv with ⟨%s', %st, %γw, %Hk, -⟩
     exfalso
     obtain ⟨Hk, -⟩ := Hk
     rw [interface_mkOk_inj] at Hk
@@ -80,7 +80,7 @@ theorem store.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) 
   obtain ⟨hpk, hcm, hdB⟩ := Hd
   subst hdB
   iapply wp_fupd
-  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Htok $Hrt] with ⟨Hrd, Hback⟩
+  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Hrt] with ⟨Hrd, Hback⟩
   ihave Hrd : ▷ storeReaderC (GF := GF) s (γ.withPhys p) $$ [Hrd]
   · rw [storeReaderC_withPhys]; iexact Hrd
   ihave #Hreq := storeReq_of_storage γ p d hpk Pk X Y $$ [$Hbk $Hrq]
@@ -93,11 +93,11 @@ theorem store.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) 
   ihave Hrd : storeReaderC (GF := GF) s γ $$ [Hrd]
   · rw [← storeReaderC_withPhys s γ p]; iexact Hrd
   iunfold tokBack at Hback
-  imod Hback $$ Hrd with ⟨Htok, Hrt⟩
+  imod Hback $$ Hrd with Hrt
   imodintro
   iapply HΦ
   iunfold mvccReaders
-  iframe Htok Hrt HY
+  iframe Hrt HY
   iunfold mvccBackend
   iframe HF
   iexists p, o, d
@@ -108,7 +108,7 @@ theorem store.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) 
 theorem watchableStore.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) :
     watchableStore.Commit.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) q B Pk X Y
-  wp_start as ⟨Hmv, Htok, Hrt, HB, HX, Hrq⟩
+  wp_start as ⟨Hmv, Hrt, HB, HX, Hrq⟩
   iunfold mvccReaders at Hrt
   iunfold isMvcc at Hmv
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
@@ -118,7 +118,7 @@ theorem watchableStore.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, #Hrp, #Hloc, -⟩
+  icases Hmv with ⟨%s', %st, %γw, %Hk, #Hws, -, #Hrp, #Hloc, -⟩
   obtain ⟨Hk, hγ⟩ := Hk
   rw [interface_mkOk_inj] at Hk
   have hs : s = s' := go.intoVal_inj Hk.2
@@ -133,7 +133,7 @@ theorem watchableStore.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG
   subst hdB
   wp_auto_lc 1
   iapply fupd_wp
-  imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok $Hrt] with ⟨Hrd, Hback⟩
+  imod watchReader_borrow s st γw $$ [$Hlc1 $Hrp $Hrt] with ⟨Hrd, Hback⟩
   imodintro
   iapply wp_fupd
   ihave Hrd : ▷ storeReaderC (GF := GF) st (γw.st.withPhys p) $$ [Hrd]
@@ -146,11 +146,11 @@ theorem watchableStore.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG
   ihave Hrd : storeReaderC (GF := GF) st γw.st $$ [Hrd]
   · rw [← storeReaderC_withPhys st γw.st p]; iexact Hrd
   iunfold tokBack at Hback
-  imod Hback $$ Hrd with ⟨Htok, Hrt⟩
+  imod Hback $$ Hrd with Hrt
   imodintro
   iapply HΦ
   iunfold mvccReaders
-  iframe Htok Hrt HY
+  iframe Hrt HY
   iunfold mvccBackend
   iframe HF
   iexists p, o, d
@@ -181,7 +181,7 @@ theorem store.HashStorage.wp_api (hHS : mvcc.hashStorage.Store.spec (GF := GF) (
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   rotate_left 1
   · iunfold isMvccWatchable at Hmv
-    icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
+    icases Hmv with ⟨%s', %st, %γw, %Hk, -⟩
     exfalso
     obtain ⟨Hk, -⟩ := Hk
     rw [interface_mkOk_inj] at Hk
@@ -210,7 +210,7 @@ theorem watchableStore.HashStorage.wp_api (hHS : mvcc.hashStorage.Store.spec (GF
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -⟩
+  icases Hmv with ⟨%s', %st, %γw, %Hk, #Hws, -⟩
   obtain ⟨Hk, hγ⟩ := Hk
   rw [interface_mkOk_inj] at Hk
   have hs : s = s' := go.intoVal_inj Hk.2

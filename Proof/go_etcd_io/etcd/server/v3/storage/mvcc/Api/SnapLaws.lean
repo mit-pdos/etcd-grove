@@ -62,7 +62,7 @@ private theorem isMvcc_store (kv : GoInterface) (γ : MvccName) :
     icases Hmv with ⟨%s, -, #Hs, -, -⟩
     iexists s; iexact Hs
   · iunfold isMvccWatchable at Hmv
-    icases Hmv with ⟨%s, %st, %γw, %γp, %Hk, #Hws, -, -⟩
+    icases Hmv with ⟨%s, %st, %γw, %Hk, #Hws, -, -⟩
     iexists st
     ihave #Hs := isWatchableStore_isStore s st γw $$ Hws
     obtain ⟨-, hγ⟩ := Hk

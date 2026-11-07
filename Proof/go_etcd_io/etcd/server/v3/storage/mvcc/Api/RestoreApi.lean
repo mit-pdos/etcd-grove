@@ -235,7 +235,7 @@ theorem watchableStore.Restore.wp_api
     (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG)) :
     watchableStore.Restore.spec (GF := GF) := by
   intro s (γ : StoreNames) B B' Pk Pk' σ' u L dq f Pre Q' Post X Y Q
-  iintro %Φ ⟨#Hpkg, Hmv, Htt, Hopen, HB, Hfor, %Hσ', Hhook, %Hfdq, HPre, Hrun, Hupd, HX, #Hreq,
+  iintro %Φ ⟨#Hpkg, Hmv, Hopen, HB, Hfor, %Hσ', Hhook, %Hfdq, HPre, Hrun, Hupd, HX, #Hreq,
     HLo, %Hlok, HAU⟩ HΦ
   iunfold isMvcc at Hmv
   icases Hmv with #Hmv
@@ -248,7 +248,7 @@ theorem watchableStore.Restore.wp_api
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, #Hrp, #Hloc, #Hperm, #Hfree⟩
+  icases Hmv with ⟨%s', %st, %γw, %Hk, #Hws, -, #Hrp, #Hloc, #Hperm, #Hfree⟩
   obtain ⟨Hk, hγ⟩ := Hk
   rw [interface_mkOk_inj] at Hk
   have hs : s = s' := go.intoVal_inj Hk.2
@@ -433,7 +433,7 @@ theorem watchableStore.Restore.wp_api
     show nJobRd ((γ : StoreNames).withPhys p).kb = 1
     rw [show ((γ : StoreNames).withPhys p).kb = some d from hpk]; simp [nJobRd, hcm]
   iapply HΦ
-  iframe Htt Hres Hhook
+  iframe Hres Hhook
   isplitl [Hcl Hcra' Hnew Hor Hwo']
   · iunfold mvccOpen
     iexists st, p'', r.crev
@@ -531,7 +531,7 @@ theorem store.Restore.wp_api
     (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG)) :
     store.Restore.spec (GF := GF) := by
   intro s (γ : StoreNames) B B' Pk Pk' σ' u L dq f Pre Q' Post X Y Q
-  iintro %Φ ⟨#Hpkg, Hmv, Htt, Hopen, HB, Hfor, %Hσ', Hhook, %Hfdq, HPre, Hrun, Hupd, HX, #Hreq,
+  iintro %Φ ⟨#Hpkg, Hmv, Hopen, HB, Hfor, %Hσ', Hhook, %Hfdq, HPre, Hrun, Hupd, HX, #Hreq,
     HLo, %Hlok, HAU⟩ HΦ
   iunfold isMvcc at Hmv
   icases Hmv with #Hmv
@@ -540,7 +540,7 @@ theorem store.Restore.wp_api
   icases Hmv with (⟨Hmv, %Hwq⟩ | Hmv)
   rotate_left 1
   · iunfold isMvccWatchable at Hmv
-    icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
+    icases Hmv with ⟨%s', %st, %γw, %Hk, -⟩
     exfalso
     obtain ⟨Hk, -⟩ := Hk
     rw [interface_mkOk_inj] at Hk
@@ -742,7 +742,7 @@ theorem store.Restore.wp_api
     show nJobRd ((γ : StoreNames).withPhys p).kb = 1
     rw [show ((γ : StoreNames).withPhys p).kb = some d from hpk]; simp [nJobRd, hcm]
   iapply HΦ
-  iframe Htt Hres Hhook
+  iframe Hres Hhook
   isplitl [Hcl Hcra' Hnew HfsQ Hwsd Hwo' Htk2]
   · iunfold mvccOpen
     iexists s, p'', r.crev

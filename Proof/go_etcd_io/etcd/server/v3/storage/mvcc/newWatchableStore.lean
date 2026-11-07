@@ -121,7 +121,7 @@ theorem mvcc.newWatchableStore.wp_proof
     grind
   subst hpr'
   iunfold mvcc.api.newClient at Hnc
-  icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hclb, Htok, Hnl, #Hloc⟩
+  icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hclb, Htok, Hnl, #Hloc, Hrdk⟩
   icases ((mvcc.api.pndPart_fractional (GF := GF) γs.api none).fractional (1 : Qp).half.half
     (1 : Qp).half).1 $$ Hpn with ⟨Hpq, Hpn⟩
   ihave #Hnlb : mvcc.api.nlLb (GF := GF) γs.api ([[], []] : mvcc.Log) $$ [Hnl]
@@ -235,7 +235,7 @@ theorem mvcc.newWatchableStore.wp_proof
   · iunfold mvcc.watchToks; iexact Htw
   isplitl [Hok]
   · iexact Hok
-  isplitr [Hstop Hab Hpn Hcr2 Hcr4 Htok Hnl Hlc]
+  isplitr [Hstop Hab Hpn Hcr2 Hcr4 Htok Hnl Hlc Hrdk]
   · have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := by
       have := mvcc.nReaders_val; have := mvcc.nJobRd_le kb; omega
     ihave Hmus := mvcc.rep_nReaders _ $$ Hmus
@@ -249,7 +249,7 @@ theorem mvcc.newWatchableStore.wp_proof
     iunfold mvcc.stopCloser
     iexists γstc; iexact Hstop
   iunfold mvcc.api.newClient
-  iframe Hab Hpn Hcr2 Hcr4 Hclb Htok Hnl Hloc
+  iframe Hab Hpn Hcr2 Hcr4 Hclb Htok Hnl Hloc Hrdk
 
 end proof
 

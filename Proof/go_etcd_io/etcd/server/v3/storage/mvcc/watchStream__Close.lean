@@ -34,9 +34,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.watchStream.Close.wp_proof : mvcc.watchStream.Close.spec (GF := GF) (hG := hG) := by
   intro w γ ι Q
-  wp_start as ⟨Hws, Htt, Hau⟩
+  wp_start as ⟨Hws, Hau⟩
   icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
-    ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, -, -, -⟩
+    ⟨%γw, %γc, %s, %st, %γo, %hι, #Hinv, #Hws, -, -, -⟩
   obtain ⟨hι, hγ⟩ := hι
   generalize hch : (ι : api.WsAbs).ch = ch at hι
   have hι' : ι = (mvcc.wsAbsOf γw ch γc : api.WsAbs) := hι
@@ -156,7 +156,6 @@ theorem mvcc.watchStream.Close.wp_proof : mvcc.watchStream.Close.spec (GF := GF)
       rw [Hkset, Hdom id, hid]; rfl
     iapply Hdone $$ %id %w %hk %hid
   iapply HΦ
-  iframe Htt
   iexists S
   iexact HQ
 

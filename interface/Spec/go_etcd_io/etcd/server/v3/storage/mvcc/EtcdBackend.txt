@@ -33,9 +33,8 @@ def mvcc.api.mvccTxn_leaseDelete.law : Prop :=
                                                 ⌜σ2 = σ.notify pend⌝ ∗ mvcc.api.mvccState γ σ2.commitPending, COMM
                                                 Q }> }> -∗
                                   ▷
-                                      (threadTok ∗
-                                          mvcc.api.mvccReaders γ 1 ∗
-                                            mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage bk) Pk ∗ Q -∗
+                                      (mvcc.api.mvccReaders γ 1 ∗
+                                          mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage bk) Pk ∗ Q -∗
                                         Ψ (intoVal ())) -∗
                                     WP ((intoVal (methods tw.ty go!"End" tw.v)) (intoVal ())) {{ Ψ }}) -∗
                               Φ (intoVal ())) ⊢

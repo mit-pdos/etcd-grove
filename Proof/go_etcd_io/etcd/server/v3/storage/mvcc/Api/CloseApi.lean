@@ -76,17 +76,18 @@ private theorem mvccOpen_at (γ : mvcc.StoreNames) (s : Loc) :
     iexact Hw
 
 /-- **`mvccClosed`, assembled** from the store's pool, a part of the current names, the open
-token's retired readers, two tickets and the job's reader. -/
+token's retired readers, two tickets, the job's reader and the pool of the reader tokens. -/
 private theorem mvccClosed_of (γ : mvcc.StoreNames) (p : PhysNames) (dq : DFrac) (o : StoreObjs) :
     £ 1 ∗ readerPool (GF := GF) γ ∗ curAt (γ.withPhys p) dq o ∗ storeRT (γ.withPhys p) ∗
-      writerOwn (γ.withPhys p) ∗ ownToks γ.tk 2 ∗ compactJobResM (γ.withPhys p).kb ⊢
+      writerOwn (γ.withPhys p) ∗ ownToks γ.tk 2 ∗ compactJobResM (γ.withPhys p).kb ∗
+      (∃ R : IProp GF, rdkPool γ R) ⊢
       mvccClosed (γ : MvccName) := by
-  iintro ⟨Hlc, #Hpool, Hcur, HRT, Hwo, Ht, Hjob⟩
+  iintro ⟨Hlc, #Hpool, Hcur, HRT, Hwo, Ht, Hjob, Hrk⟩
   iunfold writerOwn at Hwo
   icases Hwo with ⟨HRTw, Hret⟩
   iunfold mvccClosed
   iexists p, dq, o
-  iframe Hlc Hpool Hcur HRT HRTw Hret Ht Hjob
+  iframe Hlc Hpool Hcur HRT HRTw Hret Ht Hjob Hrk
 
 /-- **`KV.Close.contract` at `*store`.** -/
 theorem store.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)) :
@@ -97,15 +98,17 @@ theorem store.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   rotate_left 1
   · iunfold isMvccWatchable at Hmv
-    icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
+    icases Hmv with ⟨%s', %st, %γw, %Hk, -⟩
     exfalso
     obtain ⟨Hk, -⟩ := Hk
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccPlain at Hmv
-  icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -⟩
+  icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -, #Hsup, -⟩
   have hs : s = s' := mkOk_loc_inj _ Hk
   subst hs
+  iunfold rdSupply at Hsup
+  icases Hsup with ⟨%R, #Hrk, -⟩
   icases mvccOpen_at γ s $$ [Hloc Hopen] with ⟨%p, %c, Hright, %hcm, HRT, Hwo, Ht⟩
   · iframe Hloc Hopen
   rw [Hwq]
@@ -124,6 +127,7 @@ theorem store.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)
   ihave Hcur : curAt (GF := GF) (γ.withPhys p) dq o $$ [Hcur]
   · iexact Hcur
   iapply mvccClosed_of γ p dq o $$ [$Hlc1 $Hpool $Hcur $HRT $Hwo $Ht $Hjob]
+  iexists R; iexact Hrk
 
 /-- **`KV.Close.contract` at `*watchableStore`.** -/
 theorem watchableStore.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)) :
@@ -138,7 +142,7 @@ theorem watchableStore.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, -, #Hloc, -⟩
+  icases Hmv with ⟨%s', %st, %γw, %Hk, #Hws, -, #Hrk, #Hloc, -⟩
   obtain ⟨Hk, hγ⟩ := Hk
   subst hγ
   rw [interface_mkOk_inj] at Hk
@@ -199,6 +203,7 @@ theorem watchableStore.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (
   ihave Hjob : compactJobResM (GF := GF) (γw.st.withPhys p).kb $$ [Hjob]
   · simp only [StoreNames.withPhys_kb]; iexact Hjob
   iapply mvccClosed_of γw.st p dq o $$ [$Hlc1 $Hpool $Hcur $HRT $Hwo $Ht $Hjob]
+  iexists _; iexact Hrk
 
 end proof
 

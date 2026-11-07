@@ -83,7 +83,7 @@ theorem isMvcc_rb (kv : GoInterface) (γ : MvccName) :
     iNamed Hs
     ipureintro; exact Hrb
   · iunfold isMvccWatchable at Hmv
-    icases Hmv with ⟨%s, %st, %γw, %γp, -, #Hws, -⟩
+    icases Hmv with ⟨%s, %st, %γw, -, #Hws, -⟩
     iunfold isWatchableStore at Hws
     iNamed Hws
     iunfold isStore at Hs

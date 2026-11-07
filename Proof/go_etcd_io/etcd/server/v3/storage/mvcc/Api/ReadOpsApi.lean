@@ -90,7 +90,7 @@ theorem readView_Rev_cb (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (st rv : Loc) (γ : StoreNames) (Q : MvccState → IProp GF) :
     {{ pkgInit ∗ isReadView rv st γ ∗ storeReaderC st γ ∗ tokBack st γ ∗ readAU γ Q }}
       (App (Val (rv @!! go.GoType.PointerType readView.ty @!! go!"Rev")) (Val #()))
-    {{ (r : w64), RET #r; threadTok ∗ ownToks γ.tk 1 ∗ ∃ σ : MvccState, Q σ ∗
+    {{ (r : w64), RET #r; ownToks γ.api.rdk 1 ∗ ∃ σ : MvccState, Q σ ∗
         ⌜r = W64 (σ.rev : Int)⌝ }} := by
   wp_start as ⟨#Hrv, Hrd, Hback, Hau⟩
   iapply wp_fupd
@@ -137,10 +137,10 @@ theorem readView_Rev_cb (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     as ⟨Hrd, -, -, -, -⟩
   (try wp_auto)
   iunfold tokBack at Hback
-  imod Hback $$ Hrd with ⟨Htok, Hrt⟩
+  imod Hback $$ Hrd with Hrt
   imodintro
   iapply HΦ
-  iframe Htok Hrt
+  iframe Hrt
   iexists σ
   iframe HQ
   ipureintro; exact reach_rev hre
@@ -153,7 +153,7 @@ theorem readView_FirstRev_cb (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (st rv : Loc) (γ : StoreNames) (Q : MvccState → IProp GF) :
     {{ pkgInit ∗ isReadView rv st γ ∗ storeReaderC st γ ∗ tokBack st γ ∗ readAU γ Q }}
       (App (Val (rv @!! go.GoType.PointerType readView.ty @!! go!"FirstRev")) (Val #()))
-    {{ (r : w64), RET #r; threadTok ∗ ownToks γ.tk 1 ∗ ∃ σ : MvccState, Q σ ∗
+    {{ (r : w64), RET #r; ownToks γ.api.rdk 1 ∗ ∃ σ : MvccState, Q σ ∗
         ⌜r = W64 σ.crev⌝ }} := by
   wp_start as ⟨#Hrv, Hrd, Hback, Hau⟩
   iapply wp_fupd
@@ -196,10 +196,10 @@ theorem readView_FirstRev_cb (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     as ⟨Hrd, -, -, -, -⟩
   (try wp_auto)
   iunfold tokBack at Hback
-  imod Hback $$ Hrd with ⟨Htok, Hrt⟩
+  imod Hback $$ Hrd with Hrt
   imodintro
   iapply HΦ
-  iframe Htok Hrt
+  iframe Hrt
   iexists σ
   iframe HQ
   ipureintro; rfl
@@ -217,7 +217,7 @@ theorem readView_Range_cb (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
         rangeCtx todo ctx cd ∗ key ↦*□ kk ∗ endk ↦*□ e }}
       (App (App (App (App (Val (rv @!! go.GoType.PointerType readView.ty @!! go!"Range"))
         (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
-    {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); threadTok ∗ ownToks γ.tk 1 ∗
+    {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); ownToks γ.api.rdk 1 ∗
         ⌜todo = true → r ≠ null⌝ ∗ ∃ σ : MvccState, Q σ ∗
           rangeOutcomeC r err σ.log (W64 (σ.rev : Int)) σ.crev (decide (endk = slice.nil)) kk e ro ∗
           ⌜∀ r' : Nat, σ.crev ≤ (r' : Int) → r' ≤ σ.rev → stateOk (stateAt σ.log r')⌝ ∗
@@ -268,10 +268,10 @@ theorem readView_Range_cb (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     as ⟨Hrd, -, -, -, -⟩
   (try wp_auto)
   iunfold tokBack at Hback
-  imod Hback $$ Hrd with ⟨Htok, Hrt⟩
+  imod Hback $$ Hrd with Hrt
   imodintro
   iapply HΦ
-  iframe Htok Hrt
+  iframe Hrt
   isplitr
   · ipureintro; exact Htodo
   iexists σ
@@ -309,7 +309,7 @@ theorem watchableStore.Rev.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG :=
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     watchableStore.Rev.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) Q
-  wp_start as ⟨Hmv, Htok, Hrt, Hau⟩
+  wp_start as ⟨Hmv, Hrt, Hau⟩
   iunfold mvccReaders at Hrt
   iunfold isMvcc at Hmv
   icases Hmv with #(Hmv | Hmv)
@@ -320,7 +320,7 @@ theorem watchableStore.Rev.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG :=
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, #Hrp, #Hloc, -⟩
+  icases Hmv with ⟨%s', %st, %γw, %Hk, #Hws, -, #Hrp, #Hloc, -⟩
   obtain ⟨Hk, hγ⟩ := Hk
   rw [interface_mkOk_inj] at Hk
   have hs : s = s' := go.intoVal_inj Hk.2
@@ -331,7 +331,7 @@ theorem watchableStore.Rev.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG :=
   ihave #HrvI := watchable_view s st γw $$ Hws %rv Hrv
   wp_auto_lc 1
   iapply fupd_wp
-  imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok $Hrt] with ⟨Hrd, Hback⟩
+  imod watchReader_borrow s st γw $$ [$Hlc1 $Hrp $Hrt] with ⟨Hrd, Hback⟩
   imodintro
   iunfold mvccState at Hau
   wp_method_call; wp_call
@@ -347,7 +347,7 @@ theorem watchableStore.FirstRev.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     watchableStore.FirstRev.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) Q
-  wp_start as ⟨Hmv, Htok, Hrt, Hau⟩
+  wp_start as ⟨Hmv, Hrt, Hau⟩
   iunfold mvccReaders at Hrt
   iunfold isMvcc at Hmv
   icases Hmv with #(Hmv | Hmv)
@@ -358,7 +358,7 @@ theorem watchableStore.FirstRev.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, #Hrp, #Hloc, -⟩
+  icases Hmv with ⟨%s', %st, %γw, %Hk, #Hws, -, #Hrp, #Hloc, -⟩
   obtain ⟨Hk, hγ⟩ := Hk
   rw [interface_mkOk_inj] at Hk
   have hs : s = s' := go.intoVal_inj Hk.2
@@ -369,7 +369,7 @@ theorem watchableStore.FirstRev.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (
   ihave #HrvI := watchable_view s st γw $$ Hws %rv Hrv
   wp_auto_lc 1
   iapply fupd_wp
-  imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok $Hrt] with ⟨Hrd, Hback⟩
+  imod watchReader_borrow s st γw $$ [$Hlc1 $Hrp $Hrt] with ⟨Hrd, Hback⟩
   imodintro
   iunfold mvccState at Hau
   wp_method_call; wp_call
@@ -386,7 +386,7 @@ theorem watchableStore.Range.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG 
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     watchableStore.Range.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) ctx cd todo key endk kk e ro Q
-  wp_start as ⟨Hmv, Htok, Hrt, #Hctx, #Hkey, #Hend, Hau⟩
+  wp_start as ⟨Hmv, Hrt, #Hctx, #Hkey, #Hend, Hau⟩
   iunfold mvccReaders at Hrt
   iunfold isMvcc at Hmv
   icases Hmv with #(Hmv | Hmv)
@@ -397,7 +397,7 @@ theorem watchableStore.Range.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG 
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, #Hrp, #Hloc, -⟩
+  icases Hmv with ⟨%s', %st, %γw, %Hk, #Hws, -, #Hrp, #Hloc, -⟩
   obtain ⟨Hk, hγ⟩ := Hk
   rw [interface_mkOk_inj] at Hk
   have hs : s = s' := go.intoVal_inj Hk.2
@@ -408,7 +408,7 @@ theorem watchableStore.Range.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG 
   ihave #HrvI := watchable_view s st γw $$ Hws %rv Hrv
   wp_auto_lc 1
   iapply fupd_wp
-  imod watchReader_borrow s st γw γp $$ [$Hlc1 $Hrp $Htok $Hrt] with ⟨Hrd, Hback⟩
+  imod watchReader_borrow s st γw $$ [$Hlc1 $Hrp $Hrt] with ⟨Hrd, Hback⟩
   imodintro
   iunfold mvccState at Hau
   wp_method_call; wp_call
@@ -435,7 +435,7 @@ private theorem isMvcc_plain (s : Loc) (γ : MvccName) :
     iexists rv
     iframe Hrv HrvI Hsup
   iunfold isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
+  icases Hmv with ⟨%s', %st, %γw, %Hk, -⟩
   exfalso
   obtain ⟨Hk, -⟩ := Hk
   rw [interface_mkOk_inj] at Hk
@@ -449,12 +449,12 @@ theorem store.Rev.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     store.Rev.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) Q
-  wp_start as ⟨Hmv, Htok, Hrt, Hau⟩
+  wp_start as ⟨Hmv, Hrt, Hau⟩
   iunfold mvccReaders at Hrt
   icases isMvcc_plain s γ $$ Hmv with ⟨%rv, #Hrv, #HrvI, #Hsup⟩
   wp_auto_lc 1
   iapply fupd_wp
-  imod mvcc.rdSupply_lend s γ $$ [$Hsup $Hlc1 $Htok $Hrt] with ⟨Hrd, Hback⟩
+  imod mvcc.rdSupply_lend s γ $$ [$Hsup $Hlc1 $Hrt] with ⟨Hrd, Hback⟩
   imodintro
   iunfold mvccState at Hau
   wp_apply (readView_Rev_cb hTODO hRead hRev hEnd s rv γ Q) $$ [$HrvI $Hrd $Hback $Hau] as %r Hr
@@ -467,12 +467,12 @@ theorem store.FirstRev.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     store.FirstRev.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) Q
-  wp_start as ⟨Hmv, Htok, Hrt, Hau⟩
+  wp_start as ⟨Hmv, Hrt, Hau⟩
   iunfold mvccReaders at Hrt
   icases isMvcc_plain s γ $$ Hmv with ⟨%rv, #Hrv, #HrvI, #Hsup⟩
   wp_auto_lc 1
   iapply fupd_wp
-  imod mvcc.rdSupply_lend s γ $$ [$Hsup $Hlc1 $Htok $Hrt] with ⟨Hrd, Hback⟩
+  imod mvcc.rdSupply_lend s γ $$ [$Hsup $Hlc1 $Hrt] with ⟨Hrd, Hback⟩
   imodintro
   iunfold mvccState at Hau
   wp_apply (readView_FirstRev_cb hTODO hRead hFR hEnd s rv γ Q) $$ [$HrvI $Hrd $Hback $Hau]
@@ -487,12 +487,12 @@ theorem store.Range.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     store.Range.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) ctx cd todo key endk kk e ro Q
-  wp_start as ⟨Hmv, Htok, Hrt, #Hctx, #Hkey, #Hend, Hau⟩
+  wp_start as ⟨Hmv, Hrt, #Hctx, #Hkey, #Hend, Hau⟩
   iunfold mvccReaders at Hrt
   icases isMvcc_plain s γ $$ Hmv with ⟨%rv, #Hrv, #HrvI, #Hsup⟩
   wp_auto_lc 1
   iapply fupd_wp
-  imod mvcc.rdSupply_lend s γ $$ [$Hsup $Hlc1 $Htok $Hrt] with ⟨Hrd, Hback⟩
+  imod mvcc.rdSupply_lend s γ $$ [$Hsup $Hlc1 $Hrt] with ⟨Hrd, Hback⟩
   imodintro
   iunfold mvccState at Hau
   wp_apply (readView_Range_cb hTODO hRead hRange hRangeW hEnd s rv γ ctx cd todo key endk kk e ro

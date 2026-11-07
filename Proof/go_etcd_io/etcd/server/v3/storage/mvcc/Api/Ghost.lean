@@ -23,6 +23,7 @@ public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.MonoList
+public import Perennial.Proof.TokSet
 
 @[expose] public section
 
@@ -56,12 +57,17 @@ structure AbsNames where
   of the compaction revision is the one its reads answer at; moved by `updateCompactRev` and
   `Restore`, which hold `s.mu` exclusively and the writer's state -/
   wcr : GName := 0
+  /-- the client's reader tokens (`ownTokAuth`; the reader token carries the store's lock slots,
+  2026-11-07, `notes/decisions.md`): `mvccReaders γ n` is `n` of them; the handle's readers' pool
+  (`rdkPool`) holds the authority, with a reader's lock slots and ticket for each token out, so a
+  token is the right to one reader of the store, without a thread token -/
+  rdk : GName := 0
 
 instance absNames_countable : Pos.Countable AbsNames :=
   countableOfLeftInverse
-    (fun x : AbsNames => (x.abs, x.pnd, x.crevLb, x.tok, x.frz, x.nl, x.loc, x.wcr))
+    (fun x : AbsNames => (x.abs, x.pnd, x.crevLb, x.tok, x.frz, x.nl, x.loc, x.wcr, x.rdk))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2⟩)
+      p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2⟩)
     (fun _ => rfl)
 
 /-- A compaction revision as the lower bound's count (`-1` is `0`). -/
@@ -245,7 +251,7 @@ pending revision, the compaction authority, the whole share token and the frozen
 theorem absNames_alloc (L : Log) (c : Int) (p : Option (List Change)) (N : Log) (l : Loc) :
     ⊢ |==> ∃ γ : AbsNames, absPart (GF := GF) γ 1 L c ∗ pndPart γ 1 p ∗ crevAuth γ 1 c ∗
       crevAtLeast γ c ∗ shareTok γ 1 ∗ ghostVar γ.frz 1 false ∗ nlAuth γ 1 N ∗ locIs γ l ∗
-      wcrPart γ 1 c := by
+      wcrPart γ 1 c ∗ ownTokAuth γ.rdk 0 := by
   imod ghostVar_alloc (GF := GF) (L, c) with ⟨%ga, Ha⟩
   imod ghostVar_alloc (GF := GF) p with ⟨%gp, Hp⟩
   imod mono_nat_own_alloc (GF := GF) (crevN c) with ⟨%gc, Hc, Hlb⟩
@@ -255,8 +261,9 @@ theorem absNames_alloc (L : Log) (c : Int) (p : Option (List Change)) (N : Log) 
   imod dghostVar_alloc (GF := GF) l with ⟨%gl, Hl⟩
   imod dghostVar_persist gl _ _ $$ Hl with #Hl
   imod ghostVar_alloc (GF := GF) c with ⟨%gw, Hw⟩
+  imod ownTokAuth_alloc (GF := GF) with ⟨%gr, Hr⟩
   imodintro
-  iexists ⟨ga, gp, gc, gt, gf, gn, gl, gw⟩
+  iexists ⟨ga, gp, gc, gt, gf, gn, gl, gw, gr⟩
   unfold absPart pndPart crevAuth crevAtLeast shareTok nlAuth locIs wcrPart
   iframe
   iexact Hl
@@ -302,10 +309,12 @@ def writerAbs (a : AbsNames) (pw : Qp) (L : Log) : IProp GF :=
 /-- **The client's parts of a new store's API ghost state** (`absNames_alloc_store`'s, which `NewStore`
 returns since M3, 2026-11-06): half the view, the pending revision's part `pr`, half and a quarter (the
 compaction right's) of the compaction authority and its lower bound, the whole share token, the
-notified log's authority and the store's location. -/
+notified log's authority and the store's location; (2026-11-07) the reader tokens' authority, at
+none yet (the API's constructors fill the readers' pool, `rdkPool`). -/
 def newClient (a : AbsNames) (L : Log) (c : Int) (pr : Qp) (l : Loc) : IProp GF :=
   iprop(absPart a (1 : Qp).half L c ∗ pndPart a pr none ∗ crevAuth a (1 : Qp).half c ∗
-    crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 ∗ nlAuth a 1 L ∗ locIs a l)
+    crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 ∗ nlAuth a 1 L ∗ locIs a l ∗
+    ownTokAuth a.rdk 0)
 
 /-- **A new store's API ghost state, split as §1 gives** (strict M1, 2026-11-04: `NewStore`): the
 lock's slot (`revMuAbs` at the whole lock), the writer's (`writerAbs` at its part `pw` of the
@@ -318,9 +327,9 @@ theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1)
       (absPart a (1 : Qp).half.half L c ∗ pndPart a pw none) ∗ ghostVar a.frz 1 false ∗
       absPart a (1 : Qp).half L c ∗ pndPart a pr none ∗ crevAuth a (1 : Qp).half c ∗
       crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 ∗ nlAuth a 1 L ∗
-      locIs a l ∗ wcrPart a (1 : Qp).half c ∗ wcrPart a (1 : Qp).half c := by
+      locIs a l ∗ wcrPart a (1 : Qp).half c ∗ wcrPart a (1 : Qp).half c ∗ ownTokAuth a.rdk 0 := by
   iintro
-  imod absNames_alloc (GF := GF) L c none L l with ⟨%a, Ha, Hp, Hc, #Hlb, Ht, Hf, Hn, #Hl, Hw⟩
+  imod absNames_alloc (GF := GF) L c none L l with ⟨%a, Ha, Hp, Hc, #Hlb, Ht, Hf, Hn, #Hl, Hw, Hr⟩
   have hw := (wcrPart_fractional (GF := GF) a c).fractional (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hw
   icases hw.1 $$ Hw with ⟨Hw1, Hw2⟩
@@ -341,7 +350,7 @@ theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1)
   icases hp'.1 $$ Hp with ⟨Hpw, Hpr⟩
   imodintro
   iexists a
-  iframe Hf Ha1 Hpr Hc1 Hc4 Ht Hlb Hn Hl Hw1 Hw2
+  iframe Hf Ha1 Hpr Hc1 Hc4 Ht Hlb Hn Hl Hw1 Hw2 Hr
   isplitl [Ha3 Hc3]
   · iunfold revMuAbs; iframe Ha3 Hc3
   · iframe Ha4 Hpw

@@ -214,7 +214,7 @@ abbrev mvccTxn_leaseDelete.law : Prop :=
                 <{ ⌜σ1 = σ⌝ ∗ mvccState γ (σ1.notify pend) ∗ ⧖ (logCh (σ1.log ++ [pend])), COMM
                     AU <{ ∃∃ (σ2 : MvccState), mvccState γ σ2 }> @ ⊤ \ ↑mvccN, ∅
                       <{ ⌜σ2 = σ.notify pend⌝ ∗ mvccState γ σ2.commitPending, COMM Q }> }> -∗
-            ▷ (threadTok ∗ mvccReaders γ 1 ∗ mvccBackend γ q (etcdStorage bk) Pk ∗ Q -∗ Ψ #()) -∗
+            ▷ (mvccReaders γ 1 ∗ mvccBackend γ q (etcdStorage bk) Pk ∗ Q -∗ Ψ #()) -∗
             WP (App (Val #(methods tw.ty go!"End" tw.v)) (Val #())) {{ Ψ }}) -∗ Φ #()) ⊢
   WP (App (App (Val #(methods (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"UnsafeDelete" #t))

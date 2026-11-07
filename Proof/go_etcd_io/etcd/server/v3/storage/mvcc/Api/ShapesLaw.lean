@@ -80,7 +80,7 @@ theorem shapes.law_holds
       icases Hmv with ⟨%s, %Hk, -⟩
       ipureintro; exact ⟨_, _, Hk, hKVS s⟩
     · iunfold isMvccWatchable at Hmv
-      icases Hmv with ⟨%s, %st, %γw, %γp, %Hk, -⟩
+      icases Hmv with ⟨%s, %st, %γw, %Hk, -⟩
       ipureintro; exact ⟨_, _, Hk.1, (hKVW s).1⟩
   · intro t γ trace k
     iintro Ht
@@ -105,7 +105,7 @@ theorem shapes.law_holds
     iunfold isMvccWatchStream at Hw
     icases Hw with ⟨-, #Hw⟩
     iunfold isMvccWatchStreamRest at Hw
-    icases Hw with ⟨%γw, %γc, %w', %s, %st, %γo, %γp, %Hk, -⟩
+    icases Hw with ⟨%γw, %γc, %w', %s, %st, %γo, %Hk, -⟩
     ipureintro; exact ⟨_, _, Hk.2.2.2, hWS w'⟩
 
 end proof

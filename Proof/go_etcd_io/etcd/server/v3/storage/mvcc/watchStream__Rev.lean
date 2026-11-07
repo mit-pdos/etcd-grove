@@ -2,7 +2,7 @@
 Proof of the spec of the same name: `WatchStream.Rev.contract` at `*watchStream` (stage 2 of the
 mvcc API, 2026-11-05). Lean-first (no Rocq counterpart).
 
-The store's reader slot is borrowed from the handle's pool with the thread token; the update fires
+The store's reader slot is borrowed from the handle's pool with the reader token; the update fires
 at the store's read, under `s.revMu` (`rev_readCb`, the store's read callback).
 -/
 module
@@ -31,9 +31,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.watchStream.Rev.wp_proof : mvcc.watchStream.Rev.spec (GF := GF) (hG := hG) := by
   intro w γ ι Q
-  wp_start as ⟨Hws, Htt, Hrt, Hau⟩
+  wp_start as ⟨Hws, Hrt, Hau⟩
   icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
-    ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, #Htp, #Hrp, #Hpf⟩
+    ⟨%γw, %γc, %s, %st, %γo, %hι, #Hinv, #Hws, #Htp, #Hrp, #Hpf⟩
   obtain ⟨hι, hγ⟩ := hι
   iunfold mvcc.isWatchStreamAt at Hws
   iNamed Hws
@@ -42,9 +42,9 @@ theorem mvcc.watchStream.Rev.wp_proof : mvcc.watchStream.Rev.spec (GF := GF) (hG
   ihave Hcb := mvcc.api.rev_readCb γ Q $$ Hau
   wp_auto_lc 1
   iapply fupd_wp
-  ihave Hrt : ownToks (GF := GF) γw.st.tk 1 $$ [Hrt]
+  ihave Hrt : ownToks (GF := GF) γw.st.api.rdk 1 $$ [Hrt]
   · iunfold mvcc.api.mvccReaders at Hrt; (try rw [hγ]); iexact Hrt
-  imod mvcc.watchReader_lend s st γw γp $$ [$Hlc1 $Hrp $Htt $Hrt] with ⟨HPR, Hloan⟩
+  imod mvcc.watchReader_lend s st γw $$ [$Hlc1 $Hrp $Hrt] with ⟨HPR, Hloan⟩
   imodintro
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
@@ -62,13 +62,13 @@ theorem mvcc.watchStream.Rev.wp_proof : mvcc.watchStream.Rev.spec (GF := GF) (hG
   iapply wp_fupd
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked $HR]
   simp only [mvcc.storeWatchParams]
-  imod Hloan $$ HPR with ⟨Htt, Hrt⟩
+  imod Hloan $$ HPR with Hrt
   ihave Hrt : mvcc.api.mvccReaders (GF := GF) γ 1 $$ [Hrt]
   · iunfold mvcc.api.mvccReaders; (try rw [← hγ]); iexact Hrt
   imodintro
   wp_auto
   iapply HΦ
-  iframe Htt Hrt
+  iframe Hrt
   iexists σ
   iframe HQ
   ipureintro

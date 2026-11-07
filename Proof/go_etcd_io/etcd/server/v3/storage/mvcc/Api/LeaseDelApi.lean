@@ -104,7 +104,7 @@ private theorem txnW_end (hEndM : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG :
             <{ ⌜σ = σ₀⌝ ∗ mvccState γ (σ.notify pend) ∗ ⧖ (logCh (σ.log ++ [pend])), COMM
                 AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
                   <{ ⌜σ' = σ₀.notify pend⌝ ∗ mvccState γ σ'.commitPending, COMM Q }> }> -∗
-        ▷ (threadTok ∗ mvccReaders γ 1 ∗ mvccBackend γ q B P ∗ Q -∗ Φ #()) -∗
+        ▷ (mvccReaders γ 1 ∗ mvccBackend γ q B P ∗ Q -∗ Φ #()) -∗
         WP (App (Val #(methods ty go!"End" v)) (Val #())) {{ Φ }} := by
   iintro ⟨%Hpn, Htx, Hback, #Hfree, Hwrap⟩ %q %B %P %Q %Φ ⟨#Hpkg, HB, HP, Hau⟩ HΦ
   iapply wp_fupd
@@ -144,13 +144,13 @@ private theorem txnW_end (hEndM : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG :
     simp only [txnEndXPost]
     icases HGR with ⟨HF, HQ⟩
     iunfold tokBack at Hback
-    imod Hback $$ Hrd with ⟨Htok, Hrt⟩
-    ihave Hrt : ownToks (GF := GF) γ.tk 1 $$ [Hrt]
-    · rw [← StoreNames.withPhys_tk γ p]; iexact Hrt
+    imod Hback $$ Hrd with Hrt
+    ihave Hrt : ownToks (GF := GF) γ.api.rdk 1 $$ [Hrt]
+    · rw [show γ.api = (γ.withPhys p).api from rfl]; iexact Hrt
     imodintro
     iapply HΦ
     iunfold mvccReaders
-    iframe Htok Hrt HQ
+    iframe Hrt HQ
     iunfold mvccBackend
     iframe HF
     iexists p, o', d
@@ -193,13 +193,13 @@ private theorem txnW_end (hEndM : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG :
     iunfold tokBack at Hback
     ihave Hrd : storeReaderC s (γ.withPhys p) $$ [Hrd]
     · rw [← hγw]; iexact Hrd
-    imod Hback $$ Hrd with ⟨Htok, Hrt⟩
-    ihave Hrt : ownToks (GF := GF) γ.tk 1 $$ [Hrt]
-    · rw [← StoreNames.withPhys_tk γ p]; iexact Hrt
+    imod Hback $$ Hrd with Hrt
+    ihave Hrt : ownToks (GF := GF) γ.api.rdk 1 $$ [Hrt]
+    · rw [show γ.api = (γ.withPhys p).api from rfl]; iexact Hrt
     imodintro
     iapply HΦ
     iunfold mvccReaders
-    iframe Htok Hrt HQ
+    iframe Hrt HQ
     iunfold mvccBackend
     iframe HF
     iexists p, o', d

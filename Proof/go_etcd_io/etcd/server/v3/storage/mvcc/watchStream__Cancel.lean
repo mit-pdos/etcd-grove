@@ -36,9 +36,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchStream.Cancel.wp_proof :
     mvcc.watchStream.Cancel.spec (GF := GF) (hG := hG) := by
   intro w γ ι id Q
-  wp_start as ⟨Hws, Htt, Hau⟩
+  wp_start as ⟨Hws, Hau⟩
   icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
-    ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, -, -, -⟩
+    ⟨%γw, %γc, %s, %st, %γo, %hι, #Hinv, #Hws, -, -, -⟩
   obtain ⟨hι, hγ⟩ := hι
   generalize hch : (ι : api.WsAbs).ch = ch at hι
   have hι' : ι = (mvcc.wsAbsOf γw ch γc : api.WsAbs) := hι
@@ -91,7 +91,6 @@ theorem mvcc.watchStream.Cancel.wp_proof :
       iframe Hm Hcsl
       ipureintro; exact hrel'
     iapply HΦ
-    iframe Htt
     iexists S
     iframe HQ
     iright
@@ -128,7 +127,6 @@ theorem mvcc.watchStream.Cancel.wp_proof :
     | true =>
       wp_auto
       iapply HΦ
-      iframe Htt
       iexists S
       iframe HQ
       iright
@@ -245,7 +243,6 @@ theorem mvcc.watchStream.Cancel.wp_proof :
             ipureintro
             exact ⟨by have := mvcc.aboveCnt_delete nextID' id WM'; omega, Hcnt.2⟩
         iapply HΦ
-        iframe Htt
         iexists S
         iframe HQ
         ileft
@@ -265,7 +262,6 @@ theorem mvcc.watchStream.Cancel.wp_proof :
           iframe Hm Hcsl
           ipureintro; exact Hrel''
         iapply HΦ
-        iframe Htt
         iexists S
         iframe HQ
         ileft

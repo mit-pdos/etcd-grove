@@ -320,7 +320,7 @@ private abbrev mvcc.store.Compact.plain (s : Loc) : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       □ (mvcc.isStore s (γ : mvcc.StoreNames) ∗ mvcc.api.locIs (γ : mvcc.StoreNames).api s ∗
         mvcc.crevPermIs (γ : mvcc.StoreNames) (fun _ => iprop(True))) ∗
-      mvcc.api.mvccOpen γ ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗
+      mvcc.api.mvccOpen γ ∗ ⌜trace ≠ null⌝ ∗
       ⌜1 ≤ sint.Z rev⌝ ∗
       traceutil.ownTrace trace te ∗ mvcc.api.mvccBackend γ q B P ∗ mvcc.api.hookIs B f ∗
       X ∗ mvcc.api.storageReq B P X Y ∗
@@ -331,7 +331,7 @@ private abbrev mvcc.store.Compact.plain (s : Loc) : Prop :=
     (App (App (Val #(methods (go.GoType.PointerType store.ty) go!"Compact" #s)) (Val #trace))
       (Val #rev))
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err);
-      mvcc.api.mvccOpen γ ∗ threadTok ∗ traceutil.ownTrace trace te ∗ mvcc.api.mvccBackend γ q B P ∗
+      mvcc.api.mvccOpen γ ∗ traceutil.ownTrace trace te ∗ mvcc.api.mvccBackend γ q B P ∗
       ∃ σ : mvcc.api.MvccState, Q σ ∗
       ((⌜err = GoInterface.nil ∧ σ.crev < sint.Z rev ∧ sint.Z rev ≤ (σ.rev : Int)⌝ ∗ Post ∗ Y ∗
           mvcc.api.compactChanOk ch) ∨
@@ -344,7 +344,7 @@ permit `True`). -/
 private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF := GF) (hG := hG)) :
     ∀ s : Loc, mvcc.store.Compact.plain (GF := GF) s := by
   intro s (γ : mvcc.StoreNames) trace te rev q B P f Pre Q' Post X Y Q
-  iintro %Φ ⟨#Hpkg, #Hmv, Hopen, Htt, %htr, %hpos1, Htrc, HB, #Hhk, HX, #Hreq, HPre, Hrun, Hupd, HAU⟩
+  iintro %Φ ⟨#Hpkg, #Hmv, Hopen, %htr, %hpos1, Htrc, HB, #Hhk, HX, #Hreq, HPre, Hrun, Hupd, HAU⟩
     HΦ
   icases Hmv with ⟨#Hs, #Hloc, #Hperm⟩
   iunfold mvcc.api.mvccState at HAU
@@ -465,7 +465,7 @@ private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF
     ⟨%Hle, ⟨%ec, #Hec, %Herr⟩, Hright, HPre, #Hch, ⟨Hcra, %σ, HQ, %Hσ⟩, HXB⟩ |
     ⟨%Hch, ⟨%ef, #Hef, %Herr⟩, Hright, HPre, ⟨Hcra, %σ, HQ, %Hσ⟩, HXB⟩)
   · iapply HΦ
-    iframe Htt Htrc HB
+    iframe Htrc HB
     isplitl [Hright Hcra HRT Hor Hwo]
     · iunfold mvcc.api.mvccOpen
       iexists s, p, (sint.Z rev)
@@ -480,7 +480,7 @@ private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF
     iapply mvcc.compactChan_ok; iexact Hch
   · subst Herr
     iapply HΦ
-    iframe Htt Htrc HB
+    iframe Htrc HB
     isplitl [Hright Hcra HRT Hor Hwo]
     · iunfold mvcc.api.mvccOpen
       iexists s, p, c
@@ -496,7 +496,7 @@ private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF
     iapply mvcc.compactChan_ok; iexact Hch
   · subst Herr
     iapply HΦ
-    iframe Htt Htrc HB
+    iframe Htrc HB
     isplitl [Hright Hcra HRT Hor Hwo]
     · iunfold mvcc.api.mvccOpen
       iexists s, p, c
@@ -518,7 +518,7 @@ theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (h
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   rotate_left 1
   · iunfold mvcc.api.isMvccWatchable at Hmv
-    icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
+    icases Hmv with ⟨%s', %st, %γw, %Hk, -⟩
     exfalso
     obtain ⟨Hk, -⟩ := Hk
     rw [interface_mkOk_inj] at Hk
@@ -548,7 +548,7 @@ theorem mvcc.watchableStore.Compact.wp_proof (hcore : mvcc.store.Compact.core (G
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold mvcc.api.isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, #Hrp, #Hloc, #Hperm, #Hfree⟩
+  icases Hmv with ⟨%s', %st, %γw, %Hk, #Hws, -, #Hrp, #Hloc, #Hperm, #Hfree⟩
   obtain ⟨Hk, hγ⟩ := Hk
   rw [interface_mkOk_inj] at Hk
   have hs : s = s' := go.intoVal_inj Hk.2

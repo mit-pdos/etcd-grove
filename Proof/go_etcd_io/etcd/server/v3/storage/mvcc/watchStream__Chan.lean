@@ -30,7 +30,7 @@ theorem mvcc.watchStream.Chan.wp_proof : mvcc.watchStream.Chan.spec (GF := GF) (
   intro w γ ι
   wp_start as Hws
   icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
-    ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, #Htp, #Hrp, #Hpf⟩
+    ⟨%γw, %γc, %s, %st, %γo, %hι, #Hinv, #Hws, #Htp, #Hrp, #Hpf⟩
   obtain ⟨hι, hγ⟩ := hι
   iunfold mvcc.isWatchStreamAt at Hws
   iNamed Hws

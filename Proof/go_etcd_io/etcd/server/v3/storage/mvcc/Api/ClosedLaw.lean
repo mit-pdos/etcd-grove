@@ -64,7 +64,7 @@ theorem mvccClosed_rest.law_holds : mvccClosed_rest.law (GF := GF) := by
   intro (γ : StoreNames) q B Pk
   iintro ⟨Hcl, Hrd, HB⟩
   iunfold mvccClosed at Hcl
-  icases Hcl with ⟨%p, %dq, %o, Hlc, Hpool, Hcur, Hret, HRT1, HRT2, Ht2, Hjob⟩
+  icases Hcl with ⟨%p, %dq, %o, Hlc, Hpool, Hcur, Hret, HRT1, HRT2, Ht2, Hjob, %R, #Hrk⟩
   iunfold mvccBackend at HB
   icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp, #Hwts, %Hlp⟩
   obtain ⟨hpk, hcm, hdB⟩ := Hd
@@ -84,6 +84,9 @@ theorem mvccClosed_rest.law_holds : mvccClosed_rest.law (GF := GF) := by
   have hj : nJobRd (γ.withPhys p).kb = 1 := by rw [hk]; simp [nJobRd, hcm]
   -- every ticket retired
   iunfold mvccReaders at Hrd
+  -- the tokens' tickets, from the handle's pool (2026-11-07)
+  imod rdkPool_take γ R mvccReaderN $$ [Hrk Hrd] with Hrd
+  · iframe Hrk Hrd
   ihave Hts : ownToks (GF := GF) (γ.withPhys p).tk (mvccReaderN + 2) $$ [Hrd Ht2]
   · rw [StoreNames.withPhys_tk]
     iapply (ownToks_add 2 mvccReaderN _).2

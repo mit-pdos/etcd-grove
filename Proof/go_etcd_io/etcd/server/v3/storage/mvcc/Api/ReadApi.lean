@@ -4,7 +4,7 @@ the sealed definitions of `Api.lean` (imported with `import all`).
 
 The reader from the handle's readers' supply (track A, request 3, 2026-11-06: `rdSupply_lendL`,
 under a later, which `store.Read`'s first step strips; until then the hypothesis `readerHyp`), with
-the thread token's way back (`tokBack`). The read's update fires under `s.revMu` (§3) by agreement with
+the reader token's way back (`tokBack`). The read's update fires under `s.revMu` (§3) by agreement with
 the lock's slot (`readCbC`: the state's log and compaction revision are the slot's, which are the
 transaction's), and the transaction is `mvccTxnI`'s read arm, without its trace.
 -/
@@ -77,14 +77,14 @@ theorem readCbC_of_au (γ : StoreNames) (Q : MvccState → IProp GF) :
 theorem store.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := hG)) :
     store.Read.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) mode trace te Q
-  iintro %Φ ⟨#Hpkg, Hmv, Htok, Hrt, %Htrnn, Htrc, Hau⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hmv, Hrt, %Htrnn, Htrc, Hau⟩ HΦ
   iunfold mvccReaders at Hrt
   -- the handle: a plain store
   iunfold isMvcc at Hmv
   icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   rotate_left 1
   · iunfold isMvccWatchable at Hmv
-    icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
+    icases Hmv with ⟨%s', %st, %γw, %Hk, -⟩
     exfalso
     obtain ⟨Hk, -⟩ := Hk
     rw [interface_mkOk_inj] at Hk
@@ -93,7 +93,7 @@ theorem store.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := hG)) :
   icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -, #Hsup, -⟩
   have hs : s = s' := mkOk_loc_inj _ Hk
   subst hs
-  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Htok $Hrt] with ⟨Hrd, Hback⟩
+  imod mvcc.rdSupply_lendL s γ $$ [$Hsup $Hrt] with ⟨Hrd, Hback⟩
   imod crevLb_neg γ.idx with #Hlb
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   ihave #Hs0 := Hs

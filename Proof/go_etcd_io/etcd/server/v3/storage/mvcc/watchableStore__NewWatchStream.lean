@@ -101,7 +101,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold mvcc.api.isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γ, %γrp, %Hk, #Hws, #Htp, #Hrp, -, -⟩
+  icases Hmv with ⟨%s', %st, %γ, %Hk, #Hws, #Htp, #Hrp, -, -⟩
   obtain ⟨Hk, hγ⟩ := Hk
   rw [interface_mkOk_inj] at Hk
   have hs : s = s' := go.intoVal_inj Hk.2
@@ -258,7 +258,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   · ipureintro; rw [← hγ]
   iintro !>
   iunfold mvcc.api.isMvccWatchStreamRest
-  iexists γ, γc, wsl, s, st, γo, γrp
+  iexists γ, γc, wsl, s, st, γo
   iframe Hch Hinv Htp Hrp
   isplitr
   · ipureintro; exact ⟨rfl, hγ, by rw [Hcap]; decide, rfl⟩

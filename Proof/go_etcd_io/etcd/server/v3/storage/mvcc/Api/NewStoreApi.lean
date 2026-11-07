@@ -132,7 +132,7 @@ theorem NewStore.wp_proof
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (hWr : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg le cfg B Pk γl rd0 hcfg hrb hth
+  intro lg le cfg B Pk γl rd0 hcfg hrb
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, Hfor, Hlrd, #Hle, Hro⟩ HΦ
   iunfold mvccStorageFor at Hfor
   icases Hfor with ⟨%bk, %D, %Hf, #Hrc, #Hb, #Hsz, Hv, Hdl, Hfk, Hsr, Hrs, Hrg, Hw1, Hw2, #Hsup,
@@ -190,7 +190,7 @@ theorem NewStore.wp_proof
     grind
   subst hpr'
   iunfold api.newClient at Hnc
-  icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hlb, Htok, Hnl, #Hloc⟩
+  icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hlb, Htok, Hnl, #Hloc, Hrdk⟩
   -- a reader retired from the pool for the open token's reader (the compactor's)
   iunfold writerFrag at Hfrag
   icases Hfrag with ⟨%o, Hcur⟩
@@ -208,15 +208,8 @@ theorem NewStore.wp_proof
   -- (2026-11-06) and one for the writer's own (`writerOwn`, which `Restore` takes)
   imod storeReader_retire2 s γ _ o (nJobRd (some bk)) $$ Hlc1 Hs Hcur Hrd1 Hrd2 Hret
     with ⟨HRT, HRTw, Hret, Hcur⟩
-  -- the readers' supply from the rest (track A, request 3): every thread but one
-  have hpool : threadBound GF ≤ (nReaders - nJobRd (some bk) - 2) + 1 := by
-    have h1 : mvccReaderN = backend.rdStockN - 7 := rfl
-    have h2 : nReaders = backend.rdStockN - 2 := rfl
-    have : 7 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
-    have : nJobRd (some bk) ≤ 1 := nJobRd_le (some bk)
-    omega
-  imod rdSupply_init ((nroot .@ "mvcc") .@ "storeRdPool") s γ _ hpool $$ Hrds with ⟨#Hsupp, Htks⟩
-  -- (the reader tokens, 2026-11-06) the tickets: `mvccReaderN` the client's, two the open token's
+  -- (the reader tokens, 2026-11-06; 2026-11-07) the rest: two readers' tickets the open token's, the
+  -- other readers (`mvccReaderN`) in the pool of the client's reader tokens (track A, request 3)
   have hN : nReaders - nJobRd (some bk) - 2 = 2 + mvccReaderN := by
     have h1 : mvccReaderN = backend.rdStockN - 7 := rfl
     have h2 : nReaders = backend.rdStockN - 2 := rfl
@@ -224,7 +217,12 @@ theorem NewStore.wp_proof
     have : nJobRd (some bk) = 1 := by simp [nJobRd, hcm]
     omega
   rw [hN] at *
-  icases (ownToks_add mvccReaderN 2 γ.tk).1 $$ Htks with ⟨Htk2, Htks⟩
+  rw [show List.replicate (2 + mvccReaderN) () = List.replicate 2 () ++ List.replicate mvccReaderN ()
+    from List.replicate_append_replicate.symm]
+  icases BigSepL.bigSepL_append.1 $$ Hrds with ⟨Hrd2s, Hrds⟩
+  imod storeReaders_split s γ 2 $$ Hrd2s with ⟨-, Htk2⟩
+  imod rdSupply_init s γ _ $$ [Hrdk Hrds] with ⟨#Hsupp, Htks⟩
+  · iframe Hrdk Hrds
   -- the certificate map's free entry
   imod ghost_map_insert_persist (W64 0) ([] : Log) (GMap.lookup_empty _) $$ Hcok with ⟨-, #Hfree⟩
   ihave #Hfree' : certFree (GF := GF) γ $$ []
