@@ -609,7 +609,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink",
                               # (the lease-read plan, 2026-10-31) `sort.Sort` for any `Less`, the
                               # axiom `lessor.Leases` takes (`=EtcdGrove.sort.«Sort».wp_anyLess`)
-                              "Proof.sort.SortAnyLess"]}
+                              "Proof.sort.SortAnyLess",
+                              # (the `lean` merge, R6/R8, 2026-11-07) mvcc's API laws the server's
+                              # proofs take as terms (`=mvcc.api.*` callees)
+                              "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"]}
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}

@@ -4,6 +4,7 @@ counterpart); see `InvStart.lean`.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.CtxLaws
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
@@ -191,9 +192,11 @@ theorem EtcdServer.start.wp_proof
   ihave #Hpctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_apply context.wp_Background
-  wp_apply context.wp_WithCancel_Background iprop(True) $$ [] as %cctx %γcx %cancel
-    ⟨#Hcancel, #Hcctx, #Hccc⟩
-  · iframe Hcci
+  -- (R8, 2026-11-07) with its trace and span facts (`traceutil.wp_WithCancelBackground_noTrace`:
+  -- the revocation's `LeaseRevoke` takes the span fact, `srvRevokeCtx`)
+  wp_apply traceutil.wp_WithCancelBackground_noTrace $$ [] as %cctx %γcx %cancel
+    ⟨#Hcancel, #Hcctx, -, #Hcspan⟩
+  iunfold context.cancelSpec at Hcancel
   icases Hctx with ⟨%ctx0, Hctx⟩
   icases Hcancel0 with ⟨%cn0, Hcancel0⟩
   wp_auto
@@ -597,7 +600,7 @@ theorem EtcdServer.start.wp_proof
       · rw [← isServerReadM_false, ← hCoff]; iexact Hrd
     iframe HNR
     iexists cctx, _
-    iframe Hctx Hcctx
+    iframe Hctx Hcctx Hcspan
   -- (revoke-open Q8 (a)) `run` forked with the fresh thread token
   wp_apply wp_fork_tok_body $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh
       Hwth Hwtl Hskeep]

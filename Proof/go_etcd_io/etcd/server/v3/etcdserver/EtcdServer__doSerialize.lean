@@ -59,7 +59,7 @@ theorem EtcdServer.doSerialize.wp_proof
   iunfold isServerReadM at Hrd
   icases Hrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
-  icases Hw with ⟨-, -, -, -, -, -, -, -, #Has2, #Hauth, -⟩
+  icases Hw with ⟨-, -, -, -, -, -, -, #Has2, #Hauth, -⟩
   ihave #Ptu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   ihave Hinit : (srvInit : IProp GF) $$ []
