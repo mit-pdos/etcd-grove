@@ -30,11 +30,12 @@ open Iris Fs github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 /-- The meta slot of page `i` of the bytes `l`: 64 bytes at offset 16. -/
 def metaSlot (l : List w8) (i : Nat) : List w8 := ((l.drop (4096 * i)).drop 16).take 64
 
-/-- The client's change in flight is one `crashSeen_sec` covers: a write in flight lies in one
-page and starts inside the file. -/
+/-- The client's change in flight is one `crashSeen_sec` covers: a write in flight starts inside
+the file, and lies in one page if it meets a meta slot's sector (`8 j`, `j < 2`). -/
 def BusyOk (s : CSt) : Prop :=
   match s.busy with
-  | .write _ off data => inPage off data.length ∧ off ≤ s.m.size
+  | .write _ off data => off ≤ s.m.size ∧
+      ∀ j < 2, secHits off (off + data.length) (8 * j) = true → inPage off data.length
   | _ => True
 
 /-- What a crash may leave of the database file in the state `s` (`img` its bytes): within the
@@ -127,7 +128,8 @@ theorem fileOkS_crashImg {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
   have hvk : s.vmeta.vk = some ns := by rw [CSt.vmeta_vk]; exact hns
   have hts : (s.toks i = [] ∧ ∀ b < s.vmeta.size, ∃ r ∈ s.runs, r.1 ≤ b ∧ b < r.1 + r.2.2.length) ∨
       ∃ t ti, s.toks i = [(t, ti)] ∧ ti.q = 1 ∧ ti.c.ino = i ∧
-        ((∃ off data, ti.c.kind = .write off data ∧ inPage off data.length ∧ off ≤ s.vmeta.size) ∨
+        ((∃ off data, ti.c.kind = .write off data ∧ off ≤ s.vmeta.size ∧
+            (secHits off (off + data.length) (8 * j) = true → inPage off data.length)) ∨
          ∃ sz, ti.c.kind = .truncate sz ∧ s.vmeta.size ≤ sz) := by
     unfold BusyOk at hbz
     have hw2 := hwf.2.2.2
@@ -141,12 +143,13 @@ theorem fileOkS_crashImg {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
       right
       exact ⟨t, ⟨⟨i, .write off data⟩, 1, (cfRange s.m s.bs off data.length).map Prod.fst,
         pwMeta s.m off data.length, (cfRange s.m s.bs off data.length).map Prod.snd⟩,
-        by simp [CSt.toks, hb], rfl, rfl, .inl ⟨off, data, rfl, hbz.1, by rw [CSt.vmeta_size]; exact hbz.2⟩⟩
+        by simp [CSt.toks, hb], rfl, rfl,
+        .inl ⟨off, data, rfl, by rw [CSt.vmeta_size]; exact hbz.1, hbz.2 j hj⟩⟩
     · rw [hb] at hw2
       right
       exact ⟨t, ⟨⟨i, .truncate sz⟩, 1, [], ftMeta s.m sz, []⟩, by simp [CSt.toks, hb], rfl, rfl, .inr ⟨sz, rfl, by rw [CSt.vmeta_size]; exact hw2⟩⟩
   have hn : 512 * (8 * j) + 512 ≤ s.vmeta.size := by rw [CSt.vmeta_size]; omega
-  have hsec := crashSeen_sec (fun _ _ h => h) hseen hvk hts (8 * j) hn
+  have hsec := crashSeen_sec (fun _ _ h => h) hseen hvk (8 * j) hn hts
   -- a byte of the slot, from its sector
   have hbyte : ∀ k < 64, f.contents[4096 * j + 16 + k]? =
       some (secByte (f.secs (8 * j)).last (16 + k)) := by
@@ -158,7 +161,7 @@ theorem fileOkS_crashImg {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
   · left
     intro k hk d hd
     rw [hbyte k hk]
-    have := h1 (16 + k) (by omega) d (by rw [CSt.vmeta_dur, he]; exact hd)
+    have := h1 (16 + k) (by omega) d (.inl (by rw [CSt.vmeta_dur, he]; exact hd))
     rw [this]
   · right; left
     intro k hk

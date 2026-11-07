@@ -59,6 +59,11 @@ structure OsMeta where
   change); `none` if nothing is known. A crash then leaves such a sector whole: its synced version,
   its current one (or a change in flight, landed). -/
   vk : Option (List Nat)
+  /-- Durable zeros known past an offset: `some z` if, at every byte from `z` on, the oldest
+  version of its sector holds 0 (a file created in this generation: `some 0`). A finite
+  `dur` for a fresh file's unbounded zeros; a write, a truncate and a failed sync keep it (they add
+  versions after the oldest); a successful sync forgets it. -/
+  dz : Option Nat := none
 
 /-- The sectors that a change of the bytes `[lo, hi)` meets. -/
 def hitSecs (lo hi : Nat) : List Nat :=
@@ -87,11 +92,11 @@ structure TokInfo where
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.zero, m.vk))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.zero, m.vk, m.dz))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8 h9; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -225,6 +230,8 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
     ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = d
   zero : m.zero = true → ∀ b, f.size ≤ b → f.rawAt b = 0
   vk : ∀ ns, m.vk = some ns → ∀ n, (f.secs n).vers.length ≤ if n ∈ ns then 2 else 1
+  dz : ∀ z, m.dz = some z → ∀ b, z ≤ b →
+    ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = 0
 
 /-- The files' ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (Ino × Nat) (w8 × Bool)) (Γm : GMap Ino OsMeta)
@@ -709,7 +716,7 @@ end bytes
 
 /-- The ghost `OsMeta` of a file as on disk: all of it durable. -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some, false, some []⟩
+  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some, false, some [], none⟩
 
 /-- The bytes of the files of `st`, all clean. -/
 def bytesMap (st : OsState) : GMap (Ino × Nat) (w8 × Bool) :=
@@ -844,7 +851,8 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
       subst hm
       obtain ⟨vs, sz, rfl⟩ := hdisk' i f hfo
       refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, fun h => by simp [initMeta] at h,
-        fun ns hns n => by simp [initMeta] at hns; subst hns; simp [OsFile.ofDisk]⟩⟩
+        fun ns hns n => by simp [initMeta] at hns; subst hns; simp [OsFile.ofDisk],
+        fun z hz => by simp [initMeta] at hz⟩⟩
       · simp [initMeta, OsFile.ofDisk]
       · simp [initMeta, OsFile.ofDisk]
       · intro _ n _; simp [OsFile.ofDisk]

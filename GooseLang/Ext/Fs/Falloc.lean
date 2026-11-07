@@ -168,7 +168,7 @@ theorem wp_osFallocStart (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta)
     ⟨rfl, rfl, rfl, Nat.le_refl _, Nat.le_max_left _ _,
       by rw [← hc]; simp only [OsChange.target, ftMeta]; have := hmo.lo; have := hmo.size
          have := (hwf.sizes d.ino f hf).1; omega,
-      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl, rfl⟩
+      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi']; simp) (fun k hk => by simp at hk)
   -- the cells: the client's halves of the cells past the size go to the invariant

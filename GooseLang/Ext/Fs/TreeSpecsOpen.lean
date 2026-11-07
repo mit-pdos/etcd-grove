@@ -72,11 +72,21 @@ theorem file_of_lookup {st : OsState} (hw : FsTreeWf st) {p : GoString} {i : Ino
 
 /-! ## A file created -/
 
-/-- The ghost `OsMeta` of a file just created. -/
-abbrev newMeta : OsMeta := { initMeta newFile with zero := true }
+/-- The ghost `OsMeta` of a file just created: zeros past its (empty) end, and its durable bytes
+known as zeros from offset 0 on (every sector's one version is zeros: `dz`). -/
+abbrev newMeta : OsMeta := { initMeta newFile with zero := true, dz := some 0 }
 
 theorem newFile_size : newFile.size = 0 := rfl
 theorem newFile_contents : newFile.contents = [] := rfl
+
+/-- The durable zeros `newMeta` knows are the zeros a new file's sectors hold. -/
+theorem newMeta_dz : ∀ z, newMeta.dz = some z → ∀ b, z ≤ b →
+    ∀ v, (newFile.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = 0 := by
+  intro z _ b _ v hv
+  simp only [newFile, OsFile.ofBytes, OsFile.ofDisk, List.head?_cons, Option.some.injEq] at hv
+  subst hv
+  simp [secOf, List.getD_eq_getElem?_getD]
+  split <;> rfl
 
 section create
 variable {st : OsState} {n : Ino}
@@ -141,7 +151,7 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
           simp [newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, OsFile.contents] at h,
         fun _ => zero_newFile, fun ns hns k => by
           simp only [newMeta, initMeta, Option.some.injEq] at hns; subst hns
-          simp [newFile, OsFile.ofBytes, OsFile.ofDisk]⟩⟩
+          simp [newFile, OsFile.ofBytes, OsFile.ofDisk], newMeta_dz⟩⟩
       simp only [newMeta, initMeta, GMap.lookup_empty, reduceCtorEq, false_iff]
       intro hb
       obtain ⟨⟨f0, hf0⟩, -⟩ := hwf.maps b _ hb

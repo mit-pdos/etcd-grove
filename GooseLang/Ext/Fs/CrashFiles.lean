@@ -197,7 +197,7 @@ def metaOf (f : OsFile) : OsMeta :=
     decide (∀ n, (f.secs n).dirty = false → (f.secs n).vers.length ≤ 1), ∅,
     (List.range f.size).map (fun b =>
       some ((((f.secs (b / 512)).vers.head?).getD zeroSec).toList.getD (b % 512) 0)),
-    false, if ∀ n, (f.secs n).vers.length ≤ 1 then some [] else none⟩
+    false, if ∀ n, (f.secs n).vers.length ≤ 1 then some [] else none, none⟩
 
 open Classical in
 /-- The bytes of a file of a new generation, each flagged clean if it is. -/
@@ -278,11 +278,11 @@ theorem osCohG {st : OsState} (hp : st.proc = ProcState.empty) (hwf : OsWf st) :
       simp only [hfo, Option.map_some, Option.some.injEq] at hm
       subst hm
       refine ⟨f, rfl, ⟨rfl, Nat.le_refl _, Nat.le_refl _, ?_, ?_, ?_, ?_, fun h => by
-        simp [metaOf] at h, fun ns hns n => by
+        simp [metaOf] at h, (fun ns hns n => by
           simp only [metaOf] at hns
           split at hns
           · rename_i h1; cases hns; simpa using h1 n
-          · cases hns⟩⟩
+          · cases hns), fun z hz => by simp [metaOf] at hz⟩⟩
       · intro h; simp only [metaOf] at h; exact of_decide_eq_true h
       · intro b len; simp [metaOf, hp, ProcState.empty]
       · intro t c ht; simp [hp, ProcState.empty] at ht

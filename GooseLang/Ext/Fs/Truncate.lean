@@ -261,7 +261,7 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
           rw [hg.ok k hd]
           exact hmo.ok hok k (by rw [← hg.ok k hd]; exact hd),
         hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_,
-        fun hz => hg.zero (hmo.zero hz), fun _ h => by cases h⟩⟩
+        fun hz => hg.zero (hmo.zero hz), (fun _ h => by cases h), fun z hz b hzb v hv => ?_⟩⟩
       · obtain ⟨h1, n1⟩ := hdel t' c' h1
         exact absurd h2 (hother t' c' n1 h1)
       · obtain ⟨w, hw⟩ : ∃ w, (f.secs (b / 512)).vers.head? = some w := by
@@ -270,10 +270,16 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
           | cons w _ => exact ⟨w, rfl⟩
         rw [hg.head _ w hw] at hv
         exact (Option.some.inj hv) ▸ hmo.dur b d0 h w hw
+      · obtain ⟨w, hw⟩ : ∃ w, (f.secs (b / 512)).vers.head? = some w := by
+          cases hh : (f.secs (b / 512)).vers with
+          | nil => exact absurd hh (hwf.vers p f _ hf)
+          | cons w _ => exact ⟨w, rfl⟩
+        rw [hg.head _ w hw] at hv
+        exact (Option.some.inj hv) ▸ hmo.dz z hz b hzb w hw
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, ?_, ⟨hm1.size, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
-        hm1.dur, hm1.zero, hm1.vk⟩⟩
+        hm1.dur, hm1.zero, hm1.vk, hm1.dz⟩⟩
       · show ((st.setProc { st.proc with inflight := GMap.delete t st.proc.inflight } : OsState).setFile p _).fs.files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg' c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -454,7 +460,7 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
     ⟨rfl, rfl, rfl, Nat.le_refl _, Nat.le_max_left _ _,
       by rw [← hc]; simp only [OsChange.target, ftMeta]; have := hmo.lo; have := hmo.size
          have := (hwf.sizes d.ino f hf).1; omega,
-      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl, rfl⟩
+      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi']; simp) (fun k hk => by simp at hk)
   -- the cells: the client's halves of the cells past the size go to the invariant

@@ -138,6 +138,10 @@ theorem landWrite_last (f : OsFile) (off : Nat) (data : List w8) (hd : data ≠ 
 
 /-! ## The crash lemma -/
 
+/-- A durable byte the ghost `OsMeta` knows: `dur`'s, or a zero past `dz`. -/
+def OsMeta.DurAt (m : OsMeta) (b : Nat) (d : w8) : Prop :=
+  m.dur[b]? = some (some d) ∨ ∃ z, m.dz = some z ∧ z ≤ b ∧ d = 0
+
 section seen
 variable {Q : OsState → OsState → Prop}
 
@@ -145,12 +149,13 @@ variable {Q : OsState → OsState → Prop}
 theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : Ino} {m : OsMeta}
     {rs : List (Nat × DFrac × List (w8 × Bool))} {ts : List (Nat × TokInfo)} {f' : OsFile}
     (h : CrashSeenR Q i m rs ts (some f')) {ns : List Nat} (hvk : m.vk = some ns)
+    (n : Nat) (hn : 512 * n + 512 ≤ m.size)
     (hts : (ts = [] ∧ ∀ b < m.size, ∃ r ∈ rs, r.1 ≤ b ∧ b < r.1 + r.2.2.length) ∨
       ∃ t ti, ts = [(t, ti)] ∧ ti.q = 1 ∧ ti.c.ino = i ∧
-        ((∃ off data, ti.c.kind = .write off data ∧ inPage off data.length ∧ off ≤ m.size) ∨
-         ∃ sz, ti.c.kind = .truncate sz ∧ m.size ≤ sz))
-    (n : Nat) (hn : 512 * n + 512 ≤ m.size) :
-    (∀ j < 512, ∀ d, m.dur[512 * n + j]? = some (some d) → secByte (f'.secs n).last j = d) ∨
+        ((∃ off data, ti.c.kind = .write off data ∧ off ≤ m.size ∧
+            (secHits off (off + data.length) n = true → inPage off data.length)) ∨
+         ∃ sz, ti.c.kind = .truncate sz ∧ m.size ≤ sz)) :
+    (∀ j < 512, ∀ d, m.DurAt (512 * n + j) d → secByte (f'.secs n).last j = d) ∨
     (∀ j < 512, ∀ y, ByteSeen m rs ts (512 * n + j) y → secByte (f'.secs n).last j = y) ∨
     (∃ t ti off data, ts = [(t, ti)] ∧ ti.c.kind = .write off data ∧
       ∀ j < 512, ∀ y, ByteSeen m rs ts (512 * n + j) y →
@@ -176,11 +181,15 @@ theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : In
     | nil => exact absurd hv hne
     | cons a _ => exact ⟨a, rfl⟩
   -- the durable version's bytes, and the page cache's
-  have hdur : ∀ j < 512, ∀ d, m.dur[512 * n + j]? = some (some d) → secByte w j = d := by
+  have hdur : ∀ j < 512, ∀ d, m.DurAt (512 * n + j) d → secByte w j = d := by
     intro j hj d hd
-    have := hmo.dur (512 * n + j) d hd w
-    rw [(divmod_sec n j hj).1, (divmod_sec n j hj).2] at this
-    exact this hw
+    rcases hd with hd | ⟨z, hz, hzb, rfl⟩
+    · have := hmo.dur (512 * n + j) d hd w
+      rw [(divmod_sec n j hj).1, (divmod_sec n j hj).2] at this
+      exact this hw
+    · have := hmo.dz z hz (512 * n + j) hzb w
+      rw [(divmod_sec n j hj).1, (divmod_sec n j hj).2] at this
+      exact this hw
   have hseen : ∀ j < 512, ∀ y, ByteSeen m rs ts (512 * n + j) y →
       f.contents[512 * n + j]? = some y := by
     intro j hj y hy
@@ -217,7 +226,7 @@ theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : In
   rw [hV]
   -- a version of the sector: the durable one or the page cache's
   have hver : vs n ∈ (f.secs n).vers →
-      (∀ j < 512, ∀ d, m.dur[512 * n + j]? = some (some d) → secByte (vs n) j = d) ∨
+      (∀ j < 512, ∀ d, m.DurAt (512 * n + j) d → secByte (vs n) j = d) ∨
       (∀ j < 512, ∀ y, ByteSeen m rs ts (512 * n + j) y → secByte (vs n) j = y) := by
     intro hv
     rcases mem_le_two hlen hv with h1 | h1
@@ -277,12 +286,13 @@ theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : In
       by_cases he : t' = t
       · subst he; rw [hct] at hc; cases hc; rfl
       · exact absurd hci (by rw [← hino]; exact hcoh.tok_alone t ti hti hq t' c he hc)
-    rcases hkind with ⟨off, data, hkd, hpg, hoff⟩ | ⟨sz, hkd, hgrow⟩
-    · -- an in-page write: a sector it hits by `NoTearCrash`, any other untouched
-      have hd : data ≠ [] := fun h => by
-        have := hpg.1; rw [h] at this; exact absurd this (by decide)
+    rcases hkind with ⟨off, data, hkd, hoff, hpg'⟩ | ⟨sz, hkd, hgrow⟩
+    · -- a write: a sector it hits (it is then in-page) by `NoTearCrash`, any other untouched
       by_cases hhit : secHits off (off + data.length) n = true
-      · have hci : st.proc.inflight !! t = some ⟨i, .write off data⟩ := by
+      · have hpg := hpg' hhit
+        have hd : data ≠ [] := fun h => by
+          have := hpg.1; rw [h] at this; exact absurd this (by decide)
+        have hci : st.proc.inflight !! t = some ⟨i, .write off data⟩ := by
           rw [hct, show ti.c = ⟨i, .write off data⟩ by rw [← hino, ← hkd]]
         rcases hQ st st' hQst t i off data hci hpg f _ hf hfo n
           (by rw [Nat.min_eq_left (by omega : off ≤ f.size)]; exact hhit) with h1 | h1
