@@ -35,11 +35,11 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 abbrev watchCheck.register.spec : Prop :=
   ∀ (c : Loc) (γ : RandNames) (h : Loc) (wm : GoMap) (ws : GoInterface) (r : Loc) (g : rng)
     (γt : SpscNames) (ch : GoChan) (rcvd : List w64),
-  {{ wcCtx c γ h wm ∗ isMvccWatchStream ws γ.kv γ.ws ∗ threadTok ∗ r ↦ g ∗
+  {{ wcCtx c γ h wm ∗ isMvccWatchStream ws γ.kv γ.ws ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ r ↦ g ∗
       isTicks γt ch γ ∗ spscConsumer (V := w64) γt rcvd ∗ ghostVar γ.cl (1 : Qp).half false }}
     (App (App (App (Val (c @!! go.GoType.PointerType watchCheck.ty @!! go!"register")) (Val #ws))
       (Val #r)) (Val #ch))
-  {{ RET #(); threadTok ∗ ghostVar γ.cl (1 : Qp).half false ∗ ∃ g' : rng, r ↦ g' }}
+  {{ RET #(); threadTok ∗ mvccReaders γ.kv 1 ∗ ghostVar γ.cl (1 : Qp).half false ∗ ∃ g' : rng, r ↦ g' }}
 
 end spec
 

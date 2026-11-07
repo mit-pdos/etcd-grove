@@ -6,6 +6,28 @@ functions over the frozen API (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.
 The tester's design: `notes/mvccrand.md`. Files: `Spec/github_com/mit_pdos/etcd_grove/examples/
 mvccrand/`, `Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/`.
 
+## Repair track R5 (2026-11-07): over the reader tokens and the merged lessor specs
+
+Every tester module builds again (all 54 `Proof` modules and their `Spec`s), no `sorry`, no
+placeholder. What changed:
+
+- **mvcc's reader tokens** (`mvccReaders γ 1`, beside `threadTok` in every reading contract; a
+  transaction holds both until `End`): `writerOwn` holds `threadTok ∗ mvccReaders γ.kv 1`;
+  `endCb`'s continuation gets both back (`End`'s new post); `writer.end.spec`'s post,
+  `reader.spec` and `watchCheck.register.spec` (pre and post) carry the token beside `threadTok`.
+  The read transactions' `end_read`/`end_readT` give both back. `runChecks` must deal one token to
+  the writer, the registrar and each reader, from `New`'s `mvccReaders γ mvccReaderN`
+  (`mvccReaders_split.law`), and get them all back for `mvccClosed_rest.law` (only needed if the
+  storage's rest is wanted; the tester's post does not need it).
+- **`wsRecvOk`** gained a fourth conjunct: `recv_prog` (`WatchLock.lean`) reads the third as `.2.2.1`.
+- **The lessor's merged specs** (`notes/mvcc-merge/la.md`): `lessorBackend lp P f T Ln R Rb`:
+  `writerLeRO`'s contract is at `Ln := lessorBeOn lp B.be` (the writer's half of `le.b`, which
+  `Grant` lends and gives back, and `Revoke` takes), so `runChecks` instantiates `lessorApplyOk`'s
+  `RW` with `lessorBeOn lp d.be` itself (`rwLens X X`); `writerLeRO` holds `lessorRevocable`
+  (`NewLessor` at `mono = false`) for `Revoke`; `writerLe` holds `leaseEver γl U` with every id of
+  `U` at most `nextID` (`writerLe`'s pure part is now `0 ≤ n ∧ (∀ id ∈ L, …) ∧ ∀ id ∈ U, id ≤ n`),
+  so `Grant`'s `nextID + 1` takes the `⌜id ∉ U⌝` arm; `Grant`'s post extends `U`.
+
 ## Done
 
 - `Base.lean`: the package fact (`mvccrandInit`: `keys` and `extraEnds` hold read-only slices of

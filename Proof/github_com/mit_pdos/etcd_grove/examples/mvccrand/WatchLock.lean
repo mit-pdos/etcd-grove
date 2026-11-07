@@ -114,7 +114,7 @@ theorem recv_prog (σ : MvccState) (S : StreamState) (rs : List WResp) (Hl : Lis
       (expChs Hl (inRangeM (decide (endk = slice.nil)) kk e) (sint.nat st)
         (sint.nat r.rev + 1)).map fun p => chEv p.1 p.2 := by
   have h1 := (hok.1 r (List.mem_of_getElem? hj)).2.2.1 hcr
-  rw [hok.2.2 j r r.id wi hj hev hcr hS (by rw [hc]; exact onceUpTo_neg _ _) (Or.inl rfl), hfs,
+  rw [hok.2.2.1 j r r.id wi hj hev hcr hS (by rw [hc]; exact onceUpTo_neg _ _) (Or.inl rfl), hfs,
     filtered_nil, hrg, hlo]
   exact watchEvents_eq_expChs σ Hl hh hwf hlen kk e endk st r.id hkk _ _
     (by have : sint.nat st = (sint.Z st).toNat := rfl; omega) (by omega)

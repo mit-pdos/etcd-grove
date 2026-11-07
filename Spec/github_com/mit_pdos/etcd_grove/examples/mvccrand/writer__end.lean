@@ -39,7 +39,7 @@ abbrev writer.end.spec : Prop :=
       writerRO w wv ∗ histRd wv.h' γ.h ∗ inv worldN (worldInv wv.h' γ) ∗ isMvcc wv.kv' γ.kv ∗
       writerIdle γ σ Hs ∗ ownPending p P ∗ endCb e γ σ pend (histAfter Hs P) E E' ∗ E }}
     (App (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"end")) (Val #p)) (Val #e))
-  {{ RET #(); histRd wv.h' γ.h ∗ threadTok ∗ E' ∗
+  {{ RET #(); histRd wv.h' γ.h ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ E' ∗
       writerIdle γ (commitSt σ pend) (histAfter Hs P) }}
 
 end spec

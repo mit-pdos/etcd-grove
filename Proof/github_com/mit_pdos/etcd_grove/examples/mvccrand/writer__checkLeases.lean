@@ -50,13 +50,13 @@ theorem writer.checkLeases.wp_proof
   iunfold writerCtx at Hctx
   icases Hctx with ⟨#Hpkg, #Hmpkg, #Htpkg, #Hw, #Hinv, #Hhist, -, -, -⟩
   iunfold writerOwn at Hown
-  icases Hown with ⟨Htok, Hbk, Hrd, Hidle, Hg, ⟨%Lm, Hlm, %HLm⟩, Hlo⟩
+  icases Hown with ⟨Htok, Hrdr, Hbk, Hrd, Hidle, Hg, ⟨%Lm, Hlm, %HLm⟩, Hlo⟩
   iunfold writerLe at Hle
-  icases Hle with ⟨%lp, %rd, %r, #Hro, Hlrd, Hrvk, HR, HT, Hrdo, Hdel, Hbe, Hrb, %HlP, Hnext,
-    %Hn⟩
+  icases Hle with ⟨%lp, %rd, %r, %U, #Hro, Hlrd, Hrvk, Hever, HR, HT, Hrdo, Hdel, Hbe, Hrb, %HlP,
+    Hnext, %Hn⟩
   ihave #Hro2 := Hro
   iunfold writerLeRO at Hro2
-  icases Hro2 with ⟨%Hle, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hlbe⟩
+  icases Hro2 with ⟨%Hle, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlbe⟩
   ihave #Hw2 := Hw
   iunfold writerRO at Hw2
   icases Hw2 with ⟨#kvW, #leW, #hW, #rW, #leasesW, #applyingW, #savedW, #ticksW⟩
@@ -199,7 +199,7 @@ theorem writer.checkLeases.wp_proof
       wp_auto
       have hidL : id0 ∈ L := (HLm id0).1 (by rw [Hvv]; rfl)
       have hid0 : id0 ≠ W64 0 := by
-        intro h; have := (Hn.2 id0 hidL).1; rw [h] at this; simp at this
+        intro h; have := (Hn.2.1 id0 hidL).1; rw [h] at this; simp at this
       ihave ⟨Hlo, #Hlb0⟩ := lease.leaseOwn_lb (mvccLeases γ.kv) L (pendItems σ.log []) $$ Hlo
       wp_apply (wp_Lookup lp (mvccLeases γ.kv) id0 0 (some (L, pendItems σ.log []))) $$
         [Hlrd Hlo] as %l ⟨Hlrd, -, Ho⟩
@@ -374,14 +374,14 @@ theorem writer.checkLeases.wp_proof
     iNamed HP
     wp_auto
     iapply HΦ
-    isplitl [Htok Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo]
+    isplitl [Htok Hrdr Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo]
     · iunfold writerOwn
       iframe
       isplitl [Hgσ HW Hpv]
       · iunfold writerIdle; iframe; ipureintro; exact ⟨Hpend, Hlen, Hbound, Hmatch⟩
       ipureintro; exact HLm
     · iunfold writerLe
-      iexists lp, rd, r
+      iexists lp, rd, r, U
       iframe
       isplitl []
       · iexact Hro

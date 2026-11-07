@@ -46,12 +46,12 @@ theorem writer.grant.wp_proof (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
   iunfold hookOk at Hhok
   icases Hhok with #Hhok
   iunfold writerOwn at Hown
-  icases Hown with ⟨Htok, Hbk, Hrd, Hidle, Hg, ⟨%Lm, Hlm, %HLm⟩, Hlo⟩
+  icases Hown with ⟨Htok, Hrdr, Hbk, Hrd, Hidle, Hg, ⟨%Lm, Hlm, %HLm⟩, Hlo⟩
   iunfold writerLe at Hle
-  icases Hle with ⟨%lp, %rd, %r, #Hro, Hlrd, Hrvk, HR, HT, Hrdo, Hdel, Hbe, Hrb, %HlP, Hnext,
-    %Hn⟩
+  icases Hle with ⟨%lp, %rd, %r, %U, #Hro, Hlrd, Hrvk, Hever, HR, HT, Hrdo, Hdel, Hbe, Hrb, %HlP,
+    Hnext, %Hn⟩
   iunfold writerLeRO at Hro
-  icases Hro with ⟨%Hle, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hlbe⟩
+  icases Hro with ⟨%Hle, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlbe⟩
   ihave #Hw2 := Hw
   iunfold writerRO at Hw2
   icases Hw2 with ⟨#kvW, #leW, #hW, #rW, #leasesW, #applyingW, #savedW, #ticksW⟩
@@ -65,20 +65,25 @@ theorem writer.grant.wp_proof (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
   ihave #Hgr := leaseGranted_of_guard (mvccLeases γ.kv) (n + W64 1) $$ Hguard
   have hid0 : n + W64 1 ≠ W64 0 := by intro h; have := congrArg sint.Z h; word
   have hnin : n + W64 1 ∉ L := by
-    intro h; have := (Hn.2 _ h).2; word
+    intro h; have := (Hn.2.1 _ h).2; word
+  have hninU : n + W64 1 ∉ U := by
+    intro h; have := Hn.2.2 _ h; word
   wp_apply (wp_Grant lp (mvccLeases γ.kv) (n + W64 1) (W64 3600) L (pendItems σ.log [])
-    iprop(True) f T R (backend.rbPart B.γB (· = leaseName)) r (hookPre wv i s)
-    iprop(True ∗ hookPost wv i) (hookPost wv i)) $$ [Hlo Hrvk HT1 HR Hrb Hpre]
-    as %l %err ⟨HR, Hres⟩
-  · iframe Hlinv Hlcfg Hlbe Hlo Hrvk HT1 HR Hrb Hgr
-    iunfold srvApi.csContractA
-    iframe Hpre
-    isplitl
-    · iapply Hhok
-    iintro HQ
-    imodintro
-    iexact HQ
-  icases Hres with (⟨%Hbad, -⟩ | ⟨%Hok, Hlo, Hrvk, Hpost, -, Hmt⟩)
+    iprop(True) f T (lease.lessorBeOn lp B.be) R (backend.rbPart B.γB (· = leaseName)) r
+    (hookPre wv i s) iprop(True ∗ hookPost wv i) (hookPost wv i) U)
+    $$ [Hlo Hrvk HT1 Hbe HR Hrb Hpre Hever]
+    as %l %err ⟨HR, Hbe, Hres⟩
+  · iframe Hlinv Hlcfg Hlbe Hlo Hrvk HT1 Hbe HR Hrb Hgr Hever
+    isplitl [Hpre]
+    · iunfold srvApi.csContractA
+      iframe Hpre
+      isplitl
+      · iapply Hhok
+      iintro HQ
+      imodintro
+      iexact HQ
+    iright; ipureintro; exact hninU
+  icases Hres with (⟨%Hbad, -⟩ | ⟨%Hok, Hlo, Hrvk, Hpost, -, -, Hmt⟩)
   · exfalso
     rcases Hbad.2 with h | h | h
     · exact hid0 h
@@ -86,7 +91,7 @@ theorem writer.grant.wp_proof (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
       omega
     · exact hnin h
   obtain ⟨rfl, -, -, -, -⟩ := Hok
-  icases Hmt with ⟨%mt, -, -, Hrb⟩
+  icases Hmt with ⟨%mt, -, -, Hrb, Hever, -⟩
   wp_auto
   wp_apply wp_check
   · ipureintro; rfl
@@ -112,8 +117,8 @@ theorem writer.grant.wp_proof (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
   have hdisj : (↑worldN : CoPset) ⊆ ⊤ \ ↑mvccN :=
     nclose_subseteq' "world" (mask_ndot_ne' nroot "mvccrand" "mvcc" (by decide))
   wp_apply (hkv.2.2.1 γ.kv (fun σ1 => iprop(⌜σ1 = σ⌝ ∗ ghostVar γ.σ (1 : Qp).half σ))) $$
-    [Htok Hgσ] as %rv ⟨Htok, %σ1, ⟨%Heq1, Hgσ⟩, %Hrv⟩
-  · iframe Hkv2 Htok
+    [Htok Hrdr Hgσ] as %rv ⟨Htok, Hrdr, %σ1, ⟨%Heq1, Hgσ⟩, %Hrv⟩
+  · iframe Hkv2 Htok Hrdr
     iauintro
     unfold atomic_acc
     iinv Hinv with >Hi Hclose
@@ -148,9 +153,9 @@ theorem writer.grant.wp_proof (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
   · ipureintro; simp
   (try wp_auto)
   iapply HΦ
-  isplitl [Htok Hbk Hrd Hg Hlo Hlm Hgσ HW Hpv]
+  isplitl [Htok Hrdr Hbk Hrd Hg Hlo Hlm Hgσ HW Hpv]
   · iunfold writerOwn
-    iframe Htok Hbk Hrd Hg Hlo
+    iframe Htok Hrdr Hbk Hrd Hg Hlo
     isplitl [Hgσ HW Hpv]
     · iunfold writerIdle; iframe; ipureintro; exact Hid
     iexists (<[n + W64 1 := true]> Lm)
@@ -163,17 +168,20 @@ theorem writer.grant.wp_proof (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
       exact ⟨Or.inl, fun h' => h'.resolve_right h⟩
   isplitr [Happ Hsav]
   · iunfold writerLe
-    iexists lp, rd, _
+    iexists lp, rd, _, U ++ [n + W64 1]
     iframe
     isplitr
     · iunfold writerLeRO; iframe #; ipureintro; exact Hle
     isplitr
     · ipureintro; exact HlP
     ipureintro
-    refine ⟨by word, fun id hid => ?_⟩
-    rcases List.mem_append.1 hid with h | h
-    · have := Hn.2 id h; constructor <;> word
-    · rw [List.mem_singleton.1 h]; constructor <;> word
+    refine ⟨by word, fun id hid => ?_, fun id hid => ?_⟩
+    · rcases List.mem_append.1 hid with h | h
+      · have := Hn.2.1 id h; constructor <;> word
+      · rw [List.mem_singleton.1 h]; constructor <;> word
+    · rcases List.mem_append.1 hid with h | h
+      · have := Hn.2.2 id h; word
+      · rw [List.mem_singleton.1 h]; exact Int.le_refl _
   iunfold hookPost; iframe
 
 end proof

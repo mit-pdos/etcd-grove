@@ -238,7 +238,7 @@ theorem outcome_read (rr : Loc) (err : GoInterface) (σ : MvccState) (en : Bool)
 def todoCd : context.ContextDesc (IProp GF) :=
   { Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
 
-/-- **A read transaction's `End`**: the thread token back (`Txn.End.contract` at a read
+/-- **A read transaction's `End`**: the thread token and the store's reader token back (`Txn.End.contract` at a read
 transaction, whose backend arguments do not matter; txn's `end_read`). -/
 theorem end_read {ty : go.GoType} {v : val}
     (hEnd : mvcc.api.Txn.End.contract (GF := GF) (hG := hG) ty v)
@@ -246,7 +246,7 @@ theorem end_read {ty : go.GoType} {v : val}
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvccTxn (interface.mkOk ty v) γ trace (.read σ) }}
       (App (Val #(methods ty go!"End" v)) (Val #()))
-    {{ RET #(); threadTok }} := by
+    {{ RET #(); threadTok ∗ mvccReaders γ 1 }} := by
   have hB : Nonempty MvccStorage := by
     refine ⟨etcdStorage ⟨?_, ∅, 0, W64 0, null, ?_, false⟩⟩
     · constructor <;> first | exact default | (constructor <;> exact default)
@@ -256,8 +256,8 @@ theorem end_read {ty : go.GoType} {v : val}
   iapply (hEnd γ trace (.read σ) 1 B iprop(True) iprop(True)) $$ [Htx]
   · iframe Hpkg Htx
   inext
-  iintro ⟨Htt, -⟩
-  iapply HΦ $$ Htt
+  iintro ⟨Htt, Hrdr, -⟩
+  iapply HΦ; iframe
 
 theorem reader.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
@@ -275,7 +275,7 @@ theorem reader.wp_proof
     reader.spec (GF := GF) (hG := hG) := by
   intro kv h r γ g reads
   haveI := hpers.1 kv γ.kv
-  wp_start as ⟨#Hkv, #Hinv, Hrd, Htt, Hr⟩
+  wp_start as ⟨#Hkv, #Hinv, Hrd, Htt, Hrdr, Hr⟩
   ihave %Hsh := (hsh.1 kv γ.kv) $$ Hkv
   obtain ⟨tyK, vK, rfl, hRead, -, hRev, -⟩ := Hsh
   wp_auto
@@ -317,7 +317,7 @@ theorem reader.wp_proof
     wp_if_destruct
     · -- `Rev`
       ihave Hau := reader_au hpers hreach _ h γ (sint.nat fl) $$ [$Hkv $Hinv $Hfl]
-      wp_apply (hRev γ.kv (readQ γ (sint.nat fl))) $$ [$Hkv $Htt $Hau] as %rv ⟨Htt, %σ, HQ, %Hrv⟩
+      wp_apply (hRev γ.kv (readQ γ (sint.nat fl))) $$ [$Hkv $Htt $Hrdr $Hau] as %rv ⟨Htt, Hrdr, %σ, HQ, %Hrv⟩
       iunfold readQ at HQ
       icases HQ with ⟨%Hl, #Hlb, %Hq⟩
       obtain ⟨h1, h2, h3⟩ := seen_ok σ Hl fl Hfl0 Hq
@@ -331,7 +331,7 @@ theorem reader.wp_proof
     · -- a read-only transaction
       wp_apply wp_traceTODO as %trc ⟨%Htrn, Htrc⟩
       ihave Hau := reader_au hpers hreach _ h γ (sint.nat fl) $$ [$Hkv $Hinv $Hfl]
-      wp_apply (hRead γ.kv _ trc true (readQ γ (sint.nat fl))) $$ [$Hkv $Htt $Htrc $Hau]
+      wp_apply (hRead γ.kv _ trc true (readQ γ (sint.nat fl))) $$ [$Hkv $Htt $Hrdr $Htrc $Hau]
         as %t0 ⟨Htrc, %σ, Htx, HQ⟩
       · ipureintro; exact Htrn
       iunfold readQ at HQ
@@ -369,7 +369,7 @@ theorem reader.wp_proof
       · ipureintro; simp only [decide_eq_true_eq]
         simp only [MTxn.pend, List.length_nil] at Hchs
         word
-      wp_apply (end_read hTEnd γ.kv trc σ) $$ [$Htx] as Htt
+      wp_apply (end_read hTEnd γ.kv trc σ) $$ [$Htx] as ⟨Htt, Hrdr⟩
       wp_for_post
       iframe
       iexists _, _
@@ -377,7 +377,7 @@ theorem reader.wp_proof
     · -- a read transaction, with 1 to 3 ranges
       wp_apply wp_traceTODO as %trc ⟨%Htrn, Htrc⟩
       ihave Hau := reader_au hpers hreach _ h γ (sint.nat fl) $$ [$Hkv $Hinv $Hfl]
-      wp_apply (hRead γ.kv _ trc true (readQ γ (sint.nat fl))) $$ [$Hkv $Htt $Htrc $Hau]
+      wp_apply (hRead γ.kv _ trc true (readQ γ (sint.nat fl))) $$ [$Hkv $Htt $Hrdr $Htrc $Hau]
         as %t0 ⟨Htrc, %σ, Htx, HQ⟩
       · ipureintro; exact Htrn
       iunfold readQ at HQ
@@ -422,7 +422,7 @@ theorem reader.wp_proof
         iframe
         iexists _, _
         iframe
-      · wp_apply (end_read hTEnd γ.kv trc σ) $$ [$Htx] as Htt
+      · wp_apply (end_read hTEnd γ.kv trc σ) $$ [$Htx] as ⟨Htt, Hrdr⟩
         wp_for_post
         iframe
         iexists _, _

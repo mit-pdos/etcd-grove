@@ -145,7 +145,7 @@ theorem writer.read.wp_proof
   iunfold hookOk at Hhok
   icases Hhok with #Hhok
   iunfold writerOwn at Hown
-  icases Hown with ⟨Htt, Hbk, Hrd, Hidle, ⟨%g, Hr⟩, Hlm, Hlo⟩
+  icases Hown with ⟨Htt, Hrdr, Hbk, Hrd, Hidle, ⟨%g, Hr⟩, Hlm, Hlo⟩
   iunfold writerIdle at Hidle
   icases Hidle with ⟨Hgσ, HW, Hpv, %Hid⟩
   obtain ⟨Hpend, Hlen, Hbound, Hmatch⟩ := Hid
@@ -163,7 +163,7 @@ theorem writer.read.wp_proof
   (try wp_auto)
   wp_apply (hRead γ.kv _ trace true
       (fun σ' => iprop(⌜σ' = σ ∧ σ.crev = -1⌝ ∗ ghostVar γ.σ (1 : Qp).half σ))) $$
-      [$Hmv $Hkv $Htt $Htr Hgσ] as %t ⟨Htr, %σ', Htx, %Heq, Hgσ⟩
+      [$Hmv $Hkv $Htt $Hrdr $Htr Hgσ] as %t ⟨Htr, %σ', Htx, %Heq, Hgσ⟩
   · isplitr
     · ipureintro; exact Htn
     iapply writer_read_au hpers wv.h' γ σ $$ [$Hinv $Hgσ]
@@ -233,7 +233,7 @@ theorem writer.read.wp_proof
   (try wp_auto)
   have hE := hEnd γ.kv trace (.read σ') 1 B iprop(True) iprop(True)
   dsimp only at hE
-  wp_apply hE $$ [$Hmv $Htx] as ⟨Htt, -⟩
+  wp_apply hE $$ [$Hmv $Htx] as ⟨Htt, Hrdr, -⟩
   (try wp_auto)
   iapply HΦ
   iunfold writerOwn

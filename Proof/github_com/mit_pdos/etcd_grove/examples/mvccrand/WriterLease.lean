@@ -7,11 +7,14 @@ model's live leases `Lm`, the lease owner's resource `leaseOwn (mvccLeases γ.kv
 item map. **`writerLe`** holds the rest of the lessor, which only the writer's lease operations use:
 
 - the lessor `lp` behind the writer's `le` field (`wv.le' = lessorIface lp`), its invariant, its
-  configuration, the grant guard at `True` (so every id is `leaseGranted`), its backend's contract
+  configuration, the grant guard at `True` (so every id is `leaseGranted`), its mode not monotone
+  (`lessorRevocable`, which `Revoke` takes; `NewLessor` at `mono = false`), its backend's contract
   for the lessor's writes (`lessorBackend`, `Grant`'s record put) at the writer's hook `f` and the
-  batch lock's invariant `True` (the tester's backend has none), the tracked buckets' right the
+  batch lock's invariant `True` (the tester's backend has none), the part a write lends being the
+  writer's half of `le.b` (`lessorBeOn`, which `Grant` gives back), the tracked buckets' right the
   put takes being the lease bucket's part (`rbPart`): all persistent, `writerLeRO`;
-- a reader slot of the lessor's lock (`Lookup`, `GetLease`), its revokers at `L`;
+- a reader slot of the lessor's lock (`Lookup`, `GetLease`), its revokers at `L`, the ids it ever
+  granted `U` (`leaseEver`, which `Grant` extends: each at most `nextID`, so `nextID + 1` is new);
 - the backend contract's lent share `R` (each write gives it back) and a supply of `k` write
   tokens `T` (each `Grant` spends one);
 - what `Revoke` needs beyond the store's handle: the range deleter's owner `rdOwn` at the store's
@@ -22,8 +25,8 @@ item map. **`writerLe`** holds the rest of the lessor, which only the writer's l
   is never live and no live lease is `0`).
 
 The write tokens are abstract (`T`, `R`): `runChecks` picks them, from `NewLessor`'s
-`lessorApplyOk` (`notes/mvcc-migration/mvccrand.md`: that contract's `T` holds a lens of the
-lessor's `le.b` half, which `Grant` does not give back).
+`lessorApplyOk` (`T` a write-back token, `R` the reader's open share; its lent part `Ln` the lens
+`rwLens (lessorBeOn lp be) (lessorBeOn lp be)`).
 -/
 module
 
@@ -154,7 +157,9 @@ def writerLeRO (wv : writer) (γ : RandNames) (B : KBReal) (f : GoFunc) (lp : Lo
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
     lease.lessorInv lp (mvccLeases γ.kv) ∗ lease.lessorCfg lp ∗
     lease.lessorGuard (mvccLeases γ.kv) (fun _ => iprop(True)) ∗
-    lease.lessorBackend lp iprop(True) #f T R (backend.rbPart B.γB (· = leaseName)))
+    lease.lessorRevocable (mvccLeases γ.kv) ∗
+    lease.lessorBackend lp iprop(True) #f T (lease.lessorBeOn lp B.be) R
+      (backend.rbPart B.γB (· = leaseName)))
 
 instance writerLeRO_persistent (wv : writer) (γ : RandNames) (B : KBReal) (f : GoFunc) (lp : Loc)
     (T R : IProp GF) : Persistent (writerLeRO (GF := GF) wv γ B f lp T R) := by
@@ -164,14 +169,16 @@ instance writerLeRO_persistent (wv : writer) (γ : RandNames) (B : KBReal) (f : 
 `nextID` at `n` and `k` write tokens left. -/
 def writerLe (w : Loc) (wv : writer) (γ : RandNames) (B : KBReal) (f : GoFunc) (L : List w64)
     (n : w64) (k : Nat) (T R : IProp GF) : IProp GF :=
-  iprop(∃ (lp : Loc) (rd : GoFunc) (r : GMap GoString backend.BktData),
+  iprop(∃ (lp : Loc) (rd : GoFunc) (r : GMap GoString backend.BktData) (U : List w64),
     writerLeRO wv γ B f lp T R ∗
     lease.lessorRd lp (mvccLeases γ.kv) ∗ lease.leaseRevokers (mvccLeases γ.kv) L ∗
+    lease.leaseEver (mvccLeases γ.kv) U ∗
     R ∗ ([∗list] _x ∈ List.replicate k (), T) ∗
     lease.rdOwn (mvccLeases γ.kv) rd ∗ mvccDeleter rd γ.kv ∗ lease.lessorBeOn lp B.be ∗
     backend.rbPart B.γB (· = leaseName) r ∗ ⌜leaseParams B.P⌝ ∗
     wF go!"nextID" w ↦ n ∗
-    ⌜0 ≤ sint.Z n ∧ ∀ id ∈ L, 0 < sint.Z id ∧ sint.Z id ≤ sint.Z n⌝)
+    ⌜0 ≤ sint.Z n ∧ (∀ id ∈ L, 0 < sint.Z id ∧ sint.Z id ≤ sint.Z n) ∧
+      ∀ id ∈ U, sint.Z id ≤ sint.Z n⌝)
 
 /-- **The published revision is positive** (the tester's invariant): so the writer's history has
 at least two revisions. -/

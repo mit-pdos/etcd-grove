@@ -107,25 +107,26 @@ def writerCtx (w : Loc) (wv : writer) (γ : RandNames) (B : MvccStorage) (f : Go
     writerRO w wv ∗ inv worldN (worldInv wv.h' γ) ∗ isHistory wv.h' γ.h ∗ isMvcc wv.kv' γ.kv ∗
     hookIs B f ∗ hookOk wv f)
 
-/-- **The writer's own state between operations** (exclusive): its thread token, its share of the
+/-- **The writer's own state between operations** (exclusive): its thread token and its reader
+token of the store (`mvccReaders`), its share of the
 store's backend (the batch lock's invariant `True`), its reader slot of the history, the store at
 `σ` and the history at `Hs` (`writerIdle`), its generator, and the leases: the model's live leases
 `Lm` (a map to `true`), mvcc's lease ownership at the live leases `L` (the same) and the items of
 the store's state. -/
 def writerOwn (wv : writer) (γ : RandNames) (B : MvccStorage) (q : Qp) (σ : MvccState) (Hs : List HRev)
     (L : List w64) : IProp GF :=
-  iprop(threadTok ∗ mvccBackend γ.kv q B iprop(True) ∗ histRd wv.h' γ.h ∗ writerIdle γ σ Hs ∗
+  iprop(threadTok ∗ mvccReaders γ.kv 1 ∗ mvccBackend γ.kv q B iprop(True) ∗ histRd wv.h' γ.h ∗ writerIdle γ σ Hs ∗
     (∃ g : rng, wv.r' ↦ g) ∗
     (∃ Lm : GMap w64 Bool, wv.leases' ↦$ Lm ∗ ⌜∀ id, (Lm !! id).isSome = true ↔ id ∈ L⌝) ∗
     lease.leaseOwn (mvccLeases γ.kv) L (pendItems σ.log []))
 
 /-- **`end`'s callback** (see the file header): from the writer's half of the store's ghost state at
 `σ` (nothing pending) and a lower bound of the history `Hs'` with the transaction's revision, the
-store's state committed (`commitSt σ pend`), the thread token back; `E`/`E'` the caller's. -/
+store's state committed (`commitSt σ pend`), the thread token and the store's reader token back; `E`/`E'` the caller's. -/
 def endCb (e : GoFunc) (γ : RandNames) (σ : MvccState) (pend : List Change) (Hs' : List HRev)
     (E E' : IProp GF) : IProp GF :=
   iprop(∀ Φ, ghostVar γ.σ (1 : Qp).half σ ∗ monoListLbOwn γ.h.l Hs' ∗ E -∗
-    ▷ (ghostVar γ.σ (1 : Qp).half (commitSt σ pend) ∗ threadTok ∗ E' -∗ Φ #()) -∗
+    ▷ (ghostVar γ.σ (1 : Qp).half (commitSt σ pend) ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ E' -∗ Φ #()) -∗
     WP (App (Val #e) (Val #())) {{ Φ }})
 
 end defs

@@ -71,7 +71,7 @@ theorem writer.put.wp_proof
   iunfold hookOk at Hhok
   icases Hhok with #Hhok
   iunfold writerOwn at Hown
-  icases Hown with ⟨Htt, Hbk, Hrd, Hidle, ⟨%g, Hg⟩, Hlm, Hlo⟩
+  icases Hown with ⟨Htt, Hrdr, Hbk, Hrd, Hidle, ⟨%g, Hg⟩, Hlm, Hlo⟩
   ihave #Hw2 := Hw
   iunfold writerRO at Hw2
   icases Hw2 with ⟨#kvW, #leW, #hW, #rW, #leasesW, #applyingW, #savedW, #ticksW⟩
@@ -90,7 +90,7 @@ theorem writer.put.wp_proof
   (try wp_auto)
   wp_apply (hWriteC γ.kv trace true q B iprop(True) (hookPre wv i s) iprop(True ∗ hookPost wv i) f
       (fun σ' => iprop(⌜σ' = σ ∧ σ.crev = -1 ∧ 1 ≤ σ.rev⌝ ∗ ghostVar γ.σ (1 : Qp).half σ)))
-    $$ [$Hmv $Hkv $Htt $Htrc $Hbk $Hhook $Hpre Hgσ]
+    $$ [$Hmv $Hkv $Htt $Hrdr $Htrc $Hbk $Hhook $Hpre Hgσ]
     as %tw ⟨Htrc, Hbk, ⟨%σ0, Htx, ⟨%Heq, Hgσ⟩⟩, ⟨-, Hpost⟩⟩
   · isplitr
     · ipureintro; exact Htr
@@ -251,13 +251,13 @@ theorem writer.put.wp_proof
           (.write σ [.put kk (go!"v" ++ itoaM (sint.nat (n + W64 1))) l]) ∗
         mvccBackend γ.kv q B iprop(True))
       (mvccBackend γ.kv q B iprop(True)) hok)
-    $$ [$Hpkg $Hmv $Hw $Hrd $Hinv $Hkv0 $Hidle $Hp $Hcb $Htx $Hbk] as ⟨Hrd, Htt, Hbk, Hidle⟩
+    $$ [$Hpkg $Hmv $Hw $Hrd $Hinv $Hkv0 $Hidle $Hp $Hcb $Htx $Hbk] as ⟨Hrd, Htt, Hrdr, Hbk, Hidle⟩
   iapply HΦ
   iframe Hvals
   isplitr [Happ Hsav]
   · iexists _, _
     iunfold writerOwn
-    iframe Htt Hbk Hrd Hidle
+    iframe Htt Hrdr Hbk Hrd Hidle
     isplitl [Hg]
     · iexists g2; iexact Hg
     isplitl [Hlm]

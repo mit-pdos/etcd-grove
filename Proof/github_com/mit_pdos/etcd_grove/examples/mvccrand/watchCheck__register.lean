@@ -49,7 +49,7 @@ theorem watchCheck.register.wp_proof
   intro c γ h wm ws r g γt ch rcvd
   haveI := fun kv => hpers.1 kv γ.kv
   haveI := fun ws => hpers.2.1 ws γ.kv γ.ws
-  wp_start as ⟨Hctx, #Hws, Htt, Hr, #Hticks, Hcons, Hcl⟩
+  wp_start as ⟨Hctx, #Hws, Htt, Hrdr, Hr, #Hticks, Hcons, Hcl⟩
   iunfold wcCtx at Hctx
   icases Hctx with ⟨#Hpkg, #Hmpkg, #HhF, #HwF, #Hmu, #Hinv, #Hhist, %ws', %kv, #Hws', #Hkv⟩
   ihave %Hsh := (hsh.2.2.2 ws γ.kv γ.ws) $$ Hws
@@ -58,8 +58,9 @@ theorem watchCheck.register.wp_proof
   wp_auto
   ihave IH : (∃ (rc : List w64) (pv : w64) (g1 : rng),
       "pub" ∷ pub_ptr ↦ pv ∗ "Hcons" ∷ spscConsumer (V := w64) γt rc ∗ "Hr" ∷ r ↦ g1 ∗
-      "Htt" ∷ threadTok ∗ "Hcl" ∷ ghostVar γ.cl (1 : Qp).half false : IProp GF)
-    $$ [pub Hcons Hr Htt Hcl]
+      "Htt" ∷ threadTok ∗ "Hrdr" ∷ mvccReaders γ.kv 1 ∗
+      "Hcl" ∷ ghostVar γ.cl (1 : Qp).half false : IProp GF)
+    $$ [pub Hcons Hr Htt Hrdr Hcl]
   · iexists rcvd, _, g
     iframe
   wp_for IH
@@ -115,11 +116,11 @@ theorem watchCheck.register.wp_proof
     wp_apply (hWatch γ.kv γ.ws todoCtxVal
         { Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
         sk se slice.nil kk e [] (W64 1 + x) (fun _ _ _ => iprop(True)))
-      $$ [$Hmpkg $Hws $Htt $Hsk $Hse $Hflt $Hau]
+      $$ [$Hmpkg $Hws $Htt $Hrdr $Hsk $Hse $Hflt $Hau]
     · isplitl []
       · ileft; ipureintro; rfl
       · ipureintro; word
-    iintro %id %err ⟨Htt, Hres⟩
+    iintro %id %err ⟨Htt, Hrdr, Hres⟩
     icases Hres with (⟨%Hi, #Herr, -⟩ | ⟨%Hne, -⟩)
     rotate_left
     · exfalso
@@ -175,11 +176,11 @@ theorem watchCheck.register.wp_proof
   wp_apply (hWatch γ.kv γ.ws todoCtxVal
       { Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
       sk se slice.nil kk e [] (W64 1 + x) (regQ γ W «$r0_ptr» kk e se (W64 1 + x)))
-    $$ [$Hmpkg $Hws $Htt $Hsk $Hse $Hflt $Hau]
+    $$ [$Hmpkg $Hws $Htt $Hrdr $Hsk $Hse $Hflt $Hau]
   · isplitl []
     · ileft; ipureintro; rfl
     · ipureintro; word
-  iintro %id %err ⟨Htt, Hres⟩
+  iintro %id %err ⟨Htt, Hrdr, Hres⟩
   icases Hres with (⟨%Hi, -, -⟩ | ⟨-, %σ, %S, HQ, Herr⟩)
   · exfalso
     rcases hne with h1 | h1
@@ -230,14 +231,14 @@ theorem watchCheck.register.wp_proof
     wp_apply wp_intn r g4 (W64 3) (by decide) $$ [$Hr] as %sw ⟨⟨%g5, Hr⟩, %Hsw⟩
     (try wp_auto)
     wp_if_destruct
-    · wp_apply (hProg γ.kv γ.ws id) $$ [$Hmpkg $Hws $Htt] as Htt
+    · wp_apply (hProg γ.kv γ.ws id) $$ [$Hmpkg $Hws $Htt $Hrdr] as ⟨Htt, Hrdr⟩
       (try wp_auto)
       wp_for_post
       iframe
       iexists rc ++ [v], v, g5
       iframe
     wp_if_destruct
-    · wp_apply (hProgAll γ.kv γ.ws) $$ [$Hmpkg $Hws $Htt] as %b Htt
+    · wp_apply (hProgAll γ.kv γ.ws) $$ [$Hmpkg $Hws $Htt $Hrdr] as %b ⟨Htt, Hrdr⟩
       (try wp_auto)
       wp_for_post
       iframe
@@ -296,14 +297,14 @@ theorem watchCheck.register.wp_proof
     wp_apply wp_intn r g4 (W64 3) (by decide) $$ [$Hr] as %sw ⟨⟨%g5, Hr⟩, %Hsw⟩
     (try wp_auto)
     wp_if_destruct
-    · wp_apply (hProg γ.kv γ.ws id) $$ [$Hmpkg $Hws $Htt] as Htt
+    · wp_apply (hProg γ.kv γ.ws id) $$ [$Hmpkg $Hws $Htt $Hrdr] as ⟨Htt, Hrdr⟩
       (try wp_auto)
       wp_for_post
       iframe
       iexists rc ++ [v], v, g5
       iframe
     wp_if_destruct
-    · wp_apply (hProgAll γ.kv γ.ws) $$ [$Hmpkg $Hws $Htt] as %b Htt
+    · wp_apply (hProgAll γ.kv γ.ws) $$ [$Hmpkg $Hws $Htt $Hrdr] as %b ⟨Htt, Hrdr⟩
       (try wp_auto)
       wp_for_post
       iframe

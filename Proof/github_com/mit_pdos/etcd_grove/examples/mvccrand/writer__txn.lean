@@ -180,14 +180,14 @@ private theorem txn_write_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := 
 private def todoCdT : context.ContextDesc (IProp GF) :=
   { Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
 
-/-- **A read transaction's `End`**: the thread token back. -/
+/-- **A read transaction's `End`**: the thread token and the store's reader token back. -/
 private theorem end_readT {ty : go.GoType} {v : val}
     (hEnd : mvcc.api.Txn.End.contract (GF := GF) (hG := hG) ty v)
     (γ : MvccName) (trace : Loc) (σ : MvccState) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvccTxn (interface.mkOk ty v) γ trace (.read σ) }}
       (App (Val #(methods ty go!"End" v)) (Val #()))
-    {{ RET #(); threadTok }} := by
+    {{ RET #(); threadTok ∗ mvccReaders γ 1 }} := by
   have hB : Nonempty MvccStorage := by
     refine ⟨etcdStorage ⟨?_, ∅, 0, W64 0, null, ?_, false⟩⟩
     · constructor <;> first | exact default | (constructor <;> exact default)
@@ -197,8 +197,8 @@ private theorem end_readT {ty : go.GoType} {v : val}
   iapply (hEnd γ trace (.read σ) 1 B iprop(True) iprop(True)) $$ [Htx]
   · iframe Hpkg Htx
   inext
-  iintro ⟨Htt, -⟩
-  iapply HΦ $$ Htt
+  iintro ⟨Htt, Hrdr, -⟩
+  iapply HΦ; iframe
 
 theorem writer.txn.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
@@ -226,7 +226,7 @@ theorem writer.txn.wp_proof
   iunfold hookOk at Hhok
   icases Hhok with #Hhok
   iunfold writerOwn at Hown
-  icases Hown with ⟨Htt, Hbk, Hrd, Hidle, ⟨%g, Hg⟩, Hlm, Hlo⟩
+  icases Hown with ⟨Htt, Hrdr, Hbk, Hrd, Hidle, ⟨%g, Hg⟩, Hlm, Hlo⟩
   iunfold writerIdle at Hidle
   icases Hidle with ⟨Hgσ, HW, Hpv, %Hid⟩
   obtain ⟨Hpn, Hlen, Hbound, Hmatch⟩ := Hid
@@ -262,7 +262,7 @@ theorem writer.txn.wp_proof
   (try wp_auto)
   wp_apply (hRead γ.kv md trace true
       (fun σ' => iprop(⌜σ' = σ ∧ σ.crev = -1⌝ ∗ ghostVar γ.σ (1 : Qp).half σ))) $$
-      [$Hmv $Hkv $Htt $Htr Hgσ] as %t ⟨Htr, %σ', Htx, %Heq, Hgσ⟩
+      [$Hmv $Hkv $Htt $Hrdr $Htr Hgσ] as %t ⟨Htr, %σ', Htx, %Heq, Hgσ⟩
   · isplitr
     · ipureintro; exact Htn
     iapply txn_read_au hpers wv.h' γ σ $$ [$Hinv $Hgσ]
@@ -387,10 +387,10 @@ theorem writer.txn.wp_proof
         simp only [MTxn.pend, List.length_nil] at Hchs
         word
       (try wp_auto)
-      wp_apply (end_readT hEnd1 γ.kv trace σ) $$ [$Hmv $Htx] as Htt
+      wp_apply (end_readT hEnd1 γ.kv trace σ) $$ [$Hmv $Htx] as ⟨Htt, Hrdr⟩
       (try wp_auto)
       iapply HΦ
-      isplitl [Htt Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo]
+      isplitl [Htt Hrdr Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo]
       · iexists σ, Hs'
         iunfold writerOwn
         iunfold writerIdle
@@ -402,7 +402,7 @@ theorem writer.txn.wp_proof
   · -- writing: the read ended, a write transaction at its revision
     simp only [decide_eq_false hx0, Bool.not_true, Bool.not_false]
     (try wp_auto)
-    wp_apply (end_readT hEnd γ.kv trace σ) $$ [$Hmv $Htx] as Htt
+    wp_apply (end_readT hEnd γ.kv trace σ) $$ [$Hmv $Htx] as ⟨Htt, Hrdr⟩
     (try wp_auto)
     ihave Hidle : writerIdle γ σ Hs' $$ [Hgσ HW Hpv]
     · iunfold writerIdle; iframe; ipureintro; exact ⟨Hpn, Hlen, Hbound, Hmatch⟩
@@ -414,7 +414,7 @@ theorem writer.txn.wp_proof
     icases Hidle with ⟨Hgσ, HW, Hpv, -⟩
     wp_apply (hWriteC γ.kv trace2 true q B iprop(True) (hookPre wv i s) iprop(True ∗ hookPost wv i) f
         (fun σ' => iprop(⌜σ' = σ ∧ σ.crev = -1 ∧ 1 ≤ σ.rev⌝ ∗ ghostVar γ.σ (1 : Qp).half σ)))
-      $$ [$Hmv $Hkv $Htt $Htrc2 $Hbk $Hhook $Hpre Hgσ]
+      $$ [$Hmv $Hkv $Htt $Hrdr $Htrc2 $Hbk $Hhook $Hpre Hgσ]
       as %tw ⟨Htrc2, Hbk, ⟨%σ0, Htw, ⟨%Heq2, Hgσ⟩⟩, ⟨-, Hpost⟩⟩
     · isplitr
       · ipureintro; exact Htr2
@@ -525,12 +525,12 @@ theorem writer.txn.wp_proof
             mvccTxn (interface.mkOk tty tv) γ.kv trace2 (.write σ pend) ∗
             mvccBackend γ.kv q B iprop(True))
           (mvccBackend γ.kv q B iprop(True)) hok)
-        $$ [$Hpkg $Hmv $Hw $Hrd $Hinv $Hkv0 $Hidle $Hp $Hcb $Htw $Hbk] as ⟨Hrd, Htt, Hbk, Hidle⟩
+        $$ [$Hpkg $Hmv $Hw $Hrd $Hinv $Hkv0 $Hidle $Hp $Hcb $Htw $Hbk] as ⟨Hrd, Htt, Hrdr, Hbk, Hidle⟩
       iapply HΦ
-      isplitl [Htt Hbk Hrd Hidle Hg Hlm Hlo]
+      isplitl [Htt Hrdr Hbk Hrd Hidle Hg Hlm Hlo]
       · iexists _, _
         iunfold writerOwn
-        iframe Htt Hbk Hrd Hidle Hg Hlm
+        iframe Htt Hrdr Hbk Hrd Hidle Hg Hlm
         rw [pendItems_commit]; iexact Hlo
       isplitl [Happ Hsav]
       · ileft; iunfold hookPost; iframe
