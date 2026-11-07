@@ -20,8 +20,9 @@ Each theorem is proved in a form that keeps what is initialized (decision D19e,
 for a package whose import closure contains a `PRE_RES` package, `wp_initialize'_res` (from
 `ownInitRes g q R`: `R` held unless `q` is initialized); `wp_initialize'` (Perennial's form, with
 `R` for the latter) follows. The other packages' (Perennial's, raft's, the B-tree's) `_lb` forms
-come from their `wp_initialize'` by the trust-boundary axiom `EtcdGrove.initLb_of_spec`, over the
-initializers listed in the generated `Proof/runtime/PkgInitExt.lean` (`ExternalInit`).
+come from their `wp_initialize'` by `EtcdGrove.initLb_of_spec` (Perennial's
+`initLb_of_initSpec`), over the initializers listed in the generated
+`Proof/runtime/PkgInitExt.lean` (`ExternalInit`).
 
 The parallel tree `RaftWitness/` gets copies of the files it imports that reach raft
 (`PART_INITS`, and `PkgInitExt`), at `RaftWitness/<path>`.
@@ -383,21 +384,127 @@ And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type
 
 # (2026-11-03) `os` is this repository's (project bboltfs's), for every project: names only (its
 # variables' initializers untranslated); until then Perennial's, raft's `Init.lean` by hand.
+class _AnyType(dict):
+    """`alloc_types` that leaves every variable's type to Lean (`V := _`)."""
+    def get(self, k, d=None):
+        return '_'
+
+
+_ALLOC_ANY = _AnyType()
+
 SPECIAL['os'] = dict(
     doc='''Its fact (`Proof/os/PkgInit.lean`): `Stderr` holds a fixed `*File`, which raft's
-initializer loads (`defaultLogger`). `os` is this repository's translation (project bboltfs's,
-names only but for the types and the functions the Linux file extension models): its initializer
-initializes its imports, runs its variables' untranslated initializers, which the trust-boundary
-axiom `opaqueInitsOk` says run without panicking (`Stderr_init` the one the fact reads: `Stderr =
-NewFile(uintptr(syscall.Stderr), "/dev/stderr")` gives the variable some `*File`), and its
-untranslated `init` function, which `initFuncsOk` says returns. (Until 2026-11-03, over Perennial's
-`os`, in raft's `Init.lean`.)''',
-    custom={'Stderr': dict(
-        doc='''/-- `Stderr = NewFile(uintptr(syscall.Stderr), "/dev/stderr")` (`os/file.go`): the variable
-holds some `*File` (what `os`'s fact reads; raft's `defaultLogger` loads it). The variable's
-cell is given here: its initializer is untranslated, so no `GlobalAlloc` of it is translated. -/''',
-        post='∃ f : Loc, globalAddr Stderr ↦ f', pat='⟨%stderr, H@⟩')},
-    finish=['ipersist HStderr'] + FIN_PRE[:6],
+initializer loads (`defaultLogger`). `os` is this repository's translation (project bboltfs's): its
+initializer initializes its imports and runs its variables' translated initializers (`errors.New`
+errors, io/fs's and internal/poll's error variables, `sync.OnceValue`, function values) and the
+trusted models of the standard streams' (`TrustedCode/os.lean`: `Stdin`, `Stdout` nothing, `Stderr`
+a fresh pointer), then its translated `init` function, which calls the trusted model of
+`runtime_args` (an arbitrary `[]string`). (Until 2026-11-07 the trust-boundary axioms
+`opaqueInitsOk`, `Stderr_init`, `initFuncsOk`; until 2026-11-03, over Perennial's `os`, in raft's
+`Init.lean`.)''',
+    imports=['Proof.os.Models', 'Perennial.Proof.sync.Link', 'Perennial.Proof.errors.NewVar'],
+    alloc_types=_ALLOC_ANY,
+    before={'dirBufPool': [
+        'ihave #FS : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrInvalid) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrPermission) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrClosed) e DFrac.discard)) : IProp GF) $$ []',
+        '· iapply isPkgInit_access $$ {Hd:io.fs}',
+        'icases FS with ⟨⟨%fe1, #F1⟩, ⟨%fe2, #F2⟩, ⟨%fe3, #F3⟩, ⟨%fe4, #F4⟩, ⟨%fe5, #F5⟩⟩',
+        'ihave #PL : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrNoDeadline) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrDeadlineExceeded) e DFrac.discard)) : IProp GF) $$ []',
+        '· iapply isPkgInit_access $$ {Hd:internal.poll}',
+        'icases PL with ⟨⟨%pe1, #P1⟩, ⟨%pe2, #P2⟩⟩',
+        'repeat (first',
+        '  | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_',
+        '  | (wp_func_call; wp_call)',
+        '  | (rw [recv_eq_func_mk BAnon BAnon]; wp_auto)',
+        '  | wp_auto)']},
+    trusted={'Stdin': ['try wp_call'], 'Stdout': ['try wp_call'],
+             'Stderr': ['wp_apply wp_Stderr_init as ⟨%stderr, HStderr⟩',
+                        'repeat (first',
+                        '  | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_',
+                        '  | (set_option maxRecDepth 20000 in',
+                        '     wp_apply _root_.Perennial.sync.wp_OnceValue as %_ -)',
+                        '  | (rw [recv_eq_func_mk BAnon BAnon]; wp_auto)',
+                        '  | wp_auto)']},
+    after={'init.«0»': [
+        'repeat (first',
+        '  | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_',
+        '  | (set_option maxRecDepth 20000 in wp_apply _root_.Perennial.sync.wp_OnceValue as %_ -)',
+        '  | (wp_func_call; wp_apply wp_runtime_args_impl as %_ ⟨%_, _, _⟩)',
+        '  | wp_auto)']},
+    finish=['ipersist HStderr', 'iframe Hown', 'imodintro', 'isplitr',
+            '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish'],
+)
+
+# (2026-11-07) this repository's `syscall`, `io/fs`, `internal/poll` and `internal/syscall/unix`
+# (project bboltfs's) translate their variables' initializers, as Perennial's (fix-semantics Case
+# 33): the steps of Perennial's own proofs (`Perennial/Proof/{syscall,io/fs,internal/poll}/
+# initialize.lean`).
+SPECIAL['syscall'] = dict(
+    doc='''Its fact is `True` (`Proof/syscall/PkgInit.lean`). Its initializer initializes `sync`
+and runs its variables' translated initializers (`envs = runtime_envs()`, whose trusted model is an
+arbitrary `[]string`; `copyenv = sync.OnceFunc(...)`, constants, a map, `sync.Pool` and `mmapper`
+literals), then its `init` function, whose trusted model does nothing (`TrustedCode/syscall.lean`:
+the RLIMIT_NOFILE raise, unobservable to what Perennial models).''',
+    imports=['Proof.syscall.Models', 'Perennial.Proof.sync.Link'],
+    alloc_types=_ALLOC_ANY,
+    before={'$inits': [
+        'wp_func_call',
+        'unfold runtime_envs.impl',
+        'wp_apply syscall.wp_arbitraryStrings as %envsl ⟨%xs, Henvsl, Henvscap⟩',
+        'set_option maxRecDepth 20000 in',
+        'wp_apply _root_.Perennial.sync.wp_OnceFunc as %cpe -',
+        'try unfold EAGAIN EINVAL ENOENT',
+        'repeat (first',
+        '  | (rw [recv_eq_func_mk BAnon BAnon]; wp_auto)',
+        '  | wp_auto)',
+        'wp_apply wp_map_make1 (K := Loc) (V := GoSlice) as %mref Hm',
+        'try wp_auto']},
+)
+
+SPECIAL['io.fs'] = dict(
+    doc='''Its fact (`Proof/os/PkgInit.lean`): its five error variables, which `os`'s initializer
+copies, hold some error for good. Its initializer copies internal/oserror's errors into them
+(`errInvalid()`, ...) and makes `SkipDir` and `SkipAll` (`errors.New`).''',
+    imports=['Perennial.Proof.internal.oserror.Link', 'Perennial.Proof.errors.NewVar'],
+    alloc_types=_ALLOC_ANY,
+    before={'$end': [
+        'ihave #Hos := _root_.Perennial.internal.oserror.isInit_access $$ {Hd:internal.oserror}',
+        'icases Hos with ⟨#VIn, #VPe, #VEx, #VNE, #VCl⟩',
+        'iunfold _root_.Perennial.errors.newVar at VIn VPe VEx VNE VCl',
+        'icases VIn with ⟨%xIn, #OIn, #EIn⟩',
+        'icases VPe with ⟨%xPe, #OPe, #EPe⟩',
+        'icases VEx with ⟨%xEx, #OEx, #EEx⟩',
+        'icases VNE with ⟨%xNE, #ONE, #ENE⟩',
+        'icases VCl with ⟨%xCl, #OCl, #ECl⟩',
+        'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrInvalid',
+        'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrPermission',
+        'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrExist',
+        'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrNotExist',
+        'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrClosed',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xSD #ESD',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xSA #ESA']},
+    finish=['iframe Hown', 'is_pkg_init_finish'],
+)
+
+SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
+
+SPECIAL['internal.poll'] = dict(
+    doc='''Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
+initializer copies, hold some error for good. Its initializer runs its variables' translated
+initializers (`sync.OnceValue(...)`, `errors.New` errors, function values, a `sync.Pool`
+literal).''',
+    imports=['Perennial.Proof.sync.Link', 'Perennial.Proof.errors.NewVar'],
+    alloc_types=_ALLOC_ANY,
+    before={'$end': [
+        'set_option maxRecDepth 20000 in',
+        'wp_apply _root_.Perennial.sync.wp_OnceValue as %cfr -',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC #EFC',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xND #END',
+        'ipersist HErrNoDeadline',
+        'wp_alloc_anon',
+        'wp_auto',
+        'ipersist HErrDeadlineExceeded',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP #ENP']},
+    finish=['iframe Hown', 'is_pkg_init_finish'],
 )
 
 # (2026-10-26) `ValidString` with its body: the tables it reads are translated
@@ -2145,6 +2252,11 @@ def gen(p, cfg=None):
             A(f'  wp_apply {x}_init as {custom[x]["pat"].replace("@", x)}')
         elif kind == 'opaque':
             A(f'  wp_apply (opaqueInitsOk {x}.init (by mem_tac))')
+        elif kind == 'trusted' and x in cfg.get('trusted', {}):
+            # (2026-11-07) a trusted initializer with steps of its own (`os.Stderr`'s model)
+            A(f'  -- {x}: its trusted initializer')
+            for l in cfg['trusted'][x]:
+                A('  ' + hdsub(l))
         elif kind == 'trusted':
             A(f'  wp_call  -- {x}: its trusted initializer does nothing')
         elif kind == 'opaqueinitfn':
@@ -2226,24 +2338,16 @@ def code_module(q):
 
 EXT_DOC = """/-
 The package initializers whose `wp_initialize'` is not generated here (Perennial's, raft's, the
-B-tree's), and the trust-boundary axiom that gives their `_lb` forms (decision D19e). Generated by
-`etc/gen-init.py`; do not edit.
+B-tree's), and their `_lb` forms (decision D19e). Generated by `etc/gen-init.py`; do not edit.
 
-**The trust boundary: a Goose-translated package initializer only initializes more.**
 `initLb_of_spec`: if the initializer `init` of the package `p`, one of the `ExternalInit` list,
 meets Perennial's spec (`{{ ownInitializing g }} init #() {{ ownInitializing g ∗ isPkgInit p }}`),
 then it also keeps every package initialized before initialized (`ownInitLb g σ0`, for every
-`σ0`). True of Go and of the model: the package-state map changes only by the instructions
-`PackageInitStart`/`PackageInitFinish`, which a Goose translation emits only in `package.init`
-(`Golang/Defn/Pkg.lean`): `Start q` after `PackageInitCheck q` found `q` not initialized, `Finish q`
-setting `q` initialized; initialization is sequential (`ownInitializing` holds the map's half), so
-no initialized entry is ever reset. The premise gives the rest (the initializer runs and gives
-`isPkgInit p`). Perennial's theorems return an arbitrary map, so this is not provable here from
-them; this repository's initializers prove their `_lb` forms (`etc/gen-init.py`). The general fix
-is Perennial's (`notes/decisions.md`, D19e). It is stated of the listed initializers only (an
-arbitrary expression could reset an entry with a raw `PackageInitStart`), so it is satisfiable:
-each conclusion holds in every model where the premise does (the map only grows along any run of
-these expressions).
+`σ0`). Perennial's `initLb_of_initSpec`: `ownInitializing`'s package map is a monotone ghost map
+(Perennial `1aab4c42b`), so any proof that keeps `ownInitializing g` keeps its lower bound
+(`ownInitLb g σ0` is Perennial's `ownInitializingLb g σ0`). (Until 2026-11-07 a trust-boundary
+axiom: Perennial's theorems returned an arbitrary map.) The `ExternalInit` premise is not needed
+by the proof; it stays so that the statement is unchanged.
 -/"""
 
 
@@ -2266,9 +2370,8 @@ def gen_ext():
           'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]',
           'variable [sem : go.Semantics]',
           '',
-          '/-- **The trust boundary: a listed initializer keeps the initialized packages** (see the',
-          'file header). -/',
-          'axiom initLb_of_spec (p : GoString) (init : val) (hext : ExternalInit p init)',
+          '/-- A listed initializer keeps the initialized packages (see the file header). -/',
+          'theorem initLb_of_spec (p : GoString) (init : val) (_hext : ExternalInit p init)',
           '    [IsPkgInit (IProp GF) p] [GetIsPkgInitWf (IProp GF) p]',
           '    (Hstd : ∀ (get_is_pkg_init : GoString → IProp GF),',
           '      GetIsPkgInitProp p get_is_pkg_init →',
@@ -2276,7 +2379,8 @@ def gen_ext():
           '      {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) p }}) :',
           '    ∀ (get_is_pkg_init : GoString → IProp GF), GetIsPkgInitProp p get_is_pkg_init →',
           '    ∀ σ0, {{ ownInitLb get_is_pkg_init σ0 }} (App (Val init) (Val #()))',
-          '      {{ RET #(); ownInitLb get_is_pkg_init σ0 ∗ isPkgInit (PROP := IProp GF) p }}',
+          '      {{ RET #(); ownInitLb get_is_pkg_init σ0 ∗ isPkgInit (PROP := IProp GF) p }} :=',
+          '  fun g hg σ0 => initLb_of_initSpec init g _ (Hstd g hg) σ0',
           '',
           'end ax',
           '',
@@ -2416,7 +2520,9 @@ PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_gro
               'google_golang_org.protobuf.reflect.protoreflect',
               'google_golang_org.protobuf.runtime.protoimpl',
               # (2026-11-03) `os`'s, now generated (raft's `Init.lean` imports it), and its imports'
-              'os', 'syscall', 'io.fs']
+              'os', 'syscall', 'io.fs',
+              # (2026-11-07) `os`'s translated initializers' imports
+              'internal.poll', 'internal.syscall.unix']
 PART_PATHS = {f'Proof/{dirof(p)}/Init.lean' for p in PART_INITS} | {'Proof/runtime/PkgInitExt.lean'}
 PART_MODULES = {p[:-len('.lean')].replace('/', '.') for p in PART_PATHS}
 

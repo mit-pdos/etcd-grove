@@ -8,11 +8,36 @@
 translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_EXCL", "O_SYNC",
   "O_TRUNC", "File", "FileInfo", "FileMode", "PathError",
   # real Go over the trusted layouts of `file` and `fileStat` (`return f.name`, `return fs.size`)
-  "File.Name", "fileStat.Size"]
+  "File.Name", "fileStat.Size",
+  # (2026-11-07) the package-level variable initializers and `init` (what importing `os` runs), as
+  # Perennial's os.toml (its fix-semantics Case 33): the `errors.New` errors, `checkWrapErr`,
+  # `dirBufPool`'s `sync.Pool` literal, io/fs's error variables, `lstat = Lstat`, the `var _ fs.X =
+  # dirFS("")` assertions, `checkPidfdOnce = sync.OnceValue(checkPidfd)`, `Interrupt`/`Kill`,
+  # internal/poll's `ErrNoDeadline`/`ErrDeadlineExceeded` and `CopyFileRange`/`Splice` function
+  # values, and `init.0` (`Args = runtime_args()` unless `runtime.GOOS` is "windows", a constant goose
+  # emits as its value). `Stdin`, `Stdout`, `Stderr` and `runtime_args` are trusted (below).
+  "ErrProcessDone", "errProcessReleased", "ErrNoHandle",
+  "errWriteAtInAppendMode", "errPathEscapes", "errPatternHasSeparator",
+  "checkWrapErr", "dirBufPool",
+  "ErrInvalid", "ErrPermission", "ErrExist", "ErrNotExist", "ErrClosed",
+  "_", "lstat", "checkPidfdOnce",
+  "Interrupt", "Kill",
+  "ErrNoDeadline", "ErrDeadlineExceeded", "errNoDeadline", "errDeadlineExceeded",
+  "pollCopyFileRange", "pollSplice",
+  "Args", "init.0"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
-imports = ["!*", "errors", "io", "io/fs", "syscall"]
+imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll"]
 # The functions and methods minibolt calls, modeled by the Linux file extension osFsExt
 # (TrustedCode/os.lean, GooseLang/Ext/OsFs/Impl.lean); `file` (its `poll.FD`) and `fileStat` (its
 # `syscall.Stat_t`) with the layouts the models need.
 trusted = ["file", "fileStat", "OpenFile", "File.WriteAt", "File.ReadAt", "File.Stat",
-  "File.Truncate", "File.Sync", "File.Close", "File.Fd"]
+  "File.Truncate", "File.Sync", "File.Close", "File.Fd",
+  # (2026-11-07) what the initializer runs that is not translated, the user's decisions (Perennial
+  # fix-semantics Case 33; TrustedCode/os.lean): `runtime_args` (a linkname, no Go body) an
+  # arbitrary `[]string`; `Stdin`/`Stdout` do nothing (variables not allocated); `Stderr` allocates
+  # its variable with a fresh pointer that is not a `File`.
+  "runtime_args", "Stdin", "Stdout", "Stderr"]
+
+# (2026-11-07) every type declaration goose supports, as Perennial's: the `var _ I = ...`
+# assertions convert to interface types
+translate_types = true
