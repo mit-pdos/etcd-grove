@@ -25,9 +25,7 @@ server's chain `ics` (`grpcSrvChain`, `srvChainWP`); `grpcMethodOk mh srv ics S 
 such a run must meet. A server gets its methods served at its address by `grpc.serve` (an axiom),
 handing the runtime its server object (`grpcServerAt addr ics regs`, exclusive: built with the
 chain `ics`, the methods `regs` registered) and `n` copies of `S` (a run holds one: at most `n`
-runs at a time), its methods meeting their specs with `threadTok ∗ S` (since 2026-11-07: a run
-also holds its goroutine's thread token, from the runtime, and gives it back at its return); it
-obtains `grpcServes addr name mh srv ics iprop(threadTok ∗ S)` (persistent, opaque) for each.
+runs at a time); it obtains `grpcServes addr name mh srv ics S` (persistent, opaque) for each.
 Interceptors are specified as transparent (`srvInterceptorOk`, `srvChainWP_of_ok`).
 
 **Registration** (`isGrpcRpc addr name Spec`, persistent, a definition): some method handler
@@ -963,20 +961,7 @@ methods `ms` (distinct names), each meeting its spec with the per-run resource `
 it (`grpcMethodOk`: its `MethodDesc.Handler` on the registered service value, the call's context
 (`isContext`, and `grpcRunCtx`: no value under etcd's keys), grpc's `dec` for the request, the
 interceptor for `ics`), and that hands the runtime `n` copies of `S`, is served at `addr`: a run
-holds one copy of `S` (taken from the `n` and given back: at most `n` runs at a time) and the thread
-token of the goroutine it runs on (`threadTok`, given back at its return), so it meets its spec
-with `threadTok ∗ S` (`grpcMethodOkMd … iprop(threadTok ∗ S) …`; served at that resource,
-`grpcServes … iprop(threadTok ∗ S)`).
-
-Since 2026-11-07 (track R11, `notes/mvcc-merge/r11.md`, the user's decision) the run's thread token
-comes from the runtime, not from the `n` copies: grpc-go v1.84 runs every call's handler on a
-goroutine of its own (`server.go:1090-1106`, `serveStreams`'s `HandleStreams` callback: `go f()`,
-or, with `NumStreamWorkers` (etcd sets none), a worker goroutine, `serverWorker`, `:687-696`, that
-runs one `f` at a time to its end; `f` is `handleStream` (`:1537`), which dispatches to
-`processRPC` (`:1594`), whose `sd.Handler(server, wrappedStream)` (`:1450`) is, for a unary method,
-`wrapUnaryHandler`'s closure calling `md.Handler` (`:1281-1289`)), as Perennial's `go` statement
-gives the goroutine a fresh token (`wp_fork_tok_body`), which it holds until it exits. Until then
-the copies of `S` had to hold the token, which nothing could stock.
+holds one copy of `S` (taken from the `n` and given back: at most `n` runs at a time).
 
 Since 2026-10-31 (`notes/reply-size.md`): grpc marshals a reply before any size check, and the
 codec's `make` panics above `grpcReplyMax`. This axiom's resource (`grpcServerAt`,
@@ -986,8 +971,8 @@ axiom grpc.serve (addr : GoString) (ics : List GoFunc) (regs : List (GoString ×
     (ms : List (GrpcMethod GF)) (S : IProp GF) (n : Nat) :
   (ms.map GrpcMethod.name).Nodup → (∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) →
   (grpcServerAt addr ics regs ∗ ([∗list] _x ∈ List.replicate n (), S) ∗
-    [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics iprop(threadTok ∗ S) m.spec) ⊢
-  |={⊤}=> [∗list] m ∈ ms, grpcServes addr m.name m.handler m.srv ics iprop(threadTok ∗ S)
+    [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics S m.spec) ⊢
+  |={⊤}=> [∗list] m ∈ ms, grpcServes addr m.name m.handler m.srv ics S
 
 /-- **The methods of a served server are registered** (`grpc.serve`, `isGrpcRpc_intro`). -/
 theorem grpc_serve_rpcs (addr : GoString) (ics : List GoFunc)
@@ -995,7 +980,7 @@ theorem grpc_serve_rpcs (addr : GoString) (ics : List GoFunc)
     (n : Nat) (hnd : (ms.map GrpcMethod.name).Nodup)
     (hreg : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) :
     (grpcServerAt addr ics regs ∗ ([∗list] _x ∈ List.replicate n (), S) ∗
-      □ [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics iprop(threadTok ∗ S) m.spec) ⊢
+      □ [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics S m.spec) ⊢
     |={⊤}=> [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
   iintro ⟨Hl, Hs, #Hh⟩
   imod (grpc.serve addr ics regs ms S n hnd hreg) $$ [Hl Hs] with Hsv
@@ -1003,11 +988,10 @@ theorem grpc_serve_rpcs (addr : GoString) (ics : List GoFunc)
     iexact Hh
   imodintro
   have Hm := BigSepL.bigSepL_mono_of_forall (PROP := IProp GF) (l := ms)
-    (Φ := fun _ m => iprop(grpcServes addr m.name m.handler m.srv ics iprop(threadTok ∗ S) ∗
-      grpcMethodOkMd m.handler m.srv ics iprop(threadTok ∗ S) m.spec))
+    (Φ := fun _ m => iprop(grpcServes addr m.name m.handler m.srv ics S ∗
+      grpcMethodOkMd m.handler m.srv ics S m.spec))
     (Ψ := fun _ m => isGrpcRpcMd addr m.name m.spec)
-    (fun {_ m} => isGrpcRpcMd_intro (GF := GF) addr m.name m.handler m.srv ics
-      iprop(threadTok ∗ S) m.spec)
+    (fun {_ m} => isGrpcRpcMd_intro (GF := GF) addr m.name m.handler m.srv ics S m.spec)
   iapply Hm
   iapply BigSepL.bigSepL_sep_eqv.2
   isplitl [Hsv]

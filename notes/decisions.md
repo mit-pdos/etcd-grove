@@ -33415,3 +33415,22 @@ token `mvccReaders γ n` (sealed; `mvccReaders γ (n + m) ⊣⊢ mvccReaders γ 
 - No atomic update (`AU`) of any contract changes. `threadBound ≤ mvccReaderN` stays only where a
   proof still needs it. Kept no heavier than the shutdown proof needs; to revisit if Perennial gets a
   lighter way to count readers (the user doubts the counting is worth it).
+
+## mvcc's reader token carries the store's lock slots; mvcc's reads take no `threadTok` (2026-11-07 · the user, option 2 · branch `mvcc-api` · supersedes in part "mvcc's API: the store's readers as client-held tokens")
+
+**Why.** Over the API every read took `threadTok ∗ mvccReaders γ 1`: the token paid for the
+backend's reader slot, the `threadTok` (through mvcc's thread pools `storeSlots`/`watchSlots`) for
+the store's own `RWMutex` reader slots (`s.mu`, `s.revMu`). A gRPC handler run has no `threadTok` to
+give (the trusted `grpc.serve` hands a run only its slot), so the server's request slots could not
+be filled. Giving each run a `threadTok` in `grpc.serve` (R11, `a430dd8232`) was refuted
+(`notes/axiom-review/r11-grpc-threadtok.md`): the axiom would mint tokens no model thread backs,
+while adequacy's `RealThreadsBelow` counts only GooseLang's threads, not grpc's goroutines, so a
+closed theorem could fix the thread bound below them. Reverted.
+
+**Decision (the user: "Go with option 2").** As `lean`'s `storeReader` did, a reader token
+`mvccReaders γ 1` also carries one reader slot of each of the store's own `RWMutex`es its holder
+takes (`s.mu`, `s.revMu`, and the watchable store's where a stream call takes one), so mvcc's
+contracts drop `threadTok` wherever it paid only for those slots (a weaker precondition: stronger
+specs); the server stocks reader tokens per request slot as on `lean`. No change to the gRPC model
+and no closed theorem changes. `grpc.serve`'s older "at most `n` runs at a time", which grpc-go
+does not enforce (the same review; `notes/audit.md` marks it suspect), is unchanged and out of scope.

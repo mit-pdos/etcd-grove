@@ -41,8 +41,7 @@ the generated handler's `grpc.GenericServerStream[Req, Res]` (`Recv()` allocatin
 
 **The registration** (`grpcStreamMethodOk mh srv ics S Up Spec`): the method handler `mh` with
 the service `srv`, under the server's stream interceptor chain `ics` (`srvStreamChainWP`, as
-grpc's `chainStreamServerInterceptors` composes it), run by grpc with the run slot `S`, the thread token of
-the goroutine grpc runs it on (`threadTok`, returned if the run returns; 2026-11-07), a fresh
+grpc's `chainStreamServerInterceptors` composes it), run by grpc with the run slot `S`, a fresh
 raw server end, both tokens at `[]`, and the stream specification at the run's incoming metadata,
 `Spec (incomingOf ci) γ Dn` (metadata-indexed since G2, 2026-10-30: `Spec : GrpcMd → StreamSpec`,
 the handler's premise: the serving layer fixes `Dn` at the stream's creation); the run returns nothing (the
@@ -670,15 +669,14 @@ instance streamSpecOk_persistent {Rep : StreamMsg GF} (Spec : StreamSpec Rep) :
 resource `S`** (persistent; the stream analogue of `grpcHandlerOk`): a call `h(st)` on a wrapped
 server end (`srvStreamIs`, both tokens at `[]`), given `S` and the specification at the run's
 incoming metadata, `Spec (incomingOf ci) γ Dn` (metadata-indexed, as `grpcStreamMethodOk`; G2,
-2026-10-30), and the thread token of the goroutine grpc runs it on (`threadTok`; 2026-11-07, track
-R11), returns the token (nothing else promised: `S` need not come back, see the file header). -/
+2026-10-30), returns (nothing promised: the run's resources need not come back, see the file
+header). -/
 def grpcStreamHandlerOk {Req Rep : StreamMsg GF} (h : val) (S : IProp GF)
     (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
   iprop(□ ∀ (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (Φ : val → IProp GF),
-    Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn -∗ S -∗ threadTok -∗
-    srvStreamIs st γ Req Rep Up Dn ci cd -∗ srvRecvTok (Req := Req) γ [] -∗
-    srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗ ▷ (∀ err : GoInterface, threadTok -∗ Φ #err) -∗
+    Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn -∗ S -∗ srvStreamIs st γ Req Rep Up Dn ci cd -∗ srvRecvTok (Req := Req) γ [] -∗
+    srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗ ▷ (∀ err : GoInterface, Φ #err) -∗
     WP (App (Val h) (Val #st)) {{ Φ }})
 
 instance grpcStreamHandlerOk_persistent {Req Rep : StreamMsg GF} (h : val) (S : IProp GF)
@@ -867,20 +865,17 @@ is satisfiable per stream (`streamSpecOk`, at every metadata), and a run, given 
 the metadata `md` its context carries (`metadata.incomingOf ci`: what the client's attempt
 delivered; G2, 2026-10-30, as the unary `grpcHandlerOkMd`), `S`, the run's context,
 a fresh raw server end of the stream (`srvRawStreamIs`, both tokens at `[]`) and grpc's `info`,
-and the thread token of the goroutine grpc runs it on (`threadTok`; 2026-11-07, track R11: grpc-go
-runs every stream's handler on a goroutine of its own, see `grpc.serveStream`), through the
-chain, terminates or not, returning the token if it returns (`S` is not returned: the run keeps
-it, see the file header). -/
+through the chain, terminates or not, promising nothing (`S` is not returned: the run keeps it,
+see the file header). -/
 def grpcStreamMethodOk {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
     (S : IProp GF) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
   iprop((□ ∀ md, streamSpecOk (Spec md)) ∗
     □ ∀ (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (info : Loc),
-      Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn -∗ S -∗ threadTok -∗
-      srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
+      Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn -∗ S -∗ srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
       srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
       srvStreamInfoIs info -∗
-      srvStreamChainWP #info ics mh #srv #st (fun _ => threadTok))
+      srvStreamChainWP #info ics mh #srv #st (fun _ => iprop(True)))
 
 /-- **`grpcStreamMethodOk` with the slot pool** (persistent; 2026-10-18): as `grpcStreamMethodOk`,
 and a run is also given the runtime's pool of `S` (`grpcSlotPool S`), to return its copy to
@@ -892,11 +887,10 @@ def grpcStreamMethodOkR {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
   iprop((□ ∀ md, streamSpecOk (Spec md)) ∗
     □ ∀ (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (info : Loc),
-      Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn -∗ S -∗ grpcSlotPool S -∗ threadTok -∗
-      srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
+      Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn -∗ S -∗ grpcSlotPool S -∗ srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
       srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
       srvStreamInfoIs info -∗
-      srvStreamChainWP #info ics mh #srv #st (fun _ => threadTok))
+      srvStreamChainWP #info ics mh #srv #st (fun _ => iprop(True)))
 
 instance grpcStreamMethodOkR_persistent {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
@@ -910,8 +904,8 @@ theorem grpcStreamMethodOk_R {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterf
   unfold grpcStreamMethodOk grpcStreamMethodOkR
   iintro ⟨#Hs, #Hr⟩
   iframe Hs
-  iintro !> %γ %Dn %ci %cd %st %info HSp HS - Htok Hraw HR HT Ha Hi
-  iapply Hr $$ HSp HS Htok Hraw HR HT Ha Hi
+  iintro !> %γ %Dn %ci %cd %st %info HSp HS - Hraw HR HT Ha Hi
+  iapply Hr $$ HSp HS Hraw HR HT Ha Hi
 
 instance grpcStreamMethodOk_persistent {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
@@ -1034,14 +1028,7 @@ end of a fresh stream with the run's context, through the chain, given the speci
 metadata that context carries: grpc-go builds the stream's context from the received headers,
 `internal/transport/http2_server.go:544`, `metadata.NewIncomingContext`, reserved headers skipped
 at `:467`; G2, 2026-10-30), and that hands the runtime `n`
-copies of `S`, is served at `addr`. A run also holds the thread token of the goroutine it runs on
-(`threadTok`, in `grpcStreamMethodOkR`; given back if it returns): since 2026-11-07 (track R11,
-`notes/mvcc-merge/r11.md`, the user's decision), as grpc-go v1.84 runs every stream's handler on a
-goroutine of its own (`server.go:1090-1106`, `serveStreams`'s `HandleStreams` callback: `go f()`,
-or a `NumStreamWorkers` worker, `:687-696`, running one `f` at a time to its end (etcd sets none);
-`f` is `handleStream`, `:1537`, dispatching to `processRPC`, `:1594`, which calls
-`sd.Handler(server, wrappedStream)` or the stream interceptor over it, `:1450-1458`), which Perennial's
-`go` statement gives a fresh token (`wp_fork_tok_body`). The copies form a pool (`grpcSlotPool S`, separate from the
+copies of `S`, is served at `addr`. The copies form a pool (`grpcSlotPool S`, separate from the
 unary runs'): a run takes one and is given the pool, to return its copy to when the run's
 resources are free (2026-10-18, the axiom audit; until then a run kept its copy, so the model
 started at most `n` streams in all while Go starts every one). The runtime starts a stream when
