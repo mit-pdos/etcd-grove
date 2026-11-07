@@ -61,7 +61,7 @@ cluster recover from it, `s.be` is swapped under `bemu`, the old backend is clos
 (with its stop channels and the constructors' half of its open token, W7, and the readers' and the
 monitor's shares the swap gathers), the transport's peers are removed and the members re-added
 (W8), and `NewUberApplier` rebuilds the applier: `srvSnapApplied`. Named premises (S-j1's to
-discharge): the image's facts (`hmeta`, `hxA`, `hst`, `hlease`, `hlp`, `halarm`,
+discharge): the image's facts (`hmeta`, `hxA`, `hst`, `hnl`, `hlease`, `hlp`, `halarm`,
 `hmemb`, `himg`, `hA'`, `hAA'`, `hauthI`), the applied log's prefix and lease mode (`hpre0`, `hlmk`),
 the server's auth mode (`hany`), the auth store's `Recover` facts
 (`snapAuthResM`), the members' directory (`srvMembersDir`) (until J8a-6, 2026-11-01, also `8·|ps|` reader
@@ -102,11 +102,11 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (A' : List EntryModel) (u : Bool)
     (hxA : x.log = kvModelM E.authOn γr.kv A ∧ x.crev = crevOf γr.kv A)
     (hst : imageStOk (kvModelM E.authOn γr.kv A') (crevOf γr.kv A'))
-    -- MERGE-TODO(snap-leases): strict M1's `hnl : mvcc.LogNoLease (kvModel γr.kv A')` (what
-    -- `KV.Restore.contract`'s leased items took, at a cluster granting none) is dropped: `lean`'s
-    -- lease-expiry restores the image's leases (`hlease`, `lessor.Recover`'s live set `Lr`), from
-    -- which the walk discharges `KV.Restore`'s `leaseOwn (mvccLeases E.γ) L ∅` with every pending
-    -- item's lease in `L`
+    -- (strict M1's, kept by R4, 2026-11-07) the image's history attaches no lease to a key (the
+    -- server's KV model's, `kvRaftOf_restorable`: leases are granted and revoked, `hlease` and
+    -- `lessor.Recover` restore their records, but no put carries one), so `KV.Restore.contract` has
+    -- no pending item, and its `leaseOwn (mvccLeases E.γ) L ∅` is met at `Recover`'s live set
+    (hnl : mvcc.LogNoLease (kvModelM E.authOn γr.kv A'))
     (hbr : mvcc.bridgeParams d.P)
     -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook keys
     -- (the boot backend's, `bootOk`; the new backend's parameters are the old one's)

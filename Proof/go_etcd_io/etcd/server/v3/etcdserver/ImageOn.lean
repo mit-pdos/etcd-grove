@@ -81,27 +81,32 @@ theorem authBucketsAt_after (r : GMap GoString backend.BktData) :
   · intro n; simp [auth.bump, auth.bootState]
   · intro n v h; simp at h
 
-/-- **`D` is the mode-`on` image at index `i` of the server's entries `A`, the raft log being `L`**
-(`imageAt` with the model in the mode `on` from the start's auth state `st₀`): the `Key` bucket
-`kvModelOn`'s, the meta keys, the rest buckets but the auth ones the rest model's, and the auth
-buckets the auth state after `A` (`srvAuthAtLog`). (Rebased on #7-cmp's Freeze, as `imageAt`:) the
-`Key` bucket and the compaction records by the KV names' mode at records `r` of the committed log's
-compaction revision. -/
-def imageAtOn (γk : KVNames) (st₀ : auth.AuthState) (bootLog : List EntryM) (i : w64)
+/-- **The mode-`on` image certificate's server parts** (pure; R4, 2026-11-07, `imageRestAt`'s
+mode-on twin: `lean`'s `imageAtOn` without its `Key`-bucket/compaction-records and `IdxWf`
+conjuncts, which mvcc's `mvccImage` holds): the meta keys, the rest buckets but the auth ones the
+rest model's at the raft log `L` (an auth-on log grants no lease, `kvTableOf_plainOn`, so the lease
+bucket is the model's, empty), and the auth buckets the auth state after the server's entries `A`
+(`srvAuthAtLog`). -/
+def imageRestAtOn (γk : KVNames) (st₀ : auth.AuthState) (bootLog : List EntryM) (i : w64)
     (L A : List EntryModel) (D : backend.Data) : Prop :=
-  (∃ r : mvcc.CmpRecs, mvcc.keyImageM γk.cmp (kvModelOn γk st₀ A) r D ∧ r.crev = crevOf γk A) ∧
-    backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta i ∧
+  backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta i ∧
     (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t) ∧
     (∀ n ∈ restBuckets, ¬ auth.authBkts n →
       D.lookup n = bkRestOf γk.c0 bootLog L n) ∧
-    authBucketsAt (srvAuthAtLog γk st₀ A) D ∧ mvcc.IdxWf (kvModelOn γk st₀ A) []
+    authBucketsAt (srvAuthAtLog γk st₀ A) D
 
-/-- `dbImage` in the mode `on` (with `dbImage`'s KV log receipt, #7-cmp's). -/
+/-- **`dbImage` in the mode `on`** (persistent): of a committed prefix `A` of the server's log
+ending at `i`, mvcc's `mvccImage` of the mode-on KV model's history (`kvModelOn`) at the log's
+compaction revision (`crevOf`; `-1`: an auth-on log compacts nothing, `crevOf_plainOn`), an
+unfinished compaction recorded iff `u`, the state reachable and short (`imageStOk`), and the
+server's parts `imageRestAtOn`. (R4, 2026-11-07, as `dbImage`'s strict M1 restatement; until then
+`imageAtOn`, over mvcc's internal key image `keyImageM`, `IdxWf`, with the receipt beside it.) -/
 def dbImageOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (i : w64)
     (D : backend.Data) : IProp GF :=
-  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗
-    ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageAtOn γk st₀ γ.raft.boot i (γ.pre ++ A) A D⌝ ∗
-    ⧖ (mvcc.logCh (kvModelOn γk st₀ A)))
+  iprop(∃ (A : List EntryModel) (u : Bool), srvRLogLb γ A ∗
+    ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageRestAtOn γk st₀ γ.raft.boot i (γ.pre ++ A) A D ∧
+      imageStOk (kvModelOn γk st₀ A) (crevOf γk A)⌝ ∗
+    mvcc.api.mvccImage D (kvModelOn γk st₀ A) (crevOf γk A) u)
 
 instance dbImageOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (i : w64) (D : backend.Data) : Persistent (dbImageOn (GF := GF) γ γk st₀ i D) := by
