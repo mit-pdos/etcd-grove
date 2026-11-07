@@ -1,16 +1,17 @@
 /-
 **What a crash leaves of a sector whose versions are known** (`OsMeta.vk`, `MetaOk.vk`): a sector
 with at most two versions since the last successful sync comes back whole as one of them (the
-durable one, which `OsMeta.dur` knows, or the page cache's, which the client holds), or, under
-`NoTearCrash`, as the client's in-page write in flight landed whole: never a mix of bytes of
+durable one, which `OsMeta.dur` and `OsMeta.dz` know, or the page cache's, which the client holds),
+or, under `NoTearCrash`, as the client's write in flight landed over it (a page cut of the write,
+which covers the sector whole or misses it: `landWrite_cut_last`): never a mix of bytes of
 different versions. Untrusted.
 
 * `crashSeen_sec`: for a full sector below the size of a file whose `OsMeta` knows its versions, a
-  crash (`CrashSeenR`, under a premise that gives `NoTearCrash`) leaves the bytes `m.dur` knows of
+  crash (`CrashSeenR`, under a premise that gives `NoTearCrash`) leaves the bytes `m` knows of
   it, the bytes the client holds of it (`ByteSeen`: in its runs, or saved by its token), or those
   bytes with the client's write in flight over them (`wByte`). The client's change in flight is
-  none (and then its runs cover the file), or one it holds whole (`q = 1`): an in-page write
-  starting inside the file, or a growing truncate.
+  none (and then its runs cover the file), or one it holds whole (`q = 1`): a write starting
+  inside the file, or a growing truncate.
 -/
 module
 
@@ -136,6 +137,48 @@ theorem landWrite_last (f : OsFile) (off : Nat) (data : List w8) (hd : data ≠ 
   · rename_i hin; exact written_in f off data _ hd hin.1 hin.2
   · rename_i hout; exact (written_out f off data _ hd hb (by omega)).1
 
+/-- The version of a page cut of a write landed over a sector below the size: the sector as it
+was (the cut misses it), or every byte as the whole write leaves it (the cut covers the sector, as
+it ends on a page boundary or at the write's end). -/
+theorem landWrite_cut_last (f : OsFile) (off : Nat) (data : List w8) (k : Nat)
+    (hk : PageCut off data.length k) (hoff : off ≤ f.size) (n : Nat) (hn : 512 * n + 512 ≤ f.size) :
+    ((f.landWrite off data k).secs n).last = (f.secs n).last ∨
+    ∀ j < 512, secByte ((f.landWrite off data k).secs n).last j =
+      wByte off data (512 * n + j) (f.rawAt (512 * n + j)) := by
+  obtain ⟨hkl, hcut⟩ := hk
+  by_cases hk0 : k = 0
+  · left; subst hk0; simp [OsFile.landWrite]
+  by_cases hh : secHits off (off + k) n = true
+  · right
+    intro j hj
+    have hd : data.take k ≠ [] := by
+      intro h; have := congrArg List.length h
+      rw [List.length_take, List.length_nil] at this; omega
+    have hlen : (data.take k).length = k := by simp; omega
+    have he : f.landWrite off data k = f.landWrite off (data.take k) (data.take k).length := by
+      simp only [OsFile.landWrite, hlen, List.take_take, Nat.min_self]
+    rw [he, landWrite_last f off (data.take k) hd hoff n (by rw [hlen]; exact hh) j hj (by omega)]
+    have hkey : 512 * n + j < off + k ∨ k = data.length := by
+      simp only [secHits, Bool.and_eq_true, decide_eq_true_eq] at hh
+      rcases hcut with h | h | h
+      · omega
+      · exact .inr h
+      · left; omega
+    rcases hkey with hkey | hkey
+    · simp only [wByte, hlen]
+      split <;> split
+      · simp only [List.getD_eq_getElem?_getD, List.getElem?_take]
+        rw [if_pos (by omega)]
+      · omega
+      · omega
+      · rfl
+    · subst hkey; simp only [List.take_length]
+  · left
+    unfold OsFile.landWrite
+    rw [if_neg hk0]
+    simp only [OsFile.change, Nat.min_eq_left hoff]
+    rw [if_neg hh]
+
 /-! ## The crash lemma -/
 
 /-- A durable byte the ghost `OsMeta` knows: `dur`'s, or a zero past `dz`. -/
@@ -152,8 +195,7 @@ theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : In
     (n : Nat) (hn : 512 * n + 512 ≤ m.size)
     (hts : (ts = [] ∧ ∀ b < m.size, ∃ r ∈ rs, r.1 ≤ b ∧ b < r.1 + r.2.2.length) ∨
       ∃ t ti, ts = [(t, ti)] ∧ ti.q = 1 ∧ ti.c.ino = i ∧
-        ((∃ off data, ti.c.kind = .write off data ∧ off ≤ m.size ∧
-            (secHits off (off + data.length) n = true → inPage off data.length)) ∨
+        ((∃ off data, ti.c.kind = .write off data ∧ off ≤ m.size) ∨
          ∃ sz, ti.c.kind = .truncate sz ∧ m.size ≤ sz)) :
     (∀ j < 512, ∀ d, m.DurAt (512 * n + j) d → secByte (f'.secs n).last j = d) ∨
     (∀ j < 512, ∀ y, ByteSeen m rs ts (512 * n + j) y → secByte (f'.secs n).last j = y) ∨
@@ -286,25 +328,24 @@ theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : In
       by_cases he : t' = t
       · subst he; rw [hct] at hc; cases hc; rfl
       · exact absurd hci (by rw [← hino]; exact hcoh.tok_alone t ti hti hq t' c he hc)
-    rcases hkind with ⟨off, data, hkd, hoff, hpg'⟩ | ⟨sz, hkd, hgrow⟩
-    · -- a write: a sector it hits (it is then in-page) by `NoTearCrash`, any other untouched
+    rcases hkind with ⟨off, data, hkd, hoff⟩ | ⟨sz, hkd, hgrow⟩
+    · -- a write: a sector it hits by `NoTearCrash` (a page cut of it landed), any other untouched
       by_cases hhit : secHits off (off + data.length) n = true
-      · have hpg := hpg' hhit
-        have hd : data ≠ [] := fun h => by
-          have := hpg.1; rw [h] at this; exact absurd this (by decide)
-        have hci : st.proc.inflight !! t = some ⟨i, .write off data⟩ := by
+      · have hci : st.proc.inflight !! t = some ⟨i, .write off data⟩ := by
           rw [hct, show ti.c = ⟨i, .write off data⟩ by rw [← hino, ← hkd]]
-        rcases hQ st st' hQst t i off data hci hpg f _ hf hfo n
-          (by rw [Nat.min_eq_left (by omega : off ≤ f.size)]; exact hhit) with h1 | h1
+        obtain ⟨k, hk, hcut⟩ := hQ st st' hQst t i off data hci f _ hf hfo
+        rcases hcut n (by rw [Nat.min_eq_left (by omega : off ≤ f.size)]; exact hhit) with h1 | h1
         · have hV' : ((OsFile.ofDisk vs sz).secs n).last ∈ (f.secs n).vers := h1
           rw [hV] at hV'
           rcases hver hV' with h2 | h2
           · exact .inl h2
           · exact .inr (.inl h2)
-        · right; right
+        · have h1' : vs n = ((f.landWrite off data k).secs n).last := by rw [← hV]; exact h1
+          rcases landWrite_cut_last f off data k hk (by omega) n (by omega) with h2 | h2
+          · rw [h1', h2]; exact .inr (.inl hcur)
+          right; right
           refine ⟨t, ti, off, data, rfl, hkd, fun j hj y hy => ?_⟩
-          have h1' : vs n = ((f.landWrite off data data.length).secs n).last := by rw [← hV]; exact h1
-          rw [h1', landWrite_last f off data hd (by omega) n hhit j hj (by omega)]
+          rw [h1', h2 j hj]
           have := hseen j hj y hy
           rw [contents_getElem?, if_pos (by omega), Option.some.injEq] at this
           rw [this]

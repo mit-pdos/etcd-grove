@@ -7,8 +7,8 @@ file's `OsMeta` knows which sectors have at most two versions since the last suc
 (`OsMeta.vk`, kept by the writes minibolt makes between syncs, each sector written at most once),
 a crash leaves that sector whole (`crashSeen_sec`): as its durable version (the bytes `m.dur`
 knows), as the page cache's (the bytes the client holds), or, under the no-tear assumption
-(`NoTearCrash`, `GooseLang/Ext/Fs/NoTear.lean`), as the client's in-page write in flight landed
-whole. This replaces v1's P1 (no checksum collision on a torn meta): a slot is never a mix, so
+(`NoTearCrash`, `GooseLang/Ext/Fs/NoTear.lean`), as the client's write in flight landed over it
+(a page cut of a write covers a sector whole or misses it). This replaces v1's P1 (no checksum collision on a torn meta): a slot is never a mix, so
 nothing about checksums is assumed.
 -/
 module
@@ -31,11 +31,10 @@ open Iris Fs github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 def metaSlot (l : List w8) (i : Nat) : List w8 := ((l.drop (4096 * i)).drop 16).take 64
 
 /-- The client's change in flight is one `crashSeen_sec` covers: a write in flight starts inside
-the file, and lies in one page if it meets a meta slot's sector (`8 j`, `j < 2`). -/
+the file. -/
 def BusyOk (s : CSt) : Prop :=
   match s.busy with
-  | .write _ off data => off ≤ s.m.size ∧
-      ∀ j < 2, secHits off (off + data.length) (8 * j) = true → inPage off data.length
+  | .write _ off _ => off ≤ s.m.size
   | _ => True
 
 /-- What a crash may leave of the database file in the state `s` (`img` its bytes): within the
@@ -128,8 +127,7 @@ theorem fileOkS_crashImg {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
   have hvk : s.vmeta.vk = some ns := by rw [CSt.vmeta_vk]; exact hns
   have hts : (s.toks i = [] ∧ ∀ b < s.vmeta.size, ∃ r ∈ s.runs, r.1 ≤ b ∧ b < r.1 + r.2.2.length) ∨
       ∃ t ti, s.toks i = [(t, ti)] ∧ ti.q = 1 ∧ ti.c.ino = i ∧
-        ((∃ off data, ti.c.kind = .write off data ∧ off ≤ s.vmeta.size ∧
-            (secHits off (off + data.length) (8 * j) = true → inPage off data.length)) ∨
+        ((∃ off data, ti.c.kind = .write off data ∧ off ≤ s.vmeta.size) ∨
          ∃ sz, ti.c.kind = .truncate sz ∧ s.vmeta.size ≤ sz) := by
     unfold BusyOk at hbz
     have hw2 := hwf.2.2.2
@@ -144,7 +142,7 @@ theorem fileOkS_crashImg {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
       exact ⟨t, ⟨⟨i, .write off data⟩, 1, (cfRange s.m s.bs off data.length).map Prod.fst,
         pwMeta s.m off data.length, (cfRange s.m s.bs off data.length).map Prod.snd⟩,
         by simp [CSt.toks, hb], rfl, rfl,
-        .inl ⟨off, data, rfl, by rw [CSt.vmeta_size]; exact hbz.1, hbz.2 j hj⟩⟩
+        .inl ⟨off, data, rfl, by rw [CSt.vmeta_size]; exact hbz⟩⟩
     · rw [hb] at hw2
       right
       exact ⟨t, ⟨⟨i, .truncate sz⟩, 1, [], ftMeta s.m sz, []⟩, by simp [CSt.toks, hb], rfl, rfl, .inr ⟨sz, rfl, by rw [CSt.vmeta_size]; exact hw2⟩⟩

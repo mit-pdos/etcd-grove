@@ -4,17 +4,17 @@ a torn meta, `old/osfs-v1/.../BootP1.lean`).
 
 **The statement** (`BootCrashSafety`): the boot program (initialize the package, call
 `BootMinibolt(dir)`) runs with the Linux file extension v2's semantics restricted by the no-tear
-premises (`fsExtsSemanticsWithS NoTearStep NoTearCrash`: a `pwrite` within one page lands all of
-it or nothing, and a crash leaves each sector such a write in flight touches as one of its versions
-or the write's): in every execution with crashes from a state as on disk (`FsInit`) in which
+premises (`fsExtsSemanticsWithS NoTearStep NoTearCrash`: a `pwrite` that lands only partly stops
+at a page boundary, at its return and at a crash, which leaves each sector a write in flight
+touches as one of its versions or as such a prefix of the write left it): in every execution with crashes from a state as on disk (`FsInit`) in which
 `dir` names a directory and `dir/db` nothing, no thread is stuck and none has an unrecovered panic,
 for executions along which fewer than `2 ^ 30` threads are live (`RealCrashThreadsBelow`: `Open`
 builds the reader pool of `mmaplock` for at most `2 ^ 30` live threads, Go's `rwmutexMaxReaders`).
 
 What replaces P1 is not an assumption: minibolt writes each meta page at most once between two
 successful `fdatasync`s, so the file's `OsMeta` knows each meta sector has at most two versions
-(`OsMeta.vk`), and a crash leaves the sector whole (`crashSeen_sec`); the in-page write in flight
-is the no-tear premise. Its proof is not done (`notes/STATUS.md`).
+(`OsMeta.vk`), and a crash leaves the sector whole (`crashSeen_sec`); the write in flight over it
+is the no-tear premise (a page-aligned prefix of a write covers a sector whole or misses it). Its proof is not done (`notes/STATUS.md`).
 -/
 module
 
