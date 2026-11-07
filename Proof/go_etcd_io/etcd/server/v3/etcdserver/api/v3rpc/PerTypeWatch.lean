@@ -11,7 +11,7 @@ of `nil` is not known to be `nil`); the real stage adds `⌜l ≠ null⌝` to it
 -/
 module
 
-public import Proof.google_golang_org.grpc.PerType
+public import Proof.google_golang_org.grpc.InvGrpcStream
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatchStream
 
 @[expose] public section

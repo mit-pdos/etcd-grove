@@ -7,7 +7,7 @@ allocated in the store's WP at mask `⊤`) and `RangeResponse` (`RepSat`; a repe
 -/
 module
 
-public import Proof.google_golang_org.grpc.PerType
+public import Proof.google_golang_org.grpc.InvGrpcStream
 public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section

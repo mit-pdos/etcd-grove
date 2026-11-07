@@ -40,6 +40,18 @@ ClientConn__Invoke.lean`) of any method is the chain (`chainWP`, as grpc compose
 `invoke`, which makes one attempt (`grpcInvokerOk`: a run of the handler served for a registered
 method, or an error); an attempt's call options are scalar or `grpc.Peer(p)` options
 (`grpcOptOk`, `grpcPeerOpt`), whose buffers `*p` (`grpcPeerBuf`) the attempt writes.
+
+**Per-type message models** (stage A, the Scope's R and V for `ProtoMsg`, revisions 4 to 6; moved
+here from the prototype's `grpc/PerType.lean`, CP2; today's `ProtoMsg` and the trusted grpc specs
+stay until CP3): `ProtoMsgT`, a `ProtoMsg` with its normalizing store (`tree`, `Store.lean`); the
+role-split registries `grpcReqModelOf` (a method's request) and `grpcRepModelOf` (its reply), keyed
+on the Go type, taking the heap's instances (`hG`; `ProtoMsg GF` mentions no heap, so an
+`hG`-independent registry would equate models across heaps) and `go.Semantics`; and what a
+registration must prove: `ProtoMsgT.ReqSat` (from a `blank`, with the request's `wireLen` below
+`grpcMsgMax`, the store gives `recv` and `recvOwn`) and `ProtoMsgT.RepSat` (from an `own`, what a
+failed attempt leaves, no `wireLen` premise, the store gives `recv`), each with the laws that make
+its resources satisfiable: `blank` the zero struct (`BlankZero`), `own` any struct (`OwnAny`),
+`send` at `nil` false.
 -/
 module
 
@@ -48,6 +60,7 @@ public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.google_golang_org.grpc.peer
 public import Proof.google_golang_org.grpc.metadata.Outgoing
 public import Code.google_golang_org.grpc.credentials
+public import Proof.google_golang_org.protobuf.proto.Store
 
 @[expose] public section
 
@@ -684,6 +697,46 @@ structure GrpcMethod (GF : BundledGFunctors) where
   srv : GoInterface
 
 end defs
+
+/-! ## Per-type message models: the stores and the role-split registries (stage A, CP2) -/
+
+section pertype
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- A unary method's message model with its normalizing store. -/
+structure ProtoMsgT (GF : BundledGFunctors) extends ProtoMsg GF where
+  tree : M → VTree
+
+/-- **`own` is any struct** of the type at some Lean representation (the one the store's type is). -/
+def OwnAny (ty : go.GoType) (own : Loc → IProp GF) : Prop :=
+  ∃ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V) (_ : IntoValTyped (GF := GF) V ty),
+    ∀ l, own l ⊣⊢ ∃ v : V, l ↦ v
+
+/-- **A request model is satisfiable** (`[v5]`). -/
+def ProtoMsgT.ReqSat (T : ProtoMsgT GF) : Prop :=
+  BlankZero T.ty T.blank ∧ OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ ⌜T.wireLen m < grpcMsgMax⌝ ∗ T.blank l ⊢
+      WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m ∗ T.recvOwn l m }}
+
+/-- **A reply model is satisfiable** (`[v5]`): no `wireLen` premise. -/
+def ProtoMsgT.RepSat (T : ProtoMsgT GF) : Prop :=
+  BlankZero T.ty T.blank ∧ OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ T.own l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
+
+/-- **The registry of request models** (`[v5]`: split by role). -/
+opaque grpcReqModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp]
+    [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] : go.GoType → Option (ProtoMsgT GF)
+
+/-- **The registry of reply models**. -/
+opaque grpcRepModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp]
+    [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] : go.GoType → Option (ProtoMsgT GF)
+
+end pertype
 
 /-! ## The opaque facts about grpc's runtime -/
 
