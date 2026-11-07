@@ -292,12 +292,12 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     unfold bStopG fkHalf
     icases Hfkh with ⟨-, Hfkd, Hdls⟩
     iframe Hhkd Hfkd
-    isplitl [Hvq]
-    · iexists _
+    isplitl [Hvq Hdls]
+    · iexists _, _
       rw [← vData_reset P st'.S st'.R]
-      iexact Hvq
-    isplitl [Hdls]
-    · iexists _; iexact Hdls
+      iframe Hvq Hdls
+      -- (2026-11-07, the stop image) the quarter's agreement with the deleted entries
+      ipureintro; rw [vData_reset P st'.S st'.R]; exact dlVd_of_dlsOk Hdlc.2
     iexists _
     iexact Hfkr
 

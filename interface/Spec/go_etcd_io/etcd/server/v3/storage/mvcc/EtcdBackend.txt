@@ -129,6 +129,18 @@ def mvcc.api.backendRest_open.law : Prop :=
           backend.plHook γB func.nil ∗
             backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b ∗ backend.rdAuth γB P b
 
+def mvcc.api.mvccImage_stop.law : Prop :=
+  ∀ (kv : GoInterface) (γ : mvcc.api.MvccName) (bk : mvcc.KBReal) (Pk : IProp GF) (D : backend.Data)
+    (Φ : mvcc.api.MvccState → IProp GF),
+    ⊢
+      mvcc.api.isMvcc kv γ ∗
+          mvcc.api.mvccBackend γ 1 (mvcc.api.etcdStorage bk) Pk ∗
+            backend.bStopView bk.γB bk.P (mvcc.api.mvccW bk.gx) Pk D ∗
+              AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜σ.pending = none⌝ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
+                  mvcc.api.mvccState γ σ, COMM Φ σ }> ={⊤}=∗
+        mvcc.api.mvccBackend γ 1 (mvcc.api.etcdStorage bk) Pk ∗
+          backend.bStopView bk.γB bk.P (mvcc.api.mvccW bk.gx) Pk D ∗ ∃ σ u, Φ σ ∗ mvcc.api.mvccImage D σ.log σ.crev u
+
 def mvcc.api.mvccImage_fresh.law : Prop :=
   ∀ (D : backend.Data),
     (∀ (k : GoString), backend.dget D mvcc.keyName k = none) →

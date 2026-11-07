@@ -5,7 +5,8 @@ storage abstraction (`MvccStorage`, `mvccStorageFor`, `storageHook`, `storageReq
 `mvccReaderN`); this module makes etcd's backend one storage (`etcdStorage`) and states what is
 etcd's backend's: the equations of the abstraction at it, the backend's open (`etcdStorage_open.law`,
 with the store's layout `bridgeParams`), the backend data's image of a history (`mvccImage`), the
-snapshot (`mvccImage_snapshot.law`: mvcc's code takes none, the server does, on its backend), the
+snapshot (`mvccImage_snapshot.law`: mvcc's code takes none, the server does, on its backend) and
+the stopped backend (`mvccImage_stop.law`: what `backend.Close` gives back), the
 registration of the store's write resource (`mvccW`), the client's rest of an opened backend
 (`backendRest`) and the lease bucket's delete inside a write transaction. What the server imports;
 inside mvcc's tree because it reads the abstraction's sealed definitions. Lean-first.
@@ -15,6 +16,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Close
 import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
 
 @[expose] public section
@@ -263,6 +265,36 @@ abbrev mvccImage_snapshot.law : Prop :=
       ∃ (σ : MvccState) (u : Bool), Φ σ ∗ mvccImage D σ.log σ.crev u }}
 
 end snapshot
+
+section stop
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- **The stopped backend's data is the image of the store's history** (2026-11-07: the stopped
+counterpart of `mvccImage_snapshot.law`, for etcd's server at shutdown, `EtcdServer.Cleanup`'s
+`s.be.Close()`). With what `backend.Close` gives back at the store's write invariant (`bStopView` at
+`W := mvccW bk.gx`, as the backend was opened, `etcdStorage_open.law`: the stopped batch lock's
+client resources and its ghost shares at the data `D` its file holds) and the whole backend share,
+by the caller's update at the state (nothing pending; the state unchanged), `D` is the image of that
+state's history and compaction, with the store's receipt inside (`mvccImage`), recording an
+unfinished compaction iff `u`; the share and the stopped lock's resources given back. The store need
+not be closed (`KV.Close`; after it the law holds too): the stopped lock's resource `mvccW bk.gx` is
+the store's writer's, which the caller holds, so no write commits after `D`; the whole share pins the
+store's backend to `bk` (no `Restore` runs). -/
+abbrev mvccImage_stop.law : Prop :=
+  ∀ (kv : GoInterface) (γ : MvccName) (bk : KBReal) (Pk : IProp GF) (D : backend.Data)
+    (Φ : MvccState → IProp GF),
+  isMvcc kv γ ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
+    backend.bStopView bk.γB bk.P (mvccW bk.gx) Pk D ∗
+    AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜σ.pending = none⌝ }>
+      @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Φ σ }> ={⊤}=∗
+  mvccBackend γ 1 (etcdStorage bk) Pk ∗ backend.bStopView bk.γB bk.P (mvccW bk.gx) Pk D ∗
+    ∃ (σ : MvccState) (u : Bool), Φ σ ∗ mvccImage D σ.log σ.crev u
+
+end stop
 
 
 end api

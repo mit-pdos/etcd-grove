@@ -13,13 +13,13 @@ def backend.backend.Snapshot.spec : Prop :=
                 backend.wbTok γ ∗
                   R ∗
                     □
-                      ∀ vd d r v,
+                      ∀ vd d r v X,
                         R -∗
                           W -∗
                             Pk -∗
-                              backend.viewAt γ vd -∗
-                                backend.pvHalf γ vd -∗
-                                  backend.hkOwn γ d -∗ backend.rbOwn γ r -∗ backend.ckHalf γ v -∗ ⌜Q vd d r v⌝) -∗
+                              backend.viewAtD γ P vd X -∗
+                                backend.dlsOwn γ X -∗
+                                  backend.hkOwn γ d -∗ backend.rbOwn γ r -∗ backend.fkdOwn γ v -∗ ⌜Q vd d r v⌝) -∗
           (▷
               ∀ sp D,
                 backend.snapOpen sp D ∗

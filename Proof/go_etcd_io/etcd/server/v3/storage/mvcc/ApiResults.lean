@@ -198,6 +198,9 @@ theorem mvccApi_errVars_law_holds : errVars.law (GF := GF) :=
 theorem mvccApi_mvccImage_snapshot_law_holds : mvccImage_snapshot.law (GF := GF) :=
   mvccImage_snapshot.law_holds
 
+theorem mvccApi_mvccImage_stop_law_holds : mvccImage_stop.law (GF := GF) :=
+  mvccImage_stop.law_holds
+
 theorem mvccApi_etcdStorage_open_law_holds : etcdStorage_open.law (GF := GF) :=
   etcdStorage_open.law_holds
 
@@ -380,6 +383,7 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_backendRest_open_law_holds
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_errVars_law_holds
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_mvccImage_snapshot_law_holds
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_mvccImage_stop_law_holds
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_etcdStorage_open_law_holds
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_metricsTxnWrite_Rev_wp_api
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_metricsTxnWrite_FirstRev_wp_api

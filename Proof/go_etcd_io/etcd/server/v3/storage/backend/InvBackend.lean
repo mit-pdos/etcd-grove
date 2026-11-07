@@ -1039,12 +1039,15 @@ def cacheRes (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
 /-- (2026-11-04, R2b-3c part 2) **What the stop's commit leaves of the batch lock's ghost shares**, at
 its committed data `C`: the readers' view quarter at `C`'s physical view (over some logical view, as
 `batchViewQ` after a commit) and the lock's halves of what it tracks (`trkHalf`). The stopped lock
-holds none of it (`batchFree`'s `bStopped` case): `Close` hands it to its caller (`bStopView`). -/
+holds none of it (`batchFree`'s `bStopped` case): `Close` hands it to its caller (`bStopView`).
+(2026-11-07, the stop image: the deleted entries `X` with the quarter's agreement `dlVd`, as a
+commit's `viewAtD`, so that a client's observation of the stopped data is the snapshot's.) -/
 def bStopG (γ : BNames) (P : BParams) (C : Data) : IProp GF :=
-  iprop((∃ L : VData, viewQ γ (1 : Qp).half.half (sData P C) L) ∗ trkHalf γ P C ∗
+  iprop((∃ L X : VData, viewQ γ (1 : Qp).half.half (sData P C) L ∗ ⌜dlVd P (sData P C) L X⌝ ∗
+      dlsOwn γ X) ∗ trkHalf γ P C ∗
     -- (the `lean` merge, 2026-11-06: in place of F2's `ckHalf`) the lock's half of the compaction
-    -- keys' values at `C` and of the safe-range buckets' deleted entries (`fkHalf`'s)
-    fkdOwn γ (fkVals C) ∗ (∃ X : GMap (GoString × GoString) GoString, dlsOwn γ X) ∗
+    -- keys' values at `C` (`fkHalf`'s; its half of the deleted entries is with the quarter above)
+    fkdOwn γ (fkVals C) ∗
     -- (2026-11-04, the restart plan's R2b-3d stage 3) a reader's lower bound of the compaction
     -- keys' flag at `C` (what the stop's commit gives its readers, `fkHalf_rd`)
     ∃ R : RBuf, fkRd γ P (C, R))

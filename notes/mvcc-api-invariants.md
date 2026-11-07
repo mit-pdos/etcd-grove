@@ -2161,3 +2161,61 @@ replaced by the law).
 
 **Left**: the clients (server, apply, txn, lease,
 v3rpc, client/v3, examples, the tester) to thread the tokens; the TCB baseline after a full build.
+
+## Hand-off: the stopped backend's image, `mvccImage_stop.law` (2026-11-07)
+
+For `notes/mvcc-merge/r3.md`'s blocker 2 (the server's stop image, `StopShutdown.stop_cleanup_image`,
+which on `lean` read the stopped `Key` bucket through mvcc's internals, `writerPin_keyObs`,
+`lateWD`). New law in the bridge (`Spec/.../mvcc/EtcdBackend.lean`, proved in
+`Api/SnapLaws.lean`, linked in `ApiResults.lean` as `mvccApi_mvccImage_stop_law_holds`, no
+`sorryAx`):
+
+```lean
+abbrev mvccImage_stop.law : Prop :=
+  ∀ (kv : GoInterface) (γ : MvccName) (bk : KBReal) (Pk : IProp GF) (D : backend.Data)
+    (Φ : MvccState → IProp GF),
+  isMvcc kv γ ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
+    backend.bStopView bk.γB bk.P (mvccW bk.gx) Pk D ∗
+    AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜σ.pending = none⌝ }>
+      @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Φ σ }> ={⊤}=∗
+  mvccBackend γ 1 (etcdStorage bk) Pk ∗ backend.bStopView bk.γB bk.P (mvccW bk.gx) Pk D ∗
+    ∃ (σ : MvccState) (u : Bool), Φ σ ∗ mvccImage D σ.log σ.crev u
+```
+
+**Why true.** The stopped lock's client resource `mvccW bk.gx = lateW bk.gx` is the store's
+writer's resource (registered: `writerRes`, with the writer's half of its view of the log and the
+tracked compaction; or the registration pending, the writer's resource lent through `writerReg`).
+The proof is `mvccImage_snapshot.law_holds`'s in one view shift: the writer frozen with the whole
+share (`writerInv_freezeR`), the client's update committed at the frozen writer's state, the
+observation `snapObs` on the stopped lock's pieces (kept: `keep_pure`), the registration given
+back, the writer thawed, `imageOk_of_snapObsOk`. The whole share is needed to freeze (another
+share's holder could be mid-snapshot, holding the frozen slot); the store need not be closed.
+
+**A backend strengthening it needed (not purely additive).** `snapObs` reads the physical `Key`
+bucket through the view quarter's agreement with the deleted entries (`viewAtD … X ∗ dlsOwn X`,
+`dlVd`), which the stop did not carry (`notes/mvcc-merge/bk.md`: "would need the stop commit's
+`dlsOk`"); without it the stopped `Key` bucket is only known to be a subset of the writer's logical
+view, not the image. Now `InvBackend.bStopG` holds `∃ L X, viewQ ¼ (sData P C) L ∗
+⌜dlVd P (sData P C) L X⌝ ∗ dlsOwn γ X` (the stop path of `batchTxBuffered.unsafeCommit` gives it,
+`dlVd_of_dlsOk Hdlc.2`), and `InvStop.bStopView` is `W ∗ Pk ∗ (∃ X, viewAtD γ P (sData P D) X ∗
+dlsOwn γ X) ∗ hkOwn ∗ rbOwn ∗ fkdOwn ∗ ∃ R, fkRd` (was `W ∗ Pk ∗ viewAt ∗ hkOwn ∗ rbOwn ∗ fkdOwn ∗
+(∃ X, dlsOwn X) ∗ ∃ R, fkRd`). `backend.Close.spec`'s text is unchanged, its post stronger (proved,
+no axiom touched). Its producers are the backend's (`bStopG_view`, `unsafeCommit`); the consumers
+that destructure it are the server's `StopImage` and `StopShutdown`, already broken on this branch
+(`lateWD`), to be rewritten over this law. InvBackend and InvStop are imported by ~4400 modules:
+everything downstream rebuilds once.
+
+**How the server uses it.** After `Cleanup` (`backend.Close`'s post at `W := mvccW d.gx` and the
+batch lock's `Pk`), with the apply thread's whole share `mvccBackend γ 1 (etcdStorage d) Pk`
+(`apply.kvBk`) and `□ isMvcc kv γ`, and the AU built from the server's invariant holding `mvccState`
+(nothing pending: the apply thread is stopped), the law gives `mvccImage D σ.log σ.crev u` at the
+applied state, in place of `stop_mergedObsP`'s key observation; the image's store part follows as
+for the snapshot (`mergedImgM`). For the server's track: (1) `Cleanup.spec`'s census update consumes
+the backend share (`mvccClosed ∗ mvccReaders ∗ mvccBackend γ q … ={⊤}=∗ bOpen 1`), but
+`mvccClosed_rest.law` gives it back, so the census and `Cleanup`'s post should return it, at `q = 1`;
+(2) `Cleanup`'s `W` must be `mvccW d.gx` (the stop channels at it; `backendRest`'s `isStopChansE`
+hides `W`: `EtcdBackend`'s MERGE-TODO(shutdown)).
+
+**Checks**: `lake build …mvcc.ApiResults …mvcc.Results …backend.Link` green, no `sorryAx` (log
+`/tmp/mvcc-stop-build.log`); mvcc's and the backend's interfaces regenerated; `etc/api-check.py
+etc/api/mvcc.txt --check`: mvcc's own modules pass.

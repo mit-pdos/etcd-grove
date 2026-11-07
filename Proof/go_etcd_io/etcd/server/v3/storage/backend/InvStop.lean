@@ -131,16 +131,18 @@ theorem isStopChansE_intro (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Lo
 
 /-- (2026-11-04, R2b-3c part 2) **What `Close` hands back of the stopped batch lock, at the file's data
 `D`**: its client resources `W ∗ Pk`, and its ghost shares at `D` -- the readers' view quarter
-(`viewAt`) and the lock's halves of the hook's own keys (`hkOwn`), the tracked buckets (`rbOwn`),
-the compaction keys' values (`fkdOwn`) and the safe-range buckets' deleted entries (`dlsOwn`, at
-some entries) (the `lean` merge, 2026-11-06: over the backend's `fkdOwn`/`dlsOwn` in place of F2's
-`pvHalf`/`ckHalf`): what `backend.Snapshot.spec`'s observation takes (with, as its post, a reader's
-bound of the compaction keys' flag, `fkRd`), so that a client's own halves (by agreement) and its
-observation of `W ∗ Pk` tell what `D` holds. -/
+with the safe-range buckets' deleted entries `X` it lacks (`viewAtD`, with the lock's half of `X`,
+`dlsOwn`) and the lock's halves of the hook's own keys (`hkOwn`), the tracked buckets (`rbOwn`)
+and the compaction keys' values (`fkdOwn`) (the `lean` merge, 2026-11-06: over the backend's
+`fkdOwn`/`dlsOwn` in place of F2's `pvHalf`/`ckHalf`; 2026-11-07, the stop image: `viewAtD` in
+place of `viewAt` and some `dlsOwn`, the agreement the stop's commit has, `dlVd_of_dlsOk`): what
+`backend.Snapshot.spec`'s observation takes (with, as its post, a reader's bound of the compaction
+keys' flag, `fkRd`), so that a client's own halves (by agreement) and its observation of `W ∗ Pk`
+tell what `D` holds (mvcc's `mvccImage_stop.law`). -/
 def bStopView (γ : BNames) (P : BParams) (W Pk : IProp GF) (D : Data) : IProp GF :=
-  iprop(W ∗ Pk ∗ viewAt γ (sData P D) ∗ hkOwn γ (hkData P D) ∗
-    rbOwn γ (rbData P D) ∗ fkdOwn γ (fkVals D) ∗
-    (∃ X : GMap (GoString × GoString) GoString, dlsOwn γ X) ∗
+  iprop(W ∗ Pk ∗
+    (∃ X : GMap (GoString × GoString) GoString, viewAtD γ P (sData P D) X ∗ dlsOwn γ X) ∗
+    hkOwn γ (hkData P D) ∗ rbOwn γ (rbData P D) ∗ fkdOwn γ (fkVals D) ∗
     -- (2026-11-04, R2b-3d stage 3) a reader's lower bound of the compaction keys' flag at `D`
     -- (`fkRd`: in a store that does not compact, no compaction key, `txn.kvWriter_noCmp`)
     ∃ R : RBuf, fkRd γ P (D, R))
@@ -148,10 +150,15 @@ def bStopView (γ : BNames) (P : BParams) (W Pk : IProp GF) (D : Data) : IProp G
 /-- The stopped lock's ghost shares at `C` are `bStopView`'s. -/
 theorem bStopG_view (γ : BNames) (P : BParams) (W Pk : IProp GF) (C : Data) :
     bStopG (GF := GF) γ P C ∗ W ∗ Pk ⊢ bStopView γ P W Pk C := by
-  unfold bStopG trkHalf bStopView viewAt hkOwn
-  iintro ⟨⟨Hv, ⟨Hhk, Hrb⟩, Hfkd, Hdls, Hfk⟩, HW, HPk⟩
+  unfold bStopG trkHalf bStopView viewAtD hkOwn
+  iintro ⟨⟨⟨%L, %X, Hv, %Hdl, Hdls⟩, ⟨Hhk, Hrb⟩, Hfkd, Hfk⟩, HW, HPk⟩
   ihave Hrb := rbSide_rbOwn γ P _ $$ Hrb
-  iframe
+  iframe HW HPk Hhk Hrb Hfkd Hfk
+  iexists X
+  iframe Hdls
+  iexists L
+  iframe Hv
+  ipureintro; exact Hdl
 
 /-- `Close`'s step: the right to close `stopc`, for the clients' whole open token, depositing the
 caller's request `X ⇒ Y` (`stopReq`, R2b-3d stage 3) and keeping half of its result's saved
