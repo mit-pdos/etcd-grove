@@ -1370,18 +1370,34 @@ def pwBytes (sz off : Nat) (data : List w8) (k : Nat) (xs : List (w8 × Bool)) :
 def pwCell (sz off : Nat) (data : List w8) (k : Nat) (xs : List (w8 × Bool)) (i : Nat) : val :=
   toCellVal (if i < pwSize sz off k then some (pwByte off data k (min off sz) xs i) else none)
 
+/-- Every `PWriteFinish` step of the semantics lands, of a write of `data` at `off` (of fewer than
+`2 ^ 64` bytes), a count `k` with `C off data.length k`: `True` for every semantics
+(`pwCut_true`), a page cut under `NoTear.lean`'s step premise (`pwCut_noTear`). -/
+def PwCut (C : Nat → Nat → Nat → Prop) : Prop :=
+  ∀ (t : Nat) (h : GMap Loc (NonAtomic val)) (st : OsState) (e' : Expr)
+    (h' : GMap Loc (NonAtomic val)) (st' : OsState) (i : Ino) (off : Nat) (data : List w8)
+    (k : Nat) (e : w64),
+    ExtSemantics.step (E := fsExt) "PWriteFinish" (osTokV t) h st () e' h' st' () →
+    st.proc.inflight !! t = some ⟨i, .write off data⟩ → e' = osRes (#(W64 k)) e →
+    k ≤ data.length → data.length < 2 ^ 64 → C off data.length k
+
+theorem pwCut_true : PwCut (fun _ _ _ => True) := by unfold PwCut; intros; trivial
+
 /-- The second step of `pwrite(fd, data, off)`: it writes the first `k` bytes of `data`, all of
 them with errno 0, or, with errno 0 too, a non-empty prefix (a short write: F6), or any prefix
-with a nonzero errno. What the first step took comes back: the
+with a nonzero errno, and `C` of the count if the semantics says so (`PwCut C`). What the first step took comes back: the
 `OsMeta` with the new size, the bytes `[min off size, min (off + n) size')` (the zero gap, the data
 written, then the old bytes), the bytes past the written prefix with the clean flags they had in
 `xs` (the write left them untouched), the others not clean, and the client's halves of the mapped cells, which show
 the new bytes. -/
-theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (q : Qp)
+
+theorem wp_osPWriteFinishC (C : Nat → Nat → Nat → Prop) (hC : PwCut C)
+    (t : Nat) (p : Ino) (off : Nat) (data : List w8) (q : Qp)
     (m : OsMeta) (xs : List (w8 × Bool)) (hvk : q = 1 ∨ m.vk = none) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ pwTok (L := L) t p off data q m xs -∗
-      (∀ k : Nat, ∀ e : w64, ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0)⌝ -∗
+      (∀ k : Nat, ∀ e : w64, ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
+          (data.length < 2 ^ 64 → C off data.length k)⌝ -∗
         osMeta (L := L) p (DFrac.own q)
           (pwPost m off data.length k) -∗
         osBytes (L := L) p (min off m.size) (DFrac.own 1) (pwBytes m.size off data k xs) -∗
@@ -1389,7 +1405,7 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (q : 
         Φ (PairV (#(W64 k)) (#e))) -∗
       WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
   iintro #Hinv Ht HΦ
-  iapply wp_os_step "PWriteFinish" _ Φ (by simp [val.isPanic]) hE (by simp [DataOp]) $$ Hinv
+  iapply wp_os_stepX "PWriteFinish" _ Φ (by simp [val.isPanic]) hE (by simp [DataOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -1439,12 +1455,15 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (q : 
       exact heapRendered_render hwfk rfl Hh
   inext
   iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hraw⟩ := Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
   obtain ⟨t', p', off', data', f', k, e, hv, hinfl, hf', hk, hke, hst', rfl⟩ := Hst
   have htt : t' = t := by injection hv with hv; exact (extVal_inj hv).symm
   subst htt
   rw [hct, hc] at hinfl; cases hinfl
+  have hCk : data.length < 2 ^ 64 → C off data.length k :=
+    hC _ _ _ _ _ _ p off data k e Hraw (by rw [hct, hc]) rfl hk
   rw [hf] at hf'; cases hf'
   rw [pwFinish_state st t' p off data f k hf] at hst'
   subst hst'
@@ -1628,13 +1647,30 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (q : 
     iapply htc $$ Htok
   iapply wp_value'
   unfold osMeta osBytes
-  iapply HΦ $$ %k %e %(And.intro hk hke) Hm Hbs
+  iapply HΦ $$ %k %e %(⟨hk, hke, hCk⟩) Hm Hbs
   unfold mcells
   iapply (BigSepM.bigSepM_toList (Φ := fun (b : Loc) (len : Nat) =>
     cellsR b (min (min off m.size) len) (min (off + data.length) len - min (min off m.size) len)
       (pwCell m.size off data k xs))).2
   iapply (halves_mapsCells _ _ _ _ hdisj).1
   rw [hC]; iexact Hc
+
+/-- `wp_osPWriteFinishC` with nothing said of the count. -/
+theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (q : Qp)
+    (m : OsMeta) (xs : List (w8 × Bool)) (hvk : q = 1 ∨ m.vk = none) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ pwTok (L := L) t p off data q m xs -∗
+      (∀ k : Nat, ∀ e : w64, ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0)⌝ -∗
+        osMeta (L := L) p (DFrac.own q)
+          (pwPost m off data.length k) -∗
+        osBytes (L := L) p (min off m.size) (DFrac.own 1) (pwBytes m.size off data k xs) -∗
+        mcells m.maps (min off m.size) (off + data.length) (pwCell m.size off data k xs) -∗
+        Φ (PairV (#(W64 k)) (#e))) -∗
+      WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
+  iintro #Hinv Ht HΦ
+  iapply wp_osPWriteFinishC (fun _ _ _ => True) pwCut_true t p off data q m xs hvk hE $$ Hinv Ht
+  iintro %k %e %hke
+  iapply HΦ $$ %k %e %(⟨hke.1, hke.2.1⟩)
 
 end specs2
 

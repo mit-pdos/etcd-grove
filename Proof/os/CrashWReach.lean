@@ -75,7 +75,8 @@ theorem getD_drop' (data : List w8) (nn j : Nat) :
 data, at least the `nn` bytes the loop counts as written, is written (the size is as one attempt
 of `K` bytes leaves it), the rest is untouched. -/
 theorem WReach.prefix {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data : List w8}
-    {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)} (h : WReach m bs off data nn m' bs')
+    {C : Nat → Nat → Nat → Prop} {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)}
+    (h : WReach C m bs off data nn m' bs')
     (hl : bs.length = m.size) (hoff : off ≤ m.size) :
     ∃ K ≤ data.length, nn ≤ K ∧ m'.size = pwSize m.size off K ∧
       ∀ i, off ≤ i → i < off + data.length → i < pwSize m.size off K →
@@ -83,7 +84,7 @@ theorem WReach.prefix {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data : 
   induction h with
   | refl =>
     exact ⟨0, Nat.zero_le _, Nat.le_refl _, by simp [pwSize], fun i _ _ _ => by rw [if_neg (by omega)]⟩
-  | @step nn m1 bs1 k nn' hR hnn hk hnn' ih =>
+  | @step nn m1 bs1 k nn' hR hnn hk _ hnn' ih =>
     obtain ⟨K, hKl, hnK, hsz, hK⟩ := ih
     have hN := hR.narrow hl hoff
     have hdl : (data.drop nn).length = data.length - nn := List.length_drop
@@ -116,7 +117,8 @@ theorem WReach.prefix {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data : 
 old file), or with its first byte the data's and either an old byte left (inside the old file,
 with its flag) or all of it the data's. -/
 theorem WReach.torn {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data : List w8}
-    {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)} (h : WReach m bs off data nn m' bs')
+    {C : Nat → Nat → Nat → Prop} {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)}
+    (h : WReach C m bs off data nn m' bs')
     (hl : bs.length = m.size) (hoff : off ≤ m.size) {a w : Nat} (hw : 0 < w) (ha : off ≤ a)
     (haw : a + w ≤ off + data.length) (hsz : a + w ≤ bs'.length) :
     (a + w ≤ bs.length ∧ ∀ j < w, bs'[a + j]? = bs[a + j]?) ∨

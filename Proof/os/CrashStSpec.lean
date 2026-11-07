@@ -291,8 +291,8 @@ theorem os.OpenFile.wp_proof_crashS [os.file.FieldAssumptions] :
         iexact Hown
 
 theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) (hG := hG) := by
-  intro f fd name dqf sl data dqs off dq d N P R γ Good Ok m bs fa fb hwr hoff hgap hbig hn hn2 hN
-    hfz hW
+  intro f fd name dqf sl data dqs off dq d N P R γ Good Ok m bs fa fb C hC hwr hoff hgap hbig hn hn2
+    hN hfz hW
   unfold os.ownFile
   wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hown, Hc⟩
   icases csOwnF_wf _ _ $$ Hown with %Hwf
@@ -321,7 +321,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   conv in (occs := 4) (#(W64 0) : val) => rw [← hnnv]
   obtain ⟨m', hm'⟩ : ∃ m', m' = m := ⟨_, rfl⟩
   obtain ⟨bs', hbs'⟩ : ∃ bs', bs' = bs := ⟨_, rfl⟩
-  have hR : WReach m bs off.toNat data nnv.toNat m' bs' := by
+  have hR : WReach C m bs off.toNat data nnv.toNat m' bs' := by
     subst hm' hbs' hnnv; exact .refl
   have hnn : nnv.toNat < data.length := by subst hnnv; exact hn
   have hS : off.toNat + nnv.toNat ≤ m'.size := by subst hnnv hm'; exact hgap
@@ -376,20 +376,23 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
     intro t; rw [hoffv]; exact (hW _ _ _ hR).2 hnn t
   wp_apply wp_osPWriteStart_cs fd (off + nnv) (data.drop nnv.toNat) dq d N P R γ Good Ok m' bs' fa fb
     hN hwr hoffv' hgap' hfz' hW1 $$ Hos Hinv Hosfd Hown Hc2 as %t Hosfd Hown
-  have hW2 : ∀ k ≤ (data.drop nnv.toNat).length, Ok (some (d.ino,
+  have hW2 : ∀ k ≤ (data.drop nnv.toNat).length,
+      ((data.drop nnv.toNat).length < 2 ^ 64 → C (off + nnv).toNat (data.drop nnv.toNat).length k) →
+      Ok (some (d.ino,
       ⟨finMeta m' (off + nnv).toNat (data.drop nnv.toNat) k,
         finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k, fa, fb, .idle⟩)) := by
-    intro k hk; rw [hoffv]
-    exact (hW _ _ _ (hR.step k _ hnn (by rw [hdl] at hk; exact hk) (.inl rfl))).1
-  wp_apply wp_osPWriteFinish_cs t d.ino (off + nnv).toNat (data.drop nnv.toNat) N P R γ Good Ok m'
+    intro k hk hck; rw [hoffv]; rw [hoffv] at hck
+    exact (hW _ _ _ (hR.step k _ hnn (by rw [hdl] at hk; exact hk) hck (.inl rfl))).1
+  wp_apply wp_osPWriteFinish_cs C hC t d.ino (off + nnv).toNat (data.drop nnv.toNat) N P R γ Good Ok m'
     bs' fa fb hN hW2 $$ Hos Hinv Hown as %k %e %hke Hown Hc2
-  obtain ⟨hk, hke⟩ := hke
+  obtain ⟨hk, hke, hck⟩ := hke
+  rw [hoffv] at hck
   obtain ⟨hNar', hS', hpre'⟩ := wa_stepS hgap hNar hS hpre hoffv (by omega) hk
   rw [hdl] at hk
   have hRs : ∀ nn', (nn' = nnv.toNat ∨ nn' = nnv.toNat + k) →
-      WReach m bs off.toNat data nn' (finMeta m' (off + nnv).toNat (data.drop nnv.toNat) k)
+      WReach C m bs off.toNat data nn' (finMeta m' (off + nnv).toNat (data.drop nnv.toNat) k)
         (finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k) := by
-    intro nn' h; rw [hoffv]; exact hR.step k nn' hnn hk h
+    intro nn' h; rw [hoffv]; exact hR.step k nn' hnn hk hck h
   -- the cells back
   ihave Hc2 := mcells_any _ _ _ _ $$ Hc2
   ihave Hc2 := (show mcellsAny (GF := GF) m'.maps (cfLo m' (off + nnv).toNat)

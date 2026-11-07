@@ -430,15 +430,19 @@ def treeWorld (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc Γc ∗
     rdRes (gooseOsGS (L := L)) Γdf ∗ callRes (gooseOsGS (L := L)) Γc)
 
-/-- The lifting of a data operation `o`: from the files' world before the step, the step exists, and
+/-- `wp_os_step`, whose continuation also gets the semantics' own step (which may say more
+than `FsStep`: `fsSemWithS`'s premise on steps, `FsStepSat`).
+
+The lifting of a data operation `o`: from the files' world before the step, the step exists, and
 every step leads to a world after it, and the rest of the program. The tree is left alone
 (`treeFrame_data`). -/
-theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
+theorem wp_os_stepX (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
     (hE : ↑osN ⊆ E) (ho : DataOp o) :
     ⊢ osInv (L := L) -∗
       (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h ==∗
         ⌜∃ e' h' st', FsStep o v h st () e' h' st' ()⌝ ∗
-        ▷ ∀ e' h' st', ⌜FsStep o v h st () e' h' st' ()⌝ ==∗
+        ▷ ∀ e' h' st', ⌜FsStep o v h st () e' h' st' () ∧
+            ExtSemantics.step (E := fsExt) o v h st () e' h' st' ()⌝ ==∗
           ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗ WP e' @ s; E {{ Φ }}) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv HF
@@ -465,9 +469,10 @@ theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPani
       (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) Hst
   inext
   iintro %e' %h' %σ' %g' %Hst -
-  have Hst := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst
+  have Hst2 := And.intro (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst) Hst
+  have Hst := Hst2.1
   imod Hclose2
-  imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', Hw, Hwp⟩
+  imod Hcont $$ %e' %h' %σ' %Hst2 with ⟨%Γb', %Γm', %Γf', %Γt', Hw, Hwp⟩
   unfold osWorld
   icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hheap⟩
   imod gVar_update _ _ _ (cellView σ', GMap.size σ'.proc.inflight) $$ Hv Hv' with ⟨Hv, Hv'⟩
@@ -486,6 +491,28 @@ theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPani
   · have : (ExtInterp.globalCtx (E := fsExt) (extGlobalGS fsExt) g' : IProp GF) =
         iprop(True) := rfl
     rw [this]; itrivial
+
+/-- The lifting of a data operation `o`: from the files' world before the step, the step exists, and
+every step leads to a world after it, and the rest of the program. The tree is left alone
+(`treeFrame_data`). -/
+theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
+    (hE : ↑osN ⊆ E) (ho : DataOp o) :
+    ⊢ osInv (L := L) -∗
+      (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h ==∗
+        ⌜∃ e' h' st', FsStep o v h st () e' h' st' ()⌝ ∗
+        ▷ ∀ e' h' st', ⌜FsStep o v h st () e' h' st' ()⌝ ==∗
+          ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗ WP e' @ s; E {{ Φ }}) -∗
+      WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
+  iintro #Hinv HF
+  iapply wp_os_stepX o v Φ hv hE ho $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  imod HF $$ %st %Γb %Γm %Γf %Γt %h Hw with ⟨%Hex, Hc⟩
+  imodintro
+  isplitr
+  · ipureintro; exact Hex
+  inext
+  iintro %e' %h' %st' %Hst
+  iapply Hc $$ %e' %h' %st' %Hst.1
 
 /-- The lifting of any operation: as `wp_os_step`, with the tree's world too (`treeWorld`). -/
 theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)

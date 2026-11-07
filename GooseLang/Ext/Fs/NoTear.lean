@@ -99,6 +99,27 @@ theorem pageCut_inPage {off len k : Nat} (hk : PageCut off len k) (hp : inPage o
     exfalso
     omega
 
+section cut
+variable [GooseExts] [ExtSemantics fsExt] [GoGlobalContext] [go.BasicIntoValInj]
+
+/-- **Under `NoTearStep`, every `PWriteFinish` lands a page cut** (`PwCut`, for the program
+logic: `wp_osPWriteFinishC`). -/
+theorem pwCut_noTear [FsStepSat NoTearStep] : PwCut PageCut := by
+  intro t h st e' h' st' i off data k e hs hin he hk hlen
+  obtain ⟨k', e2, hk', he2⟩ :=
+    FsStepSat.sat (SQ := NoTearStep) _ _ _ _ _ _ _ _ _ hs rfl t i off data rfl hin
+  rw [he] at he2
+  simp only [osRes, Expr.Val.injEq, val.PairV.injEq] at he2
+  have hw : W64 k = W64 k' := go.intoVal_inj he2.1
+  have hk2 := hk'.1
+  have : k = k' := by
+    have := congrArg BitVec.toNat hw
+    simp only [W64, BitVec.toNat_ofInt] at this
+    omega
+  subst this; exact hk'
+
+end cut
+
 /-- The restricted semantics. -/
 @[reducible] def noTearSem : ExtSemantics fsExt := fsSemWithS NoTearStep NoTearCrash
 

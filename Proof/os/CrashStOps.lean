@@ -353,17 +353,18 @@ theorem wp_osPWriteStart_cs (fd off : w64) (data : List w8) (dq : DFrac) (d : Os
   ipureintro; exact ⟨hl, hab, hfb, hfz⟩
 
 /-- `pwrite`'s second step on a file in a crash invariant: idle again, as the write of the first
-`k` bytes left it, which the caller shows `Ok`. -/
-theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8)
+`k` bytes left it, which the caller shows `Ok` (of a count the semantics allows: `PwCut C`). -/
+theorem wp_osPWriteFinish_cs (C : Nat → Nat → Nat → Prop) (hC : PwCut C) (t : Nat) (p : Ino) (off : Nat) (data : List w8)
     (N : Namespace) (P : GoString) (R : Roots) (γ : GName)
     (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta) (bs : List (w8 × Bool))
     (fa fb : Nat) (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N)
-    (hok : ∀ k ≤ data.length,
+    (hok : ∀ k ≤ data.length, (data.length < 2 ^ 64 → C off data.length k) →
       Ok (some (p, ⟨finMeta m off data k, finBytes m bs off data k, fa, fb, .idle⟩)))
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ csInv (L := L) N P R γ Good Ok -∗
       csOwnF (L := L) γ (some (p, ⟨m, bs, fa, fb, .write t off data⟩)) -∗
-      (∀ k : Nat, ∀ e : w64, ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0)⌝ -∗
+      (∀ k : Nat, ∀ e : w64, ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
+          (data.length < 2 ^ 64 → C off data.length k)⌝ -∗
         csOwnF (L := L) γ (some (p, ⟨finMeta m off data k, finBytes m bs off data k, fa, fb, .idle⟩)) -∗
         mcells (L := L) m.maps (cfLo m off) (off + data.length)
           (pwCell m.size off data k (cfRange m bs off data.length)) -∗
@@ -379,7 +380,7 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8)
   dsimp only [invResS, metaRes]
   icases Hr with ⟨Ht, Hb2⟩
   imodintro
-  iapply wp_osPWriteFinish t p off data 1 m (cfRange m bs off data.length) (.inl rfl) hN $$ Hos Ht
+  iapply wp_osPWriteFinishC C hC t p off data 1 m (cfRange m bs off data.length) (.inl rfl) hN $$ Hos Ht
   iintro %k %e %hke Hm Hrg Hc
   have hk := hke.1
   icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
@@ -425,7 +426,7 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8)
   · inext; iexists (some (p, ⟨finMeta m off data k, finBytes m bs off data k, fa, fb, .idle⟩))
     iframe Hv'; isplitl
     · dsimp only; iframe
-    ipureintro; exact ⟨hok k hk, rfl⟩
+    ipureintro; exact ⟨hok k hk hke.2.2, rfl⟩
   imodintro
   ihave Hc := (show mcells (L := L) m.maps (min off m.size) (off + data.length)
       (pwCell m.size off data k (cfRange m bs off data.length)) ⊢ mcells (L := L) m.maps (cfLo m off)

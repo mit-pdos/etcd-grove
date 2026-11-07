@@ -9,8 +9,8 @@ Lean-first (no Rocq counterpart).
 * `os.OpenFile.specCrashS`: `P = d/b`, `d` a directory; absent or idle, to `csOpenSt` of it
   (created, its `create` logged, if absent); on failure maybe.
 * `os.File.WriteAt.specCrashS`: idle, the write starting inside the file, to an idle state the
-  loop reached (`WReach`: each attempt writes a prefix of the rest of the data, from the `nn`
-  bytes a short write left written), with the data written on success. The caller shows `Ok` of
+  loop reached (`WReach C`: each attempt writes a prefix of the rest of the data, of a length the
+  semantics allows, `PwCut C`, from the `nn` bytes a short write left written), with the data written on success. The caller shows `Ok` of
   every state the loop may pass through: each `WReach` state idle, and with the next attempt in
   flight. The write misses the frozen bytes, and the mapped cells of its range are passed through
   (`mcellsAny`).
@@ -38,23 +38,26 @@ namespace Perennial
 open Fs
 
 /-- The states a `WriteAt` of `data` at `off` reaches from `m`, `bs`, `nn` of the data's bytes
-written: each attempt writes a prefix of the rest of the data (from `off + nn`), and a short write
+written: each attempt writes a prefix of the rest of the data (from `off + nn`) of a length `k` the
+semantics allows (`C (off + nn) len k` of an attempt of `len` bytes: `PwCut C`), and a short write
 that wrote `k > 0` bytes moves `nn` on by `k`. -/
-inductive WReach (m : OsMeta) (bs : List (w8 × Bool)) (off : Nat) (data : List w8) :
-    Nat → OsMeta → List (w8 × Bool) → Prop
-  | refl : WReach m bs off data 0 m bs
+inductive WReach (C : Nat → Nat → Nat → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (off : Nat)
+    (data : List w8) : Nat → OsMeta → List (w8 × Bool) → Prop
+  | refl : WReach C m bs off data 0 m bs
   | step {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)} (k nn' : Nat) :
-      WReach m bs off data nn m' bs' → nn < data.length → k ≤ data.length - nn →
+      WReach C m bs off data nn m' bs' → nn < data.length → k ≤ data.length - nn →
+      ((data.drop nn).length < 2 ^ 64 → C (off + nn) (data.drop nn).length k) →
       (nn' = nn ∨ nn' = nn + k) →
-      WReach m bs off data nn'
+      WReach C m bs off data nn'
         (finMeta m' (off + nn) (data.drop nn) k) (finBytes m' bs' (off + nn) (data.drop nn) k)
 
-theorem WReach.narrow {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data : List w8}
-    {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)} (h : WReach m bs off data nn m' bs')
+theorem WReach.narrow {C : Nat → Nat → Nat → Prop} {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat}
+    {data : List w8} {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)}
+    (h : WReach C m bs off data nn m' bs')
     (hl : bs.length = m.size) (hoff : off ≤ m.size) : Narrow m bs off data m' bs' := by
   induction h with
   | refl => exact narrow_refl off data hl
-  | step k nn' _ hnn hk _ ih =>
+  | step k nn' _ hnn hk _ _ ih =>
     exact narrow_fin ih hoff _ (Nat.le_of_lt hnn) (by rw [List.length_drop]; exact hk)
 
 /-- The states a growing `Truncate` to `sz` reaches from `m`, `bs`: unchanged, the size bound
@@ -101,11 +104,11 @@ abbrev os.File.WriteAt.specCrashS : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
     (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : GoString) (R : Roots)
     (γ : GName) (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta)
-    (bs : List (w8 × Bool)) (fa fb : Nat),
+    (bs : List (w8 × Bool)) (fa fb : Nat) (C : Nat → Nat → Nat → Prop), PwCut C →
   d.writable = true → 0 ≤ off.toInt → off.toNat ≤ m.size → off.toNat + data.length < 2 ^ 63 →
   0 < data.length → data.length ≤ 0x40000000 →
   ↑osN ⊆ (⊤ : CoPset) \ ↑N → (off.toNat + data.length ≤ fa ∨ fb ≤ off.toNat) →
-  (∀ nn m' bs', WReach m bs off.toNat data nn m' bs' →
+  (∀ nn m' bs', WReach C m bs off.toNat data nn m' bs' →
     Ok (some (d.ino, ⟨m', bs', fa, fb, .idle⟩)) ∧ (nn < data.length → ∀ t,
       Ok (some (d.ino, ⟨m', bs', fa, fb, .write t (off.toNat + nn) (data.drop nn)⟩)))) →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good Ok ∗ os.ownFile (GF := GF) f fd name dqf ∗
@@ -118,7 +121,7 @@ abbrev os.File.WriteAt.specCrashS : Prop :=
       os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
       mcellsAny m.maps off.toNat (off.toNat + data.length) ∗
       ∃ (nn : Nat) (m' : OsMeta) (bs' : List (w8 × Bool)),
-        ⌜WReach m bs off.toNat data nn m' bs' ∧
+        ⌜WReach C m bs off.toNat data nn m' bs' ∧
           ((n = W64 data.length ∧ err = interface.nil ∧ off.toNat + data.length ≤ m'.size ∧
               ∀ i < data.length, (bs'[off.toNat + i]?).map Prod.fst = data[i]?) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
