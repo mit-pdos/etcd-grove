@@ -110,6 +110,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   iunfold authnSlot at Hslot
   icases Hslot with ⟨Hlt, Hlg, Hrr, Hrd⟩
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
+  ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   ihave #Hin : v3rpc.authInnerOk s go!"Authenticate" (GoInterface.ok ci) r
       iprop(structFieldRef etcdserverpb.AuthenticateRequest go!"Password" r ↦ m.2 ∗
         srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ E.RD)
