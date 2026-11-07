@@ -370,6 +370,9 @@ axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bridge.New.wp_proof
+axiom bridge.bridge.Blackhole.wp_proof
+axiom bridge.bridge.DropConnections.wp_proof
+axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Bytes.wp_proof
@@ -386,8 +389,6 @@ axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
-axiom context.Err.wp_proof
-axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
