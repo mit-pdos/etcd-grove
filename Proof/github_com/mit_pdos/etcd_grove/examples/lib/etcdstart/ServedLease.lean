@@ -21,7 +21,7 @@ that cluster, the plan's Q1). The grant handler calls the server's (`v3rpc.lesso
 pass 2(c), 2026-11-06): the same, with the member's `Watch` stream served at the address,
 `noRefusalAt` and `srvGoRes` (what `cluster3.memberServed` keeps in every lease mode).
 
-Why one member's lessor (review S5): the contracts name `E.γ.leases`, this member's, not a
+Why one member's lessor (review S5): the contracts name `(mvcc.api.mvccLeases E.γ)`, this member's, not a
 cluster-level certificate, because Go's listing is member-local: `LeaseLeases` reads the member's
 own lessor without a read index (`v3_server.go:737-749`), so a lagging member need not list a lease
 the cluster granted, and a cluster-level contract would be false. With several endpoints the client
@@ -57,13 +57,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **`LeaseGrant` and `LeaseLeases` registered at the specs at the lessor `E.γ.leases`'s
+/-- **`LeaseGrant` and `LeaseLeases` registered at the specs at the lessor `(mvcc.api.mvccLeases E.γ)`'s
 history** (persistent). Per member, not per cluster: `LeaseLeases` is a member-local read (see
 the file header). -/
 def etcdLeaseGrantAt (addr : GoString) (E : apply.AEnv GF) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
-      (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases))
+      (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) (mvcc.api.mvccLeases E.γ)) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec (mvcc.api.mvccLeases E.γ)))
 
 instance etcdLeaseGrantAt_persistent (addr : GoString) (E : apply.AEnv GF) :
     Persistent (etcdLeaseGrantAt addr E) := by
@@ -75,15 +75,15 @@ elimination a client uses in place of unfolding the definition). -/
 theorem etcdLeaseGrantAt_elim (addr : GoString) (E : apply.AEnv GF) :
     etcdLeaseGrantAt addr E ⊢
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
-          (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases) := by
+          (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) (mvcc.api.mvccLeases E.γ)) ∗
+        isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec (mvcc.api.mvccLeases E.γ)) := by
   iintro #H
   iunfold etcdLeaseGrantAt at H
   iexact H
 
 /-- **`LeaseGrant`, `LeaseTimeToLive` and `LeaseLeases` registered at the revocable mode's specs**
 (persistent; the lease-expiry plan's X2, 2026-11-04, the reads since E3, 2026-11-05): a grant's reply
-carries its lease live in the lessor `E.γ.leases`'s history and its request, the requested TTL
+carries its lease live in the lessor `(mvcc.api.mvccLeases E.γ)`'s history and its request, the requested TTL
 (`etcdLeaseGrantSpecLive`; the lease-expiry plan's S2–S4, Q-S8; review r1 F12: until then the
 lease's read-only `ttl` field at least the request); a TTL reply, at the caller's lower bound of the history, the lease's TTL there or its absence, under the
 lease-TTL row of the server `s` (`etcdLeaseTTLSpecLive`); a listing, the lease ids of a snapshot no
@@ -91,9 +91,9 @@ older than the caller's lower bound (`etcdLeaseLeasesSpecLive`: no grant listed,
 revoked it). -/
 def etcdLeaseGrantLiveAt (addr : GoString) (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
-      (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive E.γ.leases s) ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecLive E.γ.leases))
+      (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) (mvcc.api.mvccLeases E.γ)) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) s) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecLive (mvcc.api.mvccLeases E.γ)))
 
 instance etcdLeaseGrantLiveAt_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) :
     Persistent (etcdLeaseGrantLiveAt addr s E) := by
@@ -206,18 +206,18 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   iunfold srvLeaseRd at Hlr
   icases Hlr with ⟨%on, #Hli⟩
   ihave ⟨#Hlrd, #Hpool⟩ := lease.srvInv_lessorRd on s E m $$ Hli
-  ihave #HLR := v3rpc.raftLeaseRead_server s E ρ γr E.γ.leases cs ms HT
+  ihave #HLR := v3rpc.raftLeaseRead_server s E ρ γr (mvcc.api.mvccLeases E.γ) cs ms HT
       (Nat.le_trans Hrb (Nat.pow_le_pow_right (by decide) (by decide))) hP $$ []
   · iframe #
   -- the lower bounds `0`
-  ihave #HRI : lease.lessorRdInv E.γ.leases $$ []
+  ihave #HRI : lease.lessorRdInv (mvcc.api.mvccLeases E.γ) $$ []
   · iunfold srvLessorRd at Hlrd
     icases Hlrd with ⟨%lp, -, #Hinv⟩
     iunfold lease.lessorInv at Hinv
     icases Hinv with ⟨-, -, -, #H⟩
     iexact H
-  imod (lease.lessorLb_get E.γ.leases ⊤ (fun _ _ => CoPset.mem_full)) $$ HRI with ⟨%m0, #Hlb⟩
-  ihave #Hlb0 := lease.lessorLb_le E.γ.leases 0 (Nat.zero_le _) $$ Hlb
+  imod (lease.lessorLb_get (mvcc.api.mvccLeases E.γ) ⊤ (fun _ _ => CoPset.mem_full)) $$ HRI with ⟨%m0, #Hlb⟩
+  ihave #Hlb0 := lease.lessorLb_le (mvcc.api.mvccLeases E.γ) 0 (Nat.zero_le _) $$ Hlb
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hpub
   -- the lease reads' meets, at the slot
   iunfold grpcLeaseUp at Hlu
@@ -228,7 +228,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   cases m with
   | none =>
     -- the KV calls and the lease reads
-    ihave #Hlms := client.etcd_leaseReadMethodsOk pl ql s C.A lcid lmid E γr E.γ.leases il im iu
+    ihave #Hlms := client.etcd_leaseReadMethodsOk pl ql s C.A lcid lmid E γr (mvcc.api.mvccLeases E.γ) il im iu
         (by rw [HCA]; rfl) $$ []
     · iframe #
     rw [HCA]
@@ -312,7 +312,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
     ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
-    ihave #H2a := isGrpcRpc_leaseLeases_any addr E.γ.leases $$ H2'
+    ihave #H2a := isGrpcRpc_leaseLeases_any addr (mvcc.api.mvccLeases E.γ) $$ H2'
     imodintro
     iframe Hserv Hgo
     isplitl [Hss Hwslots]
@@ -371,8 +371,8 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
     ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
     -- the lease reads at the old specs, from the revocable mode's, at the lower bound `0`
-    ihave #H1a := isGrpcRpc_leaseTTL_live_any addr E.γ.leases s 0 $$ [$Hlb0 $H1']
-    ihave #H2a := isGrpcRpc_leaseLeases_live_any addr E.γ.leases 0 $$ [$Hlb0 $H2']
+    ihave #H1a := isGrpcRpc_leaseTTL_live_any addr (mvcc.api.mvccLeases E.γ) s 0 $$ [$Hlb0 $H1']
+    ihave #H2a := isGrpcRpc_leaseLeases_live_any addr (mvcc.api.mvccLeases E.γ) 0 $$ [$Hlb0 $H2']
     imodintro
     iframe Hserv Hgo
     isplitl [Hss Hwslots]

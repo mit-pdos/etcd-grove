@@ -6,10 +6,10 @@ The steps: `config()`; `cluster3.StartCluster` at the monotone lease mode (`leas
 `leasePeersOk`), whose success gives each member at its bridge (`cluster3.memberAt … .mono`), and
 of it the grant and listing at its lessor's history registered at the bridge's address
 (`cluster3.memberAt_mono`); `etcdstart.NewClients` of member 3's bridge, then of member 1's;
-`grant(c3)` at `etcdLeaseGrantSpec E₃.γ.leases`, `Q` keeping `g1` granted at an index of member 3's
+`grant(c3)` at `etcdLeaseGrantSpec (mvcc.api.mvccLeases E₃.γ)`, `Q` keeping `g1` granted at an index of member 3's
 lessor history; the two cuts (`cluster3.PeerStep`, over the members' `srvPeerCtl`s); the fillers
 (`grant(c1)` at member 1's spec, `Q = True`: only the last filler's id is kept); the two mends; the
-polls, each `leases(c3)` at `etcdLeaseLeasesSpec E₃.γ.leases` handing in `[g1]` with its grant, so
+polls, each `leases(c3)` at `etcdLeaseLeasesSpec (mvcc.api.mvccLeases E₃.γ)` handing in `[g1]` with its grant, so
 that `Q` says the listing lists `g1`, and `listed`; the panic is unreachable.
 -/
 module
@@ -141,8 +141,8 @@ theorem run.wp_proof
   wp_auto
   -- 1. `g1, err := grant(c3)`, `Q`: `g1` granted at an index of member 3's lessor history
   wp_apply (wp_grant c3 [clusterCfg.Bridge3'] _
-      (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₃) E₃.γ.leases)
-      (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt E₃.γ.leases i m.id))) as %g1 %gerr Hg1
+      (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₃) (mvcc.api.mvccLeases E₃.γ))
+      (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt (mvcc.api.mvccLeases E₃.γ) i m.id))) as %g1 %gerr Hg1
   · iframe #
     isplitl; rotate_left; · ipureintro; exact hAs
     imodintro; inext
@@ -196,7 +196,7 @@ theorem run.wp_proof
       have h : sint.Z j < sint.Z (W64 20) := by simpa using Hif
       exact h
     wp_apply (wp_grant c1 [clusterCfg.Bridge1'] _
-        (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₁) E₁.γ.leases)
+        (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₁) (mvcc.api.mvccLeases E₁.γ))
         (fun _ => iprop(True))) as %f %ferr Hf
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
@@ -248,7 +248,7 @@ theorem run.wp_proof
   · have Hlt : sint.Z q < (60 : Nat) := by
       have h : sint.Z q < sint.Z (W64 60) := by simpa using Hif
       exact h
-    wp_apply (wp_leases c3 [clusterCfg.Bridge3'] _ (etcdLeaseLeasesSpec E₃.γ.leases)
+    wp_apply (wp_leases c3 [clusterCfg.Bridge3'] _ (etcdLeaseLeasesSpec (mvcc.api.mvccLeases E₃.γ))
         (fun m => iprop(⌜mg.id ∈ m.ids⌝))) as %ls %lerr Hls
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs

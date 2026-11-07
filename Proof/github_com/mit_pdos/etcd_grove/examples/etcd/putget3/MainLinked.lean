@@ -6,6 +6,7 @@
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_uber_org.zap.NewNop
@@ -42,7 +43,7 @@ theorem etcd_putget3.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v
     etcd_putget3.Main.spec (GF := GF) (hG := hG) :=
   etcd_putget3.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartMember etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny
+    context.wp_ErrAny mvcc.api.mvccApi_names_nonempty_law_holds
 
 end results
 

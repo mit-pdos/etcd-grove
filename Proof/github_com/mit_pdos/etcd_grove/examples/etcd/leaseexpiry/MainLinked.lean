@@ -10,6 +10,7 @@ is linked. `Results.lean` restates it.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
@@ -51,7 +52,7 @@ theorem etcd_leaseexpiry.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.clie
   etcd_leaseexpiry.Main.wp_proof zap.NewNop.wp_proof etcd_leaseexpiry.holdToken.wp_proof etcdstart.wp_StartServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny time.wp_Sleep client.v3.lessor.wp_Grant client.v3.lessor.wp_TimeToLive
-    client.v3.lessor.wp_Leases (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases)
+    client.v3.lessor.wp_Leases (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases) mvcc.api.mvccApi_names_nonempty_law_holds
 
 end results
 

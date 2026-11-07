@@ -391,9 +391,9 @@ theorem MainWatch.wp_proof
     [⟨bridgeAddr₁, E₁, ρ₁.rd, cid₁, mid₁⟩, ⟨bridgeAddr₂, E₂, ρ₂.rd, cid₂, mid₂⟩,
       ⟨bridgeAddr₃, E₃, ρ₃.rd, cid₃, mid₃⟩]
   have hms : ms.map client.SrvAt.addr = [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] := rfl
-  imod mvcc.idxCert_nil (GF := GF) E₁.γ.idx with #HF₁
-  imod mvcc.idxCert_nil (GF := GF) E₂.γ.idx with #HF₂
-  imod mvcc.idxCert_nil (GF := GF) E₃.γ.idx with #HF₃
+  imod v3rpc.kvLogLb_nil (GF := GF) E₁.γs with #HF₁
+  imod v3rpc.kvLogLb_nil (GF := GF) E₂.γs with #HF₂
+  imod v3rpc.kvLogLb_nil (GF := GF) E₃.γs with #HF₃
   ihave #Hmps : ([∗list] x ∈ ms, memberPut γ.kv x) $$ []
   · iapply BigSepL.bigSepL_cons.2
     isplitr

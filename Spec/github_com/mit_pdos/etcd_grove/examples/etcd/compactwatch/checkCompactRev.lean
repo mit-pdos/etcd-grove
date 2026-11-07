@@ -45,7 +45,7 @@ abbrev checkCompactRev.spec : Prop :=
       isNewClient cl [go!"127.0.0.1:23794"]
         (srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null γr.kv) ∗
       watchAddrFacts (srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null γr.kv) ∗
-      kvRegsAt (⟨go!"127.0.0.1:23794", E, γr, cid, mid⟩ : SrvAt GF) ∗ mvcc.idxCert E.γ.idx [] ∗
+      kvRegsAt (⟨go!"127.0.0.1:23794", E, γr, cid, mid⟩ : SrvAt GF) ∗ srvApi.kvLogLb E.γs [] ∗
       roundsInv γr γf γl γv keys val ∗ kvInv γr.raft γr.kv }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.checkCompactRev))
       (Val #cl)) (Val #key))

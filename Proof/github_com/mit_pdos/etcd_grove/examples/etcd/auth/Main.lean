@@ -103,7 +103,8 @@ theorem Main.wp_proof
     (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG := hG))
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_WithRange : WithRange.spec (GF := GF) (hG := hG))
-    (wp_Permitted : Permitted.spec (GF := GF) (hG := hG)) :
+    (wp_Permitted : Permitted.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
@@ -132,7 +133,7 @@ theorem Main.wp_proof
   -- the member's ghost state with auth on, the client's half of the KV state, its view of the
   -- auth history (`ak_alloc`), and the history invariant over the former (`akHist_alloc`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (ak_alloc id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (by omega) (by omega)) $$ Hmarsh
+  imod (ak_alloc hne id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %σ₀, %Hal, Hmb, #Hnet, Hetcd, Hview⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hσ₀, hc0, hlog⟩ := Hal
   ihave ⟨%Hcmp0, Hmb⟩ := etcdstart.memberBootOn_cmp γ ctxs ρ E₀ Φs id false $$ Hmb
@@ -406,7 +407,7 @@ theorem Main.wp_proof
   -- root's last write, `root.Put(ctx, "z/end", "end")` in a timeout context: admitted by the
   -- history from any state (`akHist_endAu`)
   ihave #Hend := akHist_endAu ρ.rd.kv go!"end" $$ Hhist
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E.γs with #HF0
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave #Hrtk0 := Hrtk
   iunfold clientTokAt at Hrtk0

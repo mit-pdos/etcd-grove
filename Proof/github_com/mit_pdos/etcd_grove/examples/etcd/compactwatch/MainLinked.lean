@@ -14,6 +14,7 @@ is linked. `Results.lean` restates it.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.checkCompactRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -61,7 +62,7 @@ theorem etcd_compactwatch.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.cli
   etcd_compactwatch.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch etcdstart.wp_Collect
-    etcd_compactwatch.wp_checkCompactRev
+    etcd_compactwatch.wp_checkCompactRev mvcc.api.mvccApi_names_nonempty_law_holds
 
 end results
 

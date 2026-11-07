@@ -102,7 +102,7 @@ theorem Work.wp_proof
   icases Htok0 with ⟨%api, %conn, #Hkvf, #Hobj, #Hat, -, -⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E.γs with #HF0
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave #Henv : akCallEnv cl api conn s E ρ cid mid γa Lset n who $$ []
   · unfold akCallEnv; iframe #

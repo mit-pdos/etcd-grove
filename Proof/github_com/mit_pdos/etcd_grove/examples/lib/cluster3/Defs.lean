@@ -362,13 +362,13 @@ instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqN
 /-- **A member of the started cluster in the monotone mode gives its bridge's grant and listing**
 (lease-mono3's review r1, SF2): `LeaseGrant` and `LeaseLeases` registered at the bridge's address
 `b` at the specs at the member's lessor history (`etcdLeaseGrantSpec`, `etcdLeaseLeasesSpec` of
-`E.γ.leases`), its client address's registrations forwarded (`isGrpcRpc_forwards`). -/
+`(mvcc.api.mvccLeases E.γ)`), its client address's registrations forwarded (`isGrpcRpc_forwards`). -/
 theorem memberAt_mono (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
     (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) (cmp : Bool) :
     memberAt γn s id ρ E cid mid R b c γ cmp .mono ⊢
       isGrpcRpc b go!"/etcdserverpb.Lease/LeaseGrant"
-          (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
-        isGrpcRpc b go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases) := by
+          (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) (mvcc.api.mvccLeases E.γ)) ∗
+        isGrpcRpc b go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec (mvcc.api.mvccLeases E.γ)) := by
   iintro #Hm
   iunfold memberAt at Hm
   icases Hm with ⟨#Hfw, -, Hs, -⟩

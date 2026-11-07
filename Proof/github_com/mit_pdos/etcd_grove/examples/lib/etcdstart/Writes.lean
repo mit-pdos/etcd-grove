@@ -61,7 +61,9 @@ theorem okFact_of_reply (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (k 
   · ipureintro; rw [hz]; omega
   iexists x'.log
   isplitr
-  · iapply mvcc.idxCert_sealed; iexact Hc
+  · iunfold client.srvLogCert at Hc
+    icases Hc with ⟨#Hlb, -⟩
+    iexact Hlb
   ipureintro
   rw [hz, hlog]
   simp [client.putKeyOp, txn.putOpOf, txn.putChangeOf, txn.putValOf, txn.putLeaseOf]

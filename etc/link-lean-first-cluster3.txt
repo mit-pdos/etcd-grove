@@ -33,7 +33,7 @@ bridge__DropConnections:
 cluster3_ClientStep: bridge__Blackhole bridge__Unblackhole bridge__DropConnections
 cluster3_Partitioner: cluster3_PeerStep cluster3_ClientStep
 # `StartCluster`: the members and the bridges (W4 of `notes/watch-cut-plan.md`)
-cluster3_StartCluster: cluster3_StartMember cluster3_StartBridge
+cluster3_StartCluster: cluster3_StartMember cluster3_StartBridge =mvcc.api.mvccApi_names_nonempty_law_holds
 # `NewClient`: the examples' client constructor (common's `Link.lean`; notes/client-timeouts-plan.md)
 etcdstart_NewClients: @
 cluster3_NewClient: etcdstart_NewClients

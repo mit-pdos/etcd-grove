@@ -194,7 +194,7 @@ theorem restartCheck.wp_proof
   · rw [putGetInv_st ρ'.rd γr (by rw [Hst', Hst]) γf]
     iexact Hinv
   imod monoNatLbOwn_0 (GF := GF) ρ'.rd.committed with #Hc0
-  imod mvcc.idxCert_nil (GF := GF) E'.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E'.γs with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
     iexists ([] : List GoFunc)

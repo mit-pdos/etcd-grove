@@ -12,7 +12,7 @@ then it panics unless that listing also lists `g1`. Lean-first (no Rocq counterp
 the cluster's named premises (`cluster3.premises` at `clusterCfg`), `run(lg)`, at a logger `lg`
 (not null), returns (some `int`): it does not panic. The cluster runs in the monotone lease mode
 (`StartCluster` at `.mono`), so member 3 registers the grant and the listing at its lessor's history
-(`etcdLeaseGrantSpec`, `etcdLeaseLeasesSpec` of `E₃.γ.leases`, forwarded by its bridge): the grant's
+(`etcdLeaseGrantSpec`, `etcdLeaseLeasesSpec` of `(mvcc.api.mvccLeases E₃.γ)`, forwarded by its bridge): the grant's
 reply carries `g1` granted at an index of member 3's lessor history (`leaseGrantedAt`), and any
 listing of member 3 lists every lease granted there. That a listing still lists `g1` after member 3
 has installed the leader's snapshot is the monotone lessor's (S2–S4's `Recover` premise, `mono → L ⊆

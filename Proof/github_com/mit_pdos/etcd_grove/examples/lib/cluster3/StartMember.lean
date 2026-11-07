@@ -156,7 +156,7 @@ theorem StartMember.wp_proof
   subst Hcerr
   wp_auto
   -- `s.Start()`
-  wp_apply (etcdstart.wp_Start_built wp_Start srv ρ E₀ lg γn id N _ HrbN lm) $$ [Hmb Htok] as Hup
+  wp_apply (etcdstart.wp_Start_built wp_Start srv ρ E₀ lg γn id N _ HrbN lm Hrb48) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,

@@ -46,7 +46,7 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- **The watch server's store certifies the start log** (`isStore`'s `[[], []]`; watchkv's
 `cert0_of_server`). -/
 theorem cert0_of_server (p : Loc) (R : v3rpc.WSrv GF) :
-    v3rpc.isWatchServer (GF := GF) p R ⊢ mvcc.idxCert R.E.γ.idx [[], []] := by
+    v3rpc.isWatchServer (GF := GF) p R ⊢ srvApi.kvLogLb R.E.γs [[], []] := by
   iintro #H
   iunfold v3rpc.isWatchServer at H
   icases H with ⟨-, -, -, -, -, -, -, -, Hok⟩

@@ -40,7 +40,7 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **A member as a writer's put sees it** (persistent; see the file header). -/
 def memberPut (γk : KVNames) (x : client.SrvAt GF) : IProp GF :=
-  iprop(client.kvRegsAt x ∗ mvcc.idxCert x.E.γ.idx [] ∗ ⌜x.γr.kv.st = γk.st⌝)
+  iprop(client.kvRegsAt x ∗ srvApi.kvLogLb x.E.γs [] ∗ ⌜x.γr.kv.st = γk.st⌝)
 
 instance memberPut_persistent (γk : KVNames) (x : client.SrvAt GF) :
     Persistent (memberPut (GF := GF) γk x) := by
@@ -83,7 +83,7 @@ theorem client_Put_km [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : Li
   ihave #Hregs : ([∗list] x ∈ ms, client.kvRegsAt x) $$ [Hms]
   · iapply (BigSepL.bigSepL_mono (Φ := fun _ x => memberPut (GF := GF) γk x) fun _ => by
       iintro #H; iunfold memberPut at H; icases H with ⟨#H1, -⟩; iexact H1) $$ Hms
-  ihave #HF : ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) $$ [Hms]
+  ihave #HF : ([∗list] x ∈ ms, srvApi.kvLogLb x.E.γs []) $$ [Hms]
   · iapply (BigSepL.bigSepL_mono (Φ := fun _ x => memberPut (GF := GF) γk x) fun _ => by
       iintro #H; iunfold memberPut at H; icases H with ⟨-, #H1, -⟩; iexact H1) $$ Hms
   have hau := client.bigAndL_of_sep ms (kvOpAu1 (GF := GF) γk (.put (client.putKeyOp key val)) Q)

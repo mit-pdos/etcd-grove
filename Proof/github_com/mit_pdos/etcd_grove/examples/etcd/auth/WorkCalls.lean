@@ -773,7 +773,7 @@ def akCallEnv (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api : GoInterface) ∗
     kvObjAtC api conn [go!"127.0.0.1:23916"] ∗ attemptTokOk conn (akTokP γa who) ∗
     akKVOn go!"127.0.0.1:23916" s E ρ cid mid ∗ □ (srvTLSId s -∗ False) ∗ akHistInv ρ.kv ∗
-    akAuthFixed γa ρ Lset n ∗ mvcc.idxCert E.γ.idx [] ∗ optsAt slice.nil [])
+    akAuthFixed γa ρ Lset n ∗ srvApi.kvLogLb E.γs [] ∗ optsAt slice.nil [])
 
 instance akCallEnv_persistent (cl api conn : Loc) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString) :
