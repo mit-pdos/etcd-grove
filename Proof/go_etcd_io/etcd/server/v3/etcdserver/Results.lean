@@ -887,7 +887,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
     (hsch : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none)
     (hfin : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none)
     (γl : GName) (f : GoFunc) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) (hT : threadBound GF ≤ mvcc.api.mvccReaderN) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -919,7 +919,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
     with ⟨Hsto, Hrest, Hrt1, Hrt2⟩
   · iframe Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos
   rw [← mvcc.api.etcdStorage_val d]
-  iapply (mvcc.api.mvccApi_NewStore_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0 hcfg hrb hT)
+  iapply (mvcc.api.mvccApi_NewStore_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0 hcfg hrb)
     $$ [Hsto Hlrd Hro]
   · iframe Hpkg Hbpkg Hsch Hsto Hlrd Hle Hro
   inext
@@ -943,7 +943,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     (hsch : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none)
     (hfin : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none)
     (γl : GName) (f : GoFunc) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) (hT : threadBound GF ≤ mvcc.api.mvccReaderN) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -976,7 +976,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     with ⟨Hsto, Hrest, Hrt1, Hrt2⟩
   · iframe Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos
   rw [← mvcc.api.etcdStorage_val d]
-  iapply (mvcc.api.mvccApi_New_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0 hcfg hrb hT)
+  iapply (mvcc.api.mvccApi_New_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0 hcfg hrb)
     $$ [Hsto Hlrd Hro]
   · iframe Hpkg Hbpkg Hsch Hsto Hlrd Hle Hro
   inext
@@ -1074,7 +1074,7 @@ theorem server_kv_backend_hooks (lg : Loc) (le : GoInterface) (γA : ApplyNames)
     (hsch : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none)
     (hfin : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none)
     (γl : GName) (f : GoFunc) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) (hT : threadBound GF ≤ mvcc.api.mvccReaderN) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -1100,7 +1100,7 @@ theorem server_kv_backend_hooks (lg : Loc) (le : GoInterface) (γA : ApplyNames)
           mvcc.api.backendRest d.γB d.P K d.be D ∗
           backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be }} :=
   server_kv_backend lg le cfg d hP hlp hcm (fun γB => batchLockInv γA (metaTM γB d.P)) K D hk hsch hfin
-    γl f rd0 hcfg hrb hT
+    γl f rd0 hcfg hrb
 
 /-- **The lessor's contracts, of the real lessor** (unit 8, 2026-10-13): the lessor at `lp`
 (`lease.lessorInv`) is the txn package's `isTxnLessor` (mvcc's `isLessor`, and `Lookup` for the

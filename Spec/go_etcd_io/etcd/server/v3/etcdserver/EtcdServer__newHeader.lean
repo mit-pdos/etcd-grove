@@ -30,15 +30,16 @@ then `isServerRead`, the mode off's). (Strict M1, 2026-11-06: the draft's `newHe
 the witness `E.Nx` (`kvNx γr on` by the KV invariants' tie, as `rangeReadOkM`): the thread's token in
 place of the store's reader slot, the log read a floor `kvLogLb`, with its witness, its receipt and
 `LogWf'`. The reader tokens of mvcc's API, 2026-11-06: and a reader token of the store,
-`mvccReaders E.γ 1`, `KV.Rev`'s, given back.) -/
+`mvccReaders E.γ 1`, `KV.Rev`'s, given back; R8's second round, 2026-11-07: no `threadTok`, mvcc's
+`KV.Rev` takes none.) -/
 abbrev EtcdServer.newHeader.spec : Prop :=
   ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cl : Loc) (mid cid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReadM on s E γr ∗ srvClusterAddr s ↦□ cl ∗ membership.clusterCid cl cid ∗
       srvMemberIDAddr s ↦□ mid ∗ srvLeadInv s ∗
-      threadTok ∗ mvcc.api.mvccReaders E.γ 1 }}
+      mvcc.api.mvccReaders E.γ 1 }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"newHeader")) (Val #()))
-  {{ (h : Loc), RET #h; threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗
+  {{ (h : Loc), RET #h; mvcc.api.mvccReaders E.γ 1 ∗
       ∃ (v : etcdserverpb.ResponseHeader) (log : mvcc.Log), h ↦ v ∗ srvApi.kvLogLb E.γs log ∗
         E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
         ⌜mvcc.LogWf' log ∧ log ≠ [] ∧ v.ClusterId' = cid ∧ v.MemberId' = mid ∧

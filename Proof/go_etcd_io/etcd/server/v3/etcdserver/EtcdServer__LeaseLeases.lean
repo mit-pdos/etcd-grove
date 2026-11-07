@@ -147,7 +147,7 @@ theorem EtcdServer.LeaseLeases.wp_proof
   iunfold srvHeaderFacts at Hhf'
   icases Hhf' with ⟨%cl, #Hcl, #Hcid, #Hmid, #Hlead⟩
   (try wp_auto)
-  wp_apply (hHdr E.authOn s E γr cl mid cid) $$ [$Hst $Hrk] as %h ⟨Hst, Hrk, Hh⟩
+  wp_apply (hHdr E.authOn s E γr cl mid cid) $$ [$Hrk] as %h ⟨Hrk, Hh⟩
   · iframe #
   (try wp_auto)
   ihave #Hc := Hok $$ %rfl

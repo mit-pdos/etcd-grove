@@ -472,10 +472,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
               iexact HW
             icases srvApplyKV_core s E' ρ.wait x' $$ HKV with ⟨%ua, HKVc, HKVk⟩
             -- the apply goroutine's token, lent to the commit
-            iunfold srvGoRes at Hgr
-            icases Hgr with ⟨HgrW, HthT⟩
-            ihave HthT : apply.applyTok (GF := GF) E' $$ [HthT Hrdk]
-            · iunfold apply.applyTok; iframe HthT Hrdk
+            ihave HthT : apply.applyTok (GF := GF) E' $$ [Hrdk]
+            · iunfold apply.applyTok; iexact Hrdk
             imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe false s
                 γ' ci TM' E' ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' hci'
                 (fun _ => False) (fun _ => True) emp (fun _ h => h.elim)
@@ -492,9 +490,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
               with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, -, %Hst3⟩
             ihave HKV := HKVk $$ HKVc
             iunfold apply.applyTok at HthT
-            icases HthT with ⟨HthT, Hrdk⟩
-            ihave Hgr : srvGoRes s $$ [HgrW HthT]
-            · iunfold srvGoRes; iframe HgrW HthT
+            irename HthT => Hrdk
             -- the merged message sent: of a term committed through the applied index (the batch's
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt

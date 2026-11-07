@@ -154,9 +154,9 @@ local macro "compact_ok_tail" : tactic => `(tactic| (
   ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) Hp Hr E.kv E.γ E.γs logS $$ HkS Hc0
   ihave #Hkv' : mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
   · rw [← Hkveq, Hkveq0]; iexact Hkv
-  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.γs logS)) $$ [Htt Hmr HAU]
-    as %rev ⟨Htt, Hmr, %σ, Hrdq, %Hrev⟩
-  · iframe #; iframe Htt Hmr
+  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.γs logS)) $$ [Hmr HAU]
+    as %rev ⟨Hmr, %σ, Hrdq, %Hrev⟩
+  · iframe #; iframe Hmr
     iunfold srvApi.auRead at HAU
     iexact HAU
   iunfold srvApi.kvReadAtG at Hrdq
@@ -189,7 +189,7 @@ local macro "compact_ok_post" : tactic => `(tactic| (
   ihave ⟨Hrsp, %Hrplnn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hrsp
   iStructNamed Hrsp
   iapply HΦ
-  iframe Hlt Hlr Hrd Htt Hmr
+  iframe Hlt Hlr Hrd Hmr
   iunfold compactOutIs
   ileft
   isplitr
@@ -224,7 +224,7 @@ theorem EtcdServer.Compact.wp_proof
   have hPIRRO := EtcdServer.processInternalRaftRequestOnce.spec_off hPIRRO0
   intro s E ρ ctx cd p r Hr1
   haveI := Hp.1
-  wp_start as ⟨#Hsrv, %Hcmp, #Hsrd, Hlt, Hlr, Hrd, Htt, Hmr, #Hcred, #Hctx, #Hspc, #Htrc, #Hlb, Hreq⟩
+  wp_start as ⟨#Hsrv, %Hcmp, #Hsrd, Hlt, Hlr, Hrd, Hmr, #Hcred, #Hctx, #Hspc, #Htrc, #Hlb, Hreq⟩
   ihave ⟨%logS, #Hc0, %HlogS⟩ := isServerRead_log0 s E ρ.rd $$ Hsrd
   -- the store invariant (the readers' view's KV invariants), for `s.kv.Rev()`
   ihave #Hkvi := isServerRead_kvInvs s E ρ.rd $$ Hsrd
@@ -441,7 +441,7 @@ theorem EtcdServer.Compact.wp_proof
           wp_apply HEnd
           (try wp_auto)
           iapply HΦ
-          iframe Hlt Hlr Hrd Htt Hmr
+          iframe Hlt Hlr Hrd Hmr
           iunfold compactOutIs
           iright
           isplitr
@@ -513,7 +513,7 @@ theorem EtcdServer.Compact.wp_proof
           wp_apply HEnd
           (try wp_auto)
           iapply HΦ
-          iframe Hlt Hlr Hrd Htt Hmr
+          iframe Hlt Hlr Hrd Hmr
           iunfold compactOutIs
           iright
           isplitr
@@ -529,7 +529,7 @@ theorem EtcdServer.Compact.wp_proof
       wp_apply HEnd
       (try wp_auto)
       iapply HΦ
-      iframe Hlt Hlr Hrd Htt Hmr
+      iframe Hlt Hlr Hrd Hmr
       iunfold compactOutIs
       iright
       isplitr

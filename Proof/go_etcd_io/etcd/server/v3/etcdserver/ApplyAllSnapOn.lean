@@ -529,10 +529,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             -- (#7-on) the auth row lends the auth buckets to the window
             ihave HL := srvAuthApplyResB_lend s E' _ γa hM' $$ HAr
             -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
-            iunfold srvGoRes at Hgr
-            icases Hgr with ⟨HgrW, HthT⟩
-            ihave HthT : apply.applyTok (GF := GF) E' $$ [HthT Hrdk]
-            · iunfold apply.applyTok; iframe HthT Hrdk
+            ihave HthT : apply.applyTok (GF := GF) E' $$ [Hrdk]
+            · iunfold apply.applyTok; iexact Hrdk
             imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe true
                 s γ' ci TM' E' ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' hci'
                 auth.authBkts (authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A'))
@@ -549,9 +547,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
               with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
             ihave HKV := HKVk $$ HKVc HAr
             iunfold apply.applyTok at HthT
-            icases HthT with ⟨HthT, Hrdk⟩
-            ihave Hgr : srvGoRes s $$ [HgrW HthT]
-            · iunfold srvGoRes; iframe HgrW HthT
+            irename HthT => Hrdk
             -- the apply thread's compaction revision `-1` (the image's log's, a mode-on one)
             imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI0 Hrli HA' with %HplA'
             have hcr : x'.crev = -1 := by rw [hxcr]; exact crevOf_plainOn γr.kv A' HplA'

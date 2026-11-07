@@ -67,9 +67,9 @@ theorem srvKVCommitOk_of_kv [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.As
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       □ mvcc.api.isMvcc kv γ ⊢
       srvKVCommitOk kv
-        iprop(threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ mvcc.api.mvccBackend γ q B Pk ∗ X ∗
+        iprop(mvcc.api.mvccReaders γ 1 ∗ mvcc.api.mvccBackend γ q B Pk ∗ X ∗
           mvcc.api.storageReq B Pk X Y ∗ F)
-        iprop(threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ mvcc.api.mvccBackend γ q B Pk ∗ Y ∗ F) := by
+        iprop(mvcc.api.mvccReaders γ 1 ∗ mvcc.api.mvccBackend γ q B Pk ∗ Y ∗ F) := by
   iintro ⟨#Hpkg, #Hkv⟩
   ihave %Hsh := hsh.1 kv γ $$ Hkv
   obtain ⟨ty, v, rfl, -, -, -, -, -, -, -, -, hC, -⟩ := Hsh
@@ -77,10 +77,10 @@ theorem srvKVCommitOk_of_kv [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.As
   iexists ⟨ty, v⟩
   isplitr
   · ipureintro; rfl
-  iintro %Φ !> ⟨Ht, Hmr, Hb, HX, #Hrq, HF⟩ HΦ
-  iapply (hC γ q B Pk X Y) $$ [Ht Hmr Hb HX]
+  iintro %Φ !> ⟨Hmr, Hb, HX, #Hrq, HF⟩ HΦ
+  iapply (hC γ q B Pk X Y) $$ [Hmr Hb HX]
   · iframe #; iframe
-  iintro !> ⟨Ht, Hmr, Hb, HY⟩
+  iintro !> ⟨Hmr, Hb, HY⟩
   iapply HΦ
   iframe
 
@@ -549,7 +549,7 @@ theorem mergedCreate_window
   haveI := srvApi.kvStoreInvG_persistent hPers E.kv E.γ E.Nx E.Cp E.γs
   iintro ⟨#Hpkg, #Hsrv, #Hkva, #Hkv, #Hpool, Hr1, Hl1, Htk, Hst, Hab, Hca, HKV, HRs, HL⟩
   iunfold apply.applyTok at Htk
-  icases Htk with ⟨Ht, Hmr⟩
+  irename Htk => Hmr
   ihave ⟨#Hks, %Hwit⟩ := isServerM_kvStoreInv on s γ ci TM E ρ γr $$ Hsrv
   obtain ⟨hw1, hw2, hw3, hw4⟩ := Hwit
   -- the server's backend, its hooks and the protocol (`srvBeHooked`, `srvEnvOk`, `isServerCI`)
@@ -638,12 +638,12 @@ theorem mergedCreate_window
   have hPkd : E.Pk d = batchLockInv γ (metaTM d.γB d.P) := hPk
   imodintro
   iexists srvBeIface d.be, DFrac.own (1 : Qp).half
-  iexists iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗
+  iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗
       mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d) ∗ applyThread γ st ∗
       mvcc.api.storageReq (mvcc.api.etcdStorage d) (E.Pk d) (applyThread γ st) (freezeY γ st) ∗ emp)
-  iexists iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗
+  iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗
       mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d) ∗ freezeY γ st ∗ emp)
-  iexists iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗
+  iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗
       (mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d) ∗
       backend.bOpen d.γB backend.rdOpen ∗ backend.wbTok d.γB ∗
       (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
@@ -654,7 +654,7 @@ theorem mergedCreate_window
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         backend.rbPart d.γB SA ra)) ∗
       srvApi.wSt E.γs x.log x.crev))
-  iexists iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗ (backend.bOpen d.γB backend.rdOpen ∗
+  iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗ (backend.bOpen d.γB backend.rdOpen ∗
       (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
           (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
@@ -671,8 +671,8 @@ theorem mergedCreate_window
   · iapply srvKVCommitOk_of_kv hsh kv E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d)
       (applyThread γ st) (freezeY γ st) emp
     iframe #
-  isplitl [Ht Hmr HmB Hst]
-  · iframe Ht Hmr HmB Hst
+  isplitl [Hmr HmB Hst]
+  · iframe Hmr HmB Hst
     rw [mvcc.api.etcdStorage_req, hPkd]
     iframe Hreq
   isplitl [Hbe]
@@ -683,7 +683,7 @@ theorem mergedCreate_window
     iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #d.be⟩
     isplitr
     · ipureintro; rfl
-    iintro %Φ !> ⟨Ht, Hmr, HmB, Ho, Hwb, HR, Hws⟩ HΦ
+    iintro %Φ !> ⟨Hmr, HmB, Ho, Hwb, HR, Hws⟩ HΦ
     wp_apply (srvApi.snapImageG hPers hReach hImg hSnap E.Nx E.Cp E.kv E.γ E.γs x.log x.crev d (E.Pk d)
         backend.rdOpen
         iprop(freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
@@ -709,7 +709,7 @@ theorem mergedCreate_window
         $$ HR' HPk Hhk Hrb'
     iapply HΦ
     simp only []
-    iframe Hsn Ht Hmr Ho HR HmB Hws
+    iframe Hsn Hmr Ho HR HmB Hws
     obtain ⟨⟨hci1, t1, ht1⟩, hrbD, hraD⟩ := HQD
     rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
     rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
@@ -726,17 +726,17 @@ theorem mergedCreate_window
     simp only [backend.rbData_lookup, hRB n (hSA n h), ↓reduceIte] at this
     exact this
   isplitl [Hopn Ht1 Hrb Hws]
-  · iintro ⟨Ht, Hmr, HmB, HY, -⟩
-    iframe Ht Hmr HmB Hopn Ht1 HY Hrb Hws
-  · iintro %D ⟨Ht, Hmr, Hopn, ⟨HY, Hrb⟩, HmB⟩ ⟨Hws, #Hmi, %Hra'⟩ Hbe
+  · iintro ⟨Hmr, HmB, HY, -⟩
+    iframe Hmr HmB Hopn Ht1 HY Hrb Hws
+  · iintro %D ⟨Hmr, Hopn, ⟨HY, Hrb⟩, HmB⟩ ⟨Hws, #Hmi, %Hra'⟩ Hbe
     icases Hrb with ⟨Hrc, Hrn, Hpa⟩
     imod Hlb $$ Hpa with HRA
     imod unfreeze γ st $$ Hinv HY with Hst
     imodintro
     iexists st
     iframe Hst Hab Hca Hmi
-    isplitl [Ht Hmr]
-    · iunfold apply.applyTok; iframe Ht Hmr
+    isplitl [Hmr]
+    · iunfold apply.applyTok; iframe Hmr
     isplitl [Hua Hub Hop Hcr Hws Hll Hrd HmB Hrdt Hopn Hra Hw Hbe Hg HbPl]
     · iunfold srvApplyKVCore
       isplitl [Hua]

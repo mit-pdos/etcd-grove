@@ -45,7 +45,7 @@ theorem EtcdServer.newHeader.wp_proof
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) := by
   intro on s E γr cl mid cid
   haveI := Hp.1
-  wp_start as ⟨#Hrd, #Hcl, #Hcid, #Hmid, #Hlead, Htt, Hmr⟩
+  wp_start as ⟨#Hrd, #Hcl, #Hcid, #Hmid, #Hlead, Hmr⟩
   iunfold isServerReadM at Hrd
   icases Hrd with ⟨%v, #Hf⟩
   iunfold srvReadFieldsAtM at Hf
@@ -79,9 +79,9 @@ theorem EtcdServer.newHeader.wp_proof
   ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) Hp Hr E.kv E.γ E.γs [] $$ HkS Hc0'
   ihave #Hkv' : mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
   · rw [← Hkveq, Hkveq0]; iexact Hkv
-  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.γs [])) $$ [Htt Hmr HAU]
-    as %rev ⟨Htt, Hmr, %σ, Hrd, %Hrev⟩
-  · iframe #; iframe Htt Hmr
+  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.γs [])) $$ [Hmr HAU]
+    as %rev ⟨Hmr, %σ, Hrd, %Hrev⟩
+  · iframe #; iframe Hmr
     iunfold srvApi.auRead at HAU
     iexact HAU
   iunfold srvApi.kvReadAtG at Hrd
@@ -94,7 +94,7 @@ theorem EtcdServer.newHeader.wp_proof
   irename «$r0» => Hh
   generalize «$r0_ptr» = h at *
   iapply HΦ
-  iframe Htt Hmr
+  iframe Hmr
   have hpre := (srvApi.reach_prefix σ Hσ.1).1
   have hlen : 2 ≤ σ.log.length := by
     have := hpre.length_le; simpa [mvcc.api.mvccStart] using this

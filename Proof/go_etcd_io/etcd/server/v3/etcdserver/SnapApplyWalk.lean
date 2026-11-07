@@ -549,7 +549,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     iunfold mvcc.api.mvccDeleter
     isplitr
     · ipureintro; intro h; injection h with _ _ h3; cases h3
-    iintro !> %q %B %Pw %Pre %Q %fw %R %Φ' !> ⟨Hthd, Hmrd, HmBd, #Hhkd, Hpre, Hrund, HAUd⟩ HΦ'
+    iintro !> %q %B %Pw %Pre %Q %fw %R %Φ' !> ⟨Hmrd, HmBd, #Hhkd, Hpre, Hrund, HAUd⟩ HΦ'
     ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
     · iPkgInit
     ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -559,8 +559,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
     (try wp_auto)
     wp_apply (hWrC E.γ tr true q B Pw Pre Q fw R)
-      $$ [Hthd Hmrd Htr HmBd Hpre Hrund HAUd] as %tw ⟨-, HmBd, Htw, HQ⟩
-    · iframe #; iframe Hthd Hmrd Htr HmBd Hpre Hrund HAUd
+      $$ [Hmrd Htr HmBd Hpre Hrund HAUd] as %tw ⟨-, HmBd, Htw, HQ⟩
+    · iframe #; iframe Hmrd Htr HmBd Hpre Hrund HAUd
       ipureintro; exact Htrnn
     (try wp_auto)
     iapply HΦ'
@@ -608,15 +608,15 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
         srvApi.wSt E.γs (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).log
           (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).crev ∗
         srvApi.crOwn E.γs (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')).crev))
-      $$ [HwSt HcrO HCp HthT HmO HmB HsF HnH Hrun Hpost HlOwn]
+      $$ [HwSt HcrO HCp HmO HmB HsF HnH Hrun Hpost HlOwn]
   · iapply (srvApi.restoreArgs_holds Hp E.kv E.γ γr E.authOn E.γs x.log x.crev A A' d d' (E.Pk d)
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) u Lr (DFrac.own (1 : Qp).half)
       func.nil iprop(True) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       iprop(True) hxA.1 hxA.2 hAA' hst.1 hit)
     simp only [srvApi.stAt_log, srvApi.stAt_crev, srvApi.kvStoreInv_eq]
-    iframe HkS HwSt HcrO HA' HCp HthT HmO HmB HsF HnH Hrun Hpost HlOwn
+    iframe HkS HwSt HcrO HA' HCp HmO HmB HsF HnH Hrun Hpost HlOwn
   iunfold srvApi.restorePreA at Hrp
-  icases Hrp with ⟨-, HthT, HmO, HmB, HsF, %Hσ', HnH, HPre, Hrun, Hpost, HX, #Hreq, HlOwn, -, HAU⟩
+  icases Hrp with ⟨-, HmO, HmB, HsF, %Hσ', HnH, HPre, Hrun, Hpost, HX, #Hreq, HlOwn, -, HAU⟩
   haveI := Hp.1
   ihave %Hsh := hsh.1 E.kv E.γ $$ HisM
   obtain ⟨kty, kvv, Hkveq, -, -, -, -, -, -, -, -, -, hRestC, -⟩ := Hsh
@@ -636,11 +636,11 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   rw [mvcc.api.etcdStorage_val] at hR
   simp only [interface.mkOk] at hR
   wp_apply hR
-    $$ [HthT HmO HmB HsF HnH HPre Hrun Hpost HX HlOwn HAU]
-    as ⟨HthT, HmO, HmB, HoRest, HnH, -, HlOwn, %σ0, %Hσ0, HwSt, HcrO⟩
+    $$ [HmO HmB HsF HnH HPre Hrun Hpost HX HlOwn HAU]
+    as ⟨HmO, HmB, HoRest, HnH, -, HlOwn, %σ0, %Hσ0, HwSt, HcrO⟩
   · iframe #
     rw [mvcc.api.etcdStorage_hook, mvcc.api.etcdStorage_req]
-    iframe HthT HmO HmB HsF HnH HPre Hrun Hpost HX HlOwn
+    iframe HmO HmB HsF HnH HPre Hrun Hpost HX HlOwn
     isplitr
     · ipureintro; exact Hσ'
     isplitr

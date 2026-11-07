@@ -158,8 +158,8 @@ theorem compactableOk_server_of (hC : EtcdServer.Compact.spec (GF := GF) (hG := 
       (by omega)
     iunfold kvRevLb at Hrev; iexact Hrev
   -- (M2, the storage side, item 35) the permit's revision is past `0`: the scope premise
-  iapply (hC s E ρ ctx cd p r (by omega)) $$ [Hlt Hlr Hrd Htt Hmr Hp]
-  · iframe Hlt Hlr Hrd Htt Hmr; iframe #
+  iapply (hC s E ρ ctx cd p r (by omega)) $$ [Hlt Hlr Hrd Hmr Hp]
+  · iframe Hlt Hlr Hrd Hmr; iframe #
     isplitr
     · ipureintro; exact hcmp
     iunfold compactReqIs
@@ -167,7 +167,7 @@ theorem compactableOk_server_of (hC : EtcdServer.Compact.spec (GF := GF) (hG := 
     iframe Hp
     ipureintro; exact Hv
   inext
-  iintro %resp %err ⟨Hlt, Hlr, Hrd, Htt, Hmr, Hout⟩
+  iintro %resp %err ⟨Hlt, Hlr, Hrd, Hmr, Hout⟩
   iapply HΦ
   iunfold srvCompactR
   iframe Hlt Hlr Hrd Hmr Htt
@@ -278,9 +278,9 @@ theorem revGetterOk_server (Hp : mvcc.api.persistent.law (GF := GF))
   iunfold srvRevLb at Hlb
   icases Hlb with ⟨%log₀, #Hc0, -, %Hn⟩
   ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) Hp Hr E.kv E.γ E.γs log₀ $$ HkS Hc0
-  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.γs log₀)) $$ [Htt Hmr HAU]
-    as %rev ⟨Htt, Hmr, %σ, Hrdq, %Hrev⟩
-  · iframe #; iframe Htt Hmr
+  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.γs log₀)) $$ [Hmr HAU]
+    as %rev ⟨Hmr, %σ, Hrdq, %Hrev⟩
+  · iframe #; iframe Hmr
     iunfold srvApi.auRead at HAU
     iexact HAU
   iunfold srvApi.kvReadAtG at Hrdq

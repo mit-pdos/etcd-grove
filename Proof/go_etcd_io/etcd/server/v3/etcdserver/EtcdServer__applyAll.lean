@@ -272,20 +272,16 @@ theorem EtcdServer.applyAll.wp_proofBatch
   have hS1 := hSINC.1 s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs nk γp
     (w + (unapplied ai ms).length) TM ρ sa' q γn
   rw [hon] at hS1
-  iunfold srvGoRes at Hgr
-  icases Hgr with ⟨Hwg, Htt⟩
   -- the apply thread's tokens (`apply.applyTok`: the goroutine's thread token and its reader token)
-  ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
-  · iunfold apply.applyTok; iframe Htt Hmr
+  ihave Htt : apply.applyTok (GF := GF) E $$ [Hmr]
+  · iunfold apply.applyTok; iexact Hmr
   wp_apply hS1 hok'
       (hciL hciA) Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1 hγn hpre
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor Htt]
     as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, Htt, %Hst''⟩
   · iframe #; iframe
   iunfold apply.applyTok at Htt
-  icases Htt with ⟨Htt, Hmr⟩
-  ihave Hgr : srvGoRes s $$ [Hwg Htt]
-  · iunfold srvGoRes; iframe Hwg Htt
+  irename Htt => Hmr
   (try wp_auto)
   ihave HKV := (srvApplyKVM_C C s E ρ.wait x' sa').1 $$ HKV
   iunfold epConfState at Hcs
@@ -417,10 +413,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
             ihave HL := acRes_lend C s E ua sa' hM $$ HAr
             icases Hkv with ⟨%kv, #Hkvf, #Hkvi, -⟩
             -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
-            iunfold srvGoRes at Hgr
-            icases Hgr with ⟨HgrW, HthT⟩
-            ihave HthT : apply.applyTok (GF := GF) E $$ [HthT Hmr]
-            · iunfold apply.applyTok; iframe HthT Hmr
+            ihave HthT : apply.applyTok (GF := GF) E $$ [Hmr]
+            · iunfold apply.applyTok; iexact Hmr
             imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe C.isOn
                 s γ ci TM E ρ γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE
                 (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
@@ -434,9 +428,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
             ihave HKV := HKVk $$ HKVc HAr
             iunfold apply.applyTok at HthT
-            icases HthT with ⟨HthT, Hmr⟩
-            ihave Hgr : srvGoRes s $$ [HgrW HthT]
-            · iunfold srvGoRes; iframe HgrW HthT
+            irename HthT => Hmr
             -- the merged message sent: of a term committed through the applied index (the batch's
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt

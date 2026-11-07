@@ -28,8 +28,8 @@ committed indices' invariants, `srvAppliedInv`/`srvCommittedInv`; the applied in
 unit 4c).
 
 **A read call's resources** (`srvRdCall s E γr c`, ctx-independent; 2026-10-14, unit A2: and
-the auth store's reader resource `E.RD`): the thread's token (`threadTok`, strict M1: the store's
-reads take it, in place of the store's reader slots), a reader slot of the
+the auth store's reader resource `E.RD`): a reader token of the store (`mvccReaders E.γ 1`, which
+carries the store's lock slots; R8's second round, 2026-11-07: until then also `threadTok`), a reader slot of the
 logger's lock (`srvLgReader`), a lower bound `c` of the cluster's committed index the caller
 knew of (`committedAtLeast`: what a linearizable read's `readIndexOk` is relative to), and a
 reader slot of the read loop's lock (`srvReadReader`, 2026-10-13, unit 4a).
@@ -149,7 +149,7 @@ thread's token, (the reader tokens of mvcc's API, 2026-11-06: where `lean` held 
 of the read loop's lock (`srvReadReader`), and (2026-10-14, unit A2) the auth store's reader
 resource (`E.RD`: `AuthInfoFromCtx`, the permission checks). -/
 def srvRdCall (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) : IProp GF :=
-  iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗ committedAtLeast γr c ∗
+  iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗ committedAtLeast γr c ∗
     srvReadReader s γr ∗ E.RD)
 
 /-- **A linearizable read of `log` after the committed index `c`** (persistent; 2026-10-13, the
@@ -268,7 +268,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 theorem srvRdCall_rd (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :
     srvRdCall s E γr c ⊢ E.RD ∗ (E.RD -∗ srvRdCall s E γr c) := by
   unfold srvRdCall
-  iintro ⟨Hsr, Hmr, Hlr, Hc, Hrr, Hrd⟩
+  iintro ⟨Hmr, Hlr, Hc, Hrr, Hrd⟩
   iframe Hrd
   iintro Hrd
   iframe

@@ -231,7 +231,7 @@ theorem restoreArgs_holds (Hp : persistent.law (GF := GF)) : restoreArgs.law (GF
   rw [kvStoreInv_eq]
   haveI := kvStoreInvG_persistent Hp kv γ (kvNx γr on) (crevOk γr) γs
   simp only [stAt_log, stAt_crev] at hit ⊢
-  iintro ⟨#Hk, Hw, Hc, #Hlb, #Hcp, Ht, Ho, HB, HB', Hh, HPre, Hrun, HQ', Hl⟩
+  iintro ⟨#Hk, Hw, Hc, #Hlb, #Hcp, Ho, HB, HB', Hh, HPre, Hrun, HQ', Hl⟩
   have hl : log <+: kvModelM on γr.kv A' := by
     rw [hlog]; exact kvModelM_prefix on γr.kv A A' hAA
   have hcc : c ≤ crevOf γr.kv A' := by
@@ -245,7 +245,7 @@ theorem restoreArgs_holds (Hp : persistent.law (GF := GF)) : restoreArgs.law (GF
   icases Hk' with ⟨#Hm, -⟩
   iunfold restorePreA
   simp only [stAt_log, stAt_crev, stAt_pending]
-  iframe Hm Ht Ho HB HB' Hh HPre Hrun HQ' Hl HAU
+  iframe Hm Ho HB HB' Hh HPre Hrun HQ' Hl HAU
   isplitr
   · ipureintro; exact ⟨hre, trivial⟩
   isplitr

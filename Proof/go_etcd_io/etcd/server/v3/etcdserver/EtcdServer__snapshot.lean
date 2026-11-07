@@ -279,12 +279,11 @@ theorem EtcdServer.snapshot.wp_proof
     simp only [interface.mkOk]
     (try wp_auto)
     iunfold apply.applyTok at Htt
-    icases Htt with ⟨Htt, Hmr⟩
-    wp_apply (hCommitC E.γ 1 B (E.Pk B) iprop(True) iprop(True)) $$ [Htt Hmr Hmb]
-      as ⟨Htt, Hmr, Hmb, -⟩
-    · iframe #; iframe Htt Hmr Hmb
-    ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
-    · iunfold apply.applyTok; iframe Htt Hmr
+    wp_apply (hCommitC E.γ 1 B (E.Pk B) iprop(True) iprop(True)) $$ [Htt Hmb]
+      as ⟨Htt, Hmb, -⟩
+    · iframe #; iframe Htt Hmb
+    ihave Htt : apply.applyTok (GF := GF) E $$ [Htt]
+    · iunfold apply.applyTok; iexact Htt
     ihave HKV := HKVc $$ Hmb Htie
     (try wp_auto)
     -- `CreateSnapshot(ep.appliedi, ep.confState, nil)`

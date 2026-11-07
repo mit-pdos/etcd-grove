@@ -350,7 +350,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 def restorePreA (kv : GoInterface) (γ : MvccName) (B B' : mvcc.KBReal) (Pk Pk' : IProp GF)
     (σ' : MvccState) (u : Bool) (L : List w64) (dq : DFrac) (f : GoFunc)
     (Pre Q' Post X Y : IProp GF) (Q : MvccState → IProp GF) : IProp GF :=
-  iprop(isMvcc kv γ ∗ threadTok ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗
+  iprop(isMvcc kv γ ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗
     mvccStorageFor B' Pk' σ'.log σ'.crev u ∗ ⌜MvccReachable σ' ∧ σ'.pending = none⌝ ∗
     backend.plHookAt B'.γB dq f ∗ Pre ∗ mvcc.api.hookRun Pk' f Pre Q' ∗ (Q' ={⊤}=∗ Pk' ∗ Post) ∗
     X ∗ backend.commitReq B'.γB B'.P Pk' B'.be X Y ∗
@@ -361,7 +361,7 @@ def restorePreA (kv : GoInterface) (γ : MvccName) (B B' : mvcc.KBReal) (Pk Pk' 
 
 /-- **The Restore builder** (`EtcdServer.applySnapshot`, linked: `Link.lean:2407`): from the apply
 thread's state at the applied prefix `A` (its halves, the open token, the old backend's whole share,
-its thread token), the snapshot's prefix `A'` extending it (both committed, `A` the shorter: the
+the snapshot's prefix `A'` extending it (both committed, `A` the shorter: the
 snapshot's index is above the applied one), the new backend's store resources at the image's
 history (`dbImageA_open.law`), the new backend's unset hook (`plHook B'.γB nil` at `dq = ½`,
 `f = nil`: `hookRun`'s view-shift row, the hook set after `Restore`, `server.go:1078`), the apply
@@ -382,7 +382,7 @@ abbrev restoreArgs.law : Prop :=
   (∀ it lid, (mvcc.pendItems σ'.log []).lookup it = some lid →
     lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1) →
   kvStoreInv (GF := GF) kv γ γr on γs ∗ wSt γs log c ∗ crOwn γs c ∗ srvRLogLb γr.raft A' ∗
-    crevOk γr σ'.crev ∗ threadTok ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗
+    crevOk γr σ'.crev ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗
     mvccStorageFor B' Pk' σ'.log σ'.crev u ∗
     backend.plHookAt B'.γB dq f ∗ Pre ∗ mvcc.api.hookRun Pk' f Pre Q' ∗
     (Q' ={⊤}=∗ Pk' ∗ Post) ∗ lease.leaseOwn (mvccLeases γ) Ls ∅ ⊢

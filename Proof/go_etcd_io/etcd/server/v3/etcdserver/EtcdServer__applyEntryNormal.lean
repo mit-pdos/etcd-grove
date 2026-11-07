@@ -458,10 +458,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave Hwt := srvWT_at E dB Hd $$ Hwt
       ihave Htk := bkToks_srv false E dB Hd iprop(True) iprop(True) iprop(True) $$ [Hwt Hrt]
       · iframe Hwt Hrt; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-      iunfold srvGoRes at Hgr
-      icases Hgr with ⟨Hwg, Htt⟩
-      ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
-      · iunfold apply.applyTok; iframe Htt Hmr
+      ihave Htt : apply.applyTok (GF := GF) E $$ [Hmr]
+      · iunfold apply.applyTok; iexact Hmr
       -- MERGE-TODO(apply): `apply.Apply.spec`'s merged pre and post (this branch's tokens `Htk` and
       -- thread token `Htt`, `lean`'s lease resources `HLt HEv Hrv`, `HGf`, `Hgpq`, `U`): the order of
       -- the pattern is a guess until the apply track's merged statement builds
@@ -487,9 +485,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave Hrt := bkRTOf_srv E dB Hd $$ Hrt
       ihave Hbo := Hbo $$ Hpl Hrt
       iunfold apply.applyTok at Htt
-      icases Htt with ⟨Htt, Hmr⟩
-      ihave Hgr : srvGoRes s $$ [Hwg Htt]
-      · iunfold srvGoRes; iframe Hwg Htt
+      irename Htt => Hmr
       ihave Hrdat := Hrdb $$ Hrv
       ihave HEv := srvEver_grant E A m rq false out U Htyp hdata hdec (plainOrCmpG_lg E rq (Hpl rq hdata hdec)) HUok $$ HEv
       ihave HRS := srvRest_applyPGR E γr A m rq false x x' out f Htyp hdata hdec HkA.2 Hxch Hch0
@@ -718,10 +714,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
           isplitl [Hmt HTM Htok]
           · iunfold batchLockInv; iexists mm; iframe; iexact Hreg
           iexact Hst
-      iunfold srvGoRes at Hgr
-      icases Hgr with ⟨Hwg, Htt⟩
-      ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
-      · iunfold apply.applyTok; iframe Htt Hmr
+      ihave Htt : apply.applyTok (GF := GF) E $$ [Hmr]
+      · iunfold apply.applyTok; iexact Hmr
       -- MERGE-TODO(apply): `apply.Apply.spec`'s merged pattern, as in `wp_proofOff`
       wp_apply hA fv.lg e m ua fv.w true E
         iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
@@ -766,9 +760,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave Hrt := bkRTOf_srv E dB Hd $$ Hrt
       ihave Hbo := Hbo $$ Hpl Hrt
       iunfold apply.applyTok at Htt
-      icases Htt with ⟨Htt, Hmr⟩
-      ihave Hgr : srvGoRes s $$ [Hwg Htt]
-      · iunfold srvGoRes; iframe Hwg Htt
+      irename Htt => Hmr
       imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', #Hrcx', %Hwf'⟩
       have Hlen : x'.log.length < 2 ^ 63 := by obtain ⟨_, -, h⟩ := Hwf'; omega
       have Hwfl : mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63 := by
@@ -942,10 +934,8 @@ local macro "hook_pre" : tactic => `(tactic| (
       isplitl [Hmt HTM Htok]
       · iunfold batchLockInv; iexists mm; iframe; iexact Hreg
       iexact Hst
-  iunfold srvGoRes at Hgr
-  icases Hgr with ⟨Hwg, Htt⟩
-  ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
-  · iunfold apply.applyTok; iframe Htt Hmr))
+  ihave Htt : apply.applyTok (GF := GF) E $$ [Hmr]
+  · iunfold apply.applyTok; iexact Hmr))
 
 set_option hygiene false in
 /-- A replayed entry's application (`v3` false) to the postcondition: the log and the chain kept
@@ -956,9 +946,7 @@ local macro "tail_off" : tactic => `(tactic| (
   ihave Hrt := bkRTOf_srv E dB Hd $$ Hrt
   ihave Hbo := Hbo $$ Hpl Hrt
   iunfold apply.applyTok at Htt
-  icases Htt with ⟨Htt, Hmr⟩
-  ihave Hgr : srvGoRes s $$ [Hwg Htt]
-  · iunfold srvGoRes; iframe Hwg Htt
+  irename Htt => Hmr
   imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', #Hrcx', %Hwf'⟩
   have Hlen : x'.log.length < 2 ^ 63 := by obtain ⟨_, -, h⟩ := Hwf'; omega
   have Hwfl : mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63 := by
@@ -1050,9 +1038,7 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
   ihave Hrt := bkRTOf_srv E dB Hd $$ Hrt
   ihave Hbo := Hbo $$ Hpl Hrt
   iunfold apply.applyTok at Htt
-  icases Htt with ⟨Htt, Hmr⟩
-  ihave Hgr : srvGoRes s $$ [Hwg Htt]
-  · iunfold srvGoRes; iframe Hwg Htt
+  irename Htt => Hmr
   imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', #Hrcx', %Hwf'⟩
   have Hlen : x'.log.length < 2 ^ 63 := by obtain ⟨_, -, h⟩ := Hwf'; omega
   have Hwfl : mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63 := by
@@ -1308,10 +1294,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       ihave Hwt := srvWT_at E dB Hd $$ Hwt
       ihave Htk := bkToks_srv false E dB Hd iprop(True) iprop(True) iprop(True) $$ [Hwt Hrt]
       · iframe Hwt Hrt; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-      iunfold srvGoRes at Hgr
-      icases Hgr with ⟨Hwg, Htt⟩
-      ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
-      · iunfold apply.applyTok; iframe Htt Hmr
+      ihave Htt : apply.applyTok (GF := GF) E $$ [Hmr]
+      · iunfold apply.applyTok; iexact Hmr
       rcases Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, -, -⟩ | ⟨hadm, hns⟩
       · -- a plain request: `apply.Apply`
         have hrq' : apply.rqOk .none x.log rq :=
