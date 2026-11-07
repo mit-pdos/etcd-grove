@@ -11,6 +11,7 @@ module
 public import Proof.github_com.anishathalye.porcupine.CheckOperations
 public import Proof.github_com.anishathalye.porcupine.CheckOperationsTimeout
 public import Proof.github_com.anishathalye.porcupine.CheckOperationsVerbose
+public import Proof.github_com.anishathalye.porcupine.LinearizationInfo__PartialLinearizations
 public import Proof.github_com.anishathalye.porcupine.bitsetIndex
 public import Proof.github_com.anishathalye.porcupine.bitset__clear
 public import Proof.github_com.anishathalye.porcupine.bitset__clone
@@ -56,6 +57,10 @@ variable [NaInvG GF]
 theorem sort.wp_Sort :
     EtcdGrove.sort.«Sort».spec (GF := GF) (hG := hG) :=
   EtcdGrove.sort.«Sort».wp_proof
+
+theorem LinearizationInfo.wp_PartialLinearizations :
+    EtcdGrove.porcupine.LinearizationInfo.PartialLinearizations.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.porcupine.LinearizationInfo.PartialLinearizations.wp_proof
 
 end links
 

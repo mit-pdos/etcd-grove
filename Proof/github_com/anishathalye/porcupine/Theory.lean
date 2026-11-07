@@ -88,6 +88,14 @@ model from its initial state and respects real time. -/
 def Linearizable (M : SeqModel σ α) (h : List (Op α)) : Prop :=
   Good M h (fun _ => False) M.init
 
+/-- `π` linearizes `h`: every operation of `h` once, in an order the model runs from its initial
+state, respecting real time. (`Linearizable M h` is `∃ π, IsLinearization M h π`, by definition.) -/
+def IsLinearization (M : SeqModel σ α) (h : List (Op α)) (π : List Nat) : Prop :=
+  Completes M h (fun _ => False) M.init π
+
+theorem linearizable_of_isLinearization {M : SeqModel σ α} {h : List (Op α)} {π : List Nat}
+    (hπ : IsLinearization M h π) : Linearizable M h := ⟨π, hπ⟩
+
 theorem good_congr {M : SeqModel σ α} {h : List (Op α)} {S S' : Nat → Prop} {t : σ}
     (hS : ∀ i, S i ↔ S' i) (hg : Good M h S t) : Good M h S' t := by
   obtain ⟨π, hnd, hmem, hrun, hpw⟩ := hg

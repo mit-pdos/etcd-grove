@@ -142,11 +142,11 @@ theorem framesCalls_pairwise {h : List (Op α)} {es : List Entry} (hes : Entries
 
 /-- The exit with the list empty: every operation is on the stack, which, oldest first,
 linearizes the history. -/
-theorem sound_done {M : SeqModel σ α} {h : List (Op α)} {es : List Entry} {fs : List (Frame σ)}
+theorem sound_done_lin {M : SeqModel σ α} {h : List (Op α)} {es : List Entry} {fs : List (Frame σ)}
     {s : σ} {p : Nat} (hes : EntriesOk h es) (hs : Sound M h es fs s p)
-    (hrem : rem es (ids fs) = []) : Linearizable M h := by
+    (hrem : rem es (ids fs) = []) : IsLinearization M h (ids fs).reverse := by
   obtain ⟨hch, hfr, -⟩ := hs
-  refine ⟨(ids fs).reverse, List.pairwise_reverse.mpr ((framesCalls_nodup hfr).imp fun hne heq => hne heq.symm), fun k => ?_, ?_,
+  refine ⟨List.pairwise_reverse.mpr ((framesCalls_nodup hfr).imp fun hne heq => hne heq.symm), fun k => ?_, ?_,
     List.pairwise_reverse.mpr (framesCalls_pairwise hes hfr)⟩
   · rw [List.mem_reverse]
     constructor
@@ -156,6 +156,12 @@ theorem sound_done {M : SeqModel σ α} {h : List (Op α)} {es : List Entry} {fs
       have := mem_rem (B := ids fs) ((hes.2.1 ⟨false, k⟩).mpr hk) hn
       rw [hrem] at this; simp at this
   · rw [chain_run hch]; rfl
+
+/-- `sound_done_lin`, read as linearizability. -/
+theorem sound_done {M : SeqModel σ α} {h : List (Op α)} {es : List Entry} {fs : List (Frame σ)}
+    {s : σ} {p : Nat} (hes : EntriesOk h es) (hs : Sound M h es fs s p)
+    (hrem : rem es (ids fs) = []) : Linearizable M h :=
+  linearizable_of_isLinearization (sound_done_lin hes hs hrem)
 
 
 end Theory

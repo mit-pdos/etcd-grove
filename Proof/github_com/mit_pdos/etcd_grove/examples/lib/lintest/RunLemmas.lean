@@ -234,6 +234,113 @@ theorem InvOk.init (M : SeqModel σ OpV) (n : Nat) (t0 : w64) :
     simp only [List.filter_nil, recsOf, initMap_lookup]
     split <;> rfl
 
+/-- The traces' concatenation has `n * m` operations. -/
+theorem final_length {n m : Nat} {hs : List (List Operation)} {ps : List (Nat × ClientV)}
+    (hc : ClientsOk m hs ps) (hn : hs.length = n) : hs.flatten.length = n * m := by
+  have hl : ∀ h ∈ hs, h.length = m := by
+    intro h hh
+    obtain ⟨c, hc'⟩ := List.getElem?_of_mem hh
+    have hcl : c < ps.length := by
+      rw [← hc.1]; exact (List.getElem?_eq_some_iff.1 hc').1
+    obtain ⟨p, hp⟩ : ∃ p, ps[c]? = some p := ⟨_, List.getElem?_eq_getElem hcl⟩
+    obtain ⟨-, ⟨cid, hok⟩, hl⟩ := hc.2 c h p hc' hp
+    rw [hok.1, hl]
+  rw [Perennial.join_same_len_length (c := m) hs hl, hn]
+
+/-- A `filterMap` whose function is defined on all of the list, by index. -/
+theorem getElem?_filterMap_all {α β : Type} (f : α → Option β) :
+    ∀ (l : List α), (∀ a ∈ l, (f a).isSome) → ∀ i : Nat, (l.filterMap f)[i]? = l[i]?.bind f
+  | [], _, i => by simp
+  | a :: l, hall, i => by
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 (hall a List.mem_cons_self)
+    rw [List.filterMap_cons, hb]
+    cases i with
+    | zero => simp [hb]
+    | succ i =>
+      simp only [List.getElem?_cons_succ]
+      exact getElem?_filterMap_all f l (fun x hx => hall x (List.mem_cons_of_mem _ hx)) i
+
+theorem length_filterMap_all {α β : Type} (f : α → Option β) (l : List α)
+    (hall : ∀ a ∈ l, (f a).isSome) : (l.filterMap f).length = l.length := by
+  induction l with
+  | nil => rfl
+  | cons a l ih =>
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 (hall a List.mem_cons_self)
+    rw [List.filterMap_cons, hb, List.length_cons, List.length_cons,
+      ih (fun x hx => hall x (List.mem_cons_of_mem _ hx))]
+
+/-- **The operations in a linearization's order linearize themselves in their own order**,
+and are all of them. -/
+theorem isLinearization_reorder {α : Type} {M : SeqModel σ α} {h : List (Op α)} {π : List Nat}
+    (hl : IsLinearization M h π) :
+    (π.filterMap (h[·]?)).length = h.length ∧
+      IsLinearization M (π.filterMap (h[·]?)) (List.range (π.filterMap (h[·]?)).length) := by
+  obtain ⟨hnd, hmem, hrun, hpw⟩ := hl
+  have hvalid : ∀ k ∈ π, k < h.length := fun k hk => ((hmem k).1 hk).1
+  have hsome : ∀ k ∈ π, (h[k]?).isSome := fun k hk => by
+    simp [List.getElem?_eq_getElem (hvalid k hk)]
+  have hplen : π.length = h.length := by
+    have hperm : π.Perm (List.range h.length) :=
+      (List.perm_ext_iff_of_nodup hnd List.nodup_range).2 fun k => by
+        rw [hmem k, List.mem_range]; simp
+    rw [hperm.length_eq, List.length_range]
+  have hlen := length_filterMap_all (h[·]?) π hsome
+  have hget := getElem?_filterMap_all (h[·]?) π hsome
+  refine ⟨by rw [hlen, hplen], List.nodup_range, fun k => by simp [List.mem_range], ?_, ?_⟩
+  · have hv : vals (π.filterMap (h[·]?)) (List.range (π.filterMap (h[·]?)).length) = vals h π := by
+      unfold vals
+      apply List.ext_getElem?
+      intro i
+      rw [getElem?_filterMap_all _ _ (fun k hk => by
+          rw [List.mem_range] at hk
+          simp [List.getElem?_eq_getElem hk]),
+        getElem?_filterMap_all _ _ (fun k hk => by simp [List.getElem?_eq_getElem (hvalid k hk)])]
+      by_cases hi : i < π.length
+      · rw [List.getElem?_range (by rw [hlen]; exact hi)]
+        simp only [Option.bind_some, hget i, List.getElem?_eq_getElem hi]
+      · rw [List.getElem?_eq_none (by simp; omega), List.getElem?_eq_none (by omega)]
+        rfl
+    rw [hv]; exact hrun
+  · rw [List.pairwise_iff_getElem]
+    intro i j hi hj hij
+    simp only [List.getElem_range]
+    rintro ⟨oa, ob, ha, hb, hlt⟩
+    rw [List.length_range, hlen] at hi hj
+    rw [hget j, List.getElem?_eq_getElem hj, Option.bind_some] at ha
+    rw [hget i, List.getElem?_eq_getElem hi, Option.bind_some] at hb
+    exact (List.pairwise_iff_getElem.1 hpw) i j hi hj hij ⟨oa, ob, ha, hb, hlt⟩
+
+/-- `isLinearization_reorder` for a slice of `Operation`s and the ids porcupine returns. -/
+theorem isLinearization_order {M : SeqModel σ OpV} {os : List Operation} {xs : List w64}
+    (hx : ∀ x ∈ xs, 0 ≤ sint.Z x)
+    (hl : IsLinearization M (histOf os) (xs.map fun x => (sint.Z x).toNat)) :
+    (∀ x ∈ xs, 0 ≤ sint.Z x ∧ (sint.Z x).toNat < os.length) ∧
+      (xs.filterMap (fun x => os[(sint.Z x).toNat]?)).length = os.length ∧
+      IsLinearization M (histOf (xs.filterMap (fun x => os[(sint.Z x).toNat]?)))
+        (List.range (xs.filterMap (fun x => os[(sint.Z x).toNat]?)).length) := by
+  have hh : histOf (xs.filterMap (fun x => os[(sint.Z x).toNat]?)) =
+      (xs.map fun x => (sint.Z x).toNat).filterMap ((histOf os)[·]?) := by
+    unfold histOf
+    rw [List.filterMap_map, List.map_filterMap]
+    congr 1
+    funext x
+    simp [List.getElem?_map]
+  obtain ⟨h1, h2⟩ := isLinearization_reorder hl
+  have hval : ∀ x ∈ xs, 0 ≤ sint.Z x ∧ (sint.Z x).toNat < os.length := by
+    intro x hxm
+    refine ⟨hx x hxm, ?_⟩
+    have := ((hl.2.1 ((sint.Z x).toNat)).1 (List.mem_map_of_mem hxm)).1
+    simpa [histOf] using this
+  refine ⟨hval, ?_, ?_⟩
+  · have : (xs.filterMap (fun x => os[(sint.Z x).toNat]?)).length =
+        ((xs.map fun x => (sint.Z x).toNat).filterMap ((histOf os)[·]?)).length := by
+      rw [← hh]; simp [histOf]
+    rw [this, h1]; simp [histOf]
+  · have hl2 : (xs.filterMap (fun x => os[(sint.Z x).toNat]?)).length =
+        ((xs.map fun x => (sint.Z x).toNat).filterMap ((histOf os)[·]?)).length := by
+      rw [← hh]; simp [histOf]
+    rw [hh, hl2]; exact h2
+
 end pure
 
 section heap
@@ -341,6 +448,22 @@ theorem toks_lookup (γ : GName) (q : Qp) (Ls : GMap Nat ClientV) :
     rcases List.mem_cons.1 hp' with h | h
     · subst h; exact H1
     · exact H2 p' h
+
+/-- What porcupine's `Step` needs, for operations among those of a history. -/
+theorem opsIoOk_sub {σ : Type} (S : ModelSpec GF σ) (os lops : List Operation)
+    (h : ∀ o ∈ lops, o ∈ os) : opsIoOk S os ⊢ opsIoOk S lops := by
+  unfold opsIoOk
+  iintro #H
+  iapply (BigSepL.bigSepL_intro (P := iprop(□ [∗list] o ∈ os, S.ioOk o.Input' o.Output'))
+    (fun k x hx => by
+      iintro #H'
+      iapply BigSepL.bigSepL_mem (h x (List.mem_of_getElem? hx)) $$ H'))
+  iexact H
+
+/-- The empty history is linearized by the empty order. -/
+theorem isLinearization_nil {σ : Type} (M : SeqModel σ OpV) :
+    IsLinearization M ([] : List (Op OpV)) (List.range 0) :=
+  ⟨List.nodup_nil, fun k => by simp, by simp [vals, run], List.Pairwise.nil⟩
 
 end heap
 

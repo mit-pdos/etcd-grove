@@ -4,6 +4,9 @@
 tests call (`validateLinearizableOperationsAndVisualize`): it answers `Ok` only on a
 linearizable history, `Illegal` only on one that is not (a failing test is a real bug), and
 `Unknown` only with a timeout (`timeout > 0`): with no timeout it decides linearizability.
+An `Ok` answer's `LinearizationInfo` holds linearizations of the history, at least one if it is
+not empty (`linInfoOk` of the one partition, whose ids index `history`): what Kubernetes'
+`TestCorrectness` reads with `info.PartialLinearizations()[0][0]`.
 
 `context.isClosedchanInit` (`context`'s package-init ghost fact: `closedchan` is closed) is what
 `checkParallel`'s `context.WithCancel(context.Background())` needs.
@@ -40,7 +43,8 @@ abbrev CheckOperationsVerbose.spec : Prop :=
   {{ (r : GoString) (info : LinearizationInfo), RET (PairV #r #info);
       ⌜(r = go!"Ok" ∧ Linearizable S.M (histOf ops)) ∨
         (r = go!"Illegal" ∧ ¬ Linearizable S.M (histOf ops)) ∨
-        (r = go!"Unknown" ∧ 0 < sint.Z dur)⌝ }}
+        (r = go!"Unknown" ∧ 0 < sint.Z dur)⌝ ∗
+      (⌜r = go!"Ok"⌝ -∗ linInfoOk S.M info [histOf ops]) }}
 
 end spec
 

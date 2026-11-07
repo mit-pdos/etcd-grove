@@ -4,7 +4,9 @@
 `Partition` (`noPartition`: the one partition `[history]`), `makeEntries` per partition,
 `checkParallel`. It answers `Ok` only on a linearizable history, `Illegal` only on one that is
 not, and `Unknown` only with a timeout (`timeout > 0`): with no timeout it decides
-linearizability. `context.isClosedchanInit` is what `checkParallel`'s
+linearizability. With `verbose`, an `Ok` answer's `LinearizationInfo` holds linearizations of
+the history (`linInfoOk` of the one partition: the ids index `history`).
+`context.isClosedchanInit` is what `checkParallel`'s
 `context.WithCancel(context.Background())` needs.
 -/
 module
@@ -40,7 +42,8 @@ abbrev checkOperations.spec : Prop :=
   {{ (r : GoString) (info : LinearizationInfo), RET (PairV #r #info);
       ⌜(r = go!"Ok" ∧ Linearizable S.M (histOf ops)) ∨
         (r = go!"Illegal" ∧ ¬ Linearizable S.M (histOf ops)) ∨
-        (r = go!"Unknown" ∧ 0 < sint.Z dur)⌝ }}
+        (r = go!"Unknown" ∧ 0 < sint.Z dur)⌝ ∗
+      (⌜r = go!"Ok" ∧ verbose = true⌝ -∗ linInfoOk S.M info [histOf ops]) }}
 
 end spec
 
