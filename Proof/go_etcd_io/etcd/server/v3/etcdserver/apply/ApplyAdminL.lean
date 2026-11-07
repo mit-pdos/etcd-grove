@@ -206,7 +206,7 @@ abbrev apply.uberApplier.Apply.adminSpecL : Prop :=
   (∀ h, Own γa h ∗ W ⊢ L h ∗ (L h -∗ Own γa h ∗ W)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗
-      apply.kvOwnPre v3 E x.log Pre Q Post ∗ threadTok ∗
+      apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.applyTok E ∗
       (∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
         apply.applierAdmin E (apply.baseChain E.authOn) base W Own ∗
         apply.applierAdmL E (apply.baseChain E.authOn) base L) ∗
@@ -215,7 +215,7 @@ abbrev apply.uberApplier.Apply.adminSpecL : Prop :=
       ⌜x.chain = apply.baseChain E.authOn⌝ ∗
       Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True)) }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; threadTok ∗ apply.bkRTOf E ∗
+  {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗
     ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
       apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
       ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip)⌝ ∗
@@ -542,8 +542,8 @@ theorem apply.uberApplier.Apply.wp_adminL
   wp_apply HApply $$ %r %rq %skip %v3
       %(methods (go.GoType.PointerType uberApplier.ty) go!"dispatch" #p)
       %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
-        apply.kvOwnPre v3 E x.log Pre Q Post ∗ threadTok ∗ (L hs -∗ Own γa hs ∗ W) ∗ ⧗ 1 ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True))))
-      %(fun ar => iprop(threadTok ∗ apply.bkRTOf E ∗
+        apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.applyTok E ∗ (L hs -∗ Own γa hs ∗ W) ∗ ⧗ 1 ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True))))
+      %(fun ar => iprop(apply.applyTok E ∗ apply.bkRTOf E ∗
         structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
         ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
           ⌜apply.dispatchStep x.chain rq v3 x.log o⌝ ∗ apply.resTrace ar ∗

@@ -857,11 +857,19 @@ restated over the API): the owner's half of `le.rd` at a deleter that is the sto
 def rdHeld (E : AEnv GF) : IProp GF :=
   iprop(∃ rd : GoFunc, lease.rdOwn (mvccLeases E.γ) rd ∗ mvccDeleter rd E.γ)
 
+/-- **The apply thread's tokens for one call** (the reader tokens of mvcc's API, 2026-11-06): its
+thread token (`threadTok`) and a reader token of the store (`mvccReaders E.γ 1`: `newHeader`'s
+`KV.Rev`, the KV methods' transactions and the lessor's range deleter each hold one while they
+read). Every chain triple takes it and gives it back, where it took `threadTok` alone; the server
+hands one per call. -/
+def applyTok (E : AEnv GF) : IProp GF :=
+  iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+
 /-- **The apply thread's KV resources** at the committed log `log` (strict M1, 2026-11-05: the
 draft's `kvOwnA`): its half of the store's state (`wSt`), the backend's share and hook (`kvBk`),
 every lease of its state live (with the apply thread's half of the lessor's live set, `leasesLive`),
-the auth store's reader resource (`E.RD`). The thread's token is not in it: the chain's triples take
-`threadTok` beside it. -/
+the auth store's reader resource (`E.RD`). The thread's tokens are not in it: the chain's triples
+take `applyTok E` beside it. -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
   iprop((∃ c : Int, wSt E.γs log c) ∗ kvBk E ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD)
 
@@ -1392,7 +1400,7 @@ critical section of the batch lock, the hook first) or `Pre` (it did not). The m
 may open a store write transaction (`Put`, `DeleteRange`, `Txn`, `LeaseRevoke`) take the
 backend's share (`mPre`; strict M1, 2026-11-05: until then a write token `mvcc.storeWT`), the
 components' writers the backend's tokens (`mPreW`). Every triple takes and gives back the thread's
-token (`threadTok`). -/
+tokens (`applyTok E`: `threadTok` and a reader token of the store). -/
 
 /-- **The certificates of the logs `rq` may commit** through the chain `c` at `log` (persistent;
 2026-10-14, unit T1): the store's caller certifies (`mvcc.certOk`) the log after every outcome of
@@ -1839,12 +1847,12 @@ Its proof for the backend rests on `store.Compact.spec` (F-1: no `ErrFutureRev` 
 def cmpTriple (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
   iprop(□ (∀ (cr : Loc) (rev : w64) (log : mvcc.Log) (crev : Int) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ compactionIs cr rev ∗ ⌜cmpAdmitRev log rev⌝ ∗ E.Cp (sint.Z rev) ∗ threadTok ∗
+      {{ compactionIs cr rev ∗ ⌜cmpAdmitRev log rev⌝ ∗ E.Cp (sint.Z rev) ∗ applyTok E ∗
           mPre E c (.ok ai) info log Pre Q Post ∗ cmpOwn E crev }}
         (App (Val #(methods ai.ty go!"Compaction" ai.v)) (Val #cr))
       {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
           RET (PairV (PairV (PairV #resp #ch) #trace) #err);
-          threadTok ∗ kvOwn E log ∗ chainRes c (.ok ai) info ∗ (Post ∨ Pre) ∗
+          applyTok E ∗ kvOwn E log ∗ chainRes c (.ok ai) info ∗ (Post ∨ Pre) ∗
           cmpOwn E (if chainCompacts c then cmpRevAfter crev rev else crev) ∗
           cmpAnswerIs c crev rev resp ch trace err ∗
           (if chainCompacts c then cmpChan crev rev ch else iprop(True)) }}))
@@ -1941,63 +1949,63 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
     -- the KV methods
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ threadTok ∗ putPre E c (.ok ai) info r rq o log Pre Q Post ∗ kvLogLb E.γs F }}
+      {{ applyTok E ∗ putPre E c (.ok ai) info r rq o log Pre Q Post ∗ kvLogLb E.γs F }}
         (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPostF E c (.ok ai) info rq log F (putAnswerIs log o resp err) Pre Post ∗ traceRes trace ∗ threadTok }}) ∗
+          kvPostF E c (.ok ai) info rq log F (putAnswerIs log o resp err) Pre Post ∗ traceRes trace ∗ applyTok E }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ threadTok ∗ deletePre E c (.ok ai) info r rq o log Pre Q Post ∗ kvLogLb E.γs F }}
+      {{ applyTok E ∗ deletePre E c (.ok ai) info r rq o log Pre Q Post ∗ kvLogLb E.γs F }}
         (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPostF E c (.ok ai) info rq log F (deleteAnswerIs log o resp err) Pre Post ∗ traceRes trace ∗ threadTok }}) ∗
+          kvPostF E c (.ok ai) info rq log F (deleteAnswerIs log o resp err) Pre Post ∗ traceRes trace ∗ applyTok E }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ threadTok ∗ rangePre E c (.ok ai) info r rq o log }}
+      {{ applyTok E ∗ rangePre E c (.ok ai) info r rq o log }}
         (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          rangePost E c (.ok ai) info rq o log resp err ∗ traceRes trace ∗ threadTok }}) ∗
+          rangePost E c (.ok ai) info rq o log resp err ∗ traceRes trace ∗ applyTok E }}) ∗
     □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (log F : mvcc.Log)
         (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ threadTok ∗ txnPre E c (.ok ai) info r rq t log Pre Q Post ∗ kvLogLb E.γs F }}
+      {{ applyTok E ∗ txnPre E c (.ok ai) info r rq t log Pre Q Post ∗ kvLogLb E.γs F }}
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPostF E c (.ok ai) info rq log F (txnAnswerIs log t skip resp err) Pre Post ∗ traceRes trace ∗ threadTok }}) ∗
+          kvPostF E c (.ok ai) info rq log F (txnAnswerIs log t skip resp err) Pre Post ∗ traceRes trace ∗ applyTok E }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (T : List w64) (rs : RestM)
         (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ threadTok ∗ revokePre E c (.ok ai) info r rq id log T rs Pre Q Post }}
+      {{ applyTok E ∗ revokePre E c (.ok ai) info r rq id log T rs Pre Q Post }}
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvPost E c (.ok ai) info rq log
             (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post ∗
-            threadTok }}) ∗
+            applyTok E }}) ∗
     -- (the lease-grant stage, 2.11) `LeaseGrant`
     □ (∀ (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64)
         (rs : RestM) (U : List w64) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ threadTok ∗ grantPre E c (.ok ai) info r rq g log T rs U Pre Q Post }}
+      {{ applyTok E ∗ grantPre E c (.ok ai) info r rq g log T rs U Pre Q Post }}
         (App (Val #(methods ai.ty go!"LeaseGrant" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          threadTok ∗ ∃ o : Outcome, grantPost E c (.ok ai) rq g log T rs U Pre Post resp err o }}) ∗
+          applyTok E ∗ ∃ o : Outcome, grantPost E c (.ok ai) rq g log T rs U Pre Post resp err o }}) ∗
     -- the methods that leave the log as it is
     □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ respMethods⌝ -∗
-      {{ threadTok ∗ reqFacts E m r ∗ mPreW E c (.ok ai) info log Pre Q Post ∗ ciSplit E Pre }}
+      {{ applyTok E ∗ reqFacts E m r ∗ mPreW E c (.ok ai) info log Pre Q Post ∗ ciSplit E Pre }}
         (App (Val #(methods ai.ty m ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          threadTok ∗ mPostW E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
+          applyTok E ∗ mPostW E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ resp0Methods⌝ -∗
       ⌜(m = go!"AuthEnable" → E.authOn = true) ∧ adminAdmitted E.authMode⌝ -∗
-      {{ threadTok ∗ mPreW E c (.ok ai) info log Pre Q Post ∗ E.RW }}
+      {{ applyTok E ∗ mPreW E c (.ok ai) info log Pre Q Post ∗ E.RW }}
         (App (Val #(methods ai.ty m ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          threadTok ∗ mPostW E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
+          applyTok E ∗ mPostW E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (log : mvcc.Log) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ threadTok ∗ kvOwn E log ∗ chainRes c (.ok ai) info }}
+      {{ applyTok E ∗ kvOwn E log ∗ chainRes c (.ok ai) info }}
         (App (Val #(methods ai.ty go!"AuthStatus" ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          threadTok ∗ kvOwn E log ∗ chainRes c (.ok ai) info ∗ applyErrIs err }}) ∗
+          applyTok E ∗ kvOwn E log ∗ chainRes c (.ok ai) info ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (cr : ClusterReq) (rs : RestM) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
       ⌜m ∈ clusterMethods⌝ -∗

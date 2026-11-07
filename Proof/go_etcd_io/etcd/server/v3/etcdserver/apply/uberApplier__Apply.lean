@@ -46,10 +46,10 @@ theorem apply.uberApplier.Apply.wp_proof
   wp_apply HApply $$ %r %rq %skip %v3
       %(methods (go.GoType.PointerType uberApplier.ty) go!"dispatch" #p)
       %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
-        apply.kvOwnPre v3 E x.log Pre Q Post ∗ threadTok ∗ E.FS ∗
+        apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.applyTok E ∗ E.FS ∗
         (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E x.crev ∗
         apply.ltHalf E T ∗ apply.everOwn E U ∗ apply.revokeOwn E rq))
-      %(fun ar => iprop(threadTok ∗ apply.bkRTOf E ∗ E.FS ∗
+      %(fun ar => iprop(apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗
         apply.cmpOwn E (apply.dispatchCrev x.chain rq v3 x.crev) ∗ ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter x.log) ∗

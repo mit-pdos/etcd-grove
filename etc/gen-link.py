@@ -576,6 +576,9 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # mvcc's API results the txn proofs take as terms (`=mvcc.api.*` callees: the
                  # API's laws, `NewReadOnlyTxnWrite`'s API spec; the `origin/lean` merge, 2026-11-06)
                  "--txn": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],
+                 # the same for the apply proofs (`newHeader`'s and `Compaction`'s `shapes.law`;
+                 # the reader tokens, 2026-11-06)
+                 "--apply": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],
                  # Perennial's `time` and `sync/atomic` results minibolt's proofs take as terms (`=` callees)
                  "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link"],
                  # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)

@@ -490,11 +490,11 @@ abbrev applierV3backend.UserAdd.stepSpec : Prop :=
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userAddReqIs r name ∗
         auth.userAddSure r ∗ auth.authOwn E.authMode hs ∗ W ∗
         auth.capNextM E.authMode hs (auth.stepOf (auth.userAddF name)) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       auth.adminOut E.authMode hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}
@@ -510,11 +510,11 @@ abbrev applierV3backend.UserDelete.stepSpec : Prop :=
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userDeleteReqIs r name ∗
         auth.authOwn E.authMode hs ∗ W ∗
         (□ ∀ en : Bool, auth.capNextM E.authMode hs (auth.stepOf (auth.userDeleteF en name))) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserDelete")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
@@ -532,11 +532,11 @@ abbrev applierV3backend.UserChangePassword.stepSpec : Prop :=
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userChangePasswordReqIs r name ∗
         auth.authOwn E.authMode hs ∗ W ∗
         auth.capNextM E.authMode hs (auth.stepOf (auth.userChangePasswordF name)) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserChangePassword")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       auth.adminOut E.authMode hs (auth.stepOf (auth.userChangePasswordF name)) (fun e => e = .noPasswordUser) err }}
@@ -553,11 +553,11 @@ abbrev applierV3backend.RoleAdd.stepSpec : Prop :=
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleAddReqIs r name ∗
         auth.authOwn E.authMode hs ∗ W ∗
         auth.capNextM E.authMode hs (auth.stepOf (auth.roleAddF name)) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       auth.adminOut E.authMode hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err }}
@@ -574,11 +574,11 @@ abbrev applierV3backend.UserRevokeRole.stepSpec : Prop :=
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userRevokeRoleReqIs r name role ∗
         auth.authOwn E.authMode hs ∗ W ∗
         (□ ∀ en : Bool, auth.capNextM E.authMode hs (auth.stepOf (auth.userRevokeRoleF en name role))) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserRevokeRole")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
@@ -596,11 +596,11 @@ abbrev applierV3backend.UserGrantRole.stepSpec : Prop :=
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userGrantRoleReqIs r user role ∗
         auth.authOwn E.authMode hs ∗ W ∗
         auth.capNextM E.authMode hs (auth.userGrantRoleR user role) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserGrantRole")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       auth.adminOut E.authMode hs (auth.userGrantRoleR user role) auth.noExtra err }}
@@ -616,11 +616,11 @@ abbrev applierV3backend.RoleGrantPermission.stepSpec : Prop :=
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleGrantPermissionReqIs r name w ∗
         auth.authOwn E.authMode hs ∗ W ∗
         auth.capNextM E.authMode hs (auth.roleGrantPermissionR name w) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleGrantPermission")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       auth.adminOut E.authMode hs (auth.roleGrantPermissionR name w) auth.noExtra err }}
@@ -636,11 +636,11 @@ abbrev applierV3backend.RoleRevokePermission.stepSpec : Prop :=
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleRevokePermissionReqIs r role key rangeEnd ∗
         auth.authOwn E.authMode hs ∗ W ∗
         auth.capNextM E.authMode hs (auth.roleRevokePermissionR role key rangeEnd) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleRevokePermission")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       auth.adminOut E.authMode hs (auth.roleRevokePermissionR role key rangeEnd) auth.noExtra err }}
@@ -656,11 +656,11 @@ abbrev applierV3backend.RoleDelete.stepSpec : Prop :=
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleDeleteReqIs r role ∗
         auth.authOwn E.authMode hs ∗ W ∗
         (□ ∀ en : Bool, auth.capNextM E.authMode hs (auth.stepOf (auth.roleDeleteF en role))) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleDelete")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
@@ -676,11 +676,11 @@ abbrev applierV3backend.AuthEnable.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.authOwn E.authMode hs ∗ W ∗
         (□ ∀ en : Bool, auth.capNextM E.authMode hs (auth.stepOf (auth.authEnableF en))) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthEnable")) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
@@ -695,11 +695,11 @@ abbrev applierV3backend.AuthDisable.stepSpec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.authOwn E.authMode hs ∗ W ∗
         (□ ∀ en : Bool, auth.capNextM E.authMode hs (auth.stepOf (auth.authDisableF en))) ∗
-        threadTok ∗
+        apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthDisable")) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗
+      apply.applyTok E ∗
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       ⌜err = GoInterface.nil⌝ ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗

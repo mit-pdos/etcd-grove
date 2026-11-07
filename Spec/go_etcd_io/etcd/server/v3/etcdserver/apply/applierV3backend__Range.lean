@@ -32,11 +32,11 @@ abbrev apply.applierV3backend.Range.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      threadTok ∗ apply.rangePre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info r rq o log }}
+      apply.applyTok E ∗ apply.rangePre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info r rq o log }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Range")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.rangePost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info rq o log resp err ∗
-      apply.traceRes trace ∗ threadTok }}
+      apply.traceRes trace ∗ apply.applyTok E }}
 
 end spec
 

@@ -32,11 +32,11 @@ abbrev apply.applierV3Corrupt.DeleteRange.spec : Prop :=
     (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.corruptIs p inner ∗
-      apply.deletePre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq o log Pre Q Post ∗ srvApi.kvLogLb E.γs F ∗ threadTok }}
+      apply.deletePre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq o log Pre Q Post ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E }}
     (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostF E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info rq log F (apply.deleteAnswerIs log o resp err) Pre Post ∗
-      apply.traceRes trace ∗ threadTok }}
+      apply.traceRes trace ∗ apply.applyTok E }}
 
 end spec
 

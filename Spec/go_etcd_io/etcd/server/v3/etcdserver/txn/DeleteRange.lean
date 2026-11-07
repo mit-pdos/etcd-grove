@@ -40,14 +40,15 @@ abbrev txn.DeleteRange.spec : Prop :=
     (kv : GoInterface) (γ : MvccName) (dr : Loc) (o : OpFull) (q : Qp) (B : MvccStorage)
     (P Pre Q Post : IProp GF) (f : GoFunc) (ot : Option Loc) (te : Bool) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (R : MvccState → Bool → IProp GF),
-  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ txn.deleteRangeRequestIs dr o ∗
+  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ mvcc.api.mvccReaders γ 1 ∗
+      txn.deleteRangeRequestIs dr o ∗
       lease.leaseOwn (mvccLeases γ) L I ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
       txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗ txn.delAU γ o I R }}
     (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #dr))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      threadTok ∗ txn.kvBackend γ q B P f ∗ ⌜trace ≠ null⌝ ∗ Post ∗
+      threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ txn.kvBackend γ q B P f ∗ ⌜trace ≠ null⌝ ∗ Post ∗
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
       ∃ σ₀ : MvccState, ⌜txn.Reach σ₀ ∧ σ₀.pending = none⌝ ∗
         ((⌜err = GoInterface.nil⌝ ∗ R σ₀ true ∗

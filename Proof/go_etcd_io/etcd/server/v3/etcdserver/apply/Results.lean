@@ -11,7 +11,8 @@ imports the txn package's and mvcc's results the package calls (`Put`, `DeleteRa
 
 (The mvcc merge, 2026-11-06) The chain's triples take and give the thread's token `threadTok`, and
 the writing ones a floor `kvLogLb E.γs F` (strict M1): `chain_put`, `chain_deleteRange`,
-`chain_txn` take both, `chain_range` and `chain_revoke` the token.
+`chain_txn` take both, `chain_range` and `chain_revoke` the token. (The reader tokens, 2026-11-06:
+the token is `applyTok E`, `threadTok` with a reader token of the store, `mvccReaders E.γ 1`.)
 -/
 module
 
@@ -219,12 +220,12 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
       □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
           (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-        {{ threadTok ∗ putPre E (alarmChain E.authOn ns cr) (.ok ai) info r rq o log Pre Q Post ∗
+        {{ apply.applyTok E ∗ putPre E (alarmChain E.authOn ns cr) (.ok ai) info r rq o log Pre Q Post ∗
             srvApi.kvLogLb E.γs F }}
           (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmPut ns cr o log oc⌝ ∗ putAnswerIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗ threadTok ∗
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗ apply.applyTok E ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
                 reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
   iintro #Hs
@@ -270,12 +271,12 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
       □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
           (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-        {{ threadTok ∗ deletePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq o log Pre Q Post ∗
+        {{ apply.applyTok E ∗ deletePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq o log Pre Q Post ∗
             srvApi.kvLogLb E.γs F }}
           (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmDelete cr o log oc⌝ ∗ deleteAnswerIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗ threadTok ∗
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗ apply.applyTok E ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
@@ -317,11 +318,11 @@ theorem chain_range (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
       □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
           (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-        {{ threadTok ∗ rangePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq o log }}
+        {{ apply.applyTok E ∗ rangePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq o log }}
           (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmRange cr log oc⌝ ∗ rangeOutcomeIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ traceRes trace ∗ threadTok ∗
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ traceRes trace ∗ apply.applyTok E ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
@@ -365,12 +366,12 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
       □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (log F : mvcc.Log)
           (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-        {{ threadTok ∗ txnPre E (alarmChain E.authOn ns cr) (.ok ai) info r rq t log Pre Q Post ∗
+        {{ apply.applyTok E ∗ txnPre E (alarmChain E.authOn ns cr) (.ok ai) info r rq t log Pre Q Post ∗
             srvApi.kvLogLb E.γs F }}
           (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmTxn ns cr t log oc⌝ ∗ txnAnswerIs log t skip resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗ threadTok ∗
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗ apply.applyTok E ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
                 reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
   iintro #Hs
@@ -421,14 +422,14 @@ theorem chain_revoke (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
       □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (T : List w64) (rs : RestM)
           (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-        {{ threadTok ∗ revokePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq id log T rs Pre Q
+        {{ apply.applyTok E ∗ revokePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq id log T rs Pre Q
             Post }}
           (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
         {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
             ∃ oc : Outcome, ⌜chainStep backendStep (alarmChain E.authOn ns cr) rq log oc⌝ ∗
               revokeOutcomeIs resp err oc ∗ kvOwn E (oc.logAfter log) ∗
               chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗
-              revokeResAfter E rq T rs resp err oc ∗ threadTok ∗
+              revokeResAfter E rq T rs resp err oc ∗ apply.applyTok E ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
                 reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
   iintro #Hs

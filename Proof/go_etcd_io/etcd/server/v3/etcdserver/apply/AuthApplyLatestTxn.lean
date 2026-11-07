@@ -256,7 +256,7 @@ abbrev apply.authApplierV3.Txn.specL : Prop :=
           (apply.chainStep apply.backendStep c rq log oc ∧
             ∃ L, apply.txnChecked tw L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L)) ∗
       txn.txnRequestIsW r tw ∗ ⌜rq.txnW = some tw⌝ ∗
-      srvApi.kvLogLb E.γs F ∗ Lr hs ∗ ⌜apply.shapedMay E.authMode hs (apply.txnMay tw)⌝ ∗ threadTok }}
+      srvApi.kvLogLb E.γs F ∗ Lr hs ∗ ⌜apply.shapedMay E.authMode hs (apply.txnMay tw)⌝ ∗ apply.applyTok E }}
     (App (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Txn")) (Val #r)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostFL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F
@@ -265,7 +265,7 @@ abbrev apply.authApplierV3.Txn.specL : Prop :=
             apply.refusedMay E.authMode hs (auth.authInfoM info) (apply.txnMay tw)) ∨
           (apply.chainStep apply.backendStep c rq log oc ∧
             ∃ L, apply.txnChecked tw L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L)) ∗
-      Lr hs ∗ apply.traceRes trace ∗ threadTok }}
+      Lr hs ∗ apply.traceRes trace ∗ apply.applyTok E }}
 
 end spec
 

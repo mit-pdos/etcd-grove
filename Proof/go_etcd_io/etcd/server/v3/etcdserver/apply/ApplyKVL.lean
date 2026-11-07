@@ -61,14 +61,14 @@ abbrev apply.uberApplier.Apply.kvSpecL : Prop :=
       apply.certPreVW v3 E x.chain rq x.log
         (apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log) ∗
       ⌜apply.rqOk .none x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
-      ⌜skip = true → rq.txn.isSome = true⌝ ∗ srvApi.kvLogLb E.γs F ∗ threadTok ∗
+      ⌜skip = true → rq.txn.isSome = true⌝ ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       (∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
         apply.applierKVL E (apply.baseChain E.authOn) ci base L) ∗ L hs ∗
       ⌜x.chain = apply.baseChain E.authOn ∧ apply.isKVKind (apply.dispatchKind rq) = true ∧
         apply.kvShapedL E.authMode hs rq⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; threadTok ∗ apply.bkRTOf E ∗ E.FS ∗
+  {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗
     ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
       apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
       E.RO (apply.restOut rq v3 out rs) ∗
@@ -136,9 +136,9 @@ theorem apply.uberApplier.Apply.wp_kvL
   wp_apply HApply $$ %r %rq %skip %v3
       %(methods (go.GoType.PointerType uberApplier.ty) go!"dispatch" #p)
       %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
-        apply.kvOwnPre v3 E x.log Pre Q Post ∗ threadTok ∗ E.FS ∗
+        apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.applyTok E ∗ E.FS ∗
         (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ L hs))
-      %(fun ar => iprop(threadTok ∗ apply.bkRTOf E ∗ E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗ ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
+      %(fun ar => iprop(apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗ ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c' ∧

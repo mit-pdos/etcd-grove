@@ -304,14 +304,14 @@ theorem txn.beginAU_reach (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)
     ipureintro; exact ⟨Hr, Hpn⟩
 
 /-- **A read transaction's `End`**: the thread token back (`Txn.End.contract` at a read
-transaction, whose backend arguments do not matter). -/
+transaction, whose backend arguments do not matter), with the reader token. -/
 theorem txn.end_read {ty : go.GoType} {v : val}
     (hEnd : mvcc.api.Txn.End.contract (GF := GF) (hG := hG) ty v)
     (γ : MvccName) (trace : Loc) (σ : MvccState) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.api.mvccTxn (interface.mkOk ty v) γ trace (.read σ) }}
       (App (Val #(methods ty go!"End" v)) (Val #()))
-    {{ RET #(); threadTok }} := by
+    {{ RET #(); threadTok ∗ mvcc.api.mvccReaders γ 1 }} := by
   have hB : Nonempty mvcc.api.MvccStorage := by
     refine ⟨mvcc.api.etcdStorage ⟨?_, ∅, 0, 0, null, ?_, false⟩⟩
     · constructor <;> first | exact default | (constructor <;> exact default)
@@ -321,11 +321,13 @@ theorem txn.end_read {ty : go.GoType} {v : val}
   iapply (hEnd γ trace (.read σ) 1 B iprop(True) iprop(True)) $$ [Htx]
   · iframe Hpkg Htx
   inext
-  iintro ⟨Htt, -⟩
-  iapply HΦ $$ Htt
+  iintro ⟨Htt, Hrd, -⟩
+  iapply HΦ
+  iframe Htt Hrd
 
 /-- **A write transaction's `End`**: the caller's two commit updates (`commitAU`, `Txn.End`'s
-shape), the batch lock's invariant `P` given, the backend share and the thread token back. -/
+shape), the batch lock's invariant `P` given, the backend share, the thread token and the reader
+token back. -/
 theorem txn.end_write {ty : go.GoType} {v : val}
     (hEnd : mvcc.api.Txn.End.contract (GF := GF) (hG := hG) ty v)
     (γ : MvccName) (trace : Loc) (σ₀ : MvccState) (pend : List mvcc.Change) (q : Qp)
@@ -334,7 +336,7 @@ theorem txn.end_write {ty : go.GoType} {v : val}
         mvcc.api.mvccTxn (interface.mkOk ty v) γ trace (.write σ₀ pend) ∗
         mvcc.api.mvccBackend γ q B P ∗ P ∗ txn.commitAU γ σ₀ pend Q }}
       (App (Val #(methods ty go!"End" v)) (Val #()))
-    {{ RET #(); threadTok ∗ mvcc.api.mvccBackend γ q B P ∗ Q }} := by
+    {{ RET #(); threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ mvcc.api.mvccBackend γ q B P ∗ Q }} := by
   have h := hEnd γ trace (.write σ₀ pend) q B P Q
   dsimp only at h
   iintro %Φ ⟨#Hpkg, Htx, Hbk, HP, Hau⟩ HΦ
@@ -342,9 +344,9 @@ theorem txn.end_write {ty : go.GoType} {v : val}
   · iframe Hpkg Htx Hbk HP
     iexact Hau
   inext
-  iintro ⟨Htt, Hbk, HQ⟩
+  iintro ⟨Htt, Hrd, Hbk, HQ⟩
   iapply HΦ
-  iframe Htt Hbk HQ
+  iframe Htt Hrd Hbk HQ
 
 /-- A read transaction after changes is the read transaction. -/
 theorem txn.mvccTxn_append_read (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn)

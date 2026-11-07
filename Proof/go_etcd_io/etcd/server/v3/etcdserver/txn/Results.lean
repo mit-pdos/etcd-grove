@@ -116,27 +116,28 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
     (lg : Loc) (kv : GoInterface) (γ : MvccName) (r : Loc) (o : OpFull) (withTotal : Bool)
     (ot : Option Loc) (te : Bool) (Q : MvccState → IProp GF) (hcut : ¬ cutEarly o) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-        mvcc.api.isMvcc kv γ ∗ threadTok ∗ rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗
+        mvcc.api.isMvcc kv γ ∗ threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ rangeRequestIs r o ∗
+        mvcc.txnCtx ctx cd ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
         (if nd then mvcc.neverDone cd else iprop(True)) ∗ ⌜lg ≠ null⌝ ∗ ⌜validSortTarget o⌝ ∗
         readAU γ Q }}
       (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg))
         (Val #kv)) (Val #r)) (Val #withTotal))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-        threadTok ∗ ⌜trace ≠ null⌝ ∗ (∃ te' : Bool, traceutil.ownTrace trace te') ∗
-        ∃ σ : MvccState, Q σ ∗ ⌜Reach σ⌝ ∗
+        threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ ⌜trace ≠ null⌝ ∗
+        (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ∃ σ : MvccState, Q σ ∗ ⌜Reach σ⌝ ∗
           rangeResultClient resp err σ.log (W64 (σ.rev : Int)) σ.crev o withTotal }} := by
-  wp_start_folded as ⟨#Hkv, Ht, #Hr, #Hctx, #Hct, Hto, Hnd, %Hlg, %Hvs, Hau⟩
+  wp_start_folded as ⟨#Hkv, Ht, Hrd, #Hr, #Hctx, #Hct, Hto, Hnd, %Hlg, %Hvs, Hau⟩
   ihave %Hset := rangeRequestIs_sortSet r o $$ Hr
-  iapply (wp_Range ctx cd nd lg kv γ r o withTotal ot te Q) $$ [Ht Hto Hnd Hau]
+  iapply (wp_Range ctx cd nd lg kv γ r o withTotal ot te Q) $$ [Ht Hrd Hto Hnd Hau]
   · iframe # ∗
     isplitr
     · ipureintro; exact Hlg
     ipureintro; exact Hvs
   inext
-  iintro %resp %tr %err ⟨Ht, %Htr, Hte, -, %σ, HQ, %Hreach, #Hres, -, -⟩
+  iintro %resp %tr %err ⟨Ht, Hrd, %Htr, Hte, -, %σ, HQ, %Hreach, #Hres, -, -⟩
   iapply HΦ
-  iframe Ht Hte
+  iframe Ht Hrd Hte
   isplitr
   · ipureintro; exact Htr
   iexists σ
@@ -202,7 +203,7 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
     (hst : OpsStable (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
       (t.branch (txnOk (mvcc.stateAfter log) t))) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-        mvcc.api.isMvcc kv γ ∗ threadTok ∗ kvBackend γ q B P f ∗
+        mvcc.api.isMvcc kv γ ∗ threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ kvBackend γ q B P f ∗
         isTxnLessor le (mvccLeases γ) ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
         leasesKnown L (mvcc.stateAfter log) ∗
@@ -217,7 +218,7 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
         (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-        threadTok ∗ kvBackend γ q B P f ∗
+        threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ kvBackend γ q B P f ∗
         ∃ σr : MvccState, ⌜σr.log = log ∧ Reach σr⌝ ∗
         ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗ checkErrIs err ∗ Pre ∗ Qr σr ∗
             lease.lessorUser (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log))) ∨
@@ -233,14 +234,14 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
             (mvcc.leaseItemsOf (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
           (if txnReadonly t then iprop(Pre ∗ Qr σr)
            else iprop(Post ∗ ∃ σw : MvccState, ⌜σw.log = log⌝ ∗ Qw σw)))) }} := by
-  wp_start_folded as ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15⟩
+  wp_start_folded as ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16⟩
   iapply (wp_Txn.1 ctx cd lg rt shared kv le skip γ log t q B P Pre Q Post f L ot te Qr Qw)
-    $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15]
-  · iframe Hpkg H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15
+    $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16]
+  · iframe Hpkg H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16
   inext
-  iintro %resp %trace %err ⟨Ht, Hkb, %σr, %Hσr, Hout⟩
+  iintro %resp %trace %err ⟨Ht, Hrd, Hkb, %σr, %Hσr, Hout⟩
   iapply HΦ
-  iframe Ht Hkb
+  iframe Ht Hrd Hkb
   iexists σr
   isplitr
   · ipureintro; exact Hσr

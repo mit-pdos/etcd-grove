@@ -87,36 +87,36 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState),
       {{ putPreW E c (.ok ai) info r rq o log Pre Q Post
             (authOutL E.authMode hs (auth.authInfoM info) ci rq log (putPerms o)) ∗
-          srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜shapedL E.authMode hs (putPerms o)⌝ ∗ threadTok }}
+          srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜shapedL E.authMode hs (putPerms o)⌝ ∗ apply.applyTok E }}
         (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           kvPostFL E c (.ok ai) info rq log F (putAnswerIs log o resp err) Pre Post
             (authOutL E.authMode hs (auth.authInfoM info) ci rq log (putPerms o)) ∗
-          L hs ∗ traceRes trace ∗ threadTok }}) ∗
+          L hs ∗ traceRes trace ∗ apply.applyTok E }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState),
       {{ deletePreW E c (.ok ai) info r rq o log Pre Q Post
             (fun oc => ∃ e, authEndOf o.base.rangeEnd e ∧
               authOutL E.authMode hs (auth.authInfoM info) ci rq log
                 ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc) ∗
-          srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜shapedL E.authMode hs (deletePermsM o)⌝ ∗ threadTok }}
+          srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜shapedL E.authMode hs (deletePermsM o)⌝ ∗ apply.applyTok E }}
         (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           kvPostFL E c (.ok ai) info rq log F (deleteAnswerIs log o resp err) Pre Post
             (fun oc => ∃ e, authEndOf o.base.rangeEnd e ∧
               authOutL E.authMode hs (auth.authInfoM info) ci rq log
                 ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc) ∗
-          L hs ∗ traceRes trace ∗ threadTok }}) ∗
+          L hs ∗ traceRes trace ∗ apply.applyTok E }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState),
       {{ rangePre E c (.ok ai) info r rq o log ∗ L hs ∗ ⌜shapedL E.authMode hs (rangePermsM o)⌝ ∗
-          threadTok }}
+          apply.applyTok E }}
         (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           rangePostL E c (.ok ai) info rq o log resp err
             (fun oc => ∃ e, authEndOf o.base.rangeEnd e ∧
               authOutL E.authMode hs (auth.authInfoM info) ci rq log [(o.key, e, .read)] oc) ∗
-          L hs ∗ traceRes trace ∗ threadTok }}) ∗
+          L hs ∗ traceRes trace ∗ apply.applyTok E }}) ∗
     □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (tw : txn.TxnModelW)
         (log F : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
         (hs : List auth.AuthState),
@@ -126,7 +126,7 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
               (chainStep backendStep ci rq log oc ∧
                 ∃ L, txnChecked tw L ∧ passedL E.authMode hs (auth.authInfoM info) L)) ∗
           txn.txnRequestIsW r tw ∗ ⌜rq.txnW = some tw⌝ ∗
-          srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜shapedMay E.authMode hs (txnMay tw)⌝ ∗ threadTok }}
+          srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜shapedMay E.authMode hs (txnMay tw)⌝ ∗ apply.applyTok E }}
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           kvPostFL E c (.ok ai) info rq log F (txnAnswerIs log t skip resp err) Pre Post
@@ -134,7 +134,7 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
                 refusedMay E.authMode hs (auth.authInfoM info) (txnMay tw)) ∨
               (chainStep backendStep ci rq log oc ∧
                 ∃ L, txnChecked tw L ∧ passedL E.authMode hs (auth.authInfoM info) L)) ∗
-          L hs ∗ traceRes trace ∗ threadTok }}))
+          L hs ∗ traceRes trace ∗ apply.applyTok E }}))
 
 instance applierKVL_persistent (E : AEnv GF) (c ci : Chain) (a : GoInterface)
     (L : List auth.AuthState → IProp GF) : Persistent (applierKVL E c ci a L) := by
@@ -169,11 +169,11 @@ abbrev apply.uberApplier.dispatch.kvSpecL : Prop :=
       apply.kvOwnPre v3 E log Pre Q Post ∗
       apply.certPreVW v3 E c rq log (apply.kvOutL E.authMode hs (auth.authInfoM info) ci rq log) ∗
       ⌜apply.rqOk .none log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗
-      srvApi.kvLogLb E.γs F ∗ threadTok ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
+      srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       apply.applierKVL E c ci a L ∗ L hs ∗
       ⌜apply.isKVKind (apply.dispatchKind rq) = true ∧ apply.kvShapedL E.authMode hs rq⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; threadTok ∗ apply.bkRTOf E ∗ apply.chainResAny c a ∗
+  {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ apply.chainResAny c a ∗
       E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗
       ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
@@ -580,7 +580,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       (err : GoError) (physc : GoChan) (trace : Loc) (opS : GoString),
       a_ptr ↦ p ∗ r_ptr ↦ r ∗ ar_ptr ↦ «$r0_ptr» ∗ op_ptr ↦ opS ∗
       «$r0_ptr» ↦□ Result.mk resp err physc trace ∗ applyErrIs err ∗
-      (threadTok ∗ apply.bkRTOf E ∗ apply.chainResAny c (GoInterface.ok ai) ∗
+      (apply.applyTok E ∗ apply.bkRTOf E ∗ apply.chainResAny c (GoInterface.ok ai) ∗
         ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
           apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗

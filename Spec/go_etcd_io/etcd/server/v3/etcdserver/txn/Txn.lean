@@ -50,7 +50,8 @@ abbrev txn.Txn.specSole : Prop :=
     (kv le : GoInterface) (skip : Bool) (γ : MvccName) (log : mvcc.Log) (t : TxnModel) (q : Qp)
     (B : MvccStorage) (P Pre Q Post : IProp GF) (f : GoFunc) (L : List w64) (ot : Option Loc) (te : Bool)
     (Qr Qw : MvccState → IProp GF),
-  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ txn.kvBackend γ q B P f ∗
+  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ mvcc.api.mvccReaders γ 1 ∗
+      txn.kvBackend γ q B P f ∗
       txn.isTxnLessor le (mvccLeases γ) ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
       txn.leasesKnown L (mvcc.stateAfter log) ∗
@@ -65,7 +66,7 @@ abbrev txn.Txn.specSole : Prop :=
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      threadTok ∗ txn.kvBackend γ q B P f ∗
+      threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ txn.kvBackend γ q B P f ∗
       ∃ σr : MvccState, ⌜σr.log = log ∧ txn.Reach σr⌝ ∗
       ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil ∧
             (txn.txnLeased t → ¬ (txn.PathsIgnOk (mvcc.stateAfter log)
@@ -102,14 +103,15 @@ abbrev txn.Txn.specRead : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc) (shared : Bool)
     (kv le : GoInterface) (skip : Bool) (γ : MvccName) (t : TxnModel) (ot : Option Loc) (te : Bool)
     (Q : MvccState → IProp GF),
-  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ txn.isTxnLessor le (mvccLeases γ) ∗
+  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ mvcc.api.mvccReaders γ 1 ∗
+      txn.isTxnLessor le (mvccLeases γ) ∗
       txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ ⌜lg ≠ null ∧ txn.txnReadonly t = true ∧ txn.txnGetsOk t⌝ ∗
       txn.readAU γ Q }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      threadTok ∗ ∃ σ : MvccState, Q σ ∗ ⌜txn.Reach σ⌝ ∗
+      threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ ∃ σ : MvccState, Q σ ∗ ⌜txn.Reach σ⌝ ∗
         ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗ txn.checkErrIs err ∗
           (∃ (t' : Loc) (te' : Bool), traceutil.ownTrace t' te' ∗
             ⌜∀ t0, ot = some t0 → te = false → t' = t0⌝)) ∨

@@ -315,7 +315,8 @@ abbrev revokeLog (log : mvcc.Log) (id : w64) : mvcc.Log :=
 /-- **`isApplyLessor`'s `Revoke` clause** (D3; strict M1, 2026-11-05: `lessor.Revoke.spec`'s shape
 over mvcc's API) at the store `γ`, the batch lock of the backend `B` (`Pk B`, `f`), the backend's
 tie `BT` and the rest resource `RO`: by the lease owner at the live set `L`, the range deleter held
-(`mvccDeleter`), a share of the store's backend, the thread's token, the begin state `σ₀`
+(`mvccDeleter`), a share of the store's backend, the thread's token and a reader token of the
+store (the reader tokens, 2026-11-06: the deleter's transaction holds it), the begin state `σ₀`
 (reachable, nothing pending) and, for a live lease only (decided by the coordinator, 2026-11-06:
 `if decide (id ∈ L) then … else True`, as `lessor.Revoke.spec`), one nested update, the deleter's
 begin whose payload is the end of exactly the lease's deletions (`auBegin γ σ₀ (auEnd γ σ₀
@@ -328,7 +329,8 @@ def revokeClause (le : GoInterfaceOk) (γ : MvccName) (Pk : mvcc.KBReal → IPro
     (BT : mvcc.KBReal → IProp GF) (RO : RestM → IProp GF) : IProp GF :=
   iprop(□ (∀ (id : w64) (σ₀ : MvccState) (L : List w64) (rs : RestM) (q : Qp) (B : mvcc.KBReal)
       (Pre Q Post Y : IProp GF),
-    {{ threadTok ∗ (∃ rd : GoFunc, lease.rdOwn (mvccLeases γ) rd ∗ mvccDeleter rd γ) ∗
+    {{ threadTok ∗ mvcc.api.mvccReaders γ 1 ∗
+        (∃ rd : GoFunc, lease.rdOwn (mvccLeases γ) rd ∗ mvccDeleter rd γ) ∗
         lease.lessorRevocable (mvccLeases γ) ∗
         mvccBackend γ q B (Pk B) ∗ hookIs B f ∗ BT B ∗ csContractA (Pk B) f Pre Q Post ∗
         ⌜σ₀.pending = none ∧ (mvcc.stateAfter σ₀.log).length ≤ 2 ^ 62 ∧ MvccReachable σ₀ ∧
@@ -339,7 +341,7 @@ def revokeClause (le : GoInterfaceOk) (γ : MvccName) (Pk : mvcc.KBReal → IPro
         lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) ∗
         lease.leaseRevokers (mvccLeases γ) L ∗ txn.leasesKnown L (mvcc.stateAfter σ₀.log) ∗ RO rs }}
       (App (Val #(methods le.ty go!"Revoke" le.v)) (Val #id))
-    {{ (err : GoInterface), RET #err; threadTok ∗
+    {{ (err : GoInterface), RET #err; threadTok ∗ mvcc.api.mvccReaders γ 1 ∗
         (∃ rd : GoFunc, lease.rdOwn (mvccLeases γ) rd ∗ mvccDeleter rd γ) ∗
         mvccBackend γ q B (Pk B) ∗ BT B ∗ applyErrIs err ∗
         ((⌜id ∉ L ∧ mvcc.leaseDels (mvcc.stateAfter σ₀.log) id = []⌝ ∗

@@ -36,6 +36,8 @@ theorem apply.applierV3backend.newHeader.wp_proof
   -- `hdrFields`, the `Revision` the log's last, `E.Nx log` in place of `certOk`, from `envAus`'s
   -- writer facts)
   wp_start as ⟨#Hb, Htt, Hsw⟩
+  iunfold apply.applyTok at Htt
+  icases Htt with ⟨Htt, Hmr⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
@@ -66,7 +68,7 @@ theorem apply.applierV3backend.newHeader.wp_proof
   wp_apply HMem as %mid -
   rw [Hkveq]
   simp only [interface.mkOk]
-  wp_apply (hRevC E.γ _) $$ [$Hkv' $Htt $Hau] as %v ⟨Htt, %σ, ⟨%Hσ, Hsw⟩, %Hv⟩
+  wp_apply (hRevC E.γ _) $$ [$Hkv' $Htt $Hmr $Hau] as %v ⟨Htt, Hmr, %σ, ⟨%Hσ, Hsw⟩, %Hv⟩
   -- the writer's facts: its log's witness, reachable (so at least `NewStore`'s two revisions)
   imod Hfacts $$ %log %c Hsw with ⟨Hsw, Hnx, -, %Hreach⟩
   have Hlen2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
@@ -77,7 +79,8 @@ theorem apply.applierV3backend.newHeader.wp_proof
   ihave %Hhn := typedPointsto_not_null $$ Hh
   iStructNamed Hh
   iapply HΦ
-  iframe Htt Hsw Hnx
+  iunfold apply.applyTok
+  iframe Htt Hmr Hsw Hnx
   isplitr
   · ipureintro; exact Hhn
   isplitl [ClusterId MemberId RaftTerm LeaderId]

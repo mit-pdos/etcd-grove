@@ -143,11 +143,11 @@ def adminTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) (W : IProp GF)
   iprop(□ ∀ (ar : AdminReq) (r : Loc) (γa : auth.AuthNames) (hs : List auth.AuthState)
       (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
     ⌜E.authMode = .on γa ∧ receiptBound GF ≤ 2 ^ 48 ∧ ar.nameOk⌝ -∗
-    {{ ar.reqIs r ∗ Own γa hs ∗ ⧗ 1 ∗ W ∗ threadTok ∗ mPre E c (.ok ai) info log Pre Q Post ∗
+    {{ ar.reqIs r ∗ Own γa hs ∗ ⧗ 1 ∗ W ∗ apply.applyTok E ∗ mPre E c (.ok ai) info log Pre Q Post ∗
         ar.extraPre E γa hs Pre }}
       (App (Val #(methods ai.ty ar.method ai.v)) (Val (ar.arg r)))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      threadTok ∗ mPost E c (.ok ai) log Pre Post ∗ applyErrIs err ∗ W ∗
+      apply.applyTok E ∗ mPost E c (.ok ai) log Pre Post ∗ applyErrIs err ∗ W ∗
       ar.result Own γa E.authMode hs resp err }})
 
 instance adminTriples_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) (W : IProp GF)

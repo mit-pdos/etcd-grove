@@ -140,6 +140,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     ipersist Error
     ipersist Header
     ipersist Hrev
+    imodintro
     iapply HΦ
     iframe Htt
     iexists (Outcome.applied log false)

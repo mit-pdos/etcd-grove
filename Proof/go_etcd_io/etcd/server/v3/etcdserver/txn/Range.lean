@@ -39,7 +39,7 @@ theorem txn.Range.wp_proof
     txn.Range.spec (GF := GF) (hG := hG) := by
   intro ctx cd nd lg kv γ r o withTotal ot te Q
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Htt, #Hr, #Hctx, #Hct, Hto, #Hnd, %Hlg, %Hvst, Hau⟩
+  wp_start as ⟨#Hkv, Htt, Hrd, #Hr, #Hctx, #Hct, Hto, #Hnd, %Hlg, %Hvst, Hau⟩
   icases txn.isMvcc_shape hsh kv γ $$ Hkv with ⟨%Hsh, -⟩
   obtain ⟨kty, kvv, rfl, hReadC, -⟩ := Hsh
   ihave Hau := txn.readAU_reach hpers hreach _ γ Q $$ Hkv Hau
@@ -49,7 +49,7 @@ theorem txn.Range.wp_proof
     as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iapply traceutil.ownFields_nil
   wp_apply time.wp_Now as %now -
-  wp_apply (hReadC γ _ trace false _) $$ [$Hkv $Htt $Htrc $Hau]
+  wp_apply (hReadC γ _ trace false _) $$ [$Hkv $Htt $Hrd $Htrc $Hau]
     as %t ⟨Htrc, %σ, Htx, HQ, %Hreachσ⟩
   · ipureintro; exact Ht
   icases txn.mvccTxn_shape hsh t γ trace (.read σ) $$ Htx with ⟨%Hsht, Htx⟩
@@ -65,13 +65,13 @@ theorem txn.Range.wp_proof
       · simp only [↓reduceIte, mvcc.neverDone] at *; iexact Hnd
     ipureintro
     exact ⟨Hreachσ, Hvst⟩
-  wp_apply (txn.end_read hEndC γ trace σ) $$ [$Htx] as Htt
+  wp_apply (txn.end_read hEndC γ trace σ) $$ [$Htx] as ⟨Htt, Hrd⟩
   cases err <;> wp_auto
   all_goals
     wp_apply time.wp_Since as %d -
     wp_apply hObs
     iapply HΦ
-    iframe Htt
+    iframe Htt Hrd
     isplitr
     · ipureintro; exact Ht
     isplitl [Htrc]

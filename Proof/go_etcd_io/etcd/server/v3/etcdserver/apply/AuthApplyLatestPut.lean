@@ -79,13 +79,13 @@ abbrev apply.authApplierV3.Put.specL : Prop :=
       apply.authIs E p inner ∗ apply.authIsL E p L ∗ apply.lessorNil p ∗ apply.applierSpec E c inner ∗
       apply.putPreW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log Pre Q Post
         (apply.authOutL E.authMode hs (auth.authInfoM info) c rq log (apply.putPerms o)) ∗
-      srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜apply.shapedL E.authMode hs (apply.putPerms o)⌝ ∗ threadTok }}
+      srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜apply.shapedL E.authMode hs (apply.putPerms o)⌝ ∗ apply.applyTok E }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Put")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostFL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F
         (apply.putAnswerIs log o resp err) Pre Post
         (apply.authOutL E.authMode hs (auth.authInfoM info) c rq log (apply.putPerms o)) ∗
-      L hs ∗ apply.traceRes trace ∗ threadTok }}
+      L hs ∗ apply.traceRes trace ∗ apply.applyTok E }}
 
 end spec
 

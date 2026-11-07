@@ -304,13 +304,13 @@ abbrev apply.authApplierV3.Range.specL : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.authIs E p inner ∗ apply.authIsL E p L ∗ apply.applierSpec E c inner ∗
       apply.rangePre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log ∗
-      L hs ∗ ⌜apply.shapedL E.authMode hs (apply.rangePermsM o)⌝ ∗ threadTok }}
+      L hs ∗ ⌜apply.shapedL E.authMode hs (apply.rangePermsM o)⌝ ∗ apply.applyTok E }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Range")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.rangePostL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq o log resp err
         (fun oc => ∃ e, apply.authEndOf o.base.rangeEnd e ∧
           apply.authOutL E.authMode hs (auth.authInfoM info) c rq log [(o.key, e, .read)] oc) ∗
-      L hs ∗ apply.traceRes trace ∗ threadTok }}
+      L hs ∗ apply.traceRes trace ∗ apply.applyTok E }}
 
 /-- **`DeleteRange` on the apply thread**: `DeleteRange.spec`'s, the outcome decided at the
 latest state for the write (and with `PrevKv` the read) as the checks saw them; the certificates
@@ -327,7 +327,7 @@ abbrev apply.authApplierV3.DeleteRange.specL : Prop :=
           apply.authOutL E.authMode hs (auth.authInfoM info) c rq log
             ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc) ∗
       srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜apply.shapedL E.authMode hs (apply.deletePermsM o)⌝ ∗
-      threadTok }}
+      apply.applyTok E }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostFL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F
@@ -335,7 +335,7 @@ abbrev apply.authApplierV3.DeleteRange.specL : Prop :=
         (fun oc => ∃ e, apply.authEndOf o.base.rangeEnd e ∧
           apply.authOutL E.authMode hs (auth.authInfoM info) c rq log
             ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc) ∗
-      L hs ∗ apply.traceRes trace ∗ threadTok }}
+      L hs ∗ apply.traceRes trace ∗ apply.applyTok E }}
 
 end spec
 

@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 abbrev apply.applierV3backend.AuthStatus.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (log : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      threadTok ∗ apply.kvOwn E log }}
+      apply.applyTok E ∗ apply.kvOwn E log }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthStatus")) (Val #()))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ apply.kvOwn E log ∗ applyErrIs err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.applyTok E ∗ apply.kvOwn E log ∗ applyErrIs err }}
 
 end spec
 

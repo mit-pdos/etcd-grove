@@ -40,14 +40,16 @@ abbrev txn.Range.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
     (kv : GoInterface) (γ : MvccName) (r : Loc) (o : OpFull) (withTotal : Bool) (ot : Option Loc)
     (te : Bool) (Q : MvccState → IProp GF),
-  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ txn.rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗
+  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ mvcc.api.mvccReaders γ 1 ∗
+      txn.rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗ ⌜lg ≠ null⌝ ∗ ⌜txn.validSortTarget o⌝ ∗
       txn.readAU γ Q }}
     (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv))
       (Val #r)) (Val #withTotal))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      threadTok ∗ ⌜trace ≠ null⌝ ∗ (∃ te' : Bool, traceutil.ownTrace trace te') ∗
+      threadTok ∗ mvcc.api.mvccReaders γ 1 ∗
+      ⌜trace ≠ null⌝ ∗ (∃ te' : Bool, traceutil.ownTrace trace te') ∗
       ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
       ∃ σ : MvccState, Q σ ∗ ⌜txn.Reach σ⌝ ∗
         txn.rangeResult resp err σ.log (W64 (σ.rev : Int)) σ.crev o withTotal ∗

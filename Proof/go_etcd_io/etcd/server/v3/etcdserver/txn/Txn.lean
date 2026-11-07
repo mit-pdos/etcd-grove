@@ -85,7 +85,7 @@ theorem txn.Txn_sole
     txn.Txn.specSole (GF := GF) (hG := hG) := by
   intro ctx cd lg rt shared kv le skip γ log t q B P Pre Q Post f L ot te Qr Qw
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Htt, Hbk, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, Hcs, Hau, Hwand⟩
+  wp_start as ⟨#Hkv, Htt, Hrd, Hbk, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, Hcs, Hau, Hwand⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -106,7 +106,7 @@ theorem txn.Txn_sole
   · cases isW <;> (try cases shared) <;>
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
-  wp_apply (hReadC γ md trace false _) $$ [$Hkv $Htt $Htrc $Hau]
+  wp_apply (hReadC γ md trace false _) $$ [$Hkv $Htt $Hrd $Htrc $Hau]
     as %tr ⟨Htrc, %σr, Htx, ⟨⟨%Hlog, HQr⟩, %Hreachr⟩⟩
   · ipureintro; exact Htr
   subst Hlog
@@ -163,11 +163,11 @@ theorem txn.Txn_sole
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      wp_apply (txn.end_read hEndT γ trace σr) $$ [$Htx] as Htt
+      wp_apply (txn.end_read hEndT γ trace σr) $$ [$Htx] as ⟨Htt, Hrd⟩
       iapply HΦ
       ihave Hbk : txn.kvBackend γ q B P f $$ [Hbk]
       · iunfold txn.kvBackend; iframe Hbk Hhook
-      iframe Htt Hbk
+      iframe Htt Hrd Hbk
       iexists σr
       isplitl []
       · ipureintro; exact ⟨rfl, Hreachr⟩
@@ -207,7 +207,7 @@ theorem txn.Txn_sole
     · cases Hc
     subst Herr
     (try wp_auto)
-    wp_apply (txn.end_read hEndW γ trace σr) $$ [$Hro] as Htt
+    wp_apply (txn.end_read hEndW γ trace σr) $$ [$Hro] as ⟨Htt, Hrd⟩
     ihave #Hresp2 := Hresp
     iunfold txnResponseIs at Hresp2
     icases Hresp2 with ⟨%Hrn, #Hf⟩
@@ -229,7 +229,7 @@ theorem txn.Txn_sole
     iapply HΦ
     ihave Hbk : txn.kvBackend γ q B P f $$ [Hbk]
     · iunfold txn.kvBackend; iframe Hbk Hhook
-    iframe Htt Hbk
+    iframe Htt Hrd Hbk
     iexists σr
     isplitl []
     · ipureintro; exact ⟨rfl, Hreachr⟩
@@ -249,14 +249,14 @@ theorem txn.Txn_sole
   · -- a write: the read ends, the write transaction opens at the sole writer's log
     have hro : txnReadonly t = false := by simpa using hw
     wp_auto
-    wp_apply (txn.end_read hEndT γ trace σr) $$ [$Htx] as Htt
+    wp_apply (txn.end_read hEndT γ trace σr) $$ [$Htx] as ⟨Htt, Hrd⟩
     rw [hro]
     simp only [Bool.false_eq_true, ↓reduceIte]
     -- the caller's wand, told that the checks passed (`checkTxn`'s `PathsIgnOk`)
     ihave Hbeg := Hwand $$ %σr %Hign HQr
     iunfold txn.txnBeginAU at Hbeg
     ihave Hbeg := txn.beginAU_reach hpers hreach _ γ _ $$ Hkv Hbeg
-    wp_apply (hWriteC γ trace false q B P Pre Q f _) $$ [$Hkv $Htt $Htrc $Hbk $Hhook $HPre $Htrun $Hbeg]
+    wp_apply (hWriteC γ trace false q B P Pre Q f _) $$ [$Hkv $Htt $Hrd $Htrc $Hbk $Hhook $HPre $Htrun $Hbeg]
       as %tw ⟨Htrc, Hbk, ⟨%σw, Htw, ⟨%Hreachw, %Hlogw, Hcommit⟩⟩, HQ⟩
     · ipureintro; exact Htr
     icases txn.mvccTxn_shape hsh tw γ trace (.write σw []) $$ Htw with ⟨%Hshw, Htw⟩
@@ -282,7 +282,7 @@ theorem txn.Txn_sole
     subst Herr
     (try wp_auto)
     wp_apply (txn.end_write hEndW γ trace σw _ q B P (Qw σw)) $$ [$Htw $Hbk $HP Hcommit]
-      as ⟨Htt, Hbk, HQw⟩
+      as ⟨Htt, Hrd, Hbk, HQw⟩
     · iexact Hcommit
     ihave #Hresp2 := Hresp
     iunfold txnResponseIs at Hresp2
@@ -306,7 +306,7 @@ theorem txn.Txn_sole
     iapply HΦ
     ihave Hbk : txn.kvBackend γ q B P f $$ [Hbk]
     · iunfold txn.kvBackend; iframe Hbk Hhook
-    iframe Htt Hbk
+    iframe Htt Hrd Hbk
     iexists σr
     isplitl []
     · ipureintro; exact ⟨rfl, Hreachr⟩
@@ -345,7 +345,7 @@ theorem txn.Txn_read
     txn.Txn.specRead (GF := GF) (hG := hG) := by
   intro ctx cd lg rt shared kv le skip γ t ot te Q
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Htt, #Hle, #Hrt, #Hctx, #Hct, Hto, %Hpre, Hau⟩
+  wp_start as ⟨#Hkv, Htt, Hrd, #Hle, #Hrt, #Hctx, #Hct, Hto, %Hpre, Hau⟩
   obtain ⟨Hlg, hro, hgets⟩ := Hpre
   icases txn.isMvcc_shape hsh kv γ $$ Hkv with ⟨%Hsh, -⟩
   obtain ⟨kty, kvv, rfl, hReadC, -⟩ := Hsh
@@ -363,7 +363,7 @@ theorem txn.Txn_read
   · (try cases shared) <;>
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
-  wp_apply (hReadC γ md trace false _) $$ [$Hkv $Htt $Htrc $Hau]
+  wp_apply (hReadC γ md trace false _) $$ [$Hkv $Htt $Hrd $Htrc $Hau]
     as %tr ⟨Htrc, %σr, Htx, HQ, %Hreachr⟩
   · ipureintro; exact Htr
   icases txn.mvccTxn_shape hsh tr γ trace (.read σr) $$ Htx with ⟨%Hsht, Htx⟩
@@ -406,9 +406,9 @@ theorem txn.Txn_read
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      wp_apply (txn.end_read hEndT γ trace σr) $$ [$Htx] as Htt
+      wp_apply (txn.end_read hEndT γ trace σr) $$ [$Htx] as ⟨Htt, Hrd⟩
       iapply HΦ
-      iframe Htt
+      iframe Htt Hrd
       iexists σr
       iframe HQ
       isplitl []
@@ -476,7 +476,7 @@ theorem txn.Txn_read
       iexact Hresp
     · iframe Hro Hshell
       iright; iframe He Hrd Hhdr
-  wp_apply (txn.end_read hEndW γ trace σr) $$ [$Hro] as Htt
+  wp_apply (txn.end_read hEndW γ trace σr) $$ [$Hro] as ⟨Htt, Hrd⟩
   ihave #Hshell2 := Hshell
   iunfold txnRespShell at Hshell2
   icases Hshell2 with ⟨%Hrn, %h, %rsl, %rv0, #Hh, #Hrev, #Hrsl⟩
@@ -491,7 +491,7 @@ theorem txn.Txn_read
     exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
       (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
   iapply HΦ
-  iframe Htt
+  iframe Htt Hrd
   iexists σr
   iframe HQ
   isplitl []

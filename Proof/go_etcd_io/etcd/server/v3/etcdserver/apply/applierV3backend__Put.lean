@@ -59,6 +59,8 @@ theorem apply.applierV3backend.Put.wp_proof
     apply.applierV3backend.Put.spec (GF := GF) (hG := hG) := by
   intro E p r rq o log F Pre Q Post info
   wp_start as ⟨#Hb, Hpre, #HF, Htt⟩
+  iunfold apply.applyTok at Htt
+  icases Htt with ⟨Htt, Hmr⟩
   iunfold apply.putPre at Hpre
   icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre⟩
   iunfold apply.mPre at Hpre
@@ -136,8 +138,8 @@ theorem apply.applierV3backend.Put.wp_proof
   wp_apply hTODO
   wp_apply (hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV' E.γ r o 1 B (E.Pk B)
       Pre Q Post E.f L (mvcc.leaseItemsOf (mvcc.stateAfter log)) none false _)
-      $$ [$Hkv $Htt $Hle $Hu $Hr $Hkb $Hcs $Hau]
-    as %resp %trace %err ⟨Htt, Hkb, %Htrn, ⟨%te', Htrc⟩, -, Hout⟩
+      $$ [$Hkv $Htt $Hmr $Hle $Hu $Hr $Hkb $Hcs $Hau]
+    as %resp %trace %err ⟨Htt, Hmr, Hkb, %Htrn, ⟨%te', Htrc⟩, -, Hout⟩
   · isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
@@ -146,7 +148,8 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold txn.kvBackend at Hkb
   icases Hkb with ⟨Hbk, Hhk⟩
   iapply HΦ
-  iframe Htt
+  iunfold apply.applyTok
+  iframe Htt Hmr
   isplitr [Htrc]
   rotate_left
   · iunfold apply.traceRes; iright; iexists te'; iexact Htrc

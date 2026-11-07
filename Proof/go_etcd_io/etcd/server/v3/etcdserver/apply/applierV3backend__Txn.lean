@@ -41,6 +41,8 @@ theorem apply.applierV3backend.Txn.wp_proof
     apply.applierV3backend.Txn.spec (GF := GF) (hG := hG) := by
   intro E p r skip rq t log F Pre Q Post info
   wp_start as ⟨#Hb, Hpre, #HF, Htt⟩
+  iunfold apply.applyTok at Htt
+  icases Htt with ⟨Htt, Hmr⟩
   iunfold apply.txnPre at Hpre
   icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre⟩
   iunfold apply.mPre at Hpre
@@ -115,8 +117,8 @@ theorem apply.applierV3backend.Txn.wp_proof
   wp_apply hTODO
   wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
       opts.KV' opts.Lessor' skip E.γ log t 1 B (E.Pk B) Pre Q Post E.f L none false _ _)
-      $$ [$Hkv $Htt $Hkb $Hle $Hr $Hu $Hcs $Hau $Hwand]
-    as %resp %trace %err ⟨Htt, Hkb, %σr, -, Hout⟩
+      $$ [$Hkv $Htt $Hmr $Hkb $Hle $Hr $Hu $Hcs $Hau $Hwand]
+    as %resp %trace %err ⟨Htt, Hmr, Hkb, %σr, -, Hout⟩
   · isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
@@ -130,7 +132,8 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold txn.kvBackend at Hkb
   icases Hkb with ⟨Hbk, Hhk⟩
   iapply HΦ
-  iframe Htt
+  iunfold apply.applyTok
+  iframe Htt Hmr
   icases Hout with (⟨%Herr, #He, HPre, ⟨%Hσ, Hw⟩, Hu, -⟩ |
     ⟨%Hok, ⟨%te', Htrc⟩, -, #Hresp, Hhdr, #Hknown', Hu, HPP⟩)
   · -- checkTxn's error

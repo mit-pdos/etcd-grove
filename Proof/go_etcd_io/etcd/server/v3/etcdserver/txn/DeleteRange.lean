@@ -37,7 +37,7 @@ theorem txn.DeleteRange.wp_proof
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro ctx cd nd lg kv γ dr o q B P Pre Q Post f ot te L I R
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Htt, #Hdr, Hown, #Hctx, #Hct, Hto, #Hnd, Hbk, Hcs, Hau⟩
+  wp_start as ⟨#Hkv, Htt, Hrd, #Hdr, Hown, #Hctx, #Hct, Hto, #Hnd, Hbk, Hcs, Hau⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -76,7 +76,7 @@ theorem txn.DeleteRange.wp_proof
   icases txn.isMvcc_shape hsh kv γ $$ Hkv with ⟨%Hsh, -⟩
   obtain ⟨kty, kvv, rfl, -, hWriteC, -⟩ := Hsh
   (try wp_auto)
-  wp_apply (hWriteC γ trace false q B P Pre Q f _) $$ [$Hkv $Htt $Htrc $Hbk $Hhook $Hpre $Htr $Hau]
+  wp_apply (hWriteC γ trace false q B P Pre Q f _) $$ [$Hkv $Htt $Hrd $Htrc $Hbk $Hhook $Hpre $Htr $Hau]
     as %t ⟨Htrc, Hbk, ⟨%σ₀, Htx, ⟨%Hreach0, %Hitems, Hcommit⟩⟩, HQ⟩
   · ipureintro; exact Ht
   icases txn.mvccTxn_shape hsh t γ trace (.write σ₀ []) $$ Htx with ⟨%Hsht, Htx⟩
@@ -102,12 +102,12 @@ theorem txn.DeleteRange.wp_proof
     ihave Hcommit := Hcommit $$ %true
     have hdp : txn.delPend o σ₀ true = txn.delChanges (mvcc.stateAfter σ₀.log) o := rfl
     rw [hdp]
-    wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀ true)) $$ [$Htx $Hbk $HP $Hcommit] as ⟨Htt, Hbk, HR⟩
+    wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀ true)) $$ [$Htx $Hbk $HP $Hcommit] as ⟨Htt, Hrd, Hbk, HR⟩
     (try wp_auto)
     iapply HΦ
     ihave Hbk : txn.kvBackend γ q B P f $$ [Hbk]
     · iunfold txn.kvBackend; iframe Hbk Hhook
-    iframe Htt Hbk HPost
+    iframe Htt Hrd Hbk HPost
     isplitl []
     · ipureintro; exact Ht
     isplitl [Htrc]
@@ -125,12 +125,12 @@ theorem txn.DeleteRange.wp_proof
     ihave Hcommit := Hcommit $$ %false
     have hdp : txn.delPend o σ₀ false = [] := rfl
     rw [hdp]
-    wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀ false)) $$ [$Htx $Hbk $HP $Hcommit] as ⟨Htt, Hbk, HR⟩
+    wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀ false)) $$ [$Htx $Hbk $HP $Hcommit] as ⟨Htt, Hrd, Hbk, HR⟩
     (try wp_auto)
     iapply HΦ
     ihave Hbk : txn.kvBackend γ q B P f $$ [Hbk]
     · iunfold txn.kvBackend; iframe Hbk Hhook
-    iframe Htt Hbk HPost
+    iframe Htt Hrd Hbk HPost
     isplitl []
     · ipureintro; exact Ht
     isplitl [Htrc]

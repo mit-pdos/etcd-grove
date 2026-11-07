@@ -58,8 +58,8 @@ abbrev lease.lessor.Revoke.spec : Prop :=
   let dels := mvcc.leaseDels (mvcc.stateAfter σ₀.log) id
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      lease.lessorInv lp γl ∗ lease.lessorRevocable γl ∗ threadTok ∗ lease.rdOwn γl rd ∗
-      mvccDeleter rd γ ∗
+      lease.lessorInv lp γl ∗ lease.lessorRevocable γl ∗ threadTok ∗ mvccReaders γ 1 ∗
+      lease.rdOwn γl rd ∗ mvccDeleter rd γ ∗
       mvccBackend γ q B P ∗ hookIs B f ∗ csContractA P f Pre Q Post ∗
       ⌜σ₀.pending = none ∧ (mvcc.stateAfter σ₀.log).length ≤ 2 ^ 62 ∧
         MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63⌝ ∗
@@ -68,7 +68,8 @@ abbrev lease.lessor.Revoke.spec : Prop :=
       backend.rbPart B.γB (· = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams B.P⌝ ∗ lease.lessorBeOn lp B.be }}
     (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
       @!! go!"Revoke")) (Val #id))
-  {{ (err : GoInterface), RET #err; threadTok ∗ lease.rdOwn γl rd ∗ mvccBackend γ q B P ∗
+  {{ (err : GoInterface), RET #err; threadTok ∗ mvccReaders γ 1 ∗ lease.rdOwn γl rd ∗
+      mvccBackend γ q B P ∗
       lease.lessorBeOn lp B.be ∗
       ((⌜id ∉ L⌝ ∗
           (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□

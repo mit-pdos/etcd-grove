@@ -37,6 +37,8 @@ theorem apply.applierV3backend.Range.wp_proof
     apply.applierV3backend.Range.spec (GF := GF) (hG := hG) := by
   intro E p r rq o log info
   wp_start as ⟨#Hb, Htt, Hpre⟩
+  iunfold apply.applyTok at Htt
+  icases Htt with ⟨Htt, Hmr⟩
   iunfold apply.rangePre at Hpre
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨%Hrq, #Hr, ⟨⟨%c, Hw⟩, Hbk, Hlive, Hard⟩, Hres⟩
@@ -56,8 +58,8 @@ theorem apply.applierV3backend.Range.wp_proof
   wp_apply hTODO
   obtain ⟨hr, hk, hlen, hsort⟩ := Hrq
   wp_apply (hRange todoCtxVal mvcc.neverCd true opts.Logger' opts.KV' E.γ r o true none false _)
-      $$ [$Hkv $Htt $Hr $Hau]
-    as %resp %trace %err ⟨Htt, %Htr, ⟨%te', Htrc⟩, -, %σ, ⟨%Hσ, Hw⟩, %Hreach, Hout, -, %Hnd⟩
+      $$ [$Hkv $Htt $Hmr $Hr $Hau]
+    as %resp %trace %err ⟨Htt, Hmr, %Htr, ⟨%te', Htrc⟩, -, %σ, ⟨%Hσ, Hw⟩, %Hreach, Hout, -, %Hnd⟩
   · isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
@@ -76,7 +78,8 @@ theorem apply.applierV3backend.Range.wp_proof
   have hlg : (srvApi.stAt log c).log = log := rfl
   rw [hrev, hcr, hlg] at *
   iapply HΦ
-  iframe Htt
+  iunfold apply.applyTok
+  iframe Htt Hmr
   isplitr [Htrc]
   rotate_left
   · iunfold apply.traceRes; iright; iexists te'; iexact Htrc

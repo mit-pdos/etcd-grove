@@ -42,7 +42,8 @@ abbrev txn.Put.spec : Prop :=
     (γ : MvccName) (p : Loc) (o : OpFull) (q : Qp) (B : MvccStorage) (P Pre Q Post : IProp GF)
     (f : GoFunc) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
     (ot : Option Loc) (te : Bool) (R : MvccState → IProp GF),
-  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ txn.isTxnLessor le (mvccLeases γ) ∗
+  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ mvcc.api.mvccReaders γ 1 ∗
+      txn.isTxnLessor le (mvccLeases γ) ∗
       lease.lessorUser (mvccLeases γ) L I ∗ txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
       txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗
@@ -51,7 +52,7 @@ abbrev txn.Put.spec : Prop :=
     (App (App (App (App (App (Val (@! txn.Put)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le))
       (Val #kv)) (Val #p))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      threadTok ∗ txn.kvBackend γ q B P f ∗ ⌜trace ≠ null⌝ ∗
+      threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ txn.kvBackend γ q B P f ∗ ⌜trace ≠ null⌝ ∗
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
       ((⌜o.leaseID ≠ W64 0 ∧ o.leaseID ∉ L ∧ resp = null⌝ ∗
           txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ Pre ∗
