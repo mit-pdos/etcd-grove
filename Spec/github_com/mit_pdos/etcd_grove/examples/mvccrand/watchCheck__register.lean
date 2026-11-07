@@ -6,7 +6,7 @@ and end from a start revision in `[1, pub + 1]`, registered on the stream `ws` u
 empty range fails with `ErrEmptyWatcherRange` and id `-1`, any other is registered without error
 (the stream open: the registrar's half of `γ.cl` at `false`, `World.lean`), its watcher added to
 the lock's map and registry (`WatchLock.lean`); now and then a progress request. Every check
-passes; at the channel's close, the thread token and the registrar's half of `γ.cl` back.
+passes; at the channel's close, the store's reader token and the registrar's half of `γ.cl` back.
 -/
 module
 
@@ -35,11 +35,11 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 abbrev watchCheck.register.spec : Prop :=
   ∀ (c : Loc) (γ : RandNames) (h : Loc) (wm : GoMap) (ws : GoInterface) (r : Loc) (g : rng)
     (γt : SpscNames) (ch : GoChan) (rcvd : List w64),
-  {{ wcCtx c γ h wm ∗ isMvccWatchStream ws γ.kv γ.ws ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ r ↦ g ∗
+  {{ wcCtx c γ h wm ∗ isMvccWatchStream ws γ.kv γ.ws ∗ mvccReaders γ.kv 1 ∗ r ↦ g ∗
       isTicks γt ch γ ∗ spscConsumer (V := w64) γt rcvd ∗ ghostVar γ.cl (1 : Qp).half false }}
     (App (App (App (Val (c @!! go.GoType.PointerType watchCheck.ty @!! go!"register")) (Val #ws))
       (Val #r)) (Val #ch))
-  {{ RET #(); threadTok ∗ mvccReaders γ.kv 1 ∗ ghostVar γ.cl (1 : Qp).half false ∗ ∃ g' : rng, r ↦ g' }}
+  {{ RET #(); mvccReaders γ.kv 1 ∗ ghostVar γ.cl (1 : Qp).half false ∗ ∃ g' : rng, r ↦ g' }}
 
 end spec
 

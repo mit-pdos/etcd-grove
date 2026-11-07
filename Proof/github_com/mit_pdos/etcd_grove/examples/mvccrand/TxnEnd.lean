@@ -205,7 +205,7 @@ theorem endCb_txnEnd {ty : go.GoType} {v : val}
         imodintro
         iexact Hw
   inext
-  iintro ⟨Htt, Hrdr, Hbk, HQ⟩
+  iintro ⟨Hrdr, Hbk, HQ⟩
   iapply HΦ
   iframe
 

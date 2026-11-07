@@ -50,7 +50,7 @@ theorem writer.checkLeases.wp_proof
   iunfold writerCtx at Hctx
   icases Hctx with ⟨#Hpkg, #Hmpkg, #Htpkg, #Hw, #Hinv, #Hhist, -, -, -⟩
   iunfold writerOwn at Hown
-  icases Hown with ⟨Htok, Hrdr, Hbk, Hrd, Hidle, Hg, ⟨%Lm, Hlm, %HLm⟩, Hlo⟩
+  icases Hown with ⟨Hrdr, Hbk, Hrd, Hidle, Hg, ⟨%Lm, Hlm, %HLm⟩, Hlo⟩
   iunfold writerLe at Hle
   icases Hle with ⟨%lp, %rd, %r, %U, #Hro, Hlrd, Hrvk, Hever, HR, HT, Hrdo, Hdel, Hbe, Hrb, %HlP,
     Hnext, %Hn⟩
@@ -374,7 +374,7 @@ theorem writer.checkLeases.wp_proof
     iNamed HP
     wp_auto
     iapply HΦ
-    isplitl [Htok Hrdr Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo]
+    isplitl [Hrdr Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo]
     · iunfold writerOwn
       iframe
       isplitl [Hgσ HW Hpv]

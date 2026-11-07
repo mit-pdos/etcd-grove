@@ -46,7 +46,7 @@ theorem writer.grant.wp_proof (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
   iunfold hookOk at Hhok
   icases Hhok with #Hhok
   iunfold writerOwn at Hown
-  icases Hown with ⟨Htok, Hrdr, Hbk, Hrd, Hidle, Hg, ⟨%Lm, Hlm, %HLm⟩, Hlo⟩
+  icases Hown with ⟨Hrdr, Hbk, Hrd, Hidle, Hg, ⟨%Lm, Hlm, %HLm⟩, Hlo⟩
   iunfold writerLe at Hle
   icases Hle with ⟨%lp, %rd, %r, %U, #Hro, Hlrd, Hrvk, Hever, HR, HT, Hrdo, Hdel, Hbe, Hrb, %HlP,
     Hnext, %Hn⟩
@@ -117,8 +117,8 @@ theorem writer.grant.wp_proof (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
   have hdisj : (↑worldN : CoPset) ⊆ ⊤ \ ↑mvccN :=
     nclose_subseteq' "world" (mask_ndot_ne' nroot "mvccrand" "mvcc" (by decide))
   wp_apply (hkv.2.2.1 γ.kv (fun σ1 => iprop(⌜σ1 = σ⌝ ∗ ghostVar γ.σ (1 : Qp).half σ))) $$
-    [Htok Hrdr Hgσ] as %rv ⟨Htok, Hrdr, %σ1, ⟨%Heq1, Hgσ⟩, %Hrv⟩
-  · iframe Hkv2 Htok Hrdr
+    [Hrdr Hgσ] as %rv ⟨Hrdr, %σ1, ⟨%Heq1, Hgσ⟩, %Hrv⟩
+  · iframe Hkv2 Hrdr
     iauintro
     unfold atomic_acc
     iinv Hinv with >Hi Hclose
@@ -153,9 +153,9 @@ theorem writer.grant.wp_proof (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
   · ipureintro; simp
   (try wp_auto)
   iapply HΦ
-  isplitl [Htok Hrdr Hbk Hrd Hg Hlo Hlm Hgσ HW Hpv]
+  isplitl [Hrdr Hbk Hrd Hg Hlo Hlm Hgσ HW Hpv]
   · iunfold writerOwn
-    iframe Htok Hrdr Hbk Hrd Hg Hlo
+    iframe Hrdr Hbk Hrd Hg Hlo
     isplitl [Hgσ HW Hpv]
     · iunfold writerIdle; iframe; ipureintro; exact Hid
     iexists (<[n + W64 1 := true]> Lm)

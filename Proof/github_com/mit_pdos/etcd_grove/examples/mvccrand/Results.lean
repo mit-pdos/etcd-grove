@@ -9,7 +9,7 @@ counterpart).
   reads), `cfg.Readers` readers and a watch stream's registrar and receiver run concurrently, every
   result of mvcc checked against the tester's model (a check that fails panics) -- returns the
   report, the lessor and the backend, or panics in `backend.New` (bbolt's open failing); so every
-  check passes. From the package's `isPkgInit`, the main thread's token, the file's emptiness,
+  check passes. From the package's `isPkgInit`, the file's emptiness,
   `keySized`, the configuration's bounds and `ckptEffectsOk`
   (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/runChecks.lean`), and the hypothesis
   `sort.Slice.spec` (`Spec/sort/Slice.lean`: specified, neither proved nor assumed).

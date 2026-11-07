@@ -247,7 +247,7 @@ theorem writer.revoke.wp_proof
   iunfold hookOk at Hhok
   icases Hhok with #Hhok
   iunfold writerOwn at Hown
-  icases Hown with ⟨Htt, Hrdr, Hbk, Hrd, Hidle, ⟨%g, Hg⟩, ⟨%Lm, Hlm, %HLm⟩, Hlo⟩
+  icases Hown with ⟨Hrdr, Hbk, Hrd, Hidle, ⟨%g, Hg⟩, ⟨%Lm, Hlm, %HLm⟩, Hlo⟩
   iunfold writerLe at Hle
   icases Hle with ⟨%lp, %rd, %r, %U, #Hro, Hlrd, Hrvk, Hever, HR, HT, Hrdo, Hdel, Hbe, Hrb, %HlP,
     Hnext, %Hn⟩
@@ -276,9 +276,9 @@ theorem writer.revoke.wp_proof
     iapply HΦ
     iexists σ, Hs, W64 0
     rw [hf]
-    isplitl [Htt Hrdr Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo]
+    isplitl [Hrdr Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo]
     · iunfold writerOwn
-      iframe Htt Hrdr Hbk Hrd Hg Hlo
+      iframe Hrdr Hbk Hrd Hg Hlo
       isplitl [Hgσ HW Hpv]
       · iunfold writerIdle; iframe; ipureintro; exact ⟨Hpn, Hlen, Hbound, Hmatch⟩
       iexists Lm; iframe; ipureintro; exact HLm
@@ -463,7 +463,7 @@ theorem writer.revoke.wp_proof
   dsimp only at hR
   wp_func_lits
   wp_apply (wp_end w wv γ σ Hs p _ (leaseDels (stateAfter σ.log) id) _
-      iprop(threadTok ∗ mvccReaders γ.kv 1 ∗ w_ptr ↦ w ∗ id_ptr ↦ id ∗ mvccBackend γ.kv q (etcdStorage B) iprop(True) ∗
+      iprop(mvccReaders γ.kv 1 ∗ w_ptr ↦ w ∗ id_ptr ↦ id ∗ mvccBackend γ.kv q (etcdStorage B) iprop(True) ∗
         lease.rdOwn (mvccLeases γ.kv) rd ∗ hookPre wv i s ∗
         lease.leaseOwn (mvccLeases γ.kv) L (pendItems σ.log []) ∗
         lease.leaseRevokers (mvccLeases γ.kv) L ∗ backend.rbPart B.γB (· = leaseName) r ∗
@@ -475,23 +475,23 @@ theorem writer.revoke.wp_proof
         lease.leaseRevokers (mvccLeases γ.kv) (L.filter (· != id)) ∗
         backend.rbPart B.γB (· = leaseName) (rbDel r leaseName (u64Le id).reverse) ∗
         lease.lessorBeOn lp B.be) hok)
-    $$ [Hrd Hgσ HW Hpv Hpd Htt Hrdr w id Hbk Hrdo Hpre Hlo Hrvk Hrb Hbe]
-    as ⟨Hrd, Htt, Hrdr, ⟨w, id, Hbk, Hrdo, Hpost, Hlo, Hrvk, Hrb, Hbe⟩, Hidle⟩
+    $$ [Hrd Hgσ HW Hpv Hpd Hrdr w id Hbk Hrdo Hpre Hlo Hrvk Hrb Hbe]
+    as ⟨Hrd, Hrdr, ⟨w, id, Hbk, Hrdo, Hpost, Hlo, Hrvk, Hrb, Hbe⟩, Hidle⟩
   · iframe Hw Hrd Hinv Hkv Hpd
     isplitl [Hgσ HW Hpv]
     · iunfold writerIdle; iframe; ipureintro; exact ⟨Hpn, Hlen, Hbound, Hmatch⟩
-    iframe Htt Hrdr w id Hbk Hrdo Hpre Hlo Hrvk Hrb Hbe
+    iframe Hrdr w id Hbk Hrdo Hpre Hlo Hrvk Hrb Hbe
     -- the closure is `end`'s callback
     iunfold endCb
-    iintro %Φ' ⟨Hgσ, #Hlb, Htt, Hrdr, w, id, Hbk, Hrdo, Hpre, Hlo, Hrvk, Hrb, Hbe⟩ HΦ'
+    iintro %Φ' ⟨Hgσ, #Hlb, Hrdr, w, id, Hbk, Hrdo, Hpre, Hlo, Hrvk, Hrb, Hbe⟩ HΦ'
     (try wp_auto)
     rw [HleEq]
     simp only
     (try wp_auto)
     ihave Hau := revoke_au hpers wv.h' γ σ Hs _ _ hok Hpn Hlen Hmatch $$ [$Hinv $Hgσ $Hlb]
-    wp_apply hR $$ [Htt Hrdr Hrdo Hbk Hpre Hlo Hrvk Hrb Hbe Hau]
-      as %err ⟨Htt, Hrdr, Hrdo, Hbk, Hbe, Hres⟩
-    · iframe Hlinv Hrevoc Htt Hrdr Hrdo Hbk Hhook Hrvk Hrb Hbe
+    wp_apply hR $$ [Hrdr Hrdo Hbk Hpre Hlo Hrvk Hrb Hbe Hau]
+      as %err ⟨Hrdr, Hrdo, Hbk, Hbe, Hres⟩
+    · iframe Hlinv Hrevoc Hrdr Hrdo Hbk Hhook Hrvk Hrb Hbe
       isplitr
       · iunfold mvccDeleter; iframe Hdel; ipureintro; exact Hrdnn
       isplitl [Hpre]
@@ -556,9 +556,9 @@ theorem writer.revoke.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists commitSt σ (leaseDels (stateAfter σ.log) id), _, id
-  isplitl [Htt Hrdr Hbk Hrd Hidle Hg Hlm Hlo]
+  isplitl [Hrdr Hbk Hrd Hidle Hg Hlm Hlo]
   · iunfold writerOwn
-    iframe Htt Hrdr Hbk Hrd Hidle Hg
+    iframe Hrdr Hbk Hrd Hidle Hg
     isplitl [Hlm]
     · iexists (GMap.delete id Lm)
       iframe Hlm

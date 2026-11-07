@@ -18,8 +18,9 @@ lock. So:
   only it appends.
 - **A thread's handle** (`histRd h γ`, exclusive): the persistent `isHistory` (the lock's guard
   and the invariant of `aboveFloor`, a counter nobody checks) with one of the lock's reader slots.
-  Not a thread pool: the readers call `snapshot` inside an mvcc transaction, which holds their
-  thread token, so a reader's slot is its own (dealt by `Run`).
+  Not a thread pool: the readers call `snapshot` inside an mvcc transaction, which held their
+  thread token when this was designed (no longer: mvcc's contracts take no `threadTok` since
+  2026-11-07), so a reader's slot is its own (dealt by `Run`).
 -/
 module
 

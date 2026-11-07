@@ -35,10 +35,10 @@ abbrev reader.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗
-      isMvcc kv γ.kv ∗ inv worldN (worldInv h γ) ∗ histRd h γ.h ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ r ↦ g }}
+      isMvcc kv γ.kv ∗ inv worldN (worldInv h γ) ∗ histRd h γ.h ∗ mvccReaders γ.kv 1 ∗ r ↦ g }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.reader)) (Val #kv))
       (Val #h)) (Val #r)) (Val #reads))
-  {{ RET #(); histRd h γ.h ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ ∃ g' : rng, r ↦ g' }}
+  {{ RET #(); histRd h γ.h ∗ mvccReaders γ.kv 1 ∗ ∃ g' : rng, r ↦ g' }}
 
 end spec
 

@@ -74,7 +74,7 @@ theorem runChecks.wp_proof
   haveI := fun kv γ => hpers.1 kv γ
   haveI := fun ws γ ι => hpers.2.1 ws γ ι
   haveI := fun B f => hpers.2.2.2.1 B f
-  wp_start as ⟨Htt, Hfile, #Hks⟩
+  wp_start as ⟨Hfile, #Hks⟩
   wp_auto
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
@@ -160,9 +160,6 @@ theorem runChecks.wp_proof
   ihave #HisL := lease.isLessor_of_lessorInv wp_GetLease wp_Attach wp_Detach wp_SRD lp γl $$ [Hlinv]
   · iframe Hlinv; iPkgInit
   -- `mvcc.New(lg, be, le, mvcc.StoreConfig{})`
-  have hTR : threadBound GF ≤ mvccReaderN := by
-    rw [mvccReaderN_eq, backend.rdStockN_val]
-    exact ThreadBoundLe.le_of (2 ^ 28) (by decide)
   rw [show (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b :
       GoInterface) = storageVal (etcdStorage (rcKB γB b gx bc.BatchLimit')) from (etcdStorage_val (rcKB γB b gx bc.BatchLimit')).symm]
   have hbl : mvcc.batchLimitOk
@@ -172,7 +169,7 @@ theorem runChecks.wp_proof
     unfold mvcc.batchLimitOk mvcc.rangeLimitMax
     exact ⟨by decide, by decide⟩
   wp_apply (wp_mNew lg _ _ (etcdStorage (rcKB γB b gx bc.BatchLimit')) iprop(True) γl func.nil
-      hbl (by omega) hTR) $$ [Hsf Hlrd1 Hrdo]
+      hbl (by omega)) $$ [Hsf Hlrd1 Hrdo]
     as %wsl ⟨%γk, %Hγl, #Hkv, Hσ, Hopn, Hmb, Hrdrs, %rd, Hrdo, Hdel⟩
   · iframe Hsf Hlrd1 HisL Hrdo
   (try wp_auto)
@@ -258,9 +255,9 @@ theorem runChecks.wp_proof
   icases (hRdSplit γk 1 _).1 $$ Hrdrs with ⟨HkW, Hrdrs⟩
   icases (hRdSplit γk 1 _).1 $$ Hrdrs with ⟨HkR, Hrdrs⟩
   icases (hRdSplit γk _ _).1 $$ Hrdrs with ⟨HkRs, -⟩
-  wp_apply (hRev γk (fun σ => iprop(⌜σ = mvccStart⌝ ∗ mvccState γk σ))) $$ [Htt HkW Hσ]
-    as %rv ⟨Htt, HkW, %σ0, ⟨%Hσ0, Hσ⟩, %Hrv⟩
-  · iframe Hkv Htt HkW
+  wp_apply (hRev γk (fun σ => iprop(⌜σ = mvccStart⌝ ∗ mvccState γk σ))) $$ [HkW Hσ]
+    as %rv ⟨HkW, %σ0, ⟨%Hσ0, Hσ⟩, %Hrv⟩
+  · iframe Hkv HkW
     iauintro
     unfold atomic_acc
     iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑mvccN from Std.LawfulSet.empty_subset)
@@ -474,9 +471,9 @@ theorem runChecks.wp_proof
         Hrbo nextIDW
       iPkgInit
     ihave Hown : writerOwn (GF := GF) wv γ (etcdStorage (rcKB γB b gx bc.BatchLimit')) 1 mvccStart hist0
-        [] $$ [Htt HkW Hmb Hrdw Hidle «$v3» Hlm Hlown]
+        [] $$ [HkW Hmb Hrdw Hidle «$v3» Hlm Hlown]
     · iunfold writerOwn
-      iframe Htt HkW Hmb Hrdw Hidle
+      iframe HkW Hmb Hrdw Hidle
       isplitl [«$v3»]
       · iexists _; iexact «$v3»
       isplitl [Hlm]
@@ -501,7 +498,7 @@ theorem runChecks.wp_proof
     iunfold runSt at Hrun
     icases Hrun with ⟨%σ1, %Hs1, %L1, %n1, %k1, %s1, %v1, Hown, -⟩
     iunfold writerOwn at Hown
-    icases Hown with ⟨Htt, -, -, Hrdw, -⟩
+    icases Hown with ⟨-, -, Hrdw, -⟩
     wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done (histRd (GF := GF) hl γ.h)
       wg_ptr) $$ [Hdw Hrdw]
     · iframe Hdw Hrdw
@@ -512,9 +509,9 @@ theorem runChecks.wp_proof
   wp_apply wp_fork_tok_body $$ [Hdr Hcons Hcl HkR]
   · iintro Htt
     wp_auto
-    wp_apply (wp_register c γ hl wm _ _ _ γt ch []) $$ [Htt HkR «$a1» Hcons Hcl]
-      as ⟨Htt, -, Hcl, -⟩
-    · iframe Hwc Hws Htt HkR «$a1» Hcons Hcl
+    wp_apply (wp_register c γ hl wm _ _ _ γt ch []) $$ [HkR «$a1» Hcons Hcl]
+      as ⟨-, Hcl, -⟩
+    · iframe Hwc Hws HkR «$a1» Hcons Hcl
       iunfold isTicks; iexact Hspsc
     (try wp_auto)
     wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done
@@ -549,8 +546,8 @@ theorem runChecks.wp_proof
     wp_apply wp_fork_tok_body $$ [Hd Hrd «$r0» HkR1]
     · iintro Htt
       wp_auto
-      wp_apply (wp_reader _ hl _ γ _ _) $$ [Hrd Htt HkR1 «$r0»] as ⟨Hrd, Htt, -, -⟩
-      · iframe Hkv Hinv Hrd Htt HkR1 «$r0»
+      wp_apply (wp_reader _ hl _ γ _ _) $$ [Hrd HkR1 «$r0»] as ⟨Hrd, -, -⟩
+      · iframe Hkv Hinv Hrd HkR1 «$r0»
       (try wp_auto)
       wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr) $$ [Hd]
       · iframe Hd
@@ -638,8 +635,8 @@ theorem runChecks.wp_proof
       iexists true
       iframe
   -- `ws.Close()`: the stream closed (the registrar's half of `γ.cl` back)
-  wp_apply (hClose γ.kv γ.ws (fun _ => iprop(True))) $$ [Htt Hcl] as ⟨Htt, -⟩
-  · iframe Hws Htt
+  wp_apply (hClose γ.kv γ.ws (fun _ => iprop(True))) $$ [Hcl] as -
+  · iframe Hws
     iapply close_au hpers hl γ $$ [Hcl]
     iframe Hinv Hcl
   (try wp_auto)
@@ -679,7 +676,6 @@ theorem runChecks.wp_proof
   iapply HΦ
   ileft
   iexists _, _, _
-  iframe Htt
   ipureintro; rfl
 
 end proof

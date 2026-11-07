@@ -51,11 +51,11 @@ abbrev runChecks.spec : Prop :=
   0 ≤ sint.Z cfg.Watchers' → sint.Z cfg.Watchers' < 2 ^ 32 →
   ckptEffectsOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
-      threadTok ∗ backend.fileHolds cfg.Path' ∅ ∗
+      backend.fileHolds cfg.Path' ∅ ∗
       □ (∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc), keySized γB P b) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.runChecks)) (Val #cfg))
   {{ (r : val), RET r;
-      (∃ (rep : Report) (le be : GoInterface), ⌜r = PairV (PairV #rep #le) #be⌝ ∗ threadTok) ∨
+      (∃ (rep : Report) (le be : GoInterface), ⌜r = PairV (PairV #rep #le) #be⌝) ∨
       ⌜∃ p : val, r = PanicV p⌝ }}
 
 end spec

@@ -91,7 +91,7 @@ theorem writer.end.wp_proof
   iunfold endCb at Hcb
   iapply Hcb $$ [$Hgσ $Hlb $HE]
   inext
-  iintro ⟨Hgσ, Htt, Hrdr, HE'⟩
+  iintro ⟨Hgσ, Hrdr, HE'⟩
   wp_auto
   -- `want`
   wp_bind (If _ _ _)
@@ -120,8 +120,8 @@ theorem writer.end.wp_proof
   iclear kvW
   wp_auto
   wp_apply (hRevC γ.kv (fun σ' => iprop(⌜σ' = commitSt σ pend ∧ σ'.log.length + 3 ≤ 2 ^ 63 ∧
-      1 ≤ σ'.rev⌝ ∗ ghostVar γ.σ (1 : Qp).half (commitSt σ pend)))) $$ [$Hkv' $Htt $Hrdr Hgσ]
-    as %r ⟨Htt, Hrdr, %σ', ⟨%Hq, Hgσ⟩, %Hr⟩
+      1 ≤ σ'.rev⌝ ∗ ghostVar γ.σ (1 : Qp).half (commitSt σ pend)))) $$ [$Hkv' $Hrdr Hgσ]
+    as %r ⟨Hrdr, %σ', ⟨%Hq, Hgσ⟩, %Hr⟩
   · iauintro
     unfold atomic_acc
     iinv Hinv with >Hi Hclose

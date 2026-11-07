@@ -6,6 +6,43 @@ functions over the frozen API (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.
 The tester's design: `notes/mvccrand.md`. Files: `Spec/github_com/mit_pdos/etcd_grove/examples/
 mvccrand/`, `Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/`.
 
+## Repair track R13 (2026-11-07): mvcc's contracts without `threadTok`
+
+Over `b7b65691ff` (mvcc's reads/writes take `mvccReaders γ 1` alone; `Txn.End` gives back only
+`mvccReaders γ 1`; `New` without `threadBound ≤ mvccReaderN`) and R12's `lessor.Revoke.spec` without
+`threadTok` (`notes/mvcc-merge/r12.md`). Every `threadTok` the tester held only to pay mvcc is
+dropped; the goroutines (`go` statements: `wp_fork_tok_body`) still get and return their own, and the
+receiver goroutine still threads its token through its loop (framed, unused). `lake build` of
+`mvccrand.Results` green; `mvccrand_runChecks` reaches no `sorryAx`, no new axiom; `Link.lean`
+regenerated (`etc/gen-link.py --mvccrand`): unchanged.
+
+Spec changes (old → new; the rest of each triple unchanged):
+
+- `writerOwn` (`Writer.lean`): `threadTok ∗ mvccReaders γ.kv 1 ∗ …` → `mvccReaders γ.kv 1 ∗ …` (the
+  writer's thread keeps its token outside: `runChecks`' writer goroutine frames it).
+- `endCb`: continuation `▷ (ghostVar γ.σ ½ (commitSt σ pend) ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ E'
+  -∗ Φ #())` → `▷ (ghostVar γ.σ ½ (commitSt σ pend) ∗ mvccReaders γ.kv 1 ∗ E' -∗ Φ #())`.
+- `writer.end.spec`: post `histRd wv.h' γ.h ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ E' ∗ writerIdle …` →
+  `histRd wv.h' γ.h ∗ mvccReaders γ.kv 1 ∗ E' ∗ writerIdle …`.
+- `reader.spec`: pre `… histRd h γ.h ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ r ↦ g` → `… histRd h γ.h ∗
+  mvccReaders γ.kv 1 ∗ r ↦ g`; post `histRd h γ.h ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ ∃ g', r ↦ g'` →
+  `histRd h γ.h ∗ mvccReaders γ.kv 1 ∗ ∃ g', r ↦ g'`.
+- `watchCheck.register.spec`: pre `… isMvccWatchStream ws γ.kv γ.ws ∗ threadTok ∗ mvccReaders γ.kv 1
+  ∗ …` → `… isMvccWatchStream ws γ.kv γ.ws ∗ mvccReaders γ.kv 1 ∗ …`; post `threadTok ∗ mvccReaders
+  γ.kv 1 ∗ ghostVar γ.cl ½ false ∗ ∃ g', r ↦ g'` → `mvccReaders γ.kv 1 ∗ ghostVar γ.cl ½ false ∗ ∃ g',
+  r ↦ g'`.
+- `runChecks.spec`: pre `isPkgInit … ∗ threadTok ∗ backend.fileHolds cfg.Path' ∅ ∗ □ …` →
+  `isPkgInit … ∗ backend.fileHolds cfg.Path' ∅ ∗ □ …`; post `(∃ rep le be, ⌜r = …⌝ ∗ threadTok) ∨
+  ⌜panic⌝` → `(∃ rep le be, ⌜r = …⌝) ∨ ⌜panic⌝` (the main thread's token paid only mvcc's `Rev` and
+  `WatchStream.Close`; a caller frames its own). `[ThreadBoundLe GF (2 ^ 28)]` stays: the backend's
+  reader pool (`RunChecksBackend.rc_open`) needs it. The proof's `threadBound ≤ mvccReaderN` (for
+  `New`) is gone.
+- Proof-internal lemmas: `reader.lean`'s `end_read`, `writer__txn.lean`'s `end_readT`: post
+  `threadTok ∗ mvccReaders γ 1` → `mvccReaders γ 1`. `writer.revoke`'s `end` frame (`E`) no longer
+  carries `threadTok` (Revoke's contract takes none).
+- Unchanged in statement: every other writer method (they take `writerOwn`), `writer.run`, the
+  history's specs.
+
 ## Repair track R10 (2026-11-07): the backend's defaults, the Link, the results, the package init
 
 Everything below builds (`lake build` of `mvccrand.Results`, `mvccrand.PkgTable`, the backend's `Init`, `newBackend`, `batchTx__commit`); `mvccrand_runChecks` reaches no `sorryAx` and no new axiom.

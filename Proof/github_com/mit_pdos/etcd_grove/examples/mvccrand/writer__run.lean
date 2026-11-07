@@ -186,14 +186,14 @@ private theorem step_commit (hpers : mvcc.api.persistent.law (GF := GF) (hG := h
   iunfold runSt at Hst
   icases Hst with ⟨%σ, %Hs, %L, %n, %k', %s, %v, Hown, Hle, Hpre, Hvals, %Hb⟩
   iunfold writerOwn at Hown
-  icases Hown with ⟨Htt, Hrdr, Hbk, Hrd, Hidle, Hg, Hlm, Hlo⟩
+  icases Hown with ⟨Hrdr, Hbk, Hrd, Hidle, Hg, Hlm, Hlo⟩
   rw [hkv] at *
   ihave #Hreq : mvcc.api.storageReq (etcdStorage B) iprop(True) iprop(True) iprop(True) $$ []
   · rw [etcdStorage_req]; iapply backend.commitReq_true
-  iapply (hCommit γ.kv q (etcdStorage B) iprop(True) iprop(True) iprop(True)) $$ [Htt Hrdr Hbk]
-  · iframe Hmpkg Hkv Htt Hrdr Hbk Hreq
+  iapply (hCommit γ.kv q (etcdStorage B) iprop(True) iprop(True) iprop(True)) $$ [Hrdr Hbk]
+  · iframe Hmpkg Hkv Hrdr Hbk Hreq
   inext
-  iintro ⟨Htt, Hrdr, Hbk, -⟩
+  iintro ⟨Hrdr, Hbk, -⟩
   iapply HΦ
   iunfold runSt
   iexists σ, Hs, L, n, k', s, v
@@ -316,11 +316,11 @@ theorem writer.run.wp_proof
     (try wp_auto)
     -- `intn(20)`
     iunfold writerOwn at Hown
-    icases Hown with ⟨Htt, Hrdr, Hbk, Hrd, Hidle, ⟨%g, Hg⟩, Hlm, Hlo⟩
+    icases Hown with ⟨Hrdr, Hbk, Hrd, Hidle, ⟨%g, Hg⟩, Hlm, Hlo⟩
     wp_apply wp_intn wv.r' g (W64 20) (by decide) $$ [$Hpkg $Hg] as %x ⟨Hg, %Hx⟩
     ihave Hst : runSt w wv γ B f q T R (nv + W64 1) (sint.Z v + 3 * sint.Z nv)
         (sint.Z nid + sint.Z nv) (sint.Z ops - sint.Z nv).toNat
-      $$ [Htt Hrdr Hbk Hrd Hidle Hg Hlm Hlo Hle Happ Hsav Hvals]
+      $$ [Hrdr Hbk Hrd Hidle Hg Hlm Hlo Hle Happ Hsav Hvals]
     · iunfold runSt
       iexists σ1, Hs1, L1, n1, k1, s1, v1
       iunfold writerOwn
@@ -391,7 +391,7 @@ theorem writer.run.wp_proof
           iunfold runSt at Hst
           icases Hst with ⟨%σ2, %Hs2, %L2, %n2, %k2, %s2, %v2, Hown, Hle, Hpre, Hvals, %Hb2⟩
           iunfold writerOwn at Hown
-          icases Hown with ⟨Htt, Hrdr, Hbk, Hrd, Hidle, Hg, Hlm, Hlo⟩
+          icases Hown with ⟨Hrdr, Hbk, Hrd, Hidle, Hg, Hlm, Hlo⟩
           iunfold writerIdle at Hidle
           icases Hidle with ⟨Hgσ, HW, Hpv, %Hid⟩
           wp_apply wp_cur w wv γ (W64 (σ2.rev : Int)) $$ [$Hpkg $Hw $Hinv $Hpv] as Hpv
@@ -404,7 +404,7 @@ theorem writer.run.wp_proof
           (try wp_auto)
           ihave Hst : runSt w wv γ B f q T R (nv + W64 1) (sint.Z v + 3 * sint.Z nv + 3)
               (sint.Z nid + sint.Z nv + 1) ((sint.Z ops - sint.Z nv).toNat - 1)
-            $$ [Htt Hrdr Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo Hle Hpre Hvals]
+            $$ [Hrdr Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo Hle Hpre Hvals]
           · iunfold runSt
             iexists σ2, Hs2, L2, n2, k2, s2, v2
             iunfold writerOwn

@@ -5,7 +5,7 @@ store's state `σ`, the history at `Hs`, mvcc's pending changes `pend`, their mo
 `pendOk`): it appends the pending revision to the history if it has a change (`histAfter`), runs
 `end` (`endCb`: the store's `End`, which commits `pend`; `E`, `E'` the caller's), checks the store's
 revision and publishes it. After it the writer is between transactions at the committed state
-(`commitSt σ pend`) and the new history, the thread token back.
+(`commitSt σ pend`) and the new history, the store's reader token back.
 -/
 module
 
@@ -39,7 +39,7 @@ abbrev writer.end.spec : Prop :=
       writerRO w wv ∗ histRd wv.h' γ.h ∗ inv worldN (worldInv wv.h' γ) ∗ isMvcc wv.kv' γ.kv ∗
       writerIdle γ σ Hs ∗ ownPending p P ∗ endCb e γ σ pend (histAfter Hs P) E E' ∗ E }}
     (App (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"end")) (Val #p)) (Val #e))
-  {{ RET #(); histRd wv.h' γ.h ∗ threadTok ∗ mvccReaders γ.kv 1 ∗ E' ∗
+  {{ RET #(); histRd wv.h' γ.h ∗ mvccReaders γ.kv 1 ∗ E' ∗
       writerIdle γ (commitSt σ pend) (histAfter Hs P) }}
 
 end spec

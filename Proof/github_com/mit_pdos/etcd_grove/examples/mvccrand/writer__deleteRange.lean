@@ -69,7 +69,7 @@ theorem writer.deleteRange.wp_proof
   iunfold hookOk at Hhok
   icases Hhok with #Hhok
   iunfold writerOwn at Hown
-  icases Hown with ⟨Htt, Hrdr, Hbk, Hrd, Hidle, ⟨%g, Hg⟩, Hlm, Hlo⟩
+  icases Hown with ⟨Hrdr, Hbk, Hrd, Hidle, ⟨%g, Hg⟩, Hlm, Hlo⟩
   ihave #Hw2 := Hw
   iunfold writerRO at Hw2
   icases Hw2 with ⟨#kvW, #leW, #hW, #rW, #leasesW, #applyingW, #savedW, #ticksW⟩
@@ -88,7 +88,7 @@ theorem writer.deleteRange.wp_proof
   (try wp_auto)
   wp_apply (hWriteC γ.kv trace true q B iprop(True) (hookPre wv i s) iprop(True ∗ hookPost wv i) f
       (fun σ' => iprop(⌜σ' = σ ∧ σ.crev = -1 ∧ 1 ≤ σ.rev⌝ ∗ ghostVar γ.σ (1 : Qp).half σ)))
-    $$ [$Hmv $Hkv $Htt $Hrdr $Htrc $Hbk $Hhook $Hpre Hgσ]
+    $$ [$Hmv $Hkv $Hrdr $Htrc $Hbk $Hhook $Hpre Hgσ]
     as %tw ⟨Htrc, Hbk, ⟨%σ0, Htx, ⟨%Heq, Hgσ⟩⟩, ⟨-, Hpost⟩⟩
   · isplitr
     · ipureintro; exact Htr
@@ -250,12 +250,12 @@ theorem writer.deleteRange.wp_proof
             (.write σ ((matchKeys (lastSt Hs) (decide (es = slice.nil)) kk e).map Change.del)) ∗
           mvccBackend γ.kv q B iprop(True))
         (mvccBackend γ.kv q B iprop(True)) hok)
-      $$ [$Hpkg $Hmv $Hw $Hrd $Hinv $Hkv0 $Hidle $Hp $Hcb $Htx $Hbk] as ⟨Hrd, Htt, Hrdr, Hbk, Hidle⟩
+      $$ [$Hpkg $Hmv $Hw $Hrd $Hinv $Hkv0 $Hidle $Hp $Hcb $Htx $Hbk] as ⟨Hrd, Hrdr, Hbk, Hidle⟩
     iapply HΦ
     isplitr [Happ Hsav]
     · iexists _, _
       iunfold writerOwn
-      iframe Htt Hrdr Hbk Hrd Hidle Hlm
+      iframe Hrdr Hbk Hrd Hidle Hlm
       isplitl [Hg]
       · iexists g2; iexact Hg
       rw [pendItems_commit]; iexact Hlo
