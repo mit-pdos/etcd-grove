@@ -33269,3 +33269,33 @@ of a persistent premise, ask which reachable values it can take, not which value
 mind; instantiate it adversarially (the weakest `σ` the relation allows, `n = 0`), and check that a
 token meant to bound a window is consumed when the window closes. A probe of the intended reading is
 not evidence for the text.
+
+## `storage.Release` takes the WAL's base lower bound (W2), and the WAL names carry the WAL's location (2026-11-07 · sweep repairs 1, R1-1; the Scope (revision 3) approved by etcd-grove-82 under the user's delegation · branch `sweep-repairs-1`)
+
+**The defect.** `storage.Release.spec` (a trust-boundary axiom) took no fact about the WAL, so a
+`Release` above the records' base was provable, while Go's `ReleaseLockTo(i)` drops the locks of the
+segments before the one holding `i` and the purge then removes them: a later restart at the base
+would find its snapshot record gone (`notes/axiom-review/wal-tokens.md`, attack 10; Go:
+`examples/sweeprepairs/wal`, `TestW1W2WalPurge`: `Release(250)` above `b = 100`, the restart at `b`
+fails with `file not found which matches the snapshot index '100'`). This is item (4) of the WAL API
+plan (`WalApi.lean`'s header), not applied until now.
+
+**The repair.** `Release.spec` takes `walBaseLb (storage.walOf (mkOk #p)) (uint.nat md.Index')`. Its
+producers: the `SaveSnap` of the same snapshot that precedes each `Release` in etcd.
+- `EtcdServer.snapshot` (`server.go:2152` → `:2156`): `rnDur_ownSnap_au`'s COMM now gives it.
+- `applySnapshot` (`server.go:1116`): the raft loop's `SaveSnap` (`raft.go:257`, `rnDur_saveSnap_au`'s
+  COMM) comes before the snapshot batch's first `notifyc` send, which `applySnapshot` receives before
+  its `Release`. That send's payload, `True` until now, is the lower bound: `rnApSnap`'s
+  `isNotify2 γnc ap.notifyc' (walBaseLb γ.wal.loc idx) True`.
+- The law: `walRecs_saveSnap_baseLb` (`WalRecs.lean`, from `walSaveSnap_base_ge`).
+
+**The location.** The payload is stated where the raft wrapper is not at hand (`rnApSnap`, the
+apply side's specs), so the WAL names record it: `WalNames.loc`, pinned by `rnDurInv cl ν w`'s new
+conjunct `⌜ν.loc = w⌝` (`rnDur_alloc` allocates the names at `w`). `rnWalTokA_loc` turns
+`γ.wal.loc` into the storage's WAL for the apply thread (`ApplyAllSnap.lean`), the raft loop reads
+it off its `#Hdur`. The option of mirroring the base in a ghost counter of `rnDurInv` (`wal.md`'s
+(b)) was not taken: it adds a second copy of the base to keep in step. `applyAll.specSnapM` names
+the payload by `γn.wal.loc`, `applySnapshot.specSnapM` by the storage `stp` it already takes.
+
+**The open item of the review** ("a producer of `σ.b ≤ σ.commit` at `Close`"): `rnDur_take` already
+gives `σ.b ≤ v.l.length ≤ σ.commit` at the stop; nothing to add.

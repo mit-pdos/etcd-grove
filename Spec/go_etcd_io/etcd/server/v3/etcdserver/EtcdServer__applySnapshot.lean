@@ -149,7 +149,12 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
-       taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
+       -- (sweep repairs 1, W2) the first receive's payload: the storage's WAL records at or
+       -- above the snapshot's index (what `Release` takes)
+       taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc
+         (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
+         go_etcd_io.etcd.server.v3.storage.storage.ty) #stp)) (uint.nat sv.Metadata'.Index')) iprop(True) ∗
+       notifyRcvN γnc 0 ∗
        epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
        -- the apply thread's token, given back

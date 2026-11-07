@@ -545,6 +545,12 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         (by rw [hraft]) Hmo (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc)
     rw [Hoff] at hS
     simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM] at hS
+    -- (sweep repairs 1, W2) the payload at the storage's WAL (`rnWalTokA_loc`)
+    icases rnWalTokA_loc γn (srvRAddr s) q _ $$ HwalT Hstp with ⟨HwalT, %Hwl⟩
+    ihave #Hnc2' : isNotify2 γnc nc (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.storage.ty) #stp)) (uint.nat sv.Metadata'.Index'))
+        iprop(True) $$ []
+    · rw [← Hwl]; iexact Hnc2
     wp_apply hS
       $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS HKC Hγt Htlive Hsm0 Hcs Hstopc
         Hbo HthT]
@@ -1026,6 +1032,12 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       γnc
   rw [hon] at hS
   simp only [srvApplyKVM_true] at hS
+  -- (sweep repairs 1, W2) the payload at the storage's WAL (`rnWalTokA_loc`)
+  icases rnWalTokA_loc γn (srvRAddr s) q _ $$ HwalT Hstp with ⟨HwalT, %Hwl⟩
+  ihave #Hnc2' : isNotify2 γnc nc (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.storage.ty) #stp)) (uint.nat sv.Metadata'.Index'))
+      iprop(True) $$ []
+  · rw [← Hwl]; iexact Hnc2
   wp_apply hS
     $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS HKC Hγt Htlive Hsm0 Hcs Hstopc
       Hbo HthT]

@@ -220,7 +220,11 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
       (letI := srvStor (GF := GF) γr.raft.raft; iprop(snapshotCert γr.raft.raft.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
         nodeSnapLocal γr.raft.raft.cl nid sv.Metadata'.Index')) ∗
-      taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
+      -- (sweep repairs 1, W2) the first send's payload: the WAL's records at or above the
+      -- snapshot's index (`rnApSnap`'s)
+      taNotifycAddr ap ↦□ nc ∗
+      isNotify2 γnc nc (walBaseLb γn.wal.loc (uint.nat sv.Metadata'.Index')) iprop(True) ∗
+      notifyRcvN γnc 0 ∗
       taRaftAdvancedCAddr ap ↦□ rac ∗
       rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
         iprop(nodeAppliedLb ρ.raft.raft.cl nk (uint.nat sv.Metadata'.Index') ∗

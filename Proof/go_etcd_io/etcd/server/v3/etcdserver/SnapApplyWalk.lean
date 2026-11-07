@@ -152,7 +152,10 @@ theorem applySnapshot_walk
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
-       taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
+       taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc
+         (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
+         go_etcd_io.etcd.server.v3.storage.storage.ty) #stp)) (uint.nat sv.Metadata'.Index')) iprop(True) ∗
+       notifyRcvN γnc 0 ∗
        epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
        srvCfgAddr s ↦□ cfg ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
@@ -277,7 +280,10 @@ theorem applySnapshot_walk
   · exfalso; word
   (try wp_auto)
   -- `<-toApply.notifyc`: raft persisted the snapshot
-  wp_apply wp_notify2_receive1 γnc nc iprop(True) iprop(True) $$ [Hrcv] as ⟨Hrcv, -⟩
+  wp_apply wp_notify2_receive1 γnc nc
+      (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.storage.ty) #stp)) (uint.nat sv.Metadata'.Index'))
+      iprop(True) $$ [Hrcv] as ⟨Hrcv, #Hwblb⟩
   · iframe #; iexact Hrcv
   (try wp_auto)
   -- `s.bemu.Lock()`: `bemu`'s whole lock invariant

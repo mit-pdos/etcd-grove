@@ -461,7 +461,10 @@ theorem raftNode.start.wp_proof
         -- two-receive notify, `NotifyC2.lean`), `raftAdvancedC`
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
         · ipureintro; decide
-        imod start_notify2 iprop(True) iprop(True) nc γnc0 (by rw [Hncap]; rfl) $$ Hncch Hncown with
+        -- (sweep repairs 1, W2) the first send's payload: the WAL's records at or above the
+        -- snapshot's index, from its `SaveSnap` (`rnApSnap`'s)
+        imod start_notify2 (walBaseLb γ.wal.loc (uint.nat l.snap.Metadata'.Index')) iprop(True) nc γnc0
+          (by rw [Hncap]; rfl) $$ Hncch Hncown with
           ⟨%γnc, %Hγnc, #Hncb, Hnsnd, Hnrcv⟩
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %ac %γac ⟨#Hacch, -, Hacown⟩
         · ipureintro; decide
@@ -606,7 +609,7 @@ theorem raftNode.start.wp_proof
           -- (R2b-1 stage 4) the received snapshot's `SaveSnap` (`rnDur_saveSnap_au`)
           ihave #HSaveSnap := walSaveSnap_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
           wp_apply HSaveSnap $$ [$Hwo $HM1 $Hm1 $HAU] as %err ⟨Hwo, -, -, Hres⟩
-          icases Hres with (⟨%Herr, Hwv, Hwok⟩ | %Hbad)
+          icases Hres with (⟨%Herr, Hwv, Hwok, #Hwblb⟩ | %Hbad)
           rotate_left
           · exact absurd Hwso Hbad
           subst Herr
@@ -672,7 +675,11 @@ theorem raftNode.start.wp_proof
             iexact Hf
           wp_auto
           -- `notifyc <- struct{}{}`: the first send
+          ihave #Hdur2 := Hdur
+          iunfold rnDurInv at Hdur2
+          icases Hdur2 with ⟨%Hwloc, -⟩
           wp_apply wp_notify2_send1 γnc nc _ _ $$ [$Hncb $Hnsnd] as Hnsnd
+          · rw [Hwloc]; iexact Hwblb
           (try wp_auto)
           -- `r.raftStorage.ApplySnapshot(raftSnap)`: at node `id`'s justifications
           ihave #Hinit := isInitialized_access $$ Hrpkg

@@ -157,6 +157,18 @@ theorem walBaseLb_mono (w : Loc) (i j : Nat) (h : j ≤ i) :
   iintro H
   iapply (monoNatLbOwn_le (γ := walBaseGName w) j h) $$ H
 
+/-- (Sweep repairs 1, W2) **After `SaveSnap(m)`, the records start at or above `m`'s index**: a lower
+bound of the base at `m`'s index (what `storage.Release` at `m` takes). -/
+theorem walRecs_saveSnap_baseLb (w : Loc) (σ : StorContents) (m : SnapshotMetadataM) :
+    walRecs (GF := GF) w (walSaveSnap σ m) ⊢
+      walRecs w (walSaveSnap σ m) ∗ walBaseLb w (uint.nat m.Index') := by
+  iintro Hr
+  icases walRecs_baseLb w _ $$ Hr with ⟨Hr, #Hl⟩
+  iframe Hr
+  iapply walBaseLb_mono w _ _ ?_ $$ Hl
+  obtain ⟨h1, h2⟩ := walSaveSnap_base_ge σ m
+  omega
+
 /-- A lower bound of the base is below the records' base. -/
 theorem walRecs_baseLb_le (w : Loc) (σ : StorContents) (i : Nat) :
     walRecs (GF := GF) w σ ∗ walBaseLb w i ⊢ walRecs w σ ∗ ⌜i ≤ σ.b⌝ := by
