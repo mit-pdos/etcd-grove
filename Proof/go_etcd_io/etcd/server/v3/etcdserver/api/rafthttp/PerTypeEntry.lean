@@ -142,6 +142,14 @@ theorem entRoC_entRO (l : Loc) (c : EntryC) : entRoC (GF := GF) l c ⊢ entRO l 
   simp only [EntryC.model]
   iframe cT' cI' cY' cD'
 
+/-- **The store of an entry**: each scalar `nil` if zero, `Data` `nil` if empty. -/
+def entryTree (e : EntryM) : VTree :=
+  .strct raftpb.Entry.ty
+    [(go!"Term", go.GoType.PointerType go.uint64), (go!"Index", go.GoType.PointerType go.uint64),
+     (go!"Type", go.GoType.PointerType raftpb.EntryType.ty), (go!"Data", go.GoType.SliceType go.byte)]
+    [cellTree go.uint64 e.Term', cellTree go.uint64 e.Index', cellTree raftpb.EntryType.ty e.Type',
+     bytesTree go.byte e.Data']
+
 /-- **`raftpb.Entry` at its wire content: the data** (no axiom: what `Sat` is stated over). -/
 def pbEntryM : PbModelC GF where
   ty := raftpb.Entry.ty
@@ -159,11 +167,7 @@ def pbEntryM : PbModelC GF where
   modelOf := EntryC.model
   levels c := [(entrySchema, c.uf)]
   size := entrySize
-  tree e := .strct raftpb.Entry.ty
-    [(go!"Term", go.GoType.PointerType go.uint64), (go!"Index", go.GoType.PointerType go.uint64),
-     (go!"Type", go.GoType.PointerType raftpb.EntryType.ty), (go!"Data", go.GoType.SliceType go.byte)]
-    [cellTree go.uint64 e.Term', cellTree go.uint64 e.Index', cellTree raftpb.EntryType.ty e.Type',
-     bytesTree go.byte e.Data']
+  tree := entryTree
   ro_iff _ _ := .rfl
   roC_ufValid l c := by
     unfold entRoC
@@ -239,16 +243,13 @@ theorem bytesC_freeze (ds : GoSlice) (xs : List w8) (h : xs = [] → ds = slice.
       · iexact H
     · ipureintro; rfl
 
-/-- **`pbEntryC`'s decoded model is satisfiable** by the generic store. -/
-theorem pbEntryC_sat : (pbEntryM (GF := GF)).Sat := by
-  refine ⟨⟨raftpb.Entry, inferInstance, inferInstance,
-    (inferInstance : IntoValTyped raftpb.Entry raftpb.Entry.ty), fun l => .rfl⟩, ?_⟩
-  intro e l
-  simp only [pbEntryM]
-  iintro Hl
-  iapply wp_fupd
-  iapply (storeInto_wp_typed (V := raftpb.Entry) (ty := raftpb.Entry.ty) l (zero_val raftpb.Entry))
-  simp only [treeWp, treeWpL]
+/-- **An entry's struct literal**: its value, which, stored anywhere, freezes to an entry at some
+wire content with the model `e`. -/
+theorem treeWp_entryTree (e : EntryM) (Φ : val → IProp GF) :
+    (∀ x : raftpb.Entry, (∀ p : Loc, p ↦ x ={⊤}=∗ ∃ c, entRoC p c ∗ ⌜c.model = e⌝) -∗ Φ #x) ⊢
+      treeWp (entryTree e) Φ := by
+  iintro H
+  simp only [entryTree, treeWp, treeWpL]
   iapply treeWp_cell
   iintro %pt Hpt
   isplitr
@@ -268,11 +269,8 @@ theorem pbEntryC_sat : (pbEntryM (GF := GF)).Sat := by
   simp [litBody, strctKes, kesσ, envσ]
   repeat (isplitr; · ipureintro; trivial)
   wp_auto
-  iexists _
-  isplitr
-  · ipureintro; rfl
-  iframe Hl
-  iintro Hl
+  iapply H
+  iintro %l Hl
   ihave %Hnn := typedPointsto_not_null $$ Hl
   icases typedPointsto_split _ _ _ $$ Hl with Hl
   simp only [TypedPointsto.typedPointstoDef]
@@ -304,6 +302,41 @@ theorem pbEntryC_sat : (pbEntryM (GF := GF)).Sat := by
     cases e
     simp only [EntryC.model] at h1 h2 h3 h4 ⊢
     rw [← h1, ← h2, ← h3, ← h4]
+
+/-- **`pbEntryC`'s decoded model is satisfiable** by the generic store. -/
+theorem pbEntryC_sat : (pbEntryM (GF := GF)).Sat := by
+  refine ⟨⟨raftpb.Entry, inferInstance, inferInstance,
+    (inferInstance : IntoValTyped raftpb.Entry raftpb.Entry.ty), fun l => .rfl⟩, ?_⟩
+  intro e l
+  simp only [pbEntryM]
+  iintro Hl
+  iapply wp_fupd
+  iapply (storeInto_wp_typed (V := raftpb.Entry) (ty := raftpb.Entry.ty) l (zero_val raftpb.Entry))
+  iapply (treeWp_entryTree (GF := GF) e)
+  iintro %x Hx
+  iexists x
+  isplitr
+  · ipureintro; rfl
+  iframe Hl
+  iintro Hl
+  iapply Hx $$ Hl
+
+/-- **An entry's store, at a fresh pointer**: a log entry (`entRO`) at the model `e`. -/
+theorem treeWp_entryPtr (e : EntryM) (Φ : val → IProp GF) :
+    (∀ p : Loc, entRO p e -∗ Φ #p) ⊢ treeWp (.ptr raftpb.Entry.ty (entryTree e)) Φ := by
+  iintro H
+  iapply (treeWp_ptr_fupd (V := raftpb.Entry))
+  iapply treeWp_entryTree
+  iintro %x Hx
+  iexists x
+  isplitr
+  · ipureintro; rfl
+  iintro %p Hp
+  imod Hx $$ Hp with ⟨%c, #Hc, %Hm⟩
+  imodintro
+  iapply H
+  subst Hm
+  iapply entRoC_entRO $$ Hc
 
 end sat
 
