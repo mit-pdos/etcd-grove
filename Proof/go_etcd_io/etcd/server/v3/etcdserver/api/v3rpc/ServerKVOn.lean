@@ -494,7 +494,7 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     · ipureintro; exact ⟨trivial, Hrn⟩
     iexists h, W64 (x.log.length : Int)
     ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h (W64 (x.log.length : Int)) (mvcc.api.mvccReaders E.γ 1)
-      (w64_rev_ne_zero _ (by omega) Hlen.2) $$ [$Hown]
+      (w64_rev_ne_zero _ (by omega) (by have := Hlen.2; omega)) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
     iframe Hrc
@@ -582,7 +582,7 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     · ipureintro; exact ⟨trivial, Hrn⟩
     iexists h, W64 ((mvcc.writeRev x.log (txn.delChanges (mvcc.stateAfter x.log) op') : Nat) : Int)
     ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.api.mvccReaders E.γ 1)
-      (writeRev_ne_zero _ _ Hlen.1 Hlen.2) $$ [$Hown]
+      (writeRev_ne_zero _ _ Hlen.1 (by have := Hlen.2; omega)) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
     iframe Hrc
@@ -759,7 +759,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       iexists h, W64 (mvcc.writeRev x.log
         (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 : Int)
       ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.api.mvccReaders E.γ 1)
-        (writeRev_ne_zero _ _ Hlen.1 Hlen.2) $$ [$Hown]
+        (writeRev_ne_zero _ _ Hlen.1 (by have := Hlen.2; omega)) $$ [$Hown]
       · iframe #; ipureintro; exact Hhn
       iframe Hhf2 Hw Hri
       iframe Hrc Hlt
