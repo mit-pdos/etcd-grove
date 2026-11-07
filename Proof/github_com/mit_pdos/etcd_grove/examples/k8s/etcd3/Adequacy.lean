@@ -39,6 +39,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
@@ -298,6 +299,125 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ReceiptBoundLe k8setcd3GF (n + 1) := ⟨by rw [HN]; omega⟩
   have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops Hbf
     (by unfold bootWB backend.wbInit; omega)
+    Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
+  wp_apply hM $$ [Hstart Htok]
+  · iframe; iframe #
+  iintro %r %Hr
+  ipureintro
+  rcases Hr with rfl | rfl
+  · exact Or.inl rfl
+  · exact Or.inr rfl
+
+/-- The program with three members under a partition schedule: `k8setcd3`'s initialization, then
+`MainPartition(clients, ops, sched)` with the schedule `steps` built as a slice literal
+(`schedLit`, as the k8s compactor's `k8scompactorPProgram`). -/
+def k8setcd3PProgram [GoSemanticsFunctions] (clients ops : w64)
+    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
+  github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize' #() ;;
+  App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))
+    (Val #clients)) (Val #ops)) (schedLit steps)
+
+/-- **The Kubernetes etcd3 store's linearizability instance over three members under any
+partition schedule is safe** (see the file header): `k8s_etcd3_cluster_adequate`'s conclusion for
+every real execution of `k8setcd3PProgram clients ops steps`, for every schedule `steps` (of fewer
+than `2 ^ 63` steps). -/
+theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+    [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
+    [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
+    [k8s_io.apiserver.pkg.storage.value.Assumptions]
+    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [log.NewModel]
+    (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
+    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
+    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
+    (clients ops : w64)
+    (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
+    (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
+    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
+    (Hsteps : steps.length < 2 ^ 63)
+    (HNs : prometheus.namesUnclaimed (k8setcd3PProgram clients ops steps) k8setcd3Names)
+    (HAs : addrsUnclaimed (k8setcd3PProgram clients ops steps) k8setcd3CAddrs)
+    -- the members' WAL directories, distinct (`filepath.Join` is opaque here), hold no WAL at start
+    (HDsNd : k8setcd3CWalDirs.Nodup)
+    (HDs : walDirsAbsent (k8setcd3PProgram clients ops steps) k8setcd3CWalDirs)
+    (n : Nat)
+    (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
+      ⊢ cluster3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k8s_etcd3.clusterCfg n
+        id₁ id₂ id₃ ps ctxs boot)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps' : RealNsteps n ([k8setcd3PProgram clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 2 ≤ 2 ^ 28) :
+    (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+  refine etcd_adequate_members (GF := k8setcd3GF)
+    github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize'
+    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))
+      (Val #clients)) (Val #ops)) (schedLit steps))
+    (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
+      (fun h => intoVal_ne_PanicV _ p h.symm)) k8setcd3CAddrs (by decide) k8setcd3CWalDirs HDsNd
+    (cluster3.members k8s_etcd3.clusterCfg) (cluster3.bridges k8s_etcd3.clusterCfg) (by decide)
+    (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    n κs t2 σ2 Hsteps' fun hG HN HT => ?_
+  letI : HeapGS .hasLC k8setcd3GF := k8setcd3HeapAt hG lctx
+  letI : EtcdGrove.k8s.CompactorRegistry := ⟨0⟩
+  haveI := Hctx hG
+  unfold progOk
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getIsPkgInit_wf, ?_⟩
+  ihave #Hprem' := Hprem hG
+  iintro #Hinit Htok Hres
+  ihave Hstart := cluster3.startRes_intro k8s_etcd3.clusterCfg $$ Hres
+  -- the schedule's slice literal (as `k8s_compactor_partition_adequate`)
+  wp_bind (schedLit steps)
+  unfold schedLit
+  iapply (wp_slice_literal (V := github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (l := steps)
+    (kvs := steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
+  have hp := pure_wp_array_lit_full (hlc := HasLC.hasLC) (GF := k8setcd3GF)
+    (go.arrayLiteralSize
+      (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
+    github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty steps _ rfl
+    (by rw [arrayLiteralSize_vals]; simp)
+    (by rw [arrayLiteralSize_vals]; simpa using Hsteps)
+  have hp' : ∀ Ψ : val → IProp k8setcd3GF,
+      iprop(▷ (£ 1 -∗ WP (Val #(array.mk
+          (go.arrayLiteralSize
+            (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
+          steps)) {{ Ψ }})) ⊢
+        WP (App (Val (GoInstruction (CompositeLiteral (go.ArrayType
+            (go.arrayLiteralSize
+              (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
+            github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))
+          (Val (LiteralValueV
+            (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
+          {{ Ψ }} :=
+    fun Ψ => hp.pure_wp_wp _ _ Ψ [] trivial
+  iapply (hp' _)
+  inext
+  iintro -
+  wp_auto
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, -⟩
+  imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
+  (try wp_auto)
+  haveI : ThreadBoundLe k8setcd3GF (2 ^ 28) := ⟨by rw [HT]; word⟩
+  haveI : ReceiptBoundLe k8setcd3GF (2 ^ 48) := ⟨by rw [HN]; omega⟩
+  haveI : ReceiptBoundLe k8setcd3GF (n + 1) := ⟨by rw [HN]; omega⟩
+  have hM := k8s_etcd3.wp_MainPartition (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops
+    (slice.mk sl
+      (W64 (go.arrayLiteralSize
+        (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))
+      (W64 (go.arrayLiteralSize
+        (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
+    steps Hbf (by unfold bootWB backend.wbInit; omega)
     Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
