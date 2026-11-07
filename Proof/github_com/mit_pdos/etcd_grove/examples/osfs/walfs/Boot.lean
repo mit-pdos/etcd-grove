@@ -1291,10 +1291,10 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   · unfold mcellsAny; simp only [newMeta, initMeta]; iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply wp_WriteAt f fd (child d tmpB) (DFrac.own 1) sl dataC (DFrac.own 1) (W64 0) (DFrac.own 1)
       ⟨i, true, true⟩ 1 newMeta [] rfl (by decide) (by decide) (by decide) (by decide) (by decide)
-      (by decide) (fun _ => rfl) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
-    as %n %err ⟨Hf, Hsl, Hfd, %k, %ys, %h, %Hres, Hm, Hys, -⟩
+      (by decide) (fun _ => rfl) (.inl rfl) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
+    as %n %err ⟨Hf, Hsl, Hfd, %k, %ys, %h, %v, %Hres, Hm, Hys, -⟩
   · iframe; iexact Hos
-  obtain ⟨hj, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨hj, -, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
     | nil => exact absurd rfl hne

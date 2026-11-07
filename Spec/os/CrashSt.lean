@@ -15,7 +15,7 @@ Lean-first (no Rocq counterpart).
   flight. The write misses the frozen bytes, and the mapped cells of its range are passed through
   (`mcellsAny`).
 * `os.File.Truncate.specCrashS`: idle, growing: to grown (`csGrownOwn`: by bytes `zs`, zeros if the
-  file's `OsMeta` says so), or on failure maybe not (`ftMeta`); `Ok` of each `TReach` state, idle
+  file's `OsMeta` says so), or on failure maybe not (`ftFail`); `Ok` of each `TReach` state, idle
   and with a truncate in flight.
 * `syscall.Fdatasync.specCrashS` and `os.File.Sync.specCrashS`: idle `H ++ (F ++ T)` (`F` the
   frozen bytes) to `csSynced hd` (the bytes after the frozen ones synced, keeping the ones before
@@ -58,11 +58,11 @@ theorem WReach.narrow {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat} {data : 
     exact narrow_fin ih hoff _ (Nat.le_of_lt hnn) (by rw [List.length_drop]; exact hk)
 
 /-- The states a growing `Truncate` to `sz` reaches from `m`, `bs`: unchanged, the size bound
-widened (a failed attempt), grown (by bytes `zs`, zeros if the file's `OsMeta` says so). -/
+widened and the versions known forgotten (a failed attempt), grown (by bytes `zs`, zeros if the file's `OsMeta` says so). -/
 inductive TReach (m : OsMeta) (bs : List (w8 × Bool)) (sz : Nat) :
     OsMeta → List (w8 × Bool) → Prop
   | refl : TReach m bs sz m bs
-  | ft : TReach m bs sz (ftMeta m sz) bs
+  | ft : TReach m bs sz (ftFail m sz) bs
   | grown (zs : List w8) : zs.length = sz - m.size →
       (m.zero = true → zs = List.replicate (sz - m.size) 0) →
       TReach m bs sz (m.grown sz) (bs ++ zs.map (·, false))
@@ -143,7 +143,7 @@ abbrev os.File.Truncate.specCrashS : Prop :=
       ((⌜err = interface.nil⌝ ∗ csGrownOwn d.ino γ m bs fa fb sz.toNat hi) ∨
        (⌜err ≠ interface.nil⌝ ∗
          (csGrownOwn d.ino γ m bs fa fb sz.toNat hi ∨
-          (csOwnF γ (some (d.ino, ⟨ftMeta m sz.toNat, bs, fa, fb, .idle⟩)) ∗
+          (csOwnF γ (some (d.ino, ⟨ftFail m sz.toNat, bs, fa, fb, .idle⟩)) ∗
             mcellsAny m.maps m.size hi)))) }}
 
 variable [os.Assumptions] in

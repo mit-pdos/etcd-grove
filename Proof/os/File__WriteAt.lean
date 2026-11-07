@@ -122,7 +122,7 @@ theorem pwBytes_from (sz off nn : Nat) (data : List w8) (j k : Nat) (xs ys : Lis
         · rw [if_neg c3, if_neg (show ¬ off + i < off + max j (nn + k) by omega)]
 
 theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) := by
-  intro f fd name dqf sl data dqs off dq d q m xs hwr hoff hgap hbig hn hn2 hxl hq
+  intro f fd name dqf sl data dqs off dq d q m xs hwr hoff hgap hbig hn hn2 hxl hq hvk
   have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
@@ -146,7 +146,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     have h1 := Hlen.1; have h2 := Hlen.2
     simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
   -- the invariant: the file as a write of the first `j` bytes left it, `nn ≤ j` of them written
-  have hm0 : m = { m with size := pwSize m.size off.toNat 0, hi := m.hi } := by
+  have hm0 : m = { m with size := pwSize m.size off.toNat 0, hi := m.hi, vk := m.vk } := by
     simp [pwSize]
   obtain ⟨nnv, hnnv⟩ : ∃ nnv : w64, nnv = W64 0 := ⟨_, rfl⟩
   conv in (occs := 4) (#(W64 0) : val) => rw [← hnnv]
@@ -157,7 +157,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     rw [← hj0, pwBytes_zero _ _ _ _ (by rw [hmin0]; exact hxl)]
   have hh : m.hi ≤ m.hi := by omega
   ihave Hm := (show osMeta (GF := GF) d.ino (DFrac.own q) m ⊢
-    osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := m.hi }) by
+    osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := m.hi, vk := m.vk }) by
       rw [← hj0, ← hm0]) $$ Hm
   clear hm0
   obtain ⟨ys, hy⟩ : ∃ ys, ys = xs := ⟨_, rfl⟩
@@ -167,13 +167,16 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     rw [hy]; exact hys
   clear hy
   obtain ⟨h, hhe⟩ : ∃ h, h = m.hi := ⟨_, rfl⟩
+  obtain ⟨v, hve⟩ : ∃ v, v = m.vk := ⟨_, rfl⟩
   ihave Hm := (show osMeta (GF := GF) d.ino (DFrac.own q)
-      ({ m with size := pwSize m.size off.toNat j, hi := m.hi }) ⊢
-    osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := h })
-      by rw [hhe]) $$ Hm
+      ({ m with size := pwSize m.size off.toNat j, hi := m.hi, vk := m.vk }) ⊢
+    osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := h, vk := v })
+      by rw [hhe, hve]) $$ Hm
   replace hh : m.hi ≤ h := by omega
-  clear hhe hj0 hnnv
-  iloeb as IH generalizing %j %nnv %hnn %ys %h %hj %hys %hh Hm Hbs Hc Hosfd Hsl Hfd HΦ
+  have hv1 : q = 1 ∨ v = none := by rw [hve]; exact hvk
+  have hv2 : m.vk = none → v = none := fun h0 => by rw [hve, h0]
+  clear hhe hj0 hnnv hve
+  iloeb as IH generalizing %j %nnv %hnn %ys %h %v %hj %hys %hh %hv1 %hv2 Hm Hbs Hc Hosfd Hsl Hfd HΦ
   -- one attempt, from `nn`
   have hnnz : sint.Z nnv = nnv.toNat := by
     simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_of_lt (by omega)]
@@ -223,7 +226,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     Nat.min_eq_left hS
   have hdl : (data.drop nnv.toNat).length = data.length - nnv.toNat := List.length_drop
   wp_apply wp_osPWriteStart fd (off + nnv) (data.drop nnv.toNat) dq d q
-    { m with size := pwSize m.size off.toNat j, hi := h } (ys.drop nnv.toNat)
+    { m with size := pwSize m.size off.toNat j, hi := h, vk := v } (ys.drop nnv.toNat)
     CoPset.subseteq_top hwr hoffv' (by rw [hoffv]; exact hS)
     (by rw [hoffv, hminS, hdl, List.length_drop, hyl]; simp only; omega)
     (fun hr => hq (by simp only [hoffv, hdl] at hr; omega))
@@ -232,21 +235,22 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   · rw [hoffv, hminS, hdl, show off.toNat + nnv.toNat + (data.length - nnv.toNat) =
       off.toNat + data.length by omega]; iexact Hc2
   wp_apply wp_osPWriteFinish t d.ino (off + nnv).toNat (data.drop nnv.toNat) q
-    { m with size := pwSize m.size off.toNat j, hi := h } (ys.drop nnv.toNat)
-    CoPset.subseteq_top $$ Hinv Ht as %k %e %hke Hm Hbs2 Hc2
+    { m with size := pwSize m.size off.toNat j, hi := h, vk := v } (ys.drop nnv.toNat)
+    hv1 CoPset.subseteq_top $$ Hinv Ht as %k %e %hke Hm Hbs2 Hc2
   obtain ⟨hk, hke⟩ := hke
   rw [hdl] at hk
   -- the file as a write of the first `max j (nn + k)` bytes left it
   have hpw : pwSize (pwSize m.size off.toNat j) (off.toNat + nnv.toNat) k =
       pwSize m.size off.toNat (max j (nnv.toNat + k)) := pwSize_from _ _ _ _ _ hnn
   ihave Hm := (show osMeta (GF := GF) d.ino (DFrac.own q)
-      ({ pwMeta { m with size := pwSize m.size off.toNat j, hi := h } (off + nnv).toNat
-          (data.drop nnv.toNat).length with
-        size := pwSize (pwSize m.size off.toNat j) (off + nnv).toNat k }) ⊢
+      (pwPost { m with size := pwSize m.size off.toNat j, hi := h, vk := v } (off + nnv).toNat
+          (data.drop nnv.toNat).length k) ⊢
     osMeta d.ino (DFrac.own q)
-      ({ m with size := pwSize m.size off.toNat (max j (nnv.toNat + k)), hi := max h (off.toNat + data.length) })
+      ({ m with size := pwSize m.size off.toNat (max j (nnv.toNat + k)),
+                hi := max h (off.toNat + data.length),
+                vk := vkHit v (off.toNat + nnv.toNat) (off.toNat + nnv.toNat + k) })
       by
-        rw [hoffv, hpw, hdl]; simp only [pwMeta]
+        unfold pwPost; rw [hoffv, hpw, hdl, hminS]; simp only [pwMeta]
         rw [show off.toNat + nnv.toNat + (data.length - nnv.toNat) = off.toNat + data.length by omega]
         ) $$ Hm
   ihave Hbs := (show osBytes (GF := GF) d.ino off.toNat (DFrac.own 1) (ys.take nnv.toNat) ∗
@@ -266,6 +270,12 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     (by omega) (by omega) $$ [Hc1 Hc2]
   · rw [hoffv, hminS, hdl, show off.toNat + nnv.toNat + (data.length - nnv.toNat) =
       off.toNat + data.length by omega]; iframe
+  have hv1' : q = 1 ∨ vkHit v (off.toNat + nnv.toNat) (off.toNat + nnv.toNat + k) = none := by
+    rcases hv1 with h1 | h1
+    · exact .inl h1
+    · exact .inr (by rw [h1]; rfl)
+  have hv2' : m.vk = none → vkHit v (off.toNat + nnv.toNat) (off.toNat + nnv.toNat + k) = none :=
+    fun h0 => by rw [hv2 h0]; rfl
   have hys' := pwBytes_from m.size off.toNat nnv.toNat data j k xs ys hgap hnn hj hk
     hxl hys
   have hj' : max j (nnv.toNat + k) ≤ data.length := by omega
@@ -278,7 +288,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   · rw [decide_eq_true he4]
     wp_pure
     iapply IH $$ %(max j (nnv.toNat + k)) %nnv %(by omega) %_ %(max h (off.toNat + data.length))
-      %hj' %hys' %hh' Hm Hbs Hc Hosfd Hsl Hfd HΦ
+      %_ %hj' %hys' %hh' %hv1' %hv2' Hm Hbs Hc Hosfd Hsl Hfd HΦ
   · rw [decide_eq_false he4]
     wp_auto
     have hWk : (W64 k).toNat = k := by
@@ -299,7 +309,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hys', hh', .inl ⟨by omega, hsln, rfl⟩⟩
+          exact ⟨hj', hv2', hys', hh', .inl ⟨by omega, hsln, rfl⟩⟩
       · rw [decide_eq_false he0]
         wp_auto
         simp only [decide_eq_false he0, Bool.not_false]
@@ -310,7 +320,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hys', hh', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hj', hv2', hys', hh', .inr ⟨rfl, by intro h; cases h⟩⟩
     · rw [decide_eq_false hfull]
       wp_auto
       by_cases he0 : e = W64 0
@@ -327,8 +337,8 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
           · exact hkk
           · exact absurd he0 hne
         iapply IH $$ %(max j (nnv.toNat + k)) %(nnv + W64 k) %(by rw [hnk]; omega) %_
-          %(max h (off.toNat + data.length)) %hj' %hys'
-          %hh' [Hm] [Hbs] [Hc] Hosfd Hsl Hfd HΦ
+          %(max h (off.toNat + data.length)) %_ %hj' %hys'
+          %hh' %hv1' %hv2' [Hm] [Hbs] [Hc] Hosfd Hsl Hfd HΦ
         · iexact Hm
         · iexact Hbs
         · iexact Hc
@@ -341,7 +351,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hys', hh', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hj', hv2', hys', hh', .inr ⟨rfl, by intro h; cases h⟩⟩
 
 end proof
 

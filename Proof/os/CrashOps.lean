@@ -502,14 +502,14 @@ theorem wp_osPWriteFinish_cf (t : Nat) (i : Ino) (off : Nat) (data : List w8)
   unfold pwTok
   icases Htok with ⟨Htok, %hgap⟩
   imodintro
-  iapply wp_osPWriteFinish t i off data 1 m (cfRange m bs off data.length) hN $$ Hos [Htok]
+  iapply wp_osPWriteFinish t i off data 1 m (cfRange m bs off data.length) (.inl rfl) hN $$ Hos [Htok]
   · unfold pwTok; iframe; ipureintro; exact hgap
   iintro %k %e %hke Hm Hrg -
   have hk := hke.1
   have hlen : (finBytes m bs off data k).length = (finMeta m off data k).size :=
     finBytes_length Hwf.1.1 hk
   ihave Hm := (show osMeta (L := L) i (DFrac.own 1)
-      ({ pwMeta m off data.length with size := pwSize m.size off k }) ⊢
+      (pwPost m off data.length k) ⊢
       osMeta (L := L) i (DFrac.own 1) (finMeta m off data k) from .rfl) $$ Hm
   icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
   icases (osBytes_halves _ _ _).1 $$ Hrg with ⟨Hr1, Hr2⟩

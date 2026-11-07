@@ -29,6 +29,24 @@ not known any more (ext4 may grow it in chunks, each a change of the last sector
 def OsMeta.grown (m : OsMeta) (sz : Nat) : OsMeta :=
   { m with size := sz, hi := max m.hi sz, vk := none }
 
+/-- The `OsMeta` of a file after a failed truncate to `sz` that may have left it unchanged: the size
+bound widened (`ftMeta`), the versions known forgotten. -/
+def ftFail (m : OsMeta) (sz : Nat) : OsMeta := { ftMeta m sz with vk := none }
+
+theorem ftFail_size (m : OsMeta) (sz : Nat) : (ftFail m sz).size = m.size := rfl
+theorem ftFail_maps (m : OsMeta) (sz : Nat) : (ftFail m sz).maps = m.maps := rfl
+
+theorem ftFail_grown (m : OsMeta) (sz : Nat) : (ftFail m sz).grown sz = m.grown sz := by
+  cases m; simp only [ftFail, ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true,
+    _root_.true_and]; omega
+
+theorem ftFail_ftFail (m : OsMeta) (sz : Nat) : ftFail (ftFail m sz) sz = ftFail m sz := by
+  cases m; simp only [ftFail, ftMeta, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
+
+theorem ftFail_of_grown (m : OsMeta) (sz : Nat) : ftFail (m.grown sz) sz = m.grown sz := by
+  cases m; simp only [ftFail, ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true,
+    _root_.true_and]; omega
+
 /-- Every mapping of `M` ends at or before `hi`. -/
 def MapsBelow (M : GMap Loc Nat) (hi : Nat) : Prop := ∀ b len, M !! b = some len → len ≤ hi
 
@@ -563,7 +581,7 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
       (∀ e : w64,
         ((⌜e = 0⌝ ∗ osGrown (L := L) p m sz hi) ∨
          (⌜e ≠ 0⌝ ∗ (osGrown (L := L) p m sz hi ∨
-           (osMeta (L := L) p (DFrac.own 1) { ftMeta m sz with vk := none } ∗
+           (osMeta (L := L) p (DFrac.own 1) (ftFail m sz) ∗
              mcellsAny m.maps m.size hi)))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
@@ -806,7 +824,7 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
     isplitr
     · ipureintro; exact he
     iright
-    rw [show ({ ftMeta m sz with vk := none } : OsMeta) = { ftMeta m sz with size := f2.size, vk := none } by
+    rw [show ftFail m sz = { ftMeta m sz with size := f2.size, vk := none } by
       rw [← hmsz]; rfl]
     iframe Hm
     iclear Hbs

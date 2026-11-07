@@ -80,12 +80,13 @@ theorem os.File.Truncate.wp_shrink (f : Loc) (fd : w64) (name : GoString) (dqf :
         · rw [OsMeta.shrunk_size]; simp
       unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
     · iapply IH $$ [Hm Hb] Hosfd Hfd HΦ
-      iexists (shMeta m0 sz.toNat), ys
+      iexists { shMeta m0 sz.toNat with vk := none }, ys
       iframe
       ipureintro
       have hyl : ys.length = xs0.length := by
         have := congrArg List.length hys; simpa using this
-      exact ⟨by rw [OsMeta.shrunk_shMeta, hs0], hmp0, hsh0, by rw [hyl, hxl0]; rfl⟩
+      refine ⟨?_, hmp0, hsh0, by rw [hyl, hxl0]; rfl⟩
+      rw [← hs0]; simp only [OsMeta.shrunk, shMeta, Nat.min_assoc, Nat.min_self]
   · rw [decide_eq_false he4]
     wp_auto
     icases Hr with (⟨%he, Hm⟩ | ⟨%he, -⟩)

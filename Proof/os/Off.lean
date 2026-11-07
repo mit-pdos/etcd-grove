@@ -174,7 +174,8 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     (hwr : d.writable = true) (h0 : 0 ≤ o.toInt) (hle : o.toNat ≤ m.size) (hn : 0 < data.length)
     (hn2 : data.length ≤ 0x40000000)
     (hxs : xs.length = min (o.toNat + data.length) m.size - o.toNat)
-    (hq : m.size < o.toNat + data.length → q = 1) (hmax : o.toInt + data.length < 2 ^ 62) :
+    (hq : m.size < o.toNat + data.length → q = 1) (hvk : q = 1 ∨ m.vk = none)
+    (hmax : o.toInt + data.length < 2 ^ 62) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o ∗
         sl ↦*{dqs} data ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own q) m ∗
         osBytes (GF := GF) d.ino o.toNat (DFrac.own 1) xs ∗
@@ -182,12 +183,12 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Write")) (Val #sl))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-        (∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat),
-          ⌜j ≤ data.length ∧
+        (∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat) (v : Option (List Nat)),
+          ⌜j ≤ data.length ∧ (m.vk = none → v = none) ∧
             ys.map Prod.fst = (pwBytes m.size o.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
             ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
              (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
-          osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size o.toNat j, hi := h }) ∗
+          osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size o.toNat j, hi := h, vk := v }) ∗
           osBytes d.ino o.toNat (DFrac.own 1) ys ∗
           mcellsAny m.maps o.toNat (o.toNat + data.length)) ∗
         ((⌜err = interface.nil⌝ ∗ os.ownOff f (o + W64 data.length)) ∨
@@ -214,8 +215,8 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
   wp_auto
   have h63 : o.toNat + data.length < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
-  wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d q m xs hwr h0 hle h63 hn hn2 hxs hq
-    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %ys, %h, %Hres, Hm, Hbs, Hmc⟩
+  wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d q m xs hwr h0 hle h63 hn hn2 hxs hq hvk
+    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %ys, %h, %v, %Hres, Hm, Hbs, Hmc⟩
   · iframe; iexact Hinv
   cases err with
   | nil =>
@@ -223,7 +224,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     iapply HΦ
     iframe Hf Hsl Hosfd
     isplitl [Hm Hbs Hmc]
-    · iexists j, ys, h
+    · iexists j, ys, h, v
       iframe
       ipureintro; exact Hres
     ileft
@@ -235,7 +236,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     iapply HΦ
     iframe Hf Hsl Hosfd
     isplitl [Hm Hbs Hmc]
-    · iexists j, ys, h
+    · iexists j, ys, h, v
       iframe
       ipureintro; exact Hres
     iright

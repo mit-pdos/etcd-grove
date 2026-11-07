@@ -139,7 +139,9 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
         fun _ k _ => by simp [newFile, OsFile.ofBytes, OsFile.ofDisk], fun b len => ?_,
         fun t c ht hc => absurd hc (hnt t c ht), fun i d h => by
           simp [newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, OsFile.contents] at h,
-        fun _ => zero_newFile⟩⟩
+        fun _ => zero_newFile, fun ns hns k => by
+          simp only [newMeta, initMeta, Option.some.injEq] at hns; subst hns
+          simp [newFile, OsFile.ofBytes, OsFile.ofDisk]⟩⟩
       simp only [newMeta, initMeta, GMap.lookup_empty, reduceCtorEq, false_iff]
       intro hb
       obtain ⟨⟨f0, hf0⟩, -⟩ := hwf.maps b _ hb

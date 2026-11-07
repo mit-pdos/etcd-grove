@@ -20,7 +20,7 @@ open Iris Fs
 
 /-- The file after an attempt that wrote the first `k` bytes of `data` at `off`: its `OsMeta`... -/
 def finMeta (m : OsMeta) (off : Nat) (data : List w8) (k : Nat) : OsMeta :=
-  { pwMeta m off data.length with size := pwSize m.size off k }
+  pwPost m off data.length k
 
 /-- ... and its bytes. -/
 def finBytes (m : OsMeta) (bs : List (w8 × Bool)) (off : Nat) (data : List w8) (k : Nat) :

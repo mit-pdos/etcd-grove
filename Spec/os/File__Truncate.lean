@@ -7,7 +7,8 @@ new size at least the size, and the client's halves of the cells of every mappin
 and the new bytes fill `[size, sz)`). The model (`TrustedCode/os.lean`) is the extension's two
 steps (`wp_osFtruncateStart`, `wp_osFtruncateFinish`), retried on `EINTR`. On success the file is
 grown (`osGrown`: size `sz`, the new bytes zeros, dirty, and the cells show them); on failure it
-is grown or unchanged, with the crash bound of its size widened to `sz` (`ftMeta`). Proved in `Proof/os/File__Truncate.lean`. Lean-first (no Rocq
+is grown or unchanged, with the crash bound of its size widened to `sz` (`ftFail`: `ftMeta`, and the
+versions known forgotten). Proved in `Proof/os/File__Truncate.lean`. Lean-first (no Rocq
 counterpart).
 -/
 module
@@ -45,7 +46,7 @@ abbrev os.File.Truncate.spec : Prop :=
       ((⌜err = interface.nil⌝ ∗ osGrown d.ino m sz.toNat hi) ∨
        (⌜err ≠ interface.nil⌝ ∗
          (osGrown d.ino m sz.toNat hi ∨
-          (osMeta d.ino (DFrac.own 1) (ftMeta m sz.toNat) ∗
+          (osMeta d.ino (DFrac.own 1) (ftFail m sz.toNat) ∗
             mcellsAny m.maps m.size hi)))) }}
 
 end spec

@@ -39,26 +39,23 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hsz
   rw [decide_eq_false h2]
   wp_auto
-  have hpost : ∀ (m0 : OsMeta) (e : w64), (m0 = m ∨ m0 = ftMeta m sz.toNat) →
+  have hpost : ∀ (m0 : OsMeta) (e : w64), (m0 = m ∨ m0 = (ftFail m sz.toNat)) →
       (((⌜e = 0⌝ ∗ osGrown (GF := GF) d.ino m0 sz.toNat hi) ∨
         (⌜e ≠ 0⌝ ∗ (osGrown d.ino m0 sz.toNat hi ∨
-          (osMeta d.ino (DFrac.own 1) (ftMeta m0 sz.toNat) ∗
+          (osMeta d.ino (DFrac.own 1) (ftFail m0 sz.toNat) ∗
             mcellsAny m0.maps m0.size hi)))) ⊢
       ((⌜e = 0⌝ ∗ osGrown d.ino m sz.toNat hi) ∨
         (⌜e ≠ 0⌝ ∗ (osGrown d.ino m sz.toNat hi ∨
-          (osMeta d.ino (DFrac.own 1) (ftMeta m sz.toNat) ∗
+          (osMeta d.ino (DFrac.own 1) (ftFail m sz.toNat) ∗
             mcellsAny m.maps m.size hi))))) := by
     rintro m0 e (rfl | rfl)
     · exact .rfl
-    · have h1 : ftMeta (ftMeta m sz.toNat) sz.toNat = ftMeta m sz.toNat := by
-        cases m; simp only [ftMeta, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
-      have h2 : osGrown (GF := GF) d.ino (ftMeta m sz.toNat) sz.toNat hi =
+    · have h1 : ftFail (ftFail m sz.toNat) sz.toNat = ftFail m sz.toNat := ftFail_ftFail m _
+      have h2 : osGrown (GF := GF) d.ino (ftFail m sz.toNat) sz.toNat hi =
           osGrown d.ino m sz.toNat hi := by
-        have : (ftMeta m sz.toNat).grown sz.toNat = m.grown sz.toNat := by
-          cases m; simp only [ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
-        unfold osGrown; rw [this]; rfl
+        unfold osGrown; rw [ftFail_grown]; rfl
       rw [h1, h2]; exact .rfl
-  ihave HS : (∃ m0, ⌜m0 = m ∨ m0 = ftMeta m sz.toNat⌝ ∗
+  ihave HS : (∃ m0, ⌜m0 = m ∨ m0 = (ftFail m sz.toNat)⌝ ∗
       osMeta d.ino (DFrac.own 1) (m0) ∗ mcellsAny m.maps m.size hi) ∨
       osGrown d.ino m sz.toNat hi $$ [Hm Hc]
   · ileft; iexists m; iframe; ipureintro; exact .inl rfl
@@ -81,7 +78,7 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
       iapply IH $$ [HS] Hosfd Hfd HΦ
       icases HS with (H | ⟨Hm, Hc⟩)
       · iright; iexact H
-      · ileft; iexists (ftMeta m sz.toNat); iframe; ipureintro; exact .inr rfl
+      · ileft; iexists (ftFail m sz.toNat); iframe; ipureintro; exact .inr rfl
     · rw [decide_eq_false he4]
       wp_auto
       icases Hr with (⟨%he, Hg⟩ | ⟨%he, HS⟩)
@@ -111,8 +108,7 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
     icases Hg with ⟨%zs, %hzs, Hm, Hbs, Hcs, Hc⟩
     have hgg : (m.grown sz.toNat).grown sz.toNat = m.grown sz.toNat := by
       simp [OsMeta.grown]
-    have hgf : ftMeta (m.grown sz.toNat) sz.toNat = m.grown sz.toNat := by
-      cases m; simp only [ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
+    have hgf : ftFail (m.grown sz.toNat) sz.toNat = m.grown sz.toNat := ftFail_of_grown m _
     ihave Hc := (show mcellsAny (GF := GF) m.maps sz.toNat hi ⊢
       mcellsAny (m.grown sz.toNat).maps (m.grown sz.toNat).size hi by simp only [OsMeta.grown]; iintro H; iexact H) $$ Hc
     wp_apply wp_osFtruncateStart fd sz dq d (m.grown sz.toNat) hi CoPset.subseteq_top hwr hsz
@@ -121,7 +117,7 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
       (Nat.le_refl _) hhi $$ Hinv Ht as %e Hr0
     ihave Hr : (⌜e = 0⌝ ∗ osGrown d.ino m sz.toNat hi) ∨
         (⌜e ≠ 0⌝ ∗ (osGrown d.ino m sz.toNat hi ∨
-          (osMeta d.ino (DFrac.own 1) (ftMeta m sz.toNat) ∗
+          (osMeta d.ino (DFrac.own 1) (ftFail m sz.toNat) ∗
             mcellsAny m.maps m.size hi))) $$ [Hr0 Hbs Hcs]
     · unfold osGrown
       icases Hr0 with (⟨%he, ⟨%zs', -, Hm, -, -, Hc⟩⟩ | ⟨%he, (⟨%zs', -, Hm, -, -, Hc⟩ | ⟨Hm, Hc⟩)⟩)
@@ -140,7 +136,7 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
       iapply IH $$ [HS] Hosfd Hfd HΦ
       icases HS with (H | ⟨Hm, Hc⟩)
       · iright; iexact H
-      · ileft; iexists (ftMeta m sz.toNat); iframe; ipureintro; exact .inr rfl
+      · ileft; iexists (ftFail m sz.toNat); iframe; ipureintro; exact .inr rfl
     · rw [decide_eq_false he4]
       wp_auto
       icases Hr with (⟨%he, Hg⟩ | ⟨%he, HS⟩)

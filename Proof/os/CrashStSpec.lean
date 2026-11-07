@@ -485,7 +485,7 @@ def truncPost (p : Ino) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool)) (fa f
     (e : w64) : IProp GF :=
   iprop((⌜e = 0⌝ ∗ csGrownOwn p γ m bs fa fb sz hi) ∨
     (⌜e ≠ 0⌝ ∗ (csGrownOwn p γ m bs fa fb sz hi ∨
-      (csOwnF γ (some (p, ⟨ftMeta m sz, bs, fa, fb, .idle⟩)) ∗ mcellsAny m.maps m.size hi))))
+      (csOwnF γ (some (p, ⟨ftFail m sz, bs, fa, fb, .idle⟩)) ∗ mcellsAny m.maps m.size hi))))
 
 theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF) (hG := hG) := by
   intro f fd name dqf sz dq d N P R γ Good Ok m bs fa fb hi hfd0 hwr hsz hgrow hhi hN hT
@@ -506,10 +506,10 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
   wp_auto
   have hnil : ∀ zs : List w8, zs.length = sz.toNat - (m.grown sz.toNat).size → zs = [] :=
     fun zs h => List.eq_nil_of_length_eq_zero (by rw [h]; simp [OsMeta.grown])
-  have hGo : csGrownOwn (GF := GF) d.ino γ (ftMeta m sz.toNat) bs fa fb sz.toNat hi =
+  have hGo : csGrownOwn (GF := GF) d.ino γ (ftFail m sz.toNat) bs fa fb sz.toNat hi =
       csGrownOwn d.ino γ m bs fa fb sz.toNat hi := by
-    unfold csGrownOwn; rw [ftMeta_grown]; rfl
-  ihave HS : (∃ m0, ⌜m0 = m ∨ m0 = ftMeta m sz.toNat⌝ ∗
+    unfold csGrownOwn; rw [ftFail_grown]; rfl
+  ihave HS : (∃ m0, ⌜m0 = m ∨ m0 = ftFail m sz.toNat⌝ ∗
       csOwnF γ (some (d.ino, ⟨m0, bs, fa, fb, .idle⟩)) ∗ mcellsAny m.maps m.size hi) ∨
       csGrownOwn d.ino γ m bs fa fb sz.toNat hi $$ [Hown Hc]
   · ileft; iexists m; iframe; ipureintro; exact .inl rfl
@@ -526,13 +526,13 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         isplitr; · ipureintro; exact hgrow
         isplitr; · ipureintro; rfl
         iintro %e H; iexact H
-      · iexists (ftMeta m sz.toNat), bs; iframe; isplitr; · ipureintro; exact .ft
+      · iexists (ftFail m sz.toNat), bs; iframe; isplitr; · ipureintro; exact .ft
         isplitr; · ipureintro; exact hgrow
         isplitr; · ipureintro; rfl
         iintro %e H
         unfold truncPost
-        rw [ftMeta_ftMeta, hGo, show (ftMeta m sz.toNat).maps = m.maps from rfl,
-          show (ftMeta m sz.toNat).size = m.size from rfl]
+        rw [ftFail_ftFail, hGo, show (ftFail m sz.toNat).maps = m.maps from rfl,
+          show (ftFail m sz.toNat).size = m.size from rfl]
         iexact H
     · unfold csGrownOwn
       icases Hg with ⟨%zs, %hzs, Hown, Hz, Hc⟩
@@ -546,7 +546,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
           show (m.grown sz.toNat).size = sz.toNat from rfl]; iexact Hc
       iintro %e H
       unfold truncPost csGrownOwn
-      rw [grown_grown, ftMeta_of_grown]
+      rw [grown_grown, ftFail_of_grown]
       icases H with (⟨%he, %zs', %hzs', Hown, -, Hc⟩ | ⟨%he, (⟨%zs', %hzs', Hown, -, Hc⟩ | ⟨Hown, Hc⟩)⟩)
       · obtain rfl := hnil zs' hzs'.1
         rw [List.map_nil, List.append_nil]
@@ -567,14 +567,14 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
     intro zs hz h0
     rcases hR1 with _ | _ | ⟨zs0, hz0, h00⟩
     · exact (hT _ _ (.grown zs hz h0)).1
-    · rw [ftMeta_grown]; exact (hT _ _ (.grown zs hz h0)).1
+    · rw [ftFail_grown]; exact (hT _ _ (.grown zs hz h0)).1
     · obtain rfl := hnil zs hz
       rw [grown_grown, List.map_nil, List.append_nil]; exact (hT _ _ (.grown zs0 hz0 h00)).1
-  have hokF : Ok (some (d.ino, ⟨ftMeta m1 sz.toNat, bs1, fa, fb, .idle⟩)) := by
+  have hokF : Ok (some (d.ino, ⟨ftFail m1 sz.toNat, bs1, fa, fb, .idle⟩)) := by
     rcases hR1 with _ | _ | ⟨zs0, hz0, h00⟩
     · exact (hT _ _ .ft).1
-    · rw [ftMeta_ftMeta]; exact (hT _ _ .ft).1
-    · rw [ftMeta_of_grown]; exact (hT _ _ (.grown zs0 hz0 h00)).1
+    · rw [ftFail_ftFail]; exact (hT _ _ .ft).1
+    · rw [ftFail_of_grown]; exact (hT _ _ (.grown zs0 hz0 h00)).1
   wp_apply wp_osFtruncateFinish_cs t d.ino sz.toNat N P R γ Good Ok m1 bs1 fa fb hi hN hhi1 hokG hokF
     $$ Hos Hinv Hown as %e Hr0
   ihave Hr := Hnorm $$ %e [Hr0]
@@ -588,7 +588,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
     iapply IH $$ [HS] Hosfd Hfd HΦ
     icases HS with (H | ⟨Hown, Hc⟩)
     · iright; iexact H
-    · ileft; iexists (ftMeta m sz.toNat); iframe; ipureintro; exact .inr rfl
+    · ileft; iexists (ftFail m sz.toNat); iframe; ipureintro; exact .inr rfl
   · rw [decide_eq_false he4]
     wp_auto
     icases Hr with (⟨%he, Hg⟩ | ⟨%he, HS⟩)

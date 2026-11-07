@@ -11,7 +11,8 @@ of every mapping over `[min off size, off + n)`.
 After it, the file is as a write of the first `j` bytes of `b` left it (each attempt rewrites
 from the start, and a failed one may have written a prefix): its size `pwSize m.size off j`, the
 bytes of the range `pwBytes` (the zero gap past the old end, then `b`'s first `j` bytes, then the
-old bytes), not clean. On success `j = n` and the result is `(n, nil)`; on failure, `(0, err)`
+old bytes), not clean; the sectors known to have at most two versions (`vk`) are what the attempts'
+`vkHit`s left (unknown if they were: a fraction `q < 1` needs `m.vk = none`). On success `j = n` and the result is `(n, nil)`; on failure, `(0, err)`
 with a non-nil `err`. Proved in `Proof/os/File__WriteAt.lean`. Lean-first (no Rocq counterpart).
 -/
 module
@@ -43,7 +44,7 @@ abbrev os.File.WriteAt.spec : Prop :=
   d.writable = true → 0 ≤ off.toInt → off.toNat ≤ m.size → off.toNat + data.length < 2 ^ 63 →
   0 < data.length → data.length ≤ 0x40000000 →
   xs.length = min (off.toNat + data.length) m.size - off.toNat →
-  (m.size < off.toNat + data.length → q = 1) →
+  (m.size < off.toNat + data.length → q = 1) → (q = 1 ∨ m.vk = none) →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
       osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own q) m ∗
       osBytes (GF := GF) d.ino (off.toNat) (DFrac.own 1) xs ∗
@@ -52,12 +53,12 @@ abbrev os.File.WriteAt.spec : Prop :=
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-      ∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat),
-        ⌜j ≤ data.length ∧
+      ∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat) (v : Option (List Nat)),
+        ⌜j ≤ data.length ∧ (m.vk = none → v = none) ∧
           ys.map Prod.fst = (pwBytes m.size off.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
-        osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := h }) ∗
+        osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := h, vk := v }) ∗
         osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
         mcellsAny m.maps (off.toNat) (off.toNat + data.length) }}
 

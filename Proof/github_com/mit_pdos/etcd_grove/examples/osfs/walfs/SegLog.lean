@@ -172,8 +172,8 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply os.File.Write.wp_spec wp_WriteAt f fd (child dir logB) (DFrac.own 1) sl dataC dqs (W64 0)
       (DFrac.own 1) ⟨i, true, true⟩ 1 (newMeta.grown 65536) (List.replicate (min 8 65536) (0, false))
-      rfl (by decide) (by decide) (by decide) (by decide) (by decide) (fun _ => rfl) (by decide)
-    $$ [Hos Hf Ho Hsl Hfd Hm Hb8 Hmc] as %n %err ⟨Hf, Hsl, Hfd, ⟨%j', %ys, %h, %Hres, Hm, Hys, -⟩, Ho⟩
+      rfl (by decide) (by decide) (by decide) (by decide) (by decide) (fun _ => rfl) (.inl rfl) (by decide)
+    $$ [Hos Hf Ho Hsl Hfd Hm Hb8 Hmc] as %n %err ⟨Hf, Hsl, Hfd, ⟨%j', %ys, %h, %v, %Hres, Hm, Hys, -⟩, Ho⟩
   · iframe; iexact Hos
   cases err with
   | ok ie =>
@@ -183,7 +183,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (try wp_auto)
     iapply hclose _ (by intro h; cases h) $$ HΦ Hh
   | nil =>
-  obtain ⟨hj, hys, -, ⟨rfl, -, -⟩ | ⟨-, hne⟩⟩ := Hres
+  obtain ⟨hj, -, hys, -, ⟨rfl, -, -⟩ | ⟨-, hne⟩⟩ := Hres
   rotate_left
   · exact absurd rfl hne
   icases Ho with (⟨-, Ho⟩ | ⟨%hne, -⟩)

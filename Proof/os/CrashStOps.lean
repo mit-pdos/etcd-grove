@@ -12,7 +12,7 @@ which needs the history (`csOwn`). Lean-first (no Rocq counterpart).
   missing the frozen bytes), and back to idle, as the write of the first `k` bytes left it.
 * `wp_osFtruncateStart_cs`/`wp_osFtruncateFinish_cs`: idle to a growing truncate in flight, and
   back to idle, grown (by bytes `zs`, zeros if the `OsMeta` says so) or (on failure) with the size
-  bound widened (`ftMeta`).
+  bound widened and the versions known forgotten (`ftFail`).
 * `wp_osFsync_cs`: idle to synced: the bytes after the frozen ones (`[fb, size)`), keeping the
   ones before them (`[0, fa)`, shown clean) in the durable bytes known (`OsMeta.syncedKeep`);
   or the ones before them (`hd`). On failure, `ok` is lost.
@@ -379,7 +379,7 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8)
   dsimp only [invResS, metaRes]
   icases Hr with ⟨Ht, Hb2⟩
   imodintro
-  iapply wp_osPWriteFinish t p off data 1 m (cfRange m bs off data.length) hN $$ Hos Ht
+  iapply wp_osPWriteFinish t p off data 1 m (cfRange m bs off data.length) (.inl rfl) hN $$ Hos Ht
   iintro %k %e %hke Hm Hrg Hc
   have hk := hke.1
   icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
@@ -528,13 +528,13 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz : Nat) (N : Namespace) (
     (hokG : ∀ zs : List w8, zs.length = sz - m.size →
       (m.zero = true → zs = List.replicate (sz - m.size) 0) →
       Ok (some (p, ⟨m.grown sz, bs ++ zs.map (·, false), fa, fb, .idle⟩)))
-    (hokF : Ok (some (p, ⟨ftMeta m sz, bs, fa, fb, .idle⟩))) (Φ : val → IProp GF) :
+    (hokF : Ok (some (p, ⟨ftFail m sz, bs, fa, fb, .idle⟩))) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ csInv (L := L) N P R γ Good Ok -∗
       csOwnF (L := L) γ (some (p, ⟨m, bs, fa, fb, .trunc t sz⟩)) -∗
       (∀ e : w64,
         ((⌜e = 0⌝ ∗ csGrownOwn (L := L) p γ m bs fa fb sz hi) ∨
          (⌜e ≠ 0⌝ ∗ (csGrownOwn (L := L) p γ m bs fa fb sz hi ∨
-           (csOwnF (L := L) γ (some (p, ⟨ftMeta m sz, bs, fa, fb, .idle⟩)) ∗
+           (csOwnF (L := L) γ (some (p, ⟨ftFail m sz, bs, fa, fb, .idle⟩)) ∗
              mcellsAny (L := L) m.maps m.size hi)))) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) {{ Φ }} := by
   iintro #Hos #Hinv Hown HΦ
@@ -594,14 +594,14 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz : Nat) (N : Namespace) (
     iintro H; iapply HΦ; iright; isplitr; · ipureintro; exact he
     ileft; iexact H
   · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
-    imod ghostVar_update_halves (some (p, ⟨ftMeta m sz, bs, fa, fb, .idle⟩) : CState) γ _ _
+    imod ghostVar_update_halves (some (p, ⟨ftFail m sz, bs, fa, fb, .idle⟩) : CState) γ _ _
       $$ Hv Hv' with ⟨Hv, Hv'⟩
     imod Hclose $$ [Hv' Hm2 Hb2] with -
-    · inext; iexists (some (p, ⟨ftMeta m sz, bs, fa, fb, .idle⟩))
+    · inext; iexists (some (p, ⟨ftFail m sz, bs, fa, fb, .idle⟩))
       iframe Hv'; isplitl
       · iapply (invResS_idle _ _ rfl).2; iframe Hm2
         iapply (show invBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ ⊢
-          invBytes (L := L) p ⟨ftMeta m sz, bs, fa, fb, .idle⟩ from .rfl)
+          invBytes (L := L) p ⟨ftFail m sz, bs, fa, fb, .idle⟩ from .rfl)
         iexact Hb2
       ipureintro; exact ⟨hokF, rfl⟩
     imodintro
@@ -612,7 +612,7 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz : Nat) (N : Namespace) (
     iframe Hv Hm1
     isplitl
     · iapply (show thrBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz⟩ ⊢
-        thrBytes (L := L) p ⟨ftMeta m sz, bs, fa, fb, .idle⟩ from .rfl)
+        thrBytes (L := L) p ⟨ftFail m sz, bs, fa, fb, .idle⟩ from .rfl)
       iexact Hb1
     ipureintro; exact ⟨hl, hab, hfb, trivial⟩
 
