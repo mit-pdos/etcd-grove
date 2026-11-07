@@ -137,7 +137,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
       Bool.false_eq_true, ↓reduceIte, apply.appliedHdr]
     iframe Hres Hresp Hhdr
     isplitl []
-    · ipureintro; exact ⟨Herr, h2, by omega⟩
+    · ipureintro; exact ⟨Herr, h2, by unfold apply.delOk at hlen; omega⟩
     isplitl [Hw Hbk Hhk Htie Hown Hrdo Hrvk Hard HltL]
     · iapply (apply.kvOwn_of_split E _ B c)
       iframe Hw Htie

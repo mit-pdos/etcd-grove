@@ -341,7 +341,7 @@ theorem rqShape_of_txn (rq : apply.IRRModel) (h : plainCover rq)
   unfold apply.rqOk
   rw [hk] at hs ⊢
   intro t ht'
-  exact txn.TxnPre_of log t (ht t ht') (hs t ht')
+  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht'), (hs t ht').1⟩
 
 end EtcdGrove
 end Perennial

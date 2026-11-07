@@ -292,7 +292,7 @@ def rqOk (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
   | .put => putOk log
   | .deleteRange => ∀ o, rq.deleteRange = some o → delOk log o
   | .range => ∀ o, rq.range = some o → rangeOk log o
-  | .txn => ∀ t, rq.txn = some t → txn.TxnPreA log t
+  | .txn => ∀ t, rq.txn = some t → txn.TxnPreA log t ∧ putOk log
   | .leaseGrant => match lm with
     | .none => False
     | _ => grantKindOk rq
@@ -1274,10 +1274,11 @@ persistent): its four id fields (`txn.respHdrOwn`: the txn package allocated the
 layer's `header.fill` writes them), at a log of `NewStore`'s two revisions at least and room for
 the write (`putOk`/`delOk`: so the response's revision is not `0`). Beside the outcome's
 persistent answer (`putOutcomeIs`, ...) in `putAnswerIs`/`deleteAnswerIs` (2026-10-12, the
-request path's unit 3a). Strict M1, 2026-11-05: room `+3` (the writer's facts'; the draft's
-relaxation of `putOk`/`delOk`; a transaction's premise `TxnPreA` has no size clause). -/
+request path's unit 3a). Strict M1, 2026-11-05: room `+3` (the writer's facts'); R8, 2026-11-07: `+4` again, as on `lean`
+(`putOk`/`delOk`; a transaction's `rqOk` arm and `txnPre` carry `putOk` too, from the server's
+`rqSmall`), what the client's contracts need of the log a write met. -/
 def appliedHdr (log : mvcc.Log) (hf : Loc) : IProp GF :=
-  iprop(txn.respHdrOwn hf ∗ ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝)
+  iprop(txn.respHdrOwn hf ∗ ⌜2 ≤ log.length ∧ log.length + 4 ≤ 2 ^ 63⌝)
 
 /-- **A put's answer, with the response header** (not persistent): `putOutcomeIs`, and, if
 applied, the response header's id fields owned (`appliedHdr`). What `Put`'s triple returns. -/
@@ -1615,7 +1616,7 @@ def rangePost (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etc
 /-- `Txn(r, skip)`'s precondition. -/
 def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t⌝ ∗ certPre E c rq log ∗
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗ certPre E c rq log ∗
     txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post)
 
 /-- **What a revocation takes beside the method's resources** (the lease-revoke plan, D4): the

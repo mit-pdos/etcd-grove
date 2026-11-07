@@ -60,12 +60,12 @@ theorem apply.applierV3backend.Txn.wp_proof
   icases Hkv with #Hkv
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨#Hle, -⟩
-  obtain ⟨ht, hk, hpre⟩ := Hrq
+  obtain ⟨ht, hk, hpre, hput⟩ := Hrq
   -- the writer's facts: its floor, its reachability
   imod Hfloor $$ %log %c %F Hw HF with ⟨Hw, %HFl⟩
   imod Hfacts $$ %log %c Hw with ⟨Hw, -, -, -, %Hreach⟩
   have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
-  have hlen : log.length + 3 ≤ 2 ^ 63 := Hreach.2
+  have hlen : log.length + 4 ≤ 2 ^ 63 := hput
   -- the read update, at the writer's state
   ihave Hau0 := HauR $$ %log %c %(srvApi.wSt E.γs log c) Hw []
   · iintro Hw; iexact Hw

@@ -168,7 +168,7 @@ def deletePreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.et
 def txnPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t⌝ ∗ certPreW E c rq log X ∗
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗ certPreW E c rq log X ∗
     txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post)
 
 end defs
