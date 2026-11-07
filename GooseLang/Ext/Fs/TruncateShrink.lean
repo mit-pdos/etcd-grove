@@ -24,7 +24,8 @@ open goose_heap
 def shMeta (m : OsMeta) (sz : Nat) : OsMeta := { m with lo := min m.lo sz }
 
 /-- The `OsMeta` of a file after a truncate to `sz ≤ m.size`. -/
-def OsMeta.shrunk (m : OsMeta) (sz : Nat) : OsMeta := { m with size := sz, lo := min m.lo sz }
+def OsMeta.shrunk (m : OsMeta) (sz : Nat) : OsMeta :=
+  { m with size := sz, lo := min m.lo sz, vk := none }
 
 theorem OsMeta.shrunk_size (m : OsMeta) (sz : Nat) : (m.shrunk sz).size = sz := rfl
 theorem OsMeta.shrunk_maps (m : OsMeta) (sz : Nat) : (m.shrunk sz).maps = m.maps := rfl
@@ -134,7 +135,7 @@ theorem shFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     (∀ i, InflightAt st p i ↔ sz ≤ i) ∧
     OsWf stn ∧
     OsCoh stn (deleteBytes p f'.size (f.size - f'.size) Γb)
-      (<[p := { ti.om with size := f'.size }]> Γm) Γf (GMap.delete t Γt) := by
+      (<[p := { ti.om with size := f'.size, vk := none }]> Γm) Γf (GMap.delete t Γt) := by
   intro stn
   have hct : st.proc.inflight !! t = some ti.c := by
     have := hcoh.toks t; rw [hti] at this; exact this.symm
@@ -239,7 +240,7 @@ theorem shFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
         hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_, fun hz => by
           rcases hg.either with rfl | rfl
           · exact zero_truncate _ (hmo.zero hz)
-          · exact hmo.zero hz⟩⟩
+          · exact hmo.zero hz, fun _ h => by cases h⟩⟩
       · obtain ⟨h1, n1⟩ := hdel t' c' h1
         exact absurd h2 (hother t' c' n1 h1)
       · obtain ⟨w, hw⟩ : ∃ w, (f.secs (b / 512)).vers.head? = some w := by
@@ -251,7 +252,7 @@ theorem shFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, ?_, ⟨hm1.size, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
-        hm1.dur, hm1.zero⟩⟩
+        hm1.dur, hm1.zero, hm1.vk⟩⟩
       · show ((st.setProc { st.proc with inflight := GMap.delete t st.proc.inflight } : OsState).setFile p _).fs.files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg' c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -412,7 +413,7 @@ theorem wp_osFtruncateShrinkStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsM
     ⟨rfl, rfl, rfl, Nat.min_le_left _ _, Nat.le_refl _,
       by rw [← hc]; simp only [OsChange.target, shMeta]; omega,
       by rw [← hc]; simp only [OsChange.target, shMeta]; have := hmo.hi; have := hmo.size
-         have := hszf.2; omega, rfl, rfl⟩
+         have := hszf.2; omega, rfl, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi', hxs]) (fun k hk => by rw [hlo]; exact Hbl k hk)
   -- the cells: the file is unmapped, so none changes
@@ -464,7 +465,8 @@ theorem wp_osFtruncateShrinkStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsM
 /-- The second step of a shrinking `ftruncate` of an unmapped file: on success the file is shrunk
 and its `OsMeta` given back (`m.shrunk sz`; the bytes past `sz` are gone); on failure the file
 is shrunk so, or unchanged: then its `OsMeta` as the first step left it (`shMeta m sz`) and the
-bytes past `sz` come back, with their values (not clean), so that the caller may retry. -/
+bytes past `sz` come back, with their values (not clean), so that the caller may retry. Either way
+the versions known (`vk`) are forgotten: the last sector may have one more. -/
 theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
     (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (hshr : sz ≤ m.size) (hmaps : m.maps = ∅)
     (Φ : val → IProp GF) :
@@ -472,7 +474,7 @@ theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
       (∀ e : w64, ((⌜e = 0⌝ ∗ osMeta (L := L) p (DFrac.own 1) (m.shrunk sz)) ∨
           (⌜e ≠ 0⌝ ∗ (osMeta (L := L) p (DFrac.own 1) (m.shrunk sz) ∨
             ∃ ys : List (w8 × Bool), ⌜ys.map Prod.fst = xs.map Prod.fst⌝ ∗
-              osMeta (L := L) p (DFrac.own 1) (shMeta m sz) ∗
+              osMeta (L := L) p (DFrac.own 1) { shMeta m sz with vk := none } ∗
               osBytes (L := L) p sz (DFrac.own 1) ys))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
@@ -555,7 +557,7 @@ theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p (DFrac.own 1) ti.om := by
     rw [hcp, show ti.q = 1 by rw [← hti0]]
   ihave Hm := eqm $$ Hm
-  imod meta_replace _ (q := 1) (om := { ti.om with size := n }) (fun h1 => absurd rfl h1)
+  imod meta_replace _ (q := 1) (om := { ti.om with size := n, vk := none }) (fun h1 => absurd rfl h1)
     $$ [HAm Hm] with ⟨HAm, Hm⟩
   · iframe
   -- the bytes past `n` go
@@ -623,7 +625,7 @@ theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
     isplitr
     · ipureintro; rfl
     unfold osMeta
-    rw [show ({ ti.om with size := n } : OsMeta) = (m.shrunk sz) by
+    rw [show ({ ti.om with size := n, vk := none } : OsMeta) = (m.shrunk sz) by
       rw [hti_om, hn]; rfl]
     iexact Hm
   · rcases hn with hn | hn
@@ -633,7 +635,7 @@ theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
       · ipureintro; exact he
       ileft
       unfold osMeta
-      rw [show ({ ti.om with size := n } : OsMeta) = (m.shrunk sz) by
+      rw [show ({ ti.om with size := n, vk := none } : OsMeta) = (m.shrunk sz) by
         rw [hti_om, hn]; rfl]
       iexact Hm
     · ihave Hb := Hbr $$ %hn
@@ -647,7 +649,7 @@ theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
       isplitr
       · ipureintro; rw [hsv', List.map_map, List.map_map]; rfl
       unfold osMeta osBytes
-      rw [show ({ ti.om with size := n } : OsMeta) = (shMeta m sz) by
+      rw [show ({ ti.om with size := n, vk := none } : OsMeta) = { shMeta m sz with vk := none } by
         rw [hti_om, hn, ← hmsz]; rfl]
       iframe
 

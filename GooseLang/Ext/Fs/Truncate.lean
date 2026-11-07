@@ -24,8 +24,10 @@ open goose_heap
 /-- The `OsMeta` of a file while a truncate to `sz` is in flight: the size may become `sz`. -/
 def ftMeta (m : OsMeta) (sz : Nat) : OsMeta := { m with hi := max m.hi sz }
 
-/-- The `OsMeta` of a file after a truncate to `sz ≥ m.size`. -/
-def OsMeta.grown (m : OsMeta) (sz : Nat) : OsMeta := { m with size := sz, hi := max m.hi sz }
+/-- The `OsMeta` of a file after a truncate to `sz ≥ m.size`: which sectors have how many versions is
+not known any more (ext4 may grow it in chunks, each a change of the last sector). -/
+def OsMeta.grown (m : OsMeta) (sz : Nat) : OsMeta :=
+  { m with size := sz, hi := max m.hi sz, vk := none }
 
 /-- Every mapping of `M` ends at or before `hi`. -/
 def MapsBelow (M : GMap Loc Nat) (hi : Nat) : Prop := ∀ b len, M !! b = some len → len ≤ hi
@@ -138,7 +140,7 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     (∀ i, InflightAt st p i ↔ f.size ≤ i) ∧
     OsWf stn ∧
     OsCoh stn (insertBytes p f.size (grownBytes f' f.size) Γb)
-      (<[p := { ti.om with size := f'.size }]> Γm) Γf (GMap.delete t Γt) := by
+      (<[p := { ti.om with size := f'.size, vk := none }]> Γm) Γf (GMap.delete t Γt) := by
   intro stn
   have hct : st.proc.inflight !! t = some ti.c := by
     have := hcoh.toks t; rw [hti] at this; exact this.symm
@@ -241,7 +243,7 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
           rw [hg.ok k hd]
           exact hmo.ok hok k (by rw [← hg.ok k hd]; exact hd),
         hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_,
-        fun hz => hg.zero (hmo.zero hz)⟩⟩
+        fun hz => hg.zero (hmo.zero hz), fun _ h => by cases h⟩⟩
       · obtain ⟨h1, n1⟩ := hdel t' c' h1
         exact absurd h2 (hother t' c' n1 h1)
       · obtain ⟨w, hw⟩ : ∃ w, (f.secs (b / 512)).vers.head? = some w := by
@@ -253,7 +255,7 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, ?_, ⟨hm1.size, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
-        hm1.dur, hm1.zero⟩⟩
+        hm1.dur, hm1.zero, hm1.vk⟩⟩
       · show ((st.setProc { st.proc with inflight := GMap.delete t st.proc.inflight } : OsState).setFile p _).fs.files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg' c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -434,7 +436,7 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
     ⟨rfl, rfl, rfl, Nat.le_refl _, Nat.le_max_left _ _,
       by rw [← hc]; simp only [OsChange.target, ftMeta]; have := hmo.lo; have := hmo.size
          have := (hwf.sizes d.ino f hf).1; omega,
-      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl⟩
+      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi']; simp) (fun k hk => by simp at hk)
   -- the cells: the client's halves of the cells past the size go to the invariant
@@ -554,14 +556,15 @@ theorem mcells_congr (M : GMap Loc Nat) (lo hi : Nat) (vf vf' : Nat → val)
 every mapping past the old size. On success the file is grown (`osGrown`); on failure it may be
 grown, or unchanged, its `OsMeta` keeping the crash bound the first step widened (`ftMeta`: the
 ghost state does not record the bound from before, as a failed `pwrite`'s `pwMeta` keeps its
-own). -/
+own). Either way the versions known (`vk`) are forgotten: the last sector may have one more. -/
 theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : Nat)
     (hE : ↑osN ⊆ E) (hgrow : m.size ≤ sz) (hhi : MapsBelow m.maps hi) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ ftTok (L := L) t p sz m -∗
       (∀ e : w64,
         ((⌜e = 0⌝ ∗ osGrown (L := L) p m sz hi) ∨
          (⌜e ≠ 0⌝ ∗ (osGrown (L := L) p m sz hi ∨
-           (osMeta (L := L) p (DFrac.own 1) (ftMeta m sz) ∗ mcellsAny m.maps m.size hi)))) -∗
+           (osMeta (L := L) p (DFrac.own 1) { ftMeta m sz with vk := none } ∗
+             mcellsAny m.maps m.size hi)))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
   iintro #Hinv Ht HΦ
@@ -634,7 +637,7 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p (DFrac.own 1) (ftMeta m sz) := by
     rw [hcp, hti_om, show ti.q = 1 by rw [← hti0]]
   ihave Hm := eqm $$ Hm
-  imod meta_replace _ (q := 1) (om := { ftMeta m sz with size := f2.size }) (fun h1 => absurd rfl h1)
+  imod meta_replace _ (q := 1) (om := { ftMeta m sz with size := f2.size, vk := none }) (fun h1 => absurd rfl h1)
     $$ [HAm Hm] with ⟨HAm, Hm⟩
   · iframe
   -- the bytes
@@ -776,7 +779,7 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
     iexists (f.truncate sz).contents.drop m.size
     generalize hn : (f.truncate sz).size = n at hzl ⊢
     obtain rfl : n = sz := by rw [← hn, truncate_size]
-    rw [show m.grown n = { ftMeta m n with size := n } from rfl]
+    rw [show m.grown n = { ftMeta m n with size := n, vk := none } from rfl]
     iframe
     ipureintro
     refine ⟨hzl, fun hz => ?_⟩
@@ -792,7 +795,7 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
     iexists (f.truncate sz).contents.drop m.size
     generalize hn : (f.truncate sz).size = n at hzl ⊢
     obtain rfl : n = sz := by rw [← hn, truncate_size]
-    rw [show m.grown n = { ftMeta m n with size := n } from rfl]
+    rw [show m.grown n = { ftMeta m n with size := n, vk := none } from rfl]
     iframe
     ipureintro
     refine ⟨hzl, fun hz => ?_⟩
@@ -803,7 +806,8 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
     isplitr
     · ipureintro; exact he
     iright
-    rw [show ftMeta m sz = { ftMeta m sz with size := f2.size } by rw [← hmsz]; rfl]
+    rw [show ({ ftMeta m sz with vk := none } : OsMeta) = { ftMeta m sz with size := f2.size, vk := none } by
+      rw [← hmsz]; rfl]
     iframe Hm
     iclear Hbs
     iapply mcells_any $$ Hc

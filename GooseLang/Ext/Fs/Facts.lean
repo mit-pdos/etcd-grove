@@ -187,7 +187,8 @@ theorem MetaOk.transfer {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hs : ∀ i, st'.size i = st.size i) (hm : st'.proc.maps = st.proc.maps)
     (hin : st'.proc.inflight = st.proc.inflight) (h : MetaOk st q m f) : MetaOk st' q m f :=
   ⟨h.size, h.lo, h.hi, h.ok, by rw [hm]; exact h.maps,
-    by rw [hin]; intro t c ht hc; rw [target_congr hs]; exact h.targets t c ht hc, h.dur, h.zero⟩
+    by rw [hin]; intro t c ht hc; rw [target_congr hs]; exact h.targets t c ht hc, h.dur, h.zero,
+    h.vk⟩
 
 theorem file_setFile_ne (st : OsState) {i q : Ino} (f : OsFile) (h : i ≠ q) :
     (st.setFile i f).file q = st.file q := by
@@ -438,17 +439,17 @@ theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
     (hdom : ∀ q, Γm' !! q = none ↔ Γm !! q = none)
     (hsome : ∀ q m', Γm' !! q = some m' → ∃ m, Γm !! q = some m ∧
       m'.size = m.size ∧ m'.lo = m.lo ∧ m'.hi = m.hi ∧ m'.ok = m.ok ∧ m'.dur = m.dur ∧
-      m'.zero = m.zero ∧ ∀ b len, m'.maps !! b = some len ↔ X !! b = some ⟨q, len⟩) :
+      m'.zero = m.zero ∧ m'.vk = m.vk ∧ ∀ b len, m'.maps !! b = some len ↔ X !! b = some ⟨q, len⟩) :
     OsCoh { st with proc := { st.proc with maps := X } } Γb Γm' Γf Γt :=
   { hcoh with
     meta_dom := fun q => (hdom q).trans (hcoh.meta_dom q)
     meta_some := fun q m' h => by
-      obtain ⟨m, hm, h1, h2, h3, h5, h7, h8, h6⟩ := hsome q m' h
+      obtain ⟨m, hm, h1, h2, h3, h5, h7, h8, h9, h6⟩ := hsome q m' h
       obtain ⟨f, hf, hmo⟩ := hcoh.meta_some q m hm
       exact ⟨f, hf, ⟨h1 ▸ hmo.size, h2 ▸ hmo.lo, h3 ▸ hmo.hi,
         fun hok => hmo.ok (h5 ▸ hok), h6,
         fun t c ht hc => by rw [h2, h3]; exact hmo.targets t c ht hc, h7 ▸ hmo.dur,
-        fun hz => hmo.zero (h8 ▸ hz)⟩⟩ }
+        fun hz => hmo.zero (h8 ▸ hz), fun ns hns => hmo.vk ns (h9 ▸ hns)⟩⟩ }
 
 end maps
 

@@ -168,7 +168,7 @@ theorem wp_osFallocStart (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta)
     ⟨rfl, rfl, rfl, Nat.le_refl _, Nat.le_max_left _ _,
       by rw [← hc]; simp only [OsChange.target, ftMeta]; have := hmo.lo; have := hmo.size
          have := (hwf.sizes d.ino f hf).1; omega,
-      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl⟩
+      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi']; simp) (fun k hk => by simp at hk)
   -- the cells: the client's halves of the cells past the size go to the invariant
@@ -336,7 +336,7 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : Nat)
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p (DFrac.own 1) (ftMeta m sz) := by
     rw [hcp, hti_om, show ti.q = 1 by rw [← hti0]]
   ihave Hm := eqm $$ Hm
-  imod meta_replace _ (q := 1) (om := { ftMeta m sz with size := f2.size }) (fun h1 => absurd rfl h1)
+  imod meta_replace _ (q := 1) (om := { ftMeta m sz with size := f2.size, vk := none }) (fun h1 => absurd rfl h1)
     $$ [HAm Hm] with ⟨HAm, Hm⟩
   · iframe
   -- the bytes
@@ -477,7 +477,7 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : Nat)
     iexists (f.truncate sz).contents.drop m.size
     generalize hn : (f.truncate sz).size = n at hzl ⊢
     obtain rfl : n = sz := by rw [← hn, truncate_size]
-    rw [show m.grown n = { ftMeta m n with size := n } from rfl]
+    rw [show m.grown n = { ftMeta m n with size := n, vk := none } from rfl]
     iframe
     ipureintro
     refine ⟨hzl, fun hz => ?_⟩

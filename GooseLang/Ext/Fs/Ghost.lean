@@ -54,6 +54,24 @@ structure OsMeta where
   /-- The page cache holds zeros past the size (true for a file created in this generation: every
   version a change makes is zero past the size it gives; a crash may leave other bytes there, F3). -/
   zero : Bool
+  /-- Versions known per sector: `some ns` if, since the last successful sync, every sector has at
+  most one version except those in `ns`, which have at most two (the synced contents and one
+  change); `none` if nothing is known. A crash then leaves such a sector whole: its synced version,
+  its current one (or a change in flight, landed). -/
+  vk : Option (List Nat)
+
+/-- The sectors that a change of the bytes `[lo, hi)` meets. -/
+def hitSecs (lo hi : Nat) : List Nat :=
+  (List.range (hi / 512 + 1)).filter (fun n => lo < 512 * (n + 1) && 512 * n < hi)
+
+/-- What a change of the bytes `[lo, hi)` leaves of the versions known: each sector it meets has
+one version more: a sector known with one has two; if one it meets is known with two already, nothing
+is known any more. -/
+def vkHit (vk : Option (List Nat)) (lo hi : Nat) : Option (List Nat) :=
+  match vk with
+  | none => none
+  | some ns => if (hitSecs lo hi).all (fun n => decide (n ∉ ns)) then some (ns ++ hitSecs lo hi)
+    else none
 
 /-- An in-flight change, as the ghost state records it. -/
 structure TokInfo where
@@ -69,11 +87,11 @@ structure TokInfo where
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.zero))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.zero, m.vk))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h; subst h1 h2 h3 h4 h5 h6 h7; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -206,6 +224,7 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   dur : ∀ (b : Nat) (d : w8), m.dur[b]? = some (some d) →
     ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = d
   zero : m.zero = true → ∀ b, f.size ≤ b → f.rawAt b = 0
+  vk : ∀ ns, m.vk = some ns → ∀ n, (f.secs n).vers.length ≤ if n ∈ ns then 2 else 1
 
 /-- The files' ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (Ino × Nat) (w8 × Bool)) (Γm : GMap Ino OsMeta)
@@ -690,7 +709,7 @@ end bytes
 
 /-- The ghost `OsMeta` of a file as on disk: all of it durable. -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some, false⟩
+  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some, false, some []⟩
 
 /-- The bytes of the files of `st`, all clean. -/
 def bytesMap (st : OsState) : GMap (Ino × Nat) (w8 × Bool) :=
@@ -824,7 +843,8 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
       simp only [hfo, Option.map_some, Option.some.injEq] at hm
       subst hm
       obtain ⟨vs, sz, rfl⟩ := hdisk' i f hfo
-      refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, fun h => by simp [initMeta] at h⟩⟩
+      refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, fun h => by simp [initMeta] at h,
+        fun ns hns n => by simp [initMeta] at hns; subst hns; simp [OsFile.ofDisk]⟩⟩
       · simp [initMeta, OsFile.ofDisk]
       · simp [initMeta, OsFile.ofDisk]
       · intro _ n _; simp [OsFile.ofDisk]

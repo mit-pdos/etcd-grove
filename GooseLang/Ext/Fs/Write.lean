@@ -101,6 +101,53 @@ theorem change_vers (f : OsFile) (c : List w8) (lo hi n : Nat) (h : (f.secs n).v
   · simp
   · exact h
 
+theorem mem_hitSecs (lo hi n : Nat) : n ∈ hitSecs lo hi ↔ secHits lo hi n = true := by
+  unfold hitSecs secHits
+  simp only [List.mem_filter, List.mem_range, Bool.and_eq_true, decide_eq_true_eq]
+  constructor
+  · exact fun h => h.2
+  · intro h; exact ⟨by omega, h⟩
+
+/-- The sectors known after a change include those known before it. -/
+theorem vkHit_mono {vk : Option (List Nat)} {lo hi : Nat} {ns' : List Nat}
+    (h : vkHit vk lo hi = some ns') : ∃ ns, vk = some ns ∧ ∀ n ∈ ns, n ∈ ns' := by
+  unfold vkHit at h
+  split at h
+  · cases h
+  · rename_i ns; split at h
+    · cases h; exact ⟨ns, rfl, fun n hn => List.mem_append_left _ hn⟩
+    · cases h
+
+/-- A version count bounded by the known sectors stays so under a weaker knowledge. -/
+theorem vk_le_mono {ns ns' : List Nat} (hm : ∀ n ∈ ns, n ∈ ns') (n l : Nat)
+    (h : l ≤ if n ∈ ns then 2 else 1) : l ≤ if n ∈ ns' then 2 else 1 := by
+  by_cases h1 : n ∈ ns
+  · rw [if_pos (hm n h1)]; rw [if_pos h1] at h; exact h
+  · rw [if_neg h1] at h; split <;> omega
+
+/-- A change keeps the versions known (`MetaOk.vk`), as `vkHit` updates them. -/
+theorem change_vk (f : OsFile) (c : List w8) (lo hi : Nat) {vk : Option (List Nat)}
+    (h : ∀ ns, vk = some ns → ∀ n, (f.secs n).vers.length ≤ if n ∈ ns then 2 else 1) :
+    ∀ ns, vkHit vk lo hi = some ns → ∀ n,
+      ((f.change c lo hi).secs n).vers.length ≤ if n ∈ ns then 2 else 1 := by
+  intro ns' h' n
+  unfold vkHit at h'
+  split at h'
+  · cases h'
+  · rename_i ns; split at h'
+    · rename_i hall; cases h'
+      have h0 := h ns rfl n
+      simp only [OsFile.change]
+      split
+      · rename_i hs
+        have hn : n ∈ hitSecs lo hi := (mem_hitSecs lo hi n).2 hs
+        have hnn : n ∉ ns := by
+          have := List.all_eq_true.1 hall n hn; simpa using this
+        rw [if_neg hnn] at h0
+        rw [if_pos (List.mem_append_right _ hn), List.length_append]; simp; omega
+      · exact vk_le_mono (fun n hn => List.mem_append_left _ hn) n _ h0
+    · cases h'
+
 /-! ## The cells of a range of every mapping of a file -/
 
 /-- `l` is byte `i` of one of the mappings `L` (base, length), with `i ∈ [lo, hi)`. -/
@@ -345,7 +392,7 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : In
     (hf : st.file p = some f) (Hml : Γm !! p = some m)
     (hom : om.size = m.size ∧ om.ok = m.ok ∧ om.maps = m.maps ∧
       om.lo ≤ m.lo ∧ m.hi ≤ om.hi ∧ om.lo ≤ c.target st ∧ c.target st ≤ om.hi ∧ om.dur = m.dur ∧
-      om.zero = m.zero)
+      om.zero = m.zero ∧ om.vk = m.vk)
     (ht : st.proc.inflight !! t = none) (hfree : ∀ i, Affects st c i → ¬ InflightAt st p i)
     (hq : Reaches st c → q = 1)
     (hfrac : ∀ t ti, Γt !! t = some ti → ti.c.ino = p → ti.q ≠ 1)
@@ -356,7 +403,7 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : In
       (insertBytes p (affLo st c) (xs.map (fun x => (x.1, false))) Γb) (<[p := om]> Γm) Γf
       (<[t := ⟨c, q, xs.map Prod.fst, om, xs.map Prod.snd⟩]> Γt) := by
   subst hcp
-  obtain ⟨hs1, hs3, hs4, hs5, hs6, hs7, hs8, hs9, hs10⟩ := hom
+  obtain ⟨hs1, hs3, hs4, hs5, hs6, hs7, hs8, hs9, hs10, hs11⟩ := hom
   have hΓt : Γt !! t = none := by
     have := hcoh.toks t; rw [ht] at this
     cases h : Γt !! t
@@ -382,14 +429,14 @@ theorem osCoh_addTok {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : In
     · subst_vars; cases hm; simp only [↓reduceIte] at hmo
       refine ⟨hs1 ▸ hmo.size, Nat.le_trans hs5 hmo.lo, Nat.le_trans hmo.hi hs6,
         fun hok => hmo.ok (hs3 ▸ hok), fun b len => hs4 ▸ hmo.maps b len, fun t' c' h1 h2 => ?_,
-        hs9 ▸ hmo.dur, fun hz => hmo.zero (hs10 ▸ hz)⟩
+        hs9 ▸ hmo.dur, fun hz => hmo.zero (hs10 ▸ hz), hs11 ▸ hmo.vk⟩
       by_cases he : t = t'
       · subst he; (try simp only [OsState.setProc] at *); rw [GMap.lookup_insert] at h1; cases h1; exact ⟨hs7, hs8⟩
       · (try simp only [OsState.setProc] at *); rw [GMap.lookup_insert_ne _ _ he] at h1
         have := hmo.targets t' c' h1 h2
         exact (show om.lo ≤ c'.target st ∧ c'.target st ≤ om.hi from ⟨by omega, by omega⟩)
     · rename_i hne; simp only [hne, ↓reduceIte] at hmo
-      refine ⟨hmo.size, hmo.lo, hmo.hi, hmo.ok, hmo.maps, fun t' c' h1 h2 => ?_, hmo.dur, hmo.zero⟩
+      refine ⟨hmo.size, hmo.lo, hmo.hi, hmo.ok, hmo.maps, fun t' c' h1 h2 => ?_, hmo.dur, hmo.zero, hmo.vk⟩
       by_cases he : t = t'
       · subst he; (try simp only [OsState.setProc] at *); rw [GMap.lookup_insert] at h1; cases h1; exact absurd h2 hne
       · (try simp only [OsState.setProc] at *); rw [GMap.lookup_insert_ne _ _ he] at h1; exact hmo.targets t' c' h1 h2
@@ -682,7 +729,7 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
       by rw [← hc]; simp only [OsChange.target, hsz, pwMeta]; have := hmo.lo; have := hmo.size
          omega,
       by rw [← hc]; simp only [OsChange.target, hsz, pwMeta]; have := hmo.hi; have := hmo.size
-         omega, rfl, rfl⟩
+         omega, rfl, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun hr => hq (by rw [← hc] at hr; simpa [Reaches, hsz] using hr))
     Hfrac (fun h1 => noTok_of_whole hcoh (Hwhole h1)) (by rw [hlo, hhi, hlen])
     (fun k hk => by rw [hlo]; exact Hbl k hk)
@@ -783,6 +830,11 @@ end specs
 
 /-- The size after a `pwrite` of `k` bytes at `off` of a file of size `sz`. -/
 def pwSize (sz off k : Nat) : Nat := if k = 0 then sz else max sz (off + k)
+
+/-- The `OsMeta` after a `pwrite` of `n` bytes at `off` that wrote `k`: the size it leaves, and the
+sectors it met known with one version more (`vkHit`). -/
+def pwPost (m : OsMeta) (off n k : Nat) : OsMeta :=
+  { pwMeta m off n with size := pwSize m.size off k, vk := vkHit m.vk (min off m.size) (off + k) }
 
 /-- Byte `i` after a `pwrite` of the first `k` bytes of `data` at `off`, in the range its first
 step took, from `lo` on, whose bytes were `xs`: the zero gap, the data, then the old bytes. -/
@@ -926,6 +978,17 @@ theorem pwFile_head (n : Nat) (v : SecBytes) (h : (f.secs n).vers.head? = some v
     · rw [List.head?_append, h]; rfl
     · exact h
 
+/-- A write keeps the versions known, as `vkHit` updates them (from where it starts). -/
+theorem pwFile_vk (hgap : off ≤ f.size) {vk : Option (List Nat)}
+    (h : ∀ ns, vk = some ns → ∀ n, (f.secs n).vers.length ≤ if n ∈ ns then 2 else 1) :
+    ∀ ns, vkHit vk (min off f.size) (off + k) = some ns → ∀ n,
+      ((pwFile f off data k).secs n).vers.length ≤ if n ∈ ns then 2 else 1 := by
+  intro ns h' n
+  unfold pwFile OsFile.landWrite; split
+  · obtain ⟨ns0, h0, hm⟩ := vkHit_mono h'
+    exact vk_le_mono hm n _ (h ns0 h0 n)
+  · exact change_vk f _ _ _ h ns h' n
+
 /-- A write leaves every sector it does not make dirty as it was. -/
 theorem pwFile_ok (n : Nat) (h : ((pwFile f off data k).secs n).dirty = false) :
     (pwFile f off data k).secs n = f.secs n := by
@@ -976,7 +1039,8 @@ theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γ
     (∀ q i, InflightAt stk q i ↔ InflightAt st q i ∧ ¬ (p = q ∧ Affects st ti.c i)) ∧
     OsWf stk ∧
     OsCoh stk (insertBytes p lo ys Γb)
-      (<[p := { ti.om with size := pwSize f.size off k }]> Γm) Γf (GMap.delete t Γt) := by
+      (<[p := { ti.om with size := pwSize f.size off k, vk := vkHit ti.om.vk (min off f.size) (off + k) }]>
+        Γm) Γf (GMap.delete t Γt) := by
   intro lo stk ys
   have hct : st.proc.inflight !! t = some ti.c := by
     have := hcoh.toks t; rw [hti] at this; exact this.symm
@@ -1107,7 +1171,8 @@ theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γ
           rw [pwFile_ok f off data k n hd]
           exact hmo.ok hok n (by rw [← pwFile_ok f off data k n hd]; exact hd),
           hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_,
-          fun hz => zero_landWrite off data k (hmo.zero hz)⟩⟩
+          fun hz => zero_landWrite off data k (hmo.zero hz),
+          pwFile_vk f off data k hgap hmo.vk⟩⟩
       · rw [pwFile_sizeHi _ _ _ _ hk hszf.2]
         have ht1 := hmo.targets t ti.c hct hcp
         have ht2 := hmo.hi
@@ -1123,7 +1188,7 @@ theorem pwFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hti : Γ
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, ?_, ⟨hm1.size, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
-        hm1.dur, hm1.zero⟩⟩
+        hm1.dur, hm1.zero, hm1.vk⟩⟩
       · show ((st.setProc { st.proc with inflight := GMap.delete t st.proc.inflight } : OsState).setFile p _).fs.files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -1306,11 +1371,12 @@ written, then the old bytes), the bytes past the written prefix with the clean f
 `xs` (the write left them untouched), the others not clean, and the client's halves of the mapped cells, which show
 the new bytes. -/
 theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (q : Qp)
-    (m : OsMeta) (xs : List (w8 × Bool)) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    (m : OsMeta) (xs : List (w8 × Bool)) (hvk : q = 1 ∨ m.vk = none) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ pwTok (L := L) t p off data q m xs -∗
       (∀ k : Nat, ∀ e : w64, ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0)⌝ -∗
         osMeta (L := L) p (DFrac.own q)
-          ({ pwMeta m off data.length with size := pwSize m.size off k }) -∗
+          (pwPost m off data.length k) -∗
         osBytes (L := L) p (min off m.size) (DFrac.own 1) (pwBytes m.size off data k xs) -∗
         mcells m.maps (min off m.size) (off + data.length) (pwCell m.size off data k xs) -∗
         Φ (PairV (#(W64 k)) (#e))) -∗
@@ -1377,21 +1443,22 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (q : 
   subst hst'
   obtain ⟨hsizes, hIk, hwfk, hcohk⟩ := hfin k hk
   -- the meta
-  have hq1 : q ≠ 1 → ({ pwMeta m off data.length with size := pwSize m.size off k } : OsMeta) =
+  have hq1 : q ≠ 1 → (pwPost m off data.length k : OsMeta) =
       pwMeta m off data.length := by
     intro hq1
     have hnr : ¬ Reaches st ti.c := fun hr => hq1 (by
       have := hcoh.tok_q t' ti Hti hr; rw [← hti0] at this; exact this)
     rw [hc] at hnr; simp only [Reaches, hsz, Nat.not_lt] at hnr
     have : pwSize m.size off k = m.size := by unfold pwSize; split <;> omega
-    rw [this]; rfl
+    have hv : m.vk = none := hvk.resolve_left hq1
+    unfold pwPost; rw [this]; simp only [pwMeta, hv, vkHit]
   have hti_q : ti.q = q := by rw [← hti0]
   have hti_om : ti.om = pwMeta m off data.length := by rw [← hti0]
   have eqm : gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm ti.c.ino (DFrac.own ti.q) ti.om ⊢
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm p (DFrac.own q) ((pwMeta m off data.length)) := by
     rw [hcp, hti_q, hti_om]
   ihave Hm := eqm $$ Hm
-  imod meta_replace _ (om := { pwMeta m off data.length with size := pwSize m.size off k }) hq1
+  imod meta_replace _ (om := pwPost m off data.length k) hq1
     $$ [HAm Hm] with ⟨HAm, Hm⟩
   · iframe
   -- the bytes

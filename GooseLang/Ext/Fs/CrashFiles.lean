@@ -197,7 +197,7 @@ def metaOf (f : OsFile) : OsMeta :=
     decide (∀ n, (f.secs n).dirty = false → (f.secs n).vers.length ≤ 1), ∅,
     (List.range f.size).map (fun b =>
       some ((((f.secs (b / 512)).vers.head?).getD zeroSec).toList.getD (b % 512) 0)),
-    false⟩
+    false, if ∀ n, (f.secs n).vers.length ≤ 1 then some [] else none⟩
 
 open Classical in
 /-- The bytes of a file of a new generation, each flagged clean if it is. -/
@@ -223,6 +223,7 @@ theorem metaOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) :
     apply List.map_congr_left
     intro b _
     simp [OsFile.rawAt, OsFile.ofDisk, Sector.last]
+  · rw [if_pos (fun n => by simp [OsFile.ofDisk])]
 
 open Classical in
 theorem bytesOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) :
@@ -277,7 +278,11 @@ theorem osCohG {st : OsState} (hp : st.proc = ProcState.empty) (hwf : OsWf st) :
       simp only [hfo, Option.map_some, Option.some.injEq] at hm
       subst hm
       refine ⟨f, rfl, ⟨rfl, Nat.le_refl _, Nat.le_refl _, ?_, ?_, ?_, ?_, fun h => by
-        simp [metaOf] at h⟩⟩
+        simp [metaOf] at h, fun ns hns n => by
+          simp only [metaOf] at hns
+          split at hns
+          · rename_i h1; cases hns; simpa using h1 n
+          · cases hns⟩⟩
       · intro h; simp only [metaOf] at h; exact of_decide_eq_true h
       · intro b len; simp [metaOf, hp, ProcState.empty]
       · intro t c ht; simp [hp, ProcState.empty] at ht
