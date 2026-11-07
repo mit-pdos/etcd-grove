@@ -40,7 +40,10 @@ mvcc API migration (2026-11-05, the draft `notes/mvcc-api-clients/WatchSpecs.lea
 server's side of the watch path (`srvWOk`, with v3rpc's namespace); no watch token per create and no
 reader slots (`watchRunSlot` was `recvRes ∗ sendRes`, the store's reader slots: now `R.E.RD ∗
 ⌜threadBound …⌝`); the handler's thread token (the API's `Close` takes one); the run's names and
-its invariant `wsInv` allocated from `NewWatchStream`'s `wsState ι wsStart ∗ wsRecv ι []`. -/
+its invariant `wsInv` allocated from `NewWatchStream`'s `wsState ι wsStart ∗ wsRecv ι []`; (the
+store's readers as client-held tokens, 2026-11-07) two reader tokens of the store
+(`mvccReaders W.γm 2`), one for each loop (`lean`'s two store reader slots, `recvRes`/`sendRes`),
+not given back (the receive loop is not joined). -/
 abbrev v3rpc.watchServer.Watch.spec : Prop :=
   ∀ (p : Loc) (R : v3rpc.WSrv GF) (W : v3rpc.SrvW GF) (st : GoInterface) (γs : v3rpc.StreamNames)
     (Up : Nat → v3rpc.WatchReqM → IProp GF) (Dn : Nat → v3rpc.WatchRespM → IProp GF)
@@ -53,7 +56,7 @@ abbrev v3rpc.watchServer.Watch.spec : Prop :=
       v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) γs [] ∗
       v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
       v3rpc.streamAuxTok γs ∗ R.E.RD ∗ ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
-      threadTok }}
+      threadTok ∗ mvcc.api.mvccReaders W.γm 2 }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.watchServer.ty @!! go!"Watch")) (Val #st))
   {{ (err : GoInterface), RET #err; threadTok ∗
       v3rpc.watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn }}

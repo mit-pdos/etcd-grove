@@ -8,7 +8,7 @@ skeleton").
 `New` receives:
 - `revGetterOk RevLb rg R`: `rg.Rev()`, with the caller's resource `R` (the store's `Rev` needs a
   reader slot), returns a non-negative revision the store has reached (`RevLb`, the caller's
-  lower-bound predicate: the server's is `revLb`, over mvcc's index certificates; the server passes
+  lower-bound predicate: the server's is `revLb`, over its committed log's floors; the server passes
   `srv.kv`).
 - `compactableOk c P R`: `c.Compact(ctx, &CompactionRequest{Revision: r})`, with `R`, returns for
   every `r` with `P r`, with an error `errors.Is` can test (`errTreeOk`). **`P` is the guarantee
@@ -39,7 +39,7 @@ module
 
 public import Proof.github_com.jonboulle.clockwork.Defs
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.CompactReq
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Base
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
@@ -89,12 +89,14 @@ variable [sem : go.Semantics]
 
 /-! ### The environment -/
 
-/-- The store has reached revision `r`: an index certificate of a log of `r + 1` revisions or more
-(revision `0` is the empty store's). -/
-def revLb (γi : mvcc.IdxNames) (r : Int) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert γi log ∗ ⌜r ≤ (log.length : Int) - 1⌝)
+/-- The store has reached revision `r`: a floor of the server's committed log (`srvApi.kvLogLb`) of
+`r + 1` revisions or more (revision `0` is the empty store's). (The `origin/lean` merge: over the
+server's floor, in place of mvcc's internal index certificate `idxCert`.) -/
+def revLb (γs : srvApi.KVSNames) (r : Int) : IProp GF :=
+  iprop(∃ log : mvcc.Log, srvApi.kvLogLb γs log ∗ ⌜r ≤ (log.length : Int) - 1⌝)
 
-instance revLb_persistent (γi : mvcc.IdxNames) (r : Int) : Persistent (revLb (GF := GF) γi r) := by
+instance revLb_persistent (γs : srvApi.KVSNames) (r : Int) :
+    Persistent (revLb (GF := GF) γs r) := by
   unfold revLb; infer_instance
 
 /-- **The revision getter** (`RevGetter`, the server's `srv.kv`): `Rev()`, given and giving back the

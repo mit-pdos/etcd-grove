@@ -572,7 +572,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # Perennial's linked results the model's proofs take as terms (`=` callees)
                  "--apimodel": ["Perennial.Proof.sync.Link", "Perennial.Proof.errors.Link",
                                 "Perennial.Proof.time.Link"],
-                 "--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base", "Perennial.Proof.errors.Link"],
+                 # (the `origin/lean` merge, 2026-11-07) mvcc's API laws the watch proofs take
+                 # as terms (`=mvcc.api.*` callees)
+                 "--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base", "Perennial.Proof.errors.Link",
+                             "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],
                  # mvcc's API results the txn proofs take as terms (`=mvcc.api.*` callees: the
                  # API's laws, `NewReadOnlyTxnWrite`'s API spec; the `origin/lean` merge, 2026-11-06)
                  "--txn": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],

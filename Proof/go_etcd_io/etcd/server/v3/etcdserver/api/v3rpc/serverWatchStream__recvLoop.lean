@@ -38,7 +38,7 @@ set_option hygiene false in
 /-- `sws.watchStream.Rev()` (its update `rev_au`, nothing learned), into `%rv`. -/
 macro "ws_rev" : tactic => `(tactic| (
   ihave Hrau := v3rpc.rev_au hP r.W r.srv.wsl $$ HW
-  wp_apply (hRev r.W.γm r.ι (fun _ => iprop(True))) $$ [$(frameH `Htt) $(frameH `Hrau)] as %rv ⟨Htt, -⟩
+  wp_apply (hRev r.W.γm r.ι (fun _ => iprop(True))) $$ [$(frameH `Htt) $(frameH `Hrdr) $(frameH `Hrau)] as %rv ⟨Htt, Hrdr, -⟩
   · iframe #))
 
 set_option hygiene false in
@@ -55,7 +55,7 @@ set_option hygiene false in
 stream's producer at its sends). -/
 macro "recv_next" : tactic => `(tactic| (
   wp_for_post
-  iframe HΦ HRD Htt sws «$res0»
+  iframe HΦ HRD Htt Hrdr sws «$res0»
   iexists _, _
   iframe Hrt Hprod Hpool))
 
@@ -64,7 +64,7 @@ set_option hygiene false in
 macro "recv_ret_nil" : tactic => `(tactic| (
   wp_for_post
   iapply HΦ
-  iframe Htt
+  iframe Htt Hrdr
   isplitr
   · ipureintro; left; rfl
   iexists _; iexact Hprod))
@@ -195,7 +195,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd L0 sent0
   have := v3rpc.swsIs_persistent (GF := GF) hP
-  wp_start as ⟨#Hsws, Hrt, Hprod, Hpool, HRD, Htt⟩
+  wp_start as ⟨#Hsws, Hrt, Hprod, Hpool, HRD, Htt, Hrdr⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ ι n, Persistent (mvcc.api.wsSentLb (GF := GF) ι n) := hP.2.2.1
   have := v3rpc.srvWOk_persistent hP r.W r.srv.wsl v3rpc.wsN
@@ -268,7 +268,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       iapply HΦ
       isplitr
       · ipureintro; left; rfl
-      iframe Htt
+      iframe Htt Hrdr
       iexists sent; iexact Hprod
     iunfold v3rpc.watchReqRecv at Hreq
     icases Hreq with ⟨%u, #Hu, Hm⟩
@@ -476,7 +476,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           (if c.key = [] then [W8 0] else c.key) (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) []
           c.startRev (v3rpc.watchQ r.W r.ι r.γreg r.γtok (if c.key = [] then [W8 0] else c.key)
             (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) es2 c.startRev))
-          $$ [$Htt $Hwau] as %id' %werr ⟨Htt, Hwres⟩
+          $$ [$Htt $Hrdr $Hwau] as %id' %werr ⟨Htt, Hrdr, Hwres⟩
         · iframe #
           ipureintro; exact hsr0
         have Hid : c.watchId ≠ W64 0 → id' = c.watchId := fun h => absurd Hwid0 h
@@ -815,7 +815,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       wp_apply sync.RWMutex.wp_Lock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ []
         as ⟨Hlk, HP⟩
       · iframe #
-      wp_apply (hRPA r.W.γm r.ι) $$ [$Htt] as %b Htt
+      wp_apply (hRPA r.W.γm r.ι) $$ [$Htt $Hrdr] as %b ⟨Htt, Hrdr⟩
       · iframe #
       wp_apply sync.RWMutex.wp_Unlock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
         $$ [$Hlk $HP]
@@ -841,7 +841,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     iapply HΦ
     isplitr
     · ipureintro; right; exact HeofL.2
-    iframe Htt
+    iframe Htt Hrdr
     iexists _; iexact Hprod
   · -- another error
     iunfold v3rpc.streamErr at Hse
@@ -859,7 +859,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       iapply HΦ
       isplitr
       · ipureintro; right; exact Hty
-      iframe Htt
+      iframe Htt Hrdr
       iexists _; iexact Hprod
     · exact absurd rfl Hne
 

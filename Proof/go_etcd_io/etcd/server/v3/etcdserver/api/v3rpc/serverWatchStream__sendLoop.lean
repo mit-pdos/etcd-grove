@@ -268,17 +268,22 @@ once: the `sendWatch` closure (its spec, `HsW`, proved once before the loop and 
 the control case's `if c.Created` (`ctrlMid`, after which the rest of the control case runs
 once). -/
 
+/-- **The send loop's thread resources**: its thread token and (the store's readers as client-held
+tokens, 2026-11-07) a reader token of the store, which `RequestProgress` takes. -/
+abbrev v3rpc.sendTok (r : v3rpc.WRun GF) : IProp GF :=
+  iprop(threadTok ∗ mvcc.api.mvccReaders r.W.γm 1)
+
 /-- **What the send loop's return needs** (the deferred function, `send_return`): the mvcc
 channel's consumer (`wsRecv`), the loop's thread token, and the buffered responses (`pending`,
 with `sendSt`'s slices). -/
 def v3rpc.retSt (r : v3rpc.WRun GF) (pendL : Loc) : IProp GF :=
   iprop(∃ (rcvc rcv : List mvcc.api.WResp) (pend : w64 → List Nat) (PM : GMap w64 GoSlice),
-    mvcc.api.wsRecv r.ι rcvc ∗ threadTok ∗ ownMap pendL (DFrac.own 1) PM ∗
+    mvcc.api.wsRecv r.ι rcvc ∗ v3rpc.sendTok r ∗ ownMap pendL (DFrac.own 1) PM ∗
     [∗map] X ↦ sl ∈ PM, v3rpc.pendSl r rcv (pend X) sl)
 
 theorem v3rpc.retSt_intro (r : v3rpc.WRun GF) (pendL : Loc) (rcvc rcv : List mvcc.api.WResp)
     (pend : w64 → List Nat) (PM : GMap w64 GoSlice) :
-    mvcc.api.wsRecv r.ι rcvc ∗ threadTok ∗ ownMap pendL (DFrac.own 1) PM ∗
+    mvcc.api.wsRecv r.ι rcvc ∗ v3rpc.sendTok r ∗ ownMap pendL (DFrac.own 1) PM ∗
       ([∗map] X ↦ sl ∈ PM, v3rpc.pendSl r rcv (pend X) sl) ⊢ v3rpc.retSt r pendL := by
   iintro ⟨Hwc, Htt, HPM, Hpsl⟩
   iunfold v3rpc.retSt
@@ -287,7 +292,8 @@ theorem v3rpc.retSt_intro (r : v3rpc.WRun GF) (pendL : Loc) (rcvc rcv : List mvc
 
 theorem v3rpc.retSt_of_sendSt (r : v3rpc.WRun GF) (idsL pendL : Loc) (rcvc rcv : List mvcc.api.WResp)
     (D : List v3rpc.WatchRespM) :
-    mvcc.api.wsRecv r.ι rcvc ∗ threadTok ∗ v3rpc.sendSt r idsL pendL rcv D ⊢ v3rpc.retSt r pendL := by
+    mvcc.api.wsRecv r.ι rcvc ∗ v3rpc.sendTok r ∗ v3rpc.sendSt r idsL pendL rcv D ⊢
+      v3rpc.retSt r pendL := by
   iintro ⟨Hwc, Htt, HS⟩
   iunfold v3rpc.sendSt at HS
   icases HS with ⟨%S, %pend, %IM, %PM, %M, -, -, HPM, -, #Hpsl, -⟩
@@ -314,7 +320,7 @@ def v3rpc.ctrlMid (r : v3rpc.WRun GF) (ci : GoInterfaceOk) (sws idsL pendL : Loc
     (req : v3rpc.WatchReqM) (m : v3rpc.WatchRespM) (v : val) : IProp GF :=
   iprop((⌜v = executeVal⌝ ∗ ∃ (rcv : List mvcc.api.WResp) (D : List v3rpc.WatchRespM),
       v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗ mvcc.api.wsRecv r.ι rcv ∗
-      monoListAuthOwn r.γr 1 rcv ∗ threadTok ∗ v3rpc.sendSt r idsL pendL rcv D ∗
+      monoListAuthOwn r.γr 1 rcv ∗ v3rpc.sendTok r ∗ v3rpc.sendSt r idsL pendL rcv D ∗
       sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗
       v3rpc.ctrlWatcher r (auth.ctxTokenOf (GoInterface.ok ci)) req m ∗
       v3rpc.createdAfter r D.length m) ∨
@@ -324,7 +330,7 @@ theorem v3rpc.ctrlMid_exec (r : v3rpc.WRun GF) (ci : GoInterfaceOk) (sws idsL pe
     (req : v3rpc.WatchReqM) (m : v3rpc.WatchRespM) (rcv : List mvcc.api.WResp)
     (D : List v3rpc.WatchRespM) :
     v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗ mvcc.api.wsRecv r.ι rcv ∗
-      monoListAuthOwn r.γr 1 rcv ∗ threadTok ∗ v3rpc.sendSt r idsL pendL rcv D ∗
+      monoListAuthOwn r.γr 1 rcv ∗ v3rpc.sendTok r ∗ v3rpc.sendSt r idsL pendL rcv D ∗
       sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗
       v3rpc.ctrlWatcher r (auth.ctxTokenOf (GoInterface.ok ci)) req m ∗
       v3rpc.createdAfter r D.length m ⊢
@@ -1289,7 +1295,7 @@ local macro "drain_created" : tactic => `(tactic| (
       "%Hdl" ∷ ⌜dr = true → k0 ≤ rcv.length⌝ ∗
       "#Hrs" ∷ (if dr then v3rpc.rcvLb r.γr rcv else iprop(True)) ∗
       "Hst" ∷ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗
-      "Hwc" ∷ mvcc.api.wsRecv r.ι rcv ∗ "HA" ∷ monoListAuthOwn r.γr 1 rcv ∗ "Htt" ∷ threadTok ∗
+      "Hwc" ∷ mvcc.api.wsRecv r.ι rcv ∗ "HA" ∷ monoListAuthOwn r.γr 1 rcv ∗ "Htt" ∷ v3rpc.sendTok r ∗
       "HS" ∷ v3rpc.sendSt r idsL pendL rcv D ∗
       "drained" ∷ drained_ptr ↦ dr) $$ [Hst Hwc HA Htt HS drained]
   · iexists rcv, D, false
@@ -1547,7 +1553,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd
   have := v3rpc.swsIs_persistent (GF := GF) hP
-  wp_start as ⟨#Hsws, Hst, Hcons, Hwc, HA, %Hiv, Hmu, Htt⟩
+  wp_start as ⟨#Hsws, Hst, Hcons, Hwc, HA, %Hiv, Hmu, Htt, Hrdr⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ ι n, Persistent (mvcc.api.wsSentLb (GF := GF) ι n) := hP.2.2.1
   have := v3rpc.srvWOk_persistent hP r.W r.srv.wsl v3rpc.wsN
@@ -1619,6 +1625,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     (go.GoType.SliceType (go.GoType.PointerType etcdserverpb.WatchResponse.ty))) as %pendL Hpend
   wp_apply hGPI $$ [$Htt] as %d ⟨%Hd, Htt⟩
   · iframe #; ipureintro; exact Hiv
+  ihave Htt : v3rpc.sendTok r $$ [Htt Hrdr]
+  · unfold v3rpc.sendTok; iframe
   wp_apply hNT d $$ [] as %tk %tch %γt #Htk0
   · ipureintro; exact Hd
   ihave #Htk : iprop(∃ (ch : Loc) (γ : ChanNames), time.isTicker (GF := GF) tk ch γ) $$ []
@@ -1635,12 +1643,12 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   ihave #HsW : iprop(□ ∀ (rcv : List mvcc.api.WResp) (D : List v3rpc.WatchRespM)
       (wv : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (Ψ : val → IProp GF),
       (∃ x : mvcc.api.WResp, mvcc.api.wsRecv r.ι (rcv ++ [x]) ∗ mvcc.api.wrespIs wv x) -∗
-      monoListAuthOwn r.γr 1 rcv -∗ threadTok -∗
+      monoListAuthOwn r.γr 1 rcv -∗ v3rpc.sendTok r -∗
       v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D -∗ v3rpc.sendSt r idsL pendL rcv D -∗
       sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) -∗
       (∀ (x : mvcc.api.WResp) (Dn : List v3rpc.WatchRespM),
         v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs Dn ∗
-          mvcc.api.wsRecv r.ι (rcv ++ [x]) ∗ monoListAuthOwn r.γr 1 (rcv ++ [x]) ∗ threadTok ∗
+          mvcc.api.wsRecv r.ι (rcv ++ [x]) ∗ monoListAuthOwn r.γr 1 (rcv ++ [x]) ∗ v3rpc.sendTok r ∗
           v3rpc.sendSt r idsL pendL (rcv ++ [x]) Dn ∗
           sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) -∗ Ψ #true) -∗
       (v3rpc.retSt r pendL -∗ Ψ #false) -∗
@@ -1654,7 +1662,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   ihave HLI : iprop(∃ (rcv : List mvcc.api.WResp) (cs : List Loc) (D : List v3rpc.WatchRespM),
       "Hst" ∷ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗
       "Hcons" ∷ spscConsumer r.γctrl cs ∗ "Hwc" ∷ mvcc.api.wsRecv r.ι rcv ∗
-      "HA" ∷ monoListAuthOwn r.γr 1 rcv ∗ "Htt" ∷ threadTok ∗
+      "HA" ∷ monoListAuthOwn r.γr 1 rcv ∗ "Htt" ∷ v3rpc.sendTok r ∗
       "HS" ∷ v3rpc.sendSt r idsL pendL rcv D) $$ [Hst Hcons Hwc HA Htt Hids Hpend]
   · iexists [], [], []
     iframe Hst Hcons Hwc HA Htt
@@ -1858,7 +1866,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     wp_func_lits
     wp_bind (App (App (Val (map.forRange _ _)) _) _)
     iapply wp_map_for_range_mut (fun _ _ => iprop(∃ (o : Bool) (iv : w64), "ok" ∷ ok_ptr ↦ o ∗
-        "id" ∷ id_ptr ↦ iv ∗ "Htt" ∷ threadTok)) _ _ _ r.pm PM
+        "id" ∷ id_ptr ↦ iv ∗ "Htt" ∷ v3rpc.sendTok r)) _ _ _ r.pm PM
       $$ HPm
     iintro %keys %Hkeys
     isplitl [ok id Htt]
@@ -1870,8 +1878,11 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       wp_if_destruct
       rotate_left
       · (try wp_auto)
-        wp_apply (hRP r.W.γm r.ι X) $$ [$Htt] as Htt
+        icases Htt with ⟨Htt, Hrdr⟩
+        wp_apply (hRP r.W.γm r.ι X) $$ [$Htt $Hrdr] as ⟨Htt, Hrdr⟩
         · iframe #
+        ihave Htt : v3rpc.sendTok r $$ [Htt Hrdr]
+        · unfold v3rpc.sendTok; iframe
         (try wp_auto)
         wp_apply (wp_mapInsert go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty r.pm m' X true) $$ [$Hm]
           as Hm

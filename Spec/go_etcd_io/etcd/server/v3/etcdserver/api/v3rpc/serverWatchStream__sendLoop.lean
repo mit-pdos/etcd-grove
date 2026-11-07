@@ -35,8 +35,9 @@ the watchers that want it; until a send fails, the control stream or the mvcc st
 closed, or `closec` is. Every response it sends at down position `j` carries `watchDn j m`
 (`watchStreamSpec`). The mvcc API migration (2026-11-05, the draft
 `notes/mvcc-api-clients/WatchSpecs.lean` §6): the consumer's `wsRecv ι []` and the received list's
-authority at `[]` in place of mvcc's `watchConsumer`; no reader slot of the store (the thread
-bound stays, for `GetProgressReportInterval`). -/
+authority at `[]` in place of mvcc's `watchConsumer`; the thread bound stays, for
+`GetProgressReportInterval`; (the store's readers as client-held tokens, 2026-11-07) a reader token
+of the store (`mvccReaders r.W.γm 1`, which `RequestProgress` takes; `lean`'s store reader slot). -/
 abbrev v3rpc.serverWatchStream.sendLoop.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
     (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
@@ -46,9 +47,10 @@ abbrev v3rpc.serverWatchStream.sendLoop.spec : Prop :=
       spscConsumer r.γctrl ([] : List Loc) ∗ mvcc.api.wsRecv r.ι [] ∗
       monoListAuthOwn r.γr 1 ([] : List mvcc.api.WResp) ∗
       ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
-      sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗ threadTok }}
+      sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗ threadTok ∗
+      mvcc.api.mvccReaders r.W.γm 1 }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"sendLoop")) (Val #()))
-  {{ RET #(); threadTok }}
+  {{ RET #(); threadTok ∗ mvcc.api.mvccReaders r.W.γm 1 }}
 
 end spec
 

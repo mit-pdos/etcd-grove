@@ -37,8 +37,10 @@ create and cancel request answered by a control response on the control stream (
 response answers the request at its position, with the answer token it mints from `ansPool` when it
 receives the request; the watch slice's unit W-C). The mvcc API migration (2026-11-05, the draft
 `notes/mvcc-api-clients/WatchSpecs.lean` §6): the thread token in place of the store's reader slot
-(the API's `Watch`, `Cancel`, `Rev` and `RequestProgressAll` take one); the auth store's reader
-resource `r.srv.E.RD` (`isWatchPermitted`).
+(the API's `Watch`, `Cancel`, `Rev` and `RequestProgressAll` take one), and (the store's readers as
+client-held tokens, 2026-11-07) a reader token of the store (`mvccReaders r.W.γm 1`: `Watch`, `Rev`
+and `RequestProgressAll` take one, as `lean`'s store reader slot); the auth store's reader resource
+`r.srv.E.RD` (`isWatchPermitted`).
 Returns the control stream's producer token. -/
 abbrev v3rpc.serverWatchStream.recvLoop.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
@@ -46,10 +48,11 @@ abbrev v3rpc.serverWatchStream.recvLoop.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (L : List v3rpc.WatchReqM) (sent : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.swsIs sws r Up Dn st ci cd ∗ v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) r.γs L ∗
-      spscProducer r.γctrl sent ∗ v3rpc.ansPool r.γa L.length ∗ r.srv.E.RD ∗ threadTok }}
+      spscProducer r.γctrl sent ∗ v3rpc.ansPool r.γa L.length ∗ r.srv.E.RD ∗ threadTok ∗
+      mvcc.api.mvccReaders r.W.γm 1 }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"recvLoop")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ context.isTypedErr err⌝ ∗
-      threadTok ∗ ∃ sent' : List Loc, spscProducer r.γctrl sent' }}
+      threadTok ∗ mvcc.api.mvccReaders r.W.γm 1 ∗ ∃ sent' : List Loc, spscProducer r.γctrl sent' }}
 
 end spec
 

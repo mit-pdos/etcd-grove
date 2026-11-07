@@ -62,6 +62,7 @@ set_option maxHeartbeats 0 in
 theorem v3rpc.watchServer.Watch.wp_proof
     (hShapes : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hP : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hRS : mvcc.api.mvccReaders_split.law (GF := GF) (hG := hG))
     (hRecv : v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG))
     (hSend : v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG))
     (hClose : v3rpc.serverWatchStream.close.spec (GF := GF) (hG := hG))
@@ -77,7 +78,9 @@ theorem v3rpc.watchServer.Watch.wp_proof
   have : ∀ kv γ, Persistent (mvcc.api.isMvcc (GF := GF) kv γ) := hP.1
   have := v3rpc.srvWOk_persistent hP W R.wsl v3rpc.wsN
   have := v3rpc.swsIs_persistent (GF := GF) hP
-  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, HRD, %Htb, Htt⟩
+  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, HRD, %Htb, Htt, Hrdr⟩
+  ihave ⟨HrdS, HrdR⟩ : mvcc.api.mvccReaders W.γm 1 ∗ mvcc.api.mvccReaders W.γm 1 $$ [Hrdr]
+  · iapply (hRS W.γm 1 1).1; iexact Hrdr
   ihave #HWS' := HWS
   iunfold v3rpc.isWatchServer at HWS'
   icases HWS' with ⟨%Hnn, #Plg, #Pcid, #Pmid, #Pmrb, #Psg, #Pwa, #Pag, #Hsrv⟩
@@ -168,9 +171,10 @@ theorem v3rpc.watchServer.Watch.wp_proof
   · iframe #; ipureintro; decide
   -- (2026-10-20, watchkv) the send loop's goroutine with its thread token, which
   -- `GetProgressReportInterval` lends to the interval's pool
-  wp_apply wp_fork_tok_body $$ [Hst Hcons' Hrcv HA Hmutok Hdone]
+  wp_apply wp_fork_tok_body $$ [Hst Hcons' Hrcv HA Hmutok Hdone HrdS]
   · iintro Htt
-    wp_apply hSend sws_ptr r Up Dn st ci cd $$ [$Hst $Hcons' $Hrcv $HA $Hmutok $Htt] as Htt
+    wp_apply hSend sws_ptr r Up Dn st ci cd $$ [$Hst $Hcons' $Hrcv $HA $Hmutok $Htt $HrdS]
+      as ⟨Htt, -⟩
     · iframe #; ipureintro; exact Htb
     wp_apply sync.join.WaitGroup.wp_Done iprop(True) (v3rpc.swsF sws_ptr go!"wg") $$ [$Hdone]
     · iframe #; itrivial
@@ -204,10 +208,10 @@ theorem v3rpc.watchServer.Watch.wp_proof
     with ⟨%γerr, #HspscE, HprodE, HconsE⟩
   · iright; iexact Hoe
   ipersist errc
-  wp_apply wp_fork_tok_body $$ [Hrt Hprod HPool HRD HprodE]
+  wp_apply wp_fork_tok_body $$ [Hrt Hprod HPool HRD HprodE HrdR]
   · iintro Htt
-    wp_apply hRecv sws_ptr r Up Dn st ci cd [] [] $$ [$Hrt $Hprod $HPool $HRD $Htt]
-      as %rerr ⟨%Hrerr, Htt, %sent', Hprod⟩
+    wp_apply hRecv sws_ptr r Up Dn st ci cd [] [] $$ [$Hrt $Hprod $HPool $HRD $Htt $HrdR]
+      as %rerr ⟨%Hrerr, Htt, -, %sent', Hprod⟩
     · iframe #
     rcases rerr with ei | _
     · have Hty : context.isTypedErr (GoInterface.ok ei) := by
