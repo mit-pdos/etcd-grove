@@ -66,6 +66,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --k8sinformers > Proof/k8s_io/client_go/informers/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean
        etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
+       etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
        etc/gen-link.py --bbolt --results > Proof/go_etcd_io/bbolt/Results.lean
 
@@ -613,6 +614,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (the `lean` merge, R6/R8, 2026-11-07) mvcc's API laws the server's
                               # proofs take as terms (`=mvcc.api.*` callees)
                               "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"]}
+# (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
+# (`=mvcc.api.*`: the stand-in apply environment's store name)
+for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
+    EXTRA_IMPORTS.setdefault(_m, []).append("Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults")
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
@@ -625,6 +630,11 @@ if sys.argv[1:2] == ["--bbolt"]:
     link_bbolt.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
                     proof_roots.PERENNIAL, sys.argv[0], results_file="--results" in sys.argv[2:])
     sys.exit(0)
+# mvcc's randomized tester (examples/mvccrand; its other tables below, R10)
+LEAN_FIRST["--mvccrand"] = ("link-lean-first-mvccrand.txt",
+                            "github_com.mit_pdos.etcd_grove.examples.mvccrand",
+                            "github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions",
+                            "mvcc's randomized tester's proofs (`examples/mvccrand`)", [""])
 mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
     sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")
@@ -648,6 +658,15 @@ EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoStri
               # (Q1 (c), 2026-11-05) `etcd3`'s package fact is the compactor registry, at its name
               "--k8s-etcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n",
               "--k8setcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n"}
+# mvcc's randomized tester (examples/mvccrand, R10, 2026-11-07): its functions over mvcc's API
+# (`=mvcc.api.*` callees, from mvcc's `ApiResults`), the lessor's (as the server's Link links them)
+# and the backend's (`@`); its `runChecks` and the lessor's specs take the server's assumptions
+# (`lessorApplyOk`, `etcdserver/SnapRO.lean`), a section variable (its `LEAN_FIRST` entry above)
+NAMESPACED["--mvccrand"] = "mvccrand"
+EXTRA_IMPORTS["--mvccrand"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
+                               "Perennial.Proof.sort.Link"]
+EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]\n"
+                            "variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]\n")
 em = ((PRE_VARS.get(sys.argv[1], ""))
       + ("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else "")

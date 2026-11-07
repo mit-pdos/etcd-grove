@@ -299,16 +299,20 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
 
 open go_etcd_io.etcd.server.v3.storage.backend in
-/-- **Placeholder: the backend's defaults.** `DefaultBackendConfig` (`backend.go`) reads the package
-variables `defaultBatchInterval` (`100 * time.Millisecond`), `defaultBatchLimit` (`10000`) and
-`InitialMmapSize` (`10 * 1024 * 1024 * 1024`), which nothing writes after the package's
-initializer; the backend's package fact (`backendInit`, `Base.lean`) states none of them, so a
-client cannot load them. The missing fact, as the package fact would state it. -/
-theorem backend_defaults_M1 :
+/-- **The backend's defaults** (its package fact `backendInit`): `DefaultBackendConfig` (`backend.go`)
+reads the package variables `defaultBatchInterval` (`100 * time.Millisecond`), `defaultBatchLimit`
+(`10000`) and `InitialMmapSize` (`10 * 1024 * 1024 * 1024`), which nothing writes after the
+package's initializer. -/
+theorem backend_defaults :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ⊢
-      ∃ (bi ms : w64), globalAddr defaultBatchInterval ↦□ bi ∗
-        globalAddr defaultBatchLimit ↦□ (W64 10000) ∗ globalAddr InitialMmapSize ↦□ ms := by
-  sorry -- M1-REPLACE: backend's package fact (backendInit) states nothing of defaultBatchInterval, defaultBatchLimit, InitialMmapSize, which DefaultBackendConfig loads
+      globalAddr defaultBatchInterval ↦□ (W64 100000000) ∗
+        globalAddr defaultBatchLimit ↦□ (W64 10000) ∗
+        globalAddr InitialMmapSize ↦□ (W64 10737418240) := by
+  iintro #Hpkg
+  ihave Hbi : (backendInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hbi with ⟨-, -, -, -, -, #Hbi, #Hbl, #Hms⟩
+  iframe #
 
 open go_etcd_io.etcd.server.v3.storage.backend in
 /-- **`DefaultBackendConfig(lg)`**: its configuration has the default batch limit and no hooks. -/
@@ -317,7 +321,7 @@ theorem wp_DefaultBackendConfig (lg : Loc) :
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.DefaultBackendConfig)) (Val #lg))
     {{ (c : BackendConfig), RET #c; ⌜c.BatchLimit' = W64 10000 ∧ c.Hooks' = GoInterface.nil⌝ }} := by
   wp_start as #Hpkg
-  ihave ⟨%bi, %ms, #Hbi, #Hbl, #Hms⟩ := backend_defaults_M1 $$ Hpkg
+  ihave ⟨#Hbi, #Hbl, #Hms⟩ := backend_defaults $$ Hpkg
   wp_auto
   iapply HΦ
   ipureintro

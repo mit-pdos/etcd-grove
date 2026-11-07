@@ -6,6 +6,31 @@ functions over the frozen API (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.
 The tester's design: `notes/mvccrand.md`. Files: `Spec/github_com/mit_pdos/etcd_grove/examples/
 mvccrand/`, `Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/`.
 
+## Repair track R10 (2026-11-07): the backend's defaults, the Link, the results, the package init
+
+Everything below builds (`lake build` of `mvccrand.Results`, `mvccrand.PkgTable`, the backend's `Init`, `newBackend`, `batchTx__commit`); `mvccrand_runChecks` reaches no `sorryAx` and no new axiom.
+
+- **`backend_defaults_M1` gone.** The backend's package fact `backendInit` (`storage/backend/
+  Base.lean`) now also states `defaultBatchInterval ↦□ W64 100000000`, `defaultBatchLimit ↦□ W64
+  10000`, `InitialMmapSize ↦□ W64 10737418240` (the translated initializers' constants);
+  `etc/gen-init.py`'s backend entry persists the three cells (`_B['finish']`), its `Init.lean`
+  regenerated. Users: `newBackend.lean`'s pattern on the fact gained a `-`; `batchTx__commit`
+  unaffected. `RunChecksBackend.backend_defaults` is proved from the fact.
+- **`sort.Slice`**: `writer.genLease`'s raw hypothesis is now `sort.Slice.spec` (`Spec/sort/Slice.lean`,
+  `[]int64` only, the one caller's), with no proof and no axiom: `sort_Slice: ?` in the list, so
+  the linked results reaching it (`writer.wp_genLease`, ..., `wp_runChecks`) take `h_sort_Slice`.
+  To close it: an axiom at the trust boundary (as `sort.SliceIsSorted`'s), for the user to approve.
+- **`Link.lean`** (`etc/gen-link.py --mvccrand`, `etc/link-lean-first-mvccrand.txt`; namespace
+  `mvccrand`, extra imports mvcc's `ApiResults` and Perennial's `sort.Link`, section variables
+  `mvcc_sem`, `srv_sem`: `runChecks` and `lessorApplyOk` take the server's assumptions). The lessor's
+  functions are linked here (the server's list's entries; no lease `Link.lean`), the backend's are
+  `@` (its `Link.lean`). **`Results.lean`**: `mvccrand_runChecks` (over `h_sort_Slice`), with
+  `#print axioms`.
+- **`Init.lean`, `PkgTable.lean`** (`etc/gen-init.py`: root, `SPECIAL` entry persisting the two slice
+  literals into `mvccrandInit`, `PROGRAMS` entry).
+- Left for the closed theorem: an `Adequacy.lean` (as the examples', over `PkgTable`), whose
+  premises are `runChecks.spec`'s (`fileHolds cfg.Path ∅`, `keySized`, `ckptEffectsOk`, the bounds).
+
 ## Repair track R5 (2026-11-07): over the reader tokens and the merged lessor specs
 
 Every tester module builds again (all 54 `Proof` modules and their `Spec`s), no `sorry`, no
@@ -327,9 +352,9 @@ range's update, handed back unconsumed, must be committable with no resources); 
   premise is now `Readers + 2 ≤ 2 ^ 28` (was `≤ 2 ^ 30 - 1`, the history's lock's slots; `mvccReaderN =
   rdStockN - 7 = 536870776 ≥ 2 ^ 28`). `watchCheck.receive.spec` lost its premise on `c.events`
   (`0 ≤ ne`, `ne + |evs| < 2 ^ 63`, unused by its proof: Go's `int` wraps), which closed the draft's
-  `sorry` in the receiver's loop. **One placeholder left**, `RunChecksBackend.backend_defaults_M1`
+  `sorry` in the receiver's loop. **One placeholder left** (closed in R10, above), `RunChecksBackend.backend_defaults_M1`
   (`sorry -- M1-REPLACE`), below. Then `Main` (unverified: `Run`'s tail), `Link.lean`, `Results.lean`.
-- **For the coordinator (backend's package fact, outside this track's paths):**
+- **Done in R10** (was for the coordinator: the backend's package fact):
   `backend.DefaultBackendConfig` loads `defaultBatchInterval`, `defaultBatchLimit` (`10000`) and
   `InitialMmapSize`, which nothing writes after the backend's initializer, but `backendInit`
   (`Proof/.../storage/backend/Base.lean`, from `etc/gen-init.py`'s backend entry) states none of
@@ -337,7 +362,7 @@ range's update, handed back unconsumed, must be committable with no resources); 
   `backend_defaults_M1` (`isPkgInit backend ⊢ ∃ bi ms, defaultBatchInterval ↦□ bi ∗ defaultBatchLimit
   ↦□ W64 10000 ∗ InitialMmapSize ↦□ ms`). The fix: those three in `backendInit` (the initializer's
   translated stores, persisted). (The server does not hit it: `storage.OpenBackend` is an axiom.)
-- **For the coordinator, `etc/gen-init.py`'s entry for `mvccrand`**: needed only for the closed
+- **Done in R10** (was for the coordinator): `etc/gen-init.py`'s entry for `mvccrand`: needed only for the closed
   theorem (`Init.lean`'s `wp_initialize'`, then `PkgTable.lean`). The fact is `Base.lean`'s
   `mvccrandInit`: `keys` and `extraEnds` each hold a read-only slice of their literal (`keyList`,
   `extraEndList`), so the initializer's two composite-literal stores must be persisted
@@ -346,4 +371,4 @@ range's update, handed back unconsumed, must be committable with no resources); 
 - Perennial (for the coordinator's `notes/perennial-changes.md`): `isSpsc` keeps its invariant at
   `nroot` (a caller with another invariant open cannot send); no `chan.wp_len` wrapper (as
   `chan.wp_cap`); the slice literal of map literals needed a local `wp_slice_literal_ex`.
-- Placeholders (`M1-REPLACE`): `backend_defaults_M1` (above). `register`'s two closed by the contract's fix (`b4bc6a538c`, the left disjunct); the lessor finding fixed by `1b56c352f8` (`lessorApplyOk`'s token `wbTok`, `le.b` lent in `R`).
+- Placeholders (`M1-REPLACE`): none (`backend_defaults_M1` closed in R10, above). `register`'s two closed by the contract's fix (`b4bc6a538c`, the left disjunct); the lessor finding fixed by `1b56c352f8` (`lessorApplyOk`'s token `wbTok`, `le.b` lent in `R`).

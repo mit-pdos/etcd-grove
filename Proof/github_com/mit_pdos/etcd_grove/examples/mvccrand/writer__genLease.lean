@@ -2,14 +2,15 @@
 map's keys (`ids` holds the first `i` keys of the iteration order), `sort.Slice` only permutes them,
 so the element `intn(len(ids))` picks is a key of the map.
 
-`sort.Slice` is translated names-only (reflection: `reflectlite.Swapper`) and has no spec, in
-Perennial or here: the proof takes the triple it needs as a hypothesis (`wp_sortSlice`: `sort.Slice`
-permutes the slice, calling `less` only on indices in range, with the slice at some permutation),
-to be stated as `sort.Slice.spec` at the trust boundary. -/
+`sort.Slice` is translated names-only (reflection: `reflectlite.Swapper`) and has no proof, in
+Perennial or here: the proof takes its spec (`Spec/sort/Slice.lean`: `sort.Slice` permutes the
+slice, calling `less` only on indices in range, with the slice at some permutation) as a
+hypothesis, which the linked results carry (no axiom). -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccrand.writer__genLease
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccrand.rng__intn
+public import Spec.sort.Slice
 
 @[expose] public section
 
@@ -33,16 +34,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem writer.genLease.wp_proof (wp_intn : rng.intn.spec (GF := GF) (hG := hG))
-    (wp_sortSlice : ∀ (s : GoSlice) (xs : List w64) (less : GoFunc) (P : IProp GF),
-      {{ isPkgInit (PROP := IProp GF) pkg_id.sort ∗ s ↦* xs ∗ P ∗
-          □ (∀ (i j : w64) (ys : List w64) (Φ : val → IProp GF),
-            ⌜0 ≤ sint.Z i ∧ sint.Z i < sint.Z s.len ∧ 0 ≤ sint.Z j ∧ sint.Z j < sint.Z s.len ∧
-              ys.Perm xs⌝ -∗
-            s ↦* ys -∗ P -∗ (∀ b : Bool, s ↦* ys -∗ P -∗ Φ #b) -∗
-            WP (App (App (Val #less) (Val #i)) (Val #j)) {{ Φ }}) }}
-        (App (App (Val (@! sort.Slice')) (Val #(interface.mkOk (go.GoType.SliceType go.int64) #s)))
-          (Val #less))
-      {{ RET #(); ∃ ys : List w64, s ↦* ys ∗ P ∗ ⌜ys.Perm xs⌝ }}) :
+    (wp_sortSlice : sort.Slice.spec (GF := GF) (hG := hG)) :
     writer.genLease.spec (GF := GF) (hG := hG) := by
   intro w wv Lm g
   wp_start as ⟨#Hw, Hm, Hr⟩
