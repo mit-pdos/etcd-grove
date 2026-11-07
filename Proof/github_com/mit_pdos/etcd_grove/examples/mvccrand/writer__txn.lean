@@ -240,9 +240,6 @@ theorem writer.txn.wp_proof
   (try wp_auto)
   wp_apply wp_intn wv.r' g (W64 4) (by decide) $$ [$Hpkg $Hg] as %x ⟨⟨%g1, Hg⟩, %Hx⟩
   (try wp_auto)
-  simp only [go_etcd_io.etcd.server.v3.storage.mvcc.ConcurrentReadTxMode,
-    go_etcd_io.etcd.server.v3.storage.mvcc.SharedBufReadTxMode]
-  wp_auto
   wp_join iprop(∃ (md : w32) (g2 : rng), w_ptr ↦ w ∗ mode_ptr ↦ md ∗ wv.r' ↦ g2) at next
     with [w mode Hg] as ⟨%md, %g2, w, mode, Hg⟩
   · by_cases hx0 : x = W64 0

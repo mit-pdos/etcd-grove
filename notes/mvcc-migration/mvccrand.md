@@ -19,6 +19,10 @@ placeholder. What changed:
   the writer, the registrar and each reader, from `New`'s `mvccReaders γ mvccReaderN`
   (`mvccReaders_split.law`), and get them all back for `mvccClosed_rest.law` (only needed if the
   storage's rest is wanted; the tester's post does not need it).
+- **The translation** (`Code/.../examples/mvccrand.lean`) was stale against the merged Perennial
+  pin (`etc/goose.py --check` failed: the pinned translator inlines constants, `ConcurrentReadTxMode`,
+  `time.Millisecond`, ...): regenerated (`etc/goose.py --project mvccrand`); `writer.txn`'s unfold of
+  the two read modes dropped. `etc/goose.py` and the lakefile's globs find the project at its old paths.
 - **`wsRecvOk`** gained a fourth conjunct: `recv_prog` (`WatchLock.lean`) reads the third as `.2.2.1`.
 - **The lessor's merged specs** (`notes/mvcc-merge/la.md`): `lessorBackend lp P f T Ln R Rb`:
   `writerLeRO`'s contract is at `Ln := lessorBeOn lp B.be` (the writer's half of `le.b`, which

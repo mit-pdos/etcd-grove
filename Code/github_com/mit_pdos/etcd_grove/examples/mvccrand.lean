@@ -1518,7 +1518,7 @@ noncomputable def writer.txn.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType rng.ty) go!"intn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rng.ty)))) (App (Val (GoInstruction (StructFieldRef writer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType writer.ty)))) (Var "w"))))) (Var "$a0"))) (Val #(W64 0)))))
   (Let "isWrite" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ConcurrentReadTxMode)
+  (Let "$r0" (Val #(W32 1))
   (Let "mode" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ReadTxMode.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ReadTxMode.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1705,7 +1705,7 @@ noncomputable def writer.txn.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (Pair (Var "tr") (Var "$r0")))))))))
   (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isWrite")) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (Val #(W64 2))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType rng.ty) go!"intn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rng.ty)))) (App (Val (GoInstruction (StructFieldRef writer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType writer.ty)))) (Var "w"))))) (Var "$a0"))) (Val #(W64 0)))) (Val #false))
-  (Let "$r0" (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.SharedBufReadTxMode)
+  (Let "$r0" (Val #(W32 2))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ReadTxMode.ty))) (Pair (Var "mode") (Var "$r0")))))
   (App (Val doExecute)
@@ -2035,7 +2035,7 @@ noncomputable def writer.read.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType writer.ty) go!"cur"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType writer.ty)))) (Var "w"))) (Val #()))
   (Let "cur" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ConcurrentReadTxMode)
+  (Let "$r0" (Let "$a0" (Val #(W32 1))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.TODO []))) (Val #())) (Val #()))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (App (Val (GoInstruction (StructFieldRef writer.ty go!"kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType writer.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1"))))
   (Let "tr" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (Val #())))
@@ -2211,7 +2211,7 @@ noncomputable def reader.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a2" (Val #(go!"Rev"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType history.ty) go!"seen"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType history.ty)))) (Var "h"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (Val #(W64 1))))
-  (Let "$r0" (Let "$a0" (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ConcurrentReadTxMode)
+  (Let "$r0" (Let "$a0" (Val #(W32 1))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.TODO []))) (Val #())) (Val #()))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Var "kv"))) (Var "$a0")) (Var "$a1"))))
   (Let "tr" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (Val #())))
@@ -2279,7 +2279,7 @@ noncomputable def reader.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (Pair (Var "tw") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (Pair (Var "tr") (Var "$r0")))))))
-  (Let "$r0" (Let "$a0" (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ConcurrentReadTxMode)
+  (Let "$r0" (Let "$a0" (Val #(W32 1))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.TODO []))) (Val #())) (Val #()))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Var "kv"))) (Var "$a0")) (Var "$a1"))))
   (Let "tr" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (Val #())))
@@ -2555,7 +2555,7 @@ noncomputable def watchCheck.receive.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (Val #(go!"a delete event carries a key-value"))
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "ev")))) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_DELETE)))
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "ev")))) (Val #(W32 1))))
   (Let "$a1" (Val #(go!"a watch event is not a delete"))
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2566,7 +2566,7 @@ noncomputable def watchCheck.receive.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a3" (Val #false)
   (App (App (App (App (App (Val (GoInstruction (FuncResolve checkKV []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "ev")))) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_PUT)))
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "ev")))) (Val #(W32 0))))
   (Let "$a1" (Val #(go!"a watch event is not a put"))
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
   (App (Val doExecute)
@@ -3084,7 +3084,7 @@ noncomputable def runChecks.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "complete") (Var "$r0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Millisecond)))
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val #(W64 1000000))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0")))))))
   (Lam BAnon
   (Val #())))))
