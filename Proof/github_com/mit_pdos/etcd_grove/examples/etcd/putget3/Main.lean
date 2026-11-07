@@ -368,7 +368,7 @@ theorem Main.wp_proof
     rfl $$ Hkv
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration)
   wp_apply (wp_NewClient clientAddr₁ lg
-      (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) Hlg
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default) Hlg
       (by unfold plainEndpoint clientAddr₁; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left

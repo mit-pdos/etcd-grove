@@ -359,7 +359,7 @@ theorem Run.wp_proof
     rfl $$ Hkv
   -- `NewClient(clientAddr1, lg)` (etcd's default client configuration)
   wp_apply (wp_NewClient clientAddr₁ lg
-      (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) Hlg
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default) Hlg
       (by unfold plainEndpoint clientAddr₁; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -376,7 +376,7 @@ theorem Run.wp_proof
   imod (client.putGetInv_alloc_log ρ₁.rd (kvModel ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))
       go!"k" go!"v2" ⊤) $$ Hetcd with ⟨%γf, #Hinv⟩
   -- `put(cli, "k0", "v1")`: another key
-  wp_apply (wp_putOther cl clientAddr₁ (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default)
+  wp_apply (wp_putOther cl clientAddr₁ (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default)
       E ρ₁.rd γf cid mid go!"k" go!"v2" go!"k0" go!"v1" (by decide)
       (opSizeOk_opPutModel (K := 2) (E := 0) (V := 2) (optsKeep_nil _ _ _) (by decide) (by decide)
         (by decide)) hAs) as %perr -
@@ -401,7 +401,7 @@ theorem Run.wp_proof
   wp_if_destruct
   · -- member 3 leads: member 2 stopped and started again
     wp_apply (wp_restartCheck cl clientAddr₁
-        (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
+        (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
         m₂ s₂ pl₂ ρ₂ N name₂ peerAddr₂ clientAddr₂
         (slice.mk peer₂ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
@@ -416,7 +416,7 @@ theorem Run.wp_proof
     iapply HΦ; itrivial
   · -- member 3 stopped and started again
     wp_apply (wp_restartCheck cl clientAddr₁
-        (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
+        (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
         m₃ s₃ pl₃ ρ₃ N name₃ peerAddr₃ clientAddr₃
         (slice.mk peer₃ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))

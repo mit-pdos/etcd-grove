@@ -170,7 +170,7 @@ theorem restartCheck.wp_proof
   -- `NewClient(client, lg)`
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   wp_apply (wp_NewClient caddr lg
-      (EtcdGrove.client.srvWEnv R caddr [] null null [] null default) Hlg Hpe (by omega))
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E γr false) γr caddr [] null null [] null default) Hlg Hpe (by omega))
     as %clR %cerr Hcl'
   icases Hcl' with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
