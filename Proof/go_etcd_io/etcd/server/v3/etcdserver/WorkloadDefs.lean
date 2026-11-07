@@ -236,8 +236,10 @@ def rqSmall (log : mvcc.Log) (rq : apply.IRRModel) : Prop :=
   | .deleteRange => ∀ o, rq.deleteRange = some o → apply.delOk log o
   | .range => ∀ o, rq.range = some o → log.length + 3 ≤ 2 ^ 63
   | .txn => ∀ t, rq.txn = some t → txn.txnSmall log t
-  -- (the lease-expiry plan's X6, 2026-11-04) a revocation commits its deletions at one revision
-  | .leaseRevoke => apply.putOk log
+  -- (the lease-expiry plan's X6, 2026-11-04) a revocation commits its deletions at one revision;
+  -- (the `lean` merge, R6, 2026-11-07) and the lessor's sort of the keys it deletes takes the state's
+  -- size (`apply.rqOk`'s revocation arm, R2's `revokeSize`)
+  | .leaseRevoke => apply.putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62
   | _ => True
 
 /-- **The size clauses hold at a small log** (D19c's move, 2026-10-18): a log with a revision
@@ -256,6 +258,8 @@ theorem rqSmall_of_small (log : mvcc.Log) (rq : apply.IRRModel)
     | (intro o _; unfold apply.delOk; omega)
     | (intro o _; omega)
     | (intro t _; exact ⟨h4, hls⟩)
+    | (exact ⟨by unfold apply.putOk; omega,
+        by have := (txn.stateBound_stateAfter log (by omega) (by omega)).1; omega⟩)
 
 /-- **The shape of `rq`** (see the file header): `dispatchOk` whatever the auth mode, and its
 premise at every log at which the size clauses hold, in a cluster that grants leases or not (`lg`,

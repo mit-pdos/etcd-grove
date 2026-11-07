@@ -53,8 +53,9 @@ none`: `traceutil.EnsureTrace` reads `ctx.Value(TraceKey{})` and writes to a tra
 freeze repair, `notes/decisions.md`, "The compactor's contract after the freeze"),
 giving back the caller's reader slots (the lead-time and logger mutexes', `E.RD`; the logger's and
 the server's read facts, `isServerRead`, for `s.Logger()` and `s.kv.Rev()`: M2's S3 glue, which the
-pilot's statement lacked) and the thread's token (`threadTok`: the call's last line reads
-`s.kv.Rev()`; strict M1, 2026-11-06, the draft's: until then the store's compaction-aware reader
+pilot's statement lacked) and the thread's and a reader token of the store (`threadTok`,
+`mvccReaders E.γ 1`: the call's last line reads `s.kv.Rev()`, `KV.Rev.contract`'s; strict M1,
+2026-11-06, and the reader tokens, R6, 2026-11-07: until then the store's compaction-aware reader
 `storeReaderC`; the header's log a floor `kvLogLb`, mvcc's `idxCert` until then).
 (Phase 1's statement: what the apply does with the compaction, C2/C3, is not stated yet. The
 compactor's C1 permit stops here until then: a per-call permit parameter would be vacuous, since each
@@ -78,14 +79,14 @@ abbrev EtcdServer.Compact.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E ρ.rd ∗ srvLeadTimeReader s ∗
       srvLgReader s ∗ E.RD ∗
-      threadTok ∗ idCred ρ.ids 1 ∗
+      threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗
       kvRevLbZ ρ.rd.kv (r + ρ.rd.kv.cret) ∗
       compactReqIs p r }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗
-      srvLgReader s ∗ E.RD ∗ threadTok ∗ compactOutIs E resp err }}
+      srvLgReader s ∗ E.RD ∗ threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗ compactOutIs E resp err }}
 
 end spec
 

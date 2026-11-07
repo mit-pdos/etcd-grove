@@ -1106,42 +1106,6 @@ theorem kv_cert_step (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : �
     · iunfold kvCert; iright; iexact He
     ipureintro; exact hl'
 
-/-- **A store log's certificate, read at the server** (`kv_cert_read`): the log has at most two
-revisions, or it is the KV model of a committed raft log (the store's free certificate `0 ↦ []`
-is not the server's: the start log is not empty). -/
-theorem kv_cert_read (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNames)
-    (hγ : γs.cok = γk.cok) (E : CoPset) (hE : ↑kvcN ⊆ E) (l : mvcc.Log) :
-    ⊢ kvCertInv (GF := GF) γ γk -∗ mvcc.certOk γs l ={E}=∗
-      ⌜l.length ≤ 2⌝ ∨ ∃ A, srvRLogLb γ A ∗ ⌜kvModel γk A = l⌝ := by
-  unfold mvcc.certOk
-  rw [hγ]
-  iintro #Hinv (%h | #He | #He)
-  · imodintro; ileft; ipureintro; exact h
-  · iunfold kvCertInv at Hinv
-    iinv Hinv with >Hi Hclose
-    icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
-    ihave %Hm := ghost_map_lookup $$ HC He
-    imod Hclose $$ [HC Hhi'] with -
-    · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
-    imodintro
-    iright
-    obtain ⟨-, -, -, A, hA, hm⟩ := Hok.1 _ _ Hm
-    iexists A
-    isplitr
-    · iapply srvRLogLb_mono γ A Lb hA $$ HLb
-    ipureintro; exact hm
-  · iunfold kvCertInv at Hinv
-    iinv Hinv with >Hi Hclose
-    icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
-    ihave %Hm := ghost_map_lookup $$ HC He
-    obtain ⟨-, -, -, A, -, hm⟩ := Hok.1 _ _ Hm
-    have h0 := kvRaftOf_extends γk.c0 γk.ch0 γk.log0 A
-    unfold kvModel at hm
-    rw [hm] at h0
-    have := h0.length_le
-    simp only [List.length_nil] at this
-    omega
-
 /-- **What a linearizable read reads** (2026-10-14, unit T1): a log `l` with the mode off's raft
 witness (`kvNxOff`), extending the log `L₀` applied through `i`, is the KV model of a committed raft
 log through an index at least `i`. (Strict M1, 2026-11-06: over the store's witness `E.Nx l`, which

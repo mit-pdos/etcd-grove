@@ -39,6 +39,7 @@ public import Spec.time.Duration__Seconds
 public import Spec.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposerLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CompactMode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WrapLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.DispatchLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
@@ -169,7 +170,7 @@ local macro "txn_close_err" : tactic => `(tactic| (
   iapply HΦ
   iframe Hlt
   isplitl [Hsr Hlr Hrr Hard]
-  · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+  · iunfold srvRdCall; icases Hsr with ⟨Htt, Hmr⟩; iframe Htt Hmr Hlr Hcal Hrr Hard
   (try rw [hro]); (try simp only [↓reduceIte])
   iframe Hcred
   iright
@@ -183,11 +184,12 @@ local macro "txn_tail" : tactic => `(tactic| (
   wp_apply time.wp_Now as %start -
   (try wp_auto)
   wp_apply (hDS s E ρ γr ctx2 _ _ _
-    iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗ mvcc.storeReader E.s E.γ ∗
-      srvLgReader s)
+    iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗
+      (threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗ srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
-      err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
-      mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
+      err_ptr ↦ errv ∗ (threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗ srvLgReader s ∗
+      srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+      ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧ mvcc.LogWf' log⌝ ∗
       ((⌜respv = null ∧ errv ≠ GoInterface.nil⌝ ∗ txn.checkErrIs errv) ∨
        (⌜errv = GoInterface.nil⌝ ∗
          txn.txnResponseIs false respv (W64 ((log.length : Int) - 1)) t
@@ -202,7 +204,7 @@ local macro "txn_tail" : tactic => `(tactic| (
     isplitr
     · iintro %a %info %dq !> %Φ' ⟨Ha, Hard⟩ HΦ'
       wp_auto
-      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD E.authMode E.RW a info dq r t none) $$ [Ha Hard]
+      wp_apply (hCTA w.auth w.lessor E.γ E.Pk E.f E.BkTie E.RD E.authMode E.RW a info dq r t none) $$ [Ha Hard]
         as %cerr ⟨Ha, Hard, -, #HcE0, -, #Hcl⟩
       · iframe # Ha Hard
         isplitr
@@ -228,24 +230,43 @@ local macro "txn_tail" : tactic => `(tactic| (
       wp_apply hKV s w.kv $$ []
       · iframe #
       (try wp_auto)
-      imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-      wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.s E.γ 0 logR t (some trc) false)
-          $$ [Hsr Hnone Hown0]
-        as %respv %trv %errv ⟨Hsr, -, %log, #Hcert, #Hcok, %Hlog, Hres⟩
-      · iframe # Hsr Hnone
+      -- (the `lean` merge, R6) `txn.Txn` over mvcc's API, at the store invariant's read update
+      -- from the read's floor `logR`, with the call's reader token
+      icases Hsr with ⟨Htt, Hmr⟩
+      ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) HpL HrL E.kv E.γ E.γs logR $$ HkS HcR
+      wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.γ t (some trc) false
+          (srvApi.kvReadAtG E.Nx E.γs logR)) $$ [Htt Hmr Hown0 HAU]
+        as %respv %trv %errv ⟨Htt, Hmr, %σ, Hq, -, Hres⟩
+      · iframe # Htt Hmr
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
         isplitr
         · ipureintro; exact ⟨Hlgn, hro, Hg⟩
-        iintro !> %log' - #Hc'
-        iunfold storeSmall at Hsmall
-        ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
-        iapply Hsmall $$ %log' Hs'
+        iunfold srvApi.auRead at HAU
+        iexact HAU
+      iunfold srvApi.kvReadAtG at Hq
+      icases Hq with ⟨%Hpre, #Hcert, #Hcok, #Hrc, %Hσ⟩
+      have Hwf := (mvcc.api.reach_logWf σ Hσ.1).1
+      have Hst2 : 2 ≤ σ.log.length := by
+        have := (srvApi.reach_prefix σ Hσ.1).1.length_le
+        simpa [mvcc.api.mvccStart] using this
+      have hrev : (W64 (σ.rev : Int) : w64) = W64 ((σ.log.length : Int) - 1) := by
+        rw [mvcc.api.MvccState.rev]
+        show W64 ((σ.log.length - 1 : Nat) : Int) = W64 ((σ.log.length : Int) - 1)
+        congr 1
+        omega
+      irevert Hres
+      rw [hrev]
+      iintro Hres
+      ihave Hsr : iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) $$ [Htt Hmr]
+      · iframe Htt Hmr
       iapply HΦ'
-      iexists respv, errv, log
-      iframe Hresp Herr Hsr Hlr Hcert Hcok
+      iexists respv, errv, σ.log
+      iframe Hresp Herr Hsr Hlr Hcert Hcok Hrc
       isplitr
-      · ipureintro; exact Hlog
+      · ipureintro
+        refine ⟨Hpre, by have := Hσ.2; omega, ?_, Hwf⟩
+        intro h; rw [h] at Hst2; simp at Hst2
       icases Hres with (⟨%H1, #Hce, %t', %te', Hown, %Hteq⟩ | ⟨%H2, Hown, %Hteq, #Hr, Hh⟩ |
         ⟨-, Hown, %Hteq, #He, #Hrd, Hh⟩)
       · have htv := Hteq trc (by simp) (by simp)
@@ -281,7 +302,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       □ (⌜respv = null⌝ ∨ txn.txnRespShow respv ∗
         txn.sizeOk (interface.mkOk (go.GoType.PointerType etcdserverpb.TxnResponse.ty) #respv) P) ∗
       (P -∗ srvLgReader s -∗ Φ (PairV #rr #re)))) at (exceptionDo _) with [-defer trace]
-  · icases Hds with ⟨Hard, (⟨%Hs0, #Hcls, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
+  · icases Hds with ⟨Hard, (⟨%Hs0, #Hcls, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, #Hrc, %Hlog, Hres, Hown⟩ |
       ⟨%Hs0, #HsE, Hg⟩)⟩
     · subst Hs0
       wp_auto_lc 6
@@ -325,7 +346,7 @@ local macro "txn_tail" : tactic => `(tactic| (
         iapply HΦ
         iframe Hlt
         isplitl [Hsr Hlr Hrr Hard]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+        · iunfold srvRdCall; icases Hsr with ⟨Htt, Hmr⟩; iframe Htt Hmr Hlr Hcal Hrr Hard
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         ileft
@@ -346,11 +367,11 @@ local macro "txn_tail" : tactic => `(tactic| (
           rw [authFloorAt_off]; split <;> (ipureintro; trivial)
         iunfold txnReadOk
         iexists log
-        iframe Hcert Hcok Hh
+        iframe Hcert Hcok Hrc Hh
         isplitr
         · ipureintro
           have := Hlog.1.length_le
-          exact ⟨by omega, by omega, HFR.trans Hlog.1⟩
+          exact ⟨Hlog.2.2.2, by omega, by omega, HFR.trans Hlog.1⟩
         isplitr
         · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
         isplitr
@@ -363,7 +384,7 @@ local macro "txn_tail" : tactic => `(tactic| (
         ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
         · iexact HsE
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-          ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hres, Hown⟩)
+          ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, -, Hres, Hown⟩)
         · wp_auto
           ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
           · iexists false; iexact Hown0
@@ -412,11 +433,12 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
   wp_apply time.wp_Now as %start -
   (try wp_auto)
   wp_apply (hDS ctx2 _ _ _
-    iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗ mvcc.storeReader E.s E.γ ∗
-      srvLgReader s)
+    iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗
+      (threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗ srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
-      err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
-      mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
+      err_ptr ↦ errv ∗ (threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗ srvLgReader s ∗
+      srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+      ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧ mvcc.LogWf' log⌝ ∗
       ((⌜respv = null ∧ errv ≠ GoInterface.nil⌝ ∗ txn.checkErrIs errv) ∨
        (⌜errv = GoInterface.nil⌝ ∗
          txn.txnResponseIs false respv (W64 ((log.length : Int) - 1)) t
@@ -458,24 +480,43 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
       wp_apply hKV s w.kv $$ []
       · iframe #
       (try wp_auto)
-      imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-      wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.s E.γ 0 logR t (some trc) false)
-          $$ [Hsr Hnone Hown0]
-        as %respv %trv %errv ⟨Hsr, -, %log, #Hcert, #Hcok, %Hlog, Hres⟩
-      · iframe # Hsr Hnone
+      -- (the `lean` merge, R6) `txn.Txn` over mvcc's API, at the store invariant's read update
+      -- from the read's floor `logR`, with the call's reader token
+      icases Hsr with ⟨Htt, Hmr⟩
+      ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) HpL HrL E.kv E.γ E.γs logR $$ HkS HcR
+      wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.γ t (some trc) false
+          (srvApi.kvReadAtG E.Nx E.γs logR)) $$ [Htt Hmr Hown0 HAU]
+        as %respv %trv %errv ⟨Htt, Hmr, %σ, Hq, -, Hres⟩
+      · iframe # Htt Hmr
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
         isplitr
         · ipureintro; exact ⟨Hlgn, hro, Hg⟩
-        iintro !> %log' - #Hc'
-        iunfold storeSmall at Hsmall
-        ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
-        iapply Hsmall $$ %log' Hs'
+        iunfold srvApi.auRead at HAU
+        iexact HAU
+      iunfold srvApi.kvReadAtG at Hq
+      icases Hq with ⟨%Hpre, #Hcert, #Hcok, #Hrc, %Hσ⟩
+      have Hwf := (mvcc.api.reach_logWf σ Hσ.1).1
+      have Hst2 : 2 ≤ σ.log.length := by
+        have := (srvApi.reach_prefix σ Hσ.1).1.length_le
+        simpa [mvcc.api.mvccStart] using this
+      have hrev : (W64 (σ.rev : Int) : w64) = W64 ((σ.log.length : Int) - 1) := by
+        rw [mvcc.api.MvccState.rev]
+        show W64 ((σ.log.length - 1 : Nat) : Int) = W64 ((σ.log.length : Int) - 1)
+        congr 1
+        omega
+      irevert Hres
+      rw [hrev]
+      iintro Hres
+      ihave Hsr : iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) $$ [Htt Hmr]
+      · iframe Htt Hmr
       iapply HΦ'
-      iexists respv, errv, log
-      iframe Hresp Herr Hsr Hlr Hcert Hcok
+      iexists respv, errv, σ.log
+      iframe Hresp Herr Hsr Hlr Hcert Hcok Hrc
       isplitr
-      · ipureintro; exact Hlog
+      · ipureintro
+        refine ⟨Hpre, by have := Hσ.2; omega, ?_, Hwf⟩
+        intro h; rw [h] at Hst2; simp at Hst2
       icases Hres with (⟨%H1, #Hce, %t', %te', Hown, %Hteq⟩ | ⟨%H2, Hown, %Hteq, #Hr, Hh⟩ |
         ⟨-, Hown, %Hteq, #He, #Hrd, Hh⟩)
       · have htv := Hteq trc (by simp) (by simp)
@@ -511,7 +552,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
       □ (⌜respv = null⌝ ∨ txn.txnRespShow respv ∗
         txn.sizeOk (interface.mkOk (go.GoType.PointerType etcdserverpb.TxnResponse.ty) #respv) P) ∗
       (P -∗ srvLgReader s -∗ Φ (PairV #rr #re)))) at (exceptionDo _) with [-defer trace]
-  · icases Hds with ⟨Hard, (⟨%Hs0, #Hcls, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
+  · icases Hds with ⟨Hard, (⟨%Hs0, #Hcls, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, #Hrc, %Hlog, Hres, Hown⟩ |
       ⟨%Hs0, #HsE, Hg⟩)⟩
     · subst Hs0
       wp_auto_lc 6
@@ -555,7 +596,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         iapply HΦ
         iframe Hlt
         isplitl [Hsr Hlr Hrr Hard]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+        · iunfold srvRdCall; icases Hsr with ⟨Htt, Hmr⟩; iframe Htt Hmr Hlr Hcal Hrr Hard
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         ileft
@@ -573,11 +614,11 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
           iexact Hfl
         iunfold txnReadOkM
         iexists log
-        iframe Hcert Hcok Hh
+        iframe Hcert Hcok Hrc Hh
         isplitr
         · ipureintro
           have := Hlog.1.length_le
-          exact ⟨by omega, by omega, HFR.trans Hlog.1⟩
+          exact ⟨Hlog.2.2.2, by omega, by omega, HFR.trans Hlog.1⟩
         isplitr
         · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
         isplitr
@@ -590,7 +631,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
         · iexact HsE
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-          ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hres, Hown⟩)
+          ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, -, Hres, Hown⟩)
         · wp_auto
           ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
           · iexists false; iexact Hown0
@@ -660,6 +701,7 @@ theorem EtcdServer.Txn.wp_proof
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     (hTxn : txn.Txn.spec (GF := GF) (hG := hG))
+    (HpL : mvcc.api.persistent.law (GF := GF)) (HrL : mvcc.api.mvccState_reachable.law (GF := GF))
     (hDS : EtcdServer.doSerialize.spec (GF := GF) (hG := hG))
     (hWV : context.WithValue.spec (GF := GF) (hG := hG))
     (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
@@ -675,13 +717,21 @@ theorem EtcdServer.Txn.wp_proof
   iunfold isServerReadM at Hrd'
   icases Hrd' with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
-  icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, #Hrvf, #Hrv, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
-    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
+  icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, %Hkveq0, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
+    %Hlgn, #Hwad, #Hterm, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
+  -- (the `lean` merge, R6) the store invariant, for `txn.Txn`'s read update
+  ihave ⟨#HkS, %Hwit⟩ := srvKVInvsM_kvStoreInv E.authOn s E γr $$ Hkvi
+  haveI := Hwit.1
+  haveI := Hwit.2.1
+  haveI := Hwit.2.2.1
+  haveI := Hwit.2.2.2
   -- the floor (the vertical slice's unit V2), as `Range`'s
-  ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
+  ihave ⟨%log₀, #Hc0, %HL0⟩ := kvLogLb_join E.γs log₀' F $$ [$Hc0' $HF]
   have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0'.1 HL0.1.length_le
   iunfold srvRdCall at Hcall
-  icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
+  icases Hcall with ⟨Htt, Hmr, Hlr, #Hcal, Hrr, Hard⟩
+  ihave Hsr : iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) $$ [Htt Hmr]
+  · iframe Htt Hmr
   ihave #Hsrv' := Hsrv
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv'
   iunfold srvReqFieldsAtM at Hv
@@ -878,7 +928,7 @@ theorem EtcdServer.Txn.wp_proof
       icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
       · subst Herr
         iunfold appliedOk at Hok
-        icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+        icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -⟩
         obtain ⟨Hstep, Hfl, Hxlb, Hskip⟩ := Hstep0
         have Hk : apply.dispatchKind rq' = .txn := by
           rw [Hwire.2.2.1]
@@ -909,7 +959,7 @@ theorem EtcdServer.Txn.wp_proof
         iapply HΦ
         iframe Hlt
         isplitl [Hsr Hlr Hrr Hard]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+        · iunfold srvRdCall; icases Hsr with ⟨Htt, Hmr⟩; iframe Htt Hmr Hlr Hcal Hrr Hard
         ileft
         isplitr
         · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
@@ -937,7 +987,7 @@ theorem EtcdServer.Txn.wp_proof
           iapply HΦ
           iframe Hlt
           isplitl [Hsr Hlr Hrr Hard]
-          · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+          · iunfold srvRdCall; icases Hsr with ⟨Htt, Hmr⟩; iframe Htt Hmr Hlr Hcal Hrr Hard
           simp only [Bool.false_eq_true, ↓reduceIte]
           iright
           isplitr
@@ -1044,7 +1094,7 @@ theorem EtcdServer.Txn.wp_proof
         have Hrq : rq' = apply.withHeader (irrTxn tw) hm := Hwire.2.2.2 hz
         subst Hrq
         iunfold appliedOkM at Hok
-        icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok, -⟩
+        icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -⟩
         obtain ⟨Hstep, Hfl, Hskip, Hmo, -⟩ := Hstep0
         have Hk : apply.dispatchKind (apply.withHeader (irrTxn tw) hm) = .txn := by
           simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
@@ -1075,7 +1125,7 @@ theorem EtcdServer.Txn.wp_proof
         iapply HΦ
         iframe Hlt
         isplitl [Hsr Hlr Hrr Hard]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+        · iunfold srvRdCall; icases Hsr with ⟨Htt, Hmr⟩; iframe Htt Hmr Hlr Hcal Hrr Hard
         simp only [Bool.false_eq_true, ↓reduceIte]
         ileft
         isplitr
@@ -1110,7 +1160,7 @@ theorem EtcdServer.Txn.wp_proof
           iapply HΦ
           iframe Hlt
           isplitl [Hsr Hlr Hrr Hard]
-          · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+          · iunfold srvRdCall; icases Hsr with ⟨Htt, Hmr⟩; iframe Htt Hmr Hlr Hcal Hrr Hard
           simp only [Bool.false_eq_true, ↓reduceIte]
           iright
           isplitr
@@ -1150,7 +1200,7 @@ theorem EtcdServer.Txn.wp_proof
           traceutil.ownTrace trc false ∗
           ((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ Loc.null ∗ «$res1_ptr» ↦ GoInterface.nil ∗
               ∃ logR : mvcc.Log, ⌜2 ≤ logR.length ∧ F <+: logR⌝ ∗
-              □ mvcc.idxCert E.γ.idx logR ∗
+              □ srvApi.kvLogLb E.γs logR ∗
               □ (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) ∗
               □ (if txn.txnSerializable t then iprop(True) else
                 ∃ g' : GName, readWitAt γr Qr g' logR : IProp GF)) ∨
@@ -1229,7 +1279,7 @@ theorem EtcdServer.Txn.wp_proof
         iapply HΦ
         iframe Hlt
         isplitl [Hsr Hlr Hrr Hard]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+        · iunfold srvRdCall; icases Hsr with ⟨Htt, Hmr⟩; iframe Htt Hmr Hlr Hcal Hrr Hard
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         iright
@@ -1272,7 +1322,7 @@ theorem EtcdServer.Txn.wp_proof
           traceutil.ownTrace trc false ∗
           ((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ Loc.null ∗ «$res1_ptr» ↦ GoInterface.nil ∗
               ∃ logR : mvcc.Log, ⌜2 ≤ logR.length ∧ F <+: logR⌝ ∗
-              □ mvcc.idxCert E.γ.idx logR ∗
+              □ srvApi.kvLogLb E.γs logR ∗
               □ (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) ∗
               □ (if txn.txnSerializable t then iprop(True) else
                 ∃ g' : GName, readWitAt γr Qr g' logR : IProp GF) ∗
@@ -1370,7 +1420,7 @@ theorem EtcdServer.Txn.wp_proof
         iapply HΦ
         iframe Hlt
         isplitl [Hsr Hlr Hrr Hard]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+        · iunfold srvRdCall; icases Hsr with ⟨Htt, Hmr⟩; iframe Htt Hmr Hlr Hcal Hrr Hard
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         iright

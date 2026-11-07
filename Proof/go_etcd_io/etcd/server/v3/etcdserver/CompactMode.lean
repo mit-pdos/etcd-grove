@@ -51,6 +51,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- **Two floors of the store's committed log are below a third** (the `lean` merge, R6,
+2026-11-07: `idxCert_join`'s, over the floors `kvLogLb`, two of which are comparable). -/
+theorem kvLogLb_join (γs : srvApi.KVSNames) (log F : mvcc.Log) :
+    srvApi.kvLogLb (GF := GF) γs log ∗ srvApi.kvLogLb γs F ⊢
+      ∃ L0 : mvcc.Log, srvApi.kvLogLb γs L0 ∗ ⌜log <+: L0 ∧ F <+: L0⌝ := by
+  iintro ⟨#H1, #H2⟩
+  ihave #H1' := H1
+  ihave #H2' := H2
+  iunfold srvApi.kvLogLb at H1'
+  iunfold srvApi.kvLogLb at H2'
+  ihave %Hp := mono_list_lb_valid γs.slog log F $$ H1' H2'
+  rcases Hp with h | h
+  · iexists F; iframe H2; ipureintro; exact ⟨h, List.prefix_refl _⟩
+  · iexists log; iframe H1; ipureintro; exact ⟨List.prefix_refl _, h⟩
+
 /-- **A revision the store has reached** (persistent): a lower bound of the store's committed
 log (`kvLogLb`) longer than it, with the environment's raft witness of it (`E.Nx`: the store's
 `Rev` gives both; M2, the apply side, G2 by the user's (a'), 2026-10-31: the server reads it as the
