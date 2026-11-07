@@ -176,7 +176,7 @@ theorem Main.wp_proof
   · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23976" E { ρ with wait := γw } ρ.rd cfg
       (fun _ _ _ => iprop(client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23976" ∗
-        etcdstart.etcdLeaseGrantLiveAt go!"127.0.0.1:23976" srv E)))
+        etcdstart.etcdLeaseGrantLiveAt go!"127.0.0.1:23976" srv E ρ.rd)))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms Htok2] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -203,7 +203,7 @@ theorem Main.wp_proof
   icases Hga with ⟨#Hrg, #Hrttl, #Hrls⟩
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23976" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23976" [] null null [] null default) Hlg
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23976" [] null null [] null default) Hlg
       (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -228,7 +228,7 @@ theorem Main.wp_proof
   -- `cli.Lease.Grant(gctx, grantTTL)`, `Q`: the lease live in the history from an index, its
   -- request `1`
   wp_apply (wp_Grant lp [go!"127.0.0.1:23976"]
-      (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) (mvcc.api.mvccLeases E.γ))
+      (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E ρ.rd false) (mvcc.api.mvccLeases E.γ))
       (fun m => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom (mvcc.api.mvccLeases E.γ) i m.id l ∗
         lease.leaseReqIs (mvcc.api.mvccLeases E.γ) m.id (W64 1))) gctx gcd) as %gr %gerr Hgr
   · iframe #

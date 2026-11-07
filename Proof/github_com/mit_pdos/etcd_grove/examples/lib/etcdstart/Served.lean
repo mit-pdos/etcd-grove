@@ -103,6 +103,14 @@ theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
     ipureintro; exact HC
   ipureintro; exact Hnr
 
+/-- **The server's watch facts, as the watch path names them** (R9, the `lean` merge: v3rpc's
+`SrvW` of the server at its apply environment `E`, read names `γr` and auth mode `on`): the store's
+handle and names, the store invariant's namespace, the certified bounds of the notified log
+(`srvApi.histLb`, what `client.srvKVFacts` ties `W.histLb` to) and the compaction permits
+(`srvApi.crevOk`). -/
+def srvWOf (E : apply.AEnv GF) (γr : ReadNames) (on : Bool) : v3rpc.SrvW GF :=
+  ⟨E.kv, E.γ, srvApi.kvsN, srvApi.histLb γr on E.γs, srvApi.crevOk γr⟩
+
 /-- **The reader slots a started member leaves for its gRPC runs** (`memberUp`'s stocks, written
 once for `kv_served` and `kv_lease_served`): of `s.leadTimeMu`, `s.lgMu` (two spent on `Start`),
 the apply environment's reader resource, the store's, the read loop's and `s.bemu`'s, from which

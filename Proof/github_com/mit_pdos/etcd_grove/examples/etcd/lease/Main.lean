@@ -163,7 +163,7 @@ theorem Main.wp_proof
   icases Hlr with ⟨#Hrttl, #Hrls⟩
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23936" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23936" [] null null [] null default) Hlg
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23936" [] null null [] null default) Hlg
       (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
