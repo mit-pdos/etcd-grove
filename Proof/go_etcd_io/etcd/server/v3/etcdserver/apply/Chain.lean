@@ -860,13 +860,14 @@ restated over the API): the owner's half of `le.rd` at a deleter that is the sto
 def rdHeld (E : AEnv GF) : IProp GF :=
   iprop(∃ rd : GoFunc, lease.rdOwn (mvccLeases E.γ) rd ∗ mvccDeleter rd E.γ)
 
-/-- **The apply thread's tokens for one call** (the reader tokens of mvcc's API, 2026-11-06): its
-thread token (`threadTok`) and a reader token of the store (`mvccReaders E.γ 1`: `newHeader`'s
-`KV.Rev`, the KV methods' transactions and the lessor's range deleter each hold one while they
-read). Every chain triple takes it and gives it back, where it took `threadTok` alone; the server
-hands one per call. -/
+/-- **The apply thread's token for one call** (the reader tokens of mvcc's API, 2026-11-06): a
+reader token of the store (`mvccReaders E.γ 1`: `newHeader`'s `KV.Rev`, the KV methods'
+transactions and the lessor's range deleter each hold one while they read). Every chain triple
+takes it and gives it back; the server hands one per call. (Until R12, 2026-11-07, also the thread
+token `threadTok`, which only mvcc's contracts used: since mvcc's reader token carries the store's
+lock slots they take none.) -/
 def applyTok (E : AEnv GF) : IProp GF :=
-  iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+  iprop(mvcc.api.mvccReaders E.γ 1)
 
 /-- **The apply thread's KV resources** at the committed log `log` (strict M1, 2026-11-05: the
 draft's `kvOwnA`): its half of the store's state (`wSt`), the backend's share and hook (`kvBk`),
@@ -1405,7 +1406,7 @@ critical section of the batch lock, the hook first) or `Pre` (it did not). The m
 may open a store write transaction (`Put`, `DeleteRange`, `Txn`, `LeaseRevoke`) take the
 backend's share (`mPre`; strict M1, 2026-11-05: until then a write token `mvcc.storeWT`), the
 components' writers the backend's tokens (`mPreW`). Every triple takes and gives back the thread's
-tokens (`applyTok E`: `threadTok` and a reader token of the store). -/
+token (`applyTok E`: a reader token of the store). -/
 
 /-- **The certificates of the logs `rq` may commit** through the chain `c` at `log` (persistent;
 2026-10-14, unit T1): the store's caller certifies (`mvcc.certOk`) the log after every outcome of

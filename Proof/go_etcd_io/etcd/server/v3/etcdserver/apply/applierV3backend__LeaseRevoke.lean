@@ -122,13 +122,13 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iunfold apply.revokeClause at HRv
   iunfold apply.rdHeld at Hrdat
   iunfold apply.applyTok at Htt
-  icases Htt with ⟨Htt, Hmr⟩
-  wp_apply HRv $$ [$Htt $Hmr $Hrdat $Hrev $Hbk $Hhk $Htie $Hcs $Hau $Hown $Hrvk $Hknown0 $HRO]
-    as %err ⟨Htt, Hmr, Hrdat, Hbk, Htie, #Herr, Hcase⟩
+  icases Htt with Hmr
+  wp_apply HRv $$ [$Hmr $Hrdat $Hrev $Hbk $Hhk $Htie $Hcs $Hau $Hown $Hrvk $Hknown0 $HRO]
+    as %err ⟨Hmr, Hrdat, Hbk, Htie, #Herr, Hcase⟩
   · ipureintro
     exact ⟨rfl, Hrq.2.2.2, Hreach⟩
-  ihave Htt : apply.applyTok E $$ [Htt Hmr]
-  · iunfold apply.applyTok; iframe Htt Hmr
+  ihave Htt : apply.applyTok E $$ [Hmr]
+  · iunfold apply.applyTok; iframe Hmr
   icases Hcase with
     (⟨⟨%Hnf, %Hnd⟩, ⟨%e, #He, %Hee⟩, HPre, Hown, Hrvk, -, HRO⟩ |
      ⟨%Hok, Hw, HPost, Hown, Hrvk, #Hknown', HRO⟩)

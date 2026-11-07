@@ -12,7 +12,8 @@ imports the txn package's and mvcc's results the package calls (`Put`, `DeleteRa
 (The mvcc merge, 2026-11-06) The chain's triples take and give the thread's token `threadTok`, and
 the writing ones a floor `kvLogLb E.γs F` (strict M1): `chain_put`, `chain_deleteRange`,
 `chain_txn` take both, `chain_range` and `chain_revoke` the token. (The reader tokens, 2026-11-06:
-the token is `applyTok E`, `threadTok` with a reader token of the store, `mvccReaders E.γ 1`.)
+the token is `applyTok E`, `threadTok` with a reader token of the store, `mvccReaders E.γ 1`; R12,
+2026-11-07: the reader token alone.)
 -/
 module
 

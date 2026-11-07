@@ -50,7 +50,7 @@ theorem lease.lessor.Revoke.wp_proof
     lease.lessor.Revoke.spec (GF := GF) (hG := hG) := by
   intro lp γ id rd q B P f σ₀ L r Pre Q Post Y
   dsimp only
-  wp_start as ⟨#Hinv, #Hrev, Htt, Hrdr, Hro, Hrd, Hbk, #Hhook, Hcs, %Hlen, Hau, Hown, Hrvk, Hrb, %Hlpar,
+  wp_start as ⟨#Hinv, #Hrev, Hrdr, Hro, Hrd, Hbk, #Hhook, Hcs, %Hlen, Hau, Hown, Hrvk, Hrb, %Hlpar,
     Hbeon⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -91,7 +91,7 @@ theorem lease.lessor.Revoke.wp_proof
       ipureintro; exact HL
     (try wp_auto)
     iapply HΦ
-    iframe Htt Hrdr Hro Hbk Hbeon
+    iframe Hrdr Hro Hbk Hbeon
     ileft
     iunfold srvApi.csContractA at Hcs
     icases Hcs with ⟨HPre, -, -⟩
@@ -165,7 +165,7 @@ theorem lease.lessor.Revoke.wp_proof
     wp_apply Hrdt $$ %q %B %P %Pre %Q %f
         %(fun σ => iprop(⌜σ = σ₀⌝ ∗
           srvApi.auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y))
-        [$Htt $Hrdr $Hbk $Hhook $HPre $Htr $Hau] as %tw ⟨Hbk, ⟨%trace, %σ, Htx, %Hσ, Hend⟩, HQ⟩
+        [$Hrdr $Hbk $Hhook $HPre $Htr $Hau] as %tw ⟨Hbk, ⟨%trace, %σ, Htx, %Hσ, Hend⟩, HQ⟩
     subst σ
     (try wp_auto)
     -- `keys := l.Keys()`: the keys the owner's item map puts on `id`
@@ -395,7 +395,7 @@ theorem lease.lessor.Revoke.wp_proof
                         AU <{ ∃∃ (σ2 : MvccState), mvccState γ σ2 }> @ ⊤ \ ↑mvccN, ∅
                           <{ ⌜σ2 = σ₀.notify (ks'.map mvcc.Change.del)⌝ ∗
                               mvccState γ σ2.commitPending, COMM Q' }> }> -∗
-                ▷ (threadTok ∗ mvccReaders γ 1 ∗ mvccBackend γ q B P ∗ Q' -∗ Ψ #()) -∗
+                ▷ (mvccReaders γ 1 ∗ mvccBackend γ q B P ∗ Q' -∗ Ψ #()) -∗
                 WP (App (Val #(methods tyX go!"End" vX)) (Val #())) {{ Ψ }})))
         $$ [$«$a1» $Htx $Hbk $Hrb] as ⟨-, Hbk, Hrb, HEnd⟩
       · iframe HLeaseG
@@ -413,7 +413,7 @@ theorem lease.lessor.Revoke.wp_proof
       · iPkgInit
       rw [hD]
       iunfold srvApi.auEnd at Hend
-      wp_apply HEnd $$ %Y [$Hmpkg $Hbk $HP $Hend] as ⟨Htt, Hrdr, Hbk, HY⟩
+      wp_apply HEnd $$ %Y [$Hmpkg $Hbk $HP $Hend] as ⟨Hrdr, Hbk, HY⟩
       -- `leaseRevoked.Inc()`
       iunfold counterSpec at Hcrvs
       icases Hcrvs with #Hcrvs
@@ -478,7 +478,7 @@ theorem lease.lessor.Revoke.wp_proof
       wp_apply (wp_revokec_close c) $$ [$Hrcl]
       (try wp_auto)
       iapply HΦ
-      iframe Htt Hrdr Hbk
+      iframe Hrdr Hbk
       isplitl [Hrof]
       · iunfold rdOwn; iexists lp; iframe Hpin Hrof
       isplitl [Hbeon]

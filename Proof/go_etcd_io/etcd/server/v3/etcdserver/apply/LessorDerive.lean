@@ -190,21 +190,21 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
   iintro ⟨#Hpkg, #Hmpkg, #Hinv, #Hlens⟩
   iunfold revokeClause
   iintro !> %id %σ₀ %L %rs %q %B %Pre %Q %Post %Y %Φ !>
-    ⟨Htt, Hmr, ⟨%rd, Hro, #Hdel⟩, #Hrev, Hbk, #Hhook, HBT, Hcs, %Hpure, Hau, Hown, Hrvk, #HK, HRO⟩ HΦ
+    ⟨Hmr, ⟨%rd, Hro, #Hdel⟩, #Hrev, Hbk, #Hhook, HBT, Hcs, %Hpure, Hau, Hown, Hrvk, #HK, HRO⟩ HΦ
   iunfold revokeLens at Hlens
   icases Hlens $$ %B %rs HBT HRO with ⟨HBT, Hrb, %hlp, Hbe, Hcl⟩
   iapply (hRv lp γ id rd q B (Pk B) f σ₀ L rs.bk Pre Q Post Y) $$
-    [Htt Hmr Hro Hbk Hcs Hau Hown Hrvk Hrb Hbe]
-  · iframe Htt Hmr Hro Hbk Hcs Hau Hown Hrvk Hrb Hbe Hpkg Hmpkg Hinv Hrev Hdel Hhook
+    [Hmr Hro Hbk Hcs Hau Hown Hrvk Hrb Hbe]
+  · iframe Hmr Hro Hbk Hcs Hau Hown Hrvk Hrb Hbe Hpkg Hmpkg Hinv Hrev Hdel Hhook
     ipureintro; exact ⟨Hpure, hlp⟩
-  iintro !> %err ⟨Htt, Hmr, Hro, Hbk, Hbe, Hcase⟩
+  iintro !> %err ⟨Hmr, Hro, Hbk, Hbe, Hcase⟩
   icases Hcase with
     (⟨%Hnin, ⟨%e, #He, %Herr⟩, HPre, Hown, Hrvk, Hrb⟩ |
      ⟨%Hok, HY, HPost, Hown, Hrvk, Hrb⟩)
   · -- not live: nothing changed
     ihave %hD := leaseDels_notLive L σ₀.log id Hnin $$ HK
     iapply HΦ
-    iframe Htt Hmr Hbk HBT
+    iframe Hmr Hbk HBT
     isplitl [Hro]
     · iexists rd; iframe Hro Hdel
     isplitr
@@ -223,7 +223,7 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
   · -- live: the keys deleted, the record deleted
     obtain ⟨hid, rfl⟩ := Hok
     iapply HΦ
-    iframe Htt Hmr Hbk HBT
+    iframe Hmr Hbk HBT
     isplitl [Hro]
     · iexists rd; iframe Hro Hdel
     isplitr

@@ -54,7 +54,7 @@ theorem apply.applierV3backend.Compaction.wp_proof
   intro E p cr rev log crev Pre Q Post info
   wp_start as ⟨#Hb, #Hcr, %Hadm, HCp, Htt, Hpre, Hc⟩
   iunfold apply.applyTok at Htt
-  icases Htt with ⟨Htt, Hmr⟩
+  icases Htt with Hmr
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   ihave #Hok' := Hok
@@ -116,8 +116,8 @@ theorem apply.applierV3backend.Compaction.wp_proof
   rw [Hkveq]
   simp only [interface.mkOk]
   wp_apply (hCompactC E.γ trc false rev 1 B (E.Pk B) E.f Pre Q Post iprop(True) iprop(True) _)
-    $$ [$Hkv' $Hopen $Htt $Htrc $Hbk $HPre $Hhr $Hfin $Hau]
-    as %ch %err ⟨Hopen, Htt, Htrc, Hbk, %σ, ⟨%Hσ, Hw, Hcro⟩, Hout⟩
+    $$ [$Hkv' $Hopen $Htrc $Hbk $HPre $Hhr $Hfin $Hau]
+    as %ch %err ⟨Hopen, Htrc, Hbk, %σ, ⟨%Hσ, Hw, Hcro⟩, Hout⟩
   · iframe #
     isplitr
     · ipureintro; exact Htrcnn
@@ -157,14 +157,14 @@ theorem apply.applierV3backend.Compaction.wp_proof
     · iapply ownSlice_nil
     wp_apply (hRangeC E.γ ctx2 _ true ksl slice.nil _ []
         (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) _)
-      $$ [$Hkv' $Htt $Hmr $HauR']
-      as %rr %rerr ⟨Htt, Hmr, %Hrrn, %σr, ⟨-, Hw⟩, Hrout, -⟩
+      $$ [$Hkv' $Hmr $HauR']
+      as %rr %rerr ⟨Hmr, %Hrrn, %σr, ⟨-, Hw⟩, Hrout, -⟩
     · iframe #
     ihave ⟨%rv0, Hrr⟩ := rangeOutcomeC_res rr rerr σr.log _ σr.crev _ _ _ _ rfl (Hrrn rfl) $$ Hrout
     wp_auto
     iapply HΦ
     iunfold apply.applyTok
-    iframe Htt Hmr
+    iframe Hmr
     isplitl [Hw Htie Hbk Hll Hrd]
     · iapply (apply.kvOwn_of_split E log B (apply.cmpRevAfter crev rev))
       iframe Hw Htie
@@ -197,7 +197,7 @@ theorem apply.applierV3backend.Compaction.wp_proof
       unfold apply.cmpRevAfter; split <;> omega
     iapply HΦ
     iunfold apply.applyTok
-    iframe Htt Hmr
+    iframe Hmr
     isplitl [Hw Htie Hbk Hll Hrd]
     · iapply (apply.kvOwn_of_split E log B (apply.cmpRevAfter crev rev))
       iframe Hw Htie

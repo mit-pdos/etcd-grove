@@ -30,7 +30,7 @@ theorem txn.Count.wp_proof
     (hRange : txn.Range.spec (GF := GF) (hG := hG)) :
     txn.Count.spec (GF := GF) (hG := hG) := by
   intro ctx cd lg kv γ key rangeEnd k e revision ot te Q
-  wp_start as ⟨Hkv, Htt, Hrd, #Hk, #He, #Hctx, #Hct, Hto, %Hlg, %Hklen, Hau⟩
+  wp_start as ⟨Hkv, Hrd, #Hk, #He, #Hctx, #Hct, Hto, %Hlg, %Hklen, Hau⟩
   wp_auto
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$a3»
   iStructNamed «$a3»
@@ -48,8 +48,8 @@ theorem txn.Count.wp_proof
   have heff : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).effSortOrder = W64 0 := by
     simp [txn.countOp, txn.rangeOpOf, OpFull.effSortOrder]
   wp_apply (hRange ctx cd false lg kv γ «$a3_ptr» _ false ot te Q)
-      $$ [$Hkv $Htt $Hrd $Hreq $Hctx $Hct $Hto $Hau]
-    as %resp %tr %err ⟨Htt, Hrd, %Htr, -, -, %σ, HQ, %Hreachσ, #Hres, -, -⟩
+      $$ [$Hkv $Hrd $Hreq $Hctx $Hct $Hto $Hau]
+    as %resp %tr %err ⟨Hrd, %Htr, -, -, %σ, HQ, %Hreachσ, #Hres, -, -⟩
   · isplitr
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     isplitr
@@ -64,7 +64,7 @@ theorem txn.Count.wp_proof
   · subst Herr
     wp_auto
     iapply HΦ
-    iframe Htt Hrd
+    iframe Hrd
     iexists σ
     iframe HQ
     isplitr
@@ -83,7 +83,7 @@ theorem txn.Count.wp_proof
     icases Hresp with ⟨%Hrnn, %h, %sl, %ps, #Hh, %Hhnn, #Hhr, #Hkvs, #Hsl, #Hkvsis, #Hmore, #Hcount⟩
     wp_auto
     iapply HΦ
-    iframe Htt Hrd
+    iframe Hrd
     iexists σ
     iframe HQ
     isplitr
@@ -96,7 +96,7 @@ theorem txn.Count.wp_proof
     subst Herr
     wp_auto
     iapply HΦ
-    iframe Htt Hrd
+    iframe Hrd
     iexists σ
     iframe HQ
     isplitr
