@@ -33205,3 +33205,67 @@ repository's (`Proof/google_golang_org/grpc/status/ErrDesc.lean`,
   struct, not an `*errorString`, and keeps its conjunct), and so `v3rpc.ctxErrDescs`'s;
 and serve every other `errors.New` variable whose description a proof needs (`etcdserver/errors`,
 `auth`, `lease`). Same trust, one statement instead of one per variable.
+
+## R2d'a's disclosure corrected (2026-11-07 · the user's decision "correct now, fix in R2d'b" via etcd-grove-82 · branch `r2da-correct`)
+
+**What was claimed.** R2d'a (tag `r2dpa-frozen`) made `run.spec` and the apply chain's frozen names
+mean a restart at `σ.b = 0`, under eight restart-only premises (`notes/restart-plan.md`, "R2d'a
+restart-only premises"). Its disclosure (STATUS, the table, `run.spec`'s and the hubs' docstrings)
+said: `Hwpend` (`srvWinPend`, `InvRun.lean:57`) is "false of some default-flag Go runs (replays over
+1 MB with a mid-replay election); R2s removes it", and rows 2-8 are true of Go and "discharged by
+R2d'b"; row 3 (`rnWalCommitAbove`, `InvRaftNode.lean:393`) in particular "true of Go: ... the commit
+raft writes only grows".
+
+**What is true** (`notes/r2db-scope.md` §10 on branch `r2db`, which gives the runs with their Go
+file:lines at raft `565c2bd` and etcd `673da07c8`):
+- **Row 3 is false at the start of almost every restart after a quiet stop.** Its `□ ∀ S σ,
+  raftState S -∗ ⌜StorageHolds S σ⌝ -∗ ⌜|a0| ≤ σ.commit⌝` quantifies over every `σ` that
+  `StorageHolds` allows, and `StorageHolds` allows `σ.commit = S.wcommit` (`NodeApiVocab.lean:155`);
+  `wcommit` is the commit of the last batch that wrote entries, kept by a commit-only batch
+  (`RaftState.next`, `Protocol/RaftState.lean:71`). The run: a `Ready` saves entries through `k` with
+  commit `c1 < k` (`server/etcdserver/raft.go:264`); the commit moves to `k` in a batch with no
+  entries (a heartbeat's `commitTo`, `raft.go:1850-1851`/`log.go:322-330`, or the leader's
+  `maybeCommit`, `raft.go:793`); the apply thread applies through `k`; the member stops and restarts
+  (`bootstrap.go:597`), and `RestartNode.spec` leaves `S` unchanged. The start owns `raftState S`
+  with `S.wcommit = c1 < k = |a0|`, so taking `σ.commit = c1` refutes the premise: the restart triple
+  is vacuous on the run.
+- **`Hwpend` is false of every restarted run (`A₀ ≠ []`) in which the member is later elected, at any
+  term above its restored term and at any time in the incarnation, and snapshots a follower.** Its
+  `n` is universally quantified, so `n = 0 < |a0|` meets the window guard; `rnRtOk γn T 0` holds once
+  the new leader's empty entry is committed at `T` (`becomeCandidate`/`becomeLeader`, `raft.go:920,
+  951, 979`); the token is never consumed (`run`'s loop invariant keeps it,
+  `EtcdServer__run.lean:1181-1459`). A lagging follower gets a `MsgSnap` at `T`
+  (`maybeSendSnapshot`, `raft.go:666,689`), diverted to `msgSnapC`
+  (`server/etcdserver/raft.go:390-396`) and merged (`server.go:1010,1019`), where the proof holds
+  every premise of the wand and its conclusion `Term' ≠ T` is false. The "replays over 1 MB with a
+  mid-replay election" runs are a small part of these: the docstring's "while raft is still handing
+  out the replay" is not in the text.
+- **Rows 2 and 4 are true of Go but not derivable from raft's API.** Row 2 after a graceful stop;
+  after a crash the commit-only WAL record can be lost (`server/storage/wal/wal.go:1047,1064`, sync
+  only on `MustSync`), and whether a leader can then pick a snapshot index in `(c1, |A₀|]` is open.
+  Row 4 needs a per-incarnation law raft's API does not have (`reset` does not clear `r.msgs`).
+- Rows 5-8 are R2d'b's as stated. A first start (`a0 = []`) is unaffected (each premise is proved or
+  vacuous there), and no closed theorem carries any of the eight.
+
+**The decision** (the user, 2026-11-07, via etcd-grove-82): **correct now, fix in R2d'b.** The
+disclosure is corrected in STATUS ("R2d'a: a restart at σ.b = 0"), the premise table (with a note
+under it) and the docstrings (`run.spec`, the six hubs' `Hwpend` comments, `srvWinPend`,
+`rnWalCommitAbove`); no statement changes. R2d'b restates row 3 inside the raft loop's invariant
+(Q31: a fact about the restored `σ`'s commit, or the loop fact `rnRestartOk_commit` needs), restates
+`Hwpend` with `n` tied to the batch being applied (the apply thread's `ep.appliedi`) and the token
+consumed when the window closes, and derives rows 2 and 4. R2s still removes `Hwpend`.
+
+**Root cause.** The premises were checked against Go by probes (`notes/restart-probe/`) and on paper
+against the story each was meant to tell ("the WAL's commit only grows", "no `MsgSnap` while the
+replay is handed out"), not against the Lean quantifier structure of the text. Both false premises
+are `□ ∀` statements whose binders range over more than the story: row 3's `σ` is any records
+`StorageHolds` allows, not the disk's; `Hwpend`'s `n` is any number below `|a0|`, not the batch's
+index, and its token, meant to mark the window, is never given up. The probes measured the story
+(the restored commit, mid-replay elections) and so could not see either.
+
+**The lesson** (`.claude/skills/spec/PRINCIPLES.md`, "A premise stated with a □∀ over states must be
+checked against the reachable states it does not pin down"): for each universally quantified binder
+of a persistent premise, ask which reachable values it can take, not which value the author had in
+mind; instantiate it adversarially (the weakest `σ` the relation allows, `n = 0`), and check that a
+token meant to bound a window is consumed when the window closes. A probe of the intended reading is
+not evidence for the text.

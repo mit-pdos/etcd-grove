@@ -56,11 +56,15 @@ R2d'b's.
 **The eight restart-only premises** (`notes/restart-plan.md`, "R2d'a restart-only premises"; each
 proved or vacuous at a first start; the producers of 2-8 are in the table, R2s removes 1):
 * `srvWinPend` (`isServerRunC`'s `Hwpend`, A7): no merged snapshot sent at a new raft term while the
-  replay window is pending. **False of some default-flag Go runs (replays over 1 MB with a
-  mid-replay election); R2s removes it** (by following the merged snapshot in the ghost).
+  replay window is pending. **False whenever the restarted member is later elected and snapshots a
+  follower** (its `n` is free and its token never consumed; corrected 2026-11-07); R2d'b restates
+  it, R2s removes it (by following the merged snapshot in the ghost).
 * `rnWinInstallAbove` (`rnRestartOk`'s, `isRaftNode`): a snapshot a `Ready` installs inside the
   window is above the backend's log.
-* `rnWalCommitAbove` (`rnRestartOk`'s): the WAL's stored commit is at least `|a0|`.
+* `rnWalCommitAbove` (`rnRestartOk`'s): the WAL's stored commit is at least `|a0|`. **False at the
+  start of most restarts** (its `σ` is any `StorageHolds` allows, down to `S.wcommit`; corrected
+  2026-11-07), so the restart meaning of this spec is vacuous until R2d'b restates it (Q31); a first
+  start is unaffected (`notes/decisions.md`, "R2d'a's disclosure corrected (2026-11-07)").
 * `rnSnapTermAbove` (`rnRestartOk`'s): every `MsgSnap` a `Ready` carries has a term above the
   incarnation's start term.
 * raft's commit at the start `≥ |a0|`: no Lean conjunct of its own, the restart fact from which
