@@ -1039,6 +1039,34 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
+### Package initialization: a monotone package map; `os`'s initializers translated (landed 2026-11-03 to 2026-11-04; used here 2026-11-07)
+
+- **Was missing.** (1) Perennial's `wp_initialize'` theorems returned an arbitrary package map, so a
+  proof here could not keep "this package is initialized" across another initializer: the
+  trust-boundary axiom `initLb_of_spec` (`Proof/runtime/PkgInitExt.lean`, D19e). (2) `os`'s
+  initializer was untranslated: the axioms `os.opaqueInitsOk` (26 variable initializers),
+  `os.initFuncsOk` (`init.0`) and `os.Stderr_init`, which every closed result through raft rests on.
+- **Landed in Perennial.** `1aab4c42b`/`46e5bb5df`: `ownInitializing`'s map is a monotone ghost
+  map, `initLb_of_initSpec` (any proof keeping `ownInitializing g` keeps its lower bound). The
+  goose and standard-library work for `os`: `11ac2f242` (`internal/oserror`, `io/fs`'s variables),
+  `37313e9d3`/`a2a531d4d`/`8b6fcecf7` (unnamed struct types, fix-semantics Case 30;
+  `sync.OnceFunc`/`OnceValue`), `e109f7928`/`350766064` (an imported package's constant emitted
+  as its value, Case 32: `runtime.GOOS` is `"linux"`, so `os` does not import `runtime`),
+  `def87774c` (Case 33, the user's decisions: `syscall`'s `init.0`, the RLIMIT_NOFILE raise, a
+  trusted no-op, `exec` being outside the model; `runtime_envs`/`runtime_args` an arbitrary
+  `[]string`; `Stdin`/`Stdout`'s initializers trusted no-ops, the variables left unallocated, so
+  code using them has no proof; `Stderr`'s allocates the variable with a fresh pointer that is not
+  a `File`, because raft's logger stores `os.Stderr`).
+- **Used here (2026-11-07, branch `os-init-lean`).** `initLb_of_spec` is a theorem
+  (`etc/gen-init.py`: `initLb_of_initSpec`). This repository translates its own `os`, `syscall`,
+  `io/fs` (project bboltfs, `os=` for every project), so Perennial's `os` work is mirrored in the
+  local configurations rather than imported: `Code/{os,syscall,io/fs}.toml` translate the same
+  initializers (and every type, `translate_types`), two new local packages `internal/poll` and
+  `internal/syscall/unix` (Perennial's import Perennial's `syscall`, which must not share a closure
+  with this repository's), the same trusted models in `TrustedCode/{os,syscall}.lean` (with their
+  specs, `Proof/{os,syscall}/Models.lean`), and `etc/gen-init.py` steps for the five initializers.
+  The three `os` axioms are gone.
+
 ### `time.isTicker` is forgeable by a struct copy (2026-11-03, branch `ticker-followups`)
 
 - **Limitation.** Perennial's `isTicker t ch γ` (`Perennial/Proof/time/Base.lean`) is `C ↦□ ch ∗
