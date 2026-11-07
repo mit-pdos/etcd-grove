@@ -46,8 +46,8 @@ theorem wp_Stdout_init :
   wp_start
   iapply HΦ; itrivial
 
-/-- `Stderr`'s initializer (the model) allocates the variable and stores some pointer (`maxAddr`,
-where no cell ever is). -/
+/-- `Stderr`'s initializer (the model) allocates the variable and stores some pointer
+(`stderrAddr`, where no cell ever is). -/
 theorem wp_Stderr_init :
     {{ (True : IProp GF) }} (App (Val Stderr.init) (Val #()))
     {{ RET #(); ∃ f : Loc, globalAddr Stderr ↦ f }} := by
