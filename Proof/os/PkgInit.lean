@@ -14,6 +14,10 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.errors
 public import Perennial.Proof.io
 public import Proof.syscall.PkgInit
+public import Proof.internal.poll.PkgInit
+public import Perennial.Proof.sync.Base
+public import Perennial.Proof.time.Base
+public import Perennial.Proof.internal.oserror.Base
 
 @[expose] public section
 
@@ -33,9 +37,15 @@ variable [sem : go.Semantics]
 
 namespace io.fs
 
-/-- `io/fs`, types and names only: nothing is read of its initialization. -/
+/-- `io/fs`: its five error variables, which `os`'s initializer copies, hold some error for good
+(2026-11-07: its variables' initializers are translated). -/
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.io.fs :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init iprop(
+    (∃ e : GoInterface, typedPointsto (globalAddr ErrInvalid) e DFrac.discard) ∗
+    (∃ e : GoInterface, typedPointsto (globalAddr ErrPermission) e DFrac.discard) ∗
+    (∃ e : GoInterface, typedPointsto (globalAddr ErrExist) e DFrac.discard) ∗
+    (∃ e : GoInterface, typedPointsto (globalAddr ErrNotExist) e DFrac.discard) ∗
+    (∃ e : GoInterface, typedPointsto (globalAddr ErrClosed) e DFrac.discard))
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.io.fs :=
   build_get_is_pkg_init_wf
 
@@ -43,9 +53,9 @@ end io.fs
 
 namespace os
 
-/-- `os`, names-only: its initialization is not modelled (its variables' initializers are
-opaque, `Init.lean`), so this is what that initialization is assumed to give: `Stderr`
-holds a fixed `*File`, which raft's initializer loads (`defaultLogger`). -/
+/-- `os`: `Stderr` holds a fixed `*File`, which raft's initializer loads (`defaultLogger`); the
+trusted model of its initializer (`TrustedCode/os.lean`) allocates it (2026-11-07; until then an
+assumption of `Init.lean`'s). -/
 instance os_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.os :=
   define_is_pkg_init iprop(∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard)
 instance os_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.os :=

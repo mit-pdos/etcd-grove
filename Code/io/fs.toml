@@ -3,5 +3,15 @@
 # TrustedCode/os.lean).
 translate = ["!*", "FileInfo", "FileMode", "PathError",
   # (2026-11-04) with its body, so that the models' errors are ones `fmt` formats (`fmtErrorOk`)
-  "PathError.Error"]
-imports = ["!*"]
+  "PathError.Error",
+  # (2026-11-07) the package-level variables (the error variables, internal/oserror's; `SkipDir`,
+  # `SkipAll`, the `var _ I = (*subFS)(nil)` assertions) and the functions their initializers call,
+  # as Perennial's io/fs.toml: what importing io/fs runs
+  "ErrInvalid", "ErrPermission", "ErrExist", "ErrNotExist", "ErrClosed",
+  "errInvalid", "errPermission", "errExist", "errNotExist", "errClosed",
+  "SkipDir", "SkipAll", "_"]
+imports = ["!*", "errors", "internal/oserror", "io", "time"]
+
+# (2026-11-07) every type declaration goose supports, as Perennial's: the `var _ I = ...`
+# assertions convert to interface types
+translate_types = true

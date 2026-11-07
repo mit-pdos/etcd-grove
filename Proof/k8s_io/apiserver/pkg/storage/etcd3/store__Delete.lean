@@ -11,7 +11,6 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__Delete
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__prepareKey
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__conditionalDelete
 public import Spec.k8s_io.apimachinery.pkg.conversion.EnforcePtr
-public import Proof.k8s_io.apiserver.pkg.features.Values
 
 @[expose] public section
 
@@ -72,8 +71,6 @@ theorem store.Delete.wp_proof
     ipureintro; exact hp
   obtain ⟨rfl, Hv⟩ := Hen'
   (try wp_auto)
-  have hnp : k8s_io.apiserver.pkg.features.AllowUnsafeMalformedObjectDeletion.isPanic = false :=
-    features.AllowUnsafeMalformedObjectDeletion_notPanic
   try wp_pure
   (try wp_auto)
   have hpfx : c.pfx <+: c.pathPrefix ++ k := prepareKeyM_prefix _ _ _ _ _ hk
