@@ -168,7 +168,7 @@ theorem Main.wp_proof
   wp_apply (wp_Serve srv clientAddr E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt clientAddr⌝ ∗
         client.kvRegsAt (⟨clientAddr, E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
-        watchAddrFacts (EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv))))
+        watchAddrFacts (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv))))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -202,14 +202,14 @@ theorem Main.wp_proof
       omega
     ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
     ihave #H00 := etcd_watch.cert0_of_server pw R $$ Hws
-    ihave #Hkf : client.srvKVFacts (EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv) $$ []
+    ihave #Hkf : client.srvKVFacts (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv) $$ []
     · iapply client.srvKVFacts_of_off _ ρ.rd (kvSame_refl _) hlog (by omega)
       iframe Hinvs
       iapply mvcc.idxCert_sealed; iexact H00
     -- the store's fact for watches: no revision writes a key twice (each has one change)
     ihave #HwnD : mvcc.watchNoDup R.E.γ $$ []
     · iunfold mvcc.watchNoDup; iright
-      iapply (noDupKeys_of_one (EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv) ρ.rd.kv rfl)
+      iapply (noDupKeys_of_one (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv) ρ.rd.kv rfl)
       iframe Hkf
       iapply oneChangeAu $$ Hinv
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
@@ -218,7 +218,7 @@ theorem Main.wp_proof
         { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
       [Hgsn Hlis]
     · iframe Hgsn Hlis; iframe #
-    imod (etcd_watch.wk_served_nd (EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv) clientAddr
+    imod (etcd_watch.wk_served_nd (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv) clientAddr
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hrf)
       $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HKV, #HWF⟩
@@ -248,7 +248,7 @@ theorem Main.wp_proof
   have hsame : ∀ y ∈ [x], kvSame y.γr.kv ρ.rd.kv := fun y hy => by
     simp only [List.mem_singleton] at hy; subst hy; exact kvSame_refl _
   have htb : threadBound GF ≤ 2 ^ 31 := by omega
-  let V : client.WEnv GF := EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv
+  let V : client.WEnv GF := EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv
   -- `wcli, err := NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient clientAddr lg V Hlg (by unfold plainEndpoint; decide) htb)
     as %wcl %werr Hwc

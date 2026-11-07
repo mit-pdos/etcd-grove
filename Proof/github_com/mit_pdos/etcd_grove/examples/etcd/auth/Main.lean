@@ -169,7 +169,7 @@ theorem Main.wp_proof
   -- watch server's facts there, for the clients' watcher environment `akV R`)
   haveI := Hms
   let akV : v3rpc.WSrv GF → client.WEnv GF := fun R =>
-    client.srvWEnv R go!"127.0.0.1:23916" [] null null go!"a" null ρ.rd.kv
+    client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23916" [] null null go!"a" null ρ.rd.kv
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEo]; rfl
   wp_apply (wp_Serve srv go!"127.0.0.1:23916" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ R.s = srv⌝ ∗

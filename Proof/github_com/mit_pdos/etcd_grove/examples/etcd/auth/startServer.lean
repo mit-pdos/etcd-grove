@@ -51,7 +51,7 @@ theorem startServer.wp_proof
   iunfold etcdstart.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg, hlgf⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg, hlgf⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -93,11 +93,11 @@ theorem startServer.wp_proof
         [etcdstart.httpURL go!"127.0.0.1:23916"],
         GMap.insert go!"authkv" (slice.mk peer (W64 1) (W64 1)) ∅,
         fun _ => [etcdstart.httpURL go!"127.0.0.1:23926"]⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
+      γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule) hc0 hch hlog hkcmp
       Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ (by first | rfl | simp))
-      (fun h => absurd h (by decide)) hcmp0 Htb Hrb48 HrbN
+      (fun h => absurd h (by decide)) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (etcdstart.peerURLsDir_httpURL dir id _ Hdirok Hdir)
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the

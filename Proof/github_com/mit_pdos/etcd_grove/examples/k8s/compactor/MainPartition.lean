@@ -78,9 +78,9 @@ theorem memberWatch_of_cinv (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ 
   · ipureintro; exact ⟨hR, hm, hst⟩
   subst hR
   iunfold mvcc.watchNoDup; iright
-  iapply (noDupKeys_of_one (client.srvWEnv R go!"" [] null null go!"" null γr.kv) γr.kv rfl)
+  iapply (noDupKeys_of_one (client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"" [] null null go!"" null γr.kv) γr.kv rfl)
   isplitr
-  · iapply client.srvKVFacts_of_off (client.srvWEnv R go!"" [] null null go!"" null γr.kv) ρ.rd
+  · iapply client.srvKVFacts_of_off (client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"" [] null null go!"" null γr.kv) ρ.rd
       hst hlog hrb
     isplitr
     · iapply srvKVInvs_of_read s R.E ρ.rd $$ Hrd

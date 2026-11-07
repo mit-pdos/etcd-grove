@@ -64,7 +64,7 @@ theorem checkCompactRev.wp_proof
   · iPkgInit
   -- the client's `Watcher`, with the watch server's facts (D19f)
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
-    [go!"127.0.0.1:23794"] (srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null γr.kv)
+    [go!"127.0.0.1:23794"] (srvWEnv R (etcdstart.srvWOf R.E γr false) γr go!"127.0.0.1:23794" [] null null go!"k" null γr.kv)
     rfl rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
   · iframe #
   (try wp_auto)
