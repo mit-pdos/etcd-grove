@@ -583,7 +583,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's auth store with its snapshot clause** (persistent; auth on; decision 8:
-`NewServer`, `bootOk` and `isServerRunOn` carry it, as they do `#HmetaSnap`): the store its
+`NewServer`, `bootOk` and `isServerRunC` carry it, as they do `#HmetaSnap`): the store its
 `authStore` field holds, its invariant at its backend's read resource `R`, the snapshot clause at
 `R`, and the apply environment's reader resource `RD` the checks' `authRd` over `R`. (Until this
 round the draft took the invariant and the clause at `RD` itself: a bug of the draft, `authInv`'s
@@ -599,7 +599,7 @@ instance srvAuthSnapOk_persistent (s : Loc) (γa : auth.AuthNames) (RD : IProp G
   unfold srvAuthSnapOk; infer_instance
 
 /-- **The image's auth facts by the auth mode** (F9, the user's decision of 2026-11-03: one
-`specSnap` over `E.authMode`): `off`, lean's `hauthb` (the auth buckets at `authBoot`/empty); `on`,
+spec, `applySnapshot.specSnapM`, over `E.authMode`): `off`, lean's `hauthb` (the auth buckets at `authBoot`/empty); `on`,
 the auth buckets in the table, the image's auth buckets holding the state after its log `A'`, below
 raft's bound (`snapRecv_imageOn`'s); `any`, nothing (excluded by the specs' `E.authMode ≠ .any`).
 (The lease-expiry plan's S2–S4, review r2 S2, DRAFT 2026-11-06: the `on` arm no longer repeats

@@ -968,7 +968,7 @@ theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plain
         (kvCrevEntry_pos _ _ cmp c m (hB m (List.mem_cons_self)) hc)
   exact key A h (-1) (Or.inl rfl)
 
-/-- **`specSnap`'s `hcc`** from the records' revision: the apply thread's compaction revision is
+/-- **`specSnapM`'s `hcc`** from the records' revision: the apply thread's compaction revision is
 its applied log's (`kvApplied`'s), below the image's log `A'`, whose compaction revision the
 records carry (`imageAt`'s). -/
 theorem crev_hcc (γk : KVNames) (A A' : List EntryModel) (crev : Int) (rcrev : Int)

@@ -1,6 +1,6 @@
 /-
 **The image facts of a received snapshot** (D22, stage J7, 2026-10-26; `notes/snapshot-sj-plan.md`,
-J7 and J0 decision 9): what `applySnapshot.specSnap`'s pure premises about the snapshot's image
+J7 and J0 decision 9): what `applySnapshot.specSnapM`'s pure premises about the snapshot's image
 (`EtcdServer__applySnapshot.lean`) follow from, on the receiver's side: the image's certificate
 `srvImage γ i D` (what the snapshot message carries, `srvNet`'s `img`), the apply thread's KV ghost
 state (`kvApplied`) and rest buckets (`srvRest`), the server's KV invariants (`srvKVInvs`: the
@@ -9,7 +9,7 @@ spec/proof discipline (no code). Lean-first (no Rocq counterpart).
 
 * `snapRecv_image`: from those, a committed log `A'` extending the applied `A` with
   `uint.Z i = |A'|` and the restored log's tail `R` (`[[], []] ++ R = kvModel γr.kv A'`), with
-  `SnapImageFacts`: `specSnap`'s `hpre`, `hkI`, `hlease`, `halarm`, `hauthb`, `hmemb`, `himg`
+  `SnapImageFacts`: `specSnapM`'s `hpre`, `hkI`, `hlease`, `halarm`, `hauthb`, `hmemb`, `himg`
   (through the trust-boundary axiom `membership.clusterImageOk_restModel`) and `hA'` at
   `memI := (restModel …).mem`, the image's stored index (`∃ t, metaIs D (i, t)`: `hmeta` at
   `tI := t`) and (D22 J7b) `hRok` and the KV jump's length bound `hlen`.
@@ -24,7 +24,7 @@ spec/proof discipline (no code). Lean-first (no Rocq counterpart).
 (`restoreLogOk R`) is `SnapImageFacts.hRok`, from the image's `IdxWf` of its KV model (the sender's
 store's, `imageAt`) and the committed log plain (`kv_log_plain`: revisions non-empty, no lease,
 `restoreLogOk_kvRaftOf`), and `kv_cert_jump`'s bound is `SnapImageFacts.hlen`
-(`kvModel_len_of_rok`). `hmeta` is `hmetaI` at its term `t`: `specSnap` takes the image's stored
+(`kvModel_len_of_rok`). `hmeta` is `hmetaI` at its term `t`: `specSnapM` takes the image's stored
 term (`tI`), whatever it is, since the consistent index's protocol does not track the term and
 restore reads none (`imageAt`'s header).
 -/
@@ -142,7 +142,7 @@ theorem bkRestAt_boot' [GooseExts] {c0 : w64} {bootLog : List EntryM} {L : List 
      simp [restBoot, restBootBk])
 
 /-- **The rest model at an image's log is the image's tracked buckets** with the lessor's and the
-alarm store's emptied (`specSnap`'s `hA'`, first half): the real instance tracks exactly the rest
+alarm store's emptied (`specSnapM`'s `hA'`, first half): the real instance tracks exactly the rest
 buckets, which the image holds at the model's values (`bkRestAt`), the lease and alarm buckets
 empty already. -/
 theorem restModel_bk_of_bkRestAt [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
@@ -168,7 +168,7 @@ theorem restModel_bk_of_bkRestAt [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootL
     have hl' : go!"lease" ≠ n := fun e => hn (e ▸ by decide)
     simp [ha', hl', hrb]
 
-/-- **An image's lease, alarm and auth buckets are the boot state's** (`specSnap`'s `hlease`,
+/-- **An image's lease, alarm and auth buckets are the boot state's** (`specSnapM`'s `hlease`,
 `halarm`, `hauthb`). -/
 theorem image_bootBuckets [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
     {L : List EntryModel} {D : backend.Data} (h : bkRestAt c0 bootLog L D) :
@@ -183,7 +183,7 @@ theorem image_bootBuckets [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : Li
     rbData_real_lookup d D go!"authRoles" (by decide), hl, ha, hau, hu, hr]
   exact ⟨rfl, rfl, rfl, rfl, rfl⟩
 
-/-- **An image's membership buckets are present** (`specSnap`'s `hmemb`): the start's, kept by
+/-- **An image's membership buckets are present** (`specSnapM`'s `hmemb`): the start's, kept by
 every entry. -/
 theorem image_membBuckets [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
     {L : List EntryModel} {D : backend.Data} (h : bkRestAt c0 bootLog L D) :
@@ -198,7 +198,7 @@ theorem image_membBuckets [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : Li
   refine ⟨restModel_isSome _ _ _ _ ?_, restModel_isSome _ _ _ _ ?_, restModel_isSome _ _ _ _ ?_⟩ <;>
     simp [restBoot, restBootBk]
 
-/-- **The image's membership buckets are the model's** (for `specSnap`'s `himg`): `clusterImageOk`
+/-- **The image's membership buckets are the model's** (for `specSnapM`'s `himg`): `clusterImageOk`
 reads only the three membership buckets, which the image holds at the model's values. -/
 theorem clusterImageOk_of_bkRestAt [GooseExts] (d : mvcc.KBReal) (c : Loc) (mem : GMap w64 apply.MemberM)
     {c0 : w64} {bootLog : List EntryM} {L : List EntryModel} {D : backend.Data}
@@ -305,7 +305,7 @@ theorem clusterImageOk_of_NL [GooseExts] (d : mvcc.KBReal) (c : Loc) (mem : GMap
 /-! ## The restored log (pure) -/
 
 /-- **The restored log's tail**: a model log from the start log `[[], []]` is `[[], []]` and its
-tail (`R` of `specSnap`, `[[], []] ++ R = kvModel γk A`). -/
+tail (`R` of `specSnapM`, `[[], []] ++ R = kvModel γk A`). -/
 theorem kvModel_split (γk : KVNames) (A : List EntryModel) (h : γk.log0 = [[], []]) :
     [[], []] ++ (kvModel γk A).drop 2 = kvModel γk A := by
   have hp : γk.log0 <+: kvModel γk A := kvRaftOf_extends γk.c0 γk.ch0 γk.log0 A
@@ -322,11 +322,11 @@ theorem kvModel_len_of_rok (γk : KVNames) (A : List EntryModel) (R : mvcc.Log)
   have := h.2.1.2.1
   omega
 
-/-- **The facts `specSnap` takes of the image** `D` at the index `i` for the receiver's names `γr`
+/-- **The facts `specSnapM` takes of the image** `D` at the index `i` for the receiver's names `γr`
 and real backend `d`, the applied raft log `A` and KV state `x`, the image's committed log `A'`
 (after the fresh start's index `0`) and the restored log's tail `R`, the image's compaction records
 `r`, the members `memI` the membership buckets decode to (see the file header). Each field is the
-premise of `specSnap` of the same name (`crev`: #7-cmp's, `specSnap`'s `hcc` by `crev_hcc`, and the
+premise of `specSnapM` of the same name (`crev`: #7-cmp's, `specSnapM`'s `hcc` by `crev_hcc`, and the
 apply thread's `kvApplied` after the restore, whose compaction revision is `r.crev`). -/
 structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (cl : Loc)
     (i : w64) (A A' : List EntryModel) (x : apply.ApplyKV) (R : mvcc.Log) (r : mvcc.CmpRecs)
@@ -341,10 +341,10 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
   hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D
   /-- the records at the image's committed log's compaction revision -/
   crev : r.crev = crevOf γr.kv A'
-  /-- the image's stored index is `i`, its stored term some term (`specSnap`'s `hmeta` at
+  /-- the image's stored index is `i`, its stored term some term (`specSnapM`'s `hmeta` at
   `tI := t`, D22 J7b) -/
   hmetaI : ∃ t : w64, metaIs D (i, t)
-  /-- (D22 J7b) the restored log's tail restorable (`specSnap`'s `hRok`) -/
+  /-- (D22 J7b) the restored log's tail restorable (`specSnapM`'s `hRok`) -/
   hRok : mvcc.restoreLogOk R
   /-- (D22 J7b) the image's KV model short enough (`snapRecv_kv_jump`'s `hlen`) -/
   hlen : (kvModel γr.kv A').length < 2 ^ 63
@@ -435,7 +435,7 @@ theorem dbImage_of_srvImage (γ : SrvRaft) (γk : KVNames) (i : w64) (D : backen
   exact ⟨hA.1, imageAt_kv_congr (γk := { γk with cmp := b }) rfl rfl rfl
     (fun _ h => by show crevOf γk A = -1; exact Hoff h) hA.2⟩
 
-/-- **The installer's receipt and permits from an image** (#7-cmp's Freeze; `specSnap`'s pre): the
+/-- **The installer's receipt and permits from an image** (#7-cmp's Freeze; `specSnapM`'s pre): the
 image's receipt (`dbImage`'s) is `restoreRcptM`'s; the permits are the receiver's store's
 (`crevPermIs`) of the committed log's compaction revision (`crevOf_permit`), the finished record
 below it (`CmpRecs.finRev_le_crev`, `recsPos`). Not carried in the certificate: a permit names the
@@ -501,7 +501,7 @@ applied raft log `A` at the applied index `ai` below the snapshot's `i`, at leas
 length, and its rest resource on the real backend `d` of the cluster `cl` (`hRO`): a committed
 `A'` with `SnapImageFacts` at `memI` the model's members and the image's records `r`, `kvApplied`
 and `srvRest` given back; (#7-cmp's Freeze, the glue folded in) with the new backend `d` of the store
-(`hkb`), the restored log's receipt and the two permits of `specSnap`'s pre (`image_restoreRes`). -/
+(`hkb`), the restored log's receipt and the two permits of `specSnapM`'s pre (`image_restoreRes`). -/
 theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i ai : w64)
     (D : backend.Data) (d : mvcc.KBReal) (A : List EntryModel) (x : apply.ApplyKV) (cl : Loc)
     (H : IProp GF) (hkb : E.γ.kb = some d)
@@ -627,10 +627,10 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     hA' := ⟨restModel_bk_of_NL d hrest, rfl⟩ }
 
 /-- **The apply thread's KV ghost state jumps to the image's log** (`kv_cert_jump`, with
-`specSnap`'s certificate of the restored log): from its state at the applied `A` and the image's
+`specSnapM`'s certificate of the restored log): from its state at the applied `A` and the image's
 committed `A'` extending it, its state at `A'` with the model log certified, `certOk E.γ` of it
 (the server's store's map is the KV names', `srvKVInvs`), and the chain the start's. The length
-bound is `kvModel_len_of_rok`'s, from `specSnap`'s `hRok`. -/
+bound is `kvModel_len_of_rok`'s, from `specSnapM`'s `hRok`. -/
 theorem snapRecv_kv_jump (E : apply.AEnv GF) (γr : ReadNames) (A A' : List EntryModel)
     (x : apply.ApplyKV) (hA : A <+: A') (hlen : (kvModel γr.kv A').length < 2 ^ 63) :
     ⊢ srvKVInvs E γr -∗ kvApplied γr.raft γr.kv A x -∗ srvRLogLb γr.raft A' ={⊤}=∗

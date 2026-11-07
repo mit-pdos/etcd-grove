@@ -2,7 +2,8 @@
 **The lease subsystem's premise on the running server** (2026-11-04; the lease-expiry plan's Part C,
 option (a), `notes/lease-expiry-plan.md`, "Plumbing: Part C"). Lean-first.
 
-The server's inner predicates (`srvBuilt`, `srvBuiltG`, `isServerBuilt(On)`, `isServerRun(On)`, and
+The server's inner predicates (`srvBuilt`, `srvBuiltG`, `isServerBuilt(On)`, `isServerRun(On)` (now
+`isServerRunC`), and
 the examples' `memberBoot`) carried the lease subsystem's premise inline, `lg = true →
 lease.leasesNoExpiry ∧ srvGrantOpen`. They now carry `∃ m, lease.runCfg lg m`: the sealed
 `lease.runCfg` at the KV names' grant flag `lg` and the lease mode `m`, introduced from the boot
@@ -10,7 +11,7 @@ slot (`lease.bootCfg_run`, `LeaseApi.lean`) or, before `NewServer`, by the mode'
 change of what the running server takes of the lease subsystem (the expiry stage's Part X: the
 revocable mode) changes `lease.runCfg`'s body and laws, not the inner predicates' text.
 
-Below `InvRun.lean` (which `isServerRun` needs) and `LeaseApi.lean` (whose `lease.bootCfg` names
+Below `InvRun.lean` (whose `srvWinPend` `isServerRunC` needs) and `LeaseApi.lean` (whose `lease.bootCfg` names
 `srvGrantOpen`), with the open cases of a granting cluster (`srvGrantOpen`, `runSnapLgOkBody`, moved
 from `InvRun.lean`). Sealed (`etc/import-all.txt`; `LeaseApi.lean` alone imports it with `import
 all`, for the laws relating the two slots).

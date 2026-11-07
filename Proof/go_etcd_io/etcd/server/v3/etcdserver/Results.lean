@@ -2247,7 +2247,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's apply loop** (`run`, the request path's unit 4c; `Spec/go_etcd_io/etcd/server/
-v3/etcdserver/EtcdServer__run.lean`): from `isServerRun` (`start`'s), it applies every batch raft
+v3/etcdserver/EtcdServer__run.lean`): from `isServerRunC` (`start`'s), it applies every batch raft
 commits through the FIFO scheduler, the apply thread's resources chained from job to job, and
 shuts down. (The auth component's stage 2, 2026-11-04) In both auth modes: over the component `C`
 (`isServer…C`). -/

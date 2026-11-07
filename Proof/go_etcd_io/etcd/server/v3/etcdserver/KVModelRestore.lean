@@ -274,7 +274,7 @@ theorem kvRaftOf_restorable (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) 
       ∀ cs ∈ (kvRaftOf c₀ ch log₀ A).drop log₀.length, cs ≠ [] :=
   kvRaftSt_restorable c₀ ch (log₀, []) A hA hl
 
-/-- **`restoreLogOk` of the KV model's tail** (`applySnapshot.specSnap`'s `hRok`): the model of a
+/-- **`restoreLogOk` of the KV model's tail** (`applySnapshot.specSnapM`'s `hRok`): the model of a
 plain log from `NewStore`'s two empty revisions, well formed as a store's committed log
 (`IdxWf`, the image's certificate's, from the sender's store). -/
 theorem restoreLogOk_kvRaftOf (c₀ : w64) (ch : apply.Chain) (A : List EntryModel)

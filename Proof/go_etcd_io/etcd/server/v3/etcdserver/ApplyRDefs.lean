@@ -1,7 +1,11 @@
 /-
-**The restart window's vocabulary and the replay's hypothesized specs** (R2d' probe, A3–A5,
-2026-11-06; DRAFT: nothing here is frozen, `notes/restart-plan.md`, "R2d' Scope (approved
-2026-11-06)", its probe). Lean-first (no Rocq counterpart).
+**The restart window's vocabulary** (R2d' probe, A3–A5, 2026-11-06; `notes/restart-plan.md`,
+"R2d' Scope (approved 2026-11-06)" and the R2d'a sections). Written as the probe's draft; since the
+swap batches (R2d'a, 2026-11-06/07) frozen specs are written in its definitions (`srvRestR`,
+`srvRestRp`, `kvBatchR`, `winNoMergedSendR`, `srvSnapBagN`: `applyAll.specBatch`/`specSnapM`,
+`applyEntries.specBatch`, `applySnapshot.specSnapM`, `apply.spec`, `applyEntryNormal.spec`), so
+changing one is a spec change.
+Lean-first (no Rocq counterpart).
 
 At the etcd pin `673da07c8`, a restarted member's `apply` (`server.go:1922-1972`) sees the committed
 entries from Go's start index `σ.b + 1` on; those at or below the backend's consistent index `i`
@@ -50,7 +54,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **The rest buckets during the replay** (R2d' A4, DRAFT): `srvRest`'s rows at the backend's
+/-- **The rest buckets during the replay** (R2d' A4): `srvRest`'s rows at the backend's
 ghost log `A₀` (in a cluster that grants leases, its table's records, the lessor's half, the ids
 ever), at an image `r` in place of `restModel` of `A₀`: the replayed entries change only the
 in-memory members (`restEntryV2`; `apply/uber_applier.go:93-127` and `membership/cluster.go:467-496`
@@ -59,21 +63,21 @@ def srvRestRp (E : apply.AEnv GF) (γr : ReadNames) (A₀ : List EntryModel) (r 
     IProp GF :=
   if E.lg then iprop(srvRestAt E (appliedTable γr A₀) r ∗ srvEver E A₀) else E.RO r
 
-/-- **The image after Go's log `G` inside the window** (R2d' A4, DRAFT): the rest model of the
+/-- **The image after Go's log `G` inside the window** (R2d' A4): the rest model of the
 backend's log `A₀` (`cluster.Recover`'s members, `bootstrap.go:255-273` at the pin `673da07c8`),
 the entries Go replayed since its start index (`G.drop rp.b`) replayed v2-only on it. -/
 def restReplay (γr : ReadNames) (rp : RestartPt) (G : List EntryModel) : apply.RestM :=
   (G.drop rp.b).foldl (fun r m => restEntryV2 m r)
     (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ rp.A₀))
 
-/-- **The apply thread's rest buckets after Go's log `G`** (R2d' A4, DRAFT): inside the window
+/-- **The apply thread's rest buckets after Go's log `G`** (R2d' A4): inside the window
 (`|G| < |A₀|`), the replay arm at the backend's log; past it, `srvRest` at Go's log (the ghost log,
 `ghostOf_past`). -/
 def srvRestR (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt) (G : List EntryModel) :
     IProp GF :=
   if G.length < rp.A₀.length then srvRestRp E γr rp.A₀ (restReplay γr rp G) else srvRest E γr G
 
-/-- **The batch over Go's log** (R2d' A5, DRAFT; `kvBatch`'s window form): Go's log through the batch
+/-- **The batch over Go's log** (R2d' A5; `kvBatch`'s window form): Go's log through the batch
 and the backend's log committed, Go's start index at most `|G|` and Go's index `ai` at `G`; the
 batch's `v3` (`c`, the effective consistent index) the model's (`c0`) past the window, the window's
 entries at or below `c` (`bootstrap.go:255-273` restores `ci` to the backend's, at least its applied
@@ -92,7 +96,7 @@ instance kvBatchR_persistent (γr : ReadNames) (c ai : w64) (rp : RestartPt) (G 
   unfold kvBatchR; infer_instance
 
 open go_etcd_io.raft.v3 in
-/-- **No merged snapshot send while a window is left** (DRAFT copy of `r2d-prime`'s
+/-- **No merged snapshot send while a window is left** (from `r2d-prime`'s
 `winNoMergedSend`, `ApplyWindow.lean:277`): with entries `R` of the window left after the batch,
 the message the batch takes from this member's bag (`msgOwn m 1`, sent from the server's
 `memberID`) is not a `MsgSnap` at the batch's raft term `rt` (Go merges only one at `rt`,
@@ -160,7 +164,7 @@ theorem srvRestRp_model (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   unfold srvRestRp srvRest; rfl
 
 open Iris.ProofMode in
-/-- **The replay arm as `srvRest`'s two parts** (R2d'a A3, DRAFT; `srvRest_eq_at`'s form): the rest
+/-- **The replay arm as `srvRest`'s two parts** (R2d'a A3; `srvRest_eq_at`'s form): the rest
 buckets at the backend's table and the image, and the ids ever. -/
 theorem srvRestRp_eq_at (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
     srvRestRp (GF := GF) E γr A r ⊣⊢ srvRestAt E (appliedTable γr A) r ∗ srvEver E A := by
@@ -177,7 +181,7 @@ theorem srvRestRp_eq_at (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     exact .rfl
 
 open Iris.ProofMode in
-/-- **The replay arm's `E.RO`** (R2d'a A4, DRAFT): the rest resource at an image whose members are
+/-- **The replay arm's `E.RO`** (R2d'a A4): the rest resource at an image whose members are
 the arm's image's, given back unchanged (what a replayed `AddNode` takes, `applyConfChange.spec`'s `v3 = false` case). -/
 theorem srvRestRp_ro (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
     srvRestRp (GF := GF) E γr A r ⊢ ∃ rs : apply.RestM, E.RO rs ∗ ⌜rs.mem = r.mem⌝ ∗
@@ -230,7 +234,7 @@ theorem restReplay_memKeys (γr : ReadNames) (rp : RestartPt) (G : List EntryMod
   rw [foldMem_lookup]
   cases (GMap.lookup _ k) <;> rfl
 
-/-- **The window closes on the model** (R2d' A2, DRAFT; `restReplay_close` over the server's facts):
+/-- **The window closes on the model** (R2d' A2; `restReplay_close` over the server's facts):
 once Go's log reaches the backend's (`G = A₀`), the replayed image is the rest model of `A₀`. The
 facts: the server's log invariant (the bootstrap log, its peers distinct, the start at index `0`),
 the boot members' URLs (`srvClusterOk`), the committed conf entries the server's
@@ -297,7 +301,7 @@ theorem restReplay_closeI (γr : ReadNames) (rp : RestartPt) (Em : CoPset) (hL :
       rw [List.foldl_cons, restEntryV2_conf m _ (hall m (List.mem_cons_self ..))]
       exact ih (fun m' hm' => hall m' (List.mem_cons_of_mem _ hm'))
 
-/-- **The apply thread's membership resource at a replayed `AddNode`** (R2d' A4, DRAFT): the fields
+/-- **The apply thread's membership resource at a replayed `AddNode`** (R2d' A4): the fields
 `applyConfChange(cc, ep, false)` reads (`server.go:2037-2083` at the pin `673da07c8`: `beHooks`,
 the cluster, the transport, the member id), the node a peer unless the local member (it is a voter:
 `ccApplyOk`, `srvPeersCover`), and the resource back at the same log (a replay does not move the

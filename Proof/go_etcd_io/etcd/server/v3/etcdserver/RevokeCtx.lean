@@ -173,7 +173,7 @@ theorem srvRevokeBuilt_intro (s : Loc) (E : apply.AEnv GF) (stl : Loc) :
 names, with auth off the request side's and the reader's views (from which `srvAuthAt`,
 `srvAuthAt_of_views`, and `WithRoot`'s premise, `srvRevokeCtx_withRoot`), the request names'
 credential, and the server context's contract (`s.ctx`, `WithRoot`'s argument and `LeaseRevoke`'s).
-A conjunct of `isServerRun*` in both auth modes (the off-mode part guarded: with auth on the
+A conjunct of `isServerRunC` in both auth modes (the off-mode part guarded: with auth on the
 revocation never runs, `srvRevokesLeases`). (Review round 1, NIT 3.3, 2026-11-06: until then also
 `⌜E.authOn = false → E.authMode = .off⌝`, true of every `E`: `apply.AEnv.authMode_off_of_authOn`.) -/
 @[no_expose] def srvRevokeCtx (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)

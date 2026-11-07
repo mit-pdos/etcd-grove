@@ -1,6 +1,6 @@
 /-
 **The server's apply loop, `run`** (`server.go`): the shared vocabulary of `run`'s and `start`'s
-specs (until 2026-11-04 `InvRun.lean`, which keeps `isServerRun`; `LeaseRun.lean` between them).
+specs (until 2026-11-04 `InvRun.lean`; `LeaseRun.lean` between them).
 Lean-first (the request path's unit 4c, 2026-10-13); see `notes/decisions.md`, "The server's
 goroutines: the FIFO scheduler as a chain of saved postconditions, the construction
 premise".
@@ -413,7 +413,7 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
 
 /-- (J8b, 2026-11-01) **The meta reads of the backends the apply thread opens** at the apply names
 `γ`: `bootOk`'s `#HmetaSnap` (J8a-4) by name, which `NewServer` passes to `run` through `start`'s
-construction premise (`srvBuilt`, `isServerBuilt`, `isServerRun`'s `#HmetaSnap`) for
+construction premise (`srvBuilt`, `isServerBuilt`, `isServerRunC`'s `#HmetaSnap`) for
 `applyAll.specSnapM`'s premise of the same text. -/
 def srvMetaSnap (γ : ApplyNames) : IProp GF :=
   iprop(□ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),

@@ -178,13 +178,13 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
       C.ρ.raft.ai0 = W64 0)
     -- (2026-10-30, the repair) the node's id, whose applied index `raftAdvancedC`'s close reports
     (nk : GName)
-    -- (2026-10-31, #11's S3) a fresh start (`isServerRun`'s)
+    -- (2026-10-31, #11's S3) a fresh start (`isServerRunC`'s)
     (ha00 : uint.nat C.ai₀ = 0)
-    -- (2026-10-31, #11) the disk cooperating (`isServerRun`'s), for the snapshot
+    -- (2026-10-31, #11) the disk cooperating (`isServerRunC`'s), for the snapshot
     (hdisk : storage.diskOk)
     -- (2026-10-31, S1: `applyAll`'s merged snapshot) the batch's raft term, good for its log
     -- (`rnApplyTok_recv`'s `rnRtOk`), at the raft node `γn` of the server's raft; the start's
-    -- consistent index at most its applied one (`isServerRun`'s)
+    -- consistent index at most its applied one (`isServerRunC`'s)
     (γn : RNNames) (rt : w64) (hγn : γn.node = C.γr.raft.raft) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀)
     -- (2026-11-03, R2b-1 stage 5) a fresh start's log, the context's raft names `γn` (the WAL's)
     (hpre : C.γr.raft.pre = []) (hrn : C.rn = γn) (T : IProp GF) :

@@ -567,7 +567,7 @@ alarm store's, the auth store's, the lessor's and (S7e) the cluster's, on the st
 2026-10-29: the store's backend did not compact, `d.cm = false`.) (M2's apply side, 2026-10-31, the
 user's (a): the snapshot track's draft `srvEnvOkD` in place) The store's backend compacts in the
 server's compaction mode (`d.cm = E.cmp`); a snapshot is installed only with the mode off (the
-interim restriction: `applySnapshot.specSnap`'s `d.cm = false`, until restore in compaction mode).
+interim restriction: `applySnapshot.specSnapM`'s `d.cm = false`, until restore in compaction mode).
 (2026-11-01, `restorePre_of_apply`) And the store's logical mode is the server's (`E.γ.cm = E.cmp`,
 `envAgree`'s at `NewServer`; a restore keeps both): what makes a compaction-off store frozen
 (`isWatchableStore_frozen`) for `Restore`. -/

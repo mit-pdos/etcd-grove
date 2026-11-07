@@ -484,7 +484,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     imod snapRecv_imageR γr.raft.raft γr E sv.Metadata'.Index' ag D d A x cl _ hkb hraft hc0 hch hlog0
         hai0 hgi hboot hRO r0 hids $$ Hkvi Himg Hka HRS Hrc
       with ⟨Hka, HRS, %A', %R, %r, #HA', %Hif, #Hrc0, #Hpf0, #Hpc0⟩
-    -- (M2's item 15, stage C) `specSnap`'s `hcc`: the apply thread's compaction revision is its
+    -- (M2's item 15, stage C) `specSnapM`'s `hcc`: the apply thread's compaction revision is its
     -- applied log's (`kvApplied`), at most the image's records' (`crev_hcc`)
     iunfold kvApplied at Hka
     icases Hka with ⟨HkaL0, %Hxc⟩

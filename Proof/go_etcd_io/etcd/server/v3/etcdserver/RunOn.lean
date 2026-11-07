@@ -1,6 +1,6 @@
 /-
 **`run`'s resources in the auth mode `on`** (the auth plan's E3q, 2026-10-27; `notes/decisions.md`,
-"E3q of the auth plan"): `InvRun.lean`'s chain resource, start resource and premise with the
+"E3q of the auth plan"): `InvRunRes.lean`'s chain and start resources with the
 apply thread's mode-`on` rows.
 
 - `kvRunAtOn`: the apply thread's KV ghost state at `A` over the mode-`on` model (`kvAppliedOn`
@@ -8,9 +8,9 @@ apply thread's mode-`on` rows.
   `kvRunOn` hides `sa`, which the loop must share with the row);
 - `applyResOn`, `applyStartOn`: `applyRes` and `applyStart` with the server with auth on
   (`isServerM true`), the row `srvApplyKVOn` and `kvRunAtOn` at one auth state;
-- `isServerRunOn`: `isServerRun` with those, the raft environment's `E.C` in the mode
-  (`srvCM true`), and the server's lessor finding no lease (`srvLessorNil`, the named premise of
-  the apply thread's latest-state triples).
+- (until 2026-11-07) `isServerRunOn`, `run`'s mode-on premise: deleted, with `InvRun.lean`'s
+  `isServerRun`, once `isServerRunC` (`AuthCompRows.lean`) stopped using them (R2d'a swap batch 5;
+  the hub owner's call).
 
 **Additive.** Nothing mode-off changes.
 
@@ -81,62 +81,6 @@ def applyStartOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k) ∗
     -- (D22 J1b, 2026-10-31) `applyStart`'s snapshot resources
     srvSnapOwn s ci E γr γ ai₀)
-
-/-- **What `run` needs in the mode `on`** (`isServerRun`'s, see the file header). -/
-def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
-    (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) :
-    IProp GF :=
-  iprop("#Hsrv" ∷ isServerM true s γ ci TM E ρ γr ∗
-    "#Hlnil" ∷ srvLessorNil s ∗
-    "#Hsa" ∷ isServerApplyAll s γr ∗
-    -- (J8b, 2026-11-01) the server's member id is the raft node's (`isServerBuilt`'s)
-    "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
-    -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
-    "#HmetaSnap" ∷ srvMetaSnap γ ∗
-    "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
-    "%HEr" ∷ ⌜Er.C = srvCM true ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
-      -- (R2d'a A6, DRAFT) a first start: the restart point's backend log `γn.a0` empty
-      γn.a0 = []⌝ ∗
-    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
-    -- raft term while the replay window is pending (`srvWinPend`; a restart-only premise, R2s's
-    -- target; free at a first start, `srvWinPend_first`)
-    "Hwpend" ∷ srvWinPend s γr γn ∗
-    -- (2026-10-30, the repair) the apply side's half of the node's running token
-    "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
-    -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
-    -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
-    -- cooperating (`storage.diskOk`, `NewServer`'s premise)
-    "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
-    "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
-    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
-    -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
-    -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
-    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
-    -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
-    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
-    "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
-    -- (revoke-open, 2026-11-06) the revocation's bundle (`run`'s expiry arm, revocable mode)
-    "#Hrvk" ∷ srvRevokeCtx s E ρ γr γg ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
-    "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
-    "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
-    "Hdc" ∷ ownBroadcastChan v.done γd iprop(True) .Pending ∗
-    "Hclose" ∷ token γg.close ∗
-    "Hstart" ∷ applyStartOn s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
-    "Hlr" ∷ srvLgReader s ∗
-    -- (H2, 2026-11-05) and its register at `GoAttach`'s receipts' name (`start` set it)
-    "#HWB" ∷ (∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt ai₀ ∗
-      dghostVar γp.reg DFrac.discard (some γg.run)) ∗
-    -- (2026-10-31, #11) what the snapshot path takes of the construction (`isServerRun`'s; D22 J1b:
-    -- the persistent bundle, the rest in `applyStartOn`)
-    "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗
-    -- (J8a-3, 2026-11-01) the two configuration fields `start` writes, read-only from then on:
-    -- with `srvSnapRO`'s rebuild, the whole configuration read-only (`specSnap`'s `srvCfgAddr s ↦□`)
-    "#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
-      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu))
 
 end defs
 

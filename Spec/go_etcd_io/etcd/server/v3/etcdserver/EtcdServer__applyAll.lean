@@ -153,7 +153,7 @@ the snapshot `sv` at the index `i` past the applied index `ai` (below `2^61`, at
 log), certified (`snapshotCert`), in the member's snapshot directory (`nodeSnapLocal`, the member
 `nid` the server's), with no entries, its two-receive `notifyc` and `raftAdvancedC` (the node's
 applied index at `i`, the storage's snapshot frozen there). `applySnapshot` installs it
-(`applySnapshot.specSnap`, over the snapshot path's resources `srvSnapOwn` and the apply thread's
+(`applySnapshot.specSnapM`, over the snapshot path's resources `srvSnapOwn` and the apply thread's
 `srvApRes`), `applyEntries` returns at once, `applyWait.Trigger(i)` releases the waiters through
 `i` (`applied_jump`), the two receives, `snapshotIfNeededAndCompactRaftLog` does nothing (disk =
 memory = applied index), and a pending merged-snapshot request is served at `i`. After: `applyAll.spec`'s
@@ -242,7 +242,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       -- (auth on: the store's invariant and snapshot clause are `srvSnapRO`'s row
       -- `authSnapKitM`)
       srvSnapOwn s ci E γr γ ai ∗
-      -- (J8a-4's, 2026-11-01) `applySnapshot.specSnap`'s meta reads of the backend it opens, at
+      -- (J8a-4's, 2026-11-01) `applySnapshot.specSnapM`'s meta reads of the backend it opens, at
       -- the apply names `γ` (`bootOk`'s `#HmetaSnap`, which `run` carries)
       □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
         ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗

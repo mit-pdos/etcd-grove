@@ -276,9 +276,11 @@ def srvRunRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInt
       rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀ γr.raft A₀) ∗
     srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw A₀ ai₀)
 
-/-- **What `run` needs** (`isServerRun` off, `isServerRunOn` on; the stop requests' `SP` and the
-done channel's `DQ` as `isServerRun`'s; R2c-4: and the stop's slot, `srvStop.slot`, which the
-import graph keeps out of `isServerRun`). -/
+/-- **What `run` needs**, at a first start or a restart at `σ.b = 0` (R2d'a swap batch 5,
+2026-11-07: the start's conjuncts are `HRr ∷ srvRunRestartR`, the backend's ghost log `A₀ = γn.a0`;
+until then `InvRun.lean`'s `isServerRun` off and `RunOn.lean`'s `isServerRunOn` on, both deleted
+2026-11-07). The stop
+requests' `SP` and the done channel's `DQ`, and (R2c-4) the stop's slot, `srvStop.slot`. -/
 def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
@@ -330,7 +332,7 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- persistent bundle; (D22 J1b, 2026-10-31) the counter's authority and the stocks in `applyStart`
     "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗
     -- (J8a-3, 2026-11-01) the two configuration fields `start` writes, read-only from then on:
-    -- with `srvSnapRO`'s rebuild, the whole configuration read-only (`specSnap`'s `srvCfgAddr s ↦□`)
+    -- with `srvSnapRO`'s rebuild, the whole configuration read-only (`specSnapM`'s `srvCfgAddr s ↦□`)
     "#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
       srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu) ∗
     -- (R2c-4) the stop's slot (`srvStop.slot`), from `start`'s construction premise, for the
