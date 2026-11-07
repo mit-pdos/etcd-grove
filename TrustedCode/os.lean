@@ -406,26 +406,26 @@ loads `os.Stdout` is stuck (has no proof), where Go reads a `*File`. -/
 def Stdout.init : val :=
   λ: <>, #()
 
-/-- The address `Stderr`'s model stores: `maxAddr + 1`, outside `(0, maxAddr]`, where every
-allocation lies (`Alloc`, `AllocBytes`), so no heap cell is ever there. It is not `nil`, it is
-different from every pointer to an allocation (as Go's `Stderr`, a `*File` of its own), and a
-program cannot observe the number: `uintptr(unsafe.Pointer(p))` is an arbitrary word
-(`convert_unsafe_to_uintptr`). No other model uses an address above `maxAddr`. -/
-def stderrAddr : Loc := ⟨maxAddr + 1⟩
-
 /-- `Stderr`'s initializer. Unlike `Stdin` and `Stdout`, the model allocates the variable,
 because package initializers that only load `os.Stderr` (raft's `defaultLogger`,
-`log.New(os.Stderr, ...)`) must be provable: it stores the non-`nil` pointer `stderrAddr`, at
-which there is no cell. So the variable holds a non-`nil` `*File`, as in Go, and loading it steps;
-anything that reads or writes through it (a method call, a field, `*os.Stderr = File{}`) is stuck
-(has no proof), where Go reads or writes the `File`. (As Perennial's `TrustedCode/os.lean`, fix-semantics Case 39. Until then the pointer was
-to a fresh untyped cell, which a store through it could overwrite: `*os.Stderr = os.File{};
-log.Printf("x")` ran in the model and panics in Go.) -/
+`log.New(os.Stderr, ...)`) must be provable. It stores a pointer from `GoPrealloc`: an arbitrary
+address in `(0, maxAddr)` (`go_prealloc_step`), at which the model allocates no cell. So the
+variable holds a non-`nil` `*File`, as in Go, and loading it steps; anything that reads or writes
+through it (a method call, a field, `*os.Stderr = File{}`) has no proof: a proof covers every
+placement, and in those where no later allocation lands at that address the access is stuck,
+where Go reads or writes the `File`. `GoPrealloc` reserves nothing: a later allocation may land at
+the address, so the address's order against allocations, and whether it equals a later
+allocation's, are nondeterministic; a program that compares them (`unsafe.Pointer(os.Stderr) ==
+unsafe.Pointer(new(File))`) may then fail in the model where Go does not, which only makes the
+model less defined than Go. (2026-11-07, the review of `os-init-lean`: first a fresh `Alloc #()`,
+a writable cell, so `*os.Stderr = os.File{}; log.Printf("x")` ran in the model and panics in Go;
+then `maxAddr + 1`, outside every allocation, which a program walking addresses from
+`os.Stderr` up to a later allocation could tell apart from Go's.) -/
 def Stderr.init : val :=
   λ: <>,
     go.GlobalAlloc go!"os.Stderr" (go.GoType.PointerType (go.GoType.Named go!"os.File" [])) #() ;;
     GlobalVarAddr go!"os.Stderr" #() <-[go.GoType.PointerType (go.GoType.Named go!"os.File" [])]
-      (Val #stderrAddr)
+      (GoPrealloc #())
 
 end code
 end os

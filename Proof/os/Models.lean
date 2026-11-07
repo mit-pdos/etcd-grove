@@ -47,13 +47,14 @@ theorem wp_Stdout_init :
   iapply HΦ; itrivial
 
 /-- `Stderr`'s initializer (the model) allocates the variable and stores some pointer
-(`stderrAddr`, where no cell ever is). -/
+(an arbitrary non-`nil` address, `GoPrealloc`). -/
 theorem wp_Stderr_init :
     {{ (True : IProp GF) }} (App (Val Stderr.init) (Val #()))
     {{ RET #(); ∃ f : Loc, globalAddr Stderr ↦ f }} := by
   wp_start
   wp_apply wp_GlobalAlloc (V := Loc) go!"os.Stderr"
     (go.GoType.PointerType (go.GoType.Named go!"os.File" [])) as HS
+  wp_apply wp_GoPrealloc as %l -
   iapply HΦ
   iexists _
   unfold Stderr

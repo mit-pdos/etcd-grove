@@ -91,7 +91,9 @@ func arbitraryStrings() []string {
 with each call `arbitrary()` replaced by `ArbitraryInt` (an arbitrary `uint64`) and
 `arbitraryString()` by `fmt.arbitraryString` (every string). It can return every slice of
 strings, `nil` and a non-`nil` empty slice included (and may also not terminate, which
-partial correctness allows). -/
+partial correctness allows). Go's `runtime_envs`/`runtime_args` never return `nil` (`envs` is a
+non-`nil` empty slice under `env -i`, on any kernel); `nil` is a behavior of the model only, which
+a proof must also cover. -/
 noncomputable def arbitraryStrings : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
