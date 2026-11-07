@@ -125,7 +125,7 @@ theorem srvAtomics_snapE (s : Loc) (γr : ReadNames) :
 `srvAtomics_snapE`; on, the KV invariants' tie to the store's history reads only the mode. (The mvcc
 merge, 2026-11-06: the store restored in place, so the environment's KV parts are the old ones; until
 then an entailment over the restored physical names `p'` and the compaction permit's names,
-`mvcc.crevPermIs_cperm`.) MERGE-TODO(walk): `rfl` not yet checked at the mode `on`. -/
+`mvcc.crevPermIs_cperm`.) -/
 theorem srvAtomicsM_snapE (on : Bool) (s : Loc) (γr : ReadNames) :
     srvAtomicsM (GF := GF) on s (snapE E γ' TM' ci d' g γB al ast lp cl be) γr =
       srvAtomicsM on s E γr := by
@@ -144,8 +144,8 @@ theorem srvWTPool_snapE (γp : WTNames) :
 
 /-- The apply thread's KV half and leases are the logical names' (step 4). -/
 theorem leasesLive_snapE (st : List EtcdKv) :
-    apply.leasesLive (GF := GF) (snapE E γ' TM' ci d' g γB al ast lp cl be).γ st =
-      apply.leasesLive E.γ st := rfl
+    apply.leasesLive (GF := GF) (snapE E γ' TM' ci d' g γB al ast lp cl be) st =
+      apply.leasesLive E st := rfl
 
 end snapE
 

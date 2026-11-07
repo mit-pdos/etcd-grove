@@ -29,13 +29,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
--- MERGE-TODO(snap-leases): `lean`'s `leasesKnown_restore L R` (any live set, over the restored log)
--- and `kvOwn_snap` (the KV's resources from the watchable store's sole writer, mvcc's internals) are
--- dropped; under `lean`'s lease-expiry the restored history may put leases (the live set `Lr`), so
--- the snapshot's `kvOwn` needs `leasesKnown Lr` of the image's model, not this lemma's `[]`.
-/-- **No lease is needed of a state whose history puts none** (`leasesKnown []`). -/
-theorem leasesKnown_noLease (log : mvcc.Log) (h : mvcc.LogNoLease log) :
-    ⊢ txn.leasesKnown (GF := GF) [] (mvcc.stateAfter log) := by
+/-- **No lease is needed of a state whose history puts none, at any live set** (`leasesKnown L`;
+`lean`'s `leasesKnown_restore`, over `LogNoLease` in place of `restoreLogOk`: R4, 2026-11-07, the
+restored image's history attaches no lease to a key, whatever the lessor's live set `Recover`
+restored). -/
+theorem leasesKnown_noLease (L : List w64) (log : mvcc.Log) (h : mvcc.LogNoLease log) :
+    ⊢ txn.leasesKnown (GF := GF) L (mvcc.stateAfter log) := by
   have hz := mvcc.stateAfter_leaseZero _ h
   unfold txn.leasesKnown txn.leasesOk
   iintro !> %l %hl

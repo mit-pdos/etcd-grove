@@ -408,7 +408,7 @@ after `Recover`, the store on the new backend (`authBeOn`), the apply thread's a
 `A'`'s state, and **the old backend's open share** (after an update: its release, for the close
 goroutine; decision 3c; its reader slots stay the realization's, R4's F1). -/
 abbrev authRecoverOn.spec : Prop :=
-  ∀ (ast abl lg : Loc) (dO dn : mvcc.KBReal) (W Pk PkO : IProp GF) (f : GoFunc) (fO : val)
+  ∀ (ast abl lg : Loc) (dO dn : mvcc.KBReal) (W Pk PkO : IProp GF) (f : GoFunc) (fO : GoFunc)
     (r : GMap GoString backend.BktData) (γa : auth.AuthNames) (R RD : IProp GF) (E : apply.AEnv GF)
     (γr : ReadNames) (A A' : List EntryModel) (sa : auth.AuthState),
   E.authMode = .on γa →
@@ -427,7 +427,7 @@ abbrev authRecoverOn.spec : Prop :=
     (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
       go!"Recover")) (Val #(authBkIface abl)))
   {{ RET #(); |={⊤}=> (authBeOn ast dn.be ∗
-      authApplyResB (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn Pk #f RD ∗
+      authApplyResB (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn Pk f RD ∗
       backend.bOpen dO.γB authOpenQ) }}
 
 end premise
@@ -532,8 +532,8 @@ theorem authRecoverOn_glue (hRec : auth.authStore.Recover.spec (GF := GF) (hG :=
     iunfold ablOn at Habl
     icases Habl with ⟨#H1, #H2⟩
     iframe Hbe H1 H2; ipureintro; exact Hlg
-  ihave #Hw := auth.authWBackendOk_of_R (authBkIface abl) (.on γa) Pk #f (auth.authWTok γc) $$ HwR
-  iexists hs ++ (srvHist γr.kv A').drop hs.length, Pk, #f, γc, authBkIface abl
+  ihave #Hw := auth.authWBackendOk_of_R (authBkIface abl) (.on γa) Pk f (auth.authWTok γc) $$ HwR
+  iexists hs ++ (srvHist γr.kv A').drop hs.length, Pk, f, γc, authBkIface abl
   -- the fuel at the image's base: its admin entries, never paid for with receipts
   isplitl [Hown Hfu]
   · iunfold auth.authOwnFu

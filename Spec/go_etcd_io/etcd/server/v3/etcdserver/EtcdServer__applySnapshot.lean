@@ -177,7 +177,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        lease.lessorModeIs (mvccLeases E.γ) (decide (E.lm = .mono)) ∗
        -- (strict M1, 2026-11-06) the KV the store's handle (`srvSnapRO`'s); mvcc's image of the
        -- image's committed log's model, its compaction revision's permit (`dbImage`'s, with `hAA'`,
-       -- `hst`; `snapRecv_image`). Until then the KV's closer `srvKVCloserW` (MERGE-TODO(close):
+       -- `hst`; `snapRecv_image`). Until then the KV's closer `srvKVCloserW` (
        -- over the API, the apply thread's `mvccOpen E.γ`), the watchable store, `certOk`, the
        -- restored log's receipt and the compaction permits at the records.
        srvKVAddr s ↦□ E.kv ∗

@@ -774,14 +774,18 @@ theorem srvApplyKVC_idxCert (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GNa
   iexact Hrest
 
 /-- **The merged image's certificate** (`merged_image` off, `merged_imageOn` on): the window's
-observation, with the component's buckets at its image (`acImg`, `acBkts`). -/
+image (`mergedImgM`, R4, 2026-11-07: until then the observation `mergedObsM` and the KV log's
+receipt), with the component's buckets at its image (`acImg`, `acBkts`). With auth on, the apply
+thread's compaction revision the model's (`hcr`: `merged_imageOn`'s, which the on-mode invariants do
+not give since strict M1 dropped `srvKVInvsOn`'s `E.cmp = false`). -/
 theorem merged_imageC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
     (x : apply.ApplyKV) (sa : auth.AuthState) (D : backend.Data) (hC : E.authMode = C.mode)
-    (hlen : uint.Z ai = A.length) (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) :
-    ⌜mergedObsM E.authMode γr E.cmp E.lg ai A x.log x.crev D ∧
-        ∃ r, acImg C sa r ∧ ∀ n, acBkts C n → D.lookup n = r.lookup n⌝ ∗
-      ⧖ (mvcc.logCh x.log) ∗ isServerM C.isOn s γ ci TM E ρ γr ∗
+    (hlen : uint.Z ai = A.length) (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []])
+    (hcr : C.isOn = true → x.crev = crevOf γr.kv A) :
+    mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗
+      ⌜∃ r, acImg C sa r ∧ ∀ n, acBkts C n → D.lookup n = r.lookup n⌝ ∗
+      isServerM C.isOn s γ ci TM E ρ γr ∗
       kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A x sa ⊢
       |={⊤}=> kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A x sa ∗
         □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
@@ -789,20 +793,19 @@ theorem merged_imageC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : M
   | off =>
     dsimp only [AuthC.isOn]
     rw [kvAppliedM_false, isServerM_false]
-    iintro ⟨%hobs, #Hrc, #Hsrv, Hka⟩
-    iapply (merged_image s γ ci TM E ρ γr ai A x D hlen h0)
-    iframe Hrc Hsrv Hka
-    ipureintro
-    exact mergedObs_of_M (by simpa [AuthC.mode] using hC) hobs.1
+    iintro ⟨#Hmi, -, #Hsrv, Hka⟩
+    iapply (merged_image s γ ci TM E ρ γr ai A x D (by simpa [AuthC.mode] using hC) hlen h0)
+    iframe Hmi Hsrv Hka
   | on γa =>
     dsimp only [AuthC.isOn]
     rw [kvAppliedM_true]
-    iintro ⟨%hobs, #Hrc, #Hsrv, Hka⟩
-    iapply (merged_imageOn s γ ci TM E ρ γr γa ai A x sa D (by simpa [AuthC.mode] using hC) hlen h0)
-    iframe Hrc Hsrv Hka
+    iintro ⟨#Hmi, %hobs, #Hsrv, Hka⟩
+    iapply (merged_imageOn s γ ci TM E ρ γr γa ai A x sa D (by simpa [AuthC.mode] using hC) hlen h0
+      (hcr rfl))
+    iframe Hmi Hsrv Hka
     ipureintro
-    obtain ⟨h1, r, hQ, hr⟩ := hobs
-    exact ⟨h1, authBucketsAt_congr sa D r hr hQ⟩
+    obtain ⟨r, hQ, hr⟩ := hobs
+    exact authBucketsAt_congr sa D r hr hQ
 
 /-- `kvRunM`'s parts: the KV's ghost state at the mode's and the start's indices. -/
 theorem kvRunM_split (on : Bool) (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel)

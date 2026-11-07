@@ -183,7 +183,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
   have hS := (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
       hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
-      al ast lp cl x A hRO A' u (by rw [Hoff]; exact HxA) (by rw [Hoff]; exact Hif.hst) hbr hlp γp
+      al ast lp cl x A hRO A' u (by rw [Hoff]; exact HxA) (by rw [Hoff]; exact Hif.hst)
+      (by rw [Hoff]; exact Hif.nolease) hbr hlp γp
       hrb stp γd γt
       (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm halbi
       Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
@@ -192,8 +193,6 @@ theorem EtcdServer.applyAll.wp_proofSnap
       (by rw [hraft]) Hmo (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc)
   rw [Hoff] at hS
   simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM] at hS
-  -- MERGE-TODO(walk): strict M1's `HxA`/`Hif.hst` at `kvModel`, the spec's at `kvModelM E.authOn`
-  -- (`kvModelM_false` at the mode off)
   wp_apply hS
     $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS Hγt Htlive Hsm0 Hcs Hstopc
       Hbo HthT]

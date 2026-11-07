@@ -39,14 +39,14 @@ thread's half (`ltHalf`), and (step 2) the lessor's range deleter. Until strict 
 store's sole writer at the restored physical names. (The mvcc merge, 2026-11-06: `lean`'s mode
 and live set over strict M1's store; the deleter `lease.rdAt (mvcc.api.mvccLeases E.γ) E.s` restated at the API's
 `mvccDeleter`.)
-MERGE-TODO(snap-leases): strict M1 took `hnl : LogNoLease` (no live lease, `leasesKnown []`); with
-`lean`'s live set `L` the KV's `leasesLive` needs `leasesKnown L` of the image's model (the image's
-leases are `Recover`'s records). -/
+(R4, 2026-11-07) The image's history attaches no lease to a key (`hnl`), so the KV's `leasesLive`
+holds at `Recover`'s live set `L` (`leasesKnown_noLease`; strict M1 had `L = []`). -/
 theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (π0 : ApplyPhys) (P : backend.BParams) (d' : mvcc.KBReal) (g : GoFunc)
     (up' : Loc) (opts' : apply.ApplierOptions) (w0 : GoInterface) (RD0 : IProp GF)
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A' : List EntryModel) (L : List w64) (on : Bool)
-    (st : auth.AuthState) (hxl : x.log.length ≤ (kvModelM on γr.kv A').length) :
+    (st : auth.AuthState) (hxl : x.log.length ≤ (kvModelM on γr.kv A').length)
+    (hnl : mvcc.LogNoLease (kvModelM on γr.kv A')) :
     apply.uberIs (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' opts' ∗
       apply.uberOwn (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' (apply.alarmChain (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be).authOn false false) ∗
       srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
@@ -69,12 +69,10 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       ⌜x'.log = kvModelM on γr.kv A' ∧ x'.chain = apply.alarmChain E.authOn false false ∧
         x'.crev = crevOf γr.kv A'⌝ ∗
       srvApplyKVM on s (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) ρ.wait x' st := by
-  -- MERGE-TODO(walk): strict M1's body (mode off, no lease) below; `lean`'s `on`, `L`, `uberIs`,
-  -- `kvAuthM` and the deleter to port
   iintro ⟨#Hub, Huo, Hua, HwSt, HcrO, HmO, HmB, #Hhk, Hlo, Hlr, Hrv, HLt, Hrdat, HRD, Hbe, Hγbe, #Hro,
     Hpl, Hrt, Hra, Hauar, #Hw, #Hwok, HRD0⟩
-  ihave #Hlk := leasesKnown_noLease (GF := GF) _ hnl
-  have hli : mvcc.leaseItemsOf (mvcc.stateAfter (kvModel γr.kv A')) = ∅ :=
+  ihave #Hlk := leasesKnown_noLease (GF := GF) L _ hnl
+  have hli : mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM on γr.kv A')) = ∅ :=
     mvcc.leaseItemsOf_zero _ (mvcc.stateAfter_leaseZero _ hnl)
   imodintro
   iexists ⟨kvModelM on γr.kv A', apply.alarmChain E.authOn false false, crevOf γr.kv A'⟩
@@ -88,14 +86,14 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     iexists up', opts'
     iframe Hub
     ipureintro; rfl
-  isplitl [Huo HwSt HcrO HmO HmB Hlo Hlr Hrv HRD]
+  isplitl [Huo HwSt HcrO HmO HmB Hlo Hlr Hrv HRD HLt]
   · iunfold apply.applyKV
     iexists up'
     isplitr
     · ipureintro; rfl
     simp only [snapE_authOn]
     iframe Huo
-    isplitl [HwSt HmB Hlo Hlr Hrv HRD]
+    isplitl [HwSt HmB Hlo Hlr Hrv HRD HLt]
     · iunfold apply.kvOwn
       simp only [snapE_γs, snapE_γ, snapE_RD]
       isplitl [HwSt]
@@ -111,11 +109,15 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
         ipureintro; rfl
       iframe HRD
       iunfold apply.leasesLive
-      iexists []
+      iexists L
       iframe Hlk
       iunfold lease.lessorUser
       rw [hli]
+      simp only [snapE_γ]
       iframe Hlo Hlr Hrv
+      rw [show apply.ltHalf (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl
+        d'.be) L = apply.ltHalf E L from rfl]
+      iexact HLt
     iunfold apply.cmpOwn
     simp only [snapE_γs, snapE_γ]
     iframe HmO HcrO
@@ -195,11 +197,12 @@ theorem kvAuthM_snap (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       iframe Hpub Hlat Hbd
       ipureintro; exact Hau
     iunfold srvAuthApplyResB
-    iexists ast, d'
-    -- MERGE-TODO(walk): `srvAuthApplyResB`'s backend at the tie (`snapE_BkTie`), strict M1's
-    simp only [snapE_authMode, snapE_P, snapE_f, snapE_RD, snapE_RW, snapE_RO]
+    iexists ast, d', batchLockInv (snapγ γ π0 d'.γB) (metaTM d'.γB P)
+    simp only [snapE_authMode, snapE_Pk, snapE_f, snapE_RD, snapE_RW, snapE_RO, snapE_BkTie]
     try rw [hM]
     iframe Hauf Hrow
+    isplitr
+    · ipureintro; first | exact ⟨rfl, rfl⟩ | trivial
     isplitr
     · iapply rwLens_authBeOn
     iapply roLends_authBeOn

@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorHist
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApply
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
@@ -131,6 +132,40 @@ theorem ever_live_modeM (E : apply.AEnv GF) (lp : Loc) (mono : Bool) (U L : List
     iframe H1 H2
     ipureintro; exact fun _ => H
 
+/-- **The store invariant of a server in either auth mode, with its witness and permit the
+server's** (`srvKVInvsM`'s: the raft witness `kvNx γr on` of the mode's model, the permit
+`crevOk`). -/
+theorem srvKVInvsM_kvStoreInvW (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) on s E γr ⊢
+      □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
+        ⌜E.Cp = srvApi.crevOk γr ∧ E.Nx = srvApi.kvNx γr on⌝ := by
+  cases on
+  · iintro #H
+    iunfold srvKVInvsM at H
+    iunfold srvKVInvs at H
+    icases H with ⟨-, -, -, #Hk, %Hm, %HNx, -⟩
+    iframe Hk
+    ipureintro; exact ⟨Hm.2.2.2, HNx⟩
+  · iintro #H
+    ihave #H' := srvKVInvsM_true s E γr $$ H
+    iunfold srvKVInvsOn at H'
+    icases H' with ⟨-, -, -, -, #Hk, %Hm, %HNx, -⟩
+    iframe Hk
+    ipureintro; exact ⟨Hm.2, HNx⟩
+
+/-- **An applier's options' builders** (`apply.envAus`, `backendOptsOk`'s): what the new applier's
+options need of the store, which the old applier's give (R4, 2026-11-07). -/
+theorem applierFor_envAus (ua : GoInterface) (E : apply.AEnv GF) :
+    apply.applierFor ua E ⊢ apply.envAus E := by
+  iintro #H
+  iunfold apply.applierFor at H
+  icases H with ⟨%p, %opts, -, #H⟩
+  iunfold apply.uberIs at H
+  icases H with ⟨-, #H, -⟩
+  iunfold apply.backendOptsOk at H
+  icases H with ⟨-, -, -, #H, -⟩
+  iexact H
+
 -- (D22 J1a, 2026-10-26) `srvAuthRecoverOk` (now `authRecoverOk`), `srvMembersDir` and
 -- `lessorLookupOk` moved to `SnapRO.lean`.
 
@@ -206,10 +241,12 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     -- owner's half at the store's `Write` (the mvcc merge, 2026-11-06: `lean`'s `lease.rdAt
     -- (mvcc.api.mvccLeases E.γ) E.s`, the deleter at every watchable store over the inner store, restated at the
     -- API's `mvccDeleter`)
-    -- MERGE-TODO(deleter-after-recover): the walk rebuilds `mvccDeleter rd E.γ` for the new closure
-    -- after `lessor.Recover` (from `KV.Write.contract`: an additive law `mvccDeleter_of_write`, or
-    -- inline)
+    -- (R4, 2026-11-07) the walk rebuilds it for the new closure after `lessor.Recover`, from
+    -- `KV.Write.contract` at the store handle's type (`applySnapshot_walk`)
     (∃ rd : GoFunc, lease.rdOwn (mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
+    -- (R4, 2026-11-07) the store's builders, the old applier's (`applierFor_envAus`), for the new
+    -- applier's options
+    apply.envAus E ∗
     apply.bkRT d' ∗
     -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, the others a part (the
     -- lease-expiry plan's S2–S4: the image's lease bucket kept; P6.2: the part by the auth mode)
@@ -243,7 +280,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     snapAuthRowM E.authMode s E ua ast γr A' d'
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) g ∗
     RD0 ∗ apply.uberOwn E up x.chain)
-    -- MERGE-TODO(close): `lean`'s post also held the watchable store's own closer's parts (`wsk`'s
+    -- (the mvcc merge) `lean`'s post also held the watchable store's own closer's parts (`wsk`'s
     -- `stopc`, `mvcc.stopCloser`, `mvcc.wsWaiter`, from `restorePre_of_apply`): over the API the
     -- store's close right is `mvccOpen E.γ` above.
 
@@ -271,7 +308,8 @@ def srvSnapAppliedG (on : Bool) (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) 
     epConfState ep cs' ∗ csOptA cs' DFrac.discard sv.Metadata'.ConfState' ∗
     applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     srvApplyKVM on s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A' ∗
-    -- MERGE-TODO(close): `lean`'s `srvKVCloserW s E'` was here (`SnapRO`, "MERGE-TODO(close)")
+    -- (the mvcc merge) `lean`'s `srvKVCloserW s E'` was here: over the API the close right is the
+    -- apply thread's `mvccOpen` (`srvApplyKVM`'s `cmpOwn`)
     srvStopChans γ' d' ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗

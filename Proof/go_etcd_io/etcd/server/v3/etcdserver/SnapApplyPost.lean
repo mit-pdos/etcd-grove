@@ -2,8 +2,8 @@
 **`applySnapshot`'s post assembled** (D22 receiver epochs, S8d, 2026-10-26;
 `notes/snapshot-s8-plan.md`): from what its code leaves (`snapWalkPost`, `applySnapshot_walk`) and
 its precondition's persistent part, `srvSnapApplied` (`applySnapshot.spec`'s second part): the
-walk's result taken apart, the names (`SnapApplyNames.lean`), the five step lemmas
-(`SnapApply{IsServer,Opts,KV,Rest,Closer}.lean`) and the rest framed (step 7).
+walk's result taken apart, the names (`SnapApplyNames.lean`), the four step lemmas
+(`SnapApply{IsServer,Opts,KV,Rest}.lean`) and the rest framed (step 7).
 -/
 module
 
@@ -13,7 +13,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyIsServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyOpts
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyRest
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyCloser
 
 @[expose] public section
 
@@ -117,11 +116,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`applySnapshot`'s post from its walk** (S8d): the server's view, the applier, the KV's
-resources and closer and the rest buckets at the snapshot's backend. The names `γ'`, `TM'`, `E'`,
-`st'` are `snapγ γ π0 γB`, `metaTM γB d.P`, `snapE …`, `snapSt γ' i` (`SnapApplyNames.lean`); steps
-2-6 are the lemmas `snap_isServer`, `snap_backendOptsOk`, `snap_applyKV`, `snap_srvRest`,
-`snap_kvCloserW` (with the compaction right step 4 takes, so first); step 7 (the rest of the post) is framed here. -/
-theorem srvSnapApplied_of_walk
+resources and the rest buckets at the snapshot's backend. The names `γ'`, `TM'`, `E'`, `st'` are
+`snapγ γ π0 γB`, `metaTM γB d.P`, `snapE …`, `snapSt γ' i` (`SnapApplyNames.lean`); steps 2-5 are
+the lemmas `snap_isServer`, `snap_backendOptsOk`, `snap_applyKV`, `snap_srvRest`; step 7 (the rest
+of the post) is framed here. (R4, 2026-11-07: over mvcc's API, the store restored in place by
+`KV.Restore.contract`, its handle `E.kv` and name `E.γ` kept, the KV at the image's model by the
+mode, `kvModelM E.authOn γr.kv A'`; until then the watchable store's sole writer at the restored
+physical names, the restored log `[[], []] ++ R`, its records `r`, the KV's closer
+(`snap_kvCloserW`, `SnapApplyCloser.lean`, deleted with the closer).) -/
+theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
     (hGL : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
     (hAt : lease.lessor.Attach.spec (GF := GF) (hG := hG))
     (hDt : lease.lessor.Detach.spec (GF := GF) (hG := hG))
@@ -136,42 +139,24 @@ theorem srvSnapApplied_of_walk
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
-    (s ep ap sn : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai at0 dsi : w64) (nc : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk : Loc)
-    (hi : uint.Z ai < uint.Z sv.Metadata'.Index')
-    (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
-    (hkb : E.γ.kb = some d)
-    (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
-    (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
-    (hcfgl : cfg.Logger' ≠ null)
-    (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
-    (st : ApplyState) (b : GoInterface)
-    (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
+    (Hp : mvcc.api.persistent.law (GF := GF))
+    (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (ss hk : Loc) (d : mvcc.KBReal) (D : backend.Data)
+    (hP : ciKeys d.P ∧ storage.hooksParams d.P)
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
-    (hRO : E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
-    (hwq : E.γ.watchQ = true)
-    (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
-    (r : mvcc.CmpRecs) (hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D) (hbr : mvcc.bridgeParams d.P)
     (hlp : mvcc.leaseParams d.P)
-    (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
-    (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
-    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
-    (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
-    (hmemb : ((backend.rbData d.P D).lookup go!"members").isSome ∧
-      ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
-      ((backend.rbData d.P D).lookup go!"cluster").isSome)
+    (γp : WTNames) (γt : GName)
     (memI : GMap w64 apply.MemberM)
-    (himg : membership.clusterImageOk cl (backend.rbData d.P D) memI)
-    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (dir : w64 → List GoString)
-    (ps : List w64) (idm : w64)
-    (hdir : γn.dir = dir) (hdok : netDirOk dir) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps)
-    (hlid : c.lid = idm)
-    (msi : w64) (cs0 : Loc) (fg : GoInterface) (quota : w64) (wad : time.Duration)
-    (hbuq : apply.backendUnderQuota)
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64)
+    (quota : w64) (wad : time.Duration)
     (A' : List EntryModel)
-    -- (P6.2, 2026-11-03, F9) by the mode: the rest model's buckets (`snapRestImgM`), in place of `hoff`
-    (hA' : snapRestImgM E.authOn γr d.P D A' ∧
-      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
+    -- (strict M1) the KV at the applied `A`'s model, the image's committed log extending it, its
+    -- history attaching no lease (`specSnapM`'s `hxA`, `hAA'`, `hnl`)
+    (hxA : x.log = kvModelM E.authOn γr.kv A) (hAA' : A <+: A')
+    (hnl : mvcc.LogNoLease (kvModelM E.authOn γr.kv A'))
+    -- (P6.2, 2026-11-03, F9) the rest model's members the image's
+    (hmem : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
     (hany : E.authMode ≠ .any)
     -- (the lease-expiry plan's S2–S4, Probe 4, 2026-11-05) the lessor at the image's records
     -- (`snapWalkPost`'s): its live set the snapshot's table's ids, the ids it ever had good for `A'`,
@@ -193,60 +178,57 @@ theorem srvSnapApplied_of_walk
       lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
       lease.lessorInv lp (mvcc.api.mvccLeases E.γ) ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
       srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
-      srvClusterAddr s ↦□ cl ∗ membership.isRaftCluster cl ∗ mvcc.certOk E.γ ([[], []] ++ R) ∗
+      srvClusterAddr s ↦□ cl ∗ membership.isRaftCluster cl ∗ srvKVAddr s ↦□ E.kv ∗
       srvWTPool E γp ∗ srvGrantIf E ∗
-      snapWalkPost s ep sv γ ci E ρ γr d D A A' x R r ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
+      snapWalkPost s ep sv γ ci E ρ γr d D A A' x ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad Lr recs U reqOf ⊢
-    |={⊤}=> srvSnapAppliedG E.authOn s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl := by
+    |={⊤}=> srvSnapAppliedG E.authOn s ep sv γ ci E ρ γr d A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl := by
   iintro ⟨#Hpkg, #Hsrv, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #Hlinv, #Hlpf, #Half,
-    #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, #HGI, Hw⟩
+    #HisAl, #Haustf, #Hclf, #Hirc, #Hkvf, #HWP, #HGI, Hw⟩
   subst hLr
   iunfold snapWalkPost at Hw
-  icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
-    %w0, %RD0, %up, %lg, %wsk, %stck, %ua, %Hpure, #HB, #HhkAt', #HbhF', HSC, -, -, -, #HCI', #HhkS, -, -, #Hro', #HnSup,
-    #Hws, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, #HplRO, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb,
-    Hleb, Hlo, Hlrd, Hlrv, HLt1, HLt2, HEv, #HRqs, Hrdat, Hrt, Hrb, Hrn, Hcm, Hbo, Hpl', Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
-    Hcsa, Hcso, Hpath, #Hbf, Halb, HRD2, Hube, Hua, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
-  obtain ⟨hγB, hP', -, hcm', hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
-    ho11, ho12⟩ := Hpure
-  subst hγB
-  -- (M2's item 15) the KV's closer and the apply thread's compaction right at the records', by the
-  -- mode (step 6 first: step 4 takes the right)
-  obtain ⟨hcr, hcr0⟩ := mvcc.keyImageM_crev d.cm _ r D hkI
-  ihave HKC := snap_kvCloserW s E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB al ast lp cl
-    d'.be γw wsk stck hγw r.crev hcr (fun h => by
-      have hf : d.cm = false := by
-        have : ¬ d'.cm = true := by simpa [mvcc.kbCmpM, hkb'] using h
-        rw [← hcm']; simpa using this
-      rw [hcr0 hf, mvcc.CmpRecs.crev_empty]) $$ [Hstc Hwsw Hsc]
-  · iframe #; iframe Hstc Hwsw Hsc
-  icases HKC with ⟨HKC, Hcr⟩
-  -- step 1: the names (`SnapApplyNames.lean`)
-  -- (P6.2) the walk froze the hook (`plHookRO`)
+  icases Hw with ⟨%d', %π0, %g, %up', %opts', %L, %spc, %jf, %γcf, %w0, %RD0, %up, %lg, %ua,
+    %Hpure, #HB, #HhkAt', #HbhF', #HSC, -, -, -, #HCI', #HhkS, -, -, #Hro', #Hwa, #Hlga, Hwok,
+    #HplRO, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb, Hleb, Hlo, Hlrd, Hlrv, HLt1, HLt2, HEv,
+    #HRqs, Hrdat, #Haus, Hrt, Hrb, Hrn, Hcm, Hbo, Hpl', HmO, HmB, HwSt, HcrO, Htl, Hlgr, Hai, Hatt,
+    Hds, Hms, Hcsa, Hcso, Hpath, #Hbf, Halb, HRD2, Hube, Hua, Hra, Hauar, HRD0, -⟩
+  obtain ⟨hP', hcm', hm0, hbr', hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -, ho11, ho12⟩ :=
+    Hpure
+  -- the store's handle (the server's store invariant's)
+  ihave #Hsrv3 := Hsrv
+  iunfold isServerM at Hsrv3
+  icases Hsrv3 with ⟨-, -, -, #Hat3, -⟩
+  iunfold srvAtomicsM at Hat3
+  icases Hat3 with ⟨-, -, #Hkvi⟩
+  ihave ⟨#HkS, -⟩ := srvKVInvsM_kvStoreInvW E.authOn s E γr $$ Hkvi
+  haveI := Hp.1
+  ihave #HisM' : mvcc.api.isMvcc (GF := GF) E.kv E.γ $$ []
+  · iunfold srvApi.kvStoreInvG at HkS; icases HkS with ⟨#H, -⟩; iexact H
   -- step 2: the server's view
-  ihave #Hsrv' := snap_isServer E.authOn s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' d hcm' hkb hP' rfl hk $$ []
+  ihave #Hsrv' := snap_isServer E.authOn s γ ci TM E ρ γr π0 d.P d' g al ast lp cl hP' hgnn
+    (by rw [hP']; exact hP.1) (by rw [hP']; exact hP.2) hk $$ []
   · iframe #
   -- step 3: the new applier's options
   ihave #Hbo' := snap_backendOptsOk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg
-    s γ ci TM E ρ γr π0 d'.γB d.P d' p' γw ws g opts' lg al ast lp cl rfl hkb' hγw hwq hgnn
+    s γ ci TM E ρ γr π0 d'.γB d.P d' (mvcc.api.mvccW d'.gx) g opts' lg al ast lp cl rfl hgnn
     (by rw [hP']; exact hlp)
     ⟨ho1, ho2, ho3, ho4, ho5, ho6, ho7, ho11, ho12⟩ $$ []
   · iframe #
   -- step 4: the applier state
   -- (P6.2) the new applier at `E'`, and the auth part of the row there, by the mode (`kvAuthM_snap`)
   ihave ⟨#Hub', Huo'⟩ := Hube $$
-    %(snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB al ast lp cl d'.be) Hbo'
-  ihave Hauar := kvAuthM_snap s γ ci E π0 d'.γB d.P d' p' g up' opts' al ast lp cl ua γr A' hany rfl
-    hkb' ⟨ho4, ho5⟩ $$ [Hauar]
+    %(snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci d' g d'.γB al ast lp cl d'.be) Hbo'
+  ihave Hauar := kvAuthM_snap s γ ci E π0 d.P d' g up' opts' al ast lp cl ua γr A' hany
+    ⟨ho4, ho5⟩ $$ [Hauar]
   · iframe #; iframe Hauar
-  ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
-      rfl hkb' hγw hwq hpre hRok hrbw _ r.crev E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') $$
-      [Huo' Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0 Hcr]
-  · iframe #; iframe Huo' Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0
-    iunfold apply.cmpOwn
-    iframe Hcr
-    simp only [snapE_γ, mvcc.StoreNames.withPhys_kb, hkb']
-    iexact HnSup
+  have hxl : x.log.length ≤ (kvModelM E.authOn γr.kv A').length := by
+    rw [hxA]; exact (srvApi.kvModelM_prefix E.authOn γr.kv A A' hAA').length_le
+  ihave HKV' := snap_applyKV s γ ci E ρ γr π0 d.P d' g up' opts' w0 RD0 al ast lp cl x A'
+      (srvIds E (appliedTable γr A').ids) E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') hxl hnl $$
+      [Huo' Hua HwSt HcrO HmO HmB Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl' Hrt Hra Hauar
+        Hwok HRD0]
+  · iframe #; iframe Huo' Hua HwSt HcrO HmO HmB Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl'
+      Hrt Hra Hauar Hwok HRD0
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets
   -- (S2–S4, Probe 4) the table's requests, from the records' (`hreqT`)
@@ -267,40 +249,34 @@ theorem srvSnapApplied_of_walk
     iexists _
     iframe HEv
     ipureintro; exact hUok
-  ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp
-    cl _ memI A' rfl f hbkG hA'.2 hf
+  ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci g d'.γB d' γr al ast lp
+    cl _ memI A' rfl f hbkG hmem hf
     $$ [Hrb Hrn Hcm Halb Haub Hclb Hleb HLt2 HEv]
   · iframe Hrb Hrn Hcm Halb Haub Hclb Hleb HLt2 HGI HRqT HEv
   -- step 7: the rest, framed
   icases Hcso with #Hcso
   ihave Hcs := epCsOk_of_csOptA spc sv.Metadata'.ConfState' $$ Hcso
   -- (R2b-3d stage 3) the new backend's stop channels at the server's own resources
-  ihave #HSCs : srvStopChans (GF := GF) (snapγ γ π0 d'.γB) d' $$ [HSC]
-  · iunfold srvStopChans; rw [← hP']; iframe HB; iexact HSC
+  ihave #HSCs : srvStopChans (GF := GF) (snapγ γ π0 d'.γB) d' $$ []
+  · iunfold srvStopChans; rw [← hP']; iframe HB HSC
   imodintro
   iunfold srvSnapAppliedG
   iexists snapγ γ π0 d'.γB, metaTM d'.γB d.P,
-    snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB al ast lp cl d'.be,
+    snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci d' g d'.γB al ast lp cl d'.be,
     (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
       #d'.be : GoInterface),
     snapSt (snapγ γ π0 d'.γB) sv.Metadata'.Index', d', x', spc, L
   isplitr
   · ipureintro
-    refine ⟨by apply snapE_beSucc, hkb', hcm', hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
-      Hx'.2.2, Hx'.2.1, hcov⟩
+    refine ⟨by apply snapE_beSucc, rfl, hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0,
+      snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1, Hx'.2.2, Hx'.2.1, hcov⟩
   iunfold epConfState
   simp only [snapE_authMode]
-  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HKC HSCs Hbo Hγt Hpath Hbf Htl
-  -- (J8a-1, item 5) the KV at the new environment: the walk's watchable store, its inner store's
-  -- names at the new physical ones (`isWatchableStore_withPhys`)
-  iexists _
-  iframe Hkva
-  iunfold txn.isKV
-  iright
-  iexists ws, { γw with st := γw.st.withPhys p' }
-  rw [mvcc.isWatchableStore_withPhys, snapE_s]
-  iframe Hws
-  ipureintro; exact ⟨rfl, by simp only [snapE_γ]; rw [hγw]⟩
+  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HSCs Hbo Hγt Hpath Hbf Htl
+  -- the KV, the store's handle kept by the restore
+  iexists E.kv
+  simp only [snapE_γ, snapE_kv]
+  iframe Hkvf HisM'
 
 end proof
 end EtcdGrove

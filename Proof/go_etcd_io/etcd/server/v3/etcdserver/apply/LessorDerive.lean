@@ -249,7 +249,9 @@ the lessor's backend contract (`lessorBackend`) with the backend's write-back to
 write, its half of `le.b` on `B` lent (`lessorBeOn lp B.be`), the reader token `bkRT B` lent and the
 `Lease` bucket's part of the tracked buckets; `Grant` takes the last two from the rest resource
 `RO` through the revocation's lens (`revokeLens`) and gives them back at the record put;
-`Checkpoint` from the write right `RW` (the server's is `False`), given back at any buckets. -/
+`Checkpoint` from the write right `RW`, given back at any buckets keeping `lease` present (R4,
+2026-11-07: until then at any buckets, which the server's `srvRestRWH` does not meet: its rest
+buckets present, `restPresent`; the checkpoint puts into `lease`). -/
 theorem isApplyLessor_of_lessorInv
     (hGL : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
     (hAt : lease.lessor.Attach.spec (GF := GF) (hG := hG))
@@ -271,7 +273,8 @@ theorem isApplyLessor_of_lessorInv
           (backend.rbPart B.γB (· = mvcc.leaseName))) ∗
       □ (∀ B : mvcc.KBReal, BT B -∗ RW -∗ BT B ∗ lease.lessorBeOn lp B.be ∗
         ∃ r, backend.rbPart B.γB (· = mvcc.leaseName) r ∗
-          (∀ r', lease.lessorBeOn lp B.be -∗ backend.rbPart B.γB (· = mvcc.leaseName) r' -∗ RW)) ∗
+          (∀ r', ⌜(r.lookup mvcc.leaseName).isSome → (r'.lookup mvcc.leaseName).isSome⌝ -∗
+            lease.lessorBeOn lp B.be -∗ backend.rbPart B.γB (· = mvcc.leaseName) r' -∗ RW)) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType lease.lessor.ty @!! go!"Lookup"))
           (Val #id))
@@ -356,10 +359,10 @@ theorem isApplyLessor_of_lessorInv
     iframe Hrt HBT
     ihave #Hnil := applyErrIs_nil (GF := GF)
     icases HPP with (⟨HPost, %t, HRb⟩ | ⟨HPre, HRb⟩)
-    · ihave Hrw := Hcl $$ %_ Hbe HRb
+    · ihave Hrw := Hcl $$ %_ %(fun _ => by simp [mvcc.rbSet]) Hbe HRb
       iframe Hrw Hnil
       ileft; iexact HPost
-    · ihave Hrw := Hcl $$ %_ Hbe HRb
+    · ihave Hrw := Hcl $$ %_ %(fun h => h) Hbe HRb
       iframe Hrw Hnil
       iright; iexact HPre
   · iexact HLookup

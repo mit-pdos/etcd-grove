@@ -166,7 +166,7 @@ def snapAuthRowM (M : auth.AuthMode) (s : Loc) (E : apply.AEnv GF) (ua : GoInter
     IProp GF :=
   match M with
   | .on γa => iprop(srvUberBase s ua E ∗
-      authApplyResB (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn Pk #f E.RD)
+      authApplyResB (.on γa) ast (srvAuthAtLog γr.kv srvAuthSt0 A') dn Pk f E.RD)
   | _ => srvAuthApplyRes s E
 
 end defs
@@ -210,7 +210,7 @@ theorem wp_authRecoverM
     (s ast abl lg : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ua : GoInterface)
     (A A' : List EntryModel) (d dn : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
     (r : GMap GoString backend.BktData)
-    (hkb : E.γ.kb = some d) (hany : E.authMode ≠ .any) (hr : snapAuthImgR E.authMode γr r A A') (hAA' : A <+: A')
+    (hkb : E.BkTie = srvBkTie d) (hany : E.authMode ≠ .any) (hr : snapAuthImgR E.authMode γr r A A') (hAA' : A <+: A')
     (hhas : dn.P.has mvcc.authBI ∧ dn.P.has mvcc.authUsersBI ∧ dn.P.has mvcc.authRolesBI)
     (hlg : lg ≠ null) (hf : f ≠ func.nil)
     -- (2026-11-03) the store's `Recover` with auth on only (the mode off's path rests on no glue)
@@ -280,14 +280,14 @@ theorem wp_authRecoverM
     simp only [kvAuthM]
     icases Hkv with ⟨#Hub, Hres⟩
     iunfold srvAuthApplyResB at Hres
-    icases Hres with ⟨%stl, %d0, %hkb0, #Hauf1, Hrow, -, -⟩
+    icases Hres with ⟨%stl, %d0, %Pk0, %hkb0, #Hauf1, Hrow, -, -⟩
     icombine Hauf Hauf1 gives %e1
     simp only [auth.authIface, interface_mkOk_inj] at e1
     have e1' : ast = stl := by
       simp only [intoVal_eq_iff, _root_.true_and, _root_.and_true] at e1; first | exact e1 | exact e1.symm
     subst e1'
-    rw [hkb] at hkb0
-    cases hkb0
+    have hd0 : d = d0 := srvBkTie_inj d d0 (hkb.symm.trans hkb0.1)
+    subst hd0
     try rw [hM]
     iunfold srvAtomicsM at Hat
     icases Hat with ⟨-, -, #Hkvi⟩
@@ -301,7 +301,7 @@ theorem wp_authRecoverM
       with ⟨HnO, HnOa⟩
     · rw [Qp.half_add_half]; iexact HnO
     iapply wp_fupd
-    iapply (hRecOn (by simp [apply.AEnv.authOn, hM, auth.AuthMode.isOn]) ast abl lg d dn W Pk E.P f E.f r γa R E.RD E γr A A'
+    iapply (hRecOn (by simp [apply.AEnv.authOn, hM, auth.AuthMode.isOn]) ast abl lg d dn W Pk Pk0 f E.f r γa R E.RD E γr A A'
       (srvAuthAtLog γr.kv srvAuthSt0 A) hM) $$ %_ [Hbe Hrow HnRA Hsl HnOa]
     · iframe Hbe Hrow HnRA Hsl; iframe #
       isplitr

@@ -157,7 +157,66 @@ theorem snap_isCluster (M : auth.AuthMode) (al ast lp cl : Loc) (d' : mvcc.KBRea
   · iapply srvRestOwnH_lens_cluster
   · iapply srvRestRWH_lens_cluster
 
-theorem snap_isApplyLessor
+/-- **The server's write right lends the lessor's checkpoint its put right** (`apply.isApplyLessor_of_lessorInv`'s
+`RW` premise): the lessor's half of `le.b` and the `Lease` bucket's part of the write right's
+buckets, given back at any buckets keeping `lease` present (the write right's buckets stay present,
+`restPresent`; R4, 2026-11-07: until then `srvRestRWH_lessor`, without the give-back). -/
+theorem srvRestRWH_lessorLens [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+    (γB : backend.BNames) (al ast lp cl be : Loc) :
+    ⊢ □ (srvRestRWH (GF := GF) γB (srvObjsOn al ast lp cl be) -∗
+      lease.lessorBeOn lp be ∗ ∃ r, backend.rbPart γB (· = mvcc.leaseName) r ∗
+        (∀ r', ⌜(r.lookup mvcc.leaseName).isSome → (r'.lookup mvcc.leaseName).isSome⌝ -∗
+          lease.lessorBeOn lp be -∗ backend.rbPart γB (· = mvcc.leaseName) r' -∗
+          srvRestRWH γB (srvObjsOn al ast lp cl be))) := by
+  iintro !> Hrw
+  iunfold srvRestRWH at Hrw
+  iunfold srvObjsOn at Hrw
+  icases Hrw with ⟨Hrw, Hal, Hau, Hle, Hcb⟩
+  iunfold srvRestRW at Hrw
+  icases Hrw with ⟨%r, Hrw, %Hpr⟩
+  ihave ⟨Hl, Hn⟩ := (backend.rbOwn_split (GF := GF) γB (· = mvcc.leaseName) r).1 $$ Hrw
+  iframe Hle
+  iexists r
+  iframe Hl
+  iintro %r' %hr' Hle Hl'
+  iunfold srvRestRWH
+  iunfold srvObjsOn
+  iframe Hal Hau Hle Hcb
+  iunfold srvRestRW
+  rcases hlk : r'.lookup mvcc.leaseName with _ | v
+  · -- no `lease` in `r'`, so none in `r`: `r` itself
+    have hr0 : r.lookup mvcc.leaseName = none := by
+      cases h : r.lookup mvcc.leaseName with
+      | none => rfl
+      | some _ => have := hr' (by rw [h]; rfl); rw [hlk] at this; cases this
+    iexists r
+    isplitl [Hl' Hn]
+    · iapply (backend.rbOwn_split (GF := GF) γB (· = mvcc.leaseName) r).2
+      iframe Hn
+      iapply (backend.rbPart_congr (GF := GF) γB _ r' r
+        (fun n hn => by subst hn; rw [hlk, hr0])).1 $$ Hl'
+    ipureintro; exact Hpr
+  · iexists r.insert mvcc.leaseName v
+    isplitl [Hl' Hn]
+    · iapply (backend.rbOwn_split (GF := GF) γB (· = mvcc.leaseName) (r.insert mvcc.leaseName v)).2
+      isplitl [Hl']
+      · iapply (backend.rbPart_congr (GF := GF) γB _ r' (r.insert mvcc.leaseName v)
+          (fun n hn => by subst hn; rw [GMap.lookup_insert, hlk])).1 $$ Hl'
+      · iapply (backend.rbPart_congr (GF := GF) γB _ r (r.insert mvcc.leaseName v)
+          (fun n hn => by rw [GMap.lookup_insert_ne _ _ (Ne.symm hn)])).1 $$ Hn
+    ipureintro
+    intro n hn
+    by_cases e : n = mvcc.leaseName
+    · subst e; rw [GMap.lookup_insert]; rfl
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact Hpr n hn
+
+/-- **The new options' lessor** (R4, 2026-11-07: over mvcc's API, `apply.isApplyLessor_of_lessorInv`
+as restated by R2, at the store's name `γ`, the tie `srvBkTie d'`, the batch lock `Pk` and hook `g`;
+until then at mvcc's internal store names, `hookOk`, `storeWT`/`storeRT`): the revocation's lens
+from the rest resource (`srvRestOwnH_lens_revoke`), the lessor's backend contract on `d'`
+(`lessorApplyOk`, its `le.b` half lent by itself, `lessorBeOn_lens`), the checkpoint's put right
+from the write right (`srvRestRWH_lessorLens`). -/
+theorem snap_isApplyLessor [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
     (hGL : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
     (hAt : lease.lessor.Attach.spec (GF := GF) (hG := hG))
     (hDt : lease.lessor.Detach.spec (GF := GF) (hG := hG))
@@ -167,94 +226,64 @@ theorem snap_isApplyLessor
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
     (hRv : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
-    (M : auth.AuthMode) (al ast lp cl sst : Loc) (d' : mvcc.KBReal)
-    (γs : mvcc.StoreNames) (hk : γs.kb = some d') (Pk : IProp GF) (g : GoFunc)
-    (hgnn : g ≠ func.nil) (hwq : γs.watchQ = true) (hlp : mvcc.leaseParams d'.P) :
+    (M : auth.AuthMode) (al ast lp cl : Loc) (d' : mvcc.KBReal) (γ : mvcc.api.MvccName)
+    (W Pk : IProp GF) (g : GoFunc) (hgnn : g ≠ func.nil) (hlp : mvcc.leaseParams d'.P) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      lessorApplyOk lp ∗ lease.lessorCfg lp ∗ lessorLookupOk lp ∗ lease.lessorInv lp γs.leases ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateWD d') Pk d'.be ∗ backend.plHookRO d'.γB g ∗
-      mvcc.hookOk γs Pk #g ⊢
-    apply.isApplyLessor (lease.lessorIface lp) sst γs Pk #g
+      lessorApplyOk lp ∗ lease.lessorCfg lp ∗ lessorLookupOk lp ∗
+      lease.lessorInv lp (mvcc.api.mvccLeases γ) ∗
+      backend.isBackend d'.γB d'.P W Pk d'.be ∗ backend.plHookRO d'.γB g ⊢
+    apply.isApplyLessor (lease.lessorIface lp) γ (fun _ => Pk) g (srvBkTie d')
       (srvRestOwnH M d'.γB cl (srvObjsOn al ast lp cl d'.be))
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
-  iintro ⟨#Hpkg, #Hlbe, #Hlcfg, #Hllk, #Hlinv, #HB, #Hhook, #Hhok⟩
+  iintro ⟨#Hpkg, #Hlbe, #Hlcfg, #Hllk, #Hlinv, #HB, #Hhook⟩
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
   ihave #Hmvpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  iapply apply.isApplyLessor_of_lessorInv hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv lp sst γs _ _
-    (srvRestOwnH M d'.γB cl (srvObjsOn al ast lp cl d'.be)) _
+  iapply apply.isApplyLessor_of_lessorInv hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv lp γ
+    (fun _ => Pk) g (srvBkTie d') (srvRestOwnH M d'.γB cl (srvObjsOn al ast lp cl d'.be))
+    (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be))
   iunfold lessorLookupOk at Hllk
-  iframe Hllk Hlcfg Hlinv Hlspkg Hmvpkg Hhok
+  iframe Hmvpkg Hlspkg Hlinv Hlcfg Hllk
   isplitr
-  · ipureintro; exact hwq
+  · -- the revocation's lens, at the tie's backend
+    iunfold apply.revokeLens
+    iintro !> %B %rs HBT HRO
+    iunfold srvBkTie at HBT
+    icases HBT with %hB
+    subst hB
+    ihave #Hl := srvRestOwnH_lens_revoke (GF := GF) B hlp M al ast lp cl
+    icases Hl $$ %rs HRO with ⟨Hrb, %hlp', Hbe, Hcl⟩
+    iframe Hrb Hbe Hcl
+    isplitr
+    · iunfold srvBkTie; ipureintro; rfl
+    ipureintro; exact hlp'
   isplitr
-  · iapply (srvRestOwnH_lens_revoke γs d' hk hlp M al ast lp cl)
-  isplitl []
-  · iintro !> %d0 %hd0
-    rw [hk] at hd0
-    cases hd0
+  · -- the lessor's backend contract on the tie's backend
+    iintro !> %B HBT
+    iunfold srvBkTie at HBT
+    icases HBT with %hB
+    subst hB
+    isplitr
+    · iunfold srvBkTie; ipureintro; rfl
+    unfold apply.bkWT
     rw [show mvcc.leaseName = go!"lease" from rfl]
-    unfold mvcc.storeWT mvcc.storeRT
-    rw [hk, show mvcc.kbWT (GF := GF) (some d') = backend.wbTok d'.γB from rfl,
-      show mvcc.kbRT (GF := GF) (some d') = mvcc.bkRTx d'.γB d'.P d'.be from rfl]
     iunfold lessorApplyOk at Hlbe
-    iapply Hlbe $$ %d' %(mvcc.lateWD d') %Pk %g
-      %(lease.lessorBeOn lp d'.be) HB Hhook [] []
+    iapply Hlbe $$ %B %W %Pk %g %(lease.lessorBeOn lp B.be) HB Hhook [] []
     · ipureintro; exact hgnn
     · iapply lessorBeOn_lens
-  · iintro !> Hrw
-    ihave #Hl := srvRestRWH_lessor (GF := GF) d'.γB al ast lp cl d'.be
-    ihave ⟨Hbe, Hr⟩ := Hl $$ Hrw
-    iexists d'
-    rw [show mvcc.leaseName = go!"lease" from rfl]
-    iframe Hbe Hr
-    ipureintro; exact hk
+  · -- the checkpoint's put right, from the write right
+    iintro !> %B HBT Hrw
+    iunfold srvBkTie at HBT
+    icases HBT with %hB
+    subst hB
+    isplitr
+    · iunfold srvBkTie; ipureintro; rfl
+    ihave #Hl := srvRestRWH_lessorLens (GF := GF) B.γB al ast lp cl B.be
+    iapply Hl $$ Hrw
 
-/-! ## The KV and the hook -/
-
-/-- The new options' KV: the walk's watchable store, at the store's names on the new physical
-names (`isWatchableStore_withPhys`), with its inner store's `ReadView`. -/
-theorem snap_isApplyKV (ws st : Loc) (γw : mvcc.WsNames) (p' : mvcc.PhysNames)
-    (γ : mvcc.StoreNames) (hγw : γw.st = γ) :
-    mvcc.isWatchableStore (GF := GF) ws st γw ⊢
-    apply.isApplyKV
-      (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType #ws)
-      st (γ.withPhys p') := by
-  iintro #Hws
-  iunfold apply.isApplyKV
-  isplitr
-  · iunfold txn.isKV
-    iright
-    iexists ws, { γw with st := γw.st.withPhys p' }
-    rw [mvcc.isWatchableStore_withPhys]
-    iframe Hws
-    ipureintro; exact ⟨rfl, by rw [hγw]⟩
-  · iunfold mvcc.isWatchableStore at Hws
-    icases Hws with ⟨%vc, %stc, %rv, %γv, Hws⟩
-    iNamed Hws
-    iexists rv
-    iframe Hrv
-    iunfold mvcc.isReadView
-    iexists _
-    iframe Hrvkv
-    rw [mvcc.isStore_withPhys, ← hγw]
-    iframe Hs
-    iunfold mvcc.kvOver; iright; iexists ws; iframe Hst; ipureintro; rfl
-
-/-- The new store's hook: the recorded invariant and the backend's frozen hook `g`. -/
-theorem snap_hookOk (γ : mvcc.StoreNames) (p' : mvcc.PhysNames) (d' : mvcc.KBReal)
-    (hk : p'.kb = some d') (P : IProp GF) (g : GoFunc) (hgnn : g ≠ func.nil) :
-    mvcc.hookP (γ.withPhys p') P ∗ backend.plHookRO d'.γB g ⊢ mvcc.hookOk (γ.withPhys p') P #g := by
-  iintro ⟨#HP, #Hg⟩
-  iunfold mvcc.hookOk
-  iframe HP
-  unfold mvcc.hookFn
-  rw [show (γ.withPhys p').kb = some d' from hk]
-  unfold mvcc.kbHookIs mvcc.bkHookIs
-  iexists g
-  iframe Hg
-  ipureintro; exact ⟨rfl, hgnn⟩
+/-! (R4, 2026-11-07) `snap_isApplyKV` and `snap_hookOk` deleted: the options' KV is `isApplyKV`'s
+`□ isMvcc` of the store's handle, kept by the restore; the hook is the environment's `f`. -/
 
 /-! ## The server's own interfaces -/
 
@@ -309,7 +338,7 @@ theorem snap_isSnapshotServer
   icases HS with ⟨-, -, ⟨%v, #Hf⟩, -⟩
   iunfold srvFieldsAtM at Hf
   icases Hf with ⟨-, -, -, -, -, %Henv, -⟩
-  rw [Henv.2.1]
+  rw [Henv.1]
   iunfold apply.isSnapshotServer
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
   isplitr

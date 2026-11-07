@@ -412,9 +412,12 @@ theorem EtcdServer.applyAll.wp_proofBatch
             -- the apply goroutine's token, lent to the commit
             iunfold srvGoRes at Hgr
             icases Hgr with ⟨HgrW, HthT⟩
-            -- MERGE-TODO(window): `lean`'s component arguments (`acBkts C`, ..., the lent `HL`) at
-            -- this branch's `mergedCreate_window` (over the API's laws, the observation `Qd`, the
-            -- thread's token; no `hpos`/`hlenZ`): its merged statement is the snapshot track's
+            -- MERGE-TODO(window): `mergedCreate_window` (R4, 2026-11-07) takes the apply thread's
+            -- tokens `apply.applyTok E` (`threadTok` and a reader token `mvccReaders E.γ 1`, the
+            -- commit's) and gives them back; the apply goroutine's `srvGoRes` holds the thread token
+            -- alone until the apply chain's reader token reaches `applyAll`'s spec (the run track's
+            -- "receipts"). Its post's image is `mergedImgM E.authMode E.lg …`, which `merged_imageC`
+            -- (`AuthCompRows`) is to take (`merged_image` with `hM`, `merged_imageOn` with `hcr`).
             imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe C.isOn
                 s γ ci TM E ρ γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE
                 (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
