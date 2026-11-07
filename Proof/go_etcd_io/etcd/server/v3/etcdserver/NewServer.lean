@@ -42,11 +42,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newCorruptionChecker
 public import Spec.go_etcd_io.etcd.server.v3.lease.NewLessor
 public import Proof.go_etcd_io.etcd.server.v3.lease.RdPool
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostLockInsideApplyHook
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedServer__Close
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderRetire
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.NewAuthBackend
 public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.node__ReadIndex
@@ -113,10 +109,11 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ClusterVersion
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CompactEnv
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CmpSupply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberKit
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopCensus
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootStore
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreLaws
 
 @[expose] public section
 
@@ -154,29 +151,42 @@ instance leadTimeP_fractional (s : Loc) : Fractional (leadTimeP (GF := GF) s) :=
 
 /-- `bemu`'s resource is fractional (for `sync.init_RWMutex`); (D22 receiver epochs, S7b) the
 witnesses agree by the current backend's ghost variable. -/
-instance bemuP_fractional (s : Loc) (γbe : GName) : Fractional (bemuP (GF := GF) s γbe) := by
-  unfold bemuP
-  have h1 : ∀ d : mvcc.KBReal, Fractional (fun q : Qp =>
-      iprop(srvBeAddr s ↦{DFrac.own q.half} srvBeIface d.be)) := fun d =>
-    ⟨fun q1 q2 => by
-      rw [show (q1 + q2).half = q1.half + q2.half from Subtype.ext (by grind)]
+instance bemuP_fractional (s : Loc) (γbe : GName) : Fractional (bemuP (GF := GF) s γbe) where
+  fractional p q := by
+    -- (R6, 2026-11-07) the ghost variable records the backend's key `bkKey d`, so two parts'
+    -- witnesses agree on `d.be` (all the points-to reads), and the first's is kept
+    have hpt : ∀ (be : Loc) (r1 r2 : Qp),
+        (srvBeAddr s ↦{DFrac.own (r1 + r2).half} srvBeIface be : IProp GF) ⊣⊢
+          srvBeAddr s ↦{DFrac.own r1.half} srvBeIface be ∗
+            srvBeAddr s ↦{DFrac.own r2.half} srvBeIface be := fun be r1 r2 => by
+      rw [show (r1 + r2).half = r1.half + r2.half from Subtype.ext (by grind)]
       exact (fractional_of_dfractional
-        (fun dq => typedPointsto (GF := GF) (srvBeAddr s) (srvBeIface d.be) dq)).fractional
-          q1.half q2.half⟩
-  have h2 : ∀ d : mvcc.KBReal, Fractional (fun q : Qp =>
-      dghostVar (GF := GF) γbe (DFrac.own q.half) d) := fun d =>
-    ⟨fun q1 q2 => by
-      rw [show (q1 + q2).half = q1.half + q2.half from Subtype.ext (by grind)]
-      exact (dghostVar_fractional (GF := GF) γbe d).fractional q1.half q2.half⟩
-  have h3 : ∀ d : mvcc.KBReal, Fractional (fun _ : Qp => srvBeRO (GF := GF) d) := fun d =>
-    persistent_fractional
-  exact fractional_exists_agree
-    (fun (d : mvcc.KBReal) q => iprop(srvBeAddr s ↦{DFrac.own q.half} srvBeIface d.be ∗
-      dghostVar γbe (DFrac.own q.half) d ∗ srvBeRO d))
-    (fun d => @fractional_sep _ _ _ _ (h1 d) (@fractional_sep _ _ _ _ (h2 d) (h3 d)))
-    (fun x y q1 q2 => by
-      iintro ⟨⟨-, H1, -⟩, ⟨-, H2, -⟩⟩
-      iapply dghostVar_agree γbe x _ y _ $$ H1 H2)
+        (fun dq => typedPointsto (GF := GF) (srvBeAddr s) (srvBeIface be) dq)).fractional
+          r1.half r2.half
+    have hgv : ∀ (k : backend.BNames × Loc) (r1 r2 : Qp),
+        (dghostVar γbe (DFrac.own (r1 + r2).half) k : IProp GF) ⊣⊢
+          dghostVar γbe (DFrac.own r1.half) k ∗ dghostVar γbe (DFrac.own r2.half) k :=
+      fun k r1 r2 => by
+        rw [show (r1 + r2).half = r1.half + r2.half from Subtype.ext (by grind)]
+        exact (dghostVar_fractional (GF := GF) γbe k).fractional r1.half r2.half
+    unfold bemuP
+    constructor
+    · iintro ⟨%d, Hp, Hg, #Hro⟩
+      icases (hpt d.be p q).1 $$ Hp with ⟨Hp1, Hp2⟩
+      icases (hgv (bkKey d) p q).1 $$ Hg with ⟨Hg1, Hg2⟩
+      isplitl [Hp1 Hg1]
+      · iexists d; iframe Hp1 Hg1 Hro
+      · iexists d; iframe Hp2 Hg2 Hro
+    · iintro ⟨⟨%d, Hp1, Hg1, #Hro⟩, ⟨%d', Hp2, Hg2, -⟩⟩
+      ihave %Hk := dghostVar_agree γbe (bkKey d) _ (bkKey d') _ $$ Hg1 Hg2
+      have hbe : d'.be = d.be := (congrArg Prod.snd Hk).symm
+      rw [← Hk] at *
+      rw [hbe]
+      iexists d
+      iframe Hro
+      isplitl [Hp1 Hp2]
+      · iapply (hpt d.be p q).2; iframe Hp1 Hp2
+      · iapply (hgv (bkKey d) p q).2; iframe Hg1 Hg2
 
 /-- **The auth history's tie to the log, allocated** (H5): the auth store's cap at its two boot
 states, and the log's empty lower bound, give the tie at the empty log (`srvHist []`). -/
@@ -284,9 +294,20 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hTP : authSrvTP (GF := GF) (hG := hG) on)
     -- (step 6 of the auth-mode merge) what the uber-applier's contracts with auth on are built from
     (hKit : uberKitM (GF := GF) (hG := hG) on)
-    (h26 : mvcc.New.spec (GF := GF) (hG := hG))
+    (h26 : mvcc.api.New.spec (GF := GF) (hG := hG))
+    -- (R6, 2026-11-07, the `lean` merge) mvcc's API laws the boot uses (the store over its
+    -- storage, `BootStore.boot_storage`; the store invariant, `bootStore_holds`; the readers'
+    -- census of the error paths, `stop_census`; the compactor's revision getter)
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hfresh : mvcc.api.mvccImage_fresh.law (GF := GF))
+    (hopen : mvcc.api.etcdStorage_open.law (GF := GF))
+    (hrest : mvcc.api.backendRest_open.law (GF := GF))
+    (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (h27 : newCorruptionChecker.spec (GF := GF) (hG := hG))
-    (h28 : mvcc.store.HashStorage.spec (GF := GF) (hG := hG))
+    (h28 : mvcc.api.watchableStore.HashStorage.spec (GF := GF) (hG := hG))
     (h29 : schema.NewAuthBackend.spec (GF := GF) (hG := hG))
     (h31 : v3compactor.New.spec (GF := GF) (hG := hG))
     (h32 : EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG))
@@ -300,7 +321,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
     (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
     (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
-    (h42 : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
+    (h42 : mvcc.api.watchableStore.Close.spec (GF := GF) (hG := hG))
     (h46 : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (h47 : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (h48 : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
@@ -375,10 +396,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hLSR : cmp = true → backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUSR : cmp = true → backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUP : cmp = true → backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
-    (hRevS : cmp = true → mvcc.store.Rev.spec (GF := GF) (hG := hG))
     (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG)) :
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hcb Hcon Hcmp0
+  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hc0 Hch0 Hlog0 Hkcmp Hlgnn Hcbl Hmrb Hmto Hcb Hcon Hcmp0
     Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hlbc Hbco Hbcf Hbwb
   -- (2026-11-04, the lease-expiry plan's Part C) what the construction takes of the lease slot
   have Hlgon : on = true → ρ.rd.kv.lg = false := fun h => by
@@ -517,11 +537,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply time.wp_Now as %now -
   -- (D21e (A), stage M4) over the cluster's claims, at the member's prefix
   -- (R2c) at the member's key: the claims' facts the server's family at its store's index
-  wp_apply (h14 ρ.ids _ now srvFloorFacts E₀.γ.idx (by rw [Hpfx]; congr 1; rw [← Hid]))
+  wp_apply (h14 ρ.ids _ now srvFloorFacts E₀.γs.slog (by rw [Hpfx]; congr 1; rw [← Hid]))
     $$ [Hids] as %gen #Hgen0
   · iframe Hidc Hidk; iframe Hids
   ihave #Hgen : idGen ρ.ids gen (srvFloorFact E₀) $$ []
-  · rw [show srvFloorFact (GF := GF) E₀ = srvFloorFacts E₀.γ.idx from rfl]
+  · rw [show srvFloorFact (GF := GF) E₀ = srvFloorFacts E₀.γs.slog from rfl]
     iexact Hgen0
   (try wp_auto)
   wp_apply h15 as %fcn ⟨#Hfcn, Hfcnr⟩
@@ -621,16 +641,54 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iPkgInit
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
-  -- (M2, the storage side) the safe-range slot `HsrS` and the compaction keys' values tracked
-  -- `HfkV` kept for a compacting store (`mvcc.kbSRM_some`; `New`'s `fkV`): dropped at `mvcc.New` below,
-  -- whose store does not compact yet (`{ d with cm := false }`)
-  -- (the backend-auth-split stage, 2026-11-02) the reader slots split into the backend's pool and
-  -- the counted stock (`backend.newPost_pool`), for the thread bound
-  imod bootBackend_of_bootLeft Hbnd ⊤ d.γB d.P
-    (fun γB => mvcc.lateWB d.gx γB) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HnoCmp $$ Hnew
-    with ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts, Hdl, Hncmp, #HfkV, HsrS, HbkP, HrdA⟩
-  rw [show N + 7 = (N + 6) + 1 by omega]
-  icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
+  -- (R6, 2026-11-07, the `lean` merge) the store's storage over mvcc's API (`BootStore.boot_storage`):
+  -- the backend's current-backend variable `γbe` at the store's instance (the API's backend, in
+  -- compaction mode: `{ d with cm := true }`, `d`'s names and parameters), half `bemu`'s, a quarter
+  -- the apply thread's, a quarter the write budget's; the budget, whose stock backs the storage's
+  -- write-back supply; the storage at the empty history; the client's rest
+  imod (dghostVar_alloc (GF := GF) (bkKey ({ d with cm := true } : mvcc.KBReal))) with ⟨%γbe, Hγbe⟩
+  icases (dghostVar_split (GF := GF) γbe (bkKey ({ d with cm := true } : mvcc.KBReal))
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)) $$ [Hγbe] with ⟨Hγbm, Hγbe⟩
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hγbe
+  icases (dghostVar_split (GF := GF) γbe (bkKey ({ d with cm := true } : mvcc.KBReal))
+      (DFrac.own (1 : Qp).half.half) (DFrac.own (1 : Qp).half.half)) $$ [Hγbe] with ⟨HγbA, HγbW⟩
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hγbe
+  have Hkey0 : ∀ k, backend.dget D mvcc.keyName k = none := fun k => by
+    have h := mvcc.dget_of_keyView HbP HD k
+    simpa using h
+  imod (boot_storage hfresh hopen hrest Hbnd N HrbN ({ d with cm := true } : mvcc.KBReal)
+      (fun γB => batchLockInv γA (metaTM γB d.P)) D E₀ γbe HbP HlP rfl Hkey0 HnoCmp)
+    $$ [Hnew Hlate HγbW]
+    with ⟨%γp, #HWBp, #HWA0, HWreg, #Hstock, Hsto, #HB, #HSC, Hhook, Hrbo, HbkP, HrdA, Hopen, HrtA,
+      Hwb⟩
+  · isplitl [Hnew]
+    · iExactEq Hnew; rfl
+    isplitl [Hlate]
+    · iexact Hlate
+    isplitr
+    · imodintro; iExactEq Hsz; rfl
+    iexact HγbW
+  -- (the instance's names and parameters are `d`'s)
+  ihave #HB : backend.isBackend d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P))
+      d.be $$ [HB]
+  · iExactEq HB; rfl
+  ihave #HSC : backend.isStopChans d.γB d.P (mvcc.api.mvccW d.gx)
+      (batchLockInv γA (metaTM d.γB d.P)) d.be $$ [HSC]
+  · iExactEq HSC; rfl
+  ihave Hhook : backend.plHook d.γB func.nil $$ [Hhook]
+  · iExactEq Hhook; rfl
+  ihave Hrbo : backend.rbOwn d.γB (backend.rbData d.P D) $$ [Hrbo]
+  · iExactEq Hrbo; rfl
+  ihave HbkP : backend.bkRPool d.γB d.P d.be $$ [HbkP]
+  · iExactEq HbkP; rfl
+  ihave HrdA : backend.rdAuth d.γB d.P d.be $$ [HrdA]
+  · iExactEq HrdA; rfl
+  ihave Hopen : backend.bOpen d.γB (1 : Qp).half $$ [Hopen]
+  · iExactEq Hopen; rfl
+  ihave Hwb : ownToks d.γB.wb 5 $$ [Hwb]
+  · iExactEq Hwb; rfl
+  rw [show (5 : Nat) = 1 + 4 from rfl]
+  icases (ownToks_add 4 1 d.γB.wb).1 $$ Hwb with ⟨Hwl, Hwb⟩
   -- `lease.NewLessor`
   rw [Hbe0]
   -- the grant guard `srvGrantGuard` at the cluster's lease mode and the auth mode (D19n; the
@@ -639,7 +697,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (D22, 2026-10-23) the rest buckets: the tracked buckets' half, at the fresh file's
   have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
     fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
-  wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateWB d.gx d.γB) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
+  wp_apply (h24 cfg.Logger' _ _ d (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       (srvGrantGuard ρ.rd.kv.lg on) (fun _ => True) (backend.rbData d.P D) (decide (m = .mono))
       trivial HlP)
     $$ [Hopen Hwl Hrbo]
@@ -2658,9 +2716,20 @@ theorem NewServer.wp_proofM (on : Bool)
     (hTP : authSrvTP (GF := GF) (hG := hG) on)
     -- (step 6 of the auth-mode merge) what the uber-applier's contracts with auth on are built from
     (hKit : uberKitM (GF := GF) (hG := hG) on)
-    (h26 : mvcc.New.spec (GF := GF) (hG := hG))
+    (h26 : mvcc.api.New.spec (GF := GF) (hG := hG))
+    -- (R6, 2026-11-07, the `lean` merge) mvcc's API laws the boot uses (the store over its
+    -- storage, `BootStore.boot_storage`; the store invariant, `bootStore_holds`; the readers'
+    -- census of the error paths, `stop_census`; the compactor's revision getter)
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hfresh : mvcc.api.mvccImage_fresh.law (GF := GF))
+    (hopen : mvcc.api.etcdStorage_open.law (GF := GF))
+    (hrest : mvcc.api.backendRest_open.law (GF := GF))
+    (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (h27 : newCorruptionChecker.spec (GF := GF) (hG := hG))
-    (h28 : mvcc.store.HashStorage.spec (GF := GF) (hG := hG))
+    (h28 : mvcc.api.watchableStore.HashStorage.spec (GF := GF) (hG := hG))
     (h29 : schema.NewAuthBackend.spec (GF := GF) (hG := hG))
     (h31 : v3compactor.New.spec (GF := GF) (hG := hG))
     (h32 : EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG))
@@ -2674,7 +2743,7 @@ theorem NewServer.wp_proofM (on : Bool)
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
     (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
     (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
-    (h42 : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
+    (h42 : mvcc.api.watchableStore.Close.spec (GF := GF) (hG := hG))
     (h46 : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (h47 : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (h48 : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
@@ -2746,12 +2815,11 @@ theorem NewServer.wp_proofM (on : Bool)
     NewServer.specM (GF := GF) (hG := hG) on :=
   -- `specG` at `cmp = false`: the compaction mode's specs are not asked for
   NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18
-    h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 hPeerStop hRemoteStop h42 h46
+    h19 h20 h21 h22 h23 h24 hTP hKit h26 Hp Hr hsh hfresh hopen hrest hRS hCR h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 hPeerStop hRemoteStop h42 h46
     h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70
     h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88
     h89 h90 h91 h92 h93 h94 h95 hAG hBSC
     (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h)
-    (fun h => nomatch h)
 
 theorem NewServer.wp_proof
     -- `int64(f)`'s semantics (`FloatToInt.lean`: a hypothesis on the semantics, as `go.Semantics`)
@@ -2788,9 +2856,20 @@ theorem NewServer.wp_proof
     (h23 : math.Ceil.spec (GF := GF) (hG := hG))
     (h24 : lease.NewLessor.spec (GF := GF) (hG := hG))
     (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
-    (h26 : mvcc.New.spec (GF := GF) (hG := hG))
+    (h26 : mvcc.api.New.spec (GF := GF) (hG := hG))
+    -- (R6, 2026-11-07, the `lean` merge) mvcc's API laws the boot uses (the store over its
+    -- storage, `BootStore.boot_storage`; the store invariant, `bootStore_holds`; the readers'
+    -- census of the error paths, `stop_census`; the compactor's revision getter)
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hfresh : mvcc.api.mvccImage_fresh.law (GF := GF))
+    (hopen : mvcc.api.etcdStorage_open.law (GF := GF))
+    (hrest : mvcc.api.backendRest_open.law (GF := GF))
+    (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (h27 : newCorruptionChecker.spec (GF := GF) (hG := hG))
-    (h28 : mvcc.store.HashStorage.spec (GF := GF) (hG := hG))
+    (h28 : mvcc.api.watchableStore.HashStorage.spec (GF := GF) (hG := hG))
     (h29 : schema.NewAuthBackend.spec (GF := GF) (hG := hG))
     (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG))
     (h31 : v3compactor.New.spec (GF := GF) (hG := hG))
@@ -2805,7 +2884,7 @@ theorem NewServer.wp_proof
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
     (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
     (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
-    (h42 : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
+    (h42 : mvcc.api.watchableStore.Close.spec (GF := GF) (hG := hG))
     (h46 : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (h47 : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (h48 : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
@@ -2870,7 +2949,6 @@ theorem NewServer.wp_proof
     (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
-    (hRevS : mvcc.store.Rev.spec (GF := GF) (hG := hG))
     (hCmpS : EtcdServer.Compact.spec (GF := GF) (hG := hG))
     -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
     (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
@@ -2881,11 +2959,11 @@ theorem NewServer.wp_proof
     NewServer.spec (GF := GF) (hG := hG) := fun cmp =>
   -- `specG` at auth off, in the caller's compaction mode
   NewServer.wp_proofG false cmp h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
-    h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35
+    h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 Hp Hr hsh hfresh hopen hrest hRS hCR h27 h28 h29 h31 h32 h33 h34 h35
     h36 h37 h38 h39 h41 hPeerStop hRemoteStop h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
     h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG hBSC
-    (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hRevS) (fun _ => hCmpS)
+    (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hCmpS)
 
 
 end proof
