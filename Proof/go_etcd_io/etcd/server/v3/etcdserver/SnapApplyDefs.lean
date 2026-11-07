@@ -240,7 +240,7 @@ applier's chain, with no alarm (2026-11-01, J8a-5: `Recover` empties the store; 
 under `zal`) the start's (`alarmChain E.authOn false false`, what
 `kvApplied_of_jump` takes), and the KV at `E'` (`txn.isKV`, `applyRes`'s), the watchable store at
 the new physical names; (2026-11-01, J8a-5) `ep.confState` the snapshot's (`csOptA`, what
-`applyAll.specSnap` reads the voters off). -/
+`applyAll.specSnapM` reads the voters off). -/
 def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log) (r : mvcc.CmpRecs) (A' : List EntryModel)
     (ss : Loc) (bp : GoString) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds)

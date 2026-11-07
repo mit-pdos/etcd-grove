@@ -187,7 +187,7 @@ theorem srvCfgView_nil_normal (γs : ServerRaftNames) (n : Loc) (d : List EntryM
     rw [show X ++ m :: d = (X ++ [m]) ++ d by simp]
     exact IH (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')) _
 
-/-- (R2d'a A6, 2026-11-06; ViewR's `ghostOf_batch`) **The ghost log after a batch extends the one
+/-- (R2d'a A6, 2026-11-06; the deleted ViewR.lean's `ghostOf_batch`) **The ghost log after a batch extends the one
 before by a suffix of the batch**, when the log through the batch and the backend's are
 prefix-comparable (two committed logs). -/
 theorem ghost_batch (A₀ G ce : List EntryModel) (hc : G ++ ce <+: A₀ ∨ A₀ <+: G ++ ce) :
@@ -290,40 +290,6 @@ theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce
 (`rnHands`). -/
 def rnDv (γ : RNNames) (ce : List EntryModel) : Option Loc :=
   if rnHands γ ce then some γ.nl else none
-
-/-- (D43 M3) What the apply thread's receive deposits, as the apply side states it. -/
-theorem rnApR_dv (γ : RNNames) (γs : ServerRaftNames) (ha : γ.a0 = []) (hpre : γ.pre = γs.pre)
-    (hraft : γs.raft = γ.node) (A ce : List EntryModel) :
-    rnApR (GF := GF) γ A ce = dvView γs (rnDv γ ce) (A ++ ce) := by
-  rw [(rnView_first γ ha).2.1]
-  unfold rnDv dvView
-  by_cases h : rnHands γ ce
-  · rw [ite_eq_left h, ite_eq_left h]
-    unfold srvCfgView
-    rw [hraft, ← hpre]
-  · rw [ite_eq_right h, ite_eq_right h]
-
-/-- (D43 M3) What goes along with the batch, as the apply side states it, with the node's
-conf-change contract (`isRaftNodeIfc`'s). -/
-theorem rnApGive_dv (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (ha : γ.a0 = [])
-    (hpre : γ.pre = γs.pre)
-    (hraft : γs.raft = γ.node) (A ce : List EntryModel) :
-    srvRaftNodeCC (GF := GF) s γ.srv γ.nl ∗ rnApGive γ A ce ⊢
-      dvView γs (rnDv γ ce) A ∗ dvRes s γs (rnDv γ ce) (A ++ ce) := by
-  rw [(rnView_first γ ha).2.2]
-  unfold rnDv dvView dvRes
-  by_cases h : rnHands γ ce
-  · rw [ite_eq_left h, ite_eq_left h]
-    simp only
-    rw [srvRaftNodeCC_congr s γs γ.srv γ.nl hraft]
-    unfold srvCfgView srvLE
-    rw [hraft, ← hpre]
-    iintro ⟨#Hn, Hv, #Hd⟩
-    iframe Hv Hn Hd
-  · rw [ite_eq_right h, ite_eq_right h]
-    simp only
-    iintro -
-    isplit <;> itrivial
 
 /-- (D43 M3) The server's node meets the conf-change contract: the wrapper's node contract's
 (`isRaftNodeIfc`). (2026-10-30, the repair: in every cluster; until then `srvRaftNodeDyn`, in the

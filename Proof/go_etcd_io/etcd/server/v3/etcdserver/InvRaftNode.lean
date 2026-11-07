@@ -369,13 +369,13 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
       (es.map EntryModel.toM)⌝)
 
 /-- (R2d'a A6, 2026-11-06; DRAFT) **The ghost log after the committed log `L`**: the log handed out,
-`pre ++ L`, completed by the restart point's backend log past it (`γ.a0`; ViewR's `ghostOf ⟨|pre|,
+`pre ++ L`, completed by the restart point's backend log past it (`γ.a0`; the deleted ViewR.lean's `ghostOf ⟨|pre|,
 a0⟩ (pre ++ L)`). At a first start (`a0 = []`) it is `pre ++ L`. -/
 def rnGhost (γ : RNNames) (L : List EntryModel) : List EntryModel :=
   (γ.pre ++ L) ++ γ.a0.drop (γ.pre ++ L).length
 
 /-- (R2d'a A6, 2026-11-06; DRAFT) **The driver's view of the configuration after the committed log
-`L`, over the ghost log** (ViewR's `rnCfgAtR`): the view after `rnGhost γ L`, every conf entry of it
+`L`, over the ghost log** (the deleted ViewR.lean's `rnCfgAtR`): the view after `rnGhost γ L`, every conf entry of it
 applied (`srvCfgView`, `InvCfgView.lean`). At a restart, raft's view is at the backend's consistent
 index (`RestartNode`, `bootstrap.go:597`; `notes/restart-plan.md`, R2d' finding 1), past Go's log
 while the replay window is open; at a first start it is the view after `pre ++ L`. -/
@@ -800,7 +800,7 @@ def rnReadySnap (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List Entry
 log's length. True of raft: a node restores a snapshot only above its committed index
 (`raft.restore`), which is at least the boot log's length, so every snapshot a `Ready` hands out is
 past it. From raft's `readySnap_bootLen` and the server's cluster at its bootstrap log
-(`srvClusterOk`, through `rnEnvOk`). What `applyAll.specSnap` takes (`|boot| ≤ i`, through
+(`srvClusterOk`, through `rnEnvOk`). What `applyAll.specSnapM` takes (`|boot| ≤ i`, through
 `rnApSnap`). -/
 theorem rnReadySnap_bootLen (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List EntryModel)
     (p p' : HardStateM) (l : SnapLoan) (S S' : RaftState) (r r' : StateType) (ms : List QMsg) :

@@ -4181,3 +4181,52 @@ The merge, the restart statement under the frozen name:
 
 Next: the run swap with the hub edit (pair 9, batch 5): `run.wp_proof := ` the R proof, then
 `specFirst`/`spec_first`, `applyResStop`, `stop_split`, `applyResR_past` lose their last users.
+
+#### Swap batch 5: the run swap with the hub edit (pair 9), the last swap batch of R2d'a (2026-11-07; review F1, the swap the user approved; the hub edit approved by etcd-grove-82)
+
+The hub edit (old text: `/shared/tmp/r2dpa-batch5-hub-old.lean`; old vs new and the producers:
+`/shared/tmp/r2dpa-batch5-hub-diff.md`):
+- **`isServerRunC`** (`AuthCompRows.lean`): `"HRr" ∷ srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀
+  x₀ ρ.wait` replaces `%HEr` (with `γn.a0 = []`), `Hsnap` (`rnSnapOnce`) and `Hstart` (`applyStartC`).
+  `srvRunRestartR`, `rnSnapOnceR`, `srvRestartAtR` and their `_first` laws moved verbatim from
+  `StartR.lean` into `AuthCompRows.lean`. `run.spec`'s text is unchanged; its meaning is the restart
+  form (`σ.b = 0`), a first start its instance `A₀ = []`.
+- **Derived forms**: `isServerRun_C`, `isServerRunOn_C` (`isServerRun(On) ∗ srvStop.slot ⊣⊢
+  isServerRunC …`) deleted: no caller, and only `⊢` holds now. `isServerRun`/`isServerRunOn` unchanged
+  (now unreferenced). `isServerBuiltC` and the hubs above it unchanged (the R2d'b item above).
+- **Producer**: `start.wp_proof` builds `HRr` by `srvRunRestartR_first` from `isServerBuiltC`'s
+  `%HEr`, `Hsnap` and its `applyStartC`; `start.spec`, `Start`, `NewServer` unchanged.
+
+The run swap:
+- **`run.wp_proofG`** is `RunRestart.lean`'s `run.wp_proofR` (over `run.spec` and `isServerRunC`);
+  `run.wp_proof` passes `hAA.1`/`hAA.2` (`applyAll.specBatch`/`specSnapM`), callee list unchanged.
+- **Moved into `EtcdServer__run.lean`** (the drafts deleted): `applyResR` (RunR), `run_job_bodyR` →
+  `run_job_body`, `run_job_snapCR` → `run_job_snapC`, `srvRestR_img`, `isServerC_ch0` (RunSnapR),
+  `srvRestR_start`, `applyResR_start` (StartR), `stop_splitR` → `stop_split` (StopR), and of ViewR only
+  `rnApR_dvG`/`rnApGive_dvG`, proved directly over `rnView` (no `rnCfgAtR`/`rnApRR`/`rnApGiveR`) and
+  named `rnApR_dv`/`rnApGive_dv`, replacing `InvRaftLoop.lean`'s first-start forms of those names
+  (premise `γ.a0 = []`, `γ.pre = γs.pre`; their only caller was the frozen proof).
+- **Deleted, first-start only**: the frozen `run_job_body`, `run_job_snap`, `run_snap_jobOn`,
+  `run_job_snapC`, `run.wp_proofG` (first start); `applyAll.specSnap` (Spec; its prose moved into
+  `specSnapM`'s docstring), `applyAll.specSnap_of_M` (ModeSpecs); `stopCleanupImage.specFirst`,
+  `stopCleanupImage.spec_first`, `applyResStop`, `applyResStop_first`, the first-start `stop_split`
+  (StopShutdown); `applyResR_past`, `applyResR_first` (RunR). Of ViewR, unused: `rnCfgAtR(_first)`,
+  `rnApRR(_first, _dv)`, `rnApGiveR(_first, _dv)`, `ghostOf_replay`, `rnCfgR_replay`,
+  `rnCfgAtR_back_true/_false/_normal`, `srvCfgView_normal(1)`, `ghostOf_batch` (ViewR's copy),
+  `rnView_R`, `rnApR_R`, `rnApGive_R`, `rnCfg_replayG`; RunRestart's `isServerRunCR`, `run.specR`,
+  `run_job_bodyR_match` (now `run_job_body_match`).
+- **Files deleted**: `RunR.lean`, `RunRestart.lean`, `RunSnapR.lean`, `StartR.lean`, `ViewR.lean`,
+  `StopR.lean`. `ApplyRDefs.lean` stays (the frozen specs' vocabulary: `srvRestR`, `kvBatchR`,
+  `winNoMergedSendR`, `srvSnapBagN`).
+- **Docstrings**: `run.spec`'s states the scope (`σ.b = 0`), the five restart-only premises (`Hwpend`
+  false of some default-flag Go runs, R2s removes it) and the vacuity (`pbEnc_ok`, the grpc message
+  models).
+- `applyResC` (`AuthCompRows.lean`) and its bridges are now unreferenced by `run`; kept (hub file).
+- **Checks**: full build ok (13392 jobs); `tcb-report --check` 817 axioms, 4 sorries (baseline), the 53
+  collections unchanged; `etc/mode-check.py --check` ok (289/289), `etc/bounds-check.py --check` ok
+  (389/389); api-check (every `etc/api/*.txt`), `import-all-check`, `gen-interface --check`
+  (etcdstart, backend, raft, bbolt), `gen-init --check`, `issues-status --check` ok;
+  `etc/gen-link.py --server`'s output identical to `Link.lean`; the 49 files declaring a `_safe`/
+  `_adequate` theorem unchanged against `lean`.
+- **Left**: no DRAFT duplicate of `run` remains. R2d'b's items above (`isServerBuiltC`'s restart forms,
+  `newRaftNode.spec`'s `a0`/`t0`, `rnRestartOk`'s placement) and R2s (`Hwpend`).

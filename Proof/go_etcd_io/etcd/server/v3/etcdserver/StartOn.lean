@@ -103,7 +103,7 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
     "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id
+    -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnapM`'s member id
     -- against the snapshot payload's `nodeSnapLocal … γn.id`)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
     -- (2026-11-02, the cluster-rows stage) the member id a voter (the monitors' permission,

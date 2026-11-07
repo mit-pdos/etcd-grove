@@ -414,7 +414,7 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
 /-- (J8b, 2026-11-01) **The meta reads of the backends the apply thread opens** at the apply names
 `γ`: `bootOk`'s `#HmetaSnap` (J8a-4) by name, which `NewServer` passes to `run` through `start`'s
 construction premise (`srvBuilt`, `isServerBuilt`, `isServerRun`'s `#HmetaSnap`) for
-`applyAll.specSnap`'s premise of the same text. -/
+`applyAll.specSnapM`'s premise of the same text. -/
 def srvMetaSnap (γ : ApplyNames) : IProp GF :=
   iprop(□ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
         ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗

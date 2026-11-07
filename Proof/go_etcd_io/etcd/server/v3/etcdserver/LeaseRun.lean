@@ -76,7 +76,7 @@ during the run; in the revocable mode, the open case of the expiry arm (`srvRevo
 stage's Part X-a, 2026-11-04: until then `m = revocable → False`), with the level bound its goroutines
 need (`srvRevokeLevels`, revoke-open Q1 (a2), 2026-11-06). (Until the plan's S2–S4,
 2026-11-05, also in a granting mode the open case of a granting cluster's snapshot job,
-`srvGrantOpen`: `run`'s snapshot job now restores a snapshot with leases, `applyAll.specSnap` at
+`srvGrantOpen`: `run`'s snapshot job now restores a snapshot with leases, `applyAll.specSnapM` at
 every lease mode.) The server's inner predicates carry `∃ m, lease.runCfg lm m`
 (`lease.runCfg_none`, `lease.runCfg_mono` and `lease.runCfg_revocable` give it; `_noExpiry`,
 `_revoke`, `_lm` and `LeaseApi.lean`'s `lease.bootCfg_of_run` use it). -/

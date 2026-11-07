@@ -5,18 +5,19 @@ Lean-first (no Rocq counterpart).
 
 `run.spec`'s proof (`EtcdServer__run.lean`, `wp_proofG`, at a stop request) runs the deferred
 shutdown: `close(stopping)` under `wgMu`, `cancel()`, `sched.Stop()` (the apply thread's resources
-at the handed log `A` back, `applyResC`), `s.wg.Wait()`, `s.r.stop()` (`raftNode.stop.spec`),
-`s.Cleanup()`, `close(done)` with the image escrowed. This file has the two steps that are about the
-apply thread's resources rather than the control flow:
-* `stop_split`: what `raftNode.stop` takes out of `applyResC` (the WAL's apply half, the live
-  transport for `Er.ST`), the rest kept as `applyResStop`;
+at the handed log `A` back, `applyResR`), `s.wg.Wait()`, `s.r.stop()` (`raftNode.stop.spec`),
+`s.Cleanup()`, `close(done)` with the image escrowed. This file has the step that is about the
+apply thread's resources rather than the control flow (what `raftNode.stop` takes out of them, the
+WAL's apply half and the live transport for `Er.ST`, is `EtcdServer__run.lean`'s `stop_split`, the
+rest kept as `applyResStopR`):
 * `stop_cleanup_image`: `s.Cleanup()` from the rest, the stop's slot (`srvStop.slot`) and what
   `raftNode.stop` returned, giving the stopped member's image (`srvDiskImage`): `Cleanup`'s
   precondition by gap 4's census (every store reader retired, the backend's whole open token) and
   the stop commit's request (`commitReq_freeze`), then the image from `Cleanup`'s post
   (`StopImage.stop_mergedObs`, `merged_imageAt`, `RestConf.restModel_confState`, `srvFiles`).
   Since R2d'a swap batch 4 (2026-11-07) in restart form, over `applyResStopR` and the ghost log
-  (`stopCleanupImage.spec`; its first-start instance `specFirst`, the old text, `spec_first`).
+  (`stopCleanupImage.spec`; its first-start instance, the old text, was `specFirst`, deleted with
+  the run swap, swap batch 5).
 -/
 module
 
@@ -93,43 +94,9 @@ theorem wp_stop_chan_close_at {ty : go.GoType} {dir : go.ChanDir}
     cases Hbad
   all_goals first | itrivial | (iexfalso; iexact Hs)
 
-/-- **The apply thread's resources at the stop, but what `raftNode.stop` takes**: `applyResC`'s
-without the WAL's apply half (`rnWalTokA`) and the membership resource (`srvApRes`, whose live
-transport goes to `Er.ST`, `srvApRes_trStop`; the rest is not needed by the shutdown). -/
-def applyResStop (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
-  iprop(∃ (B : ApplyBe GF) (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV)
-      (sa : auth.AuthState),
-    ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServerC K C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
-    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗ epCsAt C.ρ.raft A cs ∗
-    srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
-    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVC K C.s B.E C.γw x sa ∗
-    srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ A x sa ∗
-    srvRest B.E C.γr A ∗
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
-    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
-    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
-    ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
-      uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
-      lastTermIs A at'⌝)
-
-/-- **What `raftNode.stop` takes of the apply thread's resources**: the WAL's apply half and the live
-transport (for `Er.ST`, `srvStop.raft_stop`). -/
-theorem stop_split (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) :
-    applyResC K C A ⊢
-      rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗ srvTrStop C.s ∗ applyResStop K C A := by
-  unfold applyResC applyResStop
-  iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %hB, H1, H2, H3, H4, H5, H6, H7, H8, H9,
-    H10, H11, H12, H13, H14, H15, H16, H17, Hap, H18, Hwt, H19, H20, H21, %hp⟩
-  iframe Hwt
-  isplitl [Hap]
-  · iapply srvApRes_trStop $$ Hap
-  iexists B, st, ai, at', a, t, cs, x, sa
-  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21
-  ipureintro; exact ⟨hB, hp⟩
-
 /-- **The apply thread's resources at the stop, in restart form, but what `raftNode.stop` takes**
 (R2d'a A10 item 3; `stopCleanupImage.spec`'s since swap batch 4): `applyResR`'s without the WAL's apply half (`rnWalTokA`) and the membership resource
-(`srvApRes`, whose live transport goes to `Er.ST`), as `applyResStop` is `applyResC`'s. -/
+(`srvApRes`, whose live transport goes to `Er.ST`). -/
 def applyResStopR (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List EntryModel) : IProp GF :=
   iprop(∃ (B : ApplyBe GF) (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV)
       (sa : auth.AuthState) (g : w64),
@@ -179,30 +146,6 @@ theorem restLeasesWith_bk_congr (f : w64 → w64) (ids : List w64) (r r' : apply
     apply ih
     unfold apply.restGrantT
     rw [apply.RestM.putIn_bk, apply.RestM.putIn_bk, h]
-
-/-- **`applyResStop` is `applyResStopR` at a first start** (R2d'a swap batch 4): the ghost log Go's
-(`ghostOf_first`), the ghost index Go's, the rest buckets `srvRest` (`srvRestR_first`), the backend's
-log `[]` committed (from the KV's log, `kvRunM_lbR`), given the start's `ai₀ = 0`. -/
-theorem applyResStop_first (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) (h0 : C.ai₀ = W64 0) :
-    applyResStop K C A ⊢ applyResStopR K C RestartPt.first A := by
-  unfold applyResStop applyResStopR
-  iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %hB, #Hsrv, H1, H2, H3, H4, H5, H6, H7, H8, H9,
-    H10, H11, H12, Hao, Hlog, Hkr, HRs, H18, Hwt, H19, H20, %hp⟩
-  ihave ⟨#Hlb, Hkr⟩ := kvRunM_lbR K.isOn C.γr C.ai₀ C.c₀ A x sa $$ Hkr
-  ihave #Hsrv' := Hsrv
-  iunfold isServerC at Hsrv'
-  icases Hsrv' with ⟨%hρ, -⟩
-  ihave #Hlb0 : srvRLogLb C.ρ.raft RestartPt.first.A₀ $$ [Hlb]
-  · rw [← hρ]
-    iapply (srvRLogLb_mono _ RestartPt.first.A₀ A (by simp [RestartPt.first])); iexact Hlb
-  iexists B, st, ai, at', a, t, cs, x, sa, ai
-  rw [ghostOf_first, srvRestR_first]
-  iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 Hao Hlog Hkr HRs Hlb0 H18 Hwt H19 H20
-  ipureintro
-  obtain ⟨hlo, hai, hJ, hle, hlt⟩ := hp
-  refine ⟨hB, hlo, hai, hJ, hle, hlt, hai, Nat.zero_le _, by simp [RestartPt.first], ?_, ?_⟩
-  · simp only [RestartPt.first, List.length_nil]; word
-  · simp only [RestartPt.first, List.length_nil, h0]; word
 
 
 /-! ## The census (gap 4): every reader of the store retired, the backend's whole open token -/
@@ -470,56 +413,9 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
   have h := restModel_confState γ.raft.vs γ.raft.boot R hvs.2 hvs.1 Hurl hbcc hcc D hD
   exact h
 
-/-- **`stopCleanupImage.spec` at a first start** (R2d'a swap batch 4: the frozen text of
-`stopCleanupImage.spec` until then, now its instance at `RestartPt.first`, `stopCleanupImage.spec_first`;
-the frozen `run.wp_proofG` takes it until the run swap). `s.Cleanup()` at the stop, and the image: from the apply thread's
-resources at the handed log `A` (`applyResStop`), the stop's slot but its raft part, the caller's
-unused serving readers (`srvStopReq`'s, R2c-4), the stop request's evidence and data directory
-(`srvBootApplied`, `srvDataDir`: `srvStopReq`'s), and what `raftNode.stop` returned
-(`raftNode.stop.spec`'s post), the member's image at the stopped incarnation's names. Scope (the
-stop request's, `srvStop.scope`): a first start (`ai₀ = 0`, `pre = []`), auth off, no compactor
-(R2c-2: from no compaction mode, `srvStop.census_readers`; until then a premise); and (2026-11-05) a
-store that does not compact
-(`E.cmp = false`: in compaction mode the apply thread's compaction right, `apply.cmpOwn`, is both
-what `kv.Close` takes, `wsCloserR`, and what the image's observation reads, `apply.cmpObs`).
-(R2c-1) The voters the bootstrap log's members, distinct, are `srvRaftLogInv`'s. Besides: the write budget's invariant (the
-storage-version monitor's read token, `stop_monitorRT`), `isServerApplyAll` (the KV names' start
-log), two later credits, and (H2, 2026-11-05) the budget's register at `GoAttach`'s receipts' name
-and `Wait`'s `goWaited` (which rule the monitor's open session out). A `Prop`, so that `run`'s proof takes it as a hypothesis. -/
-abbrev stopCleanupImage.specFirst : Prop :=
-  ∀ (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) (Er : RNEnv GF)
-    (γg : GoNames) (γcx : context.ContextNames) (v : RunFields) (SP : IProp GF)
-    (TM : MetaCI → IProp GF)
-    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (dd : GoString),
-    C.E.authMode = K.mode → C.E.authOn = false →
-    (Er.C = srvCM K.isOn C.ρ C.E C.ai₀ C.c₀ C.x₀ ∧ Er.γr = C.γr ∧
-      (uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ C.rn.pre = [] ∧ C.ai₀ = W64 0)) →
-    storage.diskOk →
-    C.E.cmp = false →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerC K C.s C.γ C.ci TM C.E C.ρ C.γr ∗
-        isRaftNode Er C.rn (srvRAddr C.s) ∗
-        srvRunFieldsAt C.s C.γr γg γcx v SP ∗
-        applyResStop K C A ∗
-        srvStop.cleanupPart C.s C.E ∗ srvStop.censusPart C.s C.E ∗ srvStop.imagePart C.s cfg C.rn ∗
-        srvDataDir C.s dd ∗ ([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader C.E.s C.E.γ) ∗
-        srvBootApplied C.ρ ∗
-        nodeVacant C.rn.node.cl C.rn.id ∗
-        (∃ (S : RaftState) (σ : StorContents), raftState C.rn.node.cl C.rn.id S ∗
-          rnWalClosed C.rn (srvRAddr C.s) σ ∗
-          ⌜StorageHolds S σ ∧ σ.b ≤ (C.rn.pre ++ A).length ∧
-            (C.rn.pre ++ A).length ≤ σ.commit⌝ ∗
-          -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate (`raftNode.stop`'s)
-          walSnapCert C.rn.node.cl σ) ∗
-        srvWTPool C.E C.wt ∗ isServerApplyAll C.s C.γr ∗ £ 2 ∗
-        -- (H2, 2026-11-05) the budget's register at `GoAttach`'s receipts, and `Wait` returned
-        dghostVar C.wt.reg DFrac.discard (some γg.run) ∗ goWaited γg }}
-      (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Cleanup")) (Val #()))
-    {{ RET #(); srvDiskImage C.ρ.rd.raft.raft C.ρ C.rn.id dd }}
-
 /-- **`s.Cleanup()` at the stop, and the image** (see the file header; R2d'a swap batch 4,
-2026-11-07: one spec in restart form, the old text its first-start instance,
-`stopCleanupImage.spec_first`; until then also `StopR.lean`'s `stopCleanupImageR.spec`, inside the
+2026-11-07: one spec in restart form, the old text its first-start instance, `specFirst`, until the
+run swap, swap batch 5; until then also `StopR.lean`'s `stopCleanupImageR.spec`, inside the
 replay window only): from the apply thread's resources at Go's handed log `A` in restart form at the
 restart point `rp` (`applyResStopR`: the ghost rows at the ghost log `ghostOf rp A`, the backend's log
 `rp.A₀` committed), the stop's slot but its raft part, the caller's unused serving readers
@@ -884,19 +780,6 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   ipureintro
   refine ⟨⟨rfl, hc0'⟩, ⟨by rw [hk0.2]; exact h1, by rw [hpre'] at himg ⊢; exact himg⟩,
     by rw [HbL]; omega, hconf⟩
-
-/-- **The first-start instance is the old text** (R2d'a swap batch 4): `stopCleanupImage.spec` at
-`RestartPt.first` (`applyResStop_first`, `ghostOf_first`) is `specFirst`, its frozen text until then. -/
-theorem stopCleanupImage.spec_first (h : stopCleanupImage.spec (GF := GF) (hG := hG)) :
-    stopCleanupImage.specFirst (GF := GF) (hG := hG) := by
-  intro K C A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
-  have hs := h K C RestartPt.first A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
-  rw [ghostOf_first] at hs
-  iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac, Hrst,
-    #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
-  ihave Hres := applyResStop_first K C A hEr.2.2.2.2 $$ Hres
-  iapply hs $$ [Hres Hclp Hcsp Himp Hrds Hvac Hrst Hlc Hwd] HΦ
-  iframe Hpkg Hsrv0 Hrn Hrf Hres Hclp Hcsp Himp Hdd Hrds Hba Hvac Hrst Hpool Hsa Hlc Hreg Hwd
 
 end proof
 

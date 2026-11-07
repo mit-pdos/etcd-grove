@@ -532,41 +532,6 @@ theorem EtcdServer.doSerialize.spec_off
 
 end corollaries
 
-section snap
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/- (moved from `SnapAuthOnDraft.lean`, the auth component's stage 2, 2026-11-04) -/
-/-- **Lean's `applyAll.specSnap` is `applyAll.specSnapM`'s `off` case** (F9). -/
-theorem EtcdServer.applyAll.specSnap_of_M
-    (h : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)) :
-    EtcdServer.applyAll.specSnap (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn
-    rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn _hpre hnI
-  cases hon : E.authOn with
-  | false =>
-    -- (R2d'a swap batch 2) at the first point: the ghost index Go's, the rest at the model
-    have H := h s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk
-      q γn rt n srvAuthSt0 ai (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))
-      (by rw [authMode_off_of E hon]; simp) (Int.le_refl _) hai hi61 hboot hAL hcia (fun _ => rfl) hraft
-      hc0 (by rw [hon]; exact hch) hlog0 hγn hnI
-    rw [hon, srvRestRp_model] at H
-    exact H
-  | true =>
-    -- lean's rows are the mode `off`'s: its precondition refutes `authOn`
-    wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
-      #Hracf, #Hracc, #Hrtf, #Hrt, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog,
-      #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
-    imod (authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A) $$ [$Hsrv $HKV $Hka] with ⟨%Hoff, -, -⟩
-    rw [hon] at Hoff
-    cases Hoff
-
-end snap
-
 section merged
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
