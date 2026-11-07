@@ -225,6 +225,7 @@ theorem treeWp_kv (v : EtcdKv) (Φ : val → IProp GF) :
   unfold txn.kvIs
   iexists ksl, vsl
   iframe HK Hks HC HM HV HVa Hvs HL
+  try (ipureintro; exact Hnn)
 
 theorem kvsIs_of_sepL2 (kvs : List EtcdKv) (ps : List Loc) :
     ([∗list] v;p ∈ kvs;ps, txn.kvIs (GF := GF) p v) ⊢ txn.kvsIs ps kvs := by

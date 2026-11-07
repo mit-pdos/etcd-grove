@@ -63,10 +63,11 @@ def IsVarint (bs : List w8) : Prop :=
   1 ≤ bs.length ∧ bs.length ≤ 10 ∧ (∀ (i : Nat) (h : i + 1 < bs.length), 128 ≤ (bs[i]'(by omega)).toNat) ∧
     (∀ b, bs.getLast? = some b → b.toNat < 128) ∧ varintVal bs < 2 ^ 64
 
-/-- A field's tag: its number in `1 .. 2^29 - 1` and its wire type; minimal (`AppendTag`'s) or any
-varint `ConsumeTag` accepts. -/
+/-- A field's tag: its number and its wire type; a top-level unknown field's (`minimal`): number in
+`1 .. 2^29 - 1`, the minimal varint (`AppendTag`'s); a tag inside an unknown group (kept verbatim):
+number in `1 .. 2^31 - 1` (`protowire.ConsumeTag`, measured), any varint it accepts. -/
 def TagOk (minimal : Bool) (num wt : Nat) (tag : List w8) : Prop :=
-  1 ≤ num ∧ num < 2 ^ 29 ∧
+  1 ≤ num ∧ num < (if minimal then 2 ^ 29 else 2 ^ 31) ∧
     (if minimal then tag = varintEnc (num * 8 + wt) else IsVarint tag ∧ varintVal tag = num * 8 + wt)
 
 mutual
