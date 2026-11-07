@@ -1192,7 +1192,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       iunfold v3rpc.putApplied at Hap
       ihave %Hew := envWitOk_of_readM E.authOn s E γr $$ Hsrd
       have : ∀ l, Persistent (E.Nx l) := Hew.1
-      icases Hap with ⟨%hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok, HQv⟩
+      icases Hap with ⟨%hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok, #Hrcpt, %Hwf, HQv⟩
       imod readM_keys E.authOn s E γr x'.log $$ Hsrd Hcok with %Hkeys
       -- with auth off, the KV has reached the put's revision (`kvRevLb_of_srvRevLb`), as
       -- `etcd_putHandlerM` showed
@@ -1255,6 +1255,8 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
           (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none))
           [Htok HQv] Hrv Hg
         unfold putReplied
+        ihave #Hsc : srvLogCert E x'.log $$ [Hrcpt]
+        · unfold srvLogCert; iframe #; iframe Hrcpt; ipureintro; exact Hwf
         iexists hm, x, x', l, skip
         iframe Htok HQv
         iframe #
@@ -1399,10 +1401,12 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
         ipureintro; exact Hh2n
       · iapply Hk $$ [] Hau
         unfold rangeReplyOk
+        ihave #Hsc : srvLogCert E log $$ [Hrcpt]
+        · unfold srvLogCert; iframe #; iframe Hrcpt; ipureintro; exact ⟨Hlog.1, Hlog.2.2.1⟩
         iexists log
         iframe #
         ipureintro
-        exact ⟨Hkeys, Hlog.1, Hlog.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2⟩
+        exact ⟨Hkeys, Hlog.2.1, Hlog.2.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2.2⟩
     · imodintro
       ihave Hed := handlerErr_none (GF := GF) Ψe err
       iapply HΨ
@@ -1493,7 +1497,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       ihave %Hew := envWitOk_of_readM E.authOn s E γr $$ Hsrd
       have : ∀ l, Persistent (E.Nx l) := Hew.1
       icases Hap with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok,
-        HQv⟩
+        #Hrcpt, %Hwf, HQv⟩
       imod readM_keys E.authOn s E γr x'.log $$ Hsrd Hcok with %Hkeys
       simp only [v3rpc.opDepQ] at *
       iunfold apply.deleteOutcomeIs at Hout
@@ -1531,6 +1535,8 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
         ipureintro; exact Hh2n
       · iapply Hk $$ [Htok HQv] Hg
         unfold deleteReplied
+        ihave #Hsc : srvLogCert E x'.log $$ [Hrcpt]
+        · unfold srvLogCert; iframe #; iframe Hrcpt; ipureintro; exact Hwf
         iexists hm, rq', op', x, x', l, skip
         iframe Htok HQv
         iframe #
@@ -1890,11 +1896,13 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         iapply Hspec $$ %m [] Hrv Ha
         unfold txnReplied
         simp only [hro, ↓reduceIte]
+        ihave #Hsc : srvLogCert E log $$ [Hrcpt]
+        · unfold srvLogCert; iframe #; iframe Hrcpt; ipureintro; exact ⟨Hlog.1, Hlog.2.2.1⟩
         iexists log
         iframe #
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
-        refine ⟨Hkeys, Hlog.1, Hlog.2.1, Hlog.2.2.2, ?_, h2, h3, h4, ?_⟩
+        refine ⟨Hkeys, Hlog.2.1, Hlog.2.2.1, Hlog.2.2.2.2, ?_, h2, h3, h4, ?_⟩
         · rw [h1]
         · rw [h4]; exact h5
       | false =>
@@ -1909,7 +1917,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         ihave %Hew := envWitOk_of_readM E.authOn s E γr $$ Hsrd
         have : ∀ l, Persistent (E.Nx l) := Hew.1
         icases Hans with ⟨%tw, %hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit,
-          #Hcok, HQv⟩
+          #Hcok, #Hrcpt, %Hwf, HQv⟩
         imod readM_keys E.authOn s E γr x'.log $$ Hsrd Hcok with %Hkeys
         have HstC := Hst
         obtain ⟨-, hs1, hs2, -, hs4, -, -, hs7, hs8, -⟩ := HstC
@@ -1985,11 +1993,14 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
           obtain ⟨h1, -⟩ := Hmm
           rw [h1]
           iapply HrvT; ipureintro; exact hon
-        iapply Hspec $$ %m [Hcert HMint Hwit Hcok HQv] Hrv Ha
+        iapply Hspec $$ %m [Hcert HMint Hwit Hcok Hrcpt HQv] Hrv Ha
         unfold txnReplied
         simp only [hro, Bool.false_eq_true, ↓reduceIte]
+        ihave #Hsc : srvLogCert E x'.log $$ [Hrcpt]
+        · unfold srvLogCert; iframe #; iframe Hrcpt; ipureintro; exact Hwf
         iexists tw, hm, rq', t'', x, x', l, skip
-        iframe Hcert HMint Hwit Hcok HQv
+        iframe HMint HQv
+        iframe #
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
         obtain ⟨s0, s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := Hst

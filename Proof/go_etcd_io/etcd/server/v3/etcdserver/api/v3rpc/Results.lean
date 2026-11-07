@@ -1482,7 +1482,7 @@ theorem revToken_of_put (E : apply.AEnv GF) (γw : ReadNames) (on : Bool) (F : L
         etcdReached (EM := etcdModelOfServer E γw on) r := by
   iintro Hok
   iunfold putApplied at Hok
-  icases Hok with ⟨%hm, %x, %x', %l, %skip, %Hp, -, -, HMint, -, Hnx, -⟩
+  icases Hok with ⟨%hm, %x, %x', %l, %skip, %Hp, -, -, HMint, -, Hnx, -, -, -⟩
   obtain ⟨Hstep, rfl, -, -, h3⟩ := Hp
   obtain ⟨cs, hcs⟩ := put_appended o hm x x' l skip Hstep
   ihave #Hkn : srvApi.kvNx γw on x'.log $$ [Hnx]

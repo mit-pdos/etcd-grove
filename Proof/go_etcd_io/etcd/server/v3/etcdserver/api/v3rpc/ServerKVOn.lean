@@ -479,7 +479,7 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit, Hcok,
-    HQv, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    Hrcpt, %Hwf, HQv, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     subst Herr
     simp only [apply.putOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
@@ -513,11 +513,12 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     iframe Hrd
     iunfold putApplied
     iexists hm, x, x', l, skip
-    iframe Hcert HMint Hwit Hcok HQv
+    iframe Hcert HMint Hwit Hcok Hrcpt HQv
     isplitr
     · ipureintro; exact ⟨Hstep, rfl, HFx, Hlen.1, Hlen.2⟩
     simp only [apply.putOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
     iframe Hresp
+    try (ipureintro; exact Hwf)
   · obtain ⟨rfl, Hne⟩ := Hre
     iright
     isplitr
@@ -565,7 +566,7 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %rq', %op', %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit,
-    Hcok, HQv, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    Hcok, Hrcpt, %Hwf, HQv, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hwire, Hop', Hnz, Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     have Hrq : rq' = apply.withHeader (irrDeleteRange o) hm := Hwire.2.2.2 HnzW
     subst Herr
@@ -601,11 +602,12 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     iframe Hrd
     iunfold deleteApplied
     iexists hm, rq', op', x, x', l, skip
-    iframe Hcert HMint Hwit Hcok HQv
+    iframe Hcert HMint Hwit Hcok Hrcpt HQv
     isplitr
     · ipureintro; exact ⟨Hwire, Hop', Hnz, Hstep, rfl, HFx, Hlen.1, Hlen.2⟩
     simp only [apply.deleteOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
     iframe Hresp
+    try (ipureintro; exact Hwf)
   · obtain ⟨rfl, Hne⟩ := Hre
     iright
     isplitr
@@ -743,7 +745,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       iunfold txnAppliedOk at Hok'
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       icases Hok' with ⟨%tw, %hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert, HMint, #Hwit,
-        Hcok, HQv⟩
+        Hcok, Hrcpt, %Hwf, HQv⟩
       ihave #Hresp := Hout
       iunfold txn.txnResponseIs at Hresp
       icases Hresp with ⟨-, #Hf⟩
@@ -785,7 +787,8 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
         exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, Hst.2.2.2.2.1, rfl, Hst.2.2.2.2.2.1, Hlen.1, Hlen.2,
           Hst.2.2.2.2.2.2⟩
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-      iframe Hout Hcert HMint Hwit Hcok HQv
+      iframe Hout Hcert HMint Hwit Hcok Hrcpt HQv
+      try (ipureintro; exact Hwf)
       try (ipureintro; trivial)
     · obtain ⟨-, Hne⟩ := Hre
       iright

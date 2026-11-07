@@ -116,7 +116,8 @@ def putApplied (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (o : OpFull)
       r = W64 (x.log.length : Int) ∧ F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 3 ≤ 2 ^ 63⌝ ∗
     apply.putOutcomeIs x.log o resp GoInterface.nil (.applied l false) ∗
     srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    E.Nx x'.log ∗ Q (kvStateOf x.log))
+    E.Nx x'.log ∗ ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+    Q (kvStateOf x.log))
 
 /-- **A successful `Put` of `o`** (`EtcdServer.Put`'s success, at the handler's level): the
 request with the server's header (`hm`) was dispatched by the apply thread at the KV state `x`
@@ -145,7 +146,8 @@ def deleteApplied (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (o : OpFu
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 3 ≤ 2 ^ 63⌝ ∗
     apply.deleteOutcomeIs x.log op' resp GoInterface.nil (.applied l false) ∗
     srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    E.Nx x'.log ∗ Q (kvStateOf x.log))
+    E.Nx x'.log ∗ ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+    Q (kvStateOf x.log))
 
 /-- **A successful `DeleteRange` of `o`**: as `putAppliedOk`, for the request the proposed data
 decode to (`rq'`, whose delete `op'` is `o` unless its range end is `[0]`, `irrWireOf`); the
@@ -261,7 +263,8 @@ def txnAppliedAns (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnM
       skip = false⌝ ∗
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
     srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    E.Nx x'.log ∗ Q (kvStateOf x.log))
+    E.Nx x'.log ∗ ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+    Q (kvStateOf x.log))
 
 /-- **A client's update, deposited with a call** (2026-10-14, unit T1; 2026-10-15, unit T2: over
 the whole state): none, a write's update for the KV operation `o` with result `Q` (`kvOpAu`: a
