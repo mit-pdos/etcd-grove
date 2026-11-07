@@ -526,14 +526,18 @@ LEAN_FIRST = {
                  "github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions",
                  "The examples' shared start's proofs (`examples/lib/etcdstart`)", [""]),
 }
-# The GooseLang extensions a mode's specs assume (`[HasExt X]`, after the semantics variables).
-EXTS = {"--bboltfs": "osFsExt"}
+# The GooseLang extensions a mode's specs assume (their binders, after the semantics variables): the
+# Linux file extension's specs are over any semantics of it with `FsSemOk`
+# (`GooseLang/Ext/Fs/SemOk.lean`), so that they hold over a restricted one (`NoTear.lean`).
+EXTS = {"--bboltfs": "[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]"}
+# The namespaces a mode's links open before those binders (the file extension's names are in `Fs`).
+EXT_OPENS = {"--bboltfs": "\nopen Fs\n"}
 # The request ids' issue record (`GooseLang/Ext/IdIssue`, the restart plan's R2c stage 2): the trusted
 # model of `idutil`'s `Generator.Next` steps through it, so every mode whose links reach `Next`'s
 # proof (the server's, and those linking over it) takes its `HasExt`.
 for _m in ["--server", "--v3rpc", "--common", "--linkv3p", "--linkvtxn", "--watchkv", "--authkv",
            "--cachekv", "--k8setcd3", "--k8s", "--k8s-etcd3"]:
-    EXTS[_m] = "idIssueExt"
+    EXTS[_m] = "[HasExt idIssueExt]"
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest",
@@ -941,7 +945,7 @@ namespace EtcdGrove
 open Iris Iris.BI{(' ' + opens) if opens else ''}
 """)
     out.append(f"""section links
-variable [GooseExts] [GooseSemantics] [GooseInterp]{(" [HasExt " + EXTS[sys.argv[1]] + "]") if sys.argv[1] in EXTS else ""}
+{EXT_OPENS.get(sys.argv[1], "")}variable [GooseExts] [GooseSemantics] [GooseInterp]{(" " + EXTS[sys.argv[1]]) if sys.argv[1] in EXTS else ""}
 variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -1111,7 +1115,7 @@ variable [sem : go.Semantics]
         out.append(f"""/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [GooseExts] [GooseSemantics] [GooseInterp]{(" [HasExt " + EXTS[sys.argv[1]] + "]") if sys.argv[1] in EXTS else ""}
+variable [GooseExts] [GooseSemantics] [GooseInterp]{(" " + EXTS[sys.argv[1]]) if sys.argv[1] in EXTS else ""}
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1136,7 +1140,7 @@ variable [sem : go.Semantics]
         out.append(f"""/-! The results that reach a function specified but not proved yet (a later unit's):
 its spec is a hypothesis (`h_<fn>`) of each of them. -/
 section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp]{(" [HasExt " + EXTS[sys.argv[1]] + "]") if sys.argv[1] in EXTS else ""}
+variable [GooseExts] [GooseSemantics] [GooseInterp]{(" " + EXTS[sys.argv[1]]) if sys.argv[1] in EXTS else ""}
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
