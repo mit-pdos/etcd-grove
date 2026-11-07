@@ -29,7 +29,6 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
-axiom features.AllowUnsafeMalformedObjectDeletion_notPanic
 axiom fmt.Errorf.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfNamed.wp_proof

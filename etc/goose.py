@@ -576,11 +576,15 @@ PROJECTS = [
         local=os.path.join("examples", "osfs", "bboltfs"),
         # (`io/fs`, which Perennial does not translate: the types `os` names, `FileInfo`,
         # `FileMode` and `PathError`, the errors the models return)
+        # (`internal/poll` and `internal/syscall/unix`, 2026-11-07: what `os`'s translated
+        # initializer reads; Perennial's import its own `syscall`)
         lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
-                    "io/fs="],
-        packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs"],
+                    "io/fs=", "internal/poll=", "internal/syscall="],
+        packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs", "internal/poll",
+                  "internal/syscall/unix"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "bboltfs"),
-               "os", "syscall", os.path.join("golang_org", "x", "sys"), os.path.join("io", "fs")],
+               "os", "syscall", os.path.join("golang_org", "x", "sys"), os.path.join("io", "fs"),
+               os.path.join("internal", "poll"), os.path.join("internal", "syscall")],
     ),
     Project(
         name="crashlog",
@@ -593,7 +597,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "osfs", "crashlog"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
-                    "io/fs="],
+                    "io/fs=", "internal/poll=", "internal/syscall="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "crashlog")],
     ),

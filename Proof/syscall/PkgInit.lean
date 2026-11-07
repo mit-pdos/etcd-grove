@@ -8,6 +8,7 @@ module
 
 public import GeneratedProof.syscall
 public import Perennial.Proof.ProofPrelude
+public import Perennial.Proof.sync.Base
 
 @[expose] public section
 
