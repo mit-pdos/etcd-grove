@@ -559,7 +559,7 @@ theorem tokRes_congr {st st' : OsState} {Γt : GMap Nat TokInfo}
 end ghost
 
 section specs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
   [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
@@ -1280,7 +1280,7 @@ theorem insertBytes_append (p : Ino) : ∀ (off : Nat) (xs ys : List (w8 × Bool
 end finish
 
 section specs2
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
   [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
@@ -1696,7 +1696,7 @@ theorem cellsR_split (b : Loc) (len lo mid hi : Nat) (vf : Nat → val) (h1 : lo
 end specs3
 
 section specs4
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
 theorem mcellsAny_split (M : GMap Loc Nat) (lo mid hi : Nat) (h1 : lo ≤ mid) (h2 : mid ≤ hi) :

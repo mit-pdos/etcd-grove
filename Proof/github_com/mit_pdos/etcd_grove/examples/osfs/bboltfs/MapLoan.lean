@@ -32,7 +32,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 def metasOf (mp : List w8) : List w8 := (mp.drop 16).take 64 ++ (mp.drop 4112).take 64
 
 section loans
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

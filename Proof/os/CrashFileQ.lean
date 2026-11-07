@@ -81,7 +81,7 @@ theorem crashOk_Q {Q : OsState → OsState → Prop} {Good : Option OsFile → P
   ⟨h.1, fun i x hs => fileOk_Q (hoff i x hs) (h.2 i x hs)⟩
 
 section res
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
 /-- `cfInv` under the premise `Q`: the invariant holds `CrashOkQ` of the state. -/
@@ -127,7 +127,7 @@ theorem cfInvQ_alloc (N : Namespace) (p : GoString) (R : Roots) (V : Hist)
 end res
 
 section crash
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
 /-- **The tree and the file after a crash under the premise `Q`**, from the invariant's halves of

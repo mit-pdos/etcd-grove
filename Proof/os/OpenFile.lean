@@ -68,7 +68,7 @@ theorem lookupH_create {R : Roots} {V : Hist} {d b : GoString} {j i : Ino} (s : 
   exact GMap.lookup_insert _ _ _
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

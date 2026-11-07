@@ -266,7 +266,7 @@ theorem fileOkS_write {Q : OsState → OsState → Prop} {Good : Option OsFile �
 /-! ## The resources -/
 
 section res
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 /-- Byte `k` of the file `p` at the fraction `d k`, if `c k`. -/
 def cByte (p : Ino) (d : Nat → DFrac) (c : Nat → Bool) (k : Nat) (x : w8 × Bool) : IProp GF :=
@@ -536,7 +536,7 @@ end res
 /-! ## After a crash -/
 
 section crash
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
 /-- What a crash may leave of the file `i`, from what the invariant holds of it. -/

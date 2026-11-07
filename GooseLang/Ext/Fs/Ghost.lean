@@ -23,6 +23,7 @@ public import Perennial.Ghost.GhostVar
 public import GooseLang.Ext.Fs.TreeGhost
 public import GooseLang.Ext.Fs.Bridge
 public import GooseLang.Ext.Fs.Crash
+public import GooseLang.Ext.Fs.SemOk
 
 @[expose] public section
 

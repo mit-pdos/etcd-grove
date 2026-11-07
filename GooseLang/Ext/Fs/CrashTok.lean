@@ -518,7 +518,7 @@ end crash
 /-! ## In a generation's terms -/
 
 section gen
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
 /-- The file `f` of inode `i` as the generation `L` starts with it (from a crash): its `OsMeta`

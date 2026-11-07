@@ -271,7 +271,7 @@ theorem inv_rename {j k : Ino} {V : Hist} (h : SafeH j (some k) V ∧ MonoH j V)
      rw [seg_rename _ _ _ _ hk]; simp)⟩
 
 section res
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
   [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
@@ -335,7 +335,7 @@ end res
 /-! ## A rename within one directory, between two names -/
 
 section ren
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
   [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
@@ -393,7 +393,7 @@ end ren
 /-! ## The calls that change the directory, with the invariant -/
 
 section steps
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 
@@ -548,7 +548,7 @@ theorem tmp_removed {V : Hist} {j : Ino} {n : Node} {s : Nat} :
   rw [entry_remove]; simp
 
 section oscalls
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 variable [sem : go.Semantics] [os.Assumptions] [os.file.FieldAssumptions]
@@ -657,7 +657,7 @@ theorem seg_created {V : Hist} {j i : Ino} {s : Nat} :
   rw [Hist.push_now]; exact seg_create_tmp _ _ _
 
 section oscalls2
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 variable [sem : go.Semantics] [os.Assumptions] [os.file.FieldAssumptions]
@@ -815,7 +815,7 @@ theorem seg_renamed {V : Hist} {j i : Ino} {old : Option Node} {s : Nat}
   rw [Hist.push_now]; exact seg_rename _ _ _ _ hk
 
 section oscalls3
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 variable [sem : go.Semantics] [os.Assumptions] [os.file.FieldAssumptions]
@@ -1064,7 +1064,7 @@ end oscalls3
 /-! ## The data -/
 
 section data
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -1183,7 +1183,7 @@ theorem checkOk_synced (m : OsMeta) (hok : m.ok = true) (hsz : m.size = 8) (ys :
 theorem pwBytes_data : (pwBytes 0 0 dataC 8 []).map Prod.fst = dataC := by decide
 
 section prog
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 variable [sem : go.Semantics]

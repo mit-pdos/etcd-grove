@@ -23,7 +23,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -464,19 +464,19 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         · ipureintro
           exact ⟨_, hRs _ (.inl rfl), .inr ⟨rfl, by intro h; cases h⟩⟩
 
-omit [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
+omit [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
 theorem ftMeta_grown (m : OsMeta) (sz : Nat) : (ftMeta m sz).grown sz = m.grown sz := by
   cases m; simp only [ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
 
-omit [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
+omit [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
 theorem ftMeta_ftMeta (m : OsMeta) (sz : Nat) : ftMeta (ftMeta m sz) sz = ftMeta m sz := by
   cases m; simp only [ftMeta, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
 
-omit [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
+omit [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
 theorem grown_grown (m : OsMeta) (sz : Nat) : (m.grown sz).grown sz = m.grown sz := by
   simp [OsMeta.grown]
 
-omit [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
+omit [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
 theorem ftMeta_of_grown (m : OsMeta) (sz : Nat) : ftMeta (m.grown sz) sz = m.grown sz := by
   cases m; simp only [ftMeta, OsMeta.grown, OsMeta.mk.injEq, _root_.and_true, _root_.true_and]; omega
 

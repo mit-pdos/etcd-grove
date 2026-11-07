@@ -140,7 +140,7 @@ theorem noTok_of_whole {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm
 /-! ## Resources -/
 
 section resources
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
 /-- The ghost state of the generation. -/
@@ -406,7 +406,7 @@ end treeframe
 /-! ## The step of an operation -/
 
 section step
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
@@ -461,9 +461,11 @@ theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPani
   isplitr
   · ipureintro
     obtain ⟨e', h', st', Hst⟩ := Hex
-    exact ⟨e', h', st', g, Hst⟩
+    exact FsSemOk.step_ex _ _ _ _ g _ _ _ ()
+      (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) Hst
   inext
   iintro %e' %h' %σ' %g' %Hst -
+  have Hst := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst
   imod Hclose2
   imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', Hw, Hwp⟩
   unfold osWorld
@@ -518,9 +520,11 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   isplitr
   · ipureintro
     obtain ⟨e', h', st', Hst⟩ := Hex
-    exact ⟨e', h', st', g, Hst⟩
+    exact FsSemOk.step_ex _ _ _ _ g _ _ _ ()
+      (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) Hst
   inext
   iintro %e' %h' %σ' %g' %Hst -
+  have Hst := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst
   imod Hclose2
   imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', %V', %Γdf', %Γc', Hw, Hn, Hwp⟩
   unfold osWorld
@@ -621,7 +625,7 @@ theorem cellView_filesSame (hw : OsWf st) : cellView st' = cellView st :=
 end filesSame
 
 section specs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 attribute [local instance] Classical.propDecidable
 

@@ -23,7 +23,7 @@ theorem w64_of_toNat (x : w64) (n : Nat) (h : x.toNat = n) : x = W64 (n : Int) :
   subst h; apply BitVec.eq_of_toNat_eq; simp
 
 section lemmas
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

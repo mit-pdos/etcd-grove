@@ -42,7 +42,7 @@ open Fs
 /-! ## The extension's operations are atomic -/
 
 section atomic
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 
 /-- Every step of an operation of the extension ends in a value. -/
 theorem fsStep_val {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st : OsState}
@@ -102,7 +102,7 @@ instance fsOp_atomic (a : Language.Atomicity) (o : String) (v : val) :
       cases hb with
       | ExternalOpS _ _ _ _ _ _ hst =>
         obtain ⟨_, _, _, hst', rfl⟩ := (extStep_named _ _ _ _ _).1 hst
-        exact fsStep_val ((HasExt.step_iff ..).1 hst'))
+        exact fsStep_val (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ ((HasExt.step_iff ..).1 hst')))
     (by intro Ki e' h; cases Ki <;> simp only [fillItem] at h <;> cases h <;> rfl)
 
 end atomic
@@ -249,7 +249,7 @@ theorem treeCrashed_refl (V : Hist) : TreeCrashed V (V.now, []) := treeCrashed_s
 /-! ## The invariant -/
 
 section res
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
 /-- What the invariant holds of the state: half of the `OsMeta` and of the bytes, or, while a
@@ -377,7 +377,7 @@ end res
 /-! ## After a crash -/
 
 section crash
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
 /-- The new generation's file at `p`, in the history `V'`: none, or the file of the inode `p`

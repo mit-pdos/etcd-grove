@@ -57,7 +57,7 @@ theorem fileMeta_window (xs : List w8) (i n : Nat) (h : 80 ≤ n) :
 end bytes
 
 section osbytes
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
 /-- The window `[a, a + n)` of a file's bytes, and back. -/
