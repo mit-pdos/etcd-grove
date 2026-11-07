@@ -31,7 +31,7 @@ registered type.
 
 The sweep attacked the targets of `notes/axiom-review/sweep-plan-review.md`'s revised order. Each
 counterexample below is a Go program that meets the axioms' premises and panics in Go (go1.27.3, the
-pinned libraries). The Lean proofs are not built, except where noted as to come. **Every result
+pinned libraries). The Lean proofs are built for `ValueStartTime` and the k8s initializers (closed form); the others are Go-side with a proof sketch, by the user's decision. **Every result
 that lists one of these axioms rests on a false axiom until the repair lands.** "Reach" counts
 linked / exported / `*_safe` results from `.lake/tcb.json` at `158829a8b9`.
 
@@ -39,10 +39,10 @@ linked / exported / `*_safe` results from `.lake/tcb.json` at `158829a8b9`.
 |---|---|---|---|
 | `zap.Logger.{Debug,Info,Warn,Error,Fatal,Check}`, `zapcore.CheckedEntry.Write` | a zero `Logger` meets `l ≠ null` and panics on its nil core; `Write` twice panics | 407 / 112 / 17 | `zap-zero.md` |
 | `errors.IsCtxErr` | `isTypedErr` admits an error whose `Unwrap`/`Is` panics | 137 / 55 / 17 | `isctxerr.md` |
-| `context.ValueStartTime` | `WithValue` may store an `int` under the start-time key (Lean to be built) | 114 / 51 / 17 | `valuestarttime.md` |
+| `context.ValueStartTime` | `WithValue` may store an `int` under the start-time key (refuted in Lean, `93b6c79a6b`) | 114 / 51 / 17 | `valuestarttime.md` |
 | `backend.ValidateCalled*`, `backend.VerifyBackendConsistency` | panic when `ETCD_VERIFY` is set; no premise mentions it | 97 / 46 / 17 | `etcd-verify.md` |
 | `http.Handle_ok`, `http.NewServeMux_ok` | `Handle` panics on an empty, unparsable or conflicting pattern or a nil handler | 26 / 12 / 6 | `http-handle.md` |
-| k8s `DefaultFeatureGate_init`, `DefaultFeatureSupportChecker_init` | `Enabled` of an unregistered feature and `CheckClient` of a nil client panic (closed-form Lean to be built) | 4 / 4 / 4 | `k8s-featureinit.md` |
+| k8s `DefaultFeatureGate_init`, `DefaultFeatureSupportChecker_init` | `Enabled` of an unregistered feature and `CheckClient` of a nil client panic (closed theorems refuted in Lean, `2517143f5f`) | 4 / 4 / 4 | `k8s-featureinit.md` |
 
 None of these is a bug in etcd: etcd's own calls meet the missing premises (a constructed logger,
 context errors, a checked type assertion, `ETCD_VERIFY` unset, literal patterns, registered
