@@ -257,7 +257,7 @@ theorem msgPtsC_of_struct (l : Loc) (v : raftpb.Message) (dqe : DFrac) (cap : Bo
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.Message l v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.Message l v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
   iunfold msgPtsC

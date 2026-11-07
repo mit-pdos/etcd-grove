@@ -15,7 +15,7 @@
   are part of the content because the model (`MsgSt.resps : List Loc`) is the pointers; D2 is only
   claimed with no responses (`MsgMarshals`).
 - `msgRoC l c`: a frozen `*Message` holding exactly `c` (`optCell`, `bytesC`, each nested object
-  frozen at its content, each level's `pbMsg` at its `uf` and `uf`'s validity), and the bridge
+  frozen at its content, each level's `pbMsg` at its `uf`, which records `uf`'s validity at the level's schema), and the bridge
   `msgRoC_msgOwn` to today's `msgOwn l □` (what `pbMessage.ro` is), **under the premise that the
   snapshot's `ConfState` has no unknown fields** (`MsgC.csUfNil`): today's `csPts` fixes the
   `ConfState`'s `pbMsg` index to `[]` (`InvPb.lean`, `csPts`), so the bridge is false without it.
@@ -35,7 +35,8 @@ is below 16, so every tag is one byte):
 - `ConfState` (`raft.proto:127-142`): `voters` 1, `learners` 2, `voters_outgoing` 3,
   `learners_next` 4 (repeated `uint64`, proto2 so unpacked; the decoder takes both the unpacked
   varint and the packed `LEN`), `auto_leave` 5 (varint).
-- `Entry`: `entrySchema` (`PerTypeEntry.lean`).
+- `Entry`: `entrySchema`.
+The schemas are defined, with `pbSchemaOf`, in `proto/PbSchema.lean` (CP2).
 -/
 module
 
@@ -144,22 +145,6 @@ def MsgC.csUfNil (c : MsgC) : Prop :=
 
 end model
 
-/-! ## The schemas (trusted: `proto/PerType.lean`'s header; sources in the file header) -/
-
-/-- `raft.proto:62-99`. -/
-def msgSchema : FieldSchema :=
-  [(1, [0]), (2, [0]), (3, [0]), (4, [0]), (5, [0]), (6, [0]), (7, [2]), (8, [0]), (9, [2]),
-   (10, [0]), (11, [0]), (12, [2]), (13, [0]), (14, [2])]
-
-/-- `raft.proto:25-28`. -/
-def snapSchema : FieldSchema := [(1, [2]), (2, [2])]
-
-/-- `raft.proto:19-23`. -/
-def metaSchema : FieldSchema := [(1, [2]), (2, [0]), (3, [0])]
-
-/-- `raft.proto:127-142`: the repeated `uint64`s unpacked (`0`) or packed (`2`). -/
-def csSchema : FieldSchema := [(1, [0, 2]), (2, [0, 2]), (3, [0, 2]), (4, [0, 2]), (5, [0])]
-
 /-! ## The levels and the size -/
 
 section levels
@@ -265,7 +250,7 @@ def csRoC (p : Loc) (c : CSC) : IProp GF :=
     p.[raftpb.ConfState, go!"VotersOutgoing"] ↦□ so ∗ so ↦*□ c.votersOutgoing ∗
     p.[raftpb.ConfState, go!"LearnersNext"] ↦□ sn ∗ sn ↦*□ c.learnersNext ∗
     p.[raftpb.ConfState, go!"AutoLeave"] ↦□ pa ∗ optCell pa c.autoLeave ∗
-    pbMsg raftpb.ConfState p c.uf ∗ ⌜ufWire csSchema c.uf⌝)
+    pbMsg raftpb.ConfState p c.uf)
 
 def csOptC (p : Loc) : Option CSC → IProp GF
   | none => iprop(⌜p = null⌝)
@@ -278,7 +263,7 @@ def metaRoC (p : Loc) (m : SnapMetaC) : IProp GF :=
     p.[raftpb.SnapshotMetadata, go!"ConfState"] ↦□ pc ∗ csOptC pc m.confState ∗
     p.[raftpb.SnapshotMetadata, go!"Index"] ↦□ pi ∗ optCell pi m.index ∗
     p.[raftpb.SnapshotMetadata, go!"Term"] ↦□ pt ∗ optCell pt m.term ∗
-    pbMsg raftpb.SnapshotMetadata p m.uf ∗ ⌜ufWire metaSchema m.uf⌝)
+    pbMsg raftpb.SnapshotMetadata p m.uf)
 
 def metaOptC (p : Loc) : Option SnapMetaC → IProp GF
   | none => iprop(⌜p = null⌝)
@@ -290,7 +275,7 @@ def snapRoC (p : Loc) (s : SnapC) : IProp GF :=
     ⌜p ≠ null⌝ ∗
     p.[raftpb.Snapshot, go!"Data"] ↦□ ds ∗ bytesC ds s.data ∗
     p.[raftpb.Snapshot, go!"Metadata"] ↦□ pm ∗ metaOptC pm s.metadata ∗
-    pbMsg raftpb.Snapshot p s.uf ∗ ⌜ufWire snapSchema s.uf⌝)
+    pbMsg raftpb.Snapshot p s.uf)
 
 def snapOptC (p : Loc) : Option SnapC → IProp GF
   | none => iprop(⌜p = null⌝)
@@ -316,7 +301,7 @@ def msgFRoC (l : Loc) (f : MsgFC) (rps : List Loc) : IProp GF :=
     l.[raftpb.Message, go!"Snapshot"] ↦□ ps ∗ snapOptC ps f.snapshot ∗
     l.[raftpb.Message, go!"Context"] ↦□ cs ∗ bytesC cs f.context ∗
     l.[raftpb.Message, go!"Responses"] ↦□ rs ∗ rs ↦*□ rps ∗
-    pbMsg raftpb.Message l f.uf ∗ ⌜ufWire msgSchema f.uf⌝)
+    pbMsg raftpb.Message l f.uf)
 
 mutual
 /-- **A frozen `*Message` holding exactly `c`**, its responses frozen at their contents. -/
@@ -385,7 +370,7 @@ theorem optCell_cellRO' {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p :
 theorem csRoC_csPts (p : Loc) (c : CSC) (h : c.uf = []) :
     csRoC (GF := GF) p c ⊢ csPts p DFrac.discard c.model false := by
   unfold csRoC
-  iintro ⟨%sv, %sl, %so, %sn, %pa, %Hnn, #HV, #Hv, #HL, #Hl, #HO, #Ho, #HN, #Hn, #HA, #cA, #Hpb, -⟩
+  iintro ⟨%sv, %sl, %so, %sn, %pa, %Hnn, #HV, #Hv, #HL, #Hl, #HO, #Ho, #HN, #Hn, #HA, #cA, #Hpb⟩
   rw [h]
   ihave #cA' := optCell_cellRO pa c.autoLeave $$ cA
   unfold csPts
@@ -410,7 +395,7 @@ theorem csOptC_csOptA (p : Loc) (o : Option CSC) (h : ∀ cs ∈ o, cs.uf = []) 
 theorem metaRoC_smPts (p : Loc) (m : SnapMetaC) (h : ∀ cs ∈ m.confState, cs.uf = []) :
     metaRoC (GF := GF) p m ⊢ smPts p DFrac.discard m.model := by
   unfold metaRoC
-  iintro ⟨%pc, %pi, %pt, %Hnn, #HC, #Hc, #HI, #cI, #HT, #cT, #Hpb, -⟩
+  iintro ⟨%pc, %pi, %pt, %Hnn, #HC, #Hc, #HI, #cI, #HT, #cT, #Hpb⟩
   ihave #cI' := optCell_cellRO pi m.index $$ cI
   ihave #cT' := optCell_cellRO pt m.term $$ cT
   ihave #Hc' := csOptC_csOptA pc m.confState h $$ Hc
@@ -444,7 +429,7 @@ theorem snapOptC_snapOpt (p : Loc) (o : Option SnapC)
   | some s =>
     simp only [snapOptC, snapOpt, Option.map_some]
     unfold snapRoC
-    iintro ⟨%ds, %pm, %Hnn, #HD, #Hd, #HM, #Hm, #Hpb, -⟩
+    iintro ⟨%ds, %pm, %Hnn, #HD, #Hd, #HM, #Hm, #Hpb⟩
     ihave #Hd' := bytesC_ro ds s.data $$ Hd
     ihave #Hm' := metaOptC_smOpt pm s.metadata (h s rfl) $$ Hm
     unfold ownSnapM
@@ -465,7 +450,7 @@ theorem msgRoC_msgOwn (l : Loc) (c : MsgC) (h : c.csUfNil) :
   icases H with ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs, %rsl,
     %Hnn, #HTy, #cTy, #HTo, #cTo, #HFr, #cFr, #HTe, #cTe, #HLt, #cLt, #HIx, #cIx, #HCo, #cCo,
     #HVo, #cVo, #HRj, #cRj, #HRh, #cRh, #HEs, #Hes, #Hents, #HSn, #Hsn, #HCx, #Hcx, #HRs, #Hrs,
-    #Hpb, -⟩
+    #Hpb⟩
   ihave #cTy' := optCell_cellRO pty f.type $$ cTy
   ihave #cTo' := optCell_cellRO pto f.to $$ cTo
   ihave #cFr' := optCell_cellRO pfr f.frm $$ cFr
@@ -495,10 +480,31 @@ theorem msgRoC_msgOwn (l : Loc) (c : MsgC) (h : c.csUfNil) :
 
 /-! ### The unknown fields of every level are valid -/
 
+theorem pbMsg_uf_cs (p : Loc) (uf : List w8) :
+    pbMsg (GF := GF) raftpb.ConfState p uf ⊢ ⌜ufWire csSchema uf⌝ := by
+  have h := pbMsg_ufWire (GF := GF) raftpb.ConfState p uf
+  rwa [show PbGoType.goTy raftpb.ConfState = raftpb.ConfState.ty from rfl, pbSchemaOf_confState] at h
+
+theorem pbMsg_uf_meta (p : Loc) (uf : List w8) :
+    pbMsg (GF := GF) raftpb.SnapshotMetadata p uf ⊢ ⌜ufWire metaSchema uf⌝ := by
+  have h := pbMsg_ufWire (GF := GF) raftpb.SnapshotMetadata p uf
+  rwa [show PbGoType.goTy raftpb.SnapshotMetadata = raftpb.SnapshotMetadata.ty from rfl,
+    pbSchemaOf_snapshotMetadata] at h
+
+theorem pbMsg_uf_snap (p : Loc) (uf : List w8) :
+    pbMsg (GF := GF) raftpb.Snapshot p uf ⊢ ⌜ufWire snapSchema uf⌝ := by
+  have h := pbMsg_ufWire (GF := GF) raftpb.Snapshot p uf
+  rwa [show PbGoType.goTy raftpb.Snapshot = raftpb.Snapshot.ty from rfl, pbSchemaOf_snapshot] at h
+
+theorem pbMsg_uf_msg (l : Loc) (uf : List w8) :
+    pbMsg (GF := GF) raftpb.Message l uf ⊢ ⌜ufWire msgSchema uf⌝ := by
+  have h := pbMsg_ufWire (GF := GF) raftpb.Message l uf
+  rwa [show PbGoType.goTy raftpb.Message = raftpb.Message.ty from rfl, pbSchemaOf_message] at h
+
 theorem entRoC_uf (p : Loc) (e : EntryC) : entRoC (GF := GF) p e ⊢ ⌜ufWire entrySchema e.uf⌝ := by
   unfold entRoC
-  iintro ⟨%pt, %pi, %pty, %ds, -, -, -, -, -, -, -, -, -, -, %Hu⟩
-  ipureintro; exact Hu
+  iintro ⟨%pt, %pi, %pty, %ds, -, -, -, -, -, -, -, -, -, Hpb⟩
+  iapply pbMsg_uf_entry $$ Hpb
 
 theorem entsRoC_uf : ∀ (els : List Loc) (es : List EntryC),
     ([∗list] p;e ∈ els;es, entRoC (GF := GF) p e) ⊢ ⌜∀ e ∈ es, ufWire entrySchema e.uf⌝
@@ -522,7 +528,8 @@ theorem csOptC_uf (p : Loc) (o : Option CSC) :
   | some c =>
     simp only [csOptC, csLevels]
     unfold csRoC
-    iintro ⟨%sv, %sl, %so, %sn, %pa, -, -, -, -, -, -, -, -, -, -, -, -, %Hu⟩
+    iintro ⟨%sv, %sl, %so, %sn, %pa, -, -, -, -, -, -, -, -, -, -, -, Hpb⟩
+    ihave %Hu := pbMsg_uf_cs p c.uf $$ Hpb
     ipureintro; intro q hq; rw [List.mem_singleton] at hq; subst hq; exact Hu
 
 theorem metaOptC_uf (p : Loc) (o : Option SnapMetaC) :
@@ -532,7 +539,8 @@ theorem metaOptC_uf (p : Loc) (o : Option SnapMetaC) :
   | some m =>
     simp only [metaOptC, metaLevels]
     unfold metaRoC
-    iintro ⟨%pc, %pi, %pt, -, -, #Hc, -, -, -, -, -, %Hu⟩
+    iintro ⟨%pc, %pi, %pt, -, -, #Hc, -, -, -, -, #Hpb⟩
+    ihave %Hu := pbMsg_uf_meta p m.uf $$ Hpb
     ihave %h := csOptC_uf pc m.confState $$ Hc
     ipureintro; intro q hq
     rcases List.mem_cons.1 hq with rfl | hq
@@ -546,7 +554,8 @@ theorem snapOptC_uf (p : Loc) (o : Option SnapC) :
   | some s =>
     simp only [snapOptC, snapLevels]
     unfold snapRoC
-    iintro ⟨%ds, %pm, -, -, -, -, #Hm, -, %Hu⟩
+    iintro ⟨%ds, %pm, -, -, -, -, #Hm, #Hpb⟩
+    ihave %Hu := pbMsg_uf_snap p s.uf $$ Hpb
     ihave %h := metaOptC_uf pm s.metadata $$ Hm
     ipureintro; intro q hq
     rcases List.mem_cons.1 hq with rfl | hq
@@ -558,7 +567,8 @@ theorem msgFRoC_uf (l : Loc) (f : MsgFC) (rps : List Loc) :
   unfold msgFRoC
   iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs, %rsl,
     -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hents, -, #Hsn, -, -, -,
-    -, -, %Hu⟩
+    -, #Hpb⟩
+  ihave %Hu := pbMsg_uf_msg l f.uf $$ Hpb
   ihave %he := entsRoC_uf els f.entries $$ Hents
   ihave %hs := snapOptC_uf ps f.snapshot $$ Hsn
   ipureintro; intro q hq
@@ -751,7 +761,7 @@ theorem treeWp_cs (c : ConfStateM) (Φ : val → IProp GF) :
   icases Hp with ⟨HS, HV, HL, HO, HN, HA, HU, HSC, -⟩
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   ihave Hpb : |={⊤}=> pbMsg raftpb.ConfState p [] $$ [HS HSC HU Hnil]
-  · iapply pbMsg_alloc
+  · iapply (pbMsg_alloc _ _ _ _ _ _ _ (ufWire_nil _))
     iframe
     iexact Hnil
   imod Hpb with #Hpb
@@ -794,7 +804,7 @@ theorem treeWp_meta (md : SnapshotMetadataM) (Φ : val → IProp GF) :
   icases Hp with ⟨HS, HC, HI, HT, HU, HSC, -⟩
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   ihave Hpb : |={⊤}=> pbMsg raftpb.SnapshotMetadata p [] $$ [HS HSC HU Hnil]
-  · iapply pbMsg_alloc
+  · iapply (pbMsg_alloc _ _ _ _ _ _ _ (ufWire_nil _))
     iframe
     iexact Hnil
   imod Hpb with #Hpb
@@ -838,7 +848,7 @@ theorem treeWp_snap (sn : SnapshotM) (Φ : val → IProp GF) :
   icases Hp with ⟨HS, HD, HM, HU, HSC, -⟩
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   ihave Hpb : |={⊤}=> pbMsg raftpb.Snapshot p [] $$ [HS HSC HU Hnil]
-  · iapply pbMsg_alloc
+  · iapply (pbMsg_alloc _ _ _ _ _ _ _ (ufWire_nil _))
     iframe
     iexact Hnil
   imod Hpb with #Hpb
@@ -954,7 +964,7 @@ theorem pbMessageC_sat : (pbMessageM (GF := GF)).Sat := by
     HSC, -⟩
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   ihave Hpb : |={⊤}=> pbMsg raftpb.Message l [] $$ [HS HSC HU Hnil]
-  · iapply pbMsg_alloc
+  · iapply (pbMsg_alloc _ _ _ _ _ _ _ (ufWire_nil _))
     iframe
     iexact Hnil
   imod Hpb with #Hpb

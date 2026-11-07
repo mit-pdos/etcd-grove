@@ -159,7 +159,7 @@ theorem StartCluster.wp_proof
   -- the bootstrap conf state, frozen
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.ConfState «$v3_ptr» _ _ slice.nil [] ⊤ $$ [state sizeCache unknownFields Hnil]
+  imod pbMsg_alloc raftpb.ConfState «$v3_ptr» _ _ slice.nil [] ⊤ (ufWire_nil _) $$ [state sizeCache unknownFields Hnil]
     with #Hpb
   · iframe
   ihave HcsB : csPts «$v3_ptr» (DFrac.own 1) (bootCS (bootVoters (uint.nat o.Voters'))) false

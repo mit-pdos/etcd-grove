@@ -6,17 +6,18 @@
   or not (an empty non-nil `Data` has size 2, a nil one 0), and the unknown fields.
 - `entRoC l c`: a frozen `*Entry` holding exactly `c`: each scalar cell `nil` or `p ↦□ v`
   (`optCell`), `Data` `nil` or a non-nil slice (Go's `== nil` is `= slice.nil`) holding its bytes
-  read-only (`bytesC`), the hidden fields' invariant at `c.uf` and `uf`'s validity.
+  read-only (`bytesC`), the hidden fields' invariant at `c.uf`, which gives `uf`'s validity
+  (`pbMsg` records `ufWire` at the type's schema, `pbSchemaOf`: `pbMsg_uf_entry`).
 - `entryEncC` (opaque) and its one trusted fact `entryEncC_ok`, backed by Go round-trip tests of
   `proto.Size` against `entrySize` and of `Unmarshal(Marshal)`.
 - `pbEntryM` (the data, no axiom), `pbEntryC` (with the encoder), its registration `pbEntryC_reg`,
   and `pbEntryC_sat : pbEntryM.Sat` (`pbEntryC.data` is `pbEntryM`; whose axioms do not include `entryEncC_ok`).
 
-**Why `ro` is not today's `entRO`.** `entRO` (`InvPb.lean`) hides the unknown fields behind `pbMsg`'s
-index with no validity, and reads a `nil` cell and a zero one alike: `ro_iff` at `ro := entRO` is
-unprovable (an `entRO` has no `ufWire` of its `uf`). The real stage makes `pbMsg` carry `ufWire`
-(`pbMsg_alloc` takes it, the Scope's `[v5]` E); here `ro` is `∃ c, entRoC l c ∗ ⌜…⌝`, and
-`entRoC_entRO` shows it gives today's `entRO`, so its clients keep working.
+**Why `ro` is not today's `entRO`.** `entRO` (`InvPb.lean`) reads a `nil` cell and a zero one
+alike, and an empty non-nil `Data` as a nil one: `ro_iff` at `ro := entRO` is unprovable. (Its
+unknown fields' validity it now has: `pbMsg` carries `ufWire`, CP2.) Here `ro` is
+`∃ c, entRoC l c ∗ ⌜…⌝`, and `entRoC_entRO` shows it gives today's `entRO`, so its clients keep
+working.
 -/
 module
 
@@ -46,9 +47,6 @@ structure EntryC [GooseExts] where
 def EntryC.model [GooseExts] (c : EntryC) : EntryM :=
   ⟨c.term.getD (zero_val w64), c.index.getD (zero_val w64), c.type.getD (zero_val raftpb.EntryType),
     c.data.getD []⟩
-
-/-- `raft.proto`'s `Entry`: `Type` 1, `Term` 2, `Index` 3 (varints), `Data` 4 (length-delimited). -/
-def entrySchema : FieldSchema := [(1, [0]), (2, [0]), (3, [0]), (4, [2])]
 
 /-- An optional varint field's size: its tag and its value. -/
 def optVarintSize (o : Option Nat) : Nat := match o with | none => 0 | some n => 1 + varintSize n
@@ -94,6 +92,12 @@ instance bytesC_persistent (ds : GoSlice) (o : Option (List w8)) :
     Persistent (bytesC (GF := GF) ds o) := by
   cases o <;> unfold bytesC <;> infer_instance
 
+/-- An entry's unknown fields are valid at `Entry`'s schema (`pbMsg`'s, `[v6a]` 3). -/
+theorem pbMsg_uf_entry (l : Loc) (uf : List w8) :
+    pbMsg (GF := GF) raftpb.Entry l uf ⊢ ⌜ufWire entrySchema uf⌝ := by
+  have h := pbMsg_ufWire (GF := GF) raftpb.Entry l uf
+  rwa [show PbGoType.goTy raftpb.Entry = raftpb.Entry.ty from rfl, pbSchemaOf_entry] at h
+
 /-- **A frozen `*Entry` holding exactly `c`** (see the file header). -/
 def entRoC (l : Loc) (c : EntryC) : IProp GF :=
   iprop(∃ (pt pi pty : Loc) (ds : GoSlice),
@@ -102,7 +106,7 @@ def entRoC (l : Loc) (c : EntryC) : IProp GF :=
     l.[raftpb.Entry, go!"Index"] ↦□ pi ∗ optCell pi c.index ∗
     l.[raftpb.Entry, go!"Type"] ↦□ pty ∗ optCell pty c.type ∗
     l.[raftpb.Entry, go!"Data"] ↦□ ds ∗ bytesC ds c.data ∗
-    pbMsg raftpb.Entry l c.uf ∗ ⌜ufWire entrySchema c.uf⌝)
+    pbMsg raftpb.Entry l c.uf)
 
 set_option synthInstance.maxSize 512 in
 set_option synthInstance.maxHeartbeats 200000 in
@@ -128,7 +132,7 @@ theorem bytesC_ro (ds : GoSlice) (o : Option (List w8)) :
 /-- **The wire content gives today's `entRO`** (its clients keep working). -/
 theorem entRoC_entRO (l : Loc) (c : EntryC) : entRoC (GF := GF) l c ⊢ entRO l c.model := by
   unfold entRoC
-  iintro ⟨%pt, %pi, %pty, %ds, %Hnn, #HT, #cT, #HI, #cI, #HY, #cY, #HD, #cD, #Hpb, -⟩
+  iintro ⟨%pt, %pi, %pty, %ds, %Hnn, #HT, #cT, #HI, #cI, #HY, #cY, #HD, #cD, #Hpb⟩
   simp only [entRO]
   iunfold entPts
   iexists pt, pi, pty, ds, c.uf
@@ -171,7 +175,8 @@ def pbEntryM : PbModelC GF where
   ro_iff _ _ := .rfl
   roC_ufValid l c := by
     unfold entRoC
-    iintro ⟨%pt, %pi, %pty, %ds, -, -, -, -, -, -, -, -, -, -, %Hu⟩
+    iintro ⟨%pt, %pi, %pty, %ds, -, -, -, -, -, -, -, -, -, Hpb⟩
+    ihave %Hu := pbMsg_uf_entry l c.uf $$ Hpb
     ipureintro
     intro p hp
     rw [List.mem_singleton] at hp
@@ -281,7 +286,7 @@ theorem treeWp_entryTree (e : EntryM) (Φ : val → IProp GF) :
   imod (typedPointsto_dfractional (GF := GF) _ ds).dfractional_persist _ $$ HD with #HD
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   ihave Hpb : |={⊤}=> pbMsg raftpb.Entry l [] $$ [HS HSC HU Hnil]
-  · iapply pbMsg_alloc
+  · iapply (pbMsg_alloc _ _ _ _ _ _ _ (ufWire_nil _))
     iframe
     iexact Hnil
   imod Hpb with #Hpb
