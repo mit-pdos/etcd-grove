@@ -4,7 +4,8 @@
 proved `EtcdServer.LeaseTimeToLive.spec` and `EtcdServer.LeaseLeases.spec`, at the per-call
 resources `S := E.RD ∗ threadTok` (the lessor's reader pool `lessorRdPool γl` a premise: the
 lease-src plan, 2026-11-02) and the revision reader
-`R := mvcc.storeReader E.s E.γ` (`srvKVAns`'s `revR`, so that the handlers' `A.revR` is it). The
+`R := threadTok ∗ mvcc.api.mvccReaders E.γ 1` (`srvKVAns`'s `revR`, so that the handlers' `A.revR`
+is it; `LeaseLeases`' `newHeader()` reads the store's revision with it). The
 two specs' bounds premises are this theorem's. Lean-first (no Rocq counterpart).
 -/
 module
@@ -38,7 +39,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's lease reads, from its linked specs** (no premise but the server's facts and the
 bounds the two specs take, and the lessor's reader pool): `raftLeaseRead` at `S := E.RD ∗ threadTok` and
-`R := mvcc.storeReader E.s E.γ`; the server's header ids `cs ms` stay inside (`leasesAns`). -/
+`R := threadTok ∗ mvcc.api.mvccReaders E.γ 1`; the server's header ids `cs ms` stay inside
+(`leasesAns`). -/
 theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG))
     (hLs : EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName) (cs ms : w64)
@@ -47,7 +49,7 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
         isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
         srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ lease.lessorRdPool γl ∗ srvHeaderFacts s cs ms ⊢
       raftLeaseRead s E γl iprop(E.RD ∗ threadTok)
-        (mvcc.storeReader E.s E.γ) := by
+        iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) := by
   iintro ⟨#Hpkg, #Hq, #Hrd, #Hat, #Hal, #Hlr, #Hpool, #Hhf⟩
   iunfold raftLeaseRead
   isplitr
@@ -61,7 +63,7 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
     iunfold ttlAns
     iexact Hans
   · iunfold lessorLeasesOk
-    iintro %ci %cd %r %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hpub, #Hllb⟩ HΦ
+    iintro %ci %cd %r %n %m !> %Φ ⟨⟨HRD, Htok⟩, ⟨HR, HRr⟩, #Hctx, #Hpub, #Hllb⟩ HΦ
     wp_apply (hLs s E γr γl ci cd r ms cs n m) $$ [HRD Htok HR]
       as %resp %err ⟨HR, HRD, Htok, Hans⟩
     · iframe; iframe #; ipureintro; exact ⟨hT, hR⟩

@@ -18,7 +18,7 @@ transaction's gets within the txn package's model, `txnInModel`), what a success
 serializable; `txnReadAns`/`txnAppliedAns`: a read-only transaction run at a certified log, or a
 writing one applied by the apply thread), what an error is (the apply's or the proposal's for
 the writes, any for the reads), every resource of the call back with each answer but the id
-credit a write consumed; `KV().Rev()` needs the store's reader slots (`revR`), which `fill`
+credit a write consumed; `KV().Rev()` needs a thread token and a reader token of the store (`revR`), which `fill`
 never uses on these answers since their revision is not `0`.
 
 **What the server's answers give the handler** (`kvAnswer`): the response header's four id
@@ -337,7 +337,13 @@ def srvKVAns (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c 
     | .range _ => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e))
-  revR := threadTok
+  revR := iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+
+/-- **The empty floor** (strict M1: a call's floor `srvApi.kvLogLb E.γs F` at `F = []`, minted
+from nothing, in place of mvcc's `idxCert_nil`). -/
+theorem kvLogLb_nil (γs : srvApi.KVSNames) : ⊢ |==> srvApi.kvLogLb (GF := GF) γs [] := by
+  unfold srvApi.kvLogLb
+  exact monoListLbOwn_nil _
 
 open Iris.ProofMode in
 /-- A put's permit (`putPermit`) from its deposit. -/

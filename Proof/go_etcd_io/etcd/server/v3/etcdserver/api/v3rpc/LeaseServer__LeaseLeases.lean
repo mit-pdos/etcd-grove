@@ -72,7 +72,7 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     iunfold leasesRespIs at Hresp
     icases Hresp with ⟨%w, Hw, Hh, Hlist⟩
     iunfold srvHeaderAt at Hh
-    icases Hh with ⟨%hv, %log, Hhv, #Hcert, %Hlog⟩
+    icases Hh with ⟨%hv, %log, Hhv, #Hcert, -, -, %Hlog⟩
     ihave %Hh := typedPointsto_not_null _ _ _ $$ Hhv
     wp_auto
     -- `ls.hdr.fill(resp.Header)`
@@ -112,8 +112,8 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     iframe Hrev
     iframe #
     ipureintro
-    refine ⟨Hlog.1, fun h0 => ?_⟩
-    rw [← Hlog.2.2.2]; exact Hrr (by rw [Hlog.2.2.2]; exact h0)
+    refine ⟨Hlog.2.1, fun h0 => ?_⟩
+    rw [← Hlog.2.2.2.2]; exact Hrr (by rw [Hlog.2.2.2.2]; exact h0)
   · obtain ⟨rfl, Hen, HaOn⟩ := Hn
     cases err with
     | nil => exact absurd rfl Hen

@@ -58,31 +58,34 @@ theorem eq_of_comparable {α : Type} {l l' : List α} (h : l <+: l' ∨ l' <+: l
 theorem filtered_nil (evs : List mvcc.EvM) : mvcc.filtered [] evs = evs := by
   unfold mvcc.filtered; simp
 
-/-! ## What the watch guarantee does not say (finding F-W1, `notes/mvcc-migration/clientv3.md`)
+/-! ## The watch guarantee's progress facts (finding F-W1, `notes/mvcc-migration/clientv3.md`)
 
-mvcc's API (`mvcc.api.wsRecvOk`, frozen) does not say that a watcher's progress notification is at
+mvcc's API (`mvcc.api.wsRecvOk`) as frozen did not say that a watcher's progress notification is at
 a revision at least its first revision less one, nor that event-less responses' revisions do not
 decrease along the stream. client/v3's completeness contract (the exported `watchStateRespOk`: a
 progress notification at or past the cursor) needs both; until M1 mvcc's internal `covFact`
 (`γw.lo ≤ rev + 1`) and `respRev` (`∀ y ∈ pre, y.evs = [] → y.rev ≤ x.rev`) gave them, and the
 code does them (`progressIfSync`: progress only for synced watchers with `rev ≥ startRev`, at the
-store's revision, which only grows). Each is a placeholder here until the API states it. -/
+store's revision, which only grows). The API now states both (`wsRecvOk`'s fourth and fifth
+conjuncts); the two lemmas below project them. -/
 
-/-- **(M1-REPLACE) A watcher's progress notification is past its first revision less one.** -/
+/-- **A watcher's progress notification is past its first revision less one** (`wsRecvOk`'s fourth
+conjunct). -/
 theorem wsRecvOk_progLo (σ : mvcc.api.MvccState) (S : mvcc.api.StreamState)
-    (rs : List mvcc.api.WResp) (_h : mvcc.api.wsRecvOk σ S rs) :
+    (rs : List mvcc.api.WResp) (h : mvcc.api.wsRecvOk σ S rs) :
     ∀ (j : Nat) (r : mvcc.api.WResp) (id : w64) (w : mvcc.api.WInfo), rs[j]? = some r →
       r.evs = [] → r.compactRev = W64 0 → S.ws !! id = some w →
       (r.id = id ∨ (r.id = W64 (-1) ∧ w.live = true ∧ w.k ≤ j)) →
-      (w.lo : Int) ≤ sint.Z r.rev + 1 := by
-  sorry -- M1-REPLACE: wsRecvOk lacks a progress notification's lower bound (finding F-W1)
+      (w.lo : Int) ≤ sint.Z r.rev + 1 :=
+  h.2.2.2.1
 
-/-- **(M1-REPLACE) Event-less responses' revisions do not decrease along the stream.** -/
+/-- **Event-less responses' revisions do not decrease along the stream** (`wsRecvOk`'s fifth
+conjunct). -/
 theorem wsRecvOk_progMono (σ : mvcc.api.MvccState) (S : mvcc.api.StreamState)
-    (rs : List mvcc.api.WResp) (_h : mvcc.api.wsRecvOk σ S rs) :
+    (rs : List mvcc.api.WResp) (h : mvcc.api.wsRecvOk σ S rs) :
     ∀ (i j : Nat) (y x : mvcc.api.WResp), i < j → rs[i]? = some y → rs[j]? = some x →
-      y.evs = [] → x.evs = [] → x.compactRev = W64 0 → sint.Z y.rev ≤ sint.Z x.rev := by
-  sorry -- M1-REPLACE: wsRecvOk lacks event-less responses' monotone revisions (finding F-W1)
+      y.evs = [] → x.evs = [] → x.compactRev = W64 0 → sint.Z y.rev ≤ sint.Z x.rev :=
+  h.2.2.2.2
 
 section bridges
 variable [GooseExts] [GooseSemantics] [GooseInterp]

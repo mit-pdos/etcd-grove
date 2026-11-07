@@ -262,7 +262,7 @@ theorem etcdGrpcSlots_of_started (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader (GF := GF) s) ∗
         ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
         ([∗list] _x ∈ List.replicate K (), E.RD) ∗
-        ([∗list] _x ∈ List.replicate S (), mvcc.storeReader E.s E.γ) ∗
+        ([∗list] _x ∈ List.replicate S (), (threadTok ∗ mvcc.api.mvccReaders E.γ 1)) ∗
         ([∗list] _x ∈ List.replicate M (), srvReadReader s γr) ∗
         ([∗list] _x ∈ List.replicate B (), srvBemuReader s) ⊢
       [∗list] _x ∈ List.replicate N (), etcdGrpcSlot s E γr := by

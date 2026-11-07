@@ -231,7 +231,7 @@ def srvKVAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (
     | .range _ => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e))
-  revR := threadTok
+  revR := iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
 
 /-- **A write's update in the auth mode `on`** (`kvOpAuOn`'s, the auth component's stage 4): fired at
 most once, at a lower bound `L₀` of the requested log the caller holds, told the write's grant
@@ -339,7 +339,7 @@ def srvKVAnsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
     | .range _ => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e))
-  revR := threadTok
+  revR := iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
 
 /-- A deposit is a read deposit at the mode's model state (`kvDep`'s form). -/
 theorem kvDep_of_depM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
@@ -918,12 +918,12 @@ theorem kvGetOk_of_serverM (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     iexists ⟨kty, kvv⟩
     isplitr
     · ipureintro; exact Hkveq
-    iintro !> %Φ' Htt HΦ'
+    iintro !> %Φ' ⟨Htt, Hrdr⟩ HΦ'
     ihave Hau := srvApi.au_read E.Nx E.Cp hP hR E.kv E.γ E.γs log₀ $$ Hks Hl0
     iunfold srvApi.auRead at Hau
-    wp_apply (hRevC E.γ _) $$ [$Hkv' $Htt $Hau] as %rv ⟨Htt, -⟩
+    wp_apply (hRevC E.γ _) $$ [$Hkv' $Htt $Hrdr $Hau] as %rv ⟨Htt, Hrdr, -⟩
     iapply HΦ'
-    iexact Htt
+    iframe
   isplitr
   · iintro !> %Φ - HΦ
     wp_apply hCl s v.cluster $$ []

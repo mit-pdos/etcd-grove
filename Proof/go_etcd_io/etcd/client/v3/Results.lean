@@ -915,7 +915,7 @@ auth store's reader resource (`E.RD`, 2026-10-14, unit A2; `srvRdCall`'s). The s
 gRPC runtime a number of them when it serves (bounded `RWMutex` slots: at most that many runs at
 a time). -/
 def etcdRunSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(srvLeadTimeReader s ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ srvReadReader s γr ∗
+  iprop(srvLeadTimeReader s ∗ (threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗ srvLgReader s ∗ srvReadReader s γr ∗
     E.RD)
 
 /-- **A get of `key` after the put of `key ↦ val` read the put** (persistent; unit C2a,
@@ -1577,10 +1577,10 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   ihave #Hrv' : kvRevLbZ ρ.rd.kv (sint.Z req.Revision' + ρ.rd.kv.cret) $$ []
   · iexact Hrv
   -- the server's `Compact`, guarded: the caller's readers, credit and request in, back out
-  let Pin : IProp GF := iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ mvcc.storeReader E.s E.γ ∗
+  let Pin : IProp GF := iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ (threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗
     idCred ρ.ids 1 ∗ r ↦ req)
   let Q : Loc → IProp GF := fun _ =>
-    iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ mvcc.storeReader E.s E.γ)
+    iprop(srvLeadTimeReader s ∗ srvLgReader s ∗ (threadTok ∗ mvcc.api.mvccReaders E.γ 1))
   ihave #Hcok : v3rpc.compactOk s E (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) Pin
       (GoInterface.ok ci) r Q $$ []
   · iunfold v3rpc.compactOk
@@ -2773,7 +2773,7 @@ theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        putAuOk api addr γr.kv (.put (putKeyOp key val)) Q ∗ mvcc.idxCert E.γ.idx F }}
+        putAuOk api addr γr.kv (.put (putKeyOp key val)) Q ∗ srvApi.kvLogLb E.γs F }}
       (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -2784,7 +2784,7 @@ theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv
   iunfold putAuOk at Hau
   icases Hau with #Hau
   iunfold kvRegs at Hrpc
-  ihave #Hfs := srvsAt_sep addr E γr cid mid (mvcc.idxCert E.γ.idx F)
+  ihave #Hfs := srvsAt_sep addr E γr cid mid (srvApi.kvLogLb E.γs F)
     (fun x : SrvAt GF => mvcc.idxCert x.E.γ.idx F) (fun _ _ => .rfl) $$ HF
   ihave #Hus := srvsAt_box addr E γr cid mid (kvOpAu1 γr.kv (.put (putKeyOp key val)) Q)
     (fun x : SrvAt GF => kvOpAu1 x.γr.kv (.put (putKeyOp key val)) Q) (fun _ _ => .rfl) $$ Hau
@@ -2825,7 +2825,7 @@ theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AE
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗ committedAtLeast γr c ∗
         (⌜Q = fun _ => iprop(True)⌝ ∨
           (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) ∗
-        mvcc.idxCert E.γ.idx F }}
+        srvApi.kvLogLb E.γs F }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
@@ -2834,7 +2834,7 @@ theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AE
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, Hopts, HR, Hsn, %Hg, #Hc0, #Hdq, #HF⟩ HΦ
   iunfold kvRegs at Hrpc
-  ihave #Hfs := srvsAt_sep addr E γr cid mid iprop(committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F)
+  ihave #Hfs := srvsAt_sep addr E γr cid mid iprop(committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F)
     (fun x : SrvAt GF => iprop(committedAtLeast x.γr c ∗ mvcc.idxCert x.E.γ.idx F))
     (fun _ _ => .rfl) $$ []
   · iframe #
@@ -2879,7 +2879,7 @@ theorem client_get_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
-        (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu γr.kv Q) ∗ mvcc.idxCert E.γ.idx F }}
+        (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu γr.kv Q) ∗ srvApi.kvLogLb E.γs F }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -2928,7 +2928,7 @@ theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.A
     (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
-        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ mvcc.idxCert E.γ.idx F ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ srvApi.kvLogLb E.γs F ∗
         putAuOk api addr γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
@@ -2940,7 +2940,7 @@ theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.A
   iunfold putAuOk at Hau
   icases Hau with #Hau
   iunfold kvRegs at Hrpc
-  ihave #Hfs := srvsAt_sep addr E γr cid mid (mvcc.idxCert E.γ.idx F)
+  ihave #Hfs := srvsAt_sep addr E γr cid mid (srvApi.kvLogLb E.γs F)
     (fun x : SrvAt GF => mvcc.idxCert x.E.γ.idx F) (fun _ _ => .rfl) $$ HF
   ihave #Hus := srvsAt_box addr E γr cid mid
     (kvOpAu1 γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q)
@@ -2984,7 +2984,7 @@ theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv 
     (hin : txnModelIn (txnWireOf b.model)) (hsz : txnSizeOk (txnWireOf b.model)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
-        committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F ∗
+        committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
           -- (2026-10-20, linkv-txn stage B2) a linearizable read-only one's read update
           (⌜txn.txnReadonly (txnWireOf b.model) = true ∧
@@ -3010,7 +3010,7 @@ theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv 
       iframe Hau
       ipureintro; exact H
   iunfold kvRegs at Hrpc
-  ihave #Hfs := srvsAt_sep addr E γr cid mid iprop(committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F)
+  ihave #Hfs := srvsAt_sep addr E γr cid mid iprop(committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F)
     (fun x : SrvAt GF => iprop(committedAtLeast x.γr c ∗ mvcc.idxCert x.E.γ.idx F))
     (fun _ _ => .rfl) $$ []
   · iframe #
