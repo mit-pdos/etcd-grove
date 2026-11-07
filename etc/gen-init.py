@@ -2044,7 +2044,16 @@ def exec_order(p):
             items.append(('store', m.group(4)))
         else:
             # a `func init()`, `init.<k>` (as gc names them): unfolded if translated or trusted
-            kind = 'initfn' if f'FuncUnfold {m.group(5)} [] ' in t else 'opaqueinitfn'
+            # (a trusted one's `FuncUnfold` is an `Assumptions` field, in the package's index file when
+            # the translation is in chunks)
+            # (2026-11-07; only a trusted one: a translated one in chunks keeps its axiom, as before)
+            idx = re.sub(r'/chunk\d+\.lean$', '.lean', d['file'])
+            tg = ''
+            if idx != d['file'] and os.path.exists(idx):
+                chunks = ''.join(open(g).read() for g in glob.glob(idx[:-len('.lean')] + '/chunk*.lean'))
+                if f'def {m.group(5)}.impl ' not in chunks:
+                    tg = open(idx).read()
+            kind = 'initfn' if f'FuncUnfold {m.group(5)} [] ' in t + tg else 'opaqueinitfn'
             items.append((kind, m.group(5)))
     items.reverse()
     return items
