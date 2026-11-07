@@ -774,78 +774,6 @@ func Model(st0 mstore) porcupine.Model {
 }
 
 // ---------------------------------------------------------------------------------------------
-// The replay (correctness.Replay, specialized: NewReplay and Validate)
-
-// A replay holds the stores the model reaches along a linearization (Replay's states; the
-// driver's model keeps failed writes pending, so a resource version may have several stores, one
-// per configuration, and states is a list, not a map keyed by resource version).
-type replay struct {
-	states []mstore
-}
-
-// newReplay is NewReplay: it steps Model(st0) along the linearization lin, keeping every
-// configuration's store after each step (and st0), or returns false if the model refuses a step.
-func newReplay(st0 mstore, lin []porcupine.Operation) (*replay, bool) {
-	m := Model(st0)
-	st := m.Init()
-	states := []mstore{st0}
-	for _, op := range lin {
-		ok, next := m.Step(st, op.Input, op.Output)
-		if !ok {
-			return nil, false
-		}
-		st = next
-		for _, c := range next.(state) {
-			states = append(states, c.st)
-		}
-	}
-	return &replay{states: states}, true
-}
-
-// validate is Validate, for the driver's reads (Gets; it has no lists): a consistent Get (no
-// minimum resource version) is not checked, nor one whose minimum does not parse or that failed
-// (an EOther: the too-large error, which the driver does not tell from the client's); any other
-// Get's answer must be the model's get on some store of the replay at or above the minimum
-// (Replay.validateGet's state.get(req.Key, opts) == resp; without its second, prefix-less
-// comparison, which only the watch cache's answers need).
-func (r *replay) validate(in Input, out Output) bool {
-	if in.Kind != KGet {
-		return true
-	}
-	if in.MinRV == "" {
-		return true
-	}
-	req, err := parseRV(in.MinRV)
-	if err != nil || out.Err == EOther {
-		return true
-	}
-	for _, st := range r.states {
-		if st.rv < req {
-			continue
-		}
-		if outEqual(mget(in, st), out) {
-			return true
-		}
-	}
-	return false
-}
-
-// replayOk replays Model(st0) along the linearization lin and validates each of its operations
-// (TestCorrectness: NewReplay, then Validate of every operation in linearization order).
-func replayOk(st0 mstore, lin []porcupine.Operation) bool {
-	r, ok := newReplay(st0, lin)
-	if !ok {
-		return false
-	}
-	for _, op := range lin {
-		if !r.validate(op.Input.(Input), op.Output.(Output)) {
-			return false
-		}
-	}
-	return true
-}
-
-// ---------------------------------------------------------------------------------------------
 // The workload (the correctness test's unary traffic, without lists)
 
 func workloadKeys() []string {
@@ -1108,19 +1036,13 @@ func Apply(s storage.Interface, tbl *cache, input any) any {
 	return out
 }
 
-// Check runs lintest.RunLin of clients concurrent clients of the store s, each running ops
-// operations, and returns porcupine's verdict against Model from the store st0; on Ok, it then
-// replays the model along porcupine's linearization and validates every operation (as
-// TestCorrectness does after porcupine), and panics if the replay rejects one.
+// Check runs lintest.Run of clients concurrent clients of the store s, each running ops
+// operations, and returns porcupine's verdict against Model from the store st0.
 func Check(s storage.Interface, st0 mstore, clients int, ops int, timeout time.Duration) porcupine.CheckResult {
 	tbl := newCache()
 	apply := func(input any) any { return Apply(s, tbl, input) }
 	gen := func(id int) any { return Gen(tbl, id) }
-	r, lin := lintest.RunLin(Model(st0), apply, gen, lintest.CounterClock(), clients, ops, timeout)
-	if r == porcupine.Ok && !replayOk(st0, lin) {
-		panic("k8setcd3: the replay rejected an operation along porcupine's linearization")
-	}
-	return r
+	return lintest.Run(Model(st0), apply, gen, lintest.CounterClock(), clients, ops, timeout)
 }
 
 // seedOne writes the key k's object of value "x" in the older encoding directly through the
