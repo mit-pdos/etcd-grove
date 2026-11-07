@@ -66,7 +66,7 @@ abbrev adminEntryOn.spec : Prop :=
           (auth.latestResC stl (.on γa) T) ∗
         waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
         apply.bkToks v3 E Pre Q Post ∗ Pre ∗
-        apply.applyKV E ua x ∗ threadTok ∗
+        apply.applyKV E ua x ∗ apply.applyTok E ∗
         ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.adminKindOk rq ∧
           apply.dispatchOk E.authOn rq ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
         ⌜x.chain = apply.baseChain E.authOn⌝ ∗
@@ -76,7 +76,7 @@ abbrev adminEntryOn.spec : Prop :=
         roLendsAuthBe E.RO stl bel ∗ E.RO rs ∗ ⧗ 1 ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True)) }}
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
         (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
-    {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ threadTok ∗ apply.bkRTOf E ∗
+    {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ apply.applyTok E ∗ apply.bkRTOf E ∗
         (if v3 then iprop(Post ∨ Pre) else Pre) ∗
         apply.resultErrOk ar ∗ apply.resTrace ar ∗ ⌜id' = id⌝ ∗
         ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗

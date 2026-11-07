@@ -36,7 +36,7 @@ with auth off, now `specBatchOff`, and `specOn` with auth on, both `ModeSpecs.le
 `specBatchOff`'s contract (see there) with the server's view, the applier row and the model in the
 component (`isServerC`, `srvApplyKVC` at the model's auth state `sa`, `kvAppliedM C.isOn`), the
 entries' shapes in the mode (`logShapeM`), the lessor finding no lease with auth on (`acLessor`), the
-rights to issue tokens at the consistent index (`acTok`) and the receipts' bound (`acReceiptOk`). -/
+rights to issue tokens at the consistent index (`acTok`) and the receipts' bound. -/
 abbrev EtcdServer.applyAll.specBatch : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
@@ -80,7 +80,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVC C s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗
+      srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVC C s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗
       appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗
       kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
       dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A ∗
@@ -112,7 +112,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
+        srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E'.γ 1 ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
         srvWTTaken γp.cnt (w + (unapplied ai ms).length) ∗
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVC C s E' ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
@@ -184,7 +184,7 @@ abbrev EtcdServer.applyAll.specSnap : Prop :=
       -- the apply thread's resources, as `spec`'s
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
+      ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReaderAt s E.γbe ∗
       srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
       srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
       srvApRes s γr A ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
@@ -214,7 +214,7 @@ abbrev EtcdServer.applyAll.specSnap : Prop :=
         epConfState ep cs' ∗ epCsAt ρ.raft A' cs' ∗
         srvSnapState s ep mst γs sv.Metadata'.Index' (W64 0) ∗ applyThread γ' st' ∗
         applyBackend γ' ci b' ∗ ciApplying ci a t ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
+        srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E'.γ 1 ∗ srvBemuReaderAt s E.γbe ∗
         srvAppliedOwn γr sv.Metadata'.Index' ∗ appliedAtLeast γr sv.Metadata'.Index' ∗
         srvWTTaken γp.cnt w ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E' ρ.wait x' ∗
@@ -278,7 +278,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       -- the apply thread's resources, as `spec`'s
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
+      ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReaderAt s E.γbe ∗
       srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
       srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
       srvApRes s γr A ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
@@ -310,7 +310,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
         epConfState ep cs' ∗ epCsAt ρ.raft A' cs' ∗
         srvSnapState s ep mst γs sv.Metadata'.Index' (W64 0) ∗ applyThread γ' st' ∗
         applyBackend γ' ci b' ∗ ciApplying ci a t ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
+        srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E'.γ 1 ∗ srvBemuReaderAt s E.γbe ∗
         srvAppliedOwn γr sv.Metadata'.Index' ∗ appliedAtLeast γr sv.Metadata'.Index' ∗
         srvWTTaken γp.cnt w ∗
         (∃ x' : apply.ApplyKV, srvApplyKVM E.authOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗

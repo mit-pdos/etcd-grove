@@ -11,8 +11,9 @@ postcondition (`v3rpc/ServeFromStart.lean`). Lean-first (no Rocq counterpart).
   read-only.
 * `srvServeBuilt s E cfg K`: those, the KV field as the watchable store `NewServer` built
   (`isWatchableStore`), a reader slot of `bemu` (`v3rpc.Server`'s), and `K` reader slots each of `leadTimeMu`, `lgMu`,
-  the auth store (`E.RD`) (and until strict M1 the store's, `mvcc.storeReader`: a reader of the
-  API's store holds the thread's token instead), which `NewServer`'s proof dropped
+  the auth store (`E.RD`) and the store's reader tokens (`mvccReaders E.γ 1` each, one per request
+  slot, what its reads of the store borrow; R6, 2026-11-07, the `lean` merge: `lean`'s
+  `mvcc.storeReader`s, which strict M1 had dropped), which `NewServer`'s proof dropped
   until D19g, and of `bemu` (the quota checks', which read the current backend: D22g (A)).
   (Until J8a-3, 2026-11-01, also the progress interval's field, owned: `NewWatchServer` wrote it;
   the fork's `NewWatchServer` keeps the adjusted interval local, and the field is read-only in
@@ -131,7 +132,8 @@ def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3
     ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate K (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate K (), srvBemuReader s))
+    ([∗list] _x ∈ List.replicate K (), srvBemuReader s) ∗
+    ([∗list] _x ∈ List.replicate K (), mvcc.api.mvccReaders E.γ 1))
 
 end defs
 

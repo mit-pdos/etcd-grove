@@ -127,14 +127,20 @@ def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
 compaction mode at records of the committed log's compaction revision. **Open, the restart path's
 (RESTART-RCPT, `notes/image-cmp-plan.md`):** in compaction mode a restart restores the image, whose
 `restoreRcptM` needs the image's KV log's receipt `⧖ (logCh (kvModel ρ.rd.kv A))`, which `dbImage`
-carries and this predicate does not yet.) -/
+carries and this predicate does not yet.) (R6, 2026-11-07, the `lean` merge: the backend's part
+over mvcc's API, as `dbImage`'s since strict M1: the server's parts `imageRestAt`, the state reachable
+and short `imageStOk`, and mvcc's `mvccImage` of the KV model's history at its compaction revision
+(the receipt inside), in place of `imageAt`'s key image `keyImageM` and `IdxWf`, mvcc's internals;
+which also settles RESTART-RCPT's receipt.) -/
 def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
   iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
       (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
     nodeVacant γ.cl id ∗ raftState γ.cl id S ∗
     ⌜ρ.rd.raft.raft = γ ∧ ρ.rd.kv.c0 = W64 0⌝ ∗ srvRLogLb ρ.rd.raft A ∗
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
-      imageAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) A D⌝ ∗
+      imageRestAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) D ∧
+      imageStOk (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A)⌝ ∗
+    (∃ u : Bool, mvcc.api.mvccImage D (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A) u) ∗
     ⌜γ.cl.bootLen ≤ uint.nat i⌝ ∗
     confAt γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
     -- (R2d review F7, 2026-11-06; DRAFT) the WAL's slot: `StorageHolds S σ`, `σ.b ≤ i ≤ σ.commit`
@@ -555,13 +561,14 @@ and client URLs may differ, `publishV3`, `server.go:1828`, updating them once a 
 started). As a first start's, the contract may always return an error, after which `restart3`
 does nothing more: it does not promise the restart succeeds (R2c review, second tier 6).
 (#7-cmp's Freeze: `imageAt` by the mode, in place; the compaction-mode receipt, RESTART-RCPT, as
-`srvDiskImage`'s.) -/
+`srvDiskImage`'s.) (R6, 2026-11-07: the image as `srvDiskImage`'s, over mvcc's API: the store's part,
+`mvccImage` at some image names `γk` and log `A`, with the server's parts; until then `imageAt`
+inside the pure premise.) -/
 def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) : IProp GF :=
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
       (M : GMap Loc MemStorNamesRec),
-    ⌜(∃ (γk : KVNames) (A : List EntryModel), γk.c0 = W64 0 ∧ imageAt γk γ.boot i L A D) ∧
-      σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i ∧
+    ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i ∧
       bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = (go!"" : GoString) ∧
       -- (2026-11-03, the final whole-`bootOk` review's M1) bbolt opens the backend file (else
       -- `newBackend`'s `lg.Panic`)
@@ -569,6 +576,9 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
       N + 7 + bootWB ≤ backend.wbInit ∧
       (∀ f, ((restModel (W64 0) γ.boot L).mem.lookup f).map apply.MemberM.peerURLs =
         ((memBoot γ.boot).lookup f).map apply.MemberM.peerURLs)⌝ -∗
+    (∃ (γk : KVNames) (A : List EntryModel) (u : Bool),
+      ⌜γk.c0 = W64 0 ∧ imageRestAt γk γ.boot i L D ∧ imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗
+      mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
     {{ bootCfgRO cfg U ∗ memStorRegAuth M ∗
         srvFiles cfg.DataDir' id σ D ∗ backend.pathOwn (config.backendPathOf cfg.DataDir') }}
       (App (Val (@! bootstrap)) (Val #cfg))

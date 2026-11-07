@@ -104,7 +104,7 @@ theorem srvKVInvsM_lg (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames
   · iintro -; ipureintro; intro h; cases h
   · unfold srvKVInvsM srvKVInvsOn
     iintro ⟨⟨-, -, -, -, -, -, %h⟩, -⟩
-    ipureintro; intro _; exact h.2
+    ipureintro; intro _; exact h.2.2
 
 end kvLeases
 

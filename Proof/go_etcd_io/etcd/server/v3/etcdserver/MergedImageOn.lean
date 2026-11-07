@@ -53,13 +53,14 @@ buckets at `sa` (the lent part's), of a server with auth on and the KV's start v
 buckets but the auth ones the rest model's (an auth-on log grants no lease, `kvTableOf_plainOn`),
 mvcc's image of the history. (R4, 2026-11-07: over `mergedImgM` and the restated `dbImageOn`; until
 then `mergedObsM`'s key image at the store's mode, off with auth on, and the receipt. `hcr`: the
-on-mode apply thread's compaction revision is not tied to the model's by the server's invariants
-since strict M1 dropped `srvKVInvsOn`'s `E.cmp = false`; `notes/mvcc-merge/r4.md`.) -/
+on-mode apply thread's compaction revision `-1`, which its caller reads off the applier row and the
+on-mode invariants, `srvApplyKVOn_crev`; R6, 2026-11-07: until then the model's `crevOf γr.kv A`,
+which is `-1` too, `crevOf_plainOn`.) -/
 theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γa : auth.AuthNames) (ai : w64)
     (A : List EntryModel) (x : apply.ApplyKV) (sa : auth.AuthState) (D : backend.Data)
     (hM : E.authMode = .on γa) (hlen : uint.Z ai = A.length)
-    (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) (hcr : x.crev = crevOf γr.kv A) :
+    (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) (hcr : x.crev = -1) :
     mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗ ⌜authBucketsAt sa D⌝ ∗
       isServerM true s γ ci TM E ρ γr ∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ⊢
@@ -106,7 +107,7 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
   iunfold dbImageOn
   iexists A, u
   iframe HA'
-  rw [← hxl, ← hcr]
+  rw [← hxl, crevOf_plainOn γr.kv A Hpl, ← hcr]
   iframe Him
   ipureintro
   have hpre : γr.raft.pre = [] := by rw [hraft]

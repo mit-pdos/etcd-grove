@@ -304,12 +304,15 @@ revocable lessor reads (`applyAll.specSnapM`'s `γr.kv.lg = false`). (Strict M1,
 `srvKVInvs`: the tie `E.γ.cok = γr.kv.cok` and mvcc's permit invariant `crevPermIs` gone, the store
 invariant `kvStoreInvG` at the chain's witness and permit, boxed, with `envWitOk`, in their place; the
 witness tied to the mode's model, `kvNxOn`, as `srvKVInvs`' to `kvNxOff`. Merge of `lean`,
-2026-11-06: #7-on's `E.cmp = false` dropped, the API's image covering a compacting store.) -/
+2026-11-06: #7-on's `E.cmp = false` dropped, the API's image covering a compacting store; restored
+by R6, 2026-11-07, as `γr.kv.cmp = false`, `lean`'s scope restriction, dropped by accident: the
+on-mode image certificate is at `crevOf γr.kv A`, `-1`, which the apply thread's compaction
+revision meets only when the cluster never compacts, `kvCpOk`.) -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
     authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
     ⌜envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗
-    ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝ ∗ ⌜γr.kv.lg = false⌝)
+    ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝ ∗ ⌜γr.kv.cmp = false ∧ γr.kv.lg = false⌝)
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by

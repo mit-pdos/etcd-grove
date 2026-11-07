@@ -799,6 +799,62 @@ theorem srvApplyKVOn_writer [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.As
     · iexact Hrest
   · ipureintro; exact ⟨c, Hre⟩
 
+/-- **The apply thread's compaction revision, with auth on, is `-1`** (R6, 2026-11-07): its
+compaction right's quarter (`cmpOwn`'s `crOwn`) agrees with the store invariant's, whose permit
+`kvCpOk` is `-1` in a cluster that never compacts, `srvKVInvsOn`'s `γr.kv.cmp = false`. -/
+theorem srvApplyKVOn_crev (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState)
+    (γw : GName) (x : apply.ApplyKV) (st : auth.AuthState) :
+    srvKVInvsOn E γr st₀ ⊢ srvApplyKVOn s E γw x st ={⊤}=∗ srvApplyKVOn s E γw x st ∗
+      ⌜x.crev = -1⌝ := by
+  iintro #Hk H
+  iunfold srvKVInvsOn at Hk
+  icases Hk with ⟨-, -, -, -, #Hs, %Hwit, -, %Hcl⟩
+  obtain ⟨-, hCp⟩ := Hwit
+  iunfold srvApplyKVOn at H
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hrest⟩
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hp', Ho, Hk, Hc⟩
+  iunfold apply.cmpOwn at Hc
+  icases Hc with ⟨Hop, Hcr⟩
+  iunfold srvApi.crOwn at Hcr
+  iunfold srvApi.kvStoreInvG at Hs
+  icases Hs with ⟨-, #Hinv⟩
+  rw [hCp]
+  iinv Hinv with ⟨%σ, Hm, Hst, >Hcrσ, Hsl, Hnl, Hnx1, Hnx2, Hrc, HCp⟩ Hclose
+  iunfold kvCpOk at HCp
+  icases HCp with ⟨HA, >%Hcf⟩
+  icombine Hcrσ Hcr gives %Heq
+  ihave Hcr : srvApi.crOwn E.γs x.crev $$ [Hcr]
+  · iunfold srvApi.crOwn; iexact Hcr
+  imod Hclose $$ [Hm Hst Hcrσ Hsl Hnl Hnx1 Hnx2 Hrc HA] with -
+  · inext
+    iexists σ
+    iframe Hm Hst Hcrσ Hsl Hnl Hnx1 Hnx2 Hrc
+    iunfold kvCpOk
+    iframe HA
+    ipureintro; exact Hcf
+  imodintro
+  isplitl
+  · iunfold srvApplyKVOn
+    iexists ua
+    isplitl [Hua]
+    · iexact Hua
+    isplitr
+    · iexact Hb
+    isplitr
+    · iexact Hap
+    isplitl [Ho Hk Hop Hcr]
+    · iunfold apply.applyKV
+      iexists p
+      iframe Ho Hk
+      isplitr
+      · ipureintro; exact Hp'
+      iunfold apply.cmpOwn
+      iframe Hop Hcr
+    iexact Hrest
+  · ipureintro
+    rw [← Heq.2]; exact Hcf Hcl.1
+
 /-- `srvApplyKVOn`'s backend ownership, lent (`srvApplyKV_beOwn`'s). -/
 theorem srvApplyKVOn_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) :

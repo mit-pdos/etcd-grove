@@ -56,7 +56,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ entryWaitOk ρ E m ∗
       entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvWT E ∗
+      srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvWT E ∗
       srvFS s ∗ (if E.authOn then iprop(⧗ 1) else iprop(True)) ∗ srvAppliedOwn γr v ∗
       appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
       kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
@@ -73,7 +73,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
       srvTokRights E (ciEff γ st.k) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
+  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
       (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
         srvApplyKVM E.authOn s E ρ.wait x' sa' ∗ ⌜entryStep m v3 x x' out⌝ ∗
         entryDelivered ρ.wait m ot out ∗ srvAppliedPre γr v m.index x'.log ∗

@@ -185,7 +185,7 @@ local macro "tail_skip" : tactic => `(tactic| (
   iintro Hst
   (try wp_auto)
   iapply HΦ
-  iframe Hbe Hlr Hgr HFS HKV
+  iframe Hbe Hlr Hgr Hmr HFS HKV
   (try simp only [↓reduceIte])
   iframe Happ
   (try iframe Htok)
@@ -210,7 +210,7 @@ local macro "tail_done" : tactic => `(tactic| (
   rw [decide_eq_false (by unfold ciEff; rw [ite_eq_right hi0]; exact Int.lt_irrefl _)]
   (try wp_auto)
   iapply HΦ
-  iframe Hbe Hlr Hgr HFS HKV
+  iframe Hbe Hlr Hgr Hmr HFS HKV
   (try simp only [↓reduceIte])
   iframe Happ
   (try iframe Htok)
@@ -302,7 +302,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   intro s γ ci TM E ρ b e m st v3 x γr ot v A _hoff
-  wp_start as ⟨#Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, HFS, Hao, #HLv, #Hcm, Hka,
+  wp_start as ⟨#Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, HFS, Hao, #HLv, #Hcm, Hka,
     HRS, %Hmc, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩
   obtain ⟨Hp, Hok, Htyp⟩ := Hpo
   wp_apply wp_with_defer as %defer defer
@@ -408,7 +408,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       cases ldr
       · (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst Hlr Hgr HFS HKV
+        iframe Hbe Hst Hlr Hgr Hmr HFS HKV
       · (try wp_auto)
         wp_apply hE (srvCfgAddr s) fv.electionTicks fv.tickMs as %dur -
         · iframe Het Htm
@@ -419,7 +419,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         wp_apply HP
         (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst Hlr Hgr HFS HKV
+        iframe Hbe Hst Hlr Hgr Hmr HFS HKV
     · -- data: the applier, with nothing to write (`ApplyV2storeOnly`)
       have hdata : m.data ≠ [] := by
         intro h; apply Hif
@@ -462,6 +462,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       · iframe Hwt Hrt; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       iunfold srvGoRes at Hgr
       icases Hgr with ⟨Hwg, Htt⟩
+      ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
+      · iunfold apply.applyTok; iframe Htt Hmr
       -- MERGE-TODO(apply): `apply.Apply.spec`'s merged pre and post (this branch's tokens `Htk` and
       -- thread token `Htt`, `lean`'s lease resources `HLt HEv Hrv`, `HGf`, `Hgpq`, `U`): the order of
       -- the pattern is a guess until the apply track's merged statement builds
@@ -486,6 +488,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       have Hstep := Hstep0.1
       ihave Hrt := bkRTOf_srv E dB Hd $$ Hrt
       ihave Hbo := Hbo $$ Hpl Hrt
+      iunfold apply.applyTok at Htt
+      icases Htt with ⟨Htt, Hmr⟩
       ihave Hgr : srvGoRes s $$ [Hwg Htt]
       · iunfold srvGoRes; iframe Hwg Htt
       ihave Hrdat := Hrdb $$ Hrv
@@ -515,7 +519,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       imodintro
       wp_pures
       iapply HΦ
-      iframe Hbe Hst Hlr Hgr HFS
+      iframe Hbe Hst Hlr Hgr Hmr HFS
       iexists x', out
       iframe Hpre Hka HRS
       isplitl
@@ -718,6 +722,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
           iexact Hst
       iunfold srvGoRes at Hgr
       icases Hgr with ⟨Hwg, Htt⟩
+      ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
+      · iunfold apply.applyTok; iframe Htt Hmr
       -- MERGE-TODO(apply): `apply.Apply.spec`'s merged pattern, as in `wp_proofOff`
       wp_apply hA fv.lg e m ua fv.w true E
         iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
@@ -761,6 +767,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       imod Hj with ⟨%st1, Hst, Happ, Hbe, %hst1⟩
       ihave Hrt := bkRTOf_srv E dB Hd $$ Hrt
       ihave Hbo := Hbo $$ Hpl Hrt
+      iunfold apply.applyTok at Htt
+      icases Htt with ⟨Htt, Hmr⟩
       ihave Hgr : srvGoRes s $$ [Hwg Htt]
       · iunfold srvGoRes; iframe Hwg Htt
       imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', #Hrcx', %Hwf'⟩
@@ -937,7 +945,9 @@ local macro "hook_pre" : tactic => `(tactic| (
       · iunfold batchLockInv; iexists mm; iframe; iexact Hreg
       iexact Hst
   iunfold srvGoRes at Hgr
-  icases Hgr with ⟨Hwg, Htt⟩))
+  icases Hgr with ⟨Hwg, Htt⟩
+  ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
+  · iunfold apply.applyTok; iframe Htt Hmr))
 
 set_option hygiene false in
 /-- A replayed entry's application (`v3` false) to the postcondition: the log and the chain kept
@@ -947,6 +957,8 @@ local macro "tail_off" : tactic => `(tactic| (
   · rw [← HEo.1]; iexact HFS
   ihave Hrt := bkRTOf_srv E dB Hd $$ Hrt
   ihave Hbo := Hbo $$ Hpl Hrt
+  iunfold apply.applyTok at Htt
+  icases Htt with ⟨Htt, Hmr⟩
   ihave Hgr : srvGoRes s $$ [Hwg Htt]
   · iunfold srvGoRes; iframe Hwg Htt
   imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', #Hrcx', %Hwf'⟩
@@ -962,7 +974,7 @@ local macro "tail_off" : tactic => `(tactic| (
     (applyStep_prefix rq false x x' out Hstep) $$ Hainv Hao HLv HkL with Hpre
   imodintro
   first | iapply HΦ | (wp_pure; wp_pure; iapply HΦ)
-  iframe Hbe Hst Hlr Hgr HFS
+  iframe Hbe Hst Hlr Hgr Hmr HFS
   (try iframe Htok)
   iexists x', out, sa
   iframe Hpre Hka HRS
@@ -1039,6 +1051,8 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
   imod Hj with ⟨%st1, Hst, Happ, Hbe, %hst1⟩
   ihave Hrt := bkRTOf_srv E dB Hd $$ Hrt
   ihave Hbo := Hbo $$ Hpl Hrt
+  iunfold apply.applyTok at Htt
+  icases Htt with ⟨Htt, Hmr⟩
   ihave Hgr : srvGoRes s $$ [Hwg Htt]
   · iunfold srvGoRes; iframe Hwg Htt
   imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', #Hrcx', %Hwf'⟩
@@ -1169,7 +1183,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   intro s γ ci TM E ρ b e m st v3 x γr ot v A γa sa hM
-  wp_start as ⟨#Hsrv, #Hlnil, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, HFS, Hlc, Hao, #HLv,
+  wp_start as ⟨#Hsrv, #Hlnil, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, HFS, Hlc, Hao, #HLv,
     #Hcm, Hka, HRS, %Hmc, #HAm, %HkA, %Hvi, %Hpo, Hv3, Htok⟩
   obtain ⟨Hp, Hok, Htyp, Hrb⟩ := Hpo
   have hAuthOn : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
@@ -1265,7 +1279,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       cases ldr
       · (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst Hlr Hgr HFS HKV Htok
+        iframe Hbe Hst Hlr Hgr Hmr HFS HKV Htok
       · (try wp_auto)
         wp_apply hE (srvCfgAddr s) fv.electionTicks fv.tickMs as %dur -
         · iframe Het Htm
@@ -1276,7 +1290,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         wp_apply HP
         (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst Hlr Hgr HFS HKV Htok
+        iframe Hbe Hst Hlr Hgr Hmr HFS HKV Htok
     · -- data: the applier, with nothing to write
       have hdata : m.data ≠ [] := by
         intro h; apply Hif
@@ -1298,6 +1312,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       · iframe Hwt Hrt; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       iunfold srvGoRes at Hgr
       icases Hgr with ⟨Hwg, Htt⟩
+      ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
+      · iunfold apply.applyTok; iframe Htt Hmr
       rcases Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, -, -⟩ | ⟨hadm, hns⟩
       · -- a plain request: `apply.Apply`
         have hrq' : apply.rqOk .none x.log rq :=
@@ -1886,16 +1902,16 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     rw [hoff]
     simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
       entryOkM_false, Bool.false_eq_true, ↓reduceIte]
-    iintro %Φ ⟨#Hpkg, #Hsrv, -, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, -, Hao, Hlog,
+    iintro %Φ ⟨#Hpkg, #Hsrv, -, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, -, Hao, Hlog,
       #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, -⟩ HΦ
     iapply (h s γ ci TM E ρ b e m st v3 x γr ot v A hoff) $$
-      [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
-    · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
+      [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
+    · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
       ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1⟩
     inext
-    iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst⟩
+    iintro ⟨Hbe, Hlr, Hgr, Hmr, Hfs, ⟨%x', %out, HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst⟩
     iapply HΦ
-    iframe Hbe Hlr Hgr Hfs Hst
+    iframe Hbe Hlr Hgr Hmr Hfs Hst
     isplitl [HKV Hdel Hap Hka HRS]
     · iexists x', out, sa; iframe HKV Hdel Hap Hka HRS; ipureintro; exact Hstep
     cases v3 <;> simp only [hT, ite_true, ite_false, Bool.false_eq_true] <;> itrivial
@@ -1903,11 +1919,11 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hm]; rfl
     rw [hon]
     simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true, ↓reduceIte]
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
       #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
     iapply (hOn s γ ci TM E ρ b e m st v3 x γr ot v A γa sa hm) $$
-      [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
-    iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
+      [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
+    iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
     ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1, Hpre.2.2.2 trivial⟩
 
 end proof

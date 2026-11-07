@@ -52,7 +52,9 @@ close each of what it closes (`server.go`'s `Cleanup`; each field's `nil` check 
   `mvccClosed γ`, every reader token of the store, `mvccReaders γ mvccReaderN`, which the caller
   holds, so that no read of the store is in flight when the backend closes, and a share of the
   store's backend, as `mvccClosed_rest.law`; until then from `mvcc.wsCloseRes`, the loops' store
-  readers and the compaction job's resource, the caller retiring every other store reader):
+  readers and the compaction job's resource, the caller retiring every other store reader; R6,
+  2026-11-07: the update gives the store's backend share back, and `Cleanup` returns it, for the
+  stopped backend's image, `mvccImage_stop.law`):
   `backend.Close`, whose post `Cleanup`
   passes on (the data `D` the stop's commit left, what the
   stopped batch lock held at it, `bStopView`, and the file holding `D`, or bbolt's close error);
@@ -69,17 +71,18 @@ abbrev EtcdServer.Cleanup.spec : Prop :=
       mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage d) Pkm ∗
       srvAuthStoreAddr s ↦□ auth.authIface stl ∗ authCloser stl K ∗ K ∗
       srvBemuReaderAt s γbe ∗ srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
-      dghostVar γbe dq d ∗
+      dghostVar γbe dq (bkKey d) ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.isStopChans d.γB d.P W Pk d.be ∗
       (mvcc.api.mvccClosed γ ∗ mvcc.api.mvccReaders γ mvcc.api.mvccReaderN ∗
-        mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage d) Pkm ={⊤}=∗ backend.bOpen d.γB 1) ∗
+        mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage d) Pkm ={⊤}=∗
+        backend.bOpen d.γB 1 ∗ mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage d) Pkm) ∗
       -- (2026-11-04, R2b-3d stage 3) a request `X ⇒ Y` of the backend's stop commit
       X ∗ backend.commitReq d.γB d.P Pk d.be X Y ∗
       srvCompactorAddr s ↦□ cp ∗ compactorOk cp }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Cleanup")) (Val #()))
-  {{ RET #(); K ∗
+  {{ RET #(); K ∗ mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage d) Pkm ∗
       srvBemuReaderAt s γbe ∗ srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
-      dghostVar γbe dq d ∗ Y ∗
+      dghostVar γbe dq (bkKey d) ∗ Y ∗
       ∃ D : backend.Data, backend.bStopView d.γB d.P W Pk D ∗
         ((∃ path : GoString, backend.bFile d.γB path ∗ backend.fileHolds path D) ∨
           ⌜¬ backend.dbCloseOk⌝) }}

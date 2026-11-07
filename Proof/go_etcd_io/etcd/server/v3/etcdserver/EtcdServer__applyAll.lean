@@ -83,7 +83,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     q γn rt n
   simp only [srvRunH_applyAll_specBatch]
   wp_start as ⟨%hP, #HsrvC, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hmr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
   obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hdv, hAL, hAT, Hdisk, hciA, hcia, hγn, hpre, hnA⟩ := hP
   have hon : E.authOn = C.isOn := by rw [apply.AEnv.authOn_eq, hM, AuthC.mode_isOn]
   -- (the auth component's stage 2c) the slot's rows at the mode's
@@ -126,8 +126,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
   try simp only [srvRunH_applyEntries_spec] at hAE1
   rw [hon] at hAE1
   wp_apply hAE1
-    $$ [Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
-    as ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, #Hcv', Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
+    $$ [Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr Hmr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
+    as ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, #Hcv', Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hmr, Hao, #HWA',
       ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
   · iframe #; iframe
   iunfold srvFS at Hfs
@@ -199,7 +199,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
       iframe HsrvC Hlnil
       isplitr
       · ipureintro; exact beSucc_refl γ E
-      iframe Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
+      iframe Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hmr Hbr HAR Hrun
       isplitl [Hao]
       · iexact Hao
       isplitr
@@ -274,11 +274,16 @@ theorem EtcdServer.applyAll.wp_proofBatch
   rw [hon] at hS1
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨Hwg, Htt⟩
+  -- the apply thread's tokens (`apply.applyTok`: the goroutine's thread token and its reader token)
+  ihave Htt : apply.applyTok (GF := GF) E $$ [Htt Hmr]
+  · iunfold apply.applyTok; iframe Htt Hmr
   wp_apply hS1 hok'
       (hciL hciA) Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1 hγn hpre
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor Htt]
     as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, Htt, %Hst''⟩
   · iframe #; iframe
+  iunfold apply.applyTok at Htt
+  icases Htt with ⟨Htt, Hmr⟩
   ihave Hgr : srvGoRes s $$ [Hwg Htt]
   · iunfold srvGoRes; iframe Hwg Htt
   (try wp_auto)
@@ -290,10 +295,10 @@ theorem EtcdServer.applyAll.wp_proofBatch
   ihave Hfin : iprop(∀ stF : ApplyState, ⌜loopOk γ stF ai' ∧ ciEff γ stF.k = ciEff γ st'.k⌝ -∗
       epAppliedIAddr ep ↦ ai' -∗ epAppliedTAddr ep ↦ at' -∗ epConfStateAddr ep ↦ cs' -∗
       applyThread γ stF -∗ applyBackend γ ci b -∗ ciApplying ci a' t' -∗ srvLgReader s -∗
-      srvGoRes s -∗ srvApplyKVC C s E ρ.wait x' sa' -∗
+      srvGoRes s -∗ mvcc.api.mvccReaders E.γ 1 -∗ srvApplyKVC C s E ρ.wait x' sa' -∗
       kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' -∗
       srvRest E γr (A ++ unapplied ai ms) -∗ Φ #()) $$ [HΦ Hss Hbr HAR Hrun Hao HwalT HtokR Hso]
-  · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+  · iintro %stF %HF Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
     ihave HtokR : acTok C (ciEff γ stF.k) $$ [HtokR]
@@ -303,7 +308,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     iframe HsrvC Hlnil
     isplitr
     · ipureintro; exact beSucc_refl γ E
-    iframe Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hbr HAR Hrun
+    iframe Hai Hat Hcs Hcv' Hss Hst HtokR Hbe Happ Hlr Hgr Hmr Hbr HAR Hrun
     isplitl [Hao]
     · iexact Hao
     isplitr
@@ -404,20 +409,18 @@ theorem EtcdServer.applyAll.wp_proofBatch
               have := uint_nat_eq ai'; omega
             have hpos : 0 < uint.Z ai' := by word
             (try wp_auto)
+            -- (with auth on) the apply thread's compaction revision `-1`, for the image's certificate
+            imod srvApplyKVC_crev C s γ ci TM E ρ γr ρ.wait x' sa' $$ Hsrv HKV with ⟨HKV, %Hcr⟩
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
             icases srvApplyKVC_coreA C s E ρ.wait x' sa' $$ HKV with ⟨%ua, HKVc, HAr, HKVk⟩
             -- the component lends its buckets to the window (none off)
             ihave HL := acRes_lend C s E ua sa' hM $$ HAr
             icases Hkv with ⟨%kv, #Hkvf, #Hkvi, -⟩
-            -- the apply goroutine's token, lent to the commit
+            -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
             iunfold srvGoRes at Hgr
             icases Hgr with ⟨HgrW, HthT⟩
-            -- MERGE-TODO(window): `mergedCreate_window` (R4, 2026-11-07) takes the apply thread's
-            -- tokens `apply.applyTok E` (`threadTok` and a reader token `mvccReaders E.γ 1`, the
-            -- commit's) and gives them back; the apply goroutine's `srvGoRes` holds the thread token
-            -- alone until the apply chain's reader token reaches `applyAll`'s spec (the run track's
-            -- "receipts"). Its post's image is `mergedImgM E.authMode E.lg …`, which `merged_imageC`
-            -- (`AuthCompRows`) is to take (`merged_image` with `hM`, `merged_imageOn` with `hcr`).
+            ihave HthT : apply.applyTok (GF := GF) E $$ [HthT Hmr]
+            · iunfold apply.applyTok; iframe HthT Hmr
             imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe C.isOn
                 s γ ci TM E ρ γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE
                 (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
@@ -430,6 +433,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
             imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, HAr, #Hmimg, %Hst3⟩
             ihave HKV := HKVk $$ HKVc HAr
+            iunfold apply.applyTok at HthT
+            icases HthT with ⟨HthT, Hmr⟩
             ihave Hgr : srvGoRes s $$ [HgrW HthT]
             · iunfold srvGoRes; iframe HgrW HthT
             -- the merged message sent: of a term committed through the applied index (the batch's
@@ -459,7 +464,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             ihave Hmi : |={⊤}=> kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗
                 □ (srvNet (GF := GF) γr.raft.raft).img ai' D $$ [Hka]
             · iapply (merged_imageC C s γ ci TM E ρ γr ai' (A ++ unapplied ai ms) x' sa' D hM hlenZ
-                Hkv0)
+                Hkv0 Hcr)
               iframe Hsrv Hka Hmimg
             imod Hmi with ⟨Hka, #Himg⟩
             imod srvMerged_bundle γr.raft.raft m rc sm γm.id c ai' at' D Hty
@@ -472,17 +477,17 @@ theorem EtcdServer.applyAll.wp_proofBatch
             (try wp_auto)
             have hF3 : loopOk γ st3 ai' ∧ ciEff γ st3.k = ciEff γ st'.k :=
               ⟨Hst3.1, by rw [Hst3.2]; exact Hst''.2⟩
-            iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+            iapply Hfin $$ %st3 %hF3 Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
           · (try wp_auto)
-            iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+            iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
         · (try wp_auto)
-          iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+          iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
       · itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial
   · -- `default`
     (try wp_auto)
-    iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+    iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr Hmr HKV Hka HRS
 
 set_option maxRecDepth 100000 in
 /-- **`applyAll.spec`** (the auth component's stage 2, 2026-11-04: in both auth modes): the batch

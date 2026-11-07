@@ -260,15 +260,15 @@ batch lock invariant, one for every backend of the epoch, `⌜E.Pk = fun _ => Pk
 def srvUberOn (s : Loc) : IProp GF :=
   iprop(□ ∀ (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface), ⌜E.authMode = .on γa⌝ →
     srvUberBase s ua E -∗
-    (srvLessorNil s -∗ ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        apply.uberKVC ua E (.quota .backend) (auth.latestRes stl (.on γa))) ∗
-    (∀ (stl bel : Loc) (T Pk : IProp GF), ⌜E.Pk = fun _ => Pk⌝ -∗
+    (∀ γc : auth.AuthBkNames, srvLessorNil s -∗ ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        apply.uberKVC ua E (.quota .backend) (auth.latestResC stl (.on γa) γc)) ∗
+    (∀ (stl bel : Loc) (T : auth.AuthBkNames) (Pk : IProp GF), ⌜E.Pk = fun _ => Pk⌝ -∗
         srvAuthStoreAddr s ↦□ auth.authIface stl -∗
         apply.isAuthStepsX (auth.authIface stl) Pk E.f (.on γa) (auth.tieRes stl (.on γa))
-          (adminW stl bel (.on γa) Pk E.f T) E.RD -∗
-        apply.uberAdmC ua E (adminW stl bel (.on γa) Pk E.f T)
+          (adminW stl bel (.on γa) Pk E.f (auth.authWTok T)) E.RD -∗
+        apply.uberAdmC ua E (adminWC stl bel γa Pk E.f T)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-          (auth.latestRes stl (.on γa))))
+          (auth.latestResC stl (.on γa) T)))
 
 instance srvUberOn_persistent (s : Loc) : Persistent (srvUberOn (GF := GF) s) := by
   unfold srvUberOn; infer_instance
@@ -302,25 +302,26 @@ theorem srvKVInvsM_uberOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 /-- **The row's KV contract** at an uber-applier of the server (`srvUberBase`), given that the
 lessor finds no lease. -/
 theorem srvUberOn_kv (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
-    (hM : E.authMode = .on γa) :
+    (hM : E.authMode = .on γa) (γc : auth.AuthBkNames) :
     srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvLessorNil s ⊢
       ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        apply.uberKVC ua E (.quota .backend) (auth.latestRes stl (.on γa)) := by
+        apply.uberKVC ua E (.quota .backend) (auth.latestResC stl (.on γa) γc) := by
   iintro ⟨#H, #Hb, #Hln⟩
   iunfold srvUberOn at H
   ihave ⟨#Hkv, -⟩ := H $$ %E %γa %ua %hM Hb
-  iapply Hkv $$ Hln
+  iapply Hkv $$ %γc Hln
 
 /-- **The row's admin contract** at an uber-applier of the server (`srvUberBase`), at an admin
 row's store, backend and write token. -/
 theorem srvUberOn_adm (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
-    (stl bel : Loc) (T Pk : IProp GF) (hM : E.authMode = .on γa) (hPk : E.Pk = fun _ => Pk) :
+    (stl bel : Loc) (T : auth.AuthBkNames) (Pk : IProp GF) (hM : E.authMode = .on γa)
+    (hPk : E.Pk = fun _ => Pk) :
     srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗
       apply.isAuthStepsX (auth.authIface stl) Pk E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) Pk E.f T) E.RD ⊢
-      apply.uberAdmC ua E (adminW stl bel (.on γa) Pk E.f T)
+        (adminW stl bel (.on γa) Pk E.f (auth.authWTok T)) E.RD ⊢
+      apply.uberAdmC ua E (adminWC stl bel γa Pk E.f T)
         (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-        (auth.latestRes stl (.on γa)) := by
+        (auth.latestResC stl (.on γa) T) := by
   iintro ⟨#H, #Hb, #Hf, #Hsteps⟩
   iunfold srvUberOn at H
   ihave ⟨-, #Had⟩ := H $$ %E %γa %ua %hM Hb

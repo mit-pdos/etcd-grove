@@ -55,7 +55,7 @@ theorem EtcdServer.Cleanup.wp_proof
   (try wp_auto)
   wp_apply (hClose γ) $$ [$Hmo] as Hcl
   · iframe #
-  imod Hopen $$ [Hcl Hrds Hmb] with Hopen
+  imod Hopen $$ [Hcl Hrds Hmb] with ⟨Hopen, Hmb⟩
   · iframe Hcl Hrds Hmb
   (try wp_auto)
   -- `s.authStore.Close()`
@@ -86,7 +86,7 @@ theorem EtcdServer.Cleanup.wp_proof
     (try wp_auto)
     iapply HΦ
     iunfold srvBemuReaderAt
-    iframe Htpa Hbr Hbe Hγbe
+    iframe Htpa Hmb Hbr Hbe Hγbe
     isplitl [HY]
     · iexact HY
     iexists D
@@ -106,7 +106,7 @@ theorem EtcdServer.Cleanup.wp_proof
   (try wp_auto)
   iapply HΦ
   iunfold srvBemuReaderAt
-  iframe Htpa Hbr Hbe Hγbe
+  iframe Htpa Hmb Hbr Hbe Hγbe
   isplitl [HY]
   · iexact HY
   iexists D
