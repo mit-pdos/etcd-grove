@@ -32,7 +32,6 @@ axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txDB
 axiom backend.txLive
-axiom context.ErrAny.wp_proof
 axiom context.ValueKeepAlive.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelTodo.wp_proof

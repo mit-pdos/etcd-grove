@@ -386,8 +386,6 @@ axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
-axiom context.Err.wp_proof
-axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof

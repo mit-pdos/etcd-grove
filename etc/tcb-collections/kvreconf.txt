@@ -10,7 +10,6 @@ axiom Perennial.os.opaqueInitsOk
 axiom Perennial.syscall.initFuncsOk
 axiom Perennial.syscall.opaqueInitsOk
 axiom ccDecodeV2_nil
-axiom context.ErrAny.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom initLb_of_spec
 axiom proto.CloneConfState.wp_proof
