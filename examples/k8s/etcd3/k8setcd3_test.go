@@ -94,6 +94,14 @@ func inChild(t *testing.T, test string, sub string, body func(t *testing.T)) {
 	if err != nil {
 		t.Fatalf("%s: the child failed: %v", run, err)
 	}
+	// a child that ran no test (a mistyped name) also exits 0
+	name := test
+	if sub != "" {
+		name += "/" + sub
+	}
+	if !strings.Contains(string(out), "--- PASS: "+name+" ") {
+		t.Fatalf("%s: the child did not report --- PASS: %s", run, name)
+	}
 }
 
 // TestMemberIDs checks clusterConfig's member ids, as etcd computes them from the names, peer URLs

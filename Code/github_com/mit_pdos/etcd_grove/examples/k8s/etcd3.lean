@@ -5072,8 +5072,8 @@ noncomputable def MainCluster.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MainPartition is MainCluster under the partition schedule sched: once the store is made, the
     schedule runs (cluster3.Partitioner, on a goroutine of its own) while Check's clients run. A call
     to a member cut off from its clients ends when keepalive closes its dead transport (etcdstart's
-    KeepAliveTime/KeepAliveTimeout); a read is then retried on another endpoint, a write fails, and
-    the model keeps it pending (it takes effect later or never).
+    KeepAliveTime/KeepAliveTimeout); a write that fails is kept pending by the model (it takes
+    effect later or never).
 
     go: k8setcd3.go:1173:6 -/
 noncomputable def MainPartition.impl [GooseExts] [GoGlobalContext] : val :=

@@ -44,6 +44,10 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
 **Vacuous for now (2026-11-07).** Every `_safe` theorem here, `k8s_etcd3_partition_safe` included,
 rests on `pbEnc_ok`, which proves `False` (lean `cffe36ea9d`, `notes/pbenc-ok-inconsistent.md`), and
 on grpc's refuted `ProtoMsg` axioms: until etcd-grove-c9's per-type fix lands, they hold vacuously.
+They also rest on false axioms until the axiom sweep's repairs of batch 1 land (lean `0eda5f10de`,
+`notes/axiom-review/`): `zap.Logger.{Debug,Error,Fatal,Info,Warn}`, `errors.IsCtxErr`,
+`context.ValueStartTime`, `http.Handle_ok`, and the k8s `DefaultFeatureGate` and
+`DefaultFeatureSupportChecker` initializers.
 -/
 module
 
@@ -172,7 +176,7 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
 
 /-- **The Kubernetes etcd3 store's linearizability instance over three members under any partition
 schedule is safe, in the operational semantics** (`k8s_etcd3_partition_adequate`, see the file
-header and `Adequacy.lean`; vacuous until the `pbEnc_ok` fix lands, see the file header). -/
+header and `Adequacy.lean`; vacuous until the `pbEnc_ok` fix lands, and resting on false axioms until the sweep's batch-1 repairs land: see the file header). -/
 theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]

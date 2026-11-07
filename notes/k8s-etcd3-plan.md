@@ -1437,10 +1437,17 @@ Tests:
   member in turn), `blackhole` (member 0 for 10s), `drop` and `mixed` (one K6-like round).
 - `TestPartitionFailures` counts the failed writes and the leader changes.
 
-Runs: 25 of 25 Ok under a 32G cap.
-- The election schedule had 2-3 distinct leaders in every run.
-- 0-4 writes failed per run.
-- Peak RSS was 61-71 MiB.
+Runs, under a 32G cap:
+- `TestMainPartition`, the theorem's program, returned Ok in 25 of 25 runs (5 schedules × 5 runs),
+  with a peak RSS of 61-71 MiB.
+- The leader and failed-write counts come from 25 separate runs of the diagnostic
+  `TestPartitionFailures`:
+  - the election schedule had 2-3 distinct leaders in every run;
+  - 0-4 writes failed per run.
+- `inChild` requires the child's `--- PASS` line, so a child that ran no test fails.
+
+**Not verified.** An earlier doc comment on `MainPartition` said that a read is then retried on
+another endpoint. Nothing verified that claim, and the comment no longer says it.
 
 **Statements.** These are new; nothing on lean changes.
 - `MainPartition.spec` is `MainCluster.spec` with `sched ↦*□ steps` added.
@@ -1456,7 +1463,11 @@ Runs: 25 of 25 Ok under a 32G cap.
 
 **Trust.** No new axiom or `sorry` in the baseline. The `k8setcd3` collection gains the three bridge
 axioms `bridge.bridge.{Blackhole,Unblackhole,DropConnections}.wp_proof`. Like every `_safe` theorem
-here, the result is vacuous until `pbEnc_ok`'s per-type fix lands (`notes/pbenc-ok-inconsistent.md`).
+here:
+- the result is vacuous until `pbEnc_ok`'s per-type fix lands (`notes/pbenc-ok-inconsistent.md`);
+- it rests on false axioms until sweep repairs 1 land: `zap.Logger.{Debug,Error,Fatal,Info,Warn}`,
+  `errors.IsCtxErr`, `context.ValueStartTime`, `http.Handle_ok`, and the k8s
+  `DefaultFeatureGate`/`DefaultFeatureSupportChecker` initializers.
 
 ## What blocks where
 

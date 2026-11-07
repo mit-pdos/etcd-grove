@@ -1168,8 +1168,8 @@ func MainCluster(clients int, ops int) porcupine.CheckResult {
 // MainPartition is MainCluster under the partition schedule sched: once the store is made, the
 // schedule runs (cluster3.Partitioner, on a goroutine of its own) while Check's clients run. A call
 // to a member cut off from its clients ends when keepalive closes its dead transport (etcdstart's
-// KeepAliveTime/KeepAliveTimeout); a read is then retried on another endpoint, a write fails, and
-// the model keeps it pending (it takes effect later or never).
+// KeepAliveTime/KeepAliveTimeout); a write that fails is kept pending by the model (it takes
+// effect later or never).
 func MainPartition(clients int, ops int, sched []cluster3.Step) porcupine.CheckResult {
 	lg := zap.NewNop()
 	cfg := clusterConfig()
