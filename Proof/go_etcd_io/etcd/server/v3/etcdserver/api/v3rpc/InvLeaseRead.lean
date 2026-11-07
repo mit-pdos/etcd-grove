@@ -15,7 +15,7 @@ and the handler's `fill` after it), both given back, at any context and lower bo
 store's published index) and `m` (the lessor's history `γl`); their answers are the server's
 (`ttlAns`, `leasesAns`): on success the response with the key check's verdict, on an error an
 `applyErrIs` error. The server meets it with `S := E.RD ∗ threadTok` and
-`R := threadTok ∗ mvcc.api.mvccReaders E.γ 1`.
+`R := mvcc.api.mvccReaders E.γ 1`.
 
 **The handlers' answers** (`leaseTTLOut`, `leaseLeasesOut`): the server's response with its header
 filled (`leaseHdrDone`, `leasesHdrDone`) and the server's verdicts carried through; on the

@@ -56,9 +56,9 @@ abbrev v3rpc.watchServer.Watch.spec : Prop :=
       v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) γs [] ∗
       v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
       v3rpc.streamAuxTok γs ∗ R.E.RD ∗ ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
-      threadTok ∗ mvcc.api.mvccReaders W.γm 2 }}
+      mvcc.api.mvccReaders W.γm 2 }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.watchServer.ty @!! go!"Watch")) (Val #st))
-  {{ (err : GoInterface), RET #err; threadTok ∗
+  {{ (err : GoInterface), RET #err;
       v3rpc.watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn }}
 
 end spec

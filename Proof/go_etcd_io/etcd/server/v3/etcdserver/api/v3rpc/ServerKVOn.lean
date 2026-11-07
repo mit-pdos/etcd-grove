@@ -231,7 +231,7 @@ def srvKVAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (
     | .range _ => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e))
-  revR := iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+  revR := mvcc.api.mvccReaders E.γ 1
 
 /-- **A write's update in the auth mode `on`** (`kvOpAuOn`'s, the auth component's stage 4): fired at
 most once, at a lower bound `L₀` of the requested log the caller holds, told the write's grant
@@ -339,7 +339,7 @@ def srvKVAnsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
     | .range _ => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e))
-  revR := iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+  revR := mvcc.api.mvccReaders E.γ 1
 
 /-- A deposit is a read deposit at the mode's model state (`kvDep`'s form). -/
 theorem kvDep_of_depM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
@@ -493,7 +493,7 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact ⟨trivial, Hrn⟩
     iexists h, W64 (x.log.length : Int)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h (W64 (x.log.length : Int)) iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h (W64 (x.log.length : Int)) (mvcc.api.mvccReaders E.γ 1)
       (w64_rev_ne_zero _ (by omega) Hlen.2) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
@@ -581,7 +581,7 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     isplitr
     · ipureintro; exact ⟨trivial, Hrn⟩
     iexists h, W64 ((mvcc.writeRev x.log (txn.delChanges (mvcc.stateAfter x.log) op') : Nat) : Int)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.api.mvccReaders E.γ 1)
       (writeRev_ne_zero _ _ Hlen.1 Hlen.2) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
@@ -665,7 +665,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     isplitr
     · ipureintro; exact ⟨rfl, Hrn⟩
     iexists h, W64 ((log.length : Int) - 1)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.api.mvccReaders E.γ 1)
       (w64_last_ne_zero log Hlen.2.1 Hlen.2.2.1) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
@@ -758,7 +758,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       · ipureintro; exact ⟨by first | rfl | trivial, Hrn⟩
       iexists h, W64 (mvcc.writeRev x.log
         (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 : Int)
-      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.api.mvccReaders E.γ 1)
         (writeRev_ne_zero _ _ Hlen.1 Hlen.2) $$ [$Hown]
       · iframe #; ipureintro; exact Hhn
       iframe Hhf2 Hw Hri
@@ -827,7 +827,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨rfl, Hrn⟩
       iexists h, W64 ((log.length : Int) - 1)
-      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
+      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.api.mvccReaders E.γ 1)
         (w64_last_ne_zero log Hlen.2.1 Hlen.2.2.1) $$ [$Hown]
       · iframe #; ipureintro; exact Hhn
       iframe Hhf2 Hw Hri
@@ -914,12 +914,12 @@ theorem kvGetOk_of_serverM (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     iexists ⟨kty, kvv⟩
     isplitr
     · ipureintro; exact Hkveq
-    iintro !> %Φ' ⟨Htt, Hrdr⟩ HΦ'
+    iintro !> %Φ' Hrdr HΦ'
     ihave Hau := srvApi.au_read E.Nx E.Cp hP hR E.kv E.γ E.γs log₀ $$ Hks Hl0
     iunfold srvApi.auRead at Hau
-    wp_apply (hRevC E.γ _) $$ [$Hkv' $Htt $Hrdr $Hau] as %rv ⟨Htt, Hrdr, -⟩
+    wp_apply (hRevC E.γ _) $$ [$Hkv' $Hrdr $Hau] as %rv ⟨Hrdr, -⟩
     iapply HΦ'
-    iframe
+    iexact Hrdr
   isplitr
   · iintro !> %Φ - HΦ
     wp_apply hCl s v.cluster $$ []

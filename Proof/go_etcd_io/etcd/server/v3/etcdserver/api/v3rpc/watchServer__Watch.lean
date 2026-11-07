@@ -35,10 +35,10 @@ set_option hygiene false in
 /-- `Watch`'s end, after the `select`: `sws.close()`, then `return err`. -/
 local macro "watch_tail" : tactic => `(tactic| (
   wp_apply hClose sws_ptr r Up Dn _ ci cd (W32 0 + W32 1) iprop(True ∗ True)
-    $$ [Hcl Htt Hcc Hadd] as Htt
+    $$ [Hcl Hcc Hadd]
   · iframe #; iframe
   iapply HΦ
-  iframe Htt Hspec))
+  iframe Hspec))
 
 set_option hygiene false in
 /-- `errors.Is(err, context.Canceled)` on a typed `err`, then the assignment of
@@ -78,7 +78,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   have : ∀ kv γ, Persistent (mvcc.api.isMvcc (GF := GF) kv γ) := hP.1
   have := v3rpc.srvWOk_persistent hP W R.wsl v3rpc.wsN
   have := v3rpc.swsIs_persistent (GF := GF) hP
-  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, HRD, %Htb, Htt, Hrdr⟩
+  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, HRD, %Htb, Hrdr⟩
   ihave ⟨HrdS, HrdR⟩ : mvcc.api.mvccReaders W.γm 1 ∗ mvcc.api.mvccReaders W.γm 1 $$ [Hrdr]
   · iapply (hRS W.γm 1 1).1; iexact Hrdr
   ihave #HWS' := HWS

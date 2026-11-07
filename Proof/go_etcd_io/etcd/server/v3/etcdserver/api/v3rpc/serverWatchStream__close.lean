@@ -35,7 +35,7 @@ theorem v3rpc.serverWatchStream.close.wp_proof
     v3rpc.serverWatchStream.close.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd n P
   have := v3rpc.swsIs_persistent (GF := GF) hP
-  wp_start as ⟨#Hsws, Htok, Htt, Hcc, Hadd⟩
+  wp_start as ⟨#Hsws, Htok, Hcc, Hadd⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
@@ -51,13 +51,13 @@ theorem v3rpc.serverWatchStream.close.wp_proof
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hClose r.W.γm r.ι (fun _ => iprop(True))) $$ [$Htt $Hau] as ⟨Htt, -⟩
+  wp_apply (hClose r.W.γm r.ι (fun _ => iprop(True))) $$ [$Hau] as -
   · iframe #
   wp_apply wp_broadcast_chan_close r.cc r.γcc iprop(True) $$ [$Hcc] as -
   · iintro !>; itrivial
   wp_apply sync.join.WaitGroup.wp_Wait P n (v3rpc.swsF sws go!"wg") $$ [$Hadd] as -
   iapply HΦ
-  iexact Htt
+  itrivial
 
 end proof
 

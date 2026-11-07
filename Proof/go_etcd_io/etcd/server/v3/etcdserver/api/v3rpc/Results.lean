@@ -201,7 +201,7 @@ theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.PutResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
-              hdrRevOut iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) h rv rv' ∗ srvRdCall s E γr c ∗
+              hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗ srvRdCall s E γr c ∗
               putAppliedOk s E ρ.rd F o (opDepQ d) resp rv) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ putErrOk s E ρ F o e) }} := by
@@ -240,7 +240,7 @@ theorem deleteRange_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp ↦□ h ∗
-              hdrFilled h cid mid ∗ hdrRevOut iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
               srvRdCall s E γr c ∗ deleteAppliedOk s E ρ.rd F o (opDepQ d) resp rv) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ deleteErrOk s E ρ F o e) }} := by
@@ -283,7 +283,7 @@ theorem range_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.RangeResponse go!"Header" resp ↦□ h ∗
-              hdrFilled h cid mid ∗ hdrRevOut iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
               srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
               rangeAnsOk E γr c F o resp rv (rangeDepQ γr.kv d)) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ _e : GoInterface,
@@ -330,7 +330,7 @@ theorem txn_end_to_end
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ h ∗
-              hdrFilled h cid mid ∗ hdrRevOut iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
               srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
               ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
                 if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗ txnReadAns E γr c F t (rangeDepQ γr.kv d) resp rv)
@@ -377,7 +377,7 @@ theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.PutResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
-              hdrRevOut iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) h rv rv' ∗ srvRdCall s E γr c ∗
+              hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗ srvRdCall s E γr c ∗
               putAppliedOk s E ρ.rd F o (opDepQ d) resp rv ∗
               (⌜E.authOn = true⌝ → writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrPut o))) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
@@ -421,7 +421,7 @@ theorem deleteRange_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp ↦□ h ∗
-              hdrFilled h cid mid ∗ hdrRevOut iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
               srvRdCall s E γr c ∗ deleteAppliedOk s E ρ.rd F o (opDepQ d) resp rv ∗
               (⌜E.authOn = true⌝ → writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrDeleteRange o))) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
@@ -465,7 +465,7 @@ theorem range_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.RangeResponse go!"Header" resp ↦□ h ∗
-              hdrFilled h cid mid ∗ hdrRevOut iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
               srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
               rangeAnsOkM E.authOn E γr c F o resp rv (rangeDepQM E.authOn γr.kv d) ∗
               (⌜E.authOn = true⌝ → rangeAuthed s E γr c na (auth.ctxTokenOf ctx) o)) ∨
@@ -513,7 +513,7 @@ theorem txn_end_to_endM
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ h ∗
-              hdrFilled h cid mid ∗ hdrRevOut iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
               srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
               ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
                 if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗
@@ -1596,8 +1596,8 @@ theorem watch_streamHandlerOk (p : Loc) (R : WSrv GF) (W : SrvW GF) :
     iexact HSpec
   ihave #Hup := upOk_watchUp (GF := GF) R
   iunfold watchRunSlot at HS
-  icases HS with ⟨HRD, Htt, Hrdr, %Htb⟩
-  iapply (watch_server p R W st γs (watchUp R) Dn ci cd) $$ [HSpec HRt HSt HAux HRD Htt Hrdr]
+  icases HS with ⟨HRD, Hrdr, %Htb⟩
+  iapply (watch_server p R W st γs (watchUp R) Dn ci cd) $$ [HSpec HRt HSt HAux HRD Hrdr]
   · iframe
     iframe #
     ipureintro; exact Htb
@@ -1846,8 +1846,8 @@ theorem raftLeaseRead_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
         srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ lease.lessorRdPool γl ∗ srvHeaderFacts s cs ms ⊢
-      raftLeaseRead s E γl E.RD
-        iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) :=
+      raftLeaseRead s E γl iprop(E.RD ∗ threadTok)
+        (mvcc.api.mvccReaders E.γ 1) :=
   raftLeaseRead_of_server EtcdServer.wp_LeaseTimeToLive EtcdServer.wp_LeaseLeases
     s E ρ γr γl cs ms hT hR hP
 

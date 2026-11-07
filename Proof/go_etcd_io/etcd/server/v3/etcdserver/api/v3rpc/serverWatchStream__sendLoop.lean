@@ -1879,7 +1879,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       rotate_left
       · (try wp_auto)
         icases Htt with ⟨Htt, Hrdr⟩
-        wp_apply (hRP r.W.γm r.ι X) $$ [$Htt $Hrdr] as ⟨Htt, Hrdr⟩
+        wp_apply (hRP r.W.γm r.ι X) $$ [$Hrdr] as Hrdr
         · iframe #
         ihave Htt : v3rpc.sendTok r $$ [Htt Hrdr]
         · unfold v3rpc.sendTok; iframe

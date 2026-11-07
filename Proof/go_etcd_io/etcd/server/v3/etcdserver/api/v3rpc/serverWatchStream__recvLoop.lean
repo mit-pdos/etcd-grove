@@ -38,7 +38,7 @@ set_option hygiene false in
 /-- `sws.watchStream.Rev()` (its update `rev_au`, nothing learned), into `%rv`. -/
 macro "ws_rev" : tactic => `(tactic| (
   ihave Hrau := v3rpc.rev_au hP r.W r.srv.wsl $$ HW
-  wp_apply (hRev r.W.γm r.ι (fun _ => iprop(True))) $$ [$(frameH `Htt) $(frameH `Hrdr) $(frameH `Hrau)] as %rv ⟨Htt, Hrdr, -⟩
+  wp_apply (hRev r.W.γm r.ι (fun _ => iprop(True))) $$ [$(frameH `Hrdr) $(frameH `Hrau)] as %rv ⟨Hrdr, -⟩
   · iframe #))
 
 set_option hygiene false in
@@ -476,7 +476,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           (if c.key = [] then [W8 0] else c.key) (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) []
           c.startRev (v3rpc.watchQ r.W r.ι r.γreg r.γtok (if c.key = [] then [W8 0] else c.key)
             (if c.rangeEnd = [W8 0] then [] else c.rangeEnd) es2 c.startRev))
-          $$ [$Htt $Hrdr $Hwau] as %id' %werr ⟨Htt, Hrdr, Hwres⟩
+          $$ [$Hrdr $Hwau] as %id' %werr ⟨Hrdr, Hwres⟩
         · iframe #
           ipureintro; exact hsr0
         have Hid : c.watchId ≠ W64 0 → id' = c.watchId := fun h => absurd Hwid0 h
@@ -707,7 +707,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         iunfold v3rpc.cancelQ
         iexists _
         iexact Hat
-      wp_apply (hCancel r.W.γm r.ι cid (fun _ => iprop(True))) $$ [$Htt $Hcau] as %cerr ⟨Htt, -⟩
+      wp_apply (hCancel r.W.γm r.ι cid (fun _ => iprop(True))) $$ [$Hcau] as %cerr -
       · iframe #
       rcases cerr with ce | _
       rotate_left
@@ -815,7 +815,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       wp_apply sync.RWMutex.wp_Lock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ []
         as ⟨Hlk, HP⟩
       · iframe #
-      wp_apply (hRPA r.W.γm r.ι) $$ [$Htt $Hrdr] as %b ⟨Htt, Hrdr⟩
+      wp_apply (hRPA r.W.γm r.ι) $$ [$Hrdr] as %b Hrdr
       · iframe #
       wp_apply sync.RWMutex.wp_Unlock_guard (swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
         $$ [$Hlk $HP]
