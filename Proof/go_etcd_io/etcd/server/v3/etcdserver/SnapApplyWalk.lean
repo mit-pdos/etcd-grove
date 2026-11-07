@@ -599,6 +599,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   ihave Hpost : iprop(batchLockInv (GF := GF) (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P) ={⊤}=∗
       batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P) ∗ True) $$ []
   · iintro H; imodintro; iframe H
+  imod (srvKVInvsM_keysA E.authOn s E γr A') $$ Hkvi HA' with %Hkey
   ihave Hrp : srvApi.restorePreA (GF := GF) E.kv E.γ d d' (E.Pk d)
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')) u Lr (DFrac.own (1 : Qp).half)
@@ -612,7 +613,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · iapply (srvApi.restoreArgs_holds Hp E.kv E.γ γr E.authOn E.γs x.log x.crev A A' d d' (E.Pk d)
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) u Lr (DFrac.own (1 : Qp).half)
       func.nil iprop(True) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
-      iprop(True) hxA.1 hxA.2 hAA' hst.1 hit)
+      iprop(True) hxA.1 hxA.2 hAA' hst.1 Hkey hit)
     simp only [srvApi.stAt_log, srvApi.stAt_crev, srvApi.kvStoreInv_eq]
     iframe HkS HwSt HcrO HA' HCp HmO HmB HsF HnH Hrun Hpost HlOwn
   iunfold srvApi.restorePreA at Hrp

@@ -190,7 +190,8 @@ theorem kv_log_plain_off (γ : ServerRaftNames) (γk : KVNames) (B : List EntryM
   imodintro; ipureintro; exact Hp
 
 /-- The apply thread's KV ghost state gives its log's raft witness. -/
-theorem kvAppliedL_nx (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) (l : mvcc.Log) :
+theorem kvAppliedL_nx (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) (l : mvcc.Log)
+    (hk : mvcc.LogPutsLe etcdKeyMax (kvModel γk B)) :
     kvAppliedL (GF := GF) γ γk B l ⊢ kvNxOff γ γk l := by
   iintro H
   iunfold kvAppliedL at H
@@ -198,7 +199,7 @@ theorem kvAppliedL_nx (γ : ServerRaftNames) (γk : KVNames) (B : List EntryMode
   iunfold kvNxOff
   iexists B
   iframe HB
-  ipureintro; exact Hl.symm
+  ipureintro; exact ⟨Hl.symm, Hl ▸ hk⟩
 
 /-- **The certificates `apply.Apply` asks of a plain entry's request** (`certPreV`): with `v3`,
 every outcome's log is the entry's model log (auth disabled), which is certified (strict M1: the
@@ -346,6 +347,7 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames)
       ⌜l.length ≤ (kvModel γk L).length⌝) $$ [HL Hc]
   · iunfold kvNxOff at Hc
     icases Hc with ⟨%A, #HA, %hA⟩
+    obtain ⟨hA, -⟩ := hA
     imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, %Hp⟩
     ihave %HAi := srvRLogLb_idx γ A $$ HA
     obtain ⟨A', HA'L, HAA'⟩ := srv_eqv_prefix γ A L HAi Hp.1 Hp.2.1 Hp.2.2

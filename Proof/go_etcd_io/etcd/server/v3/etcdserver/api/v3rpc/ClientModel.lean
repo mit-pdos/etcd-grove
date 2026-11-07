@@ -208,6 +208,8 @@ theorem srvLog_two (γr : ReadNames) (on : Bool) (L1 L2 : Log) :
   iintro ⟨⟨%M1, ⟨%A1, #HA1, %hA1⟩, %h1⟩, ⟨%M2, ⟨%A2, #HA2, %hA2⟩, %h2⟩⟩
   ihave %Hp := srvRLogLb_prefix γr.raft A1 A2 $$ [$HA1 $HA2]
   ipureintro
+  obtain ⟨hA1, -⟩ := hA1
+  obtain ⟨hA2, -⟩ := hA2
   obtain ⟨p1, w1, l1, s1, -⟩ := h1
   obtain ⟨p2, w2, l2, s2, -⟩ := h2
   have hM : M1 <+: M2 ∨ M2 <+: M1 := by
@@ -473,6 +475,7 @@ theorem etcdReached_of_nx (E : apply.AEnv GF) (γr : ReadNames) (on : Bool) (log
   unfold srvReachedAt srvApi.srvRevLbA
   iunfold srvApi.kvNx at H
   icases H with ⟨%A, #HA, %hA⟩
+  obtain ⟨hA, -⟩ := hA
   iexists A
   iframe HA
   ipureintro; rw [hA]; exact h

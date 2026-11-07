@@ -163,6 +163,28 @@ theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthSt
     · rw [he] at h; simp only [List.length_append, List.length_singleton] at h
       simp only [List.length_cons]; omega
 
+/-- **The mode-`on` model of a log with short keys, from a start with none, has none**
+(`kvRaftOf_keys`'s: an admin step and a refused request keep the log). -/
+theorem kvRaftOfOn_keys (c₀ : w64) (ch : apply.Chain) :
+    ∀ (s₀ : auth.AuthState × mvcc.Log) (A : List EntryModel), logPutsOk A →
+      mvcc.LogPutsLe etcdKeyMax s₀.2 → mvcc.LogPutsLe etcdKeyMax (kvRaftOfOn c₀ ch s₀ A).2
+  | s₀, [], _, hl => hl
+  | s₀, m :: A, hA, hl => by
+    have hk : kvRaftOfOn c₀ ch s₀ (m :: A) = kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A := rfl
+    rw [hk]
+    apply kvRaftOfOn_keys c₀ ch _ A (fun m' h => hA m' (by simp [h]))
+    have hm := hA m (by simp)
+    unfold kvEntryOn
+    split
+    · split
+      · split
+        · exact hl
+        · split
+          · exact hl
+          · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+      · exact hl
+    · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+
 end pure
 
 section commit
@@ -291,7 +313,7 @@ instance authHistTie_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : a
 /-- **The log `l` is the mode-`on` model, from `st₀`, of a committed raft log** (persistent; strict
 M1, 2026-11-06: `kvNxOff`'s; `KVStoreApi.lean`'s `kvNx γr true` at `st₀ = srvAuthSt0`, by `rfl`). -/
 def kvNxOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (l : mvcc.Log) : IProp GF :=
-  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗ ⌜kvModelOn γk st₀ A = l⌝)
+  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗ ⌜kvModelOn γk st₀ A = l ∧ mvcc.LogPutsLe etcdKeyMax l⌝)
 
 instance kvNxOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (l : mvcc.Log) : Persistent (kvNxOn (GF := GF) γ γk st₀ l) := by
@@ -455,6 +477,55 @@ theorem kv_applied_out_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Au
   iframe Ha
   ipureintro
   exact ⟨Hpl, hch⟩
+
+/-- **A committed raft prefix's model has short keys** (R8, 2026-11-07: what the store's witness's
+producers prove its key bound with): the KV invariant keeps its work log's entries short
+(`kvWork`'s `logPutsOk`, from the start log's). -/
+theorem kvInv_keysA (γr : ReadNames) (A : List EntryModel) :
+    ⊢ kvInv (GF := GF) γr.raft γr.kv -∗ srvRaftLogInv γr.raft -∗ srvRLogLb γr.raft A ={⊤}=∗
+      ⌜mvcc.LogPutsLe etcdKeyMax (kvModel γr.kv A)⌝ := by
+  iintro #HkI #HrI #HA
+  iunfold kvInv at HkI
+  iinv HkI with >Hi Hclose
+  icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
+  ihave #Hw2 := Hw
+  iunfold kvWork at Hw2
+  icases Hw2 with ⟨%Hws, -⟩
+  imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+  ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+  imod Hclose $$ [HLf Hσ' HG] with -
+  · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
+  imodintro
+  ipureintro
+  obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
+  rw [(kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
+  unfold kvModel
+  exact kvRaftOf_keys _ _ _ A' (fun m hm => Hws.2.2.1 m (hA'L.subset hm)) Hws.2.2.2.1
+
+/-- `kvInv_keysA` in the mode `on`, at the start's auth state `st₀`. -/
+theorem kvInvOn_keysA (γr : ReadNames) (st₀ : auth.AuthState) (A : List EntryModel) :
+    ⊢ kvInvOn (GF := GF) γr.raft γr.kv st₀ -∗ srvRaftLogInv γr.raft -∗ srvRLogLb γr.raft A ={⊤}=∗
+      ⌜mvcc.LogPutsLe etcdKeyMax (kvModelOn γr.kv st₀ A)⌝ := by
+  iintro #HkI #HrI #HA
+  iunfold kvInvOn at HkI
+  iinv HkI with >Hi Hclose
+  icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
+  ihave #Hw2 := Hw
+  iunfold kvWorkOn at Hw2
+  icases Hw2 with ⟨%Hws, -⟩
+  imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+  ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+  imod Hclose $$ [HLf Hσ' Hh] with -
+  · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
+  imodintro
+  ipureintro
+  obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
+    (st₀, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
+  unfold kvModelOn
+  rw [hAL]
+  exact kvRaftOfOn_keys _ _ _ L' (fun m hm => Hws.2.2.1 m (hL'.subset hm)) Hws.2.2.2.1
 
 end lemmas
 

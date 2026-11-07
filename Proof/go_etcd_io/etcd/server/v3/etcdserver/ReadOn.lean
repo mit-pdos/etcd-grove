@@ -380,6 +380,7 @@ theorem srvKVCoreM_fire (on : Bool)
     rw [HNx]
     iunfold kvNxOff at Hc
     icases Hc with ⟨%A, #HA, %hA⟩
+    obtain ⟨hA, -⟩ := hA
     iunfold kvInv at HkI
     iinv HkI with >Hi Hclose
     icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
@@ -425,6 +426,7 @@ theorem srvKVCoreM_fire (on : Bool)
     rw [HNx]
     iunfold kvNxOn at Hc
     icases Hc with ⟨%A, #HA, %hA⟩
+    obtain ⟨hA, -⟩ := hA
     iunfold kvInvOn at HkI
     iinv HkI with >Hi Hclose
     icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
@@ -466,27 +468,22 @@ theorem srvKVCoreM_fire (on : Bool)
     ipureintro; exact HpL
 
 
-/-- **The mode-`on` model of a log with short keys, from a start with none, has none**
-(`kvRaftOf_keys`'s: an admin step and a refused request keep the log). -/
-theorem kvRaftOfOn_keys (c₀ : w64) (ch : apply.Chain) :
-    ∀ (s₀ : auth.AuthState × mvcc.Log) (A : List EntryModel), logPutsOk A →
-      mvcc.LogPutsLe etcdKeyMax s₀.2 → mvcc.LogPutsLe etcdKeyMax (kvRaftOfOn c₀ ch s₀ A).2
-  | s₀, [], _, hl => hl
-  | s₀, m :: A, hA, hl => by
-    have hk : kvRaftOfOn c₀ ch s₀ (m :: A) = kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A := rfl
-    rw [hk]
-    apply kvRaftOfOn_keys c₀ ch _ A (fun m' h => hA m' (by simp [h]))
-    have hm := hA m (by simp)
-    unfold kvEntryOn
-    split
-    · split
-      · split
-        · exact hl
-        · split
-          · exact hl
-          · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
-      · exact hl
-    · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+/-- **A committed raft prefix's KV model has short keys, in either auth mode** (R8, 2026-11-07:
+`srvKVCoreM_keys` at a raft prefix `A` in place of the witness, which now carries the key bound:
+what the witness's producers prove it with). -/
+theorem srvKVCoreM_keysA (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
+    ⊢ srvKVCoreM on E γr -∗ srvRLogLb γr.raft A ={⊤}=∗
+      ⌜mvcc.LogPutsLe etcdKeyMax (kvModelM on γr.kv A)⌝ := by
+  cases on
+  · rw [srvKVCoreM_false, kvModelM_false]
+    iintro #Hinvs #HA
+    iunfold srvKVInvs at Hinvs
+    icases Hinvs with ⟨#HkI, -, #HrI, -⟩
+    iapply (kvInv_keysA γr A) $$ HkI HrI HA
+  · rw [srvKVCoreM_true, kvModelM_true]
+    iintro #Hinvs #HA
+    icases Hinvs with ⟨#HkI, -, #HrI, -⟩
+    iapply (kvInvOn_keysA γr srvAuthSt0 A) $$ HkI HrI HA
 
 /-- **A log with the store's witness has short keys, in either auth mode** (2026-10-30,
 `notes/keylen.md`): with the KV core in the mode `on`, a log `l` with the witness `E.Nx l` is the
@@ -499,52 +496,18 @@ theorem srvKVCoreM_keys (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (l : m
   · rw [srvKVCoreM_false]
     iintro #Hinvs Hc
     iunfold srvKVInvs at Hinvs
-    icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx, -⟩
+    icases Hinvs with ⟨-, -, -, -, -, %HNx, -⟩
     rw [HNx]
     iunfold kvNxOff at Hc
-    icases Hc with ⟨%A, #HA, %hA⟩
-    iunfold kvInv at HkI
-    iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
-    ihave #Hw2 := Hw
-    iunfold kvWork at Hw2
-    icases Hw2 with ⟨%Hws, -⟩
-    imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-      Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
-    ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
-    imod Hclose $$ [HLf Hσ' HG] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
-    imodintro
-    ipureintro
-    obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
-    rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
-    unfold kvModel
-    exact kvRaftOf_keys _ _ _ A' (fun m hm => Hws.2.2.1 m (hA'L.subset hm)) Hws.2.2.2.1
+    icases Hc with ⟨%A, -, %hA⟩
+    imodintro; ipureintro; exact hA.2
   · rw [srvKVCoreM_true]
     iintro #Hinvs Hc
-    icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx⟩
+    icases Hinvs with ⟨-, -, -, -, -, %HNx⟩
     rw [HNx]
     iunfold kvNxOn at Hc
-    icases Hc with ⟨%A, #HA, %hA⟩
-    iunfold kvInvOn at HkI
-    iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
-    ihave #Hw2 := Hw
-    iunfold kvWorkOn at Hw2
-    icases Hw2 with ⟨%Hws, -⟩
-    imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-      Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
-    ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
-    imod Hclose $$ [HLf Hσ' Hh] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
-    imodintro
-    ipureintro
-    obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
-      (srvAuthSt0, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
-    rw [← hA]
-    unfold kvModelOn
-    rw [hAL]
-    exact kvRaftOfOn_keys _ _ _ L' (fun m hm => Hws.2.2.1 m (hL'.subset hm)) Hws.2.2.2.1
+    icases Hc with ⟨%A, -, %hA⟩
+    imodintro; ipureintro; exact hA.2
 
 /-- **A log the server certified has short keys** (2026-10-30, `notes/keylen.md`): what a request
 handler holds of the log it read or wrote (the store's witness `E.Nx l`; strict M1: mvcc's
@@ -895,6 +858,7 @@ theorem kv_read_logOn (γr : ReadNames) (E : CoPset) (i : w64) (L₀ l : mvcc.Lo
   icases Hat with ⟨%AR, #HAR, %HR⟩
   iunfold kvNxOn at Hc
   icases Hc with ⟨%A', #HA', %hA'⟩
+  obtain ⟨hA', -⟩ := hA'
   ihave %Hcmp := srvRLogLb_prefix γr.raft AR A' $$ [HAR HA']
   · iframe HAR HA'
   imodintro

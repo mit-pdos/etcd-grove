@@ -289,6 +289,27 @@ instance srvKVInvsM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : 
 theorem srvKVInvsM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) false s E γr = srvKVInvs E γr := rfl
 
+/-- **A committed raft prefix's model has short keys, at the server's KV invariants in either auth
+mode** (R8, 2026-11-07: `kvInv_keysA`/`kvInvOn_keysA`; what the restore's witness needs). -/
+theorem srvKVInvsM_keysA (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
+    (A : List EntryModel) :
+    ⊢ srvKVInvsM (GF := GF) on s E γr -∗ srvRLogLb γr.raft A ={⊤}=∗
+      ⌜mvcc.LogPutsLe etcdKeyMax (kvModelM on γr.kv A)⌝ := by
+  cases on
+  · rw [kvModelM_false]
+    iintro #Hk #HA
+    iunfold srvKVInvsM at Hk
+    iunfold srvKVInvs at Hk
+    icases Hk with ⟨#HkI, -, #HrI, -⟩
+    iapply (kvInv_keysA γr A) $$ HkI HrI HA
+  · rw [kvModelM_true]
+    iintro #Hk #HA
+    iunfold srvKVInvsM at Hk
+    icases Hk with ⟨#Hk, -⟩
+    iunfold srvKVInvsOn at Hk
+    icases Hk with ⟨#HkI, -, #HrI, -⟩
+    iapply (kvInvOn_keysA γr srvAuthSt0 A) $$ HkI HrI HA
+
 /-- `srvKVInvsM true`'s KV invariants. -/
 theorem srvKVInvsM_true (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) true s E γr ⊢ srvKVInvsOn E γr srvAuthSt0 := by

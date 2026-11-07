@@ -104,25 +104,27 @@ theorem applyKV_writer [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumpt
   · ipureintro; exact ⟨c, Hre⟩
 
 /-- `kvAppliedL`'s raft witness (`kvAppliedL_nx`), the state kept. -/
-theorem kvAppliedL_nx' (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) (l : mvcc.Log) :
+theorem kvAppliedL_nx' (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) (l : mvcc.Log)
+    (hk : mvcc.LogPutsLe etcdKeyMax (kvModel γk B)) :
     kvAppliedL (GF := GF) γ γk B l ⊢ kvAppliedL γ γk B l ∗ kvNxOff γ γk l := by
   iintro H
   iunfold kvAppliedL at H
   icases H with ⟨#HB, Hhi, #Hc, %Hl⟩
   isplitl
   · iunfold kvAppliedL; iframe HB Hhi Hc; ipureintro; exact Hl
-  · iunfold kvNxOff; iexists B; iframe HB; ipureintro; exact Hl.symm
+  · iunfold kvNxOff; iexists B; iframe HB; ipureintro; exact ⟨Hl.symm, Hl ▸ hk⟩
 
 /-- `kvAppliedLOn`'s raft witness in the mode `on` (`kvNxOn`), the state kept. -/
 theorem kvAppliedLOn_nx (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
-    (B : List EntryModel) (s : auth.AuthState × mvcc.Log) :
+    (B : List EntryModel) (s : auth.AuthState × mvcc.Log)
+    (hk : mvcc.LogPutsLe etcdKeyMax (kvModelOn γk st₀ B)) :
     kvAppliedLOn (GF := GF) γ γk st₀ B s ⊢ kvAppliedLOn γ γk st₀ B s ∗ kvNxOn γ γk st₀ s.2 := by
   iintro H
   iunfold kvAppliedLOn at H
   icases H with ⟨#HB, Hhi, #Hc, %Hl⟩
   isplitl
   · iunfold kvAppliedLOn; iframe HB Hhi Hc; ipureintro; exact Hl
-  · iunfold kvNxOn; iexists B; iframe HB; ipureintro; rw [Hl]; rfl
+  · iunfold kvNxOn; iexists B; iframe HB; ipureintro; rw [Hl]; exact ⟨rfl, hk⟩
 
 /-- **The tokens `apply.Apply` takes, at the server's tie** (`apply.bkToks`): the write-back token
 of the tie's backend `d` (`srvWT_at`), the apply thread's reader token of it (`srvBeOwn`'s), and,
@@ -330,7 +332,10 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
   icases Hkvi'' with ⟨#HkI, -, #HrI, -⟩
   imod kv_log_plain γr.raft γr.kv (A ++ [m]) $$ HkI HrI HAm with %Hpc0
   have Hch0 := Hpc0.2
-  ihave ⟨Hka, #Hkc⟩ := kvAppliedL_nx' _ _ _ _ $$ Hka
+  imod (srvKVCoreM_keysA false E γr (A ++ [m])) $$ [] [] with %HkeysA
+  · rw [srvKVCoreM_false]; iexact Hkvi
+  · iexact HAm
+  ihave ⟨Hka, #Hkc⟩ := kvAppliedL_nx' _ _ _ _ HkeysA $$ Hka
   have hiA : uint.Z m.index = uint.Z γr.raft.ai0 + A.length + 1 := by omega
   iunfold srvFieldsAt at Hfv
   icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
@@ -1200,7 +1205,11 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   imod kv_applied_step_on E γr srvAuthSt0 A m x sa (kvEntryOn_len _ _ sa x m Hok Hlx)
     $$ Hkvi Hka HAm with ⟨%Hpe, Hka⟩
   obtain ⟨Hpe, Hdet, Hxch, Hch⟩ := Hpe
-  icases kvAppliedLOn_nx _ _ _ _ _ $$ Hka with ⟨Hka, #Hkc⟩
+  ihave #Hkvi' := Hkvi
+  iunfold srvKVInvsOn at Hkvi'
+  icases Hkvi' with ⟨#HkI', -, #HrI', -⟩
+  imod (kvInvOn_keysA γr srvAuthSt0 (A ++ [m])) $$ HkI' HrI' HAm with %HkeysA
+  icases kvAppliedLOn_nx _ _ _ _ _ HkeysA $$ Hka with ⟨Hka, #Hkc⟩
   have hiA : uint.Z m.index = uint.Z γr.raft.ai0 + A.length + 1 := by omega
   iunfold srvFieldsAtM at Hfv
   icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl,

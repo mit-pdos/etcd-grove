@@ -391,6 +391,7 @@ theorem histLog_of_srv (γ : ServerRaftNames) (γk : KVNames) (γr : ReadNames)
   icases Hl with ⟨%L', #Hx, %h⟩
   iunfold srvApi.kvNx at Hx
   icases Hx with ⟨%A, #HA, %hA⟩
+  obtain ⟨hA, -⟩ := hA
   iunfold histLog
   iexists A
   rw [← hr]
@@ -451,6 +452,7 @@ theorem histReached_of_nx (γ : ServerRaftNames) (γk : KVNames) (γr : ReadName
   unfold srvReachedAt srvApi.srvRevLbA
   iunfold srvApi.kvNx at Hx
   icases Hx with ⟨%A, #HA, %hA⟩
+  obtain ⟨hA, -⟩ := hA
   iexists A
   iframe HA
   ipureintro; rw [hA]; exact h

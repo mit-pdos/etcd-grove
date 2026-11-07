@@ -96,7 +96,7 @@ def kvReadAtG (Nx : mvcc.Log → IProp GF) (γs : KVSNames) (L₀ : mvcc.Log) (�
 /-- `histLb`, generic. -/
 def histLbG (Nx : mvcc.Log → IProp GF) (γs : KVSNames) (L : mvcc.Log) : IProp GF :=
   iprop(monoListLbOwn γs.nlog L ∗ ∃ L' : mvcc.Log, ⌜L <+: L' ∧ mvcc.LogWf' L'⌝ ∗ Nx L' ∗
-    ⧖ (mvcc.logCh L'))
+    ⧖ (mvcc.logCh L') ∗ ⌜L'.length ≤ mvcc.logCh L' + 2⌝)
 
 end defs
 
@@ -160,6 +160,20 @@ theorem reach_len_logCh (σ : MvccState) (h : MvccReachable σ) :
       omega
   | compact σ r _ _ _ _ _ ih =>
     exact ⟨by simpa [MvccState.compactTo] using ih.1, by simpa [MvccState.compactTo] using ih.2⟩
+
+/-- **A reachable state's notified log has a revision per change past its first two** (R8,
+2026-11-07: `histLb`'s length clause), its pending revision changing something. -/
+theorem reach_notified_len (σ : MvccState) (h : MvccReachable σ) :
+    σ.notifiedLog.length ≤ mvcc.logCh σ.notifiedLog + 2 := by
+  obtain ⟨h1, h2⟩ := reach_len_logCh σ h
+  unfold MvccState.notifiedLog
+  split
+  · exact h1
+  · rename_i p hp
+    have := List.length_pos_iff.mpr (h2 p hp)
+    simp only [List.length_append, List.length_singleton, mvcc.logCh, List.map_append,
+      List.map_cons, List.map_nil, List.sum_append, List.sum_cons, List.sum_nil] at h1 ⊢
+    omega
 
 /-- The writer's view's notified log is its log. -/
 @[simp] theorem stAt_log (log : mvcc.Log) (c : Int) : (stAt log c).log = log := rfl
@@ -279,7 +293,7 @@ theorem kvPeekG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.law (
     iframe Hnlb
     iexists σ.notifiedLog
     iframe Hnx2 Hrc
-    ipureintro; exact ⟨List.prefix_refl _, Hf.2.2.2.1⟩
+    ipureintro; exact ⟨⟨List.prefix_refl _, Hf.2.2.2.1⟩, reach_notified_len σ Hf.1⟩
   isplitr [Hclose Hst Hcr Hsl Hnl]
   · iunfold kvLogLb; iexact Hslb
   iintro Hs
@@ -316,7 +330,8 @@ theorem histLb_bootG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.
   · iapply monoListLbOwn_le [[], []] (Hf.2.2.2.2.1.trans Hf.2.2.2.2.2) $$ Hnlb
   iexists σ.notifiedLog
   iframe Hnx2 Hrc
-  ipureintro; exact ⟨Hf.2.2.2.2.1.trans Hf.2.2.2.2.2, Hf.2.2.2.1⟩
+  ipureintro
+  exact ⟨⟨Hf.2.2.2.2.1.trans Hf.2.2.2.2.2, Hf.2.2.2.1⟩, reach_notified_len σ Hf.1⟩
 
 /-! ## The builders (`kvAus.law`), one per update shape -/
 

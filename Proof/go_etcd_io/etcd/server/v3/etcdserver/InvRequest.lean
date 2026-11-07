@@ -288,7 +288,7 @@ model's other mode; the chain's `E.Nx` in the mode off (`srvKVInvs`' tie). Here,
 (the tie needs it below `InvApplier`). Replaces mvcc's certificate `certOk`, which
 the KV certificate `kvCert` gave (`kvCert_certOk`). -/
 def kvNxOff (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) : IProp GF :=
-  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗ ⌜kvModel γk A = l⌝)
+  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗ ⌜kvModel γk A = l ∧ mvcc.LogPutsLe etcdKeyMax l⌝)
 
 instance kvNxOff_persistent (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) :
     Persistent (kvNxOff (GF := GF) γ γk l) := by

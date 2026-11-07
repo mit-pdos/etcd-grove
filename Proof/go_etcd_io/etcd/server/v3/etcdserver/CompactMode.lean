@@ -105,6 +105,7 @@ theorem kvCert_of_srvRevLb (γ : ServerRaftNames) (γk : KVNames) (Ev : apply.AE
   rw [hNx]
   iunfold kvNxOff at Hok
   icases Hok with ⟨%A, #HA, %hA⟩
+  obtain ⟨hA, -⟩ := hA
   imodintro
   iexists A
   iframe HA

@@ -416,6 +416,7 @@ theorem srvLogCert_kvNx (E : apply.AEnv GF) (γr : ReadNames) (log : mvcc.Log)
   rw [hNx]
   iunfold kvNxOff at Hnx
   icases Hnx with ⟨%A, #HA, %hA⟩
+  obtain ⟨hA, -⟩ := hA
   iunfold srvApi.kvNx
   iexists A
   iframe HA

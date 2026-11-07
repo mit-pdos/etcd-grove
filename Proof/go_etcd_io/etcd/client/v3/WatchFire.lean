@@ -89,33 +89,35 @@ theorem srvKVCoreM_someNx (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
   cases on
   · rw [srvKVCoreM_false]
     iunfold srvKVInvs at H
-    icases H with ⟨-, #Hci, -⟩
+    icases H with ⟨#HkI, #Hci, #HrI, -⟩
     iunfold kvCertInv at Hci
     imod inv_acc (E := ⊤) (show ↑kvcN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hci
       with ⟨Hi, Hclose⟩
     icases Hi with ⟨%C, %hi, %Lb, >HC, >Hhi', >#HLb, >%Hok⟩
     imod Hclose $$ [HC Hhi'] with -
     · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
+    imod (kvInv_keysA γr Lb) $$ HkI HrI HLb with %Hk
     imodintro
     iexists kvModelM false γr.kv Lb
     iunfold srvApi.kvNx
     iexists Lb
     iframe HLb
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, Hk⟩
   · rw [srvKVCoreM_true]
-    icases H with ⟨-, #Hci, -⟩
+    icases H with ⟨#HkI, #Hci, #HrI, -⟩
     iunfold kvCertInvOn at Hci
     imod inv_acc (E := ⊤) (show ↑kvcN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hci
       with ⟨Hi, Hclose⟩
     icases Hi with ⟨%C, %hi, %Lb, >HC, >Hhi', >#HLb, >%Hok⟩
     imod Hclose $$ [HC Hhi'] with -
     · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
+    imod (kvInvOn_keysA γr srvAuthSt0 Lb) $$ HkI HrI HLb with %Hk
     imodintro
     iexists kvModelM true γr.kv Lb
     iunfold srvApi.kvNx
     iexists Lb
     iframe HLb
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, Hk⟩
 
 /-- **A member's read update fires at a watched log** (strict M1, `srvKVFacts`' ties): the
 member's certified lower bound `L` extends to a witnessed log (`srvApi.histLb`'s), at which the

@@ -1120,6 +1120,7 @@ theorem kv_read_log (γr : ReadNames) (E : CoPset) (i : w64) (L₀ l : mvcc.Log)
   icases Hat with ⟨%AR, #HAR, %HR⟩
   iunfold kvNxOff at Hc
   icases Hc with ⟨%A', #HA', %hA'⟩
+  obtain ⟨hA', -⟩ := hA'
   ihave %Hcmp := srvRLogLb_prefix γr.raft AR A' $$ [HAR HA']
   · iframe HAR HA'
   imodintro

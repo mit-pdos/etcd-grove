@@ -76,7 +76,10 @@ theorem bootStore_holds (Hp : persistent.law (GF := GF)) : bootStore.law (GF := 
   · iunfold kvNx
     iexists []
     iframe Hlb
-    ipureintro; exact h0
+    ipureintro
+    refine ⟨h0, fun cs hcs k v l hk => ?_⟩
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
+    rcases hcs with rfl | rfl <;> simp at hk
   iunfold crevOk
   isplitl []
   · ileft; ipureintro; rfl
@@ -227,7 +230,7 @@ from the store invariant, the commit request `True ⇒ True` (`backend.commitReq
 theorem restoreArgs_holds (Hp : persistent.law (GF := GF)) : restoreArgs.law (GF := GF) := by
   intro kv γ γr on γs log c A A' B B' Pk Pk' u Ls dq f Pre Q' Post
   dsimp only
-  intro hlog hc hAA hre hit
+  intro hlog hc hAA hre hkey hit
   rw [kvStoreInv_eq]
   haveI := kvStoreInvG_persistent Hp kv γ (kvNx γr on) (crevOk γr) γs
   simp only [stAt_log, stAt_crev] at hit ⊢
@@ -237,7 +240,7 @@ theorem restoreArgs_holds (Hp : persistent.law (GF := GF)) : restoreArgs.law (GF
   have hcc : c ≤ crevOf γr.kv A' := by
     rw [hc]; exact crevOf_mono γr.kv A A' hAA
   ihave #Hnx : kvNx (GF := GF) γr on (kvModelM on γr.kv A') $$ []
-  · iunfold kvNx; iexists A'; iframe Hlb; ipureintro; rfl
+  · iunfold kvNx; iexists A'; iframe Hlb; ipureintro; exact ⟨rfl, hkey⟩
   ihave HAU := au_restore (kvNx γr on) (crevOk γr) Hp kv γ γs log (kvModelM on γr.kv A') c
     (crevOf γr.kv A') hl hcc $$ Hk Hw Hc Hnx Hcp
   ihave #Hk' := Hk

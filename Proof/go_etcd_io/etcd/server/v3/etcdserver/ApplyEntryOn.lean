@@ -160,9 +160,13 @@ theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Auth
     have h := hp
     unfold plainCover at h
     split at h <;> simp_all [apply.isKVKind]
+  ihave #Hinvs'' := Hinvs
+  iunfold srvKVInvsOn at Hinvs''
+  icases Hinvs'' with ⟨#HkI, -, #HrI, -⟩
+  imod (kvInvOn_keysA γr st₀ (A ++ [m])) $$ HkI HrI Hlb with %Hkeys
   ihave #Hc : iprop(kvNxOn γr.raft γr.kv st₀ (kvEntryOn γr.kv.c0 x.chain (st, x.log) m).2) $$ [Ha]
   · iunfold kvAppliedLOn at Ha; icases Ha with ⟨#HA, -, -, %HAs⟩
-    iunfold kvNxOn; iexists A ++ [m]; iframe HA; ipureintro; rw [HAs]; rfl
+    iunfold kvNxOn; iexists A ++ [m]; iframe HA; ipureintro; rw [HAs]; exact ⟨rfl, Hkeys⟩
   imodintro
   iframe Ha
   isplitr

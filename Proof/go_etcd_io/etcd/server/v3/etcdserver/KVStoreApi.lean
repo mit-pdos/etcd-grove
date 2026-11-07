@@ -27,6 +27,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
 public import Proof.go_etcd_io.etcd.cache.v3.EtcdModel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLogOk
 
 @[expose] public section
 
@@ -59,7 +60,8 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 (`kvLogAt`'s, without the index). Today's `kvCert`/`certOk` role. No receipt: the apply thread
 needs the witness of a target log before the update that gives the receipt fires. -/
 def kvNx (γr : ReadNames) (on : Bool) (log : mvcc.Log) : IProp GF :=
-  iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜kvModelM on γr.kv A = log⌝)
+  iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜kvModelM on γr.kv A = log ∧
+    mvcc.LogPutsLe etcdKeyMax log⌝)
 
 /-- **The compaction revision is permitted** (persistent): never compacted, or a cluster permit;
 and `-1` in a cluster that never compacts. Downward closed by `kvCmpPermit_le`. -/
@@ -68,11 +70,12 @@ def crevOk (γr : ReadNames) (c : Int) : IProp GF :=
 
 /-- **A certified lower bound of the notified log** (persistent; the watch path's `histLb`): `L` a
 prefix of the notified log, and of a log that is the KV model of a committed raft log, well formed,
-with its receipt (round 16: so `LogSmall L` follows, `histLb_model.law`). Prefix-closed; two are
-prefix-comparable (`monoListLbOwn`'s agreement). -/
+with its receipt (round 16: so `LogSmall L` follows, `histLb_model.law`), and a revision per change
+past its first two (R8, 2026-11-07: so its length is below `2 ^ 63`; with the witness's key bound,
+`histLb_pure`). Prefix-closed; two are prefix-comparable (`monoListLbOwn`'s agreement). -/
 def histLb (γr : ReadNames) (on : Bool) (γs : KVSNames) (L : mvcc.Log) : IProp GF :=
   iprop(monoListLbOwn γs.nlog L ∗ ∃ L' : mvcc.Log, ⌜L <+: L' ∧ mvcc.LogWf' L'⌝ ∗ kvNx γr on L' ∗
-    ⧖ (mvcc.logCh L'))
+    ⧖ (mvcc.logCh L') ∗ ⌜L'.length ≤ mvcc.logCh L' + 2⌝)
 
 omit package_sem in
 instance kvNx_persistent (γr : ReadNames) (on : Bool) (log : mvcc.Log) :
@@ -198,6 +201,27 @@ abbrev crevOk_off.law : Prop :=
 abbrev histLb_boot.law : Prop :=
   ∀ (kv : GoInterface) (γ : MvccName) (γr : ReadNames) (on : Bool) (γs : KVSNames),
   kvStoreInv (GF := GF) kv γ γr on γs ={⊤}=∗ histLb γr on γs [[], []]
+
+omit package_sem in
+/-- **A certified notified-log bound's pure facts** (R8, 2026-11-07, for R9; `histLb_model.law`'s
+pure part, without opening an invariant): well formed (a prefix of a well-formed log), fewer than
+`2 ^ 63` revisions and small (the receipt, under `receiptBound GF ≤ 2 ^ 62`, with a revision per
+change past the first two), and its keys short (the witness's). -/
+theorem histLb_pure (hrb : receiptBound GF ≤ 2 ^ 62) (γr : ReadNames) (on : Bool) (γs : KVSNames)
+    (L : mvcc.Log) :
+    histLb (GF := GF) γr on γs L ⊢
+      ⌜mvcc.LogWf' L ∧ L.length < 2 ^ 63 ∧ txn.LogSmall L ∧ mvcc.LogPutsLe etcdKeyMax L⌝ := by
+  unfold histLb
+  iintro ⟨-, %L', %hp, Hnx, Hrc, %hlen⟩
+  ihave %Hm := preceipt_lt _ $$ Hrc
+  iunfold kvNx at Hnx
+  icases Hnx with ⟨%A, -, %hA⟩
+  ipureintro
+  have hs : txn.LogSmall L' := by
+    unfold txn.LogSmall txn.logChanges; unfold mvcc.logCh at Hm; omega
+  have hl : L.length ≤ L'.length := hp.1.length_le
+  refine ⟨logWf'_of_prefix hp.1 hp.2, ?_, logSmall_of_prefix hp.1 hs, hA.2.prefix hp.1⟩
+  unfold mvcc.logCh at hlen Hm; omega
 
 end defs
 
@@ -379,6 +403,7 @@ abbrev restoreArgs.law : Prop :=
     (u : Bool) (Ls : List w64) (dq : DFrac) (f : GoFunc) (Pre Q' Post : IProp GF),
   let σ' := stAt (kvModelM on γr.kv A') (crevOf γr.kv A')
   log = kvModelM on γr.kv A → c = crevOf γr.kv A → A <+: A' → MvccReachable σ' →
+  mvcc.LogPutsLe etcdKeyMax σ'.log →
   (∀ it lid, (mvcc.pendItems σ'.log []).lookup it = some lid →
     lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1) →
   kvStoreInv (GF := GF) kv γ γr on γs ∗ wSt γs log c ∗ crOwn γs c ∗ srvRLogLb γr.raft A' ∗
