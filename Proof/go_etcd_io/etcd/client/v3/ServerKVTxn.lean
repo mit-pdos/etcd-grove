@@ -1113,7 +1113,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
     -- the transaction linearized at
     ihave #Hinvs := srvKVInvs_of_read s E γr $$ Hsrd
     ihave %HNx := srvKVInvs_nx E γr $$ Hinvs
-    ihave ⟨%lf, Hcl, %Hll⟩ := nx_of_reached E γr lo $$ [$Hinvs $Hlo]
+    imod (nx_of_reached E γr lo) $$ [$Hinvs $Hlo] with ⟨%lf, Hcl, %Hll⟩
     ihave ⟨%F, #HF, -⟩ := floor0_of_read s E γr $$ Hsrd
     iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F lf hp hx hk hsz) $$ [Hobj Hcl]
     · iframe

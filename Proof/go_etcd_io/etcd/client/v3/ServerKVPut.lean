@@ -329,7 +329,7 @@ theorem kv_put_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AE
     iframe #
   ihave #Hinvs := srvKVInvs_of_read s E γr $$ Hsrd
   ihave %HNx := srvKVInvs_nx E γr $$ Hinvs
-  ihave ⟨%lf, Hcl, %Hll⟩ := nx_of_reached E γr lo $$ [$Hinvs $Hlo]
+  imod (nx_of_reached E γr lo) $$ [$Hinvs $Hlo] with ⟨%lf, Hcl, %Hll⟩
   ihave ⟨%F, #HF, %HF2⟩ := floor0_of_read s E γr $$ Hsrd
   iunfold kvAnyAu at Hany
   imod Hany $$ %(KVOp.put (putWireOf (opPutModel key val gs))) %lf Hcl with #Hau
@@ -516,7 +516,7 @@ theorem kv_delete_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply
   iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #Hlo, #Hnp⟩ HΦ
   ihave #Hinvs := srvKVInvs_of_read s E γr $$ Hsrd
   ihave %HNx := srvKVInvs_nx E γr $$ Hinvs
-  ihave ⟨%lf, Hcl, %Hll⟩ := nx_of_reached E γr lo $$ [$Hinvs $Hlo]
+  imod (nx_of_reached E γr lo) $$ [$Hinvs $Hlo] with ⟨%lf, Hcl, %Hll⟩
   ihave ⟨%F, #HF, %HF2⟩ := floor0_of_read s E γr $$ Hsrd
   iunfold kvAnyAu at Hnp
   imod Hnp $$ %(KVOp.deleteRange (deleteWireOf (opDeleteModel key gs))) %lf Hcl with #Hau

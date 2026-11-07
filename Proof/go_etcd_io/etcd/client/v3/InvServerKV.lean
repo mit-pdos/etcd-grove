@@ -385,24 +385,28 @@ mode off) `etcdReached lo` is `lo ≤ 0` or a log the server witnessed (`E.Nx`: 
 committed raft log, `srvReachedAt`'s, at `srvKVInvs`'s tie `E.Nx = kvNxOff`) longer than `lo`. -/
 theorem nx_of_reached (E : apply.AEnv GF) (γr : ReadNames) (lo : w64) :
     srvKVInvs E γr ∗ etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo ⊢
-      ∃ l : mvcc.Log, nxOrNil E l ∗ ⌜sint.Z lo ≤ 0 ∨ sint.Z lo < l.length⌝ := by
+      |={⊤}=> ∃ l : mvcc.Log, nxOrNil E l ∗ ⌜sint.Z lo ≤ 0 ∨ sint.Z lo < l.length⌝ := by
   iintro ⟨#Hinvs, #Hr⟩
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, -, -, -, -, %HNx, -⟩
+  icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx, -⟩
   unfold etcdReached
   icases Hr with (%Hle | ⟨%r', %Hle, #Hat⟩)
-  · iexists []
+  · imodintro
+    iexists []
     isplitl
     · iunfold nxOrNil; ileft; ipureintro; rfl
     · ipureintro; left; exact Hle
   · rw [v3rpc.etcdModelOfServer_etcdReachedAt]
     unfold v3rpc.srvReachedAt srvApi.srvRevLbA
     icases Hat with ⟨%A, #HA, %Hlt⟩
+    -- (R8 round 4) the witness carries the model's key bound, from the KV invariant
+    imod (kvInv_keysA γr A) $$ HkI HrI HA with %Hk
+    imodintro
     iexists (kvModel γr.kv A)
     iunfold nxOrNil
     rw [HNx]
     isplitl
-    · iright; unfold kvNxOff; iexists A; iframe HA; ipureintro; rfl
+    · iright; unfold kvNxOff; iexists A; iframe HA; ipureintro; exact ⟨rfl, Hk⟩
     · ipureintro; right; exact Int.lt_of_le_of_lt Hle Hlt
 
 /-- **A certified log's witness is the server's** (in the auth mode off, at `srvKVInvs`'s tie
@@ -416,7 +420,6 @@ theorem srvLogCert_kvNx (E : apply.AEnv GF) (γr : ReadNames) (log : mvcc.Log)
   rw [hNx]
   iunfold kvNxOff at Hnx
   icases Hnx with ⟨%A, #HA, %hA⟩
-  obtain ⟨hA, -⟩ := hA
   iunfold srvApi.kvNx
   iexists A
   iframe HA

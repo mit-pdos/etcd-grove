@@ -286,7 +286,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
   -- that log
   ihave #Hinvs := srvKVInvs_of_read s E γr $$ Hsrd
   ihave %HNx := srvKVInvs_nx E γr $$ Hinvs
-  ihave ⟨%l, Hcl, %Hll⟩ := nx_of_reached E γr lo $$ [$Hinvs $Hlo]
+  imod (nx_of_reached E γr lo) $$ [$Hinvs $Hlo] with ⟨%l, Hcl, %Hll⟩
   ihave ⟨%F, #HF, %HlF⟩ := floor0_of_read s E γr $$ Hsrd
   iunfold kvRangeAu at Hany
   imod Hany $$ %(rangeWireOf (opGetModel key gs)) %l Hcl with #Hau
