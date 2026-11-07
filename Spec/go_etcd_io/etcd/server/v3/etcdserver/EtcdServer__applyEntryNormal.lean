@@ -51,7 +51,9 @@ members of the rest state at `A` (`srvMemCover`: with `entryWaitOk`'s `attrEntry
 `restReqOk`; the cluster-rows stage, 2026-11-02). **With auth on** (only): the server's lessor finds
 no lease (`srvLessorNilM`), one time receipt (an admin step's cost) under the receipts' bound, and
 the rights to issue tokens at the consistent index (`srvTokRights`, `True` off), at the entry's
-index after it.
+index after it. The receipt and the bound are both cases' (R2d'a swap batch 4, 2026-11-07: one
+`if E.authOn` and one `receiptBound` premise, outside the `if v3`; until then each case had its
+copy, the same meaning).
 
 **Without `v3`, a replay** (an entry at or below the effective consistent index, at a restart; at
 the pin `673da07c8`, `server.go:1975-2005`): no deferred `SetConsistentIndex`; an empty entry
@@ -76,19 +78,21 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
     (A₀ : List EntryModel) (r : apply.RestM),
   E.authMode ≠ .any →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- the auth-on-only rows, both cases': one time receipt under the receipts' bound
+      (if E.authOn then iprop(⧗ 1) else iprop(True)) ∗
+      ⌜E.authOn = true → receiptBound GF ≤ 2 ^ 48⌝ ∗
       (if v3 then iprop(
         isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ entryWaitOk ρ E m ∗
         entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
         srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ mvcc.storeWT E.γ ∗
-        srvFS s ∗ (if E.authOn then iprop(⧗ 1) else iprop(True)) ∗ srvAppliedOwn γr v ∗
+        srvFS s ∗ srvAppliedOwn γr v ∗
         appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
         kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗
         srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ uint.Z γr.kv.c0 < uint.Z m.index⌝ ∗
         ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
-        ⌜st.pending = false ∧ entryOkM E.authOn E.lm x m ∧ m.typ = W32 0 ∧
-          (E.authOn = true → receiptBound GF ≤ 2 ^ 48)⌝ ∗
+        ⌜st.pending = false ∧ entryOkM E.authOn E.lm x m ∧ m.typ = W32 0⌝ ∗
         (ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
             uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝) ∗
@@ -96,11 +100,11 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
       else iprop(
         isServerM E.authOn s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
         applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗
-        mvcc.storeWT E.γ ∗ srvFS s ∗ (if E.authOn then iprop(⧗ 1) else iprop(True)) ∗
+        mvcc.storeWT E.γ ∗ srvFS s ∗
         committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗ srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
         ⌜st.pending = false ∧ entryOkM E.authOn E.lm x m ∧ m.typ = W32 0 ∧
           uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧
-          (E.authOn = true → receiptBound GF ≤ 2 ^ 48 ∧ x.chain = γr.kv.ch0) ∧
+          (E.authOn = true → x.chain = γr.kv.ch0) ∧
           ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))

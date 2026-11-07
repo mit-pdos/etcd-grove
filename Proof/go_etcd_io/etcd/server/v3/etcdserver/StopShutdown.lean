@@ -15,6 +15,8 @@ apply thread's resources rather than the control flow:
   precondition by gap 4's census (every store reader retired, the backend's whole open token) and
   the stop commit's request (`commitReq_freeze`), then the image from `Cleanup`'s post
   (`StopImage.stop_mergedObs`, `merged_imageAt`, `RestConf.restModel_confState`, `srvFiles`).
+  Since R2d'a swap batch 4 (2026-11-07) in restart form, over `applyResStopR` and the ghost log
+  (`stopCleanupImage.spec`; its first-start instance `specFirst`, the old text, `spec_first`).
 -/
 module
 
@@ -25,6 +27,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthCompRows
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderRetire
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
 
 @[expose] public section
 
@@ -123,6 +126,83 @@ theorem stop_split (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) :
   iexists B, st, ai, at', a, t, cs, x, sa
   iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21
   ipureintro; exact ⟨hB, hp⟩
+
+/-- **The apply thread's resources at the stop, in restart form, but what `raftNode.stop` takes**
+(R2d'a A10 item 3; `stopCleanupImage.spec`'s since swap batch 4): `applyResR`'s without the WAL's apply half (`rnWalTokA`) and the membership resource
+(`srvApRes`, whose live transport goes to `Er.ST`), as `applyResStop` is `applyResC`'s. -/
+def applyResStopR (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List EntryModel) : IProp GF :=
+  iprop(∃ (B : ApplyBe GF) (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV)
+      (sa : auth.AuthState) (g : w64),
+    ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServerC K C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
+    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗
+    epCsAt C.ρ.raft (ghostOf rp A) cs ∗
+    srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
+    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVC K C.s B.E C.γw x sa ∗
+    srvAppliedOwn C.γr g ∗ appliedLogAt C.γr g x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ (ghostOf rp A) x sa ∗
+    srvRestR B.E C.γr rp A ∗ srvRLogLb C.ρ.raft rp.A₀ ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
+    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
+    ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ g ∧
+      uint.Z g ≤ uint.Z (ciEff B.γ st.k) ∧
+      lastTermIs A at' ∧
+      uint.Z g = uint.Z C.ai₀ + (ghostOf rp A).length ∧ rp.b ≤ A.length ∧
+      (∀ m ∈ rp.A₀, m.typ = W32 0 ∨ m.typ = W32 1) ∧
+      uint.Z C.ai₀ + rp.A₀.length ≤ uint.Z (ciEff B.γ st.k) ∧
+      uint.Z C.ai₀ + rp.A₀.length + 1 < 2 ^ 64⌝)
+
+/-- `kvRunM`'s log is committed (`r2d-prime`'s `kvRunM_lb`, `RunWindow.lean:212`). -/
+theorem kvRunM_lbR (on : Bool) (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel)
+    (x : apply.ApplyKV) (st : auth.AuthState) :
+    kvRunM (GF := GF) on γr ai₀ c₀ A x st ⊢ srvRLogLb γr.raft A ∗ kvRunM on γr ai₀ c₀ A x st := by
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  cases on
+  · unfold kvRunM kvRun kvApplied kvAppliedL
+    iintro ⟨⟨⟨#H, -⟩, -⟩, -⟩; iexact H
+  · unfold kvRunM kvRunAtOn kvAppliedOn kvAppliedLOn
+    iintro ⟨⟨⟨#H, -⟩, -⟩, -⟩; iexact H
+
+/-- The replay changes only the members: its buckets are the backend log's model's. -/
+theorem restReplay_bk (γr : ReadNames) (rp : RestartPt) (G : List EntryModel) :
+    (restReplay γr rp G).bk = (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ rp.A₀)).bk := by
+  unfold restReplay
+  rw [fold_restEntryV2]
+
+/-- The leases' records written over two images with the same buckets have the same buckets. -/
+theorem restLeasesWith_bk_congr (f : w64 → w64) (ids : List w64) (r r' : apply.RestM)
+    (h : r.bk = r'.bk) : (apply.restLeasesWith f ids r).bk = (apply.restLeasesWith f ids r').bk := by
+  unfold apply.restLeasesWith
+  induction ids generalizing r r' with
+  | nil => exact h
+  | cons id ids ih =>
+    simp only [List.foldl_cons]
+    apply ih
+    unfold apply.restGrantT
+    rw [apply.RestM.putIn_bk, apply.RestM.putIn_bk, h]
+
+/-- **`applyResStop` is `applyResStopR` at a first start** (R2d'a swap batch 4): the ghost log Go's
+(`ghostOf_first`), the ghost index Go's, the rest buckets `srvRest` (`srvRestR_first`), the backend's
+log `[]` committed (from the KV's log, `kvRunM_lbR`), given the start's `ai₀ = 0`. -/
+theorem applyResStop_first (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) (h0 : C.ai₀ = W64 0) :
+    applyResStop K C A ⊢ applyResStopR K C RestartPt.first A := by
+  unfold applyResStop applyResStopR
+  iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %hB, #Hsrv, H1, H2, H3, H4, H5, H6, H7, H8, H9,
+    H10, H11, H12, Hao, Hlog, Hkr, HRs, H18, Hwt, H19, H20, %hp⟩
+  ihave ⟨#Hlb, Hkr⟩ := kvRunM_lbR K.isOn C.γr C.ai₀ C.c₀ A x sa $$ Hkr
+  ihave #Hsrv' := Hsrv
+  iunfold isServerC at Hsrv'
+  icases Hsrv' with ⟨%hρ, -⟩
+  ihave #Hlb0 : srvRLogLb C.ρ.raft RestartPt.first.A₀ $$ [Hlb]
+  · rw [← hρ]
+    iapply (srvRLogLb_mono _ RestartPt.first.A₀ A (by simp [RestartPt.first])); iexact Hlb
+  iexists B, st, ai, at', a, t, cs, x, sa, ai
+  rw [ghostOf_first, srvRestR_first]
+  iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 Hao Hlog Hkr HRs Hlb0 H18 Hwt H19 H20
+  ipureintro
+  obtain ⟨hlo, hai, hJ, hle, hlt⟩ := hp
+  refine ⟨hB, hlo, hai, hJ, hle, hlt, hai, Nat.zero_le _, by simp [RestartPt.first], ?_, ?_⟩
+  · simp only [RestartPt.first, List.length_nil]; word
+  · simp only [RestartPt.first, List.length_nil, h0]; word
 
 
 /-! ## The census (gap 4): every reader of the store retired, the backend's whole open token -/
@@ -390,7 +470,9 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
   have h := restModel_confState γ.raft.vs γ.raft.boot R hvs.2 hvs.1 Hurl hbcc hcc D hD
   exact h
 
-/-- **`s.Cleanup()` at the stop, and the image** (see the file header): from the apply thread's
+/-- **`stopCleanupImage.spec` at a first start** (R2d'a swap batch 4: the frozen text of
+`stopCleanupImage.spec` until then, now its instance at `RestartPt.first`, `stopCleanupImage.spec_first`;
+the frozen `run.wp_proofG` takes it until the run swap). `s.Cleanup()` at the stop, and the image: from the apply thread's
 resources at the handed log `A` (`applyResStop`), the stop's slot but its raft part, the caller's
 unused serving readers (`srvStopReq`'s, R2c-4), the stop request's evidence and data directory
 (`srvBootApplied`, `srvDataDir`: `srvStopReq`'s), and what `raftNode.stop` returned
@@ -404,7 +486,7 @@ what `kv.Close` takes, `wsCloserR`, and what the image's observation reads, `app
 storage-version monitor's read token, `stop_monitorRT`), `isServerApplyAll` (the KV names' start
 log), two later credits, and (H2, 2026-11-05) the budget's register at `GoAttach`'s receipts' name
 and `Wait`'s `goWaited` (which rule the monitor's open session out). A `Prop`, so that `run`'s proof takes it as a hypothesis. -/
-abbrev stopCleanupImage.spec : Prop :=
+abbrev stopCleanupImage.specFirst : Prop :=
   ∀ (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) (Er : RNEnv GF)
     (γg : GoNames) (γcx : context.ContextNames) (v : RunFields) (SP : IProp GF)
     (TM : MetaCI → IProp GF)
@@ -435,8 +517,60 @@ abbrev stopCleanupImage.spec : Prop :=
       (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Cleanup")) (Val #()))
     {{ RET #(); srvDiskImage C.ρ.rd.raft.raft C.ρ C.rn.id dd }}
 
+/-- **`s.Cleanup()` at the stop, and the image** (see the file header; R2d'a swap batch 4,
+2026-11-07: one spec in restart form, the old text its first-start instance,
+`stopCleanupImage.spec_first`; until then also `StopR.lean`'s `stopCleanupImageR.spec`, inside the
+replay window only): from the apply thread's resources at Go's handed log `A` in restart form at the
+restart point `rp` (`applyResStopR`: the ghost rows at the ghost log `ghostOf rp A`, the backend's log
+`rp.A₀` committed), the stop's slot but its raft part, the caller's unused serving readers
+(`srvStopReaders`, `srvStopReq`'s, R2c-4), the stop request's evidence and data directory
+(`srvBootApplied`, `srvDataDir`: `srvStopReq`'s), and what `raftNode.stop` returned
+(`raftNode.stop.spec`'s post) with the records' stored commit at least the ghost log (inside the
+window `|A₀|`, from the restart data, `rnRestartOk_commit`), the member's image at the stopped
+incarnation's names, of the ghost log (inside the window the backend's `A₀`: both committed and of
+one length, so equal; past it Go's `A`). Scope (the stop request's, `srvStop.scope`): `ai₀ = 0`,
+`pre = []`, auth off, no compactor (R2c-2: from no compaction mode, `srvStop.census_readers`; until
+then a premise); and (2026-11-05) a store that does not compact (`E.cmp = false`: in compaction mode
+the apply thread's compaction right, `apply.cmpOwn`, is both what `kv.Close` takes, `wsCloserR`, and
+what the image's observation reads, `apply.cmpObs`). (R2c-1) The voters the bootstrap log's members,
+distinct, are `srvRaftLogInv`'s. Besides: the write budget's invariant (the storage-version monitor's
+read token, `stop_monitorRT`), `isServerApplyAll` (the KV names' start log), two later credits, and
+(H2, 2026-11-05) the budget's register at `GoAttach`'s receipts' name and `Wait`'s `goWaited` (which
+rule the monitor's open session out). A `Prop`, so that `run`'s proof takes it as a hypothesis. -/
+abbrev stopCleanupImage.spec : Prop :=
+  ∀ (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List EntryModel) (Er : RNEnv GF)
+    (γg : GoNames) (γcx : context.ContextNames) (v : RunFields) (SP : IProp GF)
+    (TM : MetaCI → IProp GF)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (dd : GoString),
+    C.E.authMode = K.mode → C.E.authOn = false →
+    (Er.C = srvCM K.isOn C.ρ C.E C.ai₀ C.c₀ C.x₀ ∧ Er.γr = C.γr ∧
+      (uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ C.rn.pre = [] ∧ C.ai₀ = W64 0)) →
+    storage.diskOk →
+    C.E.cmp = false →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerC K C.s C.γ C.ci TM C.E C.ρ C.γr ∗
+        isRaftNode Er C.rn (srvRAddr C.s) ∗
+        srvRunFieldsAt C.s C.γr γg γcx v SP ∗
+        applyResStopR K C rp A ∗
+        srvStop.cleanupPart C.s C.E ∗ srvStop.censusPart C.s C.E ∗ srvStop.imagePart C.s cfg C.rn ∗
+        srvDataDir C.s dd ∗ srvStopReaders C.E ∗
+        srvBootApplied C.ρ ∗
+        nodeVacant C.rn.node.cl C.rn.id ∗
+        (∃ (S : RaftState) (σ : StorContents), raftState C.rn.node.cl C.rn.id S ∗
+          rnWalClosed C.rn (srvRAddr C.s) σ ∗
+          ⌜StorageHolds S σ ∧ σ.b ≤ (C.rn.pre ++ A).length ∧
+            (C.rn.pre ++ ghostOf rp A).length ≤ σ.commit⌝ ∗
+          -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate (`raftNode.stop`'s)
+          walSnapCert C.rn.node.cl σ) ∗
+        srvWTPool C.E C.wt ∗ isServerApplyAll C.s C.γr ∗ £ 2 ∗
+        -- (H2, 2026-11-05) the budget's register at `GoAttach`'s receipts, and `Wait` returned
+        dghostVar C.wt.reg DFrac.discard (some γg.run) ∗ goWaited γg }}
+      (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Cleanup")) (Val #()))
+    {{ RET #(); srvDiskImage C.ρ.rd.raft.raft C.ρ C.rn.id dd }}
+
 /-- `stopCleanupImage.spec`'s proof, from `Cleanup`'s spec and the stop commit's request's callees
-(`commitReq_freeze`'s). -/
+(`commitReq_freeze`'s): one tail over the ghost log `G` (R2d'a swap batch 4: until then the frozen
+proof at Go's log and `StopR.lean`'s `stop_cleanup_imageR` inside the window). -/
 theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -446,7 +580,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     stopCleanupImage.spec (GF := GF) (hG := hG) := by
-  intro K C A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
+  intro K C rp A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
   iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
     ⟨%S, %σ, Hrst, Hwc, %hσ, #Hσc⟩, #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
   -- auth off
@@ -455,9 +589,9 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     exfalso
     simp [apply.AEnv.authOn, hM, AuthC.mode, auth.AuthMode.isOn] at hoff
   | off => ?_
-  unfold applyResStop
-  icases Hres with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %hB, #Hsrv, -, -, -, -, -, Hst, -, -,
-    -, Hbr, -, HKV, Hao, #Hlog, Hkr, HRs, #Hkv, -, -, Hso, %hp⟩
+  unfold applyResStopR
+  icases Hres with ⟨%B, %st, %ai0g, %at', %a, %t, %cs, %x, %sa, %ai, %hB, #Hsrv, -, -, -, -, -, Hst, -, -,
+    -, Hbr, -, HKV, Hao, #Hlog, Hkr, HRs, #HlbA0, #Hkv, -, -, Hso, %hp⟩
   obtain ⟨hc0a, hpre, hai0⟩ := hEr.2.2
   have hc00 : C.c₀ = W64 0 := by rw [hai0] at hc0a; word
   -- the current backend's environment is the start's on another backend
@@ -476,6 +610,32 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   ihave #Hsrv' := Hsrv
   iunfold isServerC at Hsrv'
   icases Hsrv' with ⟨%hρ, #HCI, ⟨%vf, #Hf⟩, #Hat, -⟩
+  -- (R2d'a swap batch 4) the ghost log `G` (`ghostOf rp A`, the ghost index `ai` at it): inside the
+  -- window the backend's `A₀` (both committed, of one length), past it Go's; the rest buckets at an
+  -- image `rG` with the model's buckets either way (inside, the replay's, `restReplay_bk`)
+  ihave ⟨#HlbG, Hkr⟩ := kvRunM_lbR AuthC.off.isOn C.γr C.ai₀ C.c₀ (ghostOf rp A) x sa $$ Hkr
+  ihave %hpc := srvRLogLb_prefix C.γr.raft (ghostOf rp A) rp.A₀ $$ [HlbG HlbA0]
+  · rw [← hρ]; iframe HlbG HlbA0
+  obtain ⟨rG, hRG, hbk⟩ : ∃ rG : apply.RestM, srvRestR B.E C.γr rp A =
+      srvRestRp B.E C.γr (ghostOf rp A) rG ∧
+      rG.bk = (restModel C.γr.kv.c0 C.γr.raft.raft.boot (C.γr.raft.pre ++ ghostOf rp A)).bk := by
+    by_cases hwin : A.length < rp.A₀.length
+    · have hl : (ghostOf rp A).length = rp.A₀.length := by
+        simp only [ghostOf, List.length_append, List.length_drop]; omega
+      have hGA : ghostOf rp A = rp.A₀ := by
+        rcases hpc with h | h
+        · exact h.eq_of_length hl
+        · exact (h.eq_of_length hl.symm).symm
+      refine ⟨restReplay C.γr rp A, ?_, ?_⟩
+      · rw [srvRestR_in B.E C.γr rp A hwin, hGA]
+      · rw [hGA]; exact restReplay_bk C.γr rp A
+    · have hp' : rp.A₀.length ≤ A.length := by omega
+      refine ⟨restModel C.γr.kv.c0 C.γr.raft.raft.boot (C.γr.raft.pre ++ ghostOf rp A), ?_, rfl⟩
+      rw [srvRestR_past B.E C.γr rp A hp', ghostOf_past rp A hp', srvRestRp_model]
+  have hAG : A.length ≤ (ghostOf rp A).length := by
+    simp only [ghostOf, List.length_append]; omega
+  rw [hRG]
+  generalize ghostOf rp A = G at hp hbk hAG hσ ⊢
   iunfold srvFieldsAtM at Hf
   icases Hf with ⟨-, -, -, -, -, %Henv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hbh⟩
   iunfold srvBeHooked at Hbh
@@ -628,18 +788,22 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     · word
   have hRB : ∀ n ∈ restBuckets, d.P.RB n = true := fun n hn => by
     simp [mvcc.KBReal.P, hn]
-  ihave ⟨%f, %Hfb, HRs, -, -, -⟩ := srvRest_open B.E C.γr A $$ HRs
+  ihave ⟨%f, %Hfb, HRs, -, -, -⟩ := srvRestRp_open B.E C.γr G rG $$ HRs
   rw [hRO]
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, -⟩
   iunfold srvRestOwn at Hro
   icases Hro with ⟨Hrc, Hrn', -, -⟩
-  ihave %hobsM := stop_mergedObsP B.γ B.E C.γr ai A x d f st D hkb hcK hRB hcm hdcm hci Hwf Hfb
+  -- the image's buckets are the model's at `G` (inside the window: the replay changes only the
+  -- members)
+  rw [restLeasesWith_bk_congr f (srvIds B.E (appliedTable C.γr G).ids) _
+    (restModel C.γr.kv.c0 C.γr.raft.raft.boot (C.γr.raft.pre ++ G)) hbk]
+  ihave %hobsM := stop_mergedObsP B.γ B.E C.γr ai G x d f st D hkb hcK hRB hcm hdcm hci Hwf Hfb
     $$ [HY Hrc Hrn' Hpin Hsv]
   · iframe HY Hrc Hrn' Hpin Hsv
   have hobs := mergedObs_of_M hBam hobsM
   -- the KV names' start values
-  have ekr : kvRunM (GF := GF) AuthC.off.isOn C.γr C.ai₀ C.c₀ A x sa = kvRun C.γr C.ai₀ C.c₀ A x :=
+  have ekr : kvRunM (GF := GF) AuthC.off.isOn C.γr C.ai₀ C.c₀ G x sa = kvRun C.γr C.ai₀ C.c₀ G x :=
     rfl
   rw [ekr]
   iunfold kvRun at Hkr
@@ -647,7 +811,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold isServerApplyAll at Hsa
   icases Hsa with ⟨%wt0, %msc, %sc, -, -, -, -, -, -, -, -, -, -, -, %Hlog0⟩
   have hc0' : C.γr.kv.c0 = W64 0 := hk0.1.trans hc00
-  imod merged_imageAt C.s B.γ C.ci B.TM B.E C.ρ C.γr ai A x D ⟨hc0', Hlog0⟩ $$ [HsrvI Hka]
+  imod merged_imageAt C.s B.γ C.ci B.TM B.E C.ρ C.γr ai G x D ⟨hc0', Hlog0⟩ $$ [HsrvI Hka]
     with ⟨Hka, %himg⟩
   · iframe HsrvI Hka; ipureintro; exact hobs
   iunfold kvApplied at Hka
@@ -662,8 +826,8 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases Henv with ⟨-, %hraft, -⟩
   have hγ : C.γr.raft.raft = C.rn.node := by rw [← hEr.2.1]; exact hraft.1
   have hpre' : C.γr.raft.pre = [] := by rw [← hEr.2.1, hraft.2.1, hpre]
-  have hai : uint.nat ai = A.length := by
-    have h1 := hp.2.1; rw [hai0] at h1; word
+  have hai : uint.nat ai = G.length := by
+    have h1 := hp.2.2.2.2.2.1; rw [hai0] at h1; word
   -- the bootstrap log applied (the stop request's evidence)
   ihave #Hrl' := Hrl
   iunfold srvRaftLogInv at Hrl'
@@ -678,9 +842,9 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases Hao with ⟨Hao, -⟩
   rw [hρ]
   ihave %hle := monoNatLbOwn_valid C.γr.applied _ _ _ $$ Hao Hvb
-  have hboot : C.γr.raft.raft.boot.length ≤ A.length := by rw [← hai]; omega
+  have hboot : C.γr.raft.raft.boot.length ≤ G.length := by rw [← hai]; omega
   -- the configuration point
-  imod stop_imageConf C.γr.raft C.γr.kv A D ai hpre' hai hc0' hboot himg $$ [Hrl HA]
+  imod stop_imageConf C.γr.raft C.γr.kv G D ai hpre' hai hc0' hboot himg $$ [Hrl HA]
     with ⟨#Hconf, %hconf⟩
   · iframe Hrl HA
   -- the registry's authority and the WAL's files
@@ -706,11 +870,11 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   imodintro
   iapply HΦ
   iunfold srvDiskImage
-  iexists S, σ, ai, A, D, Membership.simple C.γr.raft.raft.cfg, M
+  iexists S, σ, ai, G, D, Membership.simple C.γr.raft.raft.cfg, M
   rw [hρ] at *
   iunfold srvFiles
   rw [← hwd, ← hγ]
-  have h1 := hp.2.1
+  have h1 := hp.2.2.2.2.2.1
   have h2 := hσ.2.1
   have h3 := hσ.2.2
   rw [hpre] at h2 h3
@@ -720,6 +884,19 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   ipureintro
   refine ⟨⟨rfl, hc0'⟩, ⟨by rw [hk0.2]; exact h1, by rw [hpre'] at himg ⊢; exact himg⟩,
     by rw [HbL]; omega, hconf⟩
+
+/-- **The first-start instance is the old text** (R2d'a swap batch 4): `stopCleanupImage.spec` at
+`RestartPt.first` (`applyResStop_first`, `ghostOf_first`) is `specFirst`, its frozen text until then. -/
+theorem stopCleanupImage.spec_first (h : stopCleanupImage.spec (GF := GF) (hG := hG)) :
+    stopCleanupImage.specFirst (GF := GF) (hG := hG) := by
+  intro K C A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
+  have hs := h K C RestartPt.first A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
+  rw [ghostOf_first] at hs
+  iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac, Hrst,
+    #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
+  ihave Hres := applyResStop_first K C A hEr.2.2.2.2 $$ Hres
+  iapply hs $$ [Hres Hclp Hcsp Himp Hrds Hvac Hrst Hlc Hwd] HΦ
+  iframe Hpkg Hsrv0 Hrn Hrf Hres Hclp Hcsp Himp Hdd Hrds Hba Hvac Hrst Hpool Hsa Hlc Hreg Hwd
 
 end proof
 

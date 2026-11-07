@@ -176,17 +176,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `kvRunM`'s log is committed (`r2d-prime`'s `kvRunM_lb`, `RunWindow.lean:212`). -/
-theorem kvRunM_lbR (on : Bool) (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel)
-    (x : apply.ApplyKV) (st : auth.AuthState) :
-    kvRunM (GF := GF) on γr ai₀ c₀ A x st ⊢ srvRLogLb γr.raft A ∗ kvRunM on γr ai₀ c₀ A x st := by
-  refine (persistent_entails_left ?_).trans sep_comm.1
-  cases on
-  · unfold kvRunM kvRun kvApplied kvAppliedL
-    iintro ⟨⟨⟨#H, -⟩, -⟩, -⟩; iexact H
-  · unfold kvRunM kvRunAtOn kvAppliedOn kvAppliedLOn
-    iintro ⟨⟨⟨#H, -⟩, -⟩, -⟩; iexact H
-
 /-- **The rest buckets at the restart's start**: `srvRest` at the backend's log is `srvRestR` at
 Go's handed log `P` (`rp = ⟨|P|, A₀⟩`; inside the window, the replay arm at the model's image). -/
 theorem srvRestR_start (E : apply.AEnv GF) (γr : ReadNames) (P A₀ : List EntryModel)

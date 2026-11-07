@@ -1863,18 +1863,18 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     cases v3
     · simp only [isServerM_false, srvApplyKVM_false, entryOkM_false, Bool.false_eq_true,
         ↓reduceIte] at h ⊢
-      iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, -, #Hcm, HRS, #HA0,
+      iintro %Φ ⟨#Hpkg, -, -, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, #Hcm, HRS, #HA0,
         %HmA, %Hpo⟩ HΦ
       iapply h $$ [He Hst Hbe Hlr Hgr HKV Hwt Hfs HRS] HΦ
       iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr HKV Hwt Hfs Hcm HRS HA0
       ipureintro; exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, Hpo.2.2.2.2.2⟩
     · simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
         entryOkM_false, hT, Bool.false_eq_true, ↓reduceIte] at h ⊢
-      iintro %Φ ⟨#Hpkg, #Hsrv, -, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, -, Hao, Hlog,
+      iintro %Φ ⟨#Hpkg, -, -, #Hsrv, -, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao, Hlog,
         #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, -⟩ HΦ
       iapply h $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
       · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
-        ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1⟩
+        ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2⟩
       inext
       iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst⟩
       iapply HΦ
@@ -1886,20 +1886,20 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     rw [hon]
     cases v3
     · simp only [srvApplyKVM_true, entryOkM_true, Bool.false_eq_true, ↓reduceIte] at hOn ⊢
-      iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, #Hcm, HRS, #HA0,
-        %HmA, %Hpo⟩ HΦ
+      iintro %Φ ⟨#Hpkg, Hr, %Hrb, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, #Hcm, HRS,
+        #HA0, %HmA, %Hpo⟩ HΦ
       iapply hOn $$ [He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr HRS] HΦ
       iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hcm HRS HA0
       ipureintro
-      exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, (Hpo.2.2.2.2.1 trivial).1,
-        (Hpo.2.2.2.2.1 trivial).2, Hpo.2.2.2.2.2⟩
+      exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, Hrb trivial,
+        Hpo.2.2.2.2.1 trivial, Hpo.2.2.2.2.2⟩
     · simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
         ↓reduceIte] at hOn ⊢
-      iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
-        #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
+      iintro %Φ ⟨#Hpkg, Hr, %Hrb, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao,
+        Hlog, #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
       iapply hOn $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
       iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
-      ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1, Hpre.2.2.2 trivial⟩
+      ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2, Hrb trivial⟩
 
 end proof
 

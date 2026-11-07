@@ -175,7 +175,6 @@ theorem EtcdServer.run.wp_proofR
     (hSStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
     (hRStop : raftNode.stop.spec (GF := GF) (hG := hG))
     (hCl : stopCleanupImage.spec (GF := GF) (hG := hG))
-    (hClR : stopCleanupImageR.spec (GF := GF) (hG := hG))
     (hAB : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     (hAS : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
@@ -923,60 +922,38 @@ theorem EtcdServer.run.wp_proofR
     -- `s.wg.Wait()`
     (try wp_auto)
     wp_apply wp_goAttach_Wait s γg $$ [$Hsync $Hwg $Hinv $Hwz $Hwwt] as Hgw
-    -- (R2d'a A10 item 3) inside the replay window the restart form (`StopR.lean`), past it the
-    -- frozen path (`applyResR_past`)
-    by_cases hwin : A.length < A₀.length
-    · -- `s.r.stop()`: the WAL's apply half, the transport's stop right (`Er.ST`), the stop claim
-      icases stop_splitR C _ ⟨0, A₀⟩ A $$ Hres with ⟨Hwta, Htrs, Hres⟩
-      icases (srvStop.keep_split s cfg E γn γk) $$ Hkeep with ⟨Hrp, Hclp, Hcsp, Himp⟩
-      icases srvStop.raft_stop s γn γk $$ [$Hrp $Htrs] with ⟨Hsc, HST⟩
-      rw [← hST]
-      (try wp_auto)
-      wp_apply hRStop Er γn (srvRAddr s) A $$ [$Hpkg $Hrn $HST $Hrunh $Hwta $Hsc $Happly]
-        as ⟨Hvac, %S, %σ, HrS, Hwc, %Hsh, #Hwcert⟩
-      -- the records' commit at least `|A₀|`, from the restart data (`rnRestartOk_commit`)
-      ihave ⟨HrS, %Hcm⟩ := rnRestartOk_commit γn S σ Hsh.1 $$ Hrok HrS
-      ihave Hrst : iprop(∃ (S : RaftState) (σ : StorContents), raftState γn.node.cl γn.id S ∗
-          rnWalClosed γn (srvRAddr s) σ ∗
-          ⌜StorageHolds S σ ∧ σ.b ≤ (γn.pre ++ A).length ∧ A₀.length ≤ σ.commit⌝ ∗
-          walSnapCert γn.node.cl σ) $$ [HrS Hwc]
-      · iexists S, σ
-        iframe HrS Hwc Hwcert
-        ipureintro; exact ⟨Hsh.1, Hsh.2.1, by rw [← Ha0]; exact Hcm⟩
-      -- `s.Cleanup()`: the backend closed, the image at the backend's log `A₀`
-      (try wp_auto)
-      wp_apply hClR C
-          (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
-          ⟨0, A₀⟩ A Er γg γcx v _ TM cfg dd hM hoff ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp hwin
-        $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $HlbA $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
-          Hlc2 Hlc3 $HWreg $Hgw] as Himg
-      · iapply (lc_split (n := 1) (m := 1)).2; iframe Hlc2 Hlc3
-      -- `close(s.done)`, the image escrowed (`srvDoneInv`)
-      imod inv_alloc srvStopN ⊤ iprop(srvDiskImage ρ.rd.raft.raft ρ γn.id dd ∨ token c) $$ [Himg]
-        with #Hdi
-      · inext; ileft; iexact Himg
-      (try wp_auto)
-      wp_apply +noauto wp_broadcast_chan_close _ γd (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) $$ [$Hdc]
-        as -
-      · imodintro; iunfold srvDoneInv; iexact Hdi
-      (try wp_auto)
-      iapply HΦ
-      iexact Htok
-    -- past the window: `applyResC` (`applyResR_past`), the frozen path
-    ihave Hres := applyResR_past C _ ⟨0, A₀⟩ A (by simp only; omega) $$ Hres
+    -- (R2d'a A10 item 3; swap batch 4) the stop in restart form (`stopCleanupImage.spec` over the
+    -- ghost log, inside the replay window and past it)
     -- `s.r.stop()`: the WAL's apply half, the transport's stop right (`Er.ST`), the stop claim
-    icases stop_split C _ A $$ Hres with ⟨Hwta, Htrs, Hres⟩
+    icases stop_splitR C _ ⟨0, A₀⟩ A $$ Hres with ⟨Hwta, Htrs, Hres⟩
     icases (srvStop.keep_split s cfg E γn γk) $$ Hkeep with ⟨Hrp, Hclp, Hcsp, Himp⟩
     icases srvStop.raft_stop s γn γk $$ [$Hrp $Htrs] with ⟨Hsc, HST⟩
     rw [← hST]
     (try wp_auto)
     wp_apply hRStop Er γn (srvRAddr s) A $$ [$Hpkg $Hrn $HST $Hrunh $Hwta $Hsc $Happly]
-      as ⟨Hvac, Hrst⟩
-    -- `s.Cleanup()`: the backend closed, the image
+      as ⟨Hvac, %S, %σ, HrS, Hwc, %Hsh, #Hwcert⟩
+    -- the records' commit at least the ghost log: `|A₀|` from the restart data
+    -- (`rnRestartOk_commit`), `|A|` from `raftNode.stop`
+    ihave ⟨HrS, %Hcm⟩ := rnRestartOk_commit γn S σ Hsh.1 $$ Hrok HrS
+    ihave Hrst : iprop(∃ (S : RaftState) (σ : StorContents), raftState γn.node.cl γn.id S ∗
+        rnWalClosed γn (srvRAddr s) σ ∗
+        ⌜StorageHolds S σ ∧ σ.b ≤ (γn.pre ++ A).length ∧
+          (γn.pre ++ ghostOf ⟨0, A₀⟩ A).length ≤ σ.commit⌝ ∗
+        walSnapCert γn.node.cl σ) $$ [HrS Hwc]
+    · iexists S, σ
+      iframe HrS Hwc Hwcert
+      ipureintro
+      have hp0 : γn.pre = [] := Hc0a.2.1
+      have hc1 := Hsh.2.2
+      have hc2 : A₀.length ≤ σ.commit := by rw [← Ha0]; exact Hcm
+      refine ⟨Hsh.1, Hsh.2.1, ?_⟩
+      simp only [ghostOf, hp0, List.nil_append, List.length_append, List.length_drop] at hc1 ⊢
+      omega
+    -- `s.Cleanup()`: the backend closed, the image at the ghost log
     (try wp_auto)
     wp_apply hCl C
         (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
-        A Er γg γcx v _ TM cfg dd hM hoff ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp
+        ⟨0, A₀⟩ A Er γg γcx v _ TM cfg dd hM hoff ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp
       $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
         Hlc2 Hlc3 $HWreg $Hgw] as Himg
     · iapply (lc_split (n := 1) (m := 1)).2; iframe Hlc2 Hlc3

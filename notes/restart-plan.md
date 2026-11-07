@@ -4128,3 +4128,56 @@ Each restart statement under the frozen name, its frozen proof replaced by the R
 
 Next: the merged `stopCleanupImage` (pair 8), the run swap with the hub edit (pair 9); before landing,
 the match-mode and the two bounds rows above.
+
+#### Swap batch 4: the merged `stopCleanupImage` (pair 8), and batch 3's three gate rows (2026-11-07; review F1, the swap the user approved)
+
+The gate rows first (the coordinator's go):
+- **`applyEntryNormal.spec`** (Spec), a statement-only rewrite with the same meaning: the auth-on-only
+  rows go outside the `if v3`, once, shared by both cases. Old: each case had
+  `(if E.authOn then ⧗ 1 else True)` and `(E.authOn = true → receiptBound GF ≤ 2 ^ 48)` (the
+  replay's `(… → receiptBound … ∧ x.chain = ch0)`); new: `isPkgInit ∗ (if E.authOn then ⧗ 1 else
+  True) ∗ ⌜E.authOn = true → receiptBound GF ≤ 2 ^ 48⌝ ∗ (if v3 then … else …)`, the replay keeping
+  `(E.authOn = true → x.chain = ch0)`. Same meaning: `P ∗ (if v3 then X ∗ R else Y ∗ R) ⊣⊢ P ∗ R ∗
+  (if v3 then X else Y)`, and an implication into a conjunction splits. Old and new side by side:
+  `/shared/tmp/aen_spec_batch4_oldnew.md`. Only the adapters changed: `applyEntryNormal.wp_proof`
+  (from `specOff`/`specOn`) and `ModeSpecs`' `spec_off`/`spec_on` (their patterns); `specOff`/`specOn`,
+  the mode proofs and `apply`'s callers unchanged.
+- **`StopR.lean`'s stock** (`List.replicate (64 + 64)`): gone with its spec (below); the merged spec
+  names the stop's owner predicate `srvStopReaders C.E` (`InvRestart.lean`, the abbrev of that
+  literal), not the count.
+
+The merge, the restart statement under the frozen name:
+- **`stopCleanupImage.spec`** (`StopShutdown.lean`): binder `rp : RestartPt` after `C`; pre
+  `applyResStopR K C rp A` (was `applyResStop K C A`: the ghost rows at `ghostOf rp A`, the ghost
+  index `g`, `srvRestR`, the backend's log `rp.A₀` committed), `srvStopReaders C.E` (was its literal),
+  the records' commit `(C.rn.pre ++ ghostOf rp A).length ≤ σ.commit` (was `(C.rn.pre ++ A)`); post
+  unchanged (the image at the ghost log). No window premise and no `srvRLogLb C.ρ.raft A` (the R
+  spec's): inside the window the ghost log and `A₀` are both committed (`kvRunM_lbR`, `applyResStopR`'s
+  lb) and of one length, so equal. **Why stronger**: at `rp := RestartPt.first` it is the old text
+  (`stopCleanupImage.spec_first : spec → specFirst`, `specFirst` the old text verbatim: `ghostOf_first`,
+  and the new law `applyResStop_first : applyResStop K C A ⊢ applyResStopR K C RestartPt.first A`
+  given `C.ai₀ = 0`, the backend's `[]` committed from the KV's log); and it is the R spec without its
+  window premise and `srvRLogLb A`.
+- **Proof** `stop_cleanup_image`: StopR's, one tail over `G := ghostOf rp A` (`generalize`): the rest
+  buckets at an image `rG` whose buckets are the model's at `G` (inside the window `restReplay`,
+  `restReplay_bk`; past it the model, `srvRestRp_model`). The frozen proof and `StopR`'s
+  `stopCleanupImageR.spec`/`stop_cleanup_imageR` deleted.
+- **Moved** to `StopShutdown.lean`: `applyResStopR`, `restReplay_bk`, `restLeasesWith_bk_congr` (from
+  `StopR`), `kvRunM_lbR` (from `StartR`). `StopR.lean` keeps `stop_splitR` (it needs `applyResR`,
+  `RunR`).
+- **Callers**: the frozen `run.wp_proofG` (`EtcdServer__run.lean`, one line) takes
+  `stopCleanupImage.spec_first hCl` until the run swap; `run.wp_proofR` (`RunRestart`): the stop arm is
+  one arm (`stop_splitR`, `raftNode.stop.spec`, the commit bound from `rnRestartOk_commit` and
+  `raftNode.stop`'s post, `hCl` at `⟨0, A₀⟩`), the past-the-window arm (`applyResR_past`,
+  `stop_split`, the frozen spec) and `hClR` gone. `raftNode.stop.spec` unchanged.
+- No exported result restates `stopCleanupImage.spec`; `Link.lean` unchanged (callee lists the same).
+- **Checks**: full build ok (13398 jobs); `tcb-report --check` 817 axioms, 4 sorries (baseline), the
+  53 collections unchanged; `etc/mode-check.py --check` ok, 289 against 289 (match-mode 70 → 69);
+  `etc/bounds-check.py --check` ok, 389 against 389 (spec-receipt 10 → 9, stock 36 → 35 in
+  etcdserver); api-check (every `etc/api/*.txt`), `import-all-check`, `gen-interface --check`
+  (etcdstart, backend) ok; `etc/gen-link.py --server`'s output identical to `Link.lean`.
+- **Deleted**: `StopR.lean`'s `stopCleanupImageR.spec`, `stop_cleanup_imageR` (and the frozen
+  `stop_cleanup_image`'s first-start proof, replaced); `StopR.lean` 457 → 50 lines; no file deleted.
+
+Next: the run swap with the hub edit (pair 9, batch 5): `run.wp_proof := ` the R proof, then
+`specFirst`/`spec_first`, `applyResStop`, `stop_split`, `applyResR_past` lose their last users.

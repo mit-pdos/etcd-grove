@@ -1469,7 +1469,8 @@ theorem EtcdServer.run.wp_proofG
       as ⟨Hvac, Hrst⟩
     -- `s.Cleanup()`: the backend closed, the image
     (try wp_auto)
-    wp_apply hCl C
+    -- (R2d'a swap batch 4) `stopCleanupImage.spec` at a first start (`spec_first`: the old text)
+    wp_apply (stopCleanupImage.spec_first hCl) C
         (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
         A Er γg γcx v _ TM cfg dd hM hoff ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp
       $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa

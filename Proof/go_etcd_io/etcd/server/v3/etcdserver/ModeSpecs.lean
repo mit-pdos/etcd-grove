@@ -201,6 +201,7 @@ theorem EtcdServer.applyEntryNormal.spec_off
       %Hpo⟩ HΦ
     iapply this $$ [He Hst Hbe Hlr Hgr HKV Hwt Hfs HRS] HΦ
     iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr HKV Hwt Hfs Hcm HRS HA0
+    isplitr; · itrivial
     ipureintro
     exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, fun h => absurd h (by simp), Hpo.2.2.2.2⟩
   · simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
@@ -209,7 +210,8 @@ theorem EtcdServer.applyEntryNormal.spec_off
       #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3⟩ HΦ
     iapply this $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
     · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
-      ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2, fun h => absurd h (by simp)⟩
+      isplitr; · itrivial
+      ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2⟩
     inext
     iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, %sa', HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst, -⟩
     iapply HΦ
@@ -230,16 +232,18 @@ theorem EtcdServer.applyEntryNormal.spec_on
       %HmA, %Hpo⟩ HΦ
     iapply this $$ [He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr HRS] HΦ
     iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hcm HRS HA0
+    isplitr; · ipureintro; exact fun _ => Hpo.2.2.2.2.1
     ipureintro
     exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1,
-      fun _ => ⟨Hpo.2.2.2.2.1, Hpo.2.2.2.2.2.1⟩, Hpo.2.2.2.2.2.2⟩
+      fun _ => Hpo.2.2.2.2.2.1, Hpo.2.2.2.2.2.2⟩
   · simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
       ↓reduceIte] at this ⊢
     iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
       #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
     iapply this $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
     iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
-    ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1, fun _ => Hpre.2.2.2⟩
+    isplitr; · ipureintro; exact fun _ => Hpre.2.2.2
+    ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1⟩
 
 end variants
 
