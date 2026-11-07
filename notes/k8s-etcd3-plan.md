@@ -1423,6 +1423,41 @@ did not.) `Main.spec` keeps its premises.
 The size came in under the estimate: `MainCluster.lean` is ~330 lines, and Adequacy, Results and
 links ~200.
 
+### k8s etcd3 over cluster3, step 2: as built (2026-11-07, etcd-grove-56, branch `k8s-cluster-s2`; Draft rev 2 approved with fixes by the user via etcd-grove-82)
+
+**Go.** `MainPartition(clients, ops, sched)` in `k8setcd3.go` is `MainCluster` plus one step: before
+`Check`, it runs `go cluster3.Partitioner(srvs, brs, sched)`.
+
+Tests:
+- Every cluster test runs in a process of its own (`inChild`: `TestMainLinearizable`,
+  `TestMainCluster`, `TestMainPartition`, `TestPartitionFailures`). The parent removes the data
+  directory after the child exits. Removing it under a running member made the WAL's release fail
+  (`server.go:2157` panics), which the theorem excludes by its premise `storage.diskOk ∋ releaseOk`.
+- `TestMainPartition` runs five schedules: `isolate` (300ms cuts), `election` (3s cuts of each
+  member in turn), `blackhole` (member 0 for 10s), `drop` and `mixed` (one K6-like round).
+- `TestPartitionFailures` counts the failed writes and the leader changes.
+
+Runs: 25 of 25 Ok under a 32G cap.
+- The election schedule had 2-3 distinct leaders in every run.
+- 0-4 writes failed per run.
+- Peak RSS was 61-71 MiB.
+
+**Statements.** These are new; nothing on lean changes.
+- `MainPartition.spec` is `MainCluster.spec` with `sched ↦*□ steps` added.
+- `k8setcd3PProgram clients ops steps := initialize' #() ;; MainPartition #clients #ops (schedLit
+  steps)`.
+- `k8s_etcd3_partition_safe` (from `k8s_etcd3_partition_adequate`) holds for every `steps` with
+  `steps.length < 2^63`, under `k8s_etcd3_cluster_safe`'s hypotheses. Its adequacy allocates the
+  literal, as K6's does.
+
+**Proof.** K6's partition pattern: the Partitioner is forked after `etcd3.New`.
+- `PeerPausable` comes from `peerPausable_inst`.
+- `ownBridge … false` comes from `cluster3.clusterAt`.
+
+**Trust.** No new axiom or `sorry` in the baseline. The `k8setcd3` collection gains the three bridge
+axioms `bridge.bridge.{Blackhole,Unblackhole,DropConnections}.wp_proof`. Like every `_safe` theorem
+here, the result is vacuous until `pbEnc_ok`'s per-type fix lands (`notes/pbenc-ok-inconsistent.md`).
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
