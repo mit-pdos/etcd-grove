@@ -352,3 +352,78 @@ under the 64G cap).
   history in the model. Recommendation: (b), decided in 7e's Scope.
 - **Q6.** The replay failure panics in `Check` (recommended), not returning `Illegal`, which `Main`
   reports as "not linearizable".
+
+## 11. Decided by etcd-grove-81 (2026-11-07)
+
+- Q1: do 7d's first two stages now (porcupine returns its linearization; `RunLin`), which 7g's
+  real `Replay` needs whatever 7e does. **The driver's replay (stage 3) is folded into 7e/7g**,
+  not added now: it would check nothing new. The Go prototype of it stays on the branch as a
+  reference (commit `b9d61f1567`) and out of the landing (removed in `1d84787cc0`; the patch is
+  kept at `/shared/tmp/k8s7d/driver-replay-prototype.patch`).
+- Q2: keep the strict `mget`. Q3: `Run` calls `RunLin`. Q4: `RunLin`'s post as recommended. Q6: a
+  replay failure panics (for 7e/7g).
+- Q5: decided in 7e's Scope, leaning to (b).
+
+## 12. The failed-write trap and 7g (the real `Replay`)
+
+§2's trap is not specific to our Go copy: the maintainers' `Replay` replays the maintainers'
+`correctness.Model`, whose `Step` panics on a failed write ("Errors on writes not supported by the
+model"), while the driver's model keeps failed writes pending. So 7g cannot run the real `Model`
+and `Replay` on a history with a failed write at all (the replay would panic, and even a
+`Model` patched to keep writes pending would make the replay's states depend on porcupine's
+choice of linearization, §2). 7g's handling:
+
+- **runs with no failed write** (no `EOther` write in the history; in practice every
+  single-member and cluster run): the driver checks with the maintainers' `Model` (with D30g's
+  patch) and runs the maintainers' `Replay` along `RunLin`'s linearization. Sound by §2's
+  independence argument: with only successful writes, each write's answer fixes its resource
+  version and the key's object, so the store at every revision is the same along every
+  linearization the model accepts, the real one included;
+- **runs with a failed write** (partitions: 0-4 per run): the driver checks with its own
+  pending-write model, with 7e's design (b) (past-revision lists checked in-step against each
+  configuration's stores by revision), and does not run the maintainers' checker. The closed
+  theorems then say: such a run passes our model's check, which is sound in every run;
+- the choice is made in Go from the history (a scan for an `EOther` write before the check), so
+  both branches are part of the verified program; the trusted text is the maintainers' checker
+  for the first branch and our model for the second.
+
+7e's Scope settles (b) and how this split reads in the closed theorems.
+
+## 13. As built: stages 1-2 (2026-11-07, branch `k8s-7d`)
+
+**Porcupine** (statements as §4, with these refinements made while proving):
+- `Theory.IsLinearization` and `linearizable_of_isLinearization`; `Soundness.sound_done_lin`
+  (`sound_done` is now its corollary);
+- `Defs`: `linSlice`, `longestLin`, `partLins`, `linInfoOk` (§4's `linInfoOk` with each
+  partition's part named `partLins`, indexed by `hs.getD i []`);
+- `checkSingle.spec`: `(⌜b = true⌝ ∗ longestLin S.M longest h) ∨ (⌜b = false⌝ ∗ (⌜¬ Linearizable⌝ ∨
+  □ cs.PDone) ∗ longestOwn longest h.length)`;
+- `checkParallel.spec`, `checkOperations.spec`, `CheckOperationsVerbose.spec`: the posts gain
+  `(⌜r = Ok ∧ cp = true⌝ -∗ linInfoOk S.M info hs)`, `(⌜r = Ok ∧ verbose = true⌝ -∗ linInfoOk S.M info
+  [histOf ops])`, `(⌜r = Ok⌝ -∗ linInfoOk S.M info [histOf ops])`;
+- new `LinearizationInfo.PartialLinearizations.spec` (a field read);
+- the proof: `checkSingle`'s exit tracks the copy `seq` (the stack's ids oldest first) and every
+  `longest[i] = &seq` (`lin_of_frames`); `checkParallel`'s goroutines record `linCell` beside their
+  cell (`checkSingle_post`), the receive loop keeps the cancel token unless a verdict failed or the
+  timer fired, and the `computeInfo` path builds each partition's `partD` (its linearizations,
+  or not linearizable, or the context done: `ownSlice_agree`/`typedPointsto_agree_wand` identify
+  the set's one key), which the `Ok` answer, holding the token, turns into `linInfoOk`
+  (`partDs_or`, `tok_pd_false`).
+
+**lintest**:
+- `orderByLinearization.spec` (new): `r ↦* xs.filterMap (fun x => os[(sint.Z x).toNat]?)` for valid
+  indices;
+- `RunLin.spec` (new): `Run.spec`'s premises; post `⌜r ≠ Illegal ∧ (dur ≤ 0 → r = Ok)⌝ ∗ (⌜r = Ok⌝ -∗
+  ∃ lops, lsl ↦* lops ∗ opsIoOk S lops ∗ ⌜lops.length = clients * ops ∧ IsLinearization S.M (histOf
+  lops) (List.range lops.length)⌝)` (the slice owned, not read-only as §4 had it: the caller can
+  persist it);
+- `Run.spec` unchanged, proved from `RunLin.spec`;
+- the pure step: `RunLemmas.isLinearization_reorder`/`isLinearization_order` (the operations in a
+  linearization's order linearize themselves in their own order), `final_length`.
+
+**Go**: `examples/lib/lintest/lintest.go` as §3 (`RunLin`, `orderByLinearization`, `Run` over it),
+`TestRunLinCounter`; the driver unchanged. `etc/goose.py --check`: all 39 projects up to date.
+
+**Unchanged**: every closed theorem's statement; `Run.spec` and so every user of `lintest.Run`;
+the PorcupineDag part (its own copies; its `CheckOperationsVerbose` spec now says less than the
+main one; a matching change there is optional); the trust base (no axiom or `sorry`).
