@@ -194,7 +194,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 (ep, ap)`, linked): the consistent-index protocol kept (`loopOk`, `ep.appliedi` advanced to the
 last entry), and the apply thread's KV taken from `x` to `x'` by `entriesStep c (unapplied ai ms)`
 (`c` the consistent index at the start), under the entries' shapes (`logShape`). -/
-theorem applyEntries_model : EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
+theorem applyEntries_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyEntries
 
 /-- **The apply loop's step** (`s.applyAll(ep, ap)`, linked; the request path's unit 4b):
@@ -217,7 +217,7 @@ ahead since unit C2a, 2026-10-14, `srvAppliedPre`, `applied_predeposit`); `apply
 log applied through an index is unique. Together with `range_linearizable`: a linearizable read at
 the committed index `c` returns the state of a log extending the one applied through some index
 `ci₀ ≥ c`, and that log is exactly the apply thread's after the entry at `ci₀`. -/
-theorem applied_log_at :
+theorem applied_log_at [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) ∧
     EtcdServer.apply.spec (GF := GF) (hG := hG) ∧
     ∀ (γr : ReadNames) (i : w64) (L L' : mvcc.Log),
@@ -460,7 +460,7 @@ through `m.index` (`srvAppliedPre`), the witness the result carries. (D22 S8d, 2
 `applyEntryNormal`'s premise, `notes/decisions.md`.) (2026-11-02, the cluster-rows stage, the
 user's approval: the voters members of the rest state at `A`, `srvMemCover`, which `dispatch`'s
 `restReqOk` needs of a member attributes request; the apply loop's `srvApRes` holds it.) -/
-theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+theorem request_delivered [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (b : GoInterface) (e : Loc) (m : EntryModel)
     (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV) (γr : ReadNames) (rq : apply.IRRModel)
     (id : w64) (t : GName) (v : w64) (A : List EntryModel) (hne : m.data ≠ [])
@@ -468,7 +468,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ waitRegd ρ.wait id t ∗ entryAt e m ∗
         applyThread γ st ∗ applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
-        srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
+        mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKV s E ρ.wait x ∗ srvWT E ∗ srvFS s ∗
         srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
         kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
@@ -481,7 +481,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
          else iprop(True)) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
         (Val #e)) (Val #v3))
-    {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
+    {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
           ⌜entryStep m v3 x x' out⌝ ∗ (⌜out.waived = false⌝ ∨ waitGone ρ.wait id t) ∗
           srvAppliedPre γr v m.index x'.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x' ∗
@@ -489,13 +489,13 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
          else applyThread γ st) }} := by
-  iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao, #HLv, #Hcm, Hka,
+  iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, #HLv, #Hcm, Hka,
     HRS, %Hmc, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
   iapply (EtcdServer.applyEntryNormal.spec_off EtcdServer.wp_applyEntryNormal
       s γ ci TM E ρ b e m st v3 x γr (some t) v A hoff)
-    $$ [Hst Hbe Hlr Hgr HKV Hwt Hfs Hv3 Hao Hka HRS]
-  · iframe Hst Hbe Hlr Hgr HKV Hwt Hfs Hv3 Hao Hka HRS
+    $$ [Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hv3 Hao Hka HRS]
+  · iframe Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hv3 Hao Hka HRS
     iframe #
     isplitr
     · iunfold entryRegd
@@ -510,9 +510,9 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       iintro %h; cases h
     ipureintro; exact ⟨Hmc, HkA, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1, Hpo.2.2⟩
   inext
-  iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
+  iintro ⟨Hbe, Hlr, Hgr, Hmr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
   iapply HΦ
-  iframe Hbe Hlr Hgr Hfs Hpost
+  iframe Hbe Hlr Hgr Hmr Hfs Hpost
   iexists x', out
   iframe HKV Hpre Hka HRS
   isplitr
@@ -627,11 +627,11 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
-        mvcc.idxCert E.γ.idx F }}
+        srvApi.kvLogLb E.γs F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
-        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗
             ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗ readIndexOk γr c ∗
             (∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedLogAt γr ci₀ L₀ ∗
               ⌜L₀ <+: log⌝) ∗
@@ -666,14 +666,14 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   · ileft
     iunfold rangeReadOk at H
     simp only [hlin, Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%log, #Hc, -, %Hl, #Hrl, -, #Hres, Hown⟩
+    icases H with ⟨%log, #Hc, -, -, %Hl, #Hrl, -, #Hres, Hown⟩
     iunfold readLogOk at Hrl
     icases Hrl with ⟨#Hri, #Hlog⟩
     isplitr
     · ipureintro; exact Hok
     iexists log
     iframe Hc Hri Hlog Hres Hown
-    ipureintro; exact Hl
+    ipureintro; exact Hl.2
   · iright; iexact H
 
 /-- **`range_serializable`** (see the section header): in the client model's terms, for a
@@ -686,11 +686,11 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
-        mvcc.idxCert E.γ.idx F }}
+        srvApi.kvLogLb E.γs F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
-        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗
             ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ ∗
             (∃ crev : Int,
               txn.rangeResultClient resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
@@ -723,13 +723,13 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   icases H with (⟨%Hok, -, H⟩ | H)
   · ileft
     iunfold rangeReadOk at H
-    icases H with ⟨%log, #Hcert, -, %Hlen, -, -, #Hres, Hown⟩
+    icases H with ⟨%log, #Hcert, -, -, %Hlen, -, -, #Hres, Hown⟩
     isplitr
     · ipureintro; exact Hok
     iexists log
     iframe Hcert Hown
     isplitr
-    · ipureintro; exact ⟨Hlen.1, Hlen.2.1⟩
+    · ipureintro; exact ⟨Hlen.2.1, Hlen.2.2.1⟩
     icases Hres with ⟨%crev, #Hres⟩
     iexists crev
     iapply txn.rangeResult_client _ _ _ _ crev o true Hset hcut $$ Hres
@@ -742,16 +742,16 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
     (hro : txn.txnReadonly t = true) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
-        srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
+        srvRdCall s E γr c ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
         traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
-        ⌜txn.txnGetsOk t⌝ ∗ mvcc.idxCert E.γ.idx F }}
+        ⌜txn.txnGetsOk t⌝ ∗ srvApi.kvLogLb E.γs F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         srvLeadTimeReader s ∗ srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗
         ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c F t (fun _ => iprop(True)) resp) ∨
          (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, %Hg, #HF⟩ HΦ
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, #Hspc, Hct, Hot, #Hr, %Hg, #HF⟩ HΦ
   ihave %hon := isServerReq_authOn s E ρ $$ Hq
   have hM : E.authMode = .off := by
     unfold apply.AEnv.authOn at hon
@@ -787,8 +787,8 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
     (hw : txn.txnReadonly t = false) (hd : apply.txnDepthOk t) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
-        srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
-        traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗ mvcc.idxCert E.γ.idx F ∗
+        srvRdCall s E γr c ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
+        traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗ srvApi.kvLogLb E.γs F ∗
         txnPermit ρ.kv t Q }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
         (Val #(GoInterface.ok ctx))) (Val #r))
@@ -796,7 +796,7 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
         srvLeadTimeReader s ∗ srvRdCall s E γr c ∗
         ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, Hct, Hot, #Hr, #HF, Hnp⟩ HΦ
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, #Hspc, Hct, Hot, #Hr, #HF, Hnp⟩ HΦ
   ihave %hon := isServerReq_authOn s E ρ $$ Hq
   imod txnPermitM_false ρ.raft ρ.kv (hdrBoundM false s E (GoInterface.ok ctx)) t Q $$ Hnp with Hnp
   have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t Q (fun _ => iprop(True)) ot te F 0
@@ -1585,33 +1585,33 @@ theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : 
     (auth.authStore.Authenticate.wp_tieB auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision
       auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write) st R M P f T
 
-theorem apply_UserAdd_fuelX :
+theorem apply_UserAdd_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserAdd.wp_fuelX
     (EtcdGrove.apply.applierV3backend.UserAdd.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_RoleAdd_fuelX :
+theorem apply_RoleAdd_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.RoleAdd.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleAdd.wp_fuelX
     (EtcdGrove.apply.applierV3backend.RoleAdd.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_UserGrantRole_fuelX :
+theorem apply_UserGrantRole_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserGrantRole.wp_fuelX
     (EtcdGrove.apply.applierV3backend.UserGrantRole.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_RoleGrantPermission_fuelX :
+theorem apply_RoleGrantPermission_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleGrantPermission.wp_fuelX
     (EtcdGrove.apply.applierV3backend.RoleGrantPermission.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_AuthEnable_fuelX :
+theorem apply_AuthEnable_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.AuthEnable.wp_fuelX
     (EtcdGrove.apply.applierV3backend.AuthEnable.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
 /-- **The backend applier's `Authenticate` with auth on** (C1's A2, `apply/AuthStepsX.lean`). -/
-theorem apply_Authenticate_specX :
+theorem apply_Authenticate_specX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.Authenticate.wp_specX context.wp_WithValue
     EtcdGrove.apply.applierV3backend.wp_newHeader
@@ -2140,7 +2140,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 view of the auth history, `authHistView`) at the start
 chain with auth on; with `server_member_alloc_on`, what `server_new_auth_on`'s caller allocates. -/
 theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (xs : w64 → mvcc.IdxNames) (reg : GName)
+    (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
     (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
