@@ -371,16 +371,16 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   ihave #HL : v3rpc.raftLeaseRead s E γl E.RD A.revR $$ []
   · rw [hA]; iexact HL0
   have h1 : iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) ⊢
-      iprop(((E.RD ∗ threadTok) ∗ A.revR) ∗
-        (srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s)) := by
+      iprop((E.RD ∗ A.revR) ∗
+        (srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s ∗ threadTok)) := by
     rw [hA]; unfold etcdRunSlot
     iintro ⟨⟨⟨Hlt, Hst, Hlg, Hrr, Hrd⟩, Hqr⟩, Ht⟩
     iframe
-  have h2 : iprop(((E.RD ∗ threadTok) ∗ A.revR) ∗
-        (srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s)) ⊢
+  have h2 : iprop((E.RD ∗ A.revR) ∗
+        (srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s ∗ threadTok)) ⊢
       iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) := by
     rw [hA]; unfold etcdRunSlot
-    iintro ⟨⟨Hrd, Ht, Hst⟩, Hlt, Hlg, Hrr, Hqr⟩
+    iintro ⟨⟨Hrd, Hst⟩, Hlt, Hlg, Hrr, Hqr, Ht⟩
     iframe
   have h3 : iprop(etcdGrpcSlot s E γr ∗ threadTok) ⊢
       iprop((((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) ∗

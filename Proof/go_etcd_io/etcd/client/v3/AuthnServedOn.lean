@@ -217,7 +217,7 @@ of the KV handlers' slot and the quota check's. -/
 theorem etcdGrpcSlot_auth (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     etcdGrpcSlot (GF := GF) s E γr ⊣⊢
       iprop((v3rpc.authSlot s E ∗ [∗list] R ∈ etcdIcRs s, R) ∗
-        (mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s)) := by
+        ((threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s)) := by
   unfold etcdGrpcSlot etcdRunSlot v3rpc.authSlot
   constructor
   · iintro ⟨⟨⟨Hlt, Hsr, Hlg, Hrd, Hard⟩, Hq⟩, Hics⟩
@@ -231,7 +231,7 @@ of the KV handlers' slot and the quota check's. -/
 theorem etcdGrpcSlot_authn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     etcdGrpcSlot (GF := GF) s E γr ⊣⊢
       iprop((authnSlot s E γr ∗ [∗list] R ∈ etcdIcRs s, R) ∗
-        (mvcc.api.mvccReaders E.γ 1 ∗ v3rpc.quotaRd s)) := by
+        ((threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗ v3rpc.quotaRd s)) := by
   unfold etcdGrpcSlot etcdRunSlot authnSlot
   constructor
   · iintro ⟨⟨⟨Hlt, Hsr, Hlg, Hrd, Hard⟩, Hq⟩, Hics⟩
