@@ -1065,7 +1065,16 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `internal/syscall/unix` (Perennial's import Perennial's `syscall`, which must not share a closure
   with this repository's), the same trusted models in `TrustedCode/{os,syscall}.lean` (with their
   specs, `Proof/{os,syscall}/Models.lean`), and `etc/gen-init.py` steps for the five initializers.
-  The three `os` axioms are gone.
+  Gone: `os.opaqueInitsOk`, `os.initFuncsOk`, `os.Stderr_init`, `syscall.opaqueInitsOk`,
+  `syscall.initFuncsOk`, `io.fs.opaqueInitsOk`. After the branch's review: `Stderr`'s model stores
+  a `GoPrealloc` address (in `(0, maxAddr)`, no cell; not `Alloc #()`, whose cell a store could
+  overwrite, nor `maxAddr + 1`, which a program walking addresses could tell from Go's), and
+  `arbitraryStrings` may return `nil` or `[]string{}` (Perennial `69236efdb`).
+- **Still open.** `syscall.Errno.Error` is still trusted (`Code/syscall.toml`; an arbitrary
+  string): its body (`errors[e]`, else `"errno " + strconv.Itoa(int(e))`, Go 1.27.3) is now
+  translatable, but its spec (`errno_stringMethodSpec`, `errnoErrOk`) then needs `isPkgInit syscall`
+  for the `errors` table, which reaches bbolt's five `errnoErrOk` users and `os`'s `ErrorOk`/
+  `OpenFile`.
 
 ### `time.isTicker` is forgeable by a struct copy (2026-11-03, branch `ticker-followups`)
 
