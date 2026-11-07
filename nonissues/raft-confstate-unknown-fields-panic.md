@@ -31,7 +31,12 @@ compatibility in 2021 (`3a3d196`). Revive it if a `ConfState` field is ever adde
 
 no: the conf state's ownership predicate requires no unknown fields (`csPts`,
 `Proof/go_etcd_io/raft/v3/InvPb.lean`), and `ConfState.Equivalent.spec` is stated for such conf
-states; etcd meets it, since no raft version writes one.
+states; etcd meets it, since no raft version writes one. On the receive path, the absence comes
+from the sending peer (raft builds its `ConfState` with `csPts`), carried to the receiver by the
+decoder's exact round trip (`D2`): the decoded message's content keeps the `ConfState`'s unknown
+fields (`pbMessageC`, `MsgC.csUfNil`). Until the per-type stage, the trusted `UnmarshalPb` at
+`pbMessage` wrongly claimed it of any bytes (`notes/per-type-blockers.md`, "`UnmarshalPb` at
+`pbMessage` claims a decoded `ConfState` has no unknown fields").
 
 ## Fix
 
