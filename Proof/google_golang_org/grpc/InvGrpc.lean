@@ -737,7 +737,7 @@ types (registered, stage A: the request's model is the one `grpcReqModelOf` regi
 type, the reply's the one `grpcRepModelOf` registers), its spec, the generated handler its
 `ServiceDesc`'s `MethodDesc` holds (`etcdserverpb._KV_Put_Handler`), and the service value
 registered with the `ServiceDesc` (`RegisterKVServer(s, srv)`'s `srv`, as `any`). -/
-structure GrpcMethod (GF : BundledGFunctors) where
+structure GrpcMethod (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] where
   name : GoString
   Req : ProtoMsgT GF
   Rep : ProtoMsgT GF
@@ -1278,12 +1278,12 @@ the reply's models are the ones registered for their Go types (`grpcReqModelOf`,
 `ProtoMsgT.ReqSat`/`RepSat` is proved. -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
+      (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
       (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M)
       (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF))
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
-    {{ ⌜grpcReqModelOf GF Req.ty = some Req⌝ ∗ ⌜grpcRepModelOf GF Rep.ty = some Rep⌝ ∗
-        isGrpcRpcsMd addrs method Spec ∗
+    {{ isGrpcRpcsMd addrs method Spec ∗
         ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ctx) md⌝ -∗ Spec md m Φ Ψe) ∗
         ctxOk ctx cd ∗ Req.send inp m ∗ ⌜Req.wireLen m < grpcMsgMax⌝ ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
@@ -1375,10 +1375,11 @@ theorem grpcInvokerOk_of_wp (conn : Loc) (addr : List GoString) (inv inv' : GoFu
     grpcInvokerOk conn addr inv' := by
   iintro ⟨#Hinv, #Hw⟩
   unfold grpcInvokerOk
-  iintro !> %method %Req %Rep %Spec %m %Φ %Ψe %ctx %cd %inp %out %opts %vs %ps
+  iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %inp %out %opts %vs %ps
   iintro %Ψ !> Hpre HΨ
   iapply Hw
-  iapply Hinv $$ Hpre HΨ
+  iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %inp %out %opts %vs %ps %Ψ
+    Hpre HΨ
 
 end client
 

@@ -28,7 +28,6 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 REG = re.compile(r"^axiom\s+(\S+)[^\n]*(?:\n(?!axiom|theorem|def|/--)[^\n]*)*?pbModelOf GF \S+ = some", re.M)
@@ -90,7 +89,10 @@ def main():
     for reg, c in uses:
         if c not in table:
             fail.append(f"{reg} reaches the schema {c}, which is not one of pbSchemaOf's")
-    with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as td:
+    # the dumps are kept (no deletion): in $PBSCHEMA_SCRATCH, default .lake/pbschema (untracked)
+    td = os.environ.get("PBSCHEMA_SCRATCH", os.path.join(ROOT, ".lake", "pbschema"))
+    os.makedirs(td, exist_ok=True)
+    if True:
         p = os.path.join(td, "dump")
         open(p, "w").write(dump)
         rc, out = go_test(p)

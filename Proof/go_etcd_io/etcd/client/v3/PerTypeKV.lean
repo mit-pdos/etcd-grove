@@ -46,7 +46,7 @@ def pbPutRequestT : ProtoMsgT GF :=
 theorem pbPutRequestT_wireLen_ok : ∃ m, (pbPutRequestT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨putReqOp (zero_val _) [] [], by
     simp [pbPutRequestT, pbPutRequest, opWireLen, wireSlack, grpcMsgMax, putReqOp,
-      txn.putOpOf, OpFull.newOp]⟩
+      txn.putOpOf, OpFull.newOp, OpModel.zero]⟩
 
 /-- **`pbPutRequestT`'s request model is satisfiable.** -/
 theorem pbPutRequestT_reqSat : (pbPutRequestT (GF := GF)).ReqSat := by

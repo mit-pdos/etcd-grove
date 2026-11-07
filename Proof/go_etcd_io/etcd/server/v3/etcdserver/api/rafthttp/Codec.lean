@@ -20,10 +20,13 @@ the plan: `notes/rafthttp-plan.md`, stage 3.
   `□ B (rs ++ ys)` (a response body's: some response the protocol allows extends them), with an
   error whose `Error()` returns (2026-10-23, stage 5c: the stream reader logs it).
 * `msgFrame bs`: a message's frame, its encoding `bs` after its length as eight big-endian bytes.
+* `swMsgBound ml st` (persistent; stage A of the per-type models): the message `ml` frozen at a
+  wire content of `st` of size below `2^47` (what the encoders size and marshal).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeMessage
 public import Proof.encoding.binary.Defs
 public import Proof.net.http.Boundary
 public import Proof.errors.NewVar
@@ -105,6 +108,19 @@ instance readFullAt_persistent (r : GoInterface) (Rd B : List w8 → IProp GF) :
 /-- **A message's frame** (`messageEncoder`'s): its encoding `bs` after its length, eight
 big-endian bytes. -/
 def msgFrame (bs : List w8) : List w8 := u64Be (W64 bs.length) ++ bs
+
+/-- **A message's wire content, bounded** (stage A of the per-type models; the Scope's `Z`, which
+raft-entsize is to derive from its `out_size`): the frozen message `ml` holds a wire content of
+`st` whose size is below `2^47` bytes. What the encoders size and marshal (`proto.Size`,
+`MarshalAppend`, `MustMarshalMessage` take the content), and what bounds the sizes the stream
+writer sums (2049 of them stay below `2^62`). Given today by the trust-boundary axiom
+`swMsgBound_phys` (`Transport.lean`). -/
+def swMsgBound (ml : Loc) (st : MsgSt) : IProp GF :=
+  iprop(∃ c : MsgC, msgRoC ml c ∗ ⌜c.model = st ∧ msgSize c < 2 ^ 47⌝)
+
+instance swMsgBound_persistent (ml : Loc) (st : MsgSt) :
+    Persistent (swMsgBound (GF := GF) ml st) := by
+  unfold swMsgBound; infer_instance
 
 end defs
 

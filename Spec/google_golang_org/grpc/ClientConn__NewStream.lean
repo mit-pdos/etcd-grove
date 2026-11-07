@@ -62,11 +62,12 @@ request's and the reply's models are the ones registered for their Go types (`st
 `streamRepModelOf`). -/
 abbrev grpc.ClientConn.NewStream.spec : Prop :=
   ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (method : GoString)
-    (Req Rep : StreamMsgT GF) (Up : GoString → Nat → Req.M → IProp GF)
+    (Req Rep : StreamMsgT GF),
+    streamReqModelOf GF Req.ty = some Req → streamRepModelOf GF Rep.ty = some Rep →
+  ∀ (Up : GoString → Nat → Req.M → IProp GF)
     (Spec : GoString → GrpcMd → StreamSpec Rep.toStreamMsg) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (desc : Loc) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addrs ics [] ∗
-      ⌜streamReqModelOf GF Req.ty = some Req⌝ ∗ ⌜streamRepModelOf GF Rep.ty = some Rep⌝ ∗
       isGrpcStreamsMd addrs method Up Spec ∗ ctxOk ctx cd ∗
       (∃ d : google_golang_org.grpc.StreamDesc, desc ↦□ d ∗ ⌜d.ClientStreams' = true⌝) ∗
       opts ↦*□ vs ∗ streamCallOptsOk vs }}

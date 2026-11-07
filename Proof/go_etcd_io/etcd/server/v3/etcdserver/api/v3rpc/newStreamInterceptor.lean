@@ -94,7 +94,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   iapply HΦ
   iframe Hgr Hlg
   unfold srvStreamInterceptorOk
-  iintro !> %Req %Rep %Up %Dn %γ %ci %cd %srv %st %info %h %Ψ HR #Hss #Hinfo Hk
+  iintro !> %Req %Rep %hreq %hrep %Up %Dn %γ %ci %cd %srv %st %info %h %Ψ HR #Hss #Hinfo Hk
   iunfold streamInterceptorCall
   wp_auto
   wp_apply wp_with_defer as %defer defer

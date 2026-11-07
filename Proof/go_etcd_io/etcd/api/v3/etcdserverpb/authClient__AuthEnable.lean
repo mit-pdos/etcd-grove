@@ -4,6 +4,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeAuth
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__AuthEnable
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -48,7 +49,7 @@ theorem etcdserverpb.authClient.AuthEnable.wp_proof
   ihave Hblank : pbAuthEnableResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbAuthEnableResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/AuthEnable" pbAuthEnableRequest pbAuthEnableResponse Spec m Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/AuthEnable" pbAuthEnableRequestT pbAuthEnableResponseT pbAuthEnableRequestT_reg pbAuthEnableResponseT_reg Spec m Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   rw [show (pbAuthEnableRequest (GF := GF)).ty = etcdserverpb.AuthEnableRequest.ty from rfl,
     show (pbAuthEnableResponse (GF := GF)).ty = etcdserverpb.AuthEnableResponse.ty from rfl] at hI

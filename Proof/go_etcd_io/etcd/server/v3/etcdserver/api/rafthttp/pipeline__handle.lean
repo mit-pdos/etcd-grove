@@ -94,15 +94,22 @@ theorem rafthttp.pipeline.handle.wp_proof
     inext
     iintro %ml Hm
     iunfold pipeMsg at Hm
-    icases Hm with ⟨%st, #Hm, #HP, HO, %Hst⟩
+    icases Hm with ⟨%st, #Hm, #Hb, #HP, HO, %Hst⟩
+    iunfold swMsgBound at Hb
+    icases Hb with ⟨%c, #Hc, %Hcb⟩
+    obtain ⟨hcm, hcs⟩ := Hcb
+    have hm' : MsgMarshals c.model := hcm ▸ Hst.1
+    ihave %Hp := msgRoC_enc ml c $$ Hc
+    obtain ⟨Hw0, hlenc, Hu⟩ := Hp hm' (by omega)
+    rw [hcm] at Hw0
     (try wp_auto)
     wp_apply wp_Now as %t0 -
     (try wp_auto)
-    have wpM := hMarshal pbMessage ml st Hst.1
-    simp only [pbMessage_ty, pbMessage_ro, pbMessage_wire] at wpM
-    wp_apply wpM $$ [$Hm] as %d ⟨Hd, -, %Hw⟩
+    have wpM := hMarshal pbMessageC pbMessageC_reg ml c hm' (by simp; omega)
+    simp only [pbMessageC_ty, pbMessageC_roC, pbEncC_pbMessageC] at wpM
+    wp_apply wpM $$ [$Hc] as %d ⟨Hd, -, -⟩
     (try wp_auto)
-    wp_apply hPost Rh p to d _ st Hw Hst.2.1 Hst.2.2.1 Hst.2.2.2 $$ [$Hs $Hd $HP $HO] as %err #Herr
+    wp_apply hPost Rh p to d _ st Hw0 ⟨c, hcm, Hu, rfl⟩ Hst.2.1 Hst.2.2.1 Hst.2.2.2 $$ [$Hs $Hd $HP $HO] as %err #Herr
     (try wp_auto)
     wp_apply wp_Now as %t1 -
     (try wp_auto)
@@ -174,9 +181,10 @@ theorem rafthttp.pipeline.handle.wp_proof
         wp_apply hIsSnap ml st $$ [$Hm]
         rw [decide_eq_false Hst.2.2.1]
         (try wp_auto)
-        have wpS := hSize pbMessage ml st
-        simp only [pbMessage_ty, pbMessage_ro] at wpS
-        wp_apply wpS $$ [$Hm] as %n ⟨%Hn, -⟩
+        have wpS := hSize pbMessageC pbMessageC_reg ml c
+        simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_size] at wpS
+        wp_apply wpS $$ [$Hc] as %n %Hn
+        have Hn := Hn (by omega)
         (try wp_auto)
         wp_apply hGetTo.1 ml DFrac.discard DFrac.discard false st $$ [$Hm] as -
         (try wp_auto)

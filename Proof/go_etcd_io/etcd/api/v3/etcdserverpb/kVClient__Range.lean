@@ -4,6 +4,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeKVRest
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Range
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -54,7 +55,7 @@ theorem kVClient.Range.wp_proof
   ihave Hblank : pbRangeResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbRangeResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Range" pbRangeRequest pbRangeResponse Spec (rangeReqOp req k e) Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Range" pbRangeRequestT pbRangeResponseT pbRangeRequestT_reg pbRangeResponseT_reg Spec (rangeReqOp req k e) Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   rw [show (pbRangeRequest (GF := GF)).ty = etcdserverpb.RangeRequest.ty from rfl,
     show (pbRangeResponse (GF := GF)).ty = etcdserverpb.RangeResponse.ty from rfl] at hI

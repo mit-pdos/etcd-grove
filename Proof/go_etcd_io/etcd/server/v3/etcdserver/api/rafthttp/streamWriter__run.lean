@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamType_
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus__activate
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus__deactivate
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.WriterRun
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
 public import Spec.google_golang_org.protobuf.proto.SizePb
 public import Spec.google_golang_org.protobuf.proto.ClonePb
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
@@ -193,7 +194,10 @@ local macro "run_msg" : tactic => `(tactic| (
     iexists γm
     iframe; iframe #
   iunfold swMsg at Hm
-  icases Hm with ⟨%st, #Hm, #HP, HO, %Hst⟩
+  icases Hm with ⟨%st, #Hm, #Hbd, #HP, HO, %Hst⟩
+  ihave #Hbd' := Hbd
+  iunfold swMsgBound at Hbd'
+  icases Hbd' with ⟨%cm, #Hcm, %Hcmb⟩
   iunfold swLive at Hlive
   icases Hlive with ⟨%wi, %a, %R, %γk, %γw, %fr, %s, %Hfl, HencO, Hrw, %Hc, #Hfs, #Hreg, %HR3, Hclr⟩
   ihave ⟨HencO, %Hei⟩ := encOwn_ok _ _ _ _ _ _ _ $$ HencO
@@ -210,7 +214,7 @@ local macro "run_msg" : tactic => `(tactic| (
   ihave #Hwr := respWriter_writerAt (raftHttpNet Rh) (hWrite _) wi a R γk
   (try wp_auto)
   wp_apply (wp_stream_encode hMsgEnc hV2Enc ty lid pid fs _ ei rfl wi s _ _ (chainBytes fr) ml st
-      ⟨Hst.1, Hst.2.2.2.2.1⟩) $$ [HencO Hrw]
+      ⟨Hst.1, Hst.2.2.2.2⟩) $$ [HencO Hrw]
     as %err ⟨#Herr, %h', %s', HWr, HencO, %Hok⟩
   · iframe; iframe #
   subst Hfl
@@ -222,17 +226,17 @@ local macro "run_msg" : tactic => `(tactic| (
       iframe #
     have Hc' := Hc.snoc Hf
     wp_auto
-    have wpS := hSize pbMessage ml st
-    simp only [pbMessage_ty, pbMessage_ro] at wpS
-    wp_apply wpS $$ [] as %n ⟨%Hn, -⟩
-    · iexact Hm
+    have wpS := hSize pbMessageC pbMessageC_reg ml cm
+    simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_size] at wpS
+    wp_apply wpS $$ [] as %n %Hn
+    · iexact Hcm
     (try wp_auto)
     wp_func_call
     wp_call
     (try wp_auto)
     wp_apply +noauto wp_Len mcl γm $$ [] as %ln %Hln
     · iapply is_bag_is_chan $$ Hbag
-    have Hnb : sint.Z n < 2 ^ 50 := by have := Hst.2.2.2.2.2; unfold swMsgBound at this; omega
+    have Hnb : sint.Z n < 2 ^ 50 := by have := Hn (by omega); omega
     have Hn0 : 0 ≤ sint.Z n := by omega
     wp_auto_lc 2
     wp_if_destruct
@@ -283,16 +287,24 @@ set_option hygiene false in
 deposit: the reader drops it); flushed, or on an error the connection closed. -/
 local macro "run_hb" : tactic => `(tactic| (
   (try wp_auto)
-  have wpC := hClone pbMessage (globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage)
-    go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.hbSt
-  simp only [pbMessage_ty, pbMessage_ro, pbMessage_dec, pbMessage_eqv] at wpC
-  wp_apply wpC $$ [] as %l' ⟨%m', Hl', %Heqv⟩
-  · iexact Hhb
+  ihave ⟨%chb, #Hchb, %Hchbm⟩ := msgOwn_msgRoC _ _ rfl $$ Hhb
+  have wpC := hClone pbMessageC pbMessageC_reg
+    (globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage) chb
+  simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_dec, pbMessageC_eqv, pbMessageC_modelOf,
+    pbMessageC_C] at wpC
+  wp_apply wpC $$ [] as %l' ⟨%c', Hl', %Heqv⟩
+  · iexact Hchb
+  rw [Hchbm] at Heqv
+  replace Heqv := Heqv.1
+  generalize c'.model = m' at Heqv ⊢
   (try wp_auto)
   ihave Hl'' := msgPtsC_to_msgOwn l' _ _ _ m' $$ Hl'
   imod Hl'' with Hl'
   ihave Hl'' := msgOwn_persist l' _ m' $$ Hl'
   imod Hl'' with Hl'
+  -- the clone, bounded: the trust boundary `swMsgBound_phys` (stage A of the per-type models)
+  icases Hl' with #Hl'
+  ihave #Hlb := swMsgBound_phys l' m' $$ Hl'
   iunfold swLive at Hlive
   icases Hlive with ⟨%wi, %a, %R, %γk, %γw, %fr, %s, %Hfl, HencO, Hrw, %Hc, #Hfs, #Hreg, %HR3, Hclr⟩
   ihave ⟨HencO, %Hei⟩ := encOwn_ok _ _ _ _ _ _ _ $$ HencO

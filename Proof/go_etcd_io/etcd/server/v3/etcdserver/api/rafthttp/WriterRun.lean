@@ -44,7 +44,7 @@ theorem wp_stream_encode
     (hok : MsgMarshals st ∧ (ty = .msgAppV2 → V2EncOk lid pid st)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         encOwn lid pid fs ty enc wi s ∗ writerAt wi Wr A ∗ Wr h ∗ msgOwn ml DFrac.discard st ∗
-        □ (∀ (bs : List w8) (s' : (ty.codec lid pid).S) (k : Nat),
+        swMsgBound ml st ∗ □ (∀ (bs : List w8) (s' : (ty.codec lid pid).S) (k : Nat),
           ⌜(ty.codec lid pid).F s (wireOf st) bs s'⌝ -∗ A (h ++ bs.take k)) }}
       (App (Val #(methods ei.ty go!"encode" ei.v)) (Val #ml))
     {{ (err : GoInterface), RET #err; http.errStrOk err ∗
@@ -54,7 +54,7 @@ theorem wp_stream_encode
   cases ty with
   | msgAppV2 =>
     simp only [encOwn]
-    iintro %Φ ⟨#Hpkg, Henc, #Hwr, HWr, #Hm, #HA⟩ HΦ
+    iintro %Φ ⟨#Hpkg, Henc, #Hwr, HWr, #Hm, #Hb, #HA⟩ HΦ
     icases Henc with ⟨%e, %He, Henc⟩
     subst He
     cases Hei
@@ -77,7 +77,7 @@ theorem wp_stream_encode
     exact Hok Hnil
   | message =>
     simp only [encOwn]
-    iintro %Φ ⟨#Hpkg, Henc, #Hwr, HWr, #Hm, #HA⟩ HΦ
+    iintro %Φ ⟨#Hpkg, Henc, #Hwr, HWr, #Hm, #Hb, #HA⟩ HΦ
     icases Henc with ⟨%e, %He, #Hew⟩
     subst He
     cases Hei
@@ -90,10 +90,10 @@ theorem wp_stream_encode
       isplitl
       · rw [show u64Be (W64 bs.length) = (msgFrame bs).take 8 by
           simp [msgFrame, u64Be_length]]
-        iapply HA $$ %(msgFrame bs) %() %8 %(MsgFrameOf.of_wire Hw.1 Hw.2)
+        iapply HA $$ %(msgFrame bs) %() %8 %(MsgFrameOf.of_wire Hw.1 Hw.2.1 Hw.2.2)
       · rw [show h ++ msgFrame bs = h ++ (msgFrame bs).take (msgFrame bs).length by
           rw [List.take_length]]
-        iapply HA $$ %(msgFrame bs) %() %(msgFrame bs).length %(MsgFrameOf.of_wire Hw.1 Hw.2)
+        iapply HA $$ %(msgFrame bs) %() %(msgFrame bs).length %(MsgFrameOf.of_wire Hw.1 Hw.2.1 Hw.2.2)
     iapply HΦ
     isplitr
     · iexact Herr
@@ -105,8 +105,8 @@ theorem wp_stream_encode
       ipureintro; rfl
     iintro %Hnil
     ipureintro
-    obtain ⟨bs, Hw, Hl, rfl⟩ := Hok Hnil
-    exact ⟨msgFrame bs, MsgFrameOf.of_wire Hw Hl, rfl⟩
+    obtain ⟨bs, Hw, He, Hl, rfl⟩ := Hok Hnil
+    exact ⟨msgFrame bs, MsgFrameOf.of_wire Hw He Hl, rfl⟩
 
 /-- **A response writer at a `200` is a writer** whose permission is the response's protocol
 (`respWrite_spec`). -/

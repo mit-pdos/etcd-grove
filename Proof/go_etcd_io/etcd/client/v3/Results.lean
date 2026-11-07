@@ -78,6 +78,8 @@ The results:
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeKVRest
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.KVService
 public import Proof.go_etcd_io.etcd.client.v3.LinkMembers
@@ -953,38 +955,38 @@ given (`v3rpc.Server`: `NewQuotaKVServer(s)`, the `*quotaKVServer` `q`), with et
 `Put`'s witness at the request path's read names `γw`, 2026-10-14, unit C2a). -/
 def etcdKVMethods (q : Loc) (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
     List (GrpcMethod GF) :=
-  [⟨go!"/etcdserverpb.KV/Put", pbPutRequest, pbPutResponse, GrpcSpec.md (etcdPutSpec E γw cid mid),
+  [⟨go!"/etcdserverpb.KV/Put", pbPutRequestT, pbPutResponseT, GrpcSpec.md (etcdPutSpec E γw cid mid),
      (@! etcdserverpb._KV_Put_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.KV/Range", pbRangeRequest, pbRangeResponse, GrpcSpec.md (etcdRangeSpec E γr cid mid),
+     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q, pbPutRequestT_reg, pbPutResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.KV/Range", pbRangeRequestT, pbRangeResponseT, GrpcSpec.md (etcdRangeSpec E γr cid mid),
      (@! etcdserverpb._KV_Range_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.KV/DeleteRange", pbDeleteRangeRequest, pbDeleteRangeResponse,
+     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q, pbRangeRequestT_reg, pbRangeResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.KV/DeleteRange", pbDeleteRangeRequestT, pbDeleteRangeResponseT,
      GrpcSpec.md (etcdDeleteSpec E γw cid mid), (@! etcdserverpb._KV_DeleteRange_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.KV/Txn", pbTxnRequest, pbTxnResponse,
+     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q, pbDeleteRangeRequestT_reg, pbDeleteRangeResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.KV/Txn", pbTxnRequestT, pbTxnResponseT,
      GrpcSpec.md (etcdTxnSpec E γw γr cid mid), (@! etcdserverpb._KV_Txn_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.KV/Compact", pbCompactionRequest, pbCompactionResponse,
+     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q, pbTxnRequestT_reg, pbTxnResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.KV/Compact", pbCompactionRequestT, pbCompactionResponseT,
      GrpcSpec.md (etcdCompactSpec E γw cid mid), (@! etcdserverpb._KV_Compact_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩]
+     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q, pbCompactionRequestT_reg, pbCompactionResponseT_reg⟩]
 
 /-- **etcd's KV methods in the auth mode `on`** (`etcdKVMethods`'s, at the specs over the mode). -/
 def etcdKVMethodsM (on : Bool) (q s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid : w64) : List (GrpcMethod GF) :=
-  [⟨go!"/etcdserverpb.KV/Put", pbPutRequest, pbPutResponse, etcdPutSpecM on s E ρ cid mid,
-     (@! etcdserverpb._KV_Put_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.KV/Range", pbRangeRequest, pbRangeResponse, etcdRangeSpecM on s E γr cid mid,
-     (@! etcdserverpb._KV_Range_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.KV/DeleteRange", pbDeleteRangeRequest, pbDeleteRangeResponse,
+  [⟨go!"/etcdserverpb.KV/Put", pbPutRequestT, pbPutResponseT, etcdPutSpecM on s E ρ cid mid,
+     (@! etcdserverpb._KV_Put_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q, pbPutRequestT_reg, pbPutResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.KV/Range", pbRangeRequestT, pbRangeResponseT, etcdRangeSpecM on s E γr cid mid,
+     (@! etcdserverpb._KV_Range_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q, pbRangeRequestT_reg, pbRangeResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.KV/DeleteRange", pbDeleteRangeRequestT, pbDeleteRangeResponseT,
      etcdDeleteSpecM on s E ρ cid mid, (@! etcdserverpb._KV_DeleteRange_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.KV/Txn", pbTxnRequest, pbTxnResponse,
+     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q, pbDeleteRangeRequestT_reg, pbDeleteRangeResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.KV/Txn", pbTxnRequestT, pbTxnResponseT,
      etcdTxnSpecM on s E ρ γr cid mid, (@! etcdserverpb._KV_Txn_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.KV/Compact", pbCompactionRequest, pbCompactionResponse,
+     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q, pbTxnRequestT_reg, pbTxnResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.KV/Compact", pbCompactionRequestT, pbCompactionResponseT,
      GrpcSpec.md (etcdCompactSpecM on E ρ cid mid), (@! etcdserverpb._KV_Compact_Handler),
-     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q⟩]
+     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q, pbCompactionRequestT_reg, pbCompactionResponseT_reg⟩]
 
 /-- **What `RegisterKVServer(gs, q)` registers of the KV service's unary methods we specify**
 (the `ServiceDesc`'s `MethodDesc`s under `"/etcdserverpb.KV/"`, with the service value). -/
@@ -3686,16 +3688,16 @@ handlers of `Lease_ServiceDesc` with the service value `RegisterLeaseServer` is 
 (`NewQuotaLeaseServer(s)`, the `*quotaLeaseServer` `q`), with etcd's specs at the server's model of
 the apply environment `E`. -/
 def etcdLeaseMethods (q : Loc) (E : apply.AEnv GF) : List (GrpcMethod GF) :=
-  [⟨go!"/etcdserverpb.Lease/LeaseGrant", pbLeaseGrantRequest, pbLeaseGrantResponse,
+  [⟨go!"/etcdserverpb.Lease/LeaseGrant", pbLeaseGrantRequestT, pbLeaseGrantResponseT,
      GrpcSpec.md (etcdLeaseGrantSpecAny (EM := v3rpc.etcdModelOfServer E)),
      (@! etcdserverpb._Lease_LeaseGrant_Handler),
      interface.mkOk (go.GoType.PointerType
-       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.Lease/LeaseRevoke", pbLeaseRevokeRequest, pbLeaseRevokeResponse,
+       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q, pbLeaseGrantRequestT_reg, pbLeaseGrantResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Lease/LeaseRevoke", pbLeaseRevokeRequestT, pbLeaseRevokeResponseT,
      GrpcSpec.md (etcdLeaseRevokeSpec (EM := v3rpc.etcdModelOfServer E)),
      (@! etcdserverpb._Lease_LeaseRevoke_Handler),
      interface.mkOk (go.GoType.PointerType
-       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩]
+       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q, pbLeaseRevokeRequestT_reg, pbLeaseRevokeResponseT_reg⟩]
 
 /-- **What `RegisterLeaseServer(gs, q)` registers of the Lease service's unary methods we
 specify** (`LeaseGrant`, `LeaseRevoke`). -/

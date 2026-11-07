@@ -29,13 +29,14 @@ abbrev rafthttp.messageDecoder.decode.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       dec.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageDecoder, go!"r"] ↦□ r ∗
       readFullAt r Rd B ∗ Rd rs ∗
-      □ (∀ bs : List w8, B (rs ++ msgFrame bs) -∗ ⌜bs.length < 2 ^ 63 → ∃ st, MsgWireOk st bs⌝) }}
+      □ (∀ bs : List w8, B (rs ++ msgFrame bs) -∗ ⌜bs.length < 2 ^ 63 → ∃ st, MsgWireOk st bs ∧ MsgEnc st bs⌝) }}
     (App (Val (dec @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageDecoder.ty @!! go!"decode")) (Val #()))
   {{ (ml : Loc) (err : GoInterface), RET (PairV #ml #err); http.errStrOk err ∗
       ∃ rs' : List w8, Rd rs' ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ (bs : List w8) (st : MsgSt),
-          ⌜rs' = rs ++ msgFrame bs ∧ bs.length ≤ 536870912 ∧ MsgWireOk st bs⌝ ∗
+          ⌜rs' = rs ++ msgFrame bs ∧ bs.length ≤ 536870912 ∧ MsgWireOk st bs ∧
+            MsgEnc st bs⌝ ∗
           □ B rs' ∗ msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st) }}
 
 end spec

@@ -5,6 +5,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeAuth
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__Authenticate
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -49,7 +50,7 @@ theorem etcdserverpb.authClient.Authenticate.wp_proof
   ihave Hblank : pbAuthenticateResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbAuthenticateResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Auth/Authenticate" pbAuthenticateRequest pbAuthenticateResponse Spec m Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Auth/Authenticate" pbAuthenticateRequestT pbAuthenticateResponseT pbAuthenticateRequestT_reg pbAuthenticateResponseT_reg Spec m Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   rw [show (pbAuthenticateRequest (GF := GF)).ty = etcdserverpb.AuthenticateRequest.ty from rfl,
     show (pbAuthenticateResponse (GF := GF)).ty = etcdserverpb.AuthenticateResponse.ty from rfl] at hI

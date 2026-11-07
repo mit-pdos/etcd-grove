@@ -43,6 +43,8 @@ only producer, takes; their statements do not show it.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeAuth
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.PerTypeWatch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckNodup
@@ -1297,16 +1299,16 @@ open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 /-- **etcd's Auth methods** as registered, with etcd's specs. -/
 def etcdAuthMethods (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : List (GrpcMethod GF) :=
-  [⟨go!"/etcdserverpb.Auth/UserAdd", pbAuthUserAddRequest, pbAuthUserAddResponse, etcdUserAddSpec s E ρ,
-     (@! etcdserverpb._Auth_UserAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/UserGrantRole", pbAuthUserGrantRoleRequest, pbAuthUserGrantRoleResponse, etcdUserGrantRoleSpec s E ρ,
-     (@! etcdserverpb._Auth_UserGrantRole_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/RoleAdd", pbAuthRoleAddRequest, pbAuthRoleAddResponse, etcdRoleAddSpec s E ρ,
-     (@! etcdserverpb._Auth_RoleAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/RoleGrantPermission", pbAuthRoleGrantPermissionRequest, pbAuthRoleGrantPermissionResponse, etcdRoleGrantPermissionSpec s E ρ,
-     (@! etcdserverpb._Auth_RoleGrantPermission_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩,
-   ⟨go!"/etcdserverpb.Auth/AuthEnable", pbAuthEnableRequest, pbAuthEnableResponse, etcdAuthEnableSpec s E ρ,
-     (@! etcdserverpb._Auth_AuthEnable_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p⟩]
+  [⟨go!"/etcdserverpb.Auth/UserAdd", pbAuthUserAddRequestT, pbAuthUserAddResponseT, etcdUserAddSpec s E ρ,
+     (@! etcdserverpb._Auth_UserAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p, pbAuthUserAddRequestT_reg, pbAuthUserAddResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Auth/UserGrantRole", pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT, etcdUserGrantRoleSpec s E ρ,
+     (@! etcdserverpb._Auth_UserGrantRole_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p, pbAuthUserGrantRoleRequestT_reg, pbAuthUserGrantRoleResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Auth/RoleAdd", pbAuthRoleAddRequestT, pbAuthRoleAddResponseT, etcdRoleAddSpec s E ρ,
+     (@! etcdserverpb._Auth_RoleAdd_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p, pbAuthRoleAddRequestT_reg, pbAuthRoleAddResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Auth/RoleGrantPermission", pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT, etcdRoleGrantPermissionSpec s E ρ,
+     (@! etcdserverpb._Auth_RoleGrantPermission_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p, pbAuthRoleGrantPermissionRequestT_reg, pbAuthRoleGrantPermissionResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Auth/AuthEnable", pbAuthEnableRequestT, pbAuthEnableResponseT, etcdAuthEnableSpec s E ρ,
+     (@! etcdserverpb._Auth_AuthEnable_Handler), interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #p, pbAuthEnableRequestT_reg, pbAuthEnableResponseT_reg⟩]
 
 /-- **etcd's server serves its Auth methods** (the auth plan's E3za; as `etcd_kv_served`): the gRPC
 server at `addr` built with the chain `ics` of transparent interceptors (with their per-run
@@ -1629,7 +1631,8 @@ theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (ics : List GoFunc) (Rs : Lis
   · iintro !> %md
     iapply streamSpecOk_watchSpec
   iintro !> %γs %Dn %ci %cd %st %info HSpec ⟨HS, HRs⟩ #Hraw HRt HSt HAux #Hinfo
-  iapply (srvStreamChainWP_of_ok ics Rs pbWatchRequest pbWatchResponse (watchUp R) Dn γs ci cd
+  iapply (srvStreamChainWP_of_ok ics Rs pbWatchRequestT pbWatchResponseT pbWatchRequestT_reg
+    pbWatchResponseT_reg (watchUp R) Dn γs ci cd
     (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) st info
     (@! etcdserverpb._Watch_Watch_Handler) (fun _ => iprop(True)))
@@ -1684,7 +1687,8 @@ theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (ics : List 
   ihave #Hok := etcd_watchMethodOk p R ics Rs hset $$ [Hpb Hinit Hws Hics]
   · iframe #
   let m : GrpcStreamMethod GF :=
-    { name := go!"/etcdserverpb.Watch/Watch", Req := pbWatchRequest, Rep := pbWatchResponse,
+    { name := go!"/etcdserverpb.Watch/Watch", Req := pbWatchRequestT, Rep := pbWatchResponseT,
+      reqReg := pbWatchRequestT_reg, repReg := pbWatchResponseT_reg,
       Up := watchUp R, spec := fun md => watchSpec R (auth.mdTokenOf md), handler := @! etcdserverpb._Watch_Watch_Handler,
       srv := interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p }

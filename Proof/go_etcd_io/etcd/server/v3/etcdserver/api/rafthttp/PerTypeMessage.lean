@@ -990,5 +990,319 @@ theorem pbMessageC_sat : (pbMessageM (GF := GF)).Sat := by
 
 end sat
 
+
+/-! ## From today's `msgOwn` to the wire content (stage A CP3) -/
+
+section fromOwn
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+@[simp] theorem pbEncC_pbMessageC (c : MsgC) : pbEncC (pbMessageC (GF := GF)) c = msgEncC c := rfl
+@[simp] theorem pbEncC_pbEntryC (c : EntryC) : pbEncC (pbEntryC (GF := GF)) c = entryEncC c := rfl
+
+/-! The registered instances' fields (to state the `*Pb` specs at them in this file's terms). -/
+@[simp] theorem pbMessageC_ty : (pbMessageC (GF := GF)).data.ty = raftpb.Message.ty := rfl
+@[simp] theorem pbMessageC_roC : (pbMessageC (GF := GF)).data.roC = msgRoC := rfl
+@[simp] theorem pbMessageC_C : (pbMessageC (GF := GF)).data.C = MsgC := rfl
+@[simp] theorem pbMessageC_modelOf : (pbMessageC (GF := GF)).data.modelOf = MsgC.model := rfl
+@[simp] theorem pbMessageC_size : (pbMessageC (GF := GF)).data.size = msgSize := rfl
+@[simp] theorem pbMessageC_marshals : (pbMessageC (GF := GF)).data.marshals = MsgMarshals := rfl
+@[simp] theorem pbMessageC_wire : (pbMessageC (GF := GF)).data.wire = MsgWireOk := rfl
+@[simp] theorem pbMessageC_levels : (pbMessageC (GF := GF)).data.levels = MsgC.levels := rfl
+@[simp] theorem pbMessageC_ufValid (c : MsgC) :
+    (pbMessageC (GF := GF)).data.ufValid c = ∀ q ∈ c.levels, ufWire q.1 q.2 := rfl
+@[simp] theorem pbMessageC_blank (l : Loc) :
+    (pbMessageC (GF := GF)).data.blank l = iprop(l ↦ (zero_val raftpb.Message)) := rfl
+@[simp] theorem pbMessageC_dec (l : Loc) (st : MsgSt) :
+    (pbMessageC (GF := GF)).data.dec l st = msgPtsC l (DFrac.own 1) (DFrac.own 1) true st := rfl
+@[simp] theorem pbMessageC_eqv (st st' : MsgSt) :
+    (pbMessageC (GF := GF)).data.eqv st st' =
+      (wireOf st = wireOf st' ∧ (st.resps = [] → st'.resps = [])) := rfl
+@[simp] theorem pbEntryC_ty : (pbEntryC (GF := GF)).data.ty = raftpb.Entry.ty := rfl
+@[simp] theorem pbEntryC_roC : (pbEntryC (GF := GF)).data.roC = entRoC := rfl
+@[simp] theorem pbEntryC_C : (pbEntryC (GF := GF)).data.C = EntryC := rfl
+@[simp] theorem pbEntryC_modelOf : (pbEntryC (GF := GF)).data.modelOf = EntryC.model := rfl
+@[simp] theorem pbEntryC_size : (pbEntryC (GF := GF)).data.size = entrySize := rfl
+@[simp] theorem pbEntryC_marshals (e : EntryM) : (pbEntryC (GF := GF)).data.marshals e = True := rfl
+@[simp] theorem pbEntryC_wire : (pbEntryC (GF := GF)).data.wire = EntWireOk := rfl
+@[simp] theorem pbEntryC_ufValid (c : EntryC) :
+    (pbEntryC (GF := GF)).data.ufValid c = ∀ q ∈ [(entrySchema, c.uf)], ufWire q.1 q.2 := rfl
+@[simp] theorem pbEntryC_blank (l : Loc) :
+    (pbEntryC (GF := GF)).data.blank l = iprop(l ↦ (zero_val raftpb.Entry)) := rfl
+@[simp] theorem pbEntryC_dec (l : Loc) (e : EntryM) :
+    (pbEntryC (GF := GF)).data.dec l e = iprop(∃ c, entRoC l c ∗ ⌜c.model = e⌝) := rfl
+
+/-- **A frozen message's encoding** (`msgEncC_ok` with `msgRoC_uf`). -/
+theorem msgRoC_enc (l : Loc) (c : MsgC) :
+    msgRoC (GF := GF) l c ⊢ ⌜MsgMarshals c.model → msgSize c < 2 ^ 63 →
+      MsgWireOk c.model (msgEncC c) ∧ (msgEncC c).length = msgSize c ∧
+      ∀ q ∈ c.levels, ufWire q.1 q.2⌝ := by
+  iintro #H
+  ihave %Hu := msgRoC_uf l c $$ H
+  ipureintro
+  intro hm hs
+  have := msgEncC_ok c hm Hu hs
+  exact ⟨this.1, this.2, Hu⟩
+
+/-- A cell read as `v` is a cell at some presence reading as `v`. -/
+theorem cellRO_optCell {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V) :
+    cellRO (GF := GF) p v ⊢ ∃ o : Option V, optCell p o ∗ ⌜o.getD (zero_val V) = v⌝ := by
+  unfold cellRO
+  iintro (%H | #H)
+  · iexists none
+    simp only [optCell, Option.getD_none]
+    ipureintro; exact ⟨H.1, H.2.symm⟩
+  · iexists (some v)
+    simp only [optCell, Option.getD_some]
+    iframe H
+
+/-- Bytes held read-only are a `bytes` field at some presence. -/
+theorem ownSlice_bytesC (ds : GoSlice) (xs : List w8) :
+    (ds ↦*□ xs : IProp GF) ⊢ ∃ o : Option (List w8), bytesC ds o ∗ ⌜o.getD [] = xs⌝ := by
+  iintro #H
+  by_cases hn : ds = slice.nil
+  · subst hn
+    ihave %Hl := ownSlice_len _ _ _ $$ H
+    have hx : xs = [] := List.eq_nil_of_length_eq_zero (by rw [Hl.1]; rfl)
+    subst hx
+    iexists none
+    simp only [bytesC, Option.getD_none]
+    ipureintro; simp
+  · iexists (some xs)
+    simp only [bytesC, Option.getD_some]
+    iframe H
+    ipureintro; simpa using hn
+
+/-- **A log entry is a frozen entry at some wire content.** -/
+theorem entRO_entRoC (l : Loc) (e : EntryM) :
+    entRO (GF := GF) l e ⊢ ∃ c : EntryC, entRoC l c ∗ ⌜c.model = e⌝ := by
+  simp only [entRO]
+  iunfold entPts
+  iintro ⟨%pt, %pi, %pty, %ds, %uf, %Hnn, #HT, #cT, #HI, #cI, #HY, #cY, #HD, #Hd, #Hpb⟩
+  ihave ⟨%oT, #oT', %hT⟩ := cellRO_optCell pt e.Term' $$ cT
+  ihave ⟨%oI, #oI', %hI⟩ := cellRO_optCell pi e.Index' $$ cI
+  ihave ⟨%oY, #oY', %hY⟩ := cellRO_optCell pty e.Type' $$ cY
+  ihave ⟨%oD, #oD', %hD⟩ := ownSlice_bytesC ds e.Data' $$ Hd
+  iexists ⟨oT, oI, oY, oD, uf⟩
+  unfold entRoC
+  isplitl
+  · iexists pt, pi, pty, ds
+    iframe HT HI HY HD Hpb oT' oI' oY' oD'
+    ipureintro; exact Hnn
+  ipureintro
+  obtain ⟨a, b, c, d⟩ := e
+  simp only [EntryC.model] at *
+  rw [hT, hI, hY, hD]
+
+theorem entsRO_entsRoC : ∀ (els : List Loc) (es : List EntryM),
+    ([∗list] p;e ∈ els;es, entRO (GF := GF) p e) ⊢
+      ∃ ecs : List EntryC, ([∗list] p;c ∈ els;ecs, entRoC p c) ∗ ⌜ecs.map EntryC.model = es⌝
+  | [], [] => by
+    iintro -; iexists []
+    isplitl
+    · iapply BigSepL2.bigSepL2_nil.2; iempintro
+    · ipureintro; rfl
+  | [], _ :: _ => false_elim
+  | _ :: _, [] => false_elim
+  | p :: ps, e :: es => by
+    iintro ⟨#H, #Hr⟩
+    ihave ⟨%c, #Hc, %hc⟩ := entRO_entRoC p e $$ H
+    ihave ⟨%cs, #Hcs, %hcs⟩ := entsRO_entsRoC ps es $$ Hr
+    iexists (c :: cs)
+    simp only [BigSepL2.bigSepL2_cons, List.map_cons]
+    iframe Hc Hcs
+    ipureintro; rw [hc, hcs]
+
+theorem csPts_csRoC (p : Loc) (c : ConfStateM) (al : Bool) :
+    csPts (GF := GF) p DFrac.discard c al ⊢ ∃ cc : CSC, csRoC p cc ∗ ⌜cc.model = c⌝ := by
+  iunfold csPts
+  iintro ⟨%sv, %sl, %so, %sn, %pa, %Hnn, #HV, #Hv, #HL, #Hl, #HO, #Ho, #HN, #Hn, #HA, #cA, -, #Hpb⟩
+  ihave ⟨%oA, #oA', %hA⟩ := cellRO_optCell pa c.AutoLeave' $$ cA
+  iexists ⟨c.Voters', c.Learners', c.VotersOutgoing', c.LearnersNext', oA, []⟩
+  unfold csRoC
+  isplitl
+  · iexists sv, sl, so, sn, pa
+    iframe HV Hv HL Hl HO Ho HN Hn HA oA' Hpb
+    ipureintro; exact Hnn
+  ipureintro
+  obtain ⟨a, b, d, e, f⟩ := c
+  simp only [CSC.model] at *
+  rw [hA]
+
+theorem csOptA_csOptC (p : Loc) (c : ConfStateM) :
+    csOptA (GF := GF) p DFrac.discard c ⊢
+      ∃ o : Option CSC, csOptC p o ∗ ⌜(o.map CSC.model).getD csZero = c⌝ := by
+  unfold csOptA
+  iintro (%H | #H | #H)
+  · iexists none
+    simp only [csOptC, Option.map_none, Option.getD_none]
+    ipureintro; exact ⟨H.1, H.2.symm⟩
+  · ihave ⟨%cc, #Hc, %hc⟩ := csPts_csRoC p c false $$ H
+    iexists (some cc)
+    simp only [csOptC, Option.map_some, Option.getD_some]
+    iframe Hc; ipureintro; exact hc
+  · ihave ⟨%cc, #Hc, %hc⟩ := csPts_csRoC p c true $$ H
+    iexists (some cc)
+    simp only [csOptC, Option.map_some, Option.getD_some]
+    iframe Hc; ipureintro; exact hc
+
+theorem smPts_metaRoC (p : Loc) (md : SnapshotMetadataM) :
+    smPts (GF := GF) p DFrac.discard md ⊢ ∃ m : SnapMetaC, metaRoC p m ∗ ⌜m.model = md⌝ := by
+  iunfold smPts
+  iintro ⟨%pc, %pi, %pt, %uf, %Hnn, #HC, #Hc, #HI, #cI, #HT, #cT, #Hpb⟩
+  ihave ⟨%oC, #oC', %hC⟩ := csOptA_csOptC pc md.ConfState' $$ Hc
+  ihave ⟨%oI, #oI', %hI⟩ := cellRO_optCell pi md.Index' $$ cI
+  ihave ⟨%oT, #oT', %hT⟩ := cellRO_optCell pt md.Term' $$ cT
+  iexists ⟨oC, oI, oT, uf⟩
+  unfold metaRoC
+  isplitl
+  · iexists pc, pi, pt
+    iframe HC oC' HI oI' HT oT' Hpb
+    ipureintro; exact Hnn
+  ipureintro
+  obtain ⟨a, b, d⟩ := md
+  simp only [SnapMetaC.model] at *
+  rw [hC, hI, hT]
+
+theorem smOpt_metaOptC (p : Loc) (md : SnapshotMetadataM) :
+    smOpt (GF := GF) p DFrac.discard md ⊢
+      ∃ o : Option SnapMetaC, metaOptC p o ∗ ⌜(o.map SnapMetaC.model).getD metaZero = md⌝ := by
+  unfold smOpt
+  iintro (%H | #H)
+  · iexists none
+    simp only [metaOptC, Option.map_none, Option.getD_none]
+    ipureintro; exact ⟨H.1, H.2.symm⟩
+  · ihave ⟨%m, #Hm, %hm⟩ := smPts_metaRoC p md $$ H
+    iexists (some m)
+    simp only [metaOptC, Option.map_some, Option.getD_some]
+    iframe Hm; ipureintro; exact hm
+
+theorem snapOpt_snapOptC (p : Loc) (o : Option SnapshotM) :
+    snapOpt (GF := GF) p DFrac.discard o ⊢
+      ∃ oc : Option SnapC, snapOptC p oc ∗ ⌜oc.map SnapC.model = o⌝ := by
+  cases o with
+  | none =>
+    simp only [snapOpt]
+    iintro %H
+    iexists none
+    simp only [snapOptC, Option.map_none]
+    ipureintro; simpa using H
+  | some s =>
+    simp only [snapOpt]
+    iunfold ownSnapM
+    iintro ⟨%ds, %pm, %uf, %Hnn, #HD, #Hd, #HM, #Hm, #Hpb⟩
+    ihave ⟨%oD, #oD', %hD⟩ := ownSlice_bytesC ds s.Data' $$ Hd
+    ihave ⟨%oM, #oM', %hM⟩ := smOpt_metaOptC pm s.Metadata' $$ Hm
+    iexists (some ⟨oD, oM, uf⟩)
+    simp only [snapOptC, Option.map_some]
+    unfold snapRoC
+    isplitl
+    · iexists ds, pm
+      iframe HD oD' HM oM' Hpb
+      ipureintro; exact Hnn
+    ipureintro
+    obtain ⟨a, b⟩ := s
+    simp only [SnapC.model] at *
+    rw [hD, hM]
+
+/-- **A frozen message without responses is frozen at some wire content** (the converse of
+`msgRoC_msgOwn`; what `proto.Clone` of a message only held as `msgOwn` takes, e.g.
+`linkHeartbeatMessage`). -/
+theorem msgOwn_msgRoC (l : Loc) (st : MsgSt) (hr : st.resps = []) :
+    msgOwn (GF := GF) l DFrac.discard st ⊢ ∃ c : MsgC, msgRoC l c ∗ ⌜c.model = st⌝ := by
+  iintro H
+  iunfold msgOwn at H
+  iunfold msgPts at H
+  iunfold msgPtsC at H
+  icases H with ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rsl, %uf, %Hnn, #HTy, #cTy, #HTo, #cTo, #HFr, #cFr, #HTe, #cTe, #HLt, #cLt, #HIx, #cIx,
+    #HCo, #cCo, #HVo, #cVo, #HRj, #cRj, #HRh, #cRh, #HEs, #Hes, #Hents, -, #HSn, #Hsn, #HCx,
+    #Hcx, #HRs, #Hrs, #Hpb⟩
+  ihave ⟨%oTy, #oTy', %hTy⟩ := cellRO_optCell pty st.msg.Type' $$ cTy
+  ihave ⟨%oTo, #oTo', %hTo⟩ := cellRO_optCell pto st.msg.To' $$ cTo
+  ihave ⟨%oFr, #oFr', %hFr⟩ := cellRO_optCell pfr st.msg.From' $$ cFr
+  ihave ⟨%oTe, #oTe', %hTe⟩ := cellRO_optCell pte st.msg.Term' $$ cTe
+  ihave ⟨%oLt, #oLt', %hLt⟩ := cellRO_optCell plt st.msg.LogTerm' $$ cLt
+  ihave ⟨%oIx, #oIx', %hIx⟩ := cellRO_optCell pix st.msg.Index' $$ cIx
+  ihave ⟨%oCo, #oCo', %hCo⟩ := cellRO_optCell pco st.msg.Commit' $$ cCo
+  ihave ⟨%oVo, #oVo', %hVo⟩ := cellRO_optCell pvo st.msg.Vote' $$ cVo
+  ihave ⟨%oRj, #oRj', %hRj⟩ := cellRO_optCell prj st.msg.Reject' $$ cRj
+  ihave ⟨%oRh, #oRh', %hRh⟩ := cellRO_optCell prh st.msg.RejectHint' $$ cRh
+  ihave ⟨%oCx, #oCx', %hCx⟩ := ownSlice_bytesC cs st.ctx $$ Hcx
+  ihave ⟨%oSn, #oSn', %hSn⟩ := snapOpt_snapOptC ps st.snap $$ Hsn
+  ihave ⟨%ecs, #Hecs, %hecs⟩ := entsRO_entsRoC els st.ents $$ Hents
+  iexists (MsgC.mk ⟨oTy, oTo, oFr, oTe, oLt, oIx, ecs, oCo, oVo, oSn, oRj, oRh, oCx, uf⟩ [])
+  simp only [msgRoC, respsRoC, List.map_nil]
+  isplitl
+  · isplitl
+    · unfold msgFRoC
+      iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rsl
+      rw [show ([] : List Loc) = st.resps from hr.symm]
+      iframe HTy oTy' HTo oTo' HFr oFr' HTe oTe' HLt oLt' HIx oIx' HCo oCo' HVo oVo' HRj oRj'
+      iframe HRh oRh' HEs Hes Hecs HSn oSn' HCx oCx' HRs Hrs Hpb
+      ipureintro; exact Hnn
+    iempintro
+  ipureintro
+  obtain ⟨m, ents, snap, ctx, resps⟩ := st
+  obtain ⟨a, b, c, d, e, f, g, i, j, k⟩ := m
+  simp only [MsgC.model, MsgC.f, MsgC.resps, MsgFC.msgM, List.map_nil] at *
+  rw [hTy, hTo, hFr, hTe, hLt, hIx, hCo, hVo, hRj, hRh, hecs, hSn, hCx, hr]
+
+/-- A message's entries' contents, from its wire content: the field, its slice, and each entry
+frozen at its content. -/
+theorem msgRoC_ents (l : Loc) (c : MsgC) :
+    msgRoC (GF := GF) l c ⊢
+      ∃ (es : GoSlice) (els : List Loc),
+        l.[raftpb.Message, go!"Entries"] ↦□ es ∗ es ↦*□ els ∗
+        [∗list] p;e ∈ els;c.f.entries, entRoC p e := by
+  cases c with
+  | mk f rs =>
+  simp only [msgRoC, MsgC.f]
+  iintro ⟨H, -⟩
+  unfold msgFRoC
+  icases H with ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rsl, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HEs, #Hes, #Hents, -⟩
+  iexists es, els
+  iframe HEs Hes Hents
+
+/-- The entries' frozen contents give their log entries (`entRO`) at the models. -/
+theorem entsRoC_entsRO (els : List Loc) (ecs : List EntryC) :
+    ([∗list] p;e ∈ els;ecs, entRoC (GF := GF) p e) ⊢
+      [∗list] p;e ∈ els;ecs.map EntryC.model, entRO p e :=
+  (BigSepL2.bigSepL2_mono (Φ := fun _ p e => entRoC (GF := GF) p e)
+    (Ψ := fun _ p e => entRO p (EntryC.model e)) (l1 := els) (l2 := ecs)
+    (fun _ _ => entRoC_entRO _ _)).trans
+    (BigSepL2.bigSepL2_map_right (Φ := fun _ p e => entRO (GF := GF) p e) EntryC.model).2
+
+end fromOwn
+
+theorem nat_le_sum_of_mem {l : List Nat} {a : Nat} (h : a ∈ l) : a ≤ l.sum := by
+  induction l with
+  | nil => simp at h
+  | cons x xs ih =>
+    simp only [List.sum_cons]
+    rcases List.mem_cons.1 h with rfl | h
+    · omega
+    · have := ih h; omega
+
+/-- **A message's encoding is the encoding of a wire content of the message whose unknown fields
+are valid at every level** (stage A of the per-type models: the frames and request bodies carry the
+sender's content, so that the receiver's `proto.Unmarshal` succeeds and gives it back, D2). -/
+def MsgEnc [GooseExts] (st : MsgSt) (mbs : List w8) : Prop :=
+  ∃ c : MsgC, c.model = st ∧ (∀ q ∈ c.levels, ufWire q.1 q.2) ∧ mbs = msgEncC c
+
+/-- **Each entry's size is at most its message's.** -/
+theorem entrySize_le_msgSize [GooseExts] (c : MsgC) (e : EntryC) (he : e ∈ c.f.entries) :
+    entrySize e ≤ msgSize c := by
+  cases c with
+  | mk f rs =>
+  simp only [MsgC.f] at he
+  have h1 : lenSize (entrySize e) ≤ (f.entries.map fun e => lenSize (entrySize e)).sum :=
+    nat_le_sum_of_mem (List.mem_map.2 ⟨e, he, rfl⟩)
+  simp only [msgSize, MsgFC.size, lenSize] at *
+  omega
+
 end EtcdGrove
 end Perennial

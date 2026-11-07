@@ -1324,12 +1324,12 @@ contract's premise, `grpcInvokerOk`), it returns
 def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
       (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsgT GF)
+      (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
       (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg)
       (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ ⌜grpcReqModelOf GF Req.ty = some Req⌝ ∗ ⌜grpcRepModelOf GF Rep.ty = some Rep⌝ ∗
-        grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
         □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
         opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
@@ -1368,12 +1368,12 @@ def modePre (md : AttemptMode) (method : GoString) (addr : List GoString) (vs : 
 def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
       (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsgT GF)
+      (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
       (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg)
       (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ ⌜grpcReqModelOf GF Req.ty = some Req⌝ ∗ ⌜grpcRepModelOf GF Rep.ty = some Rep⌝ ∗
-        grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
         modePre md method addr vs (attemptPre conn (GoInterface.ok ctx) Spec m Φ) ∗ ctxOk ctx cd ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
@@ -1406,9 +1406,10 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
   isplitl []
   · ihave #H0 := H $$ %AttemptMode.any
     unfold etcdInterceptorOkM etcdInterceptorOk
-    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ %ctx %cd %inp %out %opts
-      %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
-    iapply H0 $$ [Hsend Hblank] HΨ
+    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %ctx %cd %inp
+      %out %opts %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
+    iapply H0 $$ %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %ctx %cd
+      %inp %out %opts %vs %Ψ [Hsend Hblank] HΨ
     unfold modePre
     iframe #
     iframe

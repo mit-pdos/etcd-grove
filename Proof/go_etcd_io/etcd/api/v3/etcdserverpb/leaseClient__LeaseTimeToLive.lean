@@ -4,6 +4,7 @@ notes/lease-ex-plan.md). Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseTimeToLive
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -57,8 +58,8 @@ theorem leaseClient.LeaseTimeToLive.wp_proof
   ihave Hblank : pbLeaseTimeToLiveResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbLeaseTimeToLiveResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseTimeToLive" pbLeaseTimeToLiveRequest
-    pbLeaseTimeToLiveResponse Spec (req.ID', req.Keys') Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseTimeToLive" pbLeaseTimeToLiveRequestT
+    pbLeaseTimeToLiveResponseT pbLeaseTimeToLiveRequestT_reg pbLeaseTimeToLiveResponseT_reg Spec (req.ID', req.Keys') Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
   rw [show (pbLeaseTimeToLiveRequest (GF := GF)).ty = etcdserverpb.LeaseTimeToLiveRequest.ty from rfl,
     show (pbLeaseTimeToLiveResponse (GF := GF)).ty = etcdserverpb.LeaseTimeToLiveResponse.ty from rfl] at hI
   ihave Hpre' := reqPre_box conn _ addr ([sm] ++ vs) _ $$ Hpre

@@ -4,6 +4,7 @@ notes/lease-ex-plan.md). Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseLeases
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -57,8 +58,8 @@ theorem leaseClient.LeaseLeases.wp_proof
   ihave Hblank : pbLeaseLeasesResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbLeaseLeasesResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseLeases" pbLeaseLeasesRequest
-    pbLeaseLeasesResponse Spec () Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseLeases" pbLeaseLeasesRequestT
+    pbLeaseLeasesResponseT pbLeaseLeasesRequestT_reg pbLeaseLeasesResponseT_reg Spec () Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
   rw [show (pbLeaseLeasesRequest (GF := GF)).ty = etcdserverpb.LeaseLeasesRequest.ty from rfl,
     show (pbLeaseLeasesResponse (GF := GF)).ty = etcdserverpb.LeaseLeasesResponse.ty from rfl] at hI
   ihave Hpre' := reqPre_box conn _ addr ([sm] ++ vs) _ $$ Hpre

@@ -17,6 +17,7 @@ module
 
 public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeMessage
 public import Proof.net.http.Boundary
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
@@ -147,11 +148,12 @@ def fromOkAt (Rh : RaftHttp GF) (rid : w64) (hs : List (GoString × GoString)) :
   ∃ f : w64, http.hdrGet hs go!"X-Server-From" = types.idStr f ∧ Rh.member f ∧ f ≠ rid ∧
     peerURLsHdrOk Rh f hs
 
-/-- **A pipeline request of ticket `γk`** (persistent): its body an encoding of a message `st`,
+/-- **A pipeline request of ticket `γk`** (persistent): its body an encoding of a message `st`
+(stage A of the per-type models: of a wire content of it, `MsgEnc`),
 not a snapshot (which goes by `SendSnapshot`), without responses, for the member owning the
 request's host, (stage 6d) from another member (`fromOkAt`); with `□ N.P st` and its deposit. -/
 def pipeReq (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) : IProp GF :=
-  iprop(∃ st : MsgSt, ⌜MsgWireOk st R.body ∧ st.msg.To' = Rh.owner R.host ∧
+  iprop(∃ st : MsgSt, ⌜MsgWireOk st R.body ∧ MsgEnc st R.body ∧ st.msg.To' = Rh.owner R.host ∧
       st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧ fromOkAt Rh (Rh.owner R.host) R.hdr⌝ ∗
     □ Rh.γn.N.P st ∗ pipeDeposit Rh.γn.N γk st)
 

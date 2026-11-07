@@ -116,7 +116,9 @@ theorem etcdConn_InvokeMd (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (h
     ihave #Hinv'' := grpcInvokerOk_of_wp conn addr inv inv' $$ [Hinv Hinv']
     · iframe #
     iunfold etcdInterceptorOk at Hic
-    iapply Hic $$ [Hsend Hblank] HΨ
+    ihave Hic' := Hic $$ %conn %addr %([ic] : List GoFunc) %([] : List GoInterface) %inv' %method %Req
+      %Rep %hreq %hrep %Spec %m %Φ %ctx %cd %inp %out
+    iapply Hic' $$ [Hsend Hblank] HΨ
     iframe #
     iframe
   · -- (2026-10-21, D29) a write on a refusal-free connection, with scalar call options: never
@@ -134,7 +136,9 @@ theorem etcdConn_InvokeMd (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (h
     · iframe #
     iunfold etcdInterceptorOkW at Hic
     iunfold etcdInterceptorOkM at Hic
-    iapply Hic $$ [Hsend Hblank Hpre] HΨ
+    ihave Hic' := Hic $$ %conn %addr %([ic] : List GoFunc) %([] : List GoInterface) %inv' %method %Req
+      %Rep %hreq %hrep %Spec %m %Φ %ctx %cd %inp %out
+    iapply Hic' $$ [Hsend Hblank Hpre] HΨ
     iframe #
     iframe
     simp only [modePre]

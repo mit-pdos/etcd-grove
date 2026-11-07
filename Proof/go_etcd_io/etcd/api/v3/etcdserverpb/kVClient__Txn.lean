@@ -4,6 +4,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeKVRest
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Txn
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -54,7 +55,7 @@ theorem kVClient.Txn.wp_proof
   ihave Hblank : pbTxnResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbTxnResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Txn" pbTxnRequest pbTxnResponse Spec t Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Txn" pbTxnRequestT pbTxnResponseT pbTxnRequestT_reg pbTxnResponseT_reg Spec t Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
   rw [show (pbTxnRequest (GF := GF)).ty = etcdserverpb.TxnRequest.ty from rfl,
     show (pbTxnResponse (GF := GF)).ty = etcdserverpb.TxnResponse.ty from rfl] at hI

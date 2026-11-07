@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageEnco
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__fields
 public import Spec.bytes.Buffer__Write
 public import Spec.io.MultiReader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
 
 @[expose] public section
 
@@ -59,6 +60,9 @@ theorem rafthttp.createSnapBody.wp_proof
     rafthttp.createSnapBody.spec (GF := GF) (hG := hG) := by
   intro lg m ml rc st Φ Hlg Hms
   wp_start as ⟨#Hmsg, #Hml, Hrs⟩
+  -- the envelope's message, bounded: the trust boundary `swMsgBound_phys` (stage A of the
+  -- per-type models; raft-entsize is to give it from the sender's bound instead)
+  ihave #Hmb := swMsgBound_phys ml st $$ Hml
   ihave ⟨#HfM, ⟨%tsz, #HfT, -⟩, %rd, %ri, #HfR, %Hrd, #Hwrap, #Hclose⟩ := hFields m ml rc $$ Hmsg
   wp_auto
   rename_i Φs bp
@@ -78,7 +82,7 @@ theorem rafthttp.createSnapBody.wp_proof
   have Hen : err = GoInterface.nil := Hnf rfl
   subst Hen
   ihave %Hok := Hok $$ %rfl
-  obtain ⟨bs, Hwire, Hbl, Hh⟩ := Hok
+  obtain ⟨bs, Hwire, Hwe, Hbl, Hh⟩ := Hok
   simp only [List.nil_append] at Hh
   subst Hh
   wp_auto
@@ -98,7 +102,7 @@ theorem rafthttp.createSnapBody.wp_proof
   iexists bs, ⟨go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser.ty,
     #rac⟩
   isplitr
-  · ipureintro; exact ⟨rfl, Hwire, Hbl⟩
+  · ipureintro; exact ⟨rfl, Hwire, Hwe, Hbl⟩
   isplitl [Hmr]
   · unfold snapPre snapPhi
     iunfold http.streamHas at Hmr

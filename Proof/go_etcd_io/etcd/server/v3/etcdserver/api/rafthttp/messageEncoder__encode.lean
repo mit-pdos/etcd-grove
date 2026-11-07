@@ -31,9 +31,16 @@ theorem rafthttp.messageEncoder.encode.wp_proof
     (wp_MustMarshalMessage : pbutil.MustMarshalMessage.spec (GF := GF) (hG := hG)) :
     rafthttp.messageEncoder.encode.spec (GF := GF) (hG := hG) := by
   intro enc wi ml st Wr A h nf hm
-  have wpS := wp_Size pbMessage ml st
-  simp only [pbMessage_ty, pbMessage_ro] at wpS
-  wp_start as ⟨#Hw, #Hwr, HWr, #Hm, #HA⟩
+  wp_start as ⟨#Hw, #Hwr, HWr, #Hm, #Hb, #HA⟩
+  iunfold swMsgBound at Hb
+  icases Hb with ⟨%c, #Hc, %Hcb⟩
+  obtain ⟨hcm, hcs⟩ := Hcb
+  have hm' : MsgMarshals c.model := hcm ▸ hm
+  have wpS := wp_Size pbMessageC pbMessageC_reg ml c
+  simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_size] at wpS
+  ihave %Hp := msgRoC_enc ml c $$ Hc
+  obtain ⟨Hw0, hlenc, Hu⟩ := Hp hm' (by omega)
+  rw [hcm] at Hw0
   iunfold writerAtF at Hwr
   wp_auto
   ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
@@ -43,22 +50,21 @@ theorem rafthttp.messageEncoder.encode.wp_proof
     (globalAddr encoding.binary.BigEndian) Hbe)
   iintro -
   wp_auto
-  wp_apply wpS $$ [$Hm] as %n ⟨%Hn, %Hwire⟩
-  have Hw0 := Hwire hm
-  simp only [pbMessage_wire] at Hw0
-  have hlen : (pbEnc raftpb.Message.ty ml).length < 2 ^ 63 := by word
-  have hn : n = W64 (pbEnc raftpb.Message.ty ml).length := by word
+  wp_apply wpS $$ [$Hc] as %n %Hn
+  have Hn := Hn (by omega)
+  have hlen : (msgEncC c).length < 2 ^ 63 := by word
+  have hn : n = W64 (msgEncC c).length := by word
   subst hn
-  have Hw0' : MsgWireOk st (pbEnc raftpb.Message.ty ml) ∧
-      (pbEnc raftpb.Message.ty ml).length < 2 ^ 63 := ⟨Hw0, hlen⟩
-  ihave ⟨#HA1, #HA2⟩ := HA $$ %(pbEnc raftpb.Message.ty ml) %Hw0'
-  ihave Hbw := wp_WriteUint64 wi (W64 (pbEnc raftpb.Message.ty ml).length) iprop(Wr h)
+  have Hw0' : MsgWireOk st (msgEncC c) ∧ MsgEnc st (msgEncC c) ∧
+      (msgEncC c).length < 2 ^ 63 := ⟨Hw0, ⟨c, hcm, Hu, rfl⟩, hlen⟩
+  ihave ⟨#HA1, #HA2⟩ := HA $$ %(msgEncC c) %Hw0'
+  ihave Hbw := wp_WriteUint64 wi (W64 (msgEncC c).length) iprop(Wr h)
     (fun n' err => iprop(∃ k : Nat,
-      Wr (h ++ (u64Be (W64 (pbEnc raftpb.Message.ty ml).length)).take k) ∗
+      Wr (h ++ (u64Be (W64 (msgEncC c).length)).take k) ∗
       ⌜sint.Z n' = k ∧ k ≤ 8 ∧ (err = GoInterface.nil → k = 8)⌝ ∗ http.errStrOk err ∗
       ⌜nf = true → err = GoInterface.nil⌝)) $$ []
   · iintro !> %sl !> %Φ ⟨Hsl, HWr⟩ HΦ
-    wp_apply Hwr $$ %sl %(DFrac.own 1) %(u64Be (W64 (pbEnc raftpb.Message.ty ml).length)) %h
+    wp_apply Hwr $$ %sl %(DFrac.own 1) %(u64Be (W64 (msgEncC c).length)) %h
       [$Hsl $HWr $HA1] as %n' %err ⟨%k, Hsl, HWr, %Hk, #Herr, %Hnf⟩
     iapply HΦ
     iexists k
@@ -85,16 +91,16 @@ theorem rafthttp.messageEncoder.encode.wp_proof
     wp_auto
     subst hk
     rw [List.take_of_length_le (by simp [u64Be_length])] at *
-    have wpM := wp_MustMarshalMessage pbMessage ml st hm
-    simp only [pbMessage_ty, pbMessage_ro, pbMessage_wire] at wpM
-    wp_apply wpM $$ [$Hm] as %d ⟨Hd, Hcap, -⟩
+    have wpM := wp_MustMarshalMessage pbMessageC pbMessageC_reg ml c hm' (by simp; omega)
+    simp only [pbMessageC_ty, pbMessageC_roC, pbEncC_pbMessageC] at wpM
+    wp_apply wpM $$ [$Hc] as %d ⟨Hd, Hcap, -⟩
     (try wp_auto)
-    ihave #HA3 : □ A ((h ++ u64Be (W64 (pbEnc raftpb.Message.ty ml).length)) ++
-        pbEnc raftpb.Message.ty ml) $$ []
+    ihave #HA3 : □ A ((h ++ u64Be (W64 (msgEncC c).length)) ++
+        msgEncC c) $$ []
     · iunfold msgFrame at HA2
       rw [List.append_assoc]; imodintro; iexact HA2
-    wp_apply Hwr $$ %d %(DFrac.own 1) %(pbEnc raftpb.Message.ty ml)
-      %(h ++ u64Be (W64 (pbEnc raftpb.Message.ty ml).length)) [$Hd $HWr $HA3]
+    wp_apply Hwr $$ %d %(DFrac.own 1) %(msgEncC c)
+      %(h ++ u64Be (W64 (msgEncC c).length)) [$Hd $HWr $HA3]
       as %n2 %err2 ⟨%k2, Hd, HWr, %Hk2, #Herr, %Hnf2⟩
     (try wp_auto)
     iapply HΦ
@@ -105,9 +111,9 @@ theorem rafthttp.messageEncoder.encode.wp_proof
     iexists _
     iframe HWr
     iintro %Hnil
-    iexists (pbEnc raftpb.Message.ty ml)
+    iexists (msgEncC c)
     ipureintro
-    refine ⟨Hw0, hlen, ?_⟩
+    refine ⟨Hw0, ⟨c, hcm, Hu, rfl⟩, hlen, ?_⟩
     rw [List.take_of_length_le (by rw [Hk2.2.2 Hnil]; exact Nat.le_refl _)]
     simp [msgFrame]
 
