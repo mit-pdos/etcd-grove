@@ -2,6 +2,8 @@ package etcd3
 
 import (
 	"os"
+	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,15 +14,16 @@ import (
 	"go.uber.org/zap"
 )
 
-// TestMain runs the driver: the store's history is linearizable under Model (Main panics
-// otherwise), and the run reaches the check.
+// TestMainLinearizable runs the driver, in a process of its own (inChild: Main leaves its member
+// running, whose files must not be removed under it): the store's history is linearizable under
+// Model (Main panics otherwise), and the run reaches the check.
 func TestMainLinearizable(t *testing.T) {
-	os.RemoveAll("k8setcd3.etcd")
-	defer os.RemoveAll("k8setcd3.etcd")
-	r := Main(4, 60)
-	if r != porcupine.Ok {
-		t.Fatalf("Main: %v, want Ok", r)
-	}
+	inChild(t, "TestMainLinearizable", "", func(t *testing.T) {
+		r := Main(4, 60)
+		if r != porcupine.Ok {
+			t.Fatalf("Main: %v, want Ok", r)
+		}
+	})
 }
 
 // The model's answers on the seeded store: a no-op update of a non-canonical item rewrites it
@@ -46,14 +49,50 @@ func TestModelNoopRewrite(t *testing.T) {
 	}
 }
 
-// TestMainCluster runs MainCluster once, in a fresh data directory: the store's history over the
-// three-member cluster is linearizable under Model (MainCluster panics otherwise), and the run
-// reaches the check.
+// TestMainCluster runs MainCluster once, in a process of its own (inChild): the store's history
+// over the three-member cluster is linearizable under Model (MainCluster panics otherwise), and the
+// run reaches the check.
 func TestMainCluster(t *testing.T) {
-	t.Chdir(t.TempDir())
-	r := MainCluster(4, 60)
-	if r != porcupine.Ok {
-		t.Fatalf("MainCluster: %v, want Ok", r)
+	inChild(t, "TestMainCluster", "", func(t *testing.T) {
+		r := MainCluster(4, 60)
+		if r != porcupine.Ok {
+			t.Fatalf("MainCluster: %v, want Ok", r)
+		}
+	})
+}
+
+// inChild runs body, which starts a cluster on clusterConfig's fixed ports and leaves it running,
+// in a process of its own: the test binary re-executed on the test test (and its subtest sub, if
+// not empty), in a fresh data directory, with K8SETCD3_CHILD set. The parent removes the directory
+// once the child has exited, so no member runs while its files are removed (a member whose files
+// are removed under it panics at its next snapshot, "failed to release wal": the premise
+// storage.diskOk's releaseOk excludes that). Two clusters in one process would collide on the
+// ports, so every cluster test runs this way.
+func inChild(t *testing.T, test string, sub string, body func(t *testing.T)) {
+	if os.Getenv("K8SETCD3_CHILD") != "" {
+		t.Chdir(os.Getenv("K8SETCD3_DIR"))
+		body(t)
+		return
+	}
+	dir, err := os.MkdirTemp("", "k8setcd3c-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	run := "^" + test + "$"
+	if sub != "" {
+		run += "/^" + sub + "$"
+	}
+	cmd := exec.Command(os.Args[0], "-test.run", run, "-test.v", "-test.count=1")
+	cmd.Env = append(os.Environ(), "K8SETCD3_CHILD=1", "K8SETCD3_DIR="+dir, "K8SETCD3_SCHED="+sub)
+	out, err := cmd.CombinedOutput()
+	for _, l := range strings.Split(string(out), "\n") {
+		if strings.Contains(l, ".go:") || strings.Contains(l, "panic") || strings.Contains(l, "FAIL") {
+			t.Log(strings.TrimSpace(l))
+		}
+	}
+	if err != nil {
+		t.Fatalf("%s: the child failed: %v", run, err)
 	}
 }
 
@@ -111,13 +150,42 @@ func partitionSchedules() map[string][]cluster3.Step {
 			}
 		}
 	}
+	// each member in turn cut off from the two others for 3s, longer than the election timeout
+	// (1-2s: TickMs 100, ElectionTicks 10), then mended: the round of the leader forces a new
+	// election
+	var election []cluster3.Step
+	for m := 0; m < 3; m++ {
+		first := true
+		for o := 0; o < 3; o++ {
+			if o != m {
+				d := time.Duration(0)
+				if first {
+					d = 100 * ms
+					first = false
+				}
+				election = append(election, cluster3.Step{Delay: d, Kind: cluster3.PeerCut, A: m, B: o})
+			}
+		}
+		first = true
+		for o := 0; o < 3; o++ {
+			if o != m {
+				d := time.Duration(0)
+				if first {
+					d = 3 * time.Second
+					first = false
+				}
+				election = append(election, cluster3.Step{Delay: d, Kind: cluster3.PeerMend, A: m, B: o})
+			}
+		}
+	}
 	return map[string][]cluster3.Step{
-		"isolate": isolate,
-		// member 0's clients cut off it (every byte dropped) for 20s, then back: keepalive closes
-		// the dead transport and the client fails over
+		"isolate":  isolate,
+		"election": election,
+		// member 0's clients cut off it (every byte dropped) for 10s, then back: keepalive closes
+		// the dead transport, the client fails over, and the unblackhole runs before the check ends
 		"blackhole": {
 			{Delay: 100 * ms, Kind: cluster3.ClientBlackhole, A: 0},
-			{Delay: 20 * time.Second, Kind: cluster3.ClientUnblackhole, A: 0},
+			{Delay: 10 * time.Second, Kind: cluster3.ClientUnblackhole, A: 0},
 		},
 		// the clients' connections to each member closed, repeatedly
 		"drop": {
@@ -128,8 +196,9 @@ func partitionSchedules() map[string][]cluster3.Step {
 			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 1},
 			{Delay: 100 * ms, Kind: cluster3.ClientDrop, A: 2},
 		},
-		// as the k8s compactor's TestMainPartition: member 0 isolated with member 2's bridge
-		// blackholed, then mended, member 2 unblackholed and member 1's connections dropped
+		// one round modeled on the k8s compactor's TestMainPartition: member 0 isolated with member
+		// 2's bridge blackholed, then mended, member 2 unblackholed and member 1's connections
+		// dropped
 		"mixed": {
 			{Delay: 100 * ms, Kind: cluster3.PeerCut, A: 0, B: 1},
 			{Kind: cluster3.PeerCut, A: 0, B: 2},
@@ -143,8 +212,9 @@ func partitionSchedules() map[string][]cluster3.Step {
 }
 
 // TestMainPartition runs MainPartition once per schedule (K8SETCD3_SCHED names one; all by
-// default), each in a fresh data directory: the store's history over the partitioned cluster is
-// linearizable under Model (MainPartition panics otherwise), and the run reaches the check.
+// default), each in a process of its own (inChild): the store's history over the partitioned
+// cluster is linearizable under Model (MainPartition panics otherwise), and the run reaches the
+// check.
 func TestMainPartition(t *testing.T) {
 	only := os.Getenv("K8SETCD3_SCHED")
 	for name, sched := range partitionSchedules() {
@@ -152,21 +222,14 @@ func TestMainPartition(t *testing.T) {
 			continue
 		}
 		t.Run(name, func(t *testing.T) {
-			// a data directory the test does not remove: MainPartition leaves its cluster running,
-			// and removing the members' files under them (t.TempDir's cleanup) makes a member's
-			// next snapshot panic ("failed to release wal"), after the check
-			dir, err := os.MkdirTemp("", "k8setcd3p-")
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Logf("data directory %s", dir)
-			t.Chdir(dir)
-			start := time.Now()
-			r := MainPartition(4, 60, sched)
-			t.Logf("%s: %v in %v", name, r, time.Since(start))
-			if r != porcupine.Ok {
-				t.Fatalf("MainPartition(%s): %v, want Ok", name, r)
-			}
+			inChild(t, "TestMainPartition", name, func(t *testing.T) {
+				start := time.Now()
+				r := MainPartition(4, 60, sched)
+				t.Logf("%s: %v in %v", name, r, time.Since(start))
+				if r != porcupine.Ok {
+					t.Fatalf("MainPartition(%s): %v, want Ok", name, r)
+				}
+			})
 		})
 	}
 }

@@ -2,6 +2,7 @@ package etcd3
 
 import (
 	"os"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -22,6 +23,12 @@ import (
 // (EOther: the call may or may not have taken effect), and all calls.
 type failCounts struct {
 	writes, writeFails, reads, readFails atomic.Int64
+	// each member's leader changes observed (to another nonzero leader), and the distinct
+	// leaders
+	mu      sync.Mutex
+	last    [3]uint64
+	changes int
+	leaders map[uint64]bool
 }
 
 // mainPartitionCounted is MainPartition (diagnostics only: not the theorem's program) with Check's
@@ -54,6 +61,29 @@ func mainPartitionCounted(clients int, ops int, sched []cluster3.Step, fc *failC
 		return porcupine.Unknown
 	}
 	go cluster3.Partitioner(srvs, brs, sched)
+	// the leaders the members report, every 20ms, until the check ends
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-time.After(20 * time.Millisecond):
+			}
+			for i, s := range srvs {
+				if l := uint64(s.Leader()); l != 0 {
+					fc.mu.Lock()
+					if fc.last[i] != 0 && fc.last[i] != l {
+						fc.changes++
+					}
+					fc.last[i] = l
+					fc.leaders[l] = true
+					fc.mu.Unlock()
+				}
+			}
+		}
+	}()
 	tbl := newCache()
 	apply := func(input any) any {
 		out := Apply(s, tbl, input)
@@ -77,8 +107,8 @@ func mainPartitionCounted(clients int, ops int, sched []cluster3.Step, fc *failC
 }
 
 // TestPartitionFailures runs mainPartitionCounted on the schedule K8SETCD3_SCHED names (all by
-// default) and reports how many calls failed: whether the schedules exercise the model's pending
-// writes.
+// default), each in a process of its own (inChild), and reports how many calls failed (whether
+// the schedules exercise the model's pending writes) and the leaders observed.
 func TestPartitionFailures(t *testing.T) {
 	only := os.Getenv("K8SETCD3_SCHED")
 	for name, sched := range partitionSchedules() {
@@ -86,20 +116,20 @@ func TestPartitionFailures(t *testing.T) {
 			continue
 		}
 		t.Run(name, func(t *testing.T) {
-			dir, err := os.MkdirTemp("", "k8setcd3p-")
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Chdir(dir)
-			var fc failCounts
-			start := time.Now()
-			r := mainPartitionCounted(4, 60, sched, &fc)
-			t.Logf("%s: %v in %v; writes %d (failed %d), reads %d (failed %d)", name, r,
-				time.Since(start), fc.writes.Load(), fc.writeFails.Load(), fc.reads.Load(),
-				fc.readFails.Load())
-			if r != porcupine.Ok {
-				t.Fatalf("%s: %v, want Ok", name, r)
-			}
+			inChild(t, "TestPartitionFailures", name, func(t *testing.T) {
+				fc := failCounts{leaders: map[uint64]bool{}}
+				start := time.Now()
+				r := mainPartitionCounted(4, 60, sched, &fc)
+				fc.mu.Lock()
+				t.Logf("%s: %v in %v; writes %d (failed %d), reads %d (failed %d); "+
+					"leaders %d distinct, %d member-observed changes", name, r, time.Since(start),
+					fc.writes.Load(), fc.writeFails.Load(), fc.reads.Load(), fc.readFails.Load(),
+					len(fc.leaders), fc.changes)
+				fc.mu.Unlock()
+				if r != porcupine.Ok {
+					t.Fatalf("%s: %v, want Ok", name, r)
+				}
+			})
 		})
 	}
 }
