@@ -33299,3 +33299,45 @@ the payload by `γn.wal.loc`, `applySnapshot.specSnapM` by the storage `stp` it 
 
 **The open item of the review** ("a producer of `σ.b ≤ σ.commit` at `Close`"): `rnDur_take` already
 gives `σ.b ≤ v.l.length ≤ σ.commit` at the stop; nothing to add.
+
+## zap's logger vocabulary, `Check` at levels below `DPanicLevel`, and `bootstrap`'s contract over a zap logger (2026-11-07 · sweep repairs 1, R1-2: LG-1, the `Check`/`Write` restriction, L4; the Scope (revision 3) approved by etcd-grove-81/82 · branch `sweep-repairs-1`)
+
+**The defects** (STATUS, "Soundness bug: `bootstrapContract` covers a zero logger" and "Soundness
+bugs: ... zap's `Check`/`Write` at `PanicLevel`"). `bootstrapContract` covered every configuration
+with `cfg.Logger' ≠ null`, a zero `&zap.Logger{}` included, on which Go's `bootstrap` panics at its
+first log line: the closed `*_safe` theorems that start a server assumed a triple false of Go.
+`zap.Logger.Check` admitted every level and `CheckedEntry.Write` every non-nil entry, while `Write`
+of an entry at `PanicLevel` (on `zap.NewNop()` too) or at `DPanicLevel` under `Development()` panics.
+
+**The repair.**
+- `Spec/go_uber_org/zap/Defs.lean`: `zapLoggerOk l := ⌜l ≠ null⌝ ∗ □ zap.loggerRaw l` (persistent;
+  `zap.loggerRaw` opaque: a logger as zap's constructors build it, never written), and
+  `zapcore.zapEntry ce` (opaque, exclusive: an entry `Check` returned, not yet written).
+  `zapLoggerOk_ne_null` lets the later batches land top-down: a callee still asking `l ≠ null` gets it.
+- `zap.NewNop`'s post gives `zapLoggerOk l` (the only constructor with a spec; every closed theorem's
+  logger is `NewNop()`).
+- `Check` takes `⌜∃ w : w8, lvl = #w ∧ sint.Z w < 3⌝` (signed: `DebugLevel` is `W8 (-1)`, 255
+  unsigned; Debug through Error) and returns `⌜ce = null⌝ ∨ zapEntry ce`; `Write` consumes
+  `zapEntry ce`. Its one caller (`authStore.Authenticate`, `DebugLevel`) meets it by `decide`.
+  `Check`'s logger premise stays `l ≠ null` until LG-5.
+- L4: `bootCfgOk` loses `cfg.Logger' ≠ null`; both contracts' preconditions take
+  `zapLoggerOk cfg.Logger'` (an `IProp`, so it cannot stay in the `Prop`); `bootOk`'s and `bootOkR`'s
+  `#Hclg` give `zapLoggerOk lgc` (a stronger post of an assumed contract: no narrowing).
+- `NewServer.spec` takes `zapLoggerOk cfg.Logger'` in its precondition (until then the pure
+  `cfg.Logger' ≠ null →`); `clientCfgOk` carries `zapLoggerOk cfg.Logger'`; the examples' entry specs
+  (`etcdstart`, `cluster3`, the `auth`, `partition`, `restart`, `leasecatchup` starters and clients)
+  take `zapLoggerOk lg` in their preconditions, produced by `NewNop` in each `Main`.
+
+**Exported statements.** No closed theorem's text changes: their `Hprem` assumes `bootstrapContract`,
+whose precondition now asks more (a weaker hypothesis: the theorems say more, and the contract is now
+true of Go at the examples' logger). Interfaces: `etcdstart`'s (the starters' specs).
+
+**Deferred** (`questions.md` Q4): `openPre`'s logger to LG-3 (with `isBackend`; its producer at
+`applySnapshot` is the server's snapshot bundle, LG-2's), the raft node's logger in `bootOk`/`bootOkR`
+and `isSnapshotter`'s logger to LG-2/LG-4 with their consumers.
+
+**Go evidence.** `examples/sweeprepairs/zapcheck` (`TestCheck`: every level Debug..Panic on `NewNop`,
+`NewNop` with `Development()`, `zap.New(NopCore, Development())`: `Write` never panics at a level with
+`int8 < 3`; it panics at Panic, and at DPanic under `Development()`), `examples/sweeprepairs/logger`
+(`TestA1ZapZero`, `TestA2CheckedEntry`, `TestA3Family`, `TestB1Constructors`, `TestB2Cluster`), all
+passing (`/shared/tmp/sweep-repairs-1/logs/r12-go-rerun.log`).

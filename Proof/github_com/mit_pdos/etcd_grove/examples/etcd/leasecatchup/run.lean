@@ -62,7 +62,8 @@ theorem run.wp_proof
     (wp_PeerStep : cluster3.PeerStep.spec (GF := GF) (hG := hG)) :
     run.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot lg
-  wp_start as ⟨Hstart, Htok, #Hprem, %Hbf, %Hlg, %Hp₂, %Hp₃, %Hp₄, %Hp₅⟩
+  wp_start as ⟨Hstart, Htok, #Hprem, %Hbf, #Hzlg, %Hp₂, %Hp₃, %Hp₄, %Hp₅⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   obtain ⟨Htb, Hrb48, HrbN, HwbN⟩ := Hp₂
   obtain ⟨Hck, Haf, Hbuq, Hrf, Hdbo⟩ := Hp₃
   obtain ⟨HlP, HnE⟩ := Hp₄
@@ -78,7 +79,7 @@ theorem run.wp_proof
   wp_apply wp_config
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, in the monotone lease mode
-  wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false .mono clusterCfg_ok Hbf Hlg
+  wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false .mono clusterCfg_ok Hbf
       Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms (lease.runCfg_mono HnE) (by decide)
       (fun _ => HlP))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
@@ -105,7 +106,7 @@ theorem run.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps3 with #Heps3
   wp_apply (wp_NewClients _ [clusterCfg.Bridge3'] lg
-      (EtcdGrove.client.srvWEnv R₃ clusterCfg.Bridge3' [] null null [] null default) (by omega) Hlg
+      (EtcdGrove.client.srvWEnv R₃ clusterCfg.Bridge3' [] null null [] null default) (by omega)
       (plainEndpoints_singleton _ clusterCfg_ok.bp3)) $$ [] as %c3 %cerr Hc3
   · iframe #
   icases Hc3 with (⟨%Hc3err, #Hnc3, -⟩ | %Hc3fail)
@@ -126,7 +127,7 @@ theorem run.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps1 with #Heps1
   wp_apply (wp_NewClients _ [clusterCfg.Bridge1'] lg
-      (EtcdGrove.client.srvWEnv R₁ clusterCfg.Bridge1' [] null null [] null default) (by omega) Hlg
+      (EtcdGrove.client.srvWEnv R₁ clusterCfg.Bridge1' [] null null [] null default) (by omega)
       (plainEndpoints_singleton _ clusterCfg_ok.bp1)) $$ [] as %c1 %cerr Hc1
   · iframe #
   icases Hc1 with (⟨%Hc1err, #Hnc1, -⟩ | %Hc1fail)

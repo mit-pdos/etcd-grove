@@ -70,8 +70,9 @@ theorem newClient.wp_proof
   ihave #Hvars : (clientNewVars : IProp GF) $$ []
   · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg
-  icases Hcfg with ⟨#Heps, #Hdo, %Hc⟩
-  obtain ⟨Hplain, Htls, Htok, Hctx, Hlg, Hms, Hmr, Hrej, Has⟩ := Hc
+  icases Hcfg with ⟨#Heps, #Hdo, %Hc, #Hzlg⟩
+  obtain ⟨Hplain, Htls, Htok, Hctx, Hms, Hmr, Hrej, Has⟩ := Hc
+  ihave %Hlg := zapLoggerOk_ne_null _ $$ Hzlg
   ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hp
   ihave #Hpf := Hp
   iStructNamed Hpf

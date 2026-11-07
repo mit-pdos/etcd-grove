@@ -39,8 +39,9 @@ theorem StartPeriodicServer.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartPeriodicServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client period lg bootLog ctxs dir id γ ρ E₀ Φs γn lm Htb Hrb48 HrbN HwbN
-    hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hlg Hper Hcret Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+    hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hper Hcret Hck Haf Hbuq Hdbo
+  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
@@ -76,7 +77,7 @@ theorem StartPeriodicServer.wp_proof
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
       (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn true lm Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
-      (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg
+      (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty)
       (v3compactor.bootCfg_periodic _ _ Hper Hcret) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #

@@ -117,7 +117,8 @@ theorem Main.wp_proof
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- the ghost state `NewServer` takes, in compaction mode at retention `0`
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
@@ -134,7 +135,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartCompactingServer N memberName peerAddr clientAddr (W64 0) lg
       (LogEntry.toEntries boot 0) ctxs (etcdstart.dir1 peerAddr id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN
       HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg (by decide)
+      (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide)
       (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
       $$ [Htok Hmb Hfresh]
     as %srv %err Hr
@@ -249,8 +250,9 @@ theorem Main.wp_proof
   have htb : threadBound GF ≤ 2 ^ 31 := by omega
   let V : client.WEnv GF := EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv
   -- `wcli, err := NewClient(clientAddr, lg)`
-  wp_apply (wp_NewClient clientAddr lg V Hlg (by unfold plainEndpoint; decide) htb)
+  wp_apply (wp_NewClient clientAddr lg V (by unfold plainEndpoint; decide) htb)
     as %wcl %werr Hwc
+  · iframe #
   icases Hwc with (⟨%Hwerr, #Hwnc, -⟩ | %Hwfail)
   rotate_left
   · obtain ⟨Hwerr, -⟩ := Hwfail
@@ -309,8 +311,9 @@ theorem Main.wp_proof
   wp_for IH
   wp_if_destruct
   · -- `cli, err := NewClient(clientAddr, lg)`
-    wp_apply (wp_NewClient clientAddr lg V Hlg (by unfold plainEndpoint; decide) htb)
+    wp_apply (wp_NewClient clientAddr lg V (by unfold plainEndpoint; decide) htb)
       as %cl %cerr Hc
+    · iframe #
     icases Hc with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
     rotate_left
     · obtain ⟨Hcerr, -⟩ := Hcfail

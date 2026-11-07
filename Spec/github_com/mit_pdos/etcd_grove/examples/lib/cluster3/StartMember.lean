@@ -63,12 +63,13 @@ abbrev StartMember.spec : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
   rafthttp.bootCfg dir ps →
-  lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   -- (lease-mono3) the lease reads' deployment premise, in a mode that grants leases
   (lm ≠ .none → leasePeersOk) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗
       cluster ↦$□ GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂

@@ -153,8 +153,11 @@ theorem auth.authStore.Authenticate.wp_core
       · exact absurd rfl Hne
       (try wp_auto)
       (try wp_auto)
-      wp_apply h_Check as %ce -
-      · ipureintro; exact Hlgnn
+      -- (sweep repairs 1, R1-2) at `DebugLevel` (`W8 (-1)`), below `DPanicLevel`
+      wp_apply h_Check as %ce Hce
+      · iframe #; isplitr
+        · ipureintro; exact Hlgnn
+        ipureintro; exact ⟨_, rfl, by decide⟩
       (try wp_auto)
       wp_if_destruct
       · -- no entry to write
@@ -190,8 +193,10 @@ theorem auth.authStore.Authenticate.wp_core
         · ipureintro; rfl
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
-        wp_apply h_Write
-        · ipureintro; exact Hif
+        icases Hce with (%Hcn | Hce)
+        · exact absurd Hcn Hif
+        wp_apply h_Write $$ [Hce]
+        · iframe #; iexact Hce
         (try wp_auto)
         irename «$r0» => Hrl
         generalize «$r0_ptr» = rl at *
@@ -266,8 +271,11 @@ theorem auth.authStore.Authenticate.wp_core
       · exact absurd rfl Hne
       (try wp_auto)
       (try wp_auto)
-      wp_apply h_Check as %ce -
-      · ipureintro; exact Hlgnn
+      -- (sweep repairs 1, R1-2) at `DebugLevel` (`W8 (-1)`), below `DPanicLevel`
+      wp_apply h_Check as %ce Hce
+      · iframe #; isplitr
+        · ipureintro; exact Hlgnn
+        ipureintro; exact ⟨_, rfl, by decide⟩
       (try wp_auto)
       wp_if_destruct
       · -- no entry to write
@@ -303,8 +311,10 @@ theorem auth.authStore.Authenticate.wp_core
         · ipureintro; rfl
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
-        wp_apply h_Write
-        · ipureintro; exact Hif
+        icases Hce with (%Hcn | Hce)
+        · exact absurd Hcn Hif
+        wp_apply h_Write $$ [Hce]
+        · iframe #; iexact Hce
         (try wp_auto)
         irename «$r0» => Hrl
         generalize «$r0_ptr» = rl at *

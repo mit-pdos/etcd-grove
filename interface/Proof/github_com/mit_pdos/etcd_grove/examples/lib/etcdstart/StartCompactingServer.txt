@@ -36,16 +36,16 @@ theorem etcdstart.StartCompactingServer.wp_proof (wp_newServerMode : etcdstart.n
                           go!"http://" ++ peerAddr ∈ dir id →
                             rafthttp.bootCfg dir [id] →
                               utf8Valid name →
-                                lg ≠ null →
-                                  0 ≤ sint.Z retention →
-                                    ↑ρ.rd.kv.cret ≤ sint.Z retention →
-                                      ckptEffectsOk →
-                                        authRecordsFit →
-                                          apply.backendUnderQuota →
-                                            storage.diskOk →
-                                              ⊢
-                                                ∀ Φ,
-                                                  isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                0 ≤ sint.Z retention →
+                                  ↑ρ.rd.kv.cret ≤ sint.Z retention →
+                                    ckptEffectsOk →
+                                      authRecordsFit →
+                                        apply.backendUnderQuota →
+                                          storage.diskOk →
+                                            ⊢
+                                              ∀ Φ,
+                                                isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                                    zapLoggerOk lg ∗
                                                       threadTok ∗
                                                         etcdstart.bootPremise N [id] bootLog ctxs dir name name
                                                             (etcdstart.urls1 name peerAddr client) id ∗
@@ -53,23 +53,23 @@ theorem etcdstart.StartCompactingServer.wp_proof (wp_newServerMode : etcdstart.n
                                                             context.isClosedchanInit ∗
                                                               etcdstart.memberBoot γ ctxs ρ E₀ Φs id true lm ∗
                                                                 netHttpOk γn id ∗ etcdstart.memberFreshRes name { } γn -∗
-                                                    (▷
-                                                        ∀ s err,
-                                                          ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
-                                                              ⌜err = GoInterface.nil⌝ ∗
-                                                                etcdstart.memberUp s ρ E₀ lg γn id lm -∗
-                                                            Φ (intoVal s, intoVal err)) -∗
-                                                      WP
-                                                        ((((((intoVal
-                                                                    (functions
-                                                                      github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer
-                                                                      []))
-                                                                  (intoVal name))
-                                                                (intoVal peerAddr))
-                                                              (intoVal client))
-                                                            (intoVal retention))
-                                                          (intoVal lg))
-                                                        {{ Φ }}
+                                                  (▷
+                                                      ∀ s err,
+                                                        ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
+                                                            ⌜err = GoInterface.nil⌝ ∗
+                                                              etcdstart.memberUp s ρ E₀ lg γn id lm -∗
+                                                          Φ (intoVal s, intoVal err)) -∗
+                                                    WP
+                                                      ((((((intoVal
+                                                                  (functions
+                                                                    github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer
+                                                                    []))
+                                                                (intoVal name))
+                                                              (intoVal peerAddr))
+                                                            (intoVal client))
+                                                          (intoVal retention))
+                                                        (intoVal lg))
+                                                      {{ Φ }}
 
 theorem etcdstart.memberUp.congr_simp (s s✝ : Loc) (e_s : s = s✝) (ρ ρ✝ : ReqNames) (e_ρ : ρ = ρ✝)
     (E₀ E₀✝ : apply.AEnv GF) (e_E₀ : E₀ = E₀✝) (lg lg✝ : Loc) (e_lg : lg = lg✝) (γn γn✝ : NetNames

@@ -48,9 +48,10 @@ abbrev StartMember.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
-  lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗

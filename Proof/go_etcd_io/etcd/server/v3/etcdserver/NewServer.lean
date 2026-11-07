@@ -378,7 +378,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hRevS : cmp = true → mvcc.store.Rev.spec (GF := GF) (hG := hG))
     (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG)) :
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
-  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hlgnn Hcbl Hmrb Hmto Hcb Hcon Hcmp0
+  intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hc0 Hch0 Hlog0 Hcok Hkcmp Hcbl Hmrb Hmto Hcb Hcon Hcmp0
     Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hauthcfg Hlbc Hbco Hbcf Hbwb
   -- (2026-11-04, the lease-expiry plan's Part C) what the construction takes of the lease slot
   have Hlgon : on = true → ρ.rd.kv.lg = false := fun h => by
@@ -389,6 +389,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start
   iNamed Hpre
+  ihave %Hlgnn := zapLoggerOk_ne_null cfg.Logger' $$ Hzlg
   -- (D19r (C)) the raft status's mutex, from the package's facts
   ihave #Hrs : rnRaftStatusOk (GF := GF) $$ []
   · ihave Hsi0 : (srvInit : IProp GF) $$ []
@@ -408,7 +409,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave #Hboot' := Hboot
   iunfold bootstrapContract at Hboot'
   wp_apply Hboot' $$ [Hrauth Hwdf] as %b %err Hb
-  · iframe; iframe Hcfgro
+  · iframe; iframe Hcfgro Hzlg
     ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1, Hdisk.2.2.2.2⟩
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
   · -- `bootstrap` failed
@@ -2348,7 +2349,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]
       iunfold srvApRes
       icases Hbh with ⟨%lgh, #Hbhi⟩
-      icases Hclg with ⟨%lgc, #Hclgf, %Hlgcnn⟩
+      icases Hclg with ⟨%lgc, #Hclgf, #Hlgcz⟩
+      ihave %Hlgcnn := zapLoggerOk_ne_null lgc $$ Hlgcz
       iunfold membership.clusterCid at Hcid
       iexists bk.beHooks',
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩,

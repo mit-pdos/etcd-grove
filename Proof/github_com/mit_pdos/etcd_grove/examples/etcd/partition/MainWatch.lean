@@ -167,9 +167,10 @@ theorem MainWatch.wp_proof
     etcdstart.GenKv.sizeOk (by decide) (Htrs.2 p hp)
   (try wp_auto)
   -- the cluster, its clients' watch prefix `wk/`
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
-  wp_apply (wp_startCluster N id₁ id₂ id₃ ps ctxs boot lg wkPfx Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
+  wp_apply (wp_startCluster N id₁ id₂ id₃ ps ctxs boot lg wkPfx Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
     $$ [Hstart Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)

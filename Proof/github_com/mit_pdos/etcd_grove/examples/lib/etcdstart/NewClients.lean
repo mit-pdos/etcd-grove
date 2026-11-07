@@ -31,8 +31,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 theorem NewClients.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
     NewClients.spec (GF := GF) (hG := hG) := by
-  intro eps addrs lg V Htb Hlg Hplain
-  wp_start as #Heps
+  intro eps addrs lg V Htb Hplain
+  wp_start as ⟨#Hzlg, #Heps⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []

@@ -94,14 +94,15 @@ theorem MainCluster.wp_proof
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- `cfg := clusterConfig()`
   wp_apply wp_clusterConfig
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, compaction off
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false .none clusterCfg_ok Hbf
-      Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide)
+      Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide)
       (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #

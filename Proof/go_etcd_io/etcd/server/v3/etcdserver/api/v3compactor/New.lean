@@ -65,7 +65,8 @@ theorem v3compactor.New.wp_proof
   -- `if lg == nil { lg = zap.NewNop() }`
   wp_join iprop(∃ l : Loc, "lg" ∷ lg_ptr ↦ l ∗ ⌜l ≠ null⌝) at next with [lg] as ⟨%l, lg, %Hl⟩
   · wp_if_destruct
-    · wp_apply hNewNop as %l %Hl
+    · wp_apply hNewNop as %l #Hlz
+      ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
       (try wp_auto)
       wp_join_done
       iexists l; iframe; ipureintro; exact Hl

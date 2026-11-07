@@ -93,7 +93,8 @@ theorem Main.wp_proof
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`), at KV names that grant leases
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
@@ -111,7 +112,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leasegrant" go!"127.0.0.1:23966" go!"127.0.0.1:23956" lg
       (LogEntry.toEntries boot 0) ctxs (leasegrantDir id) id γ ρ E₀ Φs γn .mono Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leasegrantDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [leasegrantDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
@@ -170,8 +171,9 @@ theorem Main.wp_proof
   icases Hga with ⟨#Hrg, #Hrls⟩
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23956" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23956" [] null null [] null default) Hlg
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23956" [] null null [] null default)
       (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+  · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail

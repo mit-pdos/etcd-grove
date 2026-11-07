@@ -36,13 +36,14 @@ theorem newServer.wp_proof
     (wp_newServerMode : newServerMode.spec (GF := GF) (hG := hG)) :
     newServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
-    ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg Hret Hck Haf Hbuq
+    ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hret Hck Haf Hbuq
     Hdbo
-  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   (try wp_auto)
   wp_apply (wp_newServerMode N name peerAddr client token go!"revision" retention snapCount catchUp
       peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule
-      hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg (v3compactor.bootCfg_off _ _ _ _ Hret) Hck Haf Hbuq Hdbo)
+      hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 (v3compactor.bootCfg_off _ _ _ _ Hret) Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
   (try wp_auto)
