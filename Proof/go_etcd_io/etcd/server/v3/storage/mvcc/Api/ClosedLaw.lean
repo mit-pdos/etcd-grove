@@ -4,6 +4,7 @@
 sealed definitions of `Api.lean` (imported with `import all`).
 
 * `mvccReaders_split.law_holds`: the tokens are the readers' pool's tickets (`ownToks_add`).
+* `mvccStorageFor_rest.law_holds`: an opened storage's last part is its rest (R8, 2026-11-07).
 * `mvccClosed_rest.law_holds`: `Close`'s post pins the store's current names (its part of `curAt`,
   agreeing with the backend share's); every ticket (the client's `mvccReaderN` and the two `Close`
   regained) retires from the readers' pool at once (`readerPool_retireN`, one later credit, the one
@@ -41,6 +42,16 @@ theorem mvccReaders_split.law_holds : mvccReaders_split.law (GF := GF) := by
   intro γ n m
   unfold mvccReaders
   exact ownToks_add m n _
+
+theorem mvccStorageFor_rest.law_holds : mvccStorageFor_rest.law (GF := GF) := by
+  intro B Pk L c u
+  iintro HS
+  iunfold mvccStorageFor at HS
+  icases HS with ⟨%bk, %D, %Hp, -, -, -, -, -, -, -, -, -, -, -, -, Hop⟩
+  obtain ⟨rfl, -⟩ := Hp
+  imodintro
+  iunfold storageRest
+  iexact Hop
 
 private theorem rep_cons1 (P : IProp GF) (n : Nat) :
     P ∗ ([∗list] _x ∈ List.replicate n (), P) ⊢ [∗list] _x ∈ List.replicate (n + 1) (), P := by

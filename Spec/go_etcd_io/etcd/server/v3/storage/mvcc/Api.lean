@@ -1017,6 +1017,15 @@ abbrev mvccClosed_rest.law : Prop :=
     mvccClosed (GF := GF) γ ∗ mvccReaders γ mvccReaderN ∗ mvccBackend γ q B Pk ={⊤}=∗
       storageRest B ∗ mvccBackend γ q B Pk
 
+/-- **An opened storage no store took: its rest back** (R8, 2026-11-07; the coordinator's decision
+on R6's blocker 1): a storage ready for a store (`mvccStorageFor`) that `New`/`NewStore` never
+took gives back what `Restore` gives of an old storage (`storageRest B`; at etcd's backend, the
+`rdStockN - 2` shares of the open token, `etcdStorage_rest`). Sound: no store exists over it, so no
+reader can hold a share. (The server's `NewServer`, whose token provider's error path closes the
+backend after the storage was opened and before `mvcc.New`.) -/
+abbrev mvccStorageFor_rest.law : Prop :=
+  ∀ B (Pk : IProp GF) L c u, mvccStorageFor (GF := GF) B Pk L c u ={⊤}=∗ storageRest B
+
 abbrev mvccBackend_agree.law : Prop :=
   ∀ γ q q' B B' (Pk Pk' : IProp GF), mvccBackend (GF := GF) γ q B Pk ∗ mvccBackend γ q' B' Pk' ⊢ ⌜B = B'⌝
 

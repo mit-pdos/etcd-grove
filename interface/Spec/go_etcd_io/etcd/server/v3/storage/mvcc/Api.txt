@@ -406,6 +406,10 @@ def mvcc.api.NewStore.spec : Prop :=
 def mvcc.api.store.Close.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.Close.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)
 
+def mvcc.api.mvccStorageFor_rest.law : Prop :=
+  ∀ (B : mvcc.api.MvccStorage) (Pk : IProp GF) (L : mvcc.Log) (c : Int) (u : Bool),
+    ⊢ mvcc.api.mvccStorageFor B Pk L c u ={⊤}=∗ mvcc.api.storageRest B
+
 def (sealed) mvcc.api.mvccTxn (t : GoInterface) (γ : mvcc.api.MvccName) (trace : Loc) (k :
     mvcc.api.MTxn) : IProp GF
 

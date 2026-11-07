@@ -2219,3 +2219,10 @@ hides `W`: `EtcdBackend`'s MERGE-TODO(shutdown)).
 **Checks**: `lake build …mvcc.ApiResults …mvcc.Results …backend.Link` green, no `sorryAx` (log
 `/tmp/mvcc-stop-build.log`); mvcc's and the backend's interfaces regenerated; `etc/api-check.py
 etc/api/mvcc.txt --check`: mvcc's own modules pass.
+
+**Addendum (R8, 2026-11-07): `mvccStorageFor_rest.law`** (the coordinator's decision on
+`notes/mvcc-merge/r6.md`'s blocker 1; additive): `mvccStorageFor B Pk L c u ={⊤}=∗ storageRest B`,
+an opened storage no store took gives back its rest (sound: no store, so no reader holds a share).
+`Api.lean`, proved in `Api/ClosedLaw.lean` (`mvccStorageFor`'s last conjunct is `storageRest`'s
+definition), linked in `ApiResults.lean` (`mvccApi_mvccStorageFor_rest_law_holds`). For
+`NewServer`'s token-provider error path (`notes/mvcc-merge/r8.md`).

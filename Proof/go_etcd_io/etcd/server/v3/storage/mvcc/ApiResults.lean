@@ -234,6 +234,9 @@ theorem mvccApi_mvccReaders_split_law_holds : mvccReaders_split.law (GF := GF) :
 theorem mvccApi_mvccClosed_rest_law_holds : mvccClosed_rest.law (GF := GF) :=
   mvccClosed_rest.law_holds
 
+theorem mvccApi_mvccStorageFor_rest_law_holds : mvccStorageFor_rest.law (GF := GF) :=
+  mvccStorageFor_rest.law_holds
+
 theorem mvccApi_watchableStore_Read_wp_api : watchableStore.Read.spec (GF := GF) :=
   watchableStore.Read.wp_api
     mvcc.store.wp_Read
@@ -394,6 +397,7 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_excl_law_holds
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_mvccReaders_split_law_holds
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_mvccClosed_rest_law_holds
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_mvccStorageFor_rest_law_holds
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStore_Read_wp_api
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStore_Write_wp_api
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStoreTxnWrite_End_wp_api
