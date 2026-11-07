@@ -70,7 +70,8 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       lessorGrantOkG s E S (grantLiveG E) R := by
   iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
   unfold lessorGrantOkG
-  iintro %ci %cd %r %m !> %Φ ⟨HSr, #Hctx, -, #Hreq, Hid, %HRm⟩ HΦ
+  iintro %ci %cd %r %m !> %Φ ⟨HSr, #Hctx, #Hrun, #Hreq, Hid, %HRm⟩ HΦ
+  ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
   wp_apply (hLG s E ρ ci cd r m.1 m.2 h (hR m HRm)) $$ [Hlt HRD Hid] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD

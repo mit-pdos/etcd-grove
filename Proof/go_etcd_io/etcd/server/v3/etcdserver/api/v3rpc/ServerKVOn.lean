@@ -467,7 +467,7 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   simp only [srvKVAnsM]
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, -, %Htok⟩
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, -, Hcred, Hrd⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, -, Hcred, Hrd⟩
   subst Hci
   ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
   wp_apply hPut s E ρ ci cd r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
@@ -493,7 +493,7 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact ⟨trivial, Hrn⟩
     iexists h, W64 (x.log.length : Int)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h (W64 (x.log.length : Int)) threadTok
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h (W64 (x.log.length : Int)) iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
       (w64_rev_ne_zero _ (by omega) Hlen.2) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
@@ -553,7 +553,7 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     · intro o' h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hnz0
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, -, Hcred, Hrd⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, -, Hcred, Hrd⟩
   subst Hci
   ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
   wp_apply hDel s E ρ ci cd r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
@@ -580,7 +580,7 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     isplitr
     · ipureintro; exact ⟨trivial, Hrn⟩
     iexists h, W64 ((mvcc.writeRev x.log (txn.delChanges (mvcc.stateAfter x.log) op') : Nat) : Int)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ threadTok
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
       (writeRev_ne_zero _ _ Hlen.1 Hlen.2) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
@@ -634,7 +634,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, %Htok⟩
   ihave #Hdep' := kvDep_of_depM E.authOn s E ρ γr tok d $$ Hdep
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hct, Hcred, Hlt⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, #Hct, Hcred, Hlt⟩
   subst Hci
   wp_apply hRange s E ρ γr c ci cd r o none false (rangeDepQM E.authOn γr.kv d) F n Hany $$ [Hrc]
     as %resp %err ⟨Hrc, Hres⟩
@@ -663,7 +663,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     isplitr
     · ipureintro; exact ⟨rfl, Hrn⟩
     iexists h, W64 ((log.length : Int) - 1)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ threadTok
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
       (w64_last_ne_zero log Hlen.2.1 Hlen.2.2.1) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
@@ -707,7 +707,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   simp only [kvDepPre] at Hro
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, %Htok⟩
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hct, Hcred, Hlt⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, #Hct, Hcred, Hlt⟩
   subst Hci
   ihave #Hrt := txnReqIs_txnRequestIs r cs ts es ts' es' hts hes $$ Hr
   generalize ht : ({ cmps := cs, thenOps := ts', elseOps := es' } : TxnModel) = t at hm ⊢
@@ -756,7 +756,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       · ipureintro; exact ⟨by first | rfl | trivial, Hrn⟩
       iexists h, W64 (mvcc.writeRev x.log
         (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 : Int)
-      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ threadTok
+      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
         (writeRev_ne_zero _ _ Hlen.1 Hlen.2) $$ [$Hown]
       · iframe #; ipureintro; exact Hhn
       iframe Hhf2 Hw Hri
@@ -824,7 +824,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨rfl, Hrn⟩
       iexists h, W64 ((log.length : Int) - 1)
-      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ threadTok
+      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1)
         (w64_last_ne_zero log Hlen.2.1 Hlen.2.2.1) $$ [$Hown]
       · iframe #; ipureintro; exact Hhn
       iframe Hhf2 Hw Hri

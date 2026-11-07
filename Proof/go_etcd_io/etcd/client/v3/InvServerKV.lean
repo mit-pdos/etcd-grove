@@ -291,7 +291,7 @@ theorem kv_client_floor (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) (l : 
     iframe H0
     ipureintro; simp
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx⟩
+  icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx, -⟩
   rw [HNx]
   iunfold kvClientInv at Hinv
   iinv Hinv with >Hi Hclose
@@ -388,7 +388,7 @@ theorem nx_of_reached (E : apply.AEnv GF) (γr : ReadNames) (lo : w64) :
       ∃ l : mvcc.Log, nxOrNil E l ∗ ⌜sint.Z lo ≤ 0 ∨ sint.Z lo < l.length⌝ := by
   iintro ⟨#Hinvs, #Hr⟩
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, -, -, -, -, %HNx⟩
+  icases Hinvs with ⟨-, -, -, -, -, %HNx, -⟩
   unfold etcdReached
   icases Hr with (%Hle | ⟨%r', %Hle, #Hat⟩)
   · iexists []
@@ -426,7 +426,7 @@ theorem srvKVInvs_nx (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvs E γr ⊢ ⌜E.Nx = kvNxOff γr.raft γr.kv⌝ := by
   iintro #Hinvs
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, -, -, -, -, %h⟩
+  icases Hinvs with ⟨-, -, -, -, -, %h, -⟩
   ipureintro; exact h
 
 /-- **The read side's first floor** (`isServerRead`'s: a floor of the committed log of at least

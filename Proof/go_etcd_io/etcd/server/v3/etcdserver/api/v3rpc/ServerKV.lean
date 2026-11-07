@@ -96,10 +96,11 @@ request's context (a `context.Context` value with Perennial's `isContext`), one 
 `reqIDGen.Next()`), a reader slot of `s.leadTimeMu` (`parseProposeCtxErr` read-locks it; given
 back with the answer). The context carries no trace (`traceutil.ctxTraceIs ci none`, unit P1b,
 2026-10-14: `EtcdServer.Range`/`Txn` take the context's trace, `EnsureTrace` makes theirs; a
-gRPC handler's context has no `TraceKey` value). -/
+gRPC handler's context has no `TraceKey` value), and (the trace fix, 2026-11-07) a span-key fact
+(`trace.spanCtxOk`, which the server's write paths take; a run context's, `spanCtxOk_of_runCtx`). -/
 def srvCall (s : Loc) (ρ : ReqNames) (ctx : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜ctx = GoInterface.ok ci⌝ ∗
-    context.isContext ci cd ∗ traceutil.ctxTraceIs ci none ∗ idCred ρ.ids 1 ∗
+    context.isContext ci cd ∗ trace.spanCtxOk ci ∗ traceutil.ctxTraceIs ci none ∗ idCred ρ.ids 1 ∗
     srvLeadTimeReader s)
 
 /-- `putAppliedOk` but the caller's reader slot: the answer's facts (the vertical slice's unit

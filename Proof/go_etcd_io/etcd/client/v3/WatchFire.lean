@@ -71,7 +71,7 @@ theorem srvKVCoreM_Nx (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
   · rw [srvKVCoreM_false]
     iintro #H
     iunfold srvKVInvs at H
-    icases H with ⟨-, -, -, -, -, %h⟩
+    icases H with ⟨-, -, -, -, -, %h, -⟩
     ipureintro; rw [h]; rfl
   · rw [srvKVCoreM_true]
     iintro #H

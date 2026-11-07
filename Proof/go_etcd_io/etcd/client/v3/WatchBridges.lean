@@ -264,7 +264,7 @@ theorem progressCov (r : v3rpc.WRun GF) (j : Nat) (m : v3rpc.WatchRespM) (n : Na
         mvcc.watchEvents σ.notifiedLog w.rg w.lo (sint.nat x.rev + 1) ∧
         (w.lo : Int) ≤ sint.Z x.rev + 1 ∧ sint.nat x.rev < σ.notifiedLog.length := by
     intro hc hon
-    have h3 := hok.2.2 n x X w hxn hev hcmp hw hon hc
+    have h3 := hok.2.2.1 n x X w hxn hev hcmp hw hon hc
     rw [htake, hfs X w hw, filtered_nil] at h3
     exact ⟨h3, wsRecvOk_progLo σ S _ hok n x X w hxn hev hcmp hw hc,
       (hok.1 x (by simp)).2.2.1 hcmp⟩
