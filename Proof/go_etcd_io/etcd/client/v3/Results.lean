@@ -910,12 +910,13 @@ variable [sem : go.Semantics]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **A run's slot** (see the file header): the reader slots a run of etcd's KV handlers holds
-and gives back: `s.leadTimeMu`'s (`srvCall`'s), the store's, the logger's, the read loop's and the
+and gives back: `s.leadTimeMu`'s (`srvCall`'s), a reader token of the store (`mvccReaders E.γ 1`, `lean`'s
+store reader slot; the read's thread token is the run's own, which gRPC lends), the logger's, the read loop's and the
 auth store's reader resource (`E.RD`, 2026-10-14, unit A2; `srvRdCall`'s). The server hands the
 gRPC runtime a number of them when it serves (bounded `RWMutex` slots: at most that many runs at
 a time). -/
 def etcdRunSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(srvLeadTimeReader s ∗ (threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗ srvLgReader s ∗ srvReadReader s γr ∗
+  iprop(srvLeadTimeReader s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗ srvReadReader s γr ∗
     E.RD)
 
 /-- **A get of `key` after the put of `key ↦ val` read the put** (persistent; unit C2a,

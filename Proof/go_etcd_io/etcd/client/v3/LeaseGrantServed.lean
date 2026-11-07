@@ -320,7 +320,7 @@ theorem etcd_leaseGrantMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.leaseServerAt lp s A cid mid ∗
-        v3rpc.raftLeaseRead s E (mvcc.api.mvccLeases E.γ) iprop(E.RD ∗ threadTok) iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗
+        v3rpc.raftLeaseRead s E (mvcc.api.mvccLeases E.γ) E.RD iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗
         v3rpc.lessorGrantOkL s E iprop(etcdRunSlot s E γr ∗ threadTok) ∗
         auth.authPubLbM E.authMode 0 ∗ lease.lessorLb (mvcc.api.mvccLeases E.γ) 0 ∗
         lease.lessorRdInv (mvcc.api.mvccLeases E.γ) ∗
@@ -332,7 +332,7 @@ theorem etcd_leaseGrantMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
       [∗list] m ∈ etcdLeaseGrantMethods q E γr,
         grpcMethodOkMd m.handler m.srv [il, im, iu] iprop(etcdGrpcSlot s E γr ∗ threadTok) m.spec := by
   iintro ⟨#Pv, #Ps, #Hat, #HL0, #HG, #Hn, #Hm, #Hinv, #Hq, #Hil, #Him, #Hiu⟩
-  ihave #HL : v3rpc.raftLeaseRead s E (mvcc.api.mvccLeases E.γ) iprop(E.RD ∗ threadTok) A.revR $$ []
+  ihave #HL : v3rpc.raftLeaseRead s E (mvcc.api.mvccLeases E.γ) E.RD A.revR $$ []
   · rw [hA]; iexact HL0
   have h1 : iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) ⊢
       iprop(((E.RD ∗ threadTok) ∗ A.revR) ∗
@@ -344,7 +344,7 @@ theorem etcd_leaseGrantMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
         (srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s)) ⊢
       iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) := by
     rw [hA]; unfold etcdRunSlot
-    iintro ⟨⟨⟨Hrd, Ht⟩, Hst⟩, Hlt, Hlg, Hrr, Hqr⟩
+    iintro ⟨⟨Hrd, Ht, Hst⟩, Hlt, Hlg, Hrr, Hqr⟩
     iframe
   have h3 : iprop(etcdGrpcSlot s E γr ∗ threadTok) ⊢
       iprop((((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) ∗
@@ -368,9 +368,9 @@ theorem etcd_leaseGrantMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
     unfold etcdGrpcSlot
     iintro ⟨⟨⟨⟨Hrs, Ht⟩, Hqr⟩, HRs⟩, -⟩
     iframe
-  ihave #Ht := etcd_leaseTTLHandlerOk lp s A cid mid E (mvcc.api.mvccLeases E.γ) iprop(E.RD ∗ threadTok) 0 0 $$ []
+  ihave #Ht := etcd_leaseTTLHandlerOk lp s A cid mid E (mvcc.api.mvccLeases E.γ) E.RD 0 0 $$ []
   · iframe #
-  ihave #Hl := etcd_leaseLeasesHandlerOkL lp s A cid mid E (mvcc.api.mvccLeases E.γ) iprop(E.RD ∗ threadTok) 0
+  ihave #Hl := etcd_leaseLeasesHandlerOkL lp s A cid mid E (mvcc.api.mvccLeases E.γ) E.RD 0
     hoff $$ []
   · iframe #
   ihave #Hg := etcd_leaseGrantHandlerOkL lp s A cid mid E γr false hNx iprop(etcdRunSlot s E γr ∗ threadTok)
@@ -599,7 +599,7 @@ theorem etcd_leaseGrantLiveMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mi
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.leaseServerAt lp s A cid mid ∗
-        v3rpc.raftLeaseRead s E (mvcc.api.mvccLeases E.γ) iprop(E.RD ∗ threadTok) iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗
+        v3rpc.raftLeaseRead s E (mvcc.api.mvccLeases E.γ) E.RD iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗
         v3rpc.lessorGrantOkG s E iprop(etcdRunSlot s E γr ∗ threadTok) (v3rpc.grantLiveG E)
           (fun m => m.2 = W64 0) ∗
         auth.authPubLbM E.authMode 0 ∗ lease.lessorLb (mvcc.api.mvccLeases E.γ) 0 ∗
@@ -611,7 +611,7 @@ theorem etcd_leaseGrantLiveMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mi
       [∗list] m ∈ etcdLeaseGrantLiveMethods q s E γr,
         grpcMethodOkMd m.handler m.srv [il, im, iu] iprop(etcdGrpcSlot s E γr ∗ threadTok) m.spec := by
   iintro ⟨#Pv, #Ps, #Hat, #HL0, #HG, #Hn, #Hm, #Hq, #Hil, #Him, #Hiu⟩
-  ihave #HL : v3rpc.raftLeaseRead s E (mvcc.api.mvccLeases E.γ) iprop(E.RD ∗ threadTok) A.revR $$ []
+  ihave #HL : v3rpc.raftLeaseRead s E (mvcc.api.mvccLeases E.γ) E.RD A.revR $$ []
   · rw [hA]; iexact HL0
   have h1 : iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) ⊢
       iprop(((E.RD ∗ threadTok) ∗ A.revR) ∗
@@ -623,7 +623,7 @@ theorem etcd_leaseGrantLiveMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mi
         (srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s)) ⊢
       iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) := by
     rw [hA]; unfold etcdRunSlot
-    iintro ⟨⟨⟨Hrd, Ht⟩, Hst⟩, Hlt, Hlg, Hrr, Hqr⟩
+    iintro ⟨⟨Hrd, Ht, Hst⟩, Hlt, Hlg, Hrr, Hqr⟩
     iframe
   have h3 : iprop(etcdGrpcSlot s E γr ∗ threadTok) ⊢
       iprop((((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) ∗
@@ -636,10 +636,10 @@ theorem etcd_leaseGrantLiveMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mi
     unfold etcdGrpcSlot
     iintro ⟨⟨⟨Hrs, Ht⟩, HRs⟩, -⟩
     iframe
-  ihave #Ht := etcd_leaseTTLHandlerOkLive lp s A cid mid E (mvcc.api.mvccLeases E.γ) iprop(E.RD ∗ threadTok) 0
+  ihave #Ht := etcd_leaseTTLHandlerOkLive lp s A cid mid E (mvcc.api.mvccLeases E.γ) E.RD 0
     $$ []
   · iframe #
-  ihave #Hl := etcd_leaseLeasesHandlerOkLive lp s A cid mid E (mvcc.api.mvccLeases E.γ) iprop(E.RD ∗ threadTok) 0
+  ihave #Hl := etcd_leaseLeasesHandlerOkLive lp s A cid mid E (mvcc.api.mvccLeases E.γ) E.RD 0
     hoff $$ []
   · iframe #
   ihave #Ht' := grpcHandlerOk_slot _ _ _ _ (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) s) h1 h2 $$ Ht

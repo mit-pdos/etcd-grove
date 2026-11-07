@@ -898,16 +898,9 @@ theorem kvGetOk_of_serverM (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
   ihave Hkv' : □ mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
   · rw [← Hkveq]; imodintro; iexact Hkv
   icases Hkv' with #Hkv'
-  -- MERGE-TODO(v3rpc-getters): the store invariant `Hks` and `E.Nx`/`E.Cp`'s instances from
-  -- `srvKVInvsM E.authOn` (ours had one text per mode: off `iunfold srvKVInvs at Hkvi; icases Hkvi
-  -- with ⟨-, -, -, #Hks, %Hks2, -⟩; obtain ⟨-, -, ⟨hNxP, hNxT, hCpP, hCpT⟩, -⟩ := Hks2`; on through
-  -- `srvKVInvsOn`, `⟨-, -, -, -, #Hks, %Hks2, -⟩`, `obtain ⟨⟨hNxP, hNxT, hCpP, hCpT⟩, -⟩ := Hks2`):
-  -- case on `E.authOn` once the server's merged `srvKVInvsM` is settled.
-  iunfold srvKVInvsM at Hkvi
-  icases Hkvi with ⟨#Hkon, -⟩
-  iunfold srvKVInvsOn at Hkon
-  icases Hkon with ⟨-, -, -, -, #Hks, %Hks2, -⟩
-  obtain ⟨⟨hNxP, hNxT, hCpP, hCpT⟩, -⟩ := Hks2
+  -- the store invariant and `E.Nx`/`E.Cp`'s instances, in either mode (`srvKVInvsM_kvStoreInv`)
+  ihave ⟨#Hks, %Hks2⟩ := srvKVInvsM_kvStoreInv E.authOn s E γr $$ Hkvi
+  obtain ⟨hNxP, hNxT, hCpP, hCpT⟩ := Hks2
   iunfold kvGetOk
   simp only [srvKVAnsM]
   isplitr

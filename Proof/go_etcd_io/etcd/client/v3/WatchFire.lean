@@ -124,7 +124,7 @@ theorem srvKVFacts_fire (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst
     (Q : KVState → IProp GF) :
     client.srvKVFacts V ∗ □ V.W.histLb L ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>) ⊢
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ⊢
       |={⊤}=> ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
   iintro ⟨#Hk, #HL, #Hau⟩
   iunfold client.srvKVFacts at Hk
@@ -148,7 +148,7 @@ theorem srvKVFacts_fire0 (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.ks
     (Q : KVState → IProp GF) :
     client.srvKVFacts V ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>) ⊢
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ⊢
       |={⊤}=> ∃ C : mvcc.Log, □ Q (kvStateOf C) := by
   iintro ⟨#Hk, #Hau⟩
   ihave #Hk' := Hk

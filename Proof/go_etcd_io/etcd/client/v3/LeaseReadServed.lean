@@ -358,7 +358,7 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
     (hA : A.revR = (threadTok ∗ mvcc.api.mvccReaders E.γ 1)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         v3rpc.leaseServerAt lp s A cid mid ∗
-        v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ threadTok) iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗
+        v3rpc.raftLeaseRead s E γl E.RD iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1) ∗
         auth.authPubLbM E.authMode 0 ∗ lease.lessorLb γl 0 ∗
         v3rpc.quotaLeaseServerAt q
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩ s ∗
@@ -368,7 +368,7 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
       [∗list] m ∈ etcdLeaseReadMethods q,
         grpcMethodOkMd m.handler m.srv [il, im, iu] iprop(etcdGrpcSlot s E γr ∗ threadTok) m.spec := by
   iintro ⟨#Pv, #Hat, #HL0, #Hn, #Hm, #Hq, #Hil, #Him, #Hiu⟩
-  ihave #HL : v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ threadTok) A.revR $$ []
+  ihave #HL : v3rpc.raftLeaseRead s E γl E.RD A.revR $$ []
   · rw [hA]; iexact HL0
   have h1 : iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) ⊢
       iprop(((E.RD ∗ threadTok) ∗ A.revR) ∗
@@ -380,7 +380,7 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
         (srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s)) ⊢
       iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) := by
     rw [hA]; unfold etcdRunSlot
-    iintro ⟨⟨⟨Hrd, Ht⟩, Hst⟩, Hlt, Hlg, Hrr, Hqr⟩
+    iintro ⟨⟨Hrd, Ht, Hst⟩, Hlt, Hlg, Hrr, Hqr⟩
     iframe
   have h3 : iprop(etcdGrpcSlot s E γr ∗ threadTok) ⊢
       iprop((((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ threadTok) ∗
@@ -393,9 +393,9 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
     unfold etcdGrpcSlot
     iintro ⟨⟨⟨Hrs, Ht⟩, HRs⟩, -⟩
     iframe
-  ihave #Ht := etcd_leaseTTLHandlerOk lp s A cid mid E γl iprop(E.RD ∗ threadTok) 0 0 $$ []
+  ihave #Ht := etcd_leaseTTLHandlerOk lp s A cid mid E γl E.RD 0 0 $$ []
   · iframe #
-  ihave #Hl := etcd_leaseLeasesHandlerOk lp s A cid mid E γl iprop(E.RD ∗ threadTok) 0 0 $$ []
+  ihave #Hl := etcd_leaseLeasesHandlerOk lp s A cid mid E γl E.RD 0 0 $$ []
   · iframe #
   ihave #Ht' := grpcHandlerOk_slot _ _ _ _ etcdLeaseTTLSpec h1 h2 $$ Ht
   ihave #Hl' := grpcHandlerOk_slot _ _ _ _ etcdLeaseLeasesSpecAny h1 h2 $$ Hl

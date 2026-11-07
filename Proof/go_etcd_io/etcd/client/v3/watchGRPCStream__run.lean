@@ -186,8 +186,6 @@ theorem watchGRPCStream.run.wp_proof
       · iapply BigSepL.bigSepL_nil.2; itrivial
       isplitr
       · iapply BigSepL.bigSepL_nil.2; itrivial
-      isplitr
-      · imodintro; iapply BigSepL.bigSepL_nil.2; itrivial
       iapply Hels0
     ihave #HGc := HGctx
     iNamedPrefix HGc "W"
@@ -516,7 +514,7 @@ theorem watchGRPCStream.run.wp_proof
         simp only [hlen1, _root_.decide_true]
         iunfold wrRO at Hro
         icases Hro with ⟨-, -, -, -, -, -, -, -, #Rflts, -⟩
-        wp_take_receipt as Hrc
+        wp_take_receipt as Hrcpt
         wp_apply wp_toPB (wsF «$r0_ptr» go!"initReq") P0.key P0.ed P0.rev P0.pn P0.flt
           (DFrac.own (1 : Qp).half) P0.sr P0.bd $$ [Hrev2] as %preq ⟨Hrev2, Hpsend⟩
         · iframe Rflts prevKV filters fragment progressNotify end' key; iframe
@@ -756,7 +754,9 @@ theorem watchGRPCStream.run.wp_proof
       wp_auto
       icases Hcase with (⟨%Hsrc, Hctrl, #Hcaf⟩ | Hmvcc)
       · iunfold v3rpc.ctrlOk at Hctrl
-        icases Hctrl with ⟨%i, %req, #Hup, %Hcans, Hcw, Hat⟩
+        icases Hctrl with ⟨%i, %req, #Hup0, %Hcans, Hcw, Hat⟩
+        ihave #Hup : v3rpc.upAtW γs i req $$ []
+        · rw [← hrs]; iexact Hup0
         cases req with
         | create c =>
           obtain ⟨hs0, hev0, hcomp0, hfr0, hcr0, hcase⟩ : m.src = none ∧ m.evs = [] ∧
@@ -1596,8 +1596,7 @@ theorem watchGRPCStream.run.wp_proof
             · ipureintro; simp only [List.length_append, List.length_singleton]; omega
             isplitl []
             · unfold v3rpc.downLbW; iexact HLlb
-            isplitr
-            · ipureintro; first | exact Hg2 | (rw [← HL1]; exact Hg2)
+            ipureintro; first | exact Hg2 | (rw [← HL1]; exact Hg2)
           simp only [hn2, decide_false, Bool.not_false]
           have hhd : (S1.l.dropWhile (fun x => decide (x = null))).head? = some ws2 := by
             cases hd : (S1.l.dropWhile (fun x => decide (x = null))).head? with
@@ -1623,7 +1622,7 @@ theorem watchGRPCStream.run.wp_proof
           icases HP2' with ⟨#Hro2, -⟩
           iunfold wrRO at Hro2
           icases Hro2 with ⟨-, #Rkey, #Rend, -, #Rpn, #Rfrag, -, #Rflt, #Rflts, #Rprev⟩
-          wp_take_receipt as Hrc
+          wp_take_receipt as Hrcpt
           wp_apply wp_toPB (wsF P2.ws go!"initReq") P2.key P2.ed B2.rr P2.pn P2.flt
             (DFrac.own q2) B2.srr P2.bd $$ [Hrv2] as %preq ⟨Hrv2, Hpsend⟩
           · iframe Rprev Rflts Rflt Rfrag Rpn Rend Rkey; iframe
@@ -1748,8 +1747,7 @@ theorem watchGRPCStream.run.wp_proof
           · ipureintro; simp only [List.length_append, List.length_singleton]; omega
           isplitl []
           · unfold v3rpc.downLbW; iexact HLlb
-          isplitr
-          · ipureintro; exact Hg2
+          ipureintro; exact Hg2
         | cancel X =>
           obtain ⟨hs0, hev0, hcomp0, hfr0, hcr0, hca0, hid0⟩ : m.src = none ∧ m.evs = [] ∧
               m.compactRev = W64 0 ∧ m.fragment = false ∧ m.created = false ∧ m.canceled = true ∧
@@ -1809,10 +1807,10 @@ theorem watchGRPCStream.run.wp_proof
             isplitr
             · ipureintro; exact Hg2
             isplitl [Hat]
-            · iapply BigSepL.bigSepL_singleton.2
-              unfold client.ansH
+            · unfold client.ansH
               iexists r
               iframe Haux; iframe
+            iapply BigSepL.bigSepL_nil.2; itrivial
           | some wsx =>
             rw [hMX] at Hg2 Hold Hnew
             have hUx : U !! wsx = some () := HgOk.1 X wsx hMX
@@ -1898,10 +1896,10 @@ theorem watchGRPCStream.run.wp_proof
             isplitr
             · ipureintro; exact Hg2
             isplitl [Hat]
-            · iapply BigSepL.bigSepL_singleton.2
-              unfold client.ansH
+            · unfold client.ansH
               iexists r
               iframe Haux; iframe
+            iapply BigSepL.bigSepL_nil.2; itrivial
 
         | progress => exact absurd Hcans (by simp [v3rpc.ctrlAnswers])
         | other => exact absurd Hcans (by simp [v3rpc.ctrlAnswers])
@@ -2088,8 +2086,7 @@ theorem watchGRPCStream.run.wp_proof
         · ipureintro; simp only [List.length_append, List.length_singleton]; omega
         isplitl []
         · unfold v3rpc.downLbW; iexact HLlb
-        isplitr
-        · ipureintro; exact Hg1
+        ipureintro; exact Hg1
       have hlive : v3rpc.idLive S.Dm ρ.id := Hlive hid
       cases hMX : S.M !! ρ.id with
       | none =>
@@ -2162,8 +2159,7 @@ theorem watchGRPCStream.run.wp_proof
           · ipureintro; simp only [List.length_append, List.length_singleton]; omega
           isplitl []
           · unfold v3rpc.downLbW; iexact HLlb
-          isplitr
-          · ipureintro; exact Hg1
+          ipureintro; exact Hg1
         | none =>
           simp only [Option.isSome_none, Bool.false_eq_true, decide_false]
           wp_auto
@@ -2249,8 +2245,7 @@ theorem watchGRPCStream.run.wp_proof
           · ipureintro; simp only [List.length_append, List.length_singleton]; omega
           isplitl []
           · unfold v3rpc.downLbW; iexact HLlb
-          isplitr
-          · ipureintro; exact Hg2
+          ipureintro; exact Hg2
       | some wsx =>
         have hnb : ¬ client.isBroadcast m := fun h => by
           obtain ⟨-, -, -, -, -, hw⟩ := h; rw [hid0] at hw; exact hid hw
@@ -2371,8 +2366,7 @@ theorem watchGRPCStream.run.wp_proof
           · ipureintro; simp only [List.length_append, List.length_singleton]; omega
           isplitl []
           · unfold v3rpc.downLbW; iexact HLlb
-          isplitr
-          · ipureintro; exact Hg1
+          ipureintro; exact Hg1
         | false =>
           -- the dispatch failed: the substream stopped (`γx`), so cancelling its id is fine
           icases Hxb with (%hbf | #Hx)
@@ -2418,8 +2412,7 @@ theorem watchGRPCStream.run.wp_proof
             · ipureintro; simp only [List.length_append, List.length_singleton]; omega
             isplitl []
             · unfold v3rpc.downLbW; iexact HLlb
-            isplitr
-            · ipureintro; exact Hg1
+            ipureintro; exact Hg1
           | none =>
             simp only [Option.isSome_none, Bool.false_eq_true, decide_false]
             wp_auto
@@ -2519,8 +2512,7 @@ theorem watchGRPCStream.run.wp_proof
             · ipureintro; simp only [List.length_append, List.length_singleton]; omega
             isplitl []
             · unfold v3rpc.downLbW; iexact HLlb
-            isplitr
-            · ipureintro; exact Hg2
+            ipureintro; exact Hg2
 
     -- errc
     iapply BigAndL.bigAndL_cons.2
@@ -2585,7 +2577,7 @@ theorem watchGRPCStream.run.wp_proof
         -- the reconnection (D25): the old stream's epoch ends at `respc`'s position
         iunfold client.runCore at Hcore
         icases Hcore with ⟨%S, %U, %rcv, %mref, %s, %e, Hclm, Hcsm, Hsub, Hm, Hres, Hs, HcF, #He,
-          Hstok, Hrcons, %Hrcv, ⟨%tok, Hepst, -⟩, -, %HgOk, -, -, -, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
+          Hstok, Hrcons, %Hrcv, ⟨%tok, Hepst, -⟩, -, %HgOk, -, -, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
         iunfold prodBack at Hpback
         icases Hpback with ⟨%e0, %b0, %γs0, %γc0, %i0, %tok0, %sent, #Hi0, Hprod, Hcnt, %Hb0⟩
         imod sspsc_sync G.γr _ _ _ sent rcv $$ Hrspsc Hlc1 Hprod Hrcons with ⟨%Hsr, Hprod, Hrcons⟩
@@ -2706,9 +2698,7 @@ theorem watchGRPCStream.run.wp_proof
           · ipureintro; exact Hg2
           isplitr
           · iapply BigSepL.bigSepL_nil.2; itrivial
-          isplitr
-          · iapply BigSepL.bigSepL_nil.2; itrivial
-          imodintro; iapply BigSepL.bigSepL_nil.2; itrivial
+          iapply BigSepL.bigSepL_nil.2; itrivial
         simp only [hn2, decide_false, Bool.not_false]
         have hhd : ((S.reconnect l').l.dropWhile (fun x => decide (x = null))).head? = some ws2 := by
           cases hd : ((S.reconnect l').l.dropWhile (fun x => decide (x = null))).head? with
@@ -2841,9 +2831,7 @@ theorem watchGRPCStream.run.wp_proof
           · ipureintro; exact Hg2
           isplitr
           · iapply BigSepL.bigSepL_nil.2; itrivial
-          isplitr
-          · iapply BigSepL.bigSepL_nil.2; itrivial
-          imodintro; iapply BigSepL.bigSepL_nil.2; itrivial
+          iapply BigSepL.bigSepL_nil.2; itrivial
         -- `if err != nil`: only logged; joined (`wp_join`), the next iteration verified once
         wp_join at (if: _ then _ else _) with [err]
         · cases err3 with
