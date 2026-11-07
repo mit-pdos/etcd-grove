@@ -17,6 +17,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
+
+- **Missing.** Go has failures that are neither a panic nor an error result: `fatal error: ...`
+  ends the process (not recoverable). The first file `os` opens (`os.OpenFile` → `newFile` →
+  `poll.FD.Init`) starts the runtime's netpoller; if its `epoll_create1` or `eventfd` fails, e.g.
+  for lack of file descriptors (`ulimit -n` 5 or 6 with soft = hard, so `syscall`'s rlimit raise
+  does not help), Go dies with `fatal error: runtime: netpollinit failed`. This repository's
+  osFsExt `Open` (`GooseLang/Ext/OsFs/Impl.lean`) returns a file or an errno, so a program that
+  opens a file has a proof though Go may die at that call (the adversary's program:
+  `$CLAUDE_JOB_DIR/tmp/rv7/adv/t2/main.go` of session 0d784765). On `lean` before `os-init-lean`
+  too.
+- **Workaround here.** None yet; recorded in the extension's "Soundness discipline" docstring.
+- **Proposed change.** A run-ending outcome a model can take (the model's `Open` may end the run
+  where Go's runtime aborts), and Perennial's docs (`docs/KNOWN_LIMITATIONS.md`) listing the class of
+  fatal runtime errors (`netpollinit`, out of memory, concurrent map writes detected, ...) and how
+  each is modelled. For osFsExt alone: `Open`'s first call may exit the program.
+- **Status.** Open.
+
 ### Struct field locations of different struct types at one base address (2026-11-04, bbolt, batch 14)
 
 - **Limitation.** `structFieldRef` is an abstract function of `go.Semantics`

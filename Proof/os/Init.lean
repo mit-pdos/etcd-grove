@@ -7,7 +7,8 @@ initializer loads (`defaultLogger`). `os` is this repository's translation (proj
 initializer initializes its imports and runs its variables' translated initializers (`errors.New`
 errors, io/fs's and internal/poll's error variables, `sync.OnceValue`, function values) and the
 trusted models of the standard streams' (`TrustedCode/os.lean`: `Stdin`, `Stdout` nothing, `Stderr`
-a fresh pointer), then its translated `init` function, which calls the trusted model of
+an arbitrary in-range address with no cell, not reserved, `GoPrealloc`), then its translated `init`
+function, which calls the trusted model of
 `runtime_args` (an arbitrary `[]string`). (Until 2026-11-07 the trust-boundary axioms
 `opaqueInitsOk`, `Stderr_init`, `initFuncsOk`; until 2026-11-03, over Perennial's `os`, in raft's
 `Init.lean`.)

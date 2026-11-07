@@ -35,7 +35,7 @@ trusted = ["file", "fileStat", "OpenFile", "File.WriteAt", "File.ReadAt", "File.
   # (2026-11-07) what the initializer runs that is not translated, the user's decisions (Perennial
   # fix-semantics Case 33; TrustedCode/os.lean): `runtime_args` (a linkname, no Go body) an
   # arbitrary `[]string`; `Stdin`/`Stdout` do nothing (variables not allocated); `Stderr` allocates
-  # its variable with a fresh pointer that is not a `File`.
+  # its variable and stores an arbitrary in-range address with no cell, not reserved (`GoPrealloc`).
   "runtime_args", "Stdin", "Stdout", "Stderr"]
 
 # (2026-11-07) every type declaration goose supports, as Perennial's: the `var _ I = ...`
