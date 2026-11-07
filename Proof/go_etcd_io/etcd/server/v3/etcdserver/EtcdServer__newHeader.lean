@@ -8,12 +8,12 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__newHeader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
+
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -38,22 +38,21 @@ theorem EtcdServer.newHeader.wp_proof
     (hID : membership.RaftCluster.ID.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
-    (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG))
+    (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    (hsh : mvcc.api.shapes.law (GF := GF))
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG)) :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) := by
-  have hRev := mvcc.store.Rev.spec_R hRev
   intro on s E γr cl mid cid
-  wp_start as ⟨#Hrd, #Hcl, #Hcid, #Hmid, #Hlead, Hsr⟩
+  haveI := Hp.1
+  wp_start as ⟨#Hrd, #Hcl, #Hcid, #Hmid, #Hlead, Htt, Hmr⟩
   iunfold isServerReadM at Hrd
   icases Hrd with ⟨%v, #Hf⟩
   iunfold srvReadFieldsAtM at Hf
-  icases Hf with ⟨-, -, #HkvA, #Hkv, #HrvA, #Hrv, -, -, -, -, -, -, -, #Hterm, -, -⟩
-  ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ Hkv
-  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
-  ihave ⟨#Hko0, #Hs⟩ := txn.isKV_kvOver _ E.s E.γ $$ Hkv
-  ihave #Hko : mvcc.kvOver (interface.mkOk kty kvv) E.s $$ []
-  · rw [← Hkveq]; iexact Hko0
+  icases Hf with ⟨-, -, #HkvA, #Hkv, %Hkveq0, -, -, -, -, -, -, -, #Hterm, -, -, #Hinvs, -⟩
+  ihave ⟨#HkS, %Hwit⟩ := srvKVInvsM_kvStoreInv on s E γr $$ Hinvs
+  ihave %Hsh := hsh.1 v.kv E.γ $$ Hkv
+  obtain ⟨kty, kvv, Hkveq, -, -, hRevC, -⟩ := Hsh
   ihave #Hmem : isPkgInit (PROP := IProp GF)
     pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
@@ -68,13 +67,25 @@ theorem EtcdServer.newHeader.wp_proof
   · iframe #
   rw [Hkveq]
   wp_auto
-  imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #Hc0
-  wp_bind (App (Val #(methods kty _ kvv)) _)
-  iapply mvcc.kvOver_rev_wp kty kvv E.s
-  iframe Hko
-  wp_apply hRev E.s v.rv E.γ 0 [] $$ [Hsr Hnone] as %rev ⟨Hsr, -, %log, #Hc, %Hl⟩
-  · iframe #; iframe
+  -- `KV().Rev()`: `KV.Rev.contract` at the handle's dynamic type, at the store invariant's read
+  -- update from the empty floor
+  imod monoListLbOwn_nil (GF := GF) E.γs.slog with #Hc0
+  ihave #Hc0' : srvApi.kvLogLb E.γs [] $$ []
+  · iunfold srvApi.kvLogLb; iexact Hc0
+  haveI := Hwit.1
+  haveI := Hwit.2.1
+  haveI := Hwit.2.2.1
+  haveI := Hwit.2.2.2
+  ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) Hp Hr E.kv E.γ E.γs [] $$ HkS Hc0'
+  ihave #Hkv' : mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
+  · rw [← Hkveq, Hkveq0]; iexact Hkv
+  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.γs [])) $$ [Htt Hmr HAU]
+    as %rev ⟨Htt, Hmr, %σ, Hrd, %Hrev⟩
+  · iframe #; iframe Htt Hmr
+    iunfold srvApi.auRead at HAU
+    iexact HAU
+  iunfold srvApi.kvReadAtG at Hrd
+  icases Hrd with ⟨-, #Hc, #Hnx, Hrc, %Hσ⟩
   wp_apply hTerm s $$ [] as %t -
   · iframe #
   wp_apply hLead s $$ [] as %l -
@@ -83,11 +94,19 @@ theorem EtcdServer.newHeader.wp_proof
   irename «$r0» => Hh
   generalize «$r0_ptr» = h at *
   iapply HΦ
-  iframe Hsr
-  iexists _, log
-  iframe Hh Hc
+  iframe Htt Hmr
+  have hpre := (srvApi.reach_prefix σ Hσ.1).1
+  have hlen : 2 ≤ σ.log.length := by
+    have := hpre.length_le; simpa [mvcc.api.mvccStart] using this
+  have hwf := (mvcc.api.reach_logWf σ Hσ.1).1
+  iexists _, σ.log
+  iframe Hh Hc Hnx Hrc
   ipureintro
-  exact ⟨Hl.2.2.1, rfl, rfl, Hl.2.2.2⟩
+  refine ⟨hwf, by intro h; rw [h] at hlen; simp at hlen, rfl, rfl, ?_⟩
+  rw [Hrev, mvcc.api.MvccState.rev]
+  show W64 ((σ.log.length - 1 : Nat) : Int) = W64 ((σ.log.length : Int) - 1)
+  congr 1
+  omega
 
 end proof
 

@@ -343,10 +343,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
           -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
-          -- service's run slots (`v3rpc.watchRunSlot`)
-          -- MERGE-TODO(close): `srvWatchReaders` (mvcc's `watchReader`s, R2c's stop census) is over
-          -- mvcc's removed internals; restate over the API's reader tokens once the API's `Close` is
-          -- decided (notes/mvcc-client-merge-plan.md, risk 1)
+          -- service's run slots (`v3rpc.watchRunSlot`); (the reader tokens of mvcc's API,
+          -- 2026-11-06) 64 of the store's reader tokens (`srvWatchReaders`)
           srvWatchReaders srv E 64 ∗
           -- (2026-11-04, the lease-expiry plan's Part C; the slot convention) the lease
           -- subsystem's part (`lease.srvInv`, `LeaseApi.lean`): with auth on its lessor finding no

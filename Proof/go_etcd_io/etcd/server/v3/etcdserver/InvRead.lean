@@ -143,11 +143,14 @@ def srvReadLR (s : Loc) : IProp GF :=
     (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n))
 
 /-- **A read call's resources** (see the file header; strict M1: the draft's `srvRdCallA`): the
-thread's token, a reader slot of `s.lgMu`, the committed index `c` the caller knew of, (2026-10-13, unit 4a) a reader slot
+thread's token, (the reader tokens of mvcc's API, 2026-11-06: where `lean` held a store reader,
+`mvcc.storeReader`) a reader token of the store (`mvccReaders E.γ 1`: `KV.Rev`, `KV.Range`,
+`KV.Read` each borrow one), a reader slot of `s.lgMu`, the committed index `c` the caller knew of, (2026-10-13, unit 4a) a reader slot
 of the read loop's lock (`srvReadReader`), and (2026-10-14, unit A2) the auth store's reader
 resource (`E.RD`: `AuthInfoFromCtx`, the permission checks). -/
 def srvRdCall (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) : IProp GF :=
-  iprop(threadTok ∗ srvLgReader s ∗ committedAtLeast γr c ∗ srvReadReader s γr ∗ E.RD)
+  iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗ committedAtLeast γr c ∗
+    srvReadReader s γr ∗ E.RD)
 
 /-- **A linearizable read of `log` after the committed index `c`** (persistent; 2026-10-13, the
 request path's unit 4b): the read index (`readIndexOk`: the applied index reached some index at
@@ -264,7 +267,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 theorem srvRdCall_rd (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :
     srvRdCall s E γr c ⊢ E.RD ∗ (E.RD -∗ srvRdCall s E γr c) := by
   unfold srvRdCall
-  iintro ⟨Hsr, Hlr, Hc, Hrr, Hrd⟩
+  iintro ⟨Hsr, Hmr, Hlr, Hc, Hrr, Hrd⟩
   iframe Hrd
   iintro Hrd
   iframe

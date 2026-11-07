@@ -43,7 +43,8 @@ def srvFloorFactsA (slog : GName) (_id : w64) (_d : List w8) (γf : GName) : IPr
 /-- **A served read's call resources** (`srvRdCall`, restated): the thread's token in place of the
 store's reader slot. -/
 def srvRdCallA (s : Loc) (E : AEnvA GF) (γr : ReadNames) (c : w64) : IProp GF :=
-  iprop(threadTok ∗ srvLgReader s ∗ committedAtLeast γr c ∗ srvReadReader s γr ∗ E.RD)
+  iprop(threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗ committedAtLeast γr c ∗
+    srvReadReader s γr ∗ E.RD)
 
 /-- **A successful `Range`'s outcome, restated** (`rangeReadOkM`; xreview §5): the log read is a
 floor, the model of a committed raft log, well formed, with its receipt (from `kvReadAt`), read

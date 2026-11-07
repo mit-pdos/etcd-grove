@@ -58,7 +58,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.KV().Commit()`'s contract from the API's** (strict M1, 2026-11-06: `KV.Commit.contract` at
 the KV's dynamic type, `shapes.law`; until then `store.Commit` over the store's sole writer): for
-the thread's token, a share of the store's backend, a request `X ⇒ Y` the storage serves
+the thread's token, (the reader tokens, 2026-11-06) a reader token of the store, a share of the store's backend, a request `X ⇒ Y` the storage serves
 (`storageReq`) and a frame `F`. -/
 theorem srvKVCommitOk_of_kv [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
@@ -67,8 +67,9 @@ theorem srvKVCommitOk_of_kv [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.As
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       □ mvcc.api.isMvcc kv γ ⊢
       srvKVCommitOk kv
-        iprop(threadTok ∗ mvcc.api.mvccBackend γ q B Pk ∗ X ∗ mvcc.api.storageReq B Pk X Y ∗ F)
-        iprop(threadTok ∗ mvcc.api.mvccBackend γ q B Pk ∗ Y ∗ F) := by
+        iprop(threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ mvcc.api.mvccBackend γ q B Pk ∗ X ∗
+          mvcc.api.storageReq B Pk X Y ∗ F)
+        iprop(threadTok ∗ mvcc.api.mvccReaders γ 1 ∗ mvcc.api.mvccBackend γ q B Pk ∗ Y ∗ F) := by
   iintro ⟨#Hpkg, #Hkv⟩
   ihave %Hsh := hsh.1 kv γ $$ Hkv
   obtain ⟨ty, v, rfl, -, -, -, -, -, -, -, -, hC, -⟩ := Hsh
@@ -76,10 +77,10 @@ theorem srvKVCommitOk_of_kv [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.As
   iexists ⟨ty, v⟩
   isplitr
   · ipureintro; rfl
-  iintro %Φ !> ⟨Ht, Hb, HX, #Hrq, HF⟩ HΦ
-  iapply (hC γ q B Pk X Y) $$ [Ht Hb HX]
+  iintro %Φ !> ⟨Ht, Hmr, Hb, HX, #Hrq, HF⟩ HΦ
+  iapply (hC γ q B Pk X Y) $$ [Ht Hmr Hb HX]
   · iframe #; iframe
-  iintro !> ⟨Ht, Hb, HY⟩
+  iintro !> ⟨Ht, Hmr, Hb, HY⟩
   iapply HΦ
   iframe
 

@@ -943,6 +943,26 @@ theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
   iframe HA HQL
   ipureintro; exact HAp.1
 
+/-- **The store invariant from the reader's KV invariants** (either auth mode; the `lean` merge,
+2026-11-06): what a request path's read of the store (`KV.Rev`, `KV.Range`, `KV.Read`) builds its
+update from (`au_read`), with the witness's and permit's facts. -/
+theorem srvKVInvsM_kvStoreInv (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) on s E γr ⊢
+      □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗ ⌜envWitOk E⌝ := by
+  cases on
+  · iintro #H
+    iunfold srvKVInvsM at H
+    iunfold srvKVInvs at H
+    icases H with ⟨-, -, -, #Hk, %Hm, -⟩
+    iframe Hk
+    ipureintro; exact Hm.2.2.1
+  · iintro #H
+    ihave #H' := srvKVInvsM_true s E γr $$ H
+    iunfold srvKVInvsOn at H'
+    icases H' with ⟨-, -, -, -, #Hk, %Hm, -⟩
+    iframe Hk
+    ipureintro; exact Hm.1
+
 end lemmas
 
 end EtcdGrove
