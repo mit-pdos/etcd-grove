@@ -941,7 +941,7 @@ theorem EtcdServer.Txn.wp_proof
       icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
       · subst Herr
         iunfold appliedOk at Hok
-        icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -⟩
+        icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, Hrcpt, %Hwf⟩
         obtain ⟨Hstep, Hfl, Hxlb, Hskip⟩ := Hstep0
         have Hk : apply.dispatchKind rq' = .txn := by
           rw [Hwire.2.2.1]
@@ -981,10 +981,12 @@ theorem EtcdServer.Txn.wp_proof
         iunfold txnAppliedOk
         iexists tw, hm, rq', t', x, x', log', skip
         simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-        iframe Hhdr Hcert Hpo HMint Hwit Hcok
+        iframe Hhdr Hcert Hpo HMint Hwit Hcok Hrcpt
         isplitr
         rotate_left
-        · rw [Hxlb, ← HLlb]; iexact HQ
+        · isplitr
+          · ipureintro; exact Hwf
+          rw [Hxlb, ← HLlb]; iexact HQ
         ipureintro
         refine ⟨trivial, Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
         have := Hwire.2.2.2 hz
@@ -1117,7 +1119,7 @@ theorem EtcdServer.Txn.wp_proof
         have Hrq : rq' = apply.withHeader (irrTxn tw) hm := Hwire.2.2.2 hz
         subst Hrq
         iunfold appliedOkM at Hok
-        icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -⟩
+        icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -, Hrcpt, %Hwf, -⟩
         obtain ⟨Hstep, Hfl, Hskip, Hmo, -⟩ := Hstep0
         have Hk : apply.dispatchKind (apply.withHeader (irrTxn tw) hm) = .txn := by
           simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
@@ -1166,10 +1168,12 @@ theorem EtcdServer.Txn.wp_proof
         iunfold txnAppliedOk
         iexists tw, hm, apply.withHeader (irrTxn tw) hm, t', x, x', log', skip
         simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-        iframe Hhdr Hcert Hpo HMint Hwit Hcok
+        iframe Hhdr Hcert Hpo HMint Hwit Hcok Hrcpt
         isplitr
         rotate_left
-        · iexact HQ
+        · isplitr
+          · ipureintro; exact Hwf
+          iexact HQ
         ipureintro
         refine ⟨trivial, Hwire, Ht', fun _ => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
         simp [apply.withHeader, irrTxn] at Ht'

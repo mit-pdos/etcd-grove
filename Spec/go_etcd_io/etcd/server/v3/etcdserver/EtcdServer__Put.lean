@@ -57,7 +57,9 @@ abbrev EtcdServer.Put.spec : Prop :=
           apply.putOutcomeIs x.log op resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
           srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
-          E.Nx x'.log ∗ Q (kvStateOf x.log) ∗
+          E.Nx x'.log ∗
+          ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+          Q (kvStateOf x.log) ∗
           hdrBoundM E.authOn s E (GoInterface.ok ctx) hm ∗
           □ (⌜E.authOn = true⌝ → ∃ L, ⌜grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrPut op) hm) L⌝ ∗
             pubAfterM true E ρ (apply.withHeader (irrPut op) hm) L)) ∨

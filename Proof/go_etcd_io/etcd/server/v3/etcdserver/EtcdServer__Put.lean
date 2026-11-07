@@ -175,7 +175,7 @@ theorem EtcdServer.Put.wp_proof
         simp [irrNoZeroEnd, apply.withHeader, irrPut, apply.irrEmpty]
       subst Hrq
       iunfold appliedOk at Hok
-      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -⟩
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, Hrcpt, %Hwf⟩
       obtain ⟨Hstep, Hfl, Hxlb, -⟩ := Hstep0
       have Hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
         simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
@@ -202,9 +202,11 @@ theorem EtcdServer.Put.wp_proof
       isplitr
       · ipureintro; rfl
       iexists hm, x, x', .applied log' false, skip
-      iframe Hpo Hhdr Hcert HMint Hwit Hcok
+      iframe Hpo Hhdr Hcert HMint Hwit Hcok Hrcpt
       isplitr
       · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
+      isplitr
+      · ipureintro; exact Hwf
       rw [Hxlb, ← HLlb]
       iframe HQ
       isplitr
@@ -253,7 +255,7 @@ theorem EtcdServer.Put.wp_proof
         simp [irrNoZeroEnd, apply.withHeader, irrPut, apply.irrEmpty]
       subst Hrq
       iunfold appliedOkM at Hok
-      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -⟩
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -, Hrcpt, %Hwf, -⟩
       obtain ⟨Hstep, Hfl, -, Hmo, -⟩ := Hstep0
       have Hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
         simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
@@ -281,9 +283,11 @@ theorem EtcdServer.Put.wp_proof
       isplitr
       · ipureintro; rfl
       iexists hm, x, x', .applied log' false, skip
-      iframe Hpo Hhdr Hcert HMint Hwit Hcok
+      iframe Hpo Hhdr Hcert HMint Hwit Hcok Hrcpt
       isplitr
       · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
+      isplitr
+      · ipureintro; exact Hwf
       iframe HQ
       isplitr
       · iapply hdrBoundM_ctx true s E _ _ hm Hinc $$ Hhb

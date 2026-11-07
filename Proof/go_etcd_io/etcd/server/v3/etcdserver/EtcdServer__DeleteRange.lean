@@ -159,7 +159,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       iunfold appliedOk at Hok
-      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -⟩
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, Hrcpt, %Hwf⟩
       obtain ⟨Hstep, Hfl, Hxlb, -⟩ := Hstep0
       have Hk : apply.dispatchKind rq' = .deleteRange := by
         rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
@@ -185,10 +185,12 @@ theorem EtcdServer.DeleteRange.wp_proof
       isplitr
       · ipureintro; rfl
       iexists hm, rq', op', x, x', .applied log' false, skip
-      iframe Hpo Hhdr Hcert HMint Hwit Hcok
+      iframe Hpo Hhdr Hcert HMint Hwit Hcok Hrcpt
       isplitr
       rotate_left
-      · rw [Hxlb, ← HLlb]
+      · isplitr
+        · ipureintro; exact Hwf
+        rw [Hxlb, ← HLlb]
         iframe HQ
         isplitr
         · iunfold hdrBoundM; ipureintro; trivial
@@ -243,7 +245,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       iunfold appliedOkM at Hok
-      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -⟩
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -, Hrcpt, %Hwf, -⟩
       obtain ⟨Hstep, Hfl, -, Hmo, -⟩ := Hstep0
       have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := Hwire.2.2.2 HnzW
       have Hk : apply.dispatchKind rq' = .deleteRange := by
@@ -277,10 +279,12 @@ theorem EtcdServer.DeleteRange.wp_proof
       isplitr
       · ipureintro; rfl
       iexists hm, rq', op', x, x', .applied log' false, skip
-      iframe Hpo Hhdr Hcert HMint Hwit Hcok
+      iframe Hpo Hhdr Hcert HMint Hwit Hcok Hrcpt
       isplitr
       rotate_left
-      · iframe HQ
+      · isplitr
+        · ipureintro; exact Hwf
+        iframe HQ
         isplitr
         · iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
         iintro !> -
