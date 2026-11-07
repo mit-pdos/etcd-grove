@@ -1,7 +1,7 @@
 /-
 **Per-type message models, stage A prototype: the encoding at a registered type** (the Scope's E,
 R and V for `PbType`, revisions 4, 5 and 5a). Prototype only: the real stage puts these fields in
-`PbType` itself (`InvProto.lean`); here they extend it (`PbTypeC`), so that nothing that imports
+`PbType` itself (`InvProto.lean`); here they extend it (`PbModelC`), so that nothing that imports
 `InvProto` rebuilds.
 
 - **The wire content `C`** of a message type: everything protobuf-go's `Marshal` reads (proto2
@@ -14,16 +14,24 @@ R and V for `PbType`, revisions 4, 5 and 5a). Prototype only: the real stage put
   groups balanced with matching numbers at every level and nested at most 10001 deep (measured:
   10001 decodes, 10002 fails), values verbatim, each field's number undeclared in the level or
   declared with a wire type its decoder does not take (`internal/impl/decode.go`'s `errUnknown`
-  path). `ufValid c` is `ufWire` at every level (`T.levels c`): a wrong schema only weakens it;
-  it is never `False` (`[]` satisfies it).
-- **The encoding** `T.enc c`, exact in its size (`T.size c`, protobuf's formula, which counts an
-  aliased submessage at each reference); its one trusted fact `T.enc_ok`, a Prop field that each
-  registered instance fills with its own axiom. `pbEnc T c` and `pbEnc_ok` are generic, a
-  definition and a theorem: no generic trusted fact grows with the registrations.
+  path). `ufValid c` is `ufWire` at every level (`T.levels c`). It is never `False` (`[]`
+  satisfies it), but **the schemas and `levels` are trusted** (the Scope's T, `[v6a]` 1), each
+  instance's against its Go descriptor: an under-declared schema (a declared number or wire type
+  missing, e.g. a repeated scalar without its packed `LEN`) makes D2 false (`uf` may then hold bytes
+  the decoder turns into a known field, so `Unmarshal (Marshal c) ≠ c`); an over-declared one (a
+  number the message does not have) makes D1 false (Go's successful decode of such a field claims
+  a `ufWire` it does not satisfy).
+- **The data/encoder split** (`[v6]` §5 item 7): `PbModelC` is the type's data (its `PbType`, `C`,
+  `roC`, `modelOf`, `levels`, `size`, `tree` and the proved `ro_iff`, `roC_ufValid`), a constant
+  that mentions no axiom; `PbEncC T` its encoder part, the encoding `enc` and its one trusted fact
+  `enc_ok`, a Prop field that each registered instance fills with its own axiom; `PbTypeC` the
+  pair (`data`, `encd`), what the registry holds. `Sat` is stated over the data part, so a `Sat`
+  theorem's axioms never include the instance's encoder axiom. `pbEncC T c` and `pbEncC_ok` are
+  generic, a definition and a theorem: no generic trusted fact grows with the registrations.
 - **The registry** `pbModelOf`, keyed on the Go type and taking the heap's instances (`hG`), so that
   a registration does not equate models across ghost heaps; one registration axiom per instance,
   of the exact shape `pbModelOf GF X.ty = some x`.
-- **`PbTypeC.Sat`**: the decoded model `dec` is satisfiable by the generic store (`Store.lean`) of
+- **`PbModelC.Sat`**: the decoded model `dec` is satisfiable by the generic store (`Store.lean`) of
   `T.tree m`, from a `blank` that is the zero struct.
 -/
 module
@@ -122,8 +130,8 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **A protobuf message type at its wire content** (see the file header). -/
-structure PbTypeC (GF : BundledGFunctors) extends PbType GF where
+/-- **A protobuf message type at its wire content: its data** (see the file header). -/
+structure PbModelC (GF : BundledGFunctors) extends PbType GF where
   /-- Everything `Marshal` reads. -/
   C : Type
   /-- A frozen `*T` holding exactly `c`. -/
@@ -131,15 +139,10 @@ structure PbTypeC (GF : BundledGFunctors) extends PbType GF where
   roC_persistent : ∀ l c, Persistent (roC l c)
   /-- The model of a wire content. -/
   modelOf : C → M
-  /-- Each level's schema and unknown fields. -/
+  /-- Each level's schema and unknown fields (trusted: the file header). -/
   levels : C → List (FieldSchema × List w8)
   /-- protobuf's size formula. -/
   size : C → Nat
-  /-- The encoding (an opaque per-type encoder). -/
-  enc : C → List w8
-  /-- **The type's one trusted fact** (filled by its axiom). -/
-  enc_ok : ∀ c, marshals (modelOf c) → (∀ p ∈ levels c, ufWire p.1 p.2) → size c < 2 ^ 63 →
-    wire (modelOf c) (enc c) ∧ (enc c).length = size c
   /-- The normalizing store of a model (`Store.lean`). -/
   tree : M → VTree
   /-- `ro` is a frozen message at some wire content (proved). -/
@@ -147,10 +150,24 @@ structure PbTypeC (GF : BundledGFunctors) extends PbType GF where
   /-- A frozen message's unknown fields are valid (proved, from `pbMsg`'s index). -/
   roC_ufValid : ∀ l c, roC l c ⊢ ⌜∀ p ∈ levels c, ufWire p.1 p.2⌝
 
-attribute [instance] PbTypeC.roC_persistent
+attribute [instance] PbModelC.roC_persistent
 
 /-- The unknown fields of every level are valid (a generic definition). -/
-def PbTypeC.ufValid (T : PbTypeC GF) (c : T.C) : Prop := ∀ p ∈ T.levels c, ufWire p.1 p.2
+def PbModelC.ufValid (T : PbModelC GF) (c : T.C) : Prop := ∀ p ∈ T.levels c, ufWire p.1 p.2
+
+/-- **A protobuf message type's encoder** (see the file header): an opaque per-type encoder and
+its one trusted fact. -/
+structure PbEncC (T : PbModelC GF) where
+  /-- The encoding (an opaque per-type encoder). -/
+  enc : T.C → List w8
+  /-- **The type's one trusted fact** (filled by its axiom). -/
+  enc_ok : ∀ c, T.marshals (T.modelOf c) → T.ufValid c → T.size c < 2 ^ 63 →
+    T.wire (T.modelOf c) (enc c) ∧ (enc c).length = T.size c
+
+/-- **A registered protobuf message type**: its data and its encoder. -/
+structure PbTypeC (GF : BundledGFunctors) where
+  data : PbModelC GF
+  encd : PbEncC data
 
 /-- **The registry of message types at their wire content** (`[v4]` R): one model per Go type,
 per heap. Opaque: only the registration axioms say anything of it. -/
@@ -158,17 +175,17 @@ opaque pbModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemanti
     [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] : go.GoType → Option (PbTypeC GF)
 
 /-- **The encoding of a wire content** (generic: the instance's encoder). -/
-def pbEncC (T : PbTypeC GF) (c : T.C) : List w8 := T.enc c
+def pbEncC (T : PbTypeC GF) (c : T.data.C) : List w8 := T.encd.enc c
 
 /-- **What the encoding is** (a theorem, from the instance's `enc_ok` and `roC_ufValid`). -/
-theorem pbEncC_ok (T : PbTypeC GF) (l : Loc) (c : T.C) :
-    T.roC l c ⊢ ⌜T.marshals (T.modelOf c) → T.size c < 2 ^ 63 →
-      T.wire (T.modelOf c) (pbEncC T c) ∧ (pbEncC T c).length = T.size c⌝ := by
+theorem pbEncC_ok (T : PbTypeC GF) (l : Loc) (c : T.data.C) :
+    T.data.roC l c ⊢ ⌜T.data.marshals (T.data.modelOf c) → T.data.size c < 2 ^ 63 →
+      T.data.wire (T.data.modelOf c) (pbEncC T c) ∧ (pbEncC T c).length = T.data.size c⌝ := by
   iintro #H
-  ihave %Hu := T.roC_ufValid l c $$ H
+  ihave %Hu := T.data.roC_ufValid l c $$ H
   ipureintro
   intro hm hs
-  exact T.enc_ok c hm Hu hs
+  exact T.encd.enc_ok c hm Hu hs
 
 /-- **`blank` is the zero struct** of the type at some Lean representation. -/
 def BlankZero (ty : go.GoType) (blank : Loc → IProp GF) : Prop :=
@@ -177,7 +194,7 @@ def BlankZero (ty : go.GoType) (blank : Loc → IProp GF) : Prop :=
 
 /-- **The decoded model is satisfiable** (V, `[v5a]`): from a blank message, the generic store of
 the model's tree gives `dec` at the model. -/
-def PbTypeC.Sat (T : PbTypeC GF) : Prop :=
+def PbModelC.Sat (T : PbModelC GF) : Prop :=
   BlankZero T.ty T.blank ∧
     ∀ (m : T.M) (l : Loc), T.blank l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.dec l m }}
 

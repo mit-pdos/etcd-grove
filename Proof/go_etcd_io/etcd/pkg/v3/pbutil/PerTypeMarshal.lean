@@ -35,25 +35,25 @@ variable [sem : go.Semantics]
 holding the wire content `c`, which marshals and is shorter than `maxAlloc`, a fresh slice of its
 encoding `pbEncC T c`, and `nil`. -/
 abbrev proto.MarshalPbC.spec : Prop :=
-  ∀ (T : PbTypeC GF), pbModelOf GF T.ty = some T →
-  ∀ (l : Loc) (c : T.C), T.marshals (T.modelOf c) → T.size c < 2 ^ 48 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ T.roC l c }}
+  ∀ (T : PbTypeC GF), pbModelOf GF T.data.ty = some T →
+  ∀ (l : Loc) (c : T.data.C), T.data.marshals (T.data.modelOf c) → T.data.size c < 2 ^ 48 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ T.data.roC l c }}
     (App (Val (@! google_golang_org.protobuf.proto.Marshal))
-      (Val #(interface.mkOk (go.GoType.PointerType T.ty) #l)))
+      (Val #(interface.mkOk (go.GoType.PointerType T.data.ty) #l)))
   {{ (d : GoSlice), RET (PairV #d #(GoInterface.nil));
       d ↦* pbEncC T c ∗ ownSliceCap w8 d (DFrac.own 1) }}
 
 /-- **`MustMarshalMessage(m)` at a registered type**: a fresh slice of the encoding, an encoding of
 the model of exactly its size. -/
 abbrev pbutil.MustMarshalMessageC.spec : Prop :=
-  ∀ (T : PbTypeC GF), pbModelOf GF T.ty = some T →
-  ∀ (l : Loc) (c : T.C), T.marshals (T.modelOf c) → T.size c < 2 ^ 48 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ T.roC l c }}
+  ∀ (T : PbTypeC GF), pbModelOf GF T.data.ty = some T →
+  ∀ (l : Loc) (c : T.data.C), T.data.marshals (T.data.modelOf c) → T.data.size c < 2 ^ 48 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ T.data.roC l c }}
     (App (Val (@! pbutil.MustMarshalMessage))
-      (Val #(interface.mkOk (go.GoType.PointerType T.ty) #l)))
+      (Val #(interface.mkOk (go.GoType.PointerType T.data.ty) #l)))
   {{ (d : GoSlice), RET #d;
       d ↦* pbEncC T c ∗ ownSliceCap w8 d (DFrac.own 1) ∗
-      ⌜T.wire (T.modelOf c) (pbEncC T c) ∧ (pbEncC T c).length = T.size c⌝ }}
+      ⌜T.data.wire (T.data.modelOf c) (pbEncC T c) ∧ (pbEncC T c).length = T.data.size c⌝ }}
 
 end spec
 

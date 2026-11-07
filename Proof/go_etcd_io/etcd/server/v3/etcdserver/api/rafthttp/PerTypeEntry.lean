@@ -9,7 +9,8 @@
   read-only (`bytesC`), the hidden fields' invariant at `c.uf` and `uf`'s validity.
 - `entryEncC` (opaque) and its one trusted fact `entryEncC_ok`, backed by Go round-trip tests of
   `proto.Size` against `entrySize` and of `Unmarshal(Marshal)`.
-- `pbEntryC`, its registration `pbEntryC_reg`, and `pbEntryC_sat : pbEntryC.Sat`.
+- `pbEntryM` (the data, no axiom), `pbEntryC` (with the encoder), its registration `pbEntryC_reg`,
+  and `pbEntryC_sat : pbEntryM.Sat` (`pbEntryC.data` is `pbEntryM`; whose axioms do not include `entryEncC_ok`).
 
 **Why `ro` is not today's `entRO`.** `entRO` (`InvPb.lean`) hides the unknown fields behind `pbMsg`'s
 index with no validity, and reads a `nil` cell and a zero one alike: `ro_iff` at `ro := entRO` is
@@ -141,8 +142,8 @@ theorem entRoC_entRO (l : Loc) (c : EntryC) : entRoC (GF := GF) l c ⊢ entRO l 
   simp only [EntryC.model]
   iframe cT' cI' cY' cD'
 
-/-- **`raftpb.Entry` at its wire content** (the registered instance). -/
-def pbEntryC : PbTypeC GF where
+/-- **`raftpb.Entry` at its wire content: the data** (no axiom: what `Sat` is stated over). -/
+def pbEntryM : PbModelC GF where
   ty := raftpb.Entry.ty
   M := EntryM
   ro l e := iprop(∃ c, entRoC l c ∗ ⌜c.model = e⌝)
@@ -158,8 +159,6 @@ def pbEntryC : PbTypeC GF where
   modelOf := EntryC.model
   levels c := [(entrySchema, c.uf)]
   size := entrySize
-  enc := entryEncC
-  enc_ok c _ hu hs := entryEncC_ok c (hu _ (List.mem_singleton.2 rfl)) hs
   tree e := .strct raftpb.Entry.ty
     [(go!"Term", go.GoType.PointerType go.uint64), (go!"Index", go.GoType.PointerType go.uint64),
      (go!"Type", go.GoType.PointerType raftpb.EntryType.ty), (go!"Data", go.GoType.SliceType go.byte)]
@@ -174,6 +173,13 @@ def pbEntryC : PbTypeC GF where
     rw [List.mem_singleton] at hp
     subst hp
     exact Hu
+
+/-- **`raftpb.Entry` at its wire content** (the registered instance): the data and the encoder,
+whose `enc_ok` is the type's one trusted fact `entryEncC_ok`. -/
+def pbEntryC : PbTypeC GF where
+  data := pbEntryM
+  encd := { enc := entryEncC
+            enc_ok := fun c _ hu hs => entryEncC_ok c (hu _ (List.mem_singleton.2 rfl)) hs }
 
 end defs
 
@@ -234,11 +240,11 @@ theorem bytesC_freeze (ds : GoSlice) (xs : List w8) (h : xs = [] → ds = slice.
     · ipureintro; rfl
 
 /-- **`pbEntryC`'s decoded model is satisfiable** by the generic store. -/
-theorem pbEntryC_sat : (pbEntryC (GF := GF)).Sat := by
+theorem pbEntryC_sat : (pbEntryM (GF := GF)).Sat := by
   refine ⟨⟨raftpb.Entry, inferInstance, inferInstance,
     (inferInstance : IntoValTyped raftpb.Entry raftpb.Entry.ty), fun l => .rfl⟩, ?_⟩
   intro e l
-  simp only [pbEntryC]
+  simp only [pbEntryM]
   iintro Hl
   iapply wp_fupd
   iapply (storeInto_wp_typed (V := raftpb.Entry) (ty := raftpb.Entry.ty) l (zero_val raftpb.Entry))
