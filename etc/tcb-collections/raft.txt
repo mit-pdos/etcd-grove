@@ -20,7 +20,6 @@
 roots ^Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
 axiom ccDecodeV2_nil
-axiom context.ErrAny.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
