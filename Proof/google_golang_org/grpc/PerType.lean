@@ -3,8 +3,13 @@
 R and V for `ProtoMsg` and `StreamMsg`, revisions 4, 5 and 5a). Prototype only: the real stage puts
 `tree` in `ProtoMsg`/`StreamMsg` themselves; here they extend them.
 
-- **Role-split registries** (`[v5]`): `grpcReqModelOf` (a method's request) and `grpcRepModelOf` (its
-  reply), and `streamMsgModelOf`; each keyed on the Go type, taking the heap's instances.
+- **Role-split registries** (`[v5]`; streams `[v6]` §5 item 2): `grpcReqModelOf` (a method's
+  request) and `grpcRepModelOf` (its reply), `streamReqModelOf` (a stream's request, checked against
+  `StreamMsgT.ReqSat`) and `streamRepModelOf` (a stream's reply, checked against
+  `StreamMsgT.RepSat`: a reply's `wireLen` is `grpcMsgMax` by default, so it must not take the
+  request's `wireLen` premise); each keyed on the Go type, taking the heap's instances (`hG`,
+  `[v6]` §5 item 8: `PbType GF`/`ProtoMsg GF` mention no heap, so an `hG`-independent registry would
+  equate models across heaps) and `go.Semantics` (Type-valued).
 - **The `Sat` statements** (`[v5]` V): a decoded message's model is satisfiable by the generic store
   (`Store.lean`) of `T.tree m`, keeping the sender's `send`:
   - `ProtoMsgT.ReqSat`: from a `blank`, with the request's `wireLen` below `grpcMsgMax`, the store
@@ -92,8 +97,14 @@ opaque grpcReqModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSe
 opaque grpcRepModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp]
     [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] : go.GoType → Option (ProtoMsgT GF)
 
-/-- **The registry of stream message models**. -/
-opaque streamMsgModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics]
+/-- **The registry of stream request models** (`[v6]` §5 item 2: split by role; a registration's
+`Sat` is `StreamMsgT.ReqSat`). -/
+opaque streamReqModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics]
+    [GooseInterp] [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] :
+    go.GoType → Option (StreamMsgT GF)
+
+/-- **The registry of stream reply models** (a registration's `Sat` is `StreamMsgT.RepSat`). -/
+opaque streamRepModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics]
     [GooseInterp] [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] :
     go.GoType → Option (StreamMsgT GF)
 

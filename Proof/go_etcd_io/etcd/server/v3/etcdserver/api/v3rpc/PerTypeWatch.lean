@@ -515,13 +515,15 @@ theorem pbWatchRequestT_ownAny : OwnAny (pbWatchRequestT (GF := GF)).ty (pbWatch
     (inferInstance : IntoValTyped etcdserverpb.WatchRequest etcdserverpb.WatchRequest.ty),
     fun _ => .rfl⟩
 
-/-- **`WatchRequest`'s registration** (prototype-only axiom). -/
+/-- **`WatchRequest`'s registration** (prototype-only axiom; the stream request registry, its `Sat`
+`ReqSat`, of which the `nil` law waits for `watchReqSend`'s `⌜l ≠ null⌝`, `[v6]` §5 item 3). -/
 axiom pbWatchRequestT_reg :
-    streamMsgModelOf GF etcdserverpb.WatchRequest.ty = some (pbWatchRequestT (GF := GF))
+    streamReqModelOf GF etcdserverpb.WatchRequest.ty = some (pbWatchRequestT (GF := GF))
 
-/-- **`WatchResponse`'s registration** (prototype-only axiom). -/
+/-- **`WatchResponse`'s registration** (prototype-only axiom; the stream reply registry, its `Sat`
+`RepSat`: `pbWatchResponseT_repSat`). -/
 axiom pbWatchResponseT_reg :
-    streamMsgModelOf GF etcdserverpb.WatchResponse.ty = some (pbWatchResponseT (GF := GF))
+    streamRepModelOf GF etcdserverpb.WatchResponse.ty = some (pbWatchResponseT (GF := GF))
 
 end defs
 
