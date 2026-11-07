@@ -2,15 +2,21 @@
 Package initialization of `io.fs`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact (`Proof/os/PkgInit.lean`): its five error variables, which `os`'s initializer
+copies, hold some error for good. Its initializer copies internal/oserror's errors into them
+(`errInvalid()`, ...) and makes `SkipDir` and `SkipAll` (`errors.New`).
 -/
 -- The copy for the parallel tree `RaftWitness/` of `Proof/io/fs/Init.lean` (`PART_INITS` in
 -- `etc/gen-init.py`): the same, but its imports of the copied modules and of raft are the part's.
 module
 
 public import Proof.os.PkgInit
+public import Perennial.Proof.errors.Link
+public import Perennial.Proof.internal.oserror.Link
+public import Perennial.Proof.io.Link
+public import Perennial.Proof.time.Link
+public import Perennial.Proof.internal.oserror.Link
+public import Perennial.Proof.errors.NewVar
 public import RaftWitness.Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -28,35 +34,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace io.fs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `io.fs`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrInvalid.init,
-        ErrPermission.init,
-        ErrExist.init,
-        ErrNotExist.init,
-        ErrClosed.init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        SkipDir.init,
-        SkipAll.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end io.fs
-end opaqueInits
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -78,18 +55,59 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk ErrInvalid.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrPermission.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrExist.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrNotExist.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrClosed.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk SkipDir.init (by mem_tac))
-  wp_apply (opaqueInitsOk SkipAll.init (by mem_tac))
+  iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := _) SkipAll _ as HSkipAll
+  wp_apply wp_GlobalAlloc (V := _) SkipDir _ as HSkipDir
+  wp_apply wp_GlobalAlloc (V := _) ErrClosed _ as HErrClosed
+  wp_apply wp_GlobalAlloc (V := _) ErrNotExist _ as HErrNotExist
+  wp_apply wp_GlobalAlloc (V := _) ErrExist _ as HErrExist
+  wp_apply wp_GlobalAlloc (V := _) ErrPermission _ as HErrPermission
+  wp_apply wp_GlobalAlloc (V := _) ErrInvalid _ as HErrInvalid
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
+      EtcdGrove.ExternalInit.internal_oserror _root_.Perennial.internal.oserror.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  -- translated initializer of ErrInvalid))
+  -- translated initializer of ErrPermission))
+  -- translated initializer of ErrExist))
+  -- translated initializer of ErrNotExist))
+  -- translated initializer of ErrClosed))
+  -- translated initializer of SkipDir))
+  -- translated initializer of SkipAll))
+  ihave #Hos := _root_.Perennial.internal.oserror.isInit_access $$ Hd2
+  icases Hos with ⟨#VIn, #VPe, #VEx, #VNE, #VCl⟩
+  iunfold _root_.Perennial.errors.newVar at VIn VPe VEx VNE VCl
+  icases VIn with ⟨%xIn, #OIn, #EIn⟩
+  icases VPe with ⟨%xPe, #OPe, #EPe⟩
+  icases VEx with ⟨%xEx, #OEx, #EEx⟩
+  icases VNE with ⟨%xNE, #ONE, #ENE⟩
+  icases VCl with ⟨%xCl, #OCl, #ECl⟩
+  wp_func_call
+  wp_call
+  wp_auto
+  ipersist HErrInvalid
+  wp_func_call
+  wp_call
+  wp_auto
+  ipersist HErrPermission
+  wp_func_call
+  wp_call
+  wp_auto
+  ipersist HErrExist
+  wp_func_call
+  wp_call
+  wp_auto
+  ipersist HErrNotExist
+  wp_func_call
+  wp_call
+  wp_auto
+  ipersist HErrClosed
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSD #ESD
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSA #ESA
   iframe Hown
   is_pkg_init_finish
 
