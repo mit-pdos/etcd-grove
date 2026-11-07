@@ -12,6 +12,8 @@ instance cannot prove its `Sat` with a diverging copy.
 - `storeInto ty l t`: the typed store of that value at `l`;
 - `treeWp t Φ`: what `storeTree t` needs, node by node (the obligations of its allocations and
   literals), and `storeTree_wp : treeWp t Φ ⊢ WP storeTree t {{ Φ }}`, proved once;
+- `BlankZero ty blank`: a receive model's `blank` is the zero struct of the type (what the stores
+  start from; the per-type `Sat` statements, `InvProto.lean` and `InvGrpc.lean`);
 - the typed forms: `treeWp_ptr` (a pointer node over a typed points-to, `IntoValTyped`),
   `treeWp_bytes` (a slice node of values, `ownSlice`), `storeInto_wp` (the typed store).
 
@@ -631,6 +633,13 @@ theorem treeWp_sliceMap {A V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
     iintro %sl %Hlen Hs Hc
     iapply H $$ %xs %sl %(⟨Hlen, fun h => by subst h; exact absurd (List.eq_nil_of_length_eq_zero Hl) has⟩ :
       xs.length < 2 ^ 63 ∧ (xs = [] → sl = slice.nil)) Hxs Hs Hc
+
+/-! ### Blank messages -/
+
+/-- **`blank` is the zero struct** of the type at some Lean representation. -/
+def BlankZero (ty : go.GoType) (blank : Loc → IProp GF) : Prop :=
+  ∃ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V) (_ : IntoValTyped (GF := GF) V ty),
+    ∀ l, blank l ⊣⊢ l ↦ zero_val V
 
 end wps
 

@@ -12,7 +12,7 @@ axiom; the real stage replaces `proto.MarshalPb.spec` and its axiom.
 -/
 module
 
-public import Proof.google_golang_org.protobuf.proto.PerType
+public import Proof.google_golang_org.protobuf.proto.InvProto
 public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage
 public import Spec.google_golang_org.protobuf.proto.MarshalPb
 

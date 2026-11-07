@@ -20,7 +20,7 @@ unprovable (an `entRO` has no `ufWire` of its `uf`). The real stage makes `pbMsg
 -/
 module
 
-public import Proof.google_golang_org.protobuf.proto.PerType
+public import Proof.google_golang_org.protobuf.proto.InvProto
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
 
 @[expose] public section

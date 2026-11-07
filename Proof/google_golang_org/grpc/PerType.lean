@@ -23,7 +23,7 @@ R and V for `ProtoMsg` and `StreamMsg`, revisions 4, 5 and 5a). Prototype only: 
 module
 
 public import Proof.google_golang_org.grpc.InvGrpcStream
-public import Proof.google_golang_org.protobuf.proto.PerType
+public import Proof.google_golang_org.protobuf.proto.InvProto
 
 @[expose] public section
 
