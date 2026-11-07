@@ -376,23 +376,23 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
     intro t; rw [hoffv]; exact (hW _ _ _ hR).2 hnn t
   wp_apply wp_osPWriteStart_cs fd (off + nnv) (data.drop nnv.toNat) dq d N P R γ Good Ok m' bs' fa fb
     hN hwr hoffv' hgap' hfz' hW1 $$ Hos Hinv Hosfd Hown Hc2 as %t Hosfd Hown
-  have hW2 : ∀ k ≤ (data.drop nnv.toNat).length,
-      ((data.drop nnv.toNat).length < 2 ^ 64 → C (off + nnv).toNat (data.drop nnv.toNat).length k) →
+  have hW2 : ∀ k ≤ (data.drop nnv.toNat).length, ∀ e : w64,
+      ((data.drop nnv.toNat).length < 2 ^ 64 → C (off + nnv).toNat (data.drop nnv.toNat).length k e) →
       Ok (some (d.ino,
       ⟨finMeta m' (off + nnv).toNat (data.drop nnv.toNat) k,
         finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k, fa, fb, .idle⟩)) := by
-    intro k hk hck; rw [hoffv]; rw [hoffv] at hck
-    exact (hW _ _ _ (hR.step k _ hnn (by rw [hdl] at hk; exact hk) hck (.inl rfl))).1
+    intro k hk e hck; rw [hoffv]; rw [hoffv] at hck
+    exact (hW _ _ _ (hR.step k _ e hnn (by rw [hdl] at hk; exact hk) hck (.inl rfl))).1
   wp_apply wp_osPWriteFinish_cs C hC t d.ino (off + nnv).toNat (data.drop nnv.toNat) N P R γ Good Ok m'
     bs' fa fb hN hW2 $$ Hos Hinv Hown as %k %e %hke Hown Hc2
   obtain ⟨hk, hke, hck⟩ := hke
   rw [hoffv] at hck
   obtain ⟨hNar', hS', hpre'⟩ := wa_stepS hgap hNar hS hpre hoffv (by omega) hk
   rw [hdl] at hk
-  have hRs : ∀ nn', (nn' = nnv.toNat ∨ nn' = nnv.toNat + k) →
+  have hRs : ∀ nn', (nn' = nnv.toNat + k ∨ (e ≠ 0 ∧ nn' = nnv.toNat)) →
       WReach C m bs off.toNat data nn' (finMeta m' (off + nnv).toNat (data.drop nnv.toNat) k)
         (finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k) := by
-    intro nn' h; rw [hoffv]; exact hR.step k nn' hnn hk hck h
+    intro nn' h; rw [hoffv]; exact hR.step k nn' e hnn hk hck h
   -- the cells back
   ihave Hc2 := mcells_any _ _ _ _ $$ Hc2
   ihave Hc2 := (show mcellsAny (GF := GF) m'.maps (cfLo m' (off + nnv).toNat)
@@ -409,7 +409,8 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_pure
-    iapply IH $$ %_ %_ %nnv %(hRs _ (.inl rfl)) %hnn %(by omega)
+    iapply IH $$ %_ %_ %nnv %(hRs _ (.inr ⟨fun h => by rw [h] at he4; exact absurd he4 (by decide), rfl⟩))
+      %hnn %(by omega)
       %(fun i hi => hpre' i (by omega)) Hown Hosfd Hsl Hfd Hc HΦ
   · rw [decide_eq_false he4]
     wp_auto
@@ -442,7 +443,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨_, hRs _ (.inl rfl), .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨_, hRs _ (.inr ⟨fun h => he0 (by rw [h]; rfl), rfl⟩), .inr ⟨rfl, by intro h; cases h⟩⟩
     · rw [decide_eq_false hfull]
       wp_auto
       by_cases he0 : e = W64 0
@@ -453,7 +454,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         have hne : nnv.toNat + k ≠ data.length := by
           intro hc; apply hfull; apply BitVec.eq_of_toNat_eq
           rw [hnk, hsln]; simp only [W64]; rw [BitVec.toNat_ofInt]; omega
-        iapply IH $$ %_ %_ %(nnv + W64 k) %(by rw [hnk]; exact hRs _ (.inr rfl))
+        iapply IH $$ %_ %_ %(nnv + W64 k) %(by rw [hnk]; exact hRs _ (.inl rfl))
           %(by rw [hnk]; omega) %(by rw [hnk]; omega)
           %(fun i hi => hpre' i (by rw [hnk] at hi; omega)) Hown Hosfd Hsl Hfd Hc HΦ
       · rw [decide_eq_false he0]
@@ -465,7 +466,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨_, hRs _ (.inl rfl), .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨_, hRs _ (.inr ⟨fun h => he0 (by rw [h]; rfl), rfl⟩), .inr ⟨rfl, by intro h; cases h⟩⟩
 
 omit [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [go.Semantics] [os.Assumptions] in
 theorem ftMeta_grown (m : OsMeta) (sz : Nat) : (ftMeta m sz).grown sz = m.grown sz := by

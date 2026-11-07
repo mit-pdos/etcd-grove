@@ -10,8 +10,10 @@ that satisfy them, and states so. They are not part of the semantics (`Impl.lean
 A *page cut* of a write of `len` bytes at `off` (`PageCut off len k`) is a prefix of `k` bytes
 that is none of it, all of it, or ends on a 4096-byte page boundary (`(off + k) % 4096 = 0`).
 
-- `NoTearStep`: the second step of a write (`PWriteFinish`) lands and returns a page cut of it,
-  with whatever errno.
+- `NoTearStep`: the second step of a write (`PWriteFinish`) lands and returns a page cut of it;
+  with a nonzero errno, nothing (a failed `pwrite` wrote nothing: Linux's `write(2)`/`pwrite(2)` on
+  a regular file return the count when anything was written, `generic_perform_write` returning the
+  bytes copied before the error if any).
 - `NoTearCrash`: at a crash, for each write in flight there is a page cut `k` of it such that each
   sector the write touches is, in the crash's image of its file, one of the versions the sector had
   (since its last successful sync, the page cache's included) or the sector with the first `k`
@@ -64,11 +66,16 @@ namespace Fs
 boundary. -/
 def PageCut (off len k : Nat) : Prop := k ≤ len ∧ (k = 0 ∨ k = len ∨ (off + k) % 4096 = 0)
 
-/-- The step premise: a `PWriteFinish` lands and returns a page cut of its write. -/
+/-- The step premise: a `PWriteFinish` lands and returns a page cut of its write, and nothing
+with a nonzero errno. -/
 def NoTearStep : StepPrem := fun op v st e' _st' =>
   op = "PWriteFinish" → ∀ (t : Nat) (i : Ino) (off : Nat) (data : List w8), v = osTokV t →
     st.proc.inflight !! t = some ⟨i, .write off data⟩ →
-    ∃ (k : Nat) (e : w64), PageCut off data.length k ∧ e' = osRes (#(W64 k)) e
+    ∃ (k : Nat) (e : w64), PageCut off data.length k ∧ (e ≠ 0 → k = 0) ∧
+      e' = osRes (#(W64 k)) e
+
+/-- What `NoTearStep` says of a write's count `k` and errno `e`. -/
+def NoTearCut (off len k : Nat) (e : w64) : Prop := PageCut off len k ∧ (e ≠ 0 → k = 0)
 
 /-- The crash premise: for each write in flight, a page cut `k` of it such that each sector the
 write touches is, in the crash's image of its file, a version the sector had, or the sector with
@@ -102,21 +109,22 @@ theorem pageCut_inPage {off len k : Nat} (hk : PageCut off len k) (hp : inPage o
 section cut
 variable [GooseExts] [ExtSemantics fsExt] [GoGlobalContext] [go.BasicIntoValInj]
 
-/-- **Under `NoTearStep`, every `PWriteFinish` lands a page cut** (`PwCut`, for the program
-logic: `wp_osPWriteFinishC`). -/
-theorem pwCut_noTear [FsStepSat NoTearStep] : PwCut PageCut := by
+/-- **Under `NoTearStep`, every `PWriteFinish` lands a page cut, and nothing with an errno**
+(`PwCut`, for the program logic: `wp_osPWriteFinishC`). -/
+theorem pwCut_noTear [FsStepSat NoTearStep] : PwCut NoTearCut := by
   intro t h st e' h' st' i off data k e hs hin he hk hlen
-  obtain ⟨k', e2, hk', he2⟩ :=
+  obtain ⟨k', e2, hk', he0, he2⟩ :=
     FsStepSat.sat (SQ := NoTearStep) _ _ _ _ _ _ _ _ _ hs rfl t i off data rfl hin
   rw [he] at he2
   simp only [osRes, Expr.Val.injEq, val.PairV.injEq] at he2
   have hw : W64 k = W64 k' := go.intoVal_inj he2.1
+  have hee : e = e2 := go.intoVal_inj he2.2
   have hk2 := hk'.1
   have : k = k' := by
     have := congrArg BitVec.toNat hw
     simp only [W64, BitVec.toNat_ofInt] at this
     omega
-  subst this; exact hk'
+  subst this hee; exact ⟨hk', he0⟩
 
 end cut
 
@@ -189,7 +197,7 @@ theorem noTearStep_keeps : StepKeeps NoTearStep := by
         rfl, rfl⟩, mapsFresh_same hm, heapRendered_render_u hu hm Hh⟩, ?_⟩
     intro _ t' i' off' data' hv hin'
     obtain ⟨rfl, rfl, rfl⟩ := hsame t' i' off' data' hv hin'
-    exact ⟨_, 0, ⟨Nat.le_refl _, .inr (.inl rfl)⟩, rfl⟩
+    exact ⟨_, 0, ⟨Nat.le_refl _, .inr (.inl rfl)⟩, fun h => absurd rfl h, rfl⟩
 
 /-- The program logic's specs hold over the restricted semantics. -/
 theorem noTearSem_ok : letI := noTearSem; FsSemOk :=
