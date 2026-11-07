@@ -3,7 +3,8 @@ Trusted Go model of `os` (namespace of the generated package; project bboltfs of
 `Code/os.toml`), in terms of the Linux file extension of `GooseLang.Ext.OsFs.Impl` (`osFsExt`,
 `ExternalOp osFsExt.name "PRead"`, ...), for any program whose extensions include it.
 linux/amd64, Go 1.27.3 (`etc/goose.py`'s `GO_TOOLCHAIN`). Perennial's own translation of `os`
-(`Perennial.Code.os`) trusts nothing and must not be in the same import closure.
+(`Perennial.Code.os`, with its own models of the initializer's untranslated pieces) must not be in
+the same import closure.
 
 **Files.** Go's `File` is `struct{ *file }` (`types.go`), with `file` (`file_unix.go`) holding a
 `poll.FD` (the fd `Sysfd`, a reference count and the poller), the name and flags. goose translates
@@ -407,15 +408,20 @@ def Stdout.init : val :=
 
 /-- `Stderr`'s initializer. Unlike `Stdin` and `Stdout`, the model allocates the variable,
 because package initializers that only store `os.Stderr` (`log`'s standard logger in Go,
-raft's `defaultLogger`, `log.New(os.Stderr, ...)`) must be provable: it stores a fresh
-non-nil pointer to an untyped cell, which is not the memory of a `File`. So the variable holds a
-non-nil `*File`, as in Go, and loading it steps; anything that reads the `File` (a method call,
-a field) is stuck (has no proof), where Go writes to the descriptor. -/
+raft's `defaultLogger`, `log.New(os.Stderr, ...)`) must be provable. It stores the non-nil
+pointer `maxAddr` (2026-11-07, review R4: until then a fresh `Alloc #()`, a writable cell, so
+`*os.Stderr = os.File{}`, which Go's later `log.Printf` turns into a nil dereference, ran in the
+model). No cell is ever at `maxAddr`: every allocation, a global's included (`GlobalAlloc` is an
+`Alloc`), lies below it (`IsFresh`, `IsFreshBytes`, `GooseLang/Lang.lean`), and a load or store
+needs a cell. So the variable holds a non-nil `*File`, as in Go, distinct from every allocated
+pointer; loading the variable steps, and anything that reads or writes the `File` through it (a
+method call, a field, `*os.Stderr = ...`) is stuck (has no proof), where Go reaches the
+descriptor. -/
 def Stderr.init : val :=
   λ: <>,
     go.GlobalAlloc go!"os.Stderr" (go.GoType.PointerType (go.GoType.Named go!"os.File" [])) #() ;;
     GlobalVarAddr go!"os.Stderr" #() <-[go.GoType.PointerType (go.GoType.Named go!"os.File" [])]
-      (Alloc (Val #()))
+      (Val #(Loc.mk maxAddr))
 
 end code
 end os

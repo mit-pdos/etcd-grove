@@ -138,8 +138,10 @@ It raises the process's soft limit on open files through the raw `prlimit` syste
 (`RawSyscall6`, assembly), and records the original limit in `origRlimitNofile`, which only
 `Setrlimit` and `exec` (`forkExec`, to restore the child's limit) read. It cannot panic. The model
 does nothing: the changed limit and `origRlimitNofile` are observable only through `exec`, a
-`Getrlimit` system call or running out of file descriptors, none of which Perennial models (the
-user's decision, fix-semantics Case 33: "P1: (ii)", 2026-11-04). -/
+`Getrlimit` system call (neither modelled) or running out of file descriptors, which the model
+does not distinguish: the Linux file extension's `Open` (`GooseLang/Ext/OsFs/Impl.lean`) may fail
+with any errno, `EMFILE` included, whatever the limit (the user's decision, Perennial fix-semantics
+Case 33: "P1: (ii)", 2026-11-04). -/
 def init.«0».impl : val :=
   λ: <>, #()
 
