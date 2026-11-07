@@ -22,6 +22,9 @@ def ccsPts (p : Loc) (dq : DFrac) (c : ConfChangeSingleM) : IProp GF :=
 theorem snapOpt_split [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (o : Option SnapshotM)
     : snapOpt p (dq1 • dq2) o ⊢ snapOpt p dq1 o ∗ snapOpt p dq2 o
 
+theorem pbMsg_ufWire (T : Type) [PbGoType T] (l : Loc) (uf : List w8) : pbMsg T l uf ⊢ ⌜ufWire
+    (pbSchemaOf (PbGoType.goTy T)) uf⌝
+
 theorem needsCap_of_ne {m : MessageM} (h : m.Type' ≠ MsgApp) : needsCap m = false
 
 def entPts (l : Loc) (dq : DFrac) (e : EntryM) : IProp GF :=
@@ -62,7 +65,8 @@ def hsRO (p : Loc) (hs : HardStateM) : IProp GF :=
 theorem cellRO_alloc_nn {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) : typedPointsto p
     v (DFrac.own 1) ⊢ |==> (cellRO p v ∗ ⌜p ≠ null⌝)
 
-theorem pbMsg_persistent (T : Type) (l : Loc) (uf : List w8) : Persistent (pbMsg T l uf)
+theorem pbMsg_persistent (T : Type) [PbGoType T] (l : Loc) (uf : List w8) : Persistent (pbMsg T l
+    uf)
 
 def CSLists.Bounded (a : CSLists) : Prop :=
   ↑a.voters.length ≤ 2 ^ 62 ∧ ↑a.learners.length ≤ 2 ^ 62 ∧ ↑a.outgoing.length ≤ 2 ^ 62 ∧ ↑a.learnersNext.length ≤ 2 ^ 62
@@ -178,17 +182,18 @@ theorem ownConfChange_persistent (p : Loc) (m : ConfChangeM) : Persistent (ownCo
 def msgOwn (l : Loc) (dq : DFrac) (ms : MsgSt) : IProp GF :=
   msgPts l dq DFrac.discard ms
 
-def pbMsg (T : Type) (l : Loc) (uf : List w8) : IProp GF :=
-  inv pbN
-    iprop(∃ st sc us,
-        typedPointsto (structFieldRef T go!"state" l) st (DFrac.own 1) ∗
-          typedPointsto (structFieldRef T go!"sizeCache" l) sc
-              (DFrac.own 1) ∗
-            typedPointsto
-                (structFieldRef T
-                  go!"unknownFields" l)
-                us (DFrac.own 1) ∗
-              ownSlice us uf (DFrac.own 1))
+def pbMsg (T : Type) [PbGoType T] (l : Loc) (uf : List w8) : IProp GF :=
+  iprop(inv pbN
+        iprop(∃ st sc us,
+            typedPointsto (structFieldRef T go!"state" l) st (DFrac.own 1) ∗
+              typedPointsto (structFieldRef T go!"sizeCache" l) sc
+                  (DFrac.own 1) ∗
+                typedPointsto
+                    (structFieldRef T
+                      go!"unknownFields" l)
+                    us (DFrac.own 1) ∗
+                  ownSlice us uf (DFrac.own 1)) ∗
+      ⌜ufWire (pbSchemaOf (PbGoType.goTy T)) uf⌝)
 
 def ConfChangeM.asV2 (m : ConfChangeM) : ConfChangeV2M :=
   { transition := W32 0, changes := [{ Type' := m.type, NodeId' := m.nodeId }], context := m.context }
@@ -333,11 +338,12 @@ theorem smPts_split [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (md 
 
 theorem hsRO_persistent (p : Loc) (hs : HardStateM) : Persistent (hsRO p hs)
 
-theorem pbMsg_alloc [package_sem : Assumptions] (T : Type) (l : Loc) (st :
+theorem pbMsg_alloc [package_sem : Assumptions] (T : Type) [PbGoType T] (l : Loc) (st :
     google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) (us : GoSlice) (uf : List w8)
-    (E : CoPset) : typedPointsto (structFieldRef T go!"state" l) st (DFrac.own 1) ∗ typedPointsto
-    (structFieldRef T go!"sizeCache" l) sc (DFrac.own 1) ∗ typedPointsto (structFieldRef T
-    go!"unknownFields" l) us (DFrac.own 1) ∗ ownSlice us uf (DFrac.own 1) ⊢ |={E}=> pbMsg T l uf
+    (E : CoPset) (huf : ufWire (pbSchemaOf (PbGoType.goTy T)) uf) : typedPointsto (structFieldRef T
+    go!"state" l) st (DFrac.own 1) ∗ typedPointsto (structFieldRef T go!"sizeCache" l) sc (DFrac.own
+    1) ∗ typedPointsto (structFieldRef T go!"unknownFields" l) us (DFrac.own 1) ∗ ownSlice us uf
+    (DFrac.own 1) ⊢ |={E}=> pbMsg T l uf
 
 def ownConfChange (p : Loc) (dq : DFrac) (m : ConfChangeM) : IProp GF :=
   iprop(∃ pt pn pi cs uf,
