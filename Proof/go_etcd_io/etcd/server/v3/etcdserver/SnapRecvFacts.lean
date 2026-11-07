@@ -314,8 +314,8 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
   len : uint.Z i = A'.length
   /-- the image's state reachable, its history short (the sender's writer's facts) -/
   hst : imageStOk (kvModel γr.kv A') (crevOf γr.kv A')
-  -- (the mvcc merge, 2026-11-06) strict M1's `nolease : mvcc.LogNoLease (kvModel γr.kv A')` dropped:
-  -- `lean`'s lease-expiry restores the image's leases (`hlease`); MERGE-TODO(snap-leases)
+  -- (the mvcc merge, 2026-11-06) strict M1's `nolease : mvcc.LogNoLease (kvModel γr.kv A')` dropped,
+  -- false once a lease is live: `lean`'s lease-expiry restores the image's leases (`hlease`)
   /-- the image's stored index is `i`, its stored term some term (`specSnap`'s `hmeta` at
   `tI := t`, D22 J7b) -/
   hmetaI : ∃ t : w64, metaIs D (i, t)
@@ -420,7 +420,10 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   icases Hdb with ⟨%A', %u, #HA', %hA', #Him⟩
   obtain ⟨hlen', himA, hst⟩ := hA'
   unfold imageRestAt at himA
-  obtain ⟨hci, htm, hrest⟩ := himA
+  obtain ⟨hci, htm, hrestL⟩ := himA
+  -- (R4, 2026-11-07, `lean`'s) the leased image: its `lease` bucket the log's live leases' records,
+  -- its other buckets the plain image's (`bkRestAtL_other`)
+  have hrest := bkRestAtL_other hrestL
   iunfold kvApplied at Hka
   icases Hka with ⟨Hal, %Hch'⟩
   iunfold kvAppliedL at Hal
@@ -460,9 +463,6 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
     (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
-  -- MERGE-TODO(snap-leases): `lean`'s image here was `bkRestAtL` (the lease bucket the records of
-  -- the log's live leases, `hrestL`), its other buckets the plain image's (`bkRestAtL_other`); the
-  -- merged `InvImage.imageRestAt` is strict M1's `bkRestAt` (lease bucket empty)
   imodintro
   isplitl [Hhi]
   · iunfold kvApplied
@@ -487,19 +487,18 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   iframe HA' Him
   isplitr
   · ipureintro
-    have hb := image_bootBuckets d hrest
+    have hb := image_bootBucketsNL d hrest
     exact {
       pre := hAA'
       len := by omega
       hst := hst
       hmetaI := by obtain ⟨t, ht⟩ := htm; exact ⟨t, hci, ht⟩
-      -- MERGE-TODO(snap-leases): `lean`'s `imageLeasesAt_of_bkRestAtL d hrestL`
       hlease := imageLeasesAt_of_bkRestAtL d hrestL
-      halarm := hb.2.1
-      hauthb := hb.2.2
-      hmemb := image_membBuckets d hrest
-      himg := clusterImageOk_of_bkRestAt d cl _ hrest Himg
-      hA' := ⟨restModel_bk_of_bkRestAt d hrest, rfl⟩ }
+      halarm := hb.1
+      hauthb := hb.2
+      hmemb := image_membBucketsNL d hrest
+      himg := clusterImageOk_of_NL d cl _ hrest Himg
+      hA' := ⟨restModel_bk_of_NL d hrest, rfl⟩ }
   rw [Hcm.2.2.2]
   iunfold kvCpOk
   iframe Hp

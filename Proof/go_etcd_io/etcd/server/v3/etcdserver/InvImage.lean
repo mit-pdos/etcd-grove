@@ -166,12 +166,15 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **The image certificate's server parts** (pure; strict M1, 2026-11-06: the draft's
 `imageRestAt`, `notes/mvcc-api-clients/ServerSpecs.lean` §3c, here beside `dbImage`): `imageAt`
 without its `Key`-bucket/compaction-records and `IdxWf` conjuncts, which mvcc's `mvccImage` holds:
-the stored consistent index `i`, some stored term, the other buckets the committed log `L`'s. -/
+the stored consistent index `i`, some stored term, the other buckets the committed log `L`'s
+leased image (`bkRestAtL`, as `lean`'s `imageAt`: the records of `L`'s live leases in `lease`;
+R4, 2026-11-07: until then strict M1's `bkRestAt`, the lease bucket empty, false under
+lease-expiry once a lease is live; with none the two agree, `bkRestAt_of_L`/`bkRestAtL_of_nil`). -/
 def imageRestAt (γk : KVNames) (bootLog : List EntryM) (i : w64) (L : List EntryModel)
     (D : Data) : Prop :=
   dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
     (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
-    bkRestAt γk.c0 bootLog L D
+    bkRestAtL γk bootLog L D
 
 /-- **The image's state is one the store reaches, its history short** (pure; strict M1,
 2026-11-06): the writer's facts at the sender (`writer_facts`), carried by the certificate to the
@@ -236,7 +239,9 @@ theorem dbImage_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} {
   ipureintro
   unfold imageRestAt at h ⊢
   obtain ⟨hi, ⟨hci, ht, hrest⟩, hre⟩ := h
-  exact ⟨hi, ⟨hci, ht, by rw [← h0]; exact hrest⟩, hre⟩
+  have hl : kvLeases γk (γ.pre ++ A) = kvLeases γk' (γ.pre ++ A) := by
+    simp only [kvLeases, h0, h1]
+  exact ⟨hi, ⟨hci, ht, by unfold bkRestAtL at hrest ⊢; rw [← hl, ← h0]; exact hrest⟩, hre⟩
 
 /-- A member's image certificate is the network's. -/
 theorem srvImage_of_dbImage {γ : SrvRaft} {γk : KVNames} {i : w64} {D : Data}
