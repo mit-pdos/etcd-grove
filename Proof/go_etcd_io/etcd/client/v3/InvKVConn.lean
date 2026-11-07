@@ -1323,11 +1323,13 @@ contract's premise, `grpcInvokerOk`), it returns
   about whether, or how often, the handler ran, nor about `out`. -/
 def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
-      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsgT GF)
+      (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg)
       (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ ⌜grpcReqModelOf GF Req.ty = some Req⌝ ∗ ⌜grpcRepModelOf GF Rep.ty = some Rep⌝ ∗
+        grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
         □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
         opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
@@ -1365,11 +1367,13 @@ def modePre (md : AttemptMode) (method : GoString) (addr : List GoString) (vs : 
 `etcdInterceptorOkW` (`.write`). -/
 def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
-      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsgT GF)
+      (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg)
       (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ ⌜grpcReqModelOf GF Req.ty = some Req⌝ ∗ ⌜grpcRepModelOf GF Rep.ty = some Rep⌝ ∗
+        grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
         modePre md method addr vs (attemptPre conn (GoInterface.ok ctx) Spec m Φ) ∗ ctxOk ctx cd ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method

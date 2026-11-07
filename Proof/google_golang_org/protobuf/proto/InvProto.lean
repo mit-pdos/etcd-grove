@@ -7,9 +7,7 @@ that type. Lean-first; the design: `notes/decisions.md`, "A generic protobuf spe
 
 **A message type** (`PbType`): a protobuf message type `T` (passed as `*T`) with the model `M` of
 its wire content;
-- `ro l m`: a `*T` holding `m`, **read-only for good** (persistent): what `Size` and `Marshal` read.
-  Because nothing can change it, its encoding is a function of its address (`pbEnc T.ty l`), which
-  is what makes `Size` and `Marshal` of one message agree;
+- `ro l m`: a `*T` holding `m`, **read-only for good** (persistent): what `Size` and `Marshal` read;
 - `marshals m`: the messages whose encoding decodes back to them (e.g. raft's `Message` without
   `responses`, which the model's wire content leaves out; not an enum's range: protobuf-go keeps an
   undeclared value of a proto2 enum, `notes/rafthttp-plan.md`, "Open enums");
@@ -18,16 +16,17 @@ its wire content;
 - `blank l`: a zero `*T` the receiver owns; `dec l m`: a decoded (or cloned) `*T` holding `m`,
   owned.
 
-That `Marshal` of an `ro` at `m` (with `marshals m`) is a `wire` encoding of `m`, and that
-`Unmarshal` of bytes into a `blank` gives a `dec` at some `m` of which the bytes are a `wire`
-encoding, is what an instance asserts: each instance is a trusted wire model of its Go type (read
-it against the type's `.proto`). The existing per-type statements (`proto.Marshal.spec` of an
-`mvccpb.KeyValue`, `MarshalIRR`, `MarshalConfChange`, ...) predate this vocabulary.
+Until stage A of the per-type models (2026-11-07) an encoding `pbEnc T.ty l` of the address and
+one trusted fact about it, `pbEnc_ok`, over any `PbType`, were the trust boundary; `pbEnc_ok` was
+inconsistent (`notes/pbenc-ok-inconsistent.md`) and is gone: the encoding is now a function of the
+wire content (`pbEncC`, below) of a registered type. The existing per-type statements
+(`proto.Marshal.spec` of an `mvccpb.KeyValue`, `MarshalIRR`, `MarshalConfChange`, ...) predate this
+vocabulary.
 
 **Per-type message models at their wire content** (stage A, the Scope's E, R and V for `PbType`,
-revisions 4 to 6 with `[v6a]`; moved here from the prototype's `proto/PerType.lean`, CP2). Today's
-`PbType` and its specs stay until the users are rewired (CP3); the per-type vocabulary sits next to
-them:
+revisions 4 to 6 with `[v6a]`). `PbType` is the data every instance has; the trust boundary
+(`proto.{Unmarshal,Clone,Size,Marshal,MarshalAppend}Pb.spec`) is stated over registered instances
+at their wire content:
 
 - **The wire content `C`** of a message type: everything protobuf-go's `Marshal` reads (proto2
   presence, nil versus empty bytes, every level's unknown fields); `roC l c` a frozen message
@@ -49,7 +48,7 @@ them:
 - **The registry** `pbModelOf`, keyed on the Go type and taking the heap's instances (`hG`), so that
   a registration does not equate models across ghost heaps; one registration axiom per instance,
   of the exact shape `pbModelOf GF X.ty = some x`. The specs at a registered type
-  (`proto.UnmarshalPbC.spec`, ...) quantify the registered pair only under the registration premise
+  (`proto.UnmarshalPb.spec`, ...) quantify the registered pair only under the registration premise
   (`∀ I, pbModelOf GF I.data.ty = some I → …`): a caller never passes a model of its own.
 - **`PbModelC.Sat`**: the decoded model `dec` is satisfiable by the generic store (`Store.lean`) of
   `T.tree m`, from a `blank` that is the zero struct (`BlankZero`).
@@ -99,19 +98,6 @@ structure PbType (GF : BundledGFunctors) where
   dec : Loc → M → IProp GF
 
 attribute [instance] PbType.ro_persistent
-
-/-- **The encoding of the read-only-for-good `*T` at `l`** (`proto.Marshal`'s result, `proto.Size`
-its length): a function of the address, since nothing can change the message (`PbType.ro`). -/
-opaque pbEnc (ty : go.GoType) (l : Loc) : List w8
-
-/-- **The trust boundary: what `pbEnc` is.** The encoding of a read-only-for-good `*T` holding `m`
-is an encoding of `m` if `m` marshals (`T.wire`, the instance's wire model), and shorter than
-`2^63` bytes (protobuf-go sizes it as an `int`). (2026-10-22, D38a: what `Size` and `Marshal`
-return, stated of the message itself, so that a writer may be permitted the frame of an encoding
-before the encoding is computed: the msgappv2 encoder writes the entries' count before it sizes
-them.) -/
-axiom pbEnc_ok (T : PbType GF) (l : Loc) (m : T.M) :
-    T.ro l m ⊢ ⌜(T.marshals m → T.wire m (pbEnc T.ty l)) ∧ (pbEnc T.ty l).length < 2 ^ 63⌝
 
 end defs
 

@@ -508,20 +508,27 @@ theorem pbWatchResponseT_repSat : (pbWatchResponseT (GF := GF)).RepSat := by
   iframe HH Hh HW HCr HCa HCo HR HF HE Hsl Hevs
   ipureintro; exact Hlen
 
-/-- `pbWatchRequestT`'s `own` is any struct (the rest of `ReqSat` but the `nil` law, which today's
-`watchReqSend` does not give: see the file header). -/
-theorem pbWatchRequestT_ownAny : OwnAny (pbWatchRequestT (GF := GF)).ty (pbWatchRequestT (GF := GF)).own :=
-  ⟨etcdserverpb.WatchRequest, inferInstance, inferInstance,
-    (inferInstance : IntoValTyped etcdserverpb.WatchRequest etcdserverpb.WatchRequest.ty),
-    fun _ => .rfl⟩
+/-- **`pbWatchRequestT`'s request model is satisfiable.** -/
+theorem pbWatchRequestT_reqSat : (pbWatchRequestT (GF := GF)).ReqSat := by
+  refine ⟨⟨etcdserverpb.WatchRequest, inferInstance, inferInstance,
+      (inferInstance : IntoValTyped etcdserverpb.WatchRequest etcdserverpb.WatchRequest.ty),
+      fun _ => .rfl⟩, ?_, pbWatchRequestT_reqStore⟩
+  intro m
+  simp only [pbWatchRequestT, pbWatchRequest, watchReqSend]
+  iintro ⟨%H, -⟩
+  exact absurd rfl H
 
-/-- **`WatchRequest`'s registration** (prototype-only axiom; the stream request registry, its `Sat`
-`ReqSat`, of which the `nil` law waits for `watchReqSend`'s `⌜l ≠ null⌝`, `[v6]` §5 item 3). -/
+/-- **A watch request fits a gRPC message** (rule 7's witness that `wireLen` is not the default). -/
+theorem pbWatchRequestT_wireLen_ok : ∃ m, (pbWatchRequestT (GF := GF)).wireLen m < grpcMsgMax :=
+  ⟨.other, by simp [pbWatchRequestT, pbWatchRequest, watchReqWireLen, wireSlack, grpcMsgMax]⟩
+
+/-- **`WatchRequest`'s registration** (the stream request registry; its `Sat` is
+`pbWatchRequestT_reqSat`). -/
 axiom pbWatchRequestT_reg :
     streamReqModelOf GF etcdserverpb.WatchRequest.ty = some (pbWatchRequestT (GF := GF))
 
-/-- **`WatchResponse`'s registration** (prototype-only axiom; the stream reply registry, its `Sat`
-`RepSat`: `pbWatchResponseT_repSat`). -/
+/-- **`WatchResponse`'s registration** (the stream reply registry; its `Sat` is
+`pbWatchResponseT_repSat`). -/
 axiom pbWatchResponseT_reg :
     streamRepModelOf GF etcdserverpb.WatchResponse.ty = some (pbWatchResponseT (GF := GF))
 

@@ -684,18 +684,6 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
         iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
         iframe
 
-/-- **A method a server registers**: its full name (`"/etcdserverpb.KV/Put"`), its message
-types, its spec, the generated handler its `ServiceDesc`'s `MethodDesc` holds
-(`etcdserverpb._KV_Put_Handler`), and the service value registered with the `ServiceDesc`
-(`RegisterKVServer(s, srv)`'s `srv`, as `any`). -/
-structure GrpcMethod (GF : BundledGFunctors) where
-  name : GoString
-  Req : ProtoMsg GF
-  Rep : ProtoMsg GF
-  spec : GrpcSpecMd Req Rep
-  handler : val
-  srv : GoInterface
-
 end defs
 
 /-! ## Per-type message models: the stores and the role-split registries (stage A, CP2) -/
@@ -737,6 +725,29 @@ opaque grpcRepModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSe
     [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] : go.GoType → Option (ProtoMsgT GF)
 
 end pertype
+
+section method
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A method a server registers**: its full name (`"/etcdserverpb.KV/Put"`), its message
+types (registered, stage A: the request's model is the one `grpcReqModelOf` registers for its Go
+type, the reply's the one `grpcRepModelOf` registers), its spec, the generated handler its
+`ServiceDesc`'s `MethodDesc` holds (`etcdserverpb._KV_Put_Handler`), and the service value
+registered with the `ServiceDesc` (`RegisterKVServer(s, srv)`'s `srv`, as `any`). -/
+structure GrpcMethod (GF : BundledGFunctors) where
+  name : GoString
+  Req : ProtoMsgT GF
+  Rep : ProtoMsgT GF
+  spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg
+  handler : val
+  srv : GoInterface
+  reqReg : grpcReqModelOf GF Req.ty = some Req
+  repReg : grpcRepModelOf GF Rep.ty = some Rep
+
+end method
 
 /-! ## The opaque facts about grpc's runtime -/
 
@@ -1259,13 +1270,20 @@ accepts, whose dynamic type is then not `*errors.errorString` (an `errorString` 
 
 Since 2026-10-30 (the axiom review `txn-nested-wire`) the request's encoding is below `grpcMsgMax`
 (`Req.wireLen`): grpc marshals before it checks a size, and the codec's allocation panics above
-Go's `maxAlloc`. -/
+Go's `maxAlloc`.
+
+Since stage A of the per-type models (2026-11-07, `notes/per-type-blockers.md`) the request's and
+the reply's models are the ones registered for their Go types (`grpcReqModelOf`,
+`grpcRepModelOf`): a caller cannot choose a model of its own, and each registered model's
+`ProtoMsgT.ReqSat`/`RepSat` is proved. -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
-  iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (m : Req.M)
+  iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
+      (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M)
       (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF))
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
-    {{ isGrpcRpcsMd addrs method Spec ∗
+    {{ ⌜grpcReqModelOf GF Req.ty = some Req⌝ ∗ ⌜grpcRepModelOf GF Rep.ty = some Rep⌝ ∗
+        isGrpcRpcsMd addrs method Spec ∗
         ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ctx) md⌝ -∗ Spec md m Φ Ψe) ∗
         ctxOk ctx cd ∗ Req.send inp m ∗ ⌜Req.wireLen m < grpcMsgMax⌝ ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}

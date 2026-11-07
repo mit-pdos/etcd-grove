@@ -421,9 +421,11 @@ def createReqSend (cr : Loc) (c : CreateReqM) : IProp GF :=
 (`RequestUnion`) and the inner request's fields the server reads (as `watchReqRecv`, all
 read-only). The codec's copy of it is one `watchReqRecv` holds at `m` (the wire model; the
 decoded key's length bound, `createReqOwn`'s, is the codec's: a message is at most grpc's
-receive limit, below `2 ^ 31` bytes). -/
+receive limit, below `2 ^ 31` bytes). The message is not `nil` (stage A of the per-type models,
+2026-11-07: a registered model's `send null m ⊢ False`; every sender builds it fresh). -/
 def watchReqSend (l : Loc) (m : WatchReqM) : IProp GF :=
-  iprop(∃ u : GoInterface, structFieldRef etcdserverpb.WatchRequest go!"RequestUnion" l ↦□ u ∗
+  iprop(⌜l ≠ null⌝ ∗
+    ∃ u : GoInterface, structFieldRef etcdserverpb.WatchRequest go!"RequestUnion" l ↦□ u ∗
     match m with
     | .create c => ∃ cr : Loc, oneofCreate u cr ∗ createReqSend cr c
     | .cancel id => ∃ cr : Loc, ⌜cr ≠ null⌝ ∗

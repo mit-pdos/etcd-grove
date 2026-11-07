@@ -121,6 +121,60 @@ structure StreamMsg (GF : BundledGFunctors) where
 
 attribute [instance] StreamMsg.cnt
 
+end defs
+
+/-! ## Per-type message models: the stores and the role-split registries (stage A, CP2) -/
+
+section pertype
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- A stream's message model with its normalizing store. -/
+structure StreamMsgT (GF : BundledGFunctors) extends StreamMsg GF where
+  tree : M → VTree
+
+/-- **A stream request's store gives its decoded model** (the `own` form; with the request's
+`wireLen` below `grpcMsgMax`, as `ReqSat`: `createReqOwn` needs the key's length bound). -/
+def StreamMsgT.ReqStore (T : StreamMsgT GF) : Prop :=
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ ⌜T.wireLen m < grpcMsgMax⌝ ∗ T.own l ⊢
+      WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
+
+/-- **A stream reply's store gives its decoded model** (no `wireLen` premise: a reply's `wireLen`
+is `grpcMsgMax` by default, which would make the premise false). -/
+def StreamMsgT.RepStore (T : StreamMsgT GF) : Prop :=
+  ∀ (ls l : Loc) (m : T.M),
+    T.send ls m ∗ T.own l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
+
+/-- **A stream request model is satisfiable** (`[v5]`, the `own` form, with the request's bound). -/
+def StreamMsgT.ReqSat (T : StreamMsgT GF) : Prop :=
+  OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧ T.ReqStore
+
+/-- **A stream reply model is satisfiable** (`[v5]`, the `own` form). -/
+def StreamMsgT.RepSat (T : StreamMsgT GF) : Prop :=
+  OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧ T.RepStore
+
+/-- **The registry of stream request models** (`[v6]` §5 item 2: split by role; a registration's
+`Sat` is `StreamMsgT.ReqSat`). -/
+opaque streamReqModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics]
+    [GooseInterp] [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] :
+    go.GoType → Option (StreamMsgT GF)
+
+/-- **The registry of stream reply models** (a registration's `Sat` is `StreamMsgT.RepSat`). -/
+opaque streamRepModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics]
+    [GooseInterp] [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] :
+    go.GoType → Option (StreamMsgT GF)
+
+end pertype
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 /-! ## The stream's ghost state -/
 
 /-- The ghost names of one stream: the up queue (the requests the client sent), the server's
@@ -735,12 +789,13 @@ context was any, which a metadata-indexed stream spec cannot use) and returns it
 gives both continuations (`∧`: one is taken). The handler returns an `error` value: a
 deferred-call wrapper needs this, as `srvInterceptorOk` does. -/
 def srvStreamInterceptorOk (ic : GoFunc) (R : IProp GF) : IProp GF :=
-  iprop(□ ∀ (Req Rep : StreamMsg GF) (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
+  iprop(□ ∀ (Req Rep : StreamMsgT GF) (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
       (γ : StreamNames) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       (srv st : GoInterface) (info : Loc) (h : GoFunc) (Ψ : val → IProp GF),
-    R -∗ srvRawStreamIs st γ Req Rep Up Dn ci cd -∗ srvStreamInfoIs info -∗
+    ⌜streamReqModelOf GF Req.ty = some Req⌝ -∗ ⌜streamRepModelOf GF Rep.ty = some Rep⌝ -∗
+    R -∗ srvRawStreamIs st γ Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd -∗ srvStreamInfoIs info -∗
     ((∀ (st' : GoInterface) (cd' : context.ContextDesc (IProp GF)),
-        srvRawStreamIs st' γ Req Rep Up Dn ci cd' -∗
+        srvRawStreamIs st' γ Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd' -∗
         WP (streamHandlerCall #h #srv #st')
           {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ (R -∗ Ψ v) }}) ∧
       (R -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ Ψ #err)) -∗
@@ -927,60 +982,17 @@ generated handler its `ServiceDesc`'s `StreamDesc` holds (`etcdserverpb._Watch_W
 and the service value registered with the `ServiceDesc`. -/
 structure GrpcStreamMethod (GF : BundledGFunctors) where
   name : GoString
-  Req : StreamMsg GF
-  Rep : StreamMsg GF
+  Req : StreamMsgT GF
+  Rep : StreamMsgT GF
   Up : Nat → Req.M → IProp GF
-  spec : GrpcMd → StreamSpec Rep
+  spec : GrpcMd → StreamSpec Rep.toStreamMsg
   handler : val
   srv : GoInterface
+  reqReg : streamReqModelOf GF Req.ty = some Req
+  repReg : streamRepModelOf GF Rep.ty = some Rep
 
 end defs
 
-/-! ## Per-type message models: the stores and the role-split registries (stage A, CP2) -/
-
-section pertype
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- A stream's message model with its normalizing store. -/
-structure StreamMsgT (GF : BundledGFunctors) extends StreamMsg GF where
-  tree : M → VTree
-
-/-- **A stream request's store gives its decoded model** (the `own` form; with the request's
-`wireLen` below `grpcMsgMax`, as `ReqSat`: `createReqOwn` needs the key's length bound). -/
-def StreamMsgT.ReqStore (T : StreamMsgT GF) : Prop :=
-  ∀ (ls l : Loc) (m : T.M),
-    T.send ls m ∗ ⌜T.wireLen m < grpcMsgMax⌝ ∗ T.own l ⊢
-      WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
-
-/-- **A stream reply's store gives its decoded model** (no `wireLen` premise: a reply's `wireLen`
-is `grpcMsgMax` by default, which would make the premise false). -/
-def StreamMsgT.RepStore (T : StreamMsgT GF) : Prop :=
-  ∀ (ls l : Loc) (m : T.M),
-    T.send ls m ∗ T.own l ⊢ WP (storeInto T.ty l (T.tree m)) {{ _v, T.send ls m ∗ T.recv l m }}
-
-/-- **A stream request model is satisfiable** (`[v5]`, the `own` form, with the request's bound). -/
-def StreamMsgT.ReqSat (T : StreamMsgT GF) : Prop :=
-  OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧ T.ReqStore
-
-/-- **A stream reply model is satisfiable** (`[v5]`, the `own` form). -/
-def StreamMsgT.RepSat (T : StreamMsgT GF) : Prop :=
-  OwnAny T.ty T.own ∧ (∀ m, T.send null m ⊢ False) ∧ T.RepStore
-
-/-- **The registry of stream request models** (`[v6]` §5 item 2: split by role; a registration's
-`Sat` is `StreamMsgT.ReqSat`). -/
-opaque streamReqModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics]
-    [GooseInterp] [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] :
-    go.GoType → Option (StreamMsgT GF)
-
-/-- **The registry of stream reply models** (a registration's `Sat` is `StreamMsgT.RepSat`). -/
-opaque streamRepModelOf {hlc : HasLC} (GF : BundledGFunctors) [GooseExts] [GooseSemantics]
-    [GooseInterp] [GoGlobalContext] [hG : HeapGS hlc GF] [go.Semantics] :
-    go.GoType → Option (StreamMsgT GF)
-
-end pertype
 
 /-! ## The opaque facts about grpc's runtime (streams) -/
 

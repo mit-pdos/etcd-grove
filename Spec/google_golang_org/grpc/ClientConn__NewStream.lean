@@ -57,13 +57,16 @@ ignoring it), and the stream is opened with some metadata `md` an attempt of the
 credentials' data, then the outgoing metadata and `added`, reserved keys skipped:
 `internal/transport/http2_client.go:579-655`), once for the stream's life (grpc sends the headers
 once), and the stream specification is the registration's at `md`. True of a connection whose
-stream interceptor is etcd's (`dialOk`). -/
+stream interceptor is etcd's (`dialOk`). Since stage A of the per-type models (2026-11-07): the
+request's and the reply's models are the ones registered for their Go types (`streamReqModelOf`,
+`streamRepModelOf`). -/
 abbrev grpc.ClientConn.NewStream.spec : Prop :=
   ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (method : GoString)
-    (Req Rep : StreamMsg GF) (Up : GoString → Nat → Req.M → IProp GF)
-    (Spec : GoString → GrpcMd → StreamSpec Rep) (ctx : GoInterfaceOk)
+    (Req Rep : StreamMsgT GF) (Up : GoString → Nat → Req.M → IProp GF)
+    (Spec : GoString → GrpcMd → StreamSpec Rep.toStreamMsg) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (desc : Loc) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addrs ics [] ∗
+      ⌜streamReqModelOf GF Req.ty = some Req⌝ ∗ ⌜streamRepModelOf GF Rep.ty = some Rep⌝ ∗
       isGrpcStreamsMd addrs method Up Spec ∗ ctxOk ctx cd ∗
       (∃ d : google_golang_org.grpc.StreamDesc, desc ↦□ d ∗ ⌜d.ClientStreams' = true⌝) ∗
       opts ↦*□ vs ∗ streamCallOptsOk vs }}
@@ -74,8 +77,9 @@ abbrev grpc.ClientConn.NewStream.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF)
           (cd' : context.ContextDesc (IProp GF)) (md : GrpcMd),
         ⌜a ∈ addrs ∧ clientAttemptMd conn (GoInterface.ok ctx) md⌝ ∗
-        cliStreamIs cs γ Req Rep (Up a) Dn cd' ∗ cliSendTok (Req := Req) γ [] ∗
-        cliRecvTok (Rep := Rep) γ [] ∗ Spec a md γ Dn) ∨
+        cliStreamIs cs γ Req.toStreamMsg Rep.toStreamMsg (Up a) Dn cd' ∗
+        cliSendTok (Req := Req.toStreamMsg) γ [] ∗ cliRecvTok (Rep := Rep.toStreamMsg) γ [] ∗
+        Spec a md γ Dn) ∨
       (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err) }}
 
 end spec

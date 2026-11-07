@@ -42,6 +42,12 @@ def putReqTree (o : OpFull) : VTree :=
 def pbPutRequestT : ProtoMsgT GF :=
   { pbPutRequest with tree := putReqTree }
 
+/-- **A put request fits a gRPC message** (rule 7's witness that `wireLen` is not the default). -/
+theorem pbPutRequestT_wireLen_ok : ∃ m, (pbPutRequestT (GF := GF)).wireLen m < grpcMsgMax :=
+  ⟨putReqOp (zero_val _) [] [], by
+    simp [pbPutRequestT, pbPutRequest, opWireLen, wireSlack, grpcMsgMax, putReqOp,
+      txn.putOpOf, OpFull.newOp]⟩
+
 /-- **`pbPutRequestT`'s request model is satisfiable.** -/
 theorem pbPutRequestT_reqSat : (pbPutRequestT (GF := GF)).ReqSat := by
   refine ⟨⟨etcdserverpb.PutRequest, inferInstance, inferInstance,
@@ -295,12 +301,11 @@ theorem pbRangeResponseT_repSat : (pbRangeResponseT (GF := GF)).RepSat := by
   iexists h, sl, ps
   iframe HH Hh HK Hsl Hkvs HM HC
 
-/-- **`PutRequest`'s registration** (prototype-only axiom; the Scope's R, `[v5]`'s split
-registries: a method's request). -/
+/-- **`PutRequest`'s registration** (the Scope's R, `[v5]`'s split registries: a method's request). -/
 axiom pbPutRequestT_reg :
     grpcReqModelOf GF etcdserverpb.PutRequest.ty = some (pbPutRequestT (GF := GF))
 
-/-- **`RangeResponse`'s registration** (prototype-only axiom: a method's reply). -/
+/-- **`RangeResponse`'s registration** (a method's reply). -/
 axiom pbRangeResponseT_reg :
     grpcRepModelOf GF etcdserverpb.RangeResponse.ty = some (pbRangeResponseT (GF := GF))
 
