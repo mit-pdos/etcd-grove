@@ -69,12 +69,12 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗
       rnWalTokA γn (srvRAddr s) q ∗ rnWalHanded γn (uint.nat ai) ∗
       -- (strict M1, 2026-11-06) the thread's token (`snapshot`'s, for `KV.Commit.contract`)
-      threadTok }}
+      apply.applyTok E }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
       (Val #ep))
   {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗ rnWalTokA γn (srvRAddr s) q ∗ threadTok ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
+      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗ rnWalTokA γn (srvRAddr s) q ∗ apply.applyTok E ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
 /-- (2026-11-01, J8a-5) **Nothing due** (after a snapshot's install, `applyAll.specSnap`): with the
 disk and in-memory snapshot indices at the applied index `ai` (and `ai + memorySnapshotCount` not
