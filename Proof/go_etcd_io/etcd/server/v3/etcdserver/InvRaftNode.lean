@@ -385,10 +385,12 @@ def rnView (γ : RNNames) (L : List EntryModel) : IProp GF :=
 /-- (R2d'a A10 item 3, Q27 (i), 2026-11-06; DRAFT, approved by the user; a restart-only premise)
 **The WAL's stored commit is never below the restart point's backend log**: whatever durable state
 `S` the node has, records `σ` holding it (`StorageHolds S σ`) have a stored commit at least `|a0|`.
-True of Go: the restored WAL's commit is at least the backend's consistent index
-(`bootstrapRestartContract`), `σ.commit ≥ S.wcommit` (`StorageHolds`), and the commit raft writes
-only grows. Raft's API does not say so; **R2d'b's target** (`RestartNode` supplies it, from the
-restored records). At a first start it is not needed (`rnRestartOk`'s first disjunct, `a0 = []`).
+**False at the start of almost every restart after a quiet stop** (corrected 2026-11-07,
+`notes/decisions.md`, "R2d'a's disclosure corrected (2026-11-07)"): `σ` is any records
+`StorageHolds` allows, down to `σ.commit = S.wcommit`, and a commit-only `Ready` leaves `wcommit`
+below the index the apply thread then reaches, so the start's `raftState S` refutes it. R2d'b
+restates it (Q31), as a fact about the restored records' commit. At a first start it is not needed
+(`rnRestartOk`'s first disjunct, `a0 = []`).
 The stop's image takes the bound (`rnRestartOk_commit`). -/
 def rnWalCommitAbove (γ : RNNames) : IProp GF :=
   iprop(□ ∀ (S : RaftState) (σ : StorContents), raftState γ.node.cl γ.id S -∗ ⌜StorageHolds S σ⌝ -∗

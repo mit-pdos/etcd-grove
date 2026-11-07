@@ -38,11 +38,14 @@ term `rt` above the restored `HardState` term `γn.t0` (`rnRtOk`) and a log of l
 restart point's backend log `γn.a0`, the `MsgSnap` this member sent and the bag hands `applyAll` is
 not at `rt` (`server.go:1018-1020`'s guard fails, so no merge inside the window).
 
-What it excludes, plainly: **the restarted incarnation is elected at a term `T' > T₀` while raft
-is still handing out the replay, and then sends a `MsgSnap` at `T'`**. **It is false of some Go runs
-with default flags (replays over 1 MB with a mid-replay election); R2s must REMOVE it by following
-the merged snapshot in the ghost**: no producer can supply it, so neither R2d'b nor R2s discharges
-it (review of R2d'a, finding 3). The trace: a replay over 1 MB is split into several `Ready`s by
+What it was meant to exclude: the restarted incarnation elected at a term `T' > T₀` while raft is
+still handing out the replay, then sending a `MsgSnap` at `T'`. **What it excludes (corrected
+2026-11-07, `notes/decisions.md`, "R2d'a's disclosure corrected (2026-11-07)"): every `MsgSnap`
+this member sends at a committed term above `T₀`, at any time in the incarnation**: `n` is free
+(`n = 0` meets the guard) and the token is never consumed. So it is false of every restarted run
+(`a0 ≠ []`) in which the member is later elected and snapshots a lagging follower. R2d'b restates
+it with `n` tied to the replay; R2s REMOVES it by following the merged snapshot in the ghost. The
+runs below, found first (review of R2d'a, finding 3), are a small part of the false ones. The trace: a replay over 1 MB is split into several `Ready`s by
 `MaxCommittedSizePerReady` (unset in etcd, so `MaxSizePerMsg`, 1 MB); a snapshot inside the window
 compacts the raft log (e.g. the forced one a replayed `ClusterVersionSet` triggers, at Go's applied
 index above `SnapshotCatchUpEntries`); the member is elected above `t0` mid-replay; a lagging
