@@ -124,6 +124,27 @@ theorem srvWOk_of_read (Hp : mvcc.api.persistent.law (GF := GF))
   iapply (srvWOk_of_store Hp Hr E γr false wsl hkv (by rw [HNx]; rfl) (by rw [Hm.2.2.2]; rfl) hrb)
   iexact Hs
 
+/-- **`srvWOk_of_store` from the auth-on read view** (`srvKVInvsOn`: the store invariant, the
+witness `kvNxOn` at the auth store's start, the permit `kvCpOk`). -/
+theorem srvWOk_of_readOn (Hp : mvcc.api.persistent.law (GF := GF))
+    (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) (s : Loc) (E : apply.AEnv GF)
+    (γr : ReadNames) (wsl : Loc) (hkv : E.kv = v3rpc.wsIface wsl)
+    (hrb : receiptBound GF ≤ 2 ^ 62) :
+    isServerReadM true s E γr ⊢ v3rpc.srvWOk (srvWOf E γr true) wsl v3rpc.wsN := by
+  iintro #Hsrd
+  ihave #Hc := srvKVCoreM_of_readM true s E γr $$ Hsrd
+  rw [srvKVCoreM_true]
+  icases Hc with ⟨-, -, -, #Hs, -, %HNx⟩
+  iunfold isServerReadM at Hsrd
+  icases Hsrd with ⟨%v, Hsrd⟩
+  iunfold srvReadFieldsAtM at Hsrd
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
+  ihave #Hon := srvKVInvsM_true s E γr $$ Hkvi
+  iunfold srvKVInvsOn at Hon
+  icases Hon with ⟨-, -, -, -, -, %Hw, -, -⟩
+  iapply (srvWOk_of_store Hp Hr E γr true wsl hkv (by rw [HNx]; rfl) (by rw [Hw.2]; rfl) hrb)
+  iexact Hs
+
 /-- **The server's KV field is the watchable store `v3rpc.Server` reads** (`srvServeFacts`' handle
 and `grpcCfgOk`'s field agree). -/
 theorem kv_wsIface_of_cfg (s : Loc) (E : apply.AEnv GF)

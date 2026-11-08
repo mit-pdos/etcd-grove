@@ -69,4 +69,4 @@ auth_startServer: ?
 etcdstart_Serve: @
 etcdstart_NewClient: @
 # `Main`: its proof over the stubs (notes/authkv-main-plan.md)
-auth_Main: zap_NewNop auth_startServer etcdstart_Serve etcdstart_NewClient =auth.authStore.wp_BcryptCost context_ErrAny auth_SetUp auth_newUserClient auth_Work auth_Principals auth_CheckHistory auth_LastIn context_WithTimeoutBackground etcdstart_Collect watcher__Watch WithPrefix WithRev WithRange auth_Permitted =mvcc.api.mvccApi_names_nonempty_law_holds
+auth_Main: zap_NewNop auth_startServer etcdstart_Serve etcdstart_NewClient =auth.authStore.wp_BcryptCost context_ErrAny auth_SetUp auth_newUserClient auth_Work auth_Principals auth_CheckHistory auth_LastIn context_WithTimeoutBackground etcdstart_Collect watcher__Watch WithPrefix WithRev WithRange auth_Permitted =mvcc.api.mvccApi_names_nonempty_law_holds =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds

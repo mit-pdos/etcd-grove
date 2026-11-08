@@ -28,6 +28,7 @@ loop.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchSrv
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUp
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.newUserClient
@@ -66,7 +67,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 
 set_option linter.unusedSectionVars false
 set_option synthInstance.maxSize 4096
-set_option synthInstance.maxHeartbeats 400000
+set_option synthInstance.maxHeartbeats 1600000
 
 noncomputable section
 
@@ -104,7 +105,8 @@ theorem Main.wp_proof
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_WithRange : WithRange.spec (GF := GF) (hG := hG))
     (wp_Permitted : Permitted.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law) (hP : mvcc.api.persistent.law (GF := GF))
+    (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
@@ -163,20 +165,22 @@ theorem Main.wp_proof
   icases etcdstart.memberUpOn_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd0,
     #Hlb, #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, #Htls, #HBF⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
-  have Hoff : E.γ.cm = false := envAgree_off E E₀ HEa Hcmp0
   -- `Serve(s, clientAddr)`, with the ghost steps `ak_served_kv` (the KV methods with auth on, the
   -- Auth service's admin methods and `Authenticate` at the address) and `ak_served_watch` (the
   -- watch server's facts there, for the clients' watcher environment `akV R`)
   haveI := Hms
+  -- (R9) the clients' watch environment: one server, at its model and watch facts with auth on
   let akV : v3rpc.WSrv GF → client.WEnv GF := fun R =>
-    client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23916" [] null null go!"a" null ρ.rd.kv
+    ⟨R, go!"127.0.0.1:23916", [], null, null, go!"a", null, v3rpc.etcdModelOfServer R.E ρ.rd true,
+      client.srvWL (etcdstart.srvWOf R.E ρ.rd true), fun _ => (go!"127.0.0.1:23916", R), 1, ρ.rd.kv,
+      etcdstart.srvWOf R.E ρ.rd true, fun _ => etcdstart.srvWOf R.E ρ.rd true⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEo]; rfl
   wp_apply (wp_Serve srv go!"127.0.0.1:23916" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ R.s = srv⌝ ∗
         akKVOn go!"127.0.0.1:23916" srv E { ρ with wait := γw } cid mid ∗
         setupAuthServed go!"127.0.0.1:23916" srv E { ρ with wait := γw } ∗
         isGrpcRpc go!"127.0.0.1:23916" authnMethod (client.etcdAuthenticateSpec γa) ∗
-        watchAddrFacts (akV R) ∗ auth.modeTag R.γ.tag E.authMode)))
+        watchAddrFacts (akV R) ∗ auth.modeTag R.tag E.authMode)))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -199,9 +203,12 @@ theorem Main.wp_proof
     · iframe
     -- one watch run slot: two of the watchable store's readers, one of the request path's (the
     -- runs share a pool, `grpc.serveStream`)
-    ihave Hwslots := client.watchRunSlots_of R 1 64 1 (by omega) (by omega) $$ [HWRs Hrd1]
-    · rw [hRw, hRγ, hRE]
-      iframe HWRs
+    icases (hRS E.γ 2 62).1 $$ HWRs with ⟨HWR2, -⟩
+    ihave Hwslots := client.watchRunSlots_of hRS R (etcdstart.srvWOf R.E ρ.rd true) 1 1 (Nat.le_refl _)
+        $$ [HWR2 Hrd1]
+    · simp only [etcdstart.srvWOf, Nat.mul_one]
+      rw [hRE]
+      iframe HWR2
       isplitl [Hrd1]
       · simp only [List.replicate]
         iapply BigSepL.bigSepL_cons.2
@@ -220,9 +227,16 @@ theorem Main.wp_proof
       imodintro
       iunfold idCred
       ipureintro; exact Hrb48
-    imod (ak_served_watch (akV R) go!"127.0.0.1:23916" pw srv E ρ.rd ims is sregs 1 rfl hRE
-        (by simp) (kvSame_refl _) hlog (by omega) Hms.watch_impl Hregs2 rfl rfl (by rw [hRE]; exact Hoff))
-      $$ [Hss Hwslots] with ⟨#HWF, #Htag⟩
+    -- (R9) the watch path's server facts, with auth on
+    ihave %hkv := etcdstart.kv_wsIface_of_cfg srv E cfg C $$ [Hsf Hgc]
+    · iframe #
+    ihave HWok : v3rpc.srvWOk (etcdstart.srvWOf R.E ρ.rd true) R.wsl v3rpc.wsN $$ []
+    · rw [hRw, hRE]
+      iapply (etcdstart.srvWOk_of_readOn hP hR srv E ρ.rd C.wsl hkv (by omega))
+      rw [← hon]; iexact Hrd0
+    imod (ak_served_watch hP (akV R) go!"127.0.0.1:23916" pw srv E ρ.rd ims is sregs 1 rfl hRE
+        (by simp) (kvSame_refl _) hlog (by omega) Hms.watch_impl Hregs2 rfl rfl rfl rfl)
+      $$ [Hss Hwslots HWok] with ⟨#HWF, #Htag⟩
     · iframe; iframe #
     imodintro
     iframe Hserv HKV HSA HAu HWF Htag
@@ -353,7 +367,7 @@ theorem Main.wp_proof
     exact ⟨by decide, by decide, by decide⟩
   -- `Work`'s facts shared by every principal
   obtain ⟨hRE', hRs'⟩ := HRQ
-  ihave #Htag' : auth.modeTag R.γ.tag (.on γa) $$ []
+  ihave #Htag' : auth.modeTag R.tag (.on γa) $$ []
   · rw [← HEo]; iexact Htag
   have hplen : sint.Z psl.len = 4 := by
     have h := Hpl.1; simp only [principals, List.length] at h; word
@@ -381,7 +395,7 @@ theorem Main.wp_proof
       wp_apply wp_fork $$ [Hdone who c]
       · (try wp_auto)
         wp_apply (wp_Work _ _ (akV R) srv E { ρ with wait := γw } cid mid γa Lset kpub hwho HEo
-            ⟨rfl, rfl, rfl, hRs', hRE', rfl⟩ hAs)
+            ⟨rfl, rfl, rfl, rfl, hRs', hRE', rfl⟩ hAs)
         · iframe #
           first
           | (rw [akTokP, ite_eq_left (Or.inl rfl)]; iexact Hutk)
@@ -456,7 +470,7 @@ theorem Main.wp_proof
   · iPkgInit
   ihave ⟨%rw, %rwconn, %rwwc, %rwlg, %rwics, #Hrwf, #Hrcw, -⟩ :=
     client.watcher_of_clientTokAt wp_ErrAny hAs rcl _ (akV R)
-      (fun t => auth.tokIssued γa t go!"root") rfl rfl rfl $$ [Pcl Pctx Ppb Hrnc HWF Hrtk]
+      (fun t => auth.tokIssued γa t go!"root") rfl rfl rfl rfl $$ [Pcl Pctx Ppb Hrnc HWF Hrtk]
   · iframe #
   (try wp_auto)
   ihave #Hrau := akHist_readAu ρ.rd.kv $$ Hhist
@@ -533,7 +547,7 @@ theorem Main.wp_proof
   · iframe #
   ihave ⟨%uw, %uwconn, %uwwc, %uwlg, %uwics, #Huwf, #Hucw, -⟩ :=
     client.watcher_of_clientTokAt wp_ErrAny hAs ucl _ (akV R)
-      (fun t => auth.tokIssued γa t go!"u") rfl rfl rfl $$ [Pcl Pctx Ppb Hunc HWF Hutk]
+      (fun t => auth.tokIssued γa t go!"u") rfl rfl rfl rfl $$ [Pcl Pctx Ppb Hunc HWF Hutk]
   · iframe #
   (try wp_auto)
   wp_apply (wp_Watch uw { akV R with conn := uwconn, ics := uwics, wc := uwwc, lg := uwlg }
