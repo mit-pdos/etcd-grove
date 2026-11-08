@@ -170,7 +170,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   ρ.rd.kv.cmp = cmp →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `nonissues/etcd-compaction-negative-batch-limit.md`)
-  cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  -- (sweep repairs 1, R1-2: the logger, until then `cfg.Logger' ≠ null` here, is the precondition's
+  -- `zapLoggerOk cfg.Logger'`)
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   -- (2026-10-30, `notes/keylen.md`) the request limit (`MaxRequestBytes`) below the clients'
   -- model's key bound, with the gRPC overhead (`v3rpc.etcdMaxRequestBytesOk`): a scope
   -- restriction, the code accepts any limit; etcd's default (1.5 MiB) meets it
@@ -235,7 +237,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (`ckptEffectsOk`, `NewLessor`'s premise; D14e, unit N4); until then inline here
   lease.bootCfg (GF := GF) ρ.rd.kv.lm m on →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
-  -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a logger, a mappable quota, a batch
+  -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a mappable quota, a batch
   -- limit the backend's model admits, no bootstrap defragmentation, raft's timing, a new cluster, no
   -- discovery service, valid UTF-8 member names; scope restrictions, the code accepts more) and a
   -- write budget past `bootstrap`'s own write-backs (`bootWB`)
@@ -251,6 +253,12 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (M2's item 15, stage B3) at `N` write tokens in both modes (until then `N + N` in
       -- compaction mode, `N` more for the compaction's own stock, `srvCmpStock`)
       "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
+      -- (sweep repairs 1, R1-2, L4) the configured logger a zap logger (what `bootstrap`'s contract
+      -- takes; until then `cfg.Logger' ≠ null`, which a zero `&zap.Logger{}` meets)
+      "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
+      -- (sweep repairs 1, R1-4b, B4) `ETCD_VERIFY` off for the run, from program start (what
+      -- `bootstrap`'s contract and the snapshot path's `OpenSnapshotBackend` take)
+      "#Hvoff" ∷ envVerifyOff ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗

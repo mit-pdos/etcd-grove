@@ -22,7 +22,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.purgeFile()` returns (names-only: it purges old snapshot and WAL files until `stopping` is closed). -/
+/-- `s.purgeFile()` returns (names-only: until `stopping` is closed it purges old WAL files, if
+`MaxWALFiles > 0`). (Sweep repairs 1, R1-3, 2026-11-08: the fork's `purgeFile` no longer purges
+`.snap.db` files, a4d2bb172, `nonissues/etcd-purge-snapdb-unopened.md`; until then it removed the
+oldest beyond five, `.snap.db` files `snapDirInv` keeps, and this triple was false next to it. The
+WAL purge's right, `walPurgeRight`, is sweep repairs 1's W1, not yet here.) -/
 abbrev EtcdServer.purgeFile.spec : Prop :=
   ∀ (s : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }}

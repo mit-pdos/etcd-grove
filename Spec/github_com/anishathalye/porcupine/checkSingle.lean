@@ -2,7 +2,8 @@
 
 `checkSingle(ctx, model, history, computePartial)` (checker.go): the search of one
 partition. Given the entries `es` of a history `h` (`EntriesFor`, what `makeEntries` returns)
-and a filled model, it returns `true` and the history is linearizable (soundness), or `false`
+and a filled model, it returns `true` and the history is linearizable (soundness: every one of its second result's pointers is the
+same, to a linearization of the history, `longestLin`), or `false`
 and the history is not linearizable or the context is done (its Done proposition holds:
 `isContext`'s `Err()`). So it never answers `false` on a linearizable history unless cancelled
 (completeness), and never `true` on one that is not, cancelled or not.
@@ -39,9 +40,8 @@ abbrev checkSingle.spec : Prop :=
     (App (App (App (App (Val (@! github_com.anishathalye.porcupine.checkSingle))
       (Val #(GoInterface.ok c))) (Val #m)) (Val #hsl)) (Val #cp))
   {{ (b : Bool) (longest : GoSlice), RET (PairV #b #longest);
-      (⌜b = true ∧ Linearizable S.M h⌝ ∨
-        (⌜b = false⌝ ∗ (⌜¬ Linearizable S.M h⌝ ∨ □ cs.PDone))) ∗
-      longestOwn longest h.length }}
+      (⌜b = true⌝ ∗ longestLin S.M longest h) ∨
+      (⌜b = false⌝ ∗ (⌜¬ Linearizable S.M h⌝ ∨ □ cs.PDone) ∗ longestOwn longest h.length) }}
 
 end spec
 

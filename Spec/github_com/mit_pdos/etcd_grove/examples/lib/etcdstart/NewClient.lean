@@ -32,8 +32,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 /-- See the file header. -/
 abbrev NewClient.spec : Prop :=
   ∀ (addr : GoString) (lg : Loc) (V : client.WEnv GF),
-  lg ≠ null → plainEndpoint addr → threadBound GF ≤ 2 ^ 31 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart }}
+  plainEndpoint addr → threadBound GF ≤ 2 ^ 31 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient))
       (Val #addr)) (Val #lg))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);

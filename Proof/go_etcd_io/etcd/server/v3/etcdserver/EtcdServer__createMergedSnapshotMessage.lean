@@ -140,12 +140,12 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   -- `dbsnap.Size()`, with the sender's half, which then goes to the reader (the pipe's hand-over)
   ihave #Pbe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
-  wp_apply hSize sp D γd _ $$ [Hsn2] as %n Hsn2
+  wp_apply hSize sp D γd _ $$ [Hsn2] as %n ⟨Hsn2, %Hsz⟩
   · iframe #; iframe Hsn2
-  ihave Hrs := Hrc $$ Hsn2
-  -- `snap.NewMessage(m, rc, size)`
+  ihave ⟨Hrs, #Hrcc⟩ := Hrc $$ Hsn2
+  -- `snap.NewMessage(m, rc, size)`, with the reader's close contract (sweep repairs 1, S1)
   wp_apply hNM ml (mergedSt st c snapi snapt) rc n $$ [] as %mg ⟨#Hmi, %tsz, %cc, %γc, #Htsz, #Hcc, #Hccb⟩
-  · simp only [mergedSt]; iexact Hm
+  · simp only [mergedSt]; iframe Hm Hrcc; ipureintro; exact Hsz
   (try wp_auto)
   iapply HΦ
   simp only [mergedSt]

@@ -31,11 +31,14 @@ theorem CheckOperationsVerbose.wp_proof
   intro σ S m sl ops dq dur
   wp_start as ⟨#Hcci, #Hm, Hsl, #Hio, %Hops⟩
   wp_auto
-  wp_apply wp_checkOperations σ S m sl ops dq true dur $$ [$Hsl] as %r %info %Hr
+  wp_apply wp_checkOperations σ S m sl ops dq true dur $$ [$Hsl] as %r %info ⟨%Hr, #Hli⟩
   · iframe #; ipureintro; exact Hops
   iapply HΦ
-  ipureintro
-  exact Hr
+  isplitr
+  · ipureintro; exact Hr
+  iintro %Hok
+  iapply Hli
+  ipureintro; first | exact ⟨Hok, rfl⟩ | exact Hok
 
 end proof
 

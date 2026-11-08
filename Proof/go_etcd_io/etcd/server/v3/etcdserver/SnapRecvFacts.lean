@@ -342,6 +342,60 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- (Sweep repairs 1, S4) **A request of a good shape is one `Recover` accepts** (`rqShape`'s `rqOk`
+at the empty log, where the two kinds' size clauses are `True`). -/
+theorem clusterVer_of_rqShape (lm : lease.Mode) (rq : apply.IRRModel) (hs : rqShape lm rq) :
+    (∀ v, rq.clusterVersionSet = some v → apply.semverValid v ∧ apply.semverAtMostServer v) ∧
+      apply.dispatchKind rq ≠ .downgradeInfoSet := by
+  constructor
+  · intro v hv
+    have hk : apply.dispatchKind rq = .clusterVersionSet := by simp [apply.dispatchKind, hv]
+    have h := hs.2 [] (by simp only [rqSmall, hk])
+    simp only [apply.rqOk, hk] at h
+    exact h v hv
+  · intro hk
+    have h := hs.2 [] (by simp only [rqSmall, hk])
+    simp only [apply.rqOk, hk] at h
+
+/-- (Sweep repairs 1, S4) **An entry of a good shape has cluster requests `Recover` accepts.** -/
+theorem clusterVerEntryOk_of_entryShape (lm : lease.Mode) (m : EntryModel) (h : entryShape lm m) :
+    clusterVerEntryOk m := by
+  intro ht hd rq hdec
+  rcases h.1 ht with h0 | ⟨rq', hd', -, hs⟩
+  · exact absurd h0 hd
+  rw [hdec] at hd'
+  cases hd'
+  exact clusterVer_of_rqShape lm rq hs
+
+/-- (Sweep repairs 1, S4) **The committed log's cluster requests are ones `Recover` accepts**
+(`clusterVerLogOk`, of the KV invariant's workload fact `logShape`, transferred to the committed
+prefix `B` as `kv_log_plain`). -/
+theorem kv_log_verOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗ ⌜clusterVerLogOk B⌝ := by
+  iintro #Hinv #Hr #HB
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    L B $$ Hr HL HB with ⟨HL, %Hp⟩
+  ihave %HBi := srvRLogLb_idx γ B $$ HB
+  ihave %Hsh : iprop(⌜logShape γk.lm L⌝) $$ []
+  · ihave #Hw' := Hw
+    iunfold kvWork at Hw'; icases Hw' with ⟨%h, -⟩; ipureintro; exact h.1
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
+  imodintro
+  ipureintro
+  refine srv_entry_transfer γ.ai0 B L clusterVerEntryOk ?_ ?_ ?_ HBi Hp.2.2
+    (fun m hm => clusterVerEntryOk_of_entryShape γk.lm m (Hsh m hm))
+  · intro m m' he h ht hd rq hdec
+    have h1 := congrArg LogEntry.type he
+    have h2 := congrArg LogEntry.data he
+    simp only [EntryModel.toLE] at h1 h2
+    exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
+  · intro m _ hd _ h; exact absurd hd h
+  · intro m ht _ h0; rw [ht] at h0; exact absurd h0 (by decide)
+
 /-- **Every conf change of a committed prefix is one the server's `applyConfChange` takes**
 (`ccLogOk`, the KV invariant's workload fact `kvWork`; as `kv_log_plain` for `plainLog`). -/
 theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) :
@@ -438,6 +492,8 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     · exact h
     · have := h.length_le; omega
   imod kv_log_ccOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hcc
+  -- (sweep repairs 1, S4) the committed log's cluster requests
+  imod kv_log_verOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hver
   imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl0
   have Hpl : plainLogM γr.kv.cmp γr.kv.lm A' := Hpl0.1
   have hnl : mvcc.LogNoLease (kvModel γr.kv A') := by
@@ -467,7 +523,8 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     intro m hm ht
     exact ccPolOk_static _ _ (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
-    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' _ (fun _ => rfl) $$ Hrc HA'' Hmem
+    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc'
+    (by rw [hpre0, List.nil_append]; exact Hver) _ (fun _ => rfl) $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
   imodintro
   isplitl [Hhi]

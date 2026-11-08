@@ -186,7 +186,8 @@ theorem mvcc.NewStore.wp_proof
   (try wp_auto)
   -- `if lg == nil { lg = zap.NewNop() }`
   wp_join iprop(∃ lg' : Loc, lg_ptr ↦ lg' ∗ ⌜lg' ≠ null⌝) with [lg] as ⟨%lg', lg, %Hlgnn⟩
-  · wp_apply hNop as %l %Hl
+  · wp_apply hNop as %l #Hlz
+    ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
     (try wp_auto)
     wp_join_done
     iexists l; iframe lg; ipureintro; exact Hl

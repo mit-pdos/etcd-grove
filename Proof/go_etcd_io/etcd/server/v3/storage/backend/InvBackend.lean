@@ -54,6 +54,7 @@ public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.MonoNat
 public import Perennial.Proof.TokSet
 public import Perennial.Proof.sync
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
 
 @[expose] public section
 
@@ -1350,7 +1351,9 @@ instance metricsInv_persistent (b : Loc) : Persistent (metricsInv (GF := GF) b) 
   unfold metricsInv; infer_instance
 
 /-- `b` is a backend with parameters `P`, ghost names `γ`, the client's batch-lock resources
-`W` (the lock holder's) and `Pk` (the hooks') (persistent). -/
+`W` (the lock holder's) and `Pk` (the hooks') (persistent). (Sweep repairs 1, B4, 2026-11-07) With
+`ETCD_VERIFY` off (`envVerifyOff`): what its batch transaction's lock checks
+(`ValidateCalledInsideApply` and the others) take; from the opener's precondition. -/
 def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF :=
   iprop(□ ∃ (t rt tm db lg : Loc) (h : GoInterface),
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
@@ -1363,11 +1366,23 @@ def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     isDB db ∗ ⌜P.Wf⌝ ∗
     -- (2026-11-04, R2b-3c) the database and its file
-    (∃ path : GoString, bDBAt γ db path ∗ dbFile db path))
+    (∃ path : GoString, bDBAt γ db path ∗ dbFile db path) ∗
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off
+    envVerifyOff)
 
 instance isBackend_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     Persistent (isBackend γ P W Pk b) := by
   unfold isBackend; infer_instance
+
+/-- (Sweep repairs 1, B4) **A backend's `ETCD_VERIFY` off** (what the lock checks and
+`VerifyBackendConsistency` take). -/
+theorem isBackend_envVerifyOff (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
+    isBackend γ P W Pk b ⊢ envVerifyOff := by
+  iintro #Hb
+  unfold isBackend
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    -, -, -, #Hv⟩
+  iexact Hv
 
 /-! ## Readers -/
 

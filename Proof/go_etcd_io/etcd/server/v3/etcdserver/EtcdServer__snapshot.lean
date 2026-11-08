@@ -356,7 +356,10 @@ theorem EtcdServer.snapshot.wp_proof
       ihave %Hsok := isWalStorage_ok _ $$ Hsave
       obtain ⟨si, Hsieq⟩ := Hsok
       ihave #HSaveSnap := walSaveSnap_spec _ si Hsieq q snap' pm DFrac.discard DFrac.discard
-        (memSnapMade ai at' c []).Metadata' (token γn.wal.app) $$ Hsave
+        (memSnapMade ai at' c []).Metadata'
+        iprop(token γn.wal.app ∗ walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp))
+          (uint.nat (memSnapMade ai at' c []).Metadata'.Index')) $$ Hsave
       simp only [interface.mkOk, GoInterface.ok.injEq] at Hsieq
       subst Hsieq
       iunfold rnWalTokA at Hwt
@@ -405,7 +408,7 @@ theorem EtcdServer.snapshot.wp_proof
       · iframe Hwo HAU; iframe #
       inext
       iintro %serr ⟨Hwo, -, -, Hres⟩
-      icases Hres with (⟨%Hserr, Hwap⟩ | %Hbad)
+      icases Hres with (⟨%Hserr, Hwap, #Hwblb⟩ | %Hbad)
       rotate_left
       · exact absurd Hwso Hbad
       subst Hserr

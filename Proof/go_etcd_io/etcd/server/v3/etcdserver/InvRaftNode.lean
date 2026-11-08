@@ -1613,6 +1613,24 @@ def rnWalTokA (γ : RNNames) (r : Loc) (q : Qp) : IProp GF :=
   iprop(∃ st : GoInterface, rnStorageAddr r ↦□ st ∗ storage.walOpen (storage.walOf st) q ∗
     token γ.wal.app ∗ rnDurInv γ.node.cl γ.wal (storage.walOf st))
 
+/-- (Sweep repairs 1, W2) **The WAL names' location is the storage's WAL**: what turns the snapshot
+batch's `notifyc` payload (`walBaseLb γ.wal.loc`, `rnApSnap`'s) into the storage's (`Release`'s). -/
+theorem rnWalTokA_loc (γ : RNNames) (r : Loc) (q : Qp) (st : GoInterface) :
+    rnWalTokA (GF := GF) γ r q -∗ rnStorageAddr r ↦□ st -∗
+      rnWalTokA γ r q ∗ ⌜γ.wal.loc = storage.walOf st⌝ := by
+  iintro Hw #Hst
+  iunfold rnWalTokA at Hw
+  icases Hw with ⟨%st0, #Hst0, Ho, Ha, #Hdur⟩
+  icombine Hst Hst0 gives %Heq
+  ihave #Hdur' := Hdur
+  iunfold rnDurInv at Hdur'
+  icases Hdur' with ⟨%Hloc, -⟩
+  isplitl [Ho Ha]
+  · iunfold rnWalTokA; iexists st0; iframe Hst0 Ho Ha Hdur
+  ipureintro
+  rw [Hloc]
+  first | rw [Heq] | rw [Heq.2] | exact (congrArg storage.walOf Heq).symm | exact (congrArg storage.walOf Heq.2).symm
+
 /-- (2026-11-03, R2b-1 stage 6) **The loop's share of the WAL**: half the open token, the stop's
 claim (`ν.stop`) and what `Close` takes besides the records (the member's metadata, the purge's
 right), from `bootstrap` (`wal.bootOk_start`), kept until `onStop`. -/
@@ -1957,8 +1975,11 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :
     -- (2026-11-01, J8a) the snapshot's index in the member's snapshot directory (raft's `readySnap`)
     nodeSnapLocal γ.node.cl γ.id sv.Metadata'.Index' ∗ □ E.C A' ∗
     -- `notifyc`: two sends for a snapshot batch (raft.go:274,302), two receives (`applySnapshot`'s,
-    -- `applyAll`'s): the two-receive notify (`NotifyC2.lean`; 2026-10-31, #3)
-    (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc' iprop(True) iprop(True) ∗ notifyRcvN γnc 0) ∗
+    -- `applyAll`'s): the two-receive notify (`NotifyC2.lean`; 2026-10-31, #3); (sweep repairs 1,
+    -- W2) the first send after the snapshot's `SaveSnap` (raft.go:257), with the WAL's records
+    -- starting at or above the snapshot's index (what `applySnapshot`'s `Release` takes)
+    (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc'
+      (walBaseLb γ.wal.loc (uint.nat sv.Metadata'.Index')) iprop(True) ∗ notifyRcvN γnc 0) ∗
     -- closed once `Advance` returned: the node's applied index at the snapshot
     rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
       -- the snapshot's dummy entry frozen, everything below compacted (`ApplySnapshot`'s)

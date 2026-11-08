@@ -135,6 +135,8 @@ theorem snapRecv_imageR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i 
     · exact h
     · have := h.length_le; omega
   imod kv_log_ccOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hcc
+  -- (sweep repairs 1, S4) the committed log's cluster requests
+  imod kv_log_verOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hver
   imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl0
   have Hpl : plainLogM γr.kv.cmp γr.kv.lm A' := Hpl0.1
   have hnl : mvcc.LogNoLease (kvModel γr.kv A') := by
@@ -164,7 +166,8 @@ theorem snapRecv_imageR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i 
     intro m hm ht
     exact ccPolOk_static _ _ (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
-    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' _ hids $$ Hrc HA'' Hmem
+    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc'
+    (by rw [hpre0, List.nil_append]; exact Hver) _ hids $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
   imodintro
   isplitl [Hhi]
@@ -270,6 +273,8 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
     · exact h
     · have := h.length_le; omega
   imod kv_log_ccOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hcc
+  -- (sweep repairs 1, S4) the committed log's cluster requests
+  imod kv_log_verOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hver
   imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hpl
   -- the cluster's in-memory members, from the rest resource
   rw [hRO]
@@ -287,7 +292,8 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
     intro m hm ht
     exact ccPolOk_static _ _ (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
-    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' _ hids $$ Hrc HA'' Hmem
+    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc'
+    (by rw [hpre0, List.nil_append]; exact Hver) _ hids $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
   -- the image's clauses at the member's names
   obtain ⟨hci, htm, hrest, hauth⟩ := himA
@@ -422,7 +428,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     ihave #Hro' := Hro
     iunfold srvSnapRO at Hro'
     icases Hro' with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d,
-      %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
+      %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hvoff, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
       #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #HlpL, #Hrc,
       #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, ⟨#Hkvaddr, #Hkvm⟩, #Hcfg⟩
     obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hbr, hci, hhk, hwf, hlim, hlp,
@@ -515,6 +521,12 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         (by rw [hraft]) Hmo (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc)
     rw [Hoff] at hS
     simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM, kvModelM_false] at hS
+    -- (sweep repairs 1, W2) the payload at the storage's WAL (`rnWalTokA_loc`)
+    icases rnWalTokA_loc γn (srvRAddr s) q _ $$ HwalT Hstp with ⟨HwalT, %Hwl⟩
+    ihave #Hnc2' : isNotify2 γnc nc (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.storage.ty) #stp)) (uint.nat sv.Metadata'.Index'))
+        iprop(True) $$ []
+    · rw [← Hwl]; iexact Hnc2
     wp_apply hS
       $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS Hγt Htlive Hsm0 Hcs Hstopc
         Hbo HthT]
@@ -540,12 +552,15 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     · iframe #
     (try wp_auto)
     -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
-    wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, -⟩
+    wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, %dB, -, #HbRO⟩
     · iframe #; iframe Hbr
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's
+    ihave #Hvoff := srvBeRO_envVerifyOff dB $$ HbRO
     wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
     · iframe #; iframe Hlr; ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_apply hV be fv.lg true bsl
+    wp_apply hV be fv.lg true bsl $$ []
+    · iframe #
     (try wp_auto)
     -- `proposalsApplied.Set(float64(ep.appliedi))`
     iunfold gaugeSetSpec at Hgs
@@ -905,7 +920,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   ihave #Hro' := Hro
   iunfold srvSnapRO at Hro'
   icases Hro' with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d,
-    %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
+    %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hvoff, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
     #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #HlpL, #Hrc,
     #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, ⟨#Hkvaddr, #Hkvm⟩, #Hcfg⟩
   obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hbr, hci, hhk, hwf, hlim, hlp,
@@ -1020,6 +1035,12 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       γnc
   rw [hon] at hS
   simp only [srvApplyKVM_true, kvModelM_true] at hS
+  -- (sweep repairs 1, W2) the payload at the storage's WAL (`rnWalTokA_loc`)
+  icases rnWalTokA_loc γn (srvRAddr s) q _ $$ HwalT Hstp with ⟨HwalT, %Hwl⟩
+  ihave #Hnc2' : isNotify2 γnc nc (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.storage.ty) #stp)) (uint.nat sv.Metadata'.Index'))
+      iprop(True) $$ []
+  · rw [← Hwl]; iexact Hnc2
   wp_apply hS
     $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS Hγt Htlive Hsm0 Hcs Hstopc
       Hbo HthT]
@@ -1049,12 +1070,15 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   · iframe #
   (try wp_auto)
   -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
-  wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, -⟩
+  wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, %dB, -, #HbRO⟩
   · iframe #; iframe Hbr
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's
+  ihave #Hvoff := srvBeRO_envVerifyOff dB $$ HbRO
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_apply hV be fv.lg true bsl
+  wp_apply hV be fv.lg true bsl $$ []
+  · iframe #
   (try wp_auto)
   -- `proposalsApplied.Set(float64(ep.appliedi))`
   iunfold gaugeSetSpec at Hgs

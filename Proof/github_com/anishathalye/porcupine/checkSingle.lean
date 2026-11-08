@@ -65,11 +65,12 @@ macro "ctx_check" : tactic => `(tactic| (
     wp_auto
     wp_for_post
     iapply HΦ
-    iframe
     iright
     isplitr
     · ipureintro; rfl
-    iright; iexact HPD
+    isplitr [Hlongest]
+    · iright; iexact HPD
+    iexact Hlongest
   iclear Herr
   wp_auto))
 
@@ -185,6 +186,30 @@ local macro "longest_update" : tactic => `(tactic| (
     ipureintro
     refine ⟨by word, by word, by simp [Hk3]⟩
   ))
+
+/-- The ids `checkSingle` copies into `seq` at the exit (the stack, oldest first): non-negative,
+and a linearization (`sound_done_lin`). -/
+theorem lin_of_frames {σ : Type} {M : SeqModel σ OpV} {h : List (Op OpV)} {es : List Entry}
+    {fs : List (Frame σ)} {s : σ} {p : Nat} (hok : EntriesOk h es) (hs : Sound M h es fs s p)
+    (hrem : rem es (ids fs) = []) (hlt : (h.length : Int) < 2 ^ 60) :
+    (∀ x ∈ fs.reverse.map (fun f => W64 f.id), 0 ≤ sint.Z x) ∧
+      IsLinearization M h ((fs.reverse.map (fun f => W64 f.id)).map fun x => (sint.Z x).toNat) := by
+  have hid : ∀ f ∈ fs, sint.Z (W64 f.id) = f.id := by
+    intro f hf
+    have := framesCalls_lt hok hs.2.1 f.id (List.mem_map_of_mem hf)
+    word
+  refine ⟨?_, ?_⟩
+  · intro x hx
+    obtain ⟨f, hf, rfl⟩ := List.mem_map.1 hx
+    rw [hid f (List.mem_reverse.1 hf)]; omega
+  · have : (fs.reverse.map (fun f => W64 f.id)).map (fun x => (sint.Z x).toNat) = (ids fs).reverse := by
+      rw [List.map_map, ids, List.map_reverse]
+      congr 1
+      apply List.map_congr_left
+      intro f hf
+      simp only [Function.comp, hid f hf, Int.toNat_natCast]
+    rw [this]
+    exact sound_done_lin hok hs hrem
 
 set_option maxHeartbeats 4000000 in
 theorem checkSingle.wp_proof
@@ -638,13 +663,14 @@ theorem checkSingle.wp_proof
         subst hfs
         wp_for_post
         iapply HΦ
-        iframe
         iright
         isplitr
         · ipureintro; rfl
-        icases Hgood with (%Hinv | #HPD)
-        · ileft; ipureintro; exact inv_fail hok Hinv he rfl
-        · iright; iexact HPD
+        isplitr [Hlongest]
+        · icases Hgood with (%Hinv | #HPD)
+          · ileft; ipureintro; exact inv_fail hok Hinv he rfl
+          · iright; iexact HPD
+        iexact Hlongest
       -- `if computePartial { ... }`: memory safety only
       wp_join iprop(longestOwn lgst h.length ∗ csl ↦* ces ∗
           nodesG hd loc (valOf h) (es.map entryOf) (layout (es.map entryOf) (ids fs)) ∗
@@ -859,15 +885,16 @@ theorem checkSingle.wp_proof
     irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
     ihave HF : (∃ (k iv : w64) (vv : callsEntry) (xs : List w64),
         "i" ∷ i_ptr ↦ k ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "v" ∷ v_ptr ↦ vv ∗ "Hsq" ∷ sq ↦* xs ∗
-        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z csl.len ∧ xs.length = ces.length⌝ : IProp GF)
+        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z csl.len ∧ xs.length = ces.length ∧
+          ∀ j, j < sint.nat k → xs[j]? = (fs.reverse[j]?).map (fun f => W64 f.id)⌝ : IProp GF)
       $$ [i Hiu v Hsq]
     · iexists W64 0, _, _, _
       iframe
       ipureintro
-      refine ⟨by decide, by word, ?_⟩
+      refine ⟨by decide, by word, ?_, fun j hj => absurd hj (by word)⟩
       rw [List.length_replicate]; word
     wp_for HF
-    obtain ⟨Hk1, Hk2, Hk3⟩ := Hk
+    obtain ⟨Hk1, Hk2, Hk3, Hk4⟩ := Hk
     (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
     wp_if_destruct
     · have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z csl.len := ⟨Hk1, Hif⟩
@@ -900,24 +927,44 @@ theorem checkSingle.wp_proof
       iexists k + W64 1, k, ce, _
       iframe
       ipureintro
-      refine ⟨by word, by word, by simp [Hk3]⟩
+      refine ⟨by word, by word, by simp [Hk3], fun j hj => ?_⟩
+      have hkn : sint.nat k < xs.length := by rw [Hk3]; word
+      rw [List.getElem?_set]
+      by_cases hjk : sint.nat k = j
+      · subst hjk
+        simp only [show (sint.Z k).toNat = sint.nat k by word, ↓reduceIte, hkn, Hf_lookup,
+          Option.map_some]
+      · simp only [show ¬ ((sint.Z k).toNat = j) from fun h => hjk (by word), ↓reduceIte]
+        exact Hk4 j (by word)
     · -- the copy loop exit
       -- the copy is made: read-only from now on; every `longest[i]` points to it
       ipersist seq
       ipersist Hsq
       iunfold longestOwn at Hlongest
       icases Hlongest with ⟨%ps, Hps, %Hpsl, #Hpse⟩
+      have Hxs : xs = fs.reverse.map (fun f => W64 f.id) := by
+        apply List.ext_getElem?
+        intro j
+        by_cases hj : j < sint.nat k
+        · rw [Hk4 j hj, List.getElem?_map]
+        · have hl : xs.length = fs.length := by rw [Hk3, Hcl]
+          have hk' : sint.nat k = fs.length := by
+            have : ¬ (sint.Z k < sint.Z csl.len) := Hif
+            rw [← Hcl, Hcsl1]; word
+          rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by simp; omega)]
+      clear Hk4
       ihave HL : (∃ (k : w64) (ps' : List Loc),
           "i" ∷ i_ptr ↦ k ∗ "Hps" ∷ lgst ↦* ps' ∗ "#Hpse" ∷ ([∗list] p ∈ ps', longestElem (GF := GF) p) ∗
-          "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ h.length ∧ ps'.length = h.length⌝ : IProp GF)
+          "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ h.length ∧ ps'.length = h.length ∧
+            ∀ j, j < sint.nat k → ps'[j]? = some seq_ptr⌝ : IProp GF)
         $$ [i Hps]
       · iexists W64 0, ps
         iframe
         iframe Hpse
         ipureintro
-        exact ⟨by decide, by word, Hpsl⟩
+        exact ⟨by decide, by word, Hpsl, fun j hj => absurd hj (by word)⟩
       wp_for HL
-      obtain ⟨Hk1, Hk2, Hk3⟩ := Hk
+      obtain ⟨Hk1, Hk2, Hk3, Hk4⟩ := Hk
       ihave %Hpsl' := ownSlice_len $$ Hps
       obtain ⟨Hpsl1, Hpsl2⟩ := Hpsl'
       (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
@@ -940,14 +987,35 @@ theorem checkSingle.wp_proof
           iexists sq, xs
           iframe seq Hsq
         ipureintro
-        refine ⟨by word, by word, by simp [Hk3]⟩
-      · iapply HΦ
-        isplitl []
-        · ileft; ipureintro; exact ⟨rfl, sound_done hok Hsnd hrem0⟩
-        iunfold longestOwn
-        iexists ps'
-        iframe Hps Hpse
-        ipureintro; exact Hk3
+        refine ⟨by word, by word, by simp [Hk3], fun j hj => ?_⟩
+        have hkn : sint.nat k < ps'.length := by rw [Hk3]; word
+        rw [List.getElem?_set]
+        by_cases hjk : sint.nat k = j
+        · subst hjk
+          simp only [show (sint.Z k).toNat = sint.nat k by word, ↓reduceIte, hkn]
+        · simp only [show ¬ ((sint.Z k).toNat = j) from fun h => hjk (by word), ↓reduceIte]
+          exact Hk4 j (by word)
+      · have Hrep : ps' = List.replicate h.length seq_ptr := by
+          apply List.ext_getElem?
+          intro j
+          by_cases hj : j < h.length
+          · rw [Hk4 j (by have : ¬ (sint.Z k < sint.Z (W64 h.length)) := Hif; word),
+              List.getElem?_replicate_of_lt hj]
+          · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by simp; omega)]
+        iapply HΦ
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iunfold longestLin
+        iexists seq_ptr, sq
+        rw [← Hrep]
+        iframe Hps seq
+        iunfold linSlice
+        iexists xs
+        iframe Hsq
+        ipureintro
+        rw [Hxs]
+        exact lin_of_frames hok Hsnd hrem0 hlen
 
 end proof
 

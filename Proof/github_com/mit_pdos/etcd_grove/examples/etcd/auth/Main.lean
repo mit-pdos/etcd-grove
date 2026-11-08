@@ -130,7 +130,8 @@ theorem Main.wp_proof
   · iapply (client.eofOk_of_init hAs)
     iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- the member's ghost state with auth on, the client's half of the KV state, its view of the
   -- auth history (`ak_alloc`), and the history invariant over the former (`akHist_alloc`)
@@ -150,7 +151,7 @@ theorem Main.wp_proof
   -- (hub step 7) no peer address: the start bundle is the fresh bundle at the network `γn`
   ihave Hfresh := etcdstart.memberStartRes_fresh _ _ γn rfl $$ Hstart
   wp_apply (wp_startServer N lg (LogEntry.toEntries boot 0) ctxs (akDir id) id γ ρ E₀ Φs γn Htb
-      Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok (by simp [akDir, dirOne]) (rafthttp.bootCfg_dirOne id _) Hlg Hck Haf
+      Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok (by simp [akDir, dirOne]) (rafthttp.bootCfg_dirOne id _) Hck Haf
       Hbuq Hdbo)
     $$ [Htok Hmb Hfresh] as %srv %err Hr
   · iframe; iframe #
@@ -251,8 +252,9 @@ theorem Main.wp_proof
   wp_auto
   -- `NewClient(clientAddr, lg)`: the client with no user name
   wp_apply (wp_NewClient go!"127.0.0.1:23916" lg
-      (akV R) Hlg
+      (akV R)
       (by unfold plainEndpoint; decide) Htb31) as %cl %cerr Hcl
+  · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, #Hctk⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -294,7 +296,7 @@ theorem Main.wp_proof
     iexact Hw
   wp_auto
   wp_apply (wp_newUserClient go!"root" go!"root-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"root")
-      Hlg (by omega) (by unfold strsSizeOk; decide)) as %rcl %rerr Hrc
+      (by omega) (by unfold strsSizeOk; decide)) as %rcl %rerr Hrc
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
@@ -308,7 +310,7 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Hrerr
   wp_auto
-  wp_apply (wp_newUserClient go!"u" go!"u-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"u") Hlg
+  wp_apply (wp_newUserClient go!"u" go!"u-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"u")
       (by omega) (by unfold strsSizeOk; decide)) as %ucl %uerr Huc
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
@@ -323,7 +325,7 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Huerr
   wp_auto
-  wp_apply (wp_newUserClient go!"v" go!"v-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"v") Hlg
+  wp_apply (wp_newUserClient go!"v" go!"v-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"v")
       (by omega) (by unfold strsSizeOk; decide)) as %vcl %verr Hvc
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)

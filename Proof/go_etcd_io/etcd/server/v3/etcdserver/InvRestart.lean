@@ -422,7 +422,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, not nil
     -- (`bootstrapClusterWithWAL`'s `NewCluster` sets `lg` from the configuration's logger): what
     -- `AddMember` and `RemoveMember` log through, `applyConfChange`'s
-    "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ ⌜lgc ≠ null⌝) ∗
+    "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ zapLoggerOk lgc) ∗
     -- (audit B4a, 2026-10-18) its `versionChanged` field, owned (the cluster not yet shared):
     -- `NewServer`'s `SetVersionChangedNotifier` writes it without the lock, and the cluster's
     -- apply contract `Hisc` (whose `SetVersion` reads it) is for after, the field read-only
@@ -579,7 +579,11 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
     (∃ (γk : KVNames) (A : List EntryModel) (u : Bool),
       ⌜γk.c0 = W64 0 ∧ imageRestAt γk γ.boot i L D ∧ imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗
       mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
-    {{ bootCfgRO cfg U ∗ memStorRegAuth M ∗
+    {{ -- (sweep repairs 1, L4) a zap logger (`bootstrapContract`'s)
+        zapLoggerOk cfg.Logger' ∗
+        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`bootstrapContract`'s)
+        envVerifyOff ∗
+        bootCfgRO cfg U ∗ memStorRegAuth M ∗
         srvFiles cfg.DataDir' id σ D ∗ backend.pathOwn (config.backendPathOf cfg.DataDir') }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);

@@ -23,14 +23,14 @@ def etcdstart.BuildServer.spec : Prop :=
                             { peer := [etcdstart.httpURL peerAddr], client := [etcdstart.httpURL client], initMap := M,
                               initURLs := iu } →
                           (∀ (k : GoString), (M !! k).isSome = true → utf8Valid k) →
-                            lg ≠ null →
-                              ckptEffectsOk →
-                                authRecordsFit →
-                                  apply.backendUnderQuota →
-                                    storage.diskOk →
-                                      ⊢
-                                        ∀ Φ,
-                                          isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                            ckptEffectsOk →
+                              authRecordsFit →
+                                apply.backendUnderQuota →
+                                  storage.diskOk →
+                                    ⊢
+                                      ∀ Φ,
+                                        isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                            zapLoggerOk lg ∗
                                               threadTok ∗
                                                 ownSlice peer [etcdstart.httpURL peerAddr] DFrac.discard ∗
                                                   ownMap cluster DFrac.discard M ∗
@@ -40,30 +40,30 @@ def etcdstart.BuildServer.spec : Prop :=
                                                           context.isClosedchanInit ∗
                                                             etcdstart.memberBoot γ ctxs ρ E₀ Φs id false lm ∗
                                                               netHttpOk γn id ∗ etcdstart.memberFreshRes name { } γn -∗
-                                            (▷
-                                                ∀ s err,
-                                                  ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
-                                                      ⌜err = GoInterface.nil⌝ ∗
-                                                        threadTok ∗
-                                                          etcdstart.memberBuilt s ρ E₀ lg γn id N false (W64 0) (W64 0)
-                                                              (W64 0) bootKV lm ∗
-                                                            leaseTTLRowR s ps ∗
-                                                              srvDataDir s (name ++ go!".etcd") -∗
-                                                    Φ (intoVal s, intoVal err)) -∗
-                                              WP
-                                                (((((((((intoVal
-                                                                  (functions
-                                                                    github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer
-                                                                    []))
-                                                                (intoVal name))
-                                                              (intoVal peer))
-                                                            (intoVal client))
-                                                          (intoVal cluster))
-                                                        (intoVal token))
-                                                      (intoVal snapCount))
-                                                    (intoVal catchUp))
-                                                  (intoVal lg))
-                                                {{ Φ }}
+                                          (▷
+                                              ∀ s err,
+                                                ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
+                                                    ⌜err = GoInterface.nil⌝ ∗
+                                                      threadTok ∗
+                                                        etcdstart.memberBuilt s ρ E₀ lg γn id N false (W64 0) (W64 0)
+                                                            (W64 0) bootKV lm ∗
+                                                          leaseTTLRowR s ps ∗
+                                                            srvDataDir s (name ++ go!".etcd") -∗
+                                                  Φ (intoVal s, intoVal err)) -∗
+                                            WP
+                                              (((((((((intoVal
+                                                                (functions
+                                                                  github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer
+                                                                  []))
+                                                              (intoVal name))
+                                                            (intoVal peer))
+                                                          (intoVal client))
+                                                        (intoVal cluster))
+                                                      (intoVal token))
+                                                    (intoVal snapCount))
+                                                  (intoVal catchUp))
+                                                (intoVal lg))
+                                              {{ Φ }}
 
 def etcdstart.BuildServer.specRestart : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token : GoString) (snapCount catchUp : w64)
@@ -84,14 +84,14 @@ def etcdstart.BuildServer.specRestart : Prop :=
                         Uok
                             { peer := [etcdstart.httpURL peerAddr], client := [etcdstart.httpURL client], initMap := M,
                               initURLs := iu } →
-                          lg ≠ null →
-                            ckptEffectsOk →
-                              authRecordsFit →
-                                apply.backendUnderQuota →
-                                  storage.diskOk →
-                                    ⊢
-                                      ∀ Φ,
-                                        isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                          ckptEffectsOk →
+                            authRecordsFit →
+                              apply.backendUnderQuota →
+                                storage.diskOk →
+                                  ⊢
+                                    ∀ Φ,
+                                      isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                          zapLoggerOk lg ∗
                                             threadTok ∗
                                               ownSlice peer [etcdstart.httpURL peerAddr] DFrac.discard ∗
                                                 ownMap cluster DFrac.discard M ∗
@@ -101,27 +101,27 @@ def etcdstart.BuildServer.specRestart : Prop :=
                                                         context.isClosedchanInit ∗
                                                           etcdstart.memberRestartRes name { } γn γ ρ id ∗
                                                             netHttpOk γn id -∗
-                                          (▷
-                                              ∀ s err,
-                                                (⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
-                                                    ⌜err = GoInterface.nil⌝ ∗
-                                                      threadTok ∗
-                                                        ∃ ρ' E₀',
-                                                          ⌜restartNames ρ ρ'⌝ ∗
-                                                            etcdstart.memberBuiltR s ρ' E₀' lg γn id N false ∗
-                                                              srvDataDir s (name ++ go!".etcd")) -∗
-                                                  Φ (intoVal s, intoVal err)) -∗
-                                            WP
-                                              (((((((((intoVal
-                                                                (functions
-                                                                  github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer
-                                                                  []))
-                                                              (intoVal name))
-                                                            (intoVal peer))
-                                                          (intoVal client))
-                                                        (intoVal cluster))
-                                                      (intoVal token))
-                                                    (intoVal snapCount))
-                                                  (intoVal catchUp))
-                                                (intoVal lg))
-                                              {{ Φ }}
+                                        (▷
+                                            ∀ s err,
+                                              (⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
+                                                  ⌜err = GoInterface.nil⌝ ∗
+                                                    threadTok ∗
+                                                      ∃ ρ' E₀',
+                                                        ⌜restartNames ρ ρ'⌝ ∗
+                                                          etcdstart.memberBuiltR s ρ' E₀' lg γn id N false ∗
+                                                            srvDataDir s (name ++ go!".etcd")) -∗
+                                                Φ (intoVal s, intoVal err)) -∗
+                                          WP
+                                            (((((((((intoVal
+                                                              (functions
+                                                                github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer
+                                                                []))
+                                                            (intoVal name))
+                                                          (intoVal peer))
+                                                        (intoVal client))
+                                                      (intoVal cluster))
+                                                    (intoVal token))
+                                                  (intoVal snapCount))
+                                                (intoVal catchUp))
+                                              (intoVal lg))
+                                            {{ Φ }}

@@ -31,4 +31,6 @@ def backend.isBackendNH (γ : backend.BNames) (P : backend.BParams) (W Pk : IPro
                                   backend.metricsInv b ∗
                                     (sync.isRWMutexGuard (backend.bF go!"mu" b) fun q =>
                                         typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
-                                      backend.isDB db ∗ ⌜P.Wf⌝ ∗ ∃ path, backend.bDBAt γ db path ∗ backend.dbFile db path)
+                                      backend.isDB db ∗
+                                        ⌜P.Wf⌝ ∗
+                                          (∃ path, backend.bDBAt γ db path ∗ backend.dbFile db path) ∗ envVerifyOff)

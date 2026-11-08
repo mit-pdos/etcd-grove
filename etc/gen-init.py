@@ -654,21 +654,53 @@ the one the fact reads (`compbasemetrics.NewHistogramVec(..., []string{"group", 
 )
 
 SPECIAL['k8s_io.apiserver.pkg.util.feature'] = dict(
-    doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a feature
-gate whose `Enabled` answers some `bool` for any feature. Its initializer initializes its import
+    doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultMutableFeatureGate` and
+`DefaultFeatureGate` hold the same feature gate. Its initializer initializes its import
 (`component-base/featuregate`, names-only) and runs its variables' untranslated initializers
-(`feature_gate.go`); the trust-boundary axiom `DefaultFeatureGate_init` states the one the fact
-reads (`DefaultMutableFeatureGate`, a `featuregate.NewFeatureGate()`, whose `Enabled` looks the
-feature up in its map and returns; which features are on is the deployment's), `opaqueInitsOk`
-the other.''',
-    custom={'DefaultFeatureGate': dict(
-        doc='/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`, a `featuregate.NewFeatureGate()`): a gate whose `Enabled` returns some `bool` for any feature. -/',
-        post=('∃ g : GoInterfaceOk, globalAddr DefaultFeatureGate ↦ GoInterface.ok g ∗\n'
-              '      □ ∀ (f : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗\n'
-              '        WP (App (Val #(methods g.ty go!"Enabled" g.v)) (Val f)) {{ Φ }}'),
-        pat='⟨%g@, H@, #S@⟩')},
+(`feature_gate.go`); the trust-boundary axioms `DefaultMutableFeatureGate_init`
+(`featuregate.NewFeatureGate()`: a gate) and `DefaultFeatureGate_init` (`DefaultFeatureGate =
+DefaultMutableFeatureGate`: the same gate) state them. (Sweep repairs 1, B5, 2026-11-08: until then
+`DefaultFeatureGate_init` gave a gate whose `Enabled` answered any `bool` for any feature, false of an
+unregistered one, and `DefaultMutableFeatureGate` was `opaqueInitsOk`'s, unlinked; the gate's specs
+are now `features`' registration's, `features.init_0_ok`.)''',
+    custom={
+        'DefaultMutableFeatureGate': dict(
+            doc='/-- `DefaultMutableFeatureGate = featuregate.NewFeatureGate()` (`feature_gate.go`): a feature gate, no Kubernetes feature registered yet (`features`\' `init` registers them, `features.init_0_ok`). -/',
+            post='∃ g : GoInterfaceOk, globalAddr DefaultMutableFeatureGate ↦ GoInterface.ok g',
+            pat='⟨%g@, H@⟩'),
+        'DefaultFeatureGate': dict(
+            doc='/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`): the same gate. -/',
+            binder='∀ g : GoInterfaceOk,',
+            pre='globalAddr DefaultMutableFeatureGate ↦□ GoInterface.ok g',
+            post='globalAddr DefaultFeatureGate ↦ GoInterface.ok g',
+            apply=['ipersist HDefaultMutableFeatureGate',
+                   'wp_apply (DefaultFeatureGate_init gDefaultMutableFeatureGate) $$ [] as HDefaultFeatureGate',
+                   '· iframe #'])},
     finish=['ipersist HDefaultFeatureGate'] + FIN_PRE[:6] + [
             'imodintro', 'iexists _', 'iframe #'],
+)
+
+# (sweep repairs 1, B5, 2026-11-08) the default gate's registration: `features`' `init`
+SPECIAL['k8s_io.apiserver.pkg.features'] = dict(
+    doc='''Its fact (`featuresInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a gate with
+the specs of `k8sfeature.featureGateOk` (`util/feature/Gate.lean`: `Enabled` of the queried
+features, `Set` of one to `false`). Its initializer initializes its import (`util/feature`, whose
+fact gives the gate) and runs its variable's untranslated initializer (`opaqueInitsOk`) and its
+untranslated `init` (`kube_features.go:347-350`, `DefaultMutableFeatureGate.AddVersioned(...)` and
+`zpagesfeatures.AddFeatureGates(...)` under `runtime.Must`), whose trust-boundary axiom
+`init_0_ok` says it registers the package's features with that gate.''',
+    custom_initfn={'init.«0»': dict(
+        name='init_0_ok',
+        doc='/-- `init.«0»` (`kube_features.go:347-350`): registers the package\'s features (and component-base\'s zpages features) with the default gate `DefaultMutableFeatureGate` holds, under `runtime.Must`; after it the gate has the specs of `featureGateOk` (`util/feature/Gate.lean`). -/',
+        binder='∀ g : GoInterfaceOk,',
+        pre='globalAddr k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate ↦□ GoInterface.ok g',
+        post='EtcdGrove.k8sfeature.featureGateOk g',
+        apply=['ihave #Hfi : (_root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.featureInit : IProp GF) $$ []',
+               '· iapply isPkgInit_access $$ {Hd:k8s_io.apiserver.pkg.util.feature}',
+               'icases Hfi with ⟨%g0, #Hmg, #Hdg⟩',
+               'wp_apply (init_0_ok g0) $$ [] as #Hgate',
+               '· iframe #'])},
+    finish=FIN_PRE[:6] + ['imodintro', 'iexists _', 'iframe #'],
 )
 
 SPECIAL['k8s_io.apiserver.pkg.storage.feature'] = dict(
@@ -680,7 +712,7 @@ trust-boundary axiom `DefaultFeatureSupportChecker_init` states the one the fact
 (`newDefaultFeatureSupportChecker()`, whose `CheckClient` starts, once per endpoint, a goroutine
 polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
     custom={'DefaultFeatureSupportChecker': dict(
-        doc='/-- `DefaultFeatureSupportChecker = newDefaultFeatureSupportChecker()` (`feature_support_checker.go`): a checker whose `CheckClient` returns (the variable never changes after). -/',
+        doc='/-- `DefaultFeatureSupportChecker = newDefaultFeatureSupportChecker()` (`feature_support_checker.go`): a checker whose `CheckClient` returns for a constructed client and its context (`checkClientOk`; sweep repairs 1, B5: until then for any arguments) (the variable never changes after). -/',
         post=f'_root_.Perennial.{_K3}.checkerInit (GF := GF)',
         pat='#H@')},
     finish=FIN_PRE[:6],
@@ -2099,7 +2131,8 @@ def gen(p, cfg=None):
     pk = pkginfo_imports(p)
     items = exec_order(p)
     opq = [x for (kind, x) in items if kind == 'opaque' and x not in newvars and x not in custom]
-    opqf = [x for (kind, x) in items if kind == 'opaqueinitfn']
+    custom_initfn = cfg.get('custom_initfn', {})
+    opqf = [x for (kind, x) in items if kind == 'opaqueinitfn' and x not in custom_initfn]
     trs = [x for (kind, x) in items if kind == 'trusted']
     imps = [x for (kind, x) in items if kind == 'import']
     assert sorted(imps) == sorted(pk), (p, imps, pk)
@@ -2155,7 +2188,7 @@ def gen(p, cfg=None):
     A('')
     A('open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode')
     A('')
-    if opq or opqf or newvars or custom:
+    if opq or opqf or newvars or custom or custom_initfn:
         A('section opaqueInits')
         A(f'namespace {p}')
         A('variable [GooseExts] [GooseSemantics] [GooseInterp]')
@@ -2192,9 +2225,20 @@ def gen(p, cfg=None):
             A('    EtcdGrove.errorsNewVarInitC (GF := GF) init X msg')
             A('')
         for x, c in custom.items():
+            # (sweep repairs 1, B5, 2026-11-08) optional `binder` (`∀ g : T,`) and `pre`: an
+            # initializer that reads another variable's value (`DefaultFeatureGate =
+            # DefaultMutableFeatureGate`)
             A(c['doc'])
-            A(f'axiom {x}_init :')
-            A(f'    {{{{ (True : IProp GF) }}}} (App (Val {x}.init) (Val #()))')
+            A(f'axiom {x}_init :' + (f' {c["binder"]}' if 'binder' in c else ''))
+            A(f'    {{{{ ({c.get("pre", "True")} : IProp GF) }}}} (App (Val {x}.init) (Val #()))')
+            A(f'    {{{{ RET #(); {c["post"]} }}}}')
+            A('')
+        for x, c in custom_initfn.items():
+            # (sweep repairs 1, B5, 2026-11-08) an untranslated `init` function with a spec of its
+            # own (`k8s.io/apiserver/pkg/features`' registration), instead of `initFuncsOk`'s `True`
+            A(c['doc'])
+            A(f'axiom {c["name"]} :' + (f' {c["binder"]}' if 'binder' in c else ''))
+            A(f'    {{{{ ({c.get("pre", "True")} : IProp GF) }}}} (App (Val (@! {x})) (Val #()))')
             A(f'    {{{{ RET #(); {c["post"]} }}}}')
             A('')
         A(f'end {p}')
@@ -2284,8 +2328,14 @@ def gen(p, cfg=None):
                 A(f'    $$ Hown as ⟨Hown, #Hd{idx}⟩')
         elif kind == 'opaque' and x in newvars:
             A(f'  wp_apply (errorsNewVarsInit {x}.init {x} go!{json.dumps(newvars[x])} (by mem_tac))\n    as ⟨%x{x}, H{x}, #M{x}, #C{x}⟩')
+        elif kind == 'opaque' and x in custom and 'apply' in custom[x]:
+            for l in custom[x]['apply']:
+                A('  ' + hdsub(l))
         elif kind == 'opaque' and x in custom:
             A(f'  wp_apply {x}_init as {custom[x]["pat"].replace("@", x)}')
+        elif kind == 'opaqueinitfn' and x in custom_initfn:
+            for l in custom_initfn[x]['apply']:
+                A('  ' + hdsub(l))
         elif kind == 'opaque':
             A(f'  wp_apply (opaqueInitsOk {x}.init (by mem_tac))')
         elif kind == 'trusted' and x in cfg.get('trusted', {}):

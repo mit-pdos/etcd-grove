@@ -1,7 +1,12 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*", "ListFromCacheSnapshot"]
-imports = ["!*"]
+# (sweep repairs 1, B5, 2026-11-08) the five features etcd3 asks the default gate about are
+# translated (string literals: `featureGateOk`'s specs quantify over them), and `util/feature` is
+# imported, so this package's initializer initializes it first and `init.«0»`'s registration
+# (`init_0_ok`) finds `DefaultMutableFeatureGate` set.
+translate = ["!*", "ListFromCacheSnapshot", "AllowUnsafeMalformedObjectDeletion", "EtcdRangeStream",
+             "WatchList", "ConcurrentWatchObjectDecode"]
+imports = ["!*", "k8s.io/apiserver/pkg/util/feature"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

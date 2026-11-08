@@ -8,7 +8,7 @@ axiom backend.snapshot.Size.wp_proof : backend.snapshot.Size.spec
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ backend.snapOpenQ sp D γ q -∗
-          (▷ ∀ n, backend.snapOpenQ sp D γ q -∗ Φ (intoVal n)) -∗
+          (▷ ∀ n, backend.snapOpenQ sp D γ q ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 62⌝ -∗ Φ (intoVal n)) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty.PointerType go!"Size"

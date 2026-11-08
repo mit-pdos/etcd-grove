@@ -36,32 +36,35 @@ theorem wp_of_progOk [GoGlobalContext] (R B : IProp GF) (init : val) (body : Exp
 
 theorem etcd_adequate [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : GoLocalContext] (init : val)
     (body : Expr) (φ : val → Prop) (hφ : ∀ (p : val), ¬φ p.PanicV) (As : List GoString) (hAs :
-    As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup) (σ : state) (g : GlobalState) (Hinitg :
-    extsInitgP g.globalWorld) (Hinitw : extsInitP σ.world g.globalWorld) (Hlctx : σ.goState.goLctx =
-    lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1) (HNs : prometheus.namesUnclaimed (init
-    (intoVal ()) ;; body) [read.slowReadIndexName, read.readIndexFailedName]) (HAs : addrsUnclaimed
-    (init (intoVal ()) ;; body) As) (HDs : walDirsAbsent (init (intoVal ()) ;; body) Ds) (n : Nat)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (Hsteps : RealNsteps n ([init (intoVal
-    ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS HasLC.hasLC GF), receiptBound GF = n +
-    1 → threadBound GF = max (n + 2) srvRevokeK → progOk read.readRegPerm iprop(([∗list] a ∈ As,
-    netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗ [∗list] d ∈ Ds, walDirFresh d) init body φ)
-    : (∀ (v : val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck
-    e2 σ2) ∧ ∀ (v : val), v ∈ t2 → v.isPanic = false
+    As.Nodup) (hAsLit : ∀ (a : GoString), a ∈ As → netAddrLit a = true) (Ds : List GoString) (hDs :
+    Ds.Nodup) (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld) (Hinitw : extsInitP
+    σ.world g.globalWorld) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads :
+    σ.threads = 1) (HNs : prometheus.namesUnclaimed (init (intoVal ()) ;; body)
+    [read.slowReadIndexName, read.readIndexFailedName]) (HAs : addrsUnclaimed (init (intoVal ()) ;;
+    body) As) (HDs : dataDirsAbsent (init (intoVal ()) ;; body) Ds) (HEnv : verifyEnvOff (init
+    (intoVal ()) ;; body)) (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([init (intoVal ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS
+    HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvRevokeK → progOk
+    read.readRegPerm iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
+    ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) init body φ) : (∀ (v : val) (t2' : List Expr),
+    t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (v : val), v ∈ t2 →
+    v.isPanic = false
 
 theorem etcd_adequate_alloc [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : GoLocalContext] (init :
     val) (body : Expr) (φ : val → Prop) (hφ : ∀ (p : val), ¬φ p.PanicV) (As : List GoString) (hAs :
-    As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup) (σ : state) (g : GlobalState) (Hinitg :
-    extsInitgP g.globalWorld) (Hinitw : extsInitP σ.world g.globalWorld) (Hlctx : σ.goState.goLctx =
-    lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1) (HNs : prometheus.namesUnclaimed (init
-    (intoVal ()) ;; body) [read.slowReadIndexName, read.readIndexFailedName]) (HAs : addrsUnclaimed
-    (init (intoVal ()) ;; body) As) (HDs : walDirsAbsent (init (intoVal ()) ;; body) Ds) (n : Nat)
-    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (Hsteps : RealNsteps n ([init (intoVal
-    ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS HasLC.hasLC GF), receiptBound GF = n +
-    1 → threadBound GF = max (n + 2) srvRevokeK → ∃ X T, (⊢ |==> ∃ x, T x) ∧ ∀ (x : X), progOk
-    read.readRegPerm iprop((([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
-    [∗list] d ∈ Ds, walDirFresh d) ∗ T x) init body φ) : (∀ (v : val) (t2' : List Expr), t2 = v ::
-    t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (v : val), v ∈ t2 → v.isPanic =
-    false
+    As.Nodup) (hAsLit : ∀ (a : GoString), a ∈ As → netAddrLit a = true) (Ds : List GoString) (hDs :
+    Ds.Nodup) (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld) (Hinitw : extsInitP
+    σ.world g.globalWorld) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads :
+    σ.threads = 1) (HNs : prometheus.namesUnclaimed (init (intoVal ()) ;; body)
+    [read.slowReadIndexName, read.readIndexFailedName]) (HAs : addrsUnclaimed (init (intoVal ()) ;;
+    body) As) (HDs : dataDirsAbsent (init (intoVal ()) ;; body) Ds) (HEnv : verifyEnvOff (init
+    (intoVal ()) ;; body)) (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([init (intoVal ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS
+    HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvRevokeK → ∃ X T, (⊢
+    |==> ∃ x, T x) ∧ ∀ (x : X), progOk read.readRegPerm iprop((([∗list] a ∈ As, netAddrFree a) ∗
+    ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x) init
+    body φ) : (∀ (v : val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 →
+    RealNotStuck e2 σ2) ∧ ∀ (v : val), v ∈ t2 → v.isPanic = false
 
 theorem adequate_of_unrecovered {t2 : List Expr} {P Q : Prop} (H : P ∧ Q ∧ ∀ (e2 : Expr), e2 ∈ t2 →
     ¬UnrecoveredPanic e2) : P ∧ Q ∧ ∀ (v : val), v ∈ t2 → v.isPanic = false

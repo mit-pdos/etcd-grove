@@ -48,9 +48,11 @@ abbrev StartPeriodicServer.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the member's name valid UTF-8, `bootPremise`'s
   -- condition on the initial cluster's names
   utf8Valid name →
-  lg ≠ null → 10 ≤ sint.Z period → ρ.rd.kv.cret = 0 →
+  10 ≤ sint.Z period → ρ.rd.kv.cret = 0 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       threadTok ∗
       -- (M2's item 15, stage B3) at `N` write tokens (`N + N` from M2 until then: `N` more, the
       -- compaction's write-back stock)

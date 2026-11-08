@@ -124,13 +124,14 @@ theorem MainPartition.wp_proof
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- `cfg := clusterConfig()`
   wp_apply wp_clusterConfig
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, in compaction mode
-  wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg true .none clusterCfg_ok Hbf Hlg Htb
+  wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg true .none clusterCfg_ok Hbf Htb
       Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide) (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #
@@ -271,7 +272,8 @@ theorem MainPartition.wp_proof
   iunfold srvKVInvs at Hinvs
   icases Hinvs with ⟨#Hkvi, -⟩
   -- `wcli, err := cluster3.NewClient(cfg, lg)`
-  wp_apply (wp_NewClient clusterCfg lg V clusterCfg_ok htb Hlg) as %wcl %werr Hwc
+  wp_apply (wp_NewClient clusterCfg lg V clusterCfg_ok htb) as %wcl %werr Hwc
+  · iframe #
   icases Hwc with (⟨%Hwerr, #Hwnc, -⟩ | %Hwfail)
   rotate_left
   · obtain ⟨Hwerr, -⟩ := Hwfail
@@ -375,7 +377,8 @@ theorem MainPartition.wp_proof
   wp_for IH
   wp_if_destruct
   · -- `cli, err := cluster3.NewClient(cfg, lg)`
-    wp_apply (wp_NewClient clusterCfg lg V clusterCfg_ok htb Hlg) as %cl %cerr Hc
+    wp_apply (wp_NewClient clusterCfg lg V clusterCfg_ok htb) as %cl %cerr Hc
+    · iframe #
     icases Hc with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
     rotate_left
     · obtain ⟨Hcerr, -⟩ := Hcfail

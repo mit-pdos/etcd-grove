@@ -18,7 +18,7 @@ sweep's disk budget): the Lean side below is a sketch, to be built later.
 | `isWalStorage`'s `Close` law (produces `walFiles`) | `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean:76-85`, given by `rnNewStorageOk` (`InvNodeStart.lean:172`) | premise (`Hprem`) |
 | `bootstrapRestartContract` (consumes `walFiles` through `srvFiles`, `InvRestart.lean:79`) | `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRestart.lean:563` | DRAFT premise; used only by `etcdstart/Restart.lean`'s `bootPremiseR` and the restart example's `restartCheck.spec`; no exported result |
 | `walPurgeRight` (taken by `Close`) | `WalRecs.lean:192` | opaque; `EtcdServer.purgeFile.spec` does not take it (plan item (5) not applied) |
-| `walBaseLb` | `WalRecs.lean` | sealed def; `storage.Release.spec` does not take it (plan item (4) not applied) |
+| `walBaseLb` | `WalRecs.lean` | sealed def; `storage.Release.spec` takes it since sweep repairs 1's W2 (2026-11-07; until then plan item (4) not applied) |
 
 ### The claims, in plain words
 
@@ -251,6 +251,10 @@ member's `bootOk` gives a second `pathOwn` of the stopped follower's file), and 
 10. **`Release` versus the records' base** (`walBaseLb`). `storage.Release.spec` does not take it (plan
     item (4) not applied); `ReleaseLockTo` only drops locks, the purge removes files; same as 9: latent
     until the restart contract is used.
+    **Repaired (sweep repairs 1, R1-1, W2, 2026-11-07):** `storage.Release.spec` takes `walBaseLb` of
+    the storage's WAL at the snapshot's index, from the `SaveSnap` before it (`rnDur_ownSnap_au`,
+    `rnDur_saveSnap_au` give it; the raft loop's reaches `applySnapshot` through the snapshot batch's
+    first `notifyc` payload, `rnApSnap`). Go: `examples/sweeprepairs/wal`, `TestW1W2WalPurge`.
 
 ## Not tried
 

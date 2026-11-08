@@ -23,12 +23,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `NewMaintenance(c)` of a client `New` builds (its connection, call options, configuration and
-logger, read-only: `clientCoreAt`): some value (the client's API, unused by the results). -/
+logger, read-only: `clientCoreAt`): a fresh `*maintenance` (`api := &maintenance{...}; return api`,
+`maintenance.go:114`), which `New` stores in the client's `Maintenance` field. (Sweep repairs 1, B5,
+2026-11-08: until then some value; `CheckClient`'s guard, `checkClientOk`, names it.) -/
 abbrev NewMaintenance.spec : Prop :=
   ∀ (c : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCoreAt c }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewMaintenance)) (Val #c))
-  {{ (v : GoInterface), RET #v; True }}
+  {{ (v : GoInterface), RET #v; ⌜∃ mp : Loc, mp ≠ null ∧
+      v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty) #mp⌝ }}
 
 end spec
 

@@ -740,6 +740,14 @@ def srvBeRO (d : mvcc.KBReal) : IProp GF :=
 instance srvBeRO_persistent (d : mvcc.KBReal) : Persistent (srvBeRO (GF := GF) d) := by
   unfold srvBeRO; infer_instance
 
+/-- (Sweep repairs 1, B4) **The server's backend's `ETCD_VERIFY` off** (`isBackend`'s; what
+`VerifyBackendConsistency` takes). -/
+theorem srvBeRO_envVerifyOff (d : mvcc.KBReal) : srvBeRO (GF := GF) d ⊢ envVerifyOff := by
+  iintro #H
+  iunfold srvBeRO at H
+  icases H with ⟨%Pk, #Hb⟩
+  iapply backend.isBackend_envVerifyOff $$ Hb
+
 /-- **The apply thread's part of the server's backend** (D22 receiver epochs, S7b, 2026-10-23;
 until then `NewServer` kept half of `s.be` read-only for good): half of `s.be` (the other half is
 `s.bemu`'s lock invariant's, `bemuP`), at the real backend `d` of the store's names `E.γ`, and a

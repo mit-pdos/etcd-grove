@@ -32,8 +32,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 
 theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
     newUserClient.spec (GF := GF) (hG := hG) := by
-  intro name pw lg V P Hlg Htb Hsz
-  wp_start as ⟨#Hce, #Hreg⟩
+  intro name pw lg V P Htb Hsz
+  wp_start as ⟨#Hzlg, #Hce, #Hreg⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []

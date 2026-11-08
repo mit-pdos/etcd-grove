@@ -85,6 +85,7 @@ axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
 axiom context.WithCancelValCtx.wp_proof
+axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom fmt.ErrorfWrap.wp_proof

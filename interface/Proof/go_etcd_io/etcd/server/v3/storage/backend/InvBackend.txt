@@ -410,6 +410,9 @@ theorem backend.dlReg_persistent (γ : backend.BNames) (Φ : GoString × GoStrin
 theorem backend.mapPart_timeless (cm : GoMap) (q : Rat) (M : GMap w64 Loc) : Timeless
     (backend.mapPart cm q M)
 
+theorem backend.isBackend_envVerifyOff (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF)
+    (b : Loc) : backend.isBackend γ P W Pk b ⊢ envVerifyOff
+
 def backend.wbOf [GoSemanticsFunctions] (t : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered go!"buf" t
 
@@ -695,7 +698,8 @@ def backend.isBackend (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp 
                                       (sync.isRWMutexGuard (backend.bF go!"mu" b) fun q =>
                                           typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
                                         backend.isDB db ∗
-                                          ⌜P.Wf⌝ ∗ ∃ path, backend.bDBAt γ db path ∗ backend.dbFile db path)
+                                          ⌜P.Wf⌝ ∗
+                                            (∃ path, backend.bDBAt γ db path ∗ backend.dbFile db path) ∗ envVerifyOff)
 
 def backend.tokPart (γ : backend.BNames) (q : Rat) : IProp GF :=
   if h : 0 < q then ghostVar γ.txa ⟨q, h⟩ () else iprop(True)

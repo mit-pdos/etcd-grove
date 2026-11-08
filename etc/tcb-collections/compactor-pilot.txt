@@ -70,6 +70,7 @@ axiom clockwork.realClock
 axiom clockwork.stampAt
 axiom clockwork.stampAt_persistent
 axiom context.WithValue.wp_proof
+axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfWrap.wp_proof

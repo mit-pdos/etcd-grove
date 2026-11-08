@@ -64,11 +64,12 @@ theorem Main.wp_proof
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- the cluster, its clients' watch environment unused
   wp_apply (wp_startCluster N id₁ id₂ id₃ ps ctxs boot lg [] Hbf
-      Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
+      Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
     $$ [Hstart Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)

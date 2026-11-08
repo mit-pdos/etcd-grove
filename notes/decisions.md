@@ -33668,3 +33668,303 @@ of a persistent premise, ask which reachable values it can take, not which value
 mind; instantiate it adversarially (the weakest `σ` the relation allows, `n = 0`), and check that a
 token meant to bound a window is consumed when the window closes. A probe of the intended reading is
 not evidence for the text.
+
+## `storage.Release` takes the WAL's base lower bound (W2), and the WAL names carry the WAL's location (2026-11-07 · sweep repairs 1, R1-1; the Scope (revision 3) approved by etcd-grove-82 under the user's delegation · branch `sweep-repairs-1`)
+
+**The defect.** `storage.Release.spec` (a trust-boundary axiom) took no fact about the WAL, so a
+`Release` above the records' base was provable, while Go's `ReleaseLockTo(i)` drops the locks of the
+segments before the one holding `i` and the purge then removes them: a later restart at the base
+would find its snapshot record gone (`notes/axiom-review/wal-tokens.md`, attack 10; Go:
+`examples/sweeprepairs/wal`, `TestW1W2WalPurge`: `Release(250)` above `b = 100`, the restart at `b`
+fails with `file not found which matches the snapshot index '100'`). This is item (4) of the WAL API
+plan (`WalApi.lean`'s header), not applied until now.
+
+**The repair.** `Release.spec` takes `walBaseLb (storage.walOf (mkOk #p)) (uint.nat md.Index')`. Its
+producers: the `SaveSnap` of the same snapshot that precedes each `Release` in etcd.
+- `EtcdServer.snapshot` (`server.go:2152` → `:2156`): `rnDur_ownSnap_au`'s COMM now gives it.
+- `applySnapshot` (`server.go:1116`): the raft loop's `SaveSnap` (`raft.go:257`, `rnDur_saveSnap_au`'s
+  COMM) comes before the snapshot batch's first `notifyc` send, which `applySnapshot` receives before
+  its `Release`. That send's payload, `True` until now, is the lower bound: `rnApSnap`'s
+  `isNotify2 γnc ap.notifyc' (walBaseLb γ.wal.loc idx) True`.
+- The law: `walRecs_saveSnap_baseLb` (`WalRecs.lean`, from `walSaveSnap_base_ge`).
+
+**The location.** The payload is stated where the raft wrapper is not at hand (`rnApSnap`, the
+apply side's specs), so the WAL names record it: `WalNames.loc`, pinned by `rnDurInv cl ν w`'s new
+conjunct `⌜ν.loc = w⌝` (`rnDur_alloc` allocates the names at `w`). `rnWalTokA_loc` turns
+`γ.wal.loc` into the storage's WAL for the apply thread (`ApplyAllSnap.lean`), the raft loop reads
+it off its `#Hdur`. The option of mirroring the base in a ghost counter of `rnDurInv` (`wal.md`'s
+(b)) was not taken: it adds a second copy of the base to keep in step. `applyAll.specSnapM` names
+the payload by `γn.wal.loc`, `applySnapshot.specSnapM` by the storage `stp` it already takes.
+
+**The open item of the review** ("a producer of `σ.b ≤ σ.commit` at `Close`"): `rnDur_take` already
+gives `σ.b ≤ v.l.length ≤ σ.commit` at the stop; nothing to add.
+
+## zap's logger vocabulary, `Check` at levels below `DPanicLevel`, and `bootstrap`'s contract over a zap logger (2026-11-07 · sweep repairs 1, R1-2: LG-1, the `Check`/`Write` restriction, L4; the Scope (revision 3) approved by etcd-grove-81/82 · branch `sweep-repairs-1`)
+
+**The defects** (STATUS, "Soundness bug: `bootstrapContract` covers a zero logger" and "Soundness
+bugs: ... zap's `Check`/`Write` at `PanicLevel`"). `bootstrapContract` covered every configuration
+with `cfg.Logger' ≠ null`, a zero `&zap.Logger{}` included, on which Go's `bootstrap` panics at its
+first log line: the closed `*_safe` theorems that start a server assumed a triple false of Go.
+`zap.Logger.Check` admitted every level and `CheckedEntry.Write` every non-nil entry, while `Write`
+of an entry at `PanicLevel` (on `zap.NewNop()` too) or at `DPanicLevel` under `Development()` panics.
+
+**The repair.**
+- `Spec/go_uber_org/zap/Defs.lean`: `zapLoggerOk l := ⌜l ≠ null⌝ ∗ □ zap.loggerRaw l` (persistent;
+  `zap.loggerRaw` opaque: a logger as zap's constructors build it, never written), and
+  `zapcore.zapEntry ce` (opaque, exclusive: an entry `Check` returned, not yet written).
+  `zapLoggerOk_ne_null` lets the later batches land top-down: a callee still asking `l ≠ null` gets it.
+- `zap.NewNop`'s post gives `zapLoggerOk l` (the only constructor with a spec; every closed theorem's
+  logger is `NewNop()`).
+- `Check` takes `⌜∃ w : w8, lvl = #w ∧ sint.Z w < 3⌝` (signed: `DebugLevel` is `W8 (-1)`, 255
+  unsigned; Debug through Error) and returns `⌜ce = null⌝ ∨ zapEntry ce`; `Write` consumes
+  `zapEntry ce`. Its one caller (`authStore.Authenticate`, `DebugLevel`) meets it by `decide`.
+  `Check`'s logger premise stays `l ≠ null` until LG-5.
+- L4: `bootCfgOk` loses `cfg.Logger' ≠ null`; both contracts' preconditions take
+  `zapLoggerOk cfg.Logger'` (an `IProp`, so it cannot stay in the `Prop`); `bootOk`'s and `bootOkR`'s
+  `#Hclg` give `zapLoggerOk lgc` (a stronger post of an assumed contract: no narrowing).
+- `NewServer.spec` takes `zapLoggerOk cfg.Logger'` in its precondition (until then the pure
+  `cfg.Logger' ≠ null →`); `clientCfgOk` carries `zapLoggerOk cfg.Logger'`; the examples' entry specs
+  (`etcdstart`, `cluster3`, the `auth`, `partition`, `restart`, `leasecatchup` starters and clients)
+  take `zapLoggerOk lg` in their preconditions, produced by `NewNop` in each `Main`.
+
+**Exported statements.** No closed theorem's text changes: their `Hprem` assumes `bootstrapContract`,
+whose precondition now asks more (a weaker hypothesis: the theorems say more, and the contract is now
+true of Go at the examples' logger). Interfaces: `etcdstart`'s (the starters' specs).
+
+**Deferred** (`questions.md` Q4): `openPre`'s logger to LG-3 (with `isBackend`; its producer at
+`applySnapshot` is the server's snapshot bundle, LG-2's), the raft node's logger in `bootOk`/`bootOkR`
+and `isSnapshotter`'s logger to LG-2/LG-4 with their consumers.
+
+**Go evidence.** `examples/sweeprepairs/zapcheck` (`TestCheck`: every level Debug..Panic on `NewNop`,
+`NewNop` with `Development()`, `zap.New(NopCore, Development())`: `Write` never panics at a level with
+`int8 < 3`; it panics at Panic, and at DPanic under `Development()`), `examples/sweeprepairs/logger`
+(`TestA1ZapZero`, `TestA2CheckedEntry`, `TestA3Family`, `TestB1Constructors`, `TestB2Cluster`), all
+passing (`/shared/tmp/sweep-repairs-1/logs/r12-go-rerun.log`).
+
+## `dataDirsAbsent`: the data directories, fresh, one directory each, untouched by anything else (2026-11-07 · sweep repairs 1, R1-4a: W3+W4; the Scope (revision 3) approved by etcd-grove-81/82, narrowing (a) approved by the user via etcd-grove-82 · branch `sweep-repairs-1`)
+
+**The defects** (STATUS, "Soundness bugs: `walDirsAbsent`'s wording ..."; axiom sweep batch 3,
+`notes/axiom-review/wal-tokens.md`, `alias-tokens.md`). `walDirsAbsent e Ds` was over the members'
+WAL directories: distinct only as strings (`/proc/self/cwd/x.etcd` aliases `x.etcd`), silent on a
+stale backend file (`bootstrap` with no WAL opens whatever `member/snap/db` is there and serves it),
+and its "no unverified code creates a WAL there" false of every run (the names-only WAL, snap,
+bbolt and `purgeFile` create, write and remove the files there).
+
+**The repair** (`Proof/runtime/Start.lean`): `dataDirsAbsent e Ds`, over data directories, with the
+Scope's four clauses (revision 3, with 81's nit: `fileutil.RemoveMatchFile` named in (3)):
+(1) one directory per string for the whole run, reached only lexically under `d` or
+`filepath.Abs(d)`, the working directory fixed; (2) absent or empty at start; (3) nothing but the
+operations with trust-boundary specs (and the `fileutil` helpers they run) touches a file there,
+their other files their own scratch; (4) pairwise disjoint. The token is `dataDirFresh dd`
+(`WalDir.lean`, renamed from `walDirFresh`); `startRights` gives one per directory of `Ds`;
+`wal.bootRes cfg := dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = ""⌝`; the starters' bundles
+hold `dataDirFresh (memberDataDir name)`, `memberDataDir name := name ++ ".etcd"`.
+`walFiles`, `pathOwn` and `walPurgeRight` keep their bodies: the clauses give them their meaning
+(`r2db-scope.md` §5, its owner to update).
+
+**Exported statements: narrowed** (the user's decision (a)). The 18 closed `*_safe` theorems that
+start a server, their `*_adequate`, and `etcdstart`'s generic adequacy theorems: `HDs` becomes
+`dataDirsAbsent prog ["X.etcd", ...]` (until then `walDirsAbsent prog [config.walDirOf "X.etcd" "",
+...]`). The 7 that took `HDsNd` (distinct names, unprovable through the opaque `walDirOf`) now
+prove it by `decide`. The trust base renames two axioms (`walDirsAbsent` → `dataDirsAbsent`,
+`walDirFresh` → `dataDirFresh`; `dataDirFresh_timeless`); its count is unchanged.
+
+**Go evidence** (`examples/sweeprepairs/wal`, `/shared/tmp/sweep-repairs-1/logs/r14a-go-rerun.log`):
+`TestW3Counterexample` (the `/proc/self/cwd` aliases violate (1), by resolved paths and
+`os.SameFile`), `TestW4StaleBackend` (a stale `member/snap/db` violates (2); the program over it
+serves the stale key), `TestW3W4Examples` (`putget`, `putget3`: the directories fresh at start,
+distinct, every file below the working directory and every open file inside exactly one). Clause
+(3)'s exceptions are from etcd-grove-82's recheck (`/shared/tmp/82-sr1-r2/`, `touch82`,
+`restart82`: `.touch`, `0.tmp`, `wal.tmp`, the db temp file).
+
+**Independent of R1-3's re-pin**: the fork change (`purgeFile` no longer purges `.snap.db`) only
+removes one of clause (3)'s writers; no file R1-4a edits is re-translated.
+
+## Numeric address literals (`hAsLit`) and `ETCD_VERIFY` off (`verifyEnvOff`, `envVerifyOff`) (2026-11-08 · sweep repairs 1, R1-4b: W5 + B4; the Scope (revision 3) approved by etcd-grove-81/82, narrowing (b) approved by the user via etcd-grove-82 · branch `sweep-repairs-1`)
+
+**W5, the defect.** `goose_adequacy_start` handed out `netAddrFree a`/`httpProtoFree a` per string,
+and `addrsUnclaimed` was per string, while Go binds and dials sockets: `localhost:p` resolves (to
+`127.0.0.1` or `[::1]`), a dial of it can reach a listener bound at `[::1]:p`, and a wildcard bind
+overlaps every address (`notes/axiom-review/alias-tokens.md`; `examples/sweeprepairs/wal`,
+`TestW5Counterexample`). **The repair:** `netAddrLit` (`Proof/net/InvNet.lean`, decidable: a
+canonical `d.d.d.d:p`, no wildcard host, port 1..65535, no leading zeros), a hypothesis
+`hAsLit : ∀ a ∈ As, netAddrLit a = true` of `goose_adequacy_start`, discharged by `decide` in every
+example (no closed theorem's text changes); `addrsUnclaimed`'s wording covers overlapping sockets.
+`TestW5ExamplesAddrs`: all 96 address literals of the examples are numeric and bind exactly their
+string.
+
+**B4, the defect.** The four trust-boundary specs `backend.ValidateCalledInsideApply`,
+`ValidateCalledOutSideApply`, `ValidateCalledInsideUnittest` and `VerifyBackendConsistency` returned
+unconditionally, while with `ETCD_VERIFY` set to `all`, `lock` or `assert` they panic outside the
+apply loop or on an inconsistent backend (`examples/sweeprepairs/b1`, `TestB4On`). **The repair:**
+`Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`: `verifyEnvOff e` (an axiomatized `Prop`, a
+hypothesis `HEnv` of each closed theorem that starts a server) and its persistent token
+`envVerifyOff` (`□ envVerifyOffTok`, axiomatized), which `goose_adequacy_start` gives (`startRights`,
+under `hEnv`). The four specs require it. It reaches them through:
+- `backend.isBackend` (and `isBackendNH`): a new last conjunct, `isBackend_envVerifyOff`; the lock
+  proofs take it from there, `applyAll`'s `VerifyBackendConsistency` from the server's backend
+  (`srvBeRO_envVerifyOff`);
+- its producers: `backend.newBackend`/`New` (precondition), `storage.openPre` (so `OpenBackend` and
+  `OpenSnapshotBackend` carry it), `bootstrapContract` and `bootstrapRestartContract`
+  (precondition, the Scope's "also in `bootstrapContract`'s precondition"), `NewServer.spec`
+  (`"#Hvoff"`), the snapshot path (`srvSnapRO`, `applySnapshot.specSnapM`'s precondition);
+- the examples: `etcdstart`'s start and fresh bundles (`memberStartRes`, `memberFreshRes`, each a
+  copy; `memberFreshRes_verify`), from `startRights`.
+
+**Exported statements: narrowed** (the user's decision (b)): the 18 closed `*_safe` theorems that
+start a server, their `*_adequate`, and `etcdstart`'s generic adequacy theorems gain
+`HEnv : verifyEnvOff prog`. Specs strengthened in their preconditions (not closed): `NewServer.spec`,
+`backend.New`/`newBackend`, `applySnapshot.specSnapM`, the four checks. Trust base: +2 axioms
+(`verifyEnvOff`, `envVerifyOffTok`); `goose_adequacy_start` restated (`hAsLit`, `hEnv`).
+
+**Not covered:** the restart bundle (`memberRestartRes`) does not carry `envVerifyOff`; the restart
+contract, which now takes it, is applied by no proof (DRAFT, R2d'b's): R2d'b gives it from the
+member's start bundle.
+
+## The fork's `purgeFile` keeps `.snap.db` files (F1) (2026-11-08 · sweep repairs 1, R1-3a; the user's option A via etcd-grove-82 · branch `sweep-repairs-1`)
+
+**The defect** (`nonissues/etcd-purge-snapdb-unopened.md`, `/shared/tmp/sweep-repairs-1/f1.md`):
+`EtcdServer.purgeFile`'s trust-boundary triple (post `True`, no resource) was false next to the
+snapshot directory's invariant `snapDirInv`: the purge deleted the oldest `.snap.db` files beyond
+five, which `snapDirInv` keeps (`backend.fileHolds`) until their removal facts, so `applySnapshot`'s
+open, proved not to fail, could fail (20 of 20 runs of the counterexample at 673da07c8).
+
+**The repair** (option A): the fork's `purgeFile` no longer purges `.snap.db` files
+(upamanyus/etcd@a4d2bb172 on `goose-lean`, pushed by the user 2026-11-08); `ReleaseSnapDBs` (through
+`storage.Release`) already removes the ones below an opened or taken snapshot. The etcd project is
+re-translated at that pin (`etc/goose.py`; only `Code/.../etcdserver.lean` changes: `maxSnapDBFiles`
+gone, line numbers), and the examples' `go.mod` replaces (`examples`, `examples/k8s/{compactor,etcd3}`)
+move to it; `goose.py --check` passes. `purgeFile.spec`'s text is unchanged (its docstring no longer
+says it purges snapshots); its WAL half is W1's.
+
+**Split from R1-3** (for etcd-grove-81): W1 (`walPurgeRight` through `purgeFile`, `Start`, `run`'s
+shutdown, `raftNode.stop`/`onStop`: a new invariant and `goWaited`'s split, about 300-400 lines) is
+R1-3b; L3 (`adjustTicks`/`purgeFile` take `srvLoggerOk s`) needs `srvLoggerOk`, whose producer is the
+server invariants' `zapLoggerOk` (LG-2), so it moves to LG-2.
+
+## B5: the default feature gate's specs, registered by `features`' init, with `Set(false)` and a persistent off witness; `CheckClient` of a constructed client (2026-11-08 · sweep repairs 1, B5, joint with k8s 7e's gate-state fact (Q7e-5); design approved by etcd-grove-81, `/shared/tmp/sweep-repairs-1/b5-r1.md` · branch `sweep-repairs-1`)
+
+**The defects** (axiom sweep batch 1, `notes/axiom-review/k8s-featureinit.md`): `util/feature`'s
+`DefaultFeatureGate_init` gave a gate whose `Enabled` answered any `bool` for any key (Go panics for
+an unregistered one); `DefaultMutableFeatureGate` was unlinked from it; `CheckClient` returned for
+any arguments (Go dereferences a nil client). 7e needs `Enabled(EtcdRangeStream)` to return the
+value `Set` gave.
+
+**The repair.**
+- `Proof/k8s_io/apiserver/pkg/util/feature/Gate.lean` (trust boundary): `k8sQueriedFeatures` (the
+  five keys etcd3 asks), `featureOff g s` (opaque, persistent: `Set(s=false)` succeeded) and
+  `featureGateOk g` (persistent): `Enabled(s)` returns some `b`, `false` under `featureOff g s`;
+  `Set(s ++ "=false")` returns `nil` with `featureOff g s`, or an error. Under the environment
+  assumption that nothing else changes the gate's set values, checked over the examples' compiled
+  closure (`b5-r1.md`, "The no-other-mutator check": no `SetFromMap`, `SetEmulationVersion`,
+  `OverrideDefault`, `DeepCopyAndReset`-and-replace, `featuregatetesting` or reassignment reachable).
+- `util/feature`'s initializers: `DefaultMutableFeatureGate_init` (new: a gate) and
+  `DefaultFeatureGate_init` (restated: the same gate); its fact `featureInit`: both variables hold
+  `GoInterface.ok g`.
+- `features`' `init` (`init_0_ok`, new; `etc/gen-init.py`'s new `custom_initfn` option, and `custom`
+  initializers gain `binder`/`pre`/`apply`): from `DefaultMutableFeatureGate ↦□ ok g`, gives
+  `featureGateOk g`; the package now imports `util/feature` (`features.toml`) and its fact is
+  `featuresInit`. The four other queried constants are translated (literals).
+- `storage/feature`'s `checkerInit` takes `checkClientOk ctx cl`: `cl` a `*kubernetes.Client` over a
+  `*clientv3.Client` holding, read-only, exactly the fields `CheckClient` relies on: the non-nil
+  `ctx`, the embedded `Maintenance` (a non-nil `*maintenance`) and the endpoints mutex `epMu`
+  (non-nil). (The first version guarded by `ctx` alone and argued that only `New` sets `Maintenance`;
+  etcd-grove-81's attack, `/shared/tmp/81-b5-attack`, refuted the argument: `Maintenance` is an
+  exported field any owner can nil, and a struct copy duplicates `ctx`; `CheckClient` of such a
+  client crashes in Go.) `isNewClient` gives them (`cx ≠ nil`, `clientCheckFields`;
+  `isNewClient_ctxOk`), from `newClient` and `NewMaintenance`'s strengthened post (a fresh
+  `*maintenance`, `maintenance.go:114`).
+
+**Trust base** (`etc/tcb-report.py`, 2026-11-08): new `util.feature.DefaultMutableFeatureGate_init`
+and `features.init_0_ok`; gone `util.feature.opaqueInitsOk` and `features.initFuncsOk` (their only
+items now have specs of their own); restated `DefaultFeatureGate_init`,
+`DefaultFeatureSupportChecker_init`, `NewMaintenance.wp_proof` (post strengthened). Count unchanged (809). `k8sfeature.featureOff_persistent` and
+the opaque `featureOff` are declared but reached by no root until 7e's `noStreaming` calls `Set` (then
++1). No closed theorem's text changes.
+
+**Go evidence** (`examples/sweeprepairs/b1/k8s`): `TestB5Registered`, `TestB5Counterexample`,
+`TestB5CheckClientReal`, `TestB5SetOff` (with 81's attacks (i)-(iii); a failing `Set` poisons later
+`Set`s, which the error disjunct covers): `b5-r1.md`, "Go evidence and the attacks".
+
+## B3: `http.Handle` of a literal path pattern and an accepted handler (2026-11-08 · sweep repairs 1, B3; the Scope (revision 3) approved by etcd-grove-81/82 · branch `sweep-repairs-1`)
+
+**The defect** (axiom sweep batch 1, `notes/axiom-review/http-handle.md`): `Handle_spec` took only a
+pattern not yet registered, while Go's `register` panics on an empty, unparsable or conflicting
+pattern (`/{x}` then `/{y}`; `/a` then `/%61`) and on a nil handler (including a nil `HandlerFunc`).
+
+**The repair** (`Proof/net/http/Boundary.lean`): `Handle_spec` takes `litPathPat pat` (non-empty,
+starting with `/`, no space, tab, `{` or `%`: literal segments, so distinct ones never conflict,
+under the 1.22 mux and `httpmuxgo121=1`) and `handlerRegOk h` (not nil, not a `HandlerFunc`);
+`handlerRegOk_ptr` (a pointer handler). `probing.NewHandler.spec`'s post gains `handlerRegOk`
+(`&httpHealth{}`). `rafthttp.Transport.Handler` (`TransportHandler.lean`), the only caller,
+discharges both: its four literal patterns by `decide`, its handlers from their constructors.
+
+**Exported statements:** none change. Trust base: `Handle_ok` and `probing.NewHandler.wp_proof`
+restated; count unchanged.
+
+**Go evidence** (`examples/sweeprepairs/b1`, `logs/b3-go.log`, 3 runs): `TestB3Counterexample`
+(each refuted case violates the premises and panics), `TestB3Rafthttp` (the four patterns and
+handlers meet them), `TestB3RandomLiteral` and `TestB3RandomLiteralMux121` (2000 muxes, 55405
+registrations of distinct literal patterns, 0 panics, both muxes).
+
+## S3: a stream reader may use `p` as scratch; S4: the committed log's cluster versions as `clusterImageOk_restModel`'s premise (2026-11-08 · sweep repairs 1, S3 + S4; the Scope (revision 3) approved by etcd-grove-81/82 · branch `sweep-repairs-1`)
+
+**S3** (`notes/axiom-review/snap-stream.md`, Scratch). `streamReaderOk` (`Proof/net/http/Boundary.lean`)
+claimed a `Read` leaves `p` past `n` unchanged, false of Go's `io.Reader` contract (`io/io.go:59`: the
+whole of `p` is scratch) and of the snapshot body's exact-size reader (`ErrExpectEOF` after reading
+into `p`), which `io.MultiReader`'s axiom post passes on. Now the bytes past `n` are some `zs` of the
+same length. The definition is weaker: `io.MultiReader`'s axiom claims less, `bodyStream_streamReaderOk`
+derives it from `bodyStreamRead_spec` (which keeps its strong clause: net/http's server body copies
+exactly `n` bytes), and no consumer relied on the tail (`snap.md`, S3's table). No exported statement
+changes. Go: `TestS3Scratch` (the old clause false, the new true).
+
+**S4** (`notes/axiom-review/membership-alarm.md`, attack 8). `membership.clusterImageOk_restModel`'s
+argument that `Recover`'s `MustDetectDowngrade` passes rested on "only the monitor proposes
+`ClusterVersionSet`", not a premise, so the statement was stronger than its argument. Now it takes
+`clusterVerLogOk L'` (`InvRest.lean`: every committed `ClusterVersionSet` is `semverValid` and
+`semverAtMostServer`, and none is a `DowngradeInfoSet`), which the four callers get from the KV
+invariant's workload fact (`kv_log_verOk`, `kv_log_verOkOn`: `logShape`'s `rqOk`, transferred to the
+committed prefix by `srv_entry_transfer`; pure steps `clusterVer_of_rqShape`,
+`clusterVerEntryOk_of_entryShape(On)`). No exported statement changes. Go: `TestS4ForgedVersion`
+(the premise false exactly at the versions `MustDetectDowngrade` panics on).
+
+Trust base: `io.MultiReader`'s axiom (weaker by its definition) and `clusterImageOk_restModel`
+(a premise more) restated; count unchanged.
+
+## S1: `snap.NewMessage` takes its reader's close contract; S2: the snapshot's size below `2^62`, from `fileHolds` (2026-11-08 · sweep repairs 1, S1 + S2; the Scope (revision 3) and etcd-grove-81's choice A' for S2 · branch `sweep-repairs-1`)
+
+**S1** (`notes/axiom-review/snap-stream.md`, NilReader and HandOver). `snap.NewMessage`'s axiom let
+`Message.CloseWithError` and the wrapper's `Close` return for any reader: false for a nil reader (a nil
+dereference) and for a pipe's reader before the hand-over `T` (the writer's `Write` then returns
+without `T` coming back). New `io.rcCloseOk r` (`Proof/io/Defs.lean`: `r` non-nil, its `Close` returns
+from any goroutine, any number of times); `io.Pipe`'s wand gives it with `readerStreams` (for `T`),
+`newSnapshotReaderCloser`'s post passes it on, and `NewMessage` takes it. `CloseWithError.spec` and
+`fields.spec` are unchanged: true of every `msgIs`, which only `NewMessage` makes.
+
+**S2** (`snap-stream.md`, NegativeSize and its overflow variant). `NewMessage` takes `0 ≤ sz < 2^62`, so
+`TotalSize = int64(proto.Size(rs)) + sz` does not overflow (with `proto.Size(rs) < 2^62`, an assumption
+of `NewMessage`'s axiom) and is not negative, as `fields` states. Its producer is
+`backend.snapshot.Size`'s post, now `0 ≤ n < 2^62`. **How the bound is carried (81's choice A', in
+place of the Scope's "in `isBackend`").** A token in `isBackend` would reach `Size` (whose caller has
+only `srvBeSnapOk` and the opaque `snapOpenQ`) only through `bbolt.Open_kv`, `backend.Snapshot`,
+`srvBeSnapOk` and `bootOk` as well, and would rest on the same fact: bbolt v1.5.0 does not check the
+meta's high-water mark against the file when it opens it (`db.go:456-560`), so what excludes a forged
+file is the opener's premise `fileHolds path D`, whose verified definition
+(`Spec/go_etcd_io/bbolt/Api.lean`) states the file is below `2^62` bytes and the high-water mark times
+the page size at most its length. So `Size`'s axiom docstring argues the bound from `fileHolds` (every
+`snapRO` comes from `Snapshot` of an `isBackend`, whose database was opened from a `fileHolds` file), with
+the caveat that the backend's `fileHolds` (`InvBbolt.lean`) is an axiom, linked to the verified bbolt's
+definition by that argument, not by a proof. The bound is `2^62`, not `MaxMapSize = 2^48`, which bbolt
+checks only when it grows a mapping. **The residual** (Scope: the raft law "a `MsgSnap` carries no
+entries" if it costs about one session, else a documented gap): **a documented gap.** The law would
+not remove the assumption `proto.Size(rs) < 2^62`, which also counts the message's context and the
+snapshot metadata's `ConfState`, and it is a change to raft's API vocabulary (`SentMsgShape`, all of
+raft's senders and the server stack rebuilt) while the per-type branch re-freezes. The assumption
+stays in `NewMessage`'s axiom docstring (etcd's merged message measured at 16-67 bytes).
+
+No exported statement changes (no `Results`/`Adequacy*`/`MainLinked` mentions these specs).
+Trust base: `io.Pipe`, `snap.NewMessage` and `backend.snapshot.Size` restated (the first and last
+claim more, the second assumes more), count unchanged. Go (`examples/sweeprepairs/snap`):
+`TestS1NilReader`, `TestS1HandOver`, `TestS2NegativeSize` (the premises false exactly at the
+counterexamples), `TestRealPathOneMember` (every premise held on etcd's path, 960 runs per the Scope's
+20 processes; rerun once 2026-11-08).

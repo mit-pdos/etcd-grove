@@ -68,6 +68,7 @@ axiom bbolt.Tx.Stats_kv.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
+axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof

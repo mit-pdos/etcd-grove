@@ -311,6 +311,22 @@ def restEntry [GooseExts] (c0 : w64) (m : EntryModel) (r : apply.RestM) : apply.
     | some cc => ccRest (decide (uint.Z c0 < uint.Z m.index)) cc r
     | none => r
 
+/-- (Sweep repairs 1, S4) **A committed entry's cluster requests are ones `Recover` accepts**: a
+normal entry with data decodes, if at all, to a request whose cluster version, if set, parses and is
+not above the server's (`semverValid`, `semverAtMostServer`: `Recover`'s `MustDetectDowngrade`
+panics above it; `restAfter` stores any set `clusterVersionSet`), and which is no
+`DowngradeInfoSet` (no downgrade record is stored). -/
+def clusterVerEntryOk [GooseExts] (m : EntryModel) : Prop :=
+  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
+    (∀ v, rq.clusterVersionSet = some v → apply.semverValid v ∧ apply.semverAtMostServer v) ∧
+    apply.dispatchKind rq ≠ .downgradeInfoSet
+
+/-- (Sweep repairs 1, S4; `notes/axiom-review/membership-alarm.md`, attack 8) **Every committed
+entry's cluster requests are ones `Recover` accepts** (`clusterVerEntryOk`). The KV invariant's
+workload fact gives it of a committed log (`kv_log_verOk`, `kv_log_verOkOn`: `logShape`'s `rqOk`,
+which the monitors' proposals meet, `monitorReq`). -/
+def clusterVerLogOk [GooseExts] (L : List EntryModel) : Prop := ∀ m ∈ L, clusterVerEntryOk m
+
 /-- **The rest buckets and members at the committed log `L`** (see the file header). -/
 def restModel [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) : apply.RestM :=
   L.foldl (fun r m => restEntry c0 m r) (restBoot bootLog)

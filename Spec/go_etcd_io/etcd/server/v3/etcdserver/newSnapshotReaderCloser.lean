@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
+public import Proof.io.Defs
 
 @[expose] public section
 
@@ -28,7 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `newSnapshotReaderCloser(lg, sp)`, of a non-nil logger and half of a snapshot open over bbolt's
 committed data `D` (`snapOpenQ`, consumed: the goroutine streams it, then closes it): a reader
 whose complete streams are bbolt images of `D` (`readerStreams`, the transport's `SendSnapshot`
-takes it), given for the other half (the caller reads the snapshot's `Size` first: the pipe's
+takes it) whose `Close` returns (`io.rcCloseOk`, which `snap.NewMessage` takes; sweep repairs 1,
+S1, 2026-11-08), both given for the other half (the caller reads the snapshot's `Size` first: the pipe's
 hand-over, `Proof/io/Defs.lean`). The goroutine writes the snapshot into the pipe (`WriteTo`),
 closes the pipe's writer with `WriteTo`'s error (so the reader's stream ends in `io.EOF` only after
 a complete image), which hands it the other half, and closes the whole snapshot; it does not
@@ -44,7 +46,7 @@ abbrev newSnapshotReaderCloser.spec : Prop :=
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp)))
   {{ (rc : GoInterface), RET #rc; threadTok ∗
       (backend.snapOpenQ sp D γ (1 : Qp).half -∗
-        backend.readerStreams rc (fun bs => backend.boltImage bs D)) }}
+        backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗ io.rcCloseOk rc) }}
 
 end spec
 

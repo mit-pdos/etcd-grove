@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import Proof.go_etcd_io.raft.v3.InvPb
+public import Proof.io.Defs
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 @[expose] public section
@@ -26,14 +27,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `snap.NewMessage(ml, rc, sz)` of a read-only raft message `ml` (`proto.Size` reads it): a
+/-- `snap.NewMessage(ml, rc, sz)` of a read-only raft message `ml` (`proto.Size` reads it) and a
+reader `rc` whose `Close` returns (`io.rcCloseOk`: the message's `CloseWithError` and its wrapper's
+`Close` close it; sweep repairs 1, S1, 2026-11-08) of a size `sz` in `[0, 2^62)` (S2: `TotalSize`
+does not overflow): a
 fresh `*snap.Message` `m` of `ml` and `rc` (`msgIs`, read-only for good), its `TotalSize` field
 read-only at some value (`proto.Size(ml) + sz`, which the sender only logs), and its `closeC`, a
 fresh channel of booleans (`msgCloseC`) whose receives carry nothing (`isChanBag` at `True`: the
 transport's `CloseWithError` sends on it once, its success). -/
 abbrev snap.NewMessage.spec : Prop :=
   ∀ (ml : Loc) (st : MsgSt) (rc : GoInterface) (sz : w64),
-  {{ msgOwn (GF := GF) ml DFrac.discard st }}
+  {{ msgOwn (GF := GF) ml DFrac.discard st ∗ io.rcCloseOk rc ∗
+      ⌜0 ≤ sint.Z sz ∧ sint.Z sz < 2 ^ 62⌝ }}
     (App (App (App (Val (@! _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.NewMessage))
       (Val #ml)) (Val #rc)) (Val #sz))
   {{ (m : Loc), RET #m;

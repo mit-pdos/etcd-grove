@@ -27,7 +27,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- `s.Size()` of a share of an open snapshot: some number (the merged message's size field, which
+/-- `s.Size()` of a share of an open snapshot: some number in `[0, 2^62)` (sweep repairs 1, S2,
+2026-11-08: the database's file size bound, `fileHolds`; see the axiom's docstring) (the merged message's size field, which
 the sender only logs and the transport's exact-size reader checks the stream against), the share
 given back (`Size` only reads; after `Close` it would dereference the transaction's nil `meta`). -/
 abbrev backend.snapshot.Size.spec : Prop :=
@@ -35,7 +36,7 @@ abbrev backend.snapshot.Size.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       snapOpenQ sp D γ q }}
     (App (Val (sp @!! go.GoType.PointerType snapshot.ty @!! go!"Size")) (Val #()))
-  {{ (n : w64), RET #n; snapOpenQ sp D γ q }}
+  {{ (n : w64), RET #n; snapOpenQ sp D γ q ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 62⌝ }}
 
 end spec
 
