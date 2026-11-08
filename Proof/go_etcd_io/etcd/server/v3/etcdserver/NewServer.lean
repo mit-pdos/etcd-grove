@@ -838,11 +838,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   have HstN := backend.rdStockN_val
   have hsv : mvcc.api.storageVal (mvcc.api.etcdStorage ({ d with cm := true } : mvcc.KBReal)) =
       srvBeIface d.be := mvcc.api.etcdStorage_val _
+  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨by omega⟩
   have hNew := fun c r0 => h26 cfg.Logger' (lease.lessorIface lp) c
     (mvcc.api.etcdStorage ({ d with cm := true } : mvcc.KBReal)) (batchLockInv γA (metaTM d.γB d.P))
     γl r0
   simp only [hsv] at hNew
-  wp_apply (hNew _ _ Hcbl (by omega)) $$ [HstoF Hlrd Hro]
+  wp_apply (hNew _ _ Hcbl) $$ [HstoF Hlrd Hro]
     as %ws ⟨%γm, %Hγl, #HisKV, Hst0, Hopn, HmB, Hrds, Hrdat⟩
   · iframe #; iframe HstoF Hlrd Hro
   clear hNew hsv

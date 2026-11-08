@@ -930,11 +930,12 @@ progress request's read) holds one of the backend's counted reader slots, of whi
 pool): the store's own (the loops', the job's, the compactor's, the writer's) for good, a client's
 call's for a reader token, which also carries the reader's slots of the store's locks (2026-11-07:
 no thread token, and no bound on the threads; until then `threadBound ≤ mvccReaderN`, the review
-of round 13's decisions, D1). -/
+of round 13's decisions, D1). The receipts' bound is an instance (`notes/bounds-plan.md`, B1), as
+the internal `mvcc.New`'s. -/
 abbrev New.spec : Prop :=
-  ∀ (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (B : MvccStorage) (Pk : IProp GF)
-    (γl : GName) (rd0 : GoFunc),
-  batchLimitOk cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 → 
+  ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (B : MvccStorage)
+    (Pk : IProp GF) (γl : GName) (rd0 : GoFunc),
+  batchLimitOk cfg.CompactionBatchLimit' →
   {{ pkgInit ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       mvccStorageFor B Pk mvccStart.log mvccStart.crev false ∗
@@ -951,9 +952,9 @@ abbrev New.spec : Prop :=
 /-- **`mvcc.NewStore(lg, be, le, cfg)`**: as `New`, a store without watchers (its open token keeps
 the tickets of the two readers a watchable store's loops hold, so that `Close` gives as much back). -/
 abbrev NewStore.spec : Prop :=
-  ∀ (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (B : MvccStorage) (Pk : IProp GF)
-    (γl : GName) (rd0 : GoFunc),
-  batchLimitOk cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 → 
+  ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (B : MvccStorage)
+    (Pk : IProp GF) (γl : GName) (rd0 : GoFunc),
+  batchLimitOk cfg.CompactionBatchLimit' →
   {{ pkgInit ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       mvccStorageFor B Pk mvccStart.log mvccStart.crev false ∗

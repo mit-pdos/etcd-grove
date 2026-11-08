@@ -170,7 +170,7 @@ theorem runChecks.wp_proof
     unfold mvcc.batchLimitOk mvcc.rangeLimitMax
     exact ⟨by decide, by decide⟩
   wp_apply (wp_mNew lg _ _ (etcdStorage (rcKB γB b gx bc.BatchLimit')) iprop(True) γl func.nil
-      hbl (by omega)) $$ [Hsf Hlrd1 Hrdo]
+      hbl) $$ [Hsf Hlrd1 Hrdo]
     as %wsl ⟨%γk, %Hγl, #Hkv, Hσ, Hopn, Hmb, Hrdrs, %rd, Hrdo, Hdel⟩
   · iframe Hsf Hlrd1 HisL Hrdo
   (try wp_auto)

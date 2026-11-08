@@ -951,7 +951,8 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
     with ⟨Hsto, Hrest, Hrt1, Hrt2⟩
   · iframe Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos
   rw [← mvcc.api.etcdStorage_val d]
-  iapply (mvcc.api.mvccApi_NewStore_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0 hcfg hrb)
+  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
+  iapply (mvcc.api.mvccApi_NewStore_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0 hcfg)
     $$ [Hsto Hlrd Hro]
   · iframe Hpkg Hbpkg Hsch Hsto Hlrd Hle Hro
   inext
@@ -1008,7 +1009,8 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     with ⟨Hsto, Hrest, Hrt1, Hrt2⟩
   · iframe Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos
   rw [← mvcc.api.etcdStorage_val d]
-  iapply (mvcc.api.mvccApi_New_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0 hcfg hrb)
+  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
+  iapply (mvcc.api.mvccApi_New_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0 hcfg)
     $$ [Hsto Hlrd Hro]
   · iframe Hpkg Hbpkg Hsch Hsto Hlrd Hle Hro
   inext

@@ -76,7 +76,8 @@ theorem New.wp_proof
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (hWr : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro lg le cfg B Pk γl rd0 hcfg hrb
+  intro hrbI lg le cfg B Pk γl rd0 hcfg
+  have hrb : receiptBound GF ≤ 2 ^ 48 := hrbI.receiptBound_le
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, Hfor, Hlrd, #Hle, Hro⟩ HΦ
   iunfold mvccStorageFor at Hfor
   icases Hfor with ⟨%bk, %D, %Hf, #Hrc, #Hb, #Hsz, Hv, Hdl, Hfk, Hsr, Hrs, Hrg, Hw1, Hw2, #Hsup,
@@ -95,7 +96,6 @@ theorem New.wp_proof
   imod ghost_map_alloc_empty (K := w64) (V := Log) (GF := GF) with ⟨%γok, Hok0⟩
   ihave Hrts := bkRTx_of_rdToks bk.γB bk.P bk.be nReaders $$ [Hrs Hopen]
   · iframe Hrs Hopen
-  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
   have hsv : storageVal (bk : MvccStorage) =
       interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
         #bk.be := rfl
