@@ -361,7 +361,11 @@ def prefixClosed (Pre : List w8 → Prop) : Prop := Pre [] ∧ ∀ a b, Pre (a +
 /-- **A reader of a stream in `Pre` and `Φ`** (persistent, D42): its `Read` from a state `Src r`
 (`r` read so far; `io.EOF`'s value `e`) reads `ys` with `r ++ ys` in `Pre`, and returns `EOF` only
 at a complete stream, in `Φ`. The contract of a streamed body's reader on either side of the
-connection (`streamHas`, `bodyStream_streamReaderOk`), and of a reader wrapping one. -/
+connection (`streamHas`, `bodyStream_streamReaderOk`), and of a reader wrapping one. (Sweep repairs
+1, S3, 2026-11-08) The bytes of `p` past `n` are unspecified: Go's `io.Reader` lets a `Read` use all
+of `p` as scratch space during the call (`io/io.go:59`), and the snapshot body's exact-size reader
+reads into `p` and then returns `0, ErrExpectEOF`, which `MultiReader` passes on; until then the
+tail was claimed unchanged (`notes/axiom-review/snap-stream.md`, Scratch). -/
 def streamReaderOk (rd : GoInterface) (Src : List w8 → IProp GF) (Pre Φ : List w8 → Prop)
     (e : GoInterface) : IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜rd = GoInterface.ok ri⌝ ∗
@@ -369,8 +373,9 @@ def streamReaderOk (rd : GoInterface) (Src : List w8 → IProp GF) (Pre Φ : Lis
       {{ Src r ∗ p ↦* xs ∗ ioEOF e }}
         (App (Val #(methods ri.ty go!"Read" ri.v)) (Val #p))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-          ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ Pre (r ++ ys) ∧ (err = e → Φ (r ++ ys))⌝ ∗
-          p ↦* (ys ++ xs.drop ys.length) ∗ Src (r ++ ys) }}))
+          ∃ ys zs : List w8, ⌜ys.length = sint.nat n ∧ zs.length = xs.length - ys.length ∧
+            Pre (r ++ ys) ∧ (err = e → Φ (r ++ ys))⌝ ∗
+          p ↦* (ys ++ zs) ∗ Src (r ++ ys) }}))
 
 instance streamReaderOk_persistent (rd : GoInterface) (Src : List w8 → IProp GF)
     (Pre Φ : List w8 → Prop) (e : GoInterface) : Persistent (streamReaderOk rd Src Pre Φ e) := by
@@ -1048,7 +1053,13 @@ theorem bodyStream_streamReaderOk (hR : bodyStreamRead_spec (GF := GF)) (rd : Go
     · ipureintro; rfl
     iintro !> %r %p %xs %Ψ !> ⟨Hs, Hp, #He⟩ HΨ
     iapply (hR _ ri Pre Φ r p xs e rfl) $$ [$Hs $Hp $He]
-    iexact HΨ
+    -- (sweep repairs 1, S3) the strong post (the tail unchanged) gives the weaker one
+    iintro !> %n %err ⟨%ys, %Hy, Hp, Hs⟩
+    iapply HΨ
+    iexists ys, xs.drop ys.length
+    iframe
+    ipureintro
+    exact ⟨Hy.1, List.length_drop .., Hy.2⟩
 
 end defs
 

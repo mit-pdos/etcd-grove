@@ -375,6 +375,54 @@ theorem kv_log_plainOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   · intro m _ hd _ h; exact absurd hd h
   · intro m ht _ h0; rw [ht] at h0; exact absurd h0 (by decide)
 
+/-- (Sweep repairs 1, S4) **An entry of a good shape in the mode `on` has cluster requests `Recover`
+accepts** (`rqShape .none`'s, or an admitted admin request, whose kinds are neither). -/
+theorem clusterVerEntryOk_of_entryShapeOn (m : EntryModel) (h : entryShapeOn m) :
+    clusterVerEntryOk m := by
+  intro ht hd rq hdec
+  rcases h.1 ht with h0 | ⟨rq', hd', -, hs⟩
+  · exact absurd h0 hd
+  rw [hdec] at hd'
+  cases hd'
+  rcases hs with hs | ha
+  · exact clusterVer_of_rqShape .none rq hs
+  · constructor
+    · intro v hv
+      have hk : apply.dispatchKind rq = .clusterVersionSet := by simp [apply.dispatchKind, hv]
+      simp only [apply.adminKindOk, hk] at ha
+    · intro hk
+      simp only [apply.adminKindOk, hk] at ha
+
+/-- (Sweep repairs 1, S4) **The committed log's cluster requests are ones `Recover` accepts, in the
+mode `on`** (`kv_log_verOk`'s, of the mode-on KV invariant's `logShapeOn`). -/
+theorem kv_log_verOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (B : List EntryModel) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
+      ⌜clusterVerLogOk B⌝ := by
+  iintro #Hinv #Hr #HB
+  iunfold kvInvOn at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+  imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    L B $$ Hr HL HB with ⟨HL, %Hp⟩
+  ihave %HBi := srvRLogLb_idx γ B $$ HB
+  ihave %Hsh : iprop(⌜logShapeOn L⌝) $$ []
+  · ihave #Hw' := Hw
+    iunfold kvWorkOn at Hw'; icases Hw' with ⟨%h, -⟩; ipureintro; exact h.1
+  imod Hclose $$ [HL Hσ Hh] with -
+  · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+  imodintro
+  ipureintro
+  refine srv_entry_transfer γ.ai0 B L clusterVerEntryOk ?_ ?_ ?_ HBi Hp.2.2
+    (fun m hm => clusterVerEntryOk_of_entryShapeOn m (Hsh m hm))
+  · intro m m' he h ht hd rq hdec
+    have h1 := congrArg LogEntry.type he
+    have h2 := congrArg LogEntry.data he
+    simp only [EntryModel.toLE] at h1 h2
+    exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
+  · intro m _ hd _ h; exact absurd hd h
+  · intro m ht _ h0; rw [ht] at h0; exact absurd h0 (by decide)
+
 /-- **Every conf change of a committed prefix is one the server's `applyConfChange` takes**
 (`kv_log_ccOk`'s, of the mode-on KV invariant's workload facts). -/
 theorem kv_log_ccOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
@@ -478,6 +526,8 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     · exact h
     · have := h.length_le; omega
   imod kv_log_ccOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hcc
+  -- (sweep repairs 1, S4) the committed log's cluster requests
+  imod kv_log_verOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hver
   imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hpl
   -- the cluster's in-memory members, from the rest resource
   rw [hRO]
@@ -495,7 +545,8 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
     intro m hm ht
     exact ccPolOk_static _ _ (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
-    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' _ (fun _ => rfl) $$ Hrc HA'' Hmem
+    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc'
+    (by rw [hpre0, List.nil_append]; exact Hver) _ (fun _ => rfl) $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
   -- the image's clauses at the member's names
   obtain ⟨⟨r, hkI, hr⟩, hci, htm, hrest, hauth, hwf⟩ := himA
