@@ -29,20 +29,22 @@ theorem appendHist.wp_proof
     appendHist.spec (GF := GF) (hG := hG) := by
   intro h hs s g
   wp_start as ⟨#Hh, #Hs⟩
-  wp_auto
-  wp_apply wp_histLen $$ [$Hh]
   iapply wp_fupd
   wp_auto
-  rename_i hp
+  wp_apply wp_histLen $$ [$Hh]
+  (try wp_auto)
   ipersist «$r0»
   imodintro
   iapply HΦ
-  iapply (histOwn_snoc hp hs g).2
-  iexists _
-  iframe
-  ipureintro
-  simp only
-  word
+  iapply (histOwn_snoc _ hs g).2
+  iexists ⟨s, W64 (hs.length : Int) + W64 1, h⟩
+  isplitl [«$r0»]
+  · iexact «$r0»
+  isplit
+  · iexact Hs
+  isplit
+  · ipureintro; simp only; word
+  · iexact Hh
 
 end proof
 

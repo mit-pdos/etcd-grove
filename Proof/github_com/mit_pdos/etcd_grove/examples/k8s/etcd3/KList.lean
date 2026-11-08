@@ -157,6 +157,16 @@ def histAtL (hs : List GSt) (r : w64) : GSt := ((hs.take (uint.nat r)).getLast?)
 def advanceL (h : HSt) (st : GSt) : HSt :=
   if st.rv ≠ h.st.rv then ⟨st, h.hist ++ [st]⟩ else ⟨st, h.hist⟩
 
+theorem histAtL_nil (r : w64) : histAtL [] r = zSt := by simp [histAtL]
+
+theorem histAtL_snoc_le (l : List GSt) (s : GSt) (r : w64) (h : uint.nat r ≤ l.length) :
+    histAtL (l ++ [s]) r = histAtL l r := by
+  unfold histAtL; rw [List.take_append_of_le_length h]
+
+theorem histAtL_snoc_gt (l : List GSt) (s : GSt) (r : w64) (h : l.length < uint.nat r) :
+    histAtL (l ++ [s]) r = s := by
+  unfold histAtL; rw [List.take_of_length_le (by simp; omega)]; simp
+
 /-- The store a list of `x` at the requested revision `req` reads. -/
 def listStL (x : Input) (h : HSt) (req : w64) : GSt :=
   if pastReadL x req then histAtL h.hist req else h.st
