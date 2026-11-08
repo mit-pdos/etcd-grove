@@ -234,6 +234,16 @@ theorem Input_intoVal_inj : Function.Injective (intoVal (V := Input)) := by
     (Input.TypeAssumptions.get_Limit x) (Input.TypeAssumptions.get_Limit y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
     (Input.TypeAssumptions.get_Client x) (Input.TypeAssumptions.get_Client y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (Input.TypeAssumptions.get_WKey x) (Input.TypeAssumptions.get_WKey y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (Input.TypeAssumptions.get_SendInit x) (Input.TypeAssumptions.get_SendInit y) h))
+  have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
+    (Input.TypeAssumptions.get_Bookmarks x) (Input.TypeAssumptions.get_Bookmarks y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (Input.TypeAssumptions.get_Behavior x) (Input.TypeAssumptions.get_Behavior y) h))
+  have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
+    (Input.TypeAssumptions.get_Skip x) (Input.TypeAssumptions.get_Skip y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in
@@ -270,6 +280,10 @@ theorem Output_intoVal_inj : Function.Injective (intoVal (V := Output)) := by
     (Output.TypeAssumptions.get_HasRemaining x) (Output.TypeAssumptions.get_HasRemaining y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
     (Output.TypeAssumptions.get_Remaining x) (Output.TypeAssumptions.get_Remaining y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (Output.TypeAssumptions.get_WEvents x) (Output.TypeAssumptions.get_WEvents y) h))
+  have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
+    (Output.TypeAssumptions.get_WFailed x) (Output.TypeAssumptions.get_WFailed y) h))
   cases x; cases y; simp_all
 
 include sem package_sem in

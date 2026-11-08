@@ -493,6 +493,15 @@ type Input struct {
 	SelApp         string
 	Limit          int64
 	Client         int
+	// (7f) a watch (KWatch): of the store key WKey (recursive if Recursive), from the resource
+	// version MinRV, SendInitialEvents nil (0), false (1) or true (2), with AllowWatchBookmarks
+	// Bookmarks, the selectors as a List's, consumed as Behavior says; or none at all (Skip: the
+	// unary traffic is over)
+	WKey      string
+	SendInit  int
+	Bookmarks bool
+	Behavior  int
+	Skip      bool
 }
 
 // The kinds of error an output carries (Output.Err).
@@ -536,6 +545,10 @@ type Output struct {
 	Continue     string
 	HasRemaining bool
 	Remaining    int64
+	// (7f) a watch's events, encoded as a plain value (encodeWEvents), or that its Watch call
+	// failed (the client's error) or was skipped
+	WEvents string
+	WFailed bool
 }
 
 // The store's keys: Prefix + "/objs/" + key (the Model's Prefix and the store's resource prefix).
@@ -1115,7 +1128,8 @@ func outEqual(a, b Output) bool {
 	return a.Err == b.Err && a.ErrKey == b.ErrKey && a.ErrRV == b.ErrRV && a.Namespace == b.Namespace &&
 		a.Name == b.Name && a.UID == b.UID && a.Value == b.Value && a.Node == b.Node &&
 		a.App == b.App && a.RV == b.RV && a.Items == b.Items && a.ListRV == b.ListRV &&
-		a.Continue == b.Continue && a.HasRemaining == b.HasRemaining && a.Remaining == b.Remaining
+		a.Continue == b.Continue && a.HasRemaining == b.HasRemaining && a.Remaining == b.Remaining &&
+		a.WEvents == b.WEvents && a.WFailed == b.WFailed
 }
 
 func inputEqual(a, b Input) bool {

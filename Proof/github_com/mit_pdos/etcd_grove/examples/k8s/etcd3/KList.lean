@@ -130,9 +130,10 @@ def listOutL (x : Input) (st : GSt) (s : ListModel.LState w8 Obj) (prepared : Go
     if encOkL key pfx then
       ⟨W64 0, [], 0, [], [], [], [], [], [], 0, encItemsL s.items.reverse, st.rv,
         encL key pfx st.rv, predEmptyL x,
-        if predEmptyL x then W64 (s.total : Int) - x.Limit' else 0⟩
+        if predEmptyL x then W64 (s.total : Int) - x.Limit' else 0, [], false⟩
     else otherL
-  else ⟨W64 0, [], 0, [], [], [], [], [], [], 0, encItemsL s.items.reverse, st.rv, [], false, 0⟩
+  else ⟨W64 0, [], 0, [], [], [], [], [], [], 0, encItemsL s.items.reverse, st.rv, [], false, 0, [],
+    false⟩
 
 /-! ## The history -/
 
