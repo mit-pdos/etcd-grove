@@ -33531,3 +33531,41 @@ committed prefix by `srv_entry_transfer`; pure steps `clusterVer_of_rqShape`,
 
 Trust base: `io.MultiReader`'s axiom (weaker by its definition) and `clusterImageOk_restModel`
 (a premise more) restated; count unchanged.
+
+## S1: `snap.NewMessage` takes its reader's close contract; S2: the snapshot's size below `2^62`, from `fileHolds` (2026-11-08 · sweep repairs 1, S1 + S2; the Scope (revision 3) and etcd-grove-81's choice A' for S2 · branch `sweep-repairs-1`)
+
+**S1** (`notes/axiom-review/snap-stream.md`, NilReader and HandOver). `snap.NewMessage`'s axiom let
+`Message.CloseWithError` and the wrapper's `Close` return for any reader: false for a nil reader (a nil
+dereference) and for a pipe's reader before the hand-over `T` (the writer's `Write` then returns
+without `T` coming back). New `io.rcCloseOk r` (`Proof/io/Defs.lean`: `r` non-nil, its `Close` returns
+from any goroutine, any number of times); `io.Pipe`'s wand gives it with `readerStreams` (for `T`),
+`newSnapshotReaderCloser`'s post passes it on, and `NewMessage` takes it. `CloseWithError.spec` and
+`fields.spec` are unchanged: true of every `msgIs`, which only `NewMessage` makes.
+
+**S2** (`snap-stream.md`, NegativeSize and its overflow variant). `NewMessage` takes `0 ≤ sz < 2^62`, so
+`TotalSize = int64(proto.Size(rs)) + sz` does not overflow (with `proto.Size(rs) < 2^62`, an assumption
+of `NewMessage`'s axiom) and is not negative, as `fields` states. Its producer is
+`backend.snapshot.Size`'s post, now `0 ≤ n < 2^62`. **How the bound is carried (81's choice A', in
+place of the Scope's "in `isBackend`").** A token in `isBackend` would reach `Size` (whose caller has
+only `srvBeSnapOk` and the opaque `snapOpenQ`) only through `bbolt.Open_kv`, `backend.Snapshot`,
+`srvBeSnapOk` and `bootOk` as well, and would rest on the same fact: bbolt v1.5.0 does not check the
+meta's high-water mark against the file when it opens it (`db.go:456-560`), so what excludes a forged
+file is the opener's premise `fileHolds path D`, whose verified definition
+(`Spec/go_etcd_io/bbolt/Api.lean`) states the file is below `2^62` bytes and the high-water mark times
+the page size at most its length. So `Size`'s axiom docstring argues the bound from `fileHolds` (every
+`snapRO` comes from `Snapshot` of an `isBackend`, whose database was opened from a `fileHolds` file), with
+the caveat that the backend's `fileHolds` (`InvBbolt.lean`) is an axiom, linked to the verified bbolt's
+definition by that argument, not by a proof. The bound is `2^62`, not `MaxMapSize = 2^48`, which bbolt
+checks only when it grows a mapping. **The residual** (Scope: the raft law "a `MsgSnap` carries no
+entries" if it costs about one session, else a documented gap): **a documented gap.** The law would
+not remove the assumption `proto.Size(rs) < 2^62`, which also counts the message's context and the
+snapshot metadata's `ConfState`, and it is a change to raft's API vocabulary (`SentMsgShape`, all of
+raft's senders and the server stack rebuilt) while the per-type branch re-freezes. The assumption
+stays in `NewMessage`'s axiom docstring (etcd's merged message measured at 16-67 bytes).
+
+No exported statement changes (no `Results`/`Adequacy*`/`MainLinked` mentions these specs).
+Trust base: `io.Pipe`, `snap.NewMessage` and `backend.snapshot.Size` restated (the first and last
+claim more, the second assumes more), count unchanged. Go (`examples/sweeprepairs/snap`):
+`TestS1NilReader`, `TestS1HandOver`, `TestS2NegativeSize` (the premises false exactly at the
+counterexamples), `TestRealPathOneMember` (every premise held on etcd's path, 960 runs per the Scope's
+20 processes; rerun once 2026-11-08).
