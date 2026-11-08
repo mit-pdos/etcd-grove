@@ -28,3 +28,7 @@ only after `acceptReady` has logged the `Ready` (`examples/raft/tracecheck/concu
 Upstream's trace validation of etcd's robustness tests could hit it (etcd sends before
 `Advance`); logging the `Ready` before the hand-off (in `node.run`, or `traceReady` before
 `readyc <-`) would remove the window.
+
+The places where upstream's TLA+ specification and trace validation do not fit raft, each with a
+test at upstream `main`, are the `issues/raft-tla-*` files (2026-11-08); this one stays here: it
+needs a timing window inside `Node`'s run loop that no test can open without changing raft.

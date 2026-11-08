@@ -1,0 +1,15 @@
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index 7828474..8ad7253 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -573,8 +573,9 @@ AppendEntriesAlreadyDone(i, j, index, m) ==
+             IF m.msubtype = "heartbeat" THEN CommitTo(i, m.mcommitIndex) ELSE UNCHANGED commitIndex
+        ELSE 
+             CommitTo(i, Min({m.mcommitIndex, m.mprevLogIndex+Len(m.mentries)}))
++    \* raft answers a snapshot (MsgSnap) with an append response (MsgAppResp).
+     /\ Reply([  mtype           |-> AppendEntriesResponse,
+-                msubtype        |-> m.msubtype,
++                msubtype        |-> IF m.msubtype = "snapshot" THEN "app" ELSE m.msubtype,
+                 mterm           |-> currentTerm[i],
+                 msuccess        |-> TRUE,
+                 mmatchIndex     |-> IF m.msubtype = "heartbeat" \/ index > commitIndex[i] THEN m.mprevLogIndex+Len(m.mentries) ELSE commitIndex[i],

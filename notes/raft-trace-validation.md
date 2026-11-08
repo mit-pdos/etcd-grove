@@ -128,8 +128,11 @@ is right in each.
    `NoConflictAppendEntriesRequest` need `index > commitIndex[i]`), and for a non-heartbeat it
    changes neither the log nor the commit index. Raft either installs the snapshot (log and commit
    to its index) or, when the follower has the snapshot's last entry, fast-forwards its commit index
-   to it (`raft.restore`). Either way the follower's next validated line differs. Only a member
-   that has committed nothing (a newcomer) receives a snapshot the specification can follow.
+   to it (`raft.restore`). Either way the follower's next validated line differs. A member that has
+   committed nothing (a newcomer) gets the snapshot's entries, but its response cannot be matched
+   either (corrected 2026-11-08: the earlier note said the specification follows it):
+   `AppendEntriesAlreadyDone` replies with subtype `"snapshot"`, where raft's `MsgAppResp` maps to
+   `"app"` (10 below).
 4. **A re-added member's `matchIndex` is not reset.** Raft drops a removed member's progress, and a
    member added back starts at `Match` 0, so a heartbeat to it carries commit `min(Match,
    committed) = 0`; the specification keeps `matchIndex[i][j]` from before the removal and
@@ -183,6 +186,26 @@ is right in each.
    reached when every `MsgApp` carries the leader's log to its end (unlimited batches, the
    concurrent harness's), where a follower's commit index never passes what it received from a
    leader with its own last term.
+
+9. **`Restart` cannot be evaluated after a conflicting append request** (found 2026-11-08 while
+   replaying item 8's counterexample against `MCetcdraft`): `ConflictAppendEntriesRequest` drops
+   the last entry without persisting, `Restart` takes `SubSeq(log[i], 1, durableState[i].log)` past
+   the shorter log, and TLC stops evaluating `Next`. Model checking with crashes only; trace
+   validation is unaffected.
+
+10. **A snapshot's response has the wrong subtype** (found 2026-11-08 while writing up 3): the
+    specification answers a snapshot with an append response of subtype `"snapshot"`; raft answers
+    with a `MsgAppResp`, which `Traceetcdraft` maps to `"app"`, so even a newcomer's snapshot is not
+    followed.
+
+**Written up (2026-11-08)**, each with a test at raft `main` `c51f010` (copied into its module root,
+`-tags with_tla`, TLC on upstream's unmodified files): `issues/raft-tla-restart-initstate-unmatched`
+(1), `-learner-demotion-unmodelled` (2), `-snapshot-committed-follower` (3),
+`-readded-member-matchindex` (4), `-msgapp-commit-unclamped` (5), `-vote-refused-known-leader` (6),
+`-leader-completeness-stale-leader` (7), `-more-up-to-date-cut-batches` (8),
+`-restart-truncated-log` (9), `-snapshot-response-subtype` (10). For the invariants (7, 8) a second test replays TLC's counterexample
+against `MCetcdraft` alone (`Init`, then each recorded state forced as a `NextAsync` step or a
+stutter, deadlock checking on), showing the specification itself reaches the violation.
 
 Also met, and avoided by the harness as etcd does: a snapshot without the recipient in its
 configuration, which raft drops (`nonissues/raft-snapshot-without-recipient-livelock.md`) while

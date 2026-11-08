@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (43)
+## Not reported (51)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -29,6 +29,14 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [raft: calling `Advance` before applying a conf change, as `Node.Advance` allows, lets two nodes commit different entries at one index](raft-advance-before-applyconfchange.md) | yes | etcd-io/etcd#4203 issue closed; etcd-io/raft#80 issue open; etcd-io/raft#234 issue closed; etcd-io/raft#456 issue open; etcd-io/etcd#12136 issue closed; etcd-io/raft#469 pr open |
 | [raft: a snapshot received while a conf change is being applied leaves a follower with the wrong configuration, or panics](raft-snapshot-during-apply-stale-confchange.md) | yes |  |
 | [raft: after a delayed stale-term message, a new leader sends a snapshot to a follower that is already caught up](raft-stale-term-appresp-index-zero-ack.md) | yes | etcd-io/raft#52 pr merged; etcd-io/raft#148 issue closed; etcd-io/raft#149 pr merged |
+| [raft: TLA+ trace validation rejects demoting a voter to a learner](raft-tla-learner-demotion-unmodelled.md) | yes | etcd-io/raft#381 pr open; etcd-io/raft#549 issue open |
+| [raft: TLA+ trace validation rejects a correct run in which an append request stops short of the commit index](raft-tla-msgapp-commit-unclamped.md) | yes | etcd-io/raft#381 pr open |
+| [raft: TLA+ trace validation rejects a correct run where a removed member is added back](raft-tla-readded-member-matchindex.md) | yes | etcd-io/raft#381 pr open |
+| [raft: trace logging records `InitState` before the persisted state is loaded, so TLA+ trace validation rejects every restart](raft-tla-restart-initstate-unmatched.md) | yes | etcd-io/raft#226 pr open; etcd-io/raft#549 issue open |
+| [raft: TLA+ model checking fails evaluating `Restart` after a conflicting append request](raft-tla-restart-truncated-log.md) | yes |  |
+| [raft: TLA+ trace validation rejects a correct run where a follower installs a snapshot](raft-tla-snapshot-committed-follower.md) | yes | etcd-io/raft#381 pr open |
+| [raft: TLA+ trace validation rejects a correct run where a new member receives a snapshot](raft-tla-snapshot-response-subtype.md) | yes | etcd-io/raft#381 pr open |
+| [raft: TLA+ trace validation rejects a correct run in which a follower that knows its leader refuses a vote](raft-tla-vote-refused-known-leader.md) | yes | etcd-io/raft#381 pr open |
 | [bbolt: `Cursor.Last` never returns after deleting every key of a bucket in the same transaction](bbolt-cursor-last-empty-leaves-hang.md) | no | etcd-io/bbolt#734 pr merged; boltdb/bolt#450 issue closed |
 | [bbolt: `Cursor.Prev` returns nil in the middle of a bucket after deletes in the same transaction](bbolt-cursor-prev-empty-leaf.md) | no | etcd-io/bbolt#734 pr merged; boltdb/bolt#450 issue closed |
 | [bbolt: `Get` panics on values committed together whose sizes add up to more than 2 GiB](bbolt-large-values-leaf-unreadable.md) | no | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#182 issue closed |
@@ -64,7 +72,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [cache: the cache never becomes ready again after a compaction cancels its upstream watch](cache-ready-after-retry.md) | no | etcd-io/etcd#22614 issue open; etcd-io/etcd#22618 pr open; etcd-io/etcd#22408 pr open; etcd-io/etcd#21536 issue closed; etcd-io/etcd#20691 pr merged |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (23)
+## Reported by others (24)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -80,6 +88,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [clientv3: a reconnect right after a watch is canceled can crash the client with "send on closed channel"](etcd-watch-resume-closing-substream.md) | yes | etcd-io/etcd#21969 issue closed; etcd-io/etcd#22191 pr open |
 | [clientv3/leasing: after a failed range delete, the leasing KV keeps serving keys etcd deleted](leasing-evictrange-key.md) | yes | etcd-io/etcd#21869 pr closed; etcd-io/etcd#21589 pr closed; etcd-io/etcd#20704 issue closed |
 | [raft: TLA+ trace validation rejects a correct run with a stale leader (`LeaderCompletenessInv` is false)](raft-tla-leader-completeness-stale-leader.md) | yes | etcd-io/raft#549 issue open |
+| [raft: TLA+ trace validation rejects a correct run with small `MaxSizePerMsg` (`MoreUpToDateCorrectInv` is false)](raft-tla-more-up-to-date-cut-batches.md) | yes | etcd-io/raft#515 issue open; etcd-io/raft#549 issue open |
 | [recipes: Barrier.Wait reports the barrier released when its watch closes while the barrier is still held](recipes-barrier-wait-closed-watch.md) | yes | etcd-io/etcd#17198 pr closed |
 | [recipes: Queue.Dequeue panics when its watch closes](recipes-dequeue-closed-watch.md) | yes | etcd-io/etcd#17198 pr closed |
 | [bbolt: `DeleteBucket` leaks a nested bucket's pages when the bucket was written in the same transaction](bbolt-deletebucket-nested-leak.md) | no | etcd-io/bbolt#1305 pr open |

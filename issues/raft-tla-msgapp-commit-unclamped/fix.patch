@@ -1,0 +1,19 @@
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index 7828474..29caf12 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -336,7 +336,13 @@ AppendEntriesInRangeToPeer(subtype, i, j, range) ==
+         \* Send the entries
+         lastEntry == Min({Len(log[i]), range[2]-1})
+         entries == SubSeq(log[i], range[1], lastEntry)
+-        commit == IF subtype = "heartbeat" THEN Min({commitIndex[i], matchIndex[i][j]}) ELSE Min({commitIndex[i], lastEntry})
++        \* An append request carries the leader's commit index whatever entries it
++        \* carries (raft's maybeSendAppend); the receiver commits only up to the last
++        \* entry it received (AppendEntriesAlreadyDone). A snapshot carries no commit
++        \* index (Traceetcdraft does not check it): the snapshot's index.
++        commit == CASE subtype = "heartbeat" -> Min({commitIndex[i], matchIndex[i][j]})
++                    [] subtype = "snapshot"  -> Min({commitIndex[i], lastEntry})
++                    [] OTHER                 -> commitIndex[i]
+        IN /\ Send( [mtype          |-> AppendEntriesRequest,
+                     msubtype       |-> subtype,
+                     mterm          |-> currentTerm[i],

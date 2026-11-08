@@ -1,0 +1,28 @@
+diff --git a/raft.go b/raft.go
+index 9f4ea9d..5a25af2 100644
+--- a/raft.go
++++ b/raft.go
+@@ -463,11 +463,8 @@ func newRaft(c *Config) *raft {
+ 		disableProposalForwarding:   c.DisableProposalForwarding,
+ 		disableConfChangeValidation: c.DisableConfChangeValidation,
+ 		stepDownOnRemoval:           c.StepDownOnRemoval,
+-		traceLogger:                 c.TraceLogger,
+ 	}
+ 
+-	traceInitState(r)
+-
+ 	lastID := r.raftLog.lastEntryID()
+ 	cfg, trk, err := confchange.Restore(confchange.Changer{
+ 		Tracker:   r.trk,
+@@ -486,6 +483,11 @@ func newRaft(c *Config) *raft {
+ 	}
+ 	r.becomeFollower(r.Term, None)
+ 
++	// Trace the state the node starts in, once the persisted state is loaded:
++	// restoring it is not traced as transitions of its own.
++	r.traceLogger = c.TraceLogger
++	traceInitState(r)
++
+ 	var nodesStrs []string
+ 	for _, n := range r.trk.VoterNodes() {
+ 		nodesStrs = append(nodesStrs, fmt.Sprintf("%x", n))

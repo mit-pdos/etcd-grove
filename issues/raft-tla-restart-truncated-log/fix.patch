@@ -1,0 +1,40 @@
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index 7828474..59518c1 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -230,7 +230,7 @@ PersistState(i) ==
+     durableState' = [durableState EXCEPT ![i] = [
+         currentTerm |-> currentTerm[i],
+         votedFor |-> votedFor[i],
+-        log |-> Len(log[i]),
++        log |-> log[i],
+         commitIndex |-> commitIndex[i],
+         config |-> config[i]
+     ]]
+@@ -254,7 +254,7 @@ InitDurableState ==
+     durableState = [ i \in Server |-> [
+         currentTerm |-> currentTerm[i],
+         votedFor |-> votedFor[i],
+-        log |-> Len(log[i]),
++        log |-> log[i],
+         commitIndex |-> commitIndex[i],
+         config |-> config[i]
+     ]]
+@@ -283,7 +283,7 @@ Restart(i) ==
+     /\ currentTerm' = [currentTerm EXCEPT ![i] = durableState[i].currentTerm]
+     /\ commitIndex' = [commitIndex EXCEPT ![i] = durableState[i].commitIndex]
+     /\ votedFor' = [votedFor EXCEPT ![i] = durableState[i].votedFor]
+-    /\ log' = [log EXCEPT ![i] = SubSeq(@, 1, durableState[i].log)]
++    /\ log' = [log EXCEPT ![i] = durableState[i].log]
+     /\ config' = [config EXCEPT ![i] = durableState[i].config]
+     /\ UNCHANGED <<messages, durableState, reconfigCount>>
+ 
+@@ -871,7 +871,7 @@ LeaderCompletenessInv ==
+ \* Any entry committed by leader shall be persisted already
+ CommittedIsDurableInv ==
+     \A i \in Server :
+-        state[i] = Leader => commitIndex[i] <= durableState[i].log
++        state[i] = Leader => commitIndex[i] <= Len(durableState[i].log)
+ 
+ -----
+ 

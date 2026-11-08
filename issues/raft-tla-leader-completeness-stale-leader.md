@@ -26,23 +26,38 @@ does not close it. The specification itself admits the violating state from `MCe
 initial state within `MCetcdraft.cfg`'s bounds, so model checking long enough finds it too. raft
 v3.7.0 and `main` have the same specification.
 
-**Reproduction:** `TestTLATraceStaleLeaderCompleteness` in
+**Reproduction:** `TestTLATraceStaleLeaderCompleteness` (raft's trace) and
+`TestTLAModelStaleLeaderCompleteness` (the specification alone) in
 [`issues/raft-tla-leader-completeness-stale-leader/tla_leader_completeness_test.go`](raft-tla-leader-completeness-stale-leader/tla_leader_completeness_test.go),
 copied into the module root at etcd-io/raft@c51f010c851e (2026-10-23), go1.27.3 linux/arm64, with
-`TLA_TOOLS` a directory holding `validate.sh`'s `tla2tools.jar` and `CommunityModules-deps.jar`:
+`TLA_TOOLS` a directory holding what `validate.sh` downloads (`tla2tools.jar`, nightly 2.0
+2026-11-06, and `CommunityModules-deps.jar`, as of 2026-11-08):
 
 ```
-$ TLA_TOOLS=... go test -tags with_tla . -run '^TestTLATraceStaleLeaderCompleteness$' -count=1 -v
-    tla_leader_completeness_test.go:189: Error: Invariant LeaderCompletenessInv is violated.
+$ TLA_TOOLS=... go test -tags with_tla . -run '^TestTLA(Trace|Model)StaleLeaderCompleteness$' -count=1 -v
+=== RUN   TestTLATraceStaleLeaderCompleteness
+    tla_leader_completeness_test.go:57: Error: Invariant LeaderCompletenessInv is violated.
     ...
-    tla_leader_completeness_test.go:191: Traceetcdraft rejects the trace of a correct raft run: exit status 12
---- FAIL: TestTLATraceStaleLeaderCompleteness (0.71s)
+    tla_leader_completeness_test.go:59: Traceetcdraft rejects the trace of a correct raft run: exit status 12
+--- FAIL: TestTLATraceStaleLeaderCompleteness (1.79s)
+=== RUN   TestTLAModelStaleLeaderCompleteness
+    tla_leader_completeness_test.go:382: replay: Error: Invariant LeaderCompletenessInv is violated.
+    ...
+    tla_leader_completeness_test.go:396: replay: also within MCetcdraft.cfg's limits (MCTimeout, MCSend, MCClientRequest)
+    tla_leader_completeness_test.go:74: etcdraft.tla itself (from MCetcdraft's Init, 107 steps of NextAsync or stutter) reaches a state violating LeaderCompletenessInv
+--- FAIL: TestTLAModelStaleLeaderCompleteness (5.10s)
 ```
 
 The run: node 1 leads term 2 and appends an entry at index 4 that reaches no one; node 2 is elected
 for term 3 with node 3's vote, appends its own entry at index 4, and hears nothing more (it stays
 leader of term 3); node 1 is elected for term 4 with node 3's vote and commits index 5, and with it
 index 4 (term 2). The invariant then asks node 2 (term 3 > 2) to hold node 1's index 4.
+
+The second test replays the states of TLC's counterexample, the specification's variables only,
+against `MCetcdraft.tla` from its `Init`, each step an action of `NextAsync` (a disjunct of `Next`)
+or a stutter landing exactly on the next recorded state, with deadlock checking on, with and
+without `MCetcdraft.cfg`'s limits: TLC reproduces every state and reports the invariant violated
+at the last.
 
 **Cause:** [`LeaderCompletenessInv`](https://github.com/etcd-io/raft/blob/c51f010c851edd0dada5af41bafbf68e54617767/tla/etcdraft.tla#L859-L869)
 guards on `currentTerm[l] > entry.term`, the term the entry was created in, where leader
@@ -51,11 +66,7 @@ specification has no variable recording the commit term.
 
 ## Proof
 
-yes: `Main` of `examples/raft/tracecheck` panics if a checked invariant fails, so the closed
-statement needs the invariant true of raft; both transcriptions (`examples/raft/tracecheck/etcdraft`,
-`Proof/.../tracecheck/etcdraft/Tla/Invariants.lean`) check instead the guard
-`currentTerm[l] > entry.term /\ currentTerm[l] >= currentTerm[i]` (the user's decision, 2026-11-08:
-`notes/trace-validation-plan.md`, Q4 (b); if it blocks a proof, the invariant is dropped instead).
+yes: the trace-check stage's statement (raft's traces conform to etcdraft.tla under upstream's trace validation) is false for runs with a stale leader; the stage's transcriptions check the guard `currentTerm[l] > entry.term /\ currentTerm[l] >= currentTerm[i]` instead (notes/trace-validation-plan.md, Q4).
 
 ## Fix
 
@@ -74,10 +85,8 @@ first covers it) and guards on it.
 
 ## Notes
 
-Also checked against the specification alone: TLC's counterexample, its 117 states replayed from
-`MCetcdraft`'s `Init` with every step required to be a `Next` step (plain and with
-`MCetcdraft.cfg`'s limits), reaches the violation; corrupting one state makes the replay deadlock
-there. The replayed final state satisfies the repaired guard, so the repair is strictly weaker on
-reachable states. The scripts are not kept here (`notes/raft-trace-validation.md`, item 7, says how
-they were built). Found 2026-11-08 by the trace-check stage's review (S4 round 2, N1),
-`TestGap7LeaderCompleteness` in `examples/raft/tracecheck/gaps_test.go`.
+Found 2026-11-08 by the trace-check stage's review (S4 round 2, N1), `TestGap7LeaderCompleteness` in
+`examples/raft/tracecheck/gaps_test.go`. The replay uses `NextAsync` because evaluating the whole
+of `Next` fails in some reachable states (`raft-tla-restart-truncated-log`); no recorded step is a
+crash or a network fault. The replayed final state satisfies the first repair above, so that repair
+is strictly weaker than the original on reachable states.

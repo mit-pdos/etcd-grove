@@ -59,3 +59,7 @@ return `ErrSnapshotTemporarilyUnavailable` until one exists); in raft, `maybeSen
 treat a snapshot without the recipient as temporarily unavailable, which stops the useless sends
 but does not unstick the cluster. Upstream searched 2026-11-02 (`snapshot recipient`, `snapshot
 new node stuck`): nothing.
+
+Upstream's TLA+ specification (`tla/etcdraft.tla`) installs such a snapshot where raft drops it
+(`notes/raft-trace-validation.md`, "Also met"); not reproduced against upstream's trace validation,
+so not among the `issues/raft-tla-*` findings (2026-11-08).

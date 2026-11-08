@@ -1,10 +1,26 @@
 # Plan: a closed proof that raft's traces pass its own TLA+ trace validation (draft, 2026-11-08)
 
 Branch `trace-check`. Background, harness, transcription and its checks:
-`notes/raft-trace-validation.md`. Status: **Scope settled (2026-11-08); Draft next.** The stage follows
+`notes/raft-trace-validation.md`. Status: **paused before the Freeze (the user's decision, 2026-11-08; see "Paused" below).** The stage follows
 `notes/spec-first-plan.md`'s phases (Scope, Draft, Review, Test, Probe, Freeze, Prove; no proof
 before the user's freeze, the tag `trace-check-frozen`); amendments after the freeze are dated,
 below the section they amend.
+
+## Paused (the user's decision, 2026-11-08)
+
+Draft, Review, Test and Probe are done; nothing is frozen and Prove has not started. The reason:
+`etcdraft.tla` turned out not to fit raft in many places (two of its invariants are false of raft
+and of the specification itself, seven fidelity gaps where trace validation rejects a correct
+run, and an evaluation error in `Restart`; ten write-ups, two of them, the invariants, already
+reported upstream by others: etcd-io/raft#549, #515), each avoidable only by narrowing the workload or patching
+the model, which erodes what the closed theorem was for (an external, upstream specification). So
+the stage's work went instead into writing up those findings, each with a test at raft `main`
+(`issues/raft-tla-*.md`; `notes/raft-trace-validation.md`, "Where etcdraft.tla does not fit raft").
+Q4 (b) stays in place in both transcriptions; Q5-Q7 stay open (the discussion of Q5 on 2026-11-08:
+its option (c), letting the specification refuse a vote, branches, which upstream's `TraceMatched`
+and this checker's `branched` reject; so (a), the in-order links, or (b), modelling raft's `lead`).
+Resuming means choosing what the theorem is against: upstream's model as it is (narrow workload),
+a corrected model (the findings' fixes), or another specification.
 
 ## Decisions (the user's, 2026-11-08)
 

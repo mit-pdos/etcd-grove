@@ -1,0 +1,18 @@
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index 7828474..c56b1e4 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -472,7 +472,12 @@ ApplySimpleConfChange(i) ==
+                 /\ reconfigCount' = reconfigCount + 1
+                 /\ pendingConfChangeIndex' = [pendingConfChangeIndex EXCEPT ![i] = 0]
+                ELSE UNCHANGED <<reconfigCount, pendingConfChangeIndex>>
+-            /\ UNCHANGED <<messageVars, serverVars, candidateVars, matchIndex, logVars, durableState>>
++            \* A server the new configuration drops loses its progress (raft deletes it): if it
++            \* is added back, it starts again from matchIndex 0.
++            /\ LET members == log[i][k].value.newconf \union log[i][k].value.learners
++               IN matchIndex' = [matchIndex EXCEPT ![i] =
++                                    [j \in Server |-> IF j \in members THEN matchIndex[i][j] ELSE 0]]
++            /\ UNCHANGED <<messageVars, serverVars, candidateVars, logVars, durableState>>
+     
+ Ready(i) ==
+     /\ PersistState(i)
