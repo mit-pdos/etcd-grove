@@ -187,10 +187,10 @@ resource pins the tracked compaction); the registration given back (`reg_unlend`
 thawed (`writerInv_thawNL`); the image from the observation (`imageOk_of_snapObsOk`) and the
 frozen writer's certificate (the receipt). -/
 theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
-  intro hSnap kv
+  intro hSnap _ kv
   intro (γ : StoreNames)
   intro bk Pk qo R Q Φ
-  iintro %Ψ ⟨#Hpkg, Hmv, HB, Ho, Hwb, HR, #HQ, HAU⟩ HΨ
+  iintro %Ψ ⟨#Hpkg, Hmv, HB, Ho, Hwb, Htok, HR, #HQ, HAU⟩ HΨ
   ihave ⟨%s, #Hs⟩ := isMvcc_store kv γ $$ Hmv
   iunfold mvccBackend at HB
   icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #⟨%s', #Hrg⟩, #Hhp, #Hwt⟩
@@ -267,8 +267,8 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
   iapply wp_fupd
   iapply (hSnap d.γB d.P (lateW d.gx) Pk d.be qo
     iprop(R ∗ snapFrozen s s' ((γ : StoreNames).withPhys p) σ bb)
-    (fun vd dd r v => Q dd r ∧ bb = true ∧ snapObsOk σ.log σ.crev vd v)) $$ [Ho Hwb HR HFR]
-  · iframe Hpkg Hbk Ho Hwb HR HFR
+    (fun vd dd r v => Q dd r ∧ bb = true ∧ snapObsOk σ.log σ.crev vd v)) $$ [Ho Hwb Htok HR HFR]
+  · iframe Hpkg Hbk Ho Hwb Htok HR HFR
     iintro !> %vd %dd %r %v %X ⟨HR', HFR'⟩ HW HPk Hva Hdl Hhk Hrb Hfk
     ihave %H1 := HQ $$ %dd %r HR' HPk Hhk Hrb
     ihave %H2 := snapObs s s' ((γ : StoreNames).withPhys p) d hk hcm σ bb vd X v $$

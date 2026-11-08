@@ -278,13 +278,13 @@ theorem revGetterOk_server (Hp : mvcc.api.persistent.law (GF := GF))
   iunfold srvRevLb at Hlb
   icases Hlb with ⟨%log₀, #Hc0, -, %Hn⟩
   ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) Hp Hr E.kv E.γ E.γs log₀ $$ HkS Hc0
-  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.γs log₀)) $$ [Hmr HAU]
+  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.Cp E.γs log₀)) $$ [Hmr HAU]
     as %rev ⟨Hmr, %σ, Hrdq, %Hrev⟩
   · iframe #; iframe Hmr
     iunfold srvApi.auRead at HAU
     iexact HAU
   iunfold srvApi.kvReadAtG at Hrdq
-  icases Hrdq with ⟨%Hpre, #Hlc, #Hnx, -, %Hσ⟩
+  icases Hrdq with ⟨%Hpre, #Hlc, #Hnx, -, -, %Hσ⟩
   have hle := Hpre.length_le
   have hst := (srvApi.reach_prefix σ Hσ.1).1
   have hlen2 : 2 ≤ σ.log.length := by

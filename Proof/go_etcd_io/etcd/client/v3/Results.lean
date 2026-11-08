@@ -1056,10 +1056,10 @@ theorem rangeErrReply_of_errAt (on : Bool) (E : apply.AEnv GF) (γr : ReadNames)
     rangeErrAt (GF := GF) on E γr c F o (v3rpc.rangeDepQM on γr.kv d) P ⊢
       rangeErrReply E γr c F o Q P := by
   unfold rangeErrAt rangeErrReply
-  iintro ⟨%log, %crev, #Hc, #Hok, #Hcr, %Hp, Hrl, HQ⟩
+  iintro ⟨%log, %crev, #Hc, #Hok, #Hrc, #Hcr, %Hp, Hrl, HQ⟩
   ihave HQ' := readQ_of_ansM on γr d Q o.base.serializable log h $$ HQ
   iexists log, crev
-  iframe Hc Hok Hcr Hrl HQ'
+  iframe Hc Hok Hrc Hcr Hrl HQ'
   ipureintro; exact Hp
 
 /-- With auth off, the read view's KV invariants (`srvKVCoreM_of_readM` at the mode `E.authOn`). -/

@@ -87,10 +87,11 @@ theorem kvStoreInvG_persistent (Hp : persistent.law (GF := GF)) (kv : GoInterfac
   haveI := Hp.1 kv γ
   unfold kvStoreInvG; infer_instance
 
-/-- `kvReadAt`, generic. -/
-def kvReadAtG (Nx : mvcc.Log → IProp GF) (γs : KVSNames) (L₀ : mvcc.Log) (σ : MvccState) :
-    IProp GF :=
-  iprop(⌜L₀ <+: σ.log⌝ ∗ kvLogLb γs σ.log ∗ Nx σ.log ∗ ⧖ (mvcc.logCh σ.log) ∗
+/-- `kvReadAt`, generic (R8, 2026-11-08, the second `lean` merge: with the compaction revision's
+permit `Cp σ.crev`, the invariant's, for a failed range's facts, `rangeErrAt`). -/
+def kvReadAtG (Nx : mvcc.Log → IProp GF) (Cp : Int → IProp GF) (γs : KVSNames) (L₀ : mvcc.Log)
+    (σ : MvccState) : IProp GF :=
+  iprop(⌜L₀ <+: σ.log⌝ ∗ kvLogLb γs σ.log ∗ Nx σ.log ∗ ⧖ (mvcc.logCh σ.log) ∗ Cp σ.crev ∗
     ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- `histLb`, generic. -/
@@ -485,7 +486,7 @@ theorem au_snap (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccNa
 theorem au_read (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.law (GF := GF))
     (kv : GoInterface) (γ : MvccName) (γs : KVSNames)
     (L₀ : mvcc.Log) :
-    kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢ kvLogLb γs L₀ -∗ auRead γ (kvReadAtG Nx γs L₀) := by
+    kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢ kvLogLb γs L₀ -∗ auRead γ (kvReadAtG Nx Cp γs L₀) := by
   haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   haveI := Hp.1 kv γ
@@ -529,7 +530,7 @@ theorem au_read (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.law (
     imodintro
     iunfold kvReadAtG
     iunfold kvLogLb
-    iframe Hslb Hnx1 Hrc'
+    iframe Hslb Hnx1 Hrc' Hco
     ipureintro; exact ⟨HL0.2, Hf.1, Hf.2.1⟩
 
 /-- **The writer's facts** at its state, outside any update. -/
@@ -870,7 +871,7 @@ theorem kvAusG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.law (G
         Nx log' -∗ Cp c' -∗
         auRestore γ (stAt log' c') (fun σ => iprop(⌜σ = stAt log c⌝ ∗ wSt γs log' c' ∗
           crOwn γs c'))) ∗
-    □ (∀ L₀, kvLogLb γs L₀ -∗ auRead γ (kvReadAtG Nx γs L₀)) ∗
+    □ (∀ L₀, kvLogLb γs L₀ -∗ auRead γ (kvReadAtG Nx Cp γs L₀)) ∗
     □ (∀ log c, wSt γs log c ={⊤}=∗ wSt γs log c ∗ kvLogLb γs log ∗ Nx log ∗
         ⧖ (mvcc.logCh log) ∗ ⌜MvccReachable (stAt log c) ∧ log.length + 3 ≤ 2 ^ 63⌝) := by
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs

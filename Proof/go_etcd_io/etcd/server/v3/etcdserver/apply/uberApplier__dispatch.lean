@@ -424,7 +424,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   · simp only [↓reduceIte]; iexact HSp
   ihave #Hcp := apply.certPreV_true E c rq log $$ Hcp
   -- (R2d'a A3, 2026-11-06, DRAFT) the premises only the `v3` cases read, at `v3 = true`
-  have Hok : apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb log rq :=
+  have Hok : apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit log rq :=
     ⟨Hok.1, Hok.2.1, Hok.2.2 rfl⟩
   ihave #Hcpr := Hcpr $$ %rfl
   ihave #Hgp := Hgp $$ %rfl

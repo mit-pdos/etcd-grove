@@ -243,14 +243,18 @@ server draft's proposal): the update at the state is the API's one shape for rea
 **A compacted store too** (the user's decision, 2026-11-04, on the review of round 16's F1):
 `backend.Snapshot`'s observation is handed the compaction keys' committed values (`fkdOwn`, the
 client's half inside `fkOwn`, which the store's compaction keeps), so the image's compaction
-revisions and `u` are the store's. -/
+revisions and `u` are the store's. (R8, 2026-11-08, the second `lean` merge: `backend.Snapshot`'s
+restated pre, `notes/begin-tok-plan.md`: the caller's `threadTok`, held by the snapshot's reader
+slot until `Close`, and `[ThreadBoundLe GF (2 ^ 29)]`, passed through.) -/
 abbrev mvccImage_snapshot.law : Prop :=
   backend.backend.Snapshot.spec (GF := GF) (hG := hG) →
-  ∀ (kv : GoInterface) (γ : MvccName) (bk : KBReal) (Pk : IProp GF) (qo : Qp) (R : IProp GF)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (kv : GoInterface) (γ : MvccName) (bk : KBReal) (Pk : IProp GF)
+    (qo : Qp) (R : IProp GF)
     (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop)
     (Φ : MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      isMvcc kv γ ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗ backend.bOpen bk.γB qo ∗ backend.wbTok bk.γB ∗ R ∗
+      isMvcc kv γ ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗ backend.bOpen bk.γB qo ∗ backend.wbTok bk.γB ∗
+      threadTok ∗ R ∗
       □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
         R -∗ Pk -∗ backend.hkOwn bk.γB d -∗ backend.rbOwn bk.γB r -∗ ⌜Q d r⌝) ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ ∗ ⌜σ.pending = none⌝ }>

@@ -504,7 +504,7 @@ theorem request_delivered [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
   cases v3
   · -- (R2d'a, Q23 (a)) vacuous: the KV invariant's `c0 ≤ ai0` puts the entry, after the applied
     -- index, above `c0`
-    iintro %Φ ⟨#Hpkg, #Hsrv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %HkA, %Hvi, -, -⟩ -
+    iintro %Φ ⟨#Hpkg, #Hsrv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %HkA, %Hvi, -, -⟩ -
     imod isServerM_c0_le false s γ ci TM E ρ γr $$ [] with %Hc0
     · rw [isServerM_false]; iexact Hsrv
     exfalso

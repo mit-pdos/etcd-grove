@@ -354,12 +354,15 @@ def etcdDeleteSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
 the caller learns when `Range` fails with mvcc's future-revision or compacted error, `P` the
 condition (`rangeFutureAt`, `rangeCompactedAt`): `rangeReplyOk`'s facts of the log read without a
 reply, a certified log `log` extending the floor `F`, the compaction revision `crev` read with it
-(`mvcc.crevLb`), read after the read index unless serializable, the read's `□ Q` there. -/
+(its permit `E.Cp crev`; R8, 2026-11-08, the second `lean` merge: over mvcc's API as
+`rangeReplyOk`, in place of `lean`'s `idxCert`/`certOk`/`crevLb`), read after the read index unless
+serializable, the read's `□ Q` there. -/
 def rangeErrReply (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
     (Q : KVState → IProp GF) (P : mvcc.Log → Int → Prop) : IProp GF :=
-  iprop(∃ (log : mvcc.Log) (crev : Int), mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    mvcc.crevLb E.γ.idx crev ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧ P log crev⌝ ∗
+  iprop(∃ (log : mvcc.Log) (crev : Int), srvApi.kvLogLb E.γs log ∗ □ E.Nx log ∗
+    ⧖ (mvcc.logCh log) ∗ □ E.Cp crev ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧
+      P log crev⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else □ Q (kvStateOf log)))
 

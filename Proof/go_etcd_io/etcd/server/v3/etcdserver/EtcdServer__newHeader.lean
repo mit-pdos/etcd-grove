@@ -79,13 +79,13 @@ theorem EtcdServer.newHeader.wp_proof
   ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) Hp Hr E.kv E.γ E.γs [] $$ HkS Hc0'
   ihave #Hkv' : mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
   · rw [← Hkveq, Hkveq0]; iexact Hkv
-  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.γs [])) $$ [Hmr HAU]
+  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.Cp E.γs [])) $$ [Hmr HAU]
     as %rev ⟨Hmr, %σ, Hrd, %Hrev⟩
   · iframe #; iframe Hmr
     iunfold srvApi.auRead at HAU
     iexact HAU
   iunfold srvApi.kvReadAtG at Hrd
-  icases Hrd with ⟨-, #Hc, #Hnx, Hrc, %Hσ⟩
+  icases Hrd with ⟨-, #Hc, #Hnx, Hrc, -, %Hσ⟩
   wp_apply hTerm s $$ [] as %t -
   · iframe #
   wp_apply hLead s $$ [] as %l -

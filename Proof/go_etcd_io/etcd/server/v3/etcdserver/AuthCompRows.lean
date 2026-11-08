@@ -261,7 +261,7 @@ def srvRestartAtR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
     applyThread γ st₀ ∗
     ⌜loopOk γ st₀ ai ∧ g₀ = ciEff γ st₀.k ∧ uint.Z g₀ = uint.Z ai₀ + A₀.length⌝ ∗
     applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
-    srvWgReader s ∗ srvApplyKVC C s E γw x₀ sa₀ ∗
+    srvWgReader s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVC C s E γw x₀ sa₀ ∗
     srvAppliedOwn γr g₀ ∗ appliedLogAt γr g₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ ∗
     srvRest E γr A₀ ∗ srvApRes s γr A₀ ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k) ∗
     srvSnapOwn s ci E γr γ ai)
@@ -900,11 +900,11 @@ theorem srvRestartAtR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (
       srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw [] ai₀ := by
   iintro ⟨H, %hc⟩
   iunfold applyStartC at H
-  icases H with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hkv, Hao, Hal, Hkr, Hrest,
+  icases H with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hrdk, Hkv, Hao, Hal, Hkr, Hrest,
     Hap, Hfs, Htok, Hso⟩
   iunfold srvRestartAtR
   iexists st₀, a, t, f, ai₀, srvAuthSt0
-  iframe Hth Hbe Hca Hlg Hbm Hwg Hkv Hao Hal Hkr Hrest Hap Hfs Htok Hso
+  iframe Hth Hbe Hca Hlg Hbm Hwg Hrdk Hkv Hao Hal Hkr Hrest Hap Hfs Htok Hso
   ipureintro
   exact ⟨Hok.1, by rw [← hc]; exact Hok.2, by simp⟩
 

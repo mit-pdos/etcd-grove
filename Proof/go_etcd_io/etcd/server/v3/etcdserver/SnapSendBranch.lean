@@ -685,7 +685,7 @@ theorem mergedCreate_window
     iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #d.be⟩
     isplitr
     · ipureintro; rfl
-    iintro %Φ !> ⟨Hmr, HmB, Ho, Hwb, HR, Hws⟩ HΦ
+    iintro %Φ !> ⟨⟨Hmr, HmB, Ho, Hwb, HR, Hws⟩, Htok⟩ HΦ
     wp_apply (srvApi.snapImageG hPers hReach hImg hSnap E.Nx E.Cp E.kv E.γ E.γs x.log x.crev d (E.Pk d)
         backend.rdOpen
         iprop(freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
@@ -700,9 +700,9 @@ theorem mergedCreate_window
             (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
               (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk.lookup n) ∧
           ∀ n, SA n → r.lookup n = ra.lookup n))
-      $$ [HmB Ho Hwb HR Hws]
+      $$ [HmB Ho Hwb Htok HR Hws]
       as %sp %D ⟨Hsn, Ho, HR, HmB, Hws, %HQD, %Hre, %u, #Him⟩
-    · iframe #; iframe HmB Ho Hwb HR Hws
+    · iframe #; iframe HmB Ho Hwb Htok HR Hws
       rw [hPkd]
       iintro !> %dd %r HR' HPk Hhk Hrb'
       iapply (snapObsA γ d.γB d.P hcK st (restSet E.authMode)

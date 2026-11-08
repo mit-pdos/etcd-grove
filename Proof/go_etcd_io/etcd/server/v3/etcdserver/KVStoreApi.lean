@@ -135,7 +135,7 @@ of the notified log, by `preceipt_mono`), reachable (`mvccState_reachable`: well
 def kvReadAt (γr : ReadNames) (on : Bool) (γs : KVSNames) (L₀ : mvcc.Log) (σ : MvccState) :
     IProp GF :=
   iprop(⌜L₀ <+: σ.log⌝ ∗ kvLogLb γs σ.log ∗ kvNx γr on σ.log ∗ ⧖ (mvcc.logCh σ.log) ∗
-    ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝)
+    crevOk γr σ.crev ∗ ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝)
 
 omit package_sem in
 instance kvReadAt_persistent (γr : ReadNames) (on : Bool) (γs : KVSNames) (L₀ : mvcc.Log)
@@ -143,7 +143,7 @@ instance kvReadAt_persistent (γr : ReadNames) (on : Bool) (γs : KVSNames) (L�
   unfold kvReadAt; infer_instance
 
 theorem kvReadAt_eq (γr : ReadNames) (on : Bool) (γs : KVSNames) (L₀ : mvcc.Log) (σ : MvccState) :
-    kvReadAt (GF := GF) γr on γs L₀ σ = kvReadAtG (kvNx γr on) γs L₀ σ := rfl
+    kvReadAt (GF := GF) γr on γs L₀ σ = kvReadAtG (kvNx γr on) (crevOk γr) γs L₀ σ := rfl
 
 /-! ## 3. The AU builders (the server proves them from `kvStoreInv`) -/
 
@@ -289,7 +289,8 @@ snapshot open over `D` and the image certificate `dbImageA` at the snapshot's in
 abbrev senderImage.law : Prop :=
   backend.backend.Snapshot.spec (GF := GF) (hG := hG) →
   mvccImage_snapshot.law (GF := GF) (hG := hG) → kvAus.law (GF := GF) →
-  ∀ (kv : GoInterface) (γ : MvccName) (γr : ReadNames) (γs : KVSNames) (i : w64)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (kv : GoInterface) (γ : MvccName) (γr : ReadNames) (γs : KVSNames)
+    (i : w64)
     (A : List EntryModel) (B : mvcc.KBReal) (Pk : IProp GF) (qo : Qp) (R : IProp GF)
     (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop),
   (∀ D, Q (backend.hkData B.P D) (backend.rbData B.P D) →
@@ -298,7 +299,7 @@ abbrev senderImage.law : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       kvStoreInv kv γ γr false γs ∗ wSt γs (kvModel γr.kv A) (crevOf γr.kv A) ∗
       srvRLogLb γr.raft A ∗ mvccBackend γ 1 B Pk ∗ backend.bOpen B.γB qo ∗ backend.wbTok B.γB ∗
-      R ∗ □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
+      threadTok ∗ R ∗ □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
         R -∗ Pk -∗ backend.hkOwn B.γB d -∗ backend.rbOwn B.γB r -∗ ⌜Q d r⌝) }}
     (App (Val (B.be @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty
       @!! go!"Snapshot")) (Val #()))

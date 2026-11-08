@@ -236,7 +236,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       irename Hsr => Hmr
       ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) HpL HrL E.kv E.γ E.γs logR $$ HkS HcR
       wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.γ t (some trc) false
-          (srvApi.kvReadAtG E.Nx E.γs logR)) $$ [Hmr Hown0 HAU]
+          (srvApi.kvReadAtG E.Nx E.Cp E.γs logR)) $$ [Hmr Hown0 HAU]
         as %respv %trv %errv ⟨Hmr, %σ, Hq, -, Hres⟩
       · iframe # Hmr
         isplitl [Hown0]
@@ -246,7 +246,7 @@ local macro "txn_tail" : tactic => `(tactic| (
         iunfold srvApi.auRead at HAU
         iexact HAU
       iunfold srvApi.kvReadAtG at Hq
-      icases Hq with ⟨%Hpre, #Hcert, #Hcok, #Hrc, %Hσ⟩
+      icases Hq with ⟨%Hpre, #Hcert, #Hcok, #Hrc, -, %Hσ⟩
       have Hwf := (mvcc.api.reach_logWf σ Hσ.1).1
       have Hst2 : 2 ≤ σ.log.length := by
         have := (srvApi.reach_prefix σ Hσ.1).1.length_le
@@ -486,7 +486,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
       irename Hsr => Hmr
       ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) HpL HrL E.kv E.γ E.γs logR $$ HkS HcR
       wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.γ t (some trc) false
-          (srvApi.kvReadAtG E.Nx E.γs logR)) $$ [Hmr Hown0 HAU]
+          (srvApi.kvReadAtG E.Nx E.Cp E.γs logR)) $$ [Hmr Hown0 HAU]
         as %respv %trv %errv ⟨Hmr, %σ, Hq, -, Hres⟩
       · iframe # Hmr
         isplitl [Hown0]
@@ -496,7 +496,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         iunfold srvApi.auRead at HAU
         iexact HAU
       iunfold srvApi.kvReadAtG at Hq
-      icases Hq with ⟨%Hpre, #Hcert, #Hcok, #Hrc, %Hσ⟩
+      icases Hq with ⟨%Hpre, #Hcert, #Hcok, #Hrc, -, %Hσ⟩
       have Hwf := (mvcc.api.reach_logWf σ Hσ.1).1
       have Hst2 : 2 ≤ σ.log.length := by
         have := (srvApi.reach_prefix σ Hσ.1).1.length_le

@@ -181,13 +181,17 @@ theorem rangeReadOkM_false (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : 
 says of a successful read, at the error: a certified log `log` extending the floor `F`, read after
 the read index unless serializable, the deposit's result at a committed raft log whose model is
 `log` (the deposit fires at the read index, before the store's read), and the store's compaction
-revision `crev` read with it (`mvcc.crevLb`), where `P log crev` (the future revision's
-`rangeFutureAt`, the compacted one's `rangeCompactedAt`). -/
+revision `crev` read with it, where `P log crev` (the future revision's `rangeFutureAt`, the
+compacted one's `rangeCompactedAt`). (R8, 2026-11-08, the second `lean` merge: over mvcc's API, as
+`rangeReadOkM`: the log a lower bound of the store's (`kvLogLb`), its raft witness `E.Nx` and
+receipt, well formed; the compaction revision's permit `E.Cp crev`, the store invariant's, in place
+of `lean`'s `idxCert`/`certOk`/`crevLb`, mvcc's internals.) -/
 def rangeErrAt (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (Q : List EntryModel → IProp GF) (P : mvcc.Log → Int → Prop) : IProp GF :=
-  iprop(∃ (log : mvcc.Log) (crev : Int), mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    mvcc.crevLb E.γ.idx crev ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧ P log crev⌝ ∗
+  iprop(∃ (log : mvcc.Log) (crev : Int), srvApi.kvLogLb E.γs log ∗ □ E.Nx log ∗
+    ⧖ (mvcc.logCh log) ∗ □ E.Cp crev ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧
+      P log crev⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L))

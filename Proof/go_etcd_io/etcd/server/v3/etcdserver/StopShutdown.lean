@@ -14,8 +14,9 @@ rest kept as `applyResStopR`):
   `raftNode.stop` returned, giving the stopped member's image (`srvDiskImage`): `Cleanup`'s
   precondition by gap 4's census (every store reader retired, the backend's whole open token) and
   the stop commit's request (`commitReq_freeze`), then the image from `Cleanup`'s post
-  (`StopImage.stop_mergedObs`, `merged_imageAt`, `RestConf.restModel_confState`, `srvFiles`).
-  Since R2d'a swap batch 4 (2026-11-07) in restart form, over `applyResStopR` and the ghost log
+  (`StopImage.stopImageG`, `stop_obs`, `stop_imageAt`, `RestConf.restModel_confState`, `srvFiles`;
+  R6, 2026-11-07: over mvcc's API, the census by mvcc's reader tokens and `mvccClosed_rest.law`, the
+  store's image by `mvccImage_stop.law`). Since R2d'a swap batch 4 (2026-11-07) in restart form, over `applyResStopR` and the ghost log
   (`stopCleanupImage.spec`; its first-start instance, the old text, was `specFirst`, deleted with
   the run swap, swap batch 5).
 -/
@@ -27,7 +28,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestConf
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthCompRows
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderRetire
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopCensus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
 
 @[expose] public section
@@ -104,10 +105,11 @@ def applyResStopR (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List Entry
     epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗
     epCsAt C.ρ.raft (ghostOf rp A) cs ∗
     srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
-    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVC K C.s B.E C.γw x sa ∗
+    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ mvcc.api.mvccReaders B.E.γ 1 ∗
+    srvApplyKVC K C.s B.E C.γw x sa ∗
     srvAppliedOwn C.γr g ∗ appliedLogAt C.γr g x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ (ghostOf rp A) x sa ∗
     srvRestR B.E C.γr rp A ∗ srvRLogLb C.ρ.raft rp.A₀ ∗
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
     srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ g ∧
@@ -344,14 +346,13 @@ restart point `rp` (`applyResStopR`: the ghost rows at the ghost log `ghostOf rp
 `rp.A₀` committed), the stop's slot but its raft part, the caller's unused serving readers
 (`srvStopReaders`, `srvStopReq`'s, R2c-4), the stop request's evidence and data directory
 (`srvBootApplied`, `srvDataDir`: `srvStopReq`'s), and what `raftNode.stop` returned
-(`raftNode.stop.spec`'s post) with the records' stored commit at least the ghost log (inside the
+(`raftNode.stop.spec`'s post; R6, 2026-11-07, the `lean` merge: the serving readers as mvcc's
+reader tokens, until then 128 of mvcc's `storeReader`s) with the records' stored commit at least the ghost log (inside the
 window `|A₀|`, from the restart data, `rnRestartOk_commit`), the member's image at the stopped
 incarnation's names, of the ghost log (inside the window the backend's `A₀`: both committed and of
 one length, so equal; past it Go's `A`). Scope (the stop request's, `srvStop.scope`): `ai₀ = 0`,
 `pre = []`, auth off, no compactor (R2c-2: from no compaction mode, `srvStop.census_readers`; until
-then a premise); and (2026-11-05) a store that does not compact (`E.cmp = false`: in compaction mode
-the apply thread's compaction right, `apply.cmpOwn`, is both what `kv.Close` takes, `wsCloserR`, and
-what the image's observation reads, `apply.cmpObs`). (R2c-1) The voters the bootstrap log's members,
+then a premise); and (2026-11-05) a store that does not compact (`E.cmp = false`). (R2c-1) The voters the bootstrap log's members,
 distinct, are `srvRaftLogInv`'s. Besides: the write budget's invariant (the storage-version monitor's
 read token, `stop_monitorRT`), `isServerApplyAll` (the KV names' start log), two later credits, and
 (H2, 2026-11-05) the budget's register at `GoAttach`'s receipts' name and `Wait`'s `goWaited` (which
@@ -387,9 +388,16 @@ abbrev stopCleanupImage.spec : Prop :=
       (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Cleanup")) (Val #()))
     {{ RET #(); srvDiskImage C.ρ.rd.raft.raft C.ρ C.rn.id dd }}
 
-/-- `stopCleanupImage.spec`'s proof, from `Cleanup`'s spec and the stop commit's request's callees
-(`commitReq_freeze`'s): one tail over the ghost log `G` (R2d'a swap batch 4: until then the frozen
-proof at Go's log and `StopR.lean`'s `stop_cleanup_imageR` inside the window). -/
+/-- The store's reader tokens the stop counts make all of them: those `NewServer` kept
+(`srvKeepRdN`), the compactor's slot's, the serving stocks' (`srvStopReaders`) and the apply
+thread's. -/
+theorem srvKeepRdN_total : srvKeepRdN + 1 + (64 + 64) + 1 = mvcc.api.mvccReaderN := by
+  simp only [srvKeepRdN, mvcc.api.mvccReaderN_eq, backend.rdStockN_val]
+
+/-- `stopCleanupImage.spec`'s proof, from `Cleanup`'s spec, the stop commit's request's callees
+(`commitReq_freeze`'s) and mvcc's laws (R6, 2026-11-07: the reader tokens' split, the closed store's
+rest, the stopped backend's image, persistence and reachability); one tail over the ghost log `G` (R2d'a swap batch 4: until then
+the frozen proof at Go's log and `StopR.lean`'s `stop_cleanup_imageR` inside the window). -/
 theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -415,26 +423,23 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     simp [apply.AEnv.authOn, hM, AuthC.mode, auth.AuthMode.isOn] at hoff
   | off => ?_
   unfold applyResStopR
-  icases Hres with ⟨%B, %st, %ai0g, %at', %a, %t, %cs, %x, %sa, %ai, %hB, #Hsrv, -, -, -, -, -, Hst, -, -,
-    -, Hbr, -, HKV, Hao, #Hlog, Hkr, HRs, #HlbA0, #Hkv, -, -, Hso, %hp⟩
+  icases Hres with ⟨%B, %st, %ai0g, %at', %a, %t, %cs, %x, %sa, %ai, %hB, #Hsrv, -, -, -, -, -, Hst,
+    -, -, -, Hbr, -, Hrdk, HKV, Hao, #Hlog, Hkr, HRs, #HlbA0, #Hkv, -, -, Hso, %hp⟩
   obtain ⟨hc0a, hpre, hai0⟩ := hEr.2.2
   have hc00 : C.c₀ = W64 0 := by rw [hai0] at hc0a; word
   -- the current backend's environment is the start's on another backend
   obtain ⟨-, pB, PB, fB, cB, ROB, RWB, hEB⟩ := hB
-  have hBcmp : B.E.cmp = false := by rw [hEB]; exact hcmp
-  have hBs : B.E.s = C.E.s := by rw [hEB]; rfl
   have hBbe : B.E.γbe = C.E.γbe := by rw [hEB]; rfl
   have hBam : B.E.authMode = .off := by rw [hEB]; exact hM
-  have hrdr : mvcc.storeReader (GF := GF) C.E.s C.E.γ = mvcc.storeReader B.E.s B.E.γ := by
-    rw [hEB]; rfl
-  -- the apply thread's view of the server: its backend `d`, with its hooks, not compacting
+  have hBγ : B.E.γ = C.E.γ := by rw [hEB]; rfl
+  -- the apply thread's view of the server: its backend `d`, with its hooks
   have hS : isServerC (GF := GF) AuthC.off C.s B.γ C.ci B.TM B.E C.ρ C.γr ⊢
       isServer C.s B.γ C.ci B.TM B.E C.ρ C.γr :=
     (isServerM_C AuthC.off C.s B.γ C.ci B.TM B.E C.ρ C.γr).2
   ihave #HsrvI := hS $$ Hsrv
   ihave #Hsrv' := Hsrv
   iunfold isServerC at Hsrv'
-  icases Hsrv' with ⟨%hρ, #HCI, ⟨%vf, #Hf⟩, #Hat, -⟩
+  icases Hsrv' with ⟨%hρ, #HCI, ⟨%vf, #Hf⟩, -⟩
   -- (R2d'a swap batch 4) the ghost log `G` (`ghostOf rp A`, the ghost index `ai` at it): inside the
   -- window the backend's `A₀` (both committed, of one length), past it Go's; the rest buckets at an
   -- image `rG` with the model's buckets either way (inside, the replay's, `restReplay_bk`)
@@ -464,118 +469,93 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold srvFieldsAtM at Hf
   icases Hf with ⟨-, -, -, -, -, %Henv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hbh⟩
   iunfold srvBeHooked at Hbh
-  icases Hbh with ⟨%d, %bh, %lgh, %Hd, -, #Hbhk, #HhkAt, #HB⟩
-  obtain ⟨hkb, hcK, hhP⟩ := Hd
-  obtain ⟨-, -, -, γB, HH, hRO, -, d', _al, _stl, _lp, hkb', hγB, -, hcm⟩ := Henv
-  rw [hkb] at hkb'
-  obtain rfl := Option.some.inj hkb'
-  subst hγB
-  have hdcm : d.cm = false := hcm.trans hBcmp
-  have hnk : ¬ mvcc.kbCmpM B.E.γ.kb := by rw [hkb]; simp [mvcc.kbCmpM, hdcm]
-  iunfold srvAtomicsC at Hat
-  icases Hat with ⟨-, -, #Hki⟩
-  iunfold srvKVInvsC at Hki
-  icases Hki with ⟨-, -, #Hrl, -⟩
-  -- the start's backend does not compact either (`srvKeepRdN`'s count)
-  ihave #Hsrv0' := Hsrv0
-  iunfold isServerC at Hsrv0'
-  icases Hsrv0' with ⟨-, -, ⟨%vf0, #Hf0⟩, -⟩
-  iunfold srvFieldsAtM at Hf0
-  icases Hf0 with ⟨-, -, -, -, -, %Henv0, -⟩
-  obtain ⟨-, -, -, -, -, -, -, d0, -, -, -, hkb0, -, -, hcm0⟩ := Henv0
-  have hnj0 : mvcc.nJobRd C.E.γ.kb = 0 := by
-    rw [hkb0]; simp [mvcc.nJobRd, hcm0, hcmp]
-  have hnjB : mvcc.nJobRd B.E.γ.kb = 0 := by
-    rw [hkb]; simp [mvcc.nJobRd, hdcm]
+  icases Hbh with ⟨%d, %bh, %lgh, %gx, %Hd, -, #Hbhk, #HhkAt, -⟩
+  obtain ⟨hBT, hcK, hhP, hPk⟩ := Hd
+  obtain ⟨-, -, γB, HH, hRO, -, d', _al, _stl, _lp, hBT', hγB, -⟩ := Henv
+  have hdd' : d' = d := srvBkTie_inj d' d (hBT'.symm.trans hBT)
+  subst d' γB
+  -- the store invariant (`srvKVInvs`'s)
+  ihave #HsrvI' := HsrvI
+  iunfold isServer at HsrvI'
+  icases HsrvI' with ⟨-, -, -, Hat, -, -⟩
+  iunfold srvAtomics at Hat
+  icases Hat with ⟨-, -, Hki⟩
+  iunfold srvKVInvs at Hki
+  icases Hki with ⟨-, -, #Hrl, #Hks, %Hwit, -⟩
+  obtain ⟨-, -, ⟨hw1, hw2, hw3, hw4⟩, -⟩ := Hwit
   -- the lessor's stop right and the auth store's closer (the slot's)
   icases srvStop.cleanup_pieces C.s C.E $$ Hclp with ⟨⟨%lp, #Hlpa, Hlst⟩, #Hauth⟩
   ihave Hac := Hauth $$ %hoff
   icases Hac with ⟨%stl, #Hstla, #Hacl⟩
-  -- the snapshot path's resources at the current backend: its stop channels, the constructors'
-  -- half of the open token, the KV's closer, the backend's file and its directory entry
+  -- the snapshot path's resources at the current backend: its stop channels at the store's write
+  -- invariant, the constructors' half of the open token, the backend's file and its directory entry
   iunfold srvSnapOwn at Hso
   icases Hso with ⟨%γt, %nt, -, -, -, Hsr⟩
   iunfold srvSnapRes at Hsr
-  icases Hsr with ⟨%d2, %al2, %dd2, %hd2, #Hsch, Hhalf, -, Hkc, #Hdd2, Hpath, #Hbf⟩
-  rw [hkb] at hd2
-  obtain rfl := Option.some.inj hd2
+  icases Hsr with ⟨%d2, %al2, %dd2, %hd2, #Hsch, Hhalf, -, #Hdd2, Hpath, #Hbf⟩
+  have hd2' : d2 = d := srvBkTie_inj d2 d (hd2.symm.trans hBT)
+  subst d2
   have hq : srvOpenQ B.E.authMode = (1 : Qp).half := by rw [hBam]; rfl
-  rw [hq, srvKVCloserW_off C.s B.E hnk]
-  iunfold srvKVCloser at Hkc
-  icases Hkc with ⟨%wsl, #Hkva, Hwcl⟩
-  -- the watchable store at the KV field
-  icases Hkv with ⟨%kv, #Hkva', #HisKV⟩
-  icombine Hkva Hkva' gives %hkveq
-  iunfold txn.isKV at HisKV
-  icases HisKV with (⟨%hk1, -, -⟩ | ⟨%ws, %γw, %hk2, #Hws⟩)
-  · exfalso
-    rw [← hkveq] at hk1
-    simp [interface.mkOk] at hk1
-    have hne : go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty ≠
-        go_etcd_io.etcd.server.v3.storage.mvcc.store.ty := by
-      unfold go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty
-        go_etcd_io.etcd.server.v3.storage.mvcc.store.ty
-      simp
-    exact hne hk1.1
-  obtain ⟨hk2, hγw⟩ := hk2
-  rw [← hkveq] at hk2
-  have hws : wsl = ws := by
-    simp only [interface.mkOk, GoInterface.ok.injEq] at hk2
-    simpa [intoVal_eq_iff] using hk2
-  subst hws
+  rw [hq]
   -- the apply thread's KV resources
-  icases srvApplyKVC_coreA AuthC.off C.s B.E C.γw x sa $$ HKV with ⟨%ua, Hcore, -, -⟩
-  iunfold srvApplyKVCore at Hcore
-  icases Hcore with ⟨-, -, Hakv, Hbo, -, -⟩
+  have hK := srvApplyKVM_C (GF := GF) AuthC.off C.s B.E C.γw x sa
+  simp only [AuthC.isOn, srvApplyKVM_false] at hK
+  ihave HKV := hK.2 $$ HKV
+  iunfold srvApplyKV at HKV
+  icases HKV with ⟨%ua, -, -, Hakv, Hbo, -, -, -, -⟩
   iunfold apply.applyKV at Hakv
-  icases Hakv with ⟨%pu, -, -, Hko, -⟩
+  icases Hakv with ⟨%p, -, -, Hko, Hcmo⟩
   iunfold apply.kvOwn at Hko
-  icases Hko with ⟨HsrA, Hkw, -, -, Hwo⟩
-  iunfold txn.kvWriter at Hkw
-  icases Hkw with ⟨Hsw, Hwl, Hfr⟩
-  ihave %Hwf := soleWriter_idxWf B.E.γ x.log $$ Hsw
-  iunfold txn.wlogOwn at Hwl
-  icases Hwl with ⟨-, Hpin⟩
-  iunfold mvcc.writerOwn at Hwo
-  icases Hwo with ⟨HrtA, Hret⟩
+  icases Hko with ⟨⟨%c, Hws⟩, Hkb, -, -⟩
+  iunfold apply.kvBk at Hkb
+  icases Hkb with ⟨%B2, HmB, -, HtB⟩
+  ihave %HB2 : ⌜B2 = d⌝ $$ [HtB]
+  · rw [hBT]; iunfold srvBkTie at HtB; iexact HtB
+  subst B2
+  iunfold apply.cmpOwn at Hcmo
+  icases Hcmo with ⟨Hop, Hcr⟩
+  -- the writer's compaction revision, the apply thread's
+  iunfold srvApi.wSt at Hws
+  icases Hws with ⟨Hws1, Hws2⟩
+  iunfold srvApi.crOwn at Hcr
+  icombine Hws2 Hcr gives %Hcc
+  have hcx : c = x.crev := Hcc.2
+  subst hcx
+  ihave Hws : srvApi.wSt B.E.γs x.log x.crev $$ [Hws1 Hws2]
+  · iunfold srvApi.wSt; iframe Hws1 Hws2
   iunfold srvBeOwn at Hbo
-  icases Hbo with ⟨%d3, %hd3, Hbe, Hg, -, HbPl⟩
-  rw [hkb] at hd3
-  obtain rfl := Option.some.inj hd3
+  icases Hbo with ⟨%d3, %hd3, Hbe, Hg, -, HbPl, Hrt⟩
+  have hd3' : d3 = d := srvBkTie_inj d3 d (hd3.symm.trans hBT)
+  subst d3
   iunfold backend.bkRPool at HbPl
   icases HbPl with ⟨-, HoPs⟩
+  iunfold apply.bkRT at Hrt
+  icases Hrt with ⟨-, HoA⟩
   rw [hBbe]
-  -- the monitor's read token (H2)
+  -- the monitor's read token's open share (H2)
   icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc1, Hlc2⟩
   ihave #Hrf' := Hrf
   iunfold srvRunFieldsAt at Hrf'
   icases Hrf' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
   iunfold srvGoAttachOk at Hgok
   icases Hgok with ⟨%gch, %gc, -, -, -, #Hginv, -⟩
-  imod stop_monitorRT C.E C.wt γg d $$ [Hlc1 Hg Hwd] with ⟨Hg, HrtM⟩
+  imod stop_monitorRT C.E C.wt γg d $$ [Hlc1 Hg Hwd] with ⟨Hg, HoM⟩
   · iframe Hlc1 Hpool Hginv Hreg Hwd Hg
-  -- the census (gap 4): the slot's readers with the compactor's, the caller's 128, the apply
-  -- thread's own, at the current names
+  -- the census (gap 4): the slot's reader tokens with the compactor's, the caller's 128, the apply
+  -- thread's, every one of the store's
   iunfold srvRunFieldsAt at Hrf
   icases Hrf with ⟨-, -, -, -, -, -, -, #Hcpa, #Hcpok, -⟩
-  icases srvStop.census_readers C.s C.E v.compactor hcmp $$ [Hcsp Hcpa] with ⟨%hcp, Hcr⟩
+  icases srvStop.census_readers hRS C.s C.E v.compactor hcmp $$ [Hcsp Hcpa] with ⟨%hcp, Hcr0⟩
   · iframe Hcsp Hcpa
-  ihave Hrs := stop_rep_join _ _ _ $$ Hcr Hrds
-  rw [hrdr]
-  ihave Hrs := stop_rep_cons1 _ _ $$ Hrs HsrA
-  ihave #HisSt : mvcc.isStore B.E.s B.E.γ $$ [Hws]
-  · rw [← hγw]; iapply mvcc.isWatchableStore_isStore; iexact Hws
-  have hm : srvKeepRdN C.E.γ + 1 + (64 + 64) + 1 + mvcc.wsLoopN + 2 =
-      backend.rdStockN - mvcc.nJobRd B.E.γ.kb := by
-    have hL : mvcc.wsLoopN = 2 := rfl
-    simp only [srvKeepRdN, hnj0, hnjB, backend.rdStockN_val, hL]
-  ihave Hwand := stop_census B.E.s B.E.γ d hkb (srvKeepRdN C.E.γ + 1 + (64 + 64) + 1) hm
-    $$ [Hlc2 HisSt Hfr Hrs Hret HrtA HrtM Hhalf HoPs]
-  · iframe Hlc2 HisSt Hfr Hrs Hret HrtA HrtM Hhalf HoPs
-  ihave Hwand' : (mvcc.wsCloseRes B.E.s γw.st ={⊤}=∗ backend.bOpen d.γB 1) $$ [Hwand]
-  · rw [hγw]; iexact Hwand
-  ihave Hwcm : mvcc.wsCloserM wsl B.E.s γw.st (-1) $$ [Hwcl]
-  · rw [hγw]; iapply (mvcc.wsCloserM_off _ _ _ _ hnk).2; iexact Hwcl
+  iunfold srvStopReaders at Hrds
+  rw [hBγ] at *
+  ihave Hrs := (hRS C.E.γ (srvKeepRdN + 1) (64 + 64)).2 $$ [Hcr0 Hrds]
+  · iframe Hcr0 Hrds
+  ihave Hrs := (hRS C.E.γ (srvKeepRdN + 1 + (64 + 64)) 1).2 $$ [Hrs Hrdk]
+  · iframe Hrs Hrdk
+  rw [srvKeepRdN_total]
+  ihave Hwand := stop_census_open hCR C.E.γ d 1 (B.E.Pk d) $$ [HoA HoM Hhalf HoPs]
+  · iframe HoA HoM Hhalf HoPs
   -- the stop commit's request (`commitReq_freeze`)
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
@@ -626,10 +606,23 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   -- members)
   rw [restLeasesWith_bk_congr f (srvIds B.E (appliedTable C.γr G).ids) _
     (restModel C.γr.kv.c0 C.γr.raft.raft.boot (C.γr.raft.pre ++ G)) hbk]
-  ihave %hobsM := stop_mergedObsP B.γ B.E C.γr ai G x d f st D hkb hcK hRB hcm hdcm hci Hwf Hfb
-    $$ [HY Hrc Hrn' Hpin Hsv]
-  · iframe HY Hrc Hrn' Hpin Hsv
-  have hobs := mergedObs_of_M hBam hobsM
+  -- the store's part (`mvccImage_stop.law`, with the apply thread's whole share)
+  ihave HmB : mvcc.api.mvccBackend C.E.γ 1 (mvcc.api.etcdStorage d)
+      (batchLockInv B.γ (metaTM d.γB d.P)) $$ [HmB]
+  · rw [← hPk]; iexact HmB
+  imod srvApi.stopImageG Hp Hr hStop B.E.Nx B.E.Cp B.E.kv C.E.γ B.E.γs x.log x.crev d
+    (batchLockInv B.γ (metaTM d.γB d.P)) D
+    $$ [Hks Hws HmB Hsv] with ⟨-, -, Hsv, %Hre, %u, #Him⟩
+  · iframe Hks Hws HmB Hsv
+  -- the server's parts (the window's observation on the stopped lock's pieces)
+  ihave %hobs := stop_obs B.γ B.E C.γr ai G d f st (mvcc.api.mvccW d.gx) D hcK hRB hci Hfb
+    $$ [HY Hrc Hrn' Hsv]
+  · iframe HY Hrc Hrn' Hsv
+  ihave #Hmi : mergedImgM (GF := GF) B.E.authMode B.E.lg C.γr ai G x.log x.crev D $$ []
+  · iunfold mergedImgM
+    isplitr
+    · ipureintro; exact ⟨hobs.1, hobs.2.1, hobs.2.2, Hre⟩
+    iexists u; iexact Him
   -- the KV names' start values
   have ekr : kvRunM (GF := GF) AuthC.off.isOn C.γr C.ai₀ C.c₀ G x sa = kvRun C.γr C.ai₀ C.c₀ G x :=
     rfl
@@ -639,9 +632,9 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold isServerApplyAll at Hsa
   icases Hsa with ⟨%wt0, %msc, %sc, -, -, -, -, -, -, -, -, -, -, -, %Hlog0⟩
   have hc0' : C.γr.kv.c0 = W64 0 := hk0.1.trans hc00
-  imod merged_imageAt C.s B.γ C.ci B.TM B.E C.ρ C.γr ai G x D ⟨hc0', Hlog0⟩ $$ [HsrvI Hka]
-    with ⟨Hka, %himg⟩
-  · iframe HsrvI Hka; ipureintro; exact hobs
+  imod stop_imageAt C.s B.γ C.ci B.TM B.E C.ρ C.γr ai G x D hBam ⟨hc0', Hlog0⟩ $$ [HsrvI Hka]
+    with ⟨Hka, %himg, %u', #Him'⟩
+  · iframe HsrvI Hka Hmi
   iunfold kvApplied at Hka
   icases Hka with ⟨Hka, -⟩
   iunfold kvAppliedL at Hka
@@ -672,8 +665,8 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   ihave %hle := monoNatLbOwn_valid C.γr.applied _ _ _ $$ Hao Hvb
   have hboot : C.γr.raft.raft.boot.length ≤ G.length := by rw [← hai]; omega
   -- the configuration point
-  imod stop_imageConf C.γr.raft C.γr.kv G D ai hpre' hai hc0' hboot himg $$ [Hrl HA]
-    with ⟨#Hconf, %hconf⟩
+  imod stop_imageConf C.γr.raft C.γr.kv G D ai hpre' hai hc0' hboot himg.1
+    $$ [Hrl HA] with ⟨#Hconf, %hconf⟩
   · iframe Hrl HA
   -- the registry's authority and the WAL's files
   icases srvStop.image_inputs C.s cfg C.rn dd $$ [Himp Hdd] with ⟨⟨%M, HM⟩, %st', #Hst', %hwd⟩

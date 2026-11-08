@@ -154,7 +154,7 @@ local macro "compact_ok_tail" : tactic => `(tactic| (
   ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) Hp Hr E.kv E.γ E.γs logS $$ HkS Hc0
   ihave #Hkv' : mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
   · rw [← Hkveq, Hkveq0]; iexact Hkv
-  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.γs logS)) $$ [Hmr HAU]
+  wp_apply (hRevC E.γ (srvApi.kvReadAtG E.Nx E.Cp E.γs logS)) $$ [Hmr HAU]
     as %rev ⟨Hmr, %σ, Hrdq, %Hrev⟩
   · iframe #; iframe Hmr
     iunfold srvApi.auRead at HAU
