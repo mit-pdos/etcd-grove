@@ -88,7 +88,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Workaround here.** Today the premise `v3rpc.runsNoRequireLeader` excludes the branch; the user
   decided (2026-11-08) to delete it, so 7f-4 needs these facts, as local lemmas until a Perennial
   change lands.
-- **Status.** Not started; the 7f-4 Draft states each (or drops P-RL1).
+- **Status.** P-RL1: covered by the ctx-value proposal (Perennial branch `ctx-value`,
+  `docs/design/context-value.md`, `c3beeb89d`: its L2/L5), checked in `notes/k8s-7f4-draft.md` §8;
+  using it for 7f-4 also needs the grpc model's run context in `ctxValue` form and a fact tying
+  grpc's `incomingOf` to `Value`, so the Draft recommends a narrower reviewed fact first. P-RL2:
+  not started (local lemmas in 7f-4, a Perennial proposal after).
 
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
 
