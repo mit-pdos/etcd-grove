@@ -5,6 +5,16 @@ hook's correspondence, determinism, the invariants' mapping). It decides what in
 hooks' specs is (`notes/trace-validation-hooks.md`: the logger's contract) and what layer D must
 discharge.
 
+**Revision 6 (after review round 5, 2026-11-08; `notes/trace-validation-reviews/s4-r5.md`).**
+No further behavior the specification cannot follow. Changed: the tokens carry their position on
+their link, `simInv` a per-link frontier, so P9 reaches raft's proof (A1); layer B's other premises
+(the configuration, no restart, no configuration change, each node's piece of the allocation) enter
+raft through gated premises on the constructors and the API (A2); both join Q6. `QuorumLogInv` is
+not raft's: a per-server copy of raft's `histsOk` (B1); the commit-point clause's maintenance
+clauses on messages and the leader's `Match` (B2); the `int` bounds' arithmetic and the term
+bound's source (B3); the budget a counter, at `Propose` only if raft's tickets carry forwarded
+proposals (B4); the term row dropped (B5); third tier.
+
 **Revision 5 (after review round 4, 2026-11-08; `notes/trace-validation-reviews/s4-r4.md`).**
 Round 4 found no further behavior the specification cannot follow (with Q4's guard and Q5's FIFO
 network); its findings are about the proof's design. Changed: P5's inflight half is a workload
@@ -277,8 +287,8 @@ None of the eight is cheap:
 - `MoreThanOneLeaderInv` from `isLeader_unique` (`Ghost.lean:1111`) through the table's leader
   clause (the win is recorded at `poll`'s `win` rule, before `traceBecomeLeader`);
 - `ElectionSafetyInv` (a leader holds the highest-indexed entry of its own term) by route (b): a
-  `σ` invariant "while `i` leads `T`, every term-`T` entry in any server's log and in any append
-  request (of any term: a later leader re-sends term-`T` entries while a stale leader of `T` still
+  `σ` invariant, each entry linked to its leader by its term, "while `i` leads `T`, every term-`T`
+  entry in any server's log and in any append request (of any term: a later leader re-sends term-`T` entries while a stale leader of `T` still
   leads) is at an index `≤ len(σ.s i.log)`" (only `i` creates term-`T` entries, its log only grows
   while it leads, truncation and `ClientRequest` preserve it), since no persistent raft fact gives
   the upper bound and the leader's own term log is not visible at another node's hook;
@@ -287,7 +297,16 @@ None of the eight is cheap:
   the leader's log to its end (P5), so a server that learns a commit index in term `T` from a leader
   holds the commit point's entry: the commit-point clause below (with `lc_core`: a log at least as
   up to date has last term at least the commit point's entry's term, so at least the quorum's);
-- `LogInv`, `QuorumLogInv`, `LeaderCompletenessInv`,
+- `QuorumLogInv` is **not** raft's (round 5's B1: raft proves nothing about a quorum's *current*
+  logs; a quorum member that moved to a higher term on a vote request keeps no `ackAgree` of its
+  acknowledgement): route by a per-server copy of raft's `histsOk` (`GhostState.lean:554-556`:
+  for every acknowledgement `j` made, the history of its current log, `hist`, `Ghost.lean:3509`),
+  refreshed at `j`'s hooks (every acknowledgement leaves through a traced `MsgAppResp` send, whose
+  hook fires first), which with a `cq` and `lc_core`/`cq_agree` gives each member's log the
+  committed prefix (raft's own `lc_adj_gen` argument, `LeaderCompleteness.lean:176-189`); `hist`
+  at truncation states takes the divergence disjunct at the first conflict (to check: `bnd` above
+  the sender's term);
+- `LogInv`, `LeaderCompletenessInv`,
   `CommittedIsDurableInv` (a leader's commit index is within its durable log: every response
   that reaches a leader answers a request handed out at one of its `Ready`s (P8), at which its
   whole log was persisted, and its own match counts toward a quorum only with the others'; the
@@ -300,9 +319,10 @@ out at a `Ready` of its leader, and it persisted that commit with its log) are
 - `LogMatchingInv` from `logRecs_agree`/`plog_match_down`;
 - at a receive line's truncation states (`ConflictAppendEntriesRequest` drops one entry at a time):
   `QuorumLogInv` needs a lemma (entries past the follower's own commit index can be in another
-  server's committed prefix, but only a leader of a term above the follower's truncates it, by
-  the table's term row, and by `lc_core` it holds every prefix whose commit quorum the follower is
-  in, so the truncation stops before them), `MoreUpToDateCorrectInv` the commit-point clause (a
+  server's committed prefix, but only a leader of a term above the follower's truncates it, a
+  fact the truncating node holds at its own hook (raft's `AcksTerm`, node-local: no `simInv`
+  clause, round 5's B5), and by `lc_core` that leader holds every prefix whose commit quorum the
+  follower is in, so the truncation stops before them), `MoreUpToDateCorrectInv` the commit-point clause (a
   shorter log is not more up to date, and the commit point stays), and the others are preserved
   by a truncation outright.
 
@@ -316,8 +336,8 @@ hook of node `i` holds only node `i`'s part and raft's shared invariants, not th
 | `σ.s j` a leader of `T` | `isLeader γ j T` (`Ghost.lean:1081`) | `MoreThanOneLeaderInv`, the corrected LC |
 | `σ.s j`'s log, entry by entry | `logRecs`/`isEntryR` records of `j`'s log (at a truncation state of a receive line: a strict prefix of one) | `LogMatchingInv`, `MoreUpToDateCorrectInv`, `QuorumLogInv` |
 | `σ.s j`'s committed prefix | committed in `raftCommitInv` (`isCommitted`) | `LogInv`, `QuorumLogInv`, `MoreUpToDateCorrectInv`, LC |
-| **commit point**: `j`'s commit index `c` is covered by a commit quorum at a term `t ≤ term(σ.s j.log[c])` (so `t ≤ σ.s j.currentTerm`) | `commitIn γ F c T` (`commitJ`, `Ghost.lean:3248-3252`: a `cq γ t n G` with `c ≤ n`, `t ≤ T`), which `isMessage` carries for append requests and heartbeats (`GhostState.lean:199`, `:217`) and raft's node state pairs with its commit (`Enter.lean:1088`, `:1221`; whether persistently at a live node: to check), strengthened to `t ≤ term(log[c])` by P5 (a `MsgApp` carries the leader's `committed`, a heartbeat `min(Match, committed)` with `Match` 0, past the leader's empty entry, or the receiver's own commit); holds at truncation states (entry `c` is never removed) | the corrected LC, `MoreUpToDateCorrectInv` |
-| `σ.s j.currentTerm` at least every term `j` acknowledged in | `j`'s term records | `QuorumLogInv` (through `lc_core`: only leaders of later terms truncate an acknowledger, and they hold the prefix) |
+| **commit point**: `j`'s commit index `c` is covered by a commit quorum at a term `t ≤ term(σ.s j.log[c])` (so `t ≤ σ.s j.currentTerm`) | `commitIn γ F c T` (`commitJ`, `Ghost.lean:3248-3252`: a `cq γ t n G` with `c ≤ n`, `t ≤ T`), which `isMessage` carries for append requests and heartbeats (`GhostState.lean:198`, `:216`) and a live node's ghost pairs with its commit persistently (`ownLogGhost_commitIn`, `Protocol/ReadIndex.lean:686-689`), strengthened to `t ≤ term(log[c])` by P5 and two maintenance clauses (round 5's B2): every append request in the bags carries its sender's stronger certificate (`t ≤ term` of the sender's entry at the commit), and a leader's `Match[j]` is 0, at or past its term's empty entry, or at most `j`'s commit index (so a heartbeat's `min(Match, committed)` is covered); holds at truncation states (entry `c` is never removed) | the corrected LC, `MoreUpToDateCorrectInv` |
+| `j`'s acknowledgements' histories | raft's `histsOk` of `j` (`GhostState.lean:554-556`), copied at `j`'s hooks | `QuorumLogInv` |
 | `σ.s j`'s durable record | none: `σ`'s own value (route (b)), set at `j`'s `Ready` lines | `CommittedIsDurableInv` |
 
 At a receive line, `σ` already holds the receiver's appended log and new commit index while raft
@@ -387,7 +407,7 @@ handed a persistent, read-only representation of the event (round 3's A1: the re
 map's values, `e : TraceEv` their abstract value, a raft-side record mirroring `TracingEvent`
 (`ApiVocab`), with a pure map to the checker's `Event` that `ConvertEvents`' spec states (round 4's
 B4: raft's public API names nothing of the example);
-raft gives `↦□` since it never touches an event after the call. The trace `L : List Event`. The
+raft gives `↦□` since it never touches an event after the call. The trace `L : List TraceEv`. The
 harness's `SyncRecorder` proves it with `traceAuth γt L` in its lock invariant (its slice of copies
 pointing at the shared, read-only parts). `traceEvent`'s non-nil spec builds `tracingEventRep` and
 supplies `e = eventOf …` with the caller's update.
@@ -396,12 +416,16 @@ The simulation (`σ`, the phantoms, `R`, the per-server facts) is raft's own: `s
 package (which then imports the transcription: it moves out of the example's proof directory to a
 module root raft may import, listed in `etc/api/raft.txt`'s neighbour `etc/api/tracecheck.txt`)
 owns `traceFrag γt L` in lockstep with `σ`, with the bounds the checker's `int` conversions need
-as clauses (terms below `2^62` from a term ceiling, the log length from the boot entries and terms
-× (proposals + 1), both from the budget: round 4's B5), and each hook's call site supplies the update,
+as clauses (round 5's B3: terms below `2^62` from raft's term budget, `budgetInv`
+(`InvNodeChan.lean:183-187`), with the time-receipt bound the adequacy theorem chooses below
+`2^62`, stated where that bound is owned; a log at most `|boot| + terms + B` entries, `B` the
+proposal budget: each term adds one empty entry, each proposal's entry is appended once), and each hook's call site supplies the update,
 stepping `σ` inside it; raft's API exports the law from `simInv γt ∗ traceAuth γt L` to "`L` steps,
 line by line, to a unique state with the invariants" (layer D gets `traceAccepts` from it), and the
-allocation law: `γt` with `traceAuth`, `traceFrag` and `simInv` in bootstrap mode, which the
-harness applies before the first `StartNode`.
+allocation law: `γt` with `traceAuth`, `traceFrag`, `simInv` at `σ_init` (from the peers), the
+nodes' `simNode`s with their bootstrap flags, and the budget, which the harness applies before
+the first `StartNode`; the exported law takes as premise that every peer's bootstrap lines are in
+`L` (a peer not yet started contributes `σ_init`'s value for it, from the allocation).
 
 What changes, besides the hooks' specs: the constructors' premise (Q1) becomes
 `isTraceLogger γt cv.TraceLogger'` inside the triple (`γt` a new binder; `isTraceLogger_nil` for a
@@ -447,6 +471,20 @@ What the contract's proof meets:
 - **The tokens' key** is raft's own message abstraction (the protocol model's `Msg`, which
   `isMessage` already uses), a multiset (equal messages occur: repeated heartbeats); `msgAbs` is
   applied inside `simInv`, so raft's public node API names nothing of the transcription (B6).
+  **And its position on its link** (round 5's A1): `simInv` keeps per link the frontier of what
+  was received, and `Step` takes a token above the frontier, which the FIFO harness proves (Q5
+  (a)); without it, a client holding a delayed `MsgVote`'s token could step it after the voter
+  heard of the leader, where raft refuses and the specification grants (gap 6). (Not needed if Q5
+  (b) changes the specification instead.)
+- **Layer B's other premises enter through the API** (round 5's A2), gated on a non-nil logger:
+  the configuration (P5's half and P7: `PreVote`, `CheckQuorum` off, `MaxSizePerMsg` unlimited,
+  `MaxInflightMsgs` above the budget's per-term appends) as a premise of `StartNode`; no
+  `ProposeConfChange` (P3) and no `RestartNode` (P1) with a logger; each `StartNode` takes its
+  node's `simNode` from the allocation and is called with the allocation's peers (P4).
+- **The budget** is a counter (so `etc/bounds-check.py` does not count it as a list of tokens),
+  taken at `Propose`; a forwarded `MsgProp` needs nothing more if raft's per-proposal tickets
+  (`entTk`, `stTks`) already carry it to the leader's append (to check), else it travels with the
+  message as the tokens do (round 5's B4).
 
 ## Open (for the next round)
 
