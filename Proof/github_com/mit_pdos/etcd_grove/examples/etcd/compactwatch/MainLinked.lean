@@ -63,6 +63,8 @@ theorem etcd_compactwatch.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.cli
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch etcdstart.wp_Collect
     etcd_compactwatch.wp_checkCompactRev mvcc.api.mvccApi_names_nonempty_law_holds
+    mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
+    mvcc.api.mvccApi_mvccReaders_split_law_holds
 
 end results
 

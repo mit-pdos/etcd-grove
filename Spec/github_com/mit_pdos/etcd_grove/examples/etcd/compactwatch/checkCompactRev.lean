@@ -14,6 +14,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.RoundCalls
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 
 @[expose] public section
 
@@ -43,8 +44,8 @@ abbrev checkCompactRev.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch ∗
       isNewClient cl [go!"127.0.0.1:23794"]
-        (srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null γr.kv) ∗
-      watchAddrFacts (srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null γr.kv) ∗
+        (srvWEnv R (etcdstart.srvWOf R.E γr false) γr go!"127.0.0.1:23794" [] null null go!"k" null γr.kv) ∗
+      watchAddrFacts (srvWEnv R (etcdstart.srvWOf R.E γr false) γr go!"127.0.0.1:23794" [] null null go!"k" null γr.kv) ∗
       kvRegsAt (⟨go!"127.0.0.1:23794", E, γr, cid, mid⟩ : SrvAt GF) ∗ srvApi.kvLogLb E.γs [] ∗
       roundsInv γr γf γl γv keys val ∗ kvInv γr.raft γr.kv }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.checkCompactRev))
