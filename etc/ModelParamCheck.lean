@@ -178,6 +178,7 @@ structure St where
   indCache : Std.HashMap Name (Array (String × String × Bool)) := {}
   indProg : NameSet := {}
   regCarry : Std.HashMap Name Bool := {}
+  whereMap : Std.HashMap Name (Array String) := {}
 
 abbrev M := ReaderT (Environment × List Name) (StateM St)
 
@@ -302,6 +303,8 @@ def contra (n : Name) : Option (Pol → Array Pol → Array Pol) :=
   else none
 
 /-- The binders `fun x => …` of these heads are existential: received at positive polarity. -/
+def FORALLS : List Name := [`Iris.BI.BIBase.forall, `Iris.BI.forall]
+
 def EXISTS : List Name := [``Exists, `Iris.BI.BIBase.exists, `Iris.BI.exist, `Iris.BI.BIBase.exist]
 
 def notePar (stack : Array Nat) (i : Nat) (pol : Pol) : M Unit := do
@@ -317,9 +320,8 @@ def unfoldable (env : Environment) (parts : List Name) (c : Name) : Option Defin
   | _ => none
 
 def noteAtom (pol : Pol) (what : String) : M Unit := modify fun s =>
-  let (r, _) := rs pol
-  { s with atoms := orPair s.atoms (rs pol),
-           atomWhere := if r then s.atomWhere.push what else s.atomWhere }
+  let sign := match pol with | .pos => "+" | .neg => "-" | .both => "±"
+  { s with atoms := orPair s.atoms (rs pol), atomWhere := s.atomWhere.push (sign ++ what) }
 
 def recordOcc (stack : Array Nat) (obj : Expr) (tag : String) (pol : Pol) : M Unit := do
   let (env, _) ← read
@@ -329,8 +331,14 @@ def recordOcc (stack : Array Nat) (obj : Expr) (tag : String) (pol : Pol) : M Un
 mutual
 partial def walkBinder (n : Name) (d b : Expr) (bpol : Pol) (pol : Pol) (pfx : String)
     (stack : Array Nat) : M Unit := do
-  -- `bpol`: the polarity at which the bound value is received by the user
-  if ← typeCarriesReg d then noteAtom bpol s!"binder {n}"
+  -- `bpol`: the polarity at which the bound value is received by the user. A bounded binder
+  -- (`∀ m ∈ ms, …`, `∃ m ∈ ms, …`) ranges over a variable already bound: not judged ([v5]).
+  let bounded := match b.consumeMData with
+    | .forallE _ d' _ _ => d'.consumeMData.isAppOf ``Membership.mem && d'.hasLooseBVar 0
+    | .app (.app (.const ``And _) d') _ => d'.consumeMData.isAppOf ``Membership.mem && d'.hasLooseBVar 0
+    | _ => false
+  if !bounded then
+    if ← typeCarriesReg d then noteAtom bpol s!"binder {n}"
   let x ← newBinder s!"{pfx}{n}" d
   walk b pol pfx (stack.push x)
 
@@ -362,11 +370,17 @@ partial def walk (e : Expr) (pol : Pol) (pfx : String) (stack : Array Nat) : M U
     let args := e.getAppArgs
     match f with
     | .const c _ =>
+      -- a BI universal binder: chosen by the user at `pol` (its domain a premise)
+      if FORALLS.contains c && args.size > 0 then
+        if let .lam n d b _ := args.back!.consumeMData then
+          -- the arguments before the lambda are the binder's type (`d` again) and instances
+          walk d pol.flip pfx stack
+          walkBinder n d b pol.flip pol pfx stack
+          return
       -- an existential binder: received at `pol`
       if EXISTS.contains c && args.size > 0 then
         if let .lam n d b _ := args.back!.consumeMData then
-          for i in [0:args.size - 1] do walk args[i]! .both pfx stack
-          walk d .both pfx stack
+          walk d pol pfx stack
           walkBinder n d b pol pol pfx stack
           return
       let pols := (contra c).map (· pol (args.map fun _ => pol)) |>.getD (args.map fun _ => pol)
@@ -390,8 +404,10 @@ partial def useDef (c : Name) (args : Array Expr) (pol : Pol) (pfx : String)
   let (env, _) ← read
   let (r1, params, locals, atoms, paramPol) ← summary c
   modify fun s => { s with r1 := r1.foldl (·.insert ·) s.r1 }
-  if (compPair pol atoms).1 then
-    modify fun s => { s with atomWhere := s.atomWhere.push s!"via {c}" }
+  if (compPair pol atoms).1 || (compPair pol atoms).2 then
+    let inner := ((← get).whereMap.getD c #[]).toList.take 3
+    let sign := match pol with | .pos => "+" | .neg => "-" | .both => "±"
+    modify fun s => { s with atomWhere := s.atomWhere.push s!"{sign}via {c} [{"; ".intercalate inner}]" }
   modify fun s => { s with atoms := orPair s.atoms (compPair pol atoms) }
   for (i, suf, tag, q) in params do
     if h : i < args.size then
@@ -440,6 +456,7 @@ partial def summary (c : Name) : M (Array (String × String × Bool) × Array (N
   for ((p, tag), (rr, uu)) in st.locals.toList do locals := locals.push (p, tag, rr, uu)
   let pp := (List.range np).toArray.map fun k => st.paramPol.getD k (false, false)
   let sm := (st.r1.toArray, params, locals, st.atoms, pp)
+  let st := { st with whereMap := st.whereMap.insert c st.atomWhere }
   set { st with occ := s0.occ, locals := s0.locals, r1 := s0.r1, paramPol := s0.paramPol,
                 atoms := s0.atoms, atomWhere := s0.atomWhere, inProg := st.inProg.erase c,
                 sums := st.sums.insert c sm }
@@ -473,7 +490,7 @@ def judge (env : Environment) (parts : List Name) (t : Expr) (st0 : St) :
   let hits := st.r1.toArray.map fun (p, ty, cv) =>
     let ok := cv || vals.any fun v => extendsPath p v && keys.any fun k => extendsPath k v
     (p, ty, ok)
-  return (hits, (if st.atoms.1 then st.atomWhere else #[]), st)
+  return (hits, (if st.atoms.1 then st.atomWhere.filter (fun w => w.startsWith "+" || w.startsWith "±") else #[]), st)
 
 def stripBinders (t : Expr) : Array (Name × Expr × BinderInfo) × Expr := Id.run do
   let mut t := t
@@ -556,7 +573,10 @@ def allowedAx (parts : List Name) (env : Environment) (a : Name) : Bool :=
   match env.getModuleIdxFor?  a, env.find? a with
   | some _, some (.axiomInfo av) =>
     let m := modOf env a
-    let inCode := m.getRoot == `Code || parts.any fun p => (p ++ `Code).isPrefixOf m
+    -- this repository's translations (`Code.*`, a part's) and Perennial's of the standard library
+    -- (`Perennial.Code.*`), both generated by the pinned translator
+    let inCode := m.getRoot == `Code || (`Perennial.Code).isPrefixOf m ||
+      parts.any fun p => (p ++ `Code).isPrefixOf m
     let (_, t) := stripBinders av.type
     let t := t.consumeMData
     let last := match a with | .str _ l => l | _ => ""
@@ -579,8 +599,10 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
   let consts := env.constants.map₁.toList ++ env.constants.map₂.toList
   for (n, ci) in consts do
     if !isProject parts env n then continue
-    if onlyNew && (env.getModuleIdxFor? n).isSome then continue
     let isAx := ci matches .axiomInfo _
+    -- with `onlyNew` (the selftests) only the scratch declarations are walked; every
+    -- registration is still collected, for rule 3
+    if onlyNew && (env.getModuleIdxFor? n).isSome && !isAx then continue
     let isThm := ci matches .thmInfo _
     if !isAx && !isThm then continue
     -- theorems: only those mentioning a registry whose proof reaches `sorryAx`
@@ -603,7 +625,12 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
         emit s!"\{\"t\":\"reg\",\"name\":{jstr n.toString},\"bad\":{jstr w}}"
       | _, _ => pure ()
       continue
+    if onlyNew && (env.getModuleIdxFor? n).isSome then continue
+    if let some o := (← IO.getEnv "MPC_ONLY") then
+      if !(o.splitOn ",").contains n.toString then continue
     let (hits, recv, st') := judge env parts ci.type st
+    if (← IO.getEnv "MPC_ONLY").isSome then
+      emit s!"\{\"t\":\"debug\",\"axiom\":{jstr n.toString},\"where\":{jstr (" | ".intercalate st'.atomWhere.toList)}}"
     st := st'
     emit s!"\{\"t\":\"axiom\",\"name\":{jstr n.toString},\"kind\":{jstr (if isAx then "axiom" else "sorry-theorem")}}"
     for (p, ty, ok) in hits do
@@ -621,6 +648,7 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
     else seen := seen.insert (r, kc) n
   -- rule 7: the `Sat` theorem (and a request's `wireLen` witness) in the registration's module
   for (n, r, _, vc, mod) in regs do
+    if onlyNew && (env.getModuleIdxFor? n).isSome then continue
     let target := if r == `Perennial.EtcdGrove.pbModelOf then (dataConst env vc).getD vc else vc
     let sat := satName r
     let mut satThm : Option Name := none
@@ -694,21 +722,21 @@ def SELFTESTS : List (String × String × Bool) := [
    "axiom st_dup : grpcRepModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty = some (pbRangeResponseT (GF := GF))", true),
   ("a registration with an extra binder",
    "noncomputable def stT (n : Nat) : ProtoMsgT GF := { pbRangeResponseT (GF := GF) with wireLen := fun _ => n }
-axiom st_binder (n : Nat) : grpcRepModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty = some (stT (GF := GF) n)", true),
+axiom st_binder (n : Nat) : grpcRepModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.HashResponse.ty = some (stT (GF := GF) n)", true),
   ("a registration with no Sat theorem",
    "noncomputable def stU : ProtoMsgT GF := { pbRangeResponseT (GF := GF) with recv := fun _ _ => iprop(False), recv_persistent := fun _ _ => inferInstance }
-axiom st_nosat : grpcRepModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty = some (stU (GF := GF))", true),
+axiom st_nosat : grpcRepModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest.ty = some (stU (GF := GF))", true),
   ("a Sat theorem resting on a hand-written zero_val axiom",
    "noncomputable def stV : ProtoMsgT GF := { pbRangeResponseT (GF := GF) with recv := fun _ _ => iprop(False), recv_persistent := fun _ _ => inferInstance }
 axiom Foo.zero_val : False
 theorem stV_repSat : (stV (GF := GF)).RepSat := Foo.zero_val.elim
-axiom st_zv : grpcRepModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty = some (stV (GF := GF))", true),
+axiom st_zv : grpcRepModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty = some (stV (GF := GF))", true),
   ("a request registration keeping the default wireLen (no wireLen witness)",
    "noncomputable def stW : ProtoMsgT GF := { pbPutRequestT (GF := GF) with wireLen := fun _ => grpcMsgMax }
 theorem stW_reqSat : (stW (GF := GF)).ReqSat := by
   refine ⟨(pbPutRequestT_reqSat (GF := GF)).1, (pbPutRequestT_reqSat (GF := GF)).2.1, (pbPutRequestT_reqSat (GF := GF)).2.2.1, ?_⟩
   intro ls l m; iintro ⟨_, %h, _⟩; exact absurd h (by simp [stW])
-axiom st_wl : grpcReqModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty = some (stW (GF := GF))", true)
+axiom st_wl : grpcReqModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest.ty = some (stW (GF := GF))", true)
 ]
 
 /-- A line of the check's output that is a failure. -/
@@ -735,7 +763,7 @@ def runSelftest (env : Environment) (parts : List Name) (emit : String → IO Un
     -- the scratch declarations judged with the imported ones (duplicates, Sat theorems): refused
     -- if the check finds more than on the imported environment alone
     let r ← IO.mkRef (#[] : Array String)
-    let _ ← check env' parts (fun l => r.modify (·.push l))
+    let _ ← check env' parts (fun l => r.modify (·.push l)) (onlyNew := true)
     let news := (← r.get).filter fun l => !base.contains l && isBadLine l
     let refused : Bool := !news.isEmpty
     let ok := refused == mustRefuse

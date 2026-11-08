@@ -75,7 +75,10 @@ def run(json_path):
 
 
 def code_line_ok(module, name, cache={}):
-    path = proof_roots.path_of(module)
+    if module.startswith("Perennial."):
+        path = os.path.join(proof_roots._perennial_dir(), *module.split(".")) + ".lean"
+    else:
+        path = proof_roots.path_of(module)
     if path not in cache:
         try:
             cache[path] = open(path, encoding="utf-8").read()
@@ -84,7 +87,9 @@ def code_line_ok(module, name, cache={}):
     # the declaration is `axiom <short name>` inside the file's namespace
     short = name.split(".")
     for k in range(len(short)):
-        if re.search(rf"^axiom {re.escape('.'.join(short[k:]))}[\s:\[]", cache[path], re.M):
+        # a component may be written `«…»` (a keyword or `_`)
+        pat = r"\.".join(rf"(?:{re.escape(c)}|«{re.escape(c)}»)" for c in short[k:])
+        if re.search(rf"^axiom {pat}[\s:\[]", cache[path], re.M):
             return True
     return False
 
@@ -127,7 +132,18 @@ def main():
                           f"{o['module']}")
         elif t == "selftest":
             selftests.append(o)
+    # each refusal must be for its intended reason (a substring of the refusing line)
+    why = {"bare model": '"covered":false', "a stray positive": "not a constant",
+           "a post yielding a registry atom": '"t":"atom"', "a post yielding a GrpcMethod": "binder m",
+           "an axiom equating": "not a constant", "a theorem proved with sorry": '"t":"atom"',
+           "a second registration": "a second registration", "a registration with an extra binder":
+           "not a registry argument", "a registration with no Sat": "no theorem of type",
+           "a Sat theorem resting on a hand-written zero_val": "Foo.zero_val",
+           "a request registration keeping the default wireLen": "wireLen"}
     for st in selftests:
+        for k, w in why.items():
+            if st["name"].startswith(k) and st.get("refused") and w not in st.get("by", ""):
+                fails.add(f"selftest refused for another reason: {st['name']} ({st.get('by', '')[:200]})")
         if not st["ok"]:
             fails.add(f"selftest failed: {st['name']} ({st.get('why', st.get('by', ''))})")
     if len(selftests) == 0:
