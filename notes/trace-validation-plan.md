@@ -1,9 +1,10 @@
 # Plan: a closed proof that raft's traces pass its own TLA+ trace validation (draft, 2026-11-08)
 
 Branch `trace-check`. Background, harness, transcription and its checks:
-`notes/raft-trace-validation.md`. Status: **draft**, to be reviewed, then frozen before proofs
-start (the repository's practice: `notes/spec-first-plan.md`); amendments after the freeze are
-dated, below the section they amend.
+`notes/raft-trace-validation.md`. Status: **Scope settled (2026-11-08); Draft next.** The stage follows
+`notes/spec-first-plan.md`'s phases (Scope, Draft, Review, Test, Probe, Freeze, Prove; no proof
+before the user's freeze, the tag `trace-check-frozen`); amendments after the freeze are dated,
+below the section they amend.
 
 ## Decisions (the user's, 2026-11-08)
 
@@ -32,23 +33,39 @@ thread and no panic.
 `Main()`: start a cluster as `RunConcurrent(DefaultCConfig(seed))` does (three voters, proposals,
 drops, delays and reordering, isolations; no restart, compaction or configuration change); stop it;
 convert its events (raft's `TracingEvent`s, in memory, no JSON) to the checker's; run `CheckTrace`;
-panic unless `TLCOK`. The seed is fixed or read from a source the proof treats as arbitrary.
+panic unless `TLCOK`. The seed is arbitrary (`primitive.RandomUint64`, which the proof treats as
+any value: the theorem covers every seed); the step bound as the kv examples' (`n < 2^61`) unless
+the proof needs another (the user's, 2026-11-08).
 
-What it means, through the checker's spec (proved, not trusted): the trace of every execution is
-accepted by `TraceAccepts`, the Lean transcription of `Traceetcdraft.tla`'s `TraceSpec` with TLC's
-`TraceMatched` and the invariants; `Results.lean` states that as a corollary of the checker's spec.
+`Results.lean` also states, as a corollary of the checker's spec, that the trace of every
+execution is accepted by `TraceAccepts`, the Lean transcription of `Traceetcdraft.tla`'s
+`TraceSpec` with TLC's `TraceMatched` and the invariants.
 
-## Trust base
+## Trust base: one transcription of the TLA+, either one (the user's, 2026-11-08)
 
-- The Lean transcription of `etcdraft.tla` and `Traceetcdraft.tla` (`TraceAccepts` and what it is
-  written in): the statement's meaning. Checked as the Go transcription was: executable, run on the
-  same traces and mutants as TLC and the Go checker, verdicts and failing lines compared; reviewed
-  against the TLA+ text by an independent reviewer.
+What the result says about raft rests on one transcription of `etcdraft.tla` and
+`Traceetcdraft.tla` deciding what the TLA+ decides -- either one, not both:
+
+- the **closed theorem** mentions only the Go program (`Main`, with the Go checker in it) and
+  Goose's semantics: its meaning rests on the Go checker's faithfulness to the TLA+; the Lean
+  transcription is a device inside the proof, and a mistake in it would leave the theorem as true
+  and as meaningful;
+- the **corollary** is stated with the Lean `TraceAccepts`: its meaning rests on the Lean
+  transcription's faithfulness, the Go checker being a verified implementation of it.
+
+Layer C proves the two equal (`CheckTrace` accepts exactly when `TraceAccepts` holds), so the
+evidence for either is evidence for both: the Go transcription's three-way comparison with TLC (the
+state spaces under four bounds, clean, mutated and full-featured traces, verdicts and failing lines)
+and the independent review (`notes/raft-trace-validation.md`) count for the Lean one once the
+checker's spec is proved. "Faithful" is the one question: that the transcription computes what the
+TLA+ says (not that raft or the harness are right: those are verified).
+
+The rest of the trust base:
+
 - Goose and Perennial (as everything here); the standard-library specs the code uses
   (`strconv.FormatUint`, `time.Sleep`, `sync`, maps).
 - The equivalence of the `with_tla` build verified and the no-op build etcd ships (no logger: the
   hooks return at once), argued, not proved.
-- Not trusted: the Go checker, the harness, raft, the hooks' event construction (all verified).
 
 ## The layers
 
@@ -118,8 +135,10 @@ the checker's spec and layer B's invariant at the end (the whole trace accepted)
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and
    friends, a `Main` for the closed program, `etc/goose.py` projects for the harness and the core;
    the differential tests kept as the regression check.
-2. **S2 the Lean transcription**: pure, executable; added to the three-way comparison (four with
-   it); reviewed.
+2. **S2 the Lean transcription**: pure definitions, read side by side with the TLA+ text. Not a
+   trust question (above): a Lean definition differing from the Go makes the checker's proof (S6)
+   fail. An executable version run against TLC would only find such a difference earlier;
+   optional.
 3. **S3 the hooks' and logger's specs** (A): the `spec` skill's process; the eleven proofs; raft's
    invariant carries the logger; raft and its dependents rebuilt.
 4. **S4 the simulation on paper** (B): `R`, each hook's correspondence, determinism, the invariants'
@@ -145,7 +164,25 @@ S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's
   progress (`becomeLeader`, `ResetState`).
 - **The fork commit unpushed**: the branch cannot land until it is.
 
-## Open questions for the user
+## Settled questions (the user's, 2026-11-08)
 
-- The step bound `2^k` and the seed (fixed, or arbitrary as `primitive.RandomUint64`'s).
-- Whether the TLC comparison (needs Java and the TLA+ tools) runs in CI or stays a local check.
+- The seed: arbitrary (`primitive.RandomUint64`); the step bound as the kv examples'.
+- The TLC comparison (needs Java and the TLA+ tools) stays a local check (`TestAgainstTLC` skips
+  without `TLA_TOOLS`), not in CI.
+
+## The phases of this stage (`notes/spec-first-plan.md`)
+
+- **Scope**: this plan (settled 2026-11-08).
+- **Draft**: every statement written, proofs `sorry`, links generated, the glue proved: S1 (the Go
+  the specs are of), S2 (the definitions they are written in), S3 (the hooks' and logger's specs,
+  with the glue in raft's callers), and the statements of layers B, C and D (the simulation
+  invariant and step lemma, `CheckTrace`'s spec, the harness's functions' and `Main`'s specs, the
+  closed theorem). S4's paper sketch is part of Draft (it is what B's statements are written
+  from).
+- **Review**: fresh `spec-reviewer` rounds on the Draft (the specs, the invariant, the closed
+  statement), until nothing first-tier is left; the questions batched to the user.
+- **Test**: the specs against runs (the harness's traces, the hooks' events against the
+  transcription's states).
+- **Probe**: an easy proof (a hook) and a hard one (a step of the simulation: a received append).
+- **Freeze**: the user's; the tag `trace-check-frozen`.
+- **Prove**: S5, S6, S7 and the rest.
