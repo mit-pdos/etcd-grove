@@ -1381,10 +1381,20 @@ def go_mod_pin_errors():
     return errors
 
 
-def run(args, cwd=None, quiet=False):
+def run(args, cwd=None, quiet=False, env=None):
     if not quiet:
         print("+ " + " ".join(args), file=sys.stderr)
-    subprocess.run(args, cwd=cwd, check=True)
+    subprocess.run(args, cwd=cwd, check=True, env=env)
+
+
+def host_env():
+    """The environment without the target settings (`GOOS`, `GOARCH`, `CGO_ENABLED`, `CC`), for
+    building the translator to run on this machine: those settings, when given, are for the
+    translation only (the standard library's cgo-processed packages, e.g. `net`, translate
+    differently per target; the checked-in translations are linux/amd64's, so an arm64 host
+    checks them with `GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-linux-gnu-gcc`)."""
+    target = {"GOOS", "GOARCH", "CGO_ENABLED", "CC"}
+    return {k: v for k, v in os.environ.items() if k not in target}
 
 
 def git_head(d):
@@ -1556,9 +1566,9 @@ def main():
     bindir = os.path.join(WORK, "bin")
     os.makedirs(bindir, exist_ok=True)
     run(["go", "build", "-o", bindir + os.sep, "./goose/cmd/goose", "./goose/cmd/proofgen"],
-        cwd=perennial)
+        cwd=perennial, env=host_env())
 
-    ok = [translate(p, src, bindir, rev, desc, args.check) for p, src, desc in sources]
+    ok =[translate(p, src, bindir, rev, desc, args.check) for p, src, desc in sources]
     pin_errors = go_mod_pin_errors()
     for e in pin_errors:
         print("goose.py: " + e, file=sys.stderr)
