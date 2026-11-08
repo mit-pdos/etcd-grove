@@ -95,6 +95,15 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   traces still pass; the argument: every committed entry server `i` knows was committed at a term
   at most `currentTerm[i]`, and a leader of a term at least that holds it (leader completeness,
   or it is the committing leader).
+  TLC on `etcdraft.tla` itself (2026-11-08, scratch, not committed: upstream's `MCetcdraft` with
+  three servers, `MaxTermLimit = 4`, `RequestLimit = 2`, no reconfiguration, each invariant alone):
+  **inconclusive**. Breadth-first, 20 minutes reached depth 16 (61 million distinct states) for
+  both without a violation; random simulation (depth 80), 20 minutes, about 5.6 million traces
+  each, found none for either, **the original included**. So at these bounds TLC does not reach
+  item 7's violation (a stale leader needs a partition-like schedule: an election in a later term
+  and a commit while the old leader hears nothing), and the run says nothing for (b). A
+  conclusive check needs a directed model (the witness's schedule as a constraint, then the
+  corrected invariant checked around it) or the proof; the traces' evidence above stands.
 - **Q5 (2026-11-08, S4 review round 2, N2): three voters do not exclude gap 6.** A leader's own
   `MsgVote`, delayed past its first heartbeat to a voter, is refused by raft (`lead != None`) and
   granted by the specification (`TestGap6ThreeVoters`; TLC rejects at the same line), so `Main`
