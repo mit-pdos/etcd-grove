@@ -17,6 +17,7 @@ axiom backend.rtxStats
 axiom backend.txDB
 axiom backend.txLive
 axiom context.WithValue.wp_proof
+axiom envVerifyOffTok
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.ErrorfWrap.wp_proof
 axiom go_humanize.Bytes.wp_proof

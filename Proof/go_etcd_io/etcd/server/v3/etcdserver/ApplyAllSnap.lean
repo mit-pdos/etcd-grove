@@ -446,7 +446,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     ihave #Hro' := Hro
     iunfold srvSnapRO at Hro'
     icases Hro' with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d,
-      %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
+      %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hvoff, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
       #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #HlpL, #Hrc,
       #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, #Hws, #Hcfg⟩
     obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hcm, hbr, hci, hhk, hwf, hlim, hlp,
@@ -571,12 +571,15 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     · iframe #
     (try wp_auto)
     -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
-    wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, -⟩
+    wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, %dB, -, #HbRO⟩
     · iframe #; iframe Hbr
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's
+    ihave #Hvoff := srvBeRO_envVerifyOff dB $$ HbRO
     wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
     · iframe #; iframe Hlr; ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_apply hV be fv.lg true bsl
+    wp_apply hV be fv.lg true bsl $$ []
+    · iframe #
     (try wp_auto)
     -- `proposalsApplied.Set(float64(ep.appliedi))`
     iunfold gaugeSetSpec at Hgs
@@ -929,7 +932,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   ihave #Hro' := Hro
   iunfold srvSnapRO at Hro'
   icases Hro' with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d,
-    %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
+    %Hp, #Hcflg, #Hcfdd, #Hcffg, #Hfg, #Hvoff, #Hcfq, #Hcfw, #Hssf, #Hssi, #Hhkf, #Hhk, #Hstp, #Hidm,
     #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #HlpL, #Hrc,
     #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, #Hws, #Hcfg⟩
   obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hcm, hbr, hci, hhk, hwf, hlim, hlp,
@@ -1062,12 +1065,15 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   · iframe #
   (try wp_auto)
   -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
-  wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, -⟩
+  wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, %dB, -, #HbRO⟩
   · iframe #; iframe Hbr
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's
+  ihave #Hvoff := srvBeRO_envVerifyOff dB $$ HbRO
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_apply hV be fv.lg true bsl
+  wp_apply hV be fv.lg true bsl $$ []
+  · iframe #
   (try wp_auto)
   -- `proposalsApplied.Set(float64(ep.appliedi))`
   iunfold gaugeSetSpec at Hgs

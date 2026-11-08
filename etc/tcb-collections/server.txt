@@ -133,6 +133,7 @@ axiom context.WithCancelBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom dataDirFresh
 axiom encoding.json.Unmarshal.wp_proof
+axiom envVerifyOffTok
 axiom errors.AsLeaf.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof

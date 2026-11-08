@@ -132,6 +132,7 @@ axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom dataDirFresh
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
+axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof

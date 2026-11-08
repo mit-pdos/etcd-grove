@@ -66,7 +66,7 @@ theorem backend.newBackend.wp_proof
     (hRun : backend.backend.run.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
   intro _ cfg P D W Pk K
-  wp_start as ⟨Hfile, %HP, #Hhk, Hmk, Htok⟩
+  wp_start as ⟨Hfile, %HP, #Hhk, #Hvoff, Hmk, Htok⟩
   -- `boltOpenOptions`: the backend's package fact (item 8)
   ihave #Hboo : (boltOpenOptionsOk : IProp GF) $$ []
   · ihave Hbi : (go_etcd_io.etcd.server.v3.storage.backend.backendInit : IProp GF) $$ []

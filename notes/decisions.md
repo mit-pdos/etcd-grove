@@ -33380,3 +33380,44 @@ distinct, every file below the working directory and every open file inside exac
 
 **Independent of R1-3's re-pin**: the fork change (`purgeFile` no longer purges `.snap.db`) only
 removes one of clause (3)'s writers; no file R1-4a edits is re-translated.
+
+## Numeric address literals (`hAsLit`) and `ETCD_VERIFY` off (`verifyEnvOff`, `envVerifyOff`) (2026-11-08 · sweep repairs 1, R1-4b: W5 + B4; the Scope (revision 3) approved by etcd-grove-81/82, narrowing (b) approved by the user via etcd-grove-82 · branch `sweep-repairs-1`)
+
+**W5, the defect.** `goose_adequacy_start` handed out `netAddrFree a`/`httpProtoFree a` per string,
+and `addrsUnclaimed` was per string, while Go binds and dials sockets: `localhost:p` resolves (to
+`127.0.0.1` or `[::1]`), a dial of it can reach a listener bound at `[::1]:p`, and a wildcard bind
+overlaps every address (`notes/axiom-review/alias-tokens.md`; `examples/sweeprepairs/wal`,
+`TestW5Counterexample`). **The repair:** `netAddrLit` (`Proof/net/InvNet.lean`, decidable: a
+canonical `d.d.d.d:p`, no wildcard host, port 1..65535, no leading zeros), a hypothesis
+`hAsLit : ∀ a ∈ As, netAddrLit a = true` of `goose_adequacy_start`, discharged by `decide` in every
+example (no closed theorem's text changes); `addrsUnclaimed`'s wording covers overlapping sockets.
+`TestW5ExamplesAddrs`: all 96 address literals of the examples are numeric and bind exactly their
+string.
+
+**B4, the defect.** The four trust-boundary specs `backend.ValidateCalledInsideApply`,
+`ValidateCalledOutSideApply`, `ValidateCalledInsideUnittest` and `VerifyBackendConsistency` returned
+unconditionally, while with `ETCD_VERIFY` set to `all`, `lock` or `assert` they panic outside the
+apply loop or on an inconsistent backend (`examples/sweeprepairs/b1`, `TestB4On`). **The repair:**
+`Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`: `verifyEnvOff e` (an axiomatized `Prop`, a
+hypothesis `HEnv` of each closed theorem that starts a server) and its persistent token
+`envVerifyOff` (`□ envVerifyOffTok`, axiomatized), which `goose_adequacy_start` gives (`startRights`,
+under `hEnv`). The four specs require it. It reaches them through:
+- `backend.isBackend` (and `isBackendNH`): a new last conjunct, `isBackend_envVerifyOff`; the lock
+  proofs take it from there, `applyAll`'s `VerifyBackendConsistency` from the server's backend
+  (`srvBeRO_envVerifyOff`);
+- its producers: `backend.newBackend`/`New` (precondition), `storage.openPre` (so `OpenBackend` and
+  `OpenSnapshotBackend` carry it), `bootstrapContract` and `bootstrapRestartContract`
+  (precondition, the Scope's "also in `bootstrapContract`'s precondition"), `NewServer.spec`
+  (`"#Hvoff"`), the snapshot path (`srvSnapRO`, `applySnapshot.specSnapM`'s precondition);
+- the examples: `etcdstart`'s start and fresh bundles (`memberStartRes`, `memberFreshRes`, each a
+  copy; `memberFreshRes_verify`), from `startRights`.
+
+**Exported statements: narrowed** (the user's decision (b)): the 18 closed `*_safe` theorems that
+start a server, their `*_adequate`, and `etcdstart`'s generic adequacy theorems gain
+`HEnv : verifyEnvOff prog`. Specs strengthened in their preconditions (not closed): `NewServer.spec`,
+`backend.New`/`newBackend`, `applySnapshot.specSnapM`, the four checks. Trust base: +2 axioms
+(`verifyEnvOff`, `envVerifyOffTok`); `goose_adequacy_start` restated (`hAsLit`, `hEnv`).
+
+**Not covered:** the restart bundle (`memberRestartRes`) does not carry `envVerifyOff`; the restart
+contract, which now takes it, is applied by no proof (DRAFT, R2d'b's): R2d'b gives it from the
+member's start bundle.

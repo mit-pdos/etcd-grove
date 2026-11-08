@@ -575,6 +575,8 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
         ((memBoot γ.boot).lookup f).map apply.MemberM.peerURLs)⌝ -∗
     {{ -- (sweep repairs 1, L4) a zap logger (`bootstrapContract`'s)
         zapLoggerOk cfg.Logger' ∗
+        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`bootstrapContract`'s)
+        envVerifyOff ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
         srvFiles cfg.DataDir' id σ D ∗ backend.pathOwn (config.backendPathOf cfg.DataDir') }}
       (App (Val (@! bootstrap)) (Val #cfg))

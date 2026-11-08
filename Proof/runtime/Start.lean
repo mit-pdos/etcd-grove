@@ -32,6 +32,10 @@ or empty at start, pairwise disjoint, and touched only by the operations whose s
 effects. The verified code's first `bootstrap` of `dd` consumes the right. So each data directory
 of `Ds` is bootstrapped fresh at most once in a run, over an empty backend, which `bootstrap`'s
 contract needs (`wal.Exist(dir)` false: `bootstrapNewWAL`; no backend file: `HD`, `HmEmpty`).
+(Sweep repairs 1, W5) The addresses of `As` are numeric literals (`hAsLit`, decidable), so each
+names one socket and the per-string rights are per-socket. (Sweep repairs 1, B4) For a program of
+which `verifyEnvOff e` holds (`ETCD_VERIFY` off for the run), it also receives `envVerifyOff`,
+which the backend's lock checks and `VerifyBackendConsistency` take.
 Why it is once only: nothing else produces `nameFree`, `netAddrFree` or `httpProtoFree` (axiomatized
 predicates, `Registry.lean`, `InvNet.lean`; no axiom or definition gives one), so the rights exist
 only where this axiom's premise hands them out: once, to the one WP proof of one execution, under
@@ -57,6 +61,7 @@ public import Perennial.GooseLang.Adequacy
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.net.InvNet
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
 
 @[expose] public section
 
@@ -76,8 +81,11 @@ with `n`'s label-free descriptor's ID, or with that collector ID. -/
 axiom prometheus.namesUnclaimed [GooseExts] (e : Expr) (Ns : List GoString) : Prop
 
 /-- **The addresses `As` are the program's** (a fact of the environment a run of `e` is in, and
-of `e`'s unverified code): while `e` runs, no other process binds an address of `As`, and no code
-of `e` whose behaviour this repository does not verify binds one. -/
+of `e`'s unverified code): while `e` runs, no other process binds an address of `As`, nor a socket
+overlapping one (a wildcard bind of its port, `0.0.0.0:p` or `[::]:p`), and no code of `e` whose
+behaviour this repository does not verify binds one. (Sweep repairs 1, W5) `As`'s strings are
+numeric literals (`netAddrLit`, `goose_adequacy_start`'s `hAsLit`), so "an address of `As`" is the
+one socket the literal names. -/
 axiom addrsUnclaimed [GooseExts] (e : Expr) (As : List GoString) : Prop
 
 /-- **The data directories `Ds` are the program's, fresh, and untouched by anything else** (a fact
@@ -110,10 +118,13 @@ axiom dataDirsAbsent [GooseExts] (e : Expr) (Ds : List GoString) : Prop
 /-- The rights program start gives: the right to register each name of `Ns` and to listen on
 each address of `As`, and (D39a, 2026-10-23) to fix each address's HTTP protocol
 (`httpProtoFree`); and (2026-11-03; sweep repairs 1, W3/W4) each data directory of `Ds` fresh
-(`dataDirFresh`), which a member's first start consumes. -/
+(`dataDirFresh`), which a member's first start consumes; and (sweep repairs 1, B4) `ETCD_VERIFY` off
+for the run (`envVerifyOff`, persistent). -/
 def startRights {GF : BundledGFunctors} [GooseExts] (Ns As Ds : List GoString) : IProp GF :=
   iprop(([∗list] n ∈ Ns, prometheus.nameFree n) ∗ ([∗list] a ∈ As, netAddrFree a) ∗
-    ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d))
+    ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    envVerifyOff)
 
 section adequacy
 variable [GooseExts] [GooseInterp]
@@ -126,8 +137,9 @@ axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
     (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
+    (hAsLit : ∀ a ∈ As, netAddrLit a = true)
     (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
-    (hDsFree : dataDirsAbsent e Ds)
+    (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
       receiptBound GF = N →
       threadBound GF = T →

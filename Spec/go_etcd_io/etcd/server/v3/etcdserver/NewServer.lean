@@ -252,6 +252,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (sweep repairs 1, R1-2, L4) the configured logger a zap logger (what `bootstrap`'s contract
       -- takes; until then `cfg.Logger' ≠ null`, which a zero `&zap.Logger{}` meets)
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
+      -- (sweep repairs 1, R1-4b, B4) `ETCD_VERIFY` off for the run, from program start (what
+      -- `bootstrap`'s contract and the snapshot path's `OpenSnapshotBackend` take)
+      "#Hvoff" ∷ envVerifyOff ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗

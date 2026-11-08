@@ -90,6 +90,8 @@ theorem startServer.wp_proof
   letI : MemStorReg GF := ⟨γ.reg⟩
   have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   -- `NewServer(cfg)` with auth on
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, from the member's fresh bundle
+  icases etcdstart.memberFreshRes_verify _ _ _ $$ Hfresh with ⟨#Hvoff, Hfresh⟩
   wp_apply (wp_NewServer _ ⟨[etcdstart.httpURL go!"127.0.0.1:23926"],
         [etcdstart.httpURL go!"127.0.0.1:23916"],
         GMap.insert go!"authkv" (slice.mk peer (W64 1) (W64 1)) ∅,

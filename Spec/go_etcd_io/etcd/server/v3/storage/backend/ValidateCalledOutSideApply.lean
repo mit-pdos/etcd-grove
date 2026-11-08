@@ -9,6 +9,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
 
 @[expose] public section
 
@@ -25,10 +26,15 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `ValidateCalledOutSideApply(lg)` returns (the lock checks off). -/
+/-- `ValidateCalledOutSideApply(lg)` returns (the lock checks off).
+(Sweep repairs 1, B4, 2026-11-07: with `ETCD_VERIFY` off, `envVerifyOff`, from program start; until
+then assumed unconditionally, false of a run with `ETCD_VERIFY=all`, `lock` or `assert`: Go
+`examples/sweeprepairs/b1`, `TestB4On`.) -/
 abbrev backend.ValidateCalledOutSideApply.spec : Prop :=
   ∀ (lg : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run (`envVerifyOff`)
+      envVerifyOff }}
     (App (Val (@! ValidateCalledOutSideApply)) (Val #lg))
   {{ RET #(); True }}
 

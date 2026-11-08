@@ -131,6 +131,8 @@ theorem etcd_leasegrant_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed leasegrantProgram [go!"127.0.0.1:23956"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
     (HDs : dataDirsAbsent leasegrantProgram [go!"leasegrant.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff leasegrantProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasegrantGF,
       ⊢ etcd_leasegrant.premises (GF := leasegrantGF) (hG := heapAtLgr hG lctx) n id ctxs boot)
@@ -142,7 +144,7 @@ theorem etcd_leasegrant_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := leasegrantGF) github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.initialize'
+  refine etcd_adequate_members (GF := leasegrantGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23956"] (by decide) [go!"leasegrant.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory

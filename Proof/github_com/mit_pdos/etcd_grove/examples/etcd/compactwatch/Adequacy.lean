@@ -134,6 +134,8 @@ theorem etcd_compactwatch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed compactkvProgram [go!"127.0.0.1:23794"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
     (HDs : dataDirsAbsent compactkvProgram [go!"compactkv.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff compactkvProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC compactkvGF,
       ⊢ etcd_compactwatch.premises (GF := compactkvGF) (hG := heapAtCkv hG lctx) n id ctxs boot)
@@ -145,7 +147,7 @@ theorem etcd_compactwatch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := compactkvGF) github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.initialize'
+  refine etcd_adequate_members (GF := compactkvGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23794"] (by decide) [go!"compactkv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory

@@ -409,7 +409,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave #Hboot' := Hboot
   iunfold bootstrapContract at Hboot'
   wp_apply Hboot' $$ [Hrauth Hwdf] as %b %err Hb
-  · iframe; iframe Hcfgro Hzlg
+  · iframe; iframe Hcfgro Hzlg Hvoff
     ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1, Hdisk.2.2.2.2⟩
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
   · -- `bootstrap` failed
@@ -1689,7 +1689,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       simp only
       ihave #HszS := keySized_withCm d cmp tt $$ Hsz
       rw [← Hstp, ← Hastl, Hfgi]
-      iframe LoggerS DataDirS ServerFeatureGateS Hfg QuotaBackendBytesS WarningApplyDurationS
+      iframe LoggerS DataDirS ServerFeatureGateS Hfg Hvoff QuotaBackendBytesS WarningApplyDurationS
       iframe snapshotter Hss beHooks Hbh' storageC memberID alarmStore authStore lessor cluster
       iframe HalS HalA HisAuth HauR HauSK Hlbe Hlcfg Hrc Hisc HszS
       isplitr
