@@ -54,7 +54,7 @@ abbrev StartCluster.spec : Prop :=
     (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (lg : Loc) (cmp : Bool) (lm : lease.Mode),
-  cfgOk cfg → BootFacts id₁ id₂ id₃ ps ctxs boot → lg ≠ null →
+  cfgOk cfg → BootFacts id₁ id₂ id₃ ps ctxs boot →
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
@@ -64,6 +64,8 @@ abbrev StartCluster.spec : Prop :=
   -- see the file header), and the lease reads' deployment premise in a mode that grants leases
   lease.runCfg (GF := GF) lm lm → lm ≠ .revocable → (lm ≠ .none → leasePeersOk) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       -- (2026-11-05, hub step 7's E2, D1) the cluster's start bundle: each member's (its WAL
       -- directory fresh, its peer and client addresses free, the peer's HTTP protocol unregistered)
       -- and the bridges' addresses free

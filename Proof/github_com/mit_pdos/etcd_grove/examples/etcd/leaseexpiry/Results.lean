@@ -69,8 +69,8 @@ theorem etcd_leaseexpiry_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk)
     (HNs : prometheus.namesUnclaimed leaseexpiryProgram leaseexpiryNames)
     (HAs : addrsUnclaimed leaseexpiryProgram [go!"127.0.0.1:23976"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent leaseexpiryProgram [config.walDirOf go!"leaseexpiry.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent leaseexpiryProgram [go!"leaseexpiry.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leaseexpiryGF,
       ⊢ etcd_leaseexpiry.premises (GF := leaseexpiryGF) (hG := heapAtLex hG lctx) n id ctxs boot)

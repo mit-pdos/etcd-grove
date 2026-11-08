@@ -58,11 +58,13 @@ abbrev restartCheck.spec : Prop :=
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
   rafthttp.bootCfg dir ps →
   Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL caddr], M, iu⟩ →
-  plainEndpoint caddr → lg ≠ null →
+  plainEndpoint caddr →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       memberStop m s pl γ id peerAddr γn ρ (name ++ go!".etcd") ∗ memberStopRes s ρ id ∗
       isNewClient cl [ep] V ∗ client.kvRegsAt (⟨ep, E₁, γr, cid, mid⟩ : client.SrvAt GF) ∗
       client.putGetInv γr γf go!"k" go!"v2" ∗

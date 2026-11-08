@@ -104,7 +104,8 @@ theorem backend.newBackend.wp_proof
   -- `bcfg.Logger = zap.NewNop()` when nil
   wp_join iprop(∃ lg : Loc, bcfg_ptr ↦ ({ cfg with Logger' := lg } : BackendConfig) ∗
     ⌜lg ≠ Loc.null⌝) with [bcfg] as ⟨%lg, bcfg, %Hlg⟩
-  · wp_apply hNop as %l %Hl
+  · wp_apply hNop as %l #Hlz
+    ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
     iframe
     ipureintro; exact ⟨rfl, Hl⟩
   · iframe

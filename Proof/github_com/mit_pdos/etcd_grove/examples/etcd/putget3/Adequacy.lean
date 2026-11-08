@@ -120,10 +120,9 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
-    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
-    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
-    (HDsNd : [config.walDirOf (etcd_putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₃ ++ go!".etcd") go!""].Nodup)
-    (HDs : walDirsAbsent putget3Program [config.walDirOf (etcd_putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₃ ++ go!".etcd") go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
+    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
+    (HDs : dataDirsAbsent putget3Program [(etcd_putget3.name₁ ++ go!".etcd"), (etcd_putget3.name₂ ++ go!".etcd"), (etcd_putget3.name₃ ++ go!".etcd")])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
       ⊢ etcd_putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
@@ -137,7 +136,7 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine etcd_adequate_members (GF := putget3GF) github_com.mit_pdos.etcd_grove.examples.etcd.putget3.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) [config.walDirOf (etcd_putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₃ ++ go!".etcd") go!""] HDsNd
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) [(etcd_putget3.name₁ ++ go!".etcd"), (etcd_putget3.name₂ ++ go!".etcd"), (etcd_putget3.name₃ ++ go!".etcd")] (by decide)
     -- (hub step 7) the members' start bundles: the three peers, member 1's client; the program's
     -- address list has member 1's client last (a permutation)
     [(etcd_putget3.name₁, ⟨some etcd_putget3.peerAddr₁, some etcd_putget3.clientAddr₁⟩),

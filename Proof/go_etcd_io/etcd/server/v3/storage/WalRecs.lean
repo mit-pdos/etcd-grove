@@ -5,7 +5,7 @@ server's storage is `etcdserver/WalApi.lean`). Lean-first.
 
 The model of the WAL's records (`walFresh`, `walSave`, `walSaveSnap`, `WalSaveOk`), the records
 (`walRecs`) and their base's lower bounds (`walBaseLb`), a closed WAL's files (`walFiles`,
-axiomatized, as a fresh directory's `walDirFresh`, `WalDir.lean`), the purge's right (`walPurgeRight`), the WAL's directory and metadata (`walDirOf`,
+axiomatized, as a fresh directory's `dataDirFresh`, `WalDir.lean`), the purge's right (`walPurgeRight`), the WAL's directory and metadata (`walDirOf`,
 `walMetaIs`, `config.walDirOf`). The ghost variables' meaning is trusted (see each docstring); the
 module is sealed (`etc/import-all.txt`): no `import all` of it, so no proof updates them except
 through the trusted contracts (`isWalStorage`, `bootstrap`'s, `purgeFile`'s).
@@ -182,7 +182,7 @@ theorem walRecs_baseLb_le (w : Loc) (σ : StorContents) (i : Nat) :
 opaque walDirOf (w : Loc) : GoString
 
 /-- **The files of a closed WAL in the directory `dir` hold the records `σ`, its metadata the
-member `id` of the cluster `cid`** (axiomatized, timeless; a trust-boundary token, as `walDirFresh`,
+member `id` of the cluster `cid`** (axiomatized, timeless; a trust-boundary token, as `dataDirFresh`,
 `WalDir.lean`: the user's choice, 2026-11-03): `wal.Open(dir, s)` at the snapshot record
 `recoverSnapshot` picks (the highest valid one), then `ReadAll`, returns `σ` and the metadata.
 Made by `Close`; consumed by a restart's `bootstrap` (its contract). A graceful stop in one

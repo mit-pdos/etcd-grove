@@ -6,22 +6,21 @@ theorem etcdstart.NewClient.wp_proof (wp_NewClients : etcdstart.NewClients.spec)
     etcdstart.NewClient.spec
   -- `Perennial.EtcdGrove.etcdstart.NewClient.spec`, unfolded:
   ∀ (addr : GoString) (lg : Loc) (V : client.WEnv GF),
-    lg ≠ null →
-      plainEndpoint addr →
-        threadBound GF ≤ 2 ^ 31 →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart -∗
-                (▷
-                    ∀ cl err,
-                      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗ clientTokAt cl [addr] fun x => iprop(False)) ∨
-                          ⌜err ≠ GoInterface.nil ∧ cl = null⌝ -∗
-                        Φ (intoVal cl, intoVal err)) -∗
-                  WP
-                    (((intoVal (functions github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient []))
-                        (intoVal addr))
-                      (intoVal lg))
-                    {{ Φ }}
+    plainEndpoint addr →
+      threadBound GF ≤ 2 ^ 31 →
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗ zapLoggerOk lg -∗
+              (▷
+                  ∀ cl err,
+                    (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗ clientTokAt cl [addr] fun x => iprop(False)) ∨
+                        ⌜err ≠ GoInterface.nil ∧ cl = null⌝ -∗
+                      Φ (intoVal cl, intoVal err)) -∗
+                WP
+                  (((intoVal (functions github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient []))
+                      (intoVal addr))
+                    (intoVal lg))
+                  {{ Φ }}
 
 theorem isNewClient.congr_simp [srv_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (cl cl✝ : Loc) (e_cl : cl = cl✝)

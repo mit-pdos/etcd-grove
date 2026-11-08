@@ -337,7 +337,7 @@ theorem etcdstart.env₀_cmp [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.a
     (idx : mvcc.IdxNames) (cok rev : GName) (cmp : Bool) : (etcdstart.env₀ idx cok rev cmp).cmp =
     cmp
 
-theorem etcdstart.bootCfgOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (hlg :
-    cfg.Logger' ≠ null) (hq : cfg.QuotaBackendBytes' = W64 0) (hbl : cfg.BackendBatchLimit' = W64 0)
-    (hdf : cfg.BootstrapDefragThresholdMegabytes' = W64 0) (het : cfg.ElectionTicks' = W64 10) :
-    bootCfgOk cfg
+theorem etcdstart.bootCfgOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (hq :
+    cfg.QuotaBackendBytes' = W64 0) (hbl : cfg.BackendBatchLimit' = W64 0) (hdf :
+    cfg.BootstrapDefragThresholdMegabytes' = W64 0) (het : cfg.ElectionTicks' = W64 10) : bootCfgOk
+    cfg

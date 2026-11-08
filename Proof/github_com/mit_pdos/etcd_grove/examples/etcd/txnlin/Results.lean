@@ -72,8 +72,8 @@ theorem etcd_txnlin_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
     (HNs : prometheus.namesUnclaimed (linkvtxnProgram clients ops) linkvtxnNames)
     (HAs : addrsUnclaimed (linkvtxnProgram clients ops) [go!"127.0.0.1:23796"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent (linkvtxnProgram clients ops) [config.walDirOf go!"linkvtxn.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent (linkvtxnProgram clients ops) [go!"linkvtxn.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvtxnGF,
       ⊢ etcd_txnlin.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id ctxs boot)

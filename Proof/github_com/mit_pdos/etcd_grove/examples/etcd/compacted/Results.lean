@@ -71,8 +71,8 @@ theorem etcd_compacted_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetcProgram putgetcNames)
     (HAs : addrsUnclaimed putgetcProgram [go!"127.0.0.1:23791"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent putgetcProgram [config.walDirOf go!"putgetc.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent putgetcProgram [go!"putgetc.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetcGF,
       ⊢ etcd_compacted.premises (GF := putgetcGF) (hG := heapAtC hG lctx) n id ctxs boot)

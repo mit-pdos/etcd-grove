@@ -31,7 +31,7 @@ three-member cluster (`cluster3`, at `clusterCfg`) and connects the client to it
 partition example's `etcd_partition_adequate` (`etcd_adequate_members`, from the members' start
 bundles and the bridges' addresses) without the schedule. Its hypotheses are `k8s_etcd3_adequate`'s
 with the cluster's boot facts, premises (`cluster3.premises` at `clusterCfg`), nine addresses and
-three WAL directories (distinct) for the one member's.
+three data directories (distinct) for the one member's.
 -/
 module
 
@@ -135,8 +135,8 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
     (HNs : prometheus.namesUnclaimed (k8setcd3Program clients ops) k8setcd3Names)
     (HAs : addrsUnclaimed (k8setcd3Program clients ops) [go!"127.0.0.1:23896"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent (k8setcd3Program clients ops) [config.walDirOf go!"k8setcd3.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent (k8setcd3Program clients ops) [go!"k8setcd3.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ k8s_etcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
@@ -159,7 +159,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown"))
     (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => intoVal_ne_PanicV _ p h.symm)) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩
-    k8setcd3Names [go!"127.0.0.1:23896"] [config.walDirOf go!"k8setcd3.etcd" go!""] (by decide) (by decide)
+    k8setcd3Names [go!"127.0.0.1:23896"] [go!"k8setcd3.etcd"] (by decide) (by decide)
     (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) HNs HAs HDs ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
@@ -187,9 +187,9 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   iunfold startRights at Hrights
   icases Hrights with ⟨Hns, Hrs⟩
-  -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+  -- (hub step 7) the one member's start bundle: its client address, its data directory
   ihave Hms := etcdstart.memberStartRes_intro [(go!"k8setcd3", ⟨none, some go!"127.0.0.1:23896"⟩)] []
-    [go!"127.0.0.1:23896"] [config.walDirOf go!"k8setcd3.etcd" go!""] (List.Perm.refl _)
+    [go!"127.0.0.1:23896"] [go!"k8setcd3.etcd"] (List.Perm.refl _)
     (List.Perm.refl _) $$ Hrs
   simp only [k8setcd3Names, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Hns with ⟨Hn1, Hn2, -⟩
@@ -228,11 +228,11 @@ def k8setcd3CAddrs : List GoString :=
     k8s_etcd3.clusterCfg.Client1', k8s_etcd3.clusterCfg.Client2', k8s_etcd3.clusterCfg.Client3',
     k8s_etcd3.clusterCfg.Bridge1', k8s_etcd3.clusterCfg.Bridge2', k8s_etcd3.clusterCfg.Bridge3']
 
-/-- The members' WAL directories (`WALDir()` of their data directories `<name>.etcd`). -/
-def k8setcd3CWalDirs : List GoString :=
-  [config.walDirOf (k8s_etcd3.clusterCfg.Name1' ++ go!".etcd") go!"",
-    config.walDirOf (k8s_etcd3.clusterCfg.Name2' ++ go!".etcd") go!"",
-    config.walDirOf (k8s_etcd3.clusterCfg.Name3' ++ go!".etcd") go!""]
+/-- The members' data directories `<name>.etcd` (sweep repairs 1, W3/W4: until then their WAL directories). -/
+def k8setcd3CDataDirs : List GoString :=
+  [(k8s_etcd3.clusterCfg.Name1' ++ go!".etcd"),
+    (k8s_etcd3.clusterCfg.Name2' ++ go!".etcd"),
+    (k8s_etcd3.clusterCfg.Name3' ++ go!".etcd")]
 
 /-- **The Kubernetes etcd3 store's linearizability instance over three members is safe** (see the
 file header): every real execution of `k8setcd3CProgram clients ops` from a fresh state with one
@@ -257,9 +257,9 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
     (HNs : prometheus.namesUnclaimed (k8setcd3CProgram clients ops) k8setcd3Names)
     (HAs : addrsUnclaimed (k8setcd3CProgram clients ops) k8setcd3CAddrs)
-    -- the members' WAL directories, distinct (`filepath.Join` is opaque here), hold no WAL at start
-    (HDsNd : k8setcd3CWalDirs.Nodup)
-    (HDs : walDirsAbsent (k8setcd3CProgram clients ops) k8setcd3CWalDirs)
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
+    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
+    (HDs : dataDirsAbsent (k8setcd3CProgram clients ops) k8setcd3CDataDirs)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ cluster3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k8s_etcd3.clusterCfg n
@@ -277,7 +277,7 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster)) (Val #clients))
       (Val #ops))
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-      (fun h => intoVal_ne_PanicV _ p h.symm)) k8setcd3CAddrs (by decide) k8setcd3CWalDirs HDsNd
+      (fun h => intoVal_ne_PanicV _ p h.symm)) k8setcd3CAddrs (by decide) k8setcd3CDataDirs (by decide)
     -- the cluster's members and its bridges; the program's address list is theirs up to order
     -- (peers, then clients, then bridges)
     (cluster3.members k8s_etcd3.clusterCfg) (cluster3.bridges k8s_etcd3.clusterCfg) (by decide)
@@ -342,9 +342,9 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (k8setcd3PProgram clients ops steps) k8setcd3Names)
     (HAs : addrsUnclaimed (k8setcd3PProgram clients ops steps) k8setcd3CAddrs)
-    -- the members' WAL directories, distinct (`filepath.Join` is opaque here), hold no WAL at start
-    (HDsNd : k8setcd3CWalDirs.Nodup)
-    (HDs : walDirsAbsent (k8setcd3PProgram clients ops steps) k8setcd3CWalDirs)
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
+    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
+    (HDs : dataDirsAbsent (k8setcd3PProgram clients ops steps) k8setcd3CDataDirs)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ cluster3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k8s_etcd3.clusterCfg n
@@ -362,7 +362,7 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))
       (Val #clients)) (Val #ops)) (schedLit steps))
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-      (fun h => intoVal_ne_PanicV _ p h.symm)) k8setcd3CAddrs (by decide) k8setcd3CWalDirs HDsNd
+      (fun h => intoVal_ne_PanicV _ p h.symm)) k8setcd3CAddrs (by decide) k8setcd3CDataDirs (by decide)
     (cluster3.members k8s_etcd3.clusterCfg) (cluster3.bridges k8s_etcd3.clusterCfg) (by decide)
     (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps' fun hG HN HT => ?_

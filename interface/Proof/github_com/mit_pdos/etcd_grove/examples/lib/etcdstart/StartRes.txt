@@ -40,8 +40,8 @@ theorem etcdstart.memberRestartRes_peer (n : GoString) (a : etcdstart.MemberAddr
 
 theorem etcdstart.memberStartRes_intro.{u_1} (ms : List (GoString × etcdstart.MemberAddrs)) (Bs As
     Ds : List GoString) (hA : (List.flatMap (fun m => m.snd.addrs) ms ++ Bs).Perm As) (hD :
-    (List.map (fun m => etcdstart.memberWalDir m.fst) ms).Perm Ds) : (([∗list] a ∈ As, netAddrFree
-    a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗ [∗list] d ∈ Ds, walDirFresh d) ⊢ ([∗list] m ∈ ms,
+    (List.map (fun m => etcdstart.memberDataDir m.fst) ms).Perm Ds) : (([∗list] a ∈ As, netAddrFree
+    a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗ [∗list] d ∈ Ds, dataDirFresh d) ⊢ ([∗list] m ∈ ms,
     etcdstart.memberStartRes m.fst m.snd) ∗ [∗list] b ∈ Bs, netAddrFree b
 
 def etcdstart.MemberAddrs.addrs (a : etcdstart.MemberAddrs) : List GoString :=
@@ -51,8 +51,8 @@ theorem etcdstart.memberRestartRes_raft (n : GoString) (a : etcdstart.MemberAddr
     GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64) : etcdstart.memberRestartRes n a γn γ ρ id ⊢
     ⌜ρ.rd.raft.raft = γ⌝ ∗ etcdstart.memberRestartRes n a γn γ ρ id
 
-def etcdstart.memberWalDir (name : GoString) : GoString :=
-  config.walDirOf (name ++ go!".etcd") []
+def etcdstart.memberDataDir (name : GoString) : GoString :=
+  name ++ go!".etcd"
 
 theorem etcdstart.memberStartRes_fresh (n : GoString) (a : etcdstart.MemberAddrs) (γn : NetNames GF)
     (h : a.peer = none) : etcdstart.memberStartRes n a ⊢ etcdstart.memberFreshRes n a γn

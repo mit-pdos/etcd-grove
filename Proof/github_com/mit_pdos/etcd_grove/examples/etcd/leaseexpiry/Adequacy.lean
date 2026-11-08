@@ -130,8 +130,8 @@ theorem etcd_leaseexpiry_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk)
     (HNs : prometheus.namesUnclaimed leaseexpiryProgram leaseexpiryNames)
     (HAs : addrsUnclaimed leaseexpiryProgram [go!"127.0.0.1:23976"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent leaseexpiryProgram [config.walDirOf go!"leaseexpiry.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent leaseexpiryProgram [go!"leaseexpiry.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leaseexpiryGF,
       ⊢ etcd_leaseexpiry.premises (GF := leaseexpiryGF) (hG := heapAtLex hG lctx) n id ctxs boot)
@@ -145,8 +145,8 @@ theorem etcd_leaseexpiry_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine etcd_adequate_members (GF := leaseexpiryGF) github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [config.walDirOf go!"leaseexpiry.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
-    -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [go!"leaseexpiry.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(go!"leaseexpiry", ⟨none, some go!"127.0.0.1:23976"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC leaseexpiryGF := heapAtLex hG lctx

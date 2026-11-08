@@ -8,7 +8,7 @@ What a member's starters take of the program's start resources, as three sealed 
 `import all` this module, `etc/import-all.txt`):
 
 * `memberStartRes name a`: what a `Main` takes per member, from program start (`startRights`): the
-  member's WAL directory fresh (`walDirFresh (memberWalDir name)`), and, for each address the
+  member's data directory fresh (`dataDirFresh (memberDataDir name)`), and, for each address the
   program listens on for the member (`a : MemberAddrs`), the right to listen on it (`netAddrFree`);
   the peer address also with its HTTP protocol unregistered (`httpProtoFree`).
 * `memberFreshRes name a γn`: what a first-start starter takes, after the cluster's network
@@ -58,17 +58,18 @@ structure MemberAddrs where
 /-- The addresses of `a`, peer first. -/
 def MemberAddrs.addrs (a : MemberAddrs) : List GoString := a.peer.toList ++ a.client.toList
 
-/-- **A member's WAL directory**: the WAL directory of the data directory `name ++ ".etcd"`, with
-no dedicated WAL directory (every starter's configuration). -/
-abbrev memberWalDir [GooseExts] (name : GoString) : GoString :=
-  config.walDirOf (name ++ go!".etcd") go!""
+/-- **A member's data directory**: `name ++ ".etcd"`, holding its WAL (no dedicated WAL directory,
+every starter's configuration). (Sweep repairs 1, W3/W4: until then `memberWalDir`, the WAL
+directory `config.walDirOf (name ++ ".etcd") ""`.) -/
+abbrev memberDataDir [GooseExts] (name : GoString) : GoString :=
+  name ++ go!".etcd"
 
 section start
 variable [GooseExts] {GF : BundledGFunctors}
 
 /-- **What a `Main` takes per member** (program start's resources; see the file header). -/
 @[no_expose] def memberStartRes (name : GoString) (a : MemberAddrs) : IProp GF :=
-  iprop(walDirFresh (memberWalDir name) ∗
+  iprop(dataDirFresh (memberDataDir name) ∗
     (match a.peer with | some p => netAddrFree p ∗ httpProtoFree p | none => emp) ∗
     (match a.client with | some c => netAddrFree c | none => emp))
 
@@ -84,7 +85,7 @@ variable [sem : go.Semantics]
 the cluster's network `γn`. -/
 @[no_expose] def memberFreshRes (name : GoString) (a : MemberAddrs) (γn : NetNames GF) :
     IProp GF :=
-  iprop(walDirFresh (memberWalDir name) ∗
+  iprop(dataDirFresh (memberDataDir name) ∗
     (match a.peer with
       | some p => netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))
       | none => emp) ∗
@@ -195,7 +196,7 @@ theorem memberFreshRes_boot [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (
     memberFreshRes (GF := GF) n {} γn ⊢ wal.bootRes cfg := by
   unfold memberFreshRes
   iintro ⟨Hw, -, -⟩
-  iapply wal.bootRes_intro _ _ _ hd hw
+  iapply wal.bootRes_intro _ _ hd hw
   iexact Hw
 
 end laws
@@ -217,7 +218,7 @@ theorem memberStartRes_client (n : GoString) (a : MemberAddrs) (c : GoString)
 /-- One member's start bundle from its share of program start's lists. -/
 private theorem memberStartRes_of_lists (n : GoString) (a : MemberAddrs) :
     ([∗list] x ∈ a.addrs, netAddrFree (GF := GF) x) ∗ ([∗list] x ∈ a.addrs, httpProtoFree (GF := GF) x) ∗
-      walDirFresh (GF := GF) (memberWalDir n) ⊢ memberStartRes n a := by
+      dataDirFresh (GF := GF) (memberDataDir n) ⊢ memberStartRes n a := by
   unfold memberStartRes MemberAddrs.addrs
   obtain ⟨p, c⟩ := a
   cases p <;> cases c <;>
@@ -236,7 +237,7 @@ private theorem memberStartRes_of_lists (n : GoString) (a : MemberAddrs) :
 private theorem memberStartRes_of_lists_all (ms : List (GoString × MemberAddrs)) :
     ([∗list] x ∈ ms.flatMap (fun m => m.2.addrs), netAddrFree (GF := GF) x) ∗
       ([∗list] x ∈ ms.flatMap (fun m => m.2.addrs), httpProtoFree (GF := GF) x) ∗
-      ([∗list] d ∈ ms.map (fun m => memberWalDir m.1), walDirFresh (GF := GF) d) ⊢
+      ([∗list] d ∈ ms.map (fun m => memberDataDir m.1), dataDirFresh (GF := GF) d) ⊢
       [∗list] m ∈ ms, memberStartRes m.1 m.2 := by
   induction ms with
   | nil => iintro -; iapply BigSepL.bigSepL_nil.2; iempintro
@@ -256,13 +257,13 @@ private theorem memberStartRes_of_lists_all (ms : List (GoString × MemberAddrs)
 /-- **`memberStartRes_intro`** (L3, D2): program start's three lists (`startRights`': every address
 of `As` free, with its HTTP protocol unregistered, and every directory of `Ds` fresh) give the start
 bundles of the members `ms` and the listen rights of the other addresses `Bs` (a cluster's bridges),
-when the members' addresses and `Bs` are `As` up to order and the members' WAL directories are `Ds`
+when the members' addresses and `Bs` are `As` up to order and the members' data directories are `Ds`
 up to order. The client addresses' (and `Bs`') unregistered protocols are dropped. -/
 theorem memberStartRes_intro (ms : List (GoString × MemberAddrs)) (Bs As Ds : List GoString)
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
-    (hD : (ms.map (fun m => memberWalDir m.1)).Perm Ds) :
+    (hD : (ms.map (fun m => memberDataDir m.1)).Perm Ds) :
     ([∗list] a ∈ As, netAddrFree (GF := GF) a) ∗ ([∗list] a ∈ As, httpProtoFree (GF := GF) a) ∗
-        ([∗list] d ∈ Ds, walDirFresh (GF := GF) d) ⊢
+        ([∗list] d ∈ Ds, dataDirFresh (GF := GF) d) ⊢
       ([∗list] m ∈ ms, memberStartRes m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b := by
   iintro ⟨Ha, Hf, Hd⟩
   ihave Ha := (BigSepL.bigSepL_perm hA).2 $$ Ha

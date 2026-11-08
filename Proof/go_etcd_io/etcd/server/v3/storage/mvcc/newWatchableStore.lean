@@ -44,7 +44,8 @@ theorem mvcc.newWatchableStore.wp_proof
   · iPkgInit
   wp_auto
   wp_join iprop(∃ lg' : Loc, lg_ptr ↦ lg') with [lg] as ⟨%lg', lg⟩
-  · wp_apply hNop as %l %Hl
+  · wp_apply hNop as %l #Hlz
+    ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg

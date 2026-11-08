@@ -68,8 +68,8 @@ theorem etcd_lease_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk)
     (HNs : prometheus.namesUnclaimed leasekvProgram leasekvNames)
     (HAs : addrsUnclaimed leasekvProgram [go!"127.0.0.1:23936"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent leasekvProgram [config.walDirOf go!"leasekv.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent leasekvProgram [go!"leasekv.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasekvGF,
       ⊢ etcd_lease.premises (GF := leasekvGF) (hG := heapAtLkv hG lctx) n id ctxs boot)

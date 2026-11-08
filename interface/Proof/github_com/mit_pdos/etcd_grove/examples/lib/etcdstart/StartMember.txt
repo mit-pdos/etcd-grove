@@ -35,14 +35,14 @@ theorem etcdstart.StartMember.wp_proof (wp_NewMember : etcdstart.NewMember.spec)
                                   { peer := [etcdstart.httpURL peerAddr], client := [etcdstart.httpURL client],
                                     initMap := M, initURLs := iu } →
                                 (∀ (k : GoString), (M !! k).isSome = true → utf8Valid k) →
-                                  lg ≠ null →
-                                    ckptEffectsOk →
-                                      authRecordsFit →
-                                        apply.backendUnderQuota →
-                                          storage.diskOk →
-                                            ⊢
-                                              ∀ Φ,
-                                                isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                  ckptEffectsOk →
+                                    authRecordsFit →
+                                      apply.backendUnderQuota →
+                                        storage.diskOk →
+                                          ⊢
+                                            ∀ Φ,
+                                              isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                                  zapLoggerOk lg ∗
                                                     threadTok ∗
                                                       ownSlice peer [etcdstart.httpURL peerAddr] DFrac.discard ∗
                                                         ownMap cluster DFrac.discard M ∗
@@ -55,22 +55,22 @@ theorem etcdstart.StartMember.wp_proof (wp_NewMember : etcdstart.NewMember.spec)
                                                                     netHttpOk γn id ∗
                                                                       etcdstart.memberFreshRes name
                                                                         { peer := some peerAddr } γn -∗
-                                                  (▷
-                                                      ∀ s err,
-                                                        ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
-                                                            ⌜err = GoInterface.nil⌝ ∗
-                                                              etcdstart.memberUp s ρ E₀ lg γn id lm -∗
-                                                          Φ (intoVal s, intoVal err)) -∗
-                                                    WP
-                                                      ((((((((intoVal
-                                                                      (functions
-                                                                        github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember
-                                                                        []))
-                                                                    (intoVal name))
-                                                                  (intoVal peer))
-                                                                (intoVal peerAddr))
-                                                              (intoVal client))
-                                                            (intoVal cluster))
-                                                          (intoVal token))
-                                                        (intoVal lg))
-                                                      {{ Φ }}
+                                                (▷
+                                                    ∀ s err,
+                                                      ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
+                                                          ⌜err = GoInterface.nil⌝ ∗
+                                                            etcdstart.memberUp s ρ E₀ lg γn id lm -∗
+                                                        Φ (intoVal s, intoVal err)) -∗
+                                                  WP
+                                                    ((((((((intoVal
+                                                                    (functions
+                                                                      github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember
+                                                                      []))
+                                                                  (intoVal name))
+                                                                (intoVal peer))
+                                                              (intoVal peerAddr))
+                                                            (intoVal client))
+                                                          (intoVal cluster))
+                                                        (intoVal token))
+                                                      (intoVal lg))
+                                                    {{ Φ }}
