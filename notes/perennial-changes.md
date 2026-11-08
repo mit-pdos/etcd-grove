@@ -17,6 +17,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `WithCancel` over a general parent: the child's `Value` is the parent's (2026-11-08, k8s 7f)
+
+- **Missing.** Perennial's `WithCancel` over any `isContext` parent (`wp_WithCancel_any`; the
+  strong `context.WithCancel.spec` needs a `*cancelCtx` parent) says nothing of the child's
+  `Value`, though Go's `cancelCtx.Value` delegates every key but its own to the parent. So a
+  property of the parent's values (grpc's run context, `grpcRunCtx`: its incoming metadata) does
+  not carry over to a context derived with `WithCancel`.
+- **Needed by.** etcd's stream interceptor, require-leader branch (`newCancellableContext(ss.Context())`
+  wraps the stream's context with `WithCancel`; `v3rpc/InvStreamInterceptor.lean`'s header, reason
+  (1)), which Kubernetes' etcd3 store reaches on every watch (`clientv3.WithRequireLeader`):
+  `notes/k8s-7f-scope.md`, §2.3 and stage 7f-4.
+- **Workaround here.** The deployment premise `v3rpc.runsNoRequireLeader` excludes the branch; it
+  is false for the k8s driver with watches, so 7f-4 cannot keep it.
+- **Proposed.** A `WithCancel` triple over any `isContext` parent whose child's `Value(k)` is the
+  parent's `Value(k)` for every key but `cancelCtxKey`, as a lemma about Perennial's own
+  `cancelCtx.Value` (no new trust). About 150-250 Lean lines.
+- **Status.** Not started (proposed by the 7f Scope).
+
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
 
 - **Missing.** Go has failures that are neither a panic nor an error result: `fatal error: ...`

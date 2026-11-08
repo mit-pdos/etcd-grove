@@ -313,7 +313,12 @@ traffic grows):
 - **7f. Watches.** The etcd3 watcher (`watcher.go`; G1's alias fix in Goose first, a small
   Perennial change, `notes/perennial-changes.md`), over the etcd client's `Watch` (the watch
   specs of `watchkv`/G2), the test's watcher behaviours (slow, hiccup, stalled consumers), and the
-  watch validator. The largest stage; last.
+  watch validator. The largest stage; last. (2026-11-08, `notes/k8s-7f-scope.md`, to 81 for
+  review: G1's fix has landed, so only the two `etcd3.toml` exclusions go; watches become lintest
+  operations checked against 7e's per-configuration history; the store's watches need
+  `WithPrevKV` and `WithRequireLeader` through etcd's watch stack, the second making the premise
+  `runsNoRequireLeader` false; the watcher can deliver events after a `watch.Error`,
+  `nonissues/k8s-etcd3-watcher-events-after-error.md`; 10-16k Lean lines in 8 sub-stages.)
 - **7g. The maintainers' checker.** Translate `correctness` itself (`Model`, `Replay`,
   `WatchValidator`) in place of the Go copy (D30m, "Open" below), with D30g's fix as a patch
   until upstream takes it; `reflect.DeepEqual` and the list/meta accessors at the trust boundary.
