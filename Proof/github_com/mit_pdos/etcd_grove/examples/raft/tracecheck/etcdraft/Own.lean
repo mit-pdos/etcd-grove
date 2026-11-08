@@ -27,6 +27,14 @@ namespace Etcdraft
 
 open Iris Iris.BI Iris.ProofMode
 
+/-- An id below `2^64` read back from its word. -/
+theorem uint_nat_W64_of_lt (j : Nat) (h : j < 2 ^ 64) : uint.nat (W64 (Int.ofNat j)) = j := by
+  show BitVec.toNat (BitVec.ofInt 64 (Int.ofNat j)) = j
+  rw [BitVec.toNat_ofInt]
+  have : (j : Int) < 2 ^ 64 := by exact_mod_cast h
+  simp only [Int.ofNat_eq_natCast]
+  omega
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -95,6 +103,61 @@ theorem stateOwn_persist (p : Loc) (st : State) (M : List ID) :
   iexists g, sm
   iframe Hp Hsrv Hm Hb1 Hb2 Hsrvs
   ipureintro; exact ⟨Hkeys, Hrc⟩
+
+/-- A clone whose server `i` is a copy at `c` held apart (`mut`'s result, being written): `stateOwn`
+without server `i`'s resource. -/
+def stateOwnHole (p : Loc) (st : State) (M : List ID) (i : ID) (c : Loc) : IProp GF :=
+  iprop(∃ (g : G.State) (sm : GMap w64 Loc), p ↦ g ∗ setRO g.Server' st.server ∗
+    g.S' ↦$ sm ∗
+    ⌜∀ k : w64, (sm !! k).isSome ↔ uint.nat k ∈ st.server⌝ ∗
+    ⌜sm !! (W64 (Int.ofNat i)) = some c⌝ ∗
+    ([∗list] j ∈ st.server, if j = i then emp else ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat j)) = some q⌝ ∗
+      (if j ∈ M then serverOwn q (st.s j) else serverRO q (st.s j))) ∗
+    bagRO g.Messages' st.messages ∗ bagRO g.PendingMessages' st.pendingMessages ∗
+    ⌜sint.Z g.ReconfigCount' = st.reconfigCount⌝)
+
+/-- Server `i`, written to `v`, put back: the clone holds `st` with server `i` set to `v`. -/
+theorem stateOwnHole_close (p : Loc) (st : State) (M : List ID) (i : ID) (c : Loc) (v : Server)
+    (hi : i ∈ st.server) (hnd : st.server.Nodup) :
+    stateOwnHole (GF := GF) p st M i c ∗ serverOwn c v ⊢
+      stateOwn p (st.upd i (fun _ => v)) (i :: M) := by
+  iintro ⟨H, Hc⟩
+  iunfold stateOwnHole at H
+  icases H with ⟨%g, %sm, Hp, #Hsrv, Hm, %Hkeys, %Hci, Hsrvs, #Hb1, #Hb2, %Hrc⟩
+  obtain ⟨l1, l2, Hsplit⟩ := List.append_of_mem hi
+  have hnd' := hnd
+  rw [Hsplit] at hnd'
+  have hi1 : i ∉ l1 := by
+    intro h
+    have := (List.nodup_append.1 hnd').2.2
+    exact this i h i List.mem_cons_self rfl
+  have hi2 : i ∉ l2 := (List.nodup_cons.1 (List.nodup_append.1 hnd').2.1).1
+  iunfold stateOwn
+  iexists g, sm
+  iframe Hp Hm
+  simp only [State.upd]
+  iframe Hsrv Hb1 Hb2
+  isplitr
+  · ipureintro; exact Hkeys
+  isplitl [Hsrvs Hc]
+  · rw [Hsplit]
+    icases BigSepL.bigSepL_append.1 $$ Hsrvs with ⟨H1, H2⟩
+    icases BigSepL.bigSepL_cons.1 $$ H2 with ⟨-, H2⟩
+    iapply BigSepL.bigSepL_append.2
+    isplitl [H1]
+    · iapply (BigSepL.bigSepL_mono (fun {_ j} hj => ?_)) $$ H1
+      have hji : j ≠ i := fun h => hi1 (h ▸ List.mem_of_getElem? hj)
+      simp only [hji, ite_false, List.mem_cons, false_or]
+      exact .rfl
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc]
+    · simp only [ite_true, List.mem_cons, true_or]
+      iexists c; iframe Hc; ipureintro; exact Hci
+    iapply (BigSepL.bigSepL_mono (fun {_ j} hj => ?_)) $$ H2
+    have hji : j ≠ i := fun h => hi2 (h ▸ List.mem_of_getElem? hj)
+    simp only [hji, ite_false, List.mem_cons, false_or]
+    exact .rfl
+  ipureintro; exact Hrc
 
 end defs
 
