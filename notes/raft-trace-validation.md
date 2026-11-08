@@ -143,6 +143,23 @@ added back; whether to propose fixes to `etcdraft.tla`/`Traceetcdraft.tla` upstr
 install, on a snapshot whatever the follower's commit; 4: reset `matchIndex` on removal; 1: log
 `InitState` after `loadState`, or validate a restart's later lines) is open.
 
+## Raft translated with its trace hooks (2026-11-08)
+
+Goose builds with the tag `goose` only (its package loader's `-tags goose`), so the fork commit
+`e8f9566` (`etc/fork-patches/raft-trace-tags.patch`, not pushed: no write access to
+`upamanyus/etcd` yet) puts the hooks' bodies under `with_tla || goose`: a two-line change of build
+constraints, no code. The raft translation on `trace-check` is generated from it
+(`etc/fork-patches/README.md`); `etc/goose.py`'s pin stays `565c2bd` until the commit is pushed, so
+`--check` fails for raft on this branch and it cannot land. What is verified then is raft's
+`with_tla` build, where etcd ships the no-op build: the two differ in the hooks' bodies and
+`Config.TraceLogger`'s type, and with no logger (every caller but a trace harness) the hooks return
+at once; that equivalence is argued, not proved.
+
+The trial build (`lake build Proof.go_etcd_io.raft.v3.Results`): 2997 of 3010 targets built; only
+the eleven hooks' proofs fail (their specs say "a no-op"); every caller, proved against the hooks'
+specs, builds. Goose dry runs: the concurrent harness translates as is, the transcription after
+two changes (named types for the event's records, function literals for the invariants' table).
+
 ## Next
 
 The checker to prove is the direct one (decided 2026-11-08): the traces are totally ordered (one

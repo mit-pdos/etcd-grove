@@ -1,0 +1,47 @@
+From e8f9566f8c00ca3518178b44f62782e13f0ab72c Mon Sep 17 00:00:00 2001
+From: Joseph Tassarotti <jt4767@nyu.edu>
+Date: Sun, 8 Nov 2026 02:52:38 +0000
+Subject: [PATCH] raft: trace hooks under the goose tag (Goose translates the
+ with_tla build)
+
+The trace hooks' bodies (state_trace.go) are built under goose's build tag too, so that Goose
+translates raft with its TLA+ trace instrumentation: etcd-grove's trace-validation proof (its
+examples/raft/tracecheck) needs the hooks to report their events. Without a TraceLogger
+(Config.TraceLogger nil, as every caller but a trace harness) the hooks return at once, as the
+no-op build's.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ state_trace.go     | 2 +-
+ state_trace_nop.go | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/state_trace.go b/state_trace.go
+index caccd70..4aa175e 100644
+--- a/state_trace.go
++++ b/state_trace.go
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-//go:build with_tla
++//go:build with_tla || goose
+ 
+ package raft
+ 
+diff --git a/state_trace_nop.go b/state_trace_nop.go
+index f954c05..1203231 100644
+--- a/state_trace_nop.go
++++ b/state_trace_nop.go
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-//go:build !with_tla
++//go:build !with_tla && !goose
+ 
+ package raft
+ 
+-- 
+2.43.0
+

@@ -19,8 +19,10 @@ public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.math.big
 public import GeneratedProof.os
 public import Perennial.GeneratedProof.slices
+public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.chunk1
@@ -1222,7 +1224,7 @@ noncomputable instance readOnly_access_store_confirmedReads (l : Loc) (v : go_et
 end def_
 end readOnly
 
-namespace MemoryStorage
+namespace TracingEvent
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -1230,179 +1232,173 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
 
-noncomputable instance MemoryStorage_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.MemoryStorage where
+noncomputable instance TracingEvent_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.raft.v3.TracingEvent where
   typedPointstoDef l v dq := iprop(
-    "Mutex" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) v.Mutex' dq ∗
-    "hardState" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) v.hardState' dq ∗
-    "snapshot" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) v.snapshot' dq ∗
-    "ents" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"ents" l) v.ents' dq ∗
-    "callStats" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"callStats" l) v.callStats' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Name" l) v.Name' dq ∗
+    "NodeID" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"NodeID" l) v.NodeID' dq ∗
+    "State" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"State" l) v.State' dq ∗
+    "Role" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Role" l) v.Role' dq ∗
+    "LogSize" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"LogSize" l) v.LogSize' dq ∗
+    "Conf" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Conf" l) v.Conf' dq ∗
+    "Message" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Message" l) v.Message' dq ∗
+    "ConfChange" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"ConfChange" l) v.ConfChange' dq ∗
+    "Properties" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Properties" l) v.Properties' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance MemoryStorage_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.MemoryStorage go_etcd_io.raft.v3.MemoryStorage.underlying := by
+noncomputable instance TracingEvent_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.TracingEvent go_etcd_io.raft.v3.TracingEvent.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance MemoryStorage_access_load_Mutex (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (dq : DFrac) :
+noncomputable instance TracingEvent_access_load_Name (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) v.Mutex' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemoryStorage_access_store_Mutex (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (Mutex' : sync.Mutex) :
+noncomputable instance TracingEvent_access_store_Name (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (Name' : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) v.Mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) Mutex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : go_etcd_io.raft.v3.MemoryStorage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Name" l) Name' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : go_etcd_io.raft.v3.TracingEvent) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemoryStorage_access_load_hardState (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (dq : DFrac) :
+noncomputable instance TracingEvent_access_load_NodeID (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) v.hardState' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) v.hardState' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"NodeID" l) v.NodeID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"NodeID" l) v.NodeID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemoryStorage_access_store_hardState (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (hardState' : Loc) :
+noncomputable instance TracingEvent_access_store_NodeID (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (NodeID' : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) v.hardState' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"hardState" l) hardState' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hardState' := hardState' } : go_etcd_io.raft.v3.MemoryStorage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"NodeID" l) v.NodeID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"NodeID" l) NodeID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NodeID' := NodeID' } : go_etcd_io.raft.v3.TracingEvent) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemoryStorage_access_load_snapshot (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (dq : DFrac) :
+noncomputable instance TracingEvent_access_load_State (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) v.snapshot' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) v.snapshot' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"State" l) v.State' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"State" l) v.State' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemoryStorage_access_store_snapshot (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (snapshot' : Loc) :
+noncomputable instance TracingEvent_access_store_State (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (State' : go_etcd_io.raft.v3.TracingState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) v.snapshot' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"snapshot" l) snapshot' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapshot' := snapshot' } : go_etcd_io.raft.v3.MemoryStorage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"State" l) v.State' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"State" l) State' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with State' := State' } : go_etcd_io.raft.v3.TracingEvent) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemoryStorage_access_load_ents (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (dq : DFrac) :
+noncomputable instance TracingEvent_access_load_Role (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"ents" l) v.ents' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"ents" l) v.ents' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Role" l) v.Role' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Role" l) v.Role' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemoryStorage_access_store_ents (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (ents' : GoSlice) :
+noncomputable instance TracingEvent_access_store_Role (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (Role' : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"ents" l) v.ents' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"ents" l) ents' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ents' := ents' } : go_etcd_io.raft.v3.MemoryStorage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Role" l) v.Role' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Role" l) Role' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Role' := Role' } : go_etcd_io.raft.v3.TracingEvent) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemoryStorage_access_load_callStats (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (dq : DFrac) :
+noncomputable instance TracingEvent_access_load_LogSize (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"callStats" l) v.callStats' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"callStats" l) v.callStats' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"LogSize" l) v.LogSize' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"LogSize" l) v.LogSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemoryStorage_access_store_callStats (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (callStats' : go_etcd_io.raft.v3.inMemStorageCallStats) :
+noncomputable instance TracingEvent_access_store_LogSize (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (LogSize' : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"callStats" l) v.callStats' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"callStats" l) callStats' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callStats' := callStats' } : go_etcd_io.raft.v3.MemoryStorage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"LogSize" l) v.LogSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"LogSize" l) LogSize' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LogSize' := LogSize' } : go_etcd_io.raft.v3.TracingEvent) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TracingEvent_access_load_Conf (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Conf" l) v.Conf' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Conf" l) v.Conf' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TracingEvent_access_store_Conf (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (Conf' : (GoArray GoSlice 2)) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Conf" l) v.Conf' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Conf" l) Conf' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Conf' := Conf' } : go_etcd_io.raft.v3.TracingEvent) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TracingEvent_access_load_Message (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Message" l) v.Message' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TracingEvent_access_store_Message (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (Message' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Message" l) v.Message' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Message" l) Message' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := Message' } : go_etcd_io.raft.v3.TracingEvent) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TracingEvent_access_load_ConfChange (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"ConfChange" l) v.ConfChange' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"ConfChange" l) v.ConfChange' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TracingEvent_access_store_ConfChange (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (ConfChange' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"ConfChange" l) v.ConfChange' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"ConfChange" l) ConfChange' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfChange' := ConfChange' } : go_etcd_io.raft.v3.TracingEvent) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TracingEvent_access_load_Properties (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Properties" l) v.Properties' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Properties" l) v.Properties' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TracingEvent_access_store_Properties (l : Loc) (v : go_etcd_io.raft.v3.TracingEvent) (Properties' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Properties" l) v.Properties' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.TracingEvent go!"Properties" l) Properties' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Properties' := Properties' } : go_etcd_io.raft.v3.TracingEvent) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
 end def_
-end MemoryStorage
-
-namespace logSlice
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
-
-noncomputable instance logSlice_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.logSlice where
-  typedPointstoDef l v dq := iprop(
-    "term" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' dq ∗
-    "prev" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' dq ∗
-    "entries" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance logSlice_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.logSlice go_etcd_io.raft.v3.logSlice.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance logSlice_access_load_term (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance logSlice_access_store_term (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (term' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) v.term' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"term" l) term' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with term' := term' } : go_etcd_io.raft.v3.logSlice) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance logSlice_access_load_prev (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance logSlice_access_store_prev (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (prev' : go_etcd_io.raft.v3.entryID) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) v.prev' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"prev" l) prev' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prev' := prev' } : go_etcd_io.raft.v3.logSlice) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance logSlice_access_load_entries (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance logSlice_access_store_entries (l : Loc) (v : go_etcd_io.raft.v3.logSlice) (entries' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) v.entries' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.logSlice go!"entries" l) entries' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with entries' := entries' } : go_etcd_io.raft.v3.logSlice) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end logSlice
+end TracingEvent
 
 end go_etcd_io.raft.v3
 end

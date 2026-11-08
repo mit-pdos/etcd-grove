@@ -19,14 +19,17 @@ public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.math.big
 public import GeneratedProof.os
 public import Perennial.GeneratedProof.slices
+public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.chunk1
 public import GeneratedProof.go_etcd_io.raft.v3.chunk2
 public import GeneratedProof.go_etcd_io.raft.v3.chunk3
 public import GeneratedProof.go_etcd_io.raft.v3.chunk4
+public import GeneratedProof.go_etcd_io.raft.v3.chunk5
 
 @[expose] public section
 

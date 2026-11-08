@@ -20,6 +20,8 @@ public import Code.go_etcd_io.raft.v3.confchange
 public import Code.go_etcd_io.raft.v3.quorum
 public import Code.go_etcd_io.raft.v3.tracker
 public import Perennial.Code.encoding.binary
+public import Perennial.Code.strconv
+public import Perennial.Code.time
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -154,15 +156,40 @@ noncomputable def readOnly.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] readOnly.ty
 
-noncomputable def TraceLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"go.etcd.io/raft/v3.TraceLogger" [])
+noncomputable def stateMachineEventType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.stateMachineEventType" [])
 
-attribute [irreducible] TraceLogger.ty
+attribute [irreducible] stateMachineEventType.ty
 
 noncomputable def TracingEvent.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3.TracingEvent" [])
 
 attribute [irreducible] TracingEvent.ty
+
+noncomputable def TracingState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.TracingState" [])
+
+attribute [irreducible] TracingState.ty
+
+noncomputable def TracingMessage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.TracingMessage" [])
+
+attribute [irreducible] TracingMessage.ty
+
+noncomputable def SingleConfChange.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.SingleConfChange" [])
+
+attribute [irreducible] SingleConfChange.ty
+
+noncomputable def TracingConfChange.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.TracingConfChange" [])
+
+attribute [irreducible] TracingConfChange.ty
+
+noncomputable def TraceLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.TraceLogger" [])
+
+attribute [irreducible] TraceLogger.ty
 
 noncomputable def Status.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3.Status" [])
@@ -272,7 +299,73 @@ attribute [irreducible] entryPayloadSize.ty
   #(W8 1)
 
 @[reducible] noncomputable def StateTraceDeployed [GooseExts] [GoGlobalContext] : val :=
-  #false
+  #true
+
+@[reducible] noncomputable def rsmInitState [GooseExts] [GoGlobalContext] : val :=
+  #(W64 0)
+
+@[reducible] noncomputable def rsmBecomeCandidate [GooseExts] [GoGlobalContext] : val :=
+  #(W64 1)
+
+@[reducible] noncomputable def rsmBecomeFollower [GooseExts] [GoGlobalContext] : val :=
+  #(W64 2)
+
+@[reducible] noncomputable def rsmBecomeLeader [GooseExts] [GoGlobalContext] : val :=
+  #(W64 3)
+
+@[reducible] noncomputable def rsmCommit [GooseExts] [GoGlobalContext] : val :=
+  #(W64 4)
+
+@[reducible] noncomputable def rsmReplicate [GooseExts] [GoGlobalContext] : val :=
+  #(W64 5)
+
+@[reducible] noncomputable def rsmChangeConf [GooseExts] [GoGlobalContext] : val :=
+  #(W64 6)
+
+@[reducible] noncomputable def rsmApplyConfChange [GooseExts] [GoGlobalContext] : val :=
+  #(W64 7)
+
+@[reducible] noncomputable def rsmReady [GooseExts] [GoGlobalContext] : val :=
+  #(W64 8)
+
+@[reducible] noncomputable def rsmSendAppendEntriesRequest [GooseExts] [GoGlobalContext] : val :=
+  #(W64 9)
+
+@[reducible] noncomputable def rsmReceiveAppendEntriesRequest [GooseExts] [GoGlobalContext] : val :=
+  #(W64 10)
+
+@[reducible] noncomputable def rsmSendAppendEntriesResponse [GooseExts] [GoGlobalContext] : val :=
+  #(W64 11)
+
+@[reducible] noncomputable def rsmReceiveAppendEntriesResponse [GooseExts] [GoGlobalContext] : val :=
+  #(W64 12)
+
+@[reducible] noncomputable def rsmSendRequestVoteRequest [GooseExts] [GoGlobalContext] : val :=
+  #(W64 13)
+
+@[reducible] noncomputable def rsmReceiveRequestVoteRequest [GooseExts] [GoGlobalContext] : val :=
+  #(W64 14)
+
+@[reducible] noncomputable def rsmSendRequestVoteResponse [GooseExts] [GoGlobalContext] : val :=
+  #(W64 15)
+
+@[reducible] noncomputable def rsmReceiveRequestVoteResponse [GooseExts] [GoGlobalContext] : val :=
+  #(W64 16)
+
+@[reducible] noncomputable def rsmSendSnapshot [GooseExts] [GoGlobalContext] : val :=
+  #(W64 17)
+
+@[reducible] noncomputable def rsmReceiveSnapshot [GooseExts] [GoGlobalContext] : val :=
+  #(W64 18)
+
+@[reducible] noncomputable def ConfChangeAddNewServer [GooseExts] [GoGlobalContext] : val :=
+  #(go!"AddNewServer")
+
+@[reducible] noncomputable def ConfChangeRemoveServer [GooseExts] [GoGlobalContext] : val :=
+  #(go!"RemoveServer")
+
+@[reducible] noncomputable def ConfChangeAddLearner [GooseExts] [GoGlobalContext] : val :=
+  #(go!"AddLearner")
 
 noncomputable def defaultLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.defaultLogger"
@@ -423,6 +516,21 @@ noncomputable def newStorageApplyRespMsg [GooseExts] [GoGlobalContext] : GoStrin
 
 noncomputable def newReadOnly [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.newReadOnly"
+
+noncomputable def makeTracingState [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3.makeTracingState"
+
+noncomputable def makeTracingMessage [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3.makeTracingMessage"
+
+noncomputable def traceEvent [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3.traceEvent"
+
+noncomputable def traceNodeEvent [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3.traceNodeEvent"
+
+noncomputable def formatConf [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3.formatConf"
 
 noncomputable def traceInitState [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.traceInitState"
@@ -10126,97 +10234,584 @@ noncomputable def readOnly.heartbeatCtx.impl [GooseExts] [GoGlobalContext] : val
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: state_trace_nop.go:30:6 -/
+/-- go: state_trace.go:53:32 -/
+noncomputable def stateMachineEventType.String.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc stateMachineEventType.ty))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (Let "$v0" (Val #(go!"InitState"))
+  (Let "$v1" (Val #(go!"BecomeCandidate"))
+  (Let "$v2" (Val #(go!"BecomeFollower"))
+  (Let "$v3" (Val #(go!"BecomeLeader"))
+  (Let "$v4" (Val #(go!"Commit"))
+  (Let "$v5" (Val #(go!"Replicate"))
+  (Let "$v6" (Val #(go!"ChangeConf"))
+  (Let "$v7" (Val #(go!"ApplyConfChange"))
+  (Let "$v8" (Val #(go!"Ready"))
+  (Let "$v9" (Val #(go!"SendAppendEntriesRequest"))
+  (Let "$v10" (Val #(go!"ReceiveAppendEntriesRequest"))
+  (Let "$v11" (Val #(go!"SendAppendEntriesResponse"))
+  (Let "$v12" (Val #(go!"ReceiveAppendEntriesResponse"))
+  (Let "$v13" (Val #(go!"SendRequestVoteRequest"))
+  (Let "$v14" (Val #(go!"ReceiveRequestVoteRequest"))
+  (Let "$v15" (Val #(go!"SendRequestVoteResponse"))
+  (Let "$v16" (Val #(go!"ReceiveRequestVoteResponse"))
+  (Let "$v17" (Val #(go!"SendSnapshot"))
+  (Let "$v18" (Val #(go!"ReceiveSnapshot"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.string (Var "$v3"))), (KeyedElement none (ElementExpression go.string (Var "$v4"))), (KeyedElement none (ElementExpression go.string (Var "$v5"))), (KeyedElement none (ElementExpression go.string (Var "$v6"))), (KeyedElement none (ElementExpression go.string (Var "$v7"))), (KeyedElement none (ElementExpression go.string (Var "$v8"))), (KeyedElement none (ElementExpression go.string (Var "$v9"))), (KeyedElement none (ElementExpression go.string (Var "$v10"))), (KeyedElement none (ElementExpression go.string (Var "$v11"))), (KeyedElement none (ElementExpression go.string (Var "$v12"))), (KeyedElement none (ElementExpression go.string (Var "$v13"))), (KeyedElement none (ElementExpression go.string (Var "$v14"))), (KeyedElement none (ElementExpression go.string (Var "$v15"))), (KeyedElement none (ElementExpression go.string (Var "$v16"))), (KeyedElement none (ElementExpression go.string (Var "$v17"))), (KeyedElement none (ElementExpression go.string (Var "$v18")))]))))))))))))))))))))) (App (Val (GoInstruction (GoLoad stateMachineEventType.ty))) (Var "e")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: state_trace.go:125:6 -/
+noncomputable def makeTracingState.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc TracingState.ty))) (App (Val (GoInstruction (GoZeroVal TracingState.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"hardState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Val #()))
+  (Let "hs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "hs"))) (Val #()))
+  (Let "$v1" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "hs"))) (Val #()))
+  (Let "$a1" (Val #(W64 10))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "hs"))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral TracingState.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Term")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Vote")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Commit")) (ElementExpression go.uint64 (Var "$v2")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore TracingState.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (Var "hs") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad TracingState.ty))) (Var "$res0")))))
+
+/-- go: state_trace.go:134:6 -/
+noncomputable def makeTracingMessage.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType TracingMessage.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType TracingMessage.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (Let "logTerm" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetEntries"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0")))
+  (Let "entries" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (Let "index" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc TracingMessage.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))) (Val #()))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (Let "$v2" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (Let "$a1" (Val #(W64 10))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v3" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (Let "$a1" (Val #(W64 10))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.int))) (Var "entries"))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "logTerm"))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
+  (Let "$v7" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (Let "$v8" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (Let "$a1" (Val #(W64 10))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v9" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetReject"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (Let "$v10" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetRejectHint"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral TracingMessage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"To")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"EntryLength")) (ElementExpression go.int (Var "$v4"))), (KeyedElement (some (KeyField go!"LogTerm")) (ElementExpression go.uint64 (Var "$v5"))), (KeyedElement (some (KeyField go!"Index")) (ElementExpression go.uint64 (Var "$v6"))), (KeyedElement (some (KeyField go!"Commit")) (ElementExpression go.uint64 (Var "$v7"))), (KeyedElement (some (KeyField go!"Vote")) (ElementExpression go.string (Var "$v8"))), (KeyedElement (some (KeyField go!"Reject")) (ElementExpression go.bool (Var "$v9"))), (KeyedElement (some (KeyField go!"RejectHint")) (ElementExpression go.uint64 (Var "$v10")))]))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType TracingMessage.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val #(W32 7)))))
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) go!"GetMetadata"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))) (Val #()))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "entries") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "logTerm") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "entries") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "logTerm") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType TracingMessage.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType TracingMessage.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TracingMessage.ty)))) (Var "$res0")))))
+
+/-- go: state_trace.go:166:6 -/
+noncomputable def traceEvent.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "evt"
+  (Lam "r"
+  (Lam "m"
+  (Lam "prop"
+  (Seq (App (Val exceptionDo)
+  (Let "prop" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.any)))) (Var "prop"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "evt" (App (Val (GoInstruction (GoAlloc stateMachineEventType.ty))) (Var "evt"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoAlloc TracingEvent.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType stateMachineEventType.ty) go!"String"))) (Var "evt")) (Val #()))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (Let "$a1" (Val #(W64 10))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v2" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve makeTracingState []))) (Val #())) (Var "$a0")))
+  (Let "$v3" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))
+  (Let "$v4" (Let "$v0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty) go!"Slice"))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 0))))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve formatConf []))) (Val #())) (Var "$a0")))
+  (Let "$v1" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty) go!"Slice"))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 1))))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve formatConf []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 2 (go.GoType.SliceType go.string))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement none (ElementExpression (go.GoType.SliceType go.string) (Var "$v1")))]))))
+  (Let "$v5" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType StateType.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val #()))
+  (Let "$v6" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (App (App (Val (GoInstruction (FuncResolve makeTracingMessage []))) (Val #())) (Var "$a0")))
+  (Let "$v7" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "prop"))
+  (App (Val (GoInstruction (CompositeLiteral TracingEvent.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"NodeID")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"State")) (ElementExpression TracingState.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"LogSize")) (ElementExpression go.uint64 (Var "$v3"))), (KeyedElement (some (KeyField go!"Conf")) (ElementExpression (go.GoType.ArrayType 2 (go.GoType.SliceType go.string)) (Var "$v4"))), (KeyedElement (some (KeyField go!"Role")) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression (go.GoType.PointerType TracingMessage.ty) (Var "$v6"))), (KeyedElement (some (KeyField go!"Properties")) (ElementExpression (go.GoType.MapType go.string go.any) (Var "$v7")))])))))))))))
+  (App (App (Val (GoInstruction (MethodResolve TraceLogger.ty go!"TraceEvent"))) (App (Val (GoInstruction (GoLoad TraceLogger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"traceLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals TraceLogger.ty))) (Pair (App (Val (GoInstruction (GoLoad TraceLogger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"traceLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil TraceLogger.ty))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (Val #()))))))
+
+/-- go: state_trace.go:183:6 -/
+noncomputable def traceNodeEvent.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "evt"
+  (Lam "r"
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "evt" (App (Val (GoInstruction (GoAlloc stateMachineEventType.ty))) (Var "evt"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad stateMachineEventType.ty))) (Var "evt"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil))
+  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string go.any)))) (Val UntypedNil))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve traceEvent []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))
+  (Val #()))))
+
+/-- go: state_trace.go:187:6 -/
+noncomputable def formatConf.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.string)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0"))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "s"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange go.uint64)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v"))
+  (Let "$a1" (Val #(W64 10))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "r")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "v") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "r") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "s")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.uint64)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0")))))
+
+/-- Use following helper functions to trace specific state and/or
+    transition at corresponding code lines
+
+    go: state_trace.go:201:6 -/
 noncomputable def traceInitState.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
+  (LamV "r"
   (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (Val rsmInitState)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (FuncResolve traceNodeEvent []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals TraceLogger.ty))) (Pair (App (Val (GoInstruction (GoLoad TraceLogger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"traceLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil TraceLogger.ty))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
   (Val #())))
 
-/-- go: state_trace_nop.go:32:6 -/
+/-- go: state_trace.go:209:6 -/
 noncomputable def traceReady.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
+  (LamV "r"
   (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (Val rsmReady)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (FuncResolve traceNodeEvent []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (Val #())))
 
-/-- go: state_trace_nop.go:34:6 -/
+/-- go: state_trace.go:213:6 -/
 noncomputable def traceCommit.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
+  (LamV "r"
   (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (Val rsmCommit)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (FuncResolve traceNodeEvent []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (Val #())))
 
-/-- go: state_trace_nop.go:36:6 -/
+/-- go: state_trace.go:217:6 -/
 noncomputable def traceReplicate.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Lam BAnon
+  (LamV "r"
+  (Lam "es"
   (Seq (App (Val exceptionDo)
+  (Let "es" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "es"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "es"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "es")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))) (Val #())) (Val #(W32 0)))))
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (Val rsmReplicate)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (FuncResolve traceNodeEvent []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
   (Val #()))))
 
-/-- go: state_trace_nop.go:38:6 -/
+/-- go: state_trace.go:225:6 -/
 noncomputable def traceBecomeFollower.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
+  (LamV "r"
   (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (Val rsmBecomeFollower)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (FuncResolve traceNodeEvent []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (Val #())))
 
-/-- go: state_trace_nop.go:40:6 -/
+/-- go: state_trace.go:229:6 -/
 noncomputable def traceBecomeCandidate.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
+  (LamV "r"
   (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (Val rsmBecomeCandidate)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (FuncResolve traceNodeEvent []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (Val #())))
 
-/-- go: state_trace_nop.go:42:6 -/
+/-- go: state_trace.go:233:6 -/
 noncomputable def traceBecomeLeader.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
+  (LamV "r"
   (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (Val rsmBecomeLeader)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (FuncResolve traceNodeEvent []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (Val #())))
 
-/-- go: state_trace_nop.go:44:6 -/
+/-- go: state_trace.go:237:6 -/
 noncomputable def traceChangeConfEvent.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Lam BAnon
+  (LamV "cci"
+  (Lam "r"
   (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "cci" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (Var "cci"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty go!"AsV2"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (Var "cci"))) (Val #()))
+  (Let "cc2" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc TracingConfChange.ty))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType SingleConfChange.ty)))) (LiteralValue []))
+  (Let "$v1" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue []))
+  (App (Val (GoInstruction (CompositeLiteral TracingConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Changes")) (ElementExpression (go.GoType.SliceType SingleConfChange.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"NewConf")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v1")))])))))
+  (Let "cc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType TracingConfChange.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType TracingConfChange.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.any)))) (LiteralValue []))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.any)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.any)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType TracingConfChange.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TracingConfChange.ty)))) (Var "cc")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (Val rsmChangeConf)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "p"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve traceEvent []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "p"))) (Val #(go!"cc"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.any)))) (Pair (Var "p") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType SingleConfChange.ty)))) (App (Val (GoInstruction (StructFieldRef TracingConfChange.ty go!"Changes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TracingConfChange.ty)))) (Var "cc"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType SingleConfChange.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty go!"Changes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty)))) (Var "cc2"))))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$sw" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Var "c"))) (Val #()))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val #(W32 0))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType SingleConfChange.ty)))) (App (Val (GoInstruction (StructFieldRef TracingConfChange.ty go!"Changes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TracingConfChange.ty)))) (Var "cc"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Var "c"))) (Val #()))
+  (Let "$a1" (Val #(W64 10))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v1" (Val ConfChangeAddNewServer)
+  (App (Val (GoInstruction (CompositeLiteral SingleConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"NodeID")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Action")) (ElementExpression go.string (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType SingleConfChange.ty)))) (LiteralValue [(KeyedElement none (ElementExpression SingleConfChange.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType SingleConfChange.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType SingleConfChange.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef TracingConfChange.ty go!"Changes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TracingConfChange.ty)))) (Var "cc"))) (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val #(W32 1))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType SingleConfChange.ty)))) (App (Val (GoInstruction (StructFieldRef TracingConfChange.ty go!"Changes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TracingConfChange.ty)))) (Var "cc"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Var "c"))) (Val #()))
+  (Let "$a1" (Val #(W64 10))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v1" (Val ConfChangeRemoveServer)
+  (App (Val (GoInstruction (CompositeLiteral SingleConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"NodeID")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Action")) (ElementExpression go.string (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType SingleConfChange.ty)))) (LiteralValue [(KeyedElement none (ElementExpression SingleConfChange.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType SingleConfChange.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType SingleConfChange.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef TracingConfChange.ty go!"Changes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TracingConfChange.ty)))) (Var "cc"))) (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val #(W32 3))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType SingleConfChange.ty)))) (App (Val (GoInstruction (StructFieldRef TracingConfChange.ty go!"Changes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TracingConfChange.ty)))) (Var "cc"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Var "c"))) (Val #()))
+  (Let "$a1" (Val #(W64 10))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v1" (Val ConfChangeAddLearner)
+  (App (Val (GoInstruction (CompositeLiteral SingleConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"NodeID")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Action")) (ElementExpression go.string (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType SingleConfChange.ty)))) (LiteralValue [(KeyedElement none (ElementExpression SingleConfChange.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType SingleConfChange.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType SingleConfChange.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef TracingConfChange.ty go!"Changes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TracingConfChange.ty)))) (Var "cc"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Pair (Var "c") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType TracingConfChange.ty)))) (Pair (Var "cc") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty)))) (Pair (Var "cc2") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: state_trace_nop.go:46:6 -/
+/-- go: state_trace.go:272:6 -/
 noncomputable def traceConfChangeEvent.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Lam BAnon
+  (LamV "cfg"
+  (Lam "r"
   (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty))) (Var "cfg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc TracingConfChange.ty))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType SingleConfChange.ty)))) (LiteralValue []))
+  (Let "$v1" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty) go!"Slice"))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")) (Val #(W64 0))))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve formatConf []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral TracingConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Changes")) (ElementExpression (go.GoType.SliceType SingleConfChange.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"NewConf")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v1")))])))))
+  (Let "cc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType TracingConfChange.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType TracingConfChange.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.any)))) (LiteralValue []))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.any)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.any)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType TracingConfChange.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TracingConfChange.ty)))) (Var "cc")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (Val rsmApplyConfChange)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "p"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve traceEvent []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "p"))) (Val #(go!"cc"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.any)))) (Pair (Var "p") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType TracingConfChange.ty)))) (Pair (Var "cc") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals TraceLogger.ty))) (Pair (App (Val (GoInstruction (GoLoad TraceLogger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"traceLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil TraceLogger.ty))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))
   (Val #()))))
 
-/-- go: state_trace_nop.go:48:6 -/
+/-- go: state_trace.go:287:6 -/
 noncomputable def traceSendMessage.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Lam BAnon
+  (LamV "r"
+  (Lam "m"
   (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.any)))) (LiteralValue []))
+  (Let "prop" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.any)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.any)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "evt" (App (Val (GoInstruction (GoAlloc stateMachineEventType.ty))) (App (Val (GoInstruction (GoZeroVal stateMachineEventType.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad stateMachineEventType.ty))) (Var "evt"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "prop"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve traceEvent []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
+  (Let "$sw" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 3))))
+  (Let "$r0" (Val rsmSendAppendEntriesRequest)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Progress"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "exist" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exist"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"Match"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "p")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "p")))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "prop"))) (Val #(go!"next"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.any)))) (Var "prop"))) (Val #(go!"match"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exist") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (Var "p") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore stateMachineEventType.ty))) (Pair (Var "evt") (Var "$r0"))))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 7)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 8)))))
+  (Let "$r0" (Val rsmSendAppendEntriesRequest)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore stateMachineEventType.ty))) (Pair (Var "evt") (Var "$r0")))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 9)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 4)))))
+  (Let "$r0" (Val rsmSendAppendEntriesResponse)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore stateMachineEventType.ty))) (Pair (Var "evt") (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 5))))
+  (Let "$r0" (Val rsmSendRequestVoteRequest)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore stateMachineEventType.ty))) (Pair (Var "evt") (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 6))))
+  (Let "$r0" (Val rsmSendRequestVoteResponse)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore stateMachineEventType.ty))) (Pair (Var "evt") (Var "$r0")))))
+  (App (Val doReturn)
+  (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.any)))) (Pair (Var "prop") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals TraceLogger.ty))) (Pair (App (Val (GoInstruction (GoLoad TraceLogger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"traceLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil TraceLogger.ty))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))
   (Val #()))))
 
-/-- go: state_trace_nop.go:50:6 -/
+/-- go: state_trace.go:318:6 -/
 noncomputable def traceReceiveMessage.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Lam BAnon
+  (LamV "r"
+  (Lam "m"
   (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "evt" (App (Val (GoInstruction (GoAlloc stateMachineEventType.ty))) (App (Val (GoInstruction (GoZeroVal stateMachineEventType.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Val #())))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad stateMachineEventType.ty))) (Var "evt"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string go.any)))) (Val UntypedNil))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve traceEvent []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 1000000))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0")))))))
+  (Let "$sw" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 7)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 8)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 3))))))
+  (Let "$r0" (Val rsmReceiveAppendEntriesRequest)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore stateMachineEventType.ty))) (Pair (Var "evt") (Var "$r0")))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 9)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 4)))))
+  (Let "$r0" (Val rsmReceiveAppendEntriesResponse)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore stateMachineEventType.ty))) (Pair (Var "evt") (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 5))))
+  (Let "$r0" (Val rsmReceiveRequestVoteRequest)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore stateMachineEventType.ty))) (Pair (Var "evt") (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val #(W32 6))))
+  (Let "$r0" (Val rsmReceiveRequestVoteResponse)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore stateMachineEventType.ty))) (Pair (Var "evt") (Var "$r0")))))
+  (App (Val doReturn)
+  (Val #())))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals TraceLogger.ty))) (Pair (App (Val (GoInstruction (GoLoad TraceLogger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"traceLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil TraceLogger.ty))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))
   (Val #()))))
 
 /-- go: status.go:44:6 -/
@@ -12413,12 +13008,14 @@ noncomputable def extend.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3 where
-  pkgImportedPkgs := [pkg_id.errors, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.fmt, pkg_id.io, pkg_id.log, pkg_id.os, pkg_id.sync, pkg_id.context, pkg_id.bytes, pkg_id.crypto.rand, pkg_id.math, pkg_id.math.big, pkg_id.slices, pkg_id.strings, pkg_id.go_etcd_io.raft.v3.confchange, pkg_id.go_etcd_io.raft.v3.quorum, pkg_id.go_etcd_io.raft.v3.tracker, pkg_id.encoding.binary]
+  pkgImportedPkgs := [pkg_id.errors, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.fmt, pkg_id.io, pkg_id.log, pkg_id.os, pkg_id.sync, pkg_id.context, pkg_id.bytes, pkg_id.crypto.rand, pkg_id.math, pkg_id.math.big, pkg_id.slices, pkg_id.strings, pkg_id.go_etcd_io.raft.v3.confchange, pkg_id.go_etcd_io.raft.v3.quorum, pkg_id.go_etcd_io.raft.v3.tracker, pkg_id.encoding.binary, pkg_id.strconv, pkg_id.time]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.raft.v3)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -12599,6 +13196,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.raft.v3.tracker.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.encoding.binary.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.strconv.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc defaultLogger (go.GoType.PointerType DefaultLogger.ty))) (Val #()))))))
   (App (Val doExecute)
@@ -13578,11 +14179,11 @@ attribute [instance] CampaignType.TypeAssumptions.underlying
 abbrev TraceLogger [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def TraceLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"TraceEvent" (go.signature.Signature [(go.GoType.PointerType TracingEvent.ty)] false []))])
 
 class TraceLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TraceLogger.ty TraceLogger.underlying
-  method_set : go.MethodSetIs TraceLogger.ty []
+  method_set : go.MethodSetIs TraceLogger.ty [(go!"TraceEvent", (some (go.signature.Signature [(go.GoType.PointerType TracingEvent.ty)] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TraceLogger.ty) []
 
 attribute [instance] TraceLogger.TypeAssumptions.underlying
@@ -14331,14 +14932,97 @@ attribute [instance] readOnly.TypeAssumptions.type_repr
   readOnly.TypeAssumptions.ptr_maybeAdvance_unfold
   readOnly.TypeAssumptions.ptr_recvAck_unfold
 
+abbrev stateMachineEventType [GooseExts] : Type := w64
+
+@[reducible] noncomputable def stateMachineEventType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  go.int
+
+class stateMachineEventType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq stateMachineEventType.ty stateMachineEventType.underlying
+  method_set : go.MethodSetIs stateMachineEventType.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stateMachineEventType.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  String_unfold : MethodUnfold stateMachineEventType.ty go!"String" stateMachineEventType.String.impl
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType stateMachineEventType.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve stateMachineEventType.ty go!"String"))) (App (Val (GoInstruction (GoLoad stateMachineEventType.ty))) (Var "$r"))))
+
+attribute [instance] stateMachineEventType.TypeAssumptions.underlying
+  stateMachineEventType.TypeAssumptions.method_set
+  stateMachineEventType.TypeAssumptions.ptr_method_set
+  stateMachineEventType.TypeAssumptions.String_unfold
+  stateMachineEventType.TypeAssumptions.ptr_String_unfold
+
+structure TracingState [GooseExts] where
+  mk ::
+  Term' : w64
+  Vote' : GoString
+  Commit' : w64
+
+noncomputable instance TracingState.zero_val [GooseExts] : ZeroVal TracingState :=
+  ⟨TracingState.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def TracingState.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Term" go.uint64),
+(go.field_decl.FieldDecl go!"Vote" go.string),
+(go.field_decl.FieldDecl go!"Commit" go.uint64)]
+
+@[irreducible] noncomputable def TracingState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  TracingState.fieldsUnsealed
+
+noncomputable instance equals_unfold_TracingState [GooseExts] [GoGlobalContext] :
+    EqualsUnfold TracingState.fields TracingState.fieldsUnsealed :=
+  ⟨by unfold TracingState.fields; rfl⟩
+
+@[reducible] noncomputable def TracingState.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType TracingState.fields)
+
+class TracingState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying TracingState.underlying TracingState
+  underlying : go.UnderlyingDirectedEq TracingState.ty TracingState.underlying
+  get_Term : ∀ (x : TracingState), go.IsGoStepPureDetTagged under (StructFieldGet TracingState.underlying go!"Term") #x (Val #(x.Term'))
+  set_Term : ∀ (x : TracingState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TracingState.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : TracingState)))
+  get_Vote : ∀ (x : TracingState), go.IsGoStepPureDetTagged under (StructFieldGet TracingState.underlying go!"Vote") #x (Val #(x.Vote'))
+  set_Vote : ∀ (x : TracingState) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracingState.underlying go!"Vote") (PairV #x #y) (Val #(({ x with Vote' := y } : TracingState)))
+  get_Commit : ∀ (x : TracingState), go.IsGoStepPureDetTagged under (StructFieldGet TracingState.underlying go!"Commit") #x (Val #(x.Commit'))
+  set_Commit : ∀ (x : TracingState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TracingState.underlying go!"Commit") (PairV #x #y) (Val #(({ x with Commit' := y } : TracingState)))
+  method_set : go.MethodSetIs TracingState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracingState.ty) []
+
+attribute [instance] TracingState.TypeAssumptions.type_repr
+  TracingState.TypeAssumptions.underlying
+  TracingState.TypeAssumptions.get_Term
+  TracingState.TypeAssumptions.set_Term
+  TracingState.TypeAssumptions.get_Vote
+  TracingState.TypeAssumptions.set_Vote
+  TracingState.TypeAssumptions.get_Commit
+  TracingState.TypeAssumptions.set_Commit
+  TracingState.TypeAssumptions.method_set
+  TracingState.TypeAssumptions.ptr_method_set
+
 structure TracingEvent [GooseExts] where
   mk ::
+  Name' : GoString
+  NodeID' : GoString
+  State' : TracingState
+  Role' : GoString
+  LogSize' : w64
+  Conf' : (GoArray GoSlice 2)
+  Message' : Loc
+  ConfChange' : Loc
+  Properties' : GoMap
 
 noncomputable instance TracingEvent.zero_val [GooseExts] : ZeroVal TracingEvent :=
-  ⟨TracingEvent.mk⟩
+  ⟨TracingEvent.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def TracingEvent.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  []
+  [(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"NodeID" go.string),
+(go.field_decl.FieldDecl go!"State" TracingState.ty),
+(go.field_decl.FieldDecl go!"Role" go.string),
+(go.field_decl.FieldDecl go!"LogSize" go.uint64),
+(go.field_decl.FieldDecl go!"Conf" (go.GoType.ArrayType 2 (go.GoType.SliceType go.string))),
+(go.field_decl.FieldDecl go!"Message" (go.GoType.PointerType TracingMessage.ty)),
+(go.field_decl.FieldDecl go!"ConfChange" (go.GoType.PointerType TracingConfChange.ty)),
+(go.field_decl.FieldDecl go!"Properties" (go.GoType.MapType go.string go.any))]
 
 @[irreducible] noncomputable def TracingEvent.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TracingEvent.fieldsUnsealed
@@ -14353,13 +15037,226 @@ noncomputable instance equals_unfold_TracingEvent [GooseExts] [GoGlobalContext] 
 class TracingEvent.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TracingEvent.underlying TracingEvent
   underlying : go.UnderlyingDirectedEq TracingEvent.ty TracingEvent.underlying
+  get_Name : ∀ (x : TracingEvent), go.IsGoStepPureDetTagged under (StructFieldGet TracingEvent.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : TracingEvent) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracingEvent.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : TracingEvent)))
+  get_NodeID : ∀ (x : TracingEvent), go.IsGoStepPureDetTagged under (StructFieldGet TracingEvent.underlying go!"NodeID") #x (Val #(x.NodeID'))
+  set_NodeID : ∀ (x : TracingEvent) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracingEvent.underlying go!"NodeID") (PairV #x #y) (Val #(({ x with NodeID' := y } : TracingEvent)))
+  get_State : ∀ (x : TracingEvent), go.IsGoStepPureDetTagged under (StructFieldGet TracingEvent.underlying go!"State") #x (Val #(x.State'))
+  set_State : ∀ (x : TracingEvent) (y : TracingState), go.IsGoStepPureDetTagged under (StructFieldSet TracingEvent.underlying go!"State") (PairV #x #y) (Val #(({ x with State' := y } : TracingEvent)))
+  get_Role : ∀ (x : TracingEvent), go.IsGoStepPureDetTagged under (StructFieldGet TracingEvent.underlying go!"Role") #x (Val #(x.Role'))
+  set_Role : ∀ (x : TracingEvent) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracingEvent.underlying go!"Role") (PairV #x #y) (Val #(({ x with Role' := y } : TracingEvent)))
+  get_LogSize : ∀ (x : TracingEvent), go.IsGoStepPureDetTagged under (StructFieldGet TracingEvent.underlying go!"LogSize") #x (Val #(x.LogSize'))
+  set_LogSize : ∀ (x : TracingEvent) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TracingEvent.underlying go!"LogSize") (PairV #x #y) (Val #(({ x with LogSize' := y } : TracingEvent)))
+  get_Conf : ∀ (x : TracingEvent), go.IsGoStepPureDetTagged under (StructFieldGet TracingEvent.underlying go!"Conf") #x (Val #(x.Conf'))
+  set_Conf : ∀ (x : TracingEvent) (y : (GoArray GoSlice 2)), go.IsGoStepPureDetTagged under (StructFieldSet TracingEvent.underlying go!"Conf") (PairV #x #y) (Val #(({ x with Conf' := y } : TracingEvent)))
+  get_Message : ∀ (x : TracingEvent), go.IsGoStepPureDetTagged under (StructFieldGet TracingEvent.underlying go!"Message") #x (Val #(x.Message'))
+  set_Message : ∀ (x : TracingEvent) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TracingEvent.underlying go!"Message") (PairV #x #y) (Val #(({ x with Message' := y } : TracingEvent)))
+  get_ConfChange : ∀ (x : TracingEvent), go.IsGoStepPureDetTagged under (StructFieldGet TracingEvent.underlying go!"ConfChange") #x (Val #(x.ConfChange'))
+  set_ConfChange : ∀ (x : TracingEvent) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TracingEvent.underlying go!"ConfChange") (PairV #x #y) (Val #(({ x with ConfChange' := y } : TracingEvent)))
+  get_Properties : ∀ (x : TracingEvent), go.IsGoStepPureDetTagged under (StructFieldGet TracingEvent.underlying go!"Properties") #x (Val #(x.Properties'))
+  set_Properties : ∀ (x : TracingEvent) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet TracingEvent.underlying go!"Properties") (PairV #x #y) (Val #(({ x with Properties' := y } : TracingEvent)))
   method_set : go.MethodSetIs TracingEvent.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracingEvent.ty) []
 
 attribute [instance] TracingEvent.TypeAssumptions.type_repr
   TracingEvent.TypeAssumptions.underlying
+  TracingEvent.TypeAssumptions.get_Name
+  TracingEvent.TypeAssumptions.set_Name
+  TracingEvent.TypeAssumptions.get_NodeID
+  TracingEvent.TypeAssumptions.set_NodeID
+  TracingEvent.TypeAssumptions.get_State
+  TracingEvent.TypeAssumptions.set_State
+  TracingEvent.TypeAssumptions.get_Role
+  TracingEvent.TypeAssumptions.set_Role
+  TracingEvent.TypeAssumptions.get_LogSize
+  TracingEvent.TypeAssumptions.set_LogSize
+  TracingEvent.TypeAssumptions.get_Conf
+  TracingEvent.TypeAssumptions.set_Conf
+  TracingEvent.TypeAssumptions.get_Message
+  TracingEvent.TypeAssumptions.set_Message
+  TracingEvent.TypeAssumptions.get_ConfChange
+  TracingEvent.TypeAssumptions.set_ConfChange
+  TracingEvent.TypeAssumptions.get_Properties
+  TracingEvent.TypeAssumptions.set_Properties
   TracingEvent.TypeAssumptions.method_set
   TracingEvent.TypeAssumptions.ptr_method_set
+
+structure TracingMessage [GooseExts] where
+  mk ::
+  Type' : GoString
+  Term' : w64
+  From' : GoString
+  To' : GoString
+  EntryLength' : w64
+  LogTerm' : w64
+  Index' : w64
+  Commit' : w64
+  Vote' : GoString
+  Reject' : Bool
+  RejectHint' : w64
+
+noncomputable instance TracingMessage.zero_val [GooseExts] : ZeroVal TracingMessage :=
+  ⟨TracingMessage.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def TracingMessage.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Type" go.string),
+(go.field_decl.FieldDecl go!"Term" go.uint64),
+(go.field_decl.FieldDecl go!"From" go.string),
+(go.field_decl.FieldDecl go!"To" go.string),
+(go.field_decl.FieldDecl go!"EntryLength" go.int),
+(go.field_decl.FieldDecl go!"LogTerm" go.uint64),
+(go.field_decl.FieldDecl go!"Index" go.uint64),
+(go.field_decl.FieldDecl go!"Commit" go.uint64),
+(go.field_decl.FieldDecl go!"Vote" go.string),
+(go.field_decl.FieldDecl go!"Reject" go.bool),
+(go.field_decl.FieldDecl go!"RejectHint" go.uint64)]
+
+@[irreducible] noncomputable def TracingMessage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  TracingMessage.fieldsUnsealed
+
+noncomputable instance equals_unfold_TracingMessage [GooseExts] [GoGlobalContext] :
+    EqualsUnfold TracingMessage.fields TracingMessage.fieldsUnsealed :=
+  ⟨by unfold TracingMessage.fields; rfl⟩
+
+@[reducible] noncomputable def TracingMessage.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType TracingMessage.fields)
+
+class TracingMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying TracingMessage.underlying TracingMessage
+  underlying : go.UnderlyingDirectedEq TracingMessage.ty TracingMessage.underlying
+  get_Type : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"Type") #x (Val #(x.Type'))
+  set_Type : ∀ (x : TracingMessage) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : TracingMessage)))
+  get_Term : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"Term") #x (Val #(x.Term'))
+  set_Term : ∀ (x : TracingMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : TracingMessage)))
+  get_From : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"From") #x (Val #(x.From'))
+  set_From : ∀ (x : TracingMessage) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"From") (PairV #x #y) (Val #(({ x with From' := y } : TracingMessage)))
+  get_To : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"To") #x (Val #(x.To'))
+  set_To : ∀ (x : TracingMessage) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"To") (PairV #x #y) (Val #(({ x with To' := y } : TracingMessage)))
+  get_EntryLength : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"EntryLength") #x (Val #(x.EntryLength'))
+  set_EntryLength : ∀ (x : TracingMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"EntryLength") (PairV #x #y) (Val #(({ x with EntryLength' := y } : TracingMessage)))
+  get_LogTerm : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"LogTerm") #x (Val #(x.LogTerm'))
+  set_LogTerm : ∀ (x : TracingMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"LogTerm") (PairV #x #y) (Val #(({ x with LogTerm' := y } : TracingMessage)))
+  get_Index : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"Index") #x (Val #(x.Index'))
+  set_Index : ∀ (x : TracingMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : TracingMessage)))
+  get_Commit : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"Commit") #x (Val #(x.Commit'))
+  set_Commit : ∀ (x : TracingMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"Commit") (PairV #x #y) (Val #(({ x with Commit' := y } : TracingMessage)))
+  get_Vote : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"Vote") #x (Val #(x.Vote'))
+  set_Vote : ∀ (x : TracingMessage) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"Vote") (PairV #x #y) (Val #(({ x with Vote' := y } : TracingMessage)))
+  get_Reject : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"Reject") #x (Val #(x.Reject'))
+  set_Reject : ∀ (x : TracingMessage) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"Reject") (PairV #x #y) (Val #(({ x with Reject' := y } : TracingMessage)))
+  get_RejectHint : ∀ (x : TracingMessage), go.IsGoStepPureDetTagged under (StructFieldGet TracingMessage.underlying go!"RejectHint") #x (Val #(x.RejectHint'))
+  set_RejectHint : ∀ (x : TracingMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TracingMessage.underlying go!"RejectHint") (PairV #x #y) (Val #(({ x with RejectHint' := y } : TracingMessage)))
+  method_set : go.MethodSetIs TracingMessage.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracingMessage.ty) []
+
+attribute [instance] TracingMessage.TypeAssumptions.type_repr
+  TracingMessage.TypeAssumptions.underlying
+  TracingMessage.TypeAssumptions.get_Type
+  TracingMessage.TypeAssumptions.set_Type
+  TracingMessage.TypeAssumptions.get_Term
+  TracingMessage.TypeAssumptions.set_Term
+  TracingMessage.TypeAssumptions.get_From
+  TracingMessage.TypeAssumptions.set_From
+  TracingMessage.TypeAssumptions.get_To
+  TracingMessage.TypeAssumptions.set_To
+  TracingMessage.TypeAssumptions.get_EntryLength
+  TracingMessage.TypeAssumptions.set_EntryLength
+  TracingMessage.TypeAssumptions.get_LogTerm
+  TracingMessage.TypeAssumptions.set_LogTerm
+  TracingMessage.TypeAssumptions.get_Index
+  TracingMessage.TypeAssumptions.set_Index
+  TracingMessage.TypeAssumptions.get_Commit
+  TracingMessage.TypeAssumptions.set_Commit
+  TracingMessage.TypeAssumptions.get_Vote
+  TracingMessage.TypeAssumptions.set_Vote
+  TracingMessage.TypeAssumptions.get_Reject
+  TracingMessage.TypeAssumptions.set_Reject
+  TracingMessage.TypeAssumptions.get_RejectHint
+  TracingMessage.TypeAssumptions.set_RejectHint
+  TracingMessage.TypeAssumptions.method_set
+  TracingMessage.TypeAssumptions.ptr_method_set
+
+structure SingleConfChange [GooseExts] where
+  mk ::
+  NodeID' : GoString
+  Action' : GoString
+
+noncomputable instance SingleConfChange.zero_val [GooseExts] : ZeroVal SingleConfChange :=
+  ⟨SingleConfChange.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def SingleConfChange.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"NodeID" go.string),
+(go.field_decl.FieldDecl go!"Action" go.string)]
+
+@[irreducible] noncomputable def SingleConfChange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  SingleConfChange.fieldsUnsealed
+
+noncomputable instance equals_unfold_SingleConfChange [GooseExts] [GoGlobalContext] :
+    EqualsUnfold SingleConfChange.fields SingleConfChange.fieldsUnsealed :=
+  ⟨by unfold SingleConfChange.fields; rfl⟩
+
+@[reducible] noncomputable def SingleConfChange.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType SingleConfChange.fields)
+
+class SingleConfChange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying SingleConfChange.underlying SingleConfChange
+  underlying : go.UnderlyingDirectedEq SingleConfChange.ty SingleConfChange.underlying
+  get_NodeID : ∀ (x : SingleConfChange), go.IsGoStepPureDetTagged under (StructFieldGet SingleConfChange.underlying go!"NodeID") #x (Val #(x.NodeID'))
+  set_NodeID : ∀ (x : SingleConfChange) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SingleConfChange.underlying go!"NodeID") (PairV #x #y) (Val #(({ x with NodeID' := y } : SingleConfChange)))
+  get_Action : ∀ (x : SingleConfChange), go.IsGoStepPureDetTagged under (StructFieldGet SingleConfChange.underlying go!"Action") #x (Val #(x.Action'))
+  set_Action : ∀ (x : SingleConfChange) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SingleConfChange.underlying go!"Action") (PairV #x #y) (Val #(({ x with Action' := y } : SingleConfChange)))
+  method_set : go.MethodSetIs SingleConfChange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SingleConfChange.ty) []
+
+attribute [instance] SingleConfChange.TypeAssumptions.type_repr
+  SingleConfChange.TypeAssumptions.underlying
+  SingleConfChange.TypeAssumptions.get_NodeID
+  SingleConfChange.TypeAssumptions.set_NodeID
+  SingleConfChange.TypeAssumptions.get_Action
+  SingleConfChange.TypeAssumptions.set_Action
+  SingleConfChange.TypeAssumptions.method_set
+  SingleConfChange.TypeAssumptions.ptr_method_set
+
+structure TracingConfChange [GooseExts] where
+  mk ::
+  Changes' : GoSlice
+  NewConf' : GoSlice
+
+noncomputable instance TracingConfChange.zero_val [GooseExts] : ZeroVal TracingConfChange :=
+  ⟨TracingConfChange.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def TracingConfChange.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Changes" (go.GoType.SliceType SingleConfChange.ty)),
+(go.field_decl.FieldDecl go!"NewConf" (go.GoType.SliceType go.string))]
+
+@[irreducible] noncomputable def TracingConfChange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  TracingConfChange.fieldsUnsealed
+
+noncomputable instance equals_unfold_TracingConfChange [GooseExts] [GoGlobalContext] :
+    EqualsUnfold TracingConfChange.fields TracingConfChange.fieldsUnsealed :=
+  ⟨by unfold TracingConfChange.fields; rfl⟩
+
+@[reducible] noncomputable def TracingConfChange.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType TracingConfChange.fields)
+
+class TracingConfChange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying TracingConfChange.underlying TracingConfChange
+  underlying : go.UnderlyingDirectedEq TracingConfChange.ty TracingConfChange.underlying
+  get_Changes : ∀ (x : TracingConfChange), go.IsGoStepPureDetTagged under (StructFieldGet TracingConfChange.underlying go!"Changes") #x (Val #(x.Changes'))
+  set_Changes : ∀ (x : TracingConfChange) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TracingConfChange.underlying go!"Changes") (PairV #x #y) (Val #(({ x with Changes' := y } : TracingConfChange)))
+  get_NewConf : ∀ (x : TracingConfChange), go.IsGoStepPureDetTagged under (StructFieldGet TracingConfChange.underlying go!"NewConf") #x (Val #(x.NewConf'))
+  set_NewConf : ∀ (x : TracingConfChange) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TracingConfChange.underlying go!"NewConf") (PairV #x #y) (Val #(({ x with NewConf' := y } : TracingConfChange)))
+  method_set : go.MethodSetIs TracingConfChange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracingConfChange.ty) []
+
+attribute [instance] TracingConfChange.TypeAssumptions.type_repr
+  TracingConfChange.TypeAssumptions.underlying
+  TracingConfChange.TypeAssumptions.get_Changes
+  TracingConfChange.TypeAssumptions.set_Changes
+  TracingConfChange.TypeAssumptions.get_NewConf
+  TracingConfChange.TypeAssumptions.set_NewConf
+  TracingConfChange.TypeAssumptions.method_set
+  TracingConfChange.TypeAssumptions.ptr_method_set
 
 structure BasicStatus [GooseExts] where
   mk ::
@@ -14873,8 +15770,13 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ReadState_instance : ReadState.TypeAssumptions
   readIndexRequest_instance : readIndexRequest.TypeAssumptions
   readOnly_instance : readOnly.TypeAssumptions
-  TraceLogger_instance : TraceLogger.TypeAssumptions
+  stateMachineEventType_instance : stateMachineEventType.TypeAssumptions
   TracingEvent_instance : TracingEvent.TypeAssumptions
+  TracingState_instance : TracingState.TypeAssumptions
+  TracingMessage_instance : TracingMessage.TypeAssumptions
+  SingleConfChange_instance : SingleConfChange.TypeAssumptions
+  TracingConfChange_instance : TracingConfChange.TypeAssumptions
+  TraceLogger_instance : TraceLogger.TypeAssumptions
   Status_instance : Status.TypeAssumptions
   BasicStatus_instance : BasicStatus.TypeAssumptions
   Storage_instance : Storage.TypeAssumptions
@@ -14917,6 +15819,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   newStorageApplyMsg_unfold : FuncUnfold newStorageApplyMsg [] newStorageApplyMsg.impl
   newStorageApplyRespMsg_unfold : FuncUnfold newStorageApplyRespMsg [] newStorageApplyRespMsg.impl
   newReadOnly_unfold : FuncUnfold newReadOnly [] newReadOnly.impl
+  makeTracingState_unfold : FuncUnfold makeTracingState [] makeTracingState.impl
+  makeTracingMessage_unfold : FuncUnfold makeTracingMessage [] makeTracingMessage.impl
+  traceEvent_unfold : FuncUnfold traceEvent [] traceEvent.impl
+  traceNodeEvent_unfold : FuncUnfold traceNodeEvent [] traceNodeEvent.impl
+  formatConf_unfold : FuncUnfold formatConf [] formatConf.impl
   traceInitState_unfold : FuncUnfold traceInitState [] traceInitState.impl
   traceReady_unfold : FuncUnfold traceReady [] traceReady.impl
   traceCommit_unfold : FuncUnfold traceCommit [] traceCommit.impl
@@ -14974,6 +15881,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_quorum_Assumption : _root_.Perennial.go_etcd_io.raft.v3.quorum.Assumptions
   import_tracker_Assumption : _root_.Perennial.go_etcd_io.raft.v3.tracker.Assumptions
   import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
+  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
 
 attribute [instance] Assumptions.raftLog_instance
   Assumptions.unstable_instance
@@ -14998,8 +15907,13 @@ attribute [instance] Assumptions.raftLog_instance
   Assumptions.ReadState_instance
   Assumptions.readIndexRequest_instance
   Assumptions.readOnly_instance
-  Assumptions.TraceLogger_instance
+  Assumptions.stateMachineEventType_instance
   Assumptions.TracingEvent_instance
+  Assumptions.TracingState_instance
+  Assumptions.TracingMessage_instance
+  Assumptions.SingleConfChange_instance
+  Assumptions.TracingConfChange_instance
+  Assumptions.TraceLogger_instance
   Assumptions.Status_instance
   Assumptions.BasicStatus_instance
   Assumptions.Storage_instance
@@ -15042,6 +15956,11 @@ attribute [instance] Assumptions.raftLog_instance
   Assumptions.newStorageApplyMsg_unfold
   Assumptions.newStorageApplyRespMsg_unfold
   Assumptions.newReadOnly_unfold
+  Assumptions.makeTracingState_unfold
+  Assumptions.makeTracingMessage_unfold
+  Assumptions.traceEvent_unfold
+  Assumptions.traceNodeEvent_unfold
+  Assumptions.formatConf_unfold
   Assumptions.traceInitState_unfold
   Assumptions.traceReady_unfold
   Assumptions.traceCommit_unfold
@@ -15099,6 +16018,8 @@ attribute [instance] Assumptions.raftLog_instance
   Assumptions.import_quorum_Assumption
   Assumptions.import_tracker_Assumption
   Assumptions.import_binary_Assumption
+  Assumptions.import_strconv_Assumption
+  Assumptions.import_time_Assumption
 
 end go_etcd_io.raft.v3
 
