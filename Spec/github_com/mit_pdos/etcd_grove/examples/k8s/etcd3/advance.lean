@@ -2,6 +2,7 @@
 
 `advance(c, st, pend)` (k8setcd3.go): the configuration of `c` after its store steps to `st`,
 with the pending inputs `pend`: `advanceL` (`KList.lean`), its history grown iff the revision is.
+Its premise: the history's length stays below `2^64`.
 -/
 module
 
@@ -29,7 +30,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 /-- See the file header. -/
 abbrev advance.spec : Prop :=
   ∀ (c : mcfg) (g : GCfg) (st : mstore) (s : GSt) (pend : GoSlice) (ps : List Input),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ cfgOwn c g ∗ storeOwn st s ∗ pend ↦*□ ps }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ cfgOwn c g ∗ storeOwn st s ∗ pend ↦*□ ps ∗
+      ⌜g.st.hist.length + 1 < 2 ^ 64⌝ }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.advance)) (Val #c)) (Val #st)) (Val #pend))
   {{ (c' : mcfg), RET #c'; cfgOwn c' ⟨advanceL g.st s, ps⟩ }}
 

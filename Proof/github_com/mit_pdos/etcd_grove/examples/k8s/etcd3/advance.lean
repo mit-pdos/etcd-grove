@@ -28,9 +28,9 @@ theorem advance.wp_proof
     (wp_appendHist : appendHist.spec (GF := GF) (hG := hG)) :
     advance.spec (GF := GF) (hG := hG) := by
   intro c g st s pend ps
-  wp_start as ⟨#Hc, #Hs, #Hp⟩
+  wp_start as ⟨#Hc, #Hs, #Hp, %Hb⟩
   unfold cfgOwn
-  icases Hc with ⟨#Hst, #Hh, #Hp0⟩
+  icases Hc with ⟨#Hst, #Hh, #Hp0, %Hl0⟩
   ihave %Hrv := (show storeOwn (GF := GF) st s ⊢ ⌜st.rv' = s.rv⌝ by
     unfold storeOwn; iintro ⟨-, %H⟩; ipureintro; exact H) $$ Hs
   ihave %Hrv0 := (show storeOwn (GF := GF) c.st' g.st.st ⊢ ⌜c.st'.rv' = g.st.st.rv⌝ by
@@ -45,7 +45,9 @@ theorem advance.wp_proof
     · iexact Hs
     isplit
     · iassumption
+    isplit
     · iexact Hp
+    · ipureintro; (try simp only [List.length_append, List.length_singleton]); omega
   · wp_apply wp_appendHist $$ [$Hh $Hs] as %h' #Hh'
     (try wp_auto)
     have hne : s.rv ≠ g.st.st.rv := by rw [← Hrv, ← Hrv0]; exact Hif
@@ -56,7 +58,9 @@ theorem advance.wp_proof
     · iexact Hs
     isplit
     · iassumption
+    isplit
     · iexact Hp
+    · ipureintro; (try simp only [List.length_append, List.length_singleton]); omega
 
 end proof
 

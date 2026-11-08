@@ -8,7 +8,7 @@ As linkvtxn's `Defs.lean`:
 - `storeOwn s g`, `histOwn h hs`, `cfgOwn c g`: the Go store `s`'s items hold `g`'s, the history
   `h`'s nodes hold the stores `hs` (oldest first: `hs[R-1]` at revision `R`, the node of `R`
   recording its length `R`), the configuration `c`'s store, history and pending inputs hold `g`'s,
-  all read-only (configurations share slices and histories: `step` returns `c.st` in a new
+  all read-only, the history's nodes' lengths not wrapping (configurations share slices and histories: `step` returns `c.st` in a new
   configuration, `advance` a history extending `c.hist`; stage 7e, Q7e-3b-1: the state owns the
   history chain read-only);
 - `boxIn x`, `boxOut y`, `boxSt sl`: a Go `Input`, `Output`, `state` boxed (`any(x)`); `decOp`, the
@@ -123,7 +123,8 @@ theorem histOwn_agree (h : Loc) (a b : List GSt) :
 
 /-- A Go configuration holds `g` (see the file header). -/
 def cfgOwn (c : mcfg) (g : GCfg) : IProp GF :=
-  iprop(storeOwn c.st' g.st.st ∗ histOwn c.hist' g.st.hist ∗ c.pend' ↦*□ g.pend)
+  iprop(storeOwn c.st' g.st.st ∗ histOwn c.hist' g.st.hist ∗ c.pend' ↦*□ g.pend ∗
+    ⌜g.st.hist.length < 2 ^ 64⌝)
 
 instance cfgOwn_persistent (c : mcfg) (g : GCfg) : Persistent (cfgOwn (GF := GF) c g) := by
   unfold cfgOwn; infer_instance
