@@ -55,7 +55,7 @@ theorem NewKV.wp_proof
   (try wp_auto)
   wp_apply hCtx cl (GoInterface.ok cctx) $$ [$Hv3 $Hcctxf]
   wp_apply context.wp_WithCancel iprop(True) cctx ccs $$ [$Hctxp $Hcctx $Hccc]
-    as %ictx %γi %cancel ⟨#Hcancel, #Hictx, #Hicc⟩
+    as %ictx %γi %cancel ⟨#Hcancel, #Hictx, #Hicc, -⟩
   ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
   (try wp_auto)
   wp_apply (wp_map_make1 (K := GoString) (V := time.Time) go.string time.Time.ty) as %rm Hrm
