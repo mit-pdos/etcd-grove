@@ -197,6 +197,11 @@ func TestAgainstTLC(t *testing.T) {
 		// most of them (notes/raft-trace-validation.md, "Where etcdraft.tla does not fit
 		// raft"), and the verdicts, and the line, must still agree.
 		jobs = append(jobs, job{fmt.Sprintf("full seed %d", seed), traceNDJSON(t, FullConfig(seed))})
+		// the concurrent harness's traces, both configurations
+		cnd, _ := concurrentNDJSON(t, DefaultCConfig(seed))
+		jobs = append(jobs, job{fmt.Sprintf("concurrent seed %d", seed), cnd})
+		cnd, _ = concurrentNDJSON(t, FullCConfig(seed))
+		jobs = append(jobs, job{fmt.Sprintf("concurrent full seed %d", seed), cnd})
 	}
 	sem := make(chan struct{}, envInt("TLC_PARALLEL", 4))
 	var wg sync.WaitGroup

@@ -14,15 +14,18 @@ record is `notes/decisions.md`; the Rocq development's notes are on branch `main
 ## Raft's TLA+ trace validation, by TLC and porcupine (2026-11-08, branch `trace-check`; Go only, not translated)
 
 `notes/raft-trace-validation.md`. The verified raft built with its `with_tla` tag, driven in
-process (`examples/raft/tracecheck`), records its own trace events; they are checked by TLC on
+process (`examples/raft/tracecheck`: a deterministic driver over `RawNode`s, and a concurrent
+harness of `raft.Node`s with real goroutines, a network and leader changes, the one to prove),
+records its own trace events; they are checked by TLC on
 upstream's `Traceetcdraft.tla` and by a Go transcription of all of `etcdraft.tla` and
 `Traceetcdraft.tla` (`tracecheck/etcdraft`), directly and as a porcupine `NondeterministicModel`.
 The transcription's state space equals TLC's under four bounds, and its verdicts (and failing
 lines) equal TLC's on 72 traces, mutants included. Plain-configuration traces are matched; four
 places where `etcdraft.tla` does not fit raft (restarts, voter demotion, snapshots to followers
 that have committed, re-added members' `matchIndex`) make traces with those features fail, by TLC
-as by the transcription. Next: translating raft with `with_tla`, the trace hooks' specs, and the
-proof that porcupine accepts every trace (the note's "Next").
+as by the transcription. Next (the direct checker is the one to prove, porcupine a cross-check): translating raft
+with `with_tla`, the trace hooks' specs, and the proof that the checker accepts every trace of the
+concurrent harness (the note's "Next").
 
 ## Soundness bugs: `grpc.serve`'s handler pool and `pbEnc` across heaps (found 2026-11-07; fixed by the per-type stage, not started)
 

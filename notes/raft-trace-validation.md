@@ -23,6 +23,21 @@ Nothing here is translated or proved yet. Plain Go and TLC only.
   leadership transfer, joint configurations (none modelled). `DefaultConfig`: three voters, no
   configuration change, snapshot or restart; `FullConfig`: a fourth node, configuration changes the
   specification models, snapshots (every 5 applied entries and after each configuration change).
+- `examples/raft/tracecheck/concurrent.go` (`//go:build with_tla`): the concurrent harness, the
+  one to prove. Each replica is a `raft.Node` (node.go's run goroutine; `StartNode`, a member to
+  add `RestartNode` on empty storage) with an application goroutine that ticks it, handles its
+  Readies and advances it; the network delivers each message from a goroutine of its own after a
+  random delay (reordered), through `Node.Step` with a timeout, or drops it; a proposer, a
+  proposer of configuration changes (at the leader, those the specification models) and an
+  isolator (cuts a random replica off the network for a while: leader changes) run concurrently.
+  One locked `SyncRecorder` orders the events. That order is one the trace specification can
+  follow: a replica's events are logged from its run goroutine, one at a time; a message is
+  logged as sent (in raft's `send`) before the Ready that hands it to the application, so before
+  its receipt. `DefaultCConfig` runs (8 seeds, under `-race`): 1.7k-2.7k events, 4-11
+  candidacies, 2-3 leaders, terms to 8, all matched. Raft's `with_tla` build sleeps 1ms in every
+  traced receipt (`traceReceiveMessage`, "to reduce time shift impact across node": for ordering
+  by timestamps across processes), so the harness ticks every 10ms (at 2ms a leader's run loop
+  fell behind and a third of the messages timed out).
 - `examples/raft/tracecheck/etcdraft/` (plain Go, no dependency on raft): the transcription,
   definition by definition with the TLA+ names in the comments.
   - `types.go`, `spec.go`, `invariants.go`: all of `etcdraft.tla` -- every variable, `Init`, every
@@ -62,7 +77,11 @@ Nothing here is translated or proved yet. Plain Go and TLC only.
   direct checker and porcupine on the traces of `TLC_SEEDS` seeds, `TLC_MUTANTS` mutants of each
   (a logged value changed, a line deleted, two lines swapped) and each seed's `FullConfig` trace.
   2026-11-08, 6 seeds and 10 mutants: 72 traces, the verdicts agree on all 72 (31 rejected), and
-  where TLC rejects, its error trace stops at the line the direct checker reports.
+  where TLC rejects, its error trace stops at the line the direct checker reports. With the
+  concurrent harness's traces added (`DefaultCConfig` and `FullCConfig` per seed), 5 seeds and 8
+  mutants: 60 traces, all agree (23 rejected).
+- `TestConcurrentTraces` (`-race`): the `DefaultCConfig` traces of seeds 1-10 are matched, by the
+  direct checker and by porcupine.
 
 Setup used: Java 21 (`apt install default-jre-headless`), upstream's tools as `validate.sh` fetches
 them (nightly `tla2tools.jar`, latest `CommunityModules-deps.jar`; not pinned yet).
@@ -106,9 +125,18 @@ install, on a snapshot whatever the follower's commit; 4: reset `matchIndex` on 
 
 ## Next
 
-- The proof: translate raft with `with_tla` (`etc/goose.py` has no build tags yet), strengthen the
-  eleven trace hooks' specs (`Spec/go_etcd_io/raft/v3/trace*.lean`, now no-ops) to report the
-  event, a harness proved to produce the trace, the transcription's Go proved to refine a Lean
-  transcription of the two modules, and `NondeterministicModel.ToModel` specified (it is
-  translated, `Code/github_com/anishathalye/porcupine.lean`, but no result uses it yet).
+The checker to prove is the direct one (decided 2026-11-08): the traces are totally ordered (one
+process, one locked recorder: the setting of upstream's own validation, one machine and one file,
+without its reliance on timestamps), so porcupine's search reduces to `CheckTrace`'s loop, which
+is shorter to verify than `ToModel` and porcupine's spec, and reports more (the invariant, the
+failing line, `Explain`). Porcupine stays a cross-check, and the route for traces without a global
+order (separate processes), which no proof here states.
+
+- Translate raft with `with_tla` (`etc/goose.py` has no build tags yet), and strengthen the eleven
+  trace hooks' specs (`Spec/go_etcd_io/raft/v3/trace*.lean`, now no-ops) to report the event;
+  `traceReceiveMessage`'s `time.Sleep`.
+- The concurrent harness, proved to produce a log in a valid order (each replica's events in
+  program order, each message's send before its receipt).
+- A Lean transcription of the two modules; `StepLine` proved to refine it; `CheckTrace`'s loop
+  proved sound and complete; the simulation from `StepR`.
 - Pin the TLA+ tools' versions.
