@@ -89,7 +89,11 @@ backend bridge (3) > lease (4) > compactor examples (6) > the rest (7).
 
 ## The plan
 
-**Status (2026-11-06).** M0 and M1 done (merge `5bb0d2ba97`; per-track reports `notes/mvcc-merge/`); mvcc builds without `sorry`; txn, lease, auth repaired (R1, `notes/mvcc-merge/r1.md`); next: the reader tokens in mvcc's API, then the apply chain, the server, v3rpc, client/v3, the examples.
+**Status (2026-11-08).** M0-M3 done: `lean` merged twice (`5bb0d2ba97`, `9b7c782942`), every client
+reproved over the API; the full `lake build` is green (13,596 jobs), the trust base matches the
+baseline (807 axioms, 4 `sorry`s: nothing added), 13 collections reach baseline axioms newly
+(updated). M4 (the gates) and the user's review below, then the merge into `lean`. Per-track
+hand-offs: `notes/mvcc-merge/{bk,la,tx,ap,sn,sv,r1,r1b,r2,r3,r4,r6,r7,r8,r9,r11,r12}.md`.
 
 **M0. Set aside what is not this work** (done first): the tracing cluster and `mvccrand`'s
 `runChecks` drafts left uncommitted in the worktree by stopped agents, committed to
@@ -118,3 +122,62 @@ then `etcd/*`, `k8s/*`); the tester (`examples/mvccrand`). Parallel tracks, one 
 only the intended axiom changes, then `--update`, and every collection's; interfaces; `api-check`;
 `bounds-check`; `goose.py --check`); closed theorems' text unchanged against `lean` except the
 approved changes (list them); then the merge into `lean` by its workflow.
+
+## For the user's review before landing (2026-11-08)
+
+Each item's old/new text is in the hand-off named; none adds an axiom or a `sorry`.
+
+**mvcc's API (beyond the frozen API of 2026-11-06)**
+1. Reader tokens `mvccReaders γ n` (the user's decision, 2026-11-06), carrying the store's lock
+   slots, so no mvcc contract takes `threadTok` (option 2, 2026-11-07; the gRPC thread token was
+   refuted and reverted); `KV.Close` posts `mvccClosed γ`; laws `mvccReaders_split.law`,
+   `mvccClosed_rest.law` (`notes/mvcc-api-invariants.md`, last hand-offs).
+2. Additive laws: `mvccImage_stop.law` (the stopped backend's data is the image), with `bStopView`
+   carrying the view's agreement with the deleted entries (backend `Close`'s post stronger);
+   `mvccStorageFor_rest.law` (an opened storage no store took gives its rest back).
+3. From `lean`: errorf-wrap's `ctxErrorf` in `rangeOutcome` (so `KV.Range`/`Txn.Range` rest on
+   `fmt.ErrorfWrap`); `mvccImage_snapshot.law` takes `threadTok`/`ThreadBoundLe 2^29` (begin-tok's
+   `backend.Snapshot`).
+
+**Restated trust-boundary axioms (same names)**
+4. `schema.membershipBackend.MustSaveMemberToBackend`/`MustDeleteMemberFromBackend` over the API's
+   vocabulary (`r8.md` §4); the `axiom` review: the restatement survives
+   (`notes/axiom-review/members-save-delete-api.md`); both remain refuted by the known
+   `ETCD_VERIFY` finding, whose planned repair must reach them too.
+
+**Client specs (where a client exposed a changed mvcc internal)**
+5. The lessor: `lessorBackend lp P f T Ln R Rb` (lean's `Ln`); `Revoke` over the API's deleter, with
+   `lessorRevocable` (`la.md`, `r12.md`); `rdAt` deleted.
+6. The apply chain: `apply.applyTok E` (the reader token); `rqOk`'s revocation arm bounds the state's
+   size, its transaction arm carries `putOk` (`r2.md`, `r8.md` round 3).
+7. The server: `newHeader`, `Compact`, `LeaseLeases` (one `threadTok`, for the lessor's pool),
+   `Put`/`DeleteRange`/`Txn` with the write's receipt; `NewServer.specG`'s premise `E₀.Nx = kvNx ρ.rd
+   on`; `run`/`start`/`Start` with `receiptBound GF ≤ 2^48`; the raft witness `kvNx` carries the key
+   bound, `histLb` a revision per change; `rangeErrAt`/`rangeErrReply` over the API; auth-on keeps
+   `lean`'s compaction-off restriction (`r6.md`, `r8.md`).
+8. v3rpc/client/v3: the KV answers' `revR` is the reader token; the watch slots `watchRunSlot R W`;
+   the lease handlers at `etcdModelOfServer E γr on` with `hNx` (`r7.md`).
+
+**Results files (statements changed; closed theorems unchanged against `lean`)**
+9. txn's `Results`: six results stated over mvcc's internals dropped (`put_soleWriter`,
+   `deleteRange_soleWriter`, `range_soleWriter`, `count_result`, `txn_readonly_no_revision`,
+   `txn_check_error_no_write`; the last two covered by `Txn.specSole`), `range_rangeSel`,
+   `txn_runTxn` restated (`r1.md`).
+10. apply's `chain_*`, v3rpc's, client/v3's, the server's (`server_kv_backend`, `_watchable`,
+    `_hooks` restated over `New`/`NewStore` at etcd's backend: they lose the non-compacting instance
+    and mvcc's internal structure), the cache's (`cache_end_to_end_new`, `etcd_cache_served`: each new
+    premise the API's replacement of an internal one) (`r2.md`, `r7.md`, `r8.md`).
+11. Trust-base collections: 13 reach baseline axioms newly (the API laws are proved over the real
+    store), updated; the global baseline unchanged.
+
+**Follow-ups, not part of this merge**
+12. `lessor.Revoke`'s spec still shows mvcc's log model and `KBReal`: a cleaner statement over
+    `isLessor` and one update (sketched 2026-11-07), its own stage.
+13. `ApiState` publicly imports mvcc internals: the B-tree's `Key`/`entry` leak into clients
+    (worked around by qualifying names); `etc/api/mvcc.txt`'s debt.
+14. `sort.Slice` has no spec (the tester's `genLease` takes it as a hypothesis); the tester's closed
+    theorem not yet stated.
+15. Raised `synthInstance.maxHeartbeats` in some examples' `Main`s after importing `WatchSrv`
+    (cause not found).
+16. `grpc.serve`'s "at most `n` runs at a time" is not true of grpc-go (older; `notes/audit.md`
+    marks it suspect; `notes/axiom-review/r11-grpc-threadtok.md`).

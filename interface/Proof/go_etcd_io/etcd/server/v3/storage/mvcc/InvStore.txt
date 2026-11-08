@@ -309,6 +309,8 @@ def mvcc.crevFrozen (γ : mvcc.StoreNames) : IProp GF :=
 theorem mvcc.bucketViewL_halves (γ : mvcc.StoreNames) (q : Qp) (L : mvcc.Log) : mvcc.bucketViewL γ q
     L ⊣⊢ mvcc.bucketViewL γ q.half L ∗ mvcc.bucketViewL γ q.half L
 
+theorem mvcc.rangeKeysErr_persistent (err : GoInterface) : Persistent (mvcc.rangeKeysErr err)
+
 theorem mvcc.storeW_get (s : Loc) (γ : mvcc.StoreNames) : mvcc.storeRegd s γ ∗ mvcc.storeW s γ ⊢
     mvcc.writerRes s γ
 
@@ -385,6 +387,8 @@ def mvcc.pairVals (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice) (l 
           ⌜kss.length = l.length ∧ vss.length = l.length⌝ ∗
             [∗list] i ↦ p ∈ l,
               iprop(∃ ksl vsl, ⌜kss[i]? = some ksl ∧ vss[i]? = some vsl⌝ ∗ □ Rd ksl p.fst ∗ □ Rd vsl p.snd))
+
+theorem mvcc.rangeKeysErr_ctxErrorf (err : GoInterface) : mvcc.rangeKeysErr err ⊢ mvcc.ctxErrorf err
 
 theorem mvcc.noCompactor_persistent (γs : mvcc.StoreNames) : Persistent (mvcc.noCompactor γs)
 
@@ -965,7 +969,7 @@ def mvcc.rangeOutcome (r : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64)
               ⌜err = GoInterface.ok ef⌝) ∗
           typedPointsto r { KVs' := slice.nil, Rev' := rev, Count' := W64 (-1) } (DFrac.own 1) ∨
       ⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗
-          ⌜ro.CountOnly' = false ∧ ro.FastKeysOnly' = false⌝ ∗ ⌜r = null⌝ ∗ mvcc.ctxErrorf err ∨
+          ⌜ro.CountOnly' = false ∧ ro.FastKeysOnly' = false⌝ ∗ ⌜r = null⌝ ∗ mvcc.rangeKeysErr err ∨
         ⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗
           ⌜err = GoInterface.nil⌝ ∗
             if ro.CountOnly' = true then
@@ -2399,7 +2403,25 @@ theorem mvcc.physOk_persistent (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreO
 def mvcc.fkPutV (w : backend.FkVals) (k v : GoString) : backend.FkVals :=
   if k = mvcc.finKeyBytes then (some v, w.snd) else (w.fst, some v)
 
+theorem mvcc.rangeKeysErr_ne_nil (err : GoInterface) : mvcc.rangeKeysErr err ⊢ ⌜err ≠
+    GoInterface.nil⌝
+
 theorem mvcc.noCompactor_of_frozen (γs : mvcc.StoreNames) : mvcc.crevFrozen γs ⊢ mvcc.noCompactor γs
+
+def mvcc.rangeKeysErr (err : GoInterface) : IProp GF :=
+  iprop(mvcc.ctxErrorf err ∗
+      ⌜go!"rangeKeys: context cancelled: " <+:
+            go_etcd_io.etcd.cache.v3.errDesc err⌝ ∗
+        ∃ ii s,
+          ⌜err = GoInterface.ok ii⌝ ∗
+            □
+              ∀ Φ,
+                ▷
+                    Φ
+                      (intoVal
+                        (go!"rangeKeys: context cancelled: " ++
+                          s)) -∗
+                  WP ((intoVal (methods ii.ty go!"Error" ii.v)) (intoVal ())) {{ Φ }})
 
 theorem mvcc.cmpTrack_timeless (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) (rc :
     mvcc.CmpRecs) : Timeless (mvcc.cmpTrack γ L m rc)

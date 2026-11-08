@@ -78,8 +78,8 @@ theorem mvcc.api.etcdStorage_req (bk : mvcc.KBReal) (Pk X Y : IProp GF) : mvcc.a
 
 def mvcc.api.mvccImage_snapshot.law : Prop :=
   backend.backend.Snapshot.spec →
-    ∀ (kv : GoInterface) (γ : mvcc.api.MvccName) (bk : mvcc.KBReal) (Pk : IProp GF) (qo : Qp) (R : IProp GF)
-      (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop)
+    ∀ [ThreadBoundLe GF (2 ^ 29)] (kv : GoInterface) (γ : mvcc.api.MvccName) (bk : mvcc.KBReal) (Pk : IProp GF) (qo : Qp)
+      (R : IProp GF) (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop)
       (Φ : mvcc.api.MvccState → IProp GF),
       ⊢
         ∀ Φ_1,
@@ -88,10 +88,11 @@ def mvcc.api.mvccImage_snapshot.law : Prop :=
                 mvcc.api.mvccBackend γ 1 (mvcc.api.etcdStorage bk) Pk ∗
                   backend.bOpen bk.γB qo ∗
                     backend.wbTok bk.γB ∗
-                      R ∗
-                        (□ ∀ d r, R -∗ Pk -∗ backend.hkOwn bk.γB d -∗ backend.rbOwn bk.γB r -∗ ⌜Q d r⌝) ∗
-                          AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜σ.pending = none⌝ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
-                              mvcc.api.mvccState γ σ, COMM Φ σ }> -∗
+                      threadTok ∗
+                        R ∗
+                          (□ ∀ d r, R -∗ Pk -∗ backend.hkOwn bk.γB d -∗ backend.rbOwn bk.γB r -∗ ⌜Q d r⌝) ∗
+                            AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜σ.pending = none⌝ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
+                                mvcc.api.mvccState γ σ, COMM Φ σ }> -∗
             (▷
                 ∀ sp D,
                   (backend.snapOpen sp D ∗

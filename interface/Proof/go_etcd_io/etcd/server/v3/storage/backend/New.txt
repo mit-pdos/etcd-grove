@@ -12,10 +12,7 @@ theorem backend.New.wp_proof (hNB : backend.newBackend.spec) : backend.New.spec
             backend.fileHolds cfg.Path' D ∗
               ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
                 backend.hooksOk P W Pk cfg.Hooks' ∗
-                  (∀ γ,
-                      backend.hkOwn γ (backend.hkData P D) ∗ backend.pvckInit γ P D ∗ backend.bFresh γ ={⊤}=∗
-                        W γ ∗ Pk γ ∗ K γ) ∗
-                    threadTok -∗
+                  (∀ γ, backend.hkOwn γ (backend.hkData P D) ∗ backend.bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗ threadTok -∗
           (▷
               ∀ r,
                 (∃ b γ,
