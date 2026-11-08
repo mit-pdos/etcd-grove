@@ -33442,3 +33442,68 @@ says it purges snapshots); its WAL half is W1's.
 shutdown, `raftNode.stop`/`onStop`: a new invariant and `goWaited`'s split, about 300-400 lines) is
 R1-3b; L3 (`adjustTicks`/`purgeFile` take `srvLoggerOk s`) needs `srvLoggerOk`, whose producer is the
 server invariants' `zapLoggerOk` (LG-2), so it moves to LG-2.
+
+## B5: the default feature gate's specs, registered by `features`' init, with `Set(false)` and a persistent off witness; `CheckClient` of a constructed client (2026-11-08 · sweep repairs 1, B5, joint with k8s 7e's gate-state fact (Q7e-5); design approved by etcd-grove-81, `/shared/tmp/sweep-repairs-1/b5-r1.md` · branch `sweep-repairs-1`)
+
+**The defects** (axiom sweep batch 1, `notes/axiom-review/k8s-featureinit.md`): `util/feature`'s
+`DefaultFeatureGate_init` gave a gate whose `Enabled` answered any `bool` for any key (Go panics for
+an unregistered one); `DefaultMutableFeatureGate` was unlinked from it; `CheckClient` returned for
+any arguments (Go dereferences a nil client). 7e needs `Enabled(EtcdRangeStream)` to return the
+value `Set` gave.
+
+**The repair.**
+- `Proof/k8s_io/apiserver/pkg/util/feature/Gate.lean` (trust boundary): `k8sQueriedFeatures` (the
+  five keys etcd3 asks), `featureOff g s` (opaque, persistent: `Set(s=false)` succeeded) and
+  `featureGateOk g` (persistent): `Enabled(s)` returns some `b`, `false` under `featureOff g s`;
+  `Set(s ++ "=false")` returns `nil` with `featureOff g s`, or an error. Under the environment
+  assumption that nothing else changes the gate's set values, checked over the examples' compiled
+  closure (`b5-r1.md`, "The no-other-mutator check": no `SetFromMap`, `SetEmulationVersion`,
+  `OverrideDefault`, `DeepCopyAndReset`-and-replace, `featuregatetesting` or reassignment reachable).
+- `util/feature`'s initializers: `DefaultMutableFeatureGate_init` (new: a gate) and
+  `DefaultFeatureGate_init` (restated: the same gate); its fact `featureInit`: both variables hold
+  `GoInterface.ok g`.
+- `features`' `init` (`init_0_ok`, new; `etc/gen-init.py`'s new `custom_initfn` option, and `custom`
+  initializers gain `binder`/`pre`/`apply`): from `DefaultMutableFeatureGate ↦□ ok g`, gives
+  `featureGateOk g`; the package now imports `util/feature` (`features.toml`) and its fact is
+  `featuresInit`. The four other queried constants are translated (literals).
+- `storage/feature`'s `checkerInit` takes `checkClientOk ctx cl`: `cl` a `*kubernetes.Client` over a
+  `*clientv3.Client` holding, read-only, exactly the fields `CheckClient` relies on: the non-nil
+  `ctx`, the embedded `Maintenance` (a non-nil `*maintenance`) and the endpoints mutex `epMu`
+  (non-nil). (The first version guarded by `ctx` alone and argued that only `New` sets `Maintenance`;
+  etcd-grove-81's attack, `/shared/tmp/81-b5-attack`, refuted the argument: `Maintenance` is an
+  exported field any owner can nil, and a struct copy duplicates `ctx`; `CheckClient` of such a
+  client crashes in Go.) `isNewClient` gives them (`cx ≠ nil`, `clientCheckFields`;
+  `isNewClient_ctxOk`), from `newClient` and `NewMaintenance`'s strengthened post (a fresh
+  `*maintenance`, `maintenance.go:114`).
+
+**Trust base** (`etc/tcb-report.py`, 2026-11-08): new `util.feature.DefaultMutableFeatureGate_init`
+and `features.init_0_ok`; gone `util.feature.opaqueInitsOk` and `features.initFuncsOk` (their only
+items now have specs of their own); restated `DefaultFeatureGate_init`,
+`DefaultFeatureSupportChecker_init`, `NewMaintenance.wp_proof` (post strengthened). Count unchanged (809). `k8sfeature.featureOff_persistent` and
+the opaque `featureOff` are declared but reached by no root until 7e's `noStreaming` calls `Set` (then
++1). No closed theorem's text changes.
+
+**Go evidence** (`examples/sweeprepairs/b1/k8s`): `TestB5Registered`, `TestB5Counterexample`,
+`TestB5CheckClientReal`, `TestB5SetOff` (with 81's attacks (i)-(iii); a failing `Set` poisons later
+`Set`s, which the error disjunct covers): `b5-r1.md`, "Go evidence and the attacks".
+
+## B3: `http.Handle` of a literal path pattern and an accepted handler (2026-11-08 · sweep repairs 1, B3; the Scope (revision 3) approved by etcd-grove-81/82 · branch `sweep-repairs-1`)
+
+**The defect** (axiom sweep batch 1, `notes/axiom-review/http-handle.md`): `Handle_spec` took only a
+pattern not yet registered, while Go's `register` panics on an empty, unparsable or conflicting
+pattern (`/{x}` then `/{y}`; `/a` then `/%61`) and on a nil handler (including a nil `HandlerFunc`).
+
+**The repair** (`Proof/net/http/Boundary.lean`): `Handle_spec` takes `litPathPat pat` (non-empty,
+starting with `/`, no space, tab, `{` or `%`: literal segments, so distinct ones never conflict,
+under the 1.22 mux and `httpmuxgo121=1`) and `handlerRegOk h` (not nil, not a `HandlerFunc`);
+`handlerRegOk_ptr` (a pointer handler). `probing.NewHandler.spec`'s post gains `handlerRegOk`
+(`&httpHealth{}`). `rafthttp.Transport.Handler` (`TransportHandler.lean`), the only caller,
+discharges both: its four literal patterns by `decide`, its handlers from their constructors.
+
+**Exported statements:** none change. Trust base: `Handle_ok` and `probing.NewHandler.wp_proof`
+restated; count unchanged.
+
+**Go evidence** (`examples/sweeprepairs/b1`, `logs/b3-go.log`, 3 runs): `TestB3Counterexample`
+(each refuted case violates the premises and panics), `TestB3Rafthttp` (the four patterns and
+handlers meet them), `TestB3RandomLiteral` and `TestB3RandomLiteralMux121` (2000 muxes, 55405
+registrations of distinct literal patterns, 0 panics, both muxes).

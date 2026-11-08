@@ -147,6 +147,18 @@ instance clientEndpointsAt_persistent (cl : Loc) (eps : List GoString) :
     Persistent (clientEndpointsAt (GF := GF) cl eps) := by
   unfold clientEndpointsAt; infer_instance
 
+/-- (Sweep repairs 1, B5) **The fields `CheckClient` uses besides the context**, read-only: the
+embedded `Maintenance` a non-nil `*maintenance` (`NewMaintenance`'s; the per-endpoint goroutines
+call its `Status`), and `epMu` a non-nil mutex pointer (`Endpoints()` locks it). -/
+def clientCheckFields (cl : Loc) : IProp GF :=
+  iprop((∃ mp : Loc, clientF cl go!"Maintenance" ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty) #mp :
+        GoInterface) ∗ ⌜mp ≠ null⌝) ∗
+    (∃ mu : Loc, clientF cl go!"epMu" ↦□ mu ∗ ⌜mu ≠ null⌝))
+
+instance clientCheckFields_persistent (cl : Loc) : Persistent (clientCheckFields (GF := GF) cl) := by
+  unfold clientCheckFields; infer_instance
+
 /-- **What `New` returns** (persistent; see the file header): the client `cl`, connected to the
 server at `ep`; its `KV` and `Watcher` over the connection (the watcher's environment `V` at the
 connection, its interceptor and some stub and logger), the watcher without the server's facts
@@ -174,8 +186,11 @@ def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assump
       authObjAt ap eps) ∗
     -- (Q1 (c), 2026-11-05) its endpoints, read-only (`Endpoints()` returns them)
     clientEndpointsAt cl eps ∗
-    -- (2026-11-05, k8s-etcd3 plan's client item 6) its `ctx`, read-only (`Ctx()` returns it)
-    (∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx))
+    -- (2026-11-05, k8s-etcd3 plan's client item 6) its `ctx`, read-only (`Ctx()` returns it);
+    -- (sweep repairs 1, B5) not nil (`context.WithCancel(ctx)`'s), and its `Maintenance` (a
+    -- `*maintenance`) and endpoints mutex `epMu`, read-only: what `CheckClient`'s guard reads
+    (∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx ∗ ⌜cx ≠ GoInterface.nil⌝) ∗
+    clientCheckFields cl)
 
 instance isNewClient_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (eps : List GoString) (V : WEnv GF) : Persistent (isNewClient cl eps V) := by
@@ -195,8 +210,19 @@ theorem isNewClient_ctx [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rp
     (cl : Loc) (eps : List GoString) (V : WEnv GF) :
     isNewClient cl eps V ⊢ ∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx := by
   unfold isNewClient
-  iintro ⟨-, -, -, -, -, -, -, #H⟩
+  iintro ⟨-, -, -, -, -, -, -, ⟨%cx, #H, -⟩, -⟩
+  iexists cx
   iexact H
+
+/-- (Sweep repairs 1, B5) **`New`'s client's context is not nil.** -/
+theorem isNewClient_ctxOk [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (eps : List GoString) (V : WEnv GF) :
+    isNewClient cl eps V ⊢
+      (∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx ∗ ⌜cx ≠ GoInterface.nil⌝) ∗
+        clientCheckFields cl := by
+  unfold isNewClient
+  iintro ⟨-, -, -, -, -, -, -, #H, #F⟩
+  iframe H F
 
 /-- **The client's watcher, once the watch server's facts are supplied** (D19f): `New`'s client
 with `watchAddrFacts V` at its endpoint has a `Watcher` field that is a `*watcher` over the

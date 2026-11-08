@@ -261,7 +261,7 @@ axiom Perennial.k8s_io.apimachinery.pkg.watch.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.audit.initFuncsOk
 axiom Perennial.k8s_io.apiserver.pkg.audit.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.endpoints.request.opaqueInitsOk
-axiom Perennial.k8s_io.apiserver.pkg.features.initFuncsOk
+axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.features.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2
 axiom Perennial.k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict_init
@@ -271,7 +271,7 @@ axiom Perennial.k8s_io.apiserver.pkg.storage.feature.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.value.initFuncsOk
 axiom Perennial.k8s_io.apiserver.pkg.storage.value.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate_init
-axiom Perennial.k8s_io.apiserver.pkg.util.feature.opaqueInitsOk
+axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
 axiom Perennial.k8s_io.apiserver.pkg.util.flowcontrol.opaqueInitsOk
 axiom Perennial.k8s_io.component_base.featuregate.opaqueInitsOk
 axiom Perennial.k8s_io.klog.v2.initFuncsOk
