@@ -240,11 +240,41 @@ proof's.
   - Then the map is replaced by a fresh empty one.
 - **`cancellableContext.Cancel`/`Err`** (`interceptor.go:288-304`): the lock invariant above;
   `Err` under `RLock`.
-- **Risk R1:** the map is keyed by interface values whose dynamic type is a struct
-  (`serverStreamWithCtx` holding an interface and a pointer). Perennial's `map` model of interface
-  keys must support the comparison and hashing of such keys. Check this first, on a scratch file,
-  before the stage's other work. If it fails, that is a Perennial limitation, recorded and worked
-  around locally (CLAUDE.md, "Changes to Perennial").
+- **R1, map keys that are interfaces holding structs: checked 2026-11-08** (scratch Lean, kept as
+  `notes/k8s-7f4-mapkey-check.lean.txt`; built against lean `3a08c2abee`'s full build):
+  - **The semantics supports it.**
+    - `go_eq_interface` (Perennial `Golang/Defn/Interface.lean:51`) compares the dynamic types,
+      then `CheckComparable` and `==` at the dynamic type.
+    - For `serverStreamWithCtx.ty` (a named struct) that is `struct_is_comparable` and
+      `go_eq_struct` (`Defn/PostLang.lean:337-349`), field by field: the embedded `ServerStream`
+      (an interface again) and the `ctx` pointer.
+    - `wp_pures` reduces `==` on two keys `sKey t l c = mkOk serverStreamWithCtx.ty
+      #⟨mkOk (ptr t) #l, c⟩` all the way down to the pointer comparisons. The scratch lemma
+      `sKey_eq` proves `WP (k == k') {{ Φ }}` from `Φ #(decide (k = k'))`, with the grpc and v3rpc
+      `Assumptions` (for `ServerStream.ty`'s underlying interface), up to one pure gap: the
+      injectivity of `#` on `serverStreamWithCtx` values. That is a 20-line lemma, as 7e's
+      `Obj_intoVal_inj` (`examples/k8s/etcd3/MDefs.lean`).
+  - **Perennial's map specs need a local instance.**
+    - `wp_mapInsert`/`wp_mapDelete`/`wp_map_lookup2` take `SafeMapKey key_type k`.
+    - The default `MapKeys GoInterface` (`Golang/Theory/Map.lean:49`) admits only nil and
+      pointer-holding interfaces, but its comment invites "a proof that needs other interface keys
+      can give its own instance".
+    - So 7f-4 states a local `MapKeys GoInterface` instance for the monitor's map: nil, pointers,
+      and `sKey t l c`. It also states the `SafeMapKey` instance from `sKey_eq` (with the
+      injectivity lemma), and must not mix this map's `ownMap` with the default instance's
+      elsewhere.
+    - Proposing the struct case to Perennial later, as a general `SafeMapKey` for a struct whose
+      fields are safe keys, is optional and independent.
+  - **A new requirement on the grpc model (F3).** The key's `ServerStream` field holds the raw
+    stream `st` grpc gave the interceptor, and `srvRawStreamIs` leaves its dynamic type abstract
+    (`∃ si, st = GoInterface.ok si`). `sKey` needs a pointer there, and Go too needs a comparable
+    one, else `smap.streams[ss] = …` panics with "hash of unhashable type".
+    - grpc-go passes a `*serverStream`; grpc-prometheus's wrapper, when present, is a struct of an
+      interface and a pointer, comparable too.
+    - So `srvRawStreamIs` gains `si.ty` is a pointer type, or, general enough for the prometheus
+      wrapper, a key `SafeMapKey` accepts.
+    - That is a third change to the trusted grpc model text, with F1 and §3, through the `axiom`
+      skill.
 - **R2:** `monitorLeader`'s `<-ss.Context().Done()` waits, under `smap.mu`, on the wrapper's
   `Done`, which its own `Cancel` closes. It terminates; partial correctness needs nothing more.
 
@@ -290,7 +320,7 @@ The 7f-4 Draft's Lean stage regenerates the list with `etc/importers.py --uses c
 --files` and checks it against `etc/tcb-report.py`'s roots.
 
 **Trust base:**
-- added: F1 (one fact) and F2 (one triple);
+- added: F1 (one fact), F2 (one triple), F3 (the raw stream's dynamic type is comparable, §6 R1);
 - removed: the deployment premise;
 - changed (weaker premises): `Tracer.Start`, `waitLeader`, `RenewHTTP`, and the grpc model text
   of §3;
@@ -373,3 +403,38 @@ written in Lean.
 - **Q7f4-5. The three trust-boundary premises** (`Tracer.Start`, `waitLeader`, `RenewHTTP`)
   weakened to `srvCtxWeak` (§4). Recommended: yes, each through the `axiom` skill. They only get
   weaker premises.
+
+## 11. Decisions on this Draft, and the handoff (2026-11-08)
+
+**81 accepted the Draft as the plan:**
+- Q7f4-1: F1-narrow now, F1-general after ctx-value.
+- Q7f4-2: yes.
+- Q7f4-3: decided at the start of the Lean stage, preferring the narrow premise (T2).
+- Q7f4-4: local lemmas now.
+- Q7f4-5: yes, each premise through the `axiom` skill before use.
+- R1 checked (§6): feasible, with a local `SafeMapKey` instance and F3.
+
+**Handoff to the agent that takes the 7f-4 Lean** (after the per-type landing and stage B of the
+grpc serve pool):
+- **Start state:**
+  - lean has 7f-1 (`3a08c2abee`).
+  - 7f-2 is on branch `k8s-7f2` (worktree `/shared/etcd-grove-k8s7f2`, off `k8s-7e`; lands after
+    `k8s-7e`, its STATUS entry at landing).
+  - This Draft is on `k8s-7f4` (worktree `/shared/etcd-grove-k8s7f`, notes only; land it as notes,
+    or carry it).
+- **Order:**
+  1. Q7f4-3 (enumerate `isReqAuth`'s uses of `txnCtx`, then T2 or T1).
+  2. The trusted texts as one package through the `axiom` skill: §3's contract, F1-narrow, F2, F3,
+     and the three weakened premises. **Hard stop for review.**
+  3. `srvCtxWeak` and its laws.
+  4. The interceptor branch and the monitor (the `sKey` instance first, from
+     `notes/k8s-7f4-mapkey-check.lean.txt`).
+  5. Watch's chain, LeaseKeepAlive's chain with `LeaseRenew` and the local P-RL2 lemma.
+  6. The premise's deletion: `etc/importers.py --uses commonPremises --files`, the interface
+     files, `etc/tcb-report.py --check --update`.
+- **Builds:** seed `.lake/build` from a fresh full build (CLAUDE.md, the memory notes), and run
+  every lake command with `--packages=/shared/tmp/manifest-84d.json`. The 7f-1 landing's full
+  build was killed once at the 64G cap and passed on the retry.
+- **Not this half:** 7f-3, `WithPrevKV` through the watch stack: the client's `watcher.Watch.spec`,
+  the server's `prevKV` map and the `sendLoop` branch, the `watchGRPCStream.run` re-proof
+  (`notes/k8s-7f-scope.md`, §5.1).
