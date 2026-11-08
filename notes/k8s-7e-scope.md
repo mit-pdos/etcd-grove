@@ -1,4 +1,4 @@
-# k8s etcd3 stage 7e, lists: Scope, revision 2 (2026-11-08, branch `k8s-7e`; to etcd-grove-81 for recheck)
+# k8s etcd3 stage 7e, lists: Scope, revision 2 (2026-11-08, branch `k8s-7e`; approved by etcd-grove-81 2026-11-08 after an independent recheck, with the additions in §4.1 and §7)
 
 **Changes from revision 1.** These answer the independent review (`/shared/tmp/k8s-7e-scope-review.md`,
 wf_581c2266-9a1). It confirmed design (b) is sound. The changes carry 81's decisions of 2026-11-08,
@@ -167,11 +167,29 @@ This touches:
 - **`featureInit` (`Base.lean:58-64`, today "`Enabled` answers any bool") becomes a gate-state
   fact.** The gate holds a map of feature values; `Set` updates it; `Enabled(f)` returns the
   value set (or the default).
-- It is written **together with sweep repairs 1's `DefaultFeatureGate`/featureInit repair,
-  coordinated through 81**: one restatement, not two. It is new trusted text, attacked with the
+- It is written **by sweep repairs 1 (its B5, the k8s feature initializers), to serve both B5 and
+  this stage** (81, 2026-11-08): one restatement, not two. 7e does not write its own; 7e-2's Draft
+  uses exactly that interface (`/shared/tmp/sweep-repairs-1/b5-r1.md`, approved):
+  `featureGateOk g` (persistent); `Set (s ++ "=false")` returns `nil` with a persistent
+  `featureOff g s`, or an error; `Enabled s` returns `false` given `featureOff g s`;
+  `features.EtcdRangeStream` translated to its string literal (a k8s-apiserver re-translation).
+  The driver's `noStreaming` already calls `Set("EtcdRangeStream=false")` and returns `Unknown` on
+  an error. It is new trusted text, attacked with the
   `axiom` skill before it is used.
 - With the gate off, `shouldStream` is false and `streamChunks` is unreachable. The support
   checker's `Supports` is not called (`shouldStream` tests the gate first).
+
+**Additions from 81's approval (2026-11-08)**, carried into 7e-2's Draft and the joint
+restatement:
+1. `features.EtcdRangeStream` is an opaque axiom constant in Lean (`features.toml` translates only
+   `ListFromCacheSnapshot`). Translate it, or otherwise tie `Set`'s string
+   (`"EtcdRangeStream=false"`) to `Enabled`'s key.
+2. `DefaultMutableFeatureGate`'s initializer and `DefaultFeatureGate` are unlinked today
+   (`opaqueInitsOk`, post `True`). The restated fact must say both hold the same
+   `*featureGate`, and that registration happens in `features`' init (`initFuncsOk`).
+3. The shape: monotone and persistent. `Set` is specified only for `false`, returning a
+   persistent "off" witness that `Enabled` reads; no "or the default". `Set` can fail, so the
+   driver returns `Unknown` on an error (as built in 7e-0: `noStreaming`).
 
 ### 4.2 The path
 
@@ -290,6 +308,10 @@ binders.
   - 7e itself changes none. Each Draft regenerates and shows the diff.
 - **New statements**: `Client.List.spec`, `GetList.spec`, the contract's list half, the driver's
   new functions' specs. `featureInit` is restated.
+- **Changed statements** (addition 4): `ETooLarge` for Gets changes `store__Get.spec`. Its
+  too-large outcome becomes recognizable (`storage.IsTooLargeResourceVersion` on the store's
+  `NewTooLargeResourceVersionError`, told apart from the client's errors by 7c's T2(c)). The
+  driver's `errOut`, `call` and `Apply` proofs follow.
 
 **Vacuity.** Like every `_safe` theorem, these are vacuous until the `pbEnc_ok` per-type fix
 lands. They rest on false axioms until sweep repairs 1, among them the `DefaultFeatureGate`
@@ -373,5 +395,4 @@ contents in-step.
 
 ## 12. Questions left for 81
 
-None of the review's: Q7e-1..5 are decided above. One small choice remains:
-- whether `ETooLarge` for Gets goes in 7e-4 (cheap, recommended) or stays `EOther` for Gets.
+None: Q7e-1..5 are decided above, and `ETooLarge` for Gets too (81, 2026-11-08).

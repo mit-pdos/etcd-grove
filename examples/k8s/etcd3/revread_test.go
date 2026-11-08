@@ -27,6 +27,7 @@ import (
 //   - a compacted revision fails with an error == rpctypes.ErrCompacted (interpretListError's
 //     test) whose description is "etcdserver: mvcc: required revision has been compacted";
 //   - the descriptions are the server-side ErrGRPC* ones (the trust statements' claim).
+//
 // It also checks List's Count with Continue set (the documentation mismatch the Scope found).
 func TestReadAtRevision(t *testing.T) {
 	os.RemoveAll("k8setcd3r.etcd")
