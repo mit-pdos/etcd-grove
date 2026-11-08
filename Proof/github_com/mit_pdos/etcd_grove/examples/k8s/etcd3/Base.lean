@@ -50,7 +50,6 @@ abbrev drvInit : IProp GF :=
   iprop(errVarOk errNotObj go!"k8setcd3: not an *Obj" ∗
     errVarOk errBadData go!"k8setcd3: data does not decode" ∗
     errVarOk errBadRV go!"k8setcd3: resource version does not parse" ∗
-    errVarOk errNoList go!"k8setcd3: lists are not supported" ∗
     errVarOk errDeleteRejected go!"k8setcd3: deletion rejected" ∗
     errVarOk errUpdateRejected go!"k8setcd3: update rejected")
 
