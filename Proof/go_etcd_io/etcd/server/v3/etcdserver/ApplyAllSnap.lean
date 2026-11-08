@@ -137,6 +137,8 @@ theorem snapRecv_imageR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i 
     · exact h
     · have := h.length_le; omega
   imod kv_log_ccOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hcc
+  -- (sweep repairs 1, S4) the committed log's cluster requests
+  imod kv_log_verOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hver
   imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl0
   have Hpl : plainLogM γr.kv.cmp γr.kv.lm A' := Hpl0.1
   -- the cluster's in-memory members, from the rest resource (S2–S4 Probe: in either lease mode,
@@ -158,7 +160,8 @@ theorem snapRecv_imageR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i 
     intro m hm ht
     exact ccPolOk_static _ _ (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
-    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' _ hids $$ Hrc HA'' Hmem
+    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc'
+    (by rw [hpre0, List.nil_append]; exact Hver) _ hids $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
   have hsplit := kvModel_split γr.kv A' hlog0
   obtain ⟨⟨r, hkI, hr⟩, hci, htm, hrestL, hwf⟩ := himA
@@ -274,6 +277,8 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
     · exact h
     · have := h.length_le; omega
   imod kv_log_ccOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hcc
+  -- (sweep repairs 1, S4) the committed log's cluster requests
+  imod kv_log_verOkOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hver
   imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HA' with %Hpl
   -- the cluster's in-memory members, from the rest resource
   rw [hRO]
@@ -291,7 +296,8 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
     intro m hm ht
     exact ccPolOk_static _ _ (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
-    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' _ hids $$ Hrc HA'' Hmem
+    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc'
+    (by rw [hpre0, List.nil_append]; exact Hver) _ hids $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
   -- the image's clauses at the member's names
   obtain ⟨⟨r, hkI, hr⟩, hci, htm, hrest, hauth, hwf⟩ := himA

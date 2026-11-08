@@ -33507,3 +33507,27 @@ restated; count unchanged.
 (each refuted case violates the premises and panics), `TestB3Rafthttp` (the four patterns and
 handlers meet them), `TestB3RandomLiteral` and `TestB3RandomLiteralMux121` (2000 muxes, 55405
 registrations of distinct literal patterns, 0 panics, both muxes).
+
+## S3: a stream reader may use `p` as scratch; S4: the committed log's cluster versions as `clusterImageOk_restModel`'s premise (2026-11-08 · sweep repairs 1, S3 + S4; the Scope (revision 3) approved by etcd-grove-81/82 · branch `sweep-repairs-1`)
+
+**S3** (`notes/axiom-review/snap-stream.md`, Scratch). `streamReaderOk` (`Proof/net/http/Boundary.lean`)
+claimed a `Read` leaves `p` past `n` unchanged, false of Go's `io.Reader` contract (`io/io.go:59`: the
+whole of `p` is scratch) and of the snapshot body's exact-size reader (`ErrExpectEOF` after reading
+into `p`), which `io.MultiReader`'s axiom post passes on. Now the bytes past `n` are some `zs` of the
+same length. The definition is weaker: `io.MultiReader`'s axiom claims less, `bodyStream_streamReaderOk`
+derives it from `bodyStreamRead_spec` (which keeps its strong clause: net/http's server body copies
+exactly `n` bytes), and no consumer relied on the tail (`snap.md`, S3's table). No exported statement
+changes. Go: `TestS3Scratch` (the old clause false, the new true).
+
+**S4** (`notes/axiom-review/membership-alarm.md`, attack 8). `membership.clusterImageOk_restModel`'s
+argument that `Recover`'s `MustDetectDowngrade` passes rested on "only the monitor proposes
+`ClusterVersionSet`", not a premise, so the statement was stronger than its argument. Now it takes
+`clusterVerLogOk L'` (`InvRest.lean`: every committed `ClusterVersionSet` is `semverValid` and
+`semverAtMostServer`, and none is a `DowngradeInfoSet`), which the four callers get from the KV
+invariant's workload fact (`kv_log_verOk`, `kv_log_verOkOn`: `logShape`'s `rqOk`, transferred to the
+committed prefix by `srv_entry_transfer`; pure steps `clusterVer_of_rqShape`,
+`clusterVerEntryOk_of_entryShape(On)`). No exported statement changes. Go: `TestS4ForgedVersion`
+(the premise false exactly at the versions `MustDetectDowngrade` panics on).
+
+Trust base: `io.MultiReader`'s axiom (weaker by its definition) and `clusterImageOk_restModel`
+(a premise more) restated; count unchanged.
