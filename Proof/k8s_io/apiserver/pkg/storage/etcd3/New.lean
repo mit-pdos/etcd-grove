@@ -155,13 +155,15 @@ theorem New.wp_proof
       iStructNamed Hst'
       -- (sweep repairs 1, B5) `CheckClient(c.Ctx(), c, …)`: the constructed client and its context
       wp_apply Chk $$ []
-      · icases EtcdGrove.isNewClient_ctxOk _ _ _ $$ Hnc with ⟨%cx', #Hcx', %Hcxn⟩
+      · icases EtcdGrove.isNewClient_ctxOk _ _ _ $$ Hnc with ⟨⟨%cx', #Hcx', %Hcxn⟩, #HF⟩
+        iunfold EtcdGrove.clientCheckFields at HF
+        icases HF with ⟨⟨%mp, #Hmp, %Hmpn⟩, ⟨%mu, #Hmu, %Hmun⟩⟩
         icombine Hcx Hcx' gives %Hcxe
         iunfold k8s_io.apiserver.pkg.storage.etcd3.checkClientOk
-        iexists kc, cl, _, cx
+        iexists kc, cl, mp, mu, _, cx
         iframe #
         ipureintro
-        refine ⟨rfl, rfl, ?_⟩
+        refine ⟨rfl, rfl, ?_, Hmpn, Hmun⟩
         first | (rw [Hcxe]; exact Hcxn) | (rw [Hcxe.2]; exact Hcxn) | exact Hcxe ▸ Hcxn
       (try wp_auto)
       iapply HΦ

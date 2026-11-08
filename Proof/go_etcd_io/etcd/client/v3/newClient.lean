@@ -203,6 +203,8 @@ theorem newClient.wp_proof
   ipersist Token
   ipersist authTokenBundle
   ipersist callOpts
+  -- (sweep repairs 1, B5) the endpoints mutex is not nil (`clientCheckFields`)
+  icases typedPointsto_not_null_dup _ _ _ $$ «$v5» with ⟨«$v5», %Hv5nn⟩
   imod (sync.init_RWMutex (fun _ => iprop(True)) «$v5_ptr» (E := ⊤)) $$ [] «$v5» with Hslots
   · inext; itrivial
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hguard⟩
@@ -256,8 +258,10 @@ theorem newClient.wp_proof
       $$ [$Hpkg2 $conn $callOpts $Hcvs $Hcvok $HcLg'] as %wi ⟨%w, %wc, %wlg, %Hwi, #Hcw⟩
     · ipureintro; exact Hcnn
     wp_apply wp_NewAuth «$r0_ptr» conn $$ [$HkvS] as %va ⟨%ap, %Hva, #HapS⟩
-    wp_apply wp_NewMaintenance «$r0_ptr» $$ [$Hcore] as %vm -
-    subst Hvkv Hvl Hva
+    wp_apply wp_NewMaintenance «$r0_ptr» $$ [$Hcore] as %vm %Hvm
+    obtain ⟨mp, Hmpn, Hvm⟩ := Hvm
+    subst Hvkv Hvl Hva Hvm
+    ipersist Maintenance
     ipersist KV
     ipersist Watcher
     ipersist Lease
@@ -369,10 +373,16 @@ theorem newClient.wp_proof
       · iunfold clientEndpointsAt
         iexists cfg.Endpoints'
         iframe endpoints Heps
-      iexists _
-      iframe HcliCtx
-      -- (sweep repairs 1, B5) not nil: `WithCancel`'s context
-      ipureintro; first | (intro h; cases h) | simp
+      isplitl []
+      · iexists _
+        iframe HcliCtx
+        -- (sweep repairs 1, B5) not nil: `WithCancel`'s context
+        ipureintro; first | (intro h; cases h) | simp
+      -- (sweep repairs 1, B5) `Maintenance` and `epMu`, read-only, not nil
+      iunfold clientCheckFields
+      isplitl []
+      · iexists mp; iframe Maintenance; ipureintro; exact Hmpn
+      iexists _; iframe epMu; ipureintro; exact Hv5nn
     -- (C1) its KV calls carry the credentials' tokens meeting `P`
     unfold clientTokAt
     iexists api, conn

@@ -33467,14 +33467,19 @@ value `Set` gave.
   `featureGateOk g`; the package now imports `util/feature` (`features.toml`) and its fact is
   `featuresInit`. The four other queried constants are translated (literals).
 - `storage/feature`'s `checkerInit` takes `checkClientOk ctx cl`: `cl` a `*kubernetes.Client` over a
-  `*clientv3.Client` whose unexported `ctx` field holds the non-nil `ctx` (only `clientv3`'s
-  constructors set it; both set `epMu`; only `New` sets endpoints and `Maintenance`). `isNewClient`'s
-  `ctx` conjunct gains `cx ≠ nil` (`isNewClient_ctxOk`), its producer `newClient`.
+  `*clientv3.Client` holding, read-only, exactly the fields `CheckClient` relies on: the non-nil
+  `ctx`, the embedded `Maintenance` (a non-nil `*maintenance`) and the endpoints mutex `epMu`
+  (non-nil). (The first version guarded by `ctx` alone and argued that only `New` sets `Maintenance`;
+  etcd-grove-81's attack, `/shared/tmp/81-b5-attack`, refuted the argument: `Maintenance` is an
+  exported field any owner can nil, and a struct copy duplicates `ctx`; `CheckClient` of such a
+  client crashes in Go.) `isNewClient` gives them (`cx ≠ nil`, `clientCheckFields`;
+  `isNewClient_ctxOk`), from `newClient` and `NewMaintenance`'s strengthened post (a fresh
+  `*maintenance`, `maintenance.go:114`).
 
 **Trust base** (`etc/tcb-report.py`, 2026-11-08): new `util.feature.DefaultMutableFeatureGate_init`
 and `features.init_0_ok`; gone `util.feature.opaqueInitsOk` and `features.initFuncsOk` (their only
 items now have specs of their own); restated `DefaultFeatureGate_init`,
-`DefaultFeatureSupportChecker_init`. Count unchanged (809). `k8sfeature.featureOff_persistent` and
+`DefaultFeatureSupportChecker_init`, `NewMaintenance.wp_proof` (post strengthened). Count unchanged (809). `k8sfeature.featureOff_persistent` and
 the opaque `featureOff` are declared but reached by no root until 7e's `noStreaming` calls `Set` (then
 +1). No closed theorem's text changes.
 

@@ -74,20 +74,24 @@ abbrev featuresInit : IProp GF :=
     globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
     EtcdGrove.k8sfeature.featureGateOk g)
 
-/-- **What `CheckClient` needs of its arguments** (sweep repairs 1, B5): `cl` a `*kubernetes.Client`
-whose embedded `*clientv3.Client` `c'` holds the non-nil context `ctx` (`c.Ctx()`: the per-endpoint
-goroutines wait on it). Why this excludes the panicking calls: `ctx` is an unexported field, which
-only `clientv3`'s constructors set non-nil (`New`, through `newClient`, and `NewCtxClient`); both set
-`epMu`, which `Endpoints()` locks; only `New` sets endpoints, and with them `Maintenance`, which the
-goroutines' `Status` calls use (`SetEndpoints`, `Sync` and auto-sync, the other writers, have no spec
-here). A nil client, a typed-nil one, or a zero `clientv3.Client` (nil context) dereferences nil
-(`notes/axiom-review/k8s-featureinit.md`). Producer: `New`'s client (`isNewClient_ctxOk`). -/
+/-- **What `CheckClient` needs of its arguments** (sweep repairs 1, B5; revised after etcd-grove-81's
+attack, `/shared/tmp/81-b5-attack`): `cl` a `*kubernetes.Client` whose embedded `*clientv3.Client` `c'`
+holds, read-only, exactly the fields `CheckClient` relies on: the non-nil context `ctx` (`c.Ctx()`,
+which the per-endpoint goroutines wait on), the embedded `Maintenance`, a non-nil `*maintenance`
+(the goroutines call its `Status`), and the endpoints mutex `epMu`, non-nil (`Endpoints()` locks it).
+Read-only (`↦□`): no party can write them afterwards, so a struct copy or an owner that later sets
+`Maintenance` to nil cannot meet the guard (the attack's `maintnil` and `copy` cases, whose
+`CheckClient` crashes). A nil client, a typed-nil one, or a zero `clientv3.Client` does not meet it
+either (`notes/axiom-review/k8s-featureinit.md`). Producer: `New`'s client (`isNewClient_ctxOk`). -/
 def checkClientOk (ctx cl : val) : IProp GF :=
-  iprop(∃ (kc c' : Loc) (h cx : GoInterface),
+  iprop(∃ (kc c' mp mu : Loc) (h cx : GoInterface),
     ⌜cl = #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #kc) ∧
-      ctx = #cx ∧ cx ≠ GoInterface.nil⌝ ∗
+      ctx = #cx ∧ cx ≠ GoInterface.nil ∧ mp ≠ null ∧ mu ≠ null⌝ ∗
     kc ↦□ go_etcd_io.etcd.client.v3.kubernetes.Client.mk c' h ∗
-    structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" c' ↦□ cx)
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" c' ↦□ cx ∗
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"Maintenance" c' ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty) #mp : GoInterface) ∗
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"epMu" c' ↦□ mu)
 
 /-- `storage/feature`'s fact: `CheckClient` on `DefaultFeatureSupportChecker`'s checker returns,
 for a constructed client and its context (`checkClientOk`; see the file header). (Sweep repairs 1,
