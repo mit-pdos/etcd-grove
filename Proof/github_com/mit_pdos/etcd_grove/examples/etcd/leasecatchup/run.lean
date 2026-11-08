@@ -105,7 +105,7 @@ theorem run.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps3 with #Heps3
   wp_apply (wp_NewClients _ [clusterCfg.Bridge3'] lg
-      (EtcdGrove.client.srvWEnv R₃ clusterCfg.Bridge3' [] null null [] null default) (by omega) Hlg
+      (EtcdGrove.client.srvWEnv R₃ (etcdstart.srvWOf R₃.E ρ₃.rd false) ρ₃.rd clusterCfg.Bridge3' [] null null [] null default) (by omega) Hlg
       (plainEndpoints_singleton _ clusterCfg_ok.bp3)) $$ [] as %c3 %cerr Hc3
   · iframe #
   icases Hc3 with (⟨%Hc3err, #Hnc3, -⟩ | %Hc3fail)
@@ -126,7 +126,7 @@ theorem run.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps1 with #Heps1
   wp_apply (wp_NewClients _ [clusterCfg.Bridge1'] lg
-      (EtcdGrove.client.srvWEnv R₁ clusterCfg.Bridge1' [] null null [] null default) (by omega) Hlg
+      (EtcdGrove.client.srvWEnv R₁ (etcdstart.srvWOf R₁.E ρ₁.rd false) ρ₁.rd clusterCfg.Bridge1' [] null null [] null default) (by omega) Hlg
       (plainEndpoints_singleton _ clusterCfg_ok.bp1)) $$ [] as %c1 %cerr Hc1
   · iframe #
   icases Hc1 with (⟨%Hc1err, #Hnc1, -⟩ | %Hc1fail)
@@ -141,7 +141,7 @@ theorem run.wp_proof
   wp_auto
   -- 1. `g1, err := grant(c3)`, `Q`: `g1` granted at an index of member 3's lessor history
   wp_apply (wp_grant c3 [clusterCfg.Bridge3'] _
-      (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₃) (mvcc.api.mvccLeases E₃.γ))
+      (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₃ ρ₃.rd false) (mvcc.api.mvccLeases E₃.γ))
       (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt (mvcc.api.mvccLeases E₃.γ) i m.id))) as %g1 %gerr Hg1
   · iframe #
     isplitl; rotate_left; · ipureintro; exact hAs
@@ -196,7 +196,7 @@ theorem run.wp_proof
       have h : sint.Z j < sint.Z (W64 20) := by simpa using Hif
       exact h
     wp_apply (wp_grant c1 [clusterCfg.Bridge1'] _
-        (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₁) (mvcc.api.mvccLeases E₁.γ))
+        (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₁ ρ₁.rd false) (mvcc.api.mvccLeases E₁.γ))
         (fun _ => iprop(True))) as %f %ferr Hf
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs

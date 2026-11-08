@@ -86,9 +86,9 @@ theorem Main.wp_proof
     %Hal⟩
   obtain ⟨hst₂, hst₃, -, -⟩ := Hal
   isimp only [cluster3.memberAt_none] at Hm₁ Hm₂ Hm₃
-  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, %Hp₁⟩
-  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -⟩
-  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -⟩
+  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, -, %Hp₁⟩
+  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -, -⟩
+  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -, -⟩
   obtain ⟨-, -, -, hlog₁, -⟩ := Hp₁
   -- `go cluster3.Partitioner(srvs, brs, sched)`: every member's place in the network
   ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, etcdstart.srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
@@ -218,21 +218,21 @@ theorem Main.wp_proof
   · iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr
     · iunfold clientOk
-      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd []
+      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁' ρ₁.rd false) (etcdstart.srvWOf E₂' ρ₂.rd false) (etcdstart.srvWOf E₃' ρ₃.rd false) ρ₁.rd []
       rw [hms]
       iframe #
       ipureintro; simp [ms]
     iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr
     · iunfold clientOk
-      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd []
+      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁' ρ₁.rd false) (etcdstart.srvWOf E₂' ρ₂.rd false) (etcdstart.srvWOf E₃' ρ₃.rd false) ρ₁.rd []
       rw [hms]
       iframe #
       ipureintro; simp [ms]
     iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr
     · iunfold clientOk
-      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd []
+      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁' ρ₁.rd false) (etcdstart.srvWOf E₂' ρ₂.rd false) (etcdstart.srvWOf E₃' ρ₃.rd false) ρ₁.rd []
       rw [hms]
       iframe #
       ipureintro; simp [ms]
