@@ -25,8 +25,8 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `ctxField c ↦□ parent`), so a client cannot follow `value(c.Context, key)`.
 - **Needed by.** B2/B2b (sweep repairs 1): `startTimeOk`/`keepAliveOk` of `s.ctx =
   WithCancel(Background())` and of `WithValue`s over it, to delete the axioms
-  `context.ValueStartTime`/`ValueKeepAlive`. k8s 7f's P-RL1 (the k8s 7f branch's entry
-  "Contexts derived from a parent that is not an `isContext`", `notes/k8s-7f-scope.md` §3): the
+  `context.ValueStartTime`/`ValueKeepAlive`. k8s 7f's P-RL1 (the entry "Contexts derived from
+  a parent that is not an `isContext`" below, `notes/k8s-7f-scope.md` §3): the
   child of `WithCancel(parent)` answers `Value(k)`, `k ≠ &cancelCtxKey`, as the parent does, for a
   `*valueCtx` parent too.
 - **Workaround here.** None yet: the two axioms stay until it lands (B2 waits). A marked local axiom
@@ -41,7 +41,9 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   context types from their `Value` spec. `WithCancel`/`WithDeadline` posts gain the transfer law.
   No axiom, no trusted code; about 300-500 lines. P-RL2 (weak `Err` contracts) is another family,
   not covered.
-- **Status.** Design written, for etcd-grove-81's review; no Lean, no landing.
+- **Status.** Design approved in principle by etcd-grove-81 (2026-11-08); held until the goose
+  type-switch fix's plan is settled (both are Perennial changes), then Perennial's own workflow
+  (its `etc/land.sh`; the user pushes). B2/B2b wait for the pin bump.
 
 ### goose: a type-switch case listing several types tests the first twice, never the last (2026-11-08, found writing the `ctx-value` design)
 
@@ -59,7 +61,34 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** The one-line fix and a gold update, through Perennial's
   `.agents/skills/fix-semantics/SKILL.md` (the user signs off), with a test that distinguishes the
   last type.
-- **Status.** Reported to etcd-grove-81 (2026-11-08); not started.
+- **Status.** Confirmed by etcd-grove-81 (2026-11-08, `goose.go:2413-2418`), who takes the
+  `fix-semantics` plan to the user; not started.
+
+### Contexts derived from a parent that is not an `isContext` (2026-11-08, k8s 7f; to be decided in the 7f-4 Draft)
+
+- **Missing.** Two facts about contexts that etcd's require-leader stream handlers need, both
+  general, neither settled yet (`notes/k8s-7f-scope.md`, §3, revision 2):
+  - **(P-RL1)** a `Value` law for `WithCancel` over a general parent: for `k ≠ cancelCtxKeyAny`,
+    `(WP parent.Value(k) {Φ}) -∗ WP child.Value(k) {Φ}`. It needs a premise that the parent's
+    dynamic type is not one Go's `context.value` reads the fields of directly (`*valueCtx`,
+    `*timerCtx`, `withoutCancelCtx`), or a description of such a parent's fields. As first phrased
+    ("the child's `Value` is the parent's", any `isContext` parent) it was false: for
+    `&cancelCtxKey` the child returns itself, and grpc's stream context is a `*valueCtx` chain
+    (the 7f Scope review). `wp_WithCancel_any` already keeps the `ContextDesc`. The require-leader
+    handler may need only a fact about grpc's `metadata.incomingOf`, which is this repository's
+    (a reviewed trust-boundary fact), so P-RL1 may be unnecessary.
+  - **(P-RL2)** derivations (`WithValue`, `WithCancel`/`WithTimeout`) over a parent with a weak
+    contract: its `Done` as `isContext`'s, its `Err` any error after `Done` (etcd's
+    `cancellableContext` returns `ErrGRPCNoLeader`, which `isCtxErr` excludes). Go's child takes
+    `parent.Err()` on the parent's cancellation, so the child has the weak contract too. Natural
+    form: `isContext` generalized over the predicate its errors satisfy.
+- **Needed by.** The require-leader branch of etcd's stream interceptor, which Kubernetes' etcd3
+  store reaches on every watch (`clientv3.WithRequireLeader`), and the Watch and LeaseKeepAlive
+  handlers' derived contexts (`Tracer.Start`, `LeaseRenew`'s `WithTimeout`): stage 7f-4.
+- **Workaround here.** Today the premise `v3rpc.runsNoRequireLeader` excludes the branch; the user
+  decided (2026-11-08) to delete it, so 7f-4 needs these facts, as local lemmas until a Perennial
+  change lands.
+- **Status.** Not started; the 7f-4 Draft states each (or drops P-RL1).
 
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
 
