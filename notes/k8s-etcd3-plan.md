@@ -322,7 +322,8 @@ traffic grows):
   Revision 2, 2026-11-08, after the review and the user's decisions: departures 1-4 accepted with
   bookmarks bounded and foreign-object events rejected; `runsNoRequireLeader` deleted with no fork
   change, through a weak handler context and a changed grpc stream-interceptor contract, Watch and
-  LeaseKeepAlive re-proved; 13-21k Lean lines.)
+  LeaseKeepAlive re-proved; 13-21k Lean lines. Approved by 81, 2026-11-08; 7f-1, `lintest.RunLin2`,
+  built on `k8s-7f`.)
 - **7g. The maintainers' checker.** Translate `correctness` itself (`Model`, `Replay`,
   `WatchValidator`) in place of the Go copy (D30m, "Open" below), with D30g's fix as a patch
   until upstream takes it; `reflect.DeepEqual` and the list/meta accessors at the trust boundary.
