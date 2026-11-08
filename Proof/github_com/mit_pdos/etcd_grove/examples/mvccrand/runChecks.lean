@@ -74,10 +74,11 @@ theorem runChecks.wp_proof
   haveI := fun kv γ => hpers.1 kv γ
   haveI := fun ws γ ι => hpers.2.1 ws γ ι
   haveI := fun B f => hpers.2.2.2.1 B f
-  wp_start as ⟨Hfile, #Hks, Htok⟩
+  wp_start as ⟨Hfile, #Hev, #Hks, Htok⟩
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨ThreadBoundLe.le_of (2 ^ 28) (by omega)⟩
   wp_auto
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   wp_apply wp_DefaultBackendConfig as %bc %Hbc
   (try wp_auto)
@@ -94,7 +95,9 @@ theorem runChecks.wp_proof
       iintro !> %γ %b %t _ _
       iunfold backend.hooksSpec
       ileft; ipureintro; exact hhooks
-    · iintro %γ ⟨-, Hf⟩
+    · isplitr
+      · iexact Hev
+      iintro %γ ⟨-, Hf⟩
       imodintro
       iframe HW Hf
   icases Hr with (⟨%b, %γB, %Hr, Hnew, #Hhooks, #Hbf, -⟩ | %Hpan)
