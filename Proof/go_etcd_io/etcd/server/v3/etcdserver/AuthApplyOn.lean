@@ -48,11 +48,12 @@ theorem authApplyOkM_on
       authApplyOkM (.on γa) stl (auth.authRd stl R (.on γa)) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iunfold authApplyOkM
-  iintro !> %d %W %Pk %γ %f %RW %_ - - %_ -
-  iapply (apply.isAuthStore_of_authInv hPut hRange hDel hAdmin hEn hRev stl R (.on γa) γ Pk #f RW)
+  iintro !> %d %W %Pk %f %RW - - %_ -
+  iapply (apply.isAuthStore_of_authInv hPut hRange hDel hAdmin hEn hRev stl R (.on γa) (fun _ => Pk) f
+    (srvBkTie d) RW)
   iframe Hpkg Hinv
   iapply (apply.isAuthStoreAdmin_on (interface.mk (go.GoType.PointerType auth.authStore.ty) #stl)
-    γ Pk #f RW γa)
+    (fun _ => Pk) f (srvBkTie d) RW γa)
 
 /-- **The real store's request side and apply contract in the mode `on γa`**, both with the
 reader resource `auth.authRd stl R (.on γa)`: what `NewAuthStore`'s axiom gives in the mode `off`

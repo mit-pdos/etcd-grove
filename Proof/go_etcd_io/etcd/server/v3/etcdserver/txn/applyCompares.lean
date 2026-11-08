@@ -28,17 +28,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.applyCompares.wp_proof
     (hCmp : txn.applyCompare.spec (GF := GF) (hG := hG)) :
     txn.applyCompares.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ log rev sl cps cms crev
-  wp_start as ⟨Htx, #Hsl, #Hcs⟩
+  intro t γ trace te σ sl cps cms
+  wp_start as ⟨Htx, Htrc, %Hreach, #Hsl, #Hcs⟩
   iunfold txn.comparesIs at Hcs
   icases Hcs with ⟨%Hlen, #Hcs⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   wp_auto
   ihave IH : (∃ (n : w64) (cv : Loc), "i" ∷ i_ptr ↦ n ∗ "c" ∷ c_ptr ↦ cv ∗
-      "Htx" ∷ mvcc.isTxnRead mw s γ trace log rev crev ∗
+      "Htx" ∷ mvcc.api.mvccTxn t γ trace (.read σ) ∗ "Htrc" ∷ traceutil.ownTrace trace te ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z sl.len ∧
-        ∀ j < sint.nat n, ∀ cm, cms[j]? = some cm → cmpHolds (mvcc.stateAfter log) cm = true⌝ :
-      IProp GF) $$ [i c Htx]
+        ∀ j < sint.nat n, ∀ cm, cms[j]? = some cm → cmpHolds (mvcc.stateAfter σ.log) cm = true⌝ :
+      IProp GF) $$ [i c Htx Htrc]
   · iexists W64 0, _
     iframe
     ipureintro; refine ⟨by decide, Hsll.2, fun j hj => by simp at hj; omega⟩
@@ -52,11 +52,12 @@ theorem txn.applyCompares.wp_proof
     wp_apply wp_load_slice_index sl (sint.Z n) cps DFrac.discard p hn0 $$ [Hsl] as -
     · iframe Hsl; ipureintro; exact Hp_lookup
     ihave #Hp := Hcs $$ %(sint.nat n) %p %cm %Hp_lookup %Hcm_lookup
-    wp_apply (hCmp trace mw s γ log rev p cm) $$ [$Htx $Hp] as Htx
-    cases hb : cmpHolds (mvcc.stateAfter log) cm
+    wp_apply (hCmp t γ trace te σ p cm) $$ [$Htx $Htrc $Hp] as ⟨Htx, Htrc⟩
+    · ipureintro; exact Hreach
+    cases hb : cmpHolds (mvcc.stateAfter σ.log) cm
     · wp_auto
       wp_for_post
-      have : cms.all (cmpHolds (mvcc.stateAfter log)) = false := by
+      have : cms.all (cmpHolds (mvcc.stateAfter σ.log)) = false := by
         rw [Bool.eq_false_iff]
         intro h
         rw [List.all_eq_true] at h
@@ -64,7 +65,7 @@ theorem txn.applyCompares.wp_proof
         cases hb
       rw [this]
       iapply HΦ
-      iframe Htx
+      iframe Htx Htrc
     · wp_auto
       wp_for_post
       iframe
@@ -79,14 +80,14 @@ theorem txn.applyCompares.wp_proof
       · subst hjn; rw [Hcm_lookup] at hw; cases hw; exact hb
       · exact hall j (by omega) w hw
   · obtain ⟨hn0, hnl, hall⟩ := Hn
-    have : cms.all (cmpHolds (mvcc.stateAfter log)) = true := by
+    have : cms.all (cmpHolds (mvcc.stateAfter σ.log)) = true := by
       rw [List.all_eq_true]
       intro w hw
       obtain ⟨j, hj, hjw⟩ := List.getElem_of_mem hw
       exact hall j (by have := Hsll.1; word) w (by rw [List.getElem?_eq_getElem hj, hjw])
     rw [this]
     iapply HΦ
-    iframe Htx
+    iframe Htx Htrc
 
 end proof
 

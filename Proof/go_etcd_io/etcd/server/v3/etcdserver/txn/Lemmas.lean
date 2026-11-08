@@ -23,7 +23,7 @@ This file links the two, for a well-formed log (`LogOk`):
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 
 @[expose] public section
 

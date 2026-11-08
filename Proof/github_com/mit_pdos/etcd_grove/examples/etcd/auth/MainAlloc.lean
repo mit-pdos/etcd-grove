@@ -37,7 +37,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **What authkv's `Main` takes of the ghost state, for its member** (see the file header). -/
-theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+theorem ak_alloc (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (HB : BootLog [id] ctxs boot)
     (Hcc : ∀ e ∈ LogEntry.toEntries boot 0,
       ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet [id]) e.Data')
@@ -53,11 +53,13 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
       etcdKV ρ.rd.kv σ₀ ∗ authHistView ρ.rd.kv [srvAuthSt0] := by
   iintro #Hmarsh
   imod newServerNames_alloc (GF := GF) with ⟨%idx, %cok, %rev, Hidx, Hcok, Hrev⟩
+  -- (R9, the `lean` merge) the stand-in's store name, any (`envAgree` does not read it)
+  have γm : mvcc.api.MvccName := Classical.choice hne.1
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%reg, Hreg⟩
   have Hid0 : id ≠ W64 0 := by
     intro h; apply Hlow; rw [h]; decide
-  let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFact (etcdstart.env₀ idx cok rev)
-  imod (srvClusterBootOn_alloc (GF := GF) [id] ctxs boot (fun _ => idx) reg Hrb Hrb2 HB (by simp)
+  let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFacts idx.slog
+  imod (srvClusterBootOn_alloc (GF := GF) [id] ctxs boot (fun _ => idx.slog) reg Hrb Hrb2 HB (by simp)
       (by simp) (by simpa using Hid0.symm) Hcc Hurl (by simp) (by simpa using Hlow)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns⟩
@@ -70,7 +72,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   · rw [hwn]; iexact Hwn
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc', hklg', hwn', hfs', hinc'⟩ := Hρ
   -- (R2c) the member's first key, its store's index registered, at its names
-  ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key idx $$ []
+  ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key idx.slog $$ []
   · simp only [IdNames.key]; rw [hpfx, hinc', hfs', hfs]; iexact Hkf
   ihave #Hcl' : idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts $$ []
   · rw [hiss', hcnt, hwn', hfs', hiss, hwn, hfs]; iexact Hcl
@@ -81,7 +83,7 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     stateHistOk_boot γk srvAuthSt0 [id] γ.boot
       (by rw [hboot]; exact srvBootLogOk_of_BootLog _ _ _ HB) hlog
   imodintro
-  iexists γ, ρ, etcdstart.env₀ idx cok rev, Φs, γn, kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))
+  iexists γ, ρ, etcdstart.env₀ γm idx rev (srvApi.kvNx ρ.rd true), Φs, γn, kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))
   iframe Hnet
   isplitr
   · ipureintro
@@ -91,11 +93,12 @@ theorem ak_alloc (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     simp only [etcdstart.env₀]
     rw [hiss', hcnt, hraft, hiss, hvs, hreg]
     rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', hiss])]
+    rw [hcok]
     iframe Hnb Hsrl Hcl' Hkf' Hpm Hrc Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
     isplitr
     · ipureintro
-      exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,
-        hpfx, rfl, trivial, by rw [hkc', hkc],
+      exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog],
+        hpfx, rfl, trivial, by rw [hkc', hkc], trivial,
         ⟨.none, by rw [hklg', hlm]; exact lease.runCfg_none (GF := GF)⟩, by rw [KVNames.lg_eq, hklg', hlm]; rfl⟩
     iunfold idNoZero
     rw [hiss', hiss]

@@ -71,7 +71,7 @@ theorem backend.newBackend.wp_proof
   ihave #Hboo : (boltOpenOptionsOk : IProp GF) $$ []
   · ihave Hbi : (go_etcd_io.etcd.server.v3.storage.backend.backendInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
-    icases Hbi with ⟨-, -, -, -, #H⟩
+    icases Hbi with ⟨-, -, -, -, #H, -⟩
     iexact H
   iunfold boltOpenOptionsOk at Hboo
   icases Hboo with ⟨%p, #Hgp, #Hpo⟩

@@ -298,16 +298,17 @@ theorem opsStable_flat (s0 : List EtcdKv) (r : w64) :
 
 /-! ## The premises of a run -/
 
-/-- A sorted selection is small (`sortRangeResults`' premise, at the state read). -/
+/-- A sorted selection is small and safe to sort (`sortRangeResults`' premise, at the state read;
+strict M1, 2026-11-05: over the API's `kvSortOk`, the draft's `sortSmallA`; from a range's
+`stateOk`, `srvPre_stateOk`). -/
 def sortSmall (o : OpFull) (s : List EtcdKv) : Prop :=
   (o.effSortOrder = W64 1 ∨ o.effSortOrder = W64 2) →
-    (srvPre o s).length ≤ 2 ^ 62 ∧ ∀ v ∈ srvPre o s, kvOk v
+    (srvPre o s).length ≤ 2 ^ 62 ∧ ∀ v ∈ srvPre o s, mvcc.api.kvSortOk v
 
 /-- **A get in a transaction** reads the transaction's state (revision `0`, as the client's
 `txnOpOf`), with a valid sort target and a sort not cut by the limit. (Its sorted selection is
-small at the state it reads, `sortSmall`: until D19c, 2026-10-18, a premise here; since then
-`executeTxn` derives it from the write transaction's receipts, `mvcc.isTxnWrite_small`, or a read
-transaction's small log, `TxnPre`'s `LogSmall`.) The state `s` is unused, kept for the shape of
+small at the state it reads, `sortSmall`: until D19c, 2026-10-18, a premise here; since strict M1,
+2026-11-05, `executeRange` derives it from its range's `stateOk`, `srvPre_stateOk`.) The state `s` is unused, kept for the shape of
 `OpOk`. -/
 def GetOk (_s : List EtcdKv) (o : OpFull) : Prop :=
   o.base.rev = W64 0 ∧ validSortTarget o ∧ ¬ cutEarly o
@@ -454,20 +455,6 @@ theorem putLeaseOf_mem (s0 : List EtcdKv) (o : OpFull) (s : List EtcdKv) :
   unfold putLeaseOf putTxnOp
   cases hv : o.ignoreValue <;> cases hl : o.ignoreLease <;> simp [opLeases]
 
-/-- **`Txn`'s premises** at the sole writer's log `log`: room for one more revision, the run's
-premises (weak: an `IgnoreValue`/`IgnoreLease` put whose key is missing at `log` fails
-`checkTxn`), and `log` small (`LogSmall`: the sort's premise of a read-only transaction, which
-runs on a read transaction of `log`). Until D19c (2026-10-18) the third conjunct was room for the
-run's changes (fewer than `2 ^ 56`, the real backend's bound on a session's puts) and `OpsOk`'s
-gets had small sorted selections at the run's states: both are now derived during the run from
-the write transaction's time receipts (`mvcc.isTxnWrite_small`), so the premise depends on the
-log the transaction starts at only. -/
-def TxnPre (log : Log) (t : TxnModel) : Prop :=
-  log.length + 4 ≤ 2 ^ 63 ∧
-  OpsOk true (stateAfter log) (W64 (log.length : Int)) (stateAfter log)
-    (t.branch (txnOk (stateAfter log) t)) ∧
-  LogSmall log
-
 /-! ## Read-only and serializable requests -/
 
 /-- An operation is a get. -/
@@ -492,7 +479,7 @@ the server's read-only transaction: 2026-10-12, the request path's unit 3b): eve
 branch reads the transaction's revision (`0`: the model's gets in a transaction are the client's
 `txnOpOf`), its sort is not cut early by a limit (`cutEarly`,
 `issues/etcd-range-sort-none-limit.md`), and its sort target is valid (what the gRPC layer's
-`checkRangeRequest` checks). The apply thread's `Txn` has the same premises through `TxnPre`. -/
+`checkRangeRequest` checks). The apply thread's `Txn` has the same premises through `TxnPreA`. -/
 def txnGetsOk (t : TxnModel) : Prop :=
   ∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps →
     o.base.rev = W64 0 ∧ ¬ cutEarly o ∧ validSortTarget o

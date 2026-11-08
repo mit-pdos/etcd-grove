@@ -9,25 +9,27 @@ def backend.batchTxBuffered.UnsafeDelete.spec : Prop :=
       sint.Z st.pend + 1 < 2 ^ 58 →
         P.hk bi.name kb = false →
           ¬backend.fkKey bi.name kb →
-            ⊢
-              ∀ Φ,
-                isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-                    backend.isBackend γ P W Pk b ∗
-                      typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
-                        backend.batchLocked γ P b st ∗
-                          backend.isBucket bk bi ∗
+            (P.SB bi.name = true →
+                backend.sData P st.S !! (bi.name, kb) ≠ none → backend.vData P (st.C, st.R) !! (bi.name, kb) ≠ none) →
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+                      backend.isBackend γ P W Pk b ∗
+                        typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
+                          backend.batchLocked γ P b st ∗
+                            backend.isBucket bk bi ∗
+                              (if own = true then ownSlice key kb dk else backend.txBytes st.tx key kb) ∗
+                                backend.rbPut γ P bi.name st.S ∗ backend.dlPut γ P bi.name -∗
+                    ▷
+                        (backend.batchLocked γ P b (st.del bi kb) ∗
                             (if own = true then ownSlice key kb dk else backend.txBytes st.tx key kb) ∗
-                              backend.rbPut γ P bi.name st.S ∗ backend.pvPut γ P bi.name st.S -∗
-                  ▷
-                      (backend.batchLocked γ P b (st.del bi kb) ∗
-                          (if own = true then ownSlice key kb dk else backend.txBytes st.tx key kb) ∗
-                            backend.rbPut γ P bi.name (st.del bi kb).S ∗ backend.pvPut γ P bi.name (st.del bi kb).S -∗
-                        Φ (intoVal ())) -∗
-                    WP
-                      (((intoVal
-                            (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
-                              go!"UnsafeDelete"
-                              (intoVal t)))
-                          (intoVal bk))
-                        (intoVal key))
-                      {{ Φ }}
+                              backend.rbPut γ P bi.name (st.del bi kb).S ∗ backend.dlPut γ P bi.name -∗
+                          Φ (intoVal ())) -∗
+                      WP
+                        (((intoVal
+                              (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
+                                go!"UnsafeDelete"
+                                (intoVal t)))
+                            (intoVal bk))
+                          (intoVal key))
+                        {{ Φ }}

@@ -26,12 +26,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`sws.newResponseHeader(rev)`**: a fresh header (read-only) with the server's cluster and
 member ids, the revision `rev`, some term and leader. -/
 abbrev v3rpc.serverWatchStream.newResponseHeader.spec : Prop :=
-  ∀ (sws : Loc) (r : v3rpc.WRun GF) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.swsIs sws r }}
+  ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.swsIs sws r Up Dn st ci cd }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"newResponseHeader"))
       (Val #rev))
   {{ (h : Loc), RET #h; ∃ t l : w64, hdrFull h ⟨r.srv.cid, r.srv.mid, rev, t, l⟩ }}

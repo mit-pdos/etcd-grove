@@ -40,7 +40,7 @@ theorem leaseCheckSetup (s : Loc) (E : apply.AEnv GF) (n : Nat) :
         isAuthStoreLeaseLb st E.RD E.authMode n := by
   iintro ⟨#Hau, #Hlb, #Hpub⟩
   iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, -⟩
+  icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, -⟩
   iunfold srvAuthLeaseLb at Hlb
   icases Hlb with ⟨%au, #Has2, #Hall⟩
   icombine Has Has2 gives %Heq

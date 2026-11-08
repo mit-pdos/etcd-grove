@@ -134,10 +134,11 @@ def applyResR (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List EntryMode
     epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗
     epCsAt C.ρ.raft (ghostOf rp A) cs ∗
     srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
-    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVC K C.s B.E C.γw x sa ∗
+    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ mvcc.api.mvccReaders B.E.γ 1 ∗
+    srvApplyKVC K C.s B.E C.γw x sa ∗
     srvAppliedOwn C.γr g ∗ appliedLogAt C.γr g x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ (ghostOf rp A) x sa ∗
     srvRestR B.E C.γr rp A ∗ srvApRes C.s C.γr (ghostOf rp A) ∗ srvRLogLb C.ρ.raft rp.A₀ ∗
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
     (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
     srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
@@ -165,7 +166,7 @@ batch `ce` inside, straddling or past the window (`s.applyAll(&ep, &ap)`, `serve
 the ghost log, and the window's `winNoMergedSendR` for the window left after the batch. -/
 theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (rp : RestartPt) (A ce : List EntryModel)
-    (K : AuthC) (hM : C.E.authMode = K.mode) (hRB : acReceiptOk (GF := GF) K)
+    (K : AuthC) (hM : C.E.authMode = K.mode) (hRB : receiptBound GF ≤ 2 ^ 48)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
     (dv : Option Loc) (γnc : NotifyNames)
     (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShapeM K.isOn C.ρ.kv.lm (A ++ ce))
@@ -218,7 +219,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok, #Hwnm, HT, #Hbagn⟩ HΦ
   iunfold applyResR at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
-    Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA⟩, HtokR, Hso, %Hpure⟩
+    Hwr, Hrdk, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA⟩, HtokR, Hso, %Hpure⟩
   ihave Hwal : rnWalTokA γn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [← hrn]; iexact Hwal
   rw [hw]
@@ -309,7 +310,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
   · rw [beSucc_γbe HB]; iexact Hbr
   iapply (hAA C.s B.γ C.ci B.TM K B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x sa A
       C.ms C.γs C.wt dv γnc w nk (1 : Qp).half γn rt (rnLogOf γn (A ++ ce)).length rp g T)
-    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal Hso HT]
+    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hrdk Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal Hso HT]
   · isplitr
     · iexact Hpkg
     isplitr
@@ -328,7 +329,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     · iexact Hdvr
     iExactEq Hrh; cases dv <;> rfl
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', HT, Hrh, #Hsrv', -, HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
+  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', HT, Hrh, #Hsrv', -, HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, #HKVf', Hwal, Hso, %Hpost⟩
   ihave Hwal : rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [hrn]; iexact Hwal
@@ -543,7 +544,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     #Hracf, #Hracc, #Hrtf, #Hrtok, Hrun, HR, #HWc, #Hlbr, #HlbA⟩ HΦ
   iunfold applyResR at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss,
-    Hst, Hbe, Happ, Hlr, Hbr, Hwr, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA⟩,
+    Hst, Hbe, Happ, Hlr, Hbr, Hwr, Hrdk, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA⟩,
     HtokR, Hso, %Hpure⟩
   ihave Hwal : rnWalTokA γn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [← hrn]; iexact Hwal
@@ -625,14 +626,14 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     (by rw [hon]; exact hch) Hlog0 hγn hn
   rw [hon] at hS
   iapply hS
-    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS HAR Hwal Hso Hsnv Hnr0]
+    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hrdk Hbr HKV Hao Hka HRS HAR Hwal Hso Hsnv Hnr0]
   · iframe #
     iframe
     iunfold srvGoRes
     iframe
   inext
   iintro ⟨%γ', %TM', %E', %b', %st', %A'', %cs', %HB', #Hsrv'', HAR, #Hlb'', Hai, Hat, Hcs,
-    #Hcv', Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, Hao, #Hal, #HWA', ⟨%x', HKV, #Hlog', Hka, HRS⟩,
+    #Hcv', Hss, Hst, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, Hao, #Hal, #HWA', ⟨%x', HKV, #Hlog', Hka, HRS⟩,
     #HKVf', Hwal, Hso, %Hpost⟩
   ihave Hwal : rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [hrn]; iexact Hwal
@@ -738,13 +739,13 @@ theorem applyResR_start (K : AuthC) (C : ApplyCtx GF) (TM : MetaCI → IProp GF)
       epConfStateAddr C.ep ↦ cs ∗ epCsOk cs ∗ epCsAt C.ρ.raft A₀ cs ∗
       epDiskSnapAddr C.ep ↦ ai ∗ epMemSnapAddr C.ep ↦ ai ∗
       rnRaftStorageAddr (srvRAddr C.s) ↦□ C.ms ∗ memSnapLb C.γs 0 ∗
-      (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv C.E.s C.E.γ) ∗
+      (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv C.E.γ ∗ ⌜kv = C.E.kv⌝) ∗
       rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗ (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗
       srvRestartAtR K C.s C.γ C.ci C.b C.E C.γr C.ai₀ C.c₀ C.x₀ C.γw A₀ ai ⊢
     applyResR K C ⟨P.length, A₀⟩ P := by
   iintro ⟨#Hsrv, Hai, Hat, Hcsa, #Hcsok, #Hcsat, Hdsi, Hmsi, #Hms, #Hslb, Hkvf, Hwt, Hwtt, Hrs⟩
   iunfold srvRestartAtR at Hrs
-  icases Hrs with ⟨%st₀, %a, %t, %f, %g₀, %sa₀, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hkv, Hao, Hal, Hkr,
+  icases Hrs with ⟨%st₀, %a, %t, %f, %g₀, %sa₀, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hrdk, Hkv, Hao, Hal, Hkr,
     Hrest, Hap, Hfs, Htok, Hso⟩
   obtain ⟨Hloop, Hce, Hg⟩ := Hok
   icases kvRunM_lbR _ _ _ _ _ _ _ $$ Hkr with ⟨#HlbA, Hkr⟩
@@ -766,7 +767,7 @@ theorem applyResR_start (K : AuthC) (C : ApplyCtx GF) (TM : MetaCI → IProp GF)
     iExactEq Hslb; rfl
   ihave #HlbA' : srvRLogLb C.ρ.raft A₀ $$ []
   · rw [hρ]; iexact HlbA
-  iframe Hsrv Hai Hat Hcs Hcsat Hss Hth Hbe Hca Hlg Hbm Hwg Hkv Hao Hal Hkr Hrest Hap HlbA' Hkvf Hwt
+  iframe Hsrv Hai Hat Hcs Hcsat Hss Hth Hbe Hca Hlg Hbm Hwg Hrdk Hkv Hao Hal Hkr Hrest Hap HlbA' Hkvf Hwt
   iframe Hwtt Htok Hso
   ipureintro
   have hl := hP.length_le
@@ -796,12 +797,12 @@ theorem stop_split (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List Entr
       rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗ srvTrStop C.s ∗ applyResStopR K C rp A := by
   unfold applyResR applyResStopR
   iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %hB, H1, H2, H3, H4, H5, H6, H7, H8, H9,
-    H10, H11, H12, H13, H14, H15, H16, H17, Hap, Hlb, H18, Hwt, H19, H20, H21, %hp⟩
+    H10, H11, H12, Hrdk, H13, H14, H15, H16, H17, Hap, Hlb, H18, Hwt, H19, H20, H21, %hp⟩
   iframe Hwt
   isplitl [Hap]
   · iapply srvApRes_trStop $$ Hap
   iexists B, st, ai, at', a, t, cs, x, sa, g
-  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 Hlb H18 H19 H20 H21
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 Hrdk H13 H14 H15 H16 H17 Hlb H18 H19 H20 H21
   ipureintro; exact ⟨hB, hp⟩
 
 end stop
@@ -1157,8 +1158,8 @@ theorem EtcdServer.run.wp_proofG
   ihave ⟨Hstart, %Hkc0, #HlbA0⟩ : iprop(srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ ρ.wait A₀ ai₀ ∗
       ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝ ∗ srvRLogLb γr.raft A₀) $$ [Hstart]
   · iunfold srvRestartAtR at Hstart
-    icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, %g₀, %sa₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, HKV, Hao,
-      Hal, Hkr, HRS, HAR, Hfs, HtokR, Hso⟩
+    icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, %g₀, %sa₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, Hrdk,
+      HKV, Hao, Hal, Hkr, HRS, HAR, Hfs, HtokR, Hso⟩
     ihave Hkr : iprop(kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A₀ x₀ sa₀ ∗
         ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝) $$ [Hkr]
     · rw [← kvRunM_split]; iexact Hkr
@@ -1166,10 +1167,10 @@ theorem EtcdServer.run.wp_proofG
     ihave Hkr : kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ $$ [Hka0]
     · rw [kvRunM_split]; iframe Hka0; ipureintro; exact Hkc0
     icases kvRunM_lbR _ _ _ _ _ _ _ $$ Hkr with ⟨#HlbA0, Hkr⟩
-    isplitl [Hst Hbe Happ Hlr' Hbr Hwr HKV Hao Hal Hkr HRS HAR Hfs HtokR Hso]
+    isplitl [Hst Hbe Happ Hlr' Hbr Hwr Hrdk HKV Hao Hal Hkr HRS HAR Hfs HtokR Hso]
     · iunfold srvRestartAtR
       iexists st₀, a₀, t₀, f₀, g₀, sa₀
-      iframe Hst Hbe Happ Hlr' Hbr Hwr HKV Hao Hal Hkr HRS HAR Hfs HtokR Hso
+      iframe Hst Hbe Happ Hlr' Hbr Hwr Hrdk HKV Hao Hal Hkr HRS HAR Hfs HtokR Hso
       ipureintro; exact Hst0
     isplitr
     · ipureintro; exact Hkc0
@@ -1679,10 +1680,17 @@ theorem EtcdServer.run.wp_proof
     (hRS : raftNode.start.spec (GF := GF) (hG := hG))
     (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
     (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
-    (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
+    (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG))
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hRdS : mvcc.api.mvccReaders_split.law (GF := GF))
+    (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
+    (hStop : mvcc.api.mvccImage_stop.law (GF := GF))
+    (Hp : mvcc.api.persistent.law (GF := GF))
+    (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) :=
   EtcdServer.run.wp_proofG hSStop hRStop
-    (stop_cleanup_image hCl hOn hSave hPut hUR hID hName hSafe) hAA.1 hAA.2 hLg hGI hGT hFifo
+    (stop_cleanup_image hCl hOn hSave hPut hUR hID hName hSafe hRdS hCR hStop Hp Hr) hAA.1 hAA.2
+    hLg hGI hGT hFifo
     hGL hSL hIL hN hBL hGCI hSCI hRS hRA hNJ hSch
 
 end proof

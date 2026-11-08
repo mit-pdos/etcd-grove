@@ -171,7 +171,7 @@ theorem restartCheck.wp_proof
   -- `NewClient(client, lg)`
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   wp_apply (wp_NewClient caddr lg
-      (EtcdGrove.client.srvWEnv R caddr [] null null [] null default) Hpe (by omega))
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E γr false) γr caddr [] null null [] null default) Hpe (by omega))
     as %clR %cerr Hcl'
   · iframe #
   icases Hcl' with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
@@ -196,7 +196,7 @@ theorem restartCheck.wp_proof
   · rw [putGetInv_st ρ'.rd γr (by rw [Hst', Hst]) γf]
     iexact Hinv
   imod monoNatLbOwn_0 (GF := GF) ρ'.rd.committed with #Hc0
-  imod mvcc.idxCert_nil (GF := GF) E'.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E'.γs with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
     iexists ([] : List GoFunc)

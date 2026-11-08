@@ -39,7 +39,7 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proof
   iunfold v3rpc.authAdminIs at Haa
   icases Haa with ⟨%Hann, #Hag, #Hau⟩
   iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
+  icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
   iunfold apply.isAuthStore at Hast
   icases Hast with ⟨%ai, %Hai, -, -, -, -, -, #HEn, -⟩
   subst Hai

@@ -6,7 +6,7 @@ state's clients' half (`apiState`: every client's logically atomic operation ope
 change nothing), the consistency store's abstract state (`consState`), and the bookkeeping of
 the pure invariant (`s1Ok`, `S1Steps.lean`):
 * `L`, a version the pod informer's store has reached for good (`infRvLb`, persistent);
-* the **pending creates** (`P : GMap (Key × Nat) (Nat × GoString)`, a ghost map `γ.pend`): a pod
+* the **pending creates** (`P : GMap (apimodel.Key × Nat) (Nat × GoString)`, a ghost map `γ.pend`): a pod
   of `d.u` (key and version) the sync holding the owner's token created and has not accounted for
   yet, with the index of the create goroutine that made it and its node; the goroutine's
   **permit** (`permit γ i`, an exclusive token) the entry holds;
@@ -76,7 +76,7 @@ def permitAuth (γ : S1Names) (R : GMap Nat Unit) : IProp GF := ghostMapAuth γ.
 
 /-- **A pending create** (the goroutine `i`'s pod at key `k` and version `c`, on node `n`): its
 receipt. -/
-def pendTok (γ : S1Names) (k : Key) (c : Nat) (i : Nat) (n : GoString) : IProp GF :=
+def pendTok (γ : S1Names) (k : apimodel.Key) (c : Nat) (i : Nat) (n : GoString) : IProp GF :=
   ghostMapElem γ.pend (k, c) (DFrac.own 1) (i, n)
 
 /-- **A claimed node** `n`, by the goroutine `i`. -/
@@ -86,7 +86,7 @@ def claimTok (γ : S1Names) (n : GoString) (i : Nat) : IProp GF :=
 /-- **S1's invariant's content.** -/
 def s1Res (γ : S1Names) (d : DsId) : IProp GF :=
   iprop(∃ (σ : St) (M : GMap Owner consistency.Rec) (L : Nat)
-      (P : GMap (Key × Nat) (Nat × GoString)) (C : GMap GoString Nat),
+      (P : GMap (apimodel.Key × Nat) (Nat × GoString)) (C : GMap GoString Nat),
     apiState γ.api σ ∗ consState γ.cons M ∗ infRvLb γ.podInf L ∗
     ghostMapAuth γ.pend 1 P ∗ ([∗map] _k ↦ v ∈ P, permit γ v.1) ∗
     ghostMapAuth γ.claim 1 C ∗

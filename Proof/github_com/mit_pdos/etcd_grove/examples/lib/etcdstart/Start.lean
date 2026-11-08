@@ -37,7 +37,8 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- See the file header. -/
 theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
     (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64)
-    (N : Nat) (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) (m : lease.Mode := .none) :
+    (N : Nat) (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) (m : lease.Mode := .none)
+    (Hrb48 : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         memberBuilt s ρ E₀ lg γn id N sv (m := m) ∗ threadTok }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
@@ -70,7 +71,7 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   subst Hideq
   wp_apply h' $$ [Hsb Hl Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, -, Hgo, Hlg3, Hsr, -, Hright⟩
   · iframe; iframe #
-    ipureintro; exact ⟨hm, trivial, HrbN, by trivial⟩
+    ipureintro; exact ⟨hm, Hrb48, HrbN, by trivial⟩
   iunfold srvStartReaders at Hsr
   icases Hsr with ⟨Hrslots, -⟩
   iapply HΦ

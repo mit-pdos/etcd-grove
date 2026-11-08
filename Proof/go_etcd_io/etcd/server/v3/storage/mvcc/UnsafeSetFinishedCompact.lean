@@ -31,8 +31,8 @@ theorem mvcc.UnsafeSetFinishedCompact.wp_proof
     (h0 : mvcc.NewRevBytes.spec (GF := GF) (hG := hG))
     (h1 : mvcc.RevToBytes.spec (GF := GF) (hG := hG)) :
     mvcc.UnsafeSetFinishedCompact.spec (GF := GF) (hG := hG) := by
-  intro bt X Y CK c value Hv
-  wp_start as ⟨#Hcap, Hx, Hc⟩
+  intro bt X Y value Hv
+  wp_start as ⟨#Hcap, Hx⟩
   iunfold mvcc.metaPutCap at Hcap
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -53,22 +53,20 @@ theorem mvcc.UnsafeSetFinishedCompact.wp_proof
   wp_bind (App (App (App (Val #(methods bt.ty _ bt.v)) (Val #bM)) (Val #skn)) (Val #rb'))
   imod ownSlice_persist _ _ _ $$ Hrb with #Hrb
   ihave #HP2 := Hcap $$ %bM %skn %rb' %mvcc.finKeyBytes
-    %(mvcc.revBytes (mvcc.revOf { Main' := value, Sub' := 0 }) false)
-    %c []
+    %(mvcc.revBytes (mvcc.revOf { Main' := value, Sub' := 0 }) false) []
   · ipureintro
     exact ⟨Or.inr rfl, value, Hv, rfl⟩
-  iapply HP2 $$ [Hx Hc]
-  · iframe HMetaG Hx Hrb Hc
+  iapply HP2 $$ [Hx]
+  · iframe HMetaG Hx Hrb
     unfold mvcc.finKeyBytes
     iexact Hsknv
   inext
-  iintro ⟨Hy, Hc⟩
+  iintro Hy
   (try wp_auto)
   iapply HΦ
-  iframe Hy
-  rw [show mvcc.revBytes ⟨value, W64 0⟩ false =
-    mvcc.revBytes (mvcc.revOf { Main' := value, Sub' := 0 }) false from rfl]
-  iexact Hc
+  have hr : mvcc.revOf { Main' := value, Sub' := 0 } = ⟨value, W64 0⟩ := rfl
+  rw [hr]
+  iexact Hy
 
 
 end proof

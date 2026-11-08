@@ -77,7 +77,7 @@ abbrev watchGRPCStream.newWatchClient.spec : Prop :=
         ⌜i < V.nm ∧ clientAttemptMd V.conn (GoInterface.ok G.ctx) md⌝ ∗
         v3rpc.cliWatchStreamIs wc γs' (v3rpc.watchUp (V.mem i).2) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γs' [] ∗
-        v3rpc.watchSpec (V.mem i).2 (auth.mdTokenOf md) γs' Dn ∗
+        v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs' Dn ∗
         monoListAuthOwn G.γep 1
           (eps ++ [((γs', sent.length, γc, i, auth.mdTokenOf md) : EpInfo)])) ∨
        (⌜wc = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err ∗

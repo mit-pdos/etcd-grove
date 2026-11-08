@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__UserAdd
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 
 @[expose] public section
 
@@ -31,46 +32,42 @@ theorem apply.applierV3backend.UserAdd.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.UserAdd.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post info
-  wp_start as ⟨#Hb, ⟨⟨⟨%um, #Hr, %Hn⟩, HRW⟩, %Hadm⟩, Hpre, Hwt⟩
+  wp_start as ⟨#Hb, ⟨⟨⟨%um, #Hr, %Hn⟩, HRW⟩, %Hadm⟩, Htt, Hpre⟩
   ihave #Hr := apply.authUserAddIs_req _ _ $$ Hr
-  iunfold apply.mPre at Hpre
-  icases Hpre with ⟨Hkv, Hres, Hcs⟩
-  iunfold apply.kvOwn at Hkv
-  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-  icases Hard with ⟨Hard, Hwo⟩
-  icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
+  icases apply.mPreW_split $$ Hpre with ⟨%cr, %B, Hsw, Hcs, Hwt, Hrt, Htie, Hres, Hkv⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨-, -, -, -, #Has, -⟩
+  icases Hok with ⟨-, -, -, -, -, #Has, -⟩
   iunfold apply.isAuthStore at Has
   icases Has with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, #HM, -⟩
   iunfold apply.authReqContractN at HM
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %r %um.name %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt] as %resp %err ⟨HPP, Hrt, Hhdr, #HeI, HRW⟩
+  wp_apply HM $$ %r %um.name %B %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt $Htie] as %resp %err ⟨HPP, Hrt, Htie, Hhdr, #HeI, HRW⟩
   · iframe Hr; ipureintro; exact ⟨Hadm, Hn⟩
-  ihave Hwo := Hrdb $$ Hrt
   wp_if_destruct
   · -- no response
     iapply HΦ
+    isplitl [Htt]
+    · iexact Htt
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iapply apply.mPost_backend
-    iunfold apply.kvOwn
+    iapply (apply.mPostW_backend _ _ _ _ _ B cr)
     iframe
   · -- a response: its header
     iunfold apply.respHdrOk at Hhdr
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
     · exact absurd Hn Hif
-    wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, -⟩
     iapply HΦ
+    isplitl [Htt]
+    · iexact Htt
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iapply apply.mPost_backend
-    iunfold apply.kvOwn
+    iapply (apply.mPostW_backend _ _ _ _ _ B cr)
     iframe
 
 end proof

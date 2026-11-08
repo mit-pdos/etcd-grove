@@ -6,16 +6,14 @@ theorem backend.rtHeld_eq (γ : backend.BNames) (P : backend.BParams) (b rtx : L
     backend.RView) : backend.rtHeld γ P b rtx rv = backend.rtHeldF γ P b rtx rv sync.rfrac.half
 
 theorem backend.batchViewQ_of_exact (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess)
-    : ghostVar γ.view (Qp.half 1).half (backend.vData P (st.C, st.R)) ⊢ backend.batchViewQ γ P st
+    (hd : backend.dlsW P st (backend.vData P (st.C, st.R))) : ghostVar γ.view (Qp.half 1).half
+    (backend.vData P (st.C, st.R)) ⊢ backend.batchViewQ γ P st
 
 def backend.cachedAt (γ : backend.BNames) (ver : w64) (i : Nat) : IProp GF :=
   (ver, i) ↪[γ.cached]□ true
 
 theorem backend.thinV_dl (γ : backend.BNames) (vd L : backend.VData) : backend.thinV γ vd L ⊢ □ ∀
     nk, ⌜L !! nk ≠ none ∧ vd !! nk = none⌝ -∗ backend.dlIs γ nk
-
-theorem backend.pvPut_hook_eq (γ : backend.BNames) (P : backend.BParams) (n : GoString) (S :
-    backend.Data) (h : P.HB n = true) : backend.pvPut γ P n S = iprop(True)
 
 theorem backend.bOpen_add (γ : backend.BNames) (p q : Qp) : backend.bOpen γ (p + q) ⊣⊢ backend.bOpen
     γ p ∗ backend.bOpen γ q
@@ -24,6 +22,9 @@ theorem backend.bFile_agree (γ : backend.BNames) (p p' : GoString) : backend.bF
     backend.bFile γ p' ⊢ ⌜p = p'⌝
 
 theorem backend.bDB_persistent (γ : backend.BNames) (db : Loc) : Persistent (backend.bDB γ db)
+
+theorem backend.fkdOwn_timeless (γ : backend.BNames) (v : backend.FkVals) : Timeless (backend.fkdOwn
+    γ v)
 
 def backend.cbufOf [GoSemanticsFunctions] (b : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.storage.backend.txReadBufferCache go!"buf" (backend.cacheOf b)
@@ -46,9 +47,6 @@ def backend.metricsInv (b : Loc) : IProp GF :=
 
 theorem backend.plHookRO_persistent (γ : backend.BNames) (f : GoFunc) : Persistent (backend.plHookRO
     γ f)
-
-def backend.pvckInit (γ : backend.BNames) (P : backend.BParams) (D : backend.Data) : IProp GF :=
-  iprop(backend.pvHalf γ (backend.sData P D) ∗ backend.ckHalf γ (backend.fkVals D))
 
 theorem backend.fkRd_persistent (γ : backend.BNames) (P : backend.BParams) (rv : backend.RView) :
     Persistent (backend.fkRd γ P rv)
@@ -99,10 +97,17 @@ def backend.crtSnap (γ : backend.BNames) (P : backend.BParams) (b crt rtx : Loc
 theorem backend.fkVR_persistent (γ : backend.BNames) (g : backend.FkG) : Persistent (backend.fkVR γ
     g)
 
+theorem backend.sbKept_del_hook {P : backend.BParams} {st : backend.BSess} {bi : backend.BucketInfo}
+    {k : GoString} (hb : P.HB bi.name = true) (h : backend.sbKept P st) : backend.sbKept P (st.del
+    bi k)
+
 theorem backend.fkOwn_timeless (γ : backend.BNames) (n : Nat) : Timeless (backend.fkOwn γ n)
 
 theorem backend.fkOpen_persistent (γ : backend.BNames) (n : Nat) (v : backend.FkVals) : Persistent
     (backend.fkOpen γ n v)
+
+def backend.fkdOwn (γ : backend.BNames) (v : backend.FkVals) : IProp GF :=
+  ghostVar γ.fkd (Qp.half 1) v
 
 theorem backend.metricsInv_persistent (b : Loc) : Persistent (backend.metricsInv b)
 
@@ -133,8 +138,6 @@ def backend.hooksReq (γ : backend.BNames) (P : backend.BParams) (Pk : IProp GF)
                             (intoVal t))))
                       {{ Φ }})
 
-theorem backend.pvckOwn_timeless (γ : backend.BNames) : Timeless (backend.pvckOwn γ)
-
 def backend.batchLockedAt (γ : backend.BNames) (P : backend.BParams) (b t db : Loc) (st :
     backend.BSess) : IProp GF :=
   iprop(sync.ownMutex (backend.muOf t) ∗
@@ -145,10 +148,6 @@ def backend.rdOpen : Qp :=
 
 def backend.rdShare (rtx : Loc) (γo : GName) (k : Nat) (q : Qp) : IProp GF :=
   iprop(backend.txLive rtx q ∗ k ↪[γo] q)
-
-theorem backend.pvPut_other_eq (γ : backend.BNames) (P : backend.BParams) (n : GoString) (S :
-    backend.Data) (h : P.HB n = false) : backend.pvPut γ P n S = backend.pvHalf γ (backend.sData P
-    S)
 
 def backend.bksOk (Pb : backend.BksPhys) (B : GMap w64 (List backend.Ent)) : Prop :=
   ∀ (id : w64) (x : Loc × backend.BBPhys) (es : List backend.Ent),
@@ -174,7 +173,8 @@ def backend.batchPhys (γ : backend.BNames) (b t db : Loc) (st : backend.BSess) 
                           backend.bDB γ db)
 
 def backend.fkHalf (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) : IProp GF :=
-  iprop(∃ f g, monoNatAuthOwn γ.fk (Qp.half 1) f ∗ backend.fkVR γ g ∗ ⌜backend.fkOkG P f g st⌝)
+  iprop((∃ f g, monoNatAuthOwn γ.fk (Qp.half 1) f ∗ backend.fkVR γ g ∗ ⌜backend.fkOkG P f g st⌝) ∗
+      backend.fkdOwn γ (backend.fkVals st.S) ∗ backend.dlsOwn γ (backend.dlR P st.dl))
 
 def backend.batchGhostAt (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (free :
     Bool) : IProp GF :=
@@ -186,9 +186,6 @@ def backend.batchGhostAt (γ : backend.BNames) (P : backend.BParams) (st : backe
               ghostVar γ.used (Qp.half 1) u ∗
                 dghostVar γ.opn (DFrac.own (Qp.half 1).half) false ∗
                   backend.trkHalf γ P st.S ∗ backend.fkHalf γ P st ∗ ⌜backend.bgOk P st free n w u⌝)
-
-theorem backend.ckHalf_timeless (γ : backend.BNames) (v : backend.FkVals) : Timeless (backend.ckHalf
-    γ v)
 
 def backend.cacheEnt (γ : backend.BNames) (P : backend.BParams) (bp : Loc) (ver : w64) : IProp GF :=
   iprop(∃ c Pc i rv,
@@ -237,9 +234,6 @@ def backend.rtHeldF (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (r
         sync.ownRWMutexRLocked (backend.rmuOf (backend.baseOf rt)) (backend.rtRes γ P rt) ∗
           backend.rtResAt γ P rt sync.rfrac rd rv H p L ∗ ⌜rd.rtx = rtx ∧ rtx ≠ null⌝ ∗ backend.crTok γ b)
 
-def backend.ckHalf (γ : backend.BNames) (v : backend.FkVals) : IProp GF :=
-  ghostVar γ.ck (Qp.half 1) v
-
 def backend.rdTok (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
   iprop(∃ rt,
       typedPointsto (backend.bF go!"readTx" b) rt DFrac.discard ∗
@@ -258,8 +252,7 @@ def backend.bViewC (γ : backend.BNames) (q : Qp) (vd : backend.VData) (c : Bool
 theorem backend.cacheInv_persistent (γ : backend.BNames) : Persistent (backend.cacheInv γ)
 
 theorem backend.trkHalf_eq (γ : backend.BNames) (P : backend.BParams) {S S' : backend.Data} (h1 :
-    backend.hkData P S' = backend.hkData P S) (h2 : backend.rbData P S' = backend.rbData P S) (h3 :
-    backend.sData P S' = backend.sData P S) (h4 : backend.fkVals S' = backend.fkVals S) :
+    backend.hkData P S' = backend.hkData P S) (h2 : backend.rbData P S' = backend.rbData P S) :
     backend.trkHalf γ P S = backend.trkHalf γ P S'
 
 def backend.thinV (γ : backend.BNames) (vd L : backend.VData) : IProp GF :=
@@ -269,14 +262,13 @@ def backend.thinV (γ : backend.BNames) (vd L : backend.VData) : IProp GF :=
 def backend.bStopped (γ : backend.BNames) : IProp GF :=
   dghostVar γ.opn DFrac.discard true
 
-theorem backend.ckPut_fk_eq (γ : backend.BNames) (n k : GoString) (S : backend.Data) (h :
-    backend.fkKey n k) : backend.ckPut γ n k S = backend.ckHalf γ (backend.fkVals S)
-
 def backend.tmTok (γ : backend.BNames) (q : Qp) : IProp GF :=
   iprop(ghostVar γ.txa q () ∗ ghostVar γ.txb q ())
 
 def backend.fkCl (γ : backend.BNames) (P : backend.BParams) (D : backend.Data) : IProp GF :=
-  iprop(backend.fkOwn γ (backend.fkInit D) ∗ backend.fkVR γ (backend.fkWInit P D, backend.fkInit D, backend.fkVals D))
+  iprop(monoNatAuthOwn γ.fk (Qp.half 1) (backend.fkInit D) ∗
+      backend.fkdOwn γ (backend.fkVals D) ∗
+        backend.dlsOwn γ ∅ ∗ backend.fkVR γ (backend.fkWInit P D, backend.fkInit D, backend.fkVals D))
 
 theorem backend.batchLocked_thin (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st :
     backend.BSess) (q : Qp) (vd : backend.VData) : backend.batchLocked γ P b st ∗ backend.bView γ q
@@ -308,9 +300,6 @@ def backend.fkRd (γ : backend.BNames) (P : backend.BParams) (rv : backend.RView
 
 theorem backend.tokPart_timeless (γ : backend.BNames) (q : Rat) : Timeless (backend.tokPart γ q)
 
-theorem backend.hkPut_other (γ : backend.BNames) (P : backend.BParams) (n k : GoString) (S :
-    backend.Data) (h : P.hk n k = false) : ⊢ backend.hkPut γ P n k S
-
 theorem backend.rbOwn_timeless (γ : backend.BNames) (r : GMap GoString backend.BktData) : Timeless
     (backend.rbOwn γ r)
 
@@ -330,7 +319,7 @@ theorem backend.relog_exact (P : backend.BParams) (st : backend.BSess) : backend
     (backend.vData P (st.C, st.R)) st = backend.sData P st.S
 
 def backend.batchViewQ (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) : IProp GF :=
-  iprop(∃ L, backend.viewQ γ (Qp.half 1).half (backend.vData P (st.C, st.R)) L)
+  iprop(∃ L, backend.viewQ γ (Qp.half 1).half (backend.vData P (st.C, st.R)) L ∗ ⌜backend.dlsW P st L⌝)
 
 theorem backend.cacheEnt_persistent (γ : backend.BNames) (P : backend.BParams) (bp : Loc) (ver :
     w64) : Persistent (backend.cacheEnt γ P bp ver)
@@ -350,8 +339,18 @@ def backend.rtIntv (γ : backend.BNames) (P : backend.BParams) (q : Qp) (rd : ba
 def backend.VData : Type :=
   GMap (GoString × GoString) GoString
 
+def backend.dlPut (γ : backend.BNames) (P : backend.BParams) (n : GoString) : IProp GF :=
+  if P.SB n = true then iprop(∃ f, backend.fkOwn γ f) else iprop(True)
+
 def backend.rtRes (γ : backend.BNames) (P : backend.BParams) (rt : Loc) (q : Qp) : IProp GF :=
   iprop(∃ rd rv H L, backend.rtResAt γ P rt q rd rv H q.half L)
+
+theorem backend.dlPut_other (γ : backend.BNames) (P : backend.BParams) (n : GoString) (h : P.SB n =
+    false) : ⊢ backend.dlPut γ P n
+
+def backend.batchViewQ0 (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) : IProp GF
+    :=
+  iprop(∃ L, backend.viewQ γ (Qp.half 1).half (backend.vData P (st.C, st.R)) L ∗ ⌜backend.dlsS P st⌝)
 
 theorem backend.cachedAt_persistent (γ : backend.BNames) (ver : w64) (i : Nat) : Persistent
     (backend.cachedAt γ ver i)
@@ -364,9 +363,6 @@ theorem backend.viewQ_exact (γ : backend.BNames) (q : Qp) (vd : backend.VData) 
 
 theorem backend.hookFnSpec_persistent (γ : backend.BNames) (P : backend.BParams) (Pk : IProp GF) (b
     t : Loc) (f : GoFunc) : Persistent (backend.hookFnSpec γ P Pk b t f)
-
-def backend.pvckOwn (γ : backend.BNames) : IProp GF :=
-  iprop(∃ vd v, backend.pvHalf γ vd ∗ backend.ckHalf γ v)
 
 theorem backend.rbEls_timeless (γ : backend.BNames) (S : GoString → Prop) (q : Qp) (v : GoString →
     Option backend.BktData × Bool) : Timeless (backend.rbEls γ S q v)
@@ -384,6 +380,9 @@ theorem backend.thinV_trans (γ : backend.BNames) (a b c : backend.VData) : back
 theorem backend.bOpen_one_shares (γ : backend.BNames) : backend.bOpen γ 1 ⊣⊢ backend.bOpen γ
     (Qp.half 1) ∗ [∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), backend.bOpen
     γ backend.rdOpen
+
+theorem backend.fkOwn_flag (γ : backend.BNames) (n : Nat) : backend.fkOwn γ n ⊣⊢ backend.fkFlag γ n
+    ∗ (∃ v, backend.fkdOwn γ v) ∗ ∃ X, backend.dlsOwn γ X
 
 theorem backend.cacheValid_persistent (γ : backend.BNames) (P : backend.BParams) (rv :
     backend.RView) (idx : Nat) (L : backend.VData) : Persistent (backend.cacheValid γ P rv idx L)
@@ -404,9 +403,6 @@ theorem backend.dlIs_persistent (γ : backend.BNames) (nk : GoString × GoString
 def backend.rbPut (γ : backend.BNames) (P : backend.BParams) (n : GoString) (S : backend.Data) :
     IProp GF :=
   if P.RB n = true then backend.rbPart γ (fun m => m = n) (backend.rbData P S) else iprop(True)
-
-theorem backend.pvHalf_timeless (γ : backend.BNames) (vd : backend.VData) : Timeless (backend.pvHalf
-    γ vd)
 
 theorem backend.dlReg_persistent (γ : backend.BNames) (Φ : GoString × GoString → IProp GF) :
     Persistent (backend.dlReg γ Φ)
@@ -457,6 +453,9 @@ theorem backend.batchViewQ_bView (γ : backend.BNames) (P : backend.BParams) (st
     backend.batchViewQ γ P st ∗ backend.bView γ q vd ∗ backend.thinV γ (backend.vData P (st.C,
     st.R)) vd
 
+theorem backend.sbKept_of_ndel0 {P : backend.BParams} {st : backend.BSess} (hwf : backend.sessWf P
+    st) (h0 : st.ndel = W64 0) : backend.sbKept P st
+
 def backend.cmFacts (P : backend.BParams) (rtx : Loc) (D : backend.Data) (M : GMap w64 Loc) : IProp
     GF :=
   [∗map] i ↦ bk ∈ M,
@@ -464,14 +463,19 @@ def backend.cmFacts (P : backend.BParams) (rtx : Loc) (D : backend.Data) (M : GM
         ⌜P.BT !! n = some i⌝ ∗
           (⌜D !! n = none ∧ bk = null⌝ ∨ ∃ m, ⌜D !! n = some m ∧ bk ≠ null⌝ ∗ backend.rBkt rtx bk (backend.bktEnts m)))
 
+theorem backend.dlsOk_relog {P : backend.BParams} {st : backend.BSess} {L : GMap (GoString ×
+    GoString) GoString} (hk : backend.sbKept P st) (h : backend.dlsOk P st L) : backend.dlsOk P st
+    (backend.relog P L st)
+
 theorem backend.bView_timeless (γ : backend.BNames) (q : Qp) (vd : backend.VData) : Timeless
     (backend.bView γ q vd)
 
-def backend.pvHalf (γ : backend.BNames) (vd : backend.VData) : IProp GF :=
-  ghostVar γ.pv (Qp.half 1) vd
-
 theorem backend.poisonAt_persistent (γ : backend.BNames) (ver : w64) (i : Nat) : Persistent
     (backend.poisonAt γ ver i)
+
+def backend.sbKept (P : backend.BParams) (st : backend.BSess) : Prop :=
+  ∀ (nk : GoString × GoString),
+    P.SB nk.fst = true → backend.vData P (st.C, st.R) !! nk ≠ none → backend.sData P st.S !! nk ≠ none
 
 def backend.rbPart (γ : backend.BNames) (S : GoString → Prop) (r : GMap GoString backend.BktData) :
     IProp GF :=
@@ -516,6 +520,15 @@ theorem backend.rbPutAll_other (γ : backend.BNames) (P : backend.BParams) (n : 
 
 theorem backend.rbPart_timeless (γ : backend.BNames) (S : GoString → Prop) (r : GMap GoString
     backend.BktData) : Timeless (backend.rbPart γ S r)
+
+theorem backend.dlPut_sb (γ : backend.BNames) (P : backend.BParams) (n : GoString) (h : P.SB n =
+    true) : backend.dlPut γ P n = iprop(∃ f, backend.fkOwn γ f)
+
+theorem backend.dl_not_of_above {P : backend.BParams} {st : backend.BSess} {vd : GMap (GoString ×
+    GoString) GoString} {n k : GoString} (hdl : ∀ (nk : GoString × GoString), P.SB nk.fst = true →
+    P.HB nk.fst = false → st.dl !! nk ≠ none → vd !! nk ≠ none) (h1 : P.SB n = true) (h2 : P.HB n =
+    false) (habove : ∀ (k' v' : GoString), vd !! (n, k') = some v' → go.GoStringLt k' k) : st.dl !!
+    (n, k) = none
 
 def backend.rtCore (γ : backend.BNames) (P : backend.BParams) (rt : Loc) (q : Qp) (rd :
     backend.RdSt) (rv : backend.RView) (cm : GoMap) (H : GMap (w64 × Nat) backend.RView) (p : Qp :=
@@ -592,9 +605,6 @@ def backend.kvsOutRd (rtx : Loc) (keys vals : GoSlice) (res : List backend.Ent) 
             ownSliceCap GoSlice vals (DFrac.own 1) ∗
               backend.rdSlices rtx ks (List.map Prod.fst res) ∗ backend.rdSlices rtx vs (List.map Prod.snd res))
 
-theorem backend.ckPut_other_eq (γ : backend.BNames) (n k : GoString) (S : backend.Data) (h :
-    ¬backend.fkKey n k) : backend.ckPut γ n k S = iprop(True)
-
 def backend.txFOf [GoSemanticsFunctions] (t : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"tx" (backend.btOf t)
 
@@ -606,14 +616,20 @@ def backend.batchFree (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp 
 def backend.bDBOut (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) : IProp GF :=
   iprop(backend.bDBOutG γ P ∗ W ∗ Pk)
 
+theorem backend.dlPut_sb_elim (γ : backend.BNames) (P : backend.BParams) (n : GoString) (h : P.SB n
+    = true) : backend.dlPut γ P n ⊢ ∃ f, backend.fkOwn γ f
+
+def backend.fkFlag (γ : backend.BNames) (n : Nat) : IProp GF :=
+  monoNatAuthOwn γ.fk (Qp.half 1) n
+
 def backend.bOpen (γ : backend.BNames) (q : Qp) : IProp GF :=
   iprop(dghostVar γ.opn (DFrac.own q.half) false ∗ ghostVar γ.cls q ())
 
-def backend.ckPut (γ : backend.BNames) (n k : GoString) (S : backend.Data) : IProp GF :=
-  if backend.fkKey n k then backend.ckHalf γ (backend.fkVals S) else iprop(True)
-
 def backend.rtxOf [GoSemanticsFunctions] (base : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"tx" base
+
+theorem backend.dlPut_sb_intro (γ : backend.BNames) (P : backend.BParams) (n : GoString) (h : P.SB n
+    = true) : (∃ f, backend.fkOwn γ f) ⊢ backend.dlPut γ P n
 
 def backend.hookFnSpec (γ : backend.BNames) (P : backend.BParams) (Pk : IProp GF) (b t : Loc) (f :
     GoFunc) : IProp GF :=
@@ -642,16 +658,19 @@ def backend.rdSt_countable : Pos.Countable backend.RdSt :=
     backend.rdSt_countable._proof_1
 
 def backend.trkHalf (γ : backend.BNames) (P : backend.BParams) (S : backend.Data) : IProp GF :=
-  iprop(ghostVar γ.hkd (Qp.half 1) (backend.hkData P S) ∗
-      backend.rbSide γ P (backend.rbData P S) ∗
-        ghostVar γ.pv (Qp.half 1) (backend.sData P S) ∗ ghostVar γ.ck (Qp.half 1) (backend.fkVals S))
+  iprop(ghostVar γ.hkd (Qp.half 1) (backend.hkData P S) ∗ backend.rbSide γ P (backend.rbData P S))
 
 def backend.bStopG (γ : backend.BNames) (P : backend.BParams) (C : backend.Data) : IProp GF :=
-  iprop((∃ L, backend.viewQ γ (Qp.half 1).half (backend.sData P C) L) ∗
-      backend.trkHalf γ P C ∗ ∃ R, backend.fkRd γ P (C, R))
+  iprop((∃ L X,
+        backend.viewQ γ (Qp.half 1).half (backend.sData P C) L ∗
+          ⌜backend.dlVd P (backend.sData P C) L X⌝ ∗ backend.dlsOwn γ X) ∗
+      backend.trkHalf γ P C ∗ backend.fkdOwn γ (backend.fkVals C) ∗ ∃ R, backend.fkRd γ P (C, R))
 
 theorem backend.bDBAt_persistent (γ : backend.BNames) (db : Loc) (path : GoString) : Persistent
     (backend.bDBAt γ db path)
+
+def backend.dlsOwn (γ : backend.BNames) (X : GMap (GoString × GoString) GoString) : IProp GF :=
+  ghostVar γ.dls (Qp.half 1) X
 
 def backend.poisonAt (γ : backend.BNames) (ver : w64) (i : Nat) : IProp GF :=
   (ver, i) ↪[γ.cached]□ false
@@ -715,17 +734,17 @@ theorem backend.thinV_sub (γ : backend.BNames) (vd L : backend.VData) : backend
 def backend.keyLe (k k' : w64 × Nat) : Prop :=
   uint.Z k.fst < uint.Z k'.fst ∨ k.fst = k'.fst ∧ k.snd ≤ k'.snd
 
-theorem backend.thinV_refl (γ : backend.BNames) (vd : backend.VData) : ⊢ backend.thinV γ vd vd
+theorem backend.batchViewQ_bView_dl (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess)
+    (q : Qp) (vd : backend.VData) : backend.batchViewQ γ P st ∗ backend.bView γ q vd ⊢
+    backend.batchViewQ γ P st ∗ backend.bView γ q vd ∗ ⌜backend.dlsW P st vd⌝
 
-theorem backend.ckPut_other (γ : backend.BNames) (n k : GoString) (S : backend.Data) (h :
-    ¬backend.fkKey n k) : ⊢ backend.ckPut γ n k S
+theorem backend.dlsOwn_timeless (γ : backend.BNames) (X : GMap (GoString × GoString) GoString) :
+    Timeless (backend.dlsOwn γ X)
+
+theorem backend.thinV_refl (γ : backend.BNames) (vd : backend.VData) : ⊢ backend.thinV γ vd vd
 
 theorem backend.rbPartF_timeless (γ : backend.BNames) (S : GoString → Prop) (r : GMap GoString
     backend.BktData) (F : GoString → Bool) : Timeless (backend.rbPartF γ S r F)
-
-def backend.pvPut (γ : backend.BNames) (P : backend.BParams) (n : GoString) (S : backend.Data) :
-    IProp GF :=
-  if P.HB n = true then iprop(True) else backend.pvHalf γ (backend.sData P S)
 
 theorem backend.viewSame_thin (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (h :
     backend.viewSame P st) : ⊢ backend.thinV γ (backend.sData P st.S) (backend.vData P (st.C, st.R))
@@ -753,9 +772,6 @@ def backend.cacheInv (γ : backend.BNames) : IProp GF :=
                 ⌜(∀ (k' : w64 × Nat) (b : Bool), Cs !! k' = some b → backend.keyLe k' k) ∧
                       (win = false → Cs !! k ≠ some false)⌝ ∗
                   (⌜win = false⌝ ∨ ∃ vd, backend.bView γ 1 vd))
-
-theorem backend.pvckInit_timeless (γ : backend.BNames) (P : backend.BParams) (D : backend.Data) :
-    Timeless (backend.pvckInit γ P D)
 
 theorem backend.fkPut_other (γ : backend.BNames) (n k : GoString) (h : ¬backend.fkKey n k) : ⊢
     backend.fkPut γ n k
@@ -819,6 +835,8 @@ def backend.hooksSpec (γ : backend.BNames) (P : backend.BParams) (Pk : IProp GF
                               (intoVal t))))
                         {{ Φ }})
 
+theorem backend.fkFlag_timeless (γ : backend.BNames) (n : Nat) : Timeless (backend.fkFlag γ n)
+
 theorem backend.bksAt_discard_persistent (m : GoMap) (Pb : backend.BksPhys) (B : GMap w64 (List
     backend.Ent)) : Persistent (backend.bksAt m DFrac.discard Pb B)
 
@@ -830,9 +848,6 @@ theorem backend.relog_same (P : backend.BParams) (L : GMap (GoString × GoString
     GoString × GoString) (v : GoString), backend.vData P (st.C, st.R) !! nk = some v → L !! nk =
     some v) : backend.relog P L st = L
 
-theorem backend.pvckOwn_of_init (γ : backend.BNames) (P : backend.BParams) (D : backend.Data) :
-    backend.pvckInit γ P D ⊢ backend.pvckOwn γ
-
 def backend.cacheRes (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
   iprop(∃ bp ver,
       typedPointsto (backend.cbufOf b) bp (DFrac.own 1) ∗
@@ -840,9 +855,6 @@ def backend.cacheRes (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IPr
 
 def backend.muOf [GoSemanticsFunctions] (t : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.storage.backend.batchTx go!"Mutex" (backend.btOf t)
-
-theorem backend.pvPut_hook (γ : backend.BNames) (P : backend.BParams) (n : GoString) (S :
-    backend.Data) (h : P.HB n = true) : ⊢ backend.pvPut γ P n S
 
 theorem backend.bbAt_discard_persistent (bb : Loc) (p : backend.BBPhys) (es : List backend.Ent) :
     Persistent (backend.bbAt bb DFrac.discard p es)
@@ -886,11 +898,16 @@ structure backend.BNames : Type where
   dlb : GName
   fk : GName
   fkv : GName
-  pv : GName
-  ck : GName
   dbf : GName
   rq : GName
   rbD : GMap GoString Unit
+  fkd : GName
+  dls : GName
+
+theorem backend.batchViewQ_dl (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (q :
+    Qp) (vd : backend.VData) : backend.batchViewQ γ P st ∗ backend.bView γ q vd ⊢ backend.batchViewQ
+    γ P st ∗ backend.bView γ q vd ∗ ⌜st.cnt.hw = false → ∀ (nk : GoString × GoString), P.SB nk.fst =
+    true → P.HB nk.fst = false → st.dl !! nk ≠ none → vd !! nk ≠ none⌝
 
 def backend.bView (γ : backend.BNames) (q : Qp) (vd : backend.VData) : IProp GF :=
   iprop(∃ c, backend.bViewC γ q vd c)
@@ -899,7 +916,7 @@ theorem backend.cmFacts_timeless (P : backend.BParams) (rtx : Loc) (D : backend.
     Loc) : Timeless (backend.cmFacts P rtx D M)
 
 def backend.fkOwn (γ : backend.BNames) (n : Nat) : IProp GF :=
-  monoNatAuthOwn γ.fk (Qp.half 1) n
+  iprop(monoNatAuthOwn γ.fk (Qp.half 1) n ∗ (∃ v, backend.fkdOwn γ v) ∗ ∃ X, backend.dlsOwn γ X)
 
 def backend.rtResAt (γ : backend.BNames) (P : backend.BParams) (rt : Loc) (q : Qp) (rd :
     backend.RdSt) (rv : backend.RView) (H : GMap (w64 × Nat) backend.RView) (p : Qp := q.half) (L :

@@ -5,7 +5,7 @@ transaction's `txnReadWrite` around a `storeTxnRead`, down to `storeTxnCommon.Fi
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -28,11 +28,11 @@ sets `firstRev` from `s.compactMainRev`; 2026-10-13, unit 6a: `-1` of the frozen
 instance at `isTxnRead`'s defaults). -/
 abbrev mvcc.metricsTxnWrite.FirstRev.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int)
-    (Z : IProp GF),
+    (Z Tr : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxnRead mw s γ trace log rev crev Z }}
+      mvcc.isTxnReadT mw s γ trace log rev crev Z Tr }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"FirstRev")) (Val #()))
-  {{ RET #(W64 crev : w64); mvcc.isTxnRead mw s γ trace log rev crev Z }}
+  {{ RET #(W64 crev : w64); mvcc.isTxnReadT mw s γ trace log rev crev Z Tr }}
 
 end spec
 

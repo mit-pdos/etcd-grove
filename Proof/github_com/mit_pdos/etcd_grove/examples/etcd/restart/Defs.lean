@@ -158,13 +158,13 @@ def memberStopRes (s : Loc) (ρ : ReqNames) (id : w64) : IProp GF :=
 
 /-- (R2c-4) **A started member that will not serve, split for its stop**: its request view and
 `GoAttach` resources, and what its stop takes (`memberStopRes`), out of compaction mode. -/
-theorem memberUp_stopRes (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
+theorem memberUp_stopRes (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
     (γn : NetNames GF) (id : w64) (hcmp : E₀.cmp = false) :
     etcdstart.memberUp (GF := GF) s ρ E₀ lg γn id ⊢
       (∃ (E : apply.AEnv GF) (γw : GName), isServerReq s E { ρ with wait := γw } ∗ srvGoRes s) ∗
         memberStopRes s ρ id := by
   iintro Hup
-  icases etcdstart.memberUp_stop s ρ E₀ lg γn id .none $$ Hup with ⟨Hl, %E, %dd, Hr, %hsc, Hrd⟩
+  icases etcdstart.memberUp_stop hRS s ρ E₀ lg γn id .none $$ Hup with ⟨Hl, %E, %dd, Hr, %hsc, Hrd⟩
   iframe Hl
   iunfold memberStopRes
   iexists E, dd

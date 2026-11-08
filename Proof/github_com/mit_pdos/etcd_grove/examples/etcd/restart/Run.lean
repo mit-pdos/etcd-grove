@@ -135,7 +135,8 @@ theorem Run.wp_proof
     (wp_putOther : put.specOther (GF := GF) (hG := hG))
     (wp_Leader : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
-    (wp_restartCheck : restartCheck.spec (GF := GF) (hG := hG)) :
+    (wp_restartCheck : restartCheck.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Run.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC lg N id₁ id₂ id₃ ps ctxs boot ThB RcB RcN HwbN Hp Hms hAs
   obtain ⟨Hbf, Hck, Haf, Hbuq, Hrf, Hdbo⟩ := Hp
@@ -232,7 +233,7 @@ theorem Run.wp_proof
     iapply BigSepM.bigSepM_empty.2; itrivial
   -- the ghost state of the cluster and its members (`alloc3`)
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
-  imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls
+  imod (etcdstart.alloc3 hne id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls
       (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
       (dir3_host id₁ id₂ id₃) (by omega) (by omega) name₁ name₂ name₃ (some clientAddr₁)
       (some clientAddr₂) (some clientAddr₃) .none lease.runCfg_none (by decide))
@@ -304,7 +305,7 @@ theorem Run.wp_proof
   subst Herr
   wp_auto
   -- (R2c-4) member 2 never serves: what its stop takes, out of its started bundle
-  icases memberUp_stopRes _ _ _ _ _ _ hc₂ $$ Hup₂ with ⟨⟨%E₂', %γw₂, #Hreq₂, Hgo₂⟩, Hsres₂⟩
+  icases memberUp_stopRes hRS _ _ _ _ _ _ hc₂ $$ Hup₂ with ⟨⟨%E₂', %γw₂, #Hreq₂, Hgo₂⟩, Hsres₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
@@ -327,7 +328,7 @@ theorem Run.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  icases memberUp_stopRes _ _ _ _ _ _ hc₃ $$ Hup₃ with ⟨⟨%E₃', %γw₃, #Hreq₃, Hgo₃⟩, Hsres₃⟩
+  icases memberUp_stopRes hRS _ _ _ _ _ _ hc₃ $$ Hup₃ with ⟨⟨%E₃', %γw₃, #Hreq₃, Hgo₃⟩, Hsres₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   ihave Hgo : srvGoRes s₁ $$ [Hwgr Htok]
@@ -359,7 +360,7 @@ theorem Run.wp_proof
     rfl $$ Hkv
   -- `NewClient(clientAddr1, lg)` (etcd's default client configuration)
   wp_apply (wp_NewClient clientAddr₁ lg
-      (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default)
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default)
       (by unfold plainEndpoint clientAddr₁; decide) (by omega)) as %cl %cerr Hcl
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
@@ -377,7 +378,7 @@ theorem Run.wp_proof
   imod (client.putGetInv_alloc_log ρ₁.rd (kvModel ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))
       go!"k" go!"v2" ⊤) $$ Hetcd with ⟨%γf, #Hinv⟩
   -- `put(cli, "k0", "v1")`: another key
-  wp_apply (wp_putOther cl clientAddr₁ (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default)
+  wp_apply (wp_putOther cl clientAddr₁ (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default)
       E ρ₁.rd γf cid mid go!"k" go!"v2" go!"k0" go!"v1" (by decide)
       (opSizeOk_opPutModel (K := 2) (E := 0) (V := 2) (optsKeep_nil _ _ _) (by decide) (by decide)
         (by decide)) hAs) as %perr -
@@ -402,7 +403,7 @@ theorem Run.wp_proof
   wp_if_destruct
   · -- member 3 leads: member 2 stopped and started again
     wp_apply (wp_restartCheck cl clientAddr₁
-        (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
+        (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
         m₂ s₂ pl₂ ρ₂ N name₂ peerAddr₂ clientAddr₂
         (slice.mk peer₂ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
@@ -417,7 +418,7 @@ theorem Run.wp_proof
     iapply HΦ; itrivial
   · -- member 3 stopped and started again
     wp_apply (wp_restartCheck cl clientAddr₁
-        (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
+        (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default) E ρ₁.rd γf cid mid
         m₃ s₃ pl₃ ρ₃ N name₃ peerAddr₃ clientAddr₃
         (slice.mk peer₃ (W64 1) (W64 1)) pm lg
         (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))

@@ -77,7 +77,7 @@ def authSchemaSnap (γa : auth.AuthNames) (R : IProp GF) : IProp GF :=
     auth.authLockI (.on γa) st -∗ auth.authSucc γa -∗
     |={⊤}=> ∃ γc : auth.AuthBkNames,
       auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
-      auth.authWBackendOkR (authBkIface abl) (.on γa) Pk #f (auth.authWTok γc) ∗
+      auth.authWBackendOkR (authBkIface abl) (.on γa) Pk f (auth.authWTok γc) ∗
       authWAtHook γa d γc ∗ authBkLend γa γc d ∗ auth.authWTok γc ∗
       auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ))
 

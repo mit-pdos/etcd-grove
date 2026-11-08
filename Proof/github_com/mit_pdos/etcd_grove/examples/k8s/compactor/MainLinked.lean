@@ -10,6 +10,7 @@ them.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.ready
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.writer
@@ -77,7 +78,9 @@ theorem k8s_compactor.wp_Main [Float64ToInt64Semantics]
     k8s_compactor.Main.spec (GF := GF) (hG := hG) :=
   k8s_compactor.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer
     etcdstart.wp_Serve etcdstart.wp_NewClient context.wp_ErrAny
-    k8s_compactor.wp_ready k8s_compactor.wp_writer (k8s_compactor.wp_apiserver h_After)
+    k8s_compactor.wp_ready k8s_compactor.wp_writer (k8s_compactor.wp_apiserver h_After) mvcc.api.mvccApi_names_nonempty_law_holds
+    mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
+    mvcc.api.mvccApi_mvccReaders_split_law_holds
 
 theorem k8s_compactor.wp_clusterConfig : k8s_compactor.clusterConfig.spec (GF := GF) (hG := hG) :=
   k8s_compactor.clusterConfig.wp_proof

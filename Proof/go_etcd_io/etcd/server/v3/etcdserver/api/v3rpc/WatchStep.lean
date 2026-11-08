@@ -196,29 +196,32 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **The server model's step from the watch events**: a sealed small log with revision `r1`
-(`r0 ≤ r1 < log.length`), no watch event of a range covering exactly the keys under `pfx`
-strictly between `r0` and `r1`: `srvStep` of `r1`'s watch events. -/
-theorem srvStep_of_watch (E : apply.AEnv GF) (log : Log) (rng : WatchRange) (pfx : GoString)
-    (hcov : ∀ k, rng.covers k = true ↔ pfx <+: k) (r0 r1 : Nat) (h01 : r0 ≤ r1)
+/-- **The server model's step from the watch events**: a log of the server's history (`srvLog`)
+with revision `r1` (`r0 ≤ r1 < log.length`), no watch event of a range covering exactly the keys
+under `pfx` strictly between `r0` and `r1`: `srvStep` of `r1`'s watch events. (Strict M1: the
+log's witness is `srvLog`'s, mvcc's `certOk` gone.) -/
+theorem srvStep_of_watch (γr : ReadNames) (on : Bool) (log : Log) (rng : WatchRange)
+    (pfx : GoString) (hcov : ∀ k, rng.covers k = true ↔ pfx <+: k) (r0 r1 : Nat) (h01 : r0 ≤ r1)
     (h1 : r1 < log.length)
     (hnone : ∀ x : Nat, r0 < x → x < r1 → watchEvents log rng x (x + 1) = []) :
-    srvLog E log ∗ certOk E.γ log ⊢
-      srvStep E (W64 (r0 : Int)) (W64 (r1 : Int)) pfx
+    srvLog (GF := GF) γr on log ⊢
+      srvStep γr on (W64 (r0 : Int)) (W64 (r1 : Int)) pfx
         ((watchEvents log rng r1 (r1 + 1)).map evmToEtcd) := by
-  iintro ⟨#Hl, #Hcok⟩
+  iintro #Hl
   ihave %Hp : ⌜LogWf' log ∧ log.length < 2 ^ 63⌝ $$ [Hl]
-  · unfold srvLog
-    icases Hl with ⟨Hc, -⟩
-    iapply sealed_pure $$ Hc
+  · iunfold srvLog at Hl
+    icases Hl with ⟨%L', -, %h⟩
+    ipureintro; exact ⟨h.2.1, h.2.2.1⟩
   obtain ⟨hwf, hlen⟩ := Hp
   obtain ⟨hz, hs⟩ := watchStreamSpec_step log hwf hlen rng pfx hcov r0 r1 hnone
   have e0 : sint.Z (W64 (r0 : Int)) = r0 := by word
   have e1 : sint.Z (W64 (r1 : Int)) = r1 := by word
   unfold srvStep
   iexists log
-  iframe Hl Hcok
+  iframe Hl
   ipureintro
   refine ⟨by omega, by omega, by omega, fun x hx1 hx2 => hz x (by omega) (by omega), ?_⟩
   rw [e1]

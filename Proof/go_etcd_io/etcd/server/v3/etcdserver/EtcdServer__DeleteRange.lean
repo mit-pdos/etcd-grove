@@ -48,8 +48,7 @@ theorem EtcdServer.DeleteRange.wp_proof
   :
     EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r op Q F
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hst, #Hdel, Hnp, #HF⟩
-  -- (sweep repairs 1, B2) the request context's start time
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hspc, #Hst, #Hdel, Hnp, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -87,10 +86,13 @@ theorem EtcdServer.DeleteRange.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hst1, %Hinc1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, #Hst1⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hstc1 := Hst1 $$ Hst
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hspc1 := Hspw $$ Hspc
+  -- (sweep repairs 1, B2) the request context's start time, kept by `Start`
+  ihave #Hstc1 := Hst1 $$ Hst
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi
@@ -160,7 +162,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       iunfold appliedOk at Hok
-      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, Hrcpt, %Hwf⟩
       obtain ⟨Hstep, Hfl, Hxlb, -⟩ := Hstep0
       have Hk : apply.dispatchKind rq' = .deleteRange := by
         rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
@@ -186,10 +188,12 @@ theorem EtcdServer.DeleteRange.wp_proof
       isplitr
       · ipureintro; rfl
       iexists hm, rq', op', x, x', .applied log' false, skip
-      iframe Hpo Hhdr Hcert HMint Hwit Hcok
+      iframe Hpo Hhdr Hcert HMint Hwit Hcok Hrcpt
       isplitr
       rotate_left
-      · rw [Hxlb, ← HLlb]
+      · isplitr
+        · ipureintro; exact Hwf
+        rw [Hxlb, ← HLlb]
         iframe HQ
         isplitr
         · iunfold hdrBoundM; ipureintro; trivial
@@ -244,7 +248,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       iunfold appliedOkM at Hok
-      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok, -⟩
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -, Hrcpt, %Hwf, -⟩
       obtain ⟨Hstep, Hfl, -, Hmo, -⟩ := Hstep0
       have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := Hwire.2.2.2 HnzW
       have Hk : apply.dispatchKind rq' = .deleteRange := by
@@ -278,10 +282,12 @@ theorem EtcdServer.DeleteRange.wp_proof
       isplitr
       · ipureintro; rfl
       iexists hm, rq', op', x, x', .applied log' false, skip
-      iframe Hpo Hhdr Hcert HMint Hwit Hcok
+      iframe Hpo Hhdr Hcert HMint Hwit Hcok Hrcpt
       isplitr
       rotate_left
-      · iframe HQ
+      · isplitr
+        · ipureintro; exact Hwf
+        iframe HQ
         isplitr
         · iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
         iintro !> -

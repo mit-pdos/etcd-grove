@@ -1,0 +1,29 @@
+--- a/server/storage/mvcc/kvstore.go	2026-11-04 17:13:36.954006789 +0000
++++ b/server/storage/mvcc/kvstore.go	2026-11-04 17:13:36.959620574 +0000
+@@ -349,7 +349,7 @@
+ 		)
+ 		s.revMu.Unlock()
+ 	}
+-	scheduledCompact, _ := UnsafeReadScheduledCompact(tx)
++	scheduledCompact, scheduledCompactFound := UnsafeReadScheduledCompact(tx)
+ 	// index keys concurrently as they're loaded in from tx
+ 	keysGauge.Set(0)
+ 	rkvc, revc := restoreIntoIndex(s.lg, s.kvindex)
+@@ -397,7 +397,7 @@
+ 	}
+ 
+ 	if scheduledCompact <= s.compactMainRev {
+-		scheduledCompact = 0
++		scheduledCompactFound = false
+ 	}
+ 
+ 	for key, lid := range keyToLease {
+@@ -418,7 +418,7 @@
+ 
+ 	s.lg.Info("kvstore restored", zap.Int64("current-rev", s.currentRev))
+ 
+-	if scheduledCompact != 0 {
++	if scheduledCompactFound {
+ 		if _, err := s.compactLockfree(scheduledCompact); err != nil {
+ 			s.lg.Warn("compaction encountered error",
+ 				zap.Int64("scheduled-compact-revision", scheduledCompact),

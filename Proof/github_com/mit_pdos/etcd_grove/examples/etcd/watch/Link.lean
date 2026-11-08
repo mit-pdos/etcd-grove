@@ -15,6 +15,7 @@ public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Main
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
@@ -73,7 +74,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.watch.Assum
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_watch.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_watch.Main.wp_proof etcdstart.wp_GenAll etcdstart.wp_Writer etcdstart.wp_MaxRev etcdstart.wp_Collect etcdstart.wp_Check zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve etcdstart.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
+  EtcdGrove.etcd_watch.Main.wp_proof etcdstart.wp_GenAll etcdstart.wp_Writer etcdstart.wp_MaxRev etcdstart.wp_Collect etcdstart.wp_Check zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve etcdstart.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds
 
 end links_hasLC
 

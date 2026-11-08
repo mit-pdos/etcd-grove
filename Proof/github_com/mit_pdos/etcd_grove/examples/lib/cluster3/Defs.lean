@@ -202,10 +202,13 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
     servedRegs m client s E ρ cid mid ∗
     -- (W2 of `notes/watch-cut-plan.md`, 2026-10-21) the member's watch server, its `Watch` stream
     -- served at the client address
+    -- (R9, the `lean` merge) at the server's watch facts (`srvWOf`), with their laws
     (∃ (pw : Loc) (R : v3rpc.WSrv GF), v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
+      EtcdGrove.client.srvWLaws (etcdstart.srvWOf E ρ.rd false) ∗
       isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) client
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
-        (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn)) ∗
+        (fun md γs Dn => v3rpc.watchStreamSpec γs R (etcdstart.srvWOf E ρ.rd false)
+          (auth.mdTokenOf md) Dn)) ∗
     -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
     ⌜noRefusalAt client⌝)
 
@@ -225,10 +228,13 @@ theorem memberServed_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqName
     isGrpcRpc client go!"/etcdserverpb.KV/Compact" (EtcdGrove.client.etcdCompactSpec E ρ.rd cid mid) ∗
     -- (W2 of `notes/watch-cut-plan.md`, 2026-10-21) the member's watch server, its `Watch` stream
     -- served at the client address
+    -- (R9, the `lean` merge) at the server's watch facts (`srvWOf`), with their laws
     (∃ (pw : Loc) (R : v3rpc.WSrv GF), v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
+      EtcdGrove.client.srvWLaws (etcdstart.srvWOf E ρ.rd false) ∗
       isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) client
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
-        (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn)) ∗
+        (fun md γs Dn => v3rpc.watchStreamSpec γs R (etcdstart.srvWOf E ρ.rd false)
+          (auth.mdTokenOf md) Dn)) ∗
     -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
     ⌜noRefusalAt client⌝) := by
   simp only [memberServed, servedRegs, etcdstart.etcdKVAt_eq, sep_assoc_eq]
@@ -301,15 +307,22 @@ def memAt3 (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
   | 1 => (cfg.Bridge2', R₂)
   | _ => (cfg.Bridge3', R₃)
 
+/-- (R9) The members' watch facts (v3rpc's `SrvW`), by index. -/
+def memWAt3 (W₁ W₂ W₃ : v3rpc.SrvW GF) : Nat → v3rpc.SrvW GF
+  | 0 => W₁
+  | 1 => W₂
+  | _ => W₃
+
 /-- **The clients' watch environment** (W4): the three members at their bridges, the watch
 contract at the cluster's committed history (`etcdModelOfHistory`, at the first member's names,
 which the others' agree with), under the prefix `pfx`, at the KV state variable of those names
 (D47: the watches' read updates are of it). `NewClient` takes it as its caller's choice
 (`isNewClient`); a client that never watches needs none of its facts. -/
 def watchEnv (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
-    (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) : EtcdGrove.client.WEnv GF :=
+    (R₁ R₂ R₃ : v3rpc.WSrv GF) (W₁ W₂ W₃ : v3rpc.SrvW GF) (γr : ReadNames) (pfx : GoString) :
+    EtcdGrove.client.WEnv GF :=
   ⟨R₁, cfg.Bridge1', [], null, null, pfx, null, v3rpc.etcdModelOfHistory γr.raft γr.kv,
-    v3rpc.histWL γr.raft γr.kv, memAt3 cfg R₁ R₂ R₃, 3, γr.kv⟩
+    v3rpc.histWL γr.raft γr.kv, memAt3 cfg R₁ R₂ R₃, 3, γr.kv, W₁, memWAt3 W₁ W₂ W₃⟩
 
 /-- **A member of the started cluster** (persistent; W4: what `StartCluster` gives of each, from
 `memberServed` and its bridge's start): its bridge's address `b` serving its client address `c`'s,
@@ -323,14 +336,16 @@ def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply
   iprop(forwards b c ∗ isServerRead s E ρ.rd ∗
     servedRegs m c s E ρ cid mid ∗
     ⌜noRefusalAt c⌝ ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
+    client.srvWLaws (etcdstart.srvWOf E ρ.rd false) ∗
     isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) c
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
-      (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn) ∗
+      (fun md γs Dn => v3rpc.watchStreamSpec γs R (etcdstart.srvWOf E ρ.rd false)
+        (auth.mdTokenOf md) Dn) ∗
     ⌜(∃ reg : GName, ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩) ∧ ρ.rd.kv.c0 = W64 0 ∧
       ρ.rd.kv.ch0 = apply.alarmChain false false false ∧ ρ.rd.kv.log0 = [[], []] ∧
       -- (M2, the storage side, review round 2's N1, the approval's item 13) the member's server in
       -- the cluster's mode
-      E.γ.cm = cmp⌝)
+      E.cmp = cmp⌝)
 
 /-- `memberAt` at the mode `none` is its text before lease-mono3 (`etcdKVAt` unfolded). -/
 theorem memberAt_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
@@ -344,14 +359,16 @@ theorem memberAt_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (
     isGrpcRpc c go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Compact" (EtcdGrove.client.etcdCompactSpec E ρ.rd cid mid) ∗
     ⌜noRefusalAt c⌝ ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
+    client.srvWLaws (etcdstart.srvWOf E ρ.rd false) ∗
     isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) c
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
-      (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn) ∗
+      (fun md γs Dn => v3rpc.watchStreamSpec γs R (etcdstart.srvWOf E ρ.rd false)
+        (auth.mdTokenOf md) Dn) ∗
     ⌜(∃ reg : GName, ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩) ∧ ρ.rd.kv.c0 = W64 0 ∧
       ρ.rd.kv.ch0 = apply.alarmChain false false false ∧ ρ.rd.kv.log0 = [[], []] ∧
       -- (M2, the storage side, review round 2's N1, the approval's item 13) the member's server in
       -- the cluster's mode
-      E.γ.cm = cmp⌝) := by
+      E.cmp = cmp⌝) := by
   simp only [memberAt, servedRegs, etcdstart.etcdKVAt_eq, sep_assoc_eq]
 
 instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames)
@@ -362,19 +379,19 @@ instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqN
 /-- **A member of the started cluster in the monotone mode gives its bridge's grant and listing**
 (lease-mono3's review r1, SF2): `LeaseGrant` and `LeaseLeases` registered at the bridge's address
 `b` at the specs at the member's lessor history (`etcdLeaseGrantSpec`, `etcdLeaseLeasesSpec` of
-`E.γ.leases`), its client address's registrations forwarded (`isGrpcRpc_forwards`). -/
+`(mvcc.api.mvccLeases E.γ)`), its client address's registrations forwarded (`isGrpcRpc_forwards`). -/
 theorem memberAt_mono (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
     (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) (cmp : Bool) :
     memberAt γn s id ρ E cid mid R b c γ cmp .mono ⊢
       isGrpcRpc b go!"/etcdserverpb.Lease/LeaseGrant"
-          (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
-        isGrpcRpc b go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases) := by
+          (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E ρ.rd false) (mvcc.api.mvccLeases E.γ)) ∗
+        isGrpcRpc b go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec (mvcc.api.mvccLeases E.γ)) := by
   iintro #Hm
   iunfold memberAt at Hm
   icases Hm with ⟨#Hfw, -, Hs, -⟩
   isimp only [servedRegs, etcdstart.etcdLeaseServedAt_mono] at Hs
   icases Hs with ⟨-, #Hg⟩
-  icases etcdstart.etcdLeaseGrantAt_elim c E $$ Hg with ⟨#HG, #HL⟩
+  icases etcdstart.etcdLeaseGrantAt_elim c E ρ.rd $$ Hg with ⟨#HG, #HL⟩
   isplitl
   · iapply isGrpcRpc_forwards b c; iframe #
   · iapply isGrpcRpc_forwards b c; iframe #

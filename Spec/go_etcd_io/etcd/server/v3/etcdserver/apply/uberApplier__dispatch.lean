@@ -33,8 +33,8 @@ method its first set field names (`dispatchKind`; the premise `dispatchOk`: not 
 a compaction with its facts, `cmpAdmit`), with the apply thread's KV at `log` and the critical-section contract with
 `v3` (`cPre v3`); the KV and `applyV3` (changed by an alarm request) after it (`dispatchStep`,
 `chainAfter`), the result (`dispatchResult`). Its deferred metrics (`ApplySecObserve`, the
-warnings) return. A write token of the store (`mvcc.storeWT E.γ`) is handed to the method
-that may open a store write transaction (2026-10-13, unit 6). The certificates of the logs the
+warnings) return. The backend's write-back and reader tokens (`kvOwnPre`, strict M1: in place of mvcc's write token)
+are handed to the components' writes. The certificates of the logs the
 request may commit (`certPre`; 2026-10-14, unit T1). The apply thread's compaction resources
 (`cmpOwn`), at `crev` before and at `dispatchCrev` after (M2's apply side, 2026-10-31: the compaction
 arm, item 11). The rest state's premise `restReqOk` (the cluster-rows stage, 2026-11-02: a member
@@ -55,17 +55,17 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       apply.irrWrapperIs r rq skip ∗ apply.chainRes c a info ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
-      apply.kvOwn E log ∗ apply.certPreV v3 E c rq log ∗ mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
+      apply.kvOwnPre v3 E log Pre Q Post ∗ apply.certPreV v3 E c rq log ∗
       ⌜apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq ∧
-        (v3 = true → apply.cmpAdmit E.γ.kb log rq)⌝ ∗
+        (v3 = true → apply.cmpAdmit log rq)⌝ ∗
       □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
       apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
       apply.revokeOwn E rq ∗
-      ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      ⌜c.authOn = E.authOn⌝ ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗
       apply.cmpOwn E crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; apply.chainResAny c a ∗ E.FS ∗
+  {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ apply.chainResAny c a ∗ E.FS ∗
       apply.cmpOwn E (apply.dispatchCrev c rq v3 crev) ∗
       ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗

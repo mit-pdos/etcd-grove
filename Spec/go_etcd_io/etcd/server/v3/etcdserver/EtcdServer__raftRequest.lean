@@ -4,6 +4,7 @@
 -/
 module
 
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 public import Proof.context.ReqKeys
@@ -38,6 +39,8 @@ corollary in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26;
 entry, with what the proposer learns of the model there (`appliedOkM`, `modelOutM`: in the mode `on`
 the auth state the entry met and the auth layer's verdict the model's grant there). (Sweep repairs 1,
 B2, 2026-11-08) The context's start time is a time (`context.startTimeOk`: what the result's
+`Value(StartTimeKey{})` is type-asserted from).  (Sweep repairs 1,
+B2, 2026-11-08) The context's start time is a time (`context.startTimeOk`: what the result's
 `Value(StartTimeKey{})` is type-asserted from). -/
 abbrev EtcdServer.raftRequest.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
@@ -50,9 +53,9 @@ abbrev EtcdServer.raftRequest.spec : Prop :=
   apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
-      context.isContext ctx cd ∗ context.startTimeOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
+      context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
-      mvcc.idxCert E.γ.idx F }}
+      srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"raftRequest"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗

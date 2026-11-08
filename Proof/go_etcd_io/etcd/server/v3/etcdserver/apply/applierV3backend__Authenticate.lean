@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__Authenticate
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
 public import Spec.context.WithValue
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 
 @[expose] public section
 
@@ -33,18 +34,13 @@ theorem apply.applierV3backend.Authenticate.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Authenticate.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post info
-  wp_start as ⟨#Hb, ⟨⟨⟨%am, #Hr⟩, HRW⟩, %Hadm⟩, Hpre, Hwt, #HSplit⟩
-  iunfold apply.mPre at Hpre
-  icases Hpre with ⟨Hkv, Hres, Hcs⟩
-  iunfold apply.kvOwn at Hkv
-  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-  icases Hard with ⟨Hard, Hwo⟩
-  icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
+  wp_start as ⟨#Hb, ⟨⟨⟨%am, #Hr⟩, HRW⟩, %Hadm⟩, Htt, Hpre, #HSplit⟩
+  icases apply.mPreW_split $$ Hpre with ⟨%cr, %B, Hsw, Hcs, Hwt, Hrt, Htie, Hres, Hkv⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨-, -, -, -, #Has, -, -, -, -, #Hci⟩
+  icases Hok with ⟨-, -, -, -, -, #Has, -, -, -, -, #Hci⟩
   iunfold apply.isAuthStore at Has
   icases Has with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, #HM, -⟩
   iunfold apply.isConsistentIndexer at Hci
@@ -56,8 +52,8 @@ theorem apply.applierV3backend.Authenticate.wp_proof
   wp_apply context.wp_Background
   rw [Hcii]
   -- the consistent index's resources, lent out of the critical section's precondition (D14i)
-  iunfold mvcc.csContract at Hcs
-  icases Hcs with ⟨HPre, #Hhk, Hfin⟩
+  iunfold srvApi.csContractA at Hcs
+  icases Hcs with ⟨HPre, Hhk, Hfin⟩
   iunfold apply.ciSplit at HSplit
   icases HSplit $$ HPre with ⟨%C, %ci, %HC, HC, HCb⟩
   ihave #HCIC := HCI $$ %C %ci
@@ -69,8 +65,8 @@ theorem apply.applierV3backend.Authenticate.wp_proof
   iintro HC
   (try wp_auto)
   ihave HPre := HCb $$ HC
-  ihave Hcs : mvcc.csContract E.P E.f Pre Q Post $$ [HPre Hfin]
-  · iunfold mvcc.csContract; iframe HPre Hhk Hfin
+  ihave Hcs : srvApi.csContractA (E.Pk B) E.f Pre Q Post $$ [HPre Hhk Hfin]
+  · iunfold srvApi.csContractA; iframe HPre Hhk Hfin
   wp_apply (hWV context.backgroundCtxVal
       ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty, _⟩ _) as %c1 ⟨%Hc1, -⟩
   · ipureintro; exact Or.inl rfl
@@ -80,27 +76,28 @@ theorem apply.applierV3backend.Authenticate.wp_proof
       ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty, _⟩ _) as %c2 ⟨-, -⟩
   · ipureintro; exact Or.inr (Or.inl rfl)
   rw [Hai]
-  wp_apply HM $$ %c2 %am.name %am.password %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt] as %resp %err ⟨HPP, Hrt, Hhdr, #HeI, HRW⟩
+  wp_apply HM $$ %c2 %am.name %am.password %B %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt $Htie] as %resp %err ⟨HPP, Hrt, Htie, Hhdr, #HeI, HRW⟩
   · ipureintro; exact Hadm
-  ihave Hwo := Hrdb $$ Hrt
   wp_if_destruct
   · -- no response
     iapply HΦ
+    isplitl [Htt]
+    · iexact Htt
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iapply apply.mPost_backend
-    iunfold apply.kvOwn
+    iapply (apply.mPostW_backend _ _ _ _ _ B cr)
     iframe
   · -- a response: its header
     iunfold apply.respHdrOk at Hhdr
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
     · exact absurd Hn Hif
-    wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, -⟩
     iapply HΦ
+    isplitl [Htt]
+    · iexact Htt
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iapply apply.mPost_backend
-    iunfold apply.kvOwn
+    iapply (apply.mPostW_backend _ _ _ _ _ B cr)
     iframe
 
 end proof

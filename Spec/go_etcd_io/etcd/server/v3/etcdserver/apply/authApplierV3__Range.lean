@@ -26,16 +26,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`aa.Range(r)`**: the auth store's `IsRangePermitted` (an auth error: rejected), then the inner applier's `Range`. -/
+/-- **`aa.Range(r)`**: the auth store's `IsRangePermitted` (an auth error: rejected), then the inner applier's `Range`. (Strict M1, 2026-11-05: with the thread's token, as `applierTriples`' Range triple.) -/
 abbrev apply.authApplierV3.Range.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
-      apply.rangePre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log }}
+      apply.applyTok E ∗ apply.rangePre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Range")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.rangePost E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq o log resp err ∗
-      apply.traceRes trace }}
+      apply.traceRes trace ∗ apply.applyTok E }}
 
 end spec
 

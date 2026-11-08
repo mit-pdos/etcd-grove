@@ -50,14 +50,9 @@ theorem watcher.Watch.wp_proof
   iunfold watchSrvFacts at Hf0
   icases Hf0 with ⟨-, #Hcf0⟩
   ihave ⟨#Hmf0, -⟩ := watchConnFacts_cur V $$ Hcf0
-  iunfold watchMemberFacts at Hmf0
-  icases Hmf0 with ⟨-, -, -, -, #Hkf0, -⟩
-  iunfold srvKVFacts at Hkf0
-  icases Hkf0 with ⟨%on0, %γr0, #Hinvs0, #H00, %Hkr0, -⟩
-  imod (srvKVCoreM_fire on0 V.R.E γr0 γ (by rw [Hkr0.1, Hkst]) Hkr0.2.1 [[], []] Q)
-    $$ Hinvs0 H00 H00 [] Hau
-    with ⟨%C0, #HQ0, -⟩
-  · unfold mvcc.certOk; ileft; ipureintro; simp
+  ihave #Hkf0 := watchMemberFacts_kv V $$ Hmf0
+  imod srvKVFacts_fire0 V γ Hkst.symm Q $$ [Hkf0 Hau] with ⟨%C0, #HQ0⟩
+  · iframe #
   -- (G2) the watch's events are of its range with an empty key read as `"\x00"`, which the
   -- server registers exactly
   have hcpl : cplCond true (opWatchModel key gs).watchNorm rev = true := by
@@ -102,7 +97,7 @@ theorem watcher.Watch.wp_proof
     null, ⟨γret, 0, 0⟩, 0, 0, 0, true, 0, γ, Q, n, if V.nm = 1 then n else 0⟩
   imod wsBdOk_intro V P0 rfl $$ Hbound with #Hbd
   -- the spec's row is the watch's (`wsRow_eq`)
-  have hrow : iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.γ (V.mem 0).2.s V.conn
+  have hrow : iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
       (GoInterface.ok ctx) n (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd)) =
       wsRow (GF := GF) V P0 := (wsRow_eq V P0).symm
   imod start_bag (retcP V (opWatchModel key gs).watchNorm rev true Q (wsRow V P0)) _ retc γret

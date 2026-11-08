@@ -1,27 +1,30 @@
 /-
 Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+
+Strict M1 (2026-11-05): over mvcc's API (`Txn.Range` at the transaction's dynamic type; gap A's
+fix gives the read log's `KindOk`).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompare
+public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.mkGteRange
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.compareKV
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
-public import Spec.context.TODO
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeLemmas
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
-  go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccName)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,18 +34,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 theorem txn.applyCompare.wp_proof
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hGte : txn.mkGteRange.spec (GF := GF) (hG := hG))
-    (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG))
-    (hKV : txn.compareKV.spec (GF := GF) (hG := hG)) :
-    txn.applyCompare.spec (GF := GF) (hG := hG) := by
-  have hRange := mvcc.metricsTxnWrite.Range.spec_R hRange
-  intro trace mw s γ log rev c cm crev
-  wp_start as ⟨Htx, #Hc⟩
+    (hKV : txn.compareKV.spec (GF := GF) (hG := hG))
+    : txn.applyCompare.spec (GF := GF) (hG := hG) := by
+  intro t γ trace te σ c cm
+  wp_start as ⟨Htx, Htrc, %Hreach, #Hc⟩
+  icases txn.mvccTxn_shape hsh t γ trace (.read σ) $$ Htx with ⟨%Hsh, Htx⟩
+  obtain ⟨tyX, vX, rfl, -, -, hRangeC, -⟩ := Hsh
   ihave #Hc2 := Hc
   iunfold txn.compareIs at Hc2
   icases Hc2 with ⟨%Hcn, %ksl, %esl, %e, %u, #Hres, #Htgt, #Hk, #Hks, #He, #Hes, %Hre, #Hu, #Hun⟩
-  icases txn.isTxnRead_pure mw s γ log rev crev $$ Htx with ⟨Htx, %Hlog⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   ihave %Hesl := ownSlice_len _ _ _ $$ Hes
@@ -57,16 +60,14 @@ theorem txn.applyCompare.wp_proof
   have Hend := (txn.srvEnd_mkGte esl esl' e hnil Hgte)
   rw [← Hre] at Hend
   generalize (if e = [W8 0] then [] else e) = e' at Hend ⊢
-  ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) crev $$ [Htx]
-  · simp only [mvcc.isTxn]; iexact Htx
   ihave #Hctx : mvcc.rangeCtx true todoCtxVal txn.todoCd $$ []
   · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; iapply mvcc.doneNil_todo
-  wp_apply (hRange trace mw s γ (.read log rev) todoCtxVal txn.todoCd true ksl esl' cm.key e'
-      (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) crev) $$ [$Htx $Hctx $Hks $Hes']
-    as %rr %err ⟨%Hrn, Htx, Hout⟩
-  ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw s γ _ crev $$ Htx
+  wp_apply (hRangeC γ trace te (.read σ) todoCtxVal txn.todoCd true ksl esl' cm.key e'
+      (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)) $$ [$Htx $Htrc $Hctx $Hks $Hes']
+    as %rr %err ⟨%Hrn, Htx, Htrc, Hout, -, %Hlwf⟩
+  have Hok := txn.kindOk_of (.read σ) Hreach Hlwf.1 Hlwf.2
   -- (M2, S1) a read at the transaction's revision is never compacted
-  ihave ⟨%Hcr, Htx⟩ := txn.isTxn_crev mw s γ _ crev $$ Htx
+  have Hcr := txn.crev_le_readRev (.read σ) Hreach
   ihave Hout := mvcc.rangeOutcomeC_latest _ _ _ _ _ _ _ _
     (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)
     (by rw [show (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions).Rev' = W64 0 from rfl]
@@ -76,13 +77,9 @@ theorem txn.applyCompare.wp_proof
   icases Hout with (⟨%Hrnull, %Hne⟩ | ⟨%Herr, %kvs, %rv', %cnt, %ps, Hrr, Hkvs, #Hsel⟩)
   · exact absurd Hrnull (Hrn rfl)
   subst Herr
-  have hst : txn.kindState (.read log rev) = mvcc.stateAfter log := by
-    unfold txn.kindState
-    simp only [mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
-    rw [Hlog.2.2]
-    exact txn.stateAt_lastRev log Hlog.2.1 (by have := Hlog.1.len; omega)
-  have hsel : txn.srvSel (txn.kindState (.read log rev)) (decide (esl' = slice.nil)) cm.key e' =
-      (mvcc.stateAfter log).filter (fun v => inRange cm.key cm.rangeEnd v.key) := by
+  have hst : txn.kindState (.read σ) = mvcc.stateAfter σ.log := txn.kindState_read σ Hreach
+  have hsel : txn.srvSel (txn.kindState (.read σ)) (decide (esl' = slice.nil)) cm.key e' =
+      (mvcc.stateAfter σ.log).filter (fun v => inRange cm.key cm.rangeEnd v.key) := by
     rw [hst]
     have h1 : decide (esl' = slice.nil) = (txn.srvEnd cm.rangeEnd).1 := congrArg Prod.fst Hend
     have h2 : e' = (txn.srvEnd cm.rangeEnd).2 := congrArg Prod.snd Hend
@@ -92,15 +89,13 @@ theorem txn.applyCompare.wp_proof
     intro v _
     exact txn.srvInRange_srvEnd _ _ _
   rw [hsel]
-  have hH : cmpHolds (mvcc.stateAfter log) cm =
-      let sel := (mvcc.stateAfter log).filter (fun v => inRange cm.key cm.rangeEnd v.key)
+  have hH : cmpHolds (mvcc.stateAfter σ.log) cm =
+      let sel := (mvcc.stateAfter σ.log).filter (fun v => inRange cm.key cm.rangeEnd v.key)
       if sel = [] then (cm.target != .value) && cmpKv cm (zeroKv cm.key) else sel.all (cmpKv cm) := by
     rfl
   rw [hH]
   simp only
-  generalize (mvcc.stateAfter log).filter (fun v => inRange cm.key cm.rangeEnd v.key) = sel
-  ihave Htx : mvcc.isTxnRead mw s γ trace log rev crev $$ [Htx]
-  · simp only [mvcc.isTxn]; iexact Htx
+  generalize (mvcc.stateAfter σ.log).filter (fun v => inRange cm.key cm.rangeEnd v.key) = sel
   iStructNamedPrefix Hrr "Q"
   ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
@@ -118,7 +113,7 @@ theorem txn.applyCompare.wp_proof
     all_goals simp only [ht, CmpTarget.code] at *
     all_goals wp_auto
     all_goals first
-      | (simp only [bne_self_eq_false, Bool.false_and]; iapply HΦ; iframe Htx; done)
+      | (simp only [bne_self_eq_false, Bool.false_and]; iapply HΦ; iframe Htx Htrc; done)
       | (icases typedPointsto_not_null_dup _ _ _ $$ «$a1» with ⟨«$a1», %Ha1nn⟩
          ihave Hz := «$a1»
          iStructNamedPrefix Hz "Z"
@@ -144,7 +139,7 @@ theorem txn.applyCompare.wp_proof
          wp_apply (hKV c «$a1_ptr» cm (zeroKv [])) $$ [$Hc $Hz]
          have hz : cmpKv cm (zeroKv []) = cmpKv cm (zeroKv cm.key) := by
            unfold cmpKv zeroKv; rfl
-         ihave H := HΦ $$ Htx
+         ihave H := HΦ $$ [$Htx $Htrc]
          iExactEq H
          rw [hz]
          congr 2
@@ -186,7 +181,7 @@ theorem txn.applyCompare.wp_proof
           cases hb
         rw [this]
         iapply HΦ
-        iframe Htx
+        iframe Htx Htrc
       · wp_auto
         wp_for_post
         iframe
@@ -208,7 +203,7 @@ theorem txn.applyCompare.wp_proof
         exact hall j (by have := Hkl.1; word) w (by rw [List.getElem?_eq_getElem hj, hjw])
       rw [this]
       iapply HΦ
-      iframe Htx
+      iframe Htx Htrc
 
 end proof
 

@@ -209,7 +209,7 @@ the caller's lower bound `n` of the published auth index, and a write's deposit 
 def srvKVAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (F : mvcc.Log) (d : KVDep GF) (n : Nat) (tok : Option GoString) : KVAns GF where
   call ctx := iprop(srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnOn s E ρ γr tok d ∗
-    mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗ ⌜auth.ctxTokenOf ctx = tok⌝)
+    srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗ ⌜auth.ctxTokenOf ctx = tok⌝)
   pre q := (match q with
     | .txn cs ts es => txnInModel cs ts es
     | _ => True) ∧ kvDepPreOn d q
@@ -231,7 +231,7 @@ def srvKVAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (
     | .range _ => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e))
-  revR := mvcc.storeReader E.s E.γ
+  revR := mvcc.api.mvccReaders E.γ 1
 
 /-- **A write's update in the auth mode `on`** (`kvOpAuOn`'s, the auth component's stage 4): fired at
 most once, at a lower bound `L₀` of the requested log the caller holds, told the write's grant
@@ -315,7 +315,7 @@ row is gated (`⌜on = true⌝ → …`) or reads the model at the mode. The gat
 def srvKVAnsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (F : mvcc.Log) (d : KVDep GF) (n : Nat) (tok : Option GoString) : KVAns GF where
   call ctx := iprop(srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM on s E ρ γr tok d ∗
-    mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗ ⌜on = true → auth.ctxTokenOf ctx = tok⌝)
+    srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗ ⌜on = true → auth.ctxTokenOf ctx = tok⌝)
   pre q := (match q with
     | .txn cs ts es => txnInModel cs ts es
     | _ => True) ∧ kvDepPreM on d q
@@ -343,7 +343,7 @@ def srvKVAnsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
   errP q m := match q with
     | .range _ => rangeErrMsgOk m
     | _ => True
-  revR := mvcc.storeReader E.s E.γ
+  revR := mvcc.api.mvccReaders E.γ 1
 
 /-- A deposit is a read deposit at the mode's model state (`kvDep`'s form). -/
 theorem kvDep_of_depM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
@@ -471,7 +471,7 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   simp only [srvKVAnsM]
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, -, %Htok⟩
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, -, -, Hcred, Hrd⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, -, -, Hcred, Hrd⟩
   subst Hci
   ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
   wp_apply hPut s E ρ ci cd r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
@@ -482,8 +482,8 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   ihave Hrc := Hrc $$ Hard
   iapply HΦ
   iunfold kvAnswer
-  icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit, #Hcok,
-    HQv, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit, Hcok,
+    Hrcpt, %Hwf, HQv, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     subst Herr
     simp only [apply.putOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
@@ -497,8 +497,8 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact ⟨trivial, Hrn⟩
     iexists h, W64 (x.log.length : Int)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h (W64 (x.log.length : Int)) (mvcc.storeReader E.s E.γ)
-      (w64_rev_ne_zero _ (by omega) Hlen.2) $$ [$Hown]
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h (W64 (x.log.length : Int)) (mvcc.api.mvccReaders E.γ 1)
+      (w64_rev_ne_zero _ (by omega) (by have := Hlen.2; omega)) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
     iframe Hrc
@@ -517,11 +517,12 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     iframe Hrd
     iunfold putApplied
     iexists hm, x, x', l, skip
-    iframe Hcert HMint Hwit Hcok HQv
+    iframe Hcert HMint Hwit Hcok Hrcpt HQv
     isplitr
     · ipureintro; exact ⟨Hstep, rfl, HFx, Hlen.1, Hlen.2⟩
     simp only [apply.putOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
     iframe Hresp
+    try (ipureintro; exact Hwf)
   · obtain ⟨rfl, Hne⟩ := Hre
     iright
     isplitr
@@ -560,7 +561,7 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     · intro o' h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hnz0
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, -, #Hst, Hcred, Hrd⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, #Hst, -, Hcred, Hrd⟩
   subst Hci
   ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
   wp_apply hDel s E ρ ci cd r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
@@ -572,7 +573,7 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %rq', %op', %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit,
-    #Hcok, HQv, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    Hcok, Hrcpt, %Hwf, HQv, #Hhb, #Hgate⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hwire, Hop', Hnz, Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     have Hrq : rq' = apply.withHeader (irrDeleteRange o) hm := Hwire.2.2.2 HnzW
     subst Herr
@@ -587,8 +588,8 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     isplitr
     · ipureintro; exact ⟨trivial, Hrn⟩
     iexists h, W64 ((mvcc.writeRev x.log (txn.delChanges (mvcc.stateAfter x.log) op') : Nat) : Int)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.storeReader E.s E.γ)
-      (writeRev_ne_zero _ _ Hlen.1 Hlen.2) $$ [$Hown]
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.api.mvccReaders E.γ 1)
+      (writeRev_ne_zero _ _ Hlen.1 (by have := Hlen.2; omega)) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
     iframe Hrc
@@ -608,11 +609,12 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     iframe Hrd
     iunfold deleteApplied
     iexists hm, rq', op', x, x', l, skip
-    iframe Hcert HMint Hwit Hcok HQv
+    iframe Hcert HMint Hwit Hcok Hrcpt HQv
     isplitr
     · ipureintro; exact ⟨Hwire, Hop', Hnz, Hstep, rfl, HFx, Hlen.1, Hlen.2⟩
     simp only [apply.deleteOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
     iframe Hresp
+    try (ipureintro; exact Hwf)
   · obtain ⟨rfl, Hne⟩ := Hre
     iright
     isplitr
@@ -1060,7 +1062,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, %Htok⟩
   ihave #Hdep' := kvDep_of_depM E.authOn s E ρ γr tok d $$ Hdep
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hct, #Hstc, Hcred, Hlt⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, #Hstc, #Hct, Hcred, Hlt⟩
   subst Hci
   wp_apply hRange s E ρ γr c ci cd r o none false (rangeDepQM E.authOn γr.kv d) F n Hany $$ [Hrc]
     as %resp %err ⟨Hrc, Hres⟩
@@ -1073,7 +1075,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
   icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hre, #HaE, #HrO⟩)
   · obtain ⟨rfl, Hrn⟩ := Herr
     iunfold rangeReadOkM at Hok'
-    icases Hok' with ⟨%log, #Hcert, #Hcok, %Hlen, Hlin, HQl, #Hres, Hown⟩
+    icases Hok' with ⟨%log, #Hcert, Hcok, #Hrcp, %Hlen, Hlin, HQl, #Hres, Hown⟩
     ihave #Hres' := Hres
     icases Hres' with ⟨%crev, Hres'⟩
     iunfold txn.rangeResult at Hres'
@@ -1089,17 +1091,17 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     isplitr
     · ipureintro; exact ⟨rfl, Hrn⟩
     iexists h, W64 ((log.length : Int) - 1)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.storeReader E.s E.γ)
-      (w64_last_ne_zero log Hlen.1 Hlen.2.1) $$ [$Hown]
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.api.mvccReaders E.γ 1)
+      (w64_last_ne_zero log Hlen.2.1 Hlen.2.2.1) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
     simp only
     iframe Hrc Hcred Hlt
-    isplitl [Hlin HQl]
+    isplitl [Hcok Hlin HQl]
     · iunfold rangeAnsOkM
       iexists log
-      iframe Hcert Hcok Hres Hlin HQl
-      ipureintro; exact ⟨Hlen.1, Hlen.2.1, rfl, Hlen.2.2⟩
+      iframe Hcert Hcok Hrcp Hres Hlin HQl
+      ipureintro; exact ⟨Hlen.1, Hlen.2.1, Hlen.2.2.1, rfl, Hlen.2.2.2⟩
     iintro %hon
     iunfold rangeAuthed
     icases Hcls with ⟨%info, %m, %Hm, #Hc, #Hib, #Hf⟩
@@ -1142,7 +1144,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   simp only [kvDepPre] at Hro
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, %Htok⟩
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hct, #Hstc, Hcred, Hlt⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, #Hstc, #Hct, Hcred, Hlt⟩
   subst Hci
   ihave #Hrt := txnReqIs_txnRequestIs r cs ts es ts' es' hts hes $$ Hr
   generalize ht : ({ cmps := cs, thenOps := ts', elseOps := es' } : TxnModel) = t at hm ⊢
@@ -1178,7 +1180,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       iunfold txnAppliedOk at Hok'
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       icases Hok' with ⟨%tw, %hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert, HMint, #Hwit,
-        #Hcok, HQv⟩
+        Hcok, Hrcpt, %Hwf, HQv⟩
       ihave #Hresp := Hout
       iunfold txn.txnResponseIs at Hresp
       icases Hresp with ⟨-, #Hf⟩
@@ -1191,8 +1193,8 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       · ipureintro; exact ⟨by first | rfl | trivial, Hrn⟩
       iexists h, W64 (mvcc.writeRev x.log
         (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 : Int)
-      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.storeReader E.s E.γ)
-        (writeRev_ne_zero _ _ Hlen.1 Hlen.2) $$ [$Hown]
+      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.api.mvccReaders E.γ 1)
+        (writeRev_ne_zero _ _ Hlen.1 (by have := Hlen.2; omega)) $$ [$Hown]
       · iframe #; ipureintro; exact Hhn
       iframe Hhf2 Hw Hri
       iframe Hrc Hlt
@@ -1220,7 +1222,8 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
         exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, Hst.2.2.2.2.1, rfl, Hst.2.2.2.2.2.1, Hlen.1, Hlen.2,
           Hst.2.2.2.2.2.2⟩
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-      iframe Hout Hcert HMint Hwit Hcok HQv
+      iframe Hout Hcert HMint Hwit Hcok Hrcpt HQv
+      try (ipureintro; exact Hwf)
       try (ipureintro; trivial)
     · obtain ⟨-, Hne⟩ := Hre
       iright
@@ -1252,7 +1255,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
     icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hne, #HaE⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold txnReadOkM at Hok'
-      icases Hok' with ⟨%log, #Hcert, #Hcok, %Hlen, Hlin, HQl, #Hresp, Hown⟩
+      icases Hok' with ⟨%log, #Hcert, Hcok, #Hrcp, %Hlen, Hlin, HQl, #Hresp, Hown⟩
       ihave #Hresp' := Hresp
       iunfold txn.txnResponseIs at Hresp'
       icases Hresp' with ⟨-, #Hf⟩
@@ -1262,8 +1265,8 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨rfl, Hrn⟩
       iexists h, W64 ((log.length : Int) - 1)
-      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.storeReader E.s E.γ)
-        (w64_last_ne_zero log Hlen.1 Hlen.2.1) $$ [$Hown]
+      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.api.mvccReaders E.γ 1)
+        (w64_last_ne_zero log Hlen.2.1 Hlen.2.2.1) $$ [$Hown]
       · iframe #; ipureintro; exact Hhn
       iframe Hhf2 Hw Hri
       simp only
@@ -1273,11 +1276,11 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       · ipureintro; exact hm
       simp only [hro, ↓reduceIte]
       iframe Hcred
-      isplitl [Hlin HQl]
+      isplitl [Hcok Hlin HQl]
       · iunfold txnReadAnsM
         iexists log
-        iframe Hcert Hcok Hresp Hlin HQl
-        ipureintro; exact ⟨Hlen.1, Hlen.2.1, rfl, Hlen.2.2⟩
+        iframe Hcert Hcok Hrcp Hresp Hlin HQl
+        ipureintro; exact ⟨Hlen.1, Hlen.2.1, Hlen.2.2.1, rfl, Hlen.2.2.2⟩
       iintro %hon
       iunfold txnAuthed
       icases Hcls with ⟨%info, %m, %Hm, #Hc, #Hib, #Hf⟩
@@ -1301,10 +1304,14 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       simp only [hro, ↓reduceIte]
       iexact Hcred
 
-/-- **`raftKV`'s getters, from the server's** (`KV().Rev()`: `store.Rev` on the bare store with the
-store's reader slots, `revR`; `Cluster().ID()`, `MemberID`, `Term`, `Leader`). -/
+/-- **`raftKV`'s getters, from the server's** (`KV().Rev()`: strict M1, `KV.Rev.contract` at the
+store handle's dynamic type (`shapes.law`), with the thread's token (`revR`) and a reader's update
+from the store invariant (`au_read`, at the read side's floor); `Cluster().ID()`, `MemberID`,
+`Term`, `Leader`). -/
 theorem kvGetOk_of_serverM (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
-    (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG))
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hP : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hR : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hCl : EtcdServer.Cluster.spec (GF := GF) (hG := hG))
     (hID : membership.RaftCluster.ID.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
@@ -1315,7 +1322,6 @@ theorem kvGetOk_of_serverM (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ⊢
       kvGetOk s (srvKVAnsM E.authOn s E ρ γr c F d n tok) := by
-  have hRev := mvcc.store.Rev.spec_R hRev
   iintro ⟨#Hpkg, #Hsrv, #Hsrd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
@@ -1330,12 +1336,15 @@ theorem kvGetOk_of_serverM (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
   iunfold isServerReadM at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
-  icases Hw with ⟨-, -, #Hkvf, #Hkv, #Hrvf, #Hrv, -, -, -, -, -, -, -, #Hterm, -⟩
-  ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ Hkv
-  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
-  ihave ⟨#Hko0, #Hst⟩ := txn.isKV_kvOver _ E.s E.γ $$ Hkv
-  ihave #Hko : mvcc.kvOver (interface.mkOk kty kvv) E.s $$ []
-  · rw [← Hkveq]; iexact Hko0
+  icases Hw with ⟨-, -, #Hkvf, #Hkv, %Hkvw, -, -, -, -, -, -, -, #Hterm, ⟨%log₀, #Hl0, -⟩, -, #Hkvi, -⟩
+  icases txn.isMvcc_shape hsh w.kv E.γ $$ Hkv with ⟨%Hsh, -⟩
+  obtain ⟨kty, kvv, Hkveq, -, -, hRevC, -⟩ := Hsh
+  ihave Hkv' : □ mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
+  · rw [← Hkveq]; imodintro; iexact Hkv
+  icases Hkv' with #Hkv'
+  -- the store invariant and `E.Nx`/`E.Cp`'s instances, in either mode (`srvKVInvsM_kvStoreInv`)
+  ihave ⟨#Hks, %Hks2⟩ := srvKVInvsM_kvStoreInv E.authOn s E γr $$ Hkvi
+  obtain ⟨hNxP, hNxT, hCpP, hCpT⟩ := Hks2
   iunfold kvGetOk
   simp only [srvKVAnsM]
   isplitr
@@ -1346,15 +1355,12 @@ theorem kvGetOk_of_serverM (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     iexists ⟨kty, kvv⟩
     isplitr
     · ipureintro; exact Hkveq
-    iintro !> %Φ' Hrd HΦ'
-    imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-    imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #Hc0
-    iapply mvcc.kvOver_rev_wp kty kvv E.s
-    iframe Hko
-    wp_apply hRev E.s w.rv E.γ 0 [] $$ [Hrd Hnone] as %rv ⟨Hrd, -, -⟩
-    · iframe #; iframe Hrd Hnone
+    iintro !> %Φ' Hrdr HΦ'
+    ihave Hau := srvApi.au_read E.Nx E.Cp hP hR E.kv E.γ E.γs log₀ $$ Hks Hl0
+    iunfold srvApi.auRead at Hau
+    wp_apply (hRevC E.γ _) $$ [$Hkv' $Hrdr $Hau] as %rv ⟨Hrdr, -⟩
     iapply HΦ'
-    iexact Hrd
+    iexact Hrdr
   isplitr
   · iintro !> %Φ - HΦ
     wp_apply hCl s v.cluster $$ []
@@ -1398,7 +1404,9 @@ theorem raftKV_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     (hRange : EtcdServer.Range.spec (GF := GF) (hG := hG))
     (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
-    (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG))
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hP : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hR : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hCl : EtcdServer.Cluster.spec (GF := GF) (hG := hG))
     (hID : membership.RaftCluster.ID.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
@@ -1419,7 +1427,7 @@ theorem raftKV_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   · iapply kvDeleteOk_of_serverM hDel s E ρ γr c F d n tok; iframe #
   isplitr
   · iapply kvTxnOk_of_serverM hTxn s E ρ γr c F d n tok; iframe #; ipureintro; exact Hany
-  iapply kvGetOk_of_serverM hKV hRev hCl hID hMID hTerm hLead s E ρ γr c F d n tok; iframe #
+  iapply kvGetOk_of_serverM hKV hsh hP hR hCl hID hMID hTerm hLead s E ρ γr c F d n tok; iframe #
 
 /-- A handler's answer under parameters `A'` is one under `A` when `A'`'s answers give `A`'s. -/
 theorem kvAnswer_mono (A A' : KVAns GF) (hR : A.revR = A'.revR)

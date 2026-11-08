@@ -67,10 +67,10 @@ abbrev wsWgAddr (s : Loc) : Loc := structFieldRef watchableStore go!"wg" s
 end addrs
 
 /-- The namespace of the store's wait group (Perennial's `isWaitGroup`). -/
-def wsWgWGN : Namespace := nroot.@"mvccWaitGroup"
+def wsWgWGN : Namespace := (nroot .@ "mvcc") .@ "waitGroup"
 
 /-- The namespace of the store's wait-group counter invariant (`wsWgInv`). -/
-def wsWgN : Namespace := nroot.@"mvccWgCounter"
+def wsWgN : Namespace := (nroot .@ "mvcc") .@ "wgCounter"
 
 section reprs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -88,7 +88,7 @@ what the batch delivers: the delivered events and the batch's are the range's up
 `minRev` (`evsWf`, as a victim's `popFacts`), with `victimBatchOk`. -/
 def moverRes (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (evsw : List EvM),
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ filtersOk fcs ∗
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗
     ⌜sint.Z r.startRev ≤ (γw.lo : Int) ∧ (γw.lo : Int) ≤ sint.Z st.minRev ∧
       victimBatchOk γw.lo st B⌝ ∗
     watcherOwn w st (1 : Qp).half ∗ monoListAuthOwn γw.evs (1 : Qp).half evsw ∗
@@ -98,16 +98,16 @@ def moverRes (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) : IProp 
 /-! ## The loops' wait group and stop channel -/
 
 /-- **The number of the store's loops** (`syncWatchersLoop`, `syncVictimsLoop`): `New`'s
-`s.wg.Add(2)`, the readers `New` lends them and `watchableStore.Close` returns (R-D1, 2026-11-04). -/
+`s.wg.Add(2)`, the readers `New` lends them and `watchableStore.Close` returns (R-D1, 2026-11-04;
+ported onto mvcc-api's API, 2026-11-06: the readers at names without physical part). -/
 abbrev wsLoopN : Nat := 2
 
 /-- The store's wait-group counter (an invariant, in `wsWgN`; allocated by `New` after
 `s.wg.Add(2)`, at `n = wsLoopN`, `d = 0`): the counter is the number `n` of done tokens out (`γd`:
-one per running loop, `wsDone`); (R-D1, 2026-11-04) each loop that has called `Done` has left its
-reader of the inner store `st` there (`d` of them, `n + d = wsLoopN`), until the closer, after
-`Wait` (`n = 0`), takes them with its claim `token γw` (`wsWaiter`). The readers are at the inner
-store's names `γs`, of which they read no physical part (`storeReaderC_withPhys`). Until then the
-done tokens only. -/
+one per running loop, `wsDone`); (R-D1) each loop that has called `Done` has left its reader of the
+inner store `st` there (`d` of them, `n + d = wsLoopN`), until the closer, after `Wait` (`n = 0`),
+takes them with its claim `token γw` (`wsWaiter`). The readers are at the inner store's names `γs`,
+of which they read no physical part (`storeReader_withPhys`), so a restore leaves them alone. -/
 def wsWgInv (st : Loc) (γs : StoreNames) (γwg : sync.WaitGroupNames) (γd γw : GName) : IProp GF :=
   iprop(∃ (ctr : w32) (n d : Nat), sync.ownWaitGroup γwg ctr ∗ ownTokAuth γd n ∗
     ⌜sint.Z ctr = (n : Int) ∧ n + d = wsLoopN⌝ ∗
@@ -151,10 +151,10 @@ def wsCloser (s st : Loc) (γs : StoreNames) : IProp GF :=
     storeCloser st γs)
 
 theorem wsWg_maskW : (↑wsWgWGN : CoPset) ⊆ ⊤ \ ↑wsWgN :=
-  sync.wg_mask_ndot_ne nroot "mvccWaitGroup" "mvccWgCounter" (by decide)
+  sync.wg_mask_ndot_ne (nroot .@ "mvcc") "waitGroup" "wgCounter" (by decide)
 
 theorem wsWg_maskN : (↑wsWgN : CoPset) ⊆ ⊤ \ ↑wsWgWGN :=
-  sync.wg_mask_ndot_ne nroot "mvccWgCounter" "mvccWaitGroup" (by decide)
+  sync.wg_mask_ndot_ne (nroot .@ "mvcc") "wgCounter" "waitGroup" (by decide)
 
 /-- `s.wg.Done()` with a done token, leaving the loop's reader of `st` (R-D1). -/
 theorem wp_wsDone (s st : Loc) (γs : StoreNames) :

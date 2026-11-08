@@ -24,19 +24,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The stop's serving readers** (`srvStopReaders`) from `NewServer`'s 64 store readers and its
-watchable store's 64 (`srvWatchReaders`, each holding a reader of the store:
-`srvWatchReaders_storeReaders`). -/
-theorem srvStopReaders_intro [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (s : Loc)
+/-- **The stop's serving readers** (`srvStopReaders`) from `NewServer`'s 64 reader tokens and its
+watch service's 64 (`srvWatchReaders`' tokens, `srvWatchReaders_readers`), joined by the API's
+`mvccReaders_split.law`. -/
+theorem srvStopReaders_intro (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc)
     (E : apply.AEnv GF) :
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗ srvWatchReaders s E 64 ⊢
-      srvStopReaders (GF := GF) E := by
+    mvcc.api.mvccReaders E.γ 64 ∗ srvWatchReaders s E 64 ⊢ srvStopReaders (GF := GF) E := by
   unfold srvStopReaders
-  rw [← List.replicate_append_replicate]
   iintro ⟨Hsts, HWR⟩
-  iapply BigSepL.bigSepL_append.2
-  iframe Hsts
-  iapply srvWatchReaders_storeReaders $$ HWR
+  ihave Hw := srvWatchReaders_readers s E 64 $$ HWR
+  iapply (hRS E.γ 64 64).2
+  iframe Hsts Hw
 
 end readers
 

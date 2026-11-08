@@ -4,6 +4,7 @@ counterpart); see `InvStart.lean`.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.CtxLaws
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
@@ -191,12 +192,11 @@ theorem EtcdServer.start.wp_proof
   ihave #Hpctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_apply context.wp_Background
-  wp_apply context.wp_WithCancel_Background iprop(True) $$ [] as %cctx %γcx %cancel
-    ⟨#Hcancel, #Hcctx, #Hccc, #Hcvf⟩
-  · iframe Hcci
-  -- (sweep repairs 1, B2) `s.ctx` answers `nil` at `StartTimeKey{}` (a child of `Background()`)
-  ihave #Hcst := startTimeOk_of_bgFrom cctx $$ [Hpctx Hcvf]
-  · iframe #
+  -- (R8, 2026-11-07) with its trace and span facts (`traceutil.wp_WithCancelBackground_noTrace`:
+  -- the revocation's `LeaseRevoke` takes the span fact, `srvRevokeCtx`)
+  wp_apply traceutil.wp_WithCancelBackground_noTrace $$ [] as %cctx %γcx %cancel
+    ⟨#Hcancel, #Hcctx, -, #Hcspan, #Hcst⟩
+  iunfold context.cancelSpec at Hcancel
   icases Hctx with ⟨%ctx0, Hctx⟩
   icases Hcancel0 with ⟨%cn0, Hcancel0⟩
   wp_auto
@@ -436,17 +436,17 @@ theorem EtcdServer.start.wp_proof
     iexact Hcancel
   -- the apply thread's resources
   iunfold applyBuiltC at Happ
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hbo, ⟨%ua, Hua, Hres, #Hfor, Hkv⟩, HRA,
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, Hres, #Hfor, Hkv⟩, HRA,
     Hrdat, Hao, #Hlog, Hkr, Hrest, Hap, Hfs, Htok⟩
   -- the read side, from the component's row (`acRes_read`)
   icases acRes_read C s E ua srvAuthSt0 hm $$ Hres with ⟨Hres, #HaR⟩
   -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
   icases srvSnapOwn_of_boot s ci E γr γ ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩
   ihave Hstart : applyStartC C s γ ci b E γr ai₀ c₀ x₀ γw $$
-      [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA Hres Hrdat Hao Hkr Hrest Hap Hfs Htok Hwg1 HRD Hso]
+      [Hth Hbe Hca Halg Hbm Hrdk Hbo Hua Hkv HRA Hres Hrdat Hao Hkr Hrest Hap Hfs Htok Hwg1 HRD Hso]
   · iunfold applyStartC
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Halg Hbm Hao Hso Hfs Hwg1 Hlog Hkr Hrest Hap Htok
+    iframe Hth Hbe Hca Halg Hbm Hrdk Hao Hso Hfs Hwg1 Hlog Hkr Hrest Hap Htok
     isplitr
     · ipureintro; exact Hlo
     iunfold srvApplyKVC
@@ -506,7 +506,7 @@ theorem EtcdServer.start.wp_proof
     -- side's (`srvKVInvs`)
     ihave #Hkvt := Hkvi
     iunfold srvKVInvsC at Hkvt
-    icases Hkvt with ⟨-, #HkcI, -, -, -, %Hktie, -, -⟩
+    icases Hkvt with ⟨-, #HkcI, -, -, -, -, %Hktie, -, -⟩
     have hkv : ({ ρ with wait := γw } : ReqNames).kv = γr.kv := by subst Hρrd; rfl
     have hrf : ({ ρ with wait := γw } : ReqNames).raft = γr.raft := by subst Hρrd; rfl
     rw [hkv, hrf]
@@ -514,21 +514,23 @@ theorem EtcdServer.start.wp_proof
     ipureintro; exact ⟨kvTieM_of_names _ E γr Hktie, Q19⟩
   icases Hrdb with ⟨%vd, #Hvd⟩
   iunfold srvReadBuilt at Hvd
-  icases Hvd with ⟨#R1, #R2, #R3, #R4, #R5, #R6, #R7, #R8, #R9, %R10, #R11, #R12, #R13, #R14, #R15⟩
+  icases Hvd with ⟨#R1, #R2, %R3, #R4, #R5, #R6, #R7, #R8, %R9, #R10, #R11, #R12, #R13⟩
   let awi : GoInterface :=
     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.timeList.ty) #tl
   ihave #Hrd : isServerReadM C.isOn s E γr $$ []
   · iunfold isServerReadM
     iexists ({ vd with read := rd, aw := awi, lc := lcn, stopping := sgc } : ReadFields)
     iunfold srvReadFieldsAtM
-    iframe R15 R14 R13 R12 R11 R9 R8 R7 R6 R5 R4 R3 R2 R1 Hwt Hlc Hread Hisrd Hstopping Haw Hci' HkviM Hai
+    iframe R13 R12 R11 R10 R8 R7 R6 R5 R4 R2 R1 Hwt Hlc Hread Hisrd Hstopping Haw Hci' HkviM Hai
     isplitr
-    · ipureintro; exact R10
+    · ipureintro; exact R3
+    isplitr
+    · ipureintro; exact R9
     isplitl
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    iapply readBound_of_read C s E vd.auth hm $$ [$HaR $R7]
+    iapply readBound_of_read C s E vd.auth hm $$ [$HaR $R6]
   -- `go s.run()`, with the write budget backed by time receipts (D19b; made by `NewServer` since
   -- M2's item 15, stage B3)
   iunfold srvWTBudget at HWB
@@ -598,7 +600,7 @@ theorem EtcdServer.start.wp_proof
       · rw [← isServerReadM_false, ← hCoff]; iexact Hrd
     iframe HNR
     iexists cctx, _
-    iframe Hctx Hcctx Hcst
+    iframe Hctx Hcctx Hcspan Hcst
   -- (R2d'a swap batch 5) `run`'s start conjuncts in restart form, from a first start's (`%HEr`,
   -- `Hsnap`, `Hstart`; `srvRunRestartR_first`)
   ihave HRr : srvRunRestartR C s γ ci b E { ρ with wait := γw } γr Er γn ai₀ at₀ c₀ x₀ γw
@@ -627,7 +629,7 @@ theorem EtcdServer.start.wp_proof
       isplitr
       · ipureintro; exact Hslg
       isplitr
-      · iexists vd.kv; iframe R1 R2
+      · iexists vd.kv; iframe R1 R2; ipureintro; exact R3
       iframe Hsnapb
       isplitr
       · iexists γp

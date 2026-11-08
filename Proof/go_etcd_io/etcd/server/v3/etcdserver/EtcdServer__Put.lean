@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
+public import Proof.go_opentelemetry_io.otel.trace.SpanCtxLaws
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetKey
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
@@ -46,7 +47,7 @@ theorem EtcdServer.Put.wp_proof
     (hWV : context.WithValue.spec (GF := GF) (hG := hG)) :
     EtcdServer.Put.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r op Q F
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hput, Hperm, #HF⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hspc, #Hput, Hperm, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -76,27 +77,38 @@ theorem EtcdServer.Put.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hst1, %Hinc1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hspc1 := Hspw $$ Hspc
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi
   (try wp_auto)
   wp_apply time.wp_Now as %now -
   (try wp_auto)
-  wp_apply hWV ctx1 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c2 ⟨%Hc2, -, #Hc2w, %c2', %vs2', %Hc2e', %Hinc2, -, -, -, -, #HVw⟩
+  wp_apply hWV ctx1 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c2 ⟨%Hc2, -, #Hc2w, %c2', %vs2', %Hc2e', %Hinc2, -, -, -, -, #Hdel2⟩
   · iframe #; ipureintro; right; right; left; rfl
   ihave ⟨%ctx2, %vs2, %Hc2e, #Hctx2⟩ := Hc2w $$ %_ Hctx1
   subst Hc2e
-  have Hcc := GoInterface.ok.inj Hc2e'
-  subst Hcc
+  -- (the span fact, `trace.spanCtxOk`) the context `raftRequest` sees has it, through `WithValue`'s
+  -- delegation at a key other than otel's
+  ihave #Hspc2 : trace.spanCtxOk ctx2 $$ []
+  · rw [show ctx2 = c2' from GoInterface.ok.inj Hc2e']
+    have hk : go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty ≠ go_opentelemetry_io.otel.trace.traceContextKeyType.ty := by
+      simp [go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty,
+        go_opentelemetry_io.otel.trace.traceContextKeyType.ty]
+    have hlem := fun (k : val) (v : GoInterface) => trace.spanCtxOk_valueCtx (GF := GF) ctx1
+      ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, k⟩ c2' v hk
+    iapply hlem
+    iframe Hdel2 Hspc1
   -- (sweep repairs 1, B2) the start time `WithValue` stored: a `time.Time`
   ihave #Hst2 : context.startTimeOk ctx2 $$ []
-  · iunfold context.startTimeOk
+  · rw [show ctx2 = c2' from GoInterface.ok.inj Hc2e']
+    iunfold context.startTimeOk
     imodintro
     iintro %Φ' HΦ'
-    iapply HVw $$ %startTimeKeyAny %startTimeRes
+    iapply Hdel2 $$ %startTimeKeyAny %startTimeRes
     · ipureintro; left; rfl
     · ipureintro; intro _; right; exact ⟨now, rfl⟩
     · iintro %hne; exact absurd rfl hne
@@ -175,7 +187,7 @@ theorem EtcdServer.Put.wp_proof
         simp [irrNoZeroEnd, apply.withHeader, irrPut, apply.irrEmpty]
       subst Hrq
       iunfold appliedOk at Hok
-      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, Hrcpt, %Hwf⟩
       obtain ⟨Hstep, Hfl, Hxlb, -⟩ := Hstep0
       have Hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
         simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
@@ -202,9 +214,11 @@ theorem EtcdServer.Put.wp_proof
       isplitr
       · ipureintro; rfl
       iexists hm, x, x', .applied log' false, skip
-      iframe Hpo Hhdr Hcert HMint Hwit Hcok
+      iframe Hpo Hhdr Hcert HMint Hwit Hcok Hrcpt
       isplitr
       · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
+      isplitr
+      · ipureintro; exact Hwf
       rw [Hxlb, ← HLlb]
       iframe HQ
       isplitr
@@ -253,7 +267,7 @@ theorem EtcdServer.Put.wp_proof
         simp [irrNoZeroEnd, apply.withHeader, irrPut, apply.irrEmpty]
       subst Hrq
       iunfold appliedOkM at Hok
-      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok, -⟩
+      icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, Hcok, -, Hrcpt, %Hwf, -⟩
       obtain ⟨Hstep, Hfl, -, Hmo, -⟩ := Hstep0
       have Hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
         simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
@@ -281,9 +295,11 @@ theorem EtcdServer.Put.wp_proof
       isplitr
       · ipureintro; rfl
       iexists hm, x, x', .applied log' false, skip
-      iframe Hpo Hhdr Hcert HMint Hwit Hcok
+      iframe Hpo Hhdr Hcert HMint Hwit Hcok Hrcpt
       isplitr
       · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
+      isplitr
+      · ipureintro; exact Hwf
       iframe HQ
       isplitr
       · iapply hdrBoundM_ctx true s E _ _ hm Hinc $$ Hhb

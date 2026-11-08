@@ -416,7 +416,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- contract's premise, `N + 7 + bootWB ≤ wbInit`, until then the post's `%HN`); and what
     -- `bootstrap` adds: the store's registration right, `keySized` (`bootBackend_of_bootLeft`
     -- turns `newPostK` into the resources `NewServer` uses)
-    "Hnew" ∷ backend.newPostK d.γB d.P (fun γB => mvcc.lateWB d.gx γB)
+    "Hnew" ∷ backend.newPostK d.γB d.P (fun _ => mvcc.api.mvccW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
     -- (2026-11-01, the user's decision, "bootOk's boot metadata") the boot data's meta keys are the
     -- protocol's initial ones: the consistent index and term stored in `D`'s `Meta` bucket are
@@ -427,7 +427,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
     -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
     "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
-    "Hlate" ∷ mvcc.lateReg d.gx ∗
+    "Hlate" ∷ mvcc.api.mvccWReg d.gx ∗
     -- (D22, 2026-10-23: the backend over every bucket; a widening of the fresh data directory's
     -- facts, until then the opaque tokens `bkFresh d.γB "lease"`, `"auth"`, `"alarm"`) every rest
     -- bucket of the fresh file empty (absent or empty), the membership's three present
