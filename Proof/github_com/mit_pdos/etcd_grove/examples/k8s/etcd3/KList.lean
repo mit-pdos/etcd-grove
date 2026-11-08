@@ -114,6 +114,52 @@ def limitN (x : Input) : Nat := if 0 < sint.Z x.Limit' then (sint.Z x.Limit').to
 def listLoopL (x : Input) (its : List item) : ListModel.LState w8 Obj :=
   ListModel.loop (selOkL x) (limitN x) (scopeL x its)
 
+/-- The items in scope of one more store item. -/
+theorem scopeL_take_succ (x : Input) (its : List item) (j : Nat) (it : item)
+    (h : its[j]? = some it) :
+    scopeL x (its.take (j + 1)) = scopeL x (its.take j) ++
+      (if keyInScopeL x.ListKey' x.Recursive' (storeKeyL it.key') then
+        [(storeKeyL it.key', it.obj')] else []) := by
+  rw [List.take_add_one, h]
+  simp only [scopeL, Option.toList_some, List.map_append, List.map_cons, List.map_nil,
+    List.filter_append, List.filter_cons, List.filter_nil]
+
+/-- `mlist`'s loop, one store item more (`lstep` on it iff it is in scope). -/
+theorem listLoopL_take_succ (x : Input) (its : List item) (j : Nat) (it : item)
+    (h : its[j]? = some it) :
+    listLoopL x (its.take (j + 1)) =
+      if keyInScopeL x.ListKey' x.Recursive' (storeKeyL it.key') then
+        ListModel.lstep (selOkL x) (limitN x) (listLoopL x (its.take j)) (storeKeyL it.key', it.obj')
+      else listLoopL x (its.take j) := by
+  unfold listLoopL ListModel.loop
+  rw [scopeL_take_succ x its j it h]
+  split <;> simp [List.foldl_append]
+
+theorem foldl_items_le_total {α O : Type} (sel : O → Bool) (limit : Nat) :
+    ∀ (sc : List (List α × O)) (s : ListModel.LState α O), s.items.length ≤ s.total →
+      (sc.foldl (ListModel.lstep sel limit) s).items.length ≤
+        (sc.foldl (ListModel.lstep sel limit) s).total
+  | [], s, h => by simpa using h
+  | ko :: sc, s, h => by
+    rw [List.foldl_cons]
+    apply foldl_items_le_total sel limit sc
+    simp only [ListModel.lstep]
+    split
+    · simp only; omega
+    · split
+      · simp only [List.length_cons]; omega
+      · simp only; omega
+
+/-- The loop's counts: its items at most its total, its total at most the store items. -/
+theorem listLoopL_le (x : Input) (its : List item) :
+    (listLoopL x its).items.length ≤ (listLoopL x its).total ∧
+      (listLoopL x its).total ≤ its.length := by
+  constructor
+  · exact foldl_items_le_total _ _ _ _ (by simp)
+  · unfold listLoopL; rw [ListModel.loop_total]
+    unfold scopeL
+    exact Nat.le_trans (List.length_filter_le _ _) (by simp)
+
 /-- `storage.EncodeContinue(key, prefix, rv)`'s token, where it is defined (`encOkL`). Opaque:
 nothing about the token is used, only that the store and the model compute the same (Q7e-1). -/
 opaque encL : GoString → GoString → w64 → GoString
