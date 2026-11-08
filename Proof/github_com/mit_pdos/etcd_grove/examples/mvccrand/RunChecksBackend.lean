@@ -21,6 +21,7 @@ the store's part of it. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.WriterRun
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopCensus
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.New
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
@@ -201,22 +202,36 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
 
+/-- **The census before the backend's `Close`** (2026-11-08, for the closed theorem; the server's
+`stop_census_open`): with the reader's open share and the half the tester keeps, the closed store,
+every reader token and a share of the store's backend give the backend's whole open token (the
+share given back). It holds the other shares of the open token: a second reader's, the pool's and
+the auth store's. -/
+def rcCensus (γB : backend.BNames) (b : Loc) (gx : GName) (lim : w64) : IProp GF :=
+  iprop(∀ (γ : MvccName) (q : Qp), backend.bOpen γB backend.rdOpen -∗ backend.bOpen γB (1 : Qp).half -∗
+    mvccClosed γ ∗ mvccReaders γ mvccReaderN ∗
+      mvccBackend γ q (etcdStorage (rcKB γB b gx lim)) iprop(True) ={⊤}=∗
+    backend.bOpen γB 1 ∗ mvccBackend γ q (etcdStorage (rcKB γB b gx lim)) iprop(True))
+
 /-- **What the tester keeps of its opened backend**: the store's part opened, the backend's
 contract, the hook's half (unset), the tracked buckets' half, half of the open token, one reader's
 token (a slot and its open share: the lessor's write right, `apply.bkRT`) and `m` write-back
-tokens. -/
+tokens; and (2026-11-08, for the closed theorem's `Close`) the stop channels and the open token's
+shares the census adds to the store's, inside the census itself (`rcCensus`). -/
 def rcBk (γB : backend.BNames) (b : Loc) (gx : GName) (lim : w64) (m : Nat) : IProp GF :=
   iprop(mvccStorageFor (etcdStorage (rcKB γB b gx lim)) iprop(True) mvccStart.log mvccStart.crev false ∗
     □ backend.isBackend γB (rcP lim) (mvccW gx) iprop(True) b ∗
     backend.plHook γB func.nil ∗ backend.rbOwn γB (backend.rbData (rcP lim) ∅) ∗
     backend.bOpen γB (1 : Qp).half ∗ backend.bOpen γB backend.rdOpen ∗
-    backend.rdTok γB (rcP lim) b ∗ ownToks γB.wb m)
+    backend.rdTok γB (rcP lim) b ∗ ownToks γB.wb m ∗
+    □ backend.isStopChans γB (rcP lim) (mvccW gx) iprop(True) b ∗ rcCensus γB b gx lim)
 
 /-- **The tester's backend opened for the store** (see the file header): from `backend.New`'s post
 at the store's write invariant over the empty data, keeping the fresh backend's payment rights
 (`K := bFresh`), and the registration, the store's part opened, the client's rest, `m` tokens. -/
 theorem rc_open (hfresh : mvccImage_fresh.law (GF := GF)) (hopen : etcdStorage_open.law (GF := GF))
-    (hrest : backendRest_open.law (GF := GF)) [ThreadBoundLe GF (2 ^ 28)]
+    (hrest : backendRest_open.law (GF := GF)) (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
+    [ThreadBoundLe GF (2 ^ 28)]
     (γB : backend.BNames) (b : Loc) (gx : GName) (lim : w64) (m : Nat)
     (hm : receiptBound GF + m + 2 ≤ backend.wbInit) :
     □ (∀ (γ : backend.BNames) (P : backend.BParams) (b' : Loc), keySized (GF := GF) γ P b') ∗ mvccWReg gx ∗
@@ -229,7 +244,7 @@ theorem rc_open (hfresh : mvccImage_fresh.law (GF := GF)) (hopen : etcdStorage_o
   icases Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
   iunfold backend.bFresh at Hk
   icases Hk with ⟨Hwb, Ho⟩
-  icases (backend.bOpen_one_pool γB).1 $$ Ho with ⟨Hoh, -, Hos⟩
+  icases (backend.bOpen_one_pool γB).1 $$ Ho with ⟨Hoh, Hpl, Hos⟩
   -- the reader slots pooled; the stock's open shares: the store's, two of the client's
   imod backend.rdToks_pool hT ⊤ γB (rcP lim) b $$ Hrd with ⟨#Hpool, Hrs⟩
   obtain ⟨n2, hn2⟩ : ∃ n2, backend.rdStockN = n2 + 2 :=
@@ -238,7 +253,9 @@ theorem rc_open (hfresh : mvccImage_fresh.law (GF := GF)) (hopen : etcdStorage_o
   rw [hn2]
   icases (backend.bigSepL_replicate_add _ n2 2).1 $$ Hos with ⟨Hos, Ho2⟩
   rw [List.replicate_succ]
-  icases BigSepL.bigSepL_cons.1 $$ Ho2 with ⟨Hor, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Ho2 with ⟨Hor, Ho2⟩
+  rw [List.replicate_one]
+  ihave Ho2 := (BigSepL.bigSepL_singleton (PROP := IProp GF)).1 $$ Ho2
   -- the write-back tokens: two for the open, `m` kept, the stock
   obtain ⟨N, hN⟩ : ∃ N, backend.wbInit = N + (2 + m) := ⟨backend.wbInit - (2 + m), by omega⟩
   rw [hN]
@@ -287,9 +304,45 @@ theorem rc_open (hfresh : mvccImage_fresh.law (GF := GF)) (hopen : etcdStorage_o
   ihave ⟨-, -, Hhk, Hrbo, -⟩ := hrest _ _ _ _ _ $$ Hrest
   imodintro
   iunfold rcBk
-  iframe Hsf Hb Hhk Hrbo Hoh Hor Hrt Hwm
+  iframe Hsf Hb Hhk Hrbo Hoh Hor Hrt Hwm Hsc
+  iunfold rcCensus
+  iintro %γ %q Ho1 Hhalf Hcl
+  have hC := stop_census_open hCR γ (rcKB γB b gx lim) q iprop(True)
+  rw [rcKB_γB] at hC
+  ihave Hupd := hC $$ [Ho1 Ho2 Hhalf Hpl]
+  · iframe Ho1 Ho2 Hhalf Hpl
+  iapply Hupd $$ Hcl
 
 end opening
+
+section readers
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- **The readers' tokens gathered** (2026-11-08, for the census before the backend's `Close`): `n`
+goroutines' tokens of the store, one each, joined to `m` more. -/
+theorem readers_gather (hRdSplit : mvcc.api.mvccReaders_split.law (GF := GF)) (γ : MvccName) :
+    ∀ (n m : Nat), mvccReaders (GF := GF) γ m ∗
+      ([∗list] Q ∈ List.replicate n (mvccReaders (GF := GF) γ 1), Q) ⊢ mvccReaders γ (n + m)
+  | 0, m => by
+    iintro ⟨H, -⟩
+    rw [Nat.zero_add]
+    iexact H
+  | n + 1, m => by
+    iintro ⟨H, Hs⟩
+    rw [List.replicate_succ]
+    icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨H1, Hs⟩
+    ihave H := (hRdSplit γ 1 m).2 $$ [H1 H]
+    · iframe H1 H
+    ihave H := readers_gather hRdSplit γ n (1 + m) $$ [H Hs]
+    · iframe H Hs
+    rw [show n + 1 + m = n + (1 + m) by omega]
+    iexact H
+
+end readers
 
 section config
 variable [GooseExts] [GooseSemantics] [GooseInterp]

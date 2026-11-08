@@ -23,6 +23,7 @@ axiom backend.txDB
 axiom backend.txLive
 axiom context.ValueKeepAlive.wp_proof
 axiom context.WithValue.wp_proof
+axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof

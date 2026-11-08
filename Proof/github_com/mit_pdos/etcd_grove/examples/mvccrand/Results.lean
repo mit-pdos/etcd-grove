@@ -3,16 +3,18 @@ mvcc's randomized tester's results (`examples/mvccrand/mvccrand.go`, `notes/mvcc
 with the trust base of each printed in the build log (`#print axioms`). Lean-first (no Rocq
 counterpart).
 
-* **`mvccrand_runChecks`** (`Link.lean`'s `mvccrand.wp_runChecks`): `runChecks(cfg)` -- a backend
-  in a fresh file, the lessor and the store over it as etcd's server makes them, the post-lock
-  hook, then the writer (`cfg.Ops` random puts, deletes, transactions, lease grants and revokes,
-  reads), `cfg.Readers` readers and a watch stream's registrar and receiver run concurrently, every
-  result of mvcc checked against the tester's model (a check that fails panics) -- returns the
-  report, the lessor and the backend, or panics in `backend.New` (bbolt's open failing); so every
-  check passes. From the package's `isPkgInit`, the file's emptiness,
-  `keySized`, the configuration's bounds and `ckptEffectsOk`
-  (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/runChecks.lean`), and the hypothesis
-  `sort.Slice.spec` (`Spec/sort/Slice.lean`: specified, neither proved nor assumed).
+* **`mvccrand_Main`** (`Link.lean`'s `mvccrand.wp_Main`): `Main()` -- `Run` at seed 1 (1000 writer
+  operations, 4 readers, 8 watchers): a backend in the fresh file `mvccrand.db`, the lessor and the
+  store over it as etcd's server makes them, the post-lock hook, then the writer (random puts,
+  deletes, transactions, lease grants and revokes, reads), the readers and a watch stream's
+  registrar and receiver run concurrently, every result of mvcc checked against the tester's model
+  (a check that fails panics), then the store, the lessor and the backend closed -- returns; so
+  every check passes. From the package's `isPkgInit`, the file's emptiness, `keySized`, the thread
+  and receipt bounds, `ckptEffectsOk`, `dbOpenOk` and `dbCloseOk` (bbolt's `Open` and `Close`
+  succeeding; 2026-11-08: until then `runChecks`' result, which admitted `backend.New`'s panic)
+  (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/Main.lean`), and the hypothesis
+  `sort.Slice.spec` (`Spec/sort/Slice.lean`: specified, neither proved nor assumed). The closed
+  theorem over it is `Adequacy.lean`'s `mvccrand_adequate`.
 -/
 module
 
@@ -38,16 +40,16 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Every check of mvcc's randomized tester passes** (`Link.lean`'s `mvccrand.wp_runChecks`; see
-the file header), given `sort.Slice`'s spec. -/
-theorem mvccrand_runChecks [go_etcd_io.etcd.cache.v3.Assumptions]
+/-- **Every check of mvcc's randomized tester passes** (`Link.lean`'s `mvccrand.wp_Main`; see the
+file header), given `sort.Slice`'s spec. -/
+theorem mvccrand_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     (h_sort_Slice : sort.Slice.spec (GF := GF) (hG := hG)) :
-    mvccrand.runChecks.spec (GF := GF) (hG := hG) :=
-  mvccrand.wp_runChecks h_sort_Slice
+    mvccrand.Main.spec (GF := GF) (hG := hG) :=
+  mvccrand.wp_Main h_sort_Slice
 
 end results
 
-#print axioms mvccrand_runChecks
+#print axioms mvccrand_Main
 
 end EtcdGrove
 end Perennial

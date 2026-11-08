@@ -159,8 +159,8 @@ theorem backend.newBackend.wp_proof
       iapply HΦ
       iright
       ipureintro
-      exact ⟨_, rfl⟩
-    · exact absurd rfl Herr
+      exact ⟨Herr.2, _, rfl⟩
+    · exact absurd rfl Herr.1
   subst Herr
   wp_auto
   -- the backend's structure

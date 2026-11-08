@@ -52,6 +52,7 @@ theorem runChecks.wp_proof
     (hopen : etcdStorage_open.law (GF := GF))
     (hrest : backendRest_open.law (GF := GF))
     (hRdSplit : mvcc.api.mvccReaders_split.law (GF := GF))
+    (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_bNew : backend.New.spec (GF := GF) (hG := hG))
     (wp_SetHook : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
@@ -70,7 +71,7 @@ theorem runChecks.wp_proof
     (wp_receive : watchCheck.receive.spec (GF := GF) (hG := hG))
     (wp_complete : watchCheck.complete.spec (GF := GF) (hG := hG)) :
     runChecks.spec (GF := GF) (hG := hG) := by
-  intro cfg _ _ hops0 hops hrd0 hrd hw0 hw hckpt
+  intro cfg _ _ hops0 hops hrd0 hrd hw0 hw hckpt hdbo
   haveI := fun kv γ => hpers.1 kv γ
   haveI := fun ws γ ι => hpers.2.1 ws γ ι
   haveI := fun B f => hpers.2.2.2.1 B f
@@ -100,10 +101,8 @@ theorem runChecks.wp_proof
       iframe HW Hf
   icases Hr with (⟨%b, %γB, %Hr, Hnew, #Hhooks, #Hbf, -⟩ | %Hpan)
   rotate_left
-  · -- `backend.New` panicked: its panic unwinds the rest
-    obtain ⟨p, rfl⟩ := Hpan
-    wp_auto
-    iapply HΦ; iright; ipureintro; exact ⟨p, rfl⟩
+  · -- `backend.New` panics only where bbolt's `Open` failed, which `dbOpenOk` excludes
+    exact absurd hdbo Hpan.1
   subst Hr
   (try wp_auto)
   -- the store's part of the backend opened; the client's rest
@@ -112,11 +111,11 @@ theorem runChecks.wp_proof
     unfold backend.wbInit
     have : sint.nat cfg.Ops' = (sint.Z cfg.Ops').toNat := rfl
     omega
-  imod rc_open hfresh hopen hrest γB b gx bc.BatchLimit' (sint.nat cfg.Ops' + 2) hm
+  imod rc_open hfresh hopen hrest hCR γB b gx bc.BatchLimit' (sint.nat cfg.Ops' + 2) hm
     $$ [Hks Hreg Hnew] with Hbk
   · iframe Hks Hreg Hnew
   iunfold rcBk at Hbk
-  icases Hbk with ⟨Hsf, #Hisb, Hhk, Hrbo, Hoh, Hor, Hrt, Hwm⟩
+  icases Hbk with ⟨Hsf, #Hisb, Hhk, Hrbo, Hoh, Hor, Hrt, Hwm, #Hsc, Hcen⟩
   icases ownToks_add_1 2 (sint.nat cfg.Ops') γB.wb $$ Hwm with ⟨Hwops, Hw2⟩
   icases ownToks_add_1 1 1 γB.wb $$ Hw2 with ⟨Hw1, Hw1'⟩
   ihave Hw1 : backend.wbTok (GF := GF) γB $$ [Hw1]
@@ -137,7 +136,7 @@ theorem runChecks.wp_proof
       (fun _ => iprop(True)) (fun _ => True) (backend.rbData (rcP bc.BatchLimit') ∅) false trivial
       (rcP_lease _)) $$ [Hoh Hw1 Hrbo]
     as %l ⟨Hoh, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, #Hexp, #Hguard, Hlrds, Hlown, Hever,
-      Hrvk, Hrdo, #Hckpt, Hbeon, #Happly, -, #Hlookup⟩
+      Hrvk, Hrdo, #Hckpt, Hbeon, #Happly, Hstop, #Hlookup⟩
   · rw [rcKB_P, rcKB_γB, rcKB_be]
     iframe Hcl Hisb Hoh Hw1
     isplitr
@@ -256,7 +255,7 @@ theorem runChecks.wp_proof
     by omega]
   icases (hRdSplit γk 1 _).1 $$ Hrdrs with ⟨HkW, Hrdrs⟩
   icases (hRdSplit γk 1 _).1 $$ Hrdrs with ⟨HkR, Hrdrs⟩
-  icases (hRdSplit γk _ _).1 $$ Hrdrs with ⟨HkRs, -⟩
+  icases (hRdSplit γk _ _).1 $$ Hrdrs with ⟨HkRs, HkRest⟩
   wp_apply (hRev γk (fun σ => iprop(⌜σ = mvccStart⌝ ∗ mvccState γk σ))) $$ [HkW Hσ]
     as %rv ⟨HkW, %σ0, ⟨%Hσ0, Hσ⟩, %Hrv⟩
   · iframe Hkv HkW
@@ -398,14 +397,20 @@ theorem runChecks.wp_proof
   -- of `γ.cl` back), the readers'
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") wg_ptr $$ wg with ⟨%γwg, Hwg⟩
   imod sync.join.init wg_ptr γwg $$ Hwg with Hwg
-  have hlen : ([histRd (GF := GF) hl γ.h, ghostVar γ.cl (1 : Qp).half false] ++
-      List.replicate (sint.nat cfg.Readers') iprop(True)).length = 2 + sint.nat cfg.Readers' := by
+  have hlen : ([iprop(histRd (GF := GF) hl γ.h ∗ mvccReaders γ.kv 1 ∗
+        mvccBackend γ.kv 1 (etcdStorage (rcKB γB b gx bc.BatchLimit')) iprop(True) ∗
+        apply.bkRT (rcKB γB b gx bc.BatchLimit')),
+      iprop(ghostVar γ.cl (1 : Qp).half false ∗ mvccReaders γ.kv 1)] ++
+      List.replicate (sint.nat cfg.Readers') (mvccReaders (GF := GF) γ.kv 1)).length = 2 + sint.nat cfg.Readers' := by
     simp; omega
   rw [show W64 2 + cfg.Readers' = W64 (((2 + sint.nat cfg.Readers' : Nat) : Int)) by word]
   rw [← hlen]
   wp_apply (wp_Add_many sync.WaitGroup.wp_Add wg_ptr iprop(True)
-      ([histRd (GF := GF) hl γ.h, ghostVar γ.cl (1 : Qp).half false] ++
-        List.replicate (sint.nat cfg.Readers') iprop(True))
+      ([iprop(histRd (GF := GF) hl γ.h ∗ mvccReaders γ.kv 1 ∗
+          mvccBackend γ.kv 1 (etcdStorage (rcKB γB b gx bc.BatchLimit')) iprop(True) ∗
+          apply.bkRT (rcKB γB b gx bc.BatchLimit')),
+        iprop(ghostVar γ.cl (1 : Qp).half false ∗ mvccReaders γ.kv 1)] ++
+        List.replicate (sint.nat cfg.Readers') (mvccReaders (GF := GF) γ.kv 1))
       (by rw [hlen]; have : sint.nat cfg.Readers' = (sint.Z cfg.Readers').toNat := rfl; omega)) $$ [Hwg]
     as ⟨Hwg, Hdones⟩
   · iframe Hwg
@@ -498,12 +503,17 @@ theorem runChecks.wp_proof
       iexists []; iexact Hprod
     (try wp_auto)
     iunfold runSt at Hrun
-    icases Hrun with ⟨%σ1, %Hs1, %L1, %n1, %k1, %s1, %v1, Hown, -⟩
+    icases Hrun with ⟨%σ1, %Hs1, %L1, %n1, %k1, %s1, %v1, Hown, Hle, -⟩
     iunfold writerOwn at Hown
-    icases Hown with ⟨-, -, Hrdw, -⟩
-    wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done (histRd (GF := GF) hl γ.h)
-      wg_ptr) $$ [Hdw Hrdw]
-    · iframe Hdw Hrdw
+    icases Hown with ⟨HkW, Hmb, Hrdw, -⟩
+    iunfold writerLe at Hle
+    icases Hle with ⟨%lp1, %rd1, %r1, %U1, -, -, -, -, HRT, -⟩
+    wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done
+      iprop(histRd (GF := GF) hl γ.h ∗ mvccReaders γ.kv 1 ∗
+        mvccBackend γ.kv 1 (etcdStorage (rcKB γB b gx bc.BatchLimit')) iprop(True) ∗
+        apply.bkRT (rcKB γB b gx bc.BatchLimit'))
+      wg_ptr) $$ [Hdw Hrdw HkW Hmb HRT]
+    · iframe Hdw Hrdw HkW Hmb HRT
     (try wp_auto)
     iframe Htt
   (try wp_auto)
@@ -512,13 +522,13 @@ theorem runChecks.wp_proof
   · iintro Htt
     wp_auto
     wp_apply (wp_register c γ hl wm _ _ _ γt ch []) $$ [HkR «$a1» Hcons Hcl]
-      as ⟨-, Hcl, -⟩
+      as ⟨HkR, Hcl, -⟩
     · iframe Hwc Hws HkR «$a1» Hcons Hcl
       iunfold isTicks; iexact Hspsc
     (try wp_auto)
     wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done
-      (ghostVar (GF := GF) γ.cl (1 : Qp).half false) wg_ptr) $$ [Hdr Hcl]
-    · iframe Hdr Hcl
+      iprop(ghostVar (GF := GF) γ.cl (1 : Qp).half false ∗ mvccReaders γ.kv 1) wg_ptr) $$ [Hdr Hcl HkR]
+    · iframe Hdr Hcl HkR
     (try wp_auto)
     iframe Htt
   (try wp_auto)
@@ -526,8 +536,8 @@ theorem runChecks.wp_proof
   have hRn : sint.nat cfg.Readers' = (sint.Z cfg.Readers').toNat := rfl
   ihave IH : (∃ (i : w64), "id" ∷ id_ptr ↦ i ∗
       "Hrds" ∷ ([∗list] _x ∈ List.replicate (sint.nat cfg.Readers' - sint.nat i) (), histRd hl γ.h) ∗
-      "Hdones" ∷ ([∗list] Q ∈ List.replicate (sint.nat cfg.Readers' - sint.nat i) iprop(True),
-        sync.join.ownDone wg_ptr Q) ∗
+      "Hdones" ∷ ([∗list] Q ∈ List.replicate (sint.nat cfg.Readers' - sint.nat i)
+        (mvccReaders (GF := GF) γ.kv 1), sync.join.ownDone wg_ptr Q) ∗
       "HkRs" ∷ mvccReaders γ.kv (sint.nat cfg.Readers' - sint.nat i) ∗
       "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z cfg.Readers'⌝ : IProp GF) $$ [id Hrds Hdones HkRs]
   · iexists W64 0
@@ -548,11 +558,12 @@ theorem runChecks.wp_proof
     wp_apply wp_fork_tok_body $$ [Hd Hrd «$r0» HkR1]
     · iintro Htt
       wp_auto
-      wp_apply (wp_reader _ hl _ γ _ _) $$ [Hrd HkR1 «$r0»] as ⟨Hrd, -, -⟩
+      wp_apply (wp_reader _ hl _ γ _ _) $$ [Hrd HkR1 «$r0»] as ⟨Hrd, HkR1, -⟩
       · iframe Hkv Hinv Hrd HkR1 «$r0»
       (try wp_auto)
-      wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr) $$ [Hd]
-      · iframe Hd
+      wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done
+        (mvccReaders (GF := GF) γ.kv 1) wg_ptr) $$ [Hd HkR1]
+      · iframe Hd HkR1
       (try wp_auto)
       iframe Htt
     wp_for_post
@@ -568,9 +579,9 @@ theorem runChecks.wp_proof
   · iframe Hwg
   imod lc_fupd_elim_later $$ Hlc1 Hres with Hres
   icases Hres with ⟨-, Hres⟩
-  icases BigSepL.bigSepL_append.1 $$ Hres with ⟨Hres, -⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hres with ⟨Hrdw, Hres⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hres with ⟨Hcl, -⟩
+  icases BigSepL.bigSepL_append.1 $$ Hres with ⟨Hres, HkRds⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hres with ⟨⟨Hrdw, HkW, Hmb, HRT⟩, Hres⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hres with ⟨⟨Hcl, HkR⟩, -⟩
   (try wp_auto)
   -- `last := h.published.Load()`, in the history
   wp_apply_core sync.atomic.Int64.wp_Load (hPub hl) (DFrac.own 1) $$ [] [-]
@@ -649,8 +660,25 @@ theorem runChecks.wp_proof
   icases Hres with ⟨-, %ne, Hev⟩
   (try wp_auto)
   -- `check(kv.Close() == nil, …)`
-  wp_apply (hKClose γ.kv) $$ [Hopn] as -
+  wp_apply (hKClose γ.kv) $$ [Hopn] as Hclosed
   · iframe Hkv Hopn
+  -- the census: the backend's whole open token, every reader of it done (`stop_census_open`)
+  rw [hlen]
+  ihave HkAll := readers_gather hRdSplit γ.kv (sint.nat cfg.Readers')
+    (mvccReaderN - (2 + sint.nat cfg.Readers')) $$ [HkRest HkRds]
+  · iframe HkRest HkRds
+  ihave HkAll := (hRdSplit γ.kv 1 _).2 $$ [HkR HkAll]
+  · iframe HkR HkAll
+  ihave HkAll := (hRdSplit γ.kv 1 _).2 $$ [HkW HkAll]
+  · iframe HkW HkAll
+  rw [show 1 + (1 + (sint.nat cfg.Readers' + (mvccReaderN - (2 + sint.nat cfg.Readers')))) =
+    mvccReaderN by omega]
+  iunfold apply.bkRT at HRT
+  icases HRT with ⟨-, Hor⟩
+  iunfold rcCensus at Hcen
+  ispecialize Hcen $$ %γ.kv %(1 : Qp) Hor Hoh
+  imod Hcen $$ [Hclosed HkAll Hmb] with ⟨Hone, -⟩
+  · iframe Hclosed HkAll Hmb
   (try wp_auto)
   wp_apply wp_check
   · ipureintro; rfl
@@ -676,9 +704,7 @@ theorem runChecks.wp_proof
   imodintro
   (try wp_auto)
   iapply HΦ
-  ileft
-  iexists _, _, _
-  ipureintro; rfl
+  iframe Hstop Hisb Hsc Hone
 
 end proof
 

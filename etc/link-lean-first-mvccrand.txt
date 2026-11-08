@@ -16,6 +16,7 @@ context_TODO:
 traceutil_TODO:
 backend_New: @
 backend__SetTxPostLockInsideApplyHook: @
+backend__Close: @
 backend__BatchTx: @
 sort_StringSlice__Sort:
 sort_Slice: ?
@@ -26,6 +27,7 @@ lease_lessor__Lookup:
 lease_lessor__Attach:
 lease_lessor__Detach:
 lease_lessor__SetRangeDeleter:
+lease_lessor__Stop:
 heap_up:
 heap_down:
 heap_Push: heap_up
@@ -91,4 +93,8 @@ watchCheck__expect: history__changesAt inRange
 watchCheck__register: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds check rng__intn rng__genKey rng__genEnd context_TODO
 watchCheck__receive: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_wsRecv_ok_law_holds check history__snapshot watchCheck__expect watcher__advance checkKV
 watchCheck__complete: watchCheck__expect
-runChecks: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_wsChan_recv_law_holds =mvcc.api.mvccApi_mvccW_alloc_law_holds =mvcc.api.mvccApi_mvccImage_fresh_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds zap_NewNop backend_New backend__SetTxPostLockInsideApplyHook lease_NewLessor lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter =mvcc.api.mvccApi_New_wp_proof noCluster__Version check newHistory writer__run reader watchCheck__register watchCheck__receive watchCheck__complete
+runChecks: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_wsChan_recv_law_holds =mvcc.api.mvccApi_mvccW_alloc_law_holds =mvcc.api.mvccApi_mvccImage_fresh_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds zap_NewNop backend_New backend__SetTxPostLockInsideApplyHook lease_NewLessor lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter =mvcc.api.mvccApi_New_wp_proof noCluster__Version check newHistory writer__run reader watchCheck__register watchCheck__receive watchCheck__complete
+#
+# the top level (2026-11-08, for the closed theorem): `Run` closes what `runChecks` opened
+Run: runChecks lease_lessor__Stop backend__Close check
+Main: Run

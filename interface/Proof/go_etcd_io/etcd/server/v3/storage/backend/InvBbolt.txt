@@ -47,6 +47,8 @@ axiom backend.ownWTxG_fill (tx b : Loc) (γ : backend.DBNames) (D S : backend.Da
     f', typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b) f' (DFrac.own 1)
     -∗ backend.ownWTxG tx γ D S G
 
+def (sealed) backend.dbOpenOk : Prop
+
 axiom backend.ownWTxG_live (tx : Loc) (γ : backend.DBNames) (D S : backend.Data) (G : GoString →
     Nat) : backend.ownWTxG tx γ D S G ⊢ backend.txLive tx 1 ∗ (backend.txLive tx 1 -∗
     backend.ownWTxG tx γ D S G)
