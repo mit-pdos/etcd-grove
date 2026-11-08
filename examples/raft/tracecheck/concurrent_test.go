@@ -31,7 +31,7 @@ func concurrentNDJSON(t *testing.T, cfg CConfig) ([]byte, *Cluster) {
 func TestConcurrentTraces(t *testing.T) {
 	dir := os.Getenv("TRACE_DIR")
 	for seed := uint64(1); seed <= uint64(envInt("TRACE_SEEDS", 10)); seed++ {
-		nd, c := concurrentNDJSON(t, DefaultCConfig(seed))
+		nd, c := concurrentNDJSON(t, DefaultCConfig())
 		if dir != "" {
 			if err := os.WriteFile(filepath.Join(dir, "conc-"+strconv.FormatUint(seed, 10)+".ndjson"), nd, 0o644); err != nil {
 				t.Fatal(err)

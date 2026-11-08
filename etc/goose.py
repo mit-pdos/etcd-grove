@@ -10,7 +10,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
-               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
+               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, tracecheck, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -1261,6 +1261,23 @@ PROJECTS = [
         # the store; not its command (cmd/kvcheck), which only runs it
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvwitness")],
+    ),
+    Project(
+        name="tracecheck",
+        # Raft's TLA+ trace validation, closed (notes/trace-validation-plan.md): the concurrent
+        # harness of raft.Nodes with Main (package tracecheck), and the Go transcription of
+        # etcdraft.tla and Traceetcdraft.tla its checker (package etcdraft; not its ndjson reader
+        # nor its porcupine model, pmodel, which only cross-check). A Go module of its own, whose
+        # go.mod replaces go.etcd.io/raft/v3 by the fork with the trace hooks under the goose tag:
+        # a local checkout until that commit is pushed (etc/fork-patches/README.md; then a
+        # pseudo-version, and an entry of GO_MOD_PINS). Its raft is project raft's (main tree).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "raft", "tracecheck"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
+                    "github.com/anishathalye/porcupine="],
+        packages=[".", "./etcdraft"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "tracecheck")],
     ),
     Project(
         name="bbolt-bank",

@@ -6,6 +6,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/anishathalye/porcupine"
 	"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft"
+	"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft/ndjson"
+	"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft/pmodel"
 )
 
 func main() {
@@ -27,7 +30,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(2)
 		}
-		events, err := etcdraft.ReadNDJSON(f)
+		events, err := ndjson.ReadNDJSON(f)
 		f.Close()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s: %v\n", file, err)
@@ -51,7 +54,7 @@ func main() {
 		}
 		if *usePorcupine {
 			start = time.Now()
-			p := etcdraft.CheckPorcupine(t, *inv, 0)
+			p := pmodel.CheckPorcupine(t, *inv, 0)
 			line += fmt.Sprintf("; porcupine: %v (%v)", p, time.Since(start).Round(time.Millisecond))
 			if p != porcupine.Ok {
 				failed = true
@@ -59,10 +62,33 @@ func main() {
 		}
 		fmt.Println(line)
 		if *explain && !r.OK {
-			fmt.Print(etcdraft.Explain(t, r))
+			fmt.Print(explainFailure(t, r))
 		}
 	}
 	if failed {
 		os.Exit(1)
 	}
+}
+
+// explainFailure describes why no state of r.Before steps through r.Line: the line, and for each state
+// the variables of the line's node and, for a received message's line, the messages in transit to
+// it.
+func explainFailure(t *etcdraft.Trace, r etcdraft.Result) string {
+	if r.OK || r.Line == 0 {
+		return ""
+	}
+	ev := t.Event(r.Line)
+	b, _ := json.Marshal(ev)
+	out := fmt.Sprintf("line %d: %s\n", r.Line, b)
+	for k, ts := range r.Before {
+		out += fmt.Sprintf("state %d of %d (pl %d):\n%s", k+1, len(r.Before), ts.PL, ts.S)
+		if ev.Msg != nil {
+			for _, m := range ts.S.Messages.Domain() {
+				if fmt.Sprint(m.Dest) == ev.Msg.To {
+					out += fmt.Sprintf("  in transit: %v x%d\n", m, ts.S.Messages.Count(m))
+				}
+			}
+		}
+	}
+	return out
 }

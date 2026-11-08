@@ -18,6 +18,8 @@ import (
 
 	"github.com/anishathalye/porcupine"
 	"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft"
+	"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft/ndjson"
+	"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft/pmodel"
 )
 
 func envInt(name string, def int) int {
@@ -44,8 +46,8 @@ func traceNDJSON(t *testing.T, cfg Config) []byte {
 }
 
 // goVerdicts checks an NDJSON trace with the direct checker and with porcupine.
-func goVerdicts(t *testing.T, ndjson []byte) (direct etcdraft.Result, pc porcupine.CheckResult, err error) {
-	events, err := etcdraft.ReadNDJSON(bytes.NewReader(ndjson))
+func goVerdicts(t *testing.T, nd []byte) (direct etcdraft.Result, pc porcupine.CheckResult, err error) {
+	events, err := ndjson.ReadNDJSON(bytes.NewReader(nd))
 	if err != nil {
 		return direct, pc, err
 	}
@@ -53,7 +55,7 @@ func goVerdicts(t *testing.T, ndjson []byte) (direct etcdraft.Result, pc porcupi
 	if err != nil {
 		return direct, pc, err
 	}
-	return etcdraft.CheckTrace(tr, true), etcdraft.CheckPorcupine(tr, true, 0), nil
+	return etcdraft.CheckTrace(tr, true), pmodel.CheckPorcupine(tr, true, 0), nil
 }
 
 // TestTracesCheck: the traces of seeds 1..TRACE_SEEDS (default 20) are matched by the Go
@@ -198,9 +200,9 @@ func TestAgainstTLC(t *testing.T) {
 		// raft"), and the verdicts, and the line, must still agree.
 		jobs = append(jobs, job{fmt.Sprintf("full seed %d", seed), traceNDJSON(t, FullConfig(seed))})
 		// the concurrent harness's traces, both configurations
-		cnd, _ := concurrentNDJSON(t, DefaultCConfig(seed))
+		cnd, _ := concurrentNDJSON(t, DefaultCConfig())
 		jobs = append(jobs, job{fmt.Sprintf("concurrent seed %d", seed), cnd})
-		cnd, _ = concurrentNDJSON(t, FullCConfig(seed))
+		cnd, _ = concurrentNDJSON(t, FullCConfig())
 		jobs = append(jobs, job{fmt.Sprintf("concurrent full seed %d", seed), cnd})
 	}
 	sem := make(chan struct{}, envInt("TLC_PARALLEL", 4))

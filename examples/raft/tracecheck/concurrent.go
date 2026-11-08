@@ -1,11 +1,13 @@
-//go:build with_tla
+//go:build with_tla || goose
 
 package tracecheck
 
 import (
 	"context"
-	"math/rand/v2"
+	"fmt"
 	"strconv"
+
+	"github.com/goose-lang/primitive"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -26,6 +28,26 @@ import (
 // its run goroutine, one at a time, so in its program order; and a message is logged as sent (in
 // raft's send, on the sender's run goroutine) before the Ready that hands it to the application,
 // so before the network has it, so before its receipt is logged.
+
+// quietLogger discards what raft logs; Fatal and Panic panic.
+type quietLogger struct{}
+
+func (quietLogger) Debug(v ...interface{})                   {}
+func (quietLogger) Debugf(format string, v ...interface{})   {}
+func (quietLogger) Error(v ...interface{})                   {}
+func (quietLogger) Errorf(format string, v ...interface{})   {}
+func (quietLogger) Info(v ...interface{})                    {}
+func (quietLogger) Infof(format string, v ...interface{})    {}
+func (quietLogger) Warning(v ...interface{})                 {}
+func (quietLogger) Warningf(format string, v ...interface{}) {}
+func (quietLogger) Fatal(v ...interface{})                   { panic(fmt.Sprint(v...)) }
+func (quietLogger) Fatalf(format string, v ...interface{})   { panic(fmt.Sprintf(format, v...)) }
+func (quietLogger) Panic(v ...interface{})                   { panic(fmt.Sprint(v...)) }
+func (quietLogger) Panicf(format string, v ...interface{})   { panic(fmt.Sprintf(format, v...)) }
+
+// below is a random number in [0, n) (n > 0), as the other harnesses draw theirs
+// (examples/raft/kvreconf): primitive.RandomUint64, whose spec gives any value.
+func below(n int) int { return int(primitive.RandomUint64() % uint64(n)) }
 
 // SyncRecorder is a raft.TraceLogger keeping every event in the order they are logged, from any
 // goroutine.
@@ -50,9 +72,8 @@ func (r *SyncRecorder) Events() []raft.TracingEvent {
 
 // CConfig is a concurrent run's configuration.
 type CConfig struct {
-	Nodes      int    // the bootstrap configuration's voters, ids 1..Nodes (StartNode)
-	ExtraNodes int    // empty nodes, ids Nodes+1..Nodes+ExtraNodes (RestartNode on empty storage)
-	Seed       uint64 // the random choices' seed (the run itself depends on the scheduler)
+	Nodes      int // the bootstrap configuration's voters, ids 1..Nodes (StartNode)
+	ExtraNodes int // empty nodes, ids Nodes+1..Nodes+ExtraNodes (RestartNode on empty storage)
 
 	Proposals   int           // proposals, made one after another at random replicas
 	ConfChanges int           // configuration changes (those the specification models), at the leader
@@ -77,15 +98,15 @@ type CConfig struct {
 // (traceReceiveMessage, "to reduce time shift impact across node"): a run loop takes at least that
 // per message, so a leader ticked every 2ms (a heartbeat to each follower per tick) falls behind
 // and the network's Step times out.
-func DefaultCConfig(seed uint64) CConfig {
-	return CConfig{Nodes: 3, Seed: seed, Proposals: 60, ProposeGap: 10 * time.Millisecond,
+func DefaultCConfig() CConfig {
+	return CConfig{Nodes: 3, Proposals: 60, ProposeGap: 10 * time.Millisecond,
 		Settle: 150 * time.Millisecond, Tick: 10 * time.Millisecond, MaxDelay: 10 * time.Millisecond, DropPct: 5,
 		Isolations: 3, IsolateFor: 200 * time.Millisecond}
 }
 
 // FullCConfig is DefaultCConfig with a fourth node, configuration changes and snapshots.
-func FullCConfig(seed uint64) CConfig {
-	c := DefaultCConfig(seed)
+func FullCConfig() CConfig {
+	c := DefaultCConfig()
 	c.ExtraNodes = 1
 	c.ConfChanges = 4
 	c.SnapshotEvery = 5
@@ -152,26 +173,24 @@ func RunConcurrent(cfg CConfig) (*Cluster, error) {
 	}
 	for _, r := range c.replicas {
 		c.apps.Add(1)
-		go c.app(r, rand.New(rand.NewPCG(cfg.Seed, r.id)))
+		go c.app(r)
 	}
 
 	var drivers sync.WaitGroup
 	drivers.Add(3)
 	go func() { // the isolations
 		defer drivers.Done()
-		rng := rand.New(rand.NewPCG(cfg.Seed, 102))
 		for k := 0; k < cfg.Isolations; k++ {
 			time.Sleep(cfg.IsolateFor / 2)
-			c.isolated.Store(uint64(1 + rng.IntN(len(c.replicas))))
+			c.isolated.Store(uint64(1 + below(len(c.replicas))))
 			time.Sleep(cfg.IsolateFor)
 			c.isolated.Store(0)
 		}
 	}()
 	go func() { // the proposer
 		defer drivers.Done()
-		rng := rand.New(rand.NewPCG(cfg.Seed, 100))
 		for k := 1; k <= cfg.Proposals; k++ {
-			r := c.replicas[rng.IntN(len(c.replicas))]
+			r := c.replicas[below(len(c.replicas))]
 			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 			_ = r.node.Propose(ctx, []byte("v"+strconv.Itoa(k)))
 			cancel()
@@ -181,13 +200,12 @@ func RunConcurrent(cfg CConfig) (*Cluster, error) {
 	}()
 	go func() { // the proposer of configuration changes
 		defer drivers.Done()
-		rng := rand.New(rand.NewPCG(cfg.Seed, 101))
 		deadline := time.Now().Add(time.Duration(cfg.Proposals) * cfg.ProposeGap)
 		for int(c.ConfChanges.Load()) < cfg.ConfChanges && time.Now().Before(deadline) {
-			time.Sleep(time.Duration(5+rng.IntN(10)) * cfg.ProposeGap)
+			time.Sleep(time.Duration(5+below(10)) * cfg.ProposeGap)
 			for _, r := range c.replicas {
 				st := r.node.Status()
-				if cc := confChangeFor(st, len(c.replicas), rng); cc != nil {
+				if cc := confChangeFor(st, len(c.replicas)); cc != nil {
 					ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 					if r.node.ProposeConfChange(ctx, cc) == nil {
 						c.ConfChanges.Add(1)
@@ -215,11 +233,11 @@ func (c *Cluster) Events() []raft.TracingEvent { return c.rec.Events() }
 
 // confChangeFor is a configuration change for a leader of status st to propose that the
 // specification models (as Sim.confChange), nil if st is not a leader's or no change applies.
-func confChangeFor(st raft.Status, nodes int, rng *rand.Rand) *pb.ConfChange {
+func confChangeFor(st raft.Status, nodes int) *pb.ConfChange {
 	if st.RaftState != raft.StateLeader || len(st.Config.Voters[1]) != 0 {
 		return nil
 	}
-	target := uint64(1 + rng.IntN(nodes))
+	target := uint64(1 + below(nodes))
 	voters, learners := st.Config.Voters[0], st.Config.Learners
 	_, isVoter := voters[target]
 	_, isLearner := learners[target]
@@ -231,15 +249,15 @@ func confChangeFor(st raft.Status, nodes int, rng *rand.Rand) *pb.ConfChange {
 		}
 		typ = pb.ConfChangeRemoveNode
 	case isLearner:
-		typ = []pb.ConfChangeType{pb.ConfChangeAddNode, pb.ConfChangeRemoveNode}[rng.IntN(2)]
+		typ = []pb.ConfChangeType{pb.ConfChangeAddNode, pb.ConfChangeRemoveNode}[below(2)]
 	default:
-		typ = []pb.ConfChangeType{pb.ConfChangeAddNode, pb.ConfChangeAddLearnerNode}[rng.IntN(2)]
+		typ = []pb.ConfChangeType{pb.ConfChangeAddNode, pb.ConfChangeAddLearnerNode}[below(2)]
 	}
 	return &pb.ConfChange{Type: typ.Enum(), NodeId: proto.Uint64(target)}
 }
 
 // app is replica r's application goroutine.
-func (c *Cluster) app(r *creplica, rng *rand.Rand) {
+func (c *Cluster) app(r *creplica) {
 	defer c.apps.Done()
 	ticker := time.NewTicker(c.cfg.Tick)
 	defer ticker.Stop()
@@ -250,7 +268,7 @@ func (c *Cluster) app(r *creplica, rng *rand.Rand) {
 		case <-ticker.C:
 			r.node.Tick()
 		case rd := <-r.node.Ready():
-			c.handleReady(r, rd, rng)
+			c.handleReady(r, rd)
 			r.node.Advance()
 		}
 	}
@@ -258,7 +276,7 @@ func (c *Cluster) app(r *creplica, rng *rand.Rand) {
 
 // handleReady persists rd's snapshot, entries and hard state, sends its messages, applies its
 // committed entries (configuration changes), and takes a snapshot when due (as Sim.ready).
-func (c *Cluster) handleReady(r *creplica, rd raft.Ready, rng *rand.Rand) {
+func (c *Cluster) handleReady(r *creplica, rd raft.Ready) {
 	c.Readies.Add(1)
 	if !raft.IsEmptySnap(rd.Snapshot) {
 		if err := r.storage.ApplySnapshot(rd.Snapshot); err != nil {
@@ -277,8 +295,8 @@ func (c *Cluster) handleReady(r *creplica, rd raft.Ready, rng *rand.Rand) {
 		}
 	}
 	for _, m := range rd.Messages {
-		c.send(r, proto.Clone(m).(*pb.Message), time.Duration(rng.Int64N(int64(c.cfg.MaxDelay)+1)),
-			rng.IntN(100) < c.cfg.DropPct)
+		c.send(r, proto.Clone(m).(*pb.Message), time.Duration(below(int(c.cfg.MaxDelay)+1)),
+			below(100) < c.cfg.DropPct)
 	}
 	confApplied := false
 	for _, e := range rd.CommittedEntries {

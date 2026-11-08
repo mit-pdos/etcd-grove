@@ -1,7 +1,7 @@
 // Package etcdraft is a transcription into Go of raft's TLA+ specification (`tla/etcdraft.tla` of
 // etcd-io/raft, at the raft this repository verifies) and of its trace specification
 // (`tla/Traceetcdraft.tla`), for checking raft's traces: directly (CheckTrace, a breadth-first
-// search like TLC's) and with porcupine (Model).
+// search like TLC's); porcupine checks with it in package pmodel, and package ndjson reads traces.
 //
 // The transcription follows the TLA+ text definition by definition, with the same names; each
 // definition's comment quotes the TLA+ name it transcribes. TLA+'s values become Go values:
@@ -12,15 +12,18 @@
 //   - a log is a []Entry (TLA+'s sequences are 1-indexed: log[i][k] is Log[k-1]);
 //   - a message is a Msg, the fields of all four record shapes in one struct (a shape's absent
 //     fields are always zero, so two messages are equal in Go when they are equal in TLA+);
-//   - a bag of messages is a Bag, keyed by a canonical encoding of the message.
+//   - a bag of messages is a Bag, its distinct messages with their counts.
 //
 // Values are never written once built: an action builds its successor state by copying what it
 // changes (State.clone and the mut* methods).
+//
+// What a proof of CheckTrace goes through (notes/trace-validation-plan.md, layer C) uses only
+// slices, maps, structural equality and panics: no fmt, strings, sort or hashing; those are only in
+// the String and Error methods, for messages and debugging.
 package etcdraft
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -48,37 +51,52 @@ func (r Role) String() string { return string(r) }
 // ParseRole is the role a trace's role string denotes: the string itself.
 func ParseRole(s string) Role { return Role(s) }
 
-// EvalError is an evaluation error TLC would raise (a sequence indexed outside its domain, a
-// record's missing field, ...): where TLC stops with an error, the transcription panics with an
-// EvalError, which the checkers report (CheckTrace's Result.EvalError) as a failure.
-type EvalError struct{ Msg string }
+// EvalError is an evaluation error TLC would raise (a sequence indexed outside its domain): where
+// TLC stops with an error, the transcription panics with an EvalError, which the checkers report
+// (CheckTrace's Result.EvalError) as a failure. What names the evaluation, A, B, C its numbers.
+type EvalError struct {
+	What    string
+	A, B, C int
+}
 
-func (e EvalError) Error() string { return "TLC evaluation error: " + e.Msg }
+func (e EvalError) Error() string {
+	return fmt.Sprintf("TLC evaluation error: %s (%d, %d, %d)", e.What, e.A, e.B, e.C)
+}
 
-func evalErrorf(format string, args ...any) {
-	panic(EvalError{Msg: fmt.Sprintf(format, args...)})
+// evalError panics with an EvalError.
+func evalError(what string, a, b, c int) {
+	panic(EvalError{What: what, A: a, B: b, C: c})
 }
 
 // Set is a finite set of servers: sorted, without duplicates. A Set is never written.
 type Set []ID
 
-// NewSet is the set of ids.
+// NewSet is the set of ids (sorted by insertion: the sets of servers are small).
 func NewSet(ids ...ID) Set {
-	s := append(Set(nil), ids...)
-	sort.Slice(s, func(a, b int) bool { return s[a] < s[b] })
-	out := s[:0]
-	for k, id := range s {
-		if k == 0 || id != s[k-1] {
-			out = append(out, id)
+	var out Set
+	for _, id := range ids {
+		k := 0
+		for k < len(out) && out[k] < id {
+			k++
 		}
+		if k < len(out) && out[k] == id {
+			continue
+		}
+		out = append(out, 0)
+		copy(out[k+1:], out[k:])
+		out[k] = id
 	}
 	return out
 }
 
 // Has is `id \in s`.
 func (s Set) Has(id ID) bool {
-	k := sort.Search(len(s), func(k int) bool { return s[k] >= id })
-	return k < len(s) && s[k] == id
+	for _, x := range s {
+		if x == id {
+			return true
+		}
+	}
+	return false
 }
 
 // Union is `s \union t`.
@@ -206,7 +224,7 @@ func SubSeq(s []Entry, m, n int) []Entry {
 		return nil
 	}
 	if m < 1 || n > len(s) {
-		evalErrorf("SubSeq of a sequence of length %d from %d to %d", len(s), m, n)
+		evalError("SubSeq past a sequence's end (length, from, to)", len(s), m, n)
 	}
 	return s[m-1 : n : n]
 }
@@ -258,20 +276,12 @@ type Msg struct {
 	Source, Dest ID
 }
 
-// Key is a canonical encoding of m: two messages are equal exactly when their keys are.
-func (m *Msg) Key() string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "%d|%s|%d|%d|%d|%t|%d|%d|%d|%t|%d|%d|%d|", m.Type, m.Subtype, m.Term, m.LastLogTerm,
-		m.LastLogIndex, m.VoteGranted, m.PrevLogIndex, m.PrevLogTerm, m.CommitIndex, m.Success, m.MatchIndex,
-		m.Source, m.Dest)
-	for _, e := range m.Entries {
-		writeEntry(&b, e)
-	}
-	return b.String()
-}
-
-func writeEntry(b *strings.Builder, e Entry) {
-	fmt.Fprintf(b, "(%d,%d,%d,%d,%v,%v)", e.Term, e.Type, e.Value.Kind, e.Value.Val, []ID(e.Value.NewConf), []ID(e.Value.Learners))
+// Equal is `m = n` (structural: every field, the entries included).
+func (m *Msg) Equal(n *Msg) bool {
+	return m.Type == n.Type && m.Subtype == n.Subtype && m.Term == n.Term && m.LastLogTerm == n.LastLogTerm &&
+		m.LastLogIndex == n.LastLogIndex && m.VoteGranted == n.VoteGranted && m.PrevLogIndex == n.PrevLogIndex &&
+		m.PrevLogTerm == n.PrevLogTerm && m.CommitIndex == n.CommitIndex && m.Success == n.Success &&
+		m.MatchIndex == n.MatchIndex && m.Source == n.Source && m.Dest == n.Dest && EntriesEqual(m.Entries, n.Entries)
 }
 
 func (m *Msg) String() string {
@@ -288,9 +298,10 @@ func (m *Msg) String() string {
 }
 
 // Bag is a bag (multiset) of messages: Bags' `msg -> count`, DOMAIN its messages of positive
-// count. A Bag is never written once built: the operations return new bags.
+// count, held as a list of distinct messages with their counts. A Bag is never written once built:
+// the operations return new bags.
 type Bag struct {
-	items map[string]bagItem
+	items []bagItem
 }
 
 type bagItem struct {
@@ -301,68 +312,76 @@ type bagItem struct {
 // EmptyBag is Bags' EmptyBag.
 var EmptyBag = Bag{}
 
-// Count is `IF m \in DOMAIN b THEN b[m] ELSE 0`.
-func (b Bag) Count(m *Msg) int { return b.items[m.Key()].count }
+// find is the position of m in b's items, or -1.
+func (b Bag) find(m *Msg) int {
+	for k, it := range b.items {
+		if it.msg.Equal(m) {
+			return k
+		}
+	}
+	return -1
+}
 
-// CountKey is Count of the message whose key is k.
-func (b Bag) CountKey(k string) int { return b.items[k].count }
+// Count is `IF m \in DOMAIN b THEN b[m] ELSE 0`.
+func (b Bag) Count(m *Msg) int {
+	if k := b.find(m); k >= 0 {
+		return b.items[k].count
+	}
+	return 0
+}
 
 // Len is the number of distinct messages (Cardinality(DOMAIN b)).
 func (b Bag) Len() int { return len(b.items) }
 
-// Domain is `DOMAIN b`, in key order.
+// Domain is `DOMAIN b` (in the order the messages came in).
 func (b Bag) Domain() []*Msg {
-	keys := make([]string, 0, len(b.items))
-	for k := range b.items {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	out := make([]*Msg, len(keys))
-	for n, k := range keys {
-		out[n] = b.items[k].msg
+	out := make([]*Msg, len(b.items))
+	for k, it := range b.items {
+		out[k] = it.msg
 	}
 	return out
 }
 
-func (b Bag) copyItems() map[string]bagItem {
-	items := make(map[string]bagItem, len(b.items)+1)
-	for k, v := range b.items {
-		items[k] = v
+// add is b with n more of m (n > 0).
+func (b Bag) add(m *Msg, n int) Bag {
+	items := append([]bagItem(nil), b.items...)
+	if k := b.find(m); k >= 0 {
+		items[k] = bagItem{msg: items[k].msg, count: items[k].count + n}
+	} else {
+		items = append(items, bagItem{msg: m, count: n})
 	}
-	return items
+	return Bag{items: items}
+}
+
+// sub is b with n fewer of m (none below zero).
+func (b Bag) sub(m *Msg, n int) Bag {
+	k := b.find(m)
+	if k < 0 {
+		return b
+	}
+	var items []bagItem
+	for h, it := range b.items {
+		if h != k {
+			items = append(items, it)
+		} else if it.count > n {
+			items = append(items, bagItem{msg: it.msg, count: it.count - n})
+		}
+	}
+	return Bag{items: items}
 }
 
 // With is `WithMessage(m, b) == b (+) SetToBag({m})`.
-func (b Bag) With(m *Msg) Bag {
-	items := b.copyItems()
-	k := m.Key()
-	it := items[k]
-	items[k] = bagItem{msg: m, count: it.count + 1}
-	return Bag{items: items}
-}
+func (b Bag) With(m *Msg) Bag { return b.add(m, 1) }
 
 // Without is `WithoutMessage(m, b) == b (-) SetToBag({m})` (a message not in b leaves b as is).
-func (b Bag) Without(m *Msg) Bag {
-	k := m.Key()
-	it, ok := b.items[k]
-	if !ok {
-		return b
-	}
-	items := b.copyItems()
-	if it.count == 1 {
-		delete(items, k)
-	} else {
-		items[k] = bagItem{msg: it.msg, count: it.count - 1}
-	}
-	return Bag{items: items}
-}
+func (b Bag) Without(m *Msg) Bag { return b.sub(m, 1) }
 
 // Filter is the sub-bag of b's messages satisfying p, with their counts.
 func (b Bag) Filter(p func(*Msg) bool) Bag {
-	items := map[string]bagItem{}
-	for k, v := range b.items {
-		if p(v.msg) {
-			items[k] = v
+	var items []bagItem
+	for _, it := range b.items {
+		if p(it.msg) {
+			items = append(items, it)
 		}
 	}
 	return Bag{items: items}
@@ -370,27 +389,20 @@ func (b Bag) Filter(p func(*Msg) bool) Bag {
 
 // Plus is `b (+) c`.
 func (b Bag) Plus(c Bag) Bag {
-	items := b.copyItems()
-	for k, v := range c.items {
-		it := items[k]
-		items[k] = bagItem{msg: v.msg, count: it.count + v.count}
+	out := b
+	for _, it := range c.items {
+		out = out.add(it.msg, it.count)
 	}
-	return Bag{items: items}
+	return out
 }
 
 // Minus is `b (-) c` (counts below zero are zero).
 func (b Bag) Minus(c Bag) Bag {
-	items := b.copyItems()
-	for k, v := range c.items {
-		if it, ok := items[k]; ok {
-			if it.count <= v.count {
-				delete(items, k)
-			} else {
-				items[k] = bagItem{msg: it.msg, count: it.count - v.count}
-			}
-		}
+	out := b
+	for _, it := range c.items {
+		out = out.sub(it.msg, it.count)
 	}
-	return Bag{items: items}
+	return out
 }
 
 // Equal is `b = c`.
@@ -398,21 +410,10 @@ func (b Bag) Equal(c Bag) bool {
 	if len(b.items) != len(c.items) {
 		return false
 	}
-	for k, v := range b.items {
-		if c.items[k].count != v.count {
+	for _, it := range b.items {
+		if c.Count(it.msg) != it.count {
 			return false
 		}
 	}
 	return true
-}
-
-func (b Bag) key(sb *strings.Builder) {
-	keys := make([]string, 0, len(b.items))
-	for k := range b.items {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		fmt.Fprintf(sb, "[%s]x%d;", k, b.items[k].count)
-	}
 }

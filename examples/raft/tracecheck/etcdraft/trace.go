@@ -1,10 +1,6 @@
 package etcdraft
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
-	"io"
 	"strconv"
 )
 
@@ -65,153 +61,60 @@ type EventChange struct {
 	Action string `json:"action"`
 }
 
-// ReadNDJSON reads a trace in the format of raft's trace validation: one JSON object per line,
-// those with `"tag":"trace"` holding an event under `"event"` (`OriginTraceLog`). It is strict
-// where TLC would fail reading the trace (a missing field): an event's objects must have exactly
-// the keys raft's TracingEvent writes (case-sensitive), with the optional ones (msg, prop, and in
-// a configuration change changes and newconf) possibly absent (prop's keys are free but for cc,
-// the only one the specification reads), and a "trace" line must have an event. (So it rejects a few traces TLC would accept, those with a field TLC never reads missing
-// or an extra one; raft never writes them.)
-func ReadNDJSON(r io.Reader) ([]Event, error) {
-	var out []Event
-	sc := bufio.NewScanner(r)
-	sc.Buffer(make([]byte, 1<<20), 1<<26)
-	n := 0
-	for sc.Scan() {
-		n++
-		line := sc.Bytes()
-		if len(line) == 0 {
-			continue
-		}
-		var rec map[string]json.RawMessage
-		if err := json.Unmarshal(line, &rec); err != nil {
-			return nil, fmt.Errorf("line %d: %w", n, err)
-		}
-		var tag string
-		if raw, ok := rec["tag"]; ok {
-			if err := json.Unmarshal(raw, &tag); err != nil {
-				tag = ""
-			}
-		}
-		if tag != "trace" {
-			continue
-		}
-		raw, ok := rec["event"]
-		if !ok {
-			return nil, fmt.Errorf("line %d: a trace line without an event", n)
-		}
-		ev, err := decodeEvent(raw)
-		if err != nil {
-			return nil, fmt.Errorf("line %d: %w", n, err)
-		}
-		out = append(out, ev)
-	}
-	return out, sc.Err()
-}
-
-// exactKeys decodes raw, a JSON object, checking that it has every key of required and no key
-// but those and optional's.
-func exactKeys(raw json.RawMessage, what string, required, optional []string) (map[string]json.RawMessage, error) {
-	var m map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &m); err != nil {
-		return nil, fmt.Errorf("%s: %w", what, err)
-	}
-	allowed := map[string]bool{}
-	for _, k := range required {
-		if _, ok := m[k]; !ok {
-			return nil, fmt.Errorf("%s: no field %q", what, k)
-		}
-		allowed[k] = true
-	}
-	for _, k := range optional {
-		allowed[k] = true
-	}
-	for k := range m {
-		if !allowed[k] {
-			return nil, fmt.Errorf("%s: unknown field %q", what, k)
-		}
-	}
-	return m, nil
-}
-
-// decodeEvent decodes a trace line's event, checking its objects' keys (ReadNDJSON).
-func decodeEvent(raw json.RawMessage) (Event, error) {
-	var ev Event
-	m, err := exactKeys(raw, "event", []string{"name", "nid", "state", "role", "log", "conf"}, []string{"msg", "prop"})
-	if err != nil {
-		return ev, err
-	}
-	if _, err := exactKeys(m["state"], "state", []string{"term", "vote", "commit"}, nil); err != nil {
-		return ev, err
-	}
-	var conf []json.RawMessage
-	if err := json.Unmarshal(m["conf"], &conf); err != nil || len(conf) != 2 {
-		return ev, fmt.Errorf("conf: not a pair of lists")
-	}
-	if raw, ok := m["msg"]; ok {
-		if _, err := exactKeys(raw, "msg", []string{"type", "term", "from", "to", "entries", "logTerm", "index",
-			"commit", "vote", "reject", "rejectHint"}, nil); err != nil {
-			return ev, err
-		}
-	}
-	if raw, ok := m["prop"]; ok {
-		// prop holds what raft adds to an event (a configuration change's cc, a replication
-		// message's match and next, ...); the specification reads only cc, whose shape is checked
-		var pm map[string]json.RawMessage
-		if err := json.Unmarshal(raw, &pm); err != nil {
-			return ev, fmt.Errorf("prop: %w", err)
-		}
-		if cc, ok := pm["cc"]; ok {
-			ccm, err := exactKeys(cc, "cc", nil, []string{"changes", "newconf"})
-			if err != nil {
-				return ev, err
-			}
-			if ch, ok := ccm["changes"]; ok {
-				var changes []json.RawMessage
-				if err := json.Unmarshal(ch, &changes); err != nil {
-					return ev, fmt.Errorf("changes: %w", err)
-				}
-				for _, c := range changes {
-					if _, err := exactKeys(c, "change", []string{"nid", "action"}, nil); err != nil {
-						return ev, err
-					}
-				}
-			}
-		}
-	}
-	if err := json.Unmarshal(raw, &ev); err != nil {
-		return ev, err
-	}
-	return ev, nil
-}
-
 // isMessageEvent says whether a line of this name is a message's (its msg is read).
 func isMessageEvent(name string) bool {
 	return ReceiveMessageTraceNames[name] || name == "SendAppendEntriesRequest" ||
 		name == "SendAppendEntriesResponse" || name == "SendRequestVoteRequest" || name == "SendRequestVoteResponse"
 }
 
-// parseID is the server a trace's id string denotes (Nil for "0"). It must be in canonical
-// form (as raft's strconv.FormatUint writes it): TLA+ compares the strings, so "01" and "1" are
-// different servers there.
-func parseID(s string) (ID, error) {
-	id, err := strconv.ParseUint(s, 10, 64)
-	if err == nil && strconv.FormatUint(id, 10) != s {
-		err = fmt.Errorf("id %q not in canonical form", s)
+// parseID is the server a trace's id string denotes (Nil for "0"), ok false unless s is a decimal
+// number in canonical form (as raft's strconv.FormatUint writes it: TLA+ compares the strings, so
+// "01" and "1" are different servers there) below 2^64.
+func parseID(s string) (ID, bool) {
+	if len(s) == 0 || len(s) > 20 || (len(s) > 1 && s[0] == '0') {
+		return 0, false
 	}
-	return id, err
+	var id ID
+	for k := 0; k < len(s); k++ {
+		c := s[k]
+		if c < '0' || c > '9' {
+			return 0, false
+		}
+		d := ID(c - '0')
+		if id > (^ID(0)-d)/10 {
+			return 0, false
+		}
+		id = id*10 + d
+	}
+	return id, true
 }
 
-func toSet(ids []string) (Set, error) {
+// TraceError is why NewTrace refuses a trace (where TLC would fail reading it, or a premise of the
+// trace specification fails): What, at line Line (0: the whole trace), about server or value N.
+type TraceError struct {
+	What string
+	Line int
+	N    uint64
+}
+
+func (e *TraceError) Error() string {
+	return "trace: line " + strconv.Itoa(e.Line) + ": " + e.What + " (" + strconv.FormatUint(e.N, 10) + ")"
+}
+
+func traceError(what string, line int, n uint64) error {
+	return &TraceError{What: what, Line: line, N: n}
+}
+
+func toSet(ids []string) (Set, bool) {
 	var out []ID
 	for _, s := range ids {
-		id, err := parseID(s)
-		if err != nil {
-			return nil, err
+		id, ok := parseID(s)
+		if !ok {
+			return nil, false
 		}
 		out = append(out, id)
 	}
-	return NewSet(out...), nil
+	return NewSet(out...), true
 }
 
 // RaftMsgType is `RaftMsgType`.
@@ -264,22 +167,22 @@ func (t *Trace) Event(l int) *Event { return t.lines[l-1].ev }
 // NewTrace builds the trace specification of events.
 func NewTrace(events []Event) (*Trace, error) {
 	if len(events) == 0 {
-		return nil, fmt.Errorf("empty trace")
+		return nil, traceError("empty trace", 0, 0)
 	}
 	t := &Trace{}
 	for k := range events {
 		ev := &events[k]
 		ln := line{ev: ev, role: ParseRole(ev.Role)}
-		var err error
-		if ln.nid, err = parseID(ev.NID); err != nil {
-			return nil, fmt.Errorf("line %d: nid: %w", k+1, err)
+		var ok bool
+		if ln.nid, ok = parseID(ev.NID); !ok {
+			return nil, traceError("nid not an id", k+1, 0)
 		}
-		if ln.vote, err = parseID(ev.State.Vote); err != nil {
-			return nil, fmt.Errorf("line %d: vote: %w", k+1, err)
+		if ln.vote, ok = parseID(ev.State.Vote); !ok {
+			return nil, traceError("vote not an id", k+1, 0)
 		}
 		for h := 0; h < 2; h++ {
-			if ln.conf[h], err = toSet(ev.Conf[h]); err != nil {
-				return nil, fmt.Errorf("line %d: conf: %w", k+1, err)
+			if ln.conf[h], ok = toSet(ev.Conf[h]); !ok {
+				return nil, traceError("conf not a list of ids", k+1, 0)
 			}
 		}
 		// Where TLC fails evaluating the line: a message event without a message
@@ -288,27 +191,27 @@ func NewTrace(events []Event) (*Trace, error) {
 		// it; raft logs no other), a ChangeConf without a configuration change or with an empty
 		// change list (TraceServer reads x.event.prop.cc, and changes[1]).
 		if isMessageEvent(ev.Name) && ev.Msg == nil {
-			return nil, fmt.Errorf("line %d: %s without a message", k+1, ev.Name)
+			return nil, traceError("a message event without a message", k+1, 0)
 		}
 		if ev.Msg != nil {
 			if _, ok := RaftMsgType[ev.Msg.Type]; !ok {
-				return nil, fmt.Errorf("line %d: message type %q outside RaftMsgType", k+1, ev.Msg.Type)
+				return nil, traceError("message type outside RaftMsgType", k+1, 0)
 			}
 		}
 		if ev.Name == "ChangeConf" {
 			if ev.Prop == nil || ev.Prop.CC == nil {
-				return nil, fmt.Errorf("line %d: ChangeConf without a configuration change", k+1)
+				return nil, traceError("ChangeConf without a configuration change", k+1, 0)
 			}
 			if ev.Prop.CC.Changes != nil && len(*ev.Prop.CC.Changes) == 0 {
-				return nil, fmt.Errorf("line %d: ChangeConf with an empty change list", k+1)
+				return nil, traceError("ChangeConf with an empty change list", k+1, 0)
 			}
 		}
 		if ev.Msg != nil {
-			if ln.from, err = parseID(ev.Msg.From); err != nil {
-				return nil, fmt.Errorf("line %d: from: %w", k+1, err)
+			if ln.from, ok = parseID(ev.Msg.From); !ok {
+				return nil, traceError("from not an id", k+1, 0)
 			}
-			if ln.to, err = parseID(ev.Msg.To); err != nil {
-				return nil, fmt.Errorf("line %d: to: %w", k+1, err)
+			if ln.to, ok = parseID(ev.Msg.To); !ok {
+				return nil, traceError("to not an id", k+1, 0)
 			}
 		}
 		t.lines = append(t.lines, ln)
@@ -323,9 +226,9 @@ func NewTrace(events []Event) (*Trace, error) {
 			len(*ev.Prop.CC.Changes) > 0 {
 			c := (*ev.Prop.CC.Changes)[0]
 			if c.Action == "AddNewServer" || c.Action == "AddLearner" {
-				j, err := parseID(c.NID)
-				if err != nil {
-					return nil, err
+				j, ok := parseID(c.NID)
+				if !ok {
+					return nil, traceError("a change's nid not an id", 0, 0)
 				}
 				server = append(server, j)
 			}
@@ -365,7 +268,7 @@ func NewTrace(events []Event) (*Trace, error) {
 		}
 		if last[i] == 0 {
 			// TLC fails: Max of the empty set (a server with no bootstrap line)
-			return nil, fmt.Errorf("server %d has no bootstrap line", i)
+			return nil, traceError("a server without a bootstrap line", 0, i)
 		}
 	}
 
@@ -375,9 +278,13 @@ func NewTrace(events []Event) (*Trace, error) {
 		if ln.ev.Name == "ApplyConfChange" {
 			// TLC fails reading a missing newconf (raft omits an empty one)
 			if ln.ev.Prop == nil || ln.ev.Prop.CC == nil || ln.ev.Prop.CC.NewConf == nil {
-				return nil, fmt.Errorf("line %d: ApplyConfChange without newconf", last[i])
+				return nil, traceError("a last bootstrap ApplyConfChange without newconf", last[i], 0)
 			}
-			return toSet(*ln.ev.Prop.CC.NewConf)
+			cfg, ok := toSet(*ln.ev.Prop.CC.NewConf)
+			if !ok {
+				return nil, traceError("newconf not a list of ids", last[i], 0)
+			}
+			return cfg, nil
 		}
 		return ln.conf[0], nil
 	}
@@ -386,7 +293,7 @@ func NewTrace(events []Event) (*Trace, error) {
 		return nil, err
 	}
 	if !t.InitSrv.Subset(t.Server) { // ASSUME TraceInitServer \subseteq TraceServer
-		return nil, fmt.Errorf("TraceInitServer %v not a subset of TraceServer %v", t.InitSrv, t.Server)
+		return nil, traceError("TraceInitServer not a subset of TraceServer", 0, 0)
 	}
 
 	// TraceInit's Init, with InitServerVars, InitLogVars and InitConfigVars replaced by the
@@ -426,9 +333,18 @@ type TState struct {
 	PL int
 }
 
-// Key is a canonical encoding of the state as TLC's view `TraceView == <<vars, l>>` sees it (pl
-// is not in the view).
-func (ts TState) Key() string { return strconv.Itoa(ts.L) + "#" + ts.S.Key() }
+// Equal is equality as TLC's view `TraceView == <<vars, l>>` sees it (pl is not in the view).
+func (ts TState) Equal(us TState) bool { return ts.L == us.L && ts.S.Equal(us.S) }
+
+// indexOf is the position of a state Equal to ts in tss, or -1.
+func indexOf(tss []TState, ts TState) int {
+	for k, us := range tss {
+		if us.Equal(ts) {
+			return k
+		}
+	}
+	return -1
+}
 
 // Init is `TraceInit`.
 func (t *Trace) Init() TState { return TState{S: t.init, L: 1, PL: 0} }
@@ -553,15 +469,13 @@ func (t *Trace) validatePostStates(ts TState, s *State, i ID) bool {
 
 // oneMoreMessage is `OneMoreMessage(msg)`, from s to s2 (pendingMessages).
 func oneMoreMessage(s, s2 *State, m *Msg) bool {
-	k := m.Key()
-	before, after := s.PendingMessages.CountKey(k), s2.PendingMessages.CountKey(k)
+	before, after := s.PendingMessages.Count(m), s2.PendingMessages.Count(m)
 	return (before == 0 && after == 1) || (before > 0 && after == before+1)
 }
 
 // oneLessMessage is `OneLessMessage(msg)`, from s to s2 (messages).
 func oneLessMessage(s, s2 *State, m *Msg) bool {
-	k := m.Key()
-	before, after := s.Messages.CountKey(k), s2.Messages.CountKey(k)
+	before, after := s.Messages.Count(m), s2.Messages.Count(m)
 	return (before == 1 && after == 0) || (before > 0 && after == before-1)
 }
 
@@ -721,8 +635,8 @@ func (ln *line) confChange() (string, ID, bool) {
 		return "", 0, false
 	}
 	c := (*ev.Prop.CC.Changes)[0]
-	j, err := parseID(c.NID)
-	if err != nil {
+	j, ok := parseID(c.NID)
+	if !ok {
 		return "", 0, false
 	}
 	return c.Action, j, true
@@ -989,29 +903,28 @@ type StepInfo struct {
 func (t *Trace) StepLine(ts TState, invariants bool) ([]TState, StepInfo) {
 	var out []TState
 	var info StepInfo
-	seen := map[string]bool{}
 	frontier := []TState{ts}
-	visited := map[string]bool{ts.Key(): true}
+	visited := []TState{ts}
 	for len(frontier) > 0 {
 		var next []TState
 		for _, f := range frontier {
-			fresh := map[string]bool{}
+			var fresh []TState
 			for _, s2 := range t.Next(f) {
-				k := s2.Key()
 				if s2.L == ts.L+1 {
-					if seen[k] {
+					if indexOf(out, s2) >= 0 {
 						continue
 					}
-					seen[k] = true
 					out = append(out, s2)
 				} else {
-					if visited[k] {
+					if indexOf(visited, s2) >= 0 {
 						continue
 					}
-					visited[k] = true
+					visited = append(visited, s2)
 					next = append(next, s2)
 				}
-				fresh[k] = true
+				if indexOf(fresh, s2) < 0 {
+					fresh = append(fresh, s2)
+				}
 				if invariants {
 					if v := s2.S.Violated(); v != "" {
 						info.Violation, info.Bad = v, s2.S

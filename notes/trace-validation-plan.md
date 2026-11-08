@@ -149,6 +149,30 @@ the checker's spec and layer B's invariant at the end (the whole trace accepted)
 
 S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's event function).
 
+## Draft: S1 done (2026-11-08)
+
+- `examples/raft/tracecheck` is a Go module of its own (`go.mod` replaces raft by the local fork
+  checkout `.lake/raft-trace`, until the fork commit is pushed: then its pseudo-version and an entry
+  of `etc/goose.py`'s `GO_MOD_PINS`); project `tracecheck` of `etc/goose.py` translates its packages
+  `.` (the concurrent harness and `Main`) and `./etcdraft` (the checker core) into the main tree.
+  Both translations build (`lake build` of their Code and GeneratedProof modules, 2026-11-08).
+- The checker core (`etcdraft`) uses on its proved paths only slices, maps, structural equality
+  and panics (`EvalError`, recovered in `CheckTrace`): no `fmt`, `strings`, `sort` or hashing (those
+  only in `String`/`Error` methods); a hand-written decimal parser for ids; typed `TraceError`s.
+  The NDJSON reader moved to `etcdraft/ndjson`, the porcupine model (and a canonical state key, for
+  porcupine's hashing and the state-space test) to `etcdraft/pmodel`; neither is translated.
+- `Main` (`main.go`): `RunConcurrent(DefaultCConfig())`, then
+  `ConvertEvents` (raft's events to the checker's, in memory, as the NDJSON path reads them:
+  `TestConvertMatchesNDJSON`), `NewTrace`, `CheckTrace(tr, true).TLCOK()`, panic otherwise.
+  `TestMainRuns` runs it.
+- The harness's files Goose sees (`concurrent.go`, `main.go`: `with_tla || goose`) draw their
+  random choices from `primitive.RandomUint64` (as the other harnesses: `below`, as
+  `examples/raft/kvreconf`'s), so the configuration has no seed, and use no `encoding/json`
+  (Perennial models neither it nor `math/rand/v2`); the deterministic driver and `WriteNDJSON`
+  (`sim.go`, seeded `math/rand/v2`) are `with_tla && !goose`, the tests `with_tla`.
+- Not yet: the generated initializers (`etc/gen-init.py`) and links of the two packages, which come
+  with their specs (the rest of Draft).
+
 ## Risks
 
 - **`TraceInit` reads the whole trace** (`TraceServer`, the bootstrap lines up to each server's

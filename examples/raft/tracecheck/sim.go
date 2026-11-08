@@ -1,5 +1,8 @@
-//go:build with_tla
+//go:build with_tla && !goose
 
+// (This file, the deterministic driver and the NDJSON writer, is not translated (`!goose`): it is
+// not on Main's path, and it uses math/rand/v2 and encoding/json, which Perennial does not model.)
+//
 // Package tracecheck runs raft clusters in process and records raft's own state-machine traces
 // (raft's `with_tla` build: `state_trace.go`, the events its TLA+ trace validation reads,
 // `tla/Traceetcdraft.tla`), to check them against the protocol's TLA+ specification
@@ -129,22 +132,6 @@ type Sim struct {
 	// counts, for tests
 	Delivered, Dropped, Readies, Proposed, Applied, ConfChanges, Snapshots, Restarts int
 }
-
-// quietLogger discards what raft logs; Fatal and Panic panic.
-type quietLogger struct{}
-
-func (quietLogger) Debug(v ...interface{})                   {}
-func (quietLogger) Debugf(format string, v ...interface{})   {}
-func (quietLogger) Error(v ...interface{})                   {}
-func (quietLogger) Errorf(format string, v ...interface{})   {}
-func (quietLogger) Info(v ...interface{})                    {}
-func (quietLogger) Infof(format string, v ...interface{})    {}
-func (quietLogger) Warning(v ...interface{})                 {}
-func (quietLogger) Warningf(format string, v ...interface{}) {}
-func (quietLogger) Fatal(v ...interface{})                   { panic(fmt.Sprint(v...)) }
-func (quietLogger) Fatalf(format string, v ...interface{})   { panic(fmt.Sprintf(format, v...)) }
-func (quietLogger) Panic(v ...interface{})                   { panic(fmt.Sprint(v...)) }
-func (quietLogger) Panicf(format string, v ...interface{})   { panic(fmt.Sprintf(format, v...)) }
 
 func (s *Sim) raftConfig(id uint64, st *raft.MemoryStorage, applied uint64) *raft.Config {
 	return &raft.Config{

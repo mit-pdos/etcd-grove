@@ -129,7 +129,7 @@ func (s *State) LeaderCompletenessInv() bool {
 				vl := s.S[l]
 				if vl.CurrentTerm > entry.Term {
 					if idx > len(vl.Log) {
-						evalErrorf("LeaderCompletenessInv: log[%d][%d] of a log of length %d", l, idx, len(vl.Log))
+						evalError("LeaderCompletenessInv: log[l][idx] past the log's end (l, idx, length)", int(l), idx, len(vl.Log))
 					}
 					if !vl.Log[idx-1].Equal(entry) {
 						return false

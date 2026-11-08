@@ -85,36 +85,36 @@ func (s *State) mut(i ID) *Server {
 	return c
 }
 
-// Key is a canonical encoding of s: two states are equal exactly when their keys are (TLC's
-// view `vars`).
-func (s *State) Key() string {
-	var b strings.Builder
-	for _, i := range s.Server {
-		v := s.S[i]
-		fmt.Fprintf(&b, "%d:%d,%q,%d,%d,%v,%v,", i, v.CurrentTerm, string(v.State), v.VotedFor, v.CommitIndex,
-			[]ID(v.VotesResponded), []ID(v.VotesGranted))
-		for _, j := range s.Server {
-			fmt.Fprintf(&b, "%d.", v.MatchIndex[j])
-		}
-		fmt.Fprintf(&b, ",%d,%v%v%v,", v.PendingConfChangeIndex, []ID(v.Config.Joint[0]), []ID(v.Config.Joint[1]),
-			[]ID(v.Config.Learners))
-		d := v.Durable
-		fmt.Fprintf(&b, "%d,%d,%d,%d,%v%v%v,", d.CurrentTerm, d.VotedFor, d.Log, d.CommitIndex,
-			[]ID(d.Config.Joint[0]), []ID(d.Config.Joint[1]), []ID(d.Config.Learners))
-		for _, e := range v.Log {
-			writeEntry(&b, e)
-		}
-		b.WriteString(";")
+// Equal is `vars = vars` of the two states (TLC's view `vars`): the same servers, every per-server
+// variable, reconfigCount and both bags.
+func (s *State) Equal(t *State) bool {
+	if !s.Server.Equal(t.Server) || s.ReconfigCount != t.ReconfigCount || !s.Messages.Equal(t.Messages) ||
+		!s.PendingMessages.Equal(t.PendingMessages) {
+		return false
 	}
-	fmt.Fprintf(&b, "rc%d;M", s.ReconfigCount)
-	s.Messages.key(&b)
-	b.WriteString(";P")
-	s.PendingMessages.key(&b)
-	return b.String()
+	for _, i := range s.Server {
+		if !s.S[i].equal(t.S[i], s.Server) {
+			return false
+		}
+	}
+	return true
 }
 
-// Equal is `vars = vars` of the two states.
-func (s *State) Equal(t *State) bool { return s.Key() == t.Key() }
+// equal is equality of server variables (matchIndex compared on the servers srv).
+func (v *Server) equal(w *Server, srv Set) bool {
+	if v.CurrentTerm != w.CurrentTerm || v.State != w.State || v.VotedFor != w.VotedFor ||
+		v.CommitIndex != w.CommitIndex || v.PendingConfChangeIndex != w.PendingConfChangeIndex ||
+		!EntriesEqual(v.Log, w.Log) || !v.VotesResponded.Equal(w.VotesResponded) ||
+		!v.VotesGranted.Equal(w.VotesGranted) || !v.Config.Equal(w.Config) || !v.Durable.equal(w.Durable) {
+		return false
+	}
+	for _, j := range srv {
+		if v.MatchIndex[j] != w.MatchIndex[j] {
+			return false
+		}
+	}
+	return true
+}
 
 func (s *State) String() string {
 	var b strings.Builder
@@ -432,7 +432,7 @@ func (s *State) ApplySimpleConfChange(i ID) *State {
 	// k == SelectLastInSubSeq(log[i], 1, commitIndex[i], LAMBDA x: x.type = ConfigEntry), which
 	// TLC fails to evaluate past the log's end
 	if v.CommitIndex > len(v.Log) {
-		evalErrorf("SelectLastInSubSeq of a log of length %d to %d", len(v.Log), v.CommitIndex)
+		evalError("SelectLastInSubSeq past the log's end (length, to)", len(v.Log), v.CommitIndex, 0)
 	}
 	k := 0
 	for n := 1; n <= v.CommitIndex; n++ {

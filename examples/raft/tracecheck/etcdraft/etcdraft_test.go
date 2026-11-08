@@ -1,8 +1,11 @@
-package etcdraft
+package etcdraft_test
 
 import (
 	"os"
 	"testing"
+
+	. "github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft"
+	"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft/pmodel"
 )
 
 // bounds are MCGo.tla's constants.
@@ -32,13 +35,13 @@ func (b bounds) constraint(s *State) bool {
 // constraint out: it is neither counted nor explored), and the first invariant violation.
 func explore(t *testing.T, initServer, server Set, b bounds, limit int) (int, string) {
 	init := Init(initServer, server)
-	seen := map[string]bool{init.Key(): true}
+	seen := map[string]bool{pmodel.Key(init): true}
 	frontier := []*State{init}
 	for len(frontier) > 0 {
 		var next []*State
 		for _, s := range frontier {
 			for _, s2 := range s.NextDynamic() {
-				k := s2.Key()
+				k := pmodel.Key(s2)
 				if seen[k] || !b.constraint(s2) {
 					continue
 				}
