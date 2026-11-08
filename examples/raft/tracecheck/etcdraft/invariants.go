@@ -160,14 +160,14 @@ type Invariant struct {
 
 // Invariants are the invariants Traceetcdraft.cfg checks, in its order.
 var Invariants = []Invariant{
-	{"LogInv", (*State).LogInv},
-	{"MoreThanOneLeaderInv", (*State).MoreThanOneLeaderInv},
-	{"ElectionSafetyInv", (*State).ElectionSafetyInv},
-	{"LogMatchingInv", (*State).LogMatchingInv},
-	{"QuorumLogInv", (*State).QuorumLogInv},
-	{"MoreUpToDateCorrectInv", (*State).MoreUpToDateCorrectInv},
-	{"LeaderCompletenessInv", (*State).LeaderCompletenessInv},
-	{"CommittedIsDurableInv", (*State).CommittedIsDurableInv},
+	{"LogInv", func(s *State) bool { return s.LogInv() }},
+	{"MoreThanOneLeaderInv", func(s *State) bool { return s.MoreThanOneLeaderInv() }},
+	{"ElectionSafetyInv", func(s *State) bool { return s.ElectionSafetyInv() }},
+	{"LogMatchingInv", func(s *State) bool { return s.LogMatchingInv() }},
+	{"QuorumLogInv", func(s *State) bool { return s.QuorumLogInv() }},
+	{"MoreUpToDateCorrectInv", func(s *State) bool { return s.MoreUpToDateCorrectInv() }},
+	{"LeaderCompletenessInv", func(s *State) bool { return s.LeaderCompletenessInv() }},
+	{"CommittedIsDurableInv", func(s *State) bool { return s.CommittedIsDurableInv() }},
 }
 
 // Violated is the name of the first invariant s violates, or "".

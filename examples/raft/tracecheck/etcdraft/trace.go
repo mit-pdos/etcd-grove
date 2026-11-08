@@ -15,18 +15,21 @@ import (
 
 // Event is a trace line's event, as raft's `with_tla` build logs it (raft's TracingEvent).
 type Event struct {
-	Name  string `json:"name"`
-	NID   string `json:"nid"`
-	State struct {
-		Term   int    `json:"term"`
-		Vote   string `json:"vote"`
-		Commit int    `json:"commit"`
-	} `json:"state"`
-	Role string      `json:"role"`
-	Log  int         `json:"log"`
-	Conf [2][]string `json:"conf"`
-	Msg  *EventMsg   `json:"msg,omitempty"`
-	Prop *EventProps `json:"prop,omitempty"`
+	Name  string      `json:"name"`
+	NID   string      `json:"nid"`
+	State EventState  `json:"state"`
+	Role  string      `json:"role"`
+	Log   int         `json:"log"`
+	Conf  [2][]string `json:"conf"`
+	Msg   *EventMsg   `json:"msg,omitempty"`
+	Prop  *EventProps `json:"prop,omitempty"`
+}
+
+// EventState is an event's node state (raft's TracingState).
+type EventState struct {
+	Term   int    `json:"term"`
+	Vote   string `json:"vote"`
+	Commit int    `json:"commit"`
 }
 
 // EventMsg is an event's message (raft's TracingMessage).
@@ -47,13 +50,19 @@ type EventMsg struct {
 // EventProps is an event's properties: a configuration change's (raft's TracingConfChange).
 // Changes and NewConf are nil when absent (raft omits them when empty).
 type EventProps struct {
-	CC *struct {
-		Changes *[]struct {
-			NID    string `json:"nid"`
-			Action string `json:"action"`
-		} `json:"changes,omitempty"`
-		NewConf *[]string `json:"newconf,omitempty"`
-	} `json:"cc,omitempty"`
+	CC *EventConfChange `json:"cc,omitempty"`
+}
+
+// EventConfChange is a configuration change's record (raft's TracingConfChange).
+type EventConfChange struct {
+	Changes *[]EventChange `json:"changes,omitempty"`
+	NewConf *[]string      `json:"newconf,omitempty"`
+}
+
+// EventChange is one change of a configuration change (raft's SingleConfChange).
+type EventChange struct {
+	NID    string `json:"nid"`
+	Action string `json:"action"`
 }
 
 // ReadNDJSON reads a trace in the format of raft's trace validation: one JSON object per line,
