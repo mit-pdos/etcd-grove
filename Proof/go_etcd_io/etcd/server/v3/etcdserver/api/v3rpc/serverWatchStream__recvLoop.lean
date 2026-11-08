@@ -448,7 +448,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · ipureintro; rfl
         iintro %optsl -
         wp_auto
-        wp_apply hStart tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -, #Hspw⟩
+        wp_apply hStart tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -, #Hspw, -⟩
         · iframe #
           iunfold mvcc.txnCtx
           iright; iexact Hctxis

@@ -61,7 +61,6 @@ abbrev traceutil.Tracer.Start.spec : Prop :=
       (∃ vs : GMap GoInterface GoInterface, mvcc.txnCtx ctx' { cd with Values := vs } ∗
         (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs })) ∗
       □ (∀ o : Option Loc, traceutil.ctxTraceIs ctx o -∗ traceutil.ctxTraceIs ctx' o) ∗
-      □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') ∗
       ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
       trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗
       □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') }}

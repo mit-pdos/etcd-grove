@@ -106,13 +106,13 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hpw, Hspec⟩ HΨ
   icases Hspec with ⟨Hspec, #HΨe⟩
-  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   simp only [pbAuthenticateRequest]
   icases Hr with ⟨%Hrn, #HN⟩
   iunfold authnSlot at Hslot
   icases Hslot with ⟨Hlt, Hlg, Hrr, Hrd⟩
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   ihave #Hin : v3rpc.authInnerOk s go!"Authenticate" (GoInterface.ok ci) r
       iprop(structFieldRef etcdserverpb.AuthenticateRequest go!"Password" r ↦ m.2 ∗
         srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ E.RD)

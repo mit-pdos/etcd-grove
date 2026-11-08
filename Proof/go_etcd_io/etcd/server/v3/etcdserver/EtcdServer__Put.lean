@@ -116,7 +116,7 @@ theorem EtcdServer.Put.wp_proof
     · iexact HΦ'
   -- (E3zb) the context `raftRequest` sees carries the request's metadata
   have Hinc : metadata.incomingOf (GoInterface.ok ctx2) = metadata.incomingOf (GoInterface.ok ctx) := by
-    rw [Hinc2, Hinc1]
+    rw [show ctx2 = c2' from GoInterface.ok.inj Hc2e', Hinc2, Hinc1]
   (try wp_auto)
   ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
   iStructNamed Hirr

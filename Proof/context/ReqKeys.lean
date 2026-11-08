@@ -64,7 +64,8 @@ theorem startTimeOk_of_grpcRunCtx (ci : GoInterfaceOk) :
   unfold context.startTimeOk
   imodintro
   iintro %Φ HΦ
-  unfold grpcRunCtx
+  iunfold grpcRunCtx at Hg
+  icases Hg with ⟨#Hg, -⟩
   have hk : startTimeKeyAny = interface.mkOk
       (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/traceutil.StartTimeKey" [])
       #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey) := by

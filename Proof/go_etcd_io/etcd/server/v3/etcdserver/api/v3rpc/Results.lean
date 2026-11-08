@@ -912,7 +912,6 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR, #Hast, #Hcost⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Ho, Hspec⟩ HΨ
-  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   simp only [pbAuthUserAddRequest]
   icases Hr with ⟨%Hrn, #HN, %o, #Ho', #Hopts⟩
   iunfold userOptsFalse at Hopts
@@ -933,6 +932,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   imod Hu with Hid
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iapply (userAdd_end_to_end_on p s E ρ ci cd Qa ast r m.name m.pw [] o false []) $$
     [Hpw Hhpw Hlt Hrd Hid]
   · unfold adminPreOn
@@ -966,7 +966,6 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
-  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
   iunfold etcdRoleAddSpec at Hspec
@@ -978,6 +977,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   imod Hu with Hid
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iapply (roleAdd_end_to_end_on p s E ρ ci cd Qa r m []) $$ [Hlt Hrd Hid]
   · unfold adminPreOn
     simp only [apply.authRoleAddIs, auth.roleAddReqIs, pbAuthRoleAddRequest]
@@ -1011,7 +1011,6 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
-  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
   iunfold etcdUserGrantRoleSpec at Hspec
@@ -1023,6 +1022,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   imod Hu with Hid
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iapply (userGrantRole_end_to_end_on p s E ρ ci cd Qa r m.1 m.2 []) $$ [Hlt Hrd Hid]
   · unfold adminPreOn
     simp only [apply.authUserGrantRoleIs, pbAuthUserGrantRoleRequest]
@@ -1056,7 +1056,6 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
-  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
   iunfold etcdRoleGrantPermissionSpec at Hspec
@@ -1068,6 +1067,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   imod Hu with Hid
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iapply (roleGrantPermission_end_to_end_on p s E ρ ci cd Qa r m.1 (some m.2) []) $$ [Hlt Hrd Hid]
   · unfold adminPreOn
     simp only [apply.authRoleGrantPermissionIs, pbAuthRoleGrantPermissionRequest]
@@ -1101,7 +1101,6 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hk⟩ HΨ
-  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   simp only [pbAuthEnableRequest] at *
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
@@ -1114,6 +1113,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   imod Hu with Hid
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iapply (authEnable_end_to_end_on p s E ρ ci cd Qa r []) $$ [Hlt Hrd Hid]
   · unfold adminPreOn
     iframe; iframe #
