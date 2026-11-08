@@ -268,6 +268,20 @@ the checker's spec and layer B's invariant at the end (the whole trace accepted)
 
 S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's event function).
 
+## Draft: layer C's specs drafted (2026-11-08), in Review
+
+The checker's spec, independent of Q4-Q6 (Q4 changes only the invariants' list both
+transcriptions check): `Spec/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/`
+`NewTrace.lean` (`NewTrace(events)` returns an error exactly when `newTrace` refuses, else a
+read-only trace holding `newTrace`'s) and `CheckTrace.lean` (`CheckTrace(t, invariants)`'s
+result holds `checkTrace`'s, on the fields it records), over the representation predicates of
+`Proof/.../tracecheck/etcdraft/Rep.lean` (persistent: a trace and its initial state are never
+written; canonical where the Go compares by value) and the package fact of `Base.lean` (`True` in
+the Draft, strengthened by S6's proofs). Premises: the events' numbers in `[0, 2^62)`
+(`Event.Bounded`) and fewer than `2^62` events. Decided by the agent: one persistent predicate per
+Go value rather than ownership (nothing the specs relate is written after `NewTrace`), and the
+result related on the fields the Lean `Result` has (the Go's debugging fields unconstrained).
+
 ## Draft: S2 done (2026-11-08)
 
 The Lean transcription, `Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Tla/`
