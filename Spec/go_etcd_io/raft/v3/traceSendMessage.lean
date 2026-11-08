@@ -21,21 +21,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceSendMessage(r, m)`: a tracing hook, and a **no-op** -- Goose translates it to
-a function whose body does nothing (`traceSendMessage.impl`). See
-`Spec/traceReceiveMessage.lean`; `send` is the caller.
-
-**It owns nothing** (changed 2026-09-23). Goose translates the hook to a body that does
-nothing: it reads nothing and writes nothing, so the honest triple takes no resource and
-gives none back. Until then it carried a piece of the raft struct in and out
-(`ownRaftMisc`), which was a spec on a raw piece of the struct -- exactly what the
-one-predicate rule (main's notes/decisions.md, "Three layers") rules out -- and was left
-that way only to spare the callers a re-seal. Owning nothing spares them the re-seal
-*and* obeys the rule. This is a fact about the no-op build that is translated; the
-tracing build reads `r` and would need a real spec on `ownRaftPhys`. -/
+/-- `traceSendMessage`: reads `r.traceLogger` and returns when it is nil; otherwise reports the message's send (for a `MsgApp`, with the sender's own progress as `match`/`next` properties). Under `TraceLoggerOk` (increment 1, `notes/trace-validation-hooks.md`: the logger is nil) it
+returns at once, owning nothing but the field, shared (`ownRaftPhysC_traceLogger`). Until
+2026-11-08 the translated build was the no-op one (`state_trace_nop.go`) and the spec owned
+nothing; Draft S4 of `notes/trace-validation-plan.md` widens `TraceLoggerOk` to a logger. -/
 abbrev traceSendMessage.spec : Prop :=
-  ∀ (r : Loc) (mp : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+  ∀ (r : Loc) (mp : Loc) (tl : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ⌜TraceLoggerOk tl⌝ }}
     (App (App (Val #(functions traceSendMessage [])) (Val #r)) (Val #mp))
   {{ RET #(); True }}
 

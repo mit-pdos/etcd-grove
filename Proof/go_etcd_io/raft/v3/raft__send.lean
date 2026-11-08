@@ -191,9 +191,10 @@ local elab "getters" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => do
 set_option hygiene false in
 /-- The common tail once the routing decision has been made: take the queue out of
 `ownRaftPhys`, build the one-element slice literal, append it, store the queue back,
-trace, and return. What is left is the queue accessor's wand `Hback`, which wants the
+trace (the logger field read before the queue is taken out), and return. What is left is the queue accessor's wand `Hback`, which wants the
 queued message (`Hm`) and its contribution to the abstract outbox (`msgAbs`). -/
 local macro "send_tail " acc:term : tactic => `(tactic| (
+  icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   icases ($acc) $$ Hphys with ⟨%sl, %ls, Hf, Hq, Hq_cap, Hback⟩
   try wp_auto
   wp_apply wp_slice_literal
@@ -204,7 +205,11 @@ local macro "send_tail " acc:term : tactic => `(tactic| (
   wp_apply wp_slice_append $$ [Hq Hq_cap m_sl] as %q' ⟨Hq, Hq_cap, -⟩
   · iframe
   try wp_auto
-  wp_apply wp_traceSendMessage
+  wp_apply wp_traceSendMessage $$ [Htl]
+  · isplitr
+    · iexact Htl
+    ipureintro; exact Htlok
+  iclear Htl
   iapply HΦ))
 
 set_option linter.unusedSimpArgs false in

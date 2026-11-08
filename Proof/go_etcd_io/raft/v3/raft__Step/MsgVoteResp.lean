@@ -141,7 +141,12 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_apply +noauto _P.traceReceiveMessage
+  icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  wp_apply +noauto _P.traceReceiveMessage $$ [Htl]
+  · isplitr
+    · iexact Htl
+    ipureintro; exact Htlok
+  iclear Htl
   -- (2026-10-18, D19b stage 5) the step's receipt: the next resolution (a getter's)
   wp_raise_receipt Hrc
   try wp_auto

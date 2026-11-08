@@ -71,7 +71,7 @@ theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := h
   rw [decide_eq_false Hnn]
   try wp_auto
   wp_gets
-  wp_apply _P.traceReceiveMessage
+  wp_trace_hookC _P.traceReceiveMessage
   try wp_auto
   wp_gets
   rw [decide_eq_false Hterm]

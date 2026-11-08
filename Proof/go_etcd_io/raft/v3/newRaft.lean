@@ -433,8 +433,10 @@ private theorem wp_switchToConfig_w
     (c : CfgM) (r : Loc) (id : w64) (lok : GoInterfaceOk) (b0 : Bool)
     (tv0 : tracker.ProgressTracker) (votes : GMap w64 Bool)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
-    (Hmi : 0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62) :
+    (Hmi : 0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62)
+    (tl : GoInterface) (Htlk : TraceLoggerOk tl) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"trk"] ↦ tv0 ∗
+        r.[raft, go!"traceLogger"] ↦□ tl ∗
         r.[raft, go!"id"] ↦□ id ∗ r.[raft, go!"logger"] ↦□ interface.ok lok ∗ isLogger lok ∗
         r.[raft, go!"isLearner"] ↦ b0 ∗ r.[raft, go!"state"] ↦ StateFollower ∗
         tv0.Votes' ↦$ votes ∗ ownConfigC c cfgv prsm prs pvs }}
@@ -447,9 +449,12 @@ private theorem wp_switchToConfig_w
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true ∗
         ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧ ls ≡ₚ elements c.learners ∧
           lns ≡ₚ elements c.learnersNext⌝ }} := by
-  wp_start as ⟨Htrkf, #Hid, #Hlgf, #Hlg, HiL, Hst, Hvotes, Hnew⟩
+  wp_start as ⟨Htrkf, #Htl, #Hid, #Hlgf, #Hlg, HiL, Hst, Hvotes, Hnew⟩
   wp_auto
-  wp_apply wp_traceConfChangeEvent
+  wp_apply wp_traceConfChangeEvent $$ [Htl]
+  · isplitr
+    · iexact Htl
+    ipureintro; exact Htlk
   try wp_auto
   -- the log line
   wp_apply wp_slice_literal
@@ -619,7 +624,7 @@ theorem newRaft.wp_proof
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
   intro c cv lok si sn σ hs csm R R' cs' Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hidx Hpend
-    Hfr1 Hfr2 Hfl0 Hsg0 Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok
+    Hfr1 Hfr2 Hfl0 Hsg0 Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Htlk
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   -- the restored commit `C`, the applied index `A'` the node starts at, the base `b`
   have HbZ := uint_nat_eq σ.prev.index'
@@ -636,7 +641,8 @@ theorem newRaft.wp_proof
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
   obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW, HpRO, HpDCC,
-    HpSDR⟩ := Hpres
+    HpSDR, HpTL⟩ := Hpres
+  have Htlk' : TraceLoggerOk cv'.TraceLogger' := HpTL ▸ Htlk
   rw [HpSt, Hsto, HpLg, Hlok]
   have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
     rw [HpMC]
@@ -692,7 +698,11 @@ theorem newRaft.wp_proof
   obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
   wp_apply wp_newReadOnly _ (HpRO.trans Hros) as %ro Hro
   imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
-  wp_apply wp_traceInitState
+  ihave #Htlf := raftOwn_traceLogger _ _ $$ «$r0»
+  wp_apply wp_traceInitState $$ [Htlf]
+  · isplitr
+    · iexact Htlf
+    ipureintro; exact Htlk'
   have HA0C : sn.a0 ≤ uint.nat (committedAfter σ.prev hs) := by
     rw [Ha0]
     have := uint_nat_eq (committedAfter σ.prev hs); have := uint_nat_eq cv.Applied'
@@ -726,8 +736,8 @@ theorem newRaft.wp_proof
   ihave H_state : «$r0_ptr».[raft, go!"state"] ↦ StateFollower $$ [H_state]
   · iExactEq H_state; rfl
   wp_apply wp_switchToConfig_w wp_traceConfChangeEvent wp_ProgressTracker_ConfState cs'.cfg
-      «$r0_ptr» cv'.ID' lok false tv0 ∅ cfgv prsm prs pvs Hmi
-    $$ [$H_trk $H_id $Hlgf $Hlg0 $H_isLearner $H_state $Hvotes $Hcfg]
+      «$r0_ptr» cv'.ID' lok false tv0 ∅ cfgv prsm prs pvs Hmi _ Htlk'
+    $$ [$H_trk $Htlf $H_id $Hlgf $Hlg0 $H_isLearner $H_state $Hvotes $Hcfg]
     as %cs2 %xs2 %os2 %ls2 %lns2 %bl ⟨H_trk, Htrk, H_isLearner, H_state, Hcs2, %Hcs2p⟩
   obtain ⟨Hperm, Hal2⟩ := confStateOk_perm csm cs' Hcsok Hres xs2 os2 ls2 lns2 Hcs2p
   icases ownTrackerC_progress_map _ _ _ $$ Htrk with ⟨-, %Hdom2, Htrk⟩
@@ -869,7 +879,9 @@ theorem newRaft.wp_proof
     · iexact H_id
     isplitr
     · iexact H_stepDownOnRemoval
-    iexact H_logger
+    isplitr
+    · iexact H_logger
+    iexact Htlf
   let ls2 : LogState :=
     { prev := σ.prev, sents := σ.ents, uents := [], committed := committedAfter σ.prev hs,
       applied := ap, snap := none, inprogress := ip, applying := ap, unpersisted := [],
@@ -887,6 +899,7 @@ theorem newRaft.wp_proof
     HpCQ
     rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by simp only [rv2]; rw [HpLg, Hlok])
+    (by simp only [rv2]; exact Htlk')
     rfl (fun h => absurd h (by simp only [s2]; decide))
     ⟨fun _ h => absurd h List.not_mem_nil, fun _ h => absurd h List.not_mem_nil⟩
     (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _)

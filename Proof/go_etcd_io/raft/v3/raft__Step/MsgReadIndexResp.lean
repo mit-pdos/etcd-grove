@@ -82,7 +82,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_apply _P.traceReceiveMessage
+  wp_trace_hookC _P.traceReceiveMessage
   try wp_auto
   wp_get _Q
   rw [decide_eq_false Hterm]

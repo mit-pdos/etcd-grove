@@ -78,6 +78,9 @@ abbrev setupNode.spec : Prop :=
   γ.reBoot = bootLog →
   BootLogOk ps bootLog →
   γ.reNoSnap = false →
+  -- (2026-11-08, Draft S3 of `notes/trace-validation-plan.md`, Q1: taken by the agent pending the
+  -- user's veto) the trace logger: none (`TraceLoggerOk_nil`); S4 widens it to a logger
+  TraceLoggerOk cv.TraceLogger' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
       -- `NewRawNode`'s boot bundle
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))

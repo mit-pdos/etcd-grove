@@ -45,7 +45,9 @@ def CfgOk (id : w64) (st : Loc) (cv : Config) : Prop :=
   ConfigValid cv ∧ sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧ cv.DisableProposalForwarding' = false ∧
   cv.ReadOnlyOption' = W64 0 ∧ cv.DisableConfChangeValidation' = false ∧
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
-  cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0
+  cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
+  -- (2026-11-08) no trace logger (raft's constructors' `TraceLoggerOk`)
+  TraceLoggerOk cv.TraceLogger'
 
 /-- `quietLogger{}` is a raft `Logger`. -/
 theorem qLogger_isLogger

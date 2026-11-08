@@ -45,11 +45,24 @@ before the freeze), with the user's gates delegated to the agent for this stage:
 ## Questions for the user
 
 - **Q1 (2026-11-08, S3): a new premise on raft's constructors.** `NewRawNode`, `StartNode`,
-  `RestartNode` take `isTraceLogger γt c.TraceLogger` (the configuration's trace logger satisfies
-  the logger contract), discharged for a nil logger (every client today) by a one-line law.
+  `RestartNode` (and the internal `newRaft`, `setupNode`) take `TraceLoggerOk cv.TraceLogger'` as
+  their last premise (the configuration's trace logger satisfies the logger contract; in increment
+  1, `TraceLoggerOk tl := tl = nil`), discharged for a nil logger (every client today) by `rfl`.
   Alternatives: a second constructor spec (a spec family, forbidden), or the premise hidden in
   `ConfigValid`. Taken by the agent, pending the user's veto: the premise
-  (`notes/trace-validation-hooks.md`).
+  (`notes/trace-validation-hooks.md`). Its consequences (done, 2026-11-08): the examples'
+  configuration predicates (`kvreconf`'s `CfgOk`, `kvdurable`'s `kdCfgOk`) gain the conjunct; the
+  etcd server's `rnStartCfg` gains the field `traceLogger`, so `bootOk` (`NewServer`'s premise on
+  `bootstrap`'s result, a premise of an exported result) says it too: true of the code
+  (`raftConfig`, `bootstrap.go`, sets no trace logger).
+- **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
+  `traceChangeConfEvent` formats the change's ids (`strconv.FormatUint`) before its nil check, so
+  the translated raft calls it even without a logger, and raft's linked results now rest on
+  `Spec/strconv/FormatUint.lean`'s trust-boundary axiom (already the server's). The plan's "Trust
+  base" lists `strconv.FormatUint` among the standard-library specs: taken by the agent as that
+  recommendation, pending the user's veto (`etc/tcb-collections/raft.txt` updated, and `kv`, `kvdurable`, `kvreconf`, whose results reach raft's; the server's collections already had it). The
+  alternative, an early `if r.traceLogger == nil { return }` in the fork, changes raft's code beyond
+  the build tags.
 
 ## The statement
 
@@ -202,10 +215,14 @@ ones) its verdict and failing line equal the Go checker's (and so TLC's), and on
 evaluation-error witness (a commit index past the log) it fails with the same error. Not part of
 the trust argument (the plan's "Trust base"): S6's proof is what ties it to the Go.
 
-## Draft: S3 started (2026-11-08)
+## Draft: S3 increment 1 done (2026-11-08)
 
 The hooks' design, its open points (the call sites, the update's ghost: settled with S4) and
-Q1: `notes/trace-validation-hooks.md`.
+Q1: `notes/trace-validation-hooks.md`. Increment 1, the nil-logger half, is in: the thirteen specs
+(the eleven hooks, `traceEvent`, `traceNodeEvent`) and proofs, the field and `TraceLoggerOk` in
+raft's invariant, the call sites, the constructors' premise (Q1) and its clients; raft's build
+green again (`notes/decisions.md`, "The trace hooks' specs, increment 1: no logger"). Increment 2,
+the logger's contract, waits for S4 (what the hook hands the logger, the update's ghost).
 
 ## Draft: S1 done (2026-11-08)
 

@@ -33157,3 +33157,34 @@ repository's (`Proof/google_golang_org/grpc/status/ErrDesc.lean`,
   struct, not an `*errorString`, and keeps its conjunct), and so `v3rpc.ctxErrDescs`'s;
 and serve every other `errors.New` variable whose description a proof needs (`etcdserver/errors`,
 `auth`, `lease`). Same trust, one statement instead of one per variable.
+
+## The trace hooks' specs, increment 1: no logger (2026-11-08 · trace-check Draft S3; decided by the agent under the user's delegation (`notes/trace-validation-plan.md`, "The gates, delegated"), Q1 pending the user's veto · branch `trace-check`; DRAFT until trace-check's Freeze)
+
+Since raft is translated with `state_trace.go` (the `goose` tag, `notes/trace-validation-hooks.md`)
+the eleven hooks have bodies; their specs were "a no-op, owns nothing" (true only of
+`state_trace_nop.go`). Each now takes the field `r.traceLogger`, shared (`↦□`, never written after
+`newRaft`), with `TraceLoggerOk tl` (`InvLogger.lean`: for now `tl = nil`; Draft S4 widens it in
+place to a logger's contract), and owns what the code reads before its nil check:
+`traceReplicate` the entries (`entsPts`, read: `GetType` each), `traceChangeConfEvent` the change
+(`ownConfChangeI`, read: `AsV2`, the changes' getters, `strconv.FormatUint`). Two helpers got specs
+of their own (`traceEvent`, `traceNodeEvent`). Where the field comes from:
+
+- `ownRaftPhysG` holds `TraceLoggerOk rv.traceLogger'` and `raftOwn` the field persistently;
+  `ownRaftPhysC_traceLogger` hands both out before a caller opens the struct (`wp_trace_hookC`, the
+  call where the struct is whole); `ownRaftPhysReady` (the struct open for `Ready`) carries them
+  (`Hf_traceLogger`), for `traceReady`.
+- `raft.switchToConfig.spec` takes them (its callers have the struct open): a new precondition
+  conjunct of an internal spec, `tl` a new binder after `pvs`.
+- `Config.validate`'s `ConfigPreserved` gains `TraceLogger` (validate does not write it), which
+  `newRaft` reads.
+- **Q1**: `newRaft`, `NewRawNode`, `setupNode`, `StartNode`, `RestartNode` take `TraceLoggerOk
+  cv.TraceLogger'` as their last premise. Its clients: the examples' configuration predicates
+  (`CfgOk`, `kdCfgOk`) gain the conjunct (their `Config` literals set no logger: `rfl`), `kv` passes
+  `rfl`, and the server's `rnStartCfg` gains the field `traceLogger` (`raftConfig`, `bootstrap.go`,
+  sets none) -- so `bootOk`, `NewServer`'s premise on `bootstrap`'s result, says it too.
+- raft's results now rest on `strconv.FormatUint`'s trust-boundary axiom (already the server's;
+  the plan's trust base lists it): `traceChangeConfEvent` formats the ids before its nil check.
+
+Options not taken: the full contract first (blocked on S4's event and update); keeping the specs
+`True` with an axiom that the field is nil (a trust-base change); hiding the premise in
+`ConfigValid` (the same premise, less visible).

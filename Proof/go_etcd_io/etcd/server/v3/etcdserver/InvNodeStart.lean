@@ -82,6 +82,9 @@ structure rnStartCfg (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk)
   sizes : cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0
   noAsync : cv.AsyncStorageWrites' = false
   applied : cv.Applied' = W64 0
+  /-- (2026-11-08, Q1 of `notes/trace-validation-plan.md`, taken pending the user's veto) no trace
+  logger: `raftConfig` (`bootstrap.go`) sets none. -/
+  traceLogger : TraceLoggerOk cv.TraceLogger'
   peers : ps = pv.map Peer.ID'
   peersNe : ps ≠ []
 

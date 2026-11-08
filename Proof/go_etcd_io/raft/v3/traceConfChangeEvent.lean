@@ -21,12 +21,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem traceConfChangeEvent.wp_proof :
-    traceConfChangeEvent.spec (GF := GF) (hG := hG) := by
-  intro c r
-  wp_start
+theorem traceConfChangeEvent.wp_proof : traceConfChangeEvent.spec (GF := GF) (hG := hG) := by
+  intro c r tl
+  wp_start as ⟨#Htl, %Hok⟩
+  unfold TraceLoggerOk at Hok; subst Hok
+  wp_auto
   iapply HΦ
-  itrivial
+  ipureintro; trivial
 
 end proof
 

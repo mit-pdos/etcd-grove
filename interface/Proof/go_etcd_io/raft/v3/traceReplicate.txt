@@ -2,10 +2,17 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem traceReplicate.wp_proof [package_sem : Assumptions] : traceReplicate.spec
+theorem traceReplicate.wp_proof [package_sem : Assumptions] (wp_traceNodeEvent :
+    traceNodeEvent.spec) (wp_Entry_GetType : raftpb.Entry.GetType.spec) : traceReplicate.spec
   -- `Perennial.EtcdGrove.traceReplicate.spec`, unfolded:
-  ∀ (r : Loc) (es : GoSlice),
+  ∀ (r : Loc) (es : GoSlice) (dq : DFrac) (ents : List EntryM) (tl : GoInterface),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗ WP (((intoVal (functions traceReplicate [])) (intoVal r)) (intoVal es)) {{ Φ }}
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            entsPts es dq ents ∗
+              typedPointsto
+                  (structFieldRef raft go!"traceLogger" r) tl
+                  DFrac.discard ∗
+                ⌜TraceLoggerOk tl⌝ -∗
+          ▷ (entsPts es dq ents -∗ Φ (intoVal ())) -∗
+            WP (((intoVal (functions traceReplicate [])) (intoVal r)) (intoVal es)) {{ Φ }}

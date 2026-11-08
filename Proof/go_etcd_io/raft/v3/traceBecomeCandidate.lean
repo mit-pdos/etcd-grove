@@ -2,6 +2,7 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.traceBecomeCandidate
+public import Spec.go_etcd_io.raft.v3.traceNodeEvent
 
 @[expose] public section
 
@@ -19,12 +20,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem traceBecomeCandidate.wp_proof :
+theorem traceBecomeCandidate.wp_proof
+    (wp_traceNodeEvent : traceNodeEvent.spec (GF := GF) (hG := hG)) :
     traceBecomeCandidate.spec (GF := GF) (hG := hG) := by
-  intro r
-  wp_start
+  intro r tl
+  wp_start as ⟨#Htl, %Hok⟩
+  wp_auto
+  wp_apply wp_traceNodeEvent $$ [$Htl]
+  · ipureintro; exact Hok
   iapply HΦ
-  itrivial
+  ipureintro; trivial
 
 end proof
 

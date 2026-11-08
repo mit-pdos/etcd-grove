@@ -61,11 +61,14 @@ theorem raft.switchToConfig.wp_proof
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
-  intro c r id s tv0 cfgv prsm prs pvs Hlead Hltz Hcand Hpok
+  intro c r id s tv0 cfgv prsm prs pvs tl Hlead Hltz Hcand Hpok
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_traceConfChangeEvent
+  wp_apply wp_traceConfChangeEvent $$ [Htl]
+  · isplitr
+    · iexact Htl
+    ipureintro; exact Htlok
   -- `r.trk.Config = cfg; r.trk.Progress = trk`: the one change of configuration
   icases typedPointsto_not_null_dup _ _ _ $$ Htrkf with ⟨Htrkf, %Hnn⟩
   iStructNamed Htrkf

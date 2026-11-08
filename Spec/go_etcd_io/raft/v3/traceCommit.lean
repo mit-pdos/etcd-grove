@@ -19,14 +19,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceCommit(r)`: a tracing hook, and a **no-op** -- Goose translates it to
-`λ: <>, exception_do (do: #())` (`traceCommit.impl`,
-`Code/go_etcd_io/raft/v3.lean`). Same shape as the other trace hooks
-(`Spec/traceBecomeLeader.lean`): it owns nothing. `maybeCommit` calls it through a
-`defer`. -/
+/-- `traceCommit`: reports `Commit` through `traceNodeEvent` (`traceEvent`), which reads `r.traceLogger` first. Under `TraceLoggerOk` (increment 1, `notes/trace-validation-hooks.md`: the logger is nil) it
+returns at once, owning nothing but the field, shared (`ownRaftPhysC_traceLogger`). Until
+2026-11-08 the translated build was the no-op one (`state_trace_nop.go`) and the spec owned
+nothing; Draft S4 of `notes/trace-validation-plan.md` widens `TraceLoggerOk` to a logger. -/
 abbrev traceCommit.spec : Prop :=
-  ∀ (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+  ∀ (r : Loc) (tl : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ⌜TraceLoggerOk tl⌝ }}
     (App (Val #(functions traceCommit [])) (Val #r))
   {{ RET #(); True }}
 

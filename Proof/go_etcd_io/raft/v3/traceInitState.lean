@@ -20,10 +20,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem traceInitState.wp_proof : traceInitState.spec (GF := GF) (hG := hG) := by
-  intro r
-  wp_start
+  intro r tl
+  wp_start as ⟨#Htl, %Hok⟩
+  unfold TraceLoggerOk at Hok; subst Hok
+  wp_auto
   iapply HΦ
-  itrivial
+  ipureintro; trivial
 
 end proof
 

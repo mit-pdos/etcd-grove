@@ -96,3 +96,14 @@ second spec of each constructor for a configuration with a logger (a spec family
 "one spec per function" forbids it); (c) no premise, with the contract a configuration invariant
 (`ConfigValid` gains it): the same premise, hidden. **Taken by the agent, pending the user's veto:
 (a).**
+
+## Increment 1: done (2026-11-08)
+
+As decided above, with `TraceLoggerOk tl := tl = nil` (`InvLogger.lean`) for `isTraceLogger`. What
+the call sites needed, beyond the survey: `switchToConfig`'s spec takes the field (its three
+callers have the struct open), `ownRaftPhysReady` carries it (`Hf_traceLogger`, for `traceReady`),
+`Config.validate` preserves `TraceLogger` (`newRaft` reads it from the validated config), and
+`stepLeader` folds its decoded change into `ownConfChangeI` for `traceChangeConfEvent`
+(`ownConfChangeI_v{1,2}_{intro,elim}`, `LemmasStepR.lean`). `traceChangeConfEvent` calls
+`strconv.FormatUint` before its nil check: Q2 of the plan. The record: `notes/decisions.md`, "The
+trace hooks' specs, increment 1: no logger".

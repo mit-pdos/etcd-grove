@@ -206,7 +206,27 @@ local macro "cc_accept_tail" : tactic => `(tactic| (
     ihave Hphys := Hback $$ Hlog
     try wp_auto
     wp_apply raft.wp_store_pendingConfIndexC $$ Hphys as Hphys
-    wp_apply wp_traceChangeConfEvent
+    -- (2026-11-08) the trace hook: the logger field, and the decoded change, read
+    icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+    first
+    | (ihave Hcci := ownConfChangeI_v1_intro _ _ _ $$ Hown
+       wp_apply wp_traceChangeConfEvent _ _ _ _ tl $$ [Hcci Htl] as Hcci
+       · isplitl [Hcci]
+         · iexact Hcci
+         isplitr
+         · iexact Htl
+         ipureintro; exact Htlok
+       ihave Hown := ownConfChangeI_v1_elim _ _ _ $$ Hcci)
+    | (ihave Hown := Hownback $$ HCh
+       ihave Hcci := ownConfChangeI_v2_intro _ _ _ $$ Hown
+       wp_apply wp_traceChangeConfEvent _ _ _ _ tl $$ [Hcci Htl] as Hcci
+       · isplitl [Hcci]
+         · iexact Hcci
+         isplitr
+         · iexact Htl
+         ipureintro; exact Htlok
+       ihave Hown := ownConfChangeI_v2_elim _ _ _ $$ Hcci)
+    iclear Htl
     have Hli' : li = logLast s.logst := by
       unfold logLast; simp only at Hli; word
     obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1

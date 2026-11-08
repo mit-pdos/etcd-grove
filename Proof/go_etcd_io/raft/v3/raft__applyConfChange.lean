@@ -49,6 +49,7 @@ theorem raft.applyConfChange.wp_proof
   wp_start as H
   iNamed H
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
+  icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   -- (stage R8a) the leader's progress bound of the old values, for the new ones (`PrKept`)
   icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
   icases ownRaftPhysC_retrack c'.cfg c c.voters (c'.cfg.voters ∪ {[id]}) r id s
@@ -102,14 +103,14 @@ theorem raft.applyConfChange.wp_proof
       ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
         %(Hok.of_fields rfl rfl rfl)
       iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
-    wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
+    wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' tl
         (fun _ _ => Hmk) Hltz Hcand
         (fun hl => by
           simp only at Hpk; rw [Hli'] at Hpk
           exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-      $$ [$Htrkf $Hback' $Hvotes $Hnew]
+      $$ [$Htrkf $Hback' $Hvotes $Hnew $Htl]
       as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
-    · ipureintro; exact Hmi
+    · ipureintro; exact ⟨Hmi, Htlok⟩
     try wp_auto
     iapply HΦ $$ %cs %xs %os %ls %lns %s'
     iframe Hphys Hcc Hcs
@@ -163,14 +164,14 @@ theorem raft.applyConfChange.wp_proof
           ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
             %(Hok.of_fields rfl rfl rfl)
           iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
-        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
+        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' tl
             (fun _ _ => Hmk) Hltz Hcand
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-          $$ [$Htrkf $Hback' $Hvotes $Hnew]
+          $$ [$Htrkf $Hback' $Hvotes $Hnew $Htl]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
-        · ipureintro; exact Hmi
+        · ipureintro; exact ⟨Hmi, Htlok⟩
         try wp_auto
         iapply HΦ $$ %cs %xs %os %ls %lns %s'
         iframe Hphys Hcc Hcs
@@ -211,14 +212,14 @@ theorem raft.applyConfChange.wp_proof
           ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
             %(Hok.of_fields rfl rfl rfl)
           iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
-        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
+        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' tl
             (fun _ _ => Hmk) Hltz Hcand
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-          $$ [$Htrkf $Hback' $Hvotes $Hnew]
+          $$ [$Htrkf $Hback' $Hvotes $Hnew $Htl]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
-        · ipureintro; exact Hmi
+        · ipureintro; exact ⟨Hmi, Htlok⟩
         try wp_auto
         iapply HΦ $$ %cs %xs %os %ls %lns %s'
         iframe Hphys Hcc Hcs

@@ -80,7 +80,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_apply _P.traceReceiveMessage
+  wp_trace_hookC _P.traceReceiveMessage
   try wp_auto
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   wp_gets

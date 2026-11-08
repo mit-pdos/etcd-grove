@@ -46,7 +46,9 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
   cv'.DisableConfChangeValidation' = cv.DisableConfChangeValidation' ∧
   -- read by `newRaft` (2026-10-14, reconfiguration stage B7 part 2: a dynamic `RawNode` needs
   -- it on)
-  cv'.StepDownOnRemoval' = cv.StepDownOnRemoval'
+  cv'.StepDownOnRemoval' = cv.StepDownOnRemoval' ∧
+  -- read by `newRaft` (2026-11-08, the trace hooks: `TraceLoggerOk` of the caller's)
+  cv'.TraceLogger' = cv.TraceLogger'
 
 end defs
 

@@ -2,10 +2,15 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem traceBecomeCandidate.wp_proof [package_sem : Assumptions] : traceBecomeCandidate.spec
+theorem traceBecomeCandidate.wp_proof [package_sem : Assumptions] (wp_traceNodeEvent :
+    traceNodeEvent.spec) : traceBecomeCandidate.spec
   -- `Perennial.EtcdGrove.traceBecomeCandidate.spec`, unfolded:
-  ∀ (r : Loc),
+  ∀ (r : Loc) (tl : GoInterface),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            typedPointsto
+                (structFieldRef raft go!"traceLogger" r) tl
+                DFrac.discard ∗
+              ⌜TraceLoggerOk tl⌝ -∗
           ▷ (True -∗ Φ (intoVal ())) -∗ WP ((intoVal (functions traceBecomeCandidate [])) (intoVal r)) {{ Φ }}

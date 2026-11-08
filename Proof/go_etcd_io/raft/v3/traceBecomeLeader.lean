@@ -4,6 +4,7 @@ Port of election_proof/proof_traceBecomeLeader.v.
 module
 
 public import Spec.go_etcd_io.raft.v3.traceBecomeLeader
+public import Spec.go_etcd_io.raft.v3.traceNodeEvent
 
 @[expose] public section
 
@@ -21,11 +22,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem traceBecomeLeader.wp_proof : traceBecomeLeader.spec (GF := GF) (hG := hG) := by
-  intro r
-  wp_start
+theorem traceBecomeLeader.wp_proof
+    (wp_traceNodeEvent : traceNodeEvent.spec (GF := GF) (hG := hG)) :
+    traceBecomeLeader.spec (GF := GF) (hG := hG) := by
+  intro r tl
+  wp_start as ⟨#Htl, %Hok⟩
+  wp_auto
+  wp_apply wp_traceNodeEvent $$ [$Htl]
+  · ipureintro; exact Hok
   iapply HΦ
-  itrivial
+  ipureintro; trivial
 
 end proof
 

@@ -186,6 +186,9 @@ abbrev newRaft.spec : Prop :=
   -- (2026-11-02, stage II (r)) and well-formed, which `assertConfStatesEquivalent` needs (a list
   -- with a repeat, or `AutoLeave` set with no outgoing voter, makes it panic)
   ConfStateOk csm →
+  -- (2026-11-08, Draft S3 of `notes/trace-validation-plan.md`, Q1: taken by the agent pending the
+  -- user's veto) the trace logger: none (`TraceLoggerOk_nil`); S4 widens it to a logger
+  TraceLoggerOk cv.TraceLogger' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
       -- (raft-final phase 1) the start bundle (`restartStorage`'s shape; durability stage I-6: at
       -- the view's base and last index)

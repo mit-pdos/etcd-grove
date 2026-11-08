@@ -115,7 +115,8 @@ fresh one (`ProgressTracker.ConfState`'s post, R0): owned, its `AutoLeave` set (
 ls, os, lns, c.autoLeave⟩ true`), with the same permutation facts on its lists. -/
 abbrev raft.switchToConfig.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
-    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
+    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
+    (tl : GoInterface),
   -- (2026-10-25, T-M M2c; until then `id ∉ c.voters` only with `s.sdr = true`) a leader that stays a
   -- voter keeps its peers' `Match` values
   (s.role = .leader → id ∈ c.voters → MatchKept s.prvals pvs) →
@@ -134,7 +135,10 @@ abbrev raft.switchToConfig.spec : Prop :=
            ownRaftPhysCV c (c.voters ∪ {[id]}) r id { s with progress := prs', prvals := pvs' }) ∗
       "Hvotes" ∷ tv0.Votes' ↦$ s.votes ∗
       "%Hmi" ∷ ⌜0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62⌝ ∗
-      "Hnew" ∷ ownConfigC c cfgv prsm prs pvs }}
+      "Hnew" ∷ ownConfigC c cfgv prsm prs pvs ∗
+      -- (2026-11-08) the trace logger, shared: the caller has the struct open
+      -- (`ownRaftPhysC_traceLogger` before it opens it), `traceConfChangeEvent` reads it
+      "#Htl" ∷ r.[raft, go!"traceLogger"] ↦□ tl ∗ "%Htlok" ∷ ⌜TraceLoggerOk tl⌝ }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
       (Val #cfgv)) (Val #prsm))
   {{ (cs : Loc) (xs os ls lns : List w64) (s' : NState), RET #cs;

@@ -105,7 +105,7 @@ theorem Cluster.startNew.wp_proof
     $$ HstorInv MemoryStorage boot HbootCS with ⟨#Hsrec, #Hsboot⟩
   have Hnid0 : nid ≠ W64 0 := by intro h; rw [h] at Hvn; simp at Hvn
   wp_apply wp_config γr vs c nid «$r0_ptr» Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
-  obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
+  obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp, HcTL⟩ := Hcfg
   have Hvnd : vs.Nodup := by rw [Ho.2]; exact bootVoters_nodup _ (by have := Ho.1.2.1; word)
   ihave #Hcl' := Hcl
   iunfold kvrCluster at Hcl'
@@ -131,7 +131,7 @@ theorem Cluster.startNew.wp_proof
         memStorInvP ms γs (kvrJ γr.cluster K)))
       HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (Or.inl (by rw [HcAp]; rfl))
       (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
-      (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd))
+      (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd) HcTL)
     $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
     as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
   · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl

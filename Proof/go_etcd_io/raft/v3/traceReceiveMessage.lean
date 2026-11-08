@@ -22,9 +22,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem traceReceiveMessage.wp_proof : traceReceiveMessage.spec (GF := GF) (hG := hG) := by
-  intro r mp
-  wp_start
-  wp_end
+  intro r mp tl
+  wp_start as ⟨#Htl, %Hok⟩
+  unfold TraceLoggerOk at Hok; subst Hok
+  wp_auto
+  iapply HΦ
+  ipureintro; trivial
 
 end proof
 

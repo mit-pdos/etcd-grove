@@ -222,17 +222,23 @@ isMsgInArray:
 IsLocalMsg: isMsgInArray
 IsResponseMsg: isMsgInArray
 newReadOnly:
+# The trace hooks (`state_trace.go`, translated under the `goose` tag since 2026-11-08,
+# `notes/trace-validation-hooks.md`), and `strconv.FormatUint` (a trust-boundary axiom, the
+# plan's trust base) that `traceChangeConfEvent` calls before its nil check
+strconv_FormatUint:
+traceEvent:
+traceNodeEvent: traceEvent
 traceInitState:
 traceConfChangeEvent:
-traceCommit:
+traceCommit: traceNodeEvent
 traceSendMessage:
-traceBecomeFollower:
-traceBecomeCandidate:
-traceBecomeLeader:
-traceReplicate:
-traceChangeConfEvent:
+traceBecomeFollower: traceNodeEvent
+traceBecomeCandidate: traceNodeEvent
+traceBecomeLeader: traceNodeEvent
+traceReplicate: traceNodeEvent raftpb_Entry__GetType
+traceChangeConfEvent: traceEvent raftpb_ConfChange__AsV2 raftpb_ConfChangeV2__AsV2 raftpb_ConfChangeSingle__GetType raftpb_ConfChangeSingle__GetNodeId strconv_FormatUint
 traceReceiveMessage:
-traceReady:
+traceReady: traceNodeEvent
 lockedRand__Intn: big_NewInt rand_Int big_Int__Int64
 raft__resetRandomizedElectionTimeout: lockedRand__Intn
 raft__abortLeaderTransfer:

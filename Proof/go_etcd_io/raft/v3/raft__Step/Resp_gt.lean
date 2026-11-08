@@ -79,7 +79,7 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_apply _P.traceReceiveMessage
+  wp_trace_hookC _P.traceReceiveMessage
   try wp_auto
   wp_apply _Q.GetTerm.1 $$ [$Hm] as Hm
   rw [decide_eq_false Hterm]

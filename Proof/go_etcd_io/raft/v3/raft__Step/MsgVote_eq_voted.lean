@@ -127,7 +127,7 @@ theorem wp_Step_MsgVote_eq_voted (_P : raft.Step.Postulates (GF := GF) (hG := hG
   wp_auto
   have Hle : ¬ (uint.Z s.term < uint.Z m.Term') := by rw [Heq0]; omega
   have Hnlt : ¬ (uint.Z m.Term' < uint.Z s.term) := by rw [Heq0]; omega
-  wp_apply _P.traceReceiveMessage
+  wp_trace_hookC _P.traceReceiveMessage
   try wp_auto
   wp_apply PB.GetTerm.1 $$ [$Hm] as Hm
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped

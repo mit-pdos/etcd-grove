@@ -376,7 +376,7 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_apply _P.traceReceiveMessage
+  wp_trace_hookC _P.traceReceiveMessage
   try wp_auto
   wp_gets
   rw [decide_eq_true Hterm]
@@ -471,7 +471,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_apply _P.traceReceiveMessage
+  wp_trace_hookC _P.traceReceiveMessage
   try wp_auto
   wp_gets
   by_cases Hz : m.Term' = W64 0
@@ -635,7 +635,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_apply _P.traceReceiveMessage
+  wp_trace_hookC _P.traceReceiveMessage
   try wp_auto
   wp_gets
   by_cases Hz : m.Term' = W64 0

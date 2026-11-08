@@ -4,8 +4,12 @@
 
 theorem traceInitState.wp_proof [package_sem : Assumptions] : traceInitState.spec
   -- `Perennial.EtcdGrove.traceInitState.spec`, unfolded:
-  ∀ (r : Loc),
+  ∀ (r : Loc) (tl : GoInterface),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            typedPointsto
+                (structFieldRef raft go!"traceLogger" r) tl
+                DFrac.discard ∗
+              ⌜TraceLoggerOk tl⌝ -∗
           ▷ (True -∗ Φ (intoVal ())) -∗ WP ((intoVal (functions traceInitState [])) (intoVal r)) {{ Φ }}

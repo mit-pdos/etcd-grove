@@ -4,9 +4,13 @@
 
 theorem traceReceiveMessage.wp_proof [package_sem : Assumptions] : traceReceiveMessage.spec
   -- `Perennial.EtcdGrove.traceReceiveMessage.spec`, unfolded:
-  ∀ (r mp : Loc),
+  ∀ (r mp : Loc) (tl : GoInterface),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            typedPointsto
+                (structFieldRef raft go!"traceLogger" r) tl
+                DFrac.discard ∗
+              ⌜TraceLoggerOk tl⌝ -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP (((intoVal (functions traceReceiveMessage [])) (intoVal r)) (intoVal mp)) {{ Φ }}

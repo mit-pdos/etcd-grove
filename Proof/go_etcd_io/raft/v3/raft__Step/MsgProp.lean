@@ -187,7 +187,7 @@ theorem wp_Step_MsgProp
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_apply wp_traceReceiveMessage
+  wp_trace_hookC wp_traceReceiveMessage
   try wp_auto
   wp_get _Q
   rw [decide_eq_true Hterm]

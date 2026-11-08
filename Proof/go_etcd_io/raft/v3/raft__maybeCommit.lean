@@ -111,7 +111,7 @@ theorem raft.maybeCommit.wp_proof
       · exact LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl
           (hcm := Int.le_of_lt (of_decide_eq_true Hb.symm).2.1))
     %(by cases b <;> exact fun _ => logLast_le_of_fields rfl rfl rfl)
-  wp_apply wp_traceCommit
+  wp_trace_hookC wp_traceCommit
   iapply HΦ $$ %b %N
   cases b with
   | true =>

@@ -262,7 +262,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h44 : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h4, h22, h28, h13, h12, h29, h35, h3, h6, h36, h38, h39, h37, h10, h14, h42, h40, h41, h43, True.intro⟩
+    exact ⟨h4, h22, h28, h13, h12, h29, h35, h3, h6, h36, h38, h39, h37, h10, h14, h42, h40, h41, h43, h25, h5, True.intro⟩
   have h45 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

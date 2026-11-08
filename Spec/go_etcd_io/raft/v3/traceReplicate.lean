@@ -21,23 +21,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceReplicate(r, es...)`: a tracing hook, and a **no-op** -- Goose translates it
-to `λ: <> <>, exception_do (do: #())` (`new/code/go_etcd_io/raft/v3.v:6364`). Same
-shape as `spec_traceSendMessage.v`; `appendEntry` is the caller, and it hands the entry
-slice over only so that the triple has a resource to thread (the body touches nothing).
-
-**It owns nothing** (changed 2026-09-23). Goose translates the hook to
-`exception_do (do: #())`: it reads nothing and writes nothing, so the honest triple
-takes no resource and gives none back. Until then it carried the entries slice in and
-out, which it never touches; the other five hooks carried a raw piece of the raft
-struct (`own_raft_misc`), and all six now own nothing (notes/decisions.md, "Three
-layers"). This is a fact about the no-op build that is translated; the tracing build
-reads `r` and would need a real spec on `ownRaftPhys`. -/
+/-- `traceReplicate(r, es...)`: for each entry of `es` of type `EntryNormal`
+(`es[i].GetType()`, read before the logger is), `traceNodeEvent(rsmReplicate, r)`; the entries
+are only read. Under `TraceLoggerOk` (increment 1, `notes/trace-validation-hooks.md`: the logger is nil) no
+event is reported. Until 2026-11-08 the translated build was the no-op one (`state_trace_nop.go`)
+and the spec owned nothing; Draft S4 of `notes/trace-validation-plan.md` widens `TraceLoggerOk`
+to a logger. -/
 abbrev traceReplicate.spec : Prop :=
-  ∀ (r : Loc) (es : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+  ∀ (r : Loc) (es : GoSlice) (dq : DFrac) (ents : List EntryM) (tl : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ entsPts es dq ents ∗
+      r.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOk tl⌝ }}
     (App (App (Val #(functions traceReplicate [])) (Val #r)) (Val #es))
-  {{ RET #(); True }}
+  {{ RET #(); entsPts es dq ents }}
 
 end spec
 

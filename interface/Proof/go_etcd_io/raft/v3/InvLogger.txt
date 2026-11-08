@@ -2,6 +2,11 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+def TraceLoggerOk (tl : GoInterface) : Prop :=
+  tl = GoInterface.nil
+
+theorem TraceLoggerOk_nil : TraceLoggerOk GoInterface.nil
+
 def logMethods : List GoString :=
   [go!"Infof", go!"Debugf",
     go!"Warningf", go!"Errorf"]

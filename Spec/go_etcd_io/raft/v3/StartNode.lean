@@ -64,6 +64,9 @@ abbrev StartNode.spec : Prop :=
   csm.AutoLeave' = false →
   -- the peers are the cluster's voters
   vs = pv.map Peer.ID' →
+  -- (2026-11-08, Draft S3 of `notes/trace-validation-plan.md`, Q1: taken by the agent pending the
+  -- user's veto) the trace logger: none (`TraceLoggerOk_nil`); S4 widens it to a logger
+  TraceLoggerOk cv.TraceLogger' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       nodeBoot γ N vs ctxs cv.ID' ∗ nodeVacant γ cv.ID' ∗
       AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅

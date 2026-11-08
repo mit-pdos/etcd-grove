@@ -2,11 +2,21 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem traceChangeConfEvent.wp_proof [package_sem : Assumptions] : traceChangeConfEvent.spec
+theorem traceChangeConfEvent.wp_proof [package_sem : Assumptions] (wp_traceEvent : traceEvent.spec)
+    (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec) (wp_ConfChangeV2_AsV2 :
+    raftpb.ConfChangeV2.AsV2.spec) (wp_ConfChangeSingle_GetType :
+    raftpb.ConfChangeSingle.GetType.spec) (wp_ConfChangeSingle_GetNodeId :
+    raftpb.ConfChangeSingle.GetNodeId.spec) (wp_FormatUint : strconv.FormatUint.spec) :
+    traceChangeConfEvent.spec
   -- `Perennial.EtcdGrove.traceChangeConfEvent.spec`, unfolded:
-  ∀ (c : GoInterface) (r : Loc),
+  ∀ (c : GoInterface) (dq : DFrac) (o : ConfChangeIM) (r : Loc) (tl : GoInterface),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            ownConfChangeI c dq (some o) ∗
+              typedPointsto
+                  (structFieldRef raft go!"traceLogger" r) tl
+                  DFrac.discard ∗
+                ⌜TraceLoggerOk tl⌝ -∗
+          ▷ (ownConfChangeI c dq (some o) -∗ Φ (intoVal ())) -∗
             WP (((intoVal (functions traceChangeConfEvent [])) (intoVal c)) (intoVal r)) {{ Φ }}

@@ -19,11 +19,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `switchToConfig`'s tracing hook. A no-op in the translated build
-(`state_trace_nop.go`); it owns nothing. -/
+/-- `traceConfChangeEvent`: reads `r.traceLogger` and returns when it is nil; otherwise reports `ApplyConfChange` with the new configuration's voters. Under `TraceLoggerOk` (increment 1, `notes/trace-validation-hooks.md`: the logger is nil) it
+returns at once, owning nothing but the field, shared (`ownRaftPhysC_traceLogger`). Until
+2026-11-08 the translated build was the no-op one (`state_trace_nop.go`) and the spec owned
+nothing; Draft S4 of `notes/trace-validation-plan.md` widens `TraceLoggerOk` to a logger. -/
 abbrev traceConfChangeEvent.spec : Prop :=
-  ∀ (c : tracker.Config) (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+  ∀ (c : tracker.Config) (r : Loc) (tl : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ⌜TraceLoggerOk tl⌝ }}
     (App (App (Val #(functions traceConfChangeEvent [])) (Val #c)) (Val #r))
   {{ RET #(); True }}
 

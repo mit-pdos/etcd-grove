@@ -19,12 +19,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem traceSendMessage.wp_proof :
-    traceSendMessage.spec (GF := GF) (hG := hG) := by
-  intro r mp
-  wp_start
+theorem traceSendMessage.wp_proof : traceSendMessage.spec (GF := GF) (hG := hG) := by
+  intro r mp tl
+  wp_start as ⟨#Htl, %Hok⟩
+  unfold TraceLoggerOk at Hok; subst Hok
+  wp_auto
   iapply HΦ
-  itrivial
+  ipureintro; trivial
 
 end proof
 
