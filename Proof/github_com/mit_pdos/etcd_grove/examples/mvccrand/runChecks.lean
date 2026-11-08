@@ -74,10 +74,11 @@ theorem runChecks.wp_proof
   haveI := fun kv γ => hpers.1 kv γ
   haveI := fun ws γ ι => hpers.2.1 ws γ ι
   haveI := fun B f => hpers.2.2.2.1 B f
-  wp_start as ⟨Hfile, #Hks, Htok⟩
+  wp_start as ⟨Hfile, #Hks, Htok, #Hvoff⟩
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨ThreadBoundLe.le_of (2 ^ 28) (by omega)⟩
   wp_auto
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   wp_apply wp_DefaultBackendConfig as %bc %Hbc
   (try wp_auto)
@@ -85,7 +86,7 @@ theorem runChecks.wp_proof
   imod halloc with ⟨%gx, Hreg, HW⟩
   wp_apply (wp_bNew _ (rcP bc.BatchLimit') ∅ (fun _ => mvccW gx) (fun _ => iprop(True))
       backend.bFresh) $$ [Hfile HW Htok] as %r Hr
-  · iframe Hfile Htok
+  · iframe Hfile Htok Hvoff
     isplitr
     · ipureintro
       refine ⟨rcP_wf _ (by rw [hlim]; decide) (by rw [hlim]; decide), rfl⟩
