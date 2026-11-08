@@ -118,9 +118,9 @@ theorem MainCluster.wp_proof
   icases Hcl with ⟨#Hsrvs, #Hbrs, #Hm₁, #Hm₂, #Hm₃, -, -, -, -, -, -, Hetcd, %Hal⟩
   obtain ⟨hst₂, hst₃, -, -⟩ := Hal
   isimp only [cluster3.memberAt_none] at Hm₁ Hm₂ Hm₃
-  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, %Hp₁⟩
-  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -⟩
-  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -⟩
+  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, -, %Hp₁⟩
+  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -, -⟩
+  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -, -⟩
   obtain ⟨-, -, -, hlog₁, -⟩ := Hp₁
   -- the members at their bridges: their registrations there, refusal-free (D29)
   let ms : List (client.SrvAt GF) :=
@@ -195,7 +195,7 @@ theorem MainCluster.wp_proof
   ihave #Pkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes $$ []
   · iPkgInit
   let V : client.WEnv GF :=
-    EtcdGrove.client.srvWEnv R₁ clusterCfg.Bridge1' [] null null [] null default
+    EtcdGrove.client.srvWEnv R₁ (etcdstart.srvWOf E₁ ρ₁.rd false) ρ₁.rd clusterCfg.Bridge1' [] null null [] null default
   wp_apply (wp_kNew _ [clusterCfg.Bridge1', clusterCfg.Bridge2', clusterCfg.Bridge3'] V (fun _ => iprop(True))) $$ []
     as %kc %cerr Hcl
   · iframe #
