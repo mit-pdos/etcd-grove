@@ -131,8 +131,8 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   post gaining `γ.raft.reTrace = tr`), raft's `reNoSnap` mode revived as `reTrace.isSome`. Untraced clients (every
   existing one) carry one new pure fact, `⌜γ.raft.reTrace = none⌝`, from a law raft exports; the
   exported `memStorage_isStorage` gains it as a premise. The spec skill makes each the
-  user's; they will be presented side by side with the current specs once increment 2 is drafted
-  (`notes/trace-validation-sim.md`, "Increment 2").
+  user's; **presented side by side with the current specs in `notes/trace-validation-q6.md`**
+  (2026-11-08; drafts, not yet in Lean; the design: `notes/trace-validation-sim.md`, "Increment 2").
 - **Q7 (2026-11-08, layer C review rounds 1-2, S1): the Lean transcription's per-line fuel.** The
   Lean `stepLine` stops when `lineFuel` runs out (the logs' lengths plus 8); the Go's loop is
   unbounded. They agree only if a line's search never needs more, which rests on a reachability
