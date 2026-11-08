@@ -5,6 +5,15 @@ hook's correspondence, determinism, the invariants' mapping). It decides what in
 hooks' specs is (`notes/trace-validation-hooks.md`: the logger's contract) and what layer D must
 discharge.
 
+**Revision 9 (after review round 8, 2026-11-08; `notes/trace-validation-reviews/s4-r8.md`).**
+Round 8 found round 7's repairs right and one first-tier gap: with the trace gate, the harness
+cannot prove its `ApplySnapshot` branch (the gate denies `storBnd`'s permit) while `Ready` may
+still carry a snapshot: Q6 gains "with the trace gate, `Ready`'s snapshot is empty" (F1). Changed
+also: the gate is a cluster field `reTrace` (as `dup`), so untraced clients need no witness (S1);
+`CommittedIsDurableInv`'s inherited commit argued from the campaign's `Ready` (S2); the `Match`
+clauses for the leader's own entry (S3); a `simInv` clause for a message handed to the run loop
+and not yet stepped (S4); third tier.
+
 **Revision 8 (after review round 7, 2026-11-08; `notes/trace-validation-reviews/s4-r7.md`).**
 No further behavior the specification cannot follow; round 7 saw nothing else blocking a freeze
 once these and Q4-Q6 are settled. Changed: the voter-count half of P9 enters raft as a premise of
@@ -329,16 +338,18 @@ None of the eight is cheap:
   argument, `LeaderCompleteness.lean:176-189`); `hist` at truncation states takes the divergence
   disjunct at the first conflict (the history's bound is the copy's own choice). It quantifies over
   every server's committed prefix, including a follower's inherited commit, so three clauses
-  (round 7's S3): a leader's `matchIndex[l][j]` is 0, or its response is in `j`'s set, or at most
+  (round 7's S3; for `j ≠ l`, the leader's own entry `E_T − 1` from `BecomeLeader` until its
+  self-acknowledgement a separate case, round 8's S3): a leader's `matchIndex[l][j]` is 0, or its
+  response is in `j`'s set, or at most
   `j`'s commit index; the per-node sets only grow; a cluster-wide commit record naming, for each
   commit index any server holds, its quorum, with raft's `cq` at that commit;
 - `LogInv`, `LeaderCompletenessInv`,
   `CommittedIsDurableInv` (a leader's commit index is within its durable log: every response
   that reaches a leader answers a request handed out at one of its `Ready`s (P8), at which its
   whole log was persisted, and its own match counts toward a quorum only with the others'; the
-commit index a leader inherits at its election is within its durable log by induction on
-`CommittedIsDurableInv` itself (round 7's T3: an `index ≤ commitIndex` reply raises no commit
-index)) are
+  commit index a leader inherits at its election is within its durable log because its
+  campaign's `Ready` persisted its whole log before any vote could be won (with a single voter,
+  the bootstrap's commit): round 8's S2) are
   raft's safety theorems: route (a) from `isCommitted_agree`, `lc_core`, `cq_agree`, the
   leader's log records; **`LeaderCompletenessInv` is not one** (N1, Q4: false of raft; with the
   guard `currentTerm[l] >= currentTerm[i]`, from `lc_core` in its "committed at term `Tc`,
@@ -360,7 +371,7 @@ hook of node `i` holds only node `i`'s part and raft's shared invariants, not th
 | `σ.s j` a leader of `T` | `isLeader γ j T` (`Ghost.lean:1081`) | `MoreThanOneLeaderInv`, the corrected LC |
 | `σ.s j`'s log, entry by entry | `logRecs`/`isEntryR` records of `j`'s log (at a truncation state of a receive line: a strict prefix of one) | `LogMatchingInv`, `MoreUpToDateCorrectInv`, `QuorumLogInv` |
 | `σ.s j`'s committed prefix | committed in `raftCommitInv` (`isCommitted`) | `LogInv`, `QuorumLogInv`, `MoreUpToDateCorrectInv`, LC |
-| **commit point**: `j`'s commit index `c` is covered by a commit quorum at a term `t ≤ term(σ.s j.log[c])` (so `t ≤ σ.s j.currentTerm`) | `commitIn γ F c T` (`commitJ`, `Ghost.lean:3248-3252`: a `cq γ t n G` with `c ≤ n`, `t ≤ T`), which `isMessage` carries for append requests and heartbeats (`GhostState.lean:198`, `:216`) and a live node's ghost pairs with its commit persistently (`ownLogGhost_commitIn`, `Protocol/ReadIndex.lean:686-689`), strengthened to `t ≤ term(log[c])` by P5 and two maintenance clauses (round 5's B2): every append request in the bags carries its sender's stronger certificate (`t ≤ term` of the sender's entry at the commit), and a leader's `Match[j]` is 0, at or past its term's empty entry, or at most `j`'s commit index (so a heartbeat's `min(Match, committed)` is covered); holds at truncation states (entry `c` is never removed) | the corrected LC, `MoreUpToDateCorrectInv` |
+| **commit point**: `j`'s commit index `c` is covered by a commit quorum at a term `t ≤ term(σ.s j.log[c])` (so `t ≤ σ.s j.currentTerm`) | `commitIn γ F c T` (`commitJ`, `Ghost.lean:3248-3252`: a `cq γ t n G` with `c ≤ n`, `t ≤ T`), which `isMessage` carries for append requests and heartbeats (`GhostState.lean:198`, `:216`) and a live node's ghost pairs with its commit persistently (`ownLogGhost_commitIn`, `Protocol/ReadIndex.lean:686-689`), strengthened to `t ≤ term(log[c])` by P5 and two maintenance clauses (round 5's B2): every append request in the bags carries its sender's stronger certificate (`t ≤ term` of the sender's entry at the commit), and a leader's `Match[j]` (`j ≠ l`; its own is `E_T − 1` from `BecomeLeader` until its self-acknowledgement, round 8's S3) is 0, at or past its term's empty entry, or at most `j`'s commit index (so a heartbeat's `min(Match, committed)` is covered); holds at truncation states (entry `c` is never removed) | the corrected LC, `MoreUpToDateCorrectInv` |
 | `j`'s acknowledgements' histories | raft's `histsOk` of `j` (`GhostState.lean:554-556`) over a per-node set of acknowledgements snapshotted at `j`'s `SendAppendEntriesResponse` hooks (the ack is recorded in raft's ghost outside any hook: the copy keys on its own set, not on `isAcked`), with a bag clause: every successful append response handed out is in its source's set | `QuorumLogInv` (at a `Commit` line, from the leader's match-index quorum: its members' responses are in their sets) |
 | successful responses | every successful append response of term `T` in the bags has `matchIndex ≥ E_T` (the term's empty entry) or `≤` its source's commit index (route (b), from P5 at each send; raft's `isMessage` carries only `isAcked`) | the commit-point clause's `Match` clause |
 | `σ.s j`'s durable record | none: `σ`'s own value (route (b)), set at `j`'s `Ready` lines | `CommittedIsDurableInv` |
@@ -414,14 +425,13 @@ This is the largest part of layer B's proof; S5's estimate starts here.
 - **P8** (F1) a message is received only after its sender's `Ready` line: the harness sends a
   `Ready`'s messages after `Advance`, which the run loop takes only after `acceptReady` has logged
   the `Ready` (`concurrent.go`'s `app`; Q3 of the plan; `nonissues/raft-trace-ready-logged-after-handout.md`);
-- **P9** (gap 6; its voter-count half enters raft as the allocation law's premise `|peers| ≤ 3`,
-  round 7's F1, Q6: with five voters a second candidate's `MsgVote` reaches a voter that knows the
-  leader, on another link; four are still safe) **false as stated** (N2): with three voters, the leader's own `MsgVote`, delayed
-  past its first heartbeat, still meets a voter that knows the leader without having voted. Open
-  on the user (Q5); with a per-link FIFO network (Q5 (a)): "three voters, and each link delivers
-  in order", so **a voter that learns of its term-`T` leader without having voted in `T` never
-  receives a `MsgVote` of term `T`** (the leader's `MsgVote` to it was handed out first, so it came
-  first or was dropped; no other candidate of `T` exists with three voters). The FIFO harness must
+- **P9** (gap 6), in its final form (with Q5 (a)): **a voter that learns of its term-`T` leader
+  without having voted in `T` never receives a `MsgVote` of term `T`**. Its two halves: at most
+  three voters (the allocation law's premise `|peers| ≤ 3`, round 7's F1, Q6: with five, a second
+  candidate's `MsgVote` reaches such a voter on another link; four are still safe), and each link
+  delivering in order (the per-link cursor, Q6: the leader's `MsgVote` to the voter was handed out
+  before any of its heartbeats, so it comes first or is dropped). Without the FIFO network it is
+  false with three voters (N2: the leader's own delayed `MsgVote`). The FIFO harness must
   enqueue each link's messages synchronously, in the application goroutine, in `rd.Messages`
   order across `Ready`s; only the link's goroutine delivers.
 
@@ -453,11 +463,12 @@ owns `traceFrag γt L` in lockstep with `σ`, with the bounds the checker's `int
 as clauses (round 6's S5: both from raft's time receipts, terms by `budgetInv`
 (`InvNodeChan.lean:192-194`) and every entry's index by `isEntryR_receipt` (`Ghost.lean:2481`),
 with the adequacy theorem's receipt bound at most `2^62 − 2`, stated where that bound is owned,
-an index then below `2^62 − 3 + |peers|`, under `2^63` with `|peers| ≤ 3`; no budget needed for
+an index then at most `2^62 − 3 + |peers|`, under `2^63` with `|peers| ≤ 3`; no budget needed for
 them), and each hook's call site supplies the update,
 stepping `σ` inside it; raft's API exports the law from `simInv γt ∗ traceAuth γt L` to "`L` steps,
 line by line, to a unique state with the invariants" (layer D gets `traceAccepts` from it), and the
-allocation law: `γt` with `traceAuth`, `traceFrag`, `simInv` at `σ_init` (from the peers), the
+allocation law (it takes raft's `γ`, whose cluster voters are its peers, `γ.reTrace = some γt`):
+`γt` with `traceAuth`, `traceFrag`, `simInv` at `σ_init` (from the peers), the
 nodes' `simNode`s with their bootstrap flags, and the budget, which the harness applies before
 the first `StartNode`; the exported law takes as premise that every peer's bootstrap lines are in
 `L` (a peer not yet started contributes `σ_init`'s value for it, from the allocation).
@@ -511,7 +522,9 @@ What the contract's proof meets:
   and the specification grants (gap 6). An exclusive per-link cursor `linkCur γt (c, i) f`,
   allocated with `γt` and owned by the link's deliverer (the FIFO harness's link goroutine):
   `Node.Step` takes `inFlight` at position `p > f` with `linkCur … f`, returns `linkCur … p` on
-  success and `linkCur … f` with the token on a timeout, a stop or an error; the frontier is split,
+  success and `linkCur … f` with the token on a timeout, a stop or an error; a `simInv` clause
+  records a message handed to the run loop and not yet stepped (`frontier < p`, at most one per
+  link, set at the hand-off, consumed at `raft.Step`: round 8's S4); the frontier is split,
   its authority in `simInv` (frontier `≤` cursor) and an exclusive fragment in the receiver's
   `simNode`, so "`p` above the frontier" stays true from `Node.Step`'s hand-off (`recvc`,
   `node.go:514-523`) to `raft.Step` (the run loop steps the message it took before taking another,
@@ -528,7 +541,12 @@ What the contract's proof meets:
   `TransferLeadership`, `ReadIndex`, `Campaign`, `ForgetLeader` (P7) with a logger; each
   `StartNode` takes its node's `simNode` from the allocation and is called with the allocation's
   peers (P4), at most three (P9). (`RawNode` has no public spec: its changes are internal.)
-  `ReportSnapshot`, `Status`, `Stop` stay callable: they log nothing the specification cannot
+  **The gate** is a cluster field `reTrace : Option GName := none` of raft's names (as `dup`), and
+  `storBnd`'s permit conjunct reads `⌜γ.reTrace = none⌝ ∨ permit`, so untraced clients (the
+  server's `compactRaftLog`, the kv examples) need no new witness (round 8's S1); and with the gate
+  on, `Ready`'s snapshot is empty (`L = none`), so the client never needs `ApplySnapshot`'s
+  storage bound (round 8's F1). Proposals' size needs no limit: `MaxSizePerMsg` is unlimited and
+  the harness's entries are small. `ReportSnapshot`, `Status`, `Stop` stay callable: they log nothing the specification cannot
   follow (`ReportSnapshot` with no snapshot ever sent, `raft.go:1626-1628`).
 - **The budget** is a counter (so `etc/bounds-check.py` does not count it as a list of tokens),
   taken at `Propose`; raft's per-proposal tickets are consumed at the append (`propTk_set`,
