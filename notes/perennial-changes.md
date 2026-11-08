@@ -1952,3 +1952,12 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   term it is given, it should fail with an error naming the mismatch, never close the goal with an
   admitted proof.
 - **Status.** Recorded only; not reduced to a minimal example.
+
+## Proposed: `stringToGoString_inj` and `ByteArray.toList = data.toList` (2026-11-08, trace-check)
+
+`stringToGoString` (`Perennial/Std/ByteString.lean`) is injective, and Lean core has no lemma
+relating `ByteArray.toList` (a loop) to `bs.data.toList`. Both are facts about Perennial's and
+Lean's own definitions, proved locally for trace-check's layer C Probe
+(`Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Own.lean`:
+`byteArray_toList_loop`, `byteArray_toList_eq`, `stringToGoString_inj`); to propose to Perennial
+(`Perennial/Std/ByteString.lean`) as an independent change, then drop the local copies.
