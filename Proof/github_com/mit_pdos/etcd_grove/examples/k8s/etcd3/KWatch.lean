@@ -150,15 +150,23 @@ def bmStepL : Option (Nat × Nat × Bool) → WEv → Option (Nat × Nat × Bool
 /-- `bookmarksOk(evs)`: `validateBookmarks` on the events that are not errors. -/
 def bookmarksOkL (evs : List WEv) : Bool := (evs.foldl bmStepL (some (0, 0, false))).isSome
 
-/-- The events' revision range (`eventResourceVersionRange`): an event at `r` covers `[r, r+1)`,
-a bookmark at `b` covers `[b+1, b)`; none if no event or bookmark. -/
-def evRangeL (evs : List WEv) : Option (Nat × Nat) :=
-  evs.foldl (fun acc e =>
-    let rv := uint.nat e.o.ResourceVersion'
-    let (lo, hi) := if e.t = 3 then (rv + 1, rv) else (rv, rv + 1)
-    match acc with
-    | none => some (lo, hi)
-    | some (lo', hi') => some (min lo lo', max hi hi')) none
+/-- The revisions an event marks from (an event at `r`: `r`; a bookmark at `b`: `b + 1`). -/
+def evLo (e : WEv) : Nat :=
+  if e.t = 3 then uint.nat e.o.ResourceVersion' + 1 else uint.nat e.o.ResourceVersion'
+
+/-- The revisions an event marks to, exclusive (an event at `r`: `r + 1`; a bookmark at `b`: `b`). -/
+def evHi (e : WEv) : Nat :=
+  if e.t = 3 then uint.nat e.o.ResourceVersion' else uint.nat e.o.ResourceVersion' + 1
+
+/-- One step of `eventResourceVersionRange`'s loop. -/
+def evRStep (acc : Option (Nat × Nat)) (e : WEv) : Option (Nat × Nat) :=
+  match acc with
+  | none => some (evLo e, evHi e)
+  | some (lo', hi') => some (min (evLo e) lo', max (evHi e) hi')
+
+/-- The events' revision range (`eventResourceVersionRange`): the least `evLo` and the greatest
+`evHi`; none if no event or bookmark. -/
+def evRangeL (evs : List WEv) : Option (Nat × Nat) := evs.foldl evRStep none
 
 /-- The events of the changes at revisions `[lo, hi)` (from 2: revision 1 is the empty store). -/
 def eventsInL (x : Input) (hs : List GSt) (lo hi : Nat) : List WEv :=

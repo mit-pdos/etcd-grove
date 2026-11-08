@@ -283,6 +283,167 @@ theorem TailOk.eventsIn (hwf : HistWf x hs) {c : Nat} {es : List WEv} (ht : Tail
 
 end tail
 
+/-! ## The events' revision range -/
+
+theorem evRange_foldl_some (es : List WEv) (lo hi : Nat) :
+    ∃ lo' hi', es.foldl evRStep (some (lo, hi)) = some (lo', hi') ∧
+      lo' ≤ lo ∧ (∀ e ∈ es, lo' ≤ evLo e) ∧ (lo' = lo ∨ ∃ e ∈ es, lo' = evLo e) ∧
+      hi ≤ hi' ∧ (∀ e ∈ es, evHi e ≤ hi') ∧ (hi' = hi ∨ ∃ e ∈ es, hi' = evHi e) := by
+  induction es generalizing lo hi with
+  | nil => exact ⟨lo, hi, rfl, Nat.le_refl _, by simp, .inl rfl, Nat.le_refl _, by simp, .inl rfl⟩
+  | cons e es ih =>
+    obtain ⟨lo', hi', hf, h1, h2, h3, h4, h5, h6⟩ := ih (min (evLo e) lo) (max (evHi e) hi)
+    refine ⟨lo', hi', hf, Nat.le_trans h1 (Nat.min_le_right _ _), ?_, ?_,
+      Nat.le_trans (Nat.le_max_right _ _) h4, ?_, ?_⟩
+    · intro e' he'
+      rcases List.mem_cons.1 he' with rfl | he'
+      · exact Nat.le_trans h1 (Nat.min_le_left _ _)
+      · exact h2 e' he'
+    · rcases h3 with h3 | ⟨e', he', h3⟩
+      · by_cases hm : evLo e ≤ lo
+        · exact .inr ⟨e, by simp, h3.trans (Nat.min_eq_left hm)⟩
+        · exact .inl (h3.trans (Nat.min_eq_right (by omega)))
+      · exact .inr ⟨e', by simp [he'], h3⟩
+    · intro e' he'
+      rcases List.mem_cons.1 he' with rfl | he'
+      · exact Nat.le_trans (Nat.le_max_left _ _) h4
+      · exact h5 e' he'
+    · rcases h6 with h6 | ⟨e', he', h6⟩
+      · by_cases hm : hi ≤ evHi e
+        · exact .inr ⟨e, by simp, h6.trans (Nat.max_eq_left hm)⟩
+        · exact .inl (h6.trans (Nat.max_eq_right (by omega)))
+      · exact .inr ⟨e', by simp [he'], h6⟩
+
+/-- A non-empty list's range: its least `evLo`, attained, and its greatest `evHi`, attained. -/
+theorem evRangeL_cons (e : WEv) (es : List WEv) :
+    ∃ lo hi, evRangeL (e :: es) = some (lo, hi) ∧
+      (∀ e' ∈ e :: es, lo ≤ evLo e') ∧ (∃ e' ∈ e :: es, lo = evLo e') ∧
+      (∀ e' ∈ e :: es, evHi e' ≤ hi) ∧ (∃ e' ∈ e :: es, hi = evHi e') := by
+  obtain ⟨lo', hi', hf, h1, h2, h3, h4, h5, h6⟩ := evRange_foldl_some es (evLo e) (evHi e)
+  refine ⟨lo', hi', hf, ?_, ?_, ?_, ?_⟩
+  · intro e' he'
+    rcases List.mem_cons.1 he' with rfl | he'
+    · exact h1
+    · exact h2 e' he'
+  · rcases h3 with h3 | ⟨e', he', h3⟩
+    · exact ⟨e, by simp, h3⟩
+    · exact ⟨e', by simp [he'], h3⟩
+  · intro e' he'
+    rcases List.mem_cons.1 he' with rfl | he'
+    · exact h4
+    · exact h5 e' he'
+  · rcases h6 with h6 | ⟨e', he', h6⟩
+    · exact ⟨e, by simp, h6⟩
+    · exact ⟨e', by simp [he'], h6⟩
+
+theorem evRangeL_nil : evRangeL [] = none := rfl
+
+/-! ## The bookmarks -/
+
+theorem bmStepL_none_foldl (es : List WEv) : es.foldl bmStepL none = none := by
+  induction es with
+  | nil => rfl
+  | cons e es ih => simpa [List.foldl_cons, bmStepL] using ih
+
+section tail2
+variable {x : Input} {hs : List GSt}
+
+/-- A tail passes `validateBookmarks` from any state no later than its cursor. -/
+theorem TailOk.bookmarks (hwf : HistWf x hs) {c : Nat} {es : List WEv} (ht : TailOk x hs c es)
+    (hna : NoAnn es) : ∀ lb le ann, lb ≤ c → le ≤ c →
+      (es.foldl bmStepL (some (lb, le, ann))).isSome := by
+  induction ht with
+  | nil c => intros; rfl
+  | ev c r e rest hcr hr _ hev _ ih =>
+    intro lb le ann hlb hle
+    have hrv := (hwf.2.2 r e hev).1
+    have het : e.t ≠ 3 := by have := evAtL_t hev; omega
+    simp only [List.foldl_cons, bmStepL, hrv, het, ↓reduceIte, show ¬ r ≤ lb by omega]
+    exact ih (fun e' he' => hna e' (by simp [he'])) lb (max le r) ann (by omega) (by omega)
+  | bm c p o rest hcp hp hrv _ _ ih =>
+    intro lb le ann hlb hle
+    have hoa : o.Annotated' = false := hna ⟨3, o⟩ (by simp) rfl
+    simp only [List.foldl_cons, bmStepL, hrv, ↓reduceIte, hoa, Bool.false_eq_true,
+      show ¬ (p < lb ∨ p < le) by omega]
+    exact ih (fun e' he' => hna e' (by simp [he'])) p le ann (Nat.le_refl _) (by omega)
+
+end tail2
+
+/-- Added events with revisions from 1 to `r0` pass `validateBookmarks` from the start, ending at
+a state with no bookmark and the last event no later than `r0`. -/
+theorem bm_init (init : List WEv) (r0 : Nat)
+    (hi : ∀ e ∈ init, e.t = 0 ∧ 1 ≤ uint.nat e.o.ResourceVersion' ∧ uint.nat e.o.ResourceVersion' ≤ r0) :
+    ∀ le, le ≤ r0 → ∃ le', le' ≤ r0 ∧ init.foldl bmStepL (some (0, le, false)) = some (0, le', false) := by
+  induction init with
+  | nil => intro le hle; exact ⟨le, hle, rfl⟩
+  | cons e init ih =>
+    intro le hle
+    obtain ⟨h0, h1, h2⟩ := hi e (by simp)
+    simp only [List.foldl_cons, bmStepL, h0, show (0 : Nat) ≠ 3 by decide, ↓reduceIte,
+      show ¬ uint.nat e.o.ResourceVersion' ≤ 0 by omega]
+    exact ih (fun e' he' => hi e' (by simp [he'])) _ (by omega)
+
+/-! ## The reliable window -/
+
+section tail3
+variable {x : Input} {hs : List GSt}
+
+/-- **`reliableOk` accepts a tail** from the cursor `c`, for the driver's requests: a NotOlderThan
+request from at most `c` (or none), or a legacy one from exactly `c`. -/
+theorem TailOk.reliable (hwf : HistWf x hs) {c : Nat} {es : List WEv} (ht : TailOk x hs c es)
+    (hc : c ≤ hs.length) (req : Nat) (h : HSt) (hh : h.hist = hs)
+    (hrv : uint.nat h.st.rv = hs.length)
+    (hmode : (x.Match' = W64 1 ∧ (0 < req → req ≤ c)) ∨ (x.Match' = W64 0 ∧ 0 < req ∧ c = req)) :
+    reliableOkL x req es h = true := by
+  have hb := TailOk.bounds hwf ht
+  unfold reliableOkL
+  cases es with
+  | nil => rw [evRangeL_nil]
+  | cons e es =>
+    obtain ⟨lo0, hi, hr, hlo1, ⟨elo, helo, hlo2⟩, hhi1, ⟨ehi, hehi, hhi2⟩⟩ := evRangeL_cons e es
+    rw [hr]
+    simp only
+    have hm2 : x.Match' ≠ W64 2 := by
+      rcases hmode with ⟨h1, -⟩ | ⟨h1, -⟩ <;> rw [h1] <;> decide
+    have hlo0 : c + 1 ≤ lo0 := by
+      obtain ⟨hb1, hb2, -, -⟩ := hb.2.2 elo helo
+      rw [hlo2]; unfold evLo
+      split
+      · omega
+      · rcases hb1 with h | h
+        · contradiction
+        · omega
+    have hhi : hi ≤ lastCur c (e :: es) + 1 := by
+      obtain ⟨-, -, hb3, -⟩ := hb.2.2 ehi hehi
+      rw [hhi2]; unfold evHi; split <;> omega
+    have hlast := hb.2.1 hc
+    rw [if_neg (fun h => hm2 h.1), if_neg (by omega), hh]
+    have hlo : (if x.Match' = W64 1 then (if 0 < req then max lo0 (req + 1) else lo0)
+        else if 0 < req then req + 1 else lo0) = (if x.Match' = W64 1 then lo0 else c + 1) := by
+      rcases hmode with ⟨h1, h2⟩ | ⟨h1, h2, h3⟩
+      · rw [if_pos h1, if_pos h1]
+        split
+        · have := h2 ‹_›; exact Nat.max_eq_left (by omega)
+        · rfl
+      · have h1' : x.Match' ≠ W64 1 := by rw [h1]; decide
+        rw [if_neg h1', if_neg h1', if_pos h2, h3]
+    rw [hlo]
+    have hev : ∀ lo, c + 1 ≤ lo → (∀ e' ∈ e :: es, e'.t ≠ 3 → lo ≤ uint.nat e'.o.ResourceVersion') →
+        evsEqL (eventsInL x hs lo hi) ((e :: es).filter fun e => e.t ≠ 3) = true := by
+      intro lo h1 h2
+      rw [TailOk.eventsIn hwf ht lo hi h1 h2
+        (fun e' he' ht' => by have := hhi1 e' he'; unfold evHi at this; simp [ht'] at this; omega)
+        hhi]
+      simp [evsEqL]
+    split
+    · exact hev lo0 hlo0 (fun e' he' ht' => by have := hlo1 e' he'; unfold evLo at this; simp [ht'] at this; omega)
+    · exact hev (c + 1) (Nat.le_refl _) (fun e' he' ht' => by
+        have := (hb.2.2 e' he').1; rcases this with h | h
+        · exact absurd h ht'
+        · omega)
+
+end tail3
+
 end go
 
 end k8s_etcd3
