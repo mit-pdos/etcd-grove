@@ -35,19 +35,20 @@ section pure
 variable [GooseExts] {σ : Type}
 
 /-- The clients' traces `hs` and ghost values `ps` (client `c`'s at index `c`): client `c`'s
-records match its trace (`ClientOk`), and there are `m` of them. -/
-def ClientsOk (m : Nat) (hs : List (List Operation)) (ps : List (Nat × ClientV)) : Prop :=
+records match its trace (`ClientOk`), and there are `mf c` of them (`RunLin2`: `ops` for the
+first group, `ops2` for the second). -/
+def ClientsOk (mf : Nat → Nat) (hs : List (List Operation)) (ps : List (Nat × ClientV)) : Prop :=
   hs.length = ps.length ∧ ∀ (c : Nat) (h : List Operation) (p : Nat × ClientV),
     hs[c]? = some h → ps[c]? = some p →
-      p.1 = c ∧ (∃ cid, ClientOk cid h p.2.1) ∧ p.2.1.length = m
+      p.1 = c ∧ (∃ cid, ClientOk cid h p.2.1) ∧ p.2.1.length = mf c
 
-theorem ClientsOk.nil (m : Nat) : ClientsOk m [] [] :=
+theorem ClientsOk.nil (mf : Nat → Nat) : ClientsOk mf [] [] :=
   ⟨rfl, fun c h p hh _ => by simp at hh⟩
 
-theorem ClientsOk.snoc {m : Nat} {hs : List (List Operation)} {ps : List (Nat × ClientV)}
-    (H : ClientsOk m hs ps) (cid : w64) (h : List Operation) (Lc : List (OpV × w64)) (lr : w64)
-    (hok : ClientOk cid h Lc) (hl : Lc.length = m) :
-    ClientsOk m (hs ++ [h]) (ps ++ [(hs.length, (Lc, lr))]) := by
+theorem ClientsOk.snoc {mf : Nat → Nat} {hs : List (List Operation)} {ps : List (Nat × ClientV)}
+    (H : ClientsOk mf hs ps) (cid : w64) (h : List Operation) (Lc : List (OpV × w64)) (lr : w64)
+    (hok : ClientOk cid h Lc) (hl : Lc.length = mf hs.length) :
+    ClientsOk mf (hs ++ [h]) (ps ++ [(hs.length, (Lc, lr))]) := by
   obtain ⟨hlen, hc⟩ := H
   refine ⟨by simp [hlen], ?_⟩
   intro c h' p hh hp
@@ -62,9 +63,20 @@ theorem ClientsOk.snoc {m : Nat} {hs : List (List Operation)} {ps : List (Nat ×
       rw [show c - ps.length = 0 by omega] at hp
       simp only [List.getElem?_cons_zero, Option.some.injEq] at hh hp
       subst hh hp
-      exact ⟨by simp; omega, ⟨cid, hok⟩, hl⟩
+      have hc' : c = hs.length := by omega
+      exact ⟨by simp; omega, ⟨cid, hok⟩, by rw [hc']; exact hl⟩
     · rw [List.getElem?_eq_none (by simp; omega)] at hh
       cases hh
+
+/-- Client `c`'s trace has `mf c` operations. -/
+theorem ClientsOk.length {mf : Nat → Nat} {hs : List (List Operation)} {ps : List (Nat × ClientV)}
+    (hc : ClientsOk mf hs ps) {c : Nat} {h : List Operation} (hh : hs[c]? = some h) :
+    h.length = mf c := by
+  have hcl : c < ps.length := by
+    rw [← hc.1]; exact (List.getElem?_eq_some_iff.1 hh).1
+  obtain ⟨p, hp⟩ : ∃ p, ps[c]? = some p := ⟨_, List.getElem?_eq_getElem hcl⟩
+  obtain ⟨-, ⟨cid, hok⟩, hl⟩ := hc.2 c h p hh hp
+  rw [hok.1, hl]
 
 /-- The records of the clients, as `LinTheory`'s `Lcs`. -/
 def recsList (ps : List (Nat × ClientV)) : List (List (OpV × Int)) :=
@@ -75,32 +87,31 @@ theorem histOf_flatten (hs : List (List Operation)) :
   unfold histOf
   rw [List.map_flatten]
 
-theorem final_logOk {M : SeqModel σ OpV} {n m : Nat} {s : σ} {t : w64} {L : List (LinRec OpV)}
+theorem final_logOk {M : SeqModel σ OpV} {n : Nat} {mf : Nat → Nat} {s : σ} {t : w64}
+    {L : List (LinRec OpV)}
     {Ls : GMap Nat ClientV} {hs : List (List Operation)} {ps : List (Nat × ClientV)}
-    (H : InvOk M n s t L Ls) (hc : ClientsOk m hs ps) (hn : hs.length = n)
+    (H : InvOk M n s t L Ls) (hc : ClientsOk mf hs ps) (hn : hs.length = n)
     (hlook : ∀ p ∈ ps, Ls.lookup p.1 = some p.2) :
-    LogOk M m (hs.map histOf) (recsList ps) L where
+    LogOk M (hs.map histOf) (recsList ps) L where
   len := by simp [recsList, hc.1]
-  hlen := by
-    intro h' hh'
-    obtain ⟨h, hh, rfl⟩ := List.mem_map.1 hh'
-    obtain ⟨c, hc'⟩ := List.getElem?_of_mem hh
-    have hcl : c < ps.length := by
-      rw [← hc.1]; exact (List.getElem?_eq_some_iff.1 hc').1
-    obtain ⟨p, hp⟩ : ∃ p, ps[c]? = some p := ⟨_, List.getElem?_eq_getElem hcl⟩
-    obtain ⟨-, ⟨cid, hok⟩, hl⟩ := hc.2 c h p hc' hp
-    simp only [histOf, List.length_map]
-    rw [hok.1, hl]
   lclen := by
-    intro Lc hLc
-    obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hLc
-    obtain ⟨c, hc'⟩ := List.getElem?_of_mem hp
-    have hcl : c < hs.length := by
-      rw [hc.1]; exact (List.getElem?_eq_some_iff.1 hc').1
-    obtain ⟨h, hh⟩ : ∃ h, hs[c]? = some h := ⟨_, List.getElem?_eq_getElem hcl⟩
-    obtain ⟨-, -, hl⟩ := hc.2 c h p hh hc'
-    simp only [List.length_map]
-    exact hl
+    intro c h' Lc' hh' hLc'
+    rw [List.getElem?_map] at hh'
+    unfold recsList at hLc'
+    rw [List.getElem?_map] at hLc'
+    cases hh : hs[c]? with
+    | none => rw [hh] at hh'; cases hh'
+    | some h =>
+      cases hp : ps[c]? with
+      | none => rw [hp] at hLc'; cases hLc'
+      | some p =>
+        rw [hh] at hh'
+        rw [hp] at hLc'
+        simp only [Option.map_some, Option.some.injEq] at hh' hLc'
+        subst hh' hLc'
+        obtain ⟨-, ⟨cid, hok⟩, -⟩ := hc.2 c h p hh hp
+        simp only [histOf, List.length_map]
+        exact hok.1.symm
   recs := by
     intro c h' Lc' hh' hLc' j o q' ho hq'
     rw [List.getElem?_map] at hh'
@@ -158,42 +169,33 @@ theorem final_logOk {M : SeqModel σ OpV} {n m : Nat} {s : σ} {t : w64} {L : Li
   runs := by rw [H.runs]; rfl
 
 /-- **The traced history is linearizable.** -/
-theorem final_linearizable {M : SeqModel σ OpV} {n m : Nat} {s : σ} {t : w64}
+theorem final_linearizable {M : SeqModel σ OpV} {n : Nat} {mf : Nat → Nat} {s : σ} {t : w64}
     {L : List (LinRec OpV)} {Ls : GMap Nat ClientV} {hs : List (List Operation)}
     {ps : List (Nat × ClientV)}
-    (H : InvOk M n s t L Ls) (hc : ClientsOk m hs ps) (hn : hs.length = n)
+    (H : InvOk M n s t L Ls) (hc : ClientsOk mf hs ps) (hn : hs.length = n)
     (hlook : ∀ p ∈ ps, Ls.lookup p.1 = some p.2) :
     Linearizable M (histOf hs.flatten) := by
   rw [histOf_flatten]
   exact (final_logOk H hc hn hlook).linearizable
 
 /-- **The traced history satisfies porcupine's premise.** -/
-theorem final_histOk {n m : Nat} {hs : List (List Operation)} {ps : List (Nat × ClientV)}
-    (hc : ClientsOk m hs ps) (hn : hs.length = n) (hb : ((n * m : Nat) : Int) < 2 ^ 60) :
+theorem final_histOk {mf : Nat → Nat} {hs : List (List Operation)} {ps : List (Nat × ClientV)}
+    (hc : ClientsOk mf hs ps) (hb : (hs.flatten.length : Int) < 2 ^ 60) :
     HistOk hs.flatten := by
-  have hl : ∀ h ∈ hs, h.length = m := by
-    intro h hh
-    obtain ⟨c, hc'⟩ := List.getElem?_of_mem hh
-    have hcl : c < ps.length := by
-      rw [← hc.1]; exact (List.getElem?_eq_some_iff.1 hc').1
-    obtain ⟨p, hp⟩ : ∃ p, ps[c]? = some p := ⟨_, List.getElem?_eq_getElem hcl⟩
-    obtain ⟨-, ⟨cid, hok⟩, hl⟩ := hc.2 c h p hc' hp
-    rw [hok.1, hl]
-  refine ⟨?_, ?_⟩
-  · rw [Perennial.join_same_len_length (c := m) hs hl, hn]; exact hb
-  · intro o ho
-    obtain ⟨h, hh, hoh⟩ := List.mem_flatten.1 ho
-    obtain ⟨c, hc'⟩ := List.getElem?_of_mem hh
-    have hcl : c < ps.length := by
-      rw [← hc.1]; exact (List.getElem?_eq_some_iff.1 hc').1
-    obtain ⟨p, hp⟩ : ∃ p, ps[c]? = some p := ⟨_, List.getElem?_eq_getElem hcl⟩
-    obtain ⟨-, ⟨cid, hok⟩, -⟩ := hc.2 c h p hc' hp
-    obtain ⟨j, hj⟩ := List.getElem?_of_mem hoh
-    have hjl : j < p.2.1.length := by
-      rw [← hok.1]; exact (List.getElem?_eq_some_iff.1 hj).1
-    obtain ⟨q, hq⟩ : ∃ q, p.2.1[j]? = some q := ⟨_, List.getElem?_eq_getElem hjl⟩
-    obtain ⟨-, -, h1, h2⟩ := hok.2 j o q hj hq
-    exact Int.le_trans h1 h2
+  refine ⟨hb, ?_⟩
+  intro o ho
+  obtain ⟨h, hh, hoh⟩ := List.mem_flatten.1 ho
+  obtain ⟨c, hc'⟩ := List.getElem?_of_mem hh
+  have hcl : c < ps.length := by
+    rw [← hc.1]; exact (List.getElem?_eq_some_iff.1 hc').1
+  obtain ⟨p, hp⟩ : ∃ p, ps[c]? = some p := ⟨_, List.getElem?_eq_getElem hcl⟩
+  obtain ⟨-, ⟨cid, hok⟩, -⟩ := hc.2 c h p hc' hp
+  obtain ⟨j, hj⟩ := List.getElem?_of_mem hoh
+  have hjl : j < p.2.1.length := by
+    rw [← hok.1]; exact (List.getElem?_eq_some_iff.1 hj).1
+  obtain ⟨q, hq⟩ : ∃ q, p.2.1[j]? = some q := ⟨_, List.getElem?_eq_getElem hjl⟩
+  obtain ⟨-, -, h1, h2⟩ := hok.2 j o q hj hq
+  exact Int.le_trans h1 h2
 
 /-- The clients' initial ghost values: `v0` for clients `0, ..., n - 1`. -/
 def initMap (n : Nat) (v0 : ClientV) : GMap Nat ClientV :=
@@ -234,18 +236,46 @@ theorem InvOk.init (M : SeqModel σ OpV) (n : Nat) (t0 : w64) :
     simp only [List.filter_nil, recsOf, initMap_lookup]
     split <;> rfl
 
-/-- The traces' concatenation has `n * m` operations. -/
-theorem final_length {n m : Nat} {hs : List (List Operation)} {ps : List (Nat × ClientV)}
-    (hc : ClientsOk m hs ps) (hn : hs.length = n) : hs.flatten.length = n * m := by
-  have hl : ∀ h ∈ hs, h.length = m := by
-    intro h hh
-    obtain ⟨c, hc'⟩ := List.getElem?_of_mem hh
-    have hcl : c < ps.length := by
-      rw [← hc.1]; exact (List.getElem?_eq_some_iff.1 hc').1
-    obtain ⟨p, hp⟩ : ∃ p, ps[c]? = some p := ⟨_, List.getElem?_eq_getElem hcl⟩
-    obtain ⟨-, ⟨cid, hok⟩, hl⟩ := hc.2 c h p hc' hp
-    rw [hok.1, hl]
-  rw [Perennial.join_same_len_length (c := m) hs hl, hn]
+/-- The traces' concatenation has `mf 0 + ... + mf (n - 1)` operations. -/
+theorem final_length {n : Nat} {mf : Nat → Nat} {hs : List (List Operation)}
+    {ps : List (Nat × ClientV)}
+    (hc : ClientsOk mf hs ps) (hn : hs.length = n) :
+    hs.flatten.length = ((List.range n).map mf).sum := by
+  rw [List.length_flatten]
+  congr 1
+  apply List.ext_getElem (by simp [hn])
+  intro i h1 h2
+  simp only [List.getElem_map, List.getElem_range]
+  exact hc.length (List.getElem?_eq_getElem (by simpa using h1))
+
+/-- `RunLin2`'s count: the first group's `n1` clients run `m1` operations each, the second
+group's `n2` run `m2`. -/
+def groupOps (n1 m1 m2 : Nat) (c : Nat) : Nat := if c < n1 then m1 else m2
+
+theorem sum_groupOps (n1 n2 m1 m2 : Nat) :
+    ((List.range (n1 + n2)).map (groupOps n1 m1 m2)).sum = n1 * m1 + n2 * m2 := by
+  induction n2 with
+  | zero =>
+    simp only [Nat.add_zero, Nat.zero_mul]
+    induction n1 with
+    | zero => simp
+    | succ k ih =>
+      rw [List.range_succ, List.map_append, List.sum_append]
+      have : ((List.range k).map (groupOps (k + 1) m1 m2)).sum = k * m1 := by
+        rw [← ih]
+        congr 1
+        apply List.map_congr_left
+        intro c hc
+        have := List.mem_range.1 hc
+        simp [groupOps, show c < k + 1 by omega, show c < k by omega]
+      simp [this, groupOps, Nat.succ_mul]
+  | succ k ih =>
+    rw [show n1 + (k + 1) = (n1 + k) + 1 by omega, List.range_succ, List.map_append,
+      List.sum_append, ih]
+    have hg : groupOps n1 m1 m2 (n1 + k) = m2 := by
+      unfold groupOps; rw [ite_eq_right (by omega)]
+    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hg, Nat.succ_mul]
+    omega
 
 /-- A `filterMap` whose function is defined on all of the list, by index. -/
 theorem getElem?_filterMap_all {α β : Type} (f : α → Option β) :

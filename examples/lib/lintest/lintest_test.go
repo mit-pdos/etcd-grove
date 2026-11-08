@@ -95,3 +95,32 @@ func TestRunLinCounter(t *testing.T) {
 		t.Fatalf("empty trace: %v, %d", r, len(lin))
 	}
 }
+
+// RunLin2 runs both groups: clients ops operations each, clients2 ops2 each, with each client's
+// id (gen sees the second group's ids from clients on), and linearizes all of them.
+func TestRunLin2Counter(t *testing.T) {
+	var mu sync.Mutex
+	perID := map[int]int{}
+	g := func(id int) any {
+		mu.Lock()
+		perID[id]++
+		mu.Unlock()
+		return rand.Intn(2) == 0
+	}
+	r, lin := RunLin2(counterModel, newCounter(), g, CounterClock(), 3, 20, 2, 7, 0)
+	if r != porcupine.Ok || len(lin) != 3*20+2*7 {
+		t.Fatalf("got %v, %d operations", r, len(lin))
+	}
+	for id := 0; id < 5; id++ {
+		want := 20
+		if id >= 3 {
+			want = 7
+		}
+		if perID[id] != want {
+			t.Fatalf("client %d ran %d operations, want %d", id, perID[id], want)
+		}
+	}
+	if r, lin := RunLin2(counterModel, newCounter(), gen, CounterClock(), 0, 5, 0, 5, 0); r != porcupine.Ok || len(lin) != 0 {
+		t.Fatalf("empty trace: %v, %d", r, len(lin))
+	}
+}
