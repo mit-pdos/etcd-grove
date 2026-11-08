@@ -33997,3 +33997,17 @@ and `ValueStartTime` is a theorem over it (trust base -1).
   `spanCtxOk` clause, and `traceutil.wp_WithCancelBackground_noTrace` gives `s.ctx`'s. Trust base:
   812 entries (-1, `context.ValueStartTime.wp_proof`, from the baseline and 20 collections); no closed
   `*_safe`/`*_adequate` statement changes.
+
+## B2b: the keep-alive key (`keepAliveOk`), and `ValueKeepAlive` proved (2026-11-08 · sweep repairs 1, B2b; the Scope (revision 3) · branch `sweep-repairs-1`)
+
+`context.ValueKeepAlive`'s trust-boundary axiom claimed that every `isContext` answers
+`Value(keepAliveCtxKey{})` with `nil` or a `*context.Context`: false of a user `Context` whose
+`Value` panics at that key. Now `context.keepAliveOk ctx` (`Proof/context/ReqKeys.lean`, the triple
+at the key) and `ValueKeepAlive` is a theorem over it (trust base -1). `lessor.keepAliveCtxCloser`
+takes `keepAliveOk` of its context and `kaCtxOk` (`ka.ctxs`'s elements) carries it; its producer is
+`lessor.KeepAlive`'s `context.WithValue(ctx, keepAliveCtxKey{}, &ctx)` (`WithValue`'s `Value` wand at
+the key: the stored contexts answer their own key, never asking the user's). No spec outside the
+lessor changes: `KeepAlive.spec` is unchanged, the closer is internal. Go:
+`examples/sweeprepairs/keepalive` (a live one-member server; 60 keep-alives over user contexts that
+panic at a key of that name, each canceled: every channel closed by the closer, the user contexts
+never asked; and the old claim false of such a context).

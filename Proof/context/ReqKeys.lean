@@ -10,11 +10,16 @@ user `Context` may panic in `Value`.
   `nil`), a context with Perennial's `ctxValue` at the key (`startTimeOk_of_ctxValue`), hence a
   child of `Background()` by `WithCancel` or the deadline constructors (`startTimeOk_of_bgFrom`),
   and `WithValue`'s `Value` wand (the server's `Put`/`Txn`, `authStore.WithRoot`).
+* `keepAliveOk ctx` (persistent; sweep repairs 1, B2b): `ctx.Value(keepAliveCtxKey{})` returns `nil`
+  or a `*context.Context`, what `client/v3`'s `lessor.keepAliveCtxCloser` compares. Until B2b an axiom
+  (`context.ValueKeepAlive`) claimed it of every `isContext`. Its producer: `lessor.KeepAlive`'s
+  `context.WithValue(ctx, keepAliveCtxKey{}, &ctx)` (`WithValue`'s `Value` wand at the key).
 -/
 module
 
 public import Proof.google_golang_org.grpc.InvGrpc
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Code.go_etcd_io.etcd.client.v3
 
 @[expose] public section
 
@@ -105,6 +110,25 @@ theorem startTimeOk_of_bgFrom (ctx : GoInterfaceOk) :
   iapply Hf
   · ipureintro; exact startTimeKeyAny_notIntPtr
   iexact Hb
+
+/-- The key `keepAliveCtxKey{}` as `ctx.Value` takes it (the empty struct, as `any`). -/
+abbrev keepAliveKeyAny : GoInterface :=
+  interface.mkOk go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty
+    #(zero_val go_etcd_io.etcd.client.v3.keepAliveCtxKey)
+
+/-- What `keepAliveCtxCloser` accepts of `Value(keepAliveCtxKey{})`: `nil` or a `*context.Context`. -/
+def keepAliveRes (v : GoInterface) : Prop :=
+  v = GoInterface.nil ∨
+    ∃ p : Loc, v = interface.mkOk (go.GoType.PointerType _root_.Perennial.context.Context.ty) #p
+
+/-- **`ctx`'s keep-alive key answers a context pointer** (persistent; see the file header). -/
+def context.keepAliveOk (ctx : GoInterfaceOk) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ v : GoInterface, ⌜keepAliveRes v⌝ -∗ Φ #v) -∗
+    WP (App (Val #(methods ctx.ty go!"Value" ctx.v)) (Val #keepAliveKeyAny)) {{ Φ }})
+
+instance context.keepAliveOk_persistent (ctx : GoInterfaceOk) :
+    Persistent (context.keepAliveOk (GF := GF) ctx) := by
+  unfold context.keepAliveOk; infer_instance
 
 end defs
 

@@ -68,7 +68,6 @@ axiom bbolt.Tx.DB_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
-axiom context.ValueKeepAlive.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
