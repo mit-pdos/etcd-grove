@@ -44,7 +44,12 @@ before the freeze), with the user's gates delegated to the agent for this stage:
 
 ## Questions for the user
 
-(None yet.)
+- **Q1 (2026-11-08, S3): a new premise on raft's constructors.** `NewRawNode`, `StartNode`,
+  `RestartNode` take `isTraceLogger γt c.TraceLogger` (the configuration's trace logger satisfies
+  the logger contract), discharged for a nil logger (every client today) by a one-line law.
+  Alternatives: a second constructor spec (a spec family, forbidden), or the premise hidden in
+  `ConfigValid`. Taken by the agent, pending the user's veto: the premise
+  (`notes/trace-validation-hooks.md`).
 
 ## The statement
 
@@ -171,6 +176,11 @@ the checker's spec and layer B's invariant at the end (the whole trace accepted)
 7. **S7 the harness, `Main`, adequacy** (D), `Results.lean`, `etc/tcb-report.py` collection.
 
 S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's event function).
+
+## Draft: S3 started (2026-11-08)
+
+The hooks' design, its open points (the call sites, the update's ghost: settled with S4) and
+Q1: `notes/trace-validation-hooks.md`.
 
 ## Draft: S1 done (2026-11-08)
 
