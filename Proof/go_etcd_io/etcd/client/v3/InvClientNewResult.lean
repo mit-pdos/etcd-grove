@@ -174,8 +174,9 @@ def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assump
       authObjAt ap eps) ∗
     -- (Q1 (c), 2026-11-05) its endpoints, read-only (`Endpoints()` returns them)
     clientEndpointsAt cl eps ∗
-    -- (2026-11-05, k8s-etcd3 plan's client item 6) its `ctx`, read-only (`Ctx()` returns it)
-    (∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx))
+    -- (2026-11-05, k8s-etcd3 plan's client item 6) its `ctx`, read-only (`Ctx()` returns it);
+    -- (sweep repairs 1, B5) not nil (`context.WithCancel(ctx)`'s): what `CheckClient`'s guard reads
+    (∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx ∗ ⌜cx ≠ GoInterface.nil⌝))
 
 instance isNewClient_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (eps : List GoString) (V : WEnv GF) : Persistent (isNewClient cl eps V) := by
@@ -194,6 +195,16 @@ returns). -/
 theorem isNewClient_ctx [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (eps : List GoString) (V : WEnv GF) :
     isNewClient cl eps V ⊢ ∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx := by
+  unfold isNewClient
+  iintro ⟨-, -, -, -, -, -, -, %cx, #H, -⟩
+  iexists cx
+  iexact H
+
+/-- (Sweep repairs 1, B5) **`New`'s client's context is not nil.** -/
+theorem isNewClient_ctxOk [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (eps : List GoString) (V : WEnv GF) :
+    isNewClient cl eps V ⊢
+      ∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx ∗ ⌜cx ≠ GoInterface.nil⌝ := by
   unfold isNewClient
   iintro ⟨-, -, -, -, -, -, -, #H⟩
   iexact H

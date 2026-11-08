@@ -6,7 +6,7 @@ counterpart).
 At a nonzero interval, a `RealClock` and an `onClose` that is `nil` or returns when called
 (`closeOk`; until Q1 (c), 2026-11-05, `nil` only): the compaction loop (`runCompactLoop`) in a
 goroutine, with the client's resources and the caller's contract (`casOk`); and, when the feature
-gate `ListFromCacheSnapshot` is on (whatever `Enabled` answers: `featureInit`), the watch loop
+gate `ListFromCacheSnapshot` is on (whatever `Enabled` answers: `featuresInit`), the watch loop
 (`runWatchLoop`) in a second one, with the client's watcher (`clientWatchOk`) and the caller's read
 contract (`keyReadOk`). (Until Q1 (b), 2026-11-04, the spec took the gate off, `gateOff`, U3.) The
 wait group's `Add(1)`s are `sync.join`'s, which needs no thread token. Returns the compactor

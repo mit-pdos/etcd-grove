@@ -33442,3 +33442,42 @@ says it purges snapshots); its WAL half is W1's.
 shutdown, `raftNode.stop`/`onStop`: a new invariant and `goWaited`'s split, about 300-400 lines) is
 R1-3b; L3 (`adjustTicks`/`purgeFile` take `srvLoggerOk s`) needs `srvLoggerOk`, whose producer is the
 server invariants' `zapLoggerOk` (LG-2), so it moves to LG-2.
+
+## B5: the default feature gate's specs, registered by `features`' init, with `Set(false)` and a persistent off witness; `CheckClient` of a constructed client (2026-11-08 · sweep repairs 1, B5, joint with k8s 7e's gate-state fact (Q7e-5); design approved by etcd-grove-81, `/shared/tmp/sweep-repairs-1/b5-r1.md` · branch `sweep-repairs-1`)
+
+**The defects** (axiom sweep batch 1, `notes/axiom-review/k8s-featureinit.md`): `util/feature`'s
+`DefaultFeatureGate_init` gave a gate whose `Enabled` answered any `bool` for any key (Go panics for
+an unregistered one); `DefaultMutableFeatureGate` was unlinked from it; `CheckClient` returned for
+any arguments (Go dereferences a nil client). 7e needs `Enabled(EtcdRangeStream)` to return the
+value `Set` gave.
+
+**The repair.**
+- `Proof/k8s_io/apiserver/pkg/util/feature/Gate.lean` (trust boundary): `k8sQueriedFeatures` (the
+  five keys etcd3 asks), `featureOff g s` (opaque, persistent: `Set(s=false)` succeeded) and
+  `featureGateOk g` (persistent): `Enabled(s)` returns some `b`, `false` under `featureOff g s`;
+  `Set(s ++ "=false")` returns `nil` with `featureOff g s`, or an error. Under the environment
+  assumption that nothing else changes the gate's set values, checked over the examples' compiled
+  closure (`b5-r1.md`, "The no-other-mutator check": no `SetFromMap`, `SetEmulationVersion`,
+  `OverrideDefault`, `DeepCopyAndReset`-and-replace, `featuregatetesting` or reassignment reachable).
+- `util/feature`'s initializers: `DefaultMutableFeatureGate_init` (new: a gate) and
+  `DefaultFeatureGate_init` (restated: the same gate); its fact `featureInit`: both variables hold
+  `GoInterface.ok g`.
+- `features`' `init` (`init_0_ok`, new; `etc/gen-init.py`'s new `custom_initfn` option, and `custom`
+  initializers gain `binder`/`pre`/`apply`): from `DefaultMutableFeatureGate ↦□ ok g`, gives
+  `featureGateOk g`; the package now imports `util/feature` (`features.toml`) and its fact is
+  `featuresInit`. The four other queried constants are translated (literals).
+- `storage/feature`'s `checkerInit` takes `checkClientOk ctx cl`: `cl` a `*kubernetes.Client` over a
+  `*clientv3.Client` whose unexported `ctx` field holds the non-nil `ctx` (only `clientv3`'s
+  constructors set it; both set `epMu`; only `New` sets endpoints and `Maintenance`). `isNewClient`'s
+  `ctx` conjunct gains `cx ≠ nil` (`isNewClient_ctxOk`), its producer `newClient`.
+
+**Trust base** (`etc/tcb-report.py`, 2026-11-08): new `util.feature.DefaultMutableFeatureGate_init`
+and `features.init_0_ok`; gone `util.feature.opaqueInitsOk` and `features.initFuncsOk` (their only
+items now have specs of their own); restated `DefaultFeatureGate_init`,
+`DefaultFeatureSupportChecker_init`. Count unchanged (809). `k8sfeature.featureOff_persistent` and
+the opaque `featureOff` are declared but reached by no root until 7e's `noStreaming` calls `Set` (then
++1). No closed theorem's text changes.
+
+**Go evidence** (`examples/sweeprepairs/b1/k8s`): `TestB5Registered`, `TestB5Counterexample`,
+`TestB5CheckClientReal`, `TestB5SetOff` (with 81's attacks (i)-(iii); a failing `Set` poisons later
+`Set`s, which the error disjunct covers): `b5-r1.md`, "Go evidence and the attacks".

@@ -370,7 +370,9 @@ theorem newClient.wp_proof
         iexists cfg.Endpoints'
         iframe endpoints Heps
       iexists _
-      iexact HcliCtx
+      iframe HcliCtx
+      -- (sweep repairs 1, B5) not nil: `WithCancel`'s context
+      ipureintro; first | (intro h; cases h) | simp
     -- (C1) its KV calls carry the credentials' tokens meeting `P`
     unfold clientTokAt
     iexists api, conn
