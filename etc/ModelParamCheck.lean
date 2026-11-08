@@ -632,8 +632,14 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
     -- theorems: every one whose own proof contains `sorryAx` (a theorem resting on another
     -- through it is checked at that one)
     if isThm then
-      let some v := ci.value? | continue
-      if !(v.find? (·.isConstOf ``sorryAx)).isSome then continue
+      let direct := match ci.value? with
+        | some v => (v.find? (·.isConstOf ``sorryAx)).isSome
+        | none => false
+      -- a scratch theorem (the selftests) may be elaborated asynchronously: ask the kernel
+      let sorried ← if direct then pure true
+        else if (env.getModuleIdxFor? n).isNone then pure ((← collectAx env n).contains ``sorryAx)
+        else pure false
+      if !sorried then continue
     if !(← isPropType env ci.type) then continue
     let (bs, body) := stripBinders ci.type
     let _ := bs
@@ -784,8 +790,9 @@ theorem stY_reqSat : (stY (GF := GF)).ReqSat := by
   intro ls l m; iintro ⟨_, %h, _⟩; exact absurd h (by simp [stY])
 theorem stY_wl : ∃ m, grpcMsgMax ≤ (stY (GF := GF)).wireLen m := ⟨putReqOp (zero_val _) [] [], by simp [stY]⟩
 axiom st_rev : grpcReqModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty = some (stY (GF := GF))", true),
-  ("an unbounded membership binder (∃ m ∈ Set.univ)",
-   "axiom st_univ : ∀ (P : IProp GF), P ⊢ ⌜∃ m ∈ (Set.univ : Set (GrpcMethod GF)), m.name = m.name⌝", true),
+  ("an unbounded membership binder (∃ m ∈ a closed collection)",
+   "noncomputable opaque stMs : List (GrpcMethod GF)
+axiom st_univ : ∀ (P : IProp GF), P ⊢ ⌜∃ m ∈ (stMs (GF := GF)), m.name = m.name⌝", true),
   ("a request registration keeping the default wireLen (no wireLen witness)",
    "noncomputable def stW : ProtoMsgT GF := { pbPutRequestT (GF := GF) with wireLen := fun _ => grpcMsgMax }
 theorem stW_reqSat : (stW (GF := GF)).ReqSat := by
