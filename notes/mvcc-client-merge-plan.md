@@ -89,6 +89,8 @@ backend bridge (3) > lease (4) > compactor examples (6) > the rest (7).
 
 ## The plan
 
+**Landed (2026-11-08)** on `lean` at `2afb686f47` (the user approved the review list; a third merge of `lean`, 26 commits, with a targeted build of what it touched, the user's choice for speed: the full gates last passed before it).
+
 **Status (2026-11-08).** M0-M3 done: `lean` merged twice (`5bb0d2ba97`, `9b7c782942`), every client
 reproved over the API; the full `lake build` is green (13,596 jobs), the trust base matches the
 baseline (807 axioms, 4 `sorry`s: nothing added), 13 collections reach baseline axioms newly
