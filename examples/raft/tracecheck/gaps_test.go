@@ -133,8 +133,10 @@ func TestGap6ThreeVoters(t *testing.T) {
 // Three voters. Node 1 leads term 2 and appends its empty entry at 4 (term 2), which reaches no
 // one. Node 2 leads term 3 (node 3's vote), appends its empty entry at 4 (term 3), which reaches
 // no one, and stays leader of 3 (no check-quorum). Node 1 leads term 4 (node 3's vote) and
-// commits index 5, so index 4 (term 2) is committed, which leader 2 (term 3 > 2) lacks:
-// LeaderCompletenessInv.
+// commits index 5, so index 4 (term 2) is committed, which leader 2 (term 3 > 2) lacks: upstream's
+// LeaderCompletenessInv fails (TLC on raft's own tla/, and this checker before the repair, reject at
+// line 110). The checker's repaired invariant (Q4 (b), the leader's term at least the committing
+// server's: 3 < 4) accepts it: the trace now passes, and the stale leader is still there.
 func TestGap7LeaderCompleteness(t *testing.T) {
 	s, err := New(Config{Nodes: 3})
 	if err != nil {
@@ -199,7 +201,26 @@ func TestGap7LeaderCompleteness(t *testing.T) {
 	rd(3)
 	take(3, 1, pb.MsgAppResp) // commit 5
 	rd(1)
-	rejected(t, s, 110, "LeaderCompletenessInv")
+	if l := s.Leaders(); len(l) != 2 {
+		t.Fatalf("leaders %v, want the stale leader 2 and leader 1", l)
+	}
+	accepted(t, s)
+}
+
+// accepted: the direct checker matches the whole trace and finds no invariant violated.
+func accepted(t *testing.T, s *Sim) {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := WriteNDJSON(&buf, s.Events()); err != nil {
+		t.Fatal(err)
+	}
+	r, _, err := goVerdicts(t, buf.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.TLCOK() {
+		t.Fatalf("want accepted, got %v", r)
+	}
 }
 
 // Five voters, MaxSizePerMsg cutting every batch to one entry. Node 1 leads term 2, its entry x

@@ -166,8 +166,14 @@ is right in each.
    and commits index 5, so index 4's term-2 entry, which leader 2 does not hold. Message delays
    alone reach it, so no harness excludes it. TLC: `Invariant LeaderCompletenessInv is violated`;
    `gaps_test.go`, `TestGap7LeaderCompleteness`. A guard on the leader's term relative to the
-   committing server's (`currentTerm[l] >= currentTerm[i]`) is a candidate repair, not yet
-   checked.
+   committing server's (`currentTerm[l] >= currentTerm[i]`) is the repair both transcriptions now
+   check (2026-11-08, the user's decision: `notes/trace-validation-plan.md`, Q4). Upstream:
+   etcd-io/raft#549 (open); our report, with a test through upstream's own `with_tla` build and
+   `Traceetcdraft`: `issues/raft-tla-leader-completeness-stale-leader.md`. The specification alone
+   admits the violation: TLC's counterexample replays against `MCetcdraft` from its `Init`, each
+   step a `Next` step (a script extracting the states from TLC's output into a module extending
+   `MCetcdraft`, `Init` then `Next \/ UNCHANGED vars` forced onto each recorded state, deadlock
+   checking on; one corrupted state deadlocks).
 8. **`MoreUpToDateCorrectInv` is not an invariant of raft either** (found 2026-11-08 by round 3 of
    the S4 review). It asks that a server whose log is at least as up to date as `j`'s hold `j`'s
    committed prefix; but a follower can learn its commit index from a heartbeat

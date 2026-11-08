@@ -117,8 +117,13 @@ func (s *State) MoreUpToDateCorrectInv() bool {
 	return true
 }
 
-// LeaderCompletenessInv is `LeaderCompletenessInv`. (Where TLC fails evaluating `log[l][idx]`
-// beyond l's log, so does it: an EvalError.)
+// LeaderCompletenessInv is `LeaderCompletenessInv`, repaired: a leader l is held to server i's
+// committed entries only when its term is at least i's (`currentTerm[l] >= currentTerm[i]`), as
+// well as the entry's. Upstream's guard (`currentTerm[l] > entry.term` alone) fails on a correct run
+// with a stale leader (issues/raft-tla-leader-completeness-stale-leader.md, etcd-io/raft#549); i
+// learns of a commit only in or after the commit's term, so a leader of a term at least i's is the
+// committing leader or a later one (notes/trace-validation-plan.md, Q4 (b)). (Where TLC fails
+// evaluating `log[l][idx]` beyond l's log, so does it: an EvalError.)
 func (s *State) LeaderCompletenessInv() bool {
 	leaders := s.CurrentLeaders()
 	for _, i := range s.Server {
@@ -127,7 +132,7 @@ func (s *State) LeaderCompletenessInv() bool {
 			entry := s.S[i].Log[idx-1]
 			for _, l := range leaders {
 				vl := s.S[l]
-				if vl.CurrentTerm > entry.Term {
+				if vl.CurrentTerm > entry.Term && vl.CurrentTerm >= s.S[i].CurrentTerm {
 					if idx > len(vl.Log) {
 						evalError("LeaderCompletenessInv: log[l][idx] past the log's end (l, idx, length)", int(l), idx, len(vl.Log))
 					}

@@ -1105,10 +1105,15 @@ noncomputable def State.MoreUpToDateCorrectInv.impl [GooseExts] [GoGlobalContext
   (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "i") (Var "$value")))))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- LeaderCompletenessInv is `LeaderCompletenessInv`. (Where TLC fails evaluating `log[l][idx]`
-    beyond l's log, so does it: an EvalError.)
+/-- LeaderCompletenessInv is `LeaderCompletenessInv`, repaired: a leader l is held to server i's
+    committed entries only when its term is at least i's (`currentTerm[l] >= currentTerm[i]`), as
+    well as the entry's. Upstream's guard (`currentTerm[l] > entry.term` alone) fails on a correct run
+    with a stale leader (issues/raft-tla-leader-completeness-stale-leader.md, etcd-io/raft#549); i
+    learns of a commit only in or after the commit's term, so a leader of a term at least i's is the
+    committing leader or a later one (notes/trace-validation-plan.md, Q4 (b)). (Where TLC fails
+    evaluating `log[l][idx]` beyond l's log, so does it: an EvalError.)
 
-    go: invariants.go:122:17 -/
+    go: invariants.go:127:17 -/
 noncomputable def State.LeaderCompletenessInv.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1155,7 +1160,7 @@ noncomputable def State.LeaderCompletenessInv.impl [GooseExts] [GoGlobalContext]
   (Let "$r0" (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "l")))
   (Let "vl" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CurrentTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "vl")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Term"))) (Var "entry"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CurrentTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "vl")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Term"))) (Var "entry"))))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CurrentTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "vl")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"CurrentTerm"))) (App (App (Val (map.lookup1 ID.ty (go.GoType.PointerType Server.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType ID.ty (go.GoType.PointerType Server.ty))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"S"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType State.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (Var "i"))))))) (Val #false)))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Entry.ty))) (Var "entry"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Entry.ty) go!"Equal"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Entry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Entry.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "vl")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")) (Val #(W64 1))))))) (Var "$a0"))))
@@ -1205,7 +1210,7 @@ noncomputable def State.LeaderCompletenessInv.impl [GooseExts] [GoGlobalContext]
 
 /-- CommittedIsDurableInv is `CommittedIsDurableInv`.
 
-    go: invariants.go:145:17 -/
+    go: invariants.go:150:17 -/
 noncomputable def State.CommittedIsDurableInv.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1248,7 +1253,7 @@ noncomputable def State.CommittedIsDurableInv.impl [GooseExts] [GoGlobalContext]
 
 /-- Violated is the name of the first invariant s violates, or "".
 
-    go: invariants.go:174:17 -/
+    go: invariants.go:179:17 -/
 noncomputable def State.Violated.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon

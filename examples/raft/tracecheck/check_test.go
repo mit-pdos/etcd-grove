@@ -171,16 +171,17 @@ func tlcAccepts(t *testing.T, tools, spec, file string) (bool, int) {
 	return false, 0
 }
 
-// TestAgainstTLC compares the verdicts of TLC (on raft's own Traceetcdraft.tla) and of the Go
-// transcription (the direct checker and porcupine) on the traces of seeds 1..TLC_SEEDS (default
-// 3) and TLC_MUTANTS (default 10) mutants of each. It needs TLA_TOOLS, a directory with
-// tla2tools.jar and CommunityModules-deps.jar, and TLA_SPEC, raft's tla/ directory (the pinned
-// fork's); it is skipped without them.
+// TestAgainstTLC compares the verdicts of TLC (on raft's own Traceetcdraft.tla, with the
+// transcriptions' one repair, repairedSpec) and of the Go transcription (the direct checker and
+// porcupine) on the traces of seeds 1..TLC_SEEDS (default 3) and TLC_MUTANTS (default 10) mutants
+// of each. It needs TLA_TOOLS, a directory with tla2tools.jar and CommunityModules-deps.jar, and
+// TLA_SPEC, raft's tla/ directory (the pinned fork's); it is skipped without them.
 func TestAgainstTLC(t *testing.T) {
 	tools, spec := os.Getenv("TLA_TOOLS"), os.Getenv("TLA_SPEC")
 	if tools == "" || spec == "" {
 		t.Skip("TLA_TOOLS and TLA_SPEC not set")
 	}
+	spec = repairedSpec(t, spec)
 	dir := t.TempDir()
 	type job struct {
 		name string
@@ -246,4 +247,42 @@ func TestAgainstTLC(t *testing.T) {
 	}
 	wg.Wait()
 	t.Logf("%d traces, verdicts agree on %d (%d rejected by all three)", len(jobs), agree, rejected)
+}
+
+// leaderCompletenessGuard is the guard of upstream's LeaderCompletenessInv and its repair, the
+// transcriptions' (issues/raft-tla-leader-completeness-stale-leader.md; notes/trace-validation-plan.md,
+// Q4 (b)): the only place the transcriptions depart from raft's tla/.
+const (
+	leaderCompletenessGuard         = "                currentTerm[l] > entry.term =>"
+	leaderCompletenessRepairedGuard = "                currentTerm[l] > entry.term /\\ currentTerm[l] >= currentTerm[i] =>"
+)
+
+// repairedSpec copies raft's tla/ directory to a temporary one with LeaderCompletenessInv's guard
+// repaired, so that TLC checks what the transcriptions check.
+func repairedSpec(t *testing.T, spec string) string {
+	dir := t.TempDir()
+	ents, err := os.ReadDir(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range ents {
+		if e.IsDir() {
+			continue
+		}
+		b, err := os.ReadFile(filepath.Join(spec, e.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if e.Name() == "etcdraft.tla" {
+			s := string(b)
+			if strings.Count(s, leaderCompletenessGuard) != 1 {
+				t.Fatalf("%s: LeaderCompletenessInv's guard not found once", e.Name())
+			}
+			b = []byte(strings.Replace(s, leaderCompletenessGuard, leaderCompletenessRepairedGuard, 1))
+		}
+		if err := os.WriteFile(filepath.Join(dir, e.Name()), b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
 }

@@ -64,7 +64,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [cache: the cache never becomes ready again after a compaction cancels its upstream watch](cache-ready-after-retry.md) | no | etcd-io/etcd#22614 issue open; etcd-io/etcd#22618 pr open; etcd-io/etcd#22408 pr open; etcd-io/etcd#21536 issue closed; etcd-io/etcd#20691 pr merged |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (22)
+## Reported by others (23)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -79,6 +79,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [clientv3: a progress notification right after a watch is canceled can crash the client with "send on closed channel"](etcd-watch-progress-closed-substream.md) | yes | etcd-io/etcd#21969 issue closed; etcd-io/etcd#22191 pr open; etcd-io/etcd#21981 pr closed |
 | [clientv3: a reconnect right after a watch is canceled can crash the client with "send on closed channel"](etcd-watch-resume-closing-substream.md) | yes | etcd-io/etcd#21969 issue closed; etcd-io/etcd#22191 pr open |
 | [clientv3/leasing: after a failed range delete, the leasing KV keeps serving keys etcd deleted](leasing-evictrange-key.md) | yes | etcd-io/etcd#21869 pr closed; etcd-io/etcd#21589 pr closed; etcd-io/etcd#20704 issue closed |
+| [raft: TLA+ trace validation rejects a correct run with a stale leader (`LeaderCompletenessInv` is false)](raft-tla-leader-completeness-stale-leader.md) | yes | etcd-io/raft#549 issue open |
 | [recipes: Barrier.Wait reports the barrier released when its watch closes while the barrier is still held](recipes-barrier-wait-closed-watch.md) | yes | etcd-io/etcd#17198 pr closed |
 | [recipes: Queue.Dequeue panics when its watch closes](recipes-dequeue-closed-watch.md) | yes | etcd-io/etcd#17198 pr closed |
 | [bbolt: `DeleteBucket` leaks a nested bucket's pages when the bucket was written in the same transaction](bbolt-deletebucket-nested-leak.md) | no | etcd-io/bbolt#1305 pr open |

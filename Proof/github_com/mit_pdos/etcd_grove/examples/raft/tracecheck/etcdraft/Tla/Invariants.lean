@@ -79,7 +79,10 @@ def State.moreUpToDateCorrectInv (st : State) : EvalM Bool :=
       return isPrefix (← st.committed j) li
     return true))
 
-/-- `LeaderCompletenessInv` (`log[l][idx]` past a leader's log fails, as TLC does). -/
+/-- `LeaderCompletenessInv`, repaired: the leader's term also at least the committing server's
+(`currentTerm[l] >= currentTerm[i]`; upstream's guard alone fails with a stale leader:
+`issues/raft-tla-leader-completeness-stale-leader.md`, `notes/trace-validation-plan.md`, Q4 (b)).
+`log[l][idx]` past a leader's log fails, as TLC does. -/
 def State.leaderCompletenessInv (st : State) : EvalM Bool := do
   let leaders := st.currentLeaders
   st.server.allM (fun i => do
@@ -89,7 +92,7 @@ def State.leaderCompletenessInv (st : State) : EvalM Bool := do
       let entry := ((st.s i).log[idx0]?).getD default
       leaders.allM (fun l => do
         let vl := st.s l
-        if vl.currentTerm > entry.term then
+        if vl.currentTerm > entry.term && vl.currentTerm ≥ (st.s i).currentTerm then
           let some e := vl.log[idx0]?
             | throw { what := "LeaderCompletenessInv: log[l][idx] past the log's end (l, idx, length)",
                       a := l, b := idx0 + 1, c := vl.log.length }

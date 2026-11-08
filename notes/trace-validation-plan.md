@@ -74,7 +74,7 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   proof bound on elections. Taken by the agent, pending the user's veto
   (`examples/raft/tracecheck/concurrent.go`; the tests pass, 10 seeds, and the reviewer's F1
   witness passes with the change; `nonissues/raft-trace-ready-logged-after-handout.md`).
-- **Q4 (2026-11-08, S4 review round 2, N1): the closed statement is false as planned:
+- **Q4 (2026-11-08, S4 review round 2, N1; decided by the user: (b)): the closed statement is false as planned:
   `LeaderCompletenessInv` is not an invariant of raft, nor of `etcdraft.tla`.** A stale leader (no
   check-quorum: it keeps leading its term until it hears of a later one) lacks an entry committed
   in a later term (`notes/raft-trace-validation.md`, item 7; `gaps_test.go`,
@@ -104,6 +104,24 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   and a commit while the old leader hears nothing), and the run says nothing for (b). A
   conclusive check needs a directed model (the witness's schedule as a constraint, then the
   corrected invariant checked around it) or the proof; the traces' evidence above stands.
+  **Decided by the user (2026-11-08): (b)**, with a fallback: if the repaired invariant blocks a
+  proof, drop it (option (a)) and document why. Done the same day: both transcriptions check the
+  guard `currentTerm[l] > entry.term /\ currentTerm[l] >= currentTerm[i]` (`invariants.go`,
+  `Tla/Invariants.lean`), `TestGap7LeaderCompleteness` now asserts the trace accepted (the stale
+  leader still there), and `TestAgainstTLC` runs TLC on raft's `tla/` with the same one-line repair
+  (`repairedSpec`, `check_test.go`). Evidence gathered for the decision: upstream raft v3.7.0 built
+  with `with_tla` and validated by upstream's unmodified `Traceetcdraft` fails on this run (TLC:
+  `Invariant LeaderCompletenessInv is violated`, at `main` `c51f010` too); TLC's counterexample,
+  replayed against `MCetcdraft` alone from its `Init` with every step a `Next` step, reaches the
+  violation (so the specification itself admits it, within `MCetcdraft.cfg`'s bounds), and its
+  final state satisfies (b) (so (b) is strictly weaker on reachable states). Upstream has it
+  already: etcd-io/raft#549 (open, found from the specification alone, proposing (b) without the
+  entry-term condition); our report with the implementation-level test:
+  `issues/raft-tla-leader-completeness-stale-leader.md`. Why (b) should hold (a commit is learned
+  only in or after its term; every `commitIndex` update checked) and where it is least certain
+  (single-server reconfiguration, which `Main` does not do; `etcdraft.tla`'s `BecomeLeader` does
+  not set `pendingConfChangeIndex` as raft's `becomeLeader` does): `notes/decisions.md`, "Q4:
+  `LeaderCompletenessInv` repaired".
 - **Q5 (2026-11-08, S4 review round 2, N2): three voters do not exclude gap 6.** A leader's own
   `MsgVote`, delayed past its first heartbeat to a voter, is refused by raft (`lead != None`) and
   granted by the specification (`TestGap6ThreeVoters`; TLC rejects at the same line), so `Main`

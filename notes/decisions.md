@@ -33208,3 +33208,37 @@ ids: all ASCII). The transcription and the closed statement are unchanged (it st
 Go strings). Alternative kept open: a general `stringToGoString` evaluation lemma proposed to
 Perennial, after which `strRel` could return to `stringToGoString` with the ASCII facts as
 lemmas; not needed for the proofs.
+
+## Q4: `LeaderCompletenessInv` repaired (2026-11-08 · trace-check; the user's decision, option (b), with the fallback below · branch `trace-check`; DRAFT until trace-check's Freeze)
+
+Upstream's `LeaderCompletenessInv` (`etcdraft.tla`) is false of raft and of the specification: a
+stale leader (no check-quorum) need not hold an entry committed after its term, and the invariant,
+guarding on the entry's term instead of its commit term, requires it
+(`issues/raft-tla-leader-completeness-stale-leader.md`; etcd-io/raft#549). `Main` panics on a
+violated invariant, so the closed statement was false as planned.
+
+Options (`notes/trace-validation-plan.md`, Q4): (a) drop the invariant; (b) add the guard
+`currentTerm[l] >= currentTerm[i]`; (c) check-quorum on (unmodelled); the faithful repair (a
+history variable for each entry's commit term), more of a change to the transcriptions. The user
+chose (b): both transcriptions check `currentTerm[l] > entry.term /\ currentTerm[l] >= currentTerm[i]`.
+**Fallback (the user's):** if (b) blocks a proof, drop the invariant and document why.
+
+Why (b) should hold: a server's `commitIndex` grows only by a leader committing an entry of its own
+term (`AdvanceCommitIndex`), by a follower accepting a message of its own term carrying the
+leader's commit index (`AppendEntriesAlreadyDone`), or by `Restart` restoring the term and commit
+index persisted together (`Ready`); so an entry server `i` knows committed was committed in a term
+at most `currentTerm[i]`, and a leader of a term at least that is the committing leader (election
+safety) or a later one (leader completeness). It is proved, not trusted: `Main`'s safety needs it
+on every state the checker visits, so a false (b) would stop the proof, not weaken the theorem.
+Least certain: single-server reconfiguration (quorum overlap; `etcdraft.tla`'s `BecomeLeader` does
+not set `pendingConfChangeIndex` as raft's `becomeLeader` sets `pendingConfIndex`, so the model
+may let a fresh leader propose a change raft would refuse); `Main` makes no configuration change.
+
+What it still checks: a bad leader escapes only while every server knowing the commit has a
+strictly greater term; a leader elected without a committed entry is caught when elected, since
+the committing leader is then at the commit term or the new one. Strictly weaker than upstream's
+on reachable states: the counterexample's final state satisfies (b) (TLC, replayed against
+`MCetcdraft`). #549 proposes (b) without the entry-term condition (`currentTerm[server] <=
+currentTerm[leader] => IsPrefix(Committed(server), log[leader])`), slightly stronger (entries of
+the leader's own term, which are its own); both make the issue's test pass at raft `main`.
+
