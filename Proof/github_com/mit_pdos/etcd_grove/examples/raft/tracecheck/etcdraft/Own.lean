@@ -74,6 +74,7 @@ def stateOwn (p : Loc) (st : State) (M : List ID) : IProp GF :=
   iprop(∃ (g : G.State) (sm : GMap w64 Loc), p ↦ g ∗ setRO g.Server' st.server ∗
     g.S' ↦$ sm ∗
     ⌜∀ k : w64, (sm !! k).isSome ↔ uint.nat k ∈ st.server⌝ ∗
+    ⌜st.server.Nodup⌝ ∗
     ([∗list] i ∈ st.server, ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat i)) = some q⌝ ∗
       (if i ∈ M then serverOwn q (st.s i) else serverRO q (st.s i))) ∗
     bagRO g.Messages' st.messages ∗ bagRO g.PendingMessages' st.pendingMessages ∗
@@ -84,7 +85,7 @@ theorem stateOwn_persist (p : Loc) (st : State) (M : List ID) :
     stateOwn (GF := GF) p st M ⊢ |==> stateRO p st := by
   iintro H
   iunfold stateOwn at H
-  icases H with ⟨%g, %sm, Hp, #Hsrv, Hm, %Hkeys, Hsrvs, #Hb1, #Hb2, %Hrc⟩
+  icases H with ⟨%g, %sm, Hp, #Hsrv, Hm, %Hkeys, %Hnd, Hsrvs, #Hb1, #Hb2, %Hrc⟩
   ipersist Hp
   ipersist Hm
   ihave Hsrvs : iprop([∗list] i ∈ st.server, |==> ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat i)) = some q⌝ ∗
@@ -102,7 +103,7 @@ theorem stateOwn_persist (p : Loc) (st : State) (M : List ID) :
   iunfold stateRO
   iexists g, sm
   iframe Hp Hsrv Hm Hb1 Hb2 Hsrvs
-  ipureintro; exact ⟨Hkeys, Hrc⟩
+  ipureintro; exact ⟨Hkeys, Hnd, Hrc⟩
 
 /-- A clone whose server `i` is a copy at `c` held apart (`mut`'s result, being written): `stateOwn`
 without server `i`'s resource. -/
@@ -110,6 +111,7 @@ def stateOwnHole (p : Loc) (st : State) (M : List ID) (i : ID) (c : Loc) : IProp
   iprop(∃ (g : G.State) (sm : GMap w64 Loc), p ↦ g ∗ setRO g.Server' st.server ∗
     g.S' ↦$ sm ∗
     ⌜∀ k : w64, (sm !! k).isSome ↔ uint.nat k ∈ st.server⌝ ∗
+    ⌜st.server.Nodup⌝ ∗
     ⌜sm !! (W64 (Int.ofNat i)) = some c⌝ ∗
     ([∗list] j ∈ st.server, if j = i then emp else ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat j)) = some q⌝ ∗
       (if j ∈ M then serverOwn q (st.s j) else serverRO q (st.s j))) ∗
@@ -118,14 +120,14 @@ def stateOwnHole (p : Loc) (st : State) (M : List ID) (i : ID) (c : Loc) : IProp
 
 /-- Server `i`, written to `v`, put back: the clone holds `st` with server `i` set to `v`. -/
 theorem stateOwnHole_close (p : Loc) (st : State) (M : List ID) (i : ID) (c : Loc) (v : Server)
-    (hi : i ∈ st.server) (hnd : st.server.Nodup) :
+    (hi : i ∈ st.server) :
     stateOwnHole (GF := GF) p st M i c ∗ serverOwn c v ⊢
       stateOwn p (st.upd i (fun _ => v)) (i :: M) := by
   iintro ⟨H, Hc⟩
   iunfold stateOwnHole at H
-  icases H with ⟨%g, %sm, Hp, #Hsrv, Hm, %Hkeys, %Hci, Hsrvs, #Hb1, #Hb2, %Hrc⟩
+  icases H with ⟨%g, %sm, Hp, #Hsrv, Hm, %Hkeys, %Hnd, %Hci, Hsrvs, #Hb1, #Hb2, %Hrc⟩
   obtain ⟨l1, l2, Hsplit⟩ := List.append_of_mem hi
-  have hnd' := hnd
+  have hnd' := Hnd
   rw [Hsplit] at hnd'
   have hi1 : i ∉ l1 := by
     intro h
@@ -139,6 +141,8 @@ theorem stateOwnHole_close (p : Loc) (st : State) (M : List ID) (i : ID) (c : Lo
   iframe Hsrv Hb1 Hb2
   isplitr
   · ipureintro; exact Hkeys
+  isplitr
+  · ipureintro; exact Hnd
   isplitl [Hsrvs Hc]
   · rw [Hsplit]
     icases BigSepL.bigSepL_append.1 $$ Hsrvs with ⟨H1, H2⟩

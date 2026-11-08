@@ -26,10 +26,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
-/-- `Timeout`'s new term, in words: no overflow below `numBound`. -/
-theorem timeout_term (w : w64) (n : Int) (h : sint.Z w = n) (hn : numOk n) :
+/-- `Timeout`'s new term, in words: no overflow (the Go's `int` wraps at `2^63`). -/
+theorem timeout_term (w : w64) (n : Int) (h : sint.Z w = n) (hn : n < 2 ^ 63 - 1) :
     sint.Z (w + W64 1) = n + 1 := by
-  unfold numOk numBound at hn
   subst h
   word
 
@@ -49,7 +48,7 @@ local macro "timeout_tail" : tactic => `(tactic| (
     · iexact Hst
     try wp_auto
     wp_apply wp_mut t st [] i $$ [Ht] as %c ⟨Hh, Hc⟩
-    · iframe Ht; ipureintro; exact ⟨Hi, List.not_mem_nil, Hnd⟩
+    · iframe Ht; ipureintro; exact Hi
     try wp_auto
     iunfold serverOwn at Hc
     icases Hc with ⟨%gc, %mc, Hcp, %Hcf, #Hcl, #Hcr, #Hcg, Hcm, %Hcmi, #Hcc, #Hcd⟩
@@ -82,7 +81,7 @@ local macro "timeout_tail" : tactic => `(tactic| (
       isplitr
       · iunfold setRO; iexists []; iframe Hnil; ipureintro; rfl
       ipureintro; exact Hcmi
-    ihave Hs := stateOwnHole_close _ _ _ _ _ _ Hi Hnd $$ [Hh Hc]
+    ihave Hs := stateOwnHole_close _ _ _ _ _ _ Hi $$ [Hh Hc]
     · iframe
     imod stateOwn_persist $$ Hs with Hs
     imodintro
@@ -113,10 +112,10 @@ theorem State.Timeout.wp_proof
     (wp_mut : State.mut.spec (GF := GF) (hG := hG)) :
     State.Timeout.spec (GF := GF) (hG := hG) := by
   intro p st i
-  wp_start as ⟨#Hst, %Hi, %Hnd, %Hterm⟩
+  wp_start as ⟨#Hst, %Hi, %Hterm⟩
   ihave #Hst0 := Hst
   iunfold stateRO at Hst0
-  icases Hst0 with ⟨%g, %sm, #Hp, #Hsrv, #Hm, %Hkeys, #Hsrvs, #Hb1, #Hb2, %Hrc⟩
+  icases Hst0 with ⟨%g, %sm, #Hp, #Hsrv, #Hm, %Hkeys, %Hnd, #Hsrvs, #Hb1, #Hb2, %Hrc⟩
   obtain ⟨k, hk, hki⟩ := List.mem_iff_getElem.1 Hi
   icases (BigSepL.bigSepL_lookup (Φ := fun _ j => iprop(∃ q : Loc, ⌜sm !! (W64 (Int.ofNat j)) = some q⌝ ∗
       serverRO (GF := GF) q (st.s j))) (List.getElem?_eq_some_iff.2 ⟨hk, hki⟩)) $$ Hsrvs with ⟨%q0, %Hq0, #Hsv⟩
@@ -138,11 +137,9 @@ theorem State.Timeout.wp_proof
   wp_auto
   -- the role, as the Lean compares it (`strRel` is injective, and the constants evaluate)
   have hF : gs.State' = go!"StateFollower" ↔ (st.s (uint.nat i)).state = follower := by
-    have hc : strRel go!"StateFollower" follower := by unfold strRel follower; decide
-    exact ⟨fun h => strRel_inj (h ▸ Hf.2.1) hc, fun h => by rw [Hf.2.1.2, h]; exact hc.2.symm⟩
+    exact strRel_eq_iff Hf.2.1 (by unfold strRel follower; decide)
   have hC : gs.State' = go!"StateCandidate" ↔ (st.s (uint.nat i)).state = candidate := by
-    have hc : strRel go!"StateCandidate" candidate := by unfold strRel candidate; decide
-    exact ⟨fun h => strRel_inj (h ▸ Hf.2.1) hc, fun h => by rw [Hf.2.1.2, h]; exact hc.2.symm⟩
+    exact strRel_eq_iff Hf.2.1 (by unfold strRel candidate; decide)
   by_cases h1 : (st.s (uint.nat i)).state = follower
   · rw [decide_eq_true (hF.2 h1)]
     have hrole : or ((st.s (uint.nat i)).state == follower) ((st.s (uint.nat i)).state == candidate) = true := by

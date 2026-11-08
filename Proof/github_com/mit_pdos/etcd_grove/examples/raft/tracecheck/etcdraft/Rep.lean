@@ -72,6 +72,57 @@ def numBound : Int := 2 ^ 40
 /-- A number of the trace within `numBound`. -/
 def numOk (n : Int) : Prop := 0 ≤ n ∧ n < numBound
 
+/-! ## Sets: `SetIds.mk` builds a sorted list, so without duplicates (review round 4 of layer C, S1) -/
+
+theorem insertSorted_mem (id x : ID) : ∀ s : SetIds, x ∈ insertSorted id s → x = id ∨ x ∈ s
+  | [] , h => by simp [insertSorted] at h; exact .inl h
+  | y :: ys, h => by
+    unfold insertSorted at h
+    split at h
+    · simpa using h
+    · split at h
+      · exact .inr h
+      · simp only [List.mem_cons] at h
+        rcases h with h | h
+        · exact .inr (List.mem_cons.2 (.inl h))
+        · rcases insertSorted_mem id x ys h with h | h
+          · exact .inl h
+          · exact .inr (List.mem_cons_of_mem _ h)
+
+theorem insertSorted_sorted (id : ID) : ∀ s : SetIds, s.Pairwise (· < ·) →
+    (insertSorted id s).Pairwise (· < ·)
+  | [], _ => by simp [insertSorted]
+  | y :: ys, h => by
+    unfold insertSorted
+    rw [List.pairwise_cons] at h
+    split
+    · rename_i hlt
+      refine List.pairwise_cons.2 ⟨?_, List.pairwise_cons.2 h⟩
+      intro z hz
+      rcases List.mem_cons.1 hz with rfl | hz
+      · exact hlt
+      · exact Nat.lt_trans hlt (h.1 z hz)
+    · split
+      · exact List.pairwise_cons.2 h
+      · rename_i hlt heq
+        refine List.pairwise_cons.2 ⟨?_, insertSorted_sorted id ys h.2⟩
+        intro z hz
+        rcases insertSorted_mem id z ys hz with rfl | hz
+        · exact Nat.lt_of_le_of_ne (Nat.le_of_not_lt hlt) (fun h => heq h.symm)
+        · exact h.1 z hz
+
+theorem SetIds.mk_sorted (ids : List ID) : (SetIds.mk ids).Pairwise (· < ·) := by
+  unfold SetIds.mk
+  suffices ∀ (l : List ID) (s : SetIds), s.Pairwise (· < ·) →
+      (l.foldl (fun s id => insertSorted id s) s).Pairwise (· < ·) from this ids [] List.Pairwise.nil
+  intro l
+  induction l with
+  | nil => intro s h; exact h
+  | cons x xs ih => intro s h; exact ih _ (insertSorted_sorted x s h)
+
+theorem SetIds.mk_nodup (ids : List ID) : (SetIds.mk ids).Nodup :=
+  (SetIds.mk_sorted ids).imp Nat.ne_of_lt
+
 /-- A Go string holding an ASCII Lean string, byte by character (the Probe of 2026-11-08: Perennial's
 `stringToGoString` goes through `String.toUTF8`, which a proof cannot evaluate on a constant such as
 `"StateFollower"`; raft's names, ids and roles are ASCII). -/
@@ -97,6 +148,12 @@ theorem asciiBytes_inj : ∀ (xs ys : List Char), (∀ c ∈ xs, c.toNat < 128) 
 /-- `strRel` is injective in the Lean string. -/
 theorem strRel_inj {gs : GoString} {a b : String} (ha : strRel gs a) (hb : strRel gs b) : a = b :=
   String.toList_injective (asciiBytes_inj _ _ ha.1 hb.1 (ha.2.symm.trans hb.2))
+
+/-- Go `==` on `strRel`-related strings is the Lean `=` (a role or subtype compared with a
+constant, review round 4 of layer C, S4). -/
+theorem strRel_eq_iff {ga gb : GoString} {a b : String} (ha : strRel ga a) (hb : strRel gb b) :
+    ga = gb ↔ a = b :=
+  ⟨fun h => strRel_inj (h ▸ ha) hb, fun h => by rw [ha.2, hb.2, h]⟩
 
 /-- An event whose numbers are `numOk` (layer B gives it of raft's: its terms and indices are
 bounded by the time receipts, `notes/trace-validation-sim.md`, "Increment 2"). -/
@@ -190,6 +247,7 @@ def stateRO (p : Loc) (st : State) : IProp GF :=
     -- the map's keys are exactly the servers (the Go decides "is a server" by a lookup, the Lean
     -- by `st.server`; review round 2 of layer C, F1)
     ⌜∀ k : w64, (sm !! k).isSome ↔ uint.nat k ∈ st.server⌝ ∗
+    ⌜st.server.Nodup⌝ ∗
     ([∗list] i ∈ st.server, ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat i)) = some q⌝ ∗ serverRO q (st.s i)) ∗
     bagRO g.Messages' st.messages ∗ bagRO g.PendingMessages' st.pendingMessages ∗
     ⌜sint.Z g.ReconfigCount' = st.reconfigCount⌝)

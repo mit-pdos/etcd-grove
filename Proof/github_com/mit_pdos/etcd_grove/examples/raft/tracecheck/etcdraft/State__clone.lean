@@ -26,7 +26,7 @@ theorem State.clone.wp_proof : State.clone.spec (GF := GF) (hG := hG) := by
   intro p st
   wp_start as #Hst
   iunfold stateRO at Hst
-  icases Hst with ⟨%g, %sm, #Hp, #Hsrv, #Hm, %Hkeys, #Hsrvs, #Hb1, #Hb2, %Hrc⟩
+  icases Hst with ⟨%g, %sm, #Hp, #Hsrv, #Hm, %Hkeys, %Hnd, #Hsrvs, #Hb1, #Hb2, %Hrc⟩
   wp_auto
   icases typedPointsto_split _ _ _ $$ Hp with Hpf
   simp only [TypedPointsto.typedPointstoDef]
@@ -103,6 +103,8 @@ theorem State.clone.wp_proof : State.clone.spec (GF := GF) (hG := hG) := by
   iframe Hcp Hnm Hsrv Hb1 Hb2
   isplitr
   · ipureintro; exact Hkeys
+  isplitr
+  · ipureintro; exact Hnd
   isplitl
   · simp only [List.not_mem_nil, ite_false]
     iexact Hsrvs

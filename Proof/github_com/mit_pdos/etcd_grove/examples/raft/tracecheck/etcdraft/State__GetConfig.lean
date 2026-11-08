@@ -26,7 +26,7 @@ theorem State.GetConfig.wp_proof : State.GetConfig.spec (GF := GF) (hG := hG) :=
   intro p st i
   wp_start as ⟨#Hst, %Hi⟩
   iunfold stateRO at Hst
-  icases Hst with ⟨%g, %sm, #Hp, #Hsrv, #HS, %Hkeys, #Hsrvs, #Hm, #Hpm, %Hrc⟩
+  icases Hst with ⟨%g, %sm, #Hp, #Hsrv, #HS, %Hkeys, %Hnd, #Hsrvs, #Hm, #Hpm, %Hrc⟩
   -- server i's pointer, from the servers' list
   obtain ⟨k, hk, hki⟩ := List.mem_iff_getElem.1 Hi
   icases (BigSepL.bigSepL_lookup (Φ := fun _ j => iprop(∃ q : Loc, ⌜sm !! (W64 (Int.ofNat j)) = some q⌝ ∗

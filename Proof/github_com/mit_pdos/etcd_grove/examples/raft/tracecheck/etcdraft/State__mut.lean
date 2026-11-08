@@ -27,9 +27,9 @@ theorem State.mut.wp_proof
     (wp_Server_copy : Server.copy.spec (GF := GF) (hG := hG)) :
     State.mut.spec (GF := GF) (hG := hG) := by
   intro p st M i
-  wp_start as ⟨Hst, %Hi, %HiM, %Hnd⟩
+  wp_start as ⟨Hst, %Hi⟩
   iunfold stateOwn at Hst
-  icases Hst with ⟨%g, %sm, Hp, #Hsrv, Hm, %Hkeys, Hsrvs, #Hb1, #Hb2, %Hrc⟩
+  icases Hst with ⟨%g, %sm, Hp, #Hsrv, Hm, %Hkeys, %Hnd, Hsrvs, #Hb1, #Hb2, %Hrc⟩
   ihave %Hbnd : ⌜∀ j ∈ st.server, j < 2 ^ 64⌝ $$ [Hsrv]
   · iunfold setRO at Hsrv
     icases Hsrv with ⟨%xs, -, %Hxs⟩
@@ -52,7 +52,13 @@ theorem State.mut.wp_proof
   icases BigSepL.bigSepL_append.1 $$ Hsrvs with ⟨H1, H2⟩
   icases BigSepL.bigSepL_cons.1 $$ H2 with ⟨Hi0, H2⟩
   icases Hi0 with ⟨%q0, %Hq0, Hs0⟩
-  simp only [HiM, ite_false]
+  -- server `i` may be a copy already (a second `mut` of `i` on one clone, as `reconfigure` and
+  -- `ApplySimpleConfChange` do): frozen first, then copied again (review round 4 of layer C, F1)
+  ihave Hs0 : |==> serverRO q0 (st.s (uint.nat i)) $$ [Hs0]
+  · by_cases hiM : uint.nat i ∈ M
+    · simp only [hiM, ite_true]; iapply serverOwn_persist; iexact Hs0
+    · simp only [hiM, ite_false]; imodintro; iexact Hs0
+  imod Hs0
   rw [Hii] at Hq0
   icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %Hpnn⟩
   icases typedPointsto_split _ _ _ $$ Hp with Hpf
@@ -84,6 +90,8 @@ theorem State.mut.wp_proof
     by_cases hk : k = i
     · subst hk; rw [GMap.lookup_insert]; simp only [Option.isSome_some, true_iff]; exact (Hkeys _).1 (by rw [Hq0]; rfl)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)]; exact Hkeys k
+  isplitr
+  · ipureintro; exact hnd'
   isplitr
   · ipureintro; rw [Hii, GMap.lookup_insert]
   isplitl [H1 H2]

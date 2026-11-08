@@ -298,21 +298,35 @@ S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's
   `Timeout`, no `sorry`; `Timeout` itself about two hours). Spec problems found, all in layer C's
   representation, none in a triple's shape:
   1. the server list must be duplicate-free for `mut`'s closing law (`stateOwnHole_close`):
-     `Timeout`'s spec takes `st.server.Nodup`, a fact S6's invariant carries (the trace's
-     `Server` is built by `newTrace` from a set);
+     first a premise of `Timeout`'s spec, now (round 4, S1) a conjunct of `stateRO`, `stateOwn`
+     and `stateOwnHole` (`State.Server` is never written; `newTrace` builds it with `SetIds.mk`,
+     duplicate-free by `SetIds.mk_nodup`, `Rep.lean`);
   2. strings: Perennial's `stringToGoString` goes through `String.toUTF8`, which no proof can
      evaluate on a constant (`"StateFollower"`), so a role comparison in the Go could not be
      decided; the predicates now relate a Go string to a Lean string by `strRel` (ASCII, a byte per
      character; `Rep.lean`), injective (`strRel_inj`) and decidable on constants. A premise
      follows on `NewTrace`'s events: their strings ASCII (raft's names and ids are);
      `notes/decisions.md`, "Layer C's strings: `strRel`, ASCII";
-  3. term bounds: `Timeout`'s `CurrentTerm + 1` needs the term below `numBound`
-     (`numOk`, a premise of its spec; S6's invariant: every number below `(lines + 2) · numBound`,
-     round 3's T3).
+  3. term bounds: `Timeout`'s `CurrentTerm + 1` must not overflow; its spec takes
+     `currentTerm < 2^63 - 1` (round 4, S2: first `numOk`, stronger than the Go needs). S6's
+     loop invariant must give it at each action: every number below `(lines + 2) · numBound`
+     (round 3's T3) does, `numBound = 2^40`, for fewer than `2^22` lines.
   Also learned (proof mode, not spec): a struct literal spanning lines must start its fields on a
   line of their own (Lean's `checkColGe`), `W64 1` and `go!"..."` need parentheses inside a
   record update, and a persisting update at a return needs `iapply wp_fupd` before the last
-  `wp_auto`. The `strRel` change goes to a fourth review round of layer C.
+  `wp_auto`.
+
+**Review round 4 (`notes/trace-validation-reviews/c-r4.md`), on the Probe's changes:** one
+first-tier finding, repaired: `State.mut.spec` required server `i` not yet copied, which the Go
+breaks (`reconfigure` and `ApplySimpleConfChange` call `mut(i)` twice on one clone); the premise
+is gone, the proof freezes the old copy first (`serverOwn_persist`). Second tier, repaired: S1
+(duplicate-freedom into the predicates, above), S2 (the term bound, above), S4 (the law
+`strRel_eq_iff`: Go `==` on related strings is Lean `=`, which every role or subtype comparison
+uses). Left to later stages: S3 (layer B: `MessageType.String()`'s spec, when strengthened, states
+its value as a `go!` literal, not through `stringToGoString`, so `strRel` holds by `decide`), S4's
+second half (`durableOf` on a copy being written, with `persistState`'s proof in S6). The
+`strRel` switch itself was found sound and `NewTrace`/`CheckTrace` still say what they should
+(modulo Q7). Layer C's Review is clean again modulo Q7.
   `CheckTrace`'s own loop waits on Q7.
 - Layer A/B (raft's hooks, increment 2): waits on Q6's statements (the plan of S4: one hook with its
   phase through `send`'s callers).
