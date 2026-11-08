@@ -291,7 +291,7 @@ S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's
   minutes; no spec problem found); **hard** `(*State).Timeout`, chosen by its invariant: the
   search's copy-on-write discipline (a state built by an action is a `clone`, its changed server a
   `mut` copy, everything else shared and read-only), the invariant every action's spec rests on and
-  no review checks; its path: `Set.Has` (done), `State.GetConfig`, `Server.copy`, `State.clone`,
+  no review checks; its path: `Set.Has` (done), `State.GetConfig` (done), `Server.copy`, `State.clone`,
   `State.mut`, then `Timeout` (a mutable representation of a fresh clone and copy, persisted once
   written). `CheckTrace`'s own loop waits on Q7.
 - Layer A/B (raft's hooks, increment 2): waits on Q6's statements (the plan of S4: one hook with its
