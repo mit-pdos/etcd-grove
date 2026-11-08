@@ -108,6 +108,14 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   Evidence for (a) (2026-11-08, a scratch copy, not committed): a per-link FIFO `send` (one
   goroutine per link, delays and drops kept) passes 20 concurrent seeds (weak: random runs did not
   reach N2 before either; the argument is what counts).
+- **Q6 (2026-11-08, S4 rounds 3-4; to present with increment 2's draft): new client-owned ghost
+  on raft's node API, gated on a non-nil trace logger.** The simulation needs (1) a token per
+  handed-out traced message (`Advance`'s post gives them, `Node.Step`/`RawNode.Step` take one,
+  given back on a timeout), (2) a proposal budget (`Propose` takes a credit; the leader's
+  inflights then never fill, P5), (3) `isTraceLogger γt …` in the constructors' premise (Q1's
+  final shape). The existing clients (nil logger) carry nothing new. The spec skill makes each the
+  user's; they will be presented side by side with the current specs once increment 2 is drafted
+  (`notes/trace-validation-sim.md`, "Increment 2").
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
   `traceChangeConfEvent` formats the change's ids (`strconv.FormatUint`) before its nil check, so
   the translated raft calls it even without a logger, and raft's linked results now rest on
@@ -268,7 +276,7 @@ ones) its verdict and failing line equal the Go checker's (and so TLC's), and on
 evaluation-error witness (a commit index past the log) it fails with the same error. Not part of
 the trust argument (the plan's "Trust base"): S6's proof is what ties it to the Go.
 
-## Draft: S4 drafted (2026-11-08), in Review (rounds 1-3 done; blocked on Q4, Q5)
+## Draft: S4 drafted (2026-11-08), in Review (rounds 1-4 done; blocked on Q4, Q5)
 
 `notes/trace-validation-sim.md`: the abstraction `α` (a server's variables, the messages, the bags
 as new ghost state with a token per message in flight), the relation's phases (idle, handling a
@@ -289,7 +297,10 @@ contract must hand over the event (A1), and `MoreUpToDateCorrectInv` is not raft
 `notes/raft-trace-validation.md` item 8, TLC confirms; five voters and cut batches, so not reached
 by `Main`: P5 strengthened, the statement unaffected); second tier on the invariants' facts, the
 bootstrap, `Advance`'s stopped branch, the phase threaded through raft's internal functions, the
-tokens' key; revision 4 answers each.
+tokens' key; revision 4 answers each. Round 4 (`notes/trace-validation-reviews/s4-r4.md`): no further behavior the
+specification cannot follow (with Q4's guard and Q5's FIFO network); the inflight bound is a
+workload bound raft cannot see (a proposal budget: Q6), the bootstrap mode replaced by a per-node
+flag, the invariants' clauses and routes corrected; revision 5.
 
 ## Draft: S3 increment 1 done (2026-11-08)
 
