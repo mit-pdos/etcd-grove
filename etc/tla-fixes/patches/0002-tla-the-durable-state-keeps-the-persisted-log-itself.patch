@@ -1,0 +1,54 @@
+From 47a42e18ce9a7689bc038effa1bb7a5e939a7944 Mon Sep 17 00:00:00 2001
+From: Joseph Tassarotti <jt4767@nyu.edu>
+Date: Sun, 8 Nov 2026 17:17:27 +0000
+Subject: [PATCH 02/10] tla: the durable state keeps the persisted log itself
+
+Restart restores what was persisted, not a prefix of the in-memory log.
+issues/raft-tla-restart-truncated-log.md
+---
+ tla/etcdraft.tla | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index 7828474..59518c1 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -230,7 +230,7 @@ PersistState(i) ==
+     durableState' = [durableState EXCEPT ![i] = [
+         currentTerm |-> currentTerm[i],
+         votedFor |-> votedFor[i],
+-        log |-> Len(log[i]),
++        log |-> log[i],
+         commitIndex |-> commitIndex[i],
+         config |-> config[i]
+     ]]
+@@ -254,7 +254,7 @@ InitDurableState ==
+     durableState = [ i \in Server |-> [
+         currentTerm |-> currentTerm[i],
+         votedFor |-> votedFor[i],
+-        log |-> Len(log[i]),
++        log |-> log[i],
+         commitIndex |-> commitIndex[i],
+         config |-> config[i]
+     ]]
+@@ -283,7 +283,7 @@ Restart(i) ==
+     /\ currentTerm' = [currentTerm EXCEPT ![i] = durableState[i].currentTerm]
+     /\ commitIndex' = [commitIndex EXCEPT ![i] = durableState[i].commitIndex]
+     /\ votedFor' = [votedFor EXCEPT ![i] = durableState[i].votedFor]
+-    /\ log' = [log EXCEPT ![i] = SubSeq(@, 1, durableState[i].log)]
++    /\ log' = [log EXCEPT ![i] = durableState[i].log]
+     /\ config' = [config EXCEPT ![i] = durableState[i].config]
+     /\ UNCHANGED <<messages, durableState, reconfigCount>>
+ 
+@@ -871,7 +871,7 @@ LeaderCompletenessInv ==
+ \* Any entry committed by leader shall be persisted already
+ CommittedIsDurableInv ==
+     \A i \in Server :
+-        state[i] = Leader => commitIndex[i] <= durableState[i].log
++        state[i] = Leader => commitIndex[i] <= Len(durableState[i].log)
+ 
+ -----
+ 
+-- 
+2.43.0
+

@@ -65,7 +65,13 @@ rejected for a log mismatch, and to itself by `BecomeLeader`; cleared by `Become
 new term, or a step-down), `Timeout` and `Restart`, as `becomeFollower(term, None)`,
 `becomeCandidate` and `newRaft` clear `r.lead`. The vote is granted on `votedFor[i] = j \/
 (votedFor[i] = Nil /\ lead[i] = Nil)`. Every new value is a function of the state and the message,
-so trace validation stays deterministic.
+so trace validation stays deterministic. One more change keeps it so: `NoConflictAppendEntriesRequest`
+requires an entry of the request to be new. Without `lead`, its step on a request whose entries the
+follower already holds changes nothing that `Traceetcdraft`'s `TraceView` sees (only `pl`), so TLC
+merges it with the state it came from; with `lead`, it can set `lead` and becomes a second successor
+beside `AppendEntriesAlreadyDone`'s, which `TraceMatched` rejects (found 2026-11-08 by random runs of
+the corrected specification: a follower restarted, so with `lead` unset, receiving a delayed repeat of
+an append request).
 
 Checked 2026-11-08 at `c51f010` with the patch applied: the test passes, as does a five-voter
 schedule (two candidates in term 2; node 5 hears leader 1's heartbeat, then refuses candidate 2),

@@ -1,0 +1,31 @@
+From 78ce6f06cedfbec5f2ce36c8ecbedea7ad4f8835 Mon Sep 17 00:00:00 2001
+From: Joseph Tassarotti <jt4767@nyu.edu>
+Date: Sun, 8 Nov 2026 17:18:02 +0000
+Subject: [PATCH 08/10] tla: AddLearner may demote a voter
+
+issues/raft-tla-learner-demotion-unmodelled.md
+---
+ tla/etcdraft.tla | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index 65c1877..282b452 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -457,10 +457,11 @@ AddNewServer(i, j) ==
+ \* Leader i adds a leaner j to the cluster.
+ AddLearner(i, j) ==
+     /\ state[i] = Leader
+-    /\ j \notin GetConfig(i) \union GetLearners(i)
++    \* j is a new learner, or a voter demoted to a learner (raft's makeLearner)
++    /\ j \notin GetLearners(i)
+     /\ ~IsJointConfig(i)
+     /\ IF pendingConfChangeIndex[i] = 0 THEN 
+-            /\ Replicate(i, [newconf |-> GetConfig(i), learners |-> GetLearners(i) \union {j}], ConfigEntry)
++            /\ Replicate(i, [newconf |-> GetConfig(i) \ {j}, learners |-> GetLearners(i) \union {j}], ConfigEntry)
+             /\ pendingConfChangeIndex' = [pendingConfChangeIndex EXCEPT ![i]=Len(log'[i])]
+        ELSE 
+             /\ Replicate(i, <<>>, ValueEntry)
+-- 
+2.43.0
+

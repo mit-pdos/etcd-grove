@@ -1,0 +1,32 @@
+From 735d323bfb3205ad6fb4e5e2c3b1c472662f0086 Mon Sep 17 00:00:00 2001
+From: Joseph Tassarotti <jt4767@nyu.edu>
+Date: Sun, 8 Nov 2026 17:17:55 +0000
+Subject: [PATCH 07/10] tla: LeaderCompletenessInv for leaders of a term at
+ least the server's
+
+issues/raft-tla-leader-completeness-stale-leader.md
+---
+ tla/etcdraft.tla | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index ccc3916..65c1877 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -927,8 +927,11 @@ LeaderCompletenessInv ==
+             LET entry == log[i][idx] IN 
+             \* if the entry is committed 
+             \A l \in CurrentLeaders :
+-                \* all leaders with higher-number terms
+-                currentTerm[l] > entry.term =>
++                \* all leaders with higher-number terms, of a term at least i's: i learns of
++                \* a commit only in or after the commit's term, so such a leader is the
++                \* committing leader or a later one (a stale leader of an older term need
++                \* not hold an entry committed after its term)
++                currentTerm[l] > entry.term /\ currentTerm[l] >= currentTerm[i] =>
+                 \* have the entry at the same log position
+                 log[l][idx] = entry
+ 
+-- 
+2.43.0
+

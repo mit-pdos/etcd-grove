@@ -1,0 +1,162 @@
+From f4090a16f6fb475156ed2fcd8db100569263875d Mon Sep 17 00:00:00 2001
+From: Joseph Tassarotti <jt4767@nyu.edu>
+Date: Sun, 8 Nov 2026 17:17:49 +0000
+Subject: [PATCH 06/10] tla: model raft's lead; a voter that knows its term's
+ leader refuses votes
+
+NoConflictAppendEntriesRequest requires a new entry, so that the receipt of
+an append request whose entries are present has one successor.
+issues/raft-tla-vote-refused-known-leader.md
+---
+ tla/etcdraft.tla | 37 +++++++++++++++++++++++++++++--------
+ 1 file changed, 29 insertions(+), 8 deletions(-)
+
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index 12c6924..ccc3916 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -91,7 +91,14 @@ VARIABLE
+ VARIABLE 
+     \* @type: Int -> Int;
+     votedFor
+-serverVars == <<currentTerm, state, votedFor>>
++\* The leader the server knows of in its current term, or Nil if it knows of none
++\* (raft's r.lead): set when the server becomes leader or accepts an append request
++\* (MsgApp, MsgHeartbeat, MsgSnap) of its current term; cleared when its term
++\* changes, when it becomes a candidate or steps down, and on restart.
++VARIABLE
++    \* @type: Int -> Int;
++    lead
++serverVars == <<currentTerm, state, votedFor, lead>>
+ 
+ \* A Sequence of log entries. The index into this sequence is the index of the
+ \* log entry. Unfortunately, the Sequence module defines Head(s) as the entry
+@@ -242,6 +249,8 @@ InitMessageVars == /\ messages = EmptyBag
+ InitServerVars == /\ currentTerm = [i \in Server |-> 0]
+                   /\ state       = [i \in Server |-> Follower]
+                   /\ votedFor    = [i \in Server |-> Nil]
++\* Separate from InitServerVars, which models and trace validation override.
++InitLeadVars == lead = [i \in Server |-> Nil]
+ InitCandidateVars == /\ votesResponded = [i \in Server |-> {}]
+                      /\ votesGranted   = [i \in Server |-> {}]
+ InitLeaderVars == /\ matchIndex = [i \in Server |-> [j \in Server |-> 0]]
+@@ -261,6 +270,7 @@ InitDurableState ==
+ 
+ Init == /\ InitMessageVars
+         /\ InitServerVars
++        /\ InitLeadVars
+         /\ InitCandidateVars
+         /\ InitLeaderVars
+         /\ InitLogVars
+@@ -283,6 +293,7 @@ Restart(i) ==
+     /\ currentTerm' = [currentTerm EXCEPT ![i] = durableState[i].currentTerm]
+     /\ commitIndex' = [commitIndex EXCEPT ![i] = durableState[i].commitIndex]
+     /\ votedFor' = [votedFor EXCEPT ![i] = durableState[i].votedFor]
++    /\ lead' = [lead EXCEPT ![i] = Nil]
+     /\ log' = [log EXCEPT ![i] = durableState[i].log]
+     /\ config' = [config EXCEPT ![i] = durableState[i].config]
+     /\ UNCHANGED <<messages, durableState, reconfigCount>>
+@@ -294,6 +305,7 @@ Timeout(i) == /\ state[i] \in {Follower, Candidate}
+               /\ state' = [state EXCEPT ![i] = Candidate]
+               /\ currentTerm' = [currentTerm EXCEPT ![i] = currentTerm[i] + 1]
+               /\ votedFor' = [votedFor EXCEPT ![i] = i]
++              /\ lead' = [lead EXCEPT ![i] = Nil]
+               /\ votesResponded' = [votesResponded EXCEPT ![i] = {}]
+               /\ votesGranted'   = [votesGranted EXCEPT ![i] = {}]
+               /\ UNCHANGED <<messageVars, leaderVars, logVars, configVars, durableState>>
+@@ -382,6 +394,7 @@ BecomeLeader(i) ==
+     /\ state[i] = Candidate
+     /\ votesGranted[i] \in Quorum(GetConfig(i))
+     /\ state'      = [state EXCEPT ![i] = Leader]
++    /\ lead'       = [lead EXCEPT ![i] = i]
+     /\ matchIndex' = [matchIndex EXCEPT ![i] =
+                          [j \in Server |-> IF j = i THEN Len(log[i]) ELSE 0]]
+     /\ UNCHANGED <<messageVars, currentTerm, votedFor, pendingConfChangeIndex, candidateVars, logVars, configVars, durableState>>
+@@ -493,6 +506,7 @@ Ready(i) ==
+ BecomeFollowerOfTerm(i, t) ==
+     /\ currentTerm'    = [currentTerm EXCEPT ![i] = t]
+     /\ state'          = [state       EXCEPT ![i] = Follower]
++    /\ lead'           = [lead        EXCEPT ![i] = Nil]
+     /\ IF currentTerm[i] # t THEN  
+             votedFor' = [votedFor    EXCEPT ![i] = Nil]
+        ELSE 
+@@ -516,7 +530,9 @@ HandleRequestVoteRequest(i, j, m) ==
+                     /\ m.mlastLogIndex >= Len(log[i])
+         grant == /\ m.mterm = currentTerm[i]
+                  /\ logOk
+-                 /\ votedFor[i] \in {Nil, j}
++                 \* raft's canVote: a repeat of its vote, or no vote and no known leader
++                 /\ \/ votedFor[i] = j
++                    \/ votedFor[i] = Nil /\ lead[i] = Nil
+     IN /\ m.mterm <= currentTerm[i]
+        /\ \/ grant  /\ votedFor' = [votedFor EXCEPT ![i] = j]
+           \/ ~grant /\ UNCHANGED votedFor
+@@ -526,7 +542,7 @@ HandleRequestVoteRequest(i, j, m) ==
+                  msource      |-> i,
+                  mdest        |-> j],
+                  m)
+-       /\ UNCHANGED <<state, currentTerm, candidateVars, leaderVars, logVars, configVars, durableState>>
++       /\ UNCHANGED <<state, currentTerm, lead, candidateVars, leaderVars, logVars, configVars, durableState>>
+ 
+ \* Server i receives a RequestVote response from server j with
+ \* m.mterm = currentTerm[i].
+@@ -559,7 +575,7 @@ RejectAppendEntriesRequest(i, j, m, logOk) ==
+               msource         |-> i,
+               mdest           |-> j],
+               m)
+-    /\ UNCHANGED <<serverVars, logVars, configVars, durableState>>
++    /\ UNCHANGED <<currentTerm, state, votedFor, logVars, configVars, durableState>>
+ 
+ \* @type: (Int, MSG) => Bool;
+ ReturnToFollowerState(i, m) ==
+@@ -592,7 +608,7 @@ AppendEntriesAlreadyDone(i, j, index, m) ==
+                 msource         |-> i,
+                 mdest           |-> j],
+                 m)
+-    /\ UNCHANGED <<serverVars, log, configVars, durableState>>
++    /\ UNCHANGED <<currentTerm, state, votedFor, log, configVars, durableState>>
+ 
+ \* @type: (Int, Int, AEREQT) => Bool;
+ ConflictAppendEntriesRequest(i, index, m) ==
+@@ -600,15 +616,17 @@ ConflictAppendEntriesRequest(i, index, m) ==
+     /\ index > commitIndex[i]
+     /\ ~HasNoConflict(i, index, m.mentries)
+     /\ log' = [log EXCEPT ![i] = SubSeq(@, 1, Len(@) - 1)]
+-    /\ UNCHANGED <<messageVars, serverVars, commitIndex, durableState>>
++    /\ UNCHANGED <<messageVars, currentTerm, state, votedFor, commitIndex, durableState>>
+ 
+ \* @type: (Int, AEREQT) => Bool;
+ NoConflictAppendEntriesRequest(i, index, m) ==
+     /\ m.mentries /= << >>
+     /\ index > commitIndex[i]
+     /\ HasNoConflict(i, index, m.mentries)
++    \* some entry is new (else AppendEntriesAlreadyDone answers: the actions do not overlap)
++    /\ m.mprevLogIndex + Len(m.mentries) > Len(log[i])
+     /\ log' = [log EXCEPT ![i] = @ \o SubSeq(m.mentries, Len(@)-index+2, Len(m.mentries))]
+-    /\ UNCHANGED <<messageVars, serverVars, commitIndex, durableState>>
++    /\ UNCHANGED <<messageVars, currentTerm, state, votedFor, commitIndex, durableState>>
+ 
+ \* Server i receives a snapshot of j's log up to index Len(m.mentries), all of it committed.
+ \* As raft.restore: a snapshot at or below i's commit index is ignored; when i has the
+@@ -638,7 +656,7 @@ HandleSnapshotRequest(i, j, m) ==
+                 msource         |-> i,
+                 mdest           |-> j],
+                 m)
+-    /\ UNCHANGED <<serverVars, configVars, durableState>>
++    /\ UNCHANGED <<currentTerm, state, votedFor, configVars, durableState>>
+ 
+ \* @type: (Int, Int, Bool, AEREQT) => Bool;
+ AcceptAppendEntriesRequest(i, j, logOk, m) ==
+@@ -665,6 +683,9 @@ HandleAppendEntriesRequest(i, j, m) ==
+                     /\ m.mprevLogTerm = log[i][m.mprevLogIndex].term
+     IN 
+        /\ m.mterm <= currentTerm[i]
++       \* raft's stepFollower and stepCandidate: the sender of an append request of
++       \* the current term is its leader.
++       /\ lead' = IF m.mterm = currentTerm[i] THEN [lead EXCEPT ![i] = j] ELSE lead
+        /\ \/ RejectAppendEntriesRequest(i, j, m, logOk)
+           \/ ReturnToFollowerState(i, m)
+           \/ AcceptAppendEntriesRequest(i, j, logOk, m)
+-- 
+2.43.0
+

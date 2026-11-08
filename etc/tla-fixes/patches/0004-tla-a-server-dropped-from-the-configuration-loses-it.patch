@@ -1,0 +1,32 @@
+From c434aaa3962337f3249f6b1cf6f3df4d74165486 Mon Sep 17 00:00:00 2001
+From: Joseph Tassarotti <jt4767@nyu.edu>
+Date: Sun, 8 Nov 2026 17:17:27 +0000
+Subject: [PATCH 04/10] tla: a server dropped from the configuration loses its
+ matchIndex
+
+issues/raft-tla-readded-member-matchindex.md
+---
+ tla/etcdraft.tla | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index 1dde710..5265051 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -478,7 +478,12 @@ ApplySimpleConfChange(i) ==
+                 /\ reconfigCount' = reconfigCount + 1
+                 /\ pendingConfChangeIndex' = [pendingConfChangeIndex EXCEPT ![i] = 0]
+                ELSE UNCHANGED <<reconfigCount, pendingConfChangeIndex>>
+-            /\ UNCHANGED <<messageVars, serverVars, candidateVars, matchIndex, logVars, durableState>>
++            \* A server the new configuration drops loses its progress (raft deletes it): if it
++            \* is added back, it starts again from matchIndex 0.
++            /\ LET members == log[i][k].value.newconf \union log[i][k].value.learners
++               IN matchIndex' = [matchIndex EXCEPT ![i] =
++                                    [j \in Server |-> IF j \in members THEN matchIndex[i][j] ELSE 0]]
++            /\ UNCHANGED <<messageVars, serverVars, candidateVars, logVars, durableState>>
+     
+ Ready(i) ==
+     /\ PersistState(i)
+-- 
+2.43.0
+

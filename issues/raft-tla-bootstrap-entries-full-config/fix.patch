@@ -1,0 +1,25 @@
+diff --git a/tla/Traceetcdraft.tla b/tla/Traceetcdraft.tla
+index ccbae2d..bae6a25 100644
+--- a/tla/Traceetcdraft.tla
++++ b/tla/Traceetcdraft.tla
+@@ -79,7 +79,19 @@ ASSUME TraceInitServer \subseteq TraceServer
+ TraceInitServerVars == /\ currentTerm = [i \in Server |-> LastBootstrapLog[i].event.state.term]
+                        /\ state = [i \in Server |-> LastBootstrapLog[i].event.role]
+                        /\ votedFor = [i \in Server |-> LastBootstrapLog[i].event.state.vote]
+-TraceInitLogVars    == /\ log          = [i \in Server |-> [j \in 1..LastBootstrapLog[i].event.log |-> [ term |-> 1, type |-> "ConfigEntry", value |-> [newconf |-> BootstrappedConfig(i), learners |-> {}]]]]
++\* raft's Bootstrap appends one ConfChangeAddNode entry per peer: entry j's configuration is the one
++\* its bootstrap ApplyConfChange line records (the first j peers), as MCetcdraft's BootstrapLog.
++\* (An ApplyConfChange restoring the empty configuration, as newRaft logged before the persisted
++\* state was loaded, has no newconf.)
++BootstrapConfLines(i) == {k \in BootstrapLogIndicesForServer(i) :
++                            /\ TraceLog[k].event.name = "ApplyConfChange"
++                            /\ "newconf" \in DOMAIN TraceLog[k].event.prop.cc}
++BootstrapEntryConf(i, j) ==
++    LET S == BootstrapConfLines(i) IN
++    IF Cardinality(S) < j THEN BootstrappedConfig(i)
++    ELSE ToSet(TraceLog[CHOOSE k \in S : Cardinality({k2 \in S : k2 <= k}) = j].event.prop.cc.newconf)
++
++TraceInitLogVars    == /\ log          = [i \in Server |-> [j \in 1..LastBootstrapLog[i].event.log |-> [ term |-> 1, type |-> "ConfigEntry", value |-> [newconf |-> BootstrapEntryConf(i, j), learners |-> {}]]]]
+                        /\ commitIndex  = [i \in Server |-> LastBootstrapLog[i].event.state.commit]
+ TraceInitConfigVars == 
+     /\ config = [i \in Server |-> [ jointConfig |-> <<BootstrappedConfig(i), {}>>, learners |-> {}] ]

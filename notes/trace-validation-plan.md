@@ -22,6 +22,22 @@ and this checker's `branched` reject; so (a), the in-order links, or (b), modell
 Resuming means choosing what the theorem is against: upstream's model as it is (narrow workload),
 a corrected model (the findings' fixes), or another specification.
 
+## The corrected model (2026-11-08, the user's request)
+
+Asked: could the stage be resumed against a corrected `etcdraft.tla`, and what would make that worth
+something? Done, as evidence for that decision (no proof work): `etc/tla-fixes/`, a ten-patch
+series on raft `c51f010` (one per finding, plus 0010) with
+(1) each fix judged against Ongaro's thesis and raft's documentation, none code-only
+(`notes/tla-fixes-justification.md`); (2) random runs of `RawNode`s with restarts, snapshots,
+configuration changes incl. demotion, loss, reordering, cut batches and campaigns, every trace
+accepted (upstream's specification rejects half); (3) `MCetcdraft` model-checked with the series,
+no violation in bounded runs; (4) mutation testing: ten of eleven buggy rafts rejected, both
+harmless controls accepted. Two further findings came out of it:
+`issues/raft-tla-restart-config-from-storage.md` (not fixed: a restart from a storage with an older
+configuration) and `issues/raft-tla-bootstrap-entries-full-config.md` (fixed by 0010). Resuming
+against the series would need the transcriptions (Go, Lean) to follow it, and the harness to keep
+the driver's rules (`etc/tla-fixes/README.md`, "Random runs").
+
 ## Decisions (the user's, 2026-11-08)
 
 - **Fully closed**, as the porcupine examples: `Main` runs the concurrent harness, then the

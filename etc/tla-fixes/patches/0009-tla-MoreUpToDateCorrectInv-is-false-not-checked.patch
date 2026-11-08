@@ -1,0 +1,54 @@
+From 16a496e89446f04527c03a16a03fdeb176f0c454 Mon Sep 17 00:00:00 2001
+From: Joseph Tassarotti <jt4767@nyu.edu>
+Date: Sun, 8 Nov 2026 17:18:20 +0000
+Subject: [PATCH 09/10] tla: MoreUpToDateCorrectInv is false; not checked
+
+issues/raft-tla-more-up-to-date-cut-batches.md
+---
+ tla/MCetcdraft.cfg    | 1 -
+ tla/Traceetcdraft.cfg | 1 -
+ tla/etcdraft.tla      | 4 ++++
+ 3 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/tla/MCetcdraft.cfg b/tla/MCetcdraft.cfg
+index 31ad958..687181b 100644
+--- a/tla/MCetcdraft.cfg
++++ b/tla/MCetcdraft.cfg
+@@ -64,6 +64,5 @@ INVARIANTS
+     ElectionSafetyInv
+     LogMatchingInv
+     QuorumLogInv
+-    MoreUpToDateCorrectInv
+     LeaderCompletenessInv
+     CommittedIsDurableInv
+\ No newline at end of file
+diff --git a/tla/Traceetcdraft.cfg b/tla/Traceetcdraft.cfg
+index 36e6c8a..6e7c9fa 100644
+--- a/tla/Traceetcdraft.cfg
++++ b/tla/Traceetcdraft.cfg
+@@ -70,6 +70,5 @@ INVARIANTS
+     ElectionSafetyInv
+     LogMatchingInv
+     QuorumLogInv
+-    MoreUpToDateCorrectInv
+     LeaderCompletenessInv
+     CommittedIsDurableInv
+\ No newline at end of file
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index 282b452..bbbcc29 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -906,6 +906,10 @@ QuorumLogInv ==
+         \E j \in S :
+             IsPrefix(Committed(i), log[j])
+ 
++\* False: a commit index learned from a heartbeat can cover an entry the follower got
++\* from a leader without that leader's last term, so the follower's last entry need not
++\* be of the committing term (a statement needs the term each entry was committed in,
++\* which the specification does not record). Not checked (MCetcdraft.cfg).
+ \* The "up-to-date" check performed by servers
+ \* before issuing a vote implies that i receives
+ \* a vote from j only if i has all of j's committed
+-- 
+2.43.0
+

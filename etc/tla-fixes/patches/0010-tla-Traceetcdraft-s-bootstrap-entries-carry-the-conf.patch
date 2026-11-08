@@ -1,0 +1,41 @@
+From de30c757727c8ee316cddd9e4ee79d09c33d3df2 Mon Sep 17 00:00:00 2001
+From: Joseph Tassarotti <jt4767@nyu.edu>
+Date: Sun, 8 Nov 2026 18:50:30 +0000
+Subject: [PATCH 10/10] tla: Traceetcdraft's bootstrap entries carry the
+ configuration each one adds
+
+raft's Bootstrap appends one ConfChangeAddNode per peer; a member that catches
+up one entry at a time applies them one at a time.
+issues/raft-tla-bootstrap-entries-full-config.md
+---
+ tla/Traceetcdraft.tla | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/tla/Traceetcdraft.tla b/tla/Traceetcdraft.tla
+index ccbae2d..bae6a25 100644
+--- a/tla/Traceetcdraft.tla
++++ b/tla/Traceetcdraft.tla
+@@ -79,7 +79,19 @@ ASSUME TraceInitServer \subseteq TraceServer
+ TraceInitServerVars == /\ currentTerm = [i \in Server |-> LastBootstrapLog[i].event.state.term]
+                        /\ state = [i \in Server |-> LastBootstrapLog[i].event.role]
+                        /\ votedFor = [i \in Server |-> LastBootstrapLog[i].event.state.vote]
+-TraceInitLogVars    == /\ log          = [i \in Server |-> [j \in 1..LastBootstrapLog[i].event.log |-> [ term |-> 1, type |-> "ConfigEntry", value |-> [newconf |-> BootstrappedConfig(i), learners |-> {}]]]]
++\* raft's Bootstrap appends one ConfChangeAddNode entry per peer: entry j's configuration is the one
++\* its bootstrap ApplyConfChange line records (the first j peers), as MCetcdraft's BootstrapLog.
++\* (An ApplyConfChange restoring the empty configuration, as newRaft logged before the persisted
++\* state was loaded, has no newconf.)
++BootstrapConfLines(i) == {k \in BootstrapLogIndicesForServer(i) :
++                            /\ TraceLog[k].event.name = "ApplyConfChange"
++                            /\ "newconf" \in DOMAIN TraceLog[k].event.prop.cc}
++BootstrapEntryConf(i, j) ==
++    LET S == BootstrapConfLines(i) IN
++    IF Cardinality(S) < j THEN BootstrappedConfig(i)
++    ELSE ToSet(TraceLog[CHOOSE k \in S : Cardinality({k2 \in S : k2 <= k}) = j].event.prop.cc.newconf)
++
++TraceInitLogVars    == /\ log          = [i \in Server |-> [j \in 1..LastBootstrapLog[i].event.log |-> [ term |-> 1, type |-> "ConfigEntry", value |-> [newconf |-> BootstrapEntryConf(i, j), learners |-> {}]]]]
+                        /\ commitIndex  = [i \in Server |-> LastBootstrapLog[i].event.state.commit]
+ TraceInitConfigVars == 
+     /\ config = [i \in Server |-> [ jointConfig |-> <<BootstrappedConfig(i), {}>>, learners |-> {}] ]
+-- 
+2.43.0
+

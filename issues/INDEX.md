@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (51)
+## Not reported (53)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -29,9 +29,11 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [raft: calling `Advance` before applying a conf change, as `Node.Advance` allows, lets two nodes commit different entries at one index](raft-advance-before-applyconfchange.md) | yes | etcd-io/etcd#4203 issue closed; etcd-io/raft#80 issue open; etcd-io/raft#234 issue closed; etcd-io/raft#456 issue open; etcd-io/etcd#12136 issue closed; etcd-io/raft#469 pr open |
 | [raft: a snapshot received while a conf change is being applied leaves a follower with the wrong configuration, or panics](raft-snapshot-during-apply-stale-confchange.md) | yes |  |
 | [raft: after a delayed stale-term message, a new leader sends a snapshot to a follower that is already caught up](raft-stale-term-appresp-index-zero-ack.md) | yes | etcd-io/raft#52 pr merged; etcd-io/raft#148 issue closed; etcd-io/raft#149 pr merged |
+| [raft: TLA+ trace validation rejects a new member that applies the bootstrap entries one at a time](raft-tla-bootstrap-entries-full-config.md) | yes |  |
 | [raft: TLA+ trace validation rejects demoting a voter to a learner](raft-tla-learner-demotion-unmodelled.md) | yes | etcd-io/raft#381 pr open; etcd-io/raft#549 issue open |
 | [raft: TLA+ trace validation rejects a correct run in which an append request stops short of the commit index](raft-tla-msgapp-commit-unclamped.md) | yes | etcd-io/raft#381 pr open |
 | [raft: TLA+ trace validation rejects a correct run where a removed member is added back](raft-tla-readded-member-matchindex.md) | yes | etcd-io/raft#381 pr open |
+| [raft: TLA+ trace validation rejects a restart before the application's first snapshot](raft-tla-restart-config-from-storage.md) | yes | etcd-io/raft#226 pr open |
 | [raft: trace logging records `InitState` before the persisted state is loaded, so TLA+ trace validation rejects every restart](raft-tla-restart-initstate-unmatched.md) | yes | etcd-io/raft#226 pr open; etcd-io/raft#549 issue open |
 | [raft: TLA+ model checking fails evaluating `Restart` after a conflicting append request](raft-tla-restart-truncated-log.md) | yes |  |
 | [raft: TLA+ trace validation rejects a correct run where a follower installs a snapshot](raft-tla-snapshot-committed-follower.md) | yes | etcd-io/raft#381 pr open |

@@ -1,5 +1,5 @@
 diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
-index 7828474..3ba3e93 100644
+index 7828474..2b0ab7e 100644
 --- a/tla/etcdraft.tla
 +++ b/tla/etcdraft.tla
 @@ -91,7 +91,14 @@ VARIABLE
@@ -105,7 +105,7 @@ index 7828474..3ba3e93 100644
  
  \* @type: (Int, Int, AEREQT) => Bool;
  ConflictAppendEntriesRequest(i, index, m) ==
-@@ -589,7 +605,7 @@ ConflictAppendEntriesRequest(i, index, m) ==
+@@ -589,15 +605,18 @@ ConflictAppendEntriesRequest(i, index, m) ==
      /\ index > commitIndex[i]
      /\ ~HasNoConflict(i, index, m.mentries)
      /\ log' = [log EXCEPT ![i] = SubSeq(@, 1, Len(@) - 1)]
@@ -114,16 +114,19 @@ index 7828474..3ba3e93 100644
  
  \* @type: (Int, AEREQT) => Bool;
  NoConflictAppendEntriesRequest(i, index, m) ==
-@@ -597,7 +613,7 @@ NoConflictAppendEntriesRequest(i, index, m) ==
+     /\ m.mentries /= << >>
      /\ index > commitIndex[i]
      /\ HasNoConflict(i, index, m.mentries)
++    \* some entry is new: else AppendEntriesAlreadyDone answers, and a step here would
++    \* only set lead, a second successor that trace validation must not have
++    /\ m.mprevLogIndex + Len(m.mentries) > Len(log[i])
      /\ log' = [log EXCEPT ![i] = @ \o SubSeq(m.mentries, Len(@)-index+2, Len(m.mentries))]
 -    /\ UNCHANGED <<messageVars, serverVars, commitIndex, durableState>>
 +    /\ UNCHANGED <<messageVars, currentTerm, state, votedFor, commitIndex, durableState>>
  
  \* @type: (Int, Int, Bool, AEREQT) => Bool;
  AcceptAppendEntriesRequest(i, j, logOk, m) ==
-@@ -622,6 +638,9 @@ HandleAppendEntriesRequest(i, j, m) ==
+@@ -622,6 +641,9 @@ HandleAppendEntriesRequest(i, j, m) ==
                      /\ m.mprevLogTerm = log[i][m.mprevLogIndex].term
      IN 
         /\ m.mterm <= currentTerm[i]

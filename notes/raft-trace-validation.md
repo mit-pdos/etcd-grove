@@ -198,12 +198,25 @@ is right in each.
     with a `MsgAppResp`, which `Traceetcdraft` maps to `"app"`, so even a newcomer's snapshot is not
     followed.
 
+11. **A restart from a storage with an older configuration** (found 2026-11-08 by the random runs
+    of the corrected specification, `etc/tla-fixes/`): raft restarts with `InitialState`'s
+    `ConfState` (a `MemoryStorage`'s snapshot's) and the application applies the later
+    configuration entries again; `Restart` restores the configuration of the last `Ready`, and
+    `ApplySimpleConfChange` applies only the last committed configuration entry. Hidden at `c51f010`
+    by 1; `issues/raft-tla-restart-config-from-storage.md`, not fixed by the series.
+
+12. **The trace specification's bootstrap entries all carry the whole configuration** (found
+    2026-11-08 by the mutation testing of `etc/tla-fixes/`): raft's `Bootstrap` appends one
+    `ConfChangeAddNode` per peer, and a member added later that receives them one per append
+    request applies {1}, then {1, 2}, ...; `Traceetcdraft`'s `TraceInitLogVars` gives each the
+    whole bootstrap configuration. Hidden at `c51f010` by 5; fixed by `etc/tla-fixes/` 0010.
+
 **Written up (2026-11-08)**, each with a test at raft `main` `c51f010` (copied into its module root,
 `-tags with_tla`, TLC on upstream's unmodified files): `issues/raft-tla-restart-initstate-unmatched`
 (1), `-learner-demotion-unmodelled` (2), `-snapshot-committed-follower` (3),
 `-readded-member-matchindex` (4), `-msgapp-commit-unclamped` (5), `-vote-refused-known-leader` (6),
 `-leader-completeness-stale-leader` (7), `-more-up-to-date-cut-batches` (8),
-`-restart-truncated-log` (9), `-snapshot-response-subtype` (10). For the invariants (7, 8) a second test replays TLC's counterexample
+`-restart-truncated-log` (9), `-snapshot-response-subtype` (10), `-restart-config-from-storage` (11), `-bootstrap-entries-full-config` (12). For the invariants (7, 8) a second test replays TLC's counterexample
 against `MCetcdraft` alone (`Init`, then each recorded state forced as a `NextAsync` step or a
 stutter, deadlock checking on), showing the specification itself reaches the violation.
 
