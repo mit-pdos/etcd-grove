@@ -80,7 +80,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ConvertEvents [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/tracecheck.ConvertEvents"
 
-/-- go: concurrent.go:35:20 -/
+/-- go: concurrent.go:38:20 -/
 noncomputable def quietLogger.Debug.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -90,7 +90,7 @@ noncomputable def quietLogger.Debug.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #()))))
 
-/-- go: concurrent.go:36:20 -/
+/-- go: concurrent.go:39:20 -/
 noncomputable def quietLogger.Debugf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -102,7 +102,7 @@ noncomputable def quietLogger.Debugf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))))
 
-/-- go: concurrent.go:37:20 -/
+/-- go: concurrent.go:40:20 -/
 noncomputable def quietLogger.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -112,7 +112,7 @@ noncomputable def quietLogger.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #()))))
 
-/-- go: concurrent.go:38:20 -/
+/-- go: concurrent.go:41:20 -/
 noncomputable def quietLogger.Errorf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -124,7 +124,7 @@ noncomputable def quietLogger.Errorf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))))
 
-/-- go: concurrent.go:39:20 -/
+/-- go: concurrent.go:42:20 -/
 noncomputable def quietLogger.Info.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -134,7 +134,7 @@ noncomputable def quietLogger.Info.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #()))))
 
-/-- go: concurrent.go:40:20 -/
+/-- go: concurrent.go:43:20 -/
 noncomputable def quietLogger.Infof.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -146,7 +146,7 @@ noncomputable def quietLogger.Infof.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))))
 
-/-- go: concurrent.go:41:20 -/
+/-- go: concurrent.go:44:20 -/
 noncomputable def quietLogger.Warning.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -156,7 +156,7 @@ noncomputable def quietLogger.Warning.impl [GooseExts] [GoGlobalContext] : val :
   (Val #()))))
   (Val #()))))
 
-/-- go: concurrent.go:42:20 -/
+/-- go: concurrent.go:45:20 -/
 noncomputable def quietLogger.Warningf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -168,7 +168,7 @@ noncomputable def quietLogger.Warningf.impl [GooseExts] [GoGlobalContext] : val 
   (Val #())))))
   (Val #())))))
 
-/-- go: concurrent.go:43:20 -/
+/-- go: concurrent.go:46:20 -/
 noncomputable def quietLogger.Fatal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -180,7 +180,7 @@ noncomputable def quietLogger.Fatal.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
   (Val #()))))
 
-/-- go: concurrent.go:44:20 -/
+/-- go: concurrent.go:47:20 -/
 noncomputable def quietLogger.Fatalf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -195,7 +195,7 @@ noncomputable def quietLogger.Fatalf.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))
   (Val #())))))
 
-/-- go: concurrent.go:45:20 -/
+/-- go: concurrent.go:48:20 -/
 noncomputable def quietLogger.Panic.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -207,7 +207,7 @@ noncomputable def quietLogger.Panic.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
   (Val #()))))
 
-/-- go: concurrent.go:46:20 -/
+/-- go: concurrent.go:49:20 -/
 noncomputable def quietLogger.Panicf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -225,7 +225,7 @@ noncomputable def quietLogger.Panicf.impl [GooseExts] [GoGlobalContext] : val :=
 /-- below is a random number in [0, n) (n > 0), as the other harnesses draw theirs
     (examples/raft/kvreconf): primitive.RandomUint64, whose spec gives any value.
 
-    go: concurrent.go:50:6 -/
+    go: concurrent.go:53:6 -/
 noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -241,7 +241,7 @@ noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- TraceEvent records a copy of ev.
 
-    go: concurrent.go:60:24 -/
+    go: concurrent.go:63:24 -/
 noncomputable def SyncRecorder.TraceEvent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ev"
@@ -264,7 +264,7 @@ noncomputable def SyncRecorder.TraceEvent.impl [GooseExts] [GoGlobalContext] : v
 
 /-- Events returns a copy of the events recorded so far.
 
-    go: concurrent.go:67:24 -/
+    go: concurrent.go:70:24 -/
 noncomputable def SyncRecorder.Events.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -299,7 +299,7 @@ noncomputable def SyncRecorder.Events.impl [GooseExts] [GoGlobalContext] : val :
     per message, so a leader ticked every 2ms (a heartbeat to each follower per tick) falls behind
     and the network's Step times out.
 
-    go: concurrent.go:101:6 -/
+    go: concurrent.go:104:6 -/
 noncomputable def DefaultCConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc CConfig.ty))) (App (Val (GoInstruction (GoZeroVal CConfig.ty))) (Val #())))
@@ -323,7 +323,7 @@ noncomputable def DefaultCConfig.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- FullCConfig is DefaultCConfig with a fourth node, configuration changes and snapshots.
 
-    go: concurrent.go:108:6 -/
+    go: concurrent.go:111:6 -/
 noncomputable def FullCConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc CConfig.ty))) (App (Val (GoInstruction (GoZeroVal CConfig.ty))) (Val #())))
@@ -353,7 +353,7 @@ noncomputable def FullCConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore CConfig.ty))) (Pair (Var "c") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad CConfig.ty))) (Var "$res0")))))
 
-/-- go: concurrent.go:138:19 -/
+/-- go: concurrent.go:141:19 -/
 noncomputable def Cluster.replica.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -384,7 +384,7 @@ noncomputable def Cluster.replica.impl [GooseExts] [GoGlobalContext] : val :=
     and configuration changes, lets the cluster settle, stops it, and returns it (its trace is
     Events).
 
-    go: concurrent.go:148:6 -/
+    go: concurrent.go:151:6 -/
 noncomputable def RunConcurrent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Cluster.ty)))) (Val #())))
@@ -671,7 +671,7 @@ noncomputable def RunConcurrent.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v1" (Val #(W64 10))
   (Let "$v2" (Val #(W64 1))
   (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "st"))
-  (Let "$v4" (Val #(W64 1048576))
+  (Let "$v4" (App (Val (GoInstruction (GoUnOp GoComplement go.uint64))) (Val #(W64 0)))
   (Let "$v5" (Val #(W64 256))
   (Let "$v6" (App (Val (GoInstruction (CompositeLiteral quietLogger.ty))) (LiteralValue []))
   (Let "$v7" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SyncRecorder.ty)))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"rec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))
@@ -732,7 +732,7 @@ noncomputable def RunConcurrent.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Events returns the trace.
 
-    go: concurrent.go:232:19 -/
+    go: concurrent.go:235:19 -/
 noncomputable def Cluster.Events.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -750,7 +750,7 @@ noncomputable def Cluster.Events.impl [GooseExts] [GoGlobalContext] : val :=
 /-- confChangeFor is a configuration change for a leader of status st to propose that the
     specification models (as Sim.confChange), nil if st is not a leader's or no change applies.
 
-    go: concurrent.go:236:6 -/
+    go: concurrent.go:239:6 -/
 noncomputable def confChangeFor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "st"
   (Lam "nodes"
@@ -853,7 +853,7 @@ noncomputable def confChangeFor.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- app is replica r's application goroutine.
 
-    go: concurrent.go:260:19 -/
+    go: concurrent.go:263:19 -/
 noncomputable def Cluster.app.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "r"
@@ -883,8 +883,29 @@ noncomputable def Cluster.app.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "rd" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.Ready.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.Ready.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"Messages"))) (Var "rd")))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Advance"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef creplica.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType creplica.ty)))) (Var "r"))))) (Val #())))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType creplica.ty)))) (Var "r"))
+  (Let "$a1" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Clone []))) (Val #())) (Var "$a0"))))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.int))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef CConfig.ty go!"MaxDelay"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))))) (Val #(W64 1))))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))))
+  (Let "$a3" (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (Val #(W64 100))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef CConfig.ty go!"DropPct"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))))))
+  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "m") (Var "$value"))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Advance"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef creplica.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType creplica.ty)))) (Var "r"))))) (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType creplica.ty)))) (Var "r"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Ready.ty))) (Var "rd"))
@@ -909,10 +930,11 @@ noncomputable def Cluster.app.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Var "$oldf") (Val #()))))))))))))))
   (Val #()))))
 
-/-- handleReady persists rd's snapshot, entries and hard state, sends its messages, applies its
-    committed entries (configuration changes), and takes a snapshot when due (as Sim.ready).
+/-- handleReady persists rd's snapshot, entries and hard state, applies its committed entries
+    (configuration changes), and takes a snapshot when due (as Sim.ready); app sends rd's messages
+    after Advance.
 
-    go: concurrent.go:279:19 -/
+    go: concurrent.go:292:19 -/
 noncomputable def Cluster.handleReady.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "r"
@@ -921,7 +943,6 @@ noncomputable def Cluster.handleReady.impl [GooseExts] [GoGlobalContext] : val :
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (Var "c"))
   (Let "rd" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.Ready.ty))) (Var "rd"))
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType creplica.ty)))) (Var "r"))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1051,26 +1072,6 @@ noncomputable def Cluster.handleReady.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Pair (Var "e") (Var "$value")))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "confApplied") (Var "$r0")))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"Messages"))) (Var "rd")))
-  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
-  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType creplica.ty)))) (Var "r"))
-  (Let "$a1" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Clone []))) (Val #())) (Var "$a0"))))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.int))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef CConfig.ty go!"MaxDelay"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))))) (Val #(W64 1))))
-  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))))
-  (Let "$a3" (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (Val #(W64 100))
-  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef CConfig.ty go!"DropPct"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))))))
-  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "m") (Var "$value")))))))))))))
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"HardState"))) (Var "rd"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"HardState"))) (Var "rd")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.IsEmptyHardState []))) (Val #())) (Var "$a0")))) (Val #false))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"HardState"))) (Var "rd")))
@@ -1135,7 +1136,7 @@ noncomputable def Cluster.handleReady.impl [GooseExts] [GoGlobalContext] : val :
 /-- send delivers m from src after delay, or drops it, from a goroutine of its own. The sender is
     told of a drop (ReportUnreachable) and of a snapshot's fate (ReportSnapshot).
 
-    go: concurrent.go:341:19 -/
+    go: concurrent.go:350:19 -/
 noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "src"

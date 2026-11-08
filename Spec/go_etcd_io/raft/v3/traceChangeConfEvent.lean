@@ -24,8 +24,8 @@ reading the logger it converts the change (`cci.AsV2()`, which for a `*ConfChang
 fresh `*ConfChangeV2`), reads its changes (`GetType`, `GetNodeId`) and formats them
 (`strconv.FormatUint`); the change is only read. Under `TraceLoggerOk` (increment 1, `notes/trace-validation-hooks.md`: the logger is nil) no
 event is reported. Until 2026-11-08 the translated build was the no-op one (`state_trace_nop.go`)
-and the spec owned nothing; Draft S4 of `notes/trace-validation-plan.md` widens `TraceLoggerOk`
-to a logger. -/
+and the spec owned nothing; increment 2 (`notes/trace-validation-sim.md`) replaces
+`TraceLoggerOk` by the logger's contract `isTraceLogger γt`, changing this statement. -/
 abbrev traceChangeConfEvent.spec : Prop :=
   ∀ (c : GoInterface) (dq : DFrac) (o : ConfChangeIM) (r : Loc) (tl : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownConfChangeI c dq (some o) ∗

@@ -55,6 +55,24 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   etcd server's `rnStartCfg` gains the field `traceLogger`, so `bootOk` (`NewServer`'s premise on
   `bootstrap`'s result, a premise of an exported result) says it too: true of the code
   (`raftConfig`, `bootstrap.go`, sets no trace logger).
+  Review round 1 of S4 (S6): increment 2 replaces `TraceLoggerOk` by `isTraceLogger γt tl`, an
+  `IProp` with a ghost name, so this premise changes again (inside the triple, `γt` a new binder);
+  whether to take increment 2's shape now is open in `notes/trace-validation-sim.md`.
+- **Q3 (2026-11-08, S4 review round 1): two changes to the harness `Main` runs.** Without them the
+  closed theorem is false: (F1) the harness sent a `Ready`'s messages before `Advance`, and since
+  raft logs the `Ready` only after handing it out (`traceReady` ends `acceptReady`, which runs
+  after the hand-off), a receipt could be logged before its sender's `Ready` line, which the trace
+  specification cannot follow (witnessed by the reviewer with a sleep in the window); now it sends
+  them after `Advance`, which the run loop takes only once `acceptReady` has returned. (F3) Goose's
+  semantics ignores delays, so it allows unboundedly many elections, each appending an entry, and
+  a batch cut by `MaxSizePerMsg` (1 MiB) carries a commit index past its last entry (gap 5): now
+  `MaxSizePerMsg` is unlimited. Both narrow nothing the specification can check (the old send
+  order's extra behaviors are the ones it rejects; an unlimited batch is raft's `noLimit`), and
+  `Main`'s workload is otherwise unchanged. Alternatives: raft's instrumentation changed to log the
+  `Ready` before the hand-off (a fork change beyond the build tags), for F1; none for F3 short of a
+  proof bound on elections. Taken by the agent, pending the user's veto
+  (`examples/raft/tracecheck/concurrent.go`; the tests pass, 10 seeds, and the reviewer's F1
+  witness passes with the change; `nonissues/raft-trace-ready-logged-after-handout.md`).
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
   `traceChangeConfEvent` formats the change's ids (`strconv.FormatUint`) before its nil check, so
   the translated raft calls it even without a logger, and raft's linked results now rest on
@@ -215,7 +233,7 @@ ones) its verdict and failing line equal the Go checker's (and so TLC's), and on
 evaluation-error witness (a commit index past the log) it fails with the same error. Not part of
 the trust argument (the plan's "Trust base"): S6's proof is what ties it to the Go.
 
-## Draft: S4 drafted (2026-11-08), in Review
+## Draft: S4 drafted (2026-11-08), in Review (round 1 done, revision 2)
 
 `notes/trace-validation-sim.md`: the abstraction `α` (a server's variables, the messages, the bags
 as new ghost state with a token per message in flight), the relation's phases (idle, handling a
@@ -223,7 +241,11 @@ received message), determinism line by line, the invariants (two routes), the pr
 increment 2 of the hooks' specs. Found while drafting it: a fifth place where `etcdraft.tla` does
 not fit raft (an append request's commit index, `notes/raft-trace-validation.md`, item 5),
 witnessed with `MaxInflightMsgs: 1`, not reached by `DefaultCConfig`: premise P5, discharged by the
-harness's configuration, the statement unchanged. Review round 1: a fresh `spec-reviewer`.
+harness's configuration, the statement unchanged. Review round 1 (a fresh `spec-reviewer`,
+`notes/trace-validation-reviews/s4-r1.md`): four first-tier findings, two of them making the closed
+theorem false with the harness as it was (Q3), a sixth gap (`notes/raft-trace-validation.md`, item
+6: a voter that knows its term's leader; at most three voters, P9), the bags' phantom replies;
+revision 2 of the note answers each. Round 2 next.
 
 ## Draft: S3 increment 1 done (2026-11-08)
 

@@ -65,9 +65,9 @@ theorem Logger.wp_logf (l : GoInterfaceOk) (meth format : GoString) (args : GoSl
 
 /-- The trace logger's contract (2026-11-08, `notes/trace-validation-hooks.md`, increment 1): for
 now that there is none (`Config.TraceLogger` nil, as every client sets it), so the trace hooks
-(`state_trace.go`, translated under the `goose` tag) return at once. Draft S4 of
-`notes/trace-validation-plan.md` widens it in place to "nil, or a logger whose `TraceEvent`
-meets the trace's contract". A definition, so that the widening changes its body, not the
+(`state_trace.go`, translated under the `goose` tag) return at once. Increment 2
+(`notes/trace-validation-sim.md`) replaces it by `isTraceLogger γt tl`, an `IProp` with a ghost
+name ("nil, or a logger whose `TraceEvent` meets the trace's contract"), which changes the
 statements that carry it. -/
 def TraceLoggerOk (tl : GoInterface) : Prop := tl = interface.nil
 

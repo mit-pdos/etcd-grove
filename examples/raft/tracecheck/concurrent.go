@@ -26,8 +26,11 @@ import (
 //
 // That order is one the trace specification can step through: a replica's events are logged from
 // its run goroutine, one at a time, so in its program order; and a message is logged as sent (in
-// raft's send, on the sender's run goroutine) before the Ready that hands it to the application,
-// so before the network has it, so before its receipt is logged.
+// raft's send, on the sender's run goroutine) before the Ready that hands it out, and the
+// application sends it only after Advance, which the run loop takes after logging that Ready
+// (acceptReady): so the Ready is logged before the network has the message, so before its receipt.
+// (Sending before Advance, as etcd does, lets a receipt be logged before the sender's Ready line,
+// which the trace specification cannot follow: notes/trace-validation-sim.md, round 1's F1.)
 
 // quietLogger discards what raft logs; Fatal and Panic panic.
 type quietLogger struct{}
@@ -158,7 +161,7 @@ func RunConcurrent(cfg CConfig) (*Cluster, error) {
 			ElectionTick:    10,
 			HeartbeatTick:   1,
 			Storage:         st,
-			MaxSizePerMsg:   1 << 20,
+			MaxSizePerMsg:   ^uint64(0), // no limit: a batch cut short carries a commit index past its last entry (notes/raft-trace-validation.md, item 5)
 			MaxInflightMsgs: 256,
 			Logger:          quietLogger{},
 			TraceLogger:     c.rec,
@@ -270,12 +273,22 @@ func (c *Cluster) app(r *creplica) {
 		case rd := <-r.node.Ready():
 			c.handleReady(r, rd)
 			r.node.Advance()
+			// The messages only now: Advance is a hand-off to the node's run loop, which takes it
+			// once acceptReady has returned, so once the Ready is logged (traceReady is
+			// acceptReady's last statement, after the Ready went to this goroutine): a message's
+			// receipt is then logged after the Ready that hands it out, as the trace
+			// specification needs (Ready(i) moves it from pendingMessages to messages).
+			for _, m := range rd.Messages {
+				c.send(r, proto.Clone(m).(*pb.Message), time.Duration(below(int(c.cfg.MaxDelay)+1)),
+					below(100) < c.cfg.DropPct)
+			}
 		}
 	}
 }
 
-// handleReady persists rd's snapshot, entries and hard state, sends its messages, applies its
-// committed entries (configuration changes), and takes a snapshot when due (as Sim.ready).
+// handleReady persists rd's snapshot, entries and hard state, applies its committed entries
+// (configuration changes), and takes a snapshot when due (as Sim.ready); app sends rd's messages
+// after Advance.
 func (c *Cluster) handleReady(r *creplica, rd raft.Ready) {
 	c.Readies.Add(1)
 	if !raft.IsEmptySnap(rd.Snapshot) {
@@ -293,10 +306,6 @@ func (c *Cluster) handleReady(r *creplica, rd raft.Ready) {
 		if err := r.storage.SetHardState(rd.HardState); err != nil {
 			panic(err)
 		}
-	}
-	for _, m := range rd.Messages {
-		c.send(r, proto.Clone(m).(*pb.Message), time.Duration(below(int(c.cfg.MaxDelay)+1)),
-			below(100) < c.cfg.DropPct)
 	}
 	confApplied := false
 	for _, e := range rd.CommittedEntries {

@@ -33163,8 +33163,8 @@ and serve every other `errors.New` variable whose description a proof needs (`et
 Since raft is translated with `state_trace.go` (the `goose` tag, `notes/trace-validation-hooks.md`)
 the eleven hooks have bodies; their specs were "a no-op, owns nothing" (true only of
 `state_trace_nop.go`). Each now takes the field `r.traceLogger`, shared (`↦□`, never written after
-`newRaft`), with `TraceLoggerOk tl` (`InvLogger.lean`: for now `tl = nil`; Draft S4 widens it in
-place to a logger's contract), and owns what the code reads before its nil check:
+`newRaft`), with `TraceLoggerOk tl` (`InvLogger.lean`: for now `tl = nil`; increment 2 replaces it by the logger's contract `isTraceLogger γt tl`, an `IProp`,
+changing the statements that carry it: review round 1's S6, `notes/trace-validation-sim.md`), and owns what the code reads before its nil check:
 `traceReplicate` the entries (`entsPts`, read: `GetType` each), `traceChangeConfEvent` the change
 (`ownConfChangeI`, read: `AsV2`, the changes' getters, `strconv.FormatUint`). Two helpers got specs
 of their own (`traceEvent`, `traceNodeEvent`). Where the field comes from:

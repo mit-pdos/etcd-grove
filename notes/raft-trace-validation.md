@@ -143,15 +143,23 @@ is right in each.
    transcription's verdicts alike (seed 5, line 1011: `MsgApp` `index` 22, `entries` 0, `commit`
    23). The default configuration (256 inflights, 1 MiB messages, 60 proposals) never throttles nor
    cuts a batch.
+6. **A voter that knows its term's leader refuses a vote the specification grants** (found
+   2026-11-08 by the review of Draft S4, witnessed with five voters). Raft's `canVote`
+   (`raft.go:1232-1235`) needs `r.Vote == m.From` or `r.Vote == None && r.lead == None`: a follower
+   that learned the term-`T` leader from its heartbeat without voting refuses a second term-`T`
+   candidate; `HandleRequestVoteRequest` grants (`votedFor = Nil`) and has no `lead`. With three
+   voters it cannot arise (a known leader of `T` had the follower's vote: the other voter is the
+   second candidate, which voted for itself); with five, `Sim` over five `RawNode`s fails at the
+   candidate's receipt of the rejection.
 
 Also met, and avoided by the harness as etcd does: a snapshot without the recipient in its
 configuration, which raft drops (`nonissues/raft-snapshot-without-recipient-livelock.md`) while
 the specification installs it; `FullConfig` snapshots after applying each configuration change.
 
-None of these is a bug in the verified Go code. Items 1, 3, 4 and 5 make upstream's trace validation
+None of these is a bug in the verified Go code. Items 1, 3, 4, 5 and 6 make upstream's trace validation
 unable to check traces with restarts, snapshots to lagging followers, or members removed and
 added back; whether to propose fixes to `etcdraft.tla`/`Traceetcdraft.tla` upstream (3: commit, and
-install, on a snapshot whatever the follower's commit; 4: reset `matchIndex` on removal; 5: send `commitIndex[i]` (the follower already clamps, `AppendEntriesAlreadyDone`); 1: log
+install, on a snapshot whatever the follower's commit; 4: reset `matchIndex` on removal; 5: send `commitIndex[i]` (the follower already clamps, `AppendEntriesAlreadyDone`); 6: add raft's `lead` to the vote condition; 1: log
 `InitState` after `loadState`, or validate a restart's later lines) is open.
 
 ## Raft translated with its trace hooks (2026-11-08)

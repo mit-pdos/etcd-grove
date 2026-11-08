@@ -81,8 +81,8 @@ needs the event's state readable at the four opened sites (S4). An instrumentati
 
 The branch's build is red since the retranslation (the eleven proofs of "a no-op"). First the half
 every existing result uses, which S4 does not change: `traceLogger` persistent in `raftOwn`,
-`isTraceLogger tl` in `ownRaftPhysG` defined for now as `⌜tl = nil⌝` (widened in place by S4 to
-the non-nil contract, `PRINCIPLES.md`: redefine in place), the constructors' premise (Q1), the
+`isTraceLogger tl` in `ownRaftPhysG` defined for now as `⌜tl = nil⌝` (replaced in increment 2 by
+the non-nil contract, an `IProp` with a ghost name: not in place, review round 1's S6), the constructors' premise (Q1), the
 eleven specs (the field and the contract, persistent, and the reads made before the nil check)
 and their call sites. Options considered: the full contract first (blocked on S4's event and
 update), or keeping the specs `True` with an axiom that the field is nil (a trust-base change, no).

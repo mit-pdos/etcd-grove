@@ -24,7 +24,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `traceInitState`: reads `r.traceLogger` and returns when it is nil; otherwise reports `InitState`. Under `TraceLoggerOk` (increment 1, `notes/trace-validation-hooks.md`: the logger is nil) it
 returns at once, owning nothing but the field, shared (`ownRaftPhysC_traceLogger`). Until
 2026-11-08 the translated build was the no-op one (`state_trace_nop.go`) and the spec owned
-nothing; Draft S4 of `notes/trace-validation-plan.md` widens `TraceLoggerOk` to a logger. -/
+nothing; increment 2 (`notes/trace-validation-sim.md`) replaces
+`TraceLoggerOk` by the logger's contract `isTraceLogger γt`, changing this statement. -/
 abbrev traceInitState.spec : Prop :=
   ∀ (r : Loc) (tl : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
