@@ -226,7 +226,7 @@ def mstepL (x : Input) (st : GSt) : GSt × Output :=
 
 /-- `isWrite(in)`: the write kinds, explicitly (stage 7e: a `List` is no write). -/
 def isWriteL (x : Input) : Bool :=
-  decide (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2)
+  (decide (x.Kind' = W64 0)).or ((decide (x.Kind' = W64 1)).or (decide (x.Kind' = W64 2)))
 
 /-- **The driver's model** from the seeded store `st0` (see the file header). -/
 abbrev kSpec (st0 : GSt) : linkv.PendSpec GSt Input Output := ⟨st0, mstepL, isWriteL⟩

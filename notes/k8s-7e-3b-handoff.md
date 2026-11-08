@@ -21,9 +21,10 @@ State for the next agent; read `notes/k8s-7e-3b-plan.md` first.
 
 1. (done) `MDefs.lean`'s `intoVal` injectivity on the new records.
 2. (done) the `decOp`/`Output.Items` design point: option (B).
-3. The function specs/proofs of the non-list model functions (`notFound`, `invalidObj`, `objOut`,
-   `objOf` (new), `preOk`, `sameObj`, `mcreate` (now calls `splitKey`), `mdelete` (`validateFor(has,
-   reject)`), `mupdate`, `mget` (`ETooLarge`), `mstep` (dispatches `KList`), `isWrite`).
+3. (done) the non-list model functions build: `notFound`, `invalidObj`, `objOut`, `preOk`,
+   `sameObj`, `mcreate` (now calls `splitKey`), `mdelete`, `mupdate` (on `updGo`), `mget`
+   (`ETooLarge`), `mstep`, `isWrite`, with `MDefs`, `KSteps`, `ItemList`. Still to write: `objOf`'s
+   spec/proof (new function; `objOfL` exists in `KModel`).
 4. The list functions of the plan's item 4, then `mlist` with the out-of-driver callees as
    hypotheses (81's decision 2).
 
