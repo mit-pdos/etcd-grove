@@ -33421,3 +33421,24 @@ start a server, their `*_adequate`, and `etcdstart`'s generic adequacy theorems 
 **Not covered:** the restart bundle (`memberRestartRes`) does not carry `envVerifyOff`; the restart
 contract, which now takes it, is applied by no proof (DRAFT, R2d'b's): R2d'b gives it from the
 member's start bundle.
+
+## The fork's `purgeFile` keeps `.snap.db` files (F1) (2026-11-08 · sweep repairs 1, R1-3a; the user's option A via etcd-grove-82 · branch `sweep-repairs-1`)
+
+**The defect** (`nonissues/etcd-purge-snapdb-unopened.md`, `/shared/tmp/sweep-repairs-1/f1.md`):
+`EtcdServer.purgeFile`'s trust-boundary triple (post `True`, no resource) was false next to the
+snapshot directory's invariant `snapDirInv`: the purge deleted the oldest `.snap.db` files beyond
+five, which `snapDirInv` keeps (`backend.fileHolds`) until their removal facts, so `applySnapshot`'s
+open, proved not to fail, could fail (20 of 20 runs of the counterexample at 673da07c8).
+
+**The repair** (option A): the fork's `purgeFile` no longer purges `.snap.db` files
+(upamanyus/etcd@a4d2bb172 on `goose-lean`, pushed by the user 2026-11-08); `ReleaseSnapDBs` (through
+`storage.Release`) already removes the ones below an opened or taken snapshot. The etcd project is
+re-translated at that pin (`etc/goose.py`; only `Code/.../etcdserver.lean` changes: `maxSnapDBFiles`
+gone, line numbers), and the examples' `go.mod` replaces (`examples`, `examples/k8s/{compactor,etcd3}`)
+move to it; `goose.py --check` passes. `purgeFile.spec`'s text is unchanged (its docstring no longer
+says it purges snapshots); its WAL half is W1's.
+
+**Split from R1-3** (for etcd-grove-81): W1 (`walPurgeRight` through `purgeFile`, `Start`, `run`'s
+shutdown, `raftNode.stop`/`onStop`: a new invariant and `goWaited`'s split, about 300-400 lines) is
+R1-3b; L3 (`adjustTicks`/`purgeFile` take `srvLoggerOk s`) needs `srvLoggerOk`, whose producer is the
+server invariants' `zapLoggerOk` (LG-2), so it moves to LG-2.
