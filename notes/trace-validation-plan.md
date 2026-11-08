@@ -215,6 +215,16 @@ ones) its verdict and failing line equal the Go checker's (and so TLC's), and on
 evaluation-error witness (a commit index past the log) it fails with the same error. Not part of
 the trust argument (the plan's "Trust base"): S6's proof is what ties it to the Go.
 
+## Draft: S4 drafted (2026-11-08), in Review
+
+`notes/trace-validation-sim.md`: the abstraction `α` (a server's variables, the messages, the bags
+as new ghost state with a token per message in flight), the relation's phases (idle, handling a
+received message), determinism line by line, the invariants (two routes), the premises P1-P7 and
+increment 2 of the hooks' specs. Found while drafting it: a fifth place where `etcdraft.tla` does
+not fit raft (an append request's commit index, `notes/raft-trace-validation.md`, item 5),
+witnessed with `MaxInflightMsgs: 1`, not reached by `DefaultCConfig`: premise P5, discharged by the
+harness's configuration, the statement unchanged. Review round 1: a fresh `spec-reviewer`.
+
 ## Draft: S3 increment 1 done (2026-11-08)
 
 The hooks' design, its open points (the call sites, the update's ghost: settled with S4) and

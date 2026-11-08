@@ -132,15 +132,26 @@ is right in each.
    member added back starts at `Match` 0, so a heartbeat to it carries commit `min(Match,
    committed) = 0`; the specification keeps `matchIndex[i][j]` from before the removal and
    expects `Min(commitIndex[i], matchIndex[i][j])`.
+5. **An append request's commit index is not clamped to what it carries** (found 2026-11-08 by
+   Draft S4's case analysis, then witnessed). `AppendEntriesInRangeToPeer` sends
+   `mcommitIndex = Min(commitIndex[i], lastEntry)`, `lastEntry` the last index the request carries;
+   raft's `maybeSendAppend` sends `Commit: r.raftLog.committed` whatever it carries (the follower
+   clamps it, `min(m.Commit, lastnewi)`). They differ when the request stops short of the leader's
+   commit index: an empty `MsgApp` of a throttled `StateReplicate` (`Inflights.Full()`) to a
+   follower behind the commit index, or a batch cut by `MaxSizePerMsg`. The concurrent harness with
+   `MaxInflightMsgs: 1` (a scratch copy, not committed) fails on 2 of 6 seeds, TLC's and the
+   transcription's verdicts alike (seed 5, line 1011: `MsgApp` `index` 22, `entries` 0, `commit`
+   23). The default configuration (256 inflights, 1 MiB messages, 60 proposals) never throttles nor
+   cuts a batch.
 
 Also met, and avoided by the harness as etcd does: a snapshot without the recipient in its
 configuration, which raft drops (`nonissues/raft-snapshot-without-recipient-livelock.md`) while
 the specification installs it; `FullConfig` snapshots after applying each configuration change.
 
-None of these is a bug in the verified Go code. Items 1, 3 and 4 make upstream's trace validation
+None of these is a bug in the verified Go code. Items 1, 3, 4 and 5 make upstream's trace validation
 unable to check traces with restarts, snapshots to lagging followers, or members removed and
 added back; whether to propose fixes to `etcdraft.tla`/`Traceetcdraft.tla` upstream (3: commit, and
-install, on a snapshot whatever the follower's commit; 4: reset `matchIndex` on removal; 1: log
+install, on a snapshot whatever the follower's commit; 4: reset `matchIndex` on removal; 5: send `commitIndex[i]` (the follower already clamps, `AppendEntriesAlreadyDone`); 1: log
 `InitState` after `loadState`, or validate a restart's later lines) is open.
 
 ## Raft translated with its trace hooks (2026-11-08)
