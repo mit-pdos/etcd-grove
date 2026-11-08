@@ -142,8 +142,8 @@ variable [GoSemanticsFunctions] [GoGlobalContext]
 def predV (x : Input) : k8s_io.apiserver.pkg.storage.SelectionPredicate :=
   ⟨interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel.ty #(labelSelL x),
     interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel.ty #(fieldSelForL x),
-    functions github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getAttrs [], zeroValDef, zeroValDef,
-    x.Limit', zeroValDef, zeroValDef, zeroValDef⟩
+    functions github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getAttrs [], slice.nil, slice.nil,
+    x.Limit', [], false, GoInterface.nil⟩
 
 /-- `listOptions(in)`: a list's `storage.ListOptions`. -/
 def listOptsV (x : Input) : k8s_io.apiserver.pkg.storage.ListOptions :=

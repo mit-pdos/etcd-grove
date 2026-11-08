@@ -34,7 +34,8 @@ theorem listOptions.wp_proof
   wp_auto
   wp_apply wp_matchOpt
   wp_apply wp_predicate
-  wp_auto
+  (try wp_auto)
+  rw [show listOptsV x = ⟨x.MinRV', matchOptL x, predV x, x.Recursive', false, null, false⟩ from rfl]
   iapply HΦ; itrivial
 
 end proof

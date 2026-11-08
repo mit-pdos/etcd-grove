@@ -31,7 +31,8 @@ theorem predicate.wp_proof
   wp_start as -
   wp_auto
   wp_apply wp_fieldSelFor
-  wp_auto
+  (try wp_auto)
+  unfold predV labelSelL
   iapply HΦ; itrivial
 
 end proof

@@ -31,11 +31,13 @@ State for the next agent; read `notes/k8s-7e-3b-plan.md` first. Scratch: `/share
   existing axiom), `matchOpt`, `fieldSelFor`, `histLen`, `appendHist`, `advance` (premise
   `hist+1 < 2^64`), `histAt` (premise `len < 2^64`), `histOf`, `histEqual`, `configEqual` (now
   with `histEqual`), `encodeItems` (slice read-only), `outEqual`.
-- Written, being checked when the context ran out: `predicate`, `listOptions` (proofs short;
-  check the value `predV` matches what `wp_auto` computes: interface conversion of the selector
-  struct values and `functions getAttrs []`), the two hypothesis specs
+- Also proved: `predicate`, `listOptions` (`predV`/`listOptsV` in `KList`). Built (targeted lake
+  build, 2026-11-08): the two hypothesis specs
   `Spec/k8s_io/apiserver/pkg/storage/{SelectionPredicate__Matches,PrepareContinueToken}.lean`
-  (driver-specialized; for 7e-2's Draft), and `mlist`'s spec (proof: `sorry`).
+  (driver-specialized; for 7e-2's Draft) and `mlist`'s spec; `mlist`'s proof is a `sorry`
+  skeleton with its hypotheses listed.
+- Not yet redone (break on the new `cfgOwn`/`GCfg`, expected): `step`, `closure`, `Model`, maybe
+  `addConfig`; and the 7e-4 files (`Refine`, `Inv*`, `Model.lean`, `Seed`, `Apply`, `Check`, ...).
 
 ## The `k8setcd3S` change (Q7e-3b-1), old -> new (for the report to 81)
 
@@ -47,17 +49,16 @@ State for the next agent; read `notes/k8s-7e-3b-plan.md` first. Scratch: `/share
 
 ## Next, in order
 
-1. Finish checking `predicate`, `listOptions`, the hypothesis specs, `mlist.spec` (build them).
-2. `mlist`'s proof: `parseRV`, the too-large test, `pastRead`/`histAt` (from `cfgOwn`'s history),
+1. `mlist`'s proof: `parseRV`, the too-large test, `pastRead`/`histAt` (from `cfgOwn`'s history),
    `predicate` (store into a local: `Matches` takes `pp ↦ predV x`), the range loop over
    `st.items` with invariant "state = `ListModel.loop` on `scopeL x (take j items)`" (`items`
    slice owned, appended: reversed `s.items`), `PrepareKey` (`prepareKeyM`), `PrepareContinueToken`,
    `encodeItems` (persist the items slice), the output literal vs `listOutL`. The spec's premise
    bounds counts (`< 2^62`); adjust if the loop needs others.
-3. `step` (list branch: `outEqual`/`mlist`; others `advance`), `closure` (`advance` + `kstepL_write`
+2. `step` (list branch: `outEqual`/`mlist`; others `advance`), `closure` (`advance` + `kstepL_write`
    via `Bounded`'s pending-writes fact), `Model` (`h0 []mstore` -> `histOf`; `Model.spec` takes
    the seeded history and `g0 : HSt`), `addConfig` (check it still builds).
-4. Optional per the plan: the remaining selector methods and `getAttrs` (they are what proves the
+3. Optional per the plan: the remaining selector methods and `getAttrs` (they are what proves the
    `Matches` hypothesis in 7e-2).
-5. Report to 81 (7e-3b complete): the `k8setcd3S` change above, the two hypothesis statements,
+4. Report to 81 (7e-3b complete): the `k8setcd3S` change above, the two hypothesis statements,
    the 7f fields.
