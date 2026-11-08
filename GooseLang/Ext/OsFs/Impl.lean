@@ -25,7 +25,13 @@ page-aligned).
 * *Misuse is stuck* (D6): a closed, forged or wrong-mode fd, an unsupported flag, `PROT_WRITE`,
   a nonzero `mmap` offset, a `munmap` of anything but a whole mapping, a negative offset.
 * *Environmental failure is a nondeterministic errno*: every operation that makes a system call
-  may fail with any nonzero errno. On failure, `Open`, `ftruncate` and `Munmap` may or may not
+  may fail with any nonzero errno. (An open gap, 2026-11-07, the review of `os-init-lean`: not
+  every environmental failure is an errno in Go. The first file `os` opens (`os.OpenFile` →
+  `newFile`) starts the runtime's netpoller; if its `epoll_create1` or `eventfd` fails, e.g. for
+  lack of file descriptors (`ulimit -n` 5 or 6 with soft = hard), Go dies with `fatal error:
+  runtime: netpollinit failed`, which no model here has: the model's `Open` returns a file or an
+  errno, so a program that opens a file has a proof though Go may die at that call. A fatal error
+  is not a panic a proof could exclude; the model would need a run-ending outcome there.) On failure, `Open`, `ftruncate` and `Munmap` may or may not
   have had their effect; a failed `pread` read a prefix; a failed `pwrite` wrote a prefix (as
   `generic_perform_write` does, and Go's loop reports), except that a `pwrite` within one aligned
   OS page (`off % osPageSize = 0`, at most `osPageSize` bytes) wrote all of it or nothing (bbolt

@@ -33090,6 +33090,7 @@ left for the next round.
 ## R2d: the split R2d / R2d' / R2e; the window form; the WAL snapshot's certificate (2026-11-06 · Q13 (a), Q14 (a), Q15 (c), decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
 
 *Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): the window form (Q13 (a)) is not in R2d; it moved to R2d' (branch `r2d-prime`, tag `r2d-freeze1`). Q14's certificate and the split stay.*
+*Superseded in part (2026-11-06, "R2d': the restart window as a restart point over Go's log"): the window form over the lists `W`/`D` is replaced by the restart point `rp = ⟨b, A₀⟩` over Go's log (H1 (a)); the definitional-reduction and first-start-law choices carry over to it.*
 
 **The split supersedes the R2d Scope's S1 (B)** (`notes/restart-plan.md`, "R2d Scope", S1: R2d to
 carry `run` at a restart *and* the constructors `NewStore`/`NewServer` over both boots). S1's (B) is
@@ -33184,6 +33185,7 @@ send's length argument, where the window is over (Go's log is the ghost log).
 ## R2d restaged: the restart's prerequisites; `run` and `NewServer` at a restart move to R2d' (2026-11-06 · Q20, decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
 
 *Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): the window-form apply chain (Q13, Q19, F2, F4, finding 6) and the assumptions `winNoConf`/`winNoMergedSend` moved from R2d to R2d'.*
+*Superseded in part (2026-11-06, "R2d': the restart window as a restart point over Go's log"): its R2d' list is reorganized as R2d'a (`run` at a restart, the hub edit) and R2d'b (`NewServer` at a restart), each with its own Freeze.*
 
 **Supersedes in part "R2d: the split R2d / R2d' / R2e"** (above: R2d carried `run` at a restart) and
 Q18's Freeze split. R2d-2's probe extension stopped at `isServerRunC`'s `Hsnap`, a first start's
@@ -33207,6 +33209,7 @@ extra strength is stated with its cost (`questions.md`, the assumptions list).
 ## R2d Freeze 1 review: the repairs; HS1 and the stop slot's weakening moved out of R2d (2026-11-06 · the Freeze 1 review's F1, F4-F7 decided by the agent, pending the user's review, under etcd-grove-82's delegation; the held items (finding 2's revert, HS1 to R2d', narrowing `winNoMergedSend`) decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
 
 *Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): F1 (`winNoConf`), the window list laws of F7, the narrowed `winNoMergedSend` and its hub conjunct (`srvMemberIDAddr s ↦□ γm.id` in `isServerApplyAll`/`srvApplyAllBuilt`) moved to R2d' with the window form; F5's `wal.stopImage`, F7's `srvSnapsReg` laws and F4's `restartNames` stay.*
+*Superseded in part (2026-11-06, "R2d': the restart window as a restart point over Go's log"): F1's `winNoConf` premise is discharged, not carried (H3 (a)); F2's supply of `winNoMergedSend` ("no `MsgSnap` from this member from its restart term on") is a wand under a "window pending" token instead (H6 (a)), no wider than the frozen premise.*
 
 **Supersedes in part** "R2s: snapshots across windows; …" (above: its finding 2, the stop's WAL slot
 without `i ≤ σ.commit`, is reverted: `wal.stopImage` keeps `σ.b ≤ i ≤ σ.commit`, which
@@ -33283,6 +33286,70 @@ is kept. R2d then has no DRAFT `sorry`, no trust change and no hub change.
 rework anyway; R2d' must design `run`'s window over the same definitions. **The lesson:** the window
 failed three probes when designed from the apply chain upward; R2d' designs it from `run`'s window
 downward, with a probe through `run`'s restart batch before any spec is frozen.
+
+## R2d': the restart window as a restart point over Go's log (2026-11-06 · the R2d' Scope's design and H1 (a), H2 (a), H3 (a), H4 V1, H5 (a), H6 (a), H7 (a), H8 (a), H9, H10, decided by etcd-grove-82 under the user's delegation (user offline), 2026-11-06, pending the user's review · branch `r2dp`)
+
+**Supersedes in part** "R2d: the split R2d / R2d' / R2e; the window form; …" (its window form over
+the lists `W`/`D`, Q13 (a)), "R2d restaged" (its R2d' list, now R2d'a/R2d'b) and "R2d Freeze 1
+review" (F1's `winNoConf` premise, discharged here; F2's supply of `winNoMergedSend`, now a wand under
+a window token, H6 (a)). The plan: `notes/restart-plan.md`, "R2d' Scope (approved 2026-11-06)"
+(in full, `/shared/tmp/r2d-prime-scope.md`).
+
+**Decision (H1 (a)).** The window is represented by the **restart point** `rp = ⟨b, A₀⟩` (Go's start
+index `σ.b` and the backend's ghost log through the consistent index `i`) and **Go's log** `G` as the
+specs' log. The ghost log is derived, `ghostOf rp G = G ++ A₀.drop |G|`, and so are the pending and
+done replays; Go's rows keep lean's text, only the ghost rows move to `ghostOf`, and the rest row is
+`srvRestR`. This replaces `r2d-window-full`'s `W`/`D` lists and their premises (`winOk`, `winAgree`,
+`winDone`, F2), which follow from the committed log's uniqueness and `ciJ`. With it: the replay is
+per entry, a `v3 = false` case of `applyEntryNormal.spec` and of `applyConfChange.spec` (H2 (a), one
+spec with a case, as `setAppliedIndex`'s `rep`); `winNoConf` is discharged by that case and the pure
+`restReplay_close` over the static-membership facts every closed theorem already rests on (H3 (a));
+the driver's view is over the ghost log on the raft loop's side too (H4 V1, finding 1); an install in
+a window rests on a carried `winInstallAbove` (H5 (a), finding 2) and the merged-send exclusion on a
+wand under a "window pending" token (H6 (a)); both are restart-only, and R2s discharges them.
+
+**Why.**
+- *Three probes failed when the window was designed upward*, from the apply chain (Q13, Q16/Q18,
+  Q21): each callee's window form fixed a bookkeeping the next caller up could not supply. Designing
+  from `run`'s loop, which is indexed by Go's log (as `RunWindow.lean` on `r2d-prime` already is),
+  makes every callee take Go's log as its log.
+- *Q21's two findings cannot arise.* (1) A replayed normal entry had no triple, because the spec
+  stepped the ghost at the ghost index; here the replay is a step at Go's index with the ghost
+  unchanged. (2) The closing identity `restReplay γr A D = restModel …` was false for a conf change
+  in `D`, and `winOk` allowed `W = []` with `D ≠ []`; here `D` is `G.drop b`, a function of Go's index,
+  so that case cannot be stated, and the identity is over a suffix of the committed log, where it
+  holds for conf changes too.
+- *Batches straddle `i`.* Raft's `MaxCommittedSizePerReady` splits the first committed entries, so a
+  batch can hold replays and new entries; a separate replay spec family for `apply`/`applyEntries`/
+  `applyAll` (H1 (c)) cannot be used, and `W`/`D` with Q21's repairs (H1 (b)) keeps the bookkeeping
+  that broke.
+- Go's rows at lean's text make Q16 (1), F4 and finding 6 disappear as changes.
+
+**Staging (H8 (a), H9).** R2d'a (`run` at a restart, the hub edit) then R2d'b (`NewServer` at a
+restart), each with its own Freeze; only the probe and R2d'a are committed now. The probe (a first
+batch straddling `i`, with a replayed conf entry, through `run`'s job and the view's round trip) runs
+before any statement is frozen; on a gap it stops with a proposal and nothing is frozen. R2d'b starts
+after the user's review, or after R2d'a's Freeze if the user is still away (82 decides then): the
+estimate went from 5-7 weeks to 10-14 (est.).
+
+## `errDesc` in a module of its own (2026-11-06 · k8s etcd3 7c-2 part 2, N1b; approved by etcd-grove-82 under the user's delegation, pending the user's review · branch `k8s-etcd3-7c`; DRAFT until 7c-2 part 2's Freeze)
+
+`fmt.ErrorfWrap`'s post now states the returned error's gRPC description, `⌜pre <+: errDesc (ok
+err)⌝` (N1b). It is stated of the error the call returns. As a law of every `errorfWrapIs` error it
+would be inconsistent, because an `Error()` that loops meets `wrapErrIs` at every `pre`. N1a gives
+the `Error()` string; N1b gives what a client sees. The two cannot be equated after the fact,
+because two WP facts about one call do not combine into an equality.
+
+**Layering.** A spec of `fmt` now names gRPC's `errDesc`. `errDesc` was declared in
+`Proof/go_etcd_io/etcd/cache/v3/Base.lean`, which imports `Spec.fmt.ErrorfWrap`. It therefore
+moved, with the same name, namespace and docstring, to
+`Proof/google_golang_org/grpc/status/ErrDesc.lean`. That module imports only
+`Perennial.GooseLang.Lang`, and `fmt`'s spec imports it.
+
+The dependency is deliberate. Do not move `errDesc` back into the cache's `Base`, and do not make
+`ErrDesc.lean` import gRPC's facts: either one would put a cycle under `Spec/fmt`. The description
+is an opaque function of the error value (D29), so a declaration with no facts is all a spec in
+another package needs.
 
 ## The revocation's thread levels: a confined level bound, two bundled pools, `GoAttach` by levels (2026-11-06 · revoke-open, the Scope approved as recommended (Q1 (a2), Q2 K = 4, Q3–Q8, Q10, Q11) by etcd-grove-82 under the user's delegation · branch `revoke-open`; DRAFT until revoke-open's Freeze)
 
@@ -33434,3 +33501,170 @@ contracts drop `threadTok` wherever it paid only for those slots (a weaker preco
 specs); the server stocks reader tokens per request slot as on `lean`. No change to the gRPC model
 and no closed theorem changes. `grpc.serve`'s older "at most `n` runs at a time", which grpc-go
 does not enforce (the same review; `notes/audit.md` marks it suspect), is unchanged and out of scope.
+**As built (2026-11-06, branch `fromerror-stable`, etcd-grove-56).**
+- `errorStringSpec` itself stays "some string": it is `fmt.stringMethodSpec e "Error"` by `rfl`, and
+  the printing paths (the cache's `validate*`, the `fmt.Errorf` specs) need nothing more. The
+  stable form is a new persistent predicate, `errorMsgIs e m := □ ∀ Φ, ▷ Φ #m -∗ WP e.Error()`, with
+  the law `errorMsgIs_errorStringSpec`. `statusErrOk` now holds `∃ m, errorMsgIs e m`.
+- `grpcErrMethodsOk`: `GRPCStatus()` returns one fixed `*Status`, which grpc never mutates, and `Is(target)`
+  answers `true` only when `errDesc (ok e) = errDesc target`. That last clause fixes a second,
+  independent flaw: an `Is` that always answers `true` refuted `errors.IsStatusErr`'s post even with
+  a constant `Error()` (`examples/axiomcx/flipdesc`'s `MainIs`, branch `axiom/is-desc`
+  `1ae8b405e4`, `notes/axiom-review/is-desc.md` there).
+- `status.FromError.spec`'s new conjunct is
+  `□ ∀ e m, ⌜ok = false ∧ err = ok e⌝ → errorMsgIs e m -∗ ⌜errDesc err = m⌝`: any `m` that `Error()`
+  stably returns is the description.
+- The same stable form is used by:
+  - the server's `errMsgOk`, and through it `errVarLeaf`, `ctxDeadlineLeaf` and the premise class
+    `ContextReadErrs`;
+  - auth's `authErrVar` and lease's `leaseErrVar`;
+  - `bcrypt.GenerateFromPassword`'s error;
+  - `fmt.modelErrIs`. Go's `wrapErrIs` already had it.
+- `v3rpc.msgErrVar` takes `errorStringSpec`, since the watch server only prints its errors. The
+  lemma `errMsgOk_of_errorStringSpec`, which is false under the new `errMsgOk`, is deleted.
+- Re-attacks: both counterexamples replayed onto the branch fail.
+  - flipdesc's `Main` is stuck at `∃ m, errorMsgIs flipErr m`.
+  - `MainIs` is stuck at `errDesc (alwaysIs) = errDesc target`.
+- Gate: `etc/errdesc-check.py` (in `etc/gates.sh`) lists every trusted statement that names the
+  description, the code or the stability predicates, with why it is true of Go. A new one fails
+  until it is reviewed.
+- A caveat, recorded and not fixed. `errDesc` and `statusCode` are fixed Lean functions of the
+  error value, which for a pointer error includes its location. Within one execution this agrees
+  with Go: locations are not reused, and the premise makes the methods stable. Across executions
+  one location can hold another error. So the axiom is justified per execution, not as one triple
+  over all executions. `notes/audit.md`'s `withtimeout-md` row records the same kind of caveat for
+  `outgoingOf`. The fully semantic version would be a ghost agreement map in place of `errDesc`,
+  a redesign of D29.
+- Closed theorems: their text is unchanged (no `Results`/`Adequacy` file in the diff). Their
+  premise class `ContextReadErrs` is stronger: context's two errors have a stable `Error()`, which
+  is true of Go (an `errors.New` cell, and a constant). The trust base is unchanged: 817 axioms,
+  4 `sorry`s, and every collection the same.
+
+---
+
+## bbolt's read transactions and the backend's snapshots pay for their reader slot (2026-11-06 · the user's decision via etcd-grove-82 · stage `begin-tok`)
+
+`bbolt.DB.Begin_kv.wp_proof` (with `Open_kv`, `DB.Close_kv`, `Tx.Rollback_kv`) is refuted
+(`notes/axiom-review/backend-snapshot-begin.md`): a read transaction holds one of `db.mmaplock`'s
+reader slots, and the axioms let a program hold `2 ^ 30` of them from one goroutine, after which
+`Close` and a `Rollback` reach Go's `RUnlock` fatal; `backend.backend.Snapshot.wp_proof` has the same
+gap. Rule: a trust-boundary spec of an operation that holds a lock's reader slot past its return
+charges for it, as the proved specs do (a `threadTok`, or a slot of the owner's pool, held by the
+object and given back by its close); "the verified code never gets near `2 ^ 30`" is an argument
+outside the logic, not a reason to leave a slot unpaid. The fix (D1 of
+`notes/bbolt-spec-decisions.md`): read transactions through bbolt's proved `DB.Begin.spec`, or, where
+that is impractical, `Begin_kv`'s read half takes a `threadTok` held by the transaction and returned
+by `Rollback_kv`; `backend.Snapshot` takes a `threadTok` until `snapshot.Close`. Accepted when the
+counterexample `axiomcx/bboltrd` no longer verifies.
+
+
+## `Range`'s read errors through gRPC: `KVAns.errP`, `rangeErrDesc`, the two Range premises, `handlerDescs` filled (2026-11-06 · k8s etcd3 7c-2 part 2, S4-S7; the S6 route (a premise for refused checks, `□ ∀ d, Ψe d` with auth on) approved by etcd-grove-82 under the user's delegation, pending the user's review; the rest decided by the agent · branch `k8s-etcd3-7c`; DRAFT until 7c-2 part 2's Freeze)
+
+What a failed `Range` tells its caller, from mvcc's two read errors to the client's error outcome.
+
+- **S4, the answer's error description** (`InvKV.lean`). `KVAns` gains `errP : KVReq → GoString →
+  Prop` (default `True`): what the request's errors' `Error()` returns (`errMsgP`). `kvAnswer`'s
+  error carries it, and `kvOut`'s error goes out through `grpcErrOut (A.errP q)`: a pass-through
+  context error, a mapped one, or one whose description satisfies `errP`. The server's answer
+  (`srvKVAnsM`) sets `errP (.range _) := rangeErrMsgOk` (neither read error's gRPC description) and
+  `True` for the other requests. The Range producer proves it from `rangeErrOut`'s cases
+  (`errMsgP_of_rangeErrOut`: mvcc's two variables, auth's, the read index's, `rangeKeys`' `%w`
+  error, whose `Error()` now has the prefix `"rangeKeys: context cancelled: "`, `mvcc.rangeKeysErr`).
+- **S5, what the gRPC error says** (`ReadOn.lean`, `rangeErrDesc`): with the future revision's
+  gRPC description, `Range`'s error was mvcc's `ErrFutureRev`, with the read's facts at it
+  (`rangeErrAt`); likewise the compacted one. `range_end_to_endM`'s error post gives it
+  (`rangeErrDesc_of_grpcErrOut`, from `grpcErrMapOk`'s two descriptions, G2-a).
+- **S6, the client's spec** (`KVServiceOn.lean`). `etcdRangeSpecM` gains two premises:
+  `⌜v3rpc.rangeCheck o ≠ none⌝ -∗ □ ∀ d, Ψe d` (a request the check refuses fails with no
+  information) and the two wands `rangeErrReply … (rangeFutureAt o) -∗ Ψe futureRevDesc`,
+  `… (rangeCompactedAt o) -∗ Ψe compactedDesc`, `rangeErrReply` being `rangeReplyOk`'s facts of the
+  log read without a reply. `etcdRangeSpecOn` (auth on) gains `□ ∀ d, Ψe d`, as the other auth-on
+  KV specs (HS-4). The route proved over the alternative of trusting the check's errors' descriptions:
+  no trust growth.
+- **S7, `handlerDescs := [futureRevDesc, compactedDesc]`** (`InvGrpc.lean`). `handlerErr_none` is
+  gone: `handlerErr_nil` at a success, `handlerErr_all` from a spec's `□ ∀ d, Ψe d`. The trusted
+  `grpcDecOk` and `srvInterceptorOk` now say their errors carry neither description; the
+  interceptor's four errors are proved so from `rpctypes`' descriptions (`interceptorErrsNotRead`),
+  the client's context errors from `ContextReadErrs.descs` (`ErrorsNewOk`, `chanCtx_ok`, which now
+  takes the instance, as do the k8s compactor proofs and the k8s etcd3 Links: `etc/gen-link.py`'s
+  `LC_EXTRA_VARS`; `k8s_etcd3_safe` already took it, `Hctx`).
+
+**Follow-up (after 7c, not done): an `*errors.errorString`'s description is its text.** The
+mvcc-desc attack (`notes/axiom-review/mvcc-desc-g2a.md`, "Suggestion") proposes one general fact,
+`errDesc (interface.mkOk (PointerType errorString.ty) #x) = msg` given `x`'s cell holds `msg` (true
+by `status.FromError`'s fallback for an error without `GRPCStatus`), the analogue of
+`rpctypes.errDesc_etcdError`. It is not Perennial's: `errDesc` and the `FromError` boundary are this
+repository's (`Proof/google_golang_org/grpc/status/ErrDesc.lean`,
+`Spec/google_golang_org/grpc/status/FromError.lean`), so it would be stated next to them, not in
+`notes/perennial-changes.md`. It would replace the per-variable conjuncts:
+- `grpcErrMapOk`'s `errDesc kf = "mvcc: required revision is a future revision"` and `errDesc kc =
+  "mvcc: required revision has been compacted"` (`v3rpc/Base.lean`, asserted by
+  `toGRPCErrorMap_init`'s axiom; derivable from mvcc's `errVarCell`s);
+- `ContextReadErrs.descs`'s `context.Canceled` half (`read/Init.lean`; `DeadlineExceeded` is a
+  struct, not an `*errorString`, and keeps its conjunct), and so `v3rpc.ctxErrDescs`'s;
+and serve every other `errors.New` variable whose description a proof needs (`etcdserver/errors`,
+`auth`, `lease`). Same trust, one statement instead of one per variable.
+
+## R2d'a's disclosure corrected (2026-11-07 · the user's decision "correct now, fix in R2d'b" via etcd-grove-82 · branch `r2da-correct`)
+
+**What was claimed.** R2d'a (tag `r2dpa-frozen`) made `run.spec` and the apply chain's frozen names
+mean a restart at `σ.b = 0`, under eight restart-only premises (`notes/restart-plan.md`, "R2d'a
+restart-only premises"). Its disclosure (STATUS, the table, `run.spec`'s and the hubs' docstrings)
+said: `Hwpend` (`srvWinPend`, `InvRun.lean:57`) is "false of some default-flag Go runs (replays over
+1 MB with a mid-replay election); R2s removes it", and rows 2-8 are true of Go and "discharged by
+R2d'b"; row 3 (`rnWalCommitAbove`, `InvRaftNode.lean:393`) in particular "true of Go: ... the commit
+raft writes only grows".
+
+**What is true** (`notes/r2db-scope.md` §10 on branch `r2db`, which gives the runs with their Go
+file:lines at raft `565c2bd` and etcd `673da07c8`):
+- **Row 3 is false at the start of almost every restart after a quiet stop.** Its `□ ∀ S σ,
+  raftState S -∗ ⌜StorageHolds S σ⌝ -∗ ⌜|a0| ≤ σ.commit⌝` quantifies over every `σ` that
+  `StorageHolds` allows, and `StorageHolds` allows `σ.commit = S.wcommit` (`NodeApiVocab.lean:155`);
+  `wcommit` is the commit of the last batch that wrote entries, kept by a commit-only batch
+  (`RaftState.next`, `Protocol/RaftState.lean:71`). The run: a `Ready` saves entries through `k` with
+  commit `c1 < k` (`server/etcdserver/raft.go:264`); the commit moves to `k` in a batch with no
+  entries (a heartbeat's `commitTo`, `raft.go:1850-1851`/`log.go:322-330`, or the leader's
+  `maybeCommit`, `raft.go:793`); the apply thread applies through `k`; the member stops and restarts
+  (`bootstrap.go:597`), and `RestartNode.spec` leaves `S` unchanged. The start owns `raftState S`
+  with `S.wcommit = c1 < k = |a0|`, so taking `σ.commit = c1` refutes the premise: the restart triple
+  is vacuous on the run.
+- **`Hwpend` is false of every restarted run (`A₀ ≠ []`) in which the member is later elected, at any
+  term above its restored term and at any time in the incarnation, and snapshots a follower.** Its
+  `n` is universally quantified, so `n = 0 < |a0|` meets the window guard; `rnRtOk γn T 0` holds once
+  the new leader's empty entry is committed at `T` (`becomeCandidate`/`becomeLeader`, `raft.go:920,
+  951, 979`); the token is never consumed (`run`'s loop invariant keeps it,
+  `EtcdServer__run.lean:1181-1459`). A lagging follower gets a `MsgSnap` at `T`
+  (`maybeSendSnapshot`, `raft.go:666,689`), diverted to `msgSnapC`
+  (`server/etcdserver/raft.go:390-396`) and merged (`server.go:1010,1019`), where the proof holds
+  every premise of the wand and its conclusion `Term' ≠ T` is false. The "replays over 1 MB with a
+  mid-replay election" runs are a small part of these: the docstring's "while raft is still handing
+  out the replay" is not in the text.
+- **Rows 2 and 4 are true of Go but not derivable from raft's API.** Row 2 after a graceful stop;
+  after a crash the commit-only WAL record can be lost (`server/storage/wal/wal.go:1047,1064`, sync
+  only on `MustSync`), and whether a leader can then pick a snapshot index in `(c1, |A₀|]` is open.
+  Row 4 needs a per-incarnation law raft's API does not have (`reset` does not clear `r.msgs`).
+- Rows 5-8 are R2d'b's as stated. A first start (`a0 = []`) is unaffected (each premise is proved or
+  vacuous there), and no closed theorem carries any of the eight.
+
+**The decision** (the user, 2026-11-07, via etcd-grove-82): **correct now, fix in R2d'b.** The
+disclosure is corrected in STATUS ("R2d'a: a restart at σ.b = 0"), the premise table (with a note
+under it) and the docstrings (`run.spec`, the six hubs' `Hwpend` comments, `srvWinPend`,
+`rnWalCommitAbove`); no statement changes. R2d'b restates row 3 inside the raft loop's invariant
+(Q31: a fact about the restored `σ`'s commit, or the loop fact `rnRestartOk_commit` needs), restates
+`Hwpend` with `n` tied to the batch being applied (the apply thread's `ep.appliedi`) and the token
+consumed when the window closes, and derives rows 2 and 4. R2s still removes `Hwpend`.
+
+**Root cause.** The premises were checked against Go by probes (`notes/restart-probe/`) and on paper
+against the story each was meant to tell ("the WAL's commit only grows", "no `MsgSnap` while the
+replay is handed out"), not against the Lean quantifier structure of the text. Both false premises
+are `□ ∀` statements whose binders range over more than the story: row 3's `σ` is any records
+`StorageHolds` allows, not the disk's; `Hwpend`'s `n` is any number below `|a0|`, not the batch's
+index, and its token, meant to mark the window, is never given up. The probes measured the story
+(the restored commit, mid-replay elections) and so could not see either.
+
+**The lesson** (`.claude/skills/spec/PRINCIPLES.md`, "A premise stated with a □∀ over states must be
+checked against the reachable states it does not pin down"): for each universally quantified binder
+of a persistent premise, ask which reachable values it can take, not which value the author had in
+mind; instantiate it adversarially (the weakest `σ` the relation allows, `n = 0`), and check that a
+token meant to bound a window is consumed when the window closes. A probe of the intended reading is
+not evidence for the text.

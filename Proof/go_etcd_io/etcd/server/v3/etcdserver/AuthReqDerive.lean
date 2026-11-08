@@ -130,7 +130,7 @@ theorem isReqAuth_of_authInv
     · iunfold auth.authRd; iframe
     isplitr
     · iapply authInfoRO_authInfoOpt a $$ Ha
-    iapply EtcdGrove.apply.authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    iapply EtcdGrove.apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
   · iintro !> %ctx %cd %Φ !> - HΦ
     iapply (hTLS st R M (GoInterface.ok ctx)) $$ []
     · iframe #
@@ -194,7 +194,7 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
         {{ mvcc.txnCtx ctx cd ∗ RD }}
           (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
         {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
-            applyErrIs err ∗ □ (⌜M.isOn = true⌝ → auth.ctxBound M (GoInterface.ok ctx) a) ∗
+            authApplyErrIs err ∗ □ (⌜M.isOn = true⌝ → auth.ctxBound M (GoInterface.ok ctx) a) ∗
             □ (⌜M.isOn = true⌝ → authErrVarIs err) }}) := by
   iintro ⟨#Ha, #Hb⟩
   cases hon : M.isOn
@@ -224,7 +224,7 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
     iapply HΦ
     iframe HRD Hai
     isplitr
-    · iapply authApplyErrIs_apply err $$ Herr
+    · iexact Herr
     iunfold authApplyErrIs at Herr
     icases Herr with ⟨-, #Hv⟩
     isplitl

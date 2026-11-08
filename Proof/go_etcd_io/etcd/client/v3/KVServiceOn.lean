@@ -69,11 +69,12 @@ def etcdDeleteSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w6
           v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrDeleteRange o) -∗ Φ m)
 
 /-- **etcd's `Range` with auth on**: `etcdRangeSpec`'s, with a lower bound `n` of the published
-auth index, the reply also with the read's check (`rangeAuthed`). -/
+auth index, the reply also with the read's check (`rangeAuthed`). (DRAFT, k8s etcd3 7c-2 part 2,
+S6: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdRangeSpecOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse :=
-  fun md (o : OpFull) (Φ : RangeRespM → IProp GF) (_ : GoString → IProp GF) =>
-    iprop(∃ (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF) (n : Nat), committedAtLeast γr c ∗
+  fun md (o : OpFull) (Φ : RangeRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF) (n : Nat), committedAtLeast γr c ∗
       srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
       (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜o.base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) ∗
       ∀ m : RangeRespM, rangeReplyOk E γr c F o cid mid Q m -∗
@@ -349,14 +350,39 @@ def etcdDeleteSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
         ∀ m : DelRespM, deleteReplied E ρ.rd F o Q cid mid m -∗
           (⌜on = true⌝ → v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrDeleteRange o)) -∗ Φ m)
 
+/-- **A failed `Range`'s reply facts** (persistent; k8s etcd3 7c-2 part 2, S6, 2026-11-06): what
+the caller learns when `Range` fails with mvcc's future-revision or compacted error, `P` the
+condition (`rangeFutureAt`, `rangeCompactedAt`): `rangeReplyOk`'s facts of the log read without a
+reply, a certified log `log` extending the floor `F`, the compaction revision `crev` read with it
+(`mvcc.crevLb`), read after the read index unless serializable, the read's `□ Q` there. -/
+def rangeErrReply (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
+    (Q : KVState → IProp GF) (P : mvcc.Log → Int → Prop) : IProp GF :=
+  iprop(∃ (log : mvcc.Log) (crev : Int), mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
+    mvcc.crevLb E.γ.idx crev ∗
+    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧ P log crev⌝ ∗
+    (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
+    (if o.base.serializable then iprop(True) else □ Q (kvStateOf log)))
+
+instance rangeErrReply_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (o : OpFull) (Q : KVState → IProp GF) (P : mvcc.Log → Int → Prop) :
+    Persistent (rangeErrReply E γr c F o Q P) := by
+  unfold rangeErrReply; split <;> infer_instance
+
 /-- **etcd's `Range` in the auth mode `on`**: with a lower bound `n` of the published auth index,
-the reply with the read's check with auth on. -/
+the reply with the read's check with auth on. (DRAFT, k8s etcd3 7c-2 part 2, S6: the error
+outcome at every description when the request's check refuses it, `v3rpc.rangeCheck`; at the
+future revision's and the compacted one's descriptions, from the read's facts at the error,
+`rangeErrReply`) -/
 def etcdRangeSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse :=
-  fun md (o : OpFull) (Φ : RangeRespM → IProp GF) (_ : GoString → IProp GF) =>
+  fun md (o : OpFull) (Φ : RangeRespM → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop(∃ (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF) (n : Nat), committedAtLeast γr c ∗
       srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
       (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜o.base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) ∗
+      (⌜v3rpc.rangeCheck o ≠ none⌝ -∗ □ ∀ d, Ψe d) ∗
+      ((rangeErrReply E γr c F o Q (rangeFutureAt o) -∗ Ψe go_etcd_io.etcd.cache.v3.futureRevDesc) ∧
+        (rangeErrReply E γr c F o Q (rangeCompactedAt o) -∗
+          Ψe go_etcd_io.etcd.cache.v3.compactedDesc)) ∗
       ∀ m : RangeRespM, rangeReplyOk E γr c F o cid mid Q m -∗
         (⌜on = true⌝ → v3rpc.rangeAuthed s E γr c n (auth.mdTokenOf md) o) -∗ Φ m)
 
@@ -452,9 +478,15 @@ theorem etcdRangeSpecM_true (s : Loc) (E : apply.AEnv GF)
       etcdRangeSpecM true s E γr cid mid md o Φ Ψe := by
   intro md o Φ Ψe
   unfold etcdRangeSpecOn etcdRangeSpecM
-  iintro ⟨%c, %F, %Q, %n, #Hc, #HF, #Hn, Hq, Hk⟩
+  iintro ⟨#HΨe, %c, %F, %Q, %n, #Hc, #HF, #Hn, Hq, Hk⟩
   iexists c, F, Q, n
   iframe Hc HF Hn Hq
+  isplitr
+  · iintro -; iexact HΨe
+  isplitr
+  · isplit
+    · iintro -; iapply HΨe
+    · iintro -; iapply HΨe
   iintro %m Hm Hg
   iapply Hk $$ Hm
   iapply Hg
@@ -537,11 +569,17 @@ theorem etcdRangeSpecM_false [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] 
       |==> etcdRangeSpecM false s E γr cid mid md o Φ Ψe := by
   intro md o Φ Ψe
   unfold GrpcSpec.md etcdRangeSpec etcdRangeSpecM
-  iintro ⟨⟨%c, %F, %Q, #Hc, #HF, Hq, Hk⟩, -⟩
+  iintro ⟨⟨%c, %F, %Q, #Hc, #HF, Hq, Hk⟩, #HΨe⟩
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
   imodintro
   iexists c, F, Q, 0
   iframe Hc HF Hn Hq
+  isplitr
+  · iintro -; iexact HΨe
+  isplitr
+  · isplit
+    · iintro -; iapply HΨe
+    · iintro -; iapply HΨe
   iintro %m Hm -
   iapply Hk $$ Hm
 

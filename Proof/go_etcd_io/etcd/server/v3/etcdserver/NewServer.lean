@@ -1097,7 +1097,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14, Hrn15, Hrnwal⟩ := Hrnames
+  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrna0, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14, Hrn15, Hrnwal⟩ := Hrnames
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl
@@ -1975,6 +1975,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   imod threadPool.initL srvRevokeInnerN 1
       iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ RD) _ srvRevokePoolN
       (by unfold srvRevokePoolN backend.rdPoolN; omega) $$ HIp with ⟨%γI, #HIp⟩
+  -- (R2d'a A10 item 5) `Hwpend`'s token (`srvWinPend`, free at a first start)
+  imod (token_alloc (GF := GF)) with ⟨%γwp, Hwpt⟩
   imodintro
   wp_auto
   iapply HΦ
@@ -2120,7 +2122,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr
     · iexists γrn
       iframe NHmsci
-      ipureintro; simp [Hrn1, HρRaft]
+      isplitr
+      · ipureintro; simp [Hrn1, HρRaft]
+      have hidr : γrn.id = id := by rw [Hrn5, Hrid]
+      rw [hidr, ← Hid]; iexact memberID
     isplitr
     · iexists (transportIface t), γn, id, srvTrKey γn γk, iprop(False)
       iframe Htrf Htrall
@@ -2156,10 +2161,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         iPkgInit
   isplitr
   · ipureintro
-    refine ⟨?_, rfl, ⟨Int.le_refl _, Hrn6, rfl⟩⟩
+    refine ⟨?_, rfl, ⟨Int.le_refl _, Hrn6, rfl⟩, Hrna0⟩
     unfold srvErM
     simp only
     exact (srvCM_agree on ρ _ E₀ (W64 0) (W64 0) (bootKVOf on) hγs).symm
+  isplitl [Hwpt]
+  · -- (R2d'a A10 item 5) at a first start `Hwpend` is free (`srvWinPend_first`)
+    iapply srvWinPend_first _ _ _ Hrna0 γwp
+    iexact Hwpt
   isplitl [Hrunh]
   · iunfold named; iExactEq Hrunh; rfl
   isplitl [Hwth]

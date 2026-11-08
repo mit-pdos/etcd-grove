@@ -1,0 +1,318 @@
+/-
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean` (step 1 of "k8s
+etcd3 over cluster3" in `notes/k8s-etcd3-plan.md`, 2026-11-06). Lean-first (no Rocq counterpart).
+
+The cluster side as the k8s compactor's `MainPartition` (`cluster3.StartCluster` at `clusterCfg`, here
+with compaction off; the members at their bridges, `ms`: their registrations through the bridges,
+`cluster3.isGrpcRpc_forwards`, and the bridges refusal-free, D29), the store side as the one-member
+`Main`: `kubernetes.New` of the three bridges (a write sent at most once: every bridge is
+refusal-free), the seeding over the three members (`seedInv` at the first member's KV names, every
+member's by `seedInvs_of_same`), `etcd3.New` over `ms`, the instance's invariant at the seeded state
+(`kInv_seed`, every member's by `kInvs_of_same`) and `Check(s, st0, clients, ops, 0)`, which returns
+`Ok` (`timeout = 0`), so the panic on `Illegal` is not taken. Every step's error ends `MainCluster`
+with `Unknown`.
+-/
+module
+
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.clusterConfig
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Check
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seed
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObj
+public import Spec.go_etcd_io.etcd.client.v3.kubernetes.New
+public import Spec.k8s_io.apiserver.pkg.storage.etcd3.New
+public import Spec.k8s_io.apiserver.pkg.storage.etcd3.NewDefaultLeaseManagerConfig
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartCluster
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace k8s_etcd3
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+
+set_option maxHeartbeats 3200000 in
+set_option maxRecDepth 8192 in
+theorem MainCluster.wp_proof
+    (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
+    (wp_clusterConfig : clusterConfig.spec (GF := GF) (hG := hG))
+    (wp_StartCluster : cluster3.StartCluster.spec (GF := GF) (hG := hG))
+    (wp_kNew : kubernetes.New.spec (GF := GF) (hG := hG))
+    (wp_seed : seed.spec (GF := GF) (hG := hG))
+    (wp_sNew : k8s.New.spec (GF := GF) (hG := hG))
+    (wp_lmc : k8s.NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG))
+    (wp_newObj : newObj.spec (GF := GF) (hG := hG))
+    (wp_Encode : runtime.Encode.spec (GF := GF) (hG := hG))
+    (wp_cEncode : codec.Encode.spec (GF := GF) (hG := hG))
+    (wp_Upd : versioner.UpdateObject.spec (GF := GF) (hG := hG))
+    (wp_Prep : versioner.PrepareObjectForStorage.spec (GF := GF) (hG := hG))
+    (wp_ORV : versioner.ObjectResourceVersion.spec (GF := GF) (hG := hG))
+    (wp_Parse : versioner.ParseResourceVersion.spec (GF := GF) (hG := hG))
+    (wp_From : identity.TransformFromStorage.spec (GF := GF) (hG := hG))
+    (wp_To : identity.TransformToStorage.spec (GF := GF) (hG := hG))
+    (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG))
+    (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := hG))
+    (wp_UID : Obj.GetUID.spec (GF := GF) (hG := hG))
+    (wp_RV : Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
+    (wp_Check : Check.spec (GF := GF) (hG := hG)) :
+    MainCluster.spec (GF := GF) (hG := hG) := by
+  intro CS EK RT SC ST VA N id₁ id₂ id₃ ps ctxs boot clients ops ThB RcB RcN Hbf HwbN Hck
+    Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 H31 Hops Hmul
+  have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
+  have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
+  have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
+  have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
+    wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk Hty)
+  wp_start as ⟨Hstart, Htok, #Hprem⟩
+  -- the imports' package facts
+  ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
+  ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
+  · iPkgInit
+  ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
+  · iPkgInit
+  ihave #Pc3 : isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply wp_NewNop as %lg %Hlg
+  (try wp_auto)
+  -- `cfg := clusterConfig()`
+  wp_apply wp_clusterConfig
+  (try wp_auto)
+  -- `cluster3.StartCluster(cfg, lg)`, compaction off
+  wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false .none clusterCfg_ok Hbf
+      Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide)
+      (fun h => absurd rfl h))
+    $$ [Hstart Htok] as %srvs %brs %ok Hup
+  · iframe; iframe #
+  icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
+  · subst Hok
+    (try wp_auto)
+    iapply HΦ; ipureintro; right; rfl
+  subst Hok
+  (try wp_auto)
+  iunfold cluster3.clusterUp at Hup
+  icases Hup with ⟨%γ, %γn, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %cid₁, %cid₂, %cid₃, %mid₁, %mid₂,
+    %mid₃, %R₁, %R₂, %R₃, %s₁, %s₂, %s₃, %br₁, %br₂, %br₃, Hcl⟩
+  iunfold cluster3.clusterAt at Hcl
+  icases Hcl with ⟨#Hsrvs, #Hbrs, #Hm₁, #Hm₂, #Hm₃, -, -, -, -, -, -, Hetcd, %Hal⟩
+  obtain ⟨hst₂, hst₃, -, -⟩ := Hal
+  isimp only [cluster3.memberAt_none] at Hm₁ Hm₂ Hm₃
+  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, %Hp₁⟩
+  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -⟩
+  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -⟩
+  obtain ⟨-, -, -, hlog₁, -⟩ := Hp₁
+  -- the members at their bridges: their registrations there, refusal-free (D29)
+  let ms : List (client.SrvAt GF) :=
+    [⟨clusterCfg.Bridge1', E₁, ρ₁.rd, cid₁, mid₁⟩, ⟨clusterCfg.Bridge2', E₂, ρ₂.rd, cid₂, mid₂⟩,
+      ⟨clusterCfg.Bridge3', E₃, ρ₃.rd, cid₃, mid₃⟩]
+  have hsame : ∀ x ∈ ms, kvSame x.γr.kv ρ₁.rd.kv := by
+    intro x hx
+    simp only [ms, List.mem_cons, List.not_mem_nil, _root_.or_false] at hx
+    rcases hx with rfl | rfl | rfl
+    · exact kvSame_refl _
+    · exact hst₂
+    · exact hst₃
+  ihave #Hregs : ([∗list] x ∈ ms, client.kvRegsAt x) $$ []
+  · iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iunfold client.kvRegsAt
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HPut₁]; iframe #
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HRange₁]; iframe #
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HTxn₁]; iframe #
+      iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HCmp₁]; iframe #
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iunfold client.kvRegsAt
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HPut₂]; iframe #
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HRange₂]; iframe #
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HTxn₂]; iframe #
+      iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HCmp₂]; iframe #
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iunfold client.kvRegsAt
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HPut₃]; iframe #
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HRange₃]; iframe #
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
+      isplitr
+      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HTxn₃]; iframe #
+      iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HCmp₃]; iframe #
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  ihave %Hb₁' : ⌜noRefusalAt clusterCfg.Bridge1'⌝ $$ []
+  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₁
+  ihave %Hb₂' : ⌜noRefusalAt clusterCfg.Bridge2'⌝ $$ []
+  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₂
+  ihave %Hb₃' : ⌜noRefusalAt clusterCfg.Bridge3'⌝ $$ []
+  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₃
+  have hnr : ∀ a ∈ cluster3.bridges clusterCfg, noRefusalAt a := by
+    intro a ha
+    simp only [cluster3.bridges, List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
+    rcases ha with rfl | rfl | rfl
+    · exact Hb₁'
+    · exact Hb₂'
+    · exact Hb₃'
+  -- `kubernetes.New(Config{Endpoints: {the three bridges}, DialTimeout, keepalive, Logger: lg})`
+  wp_apply wp_slice_literal
+  try (isplitr; (ipureintro; rfl))
+  iintro %eps ⟨Heps, -⟩
+  simp only [go.arrayLiteralSize, List.foldl]
+  (try wp_auto)
+  imod ownSlice_persist _ _ _ $$ Heps with #Heps
+  ihave #Pkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes $$ []
+  · iPkgInit
+  let V : client.WEnv GF :=
+    EtcdGrove.client.srvWEnv R₁ clusterCfg.Bridge1' [] null null [] null default
+  wp_apply (wp_kNew _ [clusterCfg.Bridge1', clusterCfg.Bridge2', clusterCfg.Bridge3'] V (fun _ => iprop(True))) $$ []
+    as %kc %cerr Hcl
+  · iframe #
+    iunfold clientCfgOk
+    simp only
+    iframe #
+    isplitr
+    · isplitr
+      · iExactEq Heps; rfl
+      isplitr
+      · iapply ownSlice_nil
+      ipureintro
+      refine ⟨?_, ?_⟩
+      · exact clusterCfg_ok.plainBridges
+      · simp [Hlg]
+    iapply clientAuthPre_anon; rfl
+  icases Hcl with (⟨%Hcerr, %cl, #Hkc, #Hnc, -⟩ | %Hcfail)
+  rotate_left
+  · cases cerr with
+    | nil => exact absurd rfl Hcfail
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; ipureintro; right; rfl
+  subst Hcerr
+  wp_auto
+  -- (D29) a write sent at most once: every bridge is refusal-free
+  ihave #Hone : client.clientWriteOnce (GF := GF) cl
+      [clusterCfg.Bridge1', clusterCfg.Bridge2', clusterCfg.Bridge3'] $$ []
+  · iunfold client.clientWriteOnce; ipureintro; exact hnr
+  -- the seeding, from the cluster's start state (`σb`: no key, revision `1`), at every member
+  have hboot0 : kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = σb := by
+    rw [kvModelSt_boot _ (fun _ _ => True) _ (LogEntry.toEntries boot 0)
+      (srvBootLogOk_of_BootLog _ _ _ Hbf.boot),
+      etcdstart.kvModel_boot _ _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog₁]
+    rfl
+  imod (seedInv_alloc ρ₁.rd.kv σb ⊤) $$ [Hetcd] with ⟨%γs, #Hsi, Hs⟩
+  · rw [← hboot0]; iexact Hetcd
+  ihave #Hsis := seedInvs_of_same γs ρ₁.rd.kv ms hsame $$ Hsi
+  ihave #Hkc' := Hkc
+  iStructNamed Hkc'
+  (try wp_auto)
+  wp_apply (wp_seed cl ms V γs hAs (by simp [ms])) $$ [Hs] as %st0 %ok Hsd
+  · simp only [ms, List.map_cons, List.map_nil]
+    iframe #
+    iframe Hs
+  icases Hsd with (%Hok | ⟨%Hok, Hs, #Hst0⟩)
+  · subst Hok
+    wp_auto
+    iapply HΦ; ipureintro; right; rfl
+  subst Hok
+  wp_auto
+  iclear Hsis
+  imod (seedInv_cancel γs ρ₁.rd.kv σs2) $$ [Hs] with Hetcd
+  · iframe #
+    iframe Hs
+  imod (histAuth_seed (GF := GF)) with ⟨%γh, Hhist, #Hsr⟩
+  -- `etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix, ...)`, as
+  -- `Main`'s, over the three members
+  haveI : go.UnderlyingEq k8s_io.apimachinery.pkg.runtime.Codec.ty
+      k8s_io.apimachinery.pkg.runtime.Serializer.underlying :=
+    ⟨(go.UnderlyingDirectedEq.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Codec.ty)).trans
+      go.UnderlyingDirectedEq.underlying_unfold⟩
+  ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply wp_lmc as %lmc -
+  (try wp_auto)
+  ihave #Hctx := client_ctx_field cl [clusterCfg.Bridge1', clusterCfg.Bridge2', clusterCfg.Bridge3'] V $$ [Hnc]
+  · iexact Hnc
+  ihave #Hpr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime $$ []
+  · iPkgInit
+  ihave #Hpd : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 $$ []
+  · iPkgInit
+  ihave #Hcon := hcon $$ [Hpr Hpd]
+  · isplitl; iexact Hpr; iexact Hpd
+  have e1 : interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec.ty #(zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec) = codecI := rfl
+  have e2 : interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity.ty #(zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity) =
+      GoInterface.ok identityI := rfl
+  have e3 : interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder.ty #(zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder) =
+      GoInterface.ok decoderI := rfl
+  have e4 : interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner.ty #(zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner) =
+      GoInterface.ok versionerI := rfl
+  rw [e1, e2, e3, e4]
+  have hpc : path.PathCleanAbs go!"/registry" := by unfold path.PathCleanAbs; decide
+  wp_apply (wp_sNew DObj driverSpec kc cl ms V γh _ codecI _ func.nil func.nil go!"/registry"
+      go!"/objs" ⟨[], go!"objs"⟩ versionerI identityI decoderI lmc hpc (by decide) (by decide))
+    as %sp %err Hnew
+  · simp only [ms, List.map_cons, List.map_nil]
+    iframe #
+    imodintro
+    iintro %Φ' HΦ'
+    wp_apply wp_newObj as %o %ho
+    iapply HΦ'
+    ipureintro; exact ho
+  icases Hnew with ⟨%Herr, %mt, %lt, #Hstore⟩
+  subst Herr
+  wp_auto
+  -- the driver's invariant at the seeded state, at every member, and `Check`
+  let c : k8s.StoreCfg GF DObj :=
+    { S := driverSpec, codec := codecI, vi := versionerI, ti := identityI, di := decoderI,
+      pathPrefix := go!"/registry", resourcePrefix := go!"/objs", gr := ⟨[], go!"objs"⟩, kc := kc,
+      cl := cl, ms := ms, V := V, mt := mt, lt := lt, γh := γh }
+  imod (kInv_seed ρ₁.rd.kv c rfl rfl ⊤) $$ [Hetcd Hhist] with ⟨%γ, #Hinv, Hks⟩
+  · iframe
+    iexact Hsr
+  ihave #Hinvs := kInvs_of_same γ c g0s ρ₁.rd.kv ms hsame $$ Hinv
+  wp_apply (wp_Check γ sp c g0s st0 clients ops (W64 0) rfl rfl rfl hAs hse (by simp [c, ms])
+      (by omega) H0 H31 Hops Hmul (by rw [g0s_items]; simp)) $$ [Hks] as %r %hr
+  · iframe #
+    iframe Hks
+  have hok : r = go!"Ok" := hr.2 (by decide)
+  subst hok
+  wp_auto
+  iapply HΦ; ipureintro; left; rfl
+
+end proof
+
+end k8s_etcd3
+end EtcdGrove
+end Perennial

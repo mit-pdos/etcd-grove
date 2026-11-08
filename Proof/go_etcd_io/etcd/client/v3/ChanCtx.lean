@@ -73,15 +73,11 @@ theorem canceledOk_of_init
   ihave #Hm : EtcdGrove.errMsgOk (GF := GF)
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ $$ []
   · iunfold EtcdGrove.errMsgOk
-    iintro %Φ !> - HΦ
-    iapply (context.wp_isCtxErr_Error
-      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) _ rfl) $$ [] HΦ
-    unfold context.isCtxErr
-    ileft
-    iframe Hx
-    iexists x
-    iframe Hcell
-    ipureintro; rfl
+    iexists go!"context canceled"
+    iintro !> %Φ HΦ
+    rw [method_unfold]
+    wp_auto
+    iexact HΦ
   have hl := errorString_leaf x
   have hty : go.GoType.PointerType _root_.Perennial.errors.errorString.ty ≠
       go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by
@@ -95,7 +91,8 @@ theorem canceledOk_of_init
 
 /-- **A `channelContext` over a broadcast channel is a context the client takes** (see the file
 header): `ctxOk` (its third case, `ctxErrs`) and `ctxErrClient`, at `chanCd γi`. -/
-theorem chanCtx_ok (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
+theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (sc : GoChan) (γs : ChanNames) (γi : BroadcastInternalNames) (Q : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait ∗
@@ -104,6 +101,8 @@ theorem chanCtx_ok (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
   iintro ⟨#Pw, #Hint⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
+  -- (k8s etcd3 7c-2 part 2, S7) `Canceled`'s description, neither read error's
+  ihave ⟨⟨%ec3, #Hec3, %Hdc⟩, -⟩ := EtcdGrove.ContextReadErrs.descs $$ Pctx
   ihave #He : ctxErrs (chanCtxVal sc) (chanCd γi) $$ []
   · unfold ctxErrs
     iintro !> %cl %Φ Hcl HΦ
@@ -136,7 +135,12 @@ theorem chanCtx_ok (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
       · ipureintro; exact Hne.2
       · iexact Hs
       · iexact Hcell
-      · ipureintro; right; simp [handlerDescs]
+      · icombine Hc Hec3 gives %Heq3
+        subst Heq3
+        ipureintro; right
+        simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false,
+          not_or, Hdc]
+        decide
   isplitr
   · iapply ctxOk_of_errs $$ He
   rw [ctxErrClient_eq_errs]; iexact He

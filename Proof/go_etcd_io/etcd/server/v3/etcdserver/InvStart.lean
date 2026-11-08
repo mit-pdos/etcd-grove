@@ -156,8 +156,9 @@ raft's `MsgSnap`s (2026-10-30, the repair: snapshots allowed; until then it neve
 raft sent no `MsgSnap`). -/
 def srvApplyAllBuilt (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`)
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ isRNMsgSnapC γm msc) ∗
+    -- (2026-10-31, S1) the raft node's bag (`isRNMsgSnapC`; until then any `P`); (R2d'a A7,
+    -- 2026-11-06, DRAFT) its node's id the server's member id (`isServerApplyAll`'s)
+    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
     srvInflight s ∗
     -- (2026-10-31, S1) the started transport, of the server's network
@@ -244,7 +245,15 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
+      -- (R2d'a A6, DRAFT) a first start: the restart point's backend log `γn.a0` empty
+      γn.a0 = []⌝ ∗
+    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
+    -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
+    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
+    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
+    -- until R2d'b; free at a first start, `srvWinPend_first`)
+    "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
@@ -258,7 +267,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     -- the request path's read names (2026-10-14, unit C2a)
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id
+    -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnapM`'s member id
     -- against the snapshot payload's `nodeSnapLocal … γn.id`)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
     -- (2026-11-02, the cluster-rows stage) the member id a voter (the monitors' permission,

@@ -554,7 +554,9 @@ theorem mergedCreate_window
   obtain ⟨hw1, hw2, hw3, hw4⟩ := Hwit
   -- the server's backend, its hooks and the protocol (`srvBeHooked`, `srvEnvOk`, `isServerCI`)
   iunfold isServerM at Hsrv
-  icases Hsrv with ⟨-, #HCI, ⟨%v, #Hf⟩, -⟩
+  icases Hsrv with ⟨-, #HCI, ⟨%v, #Hf⟩, -, -, -, %Htb⟩
+  -- (2026-11-06, `notes/begin-tok-plan.md`) `backend.Snapshot`'s instance, from the server's bound
+  haveI : ThreadBoundLe GF (2 ^ 29) := ⟨by unfold backend.rdPoolN at Htb; omega⟩
   iunfold srvFieldsAtM at Hf
   icases Hf with ⟨-, -, -, -, -, %Henv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hbh⟩
   iunfold srvBeHooked at Hbh

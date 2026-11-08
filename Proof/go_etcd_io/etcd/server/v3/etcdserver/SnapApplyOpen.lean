@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 announcement of the fresh physical names `futPhys π0 γB` in the protocol's futures (its claim
 token and index), which `ci_swap_au` turns into the registration at `SetBackend`, and the new
 backend's close right (`γB.cls`, which the futures' deposit does not name); (J8a-4, 2026-11-01)
-the meta reads of the new backend at those names (`applySnapshot.specSnap`'s premise at its fresh
+the meta reads of the new backend at those names (`applySnapshot.specSnapM`'s premise at its fresh
 keys and payment rights, `snap_create`). -/
 def snapOpenK (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (γB : backend.BNames) :
     IProp GF :=
@@ -54,7 +54,7 @@ def snapOpenK (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (γB : 
 backend's own keys (at the image `D`, whose meta keys are `π0.m0`) and payment rights give the
 open's write invariant `W` back (strict M1: the store's `mvccW gx`; until then `lateW gx`), the batch lock's resource at the announced names
 (`ci_announce`: the payment rights deposited in the futures) and the announcement; (J8a-4,
-2026-11-01) with `applySnapshot.specSnap`'s meta premise `HmS`, applied to the fresh keys and
+2026-11-01) with `applySnapshot.specSnapM`'s meta premise `HmS`, applied to the fresh keys and
 payment rights before they go, the new backend's meta reads. -/
 theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (D : backend.Data)
     (W : IProp GF) (hm : metaIs D π0.m0) (hP : ciKeys P) :

@@ -21,7 +21,6 @@ public import Spec.strings.TrimSuffix
 public import Spec.go_etcd_io.etcd.client.v3.Client__Ctx
 public import Spec.reflect.TypeOf
 public import Perennial.Proof.strings.HasPrefix
-public import Proof.k8s_io.apiserver.pkg.features.Values
 
 @[expose] public section
 
@@ -107,8 +106,6 @@ theorem New.wp_proof
   rw [decide_eq_true hrp]
   wp_auto
   -- the list error aggregator: the default, or (by the feature gate) the corrupt-object one
-  have hnp : k8s_io.apiserver.pkg.features.AllowUnsafeMalformedObjectDeletion.isPanic = false :=
-    features.AllowUnsafeMalformedObjectDeletion_notPanic
   try wp_pure
   (try wp_auto)
   wp_apply Hen as %b

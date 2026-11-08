@@ -36,11 +36,16 @@ raft names `γ` from the fresh cluster's start (`γ.pre = []`, the start's consi
 `memBoot`, then the cluster's contracts as the model says), and a committed log `L'` (`srvRLogLb`)
 extending `L`, at least as long as the boot log, whose conf changes are all ones the server's
 `applyConfChange` takes (`ccLogOk` at raft's configuration, the KV invariant's workload fact): the
-model's buckets and members at `L'` satisfy `memBucketsOk c` (`clusterMem` given back).
+model's buckets and members at `L'` satisfy `memBucketsOk c` (`clusterMem` given back). The
+members premise is at any map `mem` with the model's ids at `L` (2026-11-06), not only the model's.
 
-Why it is true of the Go code (etcd at the pin `bc9c3868c`: `schema/membership.go`,
-`api/membership/cluster.go`, `version/downgrade.go`) and the deployment (a fresh static cluster,
-every member running the same binary, `bootOk`):
+Why it is true of the Go code (etcd: `schema/membership.go`, `api/membership/cluster.go`,
+`version/downgrade.go`) and the deployment (a fresh static cluster, every member running the same
+binary, `bootOk`). Pin: etcd `673da07c8`; every line number below is at it (rechecked 2026-11-07:
+`cluster.go:256-260` and `:265-302`, `schema/membership.go:83-120`, `server.go:1160-1171`,
+`bootstrap.go:522`, `downgrade.go:42-55`). The first, second and fourth bullets were first checked at
+`bc9c3868c` (2026-10-26); between the two, `schema/membership.go` and `version/downgrade.go` are
+unchanged, and `cluster.go` changes only in `IsLocalMemberLearner`, which no bullet cites:
 
 * *The buckets decode, to the model's members.* The rest model is what every member's apply
   thread writes (`InvRest.lean`): `members` holds, under `schema.BackendMemberKey(id)`, the JSON
@@ -64,6 +69,19 @@ every member running the same binary, `bootOk`):
   `members` keeps exactly the boot members, with their boot peer URLs (`ClusterMemberAttrSet`
   changes only the name and client URLs); `c`'s local member (`isRaftCluster c`: `c.localID` in
   `c.members`, whose records are `clusterMem`'s, the model's at `L`, the boot members) is one.
+* *Only the ids of `c`'s in-memory members matter* (2026-11-06; the members premise taken at any
+  `m` with the model's keys, for the restart's WAL replay, whose in-memory attributes can be a
+  mix that no prefix's model has; etcd at `673da07c8`). `Recover` never reads the members it replaces: `UnsafeLoad`
+  (`cluster.go:256-260`) assigns `c.members` and `c.removed` from `MustReadMembersFromBackend`
+  (`schema/membership.go:83-120`), which reads only the buckets. Everything after it in `Recover`
+  (`cluster.go:265-302`: the metric, `MustDetectDowngrade` on the loaded version, the learner
+  metric of the local member, the logs) and in its callers (`applySnapshot`'s `AddPeer` over
+  `Members()`, `server.go:1160-1171`; `Finalize`'s `ValidateMaxLearnerConfig`,
+  `bootstrap.go:522`) reads the loaded members. `c`'s current members enter only to place
+  `c.localID` among the boot ids (`isRaftCluster`'s `rcLocalIn`, the halves of `memAt`
+  agreeing). The ids of `restModel c0 boot L`'s members are the boot log's for every `L`
+  (`memBoot`; `restUpdateAttrs` adds no key; the conf changes are rejected).
+  (Reviewed with the `axiom` skill: `notes/axiom-review/clusterimage-ids.md`, survives.)
 * *The cluster version passes `MustDetectDowngrade`.* `Recover` panics only if the version in
   `cluster` is above the server's own major.minor (`downgrade.go:42-55`). The only proposer of
   `ClusterVersionSet` is a member's `monitorClusterVersions` (`updateClusterVersionV3`), with
@@ -78,9 +96,12 @@ abbrev membership.clusterImageOk_restModel.spec : Prop :=
     -- (merge of D43 M5, 2026-10-27) `ccLogOk`'s static form, which `ccLogOk` was before M5d made it
     -- mode-aware (the same statement as before the merge)
     (∀ m ∈ L', m.typ ≠ W32 0 → ccBootOk γ.raft.cfg m.data) →
+    -- (2026-11-06, the ids form) any in-memory members with the model's ids
+    ∀ (mem : GMap w64 apply.MemberM),
+      (∀ k, (mem !! k).isSome = ((restModel c0 γ.raft.boot L).mem !! k).isSome) →
     ⊢ membership.isRaftCluster (GF := GF) c -∗ srvRLogLb γ L' -∗
-      membership.clusterMem c (restModel c0 γ.raft.boot L).mem -∗
-      membership.clusterMem c (restModel c0 γ.raft.boot L).mem ∗
+      membership.clusterMem c mem -∗
+      membership.clusterMem c mem ∗
       ⌜membership.clusterImageOk c (restModel c0 γ.raft.boot L').bk
         (restModel c0 γ.raft.boot L').mem⌝
 

@@ -48,8 +48,10 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗
       apply.certPreV v3 E x.chain rq x.log ∗
-      ⌜apply.rqOk E.lm x.log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit x.log rq⌝ ∗
-      apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗ apply.grantFresh E rq U ∗
+      ⌜apply.rqOk E.lm x.log rq ∧ apply.dispatchOk E.authOn rq ∧
+        (v3 = true → apply.cmpAdmit x.log rq)⌝ ∗
+      □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
+      apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
       apply.revokeOwn E rq ∗
       ⌜skip = true → rq.txn.isSome = true⌝ ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗

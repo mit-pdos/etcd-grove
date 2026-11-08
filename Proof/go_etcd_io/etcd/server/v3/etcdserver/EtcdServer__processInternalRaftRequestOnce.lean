@@ -612,9 +612,10 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
         (try wp_auto)
         wp_if_destruct
         · wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAuth s E v.auth v.cca ctx cd $$ [Hard]
-            as %au %aerr ⟨Hard, Hau, #HaE, #Hab⟩
+            as %au %aerr ⟨Hard, Hau, #HaE0, #Hab⟩
           · iframe Hard; iframe #
             iunfold mvcc.txnCtx; iright; iexact Hctx
+          ihave #HaE := authApplyErrIs_apply _ $$ HaE0
           (try wp_auto)
           cases aerr with
           | ok aei =>

@@ -43,7 +43,11 @@ goroutine's panic cannot be excluded from `New`'s spec, and a goroutine must not
 (`wp_fork`); the rest (the timer's `select`, `time.After` has a spec) is provable. What would
 discharge it: `OpenBackend` and `newBackend` translated with their bodies, over a `New` whose
 `Open` cannot fail under the environment premise (bbolt's `Open` of a file holding a database,
-not locked by another process). -/
+not locked by another process). (2026-11-06, branch `begin-tok`, `notes/begin-tok-plan.md`)
+Under `[ThreadBoundLe GF (2 ^ 29)]`, which `New`'s spec takes (bbolt's `Open_kv`: each read
+transaction holds a thread's token): `New` now also takes a `threadTok` and gives it back on
+success, and the goroutine `OpenBackend` starts (`server/storage/backend.go:79`) pays it with its
+own fork token, so the caller's triple is unchanged. -/
 axiom storage.OpenBackend.wp_proof : storage.OpenBackend.spec (GF := GF) (hG := hG)
 
 end proof

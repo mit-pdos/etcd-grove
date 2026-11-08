@@ -42,13 +42,12 @@ macro "ws_rev" : tactic => `(tactic| (
   · iframe #))
 
 set_option hygiene false in
-/-- `e.Error()` of an error whose `Error()` returns (`errMsgOk e` as `Hm`), into `%msg`. -/
+/-- `e.Error()` of an error whose `Error()` returns (`errorStringSpec e` as `Hm`), into `%msg`. -/
 macro "err_msg" e:term:max Hm:ident : tactic => `(tactic| (
   wp_bind (App (Val #(methods ($e).ty go!"Error" ($e).v)) (Val #()))
-  iunfold errMsgOk at $Hm:ident
+  iunfold go_etcd_io.etcd.cache.v3.errorStringSpec at $Hm:ident
   iapply $Hm:ident
-  · itrivial
-  iintro !> %msg -))
+  iintro !> %msg))
 
 set_option hygiene false in
 /-- The receive loop's next iteration: the invariant back (the request recorded, the control
@@ -639,6 +638,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           · icombine Hge HeEWRg gives %Heq
             iexists eEWR; iframe #; ipureintro; exact Heq
           subst Hwei
+          ihave #Heim := errMsgOk_errorStringSpec _ $$ Heim
           wp_auto
           ws_rev
           wp_apply (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩

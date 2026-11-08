@@ -373,7 +373,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of a
     -- backend the apply thread opens (`applySnapshot`'s `OpenSnapshotBackend`) at the protocol's
     -- names `π`, over an image whose meta keys are `π.m0`, at its fresh keys and payment rights
-    -- (they come back): what `applySnapshot.specSnap` takes
+    -- (they come back): what `applySnapshot.specSnapM` takes
     "#HmetaSnap" ∷ □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
         ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
         backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗

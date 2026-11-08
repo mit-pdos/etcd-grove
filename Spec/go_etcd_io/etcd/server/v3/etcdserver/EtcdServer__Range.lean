@@ -40,7 +40,8 @@ txn package's answer at a certified log of at least two revisions, after the rea
 serializable, the header's id fields owned, a linearizable one at the mode's model of a committed
 raft log `L` at which the deposit gave `□ Q L` (`rangeReadOkM`). Failure: no response and an error
 the gRPC layer can take (`applyErrIs`: the read loop's, the auth store's, mvcc's `ErrFutureRev`, or
-the context's). Its clients take it at `E.authOn` (the auth component's stage 4 deleted the two
+the context's), and which (`rangeErrOut`, k8s etcd3 7c-2 part 2, S3: mvcc's `ErrFutureRev` and
+`ErrCompacted` with the read's facts at the error, `rangeErrAt`). Its clients take it at `E.authOn` (the auth component's stage 4 deleted the two
 modes' former specs). -/
 abbrev EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
@@ -60,7 +61,8 @@ abbrev EtcdServer.Range.spec : Prop :=
             infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗
             (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m)) ∗
           rangeReadOkM E.authOn E γr c F o resp Q) ∨
-       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          rangeErrOut E.authOn E γr c F o Q err)) }}
 
 end spec
 

@@ -81,6 +81,8 @@ own unit test requires, while the Model skips the write and rejects the response
 
 ## The driver and failed writes
 
+**Superseded (2026-11-06).** This describes the first design, which stopped on a failed write. The driver as built (7b) checks over configurations with pending failed writes (`Model`, as linkvtxn's), and `k8s_etcd3_safe` covers those runs. See Phase 6/7 and the cluster3 Scope below.
+
 `correctness.Model.Step` panics on any write error, and a faithful client spec lets any RPC
 fail. First version: **a failed write stops the run without checking.** Each client stops at
 its first failed write and sets a flag; after all clients finish, `Main` returns without
@@ -1047,6 +1049,13 @@ returns a raw `transport.ConnectionError`, not a leaf (`notes/axiom-review/hs6.m
 path of the insecure listener the examples use (through cmux); etcd's TLS path (`embed/serve.go`,
 `grpcHandlerFunc`) goes through `ServeHTTP`, and that is how Kubernetes normally connects (82's
 precision, 2026-11-06). Nothing is widened for it; also a gap of `/shared/tmp/k8s-server-trace.md` (row 15).
+**Next stage after 7c (queued by the user, 2026-11-06; deferred by the user 2026-11-06, see "The
+ServeHTTP stage: deferred" below): gRPC over etcd's HTTP mux.** Model
+`grpc.Server.ServeHTTP` (the TLS path Kubernetes uses: `embed/serve.go`'s `grpcHandlerFunc`), starting
+from the finding above: `mapRecvMsgError` (`handler_server.go:449,493-506`) returns a raw
+`transport.ConnectionError`, not a leaf, so `grpcDecOk`'s error branch does not hold of that
+transport as stated; the stage states the decoder's errors under `ServeHTTP` (or widens them, by
+the attack), and carries the closed results to the TLS listener.
 **Moved to 7c-2:** filling `handlerDescs`, and `etcdRangeSpecM`'s `Ψe` facts. Range's handler
 proves `Ψe` at the two descriptions only from `EtcdServer.Range`'s error post (HS-3 (a)), which
 is 7c-2's. Filled earlier, the Range handler's proof has nothing to prove it from.
@@ -1065,6 +1074,400 @@ not exclude. Both go to etcd-grove-82 as hard stops (`questions.md`, "7c-1b atta
   unchanged.
 - Only the Md specs gain the argument (`fun md o Φ` becomes `fun md o Φ _`).
 - The precedent is `GrpcSpec.md` itself: one family, the plain form embedded in it.
+
+### k8s etcd3 over cluster3: Scope, revision 2 (2026-11-06, etcd-grove-56; revised for etcd-grove-82's independent check; approved by the user as recommended, Qc-1..Qc-5, 2026-11-06, via etcd-grove-82)
+
+**Approved order:**
+1. step 1 (no faults) lands alone;
+2. then ServeHTTP, with its own Scope, since it changes a trusted statement;
+3. then step 2.
+
+The Freeze package of step 1 lists `seed.spec`/`seedOne.spec` old → new, with the closed-theorem comparison (`k8s_etcd3_safe`'s text unchanged).
+
+**Changes from revision 1.** These answer etcd-grove-82's independent check (a workflow with 3
+checkers and a critic, against lean 546dfc5378):
+- The seeding is one-member, and the invariant is per member. Step 1 now has a cluster seed and a
+  `kvSame` congruence. Its proof path is `k8s.New.spec`, not `isKv_of_newClient`.
+- `kubernetes.New` at three endpoints has no proved precedent.
+- `MaxUnaryRetries: 1` is dropped for the default retries.
+- Step 2 gains keepalive, and possibly per-call timeouts.
+- (M2) is restated. It is no longer called test-only.
+- (M1)'s estimate is corrected, with the internal specs it changes.
+- The trust count is 34, with the roots line.
+- The 7e paragraph is corrected.
+- Names are fixed.
+- The Scope of revision 1 is otherwise unchanged. The model claim was confirmed: the driver's
+  `Model` already keeps failed writes pending, and `k8s_etcd3_safe` covers them.
+
+**Goal.** `k8s_etcd3_safe` runs the driver against one member. This stage runs the same driver,
+traffic and model against a three-member cluster: first without faults, then under partition
+schedules. It reuses the cluster start and failover that partition (`etcd_partition_safe`) and the
+k8s compactor's `MainPartition` (K6, `k8s_compactor_partition_safe`) already proved.
+
+#### What exists (surveyed on lean)
+
+- **The cluster.** `examples/lib/cluster3`, in Go and Lean:
+  - `StartCluster`, `NewClient`, `Partitioner` and the peer and client steps, with their proofs
+    and `etc/gen-link.py --cluster3`;
+  - the facts `clusterUp`/`memberAt`, `cfgOk`, `kvSame`, the `forwards` facts through the bridges,
+    and `schedLit`;
+  - the bridge's actions are axioms, already in the trust base, and are not proved.
+- **The driver** (`examples/k8s/etcd3`):
+  - `Main` starts one member and calls `kubernetes.New` with `Endpoints: {clientAddr}` and
+    `MaxUnaryRetries: 1`.
+  - It then seeds (`seed`/`seedOne`), runs `etcd3.New`, and calls `Check(s, st0, clients, ops, 0)`
+    (`lintest.Run` against `Model`, which keeps failed writes pending).
+  - `Main.lean` goes through `kubernetes.New.spec`, `seed.spec` and `k8s.New.spec`, whose
+    `StoreCfg.ms` is the member list. It does not use `client.isKv_of_newClient`.
+  - The invariants (`seedInv`, `kInv`) are per member (`γk`).
+- **What is one-member today.**
+  - `seed.spec` and `seedOne.spec` take `isNewClient cl [x.addr]`, `clientWriteOnce cl [x.addr]`
+    and `kvRegsAt x` (`Spec/…/k8s/etcd3/seed.lean:38`, `seedOne.lean:42`).
+  - K6 connected with `cluster3.NewClient`, not `kubernetes.New`. So `kubernetes.New` at three
+    endpoints has no proved precedent. `clientCfgOk` at a three-element `eps` is cheap, because the
+    bridges are `plainEndpoints`.
+- **Retries.** `MaxUnaryRetries` is clientv3's whole attempt count, so `1` disables failover to the
+  next endpoint. The proof's write-once rests on the members' `noRefusalAt` through `forwards`,
+  which holds for any retry bound, not on `MaxUnaryRetries`. `etcdstart.NewClients`
+  (`common.go:211-223`) uses the default retries, plus `DialTimeout` and `DialKeepAlive*`.
+- **The model's cost.** The driver's `closure`/`addConfig` are txnlin's old linear-scan versions.
+  c9's measurements (`notes/txnlin-perf-plan.md`) show the following:
+  - The cost is the number of pending failed writes held at once. With k up to 7, the old model
+    used 9-34 GiB and failed 2 of 5 TestFailover runs under 32G.
+  - With (b) and routed writes, all 5 runs passed at under 0.5 GiB. The routing was a 4th client
+    with a per-operation pick.
+
+#### Step 1: no faults
+
+**Go.** `MainCluster(clients, ops int)` in package `etcd3`, beside `Main`.
+- `cluster3.StartCluster(cfg, lg)` with compaction off.
+- `kubernetes.New` with `Endpoints` the three bridges, `DialTimeout`, `DialKeepAlive*`, and the
+  default retries, as `etcdstart.NewClients` does. Not `MaxUnaryRetries: 1`.
+- `seed`, then `etcd3.New`, then `Check(…, 0)`; panic on `Illegal`.
+- The config literal is `clusterConfig()`, with its own token, names and nine addresses.
+- Tests: `TestMainCluster` and `TestMemberIDs`. About 120 lines of Go and 80 of test.
+
+**Statements.**
+- `MainCluster.spec` (new): the shape of K6's `MainPartition.spec` without the schedule; post
+  `True`.
+- The closed theorem `k8s_etcd3_cluster_safe` (new, exported). It is `k8s_etcd3_safe`'s statement
+  at `MainCluster #clients #ops`, with `etcd_partition_safe`'s hypotheses at `clusterCfg`:
+  - the ids, `BootFacts`, the nine addresses, and the three WAL directories, distinct and absent;
+  - `cluster3.premises`.
+- **The seeding, generalized.** Recommended: generalize `seed.spec` and `seedOne.spec` from
+  `[x.addr]`/`kvRegsAt x` to a member list `ms` with `kvRegsAt` for each member.
+  - `Main` then instantiates them at `[x]`.
+  - The alternative is a separate `seedCluster`, which duplicates about 200 lines.
+  - These are internal specs of the example; no exported statement changes.
+- **The invariant across members.** `kInv`/`seedInv` are stated at one member's `γk`. Step 1 adds
+  a congruence over `kvSame`, in the style of `etcdKV_congr`: the invariant at one member's names
+  holds at any member's whose KV is the same.
+- **Nothing frozen changes.** `k8s_etcd3_safe` and the store, client and server specs stay as they
+  are. `Model`, `Refine` and the invariants' definitions are reused.
+
+**Trust base.** No new axiom or `sorry`.
+- The `k8setcd3` collection gains about 34 cluster axioms already in the trust base: the bridge
+  actions, the peers' HTTP, `probing` and the snapshot axioms. That is 31 without the
+  `Partitioner`, which step 1 does not call.
+- Its `roots` line is extended to cover the hand-written `MainLinked`, as `k8scompactor`'s is.
+- The baseline is updated on purpose.
+
+**Proof plan.**
+1. `StartCluster` and `clusterUp` give three `memberAt … false` and `kvSame`.
+2. `kubernetes.New.spec` at the three bridges gives `isNewClient cl eps`; `clientCfgOk` at a
+   three-element `eps` comes from the bridges' `plainEndpoints`. `clientWriteOnce` and `kvRegsAt`
+   for each member come through `forwards`, as in K6.
+3. `seedInv` is allocated at one member, the generalized `seed.spec` runs at the three members, and
+   the `kvSame` congruence carries the result.
+4. `k8s.New.spec` takes `StoreCfg.ms` as the three members. `kInv_seed` comes through the
+   congruence, then the rest follows as in `Main.lean`.
+5. `clusterConfig`, the `MainLinked` written by hand, the Adequacy, and the Results with
+   `#print axioms`.
+
+**Estimates.**
+- Go: about 200 lines.
+- Lean: about 1100-1300 lines:
+  - the seed generalization: about 150, with `Main.lean` re-instantiated;
+  - the `kvSame` congruence: about 100-200;
+  - `MainCluster`: about 500;
+  - Adequacy, config and links: about 250.
+- About 1.5 sessions. Builds cover the example's modules only; nothing hub-wide.
+
+#### Step 2: faults
+
+**Go.** `MainPartition(clients, ops int, sched []cluster3.Step)`: step 1 plus
+`go cluster3.Partitioner(srvs, brs, sched)` before `Check`.
+- **Calls must end under a blackhole.** Today `Apply` uses `context.Background()` and the config
+  has no keepalive, so a call to a blackholed member hangs and `Check` never returns. The changes,
+  in order:
+  - (a) Keepalive (`DialKeepAliveTime`/`Timeout`, which `clientCfgOk` allows as `kaOpts`). This
+    closes the dead transport, so the call fails with `Unavailable`. A read is then retried on the
+    next endpoint; a write fails, and the model keeps it pending.
+  - (b) Only if the tests still hang: a per-call deadline in `Apply`
+    (`context.WithTimeout`). The store specs must then accept a deadline context. The 7c context
+    facts (`ctxDeadlineLeaf`) cover its error; the Draft checks the rest. It changes `Apply`'s
+    internal spec.
+  - porcupine's `timeout = 0` in `Check` is kept in the theorem. A WP is partial correctness, so
+    the theorem is about runs that return. The tests bound the run by the memory cap and
+    wall-clock limits of the test harness.
+- **Failed writes stay in the check.** The driver's `Model` already treats a write that returned an
+  error as pending: it takes effect later or never. No model change in meaning.
+- **The checker's memory.** Recommended: (M1) plus (M2'), with (M4) as the fallback and (M3)
+  rejected.
+  - **(M1)** Port txnlin-perf's (b) to the driver's model: a sorted, duplicate-free state and a
+    binary-search `addConfig` over a total order on `mcfg`.
+    - Size: txnlin's (b) is about 1330 Lean lines over 12-13 files. The k8s `Input` has 15 fields
+      and a nested `Obj`, so expect 1000-1400 lines of Lean and about 300 of Go.
+    - The abstract state stays a set, so `Model.spec` and every exported statement are unchanged.
+    - It does change internal specs that revision 1 called reused: `addConfig.spec`, `closure`'s
+      pure forms, and `Model.Equal`'s `isEqHash` proof.
+  - **(M2')** Restated: the routing must be in the verified program. A test that meets the 5/5 bar
+    with routing that the theorem's program lacks would not test the theorem. Two forms:
+    - (i) Recommended first: clientv3's own balancer, with step (a)'s keepalive and the default
+      retries, fails over away from a member whose transport closed. The routing is then inside
+      the verified program already, and `MainPartition`/`Check` do not change. The memory runs
+      measure whether this meets the bar.
+    - (ii) If (i) does not meet the bar: explicit routing in the driver, c9's per-operation pick
+      among per-member clients. This changes `Check` (one store and `apply` per client),
+      `MainPartition` and their specs. It would be a Draft with its own statements, sent to the
+      user before any Lean.
+  - (M3) A cap on concurrent pending failed writes is rejected: it changes the traffic the theorem
+    is about.
+  - (M4) A compact representation is the fallback.
+  - The bar: `TestMainPartition`'s schedules pass 5 of 5 runs under a 32G cap, with peak memory
+    reported. These runs are of the theorem's program.
+- Tests: `TestMainPartition`, covering peer cuts, the leader isolated, a client blackhole and
+  drops. Each is run 5 times under `systemd-run -p MemoryMax=32G`.
+
+**Statements.**
+- `MainPartition.spec`: step 1's, plus `sched ↦*□ steps`.
+- The closed theorem `k8s_etcd3_partition_safe`, for every schedule.
+- (M1)'s changed internal specs, listed above.
+- With (M2'-ii) only: `Check`'s and `MainPartition`'s new shape.
+- Nothing frozen changes. With (b) only: `Apply`'s internal spec takes a deadline context.
+
+**Trust base.** The collection's count of about 34 is now complete, because the `Partitioner` is
+called. Its facts (`srvPeerCtl`, `ownBridge`) are proved already.
+
+**Estimates.**
+- Go: about 150 lines, plus (M1)'s 300.
+- Lean: about 150-250 for the fork, Adequacy and Results, plus (M1)'s 1000-1400.
+- (M2'-ii), if needed: about 400 more.
+- About 2-3 sessions, most of it (M1) and the memory runs.
+
+**Alternative:** fold step 1 into step 2. Recommended: keep step 1 as its own landing.
+
+#### How 7d, 7e and 7f build on the cluster setup
+
+Each of these stages is proved against one member first, then carried to `MainCluster` or
+`MainPartition`. The store and client specs do not mention the member; the member list enters
+only through `StoreCfg.ms` and the seeding.
+- **7d (replay).** Independent of the cluster: the replay runs inside `Check` on porcupine's
+  linearization.
+- **7e (lists).** The k8s store's reads are linearizable (ReadIndex), so a lagging member does not
+  serve a stale list. `ErrFutureRev` is reachable only through a requested revision ahead of the
+  store, which one member already exercises. So 7e is proved on one member and carries over
+  unchanged. The cluster adds only that a read may be retried on another endpoint, which the
+  client specs already cover. The compacted case needs compaction on and a compactor in the
+  driver: that is 7e's choice.
+- **7f (watches).** A watch re-established on another member after a blackhole. It uses
+  partition's `MainWatch` and compactorp's watch facts through the bridges. This is where the
+  cluster setup pays most.
+
+#### The order with the ServeHTTP stage
+
+The user queued "gRPC over etcd's HTTP mux" (`ServeHTTP`) as the next stage after 7c. The two
+stages are independent:
+- `cluster3` serves gRPC with `gs.Serve` on its insecure client listener (`cluster3.go:123`), the
+  path `grpcDecOk` covers.
+- The ServeHTTP stage changes a trusted statement, about a TLS listener that no example uses yet.
+
+Recommended order: cluster3 step 1, then ServeHTTP, then cluster3 step 2. Once both have landed, a
+TLS cluster driver is a listener change.
+(Superseded 2026-11-06: ServeHTTP is deferred, and cluster3 step 2 is next; see "The ServeHTTP
+stage: deferred".)
+
+#### Questions for the user
+
+- **Qc-1.** Two steps: step 1 lands alone, then step 2. Recommended: yes.
+- **Qc-2.** The checker's memory: (M1), plus (M2') with routing inside the verified program. Try
+  (i), clientv3's own failover with keepalive, first; (ii), explicit routing with a `Check`/spec
+  change, only if (i) misses the bar, as a separate Draft. (M4) is the fallback and (M3) is
+  rejected. Recommended: yes.
+- **Qc-3.** `MainCluster`/`MainPartition` in package `etcd3`, and `seed`/`seedOne` generalized to a
+  member list rather than a separate cluster seed. Recommended: yes.
+- **Qc-4.** Compaction off in both steps; the compacted list case is left to 7e. Recommended: yes.
+- **Qc-5.** Order: cluster3 step 1, then ServeHTTP, then cluster3 step 2. Recommended: yes.
+
+### The ServeHTTP stage: deferred (2026-11-06, the user via etcd-grove-82)
+
+The Scope (etcd-grove-56, `/shared/tmp/k8s-servehttp-scope.md`, not committed) was reviewed by
+82's read-only workflow (`/shared/tmp/k8s-servehttp-review.md`, wf_cd9419da-56c). **The user's
+decision: defer the stage (option (c), nothing modeled now); cluster3 step 2 next. When it comes
+back, it is (b), etcd's TLS listener, with the fixes below.**
+
+**Why defer.**
+- Option (a), unencrypted `ServeHTTP` (h2c), is a configuration etcd never runs, while the queued
+  goal is the TLS listener (the queue entry above).
+- grpc is names-only, and `embed` is untranslated. Under (a), `serverHandlerTransport`, `net/http`'s
+  HTTP/2 server and the routing would all sit inside the new axioms. The result would add little
+  beyond `Serve`'s, at the cost of 2-3 axioms.
+- (a) does work in Go (`/shared/tmp/h2c-check`: grpc-go's client reaches `gs.ServeHTTP` over h2c,
+  and HS-6's `ConnectionError` reproduces, 200/200). That changes neither point.
+
+**What the review found (surviving).**
+- **TLS is not only a layer below HTTP/2.** grpc's `serverHandlerTransport` builds the peer's
+  `AuthInfo` from `r.TLS` (`handler_server.go:83-86`). Under `--client-cert-auth`, etcd's
+  `AuthInfoFromCtx` takes the user from the certificate's CommonName (`v3_server.go:1206-1215`), and
+  `accessController` branches on `req.TLS` (`serve.go:454-475`). So (b) adds client-certificate
+  identity and those branches, not just crypto.
+- **The error comes only from a unary call's second recv.** Only that recv returns the raw
+  `ConnectionError` (`stream.go:1960-1970`). The first recv, every stream `RecvMsg` (Watch) and
+  `SendMsg` go through `toRPCErr`, which gives a status leaf. So `streamErr` needs no change (the
+  Scope's F3 is resolved).
+- **The serve axiom must pin its receiver.** A `(*http.Server).Serve` axiom must hold `srv`'s
+  points-to read-only: `Handler` the grpc server, every other field zero (`BaseContext`,
+  `ConnContext` and the timeouts; `ReadTimeout = 0`), `Protocols` as the program sets it. A nil
+  `BaseContext`/`ConnContext` result panics (`net/http/server.go:3563-3566, 3595-3598`). A hook's
+  context would reach `grpcRunCtx` through `r.Context()` (grpc `server.go:1141-1152`).
+- **The new axioms mint nothing.** No `threadTok`, run slots or `HttpNet` resources (as lease-ex's
+  D1).
+- **No inherited justification.** The start cannot rest on "`RegisterService` after `Serve` is
+  fatal": `ServeHTTP` never sets `s.serve`. Only the consumed `grpcSrvNew` guarantees it.
+- **Liveness facts change.** grpc's `MaxConcurrentStreams` and keepalive policy are inert under
+  `ServeHTTP`; that affects liveness only. `InvGrpcServer.lean`'s "calls wait" header line would be
+  false there.
+- **One address, one `net/http` model.** The grpc-over-HTTP listener must exclude the address from
+  `HttpNet` (`Proof/net/http/Boundary.lean:551-575`), so one address is never both.
+- **Facts to correct.**
+  - etcd's default client URL is `http://localhost:2379` (`embed/config.go:86`), so the secure path
+    is not "the default".
+  - `splitHTTP` is global: any HTTP-only URL makes every URL `onlyGRPC`.
+  - `grpcHandlerFunc` is at `serve.go:314-327`.
+  - In go1.27.3, `net/http`'s HTTP/2 server is `net/http/internal/http2`.
+- **The name.** A result over h2c with `gs` as the bare handler should not be named as if it were
+  etcd's secure grpc+http port.
+
+**The design for when it comes back: the error shape at the method level** (decided by the user,
+2026-11-06).
+- Widen only `grpcDecOk`'s error branch and `grpcMethodOk`/`grpcMethodOkMd`'s post
+  (`InvGrpc.lean:447`, `:485`, `:507`) to `srvErrOk err ∨ grpcConnErr err`. Place `grpcConnErr`
+  where it has the fewest importers.
+- `srvErrOk` stays unchanged. `dec`'s error never reaches an interceptor: the generated handler
+  returns it before calling the interceptor (`rpc_grpc.pb.go:219-232`), and a unary RPC calls
+  `sd.Handler` directly (grpc `server.go:1446-1450`).
+- Widening `srvErrOk` instead would weaken the prometheus interceptor axiom, about 29 v3rpc specs
+  and exported results (`etcd_kv_servedM_with`, v3rpc `Results.lean`'s `srvErrOk` posts), and
+  rebuild about 6000 modules.
+- The one consumer of `dec`'s error is `UnaryHandlerLemmas.lean:191-193`. So the only trust change
+  is `grpc.serve`'s premise.
+- **`grpcConnErr`'s inner error** is a leaf meeting `statusErrOk`, or `net/http`'s internal
+  `StreamError`, a struct whose `Error()` returns and whose reflect-based `As` returns false for
+  interface or non-struct targets (`net/http/internal/http2/errors.go:94-110`).
+  - The `StreamError` case: `closeStream` closes the body with it on a peer RST_STREAM or a
+    server-generated reset (`server.go:1566-1567, 1600-1601`). `mapRecvMsgError` tests against
+    x/net's `StreamError`, so it wraps the internal one in a `ConnectionError`.
+  - It reaches `dec` only through a race in `recvBufferReader`'s select. The race was seen in
+    source only; 6000 runs never hit it.
+  - The other inner error, `ReadTimeout > 0`'s `fmt.Errorf("%w", os.ErrDeadlineExceeded)`, is
+    excluded by the serve axiom's `ReadTimeout = 0` premise.
+  - Go probes for the attack: message 1, then RST_STREAM, looped; and a flow-control violation
+    mid-body.
+  - `notes/axiom-review/hs6.md`'s "true shape" is corrected accordingly.
+
+**Qc-5 (the order) re-read.** Its rationale, that the ServeHTTP stage is a trusted statement about a
+TLS listener and that a TLS cluster driver is then a listener change, no longer drives the order.
+cluster3 step 2 goes next on its own merits (the user, 2026-11-06). A TLS cluster driver, if
+wanted, comes with (b).
+
+### k8s etcd3 over cluster3, step 1: as built (2026-11-06, etcd-grove-56, branch `k8s-cluster-s1`; Freeze package to the user via etcd-grove-82)
+
+**Go.** `MainCluster`/`clusterConfig` in `k8setcd3.go`:
+- token `k8setcd3c`, ports 24041-24063;
+- `kubernetes.New` of the three bridges, with `etcdstart`'s dial and keepalive timeouts and the
+  default retries.
+
+`TestMainCluster` is Ok, and `TestMemberIDs` passes.
+
+**Statements.**
+- `MainCluster.spec` and `clusterConfig.spec` are new.
+- The closed theorem `k8s_etcd3_cluster_safe` (`Results.lean`, from `k8s_etcd3_cluster_adequate`,
+  over `etcd_adequate_members`) is new.
+- `seed.spec`/`seedOne.spec` now take a member list `ms` (`ms ≠ []`, `[∗list]` of `kvRegsAt` and of
+  `seedInv`). `Main` instantiates them at `[x]`.
+- `k8s_etcd3_safe` and every store, client and server spec are unchanged.
+
+**Proof.**
+- The cluster side follows K6's `MainPartition`.
+- `seedInv`/`kInv` read `γk` only through `etcdKV` (`γk.st`), so one invariant at the first member's
+  names serves all three: `seedInvs_of_same`, `kInvs_of_same`.
+- `MainLinked.lean` is written by hand. The `k8setcd3` collection's roots cover it, and 32 existing
+  cluster axioms join the collection.
+- No new axiom or `sorry`.
+
+**Bounds.** `MainCluster.spec` takes the adequacy constants as instance binders
+(`[ThreadBoundLe GF (2^28)] [ReceiptBoundLe GF (2^48)] [ReceiptBoundLe GF (N+1)]`), the B1 form of
+`notes/bounds-plan.md`, as `examples/etcd/restart`'s `Main.spec`; `k8s_etcd3_cluster_adequate` builds
+them with `haveI`. The bounds baseline does not move. (The Freeze package first raised it by 3, as
+K6 did in `076cc37625`; the user, via etcd-grove-82, approved the Freeze on the condition that it
+did not.) `Main.spec` keeps its premises.
+
+**Noted, not fixed (2026-11-06, etcd-grove-82's review of the Freeze).**
+- `MainCluster`'s Go doc comment says a write is retried only after a refusal. That misses
+  clientv3's `isSafeRetryMutableRPC`, which also retries a mutable RPC on "no address/connection
+  available". There the request never left the client, so a write still reaches the servers at
+  most once and the proof's `clientWriteOnce` is unaffected; only the comment is incomplete.
+- The seed's `Put` runs on `context.Background()`, with no deadline. While the cluster has no
+  leader, it relies on the server's own request timeout to return.
+
+The size came in under the estimate: `MainCluster.lean` is ~330 lines, and Adequacy, Results and
+links ~200.
+
+### k8s etcd3 over cluster3, step 2: as built (2026-11-07, etcd-grove-56, branch `k8s-cluster-s2`; Draft rev 2 approved with fixes by the user via etcd-grove-82)
+
+**Go.** `MainPartition(clients, ops, sched)` in `k8setcd3.go` is `MainCluster` plus one step: before
+`Check`, it runs `go cluster3.Partitioner(srvs, brs, sched)`.
+
+Tests:
+- Every cluster test runs in a process of its own (`inChild`: `TestMainLinearizable`,
+  `TestMainCluster`, `TestMainPartition`, `TestPartitionFailures`). The parent removes the data
+  directory after the child exits. Removing it under a running member made the WAL's release fail
+  (`server.go:2157` panics), which the theorem excludes by its premise `storage.diskOk ∋ releaseOk`.
+- `TestMainPartition` runs five schedules: `isolate` (300ms cuts), `election` (3s cuts of each
+  member in turn), `blackhole` (member 0 for 10s), `drop` and `mixed` (one K6-like round).
+- `TestPartitionFailures` counts the failed writes and the leader changes.
+
+Runs, under a 32G cap:
+- `TestMainPartition`, the theorem's program, returned Ok in 25 of 25 runs (5 schedules × 5 runs),
+  with a peak RSS of 61-71 MiB.
+- The leader and failed-write counts come from 25 separate runs of the diagnostic
+  `TestPartitionFailures`:
+  - the election schedule had 2-3 distinct leaders in every run;
+  - 0-4 writes failed per run.
+- `inChild` requires the child's `--- PASS` line, so a child that ran no test fails.
+
+**Not verified.** An earlier doc comment on `MainPartition` said that a read is then retried on
+another endpoint. Nothing verified that claim, and the comment no longer says it.
+
+**Statements.** These are new; nothing on lean changes.
+- `MainPartition.spec` is `MainCluster.spec` with `sched ↦*□ steps` added.
+- `k8setcd3PProgram clients ops steps := initialize' #() ;; MainPartition #clients #ops (schedLit
+  steps)`.
+- `k8s_etcd3_partition_safe` (from `k8s_etcd3_partition_adequate`) holds for every `steps` with
+  `steps.length < 2^63`, under `k8s_etcd3_cluster_safe`'s hypotheses. Its adequacy allocates the
+  literal, as K6's does.
+
+**Proof.** K6's partition pattern: the Partitioner is forked after `etcd3.New`.
+- `PeerPausable` comes from `peerPausable_inst`.
+- `ownBridge … false` comes from `cluster3.clusterAt`.
+
+**Trust.** No new axiom or `sorry` in the baseline. The `k8setcd3` collection gains the three bridge
+axioms `bridge.bridge.{Blackhole,Unblackhole,DropConnections}.wp_proof`. Like every `_safe` theorem
+here:
+- the result is vacuous until `pbEnc_ok`'s per-type fix lands (`notes/pbenc-ok-inconsistent.md`);
+- it rests on false axioms until sweep repairs 1 land: `zap.Logger.{Debug,Error,Fatal,Info,Warn}`,
+  `errors.IsCtxErr`, `context.ValueStartTime`, `http.Handle_ok`, and the k8s
+  `DefaultFeatureGate`/`DefaultFeatureSupportChecker` initializers.
 
 ## What blocks where
 

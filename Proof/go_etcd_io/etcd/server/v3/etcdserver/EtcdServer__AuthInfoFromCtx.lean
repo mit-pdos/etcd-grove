@@ -56,7 +56,7 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
         iapply HΦ; iframe Hrd; isplitr
         · iunfold authInfoOpt; ileft; ipureintro; rfl
         isplitr
-        · iapply applyErrIs_nil
+        · iapply authApplyErrIs_nil
         iframe Hae
         iintro !> -
         iunfold ctxBoundOrTLS; ileft
@@ -69,7 +69,7 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
         wp_apply HFromTLS $$ %ctx %cd [] as %a' Ha'
         · iframe #
         iapply HΦ; iframe Hrd Ha'; isplitr
-        · iapply applyErrIs_nil
+        · iapply authApplyErrIs_nil
         isplitr
         rotate_left
         · iintro !> -; iunfold authErrVarIs; ileft; ipureintro; rfl

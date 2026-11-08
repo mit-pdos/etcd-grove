@@ -56,8 +56,10 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
       apply.irrWrapperIs r rq skip ∗ apply.chainRes c a info ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
       apply.kvOwnPre v3 E log Pre Q Post ∗ apply.certPreV v3 E c rq log ∗
-      ⌜apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit log rq⌝ ∗
-      apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗ apply.grantFresh E rq U ∗
+      ⌜apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq ∧
+        (v3 = true → apply.cmpAdmit log rq)⌝ ∗
+      □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
+      apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
       apply.revokeOwn E rq ∗
       ⌜c.authOn = E.authOn⌝ ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗

@@ -26,21 +26,23 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
-/-- `errors.Is(err, g)` of an `applyErrIs` error at the `errors.New` variable `g`. -/
+/-- `errors.Is(err, g)` of an `applyErrIs` error at the `errors.New` variable `g`: `true` if `err`
+is `g`'s value. -/
 theorem read_wp_Is_var (hIs : errors.Is.spec (GF := GF) (hG := hG)) (err : GoInterface)
     (e : GoInterfaceOk) (hl : errLeaf e) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ applyErrIs err }}
       (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #(GoInterface.ok e)))
-    {{ (b : Bool), RET #b; True }} := by
+    {{ (b : Bool), RET #b; ⌜err = GoInterface.ok e → b = true⌝ }} := by
   iintro %Φ ⟨#Hp, #Herr⟩ HΦ
   ihave #HT := applyErrIs_tree err $$ Herr
   ihave ⟨%S, %M, #Htree, %HS⟩ := HT $$ %(GoInterface.ok e)
   have hpt : ptrTarget (GoInterface.ok e) := fun tii h => by cases h; exact hl.1
   iapply hIs S M err (GoInterface.ok e) hpt (HS.2 hpt) $$ []
   · iframe #; ipureintro; exact HS.1
-  iintro !> %b -
+  iintro !> %b ⟨-, %Heq, -⟩
   iapply HΦ
-  itrivial
+  ipureintro
+  exact Heq e rfl (hpt e rfl)
 
 theorem read.isStopped.wp_proof (hIs : errors.Is.spec (GF := GF) (hG := hG)) :
     read.isStopped.spec (GF := GF) (hG := hG) := by
@@ -55,15 +57,23 @@ theorem read.isStopped.wp_proof (hIs : errors.Is.spec (GF := GF) (hG := hG)) :
   ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   wp_auto
-  wp_apply read_wp_Is_var hIs err eR HlR as %b1 -
+  wp_apply read_wp_Is_var hIs err eR HlR as %b1 %Hb1
   · iframe #
   cases b1
   · wp_auto
     wp_apply read_wp_Is_var hIs err eS HlS as %b2 -
     · iframe #
     wp_end
+    iintro %e %_ #He
+    icombine HeR He gives %Heq
+    subst Heq
+    ipureintro
+    intro h
+    exact absurd (Hb1 h) (by simp)
   · wp_auto
     wp_end
+    iintro %e %Hf
+    cases Hf
 
 end proof
 

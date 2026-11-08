@@ -309,7 +309,8 @@ theorem store.updateOnce.wp_proof
       | ok ei =>
         (try wp_auto)
         iunfold go_etcd_io.etcd.cache.v3.statusErrOk at Hpse
-        ihave ⟨#Hes, -, -⟩ := Hpse $$ %ei %rfl
+        ihave ⟨⟨%em, #Hes0⟩, -, -⟩ := Hpse $$ %ei %rfl
+        ihave #Hes := go_etcd_io.etcd.cache.v3.errorMsgIs_errorStringSpec _ _ $$ Hes0
         iunfold go_etcd_io.etcd.cache.v3.errorStringSpec at Hes
         wp_apply Hes as %estr
         wp_apply wp_String as %kve -

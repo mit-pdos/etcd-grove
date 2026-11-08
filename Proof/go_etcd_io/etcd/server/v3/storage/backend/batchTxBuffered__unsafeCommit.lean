@@ -168,10 +168,13 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   try wp_auto
   rw [decide_eq_false Hrnn]
   wp_auto
-  wp_apply wp_fork $$ [Hrb]
+  -- (2026-11-06, `notes/begin-tok-plan.md`) the fork's fresh token stays here, for the new read
+  -- transaction (or the post, at the stop); the rollback goroutine exits with the old one's
+  wp_apply wp_fork_tok_self $$ [Hrb] as Htok
   · wp_auto
     wp_apply (wp_rollback_Wait γ rtx wg) $$ [$Hrb] as ⟨%D, Hl1, #Hsn⟩
-    wp_apply (hRollback rtx D) $$ [$Hl1 $Hsn] as -
+    wp_apply (hRollback rtx D) $$ [$Hl1 $Hsn] as ⟨-, Htok⟩
+    iframe Htok
     itrivial
   wp_apply (hReset rt st'.R cm rtx wg) $$ [$HRB $Hcm $Hrtx $Hwg] as %cm' %wg' ⟨HRB, Hcm, Hcmm, Hrtx, Hwg, Hwgz⟩
   wp_apply (hBC γ P W Pk b t db st' stop) $$ [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu] as ⟨Hmu, Hres⟩
@@ -185,10 +188,10 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       icases Hw with ⟨Htxf, Hpend, Hwtx⟩
       rw [HA.1]
       wp_auto
-      wp_apply (hBegin γ.db b db st'.C false) $$ [$Hmu $Hdb] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
+      wp_apply (hBegin γ.db b db st'.C false) $$ [$Hmu $Hdb Htok] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
-        itrivial
+        iexact Htok
       ihave Hpre : (if win then thinV γ (vData P (st'.C, st'.R.reset)) L'
           else thinV γ (vData P (st'.C, st'.R.reset)) (vData P (st'.C, st'.R))) $$ [Hpre]
       · rw [(commit_final (tx' := st'.tx) (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)).2.2, hC, hR,
@@ -224,10 +227,10 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     · simp only [Bool.false_eq_true, ↓reduceIte]
       icases Hrest with ⟨Hwtx, #Htxdb'⟩
       wp_auto
-      wp_apply (hBegin γ.db b db st'.S false) $$ [$Hmu $Hdb] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
+      wp_apply (hBegin γ.db b db st'.S false) $$ [$Hmu $Hdb Htok] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
-        itrivial
+        iexact Htok
       ihave Hpre : (if win then thinV γ (vData P (st'.S, st'.R.reset)) L'
           else thinV γ (vData P (st'.S, st'.R.reset)) (vData P (st'.C, st'.R))) $$ [Hpre]
       · rw [(commit_final (tx' := tx') (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inl rfl)).2.2, hC, hR,
@@ -284,7 +287,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     iframe Hrr HWR HY
     unfold payOut
     simp only [Bool.true_eq_false, _root_.false_and, ↓reduceIte]
-    iframe Hown Hbs Hpend
+    iframe Hown Hbs Hpend Htok
     -- (R2b-3c part 2) the database, and the lock's ghost shares at the committed data
     iunfold bDBOutG
     iexists db, st'.S

@@ -292,7 +292,7 @@ theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev :
   unfold rangeResult
   iintro (⟨%H, -⟩ | ⟨%H, #He⟩ | ⟨%H, %kvs, %more, #Hresp, %Hok⟩ | ⟨%H, %ec, -, %He⟩)
   · rw [hrev0, h00] at H; omega
-  · ihave %Hne := mvcc.ctxErrorf_ne_nil err $$ He
+  · ihave %Hne := mvcc.rangeKeysErr_ne_nil err $$ He
     exact absurd herr' Hne
   · rw [hRR] at Hok
     rw [hRR]

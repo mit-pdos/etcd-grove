@@ -88,8 +88,7 @@ theorem srvErrIs_of_applyErrIs (err : GoInterface) (hne : err ≠ GoInterface.ni
   iexists ei
   isplitr
   · ipureintro; exact Hei
-  iunfold errMsgOk at Hm
-  iexact Hm
+  iapply errMsgOk_triple $$ Hm
 
 /-- **What one call of the server's write path needs** (`EtcdServer.Put`/`DeleteRange`): the
 request's context (a `context.Context` value with Perennial's `isContext`), one id credit (for

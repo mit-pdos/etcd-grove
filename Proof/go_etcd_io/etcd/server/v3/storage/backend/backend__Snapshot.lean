@@ -75,7 +75,17 @@ one exemption, its commit's close re-establishing the agreement at `relog`). So 
 hook keys' argument again, over a ghost variable of the same shape and the quarter's pure
 agreement; it adds nothing the other clauses rely on. Attacked with the `axiom` skill, survives
 (`notes/axiom-review/backend-snapshot-dls.md`, 2026-11-04; the compaction keys' clause:
-`backend-snapshot-fkd.md`). -/
+`backend-snapshot-fkd.md`). (2026-11-06, branch `begin-tok`, `notes/begin-tok-plan.md`) Why the pre's
+`threadTok` and `ThreadBoundLe GF (2 ^ 29)`: `Snapshot` (etcd `server/storage/backend/backend.go:381`)
+calls `b.db.Begin(false)` (`:386`), whose `beginTx` takes bbolt's `db.mmaplock.RLock()` (bbolt
+`db.go:875`) and keeps it past `Snapshot`'s return (the `b.mu.RUnlock()` deferred at `:385` is the
+backend's own lock, not `mmaplock`), until `snapshot.Close`'s `s.Tx.Rollback()` (`backend.go:1132`)
+reaches `removeTx`'s `db.mmaplock.RUnlock()` (`db.go:951`). Each open snapshot is so charged a
+thread's token, as `bbolt.DB.Begin_kv` charges a read transaction; the bound keeps the slots below
+`sync.RWMutex`'s `2 ^ 30` readers (`bbolt.Open_kv`'s count). The goroutine it starts
+(`backend.go:393`, living until `Close`'s `<-s.donec`, `:1131`) is a live thread paid by its own
+fork's fuel; the caller's token pays the reader slot: net one token per open snapshot until `Close`
+(reviewed with the `axiom` skill, survives: `notes/axiom-review/begin-tok-restated.md`). -/
 axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec (GF := GF) (hG := hG)
 
 end proof

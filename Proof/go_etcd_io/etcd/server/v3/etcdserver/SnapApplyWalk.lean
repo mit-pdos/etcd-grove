@@ -308,6 +308,12 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · iPkgInit
   ihave #Hhooks := hooksOk_server_fut hOn hSave hPut hBUR hID hName hSafe γ π0 ci d.P
     (fun _ => mvcc.api.mvccW gx') hk lgh hP.2.2.1 hP.2.2.2 $$ [$Hspkg $Hbpkg $Hschpkg $Hcipkg $Hbh $Hisci $Hinv]
+  -- (2026-11-06, `notes/begin-tok-plan.md`) `OpenSnapshotBackend`'s instance, from the server's bound
+  ihave %Htb0 : ⌜threadBound GF ≤ backend.rdPoolN⌝ $$ [Hsrv]
+  · iunfold isServerM at Hsrv
+    icases Hsrv with ⟨-, -, -, -, -, -, %h⟩
+    ipureintro; exact h
+  haveI : ThreadBoundLe GF (2 ^ 29) := ⟨by unfold backend.rdPoolN at Htb0; omega⟩
   wp_apply hOSB cfg ss sn smp hk DFrac.discard DFrac.discard sv.Metadata' d.P D
       (fun _ => mvcc.api.mvccW gx') (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
       (snapOpenK γ π0 d.P) $$ [Hfile Hpath Hcreate]

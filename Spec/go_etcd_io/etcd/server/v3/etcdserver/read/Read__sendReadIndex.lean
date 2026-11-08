@@ -36,7 +36,7 @@ abbrev read.Read.sendReadIndex.spec : Prop :=
       isReadLoopPre r γr RQ LR NR F ∗ LR ∗ committedAtLeast γr n ∗ srvReadAu γr.raft Qr ∗
       srvRdFresh γr.raft (beBytes id) }}
     (App (Val (r @!! go.GoType.PointerType Read.ty @!! go!"sendReadIndex")) (Val #id))
-  {{ (err : GoInterface), RET #err; LR ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; LR ∗ applyErrIs err ∗ readLoopErrIs err ∗
       (⌜err = GoInterface.nil⌝ -∗ □ RQ id n Qr) }}
 
 end spec

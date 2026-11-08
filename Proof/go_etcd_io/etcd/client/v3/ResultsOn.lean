@@ -186,6 +186,8 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.
     unfold attemptPre
     iintro %md %Hmd
     unfold etcdRangeSpecOn
+    isplitr
+    · imodintro; iintro %_; itrivial
     iexists c, F, Q, n
     iframe Hc HF Hn Hdq
     iintro %m Hm Ha

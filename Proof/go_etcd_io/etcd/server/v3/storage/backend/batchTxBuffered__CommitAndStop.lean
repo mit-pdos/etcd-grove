@@ -66,7 +66,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
       · iexact Hq
     iexact HX
   try simp only [↓reduceIte]
-  icases Hpost with ⟨Hown, Hpend, #Hbs, Hout⟩
+  icases Hpost with ⟨Hown, Hpend, #Hbs, Hout, Htok⟩
   wp_method_call
   wp_call
   wp_auto
@@ -75,7 +75,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
     iright
     iframe
   iapply HΦ
-  iframe Hbs HY
+  iframe Hbs HY Htok
   -- (R2b-3c part 2) the stopped lock's client resources go with the database
   unfold bDBOut
   iframe Hout HWv HWR

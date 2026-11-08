@@ -7,7 +7,7 @@ def bbolt.Tx.Rollback_kv.spec : Prop :=
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.txLive tx 1 ∗ backend.rtxSnap tx D -∗
-          ▷ (backend.txDone tx -∗ Φ (intoVal GoInterface.nil)) -∗
+          ▷ (backend.txDone tx ∗ threadTok -∗ Φ (intoVal GoInterface.nil)) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"Rollback"

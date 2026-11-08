@@ -158,7 +158,8 @@ theorem compactor.getCompactRev.wp_proof
     iunfold kvErr at Hke
     icases Hke with ⟨-, #Hse, -⟩
     iunfold go_etcd_io.etcd.cache.v3.statusErrOk at Hse
-    ihave ⟨#HeS, -⟩ := Hse $$ %ei %rfl
+    ihave ⟨⟨%em, #HeS0⟩, -⟩ := Hse $$ %ei %rfl
+    ihave #HeS := go_etcd_io.etcd.cache.v3.errorMsgIs_errorStringSpec _ _ $$ HeS0
     ihave #HeS' : EtcdGrove.fmt.stringMethodSpec ei go!"Error" $$ []
     · rw [show EtcdGrove.fmt.stringMethodSpec ei go!"Error" =
         go_etcd_io.etcd.cache.v3.errorStringSpec ei from rfl]

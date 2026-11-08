@@ -123,8 +123,10 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
     -- (2026-10-30, the repair: snapshots allowed) a bag of raft's `MsgSnap`s (`rnSnapMsg`, the
     -- raft loop's `processMessages`); until then it never delivered (D19p: `□ (∀ m, P m -∗ False)`);
-    -- (2026-10-31, S1) the raft node's, of the server's raft names (until then any `P`)
-    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ isRNMsgSnapC γm msc) ∗
+    -- (2026-10-31, S1) the raft node's, of the server's raft names (until then any `P`);
+    -- (R2d'a A7, 2026-11-06, DRAFT; `r2d-freeze1`'s F2) its node's id the server's member id
+    -- (`winNoMergedSendR`: this member's sends)
+    (∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□ γm.id ∗ isRNMsgSnapC γm msc) ∗
     srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
     -- (D19i part 1) `s.stopping`, which `applyAll` selects on beside `raftAdvancedC`
     (∃ stg : Loc, srvStoppingAddr s ↦□ stg ∗ stopChan stg) ∗

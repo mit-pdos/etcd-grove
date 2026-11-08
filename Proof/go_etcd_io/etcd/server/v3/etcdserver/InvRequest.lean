@@ -980,7 +980,7 @@ theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plain
         (kvCrevEntry_pos _ _ cmp c m (hB m (List.mem_cons_self)) hc)
   exact key A h (-1) (Or.inl rfl)
 
-/-- **`specSnap`'s `hcc`** from the records' revision: the apply thread's compaction revision is
+/-- **`specSnapM`'s `hcc`** from the records' revision: the apply thread's compaction revision is
 its applied log's (`kvApplied`'s), below the image's log `A'`, whose compaction revision the
 records carry (`imageAt`'s). -/
 theorem crev_hcc (γk : KVNames) (A A' : List EntryModel) (crev : Int) (rcrev : Int)
@@ -2568,13 +2568,31 @@ one (as `srvLgReader` for `s.lgMu`; `read.NewRead` returns them). -/
 def readReader (r : Loc) (γr : ReadNames) : IProp GF :=
   sync.ownRWMutex (GF := GF) (readMuAddr r) (readMuP r γr)
 
+/-- **The errors `LinearizableReadNotify` returns** (k8s etcd3 7c-2 part 2, S3b, 2026-11-06):
+`nil`, a done context's (`context.isCtxErr`: the caller's `ctx.Err()`, or the read loop's
+`ReadIndex` context's, passed on in `nc.err`), or one of `etcdserver/errors`' `ErrStopped` (the
+loop stopped, `read.go:92`), `ErrLeaderChanged` and `ErrTimeout` (`requestCurrentIndex`,
+`read.go:172,193,225`). Raft's `ErrStopped` is not one: the loop returns on it without notifying
+(`isStopped`, `read.go:118`). -/
+def readErrIs (err : GoInterface) : IProp GF :=
+  iprop(⌜err = GoInterface.nil⌝ ∨ context.isCtxErr err ∨
+    (globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped ↦□ err : IProp GF) ∨
+    (globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged ↦□ err : IProp GF) ∨
+    (globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout ↦□ err : IProp GF))
+
+instance readErrIs_persistent (err : GoInterface) : Persistent (readErrIs (GF := GF) err) := by
+  unfold readErrIs; infer_instance
+
+theorem readErrIs_nil : ⊢ readErrIs (GF := GF) GoInterface.nil := by
+  iunfold readErrIs; ileft; ipureintro; rfl
+
 /-- **The `*read.Read` `r`** (persistent; `read.NewRead`'s result, `read/Results.lean`, the request
 path's unit 4a): `LinearizableReadNotify(ctx)`, with a reader slot of `r.mux` (`readReader`, given
 back; 2026-10-13, unit 4a: Perennial's `RWMutex` bounds the readers), returns `nil` only once the
 applied index has reached the committed index the caller knew of (`readIndexOk`), or an error
 the gRPC layer can take (`applyErrIs`: the read loop's `ErrStopped`, `ErrLeaderChanged`, ...,
 `errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`; 2026-10-12, unit 3b, as
-`raftPropose`). The deposit at the state function `F` (E3r; by default the mode `off`'s). -/
+`raftPropose`), and which (`readErrIs`; k8s etcd3 7c-2 part 2, S3b, 2026-11-06). The deposit at the state function `F` (E3r; by default the mode `off`'s). -/
 def isReadNotify (r : Loc) (γr : ReadNames) (F : List EntryModel → KVState := kvStOff γr.kv) :
     IProp GF :=
   iprop(□ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (c : w64) (g : GName)
@@ -2583,7 +2601,7 @@ def isReadNotify (r : Loc) (γr : ReadNames) (F : List EntryModel → KVState :=
         savedPredOwn g DFrac.discard Q ∗ kvDep γr.kv Q F }}
       (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty @!!
         go!"LinearizableReadNotify")) (Val #(GoInterface.ok ctx)))
-    {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
+    {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗ readErrIs err ∗
         (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c ∗ readServed γr c g) }}))
 
 instance isReadNotify_persistent (r : Loc) (γr : ReadNames) (F : List EntryModel → KVState) :
@@ -2603,7 +2621,8 @@ def authInfoOpt (a : Loc) : IProp GF :=
 /-- **The auth store's request side** (persistent): `AuthInfoFromCtx(ctx)`, with the caller's
 reader resource `RD` (held and given back; 2026-10-14, unit A2: the real method read-locks
 `enabledMu`), returns an auth info (or `nil`) and an error (`nil`, or one the gRPC layer can take:
-`applyErrIs`; 2026-10-12, unit 3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`). Of the real
+`applyErrIs`; 2026-10-12, unit 3a; and `nil` or one of the auth package's error variables,
+`authApplyErrIs`, so that the gRPC layer's description of it is known: k8s etcd3 7c-2 part 2, S3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`). Of the real
 store: `isReqAuth_of_authInv` (`AuthReqDerive.lean`). The permission checks and `Revision` are the
 apply package's `isAuthStore`. -/
 def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
@@ -2612,7 +2631,7 @@ def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
       {{ mvcc.txnCtx ctx cd ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
-          applyErrIs err }}) ∗
+          authApplyErrIs err }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
       {{ mvcc.txnCtx ctx cd }}
         (App (Val #(methods ai.ty go!"AuthInfoFromTLS" ai.v)) (Val #(GoInterface.ok ctx)))

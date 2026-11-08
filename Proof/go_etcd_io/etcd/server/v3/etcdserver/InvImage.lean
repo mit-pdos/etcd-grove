@@ -27,7 +27,7 @@
   writer's certificate, `soleWriter_idxWf`) and restore needs (`restoreLogOk`, with the facts of
   the model a plain log has: `restoreLogOk_kvRaftOf`). The stored term stays some term: the
   consistent index's protocol tracks no term (`InvCindex.lean`), and restore reads none; the
-  receiver names its protocol with the image's (`specSnap`'s `tI`, D22 J7b).
+  receiver names its protocol with the image's (`specSnapM`'s `tI`, D22 J7b).
 * `dbImage γ γk i D` (persistent): of a committed prefix `A` (`srvRLogLb`) of the server's log
   ending at index `i`, the store's part mvcc's `mvccImage` of the KV model's history (strict M1,
   2026-11-06; until then `imageAt`), the server's `imageRestAt` (`imageAt`'s meta and rest-bucket

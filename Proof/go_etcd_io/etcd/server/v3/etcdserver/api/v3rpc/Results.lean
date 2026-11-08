@@ -221,7 +221,13 @@ theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAns]
-    iexact Hpost
+    icases Hpost with (Hok | ⟨%Herr, %e, -, HA, -⟩)
+    · ileft; iexact Hok
+    iright
+    isplitr
+    · ipureintro; exact Herr
+    iexists e
+    iexact HA
 
 /-- **`deleteRange_end_to_end`** (as `put_end_to_end`, for `DeleteRange`: the answer's request is
 the one the proposed data decode to, `deleteAppliedOk`). -/
@@ -260,7 +266,13 @@ theorem deleteRange_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAns]
-    iexact Hpost
+    icases Hpost with (Hok | ⟨%Herr, %e, -, HA, -⟩)
+    · ileft; iexact Hok
+    iright
+    isplitr
+    · ipureintro; exact Herr
+    iexists e
+    iexact HA
 
 /-- **`range_end_to_end`**: the gRPC `Range`'s `(resp, nil)` is the txn package's range at a
 certified log of at least two revisions (`rangeAnsOk`: `rangeResult` of the server's selection
@@ -304,7 +316,13 @@ theorem range_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAns]
-    iexact Hpost
+    icases Hpost with (Hok | ⟨%Herr, %e, -, HA, -⟩)
+    · ileft; iexact Hok
+    iright
+    isplitr
+    · ipureintro; exact Herr
+    iexists e
+    iexact HA
 
 /-- **`txn_end_to_end`**: the gRPC `Txn`, for a request whose read-only gets are within
 the txn package's model (`txnInModel`): the check's error, or `(resp, nil)` with the header
@@ -356,7 +374,13 @@ theorem txn_end_to_end
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAns]
-    iexact Hpost
+    icases Hpost with (Hok | ⟨%Herr, %e, -, HA, -⟩)
+    · ileft; iexact Hok
+    iright
+    isplitr
+    · ipureintro; exact Herr
+    iexists e
+    iexact HA
 
 /-- **`put_end_to_end` in the server's auth mode** (the auth component's stage 4; `srvKVAnsM` at the
 caller's token): `put_end_to_end`'s, and with auth on the grant (`writeGrantOn`). Off it gives
@@ -401,7 +425,13 @@ theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAnsM]
-    iexact Hpost
+    icases Hpost with (Hok | ⟨%Herr, %e, -, HA, -⟩)
+    · ileft; iexact Hok
+    iright
+    isplitr
+    · ipureintro; exact Herr
+    iexists e
+    iexact HA
 
 /-- **`deleteRange_end_to_end` in the server's auth mode** (`put_end_to_endM`'s, for
 `DeleteRange`). -/
@@ -445,7 +475,13 @@ theorem deleteRange_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAnsM]
-    iexact Hpost
+    icases Hpost with (Hok | ⟨%Herr, %e, -, HA, -⟩)
+    · ileft; iexact Hok
+    iright
+    isplitr
+    · ipureintro; exact Herr
+    iexists e
+    iexact HA
 
 /-- **`range_end_to_end` in the server's auth mode** (the auth component's stage 4): the read at the
 mode's model (`rangeAnsOkM`), with auth on the read's check (`rangeAuthed`). -/
@@ -469,8 +505,9 @@ theorem range_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
               srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
               rangeAnsOkM E.authOn E γr c F o resp rv (rangeDepQM E.authOn γr.kv d) ∗
               (⌜E.authOn = true⌝ → rangeAuthed s E γr c na (auth.ctxTokenOf ctx) o)) ∨
-          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ _e : GoInterface,
-            srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s)) ∗
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗
+            srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
+            rangeErrDesc E.authOn E γr c F o (rangeDepQM E.authOn γr.kv d) err)) ∗
         go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
   ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
@@ -490,7 +527,20 @@ theorem range_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAnsM]
-    iexact Hpost
+    icases Hpost with (Hok | ⟨%Herr, %e, %Hne, ⟨Hcr, Hid, Hlt, #HrO⟩, #Hgo⟩)
+    · ileft; iexact Hok
+    iright
+    isplitr
+    · ipureintro; exact Herr
+    iframe Hcr Hid Hlt
+    -- (k8s etcd3 7c-2 part 2, S4/S5) what the gRPC error says of the read
+    ihave #Pm : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+    · iPkgInit
+    ihave #Pa : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
+    · iPkgInit
+    ihave #Pe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors $$ []
+    · iPkgInit
+    iapply rangeErrDesc_of_grpcErrOut _ _ _ _ _ _ _ e err Hne $$ Pv Pm Pa Pe HrO Hgo
 
 /-- **`txn_end_to_end` in the server's auth mode** (the auth component's stage 4): at the mode's
 model (`txnReadAnsM`), with auth on a read-only transaction's checks (`txnAuthed`) and a writing
@@ -546,7 +596,13 @@ theorem txn_end_to_endM
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAnsM]
-    iexact Hpost
+    icases Hpost with (Hok | ⟨%Herr, %e, -, HA, -⟩)
+    · ileft; iexact Hok
+    iright
+    isplitr
+    · ipureintro; exact Herr
+    iexists e
+    iexact HA
 
 
 /-- **What a successful gRPC `Put` applied** (pure; with `put_end_to_end`'s `putAppliedOk`):
@@ -864,7 +920,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   iunfold etcdUserAddSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨-, %Qa, %Hn, #Hu, Hk⟩
+  icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hu, Hk⟩
   ihave #Hu' : iprop(□ userAddHistAu s E ρ ci m.name false Qa) $$ []
   · unfold userAddHistAu
     iintro !> %um %Hum
@@ -884,7 +940,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci cd [] m.name Qa resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
   iframe Hs
@@ -913,7 +969,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iunfold etcdRoleAddSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨-, %Qa, %Hn, #Hha, Hk⟩
+  icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -928,7 +984,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleAdd m) Qa [] _ resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
   iframe Hs
@@ -957,7 +1013,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iunfold etcdUserGrantRoleSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨-, %Qa, %Hn, #Hha, Hk⟩
+  icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -972,7 +1028,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrUserGrantRole m.1 m.2) Qa [] _ resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
   iframe Hs
@@ -1001,7 +1057,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   iunfold etcdRoleGrantPermissionSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨-, %Qa, %Hn, #Hha, Hk⟩
+  icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -1016,7 +1072,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleGrantPermission m.1 (some m.2)) Qa [] _ resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
   iframe Hs
@@ -1046,7 +1102,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iunfold etcdAuthEnableSpec at Hk
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hk with ⟨-, %Qa, #Hha, Hk⟩
+  icases Hk with ⟨#HΨe, %Qa, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -1059,7 +1115,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci irrAuthEnable Qa [] _ resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
   iframe Hs

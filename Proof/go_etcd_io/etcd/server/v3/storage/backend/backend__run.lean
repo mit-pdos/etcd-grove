@@ -155,7 +155,7 @@ theorem backend.backend.run.wp_proof
     -- (2026-11-04, R2b-3d stage 3) `Close`'s caller's request, served by the stop's commit
     iunfold stopReq at Hrq
     icases Hrq with ⟨%X, %Y, HX, #Hreq, Hrq⟩
-    wp_apply (hCS γ P W Pk b t X Y) $$ [$Hhalf $Hq $HX] as ⟨#Hbs, Hout, HY⟩
+    wp_apply (hCS γ P W Pk b t X Y) $$ [$Hhalf $Hq $HX] as ⟨#Hbs, Hout, HY, Htok⟩
     · iframe #
     wp_for_post
     wp_apply (_root_.Perennial.time.Timer.wp_Stop tm) $$ [] as %bb -
@@ -172,7 +172,7 @@ theorem backend.backend.run.wp_proof
       iunfold bDoneEsc
       iexact Hesc
     iapply HΦ
-    itrivial
+    iexact Htok
   · iapply BigAndL.bigAndL_nil.2
     itrivial
 

@@ -123,7 +123,7 @@ theorem rangeResult_nil_ne (resp : Loc) (log : mvcc.Log) (rev : w64) (crev : Int
   iunfold txn.rangeResult
   iintro (⟨-, %ef, -, %He⟩ | ⟨-, #He⟩ | ⟨-, %kvs, %more, #Hr, -⟩ | ⟨-, %ec, -, %He⟩)
   · cases He
-  · ihave %Hn := mvcc.ctxErrorf_ne_nil _ $$ He
+  · ihave %Hn := mvcc.rangeKeysErr_ne_nil _ $$ He
     exact absurd rfl Hn
   · iunfold txn.rangeResponseIs at Hr
     icases Hr with ⟨%Hn, -⟩
@@ -149,12 +149,74 @@ theorem rangeResult_errIs [_root_.Perennial.errors.Assumptions] (resp : Loc) (er
     iexists ef; iframe Hef; ipureintro; exact He
   · isplitr
     · ipureintro; exact H.2.2.2.1
-    iapply applyErrIs_ctxErrorf _ hleaf $$ He Hctx
+    ihave #He' := mvcc.rangeKeysErr_ctxErrorf _ $$ He
+    iapply applyErrIs_ctxErrorf _ hleaf $$ He' Hctx
   · exact absurd H.2.1 hne
   · isplitr
     · ipureintro; exact H.2.2
     iapply errVar_applyErrIs _ _ $$ Hvc
     iexists ec; iframe Hec; ipureintro; exact He
+
+/-- **A range's error, identified** (`rangeErrOut`; k8s etcd3 7c-2 part 2, S3): from the store's
+`rangeResult` at the error, with the read's facts at the log read (`rangeErrAt`). -/
+theorem rangeErrOut_of_result (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (resp : Loc) (ei : GoInterfaceOk)
+    (log : mvcc.Log) (crev : Int)
+    (hl : 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev) :
+    mvcc.idxCert (GF := GF) E.γ.idx log ⊢ mvcc.certOk E.γ log -∗ mvcc.crevLb E.γ.idx crev -∗
+      (if o.base.serializable then iprop(True) else readLogOk γr c log) -∗
+      (if o.base.serializable then iprop(True) else
+        ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) -∗
+      txn.rangeResult resp (GoInterface.ok ei) log (W64 ((log.length : Int) - 1)) crev o true -∗
+      rangeErrOut on E γr c F o Q (GoInterface.ok ei) := by
+  iintro #Hc #Hok #Hlb #Hrl #HQ
+  iunfold txn.rangeResult
+  iintro (⟨%H, %ef, #Hef, %He⟩ | ⟨%H, #He⟩ | ⟨%H, -⟩ | ⟨%H, %ec, #Hec, %He⟩)
+  · iunfold rangeErrOut
+    ileft
+    iexists ef
+    iframe Hef
+    isplitr
+    · ipureintro; exact He
+    iunfold rangeErrAt
+    iexists log, crev
+    iframe Hc Hok Hlb Hrl HQ
+    ipureintro
+    exact ⟨hl.1, hl.2.1, hl.2.2.1, hl.2.2.2, H.1⟩
+  · iunfold rangeErrOut
+    iright; iright; iright; iright
+    iexact He
+  · cases H.2.1
+  · iunfold rangeErrOut
+    iright; ileft
+    iexists ec
+    iframe Hec
+    isplitr
+    · ipureintro; exact He
+    iunfold rangeErrAt
+    iexists log, crev
+    iframe Hc Hok Hlb Hrl HQ
+    ipureintro
+    exact ⟨hl.1, hl.2.1, hl.2.2.1, hl.2.2.2, H.1, H.2.1⟩
+
+/-- An auth check's error identified (`rangeErrOut`'s auth case). -/
+theorem rangeErrOut_auth (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface) :
+    authApplyErrIs (GF := GF) err ⊢ rangeErrOut on E γr c F o Q err := by
+  iunfold authApplyErrIs
+  iintro ⟨-, #H⟩
+  iunfold rangeErrOut
+  iright; iright; ileft
+  iexact H
+
+/-- The read index's error identified (`rangeErrOut`'s read case). -/
+theorem rangeErrOut_read (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface) :
+    readErrIs (GF := GF) err ⊢ rangeErrOut on E γr c F o Q err := by
+  iintro #H
+  iunfold rangeErrOut
+  iright; iright; iright; ileft
+  iexact H
 
 set_option hygiene false in
 /-- The deferred closure from `LogIfLong` on, then the span's `End`. -/
@@ -228,12 +290,12 @@ set_option hygiene false in
 /-- From `doSerialize` on (`HriO`: the read index if linearizable). -/
 local macro "range_tail" : tactic => `(tactic| (
   wp_apply (hDS s E ρ γr ctx2 _ _ _
-    iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗
-      mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s)
+    iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗ mvcc.storeReader E.s E.γ ∗
+      srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log) (crev : Int), resp_ptr ↦ respv ∗
-      err_ptr ↦ errv ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗
-      srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
-      ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧ mvcc.LogWf' log⌝ ∗
+      err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
+      mvcc.certOk E.γ log ∗ mvcc.crevLb E.γ.idx crev ∗
+      ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧ -1 ≤ crev⌝ ∗
       txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) crev o true ∗
       txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te))
     (fun info => apply.rangeClass E.authMode info o) trc false)
@@ -252,7 +314,7 @@ local macro "range_tail" : tactic => `(tactic| (
       ihave #HpE := authApplyErrIs_apply perr $$ HpE0
       wp_auto
       iapply HΦ'
-      iframe Ha Hard HpE
+      iframe Ha Hard HpE0
       iintro %Hpn
       subst Hpn
       ihave %Hel := ownSlice_len _ _ _ $$ Hes
@@ -272,14 +334,11 @@ local macro "range_tail" : tactic => `(tactic| (
       wp_apply hKV s w.kv $$ []
       · iframe #
       (try wp_auto)
-      -- (the `lean` merge, R6) `txn.Range` over mvcc's API, at the store invariant's read
-      -- update from the read's floor `logR`, with the call's reader token
-      irename Hsr => Hmr
-      ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) HpL HrL E.kv E.γ E.γs logR $$ HkS HcR
-      wp_apply (hRange ctx2 _ false w.lg w.kv E.γ r o true (some trc) false
-          (srvApi.kvReadAtG E.Nx E.γs logR)) $$ [Hmr Hown0 HAU]
-        as %respv %trv %errv ⟨Hmr, %Htrv, Hown, %Hteq, %σ, Hq, -, #Hres, Hhdr, -⟩
-      · iframe # Hmr
+      imod ownToks_0 (GF := GF) E.γ.revs with Hnone
+      wp_apply (hRange ctx2 _ false w.lg w.kv E.s E.γ r o true 0 logR (some trc) false)
+          $$ [Hsr Hnone Hown0]
+        as %respv %trv %errv ⟨Hsr, -, %Htrv, Hown, %Hteq, %log, %rv, %crev, #Hcert, #Hrok, #Hclb, %Hlog, #Hres, Hhdr, -⟩
+      · iframe # Hsr Hnone
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -289,46 +348,52 @@ local macro "range_tail" : tactic => `(tactic| (
         · ipureintro; exact Hlgn
         isplitr
         · ipureintro; exact Hvst
-        iunfold srvApi.auRead at HAU
-        iexact HAU
-      iunfold srvApi.kvReadAtG at Hq
-      icases Hq with ⟨%Hpre, #Hcert, #Hrok, #Hrc, %Hσ⟩
-      have Hwf := (mvcc.api.reach_logWf σ Hσ.1).1
-      have Hst2 : 2 ≤ σ.log.length := by
-        have := (srvApi.reach_prefix σ Hσ.1).1.length_le
-        simpa [mvcc.api.mvccStart] using this
-      have hrev : (W64 (σ.rev : Int) : w64) = W64 ((σ.log.length : Int) - 1) := by
-        rw [mvcc.api.MvccState.rev]
-        show W64 ((σ.log.length - 1 : Nat) : Int) = W64 ((σ.log.length : Int) - 1)
-        congr 1
-        omega
-      ihave #Hres' : txn.rangeResult respv errv σ.log (W64 ((σ.log.length : Int) - 1)) σ.crev o true
-        $$ []
-      · rw [← hrev]; iexact Hres
+        iintro !> %log' - #Hc'
+        iunfold storeSmall at Hsmall
+        ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
+        ihave %Hs := Hsmall $$ %log' Hs'
+        ipureintro; intro _; exact Hs
+      obtain ⟨Hl1, Hl2, Hl3, rfl, Hcr, -⟩ := Hlog
       have htv := Hteq trc rfl rfl
       subst htv
-      ihave Hsr : iprop(mvcc.api.mvccReaders E.γ 1) $$ [Hmr]
-      · iexact Hmr
       iapply HΦ'
-      iexists respv, errv, σ.log, σ.crev
-      iframe Hres' Hcert Hrok Hrc
+      iexists respv, errv, log
       iframe
-      ipureintro
-      refine ⟨Hpre, by have := Hσ.2; omega, ?_, Hwf⟩
-      intro h; rw [h] at Hst2; simp at Hst2
+      iframe #
+      ipureintro; exact ⟨Hl1, Hl2, Hl3, Hcr⟩
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls⟩, %respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, #Hrc, %Hlog, #Hres, Hhdr, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls⟩, %respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, #Hclb, %Hlog, #Hres, Hhdr, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
   · subst Hs0
     ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
     rcases errv with ei | _
-    · range_defer
+    · wp_auto_lc 6
+      ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
+          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L)) $$
+          [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
+      · cases hso : o.base.serializable
+        · simp only [hso, Bool.false_eq_true, ↓reduceIte]
+          icases HwO with ⟨%g', #Hw'⟩
+          ihave #Hw'' := readWitAt_mono γr Q g' logR log Hlog.1 $$ Hw'
+          iapply readWit_fire s E γr Q g' log $$ Hainv Hkvi Hw'' Hrok
+          iapply lc_join6 $$ Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6
+        · simp only [hso, ↓reduceIte]
+          imodintro; itrivial
+      imod HQf with #HQf
+      range_defer
       ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut HCmp HCtxE Hres
+      ihave #HrlL := (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
+      have hlL : 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev := by
+        have := Hlog.1.length_le
+        exact ⟨by omega, by omega, HFR.trans Hlog.1, Hlog.2.2.2⟩
+      ihave #HeO := rangeErrOut_of_result false E γr c F o Q respv ei log crev hlL $$
+        Hcert Hrok Hclb HrlL [] Hres
+      · simp only [kvModelM_false]; iexact HQf
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
       iright
-      iframe HeE
+      iframe HeE HeO
       ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
     · wp_auto_lc 6
       ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
@@ -383,7 +448,7 @@ local macro "range_tail" : tactic => `(tactic| (
     | nil => exact absurd rfl Hs0
     | ok sei =>
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, #Hrc, %Hlog, #Hres, Hhdr, Hown⟩)
+        ⟨%respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, #Hclb, %Hlog, #Hres, Hhdr, Hown⟩)
       · wp_auto
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0
@@ -401,7 +466,9 @@ local macro "range_tail" : tactic => `(tactic| (
         isplitl [Hsr Hlr Hrr Hard]
         · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
         iright
-        iframe HsE
+        ihave #HsE1 := authApplyErrIs_apply _ $$ HsE
+        ihave #HsO := rangeErrOut_auth _ E γr c F o Q _ $$ HsE
+        iframe HsE1 HsO
         ipureintro; exact ⟨rfl, by intro h; cases h⟩
       · ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
         wp_auto
@@ -410,7 +477,9 @@ local macro "range_tail" : tactic => `(tactic| (
         isplitl [Hsr Hlr Hrr Hard]
         · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
         iright
-        iframe HsE
+        ihave #HsE1 := authApplyErrIs_apply _ $$ HsE
+        ihave #HsO := rangeErrOut_auth _ E γr c F o Q _ $$ HsE
+        iframe HsE1 HsO
         ipureintro; exact ⟨rfl, by intro h; cases h⟩))
 
 set_option hygiene false in
@@ -418,12 +487,12 @@ set_option hygiene false in
 `permCheck3Lb`), the read at the mode-`on` model. -/
 local macro "range_tailOn" : tactic => `(tactic| (
   wp_apply (hDS ctx2 _ _ _
-    iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗
-      mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s)
+    iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗ mvcc.storeReader E.s E.γ ∗
+      srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log) (crev : Int), resp_ptr ↦ respv ∗
-      err_ptr ↦ errv ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗
-      srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
-      ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧ mvcc.LogWf' log⌝ ∗
+      err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
+      mvcc.certOk E.γ log ∗ mvcc.crevLb E.γ.idx crev ∗
+      ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧ -1 ≤ crev⌝ ∗
       txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) crev o true ∗
       txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te))
     (fun info => apply.rangeClassFrom E.authMode nA info o) trc false)
@@ -442,7 +511,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
       ihave #HpE := authApplyErrIs_apply perr $$ HpE0
       wp_auto
       iapply HΦ'
-      iframe Ha Hard HpE
+      iframe Ha Hard HpE0
       iintro %Hpn
       subst Hpn
       ihave %Hel := ownSlice_len _ _ _ $$ Hes
@@ -462,14 +531,11 @@ local macro "range_tailOn" : tactic => `(tactic| (
       wp_apply hKV s w.kv $$ []
       · iframe #
       (try wp_auto)
-      -- (the `lean` merge, R6) `txn.Range` over mvcc's API, at the store invariant's read
-      -- update from the read's floor `logR`, with the call's reader token
-      irename Hsr => Hmr
-      ihave HAU := srvApi.au_read (Nx := E.Nx) (Cp := E.Cp) HpL HrL E.kv E.γ E.γs logR $$ HkS HcR
-      wp_apply (hRange ctx2 _ false w.lg w.kv E.γ r o true (some trc) false
-          (srvApi.kvReadAtG E.Nx E.γs logR)) $$ [Hmr Hown0 HAU]
-        as %respv %trv %errv ⟨Hmr, %Htrv, Hown, %Hteq, %σ, Hq, -, #Hres, Hhdr, -⟩
-      · iframe # Hmr
+      imod ownToks_0 (GF := GF) E.γ.revs with Hnone
+      wp_apply (hRange ctx2 _ false w.lg w.kv E.s E.γ r o true 0 logR (some trc) false)
+          $$ [Hsr Hnone Hown0]
+        as %respv %trv %errv ⟨Hsr, -, %Htrv, Hown, %Hteq, %log, %rv, %crev, #Hcert, #Hrok, #Hclb, %Hlog, #Hres, Hhdr, -⟩
+      · iframe # Hsr Hnone
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -479,53 +545,59 @@ local macro "range_tailOn" : tactic => `(tactic| (
         · ipureintro; exact Hlgn
         isplitr
         · ipureintro; exact Hvst
-        iunfold srvApi.auRead at HAU
-        iexact HAU
-      iunfold srvApi.kvReadAtG at Hq
-      icases Hq with ⟨%Hpre, #Hcert, #Hrok, #Hrc, %Hσ⟩
-      have Hwf := (mvcc.api.reach_logWf σ Hσ.1).1
-      have Hst2 : 2 ≤ σ.log.length := by
-        have := (srvApi.reach_prefix σ Hσ.1).1.length_le
-        simpa [mvcc.api.mvccStart] using this
-      have hrev : (W64 (σ.rev : Int) : w64) = W64 ((σ.log.length : Int) - 1) := by
-        rw [mvcc.api.MvccState.rev]
-        show W64 ((σ.log.length - 1 : Nat) : Int) = W64 ((σ.log.length : Int) - 1)
-        congr 1
-        omega
-      ihave #Hres' : txn.rangeResult respv errv σ.log (W64 ((σ.log.length : Int) - 1)) σ.crev o true
-        $$ []
-      · rw [← hrev]; iexact Hres
+        iintro !> %log' - #Hc'
+        iunfold storeSmall at Hsmall
+        ihave #Hs' := mvcc.idxCert_sealed _ _ $$ Hc'
+        ihave %Hs := Hsmall $$ %log' Hs'
+        ipureintro; intro _; exact Hs
+      obtain ⟨Hl1, Hl2, Hl3, rfl, Hcr, -⟩ := Hlog
       have htv := Hteq trc rfl rfl
       subst htv
-      ihave Hsr : iprop(mvcc.api.mvccReaders E.γ 1) $$ [Hmr]
-      · iexact Hmr
       iapply HΦ'
-      iexists respv, errv, σ.log, σ.crev
-      iframe Hres' Hcert Hrok Hrc
+      iexists respv, errv, log
       iframe
-      ipureintro
-      refine ⟨Hpre, by have := Hσ.2; omega, ?_, Hwf⟩
-      intro h; rw [h] at Hst2; simp at Hst2
+      iframe #
+      ipureintro; exact ⟨Hl1, Hl2, Hl3, Hcr⟩
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls, #Hib⟩, %respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, #Hrc, %Hlog, #Hres, Hhdr, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls, #Hib⟩, %respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, #Hclb, %Hlog, #Hres, Hhdr, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
   · subst Hs0
     ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
     rcases errv with ei | _
-    · range_defer
+    · wp_auto_lc 6
+      ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
+          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelOn γr.kv srvAuthSt0 L = log⌝ ∗ □ Q L)) $$
+          [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
+      · cases hso : o.base.serializable
+        · simp only [hso, Bool.false_eq_true, ↓reduceIte, ← kvModelM_true]
+          icases HwO with ⟨%g', #Hw'⟩
+          ihave #Hw'' := readWitAt_mono γr Q g' logR log Hlog.1 $$ Hw'
+          iapply readWit_fireOn s E γr Q g' log $$ Hainv Hkvi Hw'' Hrok
+          iapply lc_join6 $$ Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6
+        · simp only [hso, ↓reduceIte]
+          imodintro; itrivial
+      imod HQf with #HQf
+      range_defer
       ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut HCmp HCtxE Hres
+      ihave #HrlL := (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
+      have hlL : 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev := by
+        have := Hlog.1.length_le
+        exact ⟨by omega, by omega, HFR.trans Hlog.1, Hlog.2.2.2⟩
+      ihave #HeO := rangeErrOut_of_result true E γr c F o Q respv ei log crev hlL $$
+        Hcert Hrok Hclb HrlL [] Hres
+      · simp only [kvModelM_true]; iexact HQf
       iapply HΦ
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
       iright
-      iframe HeE
+      iframe HeE HeO
       ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
     · wp_auto_lc 6
       ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
-          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = log⌝ ∗ □ Q L)) $$
+          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelOn γr.kv srvAuthSt0 L = log⌝ ∗ □ Q L)) $$
           [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
       · cases hso : o.base.serializable
-        · simp only [hso, Bool.false_eq_true, ↓reduceIte]
+        · simp only [hso, Bool.false_eq_true, ↓reduceIte, ← kvModelM_true]
           icases HwO with ⟨%g', #Hw'⟩
           ihave #Hw'' := readWitAt_mono γr Q g' logR log Hlog.1 $$ Hw'
           iapply readWit_fireOn s E γr Q g' log $$ Hainv Hkvi Hw'' Hrok
@@ -562,7 +634,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
       isplitr
       · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
       isplitr
-      · iexact HQf
+      · simp only [kvModelM_true]; iexact HQf
       iunfold txn.rangeHdr at Hhdr
       iapply Hhdr
       ipureintro; rfl
@@ -570,7 +642,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
     | nil => exact absurd rfl Hs0
     | ok sei =>
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, #Hrc, %Hlog, #Hres, Hhdr, Hown⟩)
+        ⟨%respv, %errv, %log, %crev, resp, err, Hsr, Hlr, #Hcert, #Hrok, #Hclb, %Hlog, #Hres, Hhdr, Hown⟩)
       · wp_auto
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0
@@ -588,7 +660,9 @@ local macro "range_tailOn" : tactic => `(tactic| (
         isplitl [Hsr Hlr Hrr Hard]
         · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
         iright
-        iframe HsE
+        ihave #HsE1 := authApplyErrIs_apply _ $$ HsE
+        ihave #HsO := rangeErrOut_auth _ E γr c F o Q _ $$ HsE
+        iframe HsE1 HsO
         ipureintro; exact ⟨rfl, by intro h; cases h⟩
       · ihave #Hshow := rangeResult_show _ _ _ _ _ _ _ $$ Hres
         wp_auto
@@ -597,7 +671,9 @@ local macro "range_tailOn" : tactic => `(tactic| (
         isplitl [Hsr Hlr Hrr Hard]
         · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
         iright
-        iframe HsE
+        ihave #HsE1 := authApplyErrIs_apply _ $$ HsE
+        ihave #HsO := rangeErrOut_auth _ E γr c F o Q _ $$ HsE
+        iframe HsE1 HsO
         ipureintro; exact ⟨rfl, by intro h; cases h⟩))
 
 set_option maxRecDepth 20000 in
@@ -796,6 +872,7 @@ theorem EtcdServer.Range.wp_proof
         (∃ rei : GoInterfaceOk, ⌜v = returnVal #()⌝ ∗
           err_ptr ↦ GoInterface.ok rei ∗ trace_ptr ↦ trc ∗ srvReadReader s γr ∗
           traceutil.ownTrace trc false ∗ applyErrIs (GoInterface.ok rei) ∗
+          readErrIs (GoInterface.ok rei) ∗
           «$res0_ptr» ↦ Loc.null ∗ «$res1_ptr» ↦ (GoInterface.ok rei : GoInterface))))
       at next with [err Hrr Hown0 trace «$res0» «$res1»]
     · cases ser
@@ -806,7 +883,7 @@ theorem EtcdServer.Range.wp_proof
         icombine Hread Hrd0 gives %Hrdeq
         subst Hrdeq
         imod saved_pred_alloc Q DFrac.discard trivial with ⟨%g, #Hg⟩
-        wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
+        wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, #HrdE, Hri⟩
         · iframe #; iframe Hrr
         ihave Hrr : srvReadReader s γr $$ [Hrr]
         · iunfold srvReadReader; iexists _; iframe Hread Hrr
@@ -821,7 +898,7 @@ theorem EtcdServer.Range.wp_proof
           iexists rei
           isplitr
           · ipureintro; rfl
-          iframe err trace Hrr Hown0 HrE «$res0» «$res1»
+          iframe err trace Hrr Hown0 HrE HrdE «$res0» «$res1»
         | nil =>
           ihave #Hri' := Hri $$ %rfl
           icases Hri' with ⟨-, #Hsv⟩
@@ -850,7 +927,7 @@ theorem EtcdServer.Range.wp_proof
         · rw [Hser]; simp only [↓reduceIte]; itrivial
         rw [Hser]; simp only [↓reduceIte]; itrivial
     iintro (⟨%Hv, %logR, %HlF, #HcR, #HriO, #HwO, err, trace, Hrr, Hown0, «$res0», «$res1»⟩ |
-      ⟨%rei, %Hv, err, trace, Hrr, Hown0, #HrE, «$res0», «$res1»⟩)
+      ⟨%rei, %Hv, err, trace, Hrr, Hown0, #HrE, #HrdE, «$res0», «$res1»⟩)
     · subst Hv
       obtain ⟨HlR, HFR⟩ := HlF
       wp_auto
@@ -874,7 +951,8 @@ theorem EtcdServer.Range.wp_proof
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
       iright
-      iframe HrE
+      ihave #HrO := rangeErrOut_read _ E γr c F o Q _ $$ HrdE
+      iframe HrE HrO
       ipureintro; exact ⟨rfl, by intro h; cases h⟩
   · -- auth on
     obtain ⟨γa, hM⟩ : ∃ γa, E.authMode = .on γa := by
@@ -916,6 +994,7 @@ theorem EtcdServer.Range.wp_proof
         (∃ rei : GoInterfaceOk, ⌜v = returnVal #()⌝ ∗
           err_ptr ↦ GoInterface.ok rei ∗ trace_ptr ↦ trc ∗ srvReadReader s γr ∗
           traceutil.ownTrace trc false ∗ applyErrIs (GoInterface.ok rei) ∗
+          readErrIs (GoInterface.ok rei) ∗
           «$res0_ptr» ↦ Loc.null ∗ «$res1_ptr» ↦ (GoInterface.ok rei : GoInterface))))
       at next with [err Hrr Hown0 trace «$res0» «$res1»]
     · cases ser
@@ -926,7 +1005,7 @@ theorem EtcdServer.Range.wp_proof
         icombine Hread Hrd0 gives %Hrdeq
         subst Hrdeq
         imod saved_pred_alloc Q DFrac.discard trivial with ⟨%g, #Hg⟩
-        wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
+        wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, #HrdE, Hri⟩
         · iframe #; iframe Hrr
         ihave Hrr : srvReadReader s γr $$ [Hrr]
         · iunfold srvReadReader; iexists _; iframe Hread Hrr
@@ -941,7 +1020,7 @@ theorem EtcdServer.Range.wp_proof
           iexists rei
           isplitr
           · ipureintro; rfl
-          iframe err trace Hrr Hown0 HrE «$res0» «$res1»
+          iframe err trace Hrr Hown0 HrE HrdE «$res0» «$res1»
         | nil =>
           ihave #Hri' := Hri $$ %rfl
           icases Hri' with ⟨-, #Hsv⟩
@@ -984,7 +1063,7 @@ theorem EtcdServer.Range.wp_proof
         · ipureintro; exact Nat.le_refl _
         rw [Hser]; simp only [↓reduceIte]; itrivial
     iintro (⟨%Hv, %logR, %HlF, #HcR, #HriO, #HwO, err, trace, Hrr, Hown0, ⟨%nA, %HnA, #HnAlb, #Hfl⟩,
-      «$res0», «$res1»⟩ | ⟨%rei, %Hv, err, trace, Hrr, Hown0, #HrE, «$res0», «$res1»⟩)
+      «$res0», «$res1»⟩ | ⟨%rei, %Hv, err, trace, Hrr, Hown0, #HrE, #HrdE, «$res0», «$res1»⟩)
     · subst Hv
       obtain ⟨HlR, HFR⟩ := HlF
       -- (E3s, E3u) the store's range check at the bound `nA ≥ n`
@@ -1013,7 +1092,8 @@ theorem EtcdServer.Range.wp_proof
       isplitl [Hsr Hlr Hrr Hard]
       · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
       iright
-      iframe HrE
+      ihave #HrO := rangeErrOut_read _ E γr c F o Q _ $$ HrdE
+      iframe HrE HrO
       ipureintro; exact ⟨rfl, by intro h; cases h⟩
 
 end proof

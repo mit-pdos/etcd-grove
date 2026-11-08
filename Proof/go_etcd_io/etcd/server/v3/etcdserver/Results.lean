@@ -98,7 +98,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadAdminOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnapOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnap
 
 @[expose] public section
 
@@ -193,7 +193,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The apply loop implements the client model over the committed entries** (`s.applyEntries
 (ep, ap)`, linked): the consistent-index protocol kept (`loopOk`, `ep.appliedi` advanced to the
 last entry), and the apply thread's KV taken from `x` to `x'` by `entriesStep c (unapplied ai ms)`
-(`c` the consistent index at the start), under the entries' shapes (`logShape`). -/
+(`c` the consistent index at the start), under the entries' shapes (`logShape`). (R2d'a swap batch
+3, 2026-11-06) At a restart point: `applyEntries.specBatch` is the restart form (Go's rows at Go's
+log, the ghost rows at `ghostOf rp A`, `kvBatchR`, `srvRestR`), in place of the first-start form,
+its instance at `rp = RestartPt.first`, `g = ai`; stronger at every caller with `ai0 ≤ ciEff` (every
+existing caller). -/
 theorem applyEntries_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyEntries
 
@@ -205,7 +209,11 @@ x'.log`), the applied index's waiters through `ai'` released (`applyWait.Trigger
 no-snapshot contract (`ap.snapshot = nil`) and the snapshot, compaction and merged-snapshot
 contracts. (2026-10-26) Under `ErrorStringLeaf`: the compaction (`compactRaftLog`, proved since)
 decides `errors.Is(err, raft.ErrCompacted)` of an `errors.New` error. (The auth component's stage 2, 2026-11-04) In both auth modes: the
-batch over the component `C`, the snapshot payload `specSnapM` (its off corollary deleted in stage 3: no caller used it). -/
+batch over the component `C`, the snapshot payload `specSnapM` (its off corollary deleted in stage 3: no caller used it). (R2d'a swap
+batches 2-3, 2026-11-06) Both at a restart point: the batch `specBatch` the restart form (the ghost
+rows at `ghostOf rp`, `kvBatchR`, `srvRestR`, the window's `winNoMergedSendR` over a borrowed `T`,
+`srvSnapBagN`), in place of the first-start form, its instance at `rp = RestartPt.first`, `g = ai`,
+`T = True`, given `srvSnapBagN` (which `run` supplies) and `ai0 ≤ ciEff` (every existing caller). -/
 theorem applyAll_model [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll
 
@@ -216,7 +224,11 @@ ahead since unit C2a, 2026-10-14, `srvAppliedPre`, `applied_predeposit`); `apply
 (linked) does it for every entry, so its result's index has the KV's log after the batch; and the
 log applied through an index is unique. Together with `range_linearizable`: a linearizable read at
 the committed index `c` returns the state of a log extending the one applied through some index
-`ci₀ ≥ c`, and that log is exactly the apply thread's after the entry at `ci₀`. -/
+`ci₀ ≥ c`, and that log is exactly the apply thread's after the entry at `ci₀`. (R2d'a swap batch 3,
+2026-11-06) `apply.spec` is the restart form (`apply.specAt (· ≠ .any)`: the applied index `g` the
+ghost's, `appliedLogAt γr g'` after), in place of the first-start form, its instance at
+`rp = RestartPt.first`, `g = f0 - 1`; stronger at every caller with `ai0 ≤ ciEff` (every existing
+caller). -/
 theorem applied_log_at [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) ∧
     EtcdServer.apply.spec (GF := GF) (hG := hG) ∧
@@ -489,11 +501,23 @@ theorem request_delivered [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
          else applyThread γ st) }} := by
+  cases v3
+  · -- (R2d'a, Q23 (a)) vacuous: the KV invariant's `c0 ≤ ai0` puts the entry, after the applied
+    -- index, above `c0`
+    iintro %Φ ⟨#Hpkg, #Hsrv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %HkA, %Hvi, -, -⟩ -
+    imod isServerM_c0_le false s γ ci TM E ρ γr $$ [] with %Hc0
+    · rw [isServerM_false]; iexact Hsrv
+    exfalso
+    have h1 := HkA.2
+    rw [decide_eq_true (show uint.Z γr.kv.c0 < uint.Z m.index by omega)] at h1
+    cases h1
+  have hAEN := EtcdServer.applyEntryNormal.spec_off EtcdServer.wp_applyEntryNormal
+      s γ ci TM E ρ b e m st true x γr (some t) v A [] (restModel γr.kv.c0 γr.raft.raft.boot [])
+  simp only [↓reduceIte] at hAEN ⊢
   iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, #HLv, #Hcm, Hka,
     HRS, %Hmc, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
-  iapply (EtcdServer.applyEntryNormal.spec_off EtcdServer.wp_applyEntryNormal
-      s γ ci TM E ρ b e m st v3 x γr (some t) v A hoff)
+  iapply (hAEN hoff)
     $$ [Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hv3 Hao Hka HRS]
   · iframe Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hv3 Hao Hka HRS
     iframe #
@@ -508,7 +532,9 @@ theorem request_delivered [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
       iunfold waitRegdOpt
       iframe Hreg
       iintro %h; cases h
-    ipureintro; exact ⟨Hmc, HkA, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1, Hpo.2.2⟩
+    ipureintro
+    exact ⟨Hmc, ⟨HkA.1, of_decide_eq_true HkA.2.symm⟩, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1,
+      Hpo.2.2⟩
   inext
   iintro ⟨Hbe, Hlr, Hgr, Hmr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
   iapply HΦ
@@ -674,7 +700,10 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iexists log
     iframe Hc Hri Hlog Hres Hown
     ipureintro; exact Hl.2
-  · iright; iexact H
+  · iright
+    icases H with ⟨%Hn, #He, -⟩
+    iframe He
+    ipureintro; exact Hn
 
 /-- **`range_serializable`** (see the section header): in the client model's terms, for a
 request whose sort is not cut early (a serializable one's whole answer: it takes no read index;
@@ -733,7 +762,10 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     icases Hres with ⟨%crev, #Hres⟩
     iexists crev
     iapply txn.rangeResult_client _ _ _ _ crev o true Hset hcut $$ Hres
-  · iright; iexact H
+  · iright
+    icases H with ⟨%Hn, #He, -⟩
+    iframe He
+    ipureintro; exact Hn
 
 /-- **`txn_readonly`** (see the section header). -/
 theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
@@ -1787,9 +1819,11 @@ outcome the model's admin step, the row back at the history after it. -/
 theorem server_admin_entry_on : adminEntryOn.spec (GF := GF) (hG := hG) :=
   apply_admin_entry_on apply_apply_admin_latest
 
-/-- **`applyAll` on a snapshot payload in the server's auth mode** (P6.3,
-`ApplyAllSnapOn.lean`): off, the linked `applyAll`'s snapshot case; on, over the install in the
-mode (the linked `applySnapshot`'s `specSnapM`). (The auth component's stage 2, 2026-11-04) The linked `applyAll`'s snapshot half. -/
+/-- **`applyAll` on a snapshot payload in the server's auth mode** (P6.3, `ApplyAllSnap.lean`):
+over the install in the mode (the linked `applySnapshot`'s `specSnapM`). (The auth component's stage
+2, 2026-11-04) The linked `applyAll`'s snapshot half. (R2d'a swap batch 2, 2026-11-06) In restart
+form: Go's applied index at most the ghost one, the rest buckets at an image with the model's ids;
+at a first start (the ghost index Go's, the image the model) the statement before the swap. -/
 theorem server_apply_all_snap_m [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll.2
@@ -2161,7 +2195,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's apply loop** (`run`, the request path's unit 4c; `Spec/go_etcd_io/etcd/server/
-v3/etcdserver/EtcdServer__run.lean`): from `isServerRun` (`start`'s), it applies every batch raft
+v3/etcdserver/EtcdServer__run.lean`): from `isServerRunC` (`start`'s), it applies every batch raft
 commits through the FIFO scheduler, the apply thread's resources chained from job to job, and
 shuts down. (The auth component's stage 2, 2026-11-04) In both auth modes: over the component `C`
 (`isServer…C`). -/

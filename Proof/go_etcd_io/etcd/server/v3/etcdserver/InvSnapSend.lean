@@ -53,11 +53,12 @@ def srvKVCommitOk (kv : GoInterface) (RC RC' : IProp GF) : IProp GF :=
   iprop(∃ ki : GoInterfaceOk, ⌜kv = GoInterface.ok ki⌝ ∗
     {{ RC }} (App (Val #(methods ki.ty go!"Commit" ki.v)) (Val #())) {{ RET #(); RC' }})
 
-/-- **`b`'s `Snapshot()`** (see the file header): from `RS`, a snapshot open over some committed
-`D` with `Qd D`, and `RS'`. -/
+/-- **`b`'s `Snapshot()`** (see the file header): from `RS` and a `threadTok` (the snapshot's
+reader slot of bbolt's `mmaplock`, 2026-11-06, `notes/begin-tok-plan.md`: held until the snapshot's
+`Close`), a snapshot open over some committed `D` with `Qd D`, and `RS'`. -/
 def srvBeSnapOk (b : GoInterface) (RS RS' : IProp GF) (Qd : backend.Data → IProp GF) : IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
-    {{ RS }} (App (Val #(methods bi.ty go!"Snapshot" bi.v)) (Val #()))
+    {{ RS ∗ threadTok }} (App (Val #(methods bi.ty go!"Snapshot" bi.v)) (Val #()))
     {{ (sp : Loc) (D : backend.Data),
         RET #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp);

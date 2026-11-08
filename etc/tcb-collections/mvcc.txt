@@ -16,7 +16,6 @@ axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txDB
 axiom backend.txLive
-axiom context.Err.wp_proof
 axiom fmt.ErrorfWrap.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof

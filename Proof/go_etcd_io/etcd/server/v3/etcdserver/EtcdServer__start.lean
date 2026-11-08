@@ -601,13 +601,21 @@ theorem EtcdServer.start.wp_proof
     iframe HNR
     iexists cctx, _
     iframe Hctx Hcctx Hcspan
+  -- (R2d'a swap batch 5) `run`'s start conjuncts in restart form, from a first start's (`%HEr`,
+  -- `Hsnap`, `Hstart`; `srvRunRestartR_first`)
+  ihave HRr : srvRunRestartR C s γ ci b E { ρ with wait := γw } γr Er γn ai₀ at₀ c₀ x₀ γw
+      $$ [Hsnap Hstart]
+  · iapply (srvRunRestartR_first C s γ ci b E { ρ with wait := γw } γr Er γn ai₀ at₀ c₀ x₀ γw HEr)
+    isplitl [Hsnap]
+    · iexact Hsnap
+    · iexact Hstart
   -- (revoke-open Q8 (a)) `run` forked with the fresh thread token
-  wp_apply wp_fork_tok_body $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh
+  wp_apply wp_fork_tok_body $$ [HRr Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr Hwpend Hrunh
       Hwth Hwtl Hskeep]
   · iintro Htok
     wp_apply hRun s γ ci TM C E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ cfgk.DataDir' cs
-      $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hrunh Hwth Hwtl Hskeep Htok]
+      $$ [HRr Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr Hwpend Hrunh Hwth Hwtl Hskeep Htok]
       as Htok
     · simp only [srvStopReq_wait, srvDoneInv_wait]
       iframe Htok
@@ -616,8 +624,6 @@ theorem EtcdServer.start.wp_proof
       iframe Hrf Hrvk Hsa Hsrv Hrn Hlnil Hmid HmetaSnap
       isplitr
       · ipureintro; exact ⟨hm, hRB⟩
-      isplitr
-      · ipureintro; exact HEr
       isplitr
       · ipureintro; exact Hdisk
       isplitr

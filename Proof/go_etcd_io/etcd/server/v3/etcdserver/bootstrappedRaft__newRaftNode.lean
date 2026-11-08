@@ -134,8 +134,8 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   iexists n, γw, _, st
   isplitr
   · ipureintro
-    obtain ⟨h1, h2, h3, h4, h5, h6, -, h8⟩ := Hγw
-    exact ⟨h1, h2, h3, h4, h5, h6, h8⟩
+    obtain ⟨h1, h2, h3, h4, h5, h6, -, h8, h9, h10⟩ := Hγw
+    exact ⟨h1, h2, h3, h4, h5, h6, h8, h9, h10⟩
   obtain ⟨-, -, -, -, -, -, hkey, -⟩ := Hγw
   subst hkey
   iframe Hfresh Hnode Hst Hbuilt Hb Hpeers HQ Hrun Hncfg Hrst

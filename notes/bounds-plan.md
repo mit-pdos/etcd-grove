@@ -359,3 +359,10 @@ unlocked RWMutex`) after a remap. Reaching it in Go takes about `2 ^ 30` gorouti
 idealization every bound here rests on, but this plan wants the bound owned by the backend's
 invariant (a `threadTok` per open snapshot or transaction), not left to it. An `axiom` run is to be
 assigned by etcd-grove-82 after revoke-open lands.
+
+(2026-11-06) The `axiom` run: `notes/axiom-review/backend-snapshot-begin.md`. The gap is real, and
+needs no goroutines and no `T > 2 ^ 30` for `Begin_kv`: **`bbolt.DB.Begin_kv` is refuted** (branch
+`axiom/backend-snapshot-begin`). One goroutine holds `2 ^ 30` read transactions, a pending `Close` and one
+`Rollback` give the fatal in Go in 4 minutes, and the Lean triple is proved from the axioms.
+`backend.Snapshot` is Stuck on the Go side (a live goroutine per snapshot, about 4 TiB at `2 ^ 30`). The
+proposed fix is `bbolt-spec-decisions.md`'s D1, a `threadTok` per read transaction and per snapshot.

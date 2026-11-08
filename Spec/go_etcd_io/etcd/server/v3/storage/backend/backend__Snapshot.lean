@@ -33,10 +33,19 @@ the batch lock's half of the safe-range buckets' deleted entries at `X` (`dlsOwn
 view exactly the logical view but `X` there (`viewAtD`'s `dlVd`): a compacting store, holding the
 client's half (inside `fkOwn`), learns which entries of its `Key` bucket the compaction has
 physically deleted, so the image its restore reads.
+
+(2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q1/Q2/Q4) The pre
+also takes the caller's `threadTok`: the snapshot's bbolt read transaction holds a reader slot of
+bbolt's `mmaplock` until `snapshot.Close`, which gives the token back. The warning goroutine is a
+live thread, paid by its own fork's fuel; net, the caller is out one token per open snapshot until
+`Close` (`notes/axiom-review/begin-tok-restated.md`, A8). Under
+`[ThreadBoundLe GF (2 ^ 29)]`, `bbolt.Open_kv`'s bound. Until then the pre took no token and a
+proof could hold `2 ^ 30` open snapshots (`notes/axiom-review/backend-snapshot-begin.md`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -57,12 +66,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `b.Snapshot()`: a snapshot of bbolt's committed data `D`, read as the caller's observation `Q`
-says of every commit (see the file header). -/
+says of every commit (see the file header); the caller's `threadTok` held until `snapshot.Close`. -/
 abbrev backend.backend.Snapshot.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp) (R : IProp GF)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp)
+    (R : IProp GF)
     (Q : VData → GMap (GoString × GoString) GoString → GMap GoString BktData → FkVals → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ ∗ R ∗
+      isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ ∗ threadTok ∗ R ∗
       □ (∀ (vd : VData) (d : GMap (GoString × GoString) GoString) (r : GMap GoString BktData)
           (v : FkVals),
         ∀ X : VData,

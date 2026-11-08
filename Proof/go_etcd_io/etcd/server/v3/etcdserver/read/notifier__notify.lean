@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
 theorem read.notifier.notify.wp_proof : read.notifier.notify.spec (GF := GF) (hG := hG) := by
   intro nc γn γr err
-  wp_start as ⟨Hown, #Herr, Hfz⟩
+  wp_start as ⟨Hown, #Herr, #HrE, Hfz⟩
   iunfold notifierOwn at Hown
   icases Hown with ⟨%ch, %γ, %e, #Hc, Hbc, He⟩
   wp_auto
@@ -35,7 +35,7 @@ theorem read.notifier.notify.wp_proof : read.notifier.notify.spec (GF := GF) (hG
   ihave #HQ : notified nc γn γr $$ [Hfz]
   · iunfold notified
     iexists err
-    iframe He Herr
+    iframe He Herr HrE
     cases err with
     | ok ei => ileft; ipureintro; intro h; cases h
     | nil => iright; iapply Hfz; ipureintro; rfl

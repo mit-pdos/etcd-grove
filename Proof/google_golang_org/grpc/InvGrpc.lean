@@ -119,16 +119,25 @@ abbrev GrpcMd : Type := Option (GoString → Option (List GoString))
 /-- **The error descriptions only a handler makes** (k8s etcd3 stage 7c, `notes/k8s-etcd3-plan.md`,
 "7c-1"): grpc forwards a status the server sends unchanged and never makes one of these itself, so
 an attempt's error with one of them is the handler's own, with the handler's error outcome
-(`grpcInvokerOk`). Empty until 7c-1b states the two read errors'. -/
-def handlerDescs : List GoString := []
+(`grpcInvokerOk`): the two read errors', mvcc's future revision and compacted revision as
+`togRPCError` maps them (k8s etcd3 7c-2 part 2, S7). -/
+def handlerDescs : List GoString :=
+  [go_etcd_io.etcd.cache.v3.futureRevDesc, go_etcd_io.etcd.cache.v3.compactedDesc]
 
-/-- While `handlerDescs` is empty (7c-1a), every error outcome holds vacuously. 7c-1b, which fills
-`handlerDescs`, removes it. -/
-theorem handlerErr_none (Ψe : GoString → IProp GF) (err : GoInterface) :
-    ⊢ (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-      Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) := by
+/-- A handler's success holds its error outcome vacuously. -/
+theorem handlerErr_nil (Ψe : GoString → IProp GF) :
+    ⊢ (⌜GoInterface.nil ≠ GoInterface.nil ∧
+        go_etcd_io.etcd.cache.v3.errDesc GoInterface.nil ∈ handlerDescs⌝ -∗
+      Ψe (go_etcd_io.etcd.cache.v3.errDesc GoInterface.nil)) := by
   iintro %h
-  simp [handlerDescs] at h
+  exact absurd rfl h.1
+
+/-- A caller's error outcome at every description holds at every error. -/
+theorem handlerErr_all (Ψe : GoString → IProp GF) (err : GoInterface) :
+    (□ ∀ d, Ψe d) ⊢ (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+      Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) := by
+  iintro #H -
+  iapply H
 
 /-- **A method's spec at the call's metadata, with an error outcome** (the auth plan's E3zb; the
 error outcome since k8s etcd3 stage 7c, `notes/k8s-etcd3-plan.md`, "7c-1"): `Spec md m Φ Ψ` is

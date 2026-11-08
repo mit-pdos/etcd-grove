@@ -29,7 +29,6 @@ axiom clockwork.clockLb_persistent
 axiom clockwork.realClock
 axiom clockwork.stampAt
 axiom clockwork.stampAt_persistent
-axiom context.ErrAny.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom fmt.Errorf.wp_proof

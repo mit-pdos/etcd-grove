@@ -297,7 +297,15 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     -- (D43 M3, 2026-10-25) a fresh start: no entry replayed (2026-10-30, the repair: in every
     -- cluster, raft's one mode; until then in its dynamic mode)
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
+      -- (R2d'a A6, DRAFT) a first start: the restart point's backend log `γn.a0` empty
+      γn.a0 = []⌝ ∗
+    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
+    -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
+    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
+    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
+    -- until R2d'b; free at a first start, `srvWinPend_first`)
+    "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token (`dvRun`), which
     -- `run` gives the raft loop with `raftNode.stop` (`rnStopBag`)
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗

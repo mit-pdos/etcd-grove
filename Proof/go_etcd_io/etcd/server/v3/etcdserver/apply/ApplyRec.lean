@@ -77,9 +77,11 @@ abbrev apply.Apply.specRec : Prop :=
       apply.bkToks v3 E Pre Q Post ∗ Pre ∗
       apply.applyKV E ua x ∗ apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk E.lm x.log rq ∧
-        apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit x.log rq ∧ apply.restReqOk rq rs⌝ ∗
-      apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗
-      apply.grantFresh E rq U ∗ apply.revokeOwn E rq ∗ apply.applyTok E ∗
+        apply.dispatchOk E.authOn rq ∧ (v3 = true → apply.cmpAdmit x.log rq) ∧
+        apply.restReqOk rq rs⌝ ∗
+      □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
+      apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
+      apply.revokeOwn E rq ∗ apply.applyTok E ∗
       srvApi.kvLogLb E.γs F ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
@@ -125,6 +127,16 @@ theorem apply.kvOwnPre_of_toks (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q
     iexact HPre
   · simp only [apply.cPre, ↓reduceIte, srvApi.csContractA]
     iframe HPre Hc
+
+omit package_sem in
+open Iris.ProofMode in
+/-- A persistent premise gives its `v3`-guarded form (R2d'a A3, DRAFT: `Apply.specRec`'s,
+`uberApplier.Apply.spec`'s and `dispatch.spec`'s premises read only by `dispatch`'s `v3` cases). -/
+theorem apply.v3Gate (b : Bool) (X : IProp GF) [Persistent X] : X ⊢ □ (⌜b = true⌝ → X) := by
+  iintro #H
+  imodintro
+  iintro _
+  iexact H
 
 /-- **`Apply.specRec` from `Apply.spec`**: the method contract is `uberApplier.Apply.spec` at
 `applierFor`'s pointer, its pre the applier state and the write's resources, its post

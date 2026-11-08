@@ -213,7 +213,7 @@ local macro "txn_tail" : tactic => `(tactic| (
         ipureintro; intro _; exact hro
       ihave #HcE := authApplyErrIs_apply cerr $$ HcE0
       iapply HΦ'
-      iframe Ha Hard HcE
+      iframe Ha Hard HcE0
       iintro %Hn
       ihave ⟨#Hc, -⟩ := Hcl $$ %Hn
       iexact Hc
@@ -383,7 +383,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       | nil => exact absurd rfl Hs0
       | ok sei =>
         ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
-        · iexact HsE
+        · iapply authApplyErrIs_apply _ $$ HsE
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
           ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, -, Hres, Hown⟩)
         · wp_auto
@@ -460,7 +460,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         ipureintro; exact apply.readonlyW_of_txnReadonly tw (by rw [Htw]; exact hro)
       ihave #HcE := authApplyErrIs_apply cerr $$ HcE0
       iapply HΦ'
-      iframe Ha Hard HcE
+      iframe Ha Hard HcE0
       iintro %Hn
       ihave ⟨%L, %HL, #Hv⟩ := Hcl $$ %Hn
       iunfold txnClassFrom
@@ -630,7 +630,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
       | nil => exact absurd rfl Hs0
       | ok sei =>
         ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
-        · iexact HsE
+        · iapply authApplyErrIs_apply _ $$ HsE
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
           ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, -, Hres, Hown⟩)
         · wp_auto
@@ -1245,7 +1245,7 @@ theorem EtcdServer.Txn.wp_proof
           ihave #Hdep : kvDep (GF := GF) γr.kv Qr $$ [Hnp]
           · iexact Hnp
           wp_apply HisRead' $$ %ctx2 %_ %c %g %Qr [Hrr]
-            as %rerr ⟨Hrr, #HrE, Hri⟩
+            as %rerr ⟨Hrr, #HrE, #HrdE, Hri⟩
           · iframe Hdep Hg Hctx2 Hcal; iframe Hrr
           ihave Hrr : srvReadReader s γr $$ [Hrr]
           · iunfold srvReadReader; iexists _; iframe Hread Hrr
@@ -1369,7 +1369,7 @@ theorem EtcdServer.Txn.wp_proof
           ihave #Hdep : kvDep (GF := GF) γr.kv Qr (kvStM true γr.kv) $$ [Hnp]
           · iexact Hnp
           wp_apply HisRead' $$ %ctx2 %_ %c %g %Qr [Hrr]
-            as %rerr ⟨Hrr, #HrE, Hri⟩
+            as %rerr ⟨Hrr, #HrE, #HrdE, Hri⟩
           · iframe Hdep Hg Hctx2 Hcal; iframe Hrr
           ihave Hrr : srvReadReader s γr $$ [Hrr]
           · iunfold srvReadReader; iexists _; iframe Hread Hrr

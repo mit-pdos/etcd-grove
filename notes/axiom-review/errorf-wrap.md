@@ -77,3 +77,61 @@ neither). This is recorded for 7c-2 part 2, whose `handlerDescs` will make descr
 
 - `ServeHTTP` (etcd's TLS path), which is unmodelled: the 7c plan's "7c: left".
 - `wrapErrors` (two or more `%w`), which no caller uses and N1 does not cover.
+
+## N1a (2026-11-06, k8s etcd3 7c-2 part 2): both sides give the prefix
+
+`fmt.modelErrIs` takes `pre`. Its `Error()` now returns `pre ++ s` for some `s`, the same as
+`wrapErrIs`'s. Both sides were checked against N1's premises (`(W8 37) ∉ pre`, `inner :
+GoInterfaceOk`, `stringMethodSpec inner`).
+
+- **The model's side.** Perennial's `fmt.Errorf.impl` is `λ format a, errors.New(format)`
+  (`Perennial/TrustedCode/fmt.lean:27`). `errors.New` is translated Go. Its proved spec
+  `errors.New.spec` (`Perennial/Spec/errors/New.lean`) gives an `Error()` that returns `msg`, which
+  is `format = pre ++ "%w"`. So the model holds with `s = "%w"`, whatever the premises are.
+- **Go's side.** `s = inner.Error()`: `doPrintf` copies `pre` byte for byte (it has no `%`) and
+  formats `%w` as `%v` of `inner`. TestN1Claims checks the prefix one level and two levels deep.
+  At the premises' edges the prefix still holds or the case is excluded (above, "The premises'
+  edges"): an `Error()` that panics still gives `pre ++ "%!v(PANIC=…)"`. A `%` in `pre` is the one
+  case that breaks the prefix, and the premise excludes it.
+
+**Verdict: survives.** The disjunction's two sides now say only what they share about `Error()`.
+
+## N1b (2026-11-06, k8s etcd3 7c-2 part 2): the returned error's description begins with `pre`
+
+The post of `fmt.ErrorfWrap` gains `⌜pre <+: errDesc (ok err)⌝`. `errDesc` is the opaque gRPC
+description of D29. Its declaration moved, unchanged, to
+`Proof/google_golang_org/grpc/status/ErrDesc.lean`.
+
+**Truth of Go** (`n1b_test.go`, `TestN1bDescPrefix`, log `gotest-n1b.log`; branch
+`axiom/hs6-wrapctx` 92a14256c9). Cases: `inner` ∈ {`Canceled`, `DeadlineExceeded`,
+`errors.New("x")`}, at one level and at two (the Txn chain). On every path that produces a
+description, the description begins with `pre`:
+- `rpctypes.ErrorDesc(e)`;
+- `status.Convert(e).Message()`, which goes through `FromError` → `Unknown` with `e.Error()`, since no
+  node of the chain has `GRPCStatus`;
+- `status.FromContextError(e).Message()` for a context `inner`, the server's path;
+- `ErrorDesc(togRPCError(e))`;
+- the description a client of a real grpc server receives from a handler returning
+  `togRPCError(e)`.
+
+**The model's side.** `errors.New(pre + "%w")`, Perennial's model of the call, has an `errDesc`
+(through D29: a non-status error's description is its `Error()`) of `pre + "%w"`. Checked in the
+same test (`"rangeKeys: context cancelled: %w"` on every path).
+
+**Consistency.** A contradiction needs two incompatible prefixes of the same error's description.
+- **As a law it would be inconsistent.** `errorfWrapIs ii _ pre ⊢ ⌜pre <+: errDesc (ok ii)⌝` is
+  false because WP is partial: a user type whose `Error()` loops satisfies `wrapErrIs` at every
+  `pre`. N1b is therefore stated only of the error the call returns.
+- **Reusing a returned error with another `pre`.** No triple gives a second prefix of an error that
+  is already returned. A second call returns a new error: Go's `&wrapError{…}` and the model's
+  `errors.New` both allocate, and the test checks `e3 ≠ e, e2`. The post gives `err`
+  existentially, and nothing relates it to an earlier error.
+- **Aliasing.** The two levels of the Txn chain are two errors with two prefixes. The outer's
+  description `p2 ++ p1 ++ …` begins with `p2` only; nothing claims `p1` of it.
+- **A looping `inner.Error()`.** It satisfies `stringMethodSpec inner` (WP is partial). Go's
+  `Errorf` then never returns, so the post is vacuous.
+- **Across executions.** `errDesc` is opaque, so every proof is valid for every interpretation of
+  it. A pointer that is reused across runs therefore needs a consistent `errDesc` within one run
+  only, and Perennial's semantics never reuses a location within a run.
+
+**Verdict: survives.**

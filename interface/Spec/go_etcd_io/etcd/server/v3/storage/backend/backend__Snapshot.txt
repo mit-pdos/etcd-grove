@@ -3,7 +3,8 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def backend.backend.Snapshot.spec : Prop :=
-  ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp) (R : IProp GF)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp)
+    (R : IProp GF)
     (Q : backend.VData → GMap (GoString × GoString) GoString → GMap GoString backend.BktData → backend.FkVals → Prop),
     ⊢
       ∀ Φ,
@@ -11,15 +12,16 @@ def backend.backend.Snapshot.spec : Prop :=
             backend.isBackend γ P W Pk b ∗
               backend.bOpen γ qo ∗
                 backend.wbTok γ ∗
-                  R ∗
-                    □
-                      ∀ vd d r v X,
-                        R -∗
-                          W -∗
-                            Pk -∗
-                              backend.viewAtD γ P vd X -∗
-                                backend.dlsOwn γ X -∗
-                                  backend.hkOwn γ d -∗ backend.rbOwn γ r -∗ backend.fkdOwn γ v -∗ ⌜Q vd d r v⌝) -∗
+                  threadTok ∗
+                    R ∗
+                      □
+                        ∀ vd d r v,
+                          R -∗
+                            W -∗
+                              Pk -∗
+                                backend.viewAt γ vd -∗
+                                  backend.pvHalf γ vd -∗
+                                    backend.hkOwn γ d -∗ backend.rbOwn γ r -∗ backend.ckHalf γ v -∗ ⌜Q vd d r v⌝) -∗
           (▷
               ∀ sp D,
                 backend.snapOpen sp D ∗

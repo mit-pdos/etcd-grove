@@ -175,7 +175,7 @@ in every cluster), the loop's half of the running token, and `applyc`'s halves w
 `[[]]` (`newRaftNode`'s). (2026-10-27: over the node API. 2026-11-01, durability layer 4: the
 driver at the storage's key `γ.key`, and the node's durable state at `RaftState.init`, which goes
 into the loop's token beside the driver.) -/
-theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
+theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = []) (ha : γ.a0 = []) (ht : γ.t0 = W64 0)
     (hcfg : srvCfgOk γ.node.cfg [] ⟨0, Membership.simple γ.node.cfg⟩) :
     (letI := srvStor (GF := GF) γ.node;
       iprop(nodeDriver γ.nl γ.node.cl srvClusterN
@@ -202,7 +202,8 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
         simp [rnDrvSt, NodeDriverState.init, srvLE, RNNames.srv, hpre]
       rw [h]
       iframe Hdrv HrS
-      unfold rnCfgAt srvCfgView
+      iapply ((rnView_first γ ha).1 ht []).2
+      unfold srvCfgView
       iexists ⟨0, Membership.simple γ.node.cfg⟩
       iframe Hcfg
       ipureintro
@@ -404,7 +405,7 @@ abbrev NodeStartSpec : Prop :=
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
-            γw.wal = ν ∧
+            γw.wal = ν ∧ γw.a0 = [] ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
@@ -504,7 +505,7 @@ theorem raftNode_of_StartNode
     exact ⟨Hcfg, Hhb, Hwal⟩
   icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hsfresh, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
     %Hstss, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
-  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal⟩ := Hnames
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hwt0⟩ := Hnames
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
   obtain ⟨Hrvlg, Hrvcfg⟩ := Hrv
@@ -526,7 +527,7 @@ theorem raftNode_of_StartNode
       (1 : Qp).half).1 $$ [Hrun] with ⟨Hrun1, Hrun2⟩
   · rw [Qp.half_add_half]; iexact Hrun
   -- the tokens
-  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw Hwpre
+  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw Hwpre Hwa0 Hwt0
       (by
         rw [Hwnode]
         unfold SrvRaft.cfg
@@ -544,7 +545,7 @@ theorem raftNode_of_StartNode
   iexists γw, rv
   isplitr
   · ipureintro
-    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
   iframe Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsc
   isplitr

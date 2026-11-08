@@ -31,6 +31,7 @@ public import Perennial.Proof.io
 public import Perennial.Proof.strings.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 public import Spec.fmt.ErrorfWrap
+public import Proof.google_golang_org.grpc.status.ErrDesc
 
 @[expose] public section
 
@@ -47,12 +48,7 @@ namespace go_etcd_io.etcd.cache.v3
 
 section desc
 
-/-- **An error's description** (opaque; D29, 2026-10-21): what `rpctypes.ErrorDesc(err)` returns,
-the status message (`status.FromError(err).Message()`), which for an error that is not a status
-error is its `Error()` (`Spec/google_golang_org/grpc/status/FromError.lean`). grpc's `FromError`
-reads the status embedded in the error value, so the description is a function of the error, as
-its code is (`statusCode`); nothing more is said of it. -/
-opaque errDesc [GooseExts] : GoInterface → GoString
+-- `errDesc` (an error's description, D29): `Proof/google_golang_org/grpc/status/ErrDesc.lean` (N1b).
 
 /-- **The refusals** (D29): the descriptions after which the client's retry interceptor sends a
 `nonRepeatable` call (a write) again: the auth errors (`shouldRefreshToken`, then
@@ -299,30 +295,49 @@ instance errorStringSpec_persistent (e : GoInterfaceOk) :
     Persistent (errorStringSpec (GF := GF) e) := by
   unfold errorStringSpec; infer_instance
 
+/-- **The error value `e`'s `Error()` returns `m`, the same string on every call** (persistent;
+fromerror-stable, 2026-11-06): what `status.FromError` needs to take the string as the error's
+description (`errDesc`): it calls `Error()` on each call, so an `Error()` that reads mutable state
+(`examples/axiomcx/flipdesc`, `notes/axiom-review/invoker-filled.md`) has no one description.
+Stronger than `errorStringSpec` (`errorMsgIs_errorStringSpec`), which the printing paths keep. -/
+def errorMsgIs (e : GoInterfaceOk) (m : GoString) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
+    WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }})
+
+instance errorMsgIs_persistent (e : GoInterfaceOk) (m : GoString) :
+    Persistent (errorMsgIs (GF := GF) e m) := by
+  unfold errorMsgIs; infer_instance
+
 /-- **The methods grpc's `status` and Go's `errors.Is` call on the error `e` return**
 (persistent; unit P3a), if `e`'s type has them (both are called through a type assertion):
 `GRPCStatus() *Status` (`status.FromError`/`Code`/`Convert`) and `Is(error) bool`
-(`errors.Is`, for any target). -/
+(`errors.Is`, for any target). (fromerror-stable, 2026-11-06) `GRPCStatus()` returns one fixed
+status `s` (grpc's `*Status` is immutable: `Proto()` clones, nothing exported writes it), so the
+code and message `status.FromError` reads are the error's (`statusCode`, `errDesc`); and `Is`
+returns `true` only for a target with the same description (`errors.IsStatusErr`'s
+post: an `Is` that answered `true` regardless would refute it). -/
 def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
   iprop((⌜methodSet e.ty !! go!"GRPCStatus" =
       some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ →
-    □ ∀ Φ : val → IProp GF, ▷ (∀ s : Loc, Φ #s) -∗
+    ∃ s : Loc, □ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
       WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
     (⌜methodSet e.ty !! go!"Is" = some (go.Signature [go.error] false [go.bool])⌝ →
-    □ ∀ (target : GoInterface) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
+    □ ∀ (target : GoInterface) (Φ : val → IProp GF),
+      ▷ (∀ b : Bool, ⌜b = true → errDesc (GoInterface.ok e) = errDesc target⌝ -∗ Φ #b) -∗
       WP (App (Val #(methods e.ty go!"Is" e.v)) (Val #target)) {{ Φ }}))
 
 /-- **An error grpc's `status` functions accept** (persistent; unit P3a): `nil`, or a leaf error
 (`errors.isLeafError`: no `Unwrap` or `As` method, so `status.FromError`'s and `errors.Is`'s walks
-of its error tree only check it) whose `Error()` returns some string (`errorStringSpec`:
-`FromError` calls it unless the error is a status error) and whose `GRPCStatus()` and `Is`, if it
-has them, return (`grpcErrMethodsOk`). What `status.FromError` (`Spec/google_golang_org/grpc/
+of its error tree only check it) whose `Error()` returns one fixed string (`errorMsgIs`:
+`FromError` calls it unless the error is a status error; fromerror-stable, 2026-11-06: it was any
+string on each call, `errorStringSpec`) and whose `GRPCStatus()` and `Is`, if it has them, behave
+(`grpcErrMethodsOk`). What `status.FromError` (`Spec/google_golang_org/grpc/
 status/FromError.lean`), `status.Code`, `errors.Is` (`Spec/errors/IsStatusErr.lean`), and through
 them `rpctypes.Error` and the client's retry interceptor, need. -/
 def statusErrOk (err : GoInterface) : IProp GF :=
   iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
-    errorStringSpec e ∗ ⌜errors.isLeafError e⌝ ∗ grpcErrMethodsOk e)
+    (∃ m : GoString, errorMsgIs e m) ∗ ⌜errors.isLeafError e⌝ ∗ grpcErrMethodsOk e)
 
 instance statusErrOk_persistent (err : GoInterface) : Persistent (statusErrOk (GF := GF) err) := by
   unfold statusErrOk; infer_instance
@@ -784,9 +799,12 @@ theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoI
     cases Hii
     icases Hch with (#Hm | ⟨%mid, #Hw, -⟩)
     · iunfold EtcdGrove.fmt.modelErrIs at Hm
-      icases Hm with ⟨-, #Hs⟩
-      rw [EtcdGrove.fmt.stringMethodSpec_unfold]
-      iexact Hs
+      icases Hm with ⟨-, %s, #Hs⟩
+      unfold EtcdGrove.fmt.stringMethodSpec
+      iintro !> %Φ HΦ
+      iapply Hs
+      inext
+      iapply HΦ
     · iunfold EtcdGrove.fmt.wrapErrIs at Hw
       icases Hw with ⟨-, ⟨%s, #Hs⟩, -⟩
       unfold EtcdGrove.fmt.stringMethodSpec
@@ -795,13 +813,22 @@ theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoI
       inext
       iapply HΦ
 
+/-- A stable `Error()` returns (`errorStringSpec`). -/
+theorem errorMsgIs_errorStringSpec (e : GoInterfaceOk) (m : GoString) :
+    errorMsgIs (GF := GF) e m ⊢ errorStringSpec e := by
+  unfold errorMsgIs errorStringSpec
+  iintro #H !> %Φ HΦ
+  iapply H
+  inext
+  iapply HΦ
+
 /-- An error grpc's `status` accepts has an `Error()` returning some string. -/
 theorem errStrOk_of_statusErrOk (err : GoInterface) :
     statusErrOk (GF := GF) err ⊢ errStrOk err := by
   unfold statusErrOk errStrOk
   iintro #H !> %e %h
-  ihave ⟨#He, -⟩ := H $$ %e %h
-  iexact He
+  ihave ⟨⟨%m, #He⟩, -⟩ := H $$ %e %h
+  iapply errorMsgIs_errorStringSpec $$ He
 
 /-- The `Error()` of an error with a known message (`errors.wp_New`'s) returns some string. -/
 theorem errorStringSpec_of_msg (e : GoInterfaceOk) (msg : GoString) :

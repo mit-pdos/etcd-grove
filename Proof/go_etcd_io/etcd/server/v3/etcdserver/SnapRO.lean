@@ -2,8 +2,8 @@
 **The server's snapshot path's persistent bundle and its boot resources** (D22 J1a, 2026-10-26;
 `notes/snapshot-sj-plan.md`, "J1a" and "J0 decisions"; `notes/decisions.md`, "D22 J1a"). Lean-first.
 
-`NewServer` makes, and `start`, `run` and `Start` thread (`isServerBuilt`, `isServerRun`), what the
-apply thread's snapshot path (`applySnapshot.specSnap`, J8a) takes of the server's construction,
+`NewServer` makes, and `start`, `run` and `Start` thread (`isServerBuilt`, `isServerRunC`), what the
+apply thread's snapshot path (`applySnapshot.specSnapM`, J8a) takes of the server's construction,
 with the names it is stated over (`srvSnapBoot`):
 * `srvSnapRO` (persistent): the configuration's fields the path reads (its logger, data
   directory, feature gate, quota and apply-duration warning), the snapshotter, the backend hooks
@@ -23,9 +23,9 @@ with the names it is stated over (`srvSnapBoot`):
 The whole configuration read-only (`srvCfgAddr s ↦□ cfg`, which `applySnapshot` reads as a
 struct) is the bundle's last conjunct, a rebuild from the two fields `start` writes (J8a-3,
 2026-11-01: the fork's `NewWatchServer` no longer writes the configuration,
-`nonissues/etcd-cfg-watch-progress-interval-race.md`; `isServerRun`'s `"#Hsncfg"` holds the fields).
+`nonissues/etcd-cfg-watch-progress-interval-race.md`; `isServerRunC`'s `"#Hsncfg"` holds the fields).
 Not here (J1a's findings, `notes/decisions.md`, "D22 J1a"): the meta reads of every backend
-(`specSnap`'s `isMetaBackend` family, false as stated for names the backend was not opened with;
+(`specSnapM`'s `isMetaBackend` family, false as stated for names the backend was not opened with;
 J8a-4).
 
 The stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `lessorApplyOk`, `clusterApplyOk`),
@@ -425,7 +425,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       storage.openMmapOk cfg ∧
       apply.backendUnderQuota ∧ γr.raft.raft.snapLoc idm = some γd ∧
       (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧
-      -- (2026-11-01, J8a-1, item 7) the environment's facts `specSnap` takes: the snapshot files'
+      -- (2026-11-01, J8a-1, item 7) the environment's facts `specSnapM` takes: the snapshot files'
       -- opens, the backend's parameters, the rest buckets' resource at this backend, the receipts'
       -- bound (strict M1: the backend's compaction mode and the store's watch flag gone)
       storage.snapOpensOk ∧ mvcc.bridgeParams d.P ∧ ciKeys d.P ∧
@@ -479,7 +479,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     (srvKVAddr s ↦□ E.kv ∗ □ isMvcc E.kv E.γ) ∗
     -- (J8a-3, 2026-11-01) **the configuration's rebuild**: the whole struct read-only at `cfg` but
     -- for the two fields `start` writes (`SnapshotCount`, `SnapshotCatchUpEntries`), from those
-    -- read-only (`isServerRun`'s `"#Hsncfg"`, which `start` persists): `applySnapshot.specSnap`'s
+    -- read-only (`isServerRunC`'s `"#Hsncfg"`, which `start` persists): `applySnapshot.specSnapM`'s
     -- `srvCfgAddr s ↦□ cfg'` (its struct copy `OpenSnapshotBackend(s.Cfg, …)`)
     □ (∀ (sc scu : w64), srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc -∗
       srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu -∗
@@ -491,7 +491,7 @@ instance srvSnapRO_persistent (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames)
   unfold srvSnapRO; infer_instance
 
 /-- (2026-11-01, J8a-1, item 7) **The auth store's contract mode off, from auth off**: `authOn` is the
-mode's `isOn`, which only `.off` is not (`specSnap`'s `hoff` from the run's `authOn = false`). -/
+mode's `isOn`, which only `.off` is not (`specSnapM`'s `hoff` from the run's `authOn = false`). -/
 theorem authMode_off_of (E : apply.AEnv GF) (h : E.authOn = false) : E.authMode = auth.AuthMode.off := by
   unfold apply.AEnv.authOn at h
   cases hm : E.authMode <;> simp_all [auth.AuthMode.isOn]
@@ -571,7 +571,7 @@ what `applySnapshot.specSnapM` takes of the backend `E` is on (`E.BkTie = srvBkT
 back at the new one (`srvSnapApplied`): the backend's stop channels and the apply thread's share of
 its open token (`srvOpenQ`: the constructors' half, a quarter in the mode `on`, P5) (W7: the old
 backend's `Close` goroutine takes them), the alarm store's field (until 2026-11-01, J8a-5, also its
-`Get` under a resource `Tal`, `zal`: `specSnap` now gets `Get` with no alarm from `Recover`'s
+`Get` under a resource `Tal`, `zal`: `specSnapM` now gets `Get` with no alarm from `Recover`'s
 `alarmEmpty`); and the backend file's directory entry at the configuration's data directory
 (`pathOwn (backendPathOf dd)`, `OpenSnapshotBackend`'s rename target, one for every install), and
 (2026-11-04, the restart plan's R2b-3d) the backend's file there. (Until strict M1, 2026-11-06,
@@ -596,7 +596,7 @@ def srvSnapBoot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyN
 
 /-- **The apply thread's snapshot resources at the applied index `ai`** (D22 J1b, 2026-10-31;
 `notes/snapshot-sj-plan.md`, J1b; spatial): the persistent bundle at the snapshot-taken counter
-`γt`, the counter's authority at most `ai` (`specSnap`'s `hnt`) and the backend's own resources
+`γt`, the counter's authority at most `ai` (`specSnapM`'s `hnt`) and the backend's own resources
 (`srvSnapRes`; until J8a-6, 2026-11-01, also the reader-slot stock for the installs'
 `AddPeer`s). `run`'s loop invariant holds it (`applyRes`), at the current backend's environment
 `E`; `applyAll` passes it through a batch. The transport's live state is `srvApRes`'s (J-T). -/

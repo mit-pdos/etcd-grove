@@ -23,8 +23,10 @@ Two things are not facts of the model, and are premises:
   function that returns a new `*Logger`.
 
 `os`'s `wp_initialize'` was here until 2026-11-03; it is now generated (`Proof/os/Init.lean`,
-`etc/gen-init.py`), with its trust-boundary axioms (`os.opaqueInitsOk`, `os.Stderr_init`,
-`os.initFuncsOk`), since every project translates against this repository's `os` (project bboltfs's).
+`etc/gen-init.py`), since every project translates against this repository's `os` (project
+bboltfs's). Since 2026-11-07 it has no trust-boundary axiom: `os`'s initializers are translated,
+but for the trusted models of `Stdin`, `Stdout`, `Stderr` and `runtime_args`
+(`TrustedCode/os.lean`); until then `os.opaqueInitsOk`, `os.Stderr_init`, `os.initFuncsOk`.
 -/
 module
 

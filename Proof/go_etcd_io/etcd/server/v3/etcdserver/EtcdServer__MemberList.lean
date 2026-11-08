@@ -87,7 +87,7 @@ theorem EtcdServer.MemberList.wp_proof
     ispecialize HRN $$ %ctx %cd %c %g %Q
     wp_apply HRN $$ [$Hrr] as %err Herr
     · iframe #
-    icases Herr with ⟨Hrr, #Herr, Hri⟩
+    icases Herr with ⟨Hrr, #Herr, #HrdE, Hri⟩
     (try wp_auto)
     rcases err with ei | _
     · (try wp_auto)

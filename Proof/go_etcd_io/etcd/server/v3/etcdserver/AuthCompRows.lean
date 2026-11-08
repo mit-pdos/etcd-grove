@@ -147,7 +147,15 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
+      -- (R2d'a A6, DRAFT) a first start: the restart point's backend log `γn.a0` empty
+      γn.a0 = []⌝ ∗
+    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
+    -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
+    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
+    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
+    -- until R2d'b; free at a first start, `srvWinPend_first`)
+    "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
@@ -160,7 +168,7 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
     "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id
+    -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnapM`'s member id
     -- against the snapshot payload's `nodeSnapLocal … γn.id`)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
     -- (2026-11-02, the cluster-rows stage) the member id a voter (the monitors' permission,
@@ -218,9 +226,75 @@ def applyStartC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
     srvSnapOwn s ci E γr γ ai₀)
 
-/-- **What `run` needs** (`isServerRun` off, `isServerRunOn` on; the stop requests' `SP` and the
-done channel's `DQ` as `isServerRun`'s; R2c-4: and the stop's slot, `srvStop.slot`, which the
-import graph keeps out of `isServerRun`). -/
+/-- **`Hsnap`'s restart form** (R2d'a A9; `rnSnapOnce`'s, `InvRunRes.lean:334`): `run`'s one call of
+the raft storage's `Snapshot()` (`server.go:760` at `673da07c8`) answers a snapshot at index `i` and
+term `t` whose conf state is read-only and reports the voters after the ghost log `A₀` (`epCsAt γ A₀`:
+at a restart the WAL snapshot's `ConfState`, `bootstrap.go:449-478`; nothing at `A₀ = []`), with a
+lower bound of the storage's snapshot (`memSnapLb γs 0`, the writers' handle; a first start's from
+`memSnapNone`) and the storage's invariant. -/
+def rnSnapOnceR (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (i t : w64)
+    (γ : ServerRaftNames) (A₀ : List EntryModel) : IProp GF :=
+  iprop(∀ Φ : val → IProp GF,
+    ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
+      ⌜sv.Metadata'.Index' = i ∧ sv.Metadata'.Term' = t ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
+      ownSnapM sn DFrac.discard sv -∗
+      sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
+      pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
+      epCsOk cs -∗ epCsAt γ A₀ cs -∗ (|==> memSnapLb γs 0) -∗
+      (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nk) -∗
+      Φ (PairV #sn #(GoInterface.nil))) -∗
+    WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
+      (Val #())) {{ Φ }})
+
+/-- **`applyStartC`'s restart form** (R2d'a A9): the apply thread's resources when `run` starts at Go's
+index `ai` (`ep.appliedi`'s first value, the WAL snapshot's index), with the backend's ghost log
+`A₀`: the ghost rows at `A₀` (the applied index `g₀ = ai₀ + |A₀|`, `kvRunM`, `srvRest`, `srvApRes`,
+the consistent index `ciEff` at `g₀`, `bootstrap.go:255-273`), Go's at `ai` (`loopOk`, the snapshot
+resources). The auth state `sa₀` is the one after `A₀` (`kvRunM`'s, with auth on the state
+`A₀`'s admin entries leave, which Go's auth store recovers from the backend at the consistent
+index), existential so that an auth-on restart whose log changed auth meets it; a first start's is
+`srvAuthSt0` (`srvRestartAtR_first`). -/
+def srvRestartAtR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName)
+    (A₀ : List EntryModel) (ai : w64) : IProp GF :=
+  iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool) (g₀ : w64) (sa₀ : auth.AuthState),
+    applyThread γ st₀ ∗
+    ⌜loopOk γ st₀ ai ∧ g₀ = ciEff γ st₀.k ∧ uint.Z g₀ = uint.Z ai₀ + A₀.length⌝ ∗
+    applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
+    srvWgReader s ∗ srvApplyKVC C s E γw x₀ sa₀ ∗
+    srvAppliedOwn γr g₀ ∗ appliedLogAt γr g₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ ∗
+    srvRest E γr A₀ ∗ srvApRes s γr A₀ ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k) ∗
+    srvSnapOwn s ci E γr γ ai)
+
+/-- **A9's texts for `isServerRunC`** (R2d'a A9, Q24 (c); in the hub since swap batch 5, 2026-11-07,
+with `run.wp_proof`'s restart proof). Three of `isServerRunC`'s conjuncts at a restart, **`σ.b = 0` only**: a restart before the member's first WAL snapshot, so that nothing was
+handed before the start (`γn.pre = []`, `ai₀ = 0`: `rnEnvOk` unchanged), Go's log restarts at index 0
+and the backend's ghost log `A₀` (`γn.a0`, A6's field) is replayed through the window `(0, |A₀|]`.
+`σ.b > 0` is R2d'b's, with the raft side's restart data (Q24 (a)).
+- `%HEr`: today's conjuncts with `γn.a0 = A₀` for some `A₀` (was `γn.a0 = []`), `A₀`'s entries
+  normal or conf changes, and room past it (`ai₀ + |A₀| + 1 < 2^64`); the last two are restart-only
+  premises 6 and 7 of the eight (`notes/restart-plan.md`, "R2d'a restart-only premises"; R2d'b
+  produces both; 7 holds of etcd's logs because etcd proposes only v1 `ConfChange`s);
+- `Hsnap`: `rnSnapOnceR` at index `ai₀` (`= 0`), the conf state at `A₀`;
+- `Hstart`: `srvRestartAtR` at `A₀`, Go's index `ai₀`.
+At `A₀ = []` they are today's (`srvRunRestartR_first`). -/
+def srvRunRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) : IProp GF :=
+  iprop(∃ A₀ : List EntryModel,
+    ⌜Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
+      γn.a0 = A₀ ∧ (∀ m ∈ A₀, m.typ = W32 0 ∨ m.typ = W32 1) ∧
+      uint.Z ai₀ + A₀.length + 1 < 2 ^ 64⌝ ∗
+    (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
+      rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀ γr.raft A₀) ∗
+    srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw A₀ ai₀)
+
+/-- **What `run` needs**, at a first start or a restart at `σ.b = 0` (R2d'a swap batch 5,
+2026-11-07: the start's conjuncts are `HRr ∷ srvRunRestartR`, the backend's ghost log `A₀ = γn.a0`;
+until then `InvRun.lean`'s `isServerRun` off and `RunOn.lean`'s `isServerRunOn` on, both deleted
+2026-11-07). The stop
+requests' `SP` and the done channel's `DQ`, and (R2c-4) the stop's slot, `srvStop.slot`. -/
 def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
@@ -234,9 +308,17 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
     "#HmetaSnap" ∷ srvMetaSnap γ ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
-    -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
-    "%HEr" ∷ ⌜Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+    -- (R2d'a A9, swap batch 5, 2026-11-07; until then `%HEr` with `γn.a0 = []`, `Hsnap` (`rnSnapOnce`)
+    -- and `Hstart` (`applyStartC`), a first start's, which give it: `srvRunRestartR_first`) a start
+    -- or a restart at `σ.b = 0`: the backend's ghost log `A₀ = γn.a0`, the storage's snapshot's conf
+    -- state at it, the apply thread's ghost rows at it
+    "HRr" ∷ srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ ρ.wait ∗
+    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
+    -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
+    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
+    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
+    -- until R2d'b; free at a first start, `srvWinPend_first`)
+    "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
@@ -253,12 +335,10 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v SP ∗
     -- (revoke-open, 2026-11-06) the revocation's bundle (`run`'s expiry arm, revocable mode)
     "#Hrvk" ∷ srvRevokeCtx s E ρ γr γg ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd DQ .Pending ∗
     "Hclose" ∷ token γg.close ∗
-    "Hstart" ∷ applyStartC C s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
     -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
     -- (H2, 2026-11-05) and its register at `GoAttach`'s receipts' name (`start` set it)
@@ -268,32 +348,12 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- persistent bundle; (D22 J1b, 2026-10-31) the counter's authority and the stocks in `applyStart`
     "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗
     -- (J8a-3, 2026-11-01) the two configuration fields `start` writes, read-only from then on:
-    -- with `srvSnapRO`'s rebuild, the whole configuration read-only (`specSnap`'s `srvCfgAddr s ↦□`)
+    -- with `srvSnapRO`'s rebuild, the whole configuration read-only (`specSnapM`'s `srvCfgAddr s ↦□`)
     "#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
       srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu) ∗
     -- (R2c-4) the stop's slot (`srvStop.slot`), from `start`'s construction premise, for the
     -- deferred shutdown
     "Hskeep" ∷ srvStop.slot s E γn Er)
-
-/-- **The apply thread's resources at the log `A`** (`applyRes` off, `applyResOn` on: `run`'s
-loop invariant and its jobs' `Prev`/`Post`), over the component `K`: the server's view, the
-applier row and the KV's ghost state at the mode's, the token rights the component's. -/
-def applyResC (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
-  iprop(∃ (B : ApplyBe GF) (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV)
-      (sa : auth.AuthState),
-    ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServerC K C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
-    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗ epCsAt C.ρ.raft A cs ∗
-    srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
-    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ mvcc.api.mvccReaders B.E.γ 1 ∗ srvApplyKVC K C.s B.E C.γw x sa ∗
-    srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ A x sa ∗
-    srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
-    rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
-    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
-    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
-    ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
-      uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
-      lastTermIs A at'⌝)
 
 end defs
 
@@ -478,13 +538,13 @@ theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM 
     unfold isServerBuiltM isServerBuilt isServerBuiltC
     simp only [AuthC.isOn, srvReqBuiltM_false, srvAppliedInvM_false, srvCM_false]
     constructor
-    · iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    · iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
+      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
       isplitr
       · iapply hK.1 $$ Hkvi
       iapply hA.1 $$ Happ
-    · iintro ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    · iintro ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb, Hsk⟩
+      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
       isplitr
       · iapply hK.2 $$ Hkvi
       iapply hA.2 $$ Happ
@@ -494,13 +554,13 @@ theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM 
     unfold isServerBuiltM isServerBuiltOn isServerBuiltC
     simp only [AuthC.isOn]
     constructor
-    · iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    · iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
+      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
       isplitr
       · iapply hK.1 $$ Hkvi
       iapply hA.1 $$ Happ
-    · iintro ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    · iintro ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb, Hsk⟩
+      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
       isplitr
       · iapply hK.2 $$ Hkvi
       iapply hA.2 $$ Happ
@@ -562,67 +622,6 @@ theorem applyStartOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci : 
     isplitr
     · ipureintro; exact Hok
     iapply hK.2 $$ Hkv
-
-/-- **What `run` needs, off, is the off component's.** -/
-theorem isServerRun_C (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
-    (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (SP DQ : IProp GF)
-    (hC : E.authMode = AuthC.off.mode) :
-    isServerRun (GF := GF) s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ SP DQ ∗
-        srvStop.slot s E γn Er ⊣⊢
-      isServerRunC .off s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ SP DQ := by
-  have hS := isServerM_C (GF := GF) .off s γ ci TM E ρ γr
-  have hA := applyStart_C (GF := GF) s γ ci b E γr ai₀ c₀ x₀ ρ.wait hC
-  dsimp only [AuthC.isOn] at hS
-  rw [isServerM_false] at hS
-  unfold isServerRun isServerRunC
-  simp only [AuthC.isOn, srvCM_false]
-  constructor
-  · iintro ⟨⟨#Hsrv, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, #Hrvk, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩, Hsk⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hrvk Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
-    isplitr
-    · iapply hS.1 $$ Hsrv
-    isplitr
-    · iapply acLessor_off
-    iapply hA.1 $$ Hstart
-  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, #Hrvk, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg, Hsk⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hrvk Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
-    isplitr
-    · iapply hS.2 $$ Hsrv
-    iapply hA.2 $$ Hstart
-
-/-- **What `run` needs, on, is the on component's** (`isServerRunOn` at `isServerRun`'s default
-`SP`, `DQ`). -/
-theorem isServerRunOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci : Loc)
-    (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF)
-    (γn : RNNames) (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (hC : E.authMode = (AuthC.on γa).mode) :
-    isServerRunOn (GF := GF) s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ ∗
-        srvStop.slot s E γn Er ⊣⊢
-      isServerRunC (.on γa) s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ := by
-  have hS := isServerM_C (GF := GF) (.on γa) s γ ci TM E ρ γr
-  have hA := applyStartOn_C (GF := GF) γa s γ ci b E γr ai₀ c₀ x₀ ρ.wait hC
-  have hL := acLessor_on (GF := GF) (.on γa) γa rfl s
-  dsimp only [AuthC.isOn] at hS
-  unfold isServerRunOn isServerRunC
-  simp only [AuthC.isOn]
-  constructor
-  · iintro ⟨⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, #Hrvk, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg⟩, Hsk⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hrvk Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
-    isplitr
-    · iapply hS.1 $$ Hsrv
-    isplitr
-    · iapply hL.2 $$ Hlnil
-    iapply hA.1 $$ Hstart
-  · iintro ⟨#Hsrv, #Hlnil, #Hsa, #Hmid, #HmetaSnap, #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hkvf, #Hrf, #Hrvk, Hsnap, Hloop, Hsend, Happly, Hrdone, Hcomm, Hdc, Hclose, Hstart, Hlr, #HWB, #Hsnapb, #Hsncfg, Hsk⟩
-    iframe Hsa Hmid HmetaSnap Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hkvf Hrf Hrvk Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr HWB Hsnapb Hsncfg Hsk
-    isplitr
-    · iapply hS.2 $$ Hsrv
-    isplitr
-    · iapply hL.1 $$ Hlnil
-    iapply hA.2 $$ Hstart
 
 /-- `isServerBuilt_mid`'s, over the component: the member id field, a voter. -/
 theorem isServerBuiltC_mid (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
@@ -847,60 +846,6 @@ theorem kvRunM_true (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (
     (st : auth.AuthState) : kvRunM (GF := GF) true γr ai₀ c₀ A x st = kvRunAtOn γr ai₀ c₀ A x st :=
   rfl
 
-/-- **`applyResC` off is `applyRes`** (the component's auth state unused). -/
-theorem applyResC_off (C : ApplyCtx GF) (A : List EntryModel) :
-    applyResC (GF := GF) .off C A ⊣⊢ applyRes C A := by
-  have hS := fun B : ApplyBe GF => isServerM_C (GF := GF) .off C.s B.γ C.ci B.TM B.E C.ρ C.γr
-  have hK := fun (B : ApplyBe GF) x sa => srvApplyKVM_C (GF := GF) .off C.s B.E C.γw x sa
-  simp only [AuthC.isOn, isServerM_false, srvApplyKVM_false] at hS hK
-  unfold applyResC applyRes
-  simp only [AuthC.isOn, acTok_off, kvRunM_false]
-  constructor
-  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
-      H9, H10, H11, Hrdk, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, -, H19, %Hp⟩
-    ihave #Hsrv := (hS B).2 $$ Hsrv
-    ihave HKV := (hK B x sa).2 $$ HKV
-    iexists B, st, ai, at', a, t, cs, x
-    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 Hrdk HKV H12 H13 Hkr H14 H15 H16 H17 H18 H19
-    ipureintro; exact ⟨HB, Hp⟩
-  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
-      H9, H10, H11, Hrdk, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, H19, %Hp⟩
-    ihave #Hsrv := (hS B).1 $$ Hsrv
-    ihave HKV := (hK B x srvAuthSt0).1 $$ HKV
-    iexists B, st, ai, at', a, t, cs, x, srvAuthSt0
-    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 Hrdk HKV H12 H13 Hkr H14 H15 H16 H17 H18 H19
-    ipureintro; exact ⟨HB, Hp⟩
-
-/-- **`applyResC` on is `applyResOn`**, the environment's mode the component's. -/
-theorem applyResC_on (γa : auth.AuthNames) (C : ApplyCtx GF) (A : List EntryModel)
-    (hM : C.E.authMode = .on γa) :
-    applyResC (GF := GF) (.on γa) C A ⊣⊢ applyResOn C A := by
-  have hS := fun B : ApplyBe GF => isServerM_C (GF := GF) (.on γa) C.s B.γ C.ci B.TM B.E C.ρ C.γr
-  have hK := fun (B : ApplyBe GF) x sa => srvApplyKVM_C (GF := GF) (.on γa) C.s B.E C.γw x sa
-  simp only [AuthC.isOn, srvApplyKVM_true] at hS hK
-  have hT : ∀ (B : ApplyBe GF) k, beSucc C.γ C.E B.γ B.E →
-      acTok (GF := GF) (.on γa) k = srvTokRights B.E k := fun B k hB =>
-    (srvTokRights_eq (.on γa) B.E k ((beSucc_authMode hB).trans hM)).symm
-  unfold applyResC applyResOn
-  simp only [AuthC.isOn, kvRunM_true]
-  constructor
-  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
-      H9, H10, H11, Hrdk, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, Htok, H19, %Hp⟩
-    ihave #Hsrv := (hS B).2 $$ Hsrv
-    ihave HKV := (hK B x sa).2 $$ HKV
-    rw [hT B _ HB]
-    iexists B, st, ai, at', a, t, cs, x, sa
-    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 Hrdk HKV H12 H13 Hkr H14 H15 H16 H17 H18 Htok H19
-    ipureintro; exact ⟨HB, Hp⟩
-  · iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %HB, #Hsrv, H1, H2, H3, #H4, H5, H6, H7, H8,
-      H9, H10, H11, Hrdk, HKV, H12, #H13, Hkr, H14, H15, #H16, H17, H18, Htok, H19, %Hp⟩
-    ihave #Hsrv := (hS B).1 $$ Hsrv
-    ihave HKV := (hK B x sa).1 $$ HKV
-    iexists B, st, ai, at', a, t, cs, x, sa
-    rw [hT B _ HB]
-    iframe Hsrv H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 Hrdk HKV H12 H13 Hkr H14 H15 H16 H17 H18 Htok H19
-    ipureintro; exact ⟨HB, Hp⟩
-
 /-- **The server's view's names** (`isServer_lg`'s): the request names' reads the view's, and off
 the KV names' lease mode the environment's. -/
 theorem isServerC_lg (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -930,6 +875,67 @@ theorem isServerC_lm (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Me
     iunfold isServerM at H
     icases H with ⟨%h, -⟩
     ipureintro; exact ⟨h, fun h' => by cases h'⟩
+
+/-- **A first start's `Hsnap` gives the restart form at `A₀ = []`**. -/
+theorem rnSnapOnceR_first (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames)
+    (i t : w64) (γ : ServerRaftNames) :
+    rnSnapOnce (GF := GF) rg cl nk ms γs i t ⊢ rnSnapOnceR rg cl nk ms γs i t γ [] := by
+  iintro H
+  iunfold rnSnapOnceR
+  iintro %Φ HΦ
+  iunfold rnSnapOnce at H
+  iapply H
+  inext
+  iintro %sn %pm %cs %sv %h Hsn Hpm Hcs #Hok Hnone Hinv
+  ihave #Hca : epCsAt γ [] cs $$ []
+  · iunfold epCsAt; ileft; ipureintro; rfl
+  ihave Hlb : iprop(|==> memSnapLb γs 0) $$ [Hnone]
+  · iapply (memSnapNone_open (GF := GF) γs) $$ Hnone
+  iapply HΦ $$ %sn %pm %cs %sv %h Hsn Hpm Hcs Hok Hca Hlb Hinv
+
+/-- **A first start's `applyStartC` is the restart form at `A₀ = []`** (Go's index `ai₀`). -/
+theorem srvRestartAtR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) :
+    applyStartC (GF := GF) C s γ ci b E γr ai₀ c₀ x₀ γw ∗ ⌜c₀ = ai₀⌝ ⊢
+      srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw [] ai₀ := by
+  iintro ⟨H, %hc⟩
+  iunfold applyStartC at H
+  icases H with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hkv, Hao, Hal, Hkr, Hrest,
+    Hap, Hfs, Htok, Hso⟩
+  iunfold srvRestartAtR
+  iexists st₀, a, t, f, ai₀, srvAuthSt0
+  iframe Hth Hbe Hca Hlg Hbm Hwg Hkv Hao Hal Hkr Hrest Hap Hfs Htok Hso
+  ipureintro
+  exact ⟨Hok.1, by rw [← hc]; exact Hok.2, by simp⟩
+
+
+/-- **A first start's conjuncts give A9's** (`A₀ = []`): today's `%HEr` (with A6's `γn.a0 = []`),
+`Hsnap` and `Hstart`. -/
+theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName)
+    (hEr : Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧ γn.a0 = []) :
+    (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
+        rnSnapOnce (GF := GF) γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
+      applyStartC C s γ ci b E γr ai₀ c₀ x₀ γw ⊢
+    srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ γw := by
+  obtain ⟨h1, h2, ⟨hc, hp, ha⟩, h4⟩ := hEr
+  have hc0 : c₀ = ai₀ := by subst ha; word
+  iintro ⟨⟨%ms, #Hms, Hsnap⟩, Hst⟩
+  iunfold srvRunRestartR
+  iexists []
+  isplitr
+  · ipureintro
+    refine ⟨h1, h2, ⟨hc, hp, ha⟩, h4, by simp, ?_⟩
+    subst ha; simp <;> word
+  isplitl [Hsnap]
+  · iexists ms
+    iframe Hms
+    iapply rnSnapOnceR_first $$ Hsnap
+  iapply srvRestartAtR_first $$ [Hst]
+  iframe Hst
+  ipureintro; exact hc0
 
 end bridges
 
