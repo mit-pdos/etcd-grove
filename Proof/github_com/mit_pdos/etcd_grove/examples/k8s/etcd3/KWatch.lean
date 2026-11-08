@@ -104,8 +104,8 @@ def changeAtL : List item → List item → Nat → Option Chg
 /-- `toEvent(in, ch)`: Modified if the watch's predicate matches the new and the old object,
 Added if only the new, Deleted (the old object at the change's revision) if only the old. -/
 def toEventL (x : Input) (ch : Chg) : Option WEv :=
-  let cm := match ch.cur with | some o => selOkL x o | none => false
-  let pm := match ch.prev with | some o => selOkL x o | none => false
+  let cm := ch.cur.any (selOkL x)
+  let pm := ch.prev.any (selOkL x)
   if cm && pm then (ch.cur.map fun o => ⟨1, o⟩)
   else if cm then (ch.cur.map fun o => ⟨0, o⟩)
   else if pm then (ch.prev.map fun o => ⟨2, { o with ResourceVersion' := W64 (ch.rv : Int) }⟩)
