@@ -1367,11 +1367,11 @@ theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ :
       rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [v3rpc.authRegs])) $$ [Hl Hslots] with Hrpcs
   · iframe
     imodintro
-    simp only [etcdAuthMethods]
+    simp only [etcdAuthMethods, pbAuthUserAddRequestT, pbAuthUserAddResponseT, pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT, pbAuthRoleAddRequestT, pbAuthRoleAddResponseT, pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT, pbAuthEnableRequestT, pbAuthEnableResponseT]
     iframe #
     iapply BigSepL.bigSepL_nil.2
     itrivial
-  simp only [etcdAuthMethods]
+  simp only [etcdAuthMethods, pbAuthUserAddRequestT, pbAuthUserAddResponseT, pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT, pbAuthRoleAddRequestT, pbAuthRoleAddResponseT, pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT, pbAuthEnableRequestT, pbAuthEnableResponseT]
   icases Hrpcs with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
   imodintro
   iframe #
@@ -1636,6 +1636,7 @@ theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (ics : List GoFunc) (Rs : Lis
     (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) st info
     (@! etcdserverpb._Watch_Watch_Handler) (fun _ => iprop(True)))
+  simp only [pbWatchRequestT, pbWatchResponseT]
   iframe #
   iframe HRs
   isplit
@@ -1702,9 +1703,11 @@ theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (ics : List 
   · iframe
     imodintro
     iapply BigSepL.bigSepL_singleton.2
+    simp only [m, pbWatchRequestT, pbWatchResponseT]
     iexact Hok
   ihave Hs := BigSepL.bigSepL_singleton.1 $$ Hs
   imodintro
+  simp only [m, pbWatchRequestT, pbWatchResponseT]
   iexact Hs
 
 /-- **The watch service is served by etcd's server** (`etcd_watch_served` at the stream chain

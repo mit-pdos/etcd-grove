@@ -56,6 +56,7 @@ theorem kVClient.Compact.wp_proof
     iexact «$r0»
   have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Compact" pbCompactionRequestT pbCompactionResponseT pbCompactionRequestT_reg pbCompactionResponseT_reg Spec ⟨req.Revision', req.Physical'⟩ Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
+  simp only [pbCompactionRequestT, pbCompactionResponseT] at hI
   rw [show (pbCompactionRequest (GF := GF)).ty = etcdserverpb.CompactionRequest.ty from rfl,
     show (pbCompactionResponse (GF := GF)).ty = etcdserverpb.CompactionResponse.ty from rfl] at hI
   ihave Hpre := reqPre_scalar_app conn _ addr [sm] vs _ Hsms $$ Hpre

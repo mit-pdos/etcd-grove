@@ -574,12 +574,15 @@ theorem cancelReq_send (a b c : Loc) (X : w64)
     |==> v3rpc.watchReqSend (GF := GF) c (.cancel X) := by
   iintro ⟨Ha, Hb, Hc⟩
   ihave %Hann := typedPointsto_not_null _ _ _ $$ Ha
+  ihave %Hcnn := typedPointsto_not_null _ _ _ $$ Hc
   iStructNamed Ha
   iStructNamed Hb
   iStructNamed Hc
   ipersist WatchId; ipersist CancelRequest; ipersist RequestUnion
   imodintro
   unfold v3rpc.watchReqSend v3rpc.oneofCancel
+  isplitl []
+  · ipureintro; exact Hcnn
   iexists _
   iframe RequestUnion
   iexists a

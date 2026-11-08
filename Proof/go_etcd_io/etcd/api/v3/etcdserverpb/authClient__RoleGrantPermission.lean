@@ -51,6 +51,7 @@ theorem etcdserverpb.authClient.RoleGrantPermission.wp_proof
     iexact «$r0»
   have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/RoleGrantPermission" pbAuthRoleGrantPermissionRequestT pbAuthRoleGrantPermissionResponseT pbAuthRoleGrantPermissionRequestT_reg pbAuthRoleGrantPermissionResponseT_reg Spec m Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
+  simp only [pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT] at hI
   rw [show (pbAuthRoleGrantPermissionRequest (GF := GF)).ty = etcdserverpb.AuthRoleGrantPermissionRequest.ty from rfl,
     show (pbAuthRoleGrantPermissionResponse (GF := GF)).ty = etcdserverpb.AuthRoleGrantPermissionResponse.ty from rfl] at hI
   ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/RoleGrantPermission" addr ([sm] ++ vs) (attemptPre conn (GoInterface.ok ctx) Spec m Q) $$ []

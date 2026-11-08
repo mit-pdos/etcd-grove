@@ -57,6 +57,7 @@ theorem kVClient.DeleteRange.wp_proof
     iexact «$r0»
   have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/DeleteRange" pbDeleteRangeRequestT pbDeleteRangeResponseT pbDeleteRangeRequestT_reg pbDeleteRangeResponseT_reg Spec (deleteReqOp req k e) Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
+  simp only [pbDeleteRangeRequestT, pbDeleteRangeResponseT] at hI
   rw [show (pbDeleteRangeRequest (GF := GF)).ty = etcdserverpb.DeleteRangeRequest.ty from rfl,
     show (pbDeleteRangeResponse (GF := GF)).ty = etcdserverpb.DeleteRangeResponse.ty from rfl] at hI
   ihave Hpre := reqPre_scalar_app conn _ addr [sm] vs _ Hsms $$ Hpre

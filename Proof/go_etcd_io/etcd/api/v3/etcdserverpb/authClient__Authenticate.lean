@@ -52,6 +52,7 @@ theorem etcdserverpb.authClient.Authenticate.wp_proof
     iexact «$r0»
   have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Auth/Authenticate" pbAuthenticateRequestT pbAuthenticateResponseT pbAuthenticateRequestT_reg pbAuthenticateResponseT_reg Spec m Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
+  simp only [pbAuthenticateRequestT, pbAuthenticateResponseT] at hI
   rw [show (pbAuthenticateRequest (GF := GF)).ty = etcdserverpb.AuthenticateRequest.ty from rfl,
     show (pbAuthenticateResponse (GF := GF)).ty = etcdserverpb.AuthenticateResponse.ty from rfl] at hI
   ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/Authenticate" addr ([sm] ++ vs) (Spec m Q) $$ []

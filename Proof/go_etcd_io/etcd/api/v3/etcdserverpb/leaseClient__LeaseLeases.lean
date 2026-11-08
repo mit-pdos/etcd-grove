@@ -60,6 +60,7 @@ theorem leaseClient.LeaseLeases.wp_proof
     iexact «$r0»
   have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseLeases" pbLeaseLeasesRequestT
     pbLeaseLeasesResponseT pbLeaseLeasesRequestT_reg pbLeaseLeasesResponseT_reg Spec () Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+  simp only [pbLeaseLeasesRequestT, pbLeaseLeasesResponseT] at hI
   rw [show (pbLeaseLeasesRequest (GF := GF)).ty = etcdserverpb.LeaseLeasesRequest.ty from rfl,
     show (pbLeaseLeasesResponse (GF := GF)).ty = etcdserverpb.LeaseLeasesResponse.ty from rfl] at hI
   ihave Hpre' := reqPre_box conn _ addr ([sm] ++ vs) _ $$ Hpre

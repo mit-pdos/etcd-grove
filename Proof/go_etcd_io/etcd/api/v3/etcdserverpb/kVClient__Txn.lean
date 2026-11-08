@@ -57,12 +57,15 @@ theorem kVClient.Txn.wp_proof
     iexact «$r0»
   have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Txn" pbTxnRequestT pbTxnResponseT pbTxnRequestT_reg pbTxnResponseT_reg Spec t Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
-  rw [show (pbTxnRequest (GF := GF)).ty = etcdserverpb.TxnRequest.ty from rfl,
-    show (pbTxnResponse (GF := GF)).ty = etcdserverpb.TxnResponse.ty from rfl] at hI
+  rw [show (pbTxnRequestT (GF := GF)).ty = etcdserverpb.TxnRequest.ty from rfl,
+    show (pbTxnResponseT (GF := GF)).ty = etcdserverpb.TxnResponse.ty from rfl] at hI
   ihave Hpre := reqPre_scalar_app conn _ addr [sm] vs _ Hsms $$ Hpre
   wp_apply hI $$ [Hsend Hblank Hpre] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
+    isplitl []
+    · change Iris.ProofMode.Entails' _ (isGrpcRpcsMd (Req := pbTxnRequest) (Rep := pbTxnResponse) addr _ Spec)
+      iexact Hrpc
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hin' with ⟨%req', Hin', -⟩
   icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)

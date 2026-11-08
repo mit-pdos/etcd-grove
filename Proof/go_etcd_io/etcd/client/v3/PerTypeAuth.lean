@@ -473,7 +473,7 @@ theorem pbAuthUserAddResponseT_repSat : (pbAuthUserAddResponseT (GF := GF)).RepS
       fun l => .rfl⟩,
     ?_, ?_⟩
   · intro m
-    simp only [pbAuthUserAddResponseT]
+    simp only [pbAuthUserAddResponseT, pbAuthUserAddResponse]
     iintro %H
     exact absurd rfl H
   intro ls l m
@@ -505,7 +505,7 @@ theorem pbAuthUserGrantRoleResponseT_repSat : (pbAuthUserGrantRoleResponseT (GF 
         etcdserverpb.AuthUserGrantRoleResponse.ty), fun l => .rfl⟩,
     ?_, ?_⟩
   · intro m
-    simp only [pbAuthUserGrantRoleResponseT]
+    simp only [pbAuthUserGrantRoleResponseT, pbAuthUserGrantRoleResponse]
     iintro %H
     exact absurd rfl H
   intro ls l m
@@ -537,7 +537,7 @@ theorem pbAuthRoleAddResponseT_repSat : (pbAuthRoleAddResponseT (GF := GF)).RepS
       fun l => .rfl⟩,
     ?_, ?_⟩
   · intro m
-    simp only [pbAuthRoleAddResponseT]
+    simp only [pbAuthRoleAddResponseT, pbAuthRoleAddResponse]
     iintro %H
     exact absurd rfl H
   intro ls l m
@@ -570,7 +570,7 @@ theorem pbAuthRoleGrantPermissionResponseT_repSat :
         etcdserverpb.AuthRoleGrantPermissionResponse.ty), fun l => .rfl⟩,
     ?_, ?_⟩
   · intro m
-    simp only [pbAuthRoleGrantPermissionResponseT]
+    simp only [pbAuthRoleGrantPermissionResponseT, pbAuthRoleGrantPermissionResponse]
     iintro %H
     exact absurd rfl H
   intro ls l m
@@ -602,7 +602,7 @@ theorem pbAuthEnableResponseT_repSat : (pbAuthEnableResponseT (GF := GF)).RepSat
       fun l => .rfl⟩,
     ?_, ?_⟩
   · intro m
-    simp only [pbAuthEnableResponseT]
+    simp only [pbAuthEnableResponseT, pbAuthEnableResponse]
     iintro %H
     exact absurd rfl H
   intro ls l m

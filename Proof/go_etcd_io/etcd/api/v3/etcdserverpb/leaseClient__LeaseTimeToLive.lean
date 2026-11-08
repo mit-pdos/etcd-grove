@@ -60,6 +60,7 @@ theorem leaseClient.LeaseTimeToLive.wp_proof
     iexact «$r0»
   have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseTimeToLive" pbLeaseTimeToLiveRequestT
     pbLeaseTimeToLiveResponseT pbLeaseTimeToLiveRequestT_reg pbLeaseTimeToLiveResponseT_reg Spec (req.ID', req.Keys') Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+  simp only [pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT] at hI
   rw [show (pbLeaseTimeToLiveRequest (GF := GF)).ty = etcdserverpb.LeaseTimeToLiveRequest.ty from rfl,
     show (pbLeaseTimeToLiveResponse (GF := GF)).ty = etcdserverpb.LeaseTimeToLiveResponse.ty from rfl] at hI
   ihave Hpre' := reqPre_box conn _ addr ([sm] ++ vs) _ $$ Hpre

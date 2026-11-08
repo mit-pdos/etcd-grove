@@ -51,6 +51,7 @@ theorem etcdserverpb.authClient.RoleAdd.wp_proof
     iexact «$r0»
   have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/RoleAdd" pbAuthRoleAddRequestT pbAuthRoleAddResponseT pbAuthRoleAddRequestT_reg pbAuthRoleAddResponseT_reg Spec m Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
+  simp only [pbAuthRoleAddRequestT, pbAuthRoleAddResponseT] at hI
   rw [show (pbAuthRoleAddRequest (GF := GF)).ty = etcdserverpb.AuthRoleAddRequest.ty from rfl,
     show (pbAuthRoleAddResponse (GF := GF)).ty = etcdserverpb.AuthRoleAddResponse.ty from rfl] at hI
   ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/RoleAdd" addr ([sm] ++ vs) (attemptPre conn (GoInterface.ok ctx) Spec m Q) $$ []

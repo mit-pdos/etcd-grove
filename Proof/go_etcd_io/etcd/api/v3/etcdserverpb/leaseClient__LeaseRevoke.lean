@@ -60,6 +60,7 @@ theorem leaseClient.LeaseRevoke.wp_proof
     iexact «$r0»
   have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseRevoke" pbLeaseRevokeRequestT
     pbLeaseRevokeResponseT pbLeaseRevokeRequestT_reg pbLeaseRevokeResponseT_reg Spec req.ID' Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+  simp only [pbLeaseRevokeRequestT, pbLeaseRevokeResponseT] at hI
   rw [show (pbLeaseRevokeRequest (GF := GF)).ty = etcdserverpb.LeaseRevokeRequest.ty from rfl,
     show (pbLeaseRevokeResponse (GF := GF)).ty = etcdserverpb.LeaseRevokeResponse.ty from rfl] at hI
   ihave Hpre' := reqPre_box conn _ addr ([sm] ++ vs) _ $$ Hpre
