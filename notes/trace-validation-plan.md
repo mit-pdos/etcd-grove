@@ -133,6 +133,16 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   exported `memStorage_isStorage` gains it as a premise. The spec skill makes each the
   user's; they will be presented side by side with the current specs once increment 2 is drafted
   (`notes/trace-validation-sim.md`, "Increment 2").
+- **Q7 (2026-11-08, layer C review rounds 1-2, S1): the Lean transcription's per-line fuel.** The
+  Lean `stepLine` stops when `lineFuel` runs out (the logs' lengths plus 8); the Go's loop is
+  unbounded. They agree only if a line's search never needs more, which rests on a reachability
+  invariant of the specification (one leader's append requests in a term agree), itself needing
+  persistence reasoning (`Restart`) and holding for any initial roles. Options: (a) S6 proves that
+  invariant; (b) both checkers raise an evaluation error when the fuel runs out (the Go gains the
+  same counter), so they agree by construction, and layer B shows the fuel suffices on `Main`'s
+  traces (S4 already argues each receive line's loop ends); this changes the transcriptions'
+  meaning, conservatively (a trace needing more is rejected, where TLC would go on): a trust
+  question. **Not taken** (no recommendation in the plan); the agent's recommendation: (b).
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
   `traceChangeConfEvent` formats the change's ids (`strconv.FormatUint`) before its nil check, so
   the translated raft calls it even without a logger, and raft's linked results now rest on
@@ -277,8 +287,8 @@ read-only trace holding `newTrace`'s) and `CheckTrace.lean` (`CheckTrace(t, inva
 result holds `checkTrace`'s, on the fields it records), over the representation predicates of
 `Proof/.../tracecheck/etcdraft/Rep.lean` (persistent: a trace and its initial state are never
 written; canonical where the Go compares by value) and the package fact of `Base.lean` (`True` in
-the Draft, strengthened by S6's proofs). Premises: the events' numbers in `[0, 2^62)`
-(`Event.Bounded`) and fewer than `2^62` events. Decided by the agent: one persistent predicate per
+the Draft, strengthened by S6's proofs). Premises: the events' numbers in `[0, numBound)`,
+`numBound = 2^40` (`Event.Bounded`), and fewer than `numBound` events. Decided by the agent: one persistent predicate per
 Go value rather than ownership (nothing the specs relate is written after `NewTrace`), and the
 result related on the fields the Lean `Result` has (the Go's debugging fields unconstrained).
 
@@ -290,10 +300,15 @@ debugging field only, `tlcOK` unchanged; the Lean and Go checkers agree again on
 two invariant-violation witnesses included). Also: the trace's numbers bounded by `numBound =
 2^40` (S2: the Go's `make` of a bootstrap log), `matchIndex` related at every id (S3), a spec for
 `Result.TLCOK` (S4), the predicates' `Persistent` instances (S5), pure premises inside the
-triples. Open for S6 (S1): `lineFuel` (the initial logs' lengths plus 8) bounds the Go's unbounded
+triples. Open for S6 (S1): `lineFuel` (the logs' lengths in the state the line starts from, plus 8) bounds the Go's unbounded
 per-line loop only given that the append requests matching one line carry the same entries, a
 reachability invariant of the specification; S6 states it or replaces the fuel by a counting
 bound. Sealing the predicates behind laws (T2) is left to S6 too.
+
+Review round 2 (`notes/trace-validation-reviews/c-r2.md`): one first-tier gap, `stateRO` did not
+say the server map's keys are exactly the servers (a configuration may name a node outside
+`Server`, and the Go decides by lookup): added. Round 1's repairs, the Lean change included,
+checked (15 traces and a crafted one agree). `lineFuel` (S1) is Q7.
 
 ## Draft: S2 done (2026-11-08)
 

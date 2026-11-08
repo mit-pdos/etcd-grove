@@ -64,8 +64,8 @@ end types
 /-! ## Bounds -/
 
 /-- The bound on the trace's numbers and length: far from the Go `int`'s overflow (`len(log)+1`,
-`b + ev.Entries`), and small enough that the Go's `make([]Entry, n)` of a bootstrap log of `n`
-entries is a real allocation (as the porcupine example's `ClientIdsOk`, gc's `maxAlloc`; review
+`b + ev.Entries`), and keeping the Go's `make([]Entry, n)` of a bootstrap log of `n` entries
+within the length a slice may have (as the porcupine example's `ClientIdsOk`, gc's `maxAlloc`; review
 round 1 of layer C, S2). -/
 def numBound : Int := 2 ^ 40
 
@@ -161,6 +161,9 @@ def serverRO (p : Loc) (v : Server) : IProp GF :=
 def stateRO (p : Loc) (st : State) : IProp GF :=
   iprop(∃ (g : G.State) (sm : GMap w64 Loc), p ↦□ g ∗ setRO g.Server' st.server ∗
     g.S' ↦$□ sm ∗
+    -- the map's keys are exactly the servers (the Go decides "is a server" by a lookup, the Lean
+    -- by `st.server`; review round 2 of layer C, F1)
+    ⌜∀ k : w64, (sm !! k).isSome ↔ uint.nat k ∈ st.server⌝ ∗
     ([∗list] i ∈ st.server, ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat i)) = some q⌝ ∗ serverRO q (st.s i)) ∗
     bagRO g.Messages' st.messages ∗ bagRO g.PendingMessages' st.pendingMessages ∗
     ⌜sint.Z g.ReconfigCount' = st.reconfigCount⌝)
