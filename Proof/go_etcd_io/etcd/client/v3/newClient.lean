@@ -308,7 +308,7 @@ theorem newClient.wp_proof
         □ (∀ Φ : val → IProp GF, ▷ Φ #() -∗ WP (App (Val #cf) (Val #())) {{ Φ }}))
       with [client ctx cancel] as ⟨%cx, %cd, %cf, client, ctx, cancel, #Hcx, #Hcf⟩
     · wp_apply context.wp_WithTimeout ctx' _ cfg.DialTimeout' $$ [$Hctx']
-        as %cx2 %γ2 %cf2 %dl ⟨#Hcf2, #Hcx2⟩
+        as %cx2 %γ2 %cf2 %dl ⟨#Hcf2, #Hcx2, -⟩
       wp_join_done
       iexists cx2, _, cf2
       iframe client ctx cancel Hcx2
