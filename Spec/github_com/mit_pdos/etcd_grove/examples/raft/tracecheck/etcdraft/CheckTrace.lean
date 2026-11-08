@@ -7,7 +7,8 @@ view `<<vars, l>>`, the invariants checked at every state reached when `invarian
 TLC would fail is a failure). Its spec: the Lean transcription's `checkTrace` (`Tla/Check.lean`)
 is what it computes, on the fields it records (`resultRel`); so `Result.TLCOK()` is
 `(checkTrace tr invariants).tlcOK`, and with `NewTrace`'s spec, `traceAccepts` is `Main`'s check.
-The trace is read, not written (`traceRO`).
+The trace is read, not written (`traceRO`, which carries that `NewTrace` built it: the Go's search
+relies on that, review round 1 of layer C, F1).
 -/
 module
 
@@ -33,7 +34,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.
 /-- See the file header. -/
 abbrev CheckTrace.spec : Prop :=
   ∀ (t : Loc) (tr : Trace) (invariants : Bool),
-  (∀ ln ∈ tr.lines, ln.ev.Bounded) → tr.lines.length < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
       traceRO t tr }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.CheckTrace))

@@ -595,7 +595,9 @@ def Trace.stepRound (t : Trace) (l0 : Nat) (invariants : Bool) (frontier : List 
           else pure info
         return (out, visited, next, fresh, info))
       (out, visited, next, [], info)
-    return (out, visited, next, if fresh.length > 1 then { info with branched := true } else info))
+    -- (as the Go's `StepLine`, which returns at a violation before it looks at `fresh`)
+    return (out, visited, next,
+      if info.violation.isNone && fresh.length > 1 then { info with branched := true } else info))
     (st.1, st.2.1, [], st.2.2)
 
 /-- `stepLine`'s loop, with fuel. -/

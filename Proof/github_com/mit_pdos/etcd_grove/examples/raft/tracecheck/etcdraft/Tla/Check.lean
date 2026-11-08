@@ -60,12 +60,16 @@ def Trace.checkFrom (t : Trace) (invariants : Bool) : Nat → Nat → List TStat
     match t.checkLine invariants frontier with
     | .error e => { evalError := some e, errLine := l, branched := r.branched }
     | .ok (next, info) =>
-      let r := if (info.branched || next.length > 1) && r.branched == 0 then { r with branched := l } else r
+      -- (as the Go's `CheckTrace`: a state's branching first, then a violation returns, and only
+      -- then the line's own count of next states)
+      let r := if info.branched && r.branched == 0 then { r with branched := l } else r
       match info.violation with
       | some v => { violation := some v, violLine := l, branched := r.branched }
       | none =>
         if next.isEmpty then { r with line := l }
-        else t.checkFrom invariants fuel (l + 1) next r
+        else
+          let r := if next.length > 1 && r.branched == 0 then { r with branched := l } else r
+          t.checkFrom invariants fuel (l + 1) next r
 
 /-- `checkTrace t invariants` (Go: `CheckTrace`). -/
 def checkTrace (t : Trace) (invariants : Bool) : Result :=

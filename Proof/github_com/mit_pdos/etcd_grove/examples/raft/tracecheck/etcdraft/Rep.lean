@@ -63,11 +63,17 @@ end types
 
 /-! ## Bounds -/
 
-/-- A number of the trace far from the Go `int`'s overflow: `0 ≤ n < 2^62`. -/
-def numOk (n : Int) : Prop := 0 ≤ n ∧ n < 2 ^ 62
+/-- The bound on the trace's numbers and length: far from the Go `int`'s overflow (`len(log)+1`,
+`b + ev.Entries`), and small enough that the Go's `make([]Entry, n)` of a bootstrap log of `n`
+entries is a real allocation (as the porcupine example's `ClientIdsOk`, gc's `maxAlloc`; review
+round 1 of layer C, S2). -/
+def numBound : Int := 2 ^ 40
 
-/-- An event whose numbers are `numOk` (raft's are: its terms and indices are below `2^62`,
-`notes/trace-validation-sim.md`, "Increment 2", round 5's B3). -/
+/-- A number of the trace within `numBound`. -/
+def numOk (n : Int) : Prop := 0 ≤ n ∧ n < numBound
+
+/-- An event whose numbers are `numOk` (layer B gives it of raft's: its terms and indices are
+bounded by the time receipts, `notes/trace-validation-sim.md`, "Increment 2"). -/
 def Event.Bounded (e : Event) : Prop :=
   numOk e.state.term ∧ numOk e.state.commit ∧ numOk e.log ∧
   ∀ m, e.msg = some m →
@@ -137,8 +143,10 @@ def durableRO (g : G.Durable) (d : Durable) : IProp GF :=
   iprop(⌜sint.Z g.CurrentTerm' = d.currentTerm ∧ uint.nat g.VotedFor' = d.votedFor ∧
       sint.Z g.Log' = d.log ∧ sint.Z g.CommitIndex' = d.commitIndex⌝ ∗ configRO g.Config' d.config)
 
-/-- A Go `*Server` holding `v`, its `matchIndex` on the servers `srv` (a missing key is 0). -/
-def serverRO (p : Loc) (v : Server) (srv : SetIds) : IProp GF :=
+/-- A Go `*Server` holding `v`, its `matchIndex` at every id (a missing key is 0: both sides read
+the members of a configuration, which may name a node that never logs; review round 1 of layer C,
+S3). -/
+def serverRO (p : Loc) (v : Server) : IProp GF :=
   iprop(∃ (g : G.Server) (mm : GMap w64 w64), p ↦□ g ∗
     ⌜sint.Z g.CurrentTerm' = v.currentTerm ∧ g.State' = stringToGoString v.state ∧
       uint.nat g.VotedFor' = v.votedFor ∧ sint.Z g.CommitIndex' = v.commitIndex ∧
@@ -146,14 +154,14 @@ def serverRO (p : Loc) (v : Server) (srv : SetIds) : IProp GF :=
     logRO g.Log' v.log ∗ setRO g.VotesResponded' v.votesResponded ∗
     setRO g.VotesGranted' v.votesGranted ∗
     g.MatchIndex' ↦$□ mm ∗
-    ⌜∀ j ∈ srv, sint.Z ((mm !! (W64 (Int.ofNat j))).getD (W64 0)) = v.matchIndex j⌝ ∗
+    ⌜∀ j : w64, sint.Z ((mm !! j).getD (W64 0)) = v.matchIndex (uint.nat j)⌝ ∗
     configRO g.Config' v.config ∗ durableRO g.Durable' v.durable)
 
 /-- A Go `*State` holding `st`. -/
 def stateRO (p : Loc) (st : State) : IProp GF :=
   iprop(∃ (g : G.State) (sm : GMap w64 Loc), p ↦□ g ∗ setRO g.Server' st.server ∗
     g.S' ↦$□ sm ∗
-    ([∗list] i ∈ st.server, ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat i)) = some q⌝ ∗ serverRO q (st.s i) st.server) ∗
+    ([∗list] i ∈ st.server, ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat i)) = some q⌝ ∗ serverRO q (st.s i)) ∗
     bagRO g.Messages' st.messages ∗ bagRO g.PendingMessages' st.pendingMessages ∗
     ⌜sint.Z g.ReconfigCount' = st.reconfigCount⌝)
 
@@ -207,7 +215,8 @@ def eventRO (g : G.Event) (e : Event) : IProp GF :=
      | some m => iprop(∃ gm : G.EventMsg, g.Msg' ↦□ gm ∗ ⌜eventMsgRel gm m⌝)) ∗
     propsRO g.Prop' e.prop)
 
-/-- A Go `[]Event` holding `evs`, read-only: what `NewTrace` reads (and keeps pointers into). -/
+/-- A Go `[]Event` holding `evs`, read-only: what `NewTrace` reads (and keeps pointers into). Its
+strings are the UTF-8 encodings of the Lean's (`stringToGoString`): raft's events are ASCII. -/
 def eventsRO (sl : GoSlice) (evs : List Event) : IProp GF :=
   iprop(∃ gs : List G.Event, sl ↦*□ gs ∗ [∗list] g;e ∈ gs;evs, eventRO g e)
 
@@ -218,9 +227,16 @@ def lineRO (g : G.line) (x : Line) : IProp GF :=
       uint.nat g.from' = x.«from» ∧ uint.nat g.to' = x.to⌝ ∗
     (∃ a b : GoSlice, ⌜g.conf'.arr = [a, b]⌝ ∗ setRO a x.conf.1 ∗ setRO b x.conf.2))
 
-/-- A Go `*Trace` holding `tr`, read-only: what `NewTrace` returns and `CheckTrace` reads. -/
+/-- `tr` is a trace `NewTrace` builds: `newTrace`'s of bounded events (what the Go's search relies
+on: every server's state in the initial state, `bootstrap` as long as the lines; review round 1 of
+layer C, F1). -/
+def Trace.Valid (tr : Trace) : Prop :=
+  ∃ evs : List Event, (∀ e ∈ evs, e.Bounded) ∧ (evs.length : Int) < numBound ∧ newTrace evs = .ok tr
+
+/-- A Go `*Trace` holding `tr`, read-only: what `NewTrace` returns and `CheckTrace` reads; it
+carries `Trace.Valid tr`, which only `NewTrace` produces. -/
 def traceRO (t : Loc) (tr : Trace) : IProp GF :=
-  iprop(∃ g : G.Trace, t ↦□ g ∗
+  iprop(⌜Trace.Valid tr⌝ ∗ ∃ g : G.Trace, t ↦□ g ∗
     (∃ lns : List G.line, g.lines' ↦*□ lns ∗ [∗list] ln;x ∈ lns;tr.lines, lineRO ln x) ∗
     setRO g.Server' tr.server ∗ setRO g.InitSrv' tr.initSrv ∗ g.bootstrap' ↦*□ tr.bootstrap ∗
     stateRO g.init' tr.init)
@@ -232,6 +248,62 @@ def resultRel (g : G.Result) (r : Result) : Prop :=
   g.Violation' = stringToGoString (r.violation.getD "") ∧ uint.nat g.ViolLine' = r.violLine ∧
   g.EvalError' = stringToGoString ((r.evalError.map EvalError.what).getD "") ∧
   uint.nat g.ErrLine' = r.errLine
+
+/-! ## Laws -/
+
+/-- Every predicate here is persistent (a trace and its initial state are never written). -/
+instance optSliceRO_persistent {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] {A : Type}
+    (p : Loc) (o : Option (List A)) (rel : V → A → Prop) :
+    Persistent (optSliceRO (GF := GF) (V := V) p o rel) := by
+  cases o <;> unfold optSliceRO <;> infer_instance
+
+instance setRO_persistent (sl : GoSlice) (s : SetIds) : Persistent (setRO (GF := GF) sl s) := by
+  unfold setRO; infer_instance
+
+instance valueRO_persistent (v : G.Value) (w : Value) : Persistent (valueRO (GF := GF) v w) := by
+  cases w <;> unfold valueRO <;> infer_instance
+
+instance entryRO_persistent (e : G.Entry) (x : Entry) : Persistent (entryRO (GF := GF) e x) := by
+  unfold entryRO; infer_instance
+
+instance logRO_persistent (sl : GoSlice) (l : List Entry) : Persistent (logRO (GF := GF) sl l) := by
+  unfold logRO; infer_instance
+
+instance msgRO_persistent (p : Loc) (m : Msg) : Persistent (msgRO (GF := GF) p m) := by
+  unfold msgRO; infer_instance
+
+instance bagRO_persistent (g : G.Bag) (b : Bag) : Persistent (bagRO (GF := GF) g b) := by
+  unfold bagRO; infer_instance
+
+instance configRO_persistent (g : G.Config) (c : Config) : Persistent (configRO (GF := GF) g c) := by
+  unfold configRO; infer_instance
+
+instance durableRO_persistent (g : G.Durable) (d : Durable) : Persistent (durableRO (GF := GF) g d) := by
+  unfold durableRO; infer_instance
+
+instance serverRO_persistent (p : Loc) (v : Server) : Persistent (serverRO (GF := GF) p v) := by
+  unfold serverRO; infer_instance
+
+instance stateRO_persistent (p : Loc) (st : State) : Persistent (stateRO (GF := GF) p st) := by
+  unfold stateRO; infer_instance
+
+instance confChangeRO_persistent (p : Loc) (cc : EventConfChange) : Persistent (confChangeRO (GF := GF) p cc) := by
+  unfold confChangeRO; infer_instance
+
+instance propsRO_persistent (p : Loc) (o : Option EventProps) : Persistent (propsRO (GF := GF) p o) := by
+  rcases o with _ | ⟨⟨_ | cc⟩⟩ <;> simp only [propsRO] <;> infer_instance
+
+instance eventRO_persistent (g : G.Event) (e : Event) : Persistent (eventRO (GF := GF) g e) := by
+  cases hm : e.msg <;> simp only [eventRO, hm] <;> infer_instance
+
+instance eventsRO_persistent (sl : GoSlice) (evs : List Event) : Persistent (eventsRO (GF := GF) sl evs) := by
+  unfold eventsRO; infer_instance
+
+instance lineRO_persistent (g : G.line) (x : Line) : Persistent (lineRO (GF := GF) g x) := by
+  unfold lineRO; infer_instance
+
+instance traceRO_persistent (t : Loc) (tr : Trace) : Persistent (traceRO (GF := GF) t tr) := by
+  unfold traceRO; infer_instance
 
 end defs
 

@@ -282,6 +282,19 @@ the Draft, strengthened by S6's proofs). Premises: the events' numbers in `[0, 2
 Go value rather than ownership (nothing the specs relate is written after `NewTrace`), and the
 result related on the fields the Lean `Result` has (the Go's debugging fields unconstrained).
 
+Review round 1 (`notes/trace-validation-reviews/c-r1.md`): `CheckTrace.spec` was false (F1: it
+accepted traces `NewTrace` never builds, on which the Go panics: `traceRO` now carries
+`Trace.Valid`, only `NewTrace` produces it; F2: the Lean transcription set `branched` at a
+violation where the Go returns first: `stepRound` and `checkFrom` now follow the Go's order, a
+debugging field only, `tlcOK` unchanged; the Lean and Go checkers agree again on five traces, the
+two invariant-violation witnesses included). Also: the trace's numbers bounded by `numBound =
+2^40` (S2: the Go's `make` of a bootstrap log), `matchIndex` related at every id (S3), a spec for
+`Result.TLCOK` (S4), the predicates' `Persistent` instances (S5), pure premises inside the
+triples. Open for S6 (S1): `lineFuel` (the initial logs' lengths plus 8) bounds the Go's unbounded
+per-line loop only given that the append requests matching one line carry the same entries, a
+reachability invariant of the specification; S6 states it or replaces the fuel by a counting
+bound. Sealing the predicates behind laws (T2) is left to S6 too.
+
 ## Draft: S2 done (2026-11-08)
 
 The Lean transcription, `Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Tla/`
