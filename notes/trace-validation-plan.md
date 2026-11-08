@@ -110,7 +110,7 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   reach N2 before either; the argument is what counts).
 - **Q6 (2026-11-08, S4 rounds 3-4; to present with increment 2's draft): new client-owned ghost
   on raft's node API, gated on a non-nil trace logger.** The simulation needs (1) a token per
-  handed-out traced message (`Advance`'s post gives them, `Node.Step`/`RawNode.Step` take one,
+  handed-out traced message (`Advance`'s post gives them, `Node.Step` takes one,
   given back on a timeout), (2) a proposal budget (`Propose` takes a credit; the leader's
   inflights then never fill, P5), (3) `isTraceLogger γt …` in the constructors' premise (Q1's
   final shape), (4) since round 5: each message token's position on its link (P9 through the
@@ -119,7 +119,9 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   node's piece of the allocation and the allocation's peers), (5) since round 6: an exclusive
   per-link cursor for the tokens' order, a compaction permit never handed out, the budget's gate
   (non-`dup` cluster, non-empty data), no `TransferLeadership`/`ReadIndex`/`Campaign`/`ForgetLeader`
-  with a logger. The existing clients (nil logger) carry nothing new. The spec skill makes each the
+  with a logger, (6) since round 7: the allocation law's premises `|peers| ≤ 3` (P9's voter
+  count) and a non-`dup` cluster, the compaction permit as a gated conjunct of the storage bound
+  `storBnd`. The existing clients (nil logger) carry nothing new. The spec skill makes each the
   user's; they will be presented side by side with the current specs once increment 2 is drafted
   (`notes/trace-validation-sim.md`, "Increment 2").
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
@@ -282,7 +284,7 @@ ones) its verdict and failing line equal the Go checker's (and so TLC's), and on
 evaluation-error witness (a commit index past the log) it fails with the same error. Not part of
 the trust argument (the plan's "Trust base"): S6's proof is what ties it to the Go.
 
-## Draft: S4 drafted (2026-11-08), in Review (rounds 1-6 done; blocked on Q4, Q5, Q6)
+## Draft: S4 drafted (2026-11-08), in Review (rounds 1-7 done; blocked on Q4, Q5, Q6)
 
 `notes/trace-validation-sim.md`: the abstraction `α` (a server's variables, the messages, the bags
 as new ghost state with a token per message in flight), the relation's phases (idle, handling a
@@ -310,7 +312,10 @@ flag, the invariants' clauses and routes corrected; revision 5. Round 5 (`notes/
 either; the tokens need their link position for P9, layer B's other premises must enter through
 gated API premises (both Q6), `QuorumLogInv` is not raft's (a copy of raft's `histsOk`); revision 6. Round 6 (`notes/trace-validation-reviews/s4-r6.md`): none either;
 two more API gaps (P2's compaction, the tokens' order needs an exclusive cursor), both Q6; the
-reviewer saw nothing else blocking a freeze once Q4-Q6 are decided; revision 7.
+reviewer saw nothing else blocking a freeze once Q4-Q6 are decided; revision 7. Round 7 (`notes/trace-validation-reviews/s4-r7.md`): one
+first-tier finding, P9's voter count with no channel into raft (a premise of the allocation, Q6);
+second tier on the storage bound, the cursor's ownership, `QuorumLogInv`'s clauses; nothing else
+blocking once Q4-Q6 are decided; revision 8.
 
 ## Draft: S3 increment 1 done (2026-11-08)
 
