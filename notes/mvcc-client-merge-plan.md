@@ -181,3 +181,13 @@ Each item's old/new text is in the hand-off named; none adds an axiom or a `sorr
     (cause not found).
 16. `grpc.serve`'s "at most `n` runs at a time" is not true of grpc-go (older; `notes/audit.md`
     marks it suspect; `notes/axiom-review/r11-grpc-threadtok.md`).
+
+**From the gates (2026-11-08, `notes/mvcc-merge/gates.md`; `etc/gates.sh` passes)**
+17. mvcc's `New.spec`/`NewStore.spec`: the premise `receiptBound GF ≤ 2 ^ 48` → the instance
+    `[ReceiptBoundLe GF (2 ^ 48)]` (same strength; the bounds plan's form, as `lean`'s internal specs).
+18. Counted debt left (`etc/bounds-baseline.txt` raised, each a bound already there, now spelled out):
+    the server's apply path's `receiptBound ≤ 2^48` (was inside `acReceiptOk`), v3rpc's `sendLoop`/
+    `Watch` thread bound (was inside `sendRes`/`watchRunSlot`), the tester's split of the backend's
+    write-back tokens. Owner stocks allow-listed: mvcc's reader-token pool, the tester's history lock.
+19. Mode uses classified (`etc/mode-allow.txt`); `etc/api/etcdstart.txt` + `WatchSrv`, `OnceUpTo`;
+    `etc/api/backend.txt` + `DlLemmas`, `Spec…backend.New` (the tester calls `backend.New` itself).
