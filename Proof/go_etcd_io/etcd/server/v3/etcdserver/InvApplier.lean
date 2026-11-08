@@ -745,7 +745,7 @@ instance srvBeRO_persistent (d : mvcc.KBReal) : Persistent (srvBeRO (GF := GF) d
 theorem srvBeRO_envVerifyOff (d : mvcc.KBReal) : srvBeRO (GF := GF) d ⊢ envVerifyOff := by
   iintro #H
   iunfold srvBeRO at H
-  icases H with ⟨%Pk, #Hb⟩
+  icases H with ⟨%gx, %Pk, #Hb⟩
   iapply backend.isBackend_envVerifyOff $$ Hb
 
 /-- **The apply thread's part of the server's backend** (D22 receiver epochs, S7b, 2026-10-23;
