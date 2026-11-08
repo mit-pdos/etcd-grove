@@ -5,6 +5,12 @@ hook's correspondence, determinism, the invariants' mapping). It decides what in
 hooks' specs is (`notes/trace-validation-hooks.md`: the logger's contract) and what layer D must
 discharge.
 
+**Revision 11 (after review round 10, 2026-11-08; `notes/trace-validation-reviews/s4-r10.md`).**
+Round 10 found round 9's repairs made and one first-tier item, one clause: `RestartNode` keeps
+the nil-logger premise beside `reTrace = none` (F1). Also: the permit is `⌜False⌝` (S1); the
+exported `memStorage_isStorage` takes the untraced fact, the server's `compactRaftLog` does not
+(S2); what reviving `reNoSnap` touches (S3); third tier. The reviewer saw nothing first-tier left.
+
 **Revision 10 (after review round 9, 2026-11-08; `notes/trace-validation-reviews/s4-r9.md`).**
 Round 9 found round 8's repairs in place and two first-tier gaps, both one sentence: `storBnd`'s
 gate needs the `c = 0` exemption (F1), and the gate was moved to the cluster field `reTrace` only
@@ -477,18 +483,20 @@ an index then at most `2^62 − 3 + |peers|`, under `2^63` with `|peers| ≤ 3`;
 them), and each hook's call site supplies the update,
 stepping `σ` inside it; raft's API exports the law from `simInv γt ∗ traceAuth γt L` to "`L` steps,
 line by line, to a unique state with the invariants" (layer D gets `traceAccepts` from it), and the
-allocation law, in three steps (round 9's S1: `cluster_alloc` takes its name fields as inputs):
-(1) allocate `γt` and what does not need `γ`; (2) `cluster_alloc` with `tr := some γt` (raft's
-`γ`, its cluster voters the peers, `γ.raft.reTrace = some γt`); (3) establish `simInv`:
-`γt` with `traceAuth`, `traceFrag`, `simInv` at `σ_init` (from the peers), the
-nodes' `simNode`s with their bootstrap flags, and the budget, which the harness applies before
-the first `StartNode`; the exported law takes as premise that every peer's bootstrap lines are in
+allocation law, in three steps (round 9's S1: `cluster_alloc` takes its name fields as inputs),
+which the harness applies before the first `StartNode`: (1) allocate `γt` with `traceAuth` and
+`traceFrag`, and the budget; (2) `cluster_alloc` with `tr := some γt` (raft's `γ`, its cluster
+voters the peers, `γ.raft.reTrace = some γt`), under the premises `|peers| ≤ 3` (P9), a non-`dup`
+cluster, and `tr.isSome → boot ≠ []` (the revived mode needs a bootstrap log, `reNoSnap_ok`,
+`Ghost.lean:352`); it gives `isCommittedLogLb γ boot`; (3) establish `simInv` at `σ_init` (from the
+peers) with the nodes' `simNode`s and their bootstrap flags (round 10's T2). The harness's storage
+predicate is its own `MemJust` with `B := storBnd γ K` (it cannot use `memStorJ`; round 10's T3); the exported law takes as premise that every peer's bootstrap lines are in
 `L` (a peer not yet started contributes `σ_init`'s value for it, from the allocation).
 
 What changes, besides the hooks' specs: the constructors' premise (Q1) becomes
 `isTraceLogger γt cv.TraceLogger'` inside the triple (`γt` a new binder; `isTraceLogger_nil` for a
-nil logger, any `γt`); `simNode` is owned only in a traced cluster, so untraced clients carry nothing
-new.
+nil logger, any `γt`); `simNode` is owned only in a traced cluster, so untraced clients carry only
+the one pure fact below (round 10's T1).
 
 What the contract's proof meets:
 
@@ -558,19 +566,32 @@ What the contract's proof meets:
   **The gate** is a cluster field `reTrace : Option GName := none` of raft's names (as `dup`);
   "in a traced cluster" means `γ.raft.reTrace = some γt` throughout. `StartNode` takes
   `cv.TraceLogger' ≠ nil ↔ γ.raft.reTrace ≠ none` (with a logger, `γ.raft.reTrace = some γt`),
-  `RestartNode` takes `γ.raft.reTrace = none` (round 9's F2: else a nil-logger node in a traced
-  cluster proposes without a credit, or a logger node in an untraced one compacts and sends a
-  traced `MsgSnap`). `storBnd γ K c := (∃ k, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k) ∗ (⌜c = 0 ∨
-  γ.raft.reTrace = none⌝ ∨ permit)` (round 9's F1: `MemoryStorage`'s invariant needs `J.B 0`).
-  Untraced clients carry one new pure fact, `⌜γ.raft.reTrace = none⌝`, from a law raft exports for
-  a cluster allocated untraced (the `rfl` proofs of `kvJ_bnd`, `KvrStorageApi`, `KdStorageApi` and
-  the server's `compactRaftLog` take it: round 9's S2). In a traced cluster `Ready`'s snapshot is
+  `RestartNode` takes `γ.raft.reTrace = none` **and a nil logger** (`TraceLoggerOk`, as now:
+  round 10's F1; with a logger and no `simInv` raft could not commit the logger's update, since
+  `traceFrag` is `simInv`'s) (round 9's F2: else a nil-logger node in a traced cluster proposes
+  without a credit, or a logger node in an untraced one compacts and sends a traced `MsgSnap`).
+  `storBnd γ K c := (∃ k, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k) ∗ ⌜c = 0 ∨ γ.raft.reTrace = none⌝`
+  (round 9's F1: `MemoryStorage`'s invariant needs `J.B 0`; round 10's S1: the "permit never handed
+  out" is `⌜False⌝`, since `storBnd` must be persistent, `MemJust.B_pers`, and raft refutes it at
+  every `ErrCompacted`, `InvStorage.lean:253`, `:265`, `:282`). Untraced clients carry one new pure
+  fact, `⌜γ.raft.reTrace = none⌝`, from a law raft exports for a cluster allocated untraced: the
+  `rfl` proofs of `kvJ_bnd`, `KvrStorageApi`, `KdStorageApi`, and the exported
+  `memStorage_isStorage` (`MemstorageApi.lean:84-95`, used by the server's `NodeStart.lean:322`),
+  which gains the premise (in a traced cluster it is false: `nodeAppliedLb` holds for some `c > 0`
+  once the bootstrap is applied); the server's `compactRaftLog` compacts through `memStorJ`, whose
+  `B` is not `storBnd`, and is unaffected (round 10's S2). In a traced cluster `Ready`'s snapshot is
   empty (`L = none`), so the client never needs `ApplySnapshot`'s storage bound (round 8's F1):
   raft proves it by reviving its no-snapshot mode `reNoSnap` (`Ghost.lean:344-352`, dropped in U8
   v2, its plumbing still there: the outbox's "no `.snap`", `LemmasReadyR.lean:236`, and
   `snapshotCert`'s `⌜reNoSnap = false⌝`, `InvApi.lean:1497`) as `reNoSnap := reTrace.isSome`, the
   empty snapshot a law on `readySnap` as `readySnap_bootLen` is (decided by the agent; round 9's
-  S3). Proposals are never dropped for size: that limit is
+  S3). The revival touches (round 10's S3): `DecNames` (`InvApiBoot.lean:50-57`, `InvApi.lean:170-174`)
+  and `UniNames.noSnap` (`InvApi.lean:2047-2051`), which pin the mode off for `StartNode`'s
+  clusters, and `api_sentSnapCert` (`InvApi.lean:2015`); `isRaftMsg` (`ApiVocab.lean:423-428`) gains
+  "in the mode, not a `MsgSnap`" (receiving one would leave the next `Ready` without its
+  `snapshotCert`); `NsCap` (`InvRaftPhys.lean:852`) a real cap in the mode (the storage never
+  compacted past 0); `cluster_alloc`'s `tr.isSome → boot ≠ []`. Whether the mode's node-level facts
+  were proved for the dynamic mode `StartNode`'s clusters use is to check in S5. Proposals are never dropped for size: that limit is
   `MaxUncommittedEntriesSize`, which the harness leaves 0, raft's "no limit" (`raft.go:313-315`,
   `:2101`; round 9's T4). `ReportSnapshot`, `Status`, `Stop` stay callable: they log nothing the specification cannot
   follow (`ReportSnapshot` with no snapshot ever sent, `raft.go:1626-1628`).
