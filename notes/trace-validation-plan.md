@@ -23,6 +23,29 @@ below the section they amend.
 - **The raft verified is its `with_tla` build** (the trace hooks' bodies), translated from the local
   fork commit `e8f9566` (`etc/fork-patches/`) until it is pushed.
 
+## The gates, delegated (the user's, 2026-11-08)
+
+`notes/spec-first-plan.md`'s order stands (Draft, Review, Test, Probe, Freeze, Prove; no proof
+before the freeze), with the user's gates delegated to the agent for this stage:
+
+- **Review** is run by the agent: fresh `spec-reviewer` rounds on the Draft until a round leaves
+  nothing first-tier, each repair followed by another round.
+- **Freeze**: when Review is clean (and Test and Probe done), the agent freezes: the annotated tag
+  `trace-check-frozen` on the frozen commit, recorded here as "frozen by the agent under the
+  user's delegation", with the round that cleared it; then Prove.
+- **Still the user's**: pushing anything (the fork commit, the branch) or any other action outside
+  this repository; a change to the trust base (a new axiom or model assumption, the transcription
+  trusted) or to the closed theorem's statement (dropping an invariant, narrowing the workload).
+  The agent records such a question in "Questions for the user" below, takes the plan's
+  recommendation where it has one (marked "taken by the agent, pending the user's veto"), and
+  goes on with the work that does not depend on it; it does not stop for them.
+- Every other decision the agent takes is recorded where it is taken, "decided by the agent",
+  with the options and the reason (`notes/spec-first-plan.md`, "Who decides").
+
+## Questions for the user
+
+(None yet.)
+
 ## The statement
 
 `raft_tracecheck_safe` (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results.lean`,
