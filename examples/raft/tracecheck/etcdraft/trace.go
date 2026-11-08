@@ -64,7 +64,8 @@ type EventChange struct {
 // isMessageEvent says whether a line of this name is a message's (its msg is read).
 func isMessageEvent(name string) bool {
 	return ReceiveMessageTraceNames[name] || name == "SendAppendEntriesRequest" ||
-		name == "SendAppendEntriesResponse" || name == "SendRequestVoteRequest" || name == "SendRequestVoteResponse"
+		name == "SendAppendEntriesResponse" || name == "SendRequestVoteRequest" || name == "SendRequestVoteResponse" ||
+		name == "IgnoreRequestVoteRequest"
 }
 
 // parseID is the server a trace's id string denotes (Nil for "0"), ok false unless s is a decimal
@@ -122,7 +123,8 @@ var RaftMsgType = map[string]MsgType{
 	"MsgApp": AppendEntriesRequest, "MsgAppResp": AppendEntriesResponse,
 	"MsgVote": RequestVoteRequest, "MsgVoteResp": RequestVoteResponse,
 	"MsgHeartbeat": AppendEntriesRequest, "MsgHeartbeatResp": AppendEntriesResponse,
-	"MsgSnap": AppendEntriesRequest,
+	"MsgSnap":    AppendEntriesRequest,
+	"MsgPreVote": PreVoteRequest, "MsgPreVoteResp": PreVoteResponse,
 }
 
 // RaftMsgSubtype is `RaftMsgSubtype`.
@@ -156,6 +158,9 @@ type Trace struct {
 	InitSrv   Set    // TraceInitServer
 	bootstrap []bool // bootstrap[l-1]: l \in BootstrapLogIndices
 	init      *State
+	// PreVote and CheckQuorum are the specification's constants (TracePreVote, TraceCheckQuorum:
+	// raft's configuration, which the trace does not record).
+	PreVote, CheckQuorum bool
 }
 
 // Len is Len(TraceLog).
@@ -164,12 +169,15 @@ func (t *Trace) Len() int { return len(t.lines) }
 // Event is TraceLog[l].event.
 func (t *Trace) Event(l int) *Event { return t.lines[l-1].ev }
 
-// NewTrace builds the trace specification of events.
-func NewTrace(events []Event) (*Trace, error) {
+// NewTrace builds the trace specification of events, PreVote and CheckQuorum off.
+func NewTrace(events []Event) (*Trace, error) { return NewTraceWith(events, false, false) }
+
+// NewTraceWith builds the trace specification of events, for raft's PreVote and CheckQuorum.
+func NewTraceWith(events []Event, preVote, checkQuorum bool) (*Trace, error) {
 	if len(events) == 0 {
 		return nil, traceError("empty trace", 0, 0)
 	}
-	t := &Trace{}
+	t := &Trace{PreVote: preVote, CheckQuorum: checkQuorum}
 	for k := range events {
 		ev := &events[k]
 		ln := line{ev: ev, role: ParseRole(ev.Role)}
@@ -272,6 +280,26 @@ func NewTrace(events []Event) (*Trace, error) {
 		}
 	}
 
+	// BootstrapEntryConf(i, j): the configuration of server i's j-th bootstrap ApplyConfChange line
+	// with a newconf (raft's Bootstrap adds one peer per entry), BootstrappedConfig(i) if it has
+	// fewer.
+	bootstrapConfs := func(i ID) ([]Set, error) {
+		var out []Set
+		for l := 1; l <= len(t.lines); l++ {
+			ln := t.lines[l-1]
+			if !t.bootstrap[l-1] || ln.nid != i || ln.ev.Name != "ApplyConfChange" || ln.ev.Prop == nil ||
+				ln.ev.Prop.CC == nil || ln.ev.Prop.CC.NewConf == nil {
+				continue
+			}
+			cfg, ok := toSet(*ln.ev.Prop.CC.NewConf)
+			if !ok {
+				return nil, traceError("newconf not a list of ids", l, 0)
+			}
+			out = append(out, cfg)
+		}
+		return out, nil
+	}
+
 	// BootstrappedConfig(i)
 	bootstrappedConfig := func(i ID) (Set, error) {
 		ln := t.lines[last[i]-1]
@@ -298,16 +326,24 @@ func NewTrace(events []Event) (*Trace, error) {
 
 	// TraceInit's Init, with InitServerVars, InitLogVars and InitConfigVars replaced by the
 	// trace's (TraceInitServerVars, TraceInitLogVars, TraceInitConfigVars).
-	s := &State{Server: t.Server, S: map[ID]*Server{}}
+	s := &State{Server: t.Server, S: map[ID]*Server{}, PreVote: preVote, CheckQuorum: checkQuorum}
 	for _, i := range t.Server {
 		lb := t.lines[last[i]-1]
 		cfg, err := bootstrappedConfig(i)
 		if err != nil {
 			return nil, err
 		}
+		confs, err := bootstrapConfs(i)
+		if err != nil {
+			return nil, err
+		}
 		log := make([]Entry, lb.ev.Log)
 		for k := range log {
-			log[k] = Entry{Term: 1, Type: ConfigEntry, Value: Value{Kind: ConfRecord, NewConf: cfg, Learners: nil}}
+			c := cfg
+			if k < len(confs) {
+				c = confs[k]
+			}
+			log[k] = Entry{Term: 1, Type: ConfigEntry, Value: Value{Kind: ConfRecord, NewConf: c, Learners: nil}}
 		}
 		v := &Server{
 			CurrentTerm: lb.ev.State.Term,
@@ -424,7 +460,7 @@ func (ln *line) isAppendEntriesResponse(m *Msg) bool {
 // isRequestVoteRequest is `LoglineIsRequestVoteRequest(m)`.
 func (ln *line) isRequestVoteRequest(m *Msg) bool {
 	mt, ok := ln.msgType()
-	if m.Type != RequestVoteRequest || !ok || m.Type != mt {
+	if !(m.Type == RequestVoteRequest || m.Type == PreVoteRequest) || !ok || m.Type != mt {
 		return false
 	}
 	ev := ln.ev.Msg
@@ -435,7 +471,7 @@ func (ln *line) isRequestVoteRequest(m *Msg) bool {
 // isRequestVoteResponse is `LoglineIsRequestVoteResponse(m)`.
 func (ln *line) isRequestVoteResponse(m *Msg) bool {
 	mt, ok := ln.msgType()
-	if m.Type != RequestVoteResponse || !ok || m.Type != mt {
+	if !(m.Type == RequestVoteResponse || m.Type == PreVoteResponse) || !ok || m.Type != mt {
 		return false
 	}
 	ev := ln.ev.Msg
@@ -498,16 +534,46 @@ func (t *Trace) requestVoteIfLogged(ts TState, i, j ID) []*State {
 		(t.loglineIsMessageEvent(ts, "SendRequestVoteResponse", i, j) && i == j)) {
 		return nil
 	}
-	s2 := ts.S.RequestVote(i, j)
 	ln := t.logline(ts)
-	// ValidateAfterRequestVote(i, j)
-	if s2 == nil || !t.validatePostStates(ts, s2, i) ||
-		!newPending(ts.S, s2, func(m *Msg) bool {
-			return ln.isRequestVoteRequest(m) || (ln.isRequestVoteResponse(m) && m.Source == m.Dest)
-		}) {
+	var out []*State
+	for _, s2 := range nonNil(ts.S.RequestVote(i, j), ts.S.RequestPreVote(i, j)) {
+		// ValidateAfterRequestVote(i, j)
+		if t.validatePostStates(ts, s2, i) &&
+			newPending(ts.S, s2, func(m *Msg) bool {
+				return ln.isRequestVoteRequest(m) || (ln.isRequestVoteResponse(m) && m.Source == m.Dest)
+			}) {
+			out = append(out, s2)
+		}
+	}
+	return out
+}
+
+// preTimeoutIfLogged is `PreTimeoutIfLogged(i)`.
+func (t *Trace) preTimeoutIfLogged(ts TState, i ID) []*State {
+	if !t.loglineIsNodeEvent(ts, "BecomePreCandidate", i) {
+		return nil
+	}
+	s2 := ts.S.PreTimeout(i)
+	if s2 == nil || !t.validatePostStates(ts, s2, i) {
 		return nil
 	}
 	return []*State{s2}
+}
+
+// ignoreInLeaseIfLogged is `\E m \in DOMAIN messages : IgnoreInLeaseIfLogged(m)`.
+func (t *Trace) ignoreInLeaseIfLogged(ts TState) []*State {
+	if !t.loglineIsEvent(ts, "IgnoreRequestVoteRequest") {
+		return nil
+	}
+	ln := t.logline(ts)
+	var out []*State
+	for _, m := range ts.S.Messages.Domain() {
+		if !ln.isRequestVoteRequest(m) || !t.validatePreStates(ts, m.Dest) {
+			continue
+		}
+		out = append(out, nonNil(ts.S.IgnoreInLease(m))...)
+	}
+	return out
 }
 
 // becomeLeaderIfLogged is `BecomeLeaderIfLogged(i)`.
@@ -714,7 +780,7 @@ func (t *Trace) isBecomeFollowerInUpdateTermOrReturnToFollower(ts TState) bool {
 		return true
 	}
 	return pk.Name == "ReceiveAppendEntriesRequest" && pk.Msg != nil && pk.State.Term == pk.Msg.Term &&
-		pk.Msg.Term == ln.ev.State.Term && pk.Role == Candidate.String()
+		pk.Msg.Term == ln.ev.State.Term && (pk.Role == Candidate.String() || pk.Role == PreCandidate.String())
 }
 
 // stepDownToFollowerIfLogged is `StepDownToFollowerIfLogged(i)`.
@@ -805,6 +871,12 @@ func (t *Trace) nonReceive(ts TState) []*State {
 		for _, i := range srv {
 			out = append(out, t.timeoutIfLogged(ts, i)...)
 		}
+	case "BecomePreCandidate":
+		for _, i := range srv {
+			out = append(out, t.preTimeoutIfLogged(ts, i)...)
+		}
+	case "IgnoreRequestVoteRequest":
+		out = append(out, t.ignoreInLeaseIfLogged(ts)...)
 	case "ChangeConf":
 		for _, action := range []string{"AddNewServer", "AddLearner", "RemoveServer"} {
 			for _, i := range srv {

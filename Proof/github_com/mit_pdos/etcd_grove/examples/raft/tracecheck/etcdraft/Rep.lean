@@ -198,6 +198,7 @@ def msgTypeW (t : MsgType) : w8 :=
   match t with
   | .requestVoteRequest => W8 0 | .requestVoteResponse => W8 1
   | .appendEntriesRequest => W8 2 | .appendEntriesResponse => W8 3
+  | .preVoteRequest => W8 4 | .preVoteResponse => W8 5
 
 /-- A Go `*Msg` holding `m`. -/
 def msgRO (p : Loc) (m : Msg) : IProp GF :=
@@ -225,7 +226,7 @@ def configRO (g : G.Config) (c : Config) : IProp GF :=
 /-- A Go `Durable` holding `d`. -/
 def durableRO (g : G.Durable) (d : Durable) : IProp GF :=
   iprop(⌜sint.Z g.CurrentTerm' = d.currentTerm ∧ uint.nat g.VotedFor' = d.votedFor ∧
-      sint.Z g.Log' = d.log ∧ sint.Z g.CommitIndex' = d.commitIndex⌝ ∗ configRO g.Config' d.config)
+      sint.Z g.CommitIndex' = d.commitIndex⌝ ∗ logRO g.Log' d.log ∗ configRO g.Config' d.config)
 
 /-- A Go `*Server` holding `v`, its `matchIndex` at every id (a missing key is 0: both sides read
 the members of a configuration, which may name a node that never logs; review round 1 of layer C,
@@ -233,7 +234,7 @@ S3). -/
 def serverRO (p : Loc) (v : Server) : IProp GF :=
   iprop(∃ (g : G.Server) (mm : GMap w64 w64), p ↦□ g ∗
     ⌜sint.Z g.CurrentTerm' = v.currentTerm ∧ strRel g.State' v.state ∧
-      uint.nat g.VotedFor' = v.votedFor ∧ sint.Z g.CommitIndex' = v.commitIndex ∧
+      uint.nat g.VotedFor' = v.votedFor ∧ uint.nat g.Lead' = v.lead ∧ sint.Z g.CommitIndex' = v.commitIndex ∧
       sint.Z g.PendingConfChangeIndex' = v.pendingConfChangeIndex⌝ ∗
     logRO g.Log' v.log ∗ setRO g.VotesResponded' v.votesResponded ∗
     setRO g.VotesGranted' v.votesGranted ∗
@@ -251,7 +252,7 @@ def stateRO (p : Loc) (st : State) : IProp GF :=
     ⌜st.server.Nodup⌝ ∗
     ([∗list] i ∈ st.server, ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat i)) = some q⌝ ∗ serverRO q (st.s i)) ∗
     bagRO g.Messages' st.messages ∗ bagRO g.PendingMessages' st.pendingMessages ∗
-    ⌜sint.Z g.ReconfigCount' = st.reconfigCount⌝)
+    ⌜sint.Z g.ReconfigCount' = st.reconfigCount ∧ g.PreVote' = st.preVote ∧ g.CheckQuorum' = st.checkQuorum⌝)
 
 /-! ## Events and traces -/
 

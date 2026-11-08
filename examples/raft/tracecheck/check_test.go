@@ -171,8 +171,8 @@ func tlcAccepts(t *testing.T, tools, spec, file string) (bool, int) {
 	return false, 0
 }
 
-// TestAgainstTLC compares the verdicts of TLC (on raft's own Traceetcdraft.tla, with the
-// transcriptions' one repair, repairedSpec) and of the Go transcription (the direct checker and
+// TestAgainstTLC compares the verdicts of TLC (on raft's own Traceetcdraft.tla corrected by
+// etc/tla-fixes, correctedSpec) and of the Go transcription (the direct checker and
 // porcupine) on the traces of seeds 1..TLC_SEEDS (default 3) and TLC_MUTANTS (default 10) mutants
 // of each. It needs TLA_TOOLS, a directory with tla2tools.jar and CommunityModules-deps.jar, and
 // TLA_SPEC, raft's tla/ directory (the pinned fork's); it is skipped without them.
@@ -181,7 +181,7 @@ func TestAgainstTLC(t *testing.T) {
 	if tools == "" || spec == "" {
 		t.Skip("TLA_TOOLS and TLA_SPEC not set")
 	}
-	spec = repairedSpec(t, spec)
+	spec = correctedSpec(t, spec)
 	dir := t.TempDir()
 	type job struct {
 		name string
@@ -249,18 +249,15 @@ func TestAgainstTLC(t *testing.T) {
 	t.Logf("%d traces, verdicts agree on %d (%d rejected by all three)", len(jobs), agree, rejected)
 }
 
-// leaderCompletenessGuard is the guard of upstream's LeaderCompletenessInv and its repair, the
-// transcriptions' (issues/raft-tla-leader-completeness-stale-leader.md; notes/trace-validation-plan.md,
-// Q4 (b)): the only place the transcriptions depart from raft's tla/.
-const (
-	leaderCompletenessGuard         = "                currentTerm[l] > entry.term =>"
-	leaderCompletenessRepairedGuard = "                currentTerm[l] > entry.term /\\ currentTerm[l] >= currentTerm[i] =>"
-)
-
-// repairedSpec copies raft's tla/ directory to a temporary one with LeaderCompletenessInv's guard
-// repaired, so that TLC checks what the transcriptions check.
-func repairedSpec(t *testing.T, spec string) string {
-	dir := t.TempDir()
+// correctedSpec copies raft's tla/ directory to a temporary one and applies the TLA+ part of
+// etc/tla-fixes' patch series (the corrected specification the transcriptions follow), so that
+// TLC checks what the transcriptions check.
+func correctedSpec(t *testing.T, spec string) string {
+	root := t.TempDir()
+	dir := filepath.Join(root, "tla")
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
 	ents, err := os.ReadDir(spec)
 	if err != nil {
 		t.Fatal(err)
@@ -273,16 +270,23 @@ func repairedSpec(t *testing.T, spec string) string {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if e.Name() == "etcdraft.tla" {
-			s := string(b)
-			if strings.Count(s, leaderCompletenessGuard) != 1 {
-				t.Fatalf("%s: LeaderCompletenessInv's guard not found once", e.Name())
-			}
-			b = []byte(strings.Replace(s, leaderCompletenessGuard, leaderCompletenessRepairedGuard, 1))
-		}
 		if err := os.WriteFile(filepath.Join(dir, e.Name()), b, 0o644); err != nil {
 			t.Fatal(err)
 		}
+	}
+	patches, err := filepath.Glob("../../../etc/tla-fixes/patches/*.patch")
+	if err != nil || len(patches) == 0 {
+		t.Fatalf("etc/tla-fixes/patches: %v (%d patches)", err, len(patches))
+	}
+	for k := range patches {
+		if patches[k], err = filepath.Abs(patches[k]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cmd := exec.Command("git", append([]string{"apply", "--include=tla/*"}, patches...)...)
+	cmd.Dir = root
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("applying etc/tla-fixes to %s: %v\n%s", spec, err, out)
 	}
 	return dir
 }

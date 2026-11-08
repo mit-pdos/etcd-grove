@@ -46,7 +46,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.
 def serverOwn (p : Loc) (v : Server) : IProp GF :=
   iprop(∃ (g : G.Server) (mm : GMap w64 w64), p ↦ g ∗
     ⌜sint.Z g.CurrentTerm' = v.currentTerm ∧ strRel g.State' v.state ∧
-      uint.nat g.VotedFor' = v.votedFor ∧ sint.Z g.CommitIndex' = v.commitIndex ∧
+      uint.nat g.VotedFor' = v.votedFor ∧ uint.nat g.Lead' = v.lead ∧ sint.Z g.CommitIndex' = v.commitIndex ∧
       sint.Z g.PendingConfChangeIndex' = v.pendingConfChangeIndex⌝ ∗
     logRO g.Log' v.log ∗ setRO g.VotesResponded' v.votesResponded ∗
     setRO g.VotesGranted' v.votesGranted ∗
@@ -78,7 +78,7 @@ def stateOwn (p : Loc) (st : State) (M : List ID) : IProp GF :=
     ([∗list] i ∈ st.server, ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat i)) = some q⌝ ∗
       (if i ∈ M then serverOwn q (st.s i) else serverRO q (st.s i))) ∗
     bagRO g.Messages' st.messages ∗ bagRO g.PendingMessages' st.pendingMessages ∗
-    ⌜sint.Z g.ReconfigCount' = st.reconfigCount⌝)
+    ⌜sint.Z g.ReconfigCount' = st.reconfigCount ∧ g.PreVote' = st.preVote ∧ g.CheckQuorum' = st.checkQuorum⌝)
 
 /-- A built clone, frozen. -/
 theorem stateOwn_persist (p : Loc) (st : State) (M : List ID) :
@@ -116,7 +116,7 @@ def stateOwnHole (p : Loc) (st : State) (M : List ID) (i : ID) (c : Loc) : IProp
     ([∗list] j ∈ st.server, if j = i then emp else ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat j)) = some q⌝ ∗
       (if j ∈ M then serverOwn q (st.s j) else serverRO q (st.s j))) ∗
     bagRO g.Messages' st.messages ∗ bagRO g.PendingMessages' st.pendingMessages ∗
-    ⌜sint.Z g.ReconfigCount' = st.reconfigCount⌝)
+    ⌜sint.Z g.ReconfigCount' = st.reconfigCount ∧ g.PreVote' = st.preVote ∧ g.CheckQuorum' = st.checkQuorum⌝)
 
 /-- Server `i`, written to `v`, put back: the clone holds `st` with server `i` set to `v`. -/
 theorem stateOwnHole_close (p : Loc) (st : State) (M : List ID) (i : ID) (c : Loc) (v : Server)

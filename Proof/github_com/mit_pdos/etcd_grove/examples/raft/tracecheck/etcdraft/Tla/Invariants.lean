@@ -70,7 +70,8 @@ def State.quorumLogInv (st : State) : EvalM Bool :=
     let without := cfg.filter (fun j => !st.server.contains j || !isPrefix c (st.s j).log)
     return !isQuorum without cfg)
 
-/-- `MoreUpToDateCorrectInv`. -/
+/-- `MoreUpToDateCorrectInv`, which is false (`issues/raft-tla-more-up-to-date-cut-batches.md`) and
+not checked (`etc/tla-fixes` 0009). -/
 def State.moreUpToDateCorrectInv (st : State) : EvalM Bool :=
   st.server.allM (fun i => st.server.allM (fun j => do
     let li := (st.s i).log
@@ -101,7 +102,7 @@ def State.leaderCompletenessInv (st : State) : EvalM Bool := do
 
 /-- `CommittedIsDurableInv`. -/
 def State.committedIsDurableInv (st : State) : Bool :=
-  st.server.all (fun i => (st.s i).state != leader || (st.s i).commitIndex ≤ (st.s i).durable.log)
+  st.server.all (fun i => (st.s i).state != leader || (st.s i).commitIndex ≤ (st.s i).durable.log.length)
 
 /-- The invariants `Traceetcdraft.cfg` checks, in its order, with their names. -/
 def invariants : List (String × (State → EvalM Bool)) :=
@@ -110,7 +111,6 @@ def invariants : List (String × (State → EvalM Bool)) :=
     ("ElectionSafetyInv", fun st => pure st.electionSafetyInv),
     ("LogMatchingInv", fun st => pure st.logMatchingInv),
     ("QuorumLogInv", State.quorumLogInv),
-    ("MoreUpToDateCorrectInv", State.moreUpToDateCorrectInv),
     ("LeaderCompletenessInv", State.leaderCompletenessInv),
     ("CommittedIsDurableInv", fun st => pure st.committedIsDurableInv) ]
 

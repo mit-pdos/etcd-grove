@@ -33,8 +33,9 @@ func (b bounds) constraint(s *State) bool {
 // explore is TLC's breadth-first search of `Init /\ [][NextDynamic]_vars` under the
 // constraint: the number of distinct states found (TLC leaves a successor violating the
 // constraint out: it is neither counted nor explored), and the first invariant violation.
-func explore(t *testing.T, initServer, server Set, b bounds, limit int) (int, string) {
+func explore(t *testing.T, initServer, server Set, b bounds, pq bool, limit int) (int, string) {
 	init := Init(initServer, server)
+	init.PreVote, init.CheckQuorum = pq, pq
 	seen := map[string]bool{pmodel.Key(init): true}
 	frontier := []*State{init}
 	for len(frontier) > 0 {
@@ -62,26 +63,30 @@ func explore(t *testing.T, initServer, server Set, b bounds, limit int) (int, st
 
 // TestStateSpaceMatchesTLC compares the number of distinct states of the Go transcription's
 // NextDynamic, under MCGo.tla's bounds, with TLC's on etcdraft.tla itself (MCGo-<name>.cfg, run
-// by hand: the counts below are TLC's, 2026-11-08, tla2tools nightly, etcdraft.tla of the raft
-// fork 565c2bd). Every action of the specification is in NextDynamic, so equal counts mean the two
+// by hand: the counts below are TLC's, 2026-11-08, tla2tools nightly, etcdraft.tla corrected by
+// etc/tla-fixes' twelve patches; "pq": PreVote and CheckQuorum TRUE). Every action of the specification is in NextDynamic, so equal counts mean the two
 // next-state relations agree on the states reachable within the bounds.
 func TestStateSpaceMatchesTLC(t *testing.T) {
 	for _, c := range []struct {
 		name               string
 		server, initServer Set
 		b                  bounds
+		pq                 bool
 		tlc                int
 		big                bool
 	}{
-		{"b", NewSet(1, 2), NewSet(1), bounds{1, 1, 2, 1}, 17930, false},
-		{"d", NewSet(1, 2), NewSet(1, 2), bounds{1, 1, 2, 1}, 149307, false},
-		{"e", NewSet(1, 2, 3), NewSet(1, 2), bounds{1, 1, 1, 1}, 25569, false},
-		{"h", NewSet(1, 2), NewSet(1, 2), bounds{2, 1, 1, 0}, 330653, false},
+		{"b", NewSet(1, 2), NewSet(1), bounds{1, 1, 2, 1}, false, 23711, false},
+		{"d", NewSet(1, 2), NewSet(1, 2), bounds{1, 1, 2, 1}, false, 439251, false},
+		{"e", NewSet(1, 2, 3), NewSet(1, 2), bounds{1, 1, 1, 1}, false, 64687, false},
+		{"h", NewSet(1, 2), NewSet(1, 2), bounds{2, 1, 1, 0}, false, 703321, false},
+		{"bpq", NewSet(1, 2), NewSet(1), bounds{1, 1, 2, 1}, true, 212044, false},
+		{"epq", NewSet(1, 2, 3), NewSet(1, 2), bounds{1, 1, 1, 1}, true, 8186893, true},
+		{"hpq", NewSet(1, 2), NewSet(1, 2), bounds{2, 1, 1, 0}, true, 8014678, true},
 	} {
 		if c.big && os.Getenv("ETCDRAFT_BIG") == "" {
 			continue
 		}
-		n, v := explore(t, c.initServer, c.server, c.b, 10*c.tlc)
+		n, v := explore(t, c.initServer, c.server, c.b, c.pq, 10*c.tlc)
 		if v != "" {
 			t.Errorf("%s: invariant %s violated", c.name, v)
 		}

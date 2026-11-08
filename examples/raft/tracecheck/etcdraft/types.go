@@ -44,6 +44,8 @@ const (
 	Follower  Role = "StateFollower"
 	Candidate Role = "StateCandidate"
 	Leader    Role = "StateLeader"
+	// PreCandidate is the constant PreCandidate (reached only with PreVote).
+	PreCandidate Role = "StatePreCandidate"
 )
 
 func (r Role) String() string { return string(r) }
@@ -246,10 +248,13 @@ const (
 	RequestVoteResponse
 	AppendEntriesRequest
 	AppendEntriesResponse
+	PreVoteRequest
+	PreVoteResponse
 )
 
 func (t MsgType) String() string {
-	return [...]string{"RequestVoteRequest", "RequestVoteResponse", "AppendEntriesRequest", "AppendEntriesResponse"}[t]
+	return [...]string{"RequestVoteRequest", "RequestVoteResponse", "AppendEntriesRequest", "AppendEntriesResponse",
+		"PreVoteRequest", "PreVoteResponse"}[t]
 }
 
 // Msg is a message, any of the specification's four record shapes:
@@ -286,6 +291,10 @@ func (m *Msg) Equal(n *Msg) bool {
 
 func (m *Msg) String() string {
 	switch m.Type {
+	case PreVoteRequest:
+		return fmt.Sprintf("PVReq{%d->%d t%d last(%d,%d)}", m.Source, m.Dest, m.Term, m.LastLogTerm, m.LastLogIndex)
+	case PreVoteResponse:
+		return fmt.Sprintf("PVResp{%d->%d t%d granted=%t}", m.Source, m.Dest, m.Term, m.VoteGranted)
 	case RequestVoteRequest:
 		return fmt.Sprintf("RVReq{%d->%d t%d last(%d,%d)}", m.Source, m.Dest, m.Term, m.LastLogTerm, m.LastLogIndex)
 	case RequestVoteResponse:

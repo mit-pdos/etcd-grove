@@ -20,6 +20,8 @@ import (
 
 func main() {
 	inv := flag.Bool("inv", true, "check the invariants Traceetcdraft.cfg checks")
+	preVote := flag.Bool("prevote", false, "raft's PreVote (TLC: PREVOTE=1)")
+	checkQuorum := flag.Bool("checkquorum", false, "raft's CheckQuorum (TLC: CHECKQUORUM=1)")
 	usePorcupine := flag.Bool("porcupine", true, "also check with porcupine")
 	explain := flag.Bool("explain", false, "on a failure, print the states before the failing line")
 	flag.Parse()
@@ -36,7 +38,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "%s: %v\n", file, err)
 			os.Exit(2)
 		}
-		t, err := etcdraft.NewTrace(events)
+		t, err := etcdraft.NewTraceWith(events, *preVote, *checkQuorum)
 		if err != nil {
 			fmt.Printf("%s: %v\n", file, err)
 			failed = true

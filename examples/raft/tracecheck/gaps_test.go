@@ -14,8 +14,9 @@ import (
 // etcdraft.tla does not fit raft"), each a schedule of the deterministic driver whose trace the
 // checker rejects (TLC on raft's Traceetcdraft.tla rejects the same traces at the same lines,
 // 2026-11-08). Found by the reviews of trace-check's Draft S4 (notes/trace-validation-reviews/).
-// Each asserts the rejection: a test that starts passing means the gap is gone (or the driver no
-// longer reaches it).
+// Upstream's etcdraft.tla rejected each; the corrected specification (etc/tla-fixes, 2026-11-08)
+// the checker transcribes accepts each, so each now asserts the acceptance (and still checks the
+// driver reached the schedule). `rejected` stays for witnesses of gaps still open.
 
 // rejected checks that the trace of s is rejected, at line wantLine, by the invariant
 // wantViolation if not empty (else as unmatched).
@@ -84,7 +85,7 @@ func TestGap6FiveVoters(t *testing.T) {
 	take(2, 5, pb.MsgVote)
 	rd(5)
 	take(5, 2, pb.MsgVoteResp)
-	rejected(t, s, 124, "")
+	accepted(t, s) // upstream: not matched at line 124 (fixed: raft's lead, etc/tla-fixes 0006)
 }
 
 // Three voters. Node 1 wins term 2 with node 2's vote; its MsgVote to node 3 is delayed past its
@@ -127,7 +128,7 @@ func TestGap6ThreeVoters(t *testing.T) {
 	rd(3)
 	take(3, 1, pb.MsgVoteResp)
 	rd(1)
-	rejected(t, s, 63, "")
+	accepted(t, s) // upstream: not matched at line 63 (fixed: raft's lead, etc/tla-fixes 0006)
 }
 
 // Three voters. Node 1 leads term 2 and appends its empty entry at 4 (term 2), which reaches no
@@ -349,5 +350,5 @@ func TestGap8MoreUpToDate(t *testing.T) {
 	drop()
 	r := s.Events()
 	t.Logf("events %d", len(r))
-	rejected(t, s, 249, "MoreUpToDateCorrectInv")
+	accepted(t, s) // upstream: MoreUpToDateCorrectInv violated at line 249 (not checked, etc/tla-fixes 0009)
 }

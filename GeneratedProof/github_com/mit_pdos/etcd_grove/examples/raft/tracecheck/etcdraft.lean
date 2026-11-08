@@ -499,7 +499,7 @@ noncomputable instance Durable_access_load_Log (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Durable_access_store_Log (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Durable) (Log' : w64) :
+noncomputable instance Durable_access_store_Log (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Durable) (Log' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Durable go!"Log" l) v.Log' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Durable go!"Log" l) Log' (DFrac.own 1))
@@ -556,6 +556,7 @@ noncomputable instance Server_typed_pointsto :
     "CurrentTerm" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"CurrentTerm" l) v.CurrentTerm' dq ∗
     "State" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"State" l) v.State' dq ∗
     "VotedFor" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"VotedFor" l) v.VotedFor' dq ∗
+    "Lead" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"Lead" l) v.Lead' dq ∗
     "Log" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"Log" l) v.Log' dq ∗
     "CommitIndex" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"CommitIndex" l) v.CommitIndex' dq ∗
     "VotesResponded" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"VotesResponded" l) v.VotesResponded' dq ∗
@@ -618,6 +619,22 @@ noncomputable instance Server_access_store_VotedFor (l : Loc) (v : github_com.mi
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"VotedFor" l) v.VotedFor' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"VotedFor" l) VotedFor' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VotedFor' := VotedFor' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Server_access_load_Lead (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"Lead" l) v.Lead' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"Lead" l) v.Lead' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Server_access_store_Lead (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server) (Lead' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"Lead" l) v.Lead' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server go!"Lead" l) Lead' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lead' := Lead' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -808,6 +825,8 @@ noncomputable instance State_typed_pointsto :
     "Messages" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"Messages" l) v.Messages' dq ∗
     "PendingMessages" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"PendingMessages" l) v.PendingMessages' dq ∗
     "ReconfigCount" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"ReconfigCount" l) v.ReconfigCount' dq ∗
+    "PreVote" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"PreVote" l) v.PreVote' dq ∗
+    "CheckQuorum" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"CheckQuorum" l) v.CheckQuorum' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -894,6 +913,38 @@ noncomputable instance State_access_store_ReconfigCount (l : Loc) (v : github_co
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"ReconfigCount" l) v.ReconfigCount' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"ReconfigCount" l) ReconfigCount' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReconfigCount' := ReconfigCount' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance State_access_load_PreVote (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"PreVote" l) v.PreVote' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"PreVote" l) v.PreVote' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance State_access_store_PreVote (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State) (PreVote' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"PreVote" l) v.PreVote' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"PreVote" l) PreVote' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreVote' := PreVote' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance State_access_load_CheckQuorum (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"CheckQuorum" l) v.CheckQuorum' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"CheckQuorum" l) v.CheckQuorum' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance State_access_store_CheckQuorum (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State) (CheckQuorum' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"CheckQuorum" l) v.CheckQuorum' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State go!"CheckQuorum" l) CheckQuorum' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CheckQuorum' := CheckQuorum' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1729,6 +1780,8 @@ noncomputable instance Trace_typed_pointsto :
     "InitSrv" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"InitSrv" l) v.InitSrv' dq ∗
     "bootstrap" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"bootstrap" l) v.bootstrap' dq ∗
     "init" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"init" l) v.init' dq ∗
+    "PreVote" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"PreVote" l) v.PreVote' dq ∗
+    "CheckQuorum" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"CheckQuorum" l) v.CheckQuorum' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1815,6 +1868,38 @@ noncomputable instance Trace_access_store_init (l : Loc) (v : github_com.mit_pdo
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"init" l) v.init' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"init" l) init' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with init' := init' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Trace_access_load_PreVote (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"PreVote" l) v.PreVote' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"PreVote" l) v.PreVote' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Trace_access_store_PreVote (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace) (PreVote' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"PreVote" l) v.PreVote' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"PreVote" l) PreVote' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreVote' := PreVote' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Trace_access_load_CheckQuorum (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"CheckQuorum" l) v.CheckQuorum' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"CheckQuorum" l) v.CheckQuorum' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Trace_access_store_CheckQuorum (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace) (CheckQuorum' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"CheckQuorum" l) v.CheckQuorum' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace go!"CheckQuorum" l) CheckQuorum' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CheckQuorum' := CheckQuorum' } : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -33242,3 +33242,40 @@ on reachable states: the counterexample's final state satisfies (b) (TLC, replay
 currentTerm[leader] => IsPrefix(Committed(server), log[leader])`), slightly stronger (entries of
 the leader's own term, which are its own); both make the issue's test pass at raft `main`.
 
+
+## Trace-check against the corrected `etcdraft.tla`; the acceptance as a relation (2026-11-08 · trace-check; the user's decisions · branch `trace-check`; DRAFT until trace-check's Freeze)
+
+**What changed.** The stage resumed (the user's, 2026-11-08) against `etc/tla-fixes/`'s twelve
+patches on raft `c51f010`, not upstream's specification: both transcriptions (Go
+`examples/raft/tracecheck/etcdraft`, Lean `Tla/`) follow the series (the durable log, the commit
+index an append request carries, `matchIndex` dropped with a member, the snapshot handler, raft's
+`lead` and the vote guard with `NoConflictAppendEntriesRequest`'s new-entry guard, demotion,
+`MoreUpToDateCorrectInv` not checked, `Traceetcdraft`'s incremental bootstrap entries, PreVote and
+CheckQuorum behind state flags that `NewTraceWith` sets). Q4's guard is now the series' 0007.
+
+**Evidence the Go transcription is the series'.** `TestStateSpaceMatchesTLC` (the Go's
+`NextDynamic` against TLC on the series' `etcdraft.tla`, `MCGo-*.cfg`): equal distinct-state counts
+on b, d, e, h (flags off: 23,711, 439,251, 64,687, 703,321) and bpq (PreVote and CheckQuorum on:
+212,044); epq and hpq (8.2 and 8.0 million) behind `ETCDRAFT_BIG`. `TestAgainstTLC` (TLC on the
+series' `tla/`, built from raft's by `correctedSpec`): 42 traces, verdicts and failing lines agree.
+The gap tests of `gaps_test.go` now assert acceptance. The Lean transcription's `#eval` agrees with
+the Go checker on six accepted traces (three with both flags) and two rejected ones (same lines).
+
+**Q7: the acceptance as a relation (the user's choice).** The statement no longer uses
+`checkTrace`, whose per-line loop needed fuel (`lineFuel`), but `CheckTraceRel` (`Tla/Check.lean`):
+the same search with each loop (the per-line `stepLoop`, the frontier fold, the line loop) an
+inductive relation, a constructor per outcome of a round. No fuel, and a derivation for a run of
+any length; a search that never ends relates the trace to no result (the Go checker then never
+returns: the closed theorem, about panics, is unaffected). `CheckTrace.spec` is partial
+correctness: `∃ lr, CheckTraceRel tr invariants lr ∧ resultRel r lr`. `TraceAccepts events preVote
+checkQuorum` is the corollary's statement. The executable `checkTrace` stays for `#eval` (a test
+tool, not part of the statement). Rejected alternative: a per-line witness chain of states, more
+abstract, but its equality with TLC's search order (which decides "branched") would be a proof of
+its own.
+
+**Layer C's proofs kept.** `Timeout` gained the pre-candidate role, the PreVote check and `lead`;
+its proof was rewritten (`State.timeoutEnabled` now names its enabling condition in `Tla/Spec.lean`,
+since the proof file's `open Iris` rebinds `||`), with two new proved callees, `Set.Subset` and
+`IsQuorum` (a value method through a pointer receiver: `Set.TypeAssumptions.ptr_Subset_unfold`).
+`Timeout.spec` gained `votesGranted.length < 2^62` (IsQuorum's `len(q)*2`), which S6's loop
+invariant carries (every set of servers is within the trace's).

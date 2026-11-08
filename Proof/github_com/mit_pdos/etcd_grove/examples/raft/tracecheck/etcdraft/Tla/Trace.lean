@@ -93,6 +93,8 @@ def raftMsgType : String → Option MsgType
   | "MsgHeartbeat" => some .appendEntriesRequest
   | "MsgHeartbeatResp" => some .appendEntriesResponse
   | "MsgSnap" => some .appendEntriesRequest
+  | "MsgPreVote" => some .preVoteRequest
+  | "MsgPreVoteResp" => some .preVoteResponse
   | _ => none
 
 /-- `RaftMsgSubtype`. -/
@@ -112,7 +114,7 @@ def isReceiveName (n : String) : Bool :=
 /-- Go: `isMessageEvent`. -/
 def isMessageEvent (n : String) : Bool :=
   isReceiveName n || n == "SendAppendEntriesRequest" || n == "SendAppendEntriesResponse" ||
-  n == "SendRequestVoteRequest" || n == "SendRequestVoteResponse"
+  n == "SendRequestVoteRequest" || n == "SendRequestVoteResponse" || n == "IgnoreRequestVoteRequest"
 
 /-- A trace line with its ids parsed (Go: `line`). -/
 structure Line where
@@ -198,8 +200,8 @@ def bootstrapOf (lines : List Line) (i : ID) : List Bool × Nat :=
   let isB (p : Nat × Line) : Bool := decide (max first 1 ≤ p.1) && decide (p.1 ≤ upper) && p.2.nid == i
   (idx.map isB, idx.foldl (fun (acc : Nat) p => if isB p then p.1 else acc) 0)
 
-/-- The trace specification of `events` (Go: `NewTrace`). -/
-def newTrace (events : List Event) : Except TraceError Trace := do
+/-- The trace specification of `events` for raft's `PreVote` and `CheckQuorum` (Go: `NewTraceWith`). -/
+def newTraceWith (events : List Event) (preVote checkQuorum : Bool) : Except TraceError Trace := do
   if events.isEmpty then throw { what := "empty trace", line := 0, n := 0 }
   let lines ← ((List.range events.length).zip events).mapM (fun p => parseLine p.1 p.2)
   let added ← lines.mapM addedServer
@@ -223,19 +225,38 @@ def newTrace (events : List Event) : Except TraceError Trace := do
   if !initSrv.subset server then throw { what := "TraceInitServer not a subset of TraceServer", line := 0, n := 0 }
   let cfgs ← server.mapM (fun i => do return (i, ← bootstrappedConfig i))
   let cfgOf (i : ID) : SetIds := ((cfgs.find? (fun p => p.1 == i)).map Prod.snd).getD []
+  -- BootstrapEntryConf(i, j): the configuration of server i's j-th bootstrap ApplyConfChange line
+  -- with a newconf (raft's Bootstrap adds one peer per entry), BootstrappedConfig(i) if it has fewer
+  let bconfs ← server.mapM (fun i => do
+    let flags := ((per.find? (fun p => p.1 == i)).map (fun p => p.2.1)).getD []
+    let cs ← ((List.range lines.length).filter (fun k => flags.getD k false)).filterMapM (fun k => do
+      let ln := lines.getD k default
+      if ln.ev.name != "ApplyConfChange" then return none
+      match (ln.ev.prop.bind EventProps.cc).bind EventConfChange.newconf with
+      | none => return none
+      | some nc => match toSet nc with
+        | some c => return some c
+        | none => throw { what := "newconf not a list of ids", line := k + 1, n := 0 })
+    return (i, cs))
+  let bconfOf (i : ID) : List SetIds := ((bconfs.find? (fun p => p.1 == i)).map Prod.snd).getD []
   let serverOf (i : ID) : Server :=
     let lb := lines.getD (last i - 1) default
     let cfg := cfgOf i
     let v : Server :=
-      { currentTerm := lb.ev.state.term, state := lb.role, votedFor := lb.vote,
-        log := List.replicate lb.ev.log.toNat { term := 1, type := .config, value := .conf cfg [] },
+      { currentTerm := lb.ev.state.term, state := lb.role, votedFor := lb.vote, lead := nil,
+        log := (List.range lb.ev.log.toNat).map (fun k =>
+          { term := 1, type := .config, value := .conf ((bconfOf i).getD k cfg) [] }),
         commitIndex := lb.ev.state.commit, votesResponded := [], votesGranted := [],
         matchIndex := fun _ => 0, pendingConfChangeIndex := 0,
         config := { incoming := cfg, outgoing := [], learners := [] }, durable := default }
     { v with durable := durableOf v }
   let st : State :=
-    { server := server, s := (fun i => serverOf i), messages := [], pendingMessages := [], reconfigCount := 0 }
+    { server := server, s := (fun i => serverOf i), messages := [], pendingMessages := [], reconfigCount := 0,
+      preVote := preVote, checkQuorum := checkQuorum }
   return { lines := lines, server := server, initSrv := initSrv, bootstrap := bootstrap, init := st }
+
+/-- The trace specification of `events`, `PreVote` and `CheckQuorum` off (Go: `NewTrace`). -/
+def newTrace (events : List Event) : Except TraceError Trace := newTraceWith events false false
 
 /-! ## States of the trace specification -/
 
@@ -294,7 +315,7 @@ def Line.isRequestVoteRequest (ln : Line) (m : Msg) : Bool :=
   match ln.ev.msg with
   | none => false
   | some ev =>
-    m.type == .requestVoteRequest && raftMsgType ev.type == some m.type && m.dest == ln.to &&
+    (m.type == .requestVoteRequest || m.type == .preVoteRequest) && raftMsgType ev.type == some m.type && m.dest == ln.to &&
     m.source == ln.from && m.term == ev.term && m.lastLogIndex == ev.index && m.lastLogTerm == ev.logTerm
 
 /-- `LoglineIsRequestVoteResponse(m)`. -/
@@ -302,8 +323,8 @@ def Line.isRequestVoteResponse (ln : Line) (m : Msg) : Bool :=
   match ln.ev.msg with
   | none => false
   | some ev =>
-    m.type == .requestVoteResponse && raftMsgType ev.type == some m.type && m.dest == ln.to &&
-    m.source == ln.from && m.term == ev.term && m.voteGranted == !ev.reject
+    (m.type == .requestVoteResponse || m.type == .preVoteResponse) && raftMsgType ev.type == some m.type &&
+    m.dest == ln.to && m.source == ln.from && m.term == ev.term && m.voteGranted == !ev.reject
 
 /-- The conjunction `ValidatePreStates`/`ValidatePostStates` check of server `i` in `st`. -/
 def Line.stateMatches (ln : Line) (st : State) (i : ID) : Bool :=
@@ -342,13 +363,11 @@ def newPending (s s2 : State) (p : Msg → Bool) : Bool :=
 def Trace.requestVoteIfLogged (t : Trace) (ts : TState) (i j : ID) : List State :=
   if !(t.isMessageEvent ts "SendRequestVoteRequest" i j ||
       (t.isMessageEvent ts "SendRequestVoteResponse" i j && i == j)) then []
-  else match ts.s.requestVote i j with
-    | none => []
-    | some s2 =>
-      let ln := t.line ts.l
-      if t.validatePostStates ts s2 i &&
-          newPending ts.s s2 (fun m => ln.isRequestVoteRequest m || (ln.isRequestVoteResponse m && m.source == m.dest))
-      then [s2] else []
+  else
+    let ln := t.line ts.l
+    (somes [ts.s.requestVote i j, ts.s.requestPreVote i j]).filter (fun s2 =>
+      t.validatePostStates ts s2 i &&
+        newPending ts.s s2 (fun m => ln.isRequestVoteRequest m || (ln.isRequestVoteResponse m && m.source == m.dest)))
 
 /-- `BecomeLeaderIfLogged(i)`. -/
 def Trace.becomeLeaderIfLogged (t : Trace) (ts : TState) (i : ID) : List State :=
@@ -413,6 +432,21 @@ def Trace.appendEntriesToSelfIfLogged (t : Trace) (ts : TState) (i : ID) : List 
           newPending ts.s s2 (fun m => ln.isAppendEntriesResponse m && m.source == m.dest)
       then [s2] else []
 
+/-- `PreTimeoutIfLogged(i)`. -/
+def Trace.preTimeoutIfLogged (t : Trace) (ts : TState) (i : ID) : List State :=
+  if !t.isNodeEvent ts "BecomePreCandidate" i then []
+  else match ts.s.preTimeout i with
+    | none => []
+    | some s2 => if t.validatePostStates ts s2 i then [s2] else []
+
+/-- `\E m \in DOMAIN messages : IgnoreInLeaseIfLogged(m)`. -/
+def Trace.ignoreInLeaseIfLogged (t : Trace) (ts : TState) : List State :=
+  if !t.isEvent ts "IgnoreRequestVoteRequest" then []
+  else
+    let ln := t.line ts.l
+    ts.s.messages.domain.flatMap (fun m =>
+      if ln.isRequestVoteRequest m && t.validatePreStates ts m.dest then somes [ts.s.ignoreInLease m] else [])
+
 /-- `TimeoutIfLogged(i)`. -/
 def Trace.timeoutIfLogged (t : Trace) (ts : TState) (i : ID) : List State :=
   if !t.isNodeEvent ts "BecomeCandidate" i then []
@@ -453,7 +487,7 @@ def Trace.readyIfLogged (t : Trace) (ts : TState) (i : ID) : List State :=
 /-- `RestartIfLogged(i)`. -/
 def Trace.restartIfLogged (t : Trace) (ts : TState) (i : ID) : EvalM (List State) := do
   if !t.isNodeEvent ts "InitState" i then return []
-  let s2 ← ts.s.restart i
+  let s2 := ts.s.restart i
   return if t.validatePostStates ts s2 i then [s2] else []
 
 /-- `LoglineIsBecomeFollowerInUpdateTermOrReturnToFollower`. -/
@@ -472,7 +506,7 @@ def Trace.isBecomeFollowerInUpdateTermOrReturnToFollower (t : Trace) (ts : TStat
       | some pm =>
         (isReceiveName pk.name && pk.state.term < pm.term && pm.term == ln.ev.state.term) ||
         (pk.name == "ReceiveAppendEntriesRequest" && pk.state.term == pm.term && pm.term == ln.ev.state.term &&
-          pk.role == candidate)
+          (pk.role == candidate || pk.role == preCandidate))
 
 /-- `StepDownToFollowerIfLogged(i)`. -/
 def Trace.stepDownToFollowerIfLogged (t : Trace) (ts : TState) (i : ID) : List State :=
@@ -523,6 +557,8 @@ def Trace.nonReceive (t : Trace) (ts : TState) : EvalM (List State) := do
       | _ => pure []
     | "SendAppendEntriesResponse" => pure (srv.flatMap (t.appendEntriesToSelfIfLogged ts))
     | "BecomeCandidate" => pure (srv.flatMap (t.timeoutIfLogged ts))
+    | "BecomePreCandidate" => pure (srv.flatMap (t.preTimeoutIfLogged ts))
+    | "IgnoreRequestVoteRequest" => pure (t.ignoreInLeaseIfLogged ts)
     | "ChangeConf" =>
       pure (["AddNewServer", "AddLearner", "RemoveServer"].flatMap (fun a =>
         t.pairs.flatMap (fun p => t.changeConfIfLogged ts p.1 p.2 a)))

@@ -1,7 +1,7 @@
 # Plan: a closed proof that raft's traces pass its own TLA+ trace validation (draft, 2026-11-08)
 
 Branch `trace-check`. Background, harness, transcription and its checks:
-`notes/raft-trace-validation.md`. Status: **paused before the Freeze (the user's decision, 2026-11-08; see "Paused" below).** The stage follows
+`notes/raft-trace-validation.md`. Status: **resumed against the corrected specification (`etc/tla-fixes/`, the user's decision, 2026-11-08; see "Resumed" below); before the Freeze.** The stage follows
 `notes/spec-first-plan.md`'s phases (Scope, Draft, Review, Test, Probe, Freeze, Prove; no proof
 before the user's freeze, the tag `trace-check-frozen`); amendments after the freeze are dated,
 below the section they amend.
@@ -21,6 +21,17 @@ its option (c), letting the specification refuse a vote, branches, which upstrea
 and this checker's `branched` reject; so (a), the in-order links, or (b), modelling raft's `lead`).
 Resuming means choosing what the theorem is against: upstream's model as it is (narrow workload),
 a corrected model (the findings' fixes), or another specification.
+
+## Resumed (the user's decision, 2026-11-08)
+
+Against `etc/tla-fixes/`'s series (`notes/decisions.md`, "Trace-check against the corrected
+`etcdraft.tla`"). Done: both transcriptions follow the series (checked against TLC on state spaces
+and traces, and against each other), Q7 replaced by the relational acceptance (`CheckTraceRel`,
+`TraceAccepts`), layer C's specs and proofs rebuilt (`Timeout` with `Set.Subset` and `IsQuorum`
+new). Next: Q6's premises redrafted against the corrected specification (the user agreed to the
+premises a proof needs, gated on a traced cluster, existing proofs kept; shown side by side before
+Lean), the verified raft fork gaining 0001 and 0011's trace logging (raft code), then layer C's
+remaining actions and the checker's loop (S6), the simulation (S5), the harness (S7).
 
 ## The corrected model (2026-11-08, the user's request)
 

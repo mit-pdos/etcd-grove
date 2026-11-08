@@ -49,7 +49,7 @@ func Key(s *etcdraft.State) string {
 	var b strings.Builder
 	for _, i := range s.Server {
 		v := s.S[i]
-		fmt.Fprintf(&b, "%d:%d,%q,%d,%d,%v,%v,", i, v.CurrentTerm, string(v.State), v.VotedFor, v.CommitIndex,
+		fmt.Fprintf(&b, "%d:%d,%q,%d,%d,%d,%v,%v,", i, v.CurrentTerm, string(v.State), v.VotedFor, v.Lead, v.CommitIndex,
 			[]uint64(v.VotesResponded), []uint64(v.VotesGranted))
 		for _, j := range s.Server {
 			fmt.Fprintf(&b, "%d.", v.MatchIndex[j])
@@ -57,8 +57,12 @@ func Key(s *etcdraft.State) string {
 		fmt.Fprintf(&b, ",%d,%v%v%v,", v.PendingConfChangeIndex, []uint64(v.Config.Joint[0]), []uint64(v.Config.Joint[1]),
 			[]uint64(v.Config.Learners))
 		d := v.Durable
-		fmt.Fprintf(&b, "%d,%d,%d,%d,%v%v%v,", d.CurrentTerm, d.VotedFor, d.Log, d.CommitIndex,
+		fmt.Fprintf(&b, "%d,%d,%d,%v%v%v,", d.CurrentTerm, d.VotedFor, d.CommitIndex,
 			[]uint64(d.Config.Joint[0]), []uint64(d.Config.Joint[1]), []uint64(d.Config.Learners))
+		for _, e := range d.Log {
+			writeEntry(&b, e)
+		}
+		b.WriteString("|")
 		for _, e := range v.Log {
 			writeEntry(&b, e)
 		}

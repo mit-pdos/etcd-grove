@@ -20,24 +20,25 @@ func (c Config) Equal(d Config) bool {
 type Durable struct {
 	CurrentTerm int
 	VotedFor    ID
-	Log         int // the length of the log persisted
+	Log         []Entry // the log persisted (never written in place)
 	CommitIndex int
 	Config      Config
 }
 
 func (d Durable) equal(e Durable) bool {
-	return d.CurrentTerm == e.CurrentTerm && d.VotedFor == e.VotedFor && d.Log == e.Log &&
+	return d.CurrentTerm == e.CurrentTerm && d.VotedFor == e.VotedFor && EntriesEqual(d.Log, e.Log) &&
 		d.CommitIndex == e.CommitIndex && d.Config.Equal(e.Config)
 }
 
 // Server is the per-server variables of server i: `currentTerm[i]`, `state[i]`, `votedFor[i]`,
 // `log[i]`, `commitIndex[i]`, `votesResponded[i]`, `votesGranted[i]`, `matchIndex[i]`,
-// `pendingConfChangeIndex[i]`, `config[i]`, `durableState[i]`. A Server is never written once in
-// a State; State.mut copies it.
+// `pendingConfChangeIndex[i]`, `config[i]`, `durableState[i]`, `lead[i]`. A Server is never
+// written once in a State; State.mut copies it.
 type Server struct {
 	CurrentTerm            int
 	State                  Role
 	VotedFor               ID
+	Lead                   ID // the leader known in the current term, or Nil (raft's r.lead)
 	Log                    []Entry
 	CommitIndex            int
 	VotesResponded         Set
@@ -66,6 +67,8 @@ type State struct {
 	Messages        Bag // messages
 	PendingMessages Bag // pendingMessages
 	ReconfigCount   int // reconfigCount
+	// PreVote and CheckQuorum are the constants PreVote and CheckQuorum (raft's configuration).
+	PreVote, CheckQuorum bool
 }
 
 // clone is a copy of s sharing its servers, which mut copies before they are written.
@@ -102,7 +105,7 @@ func (s *State) Equal(t *State) bool {
 
 // equal is equality of server variables (matchIndex compared on the servers srv).
 func (v *Server) equal(w *Server, srv Set) bool {
-	if v.CurrentTerm != w.CurrentTerm || v.State != w.State || v.VotedFor != w.VotedFor ||
+	if v.CurrentTerm != w.CurrentTerm || v.State != w.State || v.VotedFor != w.VotedFor || v.Lead != w.Lead ||
 		v.CommitIndex != w.CommitIndex || v.PendingConfChangeIndex != w.PendingConfChangeIndex ||
 		!EntriesEqual(v.Log, w.Log) || !v.VotesResponded.Equal(w.VotesResponded) ||
 		!v.VotesGranted.Equal(w.VotesGranted) || !v.Config.Equal(w.Config) || !v.Durable.equal(w.Durable) {
@@ -147,7 +150,7 @@ func Init(initServer, server Set) *State {
 
 // durableOf is the record `PersistState` and `InitDurableState` write for a server.
 func durableOf(v *Server) Durable {
-	return Durable{CurrentTerm: v.CurrentTerm, VotedFor: v.VotedFor, Log: len(v.Log), CommitIndex: v.CommitIndex, Config: v.Config}
+	return Durable{CurrentTerm: v.CurrentTerm, VotedFor: v.VotedFor, Log: v.Log, CommitIndex: v.CommitIndex, Config: v.Config}
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -228,7 +231,8 @@ func (s *State) Restart(i ID) *State {
 	v.CurrentTerm = v.Durable.CurrentTerm
 	v.CommitIndex = v.Durable.CommitIndex
 	v.VotedFor = v.Durable.VotedFor
-	v.Log = SubSeq(v.Log, 1, v.Durable.Log)
+	v.Lead = Nil
+	v.Log = v.Durable.Log
 	v.Config = v.Durable.Config
 	return t
 }
@@ -236,7 +240,11 @@ func (s *State) Restart(i ID) *State {
 // Timeout is `Timeout(i)`.
 func (s *State) Timeout(i ID) *State {
 	v := s.S[i]
-	if !(v.State == Follower || v.State == Candidate) || !s.GetConfig(i).Has(i) {
+	if !(v.State == Follower || v.State == Candidate || v.State == PreCandidate) || !s.GetConfig(i).Has(i) {
+		return nil
+	}
+	// with PreVote, a node campaigns only once its pre-vote won
+	if s.PreVote && !(v.State == PreCandidate && IsQuorum(v.VotesGranted, s.GetConfig(i))) {
 		return nil
 	}
 	t := s.clone()
@@ -244,8 +252,40 @@ func (s *State) Timeout(i ID) *State {
 	w.State = Candidate
 	w.CurrentTerm = v.CurrentTerm + 1
 	w.VotedFor = i
+	w.Lead = Nil
 	w.VotesResponded = nil
 	w.VotesGranted = nil
+	return t
+}
+
+// PreTimeout is `PreTimeout(i)`.
+func (s *State) PreTimeout(i ID) *State {
+	v := s.S[i]
+	if !s.PreVote || !(v.State == Follower || v.State == Candidate || v.State == PreCandidate) || !s.GetConfig(i).Has(i) {
+		return nil
+	}
+	t := s.clone()
+	w := t.mut(i)
+	w.State = PreCandidate
+	w.Lead = Nil
+	w.VotesResponded = nil
+	w.VotesGranted = nil
+	return t
+}
+
+// RequestPreVote is `RequestPreVote(i, j)`.
+func (s *State) RequestPreVote(i, j ID) *State {
+	v := s.S[i]
+	if !s.PreVote || v.State != PreCandidate || !s.GetConfig(i).Union(s.GetLearners(i)).Minus(v.VotesResponded).Has(j) {
+		return nil
+	}
+	t := s.clone()
+	if i != j {
+		t.send(&Msg{Type: PreVoteRequest, Term: v.CurrentTerm + 1, LastLogTerm: LastTerm(v.Log),
+			LastLogIndex: len(v.Log), Source: i, Dest: j})
+	} else {
+		t.send(&Msg{Type: PreVoteResponse, Term: v.CurrentTerm + 1, VoteGranted: true, Source: i, Dest: i})
+	}
 	return t
 }
 
@@ -279,11 +319,16 @@ func (s *State) AppendEntriesInRangeToPeer(subtype string, i, j ID, b, e int) *S
 	}
 	lastEntry := min(len(v.Log), e-1)
 	entries := SubSeq(v.Log, b, lastEntry)
+	// an append request carries the leader's commit index (the receiver clamps it); a snapshot
+	// its index
 	var commit int
-	if subtype == "heartbeat" {
+	switch subtype {
+	case "heartbeat":
 		commit = min(v.CommitIndex, v.MatchIndex[j])
-	} else {
+	case "snapshot":
 		commit = min(v.CommitIndex, lastEntry)
+	default:
+		commit = v.CommitIndex
 	}
 	t := s.clone()
 	t.send(&Msg{Type: AppendEntriesRequest, Subtype: subtype, Term: v.CurrentTerm, PrevLogIndex: prevLogIndex,
@@ -327,6 +372,7 @@ func (s *State) BecomeLeader(i ID) *State {
 	t := s.clone()
 	w := t.mut(i)
 	w.State = Leader
+	w.Lead = i
 	w.MatchIndex = map[ID]int{}
 	for _, j := range s.Server {
 		if j == i {
@@ -409,10 +455,11 @@ func (s *State) AddNewServer(i, j ID) *State {
 
 // AddLearner is `AddLearner(i, j)`.
 func (s *State) AddLearner(i, j ID) *State {
-	if s.S[i].State != Leader || s.GetConfig(i).Union(s.GetLearners(i)).Has(j) || s.IsJointConfig(i) {
+	// j a new learner, or a voter demoted to a learner
+	if s.S[i].State != Leader || s.GetLearners(i).Has(j) || s.IsJointConfig(i) {
 		return nil
 	}
-	return s.reconfigure(i, s.GetConfig(i), s.GetLearners(i).Add(j))
+	return s.reconfigure(i, s.GetConfig(i).Remove(j), s.GetLearners(i).Add(j))
 }
 
 // DeleteServer is `DeleteServer(i, j)`.
@@ -449,6 +496,14 @@ func (s *State) ApplySimpleConfChange(i ID) *State {
 		t.ReconfigCount = s.ReconfigCount + 1
 		t.mut(i).PendingConfChangeIndex = 0
 	}
+	// a server the new configuration drops loses its progress (matchIndex 0)
+	members := v.Log[k-1].Value.NewConf.Union(v.Log[k-1].Value.Learners)
+	w := t.mut(i)
+	for j := range w.MatchIndex {
+		if !members.Has(j) {
+			delete(w.MatchIndex, j)
+		}
+	}
 	return t
 }
 
@@ -468,6 +523,7 @@ func (s *State) becomeFollowerOfTerm(i ID, term int) {
 	old := v.CurrentTerm
 	v.CurrentTerm = term
 	v.State = Follower
+	v.Lead = Nil
 	if old != term {
 		v.VotedFor = Nil
 	}
@@ -476,7 +532,7 @@ func (s *State) becomeFollowerOfTerm(i ID, term int) {
 // StepDownToFollower is `StepDownToFollower(i)`.
 func (s *State) StepDownToFollower(i ID) *State {
 	v := s.S[i]
-	if !(v.State == Leader || v.State == Candidate) {
+	if !(v.State == Leader || v.State == Candidate || v.State == PreCandidate) {
 		return nil
 	}
 	t := s.clone()
@@ -491,7 +547,8 @@ func (s *State) StepDownToFollower(i ID) *State {
 func (s *State) HandleRequestVoteRequest(i, j ID, m *Msg) *State {
 	v := s.S[i]
 	logOk := m.LastLogTerm > LastTerm(v.Log) || (m.LastLogTerm == LastTerm(v.Log) && m.LastLogIndex >= len(v.Log))
-	grant := m.Term == v.CurrentTerm && logOk && (v.VotedFor == Nil || v.VotedFor == j)
+	// raft's canVote: a repeat of its vote, or no vote and no known leader
+	grant := m.Term == v.CurrentTerm && logOk && (v.VotedFor == j || (v.VotedFor == Nil && v.Lead == Nil))
 	if !(m.Term <= v.CurrentTerm) {
 		return nil
 	}
@@ -510,11 +567,59 @@ func (s *State) HandleRequestVoteResponse(i, j ID, m *Msg) *State {
 		return nil
 	}
 	t := s.clone()
-	w := t.mut(i)
-	w.VotesResponded = v.VotesResponded.Add(j)
-	if m.VoteGranted {
-		w.VotesGranted = v.VotesGranted.Add(j)
+	if v.State != PreCandidate { // a pre-candidate tallies pre-votes only
+		w := t.mut(i)
+		w.VotesResponded = v.VotesResponded.Add(j)
+		if m.VoteGranted {
+			w.VotesGranted = v.VotesGranted.Add(j)
+		}
 	}
+	t.discard(m)
+	return t
+}
+
+// HandlePreVoteRequest is `HandlePreVoteRequest(i, j, m)`.
+func (s *State) HandlePreVoteRequest(i, j ID, m *Msg) *State {
+	v := s.S[i]
+	logOk := m.LastLogTerm > LastTerm(v.Log) || (m.LastLogTerm == LastTerm(v.Log) && m.LastLogIndex >= len(v.Log))
+	grant := logOk && (m.Term > v.CurrentTerm ||
+		(m.Term == v.CurrentTerm && (v.VotedFor == j || (v.VotedFor == Nil && v.Lead == Nil))))
+	term := v.CurrentTerm
+	if grant {
+		term = m.Term
+	}
+	t := s.clone()
+	t.reply(&Msg{Type: PreVoteResponse, Term: term, VoteGranted: grant, Source: i, Dest: j}, m)
+	return t
+}
+
+// HandlePreVoteResponse is `HandlePreVoteResponse(i, j, m)`.
+func (s *State) HandlePreVoteResponse(i, j ID, m *Msg) *State {
+	v := s.S[i]
+	if !(m.Term >= v.CurrentTerm) || (!m.VoteGranted && m.Term != v.CurrentTerm) {
+		return nil
+	}
+	t := s.clone()
+	if v.State == PreCandidate {
+		w := t.mut(i)
+		w.VotesResponded = v.VotesResponded.Add(j)
+		if m.VoteGranted {
+			w.VotesGranted = v.VotesGranted.Add(j)
+		}
+	}
+	t.discard(m)
+	return t
+}
+
+// IgnoreInLease is `IgnoreInLease(m)`.
+func (s *State) IgnoreInLease(m *Msg) *State {
+	i := m.Dest
+	v, ok := s.S[i]
+	if !ok || !s.CheckQuorum || !(m.Type == RequestVoteRequest || m.Type == PreVoteRequest) ||
+		!(m.Term > v.CurrentTerm) || v.Lead == Nil {
+		return nil
+	}
+	t := s.clone()
 	t.discard(m)
 	return t
 }
@@ -526,7 +631,9 @@ func (s *State) RejectAppendEntriesRequest(i, j ID, m *Msg, logOk bool) *State {
 		return nil
 	}
 	t := s.clone()
-	t.reply(&Msg{Type: AppendEntriesResponse, Subtype: "app", Term: v.CurrentTerm, Success: false, MatchIndex: 0,
+	// with PreVote or CheckQuorum, an append request of an older term gets a bare MsgAppResp
+	success := (s.PreVote || s.CheckQuorum) && m.Term < v.CurrentTerm
+	t.reply(&Msg{Type: AppendEntriesResponse, Subtype: "app", Term: v.CurrentTerm, Success: success, MatchIndex: 0,
 		Source: i, Dest: j}, m)
 	return t
 }
@@ -534,7 +641,7 @@ func (s *State) RejectAppendEntriesRequest(i, j ID, m *Msg, logOk bool) *State {
 // ReturnToFollowerState is `ReturnToFollowerState(i, m)`.
 func (s *State) ReturnToFollowerState(i ID, m *Msg) *State {
 	v := s.S[i]
-	if m.Term != v.CurrentTerm || v.State != Candidate {
+	if m.Term != v.CurrentTerm || !(v.State == Candidate || v.State == PreCandidate) {
 		return nil
 	}
 	t := s.clone()
@@ -596,7 +703,9 @@ func (s *State) ConflictAppendEntriesRequest(i ID, index int, m *Msg) *State {
 // NoConflictAppendEntriesRequest is `NoConflictAppendEntriesRequest(i, index, m)`.
 func (s *State) NoConflictAppendEntriesRequest(i ID, index int, m *Msg) *State {
 	v := s.S[i]
-	if !(len(m.Entries) != 0 && index > v.CommitIndex && s.HasNoConflict(i, index, m.Entries)) {
+	// some entry is new (else AppendEntriesAlreadyDone answers)
+	if !(len(m.Entries) != 0 && index > v.CommitIndex && s.HasNoConflict(i, index, m.Entries) &&
+		m.PrevLogIndex+len(m.Entries) > len(v.Log)) {
 		return nil
 	}
 	t := s.clone()
@@ -612,9 +721,36 @@ func (s *State) AcceptAppendEntriesRequest(i, j ID, logOk bool, m *Msg) []*State
 	if m.Term != v.CurrentTerm || v.State != Follower || !logOk {
 		return nil
 	}
+	if m.Subtype == "snapshot" {
+		return nonNil(s.HandleSnapshotRequest(i, j, m))
+	}
 	index := m.PrevLogIndex + 1
 	return nonNil(s.AppendEntriesAlreadyDone(i, j, index, m), s.ConflictAppendEntriesRequest(i, index, m),
 		s.NoConflictAppendEntriesRequest(i, index, m))
+}
+
+// HandleSnapshotRequest is `HandleSnapshotRequest(i, j, m)`.
+func (s *State) HandleSnapshotRequest(i, j ID, m *Msg) *State {
+	v := s.S[i]
+	last := len(m.Entries)
+	// hasLast reads log[i][last] and m.mentries[last]: TLC fails at last = 0 (never sent: a
+	// snapshot's index is at least 1)
+	if last == 0 {
+		evalError("HandleSnapshotRequest of an empty snapshot (index, log length)", last, len(v.Log), 0)
+	}
+	hasLast := last <= len(v.Log) && v.Log[last-1].Term == m.Entries[last-1].Term
+	t := s.clone()
+	switch {
+	case last <= v.CommitIndex:
+	case hasLast:
+		t.commitTo(i, last)
+	default:
+		t.mut(i).Log = m.Entries
+		t.commitTo(i, last)
+	}
+	t.reply(&Msg{Type: AppendEntriesResponse, Subtype: "app", Term: v.CurrentTerm, Success: true,
+		MatchIndex: max(v.CommitIndex, last), Source: i, Dest: j}, m)
+	return t
 }
 
 // HandleAppendEntriesRequest is `HandleAppendEntriesRequest(i, j, m)`.
@@ -625,8 +761,15 @@ func (s *State) HandleAppendEntriesRequest(i, j ID, m *Msg) []*State {
 	if !(m.Term <= v.CurrentTerm) {
 		return nil
 	}
-	return append(nonNil(s.RejectAppendEntriesRequest(i, j, m, logOk), s.ReturnToFollowerState(i, m)),
+	out := append(nonNil(s.RejectAppendEntriesRequest(i, j, m, logOk), s.ReturnToFollowerState(i, m)),
 		s.AcceptAppendEntriesRequest(i, j, logOk, m)...)
+	// the sender of an append request of the current term is the leader (lead' in every branch)
+	if m.Term == v.CurrentTerm {
+		for _, t := range out {
+			t.mut(i).Lead = j
+		}
+	}
+	return out
 }
 
 // HandleAppendEntriesResponse is `HandleAppendEntriesResponse(i, j, m)`.
@@ -646,7 +789,8 @@ func (s *State) HandleAppendEntriesResponse(i, j ID, m *Msg) *State {
 
 // UpdateTerm is `UpdateTerm(i, j, m)`.
 func (s *State) UpdateTerm(i, j ID, m *Msg) *State {
-	if !(m.Term > s.S[i].CurrentTerm) {
+	// never for a pre-vote request, nor a granted pre-vote
+	if !(m.Term > s.S[i].CurrentTerm) || m.Type == PreVoteRequest || (m.Type == PreVoteResponse && m.VoteGranted) {
 		return nil
 	}
 	t := s.clone()
@@ -681,6 +825,10 @@ func (s *State) Receive(m *Msg) []*State {
 		out = append(out, s.HandleAppendEntriesRequest(i, j, m)...)
 	case AppendEntriesResponse:
 		out = append(out, nonNil(s.DropStaleResponse(i, j, m), s.HandleAppendEntriesResponse(i, j, m))...)
+	case PreVoteRequest:
+		out = append(out, nonNil(s.HandlePreVoteRequest(i, j, m))...)
+	case PreVoteResponse:
+		out = append(out, nonNil(s.DropStaleResponse(i, j, m), s.HandlePreVoteResponse(i, j, m))...)
 	}
 	return out
 }
@@ -751,7 +899,16 @@ func (s *State) NextAsync() []*State {
 		out = append(out, s.Receive(m)...)
 	}
 	for _, i := range s.Server {
-		out = append(out, nonNil(s.Timeout(i), s.Ready(i), s.StepDownToFollower(i))...)
+		out = append(out, nonNil(s.Timeout(i), s.PreTimeout(i))...)
+		for _, j := range s.Server {
+			out = append(out, nonNil(s.RequestPreVote(i, j))...)
+		}
+	}
+	for _, m := range s.Messages.Domain() {
+		out = append(out, nonNil(s.IgnoreInLease(m))...)
+	}
+	for _, i := range s.Server {
+		out = append(out, nonNil(s.Ready(i), s.StepDownToFollower(i))...)
 	}
 	return out
 }

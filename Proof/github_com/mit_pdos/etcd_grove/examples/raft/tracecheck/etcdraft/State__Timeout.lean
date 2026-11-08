@@ -6,6 +6,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State__Timeout
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State__GetConfig
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set__Has
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.IsQuorum
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State__clone
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State__mut
 
@@ -32,18 +33,10 @@ theorem timeout_term (w : w64) (n : Int) (h : sint.Z w = n) (hn : n < 2 ^ 63 - 1
   subst h
   word
 
--- The rest of `Timeout` once the role check has passed (`hrole`), shared by the follower and
--- the candidate branch (hygiene off: it names the proof's hypotheses).
+-- The successor once every check has passed: the clone, the copy of server `i`, its new fields,
+-- the copy closed and persisted (hygiene off: it names the proof's hypotheses).
 set_option hygiene false in
 local macro "timeout_tail" : tactic => `(tactic| (
-  wp_auto
-  wp_apply wp_GetConfig p st i $$ [Hst] as %sl #Hsl
-  · iframe Hst; ipureintro; exact Hi
-  wp_apply wp_Has sl _ i $$ [Hsl] as -
-  · iexact Hsl
-  by_cases hc : uint.nat i ∈ st.getConfig (uint.nat i)
-  · rw [decide_eq_true hc]
-    wp_auto
     wp_apply wp_clone p st $$ [Hst] as %t Ht
     · iexact Hst
     try wp_auto
@@ -56,17 +49,18 @@ local macro "timeout_tail" : tactic => `(tactic| (
     icases typedPointsto_split _ _ _ $$ Hcp with Hcpf
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hcpf
-    simp only [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Candidate]
+    simp only [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Candidate,
+      github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Nil]
     iapply wp_fupd
     wp_auto
-    ihave Hcp : c ↦ ({ gc with State' := (go!"StateCandidate"), CurrentTerm' := (gs.CurrentTerm' + W64 1), VotedFor' := i, VotesResponded' := slice.nil, VotesGranted' := slice.nil } : G.Server) $$ [-HΦ Hcm Hh]
+    ihave Hcp : c ↦ ({ gc with State' := (go!"StateCandidate"), CurrentTerm' := (gs.CurrentTerm' + W64 1), VotedFor' := i, Lead' := (W64 0), VotesResponded' := slice.nil, VotesGranted' := slice.nil } : G.Server) $$ [-HΦ Hcm Hh]
     · iapply typedPointsto_combine _ _ _ Hcnn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
     ihave #Hnil := ownSlice_nil (V := w64) (GF := GF) DfracDiscarded
     obtain ⟨v', hv'⟩ : ∃ v' : Server, v' = { st.s (uint.nat i) with
         state := candidate, currentTerm := (st.s (uint.nat i)).currentTerm + 1, votedFor := uint.nat i,
-        votesResponded := [], votesGranted := [] } := ⟨_, rfl⟩
+        lead := nil, votesResponded := [], votesGranted := [] } := ⟨_, rfl⟩
     ihave Hc : serverOwn (GF := GF) c v' $$ [Hcp Hcm]
     · iunfold serverOwn
       iexists _, mc
@@ -74,7 +68,7 @@ local macro "timeout_tail" : tactic => `(tactic| (
       iframe Hcp Hcm Hcl Hcc Hcd
       isplitr
       · ipureintro
-        refine ⟨timeout_term _ _ Hf.1 Hterm, ?_, rfl, Hcf.2.2.2.1, Hcf.2.2.2.2⟩
+        refine ⟨timeout_term _ _ Hf.1 Hterm, ?_, rfl, rfl, Hcf.2.2.2.2.1, Hcf.2.2.2.2.2⟩
         exact (show strRel go!"StateCandidate" candidate by unfold strRel candidate; decide)
       isplitr
       · iunfold setRO; iexists []; iframe Hnil; ipureintro; rfl
@@ -88,31 +82,80 @@ local macro "timeout_tail" : tactic => `(tactic| (
     iapply HΦ
     have ht : st.timeout (uint.nat i) = some (st.upd (uint.nat i) (fun _ => v')) := by
       subst hv'
-      unfold State.timeout
-      simp only [hrole, Bool.true_and]
-      rw [show (st.getConfig (uint.nat i)).contains (uint.nat i) = true by
-        simpa [List.contains_iff_mem] using hc]
+      unfold State.timeout; rw [if_pos htk]
       rfl
     rw [ht]
-    iexact Hs
-  · rw [decide_eq_false hc]
-    wp_auto
+    iexact Hs))
+
+-- Not enabled: `nil` (hygiene off).
+set_option hygiene false in
+local macro "timeout_none" : tactic => `(tactic| (
+    try wp_auto
     iapply HΦ
     have : st.timeout (uint.nat i) = none := by
-      unfold State.timeout
-      simp only [hrole, Bool.true_and]
-      rw [ite_eq_right (by simpa [List.contains_iff_mem] using hc)]
+      unfold State.timeout; rw [if_neg htk]
     rw [this]
     ipureintro; rfl))
+
+-- After the role check passed (`hrole`): the configuration check, then PreVote's (hygiene off).
+set_option hygiene false in
+local macro "timeout_mid" : tactic => `(tactic| (
+  wp_auto
+  wp_apply wp_GetConfig p st i $$ [Hst] as %sl #Hsl
+  · iframe Hst; ipureintro; exact Hi
+  wp_apply wp_Has sl _ i $$ [Hsl] as -
+  · iexact Hsl
+  by_cases hc : uint.nat i ∈ st.getConfig (uint.nat i)
+  · rw [decide_eq_true hc]
+    wp_auto
+    have hcc : (st.getConfig (uint.nat i)).contains (uint.nat i) = true := by
+      simpa [List.contains_iff_mem] using hc
+    rw [Hrc.2.1]
+    by_cases hp : st.preVote = true
+    · rw [hp]
+      wp_auto
+      by_cases hpc : (st.s (uint.nat i)).state = preCandidate
+      · rw [decide_eq_true (hPC.2 hpc)]
+        wp_auto
+        wp_apply wp_GetConfig p st i $$ [Hst] as %sl2 #Hsl2
+        · iframe Hst; ipureintro; exact Hi
+        wp_apply wp_IsQuorum gs.VotesGranted' _ sl2 _ $$ [Hvg Hsl2] as -
+        · iframe Hvg Hsl2; ipureintro; exact Hvgl
+        by_cases hq : isQuorum (st.s (uint.nat i)).votesGranted (st.getConfig (uint.nat i)) = true
+        · rw [hq]
+          have htk : st.timeoutEnabled (uint.nat i) = true := by
+            simp only [State.timeoutEnabled]; simp [hrole, hc, hcc, hp, hpc, hq]
+          wp_auto
+          timeout_tail
+        · rw [Bool.not_eq_true] at hq
+          rw [hq]
+          have htk : ¬ (st.timeoutEnabled (uint.nat i) = true) := by
+            simp [State.timeoutEnabled, hp, hpc, hq]
+          timeout_none
+      · rw [decide_eq_false (fun h => hpc (hPC.1 h))]
+        have htk : ¬ (st.timeoutEnabled (uint.nat i) = true) := by
+          simp [State.timeoutEnabled, hp, hpc]
+        timeout_none
+    · rw [Bool.not_eq_true] at hp
+      rw [hp]
+      have htk : st.timeoutEnabled (uint.nat i) = true := by
+        simp only [State.timeoutEnabled]; simp [hrole, hc, hcc, hp]
+      wp_auto
+      timeout_tail
+  · rw [decide_eq_false hc]
+    have htk : ¬ (st.timeoutEnabled (uint.nat i) = true) := by
+      simp [State.timeoutEnabled, List.contains_iff_mem, hc]
+    timeout_none))
 
 theorem State.Timeout.wp_proof
     (wp_GetConfig : State.GetConfig.spec (GF := GF) (hG := hG))
     (wp_Has : Set.Has.spec (GF := GF) (hG := hG))
+    (wp_IsQuorum : IsQuorum.spec (GF := GF) (hG := hG))
     (wp_clone : State.clone.spec (GF := GF) (hG := hG))
     (wp_mut : State.mut.spec (GF := GF) (hG := hG)) :
     State.Timeout.spec (GF := GF) (hG := hG) := by
   intro p st i
-  wp_start as ⟨#Hst, %Hi, %Hterm⟩
+  wp_start as ⟨#Hst, %Hi, %Hterm, %Hvgl⟩
   ihave #Hst0 := Hst
   iunfold stateRO at Hst0
   icases Hst0 with ⟨%g, %sm, #Hp, #Hsrv, #Hm, %Hkeys, %Hnd, #Hsrvs, #Hb1, #Hb2, %Hrc⟩
@@ -140,26 +183,28 @@ theorem State.Timeout.wp_proof
     exact strRel_eq_iff Hf.2.1 (by unfold strRel follower; decide)
   have hC : gs.State' = go!"StateCandidate" ↔ (st.s (uint.nat i)).state = candidate := by
     exact strRel_eq_iff Hf.2.1 (by unfold strRel candidate; decide)
+  have hPC : gs.State' = go!"StatePreCandidate" ↔ (st.s (uint.nat i)).state = preCandidate := by
+    exact strRel_eq_iff Hf.2.1 (by unfold strRel preCandidate; decide)
   by_cases h1 : (st.s (uint.nat i)).state = follower
   · rw [decide_eq_true (hF.2 h1)]
-    have hrole : or ((st.s (uint.nat i)).state == follower) ((st.s (uint.nat i)).state == candidate) = true := by
-      simp [h1]
-    timeout_tail
+    have hrole : (st.s (uint.nat i)).timeoutRoleOk = true := by simp [Server.timeoutRoleOk, h1]
+    timeout_mid
   · rw [decide_eq_false (fun h => h1 (hF.1 h))]
     wp_auto
     by_cases h2 : (st.s (uint.nat i)).state = candidate
     · rw [decide_eq_true (hC.2 h2)]
-      have hrole : or ((st.s (uint.nat i)).state == follower) ((st.s (uint.nat i)).state == candidate) = true := by
-        simp [h2]
-      timeout_tail
+      have hrole : (st.s (uint.nat i)).timeoutRoleOk = true := by simp [Server.timeoutRoleOk, h2]
+      timeout_mid
     · rw [decide_eq_false (fun h => h2 (hC.1 h))]
       wp_auto
-      iapply HΦ
-      have : st.timeout (uint.nat i) = none := by
-        unfold State.timeout
-        simp [h1, h2]
-      rw [this]
-      ipureintro; rfl
+      by_cases h3 : (st.s (uint.nat i)).state = preCandidate
+      · rw [decide_eq_true (hPC.2 h3)]
+        have hrole : (st.s (uint.nat i)).timeoutRoleOk = true := by simp [Server.timeoutRoleOk, h3]
+        timeout_mid
+      · rw [decide_eq_false (fun h => h3 (hPC.1 h))]
+        have htk : ¬ (st.timeoutEnabled (uint.nat i) = true) := by
+          simp [State.timeoutEnabled, Server.timeoutRoleOk, h1, h2, h3]
+        timeout_none
 
 end proof
 

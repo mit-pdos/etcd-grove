@@ -1,6 +1,7 @@
 // Command leanexport writes a trace (NDJSON) as a Lean file that runs the Lean transcription's
 // checker on it (`Proof/.../tracecheck/etcdraft/Tla/Check.lean`), for comparing its verdict with the
-// Go checker's and TLC's (notes/trace-validation-plan.md, S2). Not translated.
+// Go checker's and TLC's (notes/trace-validation-plan.md, S2); PREVOTE and CHECKQUORUM ("1") as
+// TLC reads them. Not translated.
 //
 //	go run ./cmd/leanexport FILE.ndjson > /tmp/x.lean && lake env lean /tmp/x.lean
 package main
@@ -84,7 +85,14 @@ func main() {
 		fmt.Fprintf(w, "  %s%s\n", event(&events[k]), sep)
 	}
 	fmt.Fprintln(w, "]")
-	fmt.Fprintln(w, `#eval match newTrace events with
+	flag := func(name string) string {
+		if v := os.Getenv(name); v == "1" || v == "true" {
+			return "true"
+		}
+		return "false"
+	}
+	fmt.Fprintf(w, "#eval match newTraceWith events %s %s with\n", flag("PREVOTE"), flag("CHECKQUORUM"))
+	fmt.Fprintln(w, `
   | .error e => s!"refused: {repr e}"
   | .ok t => let r := checkTrace t true; s!"tlcOK {r.tlcOK} ok {r.ok} branched {r.branched} line {r.line} violation {r.violation} evalError {repr r.evalError}"`)
 }

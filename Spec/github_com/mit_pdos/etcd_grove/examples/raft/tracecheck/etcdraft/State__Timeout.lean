@@ -29,7 +29,8 @@ abbrev State.Timeout.spec : Prop :=
   ∀ (p : Loc) (st : State) (i : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
       stateRO p st ∗
-      ⌜uint.nat i ∈ st.server ∧ (st.s (uint.nat i)).currentTerm < 2 ^ 63 - 1⌝ }}
+      ⌜uint.nat i ∈ st.server ∧ (st.s (uint.nat i)).currentTerm < 2 ^ 63 - 1 ∧
+        (st.s (uint.nat i)).votesGranted.length < 2 ^ 62⌝ }}
     (App (Val (p @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.State.ty
       @!! go!"Timeout")) (Val #i))
   {{ (q : Loc), RET #q;

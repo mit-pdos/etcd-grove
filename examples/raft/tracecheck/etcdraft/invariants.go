@@ -103,7 +103,8 @@ func (s *State) QuorumLogInv() bool {
 	return true
 }
 
-// MoreUpToDateCorrectInv is `MoreUpToDateCorrectInv`.
+// MoreUpToDateCorrectInv is `MoreUpToDateCorrectInv`, which is false (issues/raft-tla-more-up-to-date-cut-batches.md)
+// and not checked (etc/tla-fixes 0009).
 func (s *State) MoreUpToDateCorrectInv() bool {
 	for _, i := range s.Server {
 		for _, j := range s.Server {
@@ -150,7 +151,7 @@ func (s *State) LeaderCompletenessInv() bool {
 func (s *State) CommittedIsDurableInv() bool {
 	for _, i := range s.Server {
 		v := s.S[i]
-		if v.State == Leader && v.CommitIndex > v.Durable.Log {
+		if v.State == Leader && v.CommitIndex > len(v.Durable.Log) {
 			return false
 		}
 	}
@@ -170,7 +171,6 @@ var Invariants = []Invariant{
 	{"ElectionSafetyInv", func(s *State) bool { return s.ElectionSafetyInv() }},
 	{"LogMatchingInv", func(s *State) bool { return s.LogMatchingInv() }},
 	{"QuorumLogInv", func(s *State) bool { return s.QuorumLogInv() }},
-	{"MoreUpToDateCorrectInv", func(s *State) bool { return s.MoreUpToDateCorrectInv() }},
 	{"LeaderCompletenessInv", func(s *State) bool { return s.LeaderCompletenessInv() }},
 	{"CommittedIsDurableInv", func(s *State) bool { return s.CommittedIsDurableInv() }},
 }

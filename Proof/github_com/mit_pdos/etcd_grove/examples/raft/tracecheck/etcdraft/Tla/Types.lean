@@ -47,6 +47,8 @@ abbrev Role := String
 def follower : Role := "StateFollower"
 def candidate : Role := "StateCandidate"
 def leader : Role := "StateLeader"
+/-- The constant `PreCandidate` (reached only with `PreVote`). -/
+def preCandidate : Role := "StatePreCandidate"
 
 /-! ## Sets of servers -/
 
@@ -126,6 +128,7 @@ def isPrefix (s t : List Entry) : Bool := s.length ≤ t.length && (t.take s.len
 `AppendEntriesRequest`, `AppendEntriesResponse`. -/
 inductive MsgType where
   | requestVoteRequest | requestVoteResponse | appendEntriesRequest | appendEntriesResponse
+  | preVoteRequest | preVoteResponse
   deriving DecidableEq, Repr, Inhabited
 
 /-- A message, any of the specification's four record shapes (a shape's absent fields at their
