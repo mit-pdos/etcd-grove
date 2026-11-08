@@ -764,7 +764,7 @@ the server sends), whose token is issued to `name` (`auth.tokIssued`). (The marg
 def authnOut (γa : auth.AuthNames) (name : GoString) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ ∃ e : auth.AuthErr, auth.authErrOf e err) ∨
     ⌜err = GoInterface.nil⌝ ∗ ∃ v : etcdserverpb.AuthenticateResponse,
-      resp ↦ v ∗ auth.tokIssued γa v.Token' name)
+      resp ↦ v ∗ ⌜v.unknownFields' = slice.nil⌝ ∗ auth.tokIssued γa v.Token' name)
 
 /-- **`a.Authenticate(r)` with auth on, carrying `X`** (C1's A2, 2026-10-28): the store's
 `Authenticate` (`isAuthStepsX`'s) at a context holding the consistent index `x` that
@@ -1274,6 +1274,9 @@ theorem applierV3backend.Authenticate.wp_specX
     · ipureintro; exact He0
     iexists _
     iframe Hv
+    isplitr
+    · ipureintro; first | exact Htv.2 | simpa using Htv.2
+    obtain ⟨Htv, -⟩ := Htv
     subst Htv
     iunfold auth.tokOk at Hiss
     iexact Hiss

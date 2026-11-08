@@ -39,7 +39,9 @@ decode satisfies `ufWire`), the size bound's worst ratio 1.999999 (`TestC9H1Deco
 repeated scalars re-encoded unpacked, open proto2 enums' negative values; it holds while no
 registered type has a proto2 unpacked repeated scalar numbered 16 or more, `[v6a]` 6), D2 over
 200,000 contents with 0 failures (`TestC9D2ExactRoundTrip`). The decoded message is the post's
-owned decoded message at `c`'s model (the instance's `dec`); `c`'s facts are pure. -/
+owned decoded message at `c`'s model (the instance's `dec`) when `c` is one `dec` describes
+(`decOk`); without `decOk` Go's decoded message is not described (true of Go: the receiver then owns
+nothing it can use). `c`'s facts are pure. -/
 abbrev proto.UnmarshalPb.spec : Prop :=
   ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
   ∀ (b : GoSlice) (bs : List w8) (dq : DFrac) (l : Loc),
@@ -50,7 +52,7 @@ abbrev proto.UnmarshalPb.spec : Prop :=
   {{ (err : GoInterface), RET #err; b ↦*{dq} bs ∗
       ⌜(∃ c₀ : I.data.C, I.data.marshals (I.data.modelOf c₀) ∧ I.data.ufValid c₀ ∧
           bs = pbEncC I c₀) → err = GoInterface.nil⌝ ∗
-      (⌜err = GoInterface.nil⌝ -∗ ∃ c : I.data.C, I.data.dec l (I.data.modelOf c) ∗
+      (⌜err = GoInterface.nil⌝ -∗ ∃ c : I.data.C, (⌜I.data.decOk c⌝ -∗ I.data.dec l (I.data.modelOf c)) ∗
         ⌜I.data.wire (I.data.modelOf c) bs ∧ I.data.size c ≤ 2 * bs.length ∧ I.data.ufValid c ∧
           ∀ c₀ : I.data.C, I.data.marshals (I.data.modelOf c₀) → I.data.ufValid c₀ →
             bs = pbEncC I c₀ → c = c₀⌝) }}

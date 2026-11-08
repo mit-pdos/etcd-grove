@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.join(ROOT, "etc"))
 import proof_roots  # noqa: E402
 
 MIN_REGS = 36
-REG = re.compile(r"(?:grpcReqModelOf|grpcRepModelOf|streamReqModelOf|streamRepModelOf|pbModelOf) GF \S+ = some")
+REG = re.compile(r"(?:grpcReqModelOf|grpcRepModelOf|streamReqModelOf|streamRepModelOf|pbModelOf)\s+GF\s+\S+\s*=\s*some", re.S)
 
 
 def reg_modules():
@@ -139,7 +139,9 @@ def main():
            "a second registration": "a second registration", "a registration with an extra binder":
            "not a registry argument", "a registration with no Sat": "no theorem of type",
            "a Sat theorem resting on a hand-written zero_val": "Foo.zero_val",
-           "a request registration keeping the default wireLen": "wireLen"}
+           "a request registration keeping the default wireLen": "wireLen",
+           "a vacuous Sat theorem": "no theorem of type", "a reversed wireLen witness": "wireLen",
+           "an unbounded membership binder": '"t":"atom"'}
     for st in selftests:
         for k, w in why.items():
             if st["name"].startswith(k) and st.get("refused") and w not in st.get("by", ""):
@@ -148,8 +150,8 @@ def main():
             fails.add(f"selftest failed: {st['name']} ({st.get('why', st.get('by', ''))})")
     if len(selftests) == 0:
         fails.add("no selftest ran")
-    if len(regs) < MIN_REGS:
-        fails.add(f"floor: {len(regs)} registrations, at least {MIN_REGS} expected")
+    if len(regs) != MIN_REGS:
+        fails.add(f"count: {len(regs)} registrations, {MIN_REGS} expected (update MIN_REGS with a new instance)")
     for r in regs:
         if not sats.get(r):
             fails.add(f"rule 7: {r} has no Sat theorem")

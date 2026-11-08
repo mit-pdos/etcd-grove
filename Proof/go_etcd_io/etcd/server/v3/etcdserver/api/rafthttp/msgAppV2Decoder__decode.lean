@@ -117,7 +117,11 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       pbMessageC_C] at wpC
     wp_apply wpC $$ [] as %l' ⟨%c', Hl', %Heqv⟩
     · iexact Hchb
-    rw [Hchbm] at Heqv
+    have hcs : c'.csUfNil := by
+      have h := Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
+      rw [h]; exact Hchbm.2
+    ihave Hl' := Hl' $$ %hcs
+    rw [Hchbm.1] at Heqv
     (try wp_auto)
     iapply HΦ
     isplitr
@@ -292,7 +296,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         (try wp_auto)
         obtain ⟨-, -, ec, hecm, hecu, hecb⟩ := id He0
         have wpUE := wp_MustUnmarshalMessage pbEntryC pbEntryC_reg «$r0_ptr» (slice.slice buf w8 (W64 0) (W64 sz)) eb (DFrac.own 1)
-          ec trivial (by simpa using hecu) (by simpa using hecb)
+          ec trivial (by simpa using hecu) trivial (by simpa using hecb)
         simp only [pbEntryC_ty, pbEntryC_blank, pbEntryC_dec, pbEntryC_modelOf, pbEntryC_C, hecm] at wpUE
         wp_apply wpUE $$ [$Hbm $«$r0»] as ⟨Hbm, ⟨%c1, #Hc1, %Hc1m⟩⟩
         ihave He1 : entRO «$r0_ptr» e0 $$ [Hc1]
@@ -356,7 +360,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         (try wp_auto)
         obtain ⟨-, -, ec, hecm, hecu, hecb⟩ := id He0
         have wpUE := wp_MustUnmarshalMessage pbEntryC pbEntryC_reg «$r0_ptr» mb eb (DFrac.own 1)
-          ec trivial (by simpa using hecu) (by simpa using hecb)
+          ec trivial (by simpa using hecu) trivial (by simpa using hecb)
         simp only [pbEntryC_ty, pbEntryC_blank, pbEntryC_dec, pbEntryC_modelOf, pbEntryC_C, hecm] at wpUE
         wp_apply wpUE $$ [$Hbm $«$r0»] as ⟨Hbm, ⟨%c1, #Hc1, %Hc1m⟩⟩
         ihave He1 : entRO «$r0_ptr» e0 $$ [Hc1]
@@ -473,10 +477,10 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         List.append_nil]
       rw [show rs ++ W8 2 :: u64Be (W64 nn) ++ yb = rs ++ (W8 2 :: (u64Be (W64 nn) ++ yb)) by simp]
       ihave %Hcb := HC $$ %(W8 2 :: (u64Be (W64 nn) ++ yb)) HBb
-      obtain ⟨st0, Hw0, ⟨c0, hc0m, hc0u, hc0b⟩, Hfr⟩ := Hcb.app hnn hyl
+      obtain ⟨st0, Hw0, ⟨c0, hc0m, hc0u, hc0cs, hc0b⟩, Hfr⟩ := Hcb.app hnn hyl
       have wpU := wp_MustUnmarshalMessage pbMessageC pbMessageC_reg m_ptr mb yb (DFrac.own 1) c0
         (by simp only [pbMessageC_marshals, pbMessageC_modelOf, hc0m]; exact Hw0.1)
-        (by simpa using hc0u) (by simpa using hc0b)
+        (by simpa using hc0u) (by simpa using hc0cs) (by simpa using hc0b)
       simp only [pbMessageC_ty, pbMessageC_blank, pbMessageC_dec, pbMessageC_modelOf, pbMessageC_C,
         hc0m] at wpU
       (try wp_auto)

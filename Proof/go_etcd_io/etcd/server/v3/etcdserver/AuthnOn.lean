@@ -86,16 +86,18 @@ theorem appliedOkM_authn (E : apply.AEnv GF) (ρ : ReqNames) (γa : auth.AuthNam
       ∃ (am : apply.AuthenticateModel) (rp : Loc) (v : etcdserverpb.AuthenticateResponse),
         ⌜rq'.authenticate = some am ∧
           resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthenticateResponse.ty) #rp⌝ ∗
-        rp ↦ v ∗ auth.tokIssued γa v.Token' am.name := by
+        rp ↦ v ∗ ⌜v.unknownFields' = slice.nil⌝ ∗ auth.tokIssued γa v.Token' am.name := by
   unfold appliedOkM authnAnsM
   simp only [hγa]
   iintro H
   icases H with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, Ha, -⟩
-  icases Ha with (%Hn | ⟨%am, %rp, %v, %Hp, Hrp, #Ht⟩)
+  icases Ha with (%Hn | ⟨%am, %rp, %v, %Hp, Hrp, %Hvu, #Ht⟩)
   · exact absurd hk Hn
   iexists am, rp, v
+  isplitr
+  · ipureintro; exact Hp
   iframe Hrp Ht
-  ipureintro; exact Hp
+  ipureintro; exact Hvu
 
 /-- **One round of `Authenticate`'s proposal** (`raftRequest.spec` with auth on, on `irrAuthenticate`):
 the run's slots back, the error one the gRPC layer can take, and on `nil` an
@@ -115,7 +117,7 @@ theorem authnRaft_on (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
         applyErrIs err ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ (rp : Loc) (v : etcdserverpb.AuthenticateResponse),
             ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthenticateResponse.ty) #rp⌝ ∗
-            rp ↦ v ∗ auth.tokIssued γa v.Token' name) ∨
+            rp ↦ v ∗ ⌜v.unknownFields' = slice.nil⌝ ∗ auth.tokIssued γa v.Token' name) ∨
          ⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝) }} := by
   iintro %Φ ⟨#Hpkg, #Hsrv, Hlt, Hrd, Hid, #Hctx, #Hirr, Hhdr, #HF⟩ HΦ
   have hRR := hRR s E ρ
@@ -130,7 +132,7 @@ theorem authnRaft_on (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     have hrq := irrWireOf_eq _ rq' hm Hwire (irrNoZeroEnd_admin _ rfl rfl rfl)
     have hk : apply.dispatchKind rq' = .authenticate := by
       rw [hrq]; exact dispatchKind_irrAuthenticate name pre hm
-    ihave ⟨%am, %rp, %v, %Hp, Hrp, #Ht⟩ := appliedOkM_authn E ρ γa hγa rq' F resp L hk $$ Hok
+    ihave ⟨%am, %rp, %v, %Hp, Hrp, %Hvu, #Ht⟩ := appliedOkM_authn E ρ γa hγa rq' F resp L hk $$ Hok
     obtain ⟨Ham, Hresp⟩ := Hp
     have hname : am.name = name := by
       rw [hrq] at Ham
@@ -145,8 +147,10 @@ theorem authnRaft_on (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     · ipureintro; rfl
     iexists rp, v
     rw [← hname]
+    isplitr
+    · ipureintro; exact Hresp
     iframe Hrp Ht
-    ipureintro; exact Hresp
+    ipureintro; exact Hvu
   · iapply HΦ
     iframe Hlt Hrd HaE
     iright

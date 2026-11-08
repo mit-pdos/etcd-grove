@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 theorem pbutil.MustUnmarshalMessagePb.wp_proof
     (wp_Unmarshal : proto.UnmarshalPb.spec (GF := GF) (hG := hG)) :
     pbutil.MustUnmarshalMessagePb.spec (GF := GF) (hG := hG) := by
-  intro T hreg l d bs dq c₀ hm hu hbs
+  intro T hreg l d bs dq c₀ hm hu hdo hbs
   wp_start as ⟨Hd, Hb⟩
   wp_auto
   wp_apply wp_Unmarshal T hreg d bs dq l $$ [$Hd $Hb] as %err ⟨Hd, %Hok, Hdec⟩
@@ -37,6 +37,8 @@ theorem pbutil.MustUnmarshalMessagePb.wp_proof
   rw [Heq c₀ hm hu hbs]
   iapply HΦ
   iframe
+  iapply Hm
+  ipureintro; exact hdo
 
 end proof
 

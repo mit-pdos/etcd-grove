@@ -57,7 +57,7 @@ set_option hygiene false in
 /-- The App frame (`msgTypeApp`): the tag, then `messageEncoder`'s frame of the message, the
 state the message's term and its last entry's index. -/
 local macro "enc_full" : tactic => `(tactic| (
-  have Hfr := V2Frame.full (frm := frm) (to := to) cst Hw0 (by omega) ⟨c, hcm, Hu, rfl⟩
+  have Hfr := V2Frame.full (frm := frm) (to := to) cst Hw0 (by omega) ⟨c, hcm, Hu, hcu, rfl⟩
   ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
   · iPkgInit
   ihave %Hbe := bigEndian_ne_null $$ Hbin
@@ -245,7 +245,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
   wp_start as ⟨Henc, #Hwr, HWr, #Hm, #Hb, #HA⟩
   iunfold swMsgBound at Hb
   icases Hb with ⟨%c, #Hc, %Hcb⟩
-  obtain ⟨hcm, hcs⟩ := Hcb
+  obtain ⟨hcm, hcu, hcs⟩ := Hcb
   have hm' : MsgMarshals c.model := hcm ▸ Hok.1
   ihave %Hp := msgRoC_enc ml c $$ Hc
   obtain ⟨Hw0, hlenc, Hu⟩ := Hp hm' (by omega)

@@ -98,8 +98,9 @@ structure ProtoMsg (GF : BundledGFunctors) where
   /-- **An upper bound on the length of the encoding** (`proto.Size`) of every message `send`
   holds at `m`, counting a submessage at each reference (as protobuf-go's `Size` does). Read it
   against `send`: every wire field must be pinned by `send`. Scope: the unknown fields of the
-  messages `send` holds field by field (inside `txnReqAt`, `createReqSend`, `userOptsAt`,
-  `ownPermW`) are not pinned; translated code never sets unknown fields (`SetUnknown` is not
+  messages `send` holds field by field (inside `txnReqAt` at every nested level, `createReqSend`,
+  `userOptsAt`, `ownPermW`, the Lease replies' headers and `LeaseStatus` elements, and the watch
+  stream's outer, cancel and progress messages) are not pinned; translated code never sets unknown fields (`SetUnknown` is not
   translated; requests are struct literals), so the bound is claimed for messages without them
   (the whole-struct sends pin them; the rest is to come, `notes/decisions.md`, "The encoded-size
   bound at grpc's send side"). `grpcMsgMax` or more: no bound known (the default; responses),

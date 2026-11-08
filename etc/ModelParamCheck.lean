@@ -48,6 +48,11 @@ user supplies what is negative and receives what is positive; `→`, `-∗`, `�
   the generated type-declaration axioms of `Code/` (checked there by module, file line and shape:
   `[v6a]` 4).
 
+**What `Sat` is.** Rule 7's `Sat` theorems prove that each registered model is *satisfiable* (some
+loop-free store from the zero struct reaches it), not that it is *faithful* to Go's decoder: the
+models' fields (`dec`, `wire`, `send`, `recv`, `wireLen`, ...) are trusted text, listed and argued
+in the Freeze package and attacked there.
+
 `--selftest` (rule 6's negative tests) elaborates scratch declarations over the imported
 environment (`SELFTESTS` below), each of which must be refused, and one which must pass.
 
@@ -157,6 +162,13 @@ def regAtom? (e : Expr) : Option (Name × Expr × Expr) :=
       else none
     | _ => none
   else none
+
+/-- The bound variable an expression is a projection chain from (structure projections only). -/
+partial def rootBVar? (e : Expr) : Option Nat :=
+  match e.consumeMData with
+  | .bvar i => some i
+  | .proj _ _ x => rootBVar? x
+  | _ => none
 
 /-- Whether a field type mentions the constant `c` (a placeholder `_field.F`). -/
 def mentions (e : Expr) (c : Name) : Bool := (e.find? fun x => x.isConstOf c).isSome
@@ -333,9 +345,14 @@ partial def walkBinder (n : Name) (d b : Expr) (bpol : Pol) (pol : Pol) (pfx : S
     (stack : Array Nat) : M Unit := do
   -- `bpol`: the polarity at which the bound value is received by the user. A bounded binder
   -- (`∀ m ∈ ms, …`, `∃ m ∈ ms, …`) ranges over a variable already bound: not judged ([v5]).
+  -- the membership's collection must be a variable bound outside (or a projection chain from one)
+  let memBound (d' : Expr) : Bool :=
+    let d' := d'.consumeMData
+    d'.isAppOf ``Membership.mem && d'.getAppNumArgs == 5 && d'.hasLooseBVar 0 &&
+      (match rootBVar? (d'.getArg! 3) with | some i => i ≥ 1 | none => false)
   let bounded := match b.consumeMData with
-    | .forallE _ d' _ _ => d'.consumeMData.isAppOf ``Membership.mem && d'.hasLooseBVar 0
-    | .app (.app (.const ``And _) d') _ => d'.consumeMData.isAppOf ``Membership.mem && d'.hasLooseBVar 0
+    | .forallE _ d' _ _ => memBound d'
+    | .app (.app (.const ``And _) d') _ => memBound d'
     | _ => false
   if !bounded then
     if ← typeCarriesReg d then noteAtom bpol s!"binder {n}"
@@ -366,6 +383,12 @@ partial def walk (e : Expr) (pol : Pol) (pfx : String) (stack : Array Nat) : M U
       noteAtom pol s!"atom {r}"
       recordOcc stack v s!"__reg:{r}" pol
       recordOcc stack key s!"__regkey:{r}" pol
+      walk key .both pfx stack
+      walk v .both pfx stack
+      return
+    -- any other occurrence of a registry constant (`pbModelOf k = pbModelOf k'`, `.isSome`, ...)
+    if let .const r _ := e.getAppFn then
+      if REGISTRIES.contains r then noteAtom .both s!"bare registry {r}"
     let f := e.getAppFn
     let args := e.getAppArgs
     match f with
@@ -581,7 +604,8 @@ def allowedAx (parts : List Name) (env : Environment) (a : Name) : Bool :=
     let t := t.consumeMData
     let last := match a with | .str _ l => l | _ => ""
     inCode && ((last == "underlying" && t.isConstOf `Perennial.go.GoType) ||
-      (last == "zero_val" && t.isAppOf `Perennial.ZeroVal) ||
+      (last == "zero_val" && t.isAppOf `Perennial.ZeroVal &&
+        (t.appArg!.consumeMData.getAppFn.constName? == some a.getPrefix)) ||
       (av.type.consumeMData matches .sort (.succ .zero)))
   | _, _ => false
 
@@ -605,12 +629,11 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
     if onlyNew && (env.getModuleIdxFor? n).isSome && !isAx then continue
     let isThm := ci matches .thmInfo _
     if !isAx && !isThm then continue
-    -- theorems: only those mentioning a registry whose proof reaches `sorryAx`
+    -- theorems: every one whose own proof contains `sorryAx` (a theorem resting on another
+    -- through it is checked at that one)
     if isThm then
-      let men := (ci.type.find? fun x => match x with
-        | .const c _ => REGISTRIES.contains c | _ => false).isSome
-      if !men then continue
-      if !(← collectAx env n).contains ``sorryAx then continue
+      let some v := ci.value? | continue
+      if !(v.find? (·.isConstOf ``sorryAx)).isSome then continue
     if !(← isPropType env ci.type) then continue
     let (bs, body) := stripBinders ci.type
     let _ := bs
@@ -640,12 +663,16 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
       bad := bad + 1
       emit s!"\{\"t\":\"atom\",\"axiom\":{jstr n.toString},\"where\":{jstr w}}"
   -- rule 3: one registration per (registry, key)
-  let mut seen : Std.HashMap (Name × Name) Name := {}
+  let mut seen : Std.HashMap (Name × String) Name := {}
   for (n, r, kc, _, _) in regs do
-    if let some m := seen.get? (r, kc) then
+    -- the key's value (a `.ty` constant's body: the Go type), not its name
+    let kv := match env.find? kc with
+      | some (.defnInfo dv) => toString dv.value
+      | _ => kc.toString
+    if let some m := seen.get? (r, kv) then
       bad := bad + 1
       emit s!"\{\"t\":\"reg\",\"name\":{jstr n.toString},\"bad\":{jstr s!"a second registration of {kc} in {r} (first: {m})"}}"
-    else seen := seen.insert (r, kc) n
+    else seen := seen.insert (r, kv) n
   -- rule 7: the `Sat` theorem (and a request's `wireLen` witness) in the registration's module
   for (n, r, _, vc, mod) in regs do
     if onlyNew && (env.getModuleIdxFor? n).isSome then continue
@@ -656,15 +683,30 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
     for (m, ci) in consts do
       unless ci matches .thmInfo _ do continue
       unless modOf env m == mod do continue
-      let (_, body) := stripBinders ci.type
+      let (bs, body) := stripBinders ci.type
       let body := body.consumeMData
+      -- no hypothesis: every Prop binder must be a package `Assumptions` class
+      let mut hyp := false
+      for i in [0:bs.size] do
+        let (_, bt, _) := bs[i]!
+        let bt' := bt.instantiateRev (((List.range i).toArray).map fun _ => mkConst `_x)
+        if ← isPropType env bt' then
+          let isAssum := match (codomain bt).getAppFn with
+            | .const c _ => (match c with | .str _ l => l == "Assumptions" | _ => false) | _ => false
+          if !isAssum then hyp := true
+      if hyp then continue
       if body.isAppOf sat && body.getAppNumArgs > 0 &&
           body.appArg!.consumeMData.getAppFn.isConstOf target then
         satThm := some m
-      if isReqRole r && body.isAppOf ``Exists &&
-          (body.find? (·.isConstOf `Perennial.EtcdGrove.grpcMsgMax)).isSome &&
-          (body.find? (·.isConstOf vc)).isSome then
-        wlThm := some m
+      -- the witness, structurally: `∃ m, X.wireLen m < grpcMsgMax`
+      if isReqRole r && body.isAppOfArity ``Exists 2 then
+        if let .lam _ _ lb _ := (body.getArg! 1).consumeMData then
+          let lb := lb.consumeMData
+          if lb.isAppOfArity ``LT.lt 4 && (lb.getArg! 3).isConstOf `Perennial.EtcdGrove.grpcMsgMax &&
+              ((lb.getArg! 2).find? (·.isConstOf vc)).isSome &&
+              ((lb.getArg! 2).find? fun x => x.isConstOf `Perennial.EtcdGrove.ProtoMsg.wireLen ||
+                x.isConstOf `Perennial.EtcdGrove.StreamMsg.wireLen).isSome then
+            wlThm := some m
     match satThm with
     | none =>
       bad := bad + 1
@@ -731,6 +773,19 @@ axiom st_nosat : grpcRepModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.StatusReq
 axiom Foo.zero_val : False
 theorem stV_repSat : (stV (GF := GF)).RepSat := Foo.zero_val.elim
 axiom st_zv : grpcRepModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty = some (stV (GF := GF))", true),
+  ("a vacuous Sat theorem (a False hypothesis)",
+   "noncomputable def stX : ProtoMsgT GF := { pbRangeResponseT (GF := GF) with recv := fun _ _ => iprop(False), recv_persistent := fun _ _ => inferInstance }
+theorem stX_repSat (h : False) : (stX (GF := GF)).RepSat := h.elim
+axiom st_vac : grpcRepModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty = some (stX (GF := GF))", true),
+  ("a reversed wireLen witness",
+   "noncomputable def stY : ProtoMsgT GF := { pbPutRequestT (GF := GF) with wireLen := fun _ => grpcMsgMax }
+theorem stY_reqSat : (stY (GF := GF)).ReqSat := by
+  refine ⟨(pbPutRequestT_reqSat (GF := GF)).1, (pbPutRequestT_reqSat (GF := GF)).2.1, (pbPutRequestT_reqSat (GF := GF)).2.2.1, ?_⟩
+  intro ls l m; iintro ⟨_, %h, _⟩; exact absurd h (by simp [stY])
+theorem stY_wl : ∃ m, grpcMsgMax ≤ (stY (GF := GF)).wireLen m := ⟨putReqOp (zero_val _) [] [], by simp [stY]⟩
+axiom st_rev : grpcReqModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty = some (stY (GF := GF))", true),
+  ("an unbounded membership binder (∃ m ∈ Set.univ)",
+   "axiom st_univ : ∀ (P : IProp GF), P ⊢ ⌜∃ m ∈ (Set.univ : Set (GrpcMethod GF)), m.name = m.name⌝", true),
   ("a request registration keeping the default wireLen (no wireLen witness)",
    "noncomputable def stW : ProtoMsgT GF := { pbPutRequestT (GF := GF) with wireLen := fun _ => grpcMsgMax }
 theorem stW_reqSat : (stW (GF := GF)).ReqSat := by

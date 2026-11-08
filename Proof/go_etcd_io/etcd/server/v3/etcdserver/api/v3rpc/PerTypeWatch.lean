@@ -4,10 +4,9 @@ Scope's V for `StreamMsg`): `WatchRequest` (`StreamMsgT.ReqStore`: its oneof, a 
 with its key and range end `nil` if empty) and `WatchResponse` (`StreamMsgT.RepSat`: the header,
 the flags, the events, each with its key-value and previous key-value).
 
-The request side's `send null m ⊢ False` is not provable at today's `watchReqSend`: it does not
-say the message is not `nil` (its `.other` case holds only a field points-to of `l`, and a field
-of `nil` is not known to be `nil`); the real stage adds `⌜l ≠ null⌝` to it (the client's
-`watchRequest.toPB` builds a fresh one). Here the request's `OwnAny` and its store are proved.
+The request side's `send null m ⊢ False` is proved: `watchReqSend` says the message is not `nil`
+(`⌜l ≠ null⌝`, stage A; the client's `watchRequest.toPB` builds a fresh one). The request's
+`OwnAny` and its store are proved too (`pbWatchRequestT_reqSat`).
 -/
 module
 

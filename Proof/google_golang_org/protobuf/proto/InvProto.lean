@@ -124,6 +124,11 @@ structure PbModelC (GF : BundledGFunctors) extends PbType GF where
   size : C → Nat
   /-- The normalizing store of a model (`Store.lean`). -/
   tree : M → VTree
+  /-- **The contents whose decoded message `dec` describes** (trusted, with `dec`): `dec` takes a
+  model, which may forget part of what Go's decoder leaves (a `Message`'s snapshot `ConfState`'s
+  unknown fields, which `dec` fixes to none); without `decOk` Go's decoded message is not described
+  (true of Go: the receiver then owns nothing it can use). -/
+  decOk : C → Prop
   /-- `ro` is a frozen message at some wire content (proved). -/
   ro_iff : ∀ l m, ro l m ⊣⊢ ∃ c, roC l c ∗ ⌜modelOf c = m⌝
   /-- A frozen message's unknown fields are valid (proved, from `pbMsg`'s index). -/

@@ -1125,7 +1125,9 @@ transactions, `notes/txn-nested.md`); the decoded copy denotes the same transact
 (`txn.txnRequestIs`: the txn package's model of the server's request) and is as protobuf decodes it
 (`txnWireOk`: each delete's `RangeEnd`, at every depth, `nil` or not empty, an empty `bytes` field
 being decoded as `nil`; fewer than `2 ^ 63` deletes per branch, at every depth, each at least a byte
-of the message). -/
+of the message). Its `wireLen` (`txnWireLen`) is claimed for messages whose nested levels have no
+unknown fields: only the outer struct's are pinned (`send`), the nested levels' are neither pinned
+nor counted (`ProtoMsg.wireLen`'s scope). -/
 def pbTxnRequest : ProtoMsg GF where
   ty := etcdserverpb.TxnRequest.ty
   M := TxnModel

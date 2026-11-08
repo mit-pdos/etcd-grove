@@ -84,7 +84,7 @@ def authnAns (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γa : auth.AuthNam
   iprop(authnSlot s E γr ∗
     (∃ pw' : GoString, structFieldRef etcdserverpb.AuthenticateRequest go!"Password" r ↦ pw') ∗
     (⌜err = GoInterface.nil⌝ -∗ ∃ v : etcdserverpb.AuthenticateResponse,
-      resp ↦ v ∗ auth.tokIssued γa v.Token' name))
+      resp ↦ v ∗ ⌜v.unknownFields' = slice.nil⌝ ∗ auth.tokIssued γa v.Token' name))
 
 /-- **etcd's `Authenticate`, as the service runs it, with auth on at `γa`** (`grpcHandlerOwnOk`; C1's
 A5): the `*AuthServer` `p` of the server `s` in the mode `on` (`isServerReqM true`,
@@ -125,7 +125,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     iapply HΨ'
     iframe HaE
     iunfold authEntryOut
-    icases Hout with (⟨%He, %v, Hv, #Ht⟩ | %Hre)
+    icases Hout with (⟨%He, %v, Hv, %Hvu, #Ht⟩ | %Hre)
     · subst He
       ileft
       isplitr
@@ -138,6 +138,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       iintro -
       iexists v
       iframe Hv Ht
+      ipureintro; exact Hvu
     · obtain ⟨rfl, Hne⟩ := Hre
       iright
       isplitr
@@ -166,11 +167,11 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     icases Ha with ⟨Hs, -, Hok⟩
     iframe Hs
     iintro -
-    ihave ⟨%v, Hv, #Ht⟩ := Hok $$ %rfl
+    ihave ⟨%v, Hv, %Hvu, #Ht⟩ := Hok $$ %rfl
     iexists v.Token'
     simp only [pbAuthenticateResponse]
     isplitl [Hv]
-    · iexists v; iframe Hv; ipureintro; rfl
+    · iexists v; iframe Hv; ipureintro; exact ⟨rfl, Hvu⟩
     iunfold etcdAuthenticateSpec at Hspec
     iapply Hspec
     iexact Ht

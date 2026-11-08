@@ -294,7 +294,11 @@ local macro "run_hb" : tactic => `(tactic| (
     pbMessageC_C] at wpC
   wp_apply wpC $$ [] as %l' ⟨%c', Hl', %Heqv⟩
   · iexact Hchb
-  rw [Hchbm] at Heqv
+  have hcs : c'.csUfNil := by
+    have h := Heqv.2.2 (by first | rfl | (simp only [pbMessageC_marshals, MsgMarshals, Hchbm.1]; rfl) | simp [pbMessageC_marshals, MsgMarshals, Hchbm.1])
+    rw [h]; exact Hchbm.2
+  ihave Hl' := Hl' $$ %hcs
+  rw [Hchbm.1] at Heqv
   replace Heqv := Heqv.1
   generalize c'.model = m' at Heqv ⊢
   (try wp_auto)
@@ -304,7 +308,7 @@ local macro "run_hb" : tactic => `(tactic| (
   imod Hl'' with Hl'
   -- the clone, bounded: the trust boundary `swMsgBound_phys` (stage A of the per-type models)
   icases Hl' with #Hl'
-  ihave #Hlb := swMsgBound_phys l' m' $$ Hl'
+  ihave #Hlb := swMsgBound_phys l' m' (Heqv.2 rfl) $$ Hl'
   iunfold swLive at Hlive
   icases Hlive with ⟨%wi, %a, %R, %γk, %γw, %fr, %s, %Hfl, HencO, Hrw, %Hc, #Hfs, #Hreg, %HR3, Hclr⟩
   ihave ⟨HencO, %Hei⟩ := encOwn_ok _ _ _ _ _ _ _ $$ HencO

@@ -100,7 +100,7 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
         · rw [← Hframe]; iexact HB2
         ihave %HV2 := HV $$ %ys2 HB3
         have Hlt : ys2.length < 2 ^ 63 := by rw [hl2]; word
-        obtain ⟨st0, Hw0, c0, hc0m, hc0u, hc0b⟩ := HV2 Hlt
+        obtain ⟨st0, Hw0, c0, hc0m, hc0u, hc0cs, hc0b⟩ := HV2 Hlt
         wp_auto
         have wpU := wp_Unmarshal pbMessageC pbMessageC_reg buf ys2 (DFrac.own 1) m_ptr
         simp only [pbMessageC_ty, pbMessageC_blank, pbMessageC_dec, pbMessageC_wire,
@@ -119,13 +119,15 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
         iframe HRd
         iintro -
         ihave ⟨%c, Hm, %Hw⟩ := Hdec $$ %rfl
+        have hcc : c = c0 := Hw.2.2.2 c0 (by rw [hc0m]; exact Hw0.1) hc0u hc0b
+        subst hcc
+        ihave Hm := Hm $$ %hc0cs
         iexists ys2, c.model
         iframe Hm HB2
         ipureintro
-        refine ⟨?_, ?_, Hw.1, c, rfl, Hw.2.2.1, ?_⟩
+        refine ⟨?_, ?_, by rw [hc0m]; exact Hw0, c, rfl, hc0u, hc0cs, hc0b⟩
         · exact Hframe
         · rw [hl2]; word
-        · rw [Hw.2.2.2 c0 (by rw [hc0m]; exact Hw0.1) hc0u hc0b]; exact hc0b
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei =>

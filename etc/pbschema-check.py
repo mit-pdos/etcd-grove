@@ -30,7 +30,7 @@ import subprocess
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-REG = re.compile(r"^axiom\s+(\S+)[^\n]*(?:\n(?!axiom|theorem|def|/--)[^\n]*)*?pbModelOf GF \S+ = some", re.M)
+REG = re.compile(r"^axiom\s+(\S+)[^\n]*(?:\n(?!axiom|theorem|def|/--)[^\n]*)*?pbModelOf\s+GF\s+\S+\s*=\s*some", re.M)
 
 
 def reg_modules():
@@ -106,8 +106,9 @@ def main():
             if d == dump:
                 fail.append(f"negative test {name}: the mutation did not apply")
                 continue
-            open(p, "w").write(d)
-            rc, _ = go_test(p)
+            pm = os.path.join(td, f"dump-{name}")
+            open(pm, "w").write(d)
+            rc, _ = go_test(pm)
             if rc == 0:
                 fail.append(f"negative test {name}: the Go test passed on a wrong schema")
     if fail:

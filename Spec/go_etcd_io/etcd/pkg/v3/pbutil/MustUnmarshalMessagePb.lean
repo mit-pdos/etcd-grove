@@ -27,12 +27,12 @@ variable [sem : go.Semantics]
 /-- **`MustUnmarshalMessage(um, data)`** into a zero `*T` of a registered type, of the encoding of a
 wire content `c₀` that marshals with valid unknown fields (`pbEncC T c₀`): it does not panic, and
 the `*T` holds, owned, a message at `c₀`'s model (`proto.Unmarshal`'s D2: the decode gives `c₀`
-back; stage A of the per-type models: until then of any bytes that are an encoding of some model of
-any `PbType`). -/
+back, and `c₀` is one the type's `dec` describes, `decOk`; stage A of the per-type models: until
+then of any bytes that are an encoding of some model of any `PbType`). -/
 abbrev pbutil.MustUnmarshalMessagePb.spec : Prop :=
   ∀ (T : PbTypeC GF), pbModelOf GF T.data.ty = some T →
   ∀ (l : Loc) (d : GoSlice) (bs : List w8) (dq : DFrac) (c₀ : T.data.C),
-  T.data.marshals (T.data.modelOf c₀) → T.data.ufValid c₀ → bs = pbEncC T c₀ →
+  T.data.marshals (T.data.modelOf c₀) → T.data.ufValid c₀ → T.data.decOk c₀ → bs = pbEncC T c₀ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ d ↦*{dq} bs ∗
       T.data.blank l }}
     (App (App (Val (@! pbutil.MustUnmarshalMessage))

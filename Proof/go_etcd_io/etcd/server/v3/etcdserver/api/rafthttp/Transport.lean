@@ -197,8 +197,13 @@ panic.) Not derivable in the logic, which can allocate a slice of any `w64` leng
 from raft's `out_size`): the "physical" justification fails under aliasing, since a message's
 entries may share one object (`msgPtsC`'s entries are read-only), so `2^18` references to one
 `2^32`-byte entry encode to about `2^50` bytes held in about 4 GiB of memory (the per-type
-Scope's review, revision 2). -/
-axiom swMsgBound_phys (ml : Loc) (st : MsgSt) :
+Scope's review, revision 2). Over a message with responses it would be **inconsistent in the
+logic** (the stage A Freeze review): `swMsgBound` freezes every response at a content (`msgRoC`, a
+non-nil, read-only pointer), which `msgOwn` does not own (a `nil` response gives `False`); hence the
+premise `st.resps = []`, which every user has (`MsgMarshals`). The content it gives has a snapshot
+`ConfState` without unknown fields (`MsgC.csUfNil`): the sender's fact, since `msgOwn`'s `csPts`
+(raft's) fixes them to none. -/
+axiom swMsgBound_phys (ml : Loc) (st : MsgSt) (h : st.resps = []) :
     msgOwn (GF := GF) ml DFrac.discard st ⊢ swMsgBound ml st
 
 /-- **A message in the network's bundle is one the transport's `Send` takes** (stage 6d): the
@@ -208,7 +213,7 @@ theorem sendMsg_of_netBundle (Rh : RaftHttp GF) (lid : w64) (ml : Loc) :
   iintro Hb
   iunfold netBundle at Hb
   icases Hb with ⟨%st, #Hm, #HP, HO, %H⟩
-  ihave #Hbd := swMsgBound_phys ml st $$ Hm
+  ihave #Hbd := swMsgBound_phys ml st H.2.1 $$ Hm
   iunfold sendMsg
   iexists st
   iframe; iframe #

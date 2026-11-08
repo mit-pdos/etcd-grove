@@ -160,12 +160,14 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             pbMessageC_modelOf, pbMessageC_C, pbMessageC_marshals, pbMessageC_ufValid,
             pbMessageC_size, pbEncC_pbMessageC] at hU
           wp_apply hU $$ [$Hsl $m] as %uerr ⟨Hsl, %Hok, Hdec⟩
-          obtain ⟨c0, hc0m, hc0u, hc0b⟩ := Hst.2.1
+          obtain ⟨c0, hc0m, hc0u, hc0cs, hc0b⟩ := Hst.2.1
           have Hue : uerr = GoInterface.nil := Hok ⟨c0, by rw [hc0m]; exact Hst.1.1, hc0u, hc0b⟩
           subst Hue
           ihave ⟨%c', Hm', %Hw0'⟩ := Hdec $$ %rfl
-          have Hw' := Hw0'.1
-          clear Hw0'
+          have hcc : c' = c0 := Hw0'.2.2.2 c0 (by rw [hc0m]; exact Hst.1.1) hc0u hc0b
+          ihave Hm' := Hm' $$ %(hcc ▸ hc0cs)
+          have Hw' : MsgWireOk c'.model R.body := by rw [hcc, hc0m]; exact Hst.1
+          clear Hw0' hcc
           generalize c'.model = m' at Hw' ⊢
           wp_auto
           -- `receivedBytes.WithLabelValues(types.ID(m.GetFrom()).String()).Add(float64(len(b)))`

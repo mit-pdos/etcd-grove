@@ -114,9 +114,11 @@ raft-entsize is to derive from its `out_size`): the frozen message `ml` holds a 
 `st` whose size is below `2^47` bytes. What the encoders size and marshal (`proto.Size`,
 `MarshalAppend`, `MustMarshalMessage` take the content), and what bounds the sizes the stream
 writer sums (2049 of them stay below `2^62`). Given today by the trust-boundary axiom
-`swMsgBound_phys` (`Transport.lean`). -/
+`swMsgBound_phys` (`Transport.lean`). The content's snapshot `ConfState` has no unknown fields
+(`MsgC.csUfNil`, the sender's fact: raft's `csPts` fixes them to none), what the receiver's decoded
+message needs (`MsgEnc`). -/
 def swMsgBound (ml : Loc) (st : MsgSt) : IProp GF :=
-  iprop(∃ c : MsgC, msgRoC ml c ∗ ⌜c.model = st ∧ msgSize c < 2 ^ 47⌝)
+  iprop(∃ c : MsgC, msgRoC ml c ∗ ⌜c.model = st ∧ c.csUfNil ∧ msgSize c < 2 ^ 47⌝)
 
 instance swMsgBound_persistent (ml : Loc) (st : MsgSt) :
     Persistent (swMsgBound (GF := GF) ml st) := by

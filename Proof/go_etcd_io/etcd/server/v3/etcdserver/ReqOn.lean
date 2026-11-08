@@ -289,7 +289,7 @@ def authnAnsM (on : Bool) (E : apply.AEnv GF) (rq : apply.IRRModel) (resp : GoIn
         ∃ (am : apply.AuthenticateModel) (rp : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse),
           ⌜rq.authenticate = some am ∧
             resp = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty) #rp⌝ ∗
-          rp ↦ v ∗ auth.tokIssued γa v.Token' am.name)
+          rp ↦ v ∗ ⌜v.unknownFields' = slice.nil⌝ ∗ auth.tokIssued γa v.Token' am.name)
     | _ => iprop(True)
 
 theorem authnAnsM_false (E : apply.AEnv GF) (rq : apply.IRRModel) (resp : GoInterface) :
@@ -320,11 +320,13 @@ theorem authnAnsM_of_ar (on : Bool) (E : apply.AEnv GF) (ar : Loc) (rq : apply.I
     subst Hvv
     iright
     iunfold apply.authnOut at Hout
-    icases Hout with (⟨%He, -⟩ | ⟨-, %w, Hw, #Ht⟩)
+    icases Hout with (⟨%He, -⟩ | ⟨-, %w, Hw, %Hwu, #Ht⟩)
     · exact absurd hve He.1
     iexists am, resp, w
+    isplitr
+    · ipureintro; exact Hr
     iframe Hw Ht
-    ipureintro; exact Hr
+    ipureintro; exact Hwu
 
 /-- **The apply thread's answer, as `raftRequest` reports it, in the auth mode `on`** (`appliedOk`'s
 at the committed prefix `L` before the entry, with `modelOutM`; and (E3x) an admin request's step

@@ -172,6 +172,7 @@ def pbEntryM : PbModelC GF where
   levels c := [(entrySchema, c.uf)]
   size := entrySize
   tree := entryTree
+  decOk _ := True
   ro_iff _ _ := .rfl
   roC_ufValid l c := by
     unfold entRoC

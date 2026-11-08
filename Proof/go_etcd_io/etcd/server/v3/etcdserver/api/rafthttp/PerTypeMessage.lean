@@ -666,14 +666,16 @@ def msgTree (st : MsgSt) : VTree :=
 
 /-- **`raftpb.Message` at its wire content: the data** (no axiom: what `Sat` is stated over). `ro`
 is a frozen message at some wire content; `dec` today's (`pbMessage`'s): an owned message with its
-`Entries` capacity. -/
+`Entries` capacity, which fixes the snapshot `ConfState`'s unknown fields to none, so it describes
+only a content without (`decOk`, `MsgC.csUfNil`); `wire` is a decoding (`MsgDecOk`), not an encoding
+(Go decodes `responses`). -/
 def pbMessageM : PbModelC GF where
   ty := raftpb.Message.ty
   M := MsgSt
   ro l st := iprop(∃ c, msgRoC l c ∗ ⌜c.model = st⌝)
   ro_persistent _ _ := inferInstance
   marshals := MsgMarshals
-  wire := MsgWireOk
+  wire := MsgDecOk
   eqv st st' := wireOf st = wireOf st' ∧ (st.resps = [] → st'.resps = [])
   blank l := iprop(l ↦ (zero_val raftpb.Message))
   dec l st := msgPtsC l (DFrac.own 1) (DFrac.own 1) true st
@@ -684,6 +686,7 @@ def pbMessageM : PbModelC GF where
   levels := MsgC.levels
   size := msgSize
   tree := msgTree
+  decOk := MsgC.csUfNil
   ro_iff _ _ := .rfl
   roC_ufValid := msgRoC_uf
 
@@ -692,7 +695,7 @@ whose `enc_ok` is the type's one trusted fact `msgEncC_ok`. -/
 def pbMessageC : PbTypeC GF where
   data := pbMessageM
   encd := { enc := msgEncC
-            enc_ok := fun c hm hu hs => msgEncC_ok c hm hu hs }
+            enc_ok := fun c hm hu hs => ⟨(msgEncC_ok c hm hu hs).1.2, (msgEncC_ok c hm hu hs).2⟩ }
 
 end defs
 
@@ -1009,7 +1012,8 @@ variable [sem : go.Semantics]
 @[simp] theorem pbMessageC_modelOf : (pbMessageC (GF := GF)).data.modelOf = MsgC.model := rfl
 @[simp] theorem pbMessageC_size : (pbMessageC (GF := GF)).data.size = msgSize := rfl
 @[simp] theorem pbMessageC_marshals : (pbMessageC (GF := GF)).data.marshals = MsgMarshals := rfl
-@[simp] theorem pbMessageC_wire : (pbMessageC (GF := GF)).data.wire = MsgWireOk := rfl
+@[simp] theorem pbMessageC_wire : (pbMessageC (GF := GF)).data.wire = MsgDecOk := rfl
+@[simp] theorem pbMessageC_decOk : (pbMessageC (GF := GF)).data.decOk = MsgC.csUfNil := rfl
 @[simp] theorem pbMessageC_levels : (pbMessageC (GF := GF)).data.levels = MsgC.levels := rfl
 @[simp] theorem pbMessageC_ufValid (c : MsgC) :
     (pbMessageC (GF := GF)).data.ufValid c = ∀ q ∈ c.levels, ufWire q.1 q.2 := rfl
@@ -1027,6 +1031,7 @@ variable [sem : go.Semantics]
 @[simp] theorem pbEntryC_size : (pbEntryC (GF := GF)).data.size = entrySize := rfl
 @[simp] theorem pbEntryC_marshals (e : EntryM) : (pbEntryC (GF := GF)).data.marshals e = True := rfl
 @[simp] theorem pbEntryC_wire : (pbEntryC (GF := GF)).data.wire = EntWireOk := rfl
+@[simp] theorem pbEntryC_decOk (c : EntryC) : (pbEntryC (GF := GF)).data.decOk c = True := rfl
 @[simp] theorem pbEntryC_ufValid (c : EntryC) :
     (pbEntryC (GF := GF)).data.ufValid c = ∀ q ∈ [(entrySchema, c.uf)], ufWire q.1 q.2 := rfl
 @[simp] theorem pbEntryC_blank (l : Loc) :
@@ -1116,7 +1121,7 @@ theorem entsRO_entsRoC : ∀ (els : List Loc) (es : List EntryM),
     ipureintro; rw [hc, hcs]
 
 theorem csPts_csRoC (p : Loc) (c : ConfStateM) (al : Bool) :
-    csPts (GF := GF) p DFrac.discard c al ⊢ ∃ cc : CSC, csRoC p cc ∗ ⌜cc.model = c⌝ := by
+    csPts (GF := GF) p DFrac.discard c al ⊢ ∃ cc : CSC, csRoC p cc ∗ ⌜cc.model = c ∧ cc.uf = []⌝ := by
   iunfold csPts
   iintro ⟨%sv, %sl, %so, %sn, %pa, %Hnn, #HV, #Hv, #HL, #Hl, #HO, #Ho, #HN, #Hn, #HA, #cA, -, #Hpb⟩
   ihave ⟨%oA, #oA', %hA⟩ := cellRO_optCell pa c.AutoLeave' $$ cA
@@ -1127,29 +1132,32 @@ theorem csPts_csRoC (p : Loc) (c : ConfStateM) (al : Bool) :
     iframe HV Hv HL Hl HO Ho HN Hn HA oA' Hpb
     ipureintro; exact Hnn
   ipureintro
+  refine ⟨?_, rfl⟩
   obtain ⟨a, b, d, e, f⟩ := c
   simp only [CSC.model] at *
   rw [hA]
 
 theorem csOptA_csOptC (p : Loc) (c : ConfStateM) :
     csOptA (GF := GF) p DFrac.discard c ⊢
-      ∃ o : Option CSC, csOptC p o ∗ ⌜(o.map CSC.model).getD csZero = c⌝ := by
+      ∃ o : Option CSC, csOptC p o ∗
+        ⌜(o.map CSC.model).getD csZero = c ∧ ∀ cc ∈ o, cc.uf = []⌝ := by
   unfold csOptA
   iintro (%H | #H | #H)
   · iexists none
     simp only [csOptC, Option.map_none, Option.getD_none]
-    ipureintro; exact ⟨H.1, H.2.symm⟩
+    ipureintro; exact ⟨H.1, H.2.symm, by simp⟩
   · ihave ⟨%cc, #Hc, %hc⟩ := csPts_csRoC p c false $$ H
     iexists (some cc)
     simp only [csOptC, Option.map_some, Option.getD_some]
-    iframe Hc; ipureintro; exact hc
+    iframe Hc; ipureintro; exact ⟨hc.1, by simp [hc.2]⟩
   · ihave ⟨%cc, #Hc, %hc⟩ := csPts_csRoC p c true $$ H
     iexists (some cc)
     simp only [csOptC, Option.map_some, Option.getD_some]
-    iframe Hc; ipureintro; exact hc
+    iframe Hc; ipureintro; exact ⟨hc.1, by simp [hc.2]⟩
 
 theorem smPts_metaRoC (p : Loc) (md : SnapshotMetadataM) :
-    smPts (GF := GF) p DFrac.discard md ⊢ ∃ m : SnapMetaC, metaRoC p m ∗ ⌜m.model = md⌝ := by
+    smPts (GF := GF) p DFrac.discard md ⊢
+      ∃ m : SnapMetaC, metaRoC p m ∗ ⌜m.model = md ∧ ∀ cs ∈ m.confState, cs.uf = []⌝ := by
   iunfold smPts
   iintro ⟨%pc, %pi, %pt, %uf, %Hnn, #HC, #Hc, #HI, #cI, #HT, #cT, #Hpb⟩
   ihave ⟨%oC, #oC', %hC⟩ := csOptA_csOptC pc md.ConfState' $$ Hc
@@ -1162,26 +1170,29 @@ theorem smPts_metaRoC (p : Loc) (md : SnapshotMetadataM) :
     iframe HC oC' HI oI' HT oT' Hpb
     ipureintro; exact Hnn
   ipureintro
+  refine ⟨?_, hC.2⟩
   obtain ⟨a, b, d⟩ := md
   simp only [SnapMetaC.model] at *
-  rw [hC, hI, hT]
+  rw [hC.1, hI, hT]
 
 theorem smOpt_metaOptC (p : Loc) (md : SnapshotMetadataM) :
     smOpt (GF := GF) p DFrac.discard md ⊢
-      ∃ o : Option SnapMetaC, metaOptC p o ∗ ⌜(o.map SnapMetaC.model).getD metaZero = md⌝ := by
+      ∃ o : Option SnapMetaC, metaOptC p o ∗
+        ⌜(o.map SnapMetaC.model).getD metaZero = md ∧ ∀ m ∈ o, ∀ cs ∈ m.confState, cs.uf = []⌝ := by
   unfold smOpt
   iintro (%H | #H)
   · iexists none
     simp only [metaOptC, Option.map_none, Option.getD_none]
-    ipureintro; exact ⟨H.1, H.2.symm⟩
+    ipureintro; exact ⟨H.1, H.2.symm, by simp⟩
   · ihave ⟨%m, #Hm, %hm⟩ := smPts_metaRoC p md $$ H
     iexists (some m)
     simp only [metaOptC, Option.map_some, Option.getD_some]
-    iframe Hm; ipureintro; exact hm
+    iframe Hm; ipureintro; exact ⟨hm.1, by simpa using hm.2⟩
 
 theorem snapOpt_snapOptC (p : Loc) (o : Option SnapshotM) :
     snapOpt (GF := GF) p DFrac.discard o ⊢
-      ∃ oc : Option SnapC, snapOptC p oc ∗ ⌜oc.map SnapC.model = o⌝ := by
+      ∃ oc : Option SnapC, snapOptC p oc ∗
+        ⌜oc.map SnapC.model = o ∧ ∀ s ∈ oc, ∀ m ∈ s.metadata, ∀ cs ∈ m.confState, cs.uf = []⌝ := by
   cases o with
   | none =>
     simp only [snapOpt]
@@ -1203,15 +1214,16 @@ theorem snapOpt_snapOptC (p : Loc) (o : Option SnapshotM) :
       iframe HD oD' HM oM' Hpb
       ipureintro; exact Hnn
     ipureintro
+    refine ⟨?_, by simpa using hM.2⟩
     obtain ⟨a, b⟩ := s
     simp only [SnapC.model] at *
-    rw [hD, hM]
+    rw [hD, hM.1]
 
 /-- **A frozen message without responses is frozen at some wire content** (the converse of
 `msgRoC_msgOwn`; what `proto.Clone` of a message only held as `msgOwn` takes, e.g.
 `linkHeartbeatMessage`). -/
 theorem msgOwn_msgRoC (l : Loc) (st : MsgSt) (hr : st.resps = []) :
-    msgOwn (GF := GF) l DFrac.discard st ⊢ ∃ c : MsgC, msgRoC l c ∗ ⌜c.model = st⌝ := by
+    msgOwn (GF := GF) l DFrac.discard st ⊢ ∃ c : MsgC, msgRoC l c ∗ ⌜c.model = st ∧ c.csUfNil⌝ := by
   iintro H
   iunfold msgOwn at H
   iunfold msgPts at H
@@ -1245,10 +1257,11 @@ theorem msgOwn_msgRoC (l : Loc) (st : MsgSt) (hr : st.resps = []) :
       ipureintro; exact Hnn
     iempintro
   ipureintro
+  refine ⟨?_, hSn.2⟩
   obtain ⟨m, ents, snap, ctx, resps⟩ := st
   obtain ⟨a, b, c, d, e, f, g, i, j, k⟩ := m
   simp only [MsgC.model, MsgC.f, MsgC.resps, MsgFC.msgM, List.map_nil] at *
-  rw [hTy, hTo, hFr, hTe, hLt, hIx, hCo, hVo, hRj, hRh, hecs, hSn, hCx, hr]
+  rw [hTy, hTo, hFr, hTe, hLt, hIx, hCo, hVo, hRj, hRh, hecs, hSn.1, hCx, hr]
 
 /-- A message's entries' contents, from its wire content: the field, its slice, and each entry
 frozen at its content. -/
@@ -1289,9 +1302,11 @@ theorem nat_le_sum_of_mem {l : List Nat} {a : Nat} (h : a ∈ l) : a ≤ l.sum :
 
 /-- **A message's encoding is the encoding of a wire content of the message whose unknown fields
 are valid at every level** (stage A of the per-type models: the frames and request bodies carry the
-sender's content, so that the receiver's `proto.Unmarshal` succeeds and gives it back, D2). -/
+sender's content, so that the receiver's `proto.Unmarshal` succeeds and gives it back, D2), whose
+snapshot `ConfState` has no unknown fields (`MsgC.csUfNil`, what the receiver's `dec` needs: the
+sender's content is raft's, whose `csPts` fixes them to none). -/
 def MsgEnc [GooseExts] (st : MsgSt) (mbs : List w8) : Prop :=
-  ∃ c : MsgC, c.model = st ∧ (∀ q ∈ c.levels, ufWire q.1 q.2) ∧ mbs = msgEncC c
+  ∃ c : MsgC, c.model = st ∧ (∀ q ∈ c.levels, ufWire q.1 q.2) ∧ c.csUfNil ∧ mbs = msgEncC c
 
 /-- **Each entry's size is at most its message's.** -/
 theorem entrySize_le_msgSize [GooseExts] (c : MsgC) (e : EntryC) (he : e ∈ c.f.entries) :
