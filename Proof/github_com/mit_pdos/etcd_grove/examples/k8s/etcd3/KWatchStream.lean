@@ -107,12 +107,12 @@ theorem decWEventsL_cons (e : WEv) (rest : GoString) (he : WEvOk e) :
   have hne : ¬ (W8 (e.t : Int) :: (if e.o.Annotated' then W8 1 else W8 0) ::
       (rvBytes e.o.ResourceVersion' ++ (rvBytes (W64 ((encodeWith tagV1 e.o).length : Int)) ++
         encodeWith tagV1 e.o)) ++ rest) = [] := by simp
-  rw [dif_neg hne]
+  rw [dite_eq_right hne]
   have hlt : ¬ (W8 (e.t : Int) :: (if e.o.Annotated' then W8 1 else W8 0) ::
       (rvBytes e.o.ResourceVersion' ++ (rvBytes (W64 ((encodeWith tagV1 e.o).length : Int)) ++
         encodeWith tagV1 e.o)) ++ rest).length < 18 := by
     simp [rvBytes_length]; omega
-  rw [if_neg hlt]
+  rw [ite_eq_right hlt]
   simp only [List.cons_append, List.drop_succ_cons, List.drop_zero, List.append_assoc]
   rw [List.drop_left' (rvBytes_length _), List.take_left' (rvBytes_length _), bytesBE_rvBytes, hlen]
   rw [show (List.drop 16 (rvBytes e.o.ResourceVersion' ++
@@ -120,7 +120,7 @@ theorem decWEventsL_cons (e : WEv) (rest : GoString) (he : WEvOk e) :
       encodeWith tagV1 e.o ++ rest by
     rw [show 16 = 8 + 8 from rfl, ← List.drop_drop, List.drop_left' (rvBytes_length _),
       List.drop_left' (rvBytes_length _)]]
-  rw [if_neg (by simp), List.take_left' rfl, decodeD_encode tagV1 (.inl rfl) e.o hf, List.drop_left' rfl]
+  rw [ite_eq_right (by simp), List.take_left' rfl, decodeD_encode tagV1 (.inl rfl) e.o hf, List.drop_left' rfl]
   simp only [Option.map]
   cases decWEventsL rest with
   | none => rfl
@@ -255,7 +255,7 @@ theorem TailOk.eventsIn (hwf : HistWf x hs) {c : Nat} {es : List WEv} (ht : Tail
         (fun e' he' ht' => by have := (hb.2.2 e' he').1; omega)
         (fun e' he' ht' => hlt e' (by simp [he']) ht')
         (by simp only [lastCur, hrv] at hhi; exact hhi)]
-    simp [List.filter_cons, het]
+    simp [het]
   | bm c p o rest hcp hp hrv hgap ht ih =>
     intro lo hi hlo hle hlt hhi
     have hb := TailOk.bounds hwf ht
@@ -417,16 +417,16 @@ theorem TailOk.reliable (hwf : HistWf x hs) {c : Nat} {es : List WEv} (ht : Tail
       obtain ⟨-, -, hb3, -⟩ := hb.2.2 ehi hehi
       rw [hhi2]; unfold evHi; split <;> omega
     have hlast := hb.2.1 hc
-    rw [if_neg (fun h => hm2 h.1), if_neg (by omega), hh]
+    rw [ite_eq_right (fun h => hm2 h.1), ite_eq_right (by omega), hh]
     have hlo : (if x.Match' = W64 1 then (if 0 < req then max lo0 (req + 1) else lo0)
         else if 0 < req then req + 1 else lo0) = (if x.Match' = W64 1 then lo0 else c + 1) := by
       rcases hmode with ⟨h1, h2⟩ | ⟨h1, h2, h3⟩
-      · rw [if_pos h1, if_pos h1]
+      · rw [ite_eq_left h1, ite_eq_left h1]
         split
         · have := h2 ‹_›; exact Nat.max_eq_left (by omega)
         · rfl
       · have h1' : x.Match' ≠ W64 1 := by rw [h1]; decide
-        rw [if_neg h1', if_neg h1', if_pos h2, h3]
+        rw [ite_eq_right h1', ite_eq_right h1', ite_eq_left h2, h3]
     rw [hlo]
     have hev : ∀ lo, c + 1 ≤ lo → (∀ e' ∈ e :: es, e'.t ≠ 3 → lo ≤ uint.nat e'.o.ResourceVersion') →
         evsEqL (eventsInL x hs lo hi) ((e :: es).filter fun e => e.t ≠ 3) = true := by
@@ -443,6 +443,152 @@ theorem TailOk.reliable (hwf : HistWf x hs) {c : Nat} {es : List WEv} (ht : Tail
         · omega)
 
 end tail3
+
+/-! ## The theorem -/
+
+section main
+variable {x : Input} {hs : List GSt}
+
+/-- A non-empty tail's cursor is at most the history's length. -/
+theorem TailOk.cursor_le (hwf : HistWf x hs) {c : Nat} {e : WEv} {es : List WEv}
+    (ht : TailOk x hs c (e :: es)) : c ≤ hs.length := by
+  obtain ⟨-, b, -, d⟩ := (TailOk.bounds hwf ht).2.2 e (by simp)
+  omega
+
+/-- The initial events at a revision at most the history's length: Added events of the items in
+scope, carrying revisions from 1 to it, without annotation. -/
+theorem initialEventsL_mem (hwf : HistWf x hs) {r0 : Nat} (hr0 : r0 ≤ hs.length) {e : WEv}
+    (he : e ∈ initialEventsL x (histN hs r0)) :
+    e.t = 0 ∧ 1 ≤ uint.nat e.o.ResourceVersion' ∧ uint.nat e.o.ResourceVersion' ≤ r0 ∧
+      e.o.Annotated' = false := by
+  unfold initialEventsL at he
+  obtain ⟨it, hit, rfl⟩ := List.mem_map.1 he
+  obtain ⟨h1, h2, h3⟩ := hwf.2.1 r0 it hr0 (List.mem_filter.1 hit).1
+  exact ⟨rfl, h1, h2, h3⟩
+
+/-- **The driver's watch check accepts what a watch delivered** (`StreamOkL`), against the
+configuration whose history is the store's (see the file header). -/
+theorem watchOkL_of_stream (y : Output) (h : HSt) (evs : List WEv) (reqw : w64)
+    (hreq : parseRVD x.MinRV' = some reqw) (hin : WatchInOk x (uint.nat reqw))
+    (hwf : HistWf x hs) (hh : h.hist = hs) (hrv : uint.nat h.st.rv = hs.length)
+    (henc : y.WEvents' = encWEventsL evs) (hok : ∀ e ∈ evs, WEvOk e)
+    (hst : StreamOkL x (uint.nat reqw) hs evs) :
+    watchOkL x y h = true := by
+  unfold watchOkL
+  by_cases hf : (y.WFailed' || x.Skip') = true
+  · rw [ite_eq_left hf]
+  rw [ite_eq_right hf, henc, decWEventsL_enc evs hok]
+  obtain ⟨hall, hst⟩ := hst
+  have h5 : (evs.any fun e => decide (5 ≤ e.t)) = false := by
+    rw [List.any_eq_false]; intro e he; have := hall e he; simp only [decide_eq_true_eq]; omega
+  simp only [h5, Bool.false_eq_true, ↓reduceIte, hreq]
+  simp only [nonErr] at hst
+  generalize hes : evs.filter (fun e => decide (e.t ≠ 4)) = es at hst
+  have hlen := hrv
+  -- the revisions and the bookmarks, then the case's checks
+  suffices H : (∀ e ∈ es, uint.nat e.o.ResourceVersion' ≤ hs.length) ∧ bookmarksOkL es = true ∧
+      (if x.SendInit' = W64 2 then
+        match es.findIdx? (fun e => decide (e.t = 3)) with
+        | none => initialPrefixOkL x (uint.nat reqw) es h
+        | some b =>
+          if (!(es.getD b ⟨0, ⟨[], [], [], [], [], [], 0, false⟩⟩).o.Annotated') = true then false
+          else if (uint.nat reqw ≠ 0 ∧
+                uint.nat (es.getD b ⟨0, ⟨[], [], [], [], [], [], 0, false⟩⟩).o.ResourceVersion' <
+                  uint.nat reqw) ∨
+              uint.nat (es.getD b ⟨0, ⟨[], [], [], [], [], [], 0, false⟩⟩).o.ResourceVersion' < 1 ∨
+              uint.nat h.st.rv <
+                uint.nat (es.getD b ⟨0, ⟨[], [], [], [], [], [], 0, false⟩⟩).o.ResourceVersion'
+          then false
+          else if (!evsEqL (initialEventsL x (histN h.hist
+              (uint.nat (es.getD b ⟨0, ⟨[], [], [], [], [], [], 0, false⟩⟩).o.ResourceVersion')))
+              (es.take b)) = true then false
+          else reliableOkL x (uint.nat reqw) (es.drop b) h
+      else reliableOkL x (uint.nat reqw) es h) = true by
+    obtain ⟨H1, H2, H3⟩ := H
+    have hany : (es.any fun e => decide (uint.nat h.st.rv < uint.nat e.o.ResourceVersion')) = false := by
+      rw [List.any_eq_false]; intro e he; have := H1 e he; simp only [decide_eq_true_eq]; omega
+    simp only [hany, H2, Bool.false_eq_true, ↓reduceIte, Bool.not_true]
+    exact H3
+  by_cases hsi : x.SendInit' = W64 2
+  · rw [ite_eq_left hsi] at hst ⊢
+    obtain ⟨r0, hr0a, hr0b, hcase⟩ := hst
+    have hm1 := hin.1 hsi
+    rcases hcase with hpre | ⟨o, tail, ho1, ho2, hes', ht, hna⟩
+    · -- the watch ended before the initial-events-end bookmark
+      obtain ⟨rest, hrest⟩ := hpre
+      have hmem : ∀ e ∈ es, e ∈ initialEventsL x (histN hs r0) := by
+        intro e he; rw [← hrest]; exact List.mem_append_left _ he
+      have hini : ∀ e ∈ es, e.t = 0 ∧ 1 ≤ uint.nat e.o.ResourceVersion' ∧
+          uint.nat e.o.ResourceVersion' ≤ r0 := by
+        intro e he; obtain ⟨a, b, c, -⟩ := initialEventsL_mem hwf hr0b (hmem e he); exact ⟨a, b, c⟩
+      refine ⟨fun e he => by have := (hini e he).2.2; omega, ?_, ?_⟩
+      · obtain ⟨le', -, hf'⟩ := bm_init es r0 hini 0 (Nat.zero_le _)
+        unfold bookmarksOkL; rw [hf']; rfl
+      · have hfind : es.findIdx? (fun e => decide (e.t = 3)) = none := by
+          rw [List.findIdx?_eq_none_iff]; intro e he; simp [(hini e he).1]
+        rw [hfind]
+        simp only
+        unfold initialPrefixOkL
+        rw [Bool.or_eq_true, List.any_eq_true]
+        right
+        refine ⟨r0, ?_, ?_⟩
+        · rw [List.mem_range'_1]; omega
+        · rw [hh]
+          have htake : (initialEventsL x (histN hs r0)).take es.length = es := by
+            rw [← hrest, List.take_left' rfl]
+          have hle : es.length ≤ (initialEventsL x (histN hs r0)).length := by
+            rw [← hrest, List.length_append]; omega
+          simp [htake, hle, evsEqL]
+    · -- the initial events, the bookmark, and a tail from it
+      have hini : ∀ e ∈ initialEventsL x (histN hs r0), e.t = 0 ∧
+          1 ≤ uint.nat e.o.ResourceVersion' ∧ uint.nat e.o.ResourceVersion' ≤ r0 := by
+        intro e he; obtain ⟨a, b, c, -⟩ := initialEventsL_mem hwf hr0b he; exact ⟨a, b, c⟩
+      have hbtail : TailOk x hs r0 (⟨3, o⟩ :: tail) :=
+        TailOk.bm r0 r0 o tail (Nat.le_refl _) hr0b ho1 (fun r' h1 h2 => by omega) ht
+      have hb := TailOk.bounds hwf hbtail
+      subst hes'
+      refine ⟨?_, ?_, ?_⟩
+      · intro e he
+        rcases List.mem_append.1 he with he | he
+        · have := (hini e he).2.2; omega
+        · exact (hb.2.2 e he).2.2.2
+      · obtain ⟨le', hle', hf'⟩ := bm_init _ r0 hini 0 (Nat.zero_le _)
+        unfold bookmarksOkL
+        rw [List.foldl_append, hf']
+        simp only [List.foldl_cons, bmStepL, ho1, ↓reduceIte, ho2,
+          show ¬ (r0 < 0 ∨ r0 < le') by omega, Bool.false_eq_true]
+        exact TailOk.bookmarks hwf ht hna r0 le' true (Nat.le_refl _) hle'
+      · have hfind : (initialEventsL x (histN hs r0) ++ ⟨3, o⟩ :: tail).findIdx?
+            (fun e => decide (e.t = 3)) = some (initialEventsL x (histN hs r0)).length := by
+          rw [List.findIdx?_append]
+          have : (initialEventsL x (histN hs r0)).findIdx? (fun e => decide (e.t = 3)) = none := by
+            rw [List.findIdx?_eq_none_iff]; intro e he; simp [(hini e he).1]
+          rw [this]; simp [List.findIdx?_cons]
+        rw [hfind]
+        simp only
+        have hget : (initialEventsL x (histN hs r0) ++ ⟨3, o⟩ :: tail).getD
+            (initialEventsL x (histN hs r0)).length ⟨0, ⟨[], [], [], [], [], [], 0, false⟩⟩ = ⟨3, o⟩ := by
+          simp [List.getD_eq_getElem?_getD]
+        rw [hget]
+        simp only [ho2, ho1, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+        rw [ite_eq_right (by omega), hh, List.take_left' rfl, List.drop_left' rfl]
+        simp only [evsEqL, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+        exact TailOk.reliable hwf hbtail hr0b (uint.nat reqw) h hh hrv
+          (.inl ⟨hm1, fun _ => by omega⟩)
+  · rw [ite_eq_right hsi] at hst ⊢
+    obtain ⟨s0, hs0, ht, hna⟩ := hst
+    have hb := TailOk.bounds hwf ht
+    refine ⟨fun e he => (hb.2.2 e he).2.2.2, ?_, ?_⟩
+    · exact TailOk.bookmarks hwf ht hna 0 0 false (Nat.zero_le _) (Nat.zero_le _)
+    · cases es with
+      | nil => unfold reliableOkL; rw [evRangeL_nil]
+      | cons e es' =>
+        have hc := TailOk.cursor_le hwf ht
+        rcases hin.2 hsi with ⟨hr0, hm⟩ | ⟨hr0, hm⟩
+        · exact TailOk.reliable hwf ht hc (uint.nat reqw) h hh hrv (.inl ⟨hm, fun h' => by omega⟩)
+        · exact TailOk.reliable hwf ht hc (uint.nat reqw) h hh hrv (.inr ⟨hm, hr0, hs0 hr0⟩)
+
+end main
 
 end go
 
