@@ -32,39 +32,31 @@ type ID = uint64
 const Nil ID = 0
 
 // Role is a server's state: TLA+'s constants Follower, Candidate, Leader, whose values are the
-// trace's role strings (Traceetcdraft.cfg). RoleOther is any other role string, equal to none.
-type Role uint8
+// trace's role strings (Traceetcdraft.cfg). A role is its string, so that a role string the trace
+// has and these are not (raft's "StatePreCandidate", say) is a value of its own, equal only to
+// itself, as in TLA+.
+type Role string
 
 const (
-	Follower Role = iota
-	Candidate
-	Leader
-	RoleOther
+	Follower  Role = "StateFollower"
+	Candidate Role = "StateCandidate"
+	Leader    Role = "StateLeader"
 )
 
-func (r Role) String() string {
-	switch r {
-	case Follower:
-		return "StateFollower"
-	case Candidate:
-		return "StateCandidate"
-	case Leader:
-		return "StateLeader"
-	}
-	return "?"
-}
+func (r Role) String() string { return string(r) }
 
-// ParseRole is the role a trace's role string denotes.
-func ParseRole(s string) Role {
-	switch s {
-	case "StateFollower":
-		return Follower
-	case "StateCandidate":
-		return Candidate
-	case "StateLeader":
-		return Leader
-	}
-	return RoleOther
+// ParseRole is the role a trace's role string denotes: the string itself.
+func ParseRole(s string) Role { return Role(s) }
+
+// EvalError is an evaluation error TLC would raise (a sequence indexed outside its domain, a
+// record's missing field, ...): where TLC stops with an error, the transcription panics with an
+// EvalError, which the checkers report (CheckTrace's Result.EvalError) as a failure.
+type EvalError struct{ Msg string }
+
+func (e EvalError) Error() string { return "TLC evaluation error: " + e.Msg }
+
+func evalErrorf(format string, args ...any) {
+	panic(EvalError{Msg: fmt.Sprintf(format, args...)})
 }
 
 // Set is a finite set of servers: sorted, without duplicates. A Set is never written.
@@ -207,14 +199,14 @@ func EntriesEqual(a, b []Entry) bool {
 func IsPrefix(s, t []Entry) bool { return len(s) <= len(t) && EntriesEqual(s, t[:len(s)]) }
 
 // SubSeq is `SubSeq(s, m, n)`: s's elements m..n (1-indexed), empty when m > n. It shares s's
-// array (read only). Where TLC would fail (m < 1 or n > Len(s) with m <= n: no such element), it
-// keeps the elements that exist; the specification never asks for those in the traces checked so
-// far (`Restart` after a log was truncated below its durable length could).
+// array (read only). With m <= n and an element missing (m < 1 or n > Len(s)) TLC fails, and so
+// does SubSeq (an EvalError).
 func SubSeq(s []Entry, m, n int) []Entry {
-	m = max(m, 1)
-	n = min(n, len(s))
 	if m > n {
 		return nil
+	}
+	if m < 1 || n > len(s) {
+		evalErrorf("SubSeq of a sequence of length %d from %d to %d", len(s), m, n)
 	}
 	return s[m-1 : n : n]
 }

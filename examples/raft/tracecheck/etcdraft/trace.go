@@ -45,44 +45,152 @@ type EventMsg struct {
 }
 
 // EventProps is an event's properties: a configuration change's (raft's TracingConfChange).
+// Changes and NewConf are nil when absent (raft omits them when empty).
 type EventProps struct {
 	CC *struct {
 		Changes *[]struct {
 			NID    string `json:"nid"`
 			Action string `json:"action"`
 		} `json:"changes,omitempty"`
-		NewConf []string `json:"newconf,omitempty"`
+		NewConf *[]string `json:"newconf,omitempty"`
 	} `json:"cc,omitempty"`
 }
 
 // ReadNDJSON reads a trace in the format of raft's trace validation: one JSON object per line,
-// those with `"tag":"trace"` holding an event under `"event"` (`OriginTraceLog`).
+// those with `"tag":"trace"` holding an event under `"event"` (`OriginTraceLog`). It is strict
+// where TLC would fail reading the trace (a missing field): an event's objects must have exactly
+// the keys raft's TracingEvent writes (case-sensitive), with the optional ones (msg, prop, and in
+// a configuration change changes and newconf) possibly absent (prop's keys are free but for cc,
+// the only one the specification reads), and a "trace" line must have an event. (So it rejects a few traces TLC would accept, those with a field TLC never reads missing
+// or an extra one; raft never writes them.)
 func ReadNDJSON(r io.Reader) ([]Event, error) {
 	var out []Event
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 1<<20), 1<<26)
+	n := 0
 	for sc.Scan() {
+		n++
 		line := sc.Bytes()
 		if len(line) == 0 {
 			continue
 		}
-		var rec struct {
-			Tag   string `json:"tag"`
-			Event *Event `json:"event"`
-		}
+		var rec map[string]json.RawMessage
 		if err := json.Unmarshal(line, &rec); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("line %d: %w", n, err)
 		}
-		if rec.Tag == "trace" && rec.Event != nil {
-			out = append(out, *rec.Event)
+		var tag string
+		if raw, ok := rec["tag"]; ok {
+			if err := json.Unmarshal(raw, &tag); err != nil {
+				tag = ""
+			}
 		}
+		if tag != "trace" {
+			continue
+		}
+		raw, ok := rec["event"]
+		if !ok {
+			return nil, fmt.Errorf("line %d: a trace line without an event", n)
+		}
+		ev, err := decodeEvent(raw)
+		if err != nil {
+			return nil, fmt.Errorf("line %d: %w", n, err)
+		}
+		out = append(out, ev)
 	}
 	return out, sc.Err()
 }
 
-// parseID is the server a trace's id string denotes (Nil for "0").
+// exactKeys decodes raw, a JSON object, checking that it has every key of required and no key
+// but those and optional's.
+func exactKeys(raw json.RawMessage, what string, required, optional []string) (map[string]json.RawMessage, error) {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return nil, fmt.Errorf("%s: %w", what, err)
+	}
+	allowed := map[string]bool{}
+	for _, k := range required {
+		if _, ok := m[k]; !ok {
+			return nil, fmt.Errorf("%s: no field %q", what, k)
+		}
+		allowed[k] = true
+	}
+	for _, k := range optional {
+		allowed[k] = true
+	}
+	for k := range m {
+		if !allowed[k] {
+			return nil, fmt.Errorf("%s: unknown field %q", what, k)
+		}
+	}
+	return m, nil
+}
+
+// decodeEvent decodes a trace line's event, checking its objects' keys (ReadNDJSON).
+func decodeEvent(raw json.RawMessage) (Event, error) {
+	var ev Event
+	m, err := exactKeys(raw, "event", []string{"name", "nid", "state", "role", "log", "conf"}, []string{"msg", "prop"})
+	if err != nil {
+		return ev, err
+	}
+	if _, err := exactKeys(m["state"], "state", []string{"term", "vote", "commit"}, nil); err != nil {
+		return ev, err
+	}
+	var conf []json.RawMessage
+	if err := json.Unmarshal(m["conf"], &conf); err != nil || len(conf) != 2 {
+		return ev, fmt.Errorf("conf: not a pair of lists")
+	}
+	if raw, ok := m["msg"]; ok {
+		if _, err := exactKeys(raw, "msg", []string{"type", "term", "from", "to", "entries", "logTerm", "index",
+			"commit", "vote", "reject", "rejectHint"}, nil); err != nil {
+			return ev, err
+		}
+	}
+	if raw, ok := m["prop"]; ok {
+		// prop holds what raft adds to an event (a configuration change's cc, a replication
+		// message's match and next, ...); the specification reads only cc, whose shape is checked
+		var pm map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &pm); err != nil {
+			return ev, fmt.Errorf("prop: %w", err)
+		}
+		if cc, ok := pm["cc"]; ok {
+			ccm, err := exactKeys(cc, "cc", nil, []string{"changes", "newconf"})
+			if err != nil {
+				return ev, err
+			}
+			if ch, ok := ccm["changes"]; ok {
+				var changes []json.RawMessage
+				if err := json.Unmarshal(ch, &changes); err != nil {
+					return ev, fmt.Errorf("changes: %w", err)
+				}
+				for _, c := range changes {
+					if _, err := exactKeys(c, "change", []string{"nid", "action"}, nil); err != nil {
+						return ev, err
+					}
+				}
+			}
+		}
+	}
+	if err := json.Unmarshal(raw, &ev); err != nil {
+		return ev, err
+	}
+	return ev, nil
+}
+
+// isMessageEvent says whether a line of this name is a message's (its msg is read).
+func isMessageEvent(name string) bool {
+	return ReceiveMessageTraceNames[name] || name == "SendAppendEntriesRequest" ||
+		name == "SendAppendEntriesResponse" || name == "SendRequestVoteRequest" || name == "SendRequestVoteResponse"
+}
+
+// parseID is the server a trace's id string denotes (Nil for "0"). It must be in canonical
+// form (as raft's strconv.FormatUint writes it): TLA+ compares the strings, so "01" and "1" are
+// different servers there.
 func parseID(s string) (ID, error) {
-	return strconv.ParseUint(s, 10, 64)
+	id, err := strconv.ParseUint(s, 10, 64)
+	if err == nil && strconv.FormatUint(id, 10) != s {
+		err = fmt.Errorf("id %q not in canonical form", s)
+	}
+	return id, err
 }
 
 func toSet(ids []string) (Set, error) {
@@ -165,6 +273,27 @@ func NewTrace(events []Event) (*Trace, error) {
 				return nil, fmt.Errorf("line %d: conf: %w", k+1, err)
 			}
 		}
+		// Where TLC fails evaluating the line: a message event without a message
+		// (LoglineIsMessageEvent reads logline.event.msg), a message of a type outside
+		// RaftMsgType's domain (stricter than TLC, which fails only where it reads RaftMsgType of
+		// it; raft logs no other), a ChangeConf without a configuration change or with an empty
+		// change list (TraceServer reads x.event.prop.cc, and changes[1]).
+		if isMessageEvent(ev.Name) && ev.Msg == nil {
+			return nil, fmt.Errorf("line %d: %s without a message", k+1, ev.Name)
+		}
+		if ev.Msg != nil {
+			if _, ok := RaftMsgType[ev.Msg.Type]; !ok {
+				return nil, fmt.Errorf("line %d: message type %q outside RaftMsgType", k+1, ev.Msg.Type)
+			}
+		}
+		if ev.Name == "ChangeConf" {
+			if ev.Prop == nil || ev.Prop.CC == nil {
+				return nil, fmt.Errorf("line %d: ChangeConf without a configuration change", k+1)
+			}
+			if ev.Prop.CC.Changes != nil && len(*ev.Prop.CC.Changes) == 0 {
+				return nil, fmt.Errorf("line %d: ChangeConf with an empty change list", k+1)
+			}
+		}
 		if ev.Msg != nil {
 			if ln.from, err = parseID(ev.Msg.From); err != nil {
 				return nil, fmt.Errorf("line %d: from: %w", k+1, err)
@@ -235,10 +364,11 @@ func NewTrace(events []Event) (*Trace, error) {
 	bootstrappedConfig := func(i ID) (Set, error) {
 		ln := t.lines[last[i]-1]
 		if ln.ev.Name == "ApplyConfChange" {
-			if ln.ev.Prop == nil || ln.ev.Prop.CC == nil {
-				return nil, fmt.Errorf("line %d: ApplyConfChange without cc", last[i])
+			// TLC fails reading a missing newconf (raft omits an empty one)
+			if ln.ev.Prop == nil || ln.ev.Prop.CC == nil || ln.ev.Prop.CC.NewConf == nil {
+				return nil, fmt.Errorf("line %d: ApplyConfChange without newconf", last[i])
 			}
-			return toSet(ln.ev.Prop.CC.NewConf)
+			return toSet(*ln.ev.Prop.CC.NewConf)
 		}
 		return ln.conf[0], nil
 	}
@@ -833,31 +963,58 @@ func (t *Trace) Next(ts TState) []TState {
 	return append(out, t.receive(ts)...)
 }
 
+// StepInfo is what StepLine found besides the states: whether some state had more than one new
+// successor (TLC's TraceMatched fails then: its search queue holds more than one state), and the
+// first state violating an invariant (when checked), with the invariant's name.
+type StepInfo struct {
+	Branched  bool
+	Violation string
+	Bad       *State
+}
+
 // StepLine is every state with l = ts.L+1 that TraceNext reaches from ts in one or more steps
 // (more only for a received message, while it is not yet processed), deduplicated by Key. ts.L
-// must be at most Len(TraceLog).
-func (t *Trace) StepLine(ts TState) []TState {
+// must be at most Len(TraceLog). With invariants, every state it reaches, the intermediate steps
+// of a received message's line included, is checked against Invariants (as TLC checks every new
+// state); it stops at the first violation. It panics with an EvalError where TLC would fail.
+func (t *Trace) StepLine(ts TState, invariants bool) ([]TState, StepInfo) {
 	var out []TState
+	var info StepInfo
 	seen := map[string]bool{}
 	frontier := []TState{ts}
 	visited := map[string]bool{ts.Key(): true}
 	for len(frontier) > 0 {
 		var next []TState
 		for _, f := range frontier {
+			fresh := map[string]bool{}
 			for _, s2 := range t.Next(f) {
 				k := s2.Key()
 				if s2.L == ts.L+1 {
-					if !seen[k] {
-						seen[k] = true
-						out = append(out, s2)
+					if seen[k] {
+						continue
 					}
-				} else if !visited[k] {
+					seen[k] = true
+					out = append(out, s2)
+				} else {
+					if visited[k] {
+						continue
+					}
 					visited[k] = true
 					next = append(next, s2)
 				}
+				fresh[k] = true
+				if invariants {
+					if v := s2.S.Violated(); v != "" {
+						info.Violation, info.Bad = v, s2.S
+						return out, info
+					}
+				}
+			}
+			if len(fresh) > 1 {
+				info.Branched = true
 			}
 		}
 		frontier = next
 	}
-	return out
+	return out, info
 }

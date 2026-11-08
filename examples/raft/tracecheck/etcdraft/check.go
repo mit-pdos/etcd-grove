@@ -11,15 +11,26 @@ import (
 
 // Result is the outcome of checking a trace.
 type Result struct {
-	// OK: some behavior of the trace specification steps through every line (TLC's
-	// TraceMatched), and no state reached violates an invariant.
+	// OK: some behavior of the trace specification steps through every line, no state reached
+	// violates an invariant (when checked), and no evaluation fails. That is the property
+	// TraceMatched is meant to state ("at least one trace fully matches the log"); TLC's check of
+	// it is stricter (TLCOK).
 	OK bool
-	// Line is the first line no state could step through (when !OK and Violation == "").
+	// Branched is the first line at which some state had more than one new successor, 0 if none.
+	// TLC's TraceMatched, `[](l <= Len(TraceLog) => [](TLCGet("queue") = 1 \/ l > Len(TraceLog)))`,
+	// fails as soon as its breadth-first search's queue holds more than one state, so it rejects
+	// a trace whose search branches anywhere, even where every branch, or one, matches.
+	Branched int
+	// Line is the first line no state could step through (when !OK and the failure is neither
+	// a violation nor an evaluation error).
 	Line int
-	// Violation is the first invariant a reached state violated, and Bad the state.
+	// Violation is the first invariant a reached state violated, ViolLine its line, Bad the state.
 	Violation string
 	ViolLine  int
 	Bad       *State
+	// EvalError is where TLC would stop with an error, at line ErrLine.
+	EvalError string
+	ErrLine   int
 	// MaxStates is the largest number of distinct states at a line.
 	MaxStates int
 	// Before are the states at Line (when the trace is not matched): none of them steps
@@ -27,10 +38,17 @@ type Result struct {
 	Before []TState
 }
 
+// TLCOK is TLC's verdict: OK, and the search never branched.
+func (r Result) TLCOK() bool { return r.OK && r.Branched == 0 }
+
 func (r Result) String() string {
 	switch {
+	case r.OK && r.Branched != 0:
+		return fmt.Sprintf("matched, but the search branches at line %d (TLC's TraceMatched would fail)", r.Branched)
 	case r.OK:
 		return fmt.Sprintf("ok (at most %d states per line)", r.MaxStates)
+	case r.EvalError != "":
+		return fmt.Sprintf("evaluation error at line %d: %s", r.ErrLine, r.EvalError)
 	case r.Violation != "":
 		return fmt.Sprintf("invariant %s violated at line %d", r.Violation, r.ViolLine)
 	}
@@ -39,31 +57,43 @@ func (r Result) String() string {
 
 // CheckTrace checks t as TLC does (Traceetcdraft.cfg): a breadth-first search, line by line, of
 // the states TraceNext reaches, deduplicated by TLC's view <<vars, l>>, checking every state
-// against Invariants (when invariants is set). The trace is matched when some state reaches past
-// its last line.
-func CheckTrace(t *Trace, invariants bool) Result {
-	var r Result
+// reached against Invariants (when invariants is set). The trace is matched when some state
+// reaches past its last line; Result.Branched records where TLC's stricter TraceMatched would
+// fail. An evaluation TLC would fail is reported as such (Result.EvalError).
+func CheckTrace(t *Trace, invariants bool) (r Result) {
+	l := 0
+	defer func() {
+		if x := recover(); x != nil {
+			e, ok := x.(EvalError)
+			if !ok {
+				panic(x)
+			}
+			r = Result{EvalError: e.Msg, ErrLine: l, Branched: r.Branched}
+		}
+	}()
 	frontier := []TState{t.Init()}
 	if invariants {
 		if v := frontier[0].S.Violated(); v != "" {
 			return Result{Violation: v, ViolLine: 0, Bad: frontier[0].S}
 		}
 	}
-	for l := 1; l <= t.Len(); l++ {
+	for l = 1; l <= t.Len(); l++ {
 		var next []TState
 		seen := map[string]bool{}
 		for _, ts := range frontier {
-			for _, s2 := range t.StepLine(ts) {
+			succ, info := t.StepLine(ts, invariants)
+			if info.Branched && r.Branched == 0 {
+				r.Branched = l
+			}
+			if info.Violation != "" {
+				return Result{Violation: info.Violation, ViolLine: l, Bad: info.Bad, Branched: r.Branched}
+			}
+			for _, s2 := range succ {
 				k := s2.Key()
 				if seen[k] {
 					continue
 				}
 				seen[k] = true
-				if invariants {
-					if v := s2.S.Violated(); v != "" {
-						return Result{Violation: v, ViolLine: l, Bad: s2.S}
-					}
-				}
 				next = append(next, s2)
 			}
 		}
@@ -71,6 +101,9 @@ func CheckTrace(t *Trace, invariants bool) Result {
 			r.Line = l
 			r.Before = frontier
 			return r
+		}
+		if len(next) > 1 && r.Branched == 0 {
+			r.Branched = l
 		}
 		r.MaxStates = max(r.MaxStates, len(next))
 		frontier = next
@@ -112,24 +145,38 @@ func newPState(ts TState) *pstate { return &pstate{ts: ts, key: ts.Key()} }
 
 // Model is the trace specification of t as a porcupine NondeterministicModel: an operation is a
 // line of the trace (its input the line number l, its output unused), and a state of the model is
-// a state of the trace specification at that line; Step is StepLine (every state at line l+1),
-// keeping only the states that satisfy Invariants when invariants is set.
+// a state of the trace specification at that line; Step is StepLine (every state at line l+1). A
+// line from a state where an invariant is violated (when invariants is set) or an evaluation fails
+// has no successor. Porcupine's acceptance is "some path matches" (Result.OK), not TLC's stricter
+// TraceMatched (Result.TLCOK); with a search that never branches they are the same.
 func Model(t *Trace, invariants bool) porcupine.NondeterministicModel {
 	return porcupine.NondeterministicModel{
 		Init: func() []interface{} {
 			return []interface{}{newPState(t.Init())}
 		},
-		Step: func(state, input, output interface{}) []interface{} {
+		Step: func(state, input, output interface{}) (out []interface{}) {
+			// An evaluation TLC would fail, or an invariant violated by any state reached
+			// (intermediate steps included), fails the line: porcupine then answers Illegal, as
+			// TLC reports an error. (A state that violates no invariant is not filtered out: a
+			// violation is a failure, not a dead end.)
+			defer func() {
+				if x := recover(); x != nil {
+					if _, ok := x.(EvalError); !ok {
+						panic(x)
+					}
+					out = nil
+				}
+			}()
 			ps := state.(*pstate)
 			l := input.(int)
 			if ps.ts.L != l {
 				return nil
 			}
-			var out []interface{}
-			for _, s2 := range t.StepLine(ps.ts) {
-				if invariants && s2.S.Violated() != "" {
-					continue
-				}
+			succ, info := t.StepLine(ps.ts, invariants)
+			if info.Violation != "" {
+				return nil
+			}
+			for _, s2 := range succ {
 				out = append(out, newPState(s2))
 			}
 			return out

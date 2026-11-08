@@ -54,9 +54,29 @@ Nothing here is translated or proved yet. Plain Go and TLC only.
     invariants `Traceetcdraft.cfg` checks; `Model`/`History`/`CheckPorcupine`, the trace
     specification as a porcupine `NondeterministicModel` (an operation per line, input the line
     number, the lines totally ordered), checked through `ToModel`; `Explain`.
-  - Deviations from TLC, where TLC would fail evaluating: `SubSeq` past a sequence's end keeps what
-    exists; `LeaderCompletenessInv` is false where `log[l][idx]` does not exist; an unknown message
-    type in a line matches no message. None is reached by the traces checked.
+  - Where TLC stops with an evaluation error, the transcription raises one (`EvalError`, reported
+    as `Result.EvalError`): `SubSeq` past a sequence's end, `SelectLastInSubSeq` past the log's end
+    (`ApplySimpleConfChange`), `log[l][idx]` past a leader's log (`LeaderCompletenessInv`). The
+    reader is strict where TLC would fail reading the trace: exact, case-sensitive keys (`prop`'s
+    are free but for `cc`), a message line without `msg`, a message type outside `RaftMsgType`, a
+    `ChangeConf` without `cc` or with an empty change list, a last bootstrap line without
+    `newconf`, ids not in canonical form. Role strings are values of their own (raft's
+    `StatePreCandidate` equals none of the three).
+  - `CheckTrace`'s `OK` is "some behavior matches", the property `TraceMatched` states; TLC's check
+    of it (`TLCGet("queue") = 1`) fails as soon as the breadth-first search branches, even where
+    every branch matches. `Result.Branched` records the first line where a state has more than one
+    new successor, and `Result.TLCOK()` (OK and never branched) is TLC's verdict, which the tests
+    require. No trace recorded so far branches. Invariants are checked at every state reached,
+    the intermediate steps of a received message's line included (as TLC checks every new state).
+    The porcupine model fails a line on a violation or an evaluation error; its verdict is `OK`'s.
+  - Reviewed 2026-11-08 by an independent subagent, definition by definition against the TLA+
+    text: `etcdraft.tla`'s transcription faithful; the trace layer faithful on raft's traces; the
+    checker's three differences from TLC (the strict `TraceMatched`, the view leaving out `pl`,
+    invariants on intermediate states) and five places where TLC errors but the code went on (an
+    absent `newconf`, unknown roles merged, `SubSeq` clamped, lenient JSON, and smaller ones) are
+    the fixes above, each with a regression test (`etcdraft/strict_test.go`, from the reviewer's
+    witnesses). (The view leaving out `pl`: Go keeps a state TLC drops; that needs two states at a
+    line, which `Branched` reports.)
 - `examples/raft/tracecheck/cmd/checktrace`: checks NDJSON files (`-explain` prints the states
   before a failing line and the messages in transit to its node).
 

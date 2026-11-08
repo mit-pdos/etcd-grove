@@ -40,7 +40,7 @@ func TestConcurrentTraces(t *testing.T) {
 		r, pc, err := goVerdicts(t, nd)
 		t.Logf("seed %d: %d events, proposed %d, delivered %d, dropped %d, readies %d: direct %v, porcupine %v",
 			seed, len(c.Events()), c.Proposed.Load(), c.Delivered.Load(), c.Dropped.Load(), c.Readies.Load(), r, pc)
-		if err != nil || !r.OK || pc != porcupine.Ok {
+		if err != nil || !r.TLCOK() || pc != porcupine.Ok {
 			t.Errorf("seed %d: direct %v (err %v), porcupine %v", seed, r, err, pc)
 		}
 	}

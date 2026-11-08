@@ -91,7 +91,7 @@ func (s *State) Key() string {
 	var b strings.Builder
 	for _, i := range s.Server {
 		v := s.S[i]
-		fmt.Fprintf(&b, "%d:%d,%d,%d,%d,%v,%v,", i, v.CurrentTerm, v.State, v.VotedFor, v.CommitIndex,
+		fmt.Fprintf(&b, "%d:%d,%q,%d,%d,%v,%v,", i, v.CurrentTerm, string(v.State), v.VotedFor, v.CommitIndex,
 			[]ID(v.VotesResponded), []ID(v.VotesGranted))
 		for _, j := range s.Server {
 			fmt.Fprintf(&b, "%d.", v.MatchIndex[j])
@@ -429,9 +429,13 @@ func (s *State) ApplySimpleConfChange(i ID) *State {
 		return nil
 	}
 	v := s.S[i]
-	// k == SelectLastInSubSeq(log[i], 1, commitIndex[i], LAMBDA x: x.type = ConfigEntry)
+	// k == SelectLastInSubSeq(log[i], 1, commitIndex[i], LAMBDA x: x.type = ConfigEntry), which
+	// TLC fails to evaluate past the log's end
+	if v.CommitIndex > len(v.Log) {
+		evalErrorf("SelectLastInSubSeq of a log of length %d to %d", len(v.Log), v.CommitIndex)
+	}
 	k := 0
-	for n := 1; n <= v.CommitIndex && n <= len(v.Log); n++ {
+	for n := 1; n <= v.CommitIndex; n++ {
 		if v.Log[n-1].Type == ConfigEntry {
 			k = n
 		}

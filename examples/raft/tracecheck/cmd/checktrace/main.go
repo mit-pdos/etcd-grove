@@ -42,11 +42,11 @@ func main() {
 		start := time.Now()
 		r := etcdraft.CheckTrace(t, *inv)
 		line := fmt.Sprintf("%s: %d events: direct: %v (%v)", file, t.Len(), r, time.Since(start).Round(time.Millisecond))
-		if r.Violation == "" && !r.OK && r.Line > 0 {
+		if r.Violation == "" && r.EvalError == "" && !r.OK && r.Line > 0 {
 			ev := t.Event(r.Line)
 			line += fmt.Sprintf(" [line %d: %s nid %s]", r.Line, ev.Name, ev.NID)
 		}
-		if !r.OK {
+		if !r.TLCOK() {
 			failed = true
 		}
 		if *usePorcupine {

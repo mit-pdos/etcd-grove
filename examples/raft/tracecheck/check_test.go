@@ -65,7 +65,7 @@ func TestTracesCheck(t *testing.T) {
 		if err != nil {
 			t.Fatalf("seed %d: %v", seed, err)
 		}
-		if !r.OK || pc != porcupine.Ok {
+		if !r.TLCOK() || pc != porcupine.Ok {
 			t.Errorf("seed %d: direct %v, porcupine %v", seed, r, pc)
 		}
 	}
@@ -220,17 +220,19 @@ func TestAgainstTLC(t *testing.T) {
 			}
 			tlc, tlcAt := tlcAccepts(t, tools, spec, file)
 			r, pc, err := goVerdicts(t, j.nd)
-			goOK := err == nil && r.OK
+			// TLC's verdict is TLCOK (matched, and the search never branched); porcupine's is
+			// OK (some path matches).
+			goOK := err == nil && r.TLCOK()
 			mu.Lock()
 			defer mu.Unlock()
-			if tlc != goOK || goOK != (pc == porcupine.Ok) {
+			if tlc != goOK || (err == nil && r.OK) != (pc == porcupine.Ok) {
 				t.Errorf("%s: TLC %t, direct %v (err %v), porcupine %v", j.name, tlc, r, err, pc)
 				return
 			}
 			// A trace TLC rejects: its error trace stops at the line no state steps through
 			// (an invariant violation, which TLC reports at the violating state, is compared by
 			// verdict only).
-			if !tlc && err == nil && r.Violation == "" && tlcAt != 0 && tlcAt != r.Line {
+			if !tlc && err == nil && r.Violation == "" && r.EvalError == "" && r.Branched == 0 && tlcAt != 0 && tlcAt != r.Line {
 				t.Errorf("%s: TLC stops at line %d, the direct checker at line %d", j.name, tlcAt, r.Line)
 				return
 			}

@@ -117,8 +117,8 @@ func (s *State) MoreUpToDateCorrectInv() bool {
 	return true
 }
 
-// LeaderCompletenessInv is `LeaderCompletenessInv`. (Where TLC would fail evaluating
-// `log[l][idx]` beyond l's log, the invariant is false.)
+// LeaderCompletenessInv is `LeaderCompletenessInv`. (Where TLC fails evaluating `log[l][idx]`
+// beyond l's log, so does it: an EvalError.)
 func (s *State) LeaderCompletenessInv() bool {
 	leaders := s.CurrentLeaders()
 	for _, i := range s.Server {
@@ -127,8 +127,13 @@ func (s *State) LeaderCompletenessInv() bool {
 			entry := s.S[i].Log[idx-1]
 			for _, l := range leaders {
 				vl := s.S[l]
-				if vl.CurrentTerm > entry.Term && (idx > len(vl.Log) || !vl.Log[idx-1].Equal(entry)) {
-					return false
+				if vl.CurrentTerm > entry.Term {
+					if idx > len(vl.Log) {
+						evalErrorf("LeaderCompletenessInv: log[%d][%d] of a log of length %d", l, idx, len(vl.Log))
+					}
+					if !vl.Log[idx-1].Equal(entry) {
+						return false
+					}
 				}
 			}
 		}
