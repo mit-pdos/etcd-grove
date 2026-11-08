@@ -244,6 +244,16 @@ revision.
   - `Count` is the keys in the range;
   - `Revision` is the header's (current) revision;
   - errors as `Get`'s.
+- **Requirements found by 7e-2's Draft** (`notes/k8s-7e-2-draft.md` §4.5, §7; passed on by
+  etcd-grove-81, 2026-11-08):
+  - **7c-3:** the `*StatusError` exclusion (7b's T2 (c)) must state that a client error's dynamic
+    type is outside `apierrors.APIStatus`'s type set (`typeSetContains t APIStatus.ty = false`) and
+    is a leaf (no `Unwrap`/`As`), i.e. the Draft's `apiErrAt err .plain`, not only `t ≠
+    *StatusError`: `IsTooLargeResourceVersion` tests with `errors.As` to the interface
+    (`apimachinery/pkg/api/errors/errors.go:817-822`).
+  - **7e-1:** `Client.List`'s post gives the response's `Kvs` slice owned (`↦*`, not `↦*□`):
+    the store's `appendChunk` writes `kvs[i] = nil` (`store.go:1074`). Its errors meet the same
+    leaf, non-`APIStatus` condition, and carry the future-revision soundness at the call's revision.
 
 ## 6. The model in Lean and the invariant
 
