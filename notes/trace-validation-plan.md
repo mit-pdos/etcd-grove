@@ -294,7 +294,26 @@ S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's
   no review checks; its path: `Set.Has` (done), `State.GetConfig` (done), `Server.copy` (done; `serverOwn`, `Own.lean`), `State.clone` (done; `stateOwn`), `State.mut` (done; `stateOwnHole` and its closing law, which
   needs the server list without duplicates: a fact S6's invariant carries),
   then `Timeout` (a mutable representation of a fresh clone and copy, persisted once
-  written). `CheckTrace`'s own loop waits on Q7.
+  written). **Done 2026-11-08**, the whole path in about a working day (the five callees and
+  `Timeout`, no `sorry`; `Timeout` itself about two hours). Spec problems found, all in layer C's
+  representation, none in a triple's shape:
+  1. the server list must be duplicate-free for `mut`'s closing law (`stateOwnHole_close`):
+     `Timeout`'s spec takes `st.server.Nodup`, a fact S6's invariant carries (the trace's
+     `Server` is built by `newTrace` from a set);
+  2. strings: Perennial's `stringToGoString` goes through `String.toUTF8`, which no proof can
+     evaluate on a constant (`"StateFollower"`), so a role comparison in the Go could not be
+     decided; the predicates now relate a Go string to a Lean string by `strRel` (ASCII, a byte per
+     character; `Rep.lean`), injective (`strRel_inj`) and decidable on constants. A premise
+     follows on `NewTrace`'s events: their strings ASCII (raft's names and ids are);
+     `notes/decisions.md`, "Layer C's strings: `strRel`, ASCII";
+  3. term bounds: `Timeout`'s `CurrentTerm + 1` needs the term below `numBound`
+     (`numOk`, a premise of its spec; S6's invariant: every number below `(lines + 2) · numBound`,
+     round 3's T3).
+  Also learned (proof mode, not spec): a struct literal spanning lines must start its fields on a
+  line of their own (Lean's `checkColGe`), `W64 1` and `go!"..."` need parentheses inside a
+  record update, and a persisting update at a return needs `iapply wp_fupd` before the last
+  `wp_auto`. The `strRel` change goes to a fourth review round of layer C.
+  `CheckTrace`'s own loop waits on Q7.
 - Layer A/B (raft's hooks, increment 2): waits on Q6's statements (the plan of S4: one hook with its
   phase through `send`'s callers).
 

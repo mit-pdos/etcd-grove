@@ -72,6 +72,32 @@ def numBound : Int := 2 ^ 40
 /-- A number of the trace within `numBound`. -/
 def numOk (n : Int) : Prop := 0 ≤ n ∧ n < numBound
 
+/-- A Go string holding an ASCII Lean string, byte by character (the Probe of 2026-11-08: Perennial's
+`stringToGoString` goes through `String.toUTF8`, which a proof cannot evaluate on a constant such as
+`"StateFollower"`; raft's names, ids and roles are ASCII). -/
+def strRel (gs : GoString) (s : String) : Prop :=
+  (∀ c ∈ s.toList, c.toNat < 128) ∧ gs = s.toList.map (fun c => (BitVec.ofNat 8 c.toNat : w8))
+
+/-- ASCII characters, byte by character: injective. -/
+theorem asciiBytes_inj : ∀ (xs ys : List Char), (∀ c ∈ xs, c.toNat < 128) → (∀ c ∈ ys, c.toNat < 128) →
+    xs.map (fun c => (BitVec.ofNat 8 c.toNat : w8)) = ys.map (fun c => (BitVec.ofNat 8 c.toNat : w8)) →
+    xs = ys
+  | [], [], _, _, _ => rfl
+  | [], _ :: _, _, _, h => by simp at h
+  | _ :: _, [], _, _, h => by simp at h
+  | x :: xs, y :: ys, hx, hy, h => by
+    simp only [List.map_cons, List.cons.injEq] at h
+    have h1 := congrArg BitVec.toNat h.1
+    simp only [BitVec.toNat_ofNat] at h1
+    have := hx x List.mem_cons_self; have := hy y List.mem_cons_self
+    have hxy : x = y := Char.toNat_inj.1 (by omega)
+    rw [hxy, asciiBytes_inj xs ys (fun c hc => hx c (List.mem_cons_of_mem _ hc))
+      (fun c hc => hy c (List.mem_cons_of_mem _ hc)) h.2]
+
+/-- `strRel` is injective in the Lean string. -/
+theorem strRel_inj {gs : GoString} {a b : String} (ha : strRel gs a) (hb : strRel gs b) : a = b :=
+  String.toList_injective (asciiBytes_inj _ _ ha.1 hb.1 (ha.2.symm.trans hb.2))
+
 /-- An event whose numbers are `numOk` (layer B gives it of raft's: its terms and indices are
 bounded by the time receipts, `notes/trace-validation-sim.md`, "Increment 2"). -/
 def Event.Bounded (e : Event) : Prop :=
@@ -118,7 +144,7 @@ def msgTypeW (t : MsgType) : w8 :=
 /-- A Go `*Msg` holding `m`. -/
 def msgRO (p : Loc) (m : Msg) : IProp GF :=
   iprop(∃ v : G.Msg, p ↦□ v ∗
-    ⌜v.Type' = msgTypeW m.type ∧ v.Subtype' = stringToGoString m.subtype ∧ sint.Z v.Term' = m.term ∧
+    ⌜v.Type' = msgTypeW m.type ∧ strRel v.Subtype' m.subtype ∧ sint.Z v.Term' = m.term ∧
       sint.Z v.LastLogTerm' = m.lastLogTerm ∧ sint.Z v.LastLogIndex' = m.lastLogIndex ∧
       v.VoteGranted' = m.voteGranted ∧ sint.Z v.PrevLogIndex' = m.prevLogIndex ∧
       sint.Z v.PrevLogTerm' = m.prevLogTerm ∧ sint.Z v.CommitIndex' = m.commitIndex ∧
@@ -148,7 +174,7 @@ the members of a configuration, which may name a node that never logs; review ro
 S3). -/
 def serverRO (p : Loc) (v : Server) : IProp GF :=
   iprop(∃ (g : G.Server) (mm : GMap w64 w64), p ↦□ g ∗
-    ⌜sint.Z g.CurrentTerm' = v.currentTerm ∧ g.State' = stringToGoString v.state ∧
+    ⌜sint.Z g.CurrentTerm' = v.currentTerm ∧ strRel g.State' v.state ∧
       uint.nat g.VotedFor' = v.votedFor ∧ sint.Z g.CommitIndex' = v.commitIndex ∧
       sint.Z g.PendingConfChangeIndex' = v.pendingConfChangeIndex⌝ ∗
     logRO g.Log' v.log ∗ setRO g.VotesResponded' v.votesResponded ∗
@@ -172,7 +198,7 @@ def stateRO (p : Loc) (st : State) : IProp GF :=
 
 /-- A Go `EventChange` holding `c`. -/
 def changeRel (g : G.EventChange) (c : EventChange) : Prop :=
-  g.NID' = stringToGoString c.nid ∧ g.Action' = stringToGoString c.action
+  strRel g.NID' c.nid ∧ strRel g.Action' c.action
 
 /-- A Go `*[]T` holding `o`: nil for `none`. -/
 def optSliceRO {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] {A : Type} (p : Loc)
@@ -185,7 +211,7 @@ def optSliceRO {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] {A : Type} (p
 def confChangeRO (p : Loc) (cc : EventConfChange) : IProp GF :=
   iprop(∃ g : G.EventConfChange, p ↦□ g ∗
     optSliceRO (V := G.EventChange) g.Changes' cc.changes changeRel ∗
-    optSliceRO (V := GoString) g.NewConf' cc.newconf (fun s t => s = stringToGoString t))
+    optSliceRO (V := GoString) g.NewConf' cc.newconf (fun s t => strRel s t))
 
 /-- A Go `*EventProps` holding `o`: nil for `none`. -/
 def propsRO (p : Loc) (o : Option EventProps) : IProp GF :=
@@ -198,35 +224,35 @@ def propsRO (p : Loc) (o : Option EventProps) : IProp GF :=
 
 /-- A Go `EventMsg` holding `m`. -/
 def eventMsgRel (g : G.EventMsg) (m : EventMsg) : Prop :=
-  g.Type' = stringToGoString m.type ∧ sint.Z g.Term' = m.term ∧
-  g.From' = stringToGoString m.«from» ∧ g.To' = stringToGoString m.to ∧
+  strRel g.Type' m.type ∧ sint.Z g.Term' = m.term ∧
+  strRel g.From' m.«from» ∧ strRel g.To' m.to ∧
   sint.Z g.Entries' = m.entries ∧ sint.Z g.LogTerm' = m.logTerm ∧ sint.Z g.Index' = m.index ∧
-  sint.Z g.Commit' = m.commit ∧ g.Vote' = stringToGoString m.vote ∧ g.Reject' = m.reject ∧
+  sint.Z g.Commit' = m.commit ∧ strRel g.Vote' m.vote ∧ g.Reject' = m.reject ∧
   sint.Z g.RejectHint' = m.rejectHint
 
 /-- A Go `Event` value holding `e` (its pointers' targets read-only). -/
 def eventRO (g : G.Event) (e : Event) : IProp GF :=
-  iprop(⌜g.Name' = stringToGoString e.name ∧ g.NID' = stringToGoString e.nid ∧
-      sint.Z g.State'.Term' = e.state.term ∧ g.State'.Vote' = stringToGoString e.state.vote ∧
-      sint.Z g.State'.Commit' = e.state.commit ∧ g.Role' = stringToGoString e.role ∧
+  iprop(⌜strRel g.Name' e.name ∧ strRel g.NID' e.nid ∧
+      sint.Z g.State'.Term' = e.state.term ∧ strRel g.State'.Vote' e.state.vote ∧
+      sint.Z g.State'.Commit' = e.state.commit ∧ strRel g.Role' e.role ∧
       sint.Z g.Log' = e.log⌝ ∗
     (∃ a b : GoSlice, ⌜g.Conf'.arr = [a, b]⌝ ∗
-      (∃ xs : List GoString, a ↦*□ xs ∗ ⌜xs = e.conf.1.map stringToGoString⌝) ∗
-      (∃ ys : List GoString, b ↦*□ ys ∗ ⌜ys = e.conf.2.map stringToGoString⌝)) ∗
+      (∃ xs : List GoString, a ↦*□ xs ∗ ⌜List.Forall₂ strRel xs e.conf.1⌝) ∗
+      (∃ ys : List GoString, b ↦*□ ys ∗ ⌜List.Forall₂ strRel ys e.conf.2⌝)) ∗
     (match e.msg with
      | none => iprop(⌜g.Msg' = null⌝)
      | some m => iprop(∃ gm : G.EventMsg, g.Msg' ↦□ gm ∗ ⌜eventMsgRel gm m⌝)) ∗
     propsRO g.Prop' e.prop)
 
 /-- A Go `[]Event` holding `evs`, read-only: what `NewTrace` reads (and keeps pointers into). Its
-strings are the UTF-8 encodings of the Lean's (`stringToGoString`): raft's events are ASCII. -/
+strings hold the Lean's, ASCII, byte by character (`strRel`): raft's events are ASCII. -/
 def eventsRO (sl : GoSlice) (evs : List Event) : IProp GF :=
   iprop(∃ gs : List G.Event, sl ↦*□ gs ∗ [∗list] g;e ∈ gs;evs, eventRO g e)
 
 /-- A Go `line` holding `x`. -/
 def lineRO (g : G.line) (x : Line) : IProp GF :=
   iprop((∃ ge : G.Event, g.ev' ↦□ ge ∗ eventRO ge x.ev) ∗
-    ⌜uint.nat g.nid' = x.nid ∧ uint.nat g.vote' = x.vote ∧ g.role' = stringToGoString x.role ∧
+    ⌜uint.nat g.nid' = x.nid ∧ uint.nat g.vote' = x.vote ∧ strRel g.role' x.role ∧
       uint.nat g.from' = x.«from» ∧ uint.nat g.to' = x.to⌝ ∗
     (∃ a b : GoSlice, ⌜g.conf'.arr = [a, b]⌝ ∗ setRO a x.conf.1 ∗ setRO b x.conf.2))
 
@@ -249,8 +275,8 @@ def traceRO (t : Loc) (tr : Trace) : IProp GF :=
 numbers, `MaxStates`, `Before`, unconstrained). -/
 def resultRel (g : G.Result) (r : Result) : Prop :=
   g.OK' = r.ok ∧ uint.nat g.Branched' = r.branched ∧ uint.nat g.Line' = r.line ∧
-  g.Violation' = stringToGoString (r.violation.getD "") ∧ uint.nat g.ViolLine' = r.violLine ∧
-  g.EvalError' = stringToGoString ((r.evalError.map EvalError.what).getD "") ∧
+  strRel g.Violation' (r.violation.getD "") ∧ uint.nat g.ViolLine' = r.violLine ∧
+  strRel g.EvalError' ((r.evalError.map EvalError.what).getD "") ∧
   uint.nat g.ErrLine' = r.errLine
 
 /-! ## Laws -/

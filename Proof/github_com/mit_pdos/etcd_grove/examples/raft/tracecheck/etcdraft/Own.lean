@@ -27,52 +27,6 @@ namespace Etcdraft
 
 open Iris Iris.BI Iris.ProofMode
 
-/-- `ByteArray.toList`'s loop, from position `i` with the reversed prefix `r`. -/
-theorem byteArray_toList_loop (bs : ByteArray) (i : Nat) (r : List UInt8) (hi : i ≤ bs.size) :
-    ByteArray.toList.loop bs i r = r.reverse ++ bs.data.toList.drop i := by
-  induction h : bs.size - i generalizing i r with
-  | zero =>
-    have : i = bs.size := by omega
-    subst this
-    rw [ByteArray.toList.loop, ite_eq_right_of_eq_false _ _ (eq_false (Nat.lt_irrefl _))]
-    have : bs.data.toList.drop bs.size = [] := by
-      apply List.drop_of_length_le
-      show bs.data.toList.length ≤ bs.data.size
-      rw [Array.length_toList]; exact Nat.le_refl _
-    rw [this, List.append_nil]
-  | succ n ih =>
-    have hlt : i < bs.size := by omega
-    rw [ByteArray.toList.loop, ite_eq_left_of_eq_true _ _ (eq_true hlt), ih (i + 1) (bs.get! i :: r) (by omega) (by omega)]
-    have hg : bs.get! i = bs.data.toList[i] := by
-      rcases bs with ⟨d⟩
-      show d[i]! = d.toList[i]
-      rw [Array.getElem_toList, getElem!_pos d i hlt]
-    rw [List.reverse_cons, List.append_assoc, List.singleton_append, hg, List.getElem_cons_drop]
-
-/-- `ByteArray.toList` is its array's list. -/
-theorem byteArray_toList_eq (bs : ByteArray) : bs.toList = bs.data.toList := by
-  unfold ByteArray.toList
-  rw [byteArray_toList_loop bs 0 [] (Nat.zero_le _)]
-  simp
-
-/-- `stringToGoString` is injective (UTF-8 encoding is). A fact about Perennial's definition
-(`Perennial/Std/ByteString.lean`), proved here for the Probe, to move to Perennial
-(`notes/perennial-changes.md`, "stringToGoString_inj"). -/
-theorem stringToGoString_inj {a b : String} (h : stringToGoString a = stringToGoString b) : a = b := by
-  unfold stringToGoString at h
-  have hf : Function.Injective (fun x : UInt8 => (BitVec.ofNat 8 x.toNat : w8)) := by
-    intro x y hxy
-    simp only at hxy
-    apply UInt8.toNat_inj.1
-    have h1 := congrArg BitVec.toNat hxy
-    simp only [BitVec.toNat_ofNat] at h1
-    have := x.toNat_lt; have := y.toNat_lt
-    omega
-  have h2 := (List.map_inj_right (fun x y hxy => hf hxy)).1 h
-  rw [← String.toByteArray_inj]
-  simp only [String.toUTF8_eq_toByteArray, byteArray_toList_eq] at h2
-  exact ByteArray.ext (Array.toList_inj.1 h2)
-
 /-- An id below `2^64` read back from its word. -/
 theorem uint_nat_W64_of_lt (j : Nat) (h : j < 2 ^ 64) : uint.nat (W64 (Int.ofNat j)) = j := by
   show BitVec.toNat (BitVec.ofInt 64 (Int.ofNat j)) = j
@@ -91,7 +45,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.
 /-- A `*Server` copy being written: `serverRO`'s, with the struct and the `MatchIndex` map owned. -/
 def serverOwn (p : Loc) (v : Server) : IProp GF :=
   iprop(∃ (g : G.Server) (mm : GMap w64 w64), p ↦ g ∗
-    ⌜sint.Z g.CurrentTerm' = v.currentTerm ∧ g.State' = stringToGoString v.state ∧
+    ⌜sint.Z g.CurrentTerm' = v.currentTerm ∧ strRel g.State' v.state ∧
       uint.nat g.VotedFor' = v.votedFor ∧ sint.Z g.CommitIndex' = v.commitIndex ∧
       sint.Z g.PendingConfChangeIndex' = v.pendingConfChangeIndex⌝ ∗
     logRO g.Log' v.log ∗ setRO g.VotesResponded' v.votesResponded ∗

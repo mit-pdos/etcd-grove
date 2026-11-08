@@ -33188,3 +33188,23 @@ of their own (`traceEvent`, `traceNodeEvent`). Where the field comes from:
 Options not taken: the full contract first (blocked on S4's event and update); keeping the specs
 `True` with an axiom that the field is nil (a trust-base change); hiding the premise in
 `ConfigValid` (the same premise, less visible).
+
+## Layer C's strings: `strRel`, ASCII (2026-11-08 · trace-check, layer C's Probe; decided by the agent under the user's delegation (`notes/trace-validation-plan.md`, "The gates, delegated") · branch `trace-check`; DRAFT until trace-check's Freeze)
+
+Layer C's representation predicates (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Rep.lean`)
+related a Go string field to the transcription's `String` by `g.F' = stringToGoString s`.
+The Probe's hard proof (`(*State).Timeout`) compares a server's role with the constants
+`Follower` and `Candidate`; with `stringToGoString` (`String.toUTF8`, a loop over a `ByteArray`)
+neither `decide` nor `simp` evaluates `stringToGoString "StateFollower"`, and the injectivity of
+`stringToGoString` needed lemmas about `ByteArray.toList` Lean core lacks (proved locally, then
+dropped with this change, and the proposed Perennial entry withdrawn).
+
+Now: `strRel gs s := (∀ c ∈ s.toList, c.toNat < 128) ∧ gs = s.toList.map (fun c => BitVec.ofNat 8 c.toNat)`,
+a byte per ASCII character, injective in `s` (`strRel_inj`) and decidable on constants. Every
+string field of the predicates uses it (a message's subtype, a server's role, an event's ids,
+types and configuration names). What it costs: `NewTrace`'s events must have ASCII strings, a
+premise layer B discharges from raft's hooks (role names, message types, `strconv.FormatUint`
+ids: all ASCII). The transcription and the closed statement are unchanged (it states nothing about
+Go strings). Alternative kept open: a general `stringToGoString` evaluation lemma proposed to
+Perennial, after which `strRel` could return to `stringToGoString` with the ASCII facts as
+lemmas; not needed for the proofs.
