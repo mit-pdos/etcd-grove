@@ -1,5 +1,33 @@
 # Q6: the node-API changes a traced cluster needs, side by side (2026-11-08)
 
+## Revision 2 (2026-11-08): against the corrected specification
+
+The stage resumed against `etc/tla-fixes/` (the user's decision); the user agreed to the premises a
+proof needs, gated on a traced cluster so that every existing proof keeps its statement. The
+corrected specification removes the needs of two of layer B's premises
+(`notes/trace-validation-sim.md`, "Premises"):
+
+- **P5 is gone** (0003: an append request carries the leader's commit index, the receiver clamps,
+  as raft): no proposal budget, no `MaxSizePerMsg`/`MaxInflightMsgs` condition. **Item 3 below
+  (`node.Propose`'s credit) is dropped**, and `TracedConfigOk` loses its two size conditions.
+- **P9 is gone** (0006: the specification models raft's `lead`): no bound on the voters, no
+  in-order links. **Item 4 keeps the tokens without their link positions, item 5 the token without
+  the cursor; item 8 loses `vs.length ≤ 3`**, and with the budget gone its `dup = false` too (it
+  was for the budget's tickets).
+
+Kept, for the first closed theorem (`Main`'s workload: three voters, no restart, no compaction, no
+configuration change, PreVote and CheckQuorum off), though the corrected specification follows
+each of them now: P1 (item 2, `RestartNode` untraced: lifting it needs raft's trace logging fixed,
+0001, in the verified fork, and the application's persisted configuration, finding 11), P2 (item
+7, no compaction: lifting it needs layer B to follow snapshots), P3 (item 6's
+`ProposeConfChange`: lifting it needs no-op changes excluded), P7's PreVote and CheckQuorum (in
+`TracedConfigOk`: lifting it needs 0011, raft's trace logging of pre-votes and the lease, in the
+verified fork). P4, P6 (item 4's tokens), P7's other calls and `AsyncStorageWrites`, and P8 are
+unchanged. Revision 1 follows, as it was; the items dropped or narrowed are as said here.
+
+## Revision 1
+
+
 For the user's decision (`notes/trace-validation-plan.md`, Q6; the spec skill: "a new premise or
 new client-owned ghost state on a spec that has clients is the user's decision ... the old and new
 statement side by side, with the alternatives"). The design they come from:
