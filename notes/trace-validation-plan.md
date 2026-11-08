@@ -285,6 +285,18 @@ the checker's spec and layer B's invariant at the end (the whole trace accepted)
 
 S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's event function).
 
+## Probe set (named 2026-11-08, `notes/spec-first-plan.md`, "Probe": an easy and a hard proof per package)
+
+- Layer C (package `etcdraft`, the checker): **easy** `Result.TLCOK` (done 2026-11-08, about ten
+  minutes; no spec problem found); **hard** `(*State).Timeout`, chosen by its invariant: the
+  search's copy-on-write discipline (a state built by an action is a `clone`, its changed server a
+  `mut` copy, everything else shared and read-only), the invariant every action's spec rests on and
+  no review checks; its path: `Set.Has` (done), `State.GetConfig`, `Server.copy`, `State.clone`,
+  `State.mut`, then `Timeout` (a mutable representation of a fresh clone and copy, persisted once
+  written). `CheckTrace`'s own loop waits on Q7.
+- Layer A/B (raft's hooks, increment 2): waits on Q6's statements (the plan of S4: one hook with its
+  phase through `send`'s callers).
+
 ## Draft: layer C's specs drafted (2026-11-08), in Review
 
 The checker's spec, independent of Q4-Q6 (Q4 changes only the invariants' list both
