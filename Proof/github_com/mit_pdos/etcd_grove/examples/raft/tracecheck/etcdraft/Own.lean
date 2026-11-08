@@ -60,6 +60,42 @@ theorem serverOwn_persist (p : Loc) (v : Server) :
   iframe Hp Hl Hr Hg Hm Hc Hd
   ipureintro; exact ⟨Hf, Hmi⟩
 
+/-- A `*State` clone being built: the struct and the server map owned; the servers in `M` are
+copies being written (`serverOwn`), the others shared (`serverRO`). -/
+def stateOwn (p : Loc) (st : State) (M : List ID) : IProp GF :=
+  iprop(∃ (g : G.State) (sm : GMap w64 Loc), p ↦ g ∗ setRO g.Server' st.server ∗
+    g.S' ↦$ sm ∗
+    ⌜∀ k : w64, (sm !! k).isSome ↔ uint.nat k ∈ st.server⌝ ∗
+    ([∗list] i ∈ st.server, ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat i)) = some q⌝ ∗
+      (if i ∈ M then serverOwn q (st.s i) else serverRO q (st.s i))) ∗
+    bagRO g.Messages' st.messages ∗ bagRO g.PendingMessages' st.pendingMessages ∗
+    ⌜sint.Z g.ReconfigCount' = st.reconfigCount⌝)
+
+/-- A built clone, frozen. -/
+theorem stateOwn_persist (p : Loc) (st : State) (M : List ID) :
+    stateOwn (GF := GF) p st M ⊢ |==> stateRO p st := by
+  iintro H
+  iunfold stateOwn at H
+  icases H with ⟨%g, %sm, Hp, #Hsrv, Hm, %Hkeys, Hsrvs, #Hb1, #Hb2, %Hrc⟩
+  ipersist Hp
+  ipersist Hm
+  ihave Hsrvs : iprop([∗list] i ∈ st.server, |==> ∃ q : Loc, ⌜sm !! (W64 (Int.ofNat i)) = some q⌝ ∗
+      serverRO (GF := GF) q (st.s i)) $$ [Hsrvs]
+  · iapply (BigSepL.bigSepL_mono (fun {_ i} _ => ?_)) $$ Hsrvs
+    iintro ⟨%q, %Hq, Hs⟩
+    by_cases hi : i ∈ M
+    · simp only [hi, ite_true]
+      imod serverOwn_persist $$ Hs with Hs
+      imodintro; iexists q; iframe Hs; ipureintro; exact Hq
+    · simp only [hi, ite_false]
+      imodintro; iexists q; iframe Hs; ipureintro; exact Hq
+  imod BigSepL.bigSepL_bupd _ _ $$ Hsrvs with Hsrvs
+  imodintro
+  iunfold stateRO
+  iexists g, sm
+  iframe Hp Hsrv Hm Hb1 Hb2 Hsrvs
+  ipureintro; exact ⟨Hkeys, Hrc⟩
+
 end defs
 
 end Etcdraft

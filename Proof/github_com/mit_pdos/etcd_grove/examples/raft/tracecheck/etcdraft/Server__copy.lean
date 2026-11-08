@@ -54,7 +54,7 @@ theorem Server.copy.wp_proof : Server.copy.spec (GF := GF) (hG := hG) := by
     iframe
     ipureintro
     refine ⟨Int.le_refl _, fun x => ?_⟩
-    simp only [Int.toNat_zero, List.take_zero, List.not_mem_nil, if_false]
+    simp only [Int.toNat_zero, List.take_zero, List.not_mem_nil, ite_false]
     rfl
   isplitr
   · imodintro
@@ -76,7 +76,7 @@ theorem Server.copy.wp_proof : Server.copy.spec (GF := GF) (hG := hG) := by
     rw [Htake]
     by_cases hx : x = key
     · subst hx
-      rw [GMap.lookup_insert]; simp only [List.mem_append, List.mem_singleton, or_true, if_true, Hval]
+      rw [GMap.lookup_insert]; simp only [List.mem_append, List.mem_singleton, or_true, ite_true, Hval]
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hx), Hmp.2 x]
       simp only [List.mem_append, List.mem_singleton, hx, or_false]
   iintro HP Hm
