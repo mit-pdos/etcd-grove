@@ -5,6 +5,14 @@ hook's correspondence, determinism, the invariants' mapping). It decides what in
 hooks' specs is (`notes/trace-validation-hooks.md`: the logger's contract) and what layer D must
 discharge.
 
+**Revision 12 (after review round 11, 2026-11-08; `notes/trace-validation-reviews/s4-r11.md`).**
+**Round 11 found nothing first-tier: the Review is clean on that tier.** Changed (second and third
+tier): `RestartNode` keeps `TraceLoggerOk` everywhere it is named, Q1 included (S1); the allocation's
+premises all conditional on a traced cluster, `tr.isSome → |peers| ≤ 3 ∧ ¬dup ∧ boot ≠ []`, since
+`cluster_alloc` is shared by every client (S2); the filter's deadness by P3, the cursors in step
+(1), the law giving untraced clients their fact (`cluster_alloc`'s post gains `γ.raft.reTrace =
+tr`) and the statements it changes, the revived mode's node facts a cost of S5 (third tier).
+
 **Revision 11 (after review round 10, 2026-11-08; `notes/trace-validation-reviews/s4-r10.md`).**
 Round 10 found round 9's repairs made and one first-tier item, one clause: `RestartNode` keeps
 the nil-logger premise beside `reTrace = none` (F1). Also: the permit is `⌜False⌝` (S1); the
@@ -485,17 +493,24 @@ stepping `σ` inside it; raft's API exports the law from `simInv γt ∗ traceAu
 line by line, to a unique state with the invariants" (layer D gets `traceAccepts` from it), and the
 allocation law, in three steps (round 9's S1: `cluster_alloc` takes its name fields as inputs),
 which the harness applies before the first `StartNode`: (1) allocate `γt` with `traceAuth` and
-`traceFrag`, and the budget; (2) `cluster_alloc` with `tr := some γt` (raft's `γ`, its cluster
-voters the peers, `γ.raft.reTrace = some γt`), under the premises `|peers| ≤ 3` (P9), a non-`dup`
-cluster, and `tr.isSome → boot ≠ []` (the revived mode needs a bootstrap log, `reNoSnap_ok`,
-`Ghost.lean:352`); it gives `isCommittedLogLb γ boot`; (3) establish `simInv` at `σ_init` (from the
-peers) with the nodes' `simNode`s and their bootstrap flags (round 10's T2). The harness's storage
-predicate is its own `MemJust` with `B := storBnd γ K` (it cannot use `memStorJ`; round 10's T3); the exported law takes as premise that every peer's bootstrap lines are in
+`traceFrag`, the budget, and the per-link cursors `linkCur`; (2) `cluster_alloc` with
+`tr := some γt` (raft's `γ`, its cluster voters the peers), under the premise
+`tr.isSome → |peers| ≤ 3 ∧ ¬dup ∧ boot ≠ []` (P9; the budget's tickets; the revived mode needs a
+bootstrap log, `reNoSnap_ok`, `Ghost.lean:352`), conditional because `cluster_alloc` is shared by
+every client (kvreconf and kvdurable allocate with `dup` and no bootstrap log, the server with any
+number of peers: round 11's S2); its post gains `γ.raft.reTrace = tr` (which gives untraced
+clients their pure fact) and gives `isCommittedLogLb γ boot`; (3) establish `simInv` at `σ_init`
+(from the peers), taking `traceFrag`, the cursors' authority, the budget's authority and
+`isCommittedLogLb γ boot`, and giving the nodes' `simNode`s with their bootstrap flags (round 10's
+T2, round 11's T2). The harness's storage predicate is its own `MemJust` with
+`B := storBnd γ K` (it cannot use `memStorJ`; `memStorInvP_alloc` at 0 and
+`memStorage_isStorageP` suffice: round 10's T3, round 11). The exported law takes as premise that every peer's bootstrap lines are in
 `L` (a peer not yet started contributes `σ_init`'s value for it, from the allocation).
 
-What changes, besides the hooks' specs: the constructors' premise (Q1) becomes
+What changes, besides the hooks' specs: `StartNode`'s premise (Q1) becomes
 `isTraceLogger γt cv.TraceLogger'` inside the triple (`γt` a new binder; `isTraceLogger_nil` for a
-nil logger, any `γt`); `simNode` is owned only in a traced cluster, so untraced clients carry only
+nil logger, any `γt`), while `RestartNode` keeps `TraceLoggerOk` (a nil logger; round 10's F1,
+round 11's S1); `simNode` is owned only in a traced cluster, so untraced clients carry only
 the one pure fact below (round 10's T1).
 
 What the contract's proof meets:
@@ -546,7 +561,7 @@ What the contract's proof meets:
   records the messages handed to the run loop and not yet stepped (a per-link set of pending
   positions above the frontier, added at the hand-off, removed at `raft.Step`: round 8's S4,
   round 9's T3; the run loop's filter of a response from an unknown sender, `node.go:394-397`, is
-  dead in a traced cluster); the frontier is split,
+  dead in a traced cluster, by P3); the frontier is split,
   its authority in `simInv` (frontier `≤` cursor) and an exclusive fragment in the receiver's
   `simNode`, so "`p` above the frontier" stays true from `Node.Step`'s hand-off (`recvc`,
   `node.go:514-523`) to `raft.Step` (the run loop steps the message it took before taking another,
@@ -609,8 +624,13 @@ What the contract's proof meets:
   `wp_trace_hookC`'s successor) and how much of `StepCD` it reuses.
 - Whether `simNode` lives in `ownRaftPhys` (every raft proof sees it) or beside it in `ownRawNode`
   (only the hooks' call sites thread it, as the logger field now).
-- The constructors' premise: increment 2's shape (`isTraceLogger γt …` inside the triple) now,
-  rather than changing Q1's statement twice.
+- `StartNode`'s premise: increment 2's shape (`isTraceLogger γt …` inside the triple) now, rather
+  than changing Q1's statement twice (`RestartNode` keeps `TraceLoggerOk`).
+- The revived `reNoSnap` mode's node-level facts hold only vacuously today (`InvRaftPhys.lean:844-850`,
+  `StepGhostMode.lean:427-433`): proving them is a cost in S5's estimate (round 11's T4). The
+  statements the untraced fact changes: kv's exported `kv_storage_isStorage` (`kv/Results.lean:124`),
+  kvreconf's and kvdurable's `isStorage` laws, the server's `srvMem_bootStorage` and its cluster
+  names (`SrvRaftLog.lean:755-763`), `memStorage_isStorage` (round 11's T3).
 
 ## Review round 1 (2026-11-08): findings and what changed
 

@@ -56,8 +56,9 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   `bootstrap`'s result, a premise of an exported result) says it too: true of the code
   (`raftConfig`, `bootstrap.go`, sets no trace logger).
   Review round 1 of S4 (S6): increment 2 replaces `TraceLoggerOk` by `isTraceLogger γt tl`, an
-  `IProp` with a ghost name, so this premise changes again (inside the triple, `γt` a new binder);
-  whether to take increment 2's shape now is open in `notes/trace-validation-sim.md`.
+  `IProp` with a ghost name, so `StartNode`'s premise changes again (inside the triple, `γt` a new
+  binder; Q6), while `RestartNode` keeps `TraceLoggerOk` (S4 rounds 10-11); whether to take
+  increment 2's shape now is open in `notes/trace-validation-sim.md`.
 - **Q3 (2026-11-08, S4 review round 1): two changes to the harness `Main` runs.** Without them the
   closed theorem is false: (F1) the harness sent a `Ready`'s messages before `Advance`, and since
   raft logs the `Ready` only after handing it out (`traceReady` ends `acceptReady`, which runs
@@ -125,8 +126,9 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   untraced clients need no witness), and with it, `Ready`'s snapshot empty, (8) since round 9:
   `storBnd` exempting `c = 0` (the gated conjunct `⌜c = 0 ∨ γ.raft.reTrace = none⌝`), `StartNode`
   tying its logger to `reTrace`, `RestartNode` taking an untraced cluster and keeping its
-  nil-logger premise, the allocation in three steps (with `|peers| ≤ 3`, a non-`dup` cluster and a
-  bootstrap log), raft's `reNoSnap` mode revived as `reTrace.isSome`. Untraced clients (every
+  nil-logger premise, the allocation in three steps (`cluster_alloc` under
+  `tr.isSome → |peers| ≤ 3 ∧ ¬dup ∧ boot ≠ []`, conditional since every client shares it, its
+  post gaining `γ.raft.reTrace = tr`), raft's `reNoSnap` mode revived as `reTrace.isSome`. Untraced clients (every
   existing one) carry one new pure fact, `⌜γ.raft.reTrace = none⌝`, from a law raft exports; the
   exported `memStorage_isStorage` gains it as a premise. The spec skill makes each the
   user's; they will be presented side by side with the current specs once increment 2 is drafted
@@ -291,7 +293,7 @@ ones) its verdict and failing line equal the Go checker's (and so TLC's), and on
 evaluation-error witness (a commit index past the log) it fails with the same error. Not part of
 the trust argument (the plan's "Trust base"): S6's proof is what ties it to the Go.
 
-## Draft: S4 drafted (2026-11-08), in Review (rounds 1-10 done; blocked on Q4, Q5, Q6)
+## Draft: S4 drafted (2026-11-08), Review clean (round 11); the freeze blocked on Q4, Q5, Q6
 
 `notes/trace-validation-sim.md`: the abstraction `α` (a server's variables, the messages, the bags
 as new ghost state with a token per message in flight), the relation's phases (idle, handling a
@@ -329,7 +331,13 @@ one-sentence first-tier gaps (`storBnd`'s `c = 0`; the gate half moved to `reTra
 allocation's order, untraced clients' pure fact, `reNoSnap`; revision 10. Round 10 (`notes/trace-validation-reviews/s4-r10.md`): one
 first-tier clause (`RestartNode` keeps its nil logger), the permit `⌜False⌝`, `memStorage_isStorage`'s
 premise, what reviving `reNoSnap` touches; revision 11. The reviewer saw nothing first-tier left
-once that clause is in.
+once that clause is in. **Round 11 (`notes/trace-validation-reviews/s4-r11.md`): nothing
+first-tier; the Review is clean.** Its second-tier points (`RestartNode`'s premise named
+consistently, the allocation's premises conditional on a traced cluster) and third tier are in
+revision 12. What remains before the freeze is the user's: Q4 and Q5 (the closed statement is false
+until they are decided) and Q6 (the node-API changes, to present side by side with the current
+specs; Q5's choice decides whether the per-link cursor is among them). Test and Probe come with
+increment 2's statements.
 
 ## Draft: S3 increment 1 done (2026-11-08)
 
