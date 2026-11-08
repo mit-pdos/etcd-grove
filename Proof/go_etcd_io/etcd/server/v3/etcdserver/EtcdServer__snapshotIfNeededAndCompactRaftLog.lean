@@ -41,7 +41,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
   intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nk γp w TM ρ sa q γn hok hci hrel hsz
     hwso hγn hpre
   wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hkv, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hecs, #Hft, #Hapl, Hai,
-    Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh⟩
+    Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh, Htt⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, ⟨%scu, #Hscu⟩, #Hinf,
@@ -66,7 +66,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     (try wp_auto)
     iapply HΦ
     iexists st
-    iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt
+    iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Htt
     isplitl [Hd Hm Hf]
     · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms
       isplitr
@@ -93,18 +93,18 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     first
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x true ms γs nk (W64 0) γp ua q γn
             hok hci hrel (by omega) hsz hwso hγn hpre
-            $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh]
-          as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, %hst'⟩
+            $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh Htt]
+          as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, Htt, %hst'⟩
          · iframe #
-           iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt
+           iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Htt
            iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
            ipureintro; exact Hdm)
       | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x false ms γs nk (W64 0) γp ua q γn
             hok hci hrel (by omega) hsz hwso hγn hpre
-            $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh]
-          as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, %hst'⟩
+            $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh Htt]
+          as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, Htt, %hst'⟩
          · iframe #
-           iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt
+           iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Htt
            iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
            ipureintro; exact Hdm)
     iunfold srvSnapState at HSS
@@ -119,7 +119,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     ihave HKV := HKVk $$ HKV
     iapply HΦ
     iexists st'
-    iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hfz Hwt
+    iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hfz Hwt Htt
     isplitl [Hd Hm Hf]
     · iunfold srvSnapState; iexists d', m', f'; iframe Hd Hm Hf Hms
       isplitr

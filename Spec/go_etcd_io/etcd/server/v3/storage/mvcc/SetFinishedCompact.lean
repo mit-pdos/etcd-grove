@@ -34,11 +34,11 @@ abbrev mvcc.SetFinishedCompact.spec : Prop :=
   ∀ (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Dep : IProp GF) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF)
-    (Rb : GMap GoString backend.BktData → IProp GF) (MW : IProp GF) (f : val) (value : w64)
+    (Rb : GMap GoString backend.BktData → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (f : val) (value : w64)
     (Pre Q Post : IProp GF),
   0 ≤ sint.Z value →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep True Locked P HF Rb MW ∗ mvcc.mwSwap W MW ∗
+      mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep True Locked P HF Rb MW ∗ mvcc.mwSwap W iprop(∃ (w : backend.FkVals) (X : backend.VData), MW w X) ∗
       RT ∗ WT ∗ HF f ∗ Pre ∗
       □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ (Q ∗ W ={⊤}=∗ P ∗ W ∗ Post) }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact)) (Val #(GoInterface.ok bt)))

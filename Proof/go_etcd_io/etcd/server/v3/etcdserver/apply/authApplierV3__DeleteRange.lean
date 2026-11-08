@@ -3,6 +3,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 -/
 module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3__DeleteRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthLemmas
 
 @[expose] public section
@@ -28,15 +29,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.DeleteRange.wp_proof :
     apply.authApplierV3.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro E c inner p r rq o log F Pre Q Post info
-  wp_start as ⟨#Hauth, #Hinner, Hpre, #HF⟩
+  wp_start as ⟨#Hauth, #Hinner, Hpre, #HF, Htt⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, -, -⟩
   iunfold apply.deletePre at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
   ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
-  iunfold apply.mPre at Hm
-  icases Hm with ⟨Hkv, Hres, Hcs⟩
-  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
+  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  ihave ⟨Hard, Hkv⟩ := apply.mPreRest_rd E log Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hst' := Hst
   iunfold apply.isAuthStore at Hst'
@@ -67,10 +67,12 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   | ok e' =>
     wp_auto
     iapply HΦ
+    iframe Htt
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) info rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv Hinfo
+    icases apply.mPreRest_reject_cs _ _ _ _ _ $$ Hkv with ⟨Hkv, %B, Hcs⟩
+    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) info rq log F _ _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv Hinfo
       Hres Hcs
     · simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs]
       isplitr
@@ -88,13 +90,16 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     ihave #Hrc := apply.reqClass_deleteRange E.authMode info rq o Hk.1 Hk.2.1 $$ Hdc
     iunfold apply.chainResAny at Hres
     icases Hres with ⟨%info', Hres⟩
-    wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
-    · iunfold apply.deletePre
-      iunfold apply.mPre
-      iframe
+    wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt
+      iunfold apply.deletePre
       iframe #
-      ipureintro; exact Hk
+      isplitr
+      · ipureintro; exact Hk
+      iapply apply.mPre_of_rest
+      iframe
     iapply HΦ
+    iframe Htt
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
@@ -102,7 +107,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     · iapply apply.reqLeaseClass_noLease; simp [Hk.2.1]
     iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) info info' rq log F _ Pre Post $$ Happ Hpost Hinfo Hrc Hrl
   wp_auto
-  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
+  ihave ⟨Hard, Hkv⟩ := apply.mPreRest_rd E log Pre Q Post $$ Hkv
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
     as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff, #Hpr⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
@@ -111,10 +116,12 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   | ok e' =>
     wp_auto
     iapply HΦ
+    iframe Htt
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) info rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv Hinfo
+    icases apply.mPreRest_reject_cs _ _ _ _ _ $$ Hkv with ⟨Hkv, %B, Hcs⟩
+    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) info rq log F _ _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv Hinfo
       Hres Hcs
     · simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs]
       isplitr
@@ -130,13 +137,16 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   ihave #Hrc := apply.reqClass_deleteRange E.authMode info rq o Hk.1 Hk.2.1 $$ Hdc
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
-  wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
-  · iunfold apply.deletePre
-    iunfold apply.mPre
-    iframe
+  wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+  · iframe Htt
+    iunfold apply.deletePre
     iframe #
-    ipureintro; exact Hk
+    isplitr
+    · ipureintro; exact Hk
+    iapply apply.mPre_of_rest
+    iframe
   iapply HΦ
+  iframe Htt
   isplitr [Htrc]
   rotate_left
   · iexact Htrc

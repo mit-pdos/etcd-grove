@@ -30,6 +30,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreApi
 
 @[expose] public section
 
@@ -50,18 +51,25 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The fresh names chosen before `NewServer`** (D13a) but raft's, the read names and (since
-stage M4) the id generator's: the store's index names, its certificate map and the revisions'
-map. -/
+stage M4) the id generator's: the server's names of the store's state (fresh at the empty history,
+`srvApi.newServerStoreFreshA`; R6, 2026-11-07, the `lean` merge: until then mvcc's index names,
+`mvcc.idxFresh`), its certificate map and the revisions' map. -/
 theorem newServerNames_alloc :
-    ⊢ |==> ∃ (idx : mvcc.IdxNames) (cok rev : GName),
-      mvcc.idxFresh (GF := GF) idx ∗
+    ⊢ |==> ∃ (γs : srvApi.KVSNames) (cok rev : GName),
+      srvApi.newServerStoreFreshA (GF := GF) γs ∗
       ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) ∗ ghostMapAuth rev 1 (∅ : GMap w64 Unit) := by
   istart
-  imod mvcc.idxFresh_alloc (GF := GF) with ⟨%idx, Hidx⟩
+  imod ghostVar_alloc (GF := GF) ((([[], []] : mvcc.Log), (none : Option (List mvcc.Change))))
+    with ⟨%gst, Hst⟩
+  imod ghostVar_alloc (GF := GF) (-1 : Int) with ⟨%gcr, Hcr⟩
+  imod mono_list_own_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%gsl, Hsl, -⟩
+  imod mono_list_own_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%gnl, Hnl, -⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := mvcc.Log) with ⟨%cok, Hcok⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%rev, Hrev⟩
   imodintro
-  iexists idx, cok, rev
+  iexists ⟨gst, gcr, gsl, gnl⟩, cok, rev
+  iframe Hcok Hrev
+  iunfold srvApi.newServerStoreFreshA
   iframe
 
 /-- The client's `etcdKV` reads only the state's variable. -/
@@ -139,7 +147,7 @@ its boot token and its snapshot directory. The pure premises (D21e (A),
 plan's 2.3, the user's (C):) in a cluster that grants leases (`lg`), the KV invariant takes the KV
 state's ghost variable whole and no client's `etcdKV` is returned; at `lg = false` as before. -/
 theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (xs : w64 → mvcc.IdxNames) (reg : GName)
+    (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
     (hcc : ∀ e ∈ LogEntry.toEntries boot 0,
@@ -277,7 +285,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
         rw [hvs]
         exact hcc e (by rw [← hbt]; exact he))
       rfl rfl (by simp [γk, γk0])
-      (by intro cs hcs c hc; simp only [γk, γk0, List.mem_cons, List.not_mem_nil, or_false] at hcs
+      (by intro cs hcs c hc; simp only [γk, γk0, List.mem_cons, List.not_mem_nil, _root_.or_false] at hcs
           rcases hcs with rfl | rfl <;> simp at hc)
       (mvcc.LogPutsLe.empties _) rfl hao
       ⟨by simp [γk, γk0], by rw [hbt]; unfold LogEntry.toEntries; simp; omega⟩)

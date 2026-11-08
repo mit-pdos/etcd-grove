@@ -28,7 +28,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.run()`**, the server's apply loop (a goroutine body: `start`'s `go s.run()`), in both auth
 modes (the auth component's stage 2, 2026-11-04): with what `isServerRunC` lists in the component
-`C`, the environment's (with auth on, the receipts' bound, `acReceiptOk`), it starts the raft
+`C`, the environment's (and the receipts' bound, R6, 2026-11-07: in both modes, `applyAll`'s since
+strict M1, the log's smallness coming from the writer's receipt; until then `acReceiptOk`, with
+auth on only), it starts the raft
 wrapper's loop, then receives each batch of committed entries raft hands it (`applyc`) and
 schedules its `applyAll` on a FIFO scheduler, the apply thread's resources flowing from job to job.
 The write budget is the receipt-backed `srvWTPool E` (D19b), from which `apply` takes one token per
@@ -91,7 +93,7 @@ abbrev EtcdServer.run.spec : Prop :=
     (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (dd : GoString) (c : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C⌝ ∗
+      ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
       isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvStopReq s E ρ dd)
         (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))

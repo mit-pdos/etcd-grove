@@ -136,14 +136,22 @@ def tieRes (st : Loc) (M : AuthMode) (hs : List AuthState) : IProp GF :=
 @[reducible] def authOwnT (st : Loc) (M : AuthMode) (hs : List AuthState) : IProp GF :=
   iprop(authOwn M hs ∗ tieRes st M hs)
 
+end res
+
+section resW
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 /-- **The store's write resource but the halves** (see the file header): the store's half of `be`
 with the backend's write contract, and the write token. -/
-def authWB (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) : IProp GF :=
+def authWB (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) : IProp GF :=
   iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
     T)
 
 /-- The write resource with exposed halves is `authWB` with the halves. -/
-theorem authWRx_split (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
+theorem authWRx_split (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) (b : Bool)
     (sc : AuthState) :
     authWRx (GF := GF) st M P f T b sc ⊢
       authWB st M P f T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc := by
@@ -151,13 +159,21 @@ theorem authWRx_split (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IP
   iintro ⟨Hbe, HT, Hfl, #Hev, Hca, #Hs⟩
   iframe Hbe HT Hfl Hev Hca Hs
 
-theorem authWRx_join (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
+theorem authWRx_join (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) (b : Bool)
     (sc : AuthState) :
     authWB (GF := GF) st M P f T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗
       authSnap M sc ⊢ authWRx st M P f T b sc := by
   unfold authWRx authWB
   iintro ⟨⟨Hbe, HT⟩, Hfl, #Hev, Hca, #Hs⟩
   iframe Hbe HT Hfl Hev Hca Hs
+
+end resW
+
+section res
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
 
 /-- **A tie-keeping step's result is `adminOutX` for `authOwnT`**: the halves after the step, tied
 by `tieStep` from the halves before (tied to `hs`), are tied to the history after. -/

@@ -1,23 +1,28 @@
 /-
 Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+
+Strict M1 (2026-11-05): over mvcc's API (`Txn.Rev`/`Txn.FirstRev` at the transaction's dynamic
+type, `shapes.law`).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.checkRange
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__FirstRev
+
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn go_etcd_io.etcd.server.v3.storage.mvcc
-  go_etcd_io.etcd.api.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccName)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,11 +32,21 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 theorem txn.checkRange.wp_proof
-    (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG))
-    (hFirst : mvcc.metricsTxnWrite.FirstRev.spec (GF := GF) (hG := hG)) :
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG)) :
     txn.checkRange.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ log rev req o crev
-  wp_start as ⟨Htx, #Hr⟩
+  intro t γ trace σ req o
+  have hrz : (σ.log.length + 3 ≤ 2 ^ 63) → sint.Z (W64 (σ.rev : Int)) = (σ.rev : Int) := by
+    intro h; unfold mvcc.api.MvccState.rev; word
+  generalize hR : (W64 (σ.rev : Int) : w64) = rev at hrz ⊢
+  wp_start as ⟨Htx, %Hreach, #Hr⟩
+  icases txn.mvccTxn_shape hsh t γ trace (.read σ) $$ Htx with ⟨%Hsh, Htx⟩
+  obtain ⟨ty, v, rfl, hRev, hFirst, -⟩ := Hsh
+  have hcr := txn.reach_crev σ Hreach.1
+  have hlen := Hreach.2
+  have hrz := hrz hlen
+  have hRev' := hRev γ trace (.read σ)
+  simp only [mvcc.api.MTxn.state] at hRev'
+  rw [hR] at hRev'
   ihave #Hmp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   ihave Hinit : (mvccInit : IProp GF) $$ []
@@ -49,13 +64,8 @@ theorem txn.checkRange.wp_proof
     exact ⟨rfl, Or.inl (by simp_all)⟩
   · skip
     have hne : ¬ rv = W64 0 := by simpa using Hif
-    ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) crev $$ [Htx]
-    · simp only [mvcc.isTxn]; iexact Htx
-    wp_apply +noauto (hRev trace mw s γ (.read log rev) crev iprop(True)) $$ [$Htx] as Htx
-    rw [show (mvcc.TxnKind.read log rev).beginRev = rev from rfl]
-    ihave Htx : mvcc.isTxnRead mw s γ trace log rev crev $$ [Htx]
-    · simp only [mvcc.isTxn]; iexact Htx
-    wp_auto
+    wp_apply hRev' $$ [$Htx] as Htx
+    (try wp_auto)
     wp_if_destruct
     · skip
       have hlt : sint.Z rev < sint.Z rv := by simpa using Hif
@@ -68,16 +78,15 @@ theorem txn.checkRange.wp_proof
       iexists ef; iframe Hfut; ipureintro; rfl
     · skip
       have hle : ¬ sint.Z rev < sint.Z rv := by simpa using Hif
-      ihave %Hcr := mvcc.isTxnRead_crev mw s γ trace log rev crev iprop(True) $$ Htx
-      have hm1 : sint.Z (W64 crev) = crev := by
-        have : sint.Z rev < 2 ^ 63 := by word
+      have hm1 : sint.Z (W64 σ.crev) = σ.crev := by
+        have : (σ.rev : Int) < 2 ^ 63 := by unfold mvcc.api.MvccState.rev; omega
         unfold sint.Z W64
         rw [BitVec.toInt_ofInt_eq_self (by decide) (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
           (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
-      wp_apply (hFirst trace mw s γ log rev crev iprop(True)) $$ [$Htx] as Htx
+      wp_apply (hFirst γ trace (.read σ)) $$ [$Htx] as Htx
       wp_if_destruct
       · skip
-        have hc : sint.Z rv < sint.Z (W64 crev) := by simpa using Hif
+        have hc : sint.Z rv < sint.Z (W64 σ.crev) := by simpa using Hif
         iapply HΦ
         iframe Htx
         iunfold txn.checkRangeErr
@@ -87,7 +96,7 @@ theorem txn.checkRange.wp_proof
           exact ⟨hne, by omega, by omega⟩
         iexists ec; iframe Hcomp; ipureintro; rfl
       · skip
-        have hge : ¬ sint.Z rv < sint.Z (W64 crev) := by simpa using Hif
+        have hge : ¬ sint.Z rv < sint.Z (W64 σ.crev) := by simpa using Hif
         iapply HΦ
         iframe Htx
         iunfold txn.checkRangeErr

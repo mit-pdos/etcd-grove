@@ -921,7 +921,7 @@ def outW (γ : WsNames) (w : Loc) (B : EventBatch) : IProp GF :=
 def moverResG (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) (evsw : List EvM)
     (γw : WatcherNames) : IProp GF :=
   iprop(∃ (r : WatchRange) (fcs : GoSlice),
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ filtersOk fcs ∗
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗
     ⌜sint.Z r.startRev ≤ (γw.lo : Int) ∧ (γw.lo : Int) ≤ sint.Z st.minRev ∧
       victimBatchOk γw.lo st B⌝ ∗
     watcherOwn w st (1 : Qp).half ∗ monoListAuthOwn γw.evs (1 : Qp).half evsw ∗
@@ -1096,7 +1096,7 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
       ghostMapAuth γ.wmeta 1 σ.M ∗ watchBudget γ 1 σ.M ∗
       ([∗map] k ↦ _γw ∈ σ.M, ∃ (r : WatchRange) (fcs : GoSlice), watcherFixed k r fcs) ∗
       ([∗map] k ↦ v ∈ σ.ST, memberRes γ 1 σ k v) ∗ ([∗map] k ↦ v ∈ σ.Wo, outRes γ σ k v) ∗
-      watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ filtersOk fcs ∗
+      watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       evsWf γ r γw.lo evsw (sint.nat st.minRev) ∗
       (if b then iprop(True) else
@@ -1370,6 +1370,24 @@ def sentW (γ : WsNames) (w : Loc) (p : Loc × EventBatch) : IProp GF :=
       p.1 ↦ ({ evs' := sl, revs' := p.2.revs, moreRev' := p.2.moreRev } : eventBatch)) ∗
     ∃ (st : WatcherSt) (evsw : List EvM) (γw : WatcherNames),
       moverResG γ w st ⟨[], p.2.revs, p.2.moreRev⟩ evsw γw)
+
+/-- **A victim's batch's revision is one of the API's notified log** (stage 2 of the mvcc API,
+2026-11-05: what `moveVictims` carries with the batch, the delivery's watched log, `evLog_nlLb`):
+its events non-empty, so delivered up to a revision of that log. -/
+theorem mv_revApi (γ : WsNames) (r : WatchRange) (lo : Nat) (e : List EvM) (d : Nat) (rev : w64)
+    (hne : e ≠ []) (hrev : sint.nat rev < d) :
+    evsWf (GF := GF) γ r lo e d ⊢ revApi γ rev := by
+  iintro #Hwf
+  ihave %Hlo := evsWf_ne_lo γ r lo e d $$ Hwf
+  iunfold evsWf at Hwf
+  icases Hwf with ⟨%L, #HL, -, %Hb, -⟩
+  ihave #Hn := evLog_nlLb γ.st L $$ HL
+  iunfold revApi
+  iexists L
+  iframe Hn
+  ipureintro
+  have := Hlo hne
+  omega
 
 /-- What `send` takes of a delivery (nothing for no events), and what is kept. -/
 theorem mv_ev_pre (γ : WsNames) (γw : WatcherNames) (r : WatchRange) (evsw evs : List EvM) (d : Nat) :

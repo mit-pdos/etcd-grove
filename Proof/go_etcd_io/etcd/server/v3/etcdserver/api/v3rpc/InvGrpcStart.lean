@@ -294,7 +294,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **What `v3rpc.Server` and its callees read of the server** (a record; see the file header):
-the server's contract (`raftKV` at `A`), its watchable store (`wsl`, `γ`, the apply thread's
+the server's contract (`raftKV` at `A`), its watchable store (`wsl`, the auth mode's tag `tag`, the apply thread's
 environment `E`), its logger `lg` (`s.lg`), its configuration's logger `lg0` (`s.Cfg.Logger`), quota
 `qb`, member id `mid`, transaction budget `n`, unary-request warning duration `wd`, cluster `c`,
 `stopping` channel `ch`, tick and election settings `tm`, `et`, request size `m`, feature gate `fg`,
@@ -303,7 +303,7 @@ metrics level `mt`, distributed tracing switch `tr` and options `tos` (in the sl
 structure v3rpc.GrpcCfg (GF : BundledGFunctors) [GooseExts] where
   A : v3rpc.KVAns GF
   E : apply.AEnv GF
-  γ : mvcc.WsNames
+  tag : GName
   wsl : Loc
   lg : Loc
   lg0 : Loc
@@ -327,7 +327,7 @@ structure v3rpc.GrpcCfg (GF : BundledGFunctors) [GooseExts] where
 read-only, as `NewServer` left them; (2026-10-31) the transaction budget within protobuf's
 recursion limit (`v3rpc.maxTxnOpsOk`, `NewServer`'s configuration premise). -/
 def v3rpc.grpcCfgOk (s : Loc) (C : v3rpc.GrpcCfg GF) : IProp GF :=
-  iprop(v3rpc.raftKV s C.A ∗ v3rpc.watchSrvOk s C.E C.γ C.wsl ∗
+  iprop(v3rpc.raftKV s C.A ∗ v3rpc.watchSrvOk s C.E C.tag ∗
     srvKVAddr s ↦□ v3rpc.wsIface C.wsl ∗ v3rpc.srvIdsOk s ∗
     srvCfgFieldAddr s go!"Logger" ↦□ C.lg0 ∗ ⌜C.lg0 ≠ null⌝ ∗ srvLgAddr s ↦□ C.lg ∗ ⌜C.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ C.qb ∗ srvMemberIDAddr s ↦□ C.mid ∗

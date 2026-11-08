@@ -349,7 +349,7 @@ theorem v3rpc.Server.wp_proof
       v3rpc.kvDesc_nodup kmds ksds HkvD, ⟨_, rfl, v3rpc.ServerMethodSets.kv_te⟩⟩
     exact v3rpc.ServerMethodSets.kv_impl
   (try wp_auto)
-  wp_apply (hNewW s C.E C.γ C.wsl C.lg0 C.m d)
+  wp_apply (hNewW s C.E C.tag C.wsl C.lg0 C.m d)
     as %ws ⟨%pw, %lgw, %cidw, %midw, %Hws', #Hpw⟩
   · iframe #; ipureintro; exact Hdb
   subst Hws'
@@ -416,7 +416,7 @@ theorem v3rpc.Server.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists q, p, pw, pa, ql, lp, il, im, iu, ims, is, _, _, _, cid, mid', lcid, lmid,
-    ⟨s, C.E, C.wsl, C.γ, cidw, midw, lgw, C.m + W64 (512 * 1024)⟩
+    ⟨s, C.E, C.wsl, C.tag, cidw, midw, lgw, C.m + W64 (512 * 1024)⟩
   iframe Hgs
   isplitr
   · ipureintro

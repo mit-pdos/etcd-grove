@@ -51,7 +51,7 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   obtain ⟨hlm, hoff⟩ := hv
   have hRR := hRR0 s E ρ
   rw [hoff] at hRR
-  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hreq⟩
+  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hspc, #Hreq⟩
   iunfold leaseRevokeReqRO at Hreq
   icases Hreq with ⟨%hr, #HID⟩
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
@@ -79,9 +79,10 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hspc1 := Hspw $$ Hspc
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi
@@ -138,8 +139,9 @@ theorem EtcdServer.LeaseRevoke.wp_proof
     refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [rq, apply.irrEmpty] at h
   have Hshape : rqShape ρ.kv.lm rq := by
     refine ⟨fun on => ⟨by rw [Hk]; decide, by rw [Hk]; intro h; cases h⟩, fun log hs => ?_⟩
-    have hput : apply.putOk log := by unfold rqSmall at hs; rw [Hk] at hs; exact hs
-    exact (apply.rqOk_leaseRevoke _ _ _ Hk).2 ⟨hlm, Hrk, hput⟩
+    have hput : apply.putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62 := by
+      unfold rqSmall at hs; rw [Hk] at hs; exact hs
+    exact (apply.rqOk_leaseRevoke _ _ _ Hk).2 ⟨hlm, Hrk, hput.1, hput.2⟩
   ihave #HirrNo : irrNoHdrIs «$a1_ptr» rq $$ []
   · iunfold irrNoHdrIs
     simp only [rq, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField, apply.leaseRevokeIs]
@@ -150,7 +152,9 @@ theorem EtcdServer.LeaseRevoke.wp_proof
       rw [h0]; iexact ID
     repeat (isplitr; · iexists _; iframe #; try (ipureintro; first | exact hr | simp))
     iexists _; iframe #; try (ipureintro; first | exact hr | simp)
-  imod mvcc.idxCert_nil E.γ.idx with #HF
+  imod monoListLbOwn_nil (GF := GF) E.γs.slog with #HF0
+  ihave #HF : srvApi.kvLogLb E.γs [] $$ []
+  · iunfold srvApi.kvLogLb; iexact HF0
   imod Hcred with Hc
   wp_apply hRR ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
       (apply.irrDepthOk_of_txnW_none rfl)
@@ -179,7 +183,7 @@ theorem EtcdServer.LeaseRevoke.wp_proof
     have Hrq : rq' = apply.withHeader rq hm := Hwire.2.2.2 HnzW
     subst Hrq
     iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, -, -, Hans⟩
+    icases Hok with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, -, -, -, -, Hans⟩
     have Hk' : apply.dispatchKind (apply.withHeader rq hm) = .leaseRevoke := by
       rw [← Hk]; exact Hwire.2.2.1.trans rfl
     iunfold revokeAnsM at Hans

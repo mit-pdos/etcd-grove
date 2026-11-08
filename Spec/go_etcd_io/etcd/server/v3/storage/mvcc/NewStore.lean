@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RdCalls
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -27,9 +28,7 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `NewStore(lg, b, le, cfg)` on a fresh backend `b` returns a store `s` (`isStore`) at the
 initial committed log `[[], []]` (revision 0 and `currentRev = 1`, both empty), with its two
 views (owned: `newWatchableStore` overwrites them), all the reader slots of its locks
-(`storeReaderC`, one per slot) and the revision budget (`2 ^ 63 - 5` tokens: the batch lock's
-resource `writerRes` needs `ilog.length + ntok + 3 ≤ 2 ^ 63`, with the initial log of length 2),
-and the index's certificate of the initial log. The caller says whether the store is a
+(`storeReaderC`, one per slot) and the index's certificate of the initial log. The caller says whether the store is a
 watchable store's (`wq`, `γ.watchQ`, unit W-K); if so, it gets the outer quarter of the committed
 log's authority (`logQ`), which the watchable store's `s.mu` keeps. The index's names `γi` and
 the certificate map's `γok` are the caller's (fresh: `mvcc.idxFresh`, an empty map's authority,
@@ -39,18 +38,8 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   the store's own ghost map `γb`; `some d`, the real backend (`BackendBridge.lean`). Its contract
   is quantified over the store's ghost names and location (with that instance and bucket name),
   because the batch lock's resource `storeW s γ` is the store's (`writerRes s γ`, or the real
-  backend's late-bound `lateWD d`, which `NewStore` registers at its first `tx.Unlock()` with the
+  backend's late-bound `lateW`, which `NewStore` registers at its first `tx.Unlock()` with the
   right `kbRegRight kb`).
-* (F2's Freeze, stage 2, 2026-11-03) The compaction tracking's ties of the instance, whole at the
-  fresh log and no compaction (`kbTieInit kb`, made by `kbTie_alloc`; nothing off compaction
-  mode): `NewStore`'s first `Unlock` builds the batch lock's tracking from them and the lock's
-  unregistered halves at the fresh backend's data (`lateWB`'s `pvckEmpty`); the store keeps the
-  job cursor's other half for its jobs (`compactJobResM`) and returns the revision tie's
-  (`kbCrev kb (-1)`, for `compactRightR_of_closer`) and, in the writer's pin, a quarter of the log
-  tie and the store's registration (`pinRegd`: registered at the first `Unlock`, before it
-  returns). Of a backend `bootstrap` opened (`kbBoot kb`, review round 2's T2-1: its lock's
-  unregistered resource is `bootOk`'s, the client's halves at the empty data); a backend the
-  snapshot walk opens gets its store from `store.Restore`.
 * The fresh backend's view of the empty bucket `kbView kb γb 1 ∅` is *given* by the backend's
   creator (the fresh-backend assumption), as are the backend's reader tokens, one per reader
   slot (`kbRT kb`, lent to `NewStore`'s own calls and put in the readers' pool), and two
@@ -85,7 +74,9 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
 * (M2's item 37, 2026-11-02) The writer's pin at the initial log (`writerPin γ [[], []]`: its
   quarter of the bucket's view and, for a store that does not compact, the backend's
   no-compaction token, which `restore` gives back, and its nothing-deletable fact, the premise
-  `kbNoDelOff kb`), for its sole writer's observations of a backend snapshot.
+  `kbNoDelOff kb`), for its sole writer's observations of a backend snapshot. (2026-11-06) It and
+  the revision budget (`2 ^ 63 - 5` tokens) stay in the store, for both kinds (`wrState`, `wrPin`):
+  a writer finds them after its checkout.
 * The backend records no compaction (`kbNoCmp`, consumed by `restore`: D19l (v) (A), D22 S-g,
   2026-10-19; until then the opaque premise `backendNoCompaction`), so `restore` schedules none.
 * Compaction (2026-10-13, unit 5a): the store starts at the compaction revision `-1`; the
@@ -109,21 +100,24 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
 * (M2, the storage side, item 26) The store's logical compaction mode (`γ.cm`) is the instance's
   (`decide (kbCmpM kb)`); a restore keeps it. 
 The store's compaction permit is the caller's `Perm` (`crevPermIs`, C3's store law, 2026-11-02):
-every compaction revision the store holds satisfies it.
+every compaction revision the store holds satisfies it. (M3, 2026-11-06) The store's registration in
+its backend's batch lock (`writerReg`) and the client's parts of the API's ghost state
+(`api.newClient`: the API's constructors' `mvccState`, `mvccOpen`'s quarter, the share token, the
+location), and a later credit (the API's constructor retires a reader with it).
 (the backend-auth-split stage, 2026-11-02) The backend's reader tokens it takes are the backend's
-counted stock (`backend.rdStockN`, past the backend's pool), the readers it gives counted from it;
+counted stock less the opener's two (`nReaders`, past the backend's pool), the readers it gives counted from it;
 until then all `actualMaxReaders` of them. -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName)
     (Perm : Int → IProp GF),
-  mvcc.batchLimitOk cfg.CompactionBatchLimit' → mvcc.kbBoot kb →
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbNoDelOff kb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
-      mvcc.kbSRM kb ∗ mvcc.kbTieInit kb ∗
-      ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
+      mvcc.kbSRM kb ∗
+      ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
@@ -131,7 +125,8 @@ abbrev mvcc.NewStore.spec : Prop :=
   {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
       ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = kb ∧ γ.watchQ = wq ∧ γ.idx = γi ∧ γ.cok = γok ∧
         γ.cm = decide (mvcc.kbCmpM kb)⌝ ∗
-      mvcc.isStore s γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd) ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookInit γ P f ∗
+      mvcc.isStore s γ ∗
+      (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdCalls rd (go.GoType.PointerType store.ty) #s) ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookInit γ P f ∗
       (∃ rv wv : Loc,
         s.[store, go!"ReadView"] ↦
           (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
@@ -139,14 +134,14 @@ abbrev mvcc.NewStore.spec : Prop :=
         s.[store, go!"WriteView"] ↦
           (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
         mvcc.isWriteView wv s γ) ∗
-      ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb) (),
+      ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd kb) (),
         mvcc.storeReaderC s γ) ∗
-      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
+      mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ mvcc.writerFrag γ ∗
-      mvcc.writerPin γ [[], []] ∗
-      mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.kbCrev kb (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
-      mvcc.crevPermIs γ Perm }}
+      mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
+      mvcc.crevPermIs γ Perm ∗ mvcc.writerReg s γ ∗
+      (∃ pr : Qp, ⌜mvcc.pndW γ + pr = 1⌝ ∗ mvcc.api.newClient γ.api [[], []] (-1) pr s) ∗ £ 1 }}
 
 end spec
 

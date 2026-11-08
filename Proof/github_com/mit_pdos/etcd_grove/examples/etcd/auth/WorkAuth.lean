@@ -404,17 +404,17 @@ events carries the server's check of the create (`watchCheckOk`), for the stream
 `who`'s context makes none or `bad`'s (`akOut_streamKey`), at states no older than the set-up's
 published index, so at `setupSt` (`akStateAt_setup`), where no principal of `who`'s reads `c/`
 (`not_granted_c`). -/
-theorem akWatch_c_refused (γ : mvcc.WsNames) (s conn : Loc) (ctx : GoInterface)
+theorem akWatch_c_refused (γ : GName) (s conn : Loc) (ctx : GoInterface)
     (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
     (hout : metadata.outgoingOf ctx = akOut who) :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ attemptTokOk conn (akTokP γa who) ∗
-      auth.modeTag γ.tag (.on γa) ∗ □ (srvTLSId s -∗ False) ⊢
+      auth.modeTag γ (.on γa) ∗ □ (srvTLSId s -∗ False) ⊢
       watchCheckOk γ s conn ctx n go!"c/" go!"c0" ={⊤}=∗ False := by
   iintro ⟨#Hf, #Hat, #Htag, #Htls⟩ #Hw
   ihave ⟨%m, %tok, %M, %info, %Hk, #Ht, #HtagM, #Hcl, #Hb⟩ :=
     watchCheckOk_tok γ s conn ctx n _ _ (akTokP γa who) $$ [Hw Hat]
   · iframe Hw Hat
-  ihave %HM := auth.modeTag_agree γ.tag (.on γa) M $$ Htag HtagM
+  ihave %HM := auth.modeTag_agree γ (.on γa) M $$ Htag HtagM
   subst HM
   rw [hout] at Hk
   ihave #Hseen := akTokSeen_of γa who m tok (akOut_streamKey who m Hk) $$ Ht

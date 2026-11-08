@@ -52,7 +52,7 @@ def mvcc.memberFacts (γ : mvcc.WsNames) (σ : mvcc.WsState) (w : Loc) (st : mvc
     IProp GF :=
   iprop(∃ (γw : mvcc.WatcherNames) (r : mvcc.WatchRange) (fcs : GoSlice),
     ⌜σ.M !! w = some γw⌝ ∗ mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗
-    (⌜¬ σ.live w⌝ ∨ (⌜σ.live w⌝ ∗ mvcc.watcherChan γ w γw st.ch ∗ mvcc.filtersOk fcs ∗
+    (⌜¬ σ.live w⌝ ∨ (⌜σ.live w⌝ ∗ mvcc.watcherChan γ w γw st.ch ∗ mvcc.watcherFilters γw fcs ∗
       ∃ (evsw : List mvcc.EvM) (d : Nat), ⌜σ.E !! w = some (evsw, d)⌝ ∗
         monoListLbOwn γw.evs evsw ∗ mvcc.popFacts γ σ w r γw.lo st evsw d)))
 
@@ -301,8 +301,9 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
   iNamed HP
   iunfold mvcc.wlogQ at Hwlog
   icases Hwlog with ⟨Hwl, Hla⟩
-  wp_apply (hrev s st γ (some (sync.rfrac.half.half, σ.Lmu))) $$ [$Hws $Hrd Hla]
-    as %r ⟨Hrd, Hla, %Clog, #HcertR, %HCr⟩
+  ihave Hcb := mvcc.readCb_true (GF := GF) γ.st
+  wp_apply (hrev s st γ (some (sync.rfrac.half.half, σ.Lmu)) _) $$ [$Hws $Hrd Hla $Hcb]
+    as %r ⟨Hrd, Hla, %Clog, #HcertR, %HCr, -⟩
   · unfold mvcc.logLent; iexact Hla
   have hClm : Clog = σ.Lmu := HCr.2.2.2.2 _ _ rfl
   ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
@@ -324,7 +325,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
           (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) ∗
       "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗
-      "Hrel" ∷ monoNatAuthOwn γ.rel sync.rfrac σ.Lmu.length ∗
+      "Hrel" ∷ mvcc.relAuth γ sync.rfrac σ.Lmu ∗
       "Hwsf" ∷ mvcc.wsFields s γ sync.rfrac ∗
       "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗ "Hret" ∷ «$res0_ptr» ↦ false ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS ∗
@@ -502,7 +503,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
           (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) ∗
       "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗
-      "Hrel" ∷ monoNatAuthOwn γ.rel sync.rfrac σ.Lmu.length ∗
+      "Hrel" ∷ mvcc.relAuth γ sync.rfrac σ.Lmu ∗
       "Hwsf" ∷ mvcc.wsFields s γ sync.rfrac ∗
       "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗ "Hret" ∷ «$res0_ptr» ↦ false ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS)) $$ Hm
@@ -525,7 +526,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     -- the lock's fraction of the notified log, lent to the send (K2e-5)
     iunfold mvcc.wlogQ at Hwlog
     icases Hwlog with ⟨Hwl, Hla⟩
-    ihave Hwl : mvcc.notifiedLent γ (some (sync.rfrac.half, σ.Lmu)) $$ [Hwl]
+    ihave Hwl : mvcc.notifiedLent γ (some (sync.rfrac, σ.Lmu)) $$ [Hwl]
     · iunfold mvcc.notifiedLent
       isplitl [Hwl]
       · iexact Hwl
@@ -590,8 +591,14 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         rw [Hcsw]
         exact mvcc.mem_dedupL.2 (List.mem_filterMap.2 ⟨id0, (Hkset id0).2 (by rw [hid0]; rfl), hid0⟩)
       · iright; iexact Hr
+    -- (stage 2 of the mvcc API) the revision is the API's notified log's last: the lock's slot
+    iunfold mvcc.relAuth at Hrel
+    icases Hrel with ⟨Hrel1, Hslot⟩
+    icases mvcc.wsSlot_nlLb γ _ σ.Lmu $$ Hslot with ⟨Hslot, #HnlL⟩
+    ihave Hrel : mvcc.relAuth γ sync.rfrac σ.Lmu $$ [Hrel1 Hslot]
+    · iunfold mvcc.relAuth; iframe Hrel1 Hslot
     wp_apply (hsend γ u γw rr fcs st0.ch sync.rfrac sync.rfrac.half [] d _ [] [] DFrac.discard cs
-        sync.rfrac.half (some (sync.rfrac.half, σ.Lmu)) CS)
+        sync.rfrac.half (some (sync.rfrac, σ.Lmu)) CS)
       $$ [$Hch $Hlv $HCS $Hca $Hwl] as %b ⟨Hch, Hlv, -, -, Hca, Hwl, HCS⟩
     · iframe #
       simp only [↓reduceIte, List.zip_nil_left]
@@ -599,6 +606,12 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       · itrivial
       isplitr
       · iapply BigSepL.bigSepL_nil.2; iempintro
+      isplitr
+      · iunfold mvcc.revApi; iexists σ.Lmu; iframe HnlL; ipureintro
+        have h1 := hrevC
+        rw [hClm] at h1
+        show (sint.Z _).toNat < _
+        omega
       isplitr
       · ipureintro; intro _
         exact ⟨_, _, rfl, by have := hrevE; rw [← hClm] at this ⊢; omega⟩

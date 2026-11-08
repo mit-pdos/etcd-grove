@@ -158,7 +158,7 @@ def openPre (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterfa
     (D : Data) (W Pk K : BNames → IProp GF) : IProp GF :=
   iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
     (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
+    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)
     envVerifyOff)
 
@@ -167,7 +167,7 @@ theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : 
     (P : BParams) (D : Data) (W Pk : BNames → IProp GF) :
     iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
       (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-      hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ={⊤}=∗ W γ ∗ Pk γ) ∗
+      hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ) ∗
       envVerifyOff) ⊢
       openPre (GF := GF) cfg h P D W Pk bFresh := by
   iintro ⟨%Hc, Hg, #Hh, Hmk, #Hvoff⟩
@@ -175,8 +175,8 @@ theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : 
   iframe Hg Hh Hvoff
   isplitr
   · ipureintro; exact Hc
-  iintro %γ ⟨Hk, Hpk, Hf⟩
-  imod Hmk $$ %γ [$Hk $Hpk] with ⟨HW, HPk⟩
+  iintro %γ ⟨Hk, Hf⟩
+  imod Hmk $$ %γ Hk with ⟨HW, HPk⟩
   imodintro
   iframe HW HPk Hf
 

@@ -20,6 +20,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.lastVal
 public import Proof.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.cache.v3.Link
@@ -99,7 +100,7 @@ theorem wp_checkProgress :
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_cache.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_cache.Main.wp_proof etcdstart.wp_GenAll etcdstart.wp_Writer etcdstart.wp_MaxRev wp_collect etcdstart.wp_Check zap.wp_NewNop etcdstart.wp_StartPeriodicServer etcdstart.wp_Serve etcdstart.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_RequestProgress wp_New Cache.wp_Watch Cache.wp_Get context.wp_WithTimeoutBackground wp_checkGet Cache.wp_RequestProgress wp_awaitProgress wp_checkProgress
+  EtcdGrove.etcd_cache.Main.wp_proof etcdstart.wp_GenAll etcdstart.wp_Writer etcdstart.wp_MaxRev wp_collect etcdstart.wp_Check zap.wp_NewNop etcdstart.wp_StartPeriodicServer etcdstart.wp_Serve etcdstart.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_RequestProgress wp_New Cache.wp_Watch Cache.wp_Get context.wp_WithTimeoutBackground wp_checkGet Cache.wp_RequestProgress wp_awaitProgress wp_checkProgress mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds
 
 end links_hasLC
 

@@ -95,14 +95,14 @@ theorem Work.wp_proof
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG)) :
     Work.spec (GF := GF) (hG := hG) := by
   intro CS EA FA RA CRE CEC cl who V s E ρ cid mid γa Lset n hwho hγa hV hAs
-  obtain ⟨hVa, hVm, hVn, hVs, hVE, hVk⟩ := hV
+  obtain ⟨hVa, hVm, hVw, hVn, hVs, hVE, hVk⟩ := hV
   wp_start as ⟨#Hnc, #Hwf, #Htok, #Hkv, #Htls, #Hinv, #Hf, #Htag⟩
   ihave #Htok0 := Htok
   iunfold clientTokAt at Htok0
   icases Htok0 with ⟨%api, %conn, #Hkvf, #Hobj, #Hat, -, -⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E.γs with #HF0
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave #Henv : akCallEnv cl api conn s E ρ cid mid γa Lset n who $$ []
   · unfold akCallEnv; iframe #
@@ -699,7 +699,7 @@ theorem Work.wp_proof
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
   ihave ⟨%w, %wconn, %wwc, %wlg, %wics, #Hwf', #Hcw, #Hwat⟩ :=
-    client.watcher_of_clientTokAt wp_ErrAny hAs cl _ V (akTokP γa who) (by rw [hVa]) hVm hVn
+    client.watcher_of_clientTokAt wp_ErrAny hAs cl _ V (akTokP γa who) (by rw [hVa]) hVm hVw hVn
       $$ [Pc Ppb Pctx Hnc Hwf Htok]
   · iframe #
   (try wp_auto)
@@ -766,11 +766,11 @@ theorem Work.wp_proof
   · -- events: the watch was granted, which it was not (`akWatch_c_refused`)
     ihave #Hw := Hau' $$ %he
     ihave #Hw2 := Hw $$ %hVn
-    ihave #Hw3 : watchCheckOk V.R.γ s wconn (GoInterface.ok wci) n go!"c/" go!"c0" $$ [Hw2]
+    ihave #Hw3 : watchCheckOk V.R.tag s wconn (GoInterface.ok wci) n go!"c/" go!"c0" $$ [Hw2]
     · iExactEq Hw2
       simp [hVm, hVs]
       rfl
-    imod (akWatch_c_refused V.R.γ s wconn (GoInterface.ok wci) γa ρ Lset n who Hwout) $$
+    imod (akWatch_c_refused V.R.tag s wconn (GoInterface.ok wci) γa ρ Lset n who Hwout) $$
       [Hf Hwat Htag Htls] Hw3 with HF
     · iframe #
     iexfalso

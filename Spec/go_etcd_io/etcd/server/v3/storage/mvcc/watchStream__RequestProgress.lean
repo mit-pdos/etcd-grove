@@ -1,9 +1,10 @@
 /-
-`watchStream.RequestProgress` (watcher.go). Lean-first (no Rocq counterpart); see `InvWatchStream.lean`.
+`watchStream.RequestProgress` (watcher.go). Lean-first (no Rocq counterpart); see
+`InvWatchStream.lean` and the mvcc API (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -21,13 +22,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`ws.RequestProgress(id)`**: asks the store for the progress of `id`'s watcher, if any. -/
+/-- **`ws.RequestProgress`**: the API's contract at `*watchStream`
+(`mvcc.api.WatchStream.RequestProgress.contract`, `Spec/.../mvcc/Api.lean`; stage 2 of the mvcc API,
+2026-11-05: the stream's internal spec replaced by the API's, strict M1). -/
 abbrev mvcc.watchStream.RequestProgress.spec : Prop :=
-  ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchStream ws wa P γ ∗ P.R }}
-    (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"RequestProgress")) (Val #id))
-  {{ RET #(); P.R }}
+  ∀ w : Loc, mvcc.api.WatchStream.RequestProgress.contract (GF := GF)
+    (go.GoType.PointerType watchStream.ty) #w
 
 end spec
 

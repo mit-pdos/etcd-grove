@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- **`a.Apply(r, shouldApplyV3)`**: the current applier's `Apply` with `dispatch`: the auth
 layer's admin rejection (the state as it is), or `dispatch`'s outcome (`applyStep`, from the state
 `x`). The wrapper's `SkipRangeExecution` is set only for a transaction (`apply.Apply` sets it so).
-One write token of the store spent (`mvcc.storeWT E.γ`; 2026-10-13, unit 6). The certificates
+The backend's tokens lent (`kvOwnPre`, strict M1, 2026-11-05). The certificates
 of the logs the request may commit (`certPre`; 2026-10-14, unit T1). A compaction admitted with
 its facts (`cmpAdmit`), the apply thread's compaction resources at `x.crev` before and at `x'.crev`
 after (`applyStep`'s clause; M2's apply side, 2026-10-31: items 4, 11). The rest state's premise
@@ -46,19 +46,18 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
     (rq : IRRModel) (skip v3 : Bool) (F : mvcc.Log) (Pre Q Post : IProp GF) (rs : apply.RestM)
     (T U : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
-      apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
+      apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗
       apply.certPreV v3 E x.chain rq x.log ∗
-      mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
       ⌜apply.rqOk E.lm x.log rq ∧ apply.dispatchOk E.authOn rq ∧
-        (v3 = true → apply.cmpAdmit E.γ.kb x.log rq)⌝ ∗
+        (v3 = true → apply.cmpAdmit x.log rq)⌝ ∗
       □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
       apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
       apply.revokeOwn E rq ∗
-      ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      ⌜skip = true → rq.txn.isSome = true⌝ ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗
       apply.cmpOwn E x.crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
+  {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
       apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
       apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
       apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗

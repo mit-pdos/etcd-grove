@@ -7,12 +7,9 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Put
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Spec.google_golang_org.protobuf.proto.Size
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.checkLease
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.checkAndGetPrevKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.put
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 @[expose] public section
 
@@ -25,6 +22,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
   go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccName)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -34,20 +32,22 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 theorem txn.Put.wp_proof
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hreach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hEnsure : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))
     (hSize : proto.Size.spec (GF := GF) (hG := hG))
     (hLease : txn.checkLease.spec (GF := GF) (hG := hG))
-    (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG))
-    (hWWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hCheck : txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG))
-    (hput : txn.put.spec (GF := GF) (hG := hG))
-    (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
-    (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
+    (hput : txn.put.spec (GF := GF) (hG := hG)) :
     txn.Put.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg le kv s γ p o m log₀ P Pre Q Post f L I ot te Lw
-  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, Hwl, %Hsole, #Hle, Hu, #HIp, #Hp, #Hctx, #Hct, Hto, #Hlprem, #Hcok, Hcs, Hhook⟩
-  iunfold mvcc.csContract at Hcs
-  icases Hcs with ⟨Hpre, #Htr, Hupd⟩
+  intro ctx cd lg le kv γ p o q B P Pre Q Post f L I ot te R
+  haveI := hpers.1 kv γ
+  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, Hbk, Hcs, Hau⟩
+  iunfold txn.kvBackend at Hbk
+  icases Hbk with ⟨Hbk, #Hhook⟩
+  iunfold txn.csA at Hcs
+  icases Hcs with ⟨Hpre, Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   ihave #Hpr : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -80,18 +80,20 @@ theorem txn.Put.wp_proof
       (traceutil.fieldsWf_cons_int _ _ _ (.int _) _ traceutil.fieldsWf_nil)
   (try wp_auto)
   -- `checkLease(lessor, p)`
-  wp_apply (hLease le γ.leases p o L I) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩
+  wp_apply (hLease le (mvcc.api.mvccLeases γ) p o L I) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩
   (try wp_auto)
   icases Herr with (⟨%Herr, #Hlok⟩ | ⟨%Hne, #He⟩)
   rotate_left
-  · -- the lease not found: nothing opened
+  · -- the lease not found: nothing opened, the caller's updates not given
     ihave #He' := He
     iunfold txn.errVarIs at He'
     icases He' with ⟨%e, -, %Hee⟩
     subst Hee
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Hhook Htoks
+    ihave Hbk : txn.kvBackend γ q B P f $$ [Hbk]
+    · iunfold txn.kvBackend; iframe Hbk Hhook
+    iframe Hrd Hbk
     isplitl []
     · ipureintro; exact Ht
     isplitl [Htrc]
@@ -99,37 +101,35 @@ theorem txn.Put.wp_proof
     isplitr
     · ipureintro; exact Hteq
     ileft
-    iframe He Htok Hpre Hwl Hu
+    iframe He Hpre Hu
     ipureintro; exact ⟨Hne.1, Hne.2, rfl⟩
   subst Herr
   (try wp_auto)
-  -- `kv.Write(trace)`: the store's, or the watchable store's (unit N4)
-  ihave %Hkvok := txn.isKV_ok kv s γ $$ Hkv
-  obtain ⟨kty, kvv, rfl⟩ := Hkvok
+  -- the lease is live: the caller's updates are given
+  iunfold txn.leaseOk at Hlok
+  icases Hlok with %Hlok
+  rw [decide_eq_true Hlok] at *
+  simp only [↓reduceIte]
+  iunfold txn.putAU at Hau
+  ihave Hau := txn.beginAU_reach hpers hreach kv γ _ $$ Hkv Hau
+  icases txn.isMvcc_shape hsh kv γ $$ Hkv with ⟨%Hsh, -⟩
+  obtain ⟨kty, kvv, rfl, -, hWriteC, -⟩ := Hsh
   (try wp_auto)
-  wp_apply (txn.kv_Write hWrite hWWrite kty kvv s γ trace P Pre Q f false m Lw)
-    $$ [$Hkv $Hrd $Htok $Hwt $Htoks $Hwl $Hhook $Hpre $Htr $Htrc]
-    as %tyX %vX ⟨%ilog, %mw, %crev, Htx, Hte, Htoks, %Hil, HQ, Hhook⟩
-  · ipureintro; exact ⟨fun h => Hsole h, Ht⟩
-  ihave ⟨Hte, #Hw⟩ := txn.twEnd_wrap s γ tyX vX mw ilog $$ Hte
-  have hsole : γ.watchQ = true → m + 1 = txn.soleBudget ilog := by
-    intro h; rw [Hil h]; exact (Hsole h).1
+  -- `kv.Write(trace)`
+  wp_apply (hWriteC γ trace false q B P Pre Q f _) $$ [$Hkv $Hrd $Htrc $Hbk $Hhook $Hpre $Htr $Hau]
+    as %t ⟨Htrc, Hbk, ⟨%σ₀, Htx, ⟨%Hreach0, %Hitems, Hilok, Hcommit⟩⟩, HQ⟩
+  · ipureintro; exact Ht
+  icases txn.mvccTxn_shape hsh t γ trace (.write σ₀ []) $$ Htx with ⟨%Hsht, Htx⟩
+  obtain ⟨tty, tv, rfl, -, -, -, -, -, -, hEndC⟩ := Hsht
   -- the caller's update (the writes are the model's): the lock's invariant back for `End`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   (try wp_auto)
-  -- the pin of the transaction's committed log
-  ihave ⟨%Hpin, Htoks, -, Htx⟩ := txn.isTxnWrite_pinned γ log₀ ilog [] mw s (W64 0) (W64 0) (W64 0) m crev
-    $$ [$Htoks $Hc0 $Htx]
-  ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw s γ ilog [] (W64 0) (W64 0) (W64 0) crev $$ Htx
-  have hks := txn.kindState_write ilog [] (W64 0) (W64 0) (W64 0) Hfx.1 Hfx.2
-  rw [txn.pendState_nil] at hks
-  ihave Htx : mvcc.isTxn mw s γ trace (.write ilog [] (W64 0) (W64 0) (W64 0)) crev $$ [Htx]
-  · simp only [mvcc.isTxn]; iexact Htx
   -- `checkAndGetPrevKV(trace, txnWrite, p)`
-  wp_apply (hCheck trace mw s γ (.write ilog [] (W64 0) (W64 0) (W64 0)) p o tyX vX crev) $$ [$Htx $Hw $Hp]
-    as %prev %err ⟨Htx, Hout⟩
-  · ipureintro; exact Ht
-  rw [hks]
+  wp_apply (hCheck _ γ trace false (.write σ₀ []) p o) $$ [$Htx $Htrc $Hp]
+    as %prev %err ⟨Htx, Htrc, Hout⟩
+  · ipureintro; exact ⟨Ht, Hreach0.1⟩
+  have hms : txn.mstate (.write σ₀ []) = mvcc.stateAfter σ₀.log := rfl
+  rw [hms]
   icases Hout with (⟨%Herr, %Hn, Hprev⟩ | ⟨%Hn, #He⟩)
   rotate_left
   · -- an ignore flag and no previous key-value: nothing written
@@ -138,85 +138,87 @@ theorem txn.Put.wp_proof
     icases He' with ⟨%e, -, %Hee⟩
     subst Hee
     (try wp_auto)
-    ihave Htx : mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev $$ [Htx]
-    · simp only [mvcc.isTxn]; iexact Htx
-    wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog [] (W64 0) (W64 0) (W64 0) crev m P f)
-      $$ [$Htx $Hte $Htoks HP Hhook] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl, Hhook⟩
-    · iframe HP Hhook
-      isplitl []
-      · ipureintro; exact hsole
-      iunfold mvcc.certOkNext; ileft; ipureintro; rfl
-    simp only [mvcc.commitLog, ↓reduceIte]
+    have hpp : txn.putPend o σ₀ = [] := by
+      unfold txn.putPend; simp only [Hn.1, Hn.2.1, and_self, ↓reduceIte]
+    rw [hpp] at *
+    wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀)) $$ [$Htx $Hbk $HP $Hcommit]
+      as ⟨Hrd, Hbk, HR⟩
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Hhook Htoks
+    ihave Hbk : txn.kvBackend γ q B P f $$ [Hbk]
+    · iunfold txn.kvBackend; iframe Hbk Hhook
+    iframe Hrd Hbk
     isplitl []
     · ipureintro; exact Ht
     isplitl [Htrc]
-    · iexists te'; iexact Htrc
+    · iexists false; iexact Htrc
     isplitr
     · ipureintro; exact Hteq
     iright
-    iexists ilog
+    iexists σ₀
     isplitl []
-    · ipureintro; exact ⟨Hpin, Hfx.1⟩
-    iframe HPost
+    · ipureintro; exact Hreach0
+    iframe HPost HR
     ileft
-    iframe He Htok Hc Hwl Hu
+    iframe He Hu
     ipureintro; exact ⟨Hn.1, Hn.2.1, rfl⟩
   subst Herr
   (try wp_auto)
   -- the lease the put writes: the request's (found by `checkLease`) or the previous one
   ihave #Hlok2 : txn.leaseOk L
-      (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))) $$ []
+      (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))) $$ [Hilok]
   · cases hil : o.ignoreLease
-    · unfold txn.putLeaseOf; rw [hil]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hlok
-    · iapply Hlprem
-      ipureintro; exact ⟨Hpin, rfl⟩
-  ihave Htx : mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev $$ [Htx]
-  · simp only [mvcc.isTxn]; iexact Htx
-  have hp := hput trace ctx' { cd with Values := vs } mw s γ ilog [] (W64 0) (W64 0) (W64 0) p o prev L
-    tyX vX crev
-  simp only [txn.pendState_nil, List.nil_append, List.length_nil] at hp
+    · unfold txn.putLeaseOf; rw [hil]; simp only [Bool.false_eq_true, ↓reduceIte]
+      iunfold txn.leaseOk; ipureintro; exact Hlok
+    · have h : (if true = true then txn.leaseOk (GF := GF) L
+          (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))) else iprop(True)) ⊢
+          txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))) := by
+        simp only [↓reduceIte]; (try (iintro H; iexact H))
+      iapply h $$ Hilok
+  have hp := hput ctx' { cd with Values := vs } (interface.mkOk tty tv) γ trace false σ₀ [] p o prev L
+  simp only [txn.pendState_nil, List.nil_append] at hp
   iunfold EtcdGrove.lease.lessorUser at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
-  -- the owner's item map: the pinned log's state's
-  ihave %HI := HIp $$ %ilog %Hpin
-  ihave Hown : EtcdGrove.lease.leaseOwn γ.leases L (mvcc.pendItems ilog []) $$ [Hown]
-  · rw [show mvcc.pendItems ilog [] = I from HI.symm]; iexact Hown
-  wp_apply hp $$ [$Hctx' $Hct' $Htx $Hw $Hp $Hprev $Hlok2 $Hown]
-    as %resp ⟨⟨%puts', %putSize', Htx⟩, #Hresp, Hhdr, Hown⟩
+  -- the owner's item map: the begin state's
+  ihave Hown : EtcdGrove.lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ₀.log []) $$ [Hown]
+  · rw [Hitems]; iexact Hown
+  wp_apply hp $$ [$Hctx' $Hct' $Htx $Htrc $Hp $Hprev $Hlok2 $Hown]
+    as %resp ⟨Htx, Htrc, #Hresp, Hhdr, Hown⟩
   · ipureintro; exact Hn
   (try wp_auto)
   -- the deferred `txnWrite.End()`: the put committed
-  wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog
-      [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] puts' (W64 0) putSize' crev m P f)
-    $$ [$Htx $Hte $Htoks HP Hhook] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, -, Htoks, Hwl, Hhook⟩
-  · iframe HP Hhook
-    isplitl []
-    · ipureintro; exact hsole
-    iunfold mvcc.certOkNext; iright; iapply Hcok; ipureintro; exact ⟨Hpin, Hn⟩
-  simp only [mvcc.commitLog, List.cons_ne_nil, ↓reduceIte]
+  have hpp : txn.putPend o σ₀ = [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))] := by
+    unfold txn.putPend
+    have hneg : ¬ (txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter σ₀.log) = none) := by
+      rintro ⟨h1, h2⟩
+      have := Hn h1
+      rw [h2] at this
+      cases this
+    simp only [hneg, ↓reduceIte]
+  rw [hpp]
+  wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀)) $$ [$Htx $Hbk $HP $Hcommit] as ⟨Hrd, Hbk, HR⟩
   (try wp_auto)
   iapply HΦ
-  iframe Hrd Hhook Htoks
+  ihave Hbk : txn.kvBackend γ q B P f $$ [Hbk]
+  · iunfold txn.kvBackend; iframe Hbk Hhook
+  iframe Hrd Hbk
   isplitl []
   · ipureintro; exact Ht
   isplitl [Htrc]
-  · iexists te'; iexact Htrc
+  · iexists false; iexact Htrc
   isplitr
   · ipureintro; exact Hteq
   iright
-  iexists ilog
+  iexists σ₀
   isplitl []
-  · ipureintro; exact ⟨Hpin, Hfx.1⟩
-  iframe HPost
+  · ipureintro; exact Hreach0
+  iframe HPost HR
   iright
-  iframe Hresp Hhdr Hc Hlok2 Hwl
+  iframe Hresp Hhdr Hlok2
   isplitl []
   · ipureintro; exact ⟨rfl, Hn⟩
   iunfold EtcdGrove.lease.lessorUser; iframe Hrdo Hrvk
-  rw [mvcc.stateAfter_append]
+  rw [hpp]
   iexact Hown
 
 end proof

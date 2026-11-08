@@ -1,9 +1,15 @@
 /-
-Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+Proof of the spec of the same name: `WatchStream.RequestProgressAll.contract` at `*watchStream` (stage 2 of the
+mvcc API, 2026-11-05). Lean-first (no Rocq counterpart).
+
+The store's reader slot is borrowed from the handle's pool with the reader token; the channel's
+progress fact is the handle's.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgressAll
+import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+import all Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamHandle
 
 @[expose] public section
 
@@ -25,32 +31,45 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.watchStream.RequestProgressAll.wp_proof :
     mvcc.watchStream.RequestProgressAll.spec (GF := GF) (hG := hG) := by
-  intro ws wa P γ
-  wp_start as ⟨Hws, #Hpf, HPR⟩
-  iunfold mvcc.isWatchStream at Hws
+  intro w γ ι
+  wp_start as ⟨Hws, Hrt⟩
+  icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
+    ⟨%γw, %γc, %s, %st, %γo, %hι, #Hinv, #Hws, #Htp, #Hrp, #Hpf⟩
+  obtain ⟨hι, hγ⟩ := hι
+  generalize hch : (ι : api.WsAbs).ch = ch at hι
+  iunfold mvcc.isWatchStreamAt at Hws
   iNamed Hws
-  irevert Hpf; rw [Hγc.2.1]; iintro #Hpf
-  wp_auto
+  wp_auto_lc 1
+  iapply fupd_wp
+  ihave Hrt : ownToks (GF := GF) γw.st.api.rdk 1 $$ [Hrt]
+  · iunfold mvcc.api.mvccReaders at Hrt; (try rw [hγ]); iexact Hrt
+  imod mvcc.watchReader_lend s st γw $$ [$Hlc1 $Hrp $Hrt] with ⟨HPR, Hloan⟩
+  imodintro
+  ihave HPR : (mvcc.storeWatchParams s st γw).R $$ [HPR]
+  · simp only [mvcc.storeWatchParams]; iexact HPR
+  iapply wp_fupd
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   iunfold mvcc.isWatchable at Hwable
   icases Hwable with ⟨%wi, %hwa, #Hwatch, #Hprog, #HprogAll, #Hrev⟩
-  subst hwa
+  have hwi : wi = ⟨go.GoType.PointerType watchableStore.ty, #s⟩ := by
+    simp only [interface.mkOk, GoInterface.ok.injEq] at hwa; exact hwa.symm
+  subst hwi
   iunfold mvcc.watchStreamInv at HR
   iNamed HR
   wp_auto
   -- what the store is lent (K1b): open, the close right with the registered watchers, each in the
   -- map or cancelled for its reason; closed, every watcher of the map cancelled
-  ihave #Hws2 : iprop(□ ∀ (id : w64) (w : Loc), ⌜WM !! id = some w⌝ -∗ P.IW w ∗ P.OC w γc) $$ []
+  ihave #Hws2 : iprop(□ ∀ (id : w64) (w : Loc), ⌜WM !! id = some w⌝ -∗ (mvcc.storeWatchParams s st γw).IW w ∗ (mvcc.storeWatchParams s st γw).OC w γc) $$ []
   · iintro !> %id %w %h
     icases Hws $$ %id %w %h with ⟨#H1, #H2, -⟩
     iframe H1 H2
   cases closed with
   | true =>
     simp only [↓reduceIte]
-    icases Hcl with ⟨Hop, #Hall⟩
+    icases Hcl with #Hall
     ihave #Hpa := HprogAll $$ %wm %(DFrac.own 1) %WM %γc %false %ch %([] : List Loc)
     wp_apply Hpa $$ [$Hwm $Hws2 $Hpf $HPR]
       as %b ⟨Hwm, -, HPR⟩
@@ -58,7 +77,7 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
       simp only [Bool.false_eq_true, ↓reduceIte]
       iintro !> %id %w %h
       iapply Hall $$ %id %w %h
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hop]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hacl]
     · inext
       iunfold mvcc.watchStreamInv
       iexists nextID, true, cm, wm, CM, WM
@@ -66,8 +85,13 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
       iframe
       iframe #
       ipureintro; exact ⟨Hdom, Hnn⟩
+    simp only [mvcc.storeWatchParams]
+    imod Hloan $$ HPR with Hrt
+    ihave Hrt : mvcc.api.mvccReaders (GF := GF) γ 1 $$ [Hrt]
+    · iunfold mvcc.api.mvccReaders; (try rw [← hγ]); iexact Hrt
+    imodintro
     iapply HΦ
-    iframe HPR
+    iframe Hrt
   | false =>
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hcl with ⟨%L, HCR, #HL, %Hcnt⟩
@@ -80,7 +104,7 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
     iunfold mvcc.progCompl at HPC
     simp only [↓reduceIte]
     icases HPC with ⟨HCR, -⟩
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids HCR]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hacl HCR]
     · inext
       iunfold mvcc.watchStreamInv
       iexists nextID, false, cm, wm, CM, WM
@@ -88,8 +112,13 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
       iframe
       iframe #
       ipureintro; exact ⟨Hdom, Hnn, Hcnt⟩
+    simp only [mvcc.storeWatchParams]
+    imod Hloan $$ HPR with Hrt
+    ihave Hrt : mvcc.api.mvccReaders (GF := GF) γ 1 $$ [Hrt]
+    · iunfold mvcc.api.mvccReaders; (try rw [← hγ]); iexact Hrt
+    imodintro
     iapply HΦ
-    iframe HPR
+    iframe Hrt
 
 end proof
 

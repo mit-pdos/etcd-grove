@@ -27,22 +27,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`NewWatchServer(s)`** on the server `s` whose KV is the watchable store `wsl` (`s.kv`, and
-the server's contract for the watch path, `watchSrvOk`), whose ids are readable (`srvIdsOk`), with
+/-- **`NewWatchServer(s)`** on the server `s` whose KV is the watchable store `wsl` (`s.kv`), with
+the server's contract for the watch path (`watchSrvOk`, at the auth mode's tag `tag`; the mvcc API
+migration, 2026-11-05: in place of the watchable store's names, whose tag it was), whose ids are readable (`srvIdsOk`), with
 its configuration's logger, request budget and progress interval (read-only; the interval at most
 `2 ^ 62` nanoseconds, the interval's lock invariant; the constructor raises a local copy to `100ms`
 if it is below, J8a-3: the fork no longer writes `s.Cfg`): a `WatchServer` holding a
 `*watchServer` (`isWatchServer`). -/
 abbrev v3rpc.NewWatchServer.spec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl lg0 : Loc) (m d : w64),
+  ∀ (s : Loc) (E : apply.AEnv GF) (tag : GName) (wsl lg0 : Loc) (m d : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.watchSrvOk s E γ wsl ∗ srvKVAddr s ↦□ v3rpc.wsIface wsl ∗ v3rpc.srvIdsOk s ∗
+      v3rpc.watchSrvOk s E tag ∗ srvKVAddr s ↦□ v3rpc.wsIface wsl ∗ v3rpc.srvIdsOk s ∗
       srvCfgFieldAddr s go!"Logger" ↦□ lg0 ∗ srvCfgFieldAddr s go!"MaxRequestBytes" ↦□ m ∗
       srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ }}
     (App (Val (@! v3rpc.NewWatchServer)) (Val #s))
   {{ (ws : GoInterface), RET #ws; ∃ (p lg : Loc) (cid mid : w64),
       ⌜ws = interface.mkOk (go.GoType.PointerType v3rpc.watchServer.ty) #p⌝ ∗
-      v3rpc.isWatchServer p ⟨s, E, wsl, γ, cid, mid, lg, m + W64 (512 * 1024)⟩ }}
+      v3rpc.isWatchServer p ⟨s, E, wsl, tag, cid, mid, lg, m + W64 (512 * 1024)⟩ }}
 
 end spec
 

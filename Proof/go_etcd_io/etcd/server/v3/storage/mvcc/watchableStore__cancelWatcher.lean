@@ -473,12 +473,12 @@ theorem mvcc.cancel_ghost (γ : mvcc.WsNames) (wa : Loc) (γw : mvcc.WatcherName
       iunfold mvcc.cancelled
       iexact Hcan
     rw [mvcc.set_same hi]
-    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
     · inext
       iunfold mvcc.watchChanInv
       iexists cs, sent, recv, vs, L
       simp only [named]
-      iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
+      iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl Hapi
       iframe #
       ipureintro; exact ⟨Hpre, Hinfl, Hnd⟩
     imodintro

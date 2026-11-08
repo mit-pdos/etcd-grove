@@ -23,15 +23,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 /-- `l.persistTo(b)`: writes the lease's record (`ID`, `ttl`, `remainingTTL`, read) into the
-backend's `Lease` bucket under the batch lock, the critical-section contract's `Pre` to `Post`:
+backend's `Lease` bucket under the batch lock, the critical-section contract's `Pre` to `Post`
+(over mvcc's API's `hookRun`, strict M1, 2026-11-05):
 the tracked buckets `Rb` holds get the record (`lease.leaseEnc`) under the id's 8 big-endian bytes
 (leases T3, L3c, 2026-10-27). -/
 abbrev lease.Lease.persistTo.spec : Prop :=
-  ∀ (l : Loc) (b : GoInterface) (P : IProp GF) (f : val) (T R : IProp GF)
+  ∀ (l : Loc) (b : GoInterface) (P : IProp GF) (f : GoFunc) (T R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (rb : GMap GoString backend.BktData)
     (Pre Q Post : IProp GF) (id t r : w64) (dq1 dq2 dq3 : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ leaseBackend b P f T R Rb ∗
-      mvcc.csContract P f Pre Q Post ∗ T ∗ R ∗ Rb rb ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ leaseBackend b P #f T R Rb ∗
+      srvApi.csContractA P f Pre Q Post ∗ T ∗ R ∗ Rb rb ∗
       lsF go!"ID" l ↦{dq1} id ∗ lsF go!"ttl" l ↦{dq2} t ∗ lsF go!"remainingTTL" l ↦{dq3} r }}
     (App (Val (l @!! go.GoType.PointerType Lease.ty @!! go!"persistTo")) (Val #b))
   {{ RET #(); Post ∗ R ∗ Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id t r)) ∗

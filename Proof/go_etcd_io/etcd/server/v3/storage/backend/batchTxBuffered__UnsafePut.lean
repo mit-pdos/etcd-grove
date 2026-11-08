@@ -32,7 +32,7 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
     (hBuf : backend.txWriteBuffer.put.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hp Hsb Hfv
-  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, #Hkey, #Hval, Hhkp, Hrbp, Hfkp, Hpvp, Hckp⟩
+  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, #Hkey, #Hval, Hhkp, Hrbp, Hfkp⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
@@ -54,15 +54,16 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
   imod batchGhost_step_put γ P (st := st) (st' := (st.put bi kb vb false)) rfl rfl rfl
     (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb false i) bi.name kb
     (hkData_put_other st bi kb vb false) (rbData_put_other st bi kb vb false)
-    (fun h => sData_put_hook (S := st.S) kb vb h) (fun h => fkVals_put_other (S := st.S) vb h)
-    (fun hk => fkOkG_put false HP Hhas hk) (fun hk => fkOkG_putFk false HP Hhas (Hfv hk))
-    (fun _ => ⟨bi.id, Hhas⟩) (BSess.put_S_other st bi kb vb false)
-    $$ Hg Hhkp Hrbp Hfkp Hpvp Hckp
-    with ⟨Hg, Hhkp, Hrbp, Hfkp, Hpvp, Hckp⟩
+    (fun hk => fkOkG_put false HP Hhas hk) (fun hk => fkOkG_putFk false HP Hhas (Hfv hk)) (fun hk => fkVals_put false hk)
+    (fun _ => ⟨bi.id, Hhas⟩) (BSess.put_S_other st bi kb vb false) rfl
+    (fun L _ hd => dlsW_step (dlsS_put false (fun h1 _ => (Hsb h1).2))
+      (dlsOk_put false (fun h1 _ => (Hsb h1).2)) rfl rfl hd)
+    $$ Hg Hhkp Hrbp Hfkp
+    with ⟨Hg, Hhkp, Hrbp, Hfkp⟩
   wp_apply (hBuf (wbOf t) st.W bk bi key value kb vb Hlen) $$ [$HW] as HW
   · iframe #
   iapply HΦ
-  iframe Hhkp Hrbp Hfkp Hpvp Hckp
+  iframe Hhkp Hrbp Hfkp
   iexists t, db
   iframe Ht' Hown
   iframe Hg
@@ -72,7 +73,7 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
     iframe
     iframe #
   · ipureintro
-    exact sessWf_put HP Hwf Hhas (by simp) Hp Hsb
+    exact sessWf_put HP Hwf Hhas (by simp) Hp (fun h => (Hsb h).1)
 
 end proof
 

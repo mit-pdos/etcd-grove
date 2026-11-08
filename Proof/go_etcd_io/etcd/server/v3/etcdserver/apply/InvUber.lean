@@ -130,11 +130,11 @@ theorem dispatchCrev_noV3 (c : Chain) (rq : IRRModel) (crev : Int) :
 
 /-- **What a compaction request needs at the log `log`**: `cmpAdmitRev` at its revision; nothing
 for another kind. -/
-def cmpAdmit (kb : Option mvcc.KBReal) (log : mvcc.Log) (rq : IRRModel) : Prop :=
-  dispatchKind rq = .compaction → ∀ r, rq.compaction = some r → cmpAdmitRev kb log r
+def cmpAdmit (log : mvcc.Log) (rq : IRRModel) : Prop :=
+  dispatchKind rq = .compaction → ∀ r, rq.compaction = some r → cmpAdmitRev log r
 
-theorem cmpAdmit_nonCmp (kb : Option mvcc.KBReal) (log : mvcc.Log) (rq : IRRModel)
-    (h : dispatchKind rq ≠ .compaction) : cmpAdmit kb log rq := fun h' => absurd h' h
+theorem cmpAdmit_nonCmp (log : mvcc.Log) (rq : IRRModel)
+    (h : dispatchKind rq ≠ .compaction) : cmpAdmit log rq := fun h' => absurd h' h
 
 /-- What became of an entry in `apply.Apply`. -/
 inductive ApplyOut where

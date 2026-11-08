@@ -23,7 +23,7 @@ module
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import Proof.reflect.PkgInit
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.time

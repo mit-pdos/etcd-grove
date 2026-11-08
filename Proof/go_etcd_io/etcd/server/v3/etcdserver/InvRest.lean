@@ -656,8 +656,8 @@ false in the revocable mode.) (X7, 2026-11-04) And the lessor's mode at the envi
 (`lessorModeIs … (decide (E.lm = .mono))`, `srvSnapRO`'s): revocable at `E.lm = .revocable`, what
 `applyEntryNormal` hands a revocation (`revokeOwn`). -/
 def srvGrantable (E : apply.AEnv GF) : IProp GF :=
-  iprop(□ (∀ id : w64, lease.leaseGranted E.γ.leases id) ∗
-    lease.lessorModeIs E.γ.leases (decide (E.lm = .mono)))
+  iprop(□ (∀ id : w64, lease.leaseGranted (mvcc.api.mvccLeases E.γ) id) ∗
+    lease.lessorModeIs (mvcc.api.mvccLeases E.γ) (decide (E.lm = .mono)))
 
 instance srvGrantable_persistent (E : apply.AEnv GF) : Persistent (srvGrantable (GF := GF) E) := by
   unfold srvGrantable; infer_instance
@@ -700,7 +700,7 @@ def srvEver (E : apply.AEnv GF) (A : List EntryModel) : IProp GF :=
 (`lease.leaseReqIs`), as `Grant` issued it (`grantAnswer`'s). What a snapshot's `Recover` needs of
 a record whose id the lessor had before (its request premise). -/
 def srvReqs (E : apply.AEnv GF) (T : LeaseTable) : IProp GF :=
-  iprop(□ ∀ p : w64 × w64, ⌜p ∈ T⌝ -∗ lease.leaseReqIs E.γ.leases p.1 p.2)
+  iprop(□ ∀ p : w64 × w64, ⌜p ∈ T⌝ -∗ lease.leaseReqIs (mvcc.api.mvccLeases E.γ) p.1 p.2)
 
 instance srvReqs_persistent (E : apply.AEnv GF) (T : LeaseTable) :
     Persistent (srvReqs (GF := GF) E T) := by
@@ -767,7 +767,7 @@ the revocable mode's granting cluster is restored from a snapshot only from S4 o
 theorem srvRest_revocable [go_etcd_io.etcd.server.v3.lease.Assumptions] (E : apply.AEnv GF)
     (γr : ReadNames) (A : List EntryModel) (m : lease.Mode) (hm : m ≠ .revocable)
     (hlg : E.lg = decide (m ≠ .none)) :
-    lease.lessorModeIs E.γ.leases (decide (m = .mono)) ∗ lease.lessorRevocable E.γ.leases ∗
+    lease.lessorModeIs (mvcc.api.mvccLeases E.γ) (decide (m = .mono)) ∗ lease.lessorRevocable (mvcc.api.mvccLeases E.γ) ∗
       srvRest E γr A ⊢
       ⌜E.lg = false⌝ ∗ E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) := by
   cases m with
@@ -777,7 +777,7 @@ theorem srvRest_revocable [go_etcd_io.etcd.server.v3.lease.Assumptions] (E : app
     iintro ⟨-, -, H⟩; iframe H; ipureintro; exact h
   | mono =>
     iintro ⟨#Hm, #Hrv, -⟩
-    ihave %Hab := lease.lessorModeIs_agree E.γ.leases false (decide (lease.Mode.mono = .mono))
+    ihave %Hab := lease.lessorModeIs_agree (mvcc.api.mvccLeases E.γ) false (decide (lease.Mode.mono = .mono))
       $$ [$Hrv $Hm]
     simp at Hab
   | revocable => exact absurd rfl hm
@@ -1091,7 +1091,7 @@ def grantReqA (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool) (out : apply
     IProp GF :=
   iprop(□ ∀ g : apply.LeaseGrantModel, ⌜apply.dispatchKind rq = .leaseGrant ∧ v3 = true ∧
     rq.leaseGrant = some g ∧ ∃ o sk l ns, out = .dispatched o sk ∧ o = .applied l ns⌝ -∗
-    lease.leaseReqIs E.γ.leases g.id g.ttl)
+    lease.leaseReqIs (mvcc.api.mvccLeases E.γ) g.id g.ttl)
 
 instance grantReqA_persistent (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool)
     (out : apply.ApplyOut) : Persistent (grantReqA (GF := GF) E rq v3 out) := by
