@@ -7,7 +7,7 @@ view `<<vars, l>>`, the invariants checked at every state reached when `invarian
 TLC would fail is a failure). Its spec: the Lean transcription's `checkTrace` (`Tla/Check.lean`)
 is what it computes, on the fields it records (`resultRel`); so `Result.TLCOK()` is
 `(checkTrace tr invariants).tlcOK`, and with `NewTrace`'s spec, `traceAccepts` is `Main`'s check.
-The trace is read, not written (`traceRO`, which carries that `NewTrace` built it: the Go's search
+The trace is read, not written (`traceRO`, which carries what `NewTrace` establishes: the Go's search
 relies on that, review round 1 of layer C, F1).
 -/
 module

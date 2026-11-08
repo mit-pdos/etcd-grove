@@ -564,9 +564,10 @@ structure StepInfo where
   branched : Bool := false
   violation : Option String := none
 
-/-- The fuel of `stepLine`'s loop: a bound on the steps one line can take from `ts` (a received
-message's: at most one term update, one return to follower, one truncation per log entry, one
-append, and the handling), which the Go loop needs no bound for. -/
+/-- The fuel of `stepLine`'s loop, meant as a bound on the steps one line can take from `ts` (a
+received message's: at most one term update, one return to follower, one truncation per log
+entry, one append, and the handling), which the Go loop needs no bound for. That it always suffices
+is open (`notes/trace-validation-plan.md`, Q7); where it would not, `stepLine` stops early. -/
 def lineFuel (ts : TState) : Nat :=
   ts.s.server.foldl (fun acc i => acc + (ts.s.s i).log.length) 0 + 8
 

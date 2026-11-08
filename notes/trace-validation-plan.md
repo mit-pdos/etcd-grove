@@ -142,7 +142,14 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   same counter), so they agree by construction, and layer B shows the fuel suffices on `Main`'s
   traces (S4 already argues each receive line's loop ends); this changes the transcriptions'
   meaning, conservatively (a trace needing more is rejected, where TLC would go on): a trust
-  question. **Not taken** (no recommendation in the plan); the agent's recommendation: (b).
+  question. (c) (layer C review round 3) a closed-form fuel: the steps that stay on a line (`UpdateTerm`,
+  `ReturnToFollowerState`, the two conflict handlers) change only the destination's term, role,
+  vote and log, each over finitely many values computable from the line's start, and each round
+  adds a new visited state, so a count of those combinations bounds the Go's rounds; S6 then needs a
+  local lemma and a counting argument, no reachability invariant, no Go change, no new rejection
+  (the transcription is then exactly TLC's search); it still changes `lineFuel`'s definition, which
+  `traceAccepts` is written in terms of. **Not taken** (no recommendation in the plan); the agent's
+  recommendation: (c), else (b).
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
   `traceChangeConfEvent` formats the change's ids (`strconv.FormatUint`) before its nil check, so
   the translated raft calls it even without a logger, and raft's linked results now rest on
@@ -294,7 +301,7 @@ result related on the fields the Lean `Result` has (the Go's debugging fields un
 
 Review round 1 (`notes/trace-validation-reviews/c-r1.md`): `CheckTrace.spec` was false (F1: it
 accepted traces `NewTrace` never builds, on which the Go panics: `traceRO` now carries
-`Trace.Valid`, only `NewTrace` produces it; F2: the Lean transcription set `branched` at a
+`Trace.Valid`, `NewTrace` establishes it; F2: the Lean transcription set `branched` at a
 violation where the Go returns first: `stepRound` and `checkFrom` now follow the Go's order, a
 debugging field only, `tlcOK` unchanged; the Lean and Go checkers agree again on five traces, the
 two invariant-violation witnesses included). Also: the trace's numbers bounded by `numBound =
@@ -309,6 +316,13 @@ Review round 2 (`notes/trace-validation-reviews/c-r2.md`): one first-tier gap, `
 say the server map's keys are exactly the servers (a configuration may name a node outside
 `Server`, and the Go decides by lookup): added. Round 1's repairs, the Lean change included,
 checked (15 traces and a crafted one agree). `lineFuel` (S1) is Q7.
+
+**Review round 3 (`notes/trace-validation-reviews/c-r3.md`): nothing first-tier; layer C's Review is
+clean modulo Q7** (`CheckTrace.spec` holds given that the fuel suffices). Its option (c) for Q7 is
+added there. Facts S6's loop invariant must carry (round 3's T3): every message's `prevLogIndex ≥
+0`, every `matchIndex ≥ 0`, the state's server set the trace's with the map's keys exactly it,
+every number below `(lines + 2) · numBound`. Branching is still untested by a run (T4: two
+snapshots of one index sent with different commit indices would build a witness).
 
 ## Draft: S2 done (2026-11-08)
 

@@ -232,12 +232,13 @@ def lineRO (g : G.line) (x : Line) : IProp GF :=
 
 /-- `tr` is a trace `NewTrace` builds: `newTrace`'s of bounded events (what the Go's search relies
 on: every server's state in the initial state, `bootstrap` as long as the lines; review round 1 of
-layer C, F1). -/
+layer C, F1). The other fact the search relies on, that the initial state's server map has exactly
+the servers as keys, is `stateRO`'s (round 2, F1). -/
 def Trace.Valid (tr : Trace) : Prop :=
   ∃ evs : List Event, (∀ e ∈ evs, e.Bounded) ∧ (evs.length : Int) < numBound ∧ newTrace evs = .ok tr
 
 /-- A Go `*Trace` holding `tr`, read-only: what `NewTrace` returns and `CheckTrace` reads; it
-carries `Trace.Valid tr`, which only `NewTrace` produces. -/
+carries `Trace.Valid tr`, which `NewTrace` establishes. -/
 def traceRO (t : Loc) (tr : Trace) : IProp GF :=
   iprop(⌜Trace.Valid tr⌝ ∗ ∃ g : G.Trace, t ↦□ g ∗
     (∃ lns : List G.line, g.lines' ↦*□ lns ∗ [∗list] ln;x ∈ lns;tr.lines, lineRO ln x) ∗
