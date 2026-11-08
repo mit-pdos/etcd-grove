@@ -52,13 +52,13 @@ abbrev runChecks.spec : Prop :=
   ckptEffectsOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       backend.fileHolds cfg.Path' ∅ ∗
-      -- (2026-11-08, merging `mvcc-api` with sweep repairs 1's R1-4b) `ETCD_VERIFY` unset, which
-      -- `backend.New` now takes (`envVerifyOff`, the user's narrowing of 2026-11-07)
-      envVerifyOff ∗
       □ (∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc), keySized γB P b) ∗
       -- (R8, 2026-11-08, the second `lean` merge) the main thread's token, for `backend.New`'s
       -- first read transaction (begin-tok, `notes/begin-tok-plan.md`)
-      threadTok }}
+      threadTok ∗
+      -- (2026-11-08, `lean`'s sweep repairs: the `ETCD_VERIFY` finding) the environment leaves
+      -- `ETCD_VERIFY` unset, which `backend.New` takes (as etcdstart's start resources do)
+      envVerifyOff }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.runChecks)) (Val #cfg))
   {{ (r : val), RET r;
       (∃ (rep : Report) (le be : GoInterface), ⌜r = PairV (PairV #rep #le) #be⌝) ∨
