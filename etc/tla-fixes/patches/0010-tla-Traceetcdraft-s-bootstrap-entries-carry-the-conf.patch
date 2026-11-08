@@ -1,7 +1,7 @@
 From de30c757727c8ee316cddd9e4ee79d09c33d3df2 Mon Sep 17 00:00:00 2001
 From: Joseph Tassarotti <jt4767@nyu.edu>
 Date: Sun, 8 Nov 2026 18:50:30 +0000
-Subject: [PATCH 10/10] tla: Traceetcdraft's bootstrap entries carry the
+Subject: [PATCH 10/12] tla: Traceetcdraft's bootstrap entries carry the
  configuration each one adds
 
 raft's Bootstrap appends one ConfChangeAddNode per peer; a member that catches

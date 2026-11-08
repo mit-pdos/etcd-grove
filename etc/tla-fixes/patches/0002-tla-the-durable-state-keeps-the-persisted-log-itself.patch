@@ -1,7 +1,7 @@
 From 47a42e18ce9a7689bc038effa1bb7a5e939a7944 Mon Sep 17 00:00:00 2001
 From: Joseph Tassarotti <jt4767@nyu.edu>
 Date: Sun, 8 Nov 2026 17:17:27 +0000
-Subject: [PATCH 02/10] tla: the durable state keeps the persisted log itself
+Subject: [PATCH 02/12] tla: the durable state keeps the persisted log itself
 
 Restart restores what was persisted, not a prefix of the in-memory log.
 issues/raft-tla-restart-truncated-log.md

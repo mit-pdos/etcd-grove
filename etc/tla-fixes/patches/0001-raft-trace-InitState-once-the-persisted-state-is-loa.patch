@@ -1,7 +1,7 @@
 From e33597a4268afe2b6d413db7a5a31352f88224b5 Mon Sep 17 00:00:00 2001
 From: Joseph Tassarotti <jt4767@nyu.edu>
 Date: Sun, 8 Nov 2026 17:17:27 +0000
-Subject: [PATCH 01/10] raft: trace InitState once the persisted state is
+Subject: [PATCH 01/12] raft: trace InitState once the persisted state is
  loaded
 
 issues/raft-tla-restart-initstate-unmatched.md (a change to raft.go, not the model).

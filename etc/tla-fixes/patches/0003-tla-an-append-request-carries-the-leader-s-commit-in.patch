@@ -1,7 +1,7 @@
 From c880282af30efdf34b13f3d426a3bdfc87f8c3ef Mon Sep 17 00:00:00 2001
 From: Joseph Tassarotti <jt4767@nyu.edu>
 Date: Sun, 8 Nov 2026 17:17:27 +0000
-Subject: [PATCH 03/10] tla: an append request carries the leader's commit
+Subject: [PATCH 03/12] tla: an append request carries the leader's commit
  index
 
 The receiver clamps it, as raft's maybeAppend and the Raft paper's Fig. 2.

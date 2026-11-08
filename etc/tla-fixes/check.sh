@@ -6,6 +6,8 @@
 #      repaired or dropped there is no counterexample to replay; TestTLATraceRestartWithoutSnapshot
 #      fails: issues/raft-tla-restart-config-from-storage.md is not fixed);
 #   2. TestTLARandom (TLA_SEEDS, default 20) and the TestTLATargeted schedules: nothing rejected;
+#      then TestTLARandom with PreVote, CheckQuorum, and both (raft and TLC read PREVOTE and
+#      CHECKQUORUM): nothing rejected;
 #   3. raft's own tests.
 # Needs TLA_TOOLS (tla2tools.jar, CommunityModules-deps.jar), go and java.
 set -e
@@ -22,4 +24,8 @@ cp "$here"/raft/tla_*_test.go .
 go vet -tags with_tla .
 go test -tags with_tla . -run '^TestTLATrace' -count=1 -v 2>&1 | grep -E '^(--- |ok|FAIL)' || true
 go test -tags with_tla . -run '^TestTLA(Random|Targeted)' -count=1 -v -timeout 120m 2>&1 | grep -E 'rejected|panicked|seeds failed|^(--- |ok|FAIL)'
+for flags in "PREVOTE=1" "CHECKQUORUM=1" "PREVOTE=1 CHECKQUORUM=1"; do
+  echo "== $flags"
+  env $flags go test -tags with_tla . -run '^TestTLARandom$' -count=1 -v -timeout 120m 2>&1 | grep -E 'rejected|panicked|seeds failed'
+done
 go test . 2>&1 | tail -1

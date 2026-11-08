@@ -1,7 +1,7 @@
 From 78ce6f06cedfbec5f2ce36c8ecbedea7ad4f8835 Mon Sep 17 00:00:00 2001
 From: Joseph Tassarotti <jt4767@nyu.edu>
 Date: Sun, 8 Nov 2026 17:18:02 +0000
-Subject: [PATCH 08/10] tla: AddLearner may demote a voter
+Subject: [PATCH 08/12] tla: AddLearner may demote a voter
 
 issues/raft-tla-learner-demotion-unmodelled.md
 ---

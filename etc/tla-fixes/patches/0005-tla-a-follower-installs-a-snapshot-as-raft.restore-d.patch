@@ -1,7 +1,7 @@
 From 05d19e6a1b7f3baf2198258406a8e30700cb7e61 Mon Sep 17 00:00:00 2001
 From: Joseph Tassarotti <jt4767@nyu.edu>
 Date: Sun, 8 Nov 2026 17:17:37 +0000
-Subject: [PATCH 05/10] tla: a follower installs a snapshot as raft.restore
+Subject: [PATCH 05/12] tla: a follower installs a snapshot as raft.restore
  does
 
 And answers it with an append response (subtype app).

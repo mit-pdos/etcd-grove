@@ -1,7 +1,7 @@
 From 16a496e89446f04527c03a16a03fdeb176f0c454 Mon Sep 17 00:00:00 2001
 From: Joseph Tassarotti <jt4767@nyu.edu>
 Date: Sun, 8 Nov 2026 17:18:20 +0000
-Subject: [PATCH 09/10] tla: MoreUpToDateCorrectInv is false; not checked
+Subject: [PATCH 09/12] tla: MoreUpToDateCorrectInv is false; not checked
 
 issues/raft-tla-more-up-to-date-cut-batches.md
 ---

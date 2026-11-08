@@ -1,7 +1,7 @@
 From f4090a16f6fb475156ed2fcd8db100569263875d Mon Sep 17 00:00:00 2001
 From: Joseph Tassarotti <jt4767@nyu.edu>
 Date: Sun, 8 Nov 2026 17:17:49 +0000
-Subject: [PATCH 06/10] tla: model raft's lead; a voter that knows its term's
+Subject: [PATCH 06/12] tla: model raft's lead; a voter that knows its term's
  leader refuses votes
 
 NoConflictAppendEntriesRequest requires a new entry, so that the receipt of

@@ -27,4 +27,20 @@ MUTANTS = {
                          "a new leader appends no empty entry (liveness, not safety)"),
  "reject-hint-unclamped": ("raft.go", "hintIndex := min(m.GetIndex(), r.raftLog.lastIndex())", "hintIndex := m.GetIndex()", "benign",
                          "a rejection's hint is not clamped to the log (findConflictByTerm clamps it again)"),
+
+ # PreVote and CheckQuorum (run with PREVOTE=1 CHECKQUORUM=1)
+ "prevote-changes-term": ("raft.go", "\t\tcase m.GetType() == pb.MsgPreVote:\n\t\t\t// Never change our term in response to a PreVote\n", "", "bug",
+                         "a node takes the term of a pre-vote request"),
+ "prevote-ignores-log": ("raft.go", "if canVote && r.raftLog.isUpToDate(candLastID) {", "if canVote && (m.GetType() == pb.MsgPreVote || r.raftLog.isUpToDate(candLastID)) {", "bug",
+                         "pre-votes granted without the up-to-date check"),
+ "prevote-records-vote": ("raft.go", "\t\t\tif m.GetType() == pb.MsgVote {\n\t\t\t\t// Only record real votes.", "\t\t\tif true {\n\t\t\t\t// Only record real votes.", "bug",
+                         "granting a pre-vote records a vote"),
+ "precandidate-wins-early": ("raft.go", "\t\tgr, rj, res := r.poll(m.GetFrom(), m.GetType(), !m.GetReject())\n", "\t\tgr, rj, res := r.poll(m.GetFrom(), m.GetType(), !m.GetReject())\n\t\tif r.state == StatePreCandidate && !m.GetReject() {\n\t\t\tres = quorum.VoteWon\n\t\t}\n", "bug",
+                         "a pre-candidate campaigns after any one pre-vote"),
+ "lease-without-leader": ("raft.go", "inLease := r.checkQuorum && r.lead != None && r.electionElapsed < r.electionTimeout", "inLease := r.checkQuorum && r.electionElapsed < r.electionTimeout", "bug",
+                         "vote requests ignored within the election timeout though no leader is known"),
+ "stale-app-unanswered": ("raft.go", "\t\t\tr.send(&pb.Message{To: m.From, Type: pb.MsgAppResp.Enum()})\n", "", "bug",
+                         "an append request of an older term goes unanswered (a stale leader is not told)"),
+ "election-timeout-wider": ("raft.go", "r.randomizedElectionTimeout = r.electionTimeout + globalRand.Intn(r.electionTimeout)", "r.randomizedElectionTimeout = r.electionTimeout + globalRand.Intn(2*r.electionTimeout)", "benign",
+                         "a wider randomized election timeout (timing only)"),
 }

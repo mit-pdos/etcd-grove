@@ -38,6 +38,21 @@ configuration) and `issues/raft-tla-bootstrap-entries-full-config.md` (fixed by 
 against the series would need the transcriptions (Go, Lean) to follow it, and the harness to keep
 the driver's rules (`etc/tla-fixes/README.md`, "Random runs").
 
+**PreVote and CheckQuorum (2026-11-08, the user's request):** patches 0011 (raft's trace logging:
+pre-votes and lease-ignored vote requests) and 0012 (the specification, behind constants `PreVote`
+and `CheckQuorum`, `FALSE` by default; TLC checks that with both off it takes only the steps of
+0010). With them random runs with either or both on are accepted (without them, 20 of 20 and 19 of
+20 rejected), model checking with both on finds no violation, and five of six mutants of the new
+rules are caught (`etc/tla-fixes/README.md`, "PreVote and CheckQuorum"). So a conformance theorem
+can cover etcd's configuration.
+
+**The user's answers on resuming (2026-11-08):** Q5 is settled by the series (0006 is option (b)).
+Q6: add the premises the proof needs, gated on a traced cluster so that the existing proofs keep
+their statements (to be redrafted against the corrected specification and shown side by side
+before they go into Lean). Q7: the user proposes a relational acceptance (a per-line chain of
+states witnessing TLC's search, no fuel) in place of the executable `checkTrace`, which would stay
+as an untrusted test tool; not yet decided whether to resume Prove against the series.
+
 ## Decisions (the user's, 2026-11-08)
 
 - **Fully closed**, as the porcupine examples: `Main` runs the concurrent harness, then the

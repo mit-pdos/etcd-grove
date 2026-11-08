@@ -85,7 +85,7 @@ type rndCluster struct {
 func (c *rndCluster) config(id uint64, st *MemoryStorage, applied uint64) *Config {
 	return &Config{ID: id, ElectionTick: 10, HeartbeatTick: 1, Storage: st, Applied: applied,
 		MaxSizePerMsg: c.o.maxSize, MaxInflightMsgs: c.o.maxInflight, TraceLogger: c.rec,
-		Logger: discardLogger}
+		Logger: discardLogger, PreVote: rndEnvFlag("PREVOTE"), CheckQuorum: rndEnvFlag("CHECKQUORUM")}
 }
 
 func (c *rndCluster) ready(id uint64) {
@@ -439,4 +439,11 @@ func TestTLARandom(t *testing.T) {
 		}
 	}
 	t.Logf("%d of %d seeds failed", failed, seeds)
+}
+
+// rndEnvFlag reads raft's PreVote or CheckQuorum from the environment variable TLC's
+// Traceetcdraft reads too ("1" or "true").
+func rndEnvFlag(name string) bool {
+	v := os.Getenv(name)
+	return v == "1" || v == "true"
 }

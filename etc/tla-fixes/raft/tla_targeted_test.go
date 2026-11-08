@@ -17,7 +17,9 @@
 package raft
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"path/filepath"
 	"testing"
 
@@ -38,12 +40,24 @@ type tgCluster struct {
 	applied  map[uint64]uint64
 	cs       map[uint64]*pb.ConfState
 	maxSize  uint64
+	checkQ   bool
 	inflight []*pb.Message
 }
 
 func newTgCluster(t *testing.T, maxSize uint64) *tgCluster {
+	return newTgClusterCQ(t, maxSize, false)
+}
+
+// newTgClusterCQ: with checkQ, raft runs with CheckQuorum, and TLC is told (CHECKQUORUM).
+func newTgClusterCQ(t *testing.T, maxSize uint64, checkQ bool) *tgCluster {
+	if checkQ {
+		t.Setenv("CHECKQUORUM", "1")
+	} else {
+		t.Setenv("CHECKQUORUM", "")
+	}
+	t.Setenv("PREVOTE", "")
 	c := &tgCluster{t: t, rec: &rndRecorder{}, nodes: map[uint64]*RawNode{}, sts: map[uint64]*MemoryStorage{},
-		applied: map[uint64]uint64{}, cs: map[uint64]*pb.ConfState{}, maxSize: maxSize}
+		applied: map[uint64]uint64{}, cs: map[uint64]*pb.ConfState{}, maxSize: maxSize, checkQ: checkQ}
 	for id := uint64(1); id <= 3; id++ {
 		st := NewMemoryStorage()
 		rn, err := NewRawNode(c.config(id, st, 0))
@@ -63,7 +77,8 @@ func newTgCluster(t *testing.T, maxSize uint64) *tgCluster {
 
 func (c *tgCluster) config(id uint64, st *MemoryStorage, applied uint64) *Config {
 	return &Config{ID: id, ElectionTick: 10, HeartbeatTick: 1, Storage: st, Applied: applied,
-		MaxSizePerMsg: c.maxSize, MaxInflightMsgs: 256, TraceLogger: c.rec, Logger: discardLogger}
+		MaxSizePerMsg: c.maxSize, MaxInflightMsgs: 256, TraceLogger: c.rec, Logger: discardLogger,
+		CheckQuorum: c.checkQ}
 }
 
 // restart restarts id from its storage, its application having snapshotted what it applied.
@@ -244,5 +259,77 @@ func TestTLATargetedResentEntryCommit(t *testing.T) {
 	c.deliver(1, 3, pb.MessageType_MsgApp)
 	c.ready(3)
 	c.flush(nil)
+	c.validate()
+}
+
+// hasEvent reports whether the trace has a line containing all of parts.
+func (c *tgCluster) hasEvent(parts ...string) bool {
+	for _, l := range c.rec.lines {
+		ok := true
+		for _, p := range parts {
+			ok = ok && strings.Contains(string(l), p)
+		}
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+// TestTLATargetedCheckQuorumStepDown: with CheckQuorum, a leader cut off from the others steps
+// down after an election timeout (raft's tickHeartbeat, MsgCheckQuorum).
+func TestTLATargetedCheckQuorumStepDown(t *testing.T) {
+	c := newTgClusterCQ(t, 4096, true)
+	if err := c.nodes[1].Campaign(); err != nil {
+		t.Fatal(err)
+	}
+	c.flush(nil)
+	all := func(*pb.Message) bool { return true }
+	for k := 0; k < 25 && c.nodes[1].raft.state == StateLeader; k++ {
+		c.nodes[1].Tick()
+		c.flush(all)
+	}
+	if c.nodes[1].raft.state != StateFollower || c.nodes[1].raft.Term != 2 {
+		t.Fatalf("node 1: %v term %d, want a follower of term 2", c.nodes[1].raft.state, c.nodes[1].raft.Term)
+	}
+	c.validate()
+}
+
+// TestTLATargetedStaleLeaderBareResponse: with CheckQuorum, a leader cut off while the others
+// elect a new one gets, for its next heartbeat, a bare MsgAppResp of the new term, and steps down.
+func TestTLATargetedStaleLeaderBareResponse(t *testing.T) {
+	c := newTgClusterCQ(t, 4096, true)
+	if err := c.nodes[1].Campaign(); err != nil {
+		t.Fatal(err)
+	}
+	c.flush(nil)
+	// Node 1 is cut off; nodes 2 and 3 let their lease expire and elect node 2.
+	from1 := func(m *pb.Message) bool { return m.GetFrom() == 1 || m.GetTo() == 1 }
+	for k := 0; k < 25; k++ {
+		c.nodes[3].Tick()
+		c.flush(from1)
+	}
+	for k := 0; k < 25 && c.nodes[2].raft.state != StateLeader; k++ {
+		c.nodes[2].Tick()
+		c.nodes[3].Tick()
+		c.flush(from1)
+	}
+	if c.nodes[2].raft.state != StateLeader && c.nodes[3].raft.state != StateLeader {
+		t.Fatalf("no new leader among nodes 2 and 3")
+	}
+	if c.nodes[1].raft.state != StateLeader {
+		t.Fatalf("node 1 is no longer leader before its stale heartbeat")
+	}
+	// Node 1's next heartbeat reaches the others.
+	c.nodes[1].Tick()
+	c.flush(nil)
+	if c.nodes[1].raft.state == StateLeader {
+		t.Fatalf("node 1 still leads")
+	}
+	newTerm := max(c.nodes[2].raft.Term, c.nodes[3].raft.Term)
+	if !c.hasEvent(`"name":"ReceiveAppendEntriesResponse","nid":"1","state":{"term":2,`,
+		fmt.Sprintf(`"type":"MsgAppResp","term":%d,`, newTerm), `"index":0,`, `"reject":false`) {
+		t.Fatalf("node 1 did not receive a bare MsgAppResp of term %d in term 2", newTerm)
+	}
 	c.validate()
 }
