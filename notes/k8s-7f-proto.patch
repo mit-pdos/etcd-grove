@@ -1,4 +1,4 @@
-diff -ruN -x '*.test' base/examples/k8s/etcd3/errorder_test.go repo/examples/k8s/etcd3/errorder_test.go
+diff -ruN -x '*.test' base2/examples/k8s/etcd3/errorder_test.go repo2/examples/k8s/etcd3/errorder_test.go
 --- a/examples/k8s/etcd3/errorder_test.go
 +++ b/examples/k8s/etcd3/errorder_test.go
 @@ -0,0 +1,86 @@
@@ -88,7 +88,7 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/errorder_test.go repo/examples/k8s
 +	}
 +	t.Logf("%d of %d trials delivered events after the watch.Error event", bad, trials)
 +}
-diff -ruN -x '*.test' base/examples/k8s/etcd3/k8setcd3.go repo/examples/k8s/etcd3/k8setcd3.go
+diff -ruN -x '*.test' base2/examples/k8s/etcd3/k8setcd3.go repo2/examples/k8s/etcd3/k8setcd3.go
 --- a/examples/k8s/etcd3/k8setcd3.go
 +++ b/examples/k8s/etcd3/k8setcd3.go
 @@ -38,6 +38,7 @@
@@ -99,53 +99,14 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/k8setcd3.go repo/examples/k8s/etcd
  	"time"
  
  	"github.com/anishathalye/porcupine"
-@@ -80,6 +81,9 @@
- 	Node            string
- 	App             string
- 	ResourceVersion uint64
-+	// (7f prototype) the initial-events-end annotation of a bookmark's object
-+	// (storage.AnnotateInitialEventsEndBookmark); false on every stored object
-+	Annotated bool
- }
- 
- // GetObjectKind is runtime.Object's: the driver's objects carry no kind.
-@@ -219,6 +223,10 @@
- }
- 
- func (codec) Decode(data []byte, defaults *schema.GroupVersionKind, into runtime.Object) (runtime.Object, *schema.GroupVersionKind, error) {
-+	// runtime.Decode (the etcd3 watcher's decodeObj) passes no object to decode into: a new one.
-+	if into == nil {
-+		into = &Obj{}
-+	}
- 	o, ok := into.(*Obj)
- 	if !ok {
- 		return nil, nil, errNotObj
-@@ -292,8 +300,15 @@
- func (o *Obj) SetDeletionGracePeriodSeconds(s *int64)                     {}
- func (o *Obj) GetLabels() map[string]string                               { return objLabels(*o) }
- func (o *Obj) SetLabels(labels map[string]string)                         {}
--func (o *Obj) GetAnnotations() map[string]string                          { return nil }
--func (o *Obj) SetAnnotations(annotations map[string]string)               {}
-+func (o *Obj) GetAnnotations() map[string]string {
-+	if o.Annotated {
-+		return map[string]string{metav1.InitialEventsAnnotationKey: "true"}
-+	}
-+	return nil
-+}
-+func (o *Obj) SetAnnotations(annotations map[string]string) {
-+	o.Annotated = annotations[metav1.InitialEventsAnnotationKey] == "true"
-+}
- func (o *Obj) GetFinalizers() []string                                    { return nil }
- func (o *Obj) SetFinalizers(finalizers []string)                          {}
- func (o *Obj) GetOwnerReferences() []metav1.OwnerReference                { return nil }
-@@ -478,6 +493,15 @@
+@@ -493,6 +494,15 @@
  	SelApp         string
  	Limit          int64
  	Client         int
-+	// (7f prototype) a watch (KWatch): of the store key WKey (recursive if Recursive), from the
-+	// resource version MinRV, SendInitialEvents nil (0), false (1) or true (2), with
-+	// AllowWatchBookmarks Bookmarks, the selectors as a List's, consumed as Behavior says; or
-+	// none at all (Skip: the unary traffic is over)
++	// (7f) a watch (KWatch): of the store key WKey (recursive if Recursive), from the resource
++	// version MinRV, SendInitialEvents nil (0), false (1) or true (2), with AllowWatchBookmarks
++	// Bookmarks, the selectors as a List's, consumed as Behavior says; or none at all (Skip: the
++	// unary traffic is over)
 +	WKey      string
 +	SendInit  int
 +	Bookmarks bool
@@ -154,18 +115,18 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/k8setcd3.go repo/examples/k8s/etcd
  }
  
  // The kinds of error an output carries (Output.Err).
-@@ -520,6 +544,10 @@
+@@ -536,6 +546,10 @@
  	Continue     string
  	HasRemaining bool
  	Remaining    int64
-+	// (7f prototype) a watch's events, or that its Watch call failed (the client's error) or was
-+	// skipped
-+	WEvents []WEvent
++	// (7f) a watch's events, encoded as a plain value (encodeWEvents), or that its Watch call
++	// failed (the client's error) or was skipped
++	WEvents string
 +	WFailed bool
  }
  
  // The store's keys: Prefix + "/objs/" + key (the Model's Prefix and the store's resource prefix).
-@@ -1168,6 +1196,12 @@
+@@ -1195,6 +1209,12 @@
  		}
  		return []mcfg{c}
  	}
@@ -178,18 +139,18 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/k8setcd3.go repo/examples/k8s/etcd
  	if in.Kind == KList {
  		if !outEqual(out, mlist(in, c)) {
  			return nil
-@@ -1456,6 +1490,10 @@
+@@ -1483,6 +1503,10 @@
  type cache struct {
  	mu   sync.Mutex
  	objs map[int]Obj
-+	// (7f prototype) the clients from unary on are watchers; the unary operations done, of total
++	// (7f) the clients from unary on are watchers; the unary operations done, of total
 +	unary int
 +	total int64
 +	done  atomic.Int64
  }
  
  func newCache() *cache {
-@@ -1481,6 +1519,12 @@
+@@ -1508,6 +1532,12 @@
  // cached object).
  func Gen(tbl *cache, id int) Input {
  	c, ok := tbl.get(id)
@@ -197,19 +158,19 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/k8setcd3.go repo/examples/k8s/etcd
 +		if tbl.done.Load() >= tbl.total {
 +			return Input{Kind: KWatch, Skip: true, Client: id}
 +		}
-+		return genWatch(primitive.RandomUint64(), id, c, ok)
++		return genWatch(id, c, ok)
 +	}
  	return genFrom(primitive.RandomUint64(), id, c, ok)
  }
  
-@@ -1587,6 +1631,14 @@
+@@ -1611,6 +1641,14 @@
  // following from them. An answer with a name becomes the client's cached object in tbl.
  func Apply(s storage.Interface, tbl *cache, input any) any {
  	in := input.(Input)
 +	if in.Kind == KWatch {
-+		out := runWatch(s, in)
-+		if o, ok := lastObj(out.WEvents); ok {
-+			tbl.put(in.Client, o)
++		out, last, ok := runWatch(s, in)
++		if ok {
++			tbl.put(in.Client, last)
 +		}
 +		return out
 +	}
@@ -217,16 +178,152 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/k8setcd3.go repo/examples/k8s/etcd
  	p := primitive.NewProph()
  	out := call(s, in)
  	p.ResolveU64(uint64(out.Err))
-diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/watch.go
+@@ -1622,14 +1660,18 @@
+ 	return out
+ }
+ 
+-// Check runs lintest.Run of clients concurrent clients of the store s, each running ops
+-// operations, and returns porcupine's verdict against Model from the store st0 with its history
+-// h0.
+-func Check(s storage.Interface, st0 mstore, h0 []mstore, clients int, ops int, timeout time.Duration) porcupine.CheckResult {
++// Check runs lintest.RunLin2 of clients concurrent clients of the store s, each running ops
++// operations, and watchers watchers, each running wops watches (genWatch; skipped once the unary
++// operations are done), and returns porcupine's verdict against Model from the store st0 with its
++// history h0.
++func Check(s storage.Interface, st0 mstore, h0 []mstore, clients int, ops int, watchers int, wops int, timeout time.Duration) porcupine.CheckResult {
+ 	tbl := newCache()
++	tbl.unary = clients
++	tbl.total = int64(clients) * int64(ops)
+ 	apply := func(input any) any { return Apply(s, tbl, input) }
+ 	gen := func(id int) any { return Gen(tbl, id) }
+-	return lintest.Run(Model(st0, h0), apply, gen, lintest.CounterClock(), clients, ops, timeout)
++	r, _ := lintest.RunLin2(Model(st0, h0), apply, gen, lintest.CounterClock(), clients, ops, watchers, wops, timeout)
++	return r
+ }
+ 
+ // seedOne writes the key k's object of value "x" (no node, no app) in the older encoding directly
+@@ -1677,7 +1719,7 @@
+ // kubernetes client configured for one attempt per call, seeds the keys, makes the store and runs
+ // Check; it panics if porcupine finds the history illegal. An error from a step before Check ends
+ // Main without a check.
+-func Main(clients int, ops int) porcupine.CheckResult {
++func Main(clients int, ops int, watchers int, wops int) porcupine.CheckResult {
+ 	lg := zap.NewNop()
+ 	srv, err := etcdstart.StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)
+ 	if err != nil {
+@@ -1698,7 +1740,7 @@
+ 		return porcupine.Unknown
+ 	}
+ 	st0, h0, ok := seed(kc.Client)
+-	if !ok || !noStreaming() {
++	if !ok || !noStreaming() || !watchList() {
+ 		return porcupine.Unknown
+ 	}
+ 	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
+@@ -1707,7 +1749,7 @@
+ 	if err != nil {
+ 		return porcupine.Unknown
+ 	}
+-	r := Check(s, st0, h0, clients, ops, 0)
++	r := Check(s, st0, h0, clients, ops, watchers, wops, 0)
+ 	if r == porcupine.Illegal {
+ 		panic("k8setcd3: porcupine found the history not linearizable")
+ 	}
+@@ -1732,7 +1774,7 @@
+ // only after a refusal, which the members never send, so it is sent at most once), seeds the keys,
+ // makes the store and runs Check; it panics if porcupine finds the history illegal. An error from a
+ // step before Check ends MainCluster without a check.
+-func MainCluster(clients int, ops int) porcupine.CheckResult {
++func MainCluster(clients int, ops int, watchers int, wops int) porcupine.CheckResult {
+ 	lg := zap.NewNop()
+ 	cfg := clusterConfig()
+ 	_, _, ok := cluster3.StartCluster(cfg, lg)
+@@ -1750,7 +1792,7 @@
+ 		return porcupine.Unknown
+ 	}
+ 	st0, h0, ok := seed(kc.Client)
+-	if !ok || !noStreaming() {
++	if !ok || !noStreaming() || !watchList() {
+ 		return porcupine.Unknown
+ 	}
+ 	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
+@@ -1759,7 +1801,7 @@
+ 	if err != nil {
+ 		return porcupine.Unknown
+ 	}
+-	r := Check(s, st0, h0, clients, ops, 0)
++	r := Check(s, st0, h0, clients, ops, watchers, wops, 0)
+ 	if r == porcupine.Illegal {
+ 		panic("k8setcd3: porcupine found the cluster's history not linearizable")
+ 	}
+@@ -1771,7 +1813,7 @@
+ // to a member cut off from its clients ends when keepalive closes its dead transport (etcdstart's
+ // KeepAliveTime/KeepAliveTimeout); a write that fails is kept pending by the model (it takes
+ // effect later or never).
+-func MainPartition(clients int, ops int, sched []cluster3.Step) porcupine.CheckResult {
++func MainPartition(clients int, ops int, watchers int, wops int, sched []cluster3.Step) porcupine.CheckResult {
+ 	lg := zap.NewNop()
+ 	cfg := clusterConfig()
+ 	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
+@@ -1789,7 +1831,7 @@
+ 		return porcupine.Unknown
+ 	}
+ 	st0, h0, ok := seed(kc.Client)
+-	if !ok || !noStreaming() {
++	if !ok || !noStreaming() || !watchList() {
+ 		return porcupine.Unknown
+ 	}
+ 	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
+@@ -1799,7 +1841,7 @@
+ 		return porcupine.Unknown
+ 	}
+ 	go cluster3.Partitioner(srvs, brs, sched)
+-	r := Check(s, st0, h0, clients, ops, 0)
++	r := Check(s, st0, h0, clients, ops, watchers, wops, 0)
+ 	if r == porcupine.Illegal {
+ 		panic("k8setcd3: porcupine found the partitioned cluster's history not linearizable")
+ 	}
+diff -ruN -x '*.test' base2/examples/k8s/etcd3/k8setcd3_test.go repo2/examples/k8s/etcd3/k8setcd3_test.go
+--- a/examples/k8s/etcd3/k8setcd3_test.go
++++ b/examples/k8s/etcd3/k8setcd3_test.go
+@@ -19,7 +19,7 @@
+ // Model (Main panics otherwise), and the run reaches the check.
+ func TestMainLinearizable(t *testing.T) {
+ 	inChild(t, "TestMainLinearizable", "", func(t *testing.T) {
+-		r := Main(4, 60)
++		r := Main(4, 60, 0, 0)
+ 		if r != porcupine.Ok {
+ 			t.Fatalf("Main: %v, want Ok", r)
+ 		}
+@@ -54,7 +54,7 @@
+ // run reaches the check.
+ func TestMainCluster(t *testing.T) {
+ 	inChild(t, "TestMainCluster", "", func(t *testing.T) {
+-		r := MainCluster(4, 60)
++		r := MainCluster(4, 60, 0, 0)
+ 		if r != porcupine.Ok {
+ 			t.Fatalf("MainCluster: %v, want Ok", r)
+ 		}
+@@ -232,7 +232,7 @@
+ 		t.Run(name, func(t *testing.T) {
+ 			inChild(t, "TestMainPartition", name, func(t *testing.T) {
+ 				start := time.Now()
+-				r := MainPartition(4, 60, sched)
++				r := MainPartition(4, 60, 0, 0, sched)
+ 				t.Logf("%s: %v in %v", name, r, time.Since(start))
+ 				if r != porcupine.Ok {
+ 					t.Fatalf("MainPartition(%s): %v, want Ok", name, r)
+diff -ruN -x '*.test' base2/examples/k8s/etcd3/watch.go repo2/examples/k8s/etcd3/watch.go
 --- a/examples/k8s/etcd3/watch.go
 +++ b/examples/k8s/etcd3/watch.go
-@@ -0,0 +1,511 @@
+@@ -0,0 +1,616 @@
 +package etcd3
 +
 +// The 7f prototype (notes/k8s-7f-scope.md): TestCorrectness's watch traffic (RunWatchTraffic,
 +// runWatch) and its watch validator (correctness.WatchValidator) in the driver. A watch is one
 +// lintest operation of a watcher client (lintest.RunLin2's second group): Apply runs it to its end
-+// and returns the events it received; the model checks them, at the watch's linearization point
++// and returns the events it received (encoded as a plain value, encodeWEvents, as Output.Items
++// is); the model checks them, at the watch's linearization point
 +// (its end), against the configuration's history (mcfg.hist, 7e), as the validator checks them
 +// against the replay. So the check is porcupine's: it holds for some linearization and some
 +// configuration, which the real run's are (no replay along porcupine's linearization, whose
@@ -239,6 +336,8 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 +	"k8s.io/apimachinery/pkg/watch"
 +	"k8s.io/apiserver/pkg/storage"
++
++	"github.com/goose-lang/primitive"
 +)
 +
 +// KWatch is a watch's kind (Input.Kind).
@@ -267,10 +366,13 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +	WDeleted  = 2
 +	WBookmark = 3
 +	WError    = 4
++	// an event the check rejects: an Added, Modified, Deleted or Bookmark event whose object is
++	// not the driver's, or an Error event whose object is not a metav1.Status with status Failure
++	WBad = 5
 +)
 +
 +// A WEvent is a watch event as the driver records it: its type and its object (none for an
-+// error).
++// error or a bad event).
 +type WEvent struct {
 +	Type int
 +	Obj  Obj
@@ -283,10 +385,17 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +// driver's Gets'); a key (existing 80, in a namespace with no object 10, a missing object 10); a
 +// scope (cluster 40, namespace 30, object 30) and Recursive drawn again (70); the selectors as a
 +// List's; AllowWatchBookmarks (50%); a behaviour (fast 40, slow 20, hiccup 25, stalled 15).
-+func genWatch(n uint64, id int, c Obj, hasC bool) Input {
++func genWatch(id int, c Obj, hasC bool) Input {
++	return genWatchFrom(primitive.RandomUint64(), id, c, hasC)
++}
++
++// genWatchFrom is genWatch for the random number n. With no cached object the RV is drawn among
++// the three that need none (empty, 0, 1), where the test skips the request and draws again.
++func genWatchFrom(n uint64, id int, c Obj, hasC bool) Input {
 +	wl, n := pick(n, 10)
 +	m, n := pick(n, 7)
 +	m2, n := pick(n, 6)
++	m3, n := pick(n, 3)
 +	d, n := pick(n, 200)
 +	kt, n := pick(n, 10)
 +	ki, n := pick(n, 4)
@@ -302,13 +411,16 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +	if watchList && m == 6 {
 +		m = m2
 +	}
++	if !hasC && m >= 3 {
++		m = m3
++	}
 +	rv := ""
 +	switch {
 +	case m == 1:
 +		rv = rvBytes(0)
 +	case m == 2:
 +		rv = rvBytes(1)
-+	case m >= 3 && hasC:
++	case m >= 3:
 +		r := c.ResourceVersion
 +		if m == 5 {
 +			if r <= d+1 {
@@ -392,13 +504,15 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +	return opts
 +}
 +
-+// toWEvent is a received event as the driver records it.
++// toWEvent is a received event as the driver records it: an Added, Modified, Deleted or Bookmark
++// event with the driver's object, an Error event with a metav1.Status of status Failure (what
++// the validator's validateMaybeLastEventError asks), or a bad event.
 +func toWEvent(ev watch.Event) WEvent {
 +	switch ev.Type {
 +	case watch.Added, watch.Modified, watch.Deleted, watch.Bookmark:
 +		o, ok := ev.Object.(*Obj)
 +		if !ok {
-+			return WEvent{Type: WError}
++			return WEvent{Type: WBad}
 +		}
 +		t := WAdded
 +		if ev.Type == watch.Modified {
@@ -409,32 +523,102 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +			t = WBookmark
 +		}
 +		return WEvent{Type: t, Obj: *o}
++	case watch.Error:
++		st, ok := ev.Object.(*metav1.Status)
++		if ok && st.Status == metav1.StatusFailure {
++			return WEvent{Type: WError}
++		}
 +	}
-+	return WEvent{Type: WError}
++	return WEvent{Type: WBad}
 +}
 +
-+// runWatch runs the watch in through the store s and returns the events it received: the test's
-+// runWatch, but for two departures. A Watch call that fails is a failed watch (WFailed: the
-+// client's error, in a partition; the test panics on an error that is not a StorageError). Events
-+// after a watch.Error event are kept and read until the channel closes or the watch's time is up
-+// (the etcd3 watcher sends them: nonissues/k8s-etcd3-watcher-events-after-error.md; the test
-+// reports an error).
-+func runWatch(s storage.Interface, in Input) Output {
-+	if in.Skip {
-+		return Output{WFailed: true}
++// encodeWEvents is a watch's events as a plain value (Output.WEvents, which porcupine's model
++// decodes purely; as encodeItems): for each, its type and annotation (a byte each), its object's
++// resource version (rvBytes), the length of its object's encoding (rvBytes) and that encoding
++// (encodeObj).
++func encodeWEvents(evs []WEvent) string {
++	var out []byte
++	for i := range evs {
++		e := encodeObj(&evs[i].Obj)
++		a := byte(0)
++		if evs[i].Obj.Annotated {
++			a = 1
++		}
++		out = append(out, byte(evs[i].Type), a)
++		out = append(out, []byte(rvBytes(evs[i].Obj.ResourceVersion))...)
++		out = append(out, []byte(rvBytes(uint64(len(e))))...)
++		out = append(out, e...)
 +	}
++	return string(out)
++}
++
++// decodeWEvents inverts encodeWEvents, or false.
++func decodeWEvents(s string) ([]WEvent, bool) {
++	var evs []WEvent
++	i := 0
++	for i < len(s) {
++		if len(s) < i+18 {
++			return nil, false
++		}
++		t, a := int(s[i]), s[i+1]
++		rv, _ := parseRV(s[i+2 : i+10])
++		n, _ := parseRV(s[i+10 : i+18])
++		i += 18
++		if uint64(len(s)-i) < n {
++			return nil, false
++		}
++		o, ok := decodeObj([]byte(s[i : i+int(n)]))
++		if !ok {
++			return nil, false
++		}
++		i += int(n)
++		o.ResourceVersion = rv
++		o.Annotated = a == 1
++		evs = append(evs, WEvent{Type: t, Obj: o})
++	}
++	return evs, true
++}
++
++// runWatch runs the watch in through the store s and returns its output (the events it received,
++// encoded) and the object of its last event that is not an error, if any (the watcher's next
++// cached object: the test's lastNonErrorEvent). It is the test's runWatch, but for two
++// departures. A Watch call that fails is a failed watch (WFailed: the client's error, in a
++// partition; the test panics on an error that is not a StorageError). Events after a watch.Error
++// event are kept and read until the channel closes or the watch's time is up (the etcd3 watcher
++// sends them: nonissues/k8s-etcd3-watcher-events-after-error.md; the test reports an error). As
++// the test's RunWatchTraffic, a watch shorter than HiccupDuration is followed by a sleep for the
++// rest of it.
++func runWatch(s storage.Interface, in Input) (Output, Obj, bool) {
++	if in.Skip {
++		return Output{WFailed: true}, Obj{}, false
++	}
++	start := time.Now()
++	evs, failed := watchEvents(s, in)
++	if d := time.Since(start); d < hiccupDuration {
++		time.Sleep(hiccupDuration - d)
++	}
++	if failed {
++		return Output{WFailed: true}, Obj{}, false
++	}
++	o, ok := lastObj(evs)
++	return Output{WEvents: encodeWEvents(evs)}, o, ok
++}
++
++// watchEvents runs the watch in through the store s, consumed as in.Behavior says: its events, or
++// true if the Watch call failed.
++func watchEvents(s storage.Interface, in Input) ([]WEvent, bool) {
 +	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second+hiccupDuration)
 +	defer cancel()
 +	w, err := s.Watch(ctx, in.WKey, watchOptions(in))
 +	if err != nil {
-+		return Output{WFailed: true}
++		return nil, true
 +	}
 +	defer w.Stop()
 +	timer := time.NewTimer(watchDuration)
 +	defer timer.Stop()
 +	if in.Behavior == BStalled {
 +		<-time.After(hiccupDuration)
-+		return Output{}
++		return nil, false
 +	}
 +	initialDone := in.SendInit != 2
 +	hiccupDone := in.Behavior != BHiccup
@@ -451,17 +635,17 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +			if delay > 0 {
 +				select {
 +				case <-timer.C:
-+					return Output{WEvents: evs}
++					return evs, false
 +				case <-time.After(delay):
 +				}
 +			}
 +		}
 +		select {
 +		case <-timer.C:
-+			return Output{WEvents: evs}
++			return evs, false
 +		case ev, open := <-w.ResultChan():
 +			if !open {
-+				return Output{WEvents: evs}
++				return evs, false
 +			}
 +			we := toWEvent(ev)
 +			evs = append(evs, we)
@@ -469,7 +653,7 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +				initialDone = true
 +			}
 +			if len(evs) >= maxEvents {
-+				return Output{WEvents: evs}
++				return evs, false
 +			}
 +		}
 +	}
@@ -479,7 +663,7 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +// the watcher's next cached object.
 +func lastObj(evs []WEvent) (Obj, bool) {
 +	for i := len(evs) - 1; i >= 0; i-- {
-+		if evs[i].Type != WError {
++		if evs[i].Type != WError && evs[i].Type != WBad {
 +			return evs[i].Obj, true
 +		}
 +	}
@@ -499,23 +683,26 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +	rv         uint64
 +}
 +
-+// changeAt is the change at revision r, 2 <= r <= c.st.rv: the key whose item differs between the
-+// stores at r-1 and r (a write changes one key).
++// changeAt is the change at revision r: the first key (in key order) whose item differs between
++// the stores at r-1 and r, a merge of their key-sorted items (a write changes one key), or false.
 +func changeAt(prev mstore, cur mstore, r uint64) (change, bool) {
-+	keys := map[string]bool{}
-+	for _, it := range prev.items {
-+		keys[it.key] = true
-+	}
-+	for _, it := range cur.items {
-+		keys[it.key] = true
-+	}
-+	for k := range keys {
-+		p, hp := lookup(prev.items, k)
-+		q, hq := lookup(cur.items, k)
-+		if hp == hq && (!hp || p == q) {
-+			continue
++	i, j := 0, 0
++	for i < len(prev.items) || j < len(cur.items) {
++		switch {
++		case j >= len(cur.items) || (i < len(prev.items) && prev.items[i].key < cur.items[j].key):
++			p := prev.items[i]
++			return change{key: p.key, prev: p.obj, hasPrev: true, rv: r}, true
++		case i >= len(prev.items) || cur.items[j].key < prev.items[i].key:
++			q := cur.items[j]
++			return change{key: q.key, cur: q.obj, hasCur: true, rv: r}, true
++		default:
++			p, q := prev.items[i], cur.items[j]
++			if p != q {
++				return change{key: p.key, prev: p.obj, cur: q.obj, hasPrev: true, hasCur: true, rv: r}, true
++			}
++			i++
++			j++
 +		}
-+		return change{key: k, prev: p.obj, cur: q.obj, hasPrev: hp, hasCur: hq, rv: r}, true
 +	}
 +	return change{}, false
 +}
@@ -610,9 +797,11 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +}
 +
 +// watchOk is the validator's ValidateWatch of the watch in with output out, against the
-+// configuration c's history: a failed or skipped watch constrains nothing; error events are
-+// dropped wherever they are (validateMaybeLastEventError wants one, last: the etcd3 watcher can
-+// send events after it); then the bookmarks, the initial events at the initial-events-end
++// configuration c's history: a failed or skipped watch constrains nothing; a bad event (a foreign
++// object, an Error event without a Failure status) rejects; Error events are dropped wherever
++// they are (validateMaybeLastEventError wants one, last: the etcd3 watcher can send events after
++// it); every other event's resource version, bookmarks' included, is at most the
++// configuration's; then the bookmarks, the initial events at the initial-events-end
 +// bookmark's revision (if the watch asked for them; a watch that ended before that bookmark: a
 +// prefix of the initial events at some revision, where the validator wants none), and the
 +// events over the revisions they mark (validateReliable), every revision involved at most the
@@ -621,11 +810,22 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +	if out.WFailed || in.Skip {
 +		return true
 +	}
++	all, ok := decodeWEvents(out.WEvents)
++	if !ok {
++		return false
++	}
 +	var evs []WEvent
-+	for _, ev := range out.WEvents {
-+		if ev.Type != WError {
-+			evs = append(evs, ev)
++	for _, ev := range all {
++		if ev.Type >= WBad {
++			return false
 +		}
++		if ev.Type == WError {
++			continue
++		}
++		if ev.Obj.ResourceVersion > c.st.rv {
++			return false
++		}
++		evs = append(evs, ev)
 +	}
 +	if !bookmarksOk(evs) {
 +		return false
@@ -730,17 +930,18 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch.go repo/examples/k8s/etcd3/w
 +	return eventsEqual(want, got)
 +}
 +
-+// noMetaAnnotation keeps metav1 imported for the annotation key the Obj accessors use.
-+var _ = metav1.InitialEventsAnnotationKey
-diff -ruN -x '*.test' base/examples/k8s/etcd3/watch_test.go repo/examples/k8s/etcd3/watch_test.go
++// What the check cannot see (as upstream's validator): a watch whose window the request does not
++// pin (RV "" or "0", not a watch-list) starts at its first event, so a dropped first event, or
++// the only one, leaves a valid window; so does a dropped last event of any watch.
+diff -ruN -x '*.test' base2/examples/k8s/etcd3/watch_test.go repo2/examples/k8s/etcd3/watch_test.go
 --- a/examples/k8s/etcd3/watch_test.go
 +++ b/examples/k8s/etcd3/watch_test.go
-@@ -0,0 +1,255 @@
+@@ -0,0 +1,349 @@
 +package etcd3
 +
 +import (
++	"fmt"
 +	"os"
-+	"runtime"
 +	"sync"
 +	"sync/atomic"
 +	"testing"
@@ -758,13 +959,13 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch_test.go repo/examples/k8s/et
 +// watchStats counts a run's watches: by behaviour and outcome, their events by type, the watches
 +// with initial events, with an error event, with events after an error event.
 +type watchStats struct {
-+	mu                                     sync.Mutex
-+	watches, failed, skipped, withEvents   int
-+	initial, withErr, afterErr             int
-+	byType                                 [5]int
-+	byBeh                                  [4]int
-+	maxRev                                 uint64
-+	unaryFails                             atomic.Int64
++	mu                                   sync.Mutex
++	watches, failed, skipped, withEvents int
++	initial, withErr, afterErr           int
++	byType                               [6]int
++	byBeh                                [4]int
++	maxRev                               uint64
++	unaryFails                           atomic.Int64
 +}
 +
 +func (ws *watchStats) hook(in Input, out Output) Output {
@@ -785,14 +986,15 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch_test.go repo/examples/k8s/et
 +	if out.WFailed {
 +		ws.failed++
 +	}
-+	if len(out.WEvents) > 0 {
++	evs, _ := decodeWEvents(out.WEvents)
++	if len(evs) > 0 {
 +		ws.withEvents++
 +	}
-+	if in.SendInit == 2 && len(out.WEvents) > 0 {
++	if in.SendInit == 2 && len(evs) > 0 {
 +		ws.initial++
 +	}
 +	errAt := -1
-+	for i, ev := range out.WEvents {
++	for i, ev := range evs {
 +		ws.byType[ev.Type]++
 +		if ev.Type == WError && errAt < 0 {
 +			errAt = i
@@ -803,7 +1005,7 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch_test.go repo/examples/k8s/et
 +	}
 +	if errAt >= 0 {
 +		ws.withErr++
-+		if errAt != len(out.WEvents)-1 {
++		if errAt != len(evs)-1 {
 +			ws.afterErr++
 +		}
 +	}
@@ -813,7 +1015,7 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch_test.go repo/examples/k8s/et
 +func (ws *watchStats) log(t *testing.T) {
 +	t.Logf("watches %d (fast/slow/hiccup/stalled %v), failed %d, skipped %d, with events %d, "+
 +		"watch-list with events %d, with an error %d, events after an error %d; events "+
-+		"added/modified/deleted/bookmark/error %v; max revision %d; failed unary calls %d",
++		"added/modified/deleted/bookmark/error/bad %v; max revision %d; failed unary calls %d",
 +		ws.watches, ws.byBeh, ws.failed, ws.skipped, ws.withEvents, ws.initial, ws.withErr,
 +		ws.afterErr, ws.byType, ws.maxRev, ws.unaryFails.Load())
 +}
@@ -824,37 +1026,46 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch_test.go repo/examples/k8s/et
 +	if err != nil {
 +		return "?"
 +	}
-+	for _, l := range splitLines(string(b)) {
-+		if len(l) > 6 && l[:6] == "VmHWM:" {
++	s := string(b)
++	for len(s) > 0 {
++		i := 0
++		for i < len(s) && s[i] != '\n' {
++			i++
++		}
++		if l := s[:i]; len(l) > 6 && l[:6] == "VmHWM:" {
 +			return l[6:]
 +		}
++		if i == len(s) {
++			break
++		}
++		s = s[i+1:]
 +	}
 +	return "?"
 +}
 +
-+func splitLines(s string) []string {
-+	var out []string
-+	start := 0
-+	for i := range s {
-+		if s[i] == '\n' {
-+			out = append(out, s[start:i])
-+			start = i + 1
-+		}
-+	}
-+	return out
++// singleW is Main's setup and check (watchers included), with the hook.
++func singleW(t *testing.T, clients, ops, watchers, wops int, hook func(Input, Output) Output) porcupine.CheckResult {
++	return singleWAt(t, 0, clients, ops, watchers, wops, hook)
 +}
 +
-+// singleW is MainW's setup and check, with the hook.
-+func singleW(t *testing.T, clients, ops, watchers, wops int, hook func(Input, Output) Output) porcupine.CheckResult {
++// singleWAt is singleW on a member of its own for attempt a (its name and addresses), so that a
++// process can run several.
++func singleWAt(t *testing.T, a int, clients, ops, watchers, wops int, hook func(Input, Output) Output) porcupine.CheckResult {
 +	lg := zap.NewNop()
-+	srv, err := etcdstart.StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)
++	name, peer, cl := "k8setcd3", "127.0.0.1:23906", clientAddr
++	if a > 0 {
++		name = fmt.Sprintf("k8setcd3w%d", a)
++		peer = fmt.Sprintf("127.0.0.1:%d", 23970+a)
++		cl = fmt.Sprintf("127.0.0.1:%d", 23980+a)
++	}
++	srv, err := etcdstart.StartServer(name, peer, cl, lg)
 +	if err != nil {
 +		t.Fatal(err)
 +	}
-+	if err := etcdstart.Serve(srv, clientAddr); err != nil {
++	if err := etcdstart.Serve(srv, cl); err != nil {
 +		t.Fatal(err)
 +	}
-+	kc, err := kubernetes.New(clientv3.Config{Endpoints: []string{clientAddr}, Logger: lg, MaxUnaryRetries: 1})
++	kc, err := kubernetes.New(clientv3.Config{Endpoints: []string{cl}, Logger: lg, MaxUnaryRetries: 1})
 +	if err != nil {
 +		t.Fatal(err)
 +	}
@@ -884,25 +1095,57 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch_test.go repo/examples/k8s/et
 +	})
 +}
 +
-+// corruptions are the ways TestWatchCorrupt corrupts the first watch with a change event: the
-+// event's object's value, its resource version, its type, the event dropped, an event duplicated.
-+var corruptions = map[string]func(evs []WEvent, i int) []WEvent{
-+	"value": func(evs []WEvent, i int) []WEvent { evs[i].Obj.Value += "!"; return evs },
-+	"rv":    func(evs []WEvent, i int) []WEvent { evs[i].Obj.ResourceVersion++; return evs },
-+	"type": func(evs []WEvent, i int) []WEvent {
-+		evs[i].Type = (evs[i].Type + 1) % 3
-+		return evs
++// corruptions are the ways TestWatchCorrupt corrupts a watch: the first change event's object's
++// value, resource version or type, or that event duplicated; a middle change event dropped (one
++// the check can see: an unpinned window's ends are its first and last events); and none (the run
++// must then be Ok).
++var corruptions = map[string]func(evs []WEvent, cs []int) ([]WEvent, bool){
++	"none": func(evs []WEvent, cs []int) ([]WEvent, bool) { return evs, true },
++	"value": func(evs []WEvent, cs []int) ([]WEvent, bool) {
++		evs[cs[0]].Obj.Value += "!"
++		return evs, true
 +	},
-+	"drop": func(evs []WEvent, i int) []WEvent { return append(evs[:i:i], evs[i+1:]...) },
-+	"dup": func(evs []WEvent, i int) []WEvent {
++	"rv": func(evs []WEvent, cs []int) ([]WEvent, bool) {
++		evs[cs[0]].Obj.ResourceVersion++
++		return evs, true
++	},
++	"type": func(evs []WEvent, cs []int) ([]WEvent, bool) {
++		evs[cs[0]].Type = (evs[cs[0]].Type + 1) % 3
++		return evs, true
++	},
++	"dup": func(evs []WEvent, cs []int) ([]WEvent, bool) {
++		i := cs[0]
 +		out := append(evs[:i+1:i+1], evs[i])
-+		return append(out, evs[i+1:]...)
++		return append(out, evs[i+1:]...), true
++	},
++	"drop": func(evs []WEvent, cs []int) ([]WEvent, bool) {
++		if len(cs) < 3 {
++			return evs, false
++		}
++		i := cs[1]
++		return append(evs[:i:i], evs[i+1:]...), true
 +	},
 +}
 +
-+// TestWatchCorrupt runs the driver with watchers on one member, corrupting the first watch that
-+// received a change event (corruptions; K8SETCD3_SCHED names one, all by default): porcupine then
-+// answers Illegal.
++// changeEvents are the indices of a watch's change events (Added, Modified, Deleted), its initial
++// events (before a watch-list's bookmark) excluded.
++func changeEvents(in Input, evs []WEvent) []int {
++	var cs []int
++	seen := in.SendInit != 2
++	for i, ev := range evs {
++		if ev.Type == WBookmark {
++			seen = true
++		}
++		if seen && ev.Type <= WDeleted {
++			cs = append(cs, i)
++		}
++	}
++	return cs
++}
++
++// TestWatchCorrupt runs the driver with watchers on one member, corrupting the first watch the
++// corruption applies to (corruptions; K8SETCD3_SCHED names one, all by default): porcupine then
++// answers Illegal, and Ok for "none".
 +func TestWatchCorrupt(t *testing.T) {
 +	only := os.Getenv("K8SETCD3_SCHED")
 +	for name, f := range corruptions {
@@ -913,44 +1156,98 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch_test.go repo/examples/k8s/et
 +			inChild(t, "TestWatchCorrupt", name, func(t *testing.T) {
 +				var done atomic.Bool
 +				hook := func(in Input, out Output) Output {
-+					if in.Kind != KWatch || done.Load() {
++					if in.Kind != KWatch || out.WFailed || done.Load() {
 +						return out
 +					}
-+					for i, ev := range out.WEvents {
-+						if ev.Type <= WDeleted && !(in.SendInit == 2 && !hasBookmarkBefore(out.WEvents, i)) {
-+							if done.CompareAndSwap(false, true) {
-+								evs := append([]WEvent{}, out.WEvents...)
-+								out.WEvents = f(evs, i)
-+								t.Logf("corrupted (%s) event %d of a watch of %q", name, i, in.WKey)
-+							}
-+							break
-+						}
++					evs, _ := decodeWEvents(out.WEvents)
++					cs := changeEvents(in, evs)
++					if len(cs) == 0 {
++						return out
++					}
++					evs2, ok := f(append([]WEvent{}, evs...), cs)
++					if ok && done.CompareAndSwap(false, true) {
++						out.WEvents = encodeWEvents(evs2)
++						t.Logf("corrupted (%s) a watch of %q with %d change events", name, in.WKey, len(cs))
 +					}
 +					return out
 +				}
-+				r := singleW(t, 4, 60, 8, 6, hook)
-+				if !done.Load() {
-+					t.Fatalf("no watch received a change event")
++				// small traffic: porcupine searches exhaustively before it answers Illegal; a run
++				// in which no watch had an event to corrupt is retried on a fresh member
++				var r porcupine.CheckResult
++				for a := 0; a < 4 && !done.Load(); a++ {
++					r = singleWAt(t, a, 4, 60, 8, 6, hook)
 +				}
-+				if r != porcupine.Illegal {
-+					t.Fatalf("got %v, want Illegal", r)
++				if !done.Load() {
++					t.Fatalf("no watch had a change event to corrupt in 4 runs")
++				}
++				want := porcupine.Illegal
++				if name == "none" {
++					want = porcupine.Ok
++				}
++				if r != want {
++					t.Fatalf("got %v, want %v", r, want)
 +				}
 +			})
 +		})
 +	}
 +}
 +
-+func hasBookmarkBefore(evs []WEvent, i int) bool {
-+	for j := 0; j < i; j++ {
-+		if evs[j].Type == WBookmark {
-+			return true
++// TestWatchOkEdges checks watchOk on hand-made histories: a bookmark past the configuration and a
++// bad event are rejected; a dropped middle event is rejected; a dropped first event of an
++// unpinned watch is accepted (what no check can see).
++func TestWatchOkEdges(t *testing.T) {
++	o := func(v string, rv uint64) Obj {
++		return Obj{Namespace: "ns-1", Name: "pod-1", Value: v, ResourceVersion: rv}
++	}
++	st := func(rv uint64, v string) mstore {
++		if v == "" {
++			return mstore{rv: rv}
++		}
++		return mstore{items: []item{{key: "ns-1/pod-1", obj: o(v, rv), canon: true}}, rv: rv}
++	}
++	// revisions 1 (empty), 2 (created x), 3 (y), 4 (z), 5 (w)
++	h := []mstore{st(1, ""), {items: []item{{key: "ns-1/pod-1", obj: o("x", 2), canon: true}}, rv: 2},
++		{items: []item{{key: "ns-1/pod-1", obj: o("y", 3), canon: true}}, rv: 3},
++		{items: []item{{key: "ns-1/pod-1", obj: o("z", 4), canon: true}}, rv: 4},
++		{items: []item{{key: "ns-1/pod-1", obj: o("w", 5), canon: true}}, rv: 5}}
++	c := mcfg{st: h[4], hist: histOf(h)}
++	in := Input{Kind: KWatch, WKey: ResourcePrefix + "/", Recursive: true, SendInit: 1, Match: MNotOlderThan}
++	ev := func(t int, v string, rv uint64) WEvent { return WEvent{Type: t, Obj: o(v, rv)} }
++	cases := []struct {
++		name string
++		evs  []WEvent
++		want bool
++	}{
++		{"full", []WEvent{ev(WModified, "y", 3), ev(WModified, "z", 4), ev(WModified, "w", 5)}, true},
++		{"middle dropped", []WEvent{ev(WModified, "y", 3), ev(WModified, "w", 5)}, false},
++		{"first dropped (invisible)", []WEvent{ev(WModified, "z", 4), ev(WModified, "w", 5)}, true},
++		{"bookmark past", []WEvent{ev(WModified, "w", 5), {Type: WBookmark, Obj: Obj{ResourceVersion: 6}}}, false},
++		{"bookmark at", []WEvent{ev(WModified, "w", 5), {Type: WBookmark, Obj: Obj{ResourceVersion: 5}}}, true},
++		{"bad", []WEvent{ev(WModified, "w", 5), {Type: WBad}}, false},
++		{"error then event", []WEvent{ev(WModified, "z", 4), {Type: WError}, ev(WModified, "w", 5)}, true},
++	}
++	for _, tc := range cases {
++		got := watchOk(in, Output{WEvents: encodeWEvents(tc.evs)}, c)
++		if got != tc.want {
++			t.Errorf("%s: watchOk = %v, want %v", tc.name, got, tc.want)
 +		}
 +	}
-+	return false
++	// the round trip of the encoding
++	evs := []WEvent{ev(WAdded, "x", 2), {Type: WBookmark, Obj: Obj{ResourceVersion: 2, Annotated: true}}, {Type: WError}}
++	back, ok := decodeWEvents(encodeWEvents(evs))
++	if !ok || len(back) != len(evs) {
++		t.Fatalf("decodeWEvents: %v %v", back, ok)
++	}
++	for i := range evs {
++		if back[i] != evs[i] {
++			t.Errorf("round trip %d: %+v != %+v", i, back[i], evs[i])
++		}
++	}
 +}
 +
-+// TestMainPartitionWatch runs MainPartitionW's setup once per schedule (K8SETCD3_SCHED names one),
-+// each in a process of its own: Ok, the counts, the time and the peak memory.
++// TestMainPartitionWatch runs MainPartition's setup with watchers once per schedule
++// (K8SETCD3_SCHED names one), each in a process of its own: Ok, the counts, the time and the peak
++// memory.
 +func TestMainPartitionWatch(t *testing.T) {
 +	only := os.Getenv("K8SETCD3_SCHED")
 +	scheds := partitionSchedules()
@@ -981,8 +1278,6 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch_test.go repo/examples/k8s/et
 +				start := time.Now()
 +				r, _ := checkWWith(s, Model(st0, h0), 4, 60, 8, 12, 0, ws.hook)
 +				ws.log(t)
-+				var m runtime.MemStats
-+				runtime.ReadMemStats(&m)
 +				t.Logf("%s: %v in %v, peak RSS %s", name, r, time.Since(start), peakRSS())
 +				if r != porcupine.Ok {
 +					t.Fatalf("got %v, want Ok", r)
@@ -991,14 +1286,13 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watch_test.go repo/examples/k8s/et
 +		})
 +	}
 +}
-diff -ruN -x '*.test' base/examples/k8s/etcd3/watchmain.go repo/examples/k8s/etcd3/watchmain.go
+diff -ruN -x '*.test' base2/examples/k8s/etcd3/watchmain.go repo2/examples/k8s/etcd3/watchmain.go
 --- a/examples/k8s/etcd3/watchmain.go
 +++ b/examples/k8s/etcd3/watchmain.go
-@@ -0,0 +1,137 @@
+@@ -0,0 +1,85 @@
 +package etcd3
 +
-+// The 7f prototype's entry points (notes/k8s-7f-scope.md): Main, MainCluster and MainPartition with
-+// watchers.
++// The 7f prototype's gate and test helpers (notes/k8s-7f-scope.md).
 +
 +import (
 +	"time"
@@ -1006,33 +1300,30 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watchmain.go repo/examples/k8s/etc
 +	"github.com/anishathalye/porcupine"
 +	clientv3 "go.etcd.io/etcd/client/v3"
 +	"go.etcd.io/etcd/client/v3/kubernetes"
++	"go.etcd.io/etcd/server/v3/etcdserver"
 +	"go.uber.org/zap"
 +	"k8s.io/apimachinery/pkg/runtime/schema"
 +	"k8s.io/apiserver/pkg/storage"
 +	"k8s.io/apiserver/pkg/storage/etcd3"
 +	utilfeature "k8s.io/apiserver/pkg/util/feature"
 +
-+	"go.etcd.io/etcd/server/v3/etcdserver"
-+
 +	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
-+	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 +	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 +	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
++	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 +)
 +
-+// CheckW is Check with watchers watcher clients beside the clients unary ones, each running
-+// wops watches (genWatch; skipped once the unary traffic is over), through lintest.RunLin2.
-+func CheckW(s storage.Interface, st0 mstore, h0 []mstore, clients int, ops int, watchers int, wops int, timeout time.Duration) porcupine.CheckResult {
-+	r, _ := checkWWith(s, Model(st0, h0), clients, ops, watchers, wops, timeout, nil)
-+	return r
++// watchList turns the WatchList feature on (as the test's setupStore), or returns false.
++func watchList() bool {
++	return utilfeature.DefaultMutableFeatureGate.Set("WatchList=true") == nil
 +}
 +
-+// checkWWith is CheckW with the model m and, if hook is not nil, every output passed through hook
-+// before it is recorded (the tests' corruption).
++// checkWWith is Check with the model m and, if hook is not nil, every output passed through hook
++// before it is recorded (the tests' counts and corruptions).
 +func checkWWith(s storage.Interface, m porcupine.Model, clients int, ops int, watchers int, wops int, timeout time.Duration, hook func(Input, Output) Output) (porcupine.CheckResult, []porcupine.Operation) {
 +	tbl := newCache()
 +	tbl.unary = clients
-+	tbl.total = int64(clients * ops)
++	tbl.total = int64(clients) * int64(ops)
 +	apply := func(input any) any {
 +		out := Apply(s, tbl, input).(Output)
 +		if hook != nil {
@@ -1042,11 +1333,6 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watchmain.go repo/examples/k8s/etc
 +	}
 +	gen := func(id int) any { return Gen(tbl, id) }
 +	return lintest.RunLin2(m, apply, gen, lintest.CounterClock(), clients, ops, watchers, wops, timeout)
-+}
-+
-+// watchList turns the WatchList feature on (as the test's setupStore), or returns false.
-+func watchList() bool {
-+	return utilfeature.DefaultMutableFeatureGate.Set("WatchList=true") == nil
 +}
 +
 +// newStoreW is the store over the kubernetes client kc, the features set (no streaming lists,
@@ -1062,35 +1348,6 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watchmain.go repo/examples/k8s/etc
 +		return nil, false
 +	}
 +	return s, true
-+}
-+
-+// MainW is Main with watchers (CheckW).
-+func MainW(clients int, ops int, watchers int, wops int) porcupine.CheckResult {
-+	lg := zap.NewNop()
-+	srv, err := etcdstart.StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)
-+	if err != nil {
-+		return porcupine.Unknown
-+	}
-+	if err := etcdstart.Serve(srv, clientAddr); err != nil {
-+		return porcupine.Unknown
-+	}
-+	kc, err := kubernetes.New(clientv3.Config{Endpoints: []string{clientAddr}, Logger: lg, MaxUnaryRetries: 1})
-+	if err != nil {
-+		return porcupine.Unknown
-+	}
-+	st0, h0, ok := seed(kc.Client)
-+	if !ok {
-+		return porcupine.Unknown
-+	}
-+	s, ok := newStoreW(kc)
-+	if !ok {
-+		return porcupine.Unknown
-+	}
-+	r := CheckW(s, st0, h0, clients, ops, watchers, wops, 0)
-+	if r == porcupine.Illegal {
-+		panic("k8setcd3: porcupine found the history (with watches) not linearizable")
-+	}
-+	return r
 +}
 +
 +// clusterW starts MainCluster's cluster and connects its client, seeds and makes the store.
@@ -1118,60 +1375,33 @@ diff -ruN -x '*.test' base/examples/k8s/etcd3/watchmain.go repo/examples/k8s/etc
 +	s, ok := newStoreW(kc)
 +	return srvs, brs, s, st0, h0, ok
 +}
-+
-+// MainPartitionW is MainPartition with watchers (CheckW).
-+func MainPartitionW(clients int, ops int, watchers int, wops int, sched []cluster3.Step) porcupine.CheckResult {
-+	srvs, brs, s, st0, h0, ok := clusterW()
-+	if !ok {
-+		return porcupine.Unknown
-+	}
-+	go cluster3.Partitioner(srvs, brs, sched)
-+	r := CheckW(s, st0, h0, clients, ops, watchers, wops, 0)
-+	if r == porcupine.Illegal {
-+		panic("k8setcd3: porcupine found the partitioned cluster's history (with watches) not linearizable")
-+	}
-+	return r
-+}
-diff -ruN base/examples/lib/lintest/lintest.go repo/examples/lib/lintest/lintest.go
+diff -ruN base2/examples/lib/lintest/lintest.go repo2/examples/lib/lintest/lintest.go
 --- a/examples/lib/lintest/lintest.go
 +++ b/examples/lib/lintest/lintest.go
-@@ -77,6 +77,39 @@
- 	return ordered
- }
- 
+@@ -84,12 +84,23 @@
+ // has no Partition, so the info's one partition holds one complete linearization, of indices
+ // into the trace); otherwise nil.
+ func RunLin(model porcupine.Model, apply func(any) any, gen func(int) any, clock Clock, clients int, ops int, timeout time.Duration) (porcupine.CheckResult, []porcupine.Operation) {
+-	histories := make([][]porcupine.Operation, clients)
++	return RunLin2(model, apply, gen, clock, clients, ops, 0, 0, timeout)
++}
++
 +// RunLin2 is RunLin with two groups of clients: clients 0 to clients-1 run ops operations each,
 +// clients clients to clients+clients2-1 run ops2 each (notes/k8s-7f-scope.md: the k8s driver's
 +// watchers, whose operations are whole watches, beside its unary clients).
 +func RunLin2(model porcupine.Model, apply func(any) any, gen func(int) any, clock Clock, clients int, ops int, clients2 int, ops2 int, timeout time.Duration) (porcupine.CheckResult, []porcupine.Operation) {
 +	histories := make([][]porcupine.Operation, clients+clients2)
-+	var wg sync.WaitGroup
+ 	var wg sync.WaitGroup
+-	for id := 0; id < clients; id++ {
 +	for id := 0; id < clients+clients2; id++ {
 +		n := ops
 +		if id >= clients {
 +			n = ops2
 +		}
-+		wg.Add(1)
-+		go func() {
+ 		wg.Add(1)
+ 		go func() {
+-			histories[id] = runClient(id, ops, gen, apply, clock)
 +			histories[id] = runClient(id, n, gen, apply, clock)
-+			wg.Done()
-+		}()
-+	}
-+	wg.Wait()
-+	var operations []porcupine.Operation
-+	for _, h := range histories {
-+		operations = append(operations, h...)
-+	}
-+	result, info := porcupine.CheckOperationsVerbose(model, operations, timeout)
-+	if result != porcupine.Ok {
-+		return result, nil
-+	}
-+	linearizations := info.PartialLinearizations()
-+	if len(linearizations) != 1 || len(linearizations[0]) == 0 {
-+		return result, nil
-+	}
-+	return result, orderByLinearization(operations, linearizations[0][0])
-+}
-+
- // RunLin runs clients clients concurrently, each running ops operations of the library, and
- // checks their trace against model with porcupine. When porcupine answers Ok, it also returns the
- // trace's operations in the order of the linearization porcupine found, as Kubernetes'
+ 			wg.Done()
+ 		}()
+ 	}

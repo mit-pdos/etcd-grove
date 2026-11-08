@@ -17,23 +17,31 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### `WithCancel` over a general parent: the child's `Value` is the parent's (2026-11-08, k8s 7f)
+### Contexts derived from a parent that is not an `isContext` (2026-11-08, k8s 7f; to be decided in the 7f-4 Draft)
 
-- **Missing.** Perennial's `WithCancel` over any `isContext` parent (`wp_WithCancel_any`; the
-  strong `context.WithCancel.spec` needs a `*cancelCtx` parent) says nothing of the child's
-  `Value`, though Go's `cancelCtx.Value` delegates every key but its own to the parent. So a
-  property of the parent's values (grpc's run context, `grpcRunCtx`: its incoming metadata) does
-  not carry over to a context derived with `WithCancel`.
-- **Needed by.** etcd's stream interceptor, require-leader branch (`newCancellableContext(ss.Context())`
-  wraps the stream's context with `WithCancel`; `v3rpc/InvStreamInterceptor.lean`'s header, reason
-  (1)), which Kubernetes' etcd3 store reaches on every watch (`clientv3.WithRequireLeader`):
-  `notes/k8s-7f-scope.md`, §2.3 and stage 7f-4.
-- **Workaround here.** The deployment premise `v3rpc.runsNoRequireLeader` excludes the branch; it
-  is false for the k8s driver with watches, so 7f-4 cannot keep it.
-- **Proposed.** A `WithCancel` triple over any `isContext` parent whose child's `Value(k)` is the
-  parent's `Value(k)` for every key but `cancelCtxKey`, as a lemma about Perennial's own
-  `cancelCtx.Value` (no new trust). About 150-250 Lean lines.
-- **Status.** Not started (proposed by the 7f Scope).
+- **Missing.** Two facts about contexts that etcd's require-leader stream handlers need, both
+  general, neither settled yet (`notes/k8s-7f-scope.md`, §3, revision 2):
+  - **(P-RL1)** a `Value` law for `WithCancel` over a general parent: for `k ≠ cancelCtxKeyAny`,
+    `(WP parent.Value(k) {Φ}) -∗ WP child.Value(k) {Φ}`. It needs a premise that the parent's
+    dynamic type is not one Go's `context.value` reads the fields of directly (`*valueCtx`,
+    `*timerCtx`, `withoutCancelCtx`), or a description of such a parent's fields. As first phrased
+    ("the child's `Value` is the parent's", any `isContext` parent) it was false: for
+    `&cancelCtxKey` the child returns itself, and grpc's stream context is a `*valueCtx` chain
+    (the 7f Scope review). `wp_WithCancel_any` already keeps the `ContextDesc`. The require-leader
+    handler may need only a fact about grpc's `metadata.incomingOf`, which is this repository's
+    (a reviewed trust-boundary fact), so P-RL1 may be unnecessary.
+  - **(P-RL2)** derivations (`WithValue`, `WithCancel`/`WithTimeout`) over a parent with a weak
+    contract: its `Done` as `isContext`'s, its `Err` any error after `Done` (etcd's
+    `cancellableContext` returns `ErrGRPCNoLeader`, which `isCtxErr` excludes). Go's child takes
+    `parent.Err()` on the parent's cancellation, so the child has the weak contract too. Natural
+    form: `isContext` generalized over the predicate its errors satisfy.
+- **Needed by.** The require-leader branch of etcd's stream interceptor, which Kubernetes' etcd3
+  store reaches on every watch (`clientv3.WithRequireLeader`), and the Watch and LeaseKeepAlive
+  handlers' derived contexts (`Tracer.Start`, `LeaseRenew`'s `WithTimeout`): stage 7f-4.
+- **Workaround here.** Today the premise `v3rpc.runsNoRequireLeader` excludes the branch; the user
+  decided (2026-11-08) to delete it, so 7f-4 needs these facts, as local lemmas until a Perennial
+  change lands.
+- **Status.** Not started; the 7f-4 Draft states each (or drops P-RL1).
 
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
 

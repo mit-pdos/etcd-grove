@@ -1,7 +1,8 @@
 ---
 upstream: none
 checked: 2026-11-08
-links: []
+links:
+  - kubernetes/kubernetes#23694 pr merged: the etcd3 watcher's first implementation (sendError's race dates from it; not a report of it)
 blocks-proof: yes
 ---
 
@@ -22,7 +23,10 @@ correctness test rejects such a stream (`WatchValidator.validateMaybeLastEventEr
 **Why not an issue:** reproduced only through a fake `clientv3.Watcher` (not through a real etcd);
 upstream knows (the TODO); the API server's consumers (the reflector) stop at the first `Error`
 event, so the extra events are dropped; it would surface as a false failure of the correctness test
-under faults. GitHub not searched (no `gh` in this environment).
+under faults. Upstream searched 2026-11-08 (kubernetes/kubernetes issues and PRs, by keyword
+through the web: "sendError doesn't guarantee", "watch channel was not closed after watch.Error",
+etcd3 watcher after error): nothing but the watcher's original PR; keyword search does not rule out
+a differently worded report.
 
 ## Proof
 
@@ -33,8 +37,9 @@ false under partitions.
 ## Notes
 
 Test: [`k8s-etcd3-watcher-events-after-error/errorder_test.go`](k8s-etcd3-watcher-events-after-error/errorder_test.go),
-package `etcd3` of this repository's `examples/k8s/etcd3` (branch `k8s-7e`, `76cb57f0b7`, with the
-7f prototype's codec change: `Decode` with no object to decode into), `k8s.io/apiserver`
-`9c4ec15b8038`, go1.27: a fake watcher sends 150 creates then a compacted response; a consumer that
-starts reading after 100 ms saw the `Error` event before other events in 8 of 50 trials
-(`watch.Error at index 50 of 52 events`). Found 2026-11-08 writing the 7f Scope.
+package `etcd3` of this repository's `examples/k8s/etcd3` at branch `k8s-7e` `7f2ad6c9b5` (whose
+codec decodes with no target, as `runtime.Decode` asks), `k8s.io/apiserver` `9c4ec15b8038`, go1.27,
+under a 32G memory cap: a fake watcher sends 150 creates then a compacted response; a consumer that
+starts reading after 100 ms saw the `Error` event before other events in 1 to 12 of 50 trials over
+several runs (8, 3, 1, 8, 2, 12; e.g. `watch.Error at index 50 of 52 events`). Found 2026-11-08
+writing the 7f Scope.
