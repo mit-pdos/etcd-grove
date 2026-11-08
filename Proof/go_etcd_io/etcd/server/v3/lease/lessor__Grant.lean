@@ -76,7 +76,7 @@ theorem lease.lessor.Grant.wp_proof
     iapply HΦ
     iframe Hrtk Hln
     ileft
-    iunfold mvcc.csContract at Hcs
+    iunfold srvApi.csContractA at Hcs
     icases Hcs with ⟨HPre, -, -⟩
     iframe Hown Hrvk HPre HRb HUo
     isplitr
@@ -92,7 +92,7 @@ theorem lease.lessor.Grant.wp_proof
     iapply HΦ
     iframe Hrtk Hln
     ileft
-    iunfold mvcc.csContract at Hcs
+    iunfold srvApi.csContractA at Hcs
     icases Hcs with ⟨HPre, -, -⟩
     iframe Hown Hrvk HPre HRb HUo
     isplitr
@@ -150,7 +150,7 @@ theorem lease.lessor.Grant.wp_proof
     iapply HΦ
     iframe Hrtk Hln
     ileft
-    iunfold mvcc.csContract at Hcs
+    iunfold srvApi.csContractA at Hcs
     icases Hcs with ⟨HPre, -, -⟩
     iunfold leaseOwn
     iframe Hown Hcls Hrvk HPre HRb HUo

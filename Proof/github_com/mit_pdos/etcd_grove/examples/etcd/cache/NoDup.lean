@@ -14,7 +14,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.WatchFire
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OnceUpTo
 public import Proof.go_etcd_io.etcd.client.v3.KMClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Workload
 
@@ -59,30 +59,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- See the file header. -/
-theorem noDupKeys_of_wk [go_etcd_io.raft.v3.Assumptions] [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-    (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (P : List (GoString × GoString)) :
+theorem srvOnce_of_wk (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst)
+    (P : List (GoString × GoString)) :
     client.srvKVFacts V ∗ kvReadAu γ (fun σ => iprop(⌜etcd_watch.wkW P σ.changes⌝)) ⊢
-      mvcc.noDupKeys V.R.E.γ := by
-  iintro ⟨#Hkf, #Hau⟩
-  iunfold client.srvKVFacts at Hkf
-  icases Hkf with ⟨%on, %γr, #Hinvs, #H00, %Hkr, -⟩
-  iunfold mvcc.noDupKeys
-  iintro !> %log #Hev
-  iunfold mvcc.evLog at Hev
-  icases Hev with ⟨#Hs, #Hc⟩
-  ihave #Hs' := Hs
-  iunfold mvcc.idxSealed at Hs'
-  icases Hs' with ⟨-, %Hwf, -⟩
-  iunfold kvReadAu at Hau
-  iunfold kvAu at Hau
-  imod (srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hkr.1]) Hkr.2.1 log
-      (fun σ => iprop(⌜etcd_watch.wkW P σ.changes⌝))) $$ Hinvs H00 Hs Hc Hau with ⟨%C, #HQ, %Hp⟩
-  icases HQ with %Hw
-  imodintro
-  ipureintro
-  exact oneChange_of_wk P log C Hw Hp Hwf.1
+      v3rpc.srvOnce V.W :=
+  etcdstart.srvOnce_of_plan V γ hst (etcd_watch.wkW P)
+    (fun _ hw cs hcs => hw.1.noDup cs (List.mem_cons_of_mem _ hcs))
 
 end proof
 

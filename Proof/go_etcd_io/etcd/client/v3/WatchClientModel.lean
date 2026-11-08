@@ -90,8 +90,8 @@ def gOk (S : RunSt) (U : GMap Loc Unit) : Prop :=
   (∀ (i : Nat) (id : w64), S.L[i]? = some (WatchReqM.cancel id) → id ∈ S.regs) ∧
   (∀ i, S.pend = some i → i ∉ S.ansd ∧ (∃ c, S.L[i]? = some (WatchReqM.create c)) ∧ S.l ≠ []) ∧
   (∀ i ∈ S.ansd, i < S.L.length) ∧
-  (∀ j m ρ, S.Dm[j]? = some m → m.src = some ρ →
-    ρ.id ≠ W64 (-1) → idLive (S.Dm.take j) ρ.id) ∧
+  (∀ j m (ρ : Nat × mvcc.api.WResp), S.Dm[j]? = some m → m.src = some ρ →
+    ρ.2.id ≠ W64 (-1) → idLive (S.Dm.take j) ρ.2.id) ∧
   (∀ m ∈ S.Dm, m.src = none → m.created = true → m.canceled = false → m.watchId ∈ S.regs)
 
 /-- The model at `run`'s start: nothing sent, received or made. -/
@@ -137,28 +137,29 @@ theorem idLive_exists {L : List WatchRespM} {X : w64} (h : idLive L X) :
     simp only [decide_eq_true_eq] at hm
     exact ⟨m, hm.1, hm.2.1, hm.2.2, h.1, h.2⟩
 
-/-- The responses with events of the watcher `w`, by their mvcc response. -/
-theorem sentEvsOf_snoc (L : List WatchRespM) (m : WatchRespM) (w : Loc) :
-    sentEvsOf (L ++ [m]) w =
-      sentEvsOf L w ++ (match m.src with
-        | some ρ => if ρ.w = w ∧ ρ.evs ≠ [] then [ρ] else []
+/-- The responses with events of the watch id `X`, by their mvcc response (strict M1: by id). -/
+theorem sentEvsOf_snoc (L : List WatchRespM) (m : WatchRespM) (X : w64) :
+    sentEvsOf (L ++ [m]) X =
+      sentEvsOf L X ++ (match m.src with
+        | some ρ => if ρ.2.id = X ∧ ρ.2.evs ≠ [] then [ρ.2] else []
         | none => []) := by
   unfold sentEvsOf
-  rw [List.filterMap_append, List.filter_append]
+  rw [List.filterMap_append, List.map_append, List.filter_append]
   congr 1
   cases h : m.src with
   | none => simp [h]
   | some ρ =>
-    by_cases hc : ρ.w = w ∧ ρ.evs ≠ []
+    by_cases hc : ρ.2.id = X ∧ ρ.2.evs ≠ []
     · simp [h, hc]
-    · simp only [List.filterMap_cons, h, List.filterMap_nil, if_neg hc]
+    · simp only [List.filterMap_cons, h, List.filterMap_nil, if_neg hc, List.map_cons,
+        List.map_nil]
       simp only [List.filter_eq_nil_iff, List.mem_singleton, forall_eq, decide_eq_true_eq]
       exact hc
 
 /-- The events of a list of responses, those without events left out. -/
-theorem flatten_evs_filter (rs : List mvcc.RespM) :
-    ((rs.filter (fun x => decide (x.evs ≠ []))).map mvcc.RespM.evs).flatten =
-      (rs.map mvcc.RespM.evs).flatten := by
+theorem flatten_evs_filter (rs : List mvcc.api.WResp) :
+    ((rs.filter (fun x => decide (x.evs ≠ []))).map mvcc.api.WResp.evs).flatten =
+      (rs.map mvcc.api.WResp.evs).flatten := by
   induction rs with
   | nil => rfl
   | cons x xs ih =>
@@ -984,7 +985,7 @@ theorem answer_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X 
     · exact g11 j h1
     · simp at h1; subst h1; exact hilen
   · intro j m' ρ hj hs
-    show ρ.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ.id
+    show ρ.2.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ.2.id
     rcases Perennial.getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨-, rfl⟩
     · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ hj' hs
     · rw [hsrc] at hs; cases hs
@@ -1275,7 +1276,7 @@ theorem cancelAns_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} 
     · exact g11 j h
     · simp at h; subst h; exact (List.getElem?_eq_some_iff.1 hi).1
   · intro j m' ρ hj hs
-    show ρ.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ.id
+    show ρ.2.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ.2.id
     rcases Perennial.getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨-, rfl⟩
     · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ hj' hs
     · rw [hsrc] at hs; cases hs
@@ -1345,8 +1346,8 @@ theorem cancelAns_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} 
 /-- The model after an mvcc response `m` (of a live id, or of id `-1`). -/
 def RunSt.recvMvcc (S : RunSt) (m : WatchRespM) : RunSt := { S with Dm := S.Dm ++ [m] }
 
-theorem recvMvcc_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {ρ : mvcc.RespM}
-    (hg : gOk S U) (hsrc : m.src = some ρ) (hl : ρ.id ≠ W64 (-1) → idLive S.Dm ρ.id) :
+theorem recvMvcc_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {ρ : Nat × mvcc.api.WResp}
+    (hg : gOk S U) (hsrc : m.src = some ρ) (hl : ρ.2.id ≠ W64 (-1) → idLive S.Dm ρ.2.id) :
     gOk (S.recvMvcc m) U ∧ ∀ ws ph, phOk S ws ph → phOk (S.recvMvcc m) ws ph := by
   obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13⟩ := hg
   have hlive : ∀ Y, (idLive (S.recvMvcc m).Dm Y ↔ idLive S.Dm Y) := by
@@ -1355,7 +1356,7 @@ theorem recvMvcc_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {ρ : mvcc.
     rw [idLive_snoc, if_neg (fun h => by rw [hsrc] at h; cases h.1)]
   refine ⟨⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, ?_, ?_⟩, ?_⟩
   · intro j m' ρ' hj hs
-    show ρ'.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ'.id
+    show ρ'.2.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ'.2.id
     rcases Perennial.getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨hj2, hm'⟩
     · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ' hj' hs
     · subst hm'

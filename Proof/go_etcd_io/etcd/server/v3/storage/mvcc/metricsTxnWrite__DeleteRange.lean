@@ -27,9 +27,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.metricsTxnWrite.DeleteRange.wp_proof
     (hDel : mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ ilog pend puts deletes putSize key endk k e L crev Z
+  intro trace mw s γ ilog pend puts deletes putSize key endk k e L crev Z Tr
   wp_start as ⟨Htx, #Hkey, #Hend, Hown⟩
-  iunfold mvcc.isTxnWrite at Htx
+  iunfold mvcc.isTxnWriteT at Htx
   iNamed Htx
   (try wp_auto)
   wp_apply (hDel trace tw s γ ilog pend key endk k e L crev Z) $$ [$Htw $Hkey $Hend $Hown]
@@ -38,7 +38,7 @@ theorem mvcc.metricsTxnWrite.DeleteRange.wp_proof
   iapply HΦ
   iframe Hown
   isplitl [Hmw Htw Htrc]
-  · iunfold mvcc.isTxnWrite
+  · iunfold mvcc.isTxnWriteT
     iexists tw, ranges
     iframe Htw Htrc
     iexact Hmw

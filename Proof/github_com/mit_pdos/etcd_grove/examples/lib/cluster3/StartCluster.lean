@@ -53,7 +53,8 @@ set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 8192 in
 theorem StartCluster.wp_proof
     (wp_StartMember : StartMember.spec (GF := GF) (hG := hG))
-    (wp_StartBridge : StartBridge.spec (GF := GF) (hG := hG)) :
+    (wp_StartBridge : StartBridge.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) :
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp lm Hcfg Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf
     Hdbo Hms Hrun Hrev HlP
@@ -123,7 +124,7 @@ theorem StartCluster.wp_proof
   have Hdok : netDirOk (dir3 cfg id₁ id₂ id₃) :=
     dir3_ok cfg Hcfg id₁ id₂ id₃ (Hnz id₁ (by simp)) (Hnz id₂ (by simp)) (Hnz id₃ (by simp))
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
-  imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls (dir3 cfg id₁ id₂ id₃)
+  imod (etcdstart.alloc3 hne id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls (dir3 cfg id₁ id₂ id₃)
       cfg.Peer1' cfg.Peer2' cfg.Peer3' Hdok.1 (dir3_host cfg id₁ id₂ id₃) (by omega) (by omega)
       cfg.Name1' cfg.Name2' cfg.Name3' (some cfg.Client1') (some cfg.Client2') (some cfg.Client3') lm Hrun Hrev
       cmp 0)
@@ -157,7 +158,7 @@ theorem StartCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₁
   icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁, Hctl₁, #Hsr₁,
-    ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hstr₁⟩, %Hnr₁⟩
+    ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hwl₁, #Hstr₁⟩, %Hnr₁⟩
   iunfold srvGoRes at Hgo₁
   icases Hgo₁ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₂
@@ -183,7 +184,7 @@ theorem StartCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₂
   icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂, Hctl₂, #Hsr₂,
-    ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hstr₂⟩, %Hnr₂⟩
+    ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hwl₂, #Hstr₂⟩, %Hnr₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₃
@@ -209,7 +210,7 @@ theorem StartCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₃
   icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃, Hctl₃, #Hsr₃,
-    ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hstr₃⟩, %Hnr₃⟩
+    ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hwl₃, #Hstr₃⟩, %Hnr₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   iclear Hb₁ Hb₂ Hb₃ Hcom Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm
@@ -273,9 +274,9 @@ theorem StartCluster.wp_proof
   iframe Hob₁ Hob₂ Hob₃ Hctl₁ Hctl₂ Hctl₃
   -- (M2, the storage side, N1) each member's server in the cluster's mode: its stand-in's,
   -- through `envAgree`
-  have off₁ : E₁'.γ.cm = cmp := (envAgree_mode E₁' E₁ HE₁.1).trans Hp₁.2.2.2.2.2.2.2.1
-  have off₂ : E₂'.γ.cm = cmp := (envAgree_mode E₂' E₂ HE₂.1).trans Hp₂.2.2.2.2.2.2.2.1
-  have off₃ : E₃'.γ.cm = cmp := (envAgree_mode E₃' E₃ HE₃.1).trans Hp₃.2.2.2.2.2.2.2.1
+  have off₁ : E₁'.cmp = cmp := HE₁.1.2.2.2.trans Hp₁.2.2.2.2.2.2.1
+  have off₂ : E₂'.cmp = cmp := HE₂.1.2.2.2.trans Hp₂.2.2.2.2.2.2.1
+  have off₃ : E₃'.cmp = cmp := HE₃.1.2.2.2.trans Hp₃.2.2.2.2.2.2.1
   obtain ⟨hr₁, hc₁, hch₁, hl₁, -⟩ := Hp₁
   obtain ⟨hr₂, hc₂, hch₂, hl₂, -⟩ := Hp₂
   obtain ⟨hr₃, hc₃, hch₃, hl₃, -⟩ := Hp₃

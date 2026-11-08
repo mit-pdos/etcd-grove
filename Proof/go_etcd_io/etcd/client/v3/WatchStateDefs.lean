@@ -20,8 +20,8 @@ firing of the caller's read update; the client watcher's pipeline (`InvWatch.lea
 * `watchStateElem`: the `i`-th response of a watch, with the update's `□ Q σ`, at the positions
   `i` and `i + 1` of the watch's cursor;
 * `client.rawRespOk`: the same at the server's level (the client watcher's pipeline's, before the
-  update fires): the events those of a watched log of the server (`mvcc.evLog`), the progress
-  notification's revision within one.
+  update fires): the events those of a watched log of the server (its certified lower bound of the
+  notified log, `v3rpc.SrvW.histLb`), the progress notification's revision within one.
 -/
 module
 
@@ -255,29 +255,30 @@ def evModelOf (ev : mvcc.EvM) (kv : Loc) : EvModel :=
 
 /-- **A response, at the server's level** (the client watcher's pipeline's second cursor; see the
 file header): as `watchStateRespOk`, but the events and the progress notification's revision are
-a watched log's of the server's store `γs` (`mvcc.evLog`: sealed and certified), the events'
-key-values fixed (`mvcc.kvPtrFixed`). -/
-def rawRespOk (γs : mvcc.StoreNames) (o : OpFull) (c c' : w64)
+a watched log's of the server's watch facts `W` (strict M1: a certified lower bound of its
+notified log, `□ W.histLb`; until M1 mvcc's `evLog`, sealed and certified), the events'
+key-values fixed (`mvcc.kvPtrFixed`, the API's `evIs`'s). -/
+def rawRespOk (W : v3rpc.SrvW GF) (o : OpFull) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) : IProp GF :=
   iprop((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
     ⌜¬ watchErr v ∧ r.events = [] ∧ r.isProgressNotify = false ∧ c' = c⌝ ∨
     (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z c ∧ sint.Z c ≤ sint.Z r.hdrRev ∧
         c' = r.hdrRev ∧ sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
       (⌜sint.Z c = sint.Z r.hdrRev⌝ ∨
-        ∃ L : mvcc.Log, mvcc.evLog γs L ∗ ⌜sint.Z r.hdrRev < L.length ∧
+        ∃ L : mvcc.Log, □ W.histLb L ∗ ⌜sint.Z r.hdrRev < L.length ∧
           rangeLogEvents L o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = []⌝)) ∨
     (⌜¬ watchErr v ∧ r.events ≠ [] ∧ 0 ≤ sint.Z c ∧ sint.Z c < sint.Z c' ∧
         (r.events.getLast?.map EvModel.rev) = some c'⌝ ∗
-      ∃ (L : mvcc.Log) (kvs : List Loc), mvcc.evLog γs L ∗
+      ∃ (L : mvcc.Log) (kvs : List Loc), □ W.histLb L ∗
         ⌜sint.Z c' < L.length ∧ kvs.length = (rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1)).length ∧
           r.events = List.zipWith evModelOf (rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1)) kvs⌝ ∗
         □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc),
           ⌜(rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1))[k]? = some ev⌝ →
           ⌜kvs[k]? = some kv⌝ → mvcc.kvPtrFixed kv ev.kv)))
 
-instance rawRespOk_persistent (γs : mvcc.StoreNames) (o : OpFull) (c c' : w64)
+instance rawRespOk_persistent (W : v3rpc.SrvW GF) (o : OpFull) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
-    Persistent (rawRespOk (GF := GF) γs o c c' v r) := by
+    Persistent (rawRespOk (GF := GF) W o c c' v r) := by
   unfold rawRespOk; infer_instance
 
 end raw

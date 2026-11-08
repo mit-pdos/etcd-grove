@@ -100,7 +100,7 @@ theorem recon_alive (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.
   rcases hph with ⟨X, rfl⟩ | ⟨si, rfl⟩
   · -- registered: re-created from its resume revision
     simp only [wsRest]
-    icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, -, Hprod, Hauth, Hst, Hc2⟩
+    icases Hrest with ⟨%B, %rg, %lo, %sent, %C, %HB, #HsoB, -, Hprod, Hauth, Hst, Hc2⟩
     icases Hst with (#Hx | ⟨%HCl, -, Hps⟩)
     · ihave %Hv := dghostVar_agree _ _ _ _ _ $$ Hgx Hx
       cases Hv
@@ -244,7 +244,7 @@ theorem recon_dead (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.W
   iframe Hstp
   rcases hph with ⟨X, rfl⟩ | ⟨si, rfl⟩
   · simp only [wsRest]
-    icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, -, Hprod, Hauth, -, Hc2⟩
+    icases Hrest with ⟨%B, %rg, %lo, %sent, %C, %HB, #HsoB, -, Hprod, Hauth, -, Hc2⟩
     unfold cur2St
     icases Hc2 with ⟨%C2, Hauth2, -⟩
     ihave ⟨Hauth2, -⟩ := cur2Places_auth P C2 $$ Hauth2

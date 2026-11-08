@@ -517,120 +517,107 @@ theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : E
   rw [← List.append_assoc, restModel_append, restEntry_normal_memKeys _ _ _ ht] at hk
   exact Hp.2.1 k hk
 
-/-- The store's reader's token, lent from the apply thread's applier state (its sole writer's,
-`mvcc.writerOwn_rt`). -/
-theorem srvApplyKV_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢
-      mvcc.storeRT E.γ ∗ (mvcc.storeRT E.γ -∗ srvApplyKV s E γw x) := by
-  iintro H
-  iunfold srvApplyKV at H
-  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
-  iframe Hrt
-  iintro Hrt
-  ihave Hwo := Hwo $$ Hrt
-  iunfold srvApplyKV
-  iexists ua
-  isplitl [Hua]
-  · iexact Hua
-  isplitr
-  · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
-  isplitl [Hbo]
-  · iexact Hbo
-  iexact Hrest
-
-/-- `srvApplyKV_ua_rt` with the current backend's reader pool lent too (2026-11-02, the
-backend-auth-split stage: for `applyConfChange`, which takes `backend.bkRPool`). -/
+/-- **The uber-applier, the current backend's reader pool and the apply thread's reader token,
+lent** (2026-11-02, the backend-auth-split stage: for `applyConfChange`, which takes
+`backend.bkRPool` and `apply.bkRT d`). (Strict M1, 2026-11-06: the reader token is the apply
+thread's own of the tie's backend `d`, in `srvBeOwn`; until then mvcc's `storeRT`, in the sole
+writer's `writerOwn`.) -/
 theorem srvApplyKV_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal), ⌜E.γ.kb = some d⌝ ∗
-      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
+    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal),
+      ⌜E.BkTie = srvBkTie d⌝ ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
       backend.bkRPool d.γB d.P d.be ∗ srvBeRO d ∗
-      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ backend.bkRPool d.γB d.P d.be -∗
+      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ backend.bkRPool d.γB d.P d.be -∗
         srvApplyKV s E γw x) := by
   iintro H
   iunfold srvApplyKV at H
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
-  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hbo⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
+  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hrt, Hbo⟩
   iexists ua, d
-  iframe Hua Hrt Hpl Hbro
+  iframe Hua Hpl Hbro Hrt
   isplitr
   · ipureintro; exact Hd
   isplitr
   · iexact Hap
   iintro Hua Hrt Hpl
-  ihave Hwo := Hwo $$ Hrt
-  ihave Hbo := Hbo $$ Hpl
+  ihave Hbo := Hbo $$ Hpl Hrt
   iunfold srvApplyKV
   iexists ua
   isplitl [Hua]
   · iexact Hua
   isplitr
   · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
+  isplitl [Hkv]
+  · iexact Hkv
   isplitl [Hbo]
   · iexact Hbo
   iexact Hrest
 
-/-- `srvApplyKV_ua` and `srvApplyKV_rt` at once. -/
-theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢ ∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗
-      apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
-      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ srvApplyKV s E γw x) := by
+/-- **The apply thread's backend's frozen post-lock hook** (R8, 2026-11-07, for `applyConfChange`'s
+member writes, whose restated contracts take it in place of `mvcc.hookOk`): the KV resources'
+`hookIs` of the tie's backend (`kvBk`), kept. -/
+theorem applyKV_hookRO (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV)
+    (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
+    apply.applyKV (GF := GF) E ua x ⊢ apply.applyKV E ua x ∗ backend.plHookRO d.γB E.f := by
+  iintro Hkv
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hpe, Huo, Hko, Hcmp⟩
+  iunfold apply.kvOwn at Hko
+  icases Hko with ⟨Hsw, Hbk, Hll, Hrd⟩
+  iunfold apply.kvBk at Hbk
+  icases Hbk with ⟨%B, Hmb, #Hhk, Htie⟩
+  ihave %HB : ⌜B = d⌝ $$ [Htie]
+  · rw [hd]; iunfold srvBkTie at Htie; iexact Htie
+  subst HB
+  isplitl [Huo Hcmp Hsw Hll Hrd Hmb]
+  · iunfold apply.applyKV
+    iexists p
+    isplitr
+    · ipureintro; exact Hpe
+    iframe Huo Hcmp
+    iunfold apply.kvOwn
+    iframe Hsw Hll Hrd
+    iunfold apply.kvBk
+    iexists B
+    iframe Hmb Hhk
+    rw [hd]; iunfold srvBkTie; ipureintro; rfl
+  rw [← mvcc.api.etcdStorage_hookIs]
+  iexact Hhk
+
+/-- The frozen hook (`applyKV_hookRO`), from the apply thread's applier state. -/
+theorem srvApplyKV_hookRO (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
+    srvApplyKV (GF := GF) s E γw x ⊢ srvApplyKV s E γw x ∗ backend.plHookRO d.γB E.f := by
   iintro H
   iunfold srvApplyKV at H
-  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
-  iexists ua
-  iframe Hua Hrt
-  isplitr
-  · iexact Hap
-  iintro Hua Hrt
-  ihave Hwo := Hwo $$ Hrt
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hrest⟩
+  ihave ⟨Hkv, #Hh⟩ := applyKV_hookRO E ua x d hd $$ Hkv
+  iframe Hh
   iunfold srvApplyKV
   iexists ua
   isplitl [Hua]
   · iexact Hua
   isplitr
   · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
-  isplitl [Hbo]
-  · iexact Hbo
+  isplitl [Hkv]
+  · iexact Hkv
   iexact Hrest
+
+/-- **The uber-applier and the apply thread's reader token, lent** (for a normal entry's `Apply`,
+which takes the token in `kvOwnPre` and gives it back as `apply.bkRTOf E`, `bkRTOf_srv`). -/
+theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
+    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal),
+      ⌜E.BkTie = srvBkTie d⌝ ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
+      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ srvApplyKV s E γw x) := by
+  iintro H
+  icases srvApplyKV_ua_rt_pool s E γw x $$ H with ⟨%ua, %d, %Hd, Hua, #Hap, Hrt, Hpl, -, Hk⟩
+  iexists ua, d
+  iframe Hua Hap Hrt
+  isplitr
+  · ipureintro; exact Hd
+  iintro Hua Hrt
+  iapply Hk $$ Hua Hrt Hpl
 
 /-- A conf change in the scope keeps the members among the boot configuration's. -/
 theorem ccRest_memKeys (v3 : Bool) (cm : ConfChangeM) (r : apply.RestM) (S : GSet w64)

@@ -95,6 +95,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'k8s_io.client_go.util.workqueue', 'k8s_io.client_go.util.consistency',
          'k8s_io.client_go.util.retry', 'k8s_io.client_go.listers.apps.v1',
          'k8s_io.client_go.listers.core.v1']
+# (R10, 2026-11-07) mvcc's randomized tester (examples/mvccrand), for its closed theorem
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -1009,6 +1011,24 @@ untranslated initializers; the trust-boundary axioms `<X>_init` state the four t
            + FIN_PRE[:6] + ['imodintro', 'unfold backendInit', 'iframe #'],
 )
 
+# (R10, 2026-11-07) mvcc's randomized tester: its two string-slice literals, persisted
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = dict(
+    doc='''Its fact (`mvccrandInit`, `Base.lean`): `keys` and `extraEnds` hold read-only slices of
+`keyList` and `extraEndList`. Its initializer allocates them, initializes its imports and runs their
+translated initializers, two slice literals (`mvccrand.go`), whose slices are made persistent.''',
+    alloc_types={'keys': 'GoSlice', 'extraEnds': 'GoSlice'},
+    before={'keys': ['try wp_auto',
+                     'wp_apply (wp_slice_literal (l := [go!"a", go!"aa", go!"b", go!"ba", go!"c", go!"d"])); isplitr; (· ipureintro; rfl); iintro %pK ⟨SK, -⟩',
+                     'try wp_auto'],
+            'extraEnds': ['try wp_auto',
+                          'wp_apply (wp_slice_literal (l := [go!"bb", go!"z"])); isplitr; (· ipureintro; rfl); iintro %pE ⟨SE, -⟩',
+                          'try wp_auto'],
+            '$end': ['try wp_auto']},
+    finish=['ipersist Hkeys', 'ipersist HextraEnds', 'imod ownSlice_persist $$ SK with #SK',
+            'imod ownSlice_persist $$ SE with #SE'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold mvccrandInit keyList extraEndList', 'iframe #'],
+)
+
 SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb'] = dict(
     doc='''Its fact is `True`. Its initializer allocates and sets the translated gRPC service
 descriptors (`KV_ServiceDesc`, ...: `grpc.ServiceDesc` literals), initializes its imports and
@@ -1376,9 +1396,15 @@ _B['custom']['boltOpenOptions'] = dict(
     post='∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ (⌜p = Loc.null⌝ ∨ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝)',
     pat='⟨%p@, H@, #S@⟩')
 _B['doc'] = _B['doc'].replace("hold `Histogram`s whose `Observe` returns.", "hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`).")
+# (2026-11-07, R10) the defaults `DefaultBackendConfig` loads (translated stores of constants)
+_B['doc'] = _B['doc'].replace("and `boltOpenOptions` (`boltOpenOptionsOk`).", "and `boltOpenOptions` (`boltOpenOptionsOk`), and `defaultBatchInterval`,\n`defaultBatchLimit`, `InitialMmapSize` their translated initializers' constants.")
 _B['finish'] = (['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec',
-                 'ipersist HboltOpenOptions'] + FIN_PRE[:6] +
-                ['imodintro', 'unfold backendInit EtcdGrove.backend.boltOpenOptionsOk', 'iframe #'])
+                 'ipersist HboltOpenOptions', 'ipersist HdefaultBatchInterval',
+                 'ipersist HdefaultBatchLimit', 'ipersist HInitialMmapSize'] + FIN_PRE[:6] +
+                ['imodintro', 'unfold backendInit EtcdGrove.backend.boltOpenOptionsOk', 'iframe #',
+                 # `defaultBatchInterval`'s store: `100 * time.Millisecond`, unevaluated
+                 'rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 from by decide]',
+                 'iexact HdefaultBatchInterval'])
 
 SPECIAL['go_etcd_io.etcd.pkg.v3.traceutil'] = dict(
     doc="""Its fact (`traceutilInit`, `storage/mvcc/Base.lean`): `Tracer` holds a fixed tracer. Its
@@ -2499,6 +2525,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean'}
+# (R10, 2026-11-07) mvcc's randomized tester
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`

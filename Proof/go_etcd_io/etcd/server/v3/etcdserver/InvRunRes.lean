@@ -265,11 +265,11 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServer C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
     epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗ epCsAt C.ρ.raft A cs ∗
     srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
-    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKV C.s B.E C.γw x ∗
+    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ mvcc.api.mvccReaders B.E.γ 1 ∗ srvApplyKV C.s B.E C.γw x ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
     -- (2026-10-31, #11) what the snapshot takes: the KV at the backend, the WAL's apply-side half
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
     -- 2026-10-26) a count `w` of the tokens taken (until J8b, 2026-11-01, at least the applied
@@ -405,7 +405,7 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗ srvApplyKV s E γw x₀ ∗
+    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKV s E γw x₀ ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back

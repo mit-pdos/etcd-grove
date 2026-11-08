@@ -5,9 +5,15 @@
 def backend.viewAt (γ : backend.BNames) (vd : backend.VData) : IProp GF :=
   iprop(∃ L, backend.viewQ γ (Qp.half 1).half vd L)
 
+def backend.viewAtD (γ : backend.BNames) (P : backend.BParams) (vd X : backend.VData) : IProp GF :=
+  iprop(∃ L, backend.viewQ γ (Qp.half 1).half vd L ∗ ⌜backend.dlVd P vd L X⌝)
+
 theorem backend.viewAt_bView (γ : backend.BNames) (vd vd' : backend.VData) (q : Qp) : backend.viewAt
     γ vd ∗ backend.bView γ q vd' ⊢ backend.viewAt γ vd ∗ backend.bView γ q vd' ∗ backend.thinV γ vd
     vd'
+
+theorem backend.viewAtD_viewAt (γ : backend.BNames) (P : backend.BParams) (vd X : backend.VData) :
+    backend.viewAtD γ P vd X ⊢ backend.viewAt γ vd
 
 def backend.snapOpenQ (sp : Loc) (D : backend.Data) (γ : GName) (q : Qp) : IProp GF :=
   iprop(□ backend.snapRO sp D γ ∗ ghostVar γ q ())

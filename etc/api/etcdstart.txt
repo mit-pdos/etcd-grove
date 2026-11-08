@@ -45,6 +45,11 @@ importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MaxRev
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer
+# the watch path's facts for the examples' watch clients (R9, the `lean` merge, 2026-11-07): the
+# server's side of the watch path from a member's read view (`WatchSrv`), the watch condition of a
+# compacting member from its writers' plan (`OnceUpTo`)
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchSrv
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OnceUpTo
 
 ## Debt: proof internals the examples import today
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base

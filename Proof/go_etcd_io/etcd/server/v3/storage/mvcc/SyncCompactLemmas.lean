@@ -2,8 +2,6 @@
 `watchableStore.syncWatchers` across a compaction (watches across a compaction, W1, 2026-11-01;
 `notes/watch-compaction-plan.md`, D4/D5): what the proof needs of `choose`'s compaction responses.
 
-* `watchNoDup_crev`: under `revMu`, the compaction revision `c` the store holds is `-1` (no
-  compactor) or a revision of the committed log that writes no key twice (`rangeEvents`' premise).
 * `memberRes_cmp_split`: a live member's part of `choose`'s compaction send (`cmpSendPre`), with
   the rest of its resources back for it.
 * `WsState.cmpSt`: the lock's state after `choose`: the members it sent the compaction response
@@ -215,25 +213,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 namespace mvcc
-
-/-- **The compaction revision under `revMu`** (with the create token's `watchNoDup`): `-1`, the
-store never compacting, or a revision of the committed log `log` that writes no key twice. -/
-theorem watchNoDup_crev (γ : StoreNames) (q : Qp) (c : Int) (log : Log) (hc : -1 ≤ c) :
-    ⊢ watchNoDup (GF := GF) γ -∗ crevUB γ.idx q c -∗ idxCert γ.idx log -∗ certOk γ log ={⊤}=∗
-      crevUB γ.idx q c ∗ ⌜c = -1 ∨ oneChangePerKeyAt log c⌝ := by
-  iintro #Hn Hc #Hcert #Hok
-  iunfold watchNoDup at Hn
-  icases Hn with (#Hf | #Hd)
-  · ihave #Hf' := noCompactor_frozen γ $$ Hf
-    imod crevFrozen_agree γ q c hc $$ Hf' Hc with ⟨Hc, %h⟩
-    imodintro; iframe Hc; ipureintro; exact Or.inl h
-  · iunfold noDupKeys at Hd
-    ihave #Hs := idxCert_sealed γ.idx log $$ Hcert
-    ihave #He : evLog γ log $$ []
-    · iunfold evLog; iframe Hs Hok
-    ihave Hd' := Hd $$ %log He
-    imod Hd' with %h
-    imodintro; iframe Hc; ipureintro; exact Or.inr (h c)
 
 /-- **A live member's part of `choose`'s compaction send** (`cmpSendPre` at its liveness half,
 if it is behind `c`), and the rest of its resources back for it. -/

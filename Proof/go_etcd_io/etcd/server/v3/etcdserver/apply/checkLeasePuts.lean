@@ -28,12 +28,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkLeasePuts.wp_proof
     (hKeys : apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG)) :
     apply.checkLeasePuts.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f RD on RW ai info dq id L I
+  intro st le γ Pk f BT RD on RW ai info dq id L I
   wp_start as ⟨#Hst, #Hle, Hai, Hrd, Hu⟩
-  ihave ⟨Hu, %HI⟩ := lease.lessorUser_items γ.leases L I $$ Hu
+  ihave ⟨Hu, %HI⟩ := lease.lessorUser_items (mvcc.api.mvccLeases γ) L I $$ Hu
   ihave #Hle' := Hle
   iunfold apply.isApplyLessorAny at Hle'
-  icases Hle' with ⟨%sk, %RO, Hle'⟩
+  icases Hle' with ⟨%RO, Hle'⟩
   iunfold apply.isApplyLessor at Hle'
   icases Hle' with ⟨Htl, -⟩
   iunfold txn.isTxnLessor at Htl
@@ -63,11 +63,11 @@ theorem apply.checkLeasePuts.wp_proof
     · exact absurd Hn hln
     simp only [hln, decide_false, Bool.not_false]
     wp_auto
-    wp_apply (hKeys st γ P f RD on RW ai info dq l id γ.leases L I) $$ [$Hst $Hai $Hrd $Ho]
+    wp_apply (hKeys st γ Pk f BT RD on RW ai info dq l id (mvcc.api.mvccLeases γ) L I) $$ [$Hst $Hai $Hrd $Ho]
       as %err ⟨Hai, Hrd, Ho, #HeI, %Hoff, #Hcls⟩
     iapply HΦ; iframe Hai Hrd HeI Hcls
     isplitl [Hrdl Hrv Ho]
-    · iapply lease.lessorUserOpen_close γ.leases L I id l
+    · iapply lease.lessorUserOpen_close (mvcc.api.mvccLeases γ) L I id l
       iunfold lease.lessorUserOpen
       iright
       iframe Hrdl Hrv Ho

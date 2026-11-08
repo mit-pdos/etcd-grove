@@ -83,13 +83,15 @@ theorem v3compactor.Revision.Run.wp_proof
   wp_start as ⟨#Hrc, Hpre⟩
   iunfold isRevision at Hrc
   icases Hrc with ⟨%lg, %clk, %rt, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hrt, %Hrt,
-    #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hcancelf, #Hcs, #Hmu⟩
+    #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hspc, #Hcancelf, #Hcs, #Hmu⟩
   iunfold runPre at Hpre
   icases Hpre with ⟨#HRev, #HCompact, HR, #HLb0⟩
   wp_auto
   ipersist rc
-  wp_apply wp_fork $$ [HR prev]
-  · -- the goroutine
+  wp_apply wp_fork_tok_body $$ [HR prev]
+  · -- the goroutine, with the thread token its `go` statement gives (R8: lent to `Rev` and
+    -- `Compact`)
+    iintro Htok
     wp_auto
     ihave Hinv : iprop(∃ p : w64, "prev" ∷ prev_ptr ↦ p) $$ [prev]
     · iexists _; iframe
@@ -124,7 +126,7 @@ theorem v3compactor.Revision.Run.wp_proof
       iintro -
       (try wp_auto)
       wp_for_post
-      itrivial
+      iframe Htok
     iapply BigAndL.bigAndL_cons.2
     isplit
     · -- `<-rc.clock.After(revInterval)`
@@ -160,7 +162,7 @@ theorem v3compactor.Revision.Run.wp_proof
       icases HRev' with ⟨%ri, %Hri, #HRevT⟩
       rw [Hri]
       ihave #HRev0 := HRevT $$ %(0 : Int)
-      wp_apply +noauto HRev0 $$ [HR] as %v ⟨HR, #Hv, %Hvb⟩
+      wp_apply +noauto HRev0 $$ [HR Htok] as %v ⟨HR, Htok, #Hv, %Hvb⟩
       · iframe; iframe #
       (try wp_auto)
       -- `if rev <= 0 || rev == prev { continue }`
@@ -202,8 +204,8 @@ theorem v3compactor.Revision.Run.wp_proof
         rw [← Hrt]
         have h0 : ¬ sint.Z (v - rt) ≤ 0 := by simpa using Hpos
         word
-      wp_apply +noauto HC1 $$ [HR «$a1»] as %resp %err ⟨HR, #Herr⟩
-      · iframe HR #
+      wp_apply +noauto HC1 $$ [HR Htok «$a1»] as %resp %err ⟨HR, Htok, #Herr⟩
+      · iframe HR Htok #
         unfold revPermit
         isplitr
         · isplitr

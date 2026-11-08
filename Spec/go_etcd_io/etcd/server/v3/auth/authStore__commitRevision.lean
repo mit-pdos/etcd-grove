@@ -21,7 +21,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -33,7 +33,7 @@ in the mode `off`), the atomic is its revision, and the token's state has the re
 (`revAfter`: the atomic's value plus one, which in `on γa` is the model's; in the other modes the
 atomic is not tied to the model). -/
 abbrev auth.authStore.commitRevision.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (ti : GoInterfaceOk) (Lk : AuthState → IProp GF → IProp GF) (sta : AuthState) (X : IProp GF)
     (hs : List AuthState) (st0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗

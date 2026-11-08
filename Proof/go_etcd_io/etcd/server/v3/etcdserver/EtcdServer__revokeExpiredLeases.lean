@@ -76,7 +76,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
   ihave #Hauth := srvAuthAt_of_views s E ρ γr $$ [$Hreq $Hrd]
   ihave #HrP := srvRevokeCtx_raftPool s E ρ γr γg $$ Hrvk
   ihave #Hcred := srvRevokeCtx_cred s E ρ γr γg $$ Hrvk
-  ihave ⟨%ctx, %cd, #Hctxf, #Hctx⟩ := srvRevokeCtx_ctx s E ρ γr γg $$ Hrvk
+  ihave ⟨%ctx, %cd, #Hctxf, #Hctx, #Hspc⟩ := srvRevokeCtx_ctx s E ρ γr γg $$ Hrvk
   ihave ⟨%stl, #Hauf, #HEn⟩ := srvRevokeCtx_withRoot s E ρ γr γg hoff $$ Hrvk
   iunfold srvFieldsAt at Hf
   icases Hf with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -, -⟩

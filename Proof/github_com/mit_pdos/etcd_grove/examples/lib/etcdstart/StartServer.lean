@@ -87,7 +87,7 @@ theorem StartServer.wp_proof
   subst Herr
   wp_auto
   -- `s.Start()`
-  wp_apply (wp_Start_built wp_Start s ρ E₀ lg γn id N _ HrbN lm) $$ [Hmb Htok] as Hup
+  wp_apply (wp_Start_built wp_Start s ρ E₀ lg γn id N _ HrbN lm Hrb48) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   iapply HΦ

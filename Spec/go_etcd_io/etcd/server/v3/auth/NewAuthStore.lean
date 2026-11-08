@@ -57,7 +57,7 @@ at the etcd pin):
   takes only at `on = true`: with `on = false` it stays disabled.
 * Each write method (the admin requests, `AuthDisable`) takes the batch lock inside the apply
   (`Lock` = `LockInsideApply`: the backend open, a share lent in `mvcc.bkRTx`, and the frozen hook
-  run under `Pk`, `csContract Pk f`), puts into the auth buckets (hook buckets for the readers'
+  run under `Pk`, `srvApi.csContractA Pk f`), puts into the auth buckets (hook buckets for the readers'
   view: unchanged), and unlocks with one write-back (its `Commit` and `AuthEnable`'s
   `ForceCommit` write none back; the backend's specs of `Commit`/`ForceCommit` charge a token, a
   coarser accounting than the code's). Its puts are into tracked buckets (D22, 2026-10-23): each

@@ -974,10 +974,10 @@ state with a lower bound has no compaction key. -/
 theorem fkRd_abs (γ : BNames) (P : BParams) (rv : RView) :
     fkOwn (GF := GF) γ 0 ∗ fkRd γ P rv ⊢ fkOwn γ 0 ∗ ⌜fkAbsRv P rv⌝ := by
   unfold fkRd fkOwn
-  iintro ⟨Ho, %f, %w, #Hlb, -, %Hf0⟩
+  iintro ⟨⟨Ho, Hd⟩, %f, %w, #Hlb, -, %Hf0⟩
   ihave %Hv := monoNatLbOwn_valid γ.fk _ 0 f $$ Ho Hlb
   have hf : f = 0 := by have := Hv.2; omega
-  iframe Ho
+  iframe Ho Hd
   ipureintro; exact Hf0.1.1 hf
 
 /-- **The read law of the compaction keys' values at the open** (the M2 storage plan's items
@@ -986,11 +986,11 @@ data whose compaction keys held `v`, `fkOpen`), a reader's state holds `v` there
 theorem fkRd_open (γ : BNames) (P : BParams) (rv : RView) (n : Nat) (v : FkVals) :
     fkOwn (GF := GF) γ n ∗ fkOpen γ n v ∗ fkRd γ P rv ⊢ fkOwn γ n ∗ ⌜fkValRv P v rv⌝ := by
   unfold fkRd fkOwn fkOpen fkVR
-  iintro ⟨Ho, ⟨%w, #Hv⟩, %f, %g, #Hlb, #Hg, %Hf⟩
+  iintro ⟨⟨Ho, Hd⟩, ⟨%w, #Hv⟩, %f, %g, #Hlb, #Hg, %Hf⟩
   ihave %Hle := monoNatLbOwn_valid γ.fk _ n f $$ Ho Hlb
   ihave %Hag := dghostVar_agree γ.fkv ((w, n, v) : FkG) DFrac.discard g DFrac.discard $$ Hv Hg
   subst Hag
-  iframe Ho
+  iframe Ho Hd
   ipureintro; exact Hf.2 Hle.2
 
 /-- **The read law of the compaction keys' bit** (question 4, 2026-10-29): with the bit `true`, a
@@ -1002,6 +1002,27 @@ theorem fkRd_wf (γ : BNames) (P : BParams) (rv : RView) :
   ihave %Hag := dghostVar_agree γ.fkv ((true, n, v) : FkG) DFrac.discard g DFrac.discard $$ Ht Hw
   subst Hag
   ipureintro; exact Hf.1.2 rfl
+
+/-- `fkRd_abs` with the flag alone (`fkFlag`, mvcc's M3). -/
+theorem fkRd_absF (γ : BNames) (P : BParams) (rv : RView) :
+    fkFlag (GF := GF) γ 0 ∗ fkRd γ P rv ⊢ fkFlag γ 0 ∗ ⌜fkAbsRv P rv⌝ := by
+  unfold fkRd fkFlag
+  iintro ⟨Ho, %f, %w, #Hlb, -, %Hf0⟩
+  ihave %Hv := monoNatLbOwn_valid γ.fk _ 0 f $$ Ho Hlb
+  have hf : f = 0 := by have := Hv.2; omega
+  iframe Ho
+  ipureintro; exact Hf0.1.1 hf
+
+/-- `fkRd_open` with the flag alone (`fkFlag`, mvcc's M3). -/
+theorem fkRd_openF (γ : BNames) (P : BParams) (rv : RView) (n : Nat) (v : FkVals) :
+    fkFlag (GF := GF) γ n ∗ fkOpen γ n v ∗ fkRd γ P rv ⊢ fkFlag γ n ∗ ⌜fkValRv P v rv⌝ := by
+  unfold fkRd fkFlag fkOpen fkVR
+  iintro ⟨Ho, ⟨%w, #Hv⟩, %f, %g, #Hlb, #Hg, %Hf⟩
+  ihave %Hle := monoNatLbOwn_valid γ.fk _ n f $$ Ho Hlb
+  ihave %Hag := dghostVar_agree γ.fkv ((w, n, v) : FkG) DFrac.discard g DFrac.discard $$ Hv Hg
+  subst Hag
+  iframe Ho
+  ipureintro; exact Hf.2 Hle.2
 
 /-- The two together: with the client's half at `0`, a held shared read transaction's state has
 no compaction key. -/

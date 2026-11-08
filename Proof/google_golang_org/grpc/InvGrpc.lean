@@ -56,6 +56,7 @@ its resources satisfiable: `blank` the zero struct (`BlankZero`), `own` any stru
 module
 
 public import Perennial.Proof.context
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.google_golang_org.grpc.peer
 public import Proof.google_golang_org.grpc.metadata.Outgoing
@@ -174,15 +175,32 @@ etcd's own packages (`go.etcd.io/etcd/...`, e.g. `traceutil.TraceKey`) returns `
 server context carries grpc's values (metadata, peer, stream) and those of the stats handlers
 and interceptors in front of the handler (etcd's `v3rpc` interceptors, otelgrpc's), none under
 such a key. What the server's handlers rely on: a request's context carries no trace
-(`traceutil.ctxTraceIs ci none`, `v3rpc.srvCall`). -/
+(`traceutil.ctxTraceIs ci none`, `v3rpc.srvCall`). And (2026-11-06, the fix of
+`trace.SpanFromContext`'s axiom, `notes/axiom-review/otel-spanfromcontext-todo.md`) its span is a
+span (`trace.spanCtxOk`): grpc's own contexts store none under otel's `currentSpanKey` (an
+unexported key of otel's `trace` package, set only by `trace.ContextWithSpan`), nor do etcd's
+interceptors; otelgrpc's stats handler (`otelgrpc.NewServerHandler`, `TagRPC`) stores the span
+its tracer's `Start` returns (an SDK span, or the no-op tracer's `Span`, over the remote parent
+`ContextWithRemoteSpanContext` stores, a `nonRecordingSpan`), each a span whose `End`,
+`AddEvent` and `RecordError` return. -/
 def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=
-  iprop(□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
+  iprop((□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
     ▷ Φ #GoInterface.nil -∗
     WP (App (Val #(methods ci.ty go!"Value" ci.v))
-      (Val #(interface.mkOk (go.GoType.Named n []) x : GoInterface))) {{ Φ }})
+      (Val #(interface.mkOk (go.GoType.Named n []) x : GoInterface))) {{ Φ }}) ∗
+    trace.spanCtxOk ci)
 
 instance grpcRunCtx_persistent (ci : GoInterfaceOk) : Persistent (grpcRunCtx (GF := GF) ci) := by
   unfold grpcRunCtx; infer_instance
+
+/-- **A run's context has a span-key fact** (`grpcRunCtx`'s second part): what
+`trace.SpanFromContext` needs of it. -/
+theorem spanCtxOk_of_runCtx (ci : GoInterfaceOk) :
+    grpcRunCtx (GF := GF) ci ⊢ trace.spanCtxOk ci := by
+  iintro #H
+  iunfold grpcRunCtx at H
+  icases H with ⟨-, #H⟩
+  iexact H
 
 /-- **A service method `h` meets `Spec` with the per-run resource `S`** (persistent; see the file
 header; unit P3b: the registered service's method, which the generated handler calls below the

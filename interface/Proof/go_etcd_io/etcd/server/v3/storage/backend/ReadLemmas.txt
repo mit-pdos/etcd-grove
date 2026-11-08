@@ -68,8 +68,15 @@ theorem backend.wp_rdAdd (γ : backend.BNames) (rtx wg : Loc) (γw γo γt : GNa
 
 theorem backend.perm_sum_rat {l l' : List Rat} (h : l.Perm l') : l.sum = l'.sum
 
+theorem backend.fkRd_absF (γ : backend.BNames) (P : backend.BParams) (rv : backend.RView) :
+    backend.fkFlag γ 0 ∗ backend.fkRd γ P rv ⊢ backend.fkFlag γ 0 ∗ ⌜backend.fkAbsRv P rv⌝
+
 theorem backend.rtHeld_fkRd (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
     backend.RView) : backend.rtHeld γ P b rtx rv ⊢ backend.rtHeld γ P b rtx rv ∗ backend.fkRd γ P rv
+
+theorem backend.fkRd_openF (γ : backend.BNames) (P : backend.BParams) (rv : backend.RView) (n : Nat)
+    (v : backend.FkVals) : backend.fkFlag γ n ∗ backend.fkOpen γ n v ∗ backend.fkRd γ P rv ⊢
+    backend.fkFlag γ n ∗ ⌜backend.fkValRv P v rv⌝
 
 theorem backend.rtHeld_clean (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
     backend.RView) (q : Qp) (vd : backend.VData) : backend.rtHeld γ P b rtx rv ∗ backend.bViewC γ q

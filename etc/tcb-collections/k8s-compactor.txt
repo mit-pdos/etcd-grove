@@ -9,7 +9,17 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots (k8s\.wp_Compact$|k8s\.compactor\.wp_|k8s\.wp_NewCompactor$)
 axiom Client.Endpoints.wp_proof
+axiom backend.dbFile
+axiom backend.isDB
+axiom backend.ownDB
+axiom backend.ownWTxG
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txDB
+axiom backend.txLive
 axiom context.WithCancelValCtx.wp_proof
+axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof

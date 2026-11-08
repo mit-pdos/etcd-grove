@@ -17,6 +17,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Sort`'s size premise (2026-11-03, mvcc's API, branch `mvcc-api`)
+
+- **Missing.** Perennial's proof of `sort.Sort` (`Perennial/Proof/sort/Sort.lean`, over `pdqsort`)
+  requires at most `2 ^ 62` elements (its heapsort fallback's index arithmetic), a bound no Go
+  program needs (a slice that long cannot exist in memory).
+- **Needed by.** etcd's `sortRangeResults` (`txn/range.go:125`), through every spec that hands it a
+  range's results.
+- **Workaround here.** The size bound is stated once, locally, where a range's results are produced:
+  `stateOk` in mvcc's `Range` contracts (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiState.lean`),
+  proved from the store's whole-history receipt; not a law of the store's state (the user,
+  2026-11-03: "we're going to ultimately get rid of the explicit size limit assumptions ... by
+  improving perennial itself, so I want those assumptions as local as possible").
+- **Proposed change.** Prove `sort.Sort` without the bound (from the slice's length being an `int`,
+  or the heap indices computed without overflow), then drop `stateOk`'s length conjunct.
+- **Status.** Not started.
+
 ### Contexts derived from a parent that is not an `isContext` (2026-11-08, k8s 7f; to be decided in the 7f-4 Draft)
 
 - **Missing.** Two facts about contexts that etcd's require-leader stream handlers need, both
@@ -1835,6 +1851,27 @@ applying the instance by hand works. Met proving the oracles of porcupine PR #46
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Oracles.lean`). The general change: the
 field-load automation finding the instance at any fraction.
 
+## A slice literal of map literals (2026-11-06, the mvcc tester)
+
+`wp_slice_literal` (`Perennial/Golang/Theory/Slice.lean`) fixes the elements `l` before the array
+literal's WP runs, so a literal whose elements are themselves allocated by that WP
+(`[]map[string]kvRec{{}, {}}`, `examples/mvccrand`'s `newHistory`: each element a `make1`) cannot
+name them: the metavariable `?l` is created outside the scope of the maps' locations, and `rfl`
+fails. **Worked around locally** (2026-11-06): `wp_slice_literal_ex` in
+`Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/newHistory.lean`, a copy of
+`wp_slice_literal_nonnull`'s proof whose post takes the elements existentially
+(`∃ l, ⌜v = #(array.mk n l)⌝ ∗ …`), under `set_option goose.wp.unfoldSliceLiterals true` and
+Perennial's section variables (`[GoSemanticsFunctions] [go.PreSemantics]`); `newHistory` is proved
+over it. **The general change**: Perennial's `wp_slice_literal`(`_nonnull`) with `∃ l` in the array
+literal's post (the current statements are its instances at a fixed `l`), then delete the local copy.
+
+## `isSpsc`'s invariant at `nroot`; no `chan.wp_len` (2026-11-06, the mvcc tester)
+
+Met proving `examples/mvccrand`'s ticks channel (`WriterRun.lean`, `notes/mvcc-migration/mvccrand.md`):
+Perennial's single-producer channel `isSpsc` keeps its invariant at `nroot`, so a caller that holds
+another invariant open (the tester's, under its own namespace) cannot send on it; and there is no
+`chan.wp_len` wrapper beside `chan.wp_cap`. Local: the tester sends outside its invariant. The
+general changes: `isSpsc` parameterized by its namespace; a `chan.wp_len` lemma.
 ## `ownMap` is not `DFractional` (2026-11-04, bbolt batch 34)
 
 Perennial has `ownMap_fractional` (the `Fractional` form at `DFrac.own q`) but no `DFractional`

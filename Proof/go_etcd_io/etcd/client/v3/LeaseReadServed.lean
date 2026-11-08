@@ -356,10 +356,10 @@ rearranged (`grpcHandlerOk_slot`), promoted through the `*quotaLeaseServer` `q`,
 interceptors. -/
 theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
     (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (il im iu : GoFunc)
-    (hA : A.revR = mvcc.storeReader E.s E.γ) :
+    (hA : A.revR = mvcc.api.mvccReaders E.γ 1) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         v3rpc.leaseServerAt lp s A cid mid ∗
-        v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ threadTok) (mvcc.storeReader E.s E.γ) ∗
+        v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ threadTok) (mvcc.api.mvccReaders E.γ 1) ∗
         auth.authPubLbM E.authMode 0 ∗ lease.lessorLb γl 0 ∗
         v3rpc.quotaLeaseServerAt q
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩ s ∗

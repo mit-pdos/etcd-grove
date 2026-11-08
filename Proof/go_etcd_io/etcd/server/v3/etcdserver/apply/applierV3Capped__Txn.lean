@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped__Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.BackendQuota__Cost
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Packaging
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
@@ -32,7 +33,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
     (hCost : storage.BackendQuota.Cost.spec (GF := GF) (hG := hG)) :
     apply.applierV3Capped.Txn.spec (GF := GF) (hG := hG) := by
   intro E c inner p r skip rq t log F Pre Q Post info
-  wp_start as ⟨Hc, #Hin, Hpre, #HF⟩
+  wp_start as ⟨Hc, #Hin, Hpre, #HF, Htt⟩
   iunfold apply.cappedIs at Hc
   ipersist Hc
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
@@ -46,10 +47,9 @@ theorem apply.applierV3Capped.Txn.wp_proof
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨-, -, -, #HTxn, -⟩
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
   ihave #Hcp := apply.certPre_capped E c rq log (by rw [Hk.2.1]; rfl) $$ Hcp
-  iunfold apply.mPre at Hm
-  icases Hm with ⟨Hkv, Hres, Hcs⟩
+  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave #Hr' := Hr
   iunfold txn.txnRequestIs at Hr'
   icases Hr' with ⟨%Hrn, -⟩
@@ -59,7 +59,9 @@ theorem apply.applierV3Capped.Txn.wp_proof
   wp_auto
   wp_if_destruct
   · -- the request costs: `ErrNoSpace`
+    icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩
     iapply HΦ
+    iframe Htt
     isplitl
     rotate_left
     · iapply apply.traceRes_null
@@ -84,17 +86,20 @@ theorem apply.applierV3Capped.Txn.wp_proof
       iframe HeN
       ipureintro; rfl
     iright
-    iapply apply.csContract_pre $$ Hcs
+    iexact HPre
   · -- the inner applier's `Txn`
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ Hc Hres
-    wp_apply HTxn $$ %r %skip %rq %t %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs]
-      as %resp %trace %err ⟨Hpost, Htrc⟩
-    · iunfold apply.txnPre
-      iunfold apply.mPre
-      iframe
+    wp_apply HTxn $$ %r %skip %rq %t %log %F %Pre %Q %Post [Htt Hm Hres]
+      as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt
+      iunfold apply.txnPre
       iframe #
-      ipureintro; exact Hk
+      isplitr
+      · ipureintro; exact Hk
+      iapply apply.mPre_of_rest
+      iframe
     iapply HΦ
+    iframe Htt
     isplitr [Htrc]
     rotate_left
     · iexact Htrc

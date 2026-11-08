@@ -168,9 +168,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
+end res
+
+section resW
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
 /-- **`authWR` with the halves' values exposed**: the flag's half at `b` (with its verdict) and
 the cache's half at `sc` (a recorded state). -/
-def authWRx (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
+def authWRx (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) (b : Bool)
     (sc : AuthState) : IProp GF :=
   iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
     T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc)
@@ -179,19 +188,19 @@ def authWRx (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b
 `be` field at `be`, with the backend's write contract there. The admin operations that do not
 replace the store's backend (all but `Recover`) keep it (`X.specTB`), so a caller that lent the
 field's half (the server's rest, `authBeOn`) gets the same value back. -/
-def authWRxB (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
+def authWRxB (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) (b : Bool)
     (sc : AuthState) (be : AuthBackend) : IProp GF :=
   iprop((aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
     T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc)
 
-theorem authWRx_B (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
+theorem authWRx_B (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) (b : Bool)
     (sc : AuthState) : authWRx (GF := GF) st M P f T b sc ⊢ ∃ be, authWRxB st M P f T b sc be := by
   unfold authWRx authWRxB
   iintro ⟨⟨%be, Hbe⟩, Hr⟩
   iexists be
   iframe Hbe Hr
 
-theorem authWRx_of_B (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
+theorem authWRx_of_B (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) (b : Bool)
     (sc : AuthState) (be : AuthBackend) : authWRxB (GF := GF) st M P f T b sc be ⊢ authWRx st M P f T b sc := by
   unfold authWRx authWRxB
   iintro ⟨Hbe, Hr⟩
@@ -199,7 +208,7 @@ theorem authWRx_of_B (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IPr
   iexists be
   iframe Hbe
 
-theorem authWR_of_x (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
+theorem authWR_of_x (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) (b : Bool)
     (sc : AuthState) : authWRx (GF := GF) st M P f T b sc ⊢ authWR st M P f T := by
   unfold authWRx authWR
   iintro ⟨Hbe, HT, Hfl, #Hev, Hca, #Hs⟩
@@ -208,7 +217,7 @@ theorem authWR_of_x (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IPro
   · iapply flagAt_enabledHalf; iframe Hfl Hev
   · iapply (cacheHalf_of_at st M sc) $$ Hca Hs
 
-theorem authWR_to_x (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) :
+theorem authWR_to_x (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) :
     authWR (GF := GF) st M P f T ⊢ ∃ b sc, authWRx st M P f T b sc := by
   unfold authWRx authWR
   iintro ⟨Hbe, HT, Hen, Hca⟩
@@ -217,6 +226,15 @@ theorem authWR_to_x (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IPro
   icases Hca with ⟨%sc, Hca, #Hs⟩
   iexists b, sc
   iframe Hbe HT Hfl Hev Hca Hs
+
+end resW
+
+section res
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- The admin side's authority records its latest state (`authOwn_latestSnap`), as `authSnap`. -/
 theorem authSnap_of_own_last (M : AuthMode) (hs : List AuthState) (s : AuthState)
@@ -275,7 +293,7 @@ end auth
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -283,9 +301,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 flag it read the admin side's half, `en = b0`: the auth plan's E3c) and
 kept tied to the latest state (`tieStep`); the cap's permission (H5) only at the flag `b0` it reads. -/
 abbrev auth.authStore.AuthEnable.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ ⌜M.isOn = true⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ tpAdmin st M ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ ⌜M.isOn = true⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (authEnableF en))⌝ ∗
       capNextM M hs (stepOf (authEnableF b0)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthEnable")) (Val #()))
@@ -295,9 +313,9 @@ abbrev auth.authStore.AuthEnable.specT : Prop :=
 /-- `AuthDisable.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.AuthDisable.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ tpAdmin st M ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (authDisableF en))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (authDisableF en))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthDisable")) (Val #()))
@@ -307,9 +325,9 @@ abbrev auth.authStore.AuthDisable.specT : Prop :=
 /-- `UserAdd.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.UserAdd.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (userAddF name))⌝ ∗ capNextM M hs (stepOf (userAddF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserAdd")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
@@ -318,9 +336,9 @@ abbrev auth.authStore.UserAdd.specT : Prop :=
 /-- `UserDelete.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.UserDelete.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userDeleteReqIs r name ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ tpAdmin st M ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userDeleteReqIs r name ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (userDeleteF en name))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (userDeleteF en name))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserDelete")) (Val #r))
@@ -330,9 +348,9 @@ abbrev auth.authStore.UserDelete.specT : Prop :=
 /-- `UserChangePassword.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.UserChangePassword.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ tpAdmin st M ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (userChangePasswordF name))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserChangePassword")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
@@ -341,11 +359,11 @@ abbrev auth.authStore.UserChangePassword.specT : Prop :=
 /-- `UserGrantRole.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.UserGrantRole.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString) (b0 : Bool) (sc0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       userGrantRoleReqIs r user role ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
-      authWRx st M P f T b0 sc0 ∗ mvcc.csContract P f Pre Q Post ∗
+      authWRx st M P f T b0 sc0 ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ (sta : AuthState) (u : User), histLast M hs sta → sta.users !! user = some u →
         u.length < 2 ^ 62⌝ ∗
       ⌜stepOk M hs (userGrantRoleR user role)⌝ ∗ capNextM M hs (userGrantRoleR user role) }}
@@ -357,11 +375,11 @@ abbrev auth.authStore.UserGrantRole.specT : Prop :=
 /-- `UserRevokeRole.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.UserRevokeRole.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name role : GoString) (b0 : Bool) (sc0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       userRevokeRoleReqIs r name role ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
-      authWRx st M P f T b0 sc0 ∗ mvcc.csContract P f Pre Q Post ∗
+      authWRx st M P f T b0 sc0 ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (userRevokeRoleF en name role))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (userRevokeRoleF en name role))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserRevokeRole")) (Val #r))
@@ -372,9 +390,9 @@ abbrev auth.authStore.UserRevokeRole.specT : Prop :=
 /-- `RoleAdd.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.RoleAdd.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ roleAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ roleAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (roleAddF name))⌝ ∗ capNextM M hs (stepOf (roleAddF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleAdd")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
@@ -383,10 +401,10 @@ abbrev auth.authStore.RoleAdd.specT : Prop :=
 /-- `RoleDelete.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.RoleDelete.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (role : GoString) (b0 : Bool) (sc0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      roleDeleteReqIs r role ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ mvcc.csContract P f Pre Q Post ∗
+      roleDeleteReqIs r role ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (roleDeleteF en role))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (roleDeleteF en role))) ∗
       ⌜∀ s : AuthState, histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
@@ -399,11 +417,11 @@ abbrev auth.authStore.RoleDelete.specT : Prop :=
 /-- `RoleGrantPermission.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.RoleGrantPermission.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (w : Option PermW) (b0 : Bool) (sc0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
-      authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ mvcc.csContract P f Pre Q Post ∗
+      authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (roleGrantPermissionR name w)⌝ ∗ capNextM M hs (roleGrantPermissionR name w) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleGrantPermission")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
@@ -413,11 +431,11 @@ abbrev auth.authStore.RoleGrantPermission.specT : Prop :=
 /-- `RoleRevokePermission.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.RoleRevokePermission.specT : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (role key rangeEnd : GoString) (b0 : Bool) (sc0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       roleRevokePermissionReqIs r role key rangeEnd ∗ ⌜role.length ≤ backend.maxKeySize⌝ ∗
-      authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ mvcc.csContract P f Pre Q Post ∗
+      authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (roleRevokePermissionR role key rangeEnd)⌝ ∗ capNextM M hs (roleRevokePermissionR role key rangeEnd) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleRevokePermission")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
@@ -426,9 +444,9 @@ abbrev auth.authStore.RoleRevokePermission.specT : Prop :=
 
 /-- `AuthEnable.specT` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
 abbrev auth.authStore.AuthEnable.specTB : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ ⌜M.isOn = true⌝ ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ tpAdmin st M ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ ⌜M.isOn = true⌝ ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (authEnableF en))⌝ ∗
       capNextM M hs (stepOf (authEnableF b0)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthEnable")) (Val #()))
@@ -437,11 +455,11 @@ abbrev auth.authStore.AuthEnable.specTB : Prop :=
 
 /-- `UserGrantRole.specT` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
 abbrev auth.authStore.UserGrantRole.specTB : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       userGrantRoleReqIs r user role ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
-      authWRxB st M P f T b0 sc0 be ∗ mvcc.csContract P f Pre Q Post ∗
+      authWRxB st M P f T b0 sc0 be ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ (sta : AuthState) (u : User), histLast M hs sta → sta.users !! user = some u →
         u.length < 2 ^ 62⌝ ∗
       ⌜stepOk M hs (userGrantRoleR user role)⌝ ∗ capNextM M hs (userGrantRoleR user role) }}
@@ -452,9 +470,9 @@ abbrev auth.authStore.UserGrantRole.specTB : Prop :=
 
 /-- `RoleAdd.specT` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
 abbrev auth.authStore.RoleAdd.specTB : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ roleAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ roleAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (roleAddF name))⌝ ∗ capNextM M hs (stepOf (roleAddF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleAdd")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T b sc be ∗
@@ -462,11 +480,11 @@ abbrev auth.authStore.RoleAdd.specTB : Prop :=
 
 /-- `RoleGrantPermission.specT` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
 abbrev auth.authStore.RoleGrantPermission.specTB : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (w : Option PermW) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
-      authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ mvcc.csContract P f Pre Q Post ∗
+      authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (roleGrantPermissionR name w)⌝ ∗ capNextM M hs (roleGrantPermissionR name w) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleGrantPermission")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T b sc be ∗
@@ -480,12 +498,12 @@ reader slot (`enabledRd`), given back; its error is one of the package's (`ErrAu
 `ErrAuthFailed`, or the provider's `assign`'s, `tokenProviderOk`). (The margin: the tie makes the flag `IsAuthEnabled`
 reads the latest state's, `b0`; `authenticated` says only that some recorded state is enabled.) -/
 abbrev auth.authStore.Authenticate.specTB : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (ctx : GoInterface) (username password : GoString)
     (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       enabledRd st M ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗
-      mvcc.csContract P f Pre Q Post ∗ authnCtx M ctx }}
+      srvApi.csContractA P f Pre Q Post ∗ authnCtx M ctx }}
     (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Authenticate"))
       (Val #ctx)) (Val #username)) (Val #password))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ enabledRd st M ∗
@@ -497,7 +515,7 @@ end spec
 section derive
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 

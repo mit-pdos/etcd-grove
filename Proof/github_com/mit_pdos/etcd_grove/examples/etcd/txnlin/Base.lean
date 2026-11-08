@@ -40,3 +40,10 @@ end init
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
 end Perennial
+
+/-! (R9, the `lean` merge, 2026-11-07) The Go struct `entry` under the examples' namespace: the
+shared start's imports now reach the cache's B-tree lemmas (through mvcc's `ApiState`), whose
+`Perennial.EtcdGrove.entry` would otherwise shadow the opened Go name in `etcd_txnlin`. -/
+namespace Perennial.EtcdGrove.etcd_txnlin
+export github_com.mit_pdos.etcd_grove.examples.etcd.txnlin (entry)
+end Perennial.EtcdGrove.etcd_txnlin

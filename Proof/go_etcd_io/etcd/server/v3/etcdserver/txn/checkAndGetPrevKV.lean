@@ -28,14 +28,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.checkAndGetPrevKV.wp_proof
     (hGet : txn.getPrevKV.spec (GF := GF) (hG := hG)) :
     txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ kind p o tyX vX crev
-  wp_start as ⟨%Htr, Htx, #Hwrap, #Hp⟩
+  intro t γ trace te kt p o
+  wp_start as ⟨%Htr, Htx, Htrc, %Hreach, #Hp⟩
   ihave Hti : (txn.txnInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hti with ⟨-, ⟨%eK, #HeK⟩, -⟩
   wp_auto
-  wp_apply (hGet trace mw s γ kind p o tyX vX) $$ [$Htx $Hwrap $Hp] as %r ⟨Htx, Hr⟩
-  · ipureintro; exact Htr
+  wp_apply (hGet t γ trace te kt p o) $$ [$Htx $Htrc $Hp] as %r ⟨Htx, Htrc, Hr⟩
+  · ipureintro; exact ⟨Htr, Hreach⟩
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,
     #Hpk, #Hiv, #Hil, -, %Ho, -⟩
@@ -49,7 +49,7 @@ theorem txn.checkAndGetPrevKV.wp_proof
     obtain ⟨rfl, rfl⟩ := h2
     wp_auto
     iapply HΦ
-    iframe Htx
+    iframe Htx Htrc
     ileft
     isplitl []
     · ipureintro; rfl
@@ -66,7 +66,7 @@ theorem txn.checkAndGetPrevKV.wp_proof
     all_goals
       rw [decide_eq_false Hrn]
       wp_auto
-      cases hf : mvcc.findKey k (txn.kindState kind) with
+      cases hf : mvcc.findKey k (txn.mstate kt) with
       | none =>
         icases Hm with %Hps0
         subst Hps0
@@ -75,7 +75,7 @@ theorem txn.checkAndGetPrevKV.wp_proof
         rw [hl, decide_eq_true (rfl : (W64 0 : w64) = W64 0)]
         wp_auto
         iapply HΦ
-        iframe Htx
+        iframe Htx Htrc
         iright
         isplitl []
         · ipureintro; simp
@@ -96,7 +96,7 @@ theorem txn.checkAndGetPrevKV.wp_proof
         rw [decide_eq_false hl]
         wp_auto
         iapply HΦ
-        iframe Htx
+        iframe Htx Htrc
         ileft
         isplitl []
         · ipureintro; rfl

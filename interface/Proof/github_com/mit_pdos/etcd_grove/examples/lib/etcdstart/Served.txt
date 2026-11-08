@@ -21,6 +21,9 @@ def etcdstart.etcdKVAt [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3r
               go!"/etcdserverpb.KV/Compact"
               (client.etcdCompactSpec E ρ.rd cid mid))
 
+def etcdstart.srvWOf (E : apply.AEnv GF) (γr : ReadNames) (on : Bool) : v3rpc.SrvW GF :=
+  { kv := E.kv, γm := E.γ, N := srvApi.kvsN, histLb := srvApi.histLb γr on E.γs, crevOk := srvApi.crevOk γr }
+
 theorem etcdstart.etcdKVAt_eq [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr : GoString) (E : apply.AEnv
     GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) : etcdstart.etcdKVAt addr E ρ γr cid mid =
@@ -76,7 +79,7 @@ def etcdstart.kvServeStocks (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IP
   iprop(([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
       ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
         ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-          ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+          ([∗list] _x ∈ List.replicate 64 (), mvcc.api.mvccReaders E.γ 1) ∗
             ([∗list] _x ∈ List.replicate etcdstart.memberReadN (), srvReadReader s γr) ∗
               [∗list] _x ∈ List.replicate 64 (), srvBemuReader s)
 

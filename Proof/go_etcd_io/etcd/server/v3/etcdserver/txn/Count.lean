@@ -17,6 +17,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
   go_etcd_io.etcd.api.v3
+open mvcc.api (MvccState MTxn MvccName)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.Count.wp_proof
     (hRange : txn.Range.spec (GF := GF) (hG := hG)) :
     txn.Count.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg kv s γ key rangeEnd k e revision m log₀ ot te
-  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hk, #He, #Hctx, #Hct, Hto, %Hlg, %Hklen⟩
+  intro ctx cd lg kv γ key rangeEnd k e revision ot te Q
+  wp_start as ⟨Hkv, Hrd, #Hk, #He, #Hctx, #Hct, Hto, %Hlg, %Hklen, Hau⟩
   wp_auto
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$a3»
   iStructNamed «$a3»
@@ -46,17 +47,16 @@ theorem txn.Count.wp_proof
     ipureintro; exact ⟨rfl, Hklen⟩
   have heff : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).effSortOrder = W64 0 := by
     simp [txn.countOp, txn.rangeOpOf, OpFull.effSortOrder]
-  wp_apply (hRange ctx cd false lg kv s γ «$a3_ptr» _ false m log₀ ot te) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx $Hct $Hto]
-    as %resp %tr %err ⟨Hrd, Htoks, %Htr, -, -, %log, %rev, %crev, #Hcert, -, #Hlb, %Hpin, #Hres, -, -⟩
+  wp_apply (hRange ctx cd false lg kv γ «$a3_ptr» _ false ot te Q)
+      $$ [$Hkv $Hrd $Hreq $Hctx $Hct $Hto $Hau]
+    as %resp %tr %err ⟨Hrd, %Htr, -, -, %σ, HQ, %Hreachσ, #Hres, -, -⟩
   · isplitr
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     isplitr
     · ipureintro; exact Hlg
-    isplitr
-    · ipureintro; unfold txn.validSortTarget; simp [txn.countOp, txn.rangeOpOf]
-    iintro !> %log' - -
-    ipureintro
-    intro h; rw [heff] at h; rcases h with h | h <;> cases h
+    ipureintro; unfold txn.validSortTarget; simp [txn.countOp, txn.rangeOpOf]
+  have hrz : sint.Z (W64 (σ.rev : Int)) = (σ.rev : Int) := by
+    have := Hreachσ.2; unfold mvcc.api.MvccState.rev; word
   have hrevo : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).base.rev = revision := rfl
   iunfold txn.rangeResult at Hres
   icases Hres with (⟨%Hf, %ef, #Hef, %Herr⟩ | ⟨%Hce, -⟩ | ⟨%Hok, %kvs, %more, #Hresp, %Hsrv⟩ |
@@ -64,15 +64,15 @@ theorem txn.Count.wp_proof
   · subst Herr
     wp_auto
     iapply HΦ
-    iframe Hrd Htoks
-    iexists log, rev, crev
-    iframe Hcert Hlb
+    iframe Hrd
+    iexists σ
+    iframe HQ
     isplitr
-    · ipureintro; exact Hpin
+    · ipureintro; exact Hreachσ
     iright; ileft
     iframe Hef
     ipureintro
-    rw [hrevo] at Hf
+    rw [hrevo, hrz] at Hf
     exact ⟨⟨Hf.1, rfl⟩, rfl⟩
   · exfalso
     have := Hce.2.1
@@ -83,29 +83,29 @@ theorem txn.Count.wp_proof
     icases Hresp with ⟨%Hrnn, %h, %sl, %ps, #Hh, %Hhnn, #Hhr, #Hkvs, #Hsl, #Hkvsis, #Hmore, #Hcount⟩
     wp_auto
     iapply HΦ
-    iframe Hrd Htoks
-    iexists log, rev, crev
-    iframe Hcert Hlb
+    iframe Hrd
+    iexists σ
+    iframe HQ
     isplitr
-    · ipureintro; exact Hpin
+    · ipureintro; exact Hreachσ
     ileft
     ipureintro
-    refine ⟨rfl, hle, ?_⟩
+    refine ⟨rfl, hrz ▸ hle, ?_⟩
     simp [txn.srvCount, txn.countOp, txn.rangeOpOf]
   · -- (M2, S1) below the compaction revision: `ErrCompacted`, `0`
     subst Herr
     wp_auto
     iapply HΦ
-    iframe Hrd Htoks
-    iexists log, rev, crev
-    iframe Hcert Hlb
+    iframe Hrd
+    iexists σ
+    iframe HQ
     isplitr
-    · ipureintro; exact Hpin
+    · ipureintro; exact Hreachσ
     iright; iright
     iframe Hec
     ipureintro
     rw [hrevo] at Hcmp
-    exact ⟨⟨Hcmp.1, Hcmp.2.1, rfl⟩, rfl⟩
+    exact ⟨⟨hrz ▸ Hcmp.1, Hcmp.2.1, rfl⟩, rfl⟩
 
 end proof
 

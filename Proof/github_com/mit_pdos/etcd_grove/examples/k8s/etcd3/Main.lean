@@ -77,7 +77,8 @@ theorem Main.wp_proof
     (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := hG))
     (wp_UID : Obj.GetUID.spec (GF := GF) (hG := hG))
     (wp_RV : Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
-    (wp_Check : Check.spec (GF := GF) (hG := hG)) :
+    (wp_Check : Check.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
     hse Hty H0 H31 Hops Hmul
@@ -118,7 +119,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1_false id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (k8setcd3Dir id) (dirOne_member id _)
+  imod (etcdstart.alloc1_false hne id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (k8setcd3Dir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
@@ -194,7 +195,7 @@ theorem Main.wp_proof
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
   ihave #Pkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes $$ []
   · iPkgInit
-  let V : client.WEnv GF := EtcdGrove.client.srvWEnv R go!"127.0.0.1:23896" [] null null [] null default
+  let V : client.WEnv GF := EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23896" [] null null [] null default
   haveI : ThreadBoundLe GF (2 ^ 28) := ⟨Htb⟩
   wp_apply (wp_kNew _ [go!"127.0.0.1:23896"] V (fun _ => iprop(True))) $$ [] as %kc %cerr Hcl
   · iframe #

@@ -112,7 +112,7 @@ theorem startMember.wp_proof
   (try wp_auto)
   -- `s.Start()`
   wp_apply (etcdstart.wp_Start_built wp_Start s ρ E₀ lg γn id N true
-      (ReceiptBoundLe.le (GF := GF) (N + 1)))
+      (ReceiptBoundLe.le (GF := GF) (N + 1)) .none (ReceiptBoundLe.le (GF := GF) (2 ^ 48)))
     $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Hlrd Htok Hkeep] as Hup
   · iframe Htok
     iframe #

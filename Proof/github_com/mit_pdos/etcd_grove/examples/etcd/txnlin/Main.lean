@@ -54,7 +54,8 @@ theorem Main.wp_proof
     (wp_StartServer : etcdstart.StartServer.spec (GF := GF) (hG := hG))
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
     (wp_NewClient : etcdstart.NewClient.spec (GF := GF) (hG := hG))
-    (wp_Check : Check.spec (GF := GF) (hG := hG)) :
+    (wp_Check : Check.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot clients ops Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
     H0 H31 Hops Hmul
@@ -93,7 +94,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1_false id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (linkvtxnDir id) (dirOne_member id _)
+  imod (etcdstart.alloc1_false hne id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (linkvtxnDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, -⟩ := Hal
@@ -162,7 +163,7 @@ theorem Main.wp_proof
   icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
   wp_apply (wp_NewClient go!"127.0.0.1:23796" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23796" [] null null [] null default)
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23796" [] null null [] null default)
       (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)

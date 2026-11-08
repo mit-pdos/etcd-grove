@@ -30,6 +30,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Lemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.HistoryLaws
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 
 @[expose] public section
@@ -102,9 +103,9 @@ def txnShape (t : TxnModel) : Prop :=
   ∀ (s0 : List EtcdKv) (r : w64), s0.Pairwise etcdKvLess →
     OpsIG true s0 r s0 (t.branch (txnOk s0 t))
 
-theorem TxnPre_of (log : Log) (t : TxnModel) (hs : txnShape t) (hm : txnSmall log t) :
-    TxnPre log t :=
-  ⟨hm.1, OpsOk_of true _ _ _ _ (hs _ _ (stateAfter_sorted log)), hm.2⟩
+theorem TxnPre_of (log : Log) (t : TxnModel) (hs : txnShape t) (_hm : txnSmall log t) :
+    TxnPreA log t :=
+  OpsOk_of true _ _ _ _ (hs _ _ (stateAfter_sorted log))
 
 /-! ### A transaction's shape from its run's keys -/
 
@@ -233,10 +234,12 @@ def rqSmall (log : mvcc.Log) (rq : apply.IRRModel) : Prop :=
   match apply.dispatchKind rq with
   | .put => apply.putOk log
   | .deleteRange => ∀ o, rq.deleteRange = some o → apply.delOk log o
-  | .range => ∀ o, rq.range = some o → log.length + 3 ≤ 2 ^ 63 ∧ txn.sortOk o log
+  | .range => ∀ o, rq.range = some o → log.length + 3 ≤ 2 ^ 63
   | .txn => ∀ t, rq.txn = some t → txn.txnSmall log t
-  -- (the lease-expiry plan's X6, 2026-11-04) a revocation commits its deletions at one revision
-  | .leaseRevoke => apply.putOk log
+  -- (the lease-expiry plan's X6, 2026-11-04) a revocation commits its deletions at one revision;
+  -- (the `lean` merge, R6, 2026-11-07) and the lessor's sort of the keys it deletes takes the state's
+  -- size (`apply.rqOk`'s revocation arm, R2's `revokeSize`)
+  | .leaseRevoke => apply.putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62
   | _ => True
 
 /-- **The size clauses hold at a small log** (D19c's move, 2026-10-18): a log with a revision
@@ -253,8 +256,10 @@ theorem rqSmall_of_small (log : mvcc.Log) (rq : apply.IRRModel)
     | exact trivial
     | (unfold apply.putOk; omega)
     | (intro o _; unfold apply.delOk; omega)
-    | (intro o _; exact ⟨by omega, fun _ => hls⟩)
+    | (intro o _; omega)
     | (intro t _; exact ⟨h4, hls⟩)
+    | (exact ⟨by unfold apply.putOk; omega,
+        by have := (txn.stateBound_stateAfter log (by omega) (by omega)).1; omega⟩)
 
 /-- **The shape of `rq`** (see the file header): `dispatchOk` whatever the auth mode, and its
 premise at every log at which the size clauses hold, in a cluster that grants leases or not (`lg`,
@@ -336,7 +341,7 @@ theorem rqShape_of_txn (rq : apply.IRRModel) (h : plainCover rq)
   unfold apply.rqOk
   rw [hk] at hs ⊢
   intro t ht'
-  exact txn.TxnPre_of log t (ht t ht') (hs t ht')
+  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht'), (hs t ht').1⟩
 
 end EtcdGrove
 end Perennial

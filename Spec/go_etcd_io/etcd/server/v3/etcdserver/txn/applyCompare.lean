@@ -3,11 +3,12 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -16,6 +17,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -24,15 +26,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `applyCompare(rv, c)` on a read transaction (of the committed log `log`): the client model's
-`cmpHolds` of the comparison at the state after `log` (the range read at `context.TODO()`, which
-does not fail). -/
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `applyCompare(rv, c)` on a read transaction at `σ`: `cmpHolds` at its state.
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
 abbrev txn.applyCompare.spec : Prop :=
-  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (c : Loc) (cm : CmpModel) (crev : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.isTxnRead mw s γ trace log rev crev ∗ txn.compareIs c cm }}
-    (App (App (Val (@! txn.applyCompare))
-      (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #c))
-  {{ RET #(cmpHolds (mvcc.stateAfter log) cm); mvcc.isTxnRead mw s γ trace log rev crev }}
+  ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (c : Loc)
+    (cm : CmpModel),
+  {{ pkgInit ∗ mvcc.api.mvccTxn t γ trace (.read σ) ∗ traceutil.ownTrace trace te ∗
+      ⌜txn.Reach σ⌝ ∗ txn.compareIs c cm }}
+    (App (App (Val (@! txn.applyCompare)) (Val #t)) (Val #c))
+  {{ RET #(cmpHolds (mvcc.stateAfter σ.log) cm); mvcc.api.mvccTxn t γ trace (.read σ) ∗
+      traceutil.ownTrace trace te }}
 
 end spec
 
