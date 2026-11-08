@@ -201,3 +201,132 @@ func TestGap7LeaderCompleteness(t *testing.T) {
 	rd(1)
 	rejected(t, s, 110, "LeaderCompletenessInv")
 }
+
+// Five voters, MaxSizePerMsg cutting every batch to one entry. Node 1 leads term 2, its entry x
+// at 4 (term 2) reaches node 3 only. Node 2 leads term 3 (votes 4, 5), its entry y at 4 (term 3)
+// reaches node 4. Node 1 leads term 4 (votes 3, 5), appends z at 5; node 5 gets x alone (cut
+// batch), acks 4; z reaches 3 and 4, so 5 is committed (term 4) and with it x. A heartbeat gives
+// node 5 commit min(Match 4, 5) = 4: node 5's log ends at x (term 2) with x committed, while
+// node 2's log ends at y (term 3): MoreUpToDateCorrectInv(2, 5) is violated, no leader stale.
+func TestGap8MoreUpToDate(t *testing.T) {
+	s, err := New(Config{Nodes: 5, MaxSizePerMsg: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rd := func(id uint64) {
+		if err := s.ready(s.node(id)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for k := 0; k < 8; k++ {
+		for id := uint64(1); id <= 5; id++ {
+			rd(id)
+		}
+	}
+	take := func(from, to uint64, typ pb.MessageType) {
+		for k, m := range s.inflight {
+			if m.GetFrom() == from && m.GetTo() == to && m.GetType() == typ {
+				s.inflight = append(s.inflight[:k], s.inflight[k+1:]...)
+				_ = s.node(to).rn.Step(m)
+				return
+			}
+		}
+		t.Fatalf("no %v %d->%d in flight", typ, from, to)
+	}
+	drop := func() { s.inflight = nil }
+	// term 2: node 1 (votes 4, 5; node 3 joins term 2)
+	err = s.node(1).rn.Campaign()
+	st := s.node(1).rn.BasicStatus()
+	t.Logf("campaign err %v state %v term %d applied %d commit %d", err, st.RaftState, st.HardState.GetTerm(), st.Applied, st.HardState.GetCommit())
+	rd(1)
+	for _, m := range s.inflight {
+		t.Logf("inflight %v %d->%d", m.GetType(), m.GetFrom(), m.GetTo())
+	}
+	take(1, 2, pb.MsgVote)
+	take(1, 3, pb.MsgVote)
+	take(1, 4, pb.MsgVote)
+	take(1, 5, pb.MsgVote)
+	drop()
+	rd(2)
+	rd(3)
+	rd(4)
+	rd(5)
+	take(4, 1, pb.MsgVoteResp)
+	take(5, 1, pb.MsgVoteResp)
+	drop()
+	rd(1) // x at 4 (term 2)
+	take(1, 3, pb.MsgApp)
+	drop()
+	rd(3)
+	drop()
+	// term 3: node 2 (votes 4, 5); node 1 steps down
+	_ = s.node(2).rn.Campaign()
+	rd(2)
+	take(2, 1, pb.MsgVote)
+	take(2, 4, pb.MsgVote)
+	take(2, 5, pb.MsgVote)
+	drop()
+	rd(1)
+	rd(4)
+	rd(5)
+	take(4, 2, pb.MsgVoteResp)
+	take(5, 2, pb.MsgVoteResp)
+	drop()
+	rd(2) // y at 4 (term 3)
+	take(2, 4, pb.MsgApp)
+	drop()
+	rd(4)
+	drop()
+	// term 4: node 1 (votes 3, 5); nodes 2, 4 refuse and follow term 4
+	_ = s.node(1).rn.Campaign()
+	rd(1)
+	take(1, 2, pb.MsgVote)
+	take(1, 3, pb.MsgVote)
+	take(1, 4, pb.MsgVote)
+	take(1, 5, pb.MsgVote)
+	drop()
+	rd(2)
+	rd(3)
+	rd(4)
+	rd(5)
+	take(3, 1, pb.MsgVoteResp)
+	take(5, 1, pb.MsgVoteResp)
+	drop()
+	rd(1) // z at 5 (term 4)
+	take(1, 3, pb.MsgApp)
+	take(1, 4, pb.MsgApp)
+	take(1, 5, pb.MsgApp)
+	drop()
+	rd(3)
+	rd(4)
+	rd(5)
+	take(3, 1, pb.MsgAppResp)
+	take(4, 1, pb.MsgAppResp)
+	take(5, 1, pb.MsgAppResp)
+	drop()
+	rd(1) // [x] to 4 and 5 (cut)
+	take(1, 4, pb.MsgApp)
+	take(1, 5, pb.MsgApp)
+	drop()
+	rd(4)
+	rd(5)
+	take(4, 1, pb.MsgAppResp)
+	take(5, 1, pb.MsgAppResp)
+	drop()
+	rd(1) // [z] to 4 and 5
+	take(1, 4, pb.MsgApp)
+	drop()
+	rd(4)
+	take(4, 1, pb.MsgAppResp) // 5 committed
+	drop()
+	rd(1)
+	drop()
+	s.node(1).rn.Tick() // heartbeats
+	rd(1)
+	take(1, 5, pb.MsgHeartbeat)
+	rd(5)
+	drop()
+	r := s.Events()
+	t.Logf("events %d", len(r))
+	rejected(t, s, 249, "MoreUpToDateCorrectInv")
+}

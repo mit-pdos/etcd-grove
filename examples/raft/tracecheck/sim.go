@@ -91,6 +91,9 @@ type Config struct {
 	// match a restart: raft logs InitState in newRaft before it loads the persisted state and
 	// configuration, and RestartIfLogged checks that line against the restarted state.
 	Restarts int
+	// MaxSizePerMsg as raft's Config.MaxSizePerMsg (0: 1 MiB). A small one cuts batches, which
+	// reaches gaps 5 and 8 of notes/raft-trace-validation.md (gaps_test.go).
+	MaxSizePerMsg uint64
 }
 
 // DefaultConfig is a small run: three voters, no configuration change, snapshot or restart.
@@ -134,13 +137,17 @@ type Sim struct {
 }
 
 func (s *Sim) raftConfig(id uint64, st *raft.MemoryStorage, applied uint64) *raft.Config {
+	maxSize := s.cfg.MaxSizePerMsg
+	if maxSize == 0 {
+		maxSize = 1 << 20
+	}
 	return &raft.Config{
 		ID:              id,
 		ElectionTick:    10,
 		HeartbeatTick:   1,
 		Storage:         st,
 		Applied:         applied,
-		MaxSizePerMsg:   1 << 20,
+		MaxSizePerMsg:   maxSize,
 		MaxInflightMsgs: 256,
 		Logger:          quietLogger{},
 		TraceLogger:     s.rec,

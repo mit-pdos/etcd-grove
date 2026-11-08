@@ -268,7 +268,7 @@ ones) its verdict and failing line equal the Go checker's (and so TLC's), and on
 evaluation-error witness (a commit index past the log) it fails with the same error. Not part of
 the trust argument (the plan's "Trust base"): S6's proof is what ties it to the Go.
 
-## Draft: S4 drafted (2026-11-08), in Review (rounds 1 and 2 done; blocked on Q4, Q5)
+## Draft: S4 drafted (2026-11-08), in Review (rounds 1-3 done; blocked on Q4, Q5)
 
 `notes/trace-validation-sim.md`: the abstraction `α` (a server's variables, the messages, the bags
 as new ghost state with a token per message in flight), the relation's phases (idle, handling a
@@ -284,7 +284,12 @@ revision 2 of the note answers each. Round 2 (`notes/trace-validation-reviews/s4
 first-tier findings that make the closed theorem false with `DefaultCConfig` (Q4: upstream's
 `LeaderCompletenessInv` is not an invariant of raft; Q5: gap 6 with three voters), both the user's;
 second-tier ones on the contract and the invariants' facts, answered by revision 3. The Review
-cannot clear, so no freeze, until Q4 and Q5 are decided.
+cannot clear, so no freeze, until Q4 and Q5 are decided. Round 3 (`notes/trace-validation-reviews/s4-r3.md`): the logger
+contract must hand over the event (A1), and `MoreUpToDateCorrectInv` is not raft's either (A2:
+`notes/raft-trace-validation.md` item 8, TLC confirms; five voters and cut batches, so not reached
+by `Main`: P5 strengthened, the statement unaffected); second tier on the invariants' facts, the
+bootstrap, `Advance`'s stopped branch, the phase threaded through raft's internal functions, the
+tokens' key; revision 4 answers each.
 
 ## Draft: S3 increment 1 done (2026-11-08)
 

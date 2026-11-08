@@ -168,12 +168,21 @@ is right in each.
    `gaps_test.go`, `TestGap7LeaderCompleteness`. A guard on the leader's term relative to the
    committing server's (`currentTerm[l] >= currentTerm[i]`) is a candidate repair, not yet
    checked.
+8. **`MoreUpToDateCorrectInv` is not an invariant of raft either** (found 2026-11-08 by round 3 of
+   the S4 review). It asks that a server whose log is at least as up to date as `j`'s hold `j`'s
+   committed prefix; but a follower can learn its commit index from a heartbeat
+   (`min(Match, committed)`) while its log ends at an old-term entry another server's newer-term log
+   lacks. Reached with five voters and batches cut to one entry (`MaxSizePerMsg` 1): TLC,
+   "Invariant MoreUpToDateCorrectInv is violated"; `gaps_test.go`, `TestGap8MoreUpToDate`. Not
+   reached when every `MsgApp` carries the leader's log to its end (unlimited batches, the
+   concurrent harness's), where a follower's commit index never passes what it received from a
+   leader with its own last term.
 
 Also met, and avoided by the harness as etcd does: a snapshot without the recipient in its
 configuration, which raft drops (`nonissues/raft-snapshot-without-recipient-livelock.md`) while
 the specification installs it; `FullConfig` snapshots after applying each configuration change.
 
-None of these is a bug in the verified Go code (item 7 is a bug in the specification's invariant). Items 1, 3, 4, 5, 6 and 7 make upstream's trace validation
+None of these is a bug in the verified Go code (items 7 and 8 are bugs in the specification's invariants). Items 1, 3, 4, 5, 6, 7 and 8 make upstream's trace validation
 unable to check traces with restarts, snapshots to lagging followers, or members removed and
 added back; whether to propose fixes to `etcdraft.tla`/`Traceetcdraft.tla` upstream (3: commit, and
 install, on a snapshot whatever the follower's commit; 4: reset `matchIndex` on removal; 5: send `commitIndex[i]` (the follower already clamps, `AppendEntriesAlreadyDone`); 6: add raft's `lead` to the vote condition; 7: guard `LeaderCompletenessInv` by the leader's term; 1: log
