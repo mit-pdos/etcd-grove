@@ -29,6 +29,8 @@ abbrev probing.NewHandler.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.xiang90.probing }}
     (App (Val (@! _root_.Perennial.github_com.xiang90.probing.NewHandler)) (Val #()))
   {{ (h : GoInterface), RET #h;
+      -- (sweep repairs 1, B3) a handler `Handle` accepts (`&httpHealth{}`)
+      ⌜http.handlerRegOk h⌝ ∗
       □ ∀ (H : http.HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoString)
         (pat : GoString),
         (□ ∀ (R : http.HReq) (γk : GName) (w : List w8),

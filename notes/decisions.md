@@ -33486,3 +33486,24 @@ the opaque `featureOff` are declared but reached by no root until 7e's `noStream
 **Go evidence** (`examples/sweeprepairs/b1/k8s`): `TestB5Registered`, `TestB5Counterexample`,
 `TestB5CheckClientReal`, `TestB5SetOff` (with 81's attacks (i)-(iii); a failing `Set` poisons later
 `Set`s, which the error disjunct covers): `b5-r1.md`, "Go evidence and the attacks".
+
+## B3: `http.Handle` of a literal path pattern and an accepted handler (2026-11-08 · sweep repairs 1, B3; the Scope (revision 3) approved by etcd-grove-81/82 · branch `sweep-repairs-1`)
+
+**The defect** (axiom sweep batch 1, `notes/axiom-review/http-handle.md`): `Handle_spec` took only a
+pattern not yet registered, while Go's `register` panics on an empty, unparsable or conflicting
+pattern (`/{x}` then `/{y}`; `/a` then `/%61`) and on a nil handler (including a nil `HandlerFunc`).
+
+**The repair** (`Proof/net/http/Boundary.lean`): `Handle_spec` takes `litPathPat pat` (non-empty,
+starting with `/`, no space, tab, `{` or `%`: literal segments, so distinct ones never conflict,
+under the 1.22 mux and `httpmuxgo121=1`) and `handlerRegOk h` (not nil, not a `HandlerFunc`);
+`handlerRegOk_ptr` (a pointer handler). `probing.NewHandler.spec`'s post gains `handlerRegOk`
+(`&httpHealth{}`). `rafthttp.Transport.Handler` (`TransportHandler.lean`), the only caller,
+discharges both: its four literal patterns by `decide`, its handlers from their constructors.
+
+**Exported statements:** none change. Trust base: `Handle_ok` and `probing.NewHandler.wp_proof`
+restated; count unchanged.
+
+**Go evidence** (`examples/sweeprepairs/b1`, `logs/b3-go.log`, 3 runs): `TestB3Counterexample`
+(each refuted case violates the premises and panics), `TestB3Rafthttp` (the four patterns and
+handlers meet them), `TestB3RandomLiteral` and `TestB3RandomLiteralMux121` (2000 muxes, 55405
+registrations of distinct literal patterns, 0 panics, both muxes).
