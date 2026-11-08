@@ -26,7 +26,7 @@ log, inode freshness) survived every attack tried. The findings are in the data 
 |---|---|---|---|
 | F1 | high | after a failed writeback, the model keeps showing the page cache's last version. Linux can drop it: ext4 invalidates the pages, and clean pages can be evicted | environment assumption (no writeback fails), or a model change |
 | F2 | medium | `FsInit` makes every file and name durable at the first start. Nothing in the header requires this | environment assumption |
-| F3 | medium (probable; not confirmed by a crash test) | after a machine crash, the model's file is zero past its size. On ext4 the tail of the last block can hold bytes of a write whose size change was lost, and a later extension exposes them | model change |
+| F3 | refuted by experiment (2026-11-08) | after a machine crash, the model's file is zero past its size. On ext4 the tail of the last block can hold bytes of a write whose size change was lost; the finding was that a later extension exposes them. ext4 7.0 zero-fills every extension instead | none (the model's zeros are right) |
 | F4 | low | `pread` always returns everything up to EOF on success. Linux returns a short count with no error when a page allocation fails partway (`ENOMEM`) | model change |
 | F5 | low | `ProcRestart` lands an in-flight `fallocate` fully or not at all. ext4 grows the file chunk by chunk, and the call can still fail partway after the process is killed | model change |
 | F6 | informational | `PWriteFinish` never returns a short count with errno 0, which Linux does (e.g. on `ENOSPC` partway). Sound for Go programs through the trusted `WriteAt` loop | optional model change |
@@ -124,7 +124,31 @@ wording:
 > changed them since their last successful `sync`, `syncfs` or `fsync`/directory `fsync` (for
 > example, the machine has booted since).
 
-### F3 (medium, probable): stale bytes past EOF after a crash, exposed by a later extension (ext4)
+### F3 (refuted by experiment): stale bytes past EOF after a crash, exposed by a later extension (ext4)
+
+**Refuted (2026-11-08).** The stale bytes are on disk, but no extension shows them. Test:
+`notes/axiom-review/fs-v2-f3/f3.sh WORKDIR {truncate|write|falloc}` (root; Linux 7.0.0-38-generic,
+ext4 `data=ordered,commit=300` on a loop device). A one-byte file `00`, synced; `pwrite 07` at
+offset 1, not synced; `sync_file_range` writes the page back without a journal commit; a copy of the
+image taken while mounted is the crash; `e2fsck` replays its journal. In the crash image the size is
+1 and the file's block holds `00 07` (`debugfs bmap`, raw read): the crash ordering below happens.
+After mounting the copy, extending the file to 4 bytes reads:
+
+| extension | bytes 0-3 |
+|---|---|
+| `ftruncate(4)` | `00 00 00 00` |
+| `pwrite(09, off 3)` | `00 00 00 09` |
+| `fallocate(0, 4)` | `00 00 00 00` |
+
+Every extension zero-fills from the old size (as POSIX requires), so the analysis below of the
+extend paths was wrong for this kernel (current ext4 zeroes the partial block on extension). The
+model change F3 led to (`CrashFile` keeping whole sectors, `resized` filling from `rawAt`) was
+reverted: an extension fills with zeros. What the experiment does show is that a crash recovers
+the old size with the new data on disk; with `data=ordered` the converse (a larger size with data
+older than it) cannot happen, which the crash rule now requires (`Impl.lean`, `CrashFile`).
+
+The original finding, kept for the record:
+
 
 **The model's claim.** `MachineCrash` makes each surviving file `OsFile.ofBytes img`
 (`Impl.lean:741`, `:102-104`): every byte past `img.length` is a clean zero. An extension after the
@@ -352,8 +376,8 @@ Data and sizes:
 
 ## Not tried
 
-- No executable test and no crash test (dm-log-writes, CrashMonkey); F3's crash ordering in
-  particular should be confirmed that way.
+- No crash test of the other findings (dm-log-writes, CrashMonkey); F3 was settled by one
+  (`fs-v2-f3/f3.sh`).
 - No search for an inconsistency in the Lean definitions (`⊢ False` from `OsCrash`, `FsInit`).
 - xfs internals beyond `fallocate` and the zeroing on extension: reflink copy-on-write
   overwrites, shortform/block/leaf directory conversions during readdir (offsets are designed to be
@@ -361,14 +385,13 @@ Data and sizes:
 - ext4 `data=journal`'s writeback-error path, inline data, encryption, casefold (excluded by the
   header), quotas (`EDQUOT` at writeback would be F1's case), DAX.
 - The interplay of `HeapRendered` with Perennial's non-atomic cell modes during a concurrent Go load.
-- Whether upstream ext4 now zeroes the partial block past EOF on extension (which would turn F3 into
-  a kernel-version assumption).
 
 ## Disposition (2026-11-05, by the author of the semantics)
 
 F1 and F2: environment assumptions, worded as proposed (`Impl.lean`'s header, "No failed
 writeback", "Durable at first start"). F3: the proposed model change (`CrashFile` keeps whole
-sectors; `OsFile.resized`/`written` fill from `rawAt`). F4, F5, F6: the proposed model changes
+sectors; `OsFile.resized`/`written` fill from `rawAt`), reverted on 2026-11-08 when a crash test
+refuted F3 (see F3). F4, F5, F6: the proposed model changes
 (`PRead`'s short success, `Landed.trunc` to any size between, `PWriteFinish`'s short success). The
 stuck cases are recorded in `notes/fs-semantics-v2.md`, "After the soundness audit", for a decision
 before the WAL's proof.
