@@ -110,11 +110,11 @@ def leasecatchupAddrs : List GoString :=
     etcd_leasecatchup.clusterCfg.Bridge1', etcd_leasecatchup.clusterCfg.Bridge2',
     etcd_leasecatchup.clusterCfg.Bridge3']
 
-/-- The members' WAL directories (`WALDir()` of their data directories `<name>.etcd`). -/
-def leasecatchupWalDirs : List GoString :=
-  [config.walDirOf (etcd_leasecatchup.clusterCfg.Name1' ++ go!".etcd") go!"",
-    config.walDirOf (etcd_leasecatchup.clusterCfg.Name2' ++ go!".etcd") go!"",
-    config.walDirOf (etcd_leasecatchup.clusterCfg.Name3' ++ go!".etcd") go!""]
+/-- The members' data directories `<name>.etcd` (sweep repairs 1, W3/W4: until then their WAL directories). -/
+def leasecatchupDataDirs : List GoString :=
+  [(etcd_leasecatchup.clusterCfg.Name1' ++ go!".etcd"),
+    (etcd_leasecatchup.clusterCfg.Name2' ++ go!".etcd"),
+    (etcd_leasecatchup.clusterCfg.Name3' ++ go!".etcd")]
 
 /-- **The multi-member lease example is safe** (see the file header): every real execution of
 `leasecatchupProgram` from a fresh state with one thread, of `n` steps: if the main thread has
@@ -135,9 +135,9 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
     (HNs : prometheus.namesUnclaimed leasecatchupProgram leasecatchupNames)
     (HAs : addrsUnclaimed leasecatchupProgram leasecatchupAddrs)
-    -- the members' WAL directories, distinct (`filepath.Join` is opaque here), hold no WAL at start
-    (HDsNd : leasecatchupWalDirs.Nodup)
-    (HDs : walDirsAbsent leasecatchupProgram leasecatchupWalDirs)
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
+    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
+    (HDs : dataDirsAbsent leasecatchupProgram leasecatchupDataDirs)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasecatchupGF,
       ⊢ cluster3.premises (GF := leasecatchupGF) (hG := heapAtLcu hG lctx)
@@ -152,7 +152,7 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) leasecatchupAddrs (by decide)
-    leasecatchupWalDirs HDsNd
+    leasecatchupDataDirs (by decide)
     -- (hub step 7's A3) the cluster's members and its bridges; the program's address list is theirs
     -- up to order (peers, then clients, then bridges)
     (cluster3.members etcd_leasecatchup.clusterCfg) (cluster3.bridges etcd_leasecatchup.clusterCfg)

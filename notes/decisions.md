@@ -33341,3 +33341,42 @@ and `isSnapshotter`'s logger to LG-2/LG-4 with their consumers.
 `int8 < 3`; it panics at Panic, and at DPanic under `Development()`), `examples/sweeprepairs/logger`
 (`TestA1ZapZero`, `TestA2CheckedEntry`, `TestA3Family`, `TestB1Constructors`, `TestB2Cluster`), all
 passing (`/shared/tmp/sweep-repairs-1/logs/r12-go-rerun.log`).
+
+## `dataDirsAbsent`: the data directories, fresh, one directory each, untouched by anything else (2026-11-07 · sweep repairs 1, R1-4a: W3+W4; the Scope (revision 3) approved by etcd-grove-81/82, narrowing (a) approved by the user via etcd-grove-82 · branch `sweep-repairs-1`)
+
+**The defects** (STATUS, "Soundness bugs: `walDirsAbsent`'s wording ..."; axiom sweep batch 3,
+`notes/axiom-review/wal-tokens.md`, `alias-tokens.md`). `walDirsAbsent e Ds` was over the members'
+WAL directories: distinct only as strings (`/proc/self/cwd/x.etcd` aliases `x.etcd`), silent on a
+stale backend file (`bootstrap` with no WAL opens whatever `member/snap/db` is there and serves it),
+and its "no unverified code creates a WAL there" false of every run (the names-only WAL, snap,
+bbolt and `purgeFile` create, write and remove the files there).
+
+**The repair** (`Proof/runtime/Start.lean`): `dataDirsAbsent e Ds`, over data directories, with the
+Scope's four clauses (revision 3, with 81's nit: `fileutil.RemoveMatchFile` named in (3)):
+(1) one directory per string for the whole run, reached only lexically under `d` or
+`filepath.Abs(d)`, the working directory fixed; (2) absent or empty at start; (3) nothing but the
+operations with trust-boundary specs (and the `fileutil` helpers they run) touches a file there,
+their other files their own scratch; (4) pairwise disjoint. The token is `dataDirFresh dd`
+(`WalDir.lean`, renamed from `walDirFresh`); `startRights` gives one per directory of `Ds`;
+`wal.bootRes cfg := dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = ""⌝`; the starters' bundles
+hold `dataDirFresh (memberDataDir name)`, `memberDataDir name := name ++ ".etcd"`.
+`walFiles`, `pathOwn` and `walPurgeRight` keep their bodies: the clauses give them their meaning
+(`r2db-scope.md` §5, its owner to update).
+
+**Exported statements: narrowed** (the user's decision (a)). The 18 closed `*_safe` theorems that
+start a server, their `*_adequate`, and `etcdstart`'s generic adequacy theorems: `HDs` becomes
+`dataDirsAbsent prog ["X.etcd", ...]` (until then `walDirsAbsent prog [config.walDirOf "X.etcd" "",
+...]`). The 7 that took `HDsNd` (distinct names, unprovable through the opaque `walDirOf`) now
+prove it by `decide`. The trust base renames two axioms (`walDirsAbsent` → `dataDirsAbsent`,
+`walDirFresh` → `dataDirFresh`; `dataDirFresh_timeless`); its count is unchanged.
+
+**Go evidence** (`examples/sweeprepairs/wal`, `/shared/tmp/sweep-repairs-1/logs/r14a-go-rerun.log`):
+`TestW3Counterexample` (the `/proc/self/cwd` aliases violate (1), by resolved paths and
+`os.SameFile`), `TestW4StaleBackend` (a stale `member/snap/db` violates (2); the program over it
+serves the stale key), `TestW3W4Examples` (`putget`, `putget3`: the directories fresh at start,
+distinct, every file below the working directory and every open file inside exactly one). Clause
+(3)'s exceptions are from etcd-grove-82's recheck (`/shared/tmp/82-sr1-r2/`, `touch82`,
+`restart82`: `.touch`, `0.tmp`, `wal.tmp`, the db temp file).
+
+**Independent of R1-3's re-pin**: the fork change (`purgeFile` no longer purges `.snap.db`) only
+removes one of clause (3)'s writers; no file R1-4a edits is re-translated.

@@ -152,7 +152,7 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (HNs : prometheus.namesUnclaimed (init #() ;; body)
       [read.slowReadIndexName, read.readIndexFailedName])
-    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : walDirsAbsent (init #() ;; body) Ds)
+    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
@@ -161,7 +161,7 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
         (⊢ (|==> ∃ x, T x : IProp GF)) ∧
         ∀ x, progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
           iprop((([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
-            ([∗list] d ∈ Ds, walDirFresh d)) ∗ T x) init body φ) :
+            ([∗list] d ∈ Ds, dataDirFresh d)) ∗ T x) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   apply adequate_of_unrecovered
@@ -192,8 +192,8 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
 /-- **An etcd example's closed theorem over `goose_adequacy_start`** (see the file header): as
 `init_adequate`, for a program whose initializer takes the read package's two metric names and
 whose body the addresses `As`, each with its HTTP protocol unregistered (`httpProtoFree`, 2026-10-24,
-rafthttp stage 6a, D39a), and (2026-11-03, the WAL's API) the members' WAL directories `Ds` fresh
-(`walDirFresh`). (revoke-open, 2026-11-06) At the thread bound `max (n + 2) srvRevokeK` (until then
+rafthttp stage 6a, D39a), and (2026-11-03, the WAL's API) the members' data directories `Ds` fresh
+(`dataDirFresh`). (revoke-open, 2026-11-06) At the thread bound `max (n + 2) srvRevokeK` (until then
 `n + 2`): the revocation's goroutines use `srvRevokeK` levels of a thread token
 (`srvRevokeLevels`). -/
 theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
@@ -204,14 +204,14 @@ theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (HNs : prometheus.namesUnclaimed (init #() ;; body)
       [read.slowReadIndexName, read.readIndexFailedName])
-    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : walDirsAbsent (init #() ;; body) Ds)
+    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
       threadBound GF = max (n + 2) srvRevokeK →
       progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
         iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
-          ([∗list] d ∈ Ds, walDirFresh d)) init body φ) :
+          ([∗list] d ∈ Ds, dataDirFresh d)) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   apply adequate_of_unrecovered

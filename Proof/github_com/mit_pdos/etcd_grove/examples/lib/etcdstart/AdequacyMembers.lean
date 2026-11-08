@@ -42,19 +42,19 @@ theorem progOk_pre [hG : HeapGS .hasLC GF] (R B B' : IProp GF) (init : val) (bod
 /-- **An etcd example's closed theorem, from its members' start bundles** (hub step 7's L4, D2):
 `etcd_adequate`, the body proved from the start bundles of the members `ms`
 (`etcdstart.memberStartRes`) and the listen rights of the other addresses `Bs`, when the members'
-addresses and `Bs` are `As` up to order and the members' WAL directories are `Ds` up to order. -/
+addresses and `Bs` are `As` up to order and the members' data directories are `Ds` up to order. -/
 theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (As : List GoString) (hAs : As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup)
     (ms : List (GoString × etcdstart.MemberAddrs)) (Bs : List GoString)
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
-    (hD : (ms.map (fun m => etcdstart.memberWalDir m.1)).Perm Ds)
+    (hD : (ms.map (fun m => etcdstart.memberDataDir m.1)).Perm Ds)
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (HNs : prometheus.namesUnclaimed (init #() ;; body)
       [read.slowReadIndexName, read.readIndexFailedName])
-    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : walDirsAbsent (init #() ;; body) Ds)
+    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
@@ -76,13 +76,13 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
     (As : List GoString) (hAs : As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup)
     (ms : List (GoString × etcdstart.MemberAddrs)) (Bs : List GoString)
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
-    (hD : (ms.map (fun m => etcdstart.memberWalDir m.1)).Perm Ds)
+    (hD : (ms.map (fun m => etcdstart.memberDataDir m.1)).Perm Ds)
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (HNs : prometheus.namesUnclaimed (init #() ;; body)
       [read.slowReadIndexName, read.readIndexFailedName])
-    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : walDirsAbsent (init #() ;; body) Ds)
+    (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →

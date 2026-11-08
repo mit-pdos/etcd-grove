@@ -117,8 +117,8 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
     (HNs : prometheus.namesUnclaimed (linkvtxnProgram clients ops) linkvtxnNames)
     (HAs : addrsUnclaimed (linkvtxnProgram clients ops) [go!"127.0.0.1:23796"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent (linkvtxnProgram clients ops) [config.walDirOf go!"linkvtxn.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent (linkvtxnProgram clients ops) [go!"linkvtxn.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvtxnGF,
       ⊢ etcd_txnlin.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id ctxs boot)
@@ -133,8 +133,8 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   refine etcd_adequate_members (GF := linkvtxnGF) github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main) #clients #ops)
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-      (fun h => intoVal_ne_PanicV _ p h.symm)) [go!"127.0.0.1:23796"] (by decide) [config.walDirOf go!"linkvtxn.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
-    -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+      (fun h => intoVal_ne_PanicV _ p h.symm)) [go!"127.0.0.1:23796"] (by decide) [go!"linkvtxn.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(go!"linkvtxn", ⟨none, some go!"127.0.0.1:23796"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC linkvtxnGF := linkvtxnHeapAt hG lctx

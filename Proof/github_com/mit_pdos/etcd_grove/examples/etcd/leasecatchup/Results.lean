@@ -74,8 +74,7 @@ theorem etcd_leasecatchup_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
     (HNs : prometheus.namesUnclaimed leasecatchupProgram leasecatchupNames)
     (HAs : addrsUnclaimed leasecatchupProgram leasecatchupAddrs)   -- 3 peer, 3 client, 3 bridge
-    (HDsNd : leasecatchupWalDirs.Nodup)
-    (HDs : walDirsAbsent leasecatchupProgram leasecatchupWalDirs)
+    (HDs : dataDirsAbsent leasecatchupProgram leasecatchupDataDirs)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasecatchupGF,
       ⊢ cluster3.premises (GF := leasecatchupGF) (hG := heapAtLcu hG lctx)
@@ -87,7 +86,7 @@ theorem etcd_leasecatchup_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   etcd_leasecatchup_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo Hlp Hlne
-    HNs HAs HDsNd HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    HNs HAs HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

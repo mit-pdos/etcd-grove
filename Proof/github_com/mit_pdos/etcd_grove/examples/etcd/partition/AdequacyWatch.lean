@@ -83,10 +83,9 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
-    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
-    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
-    (HDsNd : [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""].Nodup)
-    (HDs : walDirsAbsent (linkv3pWatchProgram nw nops steps) [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
+    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
+    (HDs : dataDirsAbsent (linkv3pWatchProgram nw nops steps) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
@@ -103,7 +102,7 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
       (Val #nops)) (schedLit steps))
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-        (fun h => intoVal_ne_PanicV _ p h.symm))) linkv3pAddrs (by decide) [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""] HDsNd
+        (fun h => intoVal_ne_PanicV _ p h.symm))) linkv3pAddrs (by decide) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")] (by decide)
     -- (hub step 7's A3) the cluster's members and its bridges; the program's address list is theirs
     -- up to order (peers, then clients, then bridges)
     (cluster3.members etcd_partition.clusterCfg) (cluster3.bridges etcd_partition.clusterCfg) (by decide) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs

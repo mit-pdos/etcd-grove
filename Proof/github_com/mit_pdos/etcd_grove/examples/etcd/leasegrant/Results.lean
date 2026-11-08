@@ -68,8 +68,8 @@ theorem etcd_leasegrant_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
     (HNs : prometheus.namesUnclaimed leasegrantProgram leasegrantNames)
     (HAs : addrsUnclaimed leasegrantProgram [go!"127.0.0.1:23956"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent leasegrantProgram [config.walDirOf go!"leasegrant.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent leasegrantProgram [go!"leasegrant.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasegrantGF,
       ⊢ etcd_leasegrant.premises (GF := leasegrantGF) (hG := heapAtLgr hG lctx) n id ctxs boot)

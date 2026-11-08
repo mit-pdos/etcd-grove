@@ -433,6 +433,8 @@ axiom corev1.Pod.DeepCopyObject.wp_proof
 axiom corev1.Resource.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
+axiom dataDirFresh
+axiom dataDirsAbsent
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.AsLeaf.wp_proof
@@ -779,8 +781,6 @@ axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
-axiom walDirFresh
-axiom walDirsAbsent
 axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof

@@ -82,8 +82,8 @@ theorem etcd_cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
     (HNs : prometheus.namesUnclaimed (cachekvProgram nw nops) cachekvNames)
     (HAs : addrsUnclaimed (cachekvProgram nw nops) [go!"127.0.0.1:23873"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent (cachekvProgram nw nops) [config.walDirOf go!"cachekv.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent (cachekvProgram nw nops) [go!"cachekv.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_cache.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
@@ -100,8 +100,8 @@ theorem etcd_cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2) ∨ v = #(W64 3)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
         (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-          (fun h => intoVal_ne_PanicV _ p h.symm)))) [go!"127.0.0.1:23873"] (by decide) [config.walDirOf go!"cachekv.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
-    -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+          (fun h => intoVal_ne_PanicV _ p h.symm)))) [go!"127.0.0.1:23873"] (by decide) [go!"cachekv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(go!"cachekv", ⟨none, some go!"127.0.0.1:23873"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx

@@ -129,8 +129,8 @@ theorem etcd_lease_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk)
     (HNs : prometheus.namesUnclaimed leasekvProgram leasekvNames)
     (HAs : addrsUnclaimed leasekvProgram [go!"127.0.0.1:23936"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent leasekvProgram [config.walDirOf go!"leasekv.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent leasekvProgram [go!"leasekv.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasekvGF,
       ⊢ etcd_lease.premises (GF := leasekvGF) (hG := heapAtLkv hG lctx) n id ctxs boot)
@@ -144,8 +144,8 @@ theorem etcd_lease_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine etcd_adequate_members (GF := leasekvGF) github_com.mit_pdos.etcd_grove.examples.etcd.lease.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.lease.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23936"] (by decide) [config.walDirOf go!"leasekv.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
-    -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23936"] (by decide) [go!"leasekv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(go!"leasekv", ⟨none, some go!"127.0.0.1:23936"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC leasekvGF := heapAtLkv hG lctx

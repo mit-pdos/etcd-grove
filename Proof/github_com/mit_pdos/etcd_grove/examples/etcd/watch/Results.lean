@@ -71,8 +71,8 @@ theorem etcd_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
     (HNs : prometheus.namesUnclaimed (watchkvProgram nw nops) watchkvNames)
     (HAs : addrsUnclaimed (watchkvProgram nw nops) [go!"127.0.0.1:23872"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent (watchkvProgram nw nops) [config.walDirOf go!"watchkv.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent (watchkvProgram nw nops) [go!"watchkv.etcd"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_watch.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
