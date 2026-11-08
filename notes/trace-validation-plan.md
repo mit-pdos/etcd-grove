@@ -177,6 +177,31 @@ the checker's spec and layer B's invariant at the end (the whole trace accepted)
 
 S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's event function).
 
+## Draft: S2 done (2026-11-08)
+
+The Lean transcription, `Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Tla/`
+(`Types`, `Spec`, `Invariants`, `Trace`, `Check`; namespace `Perennial.EtcdGrove.Etcdraft`): all of
+`etcdraft.tla` (every action, the five next-state relations, the invariants) and `Traceetcdraft.tla`
+(the trace's constants, the `IfLogged` actions, `TraceNext`, `stepLine`), and `checkTrace`,
+`Result.tlcOK`, `traceAccepts` (the corollary's statement), mirroring the Go function by function.
+Decided by the agent (the options and the reasons, `notes/spec-first-plan.md`, "Who decides"):
+
+- numbers `Int` (TLA+'s), not 64-bit words: the statement's meaning stays TLA+'s, and the
+  checker's proof (S6) carries the bounds the Go's `int` needs (the workload's terms and indices);
+- servers `Nat`, sets sorted duplicate-free lists, the bag a list of messages with counts, as the
+  Go's: `=` on values is derived structural equality, decidable, so the definitions run, and S6
+  relates like to like;
+- where TLC fails evaluating, `EvalM := Except EvalError` (the Go panics and `CheckTrace`
+  recovers);
+- `stepLine`'s loop takes fuel (`lineFuel`: the steps one line can take), which Lean's termination
+  needs and the Go's loop does not; S6 shows the fuel is never exhausted.
+
+Checked by running it (`#eval`, through `cmd/leanexport`, which writes a trace as a Lean file): on
+16 traces (the five clean seeds, the four mutants, five full-configuration traces, two concurrent
+ones) its verdict and failing line equal the Go checker's (and so TLC's), and on the
+evaluation-error witness (a commit index past the log) it fails with the same error. Not part of
+the trust argument (the plan's "Trust base"): S6's proof is what ties it to the Go.
+
 ## Draft: S3 started (2026-11-08)
 
 The hooks' design, its open points (the call sites, the update's ghost: settled with S4) and

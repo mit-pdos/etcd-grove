@@ -57,6 +57,36 @@ Part of `notes/trace-validation-plan.md` (layer A). The eleven hooks of raft's `
   the event with a certificate of the node's state (and the simulation fires in the logger) or raft
   fires the update itself is S4's choice.
 
+## The call sites (surveyed 2026-11-08)
+
+| Go call | Lean call | what is held there |
+|---|---|---|
+| `traceInitState`, `newRaft` (raft.go:469) | `newRaft.lean:695` | `raftOwn` of the struct literal, the log, the empty tracker (before `Restore`, `loadState`) |
+| `traceSendMessage` ×2, `send` (raft.go:593, 599) | `raft__send.lean:207` (`send_tail`) | opened: the queue field, the rest in the wand `Hback`; the message owned |
+| `traceCommit` (deferred), `maybeCommit` (raft.go:794) | `raft__maybeCommit.lean:114` | the whole `ownRaftPhysCV` (after the commit) |
+| `traceReplicate`, `appendEntry` (raft.go:849) | `raft__appendEntry.lean:272` | the whole; the cloned entries owned; before the append |
+| `traceBecomeFollower/Candidate/Leader` (raft.go:917, 932, 978) | `raft__become*.lean:56/58/139` | the whole (the new role) |
+| `traceReceiveMessage`, `Step` (raft.go:1112) | `raft__Step/MsgProp.lean:190` and 35 `_P.traceReceiveMessage` (`raft__Step/Base.lean:177`) | the whole and the message |
+| `traceChangeConfEvent`, `stepLeader` (raft.go:1362) | `stepLeader/MsgProp.lean:209` | the whole; the decoded change |
+| `traceConfChangeEvent`, `switchToConfig` (raft.go:1981) | `raft__switchToConfig.lean:68`; `newRaft.lean:452` | opened: the tracker field and the new configuration, the rest in a wand |
+| `traceReady`, `acceptReady` (rawnode.go:437) | `RawNode__acceptReady.lean:715` | opened (`ownRaftPhysReady`'s fields), the tracker inside `Hclose` |
+
+So the field and the contract are handed out persistently before the struct is opened, as
+`ownRaftPhysC_shared` hands out `id` and `logger` (`InvRaftPhys.lean:1807`); the non-nil case
+needs the event's state readable at the four opened sites (S4). An instrumentation detail:
+`traceSendMessage` reads `r.trk.Progress[m.GetFrom()]` (the sender's own progress) for its
+`match`/`next` properties, not the target's; `Traceetcdraft.tla` reads neither.
+
+## Increment 1: the nil-logger half (decided by the agent, 2026-11-08)
+
+The branch's build is red since the retranslation (the eleven proofs of "a no-op"). First the half
+every existing result uses, which S4 does not change: `traceLogger` persistent in `raftOwn`,
+`isTraceLogger tl` in `ownRaftPhysG` defined for now as `⌜tl = nil⌝` (widened in place by S4 to
+the non-nil contract, `PRINCIPLES.md`: redefine in place), the constructors' premise (Q1), the
+eleven specs (the field and the contract, persistent, and the reads made before the nil check)
+and their call sites. Options considered: the full contract first (blocked on S4's event and
+update), or keeping the specs `True` with an axiom that the field is nil (a trust-base change, no).
+
 ## The question for the user (recorded per the delegation)
 
 A new premise on public constructors with clients (`NewRawNode`, `StartNode`, `RestartNode`):
