@@ -109,7 +109,7 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   goroutine per link, delays and drops kept) passes 20 concurrent seeds (weak: random runs did not
   reach N2 before either; the argument is what counts).
 - **Q6 (2026-11-08, S4 rounds 3-4; to present with increment 2's draft): new client-owned ghost
-  on raft's node API, gated on a non-nil trace logger.** The simulation needs (1) a token per
+  on raft's node API, gated on a traced cluster (`γ.raft.reTrace = some γt`).** The simulation needs (1) a token per
   handed-out traced message (`Advance`'s post gives them, `Node.Step` takes one,
   given back on a timeout), (2) a proposal budget (`Propose` takes a credit; the leader's
   inflights then never fill, P5), (3) `isTraceLogger γt …` in the constructors' premise (Q1's
@@ -119,11 +119,14 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   node's piece of the allocation and the allocation's peers), (5) since round 6: an exclusive
   per-link cursor for the tokens' order, a compaction permit never handed out, the budget's gate
   (non-empty data), no `TransferLeadership`/`ReadIndex`/`Campaign`/`ForgetLeader`
-  with a logger, (6) since round 7: the allocation law's premises `|peers| ≤ 3` (P9's voter
+  in a traced cluster, (6) since round 7: the allocation law's premises `|peers| ≤ 3` (P9's voter
   count) and a non-`dup` cluster, the compaction permit as a gated conjunct of the storage bound
   `storBnd`, (7) since round 8: the gate a cluster field `reTrace` of raft's names (as `dup`, so
-  untraced clients need no witness), and with it, `Ready`'s snapshot empty. The existing clients
-  (nil logger) carry nothing new. The spec skill makes each the
+  untraced clients need no witness), and with it, `Ready`'s snapshot empty, (8) since round 9:
+  `storBnd` exempting `c = 0`, `StartNode` tying its logger to `reTrace`, `RestartNode` taking an
+  untraced cluster, the allocation in three steps, raft's `reNoSnap` mode revived as
+  `reTrace.isSome`. Untraced clients (every existing one) carry one new pure fact,
+  `⌜γ.raft.reTrace = none⌝`, from a law raft exports. The spec skill makes each the
   user's; they will be presented side by side with the current specs once increment 2 is drafted
   (`notes/trace-validation-sim.md`, "Increment 2").
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
@@ -286,7 +289,7 @@ ones) its verdict and failing line equal the Go checker's (and so TLC's), and on
 evaluation-error witness (a commit index past the log) it fails with the same error. Not part of
 the trust argument (the plan's "Trust base"): S6's proof is what ties it to the Go.
 
-## Draft: S4 drafted (2026-11-08), in Review (rounds 1-8 done; blocked on Q4, Q5, Q6)
+## Draft: S4 drafted (2026-11-08), in Review (rounds 1-9 done; blocked on Q4, Q5, Q6)
 
 `notes/trace-validation-sim.md`: the abstraction `α` (a server's variables, the messages, the bags
 as new ghost state with a token per message in flight), the relation's phases (idle, handling a
@@ -319,7 +322,9 @@ first-tier finding, P9's voter count with no channel into raft (a premise of the
 second tier on the storage bound, the cursor's ownership, `QuorumLogInv`'s clauses; nothing else
 blocking once Q4-Q6 are decided; revision 8. Round 8 (`notes/trace-validation-reviews/s4-r8.md`): round 7's
 repairs right; one first-tier gap (`Ready`'s snapshot under the gate: Q6), second tier on the gate's
-place, the inherited commit, the leader's own `Match`, the hand-off clause; revision 9.
+place, the inherited commit, the leader's own `Match`, the hand-off clause; revision 9. Round 9 (`notes/trace-validation-reviews/s4-r9.md`): two
+one-sentence first-tier gaps (`storBnd`'s `c = 0`; the gate half moved to `reTrace`), the
+allocation's order, untraced clients' pure fact, `reNoSnap`; revision 10.
 
 ## Draft: S3 increment 1 done (2026-11-08)
 
