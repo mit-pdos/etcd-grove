@@ -27,12 +27,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev encodeObj.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (name uid val : GoString) (rv : w64),
+  ∀ (p : Loc) (dq : DFrac) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      p ↦{dq} github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name uid val rv }}
+      p ↦{dq} v }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeObj)) (Val #p))
-  {{ (sl : GoSlice), RET #sl; sl ↦* encodeWith tagV1 name uid val ∗
-      p ↦{dq} github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name uid val rv }}
+  {{ (sl : GoSlice), RET #sl; sl ↦* encodeWith tagV1 v ∗
+      p ↦{dq} v }}
 
 end spec
 

@@ -77,16 +77,17 @@ theorem driver_encodeOk (wp_Encode : runtime.Encode.spec (GF := GF) (hG := hG))
   iapply (wp_Encode (interface.mk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec.ty
       #(github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec.mk))
       (interface.mkOk (go.GoType.PointerType objTyD) #p)
-      (p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.name o.uid o.val n)
-      (p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.name o.uid o.val n)
-      (encodeWith tagV1 o.name o.uid o.val)) $$ [Hp] [HΦ]
+      (p ↦ o.toObj n)
+      (p ↦ o.toObj n)
+      (encodeWith tagV1 (o.toObj 0))) $$ [Hp] [HΦ]
   · iframe Hrt Hp
     iintro %b %Ψ HP Hb HΨ
     dsimp only [interface.mk]
-    wp_apply wp_cEncode p (DFrac.own 1) o.name o.uid o.val n b [] $$ [$HP $Hb] as ⟨HP, Hb⟩
+    wp_apply wp_cEncode p (DFrac.own 1) (o.toObj n) b [] $$ [$HP $Hb] as ⟨HP, Hb⟩
     iapply HΨ
     iframe HP
     isimp only [List.nil_append] at Hb
+    rw [show encodeWith tagV1 (o.toObj 0) = encodeWith tagV1 (o.toObj n) from rfl]
     iexact Hb
   inext
   iintro %sl %err ⟨%He, Hsl, Hp⟩
@@ -115,7 +116,7 @@ theorem driver_versionerOk
     iunfold objAtD at Hx
     icases Hx with ⟨%p, %n, %Hxp, Hp⟩
     obtain ⟨rfl, hp, rfl⟩ := Hxp
-    wp_apply wp_ORV p (DFrac.own 1) o.name o.uid o.val n $$ [$Hp] as Hp
+    wp_apply wp_ORV p (DFrac.own 1) (o.toObj n) $$ [$Hp] as Hp
     iapply HΦ $$ [Hp]
     · iunfold objAtD
       iexists p, n
@@ -129,7 +130,7 @@ theorem driver_versionerOk
     iunfold objAtD at Hx
     icases Hx with ⟨%p, %n, %Hxp, Hp⟩
     obtain ⟨rfl, hp, rfl⟩ := Hxp
-    wp_apply wp_Prep p o.name o.uid o.val n $$ [$Hp] as Hp
+    wp_apply wp_Prep p (o.toObj n) $$ [$Hp] as Hp
     iapply HΦ
     isplitl
     · iunfold objAtD
@@ -143,7 +144,7 @@ theorem driver_versionerOk
     iunfold objAtD at Hx
     icases Hx with ⟨%p, %n, %Hxp, Hp⟩
     obtain ⟨rfl, hp, rfl⟩ := Hxp
-    wp_apply wp_Upd p o.name o.uid o.val n m $$ [$Hp] as Hp
+    wp_apply wp_Upd p (o.toObj n) m $$ [$Hp] as Hp
     iapply HΦ
     isplitl
     · iunfold objAtD
@@ -201,7 +202,7 @@ theorem driver_decoderOk (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG)) :
   iunfold objAtD at Hx
   icases Hx with ⟨%p, %n, %Hxp, Hp⟩
   obtain ⟨rfl, hp, rfl⟩ := Hxp
-  wp_apply wp_Dec dsl DFrac.discard d p o.name o.uid o.val n rev $$ [$Hd $Hp] as %err ⟨-, Hr⟩
+  wp_apply wp_Dec dsl DFrac.discard d p (o.toObj n) rev $$ [$Hd $Hp] as %err ⟨-, Hr⟩
   iapply HΦ
   cases hdec : decodeD d with
   | none =>
@@ -216,17 +217,17 @@ theorem driver_decoderOk (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG)) :
     iexists p, n
     iframe Hp
     ipureintro; exact ⟨rfl, hp, rfl⟩
-  | some nv =>
-    rcases nv with ⟨n', u', v'⟩
-    rw [decodeObjD_of d n' u' v' hdec]
+  | some w =>
+    rw [decodeObjD_of d w hdec]
     simp only
     icases Hr with ⟨%He, Hp⟩
     isplitr
     · ipureintro; exact He
     iunfold objAtD
     iexists p, rev
+    simp only [DObj.toObj, DObj.ofObj]
     iframe Hp
-    ipureintro; exact ⟨rfl, hp, rfl⟩
+    ipureintro; simp [hp]
 
 theorem driver_zeroOk (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime ⊢
@@ -251,8 +252,7 @@ theorem driver_zeroOk (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := 
   isplitr
   · ipureintro; exact ⟨rfl, hp, rfl⟩
   have hz : (zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) =
-      github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk driverCodec.zero.name driverCodec.zero.uid
-        driverCodec.zero.val (W64 0) := rfl
+      driverCodec.zero.toObj (W64 0) := rfl
   rw [← hz]
   iexact Hp
 

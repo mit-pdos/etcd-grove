@@ -776,7 +776,7 @@ initializers.''',
 )
 
 # the driver's error variables and the tags of their `errors.New` results
-_K8E = [('errNotObj', 'NO'), ('errBadData', 'BD'), ('errBadRV', 'BR'), ('errNoList', 'NL'),
+_K8E = [('errNotObj', 'NO'), ('errBadData', 'BD'), ('errBadRV', 'BR'),
         ('errDeleteRejected', 'DR'), ('errUpdateRejected', 'UR')]
 
 def _errVarOk(x, t):
@@ -788,7 +788,7 @@ def _errVarOk(x, t):
 
 SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8s.etcd3'] = dict(
     doc='''Its fact (`drvInit`, `Base.lean`): its error variables (`k8setcd3.go`: `errNotObj`,
-`errBadData`, `errBadRV`, `errNoList`, `errDeleteRejected`, `errUpdateRejected`, translated
+`errBadData`, `errBadRV`, `errDeleteRejected`, `errUpdateRejected`, translated
 `errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and whose cell holds
 its message (`wp_New_errorString_cell`). Its initializer allocates them, initializes its imports
 and runs their translated initializers.''',

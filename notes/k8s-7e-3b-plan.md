@@ -11,6 +11,28 @@ on the branch until 7e-4.
 - `Base.lean`: `errNoList` dropped from the package fact (the variable is gone). `etc/gen-init.py`
   still has to be rerun for the driver (`--check` first).
 
+## (a) The object layer: done (2026-11-08)
+
+Builds (targeted `lake build`, no `sorry`): `Codec`, `ObjSpec`, `Contract`, `Callbacks`, `Init`
+(regenerated: `etc/gen-init.py`'s `_K8E` drops `errNoList`), and the spec/proof pairs `putField`
+(new), `encodeWith`, `encodeObj`, `encodeV0`, `getField` (new), `decodeObj`, `codec.Encode`,
+`decoder.Decode`, `versioner.{UpdateObject,PrepareObjectForStorage,ObjectResourceVersion}`,
+`Obj.{GetUID,GetResourceVersion}`, `validateFor`, `splitKey` (new), `updated`, `tryUpdateFor`.
+- `DObj` is a structure of the six fields with their length bounds; `o.toObj n` is Go's record
+  (an `abbrev`, so its projections reduce). The Go functions' specs are stated on the record
+  (`v : Obj`), not field by field, so they no longer change with the record's fields.
+- The codec on the record: `putF`/`encodeWith tag v`, `getFieldD`/`decodeD d : Option Obj`;
+  `decodeD_encode` (either tag), `decodeD_some` (fits, RV 0, same length as re-encoded: the no-op
+  update's bound), `encodeWith_v0_ne_v1` (D30g's seeds are non-canonical), `encodeWith_length`.
+- `getField.spec` takes `i < 2^16` (no overflow of `i+1+n`; `decodeObj`'s indices are below
+  `3 + 5*256`).
+- Callbacks reject on the node: `rejects has reject node`; `updGo` (on the record) and `updObj`
+  (on `DObj`, `updObj_toObj` under `inFits`: key, node, app shorter than 256);
+  `tryUpdateFor.spec`'s premise is `inFits inp`.
+- **`strings.Cut`** (untranslated in Perennial) is used by `splitKey`: `Spec/strings/Cut.lean`
+  (`cutL`) is taken as a **hypothesis** of `splitKey.wp_proof`, no axiom. For 7e-2's Draft, with
+  the other out-of-driver callee specs.
+
 ## What breaks first, and the order
 
 The breakage starts in the object layer, which `KModel.lean` imports through `Callbacks`. So

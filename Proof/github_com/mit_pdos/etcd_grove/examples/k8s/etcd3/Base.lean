@@ -2,7 +2,7 @@
 Lean-first (no Rocq counterpart).
 
 The driver's package `k8setcd3` (`examples/k8s/etcd3`, phase 6 of `notes/k8s-etcd3-plan.md`): its
-package fact `drvInit`. Its error variables (`errNotObj`, `errBadData`, `errBadRV`, `errNoList`,
+package fact `drvInit`. Its error variables (`errNotObj`, `errBadData`, `errBadRV`,
 `errDeleteRejected`, `errUpdateRejected`: translated `errors.New` calls) each hold a fixed non-nil
 error whose `Error()` returns a string (`errorStringSpec`) and whose cell holds its message
 (`errStrCell`, D19k: what tells the callbacks' sentinels apart from the client's errors). Its
