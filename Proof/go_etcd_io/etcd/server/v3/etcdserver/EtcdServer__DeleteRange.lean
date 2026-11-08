@@ -48,7 +48,8 @@ theorem EtcdServer.DeleteRange.wp_proof
   :
     EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r op Q F
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hdel, Hnp, #HF⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hst, #Hdel, Hnp, #HF⟩
+  -- (sweep repairs 1, B2) the request context's start time
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -86,8 +87,9 @@ theorem EtcdServer.DeleteRange.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hst1, %Hinc1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
+  ihave #Hstc1 := Hst1 $$ Hst
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩

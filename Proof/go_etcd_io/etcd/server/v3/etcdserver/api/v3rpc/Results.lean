@@ -43,6 +43,7 @@ only producer, takes; their statements do not show it.
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckNodup
@@ -909,6 +910,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR, #Hast, #Hcost⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Ho, Hspec⟩ HΨ
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   simp only [pbAuthUserAddRequest]
   icases Hr with ⟨%Hrn, #HN, %o, #Ho', #Hopts⟩
   iunfold userOptsFalse at Hopts
@@ -961,6 +963,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
   iunfold etcdRoleAddSpec at Hspec
@@ -1004,6 +1007,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
   iunfold etcdUserGrantRoleSpec at Hspec
@@ -1047,6 +1051,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
   iunfold etcdRoleGrantPermissionSpec at Hspec
@@ -1090,6 +1095,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #HNR⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hk⟩ HΨ
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   simp only [pbAuthEnableRequest] at *
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩

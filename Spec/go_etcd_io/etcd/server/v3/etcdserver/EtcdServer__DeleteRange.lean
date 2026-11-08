@@ -4,6 +4,7 @@
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
@@ -37,6 +38,7 @@ abbrev EtcdServer.DeleteRange.spec : Prop :=
     (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
+      context.startTimeOk ctx ∗
       txn.deleteRangeRequestIs r op ∗ deletePermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) op Q ∗ mvcc.idxCert E.γ.idx F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"DeleteRange"))
       (Val #(GoInterface.ok ctx))) (Val #r))

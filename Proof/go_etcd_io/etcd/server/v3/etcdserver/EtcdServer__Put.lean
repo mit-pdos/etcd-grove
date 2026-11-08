@@ -76,7 +76,7 @@ theorem EtcdServer.Put.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hst1, %Hinc1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
@@ -85,13 +85,26 @@ theorem EtcdServer.Put.wp_proof
   (try wp_auto)
   wp_apply time.wp_Now as %now -
   (try wp_auto)
-  wp_apply hWV ctx1 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c2 ⟨%Hc2, -, #Hc2w, %c2', %vs2', %Hc2e', %Hinc2, -⟩
+  wp_apply hWV ctx1 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c2 ⟨%Hc2, -, #Hc2w, %c2', %vs2', %Hc2e', %Hinc2, -, -, -, -, #HVw⟩
   · iframe #; ipureintro; right; right; left; rfl
   ihave ⟨%ctx2, %vs2, %Hc2e, #Hctx2⟩ := Hc2w $$ %_ Hctx1
   subst Hc2e
+  have Hcc := GoInterface.ok.inj Hc2e'
+  subst Hcc
+  -- (sweep repairs 1, B2) the start time `WithValue` stored: a `time.Time`
+  ihave #Hst2 : context.startTimeOk ctx2 $$ []
+  · iunfold context.startTimeOk
+    imodintro
+    iintro %Φ' HΦ'
+    iapply HVw $$ %startTimeKeyAny %startTimeRes
+    · ipureintro; left; rfl
+    · ipureintro; intro _; right; exact ⟨now, rfl⟩
+    · iintro %hne; exact absurd rfl hne
+    · itrivial
+    · iexact HΦ'
   -- (E3zb) the context `raftRequest` sees carries the request's metadata
   have Hinc : metadata.incomingOf (GoInterface.ok ctx2) = metadata.incomingOf (GoInterface.ok ctx) := by
-    have h := GoInterface.ok.inj Hc2e'; subst h; rw [Hinc2, Hinc1]
+    rw [Hinc2, Hinc1]
   (try wp_auto)
   ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
   iStructNamed Hirr

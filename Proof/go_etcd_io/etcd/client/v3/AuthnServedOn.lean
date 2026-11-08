@@ -19,6 +19,7 @@ they are conditional on it through the token, which their statements do not show
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.ClientUser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
@@ -105,6 +106,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hpw, Hspec⟩ HΨ
   icases Hspec with ⟨Hspec, #HΨe⟩
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   simp only [pbAuthenticateRequest]
   icases Hr with ⟨%Hrn, #HN⟩
   iunfold authnSlot at Hslot

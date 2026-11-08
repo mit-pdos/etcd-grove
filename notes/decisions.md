@@ -33569,3 +33569,27 @@ claim more, the second assumes more), count unchanged. Go (`examples/sweeprepair
 `TestS1NilReader`, `TestS1HandOver`, `TestS2NegativeSize` (the premises false exactly at the
 counterexamples), `TestRealPathOneMember` (every premise held on etcd's path, 960 runs per the Scope's
 20 processes; rerun once 2026-11-08).
+
+## B2: the request context's start time (`startTimeOk`), and `ValueStartTime` proved (2026-11-08 · sweep repairs 1, B2; the Scope (revision 3), B2-F1's law landed in Perennial `ddc0f0acc`, the `Tracer.Start` addition decided by etcd-grove-81 under the user's delegation, `questions.md` Q5 · branch `sweep-repairs-1`)
+
+`context.ValueStartTime`'s trust-boundary axiom claimed that every `isContext` answers
+`Value(traceutil.StartTimeKey{})` with `nil` or a `time.Time`: false of `WithValue(ctx, StartTimeKey{},
+42)` and of a user `Context` whose `Value` panics (`notes/axiom-review/valuestarttime.md`). Now
+`Proof/context/ReqKeys.lean` defines `context.startTimeOk ctx` (that triple at the key, persistent)
+and `ValueStartTime` is a theorem over it (trust base -1).
+
+- **Who needs it.** `raftRequest.spec` (and `specOff`) takes `startTimeOk ctx`; so do `DeleteRange`,
+  `LeaseGrant`, `LeaseRevoke`, `Authenticate` and the admin contract's pre (`adminPreOn`,
+  `authnRaft_on`); `v3rpc.srvCall` carries it. Linked specs narrowed (the Scope's narrowing (d)):
+  an embedder calling these with a hand-made context must show it; no closed theorem changes.
+- **Producers.** A gRPC run's context (`startTimeOk_of_grpcRunCtx`: `grpcRunCtx` answers `nil` at
+  an etcd-named key); the server's `s.ctx = WithCancel(Background())` (`startTimeOk_of_bgFrom`, over
+  Perennial's `ctxValueFrom`), carried in `srvRevokeCtx` for `revokeExpiredLeases` → `WithRoot`
+  (which returns its context) → `LeaseRevoke`; `Put`/`Txn` from `WithValue`'s `Value` wand at the key
+  (`time.Now()`); `Tracer.Start`'s context from its argument's.
+- **`Tracer.Start` (trusted text added).** Its post gains `□ (startTimeOk ctx -∗ startTimeOk ctx')`
+  (otel's `ContextWithSpan` is a `WithValue` at otel's key), the shape of its `ctxTraceIs` clause.
+  Attacked first: `examples/sweeprepairs/tracer` (`TestStartKeepsStartTime`, the noop tracer and the
+  SDK tracer as etcd's server builds it, `ParentBased` over rates 0, 1, 500000, 1000000 per million;
+  parents absent, a `time.Time`, span contexts with and without one; 1250 calls, every answer the
+  argument's; 3 runs).

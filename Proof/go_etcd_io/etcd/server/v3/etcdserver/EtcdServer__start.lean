@@ -192,8 +192,11 @@ theorem EtcdServer.start.wp_proof
   · iPkgInit
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [] as %cctx %γcx %cancel
-    ⟨#Hcancel, #Hcctx, #Hccc⟩
+    ⟨#Hcancel, #Hcctx, #Hccc, #Hcvf⟩
   · iframe Hcci
+  -- (sweep repairs 1, B2) `s.ctx` answers `nil` at `StartTimeKey{}` (a child of `Background()`)
+  ihave #Hcst := startTimeOk_of_bgFrom cctx $$ [Hpctx Hcvf]
+  · iframe #
   icases Hctx with ⟨%ctx0, Hctx⟩
   icases Hcancel0 with ⟨%cn0, Hcancel0⟩
   wp_auto
@@ -595,7 +598,7 @@ theorem EtcdServer.start.wp_proof
       · rw [← isServerReadM_false, ← hCoff]; iexact Hrd
     iframe HNR
     iexists cctx, _
-    iframe Hctx Hcctx
+    iframe Hctx Hcctx Hcst
   -- (R2d'a swap batch 5) `run`'s start conjuncts in restart form, from a first start's (`%HEr`,
   -- `Hsnap`, `Hstart`; `srvRunRestartR_first`)
   ihave HRr : srvRunRestartR C s γ ci b E { ρ with wait := γw } γr Er γn ai₀ at₀ c₀ x₀ γw

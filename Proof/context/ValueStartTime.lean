@@ -1,7 +1,6 @@
 /-
-The trust boundary: a context's `Value` at `traceutil.StartTimeKey` (Perennial's `isContext`
-specifies `Value` only at `&cancelCtxKey`; a `valueCtx` looks the key up along its parents, which
-returns some value, without effect).
+`ctx.Value(StartTimeKey{})` under `startTimeOk` (sweep repairs 1, B2, 2026-11-08: the trust-boundary
+axiom it replaces claimed it of every `isContext`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -23,7 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : context.Assumptions]
 
-axiom context.ValueStartTime.wp_proof : context.ValueStartTime.spec (GF := GF) (hG := hG)
+theorem context.ValueStartTime.wp_proof : context.ValueStartTime.spec (GF := GF) (hG := hG) := by
+  intro ctx
+  iintro %Φ #Hst HΦ
+  unfold context.startTimeOk
+  iapply Hst
+  inext
+  iintro %v %hv
+  iapply HΦ; ipureintro; exact hv
 
 end proof
 

@@ -78,6 +78,7 @@ The results:
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.KVService
 public import Proof.go_etcd_io.etcd.client.v3.LinkMembers
@@ -1113,6 +1114,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   unfold grpcHandlerOkMd
   iintro %o %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   rw [show (pbPutRequest (GF := GF)).recv r o = txn.putRequestIs r o from rfl]
   iunfold etcdPutSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
@@ -1167,7 +1169,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   | some e =>
     icases Hpost with ⟨#Hco, Hc, Hc0, -⟩
     unfold v3rpc.srvCall
-    icases Hc with ⟨%ci', %cd', -, -, -, -, Hlt⟩
+    icases Hc with ⟨%ci', %cd', -, -, -, -, -, Hlt⟩
     iunfold v3rpc.checkOut at Hco
     icases Hco with ⟨-, #Hev⟩
     iunfold txn.errVarIs at Hev
@@ -1284,6 +1286,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   unfold grpcHandlerOkMd
   iintro %o %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   rw [show (pbRangeRequest (GF := GF)).recv r o = txn.rangeRequestIs r o from rfl]
   iunfold etcdRangeSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
@@ -1331,7 +1334,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   | some e =>
     icases Hpost with ⟨#Hco, Hc, Hcr, -⟩
     unfold v3rpc.srvCall
-    icases Hc with ⟨%ci', %cd', -, -, -, -, Hlt⟩
+    icases Hc with ⟨%ci', %cd', -, -, -, -, -, Hlt⟩
     iunfold v3rpc.checkOut at Hco
     icases Hco with ⟨-, #Hev⟩
     iunfold txn.errVarIs at Hev
@@ -1444,6 +1447,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   unfold grpcHandlerOkMd
   iintro %o %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   rw [show (pbDeleteRangeRequest (GF := GF)).recv r o = txn.deleteRangeRequestIs r o from rfl]
   iunfold etcdDeleteSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
@@ -1481,7 +1485,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   | some e =>
     icases Hpost with ⟨#Hco, Hc, Hc0, -⟩
     unfold v3rpc.srvCall
-    icases Hc with ⟨%ci', %cd', -, -, -, -, Hlt⟩
+    icases Hc with ⟨%ci', %cd', -, -, -, -, -, Hlt⟩
     iunfold v3rpc.checkOut at Hco
     icases Hco with ⟨-, #Hev⟩
     iunfold txn.errVarIs at Hev
@@ -1578,6 +1582,7 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   unfold grpcHandlerOwnOk
   iintro %o %Φ %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, -, Hown, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   rw [show (pbCompactionRequest (GF := GF)).recvOwn r o =
     iprop(∃ req : etcdserverpb.CompactionRequest, r ↦ req ∗
       ⌜o = ⟨req.Revision', req.Physical'⟩⌝) from rfl]
@@ -1759,6 +1764,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   unfold grpcHandlerOkMd
   iintro %t %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   rw [show (pbTxnRequest (GF := GF)).recv r t = iprop(txn.txnRequestIs r t ∗ txnWireOk r t)
     from rfl]
   iunfold etcdTxnSpecM at Hspec
@@ -1839,7 +1845,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     simp only [hc]
     icases Hpost with ⟨#Hco, Hc, Hcr, -⟩
     unfold v3rpc.srvCall
-    icases Hc with ⟨%ci', %cd', -, -, -, -, Hlt⟩
+    icases Hc with ⟨%ci', %cd', -, -, -, -, -, Hlt⟩
     iunfold v3rpc.checkOut at Hco
     icases Hco with ⟨-, #Hev⟩
     iunfold txn.errVarIs at Hev

@@ -6,6 +6,7 @@ lending the request path's readers. Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseGrant
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseGrant
@@ -71,7 +72,8 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       lessorGrantOkG s E S (grantLiveG E) R := by
   iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
   unfold lessorGrantOkG
-  iintro %ci %cd %r %m !> %Φ ⟨HSr, #Hctx, -, #Hreq, Hid, %HRm⟩ HΦ
+  iintro %ci %cd %r %m !> %Φ ⟨HSr, #Hctx, #Hg, #Hreq, Hid, %HRm⟩ HΦ
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hg
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
   wp_apply (hLG s E ρ ci cd r m.1 m.2 h (hR m HRm)) $$ [Hlt HRD Hid] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD

@@ -98,8 +98,8 @@ back with the answer). The context carries no trace (`traceutil.ctxTraceIs ci no
 gRPC handler's context has no `TraceKey` value). -/
 def srvCall (s : Loc) (ρ : ReqNames) (ctx : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜ctx = GoInterface.ok ci⌝ ∗
-    context.isContext ci cd ∗ traceutil.ctxTraceIs ci none ∗ idCred ρ.ids 1 ∗
-    srvLeadTimeReader s)
+    context.isContext ci cd ∗ traceutil.ctxTraceIs ci none ∗ context.startTimeOk ci ∗
+    idCred ρ.ids 1 ∗ srvLeadTimeReader s)
 
 /-- `putAppliedOk` but the caller's reader slot: the answer's facts (the vertical slice's unit
 V1: what the client learns of the response; `client/v3/Results.lean`'s `etcd_putRunOk`), with

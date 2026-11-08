@@ -51,7 +51,7 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   obtain ⟨hlm, hoff⟩ := hv
   have hRR := hRR0 s E ρ
   rw [hoff] at hRR
-  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hreq⟩
+  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hst, #Hreq⟩
   iunfold leaseRevokeReqRO at Hreq
   icases Hreq with ⟨%hr, #HID⟩
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
@@ -79,8 +79,9 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hst1, %Hinc1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
+  ihave #Hstc1 := Hst1 $$ Hst
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩

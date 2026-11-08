@@ -7,6 +7,7 @@ Lean-first (no Rocq counterpart); C1's A4 (2026-10-31, `notes/c1-plan.md`).
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthnStore
@@ -52,6 +53,7 @@ abbrev EtcdServer.Authenticate.spec : Prop :=
       structFieldRef EtcdServer go!"authStore" s ↦□ GoInterface.ok ast ∗
       authnStoreOk (GoInterface.ok ast) E.RD ∗
       □ (|==> idCred ρ.ids 1) ∗ mvcc.idxCert E.γ.idx F ∗ context.isContext ctx cd ∗
+      context.startTimeOk ctx ∗
       ⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthenticateRequest go!"Name" r ↦□ name ∗
       structFieldRef etcdserverpb.AuthenticateRequest go!"Password" r ↦ pw ∗
       srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ E.RD }}

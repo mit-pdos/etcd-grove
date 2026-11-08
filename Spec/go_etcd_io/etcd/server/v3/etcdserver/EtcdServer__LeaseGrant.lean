@@ -5,6 +5,7 @@
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseGrant
 
 @[expose] public section
@@ -62,7 +63,7 @@ abbrev EtcdServer.LeaseGrant.spec : Prop :=
   (ρ.rd.kv.lm = .revocable → id0 = W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvAuthAt s E ∗ srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
-      context.isContext ctx cd ∗ leaseGrantReqOwn r ttl id0 }}
+      context.isContext ctx cd ∗ context.startTimeOk ctx ∗ leaseGrantReqOwn r ttl id0 }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
