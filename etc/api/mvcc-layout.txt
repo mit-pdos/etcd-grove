@@ -536,6 +536,7 @@ Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccImage_fresh.law  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccImage_persistent  # exposed by a spec file (theorem)
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccImage_snapshot.law  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccImage_stop.law  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccReaderN_eq  # exposed by a spec file (theorem)
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccTxn_leaseDelete.law  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccW  # exposed by a spec file (def)
