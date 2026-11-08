@@ -17,6 +17,79 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `Context.Value` at keys other than `&cancelCtxKey` (2026-11-08, sweep repairs 1 B2-F1 and k8s 7f P-RL1)
+
+- **Missing.** Perennial's `context` specs give `Value` only at `&cancelCtxKey` (`isContext`'s
+  `"#HValue"`, `cancelCtx.Value.spec`); nothing at another key, no `backgroundCtx.Value`, and
+  `WithCancel`'s posts drop the new context's read-only parent field (`withCancel`'s
+  `ctxField c ↦□ parent`), so a client cannot follow `value(c.Context, key)`.
+- **Needed by.** B2/B2b (sweep repairs 1): `startTimeOk`/`keepAliveOk` of `s.ctx =
+  WithCancel(Background())` and of `WithValue`s over it, to delete the axioms
+  `context.ValueStartTime`/`ValueKeepAlive`. k8s 7f's P-RL1 (the entry "Contexts derived from
+  a parent that is not an `isContext`" below, `notes/k8s-7f-scope.md` §3): the
+  child of `WithCancel(parent)` answers `Value(k)`, `k ≠ &cancelCtxKey`, as the parent does, for a
+  `*valueCtx` parent too.
+- **Workaround here.** None yet: the two axioms stay until it lands (B2 waits). A marked local axiom
+  only if the Perennial change is refused.
+- **Proposed change.** One proposal for both: Perennial branch `ctx-value` (off `lean`
+  `84d538063`), `docs/design/context-value.md`. A sealed persistent `ctxValue x k R` (`x.Value(k)`
+  and `context.value(x, k)` both return a result in `R`) with laws proved over the translated
+  package: L1 `Background`/`TODO` give `nil`; L2 `*cancelCtx` from its parent's `ctxValue`, any
+  parent type (which makes P-RL1 true: its first wording, through `parent.Value`, was false since
+  `value` reads the standard types' fields directly); L3 `*timerCtx`; L4 `*valueCtx` from its
+  fields (`WithValue` stays untranslated; a client's `WithValue` spec states the fields); L5 other
+  context types from their `Value` spec. `WithCancel`/`WithDeadline` posts gain the transfer law.
+  No axiom, no trusted code; about 300-500 lines. P-RL2 (weak `Err` contracts) is another family,
+  not covered.
+- **Status.** Design approved in principle by etcd-grove-81 (2026-11-08); held until the goose
+  type-switch fix's plan is settled (both are Perennial changes), then Perennial's own workflow
+  (its `etc/land.sh`; the user pushes). B2/B2b wait for the pin bump.
+
+### goose: a type-switch case listing several types tests the first twice, never the last (2026-11-08, found writing the `ctx-value` design)
+
+- **Missing.** `goose.go`'s `typeSwitchStmt` builds a multi-type case's condition with
+  `for i := range c.List[1:] { ... getCond(i) ... }`, so `i` runs `0 .. n-2`: the last type is never
+  tested (it should be `getCond(i+1)`). Gold: `multiTypeSwitch`'s `case int, string:` is
+  `int || int` (`Perennial/Code/.../unittest.lean:5701`); `context.value`'s
+  `case backgroundCtx, todoCtx:` is `backgroundCtx` twice (`Perennial/Code/context.lean:1777`). The
+  model then skips the case's body for the last type, unsound when that body is the one that
+  panics (`case int, string: panic(..)` with a string).
+- **Needed by.** Soundness of every translation with such a case. In the checked-in translations of
+  this repository and Perennial there are only those two (a grep), and `context.value`'s is harmless
+  (a `todoCtx` reaches `default`, `emptyCtx.Value`, `nil`).
+- **Workaround here.** None needed today (no affected translation in this repository).
+- **Proposed change.** The one-line fix and a gold update, through Perennial's
+  `.agents/skills/fix-semantics/SKILL.md` (the user signs off), with a test that distinguishes the
+  last type.
+- **Status.** Confirmed by etcd-grove-81 (2026-11-08, `goose.go:2413-2418`), who takes the
+  `fix-semantics` plan to the user; not started.
+
+### Contexts derived from a parent that is not an `isContext` (2026-11-08, k8s 7f; to be decided in the 7f-4 Draft)
+
+- **Missing.** Two facts about contexts that etcd's require-leader stream handlers need, both
+  general, neither settled yet (`notes/k8s-7f-scope.md`, §3, revision 2):
+  - **(P-RL1)** a `Value` law for `WithCancel` over a general parent: for `k ≠ cancelCtxKeyAny`,
+    `(WP parent.Value(k) {Φ}) -∗ WP child.Value(k) {Φ}`. It needs a premise that the parent's
+    dynamic type is not one Go's `context.value` reads the fields of directly (`*valueCtx`,
+    `*timerCtx`, `withoutCancelCtx`), or a description of such a parent's fields. As first phrased
+    ("the child's `Value` is the parent's", any `isContext` parent) it was false: for
+    `&cancelCtxKey` the child returns itself, and grpc's stream context is a `*valueCtx` chain
+    (the 7f Scope review). `wp_WithCancel_any` already keeps the `ContextDesc`. The require-leader
+    handler may need only a fact about grpc's `metadata.incomingOf`, which is this repository's
+    (a reviewed trust-boundary fact), so P-RL1 may be unnecessary.
+  - **(P-RL2)** derivations (`WithValue`, `WithCancel`/`WithTimeout`) over a parent with a weak
+    contract: its `Done` as `isContext`'s, its `Err` any error after `Done` (etcd's
+    `cancellableContext` returns `ErrGRPCNoLeader`, which `isCtxErr` excludes). Go's child takes
+    `parent.Err()` on the parent's cancellation, so the child has the weak contract too. Natural
+    form: `isContext` generalized over the predicate its errors satisfy.
+- **Needed by.** The require-leader branch of etcd's stream interceptor, which Kubernetes' etcd3
+  store reaches on every watch (`clientv3.WithRequireLeader`), and the Watch and LeaseKeepAlive
+  handlers' derived contexts (`Tracer.Start`, `LeaseRenew`'s `WithTimeout`): stage 7f-4.
+- **Workaround here.** Today the premise `v3rpc.runsNoRequireLeader` excludes the branch; the user
+  decided (2026-11-08) to delete it, so 7f-4 needs these facts, as local lemmas until a Perennial
+  change lands.
+- **Status.** Not started; the 7f-4 Draft states each (or drops P-RL1).
+
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
 
 - **Missing.** Go has failures that are neither a panic nor an error result: `fatal error: ...`

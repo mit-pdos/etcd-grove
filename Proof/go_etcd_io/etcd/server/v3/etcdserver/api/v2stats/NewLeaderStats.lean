@@ -36,7 +36,7 @@ theorem v2stats.NewLeaderStats.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) 
   (try wp_auto)
   wp_if_destruct
   all_goals
-    try wp_apply wp_NewNop as %l _
+    try wp_apply wp_NewNop as %l -
     (try wp_auto)
     wp_apply wp_map_make1 as %m _
     (try wp_auto)

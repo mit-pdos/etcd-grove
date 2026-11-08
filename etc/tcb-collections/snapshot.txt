@@ -84,6 +84,7 @@ axiom ccDecodeV2_nil
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithValue.wp_proof
+axiom envVerifyOffTok
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof

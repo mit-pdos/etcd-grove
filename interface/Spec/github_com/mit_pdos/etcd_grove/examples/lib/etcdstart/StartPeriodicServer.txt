@@ -20,16 +20,16 @@ def etcdstart.StartPeriodicServer.spec : Prop :=
                           go!"http://" ++ peerAddr ∈ dir id →
                             rafthttp.bootCfg dir [id] →
                               utf8Valid name →
-                                lg ≠ null →
-                                  10 ≤ sint.Z period →
-                                    ρ.rd.kv.cret = 0 →
-                                      ckptEffectsOk →
-                                        authRecordsFit →
-                                          apply.backendUnderQuota →
-                                            storage.diskOk →
-                                              ⊢
-                                                ∀ Φ,
-                                                  isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                10 ≤ sint.Z period →
+                                  ρ.rd.kv.cret = 0 →
+                                    ckptEffectsOk →
+                                      authRecordsFit →
+                                        apply.backendUnderQuota →
+                                          storage.diskOk →
+                                            ⊢
+                                              ∀ Φ,
+                                                isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                                    zapLoggerOk lg ∗
                                                       threadTok ∗
                                                         etcdstart.bootPremise N [id] bootLog ctxs dir name name
                                                             (etcdstart.urls1 name peerAddr client) id ∗
@@ -37,20 +37,20 @@ def etcdstart.StartPeriodicServer.spec : Prop :=
                                                             context.isClosedchanInit ∗
                                                               etcdstart.memberBoot γ ctxs ρ E₀ Φs id true lm ∗
                                                                 netHttpOk γn id ∗ etcdstart.memberFreshRes name { } γn -∗
-                                                    (▷
-                                                        ∀ s err,
-                                                          ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
-                                                              ⌜err = GoInterface.nil⌝ ∗
-                                                                etcdstart.memberUp s ρ E₀ lg γn id lm -∗
-                                                            Φ (intoVal s, intoVal err)) -∗
-                                                      WP
-                                                        ((((((intoVal
-                                                                    (functions
-                                                                      github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer
-                                                                      []))
-                                                                  (intoVal name))
-                                                                (intoVal peerAddr))
-                                                              (intoVal client))
-                                                            (intoVal period))
-                                                          (intoVal lg))
-                                                        {{ Φ }}
+                                                  (▷
+                                                      ∀ s err,
+                                                        ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
+                                                            ⌜err = GoInterface.nil⌝ ∗
+                                                              etcdstart.memberUp s ρ E₀ lg γn id lm -∗
+                                                          Φ (intoVal s, intoVal err)) -∗
+                                                    WP
+                                                      ((((((intoVal
+                                                                  (functions
+                                                                    github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer
+                                                                    []))
+                                                                (intoVal name))
+                                                              (intoVal peerAddr))
+                                                            (intoVal client))
+                                                          (intoVal period))
+                                                        (intoVal lg))
+                                                      {{ Φ }}

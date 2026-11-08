@@ -51,6 +51,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
+public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportFull
 public import Perennial.Ghost.GhostMap
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
@@ -224,8 +225,7 @@ and of `NewServer.spec`. -/
 opaque authRecordsFit : Prop
 
 /-- **The configurations `bootstrap`'s contracts cover, at either start** (2026-11-03, the
-whole-`bootOk` review, C): a logger (`bootstrap` logs through `cfg.Logger` from its first line,
-`bootstrap.go:64`: nil panics), a quota bbolt can map (`storage.openMmapOk`: `newBackend` panics
+whole-`bootOk` review, C): a quota bbolt can map (`storage.openMmapOk`: `newBackend` panics
 otherwise), a batch limit the backend's model admits (`openLimit cfg` positive and at most `2 ^ 57`:
 `bootOk`'s `Hbe`, `d.P.Wf`; Go takes any `BackendBatchLimit`, `storage/backend.go:36-41`), no
 bootstrap defragmentation (`BootstrapDefragThresholdMegabytes = 0`, `bootstrap.go:267-272`: `Defrag`
@@ -235,9 +235,11 @@ which `Hraft`'s `ConfigValid` needs). Until then the last came only from the exa
 `heartbeat ≠ 0`, false of Go at `TickMs = 2 ^ 58`, where the wrapping heartbeat is `0`; `Hraft` now
 states the heartbeat Go computes, true at every `TickMs`, and `NewServer`, which starts the ticker,
 takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/lib/etcdstart/etcdstart.go`)
-meets all. -/
+meets all. (Sweep repairs 1, R1-2, L4, 2026-11-07: until then also `cfg.Logger' ≠ null`, which a
+zero `&zap.Logger{}` meets and on which `bootstrap` panics at its first log line; the logger is now
+`zapLoggerOk cfg.Logger'` in the contracts' preconditions, an `IProp`.) -/
 def bootCfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
-  cfg.Logger' ≠ null ∧ storage.openMmapOk cfg ∧
+  storage.openMmapOk cfg ∧
     0 < sint.Z (storage.openLimit cfg) ∧ sint.Z (storage.openLimit cfg) ≤ 2 ^ 57 ∧
     cfg.BootstrapDefragThresholdMegabytes' = W64 0 ∧
     1 < sint.Z cfg.ElectionTicks'
@@ -299,10 +301,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
-    -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, not nil
-    -- (`NewClusterFromURLsMap` sets `lg` from the configuration's logger): what `AddMember` and
-    -- `RemoveMember` log through, `applyConfChange`'s
-    "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ ⌜lgc ≠ null⌝) ∗
+    -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, a zap logger (sweep
+    -- repairs 1, L4: until then only not nil) (`NewClusterFromURLsMap` sets `lg` from the
+    -- configuration's logger): what `AddMember` and `RemoveMember` log through, `applyConfChange`'s
+    "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ zapLoggerOk lgc) ∗
     -- (audit B4a, 2026-10-18) its `versionChanged` field, owned (the cluster not yet shared):
     -- `NewServer`'s `SetVersionChangedNotifier` writes it without the lock, and the cluster's
     -- apply contract `Hisc` (whose `SetVersion` reads it) is for after, the field read-only
@@ -499,12 +501,21 @@ does otherwise) and a budget `bootstrap`'s own write-backs leave (`N + 7 + bootW
 I/O, where it would otherwise panic: bbolt opens the backend file (`storage.dbOpensOk`,
 `newBackend`'s `lg.Panic` on `OpenBackend`'s goroutine) and the WAL is created
 (`storage.walCreateOk`, `bootstrapNewWAL`'s `lg.Panic`); its other I/O failures return an error or
-call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). -/
+call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). (Sweep repairs 1, R1-2, L4,
+2026-11-07) With a zap logger (`zapLoggerOk cfg.Logger'`): `bootstrap` logs through it from its first
+line (`bootstrap.go:64`, `:92`), and on a zero `&zap.Logger{}` panics; until then the contract
+covered any non-nil logger (`bootCfgOk`'s `cfg.Logger' ≠ null`), so it was false of Go there and
+every closed theorem assuming it held vacuously on that account. -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
   iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit ∧
           storage.dbOpensOk ∧ storage.walCreateOk⌝ ∗
+        -- (sweep repairs 1, L4) a zap logger
+        zapLoggerOk cfg.Logger' ∗
+        -- (sweep repairs 1, B4) `ETCD_VERIFY` off: its backend's lock checks return (`bootOk`'s
+        -- `isBackend` carries it)
+        envVerifyOff ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
         wal.bootRes cfg }}
       (App (Val (@! bootstrap)) (Val #cfg))

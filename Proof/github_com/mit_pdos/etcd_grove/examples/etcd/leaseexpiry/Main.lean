@@ -110,7 +110,8 @@ theorem Main.wp_proof
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`), at KV names whose lessor is revocable
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
@@ -129,7 +130,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leaseexpiry" go!"127.0.0.1:23986" go!"127.0.0.1:23976" lg
       (LogEntry.toEntries boot 0) ctxs (leaseexpiryDir id) id γ ρ E₀ Φs γn .revocable Htb Hrb48
       HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leaseexpiryDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq
+      (by simp [leaseexpiryDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
@@ -202,8 +203,9 @@ theorem Main.wp_proof
   icases Hga with ⟨#Hrg, #Hrttl, #Hrls⟩
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23976" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23976" [] null null [] null default) Hlg
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23976" [] null null [] null default)
       (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+  · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail

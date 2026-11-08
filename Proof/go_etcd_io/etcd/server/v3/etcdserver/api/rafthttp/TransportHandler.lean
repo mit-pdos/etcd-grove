@@ -353,20 +353,22 @@ theorem rafthttp.Transport.Handler_core
   wp_apply hNSM as %m Hm
   (try wp_auto)
   wp_apply hHdl $$ [$Hm] as Hm
-  · ipureintro; simp
+  · ipureintro; refine ⟨by unfold http.litPathPat; decide, by rw [Hhp]; exact http.handlerRegOk_ptr _ _, by simp⟩
   (try wp_auto)
   wp_apply hHdl $$ [$Hm] as Hm
-  · ipureintro; simp
+  · ipureintro; refine ⟨by unfold http.litPathPat; decide, by rw [Hhs]; exact http.handlerRegOk_ptr _ _, by simp⟩
   (try wp_auto)
   wp_apply hHdl $$ [$Hm] as Hm
-  · ipureintro; simp [snapPath]
+  · ipureintro
+    refine ⟨by unfold http.litPathPat; (try simp only [snapPath]); decide, by rw [Hhsn]; exact http.handlerRegOk_ptr _ _, by simp [snapPath]⟩
   (try wp_auto)
   ihave #Hpbi : isPkgInit (PROP := IProp GF) pkg_id.github_com.xiang90.probing $$ []
   · iPkgInit
-  wp_apply hNewHandler as %hpr #Hprok
+  wp_apply hNewHandler as %hpr ⟨%Hprreg, #Hprok⟩
   (try wp_auto)
   wp_apply hHdl $$ [$Hm] as Hm
-  · ipureintro; simp [snapPath, probingPath]
+  · ipureintro
+    refine ⟨by unfold http.litPathPat; (try simp only [probingPath]); decide, Hprreg, by simp [snapPath, probingPath]⟩
   (try wp_auto)
   subst Hhp Hhs Hhsn
   iapply HΦ

@@ -39,7 +39,8 @@ theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := 
   · iPkgInit
   (try wp_auto)
   wp_if_destruct
-  · wp_apply h_NewNop as %lg' %Hlg'
+  · wp_apply h_NewNop as %lg' #Hlg'z
+    ihave %Hlg' := zapLoggerOk_ne_null lg' $$ Hlg'z
     (try wp_auto)
     wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mp Hm
     (try wp_auto)

@@ -166,12 +166,15 @@ theorem EtcdServer.applyAll.wp_proofBatch
     ipureintro; exact ⟨by have := Hdm0.1; omega, by have := Hdm0.2; omega⟩
   (try wp_auto)
   -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
-  wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, -⟩
+  wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, %dB, -, #HbRO⟩
   · iframe #; iframe Hbr
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's
+  ihave #Hvoff := srvBeRO_envVerifyOff dB $$ HbRO
   wp_apply hLg s sv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_apply hV be sv.lg true bsl
+  wp_apply hV be sv.lg true bsl $$ []
+  · iframe #
   (try wp_auto)
   -- `proposalsApplied.Set(float64(ep.appliedi))`
   iunfold gaugeSetSpec at Hgs

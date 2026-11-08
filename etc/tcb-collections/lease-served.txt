@@ -31,6 +31,7 @@ axiom backend.txLive
 axiom context.ValueKeepAlive.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithValue.wp_proof
+axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof

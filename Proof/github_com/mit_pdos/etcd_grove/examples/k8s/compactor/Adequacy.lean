@@ -29,7 +29,7 @@ length below `2^63`, a Go slice's bound): three members started in process in co
 (`cluster3.StartCluster` at `clusterCfg`), a bridge to each, the partitioner on the schedule, the
 writer and the five API servers each with a client of the three bridges. Its hypotheses are
 `examples/etcd/partition`'s at `clusterCfg` (the member ids and bootstrap log, `cluster3.BootFacts`;
-the nine addresses unclaimed; the three WAL directories distinct and absent; `cluster3.premises`)
+the nine addresses unclaimed; the three data directories distinct and fresh; `cluster3.premises`)
 with this example's (`clock.RealClock.After`, the registry allocated as above).
 -/
 module
@@ -122,8 +122,10 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed k8scompactorProgram k8scompactorNames)
     (HAs : addrsUnclaimed k8scompactorProgram [go!"127.0.0.1:23976"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent k8scompactorProgram [config.walDirOf go!"k8scompactor.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent k8scompactorProgram [go!"k8scompactor.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff k8scompactorProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8scompactorGF,
       ⊢ etcdstart.premises (GF := k8scompactorGF) (hG := heapAtKc hG lctx) go!"k8scompactor"
@@ -139,10 +141,10 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_alloc_members (GF := k8scompactorGF) github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
+  refine etcd_adequate_alloc_members (GF := k8scompactorGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [config.walDirOf go!"k8scompactor.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
-    -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [go!"k8scompactor.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(k8s_compactor.memberName, ⟨none, some k8s_compactor.clientAddr⟩)] [] (List.Perm.refl _)
     (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
@@ -183,11 +185,11 @@ def k8scompactorPAddrs : List GoString :=
     k8s_compactor.clusterCfg.Bridge1', k8s_compactor.clusterCfg.Bridge2',
     k8s_compactor.clusterCfg.Bridge3']
 
-/-- The members' WAL directories (`WALDir()` of their data directories `<name>.etcd`). -/
-def k8scompactorPWalDirs : List GoString :=
-  [config.walDirOf (k8s_compactor.clusterCfg.Name1' ++ go!".etcd") go!"",
-    config.walDirOf (k8s_compactor.clusterCfg.Name2' ++ go!".etcd") go!"",
-    config.walDirOf (k8s_compactor.clusterCfg.Name3' ++ go!".etcd") go!""]
+/-- The members' data directories `<name>.etcd` (sweep repairs 1, W3/W4: until then their WAL directories). -/
+def k8scompactorPDataDirs : List GoString :=
+  [(k8s_compactor.clusterCfg.Name1' ++ go!".etcd"),
+    (k8s_compactor.clusterCfg.Name2' ++ go!".etcd"),
+    (k8s_compactor.clusterCfg.Name3' ++ go!".etcd")]
 
 /-- **The compactor example on three members under partitions is safe** (see the file header):
 every real execution of `k8scompactorPProgram steps` from a fresh state with one thread, of `n`
@@ -208,9 +210,11 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (k8scompactorPProgram steps) k8scompactorNames)
     (HAs : addrsUnclaimed (k8scompactorPProgram steps) k8scompactorPAddrs)
-    -- the members' WAL directories, distinct (`filepath.Join` is opaque here), hold no WAL at start
-    (HDsNd : k8scompactorPWalDirs.Nodup)
-    (HDs : walDirsAbsent (k8scompactorPProgram steps) k8scompactorPWalDirs)
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
+    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
+    (HDs : dataDirsAbsent (k8scompactorPProgram steps) k8scompactorPDataDirs)
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (k8scompactorPProgram steps))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8scompactorGF,
       ⊢ cluster3.premises (GF := k8scompactorGF) (hG := heapAtKc hG lctx) k8s_compactor.clusterCfg n
@@ -226,11 +230,11 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_alloc_members (GF := k8scompactorGF)
+  refine etcd_adequate_alloc_members (GF := k8scompactorGF) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainPartition)) (schedLit steps))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) k8scompactorPAddrs (by decide)
-    k8scompactorPWalDirs HDsNd
+    k8scompactorPDataDirs (by decide)
     -- (hub step 7's A3) the cluster's members and its bridges; the program's address list is theirs
     -- up to order (peers, then clients, then bridges)
     (cluster3.members k8s_compactor.clusterCfg) (cluster3.bridges k8s_compactor.clusterCfg) (by decide) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs

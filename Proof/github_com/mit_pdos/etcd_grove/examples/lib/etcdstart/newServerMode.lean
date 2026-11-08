@@ -46,8 +46,9 @@ theorem newServerMode.wp_proof
     newServerMode.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
-    HU HU8 Hlg Hmode Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+    HU HU8 Hmode Hck Haf Hbuq Hdbo
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
@@ -76,11 +77,13 @@ theorem newServerMode.wp_proof
   have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   -- (step 6 of the hubs, 2026-11-03) `NewServer.specG` at auth off, in the member's mode `cmp`; its
   -- mode-indexed rows at `false` are today's (by definition)
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, from the member's fresh bundle
+  icases memberFreshRes_verify _ _ _ $$ Hfresh with ⟨#Hvoff, Hfresh⟩
   have wpNS : NewServer.specG (GF := GF) (hG := hG) false cmp := wp_NewServer cmp
   simp only [NewServer.specG, kvInvM_false, srvErM_false, srvBuiltG_false, bootKVOf_false] at wpNS
   wp_apply (wpNS _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
       γ id ctxs ρ E₀ N Φs γn dir γd lm hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
-      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
+      ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default Hmode (fun _ => trivial) hcmp0 Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
@@ -94,7 +97,7 @@ theorem newServerMode.wp_proof
       (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)) Hck)
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (bootCfgOk_of _ Hlg rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8⟩ HwbN)
+      (bootCfgOk_of _ rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8⟩ HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres
   · iframe
     iframe #

@@ -35,7 +35,7 @@ theorem clientv3.New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := h
   wp_start as ⟨#Hcfg, #Hauth⟩
   ihave #Hcfg' := Hcfg
   iunfold clientCfgOk at Hcfg'
-  icases Hcfg' with ⟨#Heps, -, %Hpure⟩
+  icases Hcfg' with ⟨#Heps, -, %Hpure, -⟩
   ihave %Hel := ownSlice_len _ _ _ $$ Heps
   wp_auto
   rw [decide_eq_false (show ¬ (cfg.Endpoints'.len = W64 0) by

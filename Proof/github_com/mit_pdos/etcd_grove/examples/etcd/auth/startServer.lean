@@ -44,8 +44,9 @@ theorem startServer.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startServer.spec (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
-    Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+    Hdirok Hdir Hdirps Hck Haf Hbuq Hdbo
+  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold etcdstart.commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   iunfold etcdstart.memberBootOn at Hmb
@@ -89,12 +90,14 @@ theorem startServer.wp_proof
   letI : MemStorReg GF := ⟨γ.reg⟩
   have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   -- `NewServer(cfg)` with auth on
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, from the member's fresh bundle
+  icases etcdstart.memberFreshRes_verify _ _ _ $$ Hfresh with ⟨#Hvoff, Hfresh⟩
   wp_apply (wp_NewServer _ ⟨[etcdstart.httpURL go!"127.0.0.1:23926"],
         [etcdstart.httpURL go!"127.0.0.1:23916"],
         GMap.insert go!"authkv" (slice.mk peer (W64 1) (W64 1)) ∅,
         fun _ => [etcdstart.httpURL go!"127.0.0.1:23926"]⟩
       γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
-      Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
+      ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ (by first | rfl | simp))
       (fun h => absurd h (by decide)) hcmp0 Htb Hrb48 HrbN
@@ -108,7 +111,7 @@ theorem startServer.wp_proof
       (lease.bootCfg_none _ _ (by simpa [KVNames.lg_eq] using hlgf) Hck)
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (etcdstart.bootCfgOk_of _ Hlg rfl rfl rfl rfl)
+      (etcdstart.bootCfgOk_of _ rfl rfl rfl rfl)
       ⟨rfl, etcdstart.discoveryZero_len, etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty⟩
       HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres

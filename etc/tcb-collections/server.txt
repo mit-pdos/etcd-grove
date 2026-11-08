@@ -131,7 +131,9 @@ axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithValue.wp_proof
+axiom dataDirFresh
 axiom encoding.json.Unmarshal.wp_proof
+axiom envVerifyOffTok
 axiom errors.AsLeaf.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
@@ -307,7 +309,6 @@ axiom v3alarm.NewAlarmStore.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
-axiom walDirFresh
 axiom walFiles
 axiom zap.Bool.wp_proof
 axiom zap.ByteString.wp_proof

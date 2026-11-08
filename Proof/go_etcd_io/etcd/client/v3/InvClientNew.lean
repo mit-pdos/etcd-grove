@@ -51,6 +51,7 @@ public import GeneratedProof.google_golang_org.grpc.credentials
 public import GeneratedProof.google_golang_org.grpc.credentials.insecure
 public import GeneratedProof.google_golang_org.grpc.keepalive
 public import GeneratedProof.crypto.tls
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -201,14 +202,16 @@ theorem dialOk_kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) (ds : List GrpcDi
   · exact id
 
 /-- **`New`'s configuration premise** (persistent; see the file header): the configuration `cfg`
-of one plain endpoint `ep`. -/
+of one plain endpoint `ep`. (Sweep repairs 1, R1-2: its logger a zap logger, `zapLoggerOk`; until
+then `cfg.Logger' ≠ null`, which a zero `&zap.Logger{}` meets.) -/
 def clientCfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) : IProp GF :=
   iprop(cfg.Endpoints' ↦*□ eps ∗ cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
     ⌜plainEndpoints eps ∧ cfg.TLS' = null ∧
-      cfg.Token' = [] ∧ cfg.Context' = GoInterface.nil ∧ cfg.Logger' ≠ null ∧
+      cfg.Token' = [] ∧ cfg.Context' = GoInterface.nil ∧
       sint.Z cfg.MaxCallSendMsgSize' ≤ 0 ∧ sint.Z cfg.MaxCallRecvMsgSize' ≤ 0 ∧
       cfg.RejectOldCluster' = false ∧
-      cfg.AutoSyncInterval' = W64 0⌝)
+      cfg.AutoSyncInterval' = W64 0⌝ ∗
+    zapLoggerOk cfg.Logger')
 
 instance clientCfgOk_persistent (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) :
     Persistent (clientCfgOk (GF := GF) cfg eps) := by

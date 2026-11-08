@@ -89,7 +89,7 @@ theorem checkOperations.wp_proof
       have Hhio : histIoOk S (histOf ops) = opsIoOk S ops := by
         simp only [histIoOk, histOf, opsIoOk, BigSepL.bigSepL_map]; rfl
       wp_apply wp_checkParallel σ S m' lsl [esl] [histOf ops] verbose dur rfl (by simp)
-        $$ [] as %r %info %Hr
+        $$ [] as %r %info ⟨%Hr, #Hli⟩
       · iframe #
         isplitr
         · iexists histOf ops
@@ -101,11 +101,13 @@ theorem checkOperations.wp_proof
           simp only [histOf, List.length_map]; omega
         · iapply BigSepL.bigSepL_nil.2; iempintro
       iapply HΦ
-      ipureintro
-      have Hone : (∀ h ∈ [histOf ops], Linearizable S.M h) ↔ Linearizable S.M (histOf ops) := by
-        simp
-      rw [Hone] at Hr
-      exact Hr
+      isplitr
+      · ipureintro
+        have Hone : (∀ h ∈ [histOf ops], Linearizable S.M h) ↔ Linearizable S.M (histOf ops) := by
+          simp
+        rw [Hone] at Hr
+        exact Hr
+      iexact Hli
 
 end proof
 

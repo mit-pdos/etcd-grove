@@ -524,7 +524,9 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
         (letI := srvStor (GF := GF) γn.node; iprop(
           snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
           nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
-        taNotifycAddr apL ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
+        taNotifycAddr apL ↦□ nc ∗
+        isNotify2 γnc nc (walBaseLb γn.wal.loc (uint.nat sv.Metadata'.Index')) iprop(True) ∗
+        notifyRcvN γnc 0 ∗
         taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) γn.node
           iprop(nodeAppliedLb γn.node.cl γn.key (γn.pre ++ A').length ∗

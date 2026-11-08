@@ -69,7 +69,7 @@ theorem isBackend_dbFile (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc)
   iintro #Hb
   unfold isBackend
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmu,
-    #Hdb, -, ⟨%path, #Hd, #Hf⟩⟩
+    #Hdb, -, ⟨%path, #Hd, #Hf⟩, -⟩
   iexists db, path
   iframe #
 
