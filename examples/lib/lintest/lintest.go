@@ -61,8 +61,29 @@ func runClient(id int, ops int, gen func(int) any, apply func(any) any, clock Cl
 }
 
 // Run runs clients clients concurrently, each running ops operations of the library, and
-// checks their trace against model with porcupine.
+// checks their trace against model with porcupine (RunLin, without the linearization).
 func Run(model porcupine.Model, apply func(any) any, gen func(int) any, clock Clock, clients int, ops int, timeout time.Duration) porcupine.CheckResult {
+	r, _ := RunLin(model, apply, gen, clock, clients, ops, timeout)
+	return r
+}
+
+// orderByLinearization returns the operations ops at the indices linearization, in its order
+// (Kubernetes' TestCorrectness's orderByLinearization).
+func orderByLinearization(ops []porcupine.Operation, linearization []int) []porcupine.Operation {
+	ordered := make([]porcupine.Operation, len(linearization))
+	for i, idx := range linearization {
+		ordered[i] = ops[idx]
+	}
+	return ordered
+}
+
+// RunLin runs clients clients concurrently, each running ops operations of the library, and
+// checks their trace against model with porcupine. When porcupine answers Ok, it also returns the
+// trace's operations in the order of the linearization porcupine found, as Kubernetes'
+// TestCorrectness reads it (test/integration/apiserver/storage/correctness_test.go: the model
+// has no Partition, so the info's one partition holds one complete linearization, of indices
+// into the trace); otherwise nil.
+func RunLin(model porcupine.Model, apply func(any) any, gen func(int) any, clock Clock, clients int, ops int, timeout time.Duration) (porcupine.CheckResult, []porcupine.Operation) {
 	histories := make([][]porcupine.Operation, clients)
 	var wg sync.WaitGroup
 	for id := 0; id < clients; id++ {
@@ -77,6 +98,14 @@ func Run(model porcupine.Model, apply func(any) any, gen func(int) any, clock Cl
 	for _, h := range histories {
 		operations = append(operations, h...)
 	}
-	result, _ := porcupine.CheckOperationsVerbose(model, operations, timeout)
-	return result
+	result, info := porcupine.CheckOperationsVerbose(model, operations, timeout)
+	if result != porcupine.Ok {
+		return result, nil
+	}
+	linearizations := info.PartialLinearizations()
+	// an empty trace has no linearization in the info (porcupine collects none)
+	if len(linearizations) != 1 || len(linearizations[0]) == 0 {
+		return result, nil
+	}
+	return result, orderByLinearization(operations, linearizations[0][0])
 }

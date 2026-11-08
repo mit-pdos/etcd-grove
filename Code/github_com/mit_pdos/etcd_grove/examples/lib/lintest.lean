@@ -41,6 +41,12 @@ noncomputable def runClient [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Run [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/lintest.Run"
 
+noncomputable def orderByLinearization [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lib/lintest.orderByLinearization"
+
+noncomputable def RunLin [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lib/lintest.RunLin"
+
 /-- MonotonicClock is the clock of etcd's robustness tests: the time since a base, by Go's
     monotonic clock (time.Since).
 
@@ -173,7 +179,7 @@ noncomputable def runClient.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "$res0")))))))))
 
 /-- Run runs clients clients concurrently, each running ops operations of the library, and
-    checks their trace against model with porcupine.
+    checks their trace against model with porcupine (RunLin, without the linearization).
 
     go: lintest.go:65:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
@@ -185,6 +191,100 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "ops"
   (Lam "timeout"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "timeout" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "timeout"))
+  (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
+  (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
+  (Let "clock" (App (Val (GoInstruction (GoAlloc Clock.ty))) (Var "clock"))
+  (Let "gen" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Var "gen"))
+  (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Var "apply"))
+  (Let "model" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Var "model"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Var "model"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Var "apply"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Var "gen"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad Clock.ty))) (Var "clock"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
+  (Let "$a5" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
+  (Let "$a6" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "timeout"))
+  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve RunLin []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "r") (Var "$r0")))))))))))))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0")))))))))))
+
+/-- orderByLinearization returns the operations ops at the indices linearization, in its order
+    (Kubernetes' TestCorrectness's orderByLinearization).
+
+    go: lintest.go:72:6 -/
+noncomputable def orderByLinearization.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ops"
+  (Lam "linearization"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "linearization" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int)))) (Var "linearization"))
+  (Let "ops" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "ops"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "linearization"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.int)]))) (Val #())) (Var "$a0"))))
+  (Let "ordered" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "ordered"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "linearization"))
+  (Let "idx" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange go.int)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "ops")) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "ordered")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Pair (Var "ordered") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "$res0"))))))
+
+/-- RunLin runs clients clients concurrently, each running ops operations of the library, and
+    checks their trace against model with porcupine. When porcupine answers Ok, it also returns the
+    trace's operations in the order of the linearization porcupine found, as Kubernetes'
+    TestCorrectness reads it (test/integration/apiserver/storage/correctness_test.go: the model
+    has no Partition, so the info's one partition holds one complete linearization, of indices
+    into the trace); otherwise nil.
+
+    go: lintest.go:86:6 -/
+noncomputable def RunLin.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "model"
+  (Lam "apply"
+  (Lam "gen"
+  (Lam "clock"
+  (Lam "clients"
+  (Lam "ops"
+  (Lam "timeout"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "timeout" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "timeout"))
   (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
@@ -209,19 +309,61 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
+  (Let "info" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.LinearizationInfo.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.LinearizationInfo.ty))) (Val #())))
   (Let "result" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.anishathalye.porcupine.LinearizationInfo.ty) go!"PartialLinearizations"))) (Var "info")) (Val #()))
+  (Let "linearizations" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "result"))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "operations"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.int))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.int))))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))))) (Var "linearizations")) (Val #(W64 0))))) (Val #(W64 0)))))
+  (App (App (App (Val (GoInstruction (FuncResolve orderByLinearization []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r1")))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))))) (Var "linearizations"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.int))))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))))) (Var "linearizations")) (Val #(W64 0)))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.int))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "result"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "result") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))))) (Pair (Var "linearizations") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "result")) (Val #(go!"Ok"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "result"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.LinearizationInfo.ty))) (Pair (Var "info") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "result") (Var "$r0"))))))))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))))) (Var "histories"))
   (Let "h" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Val #())))
   (App (App (Val (slice.forRange (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))) (Var "$range"))
@@ -280,7 +422,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "id") (Var "$r0")))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))))) (Pair (Var "histories") (Var "$r0")))))))))))))))
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0")))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "$res1")))))))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.anishathalye.porcupine]
@@ -321,6 +463,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   CounterClock_unfold : FuncUnfold CounterClock [] CounterClock.impl
   runClient_unfold : FuncUnfold runClient [] runClient.impl
   Run_unfold : FuncUnfold Run [] Run.impl
+  orderByLinearization_unfold : FuncUnfold orderByLinearization [] orderByLinearization.impl
+  RunLin_unfold : FuncUnfold RunLin [] RunLin.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
@@ -331,6 +475,8 @@ attribute [instance] Assumptions.Clock_instance
   Assumptions.CounterClock_unfold
   Assumptions.runClient_unfold
   Assumptions.Run_unfold
+  Assumptions.orderByLinearization_unfold
+  Assumptions.RunLin_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_time_Assumption

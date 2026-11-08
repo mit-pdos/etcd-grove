@@ -298,7 +298,10 @@ traffic grows):
   (`validateMinimumResourceVersion`), so its RV modes are 7b's (the model's `get` has the
   minimum), not this stage's (corrected 2026-11-01).
 - **7d. The replay.** The verified porcupine returns its linearization; a Go copy of `Replay`
-  (or the real one, with 7g) in the driver's `Check`, proved against the history.
+  (or the real one, with 7g) in the driver's `Check`, proved against the history. (2026-11-07,
+  `notes/k8s-7d-scope.md`: stages 1-2 built, porcupine's `linInfoOk` and `lintest.RunLin`; the
+  driver's replay folded into 7e/7g, since for the current traffic it checks nothing porcupine
+  does not, and the failed-write trap of its §2 and §12 shapes 7e and 7g.)
 - **7e. `GetList`**, the paginated path (`EtcdRangeStream` off, so no `streamChunks`): a spec of
   `kubernetes.Client.List` (new; recursive ranges at a revision, limit, continue), `pagedChunks`'
   iterator, `appendChunk`/`processListItem` (`reflect`'s slice operations: `MakeSlice`, `Append`,
