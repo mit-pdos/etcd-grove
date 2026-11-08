@@ -48,7 +48,7 @@ theorem mlist.wp_proof
     (wp_PrepareContinueToken : storage.PrepareContinueToken.spec (GF := GF) (hG := hG)) :
     mlist.spec (GF := GF) (hG := hG) := by
   intro x c g
-  wp_start as ⟨#Hc, %Hb⟩
+  wp_start as #Hc
   unfold cfgOwn storeOwn
   icases Hc with ⟨⟨#Hk, %Hr⟩, #Hh, #Hp, %Hhl⟩
   wp_auto
@@ -108,18 +108,10 @@ theorem mlist.wp_proof
     (try wp_auto)
     obtain ⟨S, hS⟩ : ∃ S, listStL x g.st req = S := ⟨_, rfl⟩
     rw [hS]
-    have hSl : S.items.length < 2 ^ 62 := by
-      rw [← hS]; unfold listStL; split
-      · unfold histAtL
-        cases hl : (g.st.hist.take (uint.nat req)).getLast? with
-        | none => simp [zSt]
-        | some a =>
-          have ha : a ∈ g.st.hist := List.mem_of_mem_take (List.mem_of_getLast? hl)
-          exact Hb a (by simp [ha])
-      · exact Hb _ (by simp)
     unfold storeOwn
     icases Hs with ⟨#Hsi, %Hsr⟩
     ihave %Hsl := ownSlice_len $$ Hsi
+    have hSl : S.items.length < 2 ^ 63 := by have := Hsl; word
     ihave HI : (∃ (j : w64) (itv : item) (isl : GoSlice),
         "i" ∷ i_ptr ↦ j ∗ "it" ∷ it_ptr ↦ itv ∗ "items" ∷ items_ptr ↦ isl ∗
         "Hisl" ∷ isl ↦* (listLoopL x (S.items.take (sint.nat j))).items.reverse ∗

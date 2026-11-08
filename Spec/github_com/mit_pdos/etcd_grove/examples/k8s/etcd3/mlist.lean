@@ -2,8 +2,8 @@
 
 `mlist(in, c)` (k8setcd3.go): `mlistL x g.st` (`KList.lean`), the Model's list on the
 configuration `c`: too-large above the store's revision; else the loop on the store read (the
-current one, or the history's at the requested revision for a past read). Its premise: the
-stores' item counts fit the loop's `int64` counters.
+current one, or the history's at the requested revision for a past read). No premise: the
+loop's `int64` counters stay below the store's slice length.
 
 Its callees outside the driver (`storage.PrepareKey`, the driver-specialized
 `storage.SelectionPredicate.Matches` and `storage.PrepareContinueToken`) are hypotheses of its
@@ -35,8 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 /-- See the file header. -/
 abbrev mlist.spec : Prop :=
   ∀ (x : Input) (c : mcfg) (g : GCfg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ cfgOwn c g ∗
-      ⌜∀ s ∈ g.st.st :: g.st.hist, s.items.length < 2 ^ 62⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ cfgOwn c g }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mlist)) (Val #x)) (Val #c))
   {{ RET #(mlistL x g.st); True }}
 
