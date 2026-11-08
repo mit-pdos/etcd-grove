@@ -124,8 +124,9 @@ theorem SetIds.mk_nodup (ids : List ID) : (SetIds.mk ids).Nodup :=
   (SetIds.mk_sorted ids).imp Nat.ne_of_lt
 
 /-- A Go string holding an ASCII Lean string, byte by character (the Probe of 2026-11-08: Perennial's
-`stringToGoString` goes through `String.toUTF8`, which a proof cannot evaluate on a constant such as
-`"StateFollower"`; raft's names, ids and roles are ASCII). -/
+`stringToGoString` goes through `String.toUTF8`, which neither `decide` nor `simp` reduces on a
+constant such as `"StateFollower"`, so a comparison with one could not be decided; `strRel` on a
+constant is decided by `decide`; raft's names, ids and roles are ASCII). -/
 def strRel (gs : GoString) (s : String) : Prop :=
   (∀ c ∈ s.toList, c.toNat < 128) ∧ gs = s.toList.map (fun c => (BitVec.ofNat 8 c.toNat : w8))
 

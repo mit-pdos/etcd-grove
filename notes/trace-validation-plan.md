@@ -295,8 +295,8 @@ S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's
   needs the server list without duplicates: a fact S6's invariant carries),
   then `Timeout` (a mutable representation of a fresh clone and copy, persisted once
   written). **Done 2026-11-08**, the whole path in about a working day (the five callees and
-  `Timeout`, no `sorry`; `Timeout` itself about two hours). Spec problems found, all in layer C's
-  representation, none in a triple's shape:
+  `Timeout`, no `sorry`; `Timeout` itself about two hours). Spec problems found by the proofs, all
+  in layer C's representation (round 4 then found one in a triple, `mut`'s, below):
   1. the server list must be duplicate-free for `mut`'s closing law (`stateOwnHole_close`):
      first a premise of `Timeout`'s spec, now (round 4, S1) a conjunct of `stateRO`, `stateOwn`
      and `stateOwnHole` (`State.Server` is never written; `newTrace` builds it with `SetIds.mk`,
@@ -309,8 +309,12 @@ S1, S2 and S3 are independent of each other. S4 needs S2's definitions (and S3's
      `notes/decisions.md`, "Layer C's strings: `strRel`, ASCII";
   3. term bounds: `Timeout`'s `CurrentTerm + 1` must not overflow; its spec takes
      `currentTerm < 2^63 - 1` (round 4, S2: first `numOk`, stronger than the Go needs). S6's
-     loop invariant must give it at each action: every number below `(lines + 2) · numBound`
-     (round 3's T3) does, `numBound = 2^40`, for fewer than `2^22` lines.
+     loop invariant must give it at each action, and round 3's "every number below
+     `(lines + 2) · numBound`" does not (nothing bounds the lines below `2^40`; round 5, S1). It
+     carries instead: every server's term, durable term and message term below `numBound`. This
+     holds: the initial terms are the events', bounded; the only increment is `Timeout`'s
+     (`spec.go:245`), whose successor `timeoutIfLogged` keeps only when its term is the line's
+     event term (`trace.go:623-625`); every other term is copied from a server's.
   Also learned (proof mode, not spec): a struct literal spanning lines must start its fields on a
   line of their own (Lean's `checkColGe`), `W64 1` and `go!"..."` need parentheses inside a
   record update, and a persisting update at a return needs `iapply wp_fupd` before the last
@@ -326,7 +330,10 @@ uses). Left to later stages: S3 (layer B: `MessageType.String()`'s spec, when st
 its value as a `go!` literal, not through `stringToGoString`, so `strRel` holds by `decide`), S4's
 second half (`durableOf` on a copy being written, with `persistState`'s proof in S6). The
 `strRel` switch itself was found sound and `NewTrace`/`CheckTrace` still say what they should
-(modulo Q7). Layer C's Review is clean again modulo Q7.
+(modulo Q7). **Round 5 (`c-r5.md`): nothing first-tier**; the repairs checked (the sixteen `mut`
+call sites, duplicate-freedom kept by every action and given to `NewTrace` by `SetIds.mk_nodup`);
+its S1 (the term bound S6 carries) and T3/T4 (this plan's wording, the docstrings) repaired in the
+notes. Layer C's Review is clean modulo Q7.
   `CheckTrace`'s own loop waits on Q7.
 - Layer A/B (raft's hooks, increment 2): waits on Q6's statements (the plan of S4: one hook with its
   phase through `send`'s callers).

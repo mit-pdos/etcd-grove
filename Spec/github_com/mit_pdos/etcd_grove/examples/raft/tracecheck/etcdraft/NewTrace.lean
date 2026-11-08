@@ -6,8 +6,9 @@ Lean-first (no Rocq counterpart). Draft (2026-11-08), layer C of `notes/trace-va
 `TraceInitServer`, `BootstrapLogIndices`, and `TraceInit`), or an error where TLC would fail
 reading it. Its spec: the Lean transcription's `newTrace` (`Tla/Trace.lean`) is what it computes.
 For events with numbers far from overflow (`Event.Bounded`), read-only (`eventsRO`: the trace keeps
-pointers into them), it returns an error exactly when `newTrace` refuses, and otherwise a trace
-(`traceRO`, read-only) holding `newTrace`'s.
+pointers into them) and with ASCII strings (`strRel`, `Rep.lean`: raft's names, roles and ids
+are), it returns an error exactly when `newTrace` refuses, and otherwise a trace (`traceRO`,
+read-only) holding `newTrace`'s.
 -/
 module
 
