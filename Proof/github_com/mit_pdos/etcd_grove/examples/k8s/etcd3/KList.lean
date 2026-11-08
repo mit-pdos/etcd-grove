@@ -135,6 +135,22 @@ def listOutL (x : Input) (st : GSt) (s : ListModel.LState w8 Obj) (prepared : Go
   else ⟨W64 0, [], 0, [], [], [], [], [], [], 0, encItemsL s.items.reverse, st.rv, [], false, 0, [],
     false⟩
 
+section vals
+variable [GoSemanticsFunctions] [GoGlobalContext]
+
+/-- `predicate(in)`: a list's selection predicate (the driver's selectors, `getAttrs`, the limit). -/
+def predV (x : Input) : k8s_io.apiserver.pkg.storage.SelectionPredicate :=
+  ⟨interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel.ty #(labelSelL x),
+    interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel.ty #(fieldSelForL x),
+    functions github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getAttrs [], zeroValDef, zeroValDef,
+    x.Limit', zeroValDef, zeroValDef, zeroValDef⟩
+
+/-- `listOptions(in)`: a list's `storage.ListOptions`. -/
+def listOptsV (x : Input) : k8s_io.apiserver.pkg.storage.ListOptions :=
+  ⟨x.MinRV', matchOptL x, predV x, x.Recursive', zeroValDef, zeroValDef, zeroValDef⟩
+
+end vals
+
 /-! ## The history -/
 
 /-- The model's state: a store and its history (`hist[R-1]` the store at revision `R`; a
