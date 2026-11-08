@@ -1952,3 +1952,14 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   term it is given, it should fail with an error naming the mismatch, never close the goal with an
   admitted proof.
 - **Status.** Recorded only; not reduced to a minimal example.
+
+## `strings.Cut` has no model (2026-11-08, k8s 7e-3b)
+
+- **What happened.** Perennial's `strings` translates `Cut` names-only (no body, no spec). The k8s
+  etcd3 driver's `splitKey` called it.
+- **Local workaround.** The driver (our test code) splits the key with a byte loop instead; no spec
+  or axiom added.
+- **Proposed (general; record only).** A model of `strings.Cut` (a translated body, or a spec:
+  `s[:i]`, `s[i+len(sep):]`, `true` at the first occurrence `i`; `s`, `""`, `false` if none) is a
+  candidate general addition to Perennial's `strings`.
+- **Status.** Recorded only.

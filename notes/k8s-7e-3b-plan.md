@@ -29,9 +29,10 @@ Builds (targeted `lake build`, no `sorry`): `Codec`, `ObjSpec`, `Contract`, `Cal
 - Callbacks reject on the node: `rejects has reject node`; `updGo` (on the record) and `updObj`
   (on `DObj`, `updObj_toObj` under `inFits`: key, node, app shorter than 256);
   `tryUpdateFor.spec`'s premise is `inFits inp`.
-- **`strings.Cut`** (untranslated in Perennial) is used by `splitKey`: `Spec/strings/Cut.lean`
-  (`cutL`) is taken as a **hypothesis** of `splitKey.wp_proof`, no axiom. For 7e-2's Draft, with
-  the other out-of-driver callee specs.
+- **`strings.Cut`** (untranslated in Perennial) was `splitKey`'s; per 81 (2026-11-08) the driver now
+  splits with a byte loop (`splitKeyL`, proved with no hypothesis; `TestSplitKey` checks it against
+  `strings.Cut`), re-translated, the package's Go tests rerun (all pass; `TestPartitionScale` is
+  opt-in, skipped). `notes/perennial-changes.md` records Cut as a candidate general addition.
 
 ## What breaks first, and the order
 

@@ -241,3 +241,15 @@ func TestMainPartition(t *testing.T) {
 		})
 	}
 }
+
+// TestSplitKey checks splitKey's loop against strings.Cut, which it replaces (7e-3b: Perennial has
+// no model of Cut).
+func TestSplitKey(t *testing.T) {
+	for _, k := range []string{"", "/", "a", "a/", "/b", "ns-1/pod-1", "ns-11/pod-1/x", "ns//p"} {
+		ns, name := splitKey(k)
+		cns, cname, _ := strings.Cut(k, "/")
+		if ns != cns || name != cname {
+			t.Fatalf("splitKey(%q) = %q, %q; strings.Cut: %q, %q", k, ns, name, cns, cname)
+		}
+	}
+}

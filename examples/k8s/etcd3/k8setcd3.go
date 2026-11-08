@@ -534,10 +534,15 @@ func storeKey(key string) string {
 	return ResourcePrefix + "/" + key
 }
 
-// splitKey splits a key "<namespace>/<name>" at its first "/": the namespace and the name.
+// splitKey splits a key "<namespace>/<name>" at its first "/": the namespace and the name (the
+// key and "" if it has no "/"; strings.Cut's answer, as a loop: Perennial has no model of Cut).
 func splitKey(key string) (string, string) {
-	ns, name, _ := strings.Cut(key, "/")
-	return ns, name
+	for i := 0; i < len(key); i++ {
+		if key[i] == '/' {
+			return key[:i], key[i+1:]
+		}
+	}
+	return key, ""
 }
 
 // objLabels is an object's labels: app, if it has one.

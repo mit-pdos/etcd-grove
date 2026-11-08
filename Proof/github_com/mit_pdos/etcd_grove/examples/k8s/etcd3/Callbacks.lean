@@ -19,7 +19,6 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjSpec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Base
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Steps
-public import Spec.strings.Cut
 
 @[expose] public section
 
@@ -36,8 +35,12 @@ open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Input Obj)
 7e: the test's callbacks reject on a drawn node). -/
 def rejects (has : Bool) (reject node : GoString) : Bool := has && decide (node = reject)
 
-/-- `splitKey(key)`: the namespace and the name, the key cut at its first `/` (`strings.Cut`). -/
-def splitKeyL (key : GoString) : GoString × GoString := ((cutL key go!"/").1, (cutL key go!"/").2.1)
+/-- `splitKey(key)`: the namespace and the name, the key cut at its first `/` (the key and `""` if
+it has none; `strings.Cut(key, "/")`'s answer). -/
+def splitKeyL (key : GoString) : GoString × GoString :=
+  if key.findIdx (· = W8 47) < key.length then
+    (key.take (key.findIdx (· = W8 47)), key.drop (key.findIdx (· = W8 47) + 1))
+  else (key, [])
 
 section upd
 variable [GooseExts]
@@ -68,10 +71,10 @@ theorem updGo_toObj (inp : Input) (o : DObj) (n : w64) :
     updGo inp (o.toObj n) = { updGo inp (o.toObj 0) with ResourceVersion' := n } := by
   unfold updGo DObj.toObj; split <;> rfl
 
-/-- `strings.Cut`'s parts are no longer than the string. -/
-theorem cutL_length (s sep : GoString) :
-    (cutL s sep).1.length ≤ s.length ∧ (cutL s sep).2.1.length ≤ s.length := by
-  unfold cutL
+/-- `splitKey`'s parts are no longer than the key. -/
+theorem splitKeyL_length (key : GoString) :
+    (splitKeyL key).1.length ≤ key.length ∧ (splitKeyL key).2.length ≤ key.length := by
+  unfold splitKeyL
   split <;> simp <;> omega
 
 /-- The input's fields an update writes fit a `DObj` (`tryUpdateFor`'s premise: they are drawn
@@ -88,8 +91,8 @@ theorem updGo_fits (inp : Input) (o : DObj) (n : w64) (hi : inFits inp) :
     fitsD (updGo inp (o.toObj n)) := by
   obtain ⟨hk, hn, ha⟩ := hi
   obtain ⟨f1, f2, f3, f4, f5⟩ := o.fits
-  have hc := cutL_length inp.Key' go!"/"
-  unfold updGo fitsD DObj.toObj splitKeyL
+  have hc := splitKeyL_length inp.Key'
+  unfold updGo fitsD DObj.toObj
   split
   · exact ⟨f1, f2, f3, f4, f5⟩
   · simp only

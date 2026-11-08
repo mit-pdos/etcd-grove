@@ -1,6 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`splitKey(key)` (k8setcd3.go): the key cut at its first `/` (`splitKeyL`, through `strings.Cut`).
+`splitKey(key)` (k8setcd3.go): the key cut at its first `/` (`splitKeyL`; a loop over the key's
+bytes, `strings.Cut`'s answer).
 -/
 module
 
