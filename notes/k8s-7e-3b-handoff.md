@@ -1,59 +1,64 @@
-# k8s 7e-3b handoff (2026-11-08, branch `k8s-7e`)
+# k8s 7e-3b handoff (2026-11-08, branch `k8s-7e`, third agent)
 
-State for the next agent; read `notes/k8s-7e-3b-plan.md` first.
+State for the next agent; read `notes/k8s-7e-3b-plan.md` first. Scratch: `/shared/tmp/k8s-7e-3b/`
+(`gen.py` writes a spec/proof skeleton pair in the driver's layout; `b*.py` are the batches used).
 
 ## Done
 
-- (a) the object layer, accepted by 81: commits `fd01648df2`, `c6bb6a70c4` (splitKey as a byte loop,
-  per 81; Go tests rerun, all pass).
-- (b) started: `KModel.lean` builds on the new records (uncommitted at the time of writing, then
-  committed with this file):
-  - `Obj` 7 fields, `Input` 27, `Output` 15 in the decidable equalities;
-  - `errOutL e k r` builds every no-object output (`Items' = slice.nil`); `objOutL` fills the
-    namespace/node/app; `objOfL` (`objOf`); `tooLargeL` (`ETooLarge` = 6);
-  - `mcreateL` splits the key (`splitKeyL`), takes node and app; `mdeleteL`/`mupdateL` reject on
-    the node (`rejects has reject node`); `updatedL := updGo`; `mgetL` answers `tooLargeL` above
-    the store's resource version; `isWriteL` lists the write kinds;
-  - `sameObjL` compares the six fields.
-- `KSteps`, `ItemList` build unchanged on it.
+- (a) the object layer (`fd01648df2`, `c6bb6a70c4`); option (B), `Output.Items` an encoded string
+  (`90b6252aa5`); the non-list model functions (`7f2ad6c9b5`).
+- `objOf` spec/proof.
+- **7f's record fields (81, 2026-11-08), `778fd04ed7`**: `Input` gains `WKey`, `SendInit`,
+  `Bookmarks`, `Behavior`, `Skip`; `Output` gains `WEvents` (string), `WFailed`; Go `outEqual`
+  compares them (so `outEqual.spec`'s `decide (a = b)` stays true). Only the record fields: 7f's
+  `watch.go`, `KWatch`, `step`'s `watchOk`, `Gen`/`Apply`/`Check` changes and `lintest.RunLin2`
+  stay 7f's. Re-translated, Go tests pass (86s). `KModel` decEqs, `errOutL`/`objOutL`, `listOutL`,
+  `Input/Output_intoVal_inj`, `outEqual` (its `Output_eq_iff` was stale: now all 17 fields).
+- **The list model, `KList.lean`** (new): selectors (`labelSelL`, `fieldSelForL`, `objField`,
+  `selOkL`, `predEmptyL`), `pastReadL`, `matchOptL`, `trimSufL`, `keyInScopeL`, `scopeL`, `limitN`,
+  `listLoopL` (= `ListModel.loop` on the items in scope), `encL` (an `opaque` def, no axiom),
+  `encOkL`, `listOutL`, `predV`/`listOptsV` (the Go values `predicate`/`listOptions` return),
+  **`HSt`** (store + history), `histAtL`, `advanceL`, `listStL`, **`mlistL`**, **`kstepL`** (list:
+  `mlistL`, else `mstepL` advanced), **`kSpec h0 := ⟨h0, kstepL, isWriteL⟩`** (moved here from
+  `KModel`), `kstepL_write`, `histAtL_*` lemmas.
+- **`KSteps`**: `GCfg := PCfg HSt Input`; `stepL`/`succAt` on `kstepL`; `Bounded n g` now also
+  bounds `hist + pend < n` and says pending inputs are writes (closure steps them with `mstep`);
+  `kstepL_length`; `bounded_gInit` at `items + hist + 1`. Builds.
+- **`MDefs`**: `histOwnR`/`histOwn` (persistent; nodes `↦□`, `n' = W64 len`), `histOwn_nil`,
+  `histOwn_snoc`, `storeOwn_agree`, `histOwn_agree`; `cfgOwn c g := storeOwn ∗ histOwn ∗ pend ↦*□ ∗
+  ⌜hist.length < 2^64⌝`; `stRepB`/`k8setcd3S` on `HSt`.
+- Proved (spec + proof, no sorry): `pastRead`, `keyInScope` (hyp: `strings.TrimSuffix.spec`, an
+  existing axiom), `matchOpt`, `fieldSelFor`, `histLen`, `appendHist`, `advance` (premise
+  `hist+1 < 2^64`), `histAt` (premise `len < 2^64`), `histOf`, `histEqual`, `configEqual` (now
+  with `histEqual`), `encodeItems` (slice read-only), `outEqual`.
+- Also proved: `predicate`, `listOptions` (`predV`/`listOptsV` in `KList`). Built (targeted lake
+  build, 2026-11-08): the two hypothesis specs
+  `Spec/k8s_io/apiserver/pkg/storage/{SelectionPredicate__Matches,PrepareContinueToken}.lean`
+  (driver-specialized; for 7e-2's Draft) and `mlist`'s spec; `mlist`'s proof is a `sorry`
+  skeleton with its hypotheses listed.
+- Not yet redone (break on the new `cfgOwn`/`GCfg`, expected): `step`, `closure`, `Model`, maybe
+  `addConfig`; and the 7e-4 files (`Refine`, `Inv*`, `Model.lean`, `Seed`, `Apply`, `Check`, ...).
+
+## The `k8setcd3S` change (Q7e-3b-1), old -> new (for the report to 81)
+
+- `M := pM (kSpec g0) decOp`, `g0 : GSt`, `kSpec` of `mstepL` -> `g0 : HSt` (store + history),
+  `kSpec` of `kstepL` (lists answered by `mlistL`, writes advance the history).
+- `rep k := stRepB g0 (k + g0.items.length + 1)` -> `stRepB g0 (k + g0.st.items.length +
+  g0.hist.length + 1)`; `stRepB`'s configurations own their history read-only (`cfgOwn`).
+- `ioOk` unchanged (option (B): outputs stay plain values; no points-to in the I/O fact).
 
 ## Next, in order
 
-1. (done) `MDefs.lean`'s `intoVal` injectivity on the new records.
-2. (done) the `decOp`/`Output.Items` design point: option (B).
-3. (done) the non-list model functions build: `notFound`, `invalidObj`, `objOut`, `preOk`,
-   `sameObj`, `mcreate` (now calls `splitKey`), `mdelete`, `mupdate` (on `updGo`), `mget`
-   (`ETooLarge`), `mstep`, `isWrite`, with `MDefs`, `KSteps`, `ItemList`. Still to write: `objOf`'s
-   spec/proof (new function; `objOfL` exists in `KModel`).
-4. The list functions of the plan's item 4, then `mlist` with the out-of-driver callees as
-   hypotheses (81's decision 2).
-
-## Resolved: option (B) (81, 2026-11-08), commit `90b6252aa5`
-
-`Output.Items` is now `encodeItems(items)` (a string: per item `rvBytes(rv) ++ rvBytes(len e) ++ e`,
-`e = encodeObj(item)`), so `Output` is a plain value and `decOp`/`ioOk` stay as they were. Lean:
-`encItemsL`, `encItemsL_inj` (`Codec.lean`, on `itemOk` objects: fitting fields, no annotation,
-encoding below `2^63`). 7f's codec changes are folded in (`codec.Decode` with no target;
-`Obj.Annotated`, never encoded: `DObj.toObj` sets it `false`, `decodeD` yields `false`). `MDefs`
-builds. Go: the package passes; `TestPartitionScale` with `K8SETCD3_SCALE`: Ok in 34s, heap 1.4 GiB,
-7.9s in Step/Equal, at most 10 configurations (the commit before, same test: 75s, 8.6 GiB, 50s,
-96 configurations; runs are random, so this shows no blow-up, not a speedup).
-
-## The design point as it was (for the record)
-
-`Output.Items` is a `[]Obj` slice, so `Output` is no longer a plain value: `decOp`
-(`MDefs.lean`) is a pure function of porcupine's `OpV`, and sees only the slice's pointer, while
-the model must compare the items. 81 accepted "the I/O fact carries the items' read-only
-points-to"; but a points-to in `ioOk` does not let the pure `decOp` read the contents. Options:
-- (A) Ghost: a persistent ghost map from slices to their contents, `ioOk` ties `y.Items ↦*□ its`
-  to it, `decOp` reads the map's (pure) agreement through a parameter of `k8setcd3S`. Lean-only, but
-  the parameter must be fixed before the run (allocation order), which is awkward.
-- (B) Go: `Output` keeps the list as a value (e.g. `Items string`, the items' length-prefixed
-  encoding through the driver's codec, built by `listOut`; the model builds the same bytes). Output
-  stays plain, `decOp`/`ioOk` unchanged; only the state's `rep` must own the history chain.
-  Costs a Go change (driver, tests, re-translation) and an encoding lemma (injective on fitting
-  objects, from `decodeD_encode`).
-- (C) Keep `Items []Obj` and let the model compare outputs ignoring `Items'` but carry the list in
-  a separate ghost: unsound for lists (the items would be unchecked).
-
-Recommendation: (B).
+1. `mlist`'s proof: `parseRV`, the too-large test, `pastRead`/`histAt` (from `cfgOwn`'s history),
+   `predicate` (store into a local: `Matches` takes `pp ↦ predV x`), the range loop over
+   `st.items` with invariant "state = `ListModel.loop` on `scopeL x (take j items)`" (`items`
+   slice owned, appended: reversed `s.items`), `PrepareKey` (`prepareKeyM`), `PrepareContinueToken`,
+   `encodeItems` (persist the items slice), the output literal vs `listOutL`. The spec's premise
+   bounds counts (`< 2^62`); adjust if the loop needs others.
+2. `step` (list branch: `outEqual`/`mlist`; others `advance`), `closure` (`advance` + `kstepL_write`
+   via `Bounded`'s pending-writes fact), `Model` (`h0 []mstore` -> `histOf`; `Model.spec` takes
+   the seeded history and `g0 : HSt`), `addConfig` (check it still builds).
+3. Optional per the plan: the remaining selector methods and `getAttrs` (they are what proves the
+   `Matches` hypothesis in 7e-2).
+4. Report to 81 (7e-3b complete): the `k8setcd3S` change above, the two hypothesis statements,
+   the 7f fields.
