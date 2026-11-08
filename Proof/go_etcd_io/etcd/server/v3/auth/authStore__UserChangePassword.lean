@@ -104,7 +104,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iunfold adminOutP
     iright
@@ -122,6 +122,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   iunfold ownUser at Hu
   icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
+  ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hup
   icases typedPointsto_split _ _ _ $$ Hup with Hup
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hup
@@ -136,6 +137,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     · iunfold userOptsAt at Huo
       icases Huo with (%Hn | ⟨%Honn, ⟨%oms, %ouf, %osc, #Hom⟩⟩)
       · exact absurd Hn.1 Hif
+      ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hom
       icases typedPointsto_split _ _ _ $$ Hom with Homf
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Homf
@@ -169,7 +171,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitr
       · iunfold respOk; isplitr
-        · ipureintro; intro _; rfl
+        · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
         · ileft; ipureintro; rfl
       iunfold adminOutP
       ileft
@@ -264,6 +266,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       (try wp_auto)
       irename «$r0» => Hresp
       generalize «$r0_ptr» = resp at *
+      ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
@@ -287,7 +290,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
-        · ipureintro; intro h; exact absurd rfl h
+        · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
         · iright; iexists _; iexact Header
       iunfold adminOutP
       iright
@@ -381,6 +384,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     (try wp_auto)
     irename «$r0» => Hresp
     generalize «$r0_ptr» = resp at *
+    ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
     icases typedPointsto_split _ _ _ $$ Hresp with Hresp
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hresp
@@ -404,7 +408,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitl [Header]
     · iunfold respOk; isplitr
-      · ipureintro; intro h; exact absurd rfl h
+      · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
       · iright; iexists _; iexact Header
     iunfold adminOutP
     iright

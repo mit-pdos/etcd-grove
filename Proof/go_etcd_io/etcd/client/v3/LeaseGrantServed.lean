@@ -405,7 +405,7 @@ theorem etcd_leaseGrantMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   ihave #Hmt'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h3 h4 $$ Hmt'
   ihave #Hml'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h3 h4 $$ Hml'
   ihave #Hmg'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h5 h6 $$ Hmg'
-  simp only [etcdLeaseGrantMethods]
+  simp only [etcdLeaseGrantMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
   iframe #
   iapply BigSepL.bigSepL_nil.2
   itrivial
@@ -692,7 +692,7 @@ theorem etcd_leaseGrantLiveMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mi
   · iframe #
   ihave #Hmg' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmg
   ihave #Hmg'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h5 h6 $$ Hmg'
-  simp only [etcdLeaseGrantLiveMethods]
+  simp only [etcdLeaseGrantLiveMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
   iframe #
   iapply BigSepL.bigSepL_nil.2
   itrivial

@@ -889,6 +889,25 @@ theorem authWrapOut_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx :
       iintro %He
       exact absurd He Hr.2
 
+/-- **`AuthServer.UserAdd`'s answer is not `nil` without an error** (`adminOutOn_nn`). -/
+theorem authWrapOut_userAdd_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (name : GoString)
+    (Qa : List auth.AuthState → IProp GF) (resp : Loc) (err : GoInterface) :
+    v3rpc.authWrapOut (userAddAnsOn s E ρ ctx cd F name false Qa) resp err ⊢
+      ⌜err = GoInterface.nil → resp ≠ null⌝ := by
+  iintro H
+  iunfold v3rpc.authWrapOut at H
+  icases H with (⟨%He, H⟩ | ⟨%Hr, -⟩)
+  · subst He
+    iunfold userAddAnsOn at H
+    icases H with (⟨%Hc, -⟩ | H)
+    · exact absurd rfl Hc.2
+    iunfold userAddOutOn at H
+    icases H with ⟨%um, -, H⟩
+    ihave %Hn := v3rpc.adminOutOn_nn s E ρ ctx (irrUserAdd um) F _ _ resp rfl $$ H
+    ipureintro; intro _; exact Hn
+  · ipureintro; intro He; exact absurd He Hr.2
+
 /-- **`*AuthServer` implements `pb.AuthServer`** (a method-set fact, from the method sets goose
 emits; `RegisterAuthServer`'s `grpcImplements`). -/
 theorem authServer_isAuthServer :
@@ -938,6 +957,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
+  ihave %Hrn := authWrapOut_userAdd_nn s E ρ ci cd [] m.name Qa resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci cd [] m.name Qa resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
@@ -947,7 +967,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   iintro %He
   iexists ()
   isplitr
-  · simp only [pbAuthUserAddResponse]; itrivial
+  · simp only [pbAuthUserAddResponse]; ipureintro; exact Hrn He
   iapply Hk
   iapply Hrep
   ipureintro; exact He
@@ -981,6 +1001,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
+  ihave %Hrn := v3rpc.authWrapOut_admin_nn s E ρ ci (irrRoleAdd m) _ [] _ resp err rfl $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleAdd m) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
@@ -990,7 +1011,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iintro %He
   iexists ()
   isplitr
-  · simp only [pbAuthRoleAddResponse]; itrivial
+  · simp only [pbAuthRoleAddResponse]; ipureintro; exact Hrn He
   iapply Hk
   iapply Hrep
   ipureintro; exact He
@@ -1024,6 +1045,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
+  ihave %Hrn := v3rpc.authWrapOut_admin_nn s E ρ ci (irrUserGrantRole m.1 m.2) _ [] _ resp err rfl $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrUserGrantRole m.1 m.2) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
@@ -1033,7 +1055,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iintro %He
   iexists ()
   isplitr
-  · simp only [pbAuthUserGrantRoleResponse]; itrivial
+  · simp only [pbAuthUserGrantRoleResponse]; ipureintro; exact Hrn He
   iapply Hk
   iapply Hrep
   ipureintro; exact He
@@ -1067,6 +1089,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
+  ihave %Hrn := v3rpc.authWrapOut_admin_nn s E ρ ci (irrRoleGrantPermission m.1 (some m.2)) _ [] _ resp err rfl $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleGrantPermission m.1 (some m.2)) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
@@ -1076,7 +1099,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   iintro %He
   iexists ()
   isplitr
-  · simp only [pbAuthRoleGrantPermissionResponse]; itrivial
+  · simp only [pbAuthRoleGrantPermissionResponse]; ipureintro; exact Hrn He
   iapply Hk
   iapply Hrep
   ipureintro; exact He
@@ -1109,6 +1132,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
+  ihave %Hrn := v3rpc.authWrapOut_admin_nn s E ρ ci irrAuthEnable _ [] _ resp err rfl $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci irrAuthEnable Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
@@ -1118,7 +1142,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iintro %He
   iexists ()
   isplitr
-  · simp only [pbAuthEnableResponse]; itrivial
+  · simp only [pbAuthEnableResponse]; ipureintro; exact Hrn He
   iapply Hk
   iapply Hrep
   ipureintro; exact He

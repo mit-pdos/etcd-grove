@@ -241,9 +241,10 @@ theorem etcdGrpcSlot_authn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 
 /-- **`Authenticate`'s method as registered**, with etcd's spec at `γa`. -/
 def etcdAuthnMethod (pa : Loc) (γa : auth.AuthNames) : GrpcMethod GF :=
-  ⟨authnMethod, pbAuthenticateRequest, pbAuthenticateResponse, GrpcSpec.md (etcdAuthenticateSpec γa),
+  ⟨authnMethod, pbAuthenticateRequestT, pbAuthenticateResponseT, GrpcSpec.md (etcdAuthenticateSpec γa),
     (@! etcdserverpb._Auth_Authenticate_Handler),
-    interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #pa⟩
+    interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #pa,
+    pbAuthenticateRequestT_reg, pbAuthenticateResponseT_reg⟩
 
 /-- **etcd's server serves its KV methods with auth on, its Auth methods and `Authenticate`** (see
 the file header; one gRPC server, as `grpc.serve` takes every served method at once): the gRPC
@@ -349,7 +350,7 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
     isplitl []
     · ipureintro; rw [hγa]; simp
     iintro !>
-    simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append]
+    simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append, pbAuthUserAddRequestT, pbAuthUserAddResponseT, pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT, pbAuthRoleAddRequestT, pbAuthRoleAddResponseT, pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT, pbAuthEnableRequestT, pbAuthEnableResponseT, pbAuthenticateRequestT, pbAuthenticateResponseT]
     iframe #
     iapply BigSepL.bigSepL_nil.2
     itrivial
@@ -358,7 +359,7 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
   ihave #H2' := isGrpcRpcMd_mono _ _ _ _ (etcdRangeSpecM_true s E γr cid mid) $$ H2
   ihave #H3' := isGrpcRpcMd_mono _ _ _ _ (etcdDeleteSpecM_true s E ρ cid mid) $$ H3
   ihave #H4' := isGrpcRpcMd_mono _ _ _ _ (etcdTxnSpecM_true s E ρ γr cid mid) $$ H4
-  simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append]
+  simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append, pbAuthUserAddRequestT, pbAuthUserAddResponseT, pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT, pbAuthRoleAddRequestT, pbAuthRoleAddResponseT, pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT, pbAuthEnableRequestT, pbAuthEnableResponseT, pbAuthenticateRequestT, pbAuthenticateResponseT]
   icases Hms with ⟨#H5, #H6, #H7, #H8, #H9, #H10, -⟩
   imodintro
   iframe H1' H2' H3' H4' H5 H6 H7 H8 H9

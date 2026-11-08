@@ -102,7 +102,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
     · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iunfold adminOutP
     iright
@@ -148,7 +148,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
     · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iunfold adminOutP
     iright
@@ -176,6 +176,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       -- the common tail
       iunfold ownUserX at Hu
       icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, #Hunm, #Hupw, Hurl, Hurlc, #Huo⟩
+      ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hup
       icases typedPointsto_split _ _ _ $$ Hup with Hup
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hup
@@ -236,6 +237,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
         (try wp_auto)
         irename «$r0» => Hresp
         generalize «$r0_ptr» = resp at *
+        ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
         icases typedPointsto_split _ _ _ $$ Hresp with Hresp
         simp only [TypedPointsto.typedPointstoDef]
         iNamed Hresp
@@ -251,7 +253,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
         · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
         isplitl [Header]
         · iunfold respOk; isplitr
-          · ipureintro; intro h; exact absurd rfl h
+          · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
           · iright; iexists _; iexact Header
         iunfold adminOutP
         iright
@@ -361,6 +363,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       (try wp_auto)
       iunfold ownUser at Huu
       icases Huu with ⟨%ums', %unm', %upw', %url', %uo', %uuf', %usc', Huu, -, -, -, -⟩
+      ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Huu
       icases typedPointsto_split _ _ _ $$ Huu with Huu
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Huu
@@ -379,6 +382,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       (try wp_auto)
       irename «$r0» => Hresp
       generalize «$r0_ptr» = resp at *
+      ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
@@ -398,7 +402,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       · iunfold authWRxB; iframe HT Hfl Hev Hca Hsnap; iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
-        · ipureintro; intro h; exact absurd rfl h
+        · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
         · iright; iexists _; iexact Header
       iunfold adminOutP
       iright

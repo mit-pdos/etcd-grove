@@ -102,7 +102,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iexists true
     iframe Hev
@@ -157,7 +157,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iexists en
     iframe Hev
@@ -178,6 +178,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   obtain ⟨Hlook, Hurn, Hurr, Hsorted⟩ := Hur
   iunfold ownUser at Hu
   icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
+  ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hup
   icases typedPointsto_split _ _ _ $$ Hup with Hup
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hup
@@ -282,7 +283,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iexists en
     iframe Hev
@@ -368,6 +369,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   (try wp_auto)
   iunfold ownUser at Huu
   icases Huu with ⟨%ums', %unm', %upw', %url', %uo', %uuf', %usc', Huu, -, -, -, -⟩
+  ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Huu
   icases typedPointsto_split _ _ _ $$ Huu with Huu
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Huu
@@ -386,6 +388,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   (try wp_auto)
   irename «$r0» => Hresp
   generalize «$r0_ptr» = resp at *
+  ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
   icases typedPointsto_split _ _ _ $$ Hresp with Hresp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp
@@ -405,7 +408,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
-    · ipureintro; intro h; exact absurd rfl h
+    · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
     · iright; iexists _; iexact Header
   iexists en
   iframe Hev

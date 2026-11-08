@@ -70,7 +70,7 @@ theorem auth.authStore.UserAdd.wp_tie
     · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iunfold adminOutP
     iright
@@ -134,7 +134,7 @@ theorem auth.authStore.UserAdd.wp_tie
     · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iunfold adminOutP
     iright
@@ -196,7 +196,7 @@ theorem auth.authStore.UserAdd.wp_tie
       · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitr
       · iunfold respOk; isplitr
-        · ipureintro; intro _; rfl
+        · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
         · ileft; ipureintro; rfl
       iunfold adminOutP
       ileft
@@ -296,7 +296,7 @@ theorem auth.authStore.UserAdd.wp_tie
       · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
-        · ipureintro; intro h; exact absurd rfl h
+        · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
         · iright; iexists _; iexact Header
       iunfold adminOutP
       iright
@@ -395,7 +395,7 @@ theorem auth.authStore.UserAdd.wp_tie
     · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitl [Header]
     · iunfold respOk; isplitr
-      · ipureintro; intro h; exact absurd rfl h
+      · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
       · iright; iexists _; iexact Header
     iunfold adminOutP
     iright

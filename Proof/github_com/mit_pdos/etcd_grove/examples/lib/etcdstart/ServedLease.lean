@@ -252,7 +252,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       imodintro
       iunfold idCred
       ipureintro; exact Hrb
-    simp only [client.etcdLeaseReadMethods]
+    simp only [client.etcdLeaseReadMethods, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
     icases Hle with ⟨#H1, #H2, -⟩
     ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
@@ -307,7 +307,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       imodintro
       iunfold idCred
       ipureintro; exact Hrb
-    simp only [client.etcdLeaseGrantMethods]
+    simp only [client.etcdLeaseGrantMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
     icases Hle with ⟨#H1, #H2, #H3, -⟩
     ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
@@ -365,7 +365,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       imodintro
       iunfold idCred
       ipureintro; exact Hrb
-    simp only [client.etcdLeaseGrantLiveMethods]
+    simp only [client.etcdLeaseGrantLiveMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
     icases Hle with ⟨#H1, #H2, #H3, -⟩
     ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2

@@ -2343,17 +2343,26 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
     imodintro
     iapply BigSepL.bigSepL_append.2
     isplitl []
-    · simp only [etcdKVMethodsM]
+    · simp only [etcdKVMethodsM, pbCompactionRequestT, pbCompactionResponseT, pbDeleteRangeRequestT, pbDeleteRangeResponseT, pbPutRequestT, pbPutResponseT, pbRangeRequestT, pbRangeResponseT, pbTxnRequestT, pbTxnResponseT]
       iframe #
+      isplitl []
+      · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbTxnRequest) (Rep := pbTxnResponse) _ _ _ _ _)
+        iexact Hmt'
       iapply BigSepL.bigSepL_nil.2
       itrivial
     · iexact Hxs
   ihave Hrpcs := BigSepL.bigSepL_append.1 $$ Hrpcs
   icases Hrpcs with ⟨Hkv, Hle⟩
-  simp only [etcdKVMethodsM]
+  simp only [etcdKVMethodsM, pbCompactionRequestT, pbCompactionResponseT, pbDeleteRangeRequestT, pbDeleteRangeResponseT, pbPutRequestT, pbPutResponseT, pbRangeRequestT, pbRangeResponseT, pbTxnRequestT, pbTxnResponseT]
   icases Hkv with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
   imodintro
   iframe #
+  isplitr [Hle]
+  · irevert H4
+    change Iris.ProofMode.Entails' _ (iprop(□ isGrpcRpcMd (Req := pbTxnRequest) (Rep := pbTxnResponse) _ _ _ -∗
+      isGrpcRpcMd (Req := pbTxnRequest) (Rep := pbTxnResponse) _ _ _))
+    iintro #H4
+    iexact H4
   iexact Hle
 
 /-- **etcd's server serves its KV methods, with others** (as `etcd_kv_served`; the closed lease
@@ -3762,7 +3771,7 @@ theorem etcd_leaseMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF)
   · iframe #
   ihave #Hmg' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmg
   ihave #Hmr' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmr
-  simp only [etcdLeaseMethods]
+  simp only [etcdLeaseMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT, pbLeaseRevokeResponseT]
   unfold etcdLeaseSlot
   iframe #
   iapply BigSepL.bigSepL_nil.2
@@ -3805,7 +3814,7 @@ theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
       rcases hx with rfl | rfl <;> simp [etcdLeaseRegs])) $$ [Hl Hslots] with Hrpcs
   · iframe
     iexact Hms
-  simp only [etcdLeaseMethods]
+  simp only [etcdLeaseMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT, pbLeaseRevokeResponseT]
   icases Hrpcs with ⟨#H1, #H2, -⟩
   ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
   ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
@@ -3864,7 +3873,7 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
   · iframe; iframe #
     rw [etcdGrpcSlot_eq]
     iexact Hms
-  simp only [etcdLeaseMethods]
+  simp only [etcdLeaseMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT, pbLeaseRevokeResponseT]
   icases Hle with ⟨#H5, #H6, -⟩
   ihave #H5' := (isGrpcRpc_md _ _ _).2 $$ H5
   ihave #H6' := (isGrpcRpc_md _ _ _).2 $$ H6

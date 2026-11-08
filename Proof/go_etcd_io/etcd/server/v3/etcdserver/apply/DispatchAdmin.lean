@@ -546,7 +546,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      first | itrivial | (iexists _; ipureintro; rfl)
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, (apply.AdminReq.authenticate x.name x.simpleToken), resp
     iframe H0
@@ -578,6 +578,8 @@ theorem apply.uberApplier.dispatch.wp_admin
       (try itrivial)
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨%en, Hv, Hdone, %Hrn⟩
     join_ar
     iframe Hres Ha HW
     iexists (Outcome.applied log false)
@@ -598,13 +600,18 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      first | itrivial | (iexists _; ipureintro; rfl)
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, apply.AdminReq.authEnable, resp
     iframe H0
     isplitr
     · ipureintro; exact ⟨by simp [apply.adminReqOf, hk], rfl⟩
-    iexact Hdone
+    iunfold apply.AdminReq.result
+    iexists en
+    iframe Hv
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
   have zAuthEnable : rq.authEnable = false := nAE.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthDisable (D22, 2026-10-23: not admitted, `rqOk`)
@@ -654,6 +661,8 @@ theorem apply.uberApplier.dispatch.wp_admin
       (try itrivial)
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨Hdone, %Hrn⟩
     join_ar
     iframe Hres Ha HW
     iexists (Outcome.applied log false)
@@ -674,13 +683,16 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      first | itrivial | (iexists _; ipureintro; rfl)
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, (apply.AdminReq.userAdd x.name), resp
     iframe H0
     isplitr
     · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
-    iexact Hdone
+    iunfold apply.AdminReq.result
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
   have zAuthUserAdd : rq.authUserAdd = none := nUA.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserDelete (D22, 2026-10-23: not admitted, `rqOk`)
@@ -727,6 +739,8 @@ theorem apply.uberApplier.dispatch.wp_admin
       (try itrivial)
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨Hdone, %Hrn⟩
     join_ar
     iframe Hres Ha HW
     iexists (Outcome.applied log false)
@@ -747,13 +761,16 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      first | itrivial | (iexists _; ipureintro; rfl)
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, (apply.AdminReq.userGrantRole x.1 x.2), resp
     iframe H0
     isplitr
     · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
-    iexact Hdone
+    iunfold apply.AdminReq.result
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
   have zAuthUserGrantRole : rq.authUserGrantRole = none := nUGR.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserGet (D22, 2026-10-23: not admitted, `rqOk`)
@@ -798,6 +815,8 @@ theorem apply.uberApplier.dispatch.wp_admin
       (try itrivial)
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨Hdone, %Hrn⟩
     join_ar
     iframe Hres Ha HW
     iexists (Outcome.applied log false)
@@ -818,13 +837,16 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      first | itrivial | (iexists _; ipureintro; rfl)
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, (apply.AdminReq.roleAdd x), resp
     iframe H0
     isplitr
     · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
-    iexact Hdone
+    iunfold apply.AdminReq.result
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
   have zAuthRoleAdd : rq.authRoleAdd = none := nRA.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleGrantPermission (the auth plan's E2n: admitted in the mode `on`)
@@ -851,6 +873,8 @@ theorem apply.uberApplier.dispatch.wp_admin
       (try itrivial)
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨Hdone, %Hrn⟩
     join_ar
     iframe Hres Ha HW
     iexists (Outcome.applied log false)
@@ -871,13 +895,16 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      first | itrivial | (iexists _; ipureintro; rfl)
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, (apply.AdminReq.roleGrantPermission x.1 x.2), resp
     iframe H0
     isplitr
     · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
-    iexact Hdone
+    iunfold apply.AdminReq.result
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
   have zAuthRoleGrantPermission : rq.authRoleGrantPermission = none := nRGP.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleGet (D22, 2026-10-23: not admitted, `rqOk`)

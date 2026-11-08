@@ -421,7 +421,7 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   ihave #Hml' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hml
   ihave #Hmt'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h3 h4 $$ Hmt'
   ihave #Hml'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h3 h4 $$ Hml'
-  simp only [etcdLeaseReadMethods]
+  simp only [etcdLeaseReadMethods, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
   iframe #
   iapply BigSepL.bigSepL_nil.2
   itrivial

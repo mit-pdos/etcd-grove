@@ -585,7 +585,8 @@ abbrev applierV3backend.UserAdd.stepSpecX : Prop :=
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}
+      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **`a.RoleAdd(r)` performs the model's step carrying `X`** (`RoleAdd.stepSpec`'s). -/
 abbrev applierV3backend.RoleAdd.stepSpecX : Prop :=
@@ -603,7 +604,8 @@ abbrev applierV3backend.RoleAdd.stepSpecX : Prop :=
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err }}
+      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **`a.UserGrantRole(r)` performs the model's step carrying `X`** (`UserGrantRole.stepSpec`'s). -/
 abbrev applierV3backend.UserGrantRole.stepSpecX : Prop :=
@@ -623,7 +625,8 @@ abbrev applierV3backend.UserGrantRole.stepSpecX : Prop :=
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.userGrantRoleR user role) auth.noExtra err }}
+      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.userGrantRoleR user role) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **`a.RoleGrantPermission(r)` performs the model's step carrying `X`** (`RoleGrantPermission.stepSpec`'s). -/
 abbrev applierV3backend.RoleGrantPermission.stepSpecX : Prop :=
@@ -641,7 +644,8 @@ abbrev applierV3backend.RoleGrantPermission.stepSpecX : Prop :=
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.roleGrantPermissionR name w) auth.noExtra err }}
+      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.roleGrantPermissionR name w) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **`a.AuthEnable()` performs the model's step carrying `X`** (`AuthEnable.stepSpec`'s). -/
 abbrev applierV3backend.AuthEnable.stepSpecX : Prop :=
@@ -659,7 +663,8 @@ abbrev applierV3backend.AuthEnable.stepSpecX : Prop :=
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
-        auth.adminOutX E.authMode (ownX E.authMode X) hs (authEnableR E.authMode en) auth.noExtra err }}
+        auth.adminOutX E.authMode (ownX E.authMode X) hs (authEnableR E.authMode en) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **`a.UserAdd(r)` in the mode `on γa`, from the fuel, carrying `X`** (`UserAdd.fuelSpec`'s). -/
 abbrev applierV3backend.UserAdd.fuelSpecX : Prop :=
@@ -676,7 +681,8 @@ abbrev applierV3backend.UserAdd.fuelSpecX : Prop :=
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}
+      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **`a.RoleAdd(r)` in the mode `on γa`, from the fuel, carrying `X`** (`RoleAdd.fuelSpec`'s). -/
 abbrev applierV3backend.RoleAdd.fuelSpecX : Prop :=
@@ -693,7 +699,8 @@ abbrev applierV3backend.RoleAdd.fuelSpecX : Prop :=
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err }}
+      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **`a.UserGrantRole(r)` in the mode `on γa`, from the fuel, carrying `X`** (`UserGrantRole.fuelSpec`'s). -/
 abbrev applierV3backend.UserGrantRole.fuelSpecX : Prop :=
@@ -710,7 +717,8 @@ abbrev applierV3backend.UserGrantRole.fuelSpecX : Prop :=
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.userGrantRoleR user role) auth.noExtra err }}
+      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.userGrantRoleR user role) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **`a.RoleGrantPermission(r)` in the mode `on γa`, from the fuel, carrying `X`** (`RoleGrantPermission.fuelSpec`'s). -/
 abbrev applierV3backend.RoleGrantPermission.fuelSpecX : Prop :=
@@ -727,7 +735,8 @@ abbrev applierV3backend.RoleGrantPermission.fuelSpecX : Prop :=
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.roleGrantPermissionR name w) auth.noExtra err }}
+      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.roleGrantPermissionR name w) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **`a.AuthEnable()` in the mode `on γa`, from the fuel, carrying `X`**. -/
 abbrev applierV3backend.AuthEnable.fuelSpecX : Prop :=
@@ -745,7 +754,8 @@ abbrev applierV3backend.AuthEnable.fuelSpecX : Prop :=
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
         auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
-          (authEnableR E.authMode en) auth.noExtra err }}
+          (authEnableR E.authMode en) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **What an `Authenticate` returns, with auth on** (C1's A2, 2026-10-28): an error (one of the
 auth package's, `auth.authErrOf`) and no response; or no error and the response, owned (the reply
@@ -810,6 +820,8 @@ theorem applierV3backend.UserAdd.wp_stepX
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
   icases Hresp with ⟨%Hnn, Hhdr⟩
+  ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
+  · ipureintro; exact Hnn.2
   wp_if_destruct
   · -- no response
     iapply HΦ
@@ -852,6 +864,8 @@ theorem applierV3backend.RoleAdd.wp_stepX
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
   icases Hresp with ⟨%Hnn, Hhdr⟩
+  ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
+  · ipureintro; exact Hnn.2
   wp_if_destruct
   · -- no response
     iapply HΦ
@@ -896,6 +910,8 @@ theorem applierV3backend.UserGrantRole.wp_stepX
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
   icases Hresp with ⟨%Hnn, Hhdr⟩
+  ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
+  · ipureintro; exact Hnn.2
   wp_if_destruct
   · -- no response
     iapply HΦ
@@ -938,6 +954,8 @@ theorem applierV3backend.RoleGrantPermission.wp_stepX
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
   icases Hresp with ⟨%Hnn, Hhdr⟩
+  ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
+  · ipureintro; exact Hnn.2
   wp_if_destruct
   · -- no response
     iapply HΦ
@@ -981,6 +999,8 @@ theorem applierV3backend.AuthEnable.wp_stepX
   rcases err with ei | _
   · -- the store's error
     wp_auto
+    ihave Hrn : ⌜GoInterface.ok ei = GoInterface.nil → (null : Loc) ≠ null⌝ $$ []
+    · ipureintro; intro h; cases h
     iapply HΦ
     iframe
     iframe #
@@ -992,6 +1012,9 @@ theorem applierV3backend.AuthEnable.wp_stepX
     wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
     irename «$r0» => Hl
     generalize «$r0_ptr» = l at *
+    ihave %Hlnn := typedPointsto_not_null _ _ _ $$ Hl
+    ihave Hrn : ⌜GoInterface.nil = GoInterface.nil → l ≠ null⌝ $$ []
+    · ipureintro; intro _; exact Hlnn
     iapply HΦ
     iframe
     iframe #
@@ -1014,7 +1037,7 @@ theorem applierV3backend.UserAdd.wp_fuelX
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userAdd name hn) Hfk Hlt
   iapply (h E X W p r log Pre Q Post info hs name hn hok) $$ [Hr Hsure Ho HX HW Hpre]
   · rw [hM]; iframe; iframe #
-  iintro !> %resp %err ⟨Hpost, #He, HW, Hout⟩
+  iintro !> %resp %err ⟨Hpost, #He, HW, Hout, Hrn⟩
   rw [hM]
   ihave Hout := auth.adminOutX_fu γa X hs _ _ err (auth.stepSmall_userAdd name hn) $$ [Hf Hout]
   · iframe
@@ -1036,7 +1059,7 @@ theorem applierV3backend.RoleAdd.wp_fuelX
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_roleAdd name) Hfk Hlt
   iapply (h E X W p r log Pre Q Post info hs name hn hok) $$ [Hr Ho HX HW Hpre]
   · rw [hM]; iframe; iframe #
-  iintro !> %resp %err ⟨Hpost, #He, HW, Hout⟩
+  iintro !> %resp %err ⟨Hpost, #He, HW, Hout, Hrn⟩
   rw [hM]
   ihave Hout := auth.adminOutX_fu γa X hs _ _ err (auth.stepSmall_roleAdd name) $$ [Hf Hout]
   · iframe
@@ -1065,7 +1088,7 @@ theorem applierV3backend.UserGrantRole.wp_fuelX
     omega
   iapply (h E X W p r log Pre Q Post info hs user role hn hroles hok) $$ [Hr Ho HX HW Hpre]
   · rw [hM]; iframe; iframe #
-  iintro !> %resp %err ⟨Hpost, #He, HW, Hout⟩
+  iintro !> %resp %err ⟨Hpost, #He, HW, Hout, Hrn⟩
   rw [hM]
   ihave Hout := auth.adminOutX_fu γa X hs _ _ err (auth.stepSmall_userGrantRole user role) $$ [Hf Hout]
   · iframe
@@ -1087,7 +1110,7 @@ theorem applierV3backend.RoleGrantPermission.wp_fuelX
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_roleGrantPermission name w) Hfk Hlt
   iapply (h E X W p r log Pre Q Post info hs name w hn hok) $$ [Hr Ho HX HW Hpre]
   · rw [hM]; iframe; iframe #
-  iintro !> %resp %err ⟨Hpost, #He, HW, Hout⟩
+  iintro !> %resp %err ⟨Hpost, #He, HW, Hout, Hrn⟩
   rw [hM]
   ihave Hout := auth.adminOutX_fu γa X hs _ _ err (auth.stepSmall_roleGrantPermission name w) $$ [Hf Hout]
   · iframe
@@ -1110,7 +1133,7 @@ theorem applierV3backend.AuthEnable.wp_fuelX
   have hon : E.authMode.isOn = true := by rw [hM]; rfl
   iapply (h E X W p log Pre Q Post info hs hon hok) $$ [Ho HX HW Hpre]
   · rw [hM]; iframe; iframe #
-  iintro !> %resp %err ⟨Hpost, #He, HW, %en, #Hv, Hout⟩
+  iintro !> %resp %err ⟨Hpost, #He, HW, %en, #Hv, Hout, Hrn⟩
   rw [hM]
   ihave Hout := auth.adminOutX_fu γa X hs _ _ err (stepSmall_authEnableR _ en) $$ [Hf Hout]
   · iframe

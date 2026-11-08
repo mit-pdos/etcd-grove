@@ -325,15 +325,20 @@ def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : Go
   | .clusterVersionSet | .clusterMemberAttrSet | .downgradeInfoSet | .downgradeVersionTest =>
       iprop(⌜resp = GoInterface.nil ∧ err = GoInterface.nil⌝)
   | .authEnable => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authUserAdd => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserAddResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserAddResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authRoleAdd => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleAddResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleAddResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authUserGrantRole => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserGrantRoleResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserGrantRoleResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authRoleGrantPermission => iprop(∃ r : Loc, ⌜resp =
-      interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionResponse.ty) #r⌝)
+      interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | _ => iprop(True)
 
 /-- **Without an error the answer does not depend on the trace** (only a compaction's error arm
