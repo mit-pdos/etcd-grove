@@ -498,7 +498,7 @@ What the contract's proof meets:
   loop back to the driver (`InvAdvance.lean:285-295`), and the run loop deposits them where
   `Advance`'s stopped branch (`node.go:555-560`, the `nodeStopped` disjunct) also finds them (B4).
   `Advance`'s post names the tokens of the `Ready`'s traced messages to others (the driver state
-  `nodeDriver`'s `handling` gains `rd.Messages`), and `Node.Step`/`RawNode.Step`/`raft.Step` take a
+  `nodeDriver`'s `handling` gains `rd.Messages`), and `Node.Step` (internally `RawNode.Step`, `raft.Step`) takes a
   traced message's token (given back on a timeout), and `Propose` a budget credit (P5): **changes
   to raft's node API**, each a new
   client-owned ghost on a public spec, the user's to approve with increment 2's draft (gated on a
