@@ -225,7 +225,7 @@ theorem driver_decoderOk (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG)) :
     · ipureintro; exact He
     iunfold objAtD
     iexists p, rev
-    simp only [DObj.toObj, DObj.ofObj]
+    rw [DObj.ofObj_toObj_rv w _ (decodeD_some d w hdec).2.2.2 rev]
     iframe Hp
     ipureintro; simp [hp]
 

@@ -42,7 +42,7 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
   (try wp_auto)
   cases hh : has
   · have hr : rejects false reject v.Node' = false := rfl
-    ihave Hp : p ↦ v $$ [Namespace Name UID Value Node App ResourceVersion]
+    ihave Hp : p ↦ v $$ [Namespace Name UID Value Node App ResourceVersion Annotated]
     · iapply typedPointsto_combine p _ _ Hpn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
@@ -58,7 +58,7 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
       ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hpkg
       icases Hi with ⟨-, -, -, ⟨%eD, #HeD, -⟩, -⟩
-      ihave Hp : p ↦ v $$ [Namespace Name UID Value Node App ResourceVersion]
+      ihave Hp : p ↦ v $$ [Namespace Name UID Value Node App ResourceVersion Annotated]
       · iapply typedPointsto_combine p _ _ Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
@@ -69,7 +69,7 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
       iexact HeD
     · have hr : rejects true reject v.Node' = false := by simp [rejects, hn]
       rw [decide_eq_false hn]
-      ihave Hp : p ↦ v $$ [Namespace Name UID Value Node App ResourceVersion]
+      ihave Hp : p ↦ v $$ [Namespace Name UID Value Node App ResourceVersion Annotated]
       · iapply typedPointsto_combine p _ _ Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe

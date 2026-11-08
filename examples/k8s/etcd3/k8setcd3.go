@@ -80,6 +80,10 @@ type Obj struct {
 	Node            string
 	App             string
 	ResourceVersion uint64
+	// the initial-events-end annotation of a watch bookmark's object
+	// (storage.AnnotateInitialEventsEndBookmark, stage 7f); false on every stored object (the codec
+	// neither writes nor reads it)
+	Annotated bool
 }
 
 // GetObjectKind is runtime.Object's: the driver's objects carry no kind.
@@ -219,6 +223,10 @@ func (codec) Identifier() runtime.Identifier {
 }
 
 func (codec) Decode(data []byte, defaults *schema.GroupVersionKind, into runtime.Object) (runtime.Object, *schema.GroupVersionKind, error) {
+	// runtime.Decode (the etcd3 watcher's decodeObj) passes no object to decode into: a new one.
+	if into == nil {
+		into = &Obj{}
+	}
 	o, ok := into.(*Obj)
 	if !ok {
 		return nil, nil, errNotObj
@@ -270,30 +278,37 @@ func rvString(n uint64) string {
 // namespace, name, UID, labels and resource version (as the versioner's string) are the object's;
 // the rest of the metadata is empty and its setters do nothing.
 
-func (o *Obj) GetNamespace() string                                       { return o.Namespace }
-func (o *Obj) SetNamespace(namespace string)                              { o.Namespace = namespace }
-func (o *Obj) GetName() string                                            { return o.Name }
-func (o *Obj) SetName(name string)                                        { o.Name = name }
-func (o *Obj) GetGenerateName() string                                    { return "" }
-func (o *Obj) SetGenerateName(name string)                                {}
-func (o *Obj) GetUID() types.UID                                          { return types.UID(o.UID) }
-func (o *Obj) SetUID(uid types.UID)                                       { o.UID = string(uid) }
-func (o *Obj) GetResourceVersion() string                                 { return rvString(o.ResourceVersion) }
-func (o *Obj) SetResourceVersion(version string)                          {}
-func (o *Obj) GetGeneration() int64                                       { return 0 }
-func (o *Obj) SetGeneration(generation int64)                             {}
-func (o *Obj) GetSelfLink() string                                        { return "" }
-func (o *Obj) SetSelfLink(selfLink string)                                {}
-func (o *Obj) GetCreationTimestamp() metav1.Time                          { return metav1.Time{} }
-func (o *Obj) SetCreationTimestamp(timestamp metav1.Time)                 {}
-func (o *Obj) GetDeletionTimestamp() *metav1.Time                         { return nil }
-func (o *Obj) SetDeletionTimestamp(timestamp *metav1.Time)                {}
-func (o *Obj) GetDeletionGracePeriodSeconds() *int64                      { return nil }
-func (o *Obj) SetDeletionGracePeriodSeconds(s *int64)                     {}
-func (o *Obj) GetLabels() map[string]string                               { return objLabels(*o) }
-func (o *Obj) SetLabels(labels map[string]string)                         {}
-func (o *Obj) GetAnnotations() map[string]string                          { return nil }
-func (o *Obj) SetAnnotations(annotations map[string]string)               {}
+func (o *Obj) GetNamespace() string                        { return o.Namespace }
+func (o *Obj) SetNamespace(namespace string)               { o.Namespace = namespace }
+func (o *Obj) GetName() string                             { return o.Name }
+func (o *Obj) SetName(name string)                         { o.Name = name }
+func (o *Obj) GetGenerateName() string                     { return "" }
+func (o *Obj) SetGenerateName(name string)                 {}
+func (o *Obj) GetUID() types.UID                           { return types.UID(o.UID) }
+func (o *Obj) SetUID(uid types.UID)                        { o.UID = string(uid) }
+func (o *Obj) GetResourceVersion() string                  { return rvString(o.ResourceVersion) }
+func (o *Obj) SetResourceVersion(version string)           {}
+func (o *Obj) GetGeneration() int64                        { return 0 }
+func (o *Obj) SetGeneration(generation int64)              {}
+func (o *Obj) GetSelfLink() string                         { return "" }
+func (o *Obj) SetSelfLink(selfLink string)                 {}
+func (o *Obj) GetCreationTimestamp() metav1.Time           { return metav1.Time{} }
+func (o *Obj) SetCreationTimestamp(timestamp metav1.Time)  {}
+func (o *Obj) GetDeletionTimestamp() *metav1.Time          { return nil }
+func (o *Obj) SetDeletionTimestamp(timestamp *metav1.Time) {}
+func (o *Obj) GetDeletionGracePeriodSeconds() *int64       { return nil }
+func (o *Obj) SetDeletionGracePeriodSeconds(s *int64)      {}
+func (o *Obj) GetLabels() map[string]string                { return objLabels(*o) }
+func (o *Obj) SetLabels(labels map[string]string)          {}
+func (o *Obj) GetAnnotations() map[string]string {
+	if o.Annotated {
+		return map[string]string{metav1.InitialEventsAnnotationKey: "true"}
+	}
+	return nil
+}
+func (o *Obj) SetAnnotations(annotations map[string]string) {
+	o.Annotated = annotations[metav1.InitialEventsAnnotationKey] == "true"
+}
 func (o *Obj) GetFinalizers() []string                                    { return nil }
 func (o *Obj) SetFinalizers(finalizers []string)                          {}
 func (o *Obj) GetOwnerReferences() []metav1.OwnerReference                { return nil }
@@ -502,8 +517,9 @@ const (
 )
 
 // An Output is a call's answer: the object it returned (its namespace, name, UID, value, node, app
-// and resource version), the list it returned (its items, its resource version ListRV, its
-// continue token Continue, and its remaining item count Remaining if HasRemaining), or its error.
+// and resource version), the list it returned (its items, encoded as a plain value by encodeItems,
+// its resource version ListRV, its continue token Continue, and its remaining item count Remaining
+// if HasRemaining), or its error. A plain value: porcupine's model decodes it purely.
 type Output struct {
 	Err          int
 	ErrKey       string
@@ -515,7 +531,7 @@ type Output struct {
 	Node         string
 	App          string
 	RV           uint64
-	Items        []Obj
+	Items        string
 	ListRV       uint64
 	Continue     string
 	HasRemaining bool
@@ -1073,7 +1089,7 @@ func mlist(in Input, c mcfg) Output {
 	if err != nil {
 		return Output{Err: EOther}
 	}
-	out := Output{Err: ENone, Items: items, ListRV: st.rv, Continue: cont}
+	out := Output{Err: ENone, Items: encodeItems(items), ListRV: st.rv, Continue: cont}
 	if rem != nil {
 		out.HasRemaining = true
 		out.Remaining = *rem
@@ -1081,19 +1097,25 @@ func mlist(in Input, c mcfg) Output {
 	return out
 }
 
+// encodeItems is a list's items as a plain value (Output.Items, which porcupine's model decodes
+// purely): for each item, its resource version (rvBytes), the length of its encoding (rvBytes) and
+// its encoding (encodeObj: the codec's, injective on the objects the driver makes).
+func encodeItems(items []Obj) string {
+	var out []byte
+	for i := range items {
+		e := encodeObj(&items[i])
+		out = append(out, []byte(rvBytes(items[i].ResourceVersion))...)
+		out = append(out, []byte(rvBytes(uint64(len(e))))...)
+		out = append(out, e...)
+	}
+	return string(out)
+}
+
 func outEqual(a, b Output) bool {
-	if a.Err != b.Err || a.ErrKey != b.ErrKey || a.ErrRV != b.ErrRV || a.Namespace != b.Namespace ||
-		a.Name != b.Name || a.UID != b.UID || a.Value != b.Value || a.Node != b.Node ||
-		a.App != b.App || a.RV != b.RV || a.ListRV != b.ListRV || a.Continue != b.Continue ||
-		a.HasRemaining != b.HasRemaining || a.Remaining != b.Remaining || len(a.Items) != len(b.Items) {
-		return false
-	}
-	for i := range a.Items {
-		if a.Items[i] != b.Items[i] {
-			return false
-		}
-	}
-	return true
+	return a.Err == b.Err && a.ErrKey == b.ErrKey && a.ErrRV == b.ErrRV && a.Namespace == b.Namespace &&
+		a.Name == b.Name && a.UID == b.UID && a.Value == b.Value && a.Node == b.Node &&
+		a.App == b.App && a.RV == b.RV && a.Items == b.Items && a.ListRV == b.ListRV &&
+		a.Continue == b.Continue && a.HasRemaining == b.HasRemaining && a.Remaining == b.Remaining
 }
 
 func inputEqual(a, b Input) bool {
@@ -1542,10 +1564,7 @@ func cachedObj(in Input) runtime.Object {
 
 // listOut is a List's output: the list it returned.
 func listOut(l *ObjList) Output {
-	out := Output{Err: ENone, Items: l.Items, ListRV: l.ResourceVersion, Continue: l.Continue}
-	if len(out.Items) == 0 {
-		out.Items = nil
-	}
+	out := Output{Err: ENone, Items: encodeItems(l.Items), ListRV: l.ResourceVersion, Continue: l.Continue}
 	if l.RemainingItemCount != nil {
 		out.HasRemaining = true
 		out.Remaining = *l.RemainingItemCount

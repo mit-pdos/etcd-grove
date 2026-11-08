@@ -44,7 +44,8 @@ variable [GooseExts]
 instance Obj_decEq : DecidableEq Obj := fun a b =>
   decidable_of_iff (a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧
       a.Value' = b.Value' ∧ a.Node' = b.Node' ∧ a.App' = b.App' ∧
-      a.ResourceVersion' = b.ResourceVersion') (by cases a; cases b; simp)
+      a.ResourceVersion' = b.ResourceVersion' ∧ a.Annotated' = b.Annotated')
+    (by cases a; cases b; simp)
 
 instance item_decEq : DecidableEq item := fun a b =>
   decidable_of_iff (a.key' = b.key' ∧ a.obj' = b.obj' ∧ a.canon' = b.canon')
@@ -73,7 +74,7 @@ instance Output_decEq : DecidableEq Output := fun a b =>
 /-! ## The store's helpers -/
 
 /-- The zero `item` (`item{}`). -/
-def zItem : item := ⟨[], ⟨[], [], [], [], [], [], W64 0⟩, false⟩
+def zItem : item := ⟨[], ⟨[], [], [], [], [], [], W64 0, false⟩, false⟩
 
 /-- `lookup(items, k)`: `k`'s first item. -/
 def lookupL (its : List item) (k : GoString) : item × Bool :=
@@ -115,7 +116,7 @@ instance GSt_decEq : DecidableEq GSt := fun a b =>
 /-- An output with no object and no list: the error `e`, its key `k` and resource version `r`
 (`Output{Err: e, ErrKey: k, ErrRV: r}`). -/
 def errOutL (e : w64) (k : GoString) (r : w64) : Output :=
-  ⟨e, k, r, [], [], [], [], [], [], 0, slice.nil, 0, [], false, 0⟩
+  ⟨e, k, r, [], [], [], [], [], [], 0, [], 0, [], false, 0⟩
 
 /-- `notFound(st, key)` of a store at the resource version `rv`. -/
 def notFoundL (rv : w64) (key : GoString) : Output := errOutL (W64 1) (mkeyL key) rv
@@ -126,11 +127,11 @@ def invalidObjL (key : GoString) : Output := errOutL (W64 5) (mkeyL key) 0
 /-- `objOut(o)`. -/
 def objOutL (o : Obj) : Output :=
   ⟨W64 0, [], 0, o.Namespace', o.Name', o.UID', o.Value', o.Node', o.App', o.ResourceVersion',
-    slice.nil, 0, [], false, 0⟩
+    [], 0, [], false, 0⟩
 
 /-- `objOf(out)`: an answer's object. -/
 def objOfL (y : Output) : Obj :=
-  ⟨y.Namespace', y.Name', y.UID', y.Value', y.Node', y.App', y.RV'⟩
+  ⟨y.Namespace', y.Name', y.UID', y.Value', y.Node', y.App', y.RV', false⟩
 
 /-- "key exists" (`Output{Err: EExists, ...}`). -/
 def existsL (key : GoString) : Output := errOutL (W64 2) (mkeyL key) (W64 0)
@@ -149,7 +150,7 @@ def tooLargeL : Output := errOutL (W64 6) [] 0
 def zeroOutL : Output := errOutL (W64 0) [] 0
 
 /-- The zero object (`Obj{}`). -/
-def zObj : Obj := ⟨[], [], [], [], [], [], W64 0⟩
+def zObj : Obj := ⟨[], [], [], [], [], [], W64 0, false⟩
 
 /-- `preOk(in, o)`: the preconditions, where given, are `o`'s UID and resource version (its
 string, `rvString`). -/
@@ -170,7 +171,7 @@ def mcreateL (x : Input) (st : GSt) : GSt × Output :=
   if (lookupL st.items x.Key').2 then (st, existsL x.Key')
   else
     let o : Obj := ⟨(splitKeyL x.Key').1, (splitKeyL x.Key').2, x.UID', x.Val', x.Node', x.App',
-      st.rv + W64 1⟩
+      st.rv + W64 1, false⟩
     (⟨setItemL st.items ⟨x.Key', o, true⟩, st.rv + W64 1⟩, objOutL o)
 
 /-- `mdelete(in, st)`. -/

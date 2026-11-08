@@ -58,6 +58,7 @@ noncomputable instance Obj_typed_pointsto :
     "Node" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj go!"Node" l) v.Node' dq ∗
     "App" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj go!"App" l) v.App' dq ∗
     "ResourceVersion" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj go!"ResourceVersion" l) v.ResourceVersion' dq ∗
+    "Annotated" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj go!"Annotated" l) v.Annotated' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -176,6 +177,22 @@ noncomputable instance Obj_access_store_ResourceVersion (l : Loc) (v : github_co
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj go!"ResourceVersion" l) ResourceVersion' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := ResourceVersion' } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Obj_access_load_Annotated (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj go!"Annotated" l) v.Annotated' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj go!"Annotated" l) v.Annotated' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Obj_access_store_Annotated (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) (Annotated' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj go!"Annotated" l) v.Annotated' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj go!"Annotated" l) Annotated' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Annotated' := Annotated' } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1073,7 +1090,7 @@ noncomputable instance Output_access_load_Items (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Output_access_store_Items (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output) (Items' : GoSlice) :
+noncomputable instance Output_access_store_Items (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output) (Items' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"Items" l) v.Items' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"Items" l) Items' (DFrac.own 1))

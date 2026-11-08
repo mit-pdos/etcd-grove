@@ -192,7 +192,7 @@ func response(real *correctness.Model, in Input, out Output) correctness.Respons
 			n := out.Remaining
 			l.RemainingItemCount = &n
 		}
-		for _, o := range out.Items {
+		for _, o := range decodeItems(out.Items) {
 			l.Items = append(l.Items, tObj(o))
 		}
 		return correctness.Response{Object: l}
@@ -290,7 +290,7 @@ func TestModelMatchesCorrectnessModel(t *testing.T) {
 				}
 				bad := op.Response.Object.DeepCopyObject().(*TObjList)
 				bad.Items = []TObj{}
-				for _, o := range alt.Items {
+				for _, o := range decodeItems(alt.Items) {
 					bad.Items = append(bad.Items, tObj(o))
 				}
 				if replay.Validate(op.Request, correctness.Response{Object: bad}) == nil {
@@ -339,11 +339,12 @@ func fieldOf(s fieldSel) (int, string, string, string) {
 
 // sameItems says whether a model answer's items are a list's.
 func sameItems(o Output, l *TObjList) bool {
-	if len(o.Items) != len(l.Items) {
+	items := decodeItems(o.Items)
+	if len(items) != len(l.Items) {
 		return false
 	}
-	for i := range o.Items {
-		if !reflect.DeepEqual(tObj(o.Items[i]), l.Items[i]) {
+	for i := range items {
+		if !reflect.DeepEqual(tObj(items[i]), l.Items[i]) {
 			return false
 		}
 	}

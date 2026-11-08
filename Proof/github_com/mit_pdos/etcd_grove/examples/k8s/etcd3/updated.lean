@@ -27,7 +27,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 set_option hygiene false in
 /-- `updated` after the rejection test: the copy, updated unless `in.NoOp`. -/
 local macro "upd_rest" : tactic => `(tactic| (
-  ihave Hp : p ↦{dq} v $$ [Namespace Name pUID Value pNode pApp ResourceVersion]
+  ihave Hp : p ↦{dq} v $$ [Namespace Name pUID Value pNode pApp ResourceVersion Annotated]
   · iapply typedPointsto_combine p _ dq Hpn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
@@ -90,7 +90,7 @@ theorem updated.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG)) :
     rw [hh]
     (try wp_auto)
     rw [decide_eq_true hn]
-    ihave Hp : p ↦{dq} v $$ [Namespace Name pUID Value pNode pApp ResourceVersion]
+    ihave Hp : p ↦{dq} v $$ [Namespace Name pUID Value pNode pApp ResourceVersion Annotated]
     · iapply typedPointsto_combine p _ dq Hpn
       simp only [TypedPointsto.typedPointstoDef]
       iframe

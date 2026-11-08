@@ -103,7 +103,7 @@ theorem updObj_toObj (inp : Input) (o : DObj) (n : w64) (hi : inFits inp) :
     (updObj inp o).toObj n = updGo inp (o.toObj n) := by
   unfold updObj
   rw [dif_pos (updGo_fits inp o 0 hi), updGo_toObj inp o n]
-  rfl
+  unfold updGo; split <;> rfl
 
 /-- **`tryUpdateFor(in)`, as a function**: rejected as `rejD` on the input's node, with the error
 `eU` (`errUpdateRejected`'s), otherwise `updObj`. -/

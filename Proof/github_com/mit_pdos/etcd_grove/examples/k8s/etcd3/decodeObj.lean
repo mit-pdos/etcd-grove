@@ -69,7 +69,7 @@ local macro "finish_decode" : tactic => `(tactic| (
   iapply HΦ
   iframe Hs
   ipureintro
-  have hdec : decodeD d = some ⟨ns, name, uid, d.drop i5, node, app, 0⟩ := by
+  have hdec : decodeD d = some ⟨ns, name, uid, d.drop i5, node, app, 0, false⟩ := by
     unfold decodeD; rw [if_neg hnl, if_neg hbad]; simp only [h1, h2, h3, h4, h5]
   rw [hdec]
   refine ⟨rfl, ?_⟩

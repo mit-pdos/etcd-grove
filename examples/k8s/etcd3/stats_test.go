@@ -115,7 +115,7 @@ func TestTrafficReachesCases(t *testing.T) {
 			if out.HasRemaining {
 				counts["list/remaining"]++
 			}
-			if len(out.Items) == 0 {
+			if len(decodeItems(out.Items)) == 0 {
 				counts["list/empty"]++
 			}
 			counts[[]string{"list/field/everything", "list/field/name", "list/field/ns",
@@ -171,13 +171,5 @@ func listEqualAt(in Input, c mcfg, r uint64, r2 uint64) bool {
 	in.MinRV, in.Match = "", MLegacy
 	a := mlist(in, mcfg{st: histAt(c.hist, r)})
 	b := mlist(in, mcfg{st: histAt(c.hist, r2)})
-	if len(a.Items) != len(b.Items) {
-		return false
-	}
-	for i := range a.Items {
-		if a.Items[i] != b.Items[i] {
-			return false
-		}
-	}
-	return true
+	return a.Items == b.Items
 }

@@ -32,21 +32,21 @@ func TestListLimitHasMore(t *testing.T) {
 	c := listFixture()
 	byNode := Input{Kind: KList, ListKey: "/objs/", Recursive: true, Field: FByNode, SelNode: "node-1", Limit: 1}
 	o := mlist(byNode, c)
-	if o.Err != ENone || len(o.Items) != 1 || o.Items[0].Name != "pod-1" || o.Continue == "" || o.HasRemaining {
+	if o.Err != ENone || len(decodeItems(o.Items)) != 1 || decodeItems(o.Items)[0].Name != "pod-1" || o.Continue == "" || o.HasRemaining {
 		t.Fatalf("node-1, limit 1: %+v", o)
 	}
 	last := byNode
 	last.SelNode = "node-2"
-	if o := mlist(last, c); o.Err != ENone || len(o.Items) != 1 || o.Items[0].Name != "pod-11" || o.Continue != "" {
+	if o := mlist(last, c); o.Err != ENone || len(decodeItems(o.Items)) != 1 || decodeItems(o.Items)[0].Name != "pod-11" || o.Continue != "" {
 		t.Fatalf("node-2, limit 1 (no key after): %+v", o)
 	}
 	all := Input{Kind: KList, ListKey: "/objs/", Recursive: true, Limit: 1}
-	if o := mlist(all, c); o.Err != ENone || len(o.Items) != 1 || o.Continue == "" || !o.HasRemaining || o.Remaining != 1 {
+	if o := mlist(all, c); o.Err != ENone || len(decodeItems(o.Items)) != 1 || o.Continue == "" || !o.HasRemaining || o.Remaining != 1 {
 		t.Fatalf("everything, limit 1: %+v", o)
 	}
 	// the prefix boundary: ns-1 does not list ns-11, pod-1 does not list pod-11
 	ns := Input{Kind: KList, ListKey: "/objs/ns-1/pod-1", Recursive: true}
-	if o := mlist(ns, c); o.Err != ENone || len(o.Items) != 0 {
+	if o := mlist(ns, c); o.Err != ENone || len(decodeItems(o.Items)) != 0 {
 		t.Fatalf("recursive /objs/ns-1/pod-1: %+v", o)
 	}
 	// the real Model gives the same answers (consistent lists: compared whole)
@@ -91,7 +91,7 @@ func TestModelRejectsStaleList(t *testing.T) {
 	st := state{c}
 	exact := Input{Kind: KList, ListKey: "/objs/ns-1", Recursive: true, MinRV: rvBytes(2), Match: MExact}
 	good := mlist(exact, c)
-	if ok, _ := m.Step(st, exact, good); !ok || len(good.Items) != 1 || good.Items[0].Value != "x" || good.ListRV != 2 {
+	if ok, _ := m.Step(st, exact, good); !ok || len(decodeItems(good.Items)) != 1 || decodeItems(good.Items)[0].Value != "x" || good.ListRV != 2 {
 		t.Fatalf("the model rejects the answer at revision 2: %+v", good)
 	}
 	latest := exact
@@ -139,4 +139,58 @@ func histList(h *hnode) []mstore {
 		out = append([]mstore{h.st}, out...)
 	}
 	return out
+}
+
+// decodeItems is encodeItems' inverse (a test helper): the items of an Output's encoding.
+func decodeItems(s string) []Obj {
+	var items []Obj
+	b := []byte(s)
+	for len(b) >= 16 {
+		rv, _ := parseRV(string(b[:8]))
+		n, _ := parseRV(string(b[8:16]))
+		o, ok := decodeObj(b[16 : 16+n])
+		if !ok {
+			panic("decodeItems: bad item")
+		}
+		o.ResourceVersion = rv
+		items = append(items, o)
+		b = b[16+n:]
+	}
+	if len(b) != 0 {
+		panic("decodeItems: trailing bytes")
+	}
+	return items
+}
+
+// TestEncodeItemsRoundTrip checks decodeItems(encodeItems(items)) = items.
+func TestEncodeItemsRoundTrip(t *testing.T) {
+	items := []Obj{{Namespace: "ns-1", Name: "pod-1", UID: "u", Value: "v", Node: "n", App: "a", ResourceVersion: 3},
+		{Namespace: "ns-11", Name: "pod-1", ResourceVersion: 1 << 40}, {}}
+	got := decodeItems(encodeItems(items))
+	if len(got) != len(items) {
+		t.Fatalf("got %d items", len(got))
+	}
+	for i := range items {
+		if got[i] != items[i] {
+			t.Fatalf("item %d: %+v != %+v", i, got[i], items[i])
+		}
+	}
+	if encodeItems(nil) != "" || len(decodeItems("")) != 0 {
+		t.Fatal("empty")
+	}
+}
+
+// TestCodecDecodeNil checks the codec's Decode with no object to decode into (runtime.Decode, as
+// the etcd3 watcher calls it): a new object.
+func TestCodecDecodeNil(t *testing.T) {
+	o := Obj{Namespace: "ns-1", Name: "pod-1", UID: "u", Value: "v", Node: "n", App: "a"}
+	got, _, err := codec{}.Decode(encodeObj(&o), nil, nil)
+	if err != nil || *got.(*Obj) != o {
+		t.Fatalf("Decode(nil) = %v, %v", got, err)
+	}
+	var a Obj
+	a.SetAnnotations(map[string]string{"k8s.io/initial-events-end": "true"})
+	if !a.Annotated || a.GetAnnotations()["k8s.io/initial-events-end"] != "true" {
+		t.Fatal("annotation")
+	}
 }

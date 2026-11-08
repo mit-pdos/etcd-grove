@@ -65,7 +65,7 @@ variable [GooseExts]
 open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Obj)
 
 /-- Go's record of an object at the resource version `n`. -/
-abbrev DObj.toObj (o : DObj) (n : w64) : Obj := ⟨o.ns, o.name, o.uid, o.val, o.node, o.app, n⟩
+abbrev DObj.toObj (o : DObj) (n : w64) : Obj := ⟨o.ns, o.name, o.uid, o.val, o.node, o.app, n, false⟩
 
 /-- A Go record's fields fit a `DObj` (each length a byte). -/
 def fitsD (v : Obj) : Prop :=
@@ -78,13 +78,19 @@ instance (v : Obj) : Decidable (fitsD v) := by unfold fitsD; infer_instance
 def DObj.ofObj (v : Obj) (h : fitsD v) : DObj :=
   ⟨v.Namespace', v.Name', v.UID', v.Value', v.Node', v.App', h⟩
 
+/-- A record with no annotation, at another resource version, is its object's. -/
+theorem DObj.ofObj_toObj_rv (v : Obj) (h : fitsD v) (ha : v.Annotated' = false) (n : w64) :
+    (DObj.ofObj v h).toObj n = { v with ResourceVersion' := n } := by
+  cases v; simp_all [DObj.ofObj]
+
 theorem DObj.toObj_fits (o : DObj) (n : w64) : fitsD (o.toObj n) := o.fits
 
 @[simp] theorem DObj.ofObj_toObj (o : DObj) (n : w64) (h : fitsD (o.toObj n)) :
     DObj.ofObj (o.toObj n) h = o := rfl
 
-theorem DObj.toObj_ofObj (v : Obj) (h : fitsD v) :
-    (DObj.ofObj v h).toObj v.ResourceVersion' = v := rfl
+theorem DObj.toObj_ofObj (v : Obj) (h : fitsD v) (ha : v.Annotated' = false) :
+    (DObj.ofObj v h).toObj v.ResourceVersion' = v := by
+  cases v; simp_all [DObj.ofObj]
 
 /-- `putField(out, f)`: `out`, `f`'s length (one byte) and `f`. -/
 def putF (out f : GoString) : GoString := out ++ [W8 (f.length : Int)] ++ f
@@ -120,7 +126,7 @@ def decodeD (d : GoString) : Option Obj :=
     | some (node, i4) =>
     match getFieldD d i4 with
     | none => none
-    | some (app, i5) => some ⟨ns, name, uid, d.drop i5, node, app, 0⟩
+    | some (app, i5) => some ⟨ns, name, uid, d.drop i5, node, app, 0, false⟩
 
 /-- A field read: it fits in the data, its length is a byte, and the index after it is past it. -/
 theorem getFieldD_some (d : GoString) (i : Nat) (f : GoString) (j : Nat)
@@ -159,7 +165,7 @@ theorem getFieldD_putF (pre f d : GoString) (hf : f.length < 256) (hp : putF pre
 
 /-- **Decoding inverts the encoding**, for either tag and fields that fit. -/
 theorem decodeD_encode (tag : GoString) (ht : tag = tagV1 ∨ tag = tagV0) (v : Obj)
-    (hv : fitsD v) : decodeD (encodeWith tag v) = some { v with ResourceVersion' := 0 } := by
+    (hv : fitsD v) : decodeD (encodeWith tag v) = some { v with ResourceVersion' := 0, Annotated' := false } := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := hv
   have h3t : tag.length = 3 := by rcases ht with rfl | rfl <;> rfl
   have htake : (encodeWith tag v).take 3 = tag := by
@@ -189,10 +195,11 @@ theorem encodeWith_length (tag : GoString) (v : Obj) :
       v.UID'.length + v.Node'.length + v.App'.length + v.Value'.length := by
   simp [encodeWith, putF]; omega
 
-/-- A decoded record's fields fit, its resource version is `0`, and re-encoding it with a
+/-- A decoded record's fields fit, its resource version is `0` (and it carries no annotation), and re-encoding it with a
 three-byte tag gives data of the same length. -/
 theorem decodeD_some (d : GoString) (v : Obj) (h : decodeD d = some v) :
-    fitsD v ∧ v.ResourceVersion' = 0 ∧ (encodeWith tagV1 v).length = d.length := by
+    fitsD v ∧ v.ResourceVersion' = 0 ∧ (encodeWith tagV1 v).length = d.length ∧
+      v.Annotated' = false := by
   unfold decodeD at h
   split at h
   · cases h
@@ -220,7 +227,7 @@ theorem decodeD_some (d : GoString) (v : Obj) (h : decodeD d = some v) :
   obtain ⟨e3, l3, f3⟩ := getFieldD_some _ _ _ _ h3
   obtain ⟨e4, l4, f4⟩ := getFieldD_some _ _ _ _ h4
   obtain ⟨e5, l5, f5⟩ := getFieldD_some _ _ _ _ h5
-  refine ⟨⟨f1, f2, f3, f4, f5⟩, rfl, ?_⟩
+  refine ⟨⟨f1, f2, f3, f4, f5⟩, rfl, ?_, rfl⟩
   rw [encodeWith_length]
   simp only [List.length_drop]
   have : tagV1.length = 3 := rfl
@@ -281,6 +288,92 @@ theorem rvStr_nil (n : w64) (h : rvStr n = []) : n = 0 := by
   · exact hn
   · rw [if_neg hn] at h; simp [rvBytes] at h
 
+/-! ## A list's items as a plain value (`encodeItems`, stage 7e) -/
+
+section items
+variable [GooseExts]
+
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Obj)
+
+/-- One item of `encodeItems`: its resource version, its encoding's length and its encoding. -/
+def encItemL (o : Obj) : GoString :=
+  rvBytes o.ResourceVersion' ++ rvBytes (W64 ((encodeWith tagV1 o).length : Int)) ++ encodeWith tagV1 o
+
+/-- `encodeItems(items)`: the items' `encItemL`s, in order (the loop's `append`s). -/
+def encItemsL (os : List Obj) : GoString := os.foldl (fun acc o => acc ++ encItemL o) []
+
+theorem encItemsL_foldl (os : List Obj) (acc : GoString) :
+    os.foldl (fun acc o => acc ++ encItemL o) acc = acc ++ (os.map encItemL).flatten := by
+  induction os generalizing acc with
+  | nil => simp
+  | cons o os ih => simp [ih, List.append_assoc]
+
+theorem encItemsL_eq (os : List Obj) : encItemsL os = (os.map encItemL).flatten := by
+  unfold encItemsL; rw [encItemsL_foldl]; simp
+
+/-- The objects `encodeItems` is injective on: fields that fit, no annotation, an encoding shorter
+than `2^63` (the driver's: values are short). -/
+def itemOk (o : Obj) : Prop :=
+  fitsD o ∧ o.Annotated' = false ∧ (encodeWith tagV1 o).length < 2 ^ 63
+
+theorem rvBytes_length (n : w64) : (rvBytes n).length = 8 := rfl
+
+theorem rvBytes_inj (a b : w64) (h : rvBytes a = rvBytes b) : a = b := by
+  rw [← bytesBE_rvBytes a, ← bytesBE_rvBytes b, h]
+
+/-- One item's encoding is self-delimiting: it is read back from any data it begins. -/
+theorem encItemL_prefix (a b : Obj) (ra rb : GoString) (ha : itemOk a) (hb : itemOk b)
+    (h : encItemL a ++ ra = encItemL b ++ rb) : a = b ∧ ra = rb := by
+  have hlen : ∀ o : Obj, itemOk o →
+      (W64 ((encodeWith tagV1 o).length : Int)).toNat = (encodeWith tagV1 o).length := by
+    intro o ho; simp only [W64, BitVec.toNat_ofInt]; have := ho.2.2; omega
+  unfold encItemL at h
+  simp only [List.append_assoc] at h
+  have h1 := congrArg (List.take 8) h
+  rw [List.take_left' (rvBytes_length _), List.take_left' (rvBytes_length _)] at h1
+  have hrv := rvBytes_inj _ _ h1
+  have h2 := congrArg (List.drop 8) h
+  rw [List.drop_left' (rvBytes_length _), List.drop_left' (rvBytes_length _)] at h2
+  have h3 := congrArg (List.take 8) h2
+  rw [List.take_left' (rvBytes_length _), List.take_left' (rvBytes_length _)] at h3
+  have hn := congrArg BitVec.toNat (rvBytes_inj _ _ h3)
+  rw [hlen a ha, hlen b hb] at hn
+  have h4 := congrArg (List.drop 8) h2
+  rw [List.drop_left' (rvBytes_length _), List.drop_left' (rvBytes_length _)] at h4
+  have he : encodeWith tagV1 a = encodeWith tagV1 b := by
+    have := congrArg (List.take (encodeWith tagV1 a).length) h4
+    rw [List.take_left' rfl, hn, List.take_left' rfl] at this
+    exact this
+  have hr : ra = rb := by
+    rw [he] at h4; exact List.append_cancel_left h4
+  refine ⟨?_, hr⟩
+  have hd := decodeD_encode tagV1 (.inl rfl) a ha.1
+  rw [he, decodeD_encode tagV1 (.inl rfl) b hb.1] at hd
+  have hd := Option.some.inj hd
+  have ha2 := ha.2.1; have hb2 := hb.2.1
+  cases a; cases b
+  simp only [Obj.mk.injEq] at hd hrv ha2 hb2 ⊢
+  simp_all
+
+/-- **`encodeItems` is injective** on the items the driver makes (`itemOk`). -/
+theorem encItemsL_inj (xs ys : List Obj) (ha : ∀ o ∈ xs, itemOk o) (hb : ∀ o ∈ ys, itemOk o)
+    (h : encItemsL xs = encItemsL ys) : xs = ys := by
+  rw [encItemsL_eq, encItemsL_eq] at h
+  induction xs generalizing ys with
+  | nil =>
+    cases ys with
+    | nil => rfl
+    | cons b ys => simp [encItemL] at h; exact absurd h.1 (by simp [rvBytes])
+  | cons a xs ih =>
+    cases ys with
+    | nil => simp [encItemL] at h; exact absurd h.1 (by simp [rvBytes])
+    | cons b ys =>
+      simp only [List.map_cons, List.flatten_cons] at h
+      obtain ⟨rfl, hr⟩ := encItemL_prefix a b _ _ (ha a (by simp)) (hb b (by simp)) h
+      rw [ih ys (fun o ho => ha o (by simp [ho])) (fun o ho => hb o (by simp [ho])) hr]
+
+end items
+
 section go
 variable [GooseExts]
 
@@ -320,7 +413,7 @@ theorem decodeObjD_encode_length (d : GoString) (o : DObj) (n : w64) (h : decode
     simp only [Option.bind_some] at h
     split at h
     · cases h
-      rw [← (decodeD_some d v hd).2.2, encodeWith_length, encodeWith_length]
+      rw [← (decodeD_some d v hd).2.2.1, encodeWith_length, encodeWith_length]
       rfl
     · cases h
 
