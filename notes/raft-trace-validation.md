@@ -32,8 +32,10 @@ Nothing here is translated or proved yet. Plain Go and TLC only.
   isolator (cuts a random replica off the network for a while: leader changes) run concurrently.
   One locked `SyncRecorder` orders the events. That order is one the trace specification can
   follow: a replica's events are logged from its run goroutine, one at a time; a message is
-  logged as sent (in raft's `send`) before the Ready that hands it to the application, so before
-  its receipt. `DefaultCConfig` runs (8 seeds, under `-race`): 1.7k-2.7k events, 4-11
+  logged as sent (in raft's `send`) before the Ready that hands it out, and (since 2026-11-08) the
+  application sends a Ready's messages only after `Advance`, which raft takes once that Ready is
+  logged, so its receipt is logged after the sender's Ready line (sending before `Advance` let a
+  receipt precede it: `nonissues/raft-trace-ready-logged-after-handout.md`). `DefaultCConfig` runs (8 seeds, under `-race`): 1.7k-2.7k events, 4-11
   candidacies, 2-3 leaders, terms to 8, all matched. Raft's `with_tla` build sleeps 1ms in every
   traced receipt (`traceReceiveMessage`, "to reduce time shift impact across node": for ordering
   by timestamps across processes), so the harness ticks every 10ms (at 2ms a leader's run loop
@@ -141,25 +143,40 @@ is right in each.
    follower behind the commit index, or a batch cut by `MaxSizePerMsg`. The concurrent harness with
    `MaxInflightMsgs: 1` (a scratch copy, not committed) fails on 2 of 6 seeds, TLC's and the
    transcription's verdicts alike (seed 5, line 1011: `MsgApp` `index` 22, `entries` 0, `commit`
-   23). The default configuration (256 inflights, 1 MiB messages, 60 proposals) never throttles nor
-   cuts a batch.
+   23). The concurrent harness now sets `MaxSizePerMsg` unlimited (no batch is ever cut: under
+   Goose's semantics elections, and so the log, are unbounded), and 256 inflights exceed what a
+   leader appends in a term (60 proposals and its empty entry), so it never throttles.
 6. **A voter that knows its term's leader refuses a vote the specification grants** (found
    2026-11-08 by the review of Draft S4, witnessed with five voters). Raft's `canVote`
    (`raft.go:1232-1235`) needs `r.Vote == m.From` or `r.Vote == None && r.lead == None`: a follower
    that learned the term-`T` leader from its heartbeat without voting refuses a second term-`T`
-   candidate; `HandleRequestVoteRequest` grants (`votedFor = Nil`) and has no `lead`. With three
-   voters it cannot arise (a known leader of `T` had the follower's vote: the other voter is the
-   second candidate, which voted for itself); with five, `Sim` over five `RawNode`s fails at the
-   candidate's receipt of the rejection.
+   candidate, and also the term-`T` leader's own `MsgVote` when it arrives after the leader's first
+   heartbeat (delayed: the network reorders); `HandleRequestVoteRequest` grants (`votedFor = Nil`)
+   and has no `lead`. Three voters do not prevent it (round 2 of the review: node 1 wins term 2
+   with node 2's vote, node 3 gets node 1's heartbeat, then node 1's delayed `MsgVote`); a network
+   delivering each link's messages in order would, with three voters. Witnessed: `gaps_test.go`,
+   `TestGap6FiveVoters` (another candidate), `TestGap6ThreeVoters` (the leader's own vote; TLC
+   rejects at the same line).
+7. **`LeaderCompletenessInv` is not an invariant of raft (nor of `etcdraft.tla`)** (found
+   2026-11-08 by round 2 of the S4 review). The invariant (`etcdraft.tla`) asks every current
+   leader whose term exceeds an entry's term to hold every committed entry; raft guarantees it
+   only of leaders elected after the commit. A stale leader breaks it: node 1 leads term 2, its
+   entry at index 4 (term 2) reaches no one; node 2 leads term 3, appends its own entry at 4, and
+   stays leader of term 3 (no check-quorum: nothing tells it of a later term); node 1 leads term 4
+   and commits index 5, so index 4's term-2 entry, which leader 2 does not hold. Message delays
+   alone reach it, so no harness excludes it. TLC: `Invariant LeaderCompletenessInv is violated`;
+   `gaps_test.go`, `TestGap7LeaderCompleteness`. A guard on the leader's term relative to the
+   committing server's (`currentTerm[l] >= currentTerm[i]`) is a candidate repair, not yet
+   checked.
 
 Also met, and avoided by the harness as etcd does: a snapshot without the recipient in its
 configuration, which raft drops (`nonissues/raft-snapshot-without-recipient-livelock.md`) while
 the specification installs it; `FullConfig` snapshots after applying each configuration change.
 
-None of these is a bug in the verified Go code. Items 1, 3, 4, 5 and 6 make upstream's trace validation
+None of these is a bug in the verified Go code (item 7 is a bug in the specification's invariant). Items 1, 3, 4, 5, 6 and 7 make upstream's trace validation
 unable to check traces with restarts, snapshots to lagging followers, or members removed and
 added back; whether to propose fixes to `etcdraft.tla`/`Traceetcdraft.tla` upstream (3: commit, and
-install, on a snapshot whatever the follower's commit; 4: reset `matchIndex` on removal; 5: send `commitIndex[i]` (the follower already clamps, `AppendEntriesAlreadyDone`); 6: add raft's `lead` to the vote condition; 1: log
+install, on a snapshot whatever the follower's commit; 4: reset `matchIndex` on removal; 5: send `commitIndex[i]` (the follower already clamps, `AppendEntriesAlreadyDone`); 6: add raft's `lead` to the vote condition; 7: guard `LeaderCompletenessInv` by the leader's term; 1: log
 `InitState` after `loadState`, or validate a restart's later lines) is open.
 
 ## Raft translated with its trace hooks (2026-11-08)

@@ -5,6 +5,16 @@ hook's correspondence, determinism, the invariants' mapping). It decides what in
 hooks' specs is (`notes/trace-validation-hooks.md`: the logger's contract) and what layer D must
 discharge.
 
+**Revision 3 (after review round 2, 2026-11-08; `notes/trace-validation-reviews/s4-r2.md`).**
+Open on the user (the plan's Q4, Q5): upstream's `LeaderCompletenessInv` is not an invariant of
+raft (N1: item 7 of `notes/raft-trace-validation.md`), and P9 is false with three voters (N2: gap 6
+by the leader's own delayed `MsgVote`); the closed theorem is false until both are decided.
+Changed: increment 2's contract is a generic logger contract, the simulation raft's own (N4); the
+simulation's invariant carries each server's persistent raft facts (N3); the bootstrap mode, the
+`inFlight` tokens' route through the node API, tokens per message value (N5); the phantoms'
+argument, the bootstrap `ApplyConfChange`, the `Step` table, `msgAbs`'s defaults,
+`CommittedIsDurableInv`, P5 (third tier).
+
 **Revision 2 (after review round 1, 2026-11-08; the report:
 `notes/trace-validation-reviews/s4-r1.md`; its findings and what changed, at the end).**
 Changed: the bags' phantom replies (F4); premises P5 restated on the configuration (F3), P8
@@ -85,7 +95,8 @@ Only the traced types count (`traceSendMessage`'s switch: `MsgApp`, `MsgHeartbea
 `MsgAppResp`, `MsgHeartbeatResp`, `MsgVote`, `MsgVoteResp`); the rest (`MsgProp`, `MsgHup`,
 `MsgBeat`, `MsgReadIndex`, `MsgTimeoutNow`, `MsgUnreachable`, ...) are invisible to the
 specification. `msgAbs` maps a traced raft message to the specification's `Msg`, with
-`term := m.Term`, `source := m.From`, `dest := m.To` and: `MsgVote` a request with
+`term := m.Term`, `source := m.From`, `dest := m.To`, every field not named below at its default
+(`subtype ""`, numbers `0`, `false`, `[]`; the `Msg` structure's defaults), and: `MsgVote` a request with
 `lastLogIndex := m.Index`, `lastLogTerm := m.LogTerm`; `MsgVoteResp` a response with
 `voteGranted := !m.Reject`; `MsgApp` an append request of subtype `app` (`prevLogIndex := m.Index`,
 `prevLogTerm := m.LogTerm`, `entries := entAbs <$> m.Entries`, `commitIndex := m.Commit`);
@@ -104,9 +115,10 @@ The bags are `msgAbs` of raft's messages **plus phantoms**:
 (`RejectAppendEntriesRequest`; `HandleRequestVoteRequest` with `voteGranted := false`); raft, with
 check-quorum and pre-vote off (P7), sends nothing ("ignore other cases", `raft.go:1200`). Each such
 receipt leaves a reply in `pendingMessages` that raft never sent and nobody receives: a ghost
-multiset of phantoms in the simulation's invariant. A phantom has a lower term than its
-destination's current term at its creation, and terms only grow, so no receive line consumes one
-unless a real message equal to it is in the bag (then either may be taken: they are equal).
+multiset of phantoms in the simulation's invariant. A receive line is always of a real message
+(raft received it), which is in the bag (P6, P8); a phantom equal to it gives the same successor
+(the bag is a multiset: which copy is taken is not observable), and a phantom equal to no received
+message is never taken.
 
 Raft's proof has no record of the messages in flight, so the bags are ghost state of the
 simulation: an authoritative bag in its invariant, and an exclusive token `inFlight γt m` per
@@ -164,18 +176,20 @@ proof composes them. The lines a branch logs, by rule:
 | `MsgVoteResp` not at a candidate, same term | ignored | none | `HandleRequestVoteResponse` records it (unconstrained fields) |
 | `MsgApp`/`MsgHeartbeat` at a follower | append or reject, commit | `SendAppendEntriesResponse i→j` (skipped) | none |
 | `MsgApp`/`MsgHeartbeat` at a candidate, same term | `becomeFollower`, then as a follower | `BecomeFollower` (skipped: return to follower) | none |
-| `MsgAppResp` at a leader | `MaybeUpdate`, `maybeCommit`, sends | `Commit`, `SendAppendEntriesRequest`×k | `AdvanceCommitIndex`, `AppendEntries` |
+| `MsgAppResp` at a leader | `MaybeUpdate`, `maybeCommit` (when the match moved, or the probe shortcut), sends | `Commit` (then), `SendAppendEntriesRequest`×k | `AdvanceCommitIndex`, `AppendEntries` |
 | `MsgHeartbeatResp` at a leader | sends if behind | `SendAppendEntriesRequest` | `AppendEntries` |
 | a response, lower term | ignored | none | `DropStaleResponse` |
 | a request, lower term | ignored (P7) | none | the reply as a phantom |
 | any, higher term, not a vote | `becomeFollower`, then as above | `BecomeFollower` (skipped) and the above | `UpdateTerm` and the above, at the receive line |
+| `MsgProp` (forwarded or local; untraced) | at a leader `appendEntry`; at a follower forwarded | `Replicate`, `SendAppendEntriesResponse i→i`, `SendAppendEntriesRequest`×n; at a follower none | `ClientRequest`, `AppendEntriesToSelf`, `AppendEntries` |
+| `MsgUnreachable` (`ReportUnreachable`; untraced) | the peer's progress to probe | none | none |
 
 Outside `Step`: `Tick` at a follower or candidate (`campaign`: `BecomeCandidate`, the self vote
 `SendRequestVoteResponse i→i`, `SendRequestVoteRequest`×n), at a leader (`bcastHeartbeat`:
 `SendAppendEntriesRequest` heartbeats); `Propose` at a leader (`appendEntry`: `Replicate`, the self
 acknowledgement, `bcastAppend`); the application's `ApplyConfChange` of the bootstrap entries
-(after a node's first `Ready`: an `ApplyConfChange` line, at a leader also `Commit` and `MsgApp`
-lines, `raft.go:2011-2028`); `Ready` (`acceptReady`: the `Ready` line); `Advance` (the
+(after a node's first `Ready`: an `ApplyConfChange` line, always at a follower:
+`hasUnappliedConfChanges` blocks any campaign until the first `Advance`); `Ready` (`acceptReady`: the `Ready` line); `Advance` (the
 self-addressed messages' receipts).
 
 ### `becomeLeader`'s tally
@@ -243,20 +257,33 @@ None of the eight is cheap:
   and servers, `VotesOk` (a granted vote of term `T` by `j` is unique), maintained through `R` from
   raft's `isVote_agree`, plus `isLeader_unique`;
 - `LogInv`, `QuorumLogInv`, `MoreUpToDateCorrectInv`, `LeaderCompletenessInv`,
-  `CommittedIsDurableInv` (a leader's commit index is within its durable log: the leader's own
-  match is set by `becomeLeader` (`raft.go:820-821`) to its last index, persisted or not, so the
-  proof needs leader completeness and the persistence order, not the self-response) are raft's
-  safety theorems: route (a) from `isCommitted_agree`, `lc_core`, `cq_agree`, the leader's log
-  records;
+  `CommittedIsDurableInv` (a leader's commit index is within its durable log: every response
+  that reaches a leader answers a request handed out at one of its `Ready`s (P8), at which its
+  whole log was persisted, and its own match counts toward a quorum only with the others') are
+  raft's safety theorems: route (a) from `isCommitted_agree`, `lc_core`, `cq_agree`, the
+  leader's log records; **`LeaderCompletenessInv` is not one** (N1, Q4: false of raft; with the
+  guard `currentTerm[l] >= currentTerm[i]`, from `lc_core` in its "committed at term `Tc`,
+  leaders of later terms" form);
 - `LogMatchingInv` from `logRecs_agree`/`plog_match_down`;
 - at a receive line's truncation states (`ConflictAppendEntriesRequest` drops one entry at a time):
   `QuorumLogInv` and `MoreUpToDateCorrectInv` each need a lemma (a truncation removes only entries
   past the follower's commit index, which no committed prefix needs; a shorter log is not more up
   to date), and the others are preserved by a truncation outright.
 
-So route (a), with `R` extended by the facts each needs, and per-action preservation lemmas for the
-specification's intermediate states. This is the largest part of layer B's proof; S5's estimate
-starts here.
+So route (a), with per-action preservation lemmas for the specification's intermediate states. A
+hook of node `i` holds only node `i`'s part and raft's shared invariants, not the other nodes'
+(N3), so the simulation's invariant carries, **for every server `j`, the persistent raft facts
+`σ.s j` stands for**, maintained by node `j`'s steps:
+
+| clause | raft fact | used by |
+|---|---|---|
+| `σ.s j` a leader of `T` | `isLeader γ T j` | `MoreThanOneLeaderInv`, `ElectionSafetyInv`, the corrected LC |
+| `σ.s j`'s log, entry by entry | `logRecs`/`isEntryR` records of `j`'s log (at a truncation state of a receive line: a strict prefix of one) | `LogMatchingInv`, `MoreUpToDateCorrectInv`, `QuorumLogInv` |
+| `σ.s j`'s committed prefix | committed in `raftCommitInv` (`isCommitted`) | `LogInv`, `QuorumLogInv`, `MoreUpToDateCorrectInv`, LC |
+| a granted vote of term `T` by `j` (in `votedFor` or a message) | `isVote γ T j c` | `MoreThanOneLeaderInv`, `ElectionSafetyInv` (`VotesOk`) |
+| `σ.s j`'s durable record | `j`'s last `Ready`'s handed-out state | `CommittedIsDurableInv` |
+
+This is the largest part of layer B's proof; S5's estimate starts here.
 
 ## Premises (layer B's), discharged by layer D
 
@@ -271,7 +298,7 @@ starts here.
 - **P5** (gap 5) the configuration: `MaxSizePerMsg` unlimited (`^uint64(0)`; raft's `noLimit`: a
   batch is never cut, while Goose's semantics, which ignores delays, allows unboundedly many
   elections, so an unboundedly long log) and `MaxInflightMsgs` above the entries a leader appends
-  in one term (256 against at most `Proposals` + 1 + the bootstrap's; in `StateReplicate` each
+  in one term (256 against at most `Proposals` + 1; in `StateReplicate` each
   `MsgApp` with entries carries entries not sent before, and `reset`/`BecomeProbe` empty the
   inflights), so no `MsgApp` is throttled or cut and each carries `Commit ≤ Index + len(Entries)`;
 - **P6** no message duplicated by the network;
@@ -282,23 +309,50 @@ starts here.
 - **P8** (F1) a message is received only after its sender's `Ready` line: the harness sends a
   `Ready`'s messages after `Advance`, which the run loop takes only after `acceptReady` has logged
   the `Ready` (`concurrent.go`'s `app`; Q3 of the plan; `nonissues/raft-trace-ready-logged-after-handout.md`);
-- **P9** (gap 6) at most three voters (`DefaultCConfig.Nodes = 3`): a voter that learned its
-  term's leader without voting refuses a vote the specification grants, impossible with three.
+- **P9** (gap 6) **false as stated** (N2): with three voters, the leader's own `MsgVote`, delayed
+  past its first heartbeat, still meets a voter that knows the leader without having voted. Open
+  on the user (Q5); with a per-link FIFO network (Q5 (a)): "three voters, and each link delivers
+  in order", so a voter hears of its term's leader only after the leader's `MsgVote`, or not at
+  all.
 
 ## Increment 2 of the hooks' specs (what S4 decides)
 
-`TraceLoggerOk tl` (a `Prop`) becomes `isTraceLogger γt tl` (an `IProp` with a ghost name): `tl`
-nil, or a logger whose `TraceEvent(ev)` is a logically atomic update `simStep γt i ev` over the
-simulation's invariant: from `simNode γt i (a, P)` (and, at a receive line, `inFlight γt m`), given
-that `ev` is the event of the node's state as `R` relates it (`ev = eventOf …`, the hook's
-computation: term, vote, commit, role, log size, configuration, the message), it appends `ev` to
-`L`, steps `σ` to its unique successor, and returns `simNode γt i (a', P')` (and, at a `Ready`
-line, the new messages' `inFlight` tokens). So the statements that carry `TraceLoggerOk` change
-again, the constructors' premise (Q1) included: `isTraceLogger γt cv.TraceLogger'` in the
-precondition, with `γt` a new binder; `isTraceLogger_nil` gives it for a nil logger with any `γt`,
-and `simNode` is owned only when the logger is not nil, so nil-logger clients carry nothing new.
-Each hook's spec takes the node's `simNode` and the phase facts its call site holds; `Step`'s
-branches carry the handling phase.
+**The logger's contract is generic** (round 2's N4; the `spec` skill's "TaDa, not HoCAP"): the
+logger only fires the caller's atomic update, and names nothing of the TLA+ specification.
+
+    isTraceLogger γt tl :=
+      ⌜tl = nil⌝ ∨
+      ∀ ev Q, AU⟨∀ L, traceAuth γt L⟩⟨traceAuth γt (L ++ [ev]), Q⟩ -∗ WP tl.TraceEvent(ev) {Q}
+
+(a `TraceEvent` that appends `ev` to the trace `L` atomically and returns what the update gives).
+The harness's `SyncRecorder` proves it with `traceAuth γt L` in its lock invariant. The simulation
+(`σ`, the phantoms, `R`, the per-server facts) is raft's own: `simInv γt` in raft's package keeps a
+`traceFrag γt L` in lockstep with `σ`, and each hook's call site supplies the update, stepping `σ`
+inside it; raft's API exports the law from `simInv γt ∗ traceAuth γt L` to "`L` steps, line by
+line, to a unique state with the invariants" (layer D gets `traceAccepts` from it at the end).
+
+What changes, besides the hooks' specs: the constructors' premise (Q1) becomes
+`isTraceLogger γt cv.TraceLogger'` inside the triple (`γt` a new binder; `isTraceLogger_nil` for a
+nil logger, any `γt`); `simNode` is owned only with a logger, so nil-logger clients carry nothing
+new.
+
+Three things the contract's proof meets (N5):
+
+- **The bootstrap lines** (`newRaft`'s `InitState`, `Bootstrap`'s `BecomeFollower`, the bootstrap
+  `ApplyConfChange`s) come before `σ` exists: `σ_init` (`newTrace`'s `serverOf`) depends on every
+  node's last bootstrap line, and `server` on every id in the trace. So a bootstrap phase: the hooks'
+  updates append without stepping, and `σ` is allocated after the last `StartNode` from the
+  recorded prefix, with an invariant that only the bootstrap's ids ever log.
+- **The `inFlight` tokens** of a `Ready`'s messages are created at its line, inside `acceptReady`,
+  after the application already holds the `Ready` (`readyc <- rd` comes first). So they reach the
+  application after `Advance` (its post, or a deposit the application withdraws after it), and
+  `Node.Step`/`RawNode.Step`/`raft.Step` take a traced message's token (given back on a timeout):
+  **changes to raft's node API**, each a new client-owned ghost on a public spec, the user's to
+  approve with increment 2's draft (gated on a non-nil logger, so the existing clients are
+  unaffected). Whether Perennial's channel specs let `advancec`'s receiver hand resources to the
+  sender at the rendezvous is to check.
+- **Tokens per message value**: a multiset keyed by `msgAbs m` (equal messages occur: repeated
+  heartbeats).
 
 ## Open (for the next round)
 

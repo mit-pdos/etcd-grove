@@ -107,3 +107,13 @@ callers have the struct open), `ownRaftPhysReady` carries it (`Hf_traceLogger`, 
 (`ownConfChangeI_v{1,2}_{intro,elim}`, `LemmasStepR.lean`). `traceChangeConfEvent` calls
 `strconv.FormatUint` before its nil check: Q2 of the plan. The record: `notes/decisions.md`, "The
 trace hooks' specs, increment 1: no logger".
+
+## The update's place: decided (2026-11-08, S4 revision 3)
+
+Point 2 left open whether the logger or raft fires the simulation's update. Decided by the agent,
+after round 2 of S4's review (N4): raft. The logger's contract is generic (`isTraceLogger γt tl`:
+nil, or `TraceEvent(ev)` fires the caller's atomic update on `traceAuth γt L`, appending `ev`), the
+harness's recorder proves it, and the simulation is raft's invariant, each hook supplying the update
+(`notes/trace-validation-sim.md`, "Increment 2"). Rejected: the logger stepping `σ` itself (it holds
+neither the hook's phase facts nor the other servers'), and a contract naming the TLA+ specification
+(couples every logger, and raft's constructors through Q1, to it).

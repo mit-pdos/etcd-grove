@@ -73,6 +73,41 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   proof bound on elections. Taken by the agent, pending the user's veto
   (`examples/raft/tracecheck/concurrent.go`; the tests pass, 10 seeds, and the reviewer's F1
   witness passes with the change; `nonissues/raft-trace-ready-logged-after-handout.md`).
+- **Q4 (2026-11-08, S4 review round 2, N1): the closed statement is false as planned:
+  `LeaderCompletenessInv` is not an invariant of raft, nor of `etcdraft.tla`.** A stale leader (no
+  check-quorum: it keeps leading its term until it hears of a later one) lacks an entry committed
+  in a later term (`notes/raft-trace-validation.md`, item 7; `gaps_test.go`,
+  `TestGap7LeaderCompleteness`; TLC: "Invariant LeaderCompletenessInv is violated"). Message
+  delays alone reach it, so no harness excludes it, and `Main` with the invariants checked can
+  panic. Options: (a) check the other seven invariants only (the checker's `invariants` list, Go
+  and Lean, and the statement's meaning: upstream's `Traceetcdraft.cfg` minus one); (b) correct the
+  invariant's guard in both transcriptions (a leader of a term at least the committing server's,
+  `currentTerm[l] >= currentTerm[i]`: the transcription then departs from upstream's text there, a
+  trust question; the corrected invariant not yet checked on traces or proved); (c) turn
+  check-quorum on (a stale leader then steps down; not modelled by `etcdraft.tla`, so it brings
+  its own gaps). **Not taken** (no recommendation in the plan; the statement's and the trust
+  base's). The agent's recommendation: (b) if the corrected guard survives the traces and a
+  review, else (a); either way, report item 7 upstream (the user's: outside this repository).
+  Evidence for (b) (2026-11-08, a scratch copy, not committed): with the guard
+  `vl.CurrentTerm > entry.Term && vl.CurrentTerm >= s.S[i].CurrentTerm` in the Go transcription,
+  `TestGap7LeaderCompleteness`'s trace is accepted and 30 concurrent seeds and the deterministic
+  traces still pass; the argument: every committed entry server `i` knows was committed at a term
+  at most `currentTerm[i]`, and a leader of a term at least that holds it (leader completeness,
+  or it is the committing leader).
+- **Q5 (2026-11-08, S4 review round 2, N2): three voters do not exclude gap 6.** A leader's own
+  `MsgVote`, delayed past its first heartbeat to a voter, is refused by raft (`lead != None`) and
+  granted by the specification (`TestGap6ThreeVoters`; TLC rejects at the same line), so `Main`
+  can panic. Options: (a) the harness's network delivers each link's messages in order (FIFO per
+  sender-recipient pair; drops and delays stay, reordering only across links): with three voters a
+  voter then hears of a leader only after the leader's `MsgVote`; (b) add raft's `lead` to the
+  specification's vote condition (the transcriptions depart from upstream's text: a trust
+  question). **Not taken** (no recommendation in the plan; (a) narrows the workload, (b) changes
+  the trusted transcription). The agent's recommendation: (a), with the argument proved in layer B
+  as premise P9 restated ("a voter learns of its term's leader only after the leader's
+  `MsgVote`, or not at all").
+  Evidence for (a) (2026-11-08, a scratch copy, not committed): a per-link FIFO `send` (one
+  goroutine per link, delays and drops kept) passes 20 concurrent seeds (weak: random runs did not
+  reach N2 before either; the argument is what counts).
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
   `traceChangeConfEvent` formats the change's ids (`strconv.FormatUint`) before its nil check, so
   the translated raft calls it even without a logger, and raft's linked results now rest on
@@ -233,7 +268,7 @@ ones) its verdict and failing line equal the Go checker's (and so TLC's), and on
 evaluation-error witness (a commit index past the log) it fails with the same error. Not part of
 the trust argument (the plan's "Trust base"): S6's proof is what ties it to the Go.
 
-## Draft: S4 drafted (2026-11-08), in Review (round 1 done, revision 2)
+## Draft: S4 drafted (2026-11-08), in Review (rounds 1 and 2 done; blocked on Q4, Q5)
 
 `notes/trace-validation-sim.md`: the abstraction `α` (a server's variables, the messages, the bags
 as new ghost state with a token per message in flight), the relation's phases (idle, handling a
@@ -245,7 +280,11 @@ harness's configuration, the statement unchanged. Review round 1 (a fresh `spec-
 `notes/trace-validation-reviews/s4-r1.md`): four first-tier findings, two of them making the closed
 theorem false with the harness as it was (Q3), a sixth gap (`notes/raft-trace-validation.md`, item
 6: a voter that knows its term's leader; at most three voters, P9), the bags' phantom replies;
-revision 2 of the note answers each. Round 2 next.
+revision 2 of the note answers each. Round 2 (`notes/trace-validation-reviews/s4-r2.md`): two
+first-tier findings that make the closed theorem false with `DefaultCConfig` (Q4: upstream's
+`LeaderCompletenessInv` is not an invariant of raft; Q5: gap 6 with three voters), both the user's;
+second-tier ones on the contract and the invariants' facts, answered by revision 3. The Review
+cannot clear, so no freeze, until Q4 and Q5 are decided.
 
 ## Draft: S3 increment 1 done (2026-11-08)
 
