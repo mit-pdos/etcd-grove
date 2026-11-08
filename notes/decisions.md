@@ -33992,3 +33992,8 @@ and `ValueStartTime` is a theorem over it (trust base -1).
   SDK tracer as etcd's server builds it, `ParentBased` over rates 0, 1, 500000, 1000000 per million;
   parents absent, a `time.Time`, span contexts with and without one; 1250 calls, every answer the
   argument's; 3 runs).
+- **After the mvcc API merge (lean `752ab6dda0`).** The merge threaded otel's `trace.spanCtxOk`
+  through the same specs; `startTimeOk` sits right after it in each, `Tracer.Start`'s clause after its
+  `spanCtxOk` clause, and `traceutil.wp_WithCancelBackground_noTrace` gives `s.ctx`'s. Trust base:
+  812 entries (-1, `context.ValueStartTime.wp_proof`, from the baseline and 20 collections); no closed
+  `*_safe`/`*_adequate` statement changes.
