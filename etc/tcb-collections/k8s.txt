@@ -34,6 +34,7 @@ axiom conversion.EnforcePtr.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
+axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
