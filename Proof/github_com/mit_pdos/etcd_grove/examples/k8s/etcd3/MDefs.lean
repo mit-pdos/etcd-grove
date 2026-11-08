@@ -5,17 +5,21 @@ Lean-first (no Rocq counterpart).
 
 As linkvtxn's `Defs.lean`:
 
-- `storeOwn s g`, `cfgOwn c g`: the Go store `s`'s items hold `g`'s, the configuration `c`'s
-  store and pending inputs hold `g`'s, read-only (configurations share slices: `step` returns
-  `c.st` in a new configuration);
+- `storeOwn s g`, `histOwn h hs`, `cfgOwn c g`: the Go store `s`'s items hold `g`'s, the history
+  `h`'s nodes hold the stores `hs` (oldest first: `hs[R-1]` at revision `R`, the node of `R`
+  recording its length `R`), the configuration `c`'s store, history and pending inputs hold `g`'s,
+  all read-only (configurations share slices and histories: `step` returns `c.st` in a new
+  configuration, `advance` a history extending `c.hist`; stage 7e, Q7e-3b-1: the state owns the
+  history chain read-only);
 - `boxIn x`, `boxOut y`, `boxSt sl`: a Go `Input`, `Output`, `state` boxed (`any(x)`); `decOp`, the
   model's decoder of porcupine's operations (a boxed `Input` and `Output` is the input and
   `ansOf` the output, `decOp_box`; any other pair is no operation);
-- `stRepB n v S`: a Go state value (a boxed `state`, its slice and configurations read-only) whose
+- `stRepB h0 n v S`: a Go state value (a boxed `state`, its slice and configurations read-only) whose
   configurations `gs` represent `S` (`GOk`), each `Bounded n`;
-- `k8setcd3S g0`, the model's `ModelSpec` from the seeded store `g0`: `pM (kSpec g0) decOp`,
-  `rep k` = `stRepB (k + g0.items.length + 1)` (a value made by `k` steps), and `ioOk i o` (a
-  boxed `Input` and a boxed `Output`: what `Step`'s type assertions need).
+- `k8setcd3S h0`, the model's `ModelSpec` from the seeded store and its history `h0`:
+  `pM (kSpec h0) decOp`, `rep k` = `stRepB h0 (k + h0.st.items.length + h0.hist.length + 1)` (a
+  value made by `k` steps), and `ioOk i o` (a boxed `Input` and a boxed `Output`: what `Step`'s
+  type assertions need).
 
 `Input_intoVal_inj`/`Output_intoVal_inj`: a struct's `intoVal` is injective, from the
 translation's field projections (`proj_eq`, as linkvtxn's).
@@ -35,7 +39,7 @@ namespace EtcdGrove
 namespace k8s_etcd3
 
 open Iris Iris.BI
-open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (mstore mcfg item Input Output state)
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (mstore mcfg hnode item Input Output state)
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -51,8 +55,75 @@ def storeOwn (s : mstore) (g : GSt) : IProp GF :=
 instance storeOwn_persistent (s : mstore) (g : GSt) : Persistent (storeOwn (GF := GF) s g) := by
   unfold storeOwn; infer_instance
 
+/-- A Go history holds the stores `hs`, newest first (see the file header). -/
+def histOwnR : Loc → List GSt → IProp GF
+  | h, [] => iprop(⌜h = null⌝)
+  | h, s :: rest => iprop(∃ hn : hnode, h ↦□ hn ∗ storeOwn hn.st' s ∗
+      ⌜hn.n' = W64 ((rest.length + 1 : Nat) : Int)⌝ ∗ histOwnR hn.prev' rest)
+
+instance histOwnR_persistent (h : Loc) (hs : List GSt) : Persistent (histOwnR (GF := GF) h hs) := by
+  induction hs generalizing h with
+  | nil => unfold histOwnR; infer_instance
+  | cons s rest ih => unfold histOwnR; infer_instance
+
+/-- A Go history holds the stores `hs`, oldest first (see the file header). -/
+def histOwn (h : Loc) (hs : List GSt) : IProp GF := histOwnR h hs.reverse
+
+instance histOwn_persistent (h : Loc) (hs : List GSt) : Persistent (histOwn (GF := GF) h hs) := by
+  unfold histOwn; infer_instance
+
+theorem histOwn_nil (h : Loc) : histOwn (GF := GF) h [] ⊣⊢ iprop(⌜h = null⌝) := by
+  unfold histOwn; simp only [List.reverse_nil, histOwnR]; exact .rfl
+
+theorem histOwn_snoc (h : Loc) (hs : List GSt) (s : GSt) :
+    histOwn (GF := GF) h (hs ++ [s]) ⊣⊢ iprop(∃ hn : hnode, h ↦□ hn ∗ storeOwn hn.st' s ∗
+      ⌜hn.n' = W64 ((hs.length + 1 : Nat) : Int)⌝ ∗ histOwn hn.prev' hs) := by
+  unfold histOwn; simp only [List.reverse_append, List.reverse_cons, List.reverse_nil,
+    List.nil_append, List.cons_append, histOwnR, List.length_reverse]; exact .rfl
+
+/-- Two stores of the same Go store are equal. -/
+theorem storeOwn_agree (st : mstore) (a b : GSt) :
+    storeOwn (GF := GF) st a ⊢ storeOwn st b -∗ ⌜a = b⌝ := by
+  unfold storeOwn
+  iintro ⟨Ha, %Hra⟩ ⟨Hb, %Hrb⟩
+  icases ownSlice_agree _ _ _ _ _ $$ Ha Hb with %He
+  ipureintro
+  cases a; cases b; simp_all
+
+/-- Two histories of the same Go history, of the same length, are equal. -/
+theorem histOwnR_agree (h : Loc) (a b : List GSt) :
+    histOwnR (GF := GF) h a ⊢ histOwnR h b -∗ ⌜a.length = b.length → a = b⌝ := by
+  induction a generalizing h b with
+  | nil =>
+    iintro - -; ipureintro; intro hl; cases b <;> simp_all
+  | cons s rest ih =>
+    cases b with
+    | nil => iintro - -; ipureintro; intro hl; simp at hl
+    | cons t rest' =>
+      simp only [histOwnR]
+      iintro ⟨%hn, #Hh, #Hs, %Hn, #Hr⟩ ⟨%hn', #Hh', #Hs', %Hn', #Hr'⟩
+      icases typedPointsto_agree_wand _ _ _ _ _ $$ Hh Hh' with %He
+      subst He
+      icases storeOwn_agree _ _ _ $$ Hs Hs' with %Hst
+      icases ih _ _ $$ Hr Hr' with %Hrest
+      ipureintro
+      intro hl
+      simp only [List.length_cons, Nat.add_right_cancel_iff] at hl
+      rw [Hst, Hrest hl]
+
+theorem histOwn_agree (h : Loc) (a b : List GSt) :
+    histOwn (GF := GF) h a ⊢ histOwn h b -∗ ⌜a.length = b.length → a = b⌝ := by
+  unfold histOwn
+  iintro Ha Hb
+  icases histOwnR_agree _ _ _ $$ Ha Hb with %H
+  ipureintro
+  intro hl
+  have := H (by simpa using hl)
+  exact List.reverse_inj.1 this
+
 /-- A Go configuration holds `g` (see the file header). -/
-def cfgOwn (c : mcfg) (g : GCfg) : IProp GF := iprop(storeOwn c.st' g.st ∗ c.pend' ↦*□ g.pend)
+def cfgOwn (c : mcfg) (g : GCfg) : IProp GF :=
+  iprop(storeOwn c.st' g.st.st ∗ histOwn c.hist' g.st.hist ∗ c.pend' ↦*□ g.pend)
 
 instance cfgOwn_persistent (c : mcfg) (g : GCfg) : Persistent (cfgOwn (GF := GF) c g) := by
   unfold cfgOwn; infer_instance
@@ -216,19 +287,19 @@ theorem decOp_box (x : Input) (y : Output) : decOp (boxIn x, boxOut y) = some (x
   rw [e]
 
 /-- A Go state value represents `S`, its configurations `Bounded n` (see the file header). -/
-def stRepB (g0 : GSt) (n : Nat) (v : GoInterface) (S : linkv.PSet GSt Input) : IProp GF :=
+def stRepB (g0 : HSt) (n : Nat) (v : GoInterface) (S : linkv.PSet HSt Input) : IProp GF :=
   iprop(∃ (sl : GoSlice) (cs : List mcfg) (gs : List GCfg),
     ⌜v = boxSt sl ∧ GOk g0 gs S ∧ ∀ g ∈ gs, Bounded n g⌝ ∗ sl ↦*□ cs ∗
       [∗list] c;g ∈ cs;gs, cfgOwn c g)
 
-instance stRepB_persistent (g0 : GSt) (n : Nat) (v : GoInterface) (S : linkv.PSet GSt Input) :
+instance stRepB_persistent (g0 : HSt) (n : Nat) (v : GoInterface) (S : linkv.PSet HSt Input) :
     Persistent (stRepB (GF := GF) g0 n v S) := by
   unfold stRepB; infer_instance
 
 /-- **The model's specification** (see the file header). -/
-def k8setcd3S (g0 : GSt) : github_com.anishathalye.porcupine.ModelSpec GF (linkv.PSet GSt Input) where
+def k8setcd3S (g0 : HSt) : github_com.anishathalye.porcupine.ModelSpec GF (linkv.PSet HSt Input) where
   M := linkv.pM (kSpec g0) decOp
-  rep k := stRepB g0 (k + g0.items.length + 1)
+  rep k := stRepB g0 (k + g0.st.items.length + g0.hist.length + 1)
   ioOk i o := iprop(⌜∃ x y, i = boxIn x ∧ o = boxOut y⌝)
   ioOk_pers _ _ := by infer_instance
 

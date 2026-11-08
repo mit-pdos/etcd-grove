@@ -3,11 +3,12 @@ Lean-first (no Rocq counterpart).
 
 # The driver's model: its configurations, against `linkv/PendModel.lean`'s (stage 6a)
 
-`Model(st0)` keeps a state as a list of configurations (`mcfg`), each a store and the failed
-writes that may still take effect (`pend`). As linkvtxn's `Steps.lean`, here are the pure forms of
+`Model(st0, h0)` keeps a state as a list of configurations (`mcfg`), each a store with its
+history (the model's `HSt`, `KList.lean`, stage 7e) and the failed writes that may still take
+effect (`pend`). As linkvtxn's `Steps.lean`, here are the pure forms of
 `step`, `addConfig`, `Step`'s loops and `closure`'s successors (`stepL`, `addConfigL`, `stepAllL`,
 `succAt`) and how they represent the model `pSeq (kSpec st0)`; a configuration is the model's
-(`PCfg GSt Input`: the model is stated on the Go records, `KModel.lean`), so no abstraction:
+(`PCfg HSt Input`: the model is stated on the Go records, `KModel.lean`), so no abstraction:
 
 - `CfgEquiv`, `setOf`, `GClosed`, `GOk`, `ClosureOk` as in linkvtxn;
 - **`step_closure_ok`**: `Step`'s result, the `closure` of `stepAllL gs x y`, represents
@@ -15,7 +16,7 @@ writes that may still take effect (`pend`). As linkvtxn's `Steps.lean`, here are
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KList
 
 @[expose] public section
 
@@ -34,7 +35,7 @@ section go
 variable [GooseExts]
 
 /-- A configuration's contents (`mcfg`): the model's. -/
-abbrev GCfg := linkv.PCfg GSt Input
+abbrev GCfg := linkv.PCfg HSt Input
 
 instance GCfg_decEq : DecidableEq GCfg := fun a b =>
   decidable_of_iff (a.st = b.st ∧ a.pend = b.pend) (by cases a; cases b; simp)
@@ -45,7 +46,7 @@ def addConfigL (gs : List GCfg) (g : GCfg) : List GCfg := if g ∈ gs then gs el
 /-- `step(c, in, out)`. -/
 def stepL (g : GCfg) (x : Input) (y : Output) : List GCfg :=
   if y.Err' = W64 4 then (if isWriteL x then [⟨g.st, x :: g.pend⟩] else [g])
-  else if y = (mstepL x g.st).2 then [⟨(mstepL x g.st).1, g.pend⟩] else []
+  else if y = (kstepL x g.st).2 then [⟨(kstepL x g.st).1, g.pend⟩] else []
 
 /-- `Step`'s inner loop, over one configuration's steps. -/
 def stepOneL (x : Input) (y : Output) (acc : List GCfg) (g : GCfg) : List GCfg :=
@@ -62,27 +63,27 @@ def removeAtL (es : List Input) (i : Nat) : List Input := es.take i ++ es.drop (
 def pendAt (g : GCfg) (i : Nat) : Input := g.pend.getD i zeroValDef
 
 /-- The configuration `closure` pushes for `g`'s `i`-th pending input: it takes effect. -/
-def succAt (g : GCfg) (i : Nat) : GCfg := ⟨(mstepL (pendAt g i) g.st).1, removeAtL g.pend i⟩
+def succAt (g : GCfg) (i : Nat) : GCfg := ⟨(kstepL (pendAt g i) g.st).1, removeAtL g.pend i⟩
 
 /-- The configurations `closure` pushes for `g`'s first `j` pending inputs. -/
 def succsUpTo (g : GCfg) (j : Nat) : List GCfg := (List.range j).map (succAt g)
 
 /-! ## The representation -/
 
-variable (st0 : GSt)
+variable (st0 : HSt)
 
 /-- The same store, and the same pending inputs up to order. -/
 def CfgEquiv (a b : GCfg) : Prop := a.st = b.st ∧ a.pend.Perm b.pend
 
 /-- The set a Go state represents. -/
-def setOf (gs : List GCfg) : linkv.PSet GSt Input := fun c => ∃ g ∈ gs, CfgEquiv g c
+def setOf (gs : List GCfg) : linkv.PSet HSt Input := fun c => ∃ g ∈ gs, CfgEquiv g c
 
 /-- A Go state is closed under pending writes taking effect. -/
 def GClosed (gs : List GCfg) : Prop :=
   ∀ g ∈ gs, ∀ c, linkv.PReach (kSpec st0) g c → ∃ g' ∈ gs, CfgEquiv g' c
 
 /-- The Go state `gs` represents `S`, and is closed. -/
-def GOk (gs : List GCfg) (S : linkv.PSet GSt Input) : Prop := GClosed st0 gs ∧ S = setOf gs
+def GOk (gs : List GCfg) (S : linkv.PSet HSt Input) : Prop := GClosed st0 gs ∧ S = setOf gs
 
 /-- What `closure(s)` returns of the configurations `gs` of `s`: configurations reached from
 `gs`, and (up to equivalence) every configuration reached from `gs`. -/
@@ -164,7 +165,7 @@ theorem closed_of_succ (out : List GCfg)
       obtain ⟨m, hmi, hgi⟩ := List.getElem_of_mem hm'
       have hpi : pendAt g m = j := by rw [pendAt_eq g m hmi, hgi]
       refine ih (succAt g m) (hs g hg m hmi) ⟨?_, ?_⟩
-      · show (mstepL (pendAt g m) g.st).1 = _
+      · show (kstepL (pendAt g m) g.st).1 = _
         rw [hpi, he.1]
       · have := removeAt_perm g m hmi c₀.pend he.2 (by rw [hpi]; exact hm)
         rw [hpi] at this
@@ -182,10 +183,13 @@ theorem mem_succsUpTo (g h : GCfg) (j : Nat) :
 
 /-! ## The bound -/
 
-/-- **A configuration's bound**: its items and pending inputs fewer than `n` (the Go model's
-`make`s of `len + 1` never overflow; a step adds at most one to the count, a pending write taking
-effect nothing). -/
-def Bounded (n : Nat) (g : GCfg) : Prop := g.st.items.length + g.pend.length < n
+/-- **A configuration's bound**: its items and pending inputs fewer than `n`, and its history and
+pending inputs too (the Go model's `make`s of `len + 1` and the history's length `histLen + 1`
+never overflow; a step adds at most one to each count, a pending write taking effect nothing);
+and its pending inputs are writes (`closure` steps them with `mstep`, `kstepL_write`). -/
+def Bounded (n : Nat) (g : GCfg) : Prop :=
+  g.st.st.items.length + g.pend.length < n ∧ g.st.hist.length + g.pend.length < n ∧
+    ∀ p ∈ g.pend, isWriteL p = true
 
 /-- `setItem`'s loop state's potential: the output's length, one more until `it` is written. -/
 def setPot (st : List item × Bool) : Nat := st.1.length + if st.2 then 0 else 1
@@ -258,14 +262,25 @@ theorem mstepL_length (x : Input) (st : GSt) :
       · exact mupdateL_length x st
       · simp
 
+/-- A step adds at most one item and one store to the history. -/
+theorem kstepL_length (x : Input) (h : HSt) :
+    (kstepL x h).1.st.items.length ≤ h.st.items.length + 1 ∧
+      (kstepL x h).1.hist.length ≤ h.hist.length + 1 := by
+  unfold kstepL
+  split
+  · simp
+  · refine ⟨?_, advanceL_hist_length _ _⟩
+    rw [advanceL_items]; exact mstepL_length x h.st
+
 /-- `succAt g i` keeps the bound. -/
 theorem succAt_bounded (n : Nat) (g : GCfg) (i : Nat) (hb : Bounded n g)
     (hi : i < g.pend.length) : Bounded n (succAt g i) := by
-  have h1 := mstepL_length (pendAt g i) g.st
+  have h1 := kstepL_length (pendAt g i) g.st
   have h2 := length_removeAtL g.pend i hi
-  unfold Bounded at hb ⊢
-  simp only [succAt]
-  omega
+  obtain ⟨hb1, hb2, hb3⟩ := hb
+  refine ⟨?_, ?_, fun p hp => hb3 p (mem_removeAtL hp)⟩
+  · simp only [succAt]; omega
+  · simp only [succAt]; omega
 
 /-! ## `closure`: its loop invariant -/
 
@@ -387,14 +402,14 @@ theorem stepL_complete (g : GCfg) (x : Input) (y : Output) (c c₁ : GCfg)
   cases hs with
   | ok =>
     have hE : ¬ y.Err' = W64 4 := fun h => by rw [(ansOf_err y).2 h] at hO; cases hO
-    have hy : y = (mstepL x g.st).2 := by
+    have hy : y = (kstepL x g.st).2 := by
       unfold ansOf at hO; rw [if_neg hE] at hO
       have := linkv.Ans.ok.inj hO
       rw [this, hst]
     rw [if_neg hE]
     simp only [hy, ↓reduceIte, List.mem_singleton, exists_eq_left]
     refine ⟨?_, he.2⟩
-    show (mstepL x g.st).1 = _
+    show (kstepL x g.st).1 = _
     rw [hst]
   | errW hw =>
     have hE : y.Err' = W64 4 := (ansOf_err y).1 hO
@@ -455,17 +470,25 @@ theorem mem_stepAllL (gs : List GCfg) (x : Input) (y : Output) (h : GCfg) :
 /-- A step keeps the bound, one more. -/
 theorem stepL_bounded (n : Nat) (g : GCfg) (x : Input) (y : Output) (hb : Bounded n g)
     (g' : GCfg) (hg' : g' ∈ stepL g x y) : Bounded (n + 1) g' := by
-  unfold Bounded at hb ⊢
+  obtain ⟨hb1, hb2, hb3⟩ := hb
   unfold stepL at hg'
   split at hg'
   · split at hg'
+    · next hw =>
+      simp only [List.mem_singleton] at hg'; subst hg'
+      refine ⟨?_, ?_, ?_⟩
+      · simp only [List.length_cons]; omega
+      · simp only [List.length_cons]; omega
+      · intro p hp
+        rcases List.mem_cons.1 hp with rfl | hp
+        · exact hw
+        · exact hb3 p hp
     · simp only [List.mem_singleton] at hg'; subst hg'
-      simp only [List.length_cons]; omega
-    · simp only [List.mem_singleton] at hg'; subst hg'; omega
+      exact ⟨by omega, by omega, hb3⟩
   · split at hg'
     · simp only [List.mem_singleton] at hg'; subst hg'
-      have := mstepL_length x g.st
-      simp only; omega
+      have := kstepL_length x g.st
+      exact ⟨by simp only; omega, by simp only; omega, hb3⟩
     · cases hg'
 
 /-- `Step`'s loops keep the bound, one more. -/
@@ -479,7 +502,7 @@ theorem stepAllL_bounded (n : Nat) (gs : List GCfg) (x : Input) (y : Output)
 
 /-- **`Step`'s result** (see the file header): the `closure` `out` of `stepAllL gs x y`
 represents `ppost S x (ansOf y)` and is closed. -/
-theorem step_closure_ok (gs out : List GCfg) (S : linkv.PSet GSt Input) (x : Input) (y : Output)
+theorem step_closure_ok (gs out : List GCfg) (S : linkv.PSet HSt Input) (x : Input) (y : Output)
     (hS : GOk st0 gs S) (hc : ClosureOk st0 (stepAllL gs x y) out) (hcl : GClosed st0 out) :
     GOk st0 out (linkv.ppost (kSpec st0) S x (ansOf y)) := by
   refine ⟨hcl, ?_⟩
@@ -510,8 +533,8 @@ theorem setOf_nonempty (gs : List GCfg) : (∃ c, setOf gs c) ↔ gs ≠ [] := b
 /-- `Init()`'s configuration: the seeded store, nothing pending. -/
 def gInit : GCfg := ⟨st0, []⟩
 
-theorem bounded_gInit : Bounded (st0.items.length + 1) (gInit st0) := by
-  unfold Bounded gInit; simp
+theorem bounded_gInit : Bounded (st0.st.items.length + st0.hist.length + 1) (gInit st0) := by
+  unfold Bounded gInit; simp; omega
 
 /-- The initial state: one configuration. -/
 theorem gok_init : GOk st0 [gInit st0] (linkv.pInit (kSpec st0)) := by

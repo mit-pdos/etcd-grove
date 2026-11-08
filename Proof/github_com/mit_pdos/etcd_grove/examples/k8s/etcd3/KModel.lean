@@ -13,8 +13,10 @@ and `isWriteL`. Stage 7b: UIDs, the preconditions (`preOkL`, an `EInvalid` answe
 `ignoreNotFound` (from the zero object), and a `Get`'s minimum resource version (`EOther` above
 the store's).
 
-**The driver's model is these functions**: `kSpec st0`, linkv's `PendSpec` of `mstepL` from the
-seeded store `st0` (`linkv/PendModel.lean`: failed writes pending, taking effect later or never).
+**The driver's model is these functions**, with the list and the store's history of
+`KList.lean` (stage 7e): `kSpec h0` there, linkv's `PendSpec` of `kstepL` (`mstepL`, or `mlistL`
+for a list) from the seeded store and its history `h0` (`linkv/PendModel.lean`: failed writes
+pending, taking effect later or never).
 The Go model's states are its configurations' lists (`Steps.lean`). Unlike linkvtxn's, the model
 is stated on the Go records themselves, with Go's 64-bit resource versions; how the store's
 model (`Model.lean`'s `KSt`) refines it is stage 6b.
@@ -227,9 +229,6 @@ def mstepL (x : Input) (st : GSt) : GSt × Output :=
 /-- `isWrite(in)`: the write kinds, explicitly (stage 7e: a `List` is no write). -/
 def isWriteL (x : Input) : Bool :=
   (decide (x.Kind' = W64 0)).or ((decide (x.Kind' = W64 1)).or (decide (x.Kind' = W64 2)))
-
-/-- **The driver's model** from the seeded store `st0` (see the file header). -/
-abbrev kSpec (st0 : GSt) : linkv.PendSpec GSt Input Output := ⟨st0, mstepL, isWriteL⟩
 
 /-- A call's answer: an output whose error is `EOther` is a failed call (its effect unknown). -/
 def ansOf (y : Output) : linkv.Ans Output := if y.Err' = W64 4 then .err else .ok y
