@@ -1302,6 +1302,69 @@ theorem checkLine_single (t : Etcdraft.Trace) (ts ts' : Etcdraft.TState) (hnext 
     ↓reduceIte, List.nil_append, Bool.or_self]
   exact Etcdraft.Trace.CheckLineRel.nil _
 
+/-- `commitTo` at most the commit index changes nothing it reads: the same state as `commitTo` at it. -/
+theorem commitTo_le (st : Etcdraft.State) (i : Etcdraft.ID) (n : Int) (h : n ≤ (st.s i).commitIndex) :
+    st.commitTo i n = st.commitTo i (st.s i).commitIndex := by
+  unfold Etcdraft.State.commitTo
+  congr 1; funext v; congr 1; omega
+
+/-- **The leader's commit when `maybeCommit` refuses** (`Committed()`'s quorum index `N`: not past
+the commit index, or not of the leader's term): the specification's `AdvanceCommitIndex(i)` leaves
+the commit index as it is. -/
+theorem advanceCommitIndex_noop (st : Etcdraft.State) (i : Etcdraft.ID) (C : List w64) (hnd : C.Nodup)
+    (bl : Nat) (s : PState) (hR : SimServerR C bl s (st.s i)) (hl : s.role = .leader)
+    (hs : LogShapeOk bl s) (N : w64) (hN : uint.Z N ≤ s.log.length)
+    (hq : 0 < uint.Z N → IsQuorum (GMap.listToSet C) (ackedBy s N))
+    (hmax : ∀ k : Nat, uint.Z N < k → k ≤ s.log.length → ¬ IsQuorum (GMap.listToSet C) (ackedBy s (W64 k)))
+    (hno : ¬ (uint.Z s.commit < uint.Z N ∧ plogTermAt s.base s.log N = some s.term)) :
+    st.advanceCommitIndex i = some (st.commitTo i (st.s i).commitIndex) := by
+  have hR' := hR
+  obtain ⟨h1, h2, -, -, h5, h6, h7, -, -, -, -⟩ := hR'
+  have hlen : (st.s i).log.length = s.log.length := by rw [h6, logAbs_length]
+  unfold Etcdraft.State.advanceCommitIndex
+  have hlead : ((st.s i).state != Etcdraft.leader) = false := by rw [h2, hl]; rfl
+  simp only [hlead, Bool.false_eq_true, ↓reduceIte]
+  rw [hlen]
+  -- the quorum test above `N` fails
+  have hfalse : ∀ k, uint.nat N < k → k ≤ s.log.length →
+      Etcdraft.isQuorum ((st.getConfig i).filter
+        (fun x => decide ((st.s i).matchIndex x ≥ (k : Int)))) (st.getConfig i) = false := by
+    intro k hk1 hk2
+    show Etcdraft.isQuorum (List.filter _ (st.s i).config.incoming) (st.s i).config.incoming = false
+    cases h : Etcdraft.isQuorum _ _
+    · rfl
+    · exfalso
+      rw [specQuorum_iff C hnd bl s _ hR hl _ (by omega) (by have := uint_Z_lt N; omega)] at h
+      exact hmax k (by word) hk2 h
+  by_cases hN0 : uint.Z N = 0
+  · -- no quorum anywhere: `maxAgree` is 0
+    obtain ⟨hM, hM2⟩ := maxAgree_spec
+      (fun index => Etcdraft.isQuorum ((st.getConfig i).filter
+        (fun k => decide ((st.s i).matchIndex k ≥ (index : Int)))) (st.getConfig i)) s.log.length
+    simp only at hM hM2
+    have h0 : (List.range s.log.length).foldl (fun acc n =>
+        if Etcdraft.isQuorum ((st.getConfig i).filter
+          (fun k => decide ((st.s i).matchIndex k ≥ ((n + 1 : Nat) : Int)))) (st.getConfig i) = true
+        then n + 1 else acc) 0 = 0 := by
+      rcases hM with h | ⟨h1', h2', h3'⟩
+      · exact h
+      · exfalso; rw [hfalse _ (by word) h2'] at h3'; cases h3'
+    rw [h0]
+    simp
+  · have hN1 : 0 < uint.Z N := by have := uint_Z_nonneg N; omega
+    have hma := maxAgree_eq
+      (fun index => Etcdraft.isQuorum ((st.getConfig i).filter
+        (fun k => decide ((st.s i).matchIndex k ≥ (index : Int)))) (st.getConfig i))
+      s.log.length (uint.nat N) (by word) (by word)
+      (by
+        show Etcdraft.isQuorum (List.filter _ (st.s i).config.incoming) (st.s i).config.incoming = true
+        rw [specQuorum_iff C hnd bl s _ hR hl _ (by word) (by word)]
+        have : W64 (uint.nat N) = N := by word
+        rw [this]; exact hq hN1)
+      (fun k hk1 hk2 => hfalse k hk1 hk2)
+    rw [hma]
+    sorry
+
 end TraceSim
 
 end EtcdGrove

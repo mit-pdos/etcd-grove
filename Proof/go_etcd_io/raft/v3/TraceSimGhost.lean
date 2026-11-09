@@ -114,15 +114,16 @@ def toC (srv : Etcdraft.SetIds) (v : Etcdraft.Server) : ServerC :=
 /-! ## The ghost names -/
 
 /-- The simulation's ghost names: the trace (`traceAuth`/`traceFrag`), the nodes' shares, the
-message tokens. -/
+message tokens; and the cluster's voters (the bootstrap configuration, constant: P3). -/
 structure TraceNames where
   tr : GName
   st : GName
   bag : GName
+  voters : List w64
 
 instance traceNames_countable : Pos.Countable TraceNames :=
-  countableOfLeftInverse (fun n : TraceNames => (n.tr, n.st, n.bag)) (fun p => ⟨p.1, p.2.1, p.2.2⟩)
-    (fun _ => rfl)
+  countableOfLeftInverse (fun n : TraceNames => (n.tr, n.st, n.bag, n.voters))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
 
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp]

@@ -573,6 +573,22 @@ statements below are uniform: one spec per function, whose untraced instance is 
 - **Handling phases** (inside `Step`, after the receive line: the specification ahead of raft by
   the handling of `m`) are stated the same way, with the specification's handling of `m` at the
   share's server (next slice: `stepLeader`'s `MsgAppResp`, the first that reaches a hook inside).
+- **Local and global (decided by the agent, 2026-11-09).** Every line is one node's event, and its
+  action touches only that node's server, its pending messages and (receive and `Ready` lines) the
+  message bag. So each line has a **local effect**, the specification's own action applied to a
+  local state (`locSt C a P`: the servers `C`, every server `a`, the pending bag `P`, no messages;
+  the actions read only server `i`'s variables and its configuration): `LineEffect e a P a' P'`.
+  The function proofs show local effects only (from the code facts and the per-rule lemmas); one
+  **global theorem**, proved once in the hook proofs, lifts a local effect to the whole state's
+  step: from `simInv`'s `σ` whose node `i` is `(a, P)`, a line `e` of `i` with that local effect
+  steps `σ` uniquely (determinism: no other server's action matches a line naming `i`; the receive
+  lines' one matching message, `MsgsDet`/`AppSlices`) to `σ'` whose node `i` is `(a', P')`, the
+  others unchanged, the invariants holding (through `R`). A hook's traced spec is then
+  phase-polymorphic: it takes the caller's phase `Φ` and `Φ'` with the premise that every event
+  `e` it may log (`NodeEvOf …`) has, from every `(a, P)` with `Φ`, a local effect into `Φ'`; `send`
+  likewise (a traced type's line is the leader's action, `AppendEntries`/`Heartbeat`/`RequestVote`/
+  `AppendEntriesToSelf`, or a reply the receive line already queued, a skipped line; another type
+  logs nothing).
 
 ## Increment 2 of the hooks' specs (what S4 decides)
 
