@@ -31,6 +31,7 @@ public import Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
 public import Spec.go_etcd_io.raft.v3.raft__appendEntry
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeUpdate
 public import Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeDecrTo
@@ -1105,7 +1106,7 @@ theorem wp_stepLeader_appresp
     (wp_raft_sendAppend : raft.sendAppend.spec (GF := GF) (hG := hG))
     (wp_raft_maybeSendAppend : raft.maybeSendAppend.spec (GF := GF) (hG := hG))
     (wp_raft_bcastAppend : raft.bcastAppend.spec (GF := GF) (hG := hG))
-    (wp_raft_maybeCommit : raft.maybeCommit.spec (GF := GF) (hG := hG))
+    (wp_raft_maybeCommit : raft.maybeCommit.untracedTriple (GF := GF) (hG := hG))
     (wp_releasePendingReadIndexMessages :
       releasePendingReadIndexMessages.spec (GF := GF) (hG := hG))
     (wp_Progress_MaybeUpdate : tracker.Progress.MaybeUpdate.spec (GF := GF) (hG := hG))

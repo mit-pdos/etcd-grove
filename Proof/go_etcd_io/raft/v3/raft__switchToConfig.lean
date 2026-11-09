@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
 public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
 public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -61,6 +62,8 @@ theorem raft.switchToConfig.wp_proof
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
+  have wp_raft_maybeCommit := raft.maybeCommit.untraced wp_raft_maybeCommit
+  have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
   intro c r id s tv0 cfgv prsm prs pvs tl Hlead Hltz Hcand Hpok Htr
   wp_start as H
   iNamed H

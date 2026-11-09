@@ -1284,6 +1284,216 @@ theorem trCap_fire_any : trCap_fire_any.statement (GF := GF) := by
     iapply trCapB_trCap
     iexact H
 
+/-! ## Q8 stage 1, slice 3: the node-event hooks' gates from the capability
+
+A direct caller of a node-event hook (`becomeFollower`, `becomeCandidate`, `maybeCommit`) takes the
+hook's gate `HookGate s.gh.tr r E Q` from its caller (`notes/decisions.md`, "Q8 stage 1 (slice 3)").
+In a traced cluster the capability gives it, by the law of the line (`trCap_fire_any`,
+`trCap_fire_boot`, `trCap_fire_bf`), given the line's phase step and facts; the lemmas below state that
+for either mode, the logger field taken from the capability (traced) or the struct (untraced). -/
+
+/-- The capability's logger field (persistent), taken out. -/
+theorem trCapB_logger (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
+    trCapB (GF := GF) (some γd) γ r id c b Φ Λ ⊢
+      ∃ tl : GoInterface, r.[raft, go!"traceLogger"] ↦□ tl ∗ trCapB (some γd) γ r id c b Φ Λ := by
+  iintro H
+  iunfold trCapB at H
+  icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, Hrest⟩
+  iexists tl
+  isplitr
+  · iexact Htl
+  iunfold trCapB
+  iexists tn, C, tl, cs, P
+  iframe Hdir Htl Hrest
+  ipureintro; exact Hpf
+
+/-- The capability's configuration has no outgoing half. -/
+theorem trCapB_out (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
+    trCapB (GF := GF) (some γd) γ r id c b Φ Λ ⊢ ⌜c.outgoing = ∅⌝ ∗ trCapB (some γd) γ r id c b Φ Λ := by
+  iintro H
+  iunfold trCapB at H
+  icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, Hrest⟩
+  isplitr
+  · ipureintro; exact Hpf.2.2.1
+  iunfold trCapB
+  iexists tn, C, tl, cs, P
+  iframe Hdir Hrest
+  ipureintro; exact Hpf
+
+/-- The capability's phase weakened. -/
+theorem trCapB_mono (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop)
+    (h : ∀ C cs P, Φ C cs P → Φ' C cs P) :
+    trCapB (GF := GF) tr γ r id c b Φ Λ ⊢ trCapB tr γ r id c b Φ' Λ := by
+  cases tr with
+  | none => exact .rfl
+  | some γd =>
+    iintro H
+    iunfold trCapB at H
+    icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
+    iunfold trCapB
+    iexists tn, C, tl, cs, P
+    iframe Hdir Htl Hlg Hinv Hrinv Hnode Hbt
+    isplitr; · ipureintro; exact Hpf
+    isplitr; · ipureintro; exact Hnn
+    ipureintro; exact h C cs P HΦ
+
+/-- **The logger field, either mode**: the struct's (nil) when untraced, the capability's when traced. -/
+theorem trCapB_logger0 (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) (γ : RaftNames)
+    (b : Bool) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
+    (ownRaftPhysCV c V r id s ∗ trCapB s.gh.tr γ r id c b Φ Λ : IProp GF) ⊢
+      ∃ tl0 : GoInterface, r.[raft, go!"traceLogger"] ↦□ tl0 ∗ ⌜s.gh.tr = none → TraceLoggerOk tl0⌝ ∗
+        ownRaftPhysCV c V r id s ∗ trCapB s.gh.tr γ r id c b Φ Λ := by
+  cases htr : s.gh.tr with
+  | none =>
+    iintro ⟨Hphys, Hcap⟩
+    icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Hok, Hphys⟩
+    iexists tl
+    isplitr
+    · iexact Htl
+    isplitr
+    · ipureintro; intro _; exact Hok
+    iframe Hphys Hcap
+  | some γd =>
+    iintro ⟨Hphys, Hcap⟩
+    icases trCapB_logger γd γ r id c b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
+    iexists tl
+    isplitr
+    · iexact Htl
+    isplitr
+    · ipureintro; intro h; cases h
+    iframe Hphys Hcap
+
+/-- **A node event's line, either mode** (any line consuming no message but `BecomeFollower`: the
+law `trCap_fire_any`): the logger `tl0` (nil when untraced), the capability in phase `Φ` and the
+line's facts `FxPresUT` give the hook's gate, whose update gives the capability in phase `Φ'` (its
+`booted` flag set) and the facts' resource `R'`. -/
+theorem trCapB_hookGate (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
+    (tl0 : GoInterface) (E : TraceEv → Prop) (b : Bool)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop) (R' : IProp GF)
+    (hps : PhaseStepB id c E Φ Φ') (hnb : b = false → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false)
+    (hΛ : ∀ e, E e → Λ' (some e)) (hAsc : ∀ e, E e → TraceEv.Ascii e) (hok : tr = none → TraceLoggerOk tl0) :
+    (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id c b Φ Λ ∗ FxPresUT tr γ id E Φ Φ' R' : IProp GF) ⊢
+      HookGate tr r E iprop(trCapB tr γ r id c true Φ' Λ' ∗ R') := by
+  cases tr with
+  | none =>
+    simp only [FxPresUT, trCapB]
+    iintro ⟨#Hl, -, HR⟩
+    iunfold HookGate
+    imod HR
+    imodintro
+    iexists tl0
+    isplitr
+    · iexact Hl
+    simp only [TraceFire]
+    isplitr
+    · ipureintro; exact hok rfl
+    isplitr
+    · iempintro
+    iexact HR
+  | some γd =>
+    simp only [FxPresUT]
+    iintro ⟨-, Hcap, Hfx⟩
+    icases trCapB_logger γd γ r id c b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
+    iunfold HookGate
+    imodintro
+    iexists tl
+    isplitr
+    · iexact Htl
+    iapply trCap_fire_any γd γ r id c tl E b Φ Φ' Λ Λ' R' hps hnb hΛ hAsc
+    iframe Hcap Htl Hfx
+
+/-- The facts a line keeps, without a ghost update, as the update's form (`fxPres_upd`, either mode). -/
+theorem fxPresT_upd (tr : Option GName) (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) :
+    FxPresT (GF := GF) tr γ id E Φ Φ' ⊢ FxPresUT tr γ id E Φ Φ' iprop(emp) := by
+  cases tr with
+  | none => simp only [FxPresT, FxPresUT]; iintro -; imodintro; iempintro
+  | some _ => simp only [FxPresT, FxPresUT]; exact fxPres_upd γ id E Φ Φ'
+
+/-- A `BecomeCandidate` node event's name. -/
+theorem nodeEvOf_name_candidate {id : w64} {s : NState} {c : CfgM} {e : TraceEv}
+    (h : NodeEvOf (W64 1) id s c e) : gsStr e.name = "BecomeCandidate" := by
+  have hname := h.1
+  simp only [evtNames] at hname
+  have : e.name = go!"BecomeCandidate" := by have := hname; simp at this; exact this.symm
+  rw [this]; rfl
+
+/-- A `Commit` node event's name. -/
+theorem nodeEvOf_name_commit {id : w64} {s : NState} {c : CfgM} {e : TraceEv}
+    (h : NodeEvOf rsmCommit id s c e) : gsStr e.name = "Commit" := by
+  have hname := h.1
+  simp only [rsmCommit, evtNames] at hname
+  have : e.name = go!"Commit" := by have := hname; simp at this; exact this.symm
+  rw [this]; rfl
+
+/-- A `BecomeFollower` node event names a bootstrap line of its node. -/
+theorem nodeEvOf_bf_boot (id : w64) (s : NState) (c : CfgM) (e : TraceEv) (hout : c.outgoing = ∅)
+    (h : NodeEvOf (W64 2) id s c e) :
+    e.nid = decStr id ∧ ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧ ln.nid = idAbs id ∧
+      Etcdraft.isBootstrapName ln.ev.name = true := by
+  obtain ⟨hname, hnid, -, hvote, -, -, -, ⟨xs, ys, -, hys, hconf⟩, hmsg, -, -, -, -⟩ := h
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "BecomeFollower" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"BecomeFollower" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  refine ⟨hnid, _, parseLine_node 0 e id s.vote xs [] hnid hvote hconf hmsg (by rw [hname']; rfl)
+    (by rw [hname']; decide), rfl, ?_⟩
+  simp [evConv, hname']; rfl
+
+/-- **A `BecomeFollower` line, either mode**: before the node's segment is over (`b = false`) a
+bootstrap line (`trCap_fire_boot`, the share unchanged, `Φ` weakened to `Φ'`), after it a step-down
+or a skip (`trCap_fire_bf`, `PhaseStepBF`, the caller's `FxPresBF` under the mode's gate). -/
+theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
+    (tl0 : GoInterface) (s : NState) (b : Bool)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop)
+    (hbf : b = true → PhaseStepBF id c s Φ Φ' Λ) (hb0 : b = false → ∀ C cs P, Φ C cs P → Φ' C cs P)
+    (hΛ : ∀ e, NodeEvOf (W64 2) id s c e → Λ' (some e)) (hok : tr = none → TraceLoggerOk tl0) :
+    (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id c b Φ Λ ∗
+        trOwn tr (if b then FxPresBF γ id Φ else iprop(emp)) : IProp GF) ⊢
+      HookGate tr r (NodeEvOf (W64 2) id s c) (trCapB tr γ r id c b Φ' Λ') := by
+  cases tr with
+  | none =>
+    simp only [trCapB]
+    iintro ⟨#Hl, -, -⟩
+    iunfold HookGate
+    imodintro
+    iexists tl0
+    isplitr
+    · iexact Hl
+    simp only [TraceFire]
+    isplitr
+    · ipureintro; exact hok rfl
+    iempintro
+  | some γd =>
+    simp only [trOwn]
+    iintro ⟨-, Hcap, Hfx⟩
+    icases trCapB_logger γd γ r id c b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
+    iunfold HookGate
+    imodintro
+    iexists tl
+    isplitr
+    · iexact Htl
+    cases b with
+    | true =>
+      simp only [↓reduceIte]
+      iapply trCap_fire_bf γd γ r id c tl s Φ Φ' Λ Λ' (hbf rfl) hΛ
+      iframe Hcap Htl Hfx
+    | false =>
+      iclear Hfx
+      icases trCapB_out γd γ r id c false Φ Λ $$ Hcap with ⟨%hout, Hcap⟩
+      iapply traceFire_mono (some γd) tl _ (trCapB (some γd) γ r id c false Φ Λ') _
+      isplitr
+      · iintro H
+        iapply trCapB_mono (some γd) γ r id c false Φ Φ' Λ' (hb0 rfl) $$ H
+      iapply trCap_fire_boot γd γ r id c tl _ Φ Λ Λ' (fun e he => nodeEvOf_bf_boot id s c e hout he) hΛ
+        (fun e he => nodeEvOf_ascii _ _ _ _ e he)
+      iframe Hcap Htl
 
 end ghost
 

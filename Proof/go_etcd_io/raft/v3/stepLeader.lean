@@ -84,6 +84,8 @@ theorem stepLeader.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
+  have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
+  have wp_raft_maybeCommit := raft.maybeCommit.untraced wp_raft_maybeCommit
   intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Htr
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc⟩ HΦ
   -- (2026-10-25, T-M M2c) a leader need not be a voter (removed without `StepDownOnRemoval`); until

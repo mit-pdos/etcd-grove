@@ -92,7 +92,7 @@ theorem raft.maybeCommit.wp_proof
     (wp_ProgressTracker_Committed : tracker.ProgressTracker.Committed.spec (GF := GF) (hG := hG))
     (wp_raftLog_maybeCommit : raftLog.maybeCommit.spec (GF := GF) (hG := hG)) :
     raft.maybeCommit.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hlead Htr
+  intro c r id s Q Hlead
   wp_start as H
   iNamed H
   wp_auto
@@ -111,8 +111,20 @@ theorem raft.maybeCommit.wp_proof
       · exact LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl
           (hcm := Int.le_of_lt (of_decide_eq_true Hb.symm).2.1))
     %(by cases b <;> exact fun _ => logLast_le_of_fields rfl rfl rfl)
-  wp_node_hookC wp_traceCommit
+  -- (Q8 stage 1, slice 3) the deferred `Commit` line, either mode, at the outcome
+  have Hout : maybeCommitOut c s b N := ⟨Hq, by rw [Hb]; exact decide_eq_true_iff⟩
+  icases trOwn_split _ _ $$ Hphys with ⟨Hown, Hback⟩
+  ihave Hgate := Hgate $$ %b %N %Hout
+  iunfold HookGate at Hgate
+  imod Hgate with ⟨%tl, #Htl, Hfire⟩
+  wp_apply wp_traceCommit c r id _ tl (Q b N) $$ [Htl Hown Hfire] as ⟨Hown, HQ⟩
+  · iframe Htl Hown
+    iapply traceFire_mono_E _ tl _ _ _ (fun e he => by cases b <;> (cases s; exact he)) $$ Hfire
+  ihave Hphys := Hback $$ Hown
   iapply HΦ $$ %b %N
+  isplitr
+  · ipureintro; exact Hout
+  iframe HQ
   cases b with
   | true =>
     isplitl [Hphys]

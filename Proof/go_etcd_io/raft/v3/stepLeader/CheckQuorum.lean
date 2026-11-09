@@ -25,6 +25,7 @@ public import Proof.go_etcd_io.raft.v3.stepLeader.Rest
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__QuorumActive
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -49,7 +50,7 @@ set_option maxHeartbeats 1600000 in
 theorem wp_stepLeader_checkQuorum
     (wp_QuorumActive : tracker.ProgressTracker.QuorumActive.spec (GF := GF) (hG := hG))
     (wp_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
-    (wp_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
+    (wp_becomeFollower : raft.becomeFollower.untracedTriple (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
