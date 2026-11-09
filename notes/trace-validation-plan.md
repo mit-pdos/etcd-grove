@@ -665,12 +665,12 @@ What the result says about raft rests on one transcription of `etcdraft.tla` and
 
 Layer C proves the two equal on the traces `CheckTrace.spec`'s premise `Trace.CheckTraceOk` admits
 (Q10, 2026-11-09: the lines in scope, the reached states bounded, no evaluation error; raft's traces
-are in that class, so the closed theorem is unaffected): there `CheckTrace` accepts exactly when
+are expected to be in that class: part 2, the reachability invariant, is open and needs `Event.Bounded`
+to bound the configuration lists): there `CheckTrace` accepts exactly when
 `TraceAccepts` holds. So the evidence for either is evidence for both on that class: the Go
 transcription's three-way comparison with TLC (the state spaces under four bounds, clean, mutated and
 full-featured traces, verdicts and failing lines) and the independent review
-(`notes/raft-trace-validation.md`) count for the Lean one on the in-scope traces without evaluation
-errors; the full-featured traces (`ChangeConf`, restarts, snapshots) and the evaluation-error cases
+(`notes/raft-trace-validation.md`) count for the Lean one on that class (all three parts); the full-featured traces (`ChangeConf`, restarts, snapshots) and the evaluation-error cases
 are outside what the proof transfers. "Faithful" is the one question: that the transcription computes what the
 TLA+ says (not that raft or the harness are right: those are verified).
 
@@ -732,7 +732,7 @@ keys, sorted slices by `slices.Sort` or insertion); NDJSON reading and the porcu
 packages of their own, not translated. Its spec: `CheckTrace(events)` returns `TLCOK` exactly when
 `TraceAccepts(events)` (sound and complete; the evaluation errors are failures), as planned; as proved
 (Q10, 2026-11-09), on the traces `Trace.CheckTraceOk` admits (lines in scope, reached states bounded,
-no evaluation error), which raft's traces are. Size: the Go is
+no evaluation error), which raft's traces are expected to be (part 2 open). Size: the Go is
 about 1,500 lines; the proof is mostly the actions' functional correctness against their Lean
 counterparts, and the search's.
 
@@ -970,7 +970,19 @@ failures (`TLCOK` false), and the premise excludes the case.
    invariant takes them as a premise on the events (or `Event.Bounded` gains them);
 3. `∀ res, CheckTraceRel tr true res → res.evalError = none`: `Trace.RunRel.noEvalError` of the run
    layer B's simulation carries (`Trace.RunRel tr tr.len ts`), which `Main` needs anyway for `TLCOK`.
-Part 2 is the one pure proof left, workload-agnostic but over every action of `Tla/Spec.lean`.
+Part 2 is the one pure proof left, workload-agnostic but over every action of `Tla/Spec.lean`; it
+belongs to the checker package (`Trace.Valid.reach_searchOk`, `notes/decisions.md`, Q10, "Deferred"),
+which then drops it from `CheckTraceOk`, leaving `Main` the configuration lists' bound in `NewTrace`'s
+premise. `Main` builds the premise with `Trace.RunRel.checkTraceOk`. The `TraceAccepts` corollary rests
+on layer B's run (`Trace.RunRel.accepts`) and the Lean transcription; with `CheckTrace.spec`, the Go
+checker's verdict agrees.
+
+**Review round 2 (2026-11-09, fresh `spec-reviewer`): no first-tier finding.** Second tier repaired:
+the notes' claims that raft's traces are in the class qualified (part 2 open), part 2's owner stated
+(the checker, above), the corollary's basis corrected, an intro law `Trace.RunRel.checkTraceOk`. Third
+tier: "no configuration change" now "no `ChangeConf`"; `State.Bounds` duplicating `ActOk`'s body,
+`MsgsOk`'s last conjunct redundant under `Bounds`, the names: left (`ActOk` is in the frozen callees'
+statements).
 
 **Review of the changed `CheckTrace.spec` (2026-11-09, `spec-reviewer`, fresh).** Round 1: the
 post fits `Main` (with `RunRel`, `checkTraceRel_eq` pins the result to `{ ok := true }`), the spec is

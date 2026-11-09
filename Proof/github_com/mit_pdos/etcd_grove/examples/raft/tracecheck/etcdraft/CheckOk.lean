@@ -10,7 +10,7 @@ from overflow, of the kinds of lines the workload logs; the Go checker panics wi
 and recovers where TLC fails, which a triple returning a value cannot state. The premise has three
 parts:
 
-- **the lines in scope** (`Trace.LinesInScope`): outside the bootstrap, no configuration change,
+- **the lines in scope** (`Trace.LinesInScope`): outside the bootstrap, no `ChangeConf`,
   restart or snapshot (P1-P3 of `notes/trace-validation-sim.md`), a property of the trace alone;
 - **the reached states bounded** (`State.SearchOk` of every `Trace.Reach` state: the numbers far
   from overflow, `State.Bounds`, and the messages as the actions expect them, `State.MsgsOk`: the
@@ -67,7 +67,8 @@ theorem State.Bounds.actOk {st : State} (h1 : st.preVote = false) (h2 : st.check
 destination's log below `2^62`). -/
 def State.SearchOk (st : State) : Prop := st.Bounds ∧ st.MsgsOk
 
-/-- `CheckTrace`'s premise: the search of `tr` meets its callees' premises (the file header). -/
+/-- `CheckTrace`'s premise: the search of `tr` meets its callees' premises (the file header). Part 2
+is proof debt, not a need of the code: it goes once the reachability invariant is a lemma here. -/
 def Trace.CheckTraceOk (tr : Trace) (invariants : Bool) : Prop :=
   tr.LinesInScope ∧ (∀ ts, tr.Reach ts → ts.s.SearchOk) ∧
   ∀ res, CheckTraceRel tr invariants res → res.evalError = none
@@ -450,6 +451,12 @@ theorem Trace.CheckLineRel.step_violation (tr : Trace) (invariants : Bool) (ts :
       (.ok (succ.foldl (fun nx s2 => if memEq nx s2 then nx else nx ++ [s2]) acc.1,
         { branched := acc.2.branched || i2.branched, violation := i2.violation })) :=
   .step ts rest acc succ i2 _ hv hs (Trace.CheckLineRel.skip_all tr invariants _ hv2 rest)
+
+/-- How `Main` builds `CheckTrace`'s premise: from the lines in scope, the reached states' bounds, and
+layer B's run through every line. -/
+theorem Trace.RunRel.checkTraceOk {tr : Trace} {ts : TState} (hsc : tr.LinesInScope)
+    (hb : ∀ ts, tr.Reach ts → ts.s.SearchOk) (h : tr.RunRel tr.len ts) : tr.CheckTraceOk true :=
+  ⟨hsc, hb, h.noEvalError⟩
 
 end Etcdraft
 end EtcdGrove
