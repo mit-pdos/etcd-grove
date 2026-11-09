@@ -8,7 +8,7 @@ last generation is not empty (the key is present: the premise), so no `ErrRevisi
 `lg.Fatal`; the record appended; the lessor's `GetLease` (`storeItems`' value) and, if a lease,
 `Detach` (live: 3c's law; an error would only be logged).
 
-**Changes** from `specs-ref`'s file: over `storeTxnW`, W0's events and `leaseItems`.
+**Changes** from `specs-ref`'s file: over `storeTxnW`, W0's events and 3c's writer token (`delLs`).
 -/
 module
 
