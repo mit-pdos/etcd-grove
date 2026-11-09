@@ -170,8 +170,13 @@ corrected `etcdraft.tla`"). What changes below, the rest standing:
   the branch proof (`MsgVote_eq_novote`'s `lead ≠ None` case) could not supply it. The exactness is
   the traced proofs' instead: pre-vote is off in a traced cluster (`TracedConfigOk`), so no node is
   a pre-candidate and the vote branches' code facts (`canVote`, `isUpToDate`) give it where the
-  simulation's obligation is discharged. `commit` and `beat` have no such abstraction gap (leader
-  only, `matched` exact): they are made exact on `StepC`/`StepCF`/`StepR`.
+  simulation's obligation is discharged. **Superseded the same day for all three:** the lines
+  that `commit` and `beat` produce are logged at hooks inside raft's code (`traceCommit`, deferred in
+  `maybeCommit`; `traceSendMessage`, in `send`), and the specification's step for a line is taken
+  at its hook, inside that function's proof, where the code facts are in scope (`Committed()`'s
+  quorum index, `IsQuorumIndex`, with its maximality; `sendHeartbeat`'s `min(Match, committed)`).
+  So the exactness is supplied at the hook points by the traced specs of raft's internal functions,
+  and `StepC`/`StepCF`/`StepR` stay as they are (no rebuild of the protocol's importers).
 
 ## What the statement needs
 

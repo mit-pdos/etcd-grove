@@ -40,8 +40,15 @@ the acceptance test; S5's Draft begun: `TraceSim` (`evConv`, `entAbs`, `msgAbs`,
 `Trace.RunRel` with its acceptance lemma (proved), `TracedApiDraft` (`Cluster.trace`, sealed in
 `InvNode`; `StartNode.gatedSpec`). **Decided by the agent:** each gated node-API statement replaces
 its current spec only once proved (a `sorry` in `StartNode`'s proof would reach every closed
-theorem). **Found:** `StepR`'s `rejectVote`, `commit` and `beat` (`HeartbeatOk`) are looser than raft; S5 makes them exact
-(`notes/trace-validation-sim.md`, revision 13).
+theorem). **Found:** `StepR`'s `rejectVote`, `commit` and `beat` (`HeartbeatOk`) are looser than raft; the
+exactness comes from the code facts at the hooks, in the traced specs of raft's internal functions,
+not from `StepR` (which cannot state `rejectVote`'s: `toPState` hides a pre-candidate's leader)
+(`notes/trace-validation-sim.md`, revision 13). **Per-rule simulation lemmas proved**
+(`TraceSimLemmas.lean`): vote grant, higher term, campaign, `recordVote`, `becomeLeader`, append,
+adopt-leader, `commitTo`, `appResp`, `lose`; `maybeAppend` as the specification's truncate/append
+steps (`Conflict`, `NoConflict`, `AlreadyDone`, stale, heartbeat, reject); `AdvanceCommitIndex` at
+the quorum index; the sends (`MsgApp`, heartbeat, self-acknowledgement, vote requests); a line with
+one successor checked without branching.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
