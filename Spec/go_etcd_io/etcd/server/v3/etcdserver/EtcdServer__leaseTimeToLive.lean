@@ -43,6 +43,22 @@ election would answer `ErrLeaseNotFound` for a lease a client saw at `ep`: the r
 The fix is the harness's (serve `s.LeaseHandler()` at `/leases` and `/leases/internal` beside the raft
 handler, as `etcdhttp.newPeerHandler` does), with a spec of `LeaseHandler` that makes
 `leasePeerURL` derivable (open questions 3.2, C24).
+
+Changes: verify-round F1, F3 (`verify/F-client-api.md`). F1: the row was gated on `soleMember γ`
+alone, so the trusted contract was false under `etcdstart` (the case above). It is now gated on
+`soleMember γ ∗ peerLeaseServed γ` (W0: every member's peer URLs serve its own lessor's lease
+handler; 2e's `peerLeaseServed_intro` gives it for a one-member cluster only under 4b's deployment
+premise `leasePeerURL` of the member's peer URLs, which a starter meets by serving
+`s.LeaseHandler()` on the peer address, as `etcdhttp.newPeerHandler` does). So the contract is true
+of every starter: under `etcdstart` the gate cannot be met (no `leasePeerURL` there), and the base
+outcome (`Step` at `σ₁`, `leaseStep`'s not-found admissible at table 0) holds. The forwarding
+path's sketch now: from the gate, 2e's `peerLeaseServed_url` (at the leader's record in the
+membership view, a member of an applied state, `srvAt`'s `srvEp`) gives `leaseURLOf γ ep (u ++ …)`
+for each `u ∈ leader.PeerURLs`, and 4b's `leaseURLOf_peerURL` its `leasePeerURL`. F3:
+`TimeToLiveHTTP` takes the caller's view bound: this contract passes its own `srvLeaseLbOpt γ ep vi`
+(`Leasehttp.leaseLbOpt`, persistent, held from the call's start, so at every forwarding attempt),
+and `ltlView γ ep vi` with that `leaseURLOf` gives `j ≥ i`, `σ₂ = σ₀`, the view of `j` and whether
+`id` is in table `j`. The leader path is unchanged.
 -/
 module
 
@@ -70,8 +86,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- An answer of W0's `leaseTimeToLive` step at a state `σ₁` the cluster reached at or after
 the caller's bound `σ₀`, and at every state after it, or an unsettled error. The caller fires its
 update at the return. With the caller's view bound `i` of `ep`'s member, and in a cluster that
-never had another member (`soleMember γ`), the answer was read from a table `j ≥ i` of that member's
-(see the Changes above). -/
+never had another member (`soleMember γ`) and whose members' peer URLs serve their lessors' lease
+handlers (`peerLeaseServed γ`), the answer was read from a table `j ≥ i` of that member's (see the
+Changes above). -/
 def EtcdServer.leaseTimeToLive.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (ep : GoString) (vi : Option Nat) (ctx : GoInterface) (p : Principal)
     (r : Loc) (dq : DFrac) (id : Int) (keys : Bool) (σ₀ : State),
@@ -84,7 +101,7 @@ def EtcdServer.leaseTimeToLive.spec : Prop :=
           ⌜Reach σ₀ σ₁ ∧ ∀ σ, Reach σ₁ σ → Step p (.leaseTimeToLive id keys) σ σ res⌝ ∗
           (match vi with
            | some i => (iprop(⌜¬ ClientV3.leaseAnsRes res⌝ ∨
-               (soleMember γ -∗ ∃ (j : Nat) (σ₂ : State),
+               (soleMember γ ∗ peerLeaseServed γ -∗ ∃ (j : Nat) (σ₂ : State),
                  ⌜i ≤ j ∧ σ₂.leaseAnsAt j (.leaseTimeToLive id keys) res⌝ ∗ etcdLb γ σ₂ ∗
                  leaseViewLb γ ep j)) : IProp GF)
            | none => iprop(True)) ∗

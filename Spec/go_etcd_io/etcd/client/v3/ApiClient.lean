@@ -405,17 +405,20 @@ def leaseAnsRes (res : Resp) : Prop := (∃ b, res = .ok b) ∨ res = .err .leas
 
 /-- **The per-member premise of a call** (`via = some (ep, i)`; verify round, A2-provability L2):
 the call reaches only the member at `ep` (`V ep`: the remote's, the connection's or the client's
-form), whose lessor has reached table `i` (`i = 0`: nothing known). -/
+form), whose lessor has reached table `i` (nothing known: `i = 0`, by W0's `leaseViewLb_zero`;
+verify-round F2: the `⌜i = 0⌝ ∨` alternative is dropped, 2a's `etcdUnary` had no source for it). -/
 def viaPre (γ : Cluster) (V : GoString → IProp GF) : Option (GoString × Nat) → IProp GF
   | none => iprop(True)
-  | some (ep, i) => iprop(V ep ∗ (⌜i = 0⌝ ∨ leaseViewLb γ ep i))
+  | some (ep, i) => iprop(V ep ∗ leaseViewLb γ ep i)
 
 /-- **What an answer by the member at `ep` tells of its lessor** (W0's `leaseViewLb`; the server
 side, 2a's `leaseFact`, is where it comes from): a grant answered `.ok` gives the table it created;
 a `Leases` answer (`leaseAnsRes`) is from `ep`'s own table `j ≥ i`, whose bound it gives; nothing
 else (`TimeToLive` is answered by the leader's lessor, which a follower forwards to: the same fact
 only given W0's `soleMember γ`, a one-member cluster never grown, whose one member answers it from
-its own lessor; recheck RR-1, the gated row).
+its own lessor, and `peerLeaseServed γ`, its peer URLs serving that lessor's lease handler, which
+the forwarding path (before the member's first election) reaches; recheck RR-1, the gated row;
+verify-round F1: `examples/lib/etcdstart` does not serve it, so the row is not usable there).
 -/
 def viaFact (γ : Cluster) (via : Option (GoString × Nat)) (rq : Req) (σ σ' : State) (res : Resp) :
     IProp GF :=
@@ -433,7 +436,8 @@ def viaFact (γ : Cluster) (via : Option (GoString × Nat)) (rq : Req) (σ σ' :
     -- lessor's only when the cluster has only ever had one member (re-review N1, recheck RR-1)
     | .leaseTimeToLive .. =>
       iprop(⌜¬ leaseAnsRes res⌝ ∨
-        (soleMember γ -∗ ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j))
+        (soleMember γ ∗ peerLeaseServed γ -∗
+          ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j))
     | _ => iprop(True)
 
 /-- **The single-use right a request needs** (integration I1, the coordinator's decision): a member

@@ -318,7 +318,10 @@ func ReqStopDrained(s *etcdserver.EtcdServer) {
 // change above the stored commit, no snapshot record above it); k was put before the crash by a
 // client that got an answer. (The backend's open and close move the file through the disk's state
 // by 4a's beOpenUpd/beCloseUpd: no window, repair3-boot.)
-// Specs: disk_crash, diskIdle_agree, memberStart_disk, NewServer.spec, EtcdServer.Start.spec, the
+// Specs: disk_crash (its post gives diskState and diskIdle at one kind: diskIdle_agree, whose
+// crashed alternative is the crashed generation's only, is not needed; the crossing laws hold at
+// every next generation, verify-round F-raft-storage F1), memberStart_disk, NewServer.spec,
+// EtcdServer.Start.spec, the
 // request path's Range (2c); across the crash: EtcdModel.etcdState_gen, etcdLb_gen, envUpd_gen,
 // srvNet_gen, Rafthttp.peerAddr_gen (the program serves the raft handler again), srvEp_gen and
 // Http.protoAt_gen (the client address: srvAt again from the new srvFields).

@@ -29,18 +29,29 @@ latter's spec added in the second pass, for 2c's `leaseTimeToLive`). Trusted (na
   `u` of that member at a state the cluster reached, under this package's `leasePeerURL (u ++
   LeaseInternalPrefix)` (embed's peer handler serves `leasehttp.NewHandler(s.lessor, s.ApplyWait)`
   on the member's own peer URLs; this repository's starters do not). 2c reaches it for the leader's
-  URL only under W0's `soleMember γ` (the leader is the member itself). Its heap binders are
+  URL only under W0's `soleMember γ` (the leader is the member itself) and `peerLeaseServed γ`
+  (2e's `peerLeaseServed_url`; verify-round F1). Its heap binders are
   explicit (repair3-boot: the section's variables gave it none, and its realization names 2e's
   `srvEp` at the heap).
-* `ltlView γ ep url id found` (transparent, persistent): what the handler at `url` answered, as a
-  per-member view: if `url` is `ep`'s member's (`leaseURLOf`), then for every view bound `i` of that
-  member, the answer was read from a table `j ≥ i` of the cluster's (`etcdLb` of a state that has
-  it), with the member's view of `j`, in which lease `id` is present iff `found`. True of the
-  handler (`http.go:109-160`): it waits for `h.waitch()` (the server's `ApplyWait`: its applied
-  index at least its committed index when the request arrived, so its lessor at least at any view
-  it gave before), then `h.l.Lookup(id)` reads the lessor's current table, `j` (the lessor only
+* `leaseLbOpt γ ep vi` (transparent): the caller's optional view bound of `ep`'s member
+  (`leaseViewLb γ ep i` for `vi = some i`; nothing for `none`); 2c's `srvLeaseLbOpt` is this
+  (verify-round F3: one definition).
+* `ltlView γ ep vi url id found` (transparent, persistent): what the handler at `url` answered, as a
+  per-member view: for the caller's view bound `vi = some i` (held **before** the call: the
+  precondition's `leaseLbOpt`), if `url` is `ep`'s member's (`leaseURLOf`), the answer was read from
+  a table `j ≥ i` of the cluster's (`etcdLb` of a state that has it), with the member's view of `j`,
+  in which lease `id` is present iff `found`; for `vi = none`, nothing. True of the handler
+  (`http.go:109-160`): it waits for `h.waitch()` (the server's `ApplyWait`: its applied index at
+  least its committed index when the request arrived, so its lessor at least at any view it gave
+  before the call), then `h.l.Lookup(id)` reads the lessor's current table, `j` (the lessor only
   moves forward); a lease not there: `404` (`found = false`); a found one answered `200`
-  (`found = true`) unless demoted (`500`, another error).
+  (`found = true`) unless demoted (`500`, another error). `leaseURLOf` may be shown after the call:
+  it is a run-wide fact about `url` (its peer-URL set is single-use and its host's `addrFree` spent
+  once, so `url` had no other handler before). Verify-round F3 (`verify/F-client-api.md`): the view
+  bound was quantified inside the persistent wand (`□ ∀ γ ep i, … leaseViewLb γ ep i -∗ …`), so a
+  view obtained after the answer (a grant after a `404`) could be fed to it: `False`.
+* `leaseURLOf_peerURL`: a `leaseURLOf` endpoint is an etcd member's (`leasePeerURL`; its
+  realization's conjunct), so a caller holding it meets `TimeToLiveHTTP`'s deployment premise.
 -/
 module
 
@@ -87,14 +98,24 @@ opaque leaseURLOf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunct
 
 def leaseURLOf_persistent.spec : Prop := ∀ γ ep url, Persistent (leaseURLOf (GF := GF) γ ep url)
 
+/-- An endpoint over a member's lessor is an etcd member's lease endpoint (verify-round F1). -/
+def leaseURLOf_peerURL.spec : Prop := ∀ γ ep url,
+  leaseURLOf (GF := GF) γ ep url ⊢ ⌜leasePeerURL url⌝
+
+/-- **The caller's optional view bound of `ep`'s member** (see the header; 2c's `srvLeaseLbOpt`). -/
+def leaseLbOpt (γ : EtcdModel.Cluster) (ep : GoString) (vi : Option Nat) : IProp GF :=
+  match vi with | some i => EtcdModel.leaseViewLb γ ep i | none => iprop(True)
+
 /-- **The handler at `url` answered lease `id` (present iff `found`) from a table at or past the
-view of `ep`'s member, if it is that member's** (persistent; see the header). -/
-def ltlView (url : GoString) (id : Int) (found : Bool) : IProp GF :=
-  iprop(□ ∀ (γ : EtcdModel.Cluster) (ep : GoString) (i : Nat),
-    leaseURLOf γ ep url -∗ EtcdModel.leaseViewLb γ ep i -∗
+caller's view bound `vi` of `ep`'s member, if it is that member's** (persistent; see the header). -/
+def ltlView (γ : EtcdModel.Cluster) (ep : GoString) (vi : Option Nat) (url : GoString) (id : Int)
+    (found : Bool) : IProp GF :=
+  match vi with
+  | some i => iprop(□ (leaseURLOf γ ep url -∗
       ∃ (j : Nat) (σ₀ : EtcdModel.State) (t : Int → Option EtcdModel.LeaseRec),
         ⌜i ≤ j ∧ σ₀.leaseTables[j]? = some t ∧ ((t id).isSome = found)⌝ ∗
-        EtcdModel.etcdLb γ σ₀ ∗ EtcdModel.leaseViewLb γ ep j)
+        EtcdModel.etcdLb γ σ₀ ∗ EtcdModel.leaseViewLb γ ep j))
+  | none => iprop(True)
 
 /-- **`errors.Is(err, t)` may be called and answers `false`** (transparent): an error tree of
 `err` (`S`, closed under its `Unwrap`s, with the specs of its errors' `Is` and `Unwrap` methods:

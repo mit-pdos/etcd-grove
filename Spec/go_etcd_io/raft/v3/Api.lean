@@ -62,8 +62,9 @@ is the client's: its methods' updates fire on `memStor ms σ` directly.
   commit invariant), the configuration map `k ↦ m` (persistent points-to's: `confAt`), the decision
   map (`confDecisions` the authority, `confDecided` the fragments), the snapshot set, the read-context
   registry (saved predicates of the read updates), the per-id durable state and vacancy tokens (ghost
-  vars; the durable state with a per-id generation record and the vacancy per generation, so that a
-  crash's crossing mints the next generation's once: "Crashes and generations" below), the fresh-id
+  vars; the durable state with a per-id generation record, the vacancy a per-generation token **or
+  that generation's `crashed`**, so that a crossing holds at every next generation, the current one
+  included: "Crashes and generations" below), the fresh-id
   authority; the proposals' and reads' updates are deposited in raft's invariant
   (`inv γ.ns`) when a node appends the entry or confirms the read. All of it is global ghost state
   (`global.spec`).
@@ -283,7 +284,8 @@ opaque freshIds [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctor
 updates. -/
 opaque raftState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (id : w64) (D : Durable) : IProp GF := iprop(True)
 
-/-- No node of `id` runs: exclusive; the starts take it, `Stop` gives it back. -/
+/-- No node of `id` runs: exclusive while the generation runs (two give its `crashed`:
+`exclusive`, "Crashes and generations"); the starts take it, `Stop` gives it back. -/
 opaque nodeVacant [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (id : w64) : IProp GF := iprop(True)
 
 /-- The cluster's bootstrap log (`[]` for a cluster whose nodes start from a configuration in
@@ -582,6 +584,11 @@ def timeless.spec : Prop :=
   (∀ γ id, Timeless (nodeVacant (GF := GF) γ id)) ∧
   (∀ ms σ, Timeless (memStor (GF := GF) ms σ))
 
+/-- The exclusive resources. **The vacancy is exclusive only while the generation runs**: two
+vacancies of one id give the generation's `crashed` (verify round, F-raft-storage F1 / F-server-boot
+F1: the crossing laws hold at every next generation `L'`, the current one included, where they give
+a vacancy beside one already out; with `⊢ False` here, `raftState γ id D ∗ crashed ⊢ |={⊤}=> False`).
+A start's step owns its generation's `notCrashed`, so a running program never sees two. -/
 def exclusive.spec : Prop :=
   (∀ γ o1 o2, committedOps (GF := GF) γ o1 ∗ committedOps γ o2 ⊢ iprop(False)) ∧
   (∀ γ D1 D2, confDecisions (GF := GF) γ D1 ∗ confDecisions γ D2 ⊢ iprop(False)) ∧
@@ -589,7 +596,7 @@ def exclusive.spec : Prop :=
   (∀ γ U1 U2, readCtxs (GF := GF) γ U1 ∗ readCtxs γ U2 ⊢ iprop(False)) ∧
   (∀ γ U1 U2, freshIds (GF := GF) γ U1 ∗ freshIds γ U2 ⊢ iprop(False)) ∧
   (∀ γ id D1 D2, raftState (GF := GF) γ id D1 ∗ raftState γ id D2 ⊢ iprop(False)) ∧
-  (∀ γ id, nodeVacant (GF := GF) γ id ∗ nodeVacant γ id ⊢ iprop(False)) ∧
+  (∀ γ id, nodeVacant (GF := GF) γ id ∗ nodeVacant γ id ⊢ crashed) ∧
   (∀ ms σ1 σ2, memStor (GF := GF) ms σ1 ∗ memStor ms σ2 ⊢ iprop(False)) ∧
   (∀ n q, nodeRunning (GF := GF) n q ∗ nodeStopped n ⊢ iprop(False))
 
@@ -893,19 +900,38 @@ the crash frame, from the old generation's `crashed`; every opaque predicate her
 `hG`, so what crosses must say how. The cluster's vocabulary is of the global ghost state (`global`:
 the same at every local generation). A node's durable state crosses by `raftState_gen` (at rest) or
 `raftState_crash` (a batch handed out and not entered), which give the next generation's
-`raftState` and **its vacancy**: the crashed process is gone, so no node of `id` runs in `L'`. (A
-law `isNode n γ id ∗ crashed ⊢ |={⊤}=> nodeVacant γ id` in the old generation, as R-A8 N1 proposed,
-is false: both premises are persistent, so it would give two vacancies, which `exclusive` refutes.
-The vacancy comes with the exclusive `raftState`, which the crossing consumes.)
+`raftState` and **its vacancy**: the crashed process is gone, so no node of `id` runs in `L'`. (R-A8
+N1's `isNode n γ id ∗ crashed ⊢ |={⊤}=> nodeVacant γ id` would give the vacancy of the old
+generation, useless after the crash; the next generation's comes with `raftState`, which the
+crossing moves.)
+
+**The laws hold at every `L'`** (verify round, F-raft-storage F1, F-server-boot F1): Perennial's
+frame is `∀ L'` and says nothing of `L'` being fresh, and at `L' := hG.goose_localGS` the heap
+`⟨hG.goose_globalGS, L'⟩` is `hG` itself (structure eta), so a crossing may be applied again and
+again in the crashed generation, each time giving a vacancy beside one already out (or beside the
+crashed incarnation's node). That is harmless because the vacancy is exclusive only while its
+generation runs: two give `crashed` (`exclusive`), not `False`, and no step of a crashed generation
+happens. (Before this round `exclusive` said `False`, which with `raftState_gen` at `L' = hG` proved
+`raftState γ id D ∗ crashed ⊢ |={⊤}=> False`, checked in Lean by the reviewer: every crash frame was
+vacuous.) A law consuming an exclusive witness of the old generation's occupancy instead (the
+running node's `nodeRunning n 1`) was the alternative; it is not taken, because a running node's
+fractions are with the threads that use it, out of the crash frame's reach.
 
 Realization: `raftState γ id D` at `hG` is the client's half of `id`'s durable ghost variable at `D`
-**and** the client's half of `id`'s generation record at the name of `hG`'s crash token
-(`hG.goose_localGS.goose_crashGS`); `nodeVacant γ id` at `hG` is `id`'s vacancy token for that
-generation (a ghost map keyed by `(id, generation name)` in raft's invariant, an entry inserted
-once). The crossing, given the old generation's `crashed`, opens raft's invariant (`γ.ns`), moves the
-record to `L'`'s name and inserts `L'`'s vacancy; the old incarnation's node invariant is dead with
-its threads (its steps are refuted by `crashed` against its generation's `notCrashed`, which a step
-owns through the state interpretation: `CrashToken.lean`). -/
+**and** the client's half of `id`'s generation record at `g`, the name of `hG`'s crash token
+(`hG.goose_localGS.goose_crashGS`); `nodeVacant γ id` at `hG` is `occ(id, g) ∨ crashed@g`, with
+`occ(id, g)` an exclusive token. Raft's invariant (`γ.ns`) holds, per id, the record's authority at
+`cur`, the set `S ∋ cur` of the generation names whose token was handed out, `crashed@g'` for every
+`g' ∈ S \ {cur}` (persistent), and the tokens `occ(id, g')` of every `g' ∉ S` (a `coPset`-style
+infinite token set). A crossing from `hG` (so `cur = g`, by the record's agreement) to `L'` with
+crash name `g'`, given `crashed@g`: moves the record to `g'`, adds `g` to the crashed names; the
+vacancy at `L'` is `occ(id, g')` taken from the pool if `g' ∉ S`, else `crashed@g'` (`g' = g`, given,
+or an earlier, crashed name). The starts (`StartNode`, `RestartNode`, `NewRawNode`) take the vacancy
+at their first step, whose state interpretation owns `notCrashed@g`, refuting the `crashed@g`
+disjunct (`CrashToken.lean`'s `notCrashed_crashed`; the lifting lemma that hands a step's
+`notCrashed` to a proof is the one every crash-aware realization here needs); `Stop` and
+`rawNode_drop` give `occ` back. The old incarnation's node invariant is dead with its threads (its
+steps are refuted the same way). -/
 
 /-- **What a crash during the write of batch `b` from the durable state `D` may leave**
 (transparent; verify round, crash pass): a hard state that is **one record whole**, either the old
@@ -952,7 +978,11 @@ def global.spec : Prop := ∀ L' : GooseLocalGS GF,
 of `id` handed out and not entered (or one the client chooses to drop: nothing of it was
 acknowledged), the next generation `L'` has the same durable state and its vacancy (see the
 section's header). A restart may still find a lower stored commit, down to `D.wcommit`
-(`StorageHolds`): a commit-only state record lost is not a change of `D`. -/
+(`StorageHolds`): a commit-only state record lost is not a change of `D`. Changes (verify-round:
+F-raft-storage F1): statement unchanged; at `L' = hG.goose_localGS` it gave a second vacancy, which
+`exclusive` refuted, so `raftState ∗ crashed ⊢ False`; now `exclusive`'s vacancy clause gives
+`crashed` and the vacancy is realized as a token or the generation's `crashed` (the section's
+header), so the law holds at every `L'`. -/
 def raftState_gen.spec : Prop :=
   ∀ (L' : GooseLocalGS GF) γ (id : w64) (D : Durable),
     raftState (GF := GF) γ id D ∗ crashed ⊢ |={⊤}=>
@@ -979,7 +1009,18 @@ statement allowed the old term with the batch's commit, which no storage writes;
 P2(a): one record whole; re-review N1: the batch's record only with all of its entries.) Changes
 (crash pass): `crashed` in place of the old generation's `nodeVacant`, which no producer gave after a
 crash (R-A8 N1), the result at `L'`; a batch with a snapshot is covered when nothing of it or all of
-it is written (round 3 excluded it). -/
+it is written (round 3 excluded it). Changes (verify-round: F-raft-storage F1): statement unchanged;
+it holds at every `L'`, the current generation included, as `raftState_gen` (the section's header).
+
+**Open (soundness, escalated: new client-visible ghost state; repair 4):** the evidence
+`readyEnter n γ id st b dl` is a transparent wand. A client holding `nodeStopped n` of any node `n`
+(`node.Stop`'s post) proves it for **any** batch `b` (its premise `nodeRunning n q` is refuted by
+`exclusive`), and raft's proof cannot inspect a wand without firing it (firing mints the batch's
+`msgSent`, after which losing the batch is unsafe). With a forged one, the law gives `raftState@L'`
+at `D.next b` for a batch raft never made (a second vote in the term, entries never proposed): it
+is not realizable as stated, independently of `L'`. Proposed: an opaque persistent `readyBatch n γ
+st b` in `readyGot` (raft's record that it handed out `b` at `st`), taken here in place of
+`readyEnter`; the disk deposits it beside the `readyEnter` it fires. -/
 def raftState_crash.spec : Prop :=
   ∀ (L' : GooseLocalGS GF) (n : Loc) γ (id : w64) (st : Driver) (b : Batch) (dl : List LogEntry)
     (D' : Durable),

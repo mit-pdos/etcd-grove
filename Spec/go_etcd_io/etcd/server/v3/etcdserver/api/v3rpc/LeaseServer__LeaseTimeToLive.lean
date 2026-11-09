@@ -15,6 +15,8 @@ Recheck RR-1: `leaseFact`'s `TimeToLive` row is gated on W0's `soleMember γ` (t
 
 Changes: verify-round relay (server-core's RR request 1): takes `srvAt s γ ep` (2c's lease specs do: the lease view is the member's at the endpoint it serves); `leaseFact` is 2c's `srvLeaseFact`.
 
+Changes: verify-round F1 (`verify/F-client-api.md`): `leaseFact`'s `TimeToLive` row is gated on `soleMember γ ∗ peerLeaseServed γ` (2c's, passed through; statement unchanged). S1: the "no per-member view yet" remark above is stale: 2c's `Grant`, `Leases` and `TimeToLive` give `srvLeaseFact` since the recheck.
+
 Margin: none.
 -/
 module

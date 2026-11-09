@@ -33,8 +33,9 @@ snapshot is empty or valid (provability F3: raft sends it in `MsgSnap`s).
 **Margin.** The node starts a follower at the stored term; the delivered log is the committed log up
 to the applied index, whose stored part the post states. Out of scope: `--force-new-cluster`
 (`bootstrap.go:628-648`: etcd raises the WAL's commit and manufactures conf entries outside raft,
-which no cluster history admits); a crash's vacancy (`nodeVacant` comes back from `Stop`; a crash
-rule is the adequacy theorem's).
+which no cluster history admits). A crash's vacancy is `Api.lean`'s crossing's (`raftState_gen`,
+`raftState_crash`: verify-round F-raft-storage F1); the start's first step refutes the `crashed`
+disjunct of the vacancy's realization (the generation's `notCrashed`).
 -/
 module
 

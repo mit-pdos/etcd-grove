@@ -30,12 +30,14 @@ members'"), hence by the server's top-level specs that reach the forwarded `Leas
 deriving it would need the peer port's protocol to fix the lease path too: requested of
 server-boot (`raftCompat`, or a `leaseCompat` beside it, in the report).
 
-**The handler's view** (`ltlView url id found`, on the `200` and the `404` replies). The handler
-waits for its server's `ApplyWait` (`h.waitch()`, `http.go:115-120`), then looks the lease up in
-its lessor (`:124`): `404` if absent, else a `200` (or `500` if demoted: another error). So the
-answer is the lessor's table at the moment of the lookup, at or past any view the member gave
-before. Stated per member through `leaseURLOf` (the URL is that member's handler), with no premise
-here: a client that cannot show `leaseURLOf` gets nothing from it.
+**The handler's view** (`ltlView γ ep vi url id found`, on the `200` and the `404` replies). The
+caller names the member `ep` it expects and its view bound `vi` of that member, held at the call
+(`leaseLbOpt γ ep vi`: `leaseViewLb γ ep i`, or nothing). The handler waits for its server's
+`ApplyWait` (`h.waitch()`, `http.go:115-120`), then looks the lease up in its lessor (`:124`): `404`
+if absent, else a `200` (or `500` if demoted: another error). So the answer is the lessor's table at
+the moment of the lookup, after the call began, hence at or past the view `i` the caller held. Stated
+per member through `leaseURLOf` (the URL is `ep`'s member's handler), which the caller may show
+later (a run-wide fact): a caller that cannot show it gets nothing from it.
 
 **Changes.** New (second pass, server-core's request): the old tree had no spec (2c's
 `leaseTimeToLive` was names-only).
@@ -43,6 +45,11 @@ Changes: verify-round (server-core's RR request 2): the success and `ErrLeaseNot
 give `ltlView url (sint.Z id) found` (found: `true`, `false`), the serving member's lessor view,
 which 2c's `leaseTimeToLive` needs for `srvLeaseFact`'s gated row (under `soleMember`, the leader's
 URL is the member's own: `leaseURLOf`).
+Changes: verify-round F3 (`verify/F-client-api.md`: unsound): the view bound is the caller's,
+held before the call (binders `γ ep vi`, the precondition `leaseLbOpt γ ep vi`), not quantified in
+the post's persistent wand, which accepted a view obtained after the answer (a `404`, then a grant
+of `id` with its `leaseViewLb γ ep jg`: the wand gave a table `j ≥ jg` without `id`, contradicting
+the grant; `False`). The pre's other parts and the outcomes are unchanged.
 **Margin.** The TTLs and keys (any); the other errors' kinds.
 -/
 module
@@ -68,19 +75,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.leasehttp.Assumptions]
 
 /-- **Asks the leader for lease `id`'s TTL**: the decoded reply (owned, canonical, of lease `id`,
 its header set), the lessor's `ErrLeaseNotFound`, or another error; the first two with the
-handler's view (`ltlView`). -/
+handler's view of `ep`'s member from the caller's bound `vi` (`ltlView`). -/
 def TimeToLiveHTTP.spec : Prop :=
-  ∀ (ctx : GoInterface) (id : w64) (keys : Bool) (url : GoString) (rt : GoInterface),
+  ∀ (ctx : GoInterface) (id : w64) (keys : Bool) (url : GoString) (rt : GoInterface)
+    (γ : EtcdModel.Cluster) (ep : GoString) (vi : Option Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp ∗
-      Context.ctxOk ctx ∗ rtOk rt ∗ threadTok ∗ ⌜leasePeerURL url⌝ }}
+      Context.ctxOk ctx ∗ rtOk rt ∗ threadTok ∗ ⌜leasePeerURL url⌝ ∗ leaseLbOpt γ ep vi }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.leasehttp.TimeToLiveHTTP))
       (Val #ctx)) (Val #id)) (Val #keys)) (Val #url)) (Val #rt))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ c : Proto.Content,
           Proto.msgAt go_etcd_io.etcd.server.v3.lease.leasepb.LeaseInternalResponse.ty resp
-            (DFrac.own 1) c ∗ ⌜Proto.norm c = c ∧ ltlReply c (sint.Z id)⌝ ∗ ltlView url (sint.Z id) true) ∨
+            (DFrac.own 1) c ∗ ⌜Proto.norm c = c ∧ ltlReply c (sint.Z id)⌝ ∗ ltlView γ ep vi url (sint.Z id) true) ∨
        (⌜resp = null⌝ ∗ Lease.errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗
-          ltlView url (sint.Z id) false) ∨
+          ltlView γ ep vi url (sint.Z id) false) ∨
        (⌜resp = null⌝ ∗ ∃ t, Lease.errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound t ∗
           errIsNot err t)) }}
 

@@ -81,7 +81,11 @@ the batch: `backend.go:470-471`, and the restart's lessor is recovered from that
 carried across a crash (no `leaseViewLb_gen`: the batch a crash loses may hold applied grants). The
 cost: a client address serves one member id over the run (as peer-URL sets). `leaseURLOf_intro`
 gives 4b's `Leasehttp.leaseURLOf γ ep (u ++ "/leases/internal")` for the peer URLs `u` of `ep`'s
-member, under the existing deployment premise `Leasehttp.leasePeerURL` of that URL.
+member, under the existing deployment premise `Leasehttp.leasePeerURL` of that URL; W0's
+`peerLeaseServed γ` (every member's peer URLs serve its lease handler: what 2c's forwarded
+`TimeToLive` row is gated on, verify-round F1) is introduced for a one-member cluster under that
+premise of its member's peer URLs (`peerLeaseServed_intro`) and eliminated into `leaseURLOf`
+(`peerLeaseServed_url`).
 
 ## Intended realization
 
@@ -118,9 +122,14 @@ member, under the existing deployment premise `Leasehttp.leasePeerURL` of that U
 * `diskState γ ds k`: per kind, the fresh directory with its start token (`memberBoot`, or
   `memberJoin`'s reserved vacancy), or the member's files as `memberDisk` used to be (above), with
   the in-flight batch, **at every step of the disk's life** (see "Crashes"); `diskIdle γ ds k`: the
-  fragment of `k` frozen while no server runs, with raft's `nodeVacant` for a member's files. Both
-  are keyed by the generation (the name of `hG`'s crash token, as raft's vacancy: `Raft.raftState_gen`),
-  so that `disk_crash` mints the next generation's once.
+  fragment of `k` frozen while no server runs, with raft's `nodeVacant` for a member's files.
+  `diskState` carries a per-disk generation record (the name `g` of `hG`'s crash token) and
+  `diskIdle` at `hG` is **its token for `g` or `g`'s `crashed`**, as raft's vacancy
+  (`Raft.raftState_gen`'s section; verify-round F-server-boot F1, F-raft-storage F1): `disk_crash`
+  must hold at every `L'`, also one whose crash name was used before (the current one included,
+  where its idle token is already out), so it gives the pool's token for a new name and the
+  recorded `crashed` for a used one. Hence `diskIdle_excl`, `diskIdle_agree` and `memberDisk_excl`
+  give `crashed` as their alternative: `NewServer`'s first step (its `notCrashed`) refutes it.
 * `memberStart γ cfg c oid`: `memberStart_disk`'s left side at its conditions.
 * `srvFields s γ id` (re-review RR2): the literal's read-only fields (`memberID`, `cluster`,
   `lgMu`/`lg`, `readych`, `Cfg` but `SnapshotCount`/`SnapshotCatchUpEntries`), `⌜0 < id < 2 ^ 64⌝`;
@@ -236,7 +245,8 @@ crash rule will need `UnsafeNoFsync = false`).
 `urls_reserve`, `disk_new`, `disk_join`, the crash laws `disk_crash`, `memberBoot_crash`,
 `memberJoin_crash`, `dataDirFresh_crash` (verify round, crash pass), `memberStart_disk`,
 `srvBuilt_closers`, `srvEp_persistent`, `srvEp_agree`, `srvEp_reserve`, `srvEp_gen`,
-`srvAt_persistent`, `leaseURLOf_intro`, `soleMember_intro`, and
+`srvAt_persistent`, `leaseURLOf_intro`, `soleMember_intro`, `peerLeaseServed_intro`,
+`peerLeaseServed_url` (verify-round F1), and
 the slots' introductions
 `raftNodeBootCfg_intro`, `v3rpcBootCfg_intro`, `mvccBootCfg_intro`, `backendBootRes_intro`,
 `leaseBootRes_intro`, `authBootRes_intro`.
@@ -597,16 +607,22 @@ def diskState_timeless.spec : Prop := ∀ γ ds k, Timeless (diskState (GF := GF
 def diskState_excl.spec : Prop := ∀ γ ds k k',
   diskState (GF := GF) γ ds k ∗ diskState γ ds k' ⊢ iprop(False)
 
+/-- One idle token per disk while the generation runs (two give its `crashed`: the header's
+`diskIdle`; verify-round F-server-boot F1: with `False`, `disk_crash` at the current generation
+could not be realized). -/
 def diskIdle_excl.spec : Prop := ∀ γ ds k k',
-  diskIdle (GF := GF) γ ds k ∗ diskIdle γ ds k' ⊢ iprop(False)
+  diskIdle (GF := GF) γ ds k ∗ diskIdle γ ds k' ⊢ crashed
 
-/-- While no server runs, the disk's kind is the idle token's. -/
+/-- While no server runs, the disk's kind is the idle token's, or the generation crashed (an idle
+token minted by `disk_crash` at a crash name used before carries no kind; verify-round
+F-server-boot F1). `disk_crash`'s post gives both at one kind. -/
 def diskIdle_agree.spec : Prop := ∀ γ ds k k',
-  diskState (GF := GF) γ ds k ∗ diskIdle γ ds k' ⊢ ⌜k = k'⌝
+  diskState (GF := GF) γ ds k ∗ diskIdle γ ds k' ⊢ ⌜k = k'⌝ ∨ crashed
 
-/-- One stopped member per member id. -/
+/-- One stopped member per member id while the generation runs (raft's vacancy is in each:
+two give `crashed`, `Raft.exclusive`; verify-round F-server-boot F1). -/
 def memberDisk_excl.spec : Prop := ∀ γ id ds ds',
-  memberDisk (GF := GF) γ id ds ∗ memberDisk γ id ds' ⊢ iprop(False)
+  memberDisk (GF := GF) γ id ds ∗ memberDisk γ id ds' ⊢ crashed
 
 def dataDirFresh_timeless.spec : Prop := ∀ ds, Timeless (dataDirFresh (GF := GF) ds)
 
@@ -679,7 +695,11 @@ backend) are resolved by their own crash laws (R1's `raftState_gen`/`raftState_c
 `walRecs_crash`/`walWriting_crash`, the snapshotter's `snapDbs_crash`/`snapSaving_crash`, 4a's
 `beFile_crash`/`beCrash`). Changes: round 2's `crashGone` premise (from a running server only) and
 `diskIdle_crash` (an idle disk, with no `crashRest`: it could not produce the backend file) are
-replaced by this one law; `crashOutOfScope` is transparent, over the WAL's records. -/
+replaced by this one law; `crashOutOfScope` is transparent, over the WAL's records. Verify-round
+(F-server-boot F1, F-raft-storage F1): statement unchanged; it holds at every `L'`, a crash name
+used before included, by `diskIdle`'s realization (a token or the generation's `crashed`: the
+header) and raft's crossings, which hold at every `L'`; `diskIdle_excl`, `diskIdle_agree`,
+`memberDisk_excl` give `crashed` in place of `False`. -/
 def disk_crash.spec : Prop := ∀ [HasExt osFsExt] (L' : GooseLocalGS GF) (γ : Cluster)
     (ds : Config.Dirs) (k : DiskKind) (Ps : List GoString),
   (∀ p ∈ diskFiles ds, p ∉ Ps) →
@@ -693,7 +713,9 @@ def disk_crash.spec : Prop := ∀ [HasExt osFsExt] (L' : GooseLocalGS GF) (γ : 
 /-- **A boot token crosses a crash** (verify round, crash pass: a program that allocated the cluster
 and crashed before making the member's disk). Realization: raft's `raftState_gen` for the reserved
 durable state and vacancy, `Raft.global` for the bootstrap log's facts, `Rafthttp.peerAddr_gen`
-for the members' addresses. -/
+for the members' addresses. It consumes the token and gives one, so it holds at every `L'`, the
+current generation's included (verify-round F-raft-storage F1: there it is the identity, the
+vacancy inside the `crashed` alternative of raft's realization). -/
 def memberBoot_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (ms : List Member)
     (m : Member),
   memberBoot (GF := GF) γ ms m ∗ crashed ⊢ |={⊤}=> memberBoot (hG := ⟨hG.goose_globalGS, L'⟩) γ ms m
@@ -701,7 +723,8 @@ def memberBoot_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (m
 /-- **A join right crosses a crash** (verify round, crash pass: a URL set reserved before a crash,
 its member joining after it). Realization: the URL set's entry in the cluster's invariant keeps the
 reserved durable state and vacancy at the generation of the right's holder (a generation record,
-as raft's); the law moves it to `L'` by raft's `raftState_gen`. -/
+as raft's); the law moves it to `L'` by raft's `raftState_gen`. It consumes the right and gives one,
+so it holds at every `L'` (verify-round F-raft-storage F1). -/
 def memberJoin_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (urls : List GoString),
   memberJoin (GF := GF) γ urls ∗ crashed ⊢ |={⊤}=> memberJoin (hG := ⟨hG.goose_globalGS, L'⟩) γ urls
 
@@ -792,6 +815,27 @@ def leaseURLOf_intro.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (σ : Sta
     (u : GoString),
   m ∈ σ.members → u ∈ m.peerURLs → Leasehttp.leasePeerURL (u ++ go!"/leases/internal") →
   srvEp (GF := GF) γ ep m.id ∗ etcdLb γ σ ⊢ Leasehttp.leaseURLOf γ ep (u ++ go!"/leases/internal")
+
+/-- **A one-member cluster whose member serves its lease endpoint** (verify-round F1,
+`verify/F-client-api.md`): with `soleMember γ` and the boot token of its only initial member `m`
+(given back), if each of `m`'s peer URLs `u` is a lease endpoint (4b's deployment premise
+`leasePeerURL (u ++ "/leases/internal")`: the starter serves `s.LeaseHandler()` on the peer address,
+as embed's `etcdhttp.newPeerHandler` does; `examples/lib/etcdstart` does not), W0's
+`peerLeaseServed γ`. True: under `soleMember γ` every state the cluster reaches has members `[m]`
+with `m`'s peer URLs (no `MemberAdd`/`MemberUpdate`: neither has a `urlsRight`), so the realization's
+`∀ σ m' u ep` is `leaseURLOf_intro` at `m`. -/
+def peerLeaseServed_intro.spec : Prop := ∀ (γ : Cluster) (m : Member),
+  (∀ u ∈ m.peerURLs, Leasehttp.leasePeerURL (u ++ go!"/leases/internal")) →
+  soleMember (GF := GF) γ ∗ memberBoot γ [m] m ⊢ memberBoot γ [m] m ∗ peerLeaseServed γ
+
+/-- **A served lease endpoint is over `ep`'s member's lessor** (verify-round F1): for a member `m` of
+a state the cluster reached, `ep`'s member (`srvEp`), and a peer URL `u` of `m`'s, `peerLeaseServed
+γ` gives `leaseURLOf γ ep (u ++ "/leases/internal")` (its realization, unfolded). -/
+def peerLeaseServed_url.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (σ : State) (m : Member)
+    (u : GoString),
+  m ∈ σ.members → u ∈ m.peerURLs →
+  peerLeaseServed (GF := GF) γ ∗ srvEp γ ep m.id ∗ etcdLb γ σ ⊢
+    Leasehttp.leaseURLOf γ ep (u ++ go!"/leases/internal")
 
 end vocab
 

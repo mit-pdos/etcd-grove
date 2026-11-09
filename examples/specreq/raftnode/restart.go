@@ -39,8 +39,10 @@ func ReqStartFresh(id uint64, peers []raft.Peer) raft.Node {
 // Assumes: ms holds id's durable state (StorageHolds: the image the client wrote at its last
 // Ready's commit point); its stored snapshot is empty or one made by snap_make (snapValid), and its
 // configuration is the cluster's at a committed point a at or above its compaction point (the
-// snapshot's, for a MemoryStorage); id is vacant (the previous node stopped).
-// Specs: RestartNode.spec; laws: memStor_isStorage.spec.
+// snapshot's, for a MemoryStorage); id is vacant (the previous node stopped, or the previous
+// generation crashed: raftState_gen at rest, raftState_crash with a batch in flight, in the
+// program's crash frame).
+// Specs: RestartNode.spec; laws: memStor_isStorage.spec, raftState_gen.spec, raftState_crash.spec.
 func ReqRestartDurable(id uint64, ms *raft.MemoryStorage) raft.Node {
 	return raft.RestartNode(config(id, ms, true))
 }

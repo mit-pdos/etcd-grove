@@ -23,6 +23,16 @@ re-review N1, recheck RR-1: the per-member clause holds for `TimeToLive` only gi
 ever reserved, so no member is ever added): a follower forwards it to the leader
 (`v3_server.go:636-676`).
 
+Changes: verify-round F1 (`verify/F-client-api.md`): the gated row needs `soleMember γ ∗
+peerLeaseServed γ` (W0; 2e's `peerLeaseServed_intro`, under 4b's deployment premise `leasePeerURL`
+of the member's peer URLs: the starter serves `s.LeaseHandler()` on the peer address, as
+`etcdhttp.newPeerHandler` does; `examples/lib/etcdstart` does not, so a sole member asked before its
+first election forwards to its own peer URL and gets rafthttp's `404`). **Users:**
+`examples/etcd/leaseexpiry`'s "gone by `TimeToLive`, so not listed" check is proved from this row
+only with a starter that serves the lease handler on the peer address; under `etcdstart` it is
+unproved (a user decision, `verify/repair4-lease.md`). F2: a call without a view uses
+`via = some (ep, 0)` with W0's `leaseViewLb_zero`.
+
 Margin: none.
 -/
 module

@@ -574,16 +574,20 @@ def SrvCallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p tls : Principal)
 -- `srvEp_reserve`; was a provisional opaque here, with `srvAt_agree`'s `s = s'`, false of a member
 -- restarted at its address).
 
-/-- The caller's lease-view bound, if any (`vi`). -/
-def srvLeaseLbOpt (γ : Cluster) (ep : GoString) (vi : Option Nat) : IProp GF :=
-  match vi with | some i => leaseViewLb γ ep i | none => iprop(True)
+/-- The caller's lease-view bound, if any (`vi`): 4b's `Leasehttp.leaseLbOpt` (verify-round F3:
+one definition, which `TimeToLiveHTTP` takes too). -/
+abbrev srvLeaseLbOpt (γ : Cluster) (ep : GoString) (vi : Option Nat) : IProp GF :=
+  Leasehttp.leaseLbOpt γ ep vi
 
 /-- **The lease requests' fact** (2a's `leaseFact`, the same body: identified, requested of
 grpc-v3rpc): a grant's success gives the member's view of the table after it; `Leases` (with the
 caller's bound `i`) an answer read from a table `j ≥ i` of the member's, and the view of `j`;
-`TimeToLive` the same, gated on W0's `soleMember γ` (a follower forwards to the leader,
-`v3_server.go:671-686`; in a cluster that never had another member the leader is the member itself,
-`:636-669`, or its own peer URLs' `leasehttp` handler, which reads the same lessor). -/
+`TimeToLive` the same, gated on W0's `soleMember γ` and `peerLeaseServed γ` (a follower forwards to
+the leader, `v3_server.go:671-686`; in a cluster that never had another member the leader is the
+member itself, `:636-669`, or its own peer URLs' `leasehttp` handler, which reads the same lessor
+when the starter serves it there: `peerLeaseServed`, verify-round F1; under
+`examples/lib/etcdstart` the peer address answers the forwarded request with rafthttp's mux `404`,
+`ErrLeaseNotFound`). -/
 def srvLeaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ σ' : State)
     (res : Resp) : IProp GF :=
   match rq with
@@ -599,7 +603,8 @@ def srvLeaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ
   | .leaseTimeToLive .. =>
       match vi with
       | some i => iprop(⌜¬ ClientV3.leaseAnsRes res⌝ ∨
-          (soleMember γ -∗ ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j))
+          (soleMember γ ∗ peerLeaseServed γ -∗
+            ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j))
       | none => iprop(True)
   | _ => iprop(True)
 

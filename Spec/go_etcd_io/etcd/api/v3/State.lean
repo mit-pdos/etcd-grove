@@ -43,7 +43,9 @@ and the server batches that must produce it (the cluster contract, `notes/specs-
 `etcdState_timeless`, `etcdState_excl`, `etcdLb_persistent`, `etcdLb_timeless`, `etcdState_lb`,
 `etcdLb_reach`, `etcdLb_ord`, `etcdLb_init`, `etcdState_revFits` (with one to spare),
 `etcdState_sizeFits`, `errVal_inj`, `errVal_ty`; across a crash (verify round, crash pass)
-`etcdState_gen`, `etcdLb_gen`, `urlsRight_gen`, `urlsReserve_gen`, `soleMember_gen`, `envUpd_gen`. Shared shapes: `etcdPerm γ T`, `etcdPeek γ`.
+`etcdState_gen`, `etcdLb_gen`, `urlsRight_gen`, `urlsReserve_gen`, `soleMember_gen`, `peerLeaseServed_gen`,
+`envUpd_gen`; the lease views' `leaseViewLb_persistent`, `leaseViewLb_zero`, `leaseViewLb_le`,
+`soleMember_persistent`, `peerLeaseServed_persistent`. Shared shapes: `etcdPerm γ T`, `etcdPeek γ`.
 
 `etcdState_revFits`, `etcdState_sizeFits`: the current revision and the number of events fit an
 `int64` (a reply's header, `Count`, `Version`, `Deleted` carry them). etcd itself never refuses at
@@ -183,10 +185,20 @@ on the leader) from a table at least `i`. Produced by 1c's lease specs from the 
 answered through `ep` gives the table after it; a read answered through `ep` at table `j` gives
 `j`), consumed by them (a read through `ep` holding `leaseViewLb γ ep i` is answered at a table
 `≥ i`): what `examples/etcd/{leasegrant,leaseexpiry,leasecatchup}` carry. Realized by 2c/2d from
-the member's applied index. -/
+the member's applied index: `i = 0` (nothing known: every table index is `≥ 0`, and the cluster
+always has table `0`, `State.leaseTables` being nonempty), or `∃ id, srvEp γ ep id ∗` member
+`id`'s lessor view of `i`. -/
 opaque leaseViewLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ep : GoString) (i : Nat) : IProp GF := iprop(True)
 
 def leaseViewLb_persistent.spec : Prop := ∀ γ ep i, Persistent (leaseViewLb (GF := GF) γ ep i)
+
+/-- **The trivial view** (verify-round F2, `verify/F-client-api.md`): any member's lessor is at a
+table `≥ 0`, so a lease read through `ep` may always bound itself by table `0` (and gets the view
+of the table it was answered at). No premise: the realization's `i = 0` case (above); every
+consumer's claim at `i = 0` (an answer at a table `≥ 0`; `leaseViewLb_le`'s `0 < length`) holds of
+every state. Replaces the `⌜i = 0⌝ ∨` alternative of 1c's `viaPre`, which 2a's `etcdUnary` had no
+source for. -/
+def leaseViewLb_zero.spec : Prop := ∀ γ ep, ⊢ leaseViewLb (GF := GF) γ ep 0
 
 /-- **The cluster `γ` never has a member but its one initial member** (persistent; open question
 A4's single-member alternative, recheck RR-1): so whichever member serves an endpoint is the
@@ -205,6 +217,23 @@ list (2d's cluster invariant: every member is an initial one or added under a re
 opaque soleMember [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) : IProp GF := iprop(True)
 
 def soleMember_persistent.spec : Prop := ∀ γ, Persistent (soleMember (GF := GF) γ)
+
+/-- **Every member of `γ` serves its own lessor's lease endpoint on its peer URLs** (persistent;
+verify-round F1, `verify/F-client-api.md`): a deployment fact, for each member `m` of a state the
+cluster reached and each `u ∈ m.peerURLs`, `u ++ "/leases/internal"` is answered by
+`leasehttp.NewHandler(s.lessor, s.ApplyWait)` of a server object of `m` (embed's peer handler,
+`etcdhttp.newPeerHandler`, mounts `s.LeaseHandler()` there; `examples/lib/etcdstart` serves only
+`s.RaftHandler()`, whose mux answers `404`, so it is false there). What a `TimeToLive` forwarded by
+a member to its leader (`v3_server.go:671-686`) needs for its answer to be the leader's lessor's,
+not the mux's `404`. Introduced by 2e's `peerLeaseServed_intro` (`etcdserver/ApiBoot.lean`) for a
+one-member cluster whose member's peer URLs are lease endpoints (4b's deployment premise
+`Leasehttp.leasePeerURL`); eliminated by 2e's `peerLeaseServed_url` into 4b's
+`Leasehttp.leaseURLOf`. Intended realization: `□ ∀ σ m u ep, etcdLb γ σ -∗ ⌜m ∈ σ.members ∧ u ∈
+m.peerURLs⌝ -∗ srvEp γ ep m.id -∗ leaseURLOf γ ep (u ++ "/leases/internal")` (2e's and 4b's
+vocabulary). -/
+opaque peerLeaseServed [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) : IProp GF := iprop(True)
+
+def peerLeaseServed_persistent.spec : Prop := ∀ γ, Persistent (peerLeaseServed (GF := GF) γ)
 
 /-- **A share `q` of the right to reserve new peer-URL sets for `γ`** (fractional; recheck RR-1):
 `cluster_alloc` gives it whole and `urls_reserve` spends a share (2e, `etcdserver/ApiBoot.lean`;
@@ -293,6 +322,11 @@ def urlsReserve_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (q 
 
 def soleMember_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster),
   soleMember (GF := GF) γ ⊣⊢ soleMember (hG := ⟨hG.goose_globalGS, L'⟩) γ
+
+/-- `peerLeaseServed` does not depend on the local generation (a restarted member's new server
+object serves the same peer URLs; its realization is over `srvEp`, `srvEp_gen`). -/
+def peerLeaseServed_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster),
+  peerLeaseServed (GF := GF) γ ⊣⊢ peerLeaseServed (hG := ⟨hG.goose_globalGS, L'⟩) γ
 
 /-- **The environment's permission serves the next generation** (`NewServer`'s premise after a
 restart; transparent over `etcdState`, so a consequence of `etcdState_gen`, stated so that no

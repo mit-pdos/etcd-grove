@@ -22,7 +22,8 @@ member the lease table it created (`leaseViewLb`, W0's round 3).
 verify-round (A2-provability L2): the per-member clause (`via`) now has a source: `leaseViaPre`'s
 `leaseOf v c ∗ clientVia c ep` gives, through `lessorHandle`'s realization, `remoteVia` of the remote
 (`NewLeaseFromLeaseClient`'s premise), and `remoteLeaseAt_call` at `V = remoteVia remote` gives the
-answer's `viaFact` (from 2a's `AttemptTriple` through `uiOk_call`); a lease read's fact holds for an
+answer's `viaFact` (from 2a's `AttemptTriple` through `uiOk_call`; the grant's call at `via = some
+(ep, 0)`, its view from W0's `leaseViewLb_zero`, verify-round F2); a lease read's fact holds for an
 answer of the lessor (`leaseAnsRes`), not for a refusal.
 
 Margin: the reply's header and `Error` field are not modelled.

@@ -29,8 +29,11 @@ context carries (`ctxPrin who ctx p`).
   `j ≥ i` and gives `leaseViewLb γ ep j` (`Lease.GrantTriple`'s and `LeaseRead.Triple`'s `via`,
   `viaFact`): what `examples/etcd/{leasegrant,leaseexpiry,leasecatchup}` rely on. A `TimeToLive`
   gives the same fact only in a single-member cluster (`soleMember γ`: a follower forwards it to
-  the leader, `v3_server.go:636-676`; re-review N1, recheck RR-1): what `leaseexpiry`'s "gone by
-  `TimeToLive`, so not listed" rests on.
+  the leader, `v3_server.go:636-676`; re-review N1, recheck RR-1), whose peer URLs serve its lease
+  handler (`peerLeaseServed γ`, verify-round F1: a member not yet leader forwards to its own peer
+  URL, where `examples/lib/etcdstart` serves only rafthttp's mux): what `leaseexpiry`'s "gone by
+  `TimeToLive`, so not listed" rests on, with a starter serving `s.LeaseHandler()` there. A read
+  with no view bound passes `i = 0` (`leaseViewLb_zero`, verify-round F2).
 * **`KeepAlive(ctx, id)`**: no update. **A keep-alive tells nothing about the lease's state**: the
   model's keep-alive step changes nothing and its answer is any TTL. What is still observable, and
   what the spec gives: a channel (`kaChan ch id`, persistent) whose every value is a response about
@@ -250,7 +253,8 @@ def Lease.GrantTriple (m : GoString → val) (v : GoInterface) (P : IProp GF) (�
 member `ep` with `leaseViewLb γ ep i` (`via = some (ep, i)`), a `Leases` answer from the lessor
 (`leaseAnsRes`: not a refusal) is from `ep`'s table `j ≥ i`, whose lower bound it gives (`viaFact`;
 verify round: a refusal tells nothing; re-review N1, recheck RR-1: a `TimeToLive` tells it only
-given `soleMember γ`, the leader answers it). -/
+given `soleMember γ ∗ peerLeaseServed γ`, the leader answers it; verify-round F1). With no view
+known, `i = 0` (W0's `leaseViewLb_zero`, F2). -/
 def LeaseRead.Triple (e : Expr) (v : GoInterface) (P B : IProp GF) (γ : Cluster) (p : Principal)
     (rq : Req) (reply : Resp → Loc → GoInterface → IProp GF) : Prop :=
   ∀ (via : Option (GoString × Nat)) (Q : State → State → Resp → IProp GF),

@@ -332,7 +332,7 @@ def etcdAU (γ : Cluster) (p : Principal) (rq : Req) (rep : Bool) (lo : Nat)
 as `firedAns` is `srvFiredAns`). Its rows: a grant's success gives `ep`'s view of the table after
 it; `Leases` (`:737-738`, the member's own table) an answer read from a table `j ≥ i` with its view,
 or a refusal that tells nothing (`checkLeaseLeases`' permission error); `TimeToLive` the same gated
-on W0's `soleMember γ` (re-review R-A2 N1, recheck RR-1: a follower forwards to the leader,
+on W0's `soleMember γ ∗ peerLeaseServed γ` (verify-round F1; re-review R-A2 N1, recheck RR-1: a follower forwards to the leader,
 `v3_server.go:636-676`, which in a cluster that never had another member is the member itself, or
 its own peer URLs' `leasehttp` handler over the same lessor, `leasehttp/http.go:109-160`). -/
 abbrev leaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ σ' : State)

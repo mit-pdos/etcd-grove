@@ -36,9 +36,9 @@ func ReqGrantThenListOneMember(ctx context.Context, cli *clientv3.Client, ttl in
 // REQ clientv3lease/gone-not-listed: through a client of one endpoint, once Leases no longer lists a
 // lease it granted, a later Leases does not list it either (the member's lessor only moves
 // forward; unless the id is granted again).
-// Users: examples/etcd/leaseexpiry/leaseexpiry.go:79-102 (there the expiry is seen by TimeToLive,
-// which the leader answers: the same fact holds because its one member is the leader; a TimeToLive
-// through a follower gives no per-member fact, re-review N1).
+// Users: examples/etcd/leaseexpiry/leaseexpiry.go:79-102 (there the expiry is seen by TimeToLive:
+// see ReqTTLGoneNotListedSole, whose row needs soleMember γ ∗ peerLeaseServed γ; a TimeToLive
+// through a member of a larger cluster gives no per-member fact, re-review N1).
 // Assumes: as above, and no principal grants the id again (the server chooses ids; the example
 // grants one lease).
 // Specs: lessor.Grant.spec (via: leaseViewLb γ ep of the table after the grant), lessor.Leases.spec
@@ -73,12 +73,19 @@ func ReqGoneNotListed(ctx context.Context, cli *clientv3.Client, ttl int64) {
 // REQ clientv3lease/ttl-gone-not-listed-sole: in a single-member cluster, once TimeToLive reports a
 // lease unknown, a later Leases does not list it (unless its id is granted again).
 // Users: examples/etcd/leaseexpiry/leaseexpiry.go:79-102 ("Leases listed the lease after TimeToLive
-// found it gone"; one member).
+// found it gone"; one member). Its proof needs a starter that serves s.LeaseHandler() on the peer
+// address (etcd's newPeerHandler does; examples/lib/etcdstart serves only s.RaftHandler(), so there
+// a member not yet leader gets rafthttp's 404 for its own forwarded request, ErrLeaseNotFound for a
+// live lease, and this check is unproved).
 // Assumes: as above; the cluster has only ever had one member (soleMember γ, from ApiBoot's
-// soleMember_intro: one initial member, no URL set reserved); no principal
-// grants the id again.
-// Specs: lessor.TimeToLive.spec, lessor.Leases.spec (LeaseRead.Triple's viaFact: TimeToLive's answer
-// at ep's table i given soleMember; Leases answers at j ≥ i); model: State.leaseAnsAt.
+// soleMember_intro: one initial member, no URL set reserved); its member's peer URLs serve its lease
+// handler (peerLeaseServed γ, from ApiBoot's peerLeaseServed_intro under the deployment premise
+// leasePeerURL of each peer URL + "/leases/internal"); no principal grants the id again.
+// Specs: lessor.TimeToLive.spec (LeaseRead.Triple at via = some (ep, 0), the view from W0's
+// leaseViewLb_zero; viaFact's row, given soleMember γ ∗ peerLeaseServed γ: the not-found answer
+// read at ep's table j ≥ 0, with leaseViewLb γ ep j), lessor.Leases.spec (at via = some (ep, j):
+// answered at a table j' ≥ j); model: State.leaseAnsAt (the lease absent at j, not granted again,
+// is absent at j'; a found lease has GrantedTTL > 0, leaseStep).
 func ReqTTLGoneNotListedSole(ctx context.Context, cli *clientv3.Client, id clientv3.LeaseID) {
 	t, err := cli.Lease.TimeToLive(ctx, id)
 	if err != nil || t.GrantedTTL != 0 {
