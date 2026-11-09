@@ -10,6 +10,7 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
 public import Spec.go_etcd_io.raft.v3.raft__sendAppend
+public import Proof.go_etcd_io.raft.v3.TracedUntracedSend
 
 @[expose] public section
 
@@ -66,6 +67,8 @@ theorem raft.bcastAppend.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendAppend : raft.sendAppend.spec (GF := GF) (hG := hG)) :
     raft.bcastAppend.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
+  have wp_raft_sendAppend := raft.sendAppend.untraced wp_raft_sendAppend
   intro c r id s Hlead Htz Htr
   wp_start as Hphys
   wp_auto

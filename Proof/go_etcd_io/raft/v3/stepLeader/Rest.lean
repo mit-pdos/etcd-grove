@@ -531,6 +531,8 @@ theorem wp_stepLeader_transfer
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
   -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
   have wp_raft_sendTimeoutNow := raft.sendTimeoutNow.untraced wp_raft_sendTimeoutNow
+  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
+  have wp_raft_sendAppend := raft.sendAppend.untraced wp_raft_sendAppend
   wp_start as ⟨Hphys, Hm⟩
   have Hty' : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
@@ -754,6 +756,8 @@ theorem wp_stepLeader_hbresp
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
+  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
+  have wp_raft_sendAppend := raft.sendAppend.untraced wp_raft_sendAppend
   wp_start as ⟨Hphys, Hm⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -1153,6 +1157,8 @@ theorem wp_stepLeader_appresp
   have wp_raft_sendTimeoutNow := raft.sendTimeoutNow.untraced wp_raft_sendTimeoutNow
   -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
   have wp_raft_maybeSendAppend := raft.maybeSendAppend.untraced wp_raft_maybeSendAppend
+  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
+  have wp_raft_sendAppend := raft.sendAppend.untraced wp_raft_sendAppend
   wp_start as ⟨Hphys, Hm⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
