@@ -2371,6 +2371,39 @@ theorem handleAER_accept (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft
   simp only [bind, Except.bind, hacc, hrej, hrtf, Etcdraft.somes, pure, Except.pure, beq_self_eq_true]
   simp [withLead]
 
+theorem conflict_none (st : Etcdraft.State) (i : Etcdraft.ID) (index : Int) (m : Etcdraft.Msg)
+    (h : st.hasNoConflict i index m.entries = true) :
+    st.conflictAppendEntriesRequest i index m = .ok none := by
+  unfold Etcdraft.State.conflictAppendEntriesRequest; simp [h, pure, Except.pure]
+
+theorem noConflict_none_conf (st : Etcdraft.State) (i : Etcdraft.ID) (index : Int) (m : Etcdraft.Msg)
+    (h : st.hasNoConflict i index m.entries = false) :
+    st.noConflictAppendEntriesRequest i index m = .ok none := by
+  unfold Etcdraft.State.noConflictAppendEntriesRequest; simp [h, pure, Except.pure]
+
+theorem noConflict_none_len (st : Etcdraft.State) (i : Etcdraft.ID) (index : Int) (m : Etcdraft.Msg)
+    (h : m.prevLogIndex + (m.entries.length : Int) ≤ (st.s i).log.length) :
+    st.noConflictAppendEntriesRequest i index m = .ok none := by
+  unfold Etcdraft.State.noConflictAppendEntriesRequest
+  have : ¬ (m.prevLogIndex + (m.entries.length : Int) > ((st.s i).log.length : Int)) := by omega
+  simp [this, pure, Except.pure]
+
+theorem alreadyDone_none_conf (st : Etcdraft.State) (i j : Etcdraft.ID) (index : Int) (m : Etcdraft.Msg)
+    (hc : (st.s i).commitIndex < index) (hne : m.entries.isEmpty = false)
+    (h : st.hasNoConflict i index m.entries = false) :
+    st.appendEntriesAlreadyDone i j index m = none := by
+  unfold Etcdraft.State.appendEntriesAlreadyDone
+  have h1 : ¬ (index ≤ (st.s i).commitIndex) := by omega
+  simp [h1, hc, hne, h]
+
+theorem alreadyDone_none_len (st : Etcdraft.State) (i j : Etcdraft.ID) (index : Int) (m : Etcdraft.Msg)
+    (hc : (st.s i).commitIndex < index) (hne : m.entries.isEmpty = false)
+    (h : ¬ (m.prevLogIndex + (m.entries.length : Int) ≤ (st.s i).log.length)) :
+    st.appendEntriesAlreadyDone i j index m = none := by
+  unfold Etcdraft.State.appendEntriesAlreadyDone
+  have h1 : ¬ (index ≤ (st.s i).commitIndex) := by omega
+  simp [h1, hc, hne, h]
+
 end TraceSim
 
 end EtcdGrove
