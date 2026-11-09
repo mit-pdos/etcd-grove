@@ -2660,6 +2660,60 @@ theorem logOkL_abs (C : List w64) (bl : Nat) (m : Etcdraft.Msg) (es : List Entry
       decide (PlogMatches (entryID.mk (W64 0) (W64 0)) es (entryID.mk lt (W64 p))) := by
   unfold LogOkL; rw [hprev, hpt]; exact appLogOk_abs C bl es p lt hbl h0 hp
 
+/-- **A stale append request** (its previous index below the commit index, the log matching it: raft's
+`appStale`): `AppendEntriesAlreadyDone`'s reply at the commit index, the leader adopted. -/
+theorem receive_appStale (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.server.contains m.dest = true)
+    (hty : m.type = .appendEntriesRequest) (hf : (st.s m.dest).state = Etcdraft.follower)
+    (hterm : m.term = (st.s m.dest).currentTerm) (hsub : m.subtype = "app")
+    (hidx : m.prevLogIndex + 1 ≤ (st.s m.dest).commitIndex)
+    (hlogOk : LogOkL m (st.s m.dest).log = true) :
+    st.receive m = .ok [withLead (st.reply { type := .appendEntriesResponse, subtype := m.subtype, term := (st.s m.dest).currentTerm, success := true, matchIndex := (st.s m.dest).commitIndex, source := m.dest, dest := m.source } m) m.dest m.source] := by
+  apply receive_aer st m _ hsrv hty hterm
+  apply handleAER_accept st m.dest m.source m _ hf hterm (by unfold LogOkL at hlogOk; exact hlogOk)
+    (by rw [hsub]; decide) none none
+  · unfold Etcdraft.State.conflictAppendEntriesRequest
+    have : ¬ (m.prevLogIndex + 1 > (st.s m.dest).commitIndex) := by omega
+    simp [this, pure, Except.pure]
+  · unfold Etcdraft.State.noConflictAppendEntriesRequest
+    have : ¬ (m.prevLogIndex + 1 > (st.s m.dest).commitIndex) := by omega
+    simp [this, pure, Except.pure]
+  · rw [alreadyDone_stale st m.dest m.source m _ hidx (by rw [hsub]; decide)]
+    rfl
+
+/-- **A heartbeat at a follower of its term** (raft's `heartbeat`; the follower's commit index at
+least 1): `AppendEntriesAlreadyDone`'s commit to the heartbeat's and reply, the leader adopted. -/
+theorem receive_heartbeat (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.server.contains m.dest = true)
+    (hty : m.type = .appendEntriesRequest) (hf : (st.s m.dest).state = Etcdraft.follower)
+    (hterm : m.term = (st.s m.dest).currentTerm) (hsub : m.subtype = "heartbeat")
+    (hprev : m.prevLogIndex = 0) (hents : m.entries = []) (hc : 1 ≤ (st.s m.dest).commitIndex) :
+    st.receive m = .ok [withLead ((st.commitTo m.dest m.commitIndex).reply { type := .appendEntriesResponse, subtype := "heartbeat", term := (st.s m.dest).currentTerm, success := true, matchIndex := 0, source := m.dest, dest := m.source } m) m.dest m.source] := by
+  apply receive_aer st m _ hsrv hty hterm
+  apply handleAER_accept st m.dest m.source m _ hf hterm (by simp [hprev]) (by rw [hsub]; decide) none none
+  · unfold Etcdraft.State.conflictAppendEntriesRequest; simp [hents, pure, Except.pure]
+  · unfold Etcdraft.State.noConflictAppendEntriesRequest; simp [hents, pure, Except.pure]
+  · rw [alreadyDone_heartbeat st m.dest m.source m hc hsub hprev hents]
+    rfl
+
+/-- **A rejected append request** (at a follower of its term whose log does not match: raft's
+`appReject`; pre-vote and check-quorum off): the failure reply, the leader adopted. -/
+theorem receive_appReject (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.server.contains m.dest = true)
+    (hty : m.type = .appendEntriesRequest) (hf : (st.s m.dest).state = Etcdraft.follower)
+    (hterm : m.term = (st.s m.dest).currentTerm) (hpv : st.preVote = false) (hcq : st.checkQuorum = false)
+    (hlogOk : LogOkL m (st.s m.dest).log = false) :
+    st.receive m = .ok [withLead (st.reply { type := .appendEntriesResponse, subtype := "app", term := (st.s m.dest).currentTerm, success := false, matchIndex := 0, source := m.dest, dest := m.source } m) m.dest m.source] := by
+  apply receive_aer st m _ hsrv hty hterm
+  unfold Etcdraft.State.handleAppendEntriesRequest
+  unfold LogOkL at hlogOk
+  have hacc : st.acceptAppendEntriesRequest m.dest m.source false m = .ok [] := by
+    unfold Etcdraft.State.acceptAppendEntriesRequest; simp [pure, Except.pure]
+  have hrtf : st.returnToFollowerState m.dest m = none := by
+    unfold Etcdraft.State.returnToFollowerState; simp [hterm, hf, Etcdraft.follower, Etcdraft.candidate,
+      Etcdraft.preCandidate]
+  simp only [hlogOk, hterm, Int.le_refl, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+  simp only [bind, Except.bind, hacc, hrtf, reject_step st m.dest m.source m hterm hf hpv hcq, Etcdraft.somes,
+    pure, Except.pure, beq_self_eq_true]
+  simp [withLead]
+
 end TraceSim
 
 end EtcdGrove
