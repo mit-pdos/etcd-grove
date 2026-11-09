@@ -283,7 +283,8 @@ macro "mut_open" p:term "," st:term "," M:term "," i:term "," H:ident : tactic =
     icases typedPointsto_not_null_dup _ _ _ $$ Hcp with ⟨Hcp, %Hcnn⟩
     icases typedPointsto_split _ _ _ $$ Hcp with Hcpf
     simp only [TypedPointsto.typedPointstoDef]
-    iNamed Hcpf))
+    icases Hcpf with ⟨CurrentTerm, State, VotedFor, Lead, Log, CommitIndex, VotesResponded, VotesGranted,
+      MatchIndex, PendingConfChangeIndex, Config, Durable, -⟩))
 
 set_option hygiene false in
 macro "close_copy" gv:term "," f:term "," hv:term : tactic => `(tactic| (
