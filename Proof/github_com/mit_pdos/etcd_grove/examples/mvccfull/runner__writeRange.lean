@@ -39,6 +39,9 @@ theorem runner.writeRange.wp_proof
     (wp_ctxTODO : context.TODO.spec (GF := GF) (hG := hG))
     (wp_checkRangeAt : checkRangeAt.spec (GF := GF) (hG := hG)) :
     runner.writeRange.spec (GF := GF) (hG := hG) := by
+  -- Draft's glue (2026-11-09): blocked by the spec. `Txn.Range.contract` takes and gives back the
+  -- transaction's trace (`traceutil.ownTrace trace te`), which `runner.writeRange.spec` neither
+  -- takes nor gives back (nor does `runner.writeSub.spec`, for `Txn.Put`/`Txn.DeleteRange`).
   sorry
 
 end proof

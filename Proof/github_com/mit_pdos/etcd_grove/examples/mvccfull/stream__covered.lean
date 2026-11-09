@@ -33,7 +33,19 @@ theorem stream.covered.wp_proof
     (wp_stream_expect : stream.expect.spec (GF := GF) (hG := hG))
     (wp_check : check.spec (GF := GF) (hG := hG)) :
     stream.covered.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro s x h γh Hlb w wv kk e p what dqw dqk dqe hrev hidx hp hp' hnone
+  wp_start as ⟨#Hsx, #Hxh, Hw, Hk, He, Hrd, #Hlb⟩
+  wp_auto
+  wp_apply wp_stream_expect s x h γh Hlb w wv kk e p dqw dqk dqe hrev hidx hp hp'
+    $$ [$Hsx $Hxh $Hw $Hk $He $Hrd $Hlb] as %ch %r %ok ⟨Hw, Hk, He, Hrd, %Hres⟩
+  have hok : ok = false := by unfold expRes at Hres; rw [hnone] at Hres; exact Hres
+  subst hok
+  (try wp_auto)
+  wp_apply wp_check
+  · ipureintro; rfl
+  (try wp_auto)
+  iapply HΦ
+  iframe
 
 end proof
 

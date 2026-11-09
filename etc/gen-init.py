@@ -97,6 +97,10 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'k8s_io.client_go.listers.core.v1']
 # (R10, 2026-11-07) mvcc's randomized tester (examples/mvccrand), for its closed theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
+# (F1 Draft, 2026-11-09) mvcc's full tester (examples/mvccfull): no package variables, its fact
+# `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
+# theorem
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
