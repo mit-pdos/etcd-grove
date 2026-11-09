@@ -2451,6 +2451,58 @@ theorem simRun_recvStaleReq (C : List w64) (L : List TraceEv) (σ : Etcdraft.Sta
     · rw [hph]
       exact receive_staleVoteReq σ mabs (by rw [hmdst]; exact hcontains) hmt (by rw [hmdst, hR.1, hmterm]; exact hlt)
 
+/-- **A two-round receive line's step** (generic: `UpdateTerm`, then a one-round handler at the new
+term): from a run reaching `σ`, the line `ln` matching `mabs`, the first round's successor `U` keeping
+it (of another term at its receiver), the second's `S` consuming it. -/
+theorem simRun_recv2 (C : List w64) (L : List TraceEv) (σ U S : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (ln : Etcdraft.Line) (mabs : Etcdraft.Msg)
+    (hparse : Etcdraft.parseLine L.length (evConv e) = .ok ln)
+    (hrecv : Etcdraft.isReceiveName ln.ev.name = true)
+    (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
+    (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
+    (hmatch : recvPred ln mabs = true) (hpre : ln.stateMatches σ mabs.dest = true)
+    (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs → recvPred ln m' = false)
+    (hdest : mabs.dest ∈ σ.server)
+    (hrcv1 : σ.receive mabs = .ok [U]) (hU : U.messages = σ.messages) (hUs : U.server = σ.server)
+    (hUt : (U.s mabs.dest).currentTerm ≠ (σ.s mabs.dest).currentTerm)
+    (hrcv2 : U.receive mabs = .ok [S]) (hmsgs : S.messages = (U.discard mabs).messages)
+    (hboot : ∀ lines ln', parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln'])).getD L.length false = false)
+    (hinvU : U.violated = .ok none) (hinv : S.violated = .ok none) :
+    SimRun C (L ++ [e]) S := by
+  apply simRun_snoc_chain C L σ _ e _ hrun hL hparse
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines ln ts.l (by omega)
+  obtain ⟨tl, tsl, tpl⟩ := ts
+  simp only at hts hl'
+  subst hts hl'
+  refine ⟨⟨S, L.length + 1 + 1, L.length + 1⟩, rfl, ?_⟩
+  have hb : (linesTrace C (lines ++ [ln])).bootstrap.getD (L.length + 1 - 1) false = false := by
+    simp only [linesTrace]; simpa using hboot lines _ hl
+  have hone1 : Etcdraft.oneLessMessage tl U mabs = false := by
+    unfold Etcdraft.oneLessMessage; rw [hU]; simp; intro h; rw [h]; decide
+  have hone2 : Etcdraft.oneLessMessage U S mabs = true :=
+    oneLess_of_msgs U S mabs hmsgs (by rw [hU]; exact hnd) (by rw [hU]; exact hcnt)
+  apply Chain.step _ _ ⟨U, L.length + 1, L.length + 1⟩ _ _ rfl
+    (memEq_false_of_logs_or_term _ _ mabs.dest (by
+      intro v hv; simp only [List.mem_singleton] at hv; subst hv
+      exact ⟨hdest, Or.inr (fun h => hUt h.symm)⟩)) hinvU
+  · refine Chain.last _ ⟨U, L.length + 1, L.length + 1⟩ ⟨S, L.length + 1 + 1, L.length + 1⟩ ?_ rfl hinv
+    have := next_receive (linesTrace C (lines ++ [ln])) ⟨U, L.length + 1, L.length + 1⟩ mabs S (by simp)
+      (by simp [linesTrace, Etcdraft.Trace.len]; omega) hb (by rw [hline]; exact hrecv)
+      (by rw [hU]; exact hnd) (by rw [hU]; exact hmem) (by rw [hline]; exact hmatch)
+      (validatePre_later _ _ (by omega) _ _)
+      (fun m' hm' hne => by rw [hU] at hm'; rw [hline]; simp [huniq m' hm' hne]) hrcv2
+    rw [this]; simp [recvNext, hone2]
+  · have := next_receive (linesTrace C (lines ++ [ln])) ⟨tl, L.length + 1, tpl⟩ mabs U (by simp)
+      (by simp [linesTrace, Etcdraft.Trace.len]; omega) hb (by rw [hline]; exact hrecv) hnd hmem
+      (by rw [hline]; exact hmatch)
+      (by unfold Etcdraft.Trace.validatePreStates; rw [hline, hpre]; simp)
+      (fun m' hm' hne => by rw [hline]; simp [huniq m' hm' hne]) hrcv1
+    rw [this]; simp [recvNext, hone1]
+
 end TraceSim
 
 end EtcdGrove
