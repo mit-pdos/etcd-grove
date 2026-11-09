@@ -650,7 +650,16 @@ theorem memberState_split (ks : List GoString) (γh : HistNames) (mp : Loc) (m :
     (γk : MvccName) :
     memberState (GF := GF) ks γh mp m γk ⊣⊢
       ∃ (σ : MvccState) (b : Bnd) (Hl : List HRev), mvccState γk σ ∗ memberCarry ks γh mp m σ b Hl := by
-  sorry
+  unfold memberState memberCarry
+  constructor
+  · iintro ⟨%σ, %b, %Hl, Hs, Hσ, H1, H2, H3, H4, Hb, Hr, Hc, Hn, Hl', %Hp⟩
+    iexists σ, b, Hl
+    iframe
+    ipureintro; exact Hp
+  · iintro ⟨%σ, %b, %Hl, Hs, Hσ, H1, H2, H3, H4, Hb, Hr, Hc, Hn, Hl', %Hp⟩
+    iexists σ, b, Hl
+    iframe
+    ipureintro; exact Hp
 
 /-- **Retire** (step 1): with the whole retirement token (no reader or stream of the incarnation
 left), the incarnation's contents out; the invariant holds the token from then on. (Proof to come:
@@ -659,7 +668,27 @@ left), the incarnation's contents out; the invariant holds the token from then o
 theorem inc_retire (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (ks : List GoString)
     (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames) (ι : IncNames) (kv : GoInterface) :
     isInc (GF := GF) ks γh i mp m ι kv ∗ ghostVar ι.ret 1 () ={⊤}=∗ memberState ks γh mp m ι.kv := by
-  sorry
+  haveI := hpers.2.2.2.2.2.1
+  haveI : Timeless (memberState (GF := GF) ks γh mp m ι.kv) := by
+    unfold memberState
+    refine @exists_timeless _ _ _ _ (fun σ => ?_)
+    refine @exists_timeless _ _ _ _ (fun b => ?_)
+    refine @exists_timeless _ _ _ _ (fun Hl => ?_)
+    infer_instance
+  unfold isInc
+  iintro ⟨⟨#Hinv, -⟩, Hret⟩
+  imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hinv with ⟨Hi, Hclose⟩
+  iunfold memberInv at Hi
+  icases Hi with (>Hs | >Hr)
+  · imod Hclose $$ [Hret] with -
+    · inext; iunfold memberInv; iright; iexact Hret
+    imodintro; iexact Hs
+  · icombine Hret Hr gives %Hq0
+    obtain ⟨Hq, -⟩ := Hq0
+    exfalso
+    have h := Qp.le_iff.mp Hq
+    simp only [Qp.val_add, Qp.val_one] at h
+    grind
 
 /-- **Close, the census** (step 2, before `backend.Close`): the closed store, every reader token and
 the whole backend share give the store's rest (`mvccClosed_rest.law`), with which the kept part's
