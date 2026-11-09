@@ -390,6 +390,37 @@ proof, `tracecheck/Logger.lean`, already had it). Not done: `traceCommit.tracedS
 `raft.maybeCommit.tracedSpec` (capability level), the message hooks and `send` (Q9; slice 1's item 3, the
 accessor lending `send`'s queued message, not started), `traceConfChangeEvent` (still the untraced spec).
 
+**Q8 stage 1 (slice 3), 2026-11-09 (branch `trace-check-q8s3`): the node-event hooks' direct
+callers, one spec for both modes.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 3)"):
+a direct caller of a node-event hook takes, in place of `s.gh.tr = none`, **the hook's gate from its
+caller**, `HookGate s.gh.tr r E Q` (`TracedCap.lean`: an update at `⊤` run at the hook, giving the
+logger field and `TraceFire s.gh.tr tl E Q` for the line's events `E`), and gives `Q` back. Done:
+`becomeCandidate` (`E` the `BecomeCandidate` events of `becomeCandidate id s`), `becomeFollower` (the
+`BecomeFollower` events of `becomeFollower s term lead`; a traced node's struct at its configuration's
+voters, `s.gh.tr ≠ none → V = c.voters`), `maybeCommit` (the `Commit` events at each outcome,
+`maybeCommitOut`: `Committed()`'s quorum index and `raftLog.maybeCommit`'s test, also in its
+postcondition; the gate per outcome, run once the outcome is known: where the caller creates the new
+commit's `isCommitted` before the law opens raft's commit invariant). Their **capability forms**, the
+Draft's shape (`trCapB` in phase `Φ`, the line's phase step, last event and facts, `trCapB … true Φ'`
+out), are corollaries at `HasLC.hasLC` (`raft.becomeCandidate.traced`, `raft.becomeFollower.traced`:
+`trCap_fire_boot` during the node's bootstrap segment, `trCap_fire_bf` after it; `raft.maybeCommit.traced`;
+`TracedHooks.lean`, from `trCapB_hookGate`/`trCapB_hookGate_bf`, `TracedHooksGlobal.lean`). Derived: the
+Draft's `traceCommit.tracedSpec` (`traceCommit.tracedSpec_of_spec`, the `Commit` line's phase step
+`phaseStepB_commit` from `lineEffect_commit`, for every server the share stands for: `simServerR_toC`,
+`advancesTo_toC`). Their callers instantiate the untraced case (`X.untraced`, `TracedUntraced.lean`; the
+call sites unchanged). **Why the gate, not `trCapB`, in the specs:** the capability holds `inv` and raft's
+commit invariant, at `InvGS GF` (`HasLC.hasLC`), while these functions and their callers are proved at
+any `HasLC`; stating it would move them and their results there. **Not done:** `raft.maybeCommit.tracedSpec`
+(the Draft's: the `Commit` line's facts proved inside, which needs `QuorumLogInv` at the raised commit,
+the Draft's A4/C4 blocker; `raft.maybeCommit.traced` takes them from the caller); `becomeLeader` and
+`appendEntry` (`appendEntry` calls `send`, whose spec keeps `s.gh.tr = none` until Q9 and `send`'s queue
+accessor; with them the `BecomeLeader` line's term log and the `Replicate` lines' records in their
+`FxPresU`); `newRaft` (still `tr := none`: its `traceInitState` runs before raft's predicate holds, round
+1's S5, and a traced `newRaft` would create the node's capability); `RawNode.acceptReady` (the struct is
+open at `traceReady`, `ownRaftPhysReady`'s fields, and the RawNode-level spec hides the struct,
+configuration and state). Next: the traced `raft.Step` handlers' phase steps and facts (from raft's
+ghost) for these lines, with the win's split; `send` after Q9.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
