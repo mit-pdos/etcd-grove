@@ -40,7 +40,7 @@ theorem NewTrace.wp_proof (wp_NewTraceWith : NewTraceWith.spec (GF := GF) (hG :=
     icases Hr with ⟨%He, #Ht⟩
     isplitr
     · ipureintro; exact He
-    iapply traceRO_of_heap t tr ⟨evs, Hb.1, Hb.2, h⟩
+    iapply traceRO_of_heap t tr ⟨evs, Hb.1, Hb.2.1, h⟩
     iexact Ht
 
 end proof

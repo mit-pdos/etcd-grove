@@ -880,7 +880,7 @@ theorem NewTraceWith.wp_proof
       icases Hgevf with ⟨#GName, -⟩
       have hidx : sint.Z (lv - W64 1) = ((sint.nat lv - 1 : Nat) : Int) := by clear hfv hfnv; word
       have hlv1 : sint.nat (lv + W64 1) = sint.nat lv + 1 := by
-        have : (xs.length : Int) < 2 ^ 40 := by rw [hxl]; exact Hb.2
+        have : (xs.length : Int) < 2 ^ 61 := by rw [hxl]; exact Hb.2.1
         clear hfv hfnv; word
       have hjs : sint.nat (lv + W64 1) - 1 = (sint.nat lv - 1) + 1 := by
         have : 1 ≤ sint.nat lv := by clear hfv hfnv; word
@@ -1003,7 +1003,7 @@ theorem NewTraceWith.wp_proof
         have h1 : bFirstNon xs (uint.nat iw) ≠ 0 := by
           intro h; rw [h] at hfnv; apply hf0; simp at hfnv; word
         have h2 := bFirstNon_le xs (uint.nat iw)
-        have : (bFirstNon xs (uint.nat iw) : Int) < 2 ^ 40 := by have := Hb.2; rw [← hxl] at this; unfold numBound at this; omega
+        have : (bFirstNon xs (uint.nat iw) : Int) < 2 ^ 61 := by have := Hb.2.1; rw [← hxl] at this; unfold numBound at this; omega
         simp only [bUpper, bne_iff_ne, ne_eq, h1, not_false_eq_true, ite_true]
         rw [show ((bFirstNon xs (uint.nat iw) - 1 : Nat) : Int) = (bFirstNon xs (uint.nat iw) : Int) - 1 by omega]
         word
@@ -1026,7 +1026,7 @@ theorem NewTraceWith.wp_proof
       cases h : mm !! iw with
       | none => rfl
       | some _ => exact absurd (hbkeys iw (by simp [h])) hinot
-    have hxb : (xs.length : Int) < 2 ^ 40 := by rw [hxl]; exact Hb.2
+    have hxb : (xs.length : Int) < 2 ^ 61 := by rw [hxl]; exact Hb.2.1
     have hub := bUpper_le xs (uint.nat iw)
     have hfb := bFirst_le xs (uint.nat iw)
     ihave IHk : iprop(∃ (kv : w64) (bs' : List Bool) (mm' : GMap w64 w64),
@@ -1202,7 +1202,7 @@ theorem NewTraceWith.wp_proof
     rw [show (zero_val w64) = W64 0 from rfl]
     generalize (mm !! lg0.nid').getD (W64 0) = lw at hL
     generalize (bootstrapOf xs x0.nid).2 = L at hL hL0 hLle ⊢
-    have hxb : (xs.length : Int) < 2 ^ 40 := by rw [hxl]; exact Hb.2
+    have hxb : (xs.length : Int) < 2 ^ 61 := by rw [hxl]; exact Hb.2.1
     have hidxL : sint.Z (lw - W64 1) = ((L - 1 : Nat) : Int) := by
       have : 1 ≤ L := Nat.pos_of_ne_zero hL0
       rw [show ((L - 1 : Nat) : Int) = (L : Int) - 1 by omega, ← hL]; word
@@ -1388,7 +1388,7 @@ theorem NewTraceWith.wp_proof
   · iintro -; iexact init
   wp_for IHs
   obtain ⟨hs0, hs1, hcfP, hbfP, hsmk⟩ := Hn
-  have hxb : (xs.length : Int) < 2 ^ 40 := by rw [hxl]; exact Hb.2
+  have hxb : (xs.length : Int) < 2 ^ 61 := by rw [hxl]; exact Hb.2.1
   have hxlen : sint.Z lsl.len = (xs.length : Int) := by rw [← Hlnl, Hlsl.1]; word
   wp_if_destruct
   · have Hnlt2 : sint.Z n < sint.Z srvsl.len := Hif

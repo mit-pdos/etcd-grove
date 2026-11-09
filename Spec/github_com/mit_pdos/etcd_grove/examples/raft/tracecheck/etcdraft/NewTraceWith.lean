@@ -33,7 +33,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.
 abbrev NewTraceWith.spec : Prop :=
   ∀ (sl : GoSlice) (evs : List Event) (pv cq : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft ∗
-      eventsRO sl evs ∗ ⌜(∀ e ∈ evs, e.Bounded) ∧ (evs.length : Int) < numBound⌝ }}
+      eventsRO sl evs ∗
+      ⌜(∀ e ∈ evs, e.Bounded) ∧ (evs.length : Int) < numBound ∧ Event.BootLogsOk evs⌝ }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.NewTraceWith))
       (Val #sl)) (Val #pv)) (Val #cq))
   {{ (t : Loc) (err : GoInterface), RET (PairV #t #err);

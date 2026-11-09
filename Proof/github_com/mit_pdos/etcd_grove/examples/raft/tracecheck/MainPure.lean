@@ -20,9 +20,13 @@ layer B's simulation is to export at the end of the run (`notes/trace-validation
   (`TraceEv.InScope`: no `ChangeConf`, no `InitState`, no `MsgSnap` sent), or is bootstrap-named
   and logged while its node had logged only bootstrap-named lines (`Unbooted`, the negation of
   `TraceSim.booted`); kept event by event (`scopeOk_snoc`), as `simInv`'s ASCII clause is;
-- `TraceEv.NumsBelow K` of every event (its numbers below `K ≤ numBound = 2^40`) and fewer than
-  `numBound` events, from the time receipts and the adequacy theorem's step bound;
-- `TraceEv.ConfsWithin n` of every event, `n < numBound` (raft's: the three voters).
+- `TraceEv.NumsBelow K` of every event (its numbers below `K ≤ numBound = 2^61`) and fewer than
+  `numBound` events, from the time receipts and the adequacy theorem's step bound (`n < 2^61`
+  steps; Q12 (a), 2026-11-09);
+- `TraceEv.ConfsWithin n` of every event, `n < numBound` (raft's: the three voters);
+- `BootLogsOk L` (Q12 (a)): an event logged while its node is unbooted (a line `bootstrapOf` may
+  flag, whose log `NewTrace` allocates) has a log size below `bootLogBound = 2^40` (raft's: at most
+  the voters' bootstrap entries); kept event by event (`bootLogsOk_snoc`).
 
 The ASCII premise of `ConvertEvents` (`TraceEv.Ascii`) is `simInv`'s clause already and is used by
 `ConvertEvents.spec` directly; no pure lemma is needed for it.
@@ -108,13 +112,13 @@ def RunAccepted (L : List TraceEv) : Prop :=
 
 /-! ## `NewTrace`'s premises -/
 
-theorem gInt_numOk (K : Nat) (hK : K ≤ 2 ^ 40) (w : w64) (h : uint.nat w < K) : Etcdraft.numOk (gInt w) := by
+theorem gInt_numOk (K : Nat) (hK : K ≤ 2 ^ 61) (w : w64) (h : uint.nat w < K) : Etcdraft.numOk (gInt w) := by
   unfold Etcdraft.numOk Etcdraft.numBound gInt
-  have : uint.nat w < 2 ^ 40 := by omega
+  have : uint.nat w < 2 ^ 61 := by omega
   constructor <;> word
 
 /-- A converted event is bounded when raft's numbers are. -/
-theorem evConv_bounded (K : Nat) (hK : K ≤ 2 ^ 40) (e : TraceEv) (h : e.NumsBelow K) :
+theorem evConv_bounded (K : Nat) (hK : K ≤ 2 ^ 61) (e : TraceEv) (h : e.NumsBelow K) :
     (evConv e).Bounded := by
   obtain ⟨h1, h2, h3, hm⟩ := h
   refine ⟨gInt_numOk K hK _ h1, gInt_numOk K hK _ h2, gInt_numOk K hK _ h3, ?_⟩
@@ -333,22 +337,70 @@ theorem linesInScope_of_scopeOk {L : List TraceEv} {t : Etcdraft.Trace}
     unfold Etcdraft.Trace.line at hev
     rw [hflag] at hb; cases hb
 
+/-! ## The bootstrap logs (`NewTrace`'s allocation) -/
+
+/-- Event `e`, logged after `L1`: if it is bootstrap-named and its node unbooted (a line `bootstrapOf`
+may flag, the last of which `NewTrace` allocates the log of), its log size is below `2^40`
+(`Etcdraft.bootLogBound`). -/
+def EvBootLogOk (L1 : List TraceEv) (e : TraceEv) : Prop :=
+  Etcdraft.isBootstrapName (gsStr e.name) = true →
+    (∀ i, Etcdraft.parseID (gsStr e.nid) = some i → Unbooted L1 i) → uint.nat e.logSize < 2 ^ 40
+
+/-- Every event of `L` is `EvBootLogOk` after the events before it. -/
+def BootLogsOk (L : List TraceEv) : Prop := ∀ k (hk : k < L.length), EvBootLogOk (L.take k) L[k]
+
+theorem bootLogsOk_nil : BootLogsOk [] := fun _ hk => absurd hk (Nat.not_lt_zero _)
+
+/-- `BootLogsOk` is kept event by event (as a `simInv` clause would be). -/
+theorem bootLogsOk_snoc (L : List TraceEv) (e : TraceEv) (h : BootLogsOk L) (he : EvBootLogOk L e) :
+    BootLogsOk (L ++ [e]) := by
+  intro k hk
+  rw [List.length_append, List.length_singleton] at hk
+  rcases Nat.lt_or_ge k L.length with hl | hl
+  · rw [List.take_append_of_le_length (Nat.le_of_lt hl), List.getElem_append_left hl]
+    exact h k hl
+  · have hk' : k = L.length := by omega
+    subst hk'
+    rw [List.take_left' rfl, List.getElem_append_right (Nat.le_refl _)]
+    simpa using he
+
+/-- `NewTrace`'s allocation premise of the converted events, from `BootLogsOk`. -/
+theorem bootLogsOk_events {L : List TraceEv} (h : BootLogsOk L) : Etcdraft.Event.BootLogsOk (L.map evConv) := by
+  intro k hk hbn hpre
+  have hk' : k < L.length := by simpa using hk
+  simp only [List.getElem_map] at hbn hpre ⊢
+  have hlog := h k hk' (by simpa [evConv] using hbn) (by
+    intro i hi x hx ln hln hni
+    obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hx
+    have hjk : j < k := by simp at hj; omega
+    simp only [List.getElem_take] at hln ⊢
+    have hb := hpre j hjk (by
+      rw [parseLine_nid _ _ _ hln, hni]
+      simpa [evConv] using hi.symm)
+    rw [Etcdraft.parseLine_ev hln]; exact hb)
+  unfold Etcdraft.bootLogBound
+  simp only [evConv, gInt]
+  word
+
 /-! ## The combination -/
 
 /-- **`Main`'s pure obligations, together**: from layer B's facts about raft's events at the end of
-the run (the run through every line, the events in scope, their numbers below `K ≤ 2^40`, fewer than
-`numBound` of them, their configuration lists within `n < numBound`), `NewTrace`'s premises on the
-converted events, its success, `CheckTrace`'s premise on the trace, the search's verdict (its only
-result is `TLCOK`) and the corollary `TraceAccepts`. -/
-theorem mainPure (L : List TraceEv) (K n : Nat) (hK : K ≤ 2 ^ 40) (hn : (n : Int) < Etcdraft.numBound)
+the run (the run through every line, the events in scope, their numbers below `K ≤ 2^61`, fewer than
+`numBound` of them, their configuration lists within `n < numBound`, the logs of the lines that may be
+bootstrap lines below `2^40`), `NewTrace`'s premises on the converted events, its success,
+`CheckTrace`'s premise on the trace, the search's verdict (its only result is `TLCOK`) and the
+corollary `TraceAccepts`. -/
+theorem mainPure (L : List TraceEv) (K n : Nat) (hK : K ≤ 2 ^ 61) (hn : (n : Int) < Etcdraft.numBound)
     (hrun : RunAccepted L) (hscope : ScopeOk L) (hnums : ∀ e ∈ L, e.NumsBelow K)
-    (hlen : (L.length : Int) < Etcdraft.numBound) (hconf : ∀ e ∈ L, e.ConfsWithin n) :
+    (hlen : (L.length : Int) < Etcdraft.numBound) (hconf : ∀ e ∈ L, e.ConfsWithin n)
+    (hboot : BootLogsOk L) :
     (∀ e ∈ L.map evConv, e.Bounded) ∧ ((L.map evConv).length : Int) < Etcdraft.numBound ∧
+    Etcdraft.Event.BootLogsOk (L.map evConv) ∧
     ∃ t, Etcdraft.newTrace (L.map evConv) = .ok t ∧ t.CheckTraceOk true ∧
       (∀ res, Etcdraft.CheckTraceRel t true res → res = { ok := true }) ∧
       Etcdraft.TraceAccepts (L.map evConv) false false := by
   obtain ⟨t, ts, hnt, hr⟩ := hrun
-  refine ⟨?_, by simpa using hlen, t, hnt, ?_, hr.checkTraceRel_eq, ?_⟩
+  refine ⟨?_, by simpa using hlen, bootLogsOk_events hboot, t, hnt, ?_, hr.checkTraceRel_eq, ?_⟩
   · intro e he
     obtain ⟨x, hx, rfl⟩ := List.mem_map.1 he
     exact evConv_bounded K hK x (hnums x hx)

@@ -748,6 +748,26 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   proof's: the Go's integers are `int64`), so the statement keeps `n < 2^61`; (b) lower the step bound
   to about `2^40`. **Taken by the coordinator, pending the user's veto: (a)**: the closed statement
   keeps the bound the user set, and only proof-internal constants move. Done in S7.
+  **Q12 done (2026-11-09, branch `trace-check-layerb-exp`): `numBound = 2^61`, no action's bound
+  raised, no Go changed.** The margin was the proof's, not the Go's: `TraceInit`'s numbers are the
+  events', below `numBound`, so it has the reachability invariant at `numBound - 1` (not `numBound`),
+  and a state at line `l` at `numBound - 2 + l` (`Trace.Valid.init_inv`, `Trace.Valid.reach_inv`;
+  the sent `AppendEntries`' premise `numBound - 1 ≤ K`); with `l ≤ len + 1 ≤ numBound` the bound is
+  at most `2 * numBound - 2 = 2^62 - 2`, so a log's `len + 1 < 2^62` and the actions' `2^62` stand
+  (`2^61` is the largest `numBound` they allow; raising them would need `0 ≤ b` in place of
+  `-2^62 < b` in `AppendEntriesInRangeToPeer`'s range, whose Go computes `b - 1`, `e - 1` and
+  `SubSeq`'s differences, for no gain). So the statement's `n < 2^61` steps give every term, index
+  and the event count below `numBound` (`mainPure`'s `K ≤ 2^61`). **Found: the allocation.**
+  `numBound` also bounded the one Go allocation sized by a trace number, `NewTraceWith`'s
+  `make([]Entry, lb.ev.Log)` of a node's last bootstrap line (review round 1 of layer C, S2: gc
+  refuses above `maxAlloc = 2^48` bytes, an `Entry` 80 bytes; Goose's `make` does not, so no proof
+  needed it). Kept apart: `bootLogBound = 2^40` and `NewTrace`'s (and `NewTraceWith`'s) new premise
+  conjunct `Event.BootLogsOk evs` (every bootstrap-named event whose node, by its parsed id, has
+  logged only bootstrap-named events before it has `log < 2^40`: a superset of the lines
+  `bootstrapOf` flags), unused by the proofs, there so that the spec claims no `make` Go would
+  refuse. `mainPure` gives it from a new hypothesis on raft's events, `BootLogsOk L` (an event logged
+  while its node is `Unbooted` has `logSize < 2^40`; `bootLogsOk_snoc`, `bootLogsOk_events`), one
+  more fact layer B is to export (raft's bootstrap lines: `logSize ≤ |C|`).
 - **Q11 (2026-11-09, Q8 stage 1 slice 4): a ghost record of the just-queued message.** `raft.send`
   queues the message before its trace hook runs, so at the hook raft's queues own it, and
   `ownRaftPhysCV` keeps the queues existential (the abstract outbox up to permutation, no pointers):
