@@ -31,6 +31,11 @@ abbrev G.TState := github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdr
 abbrev G.TraceError := github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.TraceError
 end types
 
+/-- `string` is not an interface type: so a method of a named string type (`Role`'s `String`) resolves
+on a value receiver (a local instance, as `go.NotInterface go.uint64`'s in
+`notes/perennial-changes.md`: Perennial states `NotInterface` of the type constructors only). -/
+instance notInterface_string_trace [GooseExts] : go.NotInterface go.string := ⟨by unfold go.string; trivial⟩
+
 /-! ## The tables, purely -/
 
 /-- A Go string constant against a `strRel`-related string: `==` is the Lean `=`. -/
@@ -157,6 +162,32 @@ def linePtrRO (q : Loc) (x : Line) : IProp GF := iprop(∃ ln : G.line, q ↦□
 
 instance linePtrRO_persistent (q : Loc) (x : Line) : Persistent (linePtrRO (GF := GF) q x) := by
   unfold linePtrRO; infer_instance
+
+/-- A fresh `[]*State` holding `sts`, each a read-only state (an action's successors, as
+`State.Receive`'s spec returns them). -/
+def statesOut (out : GoSlice) (sts : List State) : IProp GF :=
+  iprop(∃ qs : List Loc, out ↦* qs ∗ ownSliceCap Loc out (DFrac.own 1) ∗ [∗list] r;s ∈ qs;sts, stateRO r s)
+
+/-- No successor: `nil`. -/
+theorem statesOut_nil : ⊢ statesOut (GF := GF) slice.nil [] := by
+  unfold statesOut
+  iexists []
+  isplitr
+  · iapply ownSlice_nil
+  isplitr
+  · iapply ownSliceCap_nil
+  iapply BigSepL2.bigSepL2_nil.2
+  ipureintro; trivial
+
+/-- One successor: a one-element slice literal. -/
+theorem statesOut_single (out : GoSlice) (q : Loc) (s : State) :
+    out ↦* [q] ∗ ownSliceCap Loc out (DFrac.own 1) ∗ stateRO q s ⊢ statesOut (GF := GF) out [s] := by
+  unfold statesOut
+  iintro ⟨Ho, Hc, Hs⟩
+  iexists [q]
+  iframe
+  iapply BigSepL2.bigSepL2_nil.2
+  ipureintro; trivial
 
 instance tstateRO_persistent (g : G.TState) (ts : TState) : Persistent (tstateRO (GF := GF) g ts) := by
   unfold tstateRO; infer_instance
