@@ -230,6 +230,42 @@ theorem simRun_becomeLeader (C : List w64) (L : List TraceEv) (σ : Etcdraft.Sta
   · rw [hline]; simp only [nodeLine, evConv, hrl, hrole]; rfl
   · rw [upd_self]; rfl
 
+/-- **The `Replicate` line's step**: node `id`'s server a leader; the specification's
+`ClientRequest(i, 0)` (no state check at a `Replicate` line). -/
+theorem simRun_replicate (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (hev : NodeEvOf (W64 5) id s cfg e) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hlead : (σ.s (idAbs id)).state = Etcdraft.leader)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.replicate (idAbs id) (.val 0) .value).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.replicate (idAbs id) (.val 0) .value) := by
+  obtain ⟨hname, hnid, -, hvote, -, -, -, ⟨xs, ys, -, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  have hys0 : ys = [] := by
+    rw [hout] at hys
+    have : elements (∅ : GSet w64) = [] :=
+      List.eq_nil_of_length_eq_zero (by rw [GMap.length_elements, GMap.size_empty])
+    rw [this] at hys; exact List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "Replicate" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"Replicate" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have hcr : σ.clientRequest (idAbs id) 0 = some (σ.replicate (idAbs id) (.val 0) .value) := by
+    unfold Etcdraft.State.clientRequest; simp [hlead]
+  apply simRun_node C L σ _ hrun hL e id s.vote xs hnid hvote hconf hmsg (by rw [hname']; rfl)
+    (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (nodeLine e id s.vote xs) ts.l (by omega)
+  apply nonReceive_replicate _ ts (idAbs id) _ (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  · rw [hline]; simp [nodeLine, evConv, hname']
+  · rw [hline]; rfl
+  · exact confAbs_nodup C
+  · simp only [linesTrace]; rw [mem_confAbs]; exact hC
+  · rw [hts]; exact hcr
+
 end TraceSim
 
 end EtcdGrove
