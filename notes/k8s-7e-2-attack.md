@@ -1,5 +1,12 @@
 # k8s etcd3 stage 7e-2: attack on the Draft's trusted statements (2026-11-09, for etcd-grove-81)
 
+**Decided (etcd-grove-81, 2026-11-09; `questions.md`):** all five recommended corrections below are
+adopted and made in the Draft (its "Revision after the attack"). **Soundness finding (R1):** the
+existing trusted `metrics.RecordEtcdRequest.spec` and `metrics.RecordDecodeError.spec` are false of a
+registered apiserver (a non-UTF-8 label panics); repaired in 7e-2 by `utf8Valid` premises
+(`nonissues/k8s-apiserver-metrics-negative-or-non-utf8-panic.md`). No exported result is affected
+in practice (the driver never registers the metrics), but the axioms as stated were false.
+
 The `axiom` skill's method on the trusted statements of `notes/k8s-7e-2-draft.md` §5 (14 new, 3
 restated, the gate) and on the §6-7 hypotheses a closed theorem would rest on, before any Lean. For
 each: can a Go program that uses the library as k8s's apiserver etcd3 store does panic, or get a

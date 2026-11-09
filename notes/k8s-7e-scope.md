@@ -254,6 +254,10 @@ revision.
   - **7e-1:** `Client.List`'s post gives the response's `Kvs` slice owned (`↦*`, not `↦*□`):
     the store's `appendChunk` writes `kvs[i] = nil` (`store.go:1074`). Its errors meet the same
     leaf, non-`APIStatus` condition, and carry the future-revision soundness at the call's revision.
+  - **7e-1 (after 7e-2's attack, `notes/k8s-7e-2-attack.md` T8; decided by etcd-grove-81,
+    2026-11-09):** `Client.List`'s post bounds the response's `Kvs`: `uint.nat resp.Kvs'.len ≤ 2 ^ 41`
+    (a response is at most the client's receive limit, < 2^31 bytes, at least one byte per kv), so
+    that `growSlice`'s `reflect.MakeSlice` meets its new premise `sint.Z m ≤ 2 ^ 41`.
 
 ## 6. The model in Lean and the invariant
 

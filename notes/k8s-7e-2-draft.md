@@ -8,6 +8,36 @@ worktree at `c0c3bb5a66` and lean's 7c-2 vocabulary). Pins: `k8s.io/apiserver` `
 `673da07c8f` (`client/v3/kubernetes/client.go`), all from `go env GOMODCACHE`
 (`/root/go/pkg/mod`); translations in `Code/k8s_io/apiserver/pkg/storage{,/etcd3}.lean`.
 
+## Revision after the attack (2026-11-09; decided by etcd-grove-81)
+
+The trusted statements were attacked before any Lean (`notes/k8s-7e-2-attack.md`, Go probes in
+`examples/k8s7e2attack/`). Changes, made in place below:
+
+1. **`reflect.MakeSlice` (T8, refuted as stated)**: new premise `sint.Z m ≤ 2 ^ 41` (gc refuses an
+   allocation above `maxAlloc` = 2^48 bytes with a panic; `sizeof(Obj) = 112`, 2^41·112 < 2^48).
+   Carried into `listContractOk'`'s two `MakeSlice` clauses and `growSlice.spec` (`sint.Z mx ≤ 2 ^
+   41`: the cap `growSlice` asks for is at most `mx`). New requirement on 7e-1 (`notes/k8s-7e-scope.md`):
+   `Client.List`'s post bounds `len(Kvs) ≤ 2 ^ 41`.
+2. **The list metrics (T16-T17)**: premises `0 ≤ sint.Z` of the three counts and `utf8Valid` of every
+   label (registered metrics panic otherwise). **R1, new item**: the existing `RecordEtcdRequest` and
+   `RecordDecodeError` axioms get the `utf8Valid` premises too (a trust-base repair, restated here and
+   fixed in 7e-2's Lean; `nonissues/k8s-apiserver-metrics-negative-or-non-utf8-panic.md`). `isStore`
+   (#15) gains `utf8Valid` of the store's `groupResource`; `numFetched`/`numEvald` are non-negative by
+   the pages' key bound (change 5).
+3. **`leafErrTy`** (§4.5) is defined: no `Unwrap() error`, no `Unwrap() []error`, no `As(any) bool`
+   method (`errors.As` follows all three; the attack's `asErr`/`joinErr`). `knownReasons` is the 19
+   reasons of `errors.go:49-67`, without `""` (`StatusReasonUnknown`).
+4. **`reflect.Value.IsNil`**: post `⌜b = true → uint.Z s.len = 0⌝` (was "some bool", too weak:
+   `finalizeList`'s `true` branch empties the items). `ListSpec` gains `itemsAt_len`.
+5. **`store.getList.spec`** gains `lo.Continue'.length ≤ opKeyMax` (`Client.List`'s premise); the
+   later pages' continue key is the last key and `"\x00"`, so `GetList.spec` and `pagedChunks.spec`
+   take `kvKeysShort σ` from `Q` (every key of every revision of `σ` is shorter than `opKeyMax`),
+   *hypothesis-until-7e-4*, from the driver's writes (each `pathPrefix ++ name` of the finite
+   workload, far below `opKeyMax` = 2^27; recorded with `kvWfHist` in `γ.r`). It also bounds the
+   pages' total keys (the store is finite and its keys distinct), hence the metrics' counts.
+
+Trusted texts by count: 14 new, 5 restated (R1 adds two), as revised.
+
 **Status words.** *proved*: a spec with a proof in 7e-2 (from translated code and existing or listed
 specs). *trusted*: a trust-boundary axiom (new or restated), with why it is faithful; each one goes
 through the `axiom` skill before the Freeze. *hypothesis-until-X*: a premise or callee spec that X
@@ -31,7 +61,7 @@ produces; until then it is a binder of the proof (no axiom).
 | 12 | `metrics.RecordStorageListMetrics`, `metrics.RecordListLatency` | trusted (no-ops) | here |
 | 13 | the gate fact (`featureGateOk`, `featureOff`, `Set`) | trusted, B5's text (`/shared/tmp/sweep-repairs-1/b5-r1.md`), used as is | sweep repairs 1 |
 | 14 | the list contract `ListSpec`, `listContractOk` (decoder's `DecodeListItem`, versioner's `UpdateList`, the reflect calls on items) | premise of `GetList`; proved for the driver | 7e-2 (driver side) |
-| 15 | `isStore` gains the aggregator factory and `collectorMux`'s reader pool | definition change; `New`'s proof | 7e-2 |
+| 15 | `isStore` gains the aggregator factory, `collectorMux`'s reader pool and `utf8Valid` of its `groupResource` | definition change; `New`'s proof | 7e-2 |
 | 16 | `kubernetes.Client.List.spec` (as consumed) | hypothesis-until-7e-1 | 7e-1 |
 | 17 | `kubernetes.Client.Get.spec` at a revision (as consumed) | hypothesis-until-7c-3 | 7c-3 |
 | 18 | `Q`'s facts: one history, every revision well formed | hypothesis-until-7e-4 | 7e-4 (`readQ`, `γ.r`) |
@@ -41,10 +71,12 @@ produces; until then it is a binder of the proof (no axiom).
 | 22 | 7e-3b's two hypothesis files (`SelectionPredicate__Matches`, `PrepareContinueToken`) | replaced by #5 and #4 and the driver's `predOk_driver` | 7e-2 |
 | 23 | `encL` (`KList.lean`): `opaque` becomes a definition from #11's opaque functions | changed definition | 7e-2 |
 | 24 | `refine_list` (the model relation the store's post feeds) | stated here, proved in 7e-3c | 7e-3c |
+| R1 | `metrics.RecordEtcdRequest`, `metrics.RecordDecodeError`: `utf8Valid` label premises (a trust-base repair, attack R1) | trusted, restated | here |
 
 Axioms by count: 14 new (#8: `IsTimeout`; #9: `Kind`, `Len`, `Cap`, `IsNil`, `Type.Elem`, `MakeSlice`,
 `Copy`, `Append`; #10: `GetItemsPtr`; #11: `json.Marshal`, `RawURLEncoding_init`; #12: two metrics),
-3 restated (`HasStatusCause`, `reflect.Value.Set`, `reflect.ValueOf`), the trusted fact `base64Init`
+3 restated (`HasStatusCause`, `reflect.Value.Set`, `reflect.ValueOf`; after the attack 5, with R1's
+`RecordEtcdRequest`, `RecordDecodeError`), the trusted fact `base64Init`
 restated, two new opaque functions (`tokJson`, `rawUrlEnc`; no axiom), plus B5's (#13, counted
 there). The scope estimated 10-14; with #6's re-translation refused, 17 (its three as axioms).
 
@@ -127,7 +159,7 @@ abbrev store.GetList.spec : Prop :=
     (rv0 : w64) (cont0 : GoString) (rem0 : Option w64)
     (k : GoString) (n : w64) (sel : Obj → Bool) (emp : Bool)
     (Q : w64 → KVState → IProp GF) (P : KVState → IProp GF),
-  (∀ R σ, Q R σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ⌝) →
+  (∀ R σ, Q R σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝) →
   (∀ R σ σ', Q R σ ∗ P σ' ⊢ ⌜kvSameHist σ σ'⌝) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ⌜prepareKeyM c.resourcePrefix key opts.Recursive' = some k ∧
@@ -168,6 +200,9 @@ Remarks (the reasons for the premises, with their producers):
   store because `Q`'s and `P`'s states are of one history (`kvSameHist`, second premise).
   *hypothesis-until-7e-4*: the driver's `readQ` records each state it fires at in `γ.r` (`Inv.lean:693`),
   `P` is `plainQ` plus that record, and `kInv` makes the recorded states prefixes of one log. Item 18.
+- `kvKeysShort σ := ∀ R ≤ σ.rev, ∀ kv ∈ (σ.at R).kvs, kv.key.length < opKeyMax` (revision after
+  the attack, change 5): a later page reads from the last key and `"\x00"` (`store.go:903`), which
+  `Client.List` needs within `opKeyMax`. Same producer as `kvWfHist` (the driver's keys).
 - `kvWfHist`: a past read decodes the values of its revision (`processListItem`, `store.go:1037`):
   every revision's key-values under the prefix decode. Same producer.
 - `P`'s update is persistent (`□ (|==> …)`): one per later page. `Q`'s is used once.
@@ -237,6 +272,7 @@ unstructured type's exact Lean name is the translation's (`k8s_io.apimachinery.p
 abbrev growSlice.spec : Prop :=
   ∀ (Obj : Type) (S : ObjSpec GF Obj) (L : ListSpec GF Obj) (vp : Loc) (v : reflect.Value)
     (p : Loc) (s : GoSlice) (os : List (Obj × GoString)) (mx : w64) (szs : GoSlice) (zs : List w64),
+  sint.Z mx ≤ 2 ^ 41 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       listContractOk' S L ∗ ⌜reflElem v (go.GoType.SliceType S.objTy) p⌝ ∗
       p ↦ s ∗ L.itemsAt s os ∗ szs ↦*□ zs }}
@@ -245,7 +281,9 @@ abbrev growSlice.spec : Prop :=
   {{ RET #(); ∃ s', p ↦ s' ∗ L.itemsAt s' os }}
 ```
 Go: `store.go:1117-1140` (`Cap`, `MakeSlice`, `Copy`, `Set`: the items unchanged, the capacity
-grown). `listContractOk' S L` is #14's reflect part.
+grown). `listContractOk' S L` is #14's reflect part. `sint.Z mx ≤ 2 ^ 41` (revision after the attack):
+the cap asked of `MakeSlice` is at most `mx` (`max > maxCapacity` sets it to `mx`); `appendChunk` passes
+`len(kvs)` (7e-1's bound) or `2048`.
 
 ### 3.4 `store.processListItem` and `store.appendChunk`
 
@@ -324,8 +362,8 @@ abbrev store.getList.spec : Prop :=
     (Obj : Type) [DecidableEq Obj] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (kp : GoString) (rec : Bool)
     (lo : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (Q : w64 → KVState → IProp GF),
-  kp.length ≤ opKeyMax → 0 ≤ sint.Z lo.Revision' → 0 ≤ sint.Z lo.Limit' →
-  (rec = false → lo.Continue' = []) →
+  kp.length ≤ opKeyMax → lo.Continue'.length ≤ opKeyMax → 0 ≤ sint.Z lo.Revision' →
+  0 ≤ sint.Z lo.Limit' → (rec = false → lo.Continue' = []) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       (∀ R, |==> □ [∧list] x ∈ c.ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R)) }}
@@ -433,6 +471,7 @@ abbrev store.pagedChunks.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (kp : GoString) (opts : k8s_io.apiserver.pkg.storage.ListOptions)
     (rev0 lim0 : w64) (Q : w64 → KVState → IProp GF) (P : KVState → IProp GF),
   kp.length ≤ opKeyMax → 0 ≤ sint.Z rev0 → 0 ≤ sint.Z lim0 → opts.Predicate'.Continue' = [] →
+  (∀ R σ, Q R σ ⊢ ⌜kvKeysShort σ⌝) →
   (∀ R σ σ', Q R σ ∗ P σ' ⊢ ⌜kvSameHist σ σ'⌝) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
@@ -468,7 +507,8 @@ abbrev store.finalizeList.spec : Prop :=
 ```
 `remIs rem remV`: `rem = null` for `none`, `rem ↦ n` for `some n`. `freshAggr ag`: the
 aggregator the factory made, nothing appended (its `Aggregate()` is `nil`: #15). Go:
-`store.go:1005-1018`; `IsNil`/`MakeSlice`/`Set` (#9; any `IsNil` answer leaves the same items),
+`store.go:1005-1018`; `IsNil`/`MakeSlice`/`Set` (#9; `IsNil` true only of an empty slice, so with `itemsAt_len` the items
+are `[]` and stay so; revision after the attack, change 4),
 `UpdateList` (#14), `SetShardInfoOnList` (translated, a no-op with a `nil` `ShardSelector`:
 `selection_predicate.go:192-199`).
 
@@ -631,6 +671,16 @@ def apiErrAt (err : GoInterface) : ApiErrView → IProp GF
       go.typeSetContains t k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false ∧
       leafErrTy t⌝)
 
+/-- **A leaf error type** (revision after the attack, change 3): `errors.As` neither unwraps nor
+asks it, i.e. its method set has none of `Unwrap() error`, `Unwrap() []error`, `As(any) bool`
+(`errors/wrap.go`: `As` follows all three; the attack's `asErr`, a non-`APIStatus` leaf with an `As`
+method, and `joinErr`, with `Unwrap() []error`, both make `IsTimeout` true). -/
+def leafErrTy (t : go.GoType) : Prop :=
+  ¬ go.hasMethod t go!"Unwrap" (go.FuncType [] [error.ty]) ∧
+  ¬ go.hasMethod t go!"Unwrap" (go.FuncType [] [go.GoType.SliceType error.ty]) ∧
+  ¬ go.hasMethod t go!"As" (go.FuncType [go.any] [go.bool])
+-- (`go.hasMethod`'s exact Lean name and the function types' form are Perennial's; settled at Prove.)
+
 /-- `statusDetailsAt st`: `st.Details` is `nil` or points (read-only) to details whose causes slice
 holds (read-only) its causes. `causesOf st` lists them (`[]` for `nil` details). -/
 
@@ -655,7 +705,9 @@ abbrev storage.IsTooLargeResourceVersion.spec : Prop :=
 ```
 `tooLargeV (.status st) := timeoutV st && causeIn st "ResourceVersionTooLarge"`, `tooLargeV .plain :=
 false`, `timeoutV st := st.Reason' = "Timeout" || (st.Reason' ∉ knownReasons && st.Code' = 504)`
-(`errors.go:689-698`). Proved from #8 (`NewTooLargeResourceVersionError`: the translated body and
+(`errors.go:689-698`), with `knownReasons` the 19 reasons of `errors.go:49-67`; `""`
+(`StatusReasonUnknown`, commented out at `:48`) is not among them, so `Reason "" ∧ Code 504` is a
+timeout (revision after the attack, change 3). Proved from #8 (`NewTooLargeResourceVersionError`: the translated body and
 `NewTimeoutError`'s, which already allocates the status: the post persists the struct, its details
 and the one-cause slice; `errors.go:248-257`). The old post (`∃ l, err = mkOk *StatusError l`)
 follows from the new one, so the cacher's uses (KEP-6404) stay.
@@ -727,12 +779,12 @@ abbrev reflect.Value.Len.spec : Prop :=           -- `Cap.spec`: `s.cap`
     (App (Val #(methods (go.GoType.PointerType reflect.Value.ty) go!"Len" #vp)) (Val #()))
   {{ RET #s.len; vp ↦{dq} v ∗ p ↦{dq'} s }}
 
-abbrev reflect.Value.IsNil.spec : Prop :=         -- some bool (any answer is sound for its use)
+abbrev reflect.Value.IsNil.spec : Prop :=         -- true only of an empty slice (revised, change 4)
   ∀ (vp : Loc) (dq dq' : DFrac) (v : reflect.Value) (T : go.GoType) (p : Loc) (s : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.reflect ∗ vp ↦{dq} v ∗
       ⌜reflElem v (go.GoType.SliceType T) p⌝ ∗ p ↦{dq'} s }}
     (App (Val #(methods (go.GoType.PointerType reflect.Value.ty) go!"IsNil" #vp)) (Val #()))
-  {{ (b : Bool), RET #b; vp ↦{dq} v ∗ p ↦{dq'} s }}
+  {{ (b : Bool), RET #b; ⌜b = true → uint.Z s.len = 0⌝ ∗ vp ↦{dq} v ∗ p ↦{dq'} s }}
 
 abbrev reflect.Type.Elem.spec : Prop :=           -- the element type of a slice type
   ∀ (rt : reflect.Type') (T : go.GoType),
@@ -773,7 +825,8 @@ Specialized to the driver's object (`E := examples.k8s.etcd3.Obj.ty`, elements t
 abbrev reflect.MakeSlice.spec : Prop :=
   ∀ (rt : reflect.Type') (n m : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.reflect ∗
-      ⌜reflType rt (go.GoType.SliceType Obj.ty) ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z m⌝ }}
+      ⌜reflType rt (go.GoType.SliceType Obj.ty) ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z m ∧
+        sint.Z m ≤ 2 ^ 41⌝ }}
     (App (App (App (Val (@! reflect.MakeSlice)) (Val #rt)) (Val #n)) (Val #m))
   {{ (w : reflect.Value), RET #w; ∃ s, ⌜reflSliceV w Obj.ty s ∧ s.len = n ∧ s.cap = m⌝ ∗
       s ↦* List.replicate (sint.nat n) (zero_val Obj) ∗ ownSliceCap Obj s (DFrac.own 1) }}
@@ -805,7 +858,10 @@ runtime's slice operations on the typed memory (`reflect/value.go`: `Len`/`Cap` 
 as `append` does, `Set` stores the header, `Elem` of a pointer is the addressable pointee,
 `Type.Elem` of a slice type its element type, `Kind` of a `[]T` variable `Slice`). The restriction
 to `Obj` keeps each axiom to one concrete element type whose Lean representation is the
-translation's (`IntoValTyped Obj Obj.ty`, generated).
+translation's (`IntoValTyped Obj Obj.ty`, generated). `MakeSlice`'s `sint.Z m ≤ 2 ^ 41` (revision after
+the attack, change 1): the runtime's allocation limit, `m·sizeof(Obj) ≤ maxAlloc` = 2^48 with
+`sizeof(Obj) = 112` (2^41·112 < 2^48); above it `runtime.unsafe_NewArray` panics `allocation size out
+of range` (`examples/k8s7e2attack`, `TestMakeSliceHugeCapPanics`).
 
 ### 5.3 `meta.GetItemsPtr` (#10)
 
@@ -858,15 +914,29 @@ argument (as `StdEncoding_init`'s statement, 2026-10-26).
 ### 5.5 The list metrics (#12)
 
 ```lean
-abbrev metrics.RecordStorageListMetrics.spec : Prop :=   -- `RecordListLatency.spec` alike
+abbrev metrics.RecordStorageListMetrics.spec : Prop :=
   ∀ (gr : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (idx : GoString) (a b c' : w64),
+  0 ≤ sint.Z a → 0 ≤ sint.Z b → 0 ≤ sint.Z c' →
+  utf8Valid gr.Group' → utf8Valid gr.Resource' → utf8Valid idx →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics }}
     (App (App (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordStorageListMetrics))
       (Val #gr)) (Val #idx)) (Val #a)) (Val #b)) (Val #c'))
   {{ RET #(); True }}
 ```
-Faithful as `RecordEtcdRequest`'s (prometheus counters and histograms: no result, no panic on
-these label values).
+`RecordListLatency.spec` alike, with `utf8Valid gr.Group' → utf8Valid gr.Resource' →` (its other
+label is a literal; `Observe` takes any float). Faithful (revised after the attack, change 2):
+prometheus counters and histograms, no result; once registered (the apiserver registers them,
+`server/routes/metrics.go:53-60`) a negative count panics (`counter cannot decrease in value`,
+`storage/metrics/metrics.go:79-84`) and so does a label that is not valid UTF-8 (`WithLabelValues`);
+unregistered (the driver), every call is a no-op. The store passes `""`, its `groupResource`
+(`isStore`: `utf8Valid` of both fields) and counts that are slice lengths or their sums, non-negative
+by `kvKeysShort`'s bound on the pages' keys.
+
+**R1 (restated, a trust-base repair)**: the existing `metrics.RecordEtcdRequest.spec` gains
+`utf8Valid verb → utf8Valid gr.Group' → utf8Valid gr.Resource' →`, and `metrics.RecordDecodeError.spec`
+`utf8Valid gr.Group' → utf8Valid gr.Resource' →` (same panic, `TestMetricsRegistered`; recorded in
+`nonissues/k8s-apiserver-metrics-negative-or-non-utf8-panic.md` and `notes/k8s-7e-2-attack.md`).
+Every caller passes literal verbs and the store's `groupResource`.
 
 ### 5.6 The gate (#13)
 
@@ -899,6 +969,8 @@ structure ListSpec (GF : BundledGFunctors) (Obj : Type) where
   with its capacity -/
   itemsAt : GoSlice → List (Obj × GoString) → IProp GF
   itemsAt_nil : ⊢ itemsAt slice.nil []
+  /-- the slice's length is the item count (revision after the attack, change 4) -/
+  itemsAt_len : ∀ s os, itemsAt s os ⊢ ⌜uint.nat s.len = os.length⌝
   /-- the list's `ListMeta`: resource version, continue token, remaining count -/
   metaAt : Loc → w64 → GoString → Option w64 → IProp GF
 
@@ -921,13 +993,14 @@ def listContractOk' (S : ObjSpec GF Obj) (L : ListSpec GF Obj) : IProp GF :=
         (Val #(interface.mkOk (go.GoType.PointerType L.listTy) #pl))) {{ Φ }}) ∗
     -- `reflect.MakeSlice(rt, n, m)`, then `reflect.Copy(extra, v)` of the items: the items in a new slice
     (□ ∀ rt (n m : w64) (v : reflect.Value) p dq s os Φ, ⌜reflType rt (go.GoType.SliceType S.objTy) ∧
-        reflElem v (go.GoType.SliceType S.objTy) p ∧ sint.nat n = os.length ∧ sint.Z n ≤ sint.Z m⌝ -∗
+        reflElem v (go.GoType.SliceType S.objTy) p ∧ sint.nat n = os.length ∧ sint.Z n ≤ sint.Z m ∧
+        sint.Z m ≤ 2 ^ 41⌝ -∗
       p ↦{dq} s -∗ L.itemsAt s os -∗
       ▷ (∀ w, ∀ s', ⌜reflSliceV w S.objTy s'⌝ -∗ p ↦{dq} s -∗ L.itemsAt s' os -∗ Φ #w) -∗
       WP (let w := App (App (App (Val (@! reflect.MakeSlice)) (Val #rt)) (Val #n)) (Val #m) in
           …growSlice's two calls…) {{ Φ }}) ∗
     -- `reflect.MakeSlice(rt, 0, m)`: an empty items slice
-    (□ ∀ rt (m : w64) Φ, ⌜reflType rt (go.GoType.SliceType S.objTy) ∧ 0 ≤ sint.Z m⌝ -∗
+    (□ ∀ rt (m : w64) Φ, ⌜reflType rt (go.GoType.SliceType S.objTy) ∧ 0 ≤ sint.Z m ∧ sint.Z m ≤ 2 ^ 41⌝ -∗
       ▷ (∀ w s', ⌜reflSliceV w S.objTy s'⌝ -∗ L.itemsAt s' [] -∗ Φ #w) -∗
       WP (App (App (App (Val (@! reflect.MakeSlice)) (Val #rt)) (Val #(W64 0))) (Val #m)) {{ Φ }}) ∗
     -- `reflect.Append(v, reflect.ValueOf(x).Elem())`: one item more
@@ -971,7 +1044,7 @@ def driverListSpec : ListSpec GF Obj :=
   { listTy := ObjList.ty, itemsRef := fun pl => structFieldRef ObjList go!"Items" pl,
     itemsAt := fun s os => iprop(∃ vs : List Obj, s ↦* vs ∗ ownSliceCap Obj s (DFrac.own 1) ∗
       ⌜os = vs.map fun o => (objBody o, rvString o.ResourceVersion')⌝),
-    itemsAt_nil := …,
+    itemsAt_nil := …, itemsAt_len := …,
     metaAt := fun pl rv cont rem => iprop(structFieldRef ObjList go!"ResourceVersion" pl ↦ rv ∗
       structFieldRef ObjList go!"Continue" pl ↦ cont ∗ ∃ r, structFieldRef ObjList go!"RemainingItemCount" pl ↦ r ∗
       remIs r rem) }
@@ -1041,7 +1114,8 @@ abbrev Client.List.spec : Prop :=
 Requirements on 7e-1 found here: **(a)** the `Kvs` slice is owned (`↦*`, not `↦*□`): `appendChunk`
 writes `kvs[i] = nil` (`store.go:1074`); **(b)** `Count` is the scope from the range start
 (`client.go:60-65`, `nonissues/` as 7c's Scope found); **(c)** the error's future-revision soundness
-at the call's revision, and its leaf, non-`APIStatus` type (§4.5).
+at the call's revision, and its leaf, non-`APIStatus` type (§4.5); **(d)** (revision after the attack)
+`uint.nat resp.Kvs'.len ≤ 2 ^ 41`, for `growSlice`'s `MakeSlice`.
 
 **`kubernetes.Client.Get.spec` at a revision (7c-3)**, as 7c's Scope states it (no
 `opts.Revision' = 0` premise; the answer `findKey key (σ.at (σ.readRev opts.Revision')).kvs`; the
@@ -1116,4 +1190,5 @@ is the lemma linking the two notions of a past read (both from `interfaces.go:38
 - **Q7e-2-6. 410 as a failed read**, not proved unreachable (`listErr`): no no-compaction fact is
   needed in 7e-2. *Recommended: yes* (the model accepts any `EOther` read).
 - **For 7c-3 and 7e-1** (to pass on): the client's errors must be `apiErrAt err .plain` (a leaf
-  type outside `APIStatus`'s type set); `Client.List`'s `Kvs` owned.
+  type outside `APIStatus`'s type set, `leafErrTy`); `Client.List`'s `Kvs` owned and at most 2^41 long
+  (revision after the attack).
