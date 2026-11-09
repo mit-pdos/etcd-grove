@@ -739,6 +739,16 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q11 (2026-11-09, Q8 stage 1 slice 4): a ghost record of the just-queued message.** `raft.send`
+  queues the message before its trace hook runs, so at the hook raft's queues own it, and
+  `ownRaftPhysCV` keeps the queues existential (the abstract outbox up to permutation, no pointers):
+  no lemma can lend the message at pointer `m` back out (slice 4's paragraph). Options: (a) a ghost
+  field `NGhost.lq` (the last queued message), set by `send` before the hook and reset before it
+  returns, with a membership clause in `ownRaftPhysCV`, the queue-draining closures recording
+  `lq = none` in the `RawNode` predicates as stage 0 recorded the trace mode (`Defs.txt` gains the
+  field, as Q8 (a) added `NGhost.tr`; no closed statement changes); (b) keep the queued messages'
+  points-to in `ownRaftPhysCV` with their pointers (a larger change to every queue lemma). **Taken by
+  the coordinator, pending the user's veto: (a)**, the smaller change of the same kind as Q8 (a).
 - **Q10 (2026-11-09, layer C: `CheckTrace`): the premise `CheckTrace.spec` takes.** `CheckTrace.spec`
   (precondition `traceRO t tr` only) could not be proved from its callees' specs, which take the Lean
   evaluation to succeed, the line in scope and the state bounded (layer C, "`trace.go`'s search proved;
