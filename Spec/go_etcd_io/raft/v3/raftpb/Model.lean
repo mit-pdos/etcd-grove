@@ -416,7 +416,7 @@ def entryEncodes (bs : List w8) (i : w64) (e : LogEntry) : Prop :=
   ∃ c, Proto.encodes raftpb.Entry.ty c bs ∧ entryIs c i e
 
 /-- **`c` is the content of the bootstrap `ConfChange`** for peer `id` with context `ctx`
-(`AddNode`, the node, the context set; `Id` unset; plain): at most one (`bootCC_fun`). -/
+(`AddNode`, the node, the context set; `Id` unset; plain): at most one (`bootCC_facts`). -/
 opaque bootCC (id : w64) (ctx : List w8) (c : Proto.Content) : Prop
 
 /-- **The bytes of a bootstrap entry** (see the header): `proto.Marshal` of the `bootCC id ctx`

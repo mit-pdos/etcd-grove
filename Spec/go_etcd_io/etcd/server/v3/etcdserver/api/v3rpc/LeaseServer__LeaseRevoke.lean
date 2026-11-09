@@ -8,6 +8,8 @@ Proof sketch: `ls.le.LeaseRevoke(ctx, r)` (2c's `EtcdServer.LeaseRevoke.spec`, t
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/LeaseServer__LeaseRevoke.lean`: over the contract (was the lease rows' `leaseServerAt` with its own answers).
 
+Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` once W0's round 4 makes `srvStep` `Step` (a read's permission checked at an auth state between the call's start and its answer).
+
 Margin: none.
 -/
 module
@@ -32,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `LeaseServer.LeaseRevoke(ctx, r)` meets the contract of `/etcdserverpb.Lease/LeaseRevoke`. -/
 def LeaseServer.LeaseRevoke.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseRevoke")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ leaseServerAt p s γ) (etcdUnary γ go!"/etcdserverpb.Lease/LeaseRevoke") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ leaseServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Lease/LeaseRevoke") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty
 
 end spec
 

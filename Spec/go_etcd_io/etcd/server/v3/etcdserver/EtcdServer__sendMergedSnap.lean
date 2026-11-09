@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 def EtcdServer.sendMergedSnap.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (mg : Loc) (m : Raft.Msg),
+  ∀ (s : Loc) (γ : Names) (id : Nat) (mg : Loc) (m : Raft.Msg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ srvStarted s γ id ∗ mergedSnap mg γ m }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!

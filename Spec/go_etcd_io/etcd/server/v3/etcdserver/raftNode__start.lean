@@ -20,8 +20,10 @@ WAL's write half, the delivered log `st.delivered`, the ready handler's `readyHa
    `readyCheck` gives `readState`s before the write (R1), sent on `readStateC` (or dropped after
    1 s); `raftTerm` from the hard state.
 4. The batch: `proto.Clone` of the snapshot (3h/2a's: a copy, read-only); `updateCommittedIndex.spec`;
-   the send on `applyc` hands `applyBatch r γ apv B false` (with `B.prev = |st.delivered|`, the
-   entries' `entriesRO`, the snapshot's validity and `snapImage`, `advancedAt r rac |dl|`).
+   the send on `applyc` hands `applyBatch r γ apv B false` (with `B.prev = |st.delivered|`, matched
+   by the receiver's `applycPos` cursor, the entries' `entriesRO`, the snapshot's validity and
+   `snapImage` from the member's invariant over its snapshot directory, `advancedAt r rac |dl|`, the
+   term bound `applyBatch_terms`; for a batch with conf changes, R1's `nodeConf`, lent: round 1, F3).
 5. **Leader, before the write**: `readyCheck` gives `msgSent` of every message (the batch leaves the
    node leader); `processMessages.spec`; `transport.Send` (2f's: takes `sendable`).
 6. **The write**: `SaveSnap` (2e's WAL+snapshotter: the snapshot record), `Save(hs, ents)`: 2e's
@@ -36,9 +38,12 @@ WAL's write half, the delivered log `st.delivered`, the ready handler's `readyHa
    batch, a second send that completes once the apply thread received the first, i.e. after it
    applied the batch's conf changes (`notifyc`'s protocol carries the node's `nodeConf` back);
    `transport.Send`. Leader: `notifyc <- {}` and the same wait on a conf change.
-8. `r.Advance()` (R1's `node.Advance.spec`: `readyStor` empty, the conf changes applied or decided
-   skip, `nodeConf` from the apply thread) gives `appliedLb n |dl|`; `close(raftAdvancedC)` carries
-   it (`nodeAdvanced r |dl|`).
+8. `r.Advance()` (R1's `node.Advance.spec`: `readyStor` empty; `nodeConf` the loop's: returned by
+   the apply thread's `notifyc` receive for a batch with conf changes (applied or decided skip),
+   else kept, the batch's entries having no conf change, `confSkipped` vacuous) gives `appliedLb n
+   |dl|`; with a snapshot, R1's wand is applied by the loop at the snapshot's point
+   (`snapImage_point`'s `a`, `confAt γ.raft a m`), the point the apply thread will open the image at
+   (round 1, F3/F4); `close(raftAdvancedC)` carries `nodeAdvanced r |dl|`.
 9. `<-r.stopped`: `onStop.spec` with the loop's resources.
 
 Durability (K5): a follower's acknowledgement (`MsgAppResp`) is sent only after `Save` fired

@@ -13,7 +13,8 @@ backend commits, its pre-commit hook saving the consistent index `c ≥ appliedi
 length `appliedi` (`committedLb`, its term `appliedt`, the thread's) and the configuration at the
 thread's point `max appliedi c ≥ appliedi` (`confAt`, `ep.confState` listing it: the replay's
 configuration ahead of the index, `nonissues/etcd-replay-snapshot-confstate-ahead.md`), recorded in
-the cluster's `snapsMade` (with its image: the backend at `c`, `snapImage`).
+the cluster's `snapsMade` with its point (`snapPoint γ sn c`, `c` the consistent index: the backend's
+image at `c`).
 `raftStorage.CreateSnapshot(appliedi, cs, nil)` (R1's `MemoryStorage.CreateSnapshot.spec` through
 `stor_createSnapshot`, with `nodeAdvanced` for `appliedLb`): `ErrSnapOutOfDate` returns (a newer
 snapshot is already stored; R1's raft never stores one past its applied index, so this is a stored
@@ -54,7 +55,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Snapshot at the applied index**: the node's storage then holds a snapshot at or past it. -/
 def EtcdServer.snapshot.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (ep : Loc) (p : Progress) (toDisk : Bool),
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ep : Loc) (p : Progress) (toDisk : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ applyThread s γ ep p ∗
       nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)

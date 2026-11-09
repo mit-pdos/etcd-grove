@@ -76,3 +76,11 @@ Used by: `serverWatchStream.isWatchPermitted.spec`; every handler's principal (2
 1. `EtcdServer.authBootRes cfg` (provisional slot of `NewServer`: the token provider's configuration,
    `AuthToken`, `TokenTTL`, `BcryptCost`; `NewTokenProvider`'s error is returned by `NewServer`).
 2. `authStore.Close` once (`Cleanup`, through `srvClosers`).
+
+## from 2d (round 1)
+
+1. **The read slot** (2d's completeness F1): the auth store's reads (`IsRangePermitted`,
+   `CheckTxnAuth`, `CheckPassword`, `Revision`) answer at a history point at or past `k` given 2d's
+   `srvReadAt s γ k` (`ApiApply.lean`).
+2. The simple-token waiter (`simple_token.go:240`, the closure `server.go:351-354`) receives
+   `srvApplied` only from `start` on (`s.applyWait` is set there).

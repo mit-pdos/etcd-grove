@@ -31,10 +31,10 @@ variable [package_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
 
 /-- `p.GetData()` returns its data, read-only for good; of `nil`, the zero value. -/
 def Snapshot.GetData.spec : Prop :=
-  (∀ (p : Loc) (dq : DFrac) (s : Snapshot),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ snapshotPts p dq s }}
+  (∀ (p : Loc) (dq : DFrac) (s : Snapshot) (full : Bool),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ (if full then snapshotPts p dq s else snapshotRaw p dq s) }}
       (App (Val (p @!! go.GoType.PointerType raftpb.Snapshot.ty @!! go!"GetData")) (Val #()))
-    {{ (sl : GoSlice), RET #sl; sl ↦*□ s.data ∗ snapshotPts p dq s }}) ∧
+    {{ (sl : GoSlice), RET #sl; sl ↦*□ s.data ∗ (if full then snapshotPts p dq s else snapshotRaw p dq s) }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.Snapshot.ty @!! go!"GetData")) (Val #()))
   {{ RET #slice.nil; True }}

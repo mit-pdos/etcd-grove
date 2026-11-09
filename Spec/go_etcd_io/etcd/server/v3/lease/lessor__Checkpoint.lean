@@ -7,12 +7,13 @@ committed `LeaseCheckpointRequest` (proposed by the leader's checkpointer), on t
 **Proof sketch.** `le.mu.Lock()`; a live lease: its `remainingTTL` field written (under `le.mu`:
 not modelled); `shouldPersistCheckpoints()` (`le.cluster.Version()`: `clusterOk`; `greaterOrEqual`)
 true: `persistTo(le.b)` (`beApplyTok ls.be`; 4b's `MustUnsafePutLease` rewrites the record with the
-same id and TTL: `beLeases ls.be ls.bkt` unchanged in the model, which abstracts `RemainingTTL`);
-primary: `scheduleCheckpointIfNeeded` (the logger: `isLessor`). Unlock. Always `nil`.
+live TTL, which differs from the stored one only for a recovered lease raised to a larger minimum:
+`ls.persist id`, the history appended); primary: `scheduleCheckpointIfNeeded` (the logger:
+`isLessor`). Unlock. Always `nil`.
 
-**Changes** (from `specs-ref`'s `lessor__Checkpoint.lean`): over the lessor's state (unchanged in
-it), the backend write through 4a/4b's provisional names. **Margin.** The remaining TTL (time) is
-not modelled: the step changes nothing a reader can see in the model.
+**Changes** (from `specs-ref`'s `lessor__Checkpoint.lean`): over the lessor's state, the backend
+write through 4a/4b's provisional names. **Margin.** The remaining TTL (time) is not modelled; which
+of the two outcomes (the cluster's version, `CheckpointPersist`).
 -/
 module
 
@@ -38,14 +39,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 /-- **Record a lease's checkpointed remaining TTL** (the writer): `nil`; the model's state unchanged
-(the remaining TTL is time). -/
+(the remaining TTL is time), or, if persisted, the lease's record rewritten (`LessorState.persist`). -/
 def lessor.Checkpoint.spec : Prop :=
   ∀ (le : Loc) (γ : Names) (c : Cfg) (n : Nat) (ls : LessorState) (id rem : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
       lessorState γ n ls ∗ beApplyTok ls.be }}
     (App (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
       go!"Checkpoint")) (Val #id)) (Val #rem))
-  {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ lessorState γ n ls ∗ beApplyTok ls.be }}
+  {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ beApplyTok ls.be ∗
+      (lessorState γ n ls ∨ lessorState γ (n + 1) (ls.persist (sint.Z id))) }}
 
 end spec
 end Lease

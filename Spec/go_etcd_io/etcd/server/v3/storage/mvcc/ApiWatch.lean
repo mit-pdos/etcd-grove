@@ -12,8 +12,9 @@ The store's history is 3e's model (`Model.lean`: `MvccState`, W0's `KVHist`), an
 guarantee is stated against **the notified history** (`MvccState.notified`: the committed revisions
 and the revision being committed, which `watchableStoreTxnWrite.End` sends to the watchers before it
 makes it visible to reads). Every response a stream's consumer receives comes with **persistent
-facts** about the history at a point the store reached (`mvccLb γ h`, 3e's; the server's invariant
-relates it to the cluster's history, as W0's `etcdLb` does for a client), read against the
+facts** about the history at a point the store reached (`mvccLb γ h`: the store's notified history
+extends `h`; with 3e's client-owned `mvccState γ σ` it gives `histLe h σ.notified`, `mvccLb_le`, so
+the server's invariant relates it to the cluster's history, as W0's `etcdLb` does for a client), read against the
 watcher's **position**: the revision up to which its events were all delivered. No atomic update is
 fired: a watch reports the past. This is the server-side mirror of 1b's `watchStep`
 (`client/v3/ApiWatch.lean`), over mvcc's own registrations, ids and positions.
@@ -81,7 +82,7 @@ fired: a watch reports the past. This is the server-side mirror of 1b's `watchSt
 
 ## Laws
 
-`watch_persistent`, `wsReg_agree`, `wsCanceled_mono`, `wsSentLb_zero`, `wsSentLb_mono`,
+`mvccLb_le`, `mvccLb_get` (the lower bound against 3e's `mvccState`), `watch_persistent`, `wsReg_agree`, `wsCanceled_mono`, `wsSentLb_zero`, `wsSentLb_mono`,
 `watchableAt_shape`, `watchableAt_isMvcc`, `wsCons_recv` (receiving on the stream's channel, plain or in a
 `select`, and the non-blocking receive of a drain: empty means every response sent before is
 received), `watch_init` (the package's watch variables and error values).
@@ -204,6 +205,9 @@ def wStep (W : WatcherM) (h : KVHist) (p : Nat) (r : WResp) : Prop :=
     r.evs.getLast?.map (fun e => e.kv.modRevision) = some (W64 c') ∧
     (exactFrom h (p + 1) → r.evs = (wEvents W h (p + 1) c').map (fun x => evOf x.1 x.2))
 
+/-- **`h'` extends `h`**: its revisions continue `h`'s, its compaction revision is not below. -/
+def histLe (h h' : KVHist) : Prop := h.revs <+: h'.revs ∧ h.compacted ≤ h'.compacted
+
 /-! ## Resources -/
 
 /-- A watch stream's ghost names (opaque). -/
@@ -218,11 +222,15 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 open go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3
 
+/-- **The store `γ` has notified at least the history `h`** (persistent): `h` is extended by the
+store's notified history (`histLe h σ.notified`, `mvccLb_le`). -/
+opaque mvccLb (γ : MvccName) (h : KVHist) : IProp GF := iprop(True)
+
 /-- **`kv` is a watchable store of `γ`** (persistent). -/
-opaque watchableAt (kv : GoInterface) (γ : StoreNames) : IProp GF := iprop(True)
+opaque watchableAt (kv : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
 
 /-- **`w` is a watch stream of `γ`, named `ι`** (persistent). -/
-opaque wsAt (w : Loc) (γ : StoreNames) (ι : WsNames) : IProp GF := iprop(True)
+opaque wsAt (w : Loc) (γ : MvccName) (ι : WsNames) : IProp GF := iprop(True)
 
 /-- **The stream's control side**: the ids returned so far are below `n` (exclusive). -/
 opaque wsCtl (ι : WsNames) (n : Int) : IProp GF := iprop(True)
@@ -274,7 +282,7 @@ def errMsgOk (err : GoInterface) (msg : GoString) : IProp GF :=
     □ {{ True }} (App (Val (err @!! go.error @!! go!"Error")) (Val #())) {{ RET #msg; True }})
 
 /-- **What the response `r`, received after `rs`, says** (persistent facts; see the header). -/
-def wsRespOk (γ : StoreNames) (ι : WsNames) (rs : List WResp) (r : WResp) : IProp GF :=
+def wsRespOk (γ : MvccName) (ι : WsNames) (rs : List WResp) (r : WResp) : IProp GF :=
   iprop(∃ h : KVHist, mvccLb γ h ∗ ⌜respShape r⌝ ∗
     (□ ∀ c, wsCanceled ι r.id c -∗ ⌜rs.length < c⌝) ∗
     if r.id = W64 (-1) then
@@ -286,7 +294,7 @@ def wsRespOk (γ : StoreNames) (ι : WsNames) (rs : List WResp) (r : WResp) : IP
 
 /-- What a receive on the stream's channel gives: a response with its facts, or (`!ok`) the end of
 the closed channel. -/
-def wsRecvPost (γ : StoreNames) (ι : WsNames) (rs : List WResp) (v : WatchResponse) (ok : Bool) :
+def wsRecvPost (γ : MvccName) (ι : WsNames) (rs : List WResp) (v : WatchResponse) (ok : Bool) :
     IProp GF :=
   if ok then iprop(∃ r : WResp, wrespAt v r ∗ wsRespOk γ ι rs r ∗ wsCons ι (rs ++ [r]))
   else iprop(wsCons ι rs)
@@ -294,12 +302,22 @@ def wsRecvPost (γ : StoreNames) (ι : WsNames) (rs : List WResp) (v : WatchResp
 /-! ## Laws -/
 
 def watch_persistent.spec : Prop :=
-  (∀ kv γ, Persistent (watchableAt (GF := GF) kv γ)) ∧
+  (∀ kv γ, Persistent (watchableAt (GF := GF) kv γ)) ∧ (∀ γ h, Persistent (mvccLb (GF := GF) γ h)) ∧
   (∀ w γ ι, Persistent (wsAt (GF := GF) w γ ι)) ∧
   (∀ ι id W, Persistent (wsReg (GF := GF) ι id W)) ∧
   (∀ ι id c, Persistent (wsCanceled (GF := GF) ι id c)) ∧
   (∀ ι n, Persistent (wsSentLb (GF := GF) ι n)) ∧ (∀ ι, Persistent (wsClosed (GF := GF) ι)) ∧
   (∀ ι n, Timeless (wsCtl (GF := GF) ι n)) ∧ (∀ ι rs, Timeless (wsCons (GF := GF) ι rs))
+
+/-- **What a lower bound says** of the store's state (the client's): its notified history extends
+`h`. -/
+def mvccLb_le.spec : Prop := ∀ γ σ h,
+  mvccState (GF := GF) γ σ ∗ mvccLb γ h ⊢ ⌜histLe h σ.notified⌝
+
+/-- **A lower bound of the current state** (the client relates its own state to the facts it will
+receive: the watchers' registrations and responses are at or past it). -/
+def mvccLb_get.spec : Prop := ∀ γ σ,
+  mvccState (GF := GF) γ σ ⊢ |==> mvccState γ σ ∗ mvccLb γ σ.notified
 
 /-- One registration per id (the stream's ids are fresh). -/
 def wsReg_agree.spec : Prop := ∀ ι id W W',
@@ -325,7 +343,7 @@ or as a `select` case) gives the next response with its facts (`wsRecvPost`), or
 closed channel; a non-blocking receive (`nonblockingRecvAuAlt`: a `select` with a `default`, v3rpc's
 drain) gives the same, or the channel empty: every response the stream sent before is received (at
 least the `n` of a `wsSentLb ι n` taken before). -/
-def wsCons_recv.spec : Prop := ∀ (w : Loc) (γ : StoreNames) (ι : WsNames),
+def wsCons_recv.spec : Prop := ∀ (w : Loc) (γ : MvccName) (ι : WsNames),
   wsAt (GF := GF) w γ ι ⊢
     ∃ (_ : Pos.Countable WatchResponse) (γc : ChanNames),
       isChan (wsChanOf ι) γc WatchResponse ∗

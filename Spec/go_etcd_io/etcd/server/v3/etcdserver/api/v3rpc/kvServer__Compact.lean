@@ -8,6 +8,8 @@ Proof sketch: the run's request (`msgAt`, owned) is decoded to the model's reque
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/kvServer__Compact.lean`: auth on (the admin check), physical compactions.
 
+Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` once W0's round 4 makes `srvStep` `Step` (a read's permission checked at an auth state between the call's start and its answer).
+
 Margin: the code checks the admin role at the member's possibly stale auth state; the spec relies on the model answering `adminErr` at any state.
 -/
 module
@@ -32,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `kvServer.Compact(ctx, r)` meets the contract of `/etcdserverpb.KV/Compact`. -/
 def kvServer.Compact.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Compact")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ) (etcdUnary γ go!"/etcdserverpb.KV/Compact") go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Compact") go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty
 
 end spec
 

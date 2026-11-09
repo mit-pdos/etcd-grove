@@ -22,6 +22,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.lease.Api
 
 set_option autoImplicit false
+set_option linter.iris.dupNamespace false
 
 @[expose] public section
 

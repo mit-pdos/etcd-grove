@@ -27,19 +27,22 @@ func ReqTxnResponseGetters(resp *pb.TxnResponse) {
 			panic("two cases of one oneof")
 		}
 		_ = len(rr.GetKvs())
-		_ = rr.GetHeader().GetRevision()
+		if rr.Header != nil {
+			_ = rr.Header.GetRevision()
+		}
 	}
 }
 
 // REQ etcdserverpb/nil-header: a header read through nil (a streamed range's chunks but the last
 // carry none; a watch response with no header) reads zero.
 // Users: client/v3/watch.go (WatchResponse.IsProgressNotify), the cache's progress handling.
-// Specs: ResponseHeader.GetRevision.spec (nil conjunct).
+// Assumes: r is a RangeResponse a call returned (rangeRespOwn: the header field may be nil).
+// Specs: rangeRespOwn_unfold (W0), ResponseHeader.GetRevision.spec (nil conjunct).
 func ReqNilHeader(r *pb.RangeResponse) int64 {
-	if r.GetHeader() == nil && r.GetHeader().GetRevision() != 0 {
+	if r.Header == nil && r.Header.GetRevision() != 0 {
 		panic("nil header revision")
 	}
-	return r.GetHeader().GetRevision()
+	return r.Header.GetRevision()
 }
 
 // REQ etcdserverpb/compare-key: a comparison's key read through its getter is the key it was built
@@ -72,6 +75,7 @@ func ReqRequestRange(key []byte, limit int64) {
 // REQ etcdserverpb/sort-names: every sort order 0..2 and target 0..4 has a name; nothing else does
 // (the client's Op.IsSortOptionValid).
 // Users: client/v3/op.go (IsSortOptionValid).
+// BLOCKED on: the two maps' translation (batch-3h.md, the consolidated translation request).
 // Specs: sortNames_init.spec.
 func ReqSortNames() {
 	for o := int32(0); o <= 2; o++ {

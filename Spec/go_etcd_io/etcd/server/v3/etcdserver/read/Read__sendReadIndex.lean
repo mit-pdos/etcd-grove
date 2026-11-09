@@ -44,7 +44,7 @@ def Read.sendReadIndex.spec : Prop :=
       readEnv srv rf rγ γi A ∗ Raft.readCtx rγ (be64 id) Q }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty @!!
       go!"sendReadIndex")) (Val #id))
-  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ readErr err⌝ }}
+  {{ (err : GoInterface), RET #err; (⌜err = GoInterface.nil⌝ ∨ readErr err) }}
 
 end spec
 end Read

@@ -33,7 +33,7 @@ variable [sem : go.Semantics]
 def maintenanceServer.Snapshot.spec : Prop :=
   ∀ (p s : Loc) (γ : Cluster) (sr : Loc) (c : Content) (st : GoInterface) (g : StreamName) (md : MD),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ maintAt p s γ ∗ threadTok ∗ msgAt go_etcd_io.etcd.api.v3.etcdserverpb.SnapshotRequest.ty sr (DFrac.own 1) c ∗
-      srvRecv st g snapSpec md 1 ∗ srvSend st g snapSpec md 0 }}
+      (∃ ctx, srvCtxOf st ctx md) ∗ srvRecv st g snapSpec md 1 ∗ srvSend st g snapSpec md 0 }}
     (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer.ty @!! go!"Snapshot")) (Val #sr)) (Val #st))
   {{ (err : GoInterface), RET #err; threadTok ∗ streamOut st g snapSpec md err }}
 

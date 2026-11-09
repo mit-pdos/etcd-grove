@@ -8,6 +8,8 @@ Proof sketch: `qa.check(ctx, r)` (`quotaAlarmer.check.spec`): over the quota, th
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/quotaKVServer__Txn.lean`: no `backendUnderQuota` premise (the refusal is an answer).
 
+Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` once W0's round 4 makes `srvStep` `Step` (a read's permission checked at an auth state between the call's start and its answer).
+
 Margin: none.
 -/
 module
@@ -32,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `quotaKVServer.Txn(ctx, r)` meets the contract of `/etcdserverpb.KV/Txn`. -/
 def quotaKVServer.Txn.spec : Prop :=
-  ∀ (p : Loc) (kv : GoInterface) (s : Loc) (γ : Cluster),
+  ∀ (p : Loc) (kv : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Txn")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaKVAt p kv s γ) (etcdUnary γ go!"/etcdserverpb.KV/Txn") go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaKVAt p kv s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Txn") go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty
 
 end spec
 

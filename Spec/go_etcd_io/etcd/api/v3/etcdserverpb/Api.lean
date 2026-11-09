@@ -48,7 +48,7 @@ workload premise (`Grpc.msgsFit`), not this package's.
 
 `examples/specreq/etcdserverpb/`: `getters.go` (a transaction's responses read through the
 getters, nil-safe headers, the comparison's key, a range's sort names), `stubs.go` (the KV stub
-over a client's connection, the watch stub's stream), `merge.go` (a streamed range's chunks merged).
+over a client's connection, the watch stub's stream, a streamed range's chunks merged).
 -/
 module
 
@@ -144,7 +144,7 @@ def bodyType : RespBody → go.GoType
   | .authEnable => etcdserverpb.AuthEnableResponse.ty
   | .authDisable => etcdserverpb.AuthDisableResponse.ty
   | .authStatus _ _ => etcdserverpb.AuthStatusResponse.ty
-  | .authenticate _ => etcdserverpb.AuthenticateResponse.ty
+  | .authenticate => etcdserverpb.AuthenticateResponse.ty
   | .userAdd => etcdserverpb.AuthUserAddResponse.ty
   | .userGet _ => etcdserverpb.AuthUserGetResponse.ty
   | .userList _ => etcdserverpb.AuthUserListResponse.ty
@@ -454,6 +454,203 @@ def descStreams_init.spec : Prop :=
       sl ↦*□ sds ∗ ⌜1 ≤ sds.length⌝)
 
 end initlaws
+
+/-! ## The raft request (`InternalRaftRequest`): moved down from 2c (round 1, F4)
+
+The payload of every write's raft entry: 2c builds it (`raftRequest`), marshals it and proposes the
+bytes; 2d's apply decodes them. The model `IrrBody` was 2c's (`ApiReq.lean`); it is the message's
+content and lives with the message (2c keeps the semantics: `IrrBody.fires`, `irrStep`). -/
+
+/-- **An internal request's model** (2c's `IrrBody`, moved). -/
+inductive IrrBody where
+  /-- a client request (KV writes, compactions, lease grants and revocations, auth, alarm list
+  and disarm) -/
+  | req (rq : Req)
+  /-- an alarm raised (`AlarmRequest_ACTIVATE`) -/
+  | alarmActivate (al : Alarm)
+  /-- a member's attributes published (`ClusterMemberAttrSet`) -/
+  | publish (id : Nat) (name : GoString) (urls : List GoString)
+  /-- a token assigned to user `name` (`InternalAuthenticateRequest`) -/
+  | authToken (name : GoString)
+  /-- no observable effect: a lease checkpoint, the cluster version, the downgrade info -/
+  | noop
+
+/-- The request revokes a lease (its `LeaseRevoke` field set: `isPriorityRequest`). -/
+def IrrBody.isRevoke : IrrBody → Bool
+  | .req (.leaseRevoke _) => true
+  | _ => false
+
+-- The protobuf nesting depth of a `RequestOp` (2c's, moved).
+mutual
+def opMsgDepth : RequestOp → Nat
+  | .empty => 1
+  | .txn cmps succ fail =>
+      2 + max (if cmps = [] then 0 else 1) (max (opsMsgDepth succ) (opsMsgDepth fail))
+  | _ => 2
+def opsMsgDepth : List RequestOp → Nat
+  | [] => 0
+  | op :: ops => max (opMsgDepth op) (opsMsgDepth ops)
+end
+
+/-- The protobuf nesting depth of a `TxnRequest`'s messages (2c's, moved). -/
+def txnMsgDepth (t : TxnReq) : Nat :=
+  1 + max (if t.compare = [] then 0 else 1) (max (opsMsgDepth t.success) (opsMsgDepth t.failure))
+
+/-- **An internal request every member's apply can decode** (2c's, moved): a transaction at most
+`9999` messages deep below the `InternalRaftRequest`. -/
+def IrrBody.depthOk : IrrBody → Prop
+  | .req (.txn t) => txnMsgDepth t + 1 ≤ 10000
+  | _ => True
+
+/-- `RequestHeader`: the proposal's id and the proposer's user and auth revision. -/
+structure IrrHeader where
+  id : w64
+  username : GoString
+  authRevision : w64
+
+/-- **The content `c` is an `InternalRaftRequest` asking `ir`** (exactly `ir`'s field set; the
+`Header` not considered). -/
+opaque irrHolds (c : Proto.Content) (ir : IrrBody) : Prop
+/-- The content's `Header` (`none`: unset) and `ID` (`0`). -/
+opaque irrHeaderHolds (c : Proto.Content) (h : Option IrrHeader) : Prop
+/-- **The content `c` is an `AlarmRequest` asking `ir`** (`GET`: `.req .alarmList`;
+`DEACTIVATE`: `.req (.alarmDisarm al)`; `ACTIVATE`: `.alarmActivate al`). -/
+opaque alarmReqHolds (c : Proto.Content) (ir : IrrBody) : Prop
+/-- Every `string` field of the request is valid UTF-8 (user, role, member names, passwords,
+URLs): what `proto.Marshal` checks (proto3). -/
+opaque IrrBody.utf8Ok : IrrBody → Prop
+
+section irr
+variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
+
+/-- **An owned `*InternalRaftRequest` asking `ir`, with header `h`** (2c's `irrOwn p ir` is
+`irrOwnH p ir none`). -/
+opaque irrOwnH (p : Loc) (ir : IrrBody) (h : Option IrrHeader) : IProp GF := iprop(True)
+
+/-- 2c's `irrOwn` (header and `ID` unset). -/
+def irrOwn (p : Loc) (ir : IrrBody) : IProp GF := irrOwnH p ir none
+
+/-- **An `*AlarmRequest` asking `ir`** (2c's `alarmReqOwn`). -/
+opaque alarmReqOwn (p : Loc) (dq : DFrac) (ir : IrrBody) : IProp GF := iprop(True)
+
+/-- **`r` is `nil` (`b = false`) or a read-only `*InternalRaftRequest` whose `LeaseRevoke` is set
+exactly when `b`** (2e's `irrIsRevoke`). Persistent. -/
+def irrIsRevoke (r : Loc) (b : Bool) : IProp GF :=
+  iprop(⌜r = null ∧ b = false⌝ ∨
+    ∃ lr : Loc, r.[etcdserverpb.InternalRaftRequest, go!"LeaseRevoke"] ↦□ lr ∗ ⌜b = decide (lr ≠ null)⌝)
+
+/-- A `*RequestHeader`'s fields (owned). -/
+def reqHeaderAt (hp : Loc) (h : IrrHeader) : IProp GF :=
+  iprop(protoRest etcdserverpb.RequestHeader hp (DFrac.own 1) ∗
+    hp.[etcdserverpb.RequestHeader, go!"ID"] ↦ h.id ∗
+    hp.[etcdserverpb.RequestHeader, go!"Username"] ↦ h.username ∗
+    hp.[etcdserverpb.RequestHeader, go!"AuthRevision"] ↦ h.authRevision)
+
+def irrOwnH_msgAt.spec : Prop := ∀ p ir h,
+  irrOwnH (GF := GF) p ir h ⊣⊢
+    ∃ c, Proto.msgAt etcdserverpb.InternalRaftRequest.ty p (DFrac.own 1) c ∗
+      ⌜irrHolds c ir ∧ irrHeaderHolds c h⌝
+
+def alarmReqOwn_msgAt.spec : Prop := ∀ p dq ir,
+  alarmReqOwn (GF := GF) p dq ir ⊣⊢
+    ∃ c, Proto.msgAt etcdserverpb.AlarmRequest.ty p dq c ∗ ⌜alarmReqHolds c ir⌝
+
+/-- **Setting the header** (`processInternalRaftRequestOnce`: `r.Header = &pb.RequestHeader{...}`,
+then `r.Header.Username`/`AuthRevision` written in place). -/
+def irrOwn_setHeader.spec : Prop := ∀ (p : Loc) (ir : IrrBody),
+  irrOwnH (GF := GF) p ir none ⊢
+    p.[etcdserverpb.InternalRaftRequest, go!"Header"] ↦ (null : Loc) ∗
+    ∀ (hp : Loc) (h : IrrHeader), p.[etcdserverpb.InternalRaftRequest, go!"Header"] ↦ hp -∗
+      reqHeaderAt hp h -∗ irrOwnH p ir (some h)
+
+/-- **Reading the header back** (`r.Header.ID` after marshaling). -/
+def irrOwnH_header.spec : Prop := ∀ (p : Loc) (ir : IrrBody) (h : IrrHeader),
+  irrOwnH (GF := GF) p ir (some h) ⊢
+    ∃ hp : Loc, p.[etcdserverpb.InternalRaftRequest, go!"Header"] ↦ hp ∗ reqHeaderAt hp h ∗
+      (p.[etcdserverpb.InternalRaftRequest, go!"Header"] ↦ hp -∗ reqHeaderAt hp h -∗
+        irrOwnH p ir (some h))
+
+/-- **What `proto.Marshal` needs of a raft request**: the depth (`depthOk`), and `marshalOk` exactly
+for valid UTF-8 strings. (The encoded size is the server's bound: `--max-request-bytes` is checked
+after marshaling, so `fits` comes from the request having fit gRPC: 2a's `msgsFit`, a premise of
+2c's.) -/
+def irr_content.spec : Prop := ∀ (c : Proto.Content) (ir : IrrBody),
+  irrHolds c ir → (ir.depthOk → Proto.depth c < Proto.depthMax) ∧ (Proto.marshalOk c ↔ ir.utf8Ok)
+
+def irr_holds_fun.spec : Prop :=
+  (∀ c ir ir', irrHolds c ir → irrHolds c ir' → ir = ir') ∧
+  (∀ c h h', irrHeaderHolds c h → irrHeaderHolds c h' → h = h') ∧
+  (∀ c ir ir', alarmReqHolds c ir → alarmReqHolds c ir' → ir = ir')
+
+/-- **A read-only raft request answers `isPriorityRequest`** (2e's `irrIsRevoke`; the apply's decoded
+request, persisted). -/
+def irrIsRevoke_intro.spec : Prop := ∀ (p : Loc) (c : Proto.Content) (ir : IrrBody),
+  Proto.msgAt (GF := GF) etcdserverpb.InternalRaftRequest.ty p DFrac.discard c ∗ ⌜irrHolds c ir⌝ ⊢
+    irrIsRevoke p ir.isRevoke
+
+/-! ## Merge destinations (round 1, F1)
+
+`proto.Merge` writes its destination in place: it merges into set submessages and appends to
+repeated fields, into their spare capacity. So a message may be merged into only if its holder owns
+all of that: **no raftpb predicate and no W0 predicate gives it** (their submessages or slices are
+shared read-only, or held without capacity: a `MsgApp`'s entries, a snapshot's conf state, a
+`RangeResponse`'s `Kvs`). The one destination etcd uses is the client's streamed-range accumulator
+(`GetStreamToGetResponse`: `&pb.RangeResponse{}`, then `Merge` per chunk): `rangeRespDst`. -/
+
+/-- (provisional, 2a's) **`proto.Merge` may write into the message `p` of type `t` holding `c`**:
+every submessage and repeated field it reaches owned, with its capacity. A premise 2a's restated
+`Merge.spec` takes and gives back (`req/google_golang_org_protobuf_proto.md`, "from 3h, round 1"). -/
+opaque mergeDstOk (t : go.GoType) (p : Loc) (c : Proto.Content) : IProp GF := iprop(True)
+
+/-- **A `RangeResponse` merge destination** holding `m`: owned, its `Kvs` slice with its capacity,
+its header and key-values owned. -/
+opaque rangeRespDst (p : Loc) (m : RangeRespM) : IProp GF := iprop(True)
+
+/-- A fresh `&pb.RangeResponse{}` is an (empty) destination. -/
+def rangeRespDst_fresh.spec : Prop := ∀ (p : Loc),
+  typedPointsto p (zero_val etcdserverpb.RangeResponse) (DFrac.own 1) ⊢
+    rangeRespDst (GF := GF) p ⟨none, [], false, W64 0⟩
+
+/-- A destination is its content with `mergeDstOk` (what `Merge` takes and returns). -/
+def rangeRespDst_msgAt.spec : Prop := ∀ (p : Loc) (m : RangeRespM),
+  rangeRespDst (GF := GF) p m ⊣⊢
+    ∃ c, Proto.msgAt etcdserverpb.RangeResponse.ty p (DFrac.own 1) c ∗
+      mergeDstOk etcdserverpb.RangeResponse.ty p c ∗ ⌜rangeRespHolds c m⌝
+
+/-- A destination is, forgetting the capacity, an owned reply (the client returns it). -/
+def rangeRespDst_own.spec : Prop := ∀ (p : Loc) (m : RangeRespM),
+  rangeRespDst (GF := GF) p m ⊢ rangeRespOwn p (DFrac.own 1) m
+
+/-- **The lease replies' header field**, at any content (round 1, second tier 1: the `GetHeader`
+getters' bodies read it; an assumption of `msgAt`'s realization at these types, stated). -/
+def leaseResp_header.spec : Prop :=
+  (∀ (p : Loc) (dq : DFrac) (c : Proto.Content),
+    Proto.msgAt (GF := GF) etcdserverpb.LeaseGrantResponse.ty p dq c ⊢
+      ∃ (h : Loc) (ho : Option HeaderM), p.[etcdserverpb.LeaseGrantResponse, go!"Header"] ↦{dq} h ∗
+        optOwn respHeaderOwn h dq ho ∗
+        (p.[etcdserverpb.LeaseGrantResponse, go!"Header"] ↦{dq} h -∗ optOwn respHeaderOwn h dq ho -∗
+          Proto.msgAt etcdserverpb.LeaseGrantResponse.ty p dq c)) ∧
+  (∀ (p : Loc) (dq : DFrac) (c : Proto.Content),
+    Proto.msgAt (GF := GF) etcdserverpb.LeaseKeepAliveResponse.ty p dq c ⊢
+      ∃ (h : Loc) (ho : Option HeaderM), p.[etcdserverpb.LeaseKeepAliveResponse, go!"Header"] ↦{dq} h ∗
+        optOwn respHeaderOwn h dq ho ∗
+        (p.[etcdserverpb.LeaseKeepAliveResponse, go!"Header"] ↦{dq} h -∗ optOwn respHeaderOwn h dq ho -∗
+          Proto.msgAt etcdserverpb.LeaseKeepAliveResponse.ty p dq c)) ∧
+  (∀ (p : Loc) (dq : DFrac) (c : Proto.Content),
+    Proto.msgAt (GF := GF) etcdserverpb.LeaseTimeToLiveResponse.ty p dq c ⊢
+      ∃ (h : Loc) (ho : Option HeaderM), p.[etcdserverpb.LeaseTimeToLiveResponse, go!"Header"] ↦{dq} h ∗
+        optOwn respHeaderOwn h dq ho ∗
+        (p.[etcdserverpb.LeaseTimeToLiveResponse, go!"Header"] ↦{dq} h -∗ optOwn respHeaderOwn h dq ho -∗
+          Proto.msgAt etcdserverpb.LeaseTimeToLiveResponse.ty p dq c)) ∧
+  (∀ (p : Loc) (dq : DFrac) (c : Proto.Content),
+    Proto.msgAt (GF := GF) etcdserverpb.LeaseLeasesResponse.ty p dq c ⊢
+      ∃ (h : Loc) (ho : Option HeaderM), p.[etcdserverpb.LeaseLeasesResponse, go!"Header"] ↦{dq} h ∗
+        optOwn respHeaderOwn h dq ho ∗
+        (p.[etcdserverpb.LeaseLeasesResponse, go!"Header"] ↦{dq} h -∗ optOwn respHeaderOwn h dq ho -∗
+          Proto.msgAt etcdserverpb.LeaseLeasesResponse.ty p dq c))
+
+end irr
 
 end EtcdServerPb
 end EtcdGrove

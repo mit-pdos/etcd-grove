@@ -15,3 +15,15 @@ What `applyConfChange` (2d) needs of the membership (`RaftCluster`):
 4. The conf change's context (JSON) decodes and names the change's node: the cluster's invariant on
    conf-change proposals (`configure`'s, 2c) gives it, so `applyConfChange`'s `lg.Panic`s are
    unreachable.
+
+## from 3c
+
+1. **`Lease.clusterOk cl`** (provisional in `lease/Api.lean`; persistent): the `*RaftCluster` the
+   server passes to `lease.NewLessor` as its `cluster`: `Version()` may be called from any goroutine
+   (the lessor's `Checkpoint`, on the apply thread) and returns `nil` or a readable
+   `*semver.Version`. A law `isCluster c ... ⊢ Lease.clusterOk (iface c)` of yours would discharge
+   it at `NewServer`. Used by: `NewLessor.spec`, `lessor.shouldPersistCheckpoints.spec`.
+   ```go
+   srv.lessor = lease.NewLessor(srv.Logger(), srv.be, srv.cluster, lease.LessorConfig{...}) // server.go:344
+   cv := le.cluster.Version()                                                                 // lessor.go:386
+   ```

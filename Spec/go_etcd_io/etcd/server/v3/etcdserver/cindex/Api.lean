@@ -32,9 +32,10 @@ Snippets: `examples/specreq/cindex/cindex.go` (`ReqApplyMovesIndex`, `ReqReloadA
   and the backend the indexer reads from.
 * `isCI ci γ` (persistent): `ci` is a `*consistentIndex` with names `γ`.
 * `ciState γ m` (exclusive, timeless): **its state is `m`**. Client-owned (TaDa): every method is
-  logically atomic over it. The server keeps it in the apply thread's state and in the backend's
-  batch-transaction lock invariant (so that the pre-commit hook's `UnsafeSave` reads it: the index
-  written with a commit is the last entry whose effects that commit holds).
+  logically atomic over it. The server keeps it in one invariant, which the apply thread (with
+  `ciWriter` and an agreement half) and the backend's pre-commit hook (`UnsafeSave`, under the batch
+  transaction's lock) both open: the index written with a commit is the last entry whose effects
+  that commit holds (round 1, S7).
 * `ciWriter γ` (exclusive): the single writer's token (the apply thread's).
 * `ciIface l` (transparent): `l` as a `ConsistentIndexer` interface value.
 * The backend side (provisional, batch 4a/4b's vocabulary, `req/go_etcd_io_etcd_server_v3_storage_

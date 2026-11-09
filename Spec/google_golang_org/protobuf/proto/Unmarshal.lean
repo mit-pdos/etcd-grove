@@ -5,8 +5,9 @@ Users: grpc's codec on every receive (through `Grpc`'s specs), etcd's apply
 (`pbutil.MustUnmarshal` of an `InternalRaftRequest`, 2d), raft's conf-change decoding (`doc.go`
 pattern, 2d's `applyConfChange`), the WAL and snapshotter on restart (2e), rafthttp (2f).
 
-Why true: `Unmarshal` resets the message and decodes into it, copying every `bytes` field (the
-default `UnmarshalOptions`, no aliasing); a malformed input or one nested beyond `RecursionLimit`
+Why true: `Unmarshal` resets the message (`*m = T{}`: only the top struct is written, never the
+old submessages or slices, which `msgAt (own 1)` may hold read-only) and decodes into fresh
+allocations, copying every `bytes` field (the default `UnmarshalOptions`, no aliasing); a malformed input or one nested beyond `RecursionLimit`
 (`10000`) is an error, never a panic. A content that `encodes` the bytes and nests less than that
 decodes, to that content (decoding is a function, `encodes_fun`).
 

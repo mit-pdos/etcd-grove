@@ -35,10 +35,14 @@ an index the cluster had committed after the reader started**.
 * `readAt r rγ A` (persistent): `r` serves linearizable reads for raft cluster `rγ`, applied-index
   predicate `A` (`LinearizableReadNotify.spec`).
 * `readLoopTok r` (exclusive): the right to run the loop (once).
-* `readErr err` (pure): `err` is one of the read path's errors: `ErrStopped`, `ErrLeaderChanged`,
-  `ErrTimeout` (`etcdserver/errors`), raft's `ErrStopped`, a context's `Canceled` or
-  `DeadlineExceeded`; all indefinite for the client (the server's law
-  `EtcdServer.readErr_indef`).
+* `readErr err` (persistent, transparent): `err` is one of the read path's errors: the server's
+  sentinels of `ErrStopped`, `ErrLeaderChanged`, `ErrTimeout` (`EtcdServer.srvErrVal`), raft's
+  `ErrStopped` (`EtcdServer.raftStoppedErr`), or a context's (`context.isCtxErr`); all indefinite
+  for the client (the server's laws `EtcdServer.readErr_indef`, `readErr_shape`).
+
+The method triples of `readEnv` are Iris triples (persistent propositions), not pure ones: the
+methods read the server's and the raft wrapper's fields, so the realization holds their invariants
+(round 1, provability F3).
 
 ## Intended realization
 
@@ -63,6 +67,7 @@ public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.read
 public import Spec.go_etcd_io.raft.v3.Api
 public import Spec.go_etcd_io.etcd.pkg.v3.idutil.Api
 public import Spec.go_uber_org.zap.Api
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.errors.Api
 
 set_option autoImplicit false
 
@@ -105,15 +110,14 @@ opaque readLoopTok (r : Loc) : IProp GF := iprop(True)
 
 def readAt_persistent.spec : Prop := ∀ r rγ A, Persistent (readAt (GF := GF) r rγ A)
 
+/-- **`err` is one of the read path's errors**: a context's (`Canceled`, `DeadlineExceeded`), the
+server's `ErrStopped`, `ErrLeaderChanged`, `ErrTimeout`, or raft's `ErrStopped`. -/
+def readErr (err : GoInterface) : IProp GF :=
+  iprop(context.isCtxErr err ∨
+    ⌜err = EtcdServer.srvErrVal .stopped ∨ err = EtcdServer.srvErrVal .leaderChanged ∨
+     err = EtcdServer.srvErrVal .timeout ∨ err = EtcdServer.raftStoppedErr⌝)
+
 end vocab
-
-section errs
-variable [GooseExts] [go_gctx : GoGlobalContext]
-
-/-- **`err` is one of the read path's errors** (see the header). -/
-opaque readErr (err : GoInterface) : Prop
-
-end errs
 
 section env
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -128,58 +132,59 @@ state's fact. -/
 def readStateVal (rγ : Raft.Cluster) (v : go_etcd_io.raft.v3.ReadState) : IProp GF :=
   iprop(∃ c : List w8, v.RequestCtx' ↦*□ c ∗ Raft.readState rγ c v.Index')
 
-/-- The methods' part of the environment's contract (pure: triples). -/
-def readEnvOk (srv rf : GoInterface) (rγ : Raft.Cluster) (γi : IdUtil.IdSpace) (A : Nat → IProp GF) :
-    Prop :=
+/-- The pure facts of the applied-index predicate `A`: downward closed, persistent, below the
+committed log. -/
+def appliedPredOk (rγ : Raft.Cluster) (A : Nat → IProp GF) : Prop :=
   (∀ a b : Nat, b ≤ a → A a ⊢ A b) ∧ (∀ a, Persistent (A a)) ∧
-  (∀ i : Nat, A i ⊢ ∃ l, Raft.committedLb rγ l ∗ ⌜i ≤ l.length⌝) ∧
+  (∀ i : Nat, A i ⊢ ∃ l, Raft.committedLb rγ l ∗ ⌜i ≤ l.length⌝)
+
+/-- **The environment's contract** (see the header): the server's and raft's interface methods as
+Iris triples (persistent: the realization holds the server's and the raft wrapper's invariants, 2e
+and 2d's handles), and the registration of read contexts. -/
+def readEnv (srv rf : GoInterface) (rγ : Raft.Cluster) (γi : IdUtil.IdSpace) (A : Nat → IProp GF) :
+    IProp GF :=
+  iprop(⌜appliedPredOk rγ A⌝ ∗
   ({{ (iprop(True) : IProp GF) }}
      (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"Done")) (Val #()))
-   {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
+   {{ (ch : Loc), RET #ch; recvAny ch }}) ∗
   ({{ (iprop(True) : IProp GF) }}
      (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"Stopping")) (Val #()))
-   {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
+   {{ (ch : Loc), RET #ch; recvAny ch }}) ∗
   ({{ (iprop(True) : IProp GF) }}
      (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"LeaderChanged")) (Val #()))
-   {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
+   {{ (ch : Loc), RET #ch; recvAny ch }}) ∗
   ({{ (iprop(True) : IProp GF) }}
      (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"FirstCommitInTermNotify")) (Val #()))
-   {{ (ch : Loc), RET #ch; recvAny ch }}) ∧
+   {{ (ch : Loc), RET #ch; recvAny ch }}) ∗
   ({{ (iprop(True) : IProp GF) }}
      (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"Logger")) (Val #()))
-   {{ (lg : Loc), RET #lg; Zap.isLogger lg }}) ∧
+   {{ (lg : Loc), RET #lg; Zap.isLogger lg }}) ∗
   ({{ (iprop(True) : IProp GF) }}
      (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"RequestTimeout")) (Val #()))
-   {{ (d : w64), RET #d; True }}) ∧
+   {{ (d : w64), RET #d; True }}) ∗
   ({{ (iprop(True) : IProp GF) }}
      (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"AppliedIndex")) (Val #()))
-   {{ (i : w64), RET #i; A (uint.nat i) }}) ∧
+   {{ (i : w64), RET #i; A (uint.nat i) }}) ∗
   ({{ (iprop(True) : IProp GF) }}
      (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"NextRequestID")) (Val #()))
-   {{ (id : w64), RET #id; IdUtil.idFresh γi id }}) ∧
+   {{ (id : w64), RET #id; IdUtil.idFresh γi id }}) ∗
   (∀ d : w64, {{ (iprop(True) : IProp GF) }}
      (App (Val (srv @!! go_etcd_io.etcd.server.v3.etcdserver.read.server.ty @!! go!"ApplyWait"))
        (Val #d))
    {{ (ch : Loc), RET #ch; ∃ γc : ChanNames, isChan ch γc Unit ∗
-       □ ∀ Φ : Unit → Bool → IProp GF, (∀ v ok, A (uint.nat d) -∗ Φ v ok) -∗ recvAu γc Unit Φ }}) ∧
+       □ ∀ Φ : Unit → Bool → IProp GF, (∀ v ok, A (uint.nat d) -∗ Φ v ok) -∗ recvAu γc Unit Φ }}) ∗
   ({{ (iprop(True) : IProp GF) }}
      (App (Val (rf @!! go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface.ty @!! go!"ReadState")) (Val #()))
    {{ (ch : Loc), RET #ch; ∃ (_ : Pos.Countable go_etcd_io.raft.v3.ReadState) (γc : ChanNames),
        isChan ch γc go_etcd_io.raft.v3.ReadState ∗
        □ ∀ Φ : go_etcd_io.raft.v3.ReadState → Bool → IProp GF,
          (∀ v ok, (⌜ok = true⌝ -∗ readStateVal rγ v) -∗ Φ v ok) -∗
-         recvAu γc go_etcd_io.raft.v3.ReadState Φ }}) ∧
+         recvAu γc go_etcd_io.raft.v3.ReadState Φ }}) ∗
   (∀ (ctx : GoInterface) (rctx : GoSlice) (c : List w8) (Q : List Raft.LogEntry → IProp GF),
    {{ Context.ctxOk ctx ∗ rctx ↦*□ c ∗ Raft.readCtx rγ c Q }}
      (App (App (Val (rf @!! go_etcd_io.etcd.server.v3.etcdserver.read.raftInterface.ty @!!
        go!"ReadIndex")) (Val #ctx)) (Val #rctx))
-   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ readErr err⌝ }})
-
-/-- **The environment's contract** (see the header): the server's and raft's interface methods,
-and the registration of read contexts. Persistent. -/
-def readEnv (srv rf : GoInterface) (rγ : Raft.Cluster) (γi : IdUtil.IdSpace) (A : Nat → IProp GF) :
-    IProp GF :=
-  iprop(⌜readEnvOk srv rf rγ γi A⌝ ∗
+   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∨ readErr err }}) ∗
     □ ∀ (id : w64) (l : List Raft.LogEntry), IdUtil.idFresh γi id -∗ Raft.committedLb rγ l -∗
       |={⊤}=> Raft.readCtx rγ (be64 id) (readLbQ l))
 

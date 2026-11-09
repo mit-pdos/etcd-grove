@@ -13,10 +13,14 @@ backend; `s.Backend()` under `bemu`'s read lock); `applyWait.Trigger(appliedi)` 
 `<-apply.notifyc` (the loop's `Save` of this batch done: the WAL holds it); then `raftAdvancedC`'s
 close (`nodeAdvanced r B.last`) or `s.stopping` (return, the thread's state given back);
 `snapshotIfNeededAndCompactRaftLog.spec` with `nodeAdvanced`; finally a non-blocking receive on
-`msgSnapC` (`isRaftNode`'s channel: a `MsgSnap` pointer `m` the node sent, `msgPts`, `msgSent`): if
-`m.term = B.term` and its snapshot's index is at most `appliedi`, `createMergedSnapshotMessage.spec`
-(with `appliedt ≤ B.term`: the applied entries' terms are at most the latest hard state's term handed
-out up to this batch, R1's, `req/go_etcd_io_raft_v3.md`, "from 2d") then `sendMergedSnap.spec`.
+`msgSnapC` (`msgSnapC_recv`: a `MsgSnap` pointer `m` the node sent, `msgPts`, `msgSent`, `m.term ≠
+0`): if `m.term = B.term` (so `B.term ≠ 0`: after a restart `raftTerm` is `0` until the first
+non-empty hard state, and then the guard fails) and its snapshot's index is at most `appliedi`,
+`createMergedSnapshotMessage.spec` with `appliedt ≤ B.term` (`applyBatch_terms`: R1's term bound on
+a batch, requested in `req/go_etcd_io_raft_v3.md`, "from 2d (round 1)"; the applied term is the
+batch's last entry's, or the snapshot's, or an earlier batch's, each at most `B.term`) and the
+thread's configuration (`ep.confState` at its point `c ≥ appliedi`), then `sendMergedSnap.spec`
+(with `srvStarted`).
 
 **Changes** from `specs-ref`'s `applyAll.specBatch` (about 60 conjuncts over the restart point, the
 window, the receipts' bound, the auth component, `kvAppliedM`, `srvRestR`, the WAL token, ...): over
@@ -55,10 +59,10 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Apply one batch**: the applied index moves to the batch's end. -/
 def EtcdServer.applyAll.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (ep ap : Loc)
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ep ap : Loc)
     (apv : go_etcd_io.etcd.server.v3.etcdserver.toApply) (p : Progress) (B : ApplyBatch),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ applyThread s γ ep p ∗ ap ↦□ apv ∗
+      srvNode s γ id ∗ srvStarted s γ id ∗ applyThread s γ ep p ∗ ap ↦□ apv ∗
       applyBatch (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) γ apv B
         false ∗
       ⌜uint.nat p.appliedi = B.prev⌝ }}

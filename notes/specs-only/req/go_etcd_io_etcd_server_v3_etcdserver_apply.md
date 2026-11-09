@@ -52,3 +52,41 @@ res` (the apply's model of a committed entry, with `applyStep_fun`): replace the
 4. **The `SnapshotServer` contract**: the applier calls `ForceSnapshot()` with `forceSnapW s` lent
    by the apply thread (`EtcdServer.ForceSnapshot.spec`).
 Used by: `applyEntryNormal.spec`, `applySnapshot.spec`.
+
+## from 2d (round 1)
+
+1. `applyStep mc σ e σ' res` is at the cluster's **shared** configuration `mc` (`Names.mc`, fixed at
+   allocation; the coordinator's decision): a function of the entry and the shared configuration
+   (`applyStep_fun`), and a step of the model (`applyStep_reach : applyStep … σ σ' … → Reach σ σ'`).
+   The per-member alternative (each member's own minimum TTL) is recorded as open in
+   `batch-2d.md`.
+2. A conf-change entry's step: the membership's validation and change at `σ.members` (2e's), its
+   answer a success iff accepted.
+
+## from 3c
+
+The lessor's API: `Spec/go_etcd_io/etcd/server/v3/lease/Api.lean` (namespace `Lease`). The applier
+is its writer, holding `Lease.lessorState γl n ls` (and, inside an apply, 4a's `Lease.beApplyTok
+ls.be`). What 3c's specs give and need there:
+
+1. **`LeaseGrant`** (`apply/backend.go:84`): `lessor.Grant.spec`: errors `ErrLeaseNotFound` (id `0`),
+   `ErrLeaseTTLTooLarge`, `ErrLeaseExists` (live), the state unchanged; else the state
+   `ls.grant id l (grantTTL c ttl)` at `n + 1`, `grantTTL c ttl = max ttl c.minTTL` (`c.minTTL` the
+   member's `MinLeaseTTL`: 2d's `MemberCfg`'s lease minimum, the per-member TTL of
+   `nonissues/etcd-lease-ttl-differs-across-members.md`). `l.ID`, `l.TTL()`: `lessorAt_obj`,
+   `leaseObj_id`, `Lease.TTL.spec`. The errors are distinct non-nil values (`Lease.init.spec`).
+2. **`LeaseRevoke`** (`apply/backend.go:95`): `lessor.Revoke.spec` takes `ls.rd ≠ func.nil` (mvcc's
+   `NewStore` sets it) and the deleter's contract `Lease.rdOk γl ls.rd n ls P D Q` (mvcc's, 3e:
+   `req/..._storage_mvcc.md`, "from 3c"); its post: `ErrLeaseNotFound` (not live), or the keys `ks`
+   of the lease's object (sorted, `keyLt`), mvcc's `Q ks n' ls'`, the state `ls'.remove id` at
+   `n' + 1`. With the attachment invariant (mvcc's item 2: the object's keys are the keys whose
+   record names the lease), `ks` are W0's `State.attachedKVs σ id`'s keys and the step is
+   `State.revoke`.
+3. **`LeaseCheckpoint`** (`apply/backend.go:101`): `lessor.Checkpoint.spec`: `nil`, the state
+   unchanged (the remaining TTL is not modelled): a no-op of the model.
+4. **The auth applier's `checkLeasePuts`** (`apply/auth.go:199`) and txn's `checkLease`
+   (`txn/put.go:83`, 3b): `lessor.Lookup.spec` and `Lease.Keys.spec` at the writer's own
+   `lessorAt γl n ls` answer from `ls` exactly (`lessorState_le`, `lessorAt_agree`).
+5. **The apply's model** (`applyStep`, provisional, yours): a grant, revoke or checkpoint entry moves
+   the lessor's state as above; 2d's invariant records which lessor history index each entry ends
+   at (`req/..._etcdserver.md`, "from 3c").

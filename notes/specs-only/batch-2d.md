@@ -133,13 +133,18 @@ v` (excl). Laws: `isCI_persistent`, `ciState_timeless`, `ciState_excl`, `ciWrite
    2d's vocabulary over `Names` (`.etcd`, `.raft`, `.cfg`), bridged by `isServer_names`. Simpler:
    W0's `Cluster` becomes a structure with the raft names and the configuration (then `Names` goes).
    A W0 change; until then the bridge law.
-2. **The apply's model** (`applyStep`, provisional 3a's) depends on the proposing member's
-   configuration (`MemberCfg`: the lease minimum TTL differs by member,
-   `nonissues/etcd-lease-ttl-differs-across-members.md`): the history records the proposer's answer;
-   other members' replicas relate to it loosely (a TTL at least the asked). Fine for every client
-   spec today; say if a member-independent model is wanted (then a premise "all members configured
-   alike" on `NewServer`).
-3. Nothing else needs a new client-facing premise: no restriction to a first start, one member,
+2. **The apply's configuration** (decided by the coordinator in round 1): every member shares the
+   apply-relevant configuration (`Names.mc`, fixed at allocation; a `NewServer` premise, 2e's).
+   **Open alternative**: per-member views (each member's own lease minimum TTL,
+   `nonissues/etcd-lease-ttl-differs-across-members.md`): the history would record the proposer's
+   answer and the other members' replicas relate to it loosely; it needs a member-state relation 3a
+   would state, and the proposer's own `mc` in `srvNode`.
+3. **Two scope restrictions found in round 1**, each a nonissue with `blocks-proof: yes`:
+   `nonissues/etcd-merged-snapshot-same-index-image.md` (a member never saves two merged snapshots of
+   one index with different points before installing one: `snapImage`'s source) and
+   `nonissues/etcd-concurrent-remove-last-voter.md` (no two `RemoveMember` calls in flight at once:
+   an accepted conf change applies in raft). A fork fix would remove each.
+4. Nothing else needs a new client-facing premise: no restriction to a first start, one member,
    auth off, no leases, no compaction, or no snapshot.
 
 ## Requirement sections written (`## from 2d`)
@@ -167,3 +172,62 @@ deterministic, `shouldApplyV3` writes), `req/go_etcd_io_raft_v3_raftpb.md` (3h: 
 - At the start of this batch, `Spec/PkgInit/...bbolt*` imported a missing `Spec.PkgInit.«unsafe»`
   (`etc/gen-specs-pkginit.py`'s `perennial_instances` regex misses `pkg_id.«unsafe»`); it was fixed
   during the batch.
+
+## Round 1 repairs
+
+Reviews: `reviews/2d-provability-1.md`, `reviews/2d-completeness-1.md`. Build: 66 modules OK;
+snippets vetted and gofmt-clean; `etc/issues-status.py --check` clean.
+
+Provability:
+- **F1** (the coordinator's decision): `Names.mc : MemberCfg`, shared by every member, fixed at
+  allocation; `histPropose` steps at `γ.mc` (no quantified `mc`); new `applyStep_reach` (the history
+  is a `Reach` sequence). Requests to 2e (`NewServer` premise, allocation) and 3a. Per-member views
+  recorded as the open alternative.
+- **F2**: the cursor `applycPos r k` (exclusive); `applyc_recv` takes it and gives `B.prev = k` and
+  `applycPos r B.last`; `srvRunTok_intro` carries it at `p₀.appliedi`; `run`'s chain end tracks it.
+- **F3**: R1's `nodeConf` is the `Ready` loop's, lent to the apply thread through a batch with conf
+  changes and returned through `notifyc`'s blocking second send; the snapshot's point is
+  `snapPoint γ s a` (recorded by the snapshot's maker), and `snapImage_point` gives both threads the
+  same `a`: the loop applies R1's `Advance` wand at it, the apply thread opens the image at it.
+  Sketches of `raftNode.start`, `applySnapshot`, `applyConfChange`, the header's realization.
+- **F4**: `snapImage` is keyed by the snapshot through `snapPoint` (+ `snapPoint_agree`); its source
+  is the member's invariant over its snapshot directory, fed by 2f's `recvd`/`dbIn` at `Process`
+  (`srvNet`, `imgAt`). Two images per index cannot be ruled out: Go names the file by index only;
+  recorded as `nonissues/etcd-merged-snapshot-same-index-image.md` and an open scope question.
+- **F5**: precise request to R1 (`req/go_etcd_io_raft_v3.md`, "from 2d (round 1)": a batch's term
+  bound, the start's terms, a sent `MsgSnap`'s non-zero term); `applyBatch_terms`, `msgSnapC_recv`
+  (with `m.term ≠ 0`); `applyAll`'s sketch handles `raftTerm = 0` after a restart (the guard fails).
+- **F6**: `ReqAppliedRead` replaced by `ReqReadAfterApplyWait` (the store's revision after the wait);
+  `nonissues/etcd-applied-index-stale-after-snapshot.md` filed.
+- **F7**: laws `isRaftNode_storage`, `nodeSnapLb_stor`, `nodeAdvanced_applied`, `msgSnapC_recv`;
+  `ReqDriverLoop` no longer reads the storage after `stop`.
+- **F8**: the conf-change waiter's payload (`answered`, `histAt`, `membs` the history's members, `err
+  = nil` iff success, `advancedAt`) in `apply.spec`'s sketch and the request to 2c.
+- **F9**: `Assumes` of `ReqRestartContinues`, `ReqCrashKeepsAnswered`, `ReqLeaseExpiry`.
+- Second tier: S1 (`histPropose` takes raft's namespace `etcdN .@ "raft"`), S2 (non-empty normal
+  entries), S3 (the history kept per operation, translated through `committedLb`), S4 (`srvStarted`
+  on `applyAll`, `applyEntries`, `apply`, `applyEntryNormal`), S5 (`stopWithDelay` a raw goroutine
+  sending on `errorc`), S6 (re-examined: plausible with `StepDownOnRemoval` off, which etcd's
+  `raftConfig` leaves; `nonissues/etcd-concurrent-remove-last-voter.md`, scope), S7 (`ciState` in
+  one invariant, with an agreement half beside `ciWriter`; the storage request corrected), S8 (the
+  state machine is at `ci ≥ appliedi`, always). S9: the lessor's channel carries `leaseExpiry`
+  (request to 3c).
+
+Completeness:
+- **F1**: the slot `srvReadAt s γ k` with `srvApplied_read`, `srvReadAt_mono`; requested of 3e, 3c,
+  3d (none has a read predicate yet: 3e's main `Api.lean` is not written, 3c has `lessorAt`).
+- **F2**: `readCtx_register` (with `srvIdSpace`), `readReg_register`, `readReg_get` (`readTicket`).
+- **F3**: as provability F8.
+- **F4**: `srvMember_node`, `srvNode_agree`, `srvRunTok_intro`, `applyInit` with `applyInit_ep` (`ep` is
+  `run`'s), `srvStopped_disk` (with 2e's `srvClosed`, to `memberDisk γ.etcd id ds`); `srvRunTok` and
+  `srvStopped` take the directories `ds`; member ids are `Nat` as 2e's (raft's node id `W64 id`).
+- **F5**: `srvNode_errorc` (2f's `errChanOk`); `run` returns on `errorc`; `applyEntries`' sketch
+  fixed; `stopWithDelay`'s trusted spec requested from 2e; snippet `ReqRemovedSelfStops`.
+- **F6**: `Process.spec` takes `srvNet γ ν ∗ Rafthttp.recvd ν m` (the received database's `dbIn`);
+  `applySnapshot`'s sketch names the source.
+- 2f's and 2e's needs: `srvNode` holds from the server literal on (before `tr.Start()`), `procErr` via
+  `procErr_forbidden`, `IsIDRemoved` with a thread token (round 0). S1: snippet `ReqReports`. S2: the
+  `srvNode` docstring fixed. S3: the simple-token waiter added to `ReqReadAfterApplyWait`'s users and
+  to 3d's request. S4: answered in the request to 2e (`0 ≤ heartbeat`, `raftNodeBuilt` = `rnInit`).
+  S6: done. S8 (`Backend()` and the swap) and S5, S7, S9 left for round 2 (no spec change needed by a
+  current user).

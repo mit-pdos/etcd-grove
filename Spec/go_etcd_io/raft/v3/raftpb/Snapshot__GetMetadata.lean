@@ -5,6 +5,8 @@ Users: raft's `IsEmptySnap`, `restore`, `appliedSnap`, `MemoryStorage.ApplySnaps
 Proof sketch: `snapshotPts_unfold`: read the field; fold back (a read-only part is persistent and kept; a part
 owned at `dq` is lent by a wand).
 Changes: from `specs-ref/Spec/go_etcd_io/raft/v3/raftpb/Snapshot__GetMetadata.lean`: over raftpb's predicates and model.
+Round 1 (review, second tier 2): a conjunct for a snapshot of any presence (`snapshotRaw`: the
+metadata may be unset).
 Margin: none.
 -/
 module
@@ -36,6 +38,12 @@ def Snapshot.GetMetadata.spec : Prop :=
       (App (Val (p @!! go.GoType.PointerType raftpb.Snapshot.ty @!! go!"GetMetadata")) (Val #()))
     {{ (mp : Loc), RET #mp; snapMetaGo mp dq s.meta true ∗
         (snapMetaGo mp dq s.meta true -∗ snapshotPts p dq s) }}) ∧
+  (∀ (p : Loc) (dq : DFrac) (s : Snapshot),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ snapshotRaw p dq s }}
+      (App (Val (p @!! go.GoType.PointerType raftpb.Snapshot.ty @!! go!"GetMetadata")) (Val #()))
+    {{ (mp : Loc), RET #mp;
+        (⌜mp = null ∧ s.meta = Snapshot.empty.meta⌝ ∗ snapshotRaw p dq s) ∨
+        (snapMetaGo mp dq s.meta false ∗ (snapMetaGo mp dq s.meta false -∗ snapshotRaw p dq s)) }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.Snapshot.ty @!! go!"GetMetadata")) (Val #()))
   {{ RET #(null : Loc); True }}

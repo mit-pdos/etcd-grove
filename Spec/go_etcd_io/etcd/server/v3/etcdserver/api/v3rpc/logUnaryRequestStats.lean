@@ -1,7 +1,7 @@
 /-
 `v3rpc.logUnaryRequestStats` (`server/etcdserver/api/v3rpc/`).
 
-Users: `newLogUnaryInterceptor` (deferred).
+Users: `newLogUnaryInterceptor` (deferred; round 1: also after a failed handler, whose reply is `nil` or a typed `nil`, provability F5).
 
 Proof sketch: the logger's level (W0's `Zap`), `peer.FromContext` (grpc's), the type switch on the reply and request, `proto.Size` of each (`Proto.Size.spec`: both nest less than `depthMax`, the request decoded, the reply by `unaryOut`), the loggable request's `String()` (3h's generated stringers), `lg.Debug`/`lg.Warn`.
 
@@ -33,12 +33,15 @@ variable [sem : go.Semantics]
 /-- `logUnaryRequestStats(...)` of a run's request and reply (messages read, given back): returns. -/
 def logUnaryRequestStats.spec : Prop :=
   ∀ (ctx : GoInterface) (md : MD) (lg : Loc) (warn : w64) (info : Loc) (start : val)
-    (reqT repT : go.GoType) (q r : Loc) (dq dr : DFrac) (c c' : Content),
+    (reqT repT : go.GoType) (q : Loc) (dq : DFrac) (c : Content) (rv : GoInterface) (Rr : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ Zap.isLogger lg ∗ rpcCtx ctx md ∗ (∃ fm : GoString, info.[google_golang_org.grpc.UnaryServerInfo, go!"FullMethod"] ↦□ fm) ∗
-      msgAt reqT q dq c ∗ msgAt repT r dr c' ∗ ⌜depth c < depthMax ∧ depth c' < depthMax⌝ }}
+      msgAt reqT q dq c ∗ ⌜depth c < depthMax⌝ ∗ Rr ∗
+      (⌜rv = GoInterface.nil ∨ rv = msgVal repT null⌝ ∨
+       □ (Rr -∗ ∃ (r : Loc) (dr : DFrac) (c' : Content), ⌜rv = msgVal repT r ∧ depth c' < depthMax⌝ ∗
+          msgAt repT r dr c' ∗ (msgAt repT r dr c' -∗ Rr))) }}
     (App (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats)) (Val #ctx)) (Val #lg))
-      (Val #warn)) (Val #info)) (Val start)) (Val #(msgVal reqT q))) (Val #(msgVal repT r)))
-  {{ RET #(); msgAt reqT q dq c ∗ msgAt repT r dr c' }}
+      (Val #warn)) (Val #info)) (Val start)) (Val #(msgVal reqT q))) (Val #rv))
+  {{ RET #(); msgAt reqT q dq c ∗ Rr }}
 
 end spec
 

@@ -5,10 +5,7 @@
 `Authenticator`), etcdctl and the client's `Auth` API (1c). Snippet:
 `examples/specreq/etcdserverreq/auth.go`.
 
-**Proof sketch.** `raftRequest(ctx, &pb.InternalRaftRequest{...: r})` (`raftRequest.spec`
-at `.req (.userGet name)`: the apply's auth store answers by W0's `authStep`, the admin check at the
-committed state (3d)), then the type assertion to `*pb.UserGetResponse`
-(`respTy`).
+**Proof sketch.** `raftRequest(ctx, &pb.InternalRaftRequest{...: r})` (`raftRequest.spec` at `.req (.userGet name)`, the message wrapped and given back, 3h; the apply's auth store answers by W0's `authStep`, the admin check at the committed state, 3d), then the type assertion to `*pb.Auth...Response` (`respTy`).
 
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__UserGet.lean`, the auth plan's A3: one per mode,
 then merged, over the auth component's predicates) restated over W0's `authStep` and the three
@@ -41,11 +38,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.UserGet(ctx, r)`**: a user's roles, through raft (as `Put`). -/
 def EtcdServer.UserGet.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (r : Loc) (dq : DFrac) (name : GoString),
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (name : GoString),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"UserGet")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗ ClientV3.reqOwn r dq (.userGet name))
-    iprop(threadTok ∗ ClientV3.reqOwn r dq (.userGet name)) γ who (.userGet name) false (ClientV3.ansReply)
+        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.userGet name))
+    iprop(threadTok ∗ ClientV3.reqOwn r dq (.userGet name)) γ p tls (.userGet name) false (ClientV3.ansReply)
 
 end spec
 end EtcdServer

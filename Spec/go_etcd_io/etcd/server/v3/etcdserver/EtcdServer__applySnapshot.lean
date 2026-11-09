@@ -8,24 +8,28 @@ re-add the peers, and move the progress to the snapshot.
 
 **Proof sketch**. No snapshot: return. Else (`applyBatch`'s facts, R1's `readyGot`): the snapshot
 `sn` is valid (`snapValid γ.raft sn`), past the delivered log (`B.prev < sn.index`, so the
-"outdated index" panic is unreachable), and carries a database image (`snapImage γ sn`: the merged
-snapshot's sender made it, 2f delivered the db to the snapshotter, `req/` 2e/2f). `<-notifyc`: the
+"outdated index" panic is unreachable), and its database image is kept (`snapImage γ sn`: the member's
+invariant over its snapshot directory, 2e's `snapDbs`, recorded when `Process` received the
+`MsgSnap` with 2f's `ν.dbIn sn.index`, `srvNet`; `snapImage_point` gives its point `a`, the same the
+`Ready` loop named for the node's configuration at `Advance` (round 1, F3), under the scope of
+`nonissues/etcd-merged-snapshot-same-index-image.md`). `<-notifyc`: the
 loop's `SaveSnap`, `Save` and `Sync` of this batch are done (the WAL holds the snapshot record, so
-`Release` below it is safe). Under `bemu`: `OpenSnapshotBackend` (2e/4a: the `.snap.db` of
-`sn.index` opens to a backend whose state machine is at `histAt γ k` for its consistent index
-`k ≥ sn.index`; `Cindex.beStoredCI newbe k`); `consistIndex.SetBackend(newbe)`
+`Release` below it is safe). Under `bemu`: `OpenSnapshotBackend` (2e's
+`ServerStorage.OpenSnapshotBackend.spec`: the `.snap.db` of `sn.index` opens to a backend whose
+image is `imgAt γ sn.index`, the state machine at `histAt γ a` with stored index `a`, the
+snapshot's point; `Cindex.beStoredCI newbe a`); `consistIndex.SetBackend(newbe)`
 (`Cindex.consistentIndex.SetBackend.spec`); `lessor.Recover` (3c), `kv.Restore` (3e: no error on an
 image of the history), the post-lock hook set (4a); swap `s.be`; `storage.Release(sn)` (2e: no
 error, the snapshot is in the WAL); `alarmStore.Recover`, `authStore.Recover`,
-`cluster.SetBackend`/`Recover` (2e, 3d: from the image's records); `go oldbe.Close()` (an attached
-goroutine: the old backend's close returns, 4a's); the transport's `RemoveAllPeers`/`AddPeer` of the
-image's members (2f); the progress to `(sn.index, sn.term)`, `ep.confState := sn`'s (R1: the node
-takes the snapshot's configuration at `Advance`, at the point `a ≥ sn.index` the snapshot names:
-the thread's configuration view `confAt γ.raft a m` with `a = k` once the image's records are
-read); `NewUberApplier()` (3a's contract, established by its constructor, as the old
-`apply-uber-contract` example: whoever constructs it). The state machine is at `histAt γ k`,
-`k ≥ sn.index`: the entries in `(sn.index, k]` are replayed for the membership only (`apply`'s
-`applyV3`).
+`cluster.SetBackend`/`Recover` (2e, 3d: from the image's records); `go oldbe.Close()` (a raw goroutine, not
+attached: `run`'s `s.wg.Wait()` does not wait for it; its thread token and the old backend's closer
+go with it, 4a's: the close returns); the transport's `RemoveAllPeers`/`AddPeer` of the
+image's members (2f); the progress to `(sn.index, sn.term)`, `ep.confState := sn`'s (the
+configuration at the snapshot's point `a`, `confAt γ.raft a m`; the node's view is the loop's, which
+named the same `a` at `Advance`: round 1, F3); `NewUberApplier()` (3a's contract, established by its constructor, as the old
+`apply-uber-contract` example: whoever constructs it). The state machine is at `histAt γ a`,
+`a ≥ sn.index`: the entries in `(sn.index, a]` are replayed for the membership only (`apply`'s
+`applyV3`), and raft's view is already at `a`, so none of them is applied to raft.
 
 **Changes** from `specs-ref`'s `applySnapshot.specSnapM` (the mode-indexed image, the receipt, the
 compaction permits, `srvSnapOwn`, the restart window `srvRestR`): one statement over `applyThread`;
@@ -61,7 +65,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Install the batch's snapshot** (if any): the applied index moves to its index. -/
 def EtcdServer.applySnapshot.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (ep ap : Loc)
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ep ap : Loc)
     (apv : go_etcd_io.etcd.server.v3.etcdserver.toApply) (p : Progress) (B : ApplyBatch),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ applyThread s γ ep p ∗ ap ↦□ apv ∗

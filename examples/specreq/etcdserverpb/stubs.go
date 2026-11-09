@@ -20,7 +20,7 @@ func ReqKVStub(ctx context.Context, conn *grpc.ClientConn, key, val []byte) *pb.
 	if err != nil {
 		return nil
 	}
-	if resp == nil || resp.GetHeader() == nil {
+	if resp == nil || resp.Header == nil {
 		panic("put reply without a header")
 	}
 	return resp
@@ -52,7 +52,8 @@ func ReqWatchStub(ctx context.Context, conn *grpc.ClientConn, key []byte) {
 // chunk's key-values in order and the last header (the client's GetStreamToGetResponse).
 // Users: client/v3/kv.go (GetStreamToGetResponse: proto.Merge of each chunk).
 // Assumes: each chunk is a RangeResponse a RangeStream delivered (rangeRespOwn).
-// Specs: proto's Merge.spec, rangeRespOwn_msgAt.spec, rangeResp_merge.spec, RangeResponse.GetKvs.spec.
+// Specs: rangeRespDst_fresh.spec, rangeRespDst_msgAt.spec, proto's Merge.spec (2a's restated, with
+// mergeDstOk), rangeResp_merge.spec, rangeRespDst_own.spec, RangeResponse.GetKvs.spec.
 func ReqMergeRange(chunks []*pb.RangeResponse) *pb.RangeResponse {
 	out := &pb.RangeResponse{}
 	n := 0

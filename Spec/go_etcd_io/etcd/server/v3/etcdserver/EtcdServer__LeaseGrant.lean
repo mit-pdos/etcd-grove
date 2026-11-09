@@ -45,11 +45,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.LeaseGrant(ctx, r)`**: the grant of lease `id` (`0`: the server chooses one) for `ttl`, as `Put` (through raft); the request's `ID` is set to the id proposed. -/
 def EtcdServer.LeaseGrant.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (r : Loc) (id ttl : Int),
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (id ttl : Int),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseGrant")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.leaseGrant id ttl))
-    iprop(threadTok ∗ ∃ id', ClientV3.reqOwn r (DFrac.own 1) (.leaseGrant id' ttl)) γ who (.leaseGrant id ttl) false (ClientV3.ansReply)
+        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.leaseGrant id ttl))
+    iprop(threadTok ∗ ∃ id', ClientV3.reqOwn r (DFrac.own 1) (.leaseGrant id' ttl)) γ p tls (.leaseGrant id ttl) false (ClientV3.ansReply)
 
 end spec
 end EtcdServer

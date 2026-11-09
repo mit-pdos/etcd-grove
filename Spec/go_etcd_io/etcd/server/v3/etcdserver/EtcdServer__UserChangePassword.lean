@@ -5,10 +5,7 @@
 `Authenticator`), etcdctl and the client's `Auth` API (1c). Snippet:
 `examples/specreq/etcdserverreq/auth.go`.
 
-**Proof sketch.** If the password is not empty, its bcrypt hash into `r.HashedPassword` (as `UserAdd`); `raftRequest(ctx, &pb.InternalRaftRequest{...: r})` (`raftRequest.spec`
-at `.req (.userChangePassword name pw)`: the apply's auth store answers by W0's `authStep`, the admin check at the
-committed state (3d)), then the type assertion to `*pb.UserChangePasswordResponse`
-(`respTy`).
+**Proof sketch.** If the password is not empty, its bcrypt hash into `r.HashedPassword` (as `UserAdd`); `raftRequest(ctx, &pb.InternalRaftRequest{...: r})` (`raftRequest.spec` at `.req (.userChangePassword name pw)`, the message wrapped and given back, 3h; the apply's auth store answers by W0's `authStep`, the admin check at the committed state, 3d), then the type assertion to `*pb.Auth...Response` (`respTy`).
 
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__UserChangePassword.lean`, the auth plan's A3: one per mode,
 then merged, over the auth component's predicates) restated over W0's `authStep` and the three
@@ -41,11 +38,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.UserChangePassword(ctx, r)`**: as `UserAdd`'s hashing, then as `Put`. -/
 def EtcdServer.UserChangePassword.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (r : Loc) (name pw : GoString),
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (name pw : GoString),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"UserChangePassword")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.userChangePassword name pw))
-    iprop(threadTok ∗ ∃ rq', ClientV3.reqOwn r (DFrac.own 1) rq') γ who (.userChangePassword name pw) false (ClientV3.ansReply)
+        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.userChangePassword name pw))
+    iprop(threadTok ∗ ∃ rq', ClientV3.reqOwn r (DFrac.own 1) rq') γ p tls (.userChangePassword name pw) false (ClientV3.ansReply)
 
 end spec
 end EtcdServer

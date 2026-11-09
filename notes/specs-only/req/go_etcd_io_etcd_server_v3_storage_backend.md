@@ -39,3 +39,31 @@ Provisional names in 2e's modules, to be replaced by 4a's at integration:
    ```go
    be := serverstorage.OpenBackend(cfg, beHooks) // bootstrap.go:240
    ```
+
+## from 3c
+
+The lessor (`Spec/go_etcd_io/etcd/server/v3/lease/Api.lean`) declares provisional names for what it
+needs of the backend (4a) and of the schema's lease bucket (4b); replace them by yours at
+integration:
+
+1. **`Lease.beOk be`** (persistent): `be.BatchTx()`, `tx.LockOutsideApply()` (no hook), `tx.Unlock()`
+   and `be.ForceCommit()` may be called from any goroutine (the commit hooks' contracts are the
+   backend's own). Used by: `NewLessor.spec`, `lessor.Recover.spec`, `lessor.initAndRecover.spec`
+   (bootstrap and `applySnapshot`'s new backend).
+   ```go
+   tx := le.b.BatchTx(); tx.LockOutsideApply(); /* create, read all */ tx.Unlock()   // lessor.go:809-814
+   le.b.ForceCommit()                                                                  // :834
+   ```
+2. **`Lease.beApplyTok be`** (exclusive, given back): the right to `LockInsideApply()` the batch
+   transaction (running the post-lock hook: the apply thread's) and `Unlock()` it. Used by:
+   `lessor.Grant.spec`, `lessor.Checkpoint.spec`, `Lease.persistTo.spec`.
+   ```go
+   tx := b.BatchTx(); tx.LockInsideApply(); defer tx.Unlock()   // lease.go:57-59 (persistTo)
+   ```
+3. **`Lease.beTxHeld be`** (exclusive): this thread holds the batch transaction's lock (mvcc's
+   write transaction holds it from `Write()` to `End()`), so it may make unsafe writes. Used by:
+   `lessor.Revoke.spec` (its `UnsafeDeleteLease` under the deleter's transaction, `lessor.go:359`),
+   through `Lease.rdOk`.
+4. **The lease bucket and the commit**: a commit (and a crash) keeps the bucket as written by then
+   (`beLeases`, see the schema's file); `lessorState_bkt` lends the bucket back for the backend's
+   close.

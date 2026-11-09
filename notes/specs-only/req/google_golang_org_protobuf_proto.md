@@ -42,3 +42,35 @@ not in the boundary yet:
 3. **A shared bookkeeping predicate**: W0's `EtcdWire.protoRest t p dq` and 3h's `RaftPb.pbRest t p
    dq` are the same thing (the `state`, `sizeCache`, `unknownFields` fields of a generated message);
    one definition in `Proto` would serve both (optional; integration can identify them).
+
+## from 3h, round 1 (review F1: `Merge` writes in place)
+
+`proto.Merge(dst, src)` merges into `dst`'s set submessages and appends to its repeated fields, in
+place (`internal/impl/merge.go:159-184`, `merge_gen.go`): it needs every submessage and repeated
+field `dst` reaches **owned, with its slices' capacity**. 3h's and W0's relation laws do not give
+that for most messages (raftpb holds submessages and entries read-only for good and slices without
+capacity; W0's `rangeRespOwn` holds `Kvs` without capacity), so `Merge.spec` at those types, as
+stated today (`msgAt t p (own 1) c` only), is false of protobuf-go. Per type, what `Merge` needs:
+
+- **raftpb (every type)**: never a destination (raft and etcd never merge raft messages). No 3h law
+  gives the premise.
+- **etcdserverpb `RangeResponse`** (the client's `GetStreamToGetResponse`): a destination built by
+  `&pb.RangeResponse{}` and then only by `Merge` (3h's `rangeRespDst`, with `rangeRespDst_fresh`,
+  `rangeRespDst_msgAt`, `rangeRespDst_own`).
+- **every other etcd message**: never a destination.
+
+Asked: restate `Merge.spec` with a per-type premise on the destination, given back after the merge;
+3h declared it provisionally as `EtcdServerPb.mergeDstOk t p c` (`etcdserverpb/Api.lean`, opaque):
+`{msgAt t p (own 1) c ∗ mergeDstOk t p c ∗ msgAt t q dq c'} Merge(p, q) {msgAt t p (own 1) (merge c
+c') ∗ mergeDstOk t p (merge c c') ∗ msgAt t q dq c'}` (move the name into `Proto` if you prefer; 3h
+renames). And in the header, one line per generic spec on what it does to the holder (Clone reads;
+Size and Marshal write only `sizeCache`; Unmarshal resets, then writes fresh cells; Merge writes in
+place), checked against each owner's laws.
+
+Also (review, second tier 4): **a content records its message type** (an empty `AuthEnableRequest`
+and an empty `AuthDisableRequest` must be different contents, or 3h's `holds_fun` is inconsistent):
+`proto.Equal` compares descriptors first, so "up to `proto.Equal`" implies it; please say so in
+`Proto/Api.lean` (or a law `msgAt t p dq c ∗ msgAt t' p' dq' c ⊢ ⌜t = t'⌝`).
+
+To W0 (noted here, W0 reads it via the coordinator): `GetStreamToGetResponse.spec`'s accumulator is
+3h's `rangeRespDst` (fresh, merged into, then `rangeRespDst_own` to return a `rangeRespOwn`).

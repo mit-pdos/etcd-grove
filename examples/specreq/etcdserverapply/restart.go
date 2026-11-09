@@ -23,7 +23,8 @@ type Member interface {
 // and the restarted member continues it from its durable state.
 // Users: examples/lib/etcdstart (StartServer, HardStop), Kubernetes' etcd upgrades (rolling
 // restarts), etcd's integration tests (TestRestartMember).
-// Assumes: cli reaches the cluster's members (any of them may answer); m is a member of it.
+// Assumes: cli reaches the cluster's members (any of them may answer); m is a member of it; no
+// other client writes or deletes k, and k is put without a lease (so nothing else removes it).
 // Specs: EtcdServer.run.spec (srvStopped), raftNode.stop.spec, applySnapshot.spec; 2e's
 // memberStart_restart; W0's KV.PutTriple, KV.GetTriple, etcdLb_reach.
 func ReqRestartContinues(ctx context.Context, cli *clientv3.Client, m Member, k, v string) {
@@ -46,7 +47,8 @@ func ReqRestartContinues(ctx context.Context, cli *clientv3.Client, m Member, k,
 // commits only on a quorum): a crash of every member and a restart of all of them from their data
 // directories loses no acknowledged write.
 // Users: etcd's robustness tests (kill and restart), the model's absence of a crash transition.
-// Assumes: ms are all the cluster's members; cli reaches them once restarted.
+// Assumes: ms are all the cluster's members; cli reaches them once restarted; no other client
+// writes or deletes k, and k is put without a lease.
 // Specs: raftNode.start.spec (the write before the follower's send), RestartNode (R1), 2e's
 // memberStart_restart, the WAL's Save (2e).
 func ReqCrashKeepsAnswered(ctx context.Context, cli *clientv3.Client, ms []Member, k, v string) {
@@ -72,7 +74,8 @@ func ReqCrashKeepsAnswered(ctx context.Context, cli *clientv3.Client, ms []Membe
 // at which it is live, its keys deleted in one revision (EnvStep.leaseExpire through envUpd); a
 // client reading after the revocation sees none of its keys.
 // Users: client/v3/concurrency (sessions), Kubernetes' events (leases).
-// Assumes: the cluster's environment lets leases expire (EnvCfg.leaseExpiry); nobody keeps id alive.
+// Assumes: the cluster's environment lets leases expire (EnvCfg.leaseExpiry); nobody keeps id alive;
+// id is never granted again (no client asks for it by number), so no later key carries it.
 // Specs: revokeExpiredLeases.spec, 2c's LeaseRevoke.spec, 3c's expiry channel.
 func ReqLeaseExpiry(ctx context.Context, cli *clientv3.Client, id clientv3.LeaseID, k string) {
 	ttl, err := cli.TimeToLive(ctx, id)

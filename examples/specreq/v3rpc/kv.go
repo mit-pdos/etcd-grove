@@ -25,23 +25,26 @@ import (
 // Users: the client's kv.Do (rpctypes.Error of the status: errVal e), txnlin's call (a definite
 // error is "applied as a no-op"), Kubernetes' store (ErrDuplicateKey is a bug of its own).
 // Assumes: the member's --max-txn-ops is 128 (the default; at most 4999, Api.lean's maxTxnOpsMax).
+// A refusal any request may meet comes first and is accepted (the quota wrapper's ErrNoSpace runs
+// before the validation; a learner's refusal, too many requests, a request too large: the model's
+// Step.refuse).
 // Specs: kvServer.Put.spec, kvServer.Txn.spec, checkPutRequest.spec, checkTxnRequest.spec,
 // checkIntervals.spec; the contract etcdUnary's first way; rpctypes' Error.spec, init.spec.
 func ReqValidationAnswer(ctx context.Context, kc pb.KVClient) {
 	_, err := kc.Put(ctx, &pb.PutRequest{Key: nil, Value: []byte("v")})
-	if err != nil && rpctypes.Error(err) != rpctypes.ErrEmptyKey && !indefinite(err) {
+	if err != nil && rpctypes.Error(err) != rpctypes.ErrEmptyKey && !refusalOrIndefinite(err) {
 		panic("validation: an empty key's put fails with another definite error")
 	}
 	if err == nil {
 		panic("validation: an empty key's put succeeded")
 	}
 	_, err = kc.Put(ctx, &pb.PutRequest{Key: []byte("k"), Value: []byte("v"), IgnoreValue: true})
-	if err == nil || (rpctypes.Error(err) != rpctypes.ErrValueProvided && !indefinite(err)) {
+	if err == nil || (rpctypes.Error(err) != rpctypes.ErrValueProvided && !refusalOrIndefinite(err)) {
 		panic("validation: a value with IgnoreValue")
 	}
 	put := &pb.RequestOp{Request: &pb.RequestOp_RequestPut{RequestPut: &pb.PutRequest{Key: []byte("k"), Value: []byte("v")}}}
 	_, err = kc.Txn(ctx, &pb.TxnRequest{Success: []*pb.RequestOp{put, put}})
-	if err == nil || (rpctypes.Error(err) != rpctypes.ErrDuplicateKey && !indefinite(err)) {
+	if err == nil || (rpctypes.Error(err) != rpctypes.ErrDuplicateKey && !refusalOrIndefinite(err)) {
 		panic("validation: a key put twice in one branch")
 	}
 }
@@ -70,9 +73,11 @@ func ReqPutThenRange(ctx context.Context, kc pb.KVClient, k string) {
 // (ErrPermissionDenied, ErrUserEmpty, ErrUserNotFound: definite, nothing compacted), never
 // applied.
 // Users: Kubernetes' compactor (runs as root), etcdctl compaction, examples/etcd/compacted.
-// Assumes: auth on; ctx's token names a user without the root role; no other compaction.
-// Specs: kvServer.Compact.spec (AuthAdmin.isPermitted.spec); the model's compact step with its admin
-// refusal (req/go_etcd_io_etcd_api_v3.md, from 2a).
+// Assumes: auth on; ctx's token names a user that never had the root role (the admin check runs at
+// the member's local auth state: a user whose root role was just revoked may still compact through a
+// lagging member, nonissues/etcd-compact-admin-check-lagging-member.md); no other compaction.
+// Specs: kvServer.Compact.spec (AuthAdmin.isPermitted.spec); W0's compact step with its admin check
+// (W0's round 4: success requires an administrator at some auth state the call saw).
 func ReqCompactAdmin(ctx context.Context, kc pb.KVClient, rev int64) {
 	_, err := kc.Compact(ctx, &pb.CompactionRequest{Revision: rev})
 	if err == nil {
@@ -104,7 +109,8 @@ func ReqLeaseTTLUnknown(ctx context.Context, lc pb.LeaseClient, id int64) {
 // Users: the client's kv.GetStream (W0's wireStreamAt_recv), Kubernetes' streamed lists.
 // Assumes: the range uses the default order and no revision filter; no compaction during it.
 // Specs: kvServer.RangeStream.spec, headerFillingRangeStream.Send.spec, rangeStreamSpec (Api.lean),
-// rsSink_intro, rsSink_out; Grpc's cliRecv_recv.
+// rsSink_intro, rsSink_out, rsChunk_agree, rsChunk_hdr_last; Grpc's cliRecv_recv. An error before
+// the first chunk (ErrCompacted included) is allowed: the loop returns.
 func ReqRangeStream(ctx context.Context, kc pb.KVClient, prefix string) {
 	end := []byte(prefix)
 	end[len(end)-1]++
@@ -126,6 +132,18 @@ func ReqRangeStream(ctx context.Context, kc pb.KVClient, prefix string) {
 		}
 		last = m.RangeResponse
 	}
+}
+
+// refusalOrIndefinite: a refusal any request may meet, or an error that settles nothing.
+func refusalOrIndefinite(err error) bool {
+	switch rpctypes.Error(err) {
+	case rpctypes.ErrNoSpace, rpctypes.ErrTooManyRequests, rpctypes.ErrRequestTooLarge:
+		return true
+	}
+	if rpctypes.ErrorDesc(err) == rpctypes.ErrorDesc(rpctypes.ErrGRPCNotSupportedForLearner) {
+		return true
+	}
+	return indefinite(err)
 }
 
 // indefinite: an error the client treats as settling nothing (not one of etcd's definite errors).

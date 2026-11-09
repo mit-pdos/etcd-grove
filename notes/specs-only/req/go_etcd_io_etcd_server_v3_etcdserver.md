@@ -513,3 +513,141 @@ Restated after 2f's round 1 (the names are now those of `Rafthttp`'s `Api.lean`)
 6. **The package variables**: `Rafthttp.vars_init.spec` gives `ConnReadTimeout`/`ConnWriteTimeout`
    read-only (at least `5s`) and `ErrClusterIDMismatch`'s error, for `adjustTicks`
    (`server.go:495`), etcdserver's init (`server.go:119`) and `corrupt.go:533,613`.
+
+## from 3h, round 1 (the raft request moved down; v3lockpb/v3electionpb)
+
+Coordinator's decision (review F4): the `InternalRaftRequest`'s model is now etcdserverpb's
+(`Spec/go_etcd_io/etcd/api/v3/etcdserverpb/Api.lean`, namespace `EtcdServerPb`). Mapping for 2c, 2d
+and 2e at integration (rename; 2c keeps the semantics `IrrBody.fires`, `irrStep`, `irrReply`,
+`applyResult` over the moved type):
+
+| 2c/2e provisional | replaced by |
+|---|---|
+| `IrrBody` (2c `ApiReq.lean`) | `EtcdServerPb.IrrBody` (same constructors) |
+| `opMsgDepth`, `opsMsgDepth`, `txnMsgDepth`, `IrrBody.depthOk` (2c) | `EtcdServerPb.*` (same definitions) |
+| `irrOwn p ir` (2c) | `EtcdServerPb.irrOwn p ir` = `irrOwnH p ir none` (header unset) |
+| `alarmReqOwn p dq ir` (2c) | `EtcdServerPb.alarmReqOwn` |
+| `irrIsRevoke r b` (2e `ApiBoot.lean`) | `EtcdServerPb.irrIsRevoke` (a definition: `nil`, or the `LeaseRevoke` field read-only; intro `irrIsRevoke_intro` from a persisted decoded request) |
+
+Laws for the request path (2c) and the apply (2d): `irrOwnH_msgAt`, `alarmReqOwn_msgAt` (the
+content relation `irrHolds`, `irrHeaderHolds`, `alarmReqHolds`, functional: `irr_holds_fun`),
+`irrOwn_setHeader` (`r.Header = &pb.RequestHeader{...}`; `reqHeaderAt` is the header's fields, which
+the code writes in place), `irrOwnH_header` (reading `r.Header.ID` back), `irr_content` (depth below
+protobuf's limit under `depthOk`; `marshalOk` exactly for valid UTF-8 strings: `IrrBody.utf8Ok`).
+So "`proto.Marshal` of an `irrOwn` message ... decodes back to `ir` with the header set" is
+`irrOwnH_msgAt` + 2a's `Marshal.spec` (needs `Content.fits`: the encoded size is not bounded by the
+model; 2c's premise, e.g. from the request having fit gRPC, `Grpc.msgsFit`) + `Unmarshal.spec` +
+`Proto.encodes_fun` + `irr_holds_fun`. Open for 2c: the size bound (`fits`), which 3h cannot state
+from the model alone.
+
+For 2e (request 2): `v3lockpb` and `v3electionpb`'s messages are 3h's, same signatures as 2e's
+provisional ones: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb/Api.lean`
+(`V3lockpb.lockReq`, `unlockReq`, `lockResp`, `unlockResp`; `fields`, `resp_fold`) and
+`.../v3election/v3electionpb/Api.lean` (`V3electionpb.LeaderKeyM` (moved from `V3election`),
+`campaignReq`, `proclaimReq`, `resignReq`, `leaderReq`, `campaignResp`, `proclaimResp`, `resignResp`,
+`leaderResp`; `reqFields`, `resp_fold`, `leaderKeyRO`).
+
+## from 2d (round 1)
+
+2d's round-1 repairs (`notes/specs-only/batch-2d.md`, "Round 1 repairs"); new laws in `ApiApply.lean`.
+
+**To 2c.**
+1. (2c's items 3 and 5) `readCtx_register` (a fresh request id of a started member's id space,
+   `srvIdSpace s γi`, registers `be64 id` with `readLbQ l`), `readReg_register`/`readReg_get` (a
+   `readTicket γ t Rel Q l0`, exclusive; generic in the relation `Rel`: instantiate it with
+   `srvStep who rq`). `isServer_names` now also gives `∃ γi, srvIdSpace s γi`.
+2. (2c's item 6) `srvReadAt s γ k` (slot) with `srvApplied_read`: state the read specs (`Range`,
+   `Txn`, `doSerialize`, the lease and auth reads) over it; the subsystems' specs instantiate it
+   (requested from 3e, 3c, 3d).
+3. **The conf-change waiter's payload** (2d's provability F8, completeness F3): `P cc.ID x` must accept
+   `x = &confChangeResponse{membs, rac, err}` with `answered γ k cc.ID res`, `histAt γ k σ`, `membs`
+   listing `σ.members` (2e's `membersOwn`), `err = nil ↔ res` a success, and `advancedAt (&s.r) rac
+   last`. `configure` (and `ReqConfChangeAnswered`) rely on "`err = nil` ⇒ the change's node is in
+   `membs`", which this gives.
+4. `histPropose` no longer takes `mc`: the step is at the cluster's shared `γ.mc`; it needs raft's
+   namespace `etcdN .@ "raft"` and a non-empty normal entry.
+
+**To 2e.**
+5. **The shared apply configuration** (the coordinator's decision on 2d's provability F1):
+   `Names.mc : MemberCfg` (3a's: the lease minimum TTL, i.e. the election timeout and tick) is fixed
+   at the cluster's allocation; `NewServer` takes the premise that the member's configuration yields
+   `γ.mc` (every member configured alike for the apply). The allocation also fixes raft's namespace
+   `γ.raft.ns = etcdN .@ "raft"`.
+6. **Run's hand-off** (completeness F4): `srvMember_node` (from `NewServer`'s `srvMember` to `srvNode`;
+   `srvNode` holds from the server literal on, so `raftOk` for `tr.Start()` inside `NewServer` can
+   use `Process.spec`), `srvRunTok_intro` (what `start` must hold: the driver placed at `s.r` with
+   `rnLoop`, `rnStopper`, `applycPos (s.r) p₀.appliedi`; `applyInit s γ p₀ c₀` with `c₀ ≥ p₀.appliedi`;
+   your `srvClosers s ds`; with `srvNode`, `srvStarted`), `srvStopped_disk` (`srvStopped s γ id ds ∗
+   srvClosed ds ⊢ memberDisk γ.etcd id ds`: `run` deposits both in `s.done`'s escrow). Member ids are
+   `Nat` (yours); raft's node id is `W64 id`.
+7. **`raftNodeBuilt rn γ id st`** (your provisional slot) is 2d's `rnInit v γ id n` (`newRaftNode`'s
+   post) then `isRaftNode`/`rnLoop`/`rnStopper` after `rnInit_place`; `raftNodeBootCfg` needs only
+   `0 ≤ heartbeat`.
+8. **`stopWithDelay`** (names-only in the translation, called by `applyEntries` in a raw goroutine):
+   a trusted spec: after the delay it sends its error on `s.errorc` (2f's `errChanOk`, which `run`
+   receives and returns on) or returns on `s.done`; it takes and keeps a thread token.
+9. **`srvNet γ ν`** at `net_alloc` (2f's `Net`): `ν.γ = γ.raft`, `ν.img = imgAt γ` (an image of the
+   state machine at a snapshot's point), `ν.dbIn i` the member's record over its `snapDbs` that the
+   kept file of `i` holds such an image; the member's invariant over `Snap.snapDbs` keeps it; the
+   save update `saveOk` fires it.
+10. `errorc`: `srvNode_errorc` (2f's `errChanOk` of `s.errorc`), from the server literal.
+
+## from 3c
+
+The lessor's API: `Spec/go_etcd_io/etcd/server/v3/lease/Api.lean` (namespace `Lease`): the
+writer's token `lessorState γl n ls` (the apply thread's), the persistent history `lessorAt γl j ls`
+(readers answer from a state `j ≥` their lower bound `lessorLb γl i`), the objects `leaseObj γl l
+id ttl`, `isLessor le γl c` (persistent), `lessorStop le`. What 3c gives and needs:
+
+**To 2c (the request path).**
+
+1. **Lease reads**: `lessor.Lookup.spec`, `lessor.Leases.spec`, `lessor.Renew.spec`,
+   `Lease.Keys.spec`, `Lease.TTL.spec`, `Lease.Remaining.spec`, `Lease.Demoted.spec` (any goroutine,
+   `isLessor` and a `lessorLb γl i`): each answers from a state `j ≥ i` of the lessor's history,
+   returned as `lessorAt γl j ls`. `Leases`: the live ids, each once (`List.Forall₂` of objects to
+   ids); `Lookup`: the live object or `nil`; `Renew`: the TTL of the live lease, `ErrLeaseNotFound`
+   (not live at a state `≥ i`) or `ErrNotPrimary`, no other error; `Remaining`, `Demoted`: any value
+   (time); `l.ID`: `leaseObj_id`. 2c's "at the member's applied point" needs from 2d (item 4) a
+   `lessorLb γl i` for `srvApplied s γ k`, and the tie of `lessorAt γl j ls` to the history.
+2. **The keys may be mid-entry**: `Keys` answers from any state of the lessor's history, which
+   includes the states between two `Detach`es of a revocation's deletes and two `Attach`es of a
+   transaction's puts: a key set no revision had (`nonissues/etcd-lease-keys-mid-apply.md`).
+   W0's `leaseTimeToLive` (keys exactly those at some revision `r`) is false of etcd there; asked of
+   W0 (`req/go_etcd_io_etcd_api_v3.md`, "from 3c").
+
+**To 2d (the apply thread).**
+
+3. **The expiry channel**: `lessor.ExpiredLeasesC.spec` gives `expiredCh γl c ch`, whose receive
+   (`expiredCh_recv`) delivers `Lease.expiredSl γl sl ids` (persistent: the read-only slice of
+   objects, `leaseObj` of each) and only when `c.expiry = true`. Replace `ApiApply.lean`'s
+   provisional `expiredLeases sl ids` by `Lease.expiredSl γl sl ids`; `NewServer` makes the lessor
+   with `c.expiry = γ.cfg.leaseExpiry`, so `run`'s arm gets `γ.cfg.leaseExpiry = true` from the
+   receive.
+4. **The history tie** (2d's invariant): the apply thread holds `lessorState γl n ls`; record, for
+   each applied index `k`, the lessor's history index `n_k` the entry ended at, with
+   `ls_{n_k}` the lessor of `histAt γ k σ` (`ls.table` agreeing with `σ.leases` on ids, the
+   attachment invariant with σ's store); the states strictly between `n_k` and `n_{k+1}` are the
+   middle of entry `k + 1` (only that entry's `Attach`/`Detach` steps; a `Grant` or a revocation's
+   removal is one step). `srvApplied s γ k ⊢ lessorLb γl n_k` is then 2c's lower bound.
+5. **`Promote`, `Demote`**: `isLessor` only, no change to the model, no panic (the logger is
+   `isLessor`'s). **`Recover(newbe, rd)`** (`applySnapshot`): `lessorState`, `beOk newbe`,
+   `beLeases newbe B` (2e's `OpenSnapshotBackend`, the image's bucket); gives the loaded state at
+   `n + 1` (fresh objects, TTLs raised, no keys: mvcc's `Restore` re-attaches) and the old backend's
+   bucket back (`beLeases ls.be ls.bkt`, for its close).
+
+**To 2e (bootstrap, lifecycle).**
+
+6. **`NewLessor(lg, be, cluster, cfg)`**: `Zap.isLogger lg` (the zero logger panics), 4a's `beOk be`,
+   4b's `beLeases be B` (the opened backend's bucket: empty for a new member, the last commit's on a
+   restart), `clusterOk cluster` (membership's), and the expiry mode `exp` with `exp = false →
+   Lease.leasesOutliveRun`. ApiBoot's `leaseBootRes cfg ecfg` can be realized as
+   `⌜ecfg.leaseExpiry = false → Lease.leasesOutliveRun⌝` (W0's K2 premise, opaque, the program's).
+   It gives `isLessor le γl {minTTL := MinLeaseTTL, expiry := exp}`, `lessorState γl 0 _`,
+   `lessorStop le`. The lessor is a `lease.Lessor` interface value: `Lease.lessorIface le`.
+7. **`SetCheckpointer(cp)`**: `cp = func.nil` or `Lease.ckptOk cp`: for any context (`ctxOk`) and an
+   owned `*LeaseCheckpointRequest` (`Proto.msgAt`), it returns `nil` or `ErrNotPrimary` (the server's
+   closure: `ensureLeadership`, `raftRequest` of the checkpoint, its error dropped).
+8. **`Cleanup`**: `lessor.Stop.spec` takes `lessorStop le` once; the lease bucket comes back from the
+   writer's token by `lessorState_bkt` (for the backend's whole open token at close).
+9. **`leasehttp`**: `RenewHTTP`'s spec and `Leasehttp.rtOk` are yours (`lease/leasehttp/`); 3c adds
+   nothing: `TimeToLiveHTTP` has no translated caller (2c's `leaseTimeToLive` is untranslated).

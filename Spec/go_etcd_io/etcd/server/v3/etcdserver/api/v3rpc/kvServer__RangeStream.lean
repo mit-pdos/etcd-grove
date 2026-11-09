@@ -44,7 +44,7 @@ variable [sem : go.Semantics]
 def kvServer.RangeStream.spec : Prop :=
   ∀ (p s : Loc) (γ : Cluster) (r : Loc) (c : Content) (rs : GoInterface) (g : StreamName) (md : MD),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ ∗ threadTok ∗ msgAt go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty r (DFrac.own 1) c ∗
-      (rangeStreamSpec γ).up g md 0 c ∗ srvRecv rs g (rangeStreamSpec γ) md 1 ∗
+      (rangeStreamSpec γ).up g md 0 c ∗ (∃ ctx, srvCtxOf rs ctx md) ∗ srvRecv rs g (rangeStreamSpec γ) md 1 ∗
       srvSend rs g (rangeStreamSpec γ) md 0 }}
     (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"RangeStream")) (Val #r))
       (Val #rs))

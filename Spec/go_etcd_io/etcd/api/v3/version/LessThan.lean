@@ -1,12 +1,11 @@
 /-
-`version.LessThan(a, b)` (`api/version/version.go`): compares two `semver.Version`s by major and
-minor.
+`version.LessThan(a, b)` (`api/version/version.go:84`): `a.LessThan(&b)`, a full semver comparison.
 
 Users: the lessor's `greaterOrEqual` (`lease/lessor.go:391`: whether the cluster supports
 checkpointing, 3c).
 
-**Assumed** (a translation gap): names only, as `Cluster`. True of the code: it compares two
-integers of each value, no panic.
+**Assumed** (a translation gap): names only, as `Cluster`. True of the code: semver's comparison of
+two values, no panic.
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/version/LessThan.lean`: unchanged (some
 boolean).

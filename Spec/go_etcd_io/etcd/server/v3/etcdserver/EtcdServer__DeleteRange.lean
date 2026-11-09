@@ -5,7 +5,9 @@
 grpc-proxy's adapter. Snippet: `examples/specreq/etcdserverreq/kv.go` (`ReqDeleteThenRange`).
 
 **Proof sketch.** As `Put.spec`: the span, `raftRequest` at `.req (.deleteRange d)`, the type
-assertion `resp.(*pb.DeleteRangeResponse)` (`respTy`).
+assertion `resp.(*pb.DeleteRangeResponse)` (`respTy`). The premise `d.key ≠ []` is
+`checkDeleteRequest`'s (the server would answer an empty-key delete `Deleted 0`; W0's model says
+`ErrEmptyKey`).
 
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__DeleteRange.lean`, over `KVState` and
 `kvOpStep`) restated as `Put`'s (see `EtcdServer__Put.lean`).
@@ -37,11 +39,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.DeleteRange(ctx, r)`**: the delete `d`, as `Put`. -/
 def EtcdServer.DeleteRange.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (r : Loc) (dq : DFrac) (d : DeleteReq),
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (d : DeleteReq),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"DeleteRange")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗ deleteReqOwn r dq d)
-    iprop(threadTok ∗ deleteReqOwn r dq d) γ who (.deleteRange d) false (ClientV3.deleteReply)
+        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ deleteReqOwn r dq d ∗ ⌜d.key ≠ []⌝)
+    iprop(threadTok ∗ deleteReqOwn r dq d) γ p tls (.deleteRange d) false (ClientV3.deleteReply)
 
 end spec
 end EtcdServer

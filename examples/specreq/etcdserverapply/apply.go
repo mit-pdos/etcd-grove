@@ -34,28 +34,31 @@ func ReqWriteAnswered(ctx context.Context, s *EtcdServer, id uint64, data []byte
 	return x.(*apply.Result)
 }
 
-// REQ etcdserverapply/applied-read: once applyWait fires at index i, the member has applied the
-// committed log's first i entries: its applied index is at least i, and its KV store reflects the
-// history at or past i (2c's linearizable read reads after this wait).
-// Users: server/etcdserver/read/read.go (LinearizableReadLoop: ApplyWait(confirmedIndex)),
-// server/etcdserver/v3_server.go (waitAppliedIndex), server/lease/leasehttp (ApplyWaitCommit).
-// Assumes: none.
-// Specs: applyAll.spec (applyWait.Trigger with srvApplied), getAppliedIndex.spec,
-// getCommittedIndex.spec; laws: srvApplied_mono, srvApplied_hist.
-func ReqAppliedRead(s *EtcdServer) {
-	i := s.getCommittedIndex()
-	<-s.applyWait.Wait(i)
-	if s.getAppliedIndex() < i {
-		panic("applied-read: applied index behind the waited index")
+// REQ etcdserverapply/read-after-applywait: once applyWait fires at index k, a read of the member's
+// KV store sees every write committed at or before k: the store's revision is at least that of an
+// acknowledged put whose entry is at k (srvApplied s γ k, srvReadAt). (Not the applied-index atomic:
+// applySnapshot does not store it, nonissues/etcd-applied-index-stale-after-snapshot.md.)
+// Users: server/etcdserver/read/read.go (LinearizableReadLoop: ApplyWait(confirmedIndex), then the
+// readers read s.KV()), server/etcdserver/v3_server.go (waitAppliedIndex before the lease reads),
+// server/lease/leasehttp (ApplyWaitCommit), auth/simple_token.go:240 (from start on).
+// Assumes: the put that produced revision rev was answered at its entry's commit at index k
+// (answered γ k id (.ok (.put rev _))); no compaction is involved (Rev is the current revision).
+// Specs: applyAll.spec (applyWait.Trigger with srvApplied), srvApplied_read; 3e's Rev over srvReadAt.
+func ReqReadAfterApplyWait(s *EtcdServer, k uint64, rev int64) {
+	<-s.applyWait.Wait(k)
+	if s.KV().Rev() < rev {
+		panic("read-after-applywait: a write committed before the waited index is missing")
 	}
 }
 
 // REQ etcdserverapply/confchange-answered: a conf change's waiter gets a confChangeResponse whose
 // raftAdvanceC closes once raft has applied the change (so the next ProposeConfChange is not
-// refused as "pending"); a nil error means the membership has the change.
+// refused as "pending"); a nil error means the change was accepted at its commit and membs is the
+// membership after it (answered γ k id res, histAt γ k σ, membs = σ's members).
 // Users: server/etcdserver/server.go:1779-1821 (configure).
 // Assumes: cc.ID fresh; cc an AddNode of a member not in the cluster.
-// Specs: apply.spec (the trigger with advancedAt), applyConfChange.spec.
+// Specs: apply.spec (the trigger: answered, histAt, advancedAt), applyConfChange.spec; 2c's wait
+// predicate for conf-change ids (req/go_etcd_io_etcd_server_v3_etcdserver.md, from 2d (round 1)).
 func ReqConfChangeAnswered(ctx context.Context, s *EtcdServer, cc *raftpb.ConfChange) {
 	ch := s.w.Register(cc.GetId())
 	if err := s.r.ProposeConfChange(ctx, cc); err != nil {

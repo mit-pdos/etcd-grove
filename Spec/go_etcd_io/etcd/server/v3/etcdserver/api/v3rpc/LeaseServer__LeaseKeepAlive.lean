@@ -32,7 +32,7 @@ variable [sem : go.Semantics]
 /-- `ls.LeaseKeepAlive(stream)`: a run of the keep-alive stream. -/
 def LeaseServer.LeaseKeepAlive.spec : Prop :=
   ∀ (p s : Loc) (γ : Cluster) (st ctx : GoInterface) (g : StreamName) (md : MD),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ leaseServerAt p s γ ∗ threadTok ∗ rpcCtx ctx md ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ leaseServerAt p s γ ∗ threadTok ∗ rpcCtx ctx md ∗ srvCtxOf st ctx md ∗
       srvRecv st g (kaSpec γ) md 0 ∗ srvSend st g (kaSpec γ) md 0 }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseKeepAlive")) (Val #st))
   {{ (err : GoInterface), RET #err; threadTok ∗ streamOut st g (kaSpec γ) md err }}

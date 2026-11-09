@@ -14,8 +14,11 @@ is `EntryNormal` or `EntryConfChange` (`committed_types`: the "unknown entry typ
 unreachable). Normal: `applyEntryNormal.spec`. Conf change: `pbutil.MustUnmarshalMessage` decodes it
 (R1's `committedLb_confDecodes`: a legacy `ConfChange`), `applyConfChange.spec`, then
 `w.Trigger(cc.Id, &confChangeResponse{s.cluster.Members(), raftAdvancedC, err})` (2c's wait
-registry: its predicate for a conf change's id is given by the response with `advancedAt r rac
-last`, the members read from the membership view, `req/` 2c). `setAppliedIndex(k)`
+registry; round 1, F8 and completeness F3): the payload is `answered γ k cc.Id res` (the conf
+change's step at its commit, fired by `configure`'s update through `histPropose`), `histAt γ k σ`,
+`membs` the members of `σ` (2e's membership view after the change: `Members()` at the thread's point
+`k`), `err = nil` exactly when `res` is a success (so an accepted `AddNode` lists the node), and
+`advancedAt r rac last` (raft has applied the change once it closes). `setAppliedIndex(k)`
 (`setAppliedIndex.spec`: `srvApplied s γ k` from the thread), `setTerm`.
 
 **Changes** from `specs-ref`'s `apply.spec` (the write-token pool, `kvAppliedM`, the restart point's
@@ -53,10 +56,10 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **Apply committed entries** `ents` (from index `a + 1`, the applied index): the thread is applied
 through `a + |ents|`; returns the last entry's term and index. -/
 def EtcdServer.apply.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (ep : Loc) (p : Progress) (a c ai : Nat) (es : GoSlice)
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ep : Loc) (p : Progress) (a c ai : Nat) (es : GoSlice)
     (ents : List Raft.LogEntry) (l : List Raft.LogEntry) (rac : Loc) (k : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ applyAt s γ ep p a c ai ∗ Raft.entriesRO es (a + 1) ents ∗
+      srvNode s γ id ∗ srvStarted s γ id ∗ applyAt s γ ep p a c ai ∗ Raft.entriesRO es (a + 1) ents ∗
       Raft.committedLb γ.raft l ∗
       advancedAt (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) rac k ∗
       ⌜ents ≠ [] ∧ (l.drop a).take ents.length = ents ∧ a + ents.length ≤ k⌝ }}

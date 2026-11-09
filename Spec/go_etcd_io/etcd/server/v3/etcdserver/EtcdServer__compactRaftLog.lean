@@ -43,7 +43,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Compact the raft log below a snapshot** at an index raft has applied. -/
 def EtcdServer.compactRaftLog.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (snapi : w64),
+  ∀ (s : Loc) (γ : Names) (id : Nat) (snapi : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvNode s γ id ∗
       nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
         (uint.nat snapi) ∗

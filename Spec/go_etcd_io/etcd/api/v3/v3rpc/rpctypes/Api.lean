@@ -34,6 +34,8 @@ client's classification `callErr err k` (`client/v3/Api.lean`).
 * `errVal_errMsg.spec`, `errVal_not_status.spec`: what `status.FromError` sees of `errVal e`.
 * `ctxErr_errMsg.spec`: a context's error's message (Go's `context`: "context canceled",
   "context deadline exceeded").
+* Round 1 (completeness F2): a definite error's code is pinned (`code e`, or `Unknown` for the two
+  `EtcdError`s `togRPCError` sends); `desc_ascii`, `code_not_ctx`, `callErr_eof`.
 * **`callErr`'s realization**: `callErr_view.spec` (what an error of each kind is, as
   `status.FromError` sees it), and its introductions `callErr_status.spec` (a status with a mapped
   description is `.etcd e`), `callErr_ownErr.spec` (grpc's own errors are `.other`),
@@ -360,27 +362,43 @@ section res2
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-def errVal_errMsg.spec : Prop := ∀ e, ⊢ Grpc.errMsg (GF := GF) (errVal e) (desc e)
+def errVal_errMsg.spec : Prop := ∀ e,
+  ⊢ Grpc.errMsg (GF := GF) (errVal e) (desc e) ∗ Grpc.plainErr (errVal e) ∗ ⌜Grpc.cmpErr (errVal e)⌝
 
 def errVal_not_status.spec : Prop := ∀ e c m, Grpc.statusErr (GF := GF) (errVal e) c m ⊢ False
 
 /-- A context's error's message. -/
 def ctxErr_errMsg.spec : Prop := ∀ err,
   context.isCtxErr (GF := GF) err ⊢ ∃ m, Grpc.errMsg err m ∗
-    ⌜m = go!"context canceled" ∨ m = go!"context deadline exceeded"⌝ ∗
-    (∀ c m', Grpc.statusErr err c m' -∗ False)
+    ⌜(m = go!"context canceled" ∨ m = go!"context deadline exceeded") ∧ Grpc.cmpErr err⌝ ∗
+    Grpc.plainErr err ∗ (∀ c m', Grpc.statusErr err c m' -∗ False)
 
 /-- **What an error of each kind is**: `.etcd e`: a status with `e`'s description that `Error` maps
 (or `errVal e` itself); any other kind: a non-nil error whose description is no mapped one. -/
 def callErr_view.spec : Prop := ∀ err k,
   callErr (GF := GF) err k ⊢
     match k with
-    | .etcd e => ∃ c ok, Grpc.errView err c (desc e) ok ∗ ⌜mapped e = true ∨ err = errVal e⌝
+    | .etcd e => ∃ c ok, Grpc.errView err c (desc e) ok ∗
+        ⌜(c = code e ∨ c = Grpc.cUnknown) ∧ (mapped e = true ∨ err = errVal e)⌝
     | _ => ∃ c m ok, Grpc.errView err c m ok ∗ ⌜err ≠ GoInterface.nil ∧ ∀ e, mapped e = true → m ≠ desc e⌝
 
-/-- A status with a mapped description is that error. -/
+/-- A status with a mapped description, and `e`'s code (or `Unknown`: the two errors
+`togRPCError` maps to `EtcdError`s, sent as `Unknown`), is that error. -/
 def callErr_status.spec : Prop := ∀ err c e,
-  Grpc.statusErr (GF := GF) err c (desc e) ∗ ⌜mapped e = true⌝ ⊢ callErr err (.etcd e)
+  Grpc.statusErr (GF := GF) err c (desc e) ∗ ⌜mapped e = true ∧ (c = code e ∨ c = Grpc.cUnknown)⌝ ⊢
+    callErr err (.etcd e)
+
+/-- etcd's descriptions are ASCII (so they arrive unchanged, `Grpc.fixUtf8_ascii`). -/
+def desc_ascii.spec : Prop := ∀ (e : EtcdErr), ∀ b ∈ desc e, uint.nat b < 128
+
+/-- No definite mapped etcd error has the code `Canceled` or `DeadlineExceeded` (the client's
+`isContextError`, Kubernetes' `isCancelError`). -/
+def code_not_ctx.spec : Prop := ∀ e : EtcdErr, mapped e = true → e.indefinite = false →
+  code e ≠ Grpc.cCanceled ∧ code e ≠ Grpc.cDeadlineExceeded
+
+/-- `io.EOF` (a stream's end, a `SendMsg` after the server ended) is `.other`. -/
+def callErr_eof.spec : Prop := ∀ err,
+  globalAddr io.EOF ↦□ err ⊢ callErr (GF := GF) err .other
 
 /-- A status with no mapped description is `.other`. -/
 def callErr_unmapped.spec : Prop := ∀ err c m,

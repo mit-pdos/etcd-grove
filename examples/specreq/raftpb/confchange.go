@@ -16,7 +16,7 @@ import (
 // Specs: MarshalConfChange.spec (decodeConfChange of the bytes), proto's Unmarshal.spec,
 // confChangeV1Pts_msgAt.spec, ConfChange.GetNodeId.spec.
 func ReqMarshalDecode(id uint64, ctx []byte) {
-	cc := &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: proto.Uint64(id), Context: ctx}
+	cc := &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(id), Context: ctx}
 	typ, data, err := pb.MarshalConfChange(cc)
 	if err != nil || typ != pb.EntryConfChange {
 		panic("marshal")
@@ -54,7 +54,7 @@ func ReqAutoLeave() {
 // Specs: ConfChange.AsV2.spec, ConfChangeV2.LeaveJoint.spec, ConfChangeV2.EnterJoint.spec,
 // ConfChangeV2.GetChanges.spec, ConfChangeSingle.GetNodeId.spec.
 func ReqAsV2(id uint64) {
-	cc := &pb.ConfChange{Type: pb.ConfChangeRemoveNode.Enum(), NodeId: proto.Uint64(id)}
+	cc := &pb.ConfChange{Type: pb.ConfChangeRemoveNode.Enum(), NodeId: new(id)}
 	v2 := cc.AsV2()
 	if v2.LeaveJoint() {
 		panic("a removal leaves")
@@ -76,8 +76,8 @@ func ReqEnterLeave(a, b uint64) {
 	cc := &pb.ConfChangeV2{
 		Transition: pb.ConfChangeTransitionJointExplicit.Enum(),
 		Changes: []*pb.ConfChangeSingle{
-			{Type: pb.ConfChangeAddNode.Enum(), NodeId: proto.Uint64(a)},
-			{Type: pb.ConfChangeAddLearnerNode.Enum(), NodeId: proto.Uint64(b)},
+			{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(a)},
+			{Type: pb.ConfChangeAddLearnerNode.Enum(), NodeId: new(b)},
 		},
 	}
 	autoLeave, ok := cc.EnterJoint()
@@ -92,7 +92,7 @@ func ReqEnterLeave(a, b uint64) {
 // Specs: ConfState.Equivalent.spec, ConfState.GetVoters.spec.
 func ReqEquivalent() {
 	cs1 := &pb.ConfState{Voters: []uint64{1, 2, 3}, Learners: []uint64{5}}
-	cs2 := &pb.ConfState{Voters: []uint64{3, 1, 2}, Learners: []uint64{5}, AutoLeave: proto.Bool(false)}
+	cs2 := &pb.ConfState{Voters: []uint64{3, 1, 2}, Learners: []uint64{5}, AutoLeave: new(false)}
 	if err := cs1.Equivalent(cs2); err != nil {
 		panic(err)
 	}

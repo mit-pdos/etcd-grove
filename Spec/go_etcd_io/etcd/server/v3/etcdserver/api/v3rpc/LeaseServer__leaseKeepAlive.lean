@@ -32,7 +32,8 @@ variable [sem : go.Semantics]
 /-- `ls.leaseKeepAlive(stream)`: the loop, until the client closes (`nil`) or an error. -/
 def LeaseServer.leaseKeepAlive.spec : Prop :=
   ∀ (p s : Loc) (γ : Cluster) (st : GoInterface) (g : StreamName) (md : MD) (i j : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ leaseServerAt p s γ ∗ srvRecv st g (kaSpec γ) md i ∗ srvSend st g (kaSpec γ) md j }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ leaseServerAt p s γ ∗ (∃ ctx, srvCtxOf st ctx md) ∗ srvRecv st g (kaSpec γ) md i ∗
+      srvSend st g (kaSpec γ) md j }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"leaseKeepAlive")) (Val #st))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∨ ∃ code msg, sentStatus err code msg }}
 

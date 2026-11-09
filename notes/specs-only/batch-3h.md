@@ -101,7 +101,8 @@ id ctx)`), `decodeConfChange_empty`, `wire_fun` (`msgEncodes`, `entryEncodes` fu
 | `snapshotPts p dq s` | R1 | `RaftPb.snapshotPts` (full; `snapshotRaw` for any presence) |
 | `confStatePts p dq cs` | R1, R4 | `RaftPb.confStatePts` (any presence; `confStateFull` when ensured) |
 | `confChangePts v dq c` | R1, R2 | `RaftPb.confChangePts` (definition over `confChangeV1Pts`/`V2Pts`) |
-| `entryRO p k e` | R3 `ApiLog.lean`, 2d `ApiApply.lean` | `RaftPb.entryRO` (definition: `entryPts p □ (W64 k) e`) |
+| `entryRO p k e` | R3 `ApiLog.lean` | `RaftPb.entryRO` (definition: `entryPts p □ (W64 k) e`) |
+| `entryAt` (and its law `entriesRO_elem`) | 2d `ApiApply.lean` | `RaftPb.entryRO`; `entriesRO_elem` follows from `entriesRO` being a definition (an element of the sepL2) |
 | `entryPtrs sl dq es` | R2 `ApiCore.lean` | `RaftPb.entryPtrs` |
 | `ccsPts sl dq cs` | R4 `confchange/Api.lean` | `RaftPb.ccsPts`, over `RaftPb.ConfChangeSingle` (= R4's `ConfChange.Single`: same fields) |
 | `decodeConfChange` (opaque) | R1 `Model.lean` | `RaftPb.decodeConfChange` (definition) |
@@ -110,7 +111,12 @@ id ctx)`), `decodeConfChange_empty`, `wire_fun` (`msgEncodes`, `entryEncodes` fu
 | `ConfState.Equiv` | R3 `ApiLog.lean` | `RaftPb.ConfState.Equiv` (same definition) |
 | `pbEncodes e m` | 2f `rafthttp/Api.lean` | `RaftPb.msgEncodes e m` (functional: `wire_fun`) |
 | `reqModels`, `replyModels`, `chunkModels` | 2a `v3rpc/Api.lean` | `EtcdServerPb.reqModels`, `replyModels`, `chunkModels` |
-| `irrOwn`, `alarmReqOwn`, `irrIsRevoke` | 2c `ApiReq.lean`, `ApiBoot.lean` | **not yet**: see open question 4 |
+| `IrrBody`, `opMsgDepth`/`opsMsgDepth`/`txnMsgDepth`, `IrrBody.depthOk` | 2c `ApiReq.lean` | `EtcdServerPb.*` (moved, round 1) |
+| `irrOwn`, `alarmReqOwn` | 2c `ApiReq.lean` | `EtcdServerPb.irrOwn` (= `irrOwnH p ir none`), `alarmReqOwn` |
+| `irrIsRevoke` | 2e `ApiBoot.lean` | `EtcdServerPb.irrIsRevoke` (definition; `irrIsRevoke_intro`) |
+| `lockReq`, `unlockReq`, `lockResp`, `unlockResp` | 2e `V3lock` | `V3lockpb.*` |
+| `LeaderKeyM`, `campaignReq`, ..., `leaderResp` | 2e `V3election` | `V3electionpb.*` |
+| R2's `applyChange (.v2 (asV2 c)) = applyChange c` | R2's request | not 3h's: `Membership.applyChange` is R1's opaque, defined by R4 (`confchange/Model.lean`); with `RaftPb.ConfChangeI.asV2` it is a pure lemma of R4's instances |
 
 ## Main changes from the old specs
 
@@ -145,7 +151,7 @@ id ctx)`), `decodeConfChange_empty`, `wire_fun` (`msgEncodes`, `entryEncodes` fu
 
 ## Open questions for the user (and the coordinator)
 
-1. **Translation gaps** (`Code/go_etcd_io/etcd/api/v3/{etcdserverpb,mvccpb}.toml`, not this
+1. **Translation gaps** (consolidated request: see "Round 1 repairs" below for the list) (`Code/go_etcd_io/etcd/api/v3/{etcdserverpb,mvccpb}.toml`, not this
    batch's to change): 1c asked for `Member`, `MemberAddResponse`, `MemberListResponse`,
    `StatusResponse` (and `AlarmResponse`'s fields) translated as structs; W0's `sortNames_init`
    needs `RangeRequest_SortOrder_name`/`_SortTarget_name` translated; 1b's `Event.IsCreate`/
@@ -161,12 +167,7 @@ id ctx)`), `decodeConfChange_empty`, `wire_fun` (`msgEncodes`, `entryEncodes` fu
 3. **`MarshalConfChange`'s size premise** (`c.wireBound < 2 ^ 48`, a context under ~2^47 bytes):
    R1's `ProposeConfChange.spec` must carry it (a client-facing premise; true of every real change,
    but stated). Alternatively a workload premise like grpc's `msgsFit`. The user's choice.
-4. **The `InternalRaftRequest`** (2c's provisional `irrOwn`, `alarmReqOwn`, `irrIsRevoke`): its
-   model `IrrBody` is 2c's (`ApiReq.lean`), above this package. Realizing it here needs either the
-   model moved down into `etcdserverpb` (it is the raft request's content: a field per request kind)
-   or the relation law `irrOwn_msgAt` stated in 2c's file over a relation 3h would add
-   (`irrHolds c ir`). Proposed: move `IrrBody` down at integration; 3h then adds `irrHolds` and its
-   laws in the same shape as `reqHolds`.
+4. ~~The `InternalRaftRequest`~~: decided by the coordinator (round 1): moved down; done.
 5. **Bootstrap determinism** is a fact of protobuf-go that 2a's boundary does not state yet
    (`req/google_golang_org_protobuf_proto.md`, "from 3h", item 1); until then `bootEntryData` is
    opaque with `bootCC_facts` (it encodes the bootstrap content), which does not give R1 equal bytes
@@ -178,3 +179,52 @@ id ctx)`), `decodeConfChange_empty`, `wire_fun` (`msgEncodes`, `entryEncodes` fu
   empty bytes decode to the zero message, one shared bookkeeping predicate.
 - `req/google_golang_org_grpc.md`, "from 3h": `grpc.StaticMethod()`, interface dispatch of the
   connection interface, `HandlerTriple`'s home.
+
+## Round 1 repairs (review `reviews/3h-review-1.md`)
+
+- **F1 (`Merge` writes in place)**: no raftpb or W0 predicate is a merge destination (stated in
+  `raftpb/Api.lean`'s header and `etcdserverpb/Api.lean`'s "Merge destinations"). New in
+  `etcdserverpb/Api.lean`: `mergeDstOk t p c` (provisional, 2a's: the premise 2a's restated
+  `Merge.spec` takes and gives back), `rangeRespDst p m` (the client's streamed-range accumulator)
+  with `rangeRespDst_fresh`, `rangeRespDst_msgAt`, `rangeRespDst_own`. What `Merge` needs per type:
+  `req/google_golang_org_protobuf_proto.md`, "from 3h, round 1" (also: a content records its type,
+  second tier 4).
+- **F2**: `MarshalConfChange`'s post adds `o = none → b = slice.nil ∧ bs = []`.
+- **F3 (snippets)**: `resp.Header`/`r.Header` read directly (the `PutResponse`/`RangeResponse`
+  `GetHeader` are untranslated); `new(x)` instead of `proto.Uint64`/`proto.Bool`; `bootstrap-bytes`
+  and `sort-names` marked BLOCKED on their dependencies; `merge-range` cites `rangeRespDst`.
+- **F4**: the raft request's model moved into `etcdserverpb/Api.lean`: `IrrBody` (+ `isRevoke`), the
+  depth functions, `IrrBody.depthOk`, `IrrHeader`, the relations `irrHolds`, `irrHeaderHolds`,
+  `alarmReqHolds`, `IrrBody.utf8Ok`; resources `irrOwnH` (`irrOwn` its header-unset case),
+  `alarmReqOwn`, `irrIsRevoke` (definition), `reqHeaderAt`; laws `irrOwnH_msgAt`,
+  `alarmReqOwn_msgAt`, `irrOwn_setHeader`, `irrOwnH_header`, `irr_content`, `irr_holds_fun`,
+  `irrIsRevoke_intro`. 2e's `v3lockpb`/`v3electionpb` messages: new
+  `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/{v3lock/v3lockpb,v3election/v3electionpb}/Api.lean`
+  (namespaces `V3lockpb`, `V3electionpb`): the predicates with 2e's signatures, relations, field and
+  fold laws. Mapping: the table above and `req/go_etcd_io_etcd_server_v3_etcdserver.md`, "from 3h,
+  round 1" (open for 2c: the raft request's encoded size, `fits`, is not bounded by its model).
+- **Second tier**: the `ConfState` getters take either predicate (`full`); `Snapshot.GetData` either,
+  `Snapshot.GetMetadata` a `snapshotRaw` conjunct (metadata possibly unset); the lease `GetHeader`
+  getters cite a stated law, `leaseResp_header`; the homogeneous-cluster restriction of `msgPts`
+  stated; the mapping table corrected (2d's `entryAt`; R2's `asV2` law is R1/R4's). Not done:
+  `pbRest_zero` under a fancy update (second tier 3: depends on 2a's model of `sizeCache`), the
+  `New*Client` sketches' dependency on a `connOk` elimination law from 1c (second tier 6), the size
+  premise for rafthttp (second tier 7: the same decision as open question 3), `bootCC_lit`'s
+  non-empty context (second tier 5: R1's `BootLog` already requires it; etcd's contexts are JSON).
+- **Third tier**: header drift fixed (`wire_fun`, `bootCC_facts`, the `stubs.go` snippet), the
+  version docs corrected.
+
+### Consolidated translation request (for the user)
+
+Each item blocks a stated spec or law; all are in `Code/go_etcd_io/etcd/api/v3/{etcdserverpb,mvccpb}.toml`:
+
+1. `kVClient.RangeStream`, `_KV_RangeStream_Handler` and the `KV_RangeStream*` stream types (W0's
+   `RangeStream`: `NewKVClient.spec`'s `remoteKVAt_methods` includes it).
+2. `NewClusterClient`, `NewMaintenanceClient` and their stubs; the `_Cluster_*_Handler` and
+   `_Maintenance_*_Handler` handlers (1c's `remoteClusterAt`/`remoteMaintAt`; a member's Cluster and
+   Maintenance services).
+3. The structs `Member`, `MemberAddResponse`, `MemberListResponse`, `StatusResponse`,
+   `AlarmResponse` (their fields: 1c's `Client.Sync`, `MemberList`, `Status`, `AlarmList`).
+4. `mvccpb.Event.IsCreate`, `IsModify` (1b; Kubernetes' watcher).
+5. `RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name` with their initializers (W0's
+   `Op.IsSortOptionValid`, `sortNames_init`).

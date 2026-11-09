@@ -15,7 +15,8 @@ import (
 // an index at which the cluster confirmed the read (R1's readState), and only registered contexts
 // come back.
 // Users: server/etcdserver/read/read.go (requestCurrentIndex: s.r.ReadIndex, <-s.r.ReadState()).
-// Assumes: rctx was registered with raft (readCtx_register, the server's), fresh.
+// Assumes: rctx is be64 of a fresh request id of a started member, registered by the server's
+// readCtx_register (ApiApply.lean) with the committed log at hand.
 // Specs: raftNode.ReadIndex.spec, raftNode.ReadState.spec, readStateC_recv; R1's readState_fire.
 func ReqReadIndex(ctx context.Context, r *raftNode, rctx []byte) uint64 {
 	if err := r.ReadIndex(ctx, rctx); err != nil {
@@ -59,9 +60,29 @@ func ReqProcess(ctx context.Context, s *EtcdServer, m *raftpb.Message) {
 func ReqDriverLoop(r *raftNode, rh *raftReadyHandler) {
 	r.start(rh)
 	r.stop()
-	if _, err := r.raftStorage.FirstIndex(); err != nil {
-		panic("driver-loop: storage unreadable after stop")
-	}
+}
+
+// REQ etcdserverapply/removed-self-stops: a member that applies its own removal stops: the apply
+// thread starts stopWithDelay, which sends on errorc; run returns and its shutdown runs (the stop's
+// deposit is the member's durable state); StopNotify then closes, and a HardStop after it returns.
+// Users: server/etcdserver/server.go:1231-1232, 1366-1377, 845-848; rafthttp's critical errors on
+// errorc (stream.go:624, pipeline.go:170, snapshot_sender.go:113).
+// Assumes: s is started; an accepted RemoveNode of s's own id was committed.
+// Specs: applyEntries.spec (stopWithDelay, 2e's), run.spec (the errorc arm), srvNode_errorc.
+func ReqRemovedSelfStops(s *EtcdServer) {
+	<-s.StopNotify()
+	s.HardStop()
+}
+
+// REQ etcdserverapply/reports: the transport's reports and membership query never panic and need
+// nothing but the member (and, for IsIDRemoved, a thread).
+// Users: rafthttp (peer.go, snapshot_sender.go: ReportUnreachable, ReportSnapshot; IsIDRemoved).
+// Assumes: none.
+// Specs: EtcdServer.{ReportUnreachable,ReportSnapshot,IsIDRemoved}.spec.
+func ReqReports(s *EtcdServer, id uint64) bool {
+	s.ReportUnreachable(id)
+	s.ReportSnapshot(id, raft.SnapshotFinish)
+	return s.IsIDRemoved(id)
 }
 
 // REQ etcdserverapply/write-before-send: a follower's messages (its acknowledgements) leave only

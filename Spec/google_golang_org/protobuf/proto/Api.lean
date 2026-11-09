@@ -34,6 +34,10 @@ model was a record any caller could fill: `specs-ref/notes/pbenc-ok-inconsistent
   `ConfChange` built by a client: only `bytes` fields).
 * `encodes t c bs` (opaque `Prop`): `bs` is a wire encoding of the content `c` of a `*t` (decoding
   is a function: `encodes_fun`).
+* `noMaps t`, `marshalOut t c`: `Marshal` is deterministic for a type without maps (3h's request:
+  every founder of a raft cluster appends the same bootstrap bytes); `zero`: a fresh message's
+  content (`zero_facts`).
+* `mergeDst t p c` (round 1, 3h's review F1): a destination `Merge` may write in place.
 * `merge c c'`: `proto.Merge`'s result (repeated fields appended, set scalars and submessages
   taken from `c'`); what it is for a given message type is that type's owner's law.
 
@@ -76,7 +80,11 @@ namespace Proto
 open Iris Iris.BI
 
 /-- **A message's protobuf content** (see the header): opaque. -/
-opaque Content : Type := Unit
+opaque ContentT : { T : Type // Nonempty T } := ⟨Unit, ⟨()⟩⟩
+
+def Content : Type := ContentT.1
+
+instance : Nonempty Content := ContentT.2
 
 /-- `proto.Size` of the content (each reference counted). -/
 opaque encSize : Content → Nat
@@ -102,6 +110,21 @@ opaque encodes (t : go.GoType) (c : Content) (bs : List w8) : Prop
 /-- `proto.Merge`'s result. -/
 opaque merge (_c c' : Content) : Content := c'
 
+/-- **The message type `*t` has no map field** (opaque; true of every etcd and raft message):
+`Marshal`'s output is then a function of the content (fields in field-number order,
+`orderedCoderFields`; unknown fields as stored; only map iteration is randomized). -/
+opaque noMaps (t : go.GoType) : Prop
+
+/-- **`Marshal`'s output** for a type without map fields (opaque function of the content). -/
+opaque marshalOut (t : go.GoType) (c : Content) : List w8
+
+/-- **The zero content** (a `new(T)`'s, of any type: no field set). -/
+opaque zero : Content
+
+def zero_facts.spec : Prop := ∀ t, encodes t zero [] ∧ depth zero = 1 ∧ marshalOk zero
+
+def marshalOut_encodes.spec : Prop := ∀ t c, noMaps t → marshalOk c → encodes t c (marshalOut t c)
+
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext]
@@ -122,6 +145,22 @@ def msgAt_ne_null.spec : Prop := ∀ t p dq c, msgAt (GF := GF) t p dq c ⊢ ⌜
 /-- Two holdings of one message agree on its content. -/
 def msgAt_agree.spec : Prop := ∀ t p dq dq' c c',
   msgAt (GF := GF) t p dq c ∗ msgAt t p dq' c' ⊢ ⌜c = c'⌝
+
+/-- **A message `Merge` may write into** (exclusive; per type, its owner's): the message at `p`
+holds `c`, owned, with its repeated fields' slices owned **to their capacity** and its set
+submessages owned writable (protobuf-go merges in place: it appends to a destination's repeated
+field, writing its spare capacity, and merges into a set submessage,
+`internal/impl/merge.go:159-184`). `msgAt t p (own 1) c` alone does not give it: a message may hold
+its submessages read-only and a slice without its capacity (a raft `MsgApp`'s entries, a sub-slice
+of the leader's log). The owners' laws introduce it (3h: a fresh message, `mergeDst_zero`; a
+`RangeResponse` whose `Kvs` were appended by `Merge` itself). -/
+opaque mergeDst (t : go.GoType) (p : Loc) (c : Content) : IProp GF := iprop(True)
+
+/-- A fresh message (no field set) may be merged into. -/
+def mergeDst_zero.spec : Prop := ∀ t p, msgAt (GF := GF) t p (DFrac.own 1) zero ⊢ mergeDst t p zero
+
+/-- A merge destination is an owned message. -/
+def mergeDst_msgAt.spec : Prop := ∀ t p c, mergeDst (GF := GF) t p c ⊢ msgAt t p (DFrac.own 1) c
 
 /-- An owned message may be made read-only for good. -/
 def msgAt_persist.spec : Prop := ∀ t p c,

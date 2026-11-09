@@ -2,11 +2,16 @@
 ## `(*EtcdServer).Range(ctx, r)`
 
 **Users.** The gRPC KV handler (`api/v3rpc/key.go:53`, after `checkRangeRequest`: a non-empty key, a
-valid sort), the grpc-proxy's adapter, the corruption checker's and the cluster version's reads
-(through the client). Snippets: `examples/specreq/etcdserverreq/kv.go` (`ReqPutThenRange`,
-`ReqSerializableRange`).
+valid sort), the grpc-proxy's adapter, the health checks (`api/etcdhttp/health.go:224,435`: an
+**empty key**, `KeysOnly`, `Limit: 1`, a `WithRoot` context; only `err` is used; their persistent
+update is the server's read permission, 2e's, `req/`). Snippets:
+`examples/specreq/etcdserverreq/kv.go` (`ReqPutThenRange`, `ReqSerializableRange`,
+`ReqHealthRange`).
 
-**Proof sketch.** At the call, a ghost step registers the caller's persistent update in the
+**Proof sketch.** An empty key (the health checks; with an empty range end: the single key `""`)
+is read as the range of the key `""`, which no key is (W0's `etcdLb_keyNonEmpty`): an empty answer,
+`srvStep`'s `emptyRangeStep` (W0's `kvStep` answers an empty key with the gRPC layer's
+`ErrEmptyKey`, which the server does not compute). At the call, a ghost step registers the caller's persistent update in the
 cluster's read registry (2d, `readReg_register`: the cluster's invariant fires it at every history
 point from now on, with each answer the step allows there), which yields `committedLb γ.raft l0`, the
 committed log at the registration. A linearizable read: `s.read.LinearizableReadNotify(ctx)`
@@ -21,9 +26,8 @@ s.KV(), r, true)` (3b's `Range` over the member's store, at an applied point `kr
 `res` is one `Step` allows at `histAt γ kr σ`, or mvcc's `ErrCompacted`/`ErrFutureRev`, `Step`'s
 `revErr`), the auth revision's re-check (a change: `ErrAuthOldRevision`, a refusal, the answer
 dropped). The registry's ticket at `(kr, res)` gives `Q σ σ res` (2d's `readReg_get`). The
-permission: with auth enabled at `kp`, the token's revision equal at the end means the auth state
-did not change in between, so the check holds at `kr`; with auth disabled at `kp` and enabled at
-`kr`, it is `srvStep`'s race disjunct. A serializable read skips the read index and is answered at
+permission: checked at the auth table of `kp`, at or after the call's `lo` (the registration's
+`authLb`): W0's `deniedSince`/`authOffSince` (auth off at `kp`: any answer). A serializable read skips the read index and is answered at
 the member's view (`KVHist.IsView`), fired at the cluster's current state.
 
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__Range.lean`; the approved candidate of
@@ -31,12 +35,15 @@ the member's view (`KVHist.IsView`), fired at the cluster's current state.
 restated over W0's state and `Step` (whose serializable case is the old `PastOf`), with auth
 (`reqPrin`, the permission at the state read, the race disjunct), compaction and future revisions
 (fired errors), and the three outcomes. The trace context premises went: `EnsureTrace` makes one.
-Premises kept: a non-empty key and a valid sort (`checkRangeRequest`'s; the model answers those with
-the gRPC layer's errors, which the server does not compute).
+Premises kept: a valid sort (`checkRangeRequest`'s), and an empty key only with an empty range end
+(the health checks' form). Round 1: the non-empty key dropped (health checks); the `AuthEnable` race
+disjunct dropped (W0's round 4: a read's permission is checked at an auth table at or after the
+call's `lo`, `State.deniedSince`/`authOffSince`, which is what `doSerialize` does); the principal
+pair (`reqPrin ctx p tls`).
 
 **Margin.** A linearizable read is answered at a state at or after the read index, which may be
 behind the cluster's latest (the model's linearization point is the moment the cluster was in it,
-inside the call). The `AuthEnable` race disjunct is the code's; see `ApiReq.lean`.
+inside the call).
 -/
 module
 
@@ -63,11 +70,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.Range(ctx, r)`**: the range `rm` (linearizable: answered at a state the member applied after the call began; serializable: at the member's view), the caller's update persistent and fired by `srvStep` (the `AuthEnable` race included). -/
 def EtcdServer.Range.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (r : Loc) (dq : DFrac) (rm : RangeReq),
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (rm : RangeReq),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Range")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗ rangeReqOwn r dq rm ∗ ⌜rm.key ≠ [] ∧ rm.validSort⌝)
-    iprop(threadTok ∗ rangeReqOwn r dq rm) γ who (.range rm) true (ClientV3.getReply)
+        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ rangeReqOwn r dq rm ∗ ⌜rm.validSort ∧ (rm.key = [] → rm.rangeEnd = [])⌝)
+    iprop(threadTok ∗ rangeReqOwn r dq rm) γ p tls (.range rm) true (ClientV3.getReply)
 
 end spec
 end EtcdServer

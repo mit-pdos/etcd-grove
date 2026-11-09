@@ -24,3 +24,12 @@ What the raft node driver and the apply thread need of `serverstorage` (2e):
 5. **`Storage.Save`'s position**: a follower's acknowledgements are sent after it (2d's driver), so
    every entry committed is on a quorum's WAL (K5).
 Used by: `raftNode.start.spec`, `raftNode.onStop.spec`, `snapshot.spec`, `applySnapshot.spec`.
+
+## from 2d (round 1)
+
+6. (correction, provability S7) item 4's "saved with the consistent index of the same entry" is
+   false (a periodic commit between `SetConfState` and the membership's write saves the new
+   `ConfState` with the previous index); it is harmless (the restart rebuilds the configuration
+   from the members bucket), so no requirement remains on it.
+7. `OpenSnapshotBackend`'s image is `imgAt γ sn.index` (2d's: the state machine at the snapshot's
+   point `a`, stored index `a`): the member's invariant over `snapDbs` gives it (`srvNet`'s `dbIn`).

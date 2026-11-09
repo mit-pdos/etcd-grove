@@ -51,6 +51,17 @@ predicate, with the content `c` the value of those fields (presence included) an
 fields, so that the relation laws (`entryPts_msgAt`, ...) hold with the readers of `Model.lean`
 defined from the fields. The laws below are the obligations of that realization.
 
+**No raftpb message is a `proto.Merge` destination** (round 1, F1): `Merge` writes in place (it
+merges into set submessages and appends into repeated fields' spare capacity), and these predicates
+hold submessages read-only for good and slices without their capacity (a `MsgApp`'s entries are a
+sub-slice of the leader's log). No law here gives 2a's merge-destination premise (`mergeDstOk`,
+`etcdserverpb/Api.lean`) for a raftpb type; raft and etcd never merge raft messages.
+
+**A homogeneous cluster** (round 1, second tier 8): `msgPts` requires a set snapshot to be full.
+The Go comment on `Message.Snapshot` allows peers running older binaries to send a non-nil, empty
+snapshot; such a decoded message has no `msgPts` (2f's decoder cannot deliver it). A scope
+restriction, stated.
+
 ## Laws
 
 Persistence, timelessness, non-null (`raftpb_persistent`, `raftpb_timeless`, `raftpb_ne_null`);
@@ -58,8 +69,8 @@ the **unfold laws** (field by field: what a client reads and, at `own 1`, writes
 of `From`/`To` and R3's `entriesRO` indexing are instances); the **relation laws** to `Proto.msgAt`
 (what `proto.Clone`, `Marshal`, `Unmarshal`, `Size`, `Equal` need: each of those specs is 2a's, over
 `msgAt`); `pbRest_zero`; the content laws `confState_ext` (for `Equivalent`), `bootCC_*` (the
-bootstrap entry), `decodeConfChange_empty` (the auto-leave entry), `msgEncodes_fun` and
-`entryEncodes_fun` (decoding is a function of the bytes).
+bootstrap entry), `decodeConfChange_empty` (the auto-leave entry), `wire_fun` (`msgEncodes`, `entryEncodes`:
+decoding is a function of the bytes).
 
 ## Requirement snippets
 

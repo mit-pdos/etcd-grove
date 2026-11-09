@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 def EtcdServer.setCommittedIndex.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (c v : w64) (l : List Raft.LogEntry),
+  ∀ (s : Loc) (γ : Names) (id : Nat) (c v : w64) (l : List Raft.LogEntry),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ committedW s c ∗ Raft.committedLb γ.raft l ∗ ⌜uint.nat v ≤ l.length⌝ }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!

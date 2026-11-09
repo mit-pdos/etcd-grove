@@ -42,7 +42,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 def EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (ep : Loc) (p : Progress),
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ep : Loc) (p : Progress),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ applyThread s γ ep p ∗
       nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)

@@ -35,6 +35,20 @@ The maintenance RPCs that answer from the member and change no modelled state (`
 Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing modelled), `snapSpec`
 (the backend's bytes: nothing modelled), `watchSpec γ` (**slot, 2b**).
 
+## Round 1 repairs (in brief)
+
+* The contract is per member (`etcdContract γ ep`): the lease requests carry and give W0's
+  `leaseViewLb γ ep` (`leaseFact`); `servesAt_addr` at `ep`.
+* The first way fires only answers that are not a token or learner refusal (`firedAns`): those go
+  back unfired (1c's `AttemptTriple`); 2c must not fire them at apply.
+* A definite error's code is pinned (`code e`, or `Unknown` for the two `EtcdError`s).
+* Reads compose with 2c's `SrvCallTriple` once W0's round 4 makes a read's permission checked at an
+  auth state between the call's start and its answer (so 2c's `srvStep` is `Step`).
+* The health service is in the contract (`etcdLocal`, a trivial stream), its handlers meet it
+  (`healthRegs_ok`); `InitializeMetrics` (`metricsOk_init`).
+* `srvErrOk` (what `togRPCError` takes; 2c's error outcomes give it).
+* `rangeStreamSpec` admits `ErrCompacted` before the first chunk; `rsChunk_agree`, `rsChunk_hdr_last`.
+
 ## Vocabulary
 
 * Pure: `etcdMethods`/`etcdStreams` (the method table: full names and message types),
@@ -67,6 +81,8 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Api
+public import GeneratedProof.google_golang_org.grpc.health
+public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import GeneratedProof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
@@ -107,7 +123,8 @@ def ansOutcome (m : GoString) (rq : Req) (res : Resp) (o : Outcome) : Prop :=
   | .leaseTimeToLive id _, .err .leaseNotFound =>
       ∃ c, o = .ok c ∧ replyModels m (.leaseTimeToLive id (-1) 0 []) c
   | _, .ok b => ∃ c, o = .ok c ∧ replyModels m b c
-  | _, .err e => ∃ code, o = .status code (Rpctypes.desc e)
+  | _, .err e => ∃ code, o = .status code (Rpctypes.desc e) ∧
+      (code = Rpctypes.code e ∨ code = Grpc.cUnknown)
 
 /-! ### The gRPC layer's validations, as the code computes them -/
 
@@ -180,12 +197,36 @@ with a refusal: an invalid token). -/
 opaque mdPrin (γ : Cluster) (md : MD) (who : Principal) : IProp GF := iprop(True)
 
 /-- **The contract of etcd's unary method `m`** (see the header). -/
-def etcdUnary (γ : Cluster) (m : GoString) : UnarySpec (GF := GF) :=
-  fun md c Φ => iprop(∃ (who : Principal) (rq : Req) (rep : Bool) (Q : State → State → Resp → IProp GF),
+def leaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ σ' : State) (res : Resp) :
+    IProp GF :=
+  match rq with
+  | .leaseGrant .. =>
+      match res with
+      | .ok _ => leaseViewLb γ ep (σ'.leaseTables.length - 1)
+      | _ => iprop(True)
+  | .leaseTimeToLive .. | .leaseLeases =>
+      match vi with
+      | some i => iprop(∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j)
+      | none => iprop(True)
+  | _ => iprop(True)
+
+/-- The answers a member sends fired (the first way): not a token refusal nor the learner's (which
+1c's `AttemptTriple` needs back unfired, the second way). -/
+def firedAns (res : Resp) : Prop :=
+  ∀ e, res = .err e → errRetryAuth e = false ∧ e ≠ .notSupportedForLearner
+
+/-- **The contract of etcd's unary method `m` at the member serving `ep`** (see the header). The
+lease requests carry the member's lease view (`leaseFact`, W0's `leaseViewLb γ ep`). -/
+def etcdUnary (γ : Cluster) (ep : GoString) (m : GoString) : UnarySpec (GF := GF) :=
+  fun md c Φ => iprop(∃ (who : Principal) (rq : Req) (rep : Bool) (Q : State → State → Resp → IProp GF)
+      (vi : Option Nat),
     ⌜reqModels m c rq ∧ (rq.isRead = true → rep = true)⌝ ∗ mdPrin γ md who ∗ callAU γ who rq rep Q ∗
-    ((∀ (σ σ' : State) (res : Resp) (o : Outcome), ⌜ansOutcome m rq res o⌝ -∗ Q σ σ' res -∗ Φ o) ∧
+    (match vi with | some i => leaseViewLb γ ep i | none => iprop(True)) ∗
+    ((∀ (σ σ' : State) (res : Resp) (o : Outcome), ⌜firedAns res ∧ ansOutcome m rq res o⌝ -∗
+        Q σ σ' res -∗ leaseFact γ ep rq vi σ σ' res -∗ Φ o) ∧
      (callAU γ who rq rep Q -∗ ∀ (e : EtcdErr) (code : w32),
-        ⌜errRetryAuth e = true ∨ e = .notSupportedForLearner⌝ -∗ Φ (.status code (Rpctypes.desc e))) ∧
+        ⌜(errRetryAuth e = true ∨ e = .notSupportedForLearner) ∧ (code = Rpctypes.code e ∨ code = Grpc.cUnknown)⌝ -∗
+        Φ (.status code (Rpctypes.desc e))) ∧
      (∀ (code : w32) (msg : GoString), ⌜indefMsg msg⌝ -∗ Φ (.status code msg))))
 
 /-- **The contract of a member-local maintenance RPC**: no update; any outcome. -/
@@ -215,13 +256,13 @@ def rangeStreamSpec (γ : Cluster) : StreamSpec (GF := GF) where
     | none => ∃ (σ σ' : State) (rev : Nat) (a : RangeAns), Q σ σ' (.ok (.range rev a)) ∗
         ⌜streamMatches r ms rev a⌝
     | some (_, msg) => (∃ (σ σ' : State) (e : EtcdErr), Q σ σ' (.err e) ∗ ⌜msg = Rpctypes.desc e⌝) ∨
-        ⌜n ≠ 0 ∧ msg = Rpctypes.desc .compacted⌝ ∨ ⌜indefMsg msg⌝)
+        ⌜msg = Rpctypes.desc .compacted⌝ ∨ ⌜indefMsg msg⌝)
 
 /-- **`LeaseKeepAlive`'s contract**: keep-alive requests, responses about some lease with some TTL
 (W0's model: a keep-alive says nothing), nothing at the end (1c's `kaSendAt`/`kaRecvAt`). -/
 def kaSpec (γ : Cluster) : StreamSpec (GF := GF) where
-  up := fun _ md _ c => iprop(∃ (who : Principal) (id : Int),
-    ⌜reqModels go!"/etcdserverpb.Lease/LeaseKeepAlive" c (.leaseKeepAlive id)⌝ ∗ mdPrin γ md who)
+  up := fun _ _ _ c => iprop(∃ (id : Int),
+    ⌜reqModels go!"/etcdserverpb.Lease/LeaseKeepAlive" c (.leaseKeepAlive id)⌝)
   dn := fun _ _ _ _ => iprop(True)
   fin := fun _ _ _ _ => iprop(True)
 
@@ -238,47 +279,50 @@ opaque watchSpec (γ : Cluster) : StreamSpec (GF := GF) :=
 
 /-- **etcd's contracts** at a member's client address: every unary method of the KV, Lease,
 Cluster, Maintenance and Auth services, and the four streams. -/
-def etcdContract (γ : Cluster) : AddrContract (GF := GF) where
+def etcdContract (γ : Cluster) (ep : GoString) : AddrContract (GF := GF) where
   unary := fun m =>
     if False then none
-  else if m = go!"/etcdserverpb.KV/Range" then some (go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.KV/Put" then some (go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.KV/DeleteRange" then some (go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.KV/Txn" then some (go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.KV/Compact" then some (go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Lease/LeaseGrant" then some (go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Lease/LeaseRevoke" then some (go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Lease/LeaseTimeToLive" then some (go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Lease/LeaseLeases" then some (go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Cluster/MemberAdd" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Cluster/MemberRemove" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Cluster/MemberUpdate" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Cluster/MemberList" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Cluster/MemberPromote" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Maintenance/Alarm" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty, etcdUnary γ m)
+  else if m = go!"/etcdserverpb.KV/Range" then some (go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.KV/Put" then some (go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.KV/DeleteRange" then some (go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.KV/Txn" then some (go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.KV/Compact" then some (go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Lease/LeaseGrant" then some (go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Lease/LeaseRevoke" then some (go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Lease/LeaseTimeToLive" then some (go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Lease/LeaseLeases" then some (go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Cluster/MemberAdd" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Cluster/MemberRemove" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Cluster/MemberUpdate" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Cluster/MemberList" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Cluster/MemberPromote" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Maintenance/Alarm" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty, etcdUnary γ ep m)
   else if m = go!"/etcdserverpb.Maintenance/Status" then some (go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.StatusResponse.ty, etcdLocal)
   else if m = go!"/etcdserverpb.Maintenance/Defragment" then some (go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentResponse.ty, etcdLocal)
   else if m = go!"/etcdserverpb.Maintenance/Hash" then some (go_etcd_io.etcd.api.v3.etcdserverpb.HashRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.HashResponse.ty, etcdLocal)
   else if m = go!"/etcdserverpb.Maintenance/HashKV" then some (go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty, etcdLocal)
   else if m = go!"/etcdserverpb.Maintenance/MoveLeader" then some (go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderResponse.ty, etcdLocal)
   else if m = go!"/etcdserverpb.Maintenance/Downgrade" then some (go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty, etcdLocal)
-  else if m = go!"/etcdserverpb.Auth/AuthEnable" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/AuthDisable" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/AuthStatus" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/Authenticate" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/UserAdd" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/UserGet" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/UserList" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/UserDelete" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/UserChangePassword" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/UserGrantRole" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/UserRevokeRole" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/RoleAdd" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/RoleGet" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/RoleList" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/RoleDelete" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/RoleGrantPermission" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty, etcdUnary γ m)
-  else if m = go!"/etcdserverpb.Auth/RoleRevokePermission" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty, etcdUnary γ m)
+  else if m = go!"/etcdserverpb.Auth/AuthEnable" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/AuthDisable" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/AuthStatus" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/Authenticate" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/UserAdd" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/UserGet" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/UserList" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/UserDelete" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/UserChangePassword" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/UserGrantRole" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/UserRevokeRole" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/RoleAdd" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/RoleGet" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/RoleList" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/RoleDelete" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/RoleGrantPermission" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty, etcdUnary γ ep m)
+  else if m = go!"/etcdserverpb.Auth/RoleRevokePermission" then some (go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty, etcdUnary γ ep m)
+    else if (∃ h ∈ healthMethods, h.1 = m) then
+      some (google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty,
+        google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.ty, etcdLocal)
     else none
   stream := fun m =>
     if False then none
@@ -286,11 +330,14 @@ def etcdContract (γ : Cluster) : AddrContract (GF := GF) where
   else if m = go!"/etcdserverpb.Watch/Watch" then some (go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty, watchSpec γ)
   else if m = go!"/etcdserverpb.Lease/LeaseKeepAlive" then some (go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty, kaSpec γ)
   else if m = go!"/etcdserverpb.Maintenance/Snapshot" then some (go_etcd_io.etcd.api.v3.etcdserverpb.SnapshotRequest.ty, go_etcd_io.etcd.api.v3.etcdserverpb.SnapshotResponse.ty, snapSpec)
+    else if (∃ h ∈ healthStreams, h.1 = m) then
+      some (google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty,
+        google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.ty, snapSpec)
     else none
 
 /-- **W0's `servesAt`, realized**: `ep` is bound to etcd's contracts. -/
 def servesAt_addr.spec : Prop := ∀ (γ : Cluster) (ep : GoString),
-  servesAt (GF := GF) γ ep ⊣⊢ addrAt ep (etcdContract γ)
+  servesAt (GF := GF) γ ep ⊣⊢ addrAt ep (etcdContract γ ep)
 
 /-- A chunk is recorded up to its header's ids (`headerFillingRangeStream.Send` fills them after the
 server's request path recorded it). -/
@@ -298,6 +345,40 @@ def rsChunk_ids.spec : Prop := ∀ g j (m m' : RangeRespM),
   m.kvs = m'.kvs → m.more = m'.more → m.count = m'.count →
   m.hdr.map (·.revision) = m'.hdr.map (·.revision) → (m.hdr = none ↔ m'.hdr = none) →
   rsChunk (GF := GF) g j m ⊢ rsChunk g j m'
+
+/-- Two records of one chunk agree, up to the header's ids (the ids are the only fields
+`headerFillingRangeStream.Send` writes after the request path recorded the chunk). -/
+def rsChunk_agree.spec : Prop := ∀ g j (m m' : RangeRespM),
+  rsChunk (GF := GF) g j m ∗ rsChunk g j m' ⊢
+    ⌜m.kvs = m'.kvs ∧ m.more = m'.more ∧ m.count = m'.count ∧
+      m.hdr.map (·.revision) = m'.hdr.map (·.revision) ∧ (m.hdr = none ↔ m'.hdr = none)⌝
+
+/-- **The chunk with a header is the last one sent** (`EtcdServer.RangeStream` puts the header on
+the final chunk only). -/
+def rsChunk_hdr_last.spec : Prop := ∀ g j j' (m m' : RangeRespM),
+  rsChunk (GF := GF) g j m ∗ ⌜m.hdr ≠ none⌝ ∗ rsChunk g j' m' ⊢ ⌜j' ≤ j⌝
+
+/-- **A server error `togRPCError` can take** (persistent; round 1, provability F6): a context's
+error; or a comparable error that is no status and no context's error, printing `m`, which is
+either `e`'s server-side error (`srvErrOf`) or unmapped with a message settling nothing. 2c's error
+outcomes carry it (`req/go_etcd_io_etcd_server_v3_etcdserver.md`, "from 2a, round 1"). -/
+def srvErrOk (err : GoInterface) : IProp GF :=
+  iprop(context.isCtxErr err ∨
+    ((context.isCtxErr err -∗ False) ∗ (∀ c m, statusErr err c m -∗ False) ∗ ⌜cmpErr err⌝ ∗
+      ∃ m, errMsg err m ∗ ((∃ e, ⌜srvErrOf err e⌝) ∨ ⌜(∀ e, ¬ srvErrOf err e) ∧ indefMsg m⌝)))
+
+/-- **grpc's health handlers meet their contracts** (assumed, grpc's own code: `Check`, `List`
+answer from the health server's map; `Watch` sends statuses; nothing modelled), under any chain of
+interceptors that preserve etcd's contracts. -/
+def healthRegs_ok.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (B : SrvCfg) (hs : Loc),
+  healthAt hs ∗ ([∗list] i ∈ B.ics, icEtcdOk i γ) ∗ ([∗list] i ∈ B.sics, sicEtcdOk i γ) ∗
+    regsOk B (etcdContract γ ep) ⊢
+  regsOk { B with
+    regs := B.regs ++ healthMethods.map (fun h => (h.1, h.2,
+      interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)),
+    sregs := B.sregs ++ healthStreams.map (fun h => (h.1, h.2,
+      interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)) }
+    (etcdContract γ ep)
 
 /-- **Slot (2e)**: a `storage.Quota` value (its `Available(r)` returns a boolean, no panic). -/
 opaque quotaOk (q : GoInterface) : IProp GF := iprop(True)
@@ -311,14 +392,16 @@ etcd serves, with a continuation meeting the run's triple for `m`'s contract, ca
 interceptor meets it too (it refuses only with statuses the contract allows: an indefinite one, or
 the learner's refusal with the update given back). -/
 def icEtcdOk (i : GoFunc) (γ : Cluster) : IProp GF :=
-  iprop(□ ∀ (m : GoString) (reqT repT : go.GoType) (S : UnarySpec (GF := GF)),
-    ⌜(etcdContract γ).unary m = some (reqT, repT, S)⌝ -∗
+  iprop(□ ∀ (ep m : GoString) (reqT repT : go.GoType) (S : UnarySpec (GF := GF)),
+    ⌜(etcdContract γ ep).unary m = some (reqT, repT, S)⌝ -∗
     ∀ (ctx : GoInterface) (md : MD) (q : Loc) (c : Content) (Φ : Outcome → IProp GF) (info : Loc)
       (k : val) (Ψ : val → IProp GF),
-    (□ ∀ Ψ' : val → IProp GF, threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ S md c Φ ∗
+    (□ ∀ Ψ' : val → IProp GF, threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗
+        ⌜depth c < depthMax⌝ ∗ S md c Φ ∗
         (∀ (r err : GoInterface), threadTok -∗ unaryOut repT r err Φ -∗ Ψ' (PairV #r #err)) -∗
       WP (App (App (Val k) (Val #ctx)) (Val #(msgVal reqT q))) {{ Ψ' }}) -∗
-    threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ S md c Φ ∗
+    threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ ⌜depth c < depthMax⌝ ∗
+      info.[google_golang_org.grpc.UnaryServerInfo, go!"FullMethod"] ↦□ m ∗ S md c Φ ∗
       (∀ (r err : GoInterface), threadTok -∗ unaryOut repT r err Φ -∗ Ψ (PairV #r #err)) -∗
     WP (App (App (App (App (Val #i) (Val #ctx)) (Val #(msgVal reqT q))) (Val #info)) (Val k)) {{ Ψ }})
 
@@ -349,7 +432,7 @@ def rsSink_out.spec : Prop := ∀ (w : GoInterface) (γ : Cluster) (who : Princi
   rsSink (GF := GF) w γ who r Q ms fin ∗ rsReq g who r Q ∗
     (if fin then ⌜err = GoInterface.nil⌝
      else ∃ code msg, sentStatus err code msg ∗
-       ((∃ σ σ' e, Q σ σ' (.err e) ∗ ⌜msg = Rpctypes.desc e⌝) ∨ ⌜ms ≠ [] ∧ msg = Rpctypes.desc .compacted⌝ ∨
+       ((∃ σ σ' e, Q σ σ' (.err e) ∗ ⌜msg = Rpctypes.desc e⌝) ∨ ⌜msg = Rpctypes.desc .compacted⌝ ∨
         ⌜indefMsg msg⌝)) ⊢
   streamOut rs g (rangeStreamSpec γ) md err
 
@@ -397,6 +480,14 @@ def metricsOk_stream.spec : Prop := ∀ (m : Loc) (γ : Cluster),
       @!! go!"StreamServerInterceptor")) (Val #()))
   {{ (i : GoFunc), RET #i; sicEtcdOk i γ }}
 
+/-- **`InitializeMetrics(gs)`** (grpc-prometheus, assumed: it reads `gs.GetServiceInfo()` and zeroes
+its counters): the server being built is unchanged. -/
+def metricsOk_init.spec : Prop := ∀ (m gs : Loc) (B : SrvCfg),
+  {{ metricsOk (GF := GF) m ∗ srvBuild gs B }}
+    (App (Val (m @!! go.GoType.PointerType github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty
+      @!! go!"InitializeMetrics")) (Val #gs))
+  {{ RET #(); srvBuild gs B }}
+
 def handles_persistent.spec : Prop :=
   (∀ p s γ, Persistent (kvServerAt (GF := GF) p s γ)) ∧
   (∀ q kv s γ, Persistent (quotaKVAt (GF := GF) q kv s γ)) ∧
@@ -428,7 +519,7 @@ the registered service value is what `Grpc.start` needs of each registration (wi
 handler's decoding, 3h). -/
 def HandlerTriple (f : val) (P : IProp GF) (S : UnarySpec (GF := GF)) (reqT repT : go.GoType) : Prop :=
   ∀ (ctx : GoInterface) (md : MD) (q : Loc) (c : Content) (Φ : Outcome → IProp GF),
-  {{ P ∗ threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ S md c Φ }}
+  {{ P ∗ threadTok ∗ rpcCtx ctx md ∗ msgAt reqT q (DFrac.own 1) c ∗ ⌜depth c < depthMax⌝ ∗ S md c Φ }}
     (App (App (Val f) (Val #ctx)) (Val #q))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
       unaryOut repT (msgVal repT resp) err Φ }}

@@ -63,6 +63,16 @@ def resultAt (γ : Cluster) (ar : Loc) (ir : Irr) (sk : Bool) (res : Resp) : IPr
   iprop(⌜ar = null ∧ res = noAns⌝ ∨
     ∃ res', ⌜resMatch ir.op sk res res'⌝ ∗ EtcdServer.applyResult γ ar (opBody ir.op) res')
 
+/-- **The outcome of the permission checks `cs`** at the auth info `u`, `rev`, each check answered
+at a state of `S` (`permReads`): `nil` and every check passing, or the error of a failing check
+`cs[i]` after the earlier ones passed. -/
+def checksOut (S : State → IProp GF) (u : GoString) (rev : Nat) (cs : List Check)
+    (err : GoInterface) : IProp GF :=
+  iprop((⌜err = GoInterface.nil⌝ ∗ [∗ list] c ∈ cs, ∃ σ', S σ' ∗ ⌜checkErr σ' u rev c = none⌝) ∨
+    ∃ (i : Nat) (c : Check) (e : EtcdErr), ⌜cs[i]? = some c ∧ EtcdServer.srvErrOf err e⌝ ∗
+      (∃ σ', S σ' ∗ ⌜checkErr σ' u rev c = some e⌝) ∗
+      [∗ list] c' ∈ cs.take i, ∃ σ', S σ' ∗ ⌜checkErr σ' u rev c' = none⌝)
+
 end vocab
 
 section laws
@@ -87,9 +97,9 @@ def isUber_apply.spec : Prop :=
       ∃ ui : GoInterfaceOk, ⌜ua = GoInterface.ok ui⌝ ∗
         □ ∀ (r : Loc) (ir : Irr) (sk v3 : Bool) (σ : State) (Qm : IProp GF),
           {{ wrapperAt r ir sk ∗ ⌜ir.op.ok ∧ (sk = true → ir.op.isTxn = true)⌝ ∗ smAt ua σ ∗
-              memberUpd γc ir Qm ∗ R }}
+              memberUpd γc ir.op Qm ∗ R ∗ threadTok }}
             (App (App (Val #(methods ui.ty go!"Apply" ui.v)) (Val #r)) (Val #v3))
-          {{ (ar : Loc), RET #ar; R ∗ Qm ∗ ∃ σ' res, ⌜irrStep mc σ ir v3 σ' res⌝ ∗ smAt ua σ' ∗
+          {{ (ar : Loc), RET #ar; R ∗ threadTok ∗ Qm ∗ ∃ σ' res, ⌜irrStep mc σ ir v3 σ' res⌝ ∗ smAt ua σ' ∗
               resultAt γ ar ir sk res }}
 
 end laws

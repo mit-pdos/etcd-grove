@@ -4,8 +4,13 @@
 **Users.** The gRPC KV handler (`api/v3rpc/key.go:144`), the auto-compactors (`api/v3compactor/
 periodic.go:142`, `revision.go:92`: `Compactable.Compact` with an update built from W0's `envUpd`
 (an `EnvStep.compact`, the identity aborted), the caller's context `s.ctx`), Kubernetes' compactor
-through the client. Snippets: `examples/specreq/etcdserverreq/kv.go` (`ReqCompactorCompact`,
-`ReqCompactPhysical`).
+through the client. Snippet: `examples/specreq/etcdserverreq/kv.go` (`ReqCompactorCompact`).
+**The premise `rev ≠ 0`, its sources**: the compactors (`revision.go:82` skips `rev <= 0`; periodic's
+revisions are `Rev()` values `≥ 1`), W0's client contract (`KV.CompactTriple`), and for a raw gRPC
+client 2a's contract of `/etcdserverpb.KV/Compact` (requested: `req/…api_v3rpc.md`, "from 2c" round
+1). It is needed: at a never-compacted store mvcc's `compactMainRev` is `-1`, so `Compact(0)`
+succeeds where W0's model answers `ErrCompacted`
+(`issues/etcd-restore-scheduled-compact-zero.md`).
 
 **Proof sketch.** The span, `EnsureTrace`, `processInternalRaftRequestOnce(ctx, {Compaction: r})`
 (`processInternalRaftRequestOnce.spec` at `.req (.compact rev phys)`): on a result, its trace's
@@ -23,7 +28,8 @@ at `0` restores a different compaction revision), taken here because this is the
 compaction entries.
 
 **Margin.** The reply's header revision (the member's store revision after the apply) is not stated
-(W0's `compactReply` does not model it).
+(W0's `compactReply` does not model it); with `physical`, the call returns only after the compaction
+is done and committed to the backend, not stated either.
 -/
 module
 
@@ -48,13 +54,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.Compact(ctx, r)`**: the compaction at `rev` (not `0`), as `Put`; with `physical`, it returns only after the compaction is done and committed to the backend. -/
+/-- **`s.Compact(ctx, r)`**: the compaction at `rev` (not `0`), as `Put`. -/
 def EtcdServer.Compact.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (r : Loc) (dq : DFrac) (rev : w64) (phys : Bool),
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (rev : w64) (phys : Bool),
   SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Compact")) (Val #ctx)) (Val #r))
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys ∗ ⌜rev ≠ W64 0⌝)
-    iprop(threadTok ∗ compactReqOwn r dq (sint.Z rev) phys) γ who (.compact (sint.Z rev) phys) false (ClientV3.compactReply)
+        Context.ctxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys ∗ ⌜rev ≠ W64 0⌝)
+    iprop(threadTok ∗ compactReqOwn r dq (sint.Z rev) phys) γ p tls (.compact (sint.Z rev) phys) false (ClientV3.compactReply)
 
 end spec
 end EtcdServer

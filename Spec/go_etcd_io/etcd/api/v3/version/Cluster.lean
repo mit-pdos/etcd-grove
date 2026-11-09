@@ -6,8 +6,8 @@ Users: the server's logs and metrics labels (`server.go:581`, `2331`), `Status`/
 
 **Assumed** (a translation gap, not a trust boundary of etcd's design): the package is translated
 names only (`Code/go_etcd_io/etcd/api/v3/version.toml`), so the body is axiomatized. True of the
-code: it splits on `.` and joins the first two parts (`strings.Split`, a slice of at most two
-elements): it returns a string and never panics.
+code: it parses `v` with `semver.NewVersion` and returns `major.minor`, or (a parse error) splits
+on `.` and joins the first two parts: a string, never a panic.
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/version/Cluster.lean`: the old post
 (`semverStr v → asciiStr s`) dropped: no user reads the string but a logger or a reply field.

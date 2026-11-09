@@ -179,3 +179,21 @@ server's principal with auth on (the token's user, else the certificate's CN); w
 check depends on it. `Authenticate` answers `.ok .authenticate` (no token); the token is
 `tokenUser γ tok u`, a persistent fact 2c/3d give with the reply. Compact's admin check and
 keep-alive's permission error are at any auth state the cluster has had.
+
+## from 3c
+
+1. **`leaseTimeToLive`'s keys** (`Model.lean`, `leaseStep`): the answer's keys are "exactly those
+   attached at some revision `r`". etcd's leader reads the lease object's key set while the apply
+   thread may be between two `Detach`es of a revocation's deletes or two `Attach`es of a
+   transaction's puts (`nonissues/etcd-lease-keys-mid-apply.md`): a set no revision had. Each key's
+   membership changes at most once in an entry (a transaction writes a key once), so the step that
+   is true of etcd: for some `r < σ.kv.rev` (or `r = σ.kv.rev`), the keys lie between
+   `attached(r) ∩ attached(r + 1)` and `attached(r) ∪ attached(r + 1)` (the revisions of one entry's
+   writes). Needed by 2c's `leaseTimeToLive.spec` over `Lease.Keys.spec`.
+2. **No time model is needed by the lessor's callers**: the remaining TTL (`Remaining()`), the
+   checkpoints, the primary flag and the expiry are not modelled; `TimeToLive`'s `TTL` is any value
+   and `KeepAlive`'s any TTL (as W0 has them). `EnvCfg.leaseExpiry = false`'s premise is the
+   lessor's opaque `Lease.leasesOutliveRun` (taken at `NewLessor`).
+3. **A member's granted TTL** is `max ttl minTTL` of that member's lessor (`Lease.grantTTL`): W0's
+   one `LeaseRec.ttl` per lease cannot be every member's; W0's `leaseTimeToLive` already allows any
+   positive granted TTL, so nothing to change unless a client needs the TTL.

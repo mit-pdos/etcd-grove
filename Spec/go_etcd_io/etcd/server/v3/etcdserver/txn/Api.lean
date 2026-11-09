@@ -191,6 +191,12 @@ rest). -/
 def hdrAt (rev : Nat) : HeaderM :=
   { clusterId := 0, memberId := 0, revision := W64 rev, raftTerm := 0, leaderId := 0 }
 
+/-- A put with an ignore flag (it needs the key's previous record). -/
+def ignores (p : PutReq) : Bool := or p.ignoreValue p.ignoreLease
+
+/-- A put that reads the key's previous record (`getPrevKV`). -/
+def needsPrev (p : PutReq) : Bool := or (or p.ignoreValue p.ignoreLease) p.prevKv
+
 /-- A put's event at the history `h`. -/
 def putEvents (p : PutReq) (h : KVHist) : List Event :=
   [.put p.key (p.record (h.rev + 1) (h.store p.key))]
@@ -332,9 +338,21 @@ def runHist_readonly.spec : Prop := ∀ (t : TxnReq) (h : KVHist) (ls : Int → 
   t.readonly → runHist t h ls = h ∧ ∀ skip x, run t h ls skip = .ok x → x.1 = []
 
 mutual
+/-- The keys of the puts with an ignore flag on the path taken at the read store `s` (each nested
+transaction's branch by its verdict at `s`). -/
+def opIgnTaken (s : EtcdModel.Store) : RequestOp → List Key
+  | .put p => if ignores p then [p.key] else []
+  | .txn cmps succ fail => if cmpsHold cmps s then opsIgnTaken s succ else opsIgnTaken s fail
+  | _ => []
+def opsIgnTaken (s : EtcdModel.Store) : List RequestOp → List Key
+  | [] => []
+  | op :: ops => opIgnTaken s op ++ opsIgnTaken s ops
+end
+
+mutual
 /-- The keys of the puts with an ignore flag of `op` (both branches, nested ones included). -/
 def opIgnKeys : RequestOp → List Key
-  | .put p => if p.ignoreValue || p.ignoreLease then [p.key] else []
+  | .put p => if ignores p then [p.key] else []
   | .txn _ succ fail => opsIgnKeys succ ++ opsIgnKeys fail
   | _ => []
 def opsIgnKeys : List RequestOp → List Key
@@ -439,6 +457,19 @@ operation's kind and an unset (`nil`) message, a nested transaction's its own tr
 Internal to the package (`newTxnResp` makes it, `executeTxn` fills it). -/
 opaque respSkel (resp : Loc) (s : EtcdModel.Store) (ok : Bool) (ops : List RequestOp) : IProp GF :=
   iprop(True)
+
+/-- **A read-only transaction's response, possibly partly filled** (owned): a `*TxnResponse` whose
+`Responses` are range responses, each `nil` or a range reply (`executeTxn` stopped at a context's
+error). What `WarnOfExpensiveReadOnlyTxnRequest` reads. -/
+opaque roTxnResp (resp : Loc) : IProp GF := iprop(True)
+
+/-- **A `proto.Message` value `msg` the warning functions may size**: `nil` (or a typed `nil`
+pointer), or a message holding `c` at the fraction `dq` (`o = some (dq, c)`), nested less than
+protobuf's limit. -/
+def msgOpt (msg : GoInterface) : Option (DFrac × Proto.Content) → IProp GF
+  | none => iprop(⌜msg = GoInterface.nil ∨ ∃ t : go.GoType, msg = Proto.msgVal t null⌝)
+  | some (dq, c) => iprop(∃ (t : go.GoType) (p : Loc), ⌜msg = Proto.msgVal t p ∧ Proto.depth c < Proto.depthMax⌝ ∗
+      Proto.msgAt t p dq c)
 
 /-! ## The callees' slots (3e's and 3c's, provisional) -/
 

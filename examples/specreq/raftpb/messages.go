@@ -47,7 +47,7 @@ func ReqReplySharesCell(m *pb.Message) *pb.Message {
 // Specs: msgPts_unfold.spec, Message.GetTo.spec, Message.GetTerm.spec.
 func ReqFieldWrite(m *pb.Message, lead uint64) {
 	term := m.GetTerm()
-	m.To = proto.Uint64(lead)
+	m.To = new(lead)
 	if m.GetTo() != lead || m.GetTerm() != term {
 		panic("field write")
 	}

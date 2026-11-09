@@ -41,10 +41,12 @@ takes (the WAL's `raftState`, the backend's image, raft's `nodeVacant`), which 2
 **The apply thread.** `applyThread s γ ep p` (exclusive): the apply thread's state, with the
 `etcdProgress` record `ep` at `p : Progress` (applied index and term, the disk and memory snapshot
 indices): the state machine (the uber-applier over mvcc, the lessor, auth, membership, alarms, the
-consistent indexer) at `histAt γ k` for `k = max p.appliedi ci` (the backend may be ahead of the
-applied index after a restart: entries up to the consistent index `ci` are replayed for the
-in-memory membership only, `shouldApplyV3 = false`), the node's configuration view (R1's
-`nodeConf`) at the same point, and `ep.confState` listing it. Passed from one `applyAll` job to the
+consistent indexer) at `histAt γ ci` for its consistent index `ci ≥ p.appliedi` (always: every
+applied entry past `ci` moves `ci` to it, a restart's backend is at or past the raft snapshot, an
+installed image at or past its index; entries up to `ci` are replayed for the in-memory membership
+only, `shouldApplyV3 = false`), and `ep.confState` listing the configuration at `ci`. R1's `nodeConf`
+is the `Ready` loop's, lent to the apply thread with a batch that has conf changes and returned
+through `notifyc` (round 1, F3). Passed from one `applyAll` job to the
 next (`schedTail`, `pkg/schedule`).
 
 **The raft node driver.** `isRaftNode r γ id n` (persistent): the `raftNode` at `r` wraps raft node
@@ -67,11 +69,14 @@ in it on a quorum.
 
 ## Intended realization
 
-* `Names`: `etcd`, `raft`, `cfg` and the names of the history (a `mono_list` of states, one per
-  committed index: `histAt` its fragments, with the authority in the cluster's invariant together
-  with `committedOps γ.raft ops`, `⌜|hist| = |committed log|⌝`, the answers (`answered`, a persistent
-  map from index to `(id, res)`), the cluster's half of `etcdState γ.etcd (last hist)`, raft's
-  `confDecisions`/`snapsMade`/`readCtxs`, each made snapshot's database image (`snapImage`)).
+* `Names`: `etcd`, `raft`, `cfg`, `mc` and the names of the history. The cluster's invariant owns
+  raft's `committedOps γ.raft ops` only (raft fires nothing for its own fillers, and a proposal's
+  update learns no index), so the history is kept **per operation**: a `mono_list` of states, one
+  per element of `ops`, with the answers per operation (round 1, S3); `histAt γ k σ` and
+  `answered γ k id res` translate a log index `k` to its operation position through `committedLb`
+  (the fillers below `k`, which raft's `opsOf` drops, change nothing). The invariant also holds the
+  cluster's half of `etcdState γ.etcd (last hist)`, raft's `confDecisions`/`snapsMade`/`readCtxs`,
+  each made snapshot's point (`snapPoint`), and the read registry (`readTicket`).
 * `srvNode s γ id`: the server's read-only fields (`s.r`, `s.w`, `s.applyWait`, `s.consistIndex`,
   `s.cluster`, `s.kv`, `s.lessor`, `s.authStore`, `s.alarmStore`, `s.beHooks`, `s.snapshotter`,
   `s.Cfg`, the channels) as persistent points-to's, the invariants of the atomics (`appliedIndex`
@@ -79,9 +84,10 @@ in it on a quorum.
   `term`, `lead`: any value), the `bemu` lock's invariant (the current backend, whose state machine
   is the apply thread's), `inflightSnapshots`, `envUpd γ.etcd γ.cfg` (persistent), and the cluster's
   invariant.
-* `applyThread`: the `etcdProgress` points-to's, `Cindex.ciWriter`, the uber-applier's contract
-  (3a's) at the server's state machine, R1's `nodeConf`, `confAt γ.raft k m` with `ep.confState`
-  listing `m`, the snapshot indices with `storSnapLb`, `Schedule`'s job chain position.
+* `applyThread`: the `etcdProgress` points-to's, `Cindex.ciWriter` (with an agreement half of the
+  indexer's state, whose authority is in one invariant the pre-commit hook also opens), the
+  uber-applier's contract (3a's) at the server's state machine, `confAt γ.raft ci m` with
+  `ep.confState` listing `m`, the snapshot indices with `storSnapLb`.
 * `isRaftNode`/`rnLoop`/`rnStopper`/`applyBatch`: the loop's ghost driver state (R1's `nodeDriver`,
   `readyStor`), the `applyc` protocol (each batch's committed entries with `committedLb`/
   `deliveredLb`, its snapshot's `snapValid`, the `notifyc` handshake: the loop's `Save` before the
@@ -93,9 +99,13 @@ in it on a quorum.
 
 Persistence, timelessness, exclusivity; the history: `histAt_agree`, `histAt_lb` (W0's `etcdLb`:
 K7's realization), `histAt_committed`, `histAt_of_committed`, `answered_agree`, `committed_types`,
-`snapImage_hist`, `applyStep_fun` (3a's), `histPropose`; the member: `srvApplied_mono`,
-`srvApplied_zero`, `srvApplied_hist`, `srvNode_raftNode`, `isServer_names`, `isRaftNode_node`,
-`rnInit_place`, `applyThread_at`, `applyThread_applied`, `applyc_recv`, `readStateC_recv`,
+`snapImage_point`, `snapPoint_agree`, `applyStep_fun`, `applyStep_reach` (3a's), `histPropose`,
+`readCtx_register`, `readReg_register`, `readReg_get`; the member: `srvApplied_mono`,
+`srvApplied_zero`, `srvApplied_hist`, `srvApplied_read`, `srvReadAt_mono`, `srvNode_raftNode`,
+`srvNode_agree`, `srvNode_errorc`, `isServer_names`, `srvMember_node`, `srvRunTok_intro`,
+`applyInit_ep`, `srvStopped_disk`, `isRaftNode_node`, `isRaftNode_storage`, `nodeSnapLb_stor`,
+`nodeAdvanced_applied`, `rnInit_place`, `applyThread_at`, `applyThread_applied`, `applyBatch_terms`,
+`applyc_recv` (with the cursor `applycPos`), `readStateC_recv`, `msgSnapC_recv`,
 `procErr_forbidden`.
 
 ## Requirement snippets
@@ -383,11 +393,6 @@ opaque rnApplyc (r : Loc) (ch : Loc) : IProp GF := iprop(True)
 /-- `ch` is driver `r`'s `readStateC`. Persistent. -/
 opaque rnReadStateC (r : Loc) (ch : Loc) : IProp GF := iprop(True)
 
-/-- The address of driver `r`'s field `f` (through the embedded `raftNodeConfig` for `raftStorage`,
-`transport`, `storage`). -/
-def rnField (r : Loc) (f : GoString) : Loc :=
-  structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode f r
-
 /-! ### Values exchanged with other packages (provisional: their batches' vocabulary) -/
 
 /-- (provisional, raftpb's, 3h) **`p` points to entry `e` at index `k`**, read-only for good (an
@@ -664,7 +669,7 @@ def isRaftNode_storage.spec : Prop :=
   ∀ r γ id n, isRaftNode (GF := GF) r γ id n ⊢
     ∃ ms : Loc,
       structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"raftStorage"
-        (rnField r go!"raftNodeConfig") ↦□ ms ∗
+        (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"raftNodeConfig" r) ↦□ ms ∗
       Raft.nodeStorage n γ.raft (Raft.memStor ms)
 
 /-- `nodeSnapLb` and `nodeAdvanced` are R1's facts of the driver's node. -/
@@ -679,7 +684,7 @@ with a non-zero term (R1's, requested). -/
 def msgSnapC_recv.spec : Prop :=
   ∀ (r : Loc) γ id n (Φ : Loc → Bool → IProp GF),
     isRaftNode (GF := GF) r γ id n ⊢
-      ∃ (ch : Loc) (γc : ChanNames), rnField r go!"msgSnapC" ↦□ ch ∗ isChan ch γc Loc ∗
+      ∃ (ch : Loc) (γc : ChanNames), structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"msgSnapC" r ↦□ ch ∗ isChan ch γc Loc ∗
         (£ 1 ∗ £ 1 -∗ (▷ ∀ mp, (∃ (m : Raft.Msg) (sn : Raft.Snapshot),
             Raft.msgPts mp (DFrac.own 1) m ∗ Raft.msgSent γ.raft m ∗
             ⌜m.type = Raft.MsgSnap ∧ m.src = id ∧ m.snapshot = some sn ∧ m.term ≠ W64 0⌝) -∗

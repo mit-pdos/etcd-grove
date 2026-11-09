@@ -10,7 +10,8 @@ keeps `make` from panicking, `issues/grpc-codec-alloc-before-size-check.md`), an
 field, recursing per level (the depth premise); it fails (`errors`, no panic) exactly on an invalid
 UTF-8 `string` field or an unset required field (`marshalOk`). The bytes are fresh.
 
-Changes: from `specs-ref/.../proto/{Marshal,MarshalPb,MarshalIRR,MarshalConfChange*}.lean`: one spec
+Changes: round 1: deterministic output for a type without maps (`marshalOut`, 3h's request).
+From `specs-ref/.../proto/{Marshal,MarshalPb,MarshalIRR,MarshalConfChange*}.lean`: one spec
 over `msgAt`, the encoding a content-keyed relation (`encodes`), not `pbEnc ty l` of an address.
 `MarshalIRR`'s depth premise (`notes/irr-depth.md`) is `fits`'s `depth c < depthMax`: what the
 receiver's `Unmarshal` accepts.
@@ -46,7 +47,8 @@ def Marshal.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msgAt t p dq c ∗ ⌜c.fits⌝ }}
     (App (Val (@! google_golang_org.protobuf.proto.Marshal)) (Val #(msgVal t p)))
   {{ (b : GoSlice) (err : GoInterface), RET (PairV #b #err); msgAt t p dq c ∗
-      ((⌜err = GoInterface.nil ∧ marshalOk c⌝ ∗ ∃ bs : List w8, b ↦* bs ∗ ⌜encodes t c bs⌝) ∨
+      ((⌜err = GoInterface.nil ∧ marshalOk c⌝ ∗ ∃ bs : List w8, b ↦* bs ∗
+          ⌜encodes t c bs ∧ (noMaps t → bs = marshalOut t c)⌝) ∨
        ⌜err ≠ GoInterface.nil ∧ ¬ marshalOk c⌝) }}
 
 end spec

@@ -64,7 +64,7 @@ store over cluster `γ`); `authCur γa i a` (exclusive: the writer); `authAt γa
 (persistent); `tokFrom γa n` (exclusive), `rootTokOk γa`, `authnCtx γa ctx name idx` (persistent);
 `tokenProviderAt tp γ rt` (exclusive: a provider not yet given to a store; `rt`: it can issue root
 tokens without a collision); `authBackendAt be a` (exclusive, provisional: 4b's `AuthBackend`
-holding `a`); `authReqAt r rq`, `authRespAt rq res p`, `authInfoAt ai u rev` (messages and the
+holding `a`); `authReqAt r rq`, `authRespAt rq res p`, `authnRespAt p tok`, `authInfoAt ai dq u rev` (messages and the
 `AuthInfo`); `ctxInMD ctx o`, `ctxCertUser ctx c` (provisional: 2a's grpc boundary; `ctxToken`
 transparent over them); `errOf e` (the error variables' values).
 
@@ -113,7 +113,6 @@ a change), `boot.go` (`NewTokenProvider` and `NewAuthStore` at boot, `Recover` a
 module
 
 public import Spec.go_etcd_io.etcd.api.v3.State
-public import Spec.google_golang_org.grpc.Api
 public import Spec.golang_org.x.crypto.bcrypt.Api
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.auth
 public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
@@ -180,7 +179,8 @@ def validPerms (a : AuthState) : Prop :=
 /-- (provisional, 4a's and 3h's) **Every user's and role's record of `a`, encoded, fits bbolt's
 limits** (its name at most `MaxKeySize`, `32768` bytes; its `authpb` encoding at most
 `MaxValueSize`): a write past them is fatal on every member
-(`issues/etcd-auth-useradd-long-name-fatal.md`, `nonissues/etcd-auth-record-too-large-fatal.md`).
+(`issues/etcd-auth-useradd-long-name-fatal.md`, `nonissues/etcd-auth-record-too-large-fatal.md`),
+and its revision fits the `uint64` atomic (`a.rev < 2 ^ 64`: the cluster's step budget, W0).
 A scope restriction of the admin steps (the request was committed; the apply cannot refuse it). -/
 opaque recordsFit (a : AuthState) : Prop
 
@@ -218,14 +218,21 @@ def checkDenied (u : GoString) (rev : w64) (t : PermType) (rng : KeyRange) (af a
 def trimBearer (s : GoString) : GoString :=
   if s.take 7 = go!"Bearer " then s.drop 7 else s
 
+/-- Incoming metadata (grpc's `Grpc.MD`, the same shape: lowercase keys, their values). -/
+abbrev MD := List (GoString × List GoString)
+
+/-- The values of key `k` (grpc's `Grpc.MD.get`, the same shape: lowercase keys). -/
+def mdGet (md : MD) (k : GoString) : List GoString :=
+  (md.filter (fun e => decide (e.1 = k))).flatMap (·.2)
+
 /-- **The token `AuthInfoFromCtx` reads from the incoming metadata `md`**: the first value of
 `token` (`rpctypes.TokenFieldNameGRPC`), else of `authorization` (`TokenFieldNameSwagger`), with a
 `Bearer ` prefix removed; none if neither key is there. -/
-def mdToken (md : Grpc.MD) : Option GoString :=
-  match md.get go!"token" with
+def mdToken (md : MD) : Option GoString :=
+  match mdGet md go!"token" with
   | t :: _ => some (trimBearer t)
   | [] =>
-    match md.get go!"authorization" with
+    match mdGet md go!"authorization" with
     | t :: _ => some (trimBearer t)
     | [] => none
 
@@ -291,7 +298,7 @@ opaque authBackendAt (be : GoInterface) (a : AuthState) : IProp GF := iprop(True
 `metadata.FromIncomingContext`'s answer: `none` for a context with none, as `s.ctx` and the internal
 requesters'; every key with at least one value, as grpc's transports and `metadata.New` make them,
 `nonissues/etcd-auth-token-md-empty.md`). 2a's `Grpc.rpcCtx ctx md` gives `some md`. -/
-opaque ctxInMD (ctx : GoInterface) (o : Option Grpc.MD) : IProp GF := iprop(True)
+opaque ctxInMD (ctx : GoInterface) (o : Option MD) : IProp GF := iprop(True)
 
 /-- **The token `ctx` carries** (`mdToken` of its incoming metadata). -/
 def ctxToken (ctx : GoInterface) (o : Option GoString) : IProp GF :=
@@ -315,10 +322,16 @@ which the applier sets): `UserGet`'s roles, `RoleGet`'s permissions, the lists, 
 (a permutation of the model's). -/
 opaque authRespAt (rq : Req) (res : Resp) (p : Loc) : IProp GF := iprop(True)
 
-/-- **The `AuthInfo` at `ai` names `u` at the auth revision `rev`** (read-only fields). -/
-def authInfoAt (ai : Loc) (u : GoString) (rev : w64) : IProp GF :=
-  iprop(ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦□ u ∗
-    ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦□ rev)
+/-- **`p` is a fresh `*pb.AuthenticateResponse` carrying the token `tok`** (owned; its `Header`
+nil). -/
+opaque authnRespAt (p : Loc) (tok : GoString) : IProp GF := iprop(True)
+
+/-- **The `AuthInfo` at `ai` names `u` at the auth revision `rev`** (its two fields at fraction
+`dq`: `DFrac.discard` for one nobody writes, as `AuthInfoFromCtx`'s; a share for the applier's own
+`aa.authInfo`, which it rewrites per request). -/
+def authInfoAt (ai : Loc) (dq : DFrac) (u : GoString) (rev : w64) : IProp GF :=
+  iprop(ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
+    ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev)
 
 /-- **A recorded state is reached** (transparent shorthand). -/
 def authReached (γ : Cluster) (a : AuthState) : IProp GF :=
@@ -421,7 +434,78 @@ def admReply (rq : Req) (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF
   | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ authRespAt rq res resp)
   | .err e => iprop(⌜resp = null ∧ ∃ ae, ae.etcd = some e ∧ err = errOf ae⌝)
 
+/-! ## Shapes shared by the specs -/
+
+/-- **The writer's premise for an admin step**: each state the step may move to (other than `a`)
+is one the cluster reached, and its records fit bbolt (`recordsFit`). The apply thread has it from
+the committed entry it applies (2d: the history's next state is fixed at the commit). -/
+def admNext (γ : Cluster) (rq : Req) (a : AuthState) : IProp GF :=
+  iprop(□ ∀ (a' : AuthState) (res : Resp), ⌜admStep rq a a' res ∧ a' ≠ a⌝ -∗
+    authReached γ a' ∗ ⌜recordsFit a'⌝)
+
+/-- **An admin method** `e` of the store `st` for the request `rq` (its message described by `P`):
+from the writer's state, the step `admStep` (W0's effect) to `a'`, recorded as the next state, and
+the reply. -/
+def AdminTriple (e : Expr) (P : IProp GF) (st : Loc) (rq : Req) : Prop :=
+  ∀ (γ : Cluster) (γa : AuthNames) (i : Nat) (a : AuthState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ P ∗
+      authStoreAt st γ γa ∗ authCur γa i a ∗ admNext γ rq a }}
+    e
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); P ∗
+      ∃ (a' : AuthState) (res : Resp), ⌜admStep rq a a' res⌝ ∗ authCur γa (i + 1) a' ∗
+        admReply rq res resp err }}
+
+/-- **What a permission check of `u` (revision `rev`) on `t` over `rng` returns**, from the lower
+bound `i0`: its three views' recorded states (the flag at `jf`, the backend at `jx`, the cache at
+`jc`, both at or after the flag's), and `nil` (`checkOk`), `ErrUserEmpty` (no user: revision `0`),
+`ErrAuthOldRevision` (a revision below the store's), or `ErrPermissionDenied` (`checkDenied`). -/
+def checkPost (γa : AuthNames) (i0 : Nat) (u : GoString) (rev : w64) (t : PermType)
+    (rng : KeyRange) (err : GoInterface) : IProp GF :=
+  iprop(∃ (jf jx jc : Nat) (af ax ac : AuthState), ⌜i0 ≤ jf ∧ jf ≤ jx ∧ jf ≤ jc⌝ ∗
+    authAt γa jf af ∗ authAt γa jx ax ∗ authAt γa jc ac ∗
+    ⌜(err = GoInterface.nil ∧ checkOk u rev t rng af ax ac) ∨
+     (err = errOf .userEmpty ∧ af.enabled = true ∧ rev = W64 0) ∨
+     (err = errOf .authOldRevision ∧ af.enabled = true ∧ rev ≠ W64 0) ∨
+     (err = errOf .permissionDenied ∧ checkDenied u rev t rng af ax ac)⌝)
+
+/-- **What `IsAdminPermitted` returns** for the user `u` (`""` for none), from the lower bound
+`i0`: the flag at `jf` and the backend at `jx ≥ jf`; `nil` (auth off, or `u` of the root role),
+`ErrUserEmpty`, `ErrUserNotFound`, `ErrPermissionDenied` (W0's `adminErr` at one state when
+`jf = jx`). -/
+def adminPost (γa : AuthNames) (i0 : Nat) (u : GoString) (err : GoInterface) : IProp GF :=
+  iprop(∃ (jf jx : Nat) (af ax : AuthState), ⌜i0 ≤ jf ∧ jf ≤ jx⌝ ∗
+    authAt γa jf af ∗ authAt γa jx ax ∗
+    ⌜(err = GoInterface.nil ∧ (af.enabled = false ∨ (af.enabled = true ∧ ax.isRoot u))) ∨
+     (err = errOf .userEmpty ∧ af.enabled = true ∧ u = []) ∨
+     (err = errOf .userNotFound ∧ af.enabled = true ∧ u ≠ [] ∧ ax.users u = none) ∨
+     (err = errOf .permissionDenied ∧ af.enabled = true ∧ u ≠ [] ∧ ax.users u ≠ none ∧
+        ¬ ax.isRoot u)⌝)
+
+/-- **A channel any goroutine may receive on** (only ever closed). -/
+def recvOk (ch : Loc) : IProp GF :=
+  iprop(∃ γc : ChanNames, isChan ch γc Unit ∗
+    □ ∀ Φ : Unit → Bool → IProp GF, (∀ v ok, Φ v ok) -∗ recvAu γc Unit Φ)
+
+/-- **The simple provider's index waiter** (`func(uint64) <-chan struct{}`: the server's
+`applyWait.Wait`): callable from any goroutine, it returns a channel any goroutine may receive on. -/
+def waiterOk (iw : GoFunc) : IProp GF :=
+  iprop(□ ∀ (i : w64) (Φ : val → IProp GF), (∀ ch : Loc, recvOk ch -∗ Φ #ch) -∗
+    WP (App (Val #iw) (Val #i)) {{ Φ }})
+
+/-- (provisional, the JWT boundary's and 2d's) **The cluster `γ`'s tokens include the JWTs that
+`opts`' keys verify, each naming the user of its claims** (`tokenUser γ tok u` for such a token):
+what makes the JWT provider's `info` meet `tokenProviderAt`. Every member is configured with the
+same keys (`--auth-token`), and 2d realizes W0's `tokenUser` accordingly. -/
+opaque jwtTokOk (γ : Cluster) (opts : GoString) : IProp GF := iprop(True)
+
 end init
+
+/-- The token provider's kind in an `--auth-token` option string: what precedes the first comma. -/
+def optsKind (opts : GoString) : GoString := opts.takeWhile (fun b => decide (b ≠ 44#8))
+
+/-- The state `NewAuthStore` starts from: a backend's state, with revision `1` for a fresh
+backend's `0` (`commitRevision`). -/
+def normRev (a : AuthState) : AuthState := if a.rev = 0 then { a with rev := 1 } else a
 
 end Auth
 end EtcdGrove

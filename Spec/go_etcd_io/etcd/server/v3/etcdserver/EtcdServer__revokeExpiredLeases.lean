@@ -46,7 +46,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Revoke expired leases** (the lessor's report, in a cluster whose leases may expire). -/
 def EtcdServer.revokeExpiredLeases.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (sl : GoSlice) (ids : List Int),
+  ∀ (s : Loc) (γ : Names) (id : Nat) (sl : GoSlice) (ids : List Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ srvStarted s γ id ∗ expiredLeases sl ids ∗ ⌜γ.cfg.leaseExpiry = true⌝ }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!

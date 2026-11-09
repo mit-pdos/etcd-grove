@@ -84,7 +84,7 @@ member configured alike).
   `σ.kv`, the lessor's live leases `σ.leases` (and their attached keys, the store's), the auth store
   at `σ.auth`, the alarm store at `σ.alarms` with the chain it selects (`chainOf`), the backend's
   member buckets at `σ.members`. Held by the apply thread (2d).
-* `memberUpd γc ir Q` (transparent): for a member's attributes, the caller's atomic update of the
+* `memberUpd γc op Q` (transparent): for a member's attributes, the caller's atomic update of the
   membership's view (2e's `clusterSt γc`, which the server's invariant holds), whose precondition is
   that the member is known (`RaftCluster.UpdateAttributes` panics otherwise); `Q` for any other
   request. Fired in both modes (the in-memory view moves at the replay too).
@@ -224,7 +224,8 @@ def Irr.hasId (ir : Irr) : Prop := ir.id ≠ W64 0 ∨ ir.hdr.isSome
 
 /-- The auth layer's `authInfo` for the request: the header's user and revision, or none. -/
 def Irr.user (ir : Irr) : GoString := match ir.hdr with | some h => h.username | none => []
-def Irr.authRev (ir : Irr) : Nat := match ir.hdr with | some h => uint.nat h.authRev | none => 0
+def Irr.revW (ir : Irr) : w64 := match ir.hdr with | some h => h.authRev | none => W64 0
+def Irr.authRev (ir : Irr) : Nat := uint.nat ir.revW
 
 /-- The request's principal in W0's terms. -/
 def Irr.who (ir : Irr) : Principal := if ir.user = [] then none else some ir.user
@@ -570,11 +571,11 @@ opaque isUber (ua : GoInterface) (mc : MemberCfg) (γ : Cluster) (γc : Membersh
 /-- **The state machine behind `ua` is at `σ`.** Exclusive. -/
 opaque smAt (ua : GoInterface) (σ : State) : IProp GF := iprop(True)
 
-/-- **The membership update an apply of `ir` makes**: for a member's attributes, the caller's
+/-- **The membership update an apply of `op` makes**: for a member's attributes, the caller's
 atomic update of the view (2e's `clusterSt γc`) from a view that knows the member (a member or
 removed) to the view with its attributes set, committing `Q`; `Q` itself for any other request. -/
-def memberUpd (γc : Membership.CNames) (ir : Irr) (Q : IProp GF) : IProp GF :=
-  match ir.op with
+def memberUpd (γc : Membership.CNames) (op : IrrOp) (Q : IProp GF) : IProp GF :=
+  match op with
   | .memberAttrSet id name urls =>
       iprop(AU <{ ∃∃ (st : Membership.ClusterSt), Membership.clusterSt γc st ∗
               ⌜st.isMember id ∨ id ∈ st.removed⌝ }> @ ⊤, ∅
@@ -619,6 +620,24 @@ opaque snapSrvOk (ss : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 Persistent. -/
 opaque ciOk (ci : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
+/-- (provisional, 3d's: 2b's item 2 in `req/go_etcd_io_etcd_server_v3_auth.md`) **The auth store
+`ast`, read concurrently**: each of its reads (`IsAuthEnabled`, `Revision`, a user, a permission) is
+answered at an auth state the cluster `γ` reached (`etcdLb`, `State.authTables`). Persistent. -/
+opaque authRead (ast : GoInterface) (γ : Cluster) : IProp GF := iprop(True)
+
+/-- (provisional, 3c's) **The lessor `le`, read concurrently** (`Lookup`, `Lease.Keys`): any answer
+(no fact of it is used). Persistent. -/
+opaque lessorRead (le : GoInterface) : IProp GF := iprop(True)
+
+/-- (provisional, 3d's and 3c's) **Permission reads of the auth store `ast` and the lessor `le`,
+with `A` lent**: every permission check (`isOpPermitted`, `IsAdminPermitted`, the lessor's `Lookup`
+and `Keys` of a lease) is answered as at some state `σ'` with `S σ'`. Two instances: the apply
+thread's (`S` the one state its stores are at, `A` the stores: exact), the request path's
+(`authRead`, `lessorRead`: `S` the states whose auth state the cluster has had; checks of a lease's
+keys excluded there, `CheckTxnAuth`). -/
+opaque permReads (ast le : GoInterface) (A : IProp GF) (S : State → IProp GF) : IProp GF :=
+  iprop(True)
+
 /-- **The options' handles** (`NewUberApplier`'s persistent premise): the logger, mvcc's KV, the
 lessor at `mc`, the auth store registering in `γ`, the membership with view `γc`, the backend for
 the quota, the raft status, the snapshot server and the consistent indexer under `R`. -/
@@ -649,6 +668,10 @@ opaque stAt (b : Loc) (σ : State) : IProp GF := iprop(True)
 /-- **The applier `v` is the layers `ls` over backend applier `b`**, its auth layer `aa`
 (internal). Persistent. -/
 opaque applierAt (v : GoInterface) (ls : List Layer) (b aa : Loc) : IProp GF := iprop(True)
+
+/-- The backend applier `b`'s options are `o` (its read-only field, internal). -/
+def beOpts (b : Loc) (o : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) : IProp GF :=
+  iprop(b.[go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend, go!"options"] ↦□ o)
 
 /-- **`p` is an `*uberApplier`** over backend applier `b` and auth layer `aa` (internal): its
 read-only fields, its `applyV3base` the base chain. Persistent. -/
@@ -695,7 +718,8 @@ def persistent.spec : Prop :=
   (∀ p b aa mc γ γc R, Persistent (uberAt (GF := GF) p b aa mc γ γc R)) ∧
   (∀ kv R, Persistent (kvOk (GF := GF) kv R)) ∧ (∀ le mc, Persistent (lessorOk (GF := GF) le mc)) ∧
   (∀ ast γ, Persistent (authOk (GF := GF) ast γ)) ∧ (∀ rs, Persistent (statusOk (GF := GF) rs)) ∧
-  (∀ ss R, Persistent (snapSrvOk (GF := GF) ss R)) ∧ (∀ ci R, Persistent (ciOk (GF := GF) ci R)) ∧
+  (∀ ss R, Persistent (snapSrvOk (GF := GF) ss R)) ∧
+  (∀ ast γ, Persistent (authRead (GF := GF) ast γ)) ∧ (∀ le, Persistent (lessorRead (GF := GF) le)) ∧ (∀ ci R, Persistent (ciOk (GF := GF) ci R)) ∧
   (∀ p ir, Persistent (irrMsgAt (GF := GF) p ir)) ∧
   (∀ p op, Persistent (reqMsgAt (GF := GF) p op))
 
@@ -744,7 +768,7 @@ def opStep_authenticate.spec : Prop :=
       σ.auth.enabled = true ∧ (∀ ur, σ.auth.users name = some ur → ur.password = none) ∧
         res = .err .authFailed ∨
       σ.auth.enabled = true ∧ (∃ ur, σ.auth.users name = some ur ∧ ur.password ≠ none) ∧
-        ∃ t, res = .ok (.authenticate t))
+        res = .ok .authenticate)
 
 /-- A hashed user addition is W0's with the hash stored in the password's place (W0's model is asked
 to keep the stored credential: `req/go_etcd_io_etcd_api_v3.md`, from 3a). -/

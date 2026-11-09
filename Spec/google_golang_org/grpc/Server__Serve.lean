@@ -4,14 +4,14 @@
 Users: 2e's `Serve` of a member (`embed`'s `serveCtx.serve`, `examples/lib/etcdstart`'s `Serve`).
 
 Why true: `Serve` accepts connections on `lis` and, per request, runs the registered handler on a
-goroutine of its own (the trusted model of this dispatch is a Goose loop forking each run, so each
-run's thread token is a forked thread's: Grpc/Api.lean's header); it returns an error when the
+goroutine of its own, which draws one of the caller's thread tokens from the pool `start` took
+(the physical premise: at most `n` runs at once) and returns it; it returns an error when the
 listener fails or the server stops. What each run must meet was fixed when the right to serve was
 granted (`start.spec`), so `Serve` itself takes only that right.
 
 Changes: from `specs-ref/Spec/google_golang_org/grpc/Server__Serve.lean` and the old `grpc.serve`
 axiom: the handler pool (`S`, `n`, chosen by the caller: `notes/per-type-blockers.md` (a)) is gone;
-each run is a thread of the model; the replies' size premise (`grpcRepliesFit`) is `msgsFit`, taken
+each run borrows a token from the caller's pool (round 1, 2f's `Http.handlerPool`); the replies' size premise (`grpcRepliesFit`) is `msgsFit`, taken
 by `start`.
 
 Margin: none.

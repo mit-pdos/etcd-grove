@@ -42,13 +42,12 @@ here can check.
 
 `walRecs_timeless`, `walRecs_excl`, `walOpen_excl`, `walPurgeRight_excl`.
 
-## What the model does not say
+## Crashes
 
-Crashes: `Save` of a commit-only hard state does not fsync (`raft.MustSync`), so after a crash the
-directory may hold an older state record. The records here are those of a directory closed by
-`Close` (which fsyncs); a crash rule (Perennial's crash semantics: the records' durable part, the
-last fsynced prefix) is out of this batch's scope (`notes/specs-only/batch-2e.md`, open question
-Q2).
+`Recs.crashed`, `Recs.crashedMid`: what a crash may leave, true of the WAL's code (a commit-only
+state record not fsynced may be lost; a crash during a `Save` leaves a prefix of its entries and
+not its state). The server's specs restart only after a stop (`batch-2e.md`, round 1, "Crashes": the
+blocker is raft's durable state, which has no transition for a partly written `Ready`).
 -/
 module
 
@@ -64,7 +63,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace Wal
 
-open Iris Iris.BI
+open Iris Iris.BI Classical
 
 /-- A snapshot record (`walpb.Snapshot`). -/
 structure WalSnap where
@@ -80,22 +79,56 @@ structure Recs where
   floor : Nat
   log : List Raft.LogEntry
   snaps : List WalSnap
+  /-- the commit of the last state record known fsynced (`raft.MustSync`'s writes, a segment cut,
+  `Sync`, `Close`): what a crash cannot lose -/
+  syncedCommit : w64
 
 /-- A new WAL (`wal.Create`): the metadata, an empty state, an empty log, the zero snapshot record
 (which `Create` writes). -/
 def Recs.init (md : List w8) : Recs :=
   { metadata := md, hs := Raft.HardState.empty, floor := 0, log := [],
-    snaps := [⟨W64 0, W64 0, none⟩] }
+    snaps := [⟨W64 0, W64 0, none⟩], syncedCommit := W64 0 }
 
-/-- `Save(hs, ents)`, the entries `es` from index `k` (`k = 0`: none): the log truncated at `k`
-and extended, the state record replaced when `hs` is not empty (an empty `hs` and no entries: no
-write at all, `wal.go:1037`). -/
+/-- Whether `Save(hs, es)` fsyncs (`raft.MustSync`: entries, or a new term or vote). -/
+def Recs.mustSync (R : Recs) (hs : Raft.HardState) (es : List Raft.LogEntry) : Prop :=
+  es ≠ [] ∨ hs.term ≠ R.hs.term ∨ hs.vote ≠ R.hs.vote
+
+/-- `Save(hs, ents)`, the entries `es` from index `k`: the log truncated at `k` and extended, the
+state record replaced when `hs` is not empty (an empty `hs` and no entries: no write at all,
+`wal.go:1037`). Only meaningful at `es = [] ∨ floor < k ≤ floor + |log| + 1` (the premise of
+`storage.Save.spec`: an entry at or below the floor is dropped by the replay, a gap is
+`ErrSliceOutOfRange`, `wal.go:500-516`). The synced commit moves when the save fsyncs. -/
 def Recs.save (R : Recs) (hs : Raft.HardState) (k : Nat) (es : List Raft.LogEntry) : Recs :=
   let R1 := if es = [] then R else { R with log := R.log.take (k - R.floor - 1) ++ es }
-  if hs = Raft.HardState.empty then R1 else { R1 with hs := hs }
+  let R2 := if hs = Raft.HardState.empty then R1 else { R1 with hs := hs }
+  if R.mustSync hs es then { R2 with syncedCommit := R2.hs.commit } else R2
 
-/-- `SaveSnapshot(s)`: the record appended. -/
-def Recs.saveSnap (R : Recs) (s : WalSnap) : Recs := { R with snaps := R.snaps ++ [s] }
+/-- `SaveSnapshot(s)`: the record appended (and fsynced). When the snapshot is above the commit of
+the last state record (a received snapshot), the entries above it are dropped: the fork's
+`ReadAll` drops them when it opens at this record (`wal.go:539-550`,
+`nonissues/etcd-wal-stale-entries-above-snapshot.md`); a restart opens at the newest valid record,
+and at an older one the entries above this record are rewritten by the later saves the newer record
+needs, so the model is the replay's either way. -/
+def Recs.saveSnap (R : Recs) (s : WalSnap) : Recs :=
+  let R1 := { R with snaps := R.snaps ++ [s], syncedCommit := R.hs.commit }
+  if uint.nat R.hs.commit < uint.nat s.index ∧ R.floor ≤ uint.nat s.index then
+    { R1 with log := R.log.take (uint.nat s.index - R.floor) }
+  else R1
+
+/-- **What a crash may leave of the records `R`** (true of the WAL's code: each `Save` writes its
+entries, then its state, and fsyncs only when `mustSync`; `SaveSnapshot`, a segment cut, `Sync`,
+`Close` fsync): a commit-only state record not yet fsynced may be lost, so the state's commit is
+anything from the synced commit up. -/
+def Recs.crashed (R R' : Recs) : Prop :=
+  ∃ c : w64, uint.nat R.syncedCommit ≤ uint.nat c ∧ uint.nat c ≤ uint.nat R.hs.commit ∧
+    R' = { R with hs := { R.hs with commit := c }, syncedCommit := c }
+
+/-- **What a crash during `Save(hs, es)` from `k` may leave**: some prefix of the entries written
+(each record a whole one: a torn tail is repaired, `wal.Repair`), the new state not (it follows
+them), then `crashed`. -/
+def Recs.crashedMid (R : Recs) (k : Nat) (es : List Raft.LogEntry) (R' : Recs) : Prop :=
+  ∃ j, j ≤ es.length ∧
+    Recs.crashed (if j = 0 then R else { R with log := R.log.take (k - R.floor - 1) ++ es.take j }) R'
 
 /-- `ReleaseLockTo(i)`, then a purge: what is below `i` may be gone. -/
 def Recs.release (R : Recs) (i : Nat) : Recs :=

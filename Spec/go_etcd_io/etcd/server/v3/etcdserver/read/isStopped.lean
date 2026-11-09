@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 def isStopped.spec : Prop :=
   ∀ (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
-      ⌜err = GoInterface.nil ∨ readErr err⌝ }}
+      (⌜err = GoInterface.nil⌝ ∨ readErr err) }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.read.isStopped)) (Val #err))
   {{ (b : Bool), RET #b; True }}
 

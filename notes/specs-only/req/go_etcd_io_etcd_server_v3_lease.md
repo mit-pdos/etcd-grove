@@ -30,3 +30,11 @@ What the request path (2c) needs of the lessor (3c) and `lease/leasehttp`:
    run (time-based: 3c to state it, or the user decides to drop the mode: open question Q6 of
    `batch-2e.md`).
 2. `lessor.Stop` once (`Cleanup`, through `srvClosers`).
+
+## from 2d (round 1)
+
+4. **The read slot**: the lessor's reads (`Lookup`, `Leases`, `TimeToLive`'s) over 2d's `srvReadAt`
+   (your `lessorAt γ n ls` at the member's applied point looks like the right realization).
+5. **`expiredCh γ c ch`** (your name): each receive carries `⌜leaseExpiry = true⌝` of the environment
+   (2d's `revokeExpiredLeases.spec` takes it; with `false` the channel never delivers: a trusted
+   statement about time, say so in your header).

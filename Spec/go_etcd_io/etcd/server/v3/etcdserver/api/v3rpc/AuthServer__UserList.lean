@@ -8,6 +8,8 @@ Proof sketch: `as.authenticator.UserList(ctx, r)` (2c's `EtcdServer.UserList.spe
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/AuthServer__UserList.lean`: over the contract (was the auth plan's `authServerIs` with per-method answers).
 
+Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` once W0's round 4 makes `srvStep` `Step` (a read's permission checked at an auth state between the call's start and its answer).
+
 Margin: none.
 -/
 module
@@ -32,9 +34,9 @@ variable [sem : go.Semantics]
 
 /-- `AuthServer.UserList(ctx, r)` meets the contract of `/etcdserverpb.Auth/UserList`. -/
 def AuthServer.UserList.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster),
+  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
   HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"UserList")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authServerAt p s γ) (etcdUnary γ go!"/etcdserverpb.Auth/UserList") go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Auth/UserList") go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty
 
 end spec
 

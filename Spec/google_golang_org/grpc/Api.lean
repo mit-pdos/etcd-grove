@@ -11,12 +11,17 @@ got wrong, and this one avoids (`specs-ref/notes/grpc-msg-models.md`, `per-type-
   (`Proto/Api.lean`), and grpc transports contents: the server's decoded request holds the content
   the client's message held, the client's decoded reply the content the handler's reply held. What
   a content means is the message type's owner's law, which nobody can choose per call.
-* **No handler pool chosen by the caller**: a handler run is a thread of the program. The
-  intended realization is a trusted model of `Serve`'s dispatch (a Goose loop that `go`es each run,
-  as grpc-go's `serveStreams` does), so each run's `threadTok` comes from the thread fuel by a
-  modelled `Fork` (`wp_fork_tok`), counted by the adequacy theorem like any goroutine; the run
-  returns it. No statement here hands out a token it did not take (PRINCIPLES, "A trusted
-  statement never gives out a counted resource it did not take").
+* **Handler runs borrow their caller's thread tokens** (round 1, as 2f's net/http: the
+  repository's handler-pool decision): `start` takes a pool of `n` of the caller's thread tokens
+  (2f's `Http.handlerPool`); each run draws one for its life and returns it. The physical premise:
+  grpc runs at most `n` handlers of one server at once, a bound the adequacy theorem fixes. On the
+  TLS path the runs are net/http's (`ServeHTTP`), with net/http's pool. No statement here hands out
+  a token it did not take.
+* **One address, one protocol** (round 1): an address is bound through 2f's `Http.protoAt` to the
+  protocol `grpcOver C P` (`addrAt`), with net/http's listeners (`Http.listenerAt`, 2f's
+  `net.Listen`) and environment premise (one reserved string per socket). cmux's sub-listeners
+  (`cmuxSubAt`) and the TLS path (`Server.ServeHTTP`) serve that same protocol.
+* **Status messages** arrive as `fixUtf8 msg` (invalid UTF-8 replaced); etcd's are ASCII.
 * **Sizes**: grpc-go's codec allocates `proto.Size` bytes before any size check, and `make` panics
   above `2 ^ 48` (`issues/grpc-codec-alloc-before-size-check.md`); a reply or request over the
   limits below that is refused with `ResourceExhausted`, which is no panic. So the boundary holds
@@ -95,6 +100,7 @@ module
 
 public import Spec.google_golang_org.protobuf.proto.Api
 public import Spec.context.Api
+public import Spec.net.http.Api
 public import Perennial.Code.io
 public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.status
@@ -171,6 +177,28 @@ inductive Outcome where
 /-- **The messages of grpc's own errors** (opaque): the messages grpc-go's code makes. -/
 opaque grpcMsg : GoString → Prop
 
+/-- **A status message as it arrives** (opaque): grpc-go's server percent-encodes `grpc-message`,
+replacing each invalid UTF-8 sequence by U+FFFD (`internal/transport/http_util.go`,
+`encodeGrpcMessageUnchecked`); an ASCII message arrives as itself (`fixUtf8_ascii`). -/
+opaque fixUtf8 : GoString → GoString
+
+/-- An ASCII message arrives unchanged. -/
+def fixUtf8_ascii.spec : Prop := ∀ m : GoString, (∀ b ∈ m, uint.nat b < 128) → fixUtf8 m = m
+
+/-- A message that arrives as an ASCII string was that string (U+FFFD is not ASCII). -/
+def fixUtf8_ascii_inv.spec : Prop := ∀ m m' : GoString, (∀ b ∈ m', uint.nat b < 128) →
+  fixUtf8 m = m' → m = m'
+
+/-- **The text of a status error** (`(*status.Error).Error()`: `"rpc error: code = ... desc =
+..."`), opaque, never empty. -/
+opaque grpcText : w32 → GoString → GoString
+
+def grpcText_ne.spec : Prop := ∀ c m, grpcText c m ≠ []
+
+/-- **An HTTP request that grpc's `ServeHTTP` takes as a gRPC call** (opaque): HTTP/2 `POST` with a
+`Content-Type` beginning with `application/grpc` (2f's `HReq`). -/
+opaque grpcReq : Http.HReq → Prop
+
 /-- **The workload premise** (see the header): every message this program's gRPC clients and
 servers marshal fits (`Proto.Content.fits`). Opaque: a scope restriction of the results that take
 it, which say so. -/
@@ -217,6 +245,14 @@ opaque statusErr (err : GoInterface) (code : w32) (msg : GoString) : IProp GF :=
 `status.FromError` reads of an error that is not a status. -/
 opaque errMsg (err : GoInterface) (msg : GoString) : IProp GF := iprop(True)
 
+/-- **`err` carries no gRPC status** (persistent): neither it nor an error it wraps (`errors.As`)
+has a `GRPCStatus()` method; what `status.FromError` needs to build `Unknown` from `Error()`. -/
+opaque plainErr (err : GoInterface) : IProp GF := iprop(True)
+
+/-- **The dynamic type of `err` is comparable** (`==` and a map lookup keyed by it never panic:
+Perennial's `CheckComparable`). -/
+opaque cmpErr (err : GoInterface) : Prop
+
 /-- **A `*status.Status` with `code` and `msg`** (persistent; read-only: grpc never writes one it
 handed out; `nil` is `OK` with no message). -/
 opaque statusAt (s : Loc) (code : w32) (msg : GoString) : IProp GF := iprop(True)
@@ -225,7 +261,7 @@ opaque statusAt (s : Loc) (code : w32) (msg : GoString) : IProp GF := iprop(True
 with its message (not `ok`), or `nil` (`OK`, `ok`). -/
 def errView (err : GoInterface) (code : w32) (msg : GoString) (ok : Bool) : IProp GF :=
   iprop((⌜ok = true⌝ ∗ statusErr err code msg) ∨
-        (⌜ok = false ∧ code = cUnknown⌝ ∗ errMsg err msg) ∨
+        (⌜ok = false ∧ code = cUnknown⌝ ∗ errMsg err msg ∗ plainErr err) ∨
         ⌜err = GoInterface.nil ∧ ok = true ∧ code = cOK ∧ msg = []⌝)
 
 /-- **A `*peer.Peer`** whose `Addr.String()` returns (persistent). -/
@@ -263,15 +299,20 @@ structure AddrContract where
   unary : GoString → Option (go.GoType × go.GoType × UnarySpec (GF := GF))
   stream : GoString → Option (go.GoType × go.GoType × StreamSpec (GF := GF))
 
-/-- **The program may listen at `ep`** (exclusive): one per address, given to the program by the
-adequacy theorem, as the thread fuel is (a resource of the program's environment, not of grpc's:
-no statement here produces it). -/
-opaque addrFree (ep : GoString) : IProp GF := iprop(True)
+/-- **The HTTP protocol of a gRPC server meeting `C`, other requests by `P`** (opaque; 2f's
+`Http.Proto`): a request that is a gRPC call (`grpcReq`) is answered as `C` says for its method;
+any other request as `P` says (etcd's gateway, `/health`, `/metrics` on the same socket). One
+address, one protocol: a socket bound for etcd's gRPC contracts cannot be served by net/http with
+another protocol; etcd's TLS path (net/http serving `grpcHandlerFunc`, which hands gRPC calls to
+`ServeHTTP`) meets this protocol through `Server.ServeHTTP.spec`. -/
+opaque grpcOver (_C : AddrContract (GF := GF)) (P : Http.Proto GF) : Http.Proto GF := P
 
-/-- **The address `ep` is bound to the contracts `C`** for good (persistent): every server this
-program ever starts at `ep` serves `C` (a member restarted at its client URL serves the same
-contracts), so a caller holding `serves ep m ...` meets the contract of whichever run it reaches. -/
-opaque addrAt (ep : GoString) (C : AddrContract (GF := GF)) : IProp GF := iprop(True)
+/-- **The address `ep` is bound to the contracts `C`** for good (persistent): 2f's `protoAt` of the
+address string, set once from the environment's `Http.addrFree ep` (`Http.reserve`; the
+environment's premise: one reserved string per socket), so every server the program ever starts
+at `ep` serves `C` (a member restarted at its client URL serves the same contracts). -/
+def addrAt (ep : GoString) (C : AddrContract (GF := GF)) : IProp GF :=
+  iprop(∃ P : Http.Proto GF, Http.protoAt ep (grpcOver C P))
 
 /-- **The unary method `m` is served at `ep`** with the contract `S`. -/
 def serves (ep m : GoString) (reqT repT : go.GoType) (S : UnarySpec (GF := GF)) : IProp GF :=
@@ -281,8 +322,41 @@ def serves (ep m : GoString) (reqT repT : go.GoType) (S : UnarySpec (GF := GF)) 
 def servesStream (ep m : GoString) (reqT repT : go.GoType) (S : StreamSpec (GF := GF)) : IProp GF :=
   iprop(∃ C : AddrContract (GF := GF), addrAt ep C ∗ ⌜C.stream m = some (reqT, repT, S)⌝)
 
-/-- **A `net.Listener` bound to `ep`** (exclusive; 2e's `net.Listen`, or Perennial's). -/
-opaque listenerAt (lis : GoInterface) (ep : GoString) : IProp GF := iprop(True)
+/-- **A cmux sub-listener** (exclusive): the connections of a listener bound at `ep` (2f's
+`Http.listenerAt`) that cmux matched as HTTP/2 (`http2`) or HTTP/1 (etcd's insecure client path,
+`embed/serve.go:141-213`). cmux (`github.com/soheilhy/cmux`) is not translated: its functions'
+specs (`New`, `Match`, `HTTP1`, `HTTP2`, `Serve`) wait for its names in the Goose configuration
+(asked of 2e); `cmux_split` is what they give. -/
+opaque cmuxSubAt (lis : GoInterface) (ep : GoString) (http2 : Bool) : IProp GF := iprop(True)
+
+/-- **A listener a gRPC server may serve at `ep`**: one `net.Listen` bound (2f's `Listen.spec`), or
+cmux's HTTP/2 part of one. -/
+def grpcListener (lis : GoInterface) (ep : GoString) : IProp GF :=
+  iprop(Http.listenerAt lis ep ∨ cmuxSubAt lis ep true)
+
+/-- **A started gRPC server serving `C` through `ServeHTTP`** (persistent; `startHTTP`'s). -/
+opaque servesHTTP (gs : Loc) (C : AddrContract (GF := GF)) : IProp GF := iprop(True)
+
+/-- **The context of a server stream** (persistent; the run's, given with the halves): what
+`Context()` returns to any goroutine. -/
+opaque srvCtxOf (st : GoInterface) (ctx : GoInterface) (md : MD) : IProp GF := iprop(True)
+
+/-- **A client stream's context** (persistent): what `cs.Context()` returns. -/
+opaque cliCtxOf (cs : GoInterface) (ctx : GoInterface) : IProp GF := iprop(True)
+
+/-- **grpc's generic stream wrappers** (`*GenericClientStream[Req, Res]`, `*GenericServerStream[Req,
+Res]`, which the generated stubs and handlers make, 3h): `w`'s embedded stream is `s`. -/
+opaque genCliAt (w : Loc) (cs : GoInterface) (reqT repT : go.GoType) : IProp GF := iprop(True)
+opaque genSrvAt (w : Loc) (st : GoInterface) (reqT repT : go.GoType) : IProp GF := iprop(True)
+
+/-- grpc's health service's registrations (`grpc_health_v1.Health_ServiceDesc`'s unary `Check`,
+`List` and stream `Watch`, full names with handlers; opaque). -/
+opaque healthMethods : List (GoString × val)
+opaque healthStreams : List (GoString × val)
+
+/-- **A `*peer.Peer` variable at `p`, owned** (what `grpc.Peer(&p)` lends to the call: grpc writes
+it after the attempt). -/
+opaque peerVar (p : Loc) : IProp GF := iprop(True)
 
 /-- **The right to run `Serve` on `gs` with `lis`** (exclusive; `start`'s). -/
 opaque serveTok (gs : Loc) (lis : GoInterface) : IProp GF := iprop(True)
@@ -316,7 +390,7 @@ opaque icChain (ics : List GoFunc) (ic : val) : IProp GF := iprop(True)
 /-- **A unary server handler continuation** (what an interceptor gets as `handler`): calling it is
 running the rest of the chain `ics` and then `h` (the generated handler's call of the service's
 method). -/
-opaque icHandler (ics : List GoFunc) (k : val) (h : val) : IProp GF := iprop(True)
+opaque icHandler (ics : List GoFunc) (info : Loc) (k : val) (h : val) : IProp GF := iprop(True)
 
 /-- **grpc's one-attempt invoker of `cc`** (the `UnaryInvoker` an interceptor gets). -/
 opaque attemptOk (cc : Loc) (A : GoString → IProp GF) (R : MD → IProp GF) (inv : val) : IProp GF :=
@@ -365,7 +439,7 @@ itself (the dropped decoding of a request, which `decOk` excludes; a codec's). -
 def unaryOut (repT : go.GoType) (r err : GoInterface) (Φ : Outcome → IProp GF) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ (p : Loc) (dq : DFrac) (c : Content),
           ⌜r = msgVal repT p ∧ depth c < depthMax⌝ ∗ msgAt repT p dq c ∗ Φ (.ok c)) ∨
-        (⌜err ≠ GoInterface.nil⌝ ∗ ∃ code msg, sentStatus err code msg ∗ Φ (.status code msg)))
+        (⌜err ≠ GoInterface.nil⌝ ∗ ∃ code msg, sentStatus err code msg ∗ Φ (.status code (fixUtf8 msg))))
 
 /-- **The handler `h` of a unary method** (its `MethodDesc.Handler`, called by grpc with the
 service value `ss`, the run's context, the decoder and the chained interceptor `ic`) **meets the
@@ -384,7 +458,7 @@ def streamOut (st : GoInterface) (g : StreamName) (S : StreamSpec (GF := GF)) (m
     (err : GoInterface) : IProp GF :=
   iprop(∃ e : Option (w32 × GoString),
     ((⌜err = GoInterface.nil ∧ e = none⌝) ∨
-     (⌜err ≠ GoInterface.nil⌝ ∗ ∃ code msg, sentStatus err code msg ∗ ⌜e = some (code, msg)⌝)) ∗
+     (⌜err ≠ GoInterface.nil⌝ ∗ ∃ code msg, sentStatus err code msg ∗ ⌜e = some (code, fixUtf8 msg)⌝)) ∗
     ((∃ j, srvSend st g S md j ∗ S.fin g md j e) ∨ □ ∀ j, S.fin g md j e))
 
 /-- The call grpc makes for a stream run: the chained stream interceptor `sic` (with the
@@ -400,7 +474,7 @@ with both halves of a fresh stream returns `streamOut`. -/
 def streamOk (h : val) (ss : GoInterface) (sic : Option val) (reqT repT : go.GoType)
     (S : StreamSpec (GF := GF)) : IProp GF :=
   iprop(□ ∀ (ctx st : GoInterface) (info : Loc) (md : MD) (g : StreamName) (Ψ : val → IProp GF),
-    threadTok ∗ rpcCtx ctx md ∗ srvRecv st g S md 0 ∗ srvSend st g S md 0 ∗
+    threadTok ∗ rpcCtx ctx md ∗ srvCtxOf st ctx md ∗ srvRecv st g S md 0 ∗ srvSend st g S md 0 ∗
       (∀ (err : GoInterface), threadTok -∗ streamOut st g S md err -∗ Ψ #err) -∗
     WP (streamRun h ss st sic info) {{ Ψ }})
 
@@ -460,7 +534,8 @@ request's content (grpc decodes the bytes it received; a request that fits decod
 def decOk_call.spec : Prop := ∀ (dec : val) (reqT : go.GoType) (c c0 : Content) (q : Loc),
   {{ decOk (GF := GF) dec reqT c ∗ msgAt reqT q (DFrac.own 1) c0 }}
     (App (Val dec) (Val #(msgVal reqT q)))
-  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ msgAt reqT q (DFrac.own 1) c }}
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∧ depth c < depthMax⌝ ∗
+      msgAt reqT q (DFrac.own 1) c }}
 
 /-- **One attempt of a unary call** (grpc's invoker of `cc`, which an interceptor calls at most
 once per attempt it wants): the request (read, given back) is delivered to at most one run of the
@@ -496,7 +571,7 @@ def streamerOk_call.spec : Prop := ∀ (cc : Loc) (A : GoString → IProp GF) (R
     (App (App (App (App (App (Val str) (Val #ctx)) (Val #desc)) (Val #cc)) (Val #m)) (Val #opts))
   {{ (cs err : GoInterface), RET (PairV #cs #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (g : StreamName) (mdc md : MD), □ R mdc ∗ ⌜mdSeen (md0 ++ mdc) md⌝ ∗
-        streamKey g ∗ cliSend cs g S md 0 ∗ cliRecv cs g S md 0) ∨
+        streamKey g ∗ (∃ ctx', cliCtxOf cs ctx') ∗ cliSend cs g S md 0 ∗ cliRecv cs g S md 0) ∨
       (⌜cs = GoInterface.nil⌝ ∗ ownErr err) }}
 
 /-- **`cs.SendMsg(m)`** (the `grpc.ClientStream` interface; the generated stubs' `Send`): the
@@ -553,12 +628,66 @@ def srvSend_send.spec : Prop := ∀ (st : GoInterface) (g : StreamName) (S : Str
   {{ (err : GoInterface), RET #err; msgAt repT p dq c ∗
       ((⌜err = GoInterface.nil⌝ ∗ srvSend st g S md (j + 1)) ∨ (ownErr err ∗ srvSend st g S md j)) }}
 
-/-- **`st.Context()`**: the run's context (any holder of a half may ask). -/
-def srvStream_context.spec : Prop := ∀ (st : GoInterface) (g : StreamName) (S : StreamSpec (GF := GF))
-    (md : MD) (i : Nat),
-  {{ srvRecv (GF := GF) st g S md i }}
+/-- **`st.Context()`**: the run's context, from any goroutine (no half needed). -/
+def srvStream_context.spec : Prop := ∀ (st ctx : GoInterface) (md : MD),
+  {{ srvCtxOf (GF := GF) st ctx md }}
     (App (Val (st @!! google_golang_org.grpc.ServerStream.ty @!! go!"Context")) (Val #()))
-  {{ (ctx : GoInterface), RET #ctx; srvRecv st g S md i ∗ rpcCtx ctx md }}
+  {{ RET #ctx; rpcCtx ctx md }}
+
+/-- **`cs.Context()`**: the stream's context, from any goroutine. -/
+def cliStream_context.spec : Prop := ∀ (cs ctx : GoInterface),
+  {{ cliCtxOf (GF := GF) cs ctx }}
+    (App (Val (cs @!! google_golang_org.grpc.ClientStream.ty @!! go!"Context")) (Val #()))
+  {{ RET #ctx; Context.ctxOk ctx }}
+
+/-- **The generic wrappers' methods are the stream's** (WP form): `Send(m)` is `SendMsg(m)`;
+`Recv()` allocates a `new(T)` and `RecvMsg`s into it, returning it on success, `nil` otherwise;
+`CloseSend` and `Context` are the embedded stream's. -/
+def genCli_send.spec : Prop := ∀ (w : Loc) (cs : GoInterface) (reqT repT : go.GoType) (p : Loc)
+    (Ψ : val → IProp GF),
+  genCliAt (GF := GF) w cs reqT repT ∗
+    WP (App (Val (cs @!! google_golang_org.grpc.ClientStream.ty @!! go!"SendMsg")) (Val #(msgVal reqT p))) {{ Ψ }} ⊢
+  WP (App (Val (w @!! go.GoType.PointerType (google_golang_org.grpc.GenericClientStream.ty reqT repT) @!! go!"Send")) (Val #p)) {{ Ψ }}
+
+def genCli_closeSend.spec : Prop := ∀ (w : Loc) (cs : GoInterface) (reqT repT : go.GoType)
+    (Ψ : val → IProp GF),
+  genCliAt (GF := GF) w cs reqT repT ∗
+    WP (App (Val (cs @!! google_golang_org.grpc.ClientStream.ty @!! go!"CloseSend")) (Val #())) {{ Ψ }} ⊢
+  WP (App (Val (w @!! go.GoType.PointerType (google_golang_org.grpc.GenericClientStream.ty reqT repT) @!! go!"CloseSend")) (Val #())) {{ Ψ }}
+
+def genCli_recv.spec : Prop := ∀ (w : Loc) (cs : GoInterface) (reqT repT : go.GoType)
+    (Ψ : val → IProp GF),
+  genCliAt (GF := GF) w cs reqT repT ∗
+    (∀ (p : Loc) (c0 : Content), msgAt repT p (DFrac.own 1) c0 -∗
+      WP (App (Val (cs @!! google_golang_org.grpc.ClientStream.ty @!! go!"RecvMsg")) (Val #(msgVal repT p)))
+        {{ v, ∀ err : GoInterface, ⌜v = #err⌝ -∗
+            Ψ (PairV #(if decide (err = GoInterface.nil) then p else null) #err) }}) ⊢
+  WP (App (Val (w @!! go.GoType.PointerType (google_golang_org.grpc.GenericClientStream.ty reqT repT) @!! go!"Recv")) (Val #())) {{ Ψ }}
+
+def genSrv_send.spec : Prop := ∀ (w : Loc) (st : GoInterface) (reqT repT : go.GoType) (p : Loc)
+    (Ψ : val → IProp GF),
+  genSrvAt (GF := GF) w st reqT repT ∗
+    WP (App (Val (st @!! google_golang_org.grpc.ServerStream.ty @!! go!"SendMsg")) (Val #(msgVal repT p))) {{ Ψ }} ⊢
+  WP (App (Val (w @!! go.GoType.PointerType (google_golang_org.grpc.GenericServerStream.ty reqT repT) @!! go!"Send")) (Val #p)) {{ Ψ }}
+
+def genSrv_recv.spec : Prop := ∀ (w : Loc) (st : GoInterface) (reqT repT : go.GoType)
+    (Ψ : val → IProp GF),
+  genSrvAt (GF := GF) w st reqT repT ∗
+    (∀ (p : Loc) (c0 : Content), msgAt reqT p (DFrac.own 1) c0 -∗
+      WP (App (Val (st @!! google_golang_org.grpc.ServerStream.ty @!! go!"RecvMsg")) (Val #(msgVal reqT p)))
+        {{ v, ∀ err : GoInterface, ⌜v = #err⌝ -∗
+            Ψ (PairV #(if decide (err = GoInterface.nil) then p else null) #err) }}) ⊢
+  WP (App (Val (w @!! go.GoType.PointerType (google_golang_org.grpc.GenericServerStream.ty reqT repT) @!! go!"Recv")) (Val #())) {{ Ψ }}
+
+def genCli_context.spec : Prop := ∀ (w : Loc) (cs ctx : GoInterface) (reqT repT : go.GoType),
+  {{ genCliAt (GF := GF) w cs reqT repT ∗ cliCtxOf cs ctx }}
+    (App (Val (w @!! go.GoType.PointerType (google_golang_org.grpc.GenericClientStream.ty reqT repT) @!! go!"Context")) (Val #()))
+  {{ RET #ctx; Context.ctxOk ctx }}
+
+def genSrv_context.spec : Prop := ∀ (w : Loc) (st ctx : GoInterface) (md : MD) (reqT repT : go.GoType),
+  {{ genSrvAt (GF := GF) w st reqT repT ∗ srvCtxOf st ctx md }}
+    (App (Val (w @!! go.GoType.PointerType (google_golang_org.grpc.GenericServerStream.ty reqT repT) @!! go!"Context")) (Val #()))
+  {{ RET #ctx; rpcCtx ctx md }}
 
 /-- A context with no outgoing metadata (W0's `ctxNoMeta`) has none. -/
 def outMD_noMeta.spec : Prop := ∀ ctx, Context.ctxNoMeta (GF := GF) ctx ⊢ outMD ctx []
@@ -587,23 +716,81 @@ def regsOk (B : SrvCfg) (C : AddrContract (GF := GF)) : IProp GF :=
       ⌜C.stream r.1 = some (reqT, repT, S)⌝ ∗ □ ∀ sic, icChain B.sics sic -∗
         streamOk r.2.1 r.2.2 (if B.sics = [] then none else some sic) reqT repT S))
 
-/-- **Binding an address**, once: the program chooses the contracts. -/
-def addrFree_bind.spec : Prop := ∀ ep (C : AddrContract (GF := GF)),
-  addrFree ep ⊢ |==> addrAt ep C
+/-- `grpcOver` fixes its contracts (two bindings of one string then agree, by 2f's `protoAt`
+agreement, asked in `req/net_http.md`). -/
+def grpcOver_inj.spec : Prop := ∀ (C C' : AddrContract (GF := GF)) (P P' : Http.Proto GF),
+  grpcOver C P = grpcOver C' P' → C = C' ∧ P = P'
 
-def addrAt_persistent.spec : Prop := ∀ ep (C : AddrContract (GF := GF)), Persistent (addrAt ep C)
+/-- **Requests that are not gRPC calls are `P`'s** (what net/http's other handlers on the socket
+serve). -/
+def grpcOver_other.spec : Prop := ∀ (C : AddrContract (GF := GF)) (P : Http.Proto GF) (R : Http.HReq)
+    (τ : GName),
+  ¬ grpcReq R → ((grpcOver C P).hreq R τ ⊣⊢ P.hreq R τ) ∧
+    (∀ B, (grpcOver C P).body R τ B ⊣⊢ P.body R τ B) ∧
+    (∀ B, (grpcOver C P).bodyPre R τ B ⊣⊢ P.bodyPre R τ B) ∧
+    (∀ st hs w, (grpcOver C P).resp R τ st hs w ⊣⊢ P.resp R τ st hs w)
 
-def addrAt_agree.spec : Prop := ∀ ep (C C' : AddrContract (GF := GF)),
-  addrAt ep C ∗ addrAt ep C' ⊢ ⌜C = C'⌝
+/-- **cmux's split** of a bound listener: its HTTP/1 part (no gRPC call: grpc requires HTTP/2) and
+its HTTP/2 part. -/
+def cmux_split.spec : Prop := ∀ (l : GoInterface) (ep : GoString),
+  Http.listenerAt (GF := GF) l ep ⊢ |==> ∃ l1 l2, cmuxSubAt l1 ep false ∗ cmuxSubAt l2 ep true
+
+/-- cmux's HTTP/1 part is a listener net/http serves at `ep`. -/
+def cmux_http1.spec : Prop := ∀ (l : GoInterface) (ep : GoString),
+  cmuxSubAt (GF := GF) l ep false ⊢ Http.listenerAt l ep
 
 /-- **Starting to serve** (a ghost step before `Serve`): a server built with the registrations of
-`B`, a listener at `ep` bound to `C`, and, for each registration, its handler meeting the contract
-`C` gives its method (under the server's interceptor chain); the workload premise. Gives the right
-to run `Serve`. Registrations of grpc's own services (health, reflection) are not in `B.regs`. -/
+`B` (grpc's health service's among them), a listener at `ep` (or cmux's HTTP/2 part of one) whose
+address is bound to `C`, each registration's handler meeting the contract `C` gives its method
+(under the server's interceptor chain), a pool of the caller's thread tokens for the runs (2f's
+`Http.handlerPool`, from `threadToks n`: each run draws one for its life and returns it; the
+physical premise: grpc runs at most `n` handlers of this server at once, a bound the adequacy
+theorem fixes), and the workload premise. Gives the right to run `Serve`. -/
 def start.spec : Prop := ∀ (gs : Loc) (B : SrvCfg) (lis : GoInterface) (ep : GoString)
-    (C : AddrContract (GF := GF)),
-  srvBuild gs B ∗ listenerAt lis ep ∗ addrAt ep C ∗ ⌜msgsFit⌝ ∗ regsOk B C ⊢
+    (C : AddrContract (GF := GF)) (pl : GName) (n : Nat),
+  srvBuild gs B ∗ grpcListener lis ep ∗ addrAt ep C ∗ Http.handlerPool pl n ∗ ⌜msgsFit⌝ ∗ regsOk B C ⊢
   |==> serveTok gs lis
+
+/-- **Starting to serve through net/http** (etcd's TLS path): no listener and no pool (the runs are
+net/http's handler runs, with their tokens). -/
+def startHTTP.spec : Prop := ∀ (gs : Loc) (B : SrvCfg) (C : AddrContract (GF := GF)),
+  srvBuild gs B ∗ ⌜msgsFit⌝ ∗ regsOk B C ⊢ |==> servesHTTP gs C
+
+/-- **A peer variable lent to grpc**: an invariant holds it, `nil` or a `peerOk` peer (grpc's
+writes keep it; the caller reads through it). -/
+def peerVar_inv.spec : Prop := ∀ p : Loc,
+  peerVar (GF := GF) p ⊢ inv (nroot .@ "grpcPeer") iprop(∃ q : Loc, p ↦ q ∗ (⌜q = null⌝ ∨ peerOk q))
+
+def round1_persistent.spec : Prop :=
+  (∀ err, Persistent (plainErr (GF := GF) err)) ∧
+  (∀ gs C, Persistent (servesHTTP (GF := GF) gs C)) ∧
+  (∀ st ctx md, Persistent (srvCtxOf (GF := GF) st ctx md)) ∧
+  (∀ cs ctx, Persistent (cliCtxOf (GF := GF) cs ctx)) ∧
+  (∀ w cs t t', Persistent (genCliAt (GF := GF) w cs t t')) ∧
+  (∀ w st t t', Persistent (genSrvAt (GF := GF) w st t t')) ∧
+  (∀ p, Persistent (peerVar (GF := GF) p))
+
+def srvBuild_ne_null.spec : Prop := ∀ gs B, srvBuild (GF := GF) gs B ⊢ ⌜gs ≠ null⌝
+
+/-- **What a status error is**: it prints `grpcText` (never empty), it is a `*status.Error`
+(`internal/status.Error`: neither an `EtcdError` nor a context's error; its `Is(target)` is true
+only of a `*status.Error` with an equal status), and it is comparable. -/
+def statusErr_errMsg.spec : Prop := ∀ err c m,
+  statusErr (GF := GF) err c m ⊢ errMsg err (grpcText c m)
+
+def statusErr_ty.spec : Prop := ∀ err c m,
+  statusErr (GF := GF) err c m ⊢
+    ⌜cmpErr err ∧ ∃ v, err = interface.mkOk (go.GoType.PointerType google_golang_org.grpc.internal.status.Error.ty) v⌝
+
+/-- **The incoming metadata's keys have values** (grpc decodes no empty header). -/
+def rpcCtx_vals.spec : Prop := ∀ ctx md, rpcCtx (GF := GF) ctx md ⊢ ⌜∀ e ∈ md, e.2 ≠ []⌝
+
+/-- **`mdAt`'s meaning**: Perennial's map points-to, each key's slice read-only with the key's
+values (what the map lookups `md[k]` of the interceptors and the auth store read). -/
+def mdAt_ownMap.spec : Prop := ∀ (m : Loc) (dq : DFrac) (md : MD),
+  mdAt (GF := GF) m dq md ⊣⊢ ∃ mm : GMap GoString GoSlice, ownMap m dq mm ∗
+    (□ ∀ (k : GoString) (sl : GoSlice), ⌜mm.lookup k = some sl⌝ -∗ sl ↦*□ md.get k) ∗
+    ⌜∀ k, mm.lookup k = none → md.get k = []⌝
 
 /-- **The chain's call** (WP form): the chained interceptor runs the first interceptor with a
 continuation running the rest, then the handler `h`; with no interceptor grpc passes `nil` and the
@@ -611,18 +798,18 @@ generated handler calls the method itself (`icChain [] ic`: `ic` is the nil func
 def icChain_call.spec : Prop := ∀ (i : GoFunc) (ics : List GoFunc) (ic : val) (ctx req : GoInterface)
     (info : Loc) (h : val) (Ψ : val → IProp GF),
   icChain (GF := GF) (i :: ics) ic ∗
-    (∀ k, icHandler ics k h -∗
+    (∀ k, icHandler ics info k h -∗
       WP (App (App (App (App (Val #i) (Val #ctx)) (Val #req)) (Val #info)) (Val k)) {{ Ψ }}) ⊢
   WP (App (App (App (App (Val ic) (Val #ctx)) (Val #req)) (Val #info)) (Val h)) {{ Ψ }}
 
 /-- **A continuation's call**: the next interceptor with the next continuation, or (none left) the
 handler. -/
-def icHandler_call.spec : Prop := ∀ (ics : List GoFunc) (k h : val) (ctx req : GoInterface)
+def icHandler_call.spec : Prop := ∀ (ics : List GoFunc) (info : Loc) (k h : val) (ctx req : GoInterface)
     (Ψ : val → IProp GF),
-  icHandler (GF := GF) ics k h ∗
+  icHandler (GF := GF) ics info k h ∗
     (match ics with
      | [] => WP (App (App (Val h) (Val #ctx)) (Val #req)) {{ Ψ }}
-     | i :: rest => ∀ (info : Loc) (k' : val), icHandler rest k' h -∗
+     | i :: rest => ∀ (k' : val), icHandler rest info k' h -∗
          WP (App (App (App (App (Val #i) (Val #ctx)) (Val #req)) (Val #info)) (Val k')) {{ Ψ }}) ⊢
   WP (App (App (Val k) (Val #ctx)) (Val #req)) {{ Ψ }}
 

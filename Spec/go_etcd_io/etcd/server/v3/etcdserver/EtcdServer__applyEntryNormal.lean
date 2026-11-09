@@ -59,10 +59,10 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **Apply the normal entry at index `k`**: the thread is applied through `k`; the consistent index
 moves to `k` if the entry went to the backend. -/
 def EtcdServer.applyEntryNormal.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (ep : Loc) (p : Progress) (c ai k : Nat) (ptr : Loc)
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ep : Loc) (p : Progress) (c ai k : Nat) (ptr : Loc)
     (e : Raft.LogEntry) (l : List Raft.LogEntry) (v3 : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ applyAt s γ ep p (k - 1) c ai ∗ entryAt ptr k e ∗ Raft.committedLb γ.raft l ∗
+      srvNode s γ id ∗ srvStarted s γ id ∗ applyAt s γ ep p (k - 1) c ai ∗ entryAt ptr k e ∗ Raft.committedLb γ.raft l ∗
       ⌜0 < k ∧ l[k - 1]? = some e ∧ e.type = Raft.EntryNormal ∧ v3 = applyV3 c k ∧
         (v3 = true → ai = k)⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!

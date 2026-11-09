@@ -54,7 +54,7 @@ def Read.requestCurrentIndex.spec : Prop :=
       go!"requestCurrentIndex")) (Val #lc))
   {{ (i : w64) (err : GoInterface), RET (PairV #i #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ c : List w8, Raft.readState rγ c i ∗ Raft.readCtx rγ c (readLbQ l)) ∨
-      ⌜readErr err⌝ }}
+      readErr err }}
 
 end spec
 end Read

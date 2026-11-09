@@ -31,13 +31,13 @@ range deleter; the lease list; recover; renew and the primary; the expiry channe
   calls `Keys()` on it), `bkt` (the backend's lease bucket, id to TTL, which may differ from the live
   TTL: a recovered lease is raised to the minimum in memory only), `be` (the backend it writes),
   `rd` (the range deleter). **Not modelled**: time (expiries, the remaining TTL, its checkpoints:
-  `Checkpoint` changes nothing here, `Remaining()` returns any duration), and whether the lessor is
-  primary (`Promote`/`Demote` change nothing here; `Renew` may answer `ErrNotPrimary` at any time).
-  `items` and `keys` are two maps, as in Go: the lessor does not keep them in agreement (`Attach` of
-  a key attached elsewhere overwrites `itemMap` only); mvcc's callers keep them so
-  (`req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, "from 3c").
-* The transitions (`grant`, `attach`, `detach`, `remove`, `loaded`) are the code's, one per atomic
-  step under `le.mu`.
+  `Checkpoint` changes at most the bucket's TTL of a recovered lease, `Remaining()` returns any
+  duration), and whether the lessor is primary (`Promote`/`Demote` change nothing here; `Renew` may
+  answer `ErrNotPrimary` at any time). `items` and `keys` are two maps, as in Go: the lessor does
+  not keep them in agreement (`Attach` of a key attached elsewhere overwrites `itemMap` only);
+  mvcc's callers keep them so (`req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, "from 3c").
+* The transitions (`grant`, `attach`, `detach`, `persist`, `remove`, `loaded`) are the code's, one
+  per atomic step under `le.mu`.
 
 ## Resources
 
@@ -90,7 +90,8 @@ objects on `expiredC` only with `c.expiry = true` (with `false`, an expiry found
 ## Laws
 
 `persistent`, `timeless`, `exclusive`; `lessorState_at`, `lessorAt_agree`, `lessorState_le`,
-`lessorAt_obj`, `leaseObj_id`, `leaseObj_agree`, `lessorState_bkt`, `expiredCh_recv`, `init`.
+`lessorAt_obj`, `leaseObj_id`, `leaseObj_live`, `leaseObj_agree`, `lessorState_bkt`, `expiredCh_recv`,
+`init`.
 -/
 module
 
@@ -176,6 +177,14 @@ def LessorState.detach (ls : LessorState) (id : Int) (ks : List Key) : LessorSta
   | none => ls
   | some e => { ls with items := fun k => if k ∈ ks then 0 else ls.items k,
                         keys := fun o k => ls.keys o k ∧ ¬ (o = e.obj ∧ k ∈ ks) }
+
+/-- `Checkpoint`'s step when it persists (`shouldPersistCheckpoints()`, lease `id` live): the
+lease's record rewritten with its live TTL (a recovered lease's TTL raised in memory reaches the
+bucket). -/
+def LessorState.persist (ls : LessorState) (id : Int) : LessorState :=
+  match ls.leases id with
+  | none => ls
+  | some e => { ls with bkt := fun i => if i = id then some e.ttl else ls.bkt i }
 
 /-- `Revoke`'s last step: lease `id` gone from memory and from the bucket (its object's item set
 kept: a reader may still hold the object). -/
@@ -361,6 +370,13 @@ def leaseObj_id.spec : Prop := ∀ γ l id ttl,
   leaseObj (GF := GF) γ l id ttl ⊢
     l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"ID"] ↦□ (W64 id) ∗
     ⌜l ≠ null ∧ -2 ^ 63 ≤ id ∧ id < 2 ^ 63 ∧ -2 ^ 63 ≤ ttl ∧ ttl < 2 ^ 63⌝
+
+/-- An object was live: every object the lessor hands out is one some state of its history had
+live (made by `Grant` or loaded). -/
+def leaseObj_live.spec : Prop := ∀ γ l id ttl,
+  leaseObj (GF := GF) γ l id ttl ⊢
+    ∃ (j : Nat) (ls : LessorState) (e : LeaseEnt), lessorAt γ j ls ∗
+      ⌜ls.leases id = some e ∧ e.obj = l ∧ e.ttl = ttl⌝
 
 /-- An object is of one lease. -/
 def leaseObj_agree.spec : Prop := ∀ γ l id id' ttl ttl',

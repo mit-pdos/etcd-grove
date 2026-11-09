@@ -16,7 +16,7 @@ import (
 // Specs: EnsureSnapshot.spec (both cases), EnsureConfState.spec, Snapshot.GetMetadata.spec,
 // SnapshotMetadata.GetConfState.spec, ConfState.GetAutoLeave.spec.
 func ReqEnsure(index uint64) {
-	s := &pb.Snapshot{Metadata: &pb.SnapshotMetadata{Index: proto.Uint64(index)}}
+	s := &pb.Snapshot{Metadata: &pb.SnapshotMetadata{Index: new(index)}}
 	s = pb.EnsureSnapshot(s)
 	if s.GetMetadata().GetIndex() != index || s.GetMetadata().GetConfState() == nil ||
 		s.GetMetadata().GetConfState().GetAutoLeave() {
@@ -51,11 +51,13 @@ func ReqCloneSnapshot(s *pb.Snapshot) *pb.Snapshot {
 // needs equal entries at equal index and term).
 // Users: bootstrap.go:52-56 (RawNode.Bootstrap), etcd's bootstrap through StartNode.
 // Assumes: ctx is non-empty (etcd's member JSON).
+// BLOCKED on: 2a's deterministic Marshal (`Proto.marshalOut`, req/google_golang_org_protobuf_proto.md,
+// "from 3h", item 1); unprovable until it is in the boundary.
 // Specs: bootCC_lit.spec, bootCC_facts.spec, proto's Marshal.spec with 2a's requested determinism
 // (marshalOut).
 func ReqBootstrapBytes(id uint64, ctx []byte) {
 	mk := func() []byte {
-		cc := &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: proto.Uint64(id), Context: ctx}
+		cc := &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(id), Context: ctx}
 		data, err := proto.Marshal(cc)
 		if err != nil {
 			panic("bootstrap marshal")

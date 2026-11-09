@@ -22,6 +22,9 @@ old `MarshalsConfChange` over the refuted `pbEnc`; the size premise is explicit 
 old `proto.MarshalConfChange.spec`, which took no premise: false of protobuf-go above `2 ^ 48`
 bytes); `nil` is the same spec (`o = none`).
 
+Round 1 (review F2): the `nil` case returns the `nil` slice and no bytes (R2: the auto-leave
+entry's zero payload, which `increaseUncommittedSize` never refuses).
+
 Margin: the code returns an error where `proto.Marshal` does, which never happens for raftpb
 (`marshalOk`); the spec states the `nil` error.
 -/
@@ -63,7 +66,8 @@ def MarshalConfChange.spec : Prop :=
        | some c => confChangePts v dq c) ∗
       ∃ bs : List w8, b ↦* bs ∗
         ⌜t = (o.getD (.v2 ⟨ConfChangeTransitionAuto, [], []⟩)).entryType ∧
-         decodeConfChange t bs = some (o.getD (.v2 ⟨ConfChangeTransitionAuto, [], []⟩))⌝ }}
+         decodeConfChange t bs = some (o.getD (.v2 ⟨ConfChangeTransitionAuto, [], []⟩)) ∧
+         (o = none → b = slice.nil ∧ bs = [])⌝ }}
 
 end spec
 

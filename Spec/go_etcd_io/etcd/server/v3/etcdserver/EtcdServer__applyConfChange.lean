@@ -8,11 +8,19 @@ peers. Reports whether this member was removed.
 **Users**: `apply` (`server.go:1952`). Snippets `apply.go` (`ReqConfChangeAnswered`,
 `ReqReplayBelowCI`).
 
-**Proof sketch**. The entry at `k` is committed with configuration `confAt γ.raft (k - 1) m` (the
-thread's view, R1's `nodeConf` at `k - 1`, or past it at `c ≥ k` in the replay). The decision is the
+**Proof sketch**. The entry at `k` is committed with configuration `confAt γ.raft (k - 1) m`. R1's
+`nodeConf` is the `Ready` loop's (round 1, F3): for a batch with conf changes the loop lends it to the
+apply thread through the batch (`applyBatch`) and waits on `notifyc`'s second send until the apply
+thread has applied them, which returns it (`raft.go:317-324, 337-343`); `applyAt` holds it while
+lent (at `k - 1`, or past it at `c ≥ k` in the replay). The decision is the
 cluster's (R1's `confDecide`, once, by the first member to apply the entry; every later member finds
 `confDecided` and agrees because `ValidateConfigurationChange` is a function of the history's
-membership at `k - 1`, `histAt γ (k - 1) σ`, 2e's `Membership` spec). Refused: `cc.NodeId := 0`,
+membership at `k - 1`, `histAt γ (k - 1) σ`, and the member-local `maxLearners`, equal on every member: 2e's
+configuration premise; 2e's `Membership` spec). An accepted change applies in raft (`confDecide`
+needs `d.step m = some m'`): validation does not check for the last voter, so this rests on the
+proposer's `mayRemoveMember`, which concurrent removals can race (round 1, S6:
+`nonissues/etcd-concurrent-remove-last-voter.md`; a scope restriction of the workload: no two
+`RemoveMember` calls in flight at once). Refused: `cc.NodeId := 0`,
 `s.r.ApplyConfChange(cc)` (`raftNode.ApplyConfChange.spec`: R1's legacy change at node `0` changes
 nothing, `Membership.applyChange_v1`); with `v3`, `ConsistentApplyingIndex()` then
 `SetConsistentIndex` (`Cindex`). Accepted with `v3`: `s.r.ApplyConfChange(cc)` gives the new
@@ -60,7 +68,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **Apply the conf change at index `k`** (decoded into `cc`): the thread is applied through `k`. -/
 def EtcdServer.applyConfChange.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : w64) (ccp ep : Loc) (cc : Raft.ConfChangeV1) (p : Progress)
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ccp ep : Loc) (cc : Raft.ConfChangeV1) (p : Progress)
     (c ai k : Nat) (e : Raft.LogEntry) (l : List Raft.LogEntry) (v3 : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ applyAt s γ ep p (k - 1) c ai ∗

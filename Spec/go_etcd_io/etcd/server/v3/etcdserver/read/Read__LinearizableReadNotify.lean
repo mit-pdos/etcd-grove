@@ -66,7 +66,7 @@ def Read.LinearizableReadNotify.spec : Prop :=
   {{ (err : GoInterface), RET #err; threadTok ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ l : List Raft.LogEntry, Raft.committedLb rγ l ∗ A l.length ∗
           ⌜Raft.opsOf l0 <+: Raft.opsOf l⌝) ∨
-       ⌜readErr err⌝) }}
+       readErr err) }}
 
 end spec
 end Read

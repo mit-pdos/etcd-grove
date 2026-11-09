@@ -27,7 +27,7 @@ precondition), fired once, over W0's history, the run a function (`run`, related
 backend share and hook contract in 3e's `mvccWriter`; the lessor a pin.
 
 **Margin.** A nested transaction's header revision is `0` (W0 does not model it). The read-only
-transaction's response after a context error is partly filled (no fact given).
+transaction's response after a context error is partly filled (`roTxnResp`: what the warning reads).
 -/
 module
 
@@ -77,7 +77,7 @@ def Txn.spec : Prop :=
        | .error e => iprop(⌜resp = null ∧ tr = null⌝ ∗ errIs err e)
        | .ok x => iprop(traceAt tr ∗
            ((⌜err = GoInterface.nil⌝ ∗ txnOk resp (runRev h x.1) x.2.1 x.2.2) ∨
-            (⌜t.readonly⌝ ∗ Context.ctxDone ctx ∗ ctxErr err)))) }}
+            (⌜t.readonly⌝ ∗ Context.ctxDone ctx ∗ ctxErr err ∗ roTxnResp resp)))) }}
 
 end spec
 end Txn

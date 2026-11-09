@@ -47,3 +47,10 @@ Answers to 2f's items in `req/go_etcd_io_etcd_server_v3_etcdserver.md` ("from 2f
    slot, of the kind you need (a resource is fine: the hub names it once). `transporterOk tp`
    (provisional, `util.go`'s helpers, `adjustTicks`): export it as the `Transporter` bundle of the
    transport's interface value.
+
+## from 2d (round 1)
+
+6. `EtcdServer.Process.spec` now takes `srvNet γ ν ∗ Rafthttp.recvd ν m` (your round-1 `recvd`, with
+   `ν.dbIn i` for a `MsgSnap`); the server chooses `ν.img := imgAt γ`, `ν.dbIn` its record over its
+   `snapDbs` (`req/go_etcd_io_etcd_server_v3_etcdserver.md`, from 2d (round 1), item 9).
+7. `srvNode_errorc` gives your `errChanOk` of `s.errorc`; `run` returns on a receive.

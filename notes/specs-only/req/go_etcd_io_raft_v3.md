@@ -462,3 +462,18 @@ out by node `id` has `m.src = id` and the shape (`vote = 0`, `snapshot = none`, 
 `msgSent_appShape.spec : msgSent γ m ∗ ⌜m.type = MsgApp⌝ ⊢ ⌜m.vote = 0 ∧ ...⌝` and a `BatchOk`
 conjunct `∀ m ∈ b.msgs, m.type = MsgApp → m.src = id`. Item 3 is withdrawn (the link heartbeat has
 `To = 0`, which `Send` skips).
+
+## from 2d (round 1)
+
+2d's provability F5 (the merged snapshot's term), precise:
+1. **`BatchOk` (or `readyGot`) carries a term bound**: every committed entry and the snapshot of a
+   batch have a term at most the term of the batch's hard state as the driver knows it after the
+   batch (`(b.hs.getD st.hs).term`), whenever that is non-zero.
+2. **At a start**, the stored snapshot's and entries' terms are at most the stored hard state's term
+   (`StorageHolds`-side, or a fact `RestartNode`'s post gives: the driver's `hs.term`).
+3. **A sent `MsgSnap` has a non-zero term** (`msgSent_type`-style: `m.type = MsgSnap → m.term ≠ 0`):
+   etcd's `raftTerm` is `0` after a restart until the first non-empty hard state, and the guard
+   `m.GetTerm() == raftTerm` then excludes the merge.
+Used by: `applyBatch_terms`, `msgSnapC_recv`, `applyAll.spec`, `createMergedSnapshotMessage.spec`.
+4. **The snapshot's point** (2d's provability F3): the `Ready` loop applies `node.Advance.spec`'s wand
+   at the point `a` of the installed snapshot (2d's `snapImage_point`); nothing new for R1.
