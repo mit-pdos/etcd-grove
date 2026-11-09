@@ -863,8 +863,14 @@ non-bootstrap line, `tr.nonReceive ts = .ok sts`), `Next` (`ts.NextOk tr ∧ tr.
 `StepLine` (`tr.StepLineOk ts invariants` and no `StepLineRel ts invariants (.error e)`; it returns the
 `StepLineRel` result, `Branched`/`Violation` related, `Bad` unconstrained; partial correctness, its loop
 needs no fuel). `TraceError.Error` is not specified: no function of the checker or `Main` calls it
-(`Main` only tests `err != nil`). `Result.TLCOK` was done. Not done: `NewTraceWith`/`NewTrace` (see
-below) and `CheckTrace`.
+(`Main` only tests `err != nil`). `Result.TLCOK` was done. `NewTraceWith` and `NewTrace` proved
+(`NewTrace.spec` unchanged): `NewTraceWith`'s spec is `NewTrace`'s for any flags, its post the heap part of
+`traceRO` (`traceHeapRO`, `TraceBuild.lean`, with `traceRO_of_heap`), `NewTrace` adding `Trace.Valid`;
+`ParseRole` specified (`RET #s`). The differences read as harmless are proved so (`TraceBuild.lean`):
+`SetIds.mk` depends only on membership (`SetIds.mk_congr`: the Go collects the servers interleaved),
+the per-server bootstrap ranges OR-ed are `bootstrapOf`'s flags (`bootFlags_*`), the Go's
+`bootstrapConfs` filter on the global flag and `nid = i` is the server's own flag (`global_flag`), the
+checks' order changes only which error. No disagreement. Not done: `CheckTrace`.
 
 `CheckTrace`'s loop invariant, line `l` with frontier `F` (Lean `frontier`, Go slice of `TState`s) and
 result so far `r`: `1 ≤ l ≤ len + 1`; `∀ r', tr.CheckFromRel inv (len + 1 - l) l F r r' →
