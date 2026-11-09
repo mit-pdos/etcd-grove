@@ -73,7 +73,7 @@ theorem stepFollower.wp_proof
     (wp_GetIndex : raftpb.Message.GetIndex.spec (GF := GF) (hG := hG))
     (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
-  intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors
+  intro c scfg r id s ml m ents sn rs sv cl Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors Htr
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -128,7 +128,7 @@ theorem stepFollower.wp_proof
           (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
           (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
           (fun h => by simp [Hty, MsgProp, MsgApp] at h)
-        (Hnors (.inl Hty)) $$ [$Hphys $Hm] as Hphys
+        (Hnors (.inl Hty)) (by tr_none) $$ [$Hphys $Hm] as Hphys
       · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe
@@ -146,7 +146,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleAppendEntries c r id { s with lead := m.From' } ml m ents sn cl rs
-        Hwf Hnw Hconf Hfid Hty Hnl (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
+        Hwf Hnw Hconf Hfid Hty Hnl (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) (by tr_none) $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -163,7 +163,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleHeartbeat c r id { s with lead := m.From' } ml _ _ _ m ents sn cl rs
-        Hcommit Hfrom (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) $$ [$Hphys $Hm] as ⟨Hphys, -⟩
+        Hcommit Hfrom (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) (by tr_none) $$ [$Hphys $Hm] as ⟨Hphys, -⟩
     iapply HΦ $$ %GoInterface.nil %_ %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -196,7 +196,7 @@ theorem stepFollower.wp_proof
       · exact (Hn rfl).elim
       · rw [Hsn] at Hsv'; obtain rfl := Option.some.inj Hsv'; iexact Hc
     wp_apply wp_raft_handleSnapshot c r id { s with lead := m.From' } ml m ents sn cl rs sv scfg
-        Hrole Hvotes Hsn Hscfg Hscope Hfid Hns (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) $$ [$Hphys $Hm $Hcs]
+        Hrole Hvotes Hsn Hscfg Hscope Hfid Hns (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) (by tr_none) $$ [$Hphys $Hm $Hcs]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe
@@ -249,7 +249,7 @@ theorem stepFollower.wp_proof
           (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
           (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
           (fun h => by simp [Hty, MsgReadIndex, MsgApp] at h)
-        (Hnors (.inr (.inl Hty))) $$ [$Hphys $Hm] as Hphys
+        (Hnors (.inr (.inl Hty))) (by tr_none) $$ [$Hphys $Hm] as Hphys
       · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe
@@ -418,7 +418,7 @@ theorem stepFollower.wp_proof
             rfl, rfl, Hterm0', fun h => Hlid h, rfl, fun _ => Hxo Hlead⟩))))
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
           (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
-        (Hnors (.inr (.inr Hty))) $$ [$Hphys $Hm] as Hphys
+        (Hnors (.inr (.inr Hty))) (by tr_none) $$ [$Hphys $Hm] as Hphys
       · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
       ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys
       iapply HΦ $$ %GoInterface.nil %s %false %c
@@ -440,7 +440,7 @@ theorem stepFollower.wp_proof
     wp_raft_logC
     wp_apply wp_raft_hup c r id s _ Hnw
         (fun h => by simp [campaignTransfer, campaignPreElection] at h) Hwf Hfla
-      $$ [$Hphys] as %s' ⟨Hphys, %Hok, %Hpc⟩
+      (by tr_none) $$ [$Hphys] as %s' ⟨Hphys, %Hok, %Hpc⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]

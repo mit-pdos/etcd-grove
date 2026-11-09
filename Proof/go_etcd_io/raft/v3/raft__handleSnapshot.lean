@@ -61,7 +61,7 @@ theorem raft.handleSnapshot.wp_proof
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs sv cl Hrole Hvotes Hsn Hcl Hscope Hfid Hns Htz
+  intro c r id s ml m ents sn ctx rs sv cl Hrole Hvotes Hsn Hcl Hscope Hfid Hns Htz Htr
   subst Hsn
   wp_start as H
   iNamed H
@@ -120,7 +120,7 @@ theorem raft.handleSnapshot.wp_proof
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
       (appResp_sendOk id s1 m.From' s1.logst.committed Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
-      rfl $$ [$Hphys $Hr] as Hphys
+      rfl (by tr_none) $$ [$Hphys $Hr] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_
     iframe Hphys
@@ -161,7 +161,7 @@ theorem raft.handleSnapshot.wp_proof
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
-      rfl $$ [$Hphys $Hr] as Hphys
+      rfl (by tr_none) $$ [$Hphys $Hr] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_
     iframe Hphys
@@ -206,7 +206,7 @@ theorem raft.handleSnapshot.wp_proof
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
-      rfl $$ [$Hphys $Hr] as Hphys
+      rfl (by tr_none) $$ [$Hphys $Hr] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_
     iframe Hphys

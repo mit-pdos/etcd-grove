@@ -40,6 +40,10 @@ abbrev raft.tickHeartbeat.spec : Prop :=
   -- (2026-10-14, stage B7 part 2) in either ghost mode (`raft.Step.spec`'s)
   -- (2026-10-25, T-M M2b) a pre-candidate's campaign guard (until then no pre-candidate)
   md.Guard s →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s }}

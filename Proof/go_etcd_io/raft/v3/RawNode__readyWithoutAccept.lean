@@ -148,7 +148,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hcw := ownRaftGhost_commitWit _ _ _ $$ Hghost
   -- (durability stage II (i)) what the `Ready` cuts from
   icases ownRaftPhysC_persistCut cf rnv.raft' id s $$ Hphys with ⟨%Hpst, Hphys⟩
-  icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   ihave #Hf_traceLogger : iprop(∃ tl, rnv.raft'.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOk tl⌝)
     $$ []
   · iexists tl; iframe Htl; ipureintro; exact Htlok

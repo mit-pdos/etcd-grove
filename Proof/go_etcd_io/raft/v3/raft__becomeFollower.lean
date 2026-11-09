@@ -37,7 +37,7 @@ theorem raft.becomeFollower.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
     (wp_traceBecomeFollower : traceBecomeFollower.spec (GF := GF) (hG := hG)) :
     raft.becomeFollower.spec (GF := GF) (hG := hG) := by
-  intro c V r id s term lead Hle
+  intro c V r id s term lead Hle Htr
   wp_start as Hphys
   wp_auto
   -- `r.step := stepFollower`

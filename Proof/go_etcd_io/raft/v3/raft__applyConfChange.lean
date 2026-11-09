@@ -45,11 +45,11 @@ theorem raft.applyConfChange.wp_proof
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.spec (GF := GF) (hG := hG) := by
-  intro c r id s cc ccm dq c' Happ0 Hsz Hltz Hcand Hli2
+  intro c r id s cc ccm dq c' Happ0 Hsz Hltz Hcand Hli2 Htr
   wp_start as H
   iNamed H
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
-  icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   -- (stage R8a) the leader's progress bound of the old values, for the new ones (`PrKept`)
   icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
   icases ownRaftPhysC_retrack c'.cfg c c.voters (c'.cfg.voters ∪ {[id]}) r id s
@@ -108,7 +108,7 @@ theorem raft.applyConfChange.wp_proof
         (fun hl => by
           simp only at Hpk; rw [Hli'] at Hpk
           exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-      $$ [$Htrkf $Hback' $Hvotes $Hnew $Htl]
+      (by tr_none) $$ [$Htrkf $Hback' $Hvotes $Hnew $Htl]
       as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
     · ipureintro; exact ⟨Hmi, Htlok⟩
     try wp_auto
@@ -169,7 +169,7 @@ theorem raft.applyConfChange.wp_proof
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-          $$ [$Htrkf $Hback' $Hvotes $Hnew $Htl]
+          (by tr_none) $$ [$Htrkf $Hback' $Hvotes $Hnew $Htl]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact ⟨Hmi, Htlok⟩
         try wp_auto
@@ -217,7 +217,7 @@ theorem raft.applyConfChange.wp_proof
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-          $$ [$Htrkf $Hback' $Hvotes $Hnew $Htl]
+          (by tr_none) $$ [$Htrkf $Hback' $Hvotes $Hnew $Htl]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact ⟨Hmi, Htlok⟩
         try wp_auto

@@ -532,7 +532,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
       obtain ⟨Hiff, Haps, Hle1⟩ := Hpre _ h5 Hsa0 (by rw [h8]; exact Hq0.2) h1
       wp_apply _P.appliedSnap c r id { s with logst := ackLog s.logst (some sv) } _ sv _ Hiff Haps
         Hle1 Hrole Hvotes rfl Hscope Hghoff (fun h => by simp only [h5]; exact Hns h) (Hxa _ h5 Hak.1 Hak.2) Hkx
-        $$ [$Hphys $Hsv] as %prs %pvs %il ⟨Hsv, Hphys⟩
+        (by tr_none) $$ [$Hphys $Hsv] as %prs %pvs %il ⟨Hsv, Hphys⟩
       try wp_auto
       iapply HΦ $$ %interface.nil
       isplitl [Hphys]
@@ -578,7 +578,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
       obtain ⟨Hiff, Haps, Hle1⟩ := Hpre _ h5 Hsa0 (by rw [h8]; exact Hq0.2) h1
       wp_apply _P.appliedSnap c r id { s with logst := ackLog s.logst (some sv) } _ sv _ Hiff Haps
         Hle1 Hrole Hvotes rfl Hscope Hghoff (fun h => by simp only [h5]; exact Hns h) (Hxa _ h5 Hak.1 Hak.2) Hkx
-        $$ [$Hphys $Hsv] as %prs %pvs %il ⟨Hsv, Hphys⟩
+        (by tr_none) $$ [$Hphys $Hsv] as %prs %pvs %il ⟨Hsv, Hphys⟩
       try wp_auto
       iapply HΦ $$ %interface.nil
       isplitl [Hphys]
@@ -624,7 +624,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
           Hiff Haps Hle1 Hrole Hvotes rfl Hscope Hghoff (fun h => by simp only [g3, h5]; exact Hns h)
           (Hxa _ (g3.trans h5) (by unfold logStableTo; split <;> exact Hak.1)
             (by unfold logStableTo; split <;> exact Hak.2)) Hkx
-        $$ [$Hphys $Hsv] as %prs %pvs %il ⟨Hsv, Hphys⟩
+        (by tr_none) $$ [$Hphys $Hsv] as %prs %pvs %il ⟨Hsv, Hphys⟩
       try wp_auto
       iapply HΦ $$ %interface.nil
       isplitl [Hphys]

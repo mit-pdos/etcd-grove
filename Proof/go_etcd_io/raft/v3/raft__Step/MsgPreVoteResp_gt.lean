@@ -143,7 +143,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   rw [Hn7]
   try wp_auto
   wp_gets
-  wp_apply _P.becomeFollower c r id s m.Term' (W64 0) (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
+  wp_apply _P.becomeFollower c r id s m.Term' (W64 0) (Int.le_of_lt Hgt) (by tr_none) $$ [$Hphys] as %pvs Hphys
   -- the type switch: none of its cases, so `r.step(m)`
   wp_gets
   rw [Hty]
@@ -171,7 +171,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-    (by notfwd_tac) $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+    (by notfwd_tac) (by tr_none) $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · rw [ite_eq_right Hnp]; iexact Hm
   obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]

@@ -264,7 +264,7 @@ private theorem wp_step_pending
       (by not_self) (by not_self)
       (RestMsgOk.of_ne ⟨by not_self, by not_self, by not_self, by not_self, by not_self⟩) Hwf
       (GMode.Pre.of_facts Hpf (by not_self) (by not_self)) (fun h => absurd h (by not_self))
-      $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
+      (by tr_none) $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
     · have hP : m.Type' ≠ MsgProp := by not_self
       simp only [hP, ↓reduceIte, named]
       -- (raft-final phase 2) no transfer request: its witness is vacuous
@@ -347,7 +347,7 @@ private theorem wp_step_pending
       (fun _ => ⟨(fun _ h => by cases h), Hle, Hsok', Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
-      $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
+      (by tr_none) $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
     · have hP : (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
       have Hty0 : mtypeOf (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Type' = none := rfl
@@ -403,7 +403,7 @@ private theorem wp_step_pending
       (by msg_ne) (fun _ => rfl) (by msg_ne) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (Hpre ce _ rfl rfl) (fun h => absurd h (by msg_ne))
-      $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
+      (by tr_none) $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
     · have hP : (applyAckM id).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
       have Hty0 : mtypeOf (applyAckM id).Type' = none := rfl
@@ -658,7 +658,7 @@ private theorem wp_step_snapack
     (fun _ => ⟨Hsnp, Hle0, Hsok', Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     Hgd (fun h => absurd h (by msg_ne))
-    $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
+    (by tr_none) $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
   · have hP : (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Type' ≠ MsgProp := by msg_ne
     simp only [hP, ↓reduceIte, named]
     have Hty0 : mtypeOf (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Type' = none := rfl

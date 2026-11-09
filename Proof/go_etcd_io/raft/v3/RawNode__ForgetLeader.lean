@@ -64,7 +64,7 @@ theorem RawNode.ForgetLeader.wp_proof
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (⟨fun _ => rfl, fun h => absurd h (by msg_ne), fun h => absurd h (by msg_ne)⟩ : RestMsgOk s _ [] []) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
-    $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
+    (by tr_none) $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
   · -- the message: no entries, no `Context`, no snapshot
     have hP : (W32 23 : w32) ≠ MsgProp := by simp [MsgProp]
     simp only [hP, ↓reduceIte, named]

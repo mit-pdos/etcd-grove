@@ -207,7 +207,7 @@ local macro "cc_accept_tail" : tactic => `(tactic| (
     try wp_auto
     wp_apply raft.wp_store_pendingConfIndexC $$ Hphys as Hphys
     -- (2026-11-08) the trace hook: the logger field, and the decoded change, read
-    icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+    icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
     first
     | (ihave Hcci := ownConfChangeI_v1_intro _ _ _ $$ Hown
        wp_apply wp_traceChangeConfEvent _ _ _ _ tl $$ [Hcci Htl] as Hcci
@@ -315,7 +315,8 @@ theorem wp_stepLeader_prop
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (cs : List (Option ConfChangeIM)) (k0 : Nat)
     (Hty : m.Type' = MsgProp) (Hne : ents ≠ [])
-    (Hsmall : (ents.length : Int) < 2^61) (Hnz : s.term ≠ W64 0) (Hlead : s.role = .leader) :
+    (Hsmall : (ents.length : Int) < 2^61) (Hnz : s.term ≠ W64 0) (Hlead : s.role = .leader)
+    (Htr : s.gh.tr = none) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs ∗ ⧖ k0 }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
@@ -649,7 +650,7 @@ theorem wp_stepLeader_prop
       simp only [leaderPropConf]
       rw [propConf_length, Hcslen, Nat.min_self]; exact Hsmall
     wp_apply wp_raft_appendEntry c r id { s with pci := (leaderPropConf s ents cs c.joint).2 } _
-        (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) k0 Hlen' Hnz $$ [$Hphys Hes $Hrc]
+        (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) k0 Hlen' Hnz (by tr_none) $$ [$Hphys Hes $Hrc]
       as %acc ⟨#Hrc1, -, -, Hphys⟩
     · iunfold entsPts
       iexists els
@@ -667,7 +668,7 @@ theorem wp_stepLeader_prop
       simp only [↓reduceIte]
       iexact ErrPropDropped
     · wp_auto
-      wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys]
+      wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) (by tr_none) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %interface.nil %_ %false
       iframe Hphys

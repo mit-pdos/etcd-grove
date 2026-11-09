@@ -129,7 +129,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, (by intro h; rw [h] at Hlt; word), fun h => absurd h Hfid, rfl⟩)))
     wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (Or.inl rfl) Hok
       (fun h => absurd h (by simp only [ack]; w32_ne)) (fun h => absurd h (by simp only [ack]; w32_ne))
-      rfl $$ [$Hphys $Hack] as Hphys
+      rfl (by tr_none) $$ [$Hphys $Hack] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys

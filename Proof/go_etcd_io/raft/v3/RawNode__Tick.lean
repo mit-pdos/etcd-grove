@@ -45,9 +45,9 @@ theorem RawNode.Tick.wp_proof
     | wp_apply wp_tickElection cf _ γ rnv.raft' id s
         Hnw (fun _ => Htc1) Hwf (Hrnfl.1 Hflw)
         Hpf.1
-        $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk⟩
+        (by tr_none) $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk⟩
     | wp_apply wp_tickHeartbeat cf _ γ rnv.raft' id s Hwf Hpf.1
-        $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk⟩
+        (by tr_none) $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk⟩
   all_goals (
     have Hc := Hcv.1
     obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩, Ht1, Ht2, Hip4, Htpc, Hgd, Hsrb⟩ := Htk

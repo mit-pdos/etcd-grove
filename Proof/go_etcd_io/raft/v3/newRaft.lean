@@ -910,7 +910,7 @@ theorem newRaft.wp_proof
     $$ Hro Hlg0 Htrk HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob Hns0 Hsc0
   try wp_auto
   -- `r.becomeFollower(r.Term, None)`
-  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) (Int.le_refl _) $$ [$Hphys]
+  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) (Int.le_refl _) (by tr_none) $$ [$Hphys]
     as %pvs3 Hphys
   let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
   -- `r.trk.VoterNodes()`

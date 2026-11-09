@@ -98,7 +98,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases Hpv : s.prevote
   all_goals
     wp_auto
-    wp_apply _P.hup c r id s _ Hnowrap ?Hpvt Hwf Hfla $$ [$Hphys]
+    wp_apply _P.hup c r id s _ Hnowrap ?Hpvt Hwf Hfla (by tr_none) $$ [$Hphys]
       as %s' ⟨Hphys, %Hok, -⟩
     case Hpvt =>
       first

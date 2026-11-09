@@ -95,7 +95,7 @@ theorem RawNode.Bootstrap.wp_proof
   -- `rn.raft.becomeFollower(1, None)`
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   wp_apply wp_raft_becomeFollower _ rnv.raft' id s (W64 1) (W64 0) (by rw [Ht0]; word)
-    $$ [$Hphys] as %pvs1 Hphys
+    (by tr_none) $$ [$Hphys] as %pvs1 Hphys
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
   -- the state after `becomeFollower(1, None)`, as a variable (`s1`): term `1`, no vote, no leader
   generalize Hs1 : ({ becomeFollower s (W64 1) (W64 0) with prvals := pvs1 } : NState) = s1
@@ -381,7 +381,7 @@ theorem RawNode.Bootstrap.wp_proof
         (bootCC_apply _ _ Hp0) Hsz (by intro h; rw [Hskr] at h; cases h)
         (by intro h; rcases h with h | h <;> rw [Hskr] at h <;> cases h)
         (by intro _ h; rw [Hskr] at h; cases h)
-      $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩
+      (by tr_none) $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩
     obtain ⟨prs', pvs', Hsk'⟩ := applyCCOkC_nonleader _ _ _ _ Hok (by rw [Hskr]; decide)
     wp_for_post
     iframe

@@ -381,6 +381,10 @@ abbrev stepLeader.spec : Prop :=
         uint.Z t0 ≤ 1))) →
   -- (raft-final, 2026-10-29, U9: until then a transfer request only with leader transfer on,
   -- `NGhost.xf`, D21 M2r)
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a

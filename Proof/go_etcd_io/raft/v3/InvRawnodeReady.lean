@@ -2633,7 +2633,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     · exact h
     · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.1.2.2.1 (.inl h))
   icases ownRaftPhysC_nsOut γ _ cf rnv.raft' id s $$ Hphys Hghost with ⟨%Hnsout, Hphys, Hghost⟩
-  icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   ihave #Hf_traceLogger : iprop(∃ tl, rnv.raft'.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOk tl⌝)
     $$ []
   · iexists tl; iframe Htl; ipureintro; exact Htlok

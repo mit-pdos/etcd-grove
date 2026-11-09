@@ -1024,7 +1024,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (fun _ => ⟨Hterm, .inr Hfr⟩) (by msg_ne') (by msg_ne') (by msg_ne') (by msg_ne')
     (RestMsgOk.of_ne ⟨by msg_ne', by msg_ne', by msg_ne', by msg_ne', by msg_ne'⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne') (by msg_ne')) (fun h => absurd h (by msg_ne'))
-    $$ [$Hphys $Hghost $Hlc Hmin Htk Hcr]
+    (by tr_none) $$ [$Hphys $Hghost $Hlc Hmin Htk Hcr]
   · rw [Hty]
     simp only [ite_true]
     isplitr
@@ -1432,7 +1432,7 @@ theorem wp_applyConf_dyn
         rcases h with h | h
         · exact absurd h Hnc
         · exact absurd h Hnpc) Hli2
-    $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
+    (by tr_none) $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
   -- the ghost step
   let g' : RGh := ⟨k + 1, cs', fp, ds⟩
   have Hadm : AdmS (effDec dec ds) c0 (fun l => l = (rOf s g).full.take (k + 1)) ((rOf s g).full.take (k + 1))
