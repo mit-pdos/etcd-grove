@@ -48,7 +48,14 @@ not from `StepR` (which cannot state `rejectVote`'s: `toPState` hides a pre-cand
 adopt-leader, `commitTo`, `appResp`, `lose`; `maybeAppend` as the specification's truncate/append
 steps (`Conflict`, `NoConflict`, `AlreadyDone`, stale, heartbeat, reject); `AdvanceCommitIndex` at
 the quorum index; the sends (`MsgApp`, heartbeat, self-acknowledgement, vote requests); a line with
-one successor checked without branching.
+one successor checked without branching. **The global steps (2026-11-09, proved):** a run (`SimRun`, now over the
+prefix's parsed lines, `linesTrace`: `newTraceWith` can fail on a prefix) extends by a line with one
+successor (`simRun_snoc_single`), through the trace congruences (`next_congr`, `stepLoop_congr`,
+`checkLine_congr`, `runRel_congr`, `bootstrapOf_snoc`); raft's formatted ids parse back
+(`parseID_decStr`); a node line matches the `R`-related server (`stateMatches_node`); the `Commit`,
+`BecomeLeader` and `Replicate` lines' steps (`simRun_commit`, `simRun_becomeLeader`,
+`simRun_replicate`, `TraceSimMatch.lean`), each modulo the invariants at the result
+(`violated = none`, layer B's invariant mapping) and the line past the node's bootstrap lines.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
