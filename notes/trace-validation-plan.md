@@ -482,6 +482,51 @@ returned read-only like the inputs (`setRO`, `logRO`, `bagRO`; `msgsRO` for `Dom
   which a triple cannot state; `subSeqM`'s caller checks the same condition.
 No disagreement between the Go and the transcription was found.
 
+**`spec.go`'s state functions and the workload's actions proved (2026-11-09, branch
+`trace-check-layerc-spec`).** Specs and complete proofs (no `sorry`, no axiom), each against its
+`Tla/Spec.lean` definition: `Config.Equal`, `Durable.equal`, `Server.equal`, `State.Equal`,
+`durableOf`; on a clone being built (`stateOwn`): `send`, `discard`, `reply`, `commitTo`,
+`persistState`, `becomeFollowerOfTerm`, `replicate`; read-only: `pendingFrom`, `IsJointConfig`,
+`GetLearners`, `CurrentLeaders`, `HasNoConflict`; `nonNil`; the actions `RequestVote`,
+`AppendEntriesInRangeToPeer`, `AppendEntries`, `Heartbeat`, `AppendEntriesToSelf`, `BecomeLeader`,
+`ClientRequest`, `AdvanceCommitIndex`, `Ready`, `StepDownToFollower`, `UpdateTerm`,
+`DropStaleResponse`, `HandleRequestVoteRequest`, `HandleRequestVoteResponse`,
+`HandleAppendEntriesResponse`, `RejectAppendEntriesRequest`, `ReturnToFollowerState`,
+`AppendEntriesAlreadyDone`, `ConflictAppendEntriesRequest`, `NoConflictAppendEntriesRequest`,
+`AcceptAppendEntriesRequest`, `HandleAppendEntriesRequest`, `Receive`. An action returns a new
+`stateRO` (or nil), except the five sub-actions of `HandleAppendEntriesRequest` (`Reject...`,
+`ReturnToFollowerState`, `AppendEntriesAlreadyDone`, `Conflict...`, `NoConflict...`) and
+`AcceptAppendEntriesRequest`, which return the clone owned (`∃ M, stateOwn`): the Go then writes
+it (`t.mut(i).Lead = j` on every successor of a current-term request), so a frozen result would not
+do. Additions to `Rep.lean`/`Own.lean`: `Bag.Ok`, the role and subtype `strRel` constants,
+`decide_strRel`, `msgTypeW_decide`, `logRO_nil`, `serverOwn_intro`, `stateOwnHole_close_upd`,
+`ownSlice_fullSlice_len` (a general slice fact, a candidate for Perennial), `wp_max_int`/`wp_min_int`,
+`optOwn`/`optOwnS`, `stateOwn_not_null`/`stateRO_not_null`, `statesOwn_persist`, and the proof
+tactics `read_server`, `lookup_server`, `read_msg`, `mut_open`, `close_copy`/`close_copy'`.
+Premises the Go needs and the transcription leaves implicit (S6's loop invariant must carry them):
+- **the bags `Bag.Ok`**: messages distinct and every count below `2^63 - 1`, for an action that
+  sends or replies (`Bag.With`/`Without`'s premises; `discard` needs only distinctness); `Ready`
+  needs the two bags' total counts below `2^63` (`Bag.Plus`);
+- **lengths and indices far from overflow**: the logs, an append request's entries and a
+  configuration below `2^62` entries (`HasNoConflict`'s `len(log) + 1`, `IsQuorum`'s premise in
+  `AdvanceCommitIndex`, `BecomeLeader`'s granted votes); an append request's `prevLogIndex` in
+  `[0, 2^62 - 1)`; `AppendEntriesInRangeToPeer`'s range ends in `(-2^62, 2^62)`; `Timeout`'s term
+  (already);
+- **`HasNoConflict`'s index at least 1**: at `index ≤ 0` the Go reads `log[index - 1]`, out of
+  range (a Go panic, not an `EvalError`), where the Lean reads `log[0]` (`(index + k - 1).toNat`).
+  Unreachable from the actions (`index = prevLogIndex + 1`, `prevLogIndex ≥ 0` is round 3's T3), so
+  not a disagreement on the reachable states, but the two differ there;
+- **`AppendEntriesInRangeToPeer` where the Lean evaluates** (`= .ok o`): the Go's `SubSeq` panics
+  where TLC fails; the other `EvalM` actions proved here never fail where enabled, which their specs
+  state (`.error _ => False`).
+Left out, as the task allowed: snapshots (`HandleSnapshotRequest`, `SendSnapshot`; `Accept...`,
+`HandleAppendEntriesRequest` and `Receive` take `m.subtype ≠ "snapshot"`), pre-vote
+(`PreTimeout`, `RequestPreVote`, `HandlePreVote*`, `IgnoreInLease`; `Receive` takes the message
+not a pre-vote one), restarts (`Restart`), configuration changes (`applyConfigUpdate`,
+`reconfigure`, `AddNewServer`, `AddLearner`, `DeleteServer`, `ApplySimpleConfChange`),
+`DuplicateMessage`, `DropMessage`, the `Next*` relations, `Init`. No disagreement between the Go and
+the transcription was found on the functions proved.
+
 ### D. The harness and Main (the workload)
 
 The concurrent harness (`concurrent.go`, its Goose translation needs no change): each replica a
