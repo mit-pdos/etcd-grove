@@ -25,7 +25,11 @@ recorded state `jr` (so the writer's refusal is exactly 3a's `rev < a.rev`).
 (`rngInverted`, W0's `invertedDeny`); the order of the
 views (the backend and the cache are at or after the flag: the flag moves last in `AuthEnable`,
 `AuthDisable` and `Recover`, the cache before the backend's publication) is not stated, as no
-caller uses it.
+caller uses it. The range is the raw slices' (`rangeEnd := e`): an empty end, `nil` or not, is
+the single key (`isRangeOpPermitted`'s `len(rangeEnd) == 0`), while mvcc reads a non-`nil` empty end
+as "from the key on" (W0's `EtcdWire.endOf`): a caller checking a request whose `RangeEnd` is a
+non-`nil` empty slice (the in-process adapter's `WithRange("")`) gets a check of the key alone for
+a read of every key from it (integration I5; to be recorded as a nonissue, the callers' premise).
 -/
 module
 

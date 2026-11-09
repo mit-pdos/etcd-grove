@@ -70,7 +70,8 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
   `beReaderN` of them (sealed); the backend's close does not take them back (in-flight readers
   finish first: `Close` waits for them through bbolt's `mmaplock`).
 * `beRd γ rt F V` (exclusive): a begun read transaction `rt` (a `*concurrentReadTx`, or the shared
-  `*readTx` while read-locked) seeing `V` on `F`.
+  `*readTx` while read-locked) seeing `V` on `F`; the shared one exactly, a concurrent one up to
+  lingering deletes (its buffer copy may predate the last commit: `lingerSingle`, `rdOrderL`).
 * `beHook γ dq f` (fractional; `discard` persistent): the post-lock hook is `f` (`nil`: none).
 * `beDel γ`, `beDelHeld γ` (exclusive): the right to delete from a safe-range bucket, idle or
   held (`LockForSafeRangeDelete`: excludes a non-blocking defragmentation, which would otherwise
@@ -98,11 +99,12 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
 * `dbOpenOk cfg` (opaque `Prop`): **the environment premise**: bbolt's `Open` of `cfg.Path` with
   the backend's options succeeds (the file is a bbolt database or absent, the lock is free or
   `Timeout` is zero, the mmap of `MmapSize` succeeds). `newBackend` panics otherwise.
-* Contracts (transparent): `hookOk γ hk Pk` (the pre-commit hooks' triple; `hookFnOk` of a
+* Contracts (transparent): `hookOk γ hk Fh Pk` (the pre-commit hooks' triple, puts of `Fh` only, `hookWrites`; `hookFnOk` of a
   `HookFunc`), `commitOk γ Pk` (the
-  client's commit step), `beReq γ Pk X Y` (a forced commit's per-call step), `hookRun Pk f Pre Q`
+  client's commit step), `beReq γ Pk X Y` (a forced commit's per-call step), `hookRun γ q Pk f Pre Q`
   (the post-lock hook's triple), `visitOk` (a `ForEach` visitor), `writeOk` (an `io.Writer`),
-  `ignOk` (`Hash`'s filter); `bytesListAt`, `covers`, `writable`, `beNew` (what `New` hands its
+  `ignOk` (`Hash`'s filter); `bytesListAt`/`rangeRes` (a range's bytes, lent back to the
+  transaction), `lingerSingle`/`rdOrderL` (a concurrent read's), `covers`, `writable`, `beNew` (what `New` hands its
   client's allocation step).
 
 ## Laws

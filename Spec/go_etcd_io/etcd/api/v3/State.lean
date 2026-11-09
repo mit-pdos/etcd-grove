@@ -128,6 +128,15 @@ version at least 1; pure consequences of `Reach`). -/
 def etcdLb_init.spec : Prop := ∀ (γ : Cluster) (σ : State),
   etcdLb (GF := GF) γ σ ⊢ ⌜∃ ms : List Member, Reach (State.init ms) σ⌝
 
+/-- **Leases of a reached state** (3a's request, round 1 item 6; pure consequences of `Reach`, as
+`etcdLb_init` gives, stated once): no lease table has lease `0` (a grant never chooses nor accepts
+`0`: `leaseStep .leaseGrant`), and every present key's non-zero lease is live (a put checks its
+lease, `PutReq.check`; a revocation, the client's or the environment's, deletes the keys attached). -/
+def etcdLb_leases.spec : Prop := ∀ (γ : Cluster) (σ : State),
+  etcdLb (GF := GF) γ σ ⊢
+    ⌜(∀ t ∈ σ.leaseTables, t 0 = none) ∧
+      ∀ (k : Key) (kr : KeyRec), σ.kv.store k = some kr → kr.lease ≠ 0 → σ.leases kr.lease ≠ none⌝
+
 /-- The number of events in the history fits an `int64` (so does every count of keys, every
 version, every `Deleted`: each needs an event). -/
 def etcdState_sizeFits.spec : Prop := ∀ (γ : Cluster) (σ : State),

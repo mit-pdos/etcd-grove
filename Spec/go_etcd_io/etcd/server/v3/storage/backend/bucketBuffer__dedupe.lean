@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **`bb.dedupe()`**: `dedupeOk`. -/
 def bucketBuffer.dedupe.spec : Prop :=
-  ∀ (bb : Loc) (l : List (GoString × GoString)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l }}
+  ∀ (bb : Loc) (l : List (GoString × GoString)) (w : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l w }}
     (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"dedupe")) (Val #()))
-  {{ RET #(); ∃ r, ⌜dedupeOk l r⌝ ∗ bbAt bb r }}
+  {{ RET #(); ∃ r, ⌜dedupeOk l r⌝ ∗ bbAt bb r w }}
 
 end spec
 

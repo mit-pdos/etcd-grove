@@ -21,7 +21,7 @@ back on both exits, so the `ConfState` comes back). No op
 restores, with a premise; the error is now in the post, as Go returns it); from any tracker (was the
 empty one, spelled out); the no-op case is no longer a separate disjunct: the precondition's
 configuration and map are consumed and the result's given (the same maps when there is no op);
-over raftpb's `confStatePts` (R1's provisional predicate, 3h's).
+over raftpb's `RaftPb.confStatePts` (integration I2: was R1's provisional predicate).
 
 **Margin.** On an error nothing of the tracker is given back (the ops before the failing one replaced
 it); raft panics there, the examples drop it.
@@ -29,7 +29,7 @@ it); raft panics there, the examples drop it.
 module
 
 public import Spec.go_etcd_io.raft.v3.confchange.Api
-public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.raftpb.Api
 
 set_option autoImplicit false
 
@@ -55,12 +55,12 @@ variable [package_sem : go_etcd_io.raft.v3.confchange.Assumptions]
 error. -/
 def Restore.spec : Prop :=
   ∀ (chg : go_etcd_io.raft.v3.confchange.Changer) (m0 : Membership) (B : Base) (csp : Loc)
-    (dq : DFrac) (csv : Raft.ConfState),
+    (dq : DFrac) (csv : RaftPb.ConfState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ configOwn chg.Tracker'.Config' (DFrac.own 1) m0 ∗ progressMapOwn B.mp B.prs B.pv ∗
-      ⌜BaseOf chg B ∧ TrackerOk m0 B.pv⌝ ∗ Raft.confStatePts csp dq csv }}
+      ⌜BaseOf chg B ∧ TrackerOk m0 B.pv⌝ ∗ RaftPb.confStatePts csp dq csv }}
     (App (App (Val #(functions go_etcd_io.raft.v3.confchange.Restore [])) (Val #chg)) (Val #csp))
   {{ (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap) (err : GoInterface),
-      RET (PairV (PairV #cfg #trk) #err); Raft.confStatePts csp dq csv ∗
+      RET (PairV (PairV #cfg #trk) #err); RaftPb.confStatePts csp dq csv ∗
       result B (restore m0 csv.voters csv.learners csv.votersOutgoing csv.learnersNext
         csv.autoLeave) cfg trk err }}
 

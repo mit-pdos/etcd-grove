@@ -82,11 +82,15 @@ per-member lease reads use (`ApiLease.lean`).
   (and, with a client certificate, a certificate the members do not take as a principal); the
   token's user (`tokenUser`); the TLS certificate's (`tlsPrincipal`, 2e's slot); none otherwise.
 * `idUpd γ` (def): the identity update the client's own read-only calls hand over (W0's
-  `etcdPeek γ` has the same purpose; `idUpd` is kept for the `COMM True` shape).
+  `etcdPeek γ` has the same purpose; `idUpd` is kept for the `COMM True` shape: it is the weaker
+  premise, which any holder of `etcdPeek γ` gives by dropping the `etcdLb`s).
+* `replyAns rq res`, `wireAns rq` (defs): the answers a member sends as a reply message (every
+  success, and `LeaseTimeToLive`'s `ErrLeaseNotFound` as a `TTL = -1` reply, 2a's
+  `V3rpc.ansOutcome`), and the wire call's return for them (`RemoteCallTriple`).
 * `clientBase c who` (opaque): the context (`ctxOk`, `ctxPrin who _ who`), cancel function and
   logger every client has (`Ctx`, `GetLogger`, `Close`'s cancel); `clientPre c γ who` the client
   under construction (`clientBase`, configuration, credentials, `epMu` with endpoints serving `γ`,
-  resolver, `callOpts`); `clientCore c γ who` the built client (`clientPre`, the connection, the
+  resolver, `callOpts`, grpc's `msgsFit` from `cfgOk`); `clientCore c γ who` the built client (`clientPre`, the connection, the
   members' fields). Laws: `clientCore_pre`, `clientPre_base`, `clientRest_core` (W0's
   `clientRest`), `isClient_core`, `clientMut_core`.
 * `clientBare c who` (exclusive): a `NewCtxClient`'s client before its fields are set
@@ -106,6 +110,7 @@ public import Spec.go_uber_org.zap.Api
 public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Api
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.Api
 public import Spec.go_etcd_io.etcd.client.pkg.v3.transport.Api
+public import Spec.google_golang_org.grpc.Api
 
 
 @[expose] public section
@@ -236,7 +241,9 @@ def idUpd (γ : Cluster) : IProp GF :=
     <{ etcdState γ σ, COMM True }>)
 
 /-- **The configuration `New` takes** for a client of `γ` with default principal `who`. `LogConfig`
-(a zap configuration the client would build) is out of scope unless a `Logger` is given. -/
+(a zap configuration the client would build) is out of scope unless a `Logger` is given. Grpc's
+workload premise `Grpc.msgsFit` (2a: `Grpc.NewClient.spec` takes it, every message the connection
+carries fits) is carried here for `dial`'s `grpc.NewClient`. -/
 def cfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Principal) : IProp GF :=
   iprop(∃ eps : List GoString, cfg.Endpoints' ↦*□ eps ∗ ([∗list] ep ∈ eps, servesAt γ ep) ∗
     cfgPrincipal γ cfg who ∗ dialOptsOk cfg.DialOptions' ∗
@@ -244,7 +251,7 @@ def cfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Princip
     (⌜cfg.Logger' = null ∧ cfg.LogConfig' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗
     (⌜cfg.Context' = GoInterface.nil⌝ ∨ Context.ctxOk cfg.Context' ∗ ctxPrin who cfg.Context' who) ∗
     (⌜cfg.AutoSyncInterval' = W64 0⌝ ∨ Verify.verifyOff) ∗
-    idUpd γ)
+    idUpd γ ∗ ⌜Grpc.msgsFit⌝)
 
 /-- **A client's context, cancel function and logger** (persistent). -/
 opaque clientBase (c : Loc) (who : Principal) : IProp GF := iprop(True)
@@ -252,9 +259,8 @@ opaque clientBase (c : Loc) (who : Principal) : IProp GF := iprop(True)
 opaque clientPre (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- **What the built client's own functions read** (persistent; see the header). -/
 opaque clientCore (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-/-- **The client `c` is ready for calls** (persistent): its `Auth` field is set (or it has no
-token refresh). -/
-opaque clientReady (c : Loc) : IProp GF := iprop(True)
+-- `clientReady c` (the client is ready for calls) is declared in W0's `Api.lean` (integration I1:
+-- `kvHandle_kvAt` and `retryKVHandle_remoteKVAt` take it); its laws stay here.
 /-- **The client's endpoints are `eps`** (fraction `dq`; the whole token to change them). -/
 opaque epsTok (c : Loc) (dq : DFrac) (eps : List GoString) : IProp GF := iprop(True)
 /-- **A client frozen at one endpoint**: every call is answered by the member at `ep`. -/
@@ -350,6 +356,20 @@ def CheckedCallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p : Principal)
       ((⌜ok⌝ ∗ ∃ σ σ' res, Q σ σ' res ∗ reply res resp err) ∨ (⌜ok⌝ ∗ ⌜resp = null⌝ ∗ indefCall err) ∨
        (⌜¬ ok ∧ resp = null ∧ err ≠ GoInterface.nil⌝ ∗ callAU γ p rq rep Q)) }}
 
+/-- **The answers a member sends as a reply message** (`err = nil`): every success, and
+`LeaseTimeToLive`'s `ErrLeaseNotFound`, which the handler maps to a reply with `TTL = -1`,
+`GrantedTTL = 0` (`v3rpc/lease.go:66-73`; 2a's `V3rpc.ansOutcome`). -/
+def replyAns (rq : Req) (res : Resp) : Prop :=
+  (∃ b, res = .ok b) ∨ (∃ id k, rq = .leaseTimeToLive id k ∧ res = .err .leaseNotFound)
+
+/-- What a non-KV wire call returns for the answer `res` of the request `rq`: `wireReply ansReply`,
+except `LeaseTimeToLive`'s not-found answer, a reply message (`replyAns`). -/
+def wireAns (rq : Req) (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF :=
+  match rq, res with
+  | .leaseTimeToLive id _, .err .leaseNotFound =>
+      iprop(⌜err = GoInterface.nil⌝ ∗ replyOwn resp (.leaseTimeToLive id (-1) 0 []))
+  | _, _ => wireReply ansReply res resp err
+
 /-- **The wire contract of a non-KV unary RPC**: the method `m (reqRpc rq)` sends the request
 message `req` (modelled by `rq`, given back) with a context carrying the principal `p`, the update
 persistent if the RPC is repeatable, the options `callOptsOk` (a non-repeatable RPC's not
@@ -360,7 +380,7 @@ def RemoteCallTriple (m : GoString → val) (P : IProp GF) (γ : Cluster)
   (reqRetryRep rq = false → rep = false) →
   CallTriple (App (App (App (Val (m (reqRpc rq))) (Val #ctx)) (Val #req)) (Val #opts))
     iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ reqOwn req dq rq ∗ callOptsOk opts rep)
-    (reqOwn req dq rq) γ p rq (reqRetryRep rq) (wireReply ansReply)
+    (reqOwn req dq rq) γ p rq (reqRetryRep rq) (wireAns rq)
 
 end res
 
@@ -382,7 +402,8 @@ are safe. -/
 opaque grpcConnAt (cc : Loc) : IProp GF := iprop(True)
 
 /-- **One attempt** (grpc's `UnaryInvoker` `inv`, with the connection `cc`; 2a): success or a
-definite error, the update fired; an error after which the request is known not applied (not sent,
+definite error, the update fired (`LeaseTimeToLive`'s not-found answer comes as a reply, `err =
+nil`: `replyAns`); an error after which the request is known not applied (not sent,
 a token or learner refusal), the update given back; or another indefinite error, the update lost. -/
 def AttemptTriple (inv : val) (cc : Loc) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
   ∀ (ctx : GoInterface) (p : Principal) (method : GoString) (req reply : GoInterface) (rq : Req)
@@ -392,9 +413,10 @@ def AttemptTriple (inv : val) (cc : Loc) (P : IProp GF) (γ : Cluster) (who : Pr
     (App (App (App (App (App (App (Val inv) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
       (Val #cc)) (Val #opts))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' b, Q σ σ' (.ok b) ∗ R (.ok b)) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' res, ⌜replyAns rq res⌝ ∗ Q σ σ' res ∗ R res) ∨
       (∃ σ σ' e, Q σ σ' (.err e) ∗ callErr err (.etcd e) ∗
-        ⌜e.indefinite = false ∧ errRetryAuth e = false ∧ e ≠ .notSupportedForLearner⌝ ∗
+        ⌜e.indefinite = false ∧ errRetryAuth e = false ∧ e ≠ .notSupportedForLearner ∧
+          ¬ replyAns rq (.err e)⌝ ∗
         unaryArgs method req reply rq R) ∨
       ((callErr err .notSent ∨
         (∃ e, callErr err (.etcd e) ∗ ⌜errRetryAuth e = true ∨ e = .notSupportedForLearner⌝)) ∗
@@ -419,8 +441,9 @@ def uiOk_call.spec : Prop := ∀ (ui : val) (c : Loc) (γ : Cluster) (who : Prin
       (Val #cc)) (Val inv)) (Val #opts))
   {{ (err : GoInterface), RET #err;
       (∃ σ σ' res, Q σ σ' res ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ b, ⌜res = .ok b⌝ ∗ R res) ∨
-         (∃ e, ⌜res = .err e⌝ ∗ callErr err (.etcd e) ∗ unaryArgs method req reply rq R))) ∨
+        ((⌜err = GoInterface.nil ∧ replyAns rq res⌝ ∗ R res) ∨
+         (∃ e, ⌜res = .err e ∧ ¬ replyAns rq res⌝ ∗ callErr err (.etcd e) ∗
+           unaryArgs method req reply rq R))) ∨
       (indefCall err ∗ unaryArgs method req reply rq R) }}
 
 /-- **A stream opened through the stream interceptor** of a ready client: the client's token

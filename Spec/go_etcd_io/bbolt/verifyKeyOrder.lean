@@ -1,6 +1,14 @@
 /-
 `verifyKeyOrder(...)` (`tx_check.go`): reports a key out of order on the channel.
 (internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+
+**Proof sketch** (integration I7). `compareKeys` (`compareKeys.spec`) on the keys, read at their
+shares; the premises are the "nothing to report" case (the key after the running minimum, strictly
+after it past the first index, before the open maximum), so the channel, `keyToString` and the
+stack are never touched.
+
+**Changes** (integration I7): was any nine `val`s, post `True`: false of ill-typed arguments and of a
+report. Now the keys typed and owned, and the order premises.
 -/
 module
 
@@ -23,12 +31,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) returns; nothing reported on a well-formed tree. -/
+/-- (internal) keys in order (the first not below the running minimum `prev`, a later one
+strictly above it, all below the open maximum `mx` when it is not nil): nothing reported. -/
 def verifyKeyOrder.spec : Prop :=
-  ∀ [HasExt osFsExt] (a1 a2 a3 a4 a5 a6 a7 a8 a9 : val),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt }}
-    (App (App (App (App (App (App (App (App (App (Val (@! go_etcd_io.bbolt.verifyKeyOrder)) (Val a1)) (Val a2)) (Val a3)) (Val a4)) (Val a5)) (Val a6)) (Val a7)) (Val a8)) (Val a9))
-  {{ RET #(); True }}
+  ∀ (pgId : w64) (pageType : GoString) (index : w64) (key prev mx : GoSlice) (kb pb mb : GoString)
+    (dk dp dm : DFrac) (ch kts stack : val),
+  ((index = W64 0 → prev ≠ slice.nil → ¬ go.GoStringLt kb pb) ∧
+    (0 < sint.Z index → go.GoStringLt pb kb) ∧
+    (mx ≠ slice.nil → go.GoStringLt kb mb)) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ key ↦*{dk} kb ∗ prev ↦*{dp} pb ∗
+      mx ↦*{dm} mb }}
+    (App (App (App (App (App (App (App (App (App (Val (@! go_etcd_io.bbolt.verifyKeyOrder)) (Val #pgId)) (Val #pageType)) (Val #index)) (Val #key)) (Val #prev)) (Val #mx)) (Val ch)) (Val kts)) (Val stack))
+  {{ RET #(); key ↦*{dk} kb ∗ prev ↦*{dp} pb ∗ mx ↦*{dm} mb }}
 
 end spec
 

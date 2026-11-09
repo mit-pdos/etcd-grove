@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `waitSession(ctx)`: `nil` once a session is ready, or an error. -/
 def leasingKV.waitSession.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ threadTok }}
+  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ threadTok }}
     (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"waitSession")) (Val #ctx))
   {{ (err : GoInterface), RET #err; threadTok ∗
       ((⌜err = GoInterface.nil⌝ ∗ sessionReady γL) ∨ ⌜err ≠ GoInterface.nil⌝) }}

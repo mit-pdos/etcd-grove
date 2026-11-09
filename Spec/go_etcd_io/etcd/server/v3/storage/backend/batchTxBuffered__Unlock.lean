@@ -5,11 +5,12 @@
 `ReqDeleteVisible`).
 
 **Proof sketch.** With writes pending since the last commit: `readTx.Lock()` (the readers'
-authority), `writeback` (the write buffer's puts into the read buffer: the visible image becomes the
+authority), `writeback` (the write buffer's puts into the read buffer, with the last commit's hook
+leftovers, whose values are the committed ones: the visible image becomes the
 session's puts over its base, `Sess.mid`: **the first update fires here**; the version bumped),
 `readTx.Unlock()`. If the batch limit is reached or the session deleted (`pendingDeleteOperations`),
 `commit(false)` (`batchTxBuffered.commit.spec`): `readTx.Lock()`, the hooks (`hookOk`, from `Pk` and
-a session at the batch image), the old read transaction to its rollback goroutine (it waits for the
+a session at the batch image whose base is `Sess.mid`: what readers see then), the old read transaction to its rollback goroutine (it waits for the
 interval's readers), bbolt's commit (4c's `Tx.Commit` with `boltState`'s update, an error
 `lg.Fatal`s): **at it the second update fires** (the visible image is the batch's: the read buffer
 reset, a new read transaction at the commit), the hooks' update, then the client's commit step

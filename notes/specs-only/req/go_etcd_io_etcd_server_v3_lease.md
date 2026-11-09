@@ -136,3 +136,13 @@ writes its `sizeCache`): `persistTo`'s fresh local becomes one by `Schema.leaseM
 (owned, one way). `api/version.LessThan` (and `V3_6`'s value) are 3h's
 (`Spec/go_etcd_io/etcd/api/v3/version/LessThan.lean`, assumed), over semver's model
 (`Semver.SemVer.ltb`).
+
+## from 4a
+
+`Lease.beOk be` cannot stay persistent: the lessor's `LockOutsideApply` (`lessor.go:811`) and
+`ForceCommit` (`:834`) after the backend's close panic (the hooks write through a nil bbolt
+transaction) or are fatal. 4a's specs take an open share `Backend.beOpen γ q` (fractional, given
+back): `beOk be := isBackend γ b p Pk ∗ beOpen γ q` held by the lessor and handed back to the server's
+shutdown before the backend's `Close` (which takes the whole share). `beApplyTok` is `Backend.beHook
+γ dq f` with the apply's `hookRun γ q Pk f Pre Q`; `beTxHeld` is the lent session (`beSess`); the
+lease bucket is untracked (`beNoVis`), so the lessor writes it under mvcc's session.

@@ -33,6 +33,8 @@ empty map and indexes `leases[0]`: a panic; only `0` is defaulted). The post add
 checkpointer's once token (`lessorCkptTok`) and the reader tokens (`lessorReaders γ lessorTokN`; one
 more stays with the run loop).
 
+**Integration (I5).** `beOk b` is an open share (4a: not persistent), kept in the writer's token
+(`lessorState_beOk` lends it back for the backend's close).
 **Margin.** `MinLeaseTTL`, the intervals and `CheckpointPersist` are any values (no premise: the
 code accepts them); only the minimum is visible to the specs (`c.minTTL`).
 -/

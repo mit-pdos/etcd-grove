@@ -33,8 +33,8 @@ def NewHooks.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.NewHooks)) (Val #f))
   {{ (h : GoInterface), RET #h; ⌜h ≠ interface.nil⌝ ∗
-      □ ∀ (γ : BeNames) (Pk : IProp GF),
-        hookFnOk γ f Pk -∗ hookOk γ h Pk }}
+      □ ∀ (γ : BeNames) (Fh : Fp) (Pk : IProp GF),
+        hookFnOk γ f Fh Pk -∗ hookOk γ h Fh Pk }}
 
 end spec
 

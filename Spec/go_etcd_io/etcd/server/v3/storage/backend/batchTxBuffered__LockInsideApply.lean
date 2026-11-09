@@ -8,7 +8,9 @@ writers (`membership.go:58, 77, 152, 166`, `alarm.go:54, 70`, `auth.go:109`). Sn
 
 **Proof sketch.** `t.lock()` (the session, `Pk`); the hook field read under the lock (its
 authority agrees with the caller's share: `f`); if non-nil, `ValidateCalledInsideApply` (a no-op:
-`envOk`) and `f()` by `hookRun Pk f Pre Q` (with `nil`, the caller's view shift).
+`envOk`) and `f()` by `hookRun γ q Pk f Pre Q`, holding the session (round 1, T6: the server's
+hook reads the consistent index through `ReadTx()` without `RLock`, `cindex.go:102-110`,
+`beSess_rd`); with `nil`, the caller's view shift.
 
 **Changes** (from `specs-ref`'s `plHookAt`): unchanged in shape (mvcc's contract row's). **Margin.**
 None.
@@ -39,7 +41,7 @@ hook run under it from `Pk ∗ Pre` to `Q`. -/
 def batchTxBuffered.LockInsideApply.spec : Prop :=
   ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp) (dq : DFrac) (f : GoFunc)
     (Pre Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q ∗ beHook γ dq f ∗ Pre ∗ hookRun Pk f Pre Q }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q ∗ beHook γ dq f ∗ Pre ∗ hookRun γ q Pk f Pre Q }}
     (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"LockInsideApply")) (Val #()))
   {{ RET #(); ∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beHook γ dq f ∗ Q }}
 

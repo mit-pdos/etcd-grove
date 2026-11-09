@@ -97,6 +97,8 @@ a WAL image, snapshot and compaction), `restart.go` (start, stop, restart from d
 module
 
 public import Spec.go_etcd_io.raft.v3.Model
+public import Spec.go_etcd_io.raft.v3.raftpb.Api
+public import Spec.go_etcd_io.raft.v3.tracker.Api
 public import Spec.PkgInit.go_etcd_io.raft.v3
 public import Spec.context.Api
 
@@ -129,31 +131,25 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
   {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
   [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-! ## raftpb's Go ownership (provisional: batch 3h's)
+/-! ## raftpb's Go ownership
 
-The Go-side ownership of raftpb's messages the node API's statements need. raftpb's batch (3h)
-owns them; these declarations stand for its predicates until it states them
-(`notes/specs-only/req/go_etcd_io_raft_v3_raftpb.md`): at integration they are replaced by its
-names, over the same models. -/
+raftpb's predicates (batch 3h, `raftpb/Api.lean`), re-exported under the names this API used
+while they were provisional (integration I2): `entriesRO sl k es` (a slice of read-only entries,
+the first at index `k`), `msgPts p dq m` (a well-formed `*Message`), `hardStatePts`, `snapshotPts`
+(a **full** `*Snapshot`: metadata, its `ConfState`, `Index`, `Term` and `AutoLeave` set, as raft's
+and `MemoryStorage`'s are), `confStatePts` (a `*ConfState`, any presence), `confChangePts v dq c`
+(a `ConfChangeI` interface value), `entryRO`, `entryPtrs`. Their persistence, unfold and relation
+laws are raftpb's (`RaftPb.raftpb_persistent`, `msgPts_unfold`, ...). -/
 
-/-- The entry pointers of slice `sl`, read-only for good (raft never mutates an entry it handed out,
-nor may the client: `Storage.Entries`' contract), are `es`, the first at index `k`. Persistent. -/
-opaque entriesRO (sl : GoSlice) (k : Nat) (es : List LogEntry) : IProp GF := iprop(True)
+end vocab
 
-/-- Pointer `p` to a `raftpb.Message` holding `m` (the protobuf message's fields, `dq` of them). -/
-opaque msgPts (p : Loc) (dq : DFrac) (m : Msg) : IProp GF := iprop(True)
+export RaftPb (entriesRO msgPts hardStatePts snapshotPts confStatePts confChangePts entryRO
+  entryPtrs)
 
-/-- Pointer `p` to a `raftpb.HardState` holding `hs`. -/
-opaque hardStatePts (p : Loc) (dq : DFrac) (hs : HardState) : IProp GF := iprop(True)
-
-/-- Pointer `p` to a `raftpb.Snapshot` holding `s` (metadata and data). -/
-opaque snapshotPts (p : Loc) (dq : DFrac) (s : Snapshot) : IProp GF := iprop(True)
-
-/-- Pointer `p` to a `raftpb.ConfState` holding `cs`. -/
-opaque confStatePts (p : Loc) (dq : DFrac) (cs : ConfState) : IProp GF := iprop(True)
-
-/-- Interface value `v` (a `pb.ConfChangeI`: a `*ConfChange` or a `*ConfChangeV2`) holding `c`. -/
-opaque confChangePts (v : GoInterface) (dq : DFrac) (c : ConfChangeI) : IProp GF := iprop(True)
+section vocab
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+  {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+  [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-! ## raft's own Go structs -/
 
@@ -465,7 +461,10 @@ def readyGot (n : Loc) (γ : Cluster) (id : w64) (st : Driver) (rd : go_etcd_io.
 /-- **A valid configuration** (`Config.validate` accepts it, and what raft's proof needs of the
 options): a non-zero, non-local id; `0 < HeartbeatTick < ElectionTick`; a storage; some inflight
 messages, and inflight bytes (if limited) for a message; a per-message or per-`Ready` size limit
-(`issues/raft-zero-max-size-per-msg.md`: both `0` panics). **Scope** (no client of this repository
+(`issues/raft-zero-max-size-per-msg.md`: both `0` panics). **The ring capacity** `MaxInflightMsgs ≤
+2^62` (`Tracker.inflightsMax`: `NewInflights`' `int` index arithmetic does not wrap below it; Go
+cannot allocate a ring that large, Perennial's model has no memory bound): R4's proposal, an **open
+question for the user** (R4's question 1; etcd uses 4096, the examples 256). **Scope** (no client of this repository
 or etcd sets them): `ReadOnlyOption` is `ReadOnlySafe` (a lease-based read is linearizable only
 under clock assumptions), `AsyncStorageWrites` is off, `DisableConfChangeValidation` is off. Any
 `CheckQuorum`, `PreVote`, `StepDownOnRemoval`, `DisableProposalForwarding`, size limits. -/
@@ -473,6 +472,7 @@ def ConfigOk (cv : go_etcd_io.raft.v3.Config) : Prop :=
   cv.ID' ≠ W64 0 ∧ isLocalTarget cv.ID' = false ∧
   0 < sint.Z cv.HeartbeatTick' ∧ sint.Z cv.HeartbeatTick' < sint.Z cv.ElectionTick' ∧
   cv.Storage' ≠ interface.nil ∧ 0 < sint.Z cv.MaxInflightMsgs' ∧
+  sint.Z cv.MaxInflightMsgs' ≤ Tracker.inflightsMax ∧
   (cv.MaxInflightBytes' = W64 0 ∨ uint.nat cv.MaxSizePerMsg' ≤ uint.nat cv.MaxInflightBytes') ∧
   (cv.MaxSizePerMsg' ≠ W64 0 ∨ cv.MaxCommittedSizePerReady' ≠ W64 0) ∧
   cv.ReadOnlyOption' = W64 0 ∧ cv.AsyncStorageWrites' = false ∧
@@ -491,12 +491,9 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 
 /-! ### Persistence, timelessness, exclusivity -/
 
+/-- (raftpb's predicates' persistence is raftpb's law, `RaftPb.raftpb_persistent.spec`; `entriesRO`
+is a definition over them.) -/
 def persistent.spec : Prop :=
-  (∀ sl k es, Persistent (entriesRO (GF := GF) sl k es)) ∧
-  (∀ p hs, Persistent (hardStatePts (GF := GF) p DFrac.discard hs)) ∧
-  (∀ p s, Persistent (snapshotPts (GF := GF) p DFrac.discard s)) ∧
-  (∀ p cs, Persistent (confStatePts (GF := GF) p DFrac.discard cs)) ∧
-  (∀ p m, Persistent (msgPts (GF := GF) p DFrac.discard m)) ∧
   (∀ p o, Persistent (softStateOpt (GF := GF) p o)) ∧
   (∀ sl rs, Persistent (readStatesRO (GF := GF) sl rs)) ∧
   (∀ γ l, Persistent (committedLb (GF := GF) γ l)) ∧
@@ -554,7 +551,6 @@ def cluster_alloc.spec : Prop :=
   ∀ (N : Namespace) (dup : Bool) (ps : List (w64 × List w8)) (boot : List LogEntry) (E : CoPset),
     let vs := ps.map (·.1)
     ps ≠ [] → vs.Nodup → W64 0 ∉ vs → (∀ id ∈ vs, isLocalTarget id = false) →
-    (Membership.simple (listToSet vs)).Valid →
     (boot = [] ∨ BootLog ps boot) →
     ⊢ |={E}=> ∃ γ : Cluster, ⌜γ.ns = N ∧ γ.dup = dup⌝ ∗
       committedOps (GF := GF) γ (opsOf boot) ∗ committedLb γ boot ∗ bootLog γ boot ∗
@@ -656,34 +652,34 @@ def confDecisions_lookup.spec : Prop :=
 def nodeConf_confAt.spec : Prop :=
   ∀ n γ (v : ConfView), nodeConf (GF := GF) n γ v ⊢ nodeConf n γ v ∗ confAt γ v.applied v.membership
 
-/-! #### What a change does (confchange's model, R4): the cases clients rely on -/
+/-! #### What a change does (confchange's model, R4): the cases clients rely on
 
-/-- A configuration of voters only: valid when non-empty, without id `0` or a local target. -/
+`Membership.applyChange` is now a definition (confchange's `changeV2`, `Model.lean`); these laws are
+instances of R4's (`ConfChange.simple_valid`, `changeV2_valid`, `changeV2_single`), kept under the
+names the node API's clients cite. -/
+
+/-- A configuration of voters only, without id `0`, is valid (the empty one included). (Integration
+I2: R4's `ConfChange.simple_valid.spec`; the premises non-empty, no local target and the size bound
+were not needed.) -/
 def Membership.simple_valid.spec : Prop :=
-  ∀ (vs : List w64), vs ≠ [] → W64 0 ∉ vs → (∀ id ∈ vs, isLocalTarget id = false) →
-    vs.length < 2 ^ 62 → (Membership.simple (listToSet vs)).Valid
+  ∀ (vs : List w64), W64 0 ∉ vs → (Membership.simple (listToSet vs)).Valid
 
-/-- A change keeps a configuration valid. -/
+/-- A change keeps a configuration valid (R4's `ConfChange.changeV2_valid.spec`). -/
 def Membership.applyChange_valid.spec : Prop :=
   ∀ c (m m' : Membership), m.Valid → Membership.applyChange c m = some m' → m'.Valid
 
 open Classical in
-/-- **A legacy change at a configuration that is not joint**: node `0` changes nothing (etcd's
-refusal); `AddNode` makes a voter, `AddLearnerNode` a learner, `RemoveNode` removes (none: the last
-voter), `UpdateNode` changes nothing; `none` if the result is not valid. -/
+/-- **A legacy change at a configuration that is not joint** (the empty one included: the
+bootstrap's `AddNode`s): the change (`ConfChange.applyOne`: node `0` and `UpdateNode` change
+nothing, `AddNode` makes a voter, `AddLearnerNode` a learner, `RemoveNode` removes, an unknown type
+is an error), then an error if no voter is left. (Integration I2: R4's `changeV2_single.spec`; the
+round-0 statement was false in two cases, R4's finding: at the empty configuration a no-op is the
+error "removed all voters", and an unknown type is an error, not a removal.) -/
 def Membership.applyChange_v1.spec : Prop :=
   ∀ (cc : ConfChangeV1) (m : Membership), m.Valid → ¬ m.isJoint →
     Membership.applyChange (.v1 cc) m =
-      if cc.nodeId = W64 0 ∨ cc.type = ConfChangeUpdateNode then some m
-      else
-        let m' : Membership :=
-          if cc.type = ConfChangeAddNode then
-            { m with voters := m.voters ∪ {[cc.nodeId]}, learners := m.learners \ {[cc.nodeId]} }
-          else if cc.type = ConfChangeAddLearnerNode then
-            { m with voters := m.voters \ {[cc.nodeId]}, learners := m.learners ∪ {[cc.nodeId]} }
-          else
-            { m with voters := m.voters \ {[cc.nodeId]}, learners := m.learners \ {[cc.nodeId]} }
-        if m'.voters = ∅ ∨ ¬ m'.Valid then none else some m'
+      (ConfChange.applyOne ⟨cc.type, cc.nodeId⟩ m).bind
+        (fun m' => if m'.voters = ∅ then none else some m')
 
 /-! ### Snapshots -/
 

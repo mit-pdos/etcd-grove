@@ -3,10 +3,10 @@
 
 **Users**: `T/v3_lock_test.go:324`. Snippet: `recipes/rwmutex.go`.
 
-**Proof sketch**: `context.TODO()`; allocate; `rwmOwn`'s realization (the session's `sessionAt`).
+**Proof sketch**: `context.TODO()`; allocate; `rwmOwn`'s realization (the session's `isSession`, its client's `isClient`).
 
 **Changes**: old `isRWMutex` took `concurrency.isSession` and the recipes' client invariant; now
-`sessionAt` (1d's slot).
+1d's `isSession s c γ id` with `isClient c γ who` (integration: was a slot).
 
 **Margin**: none.
 -/
@@ -34,8 +34,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 
 /-- **`NewRWMutex(s, prefix)`**: a readers-writer mutex on `prefix/`, holding no key. -/
 def NewRWMutex.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (who : Principal) (id : w64) (pre : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ sessionAt s γ who id }}
+  ∀ (s c : Loc) (γ : Cluster) (who : Principal) (id : w64) (pre : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ Concurrency.isSession s c γ id ∗ isClient c γ who }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewRWMutex)) (Val #s)) (Val #pre))
   {{ (m : Loc), RET #m; rwmOwn m γ who id (pre ++ go!"/") none }}
 

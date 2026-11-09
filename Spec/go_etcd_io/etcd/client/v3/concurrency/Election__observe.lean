@@ -7,8 +7,11 @@ Users: `Election.Observe`.
 Proof sketch: the loop carries `observeProd ch γ pfx σ0`. Each round: the KV contract's
 `Get(ctx, pfx, WithFirstCreate()...)` (update from `etcdPeek`; `Reach σ0` inside it) at `σ`: a
 key-value `v` holds there (`ObservedAt` with `r := σ`'s revision; the header `σ`'s); none: a prefix watch from `σ`'s revision (`Context.WithCancel.spec`, the `Watcher` field's
-`Watch`, 1b) until a put event: the watch's events are the history's from that revision, in
-order, without gaps (1b, `req/go_etcd_io_etcd_client_v3.md`, "from 1d"), so the first put under
+`Watch`, 1b) until a put event: under the compaction condition (`exactFrom` from the watch's start,
+which is after `σ0`, so implied by `exactFrom σ.kv (σ0.kv.rev + 1)`: it is antitone in its start,
+and a later state's compaction only strengthens it), the watch's events are the history's from that
+revision, in order, without gaps (1b's `watchStep`; without it a response's events say nothing,
+which is why `observeAt_recv` gates `ObservedAt` on it), so the first put under
 the prefix is of a key created after the empty prefix, nothing older at its revision; its header
 is written to that revision (the response's header owned, 1b). The response is sent
 (`observeProd`'s send, a `select` with `ctx.Done()`: `doneRecv`). Then a watch on `v`'s key from

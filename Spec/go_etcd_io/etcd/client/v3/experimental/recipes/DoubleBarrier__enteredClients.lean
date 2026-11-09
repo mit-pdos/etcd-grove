@@ -4,7 +4,7 @@ WithSort(CreateRevision, Ascend))`.
 
 **Users**: `Enter` (twice). Internal.
 
-**Proof sketch**: `isClient_KV`; `KV.GetTriple` (`b.ctx`: `ctxOk`, `ctxPrin`) with an update made of
+**Proof sketch**: `isClient_KV`; `KV.GetTriple` (`b.ctx`: `ctxOk`, `ctxPrin who ctx who`; `lo = 0`, `authLb γ 0`) with an update made of
 `etcdPeek` (its commit's `etcdLb γ σ`; `Reach σ0 σ` by `etcdLb_reach` inside it); the reply is the
 range's answer at `σ`'s store, or an error (`errVal`, `indefCall`: `recipeErrOk`).
 

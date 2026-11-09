@@ -403,3 +403,52 @@ law is blocked until they change:
 which are valid only while the transaction is (4c's `txBytes`): lend them against the view instead
 (as `Schema.rangeK`). The schema's `UnsafeCreateMetaBucket` now needs only the create right
 (`Scope.canCreate .metaB`), which mvcc's part can hold without the other parts' `Meta` keys.
+
+## from 4a, round 1
+
+4a's bridge `Backend.keyBackend_intro.spec` (`Spec/go_etcd_io/etcd/server/v3/storage/backend/
+MvccStorage.lean`) is rebuilt against round 2 (`Schema.bucketAt`, `kbLocked B D0 D`, the nested
+two-step `Unlock`, the freshness over `D0` and `D`: F1 and F3 are taken). It is still blocked by
+five rows; please adopt:
+
+(a) **An open share on the lock rows and `ForceCommit`.** etcd's backend panics on a lock-and-write
+or a forced commit after its `Close` (the hooks write through a nil bbolt transaction); 4a's
+`LockInsideApply`/`LockOutsideApply`/`Lock`/`ForceCommit` take `beOpen γ q` and give it back (the
+lock rows in `Unlock`'s post). Add `kbOpen B q` (fractional) to those rows (in, and out of
+`Unlock`'s and `ForceCommit`'s posts), in `mvccStorageFor` (the store's share) and in
+`storageRest` (given back at the store's close). 4a realizes `kbOpen B q := beOpen γ q`.
+(b) **The `key` delete row: a key not put in this session**: `⌜D.keys k = D0.keys k⌝` (mvcc's
+compaction deletes revisions committed before its session). Else `KeyData.mid D0 D` (`D0`'s value
+at a key `D` lacks) is not `Sess.mid` (the session's last put, still in the read buffer until the
+commit): a put then a delete of one key reads the put's value in between. (Or: `kbLocked` carries
+the session's puts.)
+(c) **The entry bound on both put rows**: `⌜k.length + v.length ≤ Bbolt.bboltEntryMax⌝` (4c's
+`2^28`: bbolt accepts larger values it cannot commit or read back). mvcc's values are bounded by the
+server's request size, the compaction keys are 17 bytes.
+(e) **A concurrent read transaction's range row** (round 1, T1;
+`nonissues/etcd-backend-read-buffer-cache-stale-after-commit.md`): `ConcurrentReadTx` may reuse a
+copy of the read buffer taken before the last commit (the cache is keyed by the buffer's version,
+which a commit does not bump), laid over the bbolt transaction of after it. So for `rt ≠ kbReadTx B`
+the row must be **single-key only** (`es = slice.nil`, `e = []`), with the result
+`lingerSingle (D.keys or D.metaMap) k l`: `l = [(k, v)]` when `D` has `k ↦ v`; else `l = []` or
+`l = [(k, v')]` for some `v'` (a key the last session deleted, still in the stale copy). mvcc's
+concurrent reads are single revisions present in its index (`kvstore_txn.go:126`), so it reads
+them exactly. A range with an end on a concurrent read transaction can return a key twice: no row.
+`hashByRev`'s `UnsafeForEach` (`hash.go:35`) on a concurrent one visits each entry of `D` once and
+maybe entries `D` lacks (`Backend.rdOrderL`), if the hash's spec needs a row. The shared `ReadTx`'s
+rows stay as they are (its buffer is the live one). Also: the concurrent read's footprint must be
+disjoint from the pre-commit hooks' cells (4a's `beHookFp`): mvcc's part is (the hooks write `meta`'s
+index, term and configuration).
+(f) **Bytes lent, not for good**: `rangeOk`'s result bytes are bbolt's, readable while the
+transaction lives (4c's `txBytes`): give `bytesListAt kl … dq ∗ bytesListAt vl … dq` with the wand
+back to `R` (4a's `Backend.rangeRes`), not `↦*□`. mvcc unmarshals inside the read
+(`kvstore_txn.go:126-131`); `restore`'s goroutine must finish before the `RUnlock`
+(`kvstore.go:347`).
+(g) **`hookRun` holds the session**: 4a's `hookRun γ q Pk f Pre Q` runs `f` holding the just-begun
+session (`beSess γ q Fp.none S`, given back unchanged), so that the server's post-lock hook can read
+`ReadTx()` without `RLock` (`cindex.go:102-110`, `Backend.beSess_rd`). Mirror it (a `kbLocked B D D`
+lent to `f` and back), or leave it to the server's realization of its hook's `Pre`.
+
+The lent lock is pinned to mvcc's footprint (`kbHeld B ⊣⊢ ∃ q S, beSess γ q mvccFp S`), and the way
+back gives the trackers at mvcc's last data, which the backend's `Close` relates to the closed
+file's image (`Image.agree F I V`: the closed file's mvcc part is the store's last data).

@@ -3,11 +3,18 @@
 
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
-**Proof sketch.** `ConsistentIndex()` (`ciOk`, with `R`); 3d's `Authenticate` (the token registered in `γ`: `tokenUser`); `newHeader`.
+**Proof sketch.** `ConsistentIndex()` (`ciOk`, with `R`: the applying index `idx`, `nextOk`'s
+`authnIdx`); `context.WithValue` twice, giving 3d's `Auth.authnCtx γa ctx name idx` (from `authnIdx`'s
+`tokenUser γ (tok.idx) name`); 3d's `authStore.Authenticate` with `Auth.tokFrom γa n` (`n < idx`, held in
+`stAt`'s `authSt`; back at `idx`): auth off, `ErrAuthFailed`, or a token `tokenUser`-registered;
+the state unchanged (`opStep_authenticate`); `newHeader`.
 
 **Changes** from `specs-ref`'s `applierV3backend__Authenticate.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
 
 **Margin.** The header's other fields (cluster, member, term, leader) any.
+
+**Integration (I5).** Takes `nextOk` (the next state's auth reached and fitting; for `Authenticate`
+the token index), which 3d's `AdminTriple`/`Authenticate` need; the apply thread (2d) supplies it.
 -/
 module
 
@@ -40,6 +47,7 @@ def applierV3backend.Authenticate.spec : Prop :=
       beAt p mc γ γc R ∗
       stAt p σ ∗
       reqMsgAt rq op ∗ ⌜(∃ n pw t, op = .authenticate n pw t) ∧ op.ok⌝ ∗
+      nextOk γ R op (fun σ' => ∃ res, layersStep mc σ [] 0 op [Layer.backend] σ' res) ∗
       R ∗
       threadTok }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"Authenticate")) (Val #rq))

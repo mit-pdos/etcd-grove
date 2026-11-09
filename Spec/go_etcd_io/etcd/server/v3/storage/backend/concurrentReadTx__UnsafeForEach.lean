@@ -1,8 +1,11 @@
 /-
 ## `(*concurrentReadTx).UnsafeForEach(bucket, visitor)` (promoted `baseReadTx.UnsafeForEach`): translated
 
-**Users.** None in the pinned etcd (mvcc reads by range); kept with the shared one's spec.
-**Proof sketch.** As `readTx.UnsafeForEach.spec`. **Changes.** New. **Margin.** As there.
+**Users.** mvcc's `hashByRev` (`hash.go:35`, a whole-`Key` scan on a `ConcurrentReadTx`).
+**Proof sketch.** As `readTx.UnsafeForEach.spec` (the buffer's keys skipped in bbolt's pass: each key
+once), over a possibly stale buffer copy (see `concurrentReadTx.UnsafeRange`): every entry of the
+view, and maybe entries the last session deleted (`rdOrderL`). **Changes.** New; round 1 (T1): the
+lingering entries. **Margin.** The order is not stated.
 -/
 module
 
@@ -29,9 +32,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 def concurrentReadTx.UnsafeForEach.spec : Prop :=
   ∀ (γ : BeNames) (l : Loc) (F : Fp) (V : Image) (bk : GoInterface) (bi : BktInfo) (vis : GoFunc)
     (P : List (GoString × GoString) → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ l F V ∗ bucketOk bk bi ∗ ⌜∀ x, F (.key bi.name x)⌝ ∗ visitOk vis P ∗ P [] }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ l F V ∗ bkt γ bk bi ∗ ⌜∀ x, F (.key bi.name x)⌝ ∗ visitOk vis P ∗ P [] }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx.ty @!! go!"UnsafeForEach")) (Val #bk)) (Val #vis))
-  {{ (err : GoInterface), RET #err; beRd γ l F V ∗ ∃ r, ⌜rdOrder (V.ents bi.name) r⌝ ∗
+  {{ (err : GoInterface), RET #err; beRd γ l F V ∗ ∃ r, ⌜rdOrderL (V.ents bi.name) r⌝ ∗
       ((⌜err = interface.nil⌝ ∗ P r) ∨ (⌜err ≠ interface.nil⌝ ∗ ∃ j, P (r.take j))) }}
 
 end spec

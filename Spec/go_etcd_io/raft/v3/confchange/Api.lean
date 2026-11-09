@@ -21,8 +21,9 @@ updated, or a fresh one at `LastIndex`); for `none`, an error and the tracker's 
 So a caller that panics on the error (raft) needs `F m = some m'`, and a caller that branches on it
 (the examples' pre-check) learns which.
 
-`ccsPts sl dq cs` (raftpb's, provisional: batch 3h's) is a `[]*ConfChangeSingle` slice, read at
-`dq`, whose changes' getters read `cs`.
+`ccsPts sl dq cs` is raftpb's `RaftPb.ccsPts` (a `[]*ConfChangeSingle` slice, the slice and each
+single at `dq`, whose getters read `cs`; a definition, so splittable per element), re-exported here
+(integration I2: was a provisional opaque of this batch).
 
 ## Internal vocabulary (the package's own proofs)
 
@@ -47,6 +48,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.confchange.Model
 public import Spec.go_etcd_io.raft.v3.tracker.Api
+public import Spec.go_etcd_io.raft.v3.raftpb.Api
 public import Spec.PkgInit.go_etcd_io.raft.v3.confchange
 
 set_option autoImplicit false
@@ -63,6 +65,9 @@ open Iris Iris.BI
 open Classical
 open Tracker
 
+-- raftpb's `[]*ConfChangeSingle` ownership (`RaftPb.ccsPts`).
+export RaftPb (ccsPts)
+
 /-- **The tracker a `Changer` works from** (internal): its progress map (location, `*Progress`
 locations, values), and the changer's `LastIndex` and the tracker's ring capacities. -/
 structure Base where
@@ -77,9 +82,6 @@ section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
   {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 
-/-- (raftpb's, provisional: batch 3h) **A `[]*ConfChangeSingle` slice** read at `dq`, its changes'
-getters (`GetType`, `GetNodeId`) reading `cs`. -/
-opaque ccsPts (sl : GoSlice) (dq : DFrac) (cs : List Single) : IProp GF := iprop(True)
 
 /-- **The `Changer` `chg` works from tracker progress map `B`** (its tracker's map, `LastIndex`,
 ring capacities), whose capacity is one a new peer's ring can have (`NewInflights`' bound). -/

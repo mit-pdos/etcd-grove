@@ -5,6 +5,16 @@ error, `rollback`. (internal, mirrors the code; not called under `NoFreelistSync
 
 **Proof sketch.** 4d's `freelist.Write` into the allocated page (its count and ids within the
 extent, the old `fileHolds`' synced-freelist clause); `tx.meta.SetFreelist`.
+
+In 4d's terms (integration I7): `EstimatedWritePageSize` (`F.count < flMaxIds`) gives
+`F.estimatedSize`; `tx.allocate(est / 4096 + 1)` (below `2 ^ 32`: `est < 2 ^ 36 * 8 + 24`) runs 4d's
+`Allocate`, which only shrinks `free`, so `F'.estimatedSize ≤ F.estimatedSize < (est / 4096 + 1) *
+4096` bytes, the page's extent: `Write`'s room premise; `Write` leaves `freelistPage bs F'.ids`,
+which `freelistPage_read` reads back (`freelistReadable`, the ids sorted and distinct: the file's
+synced-freelist clause for the next meta). The page itself was allocated, so it is neither free
+nor pending; the base's freelist page, freed by `Commit` just before, is pending, so in the ids.
+Every free page is then among the new page's ids: the reload invariant (`Internal.lean`, "The
+freelist's side") for the meta this commit writes.
 -/
 module
 

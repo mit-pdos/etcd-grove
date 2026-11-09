@@ -46,7 +46,7 @@ def authApplierV3.DeleteRange.spec : Prop :=
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3.ty @!! go!"DeleteRange")) (Val #rq))
   {{ (resp : Loc) (trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       R ∗ threadTok ∗ aiAt aa u rev ∗ ∃ σ' res res', ⌜layersStep mc σ u (uint.nat rev) op baseLayers σ' res ∧ resMatch op false res res'⌝ ∗
-      stAt b σ' ∗ replyAt γ op res' (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty) #resp) err ∗ EtcdServer.traceAt trace }}
+      stAt b σ' ∗ replyAt γ op res' (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty) #resp) err ∗ TraceUtil.traceOpt trace }}
 
 end spec
 

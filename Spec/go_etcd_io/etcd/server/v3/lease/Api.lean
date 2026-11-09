@@ -48,7 +48,9 @@ range deleter; the lease list; recover; renew and the primary; the expiry channe
 * `lessorState γ n ls` (exclusive, timeless): **the writer's token: the lessor's state is `ls`, the
   `n`-th of its history**. Every method that changes the state takes it (the apply thread holds it;
   mvcc's writes and the range deleter borrow it from there). The lease bucket of `ls.be` is inside it
-  (`lessorState_bkt` lends it out), and one reader token (`lessorState_reader`).
+  (`lessorState_bkt` lends it out), so is the lessor's open share of that backend (`beOk ls.be`,
+  `lessorState_beOk` lends it out: the server's shutdown takes it back before the backend's
+  `Close`), and one reader token (`lessorState_reader`).
 * `lessorAt γ n ls` (persistent, timeless): **the lessor's `n`-th state was `ls`** (its history: every
   state a writer's step produced). Readers (`Lookup`, `Leases`, `GetLease`, `Keys`, `Renew`) take
   `lessorLb γ i` (a lower bound) and answer from a state `j ≥ i` of the history, which they return
@@ -74,10 +76,16 @@ range deleter; the lease list; recover; renew and the primary; the expiry channe
   receive.
 * `rdOk`, `ckptOk` (transparent): the contracts of the two callbacks the lessor calls (the range
   deleter for `Revoke`, the checkpointer for `Renew` and the run loop).
-* Provisional, other batches' (to be replaced by theirs at integration): `beOk be`, `beLeases be B`,
-  `beHook be Pk f`, `beTxHeld be` (4a/4b, `req/go_etcd_io_etcd_server_v3_storage_backend.md` and
-  `..._schema.md`, "from 3c"; the hook's contract is mvcc's `Mvcc.hookRun`, as mvcc's write path
-  takes it); `clusterOk cl` (2e's membership, `RaftCluster.Version`).
+* Provisional, other batches' (still provisional after the integration, I5: their owners have no
+  such predicate yet): `beOk be`, `beLeases be B`, `beHook be Pk f`, `beTxHeld be` (4a/4b,
+  `req/go_etcd_io_etcd_server_v3_storage_backend.md` and `..._schema.md`, "from 3c"; the hook's
+  contract is mvcc's `Mvcc.hookRun`, as mvcc's write path takes it); `clusterOk cl` (2e's
+  membership, `RaftCluster.Version`: no spec of it in `membership/` yet). Their intended
+  realizations over the owners' current vocabulary are in their docstrings: 4b's lease functions
+  (`Schema.MustUnsafePutLease`, `MustUnsafeGetAllLeases`, `UnsafeDeleteLease`,
+  `UnsafeCreateLeaseBucket`) are over `Schema.txWr`/`txRd tx S R` and the bucket's encoding
+  `Schema.leaseBktIs`; 4a's backend over `Backend.isBackend`, `Backend.beHook`, `Backend.beSess`;
+  mvcc identifies `beTxHeld` with its `Mvcc.kbHeld` (`Mvcc.mvccDeleter_rdOk`'s premise).
 * `leasesOutliveRun` (opaque `Prop`): **the trusted deployment premise about time** (W0's
   `EnvCfg.leaseExpiry = false`, `top.md` K2): no run loop of this run's lessors finds a lease
   expired. Taken by `NewLessor` for the expiry mode `false`; nothing proves it.
@@ -97,8 +105,9 @@ frozen (`↦□`) with `ckptOk cp R` and the gate, and `□ R` while `demotec` i
 (`revokeExpiredLeases` changes it under `RLock`, and is the only reader that touches it): `le.mu`'s
 invariant holds it with a run-loop token, which the run loop's read section takes and every writer
 section takes too. **The lease bucket** `beLeases ls.be ls.bkt` is in the writer's token, not in the
-lock (only the token's holder writes it: `Grant`, `Checkpoint`, `Revoke`, `Recover`); so is one of the
-reader tokens. Each `*Lease`'s `mu` invariant holds its `itemSet` at `ls.keys l` for the current state
+lock (only the token's holder writes it: `Grant`, `Checkpoint`, `Revoke`, `Recover`); so are the open
+share `beOk ls.be` (only the token's holder calls the backend: `persistTo`'s lock, `initAndRecover`'s
+lock and `ForceCommit`) and one of the reader tokens. Each `*Lease`'s `mu` invariant holds its `itemSet` at `ls.keys l` for the current state
 (by a ghost map `γ.keys`, object to set, its authority in an invariant opened by holders of `le.mu`
 and `l.mu` together: `Keys()` reads under `l.mu` alone); `leaseObj γ l id ttl`: `l.ID ↦□ id`,
 `l.ttl ↦□ ttl`, the locks' invariants. `lessorReaders γ n`: `n` reader slots of each `RWMutex`.
@@ -108,9 +117,9 @@ loop's time reasoning is the trusted part, `runLoop` being untranslated).
 
 ## Laws
 
-`persistent`, `timeless`, `exclusive`; `lessorState_at`, `lessorAt_agree`, `lessorState_le`,
+`persistent`, `timeless`, `exclusive`; `isLessor_ne_null`; `lessorState_at`, `lessorAt_agree`, `lessorState_le`,
 `lessorAt_obj`, `lessorAt_minTTL`, `leaseObj_id`, `leaseObj_live`, `leaseObj_agree`,
-`lessorState_bkt`, `lessorState_reader`, `lessorReaders_split`, `lessorCkptTok_gate`,
+`lessorState_bkt`, `lessorState_beOk`, `lessorState_reader`, `lessorReaders_split`, `lessorCkptTok_gate`,
 `expiredCh_recv`, `init`.
 -/
 module
@@ -281,31 +290,48 @@ def errIs (g : GoString) (e : GoInterface) : IProp GF := iprop(globalAddr g ↦�
 
 /-! ### Provisional: other batches' vocabulary -/
 
-/-- (provisional, 4a's) **`be` is a backend** whose batch transaction may be fetched (`BatchTx()`),
-locked outside an apply (`LockOutsideApply`, no hook), unlocked, and force-committed
-(`ForceCommit()`) by any goroutine. Persistent. -/
+/-- (provisional, 4a's) **An open share of the backend `be`**: its batch transaction may be fetched
+(`BatchTx()`), locked outside an apply (`LockOutsideApply`, no hook) or inside one (with `beHook`),
+unlocked, and force-committed (`ForceCommit()`). **Not persistent** (integration I5, 4a's request,
+`req/..._lease.md`, "from 4a"): after the backend's `Close` these panic or are fatal, so the share
+is held (in the writer's token, `lessorState_beOk`) and handed back before the close. Intended
+realization (4a's current API): `∃ γb b p Pk q, ⌜be = Backend.beIface b⌝ ∗ Backend.isBackend γb b p
+Pk ∗ Backend.beOpen γb q` (the lease bucket written under the lock's session, `Backend.beSess`, as
+`Schema.txWr`; `ForceCommit`'s commit request `Backend.beReq` is still to be matched: 4a is
+repairing). -/
 opaque beOk (be : GoInterface) : IProp GF := iprop(True)
 
 /-- (provisional, 4b's over 4a's) **The lease bucket of `be`, as its batch transaction holds it (the
 last commit with the pending writes), decodes to `B`** (id to stored TTL; each record a
 `leasepb.Lease` that unmarshals, so `MustUnsafeGetAllLeases` does not panic; its `RemainingTTL` not
 modelled). Exclusive: its holder is the bucket's only writer (`MustUnsafePutLease`,
-`UnsafeDeleteLease` move it, under the batch transaction's lock). -/
+`UnsafeDeleteLease` move it, under the batch transaction's lock). Intended realization (4b's
+answer, `req/..._lease.md`, "from 4b"): the caller's share `R V` of 4a's batch view, with `V .lease
+= some m ∧ Schema.leaseBktIs m L ∧ ∀ i, B i = (L (W64 i)).map (fun r => sint.Z r.2.1)` (the records
+keyed by the id's bytes; the remaining TTL dropped), the scope `S` with `lease` whole, for the
+`Schema.txRd`/`txWr` bundles of `be.BatchTx()` that 4a gives the lock's holder. -/
 opaque beLeases (be : GoInterface) (B : Int → Option Int) : IProp GF := iprop(True)
 
 /-- (provisional, 4a's) **`be`'s batch lock has the invariant `Pk` and its post-lock hook is `f`**
 (`nil`: none), for good (persistent): `LockInsideApply` gives `Pk` and runs `f` (`Mvcc.hookRun Pk f
 Pre Q`: the caller's `Pre` to `Q`), `Unlock` takes `Pk` back. mvcc's `mvccBackend`/`hookIs` say the
-same of its storage; 4a identifies them. -/
+same of its storage; 4a identifies them. Intended realization (4a's current API): `∃ γb b p, ⌜be =
+Backend.beIface b⌝ ∗ Backend.isBackend γb b p Pk ∗ Backend.beHook γb DFrac.discard f` (4a's
+`keyBackend_intro` identifies `Mvcc.storageHook B dq f` with `Backend.beHook γb dq f` the same
+way). -/
 opaque beHook (be : GoInterface) (Pk : IProp GF) (f : GoFunc) : IProp GF := iprop(True)
 
 /-- (provisional, 4a's) **This thread holds `be`'s batch transaction lock** (an mvcc write
 transaction is open: `Write()` locked it, `End()` unlocks it), so it may make unsafe writes.
-Exclusive. -/
+Exclusive. mvcc's `Mvcc.kbHeld B` for `be = GoInterface.ok (Mvcc.storageVal B)` (the identification
+is `Mvcc.mvccDeleter_rdOk.spec`'s premise `□ (kbHeld B ∗-∗ beTxHeld _)`; 4a's `keyBackend_intro`
+realizes `kbHeld` as the lent session, `Backend.beSess`). -/
 opaque beTxHeld (be : GoInterface) : IProp GF := iprop(True)
 
 /-- (provisional, 2e's membership) **`cl` is a lessor's `cluster`**: `Version()` may be called from
-any goroutine and returns `nil` or a readable `*semver.Version`. Persistent. -/
+any goroutine and returns `nil` or a readable `*semver.Version`. Persistent. Intended discharge: a
+law of 2e's `Membership.isCluster c γ cid lid ⊢ clusterOk (iface c)` with a spec of
+`RaftCluster.Version` (neither exists yet: `req/..._membership.md`, "from 3c"). -/
 opaque clusterOk (cl : GoInterface) : IProp GF := iprop(True)
 
 /-! ### The callbacks' contracts -/
@@ -378,7 +404,6 @@ def persistent.spec : Prop :=
   (∀ γ c ch, Persistent (expiredCh (GF := GF) γ c ch)) ∧
   (∀ le R, Persistent (ckptGate (GF := GF) le R)) ∧
   (∀ be Pk f, Persistent (beHook (GF := GF) be Pk f)) ∧
-  (∀ be, Persistent (beOk (GF := GF) be)) ∧
   (∀ cl, Persistent (clusterOk (GF := GF) cl))
 
 def timeless.spec : Prop :=
@@ -390,6 +415,11 @@ def exclusive.spec : Prop :=
   (∀ γ n n' ls ls', lessorState (GF := GF) γ n ls ∗ lessorState γ n' ls' ⊢ iprop(False)) ∧
   (∀ le, lessorStop (GF := GF) le ∗ lessorStop le ⊢ iprop(False)) ∧
   (∀ le, lessorCkptTok (GF := GF) le ∗ lessorCkptTok le ⊢ iprop(False))
+
+/-- **A lessor is a non-`nil` pointer** (mvcc's `delete` calls `s.le.GetLease` unconditionally and
+`restore` dereferences it: 3e's item 1, `req/..._lease.md`, "from 3e"). -/
+def isLessor_ne_null.spec : Prop := ∀ le γ c,
+  isLessor (GF := GF) le γ c ⊢ ⌜le ≠ null⌝
 
 /-- The current state is in the history. -/
 def lessorState_at.spec : Prop := ∀ γ n ls,
@@ -448,6 +478,11 @@ and the token comes back with it unchanged. -/
 def lessorState_bkt.spec : Prop := ∀ γ n ls,
   lessorState (GF := GF) γ n ls ⊢
     beLeases ls.be ls.bkt ∗ (beLeases ls.be ls.bkt -∗ lessorState γ n ls)
+
+/-- **The writer lends the backend's open share** (the server's shutdown hands it to the backend's
+`Close`; the token comes back with it). -/
+def lessorState_beOk.spec : Prop := ∀ γ n ls,
+  lessorState (GF := GF) γ n ls ⊢ beOk ls.be ∗ (beOk ls.be -∗ lessorState γ n ls)
 
 /-- **The expiry channel's receive** (`run`'s `select` arm): with the expiry mode on, expired leases'
 objects (`expiredSl`); with it off, nothing is ever received (the trusted premise

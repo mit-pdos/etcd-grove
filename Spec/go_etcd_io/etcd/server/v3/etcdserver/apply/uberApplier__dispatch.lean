@@ -39,6 +39,7 @@ def uberApplier.dispatch.spec : Prop :=
       aiAt aa ir.user ir.revW ∗ wrapperAt r ir sk ∗
       ⌜ir.op.ok ∧ (sk = true → ir.op.isTxn = true) ∧
         (ir.op.needAdmin = true → adminErr σ.auth ir.user = none)⌝ ∗
+      nextOk γ R ir.op (fun σ' => ∃ res, irrStep mc σ ir v3 σ' res) ∗
       memberUpd γc ir.op Qm ∗ R ∗ threadTok }}
     (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; R ∗ threadTok ∗ Qm ∗ (∃ u rv, aiAt aa u rv) ∗

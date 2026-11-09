@@ -34,7 +34,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 def batchTxBuffered.UnsafeDeleteBucket.spec : Prop :=
   ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (G : Fp) (C : Image) (bk : GoInterface)
     (bi : BktInfo),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bucketOk bk bi ∗ beCur γ G C ∗ ⌜∀ c, Fp.bucket bi.name c → G c⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bkt γ bk bi ∗ beCur γ G C ∗ ⌜∀ c, Fp.bucket bi.name c → G c⌝ ∗
       writable γ F (Fp.bucket bi.name) ∗ (if bi.safe then beDelHeld γ else iprop(True)) }}
     (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"UnsafeDeleteBucket")) (Val #bk))
   {{ RET #(); beSess γ q F (S.dropBkt bi.name) ∗ beCur γ G (C.dropBkt bi.name) ∗

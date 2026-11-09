@@ -45,7 +45,7 @@ def applierV3backend.Range.spec : Prop :=
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"Range")) (Val #rq))
   {{ (resp : Loc) (trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       R ∗ threadTok ∗ ∃ σ' res, ⌜layersStep mc σ [] 0 op [Layer.backend] σ' res⌝ ∗ stAt p σ' ∗
-      replyAt γ op res (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty) #resp) err ∗ EtcdServer.traceAt trace }}
+      replyAt γ op res (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty) #resp) err ∗ TraceUtil.traceOpt trace }}
 
 end spec
 

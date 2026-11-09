@@ -7,7 +7,10 @@
 // the cluster's state etcdState in an invariant of its own (it gives New the read permission
 // etcdPeek and takes etcdLb anchors from it), keys under the snippet's prefix are written only by
 // the snippet (an invariant clause) and attached to no lease; contexts are contexts with no
-// metadata (ctxPrin of the client's principal).
+// metadata (ctxPrin of the client's principal); the cluster's history meets the compaction
+// condition (EtcdModel.exactFrom σ.kv 0 at every state it reaches: no transaction puts and deletes
+// one key, or no compaction; an invariant clause), under which the cache's contents and its
+// watches' events and progress notifications are exact (they come from its upstream client watch).
 package cache
 
 import (

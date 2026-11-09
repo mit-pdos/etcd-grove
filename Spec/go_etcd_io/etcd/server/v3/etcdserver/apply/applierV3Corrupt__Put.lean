@@ -46,7 +46,7 @@ def applierV3Corrupt.Put.spec : Prop :=
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt.ty @!! go!"Put")) (Val #rq))
   {{ (resp : Loc) (trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       R ∗ threadTok ∗ aiAt aa u rev ∗ ∃ σ' res res', ⌜layersStep mc σ u (uint.nat rev) op (Layer.corrupt :: ls) σ' res ∧ resMatch op false res res'⌝ ∗
-      stAt b σ' ∗ replyAt γ op res' (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty) #resp) err ∗ EtcdServer.traceAt trace }}
+      stAt b σ' ∗ replyAt γ op res' (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty) #resp) err ∗ TraceUtil.traceOpt trace }}
 
 end spec
 

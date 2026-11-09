@@ -7,7 +7,8 @@ at the stream's pinned revision). Snippet: `examples/specreq/txn/read.go` (`ReqR
 **Proof sketch.** A count-only `RangeRequest` (`countReq`, fresh, owned: `rangeReqOwn` by W0's
 unfold law at the end's reading `endOf rend e`, F1's mapping) and `Range.spec` at it with
 `withTotalCount` false (a count-only range counts every key; mvcc's `CountRevisions` checks no
-context). `resp.Count` read from the reply.
+context: `Range.spec`'s context-error case asks `rm.countOnly = false`, so it is excluded).
+`resp.Count` read from the reply.
 
 **Changes.** The old spec (`specs-ref`'s `Count.lean`, over the log) restated as `Range`. Round 1:
 the `nil`-end premise dropped (the end read as mvcc reads the slice, `endOf`: F1); 3e's API (F4).

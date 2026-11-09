@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- **`newBucketBuffer()`**: an empty bucket buffer. -/
 def newBucketBuffer.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }} (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.newBucketBuffer)) (Val #()))
-  {{ (bb : Loc), RET #bb; bbAt bb [] }}
+  {{ (bb : Loc), RET #bb; bbAt bb [] true }}
 
 end spec
 

@@ -38,6 +38,12 @@ updates for creating and deleting this process's own key (review 1f-completeness
 permission only for the `ready` key; the `ErrTooManyClients` arm says whether a key was created.
 
 **Margin**: when this call puts `ready` itself, it also knows the `count` waiters at `σ2` (the guard).
+
+**Integration (I1)**: the `ready` put's fact (`readyPutAt`) is gated by the compaction condition `exactFrom σ.kv σ0.kv.rev` (W0's
+`EtcdModel.exactFrom`): 1b's `watchStep` gives a response's events (and a progress's emptiness) only
+under it, so the facts this call learns from a watch hold only under it; facts learned from a
+`Get` would not need it but are stated under the same condition (a caller cannot tell the paths
+apart). The weakest condition the watches need: they start at or after that revision.
 -/
 module
 
@@ -108,7 +114,7 @@ def DoubleBarrier.Enter.spec : Prop :=
               createdAt σ.kv st.key [] (sint.Z id) σc'.kv.rev ∧
               (∃ r1 n, σ0.kv.rev ≤ r1 ∧ r1 < σc'.kv.rev ∧
                  storeCount (σ.kv.storeAt r1) (pfxRange (waitersPfx key)) n ∧ (n : Int) < sint.Z count) ∧
-              ∃ r, σc'.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧ readyPutAt σ.kv key r⌝) ∨
+              (EtcdModel.exactFrom σ.kv σ0.kv.rev → ∃ r, σc'.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧ readyPutAt σ.kv key r)⌝) ∨
           (⌜err = recipeErr .tooManyClients ∧ st.live = false⌝ ∗
              ((∃ (σ σ' : State) (res' : Resp), Qd st.key σ σ' res') ∨ ∃ e', indefCall e') ∗ ∃ (σ : State) (r n : Nat), etcdLb γ σ ∗
              ⌜σ0.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧

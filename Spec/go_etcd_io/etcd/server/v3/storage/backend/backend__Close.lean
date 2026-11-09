@@ -14,10 +14,15 @@ finish: they need no slot back; gives `fileHolds p D`, `imgOf D = I`, whatever i
 batch lock's resource comes back: nothing can take the lock after this (every locking path needs an
 open share). Every visible-image tracker comes back (`beVis` and the untracked marks cover every
 cell): no read transaction can be begun with a footprint after the close (it would read a nil
-transaction: `issues/etcd-read-after-backend-close-panic.md`); a lock-only read needs none.
+transaction: `issues/etcd-read-after-backend-close-panic.md`); a lock-only read needs none. The
+final commit runs the hooks, whose update needs the trackers of the cells they publish: the hooks'
+cells are untracked first (`beVis_drop`; the trackers taken are disjoint from `Fh`), so every taken
+tracker's cells are the final image's (`Image.agree F I V`: no session is open, the last `Unlock`
+published them, and the hooks change only `Fh`). The run loop's thread token comes back.
 
 **Changes** (from `specs-ref`'s `backend__Close.lean`): the file's image back (`beFile`, the
-history's last, `beFinal`), the lock's resource back; the readers' slots stay with the clients
+history's last, `beFinal`), the lock's resource back; round 1 (T5g, S7): the final image agrees with
+the trackers taken, the hooks' cells untracked first; the readers' slots stay with the clients
 (the close waits for readers in flight); the visible trackers taken (mvcc's `storageRest`, 3e).
 
 **Margin.** `DB.Close`'s error is returned but its kind not stated.
@@ -25,6 +30,7 @@ history's last, `beFinal`), the lock's resource back; the readers' slots stay wi
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -46,10 +52,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- **`b.Close()`**: the final commit made; the file holds the last image `I` (`beFinal`); the
 batch lock's resource back. Takes the open token and every visible-image tracker. -/
 def backend.Close.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (F G : Fp) (V : Image),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ 1 ∗ beVis γ F V ∗ beNoVis γ G ∗ ⌜∀ c, F c ∨ G c⌝ }}
+  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (F G Fh : Fp) (V : Image),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ 1 ∗ beVis γ F V ∗ beNoVis γ G ∗ ⌜∀ c, F c ∨ G c⌝ ∗
+      beHookFp γ Fh ∗ ⌜Fp.disj F Fh⌝ }}
     (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; ∃ I : Image, beFinal γ I ∗ beFile p (some I) ∗ Pk }}
+  {{ (err : GoInterface), RET #err; ∃ I : Image, beFinal γ I ∗ beFile p (some I) ∗ Pk ∗ threadTok ∗
+      ⌜Image.agree F I V⌝ }}
 
 end spec
 

@@ -1,7 +1,8 @@
 /-
 `greaterOrEqual(first, second)` (`lessor.go:390`), an internal helper's spec (mirrors the code).
-**Users**: `shouldPersistCheckpoints`. **Proof sketch**: `!version.LessThan(first, second)` (the
-`semver` comparison: 4b's boundary, a pure comparison of the two values). **Changes** (from
+**Users**: `shouldPersistCheckpoints`. **Proof sketch**: `!version.LessThan(first, second)`
+(`api/version`'s `LessThan.spec`, 3h's assumed spec, `Spec/go_etcd_io/etcd/api/v3/version/
+LessThan.lean`: some boolean, no panic). **Changes** (from
 `specs-ref`'s `greaterOrEqual.lean`): the result any boolean (no spec needs which). **Margin**: the
 comparison's value.
 -/

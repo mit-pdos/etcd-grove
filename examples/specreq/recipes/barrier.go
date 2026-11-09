@@ -8,6 +8,12 @@
 // not modelled: a session's lease may expire at any time, unless the cluster runs with W0's
 // EnvCfg.leaseExpiry = false (a trusted deployment premise: every lease outlives the run); the
 // snippets marked "no lease expiry" assume that, and the others hold either way.
+//
+// Every snippet whose check rests on a watch's events (Barrier.Wait, the queues' Dequeue on an
+// empty queue, DoubleBarrier.Enter's wait for "ready", WaitEvents) also assumes the compaction
+// condition (W0's EtcdModel.exactFrom, 1b's watch): the program's invariant keeps that no compacted
+// revision changes a key twice (no transaction puts and deletes one key, or no compaction below the
+// watches). The recipes' specs give those facts under it.
 package recipes
 
 import (

@@ -65,8 +65,7 @@ later), `logCompactedLb l j` (an index below `j` was found compacted: the snapsh
 
 **The read-index queue**: `readOnly ro rs` over `ReadOnlyState` (the option, the acknowledged
 positions, the unconfirmed requests with their commit indices, the count confirmed): mirrors the
-code. `maybeAdvance` takes the voters' configuration through R4's quorum (provisional ownership
-below) and computes the joint quorum index `JointIdx`.
+code. `maybeAdvance` takes the voters' configuration through R4's quorum (`jointConfigOwn`) and computes the joint quorum index `JointIdx`.
 
 ## Intended realization
 
@@ -94,13 +93,14 @@ below) and computes the joint quorum index `JointIdx`.
   `↦□` (a request is never written after `addRequest`; `maybeAdvance` hands the confirmed prefix
   out read-only, as the old spec did).
 
-## raftpb, quorum and proto (provisional)
+## raftpb, quorum and proto
 
-`entryRO p k e` (one `*Entry`, read-only, at index `k`) stands with R1's `entriesRO` for raftpb's
-predicates (3h); `jointConfigOwn c dq s0 s1` for quorum's (R4: a `JointConfig` value whose halves
-are the voter sets `s0`, `s1`). `proto.Size` of an entry is assumed to return (some size) without
-panicking (2a's `proto`). Requests: `notes/specs-only/req/go_etcd_io_raft_v3_{raftpb,quorum}.md`,
-`google_golang_org_protobuf_proto.md`.
+(Integration I2: were provisional.) `entryRO p k e` (one `*Entry`, read-only, at index `k`) and
+`entriesRO` are raftpb's (`RaftPb.entryRO`, `RaftPb.entriesRO`: definitions over `entryPts`,
+re-exported by `Api.lean`); `ConfState.Equiv` is raftpb's; `jointConfigOwn c dq s0 s1` (a
+`JointConfig` value whose halves are the voter sets `s0`, `s1`), `MajorityIdx` and `JointIdx` are
+quorum's (`Quorum.*`, R4: the same bodies), re-exported here. `proto.Size` of an entry is 2a's
+(`proto/Api.lean`; requested in `req/google_golang_org_protobuf_proto.md`).
 
 ## Requirement snippets
 
@@ -113,6 +113,7 @@ acknowledged; committed entries for applying), `snapshot.go` (restore, install, 
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.quorum.Api
 public import Perennial.Std.Word.LittleEndian
 
 set_option autoImplicit false
@@ -127,12 +128,11 @@ namespace Raft
 
 open Iris Iris.BI
 
-/-- **Two `ConfState`s list the same configuration** (`ConfState.Equivalent`: each list the same up
-to order, the same auto-leave flag). -/
-def ConfState.Equiv (c1 c2 : ConfState) : Prop :=
-  c1.voters.Perm c2.voters ∧ c1.learners.Perm c2.learners ∧
-  c1.votersOutgoing.Perm c2.votersOutgoing ∧ c1.learnersNext.Perm c2.learnersNext ∧
-  c1.autoLeave = c2.autoLeave
+-- **Two `ConfState`s list the same configuration** (`ConfState.Equivalent`): raftpb's.
+-- Quorum's indices (`MajorityConfig.CommittedIndex`, `JointConfig.CommittedIndex`) and the Go
+-- ownership of a `JointConfig`: R4's.
+export RaftPb (ConfState.Equiv)
+export Quorum (MajorityIdx JointIdx jointConfigOwn)
 
 /-! ## The unstable part (`log_unstable.go`) -/
 
@@ -463,19 +463,6 @@ def ackOf (rs : ReadOnlyState) (v : w64) : w64 := (rs.acks !! v).getD (W64 0)
 
 end ReadOnlyState
 
-/-- **A majority quorum's index** (`MajorityConfig.CommittedIndex`): the largest `N` that a strict
-majority of the voters `vs` acknowledged (`f v ≥ N`); `2^64 - 1` for no voters. -/
-def MajorityIdx (vs : GSet w64) (f : w64 → w64) (N : w64) : Prop :=
-  let n := (elements vs).length
-  let cnt := fun (M : w64) => ((elements vs).filter (fun v => decide (uint.nat M ≤ uint.nat (f v)))).length
-  (n = 0 ∧ N = W64 (2 ^ 64 - 1)) ∨
-  (n ≠ 0 ∧ n < 2 * cnt N ∧ ∀ M : w64, uint.nat N < uint.nat M → ¬ n < 2 * cnt M)
-
-/-- **A joint quorum's index** (`JointConfig.CommittedIndex`): the smaller of the halves'. -/
-def JointIdx (s0 s1 : GSet w64) (f : w64 → w64) (N : w64) : Prop :=
-  ∃ N0 N1, MajorityIdx s0 f N0 ∧ MajorityIdx s1 f N1 ∧
-    N = (if uint.nat N0 < uint.nat N1 then N0 else N1)
-
 /-- The confirmed prefix `maybeAdvance` returns at joint index `N`, and the state after. -/
 def ReadOnlyState.advance (rs : ReadOnlyState) (N : w64) : ReadOnlyState × List (Loc × Loc × w64) :=
   if uint.nat N ≤ uint.nat rs.confirmed then (rs, [])
@@ -487,17 +474,6 @@ section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
   {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
   [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-! ## Provisional Go ownership of other batches' types -/
-
-/-- (raftpb's, 3h: provisional) Pointer `p` to an `Entry` holding `e` at index `k`, read-only for
-good (persistent): the element of an `entriesRO` slice. -/
-opaque entryRO (p : Loc) (k : Nat) (e : LogEntry) : IProp GF := iprop(True)
-
-/-- (quorum's, R4: provisional) A `quorum.JointConfig` value whose halves are the voter sets `s0`
-and `s1` (`dq` of their maps). -/
-opaque jointConfigOwn (c : go_etcd_io.raft.v3.quorum.JointConfig) (dq : DFrac)
-    (s0 s1 : GSet w64) : IProp GF := iprop(True)
 
 /-! ## The log -/
 
@@ -554,13 +530,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
   {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
   [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Persistence of the published facts and the attachment. -/
+/-- Persistence of the published facts and the attachment (`entryRO`'s is raftpb's,
+`RaftPb.raftpb_persistent`). -/
 def logPersistent.spec : Prop :=
   (∀ l S V N, Persistent (logStorage (GF := GF) l S V N)) ∧
   (∀ l i t, Persistent (logFloor (GF := GF) l i t)) ∧
   (∀ l j, Persistent (logSnapLb (GF := GF) l j)) ∧
-  (∀ l j, Persistent (logCompactedLb (GF := GF) l j)) ∧
-  (∀ p k e, Persistent (entryRO (GF := GF) p k e))
+  (∀ l j, Persistent (logCompactedLb (GF := GF) l j))
 
 /-- Lower bounds weaken. -/
 def logLbs_mono.spec : Prop :=

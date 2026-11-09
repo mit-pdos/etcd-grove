@@ -2,6 +2,13 @@
 // Spec/go_etcd_io/etcd/server/v3/storage/backend/): what its users (mvcc, the lessor, auth,
 // membership, alarms, the consistent index and the server's hooks, the server's snapshot and
 // shutdown) rely on, each a panic on its violation.
+//
+// Common assumptions of every snippet (round 1, S2): the backend was opened by openBackend under
+// the environment premise (dbOpenOk: the file opens and maps), with ETCD_VERIFY unset (envOk) and
+// the schema's buckets declared (New's Bs = schemaBkts; each schema.* value is the backend's
+// bucket: bkt, from 4b's bucketAt); every put's key and value together are at most
+// bboltEntryMax (2^28) bytes; the pre-commit hooks write only Meta keys none of the snippets
+// tracks (beHookFp disjoint from their footprints).
 package backend
 
 import (

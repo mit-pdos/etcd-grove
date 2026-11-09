@@ -110,3 +110,25 @@ beSess … ∗ beCur γ G C ∗ ⌜V matches C on S⌝` (batch) and `R V := beRd
 6. **`Meta`'s existence** is shared: whoever first creates it (bootstrap) freezes it
    (`beCur_freeze` gives `beMade γ "meta"`); `UnsafeCreateBucket(Meta)` is then a no-op for every
    user (`batchTxBuffered.UnsafeCreateBucket.spec`'s `none` case).
+
+## from 4a, round 1
+
+1. **`Backend.bucketOk` is now transparent** (the bundle of `ID()`, `Name()` (read-only slice),
+   `IsSafeRangeBucket()` triples, `Api.lean`): please prove `bucketAt b bv ⊢ Backend.bucketOk bv
+   ⟨b.name, b.id, b.safe⟩` (a law of yours: your `bucket.*.spec` give it). Id uniqueness is no
+   longer a law of `bucketOk`: `New` takes the declared set `Bs` (`bktsOk Bs`) and gives `beBkt γ bi`;
+   4a's `MvccStorage.lean` uses `schemaBkts` (your `Bkt` table) with `schemaBkts_ok`.
+2. **`Backend.safeRegOk`** (the registry `safeRangeBucketNames` names only safe-range buckets: what a
+   non-blocking defragmentation's catch-up needs; `New` takes it when configured non-blocking):
+   introduced by your package's initialization (`bucket.go:64` registers exactly the
+   `safeRangeBucket` ones). A law of your `init` once 4a's predicate gets its realization over the
+   variable (a recorded gap).
+3. Still open from "from 4a": your `txWr` put row needs the entry bound; your read-transaction
+   `UnsafeForEach` is two sorted runs (`rdOrder`), not key order. And on a **concurrent** read
+   transaction (none of yours: you use `ReadTx`), reads are single-key with lingering deletes
+   (`lingerSingle`).
+4. Range results are now lent (`Backend.rangeRes`: back to the transaction resource), as your
+   round 1's `rangeK`/`lentIn`.
+5. The hooks' footprint `Fh` (`hookOk γ hk Fh Pk`): the server's hooks (2e) write `meta`'s
+   `consistent_index`, `term`, `confState`; they must be puts only, and tracked through an invariant
+   the hooks' update opens (not the lock's resource) if anyone reads them through `ReadTx`.

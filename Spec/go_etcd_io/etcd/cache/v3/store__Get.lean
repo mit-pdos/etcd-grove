@@ -27,7 +27,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `s.Get(start, end, rev)`: for a range the cache serves, the key-values of etcd's store at `rev` (the latest for `0`) in the range, and the latest revision; or an error. -/
+/-- `s.Get(start, end, rev)`: for a range the cache serves, the key-values of etcd's store at `rev` (the latest for `0`) in the range (under `exactFrom σ.kv 0`, as `snapCert`), and the latest revision; or an error. -/
 def store.Get.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (pfx : GoString) (r0 : Nat) (startSl endSl : GoSlice) (sk ek : GoString) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx ∗ storeRevLb s r0 ∗ threadTok ∗ startSl ↦*□ sk ∗ endSl ↦*□ ek ∗ ⌜rangeOk pfx ({ key := sk, rangeEnd := ek } : KeyRange)⌝ }}
@@ -37,8 +37,9 @@ def store.Get.spec : Prop :=
         ∃ (σ : State) (kvs : List KV), etcdLb γ σ ∗
           msgsOwn keyValueOwn kvsSl DFrac.discard (kvs.map KeyValueM.ofKV) ∗
           ⌜0 ≤ sint.Z rev ∧ sint.Z rev ≤ sint.Z lrev ∧ sint.Z lrev ≤ σ.kv.rev ∧
-            Store.rangeKVs (σ.kv.storeAt (if sint.Z rev = 0 then (sint.Z lrev).toNat else (sint.Z rev).toNat))
-              ({ key := sk, rangeEnd := ek } : KeyRange) kvs⌝) ∨
+            (EtcdModel.exactFrom σ.kv 0 →
+              Store.rangeKVs (σ.kv.storeAt (if sint.Z rev = 0 then (sint.Z lrev).toNat else (sint.Z rev).toNat))
+                ({ key := sk, rangeEnd := ek } : KeyRange) kvs)⌝) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec

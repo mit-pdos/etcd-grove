@@ -36,11 +36,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `get(ctx, op)` for a range `op`: as `LKV.GetTriple`. -/
 def leasingKV.get.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (q : Qp) (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
+  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (lo : Nat) (pfx : Key) (γL : LeasingNames) (q : Qp) (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
     (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ lkvOpen γL q ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ opAt op o ∗ ⌜o.t = tRange⌝ ∗ threadTok ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ lkvOpen γL q ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ opAt op o ∗ ⌜o.t = tRange⌝ ∗ threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx who (.range o.rangeReq) σ σ' r ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo (.range o.rangeReq) σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"get")) (Val #ctx)) (Val #op))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); lkvOpen γL q ∗ threadTok ∗

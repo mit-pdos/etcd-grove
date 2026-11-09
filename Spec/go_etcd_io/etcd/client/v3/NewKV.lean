@@ -4,7 +4,8 @@
 Users: `client.go`'s `newClient` (`client.KV = NewKV(client)`), leasing (`leasing.NewKV`, over a client).
 
 Proof sketch: `RetryKVClient.spec` from `clientConnOk` (the connection), the client's `callOpts` read from
-`clientConnOk`'s field (`callOptsOk _ false`); the fresh `*kv` persisted: `kvHandle`.
+`clientConnOk`'s field (`callOptsOk _ false`); the fresh `*kv` persisted: `kvHandle kv c` (its remote is the client's connection: its calls need
+`clientReady c`, which `newClient` mints after `c.Auth` is set, so the handle records `c`).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/NewKV.lean`: over `clientConnOk` (was the client's members), the result a `kvHandle` (was `isKv`).
 
@@ -38,7 +39,7 @@ def NewKV.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientConnOk c γ who }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewKV)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ kv : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #kv⌝ ∗ kvHandle kv γ who }}
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #kv⌝ ∗ kvHandle kv c γ who }}
 
 end spec
 

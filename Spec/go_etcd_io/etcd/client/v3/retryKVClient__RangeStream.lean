@@ -5,6 +5,11 @@ Users: `kv.GetStream`.
 
 Proof sketch: the stub's `RangeStream` with the same options (a stream is not retried by the unary interceptor; the stream interceptor, 1c, may reopen it before the first message: the update is persistent).
 
+Integration (I1): the stub opens the stream through 1c's `siOk_call` (over 2a's `streamerOk_call` with
+`V3rpc.rangeStreamSpec`); `wireStreamAt` is realized by 2a's stream laws and `rsReq`/`rsChunk`. **Open**:
+`rangeStreamSpec`'s update is over `Step who (.range r)` at `lo = 0`, the client's at `lo`
+(`authLb γ lo`): 2a's contract must carry `lo` (report I1).
+
 Changes: none (no old spec): added for the users named above.
 
 Margin: none.
@@ -33,9 +38,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `rkv.RangeStream` meets the wire-level contract's `RangeStream`. -/
 def retryKVClient.RangeStream.spec : Prop :=
-  ∀ (rkv : Loc) (γ : Cluster) (who : Principal),
+  ∀ (rkv c : Loc) (γ : Cluster) (who : Principal),
   RemoteKV.RangeStreamTriple (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!! go!"RangeStream")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVHandle rkv γ who)) γ who
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVHandle rkv c γ who ∗ clientReady c)) γ who
 
 end spec
 

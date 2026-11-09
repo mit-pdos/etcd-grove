@@ -37,7 +37,7 @@ holding its existence cell, or `none` when it exists for good). -/
 def batchTxBuffered.UnsafeCreateBucket.spec : Prop :=
   ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (bk : GoInterface) (bi : BktInfo)
     (o : Option (Fp × Image)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bucketOk bk bi ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bkt γ bk bi ∗
       (match o with
        | some (G, C) => beCur γ G C ∗ ⌜G (.bkt bi.name)⌝ ∗ writable γ F (Fp.bkt bi.name)
        | none => beMade γ bi.name) }}

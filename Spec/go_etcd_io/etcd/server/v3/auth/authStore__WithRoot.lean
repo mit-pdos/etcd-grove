@@ -22,6 +22,12 @@ premise). Round 1 (review F5): kept; the fork fix (`assignSimpleTokenToUser` ret
 which `WithRoot` already maps to `ctx`) is an open question for the user; with it `rootTokOk`
 goes.
 
+Integration I5: the TLS clause was `□ (ctxCertUser ctx none -∗ ctxCertUser ctx' none)`, false for a
+context with a TLS peer but no incoming metadata, or a gateway request (`ctxCertUser` is `none`
+there, and `NewIncomingContext` adds metadata without `grpcgateway-accept`); now over the peer's
+identity, `ctxPeerCN` (2a's boundary). 2c's round-1 item 2 (`reqPrin ctx' (some root) tls` when
+auth is on) is met but for the errors that return `ctx` (a prefix or `assign` error), which the
+code allows.
 **Margin.** None.
 -/
 module
@@ -49,7 +55,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **`as.WithRoot(ctx)`**: `ctx` itself, or a context carrying a token the cluster issued to
-`root`, with no TLS identity if `ctx` had none. -/
+`root`, whose TLS identity is `ctx`'s peer's (none for a context without a TLS peer). -/
 def authStore.WithRoot.spec : Prop :=
   ∀ (st : Loc) (γ : Cluster) (γa : AuthNames) (i0 : Nat) (ctx : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authLb γa i0 ∗ threadTok ∗ rootTokOk γa ∗ Context.ctxOk ctx }}
@@ -57,7 +63,7 @@ def authStore.WithRoot.spec : Prop :=
   {{ (ctx' : GoInterface), RET #ctx'; threadTok ∗ Context.ctxOk ctx' ∗
       (⌜ctx' = ctx⌝ ∨
        ∃ tok : GoString, ctxToken ctx' (some tok) ∗ tokenUser γ tok rootUser ∗
-         □ (ctxCertUser ctx none -∗ ctxCertUser ctx' none)) }}
+         □ (∀ c, ctxPeerCN ctx c -∗ ctxCertUser ctx' c)) }}
 
 end spec
 end Auth

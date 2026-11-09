@@ -15,7 +15,8 @@ A fresh file is laid out by the fork's crash-safe `init` (`nonissues/bbolt-init-
 each of its steps keeps the invariant's "every crash image is `Data.empty`" (`σ.data = Data.empty`
 for a fresh file); else `getPageSize` reads page 0's meta (D18: a read error, not a probe), the file
 size, `mmap` (4d's `common` decoders for the metas, `meta()` choosing the newest valid one),
-`loadFreelist` (4d's `freelist.Read`/`NoSyncReload`). The invariants of `isBolt` (the locks, the
+`loadFreelist` (4d's `freelist.Read` of the synced page, else `Init(freepages())`, db.go:454-467;
+both on a new freelist, so the hash map's empty-`Init` premise holds trivially). The invariants of `isBolt` (the locks, the
 reader pool built from the thread bound, the receipts' counter) are allocated in `γ.ns`. An error
 (an errno of OsFs's calls, a closed `flock`, an invalid file: excluded by the invariant) closes the
 file again and gives `boltClosed γ` back; the crash invariant never left its closed state, or

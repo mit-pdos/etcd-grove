@@ -38,9 +38,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `kv.Delete` meets the KV contract's `Delete` (`KV.DeleteTriple`, `Api.lean`), for a `*kv` of the
 cluster `γ` as `who` (`kvHandle`). -/
 def kv.Delete.spec : Prop :=
-  ∀ (kv : Loc) (γ : Cluster) (who : Principal),
+  ∀ (kv c : Loc) (γ : Cluster) (who : Principal),
   KV.DeleteTriple (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Delete")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvHandle kv γ who)) γ who
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvHandle kv c γ who ∗ clientReady c)) γ who
 
 end spec
 

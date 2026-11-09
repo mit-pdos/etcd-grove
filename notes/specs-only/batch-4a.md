@@ -197,3 +197,63 @@ update, cursors' bytes' lifetime, `WriteTo`/`Size`, `Close`, the flat image),
 `go_etcd_io_etcd_server_v3_storage_mvcc.md` ("from 4a": F1, F3, the lent lock, the snapshot's image,
 readers after the close), `go_etcd_io_etcd_server_v3_storage_schema.md` ("from 4a": the bundles over
 this vocabulary, F2, F4, `bucketOk`, `applyHook`, `beSess_rd`, `meta`'s existence).
+
+## Round 1 repairs (review `reviews/4a-review-1.md`)
+
+All 101 modules build (`--dir Spec/go_etcd_io/etcd/server/v3/storage/backend`, with the new
+`Durable.lean`); snippets re-vetted (`go vet`, `gofmt -l` clean).
+
+- **T1 (concurrent reads after a commit)**: the review's option (a), the weakest true statement that
+  serves mvcc and the server. `ConcurrentReadTx` takes a footprint disjoint from the hooks' cells
+  (`beHookFp γ Fh`, fixed at `New`); a concurrent read transaction's `UnsafeRange` is stated for single
+  keys only (`es = nil`), with `lingerSingle`: a key of the view reads its value, a key the view lacks
+  reads nothing or a value it had before a delete (the stale buffer copy); its `UnsafeForEach` visits
+  every entry of the view once and maybe lingering ones (`rdOrderL`). The shared `ReadTx` stays exact
+  (its buffer is live). mvcc's concurrent range row must weaken the same way: `req/..._mvcc.md`,
+  "from 4a, round 1" (e). The fork fix is open question 7.
+- **T2 (hooks' leftovers)**: `hookOk γ hk Fh Pk` restricts the hooks to puts of `Fh` (`hookWrites`);
+  `Image.clean` now means "nothing but the hooks' leftovers, at the committed values"; a shared read
+  transaction's range of a safe-range bucket takes a bucket with no `Fh` cell; `Unlock`'s sketch says
+  the write-back also flushes the last commit's leftovers.
+- **T3 (bytes)**: range results are lent (`bytesListAt … dq`, `rangeRes kl vl l R`, the wand back to
+  the transaction resource: `beRd`, `beSess`, `btPhys`, `curOver`); `visitOk` lends the visitor its
+  bytes for the call. The buffer's internal ranges keep `DFrac.discard` (the session's put bytes).
+- **T4 (introductions)**:
+  - `bucketOk` is transparent (the `ID`/`Name`/`IsSafeRangeBucket` bundle; 4b proves it of
+    `bucketAt`); id uniqueness is `beBkt γ bi` from `New`'s declared set `Bs` (`bktsOk`); every bucket
+    argument is `bkt γ bk bi`.
+  - `Durable.lean` (new): `imgOf`, `beFile_of` (from 4c's `fileHolds`: `New` can be called, also over
+    a received snapshot's file), `beFile_none`, and the crash law `beCrash` (from `beDurInv`,
+    `beSynced` and the client's `beHist`, a crash leaves one of the committed images; over 4c's
+    `boltCrash`). The `[HasExt osFsExt]` binder on the realized predicates is a recorded gap.
+  - `envOk_intro` from `etcdVerifyUnset` (2e's `backendEnvOk`).
+  - `safeRegOk` (the safe-range registry, for a non-blocking defragmentation): `New` takes it when so
+    configured; its introduction is 4b's (`req/..._schema.md`, round 1, item 2): a recorded gap.
+- **T5 (the bridge)**: `MvccStorage.lean` rebuilt against 3e's round 2 (`Schema.bucketAt`,
+  `kbLocked B D0 D`, the nested two-step `Unlock`, the freshness over `D0`/`D`), with the open share,
+  the hooks' disjointness, `kbHeld` pinned to `mvccFp`, `schemaBkts`, and the way back at the
+  trackers' last data (which `Close`'s new `Image.agree F I V` ties to the closed file). Still blocked
+  on five mvcc rows ((a) an open share, (b) a `key` delete of a key not put in the session, (c) the
+  entry bound, (e) the concurrent range row, (f) lent bytes), written in `req/..._mvcc.md`, "from 4a,
+  round 1", with (g) `hookRun` holding the session.
+- **T6 (the post-lock hook's read)**: `hookRun γ q Pk f Pre Q` runs `f` holding the just-begun
+  session and gives it back, so the hook can use `beSess_rd` (`cindex.go:102-110`).
+- **Second tier**: S1 (the hook's session's base is `Sess.mid` inside an `Unlock`; `beSess_vis`'s
+  unchanged-cell conjunct dropped, so `beSess_rd` lends what readers then see); S2 (a common
+  assumptions header: `dbOpenOk`, `envOk`, the buckets, the entry bound, the hooks' footprint;
+  `ReqHookWrites`'s tracker in an invariant; `ReqForceCommitDurable` checks the write; `ReqSeqRange`'s
+  concurrent read single-key); S3 (`more.go`: `ReqForEach`, `ReqCompactionBatch`, `ReqPostLockHook`,
+  `ReqMaintenance` (Defrag, Hash, sizes after `Close`), `ReqOpenSnapshotFile`); S4 (no pool: `New`
+  takes the run loop's `threadTok`, `Close` returns it; rollback goroutines by `wp_fork_tok_self`;
+  Q6 closed); S5 (`bbAt bb l w` with a writable flag, `add`/`merge` need it, `CopyUsed` gives a
+  non-writable copy, `mergeOk` is the code's test over sorted parts); S6 (`Mlock` a filed scope
+  restriction in `New`; `UnsafeNoFsync` recorded, `beSynced` only when off: Q3 closed); S7 (`Close`
+  takes trackers disjoint from `Fh`: the hooks' cells untracked first); S8 noted.
+- `req/` written: `..._mvcc.md` and `..._schema.md` ("from 4a, round 1"), `..._lease.md` ("from 4a":
+  `beOk` becomes an open share).
+
+New open question:
+7. **The stale read-buffer copy** (T1): the fork's one-line fix (`bufVersion++` in `readTx.reset`,
+   branch `fix/etcd-backend-read-buffer-cache-stale-after-commit`) would make concurrent reads exact
+   again (ranges with an end, hook cells). Take it into the pinned fork (a code change), or keep the
+   weaker specs?

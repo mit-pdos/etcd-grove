@@ -95,7 +95,7 @@ fields the getters read. `coreInv r γ id o` is the node's share of the cluster 
    most `i` and `i` at most the current commit: `readState γ c i` holds. A duplicate request (`γ.dup`)
    confirms the later registration (`readOnly.recvAck` keys by position); the commit only grows.
 4. **Configurations** (R1's items 8-10; the provability review's V1-V3):
-   - (V1) the view `⟨a, m⟩` (R1's `nodeConf`) is `confAt γ a m`, the tracker holds `m`, and `a` is at
+   - (V1) the view `⟨a, m⟩` (R1's `nodeConf`) is `confAt γ a m`, the tracker holds `m` (`o.conf = m`), and `a` is at
      least raft's applied index; it holds at `newRaft`, at `applyConfChange`, and after `appliedSnap`
      (where the view may move back to a client-chosen `a' ≥ s.index = applied`);
    - (V2) one pending change: if the node's log holds a conf entry `g` and the log of the leader
@@ -206,10 +206,13 @@ def readyEmpty [GooseExts] (rd : go_etcd_io.raft.v3.Ready) : Prop :=
 /-! ### Internal: the opened struct -/
 
 /-- (internal) **What `raft.go`'s helpers see of the opened struct**: the view, the log (R3's
-`LogState`), the read-only queue (R3's `ReadOnlyState`), `isLearner`, `leadTransferee`,
-`pendingConfIndex`, the election counters, and the votes recorded (`trk.Votes`). -/
+`LogState`), the read-only queue (R3's `ReadOnlyState`), the tracker's configuration (`conf`:
+integration I2, so that the invariant can say the tracker holds the view's configuration, the
+realization's V1), `isLearner`, `leadTransferee`, `pendingConfIndex`, the election counters, and the
+votes recorded (`trk.Votes`). -/
 structure CoreOpen where
   view : CoreView
+  conf : Membership
   log : LogState
   ro : ReadOnlyState
   isLearner : Bool
@@ -245,19 +248,27 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
   {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
   [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-! ## raftpb's and the tracker's Go ownership this batch needs beyond R1's (provisional) -/
+/-! ## raftpb's and the tracker's Go ownership this batch uses
 
-/-- (3h's) A `[]*Entry` slice (`dq` of it and of the entries) whose entries hold the terms, types and
-data of `es` (any `Index`: a proposal's entries before `appendEntry` numbers them). -/
-opaque entryPtrs (sl : GoSlice) (dq : DFrac) (es : List LogEntry) : IProp GF := iprop(True)
+(Integration I2: were provisional opaques.) `entryPtrs sl dq es` is raftpb's (`RaftPb.entryPtrs`,
+re-exported by `Api.lean`: a `[]*Entry` of any indices, a proposal's before `appendEntry` numbers
+them). The tracker's are R4's (`tracker/Api.lean`), as below. -/
 
-/-- (R4's) The fresh memory of `getProgressCopy`'s map: part of R1's `statusOwn`. -/
-opaque progressCopyOwn (mp : Loc) : IProp GF := iprop(True)
+/-- The fresh memory of `getProgressCopy`'s map (part of R1's `statusOwn`): the map and each
+`Progress` value, with its own `Inflights` clone (R4's `progressValOwn`). -/
+def progressCopyOwn (mp : Loc) : IProp GF :=
+  iprop(∃ (pm : GMap w64 go_etcd_io.raft.v3.tracker.Progress) (Ps : GMap w64 Tracker.ProgressV),
+    ownMap mp (DFrac.own 1) pm ∗ [∗map] _id ↦ pv;P ∈ pm;Ps, Tracker.progressValOwn pv P)
 
-/-- (R4's) The result of confchange's `Changer` or `Restore`: configuration `cfg` and progress map
-`trk` for membership `m` (fresh progress entries for new ids). -/
-opaque trkResult (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : Loc) (m : Membership) :
-    IProp GF := iprop(True)
+/-- The result of confchange's `Changer` or `Restore` (R4's `resultOk` without its base): the
+configuration `cfg` holds `m` and the progress map `trk` fits it (`Tracker.TrackerOk`). -/
+def trkResult (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap) (m : Membership) :
+    IProp GF :=
+  iprop(Tracker.configOwn cfg (DFrac.own 1) m ∗
+    ∃ prs pv, Tracker.progressMapOwn trk prs pv ∗ ⌜Tracker.TrackerOk m pv⌝)
+
+/-- The raft struct's `trk` field. -/
+def trkLoc (r : Loc) : Loc := structFieldRef go_etcd_io.raft.v3.raft go!"trk" r
 
 /-! ## The raft struct -/
 
@@ -377,6 +388,21 @@ opaque coreInv (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) : IProp GF := 
 (`switchToConfig`'s leader branch). -/
 opaque coreInvConf (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (m : Membership) : IProp GF :=
   iprop(True)
+
+/-- (internal) **The opened struct with its tracker taken out** (`raftOpen_trk`): put any tracker
+back (R4's `progressTracker`) and it is the opened struct at that tracker's configuration, map and
+votes. `switchToConfig` takes it with the old tracker's shell (`trkShell`), after confchange's
+`Changer` consumed the old progress map (`applyConfChange`) or while `Restore` built a new one on a
+fresh tracker (`appliedSnap`, `newRaft`). (Integration I2.) -/
+def raftTrkOpen (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) : IProp GF :=
+  iprop(∀ T : Tracker.TrackerV, Tracker.progressTracker (trkLoc r) T -∗
+    raftOpen r γ id { o with conf := T.conf, view := { o.view with prs := T.prs }, votes := T.votes })
+
+/-- (internal) **The tracker's shell**: the `ProgressTracker` struct at `t` (its `Config` and
+`Progress` about to be replaced), its votes and ring capacities. -/
+def trkShell (t : Loc) (votes : GMap w64 Bool) (mi mb : w64) : IProp GF :=
+  iprop(∃ tv : go_etcd_io.raft.v3.tracker.ProgressTracker, typedPointsto t tv (DFrac.own 1) ∗
+    ownMap tv.Votes' (DFrac.own 1) votes ∗ ⌜tv.MaxInflight' = mi ∧ tv.MaxInflightBytes' = mb⌝)
 
 /-- (internal) **Message `m`'s protocol fact holds at the node's current state**: what `send` queues
 it with (its `msgSent` minted when the batch carrying it is handed out or entered). Exclusive. -/
@@ -559,6 +585,16 @@ def raftOpen_log.spec : Prop :=
   ∀ r γ id o, raftOpen (GF := GF) r γ id o ⊢
     ∃ l : Loc, typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"raftLog" r) l DFrac.discard ∗
       raftLog l o.log ∗ (∀ ls', raftLog l ls' -∗ raftOpen r γ id { o with log := ls' })
+
+/-- (internal) **The tracker** (R4's `progressTracker`) of the opened struct, through its `trk`
+field: at the open state's configuration, map and votes; closed again by any tracker
+(`raftTrkOpen`). What the helpers that read or move the tracker use (`reset`, `poll`, the send
+helpers' `Progress` updates, `applyConfChange`'s `Changer`, `switchToConfig`). (Integration I2: the
+sketches used R4's tracker specs with no way to reach the tracker.) -/
+def raftOpen_trk.spec : Prop :=
+  ∀ r γ id o, raftOpen (GF := GF) r γ id o ⊢
+    ∃ T : Tracker.TrackerV, Tracker.progressTracker (trkLoc r) T ∗
+      ⌜T.conf = o.conf ∧ T.prs = o.view.prs ∧ T.votes = o.votes⌝ ∗ raftTrkOpen r γ id o
 
 /-- (internal) A read-only share of an opened struct. -/
 def raftOpen_ro.spec : Prop :=

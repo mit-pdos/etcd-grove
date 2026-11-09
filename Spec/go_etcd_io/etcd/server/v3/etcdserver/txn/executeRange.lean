@@ -7,7 +7,12 @@
 case is `rrOwn` of the cut key-values, `keysOnlyM` on the fast path, i.e. `ofKV` of the key-value
 with no value and lease `0`, `kvsFit`), `filterRangeResults`, `sortRangeResults` (its size premise
 from `kvsFit`), `asembleRangeResponse`. Old spec: over the log. Round 1: 3e's API (F4); the
-keys-only path's values (F2).
+keys-only path's values (F2). Integration (I5, 2026-11-09): the context's error only for a full
+read (`rm.countOnly = false`: mvcc's `rangeOut`'s `.ctxErr` case asks `CountOnly = false`), which
+`Count` needs. Two steps rest on 3e requests not yet met (`req/..._storage_mvcc.md`, "from 3b",
+items 1-2): `ctxErr err` from `rangeResOwn`'s `.ctxErr` (which gives only `err ≠ nil`, not "none of
+the sentinels", so `ctxErr_not_errIs` is not yet provable), and `rrOwn`'s `kvFits` (the lease an
+`int64`: `kvsFit` bounds the revisions and the version only).
 -/
 module
 
@@ -46,7 +51,7 @@ def executeRange.spec : Prop :=
        (⌜viewErr k rm.revision = none ∧ err = GoInterface.nil⌝ ∗ ∃ all : List KV,
           ⌜(viewStore k rm.revision).rangeKVs rm.range all⌝ ∗
           rangeOk resp (viewRev k) (rangeOut rm wtc all)) ∨
-       (⌜resp = null⌝ ∗ Context.ctxDone ctx ∗ ctxErr err)) }}
+       (⌜resp = null ∧ rm.countOnly = false⌝ ∗ Context.ctxDone ctx ∗ ctxErr err)) }}
 
 end spec
 end Txn

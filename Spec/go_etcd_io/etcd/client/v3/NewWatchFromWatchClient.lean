@@ -3,16 +3,19 @@
 
 **Users**: `NewWatcher`; the in-process client (`E server/v3/etcdserver/api/v3client/v3client.go:40`,
 over the adapter's `WatchClient`, which then must meet `remoteWatchAt`). **Proof sketch**: allocate
-the `*watcher` (an empty map), read `c.callOpts` (`clientConnOk`: `callOptsOk _ false`) and
-`c.GetLogger()` (1c's spec under `clientConnOk`: a logger, `Zap.isLogger`), make the lock invariant
-(`watcherHandle`). **Changes** from `specs-ref/.../NewWatchFromWatchClient.lean`: over
-`remoteWatchAt` and `clientConnOk`; the old `⌜c ≠ null⌝` stays, folded in `clientConnOk`: a `nil`
+the `*watcher` (an empty map), read `c.callOpts` (`clientBase`, 1c: `callOptsOk _ false`) and
+`c.GetLogger()` (`Client.GetLogger.spec` under `clientBase`: a logger, `Zap.isLogger`), make the
+lock invariant (`watcherHandle`). **Changes** from `specs-ref/.../NewWatchFromWatchClient.lean`:
+over `remoteWatchAt` and 1c's `clientBase` (integration: was W0's `clientConnOk`, which an
+in-process client, `NewCtxClient`'s, cannot give: 1c's `clientBare_base` gives `clientBase`, as for
+1c's other `From*Client` constructors); the old `⌜c ≠ null⌝` stays, folded in `clientBase`: a `nil`
 client gives a `nil` logger, and `run`'s `w.lg.Debug(...)` on a failed send would dereference it
 (`zap.Logger.check` reads `log.core`): no caller passes `nil`. **Margin**: none.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.ApiWatch
+public import Spec.go_etcd_io.etcd.client.v3.ApiClient
 
 @[expose] public section
 
@@ -37,7 +40,7 @@ logger. -/
 def NewWatchFromWatchClient.spec : Prop :=
   ∀ (wc : GoInterface) (c : Loc) (γ : Cluster) (who : Principal),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ remoteWatchAt wc γ who ∗
-      clientConnOk c γ who }}
+      clientBase c who }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.NewWatchFromWatchClient)) (Val #wc)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ w : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty) #w⌝ ∗

@@ -34,8 +34,11 @@ updates are `⊤ \ ↑γ.ns`).
   the file's OsFs resources (a half of each byte and of its `OsMeta`, as the old
   `Proof/os/CrashSt.lean`'s `csInv`; the other half is the open database's, or the invariant's
   while closed) and the other half of `σ`, with the fact that **every image a crash may leave**
-  (OsFs's crash relation, with D9's aligned page rule and decision 4c-D1's rule: a write of a clean, idle page reaches the disk sector-atomically; the report's decision
-  4c-D1) **is a bbolt file whose data `σ.recovers`**. This is the meta-page rule: a commit writes
+  (OsFs's crash relation, with D9's aligned page rule, **plus the sector rule of decision 4c-D1**: a
+  write of a clean, idle page reaches the disk sector-atomically. That rule is not in OsFs's crash
+  relation today; whether it goes there (option (a)) or into a crash premise of every bbolt closed
+  theorem (option (b)) is the user's open decision (`batch-4c.md`, 4c-D1), and `boltCrash.spec` is
+  true under either, false under OsFs as it is) **is a bbolt file whose data `σ.recovers`**. This is the meta-page rule: a commit writes
   its pages, syncs them, then writes its meta page (one aligned OS page) at page `txid % 2` (the
   page the current meta is not on), then syncs; at every point the newest valid meta of any crash
   image is the old or the new one.
@@ -98,7 +101,7 @@ updates are `⊤ \ ↑γ.ns`).
   "the value must remain valid for the life of the transaction"), given back once the transaction
   is done (`putLoan_done`).
 * `txSize tx n` (persistent): `tx.Size()` is `n` (below `2 ^ 48`) and `tx.WriteTo` writes `n` bytes
-  (`boltTx_size`, `txSize_agree`).
+  (`boltTx_size`: its existence and its agreement).
 * `dbBroken γ` (persistent): a `Begin` failed because a commit lost the mapping; then the client's
   state says so (`dbBroken_state`: `σ.broken`).
 
@@ -106,11 +109,12 @@ updates are `⊤ \ ↑γ.ns`).
 
 Persistence, timelessness, fractions, agreement, validity, exclusivity of each predicate
 (`boltOpened_closed`); `boltTx_later`, `boltTx_nonnull`, `boltTx_base`, `bktH_live`,
-`txBytes_acc`, `boltTx_fill`; well-formedness (`boltTx_wf`, `boltState_wf`, `boltImage_wf`); the
-size (`boltTx_size`, `txSize_agree`); `putLoan_done`; `dbBroken_state`; the
+`txBytes_acc`, `boltTx_fill`; well-formedness (`boltTx_wf`, for views and the committed data; `boltImage_wf`); the
+size (`boltTx_size`, with `txSize`'s agreement); `putLoan_done`; `dbBroken_state`; the
 updates a holder of `boltState γ 1 σ` can supply (`boltState_read_au`, `boltState_commit_au`,
 `boltState_settle_au`); the file laws (`fileHolds_new`, `fileHolds_image`, `fileHolds_alloc`) and
-**the crash law** (`boltCrash`); the error values (`errIs_init`, `errIs_distinct`).
+**the crash law** (`boltCrash`). The error values (`errIs`, `isErr`; laws `errIs_init`,
+`errIs_distinct`) are `bbolt/errors`' (`Spec/go_etcd_io/bbolt/errors/Api.lean`, re-exported).
 
 ## Requirement snippets (`examples/specreq/bbolt/`)
 
@@ -133,6 +137,7 @@ public import Perennial.ProgramLogic.Bounds
 public import Iris.BI.Lib.Atomic
 public import GooseLang.Ext.OsFs.Crash
 public import Spec.go_etcd_io.bbolt.Model
+public import Spec.go_etcd_io.bbolt.errors.Api
 
 @[expose] public section
 
@@ -143,6 +148,11 @@ namespace EtcdGrove
 namespace Bbolt
 
 open Iris Iris.BI go_etcd_io.bbolt
+
+/- The error values (`errIs`, `isErr`, `bboltErrNames`; laws `BboltErrors.errIs_init`,
+`BboltErrors.errIs_distinct`) live in `bbolt/errors`' own API (`Spec/go_etcd_io/bbolt/errors/Api.lean`),
+which `internal/common`'s `Meta.Validate` uses too; re-exported here. -/
+export BboltErrors (errIs isErr bboltErrNames)
 
 /-! ## Names -/
 
@@ -306,14 +316,6 @@ def writerOk (w : GoInterface) (W : List w8 → IProp GF) :
           W (bs ++ ys.take (uint.nat n)) -∗ Φ (PairV #n #err)) -∗
       WP (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #b)) {{ Φ }})
 
-/-- `err` is the value of `go.etcd.io/bbolt/errors`' variable `g` (`ErrBucketNotFound`, ...). -/
-def errIs (g : GoString) (err : GoInterface) : IProp GF :=
-  iprop(globalAddr g ↦□ err)
-
-/-- `err` is the (non-nil) error `g` of `go.etcd.io/bbolt/errors`. -/
-def isErr (g : GoString) (err : GoInterface) : IProp GF :=
-  iprop(⌜err ≠ interface.nil⌝ ∗ errIs g err)
-
 end contracts
 
 section vocab2
@@ -348,16 +350,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- The error variables of `go.etcd.io/bbolt/errors` bbolt's public API returns. -/
-def bboltErrNames : List GoString :=
-  [go_etcd_io.bbolt.errors.ErrBucketNotFound, go_etcd_io.bbolt.errors.ErrBucketExists,
-   go_etcd_io.bbolt.errors.ErrIncompatibleValue, go_etcd_io.bbolt.errors.ErrTxNotWritable,
-   go_etcd_io.bbolt.errors.ErrTxClosed, go_etcd_io.bbolt.errors.ErrDatabaseNotOpen,
-   go_etcd_io.bbolt.errors.ErrKeyRequired, go_etcd_io.bbolt.errors.ErrKeyTooLarge,
-   go_etcd_io.bbolt.errors.ErrBucketNameRequired, go_etcd_io.bbolt.errors.ErrDatabaseReadOnly,
-   go_etcd_io.bbolt.errors.ErrInvalid, go_etcd_io.bbolt.errors.ErrVersionMismatch,
-   go_etcd_io.bbolt.errors.ErrChecksum]
 
 /-- The persistent predicates. -/
 def persistent.spec [HasExt osFsExt] : Prop :=
@@ -509,7 +501,8 @@ def fileHolds_alloc.spec [HasExt osFsExt] : Prop :=
 invariant and any fraction of the state `σ` (a crash-safe client keeps one in an invariant, which
 survives the crash), the next generation `L'` gets the file holding a state `σ` says a crash may
 recover, out of the extension's restart resources (`crashRest`, the files not yet taken `Ps`).
-Nothing is promised when `σ.dur = none` (a `NoSync` commit not synced). -/
+Nothing is promised when `σ.dur = none` (a `NoSync` commit not synced). True only with the sector
+rule of decision 4c-D1 (open: (a) OsFs's crash relation, or (b) a crash premise), see the header. -/
 def boltCrash.spec [HasExt osFsExt] : Prop :=
   ∀ (L' : GooseLocalGS GF) (γ : BoltName) (q : Qp) (σ : BoltSt) (ds : List Data)
     (Ps : List GoString),
@@ -523,22 +516,6 @@ def boltCrash.spec [HasExt osFsExt] : Prop :=
 /-- The nil logger meets the contract (`Open` replaces it by the discard logger). -/
 def boltLogger_nil.spec : Prop :=
   ⊢ boltLogger (GF := GF) GoInterface.nil
-
-/-- **bbolt's error variables hold their values after initialization** (`errors.New`'s in
-`bbolt/errors`' initializer; batch 4c needs: `ErrBucketNotFound`, `ErrBucketExists`, `ErrIncompatibleValue`,
-`ErrTxNotWritable`, `ErrTxClosed`, `ErrDatabaseNotOpen`, `ErrKeyRequired`, `ErrKeyTooLarge`,
-`ErrBucketNameRequired`, `ErrDatabaseReadOnly`; batch 4d's `Meta.Validate`: `ErrInvalid`,
-`ErrVersionMismatch`, `ErrChecksum`). A fact of the package's globals after initialization
-(`req/go_etcd_io_bbolt_errors.md`, from 4d). -/
-def errIs_init.spec : Prop :=
-  ∀ (g : GoString), g ∈ bboltErrNames →
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors ⊢ ∃ e : GoInterface, errIs g e
-
-/-- The values `errIs_init` gives are non-nil and pairwise distinct. -/
-def errIs_distinct.spec : Prop :=
-  ∀ (g g' : GoString) (e e' : GoInterface), g ∈ bboltErrNames → g' ∈ bboltErrNames →
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors ∗ errIs g e ∗ errIs g' e' ⊢
-      ⌜e ≠ interface.nil ∧ (g ≠ g' → e ≠ e')⌝
 
 end laws
 

@@ -24,6 +24,13 @@ fields), and `RespM.ofBody` relates a reply to `Model.lean`'s answer.
 
 The predicates are opaque: their only meaning is their unfold laws, which are obligations of their
 realization (3h).
+
+**Watch messages** (batch 1b's models, moved here at integration so that the client, the gRPC watch
+server (2b) and the messages' realization (3h) share them without the client's vocabulary):
+`WatchReq` (a watch as the member reads it), `EventM`, `WireWatchReq`, `WireWatchRespM`,
+`HeaderM.zero`; `eventOwn`, `watchReqOwn`, `wireWatchRespOwn` (the latter two unfolded by 2b's
+`watchReqOwn_unfold`, `wireWatchRespOwn_unfold`). What a watch's responses mean (`watchStep`,
+`wireStep`) stays the client's (`client/v3/ApiWatch.lean`).
 -/
 module
 
@@ -101,6 +108,53 @@ structure TxnRespM where
 /-- `etcdserverpb.CompactionResponse` (`clientv3.CompactResponse`). -/
 structure CompactRespM where
   hdr : HeaderM
+
+/-! ## Watch messages (moved here from `client/v3/ApiWatch.lean`, batch 1b) -/
+
+/-- **A watch request**: what it delivers. `range` as the member reads it (an empty key is
+`"\x00"`, `v3rpc/watch.go`); the filters drop puts (`NOPUT`) or deletes (`NODELETE`). -/
+structure WatchReq where
+  range : KeyRange
+  prevKV : Bool
+  filterPut : Bool
+  filterDelete : Bool
+  progressNotify : Bool
+  createdNotify : Bool
+  fragment : Bool
+
+/-- **An `mvccpb.Event`**: `Type` (`DELETE` iff `del`), `Kv`, `PrevKv` (`none`: `nil`). -/
+structure EventM where
+  del : Bool
+  kv : KeyValueM
+  prevKv : Option KeyValueM
+
+/-- **A `pb.WatchRequest`**: a create (the watch, its start revision as sent: the client resumes
+from its position), a cancel of a watch id, a progress request. -/
+inductive WireWatchReq where
+  | create (w : WatchReq) (start : Int)
+  | cancel (id : Int)
+  | progress
+
+/-- The creates among the requests, in order. -/
+def WireWatchReq.creates (ss : List WireWatchReq) : List (WatchReq × Int) :=
+  ss.filterMap fun
+    | .create w s => some (w, s)
+    | _ => none
+
+/-- **A `pb.WatchResponse`** (`hdr` `none`: a `nil` header). -/
+structure WireWatchRespM where
+  hdr : Option HeaderM
+  watchId : Int
+  created : Bool
+  canceled : Bool
+  compactRev : w64
+  cancelReason : GoString
+  fragment : Bool
+  events : List EventM
+
+/-- The header as the client reads it (`ensureWatchHeader`: a `nil` header is a zero one). -/
+def HeaderM.zero : HeaderM :=
+  { clusterId := W64 0, memberId := W64 0, revision := W64 0, raftTerm := W64 0, leaderId := W64 0 }
 
 /-! ## Replies against the model's answers -/
 
@@ -389,6 +443,32 @@ def compactReqOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (rev : Int) (
     p.[etcdserverpb.CompactionRequest, go!"Revision"] ↦{dq} (W64 rev) ∗
     p.[etcdserverpb.CompactionRequest, go!"Physical"] ↦{dq} phys ∗
     ⌜-2 ^ 63 ≤ rev ∧ rev < 2 ^ 63⌝
+
+/-! ### Watch messages (batch 1b's; realized by 3h, unfolded by 2b's `watchReqOwn_unfold`,
+`wireWatchRespOwn_unfold` and the law below) -/
+
+/-- **An `mvccpb.Event` message** at `p`, at the fraction `dq`. -/
+opaque eventOwn (p : Loc) (dq : DFrac) (e : EventM) : IProp GF := iprop(True)
+
+/-- **Slot (2a, 3h)**: a `pb.WatchRequest` message at `p` modelled by `r`. A create's key is
+`w.range.key`, or `""` when that is `"\x00"` (`toPB` sends the watch's own key, which the member
+normalizes). -/
+opaque watchReqOwn (p : Loc) (dq : DFrac) (r : WireWatchReq) : IProp GF := iprop(True)
+
+/-- **Slot (2a, 3h)**: a `pb.WatchResponse` message at `p` modelled by `m`. -/
+opaque wireWatchRespOwn (p : Loc) (dq : DFrac) (m : WireWatchRespM) : IProp GF := iprop(True)
+
+/-- **What `eventOwn` means**: the `Event` struct's fields (`Type` `0` a put, `1` a delete). -/
+def eventOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (e : EventM),
+  eventOwn (GF := GF) p dq e ⊣⊢
+    ∃ (kv pk : Loc), protoRest go_etcd_io.etcd.api.v3.mvccpb.Event p dq ∗
+    p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Type"] ↦{dq} (if e.del then W32 1 else W32 0) ∗
+    p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Kv"] ↦{dq} kv ∗ keyValueOwn kv dq e.kv ∗
+    p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"PrevKv"] ↦{dq} pk ∗ optOwn keyValueOwn pk dq e.prevKv
+
+/-- An event message made read-only. -/
+def eventOwn_persist.spec : Prop := ∀ (p : Loc) (dq : DFrac) (e : EventM),
+  eventOwn (GF := GF) p dq e ⊢ |==> eventOwn p DFrac.discard e
 
 end own
 

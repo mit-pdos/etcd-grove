@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `revokeRange(ctx, begin, end)`. -/
 def leasingKV.revokeRange.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (b «end» : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ threadTok }}
+  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (b «end» : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ threadTok }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"revokeRange")) (Val #ctx)) (Val #b)) (Val #«end»))
   {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err); threadTok }}
 

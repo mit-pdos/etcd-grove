@@ -23,6 +23,12 @@ recipe needs its caller's updates:
 * **Reads go through W0's `etcdPeek γ`** (`api/v3/State.lean`: `etcdPerm` of the transitions that
   change nothing): from it a recipe makes the persistent update of each `Get` (a read's step leaves
   the state unchanged, `Model.lean`'s `kvStep`) and learns `etcdLb γ σ` of the state it read.
+  Every read (`KV.GetTriple`) and transaction commit (`Txn.CommitTriple`) is made at W0's
+  auth-window index `lo = 0` (`authLb γ 0` holds by definition; the step `Step who rq σ σ' res 0` is
+  the default `Step who rq σ σ' res` the recipes' updates are stated over): the recipes need no
+  read window. A guarded write succeeds only on a valid transaction (`kvStep`'s `t.valid`) whose
+  puts are each of one key (`kvStep`'s `putOnce`); the recipes' updates are over `Step`, so neither
+  needs stating.
 * **The double barrier's own keys go through one-shot updates** like the mutex's: `Enter` takes
   one for creating this process's waiter key and one for deleting that same key (the too-many
   path), `Leave` one for deleting it; so a caller's invariant counts the entrants and knows that a
@@ -36,6 +42,13 @@ recipe needs its caller's updates:
   `etcdLb_reach` (the history only grows), such a fact says what happened between the call's start
   and its return: the barrier key deleted (`goneAt`), the `ready` key put, every earlier lock key
   gone (`rwHeld`).
+* **Facts learned from a watch are gated by the compaction condition** (W0's `EtcdModel.exactFrom`,
+  1b's `watchStep`: a watch's events are exact only when no compacted revision from its start
+  changes a key twice): `WaitEvents`' prefix claim, `Barrier.Wait`'s `goneAt`, `Enter`'s `ready`
+  put, the queues' front condition and dequeued value hold under `exactFrom σ.kv lo` for the
+  revision `lo` the watches start from (or `1`); a program discharges it from its workload (no
+  transaction puts and deletes one key) or from a cluster that never compacts. Facts from reads
+  (`rwHeld`, the double barrier's counts and `Leave`) are unconditional.
 
 **Time-free exclusion with no lease expiry.** W0's `EnvCfg.leaseExpiry = false` (a program that
 runs a cluster whose leases outlive the run) removes the environment's lease revocations: a lock
@@ -49,11 +62,14 @@ created, an `Enter` on `count` held keys never returns `nil` (snippets `rwmutex.
 `callErr`, one of the package's sentinels, or `fmt`'s scanning error), on which `errors.Is` against
 a sentinel is safe and exact (`errorsIs_recipeErr`).
 
-**Contexts.** Every KV call the recipes make passes `context.TODO()` (or the handle's `ctx` field,
-a `context.TODO()`), which meets W0's `Context.ctxOk` and `ctxPrin ctx who` for any principal
-(`ctxPrin_todo`); the watches pass `context.WithCancel(context.Background())` (`Context.WithCancel`,
-`ctxPrin_background`, `ctxPrin_child`). So no recipe spec takes a context: the handles' realizations
-hold `ctxOk` and `ctxPrin` of their `ctx` field for the client's principal.
+**Contexts and principals.** Every KV call the recipes make passes `context.TODO()` (or the
+handle's `ctx` field, a `context.TODO()`), which meets W0's `Context.ctxOk` and `ctxPrin who ctx who`
+for the client's own (default) principal `who` (`ctxPrin_todo`); the watches pass
+`context.WithCancel(context.Background())` (`Context.WithCancel`, `ctxPrin_background`,
+`ctxPrin_child`). So no recipe spec takes a context, and the principal `who` of every handle and
+every `Step who` is the client's default one (`isClient c γ who`): each call's `p` of W0's
+`KV.*Triple` is `who`. The handles' realizations hold `ctxOk` and `ctxPrin who ctx who` of their
+`ctx` field.
 
 ## Pure vocabulary
 
@@ -92,12 +108,11 @@ hold `ctxOk` and `ctxPrin` of their `ctx` field for the client's principal.
   (`dbWrite`): `Enter`'s (`own = none`, the put) or `Leave`'s (`own = some k`, the delete, `k` the
   process's key): a program that never leaves never permits the delete.
 * `recipeErrOk err` (def, persistent): the errors the package returns.
-* **Slots of other batches** (defined here so that the statements type-check; the owner's own
-  predicate replaces each at integration, `notes/specs-only/req/`):
-  * `sessionAt s γ who id` (**1d**, persistent): the `*concurrency.Session` `s` of a client of `γ`
-    as `who` with lease `id` (`s.Client()` returns a client `c` with `isClient c γ who`, `s.Lease()`
-    returns `id`). Nothing about the lease's liveness: it may expire at any time (`Model.lean`).
-  The watch is 1b's own vocabulary (`watchChAt`, `watchChAt_recv`, `watchRespAt`, `eventOwn`,
+* **Other batches' vocabulary, used as is**: a session is 1d's `Concurrency.isSession s c γ id`
+  (persistent: `s.Client()` returns `c`, `s.Lease()` returns `id`), with its client's `isClient c γ
+  who` given beside it (1d's session names its client, not a principal); nothing about the lease's
+  liveness: it may expire at any time (`Model.lean`). (Until integration this was a slot
+  `sessionAt s γ who id`.) The watch is 1b's own vocabulary (`watchChAt`, `watchChAt_recv`, `watchRespAt`, `eventOwn`,
   `WatchResponse.Err.spec`), used as is.
 
 ## Laws
@@ -123,6 +138,7 @@ public import Spec.go_etcd_io.etcd.client.v3.Api
 public import Spec.PkgInit.go_etcd_io.etcd.client.v3.experimental.recipes
 public import GeneratedProof.go_etcd_io.etcd.client.v3.experimental.recipes
 public import Spec.go_etcd_io.etcd.client.v3.ApiWatch
+public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
 public import Spec.fmt.Api
 
 @[expose] public section
@@ -351,10 +367,6 @@ opaque dbOwn (b : Loc) (γ : Cluster) (who : Principal) (key : GoString) (count 
 opaque rwmOwn (m : Loc) (γ : Cluster) (who : Principal) (id : w64) (pfx : GoString)
   (my : Option RKSt) : IProp GF := iprop(True)
 
-/-- **Slot (1d)**: the `*concurrency.Session` `s` of a client of `γ` as `who`, with lease `id`
-(persistent). -/
-opaque sessionAt (s : Loc) (γ : Cluster) (who : Principal) (id : w64) : IProp GF := iprop(True)
-
 /-- **The `ready` key's writes** at the state `σ`: `Enter`'s (`own = none`), its put at a state whose
 history had `count` waiters at some revision; `Leave`'s (`own = some k`, `k` the process's key), its
 delete at a state whose history had `k` as the only waiter at some revision. The guards are what
@@ -379,8 +391,7 @@ def recipeErrOk (err : GoInterface) : IProp GF :=
 def handles_persistent.spec : Prop :=
   (∀ b c γ who key, Persistent (barrierAt (GF := GF) b c γ who key)) ∧
   (∀ q c γ who kp, Persistent (queueAt (GF := GF) q c γ who kp)) ∧
-  (∀ q c γ who key, Persistent (pqueueAt (GF := GF) q c γ who key)) ∧
-  (∀ s γ who id, Persistent (sessionAt (GF := GF) s γ who id))
+  (∀ q c γ who key, Persistent (pqueueAt (GF := GF) q c γ who key))
 
 /-- **The package's errors are fresh**: no error a gRPC call returns (`callErr`, 2a's slot) is one of
 them (they are `errors.New` values the package's initialization allocated). Realized from the

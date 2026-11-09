@@ -11,7 +11,10 @@ below (the old proof's `Inv*.lean` modules, restated over W0's model).
 
 Everything the cache knows of the cluster is `etcdLb γ σ` with a pure condition on `σ.kv` (W0): a
 snapshot's content (`snapCert`), a gap's quietness (`quiet`, `Api.lean`), an upstream response's
-events (`deliv`). `prefixRange pfx` is the range the cache covers.
+events (`deliv`). `prefixRange pfx` is the range the cache covers. A snapshot's content, like
+`deliv` and `quiet`, is certified only under `EtcdModel.exactFrom σ.kv 0` (the upstream watch's
+events are exact only under it, 1b's `watchStep`): `snapCert γ pfx r s` says "at a reached `σ`,
+`exactFrom σ.kv 0 →` the items are etcd's store under the prefix at `r`" (integration I1).
 
 ## Resources (intended realizations)
 
@@ -167,10 +170,12 @@ opaque kvTree (t : Loc) (dq : DFrac) (s : List (GoString × Loc)) : IProp GF := 
 opaque snapAt (p : Loc) (r : Nat) (s : List (GoString × Loc)) : IProp GF := iprop(True)
 
 /-- **A snapshot's content is etcd's store under `pfx` at `r`**: the items, in key order, are the
-present keys of `σ.kv.storeAt r` in the prefix range, each `kv` read-only holding the record. -/
+present keys of `σ.kv.storeAt r` in the prefix range (under the compaction condition
+`exactFrom σ.kv 0`, see the header), each `kv` read-only holding the record. -/
 def snapCert (γ : Cluster) (pfx : GoString) (r : Nat) (s : List (GoString × Loc)) : IProp GF :=
   iprop(∃ (σ : State) (kvs : List KV), etcdLb γ σ ∗ ⌜r ≤ σ.kv.rev⌝ ∗
-    ⌜Store.rangeKVs (σ.kv.storeAt r) (prefixRange pfx) kvs ∧ s.map Prod.fst = kvs.map (·.key)⌝ ∗
+    ⌜(EtcdModel.exactFrom σ.kv 0 → Store.rangeKVs (σ.kv.storeAt r) (prefixRange pfx) kvs) ∧
+      s.map Prod.fst = kvs.map (·.key)⌝ ∗
     [∗list] e; kv ∈ s; kvs, keyValueOwn e.2 DFrac.discard (KeyValueM.ofKV kv))
 
 /-! ## The store -/

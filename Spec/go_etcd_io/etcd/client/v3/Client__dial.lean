@@ -7,7 +7,8 @@ Proof sketch: `dialSetupOpts` (its spec); the target from `authority(c.endpoints
 `epMu` and without an emptiness check (`issues/etcd-client-dial-empty-endpoints.md`): the endpoints
 token's fraction (no concurrent `SetEndpoints`) at a non-empty list; the token bundle's per-RPC credentials if any
 (`bundleAt _ γ who`: every token names `who`); `cfg.DialOptions` (`dialOptsOk`); the target string
-(`fmt.Sprintf`, `authority`); `grpc.NewClient(target, opts...)` (2a: a connection whose unary calls
+(`fmt.Sprintf`, `authority`); `grpc.NewClient(target, opts...)` (2a's `Grpc.NewClient.spec`, its
+workload premise `⌜Grpc.msgsFit⌝` from `clientPre` (`cfgOk`'s, kept by `newClient`): a connection whose unary calls
 go through `uiOk`'s interceptor over invokers meeting `AttemptTriple` for `γ` and `who`, its streams
 through `siOk`'s: `connOk`), or an error.
 

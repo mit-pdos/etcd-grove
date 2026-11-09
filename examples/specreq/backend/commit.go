@@ -42,7 +42,8 @@ func ReqReopen(lg *zap.Logger, path string, k, v []byte) {
 }
 
 // REQ backend/force-commit: after ForceCommit, the last commit holds every write unlocked before
-// it (what a crash may leave, with fsync on, is at least that commit's image).
+// it (what a crash may leave, with fsync on, is at least that commit's image): the per-call step's
+// Y is beCommitted of an image holding k = v, which a reopened backend reads back (ReqReopen's).
 // Users: storage/mvcc/kvstore.go:216, 289 (the scheduled compaction key committed before the
 // compaction is scheduled), lease/lessor.go:834, server/etcdserver/v3_server.go:412, 2d's
 // snapshot (KV().Commit()).
@@ -50,8 +51,19 @@ func ReqReopen(lg *zap.Logger, path string, k, v []byte) {
 // holds the history (beHist) in its invariant.
 // Specs: backend.ForceCommit.spec (beReq: the per-call step gets beCommitted of the batch image
 // at the commit), beCurIs_cur.
-func ReqForceCommitDurable(be backend.Backend) {
+func ReqForceCommitDurable(be backend.Backend, k, v []byte) {
+	tx := be.BatchTx()
+	tx.LockOutsideApply()
+	tx.UnsafePut(schema.Alarm, k, v)
+	tx.Unlock()
 	be.ForceCommit()
+	rt := be.ReadTx()
+	rt.RLock()
+	_, vs := rt.UnsafeRange(schema.Alarm, k, nil, 0)
+	rt.RUnlock()
+	if len(vs) != 1 || !bytes.Equal(vs[0], v) {
+		panic("force-commit: the committed image lost a write unlocked before the commit")
+	}
 }
 
 // REQ backend/hook-writes: the pre-commit hook writes its cells under the commit's lock, and a
@@ -59,8 +71,9 @@ func ReqForceCommitDurable(be backend.Backend) {
 // Users: server/storage/hooks.go:43-52 (BackendHooks.OnPreCommitUnsafe: UnsafeSave of the
 // consistent index, the pending configuration), server/etcdserver/cindex/cindex.go (the index read
 // back through ReadTx).
-// Assumes: the hooks own the Meta key k (published; their tracker in the lock's resource Pk) and
-// write v at each commit; Meta exists for good (beMade).
+// Assumes: the hooks own the Meta key k (published; its tracker in an invariant the hook's update
+// opens and the main thread's read observes, not in the lock's resource) and write v at each
+// commit; Meta exists for good (beMade); the hooks' cells untracked before the close (beVis_drop).
 // Specs: New.spec (hookOk), backend.ForceCommit.spec, hooks.OnPreCommitUnsafe.spec,
 // UnsafePut.spec, readTx.RLock.spec, readTx.UnsafeRange.spec.
 func ReqHookWrites(lg *zap.Logger, path string, k, v []byte) {

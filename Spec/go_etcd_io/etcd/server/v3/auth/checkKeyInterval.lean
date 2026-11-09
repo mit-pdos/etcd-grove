@@ -3,7 +3,11 @@
 
 **Users.** `isRangeOpPermitted` (a non-empty `rangeEnd`).
 
-**Proof sketch.** `isOpenEnded` (then `nil`, the tree's infinity); `adt.NewBytesAffineInterval(key, rangeEnd)`; the read or write tree's `Contains` (3f: the union of the stored intervals covers the interval; for an empty or inverted interval, any answer). With `validPerms a` the stored intervals have non-empty keys, so `Contains` never covers the empty key. Another permission type: `lg.Panic`, ruled out by the premise.
+**Proof sketch.** `isOpenEnded` (then `nil`, the tree's infinity); `adt.NewBytesAffineInterval(key, rangeEnd)`; the read or write tree's `Contains` (3f: the union of the stored intervals covers the interval; for an empty or inverted interval, any answer). With `validPerms a` the stored intervals have non-empty keys, so `Contains` never covers the empty key.
+Integration I5: 3f's `intervalTree.Contains.spec` is exact only for `affLt b e`; with the empty `key`
+(the affine top, so `affLt` fails) and a proper or open end, this spec's `true → covers` needs
+`Contains` to answer `false` (Go: `Visit` of a query from the top meets nothing, `minBegin` stays
+`nil`): requested of 3f (`req/go_etcd_io_etcd_pkg_v3_adt.md`, "from 3d", item 3, still open). Another permission type: `lg.Panic`, ruled out by the premise.
 
 **Changes.** The old spec restated over `Api.lean`'s and `Internal.lean`'s vocabulary.
 

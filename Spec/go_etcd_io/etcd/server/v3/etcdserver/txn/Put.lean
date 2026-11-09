@@ -26,7 +26,9 @@ answer (`putAns`). Round 1 (`3b-review-1.md`, F4): 3e's two-step commit, the upd
 (3e's `Txn.End` needs `σ = σ₀` at the commit, which the store's sole writer gives); `MvccState`;
 reader tokens; the caller's trace; the storage's share and `txnWriter` for the provisional writer
 slot; the lessor's state after, exactly (`evsLs`, 3e's steps), from `leasesLive` (the code's need)
-in place of the attachment invariant (S3).
+in place of the attachment invariant (S3). Integration (I5, 2026-11-09): the history receipt `⧖ (evCount …)` dropped
+from the caller's update's first step (3e's round 1, C-F7, removed it from `Txn.End`'s update, so txn
+had none to give; no caller used it).
 
 **Margin.** None (the reply's header carries only the revision).
 -/
@@ -64,7 +66,7 @@ def Put.spec : Prop :=
     (p : Loc) (dq : DFrac) (pr : PutReq) (σ₀ : Mvcc.MvccState) (q : Qp) (B : Mvcc.MvccStorage)
     (Pk Post Q : IProp GF),
   let au : IProp GF := iprop(AU <{ Mvcc.mvccState γ σ₀ }> @ ⊤ \ ↑Mvcc.mvccN, ∅
-    <{ Mvcc.mvccState γ (σ₀.notify (putEvents pr σ₀.kv)) ∗ ⧖ (Mvcc.evCount (σ₀.kv.commit (putEvents pr σ₀.kv))), COMM
+    <{ Mvcc.mvccState γ (σ₀.notify (putEvents pr σ₀.kv)), COMM
        AU <{ Mvcc.mvccState γ (σ₀.notify (putEvents pr σ₀.kv)) }> @ ⊤ \ ↑Mvcc.mvccN, ∅
          <{ Mvcc.mvccState γ (σ₀.notify (putEvents pr σ₀.kv)).commitPending, COMM Q }> }>)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ TraceUtil.ctxTraceIs ctx o ∗ ctxTraceOwn o ∗ Zap.isLogger lg ∗

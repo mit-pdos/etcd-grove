@@ -30,7 +30,9 @@ revisions**, not of time. The guarantees are:
   `Compare.holds` decides: at revision `0` an absent key passes,
   `nonissues/etcd-v3election-proclaim-rev-zero.md`); `Leader` returns the oldest key under the
   prefix at a linearized read (`holdsAt`); `Observe`'s values were each the oldest key's write at
-  some revision (`ObservedAt`), with no order between headers.
+  some revision (`ObservedAt`), with no order between headers; the values that come from the
+  watch are known only under the compaction condition (W0's `exactFrom`: no revision from the
+  observer's start up to the compaction revision changes a key twice), as 1b's watch states it.
 * **STM** (`stmCommitted`): the committed attempt's writes were applied in one revision at a state
   `σ`, and (`SerializableSnapshot`, `Serializable`, `RepeatableReads`) every read of the attempt is
   `σ`'s key-value of its key: the attempt ran atomically at `σ` (serializability). A
@@ -62,6 +64,14 @@ repeatable calls (retried after `Unavailable`), so an earlier attempt may apply 
 answered; no token can be given back for them. Alternative (open question in `batch-1d.md`): one
 persistent permission for everything, simpler to give and weaker to rely on.
 
+**W0's read window and validation** (integration I1): every read the package sends through W0's
+KV contract (`KV.GetTriple`, `Txn.CommitTriple`) is given `lo := 0` (`authLb γ 0` holds by its left
+disjunct): the package's facts are about the data a read returns, never about the auth state its
+check saw, so the weakest window suffices. Its transactions are valid and put each key at most once
+per path (`kvStep`'s `t.valid` and `putOnce`: non-empty keys under `pfx + "/"`, one put per key of
+the STM's write set); in any case an invalid one is only refused, which every spec's generic error
+disjunct covers, since no spec promises a write's success.
+
 **The principal per call**: a session names its client (`isSession s c γ id`); each mutex and
 election method takes `isClient c γ dflt` (the client's default principal) and its context's
 `ctxPrin dflt ctx who`, the call's principal `who` (W0's round 3; the in-process client
@@ -81,7 +91,8 @@ Resources:
 * `etcdLent γ T P` (transparent): the lent permission above; W0's `etcdPerm`, `etcdPeek`.
 * `isSession s c γ id` (persistent): `s` is a `*Session` over the client `c` of `γ` with lease
   `id`; its fields read-only. Intended realization: the fields `↦□`, the options' context (`ctxOk`,
-  `ctxPrin` of the principal it was made as, with that principal's `isClient`), the `donec`
+  `ctxPrin` of the principal it was made as, with that principal's `clientRest`: `NewSession`
+  takes no more, the gRPC proxy's client having its `KV` field replaced), the `donec`
   broadcast channel (Perennial's `ownBroadcastChan ch γc True`), the cancel function's spec.
 * `sessOptAt f g` (persistent): the `SessionOption` closure `f` changes the options as `g`
   (`sessOptsAt` a read-only slice of them); `optCtxOk o who` the options' context, if set, a
@@ -682,9 +693,11 @@ def electionSt_session.spec : Prop := ∀ e s pfx st,
     ⌜st.leaderSession = null ∨ st.leaderSession = s⌝
 
 /-- **Receiving from `Observe`'s channel**: closed (nothing more), or a `*GetResponse` with one
-key-value `v`, read-only, its header's revision at least `v`'s mod revision: `v` was the prefix's
-oldest key's write at a revision of a state `σ` reached after `σ0` (`ObservedAt`). (No order between
-headers: after a reconnect, a lagging member's header may be lower: 1b's review.) -/
+key-value `v`, read-only, its header a revision of a state `σ` reached after `σ0`; under the
+compaction condition (W0's `exactFrom` from just after `σ0`: the watch's events are exact only
+under it, 1b's `watchStep`), the header's revision is at least `v`'s mod revision and `v` was the
+prefix's oldest key's write at a revision of `σ` (`ObservedAt`). (No order between headers: after a
+reconnect, a lagging member's header may be lower: 1b's review.) -/
 def observeAt_recv.spec : Prop := ∀ (ch : GoChan) (γ : Cluster) (pfx : GoString) (σ0 : State),
   {{ observeAt (GF := GF) ch γ pfx σ0 }}
     (App (Val (chan.receive (go.GoType.PointerType go_etcd_io.etcd.client.v3.GetResponse.ty)))
@@ -693,8 +706,9 @@ def observeAt_recv.spec : Prop := ∀ (ch : GoChan) (γ : Cluster) (pfx : GoStri
       if ok then ∃ (m : RangeRespM) (hm : HeaderM) (v : KV) (σ : State),
         rangeRespOwn p DFrac.discard m ∗ etcdLb γ σ ∗
         ⌜m.hdr = some hm ∧ m.kvs = [KeyValueM.ofKV v] ∧ Reach σ0 σ ∧
-          (v.modRev : Int) ≤ sint.Z hm.revision ∧ sint.Z hm.revision ≤ σ.kv.rev ∧
-          ObservedAt pfx v σ.kv⌝ ∗
+          sint.Z hm.revision ≤ σ.kv.rev ∧
+          (EtcdModel.exactFrom σ.kv (σ0.kv.rev + 1) →
+            (v.modRev : Int) ≤ sint.Z hm.revision ∧ ObservedAt pfx v σ.kv)⌝ ∗
         observeAt ch γ pfx σ0
       else ⌜p = null⌝ }}
 
@@ -708,8 +722,9 @@ def observeAt_recvAu.spec : Prop := ∀ (ch : GoChan) (γ : Cluster) (pfx : GoSt
         (▷ ∀ (p : Loc) (ok : Bool), (if ok then ∃ (m : RangeRespM) (hm : HeaderM) (v : KV) (σ : State),
             rangeRespOwn p DFrac.discard m ∗ etcdLb γ σ ∗
             ⌜m.hdr = some hm ∧ m.kvs = [KeyValueM.ofKV v] ∧ Reach σ0 σ ∧
-              (v.modRev : Int) ≤ sint.Z hm.revision ∧ sint.Z hm.revision ≤ σ.kv.rev ∧
-              ObservedAt pfx v σ.kv⌝ ∗
+              sint.Z hm.revision ≤ σ.kv.rev ∧
+              (EtcdModel.exactFrom σ.kv (σ0.kv.rev + 1) →
+                (v.modRev : Int) ≤ sint.Z hm.revision ∧ ObservedAt pfx v σ.kv)⌝ ∗
             observeAt ch γ pfx σ0
           else ⌜p = null⌝) -∗ Φ p ok) -∗
         recvAu γc Loc Φ)

@@ -5,8 +5,9 @@
 Snippets: `ReqBank`, `ReqNested`.
 
 **Proof sketch.** Checks (not writable, empty name); `seek`; an existing key: `ErrBucketExists` (a
-bucket) or `ErrIncompatibleValue`; else `bucket.write()` of an empty inline bucket (4d's
-`InBucket`, a leaf page of no element), `node.put` with the bucket flag, then `Bucket.Bucket.spec`.
+bucket) or `ErrIncompatibleValue`; else `bucket.write()` of an empty inline bucket (`Bucket.write.spec`
+with `fresh`: the local is `emptyBkt`; 4d's `encInBucket` of a zero header, then `nodePage` of
+`NodeR.emptyLeaf`: a leaf page of no element), `node.put` with the bucket flag, then `Bucket.Bucket.spec`.
 
 **Changes.** New for nested buckets; the root's old spec took a write transaction (now: the read
 transaction's error). Kept: names within `maxKeySize` (Go checks no length,

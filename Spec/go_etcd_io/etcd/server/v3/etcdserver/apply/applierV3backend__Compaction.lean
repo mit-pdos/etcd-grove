@@ -45,7 +45,7 @@ def applierV3backend.Compaction.spec : Prop :=
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"Compaction")) (Val #rq))
   {{ (resp : Loc) (ch : Loc) (trace : Loc) (err : GoInterface), RET (PairV (PairV (PairV #resp #ch) #trace) #err);
       R ∗ threadTok ∗ ∃ σ' res, ⌜layersStep mc σ [] 0 op [Layer.backend] σ' res⌝ ∗ stAt p σ' ∗
-      replyAt γ op res (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty) #resp) err ∗ EtcdServer.traceAt trace ∗ (⌜ch = null⌝ ∨ Read.recvAny ch) }}
+      replyAt γ op res (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty) #resp) err ∗ TraceUtil.traceOpt trace ∗ (⌜ch = null⌝ ∨ Read.recvAny ch) }}
 
 end spec
 

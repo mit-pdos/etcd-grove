@@ -7,7 +7,12 @@ backend and `NewTokenProvider`'s provider. Snippet: `examples/specreq/auth/boot.
 **Proof sketch.** A nil logger: `zap.NewNop()`; the cost normalized; `CreateAuthBuckets`, the batch
 transaction (4b: `authBackendAt be a`), the flag and revision read; the store allocated; on: the
 provider's `enable()`; revision `0` (a fresh backend): `commitRevision` (`normRev`);
-`setupMetricsReporter`; `refreshRangePermCache`; `Unlock`, `ForceCommit`. The history allocated with
+`setupMetricsReporter`; `refreshRangePermCache`; `Unlock`, `ForceCommit`. The batch lock
+(4b's `authBatchTx.Lock`, `LockInsideApply`) runs the backend's post-lock hook, which the server sets
+only after this call (`server.go:369` then `409`): `authBackendAt be a` as given here must say the
+hook is not set yet (4a's `beHook … func.nil`: `hookRun` is then the caller's view shift, with
+`Pre = Q = True`); after `Recover` the hook is the server's (`authHook`, the writer's per call).
+Integration I5: 2e's `NewServer` must hand over the backend before setting its hook. The history allocated with
 `normRev a` at index `0` (`authReached`, `validPerms`), the invariants, the provider's contract
 opened, `tokFrom γa 0` (a fresh simple provider has assigned nothing), `rootTokOk` if the provider
 gives it.

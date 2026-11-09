@@ -3,11 +3,18 @@
 
 **Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
 
-**Proof sketch.** 3d's `RoleAdd`; `newHeader`.
+**Proof sketch.** 3d's `authStore.RoleAdd` (an `Auth.AdminTriple` at the writer's `Auth.authCur γa i a`,
+`a = σ.auth`, from `stAt`'s `authSt`; the request `Auth.authReqAt r rq cred` from `reqMsgAt`, with
+`cred` the op's credential): its premises `authReached γ (storeNext rq cred a)` and `recordsFit`
+from `nextOk` (the step's next state, `opStep`'s realization: `σ'.auth = storeNext rq cred a`);
+its post `admStep`, the writer at `i + 1`; `newHeader`.
 
 **Changes** from `specs-ref`'s `applierV3backend__RoleAdd.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
 
 **Margin.** The header's other fields (cluster, member, term, leader) any.
+
+**Integration (I5).** Takes `nextOk` (the next state's auth reached and fitting; for `Authenticate`
+the token index), which 3d's `AdminTriple`/`Authenticate` need; the apply thread (2d) supplies it.
 -/
 module
 
@@ -40,6 +47,7 @@ def applierV3backend.RoleAdd.spec : Prop :=
       beAt p mc γ γc R ∗
       stAt p σ ∗
       reqMsgAt rq op ∗ ⌜(∃ n, op = .req (.roleAdd n)) ∧ op.ok⌝ ∗
+      nextOk γ R op (fun σ' => ∃ res, layersStep mc σ [] 0 op [Layer.backend] σ' res) ∗
       R ∗
       threadTok }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"RoleAdd")) (Val #rq))

@@ -16,7 +16,7 @@ configuration's members in increasing order (was a permutation); over raftpb's `
 module
 
 public import Spec.go_etcd_io.raft.v3.tracker.Api
-public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.raftpb.Api
 
 set_option autoImplicit false
 
@@ -47,7 +47,7 @@ def ProgressTracker.ConfState.spec : Prop :=
         GMap.size T.conf.learnersNext ≤ Quorum.sortMax⌝ }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.ProgressTracker.ty @!! go!"ConfState")) (Val #()))
   {{ (csp : Loc), RET #csp; progressTracker p T ∗
-      Raft.confStatePts csp (DFrac.own 1)
+      RaftPb.confStatePts csp (DFrac.own 1)
         ⟨Quorum.sorted T.conf.voters, Quorum.sorted T.conf.learners,
          Quorum.sorted T.conf.votersOutgoing, Quorum.sorted T.conf.learnersNext,
          T.conf.autoLeave⟩ }}

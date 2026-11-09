@@ -57,6 +57,7 @@ def uberApplier.Apply.spec : Prop :=
       wrapperAt r ir sk ∗ ⌜ir.op.ok ∧ (sk = true → ir.op.isTxn = true)⌝ ∗
       smAt (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty) #p) σ ∗
+      nextOk γ R ir.op (fun σ' => ∃ res, irrStep mc σ ir v3 σ' res) ∗
       memberUpd γc ir.op Qm ∗ R ∗ threadTok }}
     (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty @!!
       go!"Apply")) (Val #r)) (Val #v3))

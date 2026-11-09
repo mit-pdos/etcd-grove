@@ -18,7 +18,9 @@ the transaction begins at, `Q σ` kept; `mvccTxn tx γ tr (.read σ)`). `execute
 **Changes.** The old spec (`specs-ref`'s `Range.lean`: `readAU` over mvcc's log, `rangeResult`, a
 never-done context premise `nd`) restated over W0's history and answer, made a function
 (`rangeOut`, `goSort`), the context's error an outcome. Round 1 (review `3b-review-1.md`): over 3e's API (`MvccState`, `isMvcc`, `mvccReaders γ 1` for the
-thread token, the caller's trace lent and given back: F4), the answer at `σ.kv`.
+thread token, the caller's trace lent and given back: F4), the answer at `σ.kv`. Integration
+(I5): the context's error only for a full read (`rm.countOnly = false`, from `executeRange`), which
+`Count` needs to exclude it.
 
 **Margin.** The response's header carries only the revision. A cancelled context is reported only
 if mvcc's per-key loop sees it (a full read).
@@ -64,7 +66,7 @@ def Range.spec : Prop :=
        (⌜rm.revErr σ.kv = none ∧ err = GoInterface.nil⌝ ∗ ∃ all : List KV,
           ⌜(σ.kv.storeAt (rm.readRev σ.kv)).rangeKVs rm.range all⌝ ∗
           rangeOk resp σ.kv.rev (rangeOut rm wtc all)) ∨
-       (⌜rm.revErr σ.kv = none ∧ resp = null⌝ ∗ Context.ctxDone ctx ∗ ctxErr err)) }}
+       (⌜rm.revErr σ.kv = none ∧ resp = null ∧ rm.countOnly = false⌝ ∗ Context.ctxDone ctx ∗ ctxErr err)) }}
 
 end spec
 end Txn

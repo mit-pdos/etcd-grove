@@ -31,12 +31,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 /-- `revoke(ctx, key, op)`: an error; or no error and the guard failed (`Succeeded` false); or the
 operation committed (one firing's `Q`, the owned reply). -/
 def leasingKV.revoke.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (key : GoString) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
+  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (lo : Nat) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (key : GoString) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
     (rq : Req) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ opAt op o ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ opAt op o ∗
       ⌜o.toReq = some rq ∧ o.t ≠ tTxn ∧ o.rangeEnd.getD [] = []⌝ ∗ lkvMarks γL (reqWrites rq) ∗
       threadTok ∗ □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx who (rq) σ σ' r ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo (rq) σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"revoke")) (Val #ctx)) (Val #key)) (Val #op))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗

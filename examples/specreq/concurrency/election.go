@@ -106,7 +106,9 @@ func ReqLeaderFenced(ctx context.Context, s *concurrency.Session, pfx, other str
 // loop), yields responses with one key-value under the prefix and a header no older than the
 // value, until closed (no order between successive headers: a reconnect may reach a lagging member).
 // Users: server/etcdserver/api/v3election/election.go:77-94 (resp.Header, resp.Kvs[0] sent).
-// Assumes: none.
+// Assumes: the compaction condition (W0's exactFrom: no revision from the call on, up to the
+// compaction revision, changes one key twice: a workload with no transaction that puts and
+// deletes one key, or no compaction); without it a watch's events say nothing (1b's watchStep).
 // Specs: NewElection.spec, Election.Observe.spec; laws: observeAt_recvAu.spec, Context.doneRecv.
 func ReqObserve(ctx context.Context, s *concurrency.Session, pfx string) {
 	ch := concurrency.NewElection(s, pfx).Observe(ctx)

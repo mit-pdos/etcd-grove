@@ -10,17 +10,22 @@ it), `ForceCommit`/`Snapshot` (`backend.go:378, 382`), defrag (`backend.go:836, 
 **Proof sketch.** The writer holds `rwlock` (its `boltTx`). `rebalance`/`spill` (internal: node
 merges and splits, `allocate` of fresh pages from 4d's freelist or past the high-water mark, every
 written page within its extent; D17's `splitThreshold` bound) build the new tree for `T.cur`;
+the base meta's freelist page (if synced) is freed by 4d's `Interface.Free` (`canFree`: the
+current meta's freelist page is never free or pending, and was allocated by an earlier commit;
+`Internal.lean`, "The freelist's side");
 `commitFreelist` writes 4d's `freelist.Write` page; `grow` truncates (and syncs unless
 `NoGrowSync`); `write` `pwrite`s every dirty page and `fdatasync`s (unless `NoSync`): none of these
 pages is reachable from the current meta, so `boltFile γ`'s crash fact is untouched. Then
 `writeMeta`: build the meta (txid `+1`, page `txid % 2`, 4d's `Meta.Write`/`Sum64`), take
-`metalock`, and at the `pwrite`'s first step (one aligned OS page: D9, all or nothing) **fire the
+`metalock`, and at the `pwrite`'s first step (one aligned OS page: OsFs's D9, all or nothing in
+the page cache, not in a crash image) **fire the
 commit update** with `ok` = whether the page was written, known from a prophecy resolved before
 `metalock.Unlock` on the mapped meta page's txid being the new one (a prophecy patch,
 `etc/proph-patches/bbolt/`; not on `err == nil`: OsFs's one-page write may write the page and
 report an errno, and `WriteAt`'s `EINTR` retry may fail after a first attempt wrote it, 4c-D2): `ok` makes the new meta current for every
 later reader (`metalock` keeps readers out until it is written) and every crash image's newest
-valid meta the old or the new one (`BoltSt.commit`); a failing write leaves the page cache unchanged
+valid meta the old or the new one (`BoltSt.commit`; for a crash image this needs decision 4c-D1's
+sector rule, the user's open decision: (a) in OsFs's crash relation or (b) a crash premise); a failing write leaves the page cache unchanged
 but a crash during it may still find the new meta (`BoltSt.attempt`). Release `metalock`;
 `fdatasync` unless `NoSync`; **fire the settling update** (`synced`: the sync ran and succeeded;
 `failed`: it failed, or the write reported an error after writing the page; `brk` false); `close`

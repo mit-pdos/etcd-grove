@@ -13,9 +13,10 @@ import (
 // requested type at or after it, with the key and the revision it happened at.
 // Users: Barrier.Wait, DoubleBarrier.Enter/Leave, RWMutex.waitOnLastRev (in the package);
 // T/v3_closed_watch_test.go:102-119 (a compacted start revision: an error, never a nil event).
-// Assumes: k owned.
-// Specs: WaitEvents.spec (es ++ [e] a prefix of watchHist from rev, matchCount: e the first
-// delete), watchEvOwn_unfold, Client.Put.spec, Client.Delete.spec.
+// Assumes: k owned; the compaction condition (package comment).
+// Specs: WaitEvents.spec (under exactFrom: es ++ [e] a prefix of 1b's watchEvents from rev,
+// matchCount: e the first delete), eventOwn_unfold (Wire.lean), Client.Put.spec,
+// Client.Delete.spec.
 func ReqWaitFirstDelete(ctx context.Context, c *clientv3.Client, k string) {
 	p, err := c.Put(ctx, k, "v")
 	if err != nil {

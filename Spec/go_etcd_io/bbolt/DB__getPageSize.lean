@@ -1,6 +1,9 @@
 /-
 `db.getPageSize()` (`db.go`, the fork's D18): page 0's meta, else page 1's, else an error.
 (internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+
+**Changes** (integration I7): the premise `M.pageSize = 4096`: when neither meta validates but one
+could be read, `getPageSize` returns `db.pageSize` (set by `Open` from the default, D13).
 -/
 module
 
@@ -26,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- (internal) the page size every valid meta records (4096), or an error. -/
 def DB.getPageSize.spec : Prop :=
   ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (M : DbM),
-  {{ dbRaw (GF := GF) db γ M }}
+  {{ dbRaw (GF := GF) db γ M ∗ ⌜M.pageSize = 4096⌝ }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"getPageSize")) (Val #()))
   {{ (z : w64) (err : GoInterface), RET (PairV #z #err); dbRaw db γ M ∗ ⌜err = GoInterface.nil → uint.nat z = 4096⌝ }}
 

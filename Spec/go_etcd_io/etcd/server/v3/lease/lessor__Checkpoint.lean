@@ -6,7 +6,7 @@ committed `LeaseCheckpointRequest` (proposed by the leader's checkpointer), on t
 
 **Proof sketch.** `le.mu.Lock()`; a live lease: its `remainingTTL` field written (under `le.mu`:
 not modelled); `shouldPersistCheckpoints()` (`le.cluster.Version()`: `clusterOk`; `greaterOrEqual`)
-true: `persistTo(le.b)` (the hook's contract as `Grant.spec`'s; 4b's `MustUnsafePutLease` rewrites the record with the
+true: `persistTo(le.b)` (the token's `beOk ls.be`, the hook's contract as `Grant.spec`'s; 4b's `MustUnsafePutLease` rewrites the record with the
 live TTL, which differs from the stored one only for a recovered lease raised to a larger minimum:
 `ls.persist id`, the history appended); primary: `scheduleCheckpointIfNeeded` (the logger:
 `isLessor`). Unlock. Always `nil`.

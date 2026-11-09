@@ -37,7 +37,7 @@ def RetryKVClient.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientConnOk c γ who }}
     (App (Val (@! go_etcd_io.etcd.client.v3.RetryKVClient)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ rkv : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv⌝ ∗ retryKVHandle rkv γ who }}
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv⌝ ∗ retryKVHandle rkv c γ who }}
 
 end spec
 

@@ -8,13 +8,17 @@ method that `apply.Apply`'s interface call uses (`isUber_apply`, the approved sh
 does not depend on the request path's vocabulary.
 
 * `opBody op b` (transparent): 2c's model of the request (`IrrBody`): a client request as itself
-  (a hashed user change with the hash in the password's place: its reply does not depend on it), a
+  (a user change with the credential `h` as the client's request with a password `h` is a hash of,
+  W0's `pwHash`: its reply does not depend on it), a
   token as `.authToken`, an alarm `GET` as `.alarmList`, an activation as `.alarmActivate`, a
   deactivation as `.alarmDisarm`, a publication as `.publish`, the rest as `.noop`.
 * `resultAt γ ar ir sk res` (transparent): **`ar` is the result of applying `ir` with the step's
   answer `res`**: `nil` with the placeholder answer (the replay), or 2c's `applyResult` of an answer
   `res'` with `resMatch` (`Api.lean`: the answer itself, an alarm list in another order, a skipped
   transaction's ranges empty, the quota's `ErrNoSpace` after a write it applied).
+* `checksOut C cs err`, `chkExact`, `chkPost` (internal): the permission checks' outcome, each
+  check reported by `C` (the writer's exact `checkErr`, or 3d's `checkPost` for the request path);
+  the laws `permReads_writer`, `permReads_reader` give `permReads`' two instances.
 * `replyAt_result` (law): a method's reply is the result's `Resp` and `Err`.
 * `isUber_apply` (law): the uber-applier's `Apply` as the interface method `apply.Apply` calls.
 -/
@@ -40,8 +44,8 @@ proposer's, which the entry does not carry: the reply does not depend on it). -/
 def opBody (op : IrrOp) (b : EtcdServer.IrrBody) : Prop :=
   match op with
   | .req rq => b = .req rq
-  | .userAdd name h np => b = .req (.userAdd name h np)
-  | .userChangePassword name h => b = .req (.userChangePassword name h)
+  | .userAdd name h np => ∃ pw, (np = false → pwHash pw h) ∧ b = .req (.userAdd name pw np)
+  | .userChangePassword name h => ∃ pw, pwHash pw h ∧ b = .req (.userChangePassword name pw)
   | .authenticate name pw _ => ∃ rev, b = .authToken name pw rev
   | .alarm .get _ at' => if at' = W32 0 then b = .req .alarmList else b = .noop
   | .alarm .activate mid at' =>
@@ -65,15 +69,20 @@ def resultAt (γ : Cluster) (ar : Loc) (ir : Irr) (sk : Bool) (res : Resp) : IPr
   iprop(⌜ar = null ∧ res = noAns⌝ ∨
     ∃ res' b, ⌜resMatch ir.op sk res res' ∧ opBody ir.op b⌝ ∗ EtcdServer.applyResult γ ar b res')
 
-/-- **The outcome of the permission checks `cs`** at the auth info `u`, `rev`, each check answered
-at a state of `S` (`permReads`): `nil` and every check passing, or the error of a failing check
-`cs[i]` after the earlier ones passed. -/
-def checksOut (S : State → IProp GF) (u : GoString) (rev : Nat) (cs : List Check)
-    (err : GoInterface) : IProp GF :=
-  iprop((⌜err = GoInterface.nil⌝ ∗ [∗list] c ∈ cs, ∃ σ', S σ' ∗ ⌜checkErr σ' u rev c = none⌝) ∨
-    ∃ (i : Nat) (c : Check) (e : EtcdErr), ⌜cs[i]? = some c ∧ EtcdServer.srvErrOf err e⌝ ∗
-      (∃ σ', S σ' ∗ ⌜checkErr σ' u rev c = some e⌝) ∗
-      [∗list] c' ∈ cs.take i, ∃ σ', S σ' ∗ ⌜checkErr σ' u rev c' = none⌝)
+/-- **The outcome of the permission checks `cs`**, each check's answer reported by `C`
+(`permReads`): `nil` and every check passing, or the error of a failing check `cs[i]` after the
+earlier ones passed. -/
+def checksOut (C : Check → GoInterface → IProp GF) (cs : List Check) (err : GoInterface) :
+    IProp GF :=
+  iprop((⌜err = GoInterface.nil⌝ ∗ [∗list] c ∈ cs, C c GoInterface.nil) ∨
+    ∃ (i : Nat) (c : Check), ⌜cs[i]? = some c ∧ err ≠ GoInterface.nil⌝ ∗ C c err ∗
+      [∗list] c' ∈ cs.take i, C c' GoInterface.nil)
+
+/-- **The apply thread's report of a check** at the auth info `u`, `rev`: exactly `checkErr` at
+the stores' one state `σ` (`nil` for a pass, the server error of the refusal). -/
+def chkExact (σ : State) (u : GoString) (rev : Nat) (c : Check) (err : GoInterface) : IProp GF :=
+  iprop(⌜(err = GoInterface.nil ∧ checkErr σ u rev c = none) ∨
+    (∃ e, checkErr σ u rev c = some e ∧ EtcdServer.srvErrOf err e)⌝)
 
 /-- **What one check of the request path reports** (3d's `Auth.checkPost`, from the lower bound
 `i0`): an operation's check with its recorded states (a denial with the states it failed at); a
@@ -99,6 +108,26 @@ def replyAt_result.spec : Prop :=
       | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ ∃ b, ⌜opBody op b⌝ ∗ EtcdServer.irrReply γ b res resp)
       | .err e => iprop(⌜EtcdServer.srvErrOf err e⌝ ∗ EtcdServer.srvErrShape err)
 
+/-- **The apply thread's permission checks** (internal): through the options' auth store and
+lessor, lending the stores at `σ`, each check is answered exactly (`chkExact`): the writer's views
+are all at its state (3d's `authCur_at`, `authAt_le`; 3c's `lessorState_le`). -/
+def permReads_writer.spec : Prop :=
+  ∀ (b : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF)
+    (o : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (σ : State) (u : GoString)
+    (rev : w64),
+    beAt (GF := GF) b mc γ γc R ∗ beOpts b o ⊢
+      permReads o.AuthStore' o.Lessor' u rev (stAt b σ) true (chkExact σ u (uint.nat rev))
+
+/-- **The request path's permission checks** (internal; `CheckTxnAuth`): through a member's auth
+store read from the lower bound `i0`, no lease check, each operation's check reported by 3d's
+`checkPost` (`chkPost`). -/
+def permReads_reader.spec : Prop :=
+  ∀ (st : Loc) (γ : Cluster) (γa : Auth.AuthNames) (i0 : Nat) (le : GoInterface) (u : GoString)
+    (rev : w64),
+    Auth.authStoreAt (GF := GF) st γ γa ∗ Auth.authLb γa i0 ⊢
+      permReads (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty)
+        #st) le u rev emp false (chkPost γa i0 u rev)
+
 /-- **The uber-applier's `Apply`, as the interface method** (`isUber`'s bundle; the concrete spec is
 `uberApplier.Apply.spec`): from the state machine at `σ`, with the lent `R` and the membership
 update, the state machine at the step's `σ'` and the result of its answer. -/
@@ -108,6 +137,7 @@ def isUber_apply.spec : Prop :=
       ∃ ui : GoInterfaceOk, ⌜ua = GoInterface.ok ui⌝ ∗
         □ ∀ (r : Loc) (ir : Irr) (sk v3 : Bool) (σ : State) (Qm : IProp GF),
           {{ wrapperAt r ir sk ∗ ⌜ir.op.ok ∧ (sk = true → ir.op.isTxn = true)⌝ ∗ smAt ua σ ∗
+              nextOk γ R ir.op (fun σ' => ∃ res, irrStep mc σ ir v3 σ' res) ∗
               memberUpd γc ir.op Qm ∗ R ∗ threadTok }}
             (App (App (Val #(methods ui.ty go!"Apply" ui.v)) (Val #r)) (Val #v3))
           {{ (ar : Loc), RET #ar; R ∗ threadTok ∗ Qm ∗ ∃ σ' res, ⌜irrStep mc σ ir v3 σ' res ∧

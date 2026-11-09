@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **`bb.Swap(i, j)`**: entries `i` and `j` exchanged. -/
 def bucketBuffer.Swap.spec : Prop :=
-  ∀ (bb : Loc) (l : List (GoString × GoString)) (i j : w64) (x y : GoString × GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l ∗ ⌜l[sint.nat i]? = some x ∧ l[sint.nat j]? = some y ∧ 0 ≤ sint.Z i ∧ 0 ≤ sint.Z j⌝ }}
+  ∀ (bb : Loc) (l : List (GoString × GoString)) (w : Bool) (i j : w64) (x y : GoString × GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l w ∗ ⌜l[sint.nat i]? = some x ∧ l[sint.nat j]? = some y ∧ 0 ≤ sint.Z i ∧ 0 ≤ sint.Z j⌝ }}
     (App (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"Swap")) (Val #i)) (Val #j))
-  {{ RET #(); bbAt bb ((l.set (sint.nat i) y).set (sint.nat j) x) }}
+  {{ RET #(); bbAt bb ((l.set (sint.nat i) y).set (sint.nat j) x) w }}
 
 end spec
 

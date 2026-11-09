@@ -133,15 +133,21 @@ opaque initReqAt (wr : Loc) (ctx : GoInterface) (w : WatchReq) : IProp GF := ipr
 opaque wcsStop (s stopc : Loc) : IProp GF := iprop(True)
 /-- `now` is `time.Now` (the buffer logger's clock; the only caller passes it). -/
 opaque nowFuncOk (now : GoFunc) : IProp GF := iprop(True)
-/-- The substream's buffer logger `bl` (`block_logger.go`, 1c's `blockLogger`), whose callback
-reads `ws`'s fields (run by `ws`'s goroutine, which owns them). -/
+/-- The substream's buffer logger `bl` (`block_logger.go`'s `blockLogger`), whose callback
+reads `ws`'s fields (run by `ws`'s goroutine, which owns them). Intended realization:
+`blockLoggerAt bl A` with `A` the substream's fields its callback reads. -/
 opaque bufLoggerAt (bl ws : Loc) : IProp GF := iprop(True)
+/-- **A `*blockLogger`** (`block_logger.go`; persistent) whose `logFunc` keeps `A x` for every `x`:
+its read-only fields (`interval`, `threshold`, `now`, `logFunc`) and its lock `mu` over the
+counters. -/
+opaque blockLoggerAt {α : Type} (bl : Loc) (A : α → IProp GF) : IProp GF := iprop(True)
 
 def watchInternal_persistent.spec : Prop :=
   (∀ s w γ who, Persistent (wgsAt (GF := GF) s w γ who)) ∧
   (∀ ws s γ who w, Persistent (wsAt (GF := GF) ws s γ who w)) ∧
   (∀ s γ who id m, Persistent (deliverOk (GF := GF) s γ who id m)) ∧
-  (∀ wr ctx w, Persistent (initReqAt (GF := GF) wr ctx w))
+  (∀ wr ctx w, Persistent (initReqAt (GF := GF) wr ctx w)) ∧
+  (∀ (α : Type) bl (A : α → IProp GF), Persistent (blockLoggerAt (GF := GF) bl A))
 
 /-- **A `valCtx` is a context never done** (its `Done` the package's never-closed `valCtxCh`, its
 `Err` `nil`, its values `inctx`'s): what `newWatcherGRPCStream` wraps `WithCancel` around. -/

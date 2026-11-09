@@ -16,8 +16,9 @@ second triple: the writer's token lent and given back at `n'`, `ls'`, with `ls'.
 the same bucket, backend and deleter, by induction over the deletes). `le.mu.Lock()` (the current
 state is `ls'`, `lessorState` pins it; `leaseMap[id]` is still `e.obj`, so its `revokec` close right
 is in the invariant: taken now, the object leaving the map); `delete(leaseMap, id)`; `le.b.BatchTx()` and 4b's
-`UnsafeDeleteLease` under the transaction's lock (`rdOk`'s `beTxHeld ls.be`, lent by `D`), moving
-`beLeases` to `bkt` without `id`; the history appended with `ls'.remove id` (`n' + 1`). `td.End()`
+`UnsafeDeleteLease` (`Schema.UnsafeDeleteLease.spec`: `Schema.txWr` of the batch transaction, whose
+lock `rdOk`'s `beTxHeld ls.be` says is held, lent by `D`; mvcc's `Mvcc.kbHeld`), moving
+`beLeases`'s view to `V.del .lease (beU64 id)`, i.e. `bkt` without `id`; the history appended with `ls'.remove id` (`n' + 1`). `td.End()`
 (`rdOk`'s last triple: `Q ks n' ls'`) under `le.mu` (a lessor call there may only block); unlock; the metric; `close(l.revokec)` (Renew's
 waiters on the object see the lease gone: the close carries `lessorAt γ (n'+1) _`).
 

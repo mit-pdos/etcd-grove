@@ -72,7 +72,7 @@ depth must have branch slices with no spare capacity (`opCapOk`: `gatherOps` app
 `nonissues/leasing-gatherops-spare-capacity.md`); the proxy's `make`s give it.
 
 **The leasing contract** (`LKV.*Triple`, `LTxn.*Triple`) is W0's contract with: the caller's update
-persistent for every request and its step `lstep γL pfx who rq` (`Step who rq`, the request leasing
+persistent for every request and its step `lstep γL pfx p lo rq` (`Step p rq … lo`, the request leasing
 makes, `execReq rq`, a cached answer, or a protocol step; a cached answer's shape-only case naming
 the marked keys it answers about); an error that settles nothing; the marks of the keys a write
 writes; the shape differences above. It is a weakening: a value meeting W0's KV contract meets it
@@ -86,18 +86,20 @@ and every cached answer serializable; linearizable cached reads need a model of 
 
 ## Vocabulary
 
-* `ProtoStep pfx who σ σ'` (pure): a step the leasing protocol takes on its own account: none, a
-  request of `who` whose effect on the store is confined to keys under `pfx`, or a lease granted
-  (its session's: 1d's `Concurrency.grantEff`, any TTL).
+* `ProtoStep pfx σ σ'` (pure): a step the leasing protocol takes on its own account: none, a
+  request of any principal whose effect on the store is confined to keys under `pfx`, a lease
+  grant or keep-alive request, or a lease granted (its session's: 1d's `Concurrency.grantEff`, any
+  TTL).
 * `CachedRange r σ rev a` (the shape: rev reached, at most one key-value, of the key; `more` false;
   count at most one), `CachedSer who r σ rev a` (W0's serializable answer, up to the lease of a
   keys-only answer), `CachedRange1 who M r σ rev a` (a cached single-key range at revision `0`:
   serializable, a plain get's, or, for a marked key or an invalid sort, the shape), `CachedAns who M
   rq σ res` (ranges and transactions of such ranges).
 * `execReq rq`; `reqWrites rq` (the keys a write request writes, at any depth).
-* `LStep pfx who M rq σ σ' r`; `lstep γL pfx who rq σ σ' r := ∃ M, ⌜LStep … M …⌝ ∗ lkvMarks γL M`;
+* `LStep pfx who M lo rq σ σ' r`; `lstep γL pfx who lo rq σ σ' r := ∃ M, ⌜LStep … M …⌝ ∗
+  lkvMarks γL M` (`who` the call's principal, `lo` its auth window, W0's `Step … lo`);
   `LQ Q` (the update's `COMM`).
-* `protoUpd γ who pfx := etcdPerm γ (ProtoStep pfx who)` (W0's permission shape).
+* `protoUpd γ pfx := etcdPerm γ (ProtoStep pfx)` (W0's permission shape).
 * `LeasingNames` (opaque); `isLeasingKV lkv γ who pfx γL` (persistent handle); `lkvAt v γ who pfx γL`
   (persistent bundle); `lkvOpen γL q` (fractional); `closeFnAt cf γL`; `ltxnAt iv γ who pfx γL ctx
   st` (exclusive); `lkvMarks γL M` (persistent), `lkvClean γL K` (exclusive); `opCapOk op`,
@@ -115,6 +117,7 @@ module
 public import GeneratedProof.go_etcd_io.etcd.client.v3.leasing
 public import Spec.PkgInit.go_etcd_io.etcd.client.v3.leasing
 public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
 
 @[expose] public section
 
@@ -129,22 +132,20 @@ open Classical
 
 /-! ## What the leasing KV does to the cluster's state (pure) -/
 
-/-- The key an event is about. -/
-def evKey : Event → Key
-  | .put k _ => k
-  | .delete k => k
-
-/-- **A step of the leasing protocol** by `who` with lease prefix `pfx`: no change, a request of
-`who` whose events are all on keys under `pfx` (the lease keys: an acquisition's put, a
-`"REVOKE"` put, a rescind's delete; every read), or a lease granted (its session's: what 1d's
-`Concurrency.grantEff` allows, for any TTL; a keep-alive changes nothing). -/
-def ProtoStep (pfx : Key) (who : Principal) (σ σ' : State) : Prop :=
+/-- **A step of the leasing protocol** with lease prefix `pfx`: no change; a request of any
+principal (the protocol's requests run with the caller's context, hence the call's principal:
+`acquire`, `revoke`, a `get`'s lease monitor; or with the KV's own context, the client's default
+principal: `rescind`, the session) whose events are all on keys under `pfx` (the lease keys: an
+acquisition's put, a `"REVOKE"` put, a rescind's delete; every read), or that is a lease grant or
+keep-alive (the session's); or a lease granted as 1d's `Concurrency.grantEff` states it (any TTL:
+what `NewSession`'s `effIn` asks of the permission).
+The principal is not restricted: the protocol's own requests are made for every caller. -/
+def ProtoStep (pfx : Key) (σ σ' : State) : Prop :=
   σ' = σ ∨
-  (∃ (rq : Req) (res : Resp), Step who rq σ σ' res ∧
-    ∃ evs : List Event, (∀ ev ∈ evs, pfx <+: evKey ev) ∧ σ' = σ.withKV (σ.kv.commit evs)) ∨
-  (∃ (id : Int) (ttl : Int), σ.leases id = none ∧
-    σ' = { σ with leases := fun i => if i = id then some { ttl := ttl } else σ.leases i,
-                  granted := σ.granted ++ [id] })
+  (∃ (q : Principal) (rq : Req) (res : Resp), Step q rq σ σ' res ∧
+    ((∃ evs : List Event, (∀ ev ∈ evs, pfx <+: ev.key) ∧ σ' = σ.withKV (σ.kv.commit evs)) ∨
+     (∃ id ttl, rq = .leaseGrant id ttl) ∨ (∃ id, rq = .leaseKeepAlive id))) ∨
+  (∃ ttl : Int, Concurrency.grantEff ttl σ σ')
 
 /-- **The shape of a cached range answer**: at a revision the cluster has reached, about the
 requested key only (at most one key-value, of that key), `more` false, a count of at most one. -/
@@ -216,14 +217,15 @@ def reqWrites : Req → Key → Prop
   | .txn t => fun k => opsWrites t.success k ∨ opsWrites t.failure k
   | _ => fun _ => False
 
-/-- **What the leasing KV may do with the caller's update for `rq`**, the keys marked as written
-through it being `M`: `some res`, the request's step (or `execReq`'s) answering `res`, or a cached
-answer at an unchanged state; `none`, a step of the protocol, no answer to the request. -/
-def LStep (pfx : Key) (who : Principal) (M : Key → Prop) (rq : Req) (σ σ' : State) :
+/-- **What the leasing KV may do with the caller's update for `rq`** (of the call's principal
+`who`, its auth window starting at `lo`: W0's `Step … lo`), the keys marked as written through it
+being `M`: `some res`, the request's step (or `execReq`'s) answering `res`, or a cached answer at
+an unchanged state; `none`, a step of the protocol, no answer to the request. -/
+def LStep (pfx : Key) (who : Principal) (M : Key → Prop) (lo : Nat) (rq : Req) (σ σ' : State) :
     Option Resp → Prop
-  | some res => Step who rq σ σ' res ∨ Step who (execReq rq) σ σ' res ∨
+  | some res => Step who rq σ σ' res lo ∨ Step who (execReq rq) σ σ' res lo ∨
       (σ' = σ ∧ CachedAns who M rq σ res)
-  | none => ProtoStep pfx who σ σ'
+  | none => ProtoStep pfx σ σ'
 
 /-! ## Resources -/
 
@@ -243,9 +245,9 @@ opaque lkvClean (γL : LeasingNames) (K : Key → Prop) : IProp GF := iprop(True
 
 /-- **A step of the leasing KV for the caller's request** (see `LStep`): with the marks of the keys
 whose cached answers are only shaped. -/
-def lstep (γL : LeasingNames) (pfx : Key) (who : Principal) (rq : Req) (σ σ' : State)
+def lstep (γL : LeasingNames) (pfx : Key) (who : Principal) (lo : Nat) (rq : Req) (σ σ' : State)
     (r : Option Resp) : IProp GF :=
-  iprop(∃ M : Key → Prop, ⌜LStep pfx who M rq σ σ' r⌝ ∗ lkvMarks γL M)
+  iprop(∃ M : Key → Prop, ⌜LStep pfx who M lo rq σ σ' r⌝ ∗ lkvMarks γL M)
 
 /-- The `COMM` of the caller's update: `Q` of an answer; nothing for a protocol step. -/
 def LQ (Q : State → State → Resp → IProp GF) (σ σ' : State) : Option Resp → IProp GF
@@ -253,9 +255,9 @@ def LQ (Q : State → State → Resp → IProp GF) (σ σ' : State) : Option Res
   | none => iprop(True)
 
 /-- **The program's permission for the leasing protocol's steps** (persistent; W0's `etcdPerm`):
-any `ProtoStep` of `who` with prefix `pfx`, at any time. -/
-def protoUpd (γ : Cluster) (who : Principal) (pfx : Key) : IProp GF :=
-  etcdPerm γ (ProtoStep pfx who)
+any `ProtoStep` with prefix `pfx`, at any time. -/
+def protoUpd (γ : Cluster) (pfx : Key) : IProp GF :=
+  etcdPerm γ (ProtoStep pfx)
 
 /-- **A `*leasingKV`** over a client of `γ` as `who`, lease prefix `pfx` (persistent). -/
 opaque isLeasingKV (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) :
@@ -273,7 +275,7 @@ opaque lkvOpen (γL : LeasingNames) (q : Qp) : IProp GF := iprop(True)
 opaque closeFnAt (cf : GoFunc) (γL : LeasingNames) : IProp GF := iprop(True)
 
 /-- **A leasing transaction under construction** (the `v3.Txn` value `iv`, exclusive), built over
-the context `ctx`, holding `st`. -/
+the context `ctx` (whose principal is `who`, the call's: as W0's `txnAt`), holding `st`. -/
 opaque ltxnAt (iv : GoInterface) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames)
   (ctx : GoInterface) (st : TxnSt) : IProp GF := iprop(True)
 
@@ -320,19 +322,21 @@ def doReplyL (res : Resp) (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoIn
 /-! ## The leasing contract (`LKV.*Triple`, `LTxn.*Triple`)
 
 W0's KV contract (`client/v3/Api.lean`) with: the caller's update persistent for every request, its
-step `lstep γL pfx who rq`; a write's marks; an error that settles nothing (no `Q`); the thread
+step `lstep γL pfx p lo rq` (as W0's: the call's principal `p` from `ctxPrin who ctx p`, `who` the
+KV's client's default; a read's auth window `lo` with `authLb γ lo`, `0` for `Put` and `Delete`); a write's marks; an error that settles nothing (no `Q`); the thread
 token and, for `Get`/`Do`, the receiver's resource `P` given back. -/
 
 /-- **`Get(ctx, key, opts...)`**: the range `OpGet(key, opts...)` builds: answered by a member
 (linearized, or serializable as asked) or from the cache (`CachedAns`). -/
 def LKV.GetTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (pfx : Key)
     (γL : LeasingNames) : Prop :=
-  ∀ (ctx : GoInterface) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
-    (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗ threadTok ∗
+  ∀ (ctx : GoInterface) (p : Principal) (lo : Nat) (key : GoString) (opts : GoSlice)
+    (gs : List (OpM → OpM)) (Q : State → State → Resp → IProp GF),
+  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗
+      threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (r : Option Resp),
-             lstep γL pfx who (.range (opGetM key gs).rangeReq) σ σ' r ∗ etcdState γ σ',
+             lstep γL pfx p lo (.range (opGetM key gs).rangeReq) σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); P ∗ optsAt opts gs ∗ threadTok ∗
@@ -344,13 +348,13 @@ number of times, possibly after the return (the update persistent); on success, 
 application. The key marked as written through the KV. -/
 def LKV.PutTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (pfx : Key)
     (γL : LeasingNames) : Prop :=
-  ∀ (ctx : GoInterface) (key v : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
+  ∀ (ctx : GoInterface) (p : Principal) (key v : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs ∗ ⌜¬ (opPutM key v gs).putPanics⌝ ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗ ⌜¬ (opPutM key v gs).putPanics⌝ ∗
       lkvMarks γL (reqWrites (.put (opPutM key v gs).putReq)) ∗ threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (r : Option Resp),
-             lstep γL pfx who (.put (opPutM key v gs).putReq) σ σ' r ∗ etcdState γ σ',
+             lstep γL pfx p 0 (.put (opPutM key v gs).putReq) σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #v)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); P ∗ optsAt opts gs ∗ threadTok ∗
@@ -361,14 +365,14 @@ def LKV.PutTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (pfx
 without `prevKv`: `execReq`), applied any number of times; its range marked. -/
 def LKV.DeleteTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (pfx : Key)
     (γL : LeasingNames) : Prop :=
-  ∀ (ctx : GoInterface) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
+  ∀ (ctx : GoInterface) (p : Principal) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗
       ⌜¬ prefixAndFromKey gs ∧ ¬ (opDeleteM key gs).deletePanics⌝ ∗
       lkvMarks γL (reqWrites (.deleteRange (opDeleteM key gs).deleteReq)) ∗ threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (r : Option Resp),
-             lstep γL pfx who (.deleteRange (opDeleteM key gs).deleteReq) σ σ' r ∗ etcdState γ σ',
+             lstep γL pfx p 0 (.deleteRange (opDeleteM key gs).deleteReq) σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); P ∗ optsAt opts gs ∗ threadTok ∗
@@ -380,12 +384,12 @@ branch slices without spare capacity: `opCapOk`), as `Get`, `Put`, `Delete` or a
 `Commit`; its writes marked. -/
 def LKV.DoTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (pfx : Key)
     (γL : LeasingNames) : Prop :=
-  ∀ (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (rq : Req)
-    (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ opAt op o ∗ opCapOk op ∗ ⌜o.toReq = some rq⌝ ∗
-      lkvMarks γL (reqWrites rq) ∗ threadTok ∗
+  ∀ (ctx : GoInterface) (p : Principal) (lo : Nat) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
+    (rq : Req) (Q : State → State → Resp → IProp GF),
+  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ opAt op o ∗ opCapOk op ∗
+      ⌜o.toReq = some rq⌝ ∗ lkvMarks γL (reqWrites rq) ∗ threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx who rq σ σ' r ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo rq σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (App (Val f) (Val #ctx)) (Val #op))
   {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
@@ -393,13 +397,14 @@ def LKV.DoTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (pfx 
       ((∃ σ σ' res, Q σ σ' res ∗ doReplyL res r err) ∨
        ⌜r.put' = null ∧ r.get' = null ∧ r.del' = null ∧ r.txn' = null ∧ err ≠ GoInterface.nil⌝) }}
 
-/-- **`Txn(ctx)`**: a new leasing transaction over `ctx`, nothing set. -/
+/-- **`Txn(ctx)`**: a new leasing transaction over `ctx`, nothing set, of the context's principal
+`p` (as W0's `KV.TxnTriple`). -/
 def LKV.TxnTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (pfx : Key)
     (γL : LeasingNames) : Prop :=
-  ∀ (ctx : GoInterface),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
+  ∀ (ctx : GoInterface) (p : Principal),
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p }}
     (App (Val f) (Val #ctx))
-  {{ (iv : GoInterface), RET #iv; ltxnAt iv γ who pfx γL ctx TxnSt.empty }}
+  {{ (iv : GoInterface), RET #iv; ltxnAt iv γ p pfx γL ctx TxnSt.empty }}
 
 /-- **`If(cs...)`** (first of the three; the wrapped client's transaction panics otherwise): the
 transaction returned (the receiver itself). -/
@@ -439,10 +444,12 @@ def LTxn.ElseTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal
 transaction given back. -/
 def LTxn.CommitTriple (f : val) (iv : GoInterface) (γ : Cluster) (who : Principal) (pfx : Key)
     (γL : LeasingNames) (ctx : GoInterface) : Prop :=
-  ∀ (st : TxnSt) (Q : State → State → Resp → IProp GF),
-  {{ ltxnAt (GF := GF) iv γ who pfx γL ctx st ∗ lkvMarks γL (reqWrites (.txn st.req)) ∗ threadTok ∗
+  ∀ (st : TxnSt) (lo : Nat) (Q : State → State → Resp → IProp GF),
+  {{ ltxnAt (GF := GF) iv γ who pfx γL ctx st ∗ authLb γ lo ∗ lkvMarks γL (reqWrites (.txn st.req)) ∗
+      threadTok ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx who (.txn st.req) σ σ' r ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx who lo (.txn st.req) σ σ' r ∗
+             etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (Val f) (Val #()))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ltxnAt iv γ who pfx γL ctx st ∗

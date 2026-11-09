@@ -23,8 +23,9 @@ fire it at every committed state from the read's registration on, and answers wi
 firing at the state the member read; a read may be retried) and **exclusive** otherwise (a write
 takes effect at most once: the retry interceptor resends a mutable RPC only after an attempt that
 was never sent, was refused before the handler (a learner's `ErrGRPCNotSupportedForLearner`), or
-was refused without effect (a stale or invalid token); the cluster applies an entry once), and
-returns either
+was refused without effect (a stale or invalid token); the cluster applies an entry once; every KV
+write is so: only the lease and alarm writes `LeaseGrant`, `LeaseRevoke`, `Alarm` are sent
+repeatable, and 1c's specs take persistent updates for them), and returns either
 
 * `Q σ σ' res` with the reply that `res` is (`getReply`, `putReply`, ...: a message whose model is
   the answer, or `err = errVal e` for an answer `.err e`), the request **linearized** at `σ` with
@@ -51,7 +52,8 @@ which is `EtcdErr.indefinite` (`Model.lean`).
 * `clientConnOk c γ who` (**slot, 1c**): the `*Client` `c` under construction has its `conn`
   (`connOk`) and `callOpts` (`callOptsOk _ false`) set, read-only: what `NewKV(c)` and the other
   member constructors read.
-* `isClient c γ who`: the client `c` (`clientv3.New`'s result, frozen): `clientConnOk`, and its
+* `isClient c γ who`: the client `c` (`clientv3.New`'s result, frozen, or an in-process client:
+  no connection is promised, `clientMut_conn` gives a dialed one's before freezing): its
   `KV` field holds a `kvAt` value for good, its `Watcher`, `Lease`, `Auth`, `Cluster`,
   `Maintenance` fields values meeting their slots (`watcherAt` 1b, `leaseAt`, `authAt`, `clusterAt`,
   `maintAt` 1c). `clientMut c γ who` (exclusive) is the same with the six interface fields
@@ -61,8 +63,9 @@ which is `EtcdErr.indefinite` (`Model.lean`).
   its methods' triples (PRINCIPLES, "an interface value gets a bundle"). Realized for `*kv` by
   `kvHandle_kvAt`; a wrapper (Kubernetes' latency tracker) proves it for itself. Leasing's KV
   does not meet it (its cached reads answer with a stale header): it has a contract of its own (1e).
-* `kvHandle kv γ who`: a `*kv` (`NewKV`'s): its `remote` a `remoteKVAt` value, its `callOpts`
-  the client's.
+* `kvHandle kv c γ who`: a `*kv` (`NewKV`'s) over the client `c`: its `remote` a `remoteKVAt`
+  value once `c` is ready (`clientReady c`, 1c's readiness: `kvHandle_kvAt` takes it), its
+  `callOpts` the client's. `clientReady c` is declared here; its laws are 1c's (`ApiClient.lean`).
 * `remoteKVAt v γ who` (**the gRPC boundary**): the `etcdserverpb.KVClient` value `v` meets the
   wire-level contract (`RemoteKV.*Triple`): the same atomic updates, over request and reply
   messages (`api/v3/Wire.lean`), and the errors as gRPC returns them (`callErr`). What grpc, the
@@ -96,8 +99,8 @@ which is `EtcdErr.indefinite` (`Model.lean`).
 
 ## Laws
 
-Persistence of the handles and values; `isClient_conn`, `isClient_KV`, `clientMut_KV`,
-`clientMut_freeze`; the bundles' laws (`kvAt_Put`, ..., `remoteKVAt_Range`, ..., `txnAt_If`, ...);
+Persistence of the handles and values; `isClient_KV`, `clientMut_KV`, `clientMut_conn`,
+`clientMut_freeze`; the bundles' laws (`kvAt_methods`, `remoteKVAt_methods`, `txnAt_methods`);
 `kvHandle_kvAt`, `retryKVHandle_remoteKVAt`; `callErr_errVal`; the package's initial globals
 (`init.spec`: `noPrefixEnd` holds `[0]`, read-only).
 
@@ -478,12 +481,19 @@ opaque maintAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := 
 
 /-- **The `KV` interface value `v` meets the KV contract** (`KV.*Triple`). -/
 opaque kvAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-/-- A `*kv` of the cluster `γ` as `who`. -/
-opaque kvHandle (kv : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+/-- A `*kv` of the cluster `γ` as `who`, over the client `c`'s connection (`null`: over a caller's
+remote, `NewKVFromKVClient`). -/
+opaque kvHandle (kv c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- **The `etcdserverpb.KVClient` value `v` meets the wire-level contract** (`RemoteKV.*Triple`). -/
 opaque remoteKVAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-/-- A `*retryKVClient` of `γ` as `who`. -/
-opaque retryKVHandle (rkv : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+/-- A `*retryKVClient` of `γ` as `who`, over the client `c`'s connection. -/
+opaque retryKVHandle (rkv c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+
+/-- **The client `c` is ready for calls** (persistent; 1c's, declared here so that the KV handles'
+laws can take it): its `Auth` field is set (or it has no token refresh), so a call through its
+connection's interceptor may refresh a token (`ApiClient.lean`, "Readiness"; laws `isClient_ready`,
+`clientRest_ready`, `clientMut_ready`, `clientReady_null` there). -/
+opaque clientReady (c : Loc) : IProp GF := iprop(True)
 
 /-- **The client `c`** of the cluster `γ` as `who` (persistent). -/
 opaque isClient (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
@@ -880,9 +890,9 @@ def handles_persistent.spec : Prop :=
   (∀ c γ who, Persistent (clientConnOk (GF := GF) c γ who)) ∧
   (∀ c γ who, Persistent (isClient (GF := GF) c γ who)) ∧
   (∀ v γ who, Persistent (kvAt (GF := GF) v γ who)) ∧
-  (∀ kv γ who, Persistent (kvHandle (GF := GF) kv γ who)) ∧
+  (∀ kv c γ who, Persistent (kvHandle (GF := GF) kv c γ who)) ∧
   (∀ v γ who, Persistent (remoteKVAt (GF := GF) v γ who)) ∧
-  (∀ rkv γ who, Persistent (retryKVHandle (GF := GF) rkv γ who)) ∧
+  (∀ rkv c γ who, Persistent (retryKVHandle (GF := GF) rkv c γ who)) ∧
   (∀ v γ who, Persistent (watcherAt (GF := GF) v γ who)) ∧
   (∀ v γ who, Persistent (leaseAt (GF := GF) v γ who)) ∧
   (∀ v γ who, Persistent (authAt (GF := GF) v γ who)) ∧
@@ -952,8 +962,10 @@ def leaseOptAt_call.spec : Prop := ∀ (f : GoFunc) (g : Bool → Bool) (p : Loc
   {{ RET #(); leaseOptAt f g ∗ ∃ op' : go_etcd_io.etcd.client.v3.LeaseOp, p ↦ op' ∗
       ⌜op'.id' = op.id' ∧ op'.attachedKeys' = g op.attachedKeys'⌝ }}
 
-/-- A client's connection and call options. -/
-def isClient_conn.spec : Prop := ∀ c γ who, isClient (GF := GF) c γ who ⊢ clientConnOk c γ who
+-- `isClient_conn` and `clientRest_conn` (a client's connection) were removed at integration (1c's
+-- request): an in-process client (`NewCtxClient`, 1c's `clientBare_assemble`) is an `isClient` with
+-- no connection. A dialed client's connection is `clientMut_conn`'s (`New`'s `clientMut`), taken
+-- before freezing (`clientConnOk` is persistent).
 
 /-- A client's `KV` field, for good. -/
 def isClient_KV.spec : Prop := ∀ c γ who,
@@ -989,7 +1001,6 @@ def clientRest_persistent.spec : Prop := ∀ c γ who, Persistent (clientRest (G
 
 def isClient_rest.spec : Prop := ∀ c γ who, isClient (GF := GF) c γ who ⊢ clientRest c γ who
 
-def clientRest_conn.spec : Prop := ∀ c γ who, clientRest (GF := GF) c γ who ⊢ clientConnOk c γ who
 
 def clientRest_fields.spec : Prop := ∀ c γ who,
   clientRest (GF := GF) c γ who ⊢
@@ -1009,9 +1020,11 @@ def kvAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Prin
   KV.TxnTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"Txn") (kvAt (GF := GF) v γ who) γ who ∧
   KV.GetStreamTriple (v @!! go_etcd_io.etcd.client.v3.KV.ty @!! go!"GetStream") (kvAt (GF := GF) v γ who) γ who
 
-/-- A `*kv` meets the KV contract (its methods' specs, `kv__*.lean`). -/
-def kvHandle_kvAt.spec : Prop := ∀ kv γ who,
-  kvHandle (GF := GF) kv γ who ⊢
+/-- A `*kv` meets the KV contract (its methods' specs, `kv__*.lean`) once its client is ready
+(`clientReady c`: `newClient` builds the `*kv` before it sets `c.Auth`, which a call's token refresh
+reads; 1c's request; `clientReady_null` for a handle over a caller's remote). -/
+def kvHandle_kvAt.spec : Prop := ∀ kv c γ who,
+  kvHandle (GF := GF) kv c γ who ∗ clientReady c ⊢
     kvAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #kv) γ who
 
 /-- A `Txn` value's triples. -/
@@ -1038,8 +1051,8 @@ def remoteKVAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who 
     (remoteKVAt (GF := GF) v γ who) γ who
 
 /-- A `*retryKVClient` meets the wire-level contract (its methods' specs, `retryKVClient__*.lean`). -/
-def retryKVHandle_remoteKVAt.spec : Prop := ∀ rkv γ who,
-  retryKVHandle (GF := GF) rkv γ who ⊢
+def retryKVHandle_remoteKVAt.spec : Prop := ∀ rkv c γ who,
+  retryKVHandle (GF := GF) rkv c γ who ∗ clientReady c ⊢
     remoteKVAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv)
       γ who
 

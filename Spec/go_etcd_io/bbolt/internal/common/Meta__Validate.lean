@@ -2,13 +2,14 @@
 ## `(*Meta).Validate()` (`internal/common/meta.go`)
 
 **Users.** db.go:396,436 (`getPageSize`: `== nil` picks the page size), db.go:585-586 (`mmap`: both invalid is an error returned by `Open`), db.go:1226,1228 (`meta()`: the valid one with the higher txid). Snippet `ReqMetaRoundTrip`.
-**Proof sketch.** magic, version, `Sum64`; the error values are `bbolt/errors`' package variables, non-nil by its `init` (`req/go_etcd_io_bbolt_errors.md`).
+**Proof sketch.** magic, version, `Sum64`; the error values are `bbolt/errors`' package variables (`isPkgInit` of `common` includes `bbolt/errors`'), read by `BboltErrors.errIs_init` and non-nil by `BboltErrors.errIs_distinct` (`Spec/go_etcd_io/bbolt/errors/Api.lean`; `req/go_etcd_io_bbolt_errors.md`).
 **Changes.** from `specs-ref`'s file of the same name: the error named (`metaErr`), and non-nil, which `Open`'s callers inspect.
 **Margin.** none: the post is what the code computes.
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Spec.go_etcd_io.bbolt.errors.Api
 
 @[expose] public section
 
@@ -34,7 +35,7 @@ def Meta.Validate.spec : Prop :=
     (App (Val (l @!! go.GoType.PointerType Meta.ty @!! go!"Validate")) (Val #()))
   {{ (err : GoInterface), RET #err; l ↦{dq} v ∗
       (⌜metaErr v = none ∧ err = GoInterface.nil⌝ ∨
-        ∃ g, ⌜metaErr v = some g ∧ err ≠ GoInterface.nil⌝ ∗ globalAddr g ↦□ err) }}
+        ∃ g, ⌜metaErr v = some g⌝ ∗ BboltErrors.isErr g err) }}
 
 end spec
 

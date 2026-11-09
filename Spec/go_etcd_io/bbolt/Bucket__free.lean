@@ -1,6 +1,14 @@
 /-
 `b.free()` (`bucket.go`): every page of the bucket freed as pending (none for an inline bucket). Users: `DeleteBucket`.
 (internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+
+**Proof sketch (the freelist, integration I7).** `forEachPageNode` over the bucket's base-tree
+pages (a bucket that existed at `Begin`: one created in this transaction is inline, root `0`):
+4d's `Interface.Free` of each mapped page, `node.free` of each cached node. `canFree` from the
+invariant (`Internal.lean`, "The freelist's side"): the extents are disjoint (the file's
+well-formedness) and none was freed before in this transaction (a cached node's page is freed
+only through its node, which then has `pgid = 0`; the bucket is deleted once: its handle's path
+is gone from `T.cur`).
 -/
 module
 

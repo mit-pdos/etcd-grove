@@ -119,8 +119,8 @@ def curEnts (e : Ent) : List (GoString × Option GoString) :=
     | .bkt _ _ => none))
 
 /-- **A well-formed entry**: every bucket's keys non-empty and strictly sorted (`go.GoStringLt`,
-`bytes.Compare`), recursively. Every state bbolt holds is well-formed (`Api.lean`'s `boltTx_wf`,
-`boltState_wf`, `boltImage_wf`). -/
+`bytes.Compare`), recursively. Every state bbolt holds is well-formed (`Api.lean`'s `boltTx_wf`, for
+a transaction's views and the committed data, and `boltImage_wf`). -/
 inductive wf : Ent → Prop
   | val (v : GoString) : wf (.val v)
   | bkt (s : w64) (es : List (GoString × Ent)) :

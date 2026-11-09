@@ -21,6 +21,35 @@ never the cache's internals (its store, demux, ring buffers: `Internal.lean`):
   `σ.kv`, so a client combines a watch's events with any other reply (a `Get`, a `Put`'s) through
   the history (`etcdLb_ord`, `Reach`).
 
+**The compaction condition.** The cache's history and snapshots are built from its upstream client
+watch, whose events and progress facts 1b's `watchStep` states only under W0's `exactFrom` (a
+compaction at a revision that changes a key twice keeps one change). So `deliv`, `quiet` and
+`getOk`'s content are stated under `EtcdModel.exactFrom h 0`, at the state the fact names; a user
+discharges it from its workload (no transaction puts and deletes one key) or a cluster that never
+compacts, as for a client watch (integration I1).
+
+**Principals.** `isCache c γ who pfx`'s `who` is the client's default principal (W0's round 3:
+`isClient c γ who`); the cache's own requests (its list, its upstream watch, `RequestProgress`) run
+on its internal context (`WithCancel(Background())`: `ctxPrin who ctx who`); a `Get` passes the
+caller's context to the client's `Get` for the linearizable revision, so it takes `ctxPrin who ctx p`
+for the caller's principal `p`. The answers themselves are the cache's: the cache checks no
+permission, so a cache user sees every key under the prefix the cache's own principal may read.
+
+**Not a `Watcher`** (batch-1g.md open question 1, decided at integration I1: recorded, not unified).
+The cache's `Watch` cannot meet 1b's `Watcher.WatchTriple`/`watchChAt`: (1) 1b's response owns its
+events in full (`watchRespAt`, consumers rewrite them), the cache's are shared read-only
+(`watchRespRO` at most); (2) a compaction cancel's `CompactRevision` is the cache's window start,
+not a cluster compaction (`watchStep`'s `cr ≤ σ.kv.compacted` is false); (3) a rejected request's
+cancel (`Canceled`, compact revision `0`, `closeErr` `nil`) is no `watchStep` response; (4)
+`watchChAt ch γ p` names the call's principal `p` as admitted (`σa`), while the cache serves any
+caller with its own principal's view; (5) the cache sends no `Created` and fabricates headers
+(revision only). Unifying would take, in 1b's `ApiWatch.lean`: a `WatchRespM` ownership index
+(full / read-only), a `watchStep` arm for a source-local cancel (any `cr`, no claim), an arm for
+a rejected request's first-and-only cancel, and `Watcher.WatchTriple`'s channel at the handle's
+principal rather than the call's (a weaker contract every `watcherAt` realizer then meets). What
+is shared: the event messages (`eventOwn` below is W0's `EtcdWire.eventOwn` at `DFrac.discard`),
+the history (`KVHist`, `etcdLb`) and `exactFrom`.
+
 ## Pure vocabulary
 
 * `RevEvent`: one event of the history with its revision (W0's `Event`); `evsBetween h rng a b`: the
@@ -61,7 +90,8 @@ never the cache's internals (its store, demux, ring buffers: `Internal.lean`):
   linearizable `Get` waits for) are made of it. `New` takes it.
 * `wrapsErr err e` (persistent): `errors.Is(err, e)` holds (`err` is `e`, or a `fmt.Errorf("%w")`
   wrapping of it): how a caller tests `ErrUnsupportedRequest` and `ErrKeyRangeInvalid`.
-* `eventOwn`, `eventsAt`, `watchRespAt` (transparent over W0's `keyValueOwn`, persistent): a received
+* `eventOwn`, `eventsAt`, `watchRespAt` (transparent over W0's `EtcdWire.eventOwn`, `respHeaderOwn`,
+  read-only): a received
   response's memory, read-only (the cache shares every event among its watchers and its store).
 
 ## Laws
@@ -96,11 +126,6 @@ open Classical
 
 /-! ## History events -/
 
-/-- An event's key. -/
-def evKey : Event → Key
-  | .put k _ => k
-  | .delete k => k
-
 /-- **One event of the history, with its revision.** -/
 structure RevEvent where
   rev : Nat
@@ -115,7 +140,7 @@ order (revision `1` and below have none; above `h.rev` none are known, so caller
 `b ≤ h.rev`). -/
 def evsBetween (h : KVHist) (rng : KeyRange) (a b : Int) : List RevEvent :=
   ((List.range (h.rev + 1)).filter (fun (r : Nat) => decide (a ≤ (r : Int) ∧ (r : Int) ≤ b))).flatMap
-    (fun (r : Nat) => (revEvents h r).filter (fun e => decide (rng.mem (evKey e.ev))))
+    (fun (r : Nat) => (revEvents h r).filter (fun e => decide (rng.mem e.ev.key)))
 
 /-! ## Watch responses -/
 
@@ -149,15 +174,21 @@ def WatchSt.afterProgress (pos : Option Int) (p : Nat) : Option Int :=
 
 /-- **An events response's events against the history** from the consumer's position `pos`: they
 are the events under `rng` of the revisions `a..b`, where `a` is the position (or, from "now",
-the first event's revision), `b` at least the last event's; the next position is `b + 1`. -/
+the first event's revision), `b` at least the last event's; the next position is `b + 1`. The
+events' exactness holds under W0's compaction condition `exactFrom h 0` (every revision up to the
+compaction changes each key at most once): the cache's history is its upstream client watch's,
+whose events 1b's `watchStep` states exact only under `exactFrom` (integration I1; the condition
+from the watch's first revision would do, but the upstream watch's start is the cache's, which
+its users do not see). -/
 def deliv (h : KVHist) (rng : KeyRange) (pos : Option Int) (evs : List RevEvent) (b : Int) : Prop :=
-  evs ≠ [] ∧ b ≤ h.rev ∧
-  ∃ a : Int, (pos = some a ∨ (pos = none ∧ ∀ e ∈ evs.head?, a = e.rev)) ∧ evs = evsBetween h rng a b
+  evs ≠ [] ∧ b ≤ h.rev ∧ (EtcdModel.exactFrom h 0 →
+  ∃ a : Int, (pos = some a ∨ (pos = none ∧ ∀ e ∈ evs.head?, a = e.rev)) ∧ evs = evsBetween h rng a b)
 
-/-- **A progress notification at `p` against the history**: the cluster reached `p`, and no event
-under `rng` happened from the consumer's position up to `p`. -/
+/-- **A progress notification at `p` against the history**: the cluster reached `p`, and (under
+the compaction condition `exactFrom h 0`, as `deliv`) no event under `rng` happened from the
+consumer's position up to `p`. -/
 def quiet (h : KVHist) (rng : KeyRange) (pos : Option Int) (p : Nat) : Prop :=
-  p ≤ h.rev ∧ ∀ a, pos = some a → evsBetween h rng a p = []
+  p ≤ h.rev ∧ (EtcdModel.exactFrom h 0 → ∀ a, pos = some a → evsBetween h rng a p = [])
 
 /-! ## The cache's request validation -/
 
@@ -174,7 +205,9 @@ def watchUnsupported (o : OpM) : Prop :=
   o.filterDelete = true
 
 /-- **The range a cache request names**: the key argument (not the `Op`'s key, which `WithPrefix`
-and `WithFromKey` rewrite for an empty key) and the `Op`'s range end. -/
+and `WithFromKey` rewrite for an empty key) and the `Op`'s range end. Unlike the client's request
+(W0's `OpM.endReq`: a non-`nil` empty end is `"\x00"`), the cache reads a `nil` and a non-`nil`
+empty end alike, as one key (`validateRange`, `snapshot.Range`: `len(endKey) == 0`). -/
 def cacheRange (key : GoString) (o : OpM) : KeyRange :=
   { key := key, rangeEnd := o.rangeEnd.getD [] }
 
@@ -246,18 +279,21 @@ def kvMatches (e : RevEvent) (m : KeyValueM) : Prop :=
   | .put k r => m = KeyValueM.ofKV (KV.ofRec k r) ∧ r.modRev = e.rev
   | .delete k => m.key = k ∧ m.modRevision = W64 e.rev
 
-/-- The `mvccpb.Event_EventType` of an event (`PUT = 0`, `DELETE = 1`). -/
-def evType (e : RevEvent) : w32 :=
+/-- Whether an event is a delete (`mvccpb.Event_EventType` `DELETE`). -/
+def RevEvent.del (e : RevEvent) : Bool :=
   match e.ev with
-  | .put _ _ => W32 0
-  | .delete _ => W32 1
+  | .put _ _ => false
+  | .delete _ => true
 
-open go_etcd_io.etcd.api.v3 in
-/-- **A `*mvccpb.Event` holding the event `e`**, read-only (persistent). -/
+/-- **A `*mvccpb.Event` holding the event `e`**, read-only: W0's message predicate
+`EtcdWire.eventOwn` (`api/v3/Wire.lean`, unfolded by `eventOwn_unfold`) at `DFrac.discard`, with no
+`PrevKv` (the cache rejects `WithPrevKV` and watches without it). The cache's events are its
+upstream watch's messages, made read-only (1b's `watchRespAt_persist`) and shared among its
+watchers and store. Persistent once W0's messages at `DFrac.discard` are (requested of W0 at
+integration: a `*Own_discard_persistent` law in `Wire.lean`). -/
 def eventOwn (p : Loc) (e : RevEvent) : IProp GF :=
-  iprop(∃ (kvp : Loc) (m : KeyValueM), protoRest mvccpb.Event p DFrac.discard ∗
-    p.[mvccpb.Event, go!"Type"] ↦□ evType e ∗ p.[mvccpb.Event, go!"Kv"] ↦□ kvp ∗
-    keyValueOwn kvp DFrac.discard m ∗ ⌜kvMatches e m⌝)
+  iprop(∃ m : EventM, EtcdWire.eventOwn p DFrac.discard m ∗
+    ⌜m.del = e.del ∧ m.prevKv = none ∧ kvMatches e m.kv⌝)
 
 /-- A read-only slice of `*mvccpb.Event`s holding `evs`, in order. -/
 def eventsAt (sl : GoSlice) (evs : List RevEvent) : IProp GF :=
@@ -288,7 +324,8 @@ opaque cacheWatchAt (ch : Loc) (γ : Cluster) (rng : KeyRange) (st : WatchSt) : 
 /-- **What a successful `Get` returns**: the response (read-only: its key-values are the cache's),
 the latest revision `L` as its header's, the answer at the revision asked for (`rr`, or `L` for `0`)
 restricted to the range, at a state the cluster reached, fresher than the anchors `σ0` (if
-linearizable) and `r0`. -/
+linearizable) and `r0`. The content holds under the compaction condition `exactFrom σ.kv 0` (as
+`deliv`: the snapshots are built from the upstream watch's events). -/
 def getOk (c : Loc) (γ : Cluster) (rng : KeyRange) (o : OpM) (σ0 : State) (r0 : Nat)
     (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop(∃ (L : Nat) (kvs : List KV) (σ : State),
@@ -296,7 +333,8 @@ def getOk (c : Loc) (γ : Cluster) (rng : KeyRange) (o : OpM) (σ0 : State) (r0 
     cacheRevLb c L ∗
     ⌜0 ≤ sint.Z o.rev ∧ sint.Z o.rev ≤ L ∧ r0 ≤ L ∧ L ≤ σ.kv.rev ∧
       (o.serializable = false → σ0.kv.rev ≤ L) ∧
-      Store.rangeKVs (σ.kv.storeAt (if sint.Z o.rev = 0 then L else (sint.Z o.rev).toNat)) rng kvs⌝)
+      (EtcdModel.exactFrom σ.kv 0 →
+        Store.rangeKVs (σ.kv.storeAt (if sint.Z o.rev = 0 then L else (sint.Z o.rev).toNat)) rng kvs)⌝)
 
 /-- **`errors.Is(err, e)` holds**: `err` is `e`, or wraps it (`fmt.Errorf("%w: ...", e)`)
 (persistent). -/

@@ -6,9 +6,10 @@ matched `evs` in order (greedily), and return the last matching event; an error 
 **Users**: `WaitEvents`, `WaitPrefixEvents`. Internal.
 
 **Proof sketch**: a loop over receives (`chan.forRange`) carrying 1b's `watchChAt wc γ who w p`, the
-events `es` received so far and `i = matchCount ts es`, with: `p.done = some c` and `es` exactly
-`watchEvents w σ.kv rev c` for the latest response's `etcdLb γ σ` (`etcdLb_ord`: the history only
-grows, so earlier responses' events stay `σ`'s). `watchChAt_recv` (1b) gives the channel closed
+events `es` received so far and `i = matchCount ts es`, with: `p.done = some c` and, under `exactFrom σ.kv rev`,
+`es` exactly `watchEvents w σ.kv rev c` for the latest response's `etcdLb γ σ` (`etcdLb_ord`: the
+history only grows, so earlier responses' events stay `σ`'s, and the condition at `σ` implies it at
+the earlier responses' states, whose `watchStep` gives their events under it from `lo = c + 1 ≥ rev`). `watchChAt_recv` (1b) gives the channel closed
 (return `ErrWatchClosed`: `init.spec`) or a response `m` with `watchStep`: `WatchResponse.Err.spec`
 (1b) on the response's copy, with `watchRespAt_fields`' `closeErrOk`, returns `callErr err ck`,
 `errVal .compacted`/`.futureRev`, or a `callErr` (all `recipeErrOk`) for an error response, `nil`
@@ -28,6 +29,11 @@ never to close (the fixed bug); round 1 used a slot of its own; now 1b's `watchC
 from a revision `rev > 0`.
 
 **Margin**: the events of the responses after the match are not reported (the code drops them).
+
+**Integration (I1)**: the prefix claim (`es ++ [e]` a prefix of `watchEvents`) is gated by the compaction condition `exactFrom σ.kv rev` (W0's
+`EtcdModel.exactFrom`): 1b's `watchStep` gives a response's events (and a progress's emptiness) only
+under it, so the facts this call learns from a watch hold only under it; the condition at the last
+response's state implies it at every earlier one (the history only grows, compaction only rises). The weakest condition the watches need: they start at or after that revision.
 -/
 module
 
@@ -61,7 +67,7 @@ def waitEvents.spec : Prop :=
   {{ (ev : Loc) (err : GoInterface), RET (PairV #ev #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (es : List WEv) (e : WEv) (m : EventM) (σ : State),
         eventOwn ev (DFrac.own 1) m ∗ etcdLb γ σ ∗
-        ⌜m.del = e.del ∧ m.kv = e.kv ∧ es ++ [e] <+: watchEvents w σ.kv rev σ.kv.rev ∧
+        ⌜m.del = e.del ∧ m.kv = e.kv ∧ (EtcdModel.exactFrom σ.kv rev → es ++ [e] <+: watchEvents w σ.kv rev σ.kv.rev) ∧
           matchCount ts es < ts.length ∧ matchCount ts (es ++ [e]) = ts.length⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ ev = null⌝ ∗ recipeErrOk err) }}
 

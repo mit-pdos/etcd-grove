@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 def batchTxBuffered.UnsafeForEach.spec : Prop :=
   ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (bk : GoInterface) (bi : BktInfo) (vis : GoFunc)
     (P : List (GoString × GoString) → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bucketOk bk bi ∗ visitOk vis P ∗ P [] }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bkt γ bk bi ∗ visitOk vis P ∗ P [] }}
     (App (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"UnsafeForEach")) (Val #bk)) (Val #vis))
   {{ (err : GoInterface), RET #err; beSess γ q F S ∗ ∃ l, ⌜btOrder (S.cur.ents bi.name) l⌝ ∗
       ((⌜err = interface.nil⌝ ∗ P l) ∨ (⌜err ≠ interface.nil⌝ ∗ ∃ j, P (l.take j))) }}

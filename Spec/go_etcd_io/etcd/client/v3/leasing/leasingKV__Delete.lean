@@ -7,7 +7,8 @@ the proxy goes through `Do`. Snippets: `leasing/writes.go` (`ReqDeleteRange`), `
 (`UnmetDeleteRangePrevKV`).
 
 Proof sketch: `OpDelete.spec` (W0; `¬ prefixAndFromKey gs`, `¬ deletePanics`) builds `opAt op
-(opDeleteM key gs)`; then `leasingKV.delete.spec` at that `op`.
+(opDeleteM key gs)`; then `leasingKV.delete.spec` at that `op`, the call's principal `p` and `lo = 0` (`authLb γ 0`:
+its first disjunct).
 
 Changes: the old specs (`specs-ref`'s `leasingKV__*.lean`) took the old client's
 contracts at prefix `[]` (`isEtcdKV`, `isEtcdTxnKVO`), a revision certificate `etcdReached lo`, a

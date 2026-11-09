@@ -6,9 +6,14 @@ readers' wait group), `snapshot.Close` (`backend.go:1132`), defrag (`:807, 816, 
 975`), `View` and `Update`. Snippets: `ReqBackendRead`, `ReqSnapshot`.
 
 **Proof sketch.** Read: `removeTx` (under `mmaplock`'s read side: the slot returned to the pool,
-hence the caller's `threadTok`; the transaction unregistered under `metalock`). Write: 4d's
-`freelist.Rollback(txid)` (the pages this transaction allocated return to free), `close` (`rwlock`
-released). The committed state is unchanged (no update).
+hence the caller's `threadTok`; the transaction unregistered under `metalock`: 4d's
+`RemoveReadonlyTXID`, `R.erase txid`, which keeps `readersOk`). Write: 4d's
+`freelist.Rollback(txid)` (`canRollback` from `boltTx`'s invariant, `Internal.lean`, "The
+freelist's side"; `FLState.rollback`: the pages it freed are no longer pending, back in the
+committed tree, and its allocations are forgotten: **not** returned to free, the pages it allocated
+are leaked until the freelist is next reloaded, which only costs space; free pages are unchanged,
+so the reload invariant holds), `close` (`rwlock` released). The committed state is unchanged (no
+update).
 
 A finished transaction (round 1, C5): `tx.managed` and `tx.db` read through `txDone`'s share
 (`close` set `db = nil`): `ErrTxClosed`.

@@ -1,5 +1,5 @@
 /-
-`(*watchGRPCStream).recordBufWait(ws)`: records the wait (`blockLogger.recordWait`, 1c) and resets it (`ws.bufLogger`, `ws.bufWaitStartTime`: in `wsOwn`). Users: `serveSubstream`.
+`(*watchGRPCStream).recordBufWait(ws)`: records the wait (`blockLogger.recordWait.spec`) and resets it (`ws.bufLogger`, `ws.bufWaitStartTime`: in `wsOwn`). Users: `serveSubstream`.
 Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
 name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
 **Margin**: mirrors the code.

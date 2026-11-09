@@ -98,11 +98,13 @@ def ctxOk_of_isContext.spec : Prop :=
 def ctxOk_background.spec : Prop :=
   ⊢ ctxOk (GF := GF) (GoInterface.ok context.backgroundCtxVal)
 
-/-- `TODO()` returns a context, never done. -/
+/-- `TODO()` returns a context, never done: Perennial's `todoCtxVal` (named, so that a fact stated at
+that value applies: 4b's `ctxTraceIs_todo`, `OtelTrace.ctxSpanOk_todo`). -/
 def TODO.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
     (App (Val (@! context.TODO)) (Val #()))
-  {{ (ctx : GoInterface), RET #ctx; ctxOk ctx ∗ □ (ctxDone ctx -∗ False) }}
+  {{ (ctx : GoInterface), RET #ctx; ⌜ctx = GoInterface.ok context.todoCtxVal⌝ ∗ ctxOk ctx ∗
+      □ (ctxDone ctx -∗ False) }}
 
 /-- `Background()` is never done (its `Done()` is `nil`). -/
 def ctxDone_background.spec : Prop :=
@@ -112,7 +114,7 @@ def ctxDone_background.spec : Prop :=
 def Background.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
     (App (Val (@! context.Background)) (Val #()))
-  {{ (ctx : GoInterface), RET #ctx; ctxOk ctx }}
+  {{ (ctx : GoInterface), RET #ctx; ⌜ctx = GoInterface.ok context.backgroundCtxVal⌝ ∗ ctxOk ctx }}
 
 /-- **`ctx'` is a child of `ctx`** (persistent): made by `WithCancel`, `WithTimeout` or
 `WithDeadline` over `ctx`: it carries exactly `ctx`'s values (a request's metadata among them) and

@@ -3,12 +3,12 @@
 
 **Users**: `newUniqueEphemeralKV`. Internal.
 
-**Proof sketch**: `s.Client()`, `s.Lease()` (1d's `Session.Client`, `Session.Lease` over `sessionAt`:
-`isClient c γ who`, the lease `id`); `isClient_KV` (W0) the `KV` field; `newKV.spec` with the caller's
+**Proof sketch**: `s.Client()`, `s.Lease()` (1d's `Session.Client`, `Session.Lease` over `isSession s c γ id`:
+the client `c`, whose `isClient c γ who` the caller gives, and the lease `id`); `isClient_KV` (W0) the `KV` field; `newKV.spec` with the caller's
 update; wrap the `RemoteKV` (copied into the `EphemeralKV`: `ekOwn`).
 
-**Changes**: old spec took `concurrency.isSession` and the recipes' client invariant; now `sessionAt`
-(1d's slot) and the caller's update.
+**Changes**: old spec took `concurrency.isSession` and the recipes' client invariant; now 1d's `isSession s c γ id`
+with the client's `isClient c γ who` and the caller's update (integration: was a slot).
 
 **Margin**: none.
 -/
@@ -36,9 +36,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 
 /-- **`newEphemeralKV(s, key, val)`**: `putNewKV` with the session's lease, linearized by the caller's update, and on success the `EphemeralKV`. -/
 def newEphemeralKV.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (who : Principal) (id : w64) (key val : GoString)
+  ∀ (s c : Loc) (γ : Cluster) (who : Principal) (id : w64) (key val : GoString)
     (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ sessionAt s γ who id ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ Concurrency.isSession s c γ id ∗ isClient c γ who ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
              ⌜Step who (putNewReq key val (sint.Z id)) σ σ' res⌝ ∗ etcdState γ σ',

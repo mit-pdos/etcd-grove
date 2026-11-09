@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `monitorLease(ctx, key, rev)`: runs until it rescinds or the KV's context is done. -/
 def leasingKV.monitorLease.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (key : GoString) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ threadTok }}
+  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (key : GoString) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ threadTok }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"monitorLease")) (Val #ctx)) (Val #key)) (Val #rev))
   {{ RET #(); threadTok }}
 

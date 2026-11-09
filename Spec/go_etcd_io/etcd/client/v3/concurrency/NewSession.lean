@@ -10,9 +10,9 @@ session per monitor round, in a loop, its `Done()` awaited), `server/proxy/grpcp
 (`tests/integration/clientv3/concurrency/session_test.go`). Snippets: `concurrency/session.go` (`ReqSessionLease`, `ReqSessionResumeLease`,
 `ReqSessionDone`, `ReqSessionTTL`, `ReqSessionLoop`).
 
-Proof sketch: `Client.GetLogger.spec`, `Client.Ctx.spec` (1c: `isLogger`; the client's context,
-`ctxOk` and `ctxPrin` of some principal the client is a client as: `req/go_etcd_io_etcd_client_v3.md`,
-"from 1d"); `sessOptAt_call` per option (the options' struct, a fresh allocation); if the options
+Proof sketch: `Client.GetLogger.spec`, `Client.Ctx.spec` (1c, over `clientBase c dflt`, from
+`clientRest` by `clientRest_core`, `clientCore_pre`, `clientPre_base`: `isLogger`; the client's
+context, `ctxOk` and `ctxPrin dflt ctx dflt`); `sessOptAt_call` per option (the options' struct, a fresh allocation); if the options
 name no lease, the `Lease` field's `Grant(ctx, ttl)` (`clientRest_fields`' `leaseAt`, 1c's
 `Lease.methods`: a repeatable call, so a persistent update, built from `etcdPerm γ T`: a grant's
 step is `grantEff`, a refusal or an error no change; `etcdLb_reach` inside it orders the state after
@@ -30,7 +30,10 @@ old `isEtcdSessionClient`), any context (`ctxOk`, not only a cancelable Perennia
 granted is stated as a model fact (`etcdLb` of a state after the caller's `σ0` where it is live)
 instead of the old `sessionLeaseOk`; the grant's effect through W0's `etcdPerm` (persistent: the
 grant is retried with the repeatable policy, so it may apply more than once); `isSession` names the
-client. Round 1: no thread token; the client named; `σ0`.
+client. Round 1: no thread token; the client named; `σ0`. Integration (I1): over W0's `clientRest` (was `isClient`, which
+gives it by `isClient_rest`): the gRPC proxy's leasing KV makes sessions after overwriting
+`client.KV` (`req/go_etcd_io_etcd_client_v3_concurrency.md`, "from 1e (round 1)"); `NewSession`
+never reads `KV`.
 
 Margin: the code also guarantees the lease's TTL is the one granted (at least the options'); not
 stated. Nothing about the lease's liveness after the grant: time is not modelled.
@@ -63,7 +66,7 @@ error. The options' context (the client's if none) must be a context of the prin
 def NewSession.spec : Prop :=
   ∀ (c : Loc) (γ : Cluster) (dflt who : Principal) (sl : GoSlice) (gs : List (SessOpts → SessOpts))
     (T : State → State → Prop) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ dflt ∗ sessOptsAt sl gs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ clientRest c γ dflt ∗ sessOptsAt sl gs ∗
       optCtxOk (applySessOptsM gs SessOpts.init).ctx dflt who ∗ etcdLb γ σ0 ∗ etcdPerm γ T ∗
       ⌜effIn (fun σ σ' => readEff σ σ' ∨ ((applySessOptsM gs SessOpts.init).leaseID = W64 0 ∧
           grantEff (sint.Z (applySessOptsM gs SessOpts.init).ttl) σ σ')) T⌝ }}

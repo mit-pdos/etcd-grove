@@ -39,7 +39,7 @@ def NewKVFromKVClient.spec : Prop :=
       (⌜c = null⌝ ∨ ∃ (γ' : Cluster) (who' : Principal), clientConnOk c γ' who') }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.NewKVFromKVClient)) (Val #remote)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ kv : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #kv⌝ ∗ kvHandle kv γ who }}
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #kv⌝ ∗ kvHandle kv null γ who }}
 
 end spec
 

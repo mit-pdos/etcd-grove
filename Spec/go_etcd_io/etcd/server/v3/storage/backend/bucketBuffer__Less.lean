@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **`bb.Less(i, j)`**: key `i` below key `j`. -/
 def bucketBuffer.Less.spec : Prop :=
-  ∀ (bb : Loc) (l : List (GoString × GoString)) (i j : w64) (x y : GoString × GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l ∗ ⌜l[sint.nat i]? = some x ∧ l[sint.nat j]? = some y ∧ 0 ≤ sint.Z i ∧ 0 ≤ sint.Z j⌝ }}
+  ∀ (bb : Loc) (l : List (GoString × GoString)) (w : Bool) (i j : w64) (x y : GoString × GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l w ∗ ⌜l[sint.nat i]? = some x ∧ l[sint.nat j]? = some y ∧ 0 ≤ sint.Z i ∧ 0 ≤ sint.Z j⌝ }}
     (App (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"Less")) (Val #i)) (Val #j))
-  {{ (r : Bool), RET #r; bbAt bb l ∗ ⌜r = true ↔ go.GoStringLt x.1 y.1⌝ }}
+  {{ (r : Bool), RET #r; bbAt bb l w ∗ ⌜r = true ↔ go.GoStringLt x.1 y.1⌝ }}
 
 end spec
 

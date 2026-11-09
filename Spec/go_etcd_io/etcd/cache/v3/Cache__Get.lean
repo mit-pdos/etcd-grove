@@ -17,7 +17,7 @@ Proof sketch: `store.LatestRev.spec` (`storeRevLb`); if `0`, `Cache.WaitReady.sp
 (W0; `¬ prefixAndFromKey gs`) gives `opAt op (opGetM key gs)`; `Cache.validateGet.spec`
 (`getUnsupported`, `rangeOk` on `cacheRange key o`: the error arm, `ErrKeyRangeInvalid`'s value from
 `init.spec`). The `Op`'s getters (`RangeBytes`, `Rev`, `IsSerializable`: W0's `Op__*` specs). If not
-serializable: `Cache.serverRevision.spec` gives `etcdLb γ σ1` with `serverRev = σ1.kv.rev` and
+serializable: `Cache.serverRevision.spec` (at the caller's principal `p`) gives `etcdLb γ σ1` with `serverRev = σ1.kv.rev` and
 `Reach σ0 σ1` (`etcdLb_ord` against the caller's `σ0`, which the cluster passed before the call: the
 client's update fires after it); `requestedRev > serverRev` is `ErrFutureRev`
 (`errVal .futureRev`, an error arm); `Cache.waitTillRevision.spec` gives `storeRevLb s serverRev` or an
@@ -25,7 +25,10 @@ error. Then `store.Get.spec` at `startKey = key`, `endKey = o.rangeEnd`, `rev = 
 newest at or below the revision asked for, whose content is `σ.kv.storeAt` of that revision under
 the prefix (the store's certificate: each snapshot is etcd's state under the prefix at its revision,
 and the gap after it quiet, `Internal.lean`'s `isStore`), restricted to the range (`snapshot.Range.spec`;
-`rangeOk` puts the range inside the prefix), and the latest revision `L ≥ serverRev ≥ σ0.kv.rev`
+`rangeOk` puts the range inside the prefix; the content only under `exactFrom σ.kv 0`, the snapshots
+being built from the upstream watch's events, which 1b's `watchStep` states exact only under it: `σ`
+chosen as the latest of the states the store's facts name, `etcdLb_ord`, the condition at a later
+state giving it at the earlier ones), and the latest revision `L ≥ serverRev ≥ σ0.kv.rev`
 (and `≥ r0`, `storeRevLb` monotone). The response is a fresh `RangeResponse` whose key-values are the
 snapshot's (read-only), `rangeRespOwn ... DFrac.discard`.
 
@@ -41,7 +44,7 @@ Perennial's `RWMutex`, as leasing's reads); `ErrUnsupportedRequest` stated (`wra
 (`cacheReader`, given back) replaced by the thread token (the snapshots are frozen, `ownBTree_persist`, and
 read outside the lock; the lock's reader slots are what the token pays for); the old `storeRevLb` premise is the
 client-facing `cacheRevLb c r0`; the linearizable freshness is anchored at a state the caller passes
-(`etcdLb γ σ0`), as 1f's waiting calls do; the context must carry the cache client's principal (`ctxPrin ctx who`, W0's premise of the client's `Get`, to which the cache passes it); the error arms are not classified beyond what callers test
+(`etcdLb γ σ0`), as 1f's waiting calls do; the context names some principal `p` for the cache's client (`ctxPrin who ctx p`, W0's round-3 premise of the client's `Get`, to which the cache passes it; integration I1: was `ctxPrin ctx who`); the error arms are not classified beyond what callers test
 (the range check, by value).
 
 Margin: the code's errors are, besides the range check, the context's, the client's (any `Get`
@@ -79,9 +82,9 @@ revision `L` as the header's, and the key-values of etcd's store at the revision
 `0`) in the range, at a state the cluster reached; at least as fresh as `σ0` (a state the caller knew
 at the call) unless serializable, and at least `r0` (a revision the caller knew the cache reached). -/
 def Cache.Get.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (ctx : GoInterface) (key : GoString) (opts : GoSlice)
+  ∀ (c : Loc) (γ : Cluster) (who p : Principal) (pfx : GoString) (ctx : GoInterface) (key : GoString) (opts : GoSlice)
     (gs : List (OpM → OpM)) (σ0 : State) (r0 : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
       optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗ etcdLb γ σ0 ∗ cacheRevLb c r0 ∗ threadTok }}
     (App (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"Get")) (Val #ctx)) (Val #key)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); optsAt opts gs ∗ threadTok ∗

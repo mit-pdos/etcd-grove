@@ -138,6 +138,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.Api
 public import Spec.go_etcd_io.etcd.server.v3.auth.Api
+public import Spec.go_etcd_io.etcd.server.v3.lease.Api
 public import Spec.go_uber_org.zap.Api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.apply
@@ -184,9 +185,10 @@ inductive AlarmAct where
 inductive IrrOp where
   /-- one of W0's client requests that go through raft (`reqIsIrr`) -/
   | req (rq : Req)
-  /-- `AuthUserAdd` with the request path's hash of the password (`HashedPassword`) -/
+  /-- `AuthUserAdd` with the stored credential the request path computed (`HashedPassword` is its
+  base64, `Auth.b64 hash`; W0's `pwHash pw hash` of the client's password, `IrrOp.ok`) -/
   | userAdd (name : GoString) (hash : Bytes) (noPassword : Bool)
-  /-- `AuthUserChangePassword` with the hash -/
+  /-- `AuthUserChangePassword` with the credential -/
   | userChangePassword (name : GoString) (hash : Bytes)
   /-- `Authenticate` (`InternalAuthenticateRequest`): a token for `name` (the password the request
   path checked, unused by the apply), its simple-token prefix -/
@@ -332,12 +334,21 @@ def preErr (a : AuthState) (u : GoString) (rev : Nat) : Option EtcdErr :=
   else if a.users u = none then some .permissionDenied
   else none
 
-/-- `isOpPermitted` (`IsRangePermitted`, `IsPutPermitted`, `IsDeleteRangePermitted`). -/
+/-- (provisional, 3d's) **The permission cache built from `a` refuses `u`'s operation `t` on the
+inverted range `rng`** (`checkKeyInterval`: `adt`'s `Contains` of an empty interval, a function of
+the cache that the model leaves open: W0's `State.invertedDeny` allows either answer). 3d's
+`checkPost` is asked to report it exactly at the cache's state (`notes/specs-only/integration-I5.md`). -/
+opaque invRefused (a : AuthState) (u : GoString) (t : PermType) (rng : KeyRange) : Prop
+
+/-- `isOpPermitted` (`IsRangePermitted`, `IsPutPermitted`, `IsDeleteRangePermitted`): an inverted
+range (`Auth.rngInverted`: W0's `KeyRange.inverted` with a non-empty key) passes or not as the cache
+answers (`invRefused`); W0's `State.invertedDeny` admits the refusal. -/
 def opErr (a : AuthState) (u : GoString) (rev : Nat) (t : PermType) (rng : KeyRange) :
     Option EtcdErr :=
   match preErr a u rev with
   | some e => some e
-  | none => if a.enabled = false ∨ a.isRoot u ∨ (a.covers u t rng ∧ ¬ Auth.rngInverted rng) then none
+  | none => if a.enabled = false ∨ a.isRoot u ∨
+                (a.covers u t rng ∧ (Auth.rngInverted rng → ¬ invRefused a u t rng)) then none
             else some .permissionDenied
 
 /-- `checkLeasePuts`: nothing for a lease the lessor does not have or an administrator; else each
@@ -484,11 +495,6 @@ def applyStep (mc : MemberCfg) (σ : State) (e : Raft.LogEntry) (σ' : State) (r
 
 /-! ## Admission and the panic-free requests -/
 
-/-- (provisional, 3d's) **An auth record the store can write**: the user and role names and the
-user record fit bbolt's key and value limits (`issues/etcd-auth-useradd-long-name-fatal.md`: a
-longer name makes the backend exit). -/
-opaque authRecordFits (op : IrrOp) : Prop
-
 /-- (provisional, 2e's: membership and `version`) **A cluster version every member's apply
 accepts**: `semver.MustParse` parses it, and the member's binary is not older
 (`MustDetectDowngrade`). -/
@@ -510,14 +516,18 @@ def reqAdmitted : Req → Prop
   | .leaseGrant id _ => id ≠ 0
   | _ => True
 
-/-- **The requests a member applies without panicking** (with `irrDecodes` and `Irr.hasId`): an
-admitted client request, records that fit, an alarm action on a known type (`AlarmStore.Activate`
-of another type is outside the model), a cluster version the members accept. A member's
+/-- **The requests a member applies without panicking** (with `irrDecodes` and `Irr.hasId`), as
+the request path proposes them: an admitted client request, a user's credential that is a hash of
+some password (W0's `pwHash`: the proposer hashed the client's password; what makes the stored
+credential W0's, `Auth.storeNext_adm`), an alarm action on a known type (`AlarmStore.Activate` of
+another type is outside the model), a cluster version the members accept. The auth records' fit
+(3d's `Auth.recordsFit`) is a fact of the next state: the apply thread's `nextOk`. A member's
 attributes need the member known: the caller's `memberUpd`. -/
 def IrrOp.ok (op : IrrOp) : Prop :=
   match op with
-  | .req rq => reqIsIrr rq = true ∧ reqAdmitted rq ∧ authRecordFits op
-  | .userAdd .. | .userChangePassword .. => authRecordFits op
+  | .req rq => reqIsIrr rq = true ∧ reqAdmitted rq
+  | .userAdd _ h np => np = false → ∃ pw, pwHash pw h
+  | .userChangePassword _ h => ∃ pw, pwHash pw h
   | .alarm .activate m at' => m < 2 ^ 64 ∧ (at' = W32 0 ∨ V3alarm.kindOf at' ≠ none)
   | .alarm _ m _ => m < 2 ^ 64
   | .clusterVersionSet ver => clusterVerOk ver
@@ -527,17 +537,6 @@ def IrrOp.ok (op : IrrOp) : Prop :=
 pure facts the refinement laws need follow from it (lease `0` never live, no key naming a dead
 lease, no user with the empty name). -/
 def reachable (σ : State) : Prop := ∃ ms : List Member, Reach (State.init ms) σ
-
-/-- **No inverted range among a request's checks** (`Auth.rngInverted`): Go's permission cache
-refuses an inverted range that W0's `covers` holds vacuously (W0 is asked to align:
-`req/go_etcd_io_etcd_api_v3.md`, "from 3a (round 1)"); until then the refinement law excludes it. -/
-def checksSane (op : IrrOp) : Prop :=
-  match op with
-  | .req (.range r) => ¬ Auth.rngInverted r.range
-  | .req (.deleteRange d) => ¬ Auth.rngInverted d.range
-  | .req (.txn t) => ∀ k rng, Check.op k rng ∈ RequestOp.checks (RequestOp.txn t.compare t.success t.failure) →
-      ¬ Auth.rngInverted rng
-  | _ => True
 
 /-! ## TTL variants -/
 
@@ -620,20 +619,34 @@ opaque kvOk (kv : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 writer). Exclusive. -/
 opaque kvSt (kv : GoInterface) (h : KVHist) : IProp GF := iprop(True)
 
-/-- (provisional, 3c's) **The lessor `le`**, with minimum TTL `mc.minLeaseTTL`. Persistent. -/
-opaque lessorOk (le : GoInterface) (mc : MemberCfg) : IProp GF := iprop(True)
+/-- **The lessor `le`** (3c's `Lease.isLessor`), with minimum TTL `mc.minLeaseTTL`. Persistent. -/
+def lessorOk (le : GoInterface) (mc : MemberCfg) : IProp GF :=
+  iprop(∃ (p : Loc) (γl : Lease.Names) (c : Lease.Cfg), ⌜le = Lease.lessorIface p ∧
+    c.minTTL = mc.minLeaseTTL⌝ ∗ Lease.isLessor p γl c)
 
-/-- (provisional, 3c's) **`le`'s live leases are `lt`**, each attached to the keys of the store `s`
-that name it. Exclusive. -/
-opaque lessorSt (le : GoInterface) (lt : Int → Option LeaseRec) (s : EtcdModel.Store) : IProp GF :=
-  iprop(True)
+/-- **`le`'s live leases are `lt`, each attached to the keys of the store `s` that name it** (3c's
+writer token `Lease.lessorState`: its table `lt`, its `itemMap` the store's lease fields, each live
+lease's item set its keys). Exclusive. The range deleter's contract (`Lease.rdOk`, for `Revoke`) is
+2d's/3e's, inside `stAt` (`notes/specs-only/integration-I5.md`). -/
+def lessorSt (le : GoInterface) (lt : Int → Option LeaseRec) (s : EtcdModel.Store) : IProp GF :=
+  iprop(∃ (p : Loc) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState),
+    ⌜le = Lease.lessorIface p ∧ ls.table = lt ∧
+      (∀ k, ls.items k = match s k with | some r => r.lease | none => 0) ∧
+      (∀ id e, ls.leases id = some e → ∀ k, ls.keys e.obj k ↔ ls.items k = id)⌝ ∗
+    Lease.isLessor p γl c ∗ Lease.lessorState γl n ls)
 
-/-- (provisional, 3d's) **The auth store `ast`**, its tokens registered in W0's `γ` (`tokenUser`).
-Persistent. -/
-opaque authOk (ast : GoInterface) (γ : Cluster) : IProp GF := iprop(True)
+/-- **The auth store `ast`** (3d's `Auth.authStoreAt`), its tokens registered in W0's `γ`
+(`tokenUser`). Persistent. -/
+def authOk (ast : GoInterface) (γ : Cluster) : IProp GF :=
+  iprop(∃ (st : Loc) (γa : Auth.AuthNames), ⌜ast = interface.mkOk (go.GoType.PointerType
+    go_etcd_io.etcd.server.v3.auth.authStore.ty) #st⌝ ∗ Auth.authStoreAt st γ γa)
 
-/-- (provisional, 3d's) **`ast`'s state is `a`** (the apply thread is its only writer). Exclusive. -/
-opaque authSt (ast : GoInterface) (a : AuthState) : IProp GF := iprop(True)
+/-- **`ast`'s state is `a`** (3d's writer `Auth.authCur`, with the simple provider's token right
+`Auth.tokFrom`: the apply thread is the only writer). Exclusive. -/
+def authSt (ast : GoInterface) (a : AuthState) : IProp GF :=
+  iprop(∃ (st : Loc) (γ : Cluster) (γa : Auth.AuthNames) (i n : Nat), ⌜ast = interface.mkOk
+    (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st⌝ ∗
+    Auth.authStoreAt st γ γa ∗ Auth.authCur γa i a ∗ Auth.tokFrom γa n)
 
 /-- (provisional, 2d's) **The raft status getter `rs`** (the `*EtcdServer`): `MemberID`, `Leader`,
 `Term` safe to call (any answer). Persistent. -/
@@ -647,23 +660,38 @@ opaque snapSrvOk (ss : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 Persistent. -/
 opaque ciOk (ci : GoInterface) (R : IProp GF) : IProp GF := iprop(True)
 
-/-- (provisional, 3d's: 2b's item 2 in `req/go_etcd_io_etcd_server_v3_auth.md`) **The auth store
-`ast`, read concurrently**: each of its reads (`IsAuthEnabled`, `Revision`, a user, a permission) is
-answered at an auth state the cluster `γ` reached (`etcdLb`, `State.authTables`). Persistent. -/
-opaque authRead (ast : GoInterface) (γ : Cluster) : IProp GF := iprop(True)
+/-- (internal) **Permission checks of the auth info `u`, `rev` through the auth store `ast` and
+the lessor `le`, with `A` lent, each reported by `C`**: every check (`isOpPermitted` of an operation's range; for a lease, the
+lessor's `Lookup` and `Keys`, `IsAdminPermitted`, `IsPutPermitted` per key) runs without panicking
+and its answer `err` satisfies `C c err`; a lease's check only if `L`. Persistent. Its two instances
+are laws (`ApiResult.lean`): the apply thread's (`permReads_writer`: `A` the stores at `σ`, `C` the
+exact `checkErr σ`), the request path's (`permReads_reader`: `A` nothing, `C` 3d's `checkPost` from
+a lower bound, no lease checks). -/
+opaque permReads (ast le : GoInterface) (u : GoString) (rev : w64) (A : IProp GF) (L : Bool)
+    (C : Check → GoInterface → IProp GF) : IProp GF := iprop(True)
 
-/-- (provisional, 3c's) **The lessor `le`, read concurrently** (`Lookup`, `Lease.Keys`): any answer
-(no fact of it is used). Persistent. -/
-opaque lessorRead (le : GoInterface) : IProp GF := iprop(True)
+/-- A check of a lease's keys. -/
+def Check.isLease : Check → Bool
+  | .lease _ => true
+  | .op .. => false
 
-/-- (provisional, 3d's and 3c's) **Permission reads of the auth store `ast` and the lessor `le`,
-with `A` lent**: every permission check (`isOpPermitted`, `IsAdminPermitted`, the lessor's `Lookup`
-and `Keys` of a lease) is answered as at some state `σ'` with `S σ'`. Two instances: the apply
-thread's (`S` the one state its stores are at, `A` the stores: exact), the request path's
-(`authRead`, `lessorRead`: `S` the states whose auth state the cluster has had; checks of a lease's
-keys excluded there, `CheckTxnAuth`). -/
-opaque permReads (ast le : GoInterface) (A : IProp GF) (S : State → IProp GF) : IProp GF :=
-  iprop(True)
+/-- (provisional, 2d's) **The apply thread's token index for `Authenticate`** (persistent): under
+the lent `R`, `ConsistentIndex()` answers the index `idx` of the entry being applied, and the
+cluster `γ` issued the simple token `tok ++ "." ++ idx` (decimal) to `name` (`tokenUser`, 2d's: the
+committed entry), `idx` above every `Authenticate` index applied before (3d's `tokFrom`, held in
+`authSt`). What 3d's `Auth.authnCtx` and `Auth.tokFrom` need at `applierV3backend.Authenticate`. -/
+opaque authnIdx (R : IProp GF) (γ : Cluster) (name tok : GoString) : IProp GF := iprop(True)
+
+/-- **The apply thread's facts about the next state** of a step `S` (from 2d's committed entry: the
+history point after it): every state `σ'` the step may move to has its auth state reached by the
+cluster (3d's `Auth.authReached`) and fitting bbolt (3d's `Auth.recordsFit`, a scope restriction:
+`issues/etcd-auth-useradd-long-name-fatal.md`); for a token assignment, its index right
+(`authnIdx`). What 3d's `AdminTriple` and `Authenticate` take. Persistent. -/
+def nextOk (γ : Cluster) (R : IProp GF) (op : IrrOp) (S : State → Prop) : IProp GF :=
+  iprop(□ (∀ σ', ⌜S σ'⌝ -∗ Auth.authReached γ σ'.auth ∗ ⌜Auth.recordsFit σ'.auth⌝) ∗
+    match op with
+    | .authenticate name _ tok => authnIdx R γ name tok
+    | _ => True)
 
 /-- **The options' handles** (`NewUberApplier`'s persistent premise): the logger, mvcc's KV, the
 lessor at `mc`, the auth store registering in `γ`, the membership with view `γc`, the backend for
@@ -743,10 +771,11 @@ def persistent.spec : Prop :=
   (∀ b mc γ γc R, Persistent (beAt (GF := GF) b mc γ γc R)) ∧
   (∀ v ls b aa, Persistent (applierAt (GF := GF) v ls b aa)) ∧
   (∀ p b aa mc γ γc R, Persistent (uberAt (GF := GF) p b aa mc γ γc R)) ∧
-  (∀ kv R, Persistent (kvOk (GF := GF) kv R)) ∧ (∀ le mc, Persistent (lessorOk (GF := GF) le mc)) ∧
-  (∀ ast γ, Persistent (authOk (GF := GF) ast γ)) ∧ (∀ rs, Persistent (statusOk (GF := GF) rs)) ∧
-  (∀ ss R, Persistent (snapSrvOk (GF := GF) ss R)) ∧
-  (∀ ast γ, Persistent (authRead (GF := GF) ast γ)) ∧ (∀ le, Persistent (lessorRead (GF := GF) le)) ∧ (∀ ci R, Persistent (ciOk (GF := GF) ci R)) ∧
+  (∀ kv R, Persistent (kvOk (GF := GF) kv R)) ∧
+  (∀ rs, Persistent (statusOk (GF := GF) rs)) ∧
+  (∀ ss R, Persistent (snapSrvOk (GF := GF) ss R)) ∧ (∀ ci R, Persistent (ciOk (GF := GF) ci R)) ∧
+  (∀ ast le u rev A L C, Persistent (permReads (GF := GF) ast le u rev A L C)) ∧
+  (∀ R γ n t, Persistent (authnIdx (GF := GF) R γ n t)) ∧
   (∀ p ir, Persistent (irrMsgAt (GF := GF) p ir)) ∧
   (∀ p op, Persistent (reqMsgAt (GF := GF) p op))
 
@@ -797,7 +826,7 @@ through (the auth layer passed: `layersErr` none at the chain the alarms select)
 request at a configuration etcd builds. -/
 def opStep_step.spec : Prop :=
   ∀ (mc : MemberCfg) σ (ir : Irr) rq σ' res, mc.ok → ir.op = .req rq → ir.op.ok → reachable σ →
-    checksSane ir.op → (ir.op.needAdmin = true → adminErr σ.auth ir.user = none) →
+    (ir.op.needAdmin = true → adminErr σ.auth ir.user = none) →
     layersErr σ ir.user ir.authRev ir.op (chainLayers σ) = none →
     opStep mc σ (.req rq) σ' res → Step ir.who rq σ σ' res
 
@@ -811,16 +840,20 @@ def opStep_authenticate.spec : Prop :=
       σ.auth.enabled = true ∧ (∃ ur, σ.auth.users name = some ur ∧ ur.password ≠ none) ∧
         res = .ok .authenticate)
 
-/-- A hashed user addition is W0's with the hash stored in the password's place (W0's model is asked
-to keep the stored credential: `req/go_etcd_io_etcd_api_v3.md`, from 3a). -/
+/-- **A user added with the credential `h`** is W0's addition of any password `h` is a hash of
+(W0's round 5: `userAdd` stores some `cred` with `pwHash pw cred`; here `cred = h`), by a caller who
+may make it. -/
 def opStep_userAdd.spec : Prop :=
   ∀ mc σ name h np σ' res, opStep mc σ (.userAdd name h np) σ' res →
-    ∀ who, σ.auth.mayCall who (.userAdd name h np) → authStep who (.userAdd name h np) σ σ' res
+    ∀ pw, (np = false → pwHash pw h) →
+    ∀ who, σ.auth.mayCall who (.userAdd name pw np) → authStep who (.userAdd name pw np) σ σ' res
 
+/-- **A password changed to the credential `h`**: W0's change to any password `h` is a hash of. -/
 def opStep_userChangePassword.spec : Prop :=
   ∀ mc σ name h σ' res, opStep mc σ (.userChangePassword name h) σ' res →
-    ∀ who, σ.auth.mayCall who (.userChangePassword name h) →
-      authStep who (.userChangePassword name h) σ σ' res
+    ∀ pw, pwHash pw h →
+    ∀ who, σ.auth.mayCall who (.userChangePassword name pw) →
+      authStep who (.userChangePassword name pw) σ σ' res
 
 /-- **Two members configured differently, at TTL-variant states, apply alike up to TTLs; with one
 configuration, the same answer** (no answer reads a stored TTL: a grant's is the request's raised
@@ -857,10 +890,9 @@ def applyStep_total.spec : Prop :=
 /-- **A client request's apply is a `Step` of W0's model by its principal**: its refusals
 (`ErrCorrupt`, `ErrNoSpace`, `ErrAuthOldRevision`, `ErrUserEmpty`), its permission errors, its
 operation (2c's commit-time firing), at a reachable state (lease `0` never live, keys name live
-leases, no user `""`), for a request with no inverted range. -/
+leases, no user `""`); an inverted range's refusal is W0's `invertedDeny`. -/
 def irrStep_step.spec : Prop :=
   ∀ (mc : MemberCfg) σ (ir : Irr) rq σ' res, mc.ok → ir.op = .req rq → ir.op.ok → reachable σ →
-    checksSane ir.op →
     irrStep mc σ ir true σ' res → Step ir.who rq σ σ' res
 
 /-- **An alarm action is W0's step**: `GET` of every type (`NONE`) is `alarmList`, `DEACTIVATE`
@@ -885,7 +917,7 @@ request path proposes, at a reachable state, moves to a state reachable from it 
 request's `Step`, possibly with the hash in a password's place; an environment step; or nothing). -/
 def applyStep_reach.spec : Prop :=
   ∀ mc σ (e : Raft.LogEntry) ir σ' res, mc.ok → reachable σ → irrDecodes e.data ir → ir.op.ok →
-    checksSane ir.op → applyStep mc σ e σ' res → Reach σ σ'
+    applyStep mc σ e σ' res → Reach σ σ'
 
 /-- **An alarm activation or a member's publication is an environment step, or nothing.** -/
 def irrStep_env.spec : Prop :=

@@ -6,7 +6,8 @@ Users: the integration tests (`lkv.Put(ctx, "k", "v")`, `WithPrevKV`: `TestLeasi
 (`ReqPutRevision`, `ReqPutError`), `leasing/unmet.go` (`UnmetPutOnce`, `UnmetPutModRevision`).
 
 Proof sketch: `OpPut.spec` (W0; `¬ putPanics`) builds `opAt op (opPutM key val gs)`; then
-`leasingKV.put.spec` at that `op` with the caller's update.
+`leasingKV.put.spec` at that `op` with the caller's update, the call's principal `p` and `lo = 0` (`authLb γ 0`:
+its first disjunct; W0's writes are `Step … 0` too).
 
 Changes: the old specs (`specs-ref`'s `leasingKV__*.lean`) took the old client's
 contracts at prefix `[]` (`isEtcdKV`, `isEtcdTxnKVO`), a revision certificate `etcdReached lo`, a

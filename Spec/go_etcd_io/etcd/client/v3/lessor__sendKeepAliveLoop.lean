@@ -36,8 +36,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `l.sendKeepAliveLoop(stream)`: sends the due keep-alives until the stream or the lessor ends. -/
 def lessor.sendKeepAliveLoop.spec : Prop :=
-  ∀ (l c : Loc) (γ : Cluster) (who : Principal) (sc : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c ∗ kaSendAt sc }}
+  ∀ (l c : Loc) (γ : Cluster) (who : Principal) (sc : GoInterface) (ids : List Int),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c ∗ kaSendAt sc ids }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"sendKeepAliveLoop")) (Val #sc))
   {{ RET #(); True }}
 

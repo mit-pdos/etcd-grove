@@ -1,5 +1,5 @@
 /-
-`(*watchGRPCStream).newWatcherStreamBufLogger(ws, now)`: a `blockLogger` (1c's `newBlockLogger`) whose callback logs `ws`'s fields (`w.lg.Info`, zap). Users: `run` (with `time.Now`).
+`(*watchGRPCStream).newWatcherStreamBufLogger(ws, now)`: a `blockLogger` (`newBlockLogger.spec`) whose callback logs `ws`'s fields (`w.lg.Info`, zap). Users: `run` (with `time.Now`).
 Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
 name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
 **Margin**: mirrors the code.

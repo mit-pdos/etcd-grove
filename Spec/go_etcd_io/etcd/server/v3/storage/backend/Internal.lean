@@ -11,7 +11,8 @@ transactions' plumbing) are written over. No client imports this module: the API
   appended keys do not all follow the old ones), `bbRangeOk` (`bucketBuffer.Range`: the binary
   search over a sorted buffer). A transaction buffer maps a bucket id to its bucket buffer's
   entries (`TxB`).
-* Resources: `bbAt bb l` (a `*bucketBuffer` with used entries `l`, each slice read-only), `txbAt t B`
+* Resources: `bbAt bb l w` (a `*bucketBuffer` with used entries `l`, each slice read-only, `w`:
+  writable), `txbAt t B`
   (a `*txBuffer`'s map), `twbAt t B seq` (a `*txWriteBuffer`: the map and `bucket2seq`), `trbAt t B
   ver` (a `*txReadBuffer`: the map and `bufVersion`); `bt0Loc γ` (the embedded `batchTx` of the
   batch transaction); `btHeld γ` (the batch mutex held: what `lock()` gives with the lock's
@@ -51,12 +52,14 @@ def lastVal (l : List (GoString × GoString)) (k : GoString) : Option GoString :
 def dedupeOk (l l' : List (GoString × GoString)) : Prop :=
   l'.Pairwise (fun a b => go.GoStringLt a.1 b.1) ∧ ∀ x, x ∈ l' ↔ lastVal l x.1 = some x.2
 
-/-- `bucketBuffer.merge`: `new` appended to `old`, deduplicated unless every new key follows the
-old ones. -/
+/-- `bucketBuffer.merge`: `new` appended to `old`; with an empty `old`, that is all; else
+deduplicated unless `old`'s last key is below `new`'s first (the code's test; with an empty `new`,
+the test reads a stale slot and may deduplicate `old`, which changes nothing of a sorted one). -/
 def mergeOk (old new res : List (GoString × GoString)) : Prop :=
-  if old = [] ∨ new = [] then res = old ++ new
-  else if (∀ x ∈ old, ∀ y ∈ new, go.GoStringLt x.1 y.1) then res = old ++ new
-  else dedupeOk (old ++ new) res
+  if old = [] then res = new
+  else match old.getLast?, new.head? with
+    | some x, some y => if go.GoStringLt x.1 y.1 then res = old ++ new else dedupeOk (old ++ new) res
+    | _, _ => res = old ∨ dedupeOk old res
 
 /-- `bucketBuffer.Range` over a sorted buffer: an empty end the key alone, else the entries of
 `[k, e)` up to `limit`. -/
@@ -80,8 +83,9 @@ section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- A `*bucketBuffer` whose used entries are `l` (exclusive). -/
-opaque bbAt (bb : Loc) (l : List (GoString × GoString)) : IProp GF := iprop(True)
+/-- A `*bucketBuffer` whose used entries are `l` (exclusive); `w`: writable (a spare slot, as
+`newBucketBuffer`'s and `add`'s keep; a `CopyUsed` copy has none). -/
+opaque bbAt (bb : Loc) (l : List (GoString × GoString)) (w : Bool) : IProp GF := iprop(True)
 
 /-- A `*txBuffer` whose map holds `B` (exclusive). -/
 opaque txbAt (t : Loc) (B : TxB) : IProp GF := iprop(True)

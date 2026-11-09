@@ -42,7 +42,7 @@ def retryLeaseClient.LeaseKeepAlive.spec : Prop :=
     (App (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
       go!"LeaseKeepAlive")) (Val #ctx)) (Val #opts))
   {{ (sc err : GoInterface), RET (PairV #sc #err);
-      (⌜err = GoInterface.nil⌝ ∗ kaSendAt sc ∗ kaRecvAt sc) ∨
+      (⌜err = GoInterface.nil⌝ ∗ kaSendAt sc [] ∗ kaRecvAt sc) ∨
       (⌜sc = GoInterface.nil⌝ ∗ ∃ k, callErr err k) }}
 
 end spec

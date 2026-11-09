@@ -7,7 +7,7 @@ Snippet: `recipes/doublebarrier.go`.
 **Proof sketch**: `context.TODO()`; allocate; `dbOwn`'s realization.
 
 **Changes**: old `isDoubleBarrier` took `concurrency.isSession` and the recipes' client invariant;
-now `sessionAt` (1d's `isSession`). Any `count` (`count ≤ 0`: every `Enter` is `ErrTooManyClients`).
+now 1d's `isSession s c γ id` with `isClient c γ who` (integration: was a slot). Any `count` (`count ≤ 0`: every `Enter` is `ErrTooManyClients`).
 
 **Margin**: none.
 -/
@@ -35,8 +35,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 
 /-- **`NewDoubleBarrier(s, key, count)`**: a double barrier on `key` for `count` processes, holding no key. -/
 def NewDoubleBarrier.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (who : Principal) (id : w64) (key : GoString) (count : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ sessionAt s γ who id }}
+  ∀ (s c : Loc) (γ : Cluster) (who : Principal) (id : w64) (key : GoString) (count : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ Concurrency.isSession s c γ id ∗ isClient c γ who }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewDoubleBarrier)) (Val #s))
       (Val #key)) (Val #count))
   {{ (b : Loc), RET #b; dbOwn b γ who key count id none }}

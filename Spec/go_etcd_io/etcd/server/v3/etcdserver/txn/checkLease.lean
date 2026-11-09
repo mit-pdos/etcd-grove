@@ -1,7 +1,9 @@
 /-
 `checkLease(lessor, p)` (`put.go`), internal (`Put`, `checkPut`): `lessor.Lookup(p.Lease)` (3c's
-`lessor.Lookup.spec` at `lessorLb γl n`, from the writer's token: answered at the state `n` itself,
-`lessorState_le`, `lessorAt_agree`; `nil` exactly for a lease not live). Old spec: over the lessor's
+`lessor.Lookup.spec` at `lessorLb γl n`, from the writer's token: `lessorState_at` gives
+`lessorAt γl n ls`, `lessorState_reader` lends the reader token `lessorReaders γl 1` Lookup takes;
+answered at the state `n` itself, `lessorState_le`, `lessorAt_agree`; `nil` exactly for a lease not
+live). The lease id: `sint.Z (W64 pm.lease) = pm.lease` by `putReqOwn`'s `int64` field. Old spec: over the lessor's
 owner `L`.
 -/
 module

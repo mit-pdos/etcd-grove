@@ -13,16 +13,22 @@ batches state their own specs over these values (`notes/specs-only/req/go_etcd_i
 carries them (an entry's term, a hard state, a snapshot's metadata, a message) and as `Nat` for
 positions in the model's lists. A log is a list of entries from index 1: entry `i` is `l[i-1]`.
 
-**Two things are opaque here, and owned by other batches**: what a configuration change does to a
-membership (`Membership.applyChange`, confchange's `Changer` as `ApplyConfChange` runs it: R4), and
-which bytes decode to which change (`decodeConfChange`, protobuf's unmarshalling of raftpb's
-`ConfChange`/`ConfChangeV2`: 3h). Both are functions of their arguments (raft's behaviour
-depends on nothing else); their owners make them transparent or give laws; the laws the node API's
-clients need are in `Api.lean` (`Membership.applyChange_*`).
+**Shared with raftpb and confchange** (integration I2). The message models (`LogEntry`,
+`HardState`, `ConfState`, `Snapshot`, `ConfChangeV1`/`ConfChangeSingle`/`ConfChangeV2`/`ConfChangeI`,
+`Msg`), raftpb's enumerations, the wire model (`decodeConfChange`, `bootEntryData`) are raftpb's
+(`raftpb/Model.lean`, batch 3h), re-exported here under their old names (`Raft.LogEntry` is
+`RaftPb.LogEntry`); the configuration (`Membership` with `simple`, `empty`, `ids`, `isJoint`,
+`Valid`) is the tracker's (`tracker/Model.lean`, R4); what a change does (`Membership.applyChange`)
+is defined from confchange's `changeV2` (`confchange/Model.lean`, R4). This module's own helpers
+on raftpb's types (`LogEntry.isConfChange`, `isFiller`, `isEmptyV2`, `Snapshot.isEmpty`,
+`ConfState.Is`) are declared in the `RaftPb` namespace, so that dot notation finds them on the
+shared types.
 -/
 module
 
 public import GeneratedProof.go_etcd_io.raft.v3
+public import Spec.go_etcd_io.raft.v3.raftpb.Model
+public import Spec.go_etcd_io.raft.v3.confchange.Model
 
 set_option autoImplicit false
 
@@ -36,33 +42,15 @@ namespace Raft
 
 open Iris Iris.BI
 
-/-! ## Enumerations (raftpb's values) -/
+/-! ## Enumerations (raftpb's values: `RaftPb.MsgHup`, ...) -/
 
-/-- `raftpb.MessageType`'s values. -/
-def MsgHup : w32 := W32 0
-def MsgBeat : w32 := W32 1
-def MsgProp : w32 := W32 2
-def MsgApp : w32 := W32 3
-def MsgAppResp : w32 := W32 4
-def MsgVote : w32 := W32 5
-def MsgVoteResp : w32 := W32 6
-def MsgSnap : w32 := W32 7
-def MsgHeartbeat : w32 := W32 8
-def MsgHeartbeatResp : w32 := W32 9
-def MsgUnreachable : w32 := W32 10
-def MsgSnapStatus : w32 := W32 11
-def MsgCheckQuorum : w32 := W32 12
-def MsgTransferLeader : w32 := W32 13
-def MsgTimeoutNow : w32 := W32 14
-def MsgReadIndex : w32 := W32 15
-def MsgReadIndexResp : w32 := W32 16
-def MsgPreVote : w32 := W32 17
-def MsgPreVoteResp : w32 := W32 18
-def MsgStorageAppend : w32 := W32 19
-def MsgStorageAppendResp : w32 := W32 20
-def MsgStorageApply : w32 := W32 21
-def MsgStorageApplyResp : w32 := W32 22
-def MsgForgetLeader : w32 := W32 23
+export RaftPb (MsgHup MsgBeat MsgProp MsgApp MsgAppResp MsgVote MsgVoteResp MsgSnap MsgHeartbeat
+  MsgHeartbeatResp MsgUnreachable MsgSnapStatus MsgCheckQuorum MsgTransferLeader MsgTimeoutNow
+  MsgReadIndex MsgReadIndexResp MsgPreVote MsgPreVoteResp MsgStorageAppend MsgStorageAppendResp
+  MsgStorageApply MsgStorageApplyResp MsgForgetLeader
+  EntryNormal EntryConfChange EntryConfChangeV2
+  ConfChangeAddNode ConfChangeRemoveNode ConfChangeUpdateNode ConfChangeAddLearnerNode
+  ConfChangeTransitionAuto ConfChangeTransitionJointImplicit ConfChangeTransitionJointExplicit)
 
 /-- The message types `IsLocalMsg` reports: generated and consumed inside a node, never sent. -/
 def isLocalMsgType (t : w32) : Bool :=
@@ -79,22 +67,11 @@ def isResponseMsgType (t : w32) : Bool :=
 def isLocalTarget (id : w64) : Bool :=
   decide (id ∈ [W64 (2 ^ 64 - 1), W64 (2 ^ 64 - 2)])
 
-/-- `raftpb.EntryType`'s values. -/
-def EntryNormal : w32 := W32 0
-def EntryConfChange : w32 := W32 1
-def EntryConfChangeV2 : w32 := W32 2
-
 /-- `raft.StateType`'s values (a `SoftState`'s role). -/
 def StateFollower : w64 := W64 0
 def StateCandidate : w64 := W64 1
 def StateLeader : w64 := W64 2
 def StatePreCandidate : w64 := W64 3
-
-/-- `raftpb.ConfChangeType`'s values. -/
-def ConfChangeAddNode : w32 := W32 0
-def ConfChangeRemoveNode : w32 := W32 1
-def ConfChangeUpdateNode : w32 := W32 2
-def ConfChangeAddLearnerNode : w32 := W32 3
 
 /-- `raft.SnapshotStatus`'s values. -/
 def SnapshotFinish : w64 := W64 1
@@ -102,12 +79,14 @@ def SnapshotFailure : w64 := W64 2
 
 /-! ## Entries and logs -/
 
-/-- A log entry without its index (the index is its position in the log). -/
-structure LogEntry where
-  term : w64
-  type : w32
-  data : List w8
-deriving DecidableEq
+/- A log entry without its index (the index is its position in the log): raftpb's. -/
+export RaftPb (LogEntry)
+
+end Raft
+
+/-! ### This module's helpers on raftpb's types (in `RaftPb`'s namespace, for dot notation) -/
+
+namespace RaftPb
 
 /-- A configuration-change entry (`EntryConfChange` or `EntryConfChangeV2`). -/
 def LogEntry.isConfChange (e : LogEntry) : Prop :=
@@ -123,6 +102,18 @@ instance (e : LogEntry) : Decidable e.isFiller := by unfold LogEntry.isFiller; i
 instance (e : LogEntry) : Decidable e.isEmptyV2 := by unfold LogEntry.isEmptyV2; infer_instance
 instance (e : LogEntry) : Decidable e.isConfChange := by unfold LogEntry.isConfChange; infer_instance
 
+/-- The empty snapshot (`IsEmptySnap`: index `0`). -/
+def Snapshot.isEmpty (s : Snapshot) : Prop := s.index = W64 0
+
+/-- **A Go `ConfState` lists configuration `m`** (each list in any order, without repetition;
+the auto-leave flag): confchange's `Lists` of its five fields. -/
+def ConfState.Is (cs : ConfState) (m : Tracker.Membership) : Prop :=
+  ConfChange.Lists cs.voters cs.learners cs.votersOutgoing cs.learnersNext cs.autoLeave m
+
+end RaftPb
+
+namespace Raft
+
 /-- **The operations of a log**: the entries a client proposed, without the ones raft adds itself
 (a leader's filler, the auto-leave entry). What `committedOps` tracks, so that a client's update
 fires at its own entry and raft's own entries move nothing of the client's. -/
@@ -133,118 +124,42 @@ def opsOf (l : List LogEntry) : List LogEntry :=
 def termAt (l : List LogEntry) (i : Nat) : Option w64 :=
   if i = 0 then some (W64 0) else (l[i - 1]?).map (·.term)
 
+/-! ## Hard state, configurations, snapshots -/
+
 /-- An entry id: an index and its term. -/
 structure EntryId where
   index : w64
   term : w64
 deriving DecidableEq
 
-/-! ## Hard state, configurations, snapshots -/
+/- `raftpb.HardState`, `ConfState` (the configuration as Go lists it), `Snapshot` (with its
+metadata: the index and term of its last entry, its configuration and the application's data;
+index `0` is the empty snapshot): raftpb's. -/
+export RaftPb (HardState HardState.empty ConfState ConfState.empty Snapshot Snapshot.empty)
 
-/-- `raftpb.HardState`. -/
-structure HardState where
-  term : w64
-  vote : w64
-  commit : w64
-deriving DecidableEq
-
-def HardState.empty : HardState := ⟨W64 0, W64 0, W64 0⟩
-
-/-- `raftpb.ConfState`: the configuration as Go lists it. -/
-structure ConfState where
-  voters : List w64
-  learners : List w64
-  votersOutgoing : List w64
-  learnersNext : List w64
-  autoLeave : Bool
-
-def ConfState.empty : ConfState := ⟨[], [], [], [], false⟩
-
-/-- **A configuration** (a membership): the voters, the outgoing voters of a joint configuration,
+/- **A configuration** (a membership): the voters, the outgoing voters of a joint configuration,
 the learners, the learners to be added when the joint configuration is left, and whether it is left
-automatically. -/
-structure Membership where
-  voters : GSet w64
-  votersOutgoing : GSet w64
-  learners : GSet w64
-  learnersNext : GSet w64
-  autoLeave : Bool
-
-/-- A configuration of voters only. -/
-def Membership.simple (vs : GSet w64) : Membership := ⟨vs, ∅, ∅, ∅, false⟩
-
-/-- The empty configuration (a node that knows of no member). -/
-def Membership.empty : Membership := Membership.simple ∅
-
-def Membership.ids (m : Membership) : GSet w64 :=
-  m.voters ∪ m.votersOutgoing ∪ m.learners ∪ m.learnersNext
-
-def Membership.isJoint (m : Membership) : Prop := m.votersOutgoing ≠ ∅
-
-/-- A Go `ConfState` lists configuration `m` (in any order). -/
-def ConfState.Is (cs : ConfState) (m : Membership) : Prop :=
-  cs.voters.Perm (elements m.voters) ∧ cs.votersOutgoing.Perm (elements m.votersOutgoing) ∧
-  cs.learners.Perm (elements m.learners) ∧ cs.learnersNext.Perm (elements m.learnersNext) ∧
-  cs.autoLeave = m.autoLeave
-
-/-- `raftpb.Snapshot` with its metadata: the index and term of its last entry, its configuration
-and the application's data. Index `0` is the empty snapshot (`IsEmptySnap`). -/
-structure Snapshot where
-  index : w64
-  term : w64
-  conf : ConfState
-  data : List w8
-
-def Snapshot.empty : Snapshot := ⟨W64 0, W64 0, ConfState.empty, []⟩
-
-def Snapshot.isEmpty (s : Snapshot) : Prop := s.index = W64 0
+automatically; with `simple` (voters only), `empty`, `ids`, `isJoint` and `Valid` (**a
+configuration raft accepts and reaches**): the tracker's (`Tracker.Membership`, R4). -/
+export Tracker (Membership Membership.simple Membership.empty Membership.ids Membership.isJoint)
 
 /-! ## Configuration changes -/
 
-/-- `raftpb.ConfChange` (the legacy change). -/
-structure ConfChangeV1 where
-  type : w32
-  nodeId : w64
-  context : List w8
-  id : w64
-
-/-- `raftpb.ConfChangeSingle`. -/
-structure ConfChangeSingle where
-  type : w32
-  nodeId : w64
-
-/-- `raftpb.ConfChangeV2`. -/
-structure ConfChangeV2 where
-  transition : w32
-  changes : List ConfChangeSingle
-  context : List w8
-
-/-- `raftpb.ConfChangeI`: either kind. -/
-inductive ConfChangeI where
-  | v1 (c : ConfChangeV1)
-  | v2 (c : ConfChangeV2)
-
-/-- The entry type `MarshalConfChange` gives a change. -/
-def ConfChangeI.entryType : ConfChangeI → w32
-  | .v1 _ => EntryConfChange
-  | .v2 _ => EntryConfChangeV2
-
-/-- **What the bytes of a conf-change entry of type `t` decode to** (`proto.Unmarshal` into a
-`ConfChange` for `EntryConfChange`, a `ConfChangeV2` for `EntryConfChangeV2`): `none` where it
-fails. Opaque: raftpb's wire model (3h). -/
-opaque decodeConfChange (t : w32) (bs : List w8) : Option ConfChangeI
+/- `raftpb.ConfChange` (the legacy change), `ConfChangeSingle`, `ConfChangeV2`, `ConfChangeI`
+(either kind; `entryType`, `asV2`); **what the bytes of a conf-change entry of type `t` decode to**
+(`decodeConfChange`: `proto.Unmarshal` into a `ConfChange` for `EntryConfChange`, a `ConfChangeV2`
+for `EntryConfChangeV2`, `none` where it fails): raftpb's. -/
+export RaftPb (ConfChangeV1 ConfChangeSingle ConfChangeV2 ConfChangeI decodeConfChange)
 
 /-- **What `ApplyConfChange` of change `c` does to configuration `m`** (`c.AsV2()` run through
-confchange's `Changer`: enter or leave a joint configuration, or a simple change); `none` where it
-panics (removing every voter, a joint transition from a joint configuration, an unknown transition,
-...: `nonissues/raft-remove-last-voter-panic.md`, `raft-joint-empty-transition-panic.md`,
-`raft-unknown-transition-panic.md`). Opaque: confchange's model (R4). -/
-opaque Membership.applyChange (c : ConfChangeI) (m : Membership) : Option Membership
-
-/-- **A configuration raft accepts** (`checkInvariants` of its tracker: voters and learners disjoint,
-`learnersNext` only outgoing voters, the auto-leave flag only when joint, no id 0, fewer than
-`2^62` ids). Opaque: confchange's (R4). -/
-opaque Membership.Valid (m : Membership) : Prop
+confchange's `Changer`, as `raft.applyConfChange` dispatches it: enter or leave a joint
+configuration, or a simple change); `none` where it panics (removing every voter, a joint
+transition from a joint configuration, an unknown transition or change type, ...:
+`nonissues/raft-remove-last-voter-panic.md`, `raft-joint-empty-transition-panic.md`,
+`raft-unknown-transition-panic.md`). Confchange's `changeV2` (R4; integration I2: was opaque). -/
+def Membership.applyChange : ConfChangeI → Membership → Option Membership
+  | .v1 cc, m => ConfChange.changeV2 ⟨ConfChange.TransitionAuto, [⟨cc.type, cc.nodeId⟩]⟩ m
+  | .v2 c, m => ConfChange.changeV2 ⟨c.transition, c.changes⟩ m
 
 /-- **A client's decision on a committed conf-change entry**: apply change `c` (the entry's own,
 or another, as etcd applies `NodeID = 0` for a change it refuses: a no-op), or skip it (raft's
@@ -261,23 +176,10 @@ def ConfDecision.step : ConfDecision → Membership → Option Membership
 
 /-! ## Messages -/
 
-/-- **A raft message** (`raftpb.Message`), the protocol's content: what is on the wire between
-nodes. (`Responses` is left out: only the local storage threads' messages carry any, under
-`AsyncStorageWrites`, which no client enables; a stepped message's responses are ignored.) -/
-structure Msg where
-  type : w32
-  to : w64
-  src : w64
-  term : w64
-  logTerm : w64
-  index : w64
-  entries : List LogEntry
-  commit : w64
-  vote : w64
-  snapshot : Option Snapshot
-  reject : Bool
-  rejectHint : w64
-  context : List w8
+/- **A raft message** (`raftpb.Message`), the protocol's content: what is on the wire between
+nodes (raftpb's `Msg`; `Responses` is left out: only the local storage threads' messages carry any,
+under `AsyncStorageWrites`, which no client enables; a stepped message's responses are ignored). -/
+export RaftPb (Msg)
 
 /-! ## Storage contents -/
 
@@ -486,12 +388,12 @@ structure ConfView where
   applied : Nat
   membership : Membership
 
-/-- **The bytes of a bootstrap entry** for peer `id` with context `ctx`: what `proto.Marshal`
+/- **The bytes of a bootstrap entry** for peer `id` with context `ctx`: what `proto.Marshal`
 gives the `ConfChange{Type: AddNode, NodeId: id, Context: ctx}` that `RawNode.Bootstrap` builds
-(a function of the message, presence included). Opaque: raftpb's wire model (3h), with the law
+(raftpb's `bootEntryData`, with `RaftPb.bootCC_facts`: it encodes that change, so
 `decodeConfChange EntryConfChange (bootEntryData id ctx) = some (.v1 ⟨AddNode, id, ctx, 0⟩)` for a
-non-empty `ctx` (`Api.lean`, `bootEntryData_decode`). -/
-opaque bootEntryData (id : w64) (ctx : List w8) : List w8
+non-empty `ctx`: `Api.lean`'s `bootEntryData_decode`). -/
+export RaftPb (bootEntryData)
 
 /-- **The bootstrap log of peers `ps`** (`StartNode`'s, `RawNode.Bootstrap`'s): a legacy `AddNode`
 of each peer, with its context (non-empty: a `nil` and an empty context marshal differently; etcd's

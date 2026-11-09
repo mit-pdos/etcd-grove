@@ -32,8 +32,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 get's at the reply's revision: `key`'s record there (`recAtHdr`: the only write is the lease key
 `pfx ++ key ≠ key`, `pfx ≠ []`), shaped as a cached response (`cachedRespOk`). -/
 def leasingKV.acquire.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (key : GoString) (op : go_etcd_io.etcd.client.v3.Op),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ opAt op (opGetM key []) ∗ threadTok }}
+  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (key : GoString) (op : go_etcd_io.etcd.client.v3.Op),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ opAt op (opGetM key []) ∗ threadTok }}
     (App (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"acquire")) (Val #ctx)) (Val #key)) (Val #op))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∨

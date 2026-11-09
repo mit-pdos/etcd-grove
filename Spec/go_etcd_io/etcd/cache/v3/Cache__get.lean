@@ -1,7 +1,7 @@
 /-
 `Cache.get` (`cache/*.go`), an internal helper.
 Users: `Cache.getWatch`.
-Proof sketch: the client's `Get` of the prefix (`WithPrefix`, linearizable) with the update from `etcdPeek γ`, recording `etcdLb γ σ` at the firing and the ceiling's revision below it (the loop's lower bound, `etcdLb_reach`); on success `store.Restore.spec` (the answer is `σ.kv.store` in the prefix range: `kvStep`, `RangeReq.answers` with no limit, sort or filter) under the ceiling (`storeCeil`, in `cacheLoop`).
+Proof sketch: the client's `Get` of the prefix (`WithPrefix`, linearizable; `KV.GetTriple` at the cache's own principal `who`, `ctxPrin who ctx who`, `lo = 0`, `authLb γ 0`) with the update from `etcdPeek γ` (every range step leaves the state: `Step`'s range case), recording `etcdLb γ σ` at the firing and the ceiling's revision below it (the loop's lower bound, `etcdLb_reach`); on success `store.Restore.spec` (the answer is `σ.kv.store` in the prefix range: `kvStep`, `RangeReq.answers` with no limit, sort or filter; the request's range end is W0's `OpM.endReq` of `WithPrefix`'s end: `prefixEnd pfx`, `"\x00"` for the root cache) under the ceiling (`storeCeil`, in `cacheLoop`).
 For the root cache (`pfx = ""`) the cache lists and watches from `"\x00"` (`OpGet`/`OpWatch`
 rewrite an empty key) while `prefixRange ""` includes the empty key: W0's `etcdLb_keyNonEmpty`
 (no state the cluster has been in stores, or has an event of, the empty key) closes the gap.
@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `c.get(ctx)` by the watch loop: the list's response (read-only: the store keeps its key-values) and the loop restored at its revision, or an error. -/
 def Cache.get.spec : Prop :=
   ∀ (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ cacheLoop c ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ cacheLoop c ∗ Context.ctxOk ctx ∗ ctxPrin who ctx who }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"get")) (Val #ctx))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ cacheLoop c) ∨

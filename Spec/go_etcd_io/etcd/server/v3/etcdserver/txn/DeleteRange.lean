@@ -20,7 +20,9 @@ begin), both opened and closed unchanged, the caller's update given back).
 **Changes.** The old spec (`specs-ref`'s `DeleteRange.lean`: `delAU` over the log) restated over W0's
 history. Round 1 (F4): 3e's two-step commit pinned at `σ₀`, `MvccState`, reader tokens, the trace,
 `txnWriter`; the lessor's state after exactly (`evsLs`); the lessor's handle dropped (S4: the store's
-own, in `isMvcc`).
+own, in `isMvcc`). Integration (I5, 2026-11-09): the history receipt `⧖ (evCount …)` dropped
+from the caller's update's first step (3e's round 1, C-F7, removed it from `Txn.End`'s update, so txn
+had none to give; no caller used it).
 
 **Margin.** None.
 -/
@@ -56,7 +58,7 @@ def DeleteRange.spec : Prop :=
     (γl : Lease.Names) (n : Nat) (ls : Lease.LessorState) (d : Loc) (dq : DFrac) (dm : DeleteReq)
     (σ₀ : Mvcc.MvccState) (q : Qp) (B : Mvcc.MvccStorage) (Pk Post Q : IProp GF),
   let au : IProp GF := iprop(AU <{ Mvcc.mvccState γ σ₀ }> @ ⊤ \ ↑Mvcc.mvccN, ∅
-    <{ Mvcc.mvccState γ (σ₀.notify (delEvents (rangeAll σ₀.kv.store dm.range))) ∗ ⧖ (Mvcc.evCount (σ₀.kv.commit (delEvents (rangeAll σ₀.kv.store dm.range)))), COMM
+    <{ Mvcc.mvccState γ (σ₀.notify (delEvents (rangeAll σ₀.kv.store dm.range))), COMM
        AU <{ Mvcc.mvccState γ (σ₀.notify (delEvents (rangeAll σ₀.kv.store dm.range))) }> @ ⊤ \ ↑Mvcc.mvccN, ∅
          <{ Mvcc.mvccState γ (σ₀.notify (delEvents (rangeAll σ₀.kv.store dm.range))).commitPending, COMM Q }> }>)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ TraceUtil.ctxTraceIs ctx o ∗ ctxTraceOwn o ∗ Zap.isLogger lg ∗

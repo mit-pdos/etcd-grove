@@ -20,6 +20,12 @@ any client, and the fact is `goneAt` (absent, or deleted at `r`: a revision may 
 key in sibling nested transactions, which no store fact rules out).
 
 **Margin**: errors (the `Get`'s, the watch's) say nothing more.
+
+**Integration (I1)**: `goneAt` is gated by the compaction condition `exactFrom σ.kv σ0.kv.rev` (W0's
+`EtcdModel.exactFrom`): 1b's `watchStep` gives a response's events (and a progress's emptiness) only
+under it, so the facts this call learns from a watch hold only under it; facts learned from a
+`Get` would not need it but are stated under the same condition (a caller cannot tell the paths
+apart). The weakest condition the watches need: they start at or after that revision.
 -/
 module
 
@@ -51,7 +57,7 @@ def Barrier.Wait.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       (⌜err ≠ GoInterface.nil⌝ ∗ recipeErrOk err) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (σ : State) (r : Nat), etcdLb γ σ ∗
-        ⌜σ0.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧ goneAt σ.kv key r⌝) }}
+        ⌜σ0.kv.rev ≤ r ∧ r ≤ σ.kv.rev ∧ (EtcdModel.exactFrom σ.kv σ0.kv.rev → goneAt σ.kv key r)⌝) }}
 
 end spec
 

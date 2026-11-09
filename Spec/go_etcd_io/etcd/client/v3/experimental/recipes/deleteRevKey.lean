@@ -6,9 +6,9 @@ mod revision is `rev`, in one transaction.
 watch delivered). Snippet: `recipes/queue.go` (through `Dequeue`).
 
 **Proof sketch**: `kvAt_methods` (W0) gives `KV.TxnTriple` at `kv`: `Txn(context.TODO())` (W0's
-`TODO.spec`, `ctxPrin_todo`: `ctxOk`, `ctxPrin ctx who`) returns `txnAt iv γ who ctx TxnSt.empty`; `ModRevision(key)`, `Compare(.., "=",
+`TODO.spec`, `ctxPrin_todo`: `ctxOk`, `ctxPrin who ctx who`; the call's principal is the client's `who`) returns `txnAt iv γ who ctx TxnSt.empty`; `ModRevision(key)`, `Compare(.., "=",
 rev)` (W0's `ModRevision.spec`, `Compare.spec`: an `int64`, so `CmpArg.i64`) give the comparison of
-`deleteRevReq`; `OpDelete(key)` (W0) its operation; `If`, `Then`, `Commit` (`txnAt_methods`; each builder's post is
+`deleteRevReq`; `OpDelete(key)` (W0) its operation; `If`, `Then`, `Commit` (`txnAt_methods`; `Commit` at `lo = 0`, `authLb γ 0` by definition; each builder's post is
 `txnAt` of the value it returns, the chained call's receiver) send `deleteRevReq key rev` with the caller's update unchanged (a write: exclusive). `Commit`'s
 `txnReply`: on success read `Succeeded` (`txnRespOwn_unfold`); an etcd error is `errVal e`. The
 indefinite case is `Commit`'s.

@@ -37,6 +37,12 @@ writes the prefix (the lost-claim path included: `nonissues/recipes-pqueue-deque
 **Margin**: on an error the caller's update is not given back, though only an indefinite error of a
 claim may have fired it. The order is by mod revision (`WithFirstRev()`), which is the creation
 order of keys never rewritten (an `Enqueue`'s).
+
+**Integration (I1)**: the front condition in the caller's update and the returned value is gated by the compaction condition `exactFrom σ.kv 1` (W0's
+`EtcdModel.exactFrom`): 1b's `watchStep` gives a response's events (and a progress's emptiness) only
+under it, so the facts this call learns from a watch hold only under it; facts learned from a
+`Get` would not need it but are stated under the same condition (a caller cannot tell the paths
+apart). The weakest condition the watches need: the queue has no anchor, so the whole history (`1`).
 -/
 module
 
@@ -67,12 +73,12 @@ def Queue.Dequeue.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ queueAt q c γ who kp ∗ etcdPeek γ ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (k : GoString) (kr : KeyRec) (res : Resp),
-             ⌜frontByRev (pfxRange kp) σ.kv.store k kr ∧
+             ⌜(EtcdModel.exactFrom σ.kv 1 → frontByRev (pfxRange kp) σ.kv.store k kr) ∧
               Step who (deleteRevReq k kr.modRev) σ σ' res ∧ txnSucceeded res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' k kr }> }}
     (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Dequeue")) (Val #()))
   {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜v = kr.value⌝) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜EtcdModel.exactFrom σ.kv 1 → v = kr.value⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ v = []⌝ ∗ recipeErrOk err) }}
 
 end spec

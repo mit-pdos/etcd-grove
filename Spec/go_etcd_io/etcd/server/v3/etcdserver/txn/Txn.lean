@@ -28,7 +28,9 @@ into one, a case split on the input: a read-only transaction's update is a read'
 is pinned at `σ₀` and nested as 3e's commit. The run a function (`run`, related to W0's `TxnRun` by
 `run_txnRun`); the paths' premises a state-free `txnSafe`. Round 1 (F4): 3e's API (`MvccState`,
 reader tokens, the trace, the storage's share and `txnWriter`, the lessor's state after by
-`evsLs`).
+`evsLs`). Integration (I5, 2026-11-09): the history receipt `⧖ (evCount …)` dropped
+from the caller's update's first step (3e's round 1, C-F7, removed it from `Txn.End`'s update, so txn
+had none to give; no caller used it).
 
 **Margin.** A nested transaction's header revision is `0` (W0 does not model it). `txnSafe` is
 stricter than the code needs (its docstring). A read-only transaction's response after a context
@@ -70,7 +72,7 @@ def Txn.spec : Prop :=
     (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState) (q : Qp)
     (B : Mvcc.MvccStorage) (Pk Post : IProp GF) (Q : Mvcc.MvccState → IProp GF),
   let au : IProp GF := iprop(AU <{ Mvcc.mvccState γ σ₀ }> @ ⊤ \ ↑Mvcc.mvccN, ∅
-    <{ Mvcc.mvccState γ (σ₀.notify (runEvs t σ₀.kv ls.table)) ∗ ⧖ (Mvcc.evCount (σ₀.kv.commit (runEvs t σ₀.kv ls.table))), COMM
+    <{ Mvcc.mvccState γ (σ₀.notify (runEvs t σ₀.kv ls.table)), COMM
        AU <{ Mvcc.mvccState γ (σ₀.notify (runEvs t σ₀.kv ls.table)) }> @ ⊤ \ ↑Mvcc.mvccN, ∅
          <{ Mvcc.mvccState γ (σ₀.notify (runEvs t σ₀.kv ls.table)).commitPending, COMM Q σ₀ }> }>)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ TraceUtil.ctxTraceIs ctx o ∗ ctxTraceOwn o ∗ Zap.isLogger lg ∗

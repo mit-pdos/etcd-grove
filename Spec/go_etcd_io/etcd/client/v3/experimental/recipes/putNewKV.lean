@@ -7,7 +7,7 @@ Snippet: `recipes/barrier.go` (`ReqHoldTwice`, through `Hold`).
 
 **Proof sketch**: as `deleteRevKey`'s: `kv.Txn(context.TODO())`, `Compare(Version(key), "=", 0)` (an
 untyped `0`: `CmpArg.int`, the comparison of `putNewReq`), `OpPut(key, val, WithLease(leaseID))`
-(W0's `OpPut.spec`, `WithLease.spec`: the put of `putReq0`), `If`/`Then`/`Commit` with the caller's
+(W0's `OpPut.spec`, `WithLease.spec`: the put of `putReq0`), `If`/`Then`/`Commit` (at `lo = 0`) with the caller's
 update. `Commit`'s `txnReply`: `Succeeded` and the header's revision (`txnRespOwn_unfold`,
 `respHeaderOwn_unfold`), `ErrKeyExists` read from its global (`init.spec`) when the comparison failed.
 

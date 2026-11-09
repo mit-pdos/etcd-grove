@@ -12,7 +12,7 @@ Proof sketch: the getters (`Op.IsGet`, ... W0's specs over `opAt`) select the ca
 comparisons and branches, read-only), then `leasingKV.Txn.spec`, `LTxn.IfTriple`, `ThenTriple`,
 `ElseTriple` (`opsCapOk` of the branches, from `opCapOk op`), `CommitTriple` with the caller's update (its request is
 `.txn st.req` with `st` the comparisons and branches' requests: `toReq`'s); then
-`TxnResponse.OpResponse.spec`. The update is `lstep γL pfx who rq` throughout, the marks
+`TxnResponse.OpResponse.spec`. The update is `lstep γL pfx p lo rq` throughout (the internal `put`/`delete` at this `lo`), the marks
 `reqWrites rq` (`toReq`). An `Op` of no
 type is excluded by `toReq` (the code returns an empty response, no panic).
 

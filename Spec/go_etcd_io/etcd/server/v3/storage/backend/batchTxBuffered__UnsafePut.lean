@@ -46,7 +46,7 @@ moves with it. -/
 def batchTxBuffered.UnsafePut.spec : Prop :=
   ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (G : Fp) (C : Image) (bk : GoInterface)
     (bi : BktInfo) (ks vs : GoSlice) (k v : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bucketOk bk bi ∗ beCur γ G C ∗ ⌜G (.key bi.name k)⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bkt γ bk bi ∗ beCur γ G C ∗ ⌜G (.key bi.name k)⌝ ∗
       writable γ F (Fp.key bi.name k) ∗ ⌜bi.safe = true → S.fresh bi.name k⌝ ∗
       ⌜k.length + v.length ≤ Bbolt.bboltEntryMax⌝ ∗ ks ↦*□ k ∗ vs ↦*□ v }}
     (App (App (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"UnsafePut")) (Val #bk)) (Val #ks)) (Val #vs))

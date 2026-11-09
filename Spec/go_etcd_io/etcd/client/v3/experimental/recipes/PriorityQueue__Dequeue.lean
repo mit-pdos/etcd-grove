@@ -21,6 +21,12 @@ its "FIFO" comment means "least priority value first").
 
 **Margin**: on the fallback path the claimed item is also the least mod revision (FIFO among the later
 arrivals), which the spec does not say; errors as `Queue.Dequeue`'s.
+
+**Integration (I1)**: the front condition in the caller's update and the returned value is gated by the compaction condition `exactFrom σ.kv σ0.kv.rev` (W0's
+`EtcdModel.exactFrom`): 1b's `watchStep` gives a response's events (and a progress's emptiness) only
+under it, so the facts this call learns from a watch hold only under it; facts learned from a
+`Get` would not need it but are stated under the same condition (a caller cannot tell the paths
+apart). The weakest condition the watches need: they start at or after that revision.
 -/
 module
 
@@ -51,12 +57,12 @@ def PriorityQueue.Dequeue.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ pqueueAt q c γ who key ∗ etcdPeek γ ∗ etcdLb γ σ0 ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (k : GoString) (kr : KeyRec) (res : Resp),
-             ⌜frontByKey (pfxRange (key ++ go!"/")) σ.kv.store σ0.kv.rev k kr ∧
+             ⌜(EtcdModel.exactFrom σ.kv σ0.kv.rev → frontByKey (pfxRange (key ++ go!"/")) σ.kv.store σ0.kv.rev k kr) ∧
               Step who (deleteRevReq k kr.modRev) σ σ' res ∧ txnSucceeded res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' k kr }> }}
     (App (Val (q @!! go.GoType.PointerType PriorityQueue.ty @!! go!"Dequeue")) (Val #()))
   {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜v = kr.value⌝) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜EtcdModel.exactFrom σ.kv σ0.kv.rev → v = kr.value⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ v = []⌝ ∗ recipeErrOk err) }}
 
 end spec

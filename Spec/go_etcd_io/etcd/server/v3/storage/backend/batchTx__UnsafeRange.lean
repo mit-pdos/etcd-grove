@@ -31,9 +31,8 @@ def batchTx.UnsafeRange.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ btPhys γ I n d ∗ bucketOk bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e }}
     (App (App (App (App (Val ((bt0Loc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #ks))
       (Val #es)) (Val #limit))
-  {{ (kl vl : GoSlice), RET (PairV #kl #vl); btPhys γ I n d ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ∃ l, ⌜btRange (I.ents bi.name) k e (sint.Z limit) l⌝ ∗
-        bytesListAt kl (l.map Prod.fst) ∗ bytesListAt vl (l.map Prod.snd) }}
+  {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗
+      ∃ l, ⌜btRange (I.ents bi.name) k e (sint.Z limit) l⌝ ∗ rangeRes kl vl l (btPhys γ I n d) }}
 
 end spec
 

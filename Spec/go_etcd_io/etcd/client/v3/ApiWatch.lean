@@ -47,16 +47,18 @@ computed in that window is below `H`, so a progress does not fix an unknown posi
 A watch's channel may also end at once (`WatchPos.closed`: a closed watcher, a done context, a
 stream that ended before the watch was registered), with at most one error response.
 
-**The compaction condition** (`exactFrom`): the events and progress facts are exact only when no
-revision from the watch's next one up to the compaction revision changes a key twice (a
-compaction keeps a key's last change of such a revision only); vacuous on a cluster that never
-compacts below the watch. Stated once here; 2b's `srvWireStep` and 3f's `wStep` cite it.
+**The compaction condition** (`exactFrom`, an abbreviation of W0's `EtcdModel.exactFrom`): the
+events and progress facts are exact only when no revision from the watch's next one up to the
+compaction revision changes a key twice (a compaction keeps a key's last change of such a revision
+only); vacuous on a cluster that never compacts below the watch. Stated once, in `Model.lean`;
+2b's `srvWireStep` and 3f's `wStep` cite it.
 
 ## Vocabulary
 
 Pure (transparent):
-* `WatchReq`: what a watch delivers (its range, normalized as the member does: an empty key is
-  `"\x00"`; `prevKV`; the filters; the notification flags). `OpM.watchReq`, `OpM.watchRev`.
+* `WatchReq` (`api/v3/Wire.lean`, with the other watch messages): what a watch delivers (its
+  range, normalized as the member does: an empty key is `"\x00"`; `prevKV`; the filters; the
+  notification flags). `OpM.watchReq`, `OpM.watchRev`.
 * `WEv` (a history event as a watch delivers it: revision, delete or put, the key-value),
   `watchEvents w h lo hi` (the range's events of revisions `lo..hi`, in order, filtered),
   `WatchReq.prevOk` (the previous key-value: the key's record at the revision before, absent only
@@ -64,12 +66,12 @@ Pure (transparent):
   in a registration's first responses (the member's `prevKV` window, 2b's finding): a client's
   channel stays in that window (`WatchPos.prevLoose`), since every reconnect reopens it: a
   non-`nil` `PrevKv` is the previous record, a `nil` one says nothing).
-* `EventM` (an `mvccpb.Event`), `WatchRespM` (a `clientv3.WatchResponse`: its exported fields, and
-  the kind of its private `closeErr`), `WatchPos`, `watchStep`.
+* `EventM` (an `mvccpb.Event`, `Wire.lean`), `WatchRespM` (a `clientv3.WatchResponse`: its
+  exported fields, and the kind of its private `closeErr`), `WatchPos`, `watchStep`.
 * The wire protocol of one gRPC watch stream (**the contract with 2a/2b**): `WireWatchReq` (a
-  create, a cancel, a progress request), `WireWatchRespM` (a `pb.WatchResponse`), `WireSt` (the
-  stream's registrations as its responses made them) and `wireStep`: a `Created` answers the
-  oldest unanswered create, a response of a registration's id is a `watchStep` of it, the id `-1`
+  create, a cancel, a progress request), `WireWatchRespM` (a `pb.WatchResponse`; both in
+  `Wire.lean`), `WireSt` (the stream's registrations as its responses made them) and `wireStep`:
+  a `Created` answers the oldest unanswered create, a response of a registration's id is a `watchStep` of it, the id `-1`
   a progress of every registration, fragments reassemble to one response.
 
 Resources:
@@ -89,16 +91,17 @@ Resources:
   watcher and the namespace wrapper rewrite them; `concurrency.Election.Observe` writes the
   header's revision). Laws: `watchRespAt_fields`; `watchRespAt_persist` (to the read-only
   `watchRespRO`, persistent), `eventOwn_persist`.
-* `eventOwn p dq e`: an `mvccpb.Event` message (`eventOwn_unfold`; with W0's `keyValueOwn`).
-  Offered to `api/v3/Wire.lean` (W0/3h): 2b builds these.
+* `eventOwn p dq e`: an `mvccpb.Event` message (`eventOwn_unfold`, `eventOwn_persist`; with W0's
+  `keyValueOwn`), in `api/v3/Wire.lean` (W0's, realized by 3h): 2b builds these.
 * `closeErrOk e k` (persistent): `e` is `nil` (`k = none`) or an error that `rpctypes.Error` maps
   to one of kind `k` (`CallErr`); `closeErrOk_nil`.
 * **Slots of the gRPC boundary (2a, with 2b's handler and 3h's stub)**: `remoteWatchAt v γ who`
   (a `pb.WatchClient` whose `Watch` opens a stream, `remoteWatchAt_watch`), the stream's halves
   `wireWatchSend wc γ who g ss` (the sends so far, `wireWatchSend_send`) and `wireWatchRecv wc γ who
   g st` (the stream's state, `wireWatchRecv_recv`), `wireWatchSentLb g ss` (persistent: at least
-  `ss` was sent), `watchReqOwn p dq r` (a `pb.WatchRequest`), `wireWatchRespOwn p dq m` (a
-  `pb.WatchResponse`). `WatchStreamNames`: opaque ghost names of one stream.
+  `ss` was sent); the messages `watchReqOwn p dq r` (a `pb.WatchRequest`), `wireWatchRespOwn p dq m`
+  (a `pb.WatchResponse`) are in `api/v3/Wire.lean`. `WatchStreamNames`: opaque ghost names of one
+  stream.
 
 ## Requirement snippets
 
@@ -126,19 +129,11 @@ open Classical
 
 /-! ## What a watch delivers -/
 
-/-- **A watch request**: what it delivers. `range` as the member reads it (an empty key is
-`"\x00"`, `v3rpc/watch.go`); the filters drop puts (`NOPUT`) or deletes (`NODELETE`). -/
-structure WatchReq where
-  range : KeyRange
-  prevKV : Bool
-  filterPut : Bool
-  filterDelete : Bool
-  progressNotify : Bool
-  createdNotify : Bool
-  fragment : Bool
-
 /-- The watch an `Op` built by `OpWatch` asks for (`watcher.Watch`: `string(ow.key)`,
-`string(ow.end)`; a `nil` end is the single key). -/
+`string(ow.end)`; a `nil` end is the single key). Unlike a range's `OpM.endReq` (W0), a non-`nil`
+empty end (`WithRange("")`) is the single key too: the watch sends it as a string, and the member's
+`recvLoop` reads an empty `RangeEnd` as `nil`; `WithFromKey`'s `"\x00"` is every key from the key
+on (`recvLoop`'s `[]byte{}`, `KeyRange.mem`'s `"\x00"`). -/
 def OpM.watchReq (o : OpM) : WatchReq :=
   { range := { key := if o.key = [] then [W8 0] else o.key, rangeEnd := o.rangeEnd.getD [] },
     prevKV := o.prevKV, filterPut := o.filterPut, filterDelete := o.filterDelete,
@@ -163,7 +158,7 @@ def WEv.ofEvent (r : Nat) : Event → WEv
                            version := W64 0, value := [], lease := W64 0 } }
 
 /-- The watch keeps the event: its key in the range, not filtered out. -/
-def WatchReq.keeps (w : WatchReq) (e : WEv) : Prop :=
+def _root_.Perennial.EtcdGrove.EtcdWire.WatchReq.keeps (w : WatchReq) (e : WEv) : Prop :=
   w.range.mem e.kv.key ∧ ¬ (e.del = true ∧ w.filterDelete = true) ∧
     ¬ (e.del = false ∧ w.filterPut = true)
 
@@ -179,38 +174,19 @@ the key's record at the revision before, or none when there is none, the event i
 its registration's window (`loose`: the member's `sendLoop` reads `prevKV[id]` before `recvLoop`
 sets it, `v3rpc/watch.go:443-445` against `:342-349`, so the responses it built for a new
 registration before then carry no `PrevKv`). Without `prevKV`, none. -/
-def WatchReq.prevOk (w : WatchReq) (h : KVHist) (loose : Bool) (e : WEv) (pk : Option KeyValueM) :
+def _root_.Perennial.EtcdGrove.EtcdWire.WatchReq.prevOk (w : WatchReq) (h : KVHist) (loose : Bool) (e : WEv) (pk : Option KeyValueM) :
     Prop :=
   if w.prevKV then
     pk = (h.storeAt (e.rev - 1) e.kv.key).map (fun r => KeyValueM.ofKV (KV.ofRec e.kv.key r)) ∨
     (pk = none ∧ (loose = true ∨ e.kv.createRevision = e.kv.modRevision ∨ e.rev - 1 < h.compacted))
   else pk = none
 
-/-- The key an event changes. -/
-def Event.key : Event → Key
-  | .put k _ => k
-  | .delete k => k
-
-/-- **The compaction condition** (the user's, round 11 of the mvcc API,
-`.claude/skills/spec/examples/watch-compaction.md`; the one statement of it that 1b, 2b and 3f
-cite): every revision from `lo` up to `h`'s compaction revision changes each key at most once
-(vacuous while the compaction revision is below `lo`). A compaction at a revision that changes a
-key twice keeps only the key's last change there, so a watch reading that revision afterwards gets
-it alone (`nonissues/etcd-mvcc-watch-compact-rev-subrev-lost.md`; through gRPC such a revision
-comes from `issues/etcd-txn-check-intervals-sibling.md`). A watch's exactness holds under it; the
-client discharges it from its workload (no transaction puts and deletes one key, the usual case)
-or from a cluster that never compacts. -/
-def exactFrom (h : KVHist) (lo : Nat) : Prop :=
-  ∀ r : Nat, lo ≤ r → r ≤ h.compacted → ((h.eventsAt r).map Event.key).Nodup
-
-/-- **An `mvccpb.Event`**: `Type` (`DELETE` iff `del`), `Kv`, `PrevKv` (`none`: `nil`). -/
-structure EventM where
-  del : Bool
-  kv : KeyValueM
-  prevKv : Option KeyValueM
+/-- **The compaction condition**: `EtcdModel.exactFrom` (`Model.lean`, the one statement of it
+that 1b, 2b and 3f cite); this name is kept for the client's statements. -/
+abbrev exactFrom (h : KVHist) (lo : Nat) : Prop := EtcdModel.exactFrom h lo
 
 /-- The delivered event `m` is the history's event `e`. -/
-def EventM.isOf (w : WatchReq) (h : KVHist) (loose : Bool) (m : EventM) (e : WEv) : Prop :=
+def _root_.Perennial.EtcdGrove.EtcdWire.EventM.isOf (w : WatchReq) (h : KVHist) (loose : Bool) (m : EventM) (e : WEv) : Prop :=
   m.del = e.del ∧ m.kv = e.kv ∧ w.prevOk h loose e m.prevKv
 
 /-- **A `clientv3.WatchResponse`**: its exported fields (the header always set on a response of a
@@ -319,37 +295,9 @@ def watchStep (who : Principal) (w : WatchReq) (σ σa : State) (p : WatchPos) (
 
 /-! ## The wire protocol of a gRPC watch stream (the contract with 2a and 2b) -/
 
-/-- **A `pb.WatchRequest`**: a create (the watch, its start revision as sent: the client resumes
-from its position), a cancel of a watch id, a progress request. -/
-inductive WireWatchReq where
-  | create (w : WatchReq) (start : Int)
-  | cancel (id : Int)
-  | progress
-
-/-- The creates among the requests, in order. -/
-def WireWatchReq.creates (ss : List WireWatchReq) : List (WatchReq × Int) :=
-  ss.filterMap fun
-    | .create w s => some (w, s)
-    | _ => none
-
-/-- **A `pb.WatchResponse`** (`hdr` `none`: a `nil` header). -/
-structure WireWatchRespM where
-  hdr : Option HeaderM
-  watchId : Int
-  created : Bool
-  canceled : Bool
-  compactRev : w64
-  cancelReason : GoString
-  fragment : Bool
-  events : List EventM
-
-/-- The header as the client reads it (`ensureWatchHeader`: a `nil` header is a zero one). -/
-def HeaderM.zero : HeaderM :=
-  { clusterId := W64 0, memberId := W64 0, revision := W64 0, raftTerm := W64 0, leaderId := W64 0 }
-
 /-- The client-level response a wire response (with its reassembled events `evs`) is, as
 `dispatchEvent` builds it. -/
-def WireWatchRespM.toResp (m : WireWatchRespM) (evs : List EventM) : WatchRespM :=
+def _root_.Perennial.EtcdGrove.EtcdWire.WireWatchRespM.toResp (m : WireWatchRespM) (evs : List EventM) : WatchRespM :=
   { hdr := m.hdr.getD HeaderM.zero, events := evs, compactRev := m.compactRev,
     canceled := m.canceled, created := m.created, cancelReason := m.cancelReason,
     closeErr := none }
@@ -461,9 +409,6 @@ opaque watchChAt (ch : Loc) (γ : Cluster) (who : Principal) (w : WatchReq) (p :
 opaque watchRespAt (v : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM) : IProp GF :=
   iprop(True)
 
-/-- **An `mvccpb.Event` message** at `p`, at the fraction `dq`. -/
-opaque eventOwn (p : Loc) (dq : DFrac) (e : EventM) : IProp GF := iprop(True)
-
 /-- **`e` is a watch response's `closeErr`** of kind `k` (persistent): `nil` (`none`), or an error
 `rpctypes.Error` maps to one of kind `k`. -/
 opaque closeErrOk (e : GoInterface) (k : Option CallErr) : IProp GF := iprop(True)
@@ -484,14 +429,6 @@ opaque wireWatchRecv (wc : GoInterface) (γ : Cluster) (who : Principal) (g : Wa
 
 /-- **Slot (2a)**: at least the requests `ss` were sent on the stream `g` (persistent). -/
 opaque wireWatchSentLb (g : WatchStreamNames) (ss : List WireWatchReq) : IProp GF := iprop(True)
-
-/-- **Slot (2a, 3h)**: a `pb.WatchRequest` message at `p` modelled by `r`. A create's key is
-`w.range.key`, or `""` when that is `"\x00"` (`toPB` sends the watch's own key, which the member
-normalizes). -/
-opaque watchReqOwn (p : Loc) (dq : DFrac) (r : WireWatchReq) : IProp GF := iprop(True)
-
-/-- **Slot (2a, 3h)**: a `pb.WatchResponse` message at `p` modelled by `m`. -/
-opaque wireWatchRespOwn (p : Loc) (dq : DFrac) (m : WireWatchRespM) : IProp GF := iprop(True)
 
 /-- The fraction a response's header is owned at: in full with events (unicast), read-only
 without (a broadcast progress notification shares its header). -/
@@ -596,14 +533,6 @@ def watchRespAt_fields.spec : Prop := ∀ (v : go_etcd_io.etcd.client.v3.WatchRe
     ⌜v.CompactRevision' = m.compactRev ∧ v.Canceled' = m.canceled ∧ v.Created' = m.created ∧
       v.CancelReason' = m.cancelReason⌝ ∗ closeErrOk v.closeErr' m.closeErr
 
-/-- **What `eventOwn` means**: the `Event` struct's fields (`Type` `0` a put, `1` a delete). -/
-def eventOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (e : EventM),
-  eventOwn (GF := GF) p dq e ⊣⊢
-    ∃ (kv pk : Loc), protoRest go_etcd_io.etcd.api.v3.mvccpb.Event p dq ∗
-    p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Type"] ↦{dq} (if e.del then W32 1 else W32 0) ∗
-    p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Kv"] ↦{dq} kv ∗ keyValueOwn kv dq e.kv ∗
-    p.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"PrevKv"] ↦{dq} pk ∗ optOwn keyValueOwn pk dq e.prevKv
-
 /-- **A received response made read-only** (shared by many readers: the cache's demux and
 history, `Election.Observe`'s forwarded header): its header and events at `DFrac.discard`. -/
 def watchRespRO (v : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM) : IProp GF :=
@@ -616,10 +545,6 @@ def watchRespAt_persist.spec : Prop := ∀ (v : go_etcd_io.etcd.client.v3.WatchR
 
 /-- The read-only form is persistent. -/
 def watchRespRO_persistent.spec : Prop := ∀ v m, Persistent (watchRespRO (GF := GF) v m)
-
-/-- An event message made read-only. -/
-def eventOwn_persist.spec : Prop := ∀ (p : Loc) (dq : DFrac) (e : EventM),
-  eventOwn (GF := GF) p dq e ⊢ |==> eventOwn p DFrac.discard e
 
 /-- A `nil` `closeErr` (every `WatchResponse` a caller builds itself: the cache's). -/
 def closeErrOk_nil.spec : Prop := ⊢ closeErrOk (GF := GF) GoInterface.nil none
@@ -637,7 +562,9 @@ def remoteWatchAt_watch.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who
       (⌜err ≠ GoInterface.nil⌝ ∗ ∃ k, callErr err k) }}
 
 /-- **Sending on a watch stream** (`wc.Send(req)`): the request read (given back), recorded as sent;
-or the stream broken (an error; the half kept: later sends fail too). -/
+or an error (the stream broken or ended), the request still recorded as possibly sent (grpc's
+`cliSend_send` counts it: the member may have read it), the half kept: later sends fail too. The
+client then treats it as sent, as `run` does (a failed send is only logged). -/
 def wireWatchSend_send.spec : Prop := ∀ (wc : GoInterface) (γ : Cluster) (who : Principal)
     (g : WatchStreamNames) (ss : List WireWatchReq) (p : Loc) (dq : DFrac) (r : WireWatchReq),
   {{ wireWatchSend (GF := GF) wc γ who g ss ∗ watchReqOwn p dq r }}
@@ -646,7 +573,7 @@ def wireWatchSend_send.spec : Prop := ∀ (wc : GoInterface) (γ : Cluster) (who
         go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty) @!! go!"Send")) (Val #p))
   {{ (err : GoInterface), RET #err; watchReqOwn p dq r ∗
       ((⌜err = GoInterface.nil⌝ ∗ wireWatchSend wc γ who g (ss ++ [r])) ∨
-       (⌜err ≠ GoInterface.nil⌝ ∗ wireWatchSend wc γ who g ss)) }}
+       (⌜err ≠ GoInterface.nil⌝ ∗ wireWatchSend wc γ who g (ss ++ [r]))) }}
 
 /-- A lower bound of what was sent. -/
 def wireWatchSend_lb.spec : Prop := ∀ wc γ who g ss,

@@ -1,6 +1,11 @@
 /-
 `db.beginTx()` (`db.go`): `Begin(false)`.
 (internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+
+**Proof sketch (the freelist, integration I7).** Under `metalock`, if the freelist is published
+(not `nil`: only `Open`'s own `freepages` runs before), 4d's `AddReadonlyTXID(meta.Txid())`:
+`flReaders fl (R ++ [txid])`, with `txid` the current committed txid (`≥ 1`, `< 2 ^ 63`: keeps
+`readersOk`). `removeTx` (`Tx.close`) removes it.
 -/
 module
 

@@ -1,8 +1,11 @@
 /-
 `(*Lease).persistTo(b)` (`lease.go:55`), an internal helper's spec (mirrors the code). **Users**:
-`Grant`, `Checkpoint`, under `le.mu`, on the apply thread. **Proof sketch**: `b.BatchTx()`,
+`Grant`, `Checkpoint`, under `le.mu`, on the apply thread. **Proof sketch**: `b.BatchTx()` (the open share `beOk b`, from the writer's token: integration I5),
 `LockInsideApply` (4a's `beHook b Pk f`: `Pk`, the hook run, `Mvcc.hookRun`), 4b's `MustUnsafePutLease` of `{ID, TTL, RemainingTTL}`
-(`beLeases b` at `id := ttl`; the remaining TTL not modelled), `Unlock` (deferred). **Changes**
+(the local struct made a message by `Schema.leaseMsg_of_struct`; `Schema.MustUnsafePutLease.spec`
+over `Schema.txWr` of the batch transaction and the view `R V` that `beLeases b B` realizes: the
+view's lease bucket gets a `leaseEnc` of `(id, t, r)` under `beU64 id`, so `leaseBktIs` holds of `B`
+at `id := t`; the remaining TTL not modelled), `Unlock` (deferred). **Changes**
 (from `specs-ref`'s `Lease__persistTo.lean`, the critical-section contract `csContractA` over the
 tracked buckets): over 4a/4b's provisional names and mvcc's hook contract. **Margin**: the record's `RemainingTTL`.
 -/
@@ -34,7 +37,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 def Lease.persistTo.spec : Prop :=
   ∀ (l : Loc) (b : GoInterface) (B : Int → Option Int) (id t r : w64) (dq1 dq2 dq3 : DFrac)
     (Pk Pre Q Post : IProp GF) (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ beHook b Pk f ∗ Pre ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ beOk b ∗ beHook b Pk f ∗ Pre ∗
       Mvcc.hookRun Pk f Pre Q ∗ (Q ={⊤}=∗ Pk ∗ Post) ∗
       beLeases b B ∗
       l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"ID"] ↦{dq1} id ∗
@@ -42,7 +45,7 @@ def Lease.persistTo.spec : Prop :=
       l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"remainingTTL"] ↦{dq3} r }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.Lease.ty @!!
       go!"persistTo")) (Val #b))
-  {{ RET #(); Post ∗
+  {{ RET #(); beOk b ∗ Post ∗
       beLeases b (fun i => if i = sint.Z id then some (sint.Z t) else B i) ∗
       l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"ID"] ↦{dq1} id ∗
       l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"ttl"] ↦{dq2} t ∗

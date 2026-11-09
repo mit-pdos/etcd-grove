@@ -30,11 +30,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 /-- `deleteRangeRPC(ctx, maxLeaseRev, key, end)` for the range delete `d` of `[key, end)`: nothing
 (`nil`, `nil`: the guard failed), an error, or the delete committed. -/
 def leasingKV.deleteRangeRPC.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (maxLeaseRev : w64) (key «end» : GoString) (d : DeleteReq)
+  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (lo : Nat) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (maxLeaseRev : w64) (key «end» : GoString) (d : DeleteReq)
     (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ ⌜d.key = key ∧ d.rangeEnd = «end» ∧ «end» ≠ []⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ ⌜d.key = key ∧ d.rangeEnd = «end» ∧ «end» ≠ []⌝ ∗
       lkvMarks γL (reqWrites (.deleteRange d)) ∗ □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx who (.deleteRange d) σ σ' r ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo (.deleteRange d) σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (App (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"deleteRangeRPC")) (Val #ctx)) (Val #maxLeaseRev)) (Val #key)) (Val #«end»))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

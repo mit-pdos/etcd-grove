@@ -17,6 +17,9 @@ instead of the old three-case `observedAt`. Round 1: no order between headers (f
 reconnect to a lagging member: 1b's review), each value after the caller's `σ0`; no thread token;
 a `select` law (`observeAt_recvAu`).
 
+Integration (I1): the facts coming from the watch are gated on W0's `exactFrom` (1b's round 3
+gated a watch's exactness on it; `observeAt_recv`).
+
 Margin: etcd's watch is gap-free, so each observed value is the leader's at its revision (present
 there) except when one revision both puts and deletes the key (nested transactions); stated as
 `ObservedAt` (written at its revision, nothing older then). Liveness (the most recent leader is

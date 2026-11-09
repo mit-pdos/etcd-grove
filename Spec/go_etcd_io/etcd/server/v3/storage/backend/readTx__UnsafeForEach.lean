@@ -34,7 +34,7 @@ bucket, each entry once (`rdOrder`). -/
 def readTx.UnsafeForEach.spec : Prop :=
   ∀ (γ : BeNames) (F : Fp) (V : Image) (bk : GoInterface) (bi : BktInfo) (vis : GoFunc)
     (P : List (GoString × GoString) → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ bucketOk bk bi ∗ ⌜∀ x, F (.key bi.name x)⌝ ∗ visitOk vis P ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ bkt γ bk bi ∗ ⌜∀ x, F (.key bi.name x)⌝ ∗ visitOk vis P ∗
       P [] }}
     (App (App (Val ((rtLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty @!! go!"UnsafeForEach")) (Val #bk)) (Val #vis))
   {{ (err : GoInterface), RET #err; beRd γ (rtLoc γ) F V ∗ ∃ l, ⌜rdOrder (V.ents bi.name) l⌝ ∗

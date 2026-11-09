@@ -48,9 +48,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `kv.Get` meets the KV contract's `Get` (`KV.GetTriple`, `Api.lean`), for a `*kv` of the
 cluster `γ` as `who` (`kvHandle`). -/
 def kv.Get.spec : Prop :=
-  ∀ (kv : Loc) (γ : Cluster) (who : Principal),
+  ∀ (kv c : Loc) (γ : Cluster) (who : Principal),
   KV.GetTriple (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Get")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvHandle kv γ who)) γ who
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvHandle kv c γ who ∗ clientReady c)) γ who
 
 end spec
 

@@ -1,6 +1,11 @@
 /-
 `tx.close()` (`tx.go`): the writer's statistics merged and `rwlock` released, or the reader removed; the fields cleared.
 (internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+
+**Proof sketch (the freelist, integration I7).** Writer: 4d's `FreeCount`, `PendingCount`,
+`EstimatedWritePageSize` under `flOwn` (`F.count < flMaxIds`: ids below the high-water mark),
+results only stored in the statistics. Reader: `removeTx`, 4d's `RemoveReadonlyTXID` under
+`metalock` (`flReaders fl (R.erase txid)`).
 -/
 module
 

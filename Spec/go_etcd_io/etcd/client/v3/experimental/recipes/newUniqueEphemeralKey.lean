@@ -33,9 +33,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 
 /-- **`newUniqueEphemeralKey(s, prefix)`**: `newUniqueEphemeralKV` with an empty value. -/
 def newUniqueEphemeralKey.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (who : Principal) (id : w64) (pre : GoString)
+  ∀ (s c : Loc) (γ : Cluster) (who : Principal) (id : w64) (pre : GoString)
     (Q : State → State → GoString → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ sessionAt s γ who id ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ Concurrency.isSession s c γ id ∗ isClient c γ who ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (k : GoString) (res : Resp),
              ⌜uniqueKeyIn pre k ∧ Step who (putNewReq k [] (sint.Z id)) σ σ' res ∧ ¬ txnCmpFailed res⌝ ∗

@@ -34,7 +34,7 @@ def txReadBuffer.Range.spec : Prop :=
       (Val #limit))
   {{ (kl vl : GoSlice), RET (PairV #kl #vl); trbAt t R ver ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
       ∃ r, ⌜bbRangeOk ((R bi.id).getD []) k e (sint.Z limit) r⌝ ∗
-        bytesListAt kl (r.map Prod.fst) ∗ bytesListAt vl (r.map Prod.snd) }}
+        bytesListAt kl (r.map Prod.fst) DFrac.discard ∗ bytesListAt vl (r.map Prod.snd) DFrac.discard }}
 
 end spec
 

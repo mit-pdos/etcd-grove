@@ -27,8 +27,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `revokeLeaseKvs(ctx, kvs)`: the key-values read-only, given back. -/
 def leasingKV.revokeLeaseKvs.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (kvs : GoSlice) (dq : DFrac) (ms : List KeyValueM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ sessionReady γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ msgsOwn keyValueOwn kvs dq ms ∗ threadTok }}
+  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (kvs : GoSlice) (dq : DFrac) (ms : List KeyValueM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ sessionReady γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ msgsOwn keyValueOwn kvs dq ms ∗ threadTok }}
     (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"revokeLeaseKvs")) (Val #ctx)) (Val #kvs))
   {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err); msgsOwn keyValueOwn kvs dq ms ∗ threadTok }}
 

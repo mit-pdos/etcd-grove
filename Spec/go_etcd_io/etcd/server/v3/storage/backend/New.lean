@@ -17,23 +17,30 @@ allocated at `I`: the history `[I]`, the batch image and the visible image (thei
 the batch lock's and `readTx.mu`'s invariants), `beReaderN` slots (`readTx.mu`'s reader count and
 the interval wait group's budget, bounded by `beReaderN ≤ 2^30 - 2`), the open token, the hook at
 `nil`, the delete right; the client's step turns them into `Pk γ` (which goes into the batch lock's
-invariant), the two contracts (into `isBackend`), and `K γ`. `go b.run()` borrows a thread from
-`envOk`'s pool.
+invariant), the two contracts (into `isBackend`), and `K γ`. `go b.run()` with the caller's
+`threadTok` (`Close` gives it back once the loop has exited). The buckets `Bs` (distinct ids:
+`bktsOk`) become `beBkt`; the hooks' footprint `beHookFp`; `beDurInv` is 4c's `boltFile` of the
+file (`fileHolds_alloc`); `beSynced` records `UnsafeNoFsync` off (the crash law's gate). With a
+non-blocking defragmentation configured, the safe-range registry must name only safe-range buckets
+(`safeRegOk`, the schema's initialization: a gap recorded in the report).
 
 **Changes** (from `specs-ref`'s `New.lean`, over `bFresh`/`newPostK`/`hooksOk P W Pk`/`BParams`):
 the vocabulary (one image by footprints, client-owned visible image and history); any file image
 (`beFile p o`: a restart, a received snapshot's file); the panic disjunct replaced by the
-environment premise `dbOpenOk` (the memory note: environment failures are premises); no thread
-token (the pool's).
+environment premise `dbOpenOk` (the memory note: environment failures are premises); round 1: the
+thread token for the run loop (no pool), the buckets (T4), the hooks' footprint (T1, T2), the crash
+invariant and the `UnsafeNoFsync` mode (T4).
 
-**Margin.** The configuration's batch interval and limit, `NoSync`, the freelist type and the
-metrics are not stated; with `UnsafeNoFsync` set, `beHist`'s crash meaning is void (4c's
-`BoltSt.commit` promises nothing under `NoSync`).
+**Margin.** The configuration's batch interval and limit, the freelist type and the metrics are
+not stated. **Scope** (filed, 4c's D13): `Mlock` off (`--experimental-memory-mlock` excluded: bbolt's
+file model has no `mlock`). **Modes**: `UnsafeNoFsync` is recorded (`beSynced` only when off): with it
+on, bbolt promises nothing after a crash, so no crash law; `NonBlockingDefrag` takes `safeRegOk`.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
 public import Spec.go_uber_org.zap.Api
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -53,17 +60,21 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **`New(cfg)`**: a backend over the file at `cfg.Path` holding `o` (none: a new, empty file), with
-the hooks `cfg.Hooks`; the client's allocation step gets the fresh ghost state at the file's image
-and chooses the batch lock's resource `Pk γ`. -/
+the hooks `cfg.Hooks` (writing the cells `Fh`) and the buckets `Bs`; the client's allocation step gets
+the fresh ghost state at the file's image and chooses the batch lock's resource `Pk γ`. The caller's
+thread token runs the commit loop until `Close`. -/
 def New.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (o : Option Image) (Pk K : BeNames → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk ∗ ⌜dbOpenOk cfg ∧ cfg.Mlock' = false⌝ ∗
+  ∀ (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (o : Option Image) (Bs : BktInfo → Prop) (Fh : Fp)
+    (Pk K : BeNames → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk ∗ threadTok ∗ ⌜dbOpenOk cfg ∧ cfg.Mlock' = false ∧ bktsOk Bs⌝ ∗
+      (⌜cfg.NonBlockingDefrag' = false⌝ ∨ safeRegOk) ∗
       (⌜cfg.Logger' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗ beFile cfg.Path' o ∗
       (∀ γ : BeNames, beNew γ (o.getD Image.empty) ={⊤}=∗
-        Pk γ ∗ hookOk γ cfg.Hooks' (Pk γ) ∗ commitOk γ (Pk γ) ∗ K γ) }}
+        Pk γ ∗ hookOk γ cfg.Hooks' Fh (Pk γ) ∗ commitOk γ (Pk γ) ∗ K γ) }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.New)) (Val #cfg))
   {{ (r : GoInterface), RET #r; ∃ (b : Loc) (γ : BeNames), ⌜r = beIface b⌝ ∗
-      isBackend γ b cfg.Path' (Pk γ) ∗ K γ }}
+      isBackend γ b cfg.Path' (Pk γ) ∗ K γ ∗ beHookFp γ Fh ∗ (□ ∀ bi, ⌜Bs bi⌝ -∗ beBkt γ bi) ∗
+      beDurInv γ cfg.Path' ∗ (if cfg.UnsafeNoFsync' then iprop(True) else beSynced γ) }}
 
 end spec
 

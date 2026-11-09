@@ -8,7 +8,7 @@ learners as learners), as `ConfChange.restore` lists them.
 module
 
 public import Spec.go_etcd_io.raft.v3.confchange.Api
-public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.raft.v3.raftpb.Api
 
 set_option autoImplicit false
 
@@ -32,10 +32,10 @@ variable [package_sem : go_etcd_io.raft.v3.confchange.Assumptions]
 
 /-- (internal) The ops `Restore` runs for `ConfState` `csv`. -/
 def toConfChangeSingle.spec : Prop :=
-  ∀ (csp : Loc) (dq : DFrac) (csv : Raft.ConfState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ Raft.confStatePts csp dq csv }}
+  ∀ (csp : Loc) (dq : DFrac) (csv : RaftPb.ConfState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ RaftPb.confStatePts csp dq csv }}
     (App (Val #(functions go_etcd_io.raft.v3.confchange.toConfChangeSingle [])) (Val #csp))
-  {{ (out inc : GoSlice), RET (PairV #out #inc); Raft.confStatePts csp dq csv ∗
+  {{ (out inc : GoSlice), RET (PairV #out #inc); RaftPb.confStatePts csp dq csv ∗
       ccsPts out (DFrac.own 1) (csv.votersOutgoing.map (fun id => ⟨AddNode, id⟩)) ∗
       ccsPts inc (DFrac.own 1)
         (csv.votersOutgoing.map (fun id => ⟨RemoveNode, id⟩) ++

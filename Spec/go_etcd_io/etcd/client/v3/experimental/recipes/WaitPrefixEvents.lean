@@ -13,6 +13,8 @@ prefix (`WithPrefix()`).
 **Premise**: as `WaitEvents`'.
 
 **Margin**: as `waitEvents`'.
+
+**Integration (I1)**: the prefix claim holds under `exactFrom σ.kv rev`, as `waitEvents`'.
 -/
 module
 
@@ -47,7 +49,9 @@ def WaitPrefixEvents.spec : Prop :=
   {{ (ev : Loc) (err : GoInterface), RET (PairV #ev #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (es : List WEv) (e : WEv) (m : EventM) (σ : State),
         eventOwn ev (DFrac.own 1) m ∗ etcdLb γ σ ∗
-        ⌜m.del = e.del ∧ m.kv = e.kv ∧ es ++ [e] <+: watchEvents (opWatchM pre [withPrefixM, withRevM rev]).watchReq σ.kv (sint.Z rev).toNat σ.kv.rev ∧
+        ⌜m.del = e.del ∧ m.kv = e.kv ∧
+          (EtcdModel.exactFrom σ.kv (sint.Z rev).toNat →
+            es ++ [e] <+: watchEvents (opWatchM pre [withPrefixM, withRevM rev]).watchReq σ.kv (sint.Z rev).toNat σ.kv.rev) ∧
           matchCount ts es < ts.length ∧ matchCount ts (es ++ [e]) = ts.length⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ ev = null⌝ ∗ recipeErrOk err) }}
 

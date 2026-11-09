@@ -31,9 +31,8 @@ def unsafeRange.spec : Prop :=
     (limit : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ curOver c L ∗ ks ↦*{dk} k ∗ es ↦*{de} e }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.unsafeRange)) (Val #c)) (Val #ks)) (Val #es)) (Val #limit))
-  {{ (kl vl : GoSlice), RET (PairV #kl #vl); curOver c L ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ∃ l, ⌜btRange L k e (sint.Z limit) l⌝ ∗
-        bytesListAt kl (l.map Prod.fst) ∗ bytesListAt vl (l.map Prod.snd) }}
+  {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗
+      ∃ l, ⌜btRange L k e (sint.Z limit) l⌝ ∗ rangeRes kl vl l (curOver c L) }}
 
 end spec
 

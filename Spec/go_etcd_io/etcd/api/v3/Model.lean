@@ -189,6 +189,24 @@ def KVHist.IsView (h v : KVHist) : Prop :=
   1 ≤ v.rev ∧ v.rev ≤ h.rev ∧ v.compacted ≤ h.compacted ∧ v.compacted ≤ v.rev ∧
     v = h.view v.rev v.compacted
 
+/-- The key an event changes. -/
+def Event.key : Event → Key
+  | .put k _ => k
+  | .delete k => k
+
+/-- **The compaction condition** (the user's, round 11 of the mvcc API,
+`.claude/skills/spec/examples/watch-compaction.md`; the one statement of it that the client's watch
+(1b's `watchStep`), the gRPC watch server (2b) and mvcc's watch (3f's `wStep`, `progStep`) cite):
+every revision from `lo` up to `h`'s compaction revision changes each key at most once (vacuous
+while the compaction revision is below `lo`). A compaction at a revision that changes a key twice
+keeps only the key's last change there, so a watch reading that revision afterwards gets it alone
+(`nonissues/etcd-mvcc-watch-compact-rev-subrev-lost.md`; through gRPC such a revision comes from
+`issues/etcd-txn-check-intervals-sibling.md`). A watch's exactness holds under it; a client
+discharges it from its workload (no transaction puts and deletes one key, the usual case) or from
+a cluster that never compacts. -/
+def exactFrom (h : KVHist) (lo : Nat) : Prop :=
+  ∀ r : Nat, lo ≤ r → r ≤ h.compacted → ((h.eventsAt r).map Event.key).Nodup
+
 /-! ## Leases -/
 
 /-- A live lease: the TTL it was granted (seconds; at least the TTL asked). -/

@@ -26,14 +26,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **`bb.Range(k, e, limit)`** on a sorted buffer: `bbRangeOk`. -/
 def bucketBuffer.Range.spec : Prop :=
-  ∀ (bb : Loc) (l : List (GoString × GoString)) (ks es : GoSlice) (dk de : DFrac)
+  ∀ (bb : Loc) (l : List (GoString × GoString)) (w : Bool) (ks es : GoSlice) (dk de : DFrac)
     (k e : GoString) (limit : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l ∗ ⌜l.Pairwise (fun a b => go.GoStringLt a.1 b.1) ∧ 0 < sint.Z limit⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l w ∗ ⌜l.Pairwise (fun a b => go.GoStringLt a.1 b.1) ∧ 0 < sint.Z limit⌝ ∗
       ks ↦*{dk} k ∗ es ↦*{de} e }}
     (App (App (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"Range")) (Val #ks)) (Val #es)) (Val #limit))
-  {{ (kl vl : GoSlice), RET (PairV #kl #vl); bbAt bb l ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
+  {{ (kl vl : GoSlice), RET (PairV #kl #vl); bbAt bb l w ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
       ∃ r, ⌜bbRangeOk l k e (sint.Z limit) r⌝ ∗
-        bytesListAt kl (r.map Prod.fst) ∗ bytesListAt vl (r.map Prod.snd) }}
+        bytesListAt kl (r.map Prod.fst) DFrac.discard ∗ bytesListAt vl (r.map Prod.snd) DFrac.discard }}
 
 end spec
 

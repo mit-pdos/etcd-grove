@@ -12,8 +12,10 @@
 // keys named "owned" are written by no other principal and by no call of this program still in
 // flight. Contexts carry the client's principal (ctxPrin). A key written through a leasing KV
 // is marked first (lkvClean_mark: the program gives up its lkvClean for it); a key never marked
-// is read through the cache as W0's serializable read. The proxy's snippets model auth disabled,
-// or one principal (its requests carry each requester's token: req/go_etcd_io_etcd_client_v3.md).
+// is read through the cache as W0's serializable read. Each call's principal is its context's
+// (ctxPrin who ctx p, W0's round 3), so the proxy's requests may carry each requester's token; a
+// cached answer is then W0's serializable read for that principal (CachedSer), which may skip the
+// permission check (nonissues/grpcproxy-leasing-auth-cached-read.md).
 package leasing
 
 import (

@@ -2,8 +2,8 @@
 ## `bcrypt.GenerateFromPassword(password, cost)` (assumed)
 
 **Users.** `EtcdServer.UserAdd`, `UserChangePassword` (`v3_server.go:893,918`, batch 2c: the hash the
-proposal carries, base64-encoded); `authStore.selectPassword` (`auth/store.go:422`, this batch: the
-pre-3.5 log entries that carry a plain password). Snippet: `examples/specreq/auth/admin.go`
+proposal carries, base64-encoded); `authStore.selectPassword` (`auth/store.go:422`: the pre-3.5
+log entries that carry a plain password, out of scope since round 1, `Auth.authReqAt`). Snippet: `examples/specreq/auth/admin.go`
 (`ReqUserAddThenCheck`).
 
 **Why true** (`bcrypt/bcrypt.go` at v0.57.0): a password over 72 bytes is refused

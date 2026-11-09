@@ -1,6 +1,7 @@
 /-
 `bb.add(k, v)` (`tx_buffer.go:198-206`): translated; internal. Appends, growing the slice by half
-when full. Changes: over `bbAt`. Margin: none.
+when full; a writable buffer only (a `CopyUsed` copy has no spare slot: `buf[used]` would be out of
+range). Changes: over `bbAt`; round 1 (S5): the writable flag. Margin: none.
 -/
 module
 
@@ -26,9 +27,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- **`bb.add(k, v)`**: the entry appended. -/
 def bucketBuffer.add.spec : Prop :=
   ∀ (bb : Loc) (l : List (GoString × GoString)) (ks vs : GoSlice) (k v : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l ∗ ks ↦*□ k ∗ vs ↦*□ v }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l true ∗ ks ↦*□ k ∗ vs ↦*□ v }}
     (App (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"add")) (Val #ks)) (Val #vs))
-  {{ RET #(); bbAt bb (l ++ [(k, v)]) }}
+  {{ RET #(); bbAt bb (l ++ [(k, v)]) true }}
 
 end spec
 

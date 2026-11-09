@@ -8,25 +8,26 @@ the first error returned.
 read-only transaction checked through `doSerialize` at the member's own stores, concurrently with
 the apply thread). Snippet `examples/specreq/apply/auth.go` (`ReqCheckTxnAuth`).
 
-**Proof sketch.** `checkTxnPermission.spec`: each `IsRangePermitted` / `IsPutPermitted` /
-`IsDeleteRangePermitted` (3d's, with `authRead`: `nil` only if the check passes at an auth state
-the cluster reached, `σa.authTables`; its error `ErrUserEmpty`, `ErrAuthOldRevision` or
-`ErrPermissionDenied`), `checkLeasePuts` (3c's `Lookup`, `Keys` with `lessorRead`: any answer; the
-`IsAdminPermitted` shortcut). The checks are **not atomic**: each passes at its own reached auth
-state (a member's store may apply an auth change between two; a token minted at another member may
-carry a revision this member has not reached), so the post says each pair is permitted at some auth
-state up to one the cluster reached, as W0's reads' checks (`State.authTables`).
+**Proof sketch.** `checkTxnPermission.spec` (the body is that call) at `permReads_reader` (from
+`Auth.authStoreAt st γ γa ∗ Auth.authLb γa i0`: `A = emp`, `L = false`, `C = chkPost γa i0 u rev`):
+for a read-only transaction (`t.readonly`: only ranges in both branches) `RequestOp.checks` has no
+lease check, so `L = false` is allowed and the lessor is never called. Each `IsRangePermitted` is
+3d's reader triple, reported by `Auth.checkPost` at its recorded states. The checks are **not
+atomic**: each is reported at its own states (a member's store may apply an auth change between
+two), as W0's reads' checks (`State.permittedSince`, `deniedSince`, from the lower bound).
 
 **Changes** from `specs-ref`'s `CheckTxnAuth.lean` (two modes through `isAuthStore … on`,
-`authApplyErrIs`, the lessor's view): one spec, over the cluster's reached states (2c's need, item
-3); the old spec's "`nil` with auth off" is the reached state with auth off.
+`authApplyErrIs`, the lessor's view): one spec, over 3d's recorded states (2c's need, item 3); the
+old spec's "`nil` with auth off" is a recorded state with auth off.
 
-**Margin.** The leases' keys: only the failing key's check (`chkPost`: `checkLeasePuts` reads the
-lessor's keys at no single state; the request path checks no put through here). Each check is
-reported at its own recorded states from the lower bound `i0` (3d's `checkPost`: the flag, the
-backend, the cache); one state for all the passing checks needs 3d's check to report the store's
-revision against `rev` (all passing checks then see the token's revision: requested,
-`req/go_etcd_io_etcd_server_v3_auth.md`, "from 3a (round 1)").
+**Margin.** Each check is reported at its own recorded states from the lower bound `i0` (3d's
+`checkPost`: the flag, the backend, the cache, the revision); one state for all the passing checks is
+not claimed (`nonissues/etcd-auth-revision-before-visible.md`: W0's `permittedSince` admits it).
+
+**Integration (I5).** Premise `t.readonly` (2c's only call is for a read-only transaction,
+`v3_server.go`); the provisional `lessorRead le` dropped (a read-only transaction never reaches the
+lessor, which a reader could only call with a reader token of 3c's, `lessorReaders`); the sketch
+goes through `checkTxnPermission.spec` at `permReads_reader` (per-check reports).
 
 **Round 1.** Restated over 3d's `authStoreAt`/`authLb`/`checkPost` (W0's read rule: a lower bound,
 the states a pass or a denial was made at), in place of the provisional `authRead` and the
@@ -63,7 +64,7 @@ def CheckTxnAuth.spec : Prop :=
     (u : GoString) (rev : w64) (t : TxnReq) (dq dq' : DFrac),
   let cs := RequestOp.checks (RequestOp.txn t.compare t.success t.failure)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      Auth.authStoreAt st γ γa ∗ Auth.authLb γa i0 ∗ lessorRead le ∗
+      Auth.authStoreAt st γ γa ∗ Auth.authLb γa i0 ∗ ⌜t.readonly⌝ ∗
       Auth.authInfoAt ai dq u rev ∗ EtcdWire.txnReqOwn rt dq' t ∗ threadTok }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st)))

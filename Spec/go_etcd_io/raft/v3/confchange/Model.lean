@@ -14,16 +14,17 @@ configuration's ids, each marked a learner iff it is one (`Tracker.TrackerOk`): 
 `IsLearner` marks confchange reads are the learner set, and the input check of `checkAndCopy`
 passes, so neither appears here. The output check (`checkAndReturn`) is kept (`checked`).
 
-**R1's opaque definitions are instances** (R1's `Model.lean`, to replace at integration):
-- `Membership.applyChange (.v1 cc) m = changeV2 ⟨ConfChangeTransitionAuto, [⟨cc.type, cc.nodeId⟩]⟩ m`
-  (`ConfChange.AsV2()`: one change, transition `Auto`);
-- `Membership.applyChange (.v2 c) m = changeV2 ⟨c.transition, c.changes.map (fun s => ⟨s.type,
-  s.nodeId⟩)⟩ m`;
-- `Membership.Valid = Tracker.Membership.Valid` (`tracker/Model.lean`).
+**R1's `Membership.applyChange` is defined from `changeV2`** (R1's `Model.lean`, integration I2):
+`.v1 cc` is `changeV2 ⟨TransitionAuto, [⟨cc.type, cc.nodeId⟩]⟩` (`ConfChange.AsV2()`: one change,
+transition `Auto`), `.v2 c` is `changeV2 ⟨c.transition, c.changes⟩`; R1's `Membership` is
+`Tracker.Membership` and its `ConfState.Is` is `Lists` of the five fields. A change is raftpb's
+`ConfChangeSingle` (`Single` is its name here) and the enumerations are raftpb's values
+(`raftpb/Model.lean`, which imports nothing of raft's).
 -/
 module
 
 public import Spec.go_etcd_io.raft.v3.tracker.Model
+public import Spec.go_etcd_io.raft.v3.raftpb.Model
 
 set_option autoImplicit false
 
@@ -38,21 +39,20 @@ namespace ConfChange
 open Classical
 open Tracker
 
-/-- `raftpb.ConfChangeType`'s values. -/
-def AddNode : w32 := W32 0
-def RemoveNode : w32 := W32 1
-def UpdateNode : w32 := W32 2
-def AddLearnerNode : w32 := W32 3
+/-- `raftpb.ConfChangeType`'s values (raftpb's). -/
+abbrev AddNode : w32 := RaftPb.ConfChangeAddNode
+abbrev RemoveNode : w32 := RaftPb.ConfChangeRemoveNode
+abbrev UpdateNode : w32 := RaftPb.ConfChangeUpdateNode
+abbrev AddLearnerNode : w32 := RaftPb.ConfChangeAddLearnerNode
 
-/-- `raftpb.ConfChangeTransition`'s values. -/
-def TransitionAuto : w32 := W32 0
-def TransitionJointImplicit : w32 := W32 1
-def TransitionJointExplicit : w32 := W32 2
+/-- `raftpb.ConfChangeTransition`'s values (raftpb's). -/
+abbrev TransitionAuto : w32 := RaftPb.ConfChangeTransitionAuto
+abbrev TransitionJointImplicit : w32 := RaftPb.ConfChangeTransitionJointImplicit
+abbrev TransitionJointExplicit : w32 := RaftPb.ConfChangeTransitionJointExplicit
 
-/-- **One change** (`raftpb.ConfChangeSingle`, its getters' values: a missing field reads `0`). -/
-structure Single where
-  type : w32
-  nodeId : w64
+/-- **One change**: raftpb's `ConfChangeSingle` (its getters' values: a missing field reads `0`).
+(Integration I2: was this batch's own structure with the same fields.) -/
+abbrev Single := RaftPb.ConfChangeSingle
 
 /-- **A change** (`raftpb.ConfChangeV2` as `applyConfChange` reads it; its context is ignored). -/
 structure V2 where

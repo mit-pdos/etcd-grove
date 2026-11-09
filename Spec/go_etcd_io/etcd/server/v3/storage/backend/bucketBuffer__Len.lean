@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **`bb.Len()`**: the used count. -/
 def bucketBuffer.Len.spec : Prop :=
-  ∀ (bb : Loc) (l : List (GoString × GoString)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l }}
+  ∀ (bb : Loc) (l : List (GoString × GoString)) (w : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l w }}
     (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"Len")) (Val #()))
-  {{ (n : w64), RET #n; bbAt bb l ∗ ⌜sint.nat n = l.length⌝ }}
+  {{ (n : w64), RET #n; bbAt bb l w ∗ ⌜sint.nat n = l.length⌝ }}
 
 end spec
 

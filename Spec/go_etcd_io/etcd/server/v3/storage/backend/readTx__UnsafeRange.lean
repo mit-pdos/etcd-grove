@@ -13,10 +13,15 @@ range, cut at the limit); if it fills the limit, returned; else the bucket's bbo
 rest of the limit: bbolt's part, then the buffer's appended. The read buffer holds the puts since
 the last commit (keys above the committed ones in a safe-range bucket: the put rows' premises; a
 single key's value shadowing bbolt's in another bucket), bbolt's read transaction the last commit:
-together the visible image `V` (`rdRange`).
+together the visible image `V` (`rdRange`). A pre-commit hook's puts linger in the write buffer and
+reach the read buffer at a later write-back, at their committed values (the hooks' leftovers): a
+single key reads its value either way, but a range of a safe-range bucket would return such a key
+twice, so a safe-range range needs a bucket with no hook cell (`beHookFp`; etcd's hooks write `meta`
+only). The bytes are lent while the read lasts (4c's `txBytes`; `rangeRes`).
 
 **Changes** (from `specs-ref`'s): the hidden split stated (`rdRange`: the buffer's part cut first),
-in place of a plain cut range (false with a non-empty buffer and a limit). **Margin.** Which entries
+in place of a plain cut range (false with a non-empty buffer and a limit); round 1: the bytes lent
+(T3), no hook cell in a safe-range range (T2). **Margin.** Which entries
 are buffered is not stated.
 -/
 module
@@ -45,13 +50,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 def readTx.UnsafeRange.spec : Prop :=
   ∀ (γ : BeNames) (F : Fp) (V : Image) (bk : GoInterface) (bi : BktInfo) (ks es : GoSlice)
     (dk de : DFrac) (k e : GoString) (limit : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ bucketOk bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ⌜covers F bi.name k e⌝ ∗ ⌜bi.safe = true ∨ es = slice.nil ∨ sint.Z limit = 1⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
+      ⌜covers F bi.name k e⌝ ∗ ⌜bi.safe = true ∨ es = slice.nil ∨ sint.Z limit = 1⌝ ∗
+      (⌜bi.safe = false ∨ e = []⌝ ∨ ∃ Fh, beHookFp γ Fh ∗ ⌜∀ x, ¬ Fh (.key bi.name x)⌝) }}
     (App (App (App (App (Val ((rtLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #ks))
       (Val #es)) (Val #limit))
-  {{ (kl vl : GoSlice), RET (PairV #kl #vl); beRd γ (rtLoc γ) F V ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
+  {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗
       ∃ l, ⌜rdRange (V.ents bi.name) bi.safe (V.clean bi.name) k e (sint.Z limit) l⌝ ∗
-        bytesListAt kl (l.map Prod.fst) ∗ bytesListAt vl (l.map Prod.snd) }}
+        rangeRes kl vl l (beRd γ (rtLoc γ) F V) }}
 
 end spec
 

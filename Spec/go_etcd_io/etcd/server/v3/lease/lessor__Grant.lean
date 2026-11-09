@@ -11,7 +11,7 @@ MaxLeaseTTL`: `ErrLeaseTTLTooLarge`. `NewLease` (`NewLease.spec`: a fresh object
 pins to `ls`); `leaseMap[id]` present: `ErrLeaseExists`, unlock, the state unchanged. Else raise
 `l.ttl` to `minLeaseTTL` (`c.minTTL`, `isLessor`'s read-only field); `isPrimary()`: `refresh(0)` or
 `forever()` (the object's expiry, under its `expiryMu`: not modelled); `leaseMap[id] = l`;
-`persistTo(le.b)` (`Lease.persistTo.spec`: `b.BatchTx()`, `LockInsideApply` (`beHook ls.be Pk f`:
+`persistTo(le.b)` (`Lease.persistTo.spec`, with the token's open share `beOk ls.be`: `b.BatchTx()`, `LockInsideApply` (`beHook ls.be Pk f`:
 `Pk` and the hook run, `Mvcc.hookRun Pk f Pre Q`, the caller's `Pre` to `Q`), 4b's
 `MustUnsafePutLease` moving `beLeases ls.be` (in the token) to `bkt[id := ttl']`, `Unlock` with
 `Pk` back from `Q ={⊤}=∗ Pk ∗ Post`); the metrics (prometheus: no effect); if primary, the notifier's `RegisterOrUpdate` and

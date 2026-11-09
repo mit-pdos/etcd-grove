@@ -1,6 +1,7 @@
 /-
 `bb.CopyUsed()` (`tx_buffer.go:244-253`): translated; internal. `verify.Assert` (off: `envOk`), a
-fresh buffer of the used entries. Changes: `envOk`. Margin: none.
+fresh buffer of the used entries, with no spare slot (not writable). Changes: `envOk`; round 1
+(S5): the copy not writable. Margin: none.
 -/
 module
 
@@ -25,10 +26,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **`bb.CopyUsed()`**: a fresh buffer with the same entries. -/
 def bucketBuffer.CopyUsed.spec : Prop :=
-  ∀ (bb : Loc) (l : List (GoString × GoString)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk ∗ bbAt bb l }}
+  ∀ (bb : Loc) (l : List (GoString × GoString)) (w : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk ∗ bbAt bb l w }}
     (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"CopyUsed")) (Val #()))
-  {{ (c : Loc), RET #c; bbAt bb l ∗ bbAt c l }}
+  {{ (c : Loc), RET #c; bbAt bb l w ∗ bbAt c l false }}
 
 end spec
 

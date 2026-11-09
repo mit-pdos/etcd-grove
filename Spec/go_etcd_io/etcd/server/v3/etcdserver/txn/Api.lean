@@ -70,6 +70,14 @@ today gives a sorted permutation, not which one; `notes/specs-only/batch-3b.md`)
 `fmt.Errorf`'s fresh value (3e's context outcome, asked to say it is none of the sentinels),
 `roTxnResp` and `respSkel` by the response trees as `newTxnResp` builds them.
 
+**Not yet provable from the callees as they are** (integration I5, 2026-11-09; recorded in
+`notes/specs-only/integration-I5.md`): `ctxErr_not_errIs` (3e's `rangeResOwn` `.ctxErr` gives only
+`err ≠ nil`: `req/..._storage_mvcc.md`, "from 3b", item 1); `rrOwn`'s `kvFits` on a range's result
+(a record's lease an `int64`: item 2); `errIs_agree` and `errIs_ne_nil` at `.keyNotFound` (each
+owner's initialization law gives its own sentinels distinct, none relates them across packages and
+`etcdserver/errors` has none: wanted, each sentinel's variable holding 2c's `EtcdServer.srvErrVal e`,
+with `srvErrOf_fun`).
+
 ## Laws
 
 `goSort_sorted`, `rangeAll_eq`, `rangeOut_answers`, `run_txnRun`, `runEvs_readonly`,
@@ -169,10 +177,10 @@ def rangeOut (r : RangeReq) (wtc : Bool) (all : List KV) : RangeAns :=
     { kvs := a.1, more := a.2,
       count := if wtc ∨ L = 0 then all.length else min all.length L }
 
-/-- **The range end a slice names** (W0's reading, as mvcc reads the slice: `nil` the key alone, a
-non-`nil` empty slice every key from the key on, `"\x00"`'s reading; else the bytes). -/
-def endOf (sl : GoSlice) (e : Bytes) : Bytes :=
-  if sl = slice.nil then [] else if e = [] then [0#8] else e
+/-- **The range end a slice names**: W0's `EtcdWire.endOf` (as mvcc reads the slice: `nil` the key
+alone, a non-`nil` empty slice every key from the key on, `"\x00"`'s reading; else the bytes), which
+the request predicates' unfold laws use. -/
+abbrev endOf (sl : GoSlice) (e : Bytes) : Bytes := EtcdWire.endOf sl e
 
 /-- `Count`'s request: a count-only range of `[key, rangeEnd)` at revision `rev`. -/
 def countReq (key rangeEnd : Key) (rev : Int) : RangeReq :=

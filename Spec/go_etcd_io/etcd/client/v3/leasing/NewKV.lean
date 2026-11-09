@@ -8,16 +8,17 @@ with `concurrency.WithTTL(1)`, `defer closeLKV()`). Snippets: `leasing/lifecycle
 (`ReqNewKVProxy`, `ReqNewKVClose`).
 
 Proof sketch: reads `cl.KV` (the field given, at any share: `isClient_KV`, or the proxy's `clientMut_split`);
-`cl.Ctx()` (1c, over `clientRest`: `ctxOk` and `ctxPrin _ who`, `req/go_etcd_io_etcd_client_v3.md`, from 1e),
+`cl.Ctx()` (1c's `Client.Ctx.spec`, over `clientBase` by `clientRest_core`, `clientCore_pre`,
+`clientPre_base`: `ctxOk` and `ctxPrin who ctx who`),
 `Context.WithCancel.spec` of it (W0), `ctxPrin_child`; allocates the `leasingKV` (its fields
 from `isClient_KV`'s `kvAt` of `cl.KV`, the options read-only), the `revokes` map (`entries` nil
 until the session monitor makes it), `sessionc`; allocates the cache's lock invariant (`lcAt`: no
 entry, `sessionc` open, the session nil), the wait group's invariant with the open token's
 authority (`lkvOpen γL 1` handed out), the marks' authority (`lkvClean γL` of every key handed
 out), `isLeasingKV` from these, `protoUpd` and `clientRest`; the session options (1d's `sessOptsAt`,
-`optCtxOk`) to the session monitor, whose `NewSession` (1d, over `clientRest`: the proxy has
-overwritten `cl.KV` by then; `req/go_etcd_io_etcd_client_v3_concurrency.md`, from 1e) gets its
-`etcdPerm` from `protoUpd` (`effIn`: a read or a grant is a `ProtoStep`);
+`optCtxOk o who sp`: the session's requests are `sp`'s) to the session monitor, whose `NewSession` (1d,
+over `clientRest`: the proxy has overwritten `cl.KV` by then) gets its `etcdPerm` from `protoUpd`
+(`effIn`: `readEff` and `grantEff` are `ProtoStep`s) and its `etcdLb γ σ0` from a no-op firing of it;
 `wg.Add(2)` (the two goroutines' thread tokens deposited, as `WaitGroup`'s bounds discipline asks),
 forks `monitorSession` (`leasingKV.monitorSession.spec`, with `sessMonitor`) and `clearOldRevokes`
 (`leaseCache.clearOldRevokes.spec`); `waitSession(cctx)` (`leasingKV.waitSession.spec`, the thread
@@ -67,11 +68,11 @@ the program's permission for the protocol's steps with prefix `pfx` and session 
 value meeting the leasing contract (`lkvAt`), the whole open token, every key clean, the close
 function. -/
 def NewKV.spec : Prop :=
-  ∀ (cl : Loc) (dq : DFrac) (v : GoInterface) (γ : Cluster) (who : Principal) (pfx : GoString)
+  ∀ (cl : Loc) (dq : DFrac) (v : GoInterface) (γ : Cluster) (who sp : Principal) (pfx : GoString)
     (osl : GoSlice) (gs : List (Concurrency.SessOpts → Concurrency.SessOpts)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ clientRest cl γ who ∗ cl.[go_etcd_io.etcd.client.v3.Client, go!"KV"] ↦{dq} v ∗
-      kvAt v γ who ∗ ⌜pfx ≠ []⌝ ∗ protoUpd γ who pfx ∗ Concurrency.sessOptsAt osl gs ∗
-      Concurrency.optCtxOk (Concurrency.applySessOptsM gs Concurrency.SessOpts.init).ctx who ∗
+      kvAt v γ who ∗ ⌜pfx ≠ []⌝ ∗ protoUpd γ pfx ∗ Concurrency.sessOptsAt osl gs ∗
+      Concurrency.optCtxOk (Concurrency.applySessOptsM gs Concurrency.SessOpts.init).ctx who sp ∗
       threadTok }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.leasing.NewKV)) (Val #cl)) (Val #pfx)) (Val #osl))
   {{ (kv : GoInterface) (cf : GoFunc) (err : GoInterface), RET (PairV (PairV #kv #cf) #err);

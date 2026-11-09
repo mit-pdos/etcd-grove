@@ -11,7 +11,7 @@ response decoded (`ErrLeaseNotFound` on 404, other errors returned): no panic fo
 (a bad URL is an error) or context. The TTL it returns says nothing of the lease in W0's model.
 
 **Changes** (from `specs-ref`'s `RenewHTTP.lean`): unchanged in substance; the round tripper's
-contract provisional (`rtOk`). **Margin.** The TTL.
+contract is `net/http`'s `Http.roundTripperOk` (`rtOk`, no longer provisional: integration I5). **Margin.** The TTL.
 -/
 module
 

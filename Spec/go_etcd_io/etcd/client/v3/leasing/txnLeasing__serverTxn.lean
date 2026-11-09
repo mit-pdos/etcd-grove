@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `serverTxn()`: as `LTxn.CommitTriple`, answered by a member. -/
 def txnLeasing.serverTxn.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (st : TxnSt) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ lkvMarks γL (reqWrites (.txn st.req)) ∗ threadTok ∗ □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx who (.txn st.req) σ σ' r ∗ etcdState γ σ',
+  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (lo : Nat) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (st : TxnSt) (Q : State → State → Resp → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ authLb γ lo ∗ lkvMarks γL (reqWrites (.txn st.req)) ∗ threadTok ∗ □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx who lo (.txn st.req) σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (Val (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"serverTxn")) (Val #()))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ threadTok ∗

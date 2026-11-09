@@ -14,8 +14,8 @@ Proof sketch: `Mutex.tryAcquire.spec` (the key `k`, its create revision `c`). If
 create revision is `c` (or none: impossible, `k` is there), the transaction's state gives
 `lockedSince` (`holdsAt` at it), the header kept. Otherwise `waitDeletes.spec` with `c - 1`
 (positive: `c ≥ 2`, `etcdLb_init`): at a state `σw` no key under the prefix is older than `c`;
-on its error `Unlock(client.Ctx())` (`Client.Ctx.spec`, 1c: a context of some principal of the
-client; `Mutex.Unlock.spec` with `mutexEff`'s delete) and the error. Then the KV contract's `Get(ctx,
+on its error `Unlock(client.Ctx())` (`Client.Ctx.spec`, 1c, over `clientBase c dflt` from `isClient`:
+`ctxPrin dflt ctx dflt`, the client's own principal; `Mutex.Unlock.spec` with `mutexEff`'s delete) and the error. Then the KV contract's `Get(ctx,
 k)` (a linearizable read, its update from `etcdPeek`) at `σ`, after `σw` (`etcdLb_reach` inside the
 update): no key is created older than `c` after `σw` (their create revisions are later revisions),
 so `noOlder pfx c` still holds at `σ`; `k` present there: `lockedSince pfx k c σ`, the header kept
