@@ -441,6 +441,39 @@ theorem isAER_heartbeat (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64) 
   simp [Etcdraft.raftMsgType, Etcdraft.raftMsgSubtype]
   rfl
 
+/-- A heartbeat line's non-receive successors: the specification's `Heartbeat(i, j)` of the line's
+sender and receiver, when it matches the line. -/
+theorem nonReceive_heartbeat (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i j : Etcdraft.ID)
+    (s2 : Etcdraft.State) (hl : ts.l ≤ t.len)
+    (hname : (t.line ts.l).ev.name = "SendAppendEntriesRequest")
+    (hfrom : (t.line ts.l).from = i) (hto : (t.line ts.l).to = j)
+    (hty : (t.line ts.l).ev.msg.map Etcdraft.EventMsg.type = some "MsgHeartbeat")
+    (hnd : t.server.Nodup) (hi : i ∈ t.server) (hj : j ∈ t.server)
+    (hhb : ts.s.heartbeat i j = .ok (some s2)) (hv : t.validateAfterAppendEntries ts s2 i = true) :
+    t.nonReceive ts = .ok [s2] := by
+  have hsome : (t.line ts.l).ev.msg.isSome = true := by
+    cases h : (t.line ts.l).ev.msg with
+    | none => rw [h] at hty; cases hty
+    | some _ => rfl
+  have hf : t.pairs.foldlM (fun acc p => do return acc ++ (← t.heartbeatIfLogged ts p.1 p.2)) [] = .ok [s2] := by
+    apply foldlM_append_single _ _ (i, j) s2 (pairs_nodup t hnd) ((mem_pairs t i j).2 ⟨hi, hj⟩)
+    · simp [Etcdraft.Trace.heartbeatIfLogged, Etcdraft.Trace.isMessageEvent, Etcdraft.Trace.isEvent,
+        hl, hname, hfrom, hto, hty, hsome, hhb, hv, bind, Except.bind, pure, Except.pure]
+    · rintro ⟨a, b⟩ _ hne
+      have : ¬ (a = i ∧ b = j) := fun h => hne (by rw [h.1, h.2])
+      simp only [Etcdraft.Trace.heartbeatIfLogged, Etcdraft.Trace.isMessageEvent, Etcdraft.Trace.isEvent,
+        hfrom, hto]
+      by_cases ha : a = i
+      · have hb : b ≠ j := fun hb => this ⟨ha, hb⟩
+        simp [ha, Ne.symm hb, pure, Except.pure]
+      · simp [Ne.symm ha, pure, Except.pure]
+  unfold Etcdraft.Trace.nonReceive
+  simp only [hname, hty]
+  simp only [bind, Except.bind] at hf ⊢
+  rw [hf]
+  simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
+    Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure]
+
 end TraceSim
 
 end EtcdGrove
