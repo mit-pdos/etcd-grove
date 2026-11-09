@@ -81,6 +81,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     NStateWf s →
     -- (2026-10-22, D38a) a forwarded message has no responses (`stepFollower`'s premise)
     rs = [] →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -93,7 +94,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hterm Hne Hlok Hlrd Hwf Hnors
+  intro Hty Hterm Hne Hlok Hlrd Hwf Hnors Htr
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩

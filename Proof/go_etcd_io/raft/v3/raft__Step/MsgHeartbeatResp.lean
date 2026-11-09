@@ -57,6 +57,7 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     m.From' ≠ W64 0 →
     m.From' ≠ id →
     NStateWf s →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -70,18 +71,18 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf
+  intro Hty Hto Hterm Hfnz Hfid Hwf Htr
   wp_start_folded as ⟨Hphys, Hm⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents .heartbeatResp (.inr ⟨Hty, rfl⟩) Hto Hterm
-        Hgt Hwf) $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+        Hgt Hwf Htr) $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
     iapply HΦ $$ %err %s'
     iframe Hphys
     ipureintro
     obtain ⟨recv, Hrecv, Hstep⟩ := Href
     exact ⟨Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · wp_apply (wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents .heartbeatResp (.inr Hty) Hterm Hlt Hwf)
+    · wp_apply (wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents .heartbeatResp (.inr Hty) Hterm Hlt Hwf Htr)
         $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, -, %Hfr, %Htm⟩
       iapply HΦ $$ %err %s'
       iframe Hphys
@@ -90,7 +91,7 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       exact ⟨Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
     · have Hteq : m.Term' = s.term := by word
       wp_apply (wp_Step_MsgHeartbeatResp_eq _P _Q c r id s ml m sn ctx rs ents Hlrd Hty Hto Hterm Hteq Hfnz
-        Hfid Hwf) $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+        Hfid Hwf Htr) $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
       iapply HΦ $$ %err %s'
       iframe Hphys
       ipureintro

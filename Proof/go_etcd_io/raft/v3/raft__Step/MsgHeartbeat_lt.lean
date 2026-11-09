@@ -53,6 +53,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     -- (no commit premise: a stale heartbeat never reaches `commitTo`)
     -- this file: the incoming term is stale: logged and dropped
     uint.Z m.Term' < uint.Z s.term →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -65,7 +66,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hlt
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hlt Htr
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩

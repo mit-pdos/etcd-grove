@@ -79,6 +79,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
      StableOk s.logst (entryID.mk m.LogTerm' m.Index')) →
     s.gh.unst = false →
     NStateWf s →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -93,7 +94,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
         "%Hpk" ∷ ⌜s.role = .preCandidate → PreKeep s s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hsn Hle Hstok Hghoff Hwf
+  intro Hty Hsn Hle Hstok Hghoff Hwf Htr
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -446,6 +447,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
     NStateWf s →
     (s.logst.snap ≠ none → s.logst.lent = false → uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) →
     (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index') →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, some sv, ctx, rs⟩ }}
@@ -457,7 +459,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
             { s with logst := ackSnapLog s.logst m s.term sv, progress := prs, prvals := pvs,
                      isLearner := il }) ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hhit Hle Hrole Hvotes Hscope Hlt Hstok Hghoff Hwf Hsx Hkx
+  intro Hty Hhit Hle Hrole Hvotes Hscope Hlt Hstok Hghoff Hwf Hsx Hkx Htr
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩

@@ -352,6 +352,7 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' = W64 0 →
     NStateWf s →
     (s.role = .follower → s.votes = ∅) →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -365,7 +366,7 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty3 Hterm Hwf Hfv
+  intro Hty3 Hterm Hwf Hfv Htr
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by
     rcases Hty3 with h | h | h <;> simp [h]
@@ -446,6 +447,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     rs = [] →
     -- (2026-10-29, stage U7) a leader's term past `0` (`stepLeader`'s, for `send`'s stamp)
     (s.role = .leader → s.term ≠ W64 0) →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -459,7 +461,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hent Hctx0 Hxo Htr Hlok Hwf Hnors HLT
+  intro Hty Hent Hctx0 Hxo Htr Hlok Hwf Hnors HLT HtrN
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
@@ -602,6 +604,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     NStateWf s →
     -- (D19i part 1) the floor at most `applied` (`hup`'s)
     uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -615,7 +618,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hnw Hnwm Hwf Hfla
+  intro Hty Hnw Hnwm Hwf Hfla Htr
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by

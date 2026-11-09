@@ -110,6 +110,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     NStateWf s →
     -- (2026-10-18, D19b stage 5) the log's last index fits a word (the ghost state's)
     plogLastIndexZ (toPState s).base (toPState s).log < 2 ^ 64 →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -131,7 +132,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hwf HL
+  intro Hty Hto Hterm Hwf HL Htr
   have Hnpv : m.Type' ≠ MsgPreVoteResp := by rw [Hty]; w32_ne
   have Hnprop : m.Type' ≠ MsgProp := by rw [Hty]; w32_ne
   wp_start as ⟨Hphys, Hm, #Hrc⟩

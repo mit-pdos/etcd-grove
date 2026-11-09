@@ -63,6 +63,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- this file: the incoming term is higher: `becomeFollower(m.Term, m.From)`, then
     -- `stepFollower`
     uint.Z s.term < uint.Z m.Term' →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -77,7 +78,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
         "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hgt
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hgt Htr
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩

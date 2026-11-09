@@ -53,6 +53,7 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     uint.Z s.term < uint.Z m.Term' →
     NStateWf s →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -65,7 +66,7 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hgt Hwf
+  intro Hty Hto Hterm Hgt Hwf Htr
   have Hfl : fromLeader ty = false := by
     rcases Hty with ⟨_, rfl⟩ | ⟨_, rfl⟩ <;> rfl
   have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨

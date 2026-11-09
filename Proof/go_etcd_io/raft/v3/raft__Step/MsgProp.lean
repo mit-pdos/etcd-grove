@@ -145,6 +145,7 @@ theorem wp_Step_MsgProp
     plogLastIndexZ (toPState s).base (toPState s).log < 2 ^ 64 →
     -- (2026-10-22, D38a) a forwarded message has no responses (`stepFollower`'s premise)
     rs = [] →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the proposal, its entry pointers owned
@@ -181,7 +182,7 @@ theorem wp_Step_MsgProp
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents ctx) ∧
               recv.length ≤ 1 ∧ StepCD c id B m s recv s'⌝ ∗
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
-  intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hwf HL Hnors
+  intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hwf HL Hnors Htr
   wp_start as ⟨Hphys, Hm, #Hcc, #Hrc⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto

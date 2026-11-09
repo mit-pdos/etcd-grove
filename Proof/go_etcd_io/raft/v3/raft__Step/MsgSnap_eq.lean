@@ -62,6 +62,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     s.role ≠ .leader →
     -- a follower's vote tally is empty (`FollowerVotesOk`)
     (s.role = .follower → s.votes = ∅) →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
@@ -80,7 +81,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) what is kept of the state, and the term (the node's)
         "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hteq Hnl Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hteq Hnl Hvotes Htr
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩

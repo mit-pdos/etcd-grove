@@ -61,6 +61,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
     uint.Z s.term < uint.Z m.Term' →
     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
     NStateWf s →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -74,7 +75,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hgt Hnw Hwf
+  intro Hty Hto Hterm Hgt Hnw Hwf Htr
   have Hn17 : decide (m.Type' = W32 17) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn5 : decide (m.Type' = W32 5) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)

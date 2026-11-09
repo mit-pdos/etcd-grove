@@ -52,6 +52,7 @@ theorem wp_Step_MsgVote_le (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     ¬ (uint.Z s.term < uint.Z m.Term') →
     -- `r.step` matches the role
     NStateWf s →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -69,13 +70,13 @@ theorem wp_Step_MsgVote_le (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hle0 Hwf
+  intro Hty Hto Hterm Hfnz Hle0 Hwf Htr
   by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-  · exact wp_Step_MsgVote_lt _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hlt Hwf
+  · exact wp_Step_MsgVote_lt _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hlt Hwf Htr
   · have Heq : m.Term' = s.term := by word
     by_cases Hv0 : s.vote = W64 0
-    · exact wp_Step_MsgVote_eq_novote _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Heq Hv0 Hwf
-    · exact wp_Step_MsgVote_eq_voted _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Heq Hv0 Hwf
+    · exact wp_Step_MsgVote_eq_novote _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Heq Hv0 Hwf Htr
+    · exact wp_Step_MsgVote_eq_voted _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Heq Hv0 Hwf Htr
 
 end StepProof
 
