@@ -14,7 +14,7 @@ to the committed log's state (2d's realization).
 * `memberIdOf urls token` (opaque, pure): the id `computeMemberID` gives a member of an initial
   cluster with these peer URLs in a cluster of this token (SHA-1 of the sorted URLs and the token,
   its first 8 bytes big-endian; `member.go:63-76`). Trusted: what Go computes; a program learns a
-  concrete value only by running Go (`examples/specreq/etcdserverboot/boot.go` prints them).
+  concrete value only by running Go (a computed fact, checked by a Go run).
 * `initialMembers token cl` (transparent): the members `NewClusterFromURLsMap` builds from an
   initial-cluster map (`cluster.go:81-95`): each name with its peer URLs, no client URL, a voter.
   `bootstrap` fails on two equal ids or an id `0` (the same lines), so no premise on them.

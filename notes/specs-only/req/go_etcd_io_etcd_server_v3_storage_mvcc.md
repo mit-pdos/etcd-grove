@@ -239,3 +239,8 @@ Used by: `applierV3backend.{Compaction,newHeader}.spec`.
 
 `mvcc`'s sentinels (`ErrCompacted`, `ErrFutureRev`) hold `srvErrVal e` (`errors/Api.lean`; a law of
 the package's initialization).
+
+## from 2e, round 1
+
+`mvccBootCfg_intro`: `0 ≤ CompactionBatchLimit`. `V3compactor.revGetter_intro` is the law your store
+proves for `Rev` (with a `threadTok`, at any time, also after `Close`).

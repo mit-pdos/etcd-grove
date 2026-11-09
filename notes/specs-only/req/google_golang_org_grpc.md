@@ -302,3 +302,34 @@ whose goroutines are forks" is not acceptable until that model exists, and grpc-
 names-only (2a's `Api.lean:14-19` still claims the fork realization). Please restate `Server.Serve`
 over such a pool. If both boundaries share one pool predicate, 2f will use 2a's name; until then
 `Http.handlerPool` is 2f's.
+
+## from 3d
+
+The auth store reads a request context's incoming metadata and TLS peer (`AuthInfoFromCtx`,
+`AuthInfoFromTLS`, `WithRoot`). Its specs are stated over two provisional slots in
+`Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`, to be realized by this boundary:
+
+1. **`Auth.ctxInMD ctx o`** (persistent): `metadata.FromIncomingContext(ctx)`'s answer for *any*
+   context, not only a run's (`Grpc.rpcCtx`): `some md` (every key with at least one value: the
+   store indexes `ts[0]`, `nonissues/etcd-auth-token-md-empty.md`) or `none` (a context with no
+   incoming metadata: `Background()`-derived, the server's `s.ctx`). Needed laws: `rpcCtx ctx md ⊢
+   Auth.ctxInMD ctx (some md)`; `Context.ctxNoMeta`-like intro for contexts without incoming metadata
+   (`Background`, `WithCancel`/`WithValue` children: `ctxInMD ctx none`); a spec of
+   `metadata.New(map)` and `metadata.NewIncomingContext(ctx, md)` (`WithRoot`: the result `ctxOk`,
+   `ctxInMD ctx' (some md)`, the peer kept). `Auth.mdToken` reads it (`token`, then `authorization`,
+   `Bearer ` trimmed). Used by: `authStore.AuthInfoFromCtx.spec`, `WithRoot.spec`.
+   ```go
+   md, ok := metadata.FromIncomingContext(ctx)   // auth/store.go:1052
+   ts, ok := md[rpctypes.TokenFieldNameGRPC]
+   token := strings.TrimPrefix(ts[0], "Bearer ")
+   ```
+2. **`Auth.ctxCertUser ctx c`** (persistent): what `AuthInfoFromTLS` reads: `peer.FromContext`, its
+   `AuthInfo` a `credentials.TLSInfo` whose first non-empty verified chain's leaf has common name
+   `cn`, incoming metadata present and without `grpcgateway-accept`: `some cn`; else `none`. A run's
+   context should give it from the connection's TLS state. Used by: `authStore.AuthInfoFromTLS.spec`
+   (assumed), and through it 2b's round-1 finding (the principal of a token-less request with a client
+   certificate is its common name).
+3. **`mdPrin γ md who`'s realization** (2a's slot): `who = none` iff `Auth.mdToken md = none` (and no
+   certificate user, with client-certificate auth), else `who = some u` with `tokenUser γ tok u` for
+   the token `tok`: what `AuthInfoFromCtx.spec` and W0's `tokenUser_agree` turn into the store's
+   answer. `togRPCError`'s table for the auth errors is `Auth.AuthErr.etcd` over `Auth.errOf`.

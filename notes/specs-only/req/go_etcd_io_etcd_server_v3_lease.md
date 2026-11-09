@@ -110,3 +110,8 @@ contract is `Mvcc.mvccDeleter_rdOk.spec` (a law giving `Lease.rdOk γl rd n ls P
 Used by: `KV.Put`, `KV.DeleteRange`, `KV.Restore`, `Txn.Put`, `Txn.DeleteRange` contracts, `NewStore.spec`,
 `storeTxnWrite.put/delete.spec`, `store.restore.spec`, `mvccDeleter_rdOk.spec`; snippets
 `examples/specreq/mvcc/lease.go`.
+
+## from 2e, round 1
+
+`leaseBootRes_intro` (provisional): at `ecfg.leaseExpiry = true`, with no premise; the no-expiry mode
+needs your deployment premise (`batch-2e.md` Q6).

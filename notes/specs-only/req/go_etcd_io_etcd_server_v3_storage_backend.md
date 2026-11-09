@@ -130,3 +130,9 @@ give the server (2d, 2e) what makes a store's storage from an opened backend. In
    may run between: `mvccImage` admits a partly done compaction (`u`).
 4. **The commit and a crash**: what a later open finds is the last commit's data (2d's item 3);
    mvcc's part of it is an image of the store's history at that commit (by 3 at the commit point).
+
+## from 2e, round 1
+
+`backendBootRes_intro` (provisional in `ApiBoot`): from `backendEnvOk` (`ETCD_VERIFY` unset, a
+program-start fact) and `QuotaBackendBytes ≤ 8 GiB` (bbolt maps `quota + quota / 10`): state your
+slot's introduction at least this permissive.

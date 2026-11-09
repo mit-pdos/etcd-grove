@@ -191,3 +191,17 @@ gRPC layer's validation: a put's `invalid = none`, a delete's key, a transaction
 depth, a compaction's `rev ≠ 0`), and `irrOwn p dq ir` (the inner request message at fraction `dq`;
 any header): `raftRequest` gives it back, so 3h's laws should wrap a request message into one
 (`&pb.InternalRaftRequest{Put: r}` from `putReqOwn r dq pr`, ...) and take it back out.
+
+## from 3d
+
+The auth store's specs name the auth request and response messages through three provisional
+predicates of `Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`, to be realized over this package's
+message vocabulary: **`Auth.authReqAt r rq`** (a read-only `*pb.Auth<Kind>Request` asking W0's `rq`;
+for `UserAdd`/`UserChangePassword`, the hash form: `HashedPassword` with `Auth.hashedPw`, `Password`
+empty, or a pre-3.5 plain password of at most 72 bytes; for `RoleGrantPermission`, `Perm` non-nil,
+its `PermType` one of the three), **`Auth.authRespAt rq res p`** (a fresh `*pb.Auth<Kind>Response`
+for the answer `res`, its `Header` nil: `UserGet`'s `Roles`, `RoleGet`'s `Perm` (`rootPerm` for
+`root`), the lists' names) and **`Auth.authnRespAt p tok`** (a fresh `*pb.AuthenticateResponse`
+with `Token = tok`). The appliers (3a) read the decoded `InternalRaftRequest`'s field into
+`authReqAt` and pass the reply on (`newHeader`). Used by: every `authStore.<Admin>.spec`
+(`AdminTriple`), `authStore.Authenticate.spec`.

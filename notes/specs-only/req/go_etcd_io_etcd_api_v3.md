@@ -279,3 +279,74 @@ Used by: `irrStep_step.spec`, `opStep_userAdd.spec`, `resMatch` (3a's `Api.lean`
    `mvcc/kvstore_txn.go:273,285,338`): a key set no revision had, which `leaseTimeToLive`'s
    `∃ r, … storeAt r …` excludes. A model mismatch (provability F4): admit any key set between two
    revisions' or record a non-issue.
+
+## from 3d
+
+What the auth store's specs (`Spec/go_etcd_io/etcd/server/v3/auth/`) found about W0's auth model,
+checked against `server/auth/store.go` (W0's item 2 asked for it):
+
+1. **`authenticate`'s success must not claim the password is the user's.** bcrypt reads only the
+   first 72 bytes of a password (`nonissues/etcd-auth-password-72-byte-prefix.md`: a user with a
+   72-byte password authenticates with any extension of it) and hashes collide; the boundary
+   (`Spec/golang_org/x/crypto/bcrypt/`) assumes only that a hash accepts its own password. Needed:
+   `authStep .authenticate`'s success allowed whenever the user exists with a password (`∃ ur p,
+   a.users name = some ur ∧ ur.password = some p`), the failure (`authFailed`) only when the user is
+   absent, password-less, or `p ≠ pw`. Used by: `authStore.CheckPassword.spec` (its success names no
+   password), 2c's `Authenticate.spec`.
+2. **`tokenUser_agree`**: `tokenUser γ tok u ∗ tokenUser γ tok u' ⊢ ⌜u = u'⌝` (a token names one
+   user): what lets the request path conclude that `AuthInfoFromCtx`'s user (`tokenUser γ tok u`) is
+   the client's (`ctxPrin`, 2a's `mdPrin`). And `tokenUser`'s meaning must include the tokens a member
+   issues itself: `WithRoot`'s root tokens (`prefix.0`, index `0`, never an entry's) and the JWTs the
+   members' keys sign (`Auth.jwtTokOk`). Used by: `examples/specreq/auth/token.go` (`ReqTokenUser`,
+   `ReqWithRoot`).
+3. **`roleGrantPermission` with an invalid range**: the model's success case admits any `perm`; the
+   store refuses an empty key, or a range end that is neither empty, `"\x00"` nor above the key
+   (`isValidPermissionRange`: `ErrInvalidAuthMgmt`). Needed: the success case only for a valid range
+   (`Auth.validPerms`'s condition), so that every reached state has valid permissions (a fact clients
+   prove from `Reach`) and `Recover`/`NewAuthStore`'s premise `validPerms a'` follows from
+   reachability.
+4. **An inverted range** (a proper `rangeEnd` at or below the key): `AuthState.covers` holds of it
+   vacuously (no key is in it), so `State.permits` passes, but the store's interval tree may refuse
+   it (`Contains` of an empty interval): a read or delete of an inverted range by a user without
+   permissions on it is answered `ErrPermissionDenied` where the model requires `¬ permits`. Needed:
+   the model's check left open for inverted ranges (a denial allowed), or `covers` defined as the
+   tree computes it. (`Auth.rngInverted`; `checkPost`'s denial carries the disjunct.)
+5. **A request with both a token and a client certificate** of different users, across an
+   `AuthEnable`: with auth off at the proposer, `EtcdServer.AuthInfoFromCtx` falls back to the
+   certificate's user (the store returns no credentials when auth is off) and the header carries that
+   user at the current revision, which `AuthEnable` does not bump; if the apply finds auth on, the
+   check is the certificate user's, not the token's. The principal (`ctxPrin`) should exclude this
+   case (a scope premise: one identity per client) or it goes with
+   `nonissues/etcd-doserialize-auth-enable-race.md`'s decision.
+6. **`roleGet "root"` with no stored role `root`**: the model answers a list whatever is stored
+   (`name = rootRole ∧ ∃ ps, res = .ok (.roleGet ps)`), but the store returns `ErrRoleNotFound` when
+   no role named `root` is stored (`auth/store.go`, `RoleGet`: `as.be.GetRole` first, `rootPerm` only
+   for a stored `root`); the usual setup (`user add root`, `user grant-role root root`) stores none,
+   since `UserGrantRole` does not require the root role to exist. Needed: `roleGet rootRole` answers
+   `roleNotFound` when `a.roles rootRole = none`, a list otherwise. **Until then
+   `authStore.RoleGet.spec` is false at that input** (it claims W0's `authStep`).
+7. Confirmed against the code, unchanged: `userAdd`, `userDelete` (`root` with auth on refused),
+   `userChangePassword` (a password-less user stays so), `userGrantRole` (a duplicate changes
+   nothing), `userRevokeRole`, `roleAdd`, `roleDelete` (the role removed from every user),
+   `roleRevokePermission`, `roleGet` (`root`: any list), the lists, `authEnable` (keeps the revision),
+   `authDisable` (bumps), `mayCall`'s self cases (`authApplierV3.UserGet`/`RoleGet`).
+
+## from 2e, round 1
+
+1. **The auto-compactor's lag** (2e's completeness F6: `examples/etcd/compactwatch`'s check C3,
+   "every compaction is at least the retention behind a revision the cluster reached"). `EnvCfg`
+   should carry the compactor's lag (`compactLag : Nat`, `0` for periodic mode or none) and
+   `EnvStep.compact` require `r + lag ≤ σ.kv.rev`. 2e's `V3compactor.bootCfg` then ties the revision
+   mode's retention to it (`bootCfg_on` at `lag ≤ ret`) and the server's `Compactable` commits only
+   such compactions (the revision compactor compacts at `rg.Rev() - retention`).
+2. **K6 / item 5 say "graceful stop only"** until raft's crash transition exists (`req/go_etcd_io_raft_v3.md`,
+   "from 2e, round 1"): a restart after `HardStop`/`Stop` loses no answered step; after a crash, no
+   spec says so yet.
+3. **The adequacy statement's program-start resources**: `EtcdServer.dataDirFresh ds` per data/WAL
+   directory pair (canonical, pairwise distinct paths), `Http.addrFree a` per peer host (2f), and
+   `EtcdServer.backendEnvOk` (`ETCD_VERIFY` unset for the run).
+4. K2's join is by a single-use peer-URL set (`urls_reserve`: `urlsRight`, `memberJoin`), not by an
+   `etcdLb` naming the member: the program's `MemberAdd`/`MemberUpdate` calls take `urlsRight`
+   (round 1, provability F4).
+5. Alarms (second tier F13): a client `AlarmActivate` of an unknown type reaches the alarm store with
+   its raw type (`apply/backend.go:116-131`); the model has no client activation; say what it is.

@@ -235,3 +235,17 @@ precondition, as you asked: "from 2a" item 3).
    leaf sentinel (`srvErrVal_leaf`, `srvErrOf_inj`), so `errors.Is(err, lease.ErrLeaseNotFound)` is
    decided by `srvErrOf err .leaseNotFound` once `lease`'s initialization law gives the global's
    value (3c); an unmapped one has a message and wraps no sentinel (`srvErrNotMapped`).
+
+## from 2e, round 1
+
+1. 2e now specifies 2a's item 7: `EtcdServer.{AddMember, UpdateMember, RemoveMember,
+   PromoteMember}` (each with `urlsRight` for the URLs it gives a member, where applicable), the getters
+   `Cluster`, `KV`, `IsLearner`, `IsMemberExist`, `Alarms`, `MemberID`, `Leader`, `Term`, `Logger`
+   (with a `threadTok`), and the membership constructors `NewMember`, `NewMemberAsLearner`.
+2. Every request-path call holds a share of `srvGate s q` (from `Start`); a member is stopped only
+   with the whole gate back, so the gRPC server is drained first (`HardStop.spec`).
+3. `v3rpcBootCfg_intro` (`ApiBoot.lean`): `MaxTxnOps ≤ 4999` and `MaxRequestBytes ≤ 10 MiB`, a
+   provisional bound for your `issues/etcd-txn-keysonly-reply-alloc-panic.md` value: refine it in
+   your slot.
+4. The client address on a restart (second tier F14): the restarted member re-serves the same client
+   address; your `addrAt` is persistent, which suffices.

@@ -54,3 +54,12 @@ Answers to 2f's items in `req/go_etcd_io_etcd_server_v3_etcdserver.md` ("from 2f
    `ν.dbIn i` for a `MsgSnap`); the server chooses `ν.img := imgAt γ`, `ν.dbIn` its record over its
    `snapDbs` (`req/go_etcd_io_etcd_server_v3_etcdserver.md`, from 2d (round 1), item 9).
 7. `srvNode_errorc` gives your `errChanOk` of `s.errorc`; `run` returns on a receive.
+
+## from 2e, round 1
+
+1. 2e uses your `Net`, `raftProto`, `raftCompat`, `peerAddr_reserve`, `Http.addrFree`/`protoAt`:
+   `cluster_alloc` and `urls_reserve` reserve the members' peer hosts for the cluster's network
+   (`srvNet γ ν`), `EtcdServer.RaftHandler.spec` gives your `Transport.Handler` post at that network.
+2. The URL hosts are your provisional `urlsHosts` (1c's): keep it or tell 2e.
+3. `transporterOk` (provisional in `ApiBoot`) is the `Transporter` bundle with token-taking
+   `ActiveSince`/`ActivePeers`: please export it.

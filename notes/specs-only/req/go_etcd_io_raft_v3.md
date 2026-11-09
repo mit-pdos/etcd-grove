@@ -482,3 +482,18 @@ Used by: `applyBatch_terms`, `msgSnapC_recv`, `applyAll.spec`, `createMergedSnap
 
 `raft.ErrStopped`'s package variable holds `EtcdServer.raftStoppedErr` (`errors/Api.lean`; the read
 loop's `readErr` names it); `ErrProposalDropped` is unmapped with a message (`srvErrShape`).
+
+## from 2e, round 1
+
+**A crash transition of the durable state** (2e's attempt at crash restarts, `ApiBoot.lean`,
+"Crashes"). A crash during the WAL's `Save` of a `Ready` leaves a prefix of the batch's entry records
+and the old state record (`Wal.Recs.crashedMid`; after it, a commit-only state not fsynced may also
+be lost, `Recs.crashed`): the directory then holds a durable state that is neither `D` nor
+`D.next b`, possibly truncated at the batch's first index with only some of its entries, and entries
+of a term above the stored term. R1's `raftState γ id D` moves only at a `Ready`'s update and
+`StorageHolds D σ` requires the stored log to be `D`'s, so no restart from it can apply
+`RestartNode.spec`. 2e needs a law turning `raftState γ id D` (and the in-flight batch `b` whose
+`readyEnter` was not fired) into `raftState γ id D'` for any `D'` a crash may leave (`D'` with
+`D.wcommit ≤ D'.commit`, the log `D`'s truncated at the batch's first index and extended by a prefix
+of `b`'s entries, the old term and vote), with raft's invariants shown to admit it (the node
+acknowledged nothing of `b`). Used by: 2e's crash restart (now graceful stop only).

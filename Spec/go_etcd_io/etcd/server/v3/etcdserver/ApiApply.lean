@@ -20,10 +20,13 @@ committed log's first `k` entries is `σ`. Each committed entry moves it by one 
 entry's commit (inside the proposal's update that raft fires, R1's `node.Propose.spec`): a client
 request's `Step` (firing the client's update, 2c's), an environment step (`envUpd`, for the
 lessor's revocations, the compactor's compactions, the alarms, `publishV3`), or nothing (an empty
-entry, a lease checkpoint, a cluster version). The step is **the apply's model** `applyStep mc σ e
-σ' res` (provisional, 3a's: a function of the state and the entry, at the proposing member's
-configuration `mc`), so the answer fixed at the commit is the one the proposer's apply computes later
-(`answered γ k id res`, persistent). `histPropose` is the law that builds raft's proposal update from
+entry, a lease checkpoint, a cluster version). The step is **3a's apply model** `Apply.applyStep mc σ e
+σ' res` at the **proposing** member's configuration `mc` (`srvCfg`; members may be configured
+differently: no premise). Every member's state machine is at a TTL-variant of the history
+(`Apply.ttlEq`: equal but for the leases' TTLs, 3a's `irrStep_ttl`), the proposer's included, and the
+answer the proposer's apply computes is the one fixed at the commit (`answered γ k id res`,
+persistent): it needs 3a's law that one configuration on TTL-variant states gives the same answer
+(requested, `req/go_etcd_io_etcd_server_v3_etcdserver_apply.md`, from 2d (round 1b)). `histPropose` is the law that builds raft's proposal update from
 a proposer's update over `etcdState` (2c's `processInternalRaftRequestOnce`, `configure`), and
 `isServer_names` ties 2e's handle `isServer s γ` (over W0's `Cluster`) to these names. So **the history is the committed log's** (K6): a
 snapshot, a restore and a restart continue the same `histAt`; the member's own position in it is
@@ -41,7 +44,7 @@ takes (the WAL's `raftState`, the backend's image, raft's `nodeVacant`), which 2
 **The apply thread.** `applyThread s γ ep p` (exclusive): the apply thread's state, with the
 `etcdProgress` record `ep` at `p : Progress` (applied index and term, the disk and memory snapshot
 indices): the state machine (the uber-applier over mvcc, the lessor, auth, membership, alarms, the
-consistent indexer) at `histAt γ ci` for its consistent index `ci ≥ p.appliedi` (always: every
+consistent indexer) at a TTL-variant of `histAt γ ci` (`Apply.ttlEq`) for its consistent index `ci ≥ p.appliedi` (always: every
 applied entry past `ci` moves `ci` to it, a restart's backend is at or past the raft snapshot, an
 installed image at or past its index; entries up to `ci` are replayed for the in-memory membership
 only, `shouldApplyV3 = false`), and `ep.confState` listing the configuration at `ci`. R1's `nodeConf`
@@ -99,10 +102,10 @@ in it on a quorum.
 
 Persistence, timelessness, exclusivity; the history: `histAt_agree`, `histAt_lb` (W0's `etcdLb`:
 K7's realization), `histAt_committed`, `histAt_of_committed`, `answered_agree`, `committed_types`,
-`snapImage_point`, `snapPoint_agree`, `applyStep_fun`, `applyStep_reach` (3a's), `histPropose`,
+`snapImage_point`, `snapPoint_agree`, `histPropose` (over 3a's `Apply.applyStep`),
 `readCtx_register`, `readReg_register`, `readReg_get`; the member: `srvApplied_mono`,
 `srvApplied_zero`, `srvApplied_hist`, `srvApplied_read`, `srvReadAt_mono`, `srvNode_raftNode`,
-`srvNode_agree`, `srvNode_errorc`, `isServer_names`, `srvMember_node`, `srvRunTok_intro`,
+`srvNode_agree`, `srvNode_cfg`, `srvCfg_agree`, `srvNode_errorc`, `isServer_names`, `srvMember_node`, `srvRunTok_intro`,
 `applyInit_ep`, `srvStopped_disk`, `isRaftNode_node`, `isRaftNode_storage`, `nodeSnapLb_stor`,
 `nodeAdvanced_applied`, `rnInit_place`, `applyThread_at`, `applyThread_applied`, `applyBatch_terms`,
 `applyc_recv` (with the cursor `applycPos`), `readStateC_recv`, `msgSnapC_recv`,
@@ -129,6 +132,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.Api
 public import Spec.go_etcd_io.etcd.pkg.v3.idutil.Api
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Api
 
 set_option autoImplicit false
 
@@ -150,14 +154,11 @@ opaque HistNames : Type := Unit
 
 /-- **An etcd cluster's server-level names**: the client-observable cluster (W0's names), the raft
 cluster under it (R1's names), the environment's configuration (every member configured alike, the
-cluster contract), the members' shared apply configuration (2e's `ApplyCfg`, fixed at the
-cluster's allocation: `clusterApplyCfg γ.etcd γ.mc`; the coordinator's decision on round 1's F1),
-and the history's own names. -/
+cluster contract), and the history's own names. -/
 structure Names where
   etcd : EtcdModel.Cluster
   raft : Raft.Cluster
   cfg : EtcdModel.EnvCfg
-  mc : ApplyCfg
   hist : HistNames
 
 /-! ## Pure models -/
@@ -189,12 +190,6 @@ def ApplyBatch.base (B : ApplyBatch) : Nat :=
 snapshot, R1's `BatchOk`). -/
 def ApplyBatch.last (B : ApplyBatch) : Nat := B.base + B.ents.length
 
-/-- (provisional, 3a's with 2e's membership and 3c, 3d, 3e) **The apply's model**: applying the
-committed entry `e` to the model state `σ` under the cluster's shared configuration `mc` gives `σ'`
-and the answer `res` (a function of `mc`, `σ` and `e`: `applyStep_fun`). For an entry no request waits on
-(an empty entry, a checkpoint, a cluster version) `σ' = σ`. -/
-opaque applyStep (mc : ApplyCfg) (σ : EtcdModel.State) (e : Raft.LogEntry) (σ' : EtcdModel.State)
-    (res : EtcdModel.Resp) : Prop
 
 /-- The `ShouldApplyV3` of an entry at index `i` for a consistent index `ci`: whether its effects go
 to the backend (`apply`, `server.go:1934`). -/
@@ -274,6 +269,12 @@ opaque srvStarted (s : Loc) (γ : Names) (id : Nat) : IProp GF := iprop(True)
 /-- (provisional, 2e's `etcdhttp/types`) `err` is the `*httptypes.HTTPError` with status 403 that
 `Process` returns for a refused message. Persistent. -/
 opaque httpForbidden (err : GoInterface) : IProp GF := iprop(True)
+
+/-- **Member `s`'s apply configuration is `mc`** (3a's `MemberCfg`: its lessor's minimum TTL).
+Persistent. Members may differ (round 1, the coordinator's update: 3a's resolution, no premise):
+the history records the proposer's step; every member's state machine is at a TTL-variant of the
+history (`Apply.ttlEq`). -/
+opaque srvCfg (s : Loc) (mc : Apply.MemberCfg) : IProp GF := iprop(True)
 
 /-- **Member `s` has applied the committed log's first `k` entries.** Persistent. -/
 opaque srvApplied (s : Loc) (γ : Names) (k : Nat) : IProp GF := iprop(True)
@@ -433,6 +434,7 @@ def persistent.spec : Prop :=
   (∀ γ s a, Persistent (snapPoint (GF := GF) γ s a)) ∧
   (∀ γ i img, Persistent (imgAt (GF := GF) γ i img)) ∧
   (∀ s γi, Persistent (srvIdSpace (GF := GF) s γi)) ∧
+  (∀ s mc, Persistent (srvCfg (GF := GF) s mc)) ∧
   (∀ s γ k, Persistent (srvReadAt (GF := GF) s γ k)) ∧
   (∀ s γ id, Persistent (srvNode (GF := GF) s γ id)) ∧
   (∀ s γ id, Persistent (srvStarted (GF := GF) s γ id)) ∧
@@ -493,31 +495,20 @@ def committed_types.spec : Prop :=
     Raft.committedLb (GF := GF) γ.raft l ⊢
       |={E}=> ⌜∀ e ∈ l, e.type = Raft.EntryNormal ∨ e.type = Raft.EntryConfChange⌝
 
-/-- (3a's) The apply's step is a step of the model (a client's `Step`, an environment step, or none):
-the history is one `Reach` sequence (W0's `etcdLb_reach`, `etcdLb_ord`). -/
-def applyStep_reach.spec : Prop :=
-  ∀ mc σ e (σ' : EtcdModel.State) (res : EtcdModel.Resp),
-    applyStep mc σ e σ' res → EtcdModel.Reach σ σ'
-
-/-- (3a's) The apply is deterministic. -/
-def applyStep_fun.spec : Prop :=
-  ∀ mc σ e (σ1 σ2 : EtcdModel.State) (r1 r2 : EtcdModel.Resp),
-    applyStep mc σ e σ1 r1 → applyStep mc σ e σ2 r2 → σ1 = σ2 ∧ r1 = r2
-
 /-- **Proposing through the history** (2c's `processInternalRaftRequestOnce` and `configure`; the
-cluster's invariant): a proposer turns its update over `etcdState` (fired with the apply's step of the
-entry under the shared configuration `γ.mc`, the entry's bytes satisfying `D`) into raft's proposal
+cluster's invariant): a proposer at a member configured `mc` (its `srvCfg`) turns its update over `etcdState`
+(fired with 3a's `Apply.applyStep mc` of the entry, the entry's bytes satisfying `D`) into raft's proposal
 update (R1's `node.Propose.spec`, `node.ProposeConfChange.spec` form): at the entry's commit at index
 `k`, the history's next point is `histAt γ k σ'` and the proposer's update fires there. Raft's
 namespace is the cluster's `etcdN .@ "raft"` (2e's allocation; round 1, S1), and a normal entry has
 data (an empty one is raft's own filler, S2). -/
 def histPropose.spec : Prop :=
-  ∀ (γ : Names) (ty : w32) (D : List w8 → Prop) (E : CoPset),
+  ∀ (γ : Names) (mc : Apply.MemberCfg) (ty : w32) (D : List w8 → Prop) (E : CoPset),
     ↑EtcdModel.etcdN ⊆ E → γ.raft.ns = EtcdModel.etcdN .@ "raft" →
     (∀ bs, D bs → ty = Raft.EntryNormal → bs ≠ []) →
     (AU <{ ∃∃ σ, EtcdModel.etcdState (GF := GF) γ.etcd σ }> @ ⊤ \ ↑EtcdModel.etcdN, ∅
       <{ ∀∀ (t : w64) (bs : List w8) (σ' : EtcdModel.State) (res : EtcdModel.Resp),
-          ⌜D bs ∧ applyStep γ.mc σ ⟨t, ty, bs⟩ σ' res⌝ ∗ EtcdModel.etcdState γ.etcd σ', COMM True }>)
+          ⌜D bs ∧ Apply.applyStep mc σ ⟨t, ty, bs⟩ σ' res⌝ ∗ EtcdModel.etcdState γ.etcd σ', COMM True }>)
     ⊢ |={E}=> AU <{ ∃∃ (ops : List Raft.LogEntry), Raft.committedOps γ.raft ops }>
         @ ⊤ \ ↑γ.raft.ns, ∅
       <{ ∀∀ (t : w64) (bs : List w8), ⌜D bs⌝ ∗ Raft.committedOps γ.raft (ops ++ Raft.opsOf [⟨t, ty, bs⟩]),
@@ -561,6 +552,13 @@ persistent `srvMember` gives `srvNode` at the names over its cluster. -/
 def srvMember_node.spec : Prop :=
   ∀ (s : Loc) (γ : EtcdModel.Cluster) (id : Nat), srvMember (GF := GF) s γ id ⊢
     ∃ N : Names, ⌜N.etcd = γ⌝ ∗ srvNode s N id
+
+/-- A member has one apply configuration, which `NewServer` fixed (2e's `srvNode`). -/
+def srvNode_cfg.spec : Prop :=
+  ∀ s γ id, srvNode (GF := GF) s γ id ⊢ ∃ mc, srvCfg s mc ∗ ⌜mc.ok⌝
+
+def srvCfg_agree.spec : Prop :=
+  ∀ s (mc mc' : Apply.MemberCfg), srvCfg (GF := GF) s mc ∗ srvCfg s mc' ⊢ iprop(⌜mc = mc'⌝)
 
 /-- One server, one member of one names. -/
 def srvNode_agree.spec : Prop :=

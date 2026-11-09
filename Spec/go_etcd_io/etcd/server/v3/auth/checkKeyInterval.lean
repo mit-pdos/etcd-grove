@@ -41,7 +41,7 @@ def checkKeyInterval.spec : Prop :=
     (pt : w32),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ Zap.isLogger lg ∗ cacheEntry p a u ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜e ≠ []⌝ ∗
       ⌜validPerms a ∧ (pt = W32 0 ∨ pt = W32 1) ∧ sint.Z key.len < 2 ^ 63 - 1 ∧
-        (sint.Z re.len < 2 ^ 63 - 1)⌝ }}
+        sint.Z re.len < 2 ^ 63 - 1⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.checkKeyInterval)) (Val #lg)) (Val #p)) (Val #key)) (Val #re)) (Val #pt))
   {{ (b : Bool), RET #b; key ↦*{dk} k ∗ re ↦*{de} e ∗
       ⌜(b = true → a.covers u (ptOf pt) { key := k, rangeEnd := e }) ∧

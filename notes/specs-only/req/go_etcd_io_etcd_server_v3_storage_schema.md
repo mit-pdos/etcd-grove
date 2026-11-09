@@ -51,3 +51,33 @@ bucket values and key names by pure constants; the schema's initialization must 
    ```
 3. The `Key` bucket is the backend's safe-range bucket (`safeRangeBucket: true`) and `Meta` is not:
    4a's `UnsafeDelete` row of the contract takes the safe-range lock for `Key` only.
+
+## from 3d
+
+The auth store (`Spec/go_etcd_io/etcd/server/v3/auth/`) is stated over one provisional slot of this
+package: **`Auth.authBackendAt be a`** (exclusive): `be` is an `AuthBackend` (`schema.NewAuthBackend(lg,
+be)`'s `*authBackend`) whose three auth buckets (`auth`, `authUsers`, `authRoles`) hold the auth
+state `a` (W0's `AuthState`): the enabled flag and revision keys, each user's `authpb.User` (its
+password a bcrypt hash of the model's, `Bcrypt.hashOf`; `Options.NoPassword` for none; its roles
+sorted), each role's `authpb.Role` (its permissions, in some order). With the contracts the store
+calls:
+
+1. `BatchTx()`, `Lock()`/`Unlock()` (the writer's: `Unlock` publishes the writes to the read
+   transactions), `UnsafeGetUser`, `UnsafeGetRole`, `UnsafeGetAllUsers`, `UnsafeReadAuthEnabled`,
+   `UnsafeReadAuthRevision`, `UnsafePutUser`, `UnsafeDeleteUser`, `UnsafePutRole`,
+   `UnsafeDeleteRole`, `UnsafeSaveAuthEnabled`, `UnsafeSaveAuthRevision` (the state moves by the
+   written records); a record whose key or value exceeds bbolt's limits is fatal
+   (`Auth.recordsFit` is the store's premise).
+2. `ReadTx()`, `RLock()`/`RUnlock()` (a reader slot, lent by the reader's `threadTok`), the same
+   reads (`UnsafeGetAllRoles` is not used on a read transaction:
+   `nonissues/etcd-auth-readtx-getallroles-panics.md`): the state last published.
+3. `GetUser`, `GetAllUsers`, `GetRole`, `GetAllRoles` (the batch transaction's view, called by the
+   writer only), `CreateAuthBuckets`, `ForceCommit`.
+4. A replaced backend (the store's `Recover`) is given back as `authBackendAt be0 a0`; closing it
+   waits for the read transactions still open on it (4a).
+Used by: `NewAuthStore.spec`, `authStore.Recover.spec`, and every admin and check spec's proof
+(`Internal.lean`'s `txAt`, `rdTx`).
+```go
+tx := as.be.BatchTx(); tx.Lock(); user := tx.UnsafeGetUser(r.Name)   // auth/store.go:433
+tx := as.be.ReadTx(); tx.RLock()                                     // lockedReadTx
+```

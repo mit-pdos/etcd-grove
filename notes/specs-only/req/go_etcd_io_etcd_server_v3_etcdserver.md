@@ -794,3 +794,100 @@ Needs (amending "from 2c"):
 8. **The package variables' values**: `etcdserver/errors`' sentinels hold `srvErrVal e` (a law of the
    package's initialization; `errors/Api.lean`'s `srvErrVal`), as do `membership`'s (2e), for
    `errors.Is` at the callers.
+
+## from 3d
+
+The auth store's API is `Spec/go_etcd_io/etcd/server/v3/auth/Api.lean` (namespace `Auth`). What
+the server batches must supply and what they get, against the needs 2b and 2c filed
+(`req/go_etcd_io_etcd_server_v3_auth.md`):
+
+**To 2c (the request path).**
+1. **`doSerialize`'s revision re-check does not justify the read's permission**
+   (`nonissues/etcd-auth-revision-before-visible.md`): an admin step bumps the revision atomic before
+   it publishes the new users and roles, so a simple token's or a certificate's `AuthInfo.Revision`
+   (the atomic) can be the new revision while the check reads the old state, and the re-check after
+   the read passes. `Range.spec`'s sketch ("the token's revision equal at the end means the auth
+   state did not change in between, so the check holds at `kr`") is false; `srvStep` needs a disjunct
+   (the read's answer at a state whose auth state is the check's predecessor) or a fix on the fork
+   (bump the atomic after the batch transaction's `Unlock`). **Decision for the user**, with the
+   `AuthEnable` race. What the store states: `authStore.IsRangePermitted.spec`'s `checkPost` (each view
+   at a recorded state at or after the caller's `authLb`; a pass is `State.permits` at one of them).
+2. **`Authenticate`'s loop is sound as sketched**: `CheckPassword`'s revision is the backend view's,
+   the same as the user it read (`authStore.CheckPassword.spec`), and two equal revisions mean the same
+   users and roles (`Revision.spec`, `authAt_reach`, W0's bump). But its success no longer says the
+   password is the user's (`req/go_etcd_io_etcd_api_v3.md`, "from 3d", item 1).
+3. **`reqPrin ctx who`'s realization** needs the cluster: `AuthInfoFromCtx` maps the context's token
+   (`Auth.ctxToken ctx o`) to a user `u` with `tokenUser γ tok u`; so `reqPrin` should take `γ`
+   (`reqPrin γ ctx who`), or be defined per server (`isServer s γ`). With W0's `tokenUser_agree` and
+   2a's `mdPrin`, `who = some u`. The TLS fallback: `Auth.ctxCertUser ctx c` (`AuthInfoFromTLS.spec`).
+4. **`WithRoot`** (`revokeExpiredLeases`): `authStore.WithRoot.spec` gives `ctx` itself or a context
+   carrying a token `tokenUser γ tok "root"`; it needs `Auth.rootTokOk γa`, which the simple
+   provider (etcd's default) does not give (`nonissues/etcd-auth-withroot-token-collision-panic.md`):
+   **decision for the user**.
+5. **The readers' lower bound**: every reader spec takes `Auth.authLb γa i0` (every view of the store
+   at its `i0`-th state or later). 2d's invariant should give, with `srvApplied s γ k`, an `authLb γa
+   i` whose `authAt γa i a` has `a = (histAt γ k).auth` (the store is at the applied point), if 2c
+   needs a lower bound (the linearizable read); `authLb γa 0` (from `authCur_at` at boot) otherwise.
+6. `BcryptCost()` is in `[4, 31]` (`BcryptCost.spec`), so `bcrypt.GenerateFromPassword` fails only for
+   a password over 72 bytes (`Bcrypt.GenerateFromPassword.spec`); the proposal's `HashedPassword` must
+   be `Auth.b64 h` (an `encoding/base64` boundary spec of `EncodeToString` returning `Auth.b64`, 2c's)
+   so that `Auth.hashedPw_intro` gives the store's `authReqAt`.
+7. The package's error variables: `Auth.init.spec` (`errOf`), `AuthErr.etcd` (`togRPCError`'s table).
+
+**To 2d (the apply thread, the snapshot install).**
+8. The apply thread holds the store's writer `Auth.authCur γa i a` with `a` the auth state of the
+   history at the applied point, and supplies each admin step's `Auth.admNext γ rq a` (the next state
+   is reached: the committed entry's, fixed at the commit; its records fit, `recordsFit`, the
+   name-length scope restriction of `issues/etcd-auth-useradd-long-name-fatal.md`).
+9. `applySnapshot`'s `Recover(newbe)`: `authBackendAt be' a'` (4b) with `a'` the snapshot's auth state,
+   `authReached γ a'`, `AuthReach a a'` (the snapshot is at a later index: the history's auth steps
+   between are `admStep`s or identities), `validPerms a'`; it gives back the replaced backend's share.
+10. `Authenticate`'s apply: the entry's index `idx` above the last one (`Auth.tokFrom γa n`, `n < idx`;
+    2d mints `tokFrom γa 0` from `NewAuthStore`), and `Auth.authnCtx γa ctx name idx` (the context's
+    index and prefix with `tokenUser γ (p.idx) name`: 2d's realization of `tokenUser`).
+
+**To 2e (boot, cleanup).**
+11. `NewTokenProvider.spec`: the waiter `s.applyWait.Wait` as `Auth.waiterOk` (a channel any
+    goroutine may receive on), a `threadTok` for the simple provider's keeper, `Auth.jwtTokOk γ opts`
+    for a JWT configuration. `NewAuthStore.spec`: `authBackendAt be a` (4b's `schema.NewAuthBackend`),
+    `authReached γ (normRev a)` (the fresh backend's state is W0's initial auth state; a restart's is
+    the consistent index's), `validPerms a`, `recordsFit`. It gives `authStoreAt`, the writer
+    `authCur γa 0 _`, `tokFrom γa 0`, and `rootTokOk γa` unless the provider is simple. **Slot**
+    `authBootRes cfg` (ApiBoot's provisional) should be: `jwtTokOk γ cfg.AuthToken` for a JWT kind
+    (no other condition: `BcryptCost` is normalized, `TokenTTL` any). `Close.spec` needs only
+    `authStoreAt` (the "closer" of `srvClosers` is nothing).
+
+## from 2e, round 1
+
+Supersedes "from 2e", **To 2c** item 1 (withdrawn: false of Go, `issues/etcd-read-after-backend-close-panic.md`).
+
+**To 2c.**
+1. **The gate.** `Start` gives `srvGate s 1` (fractional, `ApiBoot.lean`); `HardStop`/`Stop` take it
+   whole (no request in flight). Every request-path spec over `isServer s γ` must take a share
+   `srvGate s q` and give it back (its realization is the readers' tokens of the store and the
+   backend, which the stop rebuilds into the backend's open token for `Cleanup`). After the stop no
+   request runs, so nothing is claimed of a stopped server. The fork fix (a gate in Go, reads then
+   failing with `ErrStopped`) is the user's open alternative (`batch-2e.md` Q7).
+   ```go
+   go func() { _, _ = s.Range(ctx, req) }() // holds a share; the program waits for it before s.HardStop()
+   ```
+2. **The member operations are 2e's** (2a's item 7): `EtcdServer.{AddMember, UpdateMember,
+   RemoveMember, PromoteMember, configure}` in `SrvCallTriple`'s shape over your `srvStep pr tls rq
+   … lo`, `reqPrin ctx pr tls`, `authLb γ lo`, with `srvGate` and a `threadTok`; their answers are
+   `respMembers res` (`ApiBoot.lean`). They use your `srvErrOf`, `srvUnfired`, `srvIndef`,
+   `srvWatchable` (`EtcdServer.KV.spec`): keep those names or tell 2e.
+
+**To 2d.**
+3. 2e's hand-off laws are your `isServer_names`, `srvMember_node`, `srvRunTok_intro`,
+   `srvStopped_disk`: 2e keeps `memberDisk`'s realization as `srvStopped ∗ srvClosed` gives it. Two
+   changes: (a) the snapshot directory is **not** in `memberDisk` nor in `srvStopped`: `Snap.snapDbs`
+   lives in a per-directory invariant for good (any raft handler of any incarnation may add files
+   through `SaveDBFrom`, also after the stop: provability F5); `srvStopped` carries only the deletion
+   right `snapDel` (`ReleaseSnapDBs`, `OpenSnapshotBackend`'s rename) and the presence of the file
+   the restart needs. (b) The members' shared apply configuration is `ApplyCfg` with
+   `applyCfgIs cfg mc` and `clusterApplyCfg γ mc` (provisional in `ApiBoot`, since `ApiApply` imports
+   `ApiBoot`): identify `ApplyCfg` with your `MemberCfg` at integration (`cluster_alloc` takes `mc`,
+   `NewServer` takes `clusterApplyCfg γ mc ∗ ⌜applyCfgIs cfg mc⌝`).
+4. Member ids: `NewServer` gives `0 < id < 2 ^ 64` (`srvMember_id`); `Nat` throughout, as yours.
+5. `raftNodeBootCfg_intro` is stated as your item 10 asks (`1 < ElectionTicks`, a non-negative
+   heartbeat): restate it in your slot when you own it.

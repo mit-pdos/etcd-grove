@@ -121,3 +121,8 @@ Used by: `applierV3backend.*` (auth methods), `authApplierV3.*`, the `check*` sp
    result is `reqPrin ctx' (some root) tls` when auth is enabled at the call, the context itself
    otherwise (`auth/store.go:1175-1178`).
 3. **The package variables**: `auth`'s error sentinels hold `srvErrVal e` (`errors/Api.lean`).
+
+## from 2e, round 1
+
+`authBootRes_intro` (provisional): at `AuthToken = "simple"` (etcd's default; this repository's
+starters set it).

@@ -86,7 +86,8 @@ transparent over them); `errOf e` (the error variables' values).
 * `tokFrom γa n`: the simple provider's map holds no token of an index above `n` (the half of the
   index bound; the other half in the map's lock invariant). JWT and no-op: `True`.
 * `authnCtx γa ctx name idx`: `ctx` carries `AuthenticateParamIndex{} = idx` (a `uint64`, `idx ≠ 0`)
-  and `AuthenticateParamSimpleTokenPrefix{} = p` (a `string`), and `tokenUser γ (p ++ "." ++
+  and `AuthenticateParamSimpleTokenPrefix{} = p` (a `string` without `.`: the proposer's
+  `GenTokenPrefix`, letters or empty, so `p.idx` determines `idx`), and `tokenUser γ (p ++ "." ++
   decimal idx) name` (2d: the committed entry `idx` is an `InternalAuthenticateRequest` for `name`
   with prefix `p`); for JWT, `True` (its tokens' `tokenUser` is their signature, the provider's
   premise). Introduced by the applier that builds the context (3a, `apply/backend.go`'s

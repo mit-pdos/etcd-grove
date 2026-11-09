@@ -501,3 +501,16 @@ grpc/Api.lean`, `Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Api.lean`,
   `.err .leaseNotFound` (`ansOutcome`). `AttemptTriple`'s `nil` branch (`Q σ σ' (.ok b)`) does not
   admit it; 1c's `leaseTTLReply` path needs `AttemptTriple` to allow `R (.err .leaseNotFound)` with
   `err = nil` for that request.
+
+## from 2e, round 1
+
+1. **`v3client.New(s)`** (`server/v3/etcdserver/api/v3client`, the in-process client of the Election
+   and Lock services, `embed/serve.go:149-150`): a spec giving `isClient c γ none` from 2e's
+   `isServer s γ` (and the server's gate share for its calls), each call's principal the context's
+   (`ctxPrin none ctx who`, the forwarded token). Used by `V3election.*`, `V3lock.*`, `ReqLockOverInProc`.
+2. **`Cluster.MemberAdd`/`MemberUpdate`** (the client's membership calls) reach 2e's
+   `EtcdServer.AddMember`/`UpdateMember`, which take the single-use `urlsRight γ urls` of the URLs
+   they give a member: a premise of those client specs (a workload premise on the program's own
+   reconfigurations; round 1, provability F4).
+3. `Config.urlsStrs sl us`, `Config.urlsMapStrs m cl` (provisional in 2e's `config/Api.lean`): the
+   read-only `types.URLs`/`types.URLsMap` with the URLs' `String()` forms (`types`, 1c's).

@@ -58,3 +58,9 @@ lock from any goroutine.
    `leasingKV.monitorSession.spec`, `NewKV.spec`. (1e now uses `sessOptsAt`, `optCtxOk`,
    `etcdPerm` with `effIn (readEff ∨ grantEff)`: its `ProtoStep` contains both; the slot
    `sessOptsOk` is gone.)
+
+## from 2e, round 1
+
+2e's `V3election.*`/`V3lock.*` specs apply your `NewSession`, `Election.*`, `Mutex.Lock` at the
+in-process client (`isClient c γ dflt`, `ctxPrin dflt ctx who`), with `etcdPerm γ Ts` for the session
+and `etcdLent γ T P ∗ P` for the method, as your specs state them on 2026-11-09; tell 2e if they move.

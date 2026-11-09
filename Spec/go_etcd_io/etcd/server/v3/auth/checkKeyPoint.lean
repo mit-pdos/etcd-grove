@@ -37,13 +37,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- **`checkKeyPoint`** of a cache entry of `u` at `a`: covered at `a` exactly, but for an inverted
 range, which may be refused. -/
 def checkKeyPoint.spec : Prop :=
-  ∀ (lg p : Loc) (a : AuthState) (u : GoString) (key re : GoSlice) (dk de : DFrac) (k e : List w8)
+  ∀ (lg p : Loc) (a : AuthState) (u : GoString) (key : GoSlice) (dk : DFrac) (k : List w8)
     (pt : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ Zap.isLogger lg ∗ cacheEntry p a u ∗ key ↦*{dk} k  ∗
-      ⌜validPerms a ∧ (pt = W32 0 ∨ pt = W32 1) ∧ sint.Z key.len < 2 ^ 63 - 1 ∧
-        (True)⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ Zap.isLogger lg ∗ cacheEntry p a u ∗ key ↦*{dk} k ∗
+      ⌜validPerms a ∧ (pt = W32 0 ∨ pt = W32 1) ∧ sint.Z key.len < 2 ^ 63 - 1⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.checkKeyPoint)) (Val #lg)) (Val #p)) (Val #key)) (Val #pt))
-  {{ (b : Bool), RET #b; key ↦*{dk} k  ∗
+  {{ (b : Bool), RET #b; key ↦*{dk} k ∗
       ⌜(b = true → a.covers u (ptOf pt) { key := k, rangeEnd := [] }) ∧
        (b = false → ¬ a.covers u (ptOf pt) { key := k, rangeEnd := [] } ∨ rngInverted { key := k, rangeEnd := [] })⌝ }}
 

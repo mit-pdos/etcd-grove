@@ -17,6 +17,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
+
+Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
+the input. Go's sort (pdqsort) is deterministic: the output is a function of the input slice and
+the comparator. etcd's sorted ranges (`txn.sortRangeResults`) need the reply to be a function of the
+store, so that a writing transaction's answer is fixed at commit (`notes/specs-only/batch-3b.md`,
+decision 1: `Txn.goSort`, and 2c's read registry, 3a's `applyStep_fun`). The general change: state
+the sort's result as `goSort less xs` for a pure, opaque-but-functional `goSort` with the
+sorted-permutation law, so any client can use determinism. Not shaped by one proof: determinism is
+a fact of Go's implementation every caller may rely on. Not yet proposed upstream.
+
 ### Goose leaves a `select` case's variable unbound in the `default:` branch (2026-11-09, specs-only batch 2b)
 
 In etcd's `serverWatchStream.recvLoop` (`server/etcdserver/api/v3rpc/watch.go`), a type switch's

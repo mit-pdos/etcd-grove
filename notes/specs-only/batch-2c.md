@@ -247,3 +247,102 @@ them to `Code/.../etcdserver.toml`.
 7. That item is 2e's.
 
 New package namespaces: `Read`, `Wait`, `IdUtil`, `Notify` (as in the README's table).
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/2c-provability-1.md`, `reviews/2c-completeness-1.md`; coordinator's decisions.
+Everything builds (`etc/specs-build.sh --dir` of `etcdserver`, `etcdserver/{errors,read}`,
+`pkg/v3/{wait,idutil,notify}`); the snippets pass `go vet`. **Decisions 1-3 above are superseded**:
+
+- **`srvStep` (decisions 1, 3; prov. F7, compl. F9).** The `doSerialize` race and keep-alive disjuncts
+  are gone: W0's round-4 `Step` checks a read's permission at an auth table since the call's `lo`
+  (every server spec takes `authLb γ lo`) and has `leaseKeepAlive`'s `permErr`. What remains:
+  `srvStep p tls rq σ σ' res lo := Step p rq … lo ∨ (write ∧ Step tls rq …) ∨ emptyRangeStep`.
+  - **The principal is what the code reads** (F7): `reqPrin ctx p tls`, `p` with auth enabled (the
+    token's user, else the certificate's name), `tls` the certificate's name used with auth disabled.
+    A write proposed with auth off and applied after `AuthEnable` runs as `tls`: filed as
+    `nonissues/etcd-write-tls-principal-auth-enable.md`; asked W0 for the `ctxPrin` side.
+  - `emptyRangeStep` (compl. F5): `Range` of the empty key (the health checks), which the server
+    reads as the key `""` (an empty answer); the `key ≠ []` premise is dropped.
+- **`Authenticate` (decision 2; prov. F1, compl. F4)**: a one-shot update. W0's answer carries no token
+  (`tokenUser` comes with the reply). The token entry `.authToken name pw rev` fires the update at its
+  commit iff the auth revision is still the checked one (else it is given back, `IrrBody.backOk`, and
+  the loop retries); the apply's `ErrAuthNotEnabled`/`ErrAuthFailed` are fired there. Open, asked of
+  W0: `CheckPassword`'s own errors (returned before proposing) need W0's `authenticate` step to admit
+  them from an auth table since `lo`.
+- **`RangeStream` (prov. F2, compl. F10)**:
+  - `Q` comes with the `nil` return (`streamMatches` of all the chunks), not with the last chunk.
+  - New outcome: `ErrAuthOldRevision` after every chunk was sent.
+  - New outcome: `ErrCompacted` with no chunk.
+  - New premise: `rangeStreamOk` (default order, no revision filters).
+  - `rsSink` lost `Q` and `fin`.
+  - Filed: `nonissues/etcd-rangestream-auth-revoked-midstream.md` (the probable bug: keys read after
+    a revocation are delivered, then the error; no test written) and
+    `nonissues/etcd-rangestream-count-compacted.md`.
+- **`readEnv` (prov. F3)**: the method triples are now Iris triples (persistent) inside `readEnv`, not
+  a pure `Prop`. The pure part is `appliedPredOk`.
+- **`leaseTimeToLive` (prov. F4)**: the answer holds at a reached `σ₁` with `Reach σ₀ σ₁`, and at every
+  state after it. It assumes the peers are members. The partial-key-set mismatch is asked of W0.
+- **Validation premises (prov. F5)**:
+  - `Put`: `pr.invalid = none`; `DeleteRange`: `d.key ≠ []`.
+  - `IrrBody.wf` replaces `depthOk`, with the validation and `rev ≠ 0`.
+  - `Compact`'s `rev ≠ 0` names its sources (compl. F6): the compactors, W0's client contract, and
+    2a's contract (requested).
+- **Message ownership (prov. F6)**: `irrOwn p dq ir` (inner messages at `dq`) is given back by
+  `raftRequest` and `processInternalRaftRequestOnce`, so the writers return their request message.
+  3h is asked for the wrap and unwrap laws.
+- **Errors (prov. F8, compl. F1/F2)**: new module `errors/Api.lean`.
+  - `srvErrOf`, the sentinels `srvErrVal e` and `srvErrMapped`, `srvErrLeaf` (errors.Is is equality),
+    `srvErrNotMapped`, `raftStoppedErr`.
+  - `srvErrShape` = 2a's `togRPCError` precondition. Every returned error carries it.
+  - Laws: `srvErrOf_val`, `_inj`, `_notCtx`, `srvErrVal_leaf`, `srvErrVal_shape`,
+    `raftStoppedErr_*`.
+  - `readErr` is now a transparent persistent predicate over those values; `readErr_shape` added.
+  - The packages' initialization laws (globals hold `srvErrVal e`) are requested of their owners.
+- **Snippets (prov. F8, compl. F11)**:
+  - `txnChecked_small` introduces the snippets' transactions.
+  - Notify: `notifyCount γ k` (the client's count), moved by `Notify`'s atomic update; laws
+    `notifyCount_lb`, `notifyLb_count`. `ReqNotifyAfterReceive` is provable.
+  - New: `ReqHealthRange`, `ReqIsRegistered`.
+  - Citations of missing snippets fixed. `ReqReadAfterWrite` is marked as depending on 2e's
+    `EtcdServer.LinearizableReadNotify` (compl. F12).
+- **`reqPrin` introduction (compl. F3)**:
+  - Stated in `ApiReq.lean`: `ctxNoIncoming` (with background/child/value laws),
+    `reqPrin_noIncoming`, `reqPrin_child`, `reqPrin_value`.
+  - Requested: `WithRoot` (3d, mode-dependent), `reqPrin_of_md` (2a's module: import order).
+- **`IsRegistered` (compl. F7)**: it takes `waitWasReg ∨ waitNever` and returns `false ⇒ waitDone`.
+  - `Trigger` accepts `waitDone`.
+  - New: `waitWasReg` (from `Register`), `waitGone`, `waitNever`, `waitToks_never`, `waitRecv_never`.
+- **2b (compl. F8)**:
+  - `srvWatchable_persistent`, `srvWatchable_mvcc` (to 3f's `Mvcc.watchableAt`).
+  - Asked of 2e: `isServer ⊢ watchMemberAt`.
+  - The `srvCtxPrin`↔`reqPrin` bridge is asked of 2a.
+- **Lesser**:
+  - `dup = false` stated (the "first occurrence" alternative withdrawn: prov. 2nd tier 2).
+  - `γ.raft.ns ⊆ etcdN` asked of 2d.
+  - `idSpaceAuth` and `idSpaceAuth_add`: prefixes for joining members.
+  - `Generator.Next` marked as an assumed contract across runs, with the true condition (256 ids
+    per ms).
+  - `AuthInfoFromCtx`'s nil case docstring corrected (compl. F15).
+  - The wait answer predicate covers `*confChangeResponse` (compl. F13).
+  - The `publishV3`/`servesAt` question is asked of 2e (compl. F14).
+  - `Compact`'s "returns after the compaction" moved to the Margin.
+  - The `LeaseRevoke` user's principal is noted as mode-dependent.
+
+**API changes that break callers** (sent in `req/`, "from 2c (round 1)"):
+- `reqPrin` (2→3 arguments); `SrvCallTriple` (`p tls`, and `lo` via `authLb`); `srvStep`'s
+  arguments;
+- `irrOwn` (adds `dq`); `IrrBody.depthOk` → `wf`; `.authToken name pw rev`; `rsSink`;
+- `readErr` (now an IProp);
+- the error vocabulary moved to `errors/Api.lean` (same namespace).
+
+2e's member files already follow. 2a's handlers and 3h's moved copy of `IrrBody` must follow; 3h's
+`IrrBody` and 2c's are to become one at integration.
+
+New nonissues: `etcd-rangestream-auth-revoked-midstream`, `etcd-rangestream-count-compacted`,
+`etcd-write-tls-principal-auth-enable` (`nonissues/INDEX.md` regenerated).
+
+**Still open for the user / W0:**
+- `Authenticate`'s `CheckPassword` errors (W0's step since `lo`).
+- The `tls ≠ p` write quirk on the client side (`ctxPrin`).
+- `leaseTimeToLive`'s half-attached key sets.

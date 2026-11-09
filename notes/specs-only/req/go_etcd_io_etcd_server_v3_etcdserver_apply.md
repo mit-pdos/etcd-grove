@@ -90,3 +90,36 @@ ls.be`). What 3c's specs give and need there:
 5. **The apply's model** (`applyStep`, provisional, yours): a grant, revoke or checkpoint entry moves
    the lessor's state as above; 2d's invariant records which lessor history index each entry ends
    at (`req/..._etcdserver.md`, "from 3c").
+
+## from 3d
+
+The auth store's API (`Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`) against 3a's provisional
+slots (`apply/Api.lean`):
+
+1. **`authOk ast γ`** is `∃ st γa, ⌜ast = interface.mkOk (PointerType authStore.ty) #st⌝ ∗
+   Auth.authStoreAt st γ γa`; **`authSt ast a`** is `∃ i, Auth.authCur γa i a` (the writer, the
+   apply thread); **`authRead ast γ`** is `authStoreAt` with a lower bound `Auth.authLb γa i0`;
+   **`authRecordFits op`** is `Auth.recordsFit` of the step's new state (in `Auth.admNext`).
+   `permReads`' two instances: the writer's checks answer at exactly its state (`authCur_at` gives
+   `authLb γa i`, `authAt_le` caps every view at `i`); a reader's at recorded states at or after its
+   bound (`checkPost`, `adminPost`): a pass is `State.permits` at one reached state
+   (`authAt_reached`), a denial names three states (not one) unless they coincide.
+2. **Each admin method** (`authStore.<M>.spec`, one `Auth.AdminTriple` each) takes, besides
+   `authCur γa i a`, **`Auth.admNext γ rq a`**: every state the step may move to is reached
+   (`authReached γ a'`) and its records fit. The apply thread has it from 2d (the committed entry's
+   next state is fixed at the commit and is the step's result: 3a's `applyStep_fun`); `applierV3backend`'s
+   specs must thread it (through `R`, or a premise of `Apply.spec`). The step is **`Auth.admStep rq a a'
+   res`**: W0's `authStep` effect at a caller who may make it, so the applier's administrator check
+   (`IsAdminPermitted` at the same state, `mayCall`) must come first, as `authApplierV3.Apply` does.
+3. **The request messages**: `Auth.authReqAt r rq` (the decoded `*pb.Auth<Kind>Request`; for a user's
+   password, the hash form `Auth.hashedPw`, which rules out `ErrNoPasswordUser`); the replies
+   `Auth.authRespAt rq res p` (a fresh response, `Header` nil, which `newHeader` sets) and
+   `Auth.authnRespAt p tok`. Realized over 3h's message predicates (`req/go_etcd_io_etcd_api_v3_etcdserverpb.md`).
+4. **`Authenticate`'s apply** (`apply/backend.go:159`): the context `WithValue(WithValue(ctx,
+   AuthenticateParamIndex{}, idx), AuthenticateParamSimpleTokenPrefix{}, prefix)` must be introduced
+   as **`Auth.authnCtx γa ctx name idx`** (the realization: those two values and `tokenUser γ
+   (prefix.idx) name` from 2d's entry), with **`Auth.tokFrom γa n`**, `n < idx` (threaded by the apply
+   thread from entry to entry). The answer: auth off, an error, or `Auth.authnRespAt resp tok` with
+   `tokenUser γ tok name` (2c's `irrReply .authToken`).
+5. **`AuthStatus`**: `IsAuthEnabled.spec` and `Revision.spec` at the writer's bound give exactly
+   `a.enabled` and `a.rev`.

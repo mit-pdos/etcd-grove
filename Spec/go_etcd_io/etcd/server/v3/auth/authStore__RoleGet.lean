@@ -3,7 +3,7 @@
 
 **Users.** `applierV3backend.RoleGet` (`apply/backend.go:231`), behind `authApplierV3.RoleGet`'s check (an administrator, or a user with the role: `HasRole`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
 
-**Proof sketch.** `as.be.GetRole(name)` (4b); absent: `ErrRoleNotFound` (also for `root` when no role `root` is stored: the model's `roleGet` answers `root` only when stored, `nonissues/`-free since W0 lets the root case answer any list); `root`: `rootPerm`; else the permissions copied. The admin step's state is recorded at index `i + 1` (`authCur`), every
+**Proof sketch.** `as.be.GetRole(name)` (4b); absent: `ErrRoleNotFound`, also for `root` when no role `root` is stored (W0's model answers a list there: requested of W0, `req/go_etcd_io_etcd_api_v3.md`, "from 3d", item 6; **until it changes, this spec is false at that input**); `root` stored: `rootPerm`; else the permissions copied. The admin step's state is recorded at index `i + 1` (`authCur`), every
 view at it when the call returns.
 
 **Changes.** Restated over `admStep`. The old per-mode verdicts (`adminOut M hs`) are W0's `authStep` effect at
