@@ -446,6 +446,14 @@ theorem runner.restore.wp_proof
     wp_apply wp_check
     · ipureintro; simp
     (try wp_auto)
+    -- `newbe.SetTxPostLockInsideApplyHook(f.hook)`, the hook frozen
+    icases ownToks_add_1 1 ((sint.Z cfg.Ops').toNat) γB.wb $$ Hntoks with ⟨Hntoks, Hw1⟩
+    rw [etcdStorage_hook] at *
+    wp_apply (wp_SetHook γB (mvccrand.rcP (limOf cfg)) (mvccW gx) iprop(True) bnb (1 : Qp).half
+        func.nil f1) $$ [Hnoh Hplh Hw1] as ⟨Hnoh, Hplh⟩
+    · iframe #; iframe; iunfold backend.wbTok; iexact Hw1
+    imod backend.plHook_persist γB f1 $$ Hplh with #Hhk1
+    (try wp_auto)
     sorry
 
 end proof
