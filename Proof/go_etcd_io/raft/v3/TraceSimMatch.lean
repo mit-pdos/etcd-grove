@@ -1072,6 +1072,115 @@ theorem nonReceive_msgApp (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i j : Etc
   simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
     Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure]
 
+theorem gsStr_msgTypeStr_app : gsStr (msgTypeStr .app) = "MsgApp" := by rfl
+
+/-- **A `MsgApp`'s line predicate** (`LoglineIsAppendEntriesRequest` of its abstraction). -/
+theorem isAER_app (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64) (xs : List w64) (m : Msg)
+    (tm : TraceMsg) (hmsg : e.msg = some tm) (hm : MsgEvOf m tm) (hty : m.ty = .app)
+    (bt : uint.Z m.term < 2 ^ 63) (bc : uint.Z m.commit < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63)
+    (blt : uint.Z m.logterm < 2 ^ 63) (bk : m.entries.length < 2 ^ 63) :
+    (msgLine e id vote m.src m.dst xs).isAppendEntriesRequest
+      ((msgAbs C bl m).get (by simp [msgAbs, hty])) = true := by
+  obtain ⟨htyp, hterm, -, -, hent, hlt, hidx, hcommit, -⟩ := hm
+  simp only [msgAbs, hty, Option.get_some]
+  unfold Etcdraft.Line.isAppendEntriesRequest
+  simp only [msgLine, evConv, hmsg, Option.map_some]
+  rw [htyp, hty, hterm, hcommit, hent, hlt, hidx, gInt_of_lt _ bt, gInt_of_lt _ bc, gInt_of_lt _ bi,
+    gInt_of_lt _ blt, gsStr_msgTypeStr_app, logAbs_length]
+  have hk : gInt (W64 m.entries.length) = (m.entries.length : Int) := by
+    rw [gInt_of_lt _ (by word)]; word
+  rw [hk]
+  simp [Etcdraft.raftMsgType, Etcdraft.raftMsgSubtype]
+
+/-- **A `MsgApp` line's step**: a leader's append request (the entries after its index, the term
+there, its commit index; past the receiver's `Match`), the specification's
+`AppendEntries(i, j, <<index + 1, index + 1 + |entries|>>)`; the leader's server unchanged. -/
+theorem simRun_msgApp (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM) (m : Msg)
+    (hev : SendEvOf (W64 9) id s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hdC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs id))) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .leader) (hty : m.ty = .app) (hsrc : m.src = id) (hdst : m.dst ≠ id)
+    (hterm : m.term = s.term) (hpk : uint.nat m.index + m.entries.length ≤ (toPState s).log.length)
+    (hlt : plogTermAt (toPState s).base (toPState s).log m.index = some m.logterm)
+    (hents : m.entries = ((toPState s).log.drop (uint.nat m.index)).take m.entries.length)
+    (hcommit : m.commit = (toPState s).commit)
+    (hmatch : uint.Z (matchOf (toPState s) m.dst) ≤ uint.Z m.index)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63)
+    (blt : uint.Z m.logterm < 2 ^ 63)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty]))).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty]))) := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendAppendEntriesRequest" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"SendAppendEntriesRequest" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have htyp : tm.typ = msgTypeStr .app := by rw [hm.1, hty]
+  have hlen64 : (toPState s).log.length < 2 ^ 63 := by
+    have := plastIndex_length _ _ hs; omega
+  have hae := appendEntries_send σ C C.length (toPState s) id m m.entries.length hR
+    (by simp [toPState, hrole, proleRole]) hs hty hsrc hdst hdC (by rw [hterm]; rfl) hpk hlt hents hcommit
+  have hidxZ : ((uint.nat m.index : Nat) : Int) = uint.Z m.index := by word
+  have hk : gInt (W64 m.entries.length) = (m.entries.length : Int) := by
+    rw [gInt_of_lt _ (by word)]; word
+  apply simRun_msg C L σ _ hrun hL e id s.vote m.src m.dst xs tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+    (by rw [htyp]; rfl) (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (msgLine e id s.vote m.src m.dst xs) ts.l (by omega)
+  subst hts
+  have hR6 := hR.2.2.2.2.2.1
+  have hR11 := hR.2.2.2.2.2.2.2.2.2.2
+  cases hc : (msgLine e id s.vote m.src m.dst xs).ev.msg with
+  | none => simp [msgLine, evConv, hmsg] at hc
+  | some em =>
+    have hety : em.type = "MsgApp" := by
+      have : em.type = gsStr tm.typ := by simp [msgLine, evConv, hmsg] at hc; rw [← hc]
+      rw [this, htyp]; rfl
+    have heidx : em.index = uint.Z m.index := by
+      have : em.index = gInt tm.index := by simp [msgLine, evConv, hmsg] at hc; rw [← hc]
+      rw [this, hm.2.2.2.2.2.2.1, gInt_of_lt _ bi]
+    have heent : em.entries = (m.entries.length : Int) := by
+      have : em.entries = gInt tm.entries := by simp [msgLine, evConv, hmsg] at hc; rw [← hc]
+      rw [this, hm.2.2.2.2.1, hk]
+    have hmi : (ts.s.s (idAbs id)).matchIndex (idAbs m.dst) = uint.Z (matchOf (toPState s) m.dst) :=
+      hR11 (by simp [toPState, hrole, proleRole]) m.dst hdC
+    have hll : ((ts.s.s (idAbs id)).log.length : Int) = (toPState s).log.length := by rw [hR6, logAbs_length]
+    apply nonReceive_msgApp _ ts (idAbs id) (idAbs m.dst) _ em (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+    · rw [hline]; simp [msgLine, evConv, hname']
+    · rw [hline]; show idAbs m.src = idAbs id; rw [hsrc]
+    · rw [hline]; rfl
+    · rw [hline]; exact hc
+    · exact hety
+    · exact confAbs_nodup C
+    · simp only [linesTrace]; rw [mem_confAbs]; exact hC
+    · simp only [linesTrace]; rw [mem_confAbs]; exact hdC
+    · rw [hmi, heidx]; omega
+    · rw [heidx, heent, hll]; omega
+    · rw [hmi, heidx, heent]; omega
+    · rw [heent]; omega
+    · rw [heidx, heent, ← hidxZ]; exact hae
+    · unfold Etcdraft.Trace.validateAfterAppendEntries Etcdraft.Trace.validatePostStates
+      rw [hline, Bool.and_eq_true]
+      constructor
+      · have := stateMatches_node C s (ts.s.s (idAbs id)) e id xs hR
+          hs (by rw [hrole]; decide) hterm' hcommit' hrl hlog (hxs.trans hin) bt bc bl ts.s rfl
+          (by rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC)
+        unfold Etcdraft.Line.stateMatches at this ⊢
+        simpa [Etcdraft.State.send, msgLine, nodeLine] using this
+      · apply newPending_send
+        have := isAER_app C C.length e id s.vote xs m tm hmsg hm hty (by rw [hterm]; exact bt)
+          (by rw [hcommit]; simpa [toPState] using bc) bi blt (by omega)
+        rw [hsrc] at this ⊢
+        exact this
+
 end TraceSim
 
 end EtcdGrove
