@@ -1414,3 +1414,111 @@ theorem specInv_noConflictAppendEntriesRequest {σ σ' : State} {i : ID} {index 
         have := (h.1 l hl hll).2 m hm _ e hx ht
         rw [hpos] at this
         exact this
+
+/-- The hypothesis `AppendEntriesAlreadyDone` needs of the simulation when a follower `i` answers an
+append request `m` (non-heartbeat) at or below its commit index with that commit index: its commit
+index is within the durable log of `m`'s sender, when that is the leader of `m`'s term (raft: leader
+completeness, the committed entries are in the leader's log, which it persisted as a candidate
+before its votes were granted, or were committed by it during its term). -/
+def CommitInSenderDurable (σ : State) (i : ID) (m : Etcdraft.Msg) : Prop :=
+  m.prevLogIndex + 1 ≤ (σ.s i).commitIndex → m.subtype ≠ "heartbeat" → m.source ∈ σ.server →
+    (σ.s m.source).state = leader → (σ.s m.source).currentTerm = m.term →
+    (σ.s i).commitIndex ≤ (σ.s m.source).durable.log.length
+
+theorem commitTo_fields (σ : State) (i : ID) (c : Int) (k : ID) :
+    ((σ.commitTo i c).s k).currentTerm = (σ.s k).currentTerm ∧ ((σ.commitTo i c).s k).state = (σ.s k).state ∧
+    ((σ.commitTo i c).s k).log = (σ.s k).log ∧ ((σ.commitTo i c).s k).durable = (σ.s k).durable := by
+  by_cases hk : k = i <;> simp [State.commitTo, upd_s, hk]
+
+/-- A follower's commit index raised to a value within the log of every leader of its term. -/
+theorem specInv_commitTo_follower {σ : State} {i : ID} {c : Int} (h : SpecInv σ) (hi : i ∈ σ.server)
+    (hfol : (σ.s i).state = follower)
+    (hc : ∀ l ∈ σ.server, (σ.s l).state = leader → (σ.s l).currentTerm = (σ.s i).currentTerm →
+      c ≤ (σ.s l).log.length) : SpecInv (σ.commitTo i c) := by
+  apply specInv_upd_commit h rfl rfl rfl rfl rfl rfl
+  · intro hl; exact absurd (hfol.symm.trans hl) follower_ne_leader
+  · intro l hl hll ht
+    exact Int.max_le.mpr ⟨h.2.2.2.2.2.1 i hi l hl hll ht.symm, hc l hl hll ht⟩
+
+/-- **`AppendEntriesAlreadyDone(i, j, index, m)`**, under `AcceptAppendEntriesRequest`'s guard (`i` a
+follower of `m`'s term), `m` an append request in `messages` from `j`, `index` its
+`prevLogIndex + 1`; `hcd`: `CommitInSenderDurable`. -/
+theorem specInv_appendEntriesAlreadyDone {σ σ' : State} {i j : ID} {index : Int} {m : Etcdraft.Msg}
+    (h : SpecInv σ) (hi : i ∈ σ.server) (hm : m ∈ σ.messages.domain) (hsrc : m.source = j)
+    (hty : m.type = .appendEntriesRequest) (hterm : m.term = (σ.s i).currentTerm)
+    (hfol : (σ.s i).state = follower) (hidx : index = m.prevLogIndex + 1)
+    (hcd : CommitInSenderDurable σ i m)
+    (hstep : σ.appendEntriesAlreadyDone i j index m = some σ') : SpecInv σ' := by
+  subst hsrc hidx
+  have hmm : m ∈ msgs σ := List.mem_append_left _ hm
+  -- the request's commit index, within the log of its term's leader
+  have hrc : ∀ l ∈ σ.server, (σ.s l).state = leader → (σ.s l).currentTerm = (σ.s i).currentTerm →
+      m.commitIndex ≤ (σ.s l).log.length :=
+    fun l hl hll ht => h.2.2.2.2.2.2 l hl hll m hmm hty (hterm.trans ht.symm)
+  -- the response, fine to send in `σ` for an acknowledged index within the leader's durable log
+  have hok : ∀ mi : Int, (∀ l ∈ σ.server, (σ.s l).state = leader → m.source = l →
+      (σ.s l).currentTerm = (σ.s i).currentTerm → mi ≤ (σ.s l).durable.log.length) →
+      MsgOk σ { type := .appendEntriesResponse, subtype := m.subtype, term := (σ.s i).currentTerm, success := true, matchIndex := mi, source := i, dest := m.source } := by
+    intro mi hmi
+    refine ⟨?_, ?_, ⟨Int.le_refl _, fun _ => ?_⟩, ?_, ?_⟩
+    · intro l _ _ k e hk; simp at hk
+    · intro l hl hll
+      refine ⟨fun _ hty' => absurd hty' (by simp), fun hd _ ht _ => ?_, fun hty' => absurd hty' (by simp)⟩
+      change m.source = l at hd
+      change (σ.s i).currentTerm = (σ.s l).currentTerm at ht
+      have := hmi l hl hll hd ht.symm
+      exact ⟨Int.le_trans this (h.2.1 l hl hll).1, fun _ => this⟩
+    · show (σ.s i).currentTerm ≤ (σ.s m.source).currentTerm
+      rw [← hterm]; exact (h.2.2.1 m hmm).1
+    · intro l hl hc
+      refine ⟨fun _ hty' => absurd hty' (by simp), fun hd _ _ => ?_, fun _ _ hty' => absurd hty' (by simp)⟩
+      change m.source = l at hd
+      show (σ.s i).currentTerm < (σ.s l).currentTerm
+      rw [← hterm]; exact (h.2.2.2.1 l hl hc).1 m hmm hd hty
+    · intro hne; exact absurd rfl hne
+  -- an acknowledgement of the request's last index is within the leader's durable log
+  have hlast : ∀ l ∈ σ.server, (σ.s l).state = leader → m.source = l →
+      (σ.s l).currentTerm = (σ.s i).currentTerm → m.prevLogIndex + m.entries.length ≤ (σ.s l).durable.log.length :=
+    fun l hl hll hd ht => (h.2.1 l hl hll).2.2.2.1 m hm hd hty (hterm.trans ht.symm)
+  unfold State.appendEntriesAlreadyDone at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+  · cases hstep
+    have hfields : ∀ st : State, (∀ k, (st.s k).currentTerm = (σ.s k).currentTerm ∧ (st.s k).state = (σ.s k).state ∧
+        (st.s k).log = (σ.s k).log ∧ (st.s k).durable = (σ.s k).durable) → st.server = σ.server →
+        ∀ mi, MsgOk σ { type := .appendEntriesResponse, subtype := m.subtype, term := (σ.s i).currentTerm, success := true, matchIndex := mi, source := i, dest := m.source } →
+        MsgOk (st.discard m) { type := .appendEntriesResponse, subtype := m.subtype, term := (σ.s i).currentTerm, success := true, matchIndex := mi, source := i, dest := m.source } :=
+      fun st hst hsv mi hmo => msgOk_congr hmo hsv (fun k => (hst k).1) (fun k => (hst k).2.1)
+        (fun k => (hst k).2.2.1) (fun k => (hst k).2.2.2)
+    -- the acknowledged index, `i`'s commit index
+    have hmi2 : ∀ l ∈ σ.server, (σ.s l).state = leader → m.source = l → (σ.s l).currentTerm = (σ.s i).currentTerm →
+        m.subtype ≠ "heartbeat" → m.prevLogIndex + 1 ≤ (σ.s i).commitIndex →
+        (σ.s i).commitIndex ≤ (σ.s l).durable.log.length := by
+      intro l hl hll hd ht hh hc
+      subst hd
+      exact hcd hc hh hl hll (ht.trans hterm.symm)
+    split
+    · split
+      · apply specInv_reply (specInv_commitTo_follower h hi hfol (fun l hl hll ht => Int.le_trans
+          (Int.le_refl _) (hrc l hl hll ht)))
+        exact hfields _ (fun k => commitTo_fields σ i _ k) rfl _ (hok _ (fun l hl hll hd ht => by
+          split
+          · exact hlast l hl hll hd ht
+          · rename_i hc
+            simp at hc
+            exact hmi2 l hl hll hd ht hc.1 (by have := hc.2; omega)))
+      · apply specInv_reply h
+        exact hfields _ (fun k => ⟨rfl, rfl, rfl, rfl⟩) rfl _ (hok _ (fun l hl hll hd ht => by
+          split
+          · exact hlast l hl hll hd ht
+          · rename_i hc
+            simp at hc
+            exact hmi2 l hl hll hd ht hc.1 (by have := hc.2; omega)))
+    · apply specInv_reply (specInv_commitTo_follower h hi hfol (fun l hl hll ht =>
+        Int.le_trans (Int.min_le_left _ _) (hrc l hl hll ht)))
+      exact hfields _ (fun k => commitTo_fields σ i _ k) rfl _ (hok _ (fun l hl hll hd ht => by
+          split
+          · exact hlast l hl hll hd ht
+          · rename_i hc
+            simp at hc
+            exact hmi2 l hl hll hd ht hc.1 (by have := hc.2; omega)))
