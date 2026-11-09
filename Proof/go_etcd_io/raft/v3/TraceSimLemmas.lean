@@ -2243,6 +2243,38 @@ theorem bag_count_without (b : Etcdraft.Bag) (m : Etcdraft.Msg) (hnd : b.domain.
       simp only [hne, Bool.false_eq_true, ↓reduceIte, bag_count_cons, h]
       exact ih hnd.2 (by simpa [h] using hm)
 
+/-- **A discarded message is one less** (`OneLessMessage`). -/
+theorem oneLess_discard (s st' : Etcdraft.State) (m : Etcdraft.Msg) (hms : st'.messages = s.messages)
+    (hnd : s.messages.domain.Nodup) (hm : 0 < Etcdraft.Bag.count s.messages m) :
+    Etcdraft.oneLessMessage s (st'.discard m) m = true := by
+  unfold Etcdraft.oneLessMessage Etcdraft.State.discard
+  simp only
+  rw [hms]
+  have := bag_count_without s.messages m hnd hm
+  simp only [Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq]
+  right; exact ⟨hm, this⟩
+
+/-- `HandleAppendEntriesResponse`'s update of `matchIndex[i][j]`. -/
+def withMatch (st : Etcdraft.State) (i j : Etcdraft.ID) (mi : Int) : Etcdraft.State :=
+  st.upd i (fun w => { w with matchIndex := fun k => if k = j then max ((st.s i).matchIndex j) mi else w.matchIndex k })
+
+/-- **A successful append response at a leader of its term** (`HandleAppendEntriesResponse`): the
+receive's one successor, its `matchIndex` updated and the message consumed. -/
+theorem receive_appResp (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.server.contains m.dest = true)
+    (hty : m.type = .appendEntriesResponse) (hterm : m.term = (st.s m.dest).currentTerm)
+    (hsucc : m.success = true) :
+    st.receive m = .ok [(withMatch st m.dest m.source m.matchIndex).discard m] := by
+  unfold Etcdraft.State.receive
+  have hut : st.updateTerm m.dest m.source m = none := by
+    unfold Etcdraft.State.updateTerm; simp [hterm]
+  have hds : st.dropStaleResponse m.dest m.source m = none := by
+    unfold Etcdraft.State.dropStaleResponse; simp [hterm]
+  have hh : st.handleAppendEntriesResponse m.dest m.source m =
+      some ((withMatch st m.dest m.source m.matchIndex).discard m) := by
+    unfold Etcdraft.State.handleAppendEntriesResponse withMatch; simp [hterm, hsucc]
+  have hsrv' : m.dest ∈ st.server := List.contains_iff_mem.1 hsrv
+  simp [hsrv', hty, hut, hds, hh, Etcdraft.somes, pure, Except.pure]
+
 end TraceSim
 
 end EtcdGrove
