@@ -1240,6 +1240,44 @@ theorem requestVoteSelf_send (st : Etcdraft.State) (C : List w64) (bl : Nat) (s 
   simp only [hmsg, Option.get_some]
   rw [h1, hsrc, hdst, hterm, hrej]; rfl
 
+/-- **`AppendEntriesAlreadyDone` of a stale append request** (its previous index below the commit
+index: raft's `appStale`): the success reply at the commit index, nothing else. -/
+theorem alreadyDone_stale (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg) (index : Int)
+    (hc : index ≤ (st.s i).commitIndex) (hsub : m.subtype ≠ "heartbeat") :
+    st.appendEntriesAlreadyDone i j index m =
+      some (st.reply
+        { type := .appendEntriesResponse, subtype := m.subtype, term := (st.s i).currentTerm,
+          success := true, matchIndex := (st.s i).commitIndex, source := i, dest := j } m) := by
+  unfold Etcdraft.State.appendEntriesAlreadyDone
+  have hsub' : (m.subtype == "heartbeat") = false := by simp [hsub]
+  have hgt : ¬ (index > (st.s i).commitIndex) := by omega
+  simp [hc, hsub', hgt]
+
+/-- **`AppendEntriesAlreadyDone` of a heartbeat** (no entries, previous index 0; the follower's
+commit index at least 1: the bootstrap entries are committed): the commit index advanced to the
+heartbeat's, the success reply at 0. -/
+theorem alreadyDone_heartbeat (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg)
+    (hc : 1 ≤ (st.s i).commitIndex) (hsub : m.subtype = "heartbeat") (hprev : m.prevLogIndex = 0)
+    (hents : m.entries = []) :
+    st.appendEntriesAlreadyDone i j (m.prevLogIndex + 1) m =
+      some ((st.commitTo i m.commitIndex).reply
+        { type := .appendEntriesResponse, subtype := "heartbeat",
+          term := (st.s i).currentTerm, success := true, matchIndex := 0, source := i, dest := j } m) := by
+  unfold Etcdraft.State.appendEntriesAlreadyDone
+  simp [hc, hsub, hprev, hents]
+
+/-- **`RejectAppendEntriesRequest`** at a follower of the request's term whose log does not match
+(`logOk` false; pre-vote and check-quorum off): the failure reply. -/
+theorem reject_step (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg)
+    (ht : m.term = (st.s i).currentTerm) (hf : (st.s i).state = Etcdraft.follower)
+    (hpv : st.preVote = false) (hcq : st.checkQuorum = false) :
+    st.rejectAppendEntriesRequest i j m false =
+      some (st.reply
+        { type := .appendEntriesResponse, subtype := "app", term := (st.s i).currentTerm,
+          success := false, matchIndex := 0, source := i, dest := j } m) := by
+  unfold Etcdraft.State.rejectAppendEntriesRequest
+  simp [ht, hf, hpv, hcq]
+
 end TraceSim
 
 end EtcdGrove
