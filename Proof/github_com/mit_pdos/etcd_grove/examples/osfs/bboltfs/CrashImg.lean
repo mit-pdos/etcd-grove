@@ -1009,7 +1009,7 @@ end states
 def dbCrashN : Namespace := nroot .@ "minibolt_crash"
 
 /-- minibolt's obligation on the states of its file: every crash of the state is `Good`. -/
-def dbOk [GooseExts] : CState → Prop
+abbrev dbOk [GooseExts] : CState → Prop
   | none => True
   | some (i, s) => FileOkS NoTearCrash Good i s
 
