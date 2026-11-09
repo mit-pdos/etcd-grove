@@ -113,3 +113,54 @@ needs the contract". This is not so:
   `|==>` goal fails ("not a modality"); into `|={E}=>` it works. This is a possible Perennial or
   Iris ElimModal gap and was not investigated.
 - **No Go bug found.**
+
+## Done: R1 settled by restating B3 (2026-11-09, the coordinator's decision)
+
+The no-backend-change route was taken. The `rtHeldDlsLaw` strengthening stays a recorded alternative
+only (`backend/RtHeldDls.lean`). `NewCleanRead.lean` was deleted: nothing imported it. Its bridge
+lemma's target `mvcc.NewStore.cleanRead_of_image` (in `NewR.lean`) was removed too.
+
+**The open point, settled.**
+- `batchTxInitSpec` (`InvStore.lean` l.1758) takes only `RT WT W Wi Dep LockedO P`.
+- The contract's `ForceCommit` clause takes `RT WT Req`.
+- These two are all that `NewStore`'s session uses (`NewStore.lean` l.408-490). Neither names `NC`
+  (`kbRecs` vs `bkNoCmpF`) or `Del`.
+- So a session contract at any `Del`, at `NC = kbNoCmpF`, suffices. This is `mvcc.storeSessT`
+  (`mvcc/NewStoreSess.lean`).
+
+**Statements changed.** The changes are the same in `NewStore.specR` (`NewStoreR.lean`),
+`newWatchableStore.specR` and `New.specR`:
+- the contract `∃ Dep, isKeyBackendGR … (delKey γ) …` became three things:
+  - `storeSessT b s γ P`;
+  - `restoreFixM d γ -∗ storeBackendTR b s γ P r`;
+  - `restoreRegM d`;
+- the clean read is now lent `storeRT γ ∗ restoreRegM d` (it was `storeRT γ ∗ RC`);
+- `RC` left the parameters, the pre and the post.
+
+The fresh instances (`spec_of_specR`, `sorry`) now take `storeBackendT` and the clean read lent
+`restoreRegM d`. `NewR.lean`'s outline steps 2 and 4 are corrected. `ApiNewRestoring.lean` is
+unchanged.
+
+**Proved** (no `sorry`):
+- in `NewStoreSess.lean`:
+  - `storeSessT_session`: what the session uses;
+  - `storeSessT_of_storeBackendT`;
+  - `storeSess_fix`: `restoreRegM d ∗ (restoreFixM -∗ storeBackendTR) ⊢ |==> storeBackendTR`;
+  - `storeSess_restoreView`;
+- in `NewStoreSessReal.lean`: `storeSessT_of_backendC`, the real backend's session contract at
+  `bkDel` with no registration;
+- in `NewStoreLineup.lean`:
+  - `sess_W_of_Wi`: the session's `Unlock` takes back `LockOutsideApply`'s `Wi`, because `kbWi =
+    storeW = lateW` at a real backend;
+  - `restore_inputs`: the image gives `restoreViewR … 1 false` with `NC`, the values and the cut;
+  - `restoreDone_fix`: the fix from `restore()`'s returned token.
+
+**A finding for `NewStore`'s B3 proof.** The fresh proof registers the store at the session's
+`Unlock` (`storeW_register` with `writerRes` at `[[], []]`). Over the image this is impossible: the
+writer's `bucketViewL` at `[[], []]` would need the bucket empty. B3 must give the `Unlock` the
+unregistered `Wi`, keep the registration pending (`writerReg`'s `kbRegRight ∗ writerRes`
+disjunct), and build `writerRes` at `L'` after `restore()`, as `store.Restore` does. The view goes
+whole to `restore()`.
+
+**A tactic issue.** `imod` of a `|==>` hypothesis into a `|==>` goal fails with "not a modality" in
+these modules. `|={E}=>` goals work.

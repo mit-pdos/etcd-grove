@@ -2,7 +2,8 @@
 **Probe (B3's R1): a prototype of the strengthening `rtHeldDlsLaw` needs** (`notes/mvccfull-probe-r1.md`).
 Scratch: not imported by any proof.
 
-`rtHeldDlsLaw` (`mvcc/NewCleanRead.lean`) is not provable over today's definitions: a held reader's
+`rtHeldDlsLaw` (the deleted `mvcc/NewCleanRead.lean`, commit 114962bac7; R1 is now settled without it,
+`NewStoreR.lean`) is not provable over today's definitions: a held reader's
 resource (`rtHeld`) relates its missing entries to nothing but the registration (`thinV`'s `dlIs`),
 and the deleted entries' ghost `γ.dls` has only two halves, the client's (`dlsOwn`) and the batch
 lock's (`fkHalf`, inside the mutex: out of reach of an entailment). The proposed strengthening:

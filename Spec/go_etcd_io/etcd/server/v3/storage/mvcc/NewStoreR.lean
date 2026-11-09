@@ -23,7 +23,7 @@ So the pre takes four things:
 
 The proof fixes the registration when `restore()` gives the lent token back (`storeSess_fix`: in the
 resume continuation if the records resume a compaction, else after `restore()`). `RC` is gone. So is
-R1's bridge lemma over a fixed registration (`NewCleanRead.lean`, superseded).
+R1's bridge lemma over a fixed registration (the deleted `NewCleanRead.lean`).
 -/
 module
 

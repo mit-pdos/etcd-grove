@@ -5,7 +5,7 @@ glue to the API's candidate `api.New.specR` (`ApiNewRestoring.lean`). Candidate 
 imported, not linked, not proved (`sorry`). R1 is settled by restatement (`NewStoreR.lean`'s
 header, 2026-11-09): the registration is fixed inside `NewStore` after `restore()`'s clean read, so no
 bridge lemma over a fixed registration is needed (R1's former target, `cleanRead_of_image`, is
-removed; `NewCleanRead.lean` is superseded).
+removed, and `NewCleanRead.lean` with it).
 -/
 module
 
