@@ -33279,3 +33279,47 @@ since the proof file's `open Iris` rebinds `||`), with two new proved callees, `
 `IsQuorum` (a value method through a pointer receiver: `Set.TypeAssumptions.ptr_Subset_unfold`).
 `Timeout.spec` gained `votesGranted.length < 2^62` (IsQuorum's `len(q)*2`), which S6's loop
 invariant carries (every set of servers is within the trace's).
+
+## Q8 stage 1: the capability's gate (2026-11-09 · trace-check, Q8 stage 1 slice 1; decided by the agent under the user's delegation (`notes/trace-validation-plan.md`, "The gates, delegated") · branch `trace-check-q8s1`; DRAFT until trace-check's Freeze)
+
+**No wrapper over the Draft's capability.** The frozen S5 Draft's capability is already indexed by
+the node's mode: `trCapB tr …`/`trCap tr …` are `emp`, `TraceFire tr tl E Q` is `⌜TraceLoggerOk tl⌝ ∗
+Q`, `FxPresT tr …` is `True` and `FxPresUT tr … R'` is `|==> R'` when `tr = none` (their `match`).
+A hook-path spec stated with them at `s.gh.tr` is therefore one spec for both modes (Q8 (a)), whose
+untraced instance is the stage-0 spec less its `s.gh.tr = none` premise; a mode-indexed wrapper
+around `trCapB` would only rename it. The untraced instances are laws in `TracedCap.lean`:
+`trCapB_none`, `trCapB_none_intro`, `fxPresT_none`, `fxPresUT_none`, and the phase an untraced
+caller picks, `phaseBot` (no share), for which every phase-step premise is vacuous (`phaseStep_bot`,
+`phaseStepB_bot`, `phaseStepR_bot`, `phaseStepReady_bot`, `phaseStepBF_bot`).
+
+**The gate `trOwn tr P`** (`emp` untraced, `P` traced) is what stage 1 adds. The Draft's hook
+statements (`traceNodeEvent.tracedSpec`, `traceSendMessage.tracedSpec`, ...) take raft's state
+closed (`ownRaftPhysCV c c.voters r id s`) in both modes, because the traced builder reads it; but
+the untraced callers hold the struct open at the hook (`send`'s tail holds the queue accessor's wand
+`Hback`, `switchToConfig` the tracker field, `acceptReady` the `Ready` view), and the untraced hook
+reads only `r.traceLogger`. Stated with the gate, `{{ … ∗ r.[raft, traceLogger] ↦□ tl ∗ trOwn s.gh.tr
+(ownRaftPhysCV c c.voters r id s ∗ …) ∗ TraceFire s.gh.tr tl E Q }} … {{ trOwn s.gh.tr (…) ∗ Q }}`,
+a hook's spec is the Draft's when traced (`trOwn_some`) and the stage-0 one when untraced
+(`trOwn_none_intro`), so the untraced call sites keep their proofs; the Draft's `X.tracedSpec`
+follows from it by framing (to be proved per hook with its unified spec). Rejected: the Draft's
+form unchanged (every untraced call site would first close the struct, a proof change at about
+ten sites for nothing the untraced spec needs); two specs per function (the hard rule).
+
+**The Draft's vocabulary moved, verbatim** (`TracedCap.lean`): the Draft imports the hook specs and
+`raft__send`'s (for `SendOk`, its `tracedSpec`s), so the specs could not import the Draft to state
+their traced case. Everything but the `X.tracedSpec` statements moved to `TracedCap.lean`, which the
+Draft imports; no statement changed (`git diff trace-check-frozen` shows the move only).
+
+**Found while scoping the hooks' traced proofs (open; `notes/trace-validation-plan.md`, "Q8 stage 1
+(slice 1)").** (1) `r.state.String()` (every event's `role`) reads the package variable `stmap`,
+which raft's package fact (`isInitialized`, `Base.lean`) does not hold: the traced `traceEvent`
+needs `globalAddr stmap ↦□ stmapV` added there (a fact of the model, proved from the initializer;
+`Base` is imported by about 4,700 modules: one full rebuild). (2) `makeTracingMessage`'s
+`m.GetType().String()` is `raftpb.MessageType.String`, a trust-boundary axiom that returns *some*
+string (`fmt.stringMethodSpec`), while the Draft's `MsgEvOf` (hence `SendEvOf`, `sendGate`,
+`recvGate`) needs the type's name (`msgTypeStr`): `traceSendMessage`'s and `traceReceiveMessage`'s
+traced statements, hence `raft.send`'s, are not provable without a stronger trust assumption or a
+translation of protobuf's enum `String` (a question for the user: the plan's Q9). (3) `send`'s
+traced proof needs the message after `Hback` has queued it (the outbox owns it, `msgQ`, at 1): an
+accessor lending the last queued message of `ownRaftPhysCV (sendMsgs s out)` read-only (B5's
+"opened sites").

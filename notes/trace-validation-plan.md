@@ -334,6 +334,30 @@ kvdurable's `StartCluster` and `kd_alloc`, the server's `srvClusterOk`, `newRaft
 `tr = none`, so a mode parameter would only add a premise; stage 1 parameterizes it with the traced
 capability.
 
+**Q8 stage 1 (slice 1), 2026-11-09 (branch `trace-check-q8s1`): the capability's gate; the hooks'
+traced proofs blocked.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1: the capability's
+gate"): no wrapper over the Draft's capability, which is already mode-indexed (`trCapB none … = emp`,
+`TraceFire none tl E Q = ⌜TraceLoggerOk tl⌝ ∗ Q`, `FxPresT none … = True`); stage 1 adds the gate
+`trOwn tr P` (`emp` untraced) on what a hook reads only when traced (raft's state, the message), so
+that the untraced call sites, which hold the struct open, keep their proofs, and the untraced phase
+`phaseBot` with its vacuous phase steps. The Draft's vocabulary moved verbatim to `TracedCap.lean`
+(the specs must import it, and the Draft imports the specs); no statement of the Draft changed. **Not
+done: the hooks' unified specs, and with them every function above** (each proof takes its callees'
+specs, so nothing above a hook changes before the hook is proved). Scoping the traced branch of
+`traceEvent` found: (1) `r.state.String()` reads the package variable `stmap`, absent from raft's
+package fact (`isInitialized`, `Base.lean`): to add (proved from the initializer; one full rebuild,
+`Base` reaching about 4,700 modules); (2) `makeTracingMessage`'s `m.GetType().String()` is the
+trust-boundary axiom `raftpb.MessageType.String`, which returns *some* string, while the Draft's
+`MsgEvOf` needs the type's name: the traced `traceSendMessage`/`traceReceiveMessage`, hence
+`raft.send`, are not provable without a stronger trust assumption (**Q9**, the user's); (3) `send`'s
+traced proof needs the queued message after the queue accessor has taken it (an accessor lending the
+last queued message of `ownRaftPhysCV (sendMsgs s out)`); (4) new specs and proofs for the
+builders the traced `traceEvent` calls (`stateMachineEventType.String`, `StateType.String`,
+`formatConf`, `makeTracingState`, `makeTracingMessage`) and accessors lending `ownRaftPhysCV`'s
+reads (`hardState()`, `raftLog.lastIndex()`, `trk.Voters[i]`, as `ProgressTracker.ConfState`'s
+proof reads them). Next: (1) with the next full build; the node-event hooks (`traceNodeEvent` and
+the six that call it) after (1) and (4); `send` and its callers after Q9 and (3).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -571,6 +595,21 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   of statements to generalize). (c) A second, traced copy of the hook paths' proofs: two specs per
   function, against the hard rule. **Taken by the agent, pending the user's veto: (a)**, with the
   `interface/` diff explained in the commit that makes it.
+- **Q9 (2026-11-09, Q8 stage 1): `MessageType.String`'s trust boundary is too weak for the traced
+  send and receive hooks.** `makeTracingMessage` names a message's type by `m.GetType().String()`,
+  protoc-gen-go's generated method (`protoimpl.X.EnumStringOf` over the file descriptor), which the
+  raft v3.7 translation has names-only; its trust-boundary axiom
+  (`Proof/go_etcd_io/raft/v3/raftpb/MessageType__String.lean`) says it returns some string
+  (`fmt.stringMethodSpec`), all `fmt` needs. The frozen Draft's `MsgEvOf` (hence `SendEvOf`,
+  `sendGate`, `recvGate`, and `raft.send.tracedSpec`) needs the name (`msgTypeStr`: `"MsgApp"`, ...),
+  which the checker's parse reads. Options: (a) strengthen the axiom: `String` returns the name of
+  `MessageType_name` (raftpb's generated table) at the value, at least for the six traced types (a
+  trust-base change: the statement of an existing axiom); (b) a trusted model of the method
+  (`TrustedCode/`) looking the value up in `MessageType_name`, its docstring arguing that the
+  descriptor's names are the table's (a trust-base change of the same size, but a model instead of
+  an axiom); (c) translate protobuf's enum `String` path (reflection over the descriptor: large).
+  The agent's recommendation: (b), else (a). Not taken (no recommendation in the plan); the node
+  events do not depend on it.
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
   `traceChangeConfEvent` formats the change's ids (`strconv.FormatUint`) before its nil check, so
   the translated raft calls it even without a logger, and raft's linked results now rest on
