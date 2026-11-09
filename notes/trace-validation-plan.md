@@ -62,8 +62,16 @@ past the node's bootstrap lines. Receive lines: a line's rounds as a chain of si
 (`Chain`, `simRun_snoc_chain`), a receive's successors from the one matching message
 (`next_receive`), the first receive line's step (`simRun_recvAppResp`, a successful append response at
 the leader), modulo the network's message uniqueness (`MsgsDet`/`AppSlices`, layer B's invariants).
-Next: the other receive lines (vote requests and responses; append requests with their truncation
-chains; `UpdateTerm` first) and the `BecomeFollower` lines.
+Then (2026-11-09, proved, `TraceSimMatch.lean`): every receive line of the hook table
+(`notes/trace-validation-sim.md`): vote requests and responses, accepted append requests through
+their truncation chains (`chain_appAccept`), heartbeats, stale and rejected append requests, lower-term
+responses (`DropStaleResponse`) and requests (the phantom reply), a response of the node's term at any
+role (`respSt`), each after a first round where raft has one (`FirstRound`: `UpdateTerm` at a higher
+term, a candidate's `ReturnToFollower`; the rounds fresh by term or role, `srvKey`); and the
+`BecomeFollower` lines, skipped after such a first round or stepping down (`isBF_eq`: the node's last
+line decides). Each step is pure, modulo its premises: `R` before and after, the invariants at the
+states visited, the line past the bootstrap lines, the matched message unique among those the line
+could match. Next: those premises from raft's ghost state (the hook-path traced specs, Q8).
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
