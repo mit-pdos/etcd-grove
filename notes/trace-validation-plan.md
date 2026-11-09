@@ -125,6 +125,20 @@ consumed, the bags' uniqueness `MsgsUniq` a clause of `simFx`, the intermediate 
 from the caller's `FxPresR`). Layer C's `types.go` leaves merged (26 functions); `spec.go`'s state
 functions and actions delegated (`trace-check-layerc-spec`). S5 Draft review round 2 started.
 
+**The specification invariants' preservation (merged, `TraceSimSpecInv.lean`, proved):** `DurInv` as
+stated is **false** (`durInv_not_preserved`: a leader's self-acknowledgement of its whole log sits in
+`pendingMessages` past its durable log until its `Ready`); the strengthened `SpecInv` (`LeaderEntries`,
+`DurS`, `TermsLe`, `CandS`, `PrevOk`, `CommitWithinLeader`, `ReqCommit`) holds at `Init` and is preserved
+by every action the lines take, giving `ElectionSafetyInv`, `CommittedIsDurableInv` (through the
+corrected `DurInvFixed`) and `CommitWithinLeader`. What raft must supply, as named hypotheses:
+`becomeLeader`'s freshness (no entry, message or request of the new term yet: a term's leader is
+unique over time and the only creator of its entries), leader completeness where a server joins a
+term (`updateTerm`, `timeout`, `becomeLeader`'s `hcw`), a follower's commit index within the sender's
+durable log at `appendEntriesAlreadyDone` (`CommitInSenderDurable`), `MoreThanOneLeaderInv`, and
+`AppendEntries`' range `b ≤ Len(log) + 1` (an arbitrary `b` breaks `CommittedIsDurableInv`: a second
+place where the specification's action is broader than `NextAsync`). `simFx` is to carry `SpecInv`
+in place of `LeaderEntries`/`DurInv`/`CommitWithinLeader`.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
