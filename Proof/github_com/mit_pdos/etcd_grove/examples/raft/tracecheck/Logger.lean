@@ -49,6 +49,8 @@ theorem isSyncRecorder_traceLogger
   · iframe Hinit Hrec Hev Hau
   inext
   iintro HQ
+  isplitr
+  · ipureintro; rfl
   iexact HQ
 
 end logger

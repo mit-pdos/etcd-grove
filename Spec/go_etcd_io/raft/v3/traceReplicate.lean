@@ -3,7 +3,7 @@ Port of election_proof/spec_traceReplicate.v (feb5c73d4).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedCap
 
 @[expose] public section
 
@@ -21,18 +21,22 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceReplicate(r, es...)`: for each entry of `es` of type `EntryNormal`
-(`es[i].GetType()`, read before the logger is), `traceNodeEvent(rsmReplicate, r)`; the entries
-are only read. Under `TraceLoggerOk` (increment 1, `notes/trace-validation-hooks.md`: the logger is nil) no
-event is reported. Until 2026-11-08 the translated build was the no-op one (`state_trace_nop.go`)
-and the spec owned nothing; increment 2 (`notes/trace-validation-sim.md`) replaces
-`TraceLoggerOk` by the logger's contract `isTraceLogger γt`, changing this statement. -/
+/-- `traceReplicate(r, es...)`: one `Replicate` node event of `r`'s state per normal entry of the
+batch (`traceNodeEvent(rsmReplicate, r)` in the loop), the entries read-only and given back.
+
+One spec for both modes (Q8 stage 1, slice 2, 2026-11-09): untraced, the gate `trOwn` is `emp` and
+`TraceFireN` the nil logger and `Q`; traced, raft's state is lent through the gate and the caller's
+updates fire in a row, one per normal entry (`TraceFireN … (normalCount ents)`). Its traced instance
+is the Draft's `traceReplicate.tracedSpec` (`TracedHooks.lean`). Until slice 2: `⌜TraceLoggerOk tl⌝`
+(increment 1, `notes/trace-validation-hooks.md`). -/
 abbrev traceReplicate.spec : Prop :=
-  ∀ (r : Loc) (es : GoSlice) (dq : DFrac) (ents : List EntryM) (tl : GoInterface),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice) (dq : DFrac) (ents : List EntryM)
+    (tl : GoInterface) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ entsPts es dq ents ∗
-      r.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOk tl⌝ }}
+      r.[raft, go!"traceLogger"] ↦□ tl ∗ trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗
+      TraceFireN s.gh.tr tl (NodeEvOf (W64 5) id s c) (normalCount ents) Q }}
     (App (App (Val #(functions traceReplicate [])) (Val #r)) (Val #es))
-  {{ RET #(); entsPts es dq ents }}
+  {{ RET #(); entsPts es dq ents ∗ trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q }}
 
 end spec
 
