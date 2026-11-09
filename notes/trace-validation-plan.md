@@ -81,6 +81,21 @@ with an effect, given the bootstrap, skip and uniqueness conditions and the inva
 intermediate and final states); `lineEffect_heartbeat` proved as the first effect. Layer C's
 `types.go` functions delegated (a worktree branch, `trace-check-layerc-types`).
 
+**S5 Draft review round 1 (`notes/trace-validation-reviews/s5-r1.md`): six first-tier findings,
+repaired in the Draft** (F5 by the revision already made: the effect is stated on the global state,
+so a message line acting on another server than its node cannot pass): F1 `traceNodeEvent` premise
+`evt` below the names (`String()` panics past them); F2/F3 the message hooks' gates keyed on
+`(mtypeOf …).bind` (`recvGate`, `sendGate`: `raft.Step` traces every message it receives, local
+ones too, and `send` sends `MsgTimeoutNow`); F4 `trCap` carries raft's configuration as the voters'
+permutation and the node's membership, `SimIdle` the `2^63` bounds; F6 `PhaseStep` is for lines other
+than `BecomeFollower` (its skip bit comes from the node's previous line, the caller's phase). Second
+tier taken: S2 (`PhaseStep` for every server the share stands for), S6 (`TraceFireOpt none` is `Q`),
+and the header now says the traced triples are vacuous until Q8's logger clause
+(`ownRaftPhys`'s `TraceLoggerOk` gated on the mode) lands. Open, for the next round: S1 (state the
+global theorem as one Iris law, `trCap Φ ∗ PhaseStep E Φ Φ' ⊢ TraceFire E (trCap Φ')`), S3 (a
+receive's phantom reply and the `Ready` line's movement of pending messages in the shares), S5
+(`traceInitState` at `newRaft`, outside `ownRaftPhys`).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

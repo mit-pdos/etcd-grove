@@ -14,6 +14,11 @@ the plan's Q8).
   untraced cluster, and in a traced one the node's share with `Φ` of it (the function's phase),
   the logger's contract and the simulation's invariant.
 
+**Vacuous until Q8's logger clause lands** (review round 1, `notes/trace-validation-reviews/s5-r1.md`):
+`ownRaftPhys` still requires a nil logger (`InvRaftPhys.lean`, `TraceLoggerOk`), while the traced
+capability carries a non-nil one, so every traced triple here is provable by contradiction until
+that clause becomes `TraceLoggerOkS s.gh.tr tl`. Prove none before.
+
 Each `X.tracedSpec` is `X.spec` with the capability added (one spec per function: the untraced
 instance, `s.gh.tr = none`, is `X.spec`'s, `trCap none … = emp`). **As `TracedApiDraft`:** a traced
 statement replaces its `X.spec` only once proved; until then these are definitions, reviewed with
@@ -86,10 +91,12 @@ def pendAbs (C : List w64) (ob : List Msg) : List Etcdraft.Msg := ob.filterMap (
 /-- **The idle relation**: node state `s` and the node's share, its server `c` and its pending
 messages `P`, at a hook point of the idle phase (`notes/trace-validation-sim.md`, "Phases"): the
 server is `R_i`-related to the protocol reading of `s` (`SimServerR`, the bootstrap log the `|C|`
-configuration entries), the log uncompacted, and `P` the outbox's traced messages. -/
+configuration entries), the log uncompacted, `P` the outbox's traced messages, and the numbers the
+line's parse reads as `int` below `2^63` (review round 1's F4). -/
 def SimIdle (C : List w64) (s : NState) (c : ServerC) (P : List Etcdraft.Msg) : Prop :=
   ∃ a : Etcdraft.Server, toC (confAbs C) a = c ∧ SimServerR C C.length (toPState s) a ∧
-    LogShapeOk C.length (toPState s) ∧ P = pendAbs C (toPState s).outbox
+    LogShapeOk C.length (toPState s) ∧ P = pendAbs C (toPState s).outbox ∧
+    uint.Z s.term < 2 ^ 63 ∧ uint.Z s.logst.committed < 2 ^ 63 ∧ uint.Z (plastIndex (toPState s)) < 2 ^ 63
 
 /-- The specification's `AdvanceCommitIndex` at a server `a` commits exactly to `n` (whatever the
 rest of the state: it reads only the server's own variables). -/
@@ -140,6 +147,19 @@ def recvEvt : MsgType → Option w64
   | .voteResp => some (W64 16)
   | _ => none
 
+/-- **`traceSendMessage`'s gate**: for a message of a traced type, the events it may log; `none` for
+any other (an untyped one included: review round 1's F3). -/
+def sendGate (id : w64) (s : NState) (c : CfgM) (ms : MsgSt) : Option (TraceEv → Prop) :=
+  match mtypeOf ms.msg.Type' with
+  | some ty => (sendEvt ty).map (fun evt => SendEvOf evt id s c (absMsg ty ms.msg ms.ents))
+  | none => none
+
+/-- **`traceReceiveMessage`'s gate** (every message `raft.Step` receives, local ones included: F2). -/
+def recvGate (id : w64) (s : NState) (c : CfgM) (ms : MsgSt) : Option (TraceEv → Prop) :=
+  match mtypeOf ms.msg.Type' with
+  | some ty => (recvEvt ty).map (fun evt => SendEvOf evt id s c (absMsg ty ms.msg ms.ents))
+  | none => none
+
 /-- The normal entries of a batch (`traceReplicate` logs one `Replicate` per normal entry). -/
 def normalCount (ents : List EntryM) : Nat := (ents.filter (fun e => decide (e.Type' = EntryNormal))).length
 
@@ -184,13 +204,15 @@ def LineEffect (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.ID) (a a' 
     (withNode σ i a' fM fP).violated = .ok none →
     ∃ tsF : Etcdraft.TState, tsF.s = withNode σ i a' fM fP ∧ Chain t l [⟨σ, l, pl⟩] ⟨σ, l, pl⟩ tsF
 
-/-- **A phase step by a line consuming no message**: from every share `(cs, P)` in phase `Φ`, each
-event `E` allows has an effect into a share in phase `Φ'`, its pending messages `P'` (`fP` adds them),
-no intermediate state. -/
+/-- **A phase step by a line consuming no message** (not a `BecomeFollower` line, whose skip bit only
+the node's previous line decides: review round 1's F6): from every share `(cs, P)` in phase `Φ`,
+each event `E` allows has, for every server `a` the share stands for, an effect into a share in
+phase `Φ'` (review round 1's S2), its pending messages `P'` added. -/
 def PhaseStep (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
-  ∀ C cs P, Φ C cs P → ∀ e, E e → ∃ (i : Etcdraft.ID) (a a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
-    toC (confAbs C) a = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
-    LineEffect C false e i a a' none id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False)
+  ∀ C cs P, Φ C cs P → ∀ e, E e → ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
+    ∃ (i : Etcdraft.ID) (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
+      Φ' C (toC (confAbs C) a') (P ++ P') ∧
+      LineEffect C false e i a a' none _root_.id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False)
 
 end pure
 
@@ -216,27 +238,26 @@ def TraceFire (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) (Q :
       ∀ e, ⌜E e⌝ -∗ AU <{ ∃∃ L, traceAuth tn.tr L }> @ ⊤, ∅ <{ traceAuth tn.tr (L ++ [e]), COMM Q }>)
 
 /-- **The simulation's capability** on a hook path (Q8): `emp` in an untraced cluster; in a traced
-one, the node's share `(c, P)` with the function's phase `Φ C c P` (`C` the voters), the node's
-logger and its contract, and the simulation's invariant. -/
-def trCap (tr : Option GName) (r : Loc) (id : w64)
+one, the node's share `(cs, P)` with the function's phase `Φ C cs P` (`C` the voters, raft's
+configuration `c` their permutation with no outgoing half, the node one of them: review round 1's
+F4), the node's logger and its contract, and the simulation's invariant. -/
+def trCap (tr : Option GName) (r : Loc) (id : w64) (c : CfgM)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
   match tr with
   | none => iprop(emp)
-  | some γd => iprop(∃ (tn : TraceNames) (C : List w64) (tl : GoInterface) (c : ServerC)
+  | some γd => iprop(∃ (tn : TraceNames) (C : List w64) (tl : GoInterface) (cs : ServerC)
       (P : List Etcdraft.Msg),
-      traceDir γd tn ∗ ⌜tn.voters = C⌝ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ isTraceLogger tn.tr tl ∗
-      ⌜tl ≠ interface.nil⌝ ∗ inv simNS (simInv C tn) ∗ simNode tn id c P ∗ ⌜Φ C c P⌝)
+      traceDir γd tn ∗ ⌜tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C⌝ ∗
+      r.[raft, go!"traceLogger"] ↦□ tl ∗ isTraceLogger tn.tr tl ∗
+      ⌜tl ≠ interface.nil⌝ ∗ inv simNS (simInv C tn) ∗ simNode tn id cs P ∗ ⌜Φ C cs P⌝)
 
 /-- **What a hook's caller gives for an event that may or may not be logged**: `some E`, as
-`TraceFire`; `none` (a message type the hook does not trace), the logger's contract (traced) and
-`Q`. -/
+`TraceFire`; `none` (a message type the hook does not trace), `Q` (review round 1's S6). -/
 def TraceFireOpt (tr : Option GName) (tl : GoInterface) (oE : Option (TraceEv → Prop)) (Q : IProp GF) :
     IProp GF :=
   match oE with
   | some E => TraceFire tr tl E Q
-  | none => match tr with
-    | none => iprop(⌜TraceLoggerOk tl⌝ ∗ Q)
-    | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗ isTraceLogger tn.tr tl ∗ ⌜tl ≠ interface.nil⌝ ∗ Q)
+  | none => Q
 
 /-- **`n` events in a row** (`traceReplicate`'s loop), each `E`'s, the caller's updates nested. -/
 def TraceFireN (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) : Nat → IProp GF → IProp GF
@@ -244,8 +265,8 @@ def TraceFireN (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) : N
   | n + 1, Q => TraceFire tr tl E (TraceFireN tr tl E n Q)
 
 /-- In an untraced cluster the capability is nothing. -/
-theorem trCap_none (r : Loc) (id : w64) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) :
-    trCap (GF := GF) none r id Φ ⊣⊢ iprop(emp) := .rfl
+theorem trCap_none (r : Loc) (id : w64) (c : CfgM) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) :
+    trCap (GF := GF) none r id c Φ ⊣⊢ iprop(emp) := .rfl
 
 /-- ... and so is the event builder's gate but the nil logger and `Q`. -/
 theorem traceFire_none (tl : GoInterface) (E : TraceEv → Prop) (Q : IProp GF) :
@@ -258,6 +279,8 @@ nil, it returns, giving `Q`; otherwise it reads `r`'s state (`ownRaftPhysCV`, gi
 the event, a `NodeEvOf` one, and fires the caller's update with it. -/
 abbrev traceNodeEvent.tracedSpec : Prop :=
   ∀ (evt : w64) (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  -- `evt.String()` panics past the event names (review round 1's F1)
+  uint.nat evt < evtNames.length →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
       ownRaftPhysCV c c.voters r id s ∗ TraceFire s.gh.tr tl (NodeEvOf evt id s c) Q }}
     (App (App (Val #(functions traceNodeEvent [])) (Val #evt)) (Val #r))
@@ -270,11 +293,11 @@ to `s` (`SimIdle`): the line's step. After it, the share is idle-related to `s`.
 abbrev traceCommit.tracedSpec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-      trCap s.gh.tr r id (fun C cs P => ∃ (a : Etcdraft.Server) (n : Int),
+      trCap s.gh.tr r id c (fun C cs P => ∃ (a : Etcdraft.Server) (n : Int),
         toC (confAbs C) a = cs ∧ a.state = Etcdraft.leader ∧ AdvancesTo a n ∧
         SimIdle C s (toC (confAbs C) { a with commitIndex := max a.commitIndex n }) P) }}
     (App (Val #(functions traceCommit [])) (Val #r))
-  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr r id (fun C => SimIdle C s) }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr r id c (fun C => SimIdle C s) }}
 
 /-- **`r.maybeCommit()`, traced** (`raft.maybeCommit.spec` with the capability): at a leader whose
 share is idle-related to its state, it commits as `raft.maybeCommit.spec` says and logs `Commit`,
@@ -284,13 +307,13 @@ abbrev raft.maybeCommit.tracedSpec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   s.role = .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr r id (fun C => SimIdle C s) }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr r id c (fun C => SimIdle C s) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
   {{ (b : Bool) (N : w64), RET #b;
       ownRaftPhysCV c c.voters r id
         (if b then { s with logst := { s.logst with committed := N } } else s) ∗
       ⌜b = true → CommitOkC c (toPState s) N⌝ ∗
-      trCap s.gh.tr r id (fun C =>
+      trCap s.gh.tr r id c (fun C =>
         SimIdle C (if b then { s with logst := { s.logst with committed := N } } else s)) }}
 
 /-! ## The other hooks, traced -/
@@ -300,24 +323,24 @@ abbrev raft.maybeCommit.tracedSpec : Prop :=
 event of the message as sent (`absMsg`: `send` has stamped `From` and `Term`); for another type
 nothing. A snapshot is never traced in a traced cluster (P2). -/
 abbrev traceSendMessage.tracedSpec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq : DFrac) (ms : MsgSt) (ty : MsgType)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq : DFrac) (ms : MsgSt)
     (tl : GoInterface) (Q : IProp GF),
-  mtypeOf ms.msg.Type' = some ty → (s.gh.tr.isSome → ty ≠ .snap) →
+  (s.gh.tr.isSome → mtypeOf ms.msg.Type' ≠ some .snap) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
       ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms ∗
-      TraceFireOpt s.gh.tr tl ((sendEvt ty).map (fun evt => SendEvOf evt id s c (absMsg ty ms.msg ms.ents))) Q }}
+      TraceFireOpt s.gh.tr tl (sendGate id s c ms) Q }}
     (App (App (Val #(functions traceSendMessage [])) (Val #r)) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms ∗ Q }}
 
 /-- **`traceReceiveMessage(r, m)`, traced**: at `raft.Step`'s entry, before any handling: the
 receipt's event (`recvEvt`), with `r`'s state as it is. -/
 abbrev traceReceiveMessage.tracedSpec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq : DFrac) (ms : MsgSt) (ty : MsgType)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq : DFrac) (ms : MsgSt)
     (tl : GoInterface) (Q : IProp GF),
-  mtypeOf ms.msg.Type' = some ty → (s.gh.tr.isSome → ty ≠ .snap) →
+  (s.gh.tr.isSome → mtypeOf ms.msg.Type' ≠ some .snap) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
       ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms ∗
-      TraceFireOpt s.gh.tr tl ((recvEvt ty).map (fun evt => SendEvOf evt id s c (absMsg ty ms.msg ms.ents))) Q }}
+      TraceFireOpt s.gh.tr tl (recvGate id s c ms) Q }}
     (App (App (Val #(functions traceReceiveMessage [])) (Val #r)) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms ∗ Q }}
 
@@ -372,23 +395,23 @@ caller's phase `Φ` to `Φ'` (`PhaseStep`, the message as sent, `out`'s); otherw
 abbrev raft.send.tracedSpec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (out : List Msg) (ty : MsgType) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
+    (out : List Msg) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
   (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
   SendOk id s m ents ctx out →
   SnapOut id s m sn out →
   (m.Type' = MsgApp → AppShape ⟨m, ents, sn, ctx, rs⟩) →
   rs = [] →
-  mtypeOf m.Type' = some ty → (s.gh.tr.isSome → ty ≠ .snap) →
-  (match sendEvt ty with
+  (s.gh.tr.isSome → mtypeOf m.Type' ≠ some .snap) →
+  (match (mtypeOf m.Type').bind sendEvt with
    | some evt => ∀ mm ∈ out, PhaseStep (SendEvOf evt id s c mm) Φ Φ'
    | none => ∀ C cs P, Φ C cs P → Φ' C cs P) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
       "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn ∗
-      trCap s.gh.tr r id Φ }}
+      trCap s.gh.tr r id c Φ }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
-  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) ∗ trCap s.gh.tr r id Φ' }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) ∗ trCap s.gh.tr r id c Φ' }}
 
 end ghost
 
