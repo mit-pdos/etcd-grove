@@ -406,33 +406,35 @@ theorem raft.becomeCandidate.traced (h : raft.becomeCandidate.spec (GF := GF) (h
 
 /-- **`r.becomeFollower(term, lead)` on the capability**: the `BecomeFollower` line, a bootstrap line
 before the node's segment is over (`b = false`, `trCap_fire_boot`), a step-down or a skip after it
-(`trCap_fire_bf`, the caller's `PhaseStepBF` and `FxPresBF`). **Open** (Q13 review rounds 2-3, predating
-Q13): the capability is at the cluster's configuration `c`, the struct's here too, while raft's is still
-empty at `Bootstrap`'s and `newRaft`'s `becomeFollower`; the unbooted case (`b = false`) needs the two
-configurations apart (with `TraceEv.okBoot_mono` for the event's bound). -/
+(`trCap_fire_bf`, the caller's `PhaseStepBF` and `FxPresBF`). (Amendment A1, 2026-11-09; Q13 review
+rounds 2-4's C) The capability is at the voters' configuration `cC`, raft's struct and the event at
+raft's own `c`: apart during the node's bootstrap, where raft's is still empty (`newRaft`'s and
+`Bootstrap`'s `becomeFollower`), one after it (`b = true → cC = c`); the bootstrap event's bound is
+the capability's (`nodeEvOf_okBoot` at `n = |cC|`, raft's configuration within the voters'). -/
 theorem raft.becomeFollower.traced (h : raft.becomeFollower.spec (GF := GF) (hG := hG))
-    (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) (term lead : w64) (γ : RaftNames)
+    (c cC : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) (term lead : w64) (γ : RaftNames)
     (b : Bool) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop)
     (hle : uint.Z s.term ≤ uint.Z term) (hV : s.gh.tr ≠ none → V = c.voters)
+    (hcC : b = true → cC = c) (hout : b = false → c.outgoing = ∅)
     (hbf : b = true → PhaseStepBF id c (becomeFollower s term lead) Φ Φ' Λ)
     (hb0 : b = false → ∀ C cs P, Φ C cs P → Φ' C cs P)
     (hΛ : ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → Λ' (some e))
     (hOk : s.gh.tr.isSome →
       (b = true → ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → TraceEv.Ok (elements c.incoming).length e) ∧
-      (b = false → ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → TraceEv.OkBoot (elements c.incoming).length e)) :
+      (b = false → ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → TraceEv.OkBoot (elements cC.incoming).length e)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s ∗
-        trCapB s.gh.tr γ r id c b Φ Λ ∗ trOwn s.gh.tr (if b then FxPresBF γ id Φ else iprop(emp)) }}
+        trCapB s.gh.tr γ r id cC b Φ Λ ∗ trOwn s.gh.tr (if b then FxPresBF γ id Φ else iprop(emp)) }}
       (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeFollower"))
         (Val #term)) (Val #lead))
     {{ (pvs : GMap w64 Progress), RET #();
         ownRaftPhysCV c V r id { becomeFollower s term lead with prvals := pvs } ∗
-        trCapB s.gh.tr γ r id c b Φ' Λ' }} := by
+        trCapB s.gh.tr γ r id cC b Φ' Λ' }} := by
   iintro %Ψ ⟨#Hpkg, Hphys, Hcap, Hfx⟩ HΨ
-  icases trCapB_logger0 c V r id s γ b Φ Λ $$ [$Hphys $Hcap]
+  icases trCapB_logger0 c V r id s γ b Φ Λ cC $$ [$Hphys $Hcap]
     with ⟨%tl0, #Htl0, %Hok, Hphys, Hcap⟩
   iapply h c r id s term lead _ hle hV $$ [Hphys Hcap Hfx]
   · iframe Hpkg Hphys
-    iapply trCapB_hookGate_bf s.gh.tr γ r id c tl0 _ b Φ Φ' Λ Λ' hbf hb0 hΛ hOk Hok
+    iapply trCapB_hookGate_bf s.gh.tr γ r id c cC tl0 _ b Φ Φ' Λ Λ' hcC hout hbf hb0 hΛ hOk Hok
     iframe Htl0 Hcap Hfx
   inext
   iintro %pvs ⟨Hphys, HQ⟩

@@ -28,10 +28,13 @@ the outcome, where Go logs the line, and its postcondition gives the outcome `ma
 (Q8 stage 1, 2026-11-09: everything above but the traced statements moved, verbatim, to
 `TracedCap.lean`, which this file imports, so that the hook-path specs can state their traced case.)
 
-**Vacuous until Q8's logger clause lands** (review round 1, `notes/trace-validation-reviews/s5-r1.md`):
-`ownRaftPhys` still requires a nil logger (`InvRaftPhys.lean`, `TraceLoggerOk`), while the traced
-capability carries a non-nil one, so every traced triple here is provable by contradiction until
-that clause becomes `TraceLoggerOkS s.gh.tr tl`. Prove none before.
+(Amendment A1, 2026-11-09, the rest of Q13's re-freeze: `MsgEvOf` pins the traced message's
+`rejectHint`, so `raft.send.tracedSpec`'s premise is dischargeable, `sendEvOf_ok`; the capability's
+configuration is the voters' during a node's bootstrap, apart from raft's, `trCapB`'s docstring and
+`trCapB_hookGate_bf`. No statement in this file changed.)
+
+(Review round 1's "vacuous until Q8's logger clause lands" is resolved: `ownRaftPhys` carries
+`TraceLoggerOkS s.gh.tr tl`, `InvRaftPhys.lean`, nil only untraced.)
 
 Each `X.tracedSpec` is `X.spec` with the capability added (one spec per function: the untraced
 instance, `s.gh.tr = none`, is `X.spec`'s, `trCap none … = emp`). **As `TracedApiDraft`:** a traced
@@ -190,7 +193,9 @@ abbrev traceBecomeLeader.tracedSpec : Prop :=
 /-- **`traceInitState(r)`, traced** (review round 3's B5): an `InitState` node event of `r`'s state.
 Draft: `newRaft` calls it before raft's predicate holds (the struct built, its configuration empty,
 before `confchange.Restore`), so its caller must assemble `ownRaftPhysCV` at the empty configuration
-there (round 1's S5, open). -/
+there (round 1's S5, open). The caller's gate comes from `trCap_fire_boot` at the capability's
+configuration, the voters' (amendment A1), the event at raft's empty one (`nodeEvOf_okBoot` at the
+voters' count). -/
 abbrev traceInitState.tracedSpec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗

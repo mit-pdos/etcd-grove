@@ -33708,3 +33708,40 @@ traced (`s.gh.tr.isSome →`, so the untraced instance needs nothing).
 events cannot be shown `Ok`: the fix is one conjunct in `MsgEvOf` and one-line repairs in `TracedMsg.lean`
 and `raft__send.lean`, held by the concurrent Go-level-spec work (plan, "Q13 (a) done"). The Prove
 phase owes the receipt bound below `traceNumBound` (F3) and received messages' numbers (F4).
+
+## Amendment A1: `MsgEvOf` pins `rejectHint`; the bootstrap lines' capability at the voters' configuration (2026-11-09 · trace-check, the rest of Q13's re-freeze; decided by the agent under the coordinator's delegation · branch `trace-check-a1`; DRAFT until the re-freeze `trace-check-frozen-a1`)
+
+**Why.** Two first-tier findings kept the amended Draft from its re-freeze (`notes/trace-validation-reviews/
+q13-r1.md` … `q13-r4.md`): (1) `MsgEvOf` left the traced message's `rejectHint` free while `TraceEv.Ok`
+bounds it, so no send or receive event could be shown `Ok` (the Q13 entry's "Open"); (2) `trCapB`
+requires its configuration `c` to be a permutation of the voters, while raft's own configuration is
+empty at `newRaft`'s `traceInitState` and `becomeFollower` and grows during `Bootstrap`'s
+`applyConfChange`s, and `trCapB_hookGate_bf`/`raft.becomeFollower.traced` used one `c` for raft's
+struct, the event and the capability: their unbooted case (`b = false`) had no satisfiable caller (a gap
+of the first freeze, predating Q13).
+
+**What.** (1) `MsgEvOf` gains `tm.rejectHint = m.rejecthint` (`makeTracingMessage` writes
+`m.GetRejectHint()`; `absMsg` carries it); every field it writes is now pinned but `Vote`, which
+`SendEvOf` leaves some decimal (raft's `Msg` has no vote and no fact reads it). `sendEvOf_ok` discharges
+the laws' premise for a send or a receive event (both gates are `SendEvOf`), from the state's and the
+message's numbers below `traceNumBound`, with `sendEvt_inScope`/`recvEvt_inScope`; `ccEvOf_ok`/`_okBoot`
+are restated over `ccEvOf_numsBelow`/`_confsWithin` (q13-r4's N3). (2) **The capability's configuration
+is the voters' throughout; raft's is apart from it during a node's bootstrap.** No law and no Draft
+statement changes: `trCap_fire_boot`'s events `E` are free, so a bootstrap line's event at raft's
+configuration and its `OkBoot` at the capability's (`nodeEvOf_okBoot`/`ccEvOf_okBoot` at `n = |C|`, raft's
+configuration within the voters') already fit it. What changes is the bootstrap path's gate:
+`trCapB_hookGate_bf` and `raft.becomeFollower.traced` take the capability's `cC` apart from raft's `c`,
+with `b = true → cC = c` (after the bootstrap they are one, as `trCap_fire_bf` needs) and `b = false →
+c.outgoing = ∅` (the bootstrap event's parse, formerly read off the capability); `trCapB_logger0` takes
+the capability's configuration as an optional argument. `trCapB`'s and `trCap_fire_boot`'s docstrings
+say which configuration `c` is.
+
+**Rejected.** *`trCapB`'s configuration clause only once booted* (`b = true → Perm …`): it changes the
+capability every law opens and closes, and `trCap_fire_any` at `b = false` (a node's first line after
+its bootstrap) would then need the configuration as a new premise, all to say what a separate argument
+of the one gate says. *The bootstrap law over the configuration the line carries*: the law already is
+(its `E` is free); only the gate fixed one `c`.
+
+**Open (owed by the bootstrap clause's work, layer B):** the routing itself, `newRaft`'s and
+`Bootstrap`'s traced proofs creating the capability at the voters' configuration and calling these
+gates; a received message's numbers (q13-r1's F4, now its `rejectHint` too).

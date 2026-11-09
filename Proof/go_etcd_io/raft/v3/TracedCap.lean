@@ -3,7 +3,8 @@ Lean-first (no Rocq counterpart). Trace-check's S5 Draft's vocabulary (2026-11-0
 of `TracedHooksDraft.lean` by Q8 stage 1 (slice 1, 2026-11-09) so that the specs of raft's hook
 paths can state their traced case with it (the Draft imports those specs: `notes/decisions.md`,
 "Q8 stage 1: the capability's gate"). Every statement here is the frozen Draft's (tag
-`trace-check-frozen`), unchanged; the Draft keeps its `X.tracedSpec` statements and imports this.
+`trace-check-frozen`), unchanged but for amendment A1 (below); the Draft keeps its `X.tracedSpec`
+statements and imports this.
 
 - `TraceFire tr tl E Q` (`TraceFireOpt`, `TraceFireN`; `traceFire_mono`), the events (`NodeEvOf`,
   `SendEvOf`/`MsgEvOf`, `CCEvOf`), the gates (`sendGate`, `recvGate`);
@@ -12,16 +13,21 @@ paths can state their traced case with it (the Draft imports those specs: `notes
 - (Q8 stage 1) `trOwn`, the gate on what a hook reads only when traced, and the untraced
   instances (`trCapB_none`, `fxPresT_none`, `phaseBot`).
 
-**Amended (Q13, 2026-11-09; to be re-frozen by the coordinator):** the seven laws' event premise
-`∀ e, E e → TraceEv.Ascii e` became `∀ e, E e → TraceEv.Ok (elements c.incoming).length e`
-(`TraceEv.OkBoot` for `trCap_fire_boot`; `trCap_fire_bf`, which had none, gained it), so that
-`simInv` keeps `Main`'s facts of the events (`SimEvents`, `TraceSim.lean`); new lemmas
-`nodeEvOf_ok`, `nodeEvOf_okBoot`, `ccEvOf_ok`, `ccEvOf_okBoot` (and `evtNames_inScope`) give them of
-a node or configuration-change event from its state's numbers. The Draft's traced statements on the
-capability (`TracedHooksDraft.lean`) take the same premise; no other statement here changed.
-**Open (the re-freeze's blocker):** `MsgEvOf` does not pin the traced message's `rejectHint`, which
-`TraceEv.Ok` bounds, so no `SendEvOf` event can be shown `Ok` yet (`notes/trace-validation-plan.md`,
-"Q13 (a) done").
+**Amended (Q13, 2026-11-09, amendment A1; to be re-frozen as `trace-check-frozen-a1`, pending):** the
+seven laws' event premise `∀ e, E e → TraceEv.Ascii e` became `∀ e, E e → TraceEv.Ok (elements
+c.incoming).length e` (`TraceEv.OkBoot` for `trCap_fire_boot`; `trCap_fire_bf`, which had none, gained
+it), so that `simInv` keeps `Main`'s facts of the events (`SimEvents`, `TraceSim.lean`); `MsgEvOf`
+gained `tm.rejectHint = m.rejecthint` (q13-r1's F1: Go writes the field, `TraceEv.Ok` bounds it), so
+that every field `makeTracingMessage` writes is pinned but `Vote` (`SendEvOf`: some decimal; raft's
+`Msg` has no vote, and no fact reads it). New lemmas, the premise's discharge from a state's and a
+message's numbers: `nodeEvOf_ok`/`_okBoot` (with `nodeEvOf_numsBelow`/`_confsWithin`), `ccEvOf_ok`/
+`_okBoot` (`ccEvOf_numsBelow`/`_confsWithin`), `sendEvOf_ok` (`sendEvOf_numsBelow`/`_confsWithin`,
+`sendEvt_inScope`, `recvEvt_inScope`: a send and a receive line alike, `sendGate`/`recvGate`),
+`evtNames_inScope`. `trCapB`'s configuration `c` is the voters' throughout, raft's own only once the
+node's bootstrap is over (A1's second repair, a docstring: during the bootstrap raft's grows from
+empty, and the bootstrap lines' gate takes the two apart, `trCapB_hookGate_bf`). The Draft's traced
+statements on the capability (`TracedHooksDraft.lean`) take the same premise; no other statement here
+changed.
 -/
 module
 
@@ -123,7 +129,7 @@ def msgTypeStr : MsgType → GoString
 def MsgEvOf (m : Msg) (tm : TraceMsg) : Prop :=
   tm.typ = msgTypeStr m.ty ∧ tm.term = m.term ∧ tm.frm = decStr m.src ∧ tm.to = decStr m.dst ∧
   tm.entries = W64 m.entries.length ∧ tm.logTerm = m.logterm ∧ tm.index = m.index ∧
-  tm.commit = m.commit ∧ tm.reject = m.reject
+  tm.commit = m.commit ∧ tm.reject = m.reject ∧ tm.rejectHint = m.rejecthint
 
 /-- The events `traceSendMessage(r, m)` may log for a traced message `m` (`traceEvent` with the
 message; its properties unconstrained). -/
@@ -348,6 +354,23 @@ theorem nodeEvOf_okBoot (evt id : w64) (s : NState) (c : CfgM) (e : TraceEv) (n 
     nodeEvOf_confsWithin evt id s c e _ h hn, ?_⟩
   rw [h.2.2.2.2.2.2.1]; exact hlb
 
+/-- A configuration-change event's numbers are its state's. -/
+theorem ccEvOf_numsBelow (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (K : Nat)
+    (h : CCEvOf id s c cn e) (ht : uint.nat s.term < K) (hc : uint.nat s.logst.committed < K)
+    (hl : uint.nat (plastIndex (toPState s)) < K) : e.NumsBelow K := by
+  obtain ⟨-, -, hterm, -, hcommit, -, hlog, -, hmsg, -⟩ := h
+  refine ⟨by rw [hterm]; exact ht, by rw [hcommit]; exact hc, by rw [hlog]; exact hl, ?_⟩
+  intro m hm; rw [hmsg] at hm; cases hm
+
+/-- A configuration-change event's lists are its old and new configurations' voters. -/
+theorem ccEvOf_confsWithin (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (n : Nat)
+    (h : CCEvOf id s c cn e) (hn : (elements c.incoming).length ≤ n)
+    (hn' : (elements cn.incoming).length ≤ n) : e.ConfsWithin n := by
+  obtain ⟨-, -, -, -, -, -, -, ⟨xs, ys, hxs, -, hconf⟩, -, -, ⟨ns, hns, hcc⟩, -, -⟩ := h
+  refine ⟨by rw [hconf]; simp only [List.length_map]; rw [hxs.length_eq]; exact hn, ?_⟩
+  intro c' hc'; rw [hcc] at hc'; cases hc'
+  simp only [List.length_map]; rw [hns.length_eq]; exact hn'
+
 /-- **A bootstrap `ApplyConfChange` event, as the bootstrap law takes it** (`TraceEv.OkBoot n`): its
 numbers, its log below `2^40`, its old and new configurations within `n`. -/
 theorem ccEvOf_okBoot (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (n : Nat)
@@ -356,14 +379,9 @@ theorem ccEvOf_okBoot (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (n : N
     (hlb : uint.nat (plastIndex (toPState s)) < 2 ^ 40) (hn : (elements c.incoming).length ≤ n)
     (hn' : (elements cn.incoming).length ≤ n) : e.OkBoot n := by
   have hl : uint.nat (plastIndex (toPState s)) < traceNumBound := by unfold traceNumBound; omega
-  have ha := ccEvOf_ascii id s c cn e h
-  obtain ⟨-, -, hterm, -, hcommit, -, hlog, ⟨xs, ys, hxs, -, hconf⟩, hmsg, -, ⟨ns, hns, hcc⟩, -, -⟩ := h
-  refine ⟨ha, ⟨by rw [hterm]; exact ht, by rw [hcommit]; exact hc, by rw [hlog]; exact hl, ?_⟩, ⟨?_, ?_⟩,
-    by rw [hlog]; exact hlb⟩
-  · intro m hm; rw [hmsg] at hm; cases hm
-  · rw [hconf]; simp only [List.length_map]; rw [hxs.length_eq]; exact hn
-  · intro c' hc'; rw [hcc] at hc'; cases hc'
-    simp only [List.length_map]; rw [hns.length_eq]; exact hn'
+  refine ⟨ccEvOf_ascii id s c cn e h, ccEvOf_numsBelow id s c cn e _ h ht hc hl,
+    ccEvOf_confsWithin id s c cn e n h hn hn', ?_⟩
+  rw [h.2.2.2.2.2.2.1]; exact hlb
 
 /-- **An `ApplyConfChange` event past the bootstrap, as the laws take it** (`TraceEv.Ok n`; the
 application's after the first `Ready`): in scope (`ApplyConfChange` is neither `InitState` nor
@@ -373,19 +391,79 @@ theorem ccEvOf_ok (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (n : Nat)
     (hc : uint.nat s.logst.committed < traceNumBound)
     (hl : uint.nat (plastIndex (toPState s)) < traceNumBound) (hn : (elements c.incoming).length ≤ n)
     (hn' : (elements cn.incoming).length ≤ n) : e.Ok n := by
-  have ha := ccEvOf_ascii id s c cn e h
-  obtain ⟨hname, -, hterm, -, hcommit, -, hlog, ⟨xs, ys, hxs, -, hconf⟩, hmsg, -, ⟨ns, hns, hcc⟩, -, -⟩ := h
+  have hname := h.1
+  have hmsg := h.2.2.2.2.2.2.2.2.1
   have hk : 7 < evtNames.length := (List.getElem?_eq_some_iff.1 hname).1
   obtain ⟨hk1, hk2⟩ := List.getElem?_eq_some_iff.1 hname
   have hsc := evtNames_inScope ⟨7, hk⟩ (show (7 : Nat) ≠ 0 by omega) (show (7 : Nat) ≠ 6 by omega)
   simp only [Fin.getElem_fin] at hsc
   rw [hk2] at hsc
-  refine ⟨ha, ⟨hsc.1, hsc.2, fun _ m hm => by rw [hmsg] at hm; cases hm⟩,
-    ⟨by rw [hterm]; exact ht, by rw [hcommit]; exact hc, by rw [hlog]; exact hl, ?_⟩, ⟨?_, ?_⟩⟩
-  · intro m hm; rw [hmsg] at hm; cases hm
-  · rw [hconf]; simp only [List.length_map]; rw [hxs.length_eq]; exact hn
-  · intro c' hc'; rw [hcc] at hc'; cases hc'
-    simp only [List.length_map]; rw [hns.length_eq]; exact hn'
+  exact ⟨ccEvOf_ascii id s c cn e h, ⟨hsc.1, hsc.2, fun _ m hm => by rw [hmsg] at hm; cases hm⟩,
+    ccEvOf_numsBelow id s c cn e _ h ht hc hl, ccEvOf_confsWithin id s c cn e n h hn hn'⟩
+
+/-! ### (Q13, amendment A1) A send or receive event as the laws take it -/
+
+/-- The events `traceSendMessage` logs (`sendEvt`) are in scope (neither `InitState` nor
+`ChangeConf`). -/
+theorem sendEvt_inScope (ty : MsgType) (evt : w64) (h : sendEvt ty = some evt) :
+    uint.nat evt ≠ 0 ∧ uint.nat evt ≠ 6 := by
+  cases ty <;> simp only [sendEvt, Option.some.injEq, reduceCtorEq] at h <;> subst h <;> decide
+
+/-- The events `traceReceiveMessage` logs (`recvEvt`) are in scope. -/
+theorem recvEvt_inScope (ty : MsgType) (evt : w64) (h : recvEvt ty = some evt) :
+    uint.nat evt ≠ 0 ∧ uint.nat evt ≠ 6 := by
+  cases ty <;> simp only [recvEvt, Option.some.injEq, reduceCtorEq] at h <;> subst h <;> decide
+
+/-- A send or receive event's numbers: its state's and its message's (`MsgEvOf`'s fields). -/
+theorem sendEvOf_numsBelow (evt id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceEv) (K : Nat)
+    (h : SendEvOf evt id s c m e) (ht : uint.nat s.term < K) (hc : uint.nat s.logst.committed < K)
+    (hl : uint.nat (plastIndex (toPState s)) < K) (hmt : uint.nat m.term < K)
+    (hme : m.entries.length < K) (hmlt : uint.nat m.logterm < K) (hmi : uint.nat m.index < K)
+    (hmc : uint.nat m.commit < K) (hmr : uint.nat m.rejecthint < K) : e.NumsBelow K := by
+  obtain ⟨-, -, hterm, -, hcommit, -, hlog, -, ⟨tm, hmsg, hm⟩, -⟩ := h
+  refine ⟨by rw [hterm]; exact ht, by rw [hcommit]; exact hc, by rw [hlog]; exact hl, ?_⟩
+  intro tm' htm; rw [hmsg] at htm; cases htm
+  obtain ⟨-, h1, -, -, h2, h3, h4, h5, -, h6⟩ := hm
+  refine ⟨by rw [h1]; exact hmt, ?_, by rw [h3]; exact hmlt, by rw [h4]; exact hmi,
+    by rw [h5]; exact hmc, by rw [h6]; exact hmr⟩
+  rw [h2]
+  exact Nat.lt_of_le_of_lt (by word) hme
+
+/-- A send or receive event's configuration list is its configuration's voters. -/
+theorem sendEvOf_confsWithin (evt id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceEv) (n : Nat)
+    (h : SendEvOf evt id s c m e) (hC : (elements c.incoming).length ≤ n) : e.ConfsWithin n := by
+  obtain ⟨-, -, -, -, -, -, -, ⟨xs, ys, hxs, -, hconf⟩, -, -, hpcc, -⟩ := h
+  refine ⟨by rw [hconf]; simp only [List.length_map]; rw [hxs.length_eq]; exact hC, ?_⟩
+  intro c' hc'; rw [hpcc] at hc'; cases hc'
+
+/-- **A send or receive event, as the laws take it** (`TraceEv.Ok n`, `n` at least its configuration's
+size; the event a gate's predicate allows, `sendGate`/`recvGate`, of an event `sendEvt_inScope` or
+`recvEvt_inScope` puts in scope): from its state's numbers and its message's below `traceNumBound`
+(the caller's: the state's from the time receipts, a sent message's from the state it is built of, a
+received one's from the bags). In scope also by its message's type: `msgTypeStr` names no
+`MsgSnap`. -/
+theorem sendEvOf_ok (evt id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceEv) (n : Nat)
+    (h : SendEvOf evt id s c m e) (hevt : uint.nat evt ≠ 0 ∧ uint.nat evt ≠ 6)
+    (ht : uint.nat s.term < traceNumBound) (hc : uint.nat s.logst.committed < traceNumBound)
+    (hl : uint.nat (plastIndex (toPState s)) < traceNumBound) (hmt : uint.nat m.term < traceNumBound)
+    (hme : m.entries.length < traceNumBound) (hmlt : uint.nat m.logterm < traceNumBound)
+    (hmi : uint.nat m.index < traceNumBound) (hmc : uint.nat m.commit < traceNumBound)
+    (hmr : uint.nat m.rejecthint < traceNumBound) (hn : (elements c.incoming).length ≤ n) :
+    e.Ok n := by
+  refine ⟨sendEvOf_ascii evt id s c m e h, ?_,
+    sendEvOf_numsBelow evt id s c m e _ h ht hc hl hmt hme hmlt hmi hmc hmr,
+    sendEvOf_confsWithin evt id s c m e _ h hn⟩
+  have hname := h.1
+  obtain ⟨tm, hmsg, hm⟩ := h.2.2.2.2.2.2.2.2.1
+  have hk : uint.nat evt < evtNames.length := (List.getElem?_eq_some_iff.1 hname).1
+  obtain ⟨hk1, hk2⟩ := List.getElem?_eq_some_iff.1 hname
+  have hsc := evtNames_inScope ⟨uint.nat evt, hk⟩ hevt.1 hevt.2
+  simp only [Fin.getElem_fin] at hsc
+  rw [hk2] at hsc
+  refine ⟨hsc.1, hsc.2, fun _ tm' htm => ?_⟩
+  rw [hmsg] at htm; cases htm
+  rw [hm.1]
+  cases m.ty <;> simp only [msgTypeStr] <;> decide
 
 /-- **A step-down's server** (`StepDownToFollower`, the specification's `BecomeFollowerOfTerm` at the
 server's own term). -/
@@ -752,9 +830,12 @@ theorem simFx_violated (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (hs
   exact violated_none σ ⟨h4, h2, h1, hsi.electionSafety, h3, hq, h5, hsi.committedIsDurable⟩
 
 /-- **The simulation's capability** on a hook path (Q8): `emp` in an untraced cluster; in a traced
-one, the node's share `(cs, P)` with the function's phase `Φ C cs P` (`C` the voters, raft's
+one, the node's share `(cs, P)` with the function's phase `Φ C cs P` (`C` the voters, the
 configuration `c` their permutation with no outgoing half, the node one of them: review round 1's
-F4), the node's logger and its contract, and the simulation's invariant. -/
+F4), the node's logger and its contract, and the simulation's invariant. `c` is only this pure
+clause: raft's configuration once the node's bootstrap is over, the voters' (not raft's, still growing
+from empty) during it (amendment A1: the bootstrap lines' events are of raft's configuration, their
+law's bound of the capability's, `trCapB_hookGate_bf`; `trCapB_cfg` re-keys it). -/
 def trCapB (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop := fun _ => True) :
     IProp GF :=
@@ -939,7 +1020,9 @@ abbrev trCap_fire_ready.statement : Prop :=
 /-! ## The global step of a bootstrap line (Draft statement, review round 2's A7) -/
 
 /-- **A bootstrap line's law**: before its segment is over (`booted` unset), a node's bootstrap-named
-line is one `TraceNext` steps over, the state and the share unchanged. -/
+line is one `TraceNext` steps over, the state and the share unchanged. `c` is the capability's
+configuration, the voters' (`trCapB`), not raft's: the events `E` (`InitState`, `BecomeFollower`,
+`ApplyConfChange`) are of raft's growing configuration, within the voters' (amendment A1). -/
 abbrev trCap_fire_boot.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
