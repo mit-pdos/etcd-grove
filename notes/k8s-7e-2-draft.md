@@ -75,6 +75,16 @@ from the driver; one that would surface as a premise of a closed theorem goes to
   key count below `2^63`; "finite with distinct keys" does not bound it). It also gives 7e-1's
   `len(Kvs) ≤ 2 ^ 41`. Producer: 7e-4 (the driver's workload keys).
 
+**Forms settled at Prove (first third, 2026-11-09; accepted by etcd-grove-81):** `reflect.Append`
+takes the variadic one-element slice `esl ↦*{dqe} [e]` (for `sliceV [#e]`); `ApiErrView.status st
+cs` carries the causes (the Draft's `causesOf st` cannot be a function of `st`, which holds only the
+details' address): `statusDetailsAt st cs` is `st.Details' = null ∧ cs = []`, or `st.Details' ↦□ d ∗
+d.Causes' ↦*□ cs`, so `cs` is the heap's; `leafErrTy` is stated with
+`GoSemanticsFunctions.methodSet t !! m ≠ some sig` for `Unwrap() error`, `Unwrap() []error`,
+`As(any) bool`; `RawURLEncoding_init` gives `↦□` (weaker than `↦`); `json.Marshal`'s post is `sl ↦*
+tokJson rv start` (no `.toBytes`: a `GoString` is bytes); `Value.Kind` returns `#(W64 23)`
+(`reflect.Slice`, inlined by the translation).
+
 ## 0. Summary
 
 | # | Item | Status | Producer |
