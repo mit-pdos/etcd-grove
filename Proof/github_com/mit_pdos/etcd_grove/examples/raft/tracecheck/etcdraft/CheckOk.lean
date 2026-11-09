@@ -12,16 +12,18 @@ parts:
 
 - **the lines in scope** (`Trace.LinesInScope`): outside the bootstrap, no `ChangeConf`,
   restart or snapshot (P1-P3 of `notes/trace-validation-sim.md`), a property of the trace alone;
-- **the reached states bounded** (`State.SearchOk` of every `Trace.Reach` state: the numbers far
-  from overflow, `State.Bounds`, and the messages as the actions expect them, `State.MsgsOk`: the
-  bags without duplicates, no pre-vote message, no snapshot), an invariant of the specification over
-  every action, which needs more of the trace than `Trace.Valid` (`Event.Bounded` does not bound the
-  events' configuration lists, which the configurations' sizes come from);
+- **the events' configuration lists bounded** (`Trace.ConfsBounded`: every line's `conf` list and
+  configuration change's `newconf` below `numBound`), which `Event.Bounded` does not give and
+  `NewTrace` does not check; with `Trace.Valid` and the lines in scope it bounds every state the
+  specification reaches (`Trace.Valid.reach_searchOk`, `Reach.lean`: the numbers far from overflow,
+  `State.Bounds`, the messages as the actions expect them, `State.MsgsOk`), a property of the trace
+  alone (raft's configurations have three ids);
 - **no evaluation error** (every result `CheckTraceRel` relates the trace to has none), which
   `Trace.RunRel` gives: the run layer B's simulation carries through every line is the search's
   (`Trace.RunRel.checkTraceRel_eq`, by determinism: `Trace.RunRel.noEvalError`).
 
-The rest is proved here and in `Frame.lean`: every reached state has the trace's servers and the flags
+The rest is proved here and in `Frame.lean` and `Reach.lean`: every reached state bounded
+(`Trace.Valid.reach_searchOk`), every reached state has the trace's servers and the flags
 off (`Trace.Valid.reach_frame`), a position (`Trace.Reach.l_pos`); the states `StepLine` expands are
 reached (`Trace.LineReach.reach`), so `Trace.StepLineOk` of every state of the frontier
 (`Trace.CheckTraceOk.stepLineOk`); the frontier's successors reached (`Trace.StepLineRel.reach`);
@@ -29,7 +31,7 @@ a violation's name never empty (`Trace.StepLineRel.violation_ne`); the relations
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Frame
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Reach
 
 @[expose] public section
 
@@ -41,89 +43,13 @@ namespace Etcdraft
 
 /-! ## The premise -/
 
-/-- Every line outside the bootstrap of a kind the workload logs (`Line.InScope`: no `ChangeConf`, no
-`InitState`, no `MsgSnap` sent). -/
-def Trace.LinesInScope (tr : Trace) : Prop :=
-  ∀ l, 1 ≤ l → l ≤ tr.len → tr.bootstrap.getD (l - 1) false = false → (tr.line l).InScope
-
-/-- The bounds the actions need of a state (`State.ActOk` but its flags, which every reached state has
-off: `Trace.Valid.reach_frame`): the pending bag `Bag.Ok`, the two bags' total counts below `2^63`, the
-reconfiguration count below `2^63 - 1`, and of every server: its log below `2^62 - 1`, its granted
-votes and configuration below `2^62`, its term below `2^63 - 1`, its progress in `[0, 2^62 - 1)`. -/
-def State.Bounds (st : State) : Prop :=
-  st.pendingMessages.Ok ∧
-  (((st.pendingMessages.map Prod.snd).sum + (st.messages.map Prod.snd).sum : Nat) : Int) < 2 ^ 63 ∧
-  st.reconfigCount + 1 < 2 ^ 63 ∧
-  ∀ i ∈ st.server, (st.s i).log.length + 1 < 2 ^ 62 ∧ (st.s i).votesGranted.length < 2 ^ 62 ∧
-    (st.s i).currentTerm < 2 ^ 63 - 1 ∧ (st.getConfig i).length < 2 ^ 62 ∧
-    ∀ j, 0 ≤ (st.s i).matchIndex j ∧ (st.s i).matchIndex j + 1 < 2 ^ 62
-
-theorem State.Bounds.actOk {st : State} (h1 : st.preVote = false) (h2 : st.checkQuorum = false)
-    (h : st.Bounds) : st.ActOk := ⟨h1, h2, h⟩
-
-/-- What the actions need of a reached state beyond what every reached state has
-(`Trace.Valid.reach_frame`): the bounds (`State.Bounds`) and the messages' (`State.MsgsOk`: the bag
-`Bag.Ok`, no pre-vote message or snapshot, `prevLogIndex` in `[0, 2^62 - 1)`, entries and the
-destination's log below `2^62`). -/
-def State.SearchOk (st : State) : Prop := st.Bounds ∧ st.MsgsOk
-
-/-- `CheckTrace`'s premise: the search of `tr` meets its callees' premises (the file header). Part 2
-is proof debt, not a need of the code: it goes once the reachability invariant is a lemma here. -/
+/-- `CheckTrace`'s premise: the search of `tr` meets its callees' premises (the file header): the lines
+in scope, the events' configuration lists bounded (which, with `Trace.Valid`, bound every reached state:
+`Trace.Valid.reach_searchOk`), and no evaluation error. -/
 def Trace.CheckTraceOk (tr : Trace) (invariants : Bool) : Prop :=
-  tr.LinesInScope ∧ (∀ ts, tr.Reach ts → ts.s.SearchOk) ∧
-  ∀ res, CheckTraceRel tr invariants res → res.evalError = none
+  tr.LinesInScope ∧ tr.ConfsBounded ∧ ∀ res, CheckTraceRel tr invariants res → res.evalError = none
 
 /-! ## Positions -/
-
-/-- `receive`'s successors stay at the line or step past it. -/
-theorem Trace.receive_l (tr : Trace) (ts : TState) (tss : List TState) (h : tr.receive ts = .ok tss) :
-    ∀ s ∈ tss, s.l = ts.l ∨ s.l = ts.l + 1 := by
-  unfold Trace.receive at h
-  dsimp only at h
-  split at h
-  · cases h; simp
-  · refine foldlM_except_inv (fun acc : List TState => ∀ s ∈ acc, s.l = ts.l ∨ s.l = ts.l + 1) _ _ [] tss
-      ?_ (by simp) h
-    intro acc m c _ hacc hf
-    repeat' split at hf
-    all_goals first
-      | (cases hf; exact hacc)
-      | (revert hf
-         cases hr : ts.s.receive m with
-         | error e => intro hf; simp [Bind.bind, Except.bind] at hf
-         | ok succ =>
-           intro hf
-           simp only [Bind.bind, Except.bind, Pure.pure, Except.pure, Except.ok.injEq] at hf
-           subst hf
-           intro s hs
-           rcases List.mem_append.1 hs with hs | hs
-           · exact hacc s hs
-           · obtain ⟨s2, -, rfl⟩ := List.mem_map.1 hs
-             split <;> simp)
-
-/-- `TraceNext`'s successors stay at the line or step past it. -/
-theorem Trace.next_l (tr : Trace) (f : TState) (tss : List TState) (h : tr.next f = .ok tss) :
-    ∀ s ∈ tss, s.l = f.l ∨ s.l = f.l + 1 := by
-  unfold Trace.next at h
-  split at h
-  · simp only [Pure.pure, Except.pure, Except.ok.injEq] at h; subst h; simp
-  · split at h
-    · simp only [Pure.pure, Except.pure, Except.ok.injEq] at h; subst h; simp
-    · simp only [Bind.bind, Except.bind] at h
-      cases hn : tr.nonReceive f with
-      | error e => rw [hn] at h; cases h
-      | ok nr =>
-        rw [hn] at h
-        cases hr : tr.receive f with
-        | error e => rw [hr] at h; cases h
-        | ok rv =>
-          rw [hr] at h
-          simp only [Pure.pure, Except.pure, Except.ok.injEq] at h
-          subst h
-          intro s hs
-          rcases List.mem_append.1 hs with hs | hs
-          · obtain ⟨s2, -, rfl⟩ := List.mem_map.1 hs; simp
-          · exact tr.receive_l f rv hr s hs
 
 /-- A reached state is at a line (`TraceInit`'s `l = 1`, and `l` never decreases). -/
 theorem Trace.Reach.l_pos {tr : Trace} {ts : TState} (h : tr.Reach ts) : 1 ≤ ts.l := by
@@ -151,8 +77,8 @@ theorem State.ActOk.violOk {st : State} (h : st.ActOk) : st.ViolOk := by
 /-- A reached state meets `Next`'s premises. -/
 theorem Trace.CheckTraceOk.nextOk {tr : Trace} {invariants : Bool} (hv : tr.Valid)
     (hok : tr.CheckTraceOk invariants) {f : TState} (hf : tr.Reach f) : f.NextOk tr := by
-  obtain ⟨hsc, hb, -⟩ := hok
-  obtain ⟨hbd, hmsg⟩ := hb f hf
+  obtain ⟨hsc, hcb, -⟩ := hok
+  obtain ⟨hbd, hmsg⟩ := hv.reach_searchOk hsc hcb hf
   obtain ⟨hsrv, hpv, hcq⟩ := hv.reach_frame hf
   exact ⟨hf.l_pos, hsrv, hbd.actOk hpv hcq, hmsg, fun hl hboot => hsc f.l hf.l_pos hl hboot⟩
 
@@ -160,7 +86,7 @@ theorem Trace.CheckTraceOk.nextOk {tr : Trace} {invariants : Bool} (hv : tr.Vali
 theorem Trace.CheckTraceOk.actOk {tr : Trace} {invariants : Bool} (hv : tr.Valid)
     (hok : tr.CheckTraceOk invariants) {f : TState} (hf : tr.Reach f) : f.s.ActOk := by
   obtain ⟨-, hpv, hcq⟩ := hv.reach_frame hf
-  exact (hok.2.1 f hf).1.actOk hpv hcq
+  exact (hv.reach_searchOk hok.1 hok.2.1 hf).1.actOk hpv hcq
 
 /-- A reached state's line search meets `StepLine`'s premise. -/
 theorem Trace.CheckTraceOk.stepLineOk {tr : Trace} {invariants : Bool} (hv : tr.Valid)
@@ -452,11 +378,11 @@ theorem Trace.CheckLineRel.step_violation (tr : Trace) (invariants : Bool) (ts :
         { branched := acc.2.branched || i2.branched, violation := i2.violation })) :=
   .step ts rest acc succ i2 _ hv hs (Trace.CheckLineRel.skip_all tr invariants _ hv2 rest)
 
-/-- How `Main` builds `CheckTrace`'s premise: from the lines in scope, the reached states' bounds, and
-layer B's run through every line. -/
+/-- How `Main` builds `CheckTrace`'s premise: from the lines in scope, the events' configuration lists
+bounded, and layer B's run through every line. -/
 theorem Trace.RunRel.checkTraceOk {tr : Trace} {ts : TState} (hsc : tr.LinesInScope)
-    (hb : ∀ ts, tr.Reach ts → ts.s.SearchOk) (h : tr.RunRel tr.len ts) : tr.CheckTraceOk true :=
-  ⟨hsc, hb, h.noEvalError⟩
+    (hcb : tr.ConfsBounded) (h : tr.RunRel tr.len ts) : tr.CheckTraceOk true :=
+  ⟨hsc, hcb, h.noEvalError⟩
 
 end Etcdraft
 end EtcdGrove

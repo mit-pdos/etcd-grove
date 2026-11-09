@@ -14,13 +14,15 @@ The trace is read, not written (`traceRO`, which carries what `NewTrace` establi
 relies on that, review round 1 of layer C, F1).
 Its premise `Trace.CheckTraceOk` (`CheckOk.lean`; Q10 of the plan, 2026-11-09): the search meets its
 callees' premises, which are stated where the Lean transcription evaluates, on the workload's kinds of
-lines and on states far from overflow: the lines outside the bootstrap in scope (no `ChangeConf`,
-restart or snapshot), every state reachable from `TraceInit` (`Trace.Reach`) bounded with its
-messages as the actions expect them (bags without duplicates, no pre-vote message, no snapshot:
-`State.SearchOk`), and no evaluation error in the search (where TLC fails, the Go panics with an
-`EvalError` and recovers, which its callees' triples do not describe). So the spec says nothing of the
-traces outside that class. `Main` is to discharge it of the trace raft produces (`Trace.RunRel.checkTraceOk`; part 2, the
-reachability invariant, is open).
+lines and on states far from overflow. It has three parts, each a property of the trace: the lines
+outside the bootstrap in scope (no `ChangeConf`, restart or snapshot); the events' configuration lists
+(each line's `conf` list, a configuration change's `newconf`) shorter than `numBound`, which
+`Event.Bounded` does not bound and `NewTrace` does not check (with `Trace.Valid` and the lines in scope,
+every state reachable from `TraceInit` is then bounded: `Trace.Valid.reach_searchOk`); and no evaluation
+error in the search (where TLC fails, the Go panics with an `EvalError` and recovers, which its callees'
+triples do not describe). So the spec says nothing of the traces outside that class. `Main` is to
+discharge it of the trace raft produces (`Trace.RunRel.checkTraceOk`: raft's configurations have three
+ids).
 -/
 module
 
