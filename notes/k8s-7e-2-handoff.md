@@ -25,14 +25,34 @@ Prove" paragraphs) and `questions.md` (the 7e-2 sections). Scratch and logs:
 - ETooLarge (#20): `respIs`'s `.tooLarge` case and `validateMinimumResourceVersion`'s post are
   `tooLargeErrIs`; its proof and `store.Get`'s follow.
 
-## Blocked (decisions asked of etcd-grove-81, 2026-11-09)
-- Item 2 (`interpretListError`, `listReadError`): `err == rpctypes.ErrCompacted` and
-  `errors.Is(err, rpctypes.ErrFutureRev)` need the two globals' dynamic type (`EtcdError`), which
-  `ErrCompacted_init`/`ErrFutureRev_init` and `rpctypesInit` do not state (their docstrings say it):
-  a trust-base change. `errors.Is` also needs `statusErrOk err` (the client branch of `unkErr`).
-- Item 5 (`isStore` #15, R1): `utf8Valid` of `gr` in `isStore` needs a `New.spec` premise; the
-  aggregator factory needs the two factory specs' posts strengthened (`True` today); neither is in
-  the Draft's §9 list of changed statements. R1 waits for it (its call sites discharge from `isStore`).
+## D1-D3 (decided by etcd-grove-81, 2026-11-09; `questions.md`), in progress (third session)
+Written, NOT yet built (the `rpctypesInit` change rebuilds most of the tree: build only under
+`systemd-run --scope -q -p MemoryMax=64G lake build ...`, never through `etc/lean-check.py` on a file
+whose imports are stale, whose `lake setup-file` runs uncapped):
+- D1: `etc/gen-init.py` (rpctypes `ErrFutureRev`/`ErrCompacted` posts gain `⌜∃ x : EtcdError,
+  GoInterface.ok e = interface.mkOk EtcdError.ty #x⌝`, pattern `%T@`), `Init.lean` regenerated;
+  `rpctypesInit` (`cache/v3/Base.lean`) the same in its first two conjuncts; the Go test
+  `examples/k8s7e2attack/rpctypes_test.go` (`TestRpctypesErrTypes`, passes at the pin). `ListDefs`:
+  `kClientErr` (the client branch of `unkErr`, `kClientErr_unkErr`), `readErrIs` uses it.
+- D2: `AggrDefs.lean` (`freshAggr`, `aggrFactoryOk`); the two factory specs return them (proofs done,
+  checked); `Store.lean`: `rseNilR`, `storePoolN`, `storeListOk`, `isStore` ends with `storeListOk sp
+  c`; the 13 store proofs' `icases` patterns end `#Hcon, -⟩` (`#Hcon, #Hlst⟩` where R1 needs it);
+  `New.spec` gains `utf8Valid gr.Group' → utf8Valid gr.Resource' → threadBound GF ≤ 2 ^ 30 - 1 →`
+  (the last for the reader pool's `init_RWMutex_threadPool`: report it to 81 as part of D2); `New`'s
+  proof splits the store struct, makes the pool, persists the other fields; its end is a `sorry`
+  (build `storeListOk`: `Hpool`, `listErrAggrFactory`, `aggrFactoryOk` from `Hfa` or from `wp_dla`,
+  `hu1 hu2`), and the corrupt factory proof now takes `wp_default` (regenerate `etcd3/Link.lean`).
+- D3: `NewResourceExpired.spec` post adds `st.Details' = null` (proof, daemonset `Server__watch` fixed).
+- R1: `RecordEtcdRequest.spec`/`RecordDecodeError.spec` take the `utf8Valid` premises; call sites
+  (`Create`, `deleteOnce`, `updateOnce`, `GetCurrentResourceVersion`, `getCurrentState`) pass
+  `(by decide)` (or `hverb`) and `Hutf.1 Hutf.2` from `storeListOk`; `getCurrentState.spec` takes
+  `utf8Valid verb` (its callers pass `(by decide)`).
+- `interpretListError` (spec: precondition `kClientErr`, a form to report) and `store.listReadError`
+  (spec: premise `∃ k, prepareKeyM rp rp false = some k ∧ (pathPrefix ++ k).length ≤ opKeyMax`, which
+  `GetCurrentResourceVersion` needs; the Draft's `≠ none` does not suffice; GetList must derive it
+  from its own key premise or take it): specs written, proofs started (`sorry` after the
+  prologue). Plan: `err == ErrCompacted` reduces with `clientErr`'s `AsTypeTyped` (an `EtcdError`
+  value if of that type); `errors.Is` by `errors.IsStatusErr` with the `EtcdError` target.
 
 ## Left of the second third, in order (original list)
 1. `rangeStreamOff` (in `ListDefs.lean`, store part: `∃ g, globalAddr

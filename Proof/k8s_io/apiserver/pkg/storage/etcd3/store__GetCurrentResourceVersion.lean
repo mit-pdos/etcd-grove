@@ -50,7 +50,8 @@ theorem store.GetCurrentResourceVersion.wp_proof
   wp_start as ⟨#Hst, #Hctx, #Hce, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
   · iPkgInit
   ihave #Pti : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
@@ -85,7 +86,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
   · iframe #
     iexact Hau
   (try wp_auto)
-  wp_apply wp_RecordEtcdRequest $$ []
+  wp_apply (wp_RecordEtcdRequest go!"getCurrentResourceVersion" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
   icases Hget with (⟨%Hgerr, %σ, #HQ, %Hσ, -⟩ | ⟨%Hgerr, -, -⟩)
   · -- the client read the state σ
     subst Hgerr

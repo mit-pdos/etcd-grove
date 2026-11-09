@@ -57,7 +57,8 @@ theorem store.deleteOnce.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
@@ -103,7 +104,7 @@ theorem store.deleteOnce.wp_proof
   (try wp_auto)
   wp_apply wp_txnError as %te -
   (try wp_auto)
-  wp_apply wp_RecordEtcdRequest
+  wp_apply (wp_RecordEtcdRequest go!"delete" c.gr _ _ (by decide) Hutf.1 Hutf.2)
   (try wp_auto)
   icases Hdel with (⟨%Hde, %σ, ⟨Hres, #Hfs, %HAσ⟩, %Hσ, Hkvo⟩ | ⟨%Hde, %Hdce, #Hdse, #Hdcl⟩)
   · subst Hde

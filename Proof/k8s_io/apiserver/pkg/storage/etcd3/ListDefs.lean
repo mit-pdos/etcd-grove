@@ -264,12 +264,28 @@ instance listErr_persistent (c : StoreCfg GF Obj) (err : GoInterface) :
     Persistent (listErr c err) := by
   unfold listErr; infer_instance
 
-/-- **A failed read's error** (Draft §3.5): the client's error (`unkErr`), and, by its description
-(`errDesc`, D29), a future revision only if the state `Q` fired at is below `rev`
+/-- **An error of the kubernetes client** (`unkErr`'s first branch; D1 of the second third): not
+`nil`, a leaf grpc's `status` accepts, an `rpctypes.EtcdError` value if of that type. -/
+def kClientErr (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+    go_etcd_io.etcd.cache.v3.errCellOk err)
+
+instance kClientErr_persistent (err : GoInterface) : Persistent (kClientErr (GF := GF) err) := by
+  unfold kClientErr; infer_instance
+
+open Iris.ProofMode in
+theorem kClientErr_unkErr (c : StoreCfg GF Obj) (err : GoInterface) :
+    kClientErr (GF := GF) err ⊢ unkErr c err := by
+  unfold kClientErr
+  iintro ⟨%h, #Hs, #Hc⟩
+  iapply (unkErr_client c err h.1 h.2) $$ Hc Hs
+
+/-- **A failed read's error** (Draft §3.5): the client's error (`kClientErr`, so `unkErr`; D1), and,
+by its description (`errDesc`, D29), a future revision only if the state `Q` fired at is below `rev`
 (`rangeErrSound`'s future half). -/
 def readErrIs (c : StoreCfg GF Obj) (rev : w64) (Q : w64 → KVState → IProp GF)
     (err : GoInterface) : IProp GF :=
-  iprop(unkErr c err ∗
+  iprop(kClientErr err ∗
     □ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
       ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗ ⌜σ.rev < sint.nat rev⌝))
 

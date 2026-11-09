@@ -93,7 +93,7 @@ tokJson rv start` (no `.toBytes`: a `GoString` is bytes); `Value.Kind` returns `
 require the driver's package initialization; `labels.Set.{Get,Has}`, `fields.Set.Get` keep the
 non-`nil` premise, the `nil` maps handled in the selector proofs.
 
-**Forms proposed at Prove (second third, part 2, 2026-11-09; for etcd-grove-81's review):**
+**Forms settled at Prove (second third, part 2, 2026-11-09; accepted by etcd-grove-81, with D1-D3 below):**
 (1) `listContractOk'`'s `…` spots are filled one clause per reflect call: `GetItemsPtr` (as the
 Draft); `MakeSlice(rt, 0, m)` giving `L.itemsAt s' []`; `MakeSlice(rt, n, m)` for `n = |os|` giving
 `w`, `s'` and a one-shot wand for `Copy(w, v)` that moves `L.itemsAt s os` to `L.itemsAt s' os` and
@@ -107,6 +107,12 @@ sint.Z s.cap⌝` (`ownSliceCap_wf` for the driver): `growSlice`'s `MakeSlice(rt,
 form; producing it needs `NewResourceExpired.spec`'s post to add `st.Details' = null`, true of its
 literal); (4) `validateMinimumResourceVersion.spec`'s post is `if … then tooLargeErrIs err else
 ⌜err = nil⌝` (an Iris `if`, as `tooLargeErrIs` is spatial-persistent).
+**D1-D3 (decided by etcd-grove-81, 2026-11-09):** D1: `ErrCompacted_init`, `ErrFutureRev_init` and
+`rpctypesInit` state the globals' dynamic type, `∃ x : EtcdError, e = mkOk EtcdError.ty #x` (a
+trust-base restatement, attacked by a Go test under `examples/`; the TCB baseline changes at
+linking), and `readErrIs` takes the client branch of `unkErr`; D2: `New.spec` gains `utf8Valid
+gr.Group'`, `utf8Valid gr.Resource'`, the two aggregator-factory specs return `aggrFactoryOk`, and
+`isStore` gains its conjuncts (#15); D3: `NewResourceExpired.spec`'s post adds `st.Details' = null`.
 
 ## 0. Summary
 

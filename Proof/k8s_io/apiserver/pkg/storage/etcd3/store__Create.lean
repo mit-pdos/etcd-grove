@@ -71,7 +71,8 @@ theorem store.Create.wp_proof
   wp_start as ⟨#Hst, #Hctx, #Hce, Hobj, Hout, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
   · iPkgInit
   ihave #Pat : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» $$ []
@@ -189,7 +190,7 @@ theorem store.Create.wp_proof
       (try wp_auto)
       wp_apply wp_txnError as %te -
       (try wp_auto)
-      wp_apply wp_RecordEtcdRequest
+      wp_apply (wp_RecordEtcdRequest go!"create" c.gr _ _ (by decide) Hutf.1 Hutf.2)
       (try wp_auto)
       icases Hput with (⟨%Hpe, %σ, ⟨HΨ, %Hwfσ, -⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse, #Hpcl⟩)
       · -- the transaction ran at σ

@@ -43,7 +43,7 @@ theorem store.getCurrentState.wp_proof
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.getCurrentState.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd verb key v p ign R hk hkl hR
+  intro _ _ Obj _ sp c ci cd verb key v p ign R hk hkl hR hverb
   wp_start as ⟨#Hst, #Hctx, #Hce, %Hv⟩
   iapply wp_fupd
   (try wp_auto)
@@ -62,7 +62,8 @@ theorem store.getCurrentState.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
   · iPkgInit
   ihave #Pti : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
@@ -88,7 +89,7 @@ theorem store.getCurrentState.wp_proof
   · iframe #
     iexact Hmk
   (try wp_auto)
-  wp_apply wp_RecordEtcdRequest
+  wp_apply (wp_RecordEtcdRequest verb c.gr _ _ hverb Hutf.1 Hutf.2)
   icases Hget with (⟨%Hgerr, %σ, #HR, %Hσ, #Hkv⟩ | ⟨%Hgerr, %Hgce, #Hgse, #Hgcl⟩)
   · subst Hgerr
     obtain ⟨hrevσ, hb, hvals⟩ := Hσ

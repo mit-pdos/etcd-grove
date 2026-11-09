@@ -48,7 +48,7 @@ theorem store.validateMinimumResourceVersion.wp_proof
     rw [decide_eq_false hm]
     iunfold isStore at Hs
     icases Hs with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-      #Hcl, #Hone, #Hregs, #Hcon⟩
+      #Hcl, #Hone, #Hregs, #Hcon, -⟩
     iunfold contractOk at Hcon
     icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero, #Hmeta⟩
     iunfold versionerOk at Hver
