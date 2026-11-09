@@ -244,3 +244,87 @@ the package's initialization).
 
 `mvccBootCfg_intro`: `0 ≤ CompactionBatchLimit`. `V3compactor.revGetter_intro` is the law your store
 proves for `Rev` (with a `threadTok`, at any time, also after `Close`).
+
+
+## from 3f
+
+Batch 3f (the watchable store and the watch stream: `ApiWatch.lean`, `WatchInternal.lean`, the
+`watchableStore*`/`watchStream*`/`watcher*` files, `New`, `newWatchableStore`) builds on 3e's
+`Model.lean`, `ApiStorage.lean`, `Api.lean` and `NewStore.lean` as they stood on 2026-11-09. Per the
+split above, 3f states the canonical specs at `*watchableStore` (`watchableStore.<M>.spec := ∀ s,
+KV.<M>.contract PW #s` for every `KV` method) and at `*watchableStoreTxnWrite` (`Txn.<M>.contract
+PT`), `New`/`newWatchableStore` (3e's `NewStore.spec` statement with the handle `watchableAt (mkOk PW
+#s) γ`, which implies `isMvcc`: `watchableAt_isMvcc`), and the stream's methods. What 3f's sketches
+need of 3e, in plain terms:
+
+1. **Two reader slots parked for a watchable store's loops.** `syncWatchersLoop` and
+   `syncVictimsLoop` read under `s.mu`'s and `revMu`'s read sides and through the storage
+   (`rangeEvents`'s `ReadTx`) for the store's whole life, outside any client call: `NewStore` must
+   keep two of the store's reader slots out of the client's `mvccReaders γ mvccTokN` (parked, for a
+   plain store, with its open token, as the frozen API did), and a watchable store's `mvccClosed γ`
+   must include them back (`Close` takes them after `wg.Wait()`), so that `mvccClosed_rest` holds as
+   stated for both stores. Used by: `New.spec`, `newWatchableStore.spec`, `watchableStore.Close.spec`
+   (`oneshot-close.md`).
+2. **`mvccReaders` carries a slot of the watchable store's `s.mu`** (its read side): the stream's
+   `Watch` (`revMu`), `Rev` (`revMu`), `RequestProgress`/`RequestProgressAll` (`s.mu`'s read side)
+   take one reader token and give it back (3e's tokens, not a thread token, for consistency with the
+   store's own reads). Used by: `watchStream.{Watch,Rev,RequestProgress,RequestProgressAll}.spec`.
+3. **The change records `End` builds events from.** `watchableStoreTxnWrite.End` calls `Changes()`
+   and turns each `*mvccpb.KeyValue` into an event: a put's (its `CreateRevision` non-zero, its
+   `ModRevision` the transaction's revision `σ.rev + 1`) as is; a delete's (`CreateRevision` `0`,
+   only the key set) with `ModRevision` **written** to the revision. Then the records are shared
+   read-only by every watcher's event copy (`keyValueOwn kv DFrac.discard`). `Txn.Changes.contract`
+   gives only their count: the inner transaction's `Changes` (3e's `storeTxnWrite.Changes`, the
+   internal spec) must give the slice's records, each `keyValueOwn` of the `KeyValueM` of the
+   transaction's event (`evOf (σ.rev + 1)` of `pend`'s, `ApiWatch.lean`; a delete's with
+   `ModRevision` `0` and write access to it), so that the end's events are `evOf` of `pend`.
+   ```go
+   changes := tw.Changes(); rev := tw.Rev() + 1
+   for i, change := range changes { evs[i] = &mvccpb.Event{Kv: changes[i]}
+     if change.CreateRevision == 0 { evs[i].Type = DELETE; evs[i].Kv.ModRevision = rev } ... }
+   ```
+   Used by: `watchableStoreTxnWrite.End.spec`.
+4. **The notified history's lower bound `mvccLb γ h` is 3f's** (`ApiWatch.lean`, persistent: the
+   store's notified history extends `h`), with two laws against your `mvccState`: `mvccLb_le`
+   (`mvccState γ σ ∗ mvccLb γ h ⊢ ⌜histLe h σ.notified⌝`) and `mvccLb_get` (`mvccState γ σ ⊢ |==>
+   mvccState γ σ ∗ mvccLb γ σ.notified`). Its realization is one more ghost resource in the store's
+   invariant beside your half of `mvccState` (a monotone, prefix-ordered authority of `σ.notified`):
+   it grows at a commit's first step (`notify`) and at `Restore`, whose update's premise (`σ.kv.revs
+   <+: σ'.kv.revs`, compaction not lowered) is exactly what keeps it monotone (under the watchable
+   store's `s.mu` nothing is pending, so `σ.kv = σ.notified`). Please keep `Restore`'s premise as
+   it is; no change to your statements otherwise. Used by: every watch fact (`wsRespOk`), the
+   stream's `Rev`, `Watch`'s registration revision.
+5. **The storage's image keeps whole revisions above the compaction.** `rangeEvents` reads the `Key`
+   bucket between two revisions (`UnsafeRange(Key, rev(min), rev(max), 0)`) and turns each entry into
+   an event: 3f's sketch needs that the image of a history (`mvccImage D h u`) holds, in revision
+   order, every event of every revision above `h.compacted` and, at or below it, each key's last
+   change at or below it (a tombstone kept for a delete), and nothing else; with `revEnc`/`kvEnc`
+   (`WatchInternal.lean`: the revision key's encoding and tombstone mark, the key-value's protobuf
+   encoding) the meaning of an entry. A law of `ApiStorage.lean` over `kbRead`/`rangeOk` at an image
+   would serve. Used by: `rangeEvents.spec`, `kvsToEvents.spec` (hence `syncWatchers.spec`).
+6. **`NewStore.spec`'s statement** is copied into `New.spec` and `newWatchableStore.spec` (with the
+   handle `watchableAt`, and the loops' shares for the latter). If you change it, say so here (or
+   factor it as an `abbrev` over the constructor value and a handle, so that both are instances).
+   The lessor's deleter is set twice (`NewStore`'s, then `newWatchableStore`'s, to the watchable
+   store's `Write`); 3f assumes `RestoreLs` keeps the deleter field as given (`{ls with rd := rd}`
+   restored is `{(RestoreLs ...) with rd := rd}`), so the post's form stays with the final deleter.
+7. `ReportEventReceived` (2b's item 6) is yours (`metrics.go`).
+
+## from 3f, to 2b (the watch stream's statements, for item 1-4 of "from 2b")
+
+What `ApiWatch.lean` gives, against 2b's request: the stream's facts (`wsRespOk`, through
+`wsCons_recv`: a plain receive, a `select` case, and the drain's non-blocking receive whose empty case
+bounds the stamp `wsSentLb` a `Watch` gave), the registration (`wsReg ι id W`: range, filters, start,
+position, stamp), cancellation (`wsCanceled ι id c`), ids fresh and not `-1` (`wsCtl ι n`: every id so
+far below `n`), the store's revision (`Rev`, `mvccLb`), `Close` (`wsOpen` spent, `wsClosed`). Three
+departures from the request, for 2b to check: (a) the calls that read take **one of 3e's reader tokens**
+(`mvccReaders γ 1`), not a thread token: the run must hold reader tokens of the member's store (2d's
+`srvWatchable` realization hands them out); (b) **the events and progress facts are exact under the
+compaction condition** (`exactFrom h (p + 1)`: every revision from the watcher's next one up to the
+store's compaction revision changes each key at most once; the user's mvcc API round 11 and
+`watch-compaction.md`): 1b's `watchStep` claims exactness unconditionally, which a compaction at a
+revision that put and deleted a key (`issues/etcd-txn-check-intervals-sibling.md`) breaks
+(`nonissues/etcd-mvcc-watch-compact-rev-subrev-lost.md`); (c) `Watch`'s id argument is `0` (a scope
+restriction: 2b's `watchReqOwn_unfold` gives `WatchId = 0`). The filters' contract is `filterOk f d`
+over `evOwn` (the event struct owned: `filterNoPut.spec`'s field-level triple implies it); the events
+are `evOwn` (struct owned, `Kv` read-only at `DFrac.discard`, `PrevKv` `nil`).
