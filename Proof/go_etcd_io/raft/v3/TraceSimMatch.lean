@@ -702,6 +702,62 @@ theorem nonReceive_requestVote (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i j 
   simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
     Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure, bind, Except.bind]
 
+/-- **A vote request's line's step**: a candidate's `MsgVote` (its last index and term, to a voter it
+has no vote of), the specification's `RequestVote(i, j)`; the candidate's server unchanged. -/
+theorem simRun_requestVote (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM) (m : Msg)
+    (hev : SendEvOf (W64 13) id s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hdC : m.dst ∈ C) (hsrv : σ.server = confAbs C) (hpv : σ.preVote = false)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs id))) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .candidate) (hty : m.ty = .vote) (hsrc : m.src = id) (hdst : m.dst ≠ id)
+    (hw : (toPState s).votes !! m.dst = none) (hterm : m.term = s.term)
+    (hidx : m.index = (plogLast (toPState s).base (toPState s).log).index')
+    (hlt : m.logterm = (plogLast (toPState s).base (toPState s).log).term')
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63)
+    (blt : uint.Z m.logterm < 2 ^ 63)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty]))).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty]))) := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendRequestVoteRequest" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"SendRequestVoteRequest" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have htyp : tm.typ = msgTypeStr .vote := by rw [hm.1, hty]
+  have hrv := requestVote_send σ C C.length (toPState s) id m hR (by simp [toPState, hrole, proleRole]) hs hty
+    hsrc hdst hdC hw (by rw [hterm]; rfl) hidx hlt
+  apply simRun_msg C L σ _ hrun hL e id s.vote m.src m.dst xs tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+    (by rw [htyp]; rfl) (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (msgLine e id s.vote m.src m.dst xs) ts.l (by omega)
+  apply nonReceive_requestVote _ ts (idAbs m.src) (idAbs m.dst) _ (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  · rw [hline]; simp [msgLine, evConv, hname']
+  · rw [hline]; rfl
+  · rw [hline]; rfl
+  · rw [hline]; simp [msgLine, evConv, hmsg]
+  · exact confAbs_nodup C
+  · simp only [linesTrace]; rw [mem_confAbs, hsrc]; exact hC
+  · simp only [linesTrace]; rw [mem_confAbs]; exact hdC
+  · rw [hts]; exact hpv
+  · rw [hts, hsrc]; exact hrv
+  · rw [hline, hsrc]
+    have := stateMatches_node C s (σ.s (idAbs id)) e id xs hR hs (by rw [hrole]; decide) hterm' hcommit' hrl
+      hlog (hxs.trans hin) bt bc bl σ rfl (by rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC)
+    unfold Etcdraft.Line.stateMatches at this ⊢
+    simpa [Etcdraft.State.send, msgLine, nodeLine] using this
+  · rw [hline, hts]
+    apply newPending_send
+    have := isRVReq_vote C C.length e id s.vote xs m tm hmsg hm hty (by rw [hterm]; exact bt) bi blt
+    rw [hsrc] at this ⊢
+    simp [this]
+
 end TraceSim
 
 end EtcdGrove
