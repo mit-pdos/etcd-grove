@@ -7,6 +7,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreVocab
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStoreSess
 
 @[expose] public section
 
@@ -36,26 +37,25 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 * the API's client parts at the restored state (`newClient γ.st.api L' r.crev ½ st`); the watchable
   store's lock holds the notified log `L'` (inside `isWatchableStore`, as the inner store's `logQ`);
 * the certificate map at the caller's `M`, the hook's invariant `hookP` (no `f`), and, from
-  `NewStore`, the lessor's owner part at `pendItems L' []`, `RC`, and `resumeBackM`.
+  `NewStore`, the lessor's owner part at `pendItems L' []` and `resumeBackM` (the registration
+  fixed inside, R1's restatement: the pre is `NewStore.specR`'s).
 The watchers' structures start empty as today (`synced`/`unsynced` empty at any `L'`: Go's
 `newWatchableStore` makes them empty and only `restore()` has run). -/
 abbrev mvcc.newWatchableStore.specR : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig)
     (d : mvcc.KBReal) (γb γl : GName) (P : IProp GF) (rd0 : GoFunc)
     (γi : mvcc.IdxNames) (γok γtag : GName) (M : GMap w64 mvcc.Log) (Perm : Int → IProp GF)
-    (R : mvcc.Log) (r : mvcc.CmpRecs) (RC : IProp GF) (Ls : List w64)
+    (R : mvcc.Log) (r : mvcc.CmpRecs) (Ls : List w64)
     (hk : Option val) (Pre Q Post X Y : IProp GF) (dq : DFrac),
   {{ ⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.restoreLogOk R⌝ ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        ∃ Dep : IProp GF, mvcc.isKeyBackendGR b (mvcc.bucketView γ) (mvcc.storeRT γ)
-          (mvcc.storeWT γ) (mvcc.kbRecs γ.kb γ.bucket r) r (mvcc.storePutOk γ) (mvcc.delKey γ)
-          (mvcc.storeW s γ) (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) P (mvcc.hookFn γ)
-          (mvcc.storeReq γ) (mvcc.storeRb γ) (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb)
-          (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNilAt γ.kb)) ∗
+        mvcc.storeSessT b s γ P) ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+        mvcc.restoreFixM d γ -∗ mvcc.storeBackendTR b s γ P r) ∗
       (∀ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        mvcc.keyCleanReadR b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ RC)
-          (mvcc.kbRecs γ.kb γ.bucket r) r) ∗ RC ∗
+        mvcc.keyCleanReadR b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d)
+          (mvcc.kbRecs γ.kb γ.bucket r) r) ∗ mvcc.restoreRegM d ∗
       mvcc.restoreImageM d γb ([[], []] ++ R) r ∗ mvcc.restoreRcptM d ([[], []] ++ R) ∗
       mvcc.kbNoDelOff (some d) ∗ mvcc.kbRegRight (some d) ∗
       mvcc.kbWT (some d) ∗ mvcc.kbWT (some d) ∗ mvcc.kbSRM (some d) ∗
@@ -86,11 +86,11 @@ abbrev mvcc.newWatchableStore.specR : Prop :=
       typedPointsto (mvcc.wsWgAddr s) (zero_val sync.WaitGroup) (DFrac.own 1) ∗
       mvcc.writerReg st γ.st ∗
       mvcc.api.newClient γ.st.api ([[], []] ++ R) r.crev (1 : Qp).half st ∗
-      lease.leaseOwn γl Ls (mvcc.pendItems ([[], []] ++ R) []) ∗ RC ∗
+      lease.leaseOwn γl Ls (mvcc.pendItems ([[], []] ++ R) []) ∗
       mvcc.resumeBackM d r hk dq Post Y ∗ £ 1 }}
 
 /-- **Today's `newWatchableStore.spec` as an instance**: as `NewStore.spec_of_specR`, not exact, for
-the same reasons (the real backend only; the clean view and read with `RC`; the lessor's part lent;
+the same reasons (the real backend only; the clean view and read lent the unfixed registration, the contract at the witness `True`; the lessor's part lent;
 the image's tracked values); the post exactly today's off (`storeCloserM_off`, `crevRightM_off`),
 on with the compaction right at `-1` in place of `storeCloser ∗ crevRightM` (`NewApi` makes that
 right at once). Stated as the corollary the callers would use; its proof is `h` at `R = []`,
@@ -99,14 +99,14 @@ theorem mvcc.newWatchableStore.spec_of_specR
     (h : mvcc.newWatchableStore.specR (GF := GF) (hG := hG))
     [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig)
     (d : mvcc.KBReal) (γb γl : GName) (P : IProp GF) (rd0 : GoFunc)
-    (γi : mvcc.IdxNames) (γok γtag : GName) (Perm : Int → IProp GF) (RC : IProp GF)
+    (γi : mvcc.IdxNames) (γok γtag : GName) (Perm : Int → IProp GF)
     (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit') :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        mvcc.storeBackend b s γ P) ∗
+        mvcc.storeBackendT b s γ P) ∗
       (∀ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        mvcc.keyCleanRead b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ RC)
-          (mvcc.kbNoCmpF γ.kb γ.bucket)) ∗ RC ∗
+        mvcc.keyCleanRead b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d)
+          (mvcc.kbNoCmpF γ.kb γ.bucket)) ∗ mvcc.restoreRegM d ∗
       mvcc.restoreImageM d γb [[], []] mvcc.CmpRecs.empty ∗
       mvcc.kbNoDelOff (some d) ∗ mvcc.kbRegRight (some d) ∗ mvcc.kbWT (some d) ∗
       mvcc.kbWT (some d) ∗ mvcc.kbSRM (some d) ∗
@@ -131,7 +131,7 @@ theorem mvcc.newWatchableStore.spec_of_specR
       mvcc.crevPermIs γ.st Perm ∗
       typedPointsto (mvcc.wsWgAddr s) (zero_val sync.WaitGroup) (DFrac.own 1) ∗
       mvcc.writerReg st γ.st ∗ mvcc.api.newClient γ.st.api [[], []] (-1) (1 : Qp).half st ∗
-      lease.leaseOwn γl [] ∅ ∗ RC ∗ £ 1 }} := by
+      lease.leaseOwn γl [] ∅ ∗ £ 1 }} := by
   sorry
 
 end spec

@@ -2,14 +2,16 @@
 **DRAFT (B3, mvccfull's F1): the internal `New` on a backend that already holds data**, and the
 glue to the API's candidate `api.New.specR` (`ApiNewRestoring.lean`). Candidate restatement of
 `mvcc.New.spec` (`New.lean`), over `NewStore.specR`'s premises (`NewStoreR.lean`). Scratch: not
-imported, not linked, not proved (`sorry`). Also R1's bridge lemma
-(`mvcc.NewStore.cleanRead_of_image`, `sorry`: Probe's target). The internal statement is NOT to
-freeze before R1's lemma is proved (`NewStoreR.lean`'s header).
+imported, not linked, not proved (`sorry`). R1 is settled by restatement (`NewStoreR.lean`'s
+header, 2026-11-09): the registration is fixed inside `NewStore` after `restore()`'s clean read, so no
+bridge lemma over a fixed registration is needed (R1's former target, `cleanRead_of_image`, is
+removed; `NewCleanRead.lean` is superseded).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreVocab
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStoreSess
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WsCloserR
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.NewApi
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiNewRestoring
@@ -39,25 +41,23 @@ the right to close by the mode at the restored revision (`wsCloser s st γ.st �
 `wsCloserM s st γ.st r.crev`: on, `wsCloserR`, the inner store's restorable compaction right, with
 the resumed job if any; off, `wsCloser`), the API's client parts at `L'` and `r.crev`, the map at
 `M`, `hookP` (no `f`), and `newWatchableStore`'s additions (the lessor's owner part at
-`pendItems L' []`, `RC`, `resumeBackM`). The loops (`syncWatchersLoop`, `syncVictimsLoop`) start as
+`pendItems L' []`, `resumeBackM`). The loops (`syncWatchersLoop`, `syncVictimsLoop`) start as
 today: with no watcher they do nothing of the log. -/
 abbrev mvcc.New.specR : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig)
     (d : mvcc.KBReal) (γb γl : GName) (P : IProp GF) (rd0 : GoFunc)
     (γi : mvcc.IdxNames) (γok γtag : GName) (M : GMap w64 mvcc.Log) (Perm : Int → IProp GF)
-    (R : mvcc.Log) (r : mvcc.CmpRecs) (RC : IProp GF) (Ls : List w64)
+    (R : mvcc.Log) (r : mvcc.CmpRecs) (Ls : List w64)
     (hk : Option val) (Pre Q Post X Y : IProp GF) (dq : DFrac),
   {{ ⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.restoreLogOk R⌝ ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        ∃ Dep : IProp GF, mvcc.isKeyBackendGR b (mvcc.bucketView γ) (mvcc.storeRT γ)
-          (mvcc.storeWT γ) (mvcc.kbRecs γ.kb γ.bucket r) r (mvcc.storePutOk γ) (mvcc.delKey γ)
-          (mvcc.storeW s γ) (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) P (mvcc.hookFn γ)
-          (mvcc.storeReq γ) (mvcc.storeRb γ) (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb)
-          (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNilAt γ.kb)) ∗
+        mvcc.storeSessT b s γ P) ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
+        mvcc.restoreFixM d γ -∗ mvcc.storeBackendTR b s γ P r) ∗
       (∀ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        mvcc.keyCleanReadR b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ RC)
-          (mvcc.kbRecs γ.kb γ.bucket r) r) ∗ RC ∗
+        mvcc.keyCleanReadR b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d)
+          (mvcc.kbRecs γ.kb γ.bucket r) r) ∗ mvcc.restoreRegM d ∗
       mvcc.restoreImageM d γb ([[], []] ++ R) r ∗ mvcc.restoreRcptM d ([[], []] ++ R) ∗
       mvcc.kbNoDelOff (some d) ∗ mvcc.kbRegRight (some d) ∗
       mvcc.kbWT (some d) ∗ mvcc.kbWT (some d) ∗ mvcc.kbSRM (some d) ∗
@@ -87,24 +87,24 @@ abbrev mvcc.New.specR : Prop :=
         mvcc.crevPermIs γ.st Perm ∗
         mvcc.writerReg st γ.st ∗
         mvcc.api.newClient γ.st.api ([[], []] ++ R) r.crev (1 : Qp).half st ∗
-        lease.leaseOwn γl Ls (mvcc.pendItems ([[], []] ++ R) []) ∗ RC ∗
+        lease.leaseOwn γl Ls (mvcc.pendItems ([[], []] ++ R) []) ∗
         mvcc.resumeBackM d r hk dq Post Y ∗ £ 1 }}
 
 /-- **Today's `New.spec` as an instance**: as `NewStore.spec_of_specR`, not exact (the real backend
-only; the clean view and read with `RC`; the lessor's part lent; the image's tracked values); the
+only; the clean view and read lent the unfixed registration, the contract at the witness `True`; the lessor's part lent; the image's tracked values); the
 post exactly today's off (`wsCloserM_off`, `crevRightM_off`), on with `wsCloserR … (-1)` in place of
 `wsCloser ∗ crevRightM`, which `NewApi` makes at once (`compactRightR_of_closer`). -/
 theorem mvcc.New.spec_of_specR (h : mvcc.New.specR (GF := GF) (hG := hG))
     [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig)
     (d : mvcc.KBReal) (γb γl : GName) (P : IProp GF) (rd0 : GoFunc)
-    (γi : mvcc.IdxNames) (γok γtag : GName) (Perm : Int → IProp GF) (RC : IProp GF)
+    (γi : mvcc.IdxNames) (γok γtag : GName) (Perm : Int → IProp GF)
     (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit') :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        mvcc.storeBackend b s γ P) ∗
+        mvcc.storeBackendT b s γ P) ∗
       (∀ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        mvcc.keyCleanRead b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ RC)
-          (mvcc.kbNoCmpF γ.kb γ.bucket)) ∗ RC ∗
+        mvcc.keyCleanRead b (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ mvcc.restoreRegM d)
+          (mvcc.kbNoCmpF γ.kb γ.bucket)) ∗ mvcc.restoreRegM d ∗
       mvcc.restoreImageM d γb [[], []] mvcc.CmpRecs.empty ∗
       mvcc.kbNoDelOff (some d) ∗ mvcc.kbRegRight (some d) ∗ mvcc.kbWT (some d) ∗
       mvcc.kbWT (some d) ∗ mvcc.kbSRM (some d) ∗
@@ -128,7 +128,7 @@ theorem mvcc.New.spec_of_specR (h : mvcc.New.specR (GF := GF) (hG := hG))
         mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd (some d)) ∗
         mvcc.crevPermIs γ.st Perm ∗
         mvcc.writerReg st γ.st ∗ mvcc.api.newClient γ.st.api [[], []] (-1) (1 : Qp).half st ∗
-        lease.leaseOwn γl [] ∅ ∗ RC ∗ £ 1 }} := by
+        lease.leaseOwn γl [] ∅ ∗ £ 1 }} := by
   sorry
 
 end spec
@@ -143,43 +143,6 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 variable [backend_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **R1's bridge lemma** (review round 1's F2.1; to prove in Probe, `sorry` until then): the
-records' clean read of a compacting real backend (`cm` on) **after** the store's deletable keys are
-fixed (`storeDlReg d.γB γi`, which `NewStore`'s batch session needs before `restore()`), lent with a
-reader's token the client's half of the deleted entries at none (`backend.dlsOwn d.γB ∅`, the part of
-`restoreImageM`'s `kbVals … ∅` that pins "nothing deleted since the open"), in place of
-`keyCleanRead_of_backendC`'s unfixed `dlInit` (consumed by the fix). Its premises are what the glue
-holds when it calls `NewStore` (`mvccStorageFor` opened: `isBackend`, `keySized`, `bridgeParams`,
-`recsSign r` from the image; the registration fixed at step 2). Off (`cm` false) nothing new is
-needed: `keyCleanRead_of_backend` with `dlNoDel` (`kbNoDelOff`), `r = empty`.
-
-Why it should hold: the clean read's argument (`bridge_rt_cleanR`, `rt_lockedR`) uses `dlInit`'s flag
-at `false` only to know that the read buffer and the committed data have no deleted safe-range
-entry the view lacks; with the registration fixed, a delete is possible in principle, but every
-delete updates the deleted entries' ghost (`γ.dls`, both halves: `dlsOwn`'s other half is the batch
-lock's), so the client's half at `∅`, lent to the read, pins it at none for the read's duration.
-If this fails, the fallback is R1's other branch (`notes/mvccfull-proof-plan.md`, B3's risk R1). -/
-theorem mvcc.NewStore.cleanRead_of_image
-    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
-    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
-    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
-    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
-    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
-    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = true) (Pk : IProp GF)
-    (γb : GName) (γi : mvcc.IdxNames) (r : mvcc.CmpRecs) (hpos : mvcc.recsSign r) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
-      mvcc.storeDlReg d.γB γi ⊢
-      ∀ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
-        mvcc.keyCleanReadR
-          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-            #d.be) (mvcc.bucketViewC γ) iprop(mvcc.storeRT γ ∗ backend.dlsOwn d.γB ∅)
-          (mvcc.kbRecs γ.kb γ.bucket r) r := by
-  sorry
-
 /-- **The API's candidate from the internal one** (the bridge `Restore`'s API proof uses). Outline,
 in the order of `NewApi.lean`'s `New.wp_proof`, with `RestoreApi.lean`'s bridge in place of
 `imageOk_start`:
@@ -190,18 +153,18 @@ in the order of `NewApi.lean`'s `New.wp_proof`, with `RestoreApi.lean`'s bridge 
    (`restoreLog_ch`, the `IdxWf` from `LogB`/`LogWf'`), `recsSign r`, the receipt `⧖ (logCh σ.log)`
    (→ `restoreRcptM bk σ.log`, mode on). `restore_of_storage` is `private` and quantifies over
    `γ.withPhys p` for a given `γ`; its body is what is reused, at `∀ γ` with `γ.idx = γi`.
-2. The index's names `γi` (`idxFresh_alloc`) first, then the registration fixed at them
-   (`storeDlReg_fix bk.γB γi`, consuming `dlInit`), as `NewApi` today; the contract at the records
-   (`storeBackendTR_of_backendC … γi r hsign`, needing `fkV … true`, from `fkV_of_fkCl` with
-   `fkWfD_of_keyImageM`) gives the first conjunct (`Dep := True`).
+2. The index's names `γi` (`idxFresh_alloc`). The registration stays unfixed (`dlInit`, which is
+   `restoreRegM bk` on). The session contract comes from `storeSessT_of_backendC`
+   (`NewStoreSessReal.lean`: `isKeyBackendG_of_backendC` at `bkDel`, no registration). The contract
+   at the records behind the fix comes from `storeBackendTR_of_backendC … γi r hsign` under
+   `restoreFixM bk γ = storeDlReg bk.γB γ.idx` (on, `γ.idx = γi`). It needs `fkV … true`, from
+   `fkV_of_fkCl` with `fkWfD_of_keyImageM`.
 3. The image `restoreImageM bk γb σ.log r` from `restoreImageM_of_openOn` (`bView` and `fkCl`).
-4. The clean read: NOT `keyCleanRead_of_backendC` (it lends `dlInit`, consumed in 2): R1's bridge
-   lemma `mvcc.NewStore.cleanRead_of_image` above, over the fixed registration, lent
-   `backend.dlsOwn bk.γB ∅`, which `restoreImageM`'s `kbVals … ∅` carries. So `RC` cannot be both
-   lent to the read and inside the whole `restoreImageM` the pre also takes (review round 1's
-   F2.1): the internal `NewStore.specR` is restated once the lemma is proved (`NewStoreR.lean`'s
-   header, "R1"). (`RC := dlInit` with step 2 postponed is impossible: `NewStore`'s batch session
-   needs the contract.)
+4. The clean read is `keyCleanRead_of_backendC`, lent `storeRT γ ∗ dlInit bk.γB`, which is
+   `restoreRegM bk` on. `NewStore` fixes the registration itself once `restore()` gives the token
+   back (`storeSess_fix`). (Until 2026-11-09 this step needed R1's bridge lemma over a registration
+   fixed at step 2. The Probe found that `NewStore`'s batch session needs no registration:
+   `NewStoreSess.lean`.)
 5. The certificate map: `ghost_map_alloc_empty`, then `ghost_map_insert_persist 0 []` before the
    call (`M = {0 ↦ []}`, the third disjunct; the API's `certFree` is that element).
 6. The permit: `Perm := fun _ => True` (both disjuncts' right side); the lessor: `leaseOwn γl Ls ∅`
