@@ -81,3 +81,32 @@ Used by: `NewAuthStore.spec`, `authStore.Recover.spec`, and every admin and chec
 tx := as.be.BatchTx(); tx.Lock(); user := tx.UnsafeGetUser(r.Name)   // auth/store.go:433
 tx := as.be.ReadTx(); tx.RLock()                                     // lockedReadTx
 ```
+
+## from 4a
+
+4a's vocabulary (`Spec/go_etcd_io/etcd/server/v3/storage/backend/Api.lean`, namespace `Backend`) for
+the bundles of 4a's req "from 4b": parts are footprints of cells (`Cell.bkt b`, `.key b k`, `.buf
+b`); `beCur γ F C` the batch view, `beVis γ F V` the published view (or `beNoVis γ F`: nobody reads
+it through read transactions), `beSess γ q F S` the lock held; `beHist` the committed images
+(durable); `bucketOk bv bi` a `Bucket` value's identity. Your `txRd`/`txRange`/`txWr` at `R V := ∃ …,
+beSess … ∗ beCur γ G C ∗ ⌜V matches C on S⌝` (batch) and `R V := beRd γ rt G V' ∗ …` (read) are what
+4a would prove, with differences in your rows that etcd's backend does not meet:
+
+1. **`txWr`'s `UnsafePut` needs the entry bound** `k.length + v.length ≤ Bbolt.bboltEntryMax` (4c's:
+   a larger value bbolt accepts but cannot commit or read back, `issues/bbolt-max-value-size-unusable.md`).
+   4a's `batchTxBuffered.UnsafePut.spec` takes it (and, in a safe-range bucket, `Sess.fresh`: none
+   of yours).
+2. **`txRd`'s `UnsafeForEach` on a read transaction is not in key order**: `baseReadTx.UnsafeForEach`
+   (`read_tx.go:52-73`) visits bbolt's entries the read buffer does not shadow, then the buffer's:
+   two sorted runs (`Backend.rdOrder`), each entry once; in key order only on the batch transaction
+   (`btOrder`). Your users collect into sets or maps (alarms, members, users), so "each entry once,
+   in some order" should serve.
+3. **`bucketOk`**: please give `Schema.bucketAt b bv ⊢ Backend.bucketOk bv ⟨b.name, b.id, b.safe⟩`
+   (with ids distinct across buckets: `Backend.bucketOk_id`, which the read buffer, keyed by id,
+   needs).
+4. **`applyHook be Pre Q`** is 4a's `batchTxBuffered.LockInsideApply.spec` with `beHook γ dq f ∗
+   hookRun Pk f Pre Q` (`Backend.hookRun`); `Commit`/`ForceCommit` take `Backend.beReq γ Pk X Y`.
+5. **`ReadTx()` read without `RLock` under the batch lock** (your item 3): `Backend.beSess_rd`.
+6. **`Meta`'s existence** is shared: whoever first creates it (bootstrap) freezes it
+   (`beCur_freeze` gives `beMade γ "meta"`); `UnsafeCreateBucket(Meta)` is then a no-op for every
+   user (`batchTxBuffered.UnsafeCreateBucket.spec`'s `none` case).

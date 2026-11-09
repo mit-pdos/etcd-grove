@@ -2,7 +2,7 @@
 ## `Interface.PendingCount()` (`shared.go`, `array.go`, `hashmap.go`)
 
 **Users.** tx.go:360 (stats).
-**Proof sketch.** the bundle's triple: the dynamic type is a `*array` or a `*hashMap` (`flOwn`'s realization), whose method (or `shared`'s, promoted) is proved against the realization's invariant; the counts are sums of lengths (an `int`: the bound).
+**Proof sketch.** the interface's contract (`Interface.<M>.contract`), proved at each dynamic type (`array.<M>.spec`, `hashMap.<M>.spec`: the method, or `shared`'s promoted one, against `flOwn`'s realization); the interface call is then the instance at `flCall` by `flOwn_dyn`; the counts are sums of lengths (an `int`: the bound).
 **Changes.** from `specs-ref`'s `Interface__PendingCount.lean`: over `FLState`; the bound `flMaxIds` (a named constant) in place of `WF`'s `2^63`.
 **Margin.** none: the post is what the code computes.
 -/
@@ -27,12 +27,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- `f.PendingCount()`: the number of pending pages. -/
-def Interface.PendingCount.spec : Prop :=
-  ∀ (fl : GoInterface) (F : FLState),
+/-- The contract of `PendingCount` at a freelist `fl` whose method is the expression `f` (the bundle's triple; each concrete spec is its instance). `f.PendingCount()`: the number of pending pages. -/
+def Interface.PendingCount.contract (fl : GoInterface) (f : Expr) : Prop :=
+  ∀ (F : FLState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flOwn fl F ∗ ⌜F.count < flMaxIds⌝ }}
-    (App (flCall fl go!"PendingCount") (Val #()))
+    (App f (Val #()))
   {{ RET #(W64 (F.pending.domList.length : Int)); flOwn fl F }}
+
+/-- `f.PendingCount()`: the number of pending pages. Through the interface (`flCall`): proved from `array.PendingCount.spec`, `hashMap.PendingCount.spec` and `flOwn_dyn`/`flReaders_dyn` (Perennial's `method_interface_ok` steps the call to the dynamic type's method). -/
+def Interface.PendingCount.spec : Prop := ∀ fl, Interface.PendingCount.contract (GF := GF) fl (flCall fl go!"PendingCount")
 
 end spec
 

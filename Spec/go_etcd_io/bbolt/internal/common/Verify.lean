@@ -1,7 +1,7 @@
 /-
 ## `Verify(f)` (`internal/common/verify.go`)
 
-**Users.** bbolt's `tx.Commit` (`Check` under verification), freelist `Free`, `mergeSpans`, hashmap `FreeCount`: an optional self-check run when `BBOLT_VERIFY` asks for it.
+**Users.** bucket.go:889 (`Bucket.free`'s check), bbolt's `tx.Commit` (`Check` under verification), freelist `Free`, `mergeSpans`, hashmap `FreeCount`: an optional self-check run when `BBOLT_VERIFY` asks for it. Snippet `ReqVerify`.
 **Proof sketch.** `IsVerificationEnabled` reads `os.Getenv` and `strings.ToLower` (trusted: `req/os.md`, `req/strings.md`): either answer is possible, so both branches are proved: `f`'s WP, or nothing.
 **Changes.** from `specs-ref`'s file of the same name (unchanged).
 **Margin.** none: the post is what the code computes.

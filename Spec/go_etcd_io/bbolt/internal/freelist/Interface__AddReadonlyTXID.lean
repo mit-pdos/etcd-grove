@@ -2,7 +2,7 @@
 ## `Interface.AddReadonlyTXID(tid)` (`shared.go`)
 
 **Users.** db.go:896 (`beginTx`, under `metalock`, while a writer may use the freelist). Snippet `ReqReleaseSafe`.
-**Proof sketch.** the bundle's triple: the dynamic type is a `*array` or a `*hashMap` (`flOwn`'s realization), whose method (or `shared`'s, promoted) is proved against the realization's invariant; an `append` to `readonlyTXIDs` (`flReaders`' field only).
+**Proof sketch.** the interface's contract (`Interface.<M>.contract`), proved at each dynamic type (`array.<M>.spec`, `hashMap.<M>.spec`: the method, or `shared`'s promoted one, against `flOwn`'s realization); the interface call is then the instance at `flCall` by `flOwn_dyn`; an `append` to `readonlyTXIDs` (`flReaders`' field only).
 **Changes.** new: the readers are their own resource (`flReaders`), separate from `flOwn`, so that `beginTx` needs no writer access (the old `flRoOwn`).
 **Margin.** none: the post is what the code computes.
 -/
@@ -27,12 +27,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- `f.AddReadonlyTXID(tid)`: `tid` is one more reader. -/
-def Interface.AddReadonlyTXID.spec : Prop :=
-  ∀ (fl : GoInterface) (R : List Txid) (tid : Txid),
+/-- The contract of `AddReadonlyTXID` at a freelist `fl` whose method is the expression `f` (the bundle's triple; each concrete spec is its instance). `f.AddReadonlyTXID(tid)`: `tid` is one more reader. -/
+def Interface.AddReadonlyTXID.contract (fl : GoInterface) (f : Expr) : Prop :=
+  ∀ (R : List Txid) (tid : Txid),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flReaders fl R }}
-    (App (flCall fl go!"AddReadonlyTXID") (Val #tid))
+    (App f (Val #tid))
   {{ RET #(); flReaders fl (R ++ [tid]) }}
+
+/-- `f.AddReadonlyTXID(tid)`: `tid` is one more reader. Through the interface (`flCall`): proved from `array.AddReadonlyTXID.spec`, `hashMap.AddReadonlyTXID.spec` and `flOwn_dyn`/`flReaders_dyn` (Perennial's `method_interface_ok` steps the call to the dynamic type's method). -/
+def Interface.AddReadonlyTXID.spec : Prop := ∀ fl, Interface.AddReadonlyTXID.contract (GF := GF) fl (flCall fl go!"AddReadonlyTXID")
 
 end spec
 

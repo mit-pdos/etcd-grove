@@ -27,11 +27,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- `NewArrayFreelist()`: a new, empty freelist as an interface value: no free, pending or allocated page, no reader. -/
+/-- `NewArrayFreelist()`: a new, empty freelist, as an interface value of dynamic type `*array`: no free, pending or allocated page, no reader. -/
 def NewArrayFreelist.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist }}
     (App (Val (@! go_etcd_io.bbolt.internal.freelist.NewArrayFreelist)) (Val #()))
-  {{ (fl : GoInterface), RET #fl; flOwn fl FLState.empty ∗ flReaders fl [] }}
+  {{ (l : Loc), RET #(arrayIface l);
+      flOwn (arrayIface l) FLState.empty ∗
+      flReaders (arrayIface l) [] }}
 
 end spec
 

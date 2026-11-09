@@ -1,7 +1,7 @@
 /-
 ## `Pages.Less(i, j)` (`internal/common/page.go`)
 
-**Users.** tx.go:535 (`Tx.write`'s sort of its dirty pages by id).
+**Users.** tx.go:535 (`Tx.write`'s sort of its dirty pages by id). Snippet `ReqPageSortWrite`.
 **Proof sketch.** two loads of the pointers, two header loads (`Page.Id`'s view).
 **Changes.** new.
 **Margin.** none: the post is what the code computes.

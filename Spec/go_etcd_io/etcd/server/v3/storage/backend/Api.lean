@@ -100,7 +100,7 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
 
 `isBackend_persistent`, `beOpen_fractional`, `beCur_split`, `beCur_excl`, `beCur_agree`,
 `beVis_split`, `beVis_agree`, `beVis_none`, `beVis_timeless`, `beVis_drop`, `beNoVis_persistent`,
-`beNoVis_mono`, `beNoVis_excl`, `beSess_excl`, `beSess_widen`, `beSess_cur`, `beSess_vis`,
+`beNoVis_mono`, `beNoVis_excl`, `beSess_excl`, `beSess_widen`, `beSess_cur`, `beSess_vis`, `beSess_rd`,
 `beCurIs_cur`, `beCurIs_vis`, `beCurIs_flush`, `beHist_timeless`,
 `beHist_mem`, `beHist_final`, `beCommitted_persistent`, `beFinal_persistent`, `beFinal_cur`,
 `beRdToks_split`, `beReaderN_ge`, `beHook_fractional`, `beHook_agree`, `beHook_persistent`, `beDel_excl`,
@@ -547,6 +547,13 @@ does not publish is unchanged. -/
 def beSess_vis.spec : Prop := ∀ γ q F S G V,
   beSess (GF := GF) γ q F S ∗ beVis γ G V ⊢
     ⌜Image.agreeV G S.base V ∧ ∀ c, G c → ¬ F c → Image.agree (fun c' => c' = c) S.cur S.base⌝
+
+/-- **The shared read transaction read without `RLock` under the batch lock** (the post-lock hook's
+`UnsafeConsistentIndex`, `cindex.go:107`): the lock excludes the read buffer's writers (the
+write-back, the commit), so the session lends a read of the visible image, with no slot. -/
+def beSess_rd.spec : Prop := ∀ γ q F S G V,
+  beSess (GF := GF) γ q F S ∗ beVis γ G V ⊢
+    beRd γ (rtLoc γ) G V ∗ (beRd γ (rtLoc γ) G V -∗ beSess γ q F S ∗ beVis γ G V)
 
 def beCurIs_cur.spec : Prop := ∀ γ I G C,
   beCurIs (GF := GF) γ I ∗ beCur γ G C ⊢ ⌜Image.agree G I C⌝

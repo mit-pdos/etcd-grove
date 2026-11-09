@@ -50,9 +50,11 @@ own definitions only.
 ## Requirement snippets (`examples/specreq/bboltinternal/common.go`, `//go:build ignore`)
 
 `ReqNodeRoundTrip` (a node written to a page reads back), `ReqMetaRoundTrip` (a meta written to a
-page validates and reads back; a meta page's fields), `ReqInlineBucket` (a bucket value's header and
-inline page), `ReqElementKeys` (a cursor's element reads), `ReqFreelistPageRoundTrip` (a freelist
-page written by `freelist.Write` reads back through `FreelistPageIds`), `ReqMergePgids`.
+page validates and reads back; a meta page's fields; `init`'s metas), `ReqWriteToMeta`
+(`Tx.WriteTo`'s metas built in place), `ReqInlineBucket` (a bucket value's header and inline page),
+`ReqElementKeys` (a cursor's element reads), `ReqPageSortWrite` (`Tx.write`'s sort of its dirty
+pages and its chunked bytes), `ReqVerify` (an optional check), `ReqMergePgids`. A freelist page
+written by `freelist.Write` reading back is the freelist's `ReqWriteReload`.
 -/
 module
 
@@ -407,11 +409,15 @@ def writeNode_read.spec : Prop := ∀ (bs : List w8) (ms : List InodeM),
 /-- **A freelist page reads back**: `freelist.Write`'s page, read by `FreelistPageIds`. -/
 def freelistPage_read.spec : Prop := ∀ (bs : List w8) (ids : List Pgid),
   ids.length < 2 ^ 63 →
-  pageHeaderSize + 8 * (ids.length + 1) ≤ bs.length →
+  pageHeaderSize + 8 * (ids.length + if 0xFFFF ≤ ids.length then 1 else 0) ≤ bs.length →
   freelistReadable (freelistPage bs ids) ∧ freelistIdsOf (freelistPage bs ids) = ids ∧
   (hdrOf (freelistPage bs ids)).id' = (hdrOf bs).id' ∧
   (hdrOf (freelistPage bs ids)).overflow' = (hdrOf bs).overflow' ∧
   (freelistPage bs ids).length = bs.length
+
+/-- The header and the meta lie in a page's first 512 bytes (one aligned sector: 4c's crash
+argument). -/
+def meta_in_sector.spec : Prop := pageHeaderSize + metaSize ≤ 512
 
 /-- A meta stored in a page reads back, the header unchanged. -/
 def meta_withMeta.spec : Prop := ∀ (bs : List w8) (m : Meta),
@@ -480,11 +486,12 @@ def elemsSlice_index.spec : Prop := ∀ (p : Loc) (n i : Nat), 0 < p.addr → i 
   sliceIndexRef leafPageElement (i : Int) (elemsSlice p n) = elemLoc p i ∧
   sliceIndexRef branchPageElement (i : Int) (elemsSlice p n) = elemLoc p i
 
-/-- **`DefaultPageSize`** (`os.Getpagesize()`, read-only): the OS page size. -/
+/-- **`DefaultPageSize`** (`os.Getpagesize()`, read-only): 4096, the OS page size of the target the
+models assume (linux/amd64, where `syscall.Getpagesize` is the constant 4096; trusted, as the old
+development did: `req/os.md`). -/
 def init.spec : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ⊢
-    ∃ n : w64, globalAddr go_etcd_io.bbolt.internal.common.DefaultPageSize ↦□ n ∗
-      ⌜4096 ≤ sint.Z n ∧ sint.Z n ≤ 65536⌝
+    globalAddr go_etcd_io.bbolt.internal.common.DefaultPageSize ↦□ (W64 4096)
 
 end res_laws
 

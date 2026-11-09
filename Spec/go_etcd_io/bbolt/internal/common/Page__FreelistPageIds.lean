@@ -1,7 +1,7 @@
 /-
 ## `(*Page).FreelistPageIds()` (`internal/common/page.go`)
 
-**Users.** freelist `Read` (and `Reload`, through it): the ids are copied out (`copy(idsCopy, ids)`), through `freelistIds_view`. Snippet `ReqFreelistPageRoundTrip`.
+**Users.** freelist `Read` (and `Reload`, through it): the ids are copied out (`copy(idsCopy, ids)`), through `freelistIds_view`. Snippet `ReqWriteReload` (freelist's).
 **Proof sketch.** `FreelistPageCount`, `UnsafeIndex`, `unsafe.Slice`: inside the page's bytes by `freelistReadable`.
 **Changes.** from `specs-ref`'s file of the same name: over the page's bytes; the ids through `freelistIds_view` instead of a slice of a typed tail.
 **Margin.** none: the post is what the code computes.

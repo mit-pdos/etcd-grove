@@ -349,3 +349,50 @@ on success and `ErrCompacted`; the write updates carry no receipt; `rangeOk` tak
    contract claims `UnsafeRange(Meta, "consistent_index")` returns nothing, which etcd's backend does
    not satisfy; mvcc only asks its own keys: restrict the row to `k ∈ {sched, fin}` (as the schema's
    `Scope.has`).
+
+## from 4a
+
+4a proves mvcc's storage contract of etcd's backend through `Backend.keyBackend_intro.spec`
+(`Spec/go_etcd_io/etcd/server/v3/storage/backend/MvccStorage.lean`; realization in its header). Two
+rows of the contract (`ApiStorage.lean`, as of 2026-11-09) are **not true of etcd's backend**; the
+law is blocked until they change:
+
+1. **F1: `Unlock` publishes in two steps.** `batchTxBuffered.Unlock` writes the session's puts back
+   into the read buffer (`batch_tx.go:330-333`) and only then, if the session deleted, commits
+   (`:355-357`): between the two a read transaction (`ConcurrentReadTx`, or `ReadTx().RLock()` from
+   the apply thread's `checkPrevCompactionCompleted`) sees the session's puts and **not its
+   deletes**. mvcc's compaction's last batch does both (`kvstore_compaction.go:58-71`: the deletes,
+   then `UnsafeSetFinishedCompact`), so a reader can see `finishedCompactRev = c` with the batch's
+   deleted `key` entries still there. One update (`kbData B D0 → kbData B D`) cannot be fired at a
+   single point. 4a's `batchTxBuffered.Unlock.spec` fires two: the visible image to `Sess.mid` (the
+   puts over the session's base) at the write-back, then to `Sess.fin` (the batch's) at the commit.
+   Options for the row: (a) take two updates, `kbData B D0 → kbData B mid` then `→ kbData B D`, with
+   `mid` the session's puts over its base (`kbLocked` would carry the base and the puts); (b) keep one
+   update, fired at the write-back, and let a read transaction's `key` range return, besides `D`'s
+   entries, entries the session deleted under the safe-range lock (a persistent "deleted" mark minted
+   by the delete row; mvcc's reads by revision never ask for a compacted revision; `restore` and
+   `hashByRev` would need the marks). (a) is exact; (b) keeps the client's statements smaller.
+2. **F3: a `key` put must also be above the keys the session deleted.** The put row's premise is
+   "above every key of `D`" (the batch's data); a key deleted earlier in the same session (`D` no
+   longer has it) is still in bbolt's read transaction and maybe the read buffer until the commit,
+   so a put below it interleaves the read buffer's keys with bbolt's (`rtRange`'s `cs ++ bs`
+   unsorted; a non-blocking defragmentation's catch-up skips it). 4a's premise (`Sess.fresh`) is
+   "above every key the session began with or sees". mvcc never puts and deletes `key` in one session
+   (a write transaction only puts, a compaction batch only deletes), so either premise is met by its
+   code; the row needs `kbLocked` to know the session's starting keys, or a "no `key` delete in this
+   session" flag.
+3. **The lent lock**: `kbHeld B` is realized as the session (`∃ q F S, Backend.beSess γ q F S`); the
+   lessor's lease delete under it writes an untracked cell (`beNoVis`), which leaves mvcc's cells
+   alone (`beSess_cur` with mvcc's `beCur` in `kbLocked`).
+4. **The bucket values** (4b's item 2 above): 4a's law takes `Backend.bucketOk bv bi` of the values
+   it is handed; whichever form 3e chooses for `bucketVal`, 4a's law follows.
+5. **The snapshot's image** (item 3 of "from 3e"): 4a's `backend.Snapshot.spec` gives `beCommitted γ
+   I` (the image is in the client's commit history), not an observation fired under the batch lock:
+   between the snapshot's `Commit()` and its bbolt `Begin(false)` another commit can land (a
+   compaction batch commits on its own), so no point under the lock pins the image. The server's
+   invariant attaches the meaning at each commit (its `commitOk` step, under the batch lock, where
+   the visible data is the batch's and `mvccImage_obs` can be fired).
+6. **Readers after the close**: the backend's `Close` takes every visible tracker (mvcc's `kbData`,
+   through `storageRest`), not the reader slots: in-flight readers finish before bbolt closes
+   (`mmaplock`), and a lock-only `RLock` (`kbBare`) is fine at any time, so `kbBareSlot` is just a
+   slot (`beRdToks γ 1`).

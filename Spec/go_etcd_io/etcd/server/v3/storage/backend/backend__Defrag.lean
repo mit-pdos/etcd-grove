@@ -13,7 +13,8 @@ the new file, both the last commit's image. Non-blocking: `safeRangeDeleteMu.Loc
 safe-range deleters: deletes from a safe-range bucket hold its read lock, `beDelHeld`), a commit, a
 bulk copy from a read transaction, then the same stop-the-world catch-up (safe-range buckets
 appended above the last copied key: their puts are above every key, the put rows' premise; others
-copied whole) and swap. Errors before the swap restore the transactions and are returned; failures
+copied whole; the registry `safeRangeBucketNames` holds only safe-range buckets: the schema's
+initialization registers exactly those, `schema/bucket.go:64`, 4b's init law) and swap. Errors before the swap restore the transactions and are returned; failures
 after it are `lg.Fatal` (never returns); a panic inside is turned into `lg.Fatal`.
 
 **Changes.** New (no old spec): the defragmentation is in scope.

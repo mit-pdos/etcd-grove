@@ -1,7 +1,7 @@
 /-
 ## `UnsafeByteSlice(base, offset, i, j)` (`internal/common/unsafe.go`)
 
-**Users.** tx.go:549 (`Tx.write`: a page's bytes in `MaxAllocSize - 1` chunks for `WriteAt`), tx.go:588 (`Tx.write`: a page-pool buffer to zero); element `Key`/`Value`, `WriteInodeToPage`.
+**Users.** tx.go:549 (`Tx.write`: a page's bytes in `MaxAllocSize - 1` chunks for `WriteAt`), tx.go:588 (`Tx.write`: a page-pool buffer to zero); element `Key`/`Value`, `WriteInodeToPage`. Snippet `ReqPageSortWrite`.
 **Proof sketch.** `unsafe.Add`, `unsafe.Slice`, a full slice expression.
 **Changes.** from `specs-ref`'s file of the same name: premises moved into the precondition. A client turns the result into the bytes it covers with Perennial's `ownSlice_byte_view`.
 **Margin.** none: the post is what the code computes.

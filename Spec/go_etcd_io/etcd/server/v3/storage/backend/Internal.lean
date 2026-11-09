@@ -107,6 +107,10 @@ opaque btStopped (γ : BeNames) : IProp GF := iprop(True)
 /-- `readTx.mu` held for writing, with the read buffer and the read transaction (exclusive). -/
 opaque rtHeld (γ : BeNames) : IProp GF := iprop(True)
 
+/-- (provisional, 4c's cursor) `c` is a bbolt cursor of a bucket whose entries are `L`
+(exclusive). -/
+opaque curOver (c : Loc) (L : GoString → Option GoString) : IProp GF := iprop(True)
+
 /-- The run loop's right to run (`stopc` not yet closed; exclusive). -/
 opaque beRun (γ : BeNames) : IProp GF := iprop(True)
 

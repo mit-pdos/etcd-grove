@@ -36,13 +36,26 @@ before the oldest reader is (`mustRelease`).
   under `metalock`, where `beginTx` and `removeTx` add and remove a reader concurrently with the
   writer's `Allocate`/`Free`, which touch the other fields only).
 
-The methods are called through the interface (`flCall fl m`: Go's `MethodResolve` on the
-interface value, then the dynamic type's method); their specs are the bundle's triples
-(`Interface__<M>.lean`), one per method for both implementations, proved once from the concrete
-methods (`array.*`, `hashMap.*`, and `shared`'s promoted ones, whose own specs stay internal).
+Each method's contract is written once, at a receiver: `Interface.<M>.contract fl f` (in
+`Interface__<M>.lean`), the triple of calling the expression `f` with the freelist `fl`. The
+canonical specs are per (concrete type, method) (PRINCIPLES): `array.<M>.spec` and
+`hashMap.<M>.spec` are the contract at `arrayIface l` / `hashMapIface l` with the type's method
+(its own, or `shared`'s promoted through the embedded `*shared`). bbolt calls only through the
+interface value `db.freelist` (`flCall fl m`: Go's `MethodResolve` on the interface, then the
+dynamic type's method), so the bundle a client uses is `Interface.<M>.spec`, the contract at
+`flCall fl m`, proved once from the two concrete specs, `flOwn_dyn`/`flReaders_dyn` (the dynamic
+type is one of the two) and Perennial's `method_interface_ok`. The constructors return
+`arrayIface l` / `hashMapIface l`.
 
-Laws: `flOwn_wf` (the model's invariant), `flOwn_timeless`, `flReaders_timeless`,
-`flReaders_perm`.
+Laws: `flOwn_wf` (the model's invariant), `flOwn_dyn`, `flReaders_dyn`, `flOwn_timeless`,
+`flReaders_timeless`, `flReaders_perm`.
+
+## The hash map's empty `Init`
+
+`hashMap.Init` returns before reindexing when it is given no ids (`hashmap.go:30`), so its cache
+would keep the previous free ids. `Init`, `Read`, `Reload` and `NoSyncReload` take the premise
+"the new free pages are not empty, or no page was free" (`nonissues/bbolt-hashmap-init-empty-stale-cache.md`);
+bbolt meets it because a reload's ids include the in-memory free pages (`req/go_etcd_io_bbolt_internal_freelist.md`, "from 4d").
 
 ## Bounds
 
@@ -57,7 +70,7 @@ the high-water mark, at most `MaxMapSize / pageSize = 2^36`.
 `ReqReleaseSafe` (a page pending while a reader that sees it is open stays unallocatable; once it is
 gone, it is released), `ReqRollback` (a rolled-back transaction's frees are undone),
 `ReqWriteReload` (the page `Write` leaves, read by `Reload`, gives back the free pages but the
-pending), `ReqEstimate` (`Write` fits the estimated size).
+pending, in a buffer of `EstimatedWritePageSize`'s pages; a new freelist reading it).
 -/
 module
 
@@ -196,10 +209,18 @@ def flCall (fl : GoInterface) (m : GoString) : Expr :=
   App (Val (GoInstruction (MethodResolve go_etcd_io.bbolt.internal.freelist.Interface.ty m)))
     (Val #fl)
 
+/-- A `*array` as a `freelist.Interface`. -/
+def arrayIface (l : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.array'.ty) #l
+
+/-- A `*hashMap` as a `freelist.Interface`. -/
+def hashMapIface (l : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType go_etcd_io.bbolt.internal.freelist.hashMap.ty) #l
+
 end call
 
 section preds
-variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors}
   [hG : HeapGS HasLC.hasLC GF]
 
 /-- **The freelist behind `fl`, but its readers, is in state `F`** (exclusive; see the header). -/
@@ -211,6 +232,13 @@ opaque flReaders (fl : GoInterface) (R : List Txid) : IProp GF := iprop(True)
 
 /-- The model's invariant holds of every state the freelist is in. -/
 def flOwn_wf.spec : Prop := ∀ fl F, flOwn (GF := GF) fl F ⊢ ⌜F.wf⌝
+
+/-- **The freelist's dynamic type** is a `*array` or a `*hashMap` (what the interface's specs are
+proved from). -/
+def flOwn_dyn.spec : Prop := ∀ fl F,
+  flOwn (GF := GF) fl F ⊢ ⌜∃ l, fl = arrayIface l ∨ fl = hashMapIface l⌝
+def flReaders_dyn.spec : Prop := ∀ fl R,
+  flReaders (GF := GF) fl R ⊢ ⌜∃ l, fl = arrayIface l ∨ fl = hashMapIface l⌝
 
 def flOwn_timeless.spec : Prop := ∀ fl F, Timeless (flOwn (GF := GF) fl F)
 def flReaders_timeless.spec : Prop := ∀ fl R, Timeless (flReaders (GF := GF) fl R)

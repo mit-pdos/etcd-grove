@@ -27,11 +27,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- `NewHashMapFreelist()`: a new, empty freelist as an interface value: no free, pending or allocated page, no reader. -/
+/-- `NewHashMapFreelist()`: a new, empty freelist, as an interface value of dynamic type `*hashMap`: no free, pending or allocated page, no reader. -/
 def NewHashMapFreelist.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist }}
     (App (Val (@! go_etcd_io.bbolt.internal.freelist.NewHashMapFreelist)) (Val #()))
-  {{ (fl : GoInterface), RET #fl; flOwn fl FLState.empty ∗ flReaders fl [] }}
+  {{ (l : Loc), RET #(hashMapIface l);
+      flOwn (hashMapIface l) FLState.empty ∗
+      flReaders (hashMapIface l) [] }}
 
 end spec
 
