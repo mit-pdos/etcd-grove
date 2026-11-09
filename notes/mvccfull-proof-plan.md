@@ -564,3 +564,32 @@ Every clause is true of the Go code; it mirrors the proved `Recover`'s post at a
 **Second-tier:** S1 (citation lines; one write-back is stronger than `initAndRecover`'s two), S5
 (prove `spec_of_specR` first), S2/S3/S6/S7 optional, S4 (the server's records only in
 lease-granting auth-off mode: a note for R2d'b).
+
+## Review round 1: the mvcc API candidates (`notes/review/mvccfull-f1-api-r1.md`)
+
+All four are true of the Go code.
+
+**First-tier:**
+
+- **F1.1.** Today's `New`/`NewStore` specs are instances only with the lease part lent. *Repair:*
+  `New.spec_of_specR`/`NewStore.spec_of_specR` (lent and given back), and the Freeze list names
+  the exported statements that change: `server_kv_backend`, `server_kv_watchable`,
+  `server_kv_backend_hooks` (etcdserver `Results.lean`), `mvccApi_New_wp_proof`,
+  `mvccApi_NewStore_wp_proof` (`ApiResults.lean`). One call line each in `NewServer.lean` and
+  mvccrand's `runChecks.lean`.
+- **F2.1.** The internal `NewStore.specR` takes `RC`, the clean read and the whole
+  `restoreImageM`, while its glue outline splits `RC` out of the image. That is B3's R1. *Repair:*
+  settle R1's bridge lemma in Probe first, or restate so that `RC` comes from the image inside the
+  proof. The internal text is not frozen before then; the API text is unaffected.
+
+**Second-tier (to apply):**
+
+- F1.2/F2.3: pure premises inside the triples.
+- F1.3: inline `newResumePre`/`Post`.
+- F1.4: `New`'s post gives the receipt `⧖ (logCh σ.log)`, as `Restore`'s update does.
+- F2.2: the Freeze list names `NewStore_backend`'s change and the internal re-proofs.
+- F3.1: the error variables' apartness stated by name.
+- F3.2: `errVars2` replaces `errVars`.
+- F4.1: drop the vacuous give-back of `Watch.contractR`'s empty branch.
+
+Noted: the tester's `Watch(k, k)` check assumes a non-empty key (`keysOf` gives none).
