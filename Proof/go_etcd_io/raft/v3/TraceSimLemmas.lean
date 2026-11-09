@@ -2087,6 +2087,58 @@ theorem nonReceive_ready (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdra
   simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
     Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure, bind, Except.bind]
 
+/-! ### Bags -/
+
+theorem bag_count_with_self (b : Etcdraft.Bag) (m : Etcdraft.Msg) :
+    (b.with m).count m = b.count m + 1 := by
+  unfold Etcdraft.Bag.with Etcdraft.Bag.add
+  by_cases hany : (b.any (fun it => it.1 == m)) = true
+  · simp only [hany, ↓reduceIte]
+    unfold Etcdraft.Bag.count
+    rw [List.find?_map]
+    cases hf : b.find? (fun it => it.1 == m) with
+    | none =>
+      exfalso
+      rw [List.find?_eq_none] at hf
+      obtain ⟨x, hx, hxm⟩ := List.any_eq_true.1 hany
+      exact hf x hx hxm
+    | some it =>
+      have hit : (it.1 == m) = true := List.find?_some (p := fun it : Etcdraft.Msg × Nat => it.1 == m) hf
+      have hfm : List.find? ((fun it => it.1 == m) ∘ fun it => if (it.1 == m) = true then (it.1, it.2 + 1) else it) b
+          = some it := by
+        rw [← hf]; congr 1; funext x; simp only [Function.comp]
+        split <;> simp_all
+      have hit' : it.1 = m := by simpa using hit
+      rw [hfm]; simp [hit']
+  · simp only [hany, Bool.false_eq_true, ↓reduceIte]
+    have hf : b.find? (fun it => it.1 == m) = none := by
+      rw [List.find?_eq_none]; intro x hx hxm
+      exact hany (List.any_eq_true.2 ⟨x, hx, hxm⟩)
+    unfold Etcdraft.Bag.count
+    rw [List.find?_append, hf]; simp
+
+theorem bag_mem_domain_with (b : Etcdraft.Bag) (m : Etcdraft.Msg) : m ∈ (b.with m).domain := by
+  unfold Etcdraft.Bag.with Etcdraft.Bag.add Etcdraft.Bag.domain
+  split
+  · rename_i hany
+    obtain ⟨x, hx, hxm⟩ := List.any_eq_true.1 hany
+    rw [List.mem_map]
+    refine ⟨(x.1, x.2 + 1), ?_, ?_⟩
+    · rw [List.mem_map]; exact ⟨x, hx, by simp [hxm]⟩
+    · simpa using hxm
+  · simp
+
+/-- **A sent message is a new pending message** (`newPending` of a send matching the line). -/
+theorem newPending_send (st : Etcdraft.State) (m : Etcdraft.Msg) (p : Etcdraft.Msg → Bool) (hp : p m = true) :
+    Etcdraft.newPending st (st.send m) p = true := by
+  unfold Etcdraft.newPending Etcdraft.State.send
+  rw [List.any_eq_true]
+  refine ⟨m, bag_mem_domain_with _ _, ?_⟩
+  simp only [hp, Bool.true_and]
+  unfold Etcdraft.oneMoreMessage
+  simp only [bag_count_with_self]
+  cases st.pendingMessages.count m <;> simp
+
 end TraceSim
 
 end EtcdGrove
