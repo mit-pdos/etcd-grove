@@ -227,9 +227,10 @@ end levels
 opaque msgEncC [GooseExts] (c : MsgC) : List w8
 
 /-- **The trust boundary: `Message`'s encoding** (the type's one trusted fact, the shape of
-`entryEncC_ok`). To be backed by Go round-trip tests: `Unmarshal(Marshal(m))` gives the wire view,
-and `proto.Size(m)` is `msgSize`, for every presence combination and unknown fields routed as
-`ufWire` says, at every level. Only claimed of messages that marshal (no responses). -/
+`entryEncC_ok`): `Unmarshal(Marshal(m))` gives the wire view, and `proto.Size(m)` is `msgSize`, for
+every presence combination and unknown fields routed as `ufWire` says, at every level. Backed by Go
+round-trip tests (`TestC9P2MessageEncoder`, 200,000 contents, passing; the harness's home is
+`examples/pbschema`). Only claimed of messages that marshal (no responses). -/
 axiom msgEncC_ok [GooseExts] (c : MsgC) : MsgMarshals c.model → (∀ p ∈ c.levels, ufWire p.1 p.2) →
     msgSize c < 2 ^ 63 → MsgWireOk c.model (msgEncC c) ∧ (msgEncC c).length = msgSize c
 

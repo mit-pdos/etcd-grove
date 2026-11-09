@@ -197,10 +197,12 @@ panic.) Not derivable in the logic, which can allocate a slice of any `w64` leng
 from raft's `out_size`): the "physical" justification fails under aliasing, since a message's
 entries may share one object (`msgPtsC`'s entries are read-only), so `2^18` references to one
 `2^32`-byte entry encode to about `2^50` bytes held in about 4 GiB of memory (the per-type
-Scope's review, revision 2). Over a message with responses it would be **inconsistent in the
-logic** (the stage A Freeze review): `swMsgBound` freezes every response at a content (`msgRoC`, a
-non-nil, read-only pointer), which `msgOwn` does not own (a `nil` response gives `False`); hence the
-premise `st.resps = []`, which every user has (`MsgMarshals`). The content it gives has a snapshot
+Scope's review, revision 2). It is **inconsistent in the logic in general** (the stage A re-Freeze
+review): the logic can allocate a slice of any `w64` length, so a program that allocates an
+oversized (or aliased) message without responses and freezes it through the proved `pbMsg_alloc`
+refutes it. The premise `st.resps = []` (which every user has, `MsgMarshals`) only removes one
+refutation, a `nil` response: `swMsgBound` freezes every response at a content (`msgRoC`, a non-nil,
+read-only pointer), which `msgOwn` does not own. raft-entsize deletes the axiom in the same landing. The content it gives has a snapshot
 `ConfState` without unknown fields (`MsgC.csUfNil`): the sender's fact, since `msgOwn`'s `csPts`
 (raft's) fixes them to none. -/
 axiom swMsgBound_phys (ml : Loc) (st : MsgSt) (h : st.resps = []) :
