@@ -157,9 +157,12 @@ installs, 86 restarts, 44485 hash pairs compared.
   start (`dbFilesAbsent` of every path a run may create: `Prefix-<member>-<gen>.db`, unbounded
   generations, so a premise over a prefix rather than a list).
 - Specs it needs beyond mvccrand's:
-  - mvcc: `Compact` (today only over mvcc's assumed backend: `notes/mvccrand.md`, first version,
-    (1)-(2)), `Restore`, `HashByRev`/`Hashes` (out of the API, `Api.lean`), the store's own
-    `Range`, `FirstRev`, `Cancel`, filters;
+  - mvcc: `Compact` is specified and proved (`KV.Compact.contract`, `Api.lean`; the job, the
+    index's compaction and the watchers' compaction responses too; over etcd's backend since M2,
+    2026-11-01: `notes/mvccrand.md`'s blockers (1)-(2) are out of date), but only at revisions of
+    at least 1 (as the tester); `Restore` is specified (`KV.Restore`); still missing:
+    `HashByRev`/`Hashes` (out of the API, `Api.lean`), and checking the store's own `Range`,
+    `FirstRev`, `Cancel` and filters against the API;
   - the backend: `Snapshot().WriteTo` a file and `backend.New` on it;
   - the lessor: `Recover`, `Leases`, `Lookup`/`Keys` after a restart;
   - `os.Create`;
