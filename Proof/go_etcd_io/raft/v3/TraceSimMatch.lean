@@ -1157,14 +1157,6 @@ theorem simRun_msgApp (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (h
 
 /-! ### Receive lines -/
 
-/-- The message predicate a receive line applies (`receive`'s `isMatch`). -/
-def recvPred (ln : Etcdraft.Line) (m : Etcdraft.Msg) : Bool :=
-  if (or (ln.ev.name == "ReceiveAppendEntriesRequest") (ln.ev.name == "ReceiveSnapshot")) = true then
-    ln.isAppendEntriesRequest m
-  else if (ln.ev.name == "ReceiveAppendEntriesResponse") = true then ln.isAppendEntriesResponse m
-  else if (ln.ev.name == "ReceiveRequestVoteRequest") = true then ln.isRequestVoteRequest m
-  else ln.isRequestVoteResponse m
-
 /-- A receive's successor state: on the next line once the message is consumed. -/
 def recvNext (ts : Etcdraft.TState) (s2 : Etcdraft.State) (m : Etcdraft.Msg) : Etcdraft.TState :=
   if Etcdraft.oneLessMessage ts.s s2 m then { s := s2, l := ts.l + 1, pl := ts.l }
@@ -3313,11 +3305,17 @@ theorem simRun_bfStepDown (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
   exact stateMatches_node C s _ e id xs hR hs hpre hterm' hcommit' hrl hlog (hxs.trans hin) bt bc bl _ rfl
     (by simp [Etcdraft.State.becomeFollowerOfTerm, Etcdraft.State.upd]; exact List.contains_iff_mem.1 hcontains)
 
-/-! ### Local effects (testing `LineEffect`, the Draft's) -/
+/-! ### Line effects (testing `LineEffect`, the Draft's) -/
 
-/-- **A heartbeat send's local effect**: the leader's server unchanged, the heartbeat pending. -/
-theorem lineEffect_heartbeat (C : List w64) (ln0 : Etcdraft.Line) (e : TraceEv) (id : w64) (s : NState)
-    (cfg : CfgM) (m : Msg) (a : Etcdraft.Server) (P : List Etcdraft.Msg)
+theorem withNode_same (σ : Etcdraft.State) (i : Etcdraft.ID) (fP : Etcdraft.Bag → Etcdraft.Bag) :
+    withNode σ i (σ.s i) id fP = { σ with pendingMessages := fP σ.pendingMessages } := by
+  unfold withNode
+  have : (fun j => if j = i then σ.s i else σ.s j) = σ.s := by funext j; split <;> simp_all
+  rw [this]; rfl
+
+/-- **A heartbeat send's effect**: the leader's server unchanged, the heartbeat pending. -/
+theorem lineEffect_heartbeat (C : List w64) (e : TraceEv) (id : w64) (s : NState)
+    (cfg : CfgM) (m : Msg) (a : Etcdraft.Server)
     (hev : SendEvOf (W64 9) id s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
     (hC : id ∈ C) (hdC : m.dst ∈ C)
     (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
@@ -3326,7 +3324,8 @@ theorem lineEffect_heartbeat (C : List w64) (ln0 : Etcdraft.Line) (e : TraceEv) 
     (hcommit : uint.Z m.commit = min (uint.Z (toPState s).commit) (uint.Z (matchOf (toPState s) m.dst)))
     (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
     (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bmc : uint.Z m.commit < 2 ^ 63) :
-    LineEffect C ln0 e a P [] a (P ++ [(msgAbs C C.length m).get (by simp [msgAbs, hty])]) [] := by
+    LineEffect C false e (idAbs id) a a none _root_.id
+      (fun b => b.with ((msgAbs C C.length m).get (by simp [msgAbs, hty]))) (fun _ => False) := by
   subst hsrc
   obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
   rw [hout, elements_empty_nil] at hys
@@ -3337,41 +3336,47 @@ theorem lineEffect_heartbeat (C : List w64) (ln0 : Etcdraft.Line) (e : TraceEv) 
     have : e.name = go!"SendAppendEntriesRequest" := by have := hname; simp at this; exact this.symm
     rw [this]; rfl
   have htyp : tm.typ = msgTypeStr .heartbeat := by rw [hm.1, hty]
-  have hparse : Etcdraft.parseLine 1 (evConv e) = .ok (msgLine e m.src s.vote m.src m.dst xs) :=
-    parseLine_msg 1 e m.src s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
-      (by rw [htyp]; rfl) (by rw [hname']; decide)
-  have hst : (locSt C a P []).s (idAbs m.src) = a := rfl
-  have hhb := heartbeat_send (locSt C a P []) C C.length (toPState s) m.src m hR (by simp [toPState, hrole, proleRole])
-    hty rfl hdst hdC (by rw [hterm]; rfl) hcommit
-  have hline : (locTrace C ln0 (msgLine e m.src s.vote m.src m.dst xs)).line 2 = msgLine e m.src s.vote m.src m.dst xs := rfl
   refine ⟨msgLine e m.src s.vote m.src m.dst xs,
-    ⟨(locSt C a P []).send ((msgAbs C C.length m).get (by simp [msgAbs, hty])), 2 + 1, 2⟩, hparse,
-    NextChain.last _ _ ?_ rfl, ?_, ?_, ?_⟩
-  · apply next_of_nonReceive _ ⟨locSt C a P [], 2, 1⟩ _ (by simp) (by simp [locTrace, Etcdraft.Trace.len]) rfl
-      (by rw [hline]; simp [msgLine, evConv, hname']; rfl)
-    apply nonReceive_heartbeat _ _ (idAbs m.src) (idAbs m.dst) _ (by simp [locTrace, Etcdraft.Trace.len])
+    parseLine_msg 0 e m.src s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      (by rw [htyp]; rfl) (by rw [hname']; decide), rfl, ?_⟩
+  intro t l pl σ hline hl0 hl hb hts _ hpl hsrv hσi _ _ _
+  have hhb := heartbeat_send σ C C.length (toPState s) m.src m (by rw [hσi]; exact hR)
+    (by simp [toPState, hrole, proleRole]) hty rfl hdst hdC (by rw [hterm]; rfl) hcommit
+  refine ⟨⟨σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty])), l + 1, l⟩, [], RoundChain.last _ _ _ ?_ rfl,
+    ?_, by simp⟩
+  · apply next_of_nonReceive _ ⟨σ, l, pl⟩ _ hl0 hl hb (by rw [hline]; simp [msgLine, evConv, hname']; rfl)
+    apply nonReceive_heartbeat _ _ (idAbs m.src) (idAbs m.dst) _ hl
     · rw [hline]; simp [msgLine, evConv, hname']
     · rw [hline]; rfl
     · rw [hline]; rfl
     · rw [hline]; simp [msgLine, evConv, hmsg, htyp]; rfl
-    · exact confAbs_nodup C
-    · simp only [locTrace]; rw [mem_confAbs]; exact hC
-    · simp only [locTrace]; rw [mem_confAbs]; exact hdC
+    · rw [hts]; exact confAbs_nodup C
+    · rw [hts, mem_confAbs]; exact hC
+    · rw [hts, mem_confAbs]; exact hdC
     · exact hhb
     · unfold Etcdraft.Trace.validateAfterAppendEntries Etcdraft.Trace.validatePostStates
       rw [hline, Bool.and_eq_true]
       constructor
       · have := stateMatches_node C s a e m.src xs hR hs (by rw [hrole]; decide) hterm' hcommit' hrl
-          hlog (hxs.trans hin) bt bc bl (locSt C a P []) hst
-          (by simp only [locSt, simInit]; rw [List.contains_iff_mem, mem_confAbs]; exact hC)
+          hlog (hxs.trans hin) bt bc bl σ hσi
+          (by rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC)
         unfold Etcdraft.Line.stateMatches at this ⊢
         simpa [Etcdraft.State.send, msgLine, nodeLine] using this
       · apply newPending_send
-        have := isAER_heartbeat C C.length e m.src s.vote xs m tm hmsg hm hty hents (by rw [hterm]; exact bt) bmc
-        exact this
-  · rfl
-  · simp [Etcdraft.State.send, locSt, bagOf, List.foldl_append]
-  · rfl
+        exact isAER_heartbeat C C.length e m.src s.vote xs m tm hmsg hm hty hents (by rw [hterm]; exact bt) bmc
+  · rw [← hσi, withNode_same]; rfl
+
+/-- **A line's rounds with the invariants are the search's chain.** -/
+theorem chain_of_roundChain (t : Etcdraft.Trace) (l0 : Nat) :
+    ∀ (visited : List Etcdraft.TState) (f tsF : Etcdraft.TState) (mids : List Etcdraft.State),
+      RoundChain t l0 visited f tsF mids → (∀ st ∈ mids, st.violated = .ok none) →
+      tsF.s.violated = .ok none → Chain t l0 visited f tsF := by
+  intro visited f tsF mids h
+  induction h with
+  | last visited f tsF hn hl => intro _ hF; exact Chain.last visited f tsF hn hl hF
+  | step visited f g tsF mids hn hl hfresh _ ih =>
+    intro hm hF
+    exact Chain.step visited f g tsF hn hl hfresh (hm g.s (by simp)) (ih (fun st hs => hm st (by simp [hs])) hF)
 end TraceSim
 
 end EtcdGrove

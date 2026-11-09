@@ -143,44 +143,63 @@ def recvEvt : MsgType → Option w64
 /-- The normal entries of a batch (`traceReplicate` logs one `Replicate` per normal entry). -/
 def normalCount (ents : List EntryM) : Nat := (ents.filter (fun e => decide (e.Type' = EntryNormal))).length
 
-/-! ## A line's local effect -/
+/-! ## A line's effect -/
 
-/-- **The local state of a node's action**: the voters' servers `C`, every server `a` (the actions
-of a line naming node `i` read only server `i`'s variables and its configuration), the pending
-messages `P`, the messages `M` (a receive line's: the one it consumes). -/
-def locSt (C : List w64) (a : Etcdraft.Server) (P M : List Etcdraft.Msg) : Etcdraft.State :=
-  { simInit C with s := fun _ => a, pendingMessages := bagOf P, messages := bagOf M }
+/-- The message predicate a receive line applies (`receive`'s `isMatch`). -/
+def recvPred (ln : Etcdraft.Line) (m : Etcdraft.Msg) : Bool :=
+  if (or (ln.ev.name == "ReceiveAppendEntriesRequest") (ln.ev.name == "ReceiveSnapshot")) = true then
+    ln.isAppendEntriesRequest m
+  else if (ln.ev.name == "ReceiveAppendEntriesResponse") = true then ln.isAppendEntriesResponse m
+  else if (ln.ev.name == "ReceiveRequestVoteRequest") = true then ln.isRequestVoteRequest m
+  else ln.isRequestVoteResponse m
 
-/-- **The local trace of a line**: the node's previous line `ln0` (which a `BecomeFollower` line's
-skip reads) and the line `ln`, neither a bootstrap line. -/
-def locTrace (C : List w64) (ln0 ln : Etcdraft.Line) : Etcdraft.Trace :=
-  { lines := [ln0, ln], server := confAbs C, initSrv := confAbs C, bootstrap := [false, false],
-    init := simInit C }
+/-- **The rounds of a line** at `l0` (`StepLine`'s loop with one state per round): single successors,
+each fresh against the states visited (`memEq`), from `f` to `tsF` on the next line, through the
+intermediate states `mids`. With the invariants at `mids` and at `tsF` it is `Chain`. -/
+inductive RoundChain (t : Etcdraft.Trace) (l0 : Nat) :
+    List Etcdraft.TState → Etcdraft.TState → Etcdraft.TState → List Etcdraft.State → Prop
+  | last (visited : List Etcdraft.TState) (f tsF : Etcdraft.TState) :
+      t.next f = .ok [tsF] → tsF.l = l0 + 1 → RoundChain t l0 visited f tsF []
+  | step (visited : List Etcdraft.TState) (f g tsF : Etcdraft.TState) (mids : List Etcdraft.State) :
+      t.next f = .ok [g] → g.l = l0 → Etcdraft.memEq visited g = false →
+      RoundChain t l0 (visited ++ [g]) g tsF mids → RoundChain t l0 visited f tsF (g.s :: mids)
 
-/-- The specification's rounds at line `l0` as single successors, from `f` to `tsF` on the next line
-(`Chain` without the search's bookkeeping: the visited states' freshness and the invariants, which
-are the global step's). -/
-inductive NextChain (t : Etcdraft.Trace) (l0 : Nat) : Etcdraft.TState → Etcdraft.TState → Prop
-  | last (f tsF : Etcdraft.TState) : t.next f = .ok [tsF] → tsF.l = l0 + 1 → NextChain t l0 f tsF
-  | step (f g tsF : Etcdraft.TState) : t.next f = .ok [g] → g.l = l0 → NextChain t l0 g tsF →
-      NextChain t l0 f tsF
+/-- `σ` with node `i`'s server `a'` and its bags transformed. -/
+def withNode (σ : Etcdraft.State) (i : Etcdraft.ID) (a' : Etcdraft.Server) (fM fP : Etcdraft.Bag → Etcdraft.Bag) :
+    Etcdraft.State :=
+  Etcdraft.State.mk σ.server (fun j => if j = i then a' else σ.s j) (fM σ.messages) (fP σ.pendingMessages)
+    σ.reconfigCount σ.preVote σ.checkQuorum
 
-/-- **A line's local effect** (`notes/trace-validation-sim.md`, "S5 Draft: the capability", local and
-global): node `i`'s line `e`, after its previous line `ln0` (as parsed), is the specification's own
-action from the local state with server `a`, pending messages `P` and messages `M`, its rounds single
-successors, to server `a'` (node `i`'s, `i` the line's node), pending `P'` and messages `M'`. The
-global step (`simInv`'s `σ` whose node `i` is `(a, P)`) is the global theorem's. -/
-def LineEffect (C : List w64) (ln0 : Etcdraft.Line) (e : TraceEv) (a : Etcdraft.Server) (P M : List Etcdraft.Msg)
-    (a' : Etcdraft.Server) (P' M' : List Etcdraft.Msg) : Prop :=
-  ∃ ln tsF, Etcdraft.parseLine 1 (evConv e) = .ok ln ∧
-    NextChain (locTrace C ln0 ln) 2 ⟨locSt C a P M, 2, 1⟩ tsF ∧ tsF.s.s ln.nid = a' ∧
-    tsF.s.pendingMessages = bagOf P' ∧ tsF.s.messages = bagOf M'
+/-- **A line's effect** (`notes/trace-validation-sim.md`, "S5 Draft: the capability", and the
+revision after it): node `i`'s line `e` takes server `a` to `a'` and the bags by `fM`, `fP`, in **every
+trace and every state** where it could occur: the line (`e`'s) at `t.line l`, past the bootstrap,
+the trace's servers the voters `C`, `BecomeFollower`'s skip the bit `bf`; the state's servers the
+voters, node `i`'s server `a`, pre-vote and check-quorum off, and for a receive line (`rcv = some m`)
+`m` present, the only message the line matches. From the line's first state its rounds are single
+fresh successors to the result, through intermediate states `mids` each `σ` with node `i`'s server
+satisfying `Mid` (what the global step needs for their invariants: a term change, a log prefix). -/
+def LineEffect (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.ID) (a a' : Etcdraft.Server)
+    (rcv : Option Etcdraft.Msg) (fM fP : Etcdraft.Bag → Etcdraft.Bag) (Mid : Etcdraft.Server → Prop) : Prop :=
+  ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧ ln.nid = i ∧
+  ∀ (t : Etcdraft.Trace) (l pl : Nat) (σ : Etcdraft.State),
+    t.line l = ln → l ≠ 0 → l ≤ t.len → t.bootstrap.getD (l - 1) false = false → t.server = confAbs C →
+    t.isBecomeFollowerInUpdateTermOrReturnToFollower ⟨σ, l, pl⟩ = bf → pl = l - 1 →
+    σ.server = confAbs C → σ.s i = a → σ.preVote = false → σ.checkQuorum = false →
+    (match rcv with
+     | none => True
+     | some m => σ.messages.domain.Nodup ∧ m ∈ σ.messages.domain ∧ 0 < Etcdraft.Bag.count σ.messages m ∧
+         ∀ m' ∈ σ.messages.domain, m' ≠ m → recvPred ln m' = false) →
+    ∃ (tsF : Etcdraft.TState) (mids : List Etcdraft.State),
+      RoundChain t l [⟨σ, l, pl⟩] ⟨σ, l, pl⟩ tsF mids ∧ tsF.s = withNode σ i a' fM fP ∧
+      ∀ st ∈ mids, (∀ j, j ≠ i → st.s j = σ.s j) ∧ st.server = σ.server ∧ Mid (st.s i)
 
-/-- **A phase step by a line**: from every share `(cs, P)` in phase `Φ`, each event `E` allows has a
-local effect (consuming no message) into a share in phase `Φ'`, whatever the node's previous line. -/
+/-- **A phase step by a line consuming no message**: from every share `(cs, P)` in phase `Φ`, each
+event `E` allows has an effect into a share in phase `Φ'`, its pending messages `P'` (`fP` adds them),
+no intermediate state. -/
 def PhaseStep (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
-  ∀ C cs P, Φ C cs P → ∀ ln0 e, E e → ∃ a a' P', toC (confAbs C) a = cs ∧
-    LineEffect C ln0 e a P [] a' P' [] ∧ Φ' C (toC (confAbs C) a') P'
+  ∀ C cs P, Φ C cs P → ∀ e, E e → ∃ (i : Etcdraft.ID) (a a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
+    toC (confAbs C) a = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
+    LineEffect C false e i a a' none id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False)
 
 end pure
 
