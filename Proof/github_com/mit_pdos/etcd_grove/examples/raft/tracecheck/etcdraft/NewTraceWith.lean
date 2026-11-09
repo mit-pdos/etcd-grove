@@ -1314,6 +1314,44 @@ theorem NewTraceWith.wp_proof
     isplitl []
     · ipureintro; trivial
     iexact HcL0
+  iintro ⟨%cs, %e, %Hv, Hlm, Hbc⟩
+  subst Hv
+  have hxpos : 0 < xs.length := by rw [hxl]; exact List.length_pos_iff.2 hne
+  have hx0srv : (xs.getD 0 default).nid ∈ srv := by
+    rw [← hsrvd, SetIds.mem_mk]
+    exact List.mem_append_left _ (List.mem_map_of_mem (by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hxpos]; exact List.getElem_mem hxpos))
+  have htail := newTraceWith_tail pv cq hne hacc hmacc
+  rw [hsrvd] at htail
+  try wp_auto
+  cases hbc : tBC xs (bootstrapOf xs (xs.getD 0 default).nid).2 with
+  | error eb =>
+    icases Hbc with %He
+    cases e with
+    | nil => exact absurd rfl He
+    | ok ei =>
+    wp_auto
+    iapply HΦ
+    rw [htail, tail_init_err pv cq hbnz hx0srv hbc]
+    ipureintro; exact He
+  | ok c0 =>
+  icases Hbc with ⟨%He, #Hc0⟩
+  subst He
+  try wp_auto
+  ipersist InitSrv
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Set.TypeAssumptions.ptr_Subset_unfold.method_unfold]
+  try wp_auto
+  wp_apply wp_Subset cs c0 srvsl srv $$ []
+  · iframe Hc0 Hsrv
+  cases hsub : c0.subset srv
+  · try wp_auto
+    wp_apply wp_traceError as %e %He
+    try wp_auto
+    iapply HΦ
+    obtain ⟨e', he'⟩ := tail_sub_err pv cq hbnz hx0srv hbc hsub
+    rw [htail, he']
+    ipureintro; exact He
+  try wp_auto
   sorry
 
 end proof

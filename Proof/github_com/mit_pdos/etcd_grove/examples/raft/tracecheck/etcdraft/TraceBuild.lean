@@ -747,6 +747,30 @@ theorem find_map_pair {β : Type} (f : ID → β) : ∀ (l : List ID) (i : ID), 
 theorem tLast_eq (xs : List Line) (srv : SetIds) (i : ID) (hi : i ∈ srv) : tLast xs srv i = (bootstrapOf xs i).2 := by
   unfold tLast tPer; rw [find_map_pair _ srv i hi]; rfl
 
+theorem tPer_find_none (xs : List Line) (srv : SetIds) (h : ∀ j ∈ srv, (bootstrapOf xs j).2 ≠ 0) :
+    (tPer xs srv).find? (fun p => p.2.2 == 0) = none := by
+  rw [List.find?_eq_none]
+  intro p hp
+  simp only [tPer, List.mem_map] at hp
+  obtain ⟨j, hj, rfl⟩ := hp
+  simpa using h j hj
+
+theorem tail_init_err {xs : List Line} {srv : SetIds} (pv cq : Bool) (h : ∀ j ∈ srv, (bootstrapOf xs j).2 ≠ 0)
+    (hx : (xs.getD 0 default).nid ∈ srv) {e : TraceError}
+    (he : tBC xs (bootstrapOf xs (xs.getD 0 default).nid).2 = .error e) :
+    newTraceTail xs srv pv cq = .error e := by
+  unfold newTraceTail
+  simp only [tPer_find_none xs srv h, tLast_eq xs srv _ hx, he, bind, Except.bind]
+
+theorem tail_sub_err {xs : List Line} {srv : SetIds} (pv cq : Bool) (h : ∀ j ∈ srv, (bootstrapOf xs j).2 ≠ 0)
+    (hx : (xs.getD 0 default).nid ∈ srv) {c : SetIds}
+    (hc : tBC xs (bootstrapOf xs (xs.getD 0 default).nid).2 = .ok c) (hs : c.subset srv = false) :
+    ∃ e, newTraceTail xs srv pv cq = .error e := by
+  refine ⟨{ what := "TraceInitServer not a subset of TraceServer", line := 0, n := 0 }, ?_⟩
+  unfold newTraceTail
+  simp only [tPer_find_none xs srv h, tLast_eq xs srv _ hx, hc, hs, bind, Except.bind, Bool.not_false, ite_true]
+  rfl
+
 end Etcdraft
 end EtcdGrove
 end Perennial
