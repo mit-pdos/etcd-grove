@@ -474,6 +474,104 @@ theorem nonReceive_heartbeat (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i j : 
   simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
     Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure]
 
+/-- **A non-receive message line's step** (generic): from a run reaching `σ`, a message event of
+raft whose line (`msgLine`) has, from the run's end, the one non-receive successor `σ'`, past the
+node's bootstrap lines, with the invariants at `σ'`. -/
+theorem simRun_msg (C : List w64) (L : List TraceEv) (σ σ' : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id vote f d : w64) (xs : List w64) (tm : TraceMsg)
+    (hnid : e.nid = decStr id) (hvote : e.vote = decStr vote)
+    (hconf : e.conf = (xs.map decStr, ([] : List w64).map decStr)) (hmsg : e.msg = some tm)
+    (hfrm : tm.frm = decStr f) (hto : tm.to = decStr d)
+    (htyp : (Etcdraft.raftMsgType (gsStr tm.typ)).isSome = true)
+    (hrecv : Etcdraft.isReceiveName (gsStr e.name) = false) (hcc : gsStr e.name ≠ "ChangeConf")
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hnr : ∀ lines (ts : Etcdraft.TState), parseLines (L.map evConv) = .ok lines → ts.s = σ →
+      ts.l = L.length + 1 →
+      (linesTrace C (lines ++ [msgLine e id vote f d xs])).nonReceive ts = .ok [σ'])
+    (hinv : σ'.violated = .ok none) :
+    SimRun C (L ++ [e]) σ' := by
+  have hparse : Etcdraft.parseLine L.length (evConv e) = .ok (msgLine e id vote f d xs) :=
+    parseLine_msg L.length e id vote f d xs [] tm hnid hvote hconf hmsg hfrm hto htyp hcc
+  apply simRun_snoc_single C L σ σ' e _ hrun hL hparse _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  apply next_of_nonReceive _ ts σ' (by omega)
+  · simp [linesTrace, Etcdraft.Trace.len]; omega
+  · simp only [linesTrace]; rw [hl']; simpa using hboot lines _ hl
+  · rw [linesTrace_line_last C lines _ _ (by omega)]; simpa [msgLine, evConv] using hrecv
+  · exact hnr lines ts hl hts hl'
+
+/-- The events `traceSendMessage(r, m)` may log for a traced message `m` (`traceEvent` with the
+message; its properties unconstrained). -/
+def SendEvOf (evt : w64) (id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceEv) : Prop :=
+  evtNames[uint.nat evt]? = some e.name ∧
+  e.nid = decStr id ∧ e.term = s.term ∧ e.vote = decStr s.vote ∧ e.commit = s.logst.committed ∧
+  e.role = roleStr s.role ∧ e.logSize = plastIndex (toPState s) ∧
+  (∃ xs ys : List w64, xs ≡ₚ elements c.incoming ∧ ys ≡ₚ elements c.outgoing ∧
+    e.conf = (xs.map decStr, ys.map decStr)) ∧
+  (∃ tm, e.msg = some tm ∧ MsgEvOf m tm) ∧ e.cc = none
+
+theorem elements_empty_nil : elements (∅ : GSet w64) = [] :=
+  List.eq_nil_of_length_eq_zero (by rw [GMap.length_elements, GMap.size_empty])
+
+/-- **A heartbeat line's step**: a leader's heartbeat (its commit `min(Match, committed)`), the
+specification's `Heartbeat(i, j)`; the leader's server unchanged, `R`-related to the state raft
+logged. -/
+theorem simRun_heartbeat (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM) (m : Msg)
+    (hev : SendEvOf (W64 9) id s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hdC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs id))) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .leader) (hty : m.ty = .heartbeat) (hsrc : m.src = id) (hdst : m.dst ≠ id)
+    (hterm : m.term = s.term) (hents : m.entries = [])
+    (hcommit : uint.Z m.commit = min (uint.Z (toPState s).commit) (uint.Z (matchOf (toPState s) m.dst)))
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bmc : uint.Z m.commit < 2 ^ 63)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty]))).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty]))) := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendAppendEntriesRequest" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"SendAppendEntriesRequest" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have htyp : tm.typ = msgTypeStr .heartbeat := by rw [hm.1, hty]
+  have hhb := heartbeat_send σ C C.length (toPState s) id m hR (by simp [toPState, hrole, proleRole]) hty hsrc
+    hdst hdC (by rw [hterm]; rfl) hcommit
+  apply simRun_msg C L σ _ hrun hL e id s.vote m.src m.dst xs tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+    (by rw [htyp]; rfl) (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (msgLine e id s.vote m.src m.dst xs) ts.l (by omega)
+  apply nonReceive_heartbeat _ ts (idAbs m.src) (idAbs m.dst) _ (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  · rw [hline]; simp [msgLine, evConv, hname']
+  · rw [hline]; rfl
+  · rw [hline]; rfl
+  · rw [hline]; simp [msgLine, evConv, hmsg, htyp]; rfl
+  · exact confAbs_nodup C
+  · simp only [linesTrace]; rw [mem_confAbs, hsrc]; exact hC
+  · simp only [linesTrace]; rw [mem_confAbs]; exact hdC
+  · rw [hts, hsrc]; exact hhb
+  · unfold Etcdraft.Trace.validateAfterAppendEntries Etcdraft.Trace.validatePostStates
+    rw [hline, hts, Bool.and_eq_true]
+    constructor
+    · rw [hsrc]
+      have := stateMatches_node C s (σ.s (idAbs id)) e id xs hR hs (by rw [hrole]; decide) hterm' hcommit' hrl
+        hlog (hxs.trans hin) bt bc bl σ rfl (by rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC)
+      unfold Etcdraft.Line.stateMatches at this ⊢
+      simpa [Etcdraft.State.send, msgLine, nodeLine] using this
+    · apply newPending_send
+      have := isAER_heartbeat C C.length e id s.vote xs m tm hmsg hm hty hents (by rw [hterm]; exact bt) bmc
+      rw [hsrc] at this ⊢
+      exact this
+
 end TraceSim
 
 end EtcdGrove
