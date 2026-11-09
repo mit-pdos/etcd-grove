@@ -183,6 +183,30 @@ theorem electionSafety_of_leaderEntries (σ : Etcdraft.State) (h : LeaderEntries
       exact maxIndexOfTerm_ge _ _ k (by rw [hli j hj k e he hkt, hkt])
   · simp [hl]
 
+/-! ### `CommittedIsDurableInv` by a specification invariant (route (b)) -/
+
+/-- **A leader's durable bound** (route (b) of the notes' `CommittedIsDurableInv`): for every leader
+`i` of term `T`, its commit index, its match indices, the append requests of term `T` it has handed
+out (in `messages`: only a `Ready` moves them there, after persisting the whole log) and the
+successful responses of term `T` addressed to it are within its durable log. -/
+def DurInv (σ : Etcdraft.State) : Prop :=
+  ∀ i ∈ σ.server, (σ.s i).state = Etcdraft.leader →
+    let d : Int := (σ.s i).durable.log.length
+    (σ.s i).commitIndex ≤ d ∧ (∀ j ∈ σ.server, (σ.s i).matchIndex j ≤ d) ∧
+    (∀ m ∈ σ.messages.domain, m.source = i → m.type = .appendEntriesRequest →
+      m.term = (σ.s i).currentTerm → m.prevLogIndex + m.entries.length ≤ d) ∧
+    (∀ m ∈ σ.messages.domain ++ σ.pendingMessages.domain, m.dest = i → m.type = .appendEntriesResponse →
+      m.term = (σ.s i).currentTerm → m.success = true → m.matchIndex ≤ d)
+
+/-- **`CommittedIsDurableInv` from the durable bound.** -/
+theorem durable_of_durInv (σ : Etcdraft.State) (h : DurInv σ) : σ.committedIsDurableInv = true := by
+  unfold Etcdraft.State.committedIsDurableInv
+  rw [List.all_eq_true]
+  intro i hi
+  by_cases hl : (σ.s i).state = Etcdraft.leader
+  · simp [hl, (h i hi hl).1]
+  · simp [hl]
+
 end pure
 
 section ghost
