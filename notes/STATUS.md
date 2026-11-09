@@ -56,8 +56,11 @@ down), and the global step of any line effect (`simRun_lineEffect`: `LineEffect`
 trace and global state where the line could occur, so the per-line lemmas apply as they are); S5's
 Draft extended to the other hooks and `send` (`TracedHooksDraft.lean`), review round 1 (six
 first-tier findings, repaired; `notes/trace-validation-reviews/s5-r1.md`); layer C's `types.go`
-delegated. Open: the invariants and message uniqueness from raft's ghost state (`simInv`'s
-per-server facts), the global step as an Iris law, the other hook-path statements, S6, S7.
+delegated. Then `simInv`'s per-server facts (`srvFacts`, `TraceSimFacts.lean`) and six of the seven
+invariants from them, with raft's vote table and three specification invariants (`LeaderEntries`,
+`DurInv`, `CommitWithinLeader`; their preservation delegated): `simFx_violated`. Open: `QuorumLogInv`
+(the acknowledgement-history copy), message uniqueness, the global step's Iris law
+(`trCap_fire.statement`, drafted), the other hook-path statements, S6, S7.
 
 ## Soundness bugs: `grpc.serve`'s handler pool and `pbEnc` across heaps (found 2026-11-07; fixed by the per-type stage, not started)
 
