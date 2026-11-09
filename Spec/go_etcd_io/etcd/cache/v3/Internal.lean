@@ -19,9 +19,12 @@ events (`deliv`). `prefixRange pfx` is the range the cache covers.
   `items` (revisions strictly increasing), each slot's item modelled by `isItem` (persistent); the
   old `InvRingBuffer.lean`'s `ownRingBuffer` (the struct, the buffer slice, `RingOk`).
 * `kvItemAt p k kv` (persistent): `*kvItem` `p` with key `k` and key-value pointer `kv`, read-only.
-* `kvTree t dq s`: the `*btree.BTree[*kvItem]` `t` holds the items `s` (key, `*kvItem`), by
-  `kvItemLess` (`BTree.ownBTree` at the order whose `item p k` is `kvItemAt p k _`).
-* `snapAt p r s` (persistent): the `*snapshot` `p` has revision `r` and a frozen tree holding `s`.
+* `kvTree t dq s`: the `*btree.BTree[*kvItem]` `t` holds, in key order, one `*kvItem` per entry
+  `(k, kv)` of `s`, with key `k` and key-value pointer `kv` (`kvItemAt _ k kv`): the entries are
+  (key, `*mvccpb.KeyValue`), not the items (`BTree.ownBTree` at the order whose `item p k` is
+  `kvItemAt p k _`).
+* `snapAt p r s` (persistent): the `*snapshot` `p` has revision `r` and a frozen tree holding `s`
+  (entries as for `kvTree`).
 * `isStore s γ pfx` (persistent): the store's `RWMutex` and `revCond`, its lock invariant: the latest
   revision `lr` with `storeRevLb`'s authoritative half, every snapshot in the history ring certified
   (`snapCert γ pfx r s`: its items are, in key order, etcd's store under the prefix at `r`, each `kv`
@@ -157,7 +160,7 @@ def iterSpec {T' : Type} {V : Type} (iter : GoFunc) (isItem : T' → V → IProp
 /-- `*kvItem` `p` with key `k` and key-value pointer `kv` (persistent). -/
 opaque kvItemAt (p : Loc) (k : GoString) (kv : Loc) : IProp GF := iprop(True)
 
-/-- The store's working tree `t` holds the items `s` (key, `*kvItem`), in key order. -/
+/-- The store's working tree `t` holds the entries `s` (key, key-value pointer), in key order. -/
 opaque kvTree (t : Loc) (dq : DFrac) (s : List (GoString × Loc)) : IProp GF := iprop(True)
 
 /-- The `*snapshot` `p` has revision `r` and a frozen tree holding `s` (persistent). -/
@@ -238,13 +241,15 @@ opaque demuxFeed (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) (pos : Opti
 
 /-- **An upstream response's fact** for a watch of `rng` at position `pos`, the next position
 `pos'`: events (`deliv`), a progress notification (`quiet`), or a response that moves nothing
-(created, canceled: the caller handles their errors before broadcasting). -/
+(created, canceled, a compaction, or a header revision `0`: never a progress notification, which
+must be quiet). -/
 def respFact (γ : Cluster) (rng : KeyRange) (pos : Option Int) (m : WatchRespM)
     (pos' : Option Int) : IProp GF :=
   iprop((∃ (σ : State) (b : Int), etcdLb γ σ ∗ ⌜deliv σ.kv rng pos m.events b ∧ pos' = some (b + 1)⌝) ∨
     (∃ σ : State, etcdLb γ σ ∗ ⌜m.events = [] ∧ m.hdrRev ≠ 0 ∧ quiet σ.kv rng pos m.hdrRev ∧
       pos' = WatchSt.afterProgress pos m.hdrRev⌝) ∨
-    ⌜m.events = [] ∧ pos' = pos⌝)
+    ⌜m.events = [] ∧ (m.hdrRev = 0 ∨ m.created = true ∨ m.canceled = true ∨ m.compactRev ≠ 0) ∧
+      pos' = pos⌝)
 
 /-! ## Readiness, notifier, progress requestor, clock -/
 
@@ -289,7 +294,14 @@ opaque applyErrChan (ch : Loc) : IProp GF := iprop(True)
 /-- `watch`'s `*sync.Once` `ro`, guarding `c.ready.Set`. -/
 opaque readyOnceAt (c ro : Loc) : IProp GF := iprop(True)
 
+/-- The cache `c`'s store is `s` (persistent: the field, read-only, with `isStore`). -/
+opaque cacheStoreAt (c s : Loc) : IProp GF := iprop(True)
+
 /-! ## Internal laws -/
+
+/-- The cache's revision lower bounds are its store's. -/
+def cacheRevLb_store.spec : Prop := ∀ (c s : Loc) (r : Nat),
+  cacheStoreAt (GF := GF) c s ⊢ (cacheRevLb c r ∗-∗ storeRevLb s r)
 
 /-- The ceiling's holder raises it. -/
 def storeCeil_raise.spec : Prop := ∀ (s : Loc) (r r' : Nat), r ≤ r' →

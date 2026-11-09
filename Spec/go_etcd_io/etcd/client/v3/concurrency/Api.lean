@@ -432,7 +432,8 @@ opaque concErrVal (e : ConcErr) : GoInterface := GoInterface.nil
 /-- Not `nil`, distinct from each other and from etcd's errors (`errVal`: another type). -/
 def concErrVal_ok.spec : Prop :=
   (∀ e, concErrVal e ≠ GoInterface.nil) ∧ (∀ e e', concErrVal e = concErrVal e' → e = e') ∧
-  (∀ e e', concErrVal e ≠ errVal e')
+  (∀ e e', concErrVal e ≠ errVal e') ∧
+  (∀ e, ∃ x : Loc, concErrVal e = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x)
 
 end errs
 
@@ -715,6 +716,11 @@ closure to use during the attempt. -/
 def stmAt_reads.spec : Prop := ∀ (iv : GoInterface) (γ : Cluster) (who : Principal) (iso : w64)
     (a : Attempt),
   stmAt (GF := GF) iv γ who iso a ⊢ stmAt iv γ who iso a ∗ ∃ σ : State, etcdLb γ σ ∗ ⌜a.readsSeen σ.kv⌝
+
+/-- The package's errors are not `context.Canceled` (distinct `errors.New` allocations); with W0's
+`callErr_errorsNew`, no client call returns one of them. -/
+def concErrVal_notCanceled.spec : Prop := ∀ (v : GoInterface),
+  globalAddr context.Canceled ↦□ v ⊢ ⌜∀ e, v ≠ concErrVal (GF := GF) e⌝
 
 def applyOk_persistent.spec : Prop := ∀ apply γ who F Rel,
   Persistent (applyOk (GF := GF) apply γ who F Rel)

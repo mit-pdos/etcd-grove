@@ -114,6 +114,14 @@ that hold only an `etcdLb`, not the state). -/
 def etcdLb_revFits.spec : Prop := ∀ (γ : Cluster) (σ : State),
   etcdLb (GF := GF) γ σ ⊢ ⌜σ.kv.rev + 1 < 2 ^ 63⌝
 
+/-- **etcd never stores the empty key** (a put, alone or in a transaction, of the empty key is
+refused by the gRPC layer's validation: `PutReq.invalid`, `TxnReq.valid`): no event of any state
+an `etcdLb` names puts or deletes it, and no store of its history holds it. -/
+def etcdLb_keyNonEmpty.spec : Prop := ∀ (γ : Cluster) (σ : State),
+  etcdLb (GF := GF) γ σ ⊢
+    ⌜(∀ evs ∈ σ.kv.revs, ∀ e ∈ evs, (match e with | .put k _ => k | .delete k => k) ≠ []) ∧
+      ∀ (r : Nat) (k : Key) (kr : KeyRec), σ.kv.storeAt r k = some kr → k ≠ []⌝
+
 /-- **Every state the cluster has been in comes from an initial one** (its provenance: a present
 key's create revision is at least 2, its mod revision the revision of the event that wrote it, its
 version at least 1; pure consequences of `Reach`). -/

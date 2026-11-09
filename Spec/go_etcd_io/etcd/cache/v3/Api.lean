@@ -56,16 +56,17 @@ never the cache's internals (its store, demux, ring buffers: `Internal.lean`):
   `rng`, at `st` (`cacheWatchAt_recv`). Intended realization: the watch goroutine's channel
   (unbuffered, closed by the goroutine) with a ghost variable of the consumer's position, whose
   other half the watcher's demux entry (`isDemux`) keeps.
-* `etcdPeek γ` (transparent, persistent): the program's permission to look at the cluster's state
-  without changing it (as 1f's, `client/v3/experimental/recipes/Api.lean`; to be one definition in
-  W0's `State.lean`): the cache's own reads of the cluster (its initial list, the revision a
-  linearizable `Get` waits for) are made of it.
+* W0's `etcdPeek γ` (`State.lean`, persistent): the program's permission to look at the cluster's
+  state without changing it: the cache's own reads of the cluster (its initial list, the revision a
+  linearizable `Get` waits for) are made of it. `New` takes it.
+* `wrapsErr err e` (persistent): `errors.Is(err, e)` holds (`err` is `e`, or a `fmt.Errorf("%w")`
+  wrapping of it): how a caller tests `ErrUnsupportedRequest` and `ErrKeyRangeInvalid`.
 * `eventOwn`, `eventsAt`, `watchRespAt` (transparent over W0's `keyValueOwn`, persistent): a received
   response's memory, read-only (the cache shares every event among its watchers and its store).
 
 ## Laws
 
-`isCache_persistent`, `cacheRevLb_persistent`, `cacheRevLb_zero`, `cacheRevLb_mono`,
+`isCache_persistent`, `isCache_ne_null`, `wrapsErr_persistent`, `wrapsErr_refl`, `errorsIs_wraps`, `cacheRevLb_persistent`, `cacheRevLb_zero`, `cacheRevLb_mono`,
 `cacheRevLb_reached`, `cacheOpen_fractional`, `cacheWatchAt_recv`, `init` (the error variables).
 
 ## Requirement snippets
@@ -132,8 +133,9 @@ structure WatchRespM where
 inductive WatchSt where
   /-- every event under the range from revision `pos` on is still to come (`none`: the watch started
   at the cache's newest revision and has delivered nothing yet, so its first event is the first it
-  owes) -/
-  | live (pos : Option Int)
+  owes); `seen`, the highest revision a response of the watch has named (an event's, or a
+  progress notification's): a later progress notification is not below it -/
+  | live (pos : Option Int) (seen : Nat)
   /-- a rejected request: its one cancel response is pending -/
   | rejected
   /-- the channel is closed, or will be at the next receive -/
@@ -187,7 +189,7 @@ def rangeOk (pfx : GoString) (r : KeyRange) : Prop :=
 the requested revision (`none`: "from now", `WithRev` absent or `0`). -/
 def watchStart (pfx : GoString) (rng : KeyRange) (o : OpM) : WatchSt :=
   if watchUnsupported o ∨ ¬ rangeOk pfx rng then .rejected
-  else .live (if o.rev = W64 0 then none else some (sint.Z o.rev))
+  else .live (if o.rev = W64 0 then none else some (sint.Z o.rev)) 0
 
 /-- The `GetResponse` a successful `Get` returns: the header's revision `L` (its other fields zero),
 the key-values, `More` false, `Count` their number. -/
@@ -237,13 +239,6 @@ section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-open go_etcd_io.etcd.api.v3 in
-/-- **The program's permission to look at the cluster's state** (persistent): an atomic update
-that leaves it unchanged (1f's `etcdPeek`, the same body). -/
-def etcdPeek (γ : Cluster) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-    <{ ∀∀ (σ' : State), ⌜σ' = σ⌝ ∗ etcdState γ σ', COMM True }>)
-
 /-- The `mvccpb.KeyValue` model of an event's key-value: a put's record, a delete's key and
 revision (its other fields unspecified). -/
 def kvMatches (e : RevEvent) (m : KeyValueM) : Prop :=
@@ -269,11 +264,13 @@ def eventsAt (sl : GoSlice) (evs : List RevEvent) : IProp GF :=
   iprop(∃ ps : List Loc, sl ↦*□ ps ∗ [∗list] p; e ∈ ps; evs, eventOwn p e)
 
 /-- **A received `WatchResponse` value `v` modelled by `m`**: its header (never `nil`) read-only
-with revision `m.hdrRev`, its events, its fields (persistent). -/
+with revision `m.hdrRev`, its events, its fields, and no close error (the cache never sets one: `Err()` is `nil` but for a cancel)
+(persistent). -/
 def watchRespAt (v : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM) : IProp GF :=
   iprop(∃ hm : HeaderM, respHeaderOwn v.Header' DFrac.discard hm ∗ ⌜hm.revision = W64 m.hdrRev⌝ ∗
     eventsAt v.Events' m.events ∗
-    ⌜v.CompactRevision' = W64 m.compactRev ∧ v.Canceled' = m.canceled ∧ v.Created' = m.created⌝)
+    ⌜v.CompactRevision' = W64 m.compactRev ∧ v.Canceled' = m.canceled ∧ v.Created' = m.created ∧
+      v.closeErr' = GoInterface.nil⌝)
 
 /-- **`c` is a cache of the keys under `pfx` of the cluster `γ`** (persistent). -/
 opaque isCache (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) : IProp GF := iprop(True)
@@ -301,13 +298,20 @@ def getOk (c : Loc) (γ : Cluster) (rng : KeyRange) (o : OpM) (σ0 : State) (r0 
       (o.serializable = false → σ0.kv.rev ≤ L) ∧
       Store.rangeKVs (σ.kv.storeAt (if sint.Z o.rev = 0 then L else (sint.Z o.rev).toNat)) rng kvs⌝)
 
+/-- **`errors.Is(err, e)` holds**: `err` is `e`, or wraps it (`fmt.Errorf("%w: ...", e)`)
+(persistent). -/
+opaque wrapsErr (err e : GoInterface) : IProp GF := iprop(True)
+
 open go_etcd_io.etcd.cache.v3 in
-/-- **What a failed `Get` returns**: no response, a non-`nil` error; for a request the cache serves
-but whose range it rejects, `ErrKeyRangeInvalid` (or the context's error, if the cache was not yet
-ready and the context is done). -/
+/-- **What a failed `Get` returns**: no response, a non-`nil` error; for a request with an option the
+cache does not serve, an error wrapping `ErrUnsupportedRequest`; for a served request whose range
+it rejects, `ErrKeyRangeInvalid` (either, or the context's error, if the cache was not yet ready and
+the context is done). -/
 def getErr (pfx : GoString) (ctx : GoInterface) (rng : KeyRange) (o : OpM) (resp : Loc)
     (err : GoInterface) : IProp GF :=
   iprop(⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗
+    (⌜getUnsupported o⌝ -∗
+      ((∃ e, globalAddr ErrUnsupportedRequest ↦□ e ∗ wrapsErr err e) ∨ Context.ctxDone ctx)) ∗
     (⌜¬ getUnsupported o ∧ ¬ rangeOk pfx rng⌝ -∗
       (globalAddr ErrKeyRangeInvalid ↦□ err ∨ Context.ctxDone ctx)))
 
@@ -344,6 +348,21 @@ def cacheRevLb_mono.spec : Prop := ∀ c r r', r' ≤ r → cacheRevLb (GF := GF
 def cacheRevLb_reached.spec : Prop := ∀ c γ who pfx r,
   isCache (GF := GF) c γ who pfx ∗ cacheRevLb c r ⊢ ∃ σ, etcdLb γ σ ∗ ⌜r ≤ σ.kv.rev⌝
 
+/-- A cache is a non-`nil` pointer. -/
+def isCache_ne_null.spec : Prop := ∀ c γ who pfx, isCache (GF := GF) c γ who pfx ⊢ ⌜c ≠ null⌝
+
+def wrapsErr_persistent.spec : Prop := ∀ err e, Persistent (wrapsErr (GF := GF) err e)
+
+/-- A non-`nil` error wraps itself. -/
+def wrapsErr_refl.spec : Prop := ∀ e, e ≠ GoInterface.nil → ⊢ wrapsErr (GF := GF) e e
+
+/-- **`errors.Is(err, e)`** for an error that wraps `e`: `true` (Perennial's `errors.Is` follows
+`Unwrap`, which `fmt.Errorf`'s `%w` provides: a trust-boundary fact of `errors` and `fmt`). -/
+def errorsIs_wraps.spec : Prop := ∀ (err e : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ wrapsErr err e }}
+    (App (App (Val (@! errors.Is)) (Val #err)) (Val #e))
+  {{ RET #true; True }}
+
 def cacheOpen_fractional.spec : Prop := ∀ c (q1 q2 : Qp),
   cacheOpen (GF := GF) c (q1 + q2) ⊣⊢ cacheOpen c q1 ∗ cacheOpen c q2
 
@@ -356,8 +375,10 @@ def cacheOpen_fractional.spec : Prop := ∀ c (q1 q2 : Qp),
     `b ≥` the last one's revision (`deliv`), the next position `b + 1`;
   - **a progress notification** at `p = m.hdrRev ≠ 0`: the cluster reached `p` and nothing
     under the range happened from the position up to `p` (`quiet`);
-  - **a cancel** (`Canceled`): the cache's history no longer holds the watch's position (a
-    lagging watcher compacted, `ErrCompacted` in `CancelReason`); then closed. -/
+  - **a progress notification** is never below the highest revision the watch named before
+    (`seen`);
+  - **a cancel** (`Canceled`), at any time: a lagging watcher compacted out of the cache's history
+    window (the code's `CancelReason` is `ErrCompacted`'s text; not stated); then closed. -/
 def cacheWatchAt_recv.spec : Prop := ∀ (ch : Loc) (γ : Cluster) (rng : KeyRange) (st : WatchSt),
   {{ cacheWatchAt (GF := GF) ch γ rng st }}
     (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #ch))
@@ -366,15 +387,15 @@ def cacheWatchAt_recv.spec : Prop := ∀ (ch : Loc) (γ : Cluster) (rng : KeyRan
       | .closed => ⌜ok = false⌝ ∗ cacheWatchAt ch γ rng .closed
       | .rejected => ⌜ok = true⌝ ∗ cacheWatchAt ch γ rng .closed ∗ ∃ m, watchRespAt v m ∗
           ⌜m.canceled = true ∧ m.events = [] ∧ m.compactRev = 0 ∧ m.created = false⌝
-      | .live pos =>
+      | .live pos seen =>
           (⌜ok = false⌝ ∗ cacheWatchAt ch γ rng .closed) ∨
           (⌜ok = true⌝ ∗ ∃ m, watchRespAt v m ∗ ⌜m.created = false⌝ ∗
             ((⌜m.canceled = false ∧ m.compactRev = 0 ∧ m.hdrRev = 0⌝ ∗
                 ∃ (σ : State) (b : Int), etcdLb γ σ ∗ ⌜deliv σ.kv rng pos m.events b⌝ ∗
-                  cacheWatchAt ch γ rng (.live (some (b + 1)))) ∨
+                  cacheWatchAt ch γ rng (.live (some (b + 1)) (max seen b.toNat))) ∨
              (⌜m.canceled = false ∧ m.compactRev = 0 ∧ m.events = [] ∧ m.hdrRev ≠ 0⌝ ∗
-                ∃ σ : State, etcdLb γ σ ∗ ⌜quiet σ.kv rng pos m.hdrRev⌝ ∗
-                  cacheWatchAt ch γ rng (.live (WatchSt.afterProgress pos m.hdrRev))) ∨
+                ∃ σ : State, etcdLb γ σ ∗ ⌜seen ≤ m.hdrRev ∧ quiet σ.kv rng pos m.hdrRev⌝ ∗
+                  cacheWatchAt ch γ rng (.live (WatchSt.afterProgress pos m.hdrRev) m.hdrRev)) ∨
              (⌜m.canceled = true ∧ m.events = []⌝ ∗ cacheWatchAt ch γ rng .closed))) }}
 
 open go_etcd_io.etcd.cache.v3 in

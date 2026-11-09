@@ -75,7 +75,7 @@ structure WalSnap where
 /-- **A WAL directory's records** (see the header). `log` holds the entries of indices
 `floor + 1, floor + 2, ...` as a replay reconstructs them. -/
 structure Recs where
-  meta : List w8
+  metadata : List w8
   hs : Raft.HardState
   floor : Nat
   log : List Raft.LogEntry
@@ -83,8 +83,8 @@ structure Recs where
 
 /-- A new WAL (`wal.Create`): the metadata, an empty state, an empty log, the zero snapshot record
 (which `Create` writes). -/
-def Recs.init (meta : List w8) : Recs :=
-  { meta := meta, hs := Raft.HardState.empty, floor := 0, log := [],
+def Recs.init (md : List w8) : Recs :=
+  { metadata := md, hs := Raft.HardState.empty, floor := 0, log := [],
     snaps := [⟨W64 0, W64 0, none⟩] }
 
 /-- `Save(hs, ents)`, the entries `es` from index `k` (`k = 0`: none): the log truncated at `k`

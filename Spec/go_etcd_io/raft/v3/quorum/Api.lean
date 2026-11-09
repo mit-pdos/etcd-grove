@@ -190,6 +190,19 @@ def jointIdx_quorum.spec : Prop :=
   ∀ (s0 s1 : GSet w64) (f : w64 → w64) (N : w64), JointIdx s0 s1 f N →
     JointQ s0 s1 (ackedFrom (s0 ∪ s1) f N)
 
+/-- **A won joint vote is a joint quorum of granted votes**, and conversely (R2's election
+safety at `TallyVotes`; CheckQuorum's step-down at `QuorumActive`). -/
+def jointVote_won.spec : Prop :=
+  ∀ (s0 s1 : GSet w64) (votes : GMap w64 Bool),
+    jointVote s0 s1 votes = VoteWon ↔ JointQ s0 s1 (granted votes)
+
+/-- **A joint vote is lost exactly when a half's voters that did not say no are no majority** (the
+candidate can no longer win). -/
+def jointVote_lost.spec : Prop :=
+  ∀ (s0 s1 : GSet w64) (votes : GMap w64 Bool),
+    jointVote s0 s1 votes = VoteLost ↔
+      ¬ MajQ s0 (s0 \ rejected votes) ∨ ¬ MajQ s1 (s1 \ rejected votes)
+
 /-- A non-empty majority's index is one of its voters' acknowledgements (so at most their
 largest: R3's reslice bounds in `maybeAdvance`). -/
 def majorityIdx_mem.spec : Prop :=

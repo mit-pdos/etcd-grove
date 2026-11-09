@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `c.waitTillRevision(ctx, rev)`: `nil` once the cache reached `rev`, else an error (`ErrCacheTimeout`, the context's). -/
 def Cache.waitTillRevision.spec : Prop :=
   ∀ (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (ctx : GoInterface) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ Context.ctxOk ctx }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ Context.ctxOk ctx ∗ threadTok }}
     (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"waitTillRevision")) (Val #ctx)) (Val #rev))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; threadTok ∗
       (⌜err = GoInterface.nil⌝ ∗ cacheRevLb c (sint.Z rev).toNat) ∨ ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec

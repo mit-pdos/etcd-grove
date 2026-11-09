@@ -33,7 +33,7 @@ def demux.Register.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s ∗ isWatcher w ∗ watcherNew w rng }}
     (App (App (Val (d @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.demux.ty @!! go!"Register")) (Val #w)) (Val #startingRev))
   {{ RET #(); watcherConsumer w γ (rng.getD (prefixRange pfx))
-      (.live (if startingRev = W64 0 then none else some (sint.Z startingRev))) }}
+      (.live (if startingRev = W64 0 then none else some (sint.Z startingRev)) 0) }}
 
 end spec
 

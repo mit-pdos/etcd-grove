@@ -71,3 +71,5 @@
 4. (1b, round 1) **A bound law on reached states**: `etcdLb γ σ ⊢ ⌜σ.kv.rev < 2^63 ∧
    σ.kv.compacted ≤ σ.kv.rev⌝`, so that a watch consumer without the owner's invariant (Kubernetes'
    watcher) can compare revisions it reads (`etcdState_revFits` gives it only at the current state).
+   (Update: W0's round 2 added `etcdLb_revFits`; the `compacted ≤ rev` half follows from the
+   model, a pure lemma of the client.)

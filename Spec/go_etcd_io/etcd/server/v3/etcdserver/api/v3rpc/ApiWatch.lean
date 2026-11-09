@@ -189,15 +189,16 @@ def srvWireStep (who : Principal) (σ σa : State) (ss : List WireWatchReq) (st 
     (m : WireWatchRespM) (st' : WireSt) : Prop :=
   if m.fragment = false ∧ m.created = false ∧ ¬ (m.canceled = true ∧ m.compactRev = W64 0) ∧
       m.watchId = -1 then
-    st.frag ++ m.events = [] ∧ m.canceled = false ∧ m.compactRev = W64 0 ∧
-    ∃ P : Nat, (m.hdr.getD HeaderM.zero).revision = W64 P ∧ (P : Int) ≤ σ.kv.rev ∧
+    (∀ id fe, st.frag = some (id, fe) → m.watchId = id ∧ m.created = false ∧ m.canceled = false) ∧
+    (st.frag.map (·.2)).getD [] ++ m.events = [] ∧ m.canceled = false ∧ m.compactRev = W64 0 ∧
+    ∃ P : Nat, sint.Z (m.hdr.getD HeaderM.zero).revision = P ∧ (P : Int) ≤ σ.kv.rev ∧
       (∀ r ∈ st.regs, WireWatchReq.cancel r.1 ∉ ss →
         ∀ c, r.2.2.done = some c → c ≤ P ∧ watchEvents r.2.1 σ.kv (c + 1) P = []) ∧
       st' = { st with
         regs := st.regs.map (fun r =>
           if WireWatchReq.cancel r.1 ∈ ss then r
           else (r.1, r.2.1, { r.2.2 with done := r.2.2.done.map (fun _ => P) })),
-        frag := [] }
+        frag := none }
   else wireStep who σ σa ss st m st'
 
 /-! ## Resources -/

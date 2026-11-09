@@ -220,13 +220,63 @@ opaque dialOptAt (v : GoInterface) (f : DialCfg (GF := GF) → DialCfg (GF := GF
 /-- **A call option grpc accepts**. -/
 opaque callOptOk (v : GoInterface) : IProp GF := iprop(True)
 
+/-- **The contracts an address is bound to**: for each method name, its request and reply types
+and its contract (`none`: not served there). -/
+structure AddrContract where
+  unary : GoString → Option (go.GoType × go.GoType × UnarySpec (GF := GF))
+  stream : GoString → Option (go.GoType × go.GoType × StreamSpec (GF := GF))
+
+/-- **The program may listen at `ep`** (exclusive): one per address, given to the program by the
+adequacy theorem, as the thread fuel is (a resource of the program's environment, not of grpc's:
+no statement here produces it). -/
+opaque addrFree (ep : GoString) : IProp GF := iprop(True)
+
+/-- **The address `ep` is bound to the contracts `C`** for good (persistent): every server this
+program ever starts at `ep` serves `C` (a member restarted at its client URL serves the same
+contracts), so a caller holding `serves ep m ...` meets the contract of whichever run it reaches. -/
+opaque addrAt (ep : GoString) (C : AddrContract (GF := GF)) : IProp GF := iprop(True)
+
 /-- **The unary method `m` is served at `ep`** with the contract `S`. -/
-opaque serves (ep m : GoString) (reqT repT : go.GoType) (S : UnarySpec (GF := GF)) : IProp GF :=
-  iprop(True)
+def serves (ep m : GoString) (reqT repT : go.GoType) (S : UnarySpec (GF := GF)) : IProp GF :=
+  iprop(∃ C : AddrContract (GF := GF), addrAt ep C ∗ ⌜C.unary m = some (reqT, repT, S)⌝)
 
 /-- **The streaming method `m` is served at `ep`** with the contract `S`. -/
-opaque servesStream (ep m : GoString) (reqT repT : go.GoType) (S : StreamSpec (GF := GF)) :
-  IProp GF := iprop(True)
+def servesStream (ep m : GoString) (reqT repT : go.GoType) (S : StreamSpec (GF := GF)) : IProp GF :=
+  iprop(∃ C : AddrContract (GF := GF), addrAt ep C ∗ ⌜C.stream m = some (reqT, repT, S)⌝)
+
+/-- **A `net.Listener` bound to `ep`** (exclusive; 2e's `net.Listen`, or Perennial's). -/
+opaque listenerAt (lis : GoInterface) (ep : GoString) : IProp GF := iprop(True)
+
+/-- **The right to run `Serve` on `gs` with `lis`** (exclusive; `start`'s). -/
+opaque serveTok (gs : Loc) (lis : GoInterface) : IProp GF := iprop(True)
+
+/-- **A `*grpc.ServiceDesc`** (read-only; the generated `<Svc>_ServiceDesc`, 3h's init facts): the
+service's full name, its unary methods' (name, `Handler`) and its streams' (name, `Handler`). -/
+opaque serviceDescAt (sd : Loc) (svc : GoString) (ms ss : List (GoString × val)) : IProp GF :=
+  iprop(True)
+
+/-- **A resolver builder reporting only addresses with `A`** (persistent; the client's resolver,
+1c, over grpc's `resolver/manual`). -/
+opaque resolverAt (r : GoInterface) (A : GoString → IProp GF) : IProp GF := iprop(True)
+
+/-- **Per-RPC credentials adding metadata with `R`** (persistent; the client's token bundle's,
+1c: grpc calls its `GetRequestMetadata` on every call and stream, and its
+`RequireTransportSecurity`). -/
+opaque perRPCAt (pc : GoInterface) (R : MD → IProp GF) : IProp GF := iprop(True)
+
+/-- **A codec that round-trips contents** (persistent; `grpc.CustomCodec`'s argument: its
+`Marshal` of a message holding `c` gives bytes `encodes`-ing `c`, its `Unmarshal` of such bytes into
+a fresh message gives `c`; v3rpc's `codec`, over golang/protobuf's `proto`, which calls
+protobuf-go's). -/
+opaque codecOk (cd : GoInterface) : IProp GF := iprop(True)
+
+/-- **The chained unary interceptor of `ics`** (persistent): what grpc passes to a handler. -/
+opaque icChain (ics : List val) (ic : val) : IProp GF := iprop(True)
+
+/-- **A unary server handler continuation** (what an interceptor gets as `handler`): calling it is
+running the rest of the chain `ics` and then `h` (the generated handler's call of the service's
+method). -/
+opaque icHandler (ics : List val) (k : val) (h : val) : IProp GF := iprop(True)
 
 /-- **grpc's one-attempt invoker of `cc`** (the `UnaryInvoker` an interceptor gets). -/
 opaque attemptOk (cc : Loc) (A : GoString → IProp GF) (R : MD → IProp GF) (inv : val) : IProp GF :=
@@ -448,6 +498,50 @@ def srvStream_context.spec : Prop := ∀ (st : GoInterface) (g : StreamName) (S 
   {{ srvRecv (GF := GF) st g S md i }}
     (App (Val (st @!! google_golang_org.grpc.ServerStream.ty @!! go!"Context")) (Val #()))
   {{ (ctx : GoInterface), RET #ctx; srvRecv st g S md i ∗ rpcCtx ctx md }}
+
+/-- **Binding an address**, once: the program chooses the contracts. -/
+def addrFree_bind.spec : Prop := ∀ ep (C : AddrContract (GF := GF)),
+  addrFree ep ⊢ |==> addrAt ep C
+
+def addrAt_persistent.spec : Prop := ∀ ep (C : AddrContract (GF := GF)), Persistent (addrAt ep C)
+
+def addrAt_agree.spec : Prop := ∀ ep (C C' : AddrContract (GF := GF)),
+  addrAt ep C ∗ addrAt ep C' ⊢ ⌜C = C'⌝
+
+/-- **Starting to serve** (a ghost step before `Serve`): a server built with the registrations of
+`B`, a listener at `ep` bound to `C`, and, for each registration, its handler meeting the contract
+`C` gives its method (under the server's interceptor chain); the workload premise. Gives the right
+to run `Serve`. Registrations of grpc's own services (health, reflection) are not in `B.regs`. -/
+def start.spec : Prop := ∀ (gs : Loc) (B : SrvCfg) (lis : GoInterface) (ep : GoString)
+    (C : AddrContract (GF := GF)),
+  srvBuild gs B ∗ listenerAt lis ep ∗ addrAt ep C ∗ ⌜msgsFit⌝ ∗
+    ([∗list] r ∈ B.regs, ∃ (reqT repT : go.GoType) (S : UnarySpec (GF := GF)),
+      ⌜C.unary r.1 = some (reqT, repT, S)⌝ ∗ ∀ ic, icChain B.ics ic -∗ unaryOk r.2.1 r.2.2 ic reqT repT S) ∗
+    ([∗list] r ∈ B.sregs, ∃ (reqT repT : go.GoType) (S : StreamSpec (GF := GF)),
+      ⌜C.stream r.1 = some (reqT, repT, S)⌝ ∗ ∀ sic, icChain B.sics sic -∗
+        streamOk r.2.1 r.2.2 (if B.sics = [] then none else some sic) reqT repT S) ⊢
+  |==> serveTok gs lis
+
+/-- **The chain's call** (WP form): the chained interceptor runs the first interceptor with a
+continuation running the rest, then the handler `h`; with no interceptor grpc passes `nil` and the
+generated handler calls the method itself (`icChain [] ic`: `ic` is the nil function). -/
+def icChain_call.spec : Prop := ∀ (i : val) (ics : List val) (ic : val) (ctx req : GoInterface)
+    (info : Loc) (h : val) (Ψ : val → IProp GF),
+  icChain (GF := GF) (i :: ics) ic ∗
+    (∀ k, icHandler ics k h -∗
+      WP (App (App (App (App (Val i) (Val #ctx)) (Val #req)) (Val #info)) (Val k)) {{ Ψ }}) ⊢
+  WP (App (App (App (App (Val ic) (Val #ctx)) (Val #req)) (Val #info)) (Val h)) {{ Ψ }}
+
+/-- **A continuation's call**: the next interceptor with the next continuation, or (none left) the
+handler. -/
+def icHandler_call.spec : Prop := ∀ (ics : List val) (k h : val) (ctx req : GoInterface)
+    (Ψ : val → IProp GF),
+  icHandler (GF := GF) ics k h ∗
+    (match ics with
+     | [] => WP (App (App (Val h) (Val #ctx)) (Val #req)) {{ Ψ }}
+     | i :: rest => ∀ (info : Loc) (k' : val), icHandler rest k' h -∗
+         WP (App (App (App (App (Val i) (Val #ctx)) (Val #req)) (Val #info)) (Val k')) {{ Ψ }}) ⊢
+  WP (App (App (Val k) (Val #ctx)) (Val #req)) {{ Ψ }}
 
 end res
 

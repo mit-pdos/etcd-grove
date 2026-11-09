@@ -40,8 +40,8 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.wait.Assumptions]
 /-- **A new time list over `P`** (downward closed, holding at `0`). -/
 def NewTimeList.spec : Prop :=
   ∀ (P : w64 → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ □ P (W64 0) ∗
-      □ iprop(∀ a b : w64, ⌜uint.nat b ≤ uint.nat a⌝ -∗ P a -∗ P b) }}
+  (∀ a b : w64, uint.nat b ≤ uint.nat a → P a ⊢ P b) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ □ P (W64 0) }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.wait.NewTimeList)) (Val #()))
   {{ (tl : Loc), RET #tl; timeListAt tl P }}
 

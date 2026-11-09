@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `d.LatestRev()`: a revision the cluster reached. -/
 def demux.LatestRev.spec : Prop :=
   ∀ (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s ∗ threadTok }}
     (App (Val (d @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.demux.ty @!! go!"LatestRev")) (Val #()))
-  {{ (r : w64), RET #r; ∃ σ : State, etcdLb γ σ ∗ ⌜sint.Z r ≤ σ.kv.rev⌝ }}
+  {{ (r : w64), RET #r; threadTok ∗ ∃ σ : State, etcdLb γ σ ∗ ⌜sint.Z r ≤ σ.kv.rev⌝ }}
 
 end spec
 

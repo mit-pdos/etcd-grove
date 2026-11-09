@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `s.LatestRev()`: a revision the store reached, which the cluster reached. -/
 def store.LatestRev.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (pfx : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.store.ty @!! go!"LatestRev")) (Val #()))
-  {{ (r : w64), RET #r; ⌜0 ≤ sint.Z r⌝ ∗ storeRevLb s (sint.Z r).toNat ∗
+  {{ (r : w64), RET #r; threadTok ∗ ⌜0 ≤ sint.Z r⌝ ∗ storeRevLb s (sint.Z r).toNat ∗
       ∃ σ : State, etcdLb γ σ ∗ ⌜sint.Z r ≤ σ.kv.rev⌝ }}
 
 end spec

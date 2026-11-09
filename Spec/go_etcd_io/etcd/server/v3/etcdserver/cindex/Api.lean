@@ -70,6 +70,9 @@ open Iris Iris.BI
 /-- The consistent indexer's ghost names. -/
 opaque CINames : Type := Unit
 
+section model
+variable [GooseExts]
+
 /-- **The consistent indexer's state**: the in-memory consistent index (`0`: not loaded yet, the
 next `ConsistentIndex()` reads the backend), the applying index, the backend it reads from, and what
 that backend's stored index is (`none`: no backend to read, `NewConsistentIndex(nil)`). The terms
@@ -80,6 +83,8 @@ structure CIState where
   aIdx : w64
   be : GoInterface
   stored : Option w64
+
+end model
 
 section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]

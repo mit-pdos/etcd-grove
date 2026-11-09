@@ -10,7 +10,7 @@ Proof sketch: a loop: `store.LatestRev.spec` (`storeRevLb s r` of what it read);
 `ctx.Done()` (W0's context bundle, the `Done` triple asked of W0: `req/context.md`), whose context
 branch returns `ctx.Err()`, non-`nil` (`Context.ErrDone.spec`).
 
-Changes: from `specs-ref`'s `Cache__WaitForRevision.lean`: W0's context bundle; the client-facing
+Changes: (round 1) a thread token, given back, for the read lock's reader slot. from `specs-ref`'s `Cache__WaitForRevision.lean`: W0's context bundle; the client-facing
 `cacheRevLb`.
 
 Margin: none.
@@ -40,9 +40,9 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 the context's error once it is done. -/
 def Cache.WaitForRevision.spec : Prop :=
   ∀ (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (ctx : GoInterface) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ Context.ctxOk ctx }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ Context.ctxOk ctx ∗ threadTok }}
     (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"WaitForRevision")) (Val #ctx)) (Val #rev))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; threadTok ∗
       (⌜err = GoInterface.nil⌝ ∗ cacheRevLb c (sint.Z rev).toNat) ∨
       (Context.ctxDone ctx ∗ context.isCtxErr err) }}
 

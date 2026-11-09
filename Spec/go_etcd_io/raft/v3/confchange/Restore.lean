@@ -9,8 +9,11 @@ no panic, and `assertConfStatesEquivalent` passes), `appliedSnap` (`raft.go:776`
 `ReqRestoreRoundTrip`, `ReqApplyLikeRaft`).
 
 **Proof sketch.** `toConfChangeSingle(cs)` (fresh `ConfChangeSingle`s: `ccsPts` of the outgoing
-adds and the incoming changes); the op closures (each an `opSpec` of `simple [c]`, or of
-`enterJoint (cs.GetAutoLeave()) inc`, by `Changer.Simple.spec`/`EnterJoint.spec`); `chain`. No op
+adds and the incoming changes); the op closures (each an `opSpec … R` of `simple [c]`, or of
+`enterJoint (cs.GetAutoLeave()) inc`, by `Changer.Simple.spec`/`EnterJoint.spec`, with the frame
+`R` the `ConfState` share, the closures' captured variables and both `ccsPts`: a closure reads
+`cs` and its change when `chain` runs it, so `R` is threaded, not persistent); `chain` (gives `R`
+back on both exits, so the `ConfState` comes back). No op
 (an empty `ConfState`): `chain` returns the tracker's own configuration and map, at the model's
 `m0`, which the precondition's resources are.
 

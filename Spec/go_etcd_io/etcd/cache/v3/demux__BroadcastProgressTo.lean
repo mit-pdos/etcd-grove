@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `d.BroadcastProgressTo(w)`. -/
 def demux.BroadcastProgressTo.spec : Prop :=
   ∀ (d : Loc) (γ : Cluster) (pfx : GoString) (s w : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s ∗ isWatcher w }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s ∗ isWatcher w ∗ threadTok }}
     (App (Val (d @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.demux.ty @!! go!"BroadcastProgressTo")) (Val #w))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 

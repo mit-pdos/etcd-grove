@@ -162,6 +162,11 @@ def configOwn_fractional.spec : Prop :=
   ∀ cfg (m : Membership) (dq1 dq2 : DFrac),
     configOwn (GF := GF) cfg (dq1 • dq2) m ⊣⊢ configOwn cfg dq1 m ∗ configOwn cfg dq2 m
 
+/-- Two shares of one configuration value hold the same configuration. -/
+def configOwn_agree.spec : Prop :=
+  ∀ cfg (dq1 dq2 : DFrac) (m1 m2 : Membership),
+    configOwn (GF := GF) cfg dq1 m1 ∗ configOwn cfg dq2 m2 ⊢ iprop(⌜m1 = m2⌝)
+
 def inflightsOwn_timeless.spec : Prop := ∀ p I, Timeless (inflightsOwn (GF := GF) p I)
 
 def configOwn_timeless.spec : Prop := ∀ cfg dq m, Timeless (configOwn (GF := GF) cfg dq m)

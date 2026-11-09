@@ -28,7 +28,10 @@ so the forwarded response meets `cacheWatchAt_recv`'s arm; on `ctx`, the cache's
 watcher's channel closed, it unregisters (`demux.Unregister.spec`) and closes the response channel
 (`closed`). The consumer's position is the ghost half the demux's entry for the watcher shares.
 
-Changes: from `specs-ref`'s `Cache__Watch.lean` and the delivery theorem (`cache_Watch_delivery`): the
+Changes: (round 1) a thread token, given back: deposited at the wait group's `Add(1)` (the counter
+bounded by tokens, `notes/bounds-plan.md`), a fresh one received at the `go` statement
+(`wp_fork_tok`); the consumer position carries `seen` (a progress notification is never below an
+earlier response's revision). From `specs-ref`'s `Cache__Watch.lean` and the delivery theorem (`cache_Watch_delivery`): the
 log-level delivery theorem (a `cacheWatchLog` of all responses, `certChain` of `EtcdStep`s, `bs`
 batches) is restated as a per-receive law (`cacheWatchAt_recv`) over the consumer's position, with
 each response's fact `etcdLb γ σ ∗ ⌜deliv/quiet σ.kv ...⌝` in W0's model, which composes with every
@@ -70,9 +73,9 @@ def Cache.Watch.spec : Prop :=
   ∀ (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (q : Qp) (ctx : GoInterface) (key : GoString)
     (opts : GoSlice) (gs : List (OpM → OpM)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ cacheOpen c q ∗
-      Context.ctxOk ctx ∗ optsAt opts gs ∗ ⌜¬ (opWatchM key gs).watchPanics⌝ }}
+      Context.ctxOk ctx ∗ optsAt opts gs ∗ ⌜¬ (opWatchM key gs).watchPanics⌝ ∗ threadTok }}
     (App (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"Watch")) (Val #ctx)) (Val #key)) (Val #opts))
-  {{ (ch : Loc), RET #ch; cacheOpen c q ∗ optsAt opts gs ∗
+  {{ (ch : Loc), RET #ch; cacheOpen c q ∗ optsAt opts gs ∗ threadTok ∗
       (cacheWatchAt ch γ (cacheRange key (opWatchM key gs))
          (watchStart pfx (cacheRange key (opWatchM key gs)) (opWatchM key gs)) ∨
        cacheWatchAt ch γ (cacheRange key (opWatchM key gs)) .closed) }}

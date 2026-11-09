@@ -123,3 +123,46 @@ not below the position, compaction, cancel, fragments); `go_etcd_io_etcd_api_v3_
 (1c: `GetLogger`, `isHaltErr`/`isUnavailableErr`, the block logger, `Client.Close`; principal via
 `ctxPrin`); `context.md` (W0: `WithCancel` over a `ctxOk` parent, `Done` in a `select`: now covered
 by W0's round 1); `go_etcd_io_etcd_api_v3.md` (W0: the watch messages' home, the retention).
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/1b-provability-1.md` (P), `reviews/1b-completeness-1.md` (C). All first-tier
+findings fixed or answered; the 40 modules build, the snippets vet.
+
+| finding | repair |
+|---|---|
+| P-F1, C-F1 (compaction with `closeErr`; anything after an error) | `watchStep`'s error case: `closeErr ≠ none → compactRev = 0 ∧ header 0`, `compactRev ≠ 0 → closeErr = none ∧ …`; the ended case: only `closeErr` responses (header `0`, no compaction, no events) |
+| P-F2 (`Err` on a `closeErr`) | `WatchResponse.Err.spec`'s `some` case gives `err ≠ nil` |
+| P-F3 (progress `P` vs the Go header) | `sint.Z m.hdr.revision = P`; also `sint.Z m.compactRev = cr`; `wireStep`'s `-1` case the same |
+| P-F4 (fragments of another id) | `WireSt.frag : Option (Int × List EventM)`; a pending fragment forces the next response's id, no creation or cancel; the odd conjunct dropped; 2b's req updated |
+| P-F5 (`deliverOk` for `Created`s run dispatches) | `deliverOk s γ who (tgt : Option Int) m` (`none`: broadcast); realization restated: an unregistered id needs nothing, a `Created` is forwarded only with `retc` pending and `createdNotify`, else dropped; `dispatchEvent`/`broadcastResponse`/`unicastResponse` updated |
+| P-F6 (`ReqWatchRefused` vacuous) | snippet dropped, recorded in `ending.go` and below (open question 4); the event case's `σa` documented as any reached state (a lagging member's applied auth) |
+| C-F2 (read-only responses, 1g's request) | `watchRespRO` (persistent), `watchRespAt_persist`, `watchRespRO_persistent`, `eventOwn_persist`; snippet `ReqWatchShare` |
+| C-F3 (`rev = 0` completeness) | `WatchPos.floor`: `Watch`'s post gives `WatchPos.init rev r0` with `etcdLb γ σ0`, `r0 = σ0.kv.rev`, or `WatchPos.closed` (a channel that ends at once); the event case at an unknown position has `lo ≤ floor + 1`; `wireStep` registers a start-`0` watch with the `Created` header as floor; snippet `ReqWatchFromNow` |
+
+Second tier: S1/S2 (P) stated in `WatchInternal.lean`'s header (the tie is a refinement; `ws.id`
+is `run`'s; `initReq.rev` split by fraction); S4 (P) `watchReqOwn`'s create key (`""` for
+`"\x00"`), 3h's req; S6 (P) `watcher.Watch`'s margin reworded; `Watch` returns `⌜ch ≠ null⌝` (1f);
+1d told in `req/go_etcd_io_etcd_client_v3.md` that non-decreasing headers are false of the code
+(with the case); C-S2 `ReqWatchChained`; C-S3 `ReqWatchOptions` (`WithRequireLeader`, `WithRange`,
+empty key with prefix, `WithWatchBufLog`); C-S6 snippet headers (`waitDelete` watches from the Get's
+revision), `ReqWatchPrevKVCompacting` (Kubernetes' pattern under compaction); `watcher.Watch`'s
+Users add grpcproxy's coalescing and health check; P-S5 asked of W0 (now `etcdLb_revFits`).
+
+**Go finding filed**: `issues/etcd-watch-current-resume-past-event.md` with
+`issues/etcd-watch-current-resume-past-event/watch_current_resume_test.go`, failing at
+etcd-io/etcd@ea8b5943 (one member behind a bridge: put, watch from now, drop connections: the put
+is delivered). `blocks-proof: no`; `issues/INDEX.md` regenerated (`etc/issues-status.py --index`).
+The racy parts (a skip in `(R, H)`, a progress below `H`) are noted in it, not reproduced. My
+earlier grpcproxy lead (finding 2) is withdrawn: C-S7's reading is right (the receiver's own
+`nextrev` filter drops what is below its start, and later responses carry the rest).
+
+**Known unserved users (C-S4, outside every batch)**: `v3client`'s `watchWrapper` (`blankContext`:
+needs `ctxOk`/`ctxPrin` of it, 1c/W0), grpcproxy forwarding a downstream token (excluded by
+`ctxPrin`), the namespace wrapper as a client's `Watcher` (keys stripped: not `watcherAt` for `γ`).
+
+**Open question 4 (new) for the user**: a refused watch delivers nothing only on an up-to-date
+member. `examples/etcd/auth/authkv.go:272` relies on it with one member. Options: (a) a lower bound
+on the admitting state for a one-member cluster, taken at the call (`σ.members.length = 1 → Reach
+σ₀ σa`), one spec; (b) keep the spec as is and record that authkv's check rests on its single
+member (done for now).

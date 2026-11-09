@@ -29,11 +29,11 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `s.Get(start, end, rev)`: for a range the cache serves, the key-values of etcd's store at `rev` (the latest for `0`) in the range, and the latest revision; or an error. -/
 def store.Get.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (pfx : GoString) (startSl endSl : GoSlice) (sk ek : GoString) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx ∗ startSl ↦*□ sk ∗ endSl ↦*□ ek ∗ ⌜rangeOk pfx ({ key := sk, rangeEnd := ek } : KeyRange)⌝ }}
+  ∀ (s : Loc) (γ : Cluster) (pfx : GoString) (r0 : Nat) (startSl endSl : GoSlice) (sk ek : GoString) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx ∗ storeRevLb s r0 ∗ threadTok ∗ startSl ↦*□ sk ∗ endSl ↦*□ ek ∗ ⌜rangeOk pfx ({ key := sk, rangeEnd := ek } : KeyRange)⌝ }}
     (App (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.store.ty @!! go!"Get")) (Val #startSl)) (Val #endSl)) (Val #rev))
-  {{ (kvsSl : GoSlice) (lrev : w64) (err : GoInterface), RET (PairV (PairV #kvsSl #lrev) #err);
-      (⌜err = GoInterface.nil⌝ ∗ storeRevLb s (sint.Z lrev).toNat ∗
+  {{ (kvsSl : GoSlice) (lrev : w64) (err : GoInterface), RET (PairV (PairV #kvsSl #lrev) #err); threadTok ∗
+      (⌜err = GoInterface.nil ∧ r0 ≤ sint.Z lrev⌝ ∗ storeRevLb s (sint.Z lrev).toNat ∗
         ∃ (σ : State) (kvs : List KV), etcdLb γ σ ∗
           msgsOwn keyValueOwn kvsSl DFrac.discard (kvs.map KeyValueM.ofKV) ∗
           ⌜0 ≤ sint.Z rev ∧ sint.Z rev ≤ sint.Z lrev ∧ sint.Z lrev ≤ σ.kv.rev ∧

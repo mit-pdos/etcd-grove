@@ -71,7 +71,7 @@ hold `ctxOk` and `ctxPrin` of their `ctx` field for the client's principal.
 * `lastField`, `lastKeyIn`, `seqNext s p n` (`newSequentialKV`'s next number: one past the last
   key's number under `p` in the store `s`, by `fmt.Sscanf`'s `%d`; `0` for none); `waitersExactly`.
 * The watch's events are 1b's (`ClientV3.WEv`, `watchEvents`, `OpM.watchReq`,
-  `client/v3/ApiWatch.lean`); `WEv.typ`, `matchCount` (`waitEvents`' greedy match) are here.
+  `client/v3/ApiWatch.lean`); `evTyp`, `matchCount` (`waitEvents`' greedy match) are here.
 * `RecipeErr`: the package's error variables (`ErrKeyExists`, ...); `RKSt`: a `RemoteKV`'s fields;
   `okOrErr`, `putNewRet`, `deleteRevRet`: what a call returns for its request's answer.
 
@@ -270,11 +270,11 @@ def evPut : w32 := W32 0
 def evDelete : w32 := W32 1
 
 /-- A delivered event's type. -/
-def WEv.typ (e : WEv) : w32 := if e.del then evDelete else evPut
+def evTyp (e : WEv) : w32 := if e.del then evDelete else evPut
 
 /-- `waitEvents`' greedy match of the types `ts` over the events `es`: how many it matched. -/
 def matchCount (ts : List w32) (es : List WEv) : Nat :=
-  es.foldl (fun i e => if ts[i]? = some e.typ then i + 1 else i) 0
+  es.foldl (fun i e => if ts[i]? = some (evTyp e) then i + 1 else i) 0
 
 /-! ## Errors and objects -/
 

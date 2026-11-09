@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `d.WaitForNextResync(ctx)`. -/
 def demux.WaitForNextResync.spec : Prop :=
   ∀ (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s ∗ Context.ctxOk ctx }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s ∗ Context.ctxOk ctx ∗ threadTok }}
     (App (Val (d @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.demux.ty @!! go!"WaitForNextResync")) (Val #ctx))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; threadTok ∗
       ⌜err = GoInterface.nil⌝ ∨ (Context.ctxDone ctx ∗ context.isCtxErr err) }}
 
 end spec

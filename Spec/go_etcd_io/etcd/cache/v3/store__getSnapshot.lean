@@ -29,11 +29,11 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `s.getSnapshot(rev)`: a snapshot answering for `rev` (the latest for `0`) and the latest revision, or an error. -/
 def store.getSnapshot.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (pfx : GoString) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx }}
+  ∀ (s : Loc) (γ : Cluster) (pfx : GoString) (r0 : Nat) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx ∗ storeRevLb s r0 ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.store.ty @!! go!"getSnapshot")) (Val #rev))
-  {{ (p : Loc) (lrev : w64) (err : GoInterface), RET (PairV (PairV #p #lrev) #err);
-      (⌜err = GoInterface.nil⌝ ∗ storeRevLb s (sint.Z lrev).toNat ∗
+  {{ (p : Loc) (lrev : w64) (err : GoInterface), RET (PairV (PairV #p #lrev) #err); threadTok ∗
+      (⌜err = GoInterface.nil ∧ r0 ≤ sint.Z lrev⌝ ∗ storeRevLb s (sint.Z lrev).toNat ∗
         ⌜0 ≤ sint.Z rev ∧ sint.Z rev ≤ sint.Z lrev ∧ 0 < sint.Z lrev⌝ ∗
         snapFor p γ pfx (if sint.Z rev = 0 then (sint.Z lrev).toNat else (sint.Z rev).toNat)) ∨
       ⌜err ≠ GoInterface.nil⌝ }}

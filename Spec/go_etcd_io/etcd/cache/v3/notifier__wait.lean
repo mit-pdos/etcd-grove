@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `n.wait(ctx)`: `nil` (a notification came), or the context's error once done. -/
 def notifier.wait.spec : Prop :=
   ∀ (n : Loc) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isNotifier n ∗ Context.ctxOk ctx }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isNotifier n ∗ Context.ctxOk ctx ∗ threadTok }}
     (App (Val (n @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.notifier.ty @!! go!"wait")) (Val #ctx))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; threadTok ∗
       ⌜err = GoInterface.nil⌝ ∨ (Context.ctxDone ctx ∗ context.isCtxErr err) }}
 
 end spec

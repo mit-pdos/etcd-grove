@@ -118,14 +118,16 @@ opaque ccState (B : Base) (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap
 def ccWork (B : Base) (cfgp : Loc) (trk : GoMap) (m : Membership) : IProp GF :=
   iprop(∃ cfg, typedPointsto cfgp cfg (DFrac.own 1) ∗ ccState B cfg trk m)
 
-/-- (internal) A `chain` op `f`: a changer transition with model `F` (a `func(Changer)
-(Config, ProgressMap, error)`). Persistent. -/
-def opSpec (f : GoFunc) (F : Membership → Option Membership) : IProp GF :=
-  iprop(□ ∀ (chg : go_etcd_io.raft.v3.confchange.Changer) (dq : DFrac) (m : Membership)
+/-- (internal) A `chain` op `f`, run once: a changer transition with model `F` (a `func(Changer)
+(Config, ProgressMap, error)`): from a valid configuration `m`, `changed B (F m)`, with the frame
+`R` (what the closure reads when it runs: `Restore`'s `ConfState` and changes) taken and given back.
+Not persistent: `chain` calls each op exactly once. -/
+def opSpec (f : GoFunc) (F : Membership → Option Membership) (R : IProp GF) : IProp GF :=
+  iprop(∀ (chg : go_etcd_io.raft.v3.confchange.Changer) (dq : DFrac) (m : Membership)
       (B : Base) (Φ : val → IProp GF),
-    configOwn chg.Tracker'.Config' dq m ∗ progressMapOwn B.mp B.prs B.pv ∗
+    R ∗ configOwn chg.Tracker'.Config' dq m ∗ progressMapOwn B.mp B.prs B.pv ∗
       ⌜BaseOf chg B ∧ TrackerOk m B.pv ∧ m.Valid⌝ -∗
-    ▷ (∀ cfg trk err, configOwn chg.Tracker'.Config' dq m ∗ changed B (F m) cfg trk err -∗
+    ▷ (∀ cfg trk err, R ∗ configOwn chg.Tracker'.Config' dq m ∗ changed B (F m) cfg trk err -∗
         Φ (PairV (PairV #cfg #trk) #err)) -∗
     WP (App (Val #f) (Val #chg)) {{ Φ }})
 
@@ -158,21 +160,16 @@ def changeV2_adjacent.spec : Prop :=
     GMap.size m.voters + GMap.size m'.voters < 2 ^ 63 →
     Quorum.Adjacent m.voters m.votersOutgoing m'.voters m'.votersOutgoing
 
-/-- **A legacy change** (`ConfChange.AsV2()`: one change, transition `Auto`) at a configuration with
-voters that is not joint (etcd's): node `0` and `UpdateNode` change nothing; `AddNode` makes a
-voter, `AddLearnerNode` a learner, `RemoveNode` removes; an error if no voter is left, or for an
-unknown type. (R1's `Membership.applyChange_v1`, corrected: at the empty configuration even a no-op
-is an error, "removed all voters"; an unknown type is an error.) -/
+/-- **A legacy change** (`ConfChange.AsV2()`: one change, transition `Auto`) at any valid
+configuration that is not joint (etcd's; the bootstrap's `AddNode`s from the empty one): the change
+(`applyOne`: node `0` and `UpdateNode` change nothing, `AddNode` makes a voter, `AddLearnerNode` a
+learner, `RemoveNode` removes, an unknown type is an error), then an error if no voter is left.
+(R1's `Membership.applyChange_v1`, corrected: at the empty configuration even a no-op is the error
+"removed all voters"; an unknown type is an error, not a removal.) -/
 def changeV2_single.spec : Prop :=
-  ∀ (c : Single) (m : Membership), m.Valid → m.votersOutgoing = ∅ → m.voters ≠ ∅ →
+  ∀ (c : Single) (m : Membership), m.Valid → m.votersOutgoing = ∅ →
     changeV2 ⟨TransitionAuto, [c]⟩ m =
-      if c.nodeId = W64 0 ∨ c.type = UpdateNode then some m
-      else if c.type = AddNode then some (makeVoter c.nodeId m)
-      else if c.type = AddLearnerNode then
-        (if (makeLearner c.nodeId m).voters = ∅ then none else some (makeLearner c.nodeId m))
-      else if c.type = RemoveNode then
-        (if (remove c.nodeId m).voters = ∅ then none else some (remove c.nodeId m))
-      else none
+      (applyOne c m).bind (fun m' => if m'.voters = ∅ then none else some m')
 
 /-- **`Restore` gives back the configuration a `ConfState` lists**, from the empty tracker (raft's
 `newRaft` and `appliedSnap`, the examples' pre-check). -/
@@ -201,7 +198,6 @@ def ccState_abort.spec : Prop :=
   ∀ (B : Base) cfg trk (m : Membership),
     ccState (GF := GF) B cfg trk m ⊢ progressMapOwn B.mp B.prs B.pv
 
-def opSpec_persistent.spec : Prop := ∀ f F, Persistent (opSpec (GF := GF) f F)
 
 end laws
 

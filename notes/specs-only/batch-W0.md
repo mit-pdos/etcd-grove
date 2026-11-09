@@ -269,6 +269,7 @@ finding is fixed.
 | `EtcdModel.putOnce` | **new**, and a conjunct of `kvStep .txn`'s success (1f): the gRPC layer's duplicate-key check refuses a transaction that puts a key twice on a path; the events may still delete a key put earlier (sibling put-then-delete, `issues/etcd-txn-check-intervals-sibling.md`). Cite it as "`kvStep`'s `putOnce evs`" (it is the model's restriction, not a law) |
 | `AuthState.mayCall` | `.userGet n` also `who = none ∧ n = []` (S1) |
 | `EtcdModel.RequestOp.valid`, `RequestOp.validL`, `TxnReq.valid` | **new** (1e's review): the gRPC layer's validation of every comparison and operation of a transaction (both branches, nested); `kvStep .txn`'s applied branch now requires `t.valid` (an invalid one is only refused: `ErrEmptyKey`, `ErrValueProvided`, `ErrLeaseProvided`, `ErrInvalidSortOption`, `ErrKeyNotFound`). Cite as "`kvStep`'s `t.valid`" |
+| `EtcdModel.etcdLb_keyNonEmpty` | **new law** (1g): no event or stored key of any state an `etcdLb` names is the empty key (true of `Step`: puts are validated, deletes and revocations remove stored keys) |
 | `ClientV3.clientRest` | **new** (persistent; 1d, 1e): everything of a client but its `KV` field; laws `clientMut_split`, `clientRest_persistent`, `isClient_rest`, `clientRest_conn`, `clientRest_fields`; the proxy that overwrites `client.KV` with a leasing KV keeps the field and `clientRest` (`req/go_etcd_io_etcd_client_v3.md`, "from W0 (round 2)") |
 
 **Other fixes.** `ReqAuthRefusal`'s Assumes (not root, `pfx < end`, a half-open range, `outside`
