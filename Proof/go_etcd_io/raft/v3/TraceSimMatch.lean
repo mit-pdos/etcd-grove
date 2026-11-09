@@ -3807,6 +3807,109 @@ theorem lineEffect_becomeCandidate (C : List w64) (e : TraceEv) (id : w64) (s : 
   · rw [hline]; simp only [nodeLine, evConv, hrl', hrole]; rfl
   · rw [upd_self]; rfl
   · rw [upd_self, hline, hσi]; simp only [candOf, nodeLine, evConv, hterm']; rw [gInt_of_lt _ bt, hterm]
+
+/-- **The candidate's own vote's send effect**: the self-addressed granted vote pending. -/
+theorem lineEffect_selfVote (C : List w64) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM) (m : Msg)
+    (a : Etcdraft.Server) (Mid : Etcdraft.Server → Prop)
+    (hev : SendEvOf (W64 15) id s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .candidate) (hty : m.ty = .voteResp) (hsrc : m.src = id) (hdst : m.dst = id)
+    (hw : (toPState s).votes !! id = none) (hterm : m.term = s.term) (hrej : m.reject = false)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) :
+    LineEffect C false e (idAbs id) a a none _root_.id
+      (fun b => b.with ((msgAbs C C.length m).get (by simp [msgAbs, hty]))) Mid := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendRequestVoteResponse" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"SendRequestVoteResponse" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have htyp : tm.typ = msgTypeStr .voteResp := by rw [hm.1, hty]
+  apply lineEffect_nr C false e (idAbs id) a a _ Mid (msgLine e id s.vote m.src m.dst xs)
+    (parseLine_msg 0 e id s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      (by rw [htyp]; rfl) (by rw [hname']; decide)) rfl (by simp [msgLine, evConv, hname']; rfl)
+  intro t l pl σ hline hl hts _ hsrv hσi hpv _
+  have hrv := requestVoteSelf_send σ C C.length (toPState s) id m (by rw [hσi]; exact hR)
+    (by simp [toPState, hrole, proleRole]) hty hsrc hdst hC hw (by rw [hterm]; rfl) hrej
+  rw [← hσi, withNode_same]
+  apply nonReceive_selfVote _ ⟨σ, l, pl⟩ (idAbs id) _ hl
+  · rw [hline]; simp [msgLine, evConv, hname']
+  · rw [hline, hsrc]; rfl
+  · rw [hline, hdst]; rfl
+  · rw [hline]
+    refine ⟨_, by simp [msgLine, evConv, hmsg]; rfl, ?_⟩
+    simp only [hm.2.2.1, hm.2.2.2.1, hsrc, hdst]
+  · rw [hts]; exact confAbs_nodup C
+  · rw [hts, mem_confAbs]; exact hC
+  · exact hpv
+  · exact hrv
+  · rw [hline]
+    have := stateMatches_node C s (σ.s (idAbs id)) e id xs (by rw [hσi]; exact hR) hs (by rw [hrole]; decide)
+      hterm' hcommit' hrl hlog (hxs.trans hin) bt bc bl σ rfl
+      (by rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC)
+    unfold Etcdraft.Line.stateMatches at this ⊢
+    simpa [Etcdraft.State.send, msgLine, nodeLine] using this
+  · rw [hline]
+    apply newPending_send
+    have := isRVResp_voteResp C C.length e id s.vote xs m tm hmsg hm hty (by rw [hterm]; exact bt)
+    have hsd : ((msgAbs C C.length m).get (by simp [msgAbs, hty])).source =
+        ((msgAbs C C.length m).get (by simp [msgAbs, hty])).dest := by
+      simp [msgAbs, hty, hsrc, hdst]
+    simp [this, hsd]
+
+/-- **The leader's own acknowledgement's send effect**: the self-addressed response pending. -/
+theorem lineEffect_selfAck (C : List w64) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (a : Etcdraft.Server) (Mid : Etcdraft.Server → Prop)
+    (hev : SendEvOf (W64 11) id s cfg (pselfAck id (toPState s)) e) (hin : (elements cfg.incoming).Perm C)
+    (hout : cfg.outgoing = ∅) (hC : id ∈ C)
+    (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .leader)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) :
+    LineEffect C false e (idAbs id) a a none _root_.id
+      (fun b => b.with ((msgAbs C C.length (pselfAck id (toPState s))).get (by simp [msgAbs, pselfAck]))) Mid := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendAppendEntriesResponse" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"SendAppendEntriesResponse" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have htyp : tm.typ = msgTypeStr .appResp := by rw [hm.1]; rfl
+  apply lineEffect_nr C false e (idAbs id) a a _ Mid (msgLine e id s.vote id id xs)
+    (parseLine_msg 0 e id s.vote id id xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      (by rw [htyp]; rfl) (by rw [hname']; decide)) rfl (by simp [msgLine, evConv, hname']; rfl)
+  intro t l pl σ hline hl hts _ hsrv hσi _ _
+  have hae := appendEntriesToSelf_send σ C C.length (toPState s) id (by rw [hσi]; exact hR)
+    (by simp [toPState, hrole, proleRole]) hs
+  rw [← hσi, withNode_same]
+  apply nonReceive_selfAck _ ⟨σ, l, pl⟩ (idAbs id) _ hl
+  · rw [hline]; simp [msgLine, evConv, hname']
+  · rw [hline]; rfl
+  · rw [hline]; rfl
+  · rw [hline]
+    refine ⟨_, by simp [msgLine, evConv, hmsg]; rfl, ?_⟩
+    simp only [hm.2.2.1, hm.2.2.2.1]; rfl
+  · rw [hts]; exact confAbs_nodup C
+  · rw [hts, mem_confAbs]; exact hC
+  · exact hae
+  · rw [hline]
+    have := stateMatches_node C s (σ.s (idAbs id)) e id xs (by rw [hσi]; exact hR) hs (by rw [hrole]; decide)
+      hterm' hcommit' hrl hlog (hxs.trans hin) bt bc bl σ rfl
+      (by rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC)
+    unfold Etcdraft.Line.stateMatches at this ⊢
+    simpa [Etcdraft.State.send, msgLine, nodeLine] using this
+  · rw [hline]
+    apply newPending_send
+    have := isAEResp_appResp C C.length e id s.vote xs (pselfAck id (toPState s)) tm hmsg hm rfl rfl
+      (by simp [pselfAck, toPState]; exact bt) (by simpa [pselfAck] using bl)
+    simp only [msgAbs, pselfAck, Option.get_some] at this
+    simp only [msgAbs, pselfAck, Option.get_some, Bool.and_eq_true, beq_self_eq_true, and_true]
+    exact this
 end TraceSim
 
 end EtcdGrove
