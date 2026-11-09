@@ -55,8 +55,13 @@ fired: a watch reports the past. This is the server-side mirror of 1b's `watchSt
   `*watchableStore`: `watchableAt_shape`), with 3e's handle (`watchableAt_isMvcc`). Intended
   realization: the store's `isMvcc` and the watchable store's invariant: its lock `mu` over the two
   watcher groups (each watcher's record, its channel's stream invariant), the victims, the loops'
-  stop channel and wait group; the store's notified history (the authority whose fragment
-  `mvccLb` is, 3e's) moves only under `mu`.
+  stop channel and wait group; the store's notified history moves only under `mu`.
+* `mvccLb γ h` (persistent): **the store has notified at least `h`**. Intended realization: a
+  fragment of a monotone (prefix-ordered) ghost authority of the notified history, kept by the
+  store's invariant beside 3e's half of `mvccState` (the two agree: the authority is
+  `σ.notified`); it grows at a commit's first step and at a `Restore` (whose update shows the new
+  history extends the committed one, which is the notified one under `s.mu`), never otherwise (a
+  compaction raises only its compaction revision).
 * `wsAt w γ ι` (persistent): **`w` (a `*watchStream`) is a watch stream of `γ`, named `ι`**: its
   channel `wsChanOf ι`, its lock over `nextID`, `closed`, `cancels`, `watchers`. Intended
   realization: the stream's invariant: the channel's sends (all of them by the store's code, under
@@ -82,7 +87,8 @@ fired: a watch reports the past. This is the server-side mirror of 1b's `watchSt
 
 ## Laws
 
-`mvccLb_le`, `mvccLb_get` (the lower bound against 3e's `mvccState`), `watch_persistent`, `wsReg_agree`, `wsCanceled_mono`, `wsSentLb_zero`, `wsSentLb_mono`,
+`mvccLb_le`, `mvccLb_get` (the lower bound against 3e's `mvccState`), `watch_persistent`,
+`wsReg_agree`, `wsCanceled_mono`, `wsSentLb_zero`, `wsSentLb_mono`,
 `watchableAt_shape`, `watchableAt_isMvcc`, `wsCons_recv` (receiving on the stream's channel, plain or in a
 `select`, and the non-blocking receive of a drain: empty means every response sent before is
 received), `watch_init` (the package's watch variables and error values).
