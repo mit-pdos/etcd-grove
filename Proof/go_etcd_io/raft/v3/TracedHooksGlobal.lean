@@ -1056,7 +1056,10 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
     · have hcond' : bfCond (evConv e0) (evConv e) = false := by simpa using hcond
       obtain ⟨hst, hR, hs, hpre, bt, bc, bl, hΦ'⟩ := hdownC hcond' (σ.s (idAbs id)) (by rw [← hsrv]; exact hcs.symm)
       have heq : σ.becomeFollowerOfTerm (idAbs id) (σ.s (idAbs id)).currentTerm =
-          withNode σ (idAbs id) (bfSrv (σ.s (idAbs id))) _root_.id _root_.id := rfl
+          withNode σ (idAbs id) (bfSrv (σ.s (idAbs id))) _root_.id _root_.id := by
+        unfold Etcdraft.State.becomeFollowerOfTerm
+        rw [upd_eq_withNode]
+        simp [bfSrv]
       have hΦσ : Φ C (toC (confAbs C) (σ.s (idAbs id))) P := by rw [← hsrv, ← hcs]; exact HΦ
       have hpreF := And.intro hΦσ (And.intro hsrv (And.intro hpv (And.intro hcq (And.intro hv hst))))
       icases Hfx $$ %C %P %σ %hpreF Htbl Hfσ with ⟨Htbl, #Hfσ'⟩
@@ -1196,6 +1199,22 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
     isplitl [Hbt]; · iexists some e; iunfold simBoot; iframe Hbt; ipureintro; exact hΛ e HE
     ipureintro; rw [hsrv]; exact hΦ'
 
+
+/-- **The unified law** (`trCap_fire_any.statement`): by the flag, `trCap_fire` or `trCap_fire_booted`. -/
+theorem trCap_fire_any : trCap_fire_any.statement (GF := GF) := by
+  intro γd γ r id c tl E b Φ Φ' Λ Λ' hps hnb hΛ hAsc
+  cases b with
+  | true => exact trCap_fire_booted γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ hAsc
+  | false =>
+    have hps' : PhaseStep id c E Φ Φ' := by
+      intro C cs P hΦ hc e he
+      obtain ⟨hnid, -, hall⟩ := hps C cs P hΦ hc e he
+      exact ⟨hnid, hnb rfl e he, hall⟩
+    refine Entails.trans ?_ (trCap_fire γd γ r id c tl E Φ Φ' Λ Λ' hps' hΛ hAsc)
+    iintro ⟨H, #Hl, Hfx⟩
+    iframe Hl Hfx
+    iapply trCapB_trCap
+    iexact H
 
 end ghost
 

@@ -1,18 +1,24 @@
 /-
 Lean-first (no Rocq counterpart). Trace-check's S5, Draft (2026-11-09): the simulation's capability
-on raft's hook paths, and the traced statements of the `Commit` path (`traceNodeEvent`,
-`traceCommit`, `raft.maybeCommit`) (`notes/trace-validation-sim.md`, "S5 Draft: the capability";
-the plan's Q8).
+on raft's hook paths, the global step's laws, and the hooks' traced statements
+(`notes/trace-validation-sim.md`, "S5 Draft: the capability"; the plan's Q8; reviews
+`notes/trace-validation-reviews/s5-r{1,2,3}.md`).
 
-- `TraceFire tr tl E Q`: what a hook's caller gives the event builder, by the cluster's trace mode
-  (`NGhost.tr`): in an untraced cluster, a nil logger and `Q`; in a traced one, the logger's
-  contract and the atomic update appending any event `e` with `E e` and giving `Q` (the caller's
-  simulation step);
-- `SimIdle C s c P`: node state `s` and the node's share `(c, P)` related at a hook point of the
-  idle phase (revision 13's `R_i` with the pending messages);
-- `trCap tr r id Φ`: the simulation's capability a function on a hook path carries, `emp` in an
-  untraced cluster, and in a traced one the node's share with `Φ` of it (the function's phase),
-  the logger's contract and the simulation's invariant.
+- `TraceFire tr tl E Q` (`TraceFireOpt`, `TraceFireN`; `traceFire_mono`): what a hook's caller gives
+  the event builder, by the cluster's trace mode (`NGhost.tr`): untraced, a nil logger and `Q`;
+  traced, the logger's contract and the atomic update appending any event `e` with `E e`, giving `Q`.
+- The events: `NodeEvOf`, `SendEvOf`/`MsgEvOf`, `CCEvOf` (with their ASCII lemmas), the gates.
+- `trCapB tr γ r id c b Φ Λ` (`trCap`: any `b`): the node's share in phase `Φ`, its `booted` flag `b`
+  and last event (`Λ` of it), the logger's contract, the simulation's invariant (`simInv`, its
+  specification state's facts `simFx`).
+- A line's effect `LineEffect` (the pure lemmas `lineEffect_*`, `TraceSimMatch.lean`), the phase
+  steps `PhaseStep`/`PhaseStepB`/`PhaseStepR`/`PhaseStepReady`/`PhaseStepBF`, the facts each line
+  keeps `FxPres*` (the caller's, from its node's ghost).
+- The laws (proved in `TracedHooksGlobal.lean`): `trCap_fire_any` (a line consuming no message;
+  `trCap_fire`, `trCap_fire_booted` its two cases), `trCap_fire_recv`, `trCap_fire_ready`,
+  `trCap_fire_boot`, `trCap_fire_bf`; `trCapB_cfg` re-keys the configuration.
+- The traced hook statements (`X.tracedSpec`) and the first callers' (`raft.send`, `traceCommit`,
+  `raft.maybeCommit`).
 
 **Vacuous until Q8's logger clause lands** (review round 1, `notes/trace-validation-reviews/s5-r1.md`):
 `ownRaftPhys` still requires a nil logger (`InvRaftPhys.lean`, `TraceLoggerOk`), while the traced
@@ -293,7 +299,7 @@ theorem ccEvOf_ascii (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (h : CC
 /-- **A step-down's server** (`StepDownToFollower`, the specification's `BecomeFollowerOfTerm` at the
 server's own term). -/
 def bfSrv (a : Etcdraft.Server) : Etcdraft.Server :=
-  { a with currentTerm := a.currentTerm, state := Etcdraft.follower, lead := Etcdraft.nil, votedFor := (if a.currentTerm != a.currentTerm then Etcdraft.nil else a.votedFor) }
+  { a with state := Etcdraft.follower, lead := Etcdraft.nil }
 
 /-- **A phase step by a line consuming no message** (not a bootstrap-named line: not `BecomeFollower`,
 whose skip bit only the node's previous line decides, review round 1's F6, so that the line is never
@@ -643,6 +649,17 @@ abbrev trCap_fire_booted.statement : Prop :=
   (trCapB (some γd) γ r id c true Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPres γ id E Φ Φ' : IProp GF) ⊢
     TraceFire (some γd) tl E (trCapB (some γd) γ r id c true Φ' Λ')
 
+/-- **The global step of a line consuming no message, any `booted` flag, as one law** (review round 3's
+C3: `trCap_fire` and `trCap_fire_booted` in one, so that a caller never chooses): before the node's
+segment is over, the line must not be bootstrap-named. -/
+abbrev trCap_fire_any.statement : Prop :=
+  ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
+    (b : Bool) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
+  PhaseStepB id c E Φ Φ' → (b = false → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false) →
+  (∀ e, E e → Λ' (some e)) → (∀ e, E e → TraceEv.Ascii e) →
+  (trCapB (some γd) γ r id c b Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPres γ id E Φ Φ' : IProp GF) ⊢
+    TraceFire (some γd) tl E (trCapB (some γd) γ r id c true Φ' Λ')
+
 /-! ## The global step of a `BecomeFollower` line after the node's segment (Draft, review round 2's A7) -/
 
 /-- **A phase step by a `BecomeFollower` line** past the node's bootstrap segment: its skip bit is
@@ -723,11 +740,13 @@ abbrev traceNodeEvent.tracedSpec : Prop :=
 leader whose `AdvanceCommitIndex` commits exactly to `n`, and the server so committed is idle-related
 to `s` (`SimIdle`): the line's step. After it, the share is idle-related to `s`. -/
 abbrev traceCommit.tracedSpec : Prop :=
-  ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (b : Bool) (Λ Λ' : Option TraceEv → Prop),
+  -- (review round 3's C2) the capability with its `booted` flag and last event, as the laws keep them
+  (∀ e, NodeEvOf rsmCommit id s c e → Λ' (some e)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-      trCap s.gh.tr γ r id c (fun C cs P => ∃ (a : Etcdraft.Server) (n : Int),
+      trCapB s.gh.tr γ r id c b (fun C cs P => ∃ (a : Etcdraft.Server) (n : Int),
         toC (confAbs C) a = cs ∧ a.state = Etcdraft.leader ∧ AdvancesTo a n ∧
-        SimIdle C s (toC (confAbs C) { a with commitIndex := max a.commitIndex n }) P) ∗
+        SimIdle C s (toC (confAbs C) { a with commitIndex := max a.commitIndex n }) P) Λ ∗
       -- (review round 2's A4) the facts the line keeps, the caller's (from its node's ghost)
       FxPresT s.gh.tr γ id (NodeEvOf rsmCommit id s c)
         (fun C cs P => ∃ (a : Etcdraft.Server) (n : Int),
@@ -735,24 +754,27 @@ abbrev traceCommit.tracedSpec : Prop :=
           SimIdle C s (toC (confAbs C) { a with commitIndex := max a.commitIndex n }) P)
         (fun C => SimIdle C s) }}
     (App (Val #(functions traceCommit [])) (Val #r))
-  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr γ r id c (fun C => SimIdle C s) }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ' }}
 
 /-- **`r.maybeCommit()`, traced** (`raft.maybeCommit.spec` with the capability): at a leader whose
 share is idle-related to its state, it commits as `raft.maybeCommit.spec` says and logs `Commit`,
 the specification's `AdvanceCommitIndex` (exact: `Committed()`'s quorum index is `maxAgree`), after
-which the share is idle-related to the new state. -/
+which the share is idle-related to the new state. **Blocked** (review round 2's A4, round 3's C4):
+the `Commit` line's `FxPres` needs `QuorumLogInv` at the leader's raised commit, which waits on the
+acknowledgement-history copy of the vote table (`QuorumLogF` is a `simFx` clause until then). -/
 abbrev raft.maybeCommit.tracedSpec : Prop :=
-  ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (b0 : Bool) (Λ Λ' : Option TraceEv → Prop),
   s.role = .leader →
+  (∀ e, NodeEvOf rsmCommit id s c e → Λ' (some e)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ trCap s.gh.tr γ r id c (fun C => SimIdle C s) }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ trCapB s.gh.tr γ r id c b0 (fun C => SimIdle C s) Λ }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
   {{ (b : Bool) (N : w64), RET #b;
       ownRaftPhysCV c c.voters r id
         (if b then { s with logst := { s.logst with committed := N } } else s) ∗
       ⌜b = true → CommitOkC c (toPState s) N⌝ ∗
-      trCap s.gh.tr γ r id c (fun C =>
-        SimIdle C (if b then { s with logst := { s.logst with committed := N } } else s)) }}
+      trCapB s.gh.tr γ r id c true (fun C =>
+        SimIdle C (if b then { s with logst := { s.logst with committed := N } } else s)) Λ' }}
 
 /-! ## The other hooks, traced -/
 
@@ -858,7 +880,8 @@ caller's phase `Φ` to `Φ'` (`PhaseStep`, the message as sent, `out`'s); otherw
 abbrev raft.send.tracedSpec : Prop :=
   ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (out : List Msg) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
+    (out : List Msg) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (b : Bool)
+    (Λ Λ' : Option TraceEv → Prop),
   (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
   SendOk id s m ents ctx out →
   SnapOut id s m sn out →
@@ -868,17 +891,22 @@ abbrev raft.send.tracedSpec : Prop :=
   (match (mtypeOf m.Type').bind sendEvt with
    | some evt => ∀ mm ∈ out, PhaseStep id c (SendEvOf evt id s c mm) Φ Φ'
    | none => ∀ C cs P, Φ C cs P → Φ' C cs P) →
+  -- (review round 3's C2) a logged line's event is the capability's new last event
+  (∀ evt, (mtypeOf m.Type').bind sendEvt = some evt → ∀ mm ∈ out, ∀ e, SendEvOf evt id s c mm e → Λ' (some e)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
       "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn ∗
-      trCap s.gh.tr γ r id c Φ ∗
+      trCapB s.gh.tr γ r id c b Φ Λ ∗
       -- (review round 2's A4) the facts the send line keeps, the caller's
       (match (mtypeOf m.Type').bind sendEvt with
        | some evt => [∗list] mm ∈ out, FxPresT s.gh.tr γ id (SendEvOf evt id s c mm) Φ Φ'
        | none => iprop(True)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
-  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) ∗ trCap s.gh.tr γ r id c Φ' }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) ∗
+      -- a line logged: the node booted, its last event the line's; none: both unchanged
+      (if ((mtypeOf m.Type').bind sendEvt).isSome && !out.isEmpty
+       then trCapB s.gh.tr γ r id c true Φ' Λ' else trCapB s.gh.tr γ r id c b Φ' Λ) }}
 
 end ghost
 
