@@ -651,6 +651,23 @@ one); every server's configuration smaller than `2^62` (`QuorumLogInv`, `IsQuoru
 `LeaderCompletenessInv` (it calls `CurrentLeaders`, `spec.go`'s, whose spec is on
 `trace-check-layerc-spec`) and so `Violated` (also needs the package fact to give `Invariants`'
 closures, `Base.lean`'s `True` until S6). No disagreement between the Go and the transcription.
+**`invariants.go` done (2026-11-09, branch `trace-check-layerc-inv2`).** `LeaderCompletenessInv`
+returns `State.leaderCompletenessInv` where it evaluates (`… = .ok b`; logs shorter than `2^63 - 1`,
+the index loop's `len(Committed(i)) + 1`); its loops named in its proof file (`lcServer`, `lcIdx`,
+`lcLeader`). `Violated` returns a Go string `strRel`-related to `(State.violated st).getD ""`
+where it evaluates (`= .ok r`), under the premises of the invariants it calls (logs below
+`2^63 - 1`, configurations below `2^62`, required whether or not an earlier invariant already
+failed). Its loop reads the package fact, no longer `True`: `etcdraftInit` (`Base.lean`),
+`Invariants ↦□ sl ∗ sl ↦*□ invariantsV`, the seven named structs of the translation's func literals
+(`Closures.lean`, generated as porcupine-dag's: `gen_closures`, `TC_CLOSURES`); the package is now
+a root of `etc/gen-init.py` (`SPECIAL[TC_PKG]`), whose generated `etcdraft/Init.lean` proves its
+initializer gives the fact (the tables' map literals and `EmptyBag` run, not in the fact). No
+axiom added. Each closure's spec is a lemma of `State__Violated.lean` (`wp_invHolds`, from the
+seven methods' specs). The Go and the transcription agree, the error case included: the Go panics
+in `Violated` where `State.violated` is an `EvalError`, and the transcription's fold stops at the
+first violation as the Go's `return` does. (A tooling note: `etc/lean-check.py`'s incremental
+re-checks of the `LeaderCompletenessInv` proof reported kernel "application type mismatch" errors on
+`omega`'s auxiliary lemmas that a fresh check and `lake build` do not.)
 
 ### D. The harness and Main (the workload)
 
@@ -874,7 +891,7 @@ the logger's contract, waits for S4 (what the hook hands the logger, the update'
   `examples/raft/kvreconf`'s), so the configuration has no seed, and use no `encoding/json`
   (Perennial models neither it nor `math/rand/v2`); the deterministic driver and `WriteNDJSON`
   (`sim.go`, seeded `math/rand/v2`) are `with_tla && !goose`, the tests `with_tla`.
-- Not yet: the generated initializers (`etc/gen-init.py`) and links of the two packages, which come
+- Not yet: the generated initializers (`etc/gen-init.py`; the checker's done, layer C) and links of the two packages, which come
   with their specs (the rest of Draft).
 
 ## Risks
