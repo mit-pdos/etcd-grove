@@ -29,19 +29,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
-/-- With `CheckQuorum` off, no message is ignored in a lease. -/
-theorem Trace.ignoreInLeaseIfLogged_nil (tr : Trace) (ts : TState) (h : ts.s.checkQuorum = false) :
-    tr.ignoreInLeaseIfLogged ts = [] := by
-  unfold Trace.ignoreInLeaseIfLogged
-  split
-  · rfl
-  · rw [List.flatMap_eq_nil_iff]
-    intro m _
-    split
-    · have : ts.s.ignoreInLease m = none := by unfold State.ignoreInLease; simp [h]
-      rw [this]; rfl
-    · rfl
-
 theorem Trace.ignoreInLeaseIfLogged.wp_proof
     (wp_loglineIsEvent : Trace.loglineIsEvent.spec (GF := GF) (hG := hG))
     (wp_logline : Trace.logline.spec (GF := GF) (hG := hG))
@@ -53,7 +40,17 @@ theorem Trace.ignoreInLeaseIfLogged.wp_proof
     Trace.ignoreInLeaseIfLogged.spec (GF := GF) (hG := hG) := by
   intro t tr g ts
   wp_start as ⟨#Ht, #Hts, %Hl1, %Hcq⟩
-  rw [Trace.ignoreInLeaseIfLogged_nil tr ts Hcq]
+  have hnil : tr.ignoreInLeaseIfLogged ts = [] := by
+    unfold Trace.ignoreInLeaseIfLogged
+    split
+    · rfl
+    · rw [List.flatMap_eq_nil_iff]
+      intro m _
+      split
+      · have : ts.s.ignoreInLease m = none := by unfold State.ignoreInLease; simp [Hcq]
+        rw [this]; rfl
+      · rfl
+  rw [hnil]
   open_ts
   wp_auto
   wp_apply wp_loglineIsEvent t tr g ts go!"IgnoreRequestVoteRequest" "IgnoreRequestVoteRequest" $$ [Ht Hts]
