@@ -23,18 +23,40 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem traceInitState.wp_proof
     (wp_traceNodeEvent : traceNodeEvent.spec (GF := GF) (hG := hG)) :
     traceInitState.spec (GF := GF) (hG := hG) := by
-  intro c r id s tl Q
+  intro r tl tr E Q R
   wp_start as ⟨#Htl, Hown, Hfire⟩
   cases tl with
   | nil =>
     wp_auto
     iapply HΦ
-    iframe Hown
+    isplitl [Hown]
+    · iapply trOwn_wand
+      iframe Hown
+      iintro ⟨%c, %id, %s, Hp, -, Hb⟩
+      iapply Hb $$ Hp
     iapply traceFire_nil $$ Hfire
   | ok l =>
-    wp_auto
-    wp_apply wp_traceNodeEvent (W64 0) c r id s _ Q (by decide) $$ [$Htl $Hown $Hfire] as HR
-    iapply HΦ $$ HR
+    cases tr with
+    | none =>
+      icases (traceFire_none _ E Q).1 $$ Hfire with ⟨%Hok, -⟩
+      exact absurd Hok (by unfold TraceLoggerOk; exact nofun)
+    | some γd =>
+      icases (trOwn_some γd _).1 $$ Hown with ⟨%c, %id, %s, Hphys, %Hp, Hback⟩
+      obtain ⟨Hs, HE⟩ := Hp
+      wp_auto
+      wp_apply wp_traceNodeEvent (W64 0) c r id s _ Q (by decide) $$ [$Htl Hphys Hfire]
+        as ⟨Hphys, HQ⟩
+      · rw [Hs]
+        isplitl [Hphys]
+        · iapply (trOwn_some γd _).2; iexact Hphys
+        iapply traceFire_mono_E _ _ E _ Q HE $$ Hfire
+      iapply HΦ
+      iframe HQ
+      iapply (trOwn_some γd R).2
+      rw [Hs]
+      iapply Hback
+      iapply (trOwn_some γd _).1
+      iexact Hphys
 
 end proof
 

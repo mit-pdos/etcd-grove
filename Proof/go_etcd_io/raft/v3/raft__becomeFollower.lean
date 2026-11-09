@@ -53,7 +53,7 @@ theorem raft.becomeFollower.wp_proof
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC
-  wp_trace_hookC wp_traceBecomeFollower
+  wp_node_hookC wp_traceBecomeFollower
   iapply HΦ
   -- the stores above, in the order the Go code makes them, give `becomeFollower` up to
   -- the order of the record updates

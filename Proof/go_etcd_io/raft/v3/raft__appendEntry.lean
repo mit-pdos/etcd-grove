@@ -270,8 +270,11 @@ theorem raft.appendEntry.wp_proof
       · iexact Hrc
       ipureintro; exact fun h => absurd (Hacc h) (by decide)
     icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-    wp_apply wp_traceReplicate _ _ _ _ tl $$ [$Hcl $Htl] as Hcl
-    · ipureintro; exact Htlok
+    wp_apply wp_traceReplicate c r id s _ _ _ tl iprop(True) $$ [$Hcl $Htl] as ⟨Hcl, -, -⟩
+    · isplitr
+      · iapply trOwn_of_none (by tr_none)
+      iapply traceFireN_of_none (by tr_none) tl _ Htlok
+      itrivial
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     -- `append`'s premises
     have Hidx2 : LogIndicesOk s.logst.prev

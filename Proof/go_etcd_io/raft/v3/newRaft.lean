@@ -699,10 +699,15 @@ theorem newRaft.wp_proof
   wp_apply wp_newReadOnly _ (HpRO.trans Hros) as %ro Hro
   imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   ihave #Htlf := raftOwn_traceLogger _ _ $$ «$r0»
-  wp_apply wp_traceInitState $$ [Htlf]
+  wp_apply wp_traceInitState «$r0_ptr» _ none (fun _ => True) iprop(True) iprop(emp) $$ [Htlf] as -
   · isplitr
     · iexact Htlf
-    ipureintro; exact Htlk'
+    isplitr
+    · iapply trOwn_none_intro
+    iapply (traceFire_none _ _ _).2
+    isplitr
+    · ipureintro; exact Htlk'
+    itrivial
   have HA0C : sn.a0 ≤ uint.nat (committedAfter σ.prev hs) := by
     rw [Ha0]
     have := uint_nat_eq (committedAfter σ.prev hs); have := uint_nat_eq cv.Applied'

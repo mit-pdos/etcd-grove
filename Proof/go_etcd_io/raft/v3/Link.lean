@@ -52,6 +52,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import Proof.go_etcd_io.raft.v3.RestartNode
 public import Proof.go_etcd_io.raft.v3.SoftState__equal
 public import Proof.go_etcd_io.raft.v3.StartNode
+public import Proof.go_etcd_io.raft.v3.StateType__String
 public import Proof.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.math.big.Int__Int64
 public import Proof.math.big.NewInt
@@ -81,6 +82,7 @@ public import Proof.go_etcd_io.raft.v3.confchange.toConfChangeSingle
 public import Proof.go_etcd_io.raft.v3.entsSize
 public import Proof.go_etcd_io.raft.v3.extend
 public import Proof.fmt.Sprintf
+public import Proof.go_etcd_io.raft.v3.formatConf
 public import Proof.go_etcd_io.raft.v3.getBasicStatus
 public import Proof.go_etcd_io.raft.v3.getProgressCopy
 public import Proof.go_etcd_io.raft.v3.getStatus
@@ -89,6 +91,8 @@ public import Proof.go_etcd_io.raft.v3.isMsgInArray
 public import Proof.go_etcd_io.raft.v3.limitSize
 public import Proof.go_etcd_io.raft.v3.lockedRand__Intn
 public import Proof.go_etcd_io.raft.v3.logSliceFromMsgApp
+public import Proof.go_etcd_io.raft.v3.makeTracingMessage
+public import Proof.go_etcd_io.raft.v3.makeTracingState
 public import Proof.go_etcd_io.raft.v3.needStorageAppendRespMsg
 public import Proof.go_etcd_io.raft.v3.needStorageApplyMsg
 public import Proof.go_etcd_io.raft.v3.needStorageApplyRespMsg
@@ -278,6 +282,7 @@ public import Proof.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Proof.go_etcd_io.raft.v3.sendMsgReadIndexResponse
 public import Proof.go_etcd_io.raft.v3.setupNode
 public import Proof.slices.Sort
+public import Proof.go_etcd_io.raft.v3.stateMachineEventType__String
 public import Proof.go_etcd_io.raft.v3.stepCandidate
 public import Proof.go_etcd_io.raft.v3.stepFollower
 public import Proof.go_etcd_io.raft.v3.stepLeader
@@ -532,9 +537,61 @@ theorem wp_newReadOnly [StorageModel GF] :
     newReadOnly.spec (GF := GF) (hG := hG) :=
   newReadOnly.wp_proof
 
+theorem stateMachineEventType.wp_String :
+    stateMachineEventType.String.spec (GF := GF) (hG := hG) :=
+  stateMachineEventType.String.wp_proof
+
+theorem strconv.wp_FormatUint :
+    strconv.FormatUint.spec (GF := GF) (hG := hG) :=
+  strconv.FormatUint.wp_proof
+
+theorem raft.wp_hardState [StorageModel GF] :
+    raft.hardState.spec (GF := GF) (hG := hG) :=
+  raft.hardState.wp_proof
+
+theorem wp_makeTracingState [StorageModel GF] :
+    makeTracingState.spec (GF := GF) (hG := hG) :=
+  makeTracingState.wp_proof raft.wp_hardState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit strconv.wp_FormatUint
+
+theorem unstable.wp_maybeLastIndex [StorageModel GF] :
+    unstable.maybeLastIndex.spec (GF := GF) (hG := hG) :=
+  unstable.maybeLastIndex.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
+theorem raftLog.wp_lastIndex [StorageModel GF] :
+    raftLog.lastIndex.spec (GF := GF) (hG := hG) :=
+  raftLog.lastIndex.wp_proof unstable.wp_maybeLastIndex
+
+theorem slices.wp_Sort :
+    slices.«Sort».spec (GF := GF) (hG := hG) :=
+  slices.«Sort».wp_proof
+
+theorem quorum.MajorityConfig.wp_Slice :
+    quorum.MajorityConfig.Slice.spec (GF := GF) (hG := hG) :=
+  quorum.MajorityConfig.Slice.wp_proof slices.wp_Sort
+
+theorem wp_formatConf :
+    formatConf.spec (GF := GF) (hG := hG) :=
+  formatConf.wp_proof strconv.wp_FormatUint
+
+theorem StateType.wp_String :
+    StateType.String.spec (GF := GF) (hG := hG) :=
+  StateType.String.wp_proof
+
+theorem wp_makeTracingMessage :
+    makeTracingMessage.spec (GF := GF) (hG := hG) :=
+  makeTracingMessage.wp_proof
+
+theorem wp_traceEvent [StorageModel GF] :
+    traceEvent.spec (GF := GF) (hG := hG) :=
+  traceEvent.wp_proof stateMachineEventType.wp_String strconv.wp_FormatUint wp_makeTracingState raftLog.wp_lastIndex quorum.MajorityConfig.wp_Slice wp_formatConf StateType.wp_String wp_makeTracingMessage
+
+theorem wp_traceNodeEvent [StorageModel GF] :
+    traceNodeEvent.spec (GF := GF) (hG := hG) :=
+  traceNodeEvent.wp_proof wp_traceEvent
+
 theorem wp_traceInitState [StorageModel GF] :
     traceInitState.spec (GF := GF) (hG := hG) :=
-  traceInitState.wp_proof
+  traceInitState.wp_proof wp_traceNodeEvent
 
 theorem raftpb.ConfChangeType.wp_Enum :
     raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG) :=
@@ -656,14 +713,6 @@ theorem wp_traceConfChangeEvent [StorageModel GF] :
     traceConfChangeEvent.spec (GF := GF) (hG := hG) :=
   traceConfChangeEvent.wp_proof
 
-theorem slices.wp_Sort :
-    slices.«Sort».spec (GF := GF) (hG := hG) :=
-  slices.«Sort».wp_proof
-
-theorem quorum.MajorityConfig.wp_Slice :
-    quorum.MajorityConfig.Slice.spec (GF := GF) (hG := hG) :=
-  quorum.MajorityConfig.Slice.wp_proof slices.wp_Sort
-
 theorem tracker.ProgressTracker.wp_ConfState :
     tracker.ProgressTracker.ConfState.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.ConfState.wp_proof quorum.MajorityConfig.wp_Slice
@@ -687,14 +736,6 @@ theorem tracker.ProgressTracker.wp_ResetVotes :
 theorem tracker.ProgressTracker.wp_Visit :
     tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.Visit.wp_proof slices.wp_Sort
-
-theorem unstable.wp_maybeLastIndex [StorageModel GF] :
-    unstable.maybeLastIndex.spec (GF := GF) (hG := hG) :=
-  unstable.maybeLastIndex.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
-
-theorem raftLog.wp_lastIndex [StorageModel GF] :
-    raftLog.lastIndex.spec (GF := GF) (hG := hG) :=
-  raftLog.lastIndex.wp_proof unstable.wp_maybeLastIndex
 
 theorem big.wp_NewInt :
     big.NewInt.spec (GF := GF) (hG := hG) :=
@@ -724,14 +765,6 @@ theorem raft.wp_reset [StorageModel GF] :
     raft.reset.spec (GF := GF) (hG := hG) :=
   raft.reset.wp_proof tracker.ProgressTracker.wp_ResetVotes tracker.ProgressTracker.wp_Visit tracker.wp_NewInflights raftLog.wp_lastIndex wp_newReadOnly raft.wp_resetRandomizedElectionTimeout raft.wp_abortLeaderTransfer
 
-theorem wp_traceEvent :
-    traceEvent.spec (GF := GF) (hG := hG) :=
-  traceEvent.wp_proof
-
-theorem wp_traceNodeEvent :
-    traceNodeEvent.spec (GF := GF) (hG := hG) :=
-  traceNodeEvent.wp_proof wp_traceEvent
-
 theorem wp_traceBecomeFollower [StorageModel GF] :
     traceBecomeFollower.spec (GF := GF) (hG := hG) :=
   traceBecomeFollower.wp_proof wp_traceNodeEvent
@@ -759,10 +792,6 @@ theorem wp_newRaft [StorageModel GF] :
 theorem raft.wp_softState [StorageModel GF] :
     raft.softState.spec (GF := GF) (hG := hG) :=
   raft.softState.wp_proof
-
-theorem raft.wp_hardState [StorageModel GF] :
-    raft.hardState.spec (GF := GF) (hG := hG) :=
-  raft.hardState.wp_proof
 
 theorem wp_traceBecomeCandidate [StorageModel GF] :
     traceBecomeCandidate.spec (GF := GF) (hG := hG) :=
@@ -1227,10 +1256,6 @@ theorem raftpb.ConfChange.wp_AsV2 :
 theorem raftpb.ConfChangeV2.wp_AsV2 :
     raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG) :=
   raftpb.ConfChangeV2.AsV2.wp_proof
-
-theorem strconv.wp_FormatUint :
-    strconv.FormatUint.spec (GF := GF) (hG := hG) :=
-  strconv.FormatUint.wp_proof
 
 theorem wp_traceChangeConfEvent [StorageModel GF] :
     traceChangeConfEvent.spec (GF := GF) (hG := hG) :=

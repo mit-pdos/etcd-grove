@@ -21,19 +21,24 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceInitState(r)`: the node event `InitState` of `r`'s state, through `traceNodeEvent`. It returns at once on a nil logger (its own check, before `traceNodeEvent`).
+/-- `traceInitState(r)`: returns at once on a nil logger (its own check); otherwise the node event
+`InitState` of `r`'s state, through `traceNodeEvent`.
 
-One spec for both modes (Q8 stage 1, slice 2, 2026-11-09; `traceNodeEvent.spec`'s form): untraced
-(`s.gh.tr = none`) the gate `trOwn` is `emp` and `TraceFire` a nil logger and `Q`; traced, raft's state
-is lent through the gate and the caller's update fires with a `NodeEvOf` event. Its traced instance is
-the Draft's `traceInitState.tracedSpec` (`TracedHooks.lean`). Until slice 2: `⌜TraceLoggerOk tl⌝`, giving
-`True` (increment 1, `notes/trace-validation-hooks.md`). -/
+One spec for both modes (Q8 stage 1, slice 2, 2026-11-09), by the caller's mode `tr` (`newRaft` calls
+it before raft's predicate holds, so it has no node state yet: the Draft's S5, open), in
+`traceEvent.spec`'s lending form: under the gate `trOwn tr`, raft's state at some configuration, of
+mode `tr`, with every `InitState` event of it allowed by `E`, lent back to `R`; the event builder's
+gate `TraceFire tr tl E Q`. Its traced instance is the Draft's `traceInitState.tracedSpec`
+(`TracedHooks.lean`). Until slice 2: `⌜TraceLoggerOk tl⌝`, giving `True`. -/
 abbrev traceInitState.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  ∀ (r : Loc) (tl : GoInterface) (tr : Option GName) (E : TraceEv → Prop) (Q R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
-      trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 0) id s c) Q }}
+      trOwn tr iprop(∃ (c : CfgM) (id : w64) (s : NState), ownRaftPhysCV c c.voters r id s ∗
+        ⌜s.gh.tr = tr ∧ ∀ e, NodeEvOf (W64 0) id s c e → E e⌝ ∗
+        (ownRaftPhysCV c c.voters r id s -∗ R)) ∗
+      TraceFire tr tl E Q }}
     (App (Val #(functions traceInitState [])) (Val #r))
-  {{ RET #(); trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q }}
+  {{ RET #(); trOwn tr R ∗ Q }}
 
 end spec
 

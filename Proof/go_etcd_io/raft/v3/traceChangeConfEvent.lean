@@ -126,8 +126,13 @@ theorem traceChangeConfEvent.wp_proof
       try wp_auto
       wp_apply wp_mapInsert $$ [$Hmp] as Hmp
       try wp_auto
-      wp_apply wp_traceEvent $$ [$Htl]
-      · ipureintro; exact Hok
+      wp_apply wp_traceEvent _ r _ _ tl none (fun _ => True) iprop(True) iprop(emp) $$ [$Htl] as -
+      · isplitr
+        · iapply trOwn_none_intro
+        iapply (traceFire_none tl _ _).2
+        isplitr
+        · ipureintro; exact Hok
+        itrivial
       iapply HΦ
       iunfold ownConfChangeI
       iexists p
@@ -206,8 +211,13 @@ theorem traceChangeConfEvent.wp_proof
       try wp_auto
       wp_apply wp_mapInsert $$ [$Hmp] as Hmp
       try wp_auto
-      wp_apply wp_traceEvent $$ [$Htl]
-      · ipureintro; exact Hok
+      wp_apply wp_traceEvent _ r _ _ tl none (fun _ => True) iprop(True) iprop(emp) $$ [$Htl] as -
+      · isplitr
+        · iapply trOwn_none_intro
+        iapply (traceFire_none tl _ _).2
+        isplitr
+        · ipureintro; exact Hok
+        itrivial
       iapply HΦ
       iunfold ownConfChangeI
       iexists p

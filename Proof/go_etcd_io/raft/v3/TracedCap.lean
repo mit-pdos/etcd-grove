@@ -437,7 +437,63 @@ theorem traceFire_nil (tr : Option GName) (E : TraceEv → Prop) (Q : IProp GF) 
     iintro ⟨%tn, -, -, %Hnn, -⟩
     exact absurd rfl Hnn
 
+/-- (Q8 stage 1, slice 2) The gate for fewer events. -/
+theorem traceFire_mono_E (tr : Option GName) (tl : GoInterface) (E E' : TraceEv → Prop) (Q : IProp GF)
+    (h : ∀ e, E' e → E e) : TraceFire tr tl E Q ⊢ TraceFire tr tl E' Q := by
+  cases tr with
+  | none => exact .rfl
+  | some γd =>
+    dsimp only [TraceFire]
+    iintro ⟨%tn, Hd, Hl, %Hnn, HAU⟩
+    iexists tn
+    iframe Hd Hl
+    isplitr
+    · ipureintro; exact Hnn
+    iintro %e %He
+    iapply HAU $$ %e []
+    ipureintro; exact h e He
+
+/-- (Q8 stage 1, slice 2) `n` untraced events: the nil logger and `Q`. -/
+theorem traceFireN_of_none {tr : Option GName} (h : tr = none) (tl : GoInterface) (E : TraceEv → Prop)
+    (Hok : TraceLoggerOk tl) (Q : IProp GF) : ∀ n, Q ⊢ TraceFireN tr tl E n Q
+  | 0 => by simp only [TraceFireN, TraceFireOpt]; exact .rfl
+  | n + 1 => by
+    simp only [TraceFireN]
+    iintro HQ
+    iapply traceFire_of_none h
+    isplitr
+    · ipureintro; exact Hok
+    iapply traceFireN_of_none h tl E Hok Q n $$ HQ
+
+/-- (Q8 stage 1, slice 2) What a caller holds whole, put under the gate and taken back: the Draft's
+traced statements (which take raft's state in both modes) from the gated specs. -/
+theorem trOwn_split (tr : Option GName) (P : IProp GF) : P ⊢ trOwn tr P ∗ (trOwn tr P -∗ P) := by
+  cases tr with
+  | none => simp only [trOwn]; iintro HP; isplitr; · iempintro
+            iintro -; iexact HP
+  | some _ => simp only [trOwn]; iintro HP; iframe HP; iintro H; iexact H
+
 end gate
+
+set_option hygiene false in
+/-- (Q8 stage 1, slice 2) An untraced call of a node-event hook (`traceBecome*`, `traceCommit`,
+`traceReady`: `X.spec`'s `c r id s tl Q`) where `Hphys : ownRaftPhysCV c V r id _` is held whole and
+the caller's state `s` is untraced (`tr_none`): the logger field and its contract read from it, the
+gate `trOwn` and the event builder's gate `TraceFire` supplied at the nil logger (`Q := True`). The
+hook's spec is instantiated at the caller's `c r id s` (any state of the node's mode will do, the
+gate being `emp`). -/
+macro "wp_node_hookC " h:term:max : tactic => `(tactic| (
+  icases Perennial.EtcdGrove.ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  wp_apply ($h) c r id s tl iprop(True) $$ [Htl] as -
+  · isplitr
+    · iexact Htl
+    isplitr
+    · iapply Perennial.EtcdGrove.trOwn_of_none (by tr_none)
+    iapply Perennial.EtcdGrove.traceFire_of_none (by tr_none)
+    isplitr
+    · ipureintro; exact Htlok
+    itrivial
+  iclear Htl))
 
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp]
