@@ -4,6 +4,11 @@
 implemented. Supersedes the two-regime design of `notes/walfs-ext-plan.md` (N2) and the per-byte
 crash model of `notes/osfs-ext-plan.md` (D1) once it lands.
 
+**Examples (2026-11-09):** every decision of the semantics has a Go example saying why, with the
+Lean names, the outcome it allows or excludes and the evidence (measured, documented, or assumed),
+in `examples/osfs/semantics/` (indexed in its `doc.go`). A change to the semantics adds or updates
+its example in the same commit (`CLAUDE.md`, "Layout").
+
 ## Why
 
 The extension as of `worktree-walfs-ext` has two ways to name a file: the original fixed table of
@@ -164,6 +169,9 @@ path; the tree and the journal survived every attack). Dispositions:
   write's gap) shows what the sectors hold past the old size (`OsFile.resized`/`written` read
   `rawAt`), not zeros. In a run without a crash those bytes are zeros (every version is zero past the
   size it was made at), so nothing changes there; after a crash a proof must treat them as unknown.
+  *Superseded 2026-11-08*: refuted by a crash test (ext4 zero-fills every extension,
+  `notes/axiom-review/fs-v2.md`, F3); extensions read zeros again, and the crash rule orders growth
+  (`Sector.fresh`; `examples/osfs/semantics/data_extension_zeros.go`, `data_ordered_growth.go`).
 - **F4, short `pread` without an error**: a model change (success returns a non-empty prefix, or
   nothing at EOF).
 - **F5, a restart during `fallocate`**: a model change (`Landed`: a resize lands at any size between

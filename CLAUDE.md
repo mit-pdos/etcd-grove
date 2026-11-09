@@ -52,7 +52,13 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   (the extension's `name` is the path of the Go package it implements), `Specs` the ghost state
   and WP specs, the proof prelude both. The package's `TrustedCode` models call the extension's
   operations by name (`ExternalOp E.name "Read"`); goose needs to know nothing of it.
-  `durableExt` (`examples/lib/durable`, whole-file durable state) is the first;
+  `durableExt` (`examples/lib/durable`, whole-file durable state) is the first.
+  Every decision of an extension's trusted semantics (its `Impl`, and any trace-level assumption
+  a theorem over it takes) has a Go example saying why, in the extension's semantics examples
+  package (the Linux file extension `GooseLang/Ext/Fs`: `examples/osfs/semantics/`, indexed in
+  its `doc.go`): the decision, the Lean names, the outcome allowed or excluded, and the evidence
+  (measured, documented with a citation, or assumed). A change to the semantics adds or updates
+  its example in the same commit;
 - `Spec/<pkg>/<fn>.lean`: the one Hoare triple of a Go function of package `<pkg>`,
   as `def <fn>.spec : Prop` (`Spec/go_etcd_io/raft/v3/raft__Step.lean`,
   `Spec/strings/Join.lean`);

@@ -1,6 +1,7 @@
 /-
 The Linux file extension of GooseLang, version 2 [Trusted definitions!]. The design is
-`notes/fs-semantics-v2.md`.
+`notes/fs-semantics-v2.md`. Each decision below has a Go example saying why, in
+`examples/osfs/semantics/` (indexed in its `doc.go`); a change here updates its example.
 
 A node's files and directories as Linux exposes them to one process: the directory tree under
 fixed roots (`Tree.lean`), each file's page cache and what its disk may hold, by 512-byte sectors;
