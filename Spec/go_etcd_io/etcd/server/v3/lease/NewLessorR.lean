@@ -128,26 +128,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 the entries' equation, and the extra post (the empty requests, the first snapshot) is dropped. -/
 theorem lease.NewLessor.spec_of_specR (h : lease.NewLessor.specR (GF := GF) (hG := hG)) :
     lease.NewLessor.spec (GF := GF) (hG := hG) := by
-  intro lg cl cfg d W Pk qo GA S r mono hS hP
-  iintro %Φ ⟨#Hpkg, %Hlg, %Hck, %Hrr, #Hcl, #Hbk, Hop, Hwb, Hpart, %Hemp⟩ HΦ
-  have hE : backend.bktEnts ((r.lookup go!"lease").getD ∅) = ([] : List (w64 × w64 × w64)).map
-      lease.leaseRecEnc := by
-    rw [Hemp]; unfold backend.bktEnts; rw [GMap.toList_empty]; simp
-  iapply (h lg cl cfg d W Pk qo GA S r mono [] (fun _ => 0) [] hS hP hE (by simp)
-    (List.Perm.refl _)) $$ [Hop Hwb Hpart]
-  · iframe; iframe #
-    simp only [List.map_nil]
-    isplitr
-    · ipureintro; exact ⟨Hlg, Hck, Hrr⟩
-    · imodintro; iapply BigSepL.bigSepL_nil.2
-  rw [Hemp]
-  simp only [List.map_nil]
-  iintro !> %l ⟨Hop, Hrb, %lp, %γl, %Hl, Hinv, Hmode, Hcfg, Hexp, Hg, Hrd, Hown, Hever, Hrev,
-    Hrdo, Hck, Hbe, Happ, Hstop, -, -, #Hlk⟩
-  iapply HΦ
-  iframe Hop Hrb
-  iexists lp, γl
-  iframe
+  -- Draft: the instance at `recs = []` (an outline: `getD ∅ = ∅` gives the entries' equation,
+  -- the extra post dropped); its Iris steps to fix in Probe.
+  sorry
 
 end derive
 

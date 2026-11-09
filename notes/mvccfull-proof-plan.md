@@ -489,3 +489,58 @@ readers' vocabulary (`incLive`, `rF`, `ctrInv`, `readQ`).
 
 **Left `sorry` in the vocabulary:** `recv_facts` and `maxK_attained`. `complete` says nothing of
 its answer, by design.
+
+## Draft: the writer (2026-11-09)
+
+`Writer.lean` and 25 specs (`apply`, `begin`, `end`, `view`, `writeRange`, `writeSub`, `txn`,
+`compact`, `checkHook`, `gen`, `genLease`, `genSubs`, `newVal`, `checkLeases`, `openBackend`,
+`open`, `shut`, `newMember`, `restart`, `restore`, `write`, `checkAll`, `noCluster.Version`,
+`Run`, `Main`). All 76 modules build with the candidates (`/home/ubuntu/.claude-F/jobs/…/buildall.sh`
+lists them).
+
+- **The log model.** `opStep`, `runM` and `σOf` give each member's state as a function of the log
+  prefix it applied. `logOk`/`opValid`: every operation is valid where it applies (a revoke's or
+  put's lease live, a compaction's revision positive, a grant's id above every earlier one).
+- **The lease bucket's invariant.** `leaseRecsOk r L`: the bucket holds `leaseRecEnc` of the live
+  leases, TTL ≥ 3600. It is held in `lessorW`, kept by `Grant`/`Revoke`, carried by
+  `backend.Close`'s `rbOwn` to `NewLessor.specR`'s records.
+- **`writerOwn`**: per member `memW` (the incarnation's writer part `incW`, `mvccOpen`,
+  `mvccBackend`, `bkKeep` with the census wand, `lessorW`); `lentOk` (the shares lent to readers
+  and streams sum to 1, and the reader tokens to `mvccReaderN`); the unused builder files; the
+  readers' and streams' join handles.
+- **The restart chain:**
+  - retire (`inc_retire`: everything back, `memberState` out, `memberCarry` split off);
+  - close (`KV.Close`, `mvccClosed_rest` + census, `lessor.Stop`, `backend.Close`,
+    `mvccImage_stop`, the lease records);
+  - reopen (`backend.New`, `etcdStorage_open`, `NewLessor.specR`, `New.specR` at the image,
+    the hook set and frozen, `inc_alloc` from `memberCarry`).
+- **The restore chain:** the builder (`newMember` on its file, the log applied up to the leader's
+  point, retired, closed), then `backend.New` on its file, `Recover` with the records,
+  `KV.Restore` (the follower's log a prefix of the builder's: `runM_mono`), the hook, and the old
+  backend closed through the census.
+- **The builder has an incarnation invariant of its own** (`memberN 2`), so `apply` has one spec
+  for every member: a deviation from the plan, which said the builder needs none.
+
+**Go fixes the writer area forced** (tests pass, retranslated):
+
+1. **`Run` hashed unconditionally at the end.** Now it hashes only if `hashing(Mix.Read)`: the
+   readers' pick can choose the hashes, or every weight is 0.
+2. **`MainConfig`'s hash read weight is 0 until F2.** The tuned test configs, with unset `Read`
+   weights, still exercise hashing.
+3. **`restore`'s range deleter captures `kv := f.kv`**, rather than reading the field at each call
+   (`mvccDeleter`'s triple fixes the store).
+
+`NewLessorR`'s instance proof is `sorry` for the Draft; its Iris steps are fixed in Probe.
+
+**Premises inherited from callees:**
+
+- `limOf cfg ≤ 2^57` (the backend's `P.Wf`);
+- the key count, `|keysOf depth| ≤ 2^62`;
+- `[ReceiptBoundLe 2^48]` internal against `Run`'s `2^38`, as mvccrand's.
+
+**To check in Review:**
+
+- `backend.Close`'s `∃ path, bFile γ path ∗ fileHolds path D` against `bkKeep`'s `bFile`: is there
+  an agreement lemma?
+- `NewLessor` never ties `lessorCfg`'s `minLeaseTTL` to `cfg.MinLeaseTTL`; TTL ≥ 3600 suffices here.
+- Streams could adopt `incRd` with the `kv` share, which would drop `qk` from `lentOk`.

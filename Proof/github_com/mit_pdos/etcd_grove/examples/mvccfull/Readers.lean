@@ -15,9 +15,9 @@ the value loaded); the ceilings loaded after (`revHi`, `cmpHi`) are above them (
 
 **An epoch's readers** (`startReaders` to `stopReaders`, between two restarts): each reader
 goroutine holds, for each member, the member's current incarnation's handles, one reader token of
-its store (`incRd`), a share `q` of the incarnation's retirement token and of the member's `kv`
-field (`incRdL`), and one reader slot of the history (`histRd`): `rdOwn`. A reader may read both
-members (in F2, the corruption checker's hashes), so it holds both members' parts. The writer lends
+its store, a share `q` of the incarnation's retirement token and of the member's `kv` field
+(`Members.lean`'s `incRd`; `incRdL` its abbreviation), and one reader slot of the history
+(`histRd`): `rdOwn`. A reader may read both members (in F2, the corruption checker's hashes), so it holds both members' parts. The writer lends
 the `n` readers' parts (`rdStock`) at `startReaders` and gets them back, whole, from the readers'
 wait group (Perennial's thread-token join, `sync.tokJoin`, no lending) at `stopReaders`; then no
 reader of the epoch is left, and the writer may retire an incarnation (`memberInv`'s retirement).
@@ -177,12 +177,11 @@ def incLive (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : Mem
     (ι : IncNames) (kv : GoInterface) (q : Qp) : IProp GF :=
   iprop(isInc ks γh i mp m ι kv ∗ ghostVar ι.ret q ())
 
-/-- **A reader's part of a member's incarnation** (exclusive): `incRd` (handles, one reader
-token), a share `q` of the retirement token, and the share `q` of the member's `kv` field (the
-writer writes it only at a restart, when every reader has returned its share). -/
-def incRdL (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames)
+/-- **A reader's part of a member's incarnation**: `Members.lean`'s `incRd` (handles, one reader
+token, a share `q` of the retirement token and of the member's `kv` field). -/
+abbrev incRdL (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames)
     (ι : IncNames) (kv : GoInterface) (q : Qp) : IProp GF :=
-  iprop(incRd ks γh i mp m ι kv ∗ ghostVar ι.ret q () ∗ mF go!"kv" mp ↦{DFrac.own q} kv)
+  incRd ks γh i mp m ι kv q
 
 /-- **A reader goroutine's part of an epoch** (exclusive): a reader slot of the history, and both
 members' current incarnations' parts (`e0` the leader's incarnation and store handle, `e1` the

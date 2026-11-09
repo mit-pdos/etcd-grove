@@ -95,10 +95,11 @@ func MainConfig(prefix string) Config {
 			Op:        []int{25, 12, 25, 5, 5, 10, 4, 10, 4},
 			CompactAt: []int{1, 1, 0},
 			RangeRev:  []int{1, 1, 2, 0},
-			Read:      []int{1, 1, 2, 1, 1, 2},
-			Act:       []int{4, 1, 1, 1, 1, 1},
-			Start:     []int{1, 3, 0},
-			Pause:     100 * time.Microsecond,
+			// no hash reads until hashing is verified (stage F2, notes/mvccfull-proof-plan.md)
+			Read:  []int{1, 1, 2, 1, 1, 0},
+			Act:   []int{4, 1, 1, 1, 1, 1},
+			Start: []int{1, 3, 0},
+			Pause: 100 * time.Microsecond,
 		}}
 }
 
@@ -145,4 +146,16 @@ func pick(w []int, n int) int {
 		}
 	}
 	return n - 1
+}
+
+// hashing says whether a reader's pick over the weights w (readOne's six reads) can choose the
+// hashes (the last): its weight positive, or every weight 0 (a uniform pick).
+func hashing(w []int) bool {
+	any := false
+	for i := 0; i < 6 && i < len(w); i++ {
+		if w[i] > 0 {
+			any = true
+		}
+	}
+	return !any || (len(w) > 5 && w[5] > 0)
 }

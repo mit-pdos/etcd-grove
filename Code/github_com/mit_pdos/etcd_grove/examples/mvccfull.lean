@@ -147,6 +147,9 @@ noncomputable def choose [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def pick [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.pick"
 
+noncomputable def hashing [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.hashing"
+
 noncomputable def check [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.check"
 
@@ -238,7 +241,7 @@ noncomputable def MainConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v2" (Val #(W64 2))
   (Let "$v3" (Val #(W64 1))
   (Let "$v4" (Val #(W64 1))
-  (Let "$v5" (Val #(W64 2))
+  (Let "$v5" (Val #(W64 0))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.int)))) (LiteralValue [(KeyedElement none (ElementExpression go.int (Var "$v0"))), (KeyedElement none (ElementExpression go.int (Var "$v1"))), (KeyedElement none (ElementExpression go.int (Var "$v2"))), (KeyedElement none (ElementExpression go.int (Var "$v3"))), (KeyedElement none (ElementExpression go.int (Var "$v4"))), (KeyedElement none (ElementExpression go.int (Var "$v5")))]))))))))
   (Let "$v5" (Let "$v0" (Val #(W64 4))
   (Let "$v1" (Val #(W64 1))
@@ -263,7 +266,7 @@ noncomputable def MainConfig.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- normalize clamps cfg into the range the tester runs in.
 
-    go: config.go:106:6 -/
+    go: config.go:107:6 -/
 noncomputable def normalize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
@@ -300,7 +303,7 @@ noncomputable def normalize.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- choose returns any number in [0, n) (0 if n ≤ 0).
 
-    go: config.go:120:6 -/
+    go: config.go:121:6 -/
 noncomputable def choose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -326,7 +329,7 @@ noncomputable def choose.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- pick returns any alternative in [0, n), weighed by w (above).
 
-    go: config.go:128:6 -/
+    go: config.go:129:6 -/
 noncomputable def pick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "n"
@@ -407,6 +410,47 @@ noncomputable def pick.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "total") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
+
+/-- hashing says whether a reader's pick over the weights w (readOne's six reads) can choose the
+    hashes (the last): its weight positive, or every weight 0 (a uniform pick).
+
+    go: config.go:153:6 -/
+noncomputable def hashing.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int)))) (Var "w"))
+  (Let "$r0" (Val #false)
+  (Let "any" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "any"))) (Val #true) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "w"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.int)]))) (Val #())) (Var "$a0"))) (Val #(W64 5)))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.int)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "w")) (Val #(W64 5))))) (Val #(W64 0)))) (Val #false)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 6)))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "w"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.int)]))) (Val #())) (Var "$a0"))))) (Val #false)))) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.int)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "w")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (Val #(W64 0)))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "any") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "any") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- go: mvccfull.go:141:6 -/
 noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1518,6 +1562,9 @@ noncomputable def runner.restore.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"openBackend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Var "$a0")))
   (Let "newbe" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (App (Val (GoInstruction (StructFieldRef member.ty go!"kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "f"))))
+  (Let "kv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1609,7 +1656,7 @@ noncomputable def runner.restore.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.lease.TxnDelete.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.lease.TxnDelete.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty _root_.Perennial.go_etcd_io.etcd.server.v3.lease.TxnDelete.ty))) (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.TODO []))) (Val #())) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (App (Val (GoInstruction (StructFieldRef member.ty go!"kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "f"))))) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Var "kv"))) (Var "$a0"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1617,6 +1664,8 @@ noncomputable def runner.restore.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.lease.TxnDelete.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.TxnDelete.ty))) (Var "$res0")))))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty go!"Recover"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (App (Val (GoInstruction (StructFieldRef member.ty go!"le"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "f"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Pair (Var "kv") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Pair (Var "newbe") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -1646,7 +1695,7 @@ noncomputable def runner.restore.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkLeases checks m's lessor against the model: each key's lease, each live lease's keys, and
     no other lease.
 
-    go: mvccfull.go:580:18 -/
+    go: mvccfull.go:581:18 -/
 noncomputable def runner.checkLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1791,7 +1840,7 @@ noncomputable def runner.checkLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string kvRec.ty)))) (Pair (Var "st") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: mvccfull.go:611:18 -/
+/-- go: mvccfull.go:612:18 -/
 noncomputable def runner.genKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1810,7 +1859,7 @@ noncomputable def runner.genKey.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- genEnd returns a range end: nil (one key), empty (from the key on), past every key, or a key.
 
-    go: mvccfull.go:614:18 -/
+    go: mvccfull.go:615:18 -/
 noncomputable def runner.genEnd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1853,7 +1902,7 @@ noncomputable def runner.genEnd.impl [GooseExts] [GoGlobalContext] : val :=
     (compacted, past, current, future), any limit up to past the number of keys (0: none), any
     count-only, keys-only and total-count options.
 
-    go: mvccfull.go:631:18 -/
+    go: mvccfull.go:632:18 -/
 noncomputable def runner.genRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "cur"
@@ -1921,7 +1970,7 @@ noncomputable def runner.genRange.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- newVal returns a new value, of any length up to MaxVal.
 
-    go: mvccfull.go:651:18 -/
+    go: mvccfull.go:652:18 -/
 noncomputable def runner.newVal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1960,7 +2009,7 @@ noncomputable def runner.newVal.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- genLease returns no lease half the time, else a live lease of m, if any.
 
-    go: mvccfull.go:661:18 -/
+    go: mvccfull.go:662:18 -/
 noncomputable def runner.genLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1993,7 +2042,7 @@ noncomputable def runner.genLease.impl [GooseExts] [GoGlobalContext] : val :=
 /-- genSubs returns a write transaction's operations, as etcd's checkIntervals allows them: the
     puts' keys distinct, and none in a delete's range.
 
-    go: mvccfull.go:670:18 -/
+    go: mvccfull.go:671:18 -/
 noncomputable def runner.genSubs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2165,7 +2214,7 @@ noncomputable def runner.genSubs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- gen returns the next operation of the log, made for the leader l.
 
-    go: mvccfull.go:714:18 -/
+    go: mvccfull.go:715:18 -/
 noncomputable def runner.gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "l"
@@ -2356,7 +2405,7 @@ noncomputable def runner.gen.impl [GooseExts] [GoGlobalContext] : val :=
 /-- apply applies the operation o to m (lead: m is the leader, which appends o's revision to the
     history; the follower finds it there), checking every result.
 
-    go: mvccfull.go:765:18 -/
+    go: mvccfull.go:766:18 -/
 noncomputable def runner.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2697,7 +2746,7 @@ noncomputable def runner.apply.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- begin returns the model of a write transaction on m, and raises m's revision bound.
 
-    go: mvccfull.go:835:18 -/
+    go: mvccfull.go:836:18 -/
 noncomputable def runner.begin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2728,7 +2777,7 @@ noncomputable def runner.begin.impl [GooseExts] [GoGlobalContext] : val :=
 /-- end appends the pending revision to the history (the leader, if it changed anything), runs
     the store's End, checks the store's revision and publishes it.
 
-    go: mvccfull.go:843:18 -/
+    go: mvccfull.go:844:18 -/
 noncomputable def runner.«end».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2797,7 +2846,7 @@ noncomputable def runner.«end».impl [GooseExts] [GoGlobalContext] : val :=
 /-- view returns the states as a read in the write transaction sees them (the pending revision
     appended once it has a change) and the revision it is at.
 
-    go: mvccfull.go:862:18 -/
+    go: mvccfull.go:863:18 -/
 noncomputable def runner.view.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "p"
@@ -2843,7 +2892,7 @@ noncomputable def runner.view.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.MapType go.string kvRec.ty))))) (Pair (Var "st") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.MapType go.string kvRec.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res1"))))))))
 
-/-- go: mvccfull.go:870:18 -/
+/-- go: mvccfull.go:871:18 -/
 noncomputable def runner.writeRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2900,7 +2949,7 @@ noncomputable def runner.writeRange.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- writeSub runs one operation of a write transaction, checked.
 
-    go: mvccfull.go:877:18 -/
+    go: mvccfull.go:878:18 -/
 noncomputable def runner.writeSub.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2981,7 +3030,7 @@ noncomputable def runner.writeSub.impl [GooseExts] [GoGlobalContext] : val :=
     in a concurrent read transaction made a read-only write transaction. Then the branch's
     operations.
 
-    go: mvccfull.go:901:18 -/
+    go: mvccfull.go:902:18 -/
 noncomputable def runner.txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3216,7 +3265,7 @@ noncomputable def runner.txn.impl [GooseExts] [GoGlobalContext] : val :=
     closed once the compactions before are done), ErrFutureRev past its revision; waits for the
     compaction if o.wait.
 
-    go: mvccfull.go:942:18 -/
+    go: mvccfull.go:943:18 -/
 noncomputable def runner.compact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3342,7 +3391,7 @@ noncomputable def runner.compact.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkHook checks that the post-lock hook ran with the index being applied.
 
-    go: mvccfull.go:972:18 -/
+    go: mvccfull.go:973:18 -/
 noncomputable def runner.checkHook.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3357,7 +3406,7 @@ noncomputable def runner.checkHook.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (Val #())))))
 
-/-- go: mvccfull.go:979:6 -/
+/-- go: mvccfull.go:980:6 -/
 noncomputable def inBounds.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lo"
   (Lam "v"
@@ -3382,7 +3431,7 @@ noncomputable def inBounds.impl [GooseExts] [GoGlobalContext] : val :=
 /-- startReaders starts cfg.Readers readers on each member, each running up to cfg.Reads reads
     until stopReaders (between two restarts: a reader belongs to the members' current incarnations).
 
-    go: mvccfull.go:986:18 -/
+    go: mvccfull.go:987:18 -/
 noncomputable def runner.startReaders.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -3448,7 +3497,7 @@ noncomputable def runner.startReaders.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- stopReaders stops the readers and waits for them.
 
-    go: mvccfull.go:1004:18 -/
+    go: mvccfull.go:1005:18 -/
 noncomputable def runner.stopReaders.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -3462,7 +3511,7 @@ noncomputable def runner.stopReaders.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"readStop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: mvccfull.go:1009:18 -/
+/-- go: mvccfull.go:1010:18 -/
 noncomputable def runner.readOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3710,7 +3759,7 @@ noncomputable def runner.readOne.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkStoreRange checks the store's own Range (its own read transaction: a revision in
     [lo, revHi], a compaction revision in [clo, cmpHi]).
 
-    go: mvccfull.go:1053:18 -/
+    go: mvccfull.go:1054:18 -/
 noncomputable def runner.checkStoreRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3771,7 +3820,7 @@ noncomputable def runner.checkStoreRange.impl [GooseExts] [GoGlobalContext] : va
     and equal when they are of the same revision and compaction revision; and the members'
     compaction hashes, equal when of the same revisions.
 
-    go: mvccfull.go:1068:18 -/
+    go: mvccfull.go:1069:18 -/
 noncomputable def runner.hashes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -3945,7 +3994,7 @@ noncomputable def runner.hashes.impl [GooseExts] [GoGlobalContext] : val :=
     equal, unless the state at that revision is empty (the restriction:
     issues/etcd-mvcc-compact-hash-empty-keyspace.md).
 
-    go: mvccfull.go:1103:18 -/
+    go: mvccfull.go:1104:18 -/
 noncomputable def runner.sameHash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "a"
@@ -3981,7 +4030,7 @@ noncomputable def runner.sameHash.impl [GooseExts] [GoGlobalContext] : val :=
     below the compaction revision, else the hash of r (0: the current revision) at the compaction
     revision; or the hash a compaction at r stored, at the compaction revision before it.
 
-    go: mvccfull.go:1117:18 -/
+    go: mvccfull.go:1118:18 -/
 noncomputable def runner.checkHash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -4091,7 +4140,7 @@ noncomputable def runner.checkHash.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))))))))
   (Val #()))))))))))
 
-/-- go: mvccfull.go:1164:19 -/
+/-- go: mvccfull.go:1165:19 -/
 noncomputable def watcher.«matches».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ch"
@@ -4133,7 +4182,7 @@ noncomputable def watcher.«matches».impl [GooseExts] [GoGlobalContext] : val :
 /-- startEpoch opens m's watch streams, each with its receiving goroutine and its registering one,
     which acts until the writer stops it.
 
-    go: mvccfull.go:1192:18 -/
+    go: mvccfull.go:1193:18 -/
 noncomputable def runner.startEpoch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -4220,7 +4269,7 @@ noncomputable def runner.startEpoch.impl [GooseExts] [GoGlobalContext] : val :=
 /-- endEpoch stops registering on m's streams, waits until every watcher has every event up to m's
     revision (or was cancelled or compacted), and closes the streams.
 
-    go: mvccfull.go:1218:18 -/
+    go: mvccfull.go:1219:18 -/
 noncomputable def runner.endEpoch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -4331,7 +4380,7 @@ noncomputable def runner.endEpoch.impl [GooseExts] [GoGlobalContext] : val :=
     progress or the stream's, check the stream's revision, or watch an empty range (which must
     fail).
 
-    go: mvccfull.go:1243:18 -/
+    go: mvccfull.go:1244:18 -/
 noncomputable def stream.act.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4419,7 +4468,7 @@ noncomputable def stream.act.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- pick returns a watcher not cancelled, if any (s.mu held).
 
-    go: mvccfull.go:1269:18 -/
+    go: mvccfull.go:1270:18 -/
 noncomputable def stream.pick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4481,7 +4530,7 @@ noncomputable def stream.pick.impl [GooseExts] [GoGlobalContext] : val :=
 /-- watch registers a watcher (the stream picks its id, as etcd's client asks): from revision 0
     or any revision up to two past the member's, over any non-empty range, with any filter.
 
-    go: mvccfull.go:1284:18 -/
+    go: mvccfull.go:1285:18 -/
 noncomputable def stream.watch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4653,7 +4702,7 @@ noncomputable def stream.watch.impl [GooseExts] [GoGlobalContext] : val :=
 /-- cancel cancels a watcher not cancelled (marked first, so that the receiver stops counting on
     the stream's progress responses for it), and cancels it again, which may fail.
 
-    go: mvccfull.go:1327:18 -/
+    go: mvccfull.go:1328:18 -/
 noncomputable def stream.cancel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4716,7 +4765,7 @@ noncomputable def stream.cancel.impl [GooseExts] [GoGlobalContext] : val :=
 /-- expect returns w's next expected change at or after its position, up to revision upto (false if
     there is none).
 
-    go: mvccfull.go:1345:18 -/
+    go: mvccfull.go:1346:18 -/
 noncomputable def stream.expect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "w"
@@ -4800,7 +4849,7 @@ noncomputable def stream.expect.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- covered checks that w has received every change up to P.
 
-    go: mvccfull.go:1362:18 -/
+    go: mvccfull.go:1363:18 -/
 noncomputable def stream.covered.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "w"
@@ -4842,7 +4891,7 @@ noncomputable def stream.covered.impl [GooseExts] [GoGlobalContext] : val :=
     sendLoop drains its channel down to a new watcher's stamp the same way): a stream progress
     response received later was sent after the watcher registered, and covers it.
 
-    go: mvccfull.go:1372:18 -/
+    go: mvccfull.go:1373:18 -/
 noncomputable def stream.recvOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4953,7 +5002,7 @@ noncomputable def stream.recvOne.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- receive checks a response of the stream (s.mu held).
 
-    go: mvccfull.go:1400:18 -/
+    go: mvccfull.go:1401:18 -/
 noncomputable def stream.receive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "resp"
@@ -5260,7 +5309,7 @@ noncomputable def stream.receive.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- complete says whether every watcher not cancelled or compacted has every change up to upto.
 
-    go: mvccfull.go:1481:18 -/
+    go: mvccfull.go:1482:18 -/
 noncomputable def stream.complete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "upto"
@@ -5340,7 +5389,7 @@ noncomputable def stream.complete.impl [GooseExts] [GoGlobalContext] : val :=
 /-- write is the writer: the log's operations on the leader, the follower catching up, snapshots
     installed on the follower, restarts; then the follower caught up.
 
-    go: mvccfull.go:1501:18 -/
+    go: mvccfull.go:1502:18 -/
 noncomputable def runner.write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -5428,7 +5477,7 @@ noncomputable def runner.write.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkAll reads every revision of m not compacted, in full.
 
-    go: mvccfull.go:1532:18 -/
+    go: mvccfull.go:1533:18 -/
 noncomputable def runner.checkAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -5552,7 +5601,7 @@ noncomputable def runner.checkAll.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Run runs the tester; it panics if a check fails.
 
-    go: mvccfull.go:1553:6 -/
+    go: mvccfull.go:1554:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Report.ty))) (App (Val (GoInstruction (GoZeroVal Report.ty))) (Val #())))
@@ -5645,8 +5694,12 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "m") (Var "$value")))))))))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (App (Val (GoInstruction (StructFieldRef Mix.ty go!"Read"))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Mix"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))))))
+  (App (App (Val (GoInstruction (FuncResolve hashing []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"hashes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"hashes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #())))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType runner.ty) go!"stopReaders"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x"))) (Val #()))))))
   (App (Val doExecute)
@@ -5680,7 +5733,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Main runs the tester with MainConfig (config.go), the members' files mvccfull-0-0.db,
     mvccfull-1-0.db, ... in the current directory (which must not exist).
 
-    go: mvccfull.go:1581:6 -/
+    go: mvccfull.go:1584:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -7073,6 +7126,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   normalize_unfold : FuncUnfold normalize [] normalize.impl
   choose_unfold : FuncUnfold choose [] choose.impl
   pick_unfold : FuncUnfold pick [] pick.impl
+  hashing_unfold : FuncUnfold hashing [] hashing.impl
   check_unfold : FuncUnfold check [] check.impl
   walkKeys_unfold : FuncUnfold walkKeys [] walkKeys.impl
   itoa_unfold : FuncUnfold itoa [] itoa.impl
@@ -7119,6 +7173,7 @@ attribute [instance] Assumptions.Config_instance
   Assumptions.normalize_unfold
   Assumptions.choose_unfold
   Assumptions.pick_unfold
+  Assumptions.hashing_unfold
   Assumptions.check_unfold
   Assumptions.walkKeys_unfold
   Assumptions.itoa_unfold

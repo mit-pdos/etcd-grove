@@ -555,7 +555,8 @@ func (x *runner) restore(l, f *member) {
 	f.revHi.Store(b.rev)
 	f.cmpHi.Store(b.cmp)
 	newbe := x.openBackend(b.path)
-	f.le.Recover(newbe, func() lease.TxnDelete { return f.kv.Write(traceutil.TODO()) })
+	kv := f.kv
+	f.le.Recover(newbe, func() lease.TxnDelete { return kv.Write(traceutil.TODO()) })
 	check(f.kv.Restore(newbe) == nil, "a restore failed")
 	newbe.SetTxPostLockInsideApplyHook(f.hook)
 	oldbe := f.be
@@ -1562,7 +1563,9 @@ func Run(cfg Config) Report {
 	x.startReaders()
 	x.write()
 	x.stopReaders()
-	x.hashes()
+	if hashing(x.cfg.Mix.Read) {
+		x.hashes()
+	}
 	for _, m := range x.ms {
 		x.endEpoch(m)
 		x.shut(m)

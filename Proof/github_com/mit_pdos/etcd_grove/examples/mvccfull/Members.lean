@@ -13,9 +13,11 @@ per revision (`onceUpToAll`), which the watch guarantee needs.
 
 **Retirement** (a cancelable invariant): the invariant holds its contents or the incarnation's
 retirement token (`ghostVar ret 1 ()`), which the writer holds while the incarnation lives. At a
-restart, every reader and stream of the incarnation has ended (`stopReaders`, `endEpoch`: they hold
-only the persistent invariant and their reader tokens, returned through the wait groups), so the
-writer swaps the token in and takes the contents out: the closed store's state for
+restart, every reader and stream of the incarnation has ended (`stopReaders`, `endEpoch`), and
+each had, besides the persistent handles (`isInc`), a share of the retirement token (a live share
+rules the retired case out, so a goroutine may open the invariant), a reader token and a share of
+the member's `kv` field (`incRd`), all returned through the wait groups; with the whole token back
+the writer swaps it in and takes the contents out: the closed store's state for
 `mvccImage_stop.law`, and the atomics, counters and `m.σ`'s half, which go into the next
 incarnation's invariant. The incarnation's store name `γk` is a parameter: each reader and stream is
 handed its incarnation's handles when started (no ghost state stores a store name, which is not
@@ -129,11 +131,15 @@ def isInc (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : Membe
     (ι : IncNames) (kv : GoInterface) : IProp GF :=
   iprop(inv (memberN i) (memberInv ks γh mp m ι) ∗ isMvcc kv ι.kv)
 
-/-- **A reader's or a stream goroutine's part of an incarnation** (exclusive): its handles, and one
-reader token of its store, returned at its end through its wait group. -/
+/-- **A goroutine's part of an incarnation** (exclusive, at the share `q`; a reader's, `Readers.lean`'s
+`rdOwn`): its handles, one reader token of its store, the share `q` of the incarnation's retirement
+token (so that it may open the invariant: a live share rules the retired case out) and of the
+member's `kv` field (which it reads: the writer writes it only at a restart, once every share is
+back). Returned at the goroutine's end through its wait group. -/
 def incRd (ks : List GoString) (γh : HistNames) (i : Nat) (mp : Loc) (m : MemberNames)
-    (ι : IncNames) (kv : GoInterface) : IProp GF :=
-  iprop(isInc ks γh i mp m ι kv ∗ mvccReaders ι.kv 1)
+    (ι : IncNames) (kv : GoInterface) (q : Qp) : IProp GF :=
+  iprop(isInc ks γh i mp m ι kv ∗ mvccReaders ι.kv 1 ∗ ghostVar ι.ret q () ∗
+    mF go!"kv" mp ↦{DFrac.own q} kv)
 
 end defs
 
