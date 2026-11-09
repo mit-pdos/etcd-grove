@@ -202,7 +202,7 @@ review): the logic can allocate a slice of any `w64` length, so a program that a
 oversized (or aliased) message without responses and freezes it through the proved `pbMsg_alloc`
 refutes it. The premise `st.resps = []` (which every user has, `MsgMarshals`) only removes one
 refutation, a `nil` response: `swMsgBound` freezes every response at a content (`msgRoC`, a non-nil,
-read-only pointer), which `msgOwn` does not own. raft-entsize deletes the axiom in the same landing. The content it gives has a snapshot
+read-only pointer), which `msgOwn` does not own. raft-entsize deletes the axiom (stage A landed ahead of it, the user's decision of 2026-11-09; until then this false axiom is on lean, as its earlier form was). The content it gives has a snapshot
 `ConfState` without unknown fields (`MsgC.csUfNil`): the sender's fact, since `msgOwn`'s `csPts`
 (raft's) fixes them to none. -/
 axiom swMsgBound_phys (ml : Loc) (st : MsgSt) (h : st.resps = []) :

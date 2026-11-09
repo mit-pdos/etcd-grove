@@ -91,10 +91,10 @@ unlink_perennial
 # the built .oleans, so only after a successful build
 python3 etc/model-param-check.py || fail=1
 python3 etc/pbschema-check.py || fail=1
-# the per-type stage's joint landing: stage A's restated swMsgBound_phys never lands (raft-entsize
-# deletes it in the same landing; reads the baselines only)
+# etc/joint-landing-check.py refuses swMsgBound_phys in the baselines; stage A lands without it
+# (the user, 2026-11-09: stage A ahead of raft-entsize, whose landing deletes the axiom and turns
+# the check on again). Its selftest stays.
 python3 etc/joint-landing-check.py --selftest || fail=1
-python3 etc/joint-landing-check.py || fail=1
 
 # 6. the issues' front matter
 if python3 etc/issues-status.py --check > "$tmp/issues.log" 2>&1; then
