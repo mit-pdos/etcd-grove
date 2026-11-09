@@ -78,6 +78,43 @@ theorem bagRep_with (b : Etcdraft.Bag) (l : List Etcdraft.Msg) (m : Etcdraft.Msg
     · subst hx; rw [bag_count_with_self (b := b), hc]; simp
     · rw [bag_count_with_other b x m (Ne.symm hx), hc]; simp [List.count_append, Ne.symm hx]
 
+theorem bagRep_foldl_with (P' : List Etcdraft.Msg) :
+    ∀ (b : Etcdraft.Bag) (l : List Etcdraft.Msg), BagRep b l → BagRep (P'.foldl Etcdraft.Bag.with b) (l ++ P') := by
+  induction P' with
+  | nil => intro b l h; simpa using h
+  | cons m P' ih =>
+    intro b l h
+    have := ih _ _ (bagRep_with b l m h)
+    simpa using this
+
+theorem bagRep_perm (b : Etcdraft.Bag) (l l' : List Etcdraft.Msg) (h : BagRep b l) (hp : l.Perm l') :
+    BagRep b l' := ⟨h.1, h.2.1, fun m => by rw [h.2.2 m, hp.count_eq]⟩
+
+/-- The shares' messages after node `i`'s share gains `P'`: a permutation of them with `P'`. -/
+theorem flatMap_update_perm {K V : Type} [DecidableEq K] (C : List K) (f g : K → List V) (i : K)
+    (hnd : C.Nodup) (hi : i ∈ C) (P' : List V) (hg : g i = f i ++ P') (ho : ∀ j, j ≠ i → g j = f j) :
+    (C.flatMap g).Perm (C.flatMap f ++ P') := by
+  induction C with
+  | nil => simp at hi
+  | cons c C ih =>
+    simp only [List.flatMap_cons]
+    rw [List.nodup_cons] at hnd
+    by_cases hc : c = i
+    · subst hc
+      have hC : C.flatMap g = C.flatMap f := by
+        have : ∀ j ∈ C, g j = f j := fun j hj => ho j (fun e => hnd.1 (e ▸ hj))
+        clear ih hnd hi hg
+        induction C with
+        | nil => rfl
+        | cons x C ihC =>
+          simp only [List.flatMap_cons]
+          rw [this x (by simp), ihC (fun j hj => this j (by simp [hj]))]
+      rw [hg, hC, List.append_assoc, List.append_assoc]
+      exact List.Perm.append_left _ List.perm_append_comm
+    · have hi' : i ∈ C := by simp [Ne.symm hc] at hi; exact hi
+      rw [ho c hc, List.append_assoc]
+      exact List.Perm.append_left _ (ih hnd.2 hi')
+
 end TraceSim
 
 end EtcdGrove
