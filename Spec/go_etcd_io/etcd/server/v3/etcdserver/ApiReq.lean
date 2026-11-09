@@ -360,6 +360,11 @@ Persistent; the incoming gRPC context's (2a), the internal requesters' (`ctxTrac
 def reqCtxOk (ctx : GoInterface) : IProp GF :=
   iprop(TraceUtil.ctxTraceIs ctx none ∗ OtelTrace.ctxSpanOk ctx)
 
+/-- (deprecated: 4b's `TraceUtil.traceOpt`, kept for 3a's specs until they cite it) **`tr` is a
+trace, owned** (`nil`, or 4b's exclusive `traceOwn`; no longer the round-0 persistent slot, which
+was false of `traceutil`: its methods write unlocked fields). -/
+def traceAt (tr : Loc) : IProp GF := TraceUtil.traceOpt tr
+
 /-- **The trace a context carries, owned** (`doSerialize`'s `traceutil.Get`: the trace the caller's
 `EnsureTrace` installed). -/
 def ctxTrace (ctx : GoInterface) : IProp GF :=

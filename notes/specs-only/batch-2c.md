@@ -346,3 +346,36 @@ New nonissues: `etcd-rangestream-auth-revoked-midstream`, `etcd-rangestream-coun
 - `Authenticate`'s `CheckPassword` errors (W0's step since `lo`).
 - The `tls ≠ p` write quirk on the client side (`ctxPrin`).
 - `leaseTimeToLive`'s half-attached key sets.
+
+## Round 2 follow-ups (2026-11-09): W0's rounds 5-6 and the requests after round 1
+
+- **W0's round 5-6 tables**:
+  - `respTy` covers `Req.alarmActivate`; this was the build break at `ApiReq.lean`.
+  - A client's `Alarm(ACTIVATE)` is now `.req (.alarmActivate al)`, with the client's update. The
+    quota's own activation stays `IrrBody.alarmActivate`, with no update.
+  - `ErrNoSpace` is indefinite. `IrrBody.backOk` now excludes indefinite errors, so a `.noSpace`
+    result is outcome 1 or 3, never given back.
+  - Compact's `lo`/`authLb` was already in `SrvCallTriple` (round 1).
+  - `Range`'s sketch now cites `permittedSince`. `authStep`'s `lo` covers `Authenticate`'s
+    `CheckPassword` errors (my round-1 open item, closed by W0).
+  - `endOf` needs no change here: the request predicates are W0's.
+- **4b (traces)**:
+  - `traceAt` is now exclusive: an alias of `TraceUtil.traceOpt`, kept only so 3a's apply specs build
+    (they should cite `traceOpt`). The persistent version was false of `traceutil`.
+  - `applyResult` hands the result's trace over owned.
+  - Every spec taking a request context takes `reqCtxOk ctx` (`ctxTraceIs ctx none` and
+    `ctxSpanOk ctx`).
+  - `doSerialize` and its closures thread `ctxTrace ctx`, the trace `EnsureTrace` installed, owned.
+- **3a (round 1)**:
+  - `IsRegistered`'s `waitWasReg ∨ waitNever` and `waitDone` are as 3a uses them.
+  - The activation reply: `irrReply` of `.req (.alarmActivate _)` is an `*AlarmResponse` (`respTy`).
+- **Not stated in my files** (realization-side; my sketches use them unchanged):
+  - **3b**: `Txn.errIs`. Txn's errors are the sentinels' globals, so `srvErrOf` follows through
+    `togRPCError`'s map. This matches `srvErrVal`; the law tying them is 2a/3b's.
+  - **3c**: reader tokens. The lessor's reads take `lessorReaders γl 1`. My lease specs take a
+    `threadTok`, and the realization lends a reader from the pool the server's invariant keeps (2e's
+    `NewLessor`).
+  - **3d**: the store-index to cluster-index link is 2d's. `Range`'s sketch cites it.
+- **Builds**: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/etcdserver` OK (150 modules);
+  `--dir .../etcdserver/apply` OK (74 modules). No other batch's file failed after the `traceAt`
+  alias.
