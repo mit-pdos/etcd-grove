@@ -50,8 +50,14 @@ parsed lines extends by a line with one successor or a chain of single successor
 congruences, bootstrap flags stable under appending, formatted ids parsed back); every node line's,
 every send line's and the vote and append-response receive lines' steps; the append request's rounds
 (truncation, append, last); the invariants as facts giving `violated = none` (`TraceSim*.lean`).
-Open: the append request's chain assembled, `UpdateTerm` rounds, `BecomeFollower` lines, the
-invariants and message uniqueness from raft's ghost state, the traced Iris specs (Draft), S6, S7.
+Then every receive line (append requests through their chains, after a first round: `UpdateTerm`
+or a candidate's `ReturnToFollower`, `FirstRound`), the `BecomeFollower` lines (skipped or stepping
+down), and the global step of any line effect (`simRun_lineEffect`: `LineEffect`, stated for every
+trace and global state where the line could occur, so the per-line lemmas apply as they are); S5's
+Draft extended to the other hooks and `send` (`TracedHooksDraft.lean`), review round 1 (six
+first-tier findings, repaired; `notes/trace-validation-reviews/s5-r1.md`); layer C's `types.go`
+delegated. Open: the invariants and message uniqueness from raft's ghost state (`simInv`'s
+per-server facts), the global step as an Iris law, the other hook-path statements, S6, S7.
 
 ## Soundness bugs: `grpc.serve`'s handler pool and `pbEnc` across heaps (found 2026-11-07; fixed by the per-type stage, not started)
 
