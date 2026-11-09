@@ -310,9 +310,9 @@ macro "read_server" : tactic => `(tactic| (
     ihave #Hst0 := Hst
     iunfold stateRO at Hst0
     icases Hst0 with ⟨%g, %sm, #Hp, #Hsrv, #Hm, %Hkeys, %Hnd, #Hsrvs, #Hb1, #Hb2, %Hrc⟩
-    obtain ⟨k, hk, hki⟩ := List.mem_iff_getElem.1 Hi
+    obtain ⟨ksv, hksv, hkisv⟩ := List.mem_iff_getElem.1 Hi
     icases (BigSepL.bigSepL_lookup (Φ := fun _ j => iprop(∃ q : Loc, ⌜sm !! (W64 (Int.ofNat j)) = some q⌝ ∗
-        serverRO (GF := GF) q (st.s j))) (List.getElem?_eq_some_iff.2 ⟨hk, hki⟩)) $$ Hsrvs with ⟨%q0, %Hq0, #Hsv⟩
+        serverRO (GF := GF) q (st.s j))) (List.getElem?_eq_some_iff.2 ⟨hksv, hkisv⟩)) $$ Hsrvs with ⟨%q0, %Hq0, #Hsv⟩
     have Hii : W64 (Int.ofNat (uint.nat i)) = i := by apply BitVec.eq_of_toNat_eq; simp
     rw [Hii] at Hq0
     icases typedPointsto_split _ _ _ $$ Hp with Hpf
