@@ -1296,3 +1296,121 @@ theorem specInv_appendEntriesInRangeToPeer {σ σ' : State} {subtype : String} {
         rcases hlen with ⟨_, hn⟩ | ⟨_, _, _, _⟩
         · exact absurd hn hne
         · omega
+
+/-- **`AppendEntries(i, j, <<b, e>>)`**, `b` within `NextAsync`'s range. -/
+theorem specInv_appendEntries {σ σ' : State} {i j : ID} {b e : Int}
+    (h : SpecInv σ) (hi : i ∈ σ.server) (hone : σ.moreThanOneLeaderInv = true)
+    (hb : b ≤ (σ.s i).log.length + 1)
+    (hstep : σ.appendEntries i j b e = .ok (some σ')) : SpecInv σ' :=
+  specInv_appendEntriesInRangeToPeer h hi hone hb hstep
+
+/-- **`Heartbeat(i, j)`.** -/
+theorem specInv_heartbeat {σ σ' : State} {i j : ID}
+    (h : SpecInv σ) (hi : i ∈ σ.server) (hone : σ.moreThanOneLeaderInv = true)
+    (hstep : σ.heartbeat i j = .ok (some σ')) : SpecInv σ' :=
+  specInv_appendEntriesInRangeToPeer h hi hone (by omega) hstep
+
+/-! ## A follower's handling of an append request -/
+
+/-- **A follower's new log**, every other field kept: each entry of it of a leader's term at a
+position where that leader's log has an entry of the term. -/
+theorem specInv_upd_followerLog {σ : State} {i : ID} {f : Server → Server} (h : SpecInv σ)
+    (hfol : (σ.s i).state = follower)
+    (hT : (f (σ.s i)).currentTerm = (σ.s i).currentTerm) (hS : (f (σ.s i)).state = (σ.s i).state)
+    (hD : (f (σ.s i)).durable = (σ.s i).durable)
+    (hV : (f (σ.s i)).votesGranted = (σ.s i).votesGranted)
+    (hC : (f (σ.s i)).commitIndex = (σ.s i).commitIndex)
+    (hM : (f (σ.s i)).matchIndex = (σ.s i).matchIndex)
+    (hlog : ∀ (k : Nat) (e : Entry), (f (σ.s i)).log[k]? = some e → ∀ l ∈ σ.server, (σ.s l).state = leader →
+      e.term = (σ.s l).currentTerm → ((σ.s l).log[k]?).map Entry.term = some e.term) :
+    SpecInv (σ.upd i f) := by
+  obtain ⟨hLE, hDu, hTm, hCa, hP, hCW, hRC⟩ := h
+  have hT' : ∀ k, ((σ.upd i f).s k).currentTerm = (σ.s k).currentTerm := by
+    intro k; rw [upd_s]; split <;> subst_vars <;> first | rfl | exact hT
+  have hS' : ∀ k, ((σ.upd i f).s k).state = (σ.s k).state := by
+    intro k; rw [upd_s]; split <;> subst_vars <;> first | rfl | exact hS
+  have hC' : ∀ k, ((σ.upd i f).s k).commitIndex = (σ.s k).commitIndex := by
+    intro k; rw [upd_s]; split <;> subst_vars <;> first | rfl | exact hC
+  -- the leaders and the candidates are not `i`
+  have hnl : ∀ l, (σ.s l).state = leader → l ≠ i := by
+    rintro l hl rfl; exact follower_ne_leader (hfol.symm.trans hl)
+  have hnc : ∀ l, (σ.s l).state = candidate → l ≠ i := by
+    rintro l hl rfl; exact follower_ne_candidate (hfol.symm.trans hl)
+  refine ⟨?_, ?_, ?_, ?_, hP, ?_, ?_⟩
+  · intro l hl hll
+    rw [hS'] at hll
+    rw [upd_s_ne _ _ _ _ (hnl l hll)]
+    obtain ⟨h1, h2⟩ := hLE l hl hll
+    refine ⟨fun j hj k e he ht => ?_, h2⟩
+    by_cases hji : j = i
+    · subst hji; rw [upd_s_self] at he; exact hlog k e he l hl hll ht
+    · rw [upd_s_ne _ _ _ _ hji] at he; exact h1 j hj k e he ht
+  · intro l hl hll
+    rw [hS'] at hll
+    rw [upd_s_ne _ _ _ _ (hnl l hll)]
+    exact hDu l hl hll
+  · simp only [TermsLe, MsgTermOk, hT']; exact hTm
+  · intro l hl hc
+    rw [hS'] at hc
+    rw [upd_s_ne _ _ _ _ (hnc l hc)]
+    exact hCa l hl hc
+  · intro k hk l hl hll ht
+    rw [hS'] at hll; rw [hT', hT'] at ht; rw [hC', upd_s_ne _ _ _ _ (hnl l hll)]
+    exact hCW k hk l hl hll ht
+  · intro l hl hll
+    rw [hS'] at hll
+    rw [upd_s_ne _ _ _ _ (hnl l hll)]
+    exact hRC l hl hll
+
+/-- **`ConflictAppendEntriesRequest(i, index, m)`**, `i` a follower: its log loses its last entry. -/
+theorem specInv_conflictAppendEntriesRequest {σ σ' : State} {i : ID} {index : Int} {m : Etcdraft.Msg}
+    (h : SpecInv σ) (hi : i ∈ σ.server) (hfol : (σ.s i).state = follower)
+    (hstep : σ.conflictAppendEntriesRequest i index m = .ok (some σ')) : SpecInv σ' := by
+  unfold State.conflictAppendEntriesRequest at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+  · cases hsub : subSeq (σ.s i).log 1 ((σ.s i).log.length - 1) with
+    | none => simp [subSeqM, hsub, throw, throwThe, MonadExceptOf.throw, bind, Except.bind] at hstep
+    | some ents =>
+      simp [subSeqM, hsub] at hstep
+      simp only [pure, Except.pure, Except.ok.injEq, Option.some.injEq] at hstep
+      subst hstep
+      apply specInv_upd_followerLog h hfol rfl rfl rfl rfl rfl rfl
+      intro k e he l hl hll ht
+      obtain ⟨-, hx⟩ := subSeq_get hsub he
+      simp only [Int.toNat_one, Nat.sub_self, Nat.zero_add] at hx
+      exact (h.1 l hl hll).1 i hi k e hx ht
+
+/-- **`NoConflictAppendEntriesRequest(i, index, m)`**, `i` a follower, `m` an append request in either
+bag, `index` its `prevLogIndex + 1`: the new entries are `m`'s, at their positions. -/
+theorem specInv_noConflictAppendEntriesRequest {σ σ' : State} {i : ID} {index : Int} {m : Etcdraft.Msg}
+    (h : SpecInv σ) (hi : i ∈ σ.server) (hfol : (σ.s i).state = follower) (hm : m ∈ msgs σ)
+    (hidx : index = m.prevLogIndex + 1)
+    (hstep : σ.noConflictAppendEntriesRequest i index m = .ok (some σ')) : SpecInv σ' := by
+  unfold State.noConflictAppendEntriesRequest at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+  · rename_i hc
+    have hne : m.entries ≠ [] := by
+      intro he; apply hc; simp [he]
+    have hp0 := h.2.2.2.2.1 m hm hne
+    cases hsub : subSeq m.entries ((σ.s i).log.length - index + 2) m.entries.length with
+    | none => simp [subSeqM, hsub, throw, throwThe, MonadExceptOf.throw, bind, Except.bind] at hstep
+    | some suf =>
+      simp [subSeqM, hsub] at hstep
+      simp only [pure, Except.pure, Except.ok.injEq, Option.some.injEq] at hstep
+      subst hstep
+      apply specInv_upd_followerLog h hfol rfl rfl rfl rfl rfl rfl
+      intro k e he l hl hll ht
+      dsimp only at he
+      rw [List.getElem?_append] at he
+      split at he
+      · exact (h.1 l hl hll).1 i hi k e he ht
+      · rename_i hk
+        obtain ⟨h1, hx⟩ := subSeq_get hsub he
+        have hpos : m.prevLogIndex.toNat +
+            ((((σ.s i).log.length : Int) - index + 2).toNat - 1 + (k - (σ.s i).log.length)) = k := by
+          omega
+        have := (h.1 l hl hll).2 m hm _ e hx ht
+        rw [hpos] at this
+        exact this
