@@ -723,6 +723,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
       rw [this, hsrv]; exact hΦ'
     · iexists tn, P, GMap.mapSeq (keyBound B) P
       iframe Hdir
+      isplitr; · ipureintro; rw [hvC]; exact ⟨cs, HΦ⟩
       isplitr; · ipureintro; exact mapSeq_values_perm _ P
       iunfold inFlight
       iexact Htoks

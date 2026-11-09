@@ -580,6 +580,9 @@ abbrev trCap_fire_ready.statement : Prop :=
   (trCap (some γd) γ r id c Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPresReady γ id E Φ : IProp GF) ⊢
     TraceFire (some γd) tl E iprop(trCapB (some γd) γ r id c true Φ' Λ' ∗
       ∃ (tn : TraceNames) (P : List Etcdraft.Msg) (Bn : GMap Nat Etcdraft.Msg), traceDir γd tn ∗
+        -- (review round 3's B1) the list the tokens are for: the share's pending messages before the
+        -- line, in phase `Φ` (with `SimIdle`, `pendAbs C` of raft's outbox)
+        ⌜∃ cs, Φ tn.voters cs P⌝ ∗
         ⌜((GMap.toList Bn).map Prod.snd).Perm P⌝ ∗ [∗map] k ↦ m ∈ Bn, inFlight tn k m)
 
 /-! ## The global step of a bootstrap line (Draft statement, review round 2's A7) -/
