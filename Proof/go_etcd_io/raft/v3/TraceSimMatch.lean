@@ -3380,7 +3380,7 @@ reaching `σ`, node `i`'s server `a`, extended by a line `e` whose effect (`Line
 given the conditions only the whole state knows (the line past the bootstrap, the skip bit, a
 received message the only match) and the invariants at the intermediate and final states. -/
 theorem simRun_lineEffect (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
-    (hL : L ≠ []) (e : TraceEv) (bf : Bool) (i : Etcdraft.ID) (a a' : Etcdraft.Server)
+    (hσinv : σ.violated = .ok none) (e : TraceEv) (bf : Bool) (i : Etcdraft.ID) (a a' : Etcdraft.Server)
     (rcv : Option Etcdraft.Msg) (fM fP : Etcdraft.Bag → Etcdraft.Bag) (Mid : Etcdraft.Server → Prop)
     (hle : LineEffect C bf e i a a' rcv fM fP Mid)
     (hsrv : σ.server = confAbs C) (hσi : σ.s i = a) (hpv : σ.preVote = false) (hcq : σ.checkQuorum = false)
@@ -3397,6 +3397,26 @@ theorem simRun_lineEffect (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
     (hinv : (withNode σ i a' fM fP).violated = .ok none) :
     SimRun C (L ++ [e]) (withNode σ i a' fM fP) := by
   obtain ⟨ln, hparse, _, hall⟩ := hle
+  by_cases hL : L = []
+  · -- the run's first line, from the voters' initial state
+    subst hL
+    have hσ : σ = simInit C := by
+      rcases hrun with ⟨-, h⟩ | ⟨lines, ts, hl, hr, hσ', -⟩
+      · exact h
+      · simp only [List.map_nil, List.length_nil] at hl hr
+        cases hr
+        rw [← hσ']; rfl
+    subst hσ
+    have hl0 : parseLines (([] : List TraceEv).map evConv) = .ok [] := by
+      simp [parseLines, pure, Except.pure]
+    obtain ⟨tsF, hF, hch⟩ := hall (linesTrace C [ln]) 1 0 (simInit C)
+      (linesTrace_line_last C [] ln 1 rfl) (by omega) (by simp [linesTrace, Etcdraft.Trace.len])
+      (by simp only [linesTrace]; simpa using hboot [] ln hl0) rfl (by simpa using hbf [] ln 0 hl0) hsrv hσi hpv hcq
+      (hrcv ln hparse) hmids hinv
+    have := simRun_first C e ln tsF _ hσinv (by simpa using parseLine_idx 0 0 _ _ hparse)
+      (checkLine_of_chain _ ⟨simInit C, 1, 0⟩ tsF hch) rfl rfl
+    rw [hF] at this
+    simpa using this
   apply simRun_snoc_chain C L σ _ e ln hrun hL (parseLine_idx 0 _ _ _ hparse)
   intro lines ts hl hts hl'
   have hlen := parseLines_length _ _ hl

@@ -210,12 +210,12 @@ whose skip bit only the node's previous line decides, review round 1's F6, so th
 a bootstrap line, `bootFlags_nonBoot`): from every share `(cs, P)` in phase `Φ`,
 each event `E` allows has, for every server `a` the share stands for, an effect into a share in
 phase `Φ'` (review round 1's S2), its pending messages `P'` added. -/
-def PhaseStep (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
+def PhaseStep (id : w64) (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
   ∀ C cs P, Φ C cs P → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
-    ∃ (i : Etcdraft.ID) (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
+    ∃ (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
       Φ' C (toC (confAbs C) a') (P ++ P') ∧
-      LineEffect C false e i a a' none _root_.id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False)
+      LineEffect C false e (idAbs id) a a' none _root_.id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False)
 
 end pure
 
@@ -328,7 +328,7 @@ leaves the capability in phase `Φ'`. -/
 abbrev trCap_fire.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
-  PhaseStep E Φ Φ' →
+  PhaseStep id E Φ Φ' →
   (trCap (some γd) γ r id c Φ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPres γ id E Φ Φ' : IProp GF) ⊢
     TraceFire (some γd) tl E (trCap (some γd) γ r id c Φ')
 
@@ -463,7 +463,7 @@ abbrev raft.send.tracedSpec : Prop :=
   rs = [] →
   (s.gh.tr.isSome → mtypeOf m.Type' ≠ some .snap) →
   (match (mtypeOf m.Type').bind sendEvt with
-   | some evt => ∀ mm ∈ out, PhaseStep (SendEvOf evt id s c mm) Φ Φ'
+   | some evt => ∀ mm ∈ out, PhaseStep id (SendEvOf evt id s c mm) Φ Φ'
    | none => ∀ C cs P, Φ C cs P → Φ' C cs P) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
