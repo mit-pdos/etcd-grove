@@ -20,6 +20,11 @@ on raft's hook paths, the global step's laws, and the hooks' traced statements
 - The traced hook statements (`X.tracedSpec`) and the first callers' (`raft.send`, `traceCommit`,
   `raft.maybeCommit`).
 
+(Q13, 2026-11-09: the traced statements on the capability, `traceCommit`, `raft.maybeCommit` and
+`raft.send`, take, traced, `TraceEv.Ok` of the events their line may log, the laws' amended premise;
+`TracedCap.lean`'s header. `raft.maybeCommit.tracedSpec`'s last-event premise moved to the state at
+the outcome, where Go logs the line, and its postcondition gives the outcome `maybeCommitOut`.)
+
 (Q8 stage 1, 2026-11-09: everything above but the traced statements moved, verbatim, to
 `TracedCap.lean`, which this file imports, so that the hook-path specs can state their traced case.)
 
@@ -86,6 +91,8 @@ abbrev traceCommit.tracedSpec : Prop :=
   ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (b : Bool) (Λ Λ' : Option TraceEv → Prop),
   -- (review round 3's C2) the capability with its `booted` flag and last event, as the laws keep them
   (∀ e, NodeEvOf rsmCommit id s c e → Λ' (some e)) →
+  -- (Q13) the line's event as the laws take it (traced: from the time receipts, `nodeEvOf_ok`)
+  (s.gh.tr.isSome → ∀ e, NodeEvOf rsmCommit id s c e → TraceEv.Ok (elements c.incoming).length e) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       trCapB s.gh.tr γ r id c b (fun C cs P => ∃ (a : Etcdraft.Server) (n : Int),
         toC (confAbs C) a = cs ∧ a.state = Etcdraft.leader ∧ AdvancesTo a n ∧
@@ -108,11 +115,20 @@ acknowledgement-history copy of the vote table (`QuorumLogF` is a `simFx` clause
 abbrev raft.maybeCommit.tracedSpec : Prop :=
   ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (b0 : Bool) (Λ Λ' : Option TraceEv → Prop),
   s.role = .leader →
-  (∀ e, NodeEvOf rsmCommit id s c e → Λ' (some e)) →
+  -- (Q13 review round 3's B) the line's event is of the state at the outcome (`defer traceCommit`,
+  -- after the commit), as `raft.maybeCommit.traced` states it; until Q13 this was at `s`
+  (∀ b N, maybeCommitOut c s b N → ∀ e, NodeEvOf rsmCommit id
+    (if b then { s with logst := { s.logst with committed := N } } else s) c e → Λ' (some e)) →
+  -- (Q13) the line's event as the laws take it
+  (s.gh.tr.isSome → ∀ b N, maybeCommitOut c s b N → ∀ e, NodeEvOf rsmCommit id
+    (if b then { s with logst := { s.logst with committed := N } } else s) c e →
+      TraceEv.Ok (elements c.incoming).length e) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ trCapB s.gh.tr γ r id c b0 (fun C => SimIdle C s) Λ }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
   {{ (b : Bool) (N : w64), RET #b;
+      -- (Q13 review round 4's N1) the outcome the premises quantify over
+      ⌜maybeCommitOut c s b N⌝ ∗
       ownRaftPhysCV c c.voters r id
         (if b then { s with logst := { s.logst with committed := N } } else s) ∗
       ⌜b = true → CommitOkC c (toPState s) N⌝ ∗
@@ -236,6 +252,9 @@ abbrev raft.send.tracedSpec : Prop :=
    | none => ∀ C cs P, Φ C cs P → Φ' C cs P) →
   -- (review round 3's C2) a logged line's event is the capability's new last event
   (∀ evt, (mtypeOf m.Type').bind sendEvt = some evt → ∀ mm ∈ out, ∀ e, SendEvOf evt id s c mm e → Λ' (some e)) →
+  -- (Q13) a logged line's event as the laws take it
+  (s.gh.tr.isSome → ∀ evt, (mtypeOf m.Type').bind sendEvt = some evt → ∀ mm ∈ out, ∀ e,
+    SendEvOf evt id s c mm e → TraceEv.Ok (elements c.incoming).length e) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗

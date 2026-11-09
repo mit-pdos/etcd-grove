@@ -237,8 +237,9 @@ def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) :
       (∀ i ∈ C, ∀ x ∈ ((A !! i).map Prod.snd).getD [], x.source = idAbs i) ∧
       (∀ i ∈ C, ∃ b o, Bt !! i = some (b, o) ∧ (b = true ↔ booted L (idAbs i)) ∧ LastOf L (decStr i) o ∧
         (b = true → o.isSome)) ∧
-      -- `ConvertEvents`'s premise: the events are ASCII
-      (∀ x ∈ L, TraceEv.Ascii x)⌝)
+      -- (Q13) `Main`'s facts of the events: ASCII (`ConvertEvents`'s premise), in scope, the
+      -- bootstrap lines' logs, the numbers, the configuration lists
+      SimEvents C.length L⌝)
 
 instance simInv_timeless (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF)
     [hFx : ∀ σ, Timeless (Fx σ)] : Timeless (simInv C tn Fx) := by

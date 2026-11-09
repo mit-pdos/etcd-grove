@@ -33670,3 +33670,41 @@ reads the progress or `pendingConfIndex`).
 which need the self-acknowledgement's send-line law beside `trCap_fire_any` (as `raft.send.tracedSpec_of_spec`
 does inline) and, for `appendEntry`, an induction over `TraceFireN` with one phase step per entry;
 their caller (`raft.Step`'s win and `MsgProp` arms) is the Prove phase's next step.
+
+## Q13: the laws' event premise `TraceEv.Ok`; `simInv` keeps `Main`'s facts of the events (2026-11-09 · trace-check, Q13 (a) taken by the coordinator pending the user's veto, its form decided by the agent · branch `trace-check-q13`; amends the frozen Draft, tag `trace-check-frozen`; DRAFT until the re-freeze `trace-check-frozen-a1`)
+
+**Why.** `mainPure` (`tracecheck/MainPure.lean`) needs of raft's events `L`: in scope or a node's
+bootstrap line (`ScopeOk`), numbers below `numBound` (`NumsBelow`), configuration lists bounded
+(`ConfsWithin`), bootstrap lines' logs below `2^40` (`BootLogsOk`), and fewer than `numBound` events.
+The frozen laws took only `TraceEv.Ascii` of the events `E` they may log, so `simInv` could keep none
+of these (the plan's "Layer B's exports").
+
+**What.** The facts move to `TraceSim.lean` (raft's, importable) with `TraceEv.Ok n e := Ascii ∧ InScope
+∧ NumsBelow traceNumBound ∧ ConfsWithin n` and `TraceEv.OkBoot n e := Ascii ∧ NumsBelow traceNumBound ∧
+ConfsWithin n ∧ logSize < 2^40`, and `SimEvents n L` (the five facts), `simInv`'s last clause at
+`n = C.length`. The seven laws take `∀ e, E e → TraceEv.Ok (elements c.incoming).length e` (`OkBoot` for
+the bootstrap law; `trCap_fire_bf` gained it); the traced statements on the capability take it when
+traced (`s.gh.tr.isSome →`, so the untraced instance needs nothing).
+
+**Choices (the agent's).**
+- *No bound parameter `K`.* The coordinator's sketch had `K ≤ 2^61` on each law; `NumsBelow` is
+  monotone, so `K` adds nothing a caller cannot do by weakening (review round 1, second tier). The bound
+  is the named `traceNumBound = 2^61` (`numBound`, Q12).
+- *The configuration bound is raft's configuration's size,* not `3`: nothing in `trCapB`, `simInv` or
+  raft's ghost states three voters, while `trCapB` relates `c.incoming` to the voters `C` by a
+  permutation; `simInv` keeps `ConfsWithin |C|` and `MainSim` takes `|C| < numBound` (review round 1's
+  F2). The plan's `ConfsWithin 3` was a reading of the workload, not a fact of the proof.
+- *`OkBoot` is separate from `Ok`:* a bootstrap line (`InitState`) is out of scope, while the other
+  laws' lines, past or outside a node's segment, must be in scope (one disjunctive `Ok` would let a
+  booted node log `InitState`). Its log bound is the consumer's `2^40`, not the bootstrap's `≤ 3`.
+- *No event counter:* the trace list's length is the count. The simulation cannot bound it (nothing
+  in a law consumes a step); each event is a Go step of the logger's call, so the recorder (which holds
+  `traceAuth`) and the adequacy theorem's step bound do (`MainSim`'s hypothesis `L.length < numBound`).
+- *The combination is outside raft* (`tracecheck/MainSim.lean`), making `TraceSimEnd` and its public
+  imports importable rather than raft importing the example's `MainPure`. A sealed API module exposing
+  only `simInv_end`'s statement would be smaller (review round 1, second tier): left for `Main`'s proof.
+
+**Open.** `MsgEvOf` does not pin the traced message's `rejectHint` (review round 1's F1), so `SendEvOf`
+events cannot be shown `Ok`: the fix is one conjunct in `MsgEvOf` and one-line repairs in `TracedMsg.lean`
+and `raft__send.lean`, held by the concurrent Go-level-spec work (plan, "Q13 (a) done"). The Prove
+phase owes the receipt bound below `traceNumBound` (F3) and received messages' numbers (F4).

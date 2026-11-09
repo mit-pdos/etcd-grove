@@ -15,10 +15,20 @@ def TraceEv.Ascii (e : TraceEv) : Prop :=
                     (∀ (p : GoString × GoString), p ∈ c.changes → gsAscii p.fst ∧ gsAscii p.snd) ∧
                       ∀ (s : GoString), s ∈ c.newconf → gsAscii s
 
+def TraceEv.OkBoot (n : Nat) (e : TraceEv) : Prop :=
+  e.Ascii ∧ TraceEv.NumsBelow traceNumBound e ∧ TraceEv.ConfsWithin n e ∧ uint.nat e.logSize < 2 ^ 40
+
 def TraceSim.entAbs (C : List w64) (bl k : Nat) (e : EntryM) : Etcdraft.Entry :=
   if k ≤ bl then
     { term := 1, type := Etcdraft.EntryType.config, value := Etcdraft.Value.conf (TraceSim.confAbs (List.take k C)) [] }
   else { term := uint.Z e.Term', type := Etcdraft.EntryType.value, value := Etcdraft.Value.val 0 }
+
+theorem TraceSim.evBootLogOk_of_name (L1 : List TraceEv) (e : TraceEv) (h : Etcdraft.isBootstrapName
+    (TraceSim.gsStr e.name) = false) : TraceSim.EvBootLogOk L1 e
+
+theorem TraceSim.simEvents_snoc (n n' : Nat) (hn : n' ≤ n) (L : List TraceEv) (e : TraceEv) (h :
+    TraceSim.SimEvents n L) (he : TraceEv.Ok n' e) (hb : TraceSim.EvBootLogOk L e) :
+    TraceSim.SimEvents n (L ++ [e])
 
 def TraceSim.evConv (e : TraceEv) : Etcdraft.Event :=
   { name := TraceSim.gsStr e.name, nid := TraceSim.gsStr e.nid,
@@ -37,6 +47,17 @@ def TraceSim.evConv (e : TraceEv) : Etcdraft.Event :=
       if (e.propCC.isNone && e.propMatch.isNone && e.propNext.isNone) = true then none
       else some { cc := Option.map TraceSim.ccConv e.propCC } }
 
+theorem TraceEv.ok_mono {n n' : Nat} {e : TraceEv} (hn : n ≤ n') (h : TraceEv.Ok n e) : TraceEv.Ok
+    n' e
+
+def traceNumBound : Nat :=
+  2 ^ 61
+
+theorem TraceSim.simEvents_snoc_boot (n n' : Nat) (hn : n' ≤ n) (L : List TraceEv) (e : TraceEv) (h
+    : TraceSim.SimEvents n L) (he : TraceEv.OkBoot n' e) (hbn : Etcdraft.isBootstrapName
+    (TraceSim.gsStr e.name) = true) (hun : ∀ (i : Etcdraft.ID), Etcdraft.parseID (TraceSim.gsStr
+    e.nid) = some i → TraceSim.Unbooted L i) : TraceSim.SimEvents n (L ++ [e])
+
 def gsAscii (b : GoString) : Prop :=
   ∀ (c : w8), c ∈ b → BitVec.toNat c < 128
 
@@ -46,6 +67,9 @@ def TraceSim.ccConv (c : TraceCC) : Etcdraft.EventConfChange :=
       if c.changes.isEmpty = true then none
       else some (List.map (fun p => { nid := TraceSim.gsStr p.fst, action := TraceSim.gsStr p.snd }) c.changes),
     newconf := if c.newconf.isEmpty = true then none else some (List.map TraceSim.gsStr c.newconf) }
+
+theorem TraceSim.forall_mem_snoc {P : TraceEv → Prop} (L : List TraceEv) (e : TraceEv) (h : ∀ (x :
+    TraceEv), x ∈ L → P x) (he : P e) (x : TraceEv) : x ∈ L ++ [e] → P x
 
 def TraceSim.msgAbs (C : List w64) (bl : Nat) (m : Msg) : Option Etcdraft.Msg :=
   have base := fun t =>
@@ -95,11 +119,59 @@ def TraceSim.msgAbs (C : List w64) (bl : Nat) (m : Msg) : Option Etcdraft.Msg :=
         matchIndex := b.matchIndex, source := b.source, dest := b.dest }
   | x => none
 
+def TraceEv.InScope (e : TraceEv) : Prop :=
+  TraceSim.gsStr e.name ≠ "ChangeConf" ∧
+    TraceSim.gsStr e.name ≠ "InitState" ∧
+      (TraceSim.gsStr e.name = "SendAppendEntriesRequest" →
+        ∀ (m : TraceMsg), e.msg = some m → TraceSim.gsStr m.typ ≠ "MsgSnap")
+
+def TraceEv.ConfsWithin (n : Nat) (e : TraceEv) : Prop :=
+  e.conf.fst.length ≤ n ∧ ∀ (c : TraceCC), e.propCC = some c → c.newconf.length ≤ n
+
+theorem TraceSim.scopeOk_nil : TraceSim.ScopeOk []
+
+def TraceEv.NumsBelow (K : Nat) (e : TraceEv) : Prop :=
+  uint.nat e.term < K ∧
+    uint.nat e.commit < K ∧
+      uint.nat e.logSize < K ∧
+        ∀ (m : TraceMsg),
+          e.msg = some m →
+            uint.nat m.term < K ∧
+              uint.nat m.entries < K ∧
+                uint.nat m.logTerm < K ∧ uint.nat m.index < K ∧ uint.nat m.commit < K ∧ uint.nat m.rejectHint < K
+
 def TraceSim.gsStr (b : GoString) : String :=
   String.mk (List.map (fun c => Char.ofNat (BitVec.toNat c)) b)
 
+def TraceSim.BootLogsOk (L : List TraceEv) : Prop :=
+  ∀ (k : Nat) (hk : k < L.length), TraceSim.EvBootLogOk (List.take k L) L[k]
+
+def TraceEv.Ok (n : Nat) (e : TraceEv) : Prop :=
+  e.Ascii ∧ e.InScope ∧ TraceEv.NumsBelow traceNumBound e ∧ TraceEv.ConfsWithin n e
+
+theorem TraceSim.bootLogsOk_snoc (L : List TraceEv) (e : TraceEv) (h : TraceSim.BootLogsOk L) (he :
+    TraceSim.EvBootLogOk L e) : TraceSim.BootLogsOk (L ++ [e])
+
+def TraceSim.EvBootLogOk (L1 : List TraceEv) (e : TraceEv) : Prop :=
+  Etcdraft.isBootstrapName (TraceSim.gsStr e.name) = true →
+    (∀ (i : Etcdraft.ID), Etcdraft.parseID (TraceSim.gsStr e.nid) = some i → TraceSim.Unbooted L1 i) →
+      uint.nat e.logSize < 2 ^ 40
+
+theorem TraceSim.scopeOk_snoc (L : List TraceEv) (e : TraceEv) (h : TraceSim.ScopeOk L) (he :
+    TraceSim.EvScopeOk L e) : TraceSim.ScopeOk (L ++ [e])
+
 def TraceSim.gInt (w : w64) : Int :=
   sint.Z w
+
+def TraceSim.EvScopeOk (L1 : List TraceEv) (e : TraceEv) : Prop :=
+  e.InScope ∨
+    Etcdraft.isBootstrapName (TraceSim.gsStr e.name) = true ∧
+      ∀ (i : Etcdraft.ID), Etcdraft.parseID (TraceSim.gsStr e.nid) = some i → TraceSim.Unbooted L1 i
+
+theorem TraceEv.okBoot_mono {n n' : Nat} {e : TraceEv} (hn : n ≤ n') (h : TraceEv.OkBoot n e) :
+    TraceEv.OkBoot n' e
+
+theorem TraceSim.bootLogsOk_nil : TraceSim.BootLogsOk []
 
 def TraceSim.SimServerR (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) : Prop :=
   a.currentTerm = uint.Z s.term ∧
@@ -119,8 +191,26 @@ def TraceSim.SimServerR (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Ser
                       (s.role = Role.leader →
                         ∀ (j : w64), j ∈ C → a.matchIndex (TraceSim.idAbs j) = uint.Z ((s.matched !! j).getD (W64 0)))
 
+theorem TraceEv.confsWithin_mono {n n' : Nat} {e : TraceEv} (hn : n ≤ n') (h : TraceEv.ConfsWithin n
+    e) : TraceEv.ConfsWithin n' e
+
+def TraceSim.Unbooted (L1 : List TraceEv) (i : Etcdraft.ID) : Prop :=
+  ∀ (x : TraceEv),
+    x ∈ L1 →
+      ∀ (ln : Etcdraft.Line),
+        Etcdraft.parseLine 0 (TraceSim.evConv x) = Except.ok ln → ln.nid = i → Etcdraft.isBootstrapName ln.ev.name = true
+
+def TraceSim.SimEvents (n : Nat) (L : List TraceEv) : Prop :=
+  (∀ (x : TraceEv), x ∈ L → x.Ascii) ∧
+    TraceSim.ScopeOk L ∧
+      TraceSim.BootLogsOk L ∧
+        (∀ (x : TraceEv), x ∈ L → TraceEv.NumsBelow traceNumBound x) ∧ ∀ (x : TraceEv), x ∈ L → TraceEv.ConfsWithin n x
+
 def TraceSim.confAbs (C : List w64) : Etcdraft.SetIds :=
   Etcdraft.SetIds.mk (List.map TraceSim.idAbs C)
+
+def TraceSim.ScopeOk (L : List TraceEv) : Prop :=
+  ∀ (k : Nat) (hk : k < L.length), TraceSim.EvScopeOk (List.take k L) L[k]
 
 def TraceSim.idAbs (w : w64) : Etcdraft.ID :=
   uint.nat w
@@ -130,6 +220,8 @@ def TraceSim.roleAbs : Role → Etcdraft.Role :=
   | Role.follower => Etcdraft.follower
   | Role.candidate => Etcdraft.candidate
   | Role.leader => Etcdraft.leader
+
+theorem TraceSim.simEvents_nil (n : Nat) : TraceSim.SimEvents n []
 
 def TraceSim.logAbs (C : List w64) (bl first : Nat) (l : List EntryM) : List Etcdraft.Entry :=
   List.mapIdx (fun k e => TraceSim.entAbs C bl (first + k) e) l
