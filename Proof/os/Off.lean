@@ -183,13 +183,12 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Write")) (Val #sl))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-        (∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat) (v : Option (List Nat)) (r : Option Nat),
+        (∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat) (v : Option (List Nat)),
           ⌜j ≤ data.length ∧ (m.vk = none → v = none) ∧
             ys.map Prod.fst = (pwBytes m.size o.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
             ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
              (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
-          osMeta d.ino (DFrac.own q)
-            ({ m with size := pwSize m.size o.toNat j, hi := h, vk := v, fr := r }) ∗
+          osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size o.toNat j, hi := h, vk := v }) ∗
           osBytes d.ino o.toNat (DFrac.own 1) ys ∗
           mcellsAny m.maps o.toNat (o.toNat + data.length)) ∗
         ((⌜err = interface.nil⌝ ∗ os.ownOff f (o + W64 data.length)) ∨
@@ -217,7 +216,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
   have h63 : o.toNat + data.length < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
   wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d q m xs hwr h0 hle h63 hn hn2 hxs hq hvk
-    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %ys, %h, %v, %r, %Hres, Hm, Hbs, Hmc⟩
+    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %ys, %h, %v, %Hres, Hm, Hbs, Hmc⟩
   · iframe; iexact Hinv
   cases err with
   | nil =>
@@ -225,7 +224,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     iapply HΦ
     iframe Hf Hsl Hosfd
     isplitl [Hm Hbs Hmc]
-    · iexists j, ys, h, v, r
+    · iexists j, ys, h, v
       iframe
       ipureintro; exact Hres
     ileft
@@ -237,7 +236,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     iapply HΦ
     iframe Hf Hsl Hosfd
     isplitl [Hm Hbs Hmc]
-    · iexists j, ys, h, v, r
+    · iexists j, ys, h, v
       iframe
       ipureintro; exact Hres
     iright

@@ -24,9 +24,9 @@ import (
 // Excluded: {b} without {a}: b's create began after a's returned, so the
 // journal has a before b.
 //
-// Why: ext4's jbd2 and xfs's log commit whole transactions in order, and a
-// metadata syscall joins a transaction no earlier than those of the calls that
-// returned before it began (assumed from the jbd2/xfs CIL design; the audit's
+// Why: on configuration C, ext4's jbd2 commits whole transactions in order,
+// and a metadata syscall joins a transaction no earlier than those of the
+// calls that returned before it began (assumed from jbd2's design; the audit's
 // "Attacks the model survived"). This is stronger than POSIX (where only an
 // fsync of each directory makes its entries durable), and etcd's WAL relies
 // on it: see meta_wal_create.go.

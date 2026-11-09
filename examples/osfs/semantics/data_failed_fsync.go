@@ -29,7 +29,7 @@ import (
 // fsync does not write them again (the 2018 "fsyncgate", LWN "PostgreSQL's
 // fsync() surprise"). This is the only reason the model has a dirty bit:
 // without failed fsyncs "dirty" would equal "more than one version". EINTR is
-// excluded because ext4's and xfs's fsync waits are uninterruptible and Go's
+// excluded because ext4's fsync waits are uninterruptible and Go's
 // File.Sync retries EINTR. (Under the no-failed-writeback assumption the
 // failure branch is an extra behaviour of the model, sound to keep.)
 func FailedFsync(dir string) {

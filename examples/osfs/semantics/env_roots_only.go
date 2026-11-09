@@ -9,7 +9,7 @@ import (
 // Only paths in the roots' trees are given a meaning (environment assumption).
 //
 // Decision: the roots (FsState.roots) are directories fixed at boot, on one
-// local ext4 or xfs filesystem (one journal), holding only regular files and
+// local ext4 filesystem of configuration C (env_config.go; one journal), holding only regular files and
 // directories (no symlinks, mount points, devices, hard links); no other
 // process changes them. A call on any other path, or a path that is not
 // canonical in a root's tree, is stuck: no proof can make it.

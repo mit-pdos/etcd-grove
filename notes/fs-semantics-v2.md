@@ -170,8 +170,11 @@ path; the tree and the journal survived every attack). Dispositions:
   `rawAt`), not zeros. In a run without a crash those bytes are zeros (every version is zero past the
   size it was made at), so nothing changes there; after a crash a proof must treat them as unknown.
   *Superseded 2026-11-08*: refuted by a crash test (ext4 zero-fills every extension,
-  `notes/axiom-review/fs-v2.md`, F3); extensions read zeros again, and the crash rule orders growth
-  (`Sector.fresh`; `examples/osfs/semantics/data_extension_zeros.go`, `data_ordered_growth.go`).
+  `notes/axiom-review/fs-v2.md`, F3); extensions read zeros again. The ordered-growth rule that
+  followed (`Sector.fresh`) was refuted in turn (round 4, U1: ext4's default `dioread_nolock`
+  commits an unwritten extent with its size) and replaced, 2026-11-09, by **durable zeros**: wherever
+  a file's size is durable (sync, boot, crash) the pages wholly past it are zeros, and nothing orders
+  sizes against data (`examples/osfs/semantics/data_durable_zeros.go`).
 - **F4, short `pread` without an error**: a model change (success returns a non-empty prefix, or
   nothing at EOF).
 - **F5, a restart during `fallocate`**: a model change (`Landed`: a resize lands at any size between
@@ -235,10 +238,16 @@ case no crash produces now (weaker than needed; the clients' proofs are unchange
 
 ## Environment assumptions (hypotheses of the adequacy statement)
 
-As now for the roots (one local ext4 or xfs filesystem, one journal; regular files and directories
-only, no hard links, no other process changes the trees, no read-only or error event; ext4
-`data=ordered` or `data=journal` without `fast_commit`; the device honours flushes, has no media
-errors), without the old regime's clause. For sectors:
+**The target configuration C** (2026-11-09, the user's decision: one configuration, a reasonable
+etcd deployment, every claim tested on it): Linux 7.0, x86-64, 4 KiB pages, no swap; one local
+ext4 made by `mkfs.ext4` with its defaults (4 KiB blocks), mounted with ext4's default options
+(`data=ordered`, `delalloc`, `dioread_nolock`, barriers); `RLIMIT_FSIZE` unlimited; Go 1.27.3.
+`notes/axiom-review/fs-config/` (README, `check.sh`, `mkfs-mount.sh`, `crash.sh`). xfs,
+`data=journal`, other block sizes and kernels are outside the claim until tested on their own.
+
+On C, for the roots: regular files and directories only, no hard links, no other process changes
+the trees, no read-only or error event; the device honours flushes, has no media errors. For
+sectors:
 
 - **Sector atomicity** (stated today): a crash leaves each 512-byte sector of a write entirely old
   or entirely as sent. Sound for 512n and 4Kn devices alike (a 4 KB-atomic device's crash states
@@ -248,7 +257,7 @@ errors), without the old regime's clause. For sectors:
 - **Durable at first start** (new, F2): when the program first starts, the roots' trees and their
   files are durable.
 - **No mixed writeback** (new): the data a writeback sends never mixes a page's contents before
-  and after a concurrent write into it. Ordinary ext4 and xfs do not promise it: without stable
+  and after a concurrent write into it. ext4 does not promise it: without stable
   pages (`BDI_CAP_STABLE_WRITES`), a write may change a page during its DMA. The alternative is to
   model the mix (a sector may also hold a byte-wise mix of two consecutive versions), which needs no
   assumption but under which etcd's WAL cannot be proved to restart (its `isTornEntry` needs an

@@ -22,29 +22,35 @@ that is none of it, all of it, or ends on a 4096-byte page boundary (`(off + k) 
 A write within one page (`inPage`) has no page cut but none and all (`pageCut_inPage`): it lands
 whole or not at all, at a step and at a crash.
 
-Why Linux behaves so (ext4/xfs, buffered I/O, a regular file):
+Why Linux behaves so, on configuration C (`Impl.lean`'s header: ext4, 4 KiB blocks and pages,
+buffered I/O, a regular file), and the **environment assumptions** the premises need beyond C:
 
-- `generic_perform_write` copies the user buffer into the page cache a page at a time (the part of
-  the write in that page), each copy under that page's lock (`write_begin`/`write_end`); the
-  file's size moves at each `write_end`.
-- Writeback locks the page and so cannot start in the middle of a page's copy (the no-mixed-writeback
-  assumption: the device writes the page's sectors as they are when writeback took the page, each
-  sector atomically); a crash finds each sector as one writeback (or none) left it, and the pages
-  the copy has reached are the first ones of the write.
-- A fatal signal is checked between pages (`fatal_signal_pending` in `generic_perform_write`), never
-  inside one page's copy: a signal cuts a write short at a page boundary.
-- `ENOSPC`/`EDQUOT` come from the allocation in `write_begin`, before a page's copy: they too cut a
-  write short at a page boundary (or fail it with nothing written).
-- `EFAULT` (a fault on the user buffer) can stop a copy in the middle of a page
-  (`copy_folio_from_iter_atomic` short, the copy retried with a smaller length and, on a second
-  fault, given up there); the buffer is Go memory, mapped and resident while the call runs, so it
-  does not happen.
-
-A theorem over these premises is only as good as this reading of Linux, to be reviewed against the
-kernel (in particular the short copy of `generic_perform_write` on a partial fault, and
-filesystems with large folios, whose unit of copy and writeback is more than a page: their
-boundaries are page boundaries too, so the premise is weaker than what they do, but this is to
-be checked).
+- `generic_perform_write` (`mm/filemap.c`) copies the user buffer into the page cache one folio at
+  a time (`write_begin`, `copy_folio_from_iter_atomic`, `write_end`, the folio locked); folios are
+  aligned, so the copy's units end on page boundaries; the size moves at each `write_end`.
+- Writeback locks the folio and so cannot start in the middle of its copy (the no-mixed-writeback
+  assumption: the device writes the sectors as they are when writeback took the page, each
+  atomically); a crash finds each sector as one writeback (or none) left it.
+- A fatal signal is checked between folios, never inside one: it cuts a write at a page boundary.
+- `ENOSPC`/`EDQUOT` come from `write_begin`, before a folio's copy: at a page boundary too.
+- `RLIMIT_FSIZE` and the filesystem's maximum file size (`s_maxbytes`) shorten a write to end at
+  them (`generic_write_check_limits`); on C the limit is unlimited and ext4's `s_maxbytes` with
+  4 KiB blocks, `(2^32 - 1) << 12` (`ext4_max_size`), is page-aligned. (1 KiB and 2 KiB blocks, or
+  a limit not a page multiple, cut a one-page write inside its page: outside C, measured,
+  `notes/axiom-review/fs-v2-r4.md`, N2.)
+- **Assumed: the source buffer is present while the call runs.** The copy runs with page faults
+  disabled and is not preceded by a fault-in: if it meets a source page that is not present, it
+  stops there, `write_end` commits the copied prefix of an uptodate folio (an overwrite) and
+  unlocks it, and the copy resumes after faulting the page in; in between, writeback (or another
+  thread's `fsync`) can write the page torn at the source page's boundary, anywhere in the file's
+  page (measured with `userfaultfd`, `fs-v2-r4.md`, N1). A source page is not present if the
+  program never wrote it (Go memory fresh from the OS is not touched by Go), if it was swapped out
+  (C has no swap), or while the kernel migrates it (compaction, `khugepaged`, NUMA balancing):
+  the premise assumes none of these happens during a `pwrite`. A program meets the first by
+  writing every page of the buffer before the call (minibolt fills its pages); the last is a
+  property of the machine, not of the program, and is assumed.
+- A `write(2)`/`pwrite(2)` returns the count when anything was written, and an errno only with
+  nothing written: hence nothing lands with a nonzero errno.
 
 `noTearStep_keeps` gives `StepKeeps NoTearStep` (every state `FsStep` has a step from keeps one:
 the whole write landing), so the program logic's specs hold over the restricted semantics

@@ -53,13 +53,12 @@ abbrev os.File.WriteAt.spec : Prop :=
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-      ∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat) (v : Option (List Nat)) (r : Option Nat),
+      ∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat) (v : Option (List Nat)),
         ⌜j ≤ data.length ∧ (m.vk = none → v = none) ∧
           ys.map Prod.fst = (pwBytes m.size off.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
-        osMeta d.ino (DFrac.own q)
-          ({ m with size := pwSize m.size off.toNat j, hi := h, vk := v, fr := r }) ∗
+        osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := h, vk := v }) ∗
         osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
         mcellsAny m.maps (off.toNat) (off.toNat + data.length) }}
 

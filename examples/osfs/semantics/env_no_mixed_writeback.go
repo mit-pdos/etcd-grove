@@ -19,7 +19,7 @@ import (
 // Excluded: a mix of A and B, from writeback reading the page while the second
 // WriteAt copies into it.
 //
-// Why: assumed. ext4 and xfs do not promise it: without stable pages
+// Why: assumed. ext4 does not promise it: without stable pages
 // (BDI_CAP_STABLE_WRITES), a write may change a page during its DMA. The
 // alternative (model the mix) needs no assumption, but under it etcd's WAL
 // cannot be proved to restart: `isTornEntry` needs an all-zero sector, and

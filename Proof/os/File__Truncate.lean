@@ -107,7 +107,7 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
   · unfold osGrown
     icases Hg with ⟨%zs, %hzs, Hm, Hbs, Hcs, Hc⟩
     have hgg : (m.grown sz.toNat).grown sz.toNat = m.grown sz.toNat := by
-      simp only [OsMeta.grown, frUp_idem]; simp
+      simp [OsMeta.grown]
     have hgf : ftFail (m.grown sz.toNat) sz.toNat = m.grown sz.toNat := ftFail_of_grown m _
     ihave Hc := (show mcellsAny (GF := GF) m.maps sz.toNat hi ⊢
       mcellsAny (m.grown sz.toNat).maps (m.grown sz.toNat).size hi by simp only [OsMeta.grown]; iintro H; iexact H) $$ Hc

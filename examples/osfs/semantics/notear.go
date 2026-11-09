@@ -26,22 +26,31 @@ import (
 // 40 bytes landed, a slot half old, half new); a failed write that changed
 // the file.
 //
-// Why: argued from the kernel source, to be reviewed: generic_perform_write
-// copies a page at a time under the page's lock; writeback locks the page; a
-// fatal signal is checked between pages; ENOSPC/EDQUOT come from write_begin
-// before a page's copy; EFAULT (which can cut mid-page) cannot happen on Go
-// memory. The semantics (Impl.lean) lets a short or failed pwrite land any
-// byte prefix, so a sector's versions can include one that is half old, half
-// new; sector atomicity then keeps that torn version whole. bbolt needs
-// NoTear: its meta slot is the 64 bytes at offset 16 of page 0 or 1 (one
+// Why, on configuration C (documented from Linux 7.0's mm/filemap.c, see
+// NoTear.lean): generic_perform_write copies a folio at a time under its
+// lock; writeback locks the folio; a fatal signal is checked between folios;
+// ENOSPC/EDQUOT come from write_begin before a folio's copy; RLIMIT_FSIZE is
+// unlimited and ext4's maximum file size with 4 KiB blocks is page-aligned
+// (outside C, 1-2 KiB blocks or `ulimit -f 6` cut a one-page write mid-page:
+// measured, notes/axiom-review/fs-v2-r4.md N2); write(2) returns an errno only
+// when nothing was written. Assumed beyond C: the source buffer is present
+// while the call runs. The copy does not fault the source in first; a source
+// page that is not present (never written by the program, swapped out, or
+// being migrated) stops the copy there and commits a prefix ending inside the
+// file's page, which writeback can write (measured with userfaultfd, N1). The
+// program must write every page of its buffer before the call (meta below
+// is filled), C has no swap, and migration during a pwrite is assumed not to
+// happen.
+//
+// Client: bbolt's meta slot is the 64 bytes at offset 16 of page 0 or 1 (one
 // sector), validated by magic, version and an FNV-64a checksum of its first
 // 56 bytes. Without NoTear a prefix ending inside the slot gives a torn slot,
 // and the crash property needed premise P1 ("no checksum collision on a torn
 // meta", examples/osfs/bboltfs/README.md); under NoTear a slot is some whole
-// write's or the durable one. Assumed, to be reviewed against the kernel.
+// write's or the durable one.
 func NoTear(dir string) {
 	f, _ := os.OpenFile(dir+"/db", os.O_RDWR, 0)
-	meta := fill(4096, 'M') // one page, at a page-aligned offset
+	meta := fill(4096, 'M') // one page, every byte written, at a page-aligned offset
 	if _, err := f.WriteAt(meta, 0); err != nil {
 		// NoTear: nothing of meta landed
 		return

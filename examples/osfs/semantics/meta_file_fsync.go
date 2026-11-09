@@ -19,9 +19,8 @@ import (
 // Excluded: f with lost data once its name is durable.
 //
 // Why: weaker than Linux, so sound: ext4 commits the running transaction on a
-// file fsync (and ext4_sync_parent for a new inode), and xfs forces its log
-// through the inode's last change, both of which usually commit the create
-// too; POSIX promises nothing for the name. Programs must fsync the directory,
+// file fsync (and ext4_sync_parent for a new inode), which usually commits
+// the create too; POSIX promises nothing for the name. Programs must fsync the directory,
 // as etcd's fileutil and bbolt do. fdatasync = fsync is sound for the size:
 // ext4 sets i_datasync_tid whenever i_disksize changes, so fdatasync persists
 // a size change (the audit's "Attacks the model survived").

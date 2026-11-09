@@ -20,11 +20,13 @@ EXT=${2:?truncate|write|falloc}
 FS=${3:-ext4}
 mkdir -p "$D/mnt" "$D/mnt2"
 IMG=$D/img.$FS
-rm -f "$IMG" "$IMG.crash"; truncate -s 256M "$IMG"
-LOOP=$(sudo losetup --find --show "$IMG")
-if [ "$FS" = ext4 ]; then sudo mkfs.ext4 -q -F "$LOOP"; OPTS=data=ordered,commit=300
-else sudo mkfs.xfs -q -f "$LOOP"; OPTS=nouuid; fi
-sudo mount -o $OPTS "$LOOP" "$D/mnt"
+# configuration C (../fs-config/README.md); FS=xfs is a contrast outside C
+. "$(dirname "$0")/../fs-config/mkfs-mount.sh"
+rm -f "$IMG.crash"
+if [ "$FS" = ext4 ]; then LOOP=$(c_mkfs "$IMG"); OPTS=commit=300; c_mount "$LOOP" "$D/mnt" $OPTS
+  c_check "$D/mnt" || exit 1
+else rm -f "$IMG"; truncate -s 512M "$IMG"; LOOP=$(sudo losetup --find --show "$IMG")
+  sudo mkfs.xfs -q -f "$LOOP"; OPTS=nouuid; sudo mount -o $OPTS "$LOOP" "$D/mnt"; fi
 sudo chmod 777 "$D/mnt"
 F=$D/mnt/f
 printf '\x00' > "$F"; sudo sync

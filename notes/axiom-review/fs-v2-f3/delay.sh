@@ -17,6 +17,8 @@ rm -f "$DI" "$JI" "$DI.crash" "$JI.crash"
 truncate -s 512M "$DI"; truncate -s 64M "$JI"
 DL=$(sudo losetup --find --show "$DI"); JL=$(sudo losetup --find --show "$JI")
 sudo mke2fs -q -F -O journal_dev -b 4096 "$JL"
+# C's mkfs.ext4 defaults, but an external journal (so dm-delay can delay the data alone; crash.sh
+# in ../fs-config does the same with C's internal journal)
 sudo mkfs.ext4 -q -F -b 4096 -J device="$JL" "$DL"
 SZ=$(sudo blockdev --getsz "$DL")
 sudo dmsetup create f3delay --table "0 $SZ delay $DL 0 0 $DL 0 10000 $DL 0 0"

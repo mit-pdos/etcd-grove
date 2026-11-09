@@ -338,15 +338,15 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       wp_apply wp_init db f fd (child d nm) i (DFrac.own 1) (DFrac.own 1) m xs Hmok Hmaps Hxl (by omega)
           $$ [filesz Hf Hfdo Hm Hb] as %err4 ⟨Hf, Hfdo, Hres⟩
       · iframe; iframe #
-      icases Hres with (⟨%He, Hfsz, %r, Hm, Hb⟩ | ⟨%He, %sz, %m', Hfsz, Hm⟩)
+      icases Hres with (⟨%He, Hfsz, Hm, Hb⟩ | ⟨%He, %sz, %m', Hfsz, Hm⟩)
       · subst He
-        imod stored_of_init i m xs Hxl Hmok Hmaps Hsz30 r $$ Hb with Hs
+        imod stored_of_init i m xs Hxl Hmok Hmaps Hsz30 $$ Hb with Hs
         (try wp_auto)
         ileft
         isplitr
         · ipureintro; trivial
         iexists { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-                         dur := durOf 0 (initFile xs), vk := some [], dz := none, fr := r }
+                         dur := durOf 0 (initFile xs), vk := some [], dz := none }
         rw [show (max (m.size : Int) 16384) = ((max m.size 16384 : Nat) : Int) by omega]
         iframe
       · cases err4 with
