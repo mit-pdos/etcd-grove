@@ -613,6 +613,16 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   table, the spec proved over the model, the axiom removed, and a Go test that the descriptor's
   names are the table's. (Before the decision: the agent's recommendation (b), else (a); the node
   events do not depend on it.)
+  **Q9 done (2026-11-09, branch `trace-check-q9`):** `MessageType.String` is `trusted`
+  (`raftpb.toml`), its model `MessageType.String.impl` (`TrustedCode/go_etcd_io/raft/v3/raftpb.lean`,
+  the goose translation of the lookup-else-`strconv.Itoa` body, with the faithfulness argument);
+  raftpb's package fact holds `MessageType_name ↦□ m ∗ m ↦$□ raftpb.msgTypeNames` (proved in raft's
+  hand-written `Init.lean`: raftpb is outside `etc/gen-init.py`, as raft's other packages); the spec
+  is exact (`raftpb.msgTypeString t`, `MsgTypeName.lean`) and proved, the axiom gone;
+  `fmt.stringMethodSpec_of_wp` gives rafthttp the weak form; `msgTypeString_traced`
+  (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
+  hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
+  the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
   `traceChangeConfEvent` formats the change's ids (`strconv.FormatUint`) before its nil check, so
   the translated raft calls it even without a logger, and raft's linked results now rest on
