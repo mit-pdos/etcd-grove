@@ -288,6 +288,65 @@ theorem bootFlags_booted (C : List w64) (L : List TraceEv) (lines : List Etcdraf
     rw [List.getElem?_append_left (by omega), hy]
     simpa using hb0
 
+/-- **An unbooted node's bootstrap-named line is a bootstrap line.** -/
+theorem bootFlags_unbooted (C : List w64) (L : List TraceEv) (lines : List Etcdraft.Line) (ln : Etcdraft.Line)
+    (i : Etcdraft.ID) (hi : i ∈ confAbs C) (hl : parseLines (L.map evConv) = .ok lines) (hb : ¬ booted L i)
+    (hnid : ln.nid = i) (hbn : Etcdraft.isBootstrapName ln.ev.name = true) :
+    (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = true := by
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  -- no line of `i` so far has a non-bootstrap name
+  have hno : ∀ k (hk : k < lines.length), lines[k].nid = i → Etcdraft.isBootstrapName lines[k].ev.name = true := by
+    intro k hk hn
+    unfold parseLines at hl
+    obtain ⟨y, hy, hfy⟩ := mapM_ok_get _ _ _ hl k (by simp; omega)
+    simp only [List.getElem_zip, List.getElem_range, List.getElem_map] at hfy
+    rw [List.getElem?_eq_getElem hk] at hy; cases hy
+    cases hbk : Etcdraft.isBootstrapName lines[k].ev.name
+    · exfalso; apply hb
+      exact ⟨L[k]'(by omega), List.getElem_mem _, lines[k], parseLine_idx k 0 _ _ hfy, hn, hbk⟩
+    · rfl
+  rw [← hlen]
+  unfold bootFlags
+  simp only [List.length_append, List.length_singleton, List.getD_eq_getElem?_getD, List.getElem?_map,
+    List.getElem?_range (by omega : lines.length < lines.length + 1), Option.map_some, Option.getD_some]
+  rw [List.any_eq_true]
+  refine ⟨_, List.mem_map.2 ⟨i, hi, rfl⟩, ?_⟩
+  unfold Etcdraft.bootstrapOf
+  simp only [List.length_append, List.length_singleton]
+  generalize hI : (List.range (lines.length + 1)).map (fun k => (k + 1, (lines ++ [ln]).getD k default)) = I
+  have hIl : I.length = lines.length + 1 := by rw [← hI]; simp
+  have hfst : ∀ m (h : m < I.length), I[m].1 = m + 1 := by intro m h; subst hI; simp
+  have hIn : I[lines.length]'(by omega) = (lines.length + 1, ln) := by subst hI; simp
+  have hIk : ∀ k (hk : k < lines.length), I[k]'(by omega) = (k + 1, lines[k]) := by
+    intro k hk; subst hI; simp only [List.getElem_map, List.getElem_range]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_append_left hk, List.getElem?_eq_getElem hk]; rfl
+  -- the first non-bootstrap line of `i`: none
+  have hnon : I.find? (fun (p : Nat × Etcdraft.Line) => p.2.nid == i && !Etcdraft.isBootstrapName p.2.ev.name) = none := by
+    rw [List.find?_eq_none]
+    intro p hp
+    obtain ⟨m, hm, rfl⟩ := List.mem_iff_getElem.1 hp
+    rcases Nat.lt_or_ge m lines.length with h | h
+    · rw [hIk m h]
+      by_cases hn : lines[m].nid = i
+      · simp [hn, hno m h hn]
+      · simp [hn]
+    · have : m = lines.length := by omega
+      subst this; rw [hIn]; simp [hbn]
+  -- the first bootstrap line of `i`: at or before the new one
+  have hfirst : ((I.find? (fun (p : Nat × Etcdraft.Line) => p.2.nid == i && Etcdraft.isBootstrapName p.2.ev.name)).map
+      Prod.fst).getD 0 ≤ lines.length + 1 := by
+    cases hf : I.find? (fun (p : Nat × Etcdraft.Line) => p.2.nid == i && Etcdraft.isBootstrapName p.2.ev.name) with
+    | none => simp
+    | some q =>
+      have := find_first_le I hfst _ q hf lines.length (by omega) (by rw [hIn]; simp [hnid, hbn])
+      simpa using this
+  rw [List.getElem?_eq_getElem (by simp [hIl]), Option.getD_some, List.getElem_map, hIn, hnon]
+  simp only [Option.map_none, Option.getD_none, bne_self_eq_false, Bool.false_eq_true, ↓reduceIte,
+    Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, hnid, and_true]
+  refine ⟨?_, Nat.le_refl _⟩
+  omega
+
 end TraceSim
 
 end EtcdGrove
