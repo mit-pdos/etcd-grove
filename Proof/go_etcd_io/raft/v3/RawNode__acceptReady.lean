@@ -219,7 +219,7 @@ theorem RawNode.acceptReady.wp_proof
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC))
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd ce es ms h L
+  intro γ rn id rs rd ce es ms h L HtrG
   wp_start as H
   iNamed H
   -- (2026-10-28, stage U3c) a lent snapshot's committed log ends at its id

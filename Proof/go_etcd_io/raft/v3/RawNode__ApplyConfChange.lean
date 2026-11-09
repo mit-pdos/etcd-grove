@@ -36,7 +36,7 @@ theorem RawNode.ApplyConfChange.wp_proof
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.ApplyConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs c o dq k0 e0 cs0 Hap0 Hdyn
+  intro γ rn id rs c o dq k0 e0 cs0 Hap0 Hdyn HtrG
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -59,6 +59,7 @@ theorem RawNode.ApplyConfChange.wp_proof
           cs0 v2 m.asV2 (DFrac.own 1) rs.delivered ds (Hpre.mono_dec (effDec_base dec ds)) s cf fp rnv sv hprev steps Hwf Hin
           Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs HDc
           (fun l hl => (Hloan.2.2.1 l hl).2.2.2.2.2.2.1.length_le) (fun _ => Nat.le_refl _)
+          Hgtr HtrG
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hloanc $Hsloc $Hch $Hlc1 $Hdur] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
       try wp_auto
@@ -84,6 +85,7 @@ theorem RawNode.ApplyConfChange.wp_proof
           cs0 p m dq rs.delivered ds (Hpre.mono_dec (effDec_base dec ds)) s cf fp rnv sv hprev steps Hwf Hin
           Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs HDc
           (fun l hl => (Hloan.2.2.1 l hl).2.2.2.2.2.2.1.length_le) (fun _ => Nat.le_refl _)
+          Hgtr HtrG
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hloanc $Hsloc $Hch $Hlc1 $Hdur] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
       try wp_auto
@@ -123,11 +125,11 @@ theorem RawNode.ApplyConfChange.wp_proof
       icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
       ihave %Hltz := ownRaftGhost_leader_tnz γ id s $$ Hghost
       wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft'
-          id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn Hltz Hli2 Hin
+          id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn Hltz Hli2 Hin (by tr_none)
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs (Hdom' ▸ Hok)
-        (trackedOk_shrink Htrk Hlp Hdom') Hnl
+        (trackedOk_shrink Htrk Hlp Hdom') Hnl Hgtr
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlw Hxw Hdur Hlc1 with Hrn
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
@@ -212,11 +214,11 @@ theorem RawNode.ApplyConfChange.wp_proof
       icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
       ihave %Hltz := ownRaftGhost_leader_tnz γ id s $$ Hghost
       wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft'
-          id s p m dq lrn' Hd' Hsz' Hn Hltz Hli2 Hin
+          id s p m dq lrn' Hd' Hsz' Hn Hltz Hli2 Hin (by tr_none)
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs (Hdom' ▸ Hok)
-        (trackedOk_shrink Htrk Hlp Hdom') Hnl
+        (trackedOk_shrink Htrk Hlp Hdom') Hnl Hgtr
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlw Hxw Hdur Hlc1 with Hrn
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)

@@ -3322,14 +3322,35 @@ macro "wp_raft_logC" : tactic => `(tactic| (
 /-- (2026-11-09, Q8 stage 0) The node is untraced at the state at hand, `s'.gh.tr = none`, from the
 spec's premise `s.gh.tr = none` for a state `s'` that keeps `s`'s ghost (a record update of `s`, a
 step's frame, ...). -/
-macro "tr_none" : tactic => `(tactic| first
+syntax "tr_none" : tactic
+
+set_option hygiene false in
+macro_rules | `(tactic| tr_none) => `(tactic| first
   | rfl
   | assumption
   | (simp only [*]; done)
   | (subst_vars; assumption)
   | (subst_vars; simp only [*]; done)
   | simp_all
-  | (subst_vars; simp_all))
+  | (subst_vars; simp_all)
+  | (rw [Perennial.EtcdGrove.LocalFrame.ns ‹Perennial.EtcdGrove.LocalFrame _ _›]; tr_none)
+  | (rw [Perennial.EtcdGrove.NetFrame.ns ‹Perennial.EtcdGrove.NetFrame _ _›]; tr_none))
+
+/-- (2026-11-09, Q8 stage 0) The trace mode kept, `s'.gh.tr = X` from `s.gh.tr = X` for a state `s'`
+that keeps `s`'s ghost (as `tr_none`): the `RawNode` predicate's `s.gh.tr = γ.reTrace`. -/
+syntax "tr_keep" : tactic
+
+set_option hygiene false in
+macro_rules | `(tactic| tr_keep) => `(tactic| first
+  | rfl
+  | assumption
+  | (simp only [*]; done)
+  | (subst_vars; assumption)
+  | (subst_vars; simp only [*]; done)
+  | simp_all
+  | (subst_vars; simp_all)
+  | (rw [Perennial.EtcdGrove.LocalFrame.ns ‹Perennial.EtcdGrove.LocalFrame _ _›]; tr_keep)
+  | (rw [Perennial.EtcdGrove.NetFrame.ns ‹Perennial.EtcdGrove.NetFrame _ _›]; tr_keep))
 
 set_option hygiene false in
 /-- A trace hook's call where `Hphys : ownRaftPhysCV c V r id s` is held whole (2026-11-08,

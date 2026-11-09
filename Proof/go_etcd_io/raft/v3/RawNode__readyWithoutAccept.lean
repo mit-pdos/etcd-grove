@@ -114,7 +114,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     (wp_MustSync : MustSync.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hsteps0 Hunp0
+  intro γ rn id rs Hsteps0 Hunp0 HtrG
   wp_start as H
   iNamed H
   iNamed Hrn

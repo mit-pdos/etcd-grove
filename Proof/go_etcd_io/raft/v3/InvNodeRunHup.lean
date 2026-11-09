@@ -44,7 +44,8 @@ local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, Msg
 `RawNode.Campaign`, the term moves up by at most one, within the ceiling. -/
 theorem wp_rn_raft_Step_hup (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (ml : Loc) (st : MsgSt)
-    (Hst : st = hupSt) (Hterm : uint.Z rs.term + 1 ≤ uint.Z rs.tc) (Hflw : rs.flw = false) :
+    (Hst : st = hupSt) (Hterm : uint.Z rs.term + 1 ≤ uint.Z rs.tc) (Hflw : rs.flw = false)
+    (HtrG : γ.reTrace = none) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
         msgIn ml DFrac.discard st ∗ £ 1 }}

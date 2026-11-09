@@ -45,7 +45,7 @@ theorem RawNode.Ready.wp_proof
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs q g Hsteps0 Hunp0
+  intro γ rn id rs q g Hsteps0 Hunp0 HtrG
   wp_start as H
   iNamed H
   wp_auto

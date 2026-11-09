@@ -37,7 +37,7 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
-  intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 Rns
+  intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 Rns HtrG Htr
   wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
@@ -529,6 +529,7 @@ theorem RawNode.Bootstrap.wp_proof
         (by exact Hsvr.1.symm)
         -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the zero hard state
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
+        (by show sk.gh.tr = γ.reTrace; rw [HNgh, HtrG])
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
@@ -600,6 +601,7 @@ theorem RawNode.Bootstrap.wp_proof
         (by exact Hsvr.1.symm)
         -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the zero hard state
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
+        (by show sk.gh.tr = γ.reTrace; rw [HNgh, HtrG])
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h

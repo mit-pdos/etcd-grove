@@ -29,7 +29,7 @@ theorem RawNode.Tick.wp_proof
     (wp_tickElection : raft.tickElection.spec (GF := GF) (hG := hG))
     (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG)) :
     RawNode.Tick.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hterm Hflw
+  intro γ rn id rs Hterm Hflw HtrG
   wp_start as H
   iNamed H
   iNamed Hrn

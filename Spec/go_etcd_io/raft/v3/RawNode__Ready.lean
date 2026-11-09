@@ -88,6 +88,10 @@ abbrev RawNode.Ready.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (q : Qp) (g : Nat),
   rs.steps = [] →
   rs.unpersisted = [] →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (2026-11-01, durability stage II (k)) the node's generation `g` of its id's slot: a share

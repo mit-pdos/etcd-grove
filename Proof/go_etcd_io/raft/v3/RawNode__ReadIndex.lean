@@ -44,7 +44,7 @@ theorem RawNode.ReadIndex.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.ReadIndex.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rctx c Qr L0
+  intro γ rn id rs rctx c Qr L0 HtrG
   wp_start as H
   iNamed H
   iNamed Hrn

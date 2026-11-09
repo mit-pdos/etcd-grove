@@ -79,7 +79,7 @@ theorem RawNode.Step.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs ml st Hok Hmtc Htn Hflw
+  intro γ rn id rs ml st Hok Hmtc Htn Hflw HtrG
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hok Hmtc Htn ⊢
   have Hok0 := Hok
@@ -137,7 +137,7 @@ theorem RawNode.Step.wp_proof
       wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
           Hwf
         (RNMode.pre_net Hpf (by not_net)) (fun _ => Hns0.1)
-        $$ [$Hphys $Hghost $Hlc1 Hm Hcred]
+        (by tr_none) $$ [$Hphys $Hghost $Hlc1 Hm Hcred]
       · simp only [HnP, ↓reduceIte, named]
         -- (raft-final phase 2) a stamped transfer request's witness
         isplitr

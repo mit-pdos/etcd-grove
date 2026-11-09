@@ -40,7 +40,7 @@ theorem RawNode.ForgetLeader.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.ForgetLeader.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs 
+  intro γ rn id rs HtrG
   wp_start as H
   iNamed H
   iNamed Hrn

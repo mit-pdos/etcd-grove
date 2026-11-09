@@ -49,6 +49,10 @@ I fix G2) The node records the batch's durable state (`readyDurable`, as the dri
 abbrev RawNode.acceptReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
     (ce es : List EntryM) (ms : List QMsg) (h : HardStateM) (L : Option SnapLoan),
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗
       "#Hh" ∷ hsOpt rd.HardState' h }}

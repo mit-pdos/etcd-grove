@@ -965,7 +965,7 @@ set_option maxHeartbeats 800000 in
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd Hunp0 Hunst0
+  intro γ rn id rs rd Hunp0 Hunst0 HtrG
   wp_start as H
   iNamed H
   iNamed Hrn

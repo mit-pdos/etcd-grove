@@ -91,6 +91,10 @@ abbrev RawNode.Advance.spec : Prop :=
   -- (From 2026-10-28, stage U3c, to 2026-10-29, stage U5, in the dynamic mode a snapshot's
   -- `ConfState` was no auto-leave joint one: `appliedTo`'s automatic leave was out of `raft.Step`'s
   -- scope.)
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (D22 S-d3a, 2026-10-21) after a snapshot `Ready`, the application's receipt

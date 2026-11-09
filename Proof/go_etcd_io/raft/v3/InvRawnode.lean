@@ -2677,7 +2677,10 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   "#Hdur" ∷ durTie γ rs s ∗
   -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record and the hard state's lower bound
   -- below the node's hard state (`PhsOk`)
-  "%Hphs" ∷ ⌜PhsOk rs s⌝)
+  "%Hphs" ∷ ⌜PhsOk rs s⌝ ∗
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) the node's trace mode is the
+  -- cluster's (`NGhost.tr`, set by the constructors and kept by every step)
+  "%Hgtr" ∷ ⌜s.gh.tr = γ.reTrace⌝)
 
 /-- Closing the predicate; the pure premises are first, the resources in the order of
 the definition. (2026-10-16, stage R5: the hard state `hprev` after the soft state; the
@@ -2695,7 +2698,8 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
-    (Hrole : rs.role = sv.RaftState') (Hphs : PhsOk rs s) :
+    (Hrole : rs.role = sv.RaftState') (Hphs : PhsOk rs s)
+    (Hgtr : s.gh.tr = γ.reTrace := by tr_keep) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s -∗
       sdrOk rnv.raft' rs.mode -∗
@@ -2717,7 +2721,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
   ipureintro
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
-    Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hsdt, Hrole, Hphs⟩
+    Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hsdt, Hrole, Hphs, Hgtr⟩
 
 /-! ### The static mode, as before (2026-10-14, stage B7 part 2)
 
@@ -2770,7 +2774,8 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     -- (D19p, 2026-10-18) the tracker within the ghost state's tracked bound
     (Htrk : TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id)
     -- (2026-10-19, D21 M3) the no-snapshot mode only with a bootstrap log
-    (Hnl : NsLink γ s) :
+    (Hnl : NsLink γ s)
+    (Hgtr : s.gh.tr = γ.reTrace := by tr_keep) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗
       ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
