@@ -902,7 +902,10 @@ types_NewURLs:
 v2stats_LeaderStats__Follower:
 probing_NewHandler:
 v2stats_ServerStats__SendAppendReq:
-raftpb_MessageType__String:
+# (Q9 of notes/trace-validation-plan.md, 2026-11-09) proved over its trusted model (an axiom until
+# then), whose fallback is `strconv.Itoa`'s (the trust boundary)
+raftpb_MessageType__String: strconv_Itoa
+strconv_Itoa:
 probing_NewProber:
 rate_Every:
 types_IDFromString:

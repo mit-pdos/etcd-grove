@@ -3,8 +3,8 @@
 # `Enum()` (a pointer to the value). Everything is translated (raft.pb.go's getters and
 # `Enum()`s, the hand-written confchange.go, confstate.go, util.go's `Ensure*`, alias.go's
 # names) but the protobuf runtime plumbing, which is names only: `ProtoReflect`,
-# `Descriptor`, `Reset`, `String`, the enums' `Type`/`Number`/`EnumDescriptor`/
-# `UnmarshalJSON`, the file descriptor and its initialization (`file_raft_proto*`, `init.0`).
+# `Descriptor`, `Reset`, `String` (but `MessageType.String`, trusted: below), the enums'
+# `Type`/`Number`/`EnumDescriptor`/`UnmarshalJSON`, the file descriptor and its initialization (`file_raft_proto*`, `init.0`).
 # (After the configuration of branch raft-upstream-1c0011d2-wip, 2026-10-09.)
 # Of the descriptor's tables, the two literals `file_raft_proto_goTypes` and `_depIdxs` are
 # translated; the other two (`make`s of protoimpl's opaque types) and `init.0` (which builds
@@ -14,7 +14,12 @@ translate = ["*",
   "!*.ProtoReflect", "!*.Descriptor", "!*.Reset", "!*.String", "!*.EnumDescriptor",
   "!*.Type", "!*.Number", "!*.UnmarshalJSON", "!file_raft_proto*", "!File_raft_proto",
   "!init.*", "file_raft_proto_goTypes", "file_raft_proto_depIdxs"]
-trusted = ["file_raft_proto_enumTypes", "file_raft_proto_msgTypes", "init.0"]
+# (Q9 of notes/trace-validation-plan.md, 2026-11-09) `MessageType.String` is trusted: its model
+# looks the value up in `MessageType_name` (protoc-gen-go generates the table and the descriptor
+# whose names `EnumStringOf` returns from the same enum of raft.proto), else `strconv.Itoa`, as
+# `EnumStringOf` (TrustedCode/go_etcd_io/raft/v3/raftpb.lean); the traced send and receive hooks
+# name a message's type by it. The other enums' `String`s stay names-only.
+trusted = ["file_raft_proto_enumTypes", "file_raft_proto_msgTypes", "init.0", "MessageType.String"]
 
 # confstate.go calls into fmt, slices and proto (Clone, Equal); confchange.go into fmt,
 # strconv, strings and proto (Marshal); raft.pb.go into the protobuf runtime (names only,

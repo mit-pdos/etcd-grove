@@ -2570,14 +2570,19 @@ class MessageType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   method_set : go.MethodSetIs MessageType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType MessageType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MessageType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType MessageType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   Enum_unfold : MethodUnfold MessageType.ty go!"Enum" MessageType.Enum.impl
+  String_unfold : MethodUnfold MessageType.ty go!"String" MessageType.String.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType MessageType.ty) go!"Enum" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MessageType.ty go!"Enum"))) (App (Val (GoInstruction (GoLoad MessageType.ty))) (Var "$r"))))
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType MessageType.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve MessageType.ty go!"String"))) (App (Val (GoInstruction (GoLoad MessageType.ty))) (Var "$r"))))
 
 attribute [instance] MessageType.TypeAssumptions.underlying
   MessageType.TypeAssumptions.method_set
   MessageType.TypeAssumptions.ptr_method_set
   MessageType.TypeAssumptions.Enum_unfold
+  MessageType.TypeAssumptions.String_unfold
   MessageType.TypeAssumptions.ptr_Enum_unfold
+  MessageType.TypeAssumptions.ptr_String_unfold
 
 abbrev ConfChangeTransition [GooseExts] : Type := w32
 

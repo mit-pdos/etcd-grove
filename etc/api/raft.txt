@@ -93,6 +93,9 @@ importable Proof.go_etcd_io.raft.v3.LemmasEnts
 
 ## raftpb: the getters' specs, the protobuf records' models
 importable Spec.go_etcd_io.raft.v3.raftpb.*
+# (Q9 of notes/trace-validation-plan.md, 2026-11-09) `MessageType.String`'s result
+# (`raftpb.msgTypeString`, the names) and the law giving rafthttp its `fmt.stringMethodSpec`
+importable Proof.go_etcd_io.raft.v3.raftpb.MsgTypeName
 importable Proof.go_etcd_io.raft.v3.PbModel
 importable Proof.go_etcd_io.raft.v3.InvPb
 importable Proof.go_etcd_io.raft.v3.InvPbLog
