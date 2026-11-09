@@ -1883,7 +1883,72 @@ theorem NewTraceWith.wp_proof
     wp_for IHl
     obtain ⟨hm0, hm1, hesl⟩ := Hm
     wp_if_destruct
-    · sorry
+    · have hmlt : sint.Z m < sint.Z logsl.len := Hif
+      have hml : sint.nat m < es.length := by
+        have := Hlogl.1; simp at this; rw [hesl, hLLl, this]; word
+      obtain ⟨ey, Hey⟩ : ∃ v, es[sint.nat m]? = some v := ⟨_, List.getElem?_eq_getElem hml⟩
+      rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z m ∧ sint.Z m < sint.Z logsl.len from ⟨hm0, hmlt⟩))]
+      wp_apply wp_load_slice_index _ (sint.Z m) es _ ey hm0 $$ [Hlog] as Hlog
+      · iframe Hlog; ipureintro; exact Hey
+      try wp_auto
+      wp_join iprop(∃ cv : GoSlice, "c" ∷ c_ptr ↦ cv ∗ "Hcv" ∷ setRO cv (cfs.getD (sint.nat m) cfg) ∗
+          "confs" ∷ confs_ptr ↦ osl1 ∗ "k" ∷ k_ptr ↦ m)
+        at next with [c confs k] as ⟨%cv, c, #Hcv, confs, k⟩
+      · by_cases hk : sint.Z m < sint.Z osl1.len
+        · rw [decide_eq_true hk]
+          wp_auto
+          have hkl : sint.nat m < cfs.length := by rw [← Hcfsl, Hcslsl.1]; word
+          obtain ⟨cx, Hcx⟩ : ∃ v, csls[sint.nat m]? = some v := ⟨_, List.getElem?_eq_getElem (by rw [Hcfsl]; exact hkl)⟩
+          obtain ⟨cc, Hcc⟩ : ∃ v, cfs[sint.nat m]? = some v := ⟨_, List.getElem?_eq_getElem hkl⟩
+          ihave #Hcxr := BigSepL2.bigSepL2_lookup (Φ := fun _ a b => setRO (GF := GF) a b) Hcx Hcc $$ Hcfs
+          rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z m ∧ sint.Z m < sint.Z osl1.len from ⟨hm0, hk⟩))]
+          wp_apply wp_load_slice_index _ (sint.Z m) csls _ cx hm0 $$ [] as -
+          · iframe Hcsls; ipureintro; exact Hcx
+          try wp_auto
+          wp_join_done
+          iexists _
+          iframe
+          rw [List.getD_eq_getElem?_getD, Hcc, Option.getD_some]; iexact Hcxr
+        · rw [decide_eq_false hk]
+          wp_auto
+          wp_join_done
+          iexists _
+          iframe
+          have : cfs.length ≤ sint.nat m := by rw [← Hcfsl, Hcslsl.1]; word
+          rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none this, Option.getD_none]; iexact Hcfg
+      rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z m ∧ sint.Z m < sint.Z logsl.len from ⟨hm0, hmlt⟩))]
+      wp_apply wp_store_slice_index logsl (sint.Z m) es _ $$ [Hlog] as Hlog
+      · iframe Hlog; ipureintro
+        refine ⟨hm0, ?_⟩
+        have := hml; rw [show sint.nat m = (sint.Z m).toNat from rfl] at this; omega
+      try wp_auto
+      wp_for_post
+      iframe
+      iexists _, _, _
+      iframe
+      have hmn : (sint.Z m).toNat = sint.nat m := rfl
+      have hm1n : sint.nat (m + W64 1) = sint.nat m + 1 := by word
+      have hLLm : LL[sint.nat m]? =
+          some ({ term := 1, type := .config, value := .conf (cfs.getD (sint.nat m) cfg) [] } : Entry) := by
+        have hmx : sint.nat m < xL.ev.log.toNat := by have := hml; rw [hesl, hLL] at this; simpa using this
+        rw [hLL]; simp [hmx]
+      rw [hmn, hm1n]
+      isplitl [Hes]
+      · rw [List.take_add_one, List.take_add_one, List.getElem?_set_self hml, hLLm, List.take_set_of_le (Nat.le_refl _)]
+        simp only [Option.toList_some]
+        iapply BigSepL2.bigSepL2_snoc.2
+        isplitl [Hes]
+        · iexact Hes
+        iunfold entryRO
+        isplitl []
+        · ipureintro; exact ⟨rfl, rfl⟩
+        iunfold valueRO
+        isplitl []
+        · ipureintro; exact ⟨rfl, rfl⟩
+        iframe Hcv
+        iapply setRO_nil
+      ipureintro
+      refine ⟨by word, by word, by simp [hesl]⟩
     sorry
   sorry
 
