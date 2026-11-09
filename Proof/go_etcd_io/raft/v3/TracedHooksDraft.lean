@@ -248,10 +248,11 @@ def QuorumLogF (σ : Etcdraft.State) : Prop :=
     or (!σ.server.contains j) (!Etcdraft.isPrefix (committedL σ i) (σ.s j).log))) (σ.getConfig i) = false
 
 /-- **The bags' uniqueness** (the notes' `MsgsDet`/`AppSlices`): two messages in flight that a line
-matches are equal (so a receive line's message is the one its token names; its preservation, at
-the `Ready` lines that hand messages out, is the next slice's). -/
+matches are equal, over both bags (so that a `Ready` moving pending messages out keeps it: review
+round 2's A5; a receive line's message is then the one its token names). -/
 def MsgsUniq (σ : Etcdraft.State) : Prop :=
-  ∀ (ln : Etcdraft.Line) (m1 m2 : Etcdraft.Msg), m1 ∈ σ.messages.domain → m2 ∈ σ.messages.domain →
+  ∀ (ln : Etcdraft.Line) (m1 m2 : Etcdraft.Msg),
+    m1 ∈ σ.messages.domain ++ σ.pendingMessages.domain → m2 ∈ σ.messages.domain ++ σ.pendingMessages.domain →
     recvPred ln m1 = true → recvPred ln m2 = true → m1 = m2
 
 /-- **A message's facts** (review round 2's A3): an append request carries its source's leadership of

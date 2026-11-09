@@ -158,7 +158,7 @@ theorem simStepR_pure (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
       refine ⟨hM.1, hmd, hcnt, fun m' hm' hne => ?_⟩
       cases h : recvPred ln m'
       · rfl
-      · exact absurd (huniq ln m' m hm' hmd h (hmatch ln hp)) hne
+      · exact absurd (huniq ln m' m (List.mem_append_left _ hm') (List.mem_append_left _ hmd) h (hmatch ln hp)) hne
     · exact hmids
     · exact hinv
   · intro i hi
