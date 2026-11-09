@@ -1832,6 +1832,124 @@ theorem runRel_congr (t t' : Etcdraft.Trace) (hinit : t'.init = t.init) :
       (by simpa using hl) (by simp)
     exact ⟨.step n ts ts' info ih1 (by have := ha'.2.2.2.2; omega) c1 hv hb, c2 [ts'] info rfl ts' (by simp)⟩
 
+/-- In a list numbered from 1, the first element satisfying `p` is numbered at most any other's. -/
+theorem find_first_le {β : Type} (I : List (Nat × β)) (hfst : ∀ j (h : j < I.length), I[j].1 = j + 1)
+    (p : Nat × β → Bool) (q : Nat × β) (hq : I.find? p = some q) (k : Nat) (hk : k < I.length)
+    (hp : p I[k] = true) : q.1 ≤ k + 1 := by
+  obtain ⟨-, xs1, ys1, hI, has⟩ := List.find?_eq_some_iff_append.1 hq
+  have hal : xs1.length < I.length := by rw [hI]; simp
+  have hq1 : I[xs1.length] = q := by simp [hI]
+  have : xs1.length ≤ k := by
+    by_cases h : k < xs1.length
+    · exfalso
+      have hm : I[k] ∈ xs1 := by
+        have : I[k] = xs1[k] := by simp [hI, List.getElem_append_left h]
+        rw [this]; exact List.getElem_mem h
+      have := has _ hm; rw [hp] at this; cases this
+    · omega
+  rw [← hq1, hfst _ hal]; omega
+
+/-- A server's bootstrap flags of the lines are not changed by a line appended. -/
+theorem bootstrapOf_snoc (lines : List Etcdraft.Line) (ln : Etcdraft.Line) (i : Etcdraft.ID) (k : Nat)
+    (hk : k < lines.length) :
+    ((Etcdraft.bootstrapOf (lines ++ [ln]) i).1).getD k false = ((Etcdraft.bootstrapOf lines i).1).getD k false := by
+  unfold Etcdraft.bootstrapOf
+  simp only [List.length_append, List.length_singleton]
+  have hidx : (List.range (lines.length + 1)).map (fun k => (k + 1, (lines ++ [ln]).getD k default)) =
+      (List.range lines.length).map (fun k => (k + 1, lines.getD k default)) ++ [(lines.length + 1, ln)] := by
+    rw [List.range_succ, List.map_append]
+    congr 1
+    · apply List.map_congr_left; intro x hx
+      rw [List.mem_range] at hx
+      simp [List.getD_eq_getElem?_getD, List.getElem?_append_left hx]
+    · simp [List.getD_eq_getElem?_getD]
+  rw [hidx]
+  generalize hI : (List.range lines.length).map (fun k => (k + 1, lines.getD k default)) = I
+  have hIk : I[k]? = some (k + 1, lines.getD k default) := by
+    rw [← hI]; simp [hk]
+  have hIfst : ∀ p ∈ I, p.1 ≤ lines.length := by
+    intro p hp; rw [← hI] at hp; simp only [List.mem_map, List.mem_range] at hp
+    obtain ⟨x, hx, rfl⟩ := hp; simp; omega
+  have hlen : I.length = lines.length := by rw [← hI]; simp
+  simp only [List.find?_append, List.map_append, List.map_cons, List.map_nil]
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_left (by simp; omega),
+    List.getElem?_map, List.getElem?_map, hIk]
+  simp only [Option.map_some, Option.getD_some]
+  have hfst : ∀ j (h : j < I.length), I[j].1 = j + 1 := by
+    intro j h; subst hI; simp
+  have hk' : k < I.length := by omega
+  have hIk' : I[k] = (k + 1, lines.getD k default) := by
+    have := hIk; rw [List.getElem?_eq_getElem hk'] at this; exact Option.some.inj this
+  generalize hB : List.find? (fun p => p.snd.nid == i && Etcdraft.isBootstrapName p.snd.ev.name) I = B
+  generalize hN : List.find? (fun p => p.snd.nid == i && !Etcdraft.isBootstrapName p.snd.ev.name) I = NB
+  generalize hB1 : List.find? (fun p => p.snd.nid == i && Etcdraft.isBootstrapName p.snd.ev.name)
+    [(lines.length + 1, ln)] = B1
+  generalize hN1 : List.find? (fun p => p.snd.nid == i && !Etcdraft.isBootstrapName p.snd.ev.name)
+    [(lines.length + 1, ln)] = N1
+  have hB1v : ∀ x, B1 = some x → x.1 = lines.length + 1 := by
+    intro x hx; rw [← hB1] at hx; have := List.mem_of_find?_eq_some hx; simp at this; rw [this]
+  have hN1v : ∀ x, N1 = some x → x.1 = lines.length + 1 := by
+    intro x hx; rw [← hN1] at hx; have := List.mem_of_find?_eq_some hx; simp at this; rw [this]
+  have hNv : ∀ x, NB = some x → 1 ≤ x.1 ∧ x.1 ≤ lines.length := by
+    intro x hx; rw [← hN] at hx; have hm := List.mem_of_find?_eq_some hx
+    obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hm
+    rw [hfst j hj]; omega
+  -- the upper bounds agree at `k`
+  have hup : (k + 1 ≤ (if ((Option.map Prod.fst (NB.or N1)).getD 0 != 0) = true then
+        (Option.map Prod.fst (NB.or N1)).getD 0 - 1 else lines.length + 1)) ↔
+      (k + 1 ≤ (if ((Option.map Prod.fst NB).getD 0 != 0) = true then (Option.map Prod.fst NB).getD 0 - 1
+        else lines.length)) := by
+    cases NB with
+    | some q =>
+      have := hNv q rfl
+      simp only [Option.some_or, Option.map_some, Option.getD_some]
+      have h0 : (q.1 != 0) = true := by simp; omega
+      simp only [h0, ↓reduceIte]
+    | none =>
+      simp only [Option.none_or, Option.map_none, Option.getD_none, bne_self_eq_false, Bool.false_eq_true,
+        ↓reduceIte]
+      cases N1 with
+      | none => simp; omega
+      | some x =>
+        have := hN1v x rfl
+        simp only [Option.map_some, Option.getD_some, this]
+        simp
+  cases B with
+  | some q =>
+    simp only [Option.some_or]
+    rw [decide_eq_decide.2 hup]
+    congr
+  | none =>
+    simp only [Option.none_or, Option.map_none, Option.getD_none]
+    cases B1 with
+    | none => simp only [Option.map_none, Option.getD_none]; rw [decide_eq_decide.2 hup]; congr
+    | some x =>
+      have hx := hB1v x rfl
+      simp only [Option.map_some, Option.getD_some, hx]
+      -- the new line is `i`'s first bootstrap line: line `k` is not `i`'s, or is past `i`'s upper bound
+      have hl : ¬ (max (lines.length + 1) 1 ≤ k + 1) := by rw [Nat.max_def]; split <;> omega
+      simp only [hl, decide_false, Bool.false_and]
+      symm
+      cases hnid : ((lines.getD k default).nid == i)
+      · simp
+      · have hnb : Etcdraft.isBootstrapName (lines.getD k default).ev.name = false := by
+          have := (List.find?_eq_none.1 hB) I[k] (List.getElem_mem hk')
+          rw [hIk'] at this; simp only [hnid, Bool.true_and] at this; simpa using this
+        have hpk : (fun p : Nat × Etcdraft.Line => p.snd.nid == i && !Etcdraft.isBootstrapName p.snd.ev.name) I[k] = true := by
+          rw [hIk']; simp only [hnid, hnb, Bool.true_and, Bool.not_false]
+        cases hNB : NB with
+        | none =>
+          exfalso; rw [← hN] at hNB
+          have := (List.find?_eq_none.1 hNB) I[k] (List.getElem_mem hk'); exact this hpk
+        | some q =>
+          rw [← hN] at hNB
+          have hq := find_first_le I hfst _ q hNB k hk' hpk
+          have hq1 := hNv q (by rw [← hN]; exact hNB)
+          simp only [Option.map_some, Option.getD_some]
+          have : (q.1 != 0) = true := by simp; omega
+          simp only [this, ↓reduceIte]
+          simp; omega
+
 end TraceSim
 
 end EtcdGrove
