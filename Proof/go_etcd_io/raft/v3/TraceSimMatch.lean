@@ -3648,6 +3648,47 @@ theorem lineEffect_skipResp (C : List w64) (e : TraceEv) (id : w64) (s : NState)
     exact hne' (by
       have h1 := parseID_decStr m.src; have h2 := parseID_decStr m.dst
       rw [h] at h1; rw [h1] at h2; exact Option.some.inj h2)
+
+theorem upd_eq_withNode (σ : Etcdraft.State) (i : Etcdraft.ID) (f : Etcdraft.Server → Etcdraft.Server) :
+    σ.upd i f = withNode σ i (f (σ.s i)) _root_.id _root_.id := rfl
+
+/-- **A `Commit` line's effect**: the leader's `AdvanceCommitIndex`, to `n` (`AdvancesTo`). -/
+theorem lineEffect_commit (C : List w64) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (a : Etcdraft.Server) (n : Int) (Mid : Etcdraft.Server → Prop)
+    (hev : NodeEvOf rsmCommit id s cfg e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hlead : a.state = Etcdraft.leader) (hadv : AdvancesTo a n)
+    (hR : SimServerR C C.length (toPState s) { a with commitIndex := max a.commitIndex n })
+    (hs : LogShapeOk C.length (toPState s)) (hrole : s.role = .leader)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) :
+    LineEffect C false e (idAbs id) a { a with commitIndex := max a.commitIndex n } none _root_.id _root_.id Mid := by
+  obtain ⟨hname, hnid, hterm, hvote, hcommit, hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "Commit" := by
+    simp only [rsmCommit, evtNames] at hname
+    have : e.name = go!"Commit" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  refine ⟨nodeLine e id s.vote xs,
+    parseLine_node 0 e id s.vote xs [] hnid hvote hconf hmsg (by rw [hname']; rfl) (by rw [hname']; decide), rfl, ?_⟩
+  intro t l pl σ hline hl0 hl hb hts _ hsrv hσi _ _ _ _ hfin
+  have hF : withNode σ (idAbs id) { a with commitIndex := max a.commitIndex n } _root_.id _root_.id =
+      σ.commitTo (idAbs id) n := by rw [Etcdraft.State.commitTo, upd_eq_withNode, hσi]
+  refine ⟨⟨σ.commitTo (idAbs id) n, l + 1, l⟩, hF.symm, Chain.last _ _ _ ?_ rfl (by rw [← hF]; exact hfin)⟩
+  apply next_commit t ⟨σ, l, pl⟩ (idAbs id) _ hl0 hl hb
+  · rw [hline]; simp [nodeLine, evConv, hname']
+  · rw [hline]; rfl
+  · rw [hts]; exact confAbs_nodup C
+  · rw [hts, mem_confAbs]; exact hC
+  · exact hadv σ (idAbs id) hσi
+  · rw [hline]
+    apply stateMatches_node C s _ e id xs hR hs (by rw [hrole]; decide) hterm hcommit hrl hlog
+      (hxs.trans hin) bt bc bl
+    · simp [Etcdraft.State.commitTo, Etcdraft.State.upd, hσi]
+    · simp only [Etcdraft.State.commitTo, Etcdraft.State.upd]; rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  · rw [hline]; simp only [nodeLine, evConv, hrl, hrole]; rfl
+  · simp only; rw [hσi]; exact hlead
 end TraceSim
 
 end EtcdGrove
