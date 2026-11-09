@@ -114,6 +114,57 @@ linking), and `readErrIs` takes the client branch of `unkErr`; D2: `New.spec` ga
 gr.Group'`, `utf8Valid gr.Resource'`, the two aggregator-factory specs return `aggrFactoryOk`, and
 `isStore` gains its conjuncts (#15); D3: `NewResourceExpired.spec`'s post adds `st.Details' = null`.
 
+**Decided by etcd-grove-81 (2026-11-09, at the start of the last third):** `New.spec`'s
+`threadBound GF ≤ 2 ^ 30 - 1` accepted; `interpretListError` takes `kClientErr` accepted;
+`listReadError`'s key premise (`∃ k, prepareKeyM c.resourcePrefix c.resourcePrefix false = some k ∧
+(c.pathPrefix ++ k).length ≤ opKeyMax`) accepted, with the condition that `GetList` derives it from
+its own key premise rather than adding one (see the blockers below: it does not follow).
+
+**Forms proposed at Prove (last third, 2026-11-09; for etcd-grove-81):**
+(1) `ctxNeverDone ctx` (§3.4, named but not defined): `∃ ci, ctx = ok ci ∗ □ (Done() returns the
+`nil` channel)` (`ListDefs`); (2) `appendChunk.spec` gains the premises `∀ kv ∈ kvs, 0 ≤ sint.Z
+kv.modRev` (processListItem's `fmtRV kv.modRev` against `itemsOf`'s `fmtRV (W64 (sint.nat …))`) and
+`kvs.length ≤ 2 ^ 41` (`growSlice(v, len(kvs))`'s `mx` bound when the predicate is empty), and its post
+gives the count `n` of key-values evaluated: `ev = W64 n`, `n ≤ len`, all of them unless the limit
+was reached, `lastKeyIs lk kvs n` (`nil` or the `n`-th key), and, when the limit is reached or the
+bucket full, that key is `st'.last` (what `GetList`'s continue key needs); the Draft's App count
+for `appendChunk` was one too many (7 arguments); (3) `chunkL` (Draft: `ListModel.chunkL`) is in
+`ListDefs` (sparing the driver a rebuild), with `decodedL`, `itemsOf`, `lastKeyIs`; (4) the binders
+of `finalizeList.spec` include the v3rpc `Assumptions` instance (`isStore` needs it); (5) new callee
+`store.getResourceSizeEstimator` (spec + proof: `isStore ∗ threadTok`, returns `nil`, borrowing a
+reader token from `storeListOk`'s pool).
+
+**Blockers found in the last third (2026-11-09; stop, for etcd-grove-81):**
+- **B1 (`listReadError`'s key premise does not follow from `GetList`'s).** `prepareKeyM rp key r =
+  some k` gives `rp <+: k` and no `.`/`..` segment in `key`, but says nothing of `rp`'s own segments:
+  `rp = "/r/."`, `key = "/r/.x"` satisfies `GetList`'s premise while `prepareKeyM rp rp false = none`
+  (`"/."` is a suffix of `rp`); `rp = []` too. The length half follows. Options: (a) `isStore` (or
+  `StoreCfg`) records `prepareKeyM c.resourcePrefix c.resourcePrefix false = some c.resourcePrefix`,
+  established by `New` (a premise of `New.spec`, which the driver discharges by `decide` on
+  `"/objs"`); (b) `GetList.spec` takes it (refused by 81). Recommended: (a).
+- **B2 (the context's `Done()`).** `processListItem` selects on `ctx.Done()`; a done context returns
+  `NewTimeoutError` (a `*StorageError`), which `GetList`'s post (`listErr`: `unkErr` or the 410) does
+  not allow, and `ctxOk`/`ctxErrClient` say nothing of `Done()`. `GetList` passes `tracing.Start`'s
+  derived context, whose trusted spec gives only `ctxOk ci' cd ∗ ctxErrClient ci' cd`. Needed:
+  `GetList.spec` takes `ctxNeverDone (GoInterface.ok ci)` (the driver's `context.Background()`:
+  Perennial's `wp_background_Done`), and `tracing.Start.spec` (trusted) is restated to carry it to
+  `ci'` (OpenTelemetry's value context delegates `Done` to its parent, as its docstring already
+  says). Alternative: `listErr` admits the timeout error and the select's `Done` case gets a spec.
+  Recommended: the restatement (a trust-base change: an attack before linking).
+- **B3 (mod revisions of past reads).** `GetList`'s post reports each item's resource version as
+  `fmtRV (W64 (sint.nat kv.modRev))` (`kListL`), the store as `fmtRV kv.modRev`; they agree only if
+  `0 ≤ sint.Z kv.modRev`. `kvWf` gives it for the current store (`KWf`), nothing for `σ.at R` (the
+  base's key-values overwritten later keep any mod revision). Recommended: `kvWfHist` also states
+  `0 < uint.nat v.modRev ∧ uint.nat v.modRev ≤ r` (as `KWf`), same producer (7e-4).
+- **B4 (client vocabulary the Draft names without text).** `getList` needs `Client.List.spec`
+  (§7's text uses `rangeErrSound`, defined nowhere; `notes/k8s-etcd3-plan.md` describes it) and a
+  `Client.Get` at a revision (§7: prose only; the existing `Client.Get.spec` requires
+  `opts.Revision' = 0`). Needed: `rangeErrSound`'s text and a name and text for the revision `Get`
+  hypothesis (or 7c-3's restated `Client.Get.spec`). Recommended: `rangeErrSound o Q err :=
+  □ (⌜errDesc err = futureRevDesc⌝ -∗ ∃ σ, □ Q (W64 σ.rev) σ ∗ ⌜σ.rev < sint.nat o⌝)` (the future
+  half, all `readErrIs` uses) and a hypothesis `Client.GetAt.spec` with §7's answer, both premises of
+  `getList`'s proof only.
+
 ## 0. Summary
 
 | # | Item | Status | Producer |

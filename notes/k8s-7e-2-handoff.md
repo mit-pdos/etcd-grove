@@ -44,6 +44,24 @@ names `rpctypesInit`). `etc/gen-init.py --check` passes.
   false = some k ∧ (pathPrefix ++ k).length ≤ opKeyMax`, for `GetCurrentResourceVersion`) proved. Not
   linked (no new trusted spec is linked yet; the last third links them).
 
+## Last third, fourth session (2026-11-09): stopped at blockers B1-B4
+Read the Draft's "Forms proposed at Prove (last third)" and "Blockers found in the last third".
+Proved (lean-check, then built of record capped: `/shared/tmp/k8s-7e-2/b9.log`, `b10.log`, green):
+- `store.finalizeList` (spec + proof), `store.processListItem` (spec + proof; `ctxNeverDone` in
+  `ListDefs`), `store.appendChunk` (spec + proof; `chunkL`, `decodedL`, `itemsOf`, `lastKeyIs` in
+  `ListDefs`; pure lemmas `chunkAt_succ/full/step/length` in the proof file),
+  `store.getResourceSizeEstimator` (spec + proof, new callee; the reader-pool borrow).
+Not started: `getList` (needs B4's vocabulary), `pagedChunks` (needs `getList.spec`; can be done over
+it as a hypothesis once B4 is settled), `GetList` (needs B1-B3), the driver's
+`DecodeListItem`/`UpdateList`/`driver_listContractOk`, links and interfaces (nothing linked yet;
+`etc/gen-link.py` not rerun).
+Patterns learned: `wp_bind (App (Val wrapDefer) _); wp_apply wp_with_defer as %defer defer` for a
+`defer`; nil-channel select: `wp_apply_core chan.wp_select_nonblocking_nil`, then
+`chan.nilClausePre_recv Unit _ _ rfl`; `wp_bytes_to_string` for `[]byte` to a named string type;
+inside `all_goals` after `case'` branches `word` can fail with "unknown free variable": unfold
+`sint.nat`/`sint.Z` and use `omega`; `wp_if_destruct`'s hypothesis may come as `#(decide P) = #true`
+in one branch copy (`go.intoVal_inj`); `{ (f x) with … }` needs the parentheses.
+
 ## Notes for the last third
 - `GetList` must pass `listReadError`'s premise (the resource prefix's key): derive it from
   `prepareKeyM c.resourcePrefix key … = some k` or add it to `GetList.spec` (a form for 81).
