@@ -27,6 +27,7 @@ public import Spec.go_etcd_io.raft.v3.traceSendMessage
 public import Spec.go_etcd_io.raft.v3.traceReceiveMessage
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
+public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
 
 @[expose] public section
 
@@ -242,6 +243,45 @@ theorem raft.sendTimeoutNow.untraced (h : raft.sendTimeoutNow.spec (GF := GF) (h
   iintro ⟨Hphys, -⟩
   iapply HΦ
   iexact Hphys
+
+/-- `raft.sendHeartbeat.spec` at an untraced node (the statement before slice 5). -/
+abbrev raft.sendHeartbeat.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (ctx : GoSlice)
+    (cl : List w8),
+  to ≠ id →
+  to ∈ domSet s.progress →
+  s.term ≠ W64 0 →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "#Hctx" ∷ ctx ↦*□ cl }}
+    (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendHeartbeat"))
+      (Val #to)) (Val #ctx))
+  {{ (cm : w64) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c c.voters r id
+        { sendMsgs s [Msg.mkV .heartbeat id to s.term false
+                        (W64 0) (W64 0) cm (W64 0) [] [] cl] with prvals := pvs } ∗
+      ⌜uint.Z cm ≤ uint.Z s.logst.committed⌝ ∗
+      ⌜uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+
+/-- `raft.sendHeartbeat.spec`'s untraced instance. -/
+theorem raft.sendHeartbeat.untraced (h : raft.sendHeartbeat.spec (GF := GF) (hG := hG)) :
+    raft.sendHeartbeat.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s to ctx cl Hto Hcfg Htz htr
+  iintro %Φ ⟨#Hpkg, Hphys, #Hctx⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c r id s to ctx cl iprop(emp) Hto Hcfg Htz $$ [Hphys]
+  · iframe Hpkg Hphys Hctx
+    iintro %cm %_
+    rw [htr]
+    iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+    iframe Htl
+  inext
+  iintro %cm %pvs ⟨Hphys, %H1, %H2, %H3, -⟩
+  iapply HΦ $$ %cm %pvs
+  iframe Hphys
+  ipureintro; exact ⟨H1, H2, H3⟩
 
 end untraced
 

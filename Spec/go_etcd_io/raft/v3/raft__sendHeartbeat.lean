@@ -13,6 +13,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -47,21 +48,28 @@ exposed as pure facts, against `prvalsMatch` (what `toPstate`'s `matched` is for
 leader) and the log's `committed`. `ctx` is not owned: it is only copied into
 `Context`; the abstract message carries the list it holds (`cl`, read-only; since
 2026-10-12, when `Msg` gained `ctx`). `SentCommit` writes `sentCommit` and nothing
-else, so `Match` is untouched. -/
+else, so `Match` is untouched.
+
+**One spec for both trace modes** (2026-11-09, trace-check Q8 stage 1 slice 5): the caller gives
+`send`'s hook's gate (`raft.send.spec`'s `HookGateOpt`), at the heartbeat as queued, for whichever
+commit `cm` the function computes (with its two bounds), and gets `Q` back. Until slice 5 the premise
+`s.gh.tr = none` (stage 0), now `raft.sendHeartbeat.untraced`'s (`TracedUntraced.lean`). -/
 abbrev raft.sendHeartbeat.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (ctx : GoSlice)
-    (cl : List w8),
+    (cl : List w8) (Q : IProp GF),
   to ≠ id →
   to ∈ domSet s.progress →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hctx" ∷ ctx ↦*□ cl }}
+      "#Hctx" ∷ ctx ↦*□ cl ∗
+      -- (2026-11-09, Q8 stage 1 slice 5) `send`'s hook's gate, at the heartbeat's commit `cm` (its
+      -- two bounds)
+      "Hgate" ∷ (∀ cm : w64, ⌜uint.Z cm ≤ uint.Z s.logst.committed ∧
+          uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ -∗
+        HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]) Q) }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendHeartbeat"))
       (Val #to)) (Val #ctx))
   {{ (cm : w64) (pvs : GMap w64 Progress), RET #();
@@ -70,7 +78,7 @@ abbrev raft.sendHeartbeat.spec : Prop :=
                         (W64 0) (W64 0) cm (W64 0) [] [] cl] with prvals := pvs } ∗
       ⌜uint.Z cm ≤ uint.Z s.logst.committed⌝ ∗
       ⌜uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗ Q }}
 
 end spec
 

@@ -11,6 +11,7 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeatWithCtx
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
 public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -50,6 +51,8 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendHeartbeat : raft.sendHeartbeat.spec (GF := GF) (hG := hG)) :
     raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 5) the untraced instance (`TracedUntraced.lean`)
+  have wp_raft_sendHeartbeat := raft.sendHeartbeat.untraced wp_raft_sendHeartbeat
   intro c r id s ctx cl Hlead Htz Htr
   wp_start as Hphys
   iNamed Hphys
