@@ -4154,6 +4154,141 @@ theorem lineEffect_heartbeatRecv (C : List w64) (e : TraceEv) (s : NState) (cfg 
       (by rw [hmdst, hσi, hR.2.2.2.2.2.2.1]; omega)
     rw [this]; rfl
   · rw [← heq]; exact oneLess_of_msgs σ _ mabs (by rfl) hnd hcnt
+
+/-- A stale append request's response. -/
+def stResp (a : Etcdraft.Server) (i j : Etcdraft.ID) (sub : String) : Etcdraft.Msg :=
+  { type := .appendEntriesResponse, subtype := sub, term := a.currentTerm, success := true, matchIndex := a.commitIndex, source := i, dest := j }
+
+/-- A rejected append request's response. -/
+def rjResp (a : Etcdraft.Server) (i j : Etcdraft.ID) : Etcdraft.Msg :=
+  { type := .appendEntriesResponse, subtype := "app", term := a.currentTerm, success := false, matchIndex := 0, source := i, dest := j }
+
+/-- **A stale append request's effect** (its index below the commit index, the log matching). -/
+theorem lineEffect_staleRecv (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg)
+    (a : Etcdraft.Server) (mabs : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop) (hty : m.ty = .app)
+    (hev : SendEvOf (W64 10) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .follower) (hterm : m.term = s.term)
+    (hst : uint.Z m.index < uint.Z (toPState s).commit)
+    (hmt0 : PlogMatches (entryID.mk (W64 0) (W64 0)) (toPState s).log (entryID.mk m.logterm (W64 (uint.nat m.index))))
+    (hlt0 : uint.nat m.index = 0 → m.logterm = W64 0)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bmc : uint.Z m.commit < 2 ^ 63)
+    (bi : uint.Z m.index < 2 ^ 63) (blt : uint.Z m.logterm < 2 ^ 63) (bk : m.entries.length < 2 ^ 63)
+    (hmabs : msgAbs C C.length m = some mabs) :
+    LineEffect C false e (idAbs m.dst) a { a with lead := idAbs m.src } (some mabs) (fun b => b.without mabs)
+      (fun b => b.with (stResp a (idAbs m.dst) (idAbs m.src) "app")) Mid := by
+  have hev' := hev
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  obtain ⟨hname', hrn, hrp⟩ := aerLine e s cfg m hname
+  have hmt : mabs.type = .appendEntriesRequest := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmsub : mabs.subtype = "app" := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmterm : mabs.term = uint.Z m.term := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hidxZ : ((uint.nat m.index : Nat) : Int) = uint.Z m.index := by word
+  have hmprev : mabs.prevLogIndex = (uint.nat m.index : Nat) := by
+    rw [hidxZ]; simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmpt : mabs.prevLogTerm = uint.Z m.logterm := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmsrc : mabs.source = idAbs m.src := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true := by
+    rw [hrp, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have := isAER_app C C.length e m.dst s.vote xs m tm hmsg hm hty (by rw [hterm]; exact bt) bmc bi blt bk
+    simp only [hmabs, Option.get_some] at this; exact this
+  apply lineEffect_recv1 C false e (idAbs m.dst) a _ mabs _ _ Mid _
+    (aerParse e s cfg m tm hname hnid hvote xs hxs hconf hmsg hm (Or.inl hty)) rfl
+    (by simp only [msgLine, evConv]; rw [hname']; rfl) hpred hmdst
+  intro σ hsrv hσi _ _ hnd hcnt
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  have heq : staleRecvSt σ mabs = withNode σ (idAbs m.dst) { a with lead := idAbs m.src }
+      (fun b => b.without mabs) (fun b => b.with (stResp a (idAbs m.dst) (idAbs m.src) "app")) := by
+    unfold staleRecvSt
+    rw [hmdst, hmsrc, hmsub, hσi]
+    have := withLead_reply σ (idAbs m.dst) (idAbs m.src) (stResp a (idAbs m.dst) (idAbs m.src) "app") mabs
+    rw [hσi] at this
+    exact this
+  refine ⟨?_, ?_, ?_⟩
+  · rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have hsm := stateMatches_node C s (σ.s (idAbs m.dst)) e m.dst xs (by rw [hσi]; exact hR) hs
+      (by rw [hrole]; decide) hterm' hcommit' hrl hlog (hxs.trans hin) bt bc bl σ rfl hcontains
+    unfold Etcdraft.Line.stateMatches at hsm ⊢
+    simpa [msgLine, nodeLine] using hsm
+  · rw [← heq]
+    have hlok : LogOkL mabs (σ.s mabs.dest).log = true := by
+      rw [hmdst, hσi, hR.2.2.2.2.2.1, logOkL_abs C C.length mabs _ (uint.nat m.index) m.logterm hmprev hmpt
+        (fun k x hk hx => hs.2.2 k x (by omega) hx) hlt0 (by word), decide_eq_true_iff]
+      exact hmt0
+    have := receive_appStale σ mabs (by rw [hmdst]; exact hcontains) hmt
+      (by rw [hmdst, hσi, hR.2.1]; simp [toPState, hrole, proleRole]; rfl)
+      (by rw [hmdst, hσi, hR.1, hmterm, hterm]; rfl) hmsub
+      (by rw [hmdst, hσi, hR.2.2.2.2.2.2.1, hmprev, hidxZ]; omega) hlok
+    rw [this]; rfl
+  · rw [← heq]; exact oneLess_of_msgs σ _ mabs (by rfl) hnd hcnt
+
+/-- **A rejected append request's effect** (the log not matching; pre-vote and check-quorum off). -/
+theorem lineEffect_rejectRecv (C : List w64) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg)
+    (a : Etcdraft.Server) (mabs : Etcdraft.Msg) (Mid : Etcdraft.Server → Prop) (hty : m.ty = .app)
+    (hev : SendEvOf (W64 10) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .follower) (hterm : m.term = s.term)
+    (hmt0 : ¬ PlogMatches (entryID.mk (W64 0) (W64 0)) (toPState s).log (entryID.mk m.logterm (W64 (uint.nat m.index))))
+    (hlt0 : uint.nat m.index = 0 → m.logterm = W64 0)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bmc : uint.Z m.commit < 2 ^ 63)
+    (bi : uint.Z m.index < 2 ^ 63) (blt : uint.Z m.logterm < 2 ^ 63) (bk : m.entries.length < 2 ^ 63)
+    (hmabs : msgAbs C C.length m = some mabs) :
+    LineEffect C false e (idAbs m.dst) a { a with lead := idAbs m.src } (some mabs) (fun b => b.without mabs)
+      (fun b => b.with (rjResp a (idAbs m.dst) (idAbs m.src))) Mid := by
+  have hev' := hev
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev'
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  obtain ⟨hname', hrn, hrp⟩ := aerLine e s cfg m hname
+  have hmt : mabs.type = .appendEntriesRequest := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmterm : mabs.term = uint.Z m.term := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hidxZ : ((uint.nat m.index : Nat) : Int) = uint.Z m.index := by word
+  have hmprev : mabs.prevLogIndex = (uint.nat m.index : Nat) := by
+    rw [hidxZ]; simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmpt : mabs.prevLogTerm = uint.Z m.logterm := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmsrc : mabs.source = idAbs m.src := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true := by
+    rw [hrp, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have := isAER_app C C.length e m.dst s.vote xs m tm hmsg hm hty (by rw [hterm]; exact bt) bmc bi blt bk
+    simp only [hmabs, Option.get_some] at this; exact this
+  apply lineEffect_recv1 C false e (idAbs m.dst) a _ mabs _ _ Mid _
+    (aerParse e s cfg m tm hname hnid hvote xs hxs hconf hmsg hm (Or.inl hty)) rfl
+    (by simp only [msgLine, evConv]; rw [hname']; rfl) hpred hmdst
+  intro σ hsrv hσi hpv hcq hnd hcnt
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  have heq : rejRecvSt σ mabs = withNode σ (idAbs m.dst) { a with lead := idAbs m.src }
+      (fun b => b.without mabs) (fun b => b.with (rjResp a (idAbs m.dst) (idAbs m.src))) := by
+    unfold rejRecvSt
+    rw [hmdst, hmsrc, hσi]
+    have := withLead_reply σ (idAbs m.dst) (idAbs m.src) (rjResp a (idAbs m.dst) (idAbs m.src)) mabs
+    rw [hσi] at this
+    exact this
+  refine ⟨?_, ?_, ?_⟩
+  · rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have hsm := stateMatches_node C s (σ.s (idAbs m.dst)) e m.dst xs (by rw [hσi]; exact hR) hs
+      (by rw [hrole]; decide) hterm' hcommit' hrl hlog (hxs.trans hin) bt bc bl σ rfl hcontains
+    unfold Etcdraft.Line.stateMatches at hsm ⊢
+    simpa [msgLine, nodeLine] using hsm
+  · rw [← heq]
+    have hlok : LogOkL mabs (σ.s mabs.dest).log = false := by
+      rw [hmdst, hσi, hR.2.2.2.2.2.1, logOkL_abs C C.length mabs _ (uint.nat m.index) m.logterm hmprev hmpt
+        (fun k x hk hx => hs.2.2 k x (by omega) hx) hlt0 (by word)]
+      exact decide_eq_false hmt0
+    have := receive_appReject σ mabs (by rw [hmdst]; exact hcontains) hmt
+      (by rw [hmdst, hσi, hR.2.1]; simp [toPState, hrole, proleRole]; rfl)
+      (by rw [hmdst, hσi, hR.1, hmterm, hterm]; rfl) hpv hcq hlok
+    rw [this]; rfl
+  · rw [← heq]; exact oneLess_of_msgs σ _ mabs (by rfl) hnd hcnt
 end TraceSim
 
 end EtcdGrove
