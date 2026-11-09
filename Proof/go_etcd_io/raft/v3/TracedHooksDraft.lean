@@ -215,7 +215,7 @@ def PhaseStep (id : w64) (c : CfgM) (E : TraceEv → Prop) (Φ Φ' : List w64 �
   ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
     ∃ (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
-      Φ' C (toC (confAbs C) a') (P ++ P') ∧
+      Φ' C (toC (confAbs C) a') (P ++ P') ∧ (∀ x ∈ P', x.source = idAbs id) ∧
       LineEffect C false e (idAbs id) a a' none _root_.id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False)
 
 end pure
@@ -391,7 +391,7 @@ def PhaseStepR (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop) (
     (∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln → recvPred ln m = true) ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
     ∃ (a' : Etcdraft.Server) (P' Pph : List Etcdraft.Msg),
-      Φ' C (toC (confAbs C) a') (P ++ P') ∧
+      Φ' C (toC (confAbs C) a') (P ++ P') ∧ (∀ x ∈ P', x.source = idAbs id) ∧
       LineEffect C false e (idAbs id) a a' (some m) (fun b => b.without m)
         (fun b => (P' ++ Pph).foldl Etcdraft.Bag.with b) Mid
 

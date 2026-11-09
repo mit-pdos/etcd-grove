@@ -212,7 +212,8 @@ def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) :
       (∀ i ∈ C, ∃ P, A !! i = some (toC σ.server (σ.s (idAbs i)), P)) ∧
       (∀ i, i ∉ C → A !! i = none) ∧
       BagRep σ.pendingMessages ((C.flatMap (fun i => ((A !! i).map Prod.snd).getD [])) ++ phP) ∧
-      BagRep σ.messages ((GMap.toList B).map Prod.snd ++ phM) ∧ σ.preVote = false ∧ σ.checkQuorum = false⌝)
+      BagRep σ.messages ((GMap.toList B).map Prod.snd ++ phM) ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
+      (∀ i ∈ C, ∀ x ∈ ((A !! i).map Prod.snd).getD [], x.source = idAbs i)⌝)
 
 instance simInv_timeless (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF)
     [hFx : ∀ σ, Timeless (Fx σ)] : Timeless (simInv C tn Fx) := by
