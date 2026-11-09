@@ -114,6 +114,32 @@ server `currentTerm`, `state`, `votedFor`, `log`, `commitIndex`, `votesResponded
 `messages`; `reconfigCount`), `Trace.stepLine`, `checkTrace`, `traceAccepts`. The raft side is the
 existing proof's (below).
 
+## Revision 13 (2026-11-09): against the corrected specification
+
+Trace-check resumed against `etc/tla-fixes/` (`notes/decisions.md`, "Trace-check against the
+corrected `etcdraft.tla`"). What changes below, the rest standing:
+
+- **`R_i` gains `lead`**: `σ.s i`'s `lead` (0006) is raft's `s.lead` (`PState.lead`), field for
+  field. Every place raft sets it matches 0006: `becomeFollower(m.Term, m.From)` for a
+  higher-term `MsgApp`/`MsgHeartbeat`/`MsgSnap` is `UpdateTerm` (lead `nil`) then the handler's
+  `lead' = j`; `becomeFollower(term, None)` for a higher-term vote (request or response) is
+  `UpdateTerm`'s `nil`; a candidate's `becomeFollower(m.Term, m.From)` on a same-term append is
+  `ReturnToFollowerState` with `lead' = j`; `stepFollower`'s `r.lead = m.From` is `lead' = j`;
+  `becomeLeader` (`lead = id`), `becomeCandidate` (`reset`: `None`) and `Timeout`'s `nil`; a
+  heartbeat or append of the current term at a follower already led by `j` leaves it `j`.
+- **`durable.log` is the log itself** (0002): `durableOf (σ.s i)` at the node's last `Ready` line,
+  as before, now carrying the entries.
+- **P5 and P9 are gone**: an append request's `commitIndex` is the leader's (0003), raft's
+  `Commit` always (determinism case 2 below holds without P5); P9's order is not needed (0006). The
+  tokens keep both halves (at most once, after the sender's `Ready`: the user's, 2026-11-08).
+- **Determinism case 6**: `NoConflictAppendEntriesRequest` now requires a new entry (0006), so at
+  every state inside a receive line exactly one of `AppendEntriesAlreadyDone`, `Conflict`,
+  `NoConflict` is enabled; no "already visited" argument. `lineFuel` is gone (Q7, the relation).
+- **The invariants are seven** (0009: `MoreUpToDateCorrectInv` not checked); `LeaderCompletenessInv`
+  is 0007's.
+- **Ghost names**: `γ.raft.reTrace = some γd` names a persistent directory of the simulation's
+  ghost names (`traceDir`), so they can be added to without changing `RaftNames`.
+
 ## What the statement needs
 
 `traceAccepts events` = `(checkTrace t true).tlcOK`: from `t.initState`, every line has **exactly
