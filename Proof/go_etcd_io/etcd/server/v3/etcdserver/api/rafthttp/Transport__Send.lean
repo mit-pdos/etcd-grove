@@ -67,6 +67,9 @@ theorem rafthttp.Transport.Send.wp_proof
     rafthttp.Transport.Send.spec (GF := GF) (hG := hG) := by
   intro Rh t lid γd R γs γr sl msL
   wp_start as ⟨#Htr, Htok, Hsl, Hms⟩
+  -- (Q9, 2026-11-09) `MessageType.String`'s exact spec needs raftpb's package fact
+  ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+  · iPkgInit
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
@@ -196,7 +199,7 @@ theorem rafthttp.Transport.Send.wp_proof
         haveI : go.NotInterface go.uint64 := ⟨by unfold go.uint64; trivial⟩
         repeat' (first_callee
           | "GetType" => (wp_apply hGetType.1 ml _ _ _ st $$ [] as -; iframe #)
-          | "String" => (ihave #HT := hTypeString st.msg.Type'
+          | "String" => (ihave #HT := fmt.stringMethodSpec_of_wp _ _ _ _ hTypeString st.msg.Type' $$ Hpb
                          iunfold fmt.stringMethodSpec at HT
                          wp_apply HT as %_)
           | "String" => (wp_apply hIDString as %_ -)

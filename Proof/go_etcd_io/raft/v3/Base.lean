@@ -96,8 +96,42 @@ instance proto_get_is_pkg_init_wf_inst :
 -- `strconv` (imported by `raftpb`'s `confchange.go` in raft v3.7): Perennial's own instance
 -- (`Perennial.Proof.strconv.Base`, since Perennial translates `strconv`, 24bef275e)
 
+/-- `MessageType_name` (`raft.pb.go`, protoc-gen-go): the names of the message types, the map
+literal of the initializer, with its keys inserted in the literal's order (0 first: the order the
+initializer's proof inserts them). Q9 of `notes/trace-validation-plan.md` (2026-11-09):
+`MessageType.String`'s trusted model reads it. -/
+def raftpb.msgTypeNames : GMap w32 GoString :=
+  <[W32 23 := go!"MsgForgetLeader"]> (
+  <[W32 22 := go!"MsgStorageApplyResp"]> (
+  <[W32 21 := go!"MsgStorageApply"]> (
+  <[W32 20 := go!"MsgStorageAppendResp"]> (
+  <[W32 19 := go!"MsgStorageAppend"]> (
+  <[W32 18 := go!"MsgPreVoteResp"]> (
+  <[W32 17 := go!"MsgPreVote"]> (
+  <[W32 16 := go!"MsgReadIndexResp"]> (
+  <[W32 15 := go!"MsgReadIndex"]> (
+  <[W32 14 := go!"MsgTimeoutNow"]> (
+  <[W32 13 := go!"MsgTransferLeader"]> (
+  <[W32 12 := go!"MsgCheckQuorum"]> (
+  <[W32 11 := go!"MsgSnapStatus"]> (
+  <[W32 10 := go!"MsgUnreachable"]> (
+  <[W32 9 := go!"MsgHeartbeatResp"]> (
+  <[W32 8 := go!"MsgHeartbeat"]> (
+  <[W32 7 := go!"MsgSnap"]> (
+  <[W32 6 := go!"MsgVoteResp"]> (
+  <[W32 5 := go!"MsgVote"]> (
+  <[W32 4 := go!"MsgAppResp"]> (
+  <[W32 3 := go!"MsgApp"]> (
+  <[W32 2 := go!"MsgProp"]> (
+  <[W32 1 := go!"MsgBeat"]> (
+  <[W32 0 := go!"MsgHup"]> ∅)))))))))))))))))))))))
+
+/-- `raftpb`'s package fact (Q9, 2026-11-09; `True` until then): `MessageType_name` holds a map
+with `raftpb.msgTypeNames`, both read-only (nothing but the initializer writes the table). -/
 instance raftpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init iprop(∃ m : Loc,
+    (globalAddr go_etcd_io.raft.v3.raftpb.MessageType_name ↦□ m : IProp GF) ∗
+    m ↦$□ raftpb.msgTypeNames)
 instance raftpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
   build_get_is_pkg_init_wf

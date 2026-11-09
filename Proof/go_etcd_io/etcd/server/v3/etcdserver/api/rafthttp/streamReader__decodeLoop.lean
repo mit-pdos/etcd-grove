@@ -66,7 +66,7 @@ local macro "dl_dropped" : tactic => `(tactic| (
     | "GetType" => (wp_apply hGetType.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
     | "GetFrom" => (wp_apply hGetFrom.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
     | "GetTo" => (wp_apply hGetTo.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
-    | "String" => (ihave #HT := hTypeString st.msg.Type'
+    | "String" => (ihave #HT := fmt.stringMethodSpec_of_wp _ _ _ _ hTypeString st.msg.Type' $$ Hpb
                    iunfold fmt.stringMethodSpec at HT
                    wp_apply HT as %_)
     | "String" => (wp_apply hIDString as %ids %Hids)
@@ -354,6 +354,9 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
     rafthttp.streamReader.decodeLoop.spec (GF := GF) (hG := hG) := by
   intro Rh lid pid γd cr ty rc R γk γw Hown Hpath
   wp_start as ⟨#Hf, Hrr, #Hcl, %Hrcnn, #Hreg, Hrd⟩
+  -- (Q9, 2026-11-09) `MessageType.String`'s exact spec needs raftpb's package fact
+  ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+  · iPkgInit
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
   icases Hf' with ⟨%lg, %tr, %ps, %rcv, %pcv, %γr, %γp, %ctx, %cd, #Hlg, %Hlgnn, #Hpid, #Htr,
