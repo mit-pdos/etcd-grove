@@ -215,6 +215,26 @@ proved (`newTraceWith_ok`), so the simulation's files have no `sorry`. Review ro
 Draft started (a fresh reviewer, `notes/trace-validation-reviews/s5-r3.md`); layer C's
 `invariants.go` delegated (branch `trace-check-layerc-inv`), `spec.go`'s agent still at work.
 
+**S5 review round 3 (`notes/trace-validation-reviews/s5-r3.md`) and its repairs (2026-11-09).**
+Six first-tier findings. Repaired: B1 (the `Ready` law's tokens name their list's phase), B2 (an
+accepted append's intermediate states only past the batch's first conflict, `ConflictBy`: at the
+others `QuorumLogF` can fail), B3 (`ApplyConfChange`'s effect zeroes the progress outside the
+configuration, `accSrv`; `AccIdle` takes no pending change instead of "not a leader"), B4 (heartbeat
+responses at any term, lower-term heartbeats, and the higher-term second rounds as one-round
+receipts, `RecvAt`/`lineEffect_recvU`/`recvAt_*`), B5 (`CCEvOf`, `traceInitState.tracedSpec`,
+`traceConfChangeEvent.tracedSpec`, `trCapB_cfg`; open: `newRaft` and `switchToConfig` must hold
+`ownRaftPhysCV` closed at the hook), C2-C4 (the hook paths' capability keeps the flag and the last
+event; `trCap_fire_any` unifies the plain laws; docstrings), and the reviewer's Go finding filed
+(`nonissues/raft-trace-sendmessage-sender-progress.md`). Delegated: B6 (`SpecInv` gains the
+append requests' commit bound and loses `CommitInSenderDurable`; `QuorumLogF` kept by a follower's
+raised commit; branch `trace-check-specinv-b6`). **A9 decided by the agent (2026-11-09):** `srvFacts`
+allows a leader's pending entries (its `Replicate` lines' entries, which raft appends, and so
+records, only after the hook): the abstract log is `es ++ pend`, records and `leadFull` over `es`,
+`pend` the leader's own term's (branch `trace-check-a9`). The alternative, the leader minting the
+records before the hook, would leave raft's predicate with its ghost log ahead of its physical one
+at `traceReplicate`'s call. Open: C1 (`FxPresReady`/`FxPresBF` proved once, after B6), C5, C6
+(`MsgsDet`), C7; then round 4.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
