@@ -1553,7 +1553,7 @@ theorem NewTraceWith.wp_proof
     try wp_auto
     wp_join (Q := fun v => iprop(∃ (osl : GoSlice) (e : GoInterface), ⌜v = PairV #osl #e⌝ ∗
         match (List.range xs.length).filterMapM (tConfH xs (uint.nat iw)) with
-        | .ok cfs => ⌜e = interface.nil⌝ ∗ ∃ sls : List GoSlice, osl ↦*□ sls ∗ ([∗list] sl;c ∈ sls;cfs, setRO sl c)
+        | .ok cfs => ⌜e = interface.nil⌝ ∗ ∃ sls : List GoSlice, osl ↦* sls ∗ ([∗list] sl;c ∈ sls;cfs, setRO sl c)
         | .error _ => ⌜e ≠ interface.nil⌝))
       at (Seq (App (Val exceptionDo) _) _) with [«$res0» «$res1» i out l]
     · ihave Hnil : (zero_val GoSlice : GoSlice) ↦* ([] : List GoSlice) $$ []
@@ -1720,8 +1720,107 @@ theorem NewTraceWith.wp_proof
           iright
           ipureintro
           exact ⟨rfl, hown', hac, nc, by simp [hp, hcc, hnc]⟩
-        sorry
-      sorry
+        iintro ⟨ln, i, Hcase⟩
+        icases Hcase with (⟨%Hv, %Hnone⟩ | ⟨%Hv, %Hf, %Hac2, %nc, %Hnc⟩)
+        · subst Hv
+          wp_auto
+          wp_for_post
+          iframe
+          iexists _, _, _, _
+          iframe
+          ipureintro
+          refine ⟨by clear hlacc; word, by clear hlacc; word, ?_⟩
+          rw [hjs]
+          have := filterMapM_take_succ_ok _ _ _ _ _ none hrk hlacc Hnone
+          simpa using this
+        subst Hv
+        cases hp : xl.ev.prop with
+        | none => simp [hp] at Hnc
+        | some pr =>
+        cases hcc : pr.cc with
+        | none => simp [hp, hcc] at Hnc
+        | some cc =>
+        have hncs : cc.newconf = some nc := by simpa [hp, hcc] using Hnc
+        iunfold propsRO at Heprop2
+        icases Heprop2 with ⟨%gp, #Hgp, #Hccp⟩
+        simp only [hcc]
+        icases typedPointsto_split _ _ _ $$ Hgp with Hgpf
+        simp only [TypedPointsto.typedPointstoDef]
+        icases Hgpf with ⟨#PCC, -⟩
+        iunfold confChangeRO at Hccp
+        icases Hccp with ⟨%gcc, #Hgcc, -, #Hnc⟩
+        icases typedPointsto_split _ _ _ $$ Hgcc with Hgccf
+        simp only [TypedPointsto.typedPointstoDef]
+        icases Hgccf with ⟨-, #CNewConf, -⟩
+        simp only [hncs]
+        iunfold optSliceRO at Hnc
+        icases Hnc with ⟨%ncsl, %ncvs, #Hncp, #Hncs, %Hncr⟩
+        wp_auto
+        wp_apply wp_toSet ncsl _ ncvs nc $$ [] as %cset %okc ⟨-, Hcset⟩
+        · iframe Hncs; ipureintro; exact Hncr
+        try wp_auto
+        have hnc' : ((xl.ev.prop.bind EventProps.cc).bind EventConfChange.newconf) = some nc := by simp [hp, hcc, hncs]
+        cases htc : toSet nc with
+        | none =>
+          simp only [htc]
+          icases Hcset with %Hokc
+          subst Hokc
+          wp_auto
+          wp_apply wp_traceError as %e %He
+          try wp_auto
+          wp_for_post
+          try wp_auto
+          iexists _, _
+          isplitl []
+          · ipureintro; rfl
+          have herr : tConfH xs (uint.nat iw) (sint.nat lv - 1) =
+              .error { what := "newconf not a list of ids", line := sint.nat lv - 1 + 1, n := 0 } := by
+            unfold tConfH; rw [Hf]; simp only [ite_true, hxlg]
+            simp [Hac2, hnc', htc, throw, throwThe, MonadExceptOf.throw]
+          rw [filterMapM_take_succ_err _ _ _ _ _ _ hrk hlacc herr]
+          ipureintro; exact He
+        | some c =>
+        simp only [htc]
+        icases Hcset with ⟨%Hokc, #Hcs⟩
+        subst Hokc
+        wp_auto
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %sl1 ⟨Hsl1, -⟩
+        try wp_auto
+        wp_apply wp_slice_append $$ [Hout Hocap Hsl1] as %s2 ⟨Hs2, Hcap2, -⟩
+        · iframe
+        try wp_auto
+        wp_for_post
+        iframe
+        iexists _, s2, sls ++ [cset], acc ++ [c]
+        iframe
+        isplitl []
+        · iapply BigSepL2.bigSepL2_cons.2
+          isplitl []
+          · iexact Hcs
+          iapply BigSepL2.bigSepL2_nil.2; ipureintro; trivial
+        ipureintro
+        refine ⟨by clear hlacc; word, by clear hlacc; word, ?_⟩
+        rw [hjs]
+        have hok : tConfH xs (uint.nat iw) (sint.nat lv - 1) = .ok (some c) := by
+          unfold tConfH; rw [Hf]; simp only [ite_true, hxlg]
+          simp [Hac2, hnc', htc, Pure.pure, Except.pure]
+        have := filterMapM_take_succ_ok _ _ _ _ _ (some c) hrk hlacc hok
+        simpa using this
+      have hlx : sint.nat lv - 1 = xs.length := by
+        have := Hlsl.1; rw [Hlnl] at this; clear hlacc; word
+      rw [hlx, List.take_of_length_le (by simp)] at hlacc
+      try wp_auto
+      iexists _, _
+      isplitl []
+      · ipureintro; rfl
+      rw [hlacc]
+      isplitl []
+      · ipureintro; rfl
+      iexists _
+      iframe Hout Hacc
     sorry
   sorry
 
