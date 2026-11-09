@@ -172,6 +172,19 @@ the bags by counts, `BagCnt`, with `filter`/`plus`/`minus`). Next: A7 (bootstrap
 bootstrap-named lines after a node's segment: a per-node "segment over" record; the self-addressed
 messages' tokens at `Advance`).
 
+**A7, first part, and S7's recorder (2026-11-09, proved).** The nodes' `booted` flags (`simBoot`,
+`simInv` tying each to the trace: set iff the node has logged a non-bootstrap line; `trCap = ∃ b,
+trCapB b`; the three laws set it) and the bootstrap lines' law (`trCap_fire_boot`: an unbooted node's
+bootstrap-named line is flagged, `bootFlags_unbooted`, and `TraceNext` steps over it, `simRun_boot`).
+Left of A7: bootstrap-named lines after the segment (a lost election's `BecomeFollower`, the
+`ApplyConfChange` lines after the first `Ready`: their law, the skip bit from the node's previous
+line), and the self-addressed messages' tokens at `Advance`. **S7 (merged):** the recorder meets the
+logger's contract (`SyncRecorder.TraceEvent`, `isSyncRecorder_traceLogger`), `Events` returns the
+trace, `ConvertEvents` gives `NewTrace`'s input `L.map evConv`, and a fresh recorder allocates the
+trace's two halves; found: `ConvertEvents` needs the events ASCII (`TraceEv.Ascii`: the checker
+relates strings by `strRel`), which the simulation must supply (a `simInv` clause: raft's names,
+roles and types are ASCII constants, its ids `FormatUint`'s).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
