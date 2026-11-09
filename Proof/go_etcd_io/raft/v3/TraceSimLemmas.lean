@@ -538,6 +538,70 @@ theorem conflict_step (st : Etcdraft.State) (i : Etcdraft.ID) (m : Etcdraft.Msg)
     split <;> (try split) <;> first | rfl | omega
   rw [hl]
 
+/-- `upd` reads the function only at the updated server. -/
+theorem upd_congr (st : Etcdraft.State) (i : Etcdraft.ID) (f g : Etcdraft.Server → Etcdraft.Server)
+    (h : f (st.s i) = g (st.s i)) : st.upd i f = st.upd i g := by
+  unfold Etcdraft.State.upd; rw [h]
+
+/-- **`NoConflictAppendEntriesRequest`** on raft's abstract log `L` (`q` entries), the batch not
+conflicting with it and reaching past it: the batch's entries past `q` are appended. -/
+theorem noConflict_step (st : Etcdraft.State) (i : Etcdraft.ID) (m : Etcdraft.Msg) (C : List w64)
+    (bl p : Nat) (L ents : List EntryM) (hlog : (st.s i).log = logAbs C bl 1 L)
+    (hents : m.entries = logAbs C bl (p + 1) ents) (hprev : m.prevLogIndex = p) (hpq : p ≤ L.length)
+    (hq : L.length < p + ents.length) (hc : (st.s i).commitIndex < (p : Int) + 1)
+    (hbl : BootTerms bl 1 L) (hbe : BootTerms bl (p + 1) ents)
+    (hnc : ∀ k e, ents[k]? = some e → p + k < L.length → (L[p + k]?).map EntryM.Term' = some e.Term') :
+    st.noConflictAppendEntriesRequest i ((p : Int) + 1) m =
+      .ok (some (st.upd i (fun v => { v with
+        log := logAbs C bl 1 L ++ (logAbs C bl (p + 1) ents).drop (L.length - p) }))) := by
+  have hnc' : st.hasNoConflict i ((p : Int) + 1) m.entries = true := by
+    rw [hents]; exact (hasNoConflict_abs st i C bl p L ents hlog hpq hbl hbe).2 hnc
+  have hne' : m.entries.isEmpty = false := by
+    rw [hents]; cases ents with
+    | nil => simp at hq; omega
+    | cons _ _ => simp [logAbs]
+  have hlt : (p : Int) + (m.entries.length : Int) > ((st.s i).log.length : Int) := by
+    rw [hents, hlog, logAbs_length, logAbs_length]; omega
+  unfold Etcdraft.State.noConflictAppendEntriesRequest
+  simp only [hne', hnc', hc, hprev, hlt, decide_true, Bool.not_false, Bool.not_true, Bool.and_self,
+    Bool.false_eq_true, ↓reduceIte]
+  have hidx : ((st.s i).log.length : Int) - ((p : Int) + 1) + 2 = ((L.length - p : Nat) : Int) + 1 := by
+    rw [hlog, logAbs_length]; omega
+  rw [hidx, hents]
+  have := subSeqM_drop (logAbs C bl (p + 1) ents) (L.length - p)
+  simp only [bind, Except.bind, this, pure, Except.pure]
+  congr 2; apply upd_congr; rw [hlog]
+
+/-- **`AppendEntriesAlreadyDone`** of an append request past the commit index whose entries the
+abstract log `L` all has: the commit index advanced to the request's (at most its last entry), the
+success reply at its last entry. -/
+theorem alreadyDone_accept (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg) (C : List w64)
+    (bl p : Nat) (L ents : List EntryM) (hlog : (st.s i).log = logAbs C bl 1 L)
+    (hents : m.entries = logAbs C bl (p + 1) ents) (hprev : m.prevLogIndex = p)
+    (hq : p + ents.length ≤ L.length) (hc : (st.s i).commitIndex < (p : Int) + 1) (hne : ents ≠ [])
+    (hsub : m.subtype ≠ "heartbeat") (hbl : BootTerms bl 1 L) (hbe : BootTerms bl (p + 1) ents)
+    (hnc : ∀ k e, ents[k]? = some e → p + k < L.length → (L[p + k]?).map EntryM.Term' = some e.Term') :
+    st.appendEntriesAlreadyDone i j ((p : Int) + 1) m =
+      some ((st.commitTo i (min m.commitIndex ((p : Int) + ents.length))).reply
+        { type := .appendEntriesResponse, subtype := m.subtype, term := (st.s i).currentTerm,
+          success := true, matchIndex := (p : Int) + ents.length, source := i, dest := j } m) := by
+  have hnc' : st.hasNoConflict i ((p : Int) + 1) m.entries = true := by
+    rw [hents]; exact (hasNoConflict_abs st i C bl p L ents hlog (by omega) hbl hbe).2 hnc
+  have hne' : m.entries.isEmpty = false := by
+    rw [hents]; cases ents with
+    | nil => exact absurd rfl hne
+    | cons _ _ => simp [logAbs]
+  have hle : (p : Int) + (m.entries.length : Int) ≤ ((st.s i).log.length : Int) := by
+    rw [hents, hlog, logAbs_length, logAbs_length]; omega
+  have hml : (m.entries.length : Int) = ents.length := by rw [hents, logAbs_length]
+  have hc' : ¬ ((p : Int) + 1 ≤ (st.s i).commitIndex) := by omega
+  have hsub' : (m.subtype == "heartbeat") = false := by simp [hsub]
+  unfold Etcdraft.State.appendEntriesAlreadyDone
+  have hle2 : (p : Int) + ents.length ≤ (st.s i).log.length := by rw [← hml]; exact hle
+  have hgt : (p : Int) + 1 > (st.s i).commitIndex := hc
+  simp only [hne', hnc', hc', hgt, hprev, hsub', hml, hle2, decide_true, decide_false, Bool.not_false,
+    Bool.false_or, Bool.and_self, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+
 end TraceSim
 
 end EtcdGrove
