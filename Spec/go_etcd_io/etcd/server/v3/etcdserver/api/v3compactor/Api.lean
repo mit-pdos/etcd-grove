@@ -122,8 +122,9 @@ def compactable_intro.spec : Prop := ∀ i : GoInterfaceOk,
         {{ fun _ => iprop(threadTok) }}) ⊢
   compactable (GF := GF) (interface.ok i)
 
-/-- **Introduction of `revGetter`**: `Rev` safe at any time on a goroutine holding a thread token
-(3e proves it for its store, also after `Close`). -/
+/-- **Introduction of `revGetter`**: `Rev` safe at any time on a goroutine holding a thread token,
+given back (3e's store, also after `Close`: its `KV.Rev.contract` at `revRd γ true`, the persistent
+`mvccRevTok γ` that `mvccRevTok_of` lends for good, with the caller's `threadTok`; integration Y/X). -/
 def revGetter_intro.spec : Prop := ∀ i : GoInterfaceOk,
   (□ (threadTok -∗ WP (App (Val #(methods i.ty go!"Rev" i.v)) (Val #()))
         {{ fun _ => iprop(threadTok) }})) ⊢

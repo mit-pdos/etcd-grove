@@ -9,7 +9,7 @@ specs are trusted, each stating what the Go code computes (`db.go`, `snapshotter
 
 ## Vocabulary
 
-* `BeImage` (opaque type), `beFile path o` (exclusive, timeless): **provisional, batch 4a's**
+* `BeImage` (4a's `Backend.Image` since integration X), `beFile path o` (exclusive, timeless): **provisional, batch 4a's**
   (`notes/specs-only/req/go_etcd_io_etcd_server_v3_storage_backend.md`, "from 2e"): what a bbolt
   database file holds, as the backend reads it after an open (`none`: no file at `path`). A
   snapshot db file, the backend's own file and the image a leader streams are all `BeImage`s, so a
@@ -41,6 +41,7 @@ index, installed, older ones released).
 module
 
 public import Spec.go_etcd_io.raft.v3.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
@@ -54,8 +55,8 @@ namespace Snap
 
 open Iris Iris.BI
 
-/-- **Provisional (batch 4a):** what a bbolt database file holds, as the backend reads it. -/
-opaque BeImage : Type := Unit
+/-- What a bbolt database file holds, as the backend reads it: 4a's `Backend.Image` (integration X). -/
+abbrev BeImage : Type := Backend.Image
 
 /-- **Provisional (batch 4a):** `img` is the image of a new, empty database (bbolt creates the
 file). -/

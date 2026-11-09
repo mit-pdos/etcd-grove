@@ -141,6 +141,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
 public import Spec.go_etcd_io.etcd.server.v3.lease.Api
 public import Spec.go_etcd_io.etcd.server.v3.auth.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.StateImage
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Api
 
 set_option autoImplicit false
 
@@ -410,13 +412,20 @@ opaque rnReadStateC (r : Loc) (ch : Loc) : IProp GF := iprop(True)
 element of R1's `entriesRO`). Persistent. -/
 opaque entryAt (p : Loc) (k : Nat) (e : Raft.LogEntry) : IProp GF := iprop(True)
 
-/-- (provisional, the backend's, 4a) **`bs` is a backend snapshot** (`backend.Snapshot`) of the state
-machine at a committed point `k`, with consistent index `k`. Exclusive (its `Close`). -/
-opaque beSnap (bs : GoInterface) (γ : Names) (k : Nat) : IProp GF := iprop(True)
+/-- **`bs` is a backend snapshot** (`backend.Snapshot`) of the state machine at a committed point
+`k`, with consistent index `k`. Exclusive (its `Close`). Integration X (Y's (8)): 4a's open
+snapshot of an image that is the state machine at the history point `k` (`Backend.smImage`). -/
+def beSnap (bs : GoInterface) (γ : Names) (k : Nat) : IProp GF :=
+  iprop(∃ (γb : Backend.BeNames) (s : Loc) (I : Backend.Image) (bys : List w8) (σ : EtcdModel.State),
+    ⌜bs = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #s⌝ ∗
+    Backend.beSnap γb s I bys ∗ histAt γ k σ ∗ ⌜Backend.smImage I σ k⌝)
 
-/-- (provisional, `io`'s and the snapshotter's, 2e) **`rc` is an `io.ReadCloser` streaming the
-database image** of the state machine at committed point `k`. Exclusive. -/
-opaque dbReader (rc : GoInterface) (γ : Names) (k : Nat) : IProp GF := iprop(True)
+/-- **`rc` is an `io.ReadCloser` streaming the database image** of the state machine at committed
+point `k`. Exclusive. Integration X: 2e's `Snap.dbReader` of an image that is the state machine at
+`k`. -/
+def dbReader (rc : GoInterface) (γ : Names) (k : Nat) : IProp GF :=
+  iprop(∃ (I : Backend.Image) (σ : EtcdModel.State),
+    Snap.dbReader rc I ∗ histAt γ k σ ∗ ⌜Backend.smImage I σ k⌝)
 
 -- (integration I4) The provisional `expiredLeases sl ids` is 3c's `Lease.expiredSl γl sl ids` at the
 -- member's lessor (`srvLessor s γl`).

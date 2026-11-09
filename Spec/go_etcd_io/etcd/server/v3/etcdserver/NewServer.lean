@@ -82,11 +82,24 @@ contract: no `DiscoveryCfg`; a scope restriction of `bootstrap.spec`).
 **Integration (I4).** The lessor's checkpointer: `SetCheckpointer` takes 3c's `lessorCkptTok le`
 with `ckptOk cp R` at `R := srvStarted s γ id` (the closure's `ensureLeadership` reads fields `start`
 sets) and gives `ckptGate le R`, kept for the apply thread's `Promote`. The compactor's `RevGetter`
-is the store: 3e's `mvccRevTok_of` turns one of the store's reader tokens into the compactor's `Rev`
-token for good (its loop outlives the store); **gap**: `V3compactor.revGetter` is persistent while
-3e's `mvccRevTok` is exclusive (a compactor whose `Run` is called twice runs two loops): requested of
-3e (a persistent `Rev` right once lent: `Rev` reads no storage). The lessor's backend share is 4a's
-open token's (`Lease.beOk`); the stores' names are recorded (`srvMvcc`, `srvLessor`, `srvAuth`).
+is the store: 3e's `mvccRevTok_of` (under the adequacy theorem's `ThreadBoundLe GF mvccRevN`) lends
+the store's `Rev` pool for good, giving the persistent `mvccRevTok γ` (`mvccRevLent γ true` kept for
+the shutdown); `V3compactor.revGetter_intro` takes the caller's `threadTok` per call, which with
+`mvccRevTok` is 3e's `revRd γ true` (`KV.Rev.contract`). (The I4 gap, an exclusive `Rev` token
+against a persistent `revGetter`, is closed: integration Y/X.) The stores' names are recorded
+(`srvMvcc`, `srvLessor`, `srvAuth`).
+
+**Integration (X, after Y).** *The post-lock hook* (`getTxPostLockInsideApplyHook`): proved once as
+`∀ q, Backend.hookRun γ q Pk f Pre Q` (the closure reads `s.consistIndex` and the cluster's
+`confState` under the batch lock: 4a's `hookRun`), then converted for each store: mvcc's
+`Mvcc.hookRun B Pk f Pre Q` by `Backend.keyBackend_intro`'s conversion, the lessor's
+`Lease.beHookRun (beIface b) Pk f Pre Q` by `Backend.leaseHookRun_intro`, the schema's `applyHook`
+by `Backend.applyHook_intro`. *The lessor's backend resources*: the backend's open token `beOpen γ 1`
+is split into `Backend.leaseShare` and the rest; `Lease.beOk` by `Backend.leaseBeOk_intro` from the
+share (back by `leaseBeOk_elim` before `Close`, at the shutdown); `Lease.beHook` by
+`leaseBeHook_intro`; `Lease.beLeases` by `leaseBeLeases_intro`, from the opener's `beCur γ leaseFp C`
+after `beVis_drop` of the lease part to `beNoVis γ leaseFp`; the deleter's `rdOk` premise
+(`mvccDeleter_rdOk`) by `leaseTxHeld_intro`, with the `mvccOn γ B` that `keyBackend_intro` gives.
 -/
 module
 
