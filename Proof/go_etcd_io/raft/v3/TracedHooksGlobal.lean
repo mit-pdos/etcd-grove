@@ -242,6 +242,113 @@ theorem toList_union_perm {V : Type} (m1 m2 : GMap Nat V) (hd : GMap.Disjoint m1
     rw [GMap.mem_toList] at h1 h2
     exact hd k (by simp [h1]) (by simp [h2])
 
+/-- **The `Ready` line's pure core**: node `id`'s pending messages (its share `P` and its phantoms)
+move to the network (the share's under the new tokens `Bn`, the phantoms among the network's
+phantoms), its share empties, its server persisted. -/
+theorem simStepReady_pure (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
+    (A : GMap w64 (ServerC × List Etcdraft.Msg)) (B Bn : GMap Nat Etcdraft.Msg) (phP phM : List Etcdraft.Msg)
+    (id : w64) (hC : id ∈ C) (hnd : C.Nodup) (P : List Etcdraft.Msg)
+    (e : TraceEv) (s : NState) (cfg : CfgM) (hev : NodeEvOf (W64 8) id s cfg e) (hout : cfg.outgoing = ∅)
+    (hrun : SimRun C L σ) (hsrv : σ.server = confAbs C)
+    (hA : ∀ i ∈ C, ∃ Q, A !! i = some (toC σ.server (σ.s (idAbs i)), Q))
+    (hAid : A !! id = some (toC σ.server (σ.s (idAbs id)), P))
+    (hAn : ∀ i, i ∉ C → A !! i = none)
+    (hsrcA : ∀ i ∈ C, ∀ x ∈ ((A !! i).map Prod.snd).getD [], x.source = idAbs i)
+    (hP : BagRep σ.pendingMessages ((C.flatMap (fun i => ((A !! i).map Prod.snd).getD [])) ++ phP))
+    (hM : BagRep σ.messages ((GMap.toList B).map Prod.snd ++ phM))
+    (hBn : ((GMap.toList Bn).map Prod.snd).Perm P) (hdisj : GMap.Disjoint Bn B)
+    (hσinv : σ.violated = .ok none) (hinv : (σ.ready (idAbs id)).violated = .ok none) :
+    let σ' := σ.ready (idAbs id)
+    let A' := A.insert id (toC σ.server (σ'.s (idAbs id)), [])
+    let src := fun x : Etcdraft.Msg => x.source == idAbs id
+    SimRun C (L ++ [e]) σ' ∧ σ'.server = confAbs C ∧
+      (∀ i ∈ C, ∃ Q, A' !! i = some (toC σ'.server (σ'.s (idAbs i)), Q)) ∧ (∀ i, i ∉ C → A' !! i = none) ∧
+      (∀ i ∈ C, ∀ x ∈ ((A' !! i).map Prod.snd).getD [], x.source = idAbs i) ∧
+      BagRep σ'.pendingMessages ((C.flatMap (fun i => ((A' !! i).map Prod.snd).getD [])) ++ phP.filter (fun x => !src x)) ∧
+      BagRep σ'.messages ((GMap.toList (Bn ∪ B)).map Prod.snd ++ (phM ++ phP.filter src)) := by
+  intro σ' A' src
+  have hsrv' : σ'.server = σ.server := rfl
+  have hs_ne : ∀ j, j ≠ idAbs id → σ'.s j = σ.s j := by
+    intro j hj; simp [σ', Etcdraft.State.ready, Etcdraft.State.persistState, Etcdraft.State.upd, hj]
+  -- the shares' lists: the old is the new with `P`
+  have hperm := flatMap_update_perm C (fun i => ((A' !! i).map Prod.snd).getD []) (fun i => ((A !! i).map Prod.snd).getD [])
+    id hnd hC P (by simp [A', hAid]) (fun j hj => by
+      rw [show A' !! j = A !! j from GMap.lookup_insert_ne _ _ (Ne.symm hj)])
+  -- every message of a share is its node's
+  have hsrcF : ∀ x ∈ C.flatMap (fun i => ((A' !! i).map Prod.snd).getD []), src x = false := by
+    intro x hx
+    obtain ⟨i, hi, hx⟩ := List.mem_flatMap.1 hx
+    by_cases h : i = id
+    · subst h; simp [A'] at hx
+    · rw [show A' !! i = A !! i from GMap.lookup_insert_ne _ _ (Ne.symm h)] at hx
+      have := hsrcA i hi x hx
+      simp only [src, this, beq_eq_false_iff_ne]
+      exact fun e => h (idAbs_inj.1 e)
+  have hsrcPv : ∀ x ∈ P, src x = true := by
+    intro x hx; simp only [src, beq_iff_eq]; exact hsrcA id hC x (by rw [hAid]; simpa using hx)
+  refine ⟨simRun_ready_any C L σ hrun hσinv e id s cfg hev hout hC hinv, by rw [hsrv', hsrv], ?_, ?_, ?_, ?_, ?_⟩
+  · intro i hi
+    by_cases h : i = id
+    · rw [h]; exact ⟨[], by simp only [A', hsrv']; rw [GMap.lookup_insert]⟩
+    · obtain ⟨Q, hQ⟩ := hA i hi
+      refine ⟨Q, ?_⟩
+      rw [show A' !! i = A !! i from GMap.lookup_insert_ne _ _ (Ne.symm h), hQ, hsrv',
+        hs_ne _ (fun e => h (idAbs_inj.1 e))]
+  · intro i hi
+    have : id ≠ i := fun e => hi (e ▸ hC)
+    rw [show A' !! i = A !! i from GMap.lookup_insert_ne _ _ this]; exact hAn i hi
+  · intro i hi x hx
+    by_cases h : i = id
+    · subst h; simp [A'] at hx
+    · rw [show A' !! i = A !! i from GMap.lookup_insert_ne _ _ (Ne.symm h)] at hx; exact hsrcA i hi x hx
+  · -- the pending bag: the old minus the node's messages
+    have hf := bagCnt_filter _ _ (fun x => src x) hP
+    have hm := bagCnt_minus _ _ hf _ _ hP
+    show BagRep (σ.pendingMessages.minus (σ.pendingMessages.filterMsgs src)) _
+    refine ⟨hm.1, hm.2.1, fun x => ?_⟩
+    rw [hm.2.2 x]
+    simp only []
+    have e1 : List.count x (C.flatMap (fun i => ((A !! i).map Prod.snd).getD []) ++ phP) =
+        List.count x (C.flatMap (fun i => ((A' !! i).map Prod.snd).getD [])) + List.count x P + List.count x phP := by
+      rw [List.count_append, hperm.count_eq, List.count_append]
+    rw [e1, List.count_append]
+    by_cases hx : src x = true
+    · have h0 : List.count x (C.flatMap (fun i => ((A' !! i).map Prod.snd).getD [])) = 0 :=
+        List.count_eq_zero.2 (fun hm' => by rw [hsrcF x hm'] at hx; cases hx)
+      have h1 : List.count x (phP.filter (fun x => !src x)) = 0 :=
+        List.count_eq_zero.2 (fun hm' => by have := (List.mem_filter.1 hm').2; simp [hx] at this)
+      simp only [hx, ↓reduceIte, h0, h1]; omega
+    · have h0 : List.count x P = 0 := List.count_eq_zero.2 (fun hm' => hx (hsrcPv x hm'))
+      have h1 : List.count x (phP.filter (fun x => !src x)) = List.count x phP :=
+        List.count_filter (by simp [hx])
+      simp only [hx, Bool.false_eq_true, ↓reduceIte, h0, h1]; omega
+  · -- the network's bag: the node's messages added
+    have hf := bagCnt_filter _ _ (fun x => src x) hP
+    have hp := bagCnt_plus σ.messages _ hM _ _ hf
+    show BagRep ((σ.pendingMessages.filterMsgs src).plus σ.messages) _
+    refine ⟨hp.1, hp.2.1, fun x => ?_⟩
+    rw [hp.2.2 x]
+    simp only []
+    have hU := (toList_union_perm Bn B hdisj).map Prod.snd
+    have e2 : List.count x ((GMap.toList (Bn ∪ B)).map Prod.snd ++ (phM ++ phP.filter src)) =
+        List.count x P + List.count x ((GMap.toList B).map Prod.snd) + List.count x phM +
+          List.count x (phP.filter src) := by
+      rw [List.count_append, hU.count_eq, List.map_append, List.count_append, hBn.count_eq, List.count_append]
+      omega
+    have e1 : List.count x (C.flatMap (fun i => ((A !! i).map Prod.snd).getD []) ++ phP) =
+        List.count x (C.flatMap (fun i => ((A' !! i).map Prod.snd).getD [])) + List.count x P + List.count x phP := by
+      rw [List.count_append, hperm.count_eq, List.count_append]
+    rw [e2, e1, List.count_append]
+    by_cases hx : src x = true
+    · have h0 : List.count x (C.flatMap (fun i => ((A' !! i).map Prod.snd).getD [])) = 0 :=
+        List.count_eq_zero.2 (fun hm' => by rw [hsrcF x hm'] at hx; cases hx)
+      have h1 : List.count x (phP.filter src) = List.count x phP := List.count_filter hx
+      simp only [hx, ↓reduceIte, h0, h1]; omega
+    · have h0 : List.count x P = 0 := List.count_eq_zero.2 (fun hm' => hx (hsrcPv x hm'))
+      have h1 : List.count x (phP.filter src) = 0 :=
+        List.count_eq_zero.2 (fun hm' => hx (List.mem_filter.1 hm').2)
+      simp only [hx, Bool.false_eq_true, ↓reduceIte, h0, h1]; omega
+
 end pure
 
 end EtcdGrove
