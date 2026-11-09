@@ -25,3 +25,21 @@ string's protocol is set once from its single `addrFree`.
    `(Semver.parse s).isSome`; `MustParse`, `New`, `Major`, `Minor`, `LessThan`, `String` have specs
    (`Spec/github_com/Masterminds/semver/v3/`); `rate.*` and `probing.*` likewise
    (`Spec/golang_org/x/time/rate/`, `Spec/github_com/xiang90/probing/`).
+
+## from 4b, round 1
+
+1. **An intro law for wrapped readers** (`Http.readerAt` is opaque; only 2f's own readers have intro
+   laws): `readerAt_wrap`: a reader value `w` whose `Read(p)`, from `readerAt rd Pre Φ r`, is a
+   `Read` of `rd` on a prefix of `p` with the same result (`n`, `err`), is a `readerAt w Pre Φ r`
+   (consuming `readerAt rd Pre Φ r`); and `readerCloser_wrap`: a value whose `Close()` is `rd`'s
+   `Close()` has `readerCloser` if `rd` has. Used by `IoUtil.NewLimitedBufferReader.spec`
+   (`limitedBufferReader.Read`: `r.Read(p[:n])`) and `IoUtil.ReaderAndCloser_reader`/`_closer`
+   (`ReaderAndCloser`'s promoted methods), so 2f's `createSnapBody` and `pipelineHandler.ServeHTTP`.
+   ```go
+   limitedr := pioutil.NewLimitedBufferReader(r.Body, connReadLimitByte) // http.go:121
+   return &pioutil.ReaderAndCloser{Reader: io.MultiReader(buf, rc), Closer: rc} // snapshot_sender.go:195
+   ```
+2. **`Probing.urlParses`** (opaque): a law that rafthttp's probing URLs parse (`us[i] +
+   "/raft/probing"` of a URL `types.NewURLs` accepted), for `addPeerToProber`'s call of
+   `AddHTTP` (`Probing.proberOk` now takes `0 < interval`, a non-empty list read-only for good, and
+   `urlParses` of each: `nonissues/probing-addhttp-preconditions.md`).

@@ -396,3 +396,10 @@ law is blocked until they change:
    through `storageRest`), not the reader slots: in-flight readers finish before bbolt closes
    (`mmaplock`), and a lock-only `RLock` (`kbBare`) is fine at any time, so `kbBareSlot` is just a
    slot (`beRdToks γ 1`).
+
+## from 4b, round 1
+
+3e's `Mvcc.rangeOk` (`ApiStorage.lean`) hands out `bytesListAt` (`↦*□`, for good) of bbolt's slices,
+which are valid only while the transaction is (4c's `txBytes`): lend them against the view instead
+(as `Schema.rangeK`). The schema's `UnsafeCreateMetaBucket` now needs only the create right
+(`Scope.canCreate .metaB`), which mvcc's part can hold without the other parts' `Meta` keys.

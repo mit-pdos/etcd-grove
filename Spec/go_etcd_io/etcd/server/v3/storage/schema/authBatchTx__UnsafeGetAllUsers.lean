@@ -29,12 +29,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **Every user**, in name order (`nil` if none). -/
+/-- **Every user**, each once, in some order (`nil` if none). -/
 def authBatchTx.UnsafeGetAllUsers.spec : Prop :=
   ∀ (atx : Loc) (lg : Loc) (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ (atx ↦□ (go_etcd_io.etcd.server.v3.storage.schema.authBatchTx.mk tx lg) : IProp GF) ∗ txRd tx S R ∗ R V ∗ ⌜S.whole .authUsers ∧ V .authUsers = some m ∧ recsWf go_etcd_io.etcd.api.v3.authpb.User.ty m⌝ }}
     (App (Val (atx @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBatchTx.ty @!! go!"UnsafeGetAllUsers")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; R V ∗ ∃ l, ⌜entsOf m l⌝ ∗ recsRes go_etcd_io.etcd.api.v3.authpb.User.ty sl (l.map Prod.snd) }}
+  {{ (sl : GoSlice), RET #sl; R V ∗ ∃ l, ⌜entsAny m l⌝ ∗ recsRes go_etcd_io.etcd.api.v3.authpb.User.ty sl (l.map Prod.snd) }}
 
 end spec
 end Schema

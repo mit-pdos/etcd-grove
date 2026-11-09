@@ -6,7 +6,8 @@
 **Proof sketch.** `proto.Marshal(msg)` (`Proto.Marshal.spec`: `fits`, `marshalOk`: no error, so
 `lg.Panic` unreachable), the fresh bytes made read-only; the message's `Name` field (3h's law: its
 slice holds `userName c`, read-only for good at `discard`); `tx.UnsafePut(AuthUsers, Name, bytes)` (`txWr`:
-the backend keeps both slices, hence the message read-only for good).
+the backend keeps both slices, hence the message read-only for good; bbolt's limits: `putFits`, the
+auth store's `Auth.recordsFit`, round 1, F4).
 
 **Changes.** New (the old auth proofs had no batch-side spec). **Margin.** The value is any encoding
 of the content (`Marshal` is deterministic for these map-free types: `Proto.marshalOut`).
@@ -39,7 +40,8 @@ def authBatchTx.UnsafePutUser.spec : Prop :=
   ∀ (atx lg : Loc) (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m0 : BData)
     (p : Loc) (c : Proto.Content),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ (atx ↦□ (go_etcd_io.etcd.server.v3.storage.schema.authBatchTx.mk tx lg) : IProp GF) ∗ txWr tx S R ∗ R V ∗ ⌜S.has .authUsers (userName c) ∧ V .authUsers = some m0⌝ ∗
-      Proto.msgAt go_etcd_io.etcd.api.v3.authpb.User.ty p DFrac.discard c ∗ ⌜c.fits ∧ Proto.marshalOk c⌝ }}
+      Proto.msgAt go_etcd_io.etcd.api.v3.authpb.User.ty p DFrac.discard c ∗ ⌜c.fits ∧ Proto.marshalOk c⌝ ∗
+      ⌜∀ bs, Proto.encodes go_etcd_io.etcd.api.v3.authpb.User.ty c bs → putFits (userName c) bs⌝ }}
     (App (Val (atx @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBatchTx.ty @!! go!"UnsafePutUser")) (Val #p))
   {{ RET #(); ∃ bs : GoString, ⌜Proto.encodes go_etcd_io.etcd.api.v3.authpb.User.ty c bs⌝ ∗ R (V.put .authUsers (userName c) bs) }}
 

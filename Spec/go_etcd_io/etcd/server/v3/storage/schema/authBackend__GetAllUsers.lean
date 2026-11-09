@@ -32,14 +32,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **Every record**, in name order, of the view a read section sees. -/
+/-- **Every record**, each once, in some order, of the view a read section sees. -/
 def authBackend.GetAllUsers.spec : Prop :=
   ∀ (abe lg : Loc) (be rtx : GoInterface) (S : Scope) (R : View → IProp GF) (P : IProp GF)
     (Q : View → IProp GF) ,
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ (abe ↦□ (go_etcd_io.etcd.server.v3.storage.schema.authBackend.mk be lg) : IProp GF) ∗ retOk be go!"ReadTx" rtx ∗ txRd rtx S R ∗ ⌜S.whole .authUsers⌝ ∗
       rdSect rtx P R (fun V => ∃ m, V .authUsers = some m ∧ recsWf go_etcd_io.etcd.api.v3.authpb.User.ty m) Q ∗ P }}
     (App (Val (abe @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty @!! go!"GetAllUsers")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; ∃ V m l, Q V ∗ ⌜V .authUsers = some m ∧ entsOf m l⌝ ∗ recsRes go_etcd_io.etcd.api.v3.authpb.User.ty sl (l.map Prod.snd) }}
+  {{ (sl : GoSlice), RET #sl; ∃ V m l, Q V ∗ ⌜V .authUsers = some m ∧ entsAny m l⌝ ∗ recsRes go_etcd_io.etcd.api.v3.authpb.User.ty sl (l.map Prod.snd) }}
 
 end spec
 end Schema

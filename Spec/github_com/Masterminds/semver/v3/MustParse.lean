@@ -8,7 +8,7 @@ version). Snippets: `examples/specreq/pkgleaves/leaves.go` (`ReqParseCompare`, `
 
 **Assumed** (`version.go:327-333`): `NewVersion(s)`, a panic on its error. The premise is the
 callers': a header the protocol says parses, a constant (`parse_version`, `parse_plain`), a stored
-or committed `String()` of a version (`parse_render`).
+or committed `String()` of a version within `maxVersionLen` (`parse_render`).
 
 **Changes.** From `specs-ref`'s `MustParse.lean` (a disjunction with a panic result, over the
 applier's `semverValid`): the parse is the premise, the result a model.

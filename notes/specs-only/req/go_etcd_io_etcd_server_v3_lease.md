@@ -127,3 +127,12 @@ bucket's encoding `Schema.leaseBktIs m L` (`L : w64 → Option LeaseRec`: id ↦
 with `V .lease = some m ∧ leaseBktIs m L ∧ B = (TTL of L)` for 4a's part (`req/..._storage_backend.md`,
 "from 4b"). `semver`: `Semver.Version.LessThan.spec` computes `SemVer.ltb` of the two models
 (`api/version.LessThan` of two `Version` values is 3h's, over `Semver.verOf`).
+
+## from 4b, round 1
+
+`MustUnsafeGetAllLeases` gives the records each once, in some order (`(l.map (·.1)).Nodup`), not in
+id order. `MustUnsafePutLease` is over `Proto.msgAt leasepb.Lease.ty lpb dq c` (kept; `Marshal`
+writes its `sizeCache`): `persistTo`'s fresh local becomes one by `Schema.leaseMsg_of_struct`
+(owned, one way). `api/version.LessThan` (and `V3_6`'s value) are 3h's
+(`Spec/go_etcd_io/etcd/api/v3/version/LessThan.lean`, assumed), over semver's model
+(`Semver.SemVer.ltb`).

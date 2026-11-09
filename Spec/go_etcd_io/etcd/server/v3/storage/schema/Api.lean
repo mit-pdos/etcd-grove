@@ -15,10 +15,15 @@ need of such a transaction, not over etcd's backend** (PRINCIPLES, "An API is st
 abstractions it builds on"), as mvcc states its store over its storage contract:
 
 * `txRd tx S R` (transparent, persistent): **reading through `tx`**, holding `R V` (the caller's
-  view `V` of the buckets in its scope `S`, kept): `UnsafeRange` of a bucket returns the range of
-  `V`'s entries, `UnsafeForEach` calls its function on them in key order.
-* `txWr tx S R` (transparent, persistent): **writing through `tx`**: `UnsafePut`, `UnsafeDelete`,
-  `UnsafeCreateBucket` move `R V` to `R` of the changed view.
+  view `V` of the buckets in its scope `S`): a single-key `UnsafeRange` (a `nil` end) returns the
+  key's entry, `UnsafeForEach` calls its function on each entry once (in some order: a read
+  transaction visits bolt's entries, then its buffer's). The bytes are bbolt's, **lent against
+  `R V`** (`rangeK`, `lentIn`; the visitor's for its call), never readable after it (4c's `txBytes`).
+* `txRange tx S R`: an interval `UnsafeRange` of a whole bucket, in key order (a batch transaction,
+  or a read transaction of `key` only).
+* `txWr tx S R` (transparent, persistent): **writing through `tx`**: `UnsafePut` (an entry bbolt
+  accepts: `putFits`), `UnsafeDelete`, `UnsafeCreateBucket` (a bucket `S` may create:
+  `S.canCreate`, separate from owning its keys) move `R V` to `R` of the changed view.
 * `R : View → IProp` is the **caller's** family (its share of the backend: a lock-held batch view of
   its part, a read transaction's snapshot of it); `S : Scope` says which buckets and which keys of a
   shared bucket (`Meta`) are the caller's, so that a caller owning two keys of `Meta` (the consistent
@@ -97,6 +102,7 @@ public import Spec.google_golang_org.protobuf.proto.Api
 public import Spec.go_etcd_io.etcd.api.v3.Model
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
 public import Spec.go_uber_org.zap.Api
+public import Spec.go_etcd_io.bbolt.Model
 public import Spec.github_com.Masterminds.semver.v3.Api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.version
 
@@ -176,26 +182,36 @@ def View.set (V : View) (b : Bkt) (m : BData) : View :=
 def View.create (V : View) (b : Bkt) : View :=
   fun b' => if b' = b then some ((V b).getD BData.empty) else V b'
 
-/-- **A caller's scope**: for each bucket, `none` (the whole bucket, its existence included) or the
-keys of it that are the caller's (a shared bucket: `Meta`). -/
-abbrev Scope := Bkt → Option (List GoString)
+/-- **A caller's scope**: for each bucket, the keys of it that are the caller's (`none`: all of
+them; `some ks`: those of a shared bucket, `Meta`), and whether the caller may create it. Creating a
+bucket changes no key, and etcd never deletes these buckets, so the right to create is separate
+from the keys (mvcc creates `Meta` and owns two of its keys; the consistent index owns two others). -/
+structure Scope where
+  keys : Bkt → Option (List GoString)
+  create : Bkt → Bool
 
-def Scope.whole (S : Scope) (b : Bkt) : Prop := S b = none
+def Scope.whole (S : Scope) (b : Bkt) : Prop := S.keys b = none
 
 def Scope.has (S : Scope) (b : Bkt) (k : GoString) : Prop :=
-  match S b with
+  match S.keys b with
   | none => True
   | some ks => k ∈ ks
 
-/-- A range `S` allows: any range of a whole bucket, a single key (empty end) of the caller's. -/
-def Scope.reads (S : Scope) (b : Bkt) (k e : GoString) : Prop :=
-  S.whole b ∨ (e = [] ∧ S.has b k)
+/-- `S` may create `b`. -/
+def Scope.canCreate (S : Scope) (b : Bkt) : Prop := S.create b = true
 
-/-- The scope of exactly these buckets, whole. -/
-def Scope.ofBkts (bs : List Bkt) : Scope := fun b => if b ∈ bs then none else some []
+/-- The scope of exactly these buckets, whole, with the right to create them. -/
+def Scope.ofBkts (bs : List Bkt) : Scope :=
+  ⟨fun b => if b ∈ bs then none else some [], fun b => decide (b ∈ bs)⟩
 
-/-- The consistent index's scope: two keys of `Meta`. -/
-def ciScope : Scope := fun b => if b = .metaB then some [ciKey, termKey] else some []
+/-- The consistent index's scope: two keys of `Meta`, no bucket to create. -/
+def ciScope : Scope :=
+  ⟨fun b => if b = .metaB then some [ciKey, termKey] else some [], fun _ => false⟩
+
+/-- **The entries of `m` in some order, each once** (`UnsafeForEach` of a read transaction visits
+bolt's entries, then the buffer's: not sorted as a whole). -/
+def entsAny (m : BData) (l : List (GoString × GoString)) : Prop :=
+  ∃ le, (∀ x, x ∈ le ↔ m x.1 = some x.2) ∧ le.Pairwise (fun a b => a.1 ≠ b.1) ∧ l.Perm le
 
 open Classical in
 /-- **`UnsafeRange(b, k, e, limit)`'s answer from the entries `m`**: an empty `e` the key `k` alone;
@@ -297,6 +313,12 @@ structure ClusterBkts where
   ver : Option Semver.SemVer
   dg : Option (Bool × GoString)
 
+/-- **A member's JSON fits a bbolt entry** (`json.Marshal` escapes a byte to at most six; the ids,
+flags and punctuation within 1024 bytes): a bound on the member's strings. -/
+def memberFits (mm : EtcdModel.Member) : Prop :=
+  6 * (mm.name.length + ((mm.peerURLs ++ mm.clientURLs).map List.length).sum +
+    4 * (mm.peerURLs ++ mm.clientURLs).length) + 1024 ≤ Bbolt.bboltEntryMax
+
 /-- Fresh buckets: nothing stored. -/
 def ClusterBkts.empty : ClusterBkts := ⟨⟨[], []⟩, none, none⟩
 
@@ -330,64 +352,85 @@ def Bkt.var : Bkt → GoString
   | .authUsers => go_etcd_io.etcd.server.v3.storage.schema.AuthUsers
   | .authRoles => go_etcd_io.etcd.server.v3.storage.schema.AuthRoles
 
-/-- A slice of byte slices, read-only, holding `l`. -/
-def bytesListAt (sl : GoSlice) (l : List GoString) : IProp GF :=
-  iprop(∃ ps : List GoSlice, sl ↦*□ ps ∗ [∗list] p; b ∈ ps; l, p ↦*□ b)
+/-- **Byte slices lent by a transaction**: the slice `sl` (owned: the backend's fresh `append`s)
+of slices holding `l`, each at the fraction `dq` (bbolt's memory, valid while the transaction is:
+4c's `txBytes`). -/
+def lentBytes (sl : GoSlice) (dq : DFrac) (l : List GoString) (ps : List GoSlice) : IProp GF :=
+  iprop(sl ↦* ps ∗ [∗list] p; b ∈ ps; l, p ↦*{dq} b)
 
-/-- **Reading through `tx`** with the caller's view `R V` of its scope `S` (kept; see the header):
-`UnsafeRange` of a single key of the caller's (an empty end), of an existing bucket, and
-`UnsafeForEach` (of a whole bucket of
-`S`, calling `f(k, v)` on its entries in key order, the bytes read-only, until `f` returns an error,
-which it returns). -/
+/-- The lent slices' contents alone (what is given back for the view). -/
+def lentIn (dq : DFrac) (l : List GoString) (ps : List GoSlice) : IProp GF :=
+  iprop([∗list] p; b ∈ ps; l, p ↦*{dq} b)
+
+/-- **`UnsafeRange`'s continuation**: the answer `l` (`rangeOf`), its keys and values lent against
+the view `R V` (given back with them). -/
+def rangeK (R : View → IProp GF) (V : View) (m : BData) (k e : GoString) (limit : w64)
+    (Ψ : val → IProp GF) : IProp GF :=
+  iprop(∀ (kl vl : GoSlice) (l : List (GoString × GoString)) (dq : DFrac) (ps qs : List GoSlice),
+    ⌜rangeOf m k e (sint.Z limit) l⌝ -∗ kl ↦* ps -∗ vl ↦* qs -∗
+    lentIn dq (l.map Prod.fst) ps -∗ lentIn dq (l.map Prod.snd) qs -∗
+    (lentIn dq (l.map Prod.fst) ps -∗ lentIn dq (l.map Prod.snd) qs -∗ R V) -∗
+    Ψ (PairV #kl #vl))
+
+/-- **Reading through `tx`** with the caller's view `R V` of its scope `S` (see the header):
+`UnsafeRange(b, k, nil, 0)` of a key of the caller's, of an existing bucket (a `nil` end: a
+non-`nil` empty end makes etcd's read transaction range the bucket, which panics outside `key`), and
+`UnsafeForEach` of a whole bucket of `S`, calling `f(k, v)` on each entry once (a read
+transaction: bolt's entries, then its buffer's; not sorted as a whole), the bytes lent for the call,
+until `f` returns an error, which it returns. The bytes are bbolt's: lent against `R V`, never
+readable after it (4c's `txBytes`). -/
 def txRd (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜tx = GoInterface.ok i⌝ ∗
-    (□ ∀ (b : Bkt) (bv : GoInterface) (V : View) (m : BData) (ks es : GoSlice) (k e : GoString)
-        (dk de : DFrac) (limit : w64) (Φ : val → IProp GF),
-      bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ e = [] ∧ S.has b k⌝ -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗
-      ▷ (∀ (kl vl : GoSlice) (l : List (GoString × GoString)),
-          R V -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜rangeOf m k e (sint.Z limit) l⌝ -∗
-          bytesListAt kl (l.map Prod.fst) -∗ bytesListAt vl (l.map Prod.snd) -∗
-          Φ (PairV #kl #vl)) -∗
+    (□ ∀ (b : Bkt) (bv : GoInterface) (V : View) (m : BData) (ks : GoSlice) (k : GoString)
+        (dk : DFrac) (limit : w64) (Φ : val → IProp GF),
+      bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ S.has b k⌝ -∗ ks ↦*{dk} k -∗
+      ▷ (ks ↦*{dk} k -∗ rangeK R V m k [] limit Φ) -∗
       WP (App (App (App (App (Val #(methods i.ty go!"UnsafeRange" i.v)) (Val #bv)) (Val #ks))
-        (Val #es)) (Val #limit)) {{ Φ }}) ∗
+        (Val #slice.nil)) (Val #limit)) {{ Φ }}) ∗
     (□ ∀ (b : Bkt) (bv : GoInterface) (V : View) (m : BData) (f : GoFunc)
         (I : List (GoString × GoString) → IProp GF) (J : GoInterface → IProp GF)
         (Φ : val → IProp GF),
       bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ S.whole b⌝ -∗ I [] -∗
-      (□ ∀ (pre : List (GoString × GoString)) (k v : GoString) (ks vs : GoSlice),
-        I pre -∗ ks ↦*□ k -∗ vs ↦*□ v -∗
+      (□ ∀ (pre : List (GoString × GoString)) (k v : GoString) (ks vs : GoSlice) (dq : DFrac),
+        I pre -∗ ks ↦*{dq} k -∗ vs ↦*{dq} v -∗
         WP (App (App (Val #f) (Val #ks)) (Val #vs)) {{ r, ∃ err : GoInterface, ⌜r = #err⌝ ∗
+          ks ↦*{dq} k ∗ vs ↦*{dq} v ∗
           ((⌜err = GoInterface.nil⌝ ∗ I (pre ++ [(k, v)])) ∨
            (⌜err ≠ GoInterface.nil⌝ ∗ J err)) }}) -∗
       ▷ (∀ err : GoInterface, R V -∗
-          ((⌜err = GoInterface.nil⌝ ∗ ∃ l, ⌜entsOf m l⌝ ∗ I l) ∨
+          ((⌜err = GoInterface.nil⌝ ∗ ∃ l, ⌜entsAny m l⌝ ∗ I l) ∨
            (⌜err ≠ GoInterface.nil⌝ ∗ J err)) -∗ Φ #err) -∗
       WP (App (App (Val #(methods i.ty go!"UnsafeForEach" i.v)) (Val #bv)) (Val #f)) {{ Φ }}))
 
-/-- **Ranges through `tx`** of a whole bucket of the caller's (`UnsafeRange` with an end: a batch
-transaction's, or a read transaction's of a safe-range bucket only: etcd's read transactions panic on
-an interval range of another bucket, `nonissues/etcd-auth-readtx-getallroles-panics.md`). -/
+/-- **Ranges through `tx`** of a whole bucket of the caller's, in key order (`UnsafeRange` with an
+end: a batch transaction's, or a read transaction's of a safe-range bucket only: etcd's read
+transactions panic on an interval range of another bucket,
+`nonissues/etcd-auth-readtx-getallroles-panics.md`); an empty end only as `nil`. Bytes lent, as
+`txRd`. -/
 def txRange (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜tx = GoInterface.ok i⌝ ∗
     (□ ∀ (b : Bkt) (bv : GoInterface) (V : View) (m : BData) (ks es : GoSlice) (k e : GoString)
         (dk de : DFrac) (limit : w64) (Φ : val → IProp GF),
-      bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ S.whole b⌝ -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗
-      ▷ (∀ (kl vl : GoSlice) (l : List (GoString × GoString)),
-          R V -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜rangeOf m k e (sint.Z limit) l⌝ -∗
-          bytesListAt kl (l.map Prod.fst) -∗ bytesListAt vl (l.map Prod.snd) -∗
-          Φ (PairV #kl #vl)) -∗
+      bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ S.whole b ∧ (e = [] → es = slice.nil)⌝ -∗
+      ks ↦*{dk} k -∗ es ↦*{de} e -∗
+      ▷ (ks ↦*{dk} k -∗ es ↦*{de} e -∗ rangeK R V m k e limit Φ) -∗
       WP (App (App (App (App (Val #(methods i.ty go!"UnsafeRange" i.v)) (Val #bv)) (Val #ks))
         (Val #es)) (Val #limit)) {{ Φ }}))
 
+/-- **An entry bbolt accepts**: a non-empty key within `maxKeySize`, key and value within
+`bboltEntryMax` (else `batchTx.unsafePut` is `Fatal`). -/
+def putFits (k v : GoString) : Prop :=
+  k ≠ [] ∧ k.length ≤ Bbolt.maxKeySize ∧ k.length + v.length ≤ Bbolt.bboltEntryMax
+
 /-- **Writing through `tx`** (the batch transaction, its lock held, the caller's view `R V` of its
-scope `S`; see the header): `UnsafePut` (a key of the caller's, of an existing bucket: the bytes
-read-only for good, the backend keeps them), `UnsafeDelete`, `UnsafeCreateBucket` (a whole bucket of
-the caller's). -/
+scope `S`; see the header): `UnsafePut` (a key of the caller's, of an existing bucket, an entry
+bbolt accepts: `putFits`; the bytes read-only for good, the backend's buffer keeps them),
+`UnsafeDelete`, `UnsafeCreateBucket` (a bucket the caller may create). -/
 def txWr (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜tx = GoInterface.ok i⌝ ∗
     (□ ∀ (b : Bkt) (bv : GoInterface) (V : View) (m : BData) (ks vs : GoSlice) (k v : GoString)
         (Φ : val → IProp GF),
-      bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ S.has b k⌝ -∗ ks ↦*□ k -∗ vs ↦*□ v -∗
+      bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ S.has b k ∧ putFits k v⌝ -∗ ks ↦*□ k -∗ vs ↦*□ v -∗
       ▷ (R (V.put b k v) -∗ Φ #()) -∗
       WP (App (App (App (Val #(methods i.ty go!"UnsafePut" i.v)) (Val #bv)) (Val #ks)) (Val #vs))
         {{ Φ }}) ∗
@@ -397,7 +440,7 @@ def txWr (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
       ▷ (R (V.del b k) -∗ ks ↦*{dk} k -∗ Φ #()) -∗
       WP (App (App (Val #(methods i.ty go!"UnsafeDelete" i.v)) (Val #bv)) (Val #ks)) {{ Φ }}) ∗
     (□ ∀ (b : Bkt) (bv : GoInterface) (V : View) (Φ : val → IProp GF),
-      bucketAt b bv -∗ R V -∗ ⌜S.whole b⌝ -∗ ▷ (R (V.create b) -∗ Φ #()) -∗
+      bucketAt b bv -∗ R V -∗ ⌜S.canCreate b⌝ -∗ ▷ (R (V.create b) -∗ Φ #()) -∗
       WP (App (Val #(methods i.ty go!"UnsafeCreateBucket" i.v)) (Val #bv)) {{ Φ }}))
 
 /-- **`recv.m()` from `P` returns, giving `Q`** (one use: a backend call a wrapper makes). -/
@@ -463,13 +506,18 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 def bucketAt_persistent.spec : Prop := ∀ b bv, Persistent (bucketAt (GF := GF) b bv)
 
-/-- **The package's bucket variables** (the package's initialization). -/
+/-- **The package's bucket variables** (the package's initialization). Of the buckets only `Key`,
+`Meta`, `Lease` and the auth buckets have translated initializers; `Alarm`, `Cluster`, `Members`,
+`MembersRemoved` are names only, so their rows rest on `etc/gen-init.py`'s trust-boundary axioms for
+untranslated initializers (a struct literal of a translated type and a `[]byte` literal). -/
 def bucketVars_init.spec : Prop := ∀ b : Bkt,
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ⊢
     ∃ bv, globalAddr b.var ↦□ bv ∗ bucketAt b bv
 
 /-- **The package's key-name variables** hold their names, read-only for good (mvcc's compaction
-keys among them, 3e). -/
+keys among them, 3e). `ScheduledCompactKeyName`, `FinishedCompactKeyName`, `MetaConfStateName` are
+names only: their rows rest on `etc/gen-init.py`'s trust axioms for untranslated initializers (each a
+`[]byte` literal). -/
 def keyNames_init.spec : Prop := ∀ (var name : GoString),
   (var, name) ∈ [(go_etcd_io.etcd.server.v3.storage.schema.MetaConsistentIndexKeyName, ciKey),
     (go_etcd_io.etcd.server.v3.storage.schema.MetaTermKeyName, termKey),
@@ -483,13 +531,12 @@ def keyNames_init.spec : Prop := ∀ (var name : GoString),
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ⊢
     ∃ sl : GoSlice, globalAddr var ↦□ sl ∗ sl ↦*□ name
 
-/-- **A `leasepb.Lease` struct is a message holding its fields** (lent: the struct back with the
-message). -/
-def leaseMsg_of_struct.spec : Prop := ∀ (p : Loc) (dq : DFrac)
+/-- **An owned `leasepb.Lease` struct is a message holding its fields** (one way: `Marshal`
+writes the message's `sizeCache`; `leaseMsg_to_struct` gives the struct back). -/
+def leaseMsg_of_struct.spec : Prop := ∀ (p : Loc)
     (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease),
-  (p ↦{dq} v : IProp GF) ⊢ ∃ c, Proto.msgAt go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty p dq c ∗
-    ⌜leaseModel c = (v.ID', v.TTL', v.RemainingTTL') ∧ c.fits ∧ Proto.marshalOk c⌝ ∗
-    (Proto.msgAt go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty p dq c -∗ p ↦{dq} v)
+  (p ↦ v : IProp GF) ⊢ ∃ c, Proto.msgAt go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty p (DFrac.own 1) c ∗
+    ⌜leaseModel c = (v.ID', v.TTL', v.RemainingTTL') ∧ c.fits ∧ Proto.marshalOk c⌝
 
 /-- **An owned `leasepb.Lease` message is a struct holding its fields.** -/
 def leaseMsg_to_struct.spec : Prop := ∀ (p : Loc) (c : Proto.Content),

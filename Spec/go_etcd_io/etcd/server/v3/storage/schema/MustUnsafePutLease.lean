@@ -1,14 +1,17 @@
 /-
 ## `schema.MustUnsafePutLease(tx, lpb)`: assumed (names only)
 
-**Users.** `Lease.persistTo` (`lease/lease.go:60`: `Grant`, `Checkpoint`, under `LockInsideApply`).
-Snippet: `examples/specreq/schema/schema.go` (`ReqLeasePutDelete`).
+**Users.** `Lease.persistTo` (`lease/lease.go:57-60`: a fresh local `leasepb.Lease{ID, TTL,
+RemainingTTL}`, under `LockInsideApply`; its owner turns it into a message with
+`leaseMsg_of_struct`). Snippet: `examples/specreq/schema/schema.go` (`ReqLeaseRecover`).
 
 **Assumed** (`lease.go:49-57`): the key `leaseIDToBytes(lpb.ID)` (`beU64`), `proto.Marshal(lpb)`
-(three `int64` fields: never an error; `leaseMsg_of_struct`), `tx.UnsafePut(Lease, key, val)`
-(`txWr`).
+(three `int64` fields: never an error; it writes the message's `sizeCache`, inside `msgAt`),
+`tx.UnsafePut(Lease, key, val)` (`txWr`: an 8-byte key and a value of at most 33 bytes, within
+bbolt's limits).
 
-**Changes.** From `specs-ref`'s `MustUnsafePutLease.lean`: over the contract; the record's value is
+**Changes.** From `specs-ref`'s `MustUnsafePutLease.lean`: over the contract and `Proto.msgAt`
+(round 1, F9: the struct points-to was claimed unchanged by `Marshal`'s write); the record's value is
 any encoding of its fields (`leaseEnc`), so `leaseBktIs` moves to the table updated at the id.
 
 **Margin.** None.
@@ -39,11 +42,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 /-- **Stores the record** under its id's bytes. -/
 def MustUnsafePutLease.spec : Prop :=
   ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData) (lpb : Loc)
-    (dq : DFrac) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.whole .lease ∧ V .lease = some m⌝ ∗ lpb ↦{dq} v }}
+    (dq : DFrac) (c : Proto.Content),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.whole .lease ∧ V .lease = some m⌝ ∗
+      Proto.msgAt go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty lpb dq c }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease)) (Val #tx)) (Val #lpb))
-  {{ RET #(); lpb ↦{dq} v ∗ ∃ bs : GoString,
-      ⌜leaseEnc (v.ID', v.TTL', v.RemainingTTL') bs⌝ ∗ R (V.put .lease (beU64 v.ID') bs) }}
+  {{ RET #(); Proto.msgAt go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty lpb dq c ∗
+      ∃ bs : GoString, ⌜leaseEnc (leaseModel c) bs⌝ ∗ R (V.put .lease (beU64 (leaseModel c).1) bs) }}
 
 end spec
 end Schema

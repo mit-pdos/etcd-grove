@@ -1,7 +1,7 @@
 /-
 # `golang.org/x/time/rate`: the trust boundary (batch 4b)
 
-x/time/rate is translated types and names only: **assumed**, true of its `examples/specreq/pkgleaves/leaves.go` at the pin. A
+x/time/rate is translated types and names only: **assumed**, true of its `rate.go` at the pin. A
 `Limiter` is safe for concurrent use (every method takes its mutex), so it is a persistent fact.
 
 * `limiterOk rl` (opaque, persistent): `rl` is a `*Limiter` made by `NewLimiter`.

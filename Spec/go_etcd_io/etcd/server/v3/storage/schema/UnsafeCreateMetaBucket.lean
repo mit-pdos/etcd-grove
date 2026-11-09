@@ -6,7 +6,8 @@ storage contract, 3e, whose part includes `Meta`'s existence). Snippet: `example
 (`ReqCreateBuckets`).
 
 **Proof sketch.** Loads `Meta` (`bucketVars_init`: `bucketAt .metaB`), `tx.UnsafeCreateBucket(Meta)`
-(`txWr`'s create).
+(`txWr`'s create: `S.canCreate .metaB`, the right mvcc's part holds without the
+other parts' keys).
 
 **Changes.** From `specs-ref`'s `UnsafeCreateMetaBucket.lean` (over the real backend's batch
 state): over the transaction contract. **Margin.** None.
@@ -37,7 +38,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 /-- **Creates `Meta`** (if absent). -/
 def UnsafeCreateMetaBucket.spec : Prop :=
   ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.whole .metaB⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.canCreate .metaB⌝ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket)) (Val #tx))
   {{ RET #(); R (V.create .metaB) }}
 

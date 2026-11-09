@@ -4,7 +4,8 @@
 **Users.** `RaftCluster.SetDowngradeInfo` with `shouldApplyV3` (`cluster.go:814`, 2e; 3a's `DowngradeInfoSet`). Snippet: `examples/specreq/schema/schema.go` (`ReqMembersSaveRead`).
 
 **Assumed** (`membership.go`): `json.Marshal(d)` (a `bool` and a string: no error, `lg.Panic` unreachable), `be.BatchTx()`, `LockInsideApply()` (`applyHook`), `UnsafePut(Cluster, downgrade, json)`, `Unlock()`. The buckets' records are as `memberBkts` says (the API's
-header); a read transaction sees them as their only writer left them (the holder is outside a write
+header; the lock calls' `ETCD_VERIFY` checks hold at etcd's call sites: 4a's environment premise,
+carried by `memberBkts`'s and `applyHook`'s realization); a read transaction sees them as their only writer left them (the holder is outside a write
 section: `specs-ref`'s `TestBksReadInsidePendingBatch`).
 
 **Changes.** From `specs-ref`'s `membershipBackend__MustSaveDowngradeToBackend.lean` where there was one (over the real

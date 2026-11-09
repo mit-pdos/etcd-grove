@@ -6,7 +6,8 @@
 (`ReqAlarmPutGet`).
 
 **Assumed** (`alarm.go`): `be.BatchTx()`, `LockInsideApply()`, `proto.Marshal(am)` (deterministic: the stored key), `UnsafeDelete(Alarm, bytes)`, `Unlock()`. The bucket's records are as `alarmBkt` says (its realization in the
-API's header).
+API's header). The lock calls' `ETCD_VERIFY` checks (`backend/verify.go`) hold at etcd's call sites:
+that is 4a's environment premise, carried by `alarmBkt`'s and `applyHook`'s realization.
 
 **Changes.** New (the old alarm store's backend calls were inside its trusted specs).
 **Margin.** None.

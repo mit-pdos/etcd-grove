@@ -223,3 +223,28 @@ Done in `ApiStorage.lean`: `kbLocked B D0 D` (session base and batch view); `Unl
 updates (`KeyData.mid D0 D`, then `D`); the `Key` put row's premise is above every key of `D0` and of
 `D` (`Sess.fresh`); bucket arguments are any `bv` with `Schema.bucketAt b.bkt bv`. 4a's
 `keyBackend_intro` should go through as F1/F3 propose.
+
+## from 4b, round 1
+
+The schema's bundles changed (review `reviews/4b-review-1.md`, F1-F4, F10); what 4a proves of its
+transactions is now weaker in five ways (and its own drafts should take the same fixes):
+1. **Bytes lent, not for good** (F1): a range's keys and values are bbolt's, lent against the view
+   (`Schema.rangeK`: `lentIn dq …` with the wand back to `R V`); `UnsafeForEach`'s visitor gets
+   `ks ↦*{dq} k`, `vs ↦*{dq} v` for its call only (4c's `txBytes` with `boltTx`). The outer slices
+   (`append`s) are owned.
+2. **A single-key range has a `nil` end** (F2): `txRd`'s row is `UnsafeRange(b, k, nil, limit)`;
+   `txRange` takes `e = [] → es = slice.nil` (a non-`nil` empty end makes `baseReadTx.UnsafeRange`
+   range with `MaxInt64` and panic outside `key`).
+3. **`UnsafeForEach` visits each entry once, in some order** (F3, `Schema.entsAny`): the read
+   transaction's is bolt's entries then the buffer's (`read_tx.go:54-76`).
+4. **`UnsafePut` only of an entry bbolt accepts** (F4, `Schema.putFits`: non-empty key within
+   `Bbolt.maxKeySize`, key and value within `Bbolt.bboltEntryMax`).
+5. **The right to create a bucket is separate from its keys** (F10, `Scope.canCreate`): `txWr`'s
+   create row needs `S.canCreate b`; existence (`V b = some m`) for a part of a shared bucket comes
+   from your realization (a persistent "made" fact: these buckets are never deleted). mvcc's part
+   is `Meta`'s two compaction keys with the create right; the CI's two keys without it.
+6. **A lock taken by one component, a part written by another** (second tier 5): `lessor.Revoke`
+   (`lessor.go:359`) writes the lease part while mvcc's write transaction holds the batch lock, so the
+   lock-held fact must be lendable to other parts' owners (3e's `kbLocked_held`/`kbHeld`), and `txWr`
+   of the lease part must follow from it. Snippet: `examples/specreq/schema/schema.go`
+   (`ReqLeaseDeleteUnderTxn`).

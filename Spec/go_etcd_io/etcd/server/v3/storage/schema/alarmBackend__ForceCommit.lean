@@ -5,8 +5,9 @@
 `Activate`/`Deactivate` put and delete on the apply thread; `Recover`). Snippet: `examples/specreq/schema/schema.go`
 (`ReqAlarmPutGet`).
 
-**Assumed** (`alarm.go`): `be.ForceCommit()`: the backend's commit runs its hooks under its own lock invariant. The bucket's records are as `alarmBkt` says (its realization in the
-API's header).
+**Assumed** (`alarm.go`): `be.ForceCommit()`, the caller's triple of it (round 1, F8: was `True`, false of a nil or closed backend). The bucket's records are as `alarmBkt` says (its realization in the
+API's header). The lock calls' `ETCD_VERIFY` checks (`backend/verify.go`) hold at etcd's call sites:
+that is 4a's environment premise, carried by `alarmBkt`'s and `applyHook`'s realization.
 
 **Changes.** New (the old alarm store's backend calls were inside its trusted specs).
 **Margin.** None.
@@ -34,12 +35,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **Commits** (the backend's commit and its hooks). -/
+/-- **`be.ForceCommit()`'s effect** (the caller's triple: the backend open, its commit hooks' resources). -/
 def alarmBackend.ForceCommit.spec : Prop :=
-  ∀ (ab lg : Loc) (be : GoInterface) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ (ab ↦□ (go_etcd_io.etcd.server.v3.storage.schema.alarmBackend.mk lg be) : IProp GF) ∗ True }}
+  ∀ (ab lg : Loc) (be : GoInterface) (P Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ (ab ↦□ (go_etcd_io.etcd.server.v3.storage.schema.alarmBackend.mk lg be) : IProp GF) ∗ callOk be go!"ForceCommit" P Q ∗ P }}
     (App (Val (ab @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.alarmBackend.ty @!! go!"ForceCommit")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); Q }}
 
 end spec
 end Schema

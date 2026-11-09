@@ -175,3 +175,54 @@ and the status methods (2f's `addPeerToProber` is assumed whole).
 * `context.md` (W0): name `TODO()`'s value (`context.todoCtxVal`).
 * `go_etcd_io_etcd_api_v3_etcdserverpb.md` (3h): `userName`/`roleName` with a `Name`-field law,
   `alarmMemberIs` with `noMaps`, and the auth/alarm messages' `marshalOk`.
+
+## Round 1 repairs (2026-11-09)
+
+Review: `reviews/4b-review-1.md` (11 first-tier). Rebuilt: the ten directories, 123 modules, OK;
+`go vet ./specreq/{schema,pkgleaves}/` and `gofmt -l` clean; `etc/issues-status.py --index` run.
+
+* **F1** (bytes for good): `txRd`/`txRange` give a range's bytes **lent against the view**
+  (`rangeK`, `lentIn`: the wand back to `R V`; the outer slices owned); `UnsafeForEach`'s visitor gets
+  `ks ↦*{dq} k`, `vs ↦*{dq} v` for its call and returns them. `bytesListAt` is gone.
+* **F2** (empty end): `txRd`'s single-key row is `UnsafeRange(b, k, nil, limit)`; `txRange` takes
+  `e = [] → es = slice.nil`. (`Scope.reads` dropped.)
+* **F3** (read-transaction order): `UnsafeForEach` visits each entry once in some order
+  (`entsAny`); `unsafeGetAllUsers`, both `UnsafeGetAllUsers`, `GetAllUsers` give `entsAny`;
+  `MustUnsafeGetAllLeases` gives `(l.map (·.1)).Nodup` (each once), not id order.
+* **F4** (bbolt's limits): `txWr`'s put takes `putFits k v` (non-empty key, `Bbolt.maxKeySize`,
+  `Bbolt.bboltEntryMax`); `UnsafePutUser`/`UnsafePutRole` take `∀ bs, encodes t c bs → putFits (name)
+  bs`; `MustUnsafeSaveConfStateToBackend` takes `confStateKey.length + 128 + 21·encSize c ≤
+  bboltEntryMax`; `MustSaveMemberToBackend` takes `memberFits mm` (new: the member's strings, JSON
+  escaping at most six bytes per byte); the lease and CI writes are small (said in the sketches).
+* **F5** (`parse_render` false): `(render sv).length ≤ maxVersionLen → …` (`maxVersionLen = 256`);
+  `ReqRoundTrip` assumes it.
+* **F6**: laws `preLtb_irrefl`, `preLtb_asymm`.
+* **F7** (probing): `proberOk`'s `AddHTTP` takes `0 < interval`, `urls ↦*□ us`, `us ≠ []`, every URL
+  `urlParses` (new opaque `Prop`; the law for rafthttp's URLs requested of 2f); filed
+  `nonissues/probing-addhttp-preconditions.md` (a precondition etcd meets, `blocks-proof: no`).
+  `ReqProberLifecycle` assumes it.
+* **F8**: `alarmBackend.ForceCommit` takes `callOk be "ForceCommit" P Q ∗ P` (as the auth one).
+* **F9**: `MustUnsafePutLease` is over `Proto.msgAt leasepb.Lease.ty lpb dq c` (kept), storing
+  `leaseEnc (leaseModel c)` under `beU64 (leaseModel c).1`; `leaseMsg_of_struct` is one way, owned.
+* **F10**: `Scope` is a structure: `keys` (whole or listed keys) and `create` (the right to create);
+  `Scope.canCreate`; every create (`UnsafeCreateMetaBucket`, `CreateMetaBucket`,
+  `UnsafeCreateLeaseBucket`, `UnsafeCreateAuthRolesBucket`, `CreateAuthBuckets`) takes it, so mvcc's
+  part (two `Meta` keys and the create right) serves `NewStore`. `ciScope` has no create right.
+* **F11**: the ioutil sketches cite 2f's intro laws `Http.readerAt_wrap`/`readerCloser_wrap`,
+  requested in `req/net_http.md` ("from 4b, round 1").
+
+Second tier: (1) `api/version.LessThan` and `V3_6` are 3h's (`Spec/go_etcd_io/etcd/api/v3/version/
+LessThan.lean` exists, assumed): said in `req/…_lease.md`; (2) `OtelTrace.spanOk` adds `SpanContext`
+and `IsRecording`; (3) the alarm and membership assumed specs say the lock calls' `ETCD_VERIFY`
+checks are 4a's environment premise, carried by `alarmBkt`/`memberBkts`/`applyHook`; (4)
+`bucketVars_init`/`keyNames_init` say which rows rest on `etc/gen-init.py`'s trust for untranslated
+initializers; (5) the lock lent to another part's owner (`lessor.Revoke`) requested of 4a; (6)
+`UnsafeUpdateConsistentIndex` takes `txRd` only in the verification disjunct; (7) rate's header
+slip fixed; (8) `ReqMarshalRoundTrip` assumes R1's message predicates. New snippets for the seven
+uncovered patterns: `ReqListUsersReadTx`, `ReqDeleteUserRole`, `ReqCIReadUnderBatchLock`,
+`ReqLeaseDeleteUnderTxn`, `ReqClusterVersionSaveRead` (`schema.go`), `ReqSpanEvents` (`trace.go`),
+`ReqReserveDelay` (`leaves.go`).
+
+`req/` round-1 sections: `…_storage_backend.md` (the six changes, the lock lending), `…_storage_mvcc.md`
+(lend `rangeOk`'s bytes; the create right), `net_http.md` (`readerAt_wrap`, `urlParses`),
+`…_lease.md`, `…_auth.md`.

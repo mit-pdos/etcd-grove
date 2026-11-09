@@ -118,6 +118,15 @@ def curEnts (e : Ent) : List (GoString × Option GoString) :=
     | .val v => some v
     | .bkt _ _ => none))
 
+/-- **A well-formed entry**: every bucket's keys non-empty and strictly sorted (`go.GoStringLt`,
+`bytes.Compare`), recursively. Every state bbolt holds is well-formed (`Api.lean`'s `boltTx_wf`,
+`boltState_wf`, `boltImage_wf`). -/
+inductive wf : Ent → Prop
+  | val (v : GoString) : wf (.val v)
+  | bkt (s : w64) (es : List (GoString × Ent)) :
+      es.Pairwise (fun a b => go.GoStringLt a.1 b.1) → (∀ x ∈ es, x.1 ≠ []) →
+      (∀ x ∈ es, wf x.2) → wf (.bkt s es)
+
 end Ent
 
 /-- A cursor entry: a key and its value (`none`: a nested bucket). -/
@@ -202,38 +211,45 @@ def TxView.dropBkt (T : TxView) (p : BPath) (k : GoString) : TxView :=
 /-- **The database's state as its client owns it** (`Api.lean`'s `boltState`).
 - `data`: the committed data: what a transaction beginning now reads;
 - `dur`: **what a crash may recover besides `data`**: `some ds`, `data` or one of `ds` (each a state
-  committed earlier, or attempted); `none`, no promise (a `NoSync` commit not yet synced: the file a
-  crash leaves may not be a database);
+  committed earlier, or attempted); `none`, no promise (a `NoSync` commit not yet synced, or a
+  commit after a failed sync: the file a crash leaves may not be a database);
 - `busy`: a commit's meta page write may be in flight (from the commit's update to the end of its
   `Commit`): a sync then cannot promise the meta page reached the disk;
-- `lost`: an `fdatasync` of the file failed since it was opened in this generation (Linux may then
-  have dropped dirty pages without writing them, so a later successful sync no longer makes every
-  page durable: `notes/osfs-ext-plan.md`, D2). -/
+- `lost`: an `fdatasync` of the file failed since it was opened in this generation (Linux marks the
+  dirty pages clean without writing them, so no later sync writes them unless they are rewritten:
+  `notes/osfs-ext-plan.md`, D2). Once `lost`, no commit makes a promise
+  (`nonissues/bbolt-commit-after-failed-sync.md`);
+- `broken`: a commit failed after the database lost its mapping (a failed remap in `allocate`):
+  every later `Begin` fails (`ErrInvalidMapping`). A client whose commits all succeeded knows it is
+  `false`. -/
 structure BoltSt where
   data : Data
   dur : Option (List Data)
   busy : Bool
   lost : Bool
+  broken : Bool
 
 /-- The state of a file just opened by a generation (or a fresh file): `D`, all of it durable. -/
-def BoltSt.init (D : Data) : BoltSt := { data := D, dur := some [], busy := false, lost := false }
+def BoltSt.init (D : Data) : BoltSt :=
+  { data := D, dur := some [], busy := false, lost := false, broken := false }
 
 /-- **A crash may leave the database holding `D`.** -/
 def BoltSt.recovers (σ : BoltSt) (D : Data) : Prop :=
   ∃ ds, σ.dur = some ds ∧ (D = σ.data ∨ D ∈ ds)
 
-/-- **A commit of `D` takes effect** (its meta page write, which will succeed, begins): `D` is
-committed, the old data stays recoverable until a sync, and under `NoSync` nothing is promised
-(the commit's pages are not synced before its meta page). -/
+/-- **A commit of `D` takes effect** (its meta page is written): `D` is committed, the old data
+stays recoverable until a sync; under `NoSync`, or after a failed sync (`lost`: pages this commit's
+tree reaches may have been dropped), nothing is promised. -/
 def BoltSt.commit (σ : BoltSt) (D : Data) (noSync : Bool) : BoltSt :=
   { σ with data := D, busy := true,
-           dur := if noSync then none else σ.dur.map (fun ds => ds ++ [σ.data]) }
+           dur := if noSync || σ.lost then none else σ.dur.map (fun ds => ds ++ [σ.data]) }
 
-/-- **A commit of `D` is attempted and fails** (its meta page write, which will fail, begins): the
-committed data stays, but a crash during the write may still find `D` (a page write in flight may
-reach the disk), so `D` becomes recoverable (under `NoSync`, nothing is promised). -/
+/-- **A commit of `D` is attempted and fails** (before or at its meta page write): the committed
+data stays, but a crash during the write may still find `D` (a page write in flight may reach the
+disk), so `D` becomes recoverable (under `NoSync` or once `lost`, nothing is promised). -/
 def BoltSt.attempt (σ : BoltSt) (D : Data) (noSync : Bool) : BoltSt :=
-  { σ with busy := true, dur := if noSync then none else σ.dur.map (fun ds => ds ++ [D]) }
+  { σ with busy := true,
+           dur := if noSync || σ.lost then none else σ.dur.map (fun ds => ds ++ [D]) }
 
 /-- **A sync of the file ends** (`ok`: the `fdatasync` succeeded): if it succeeded with no meta
 page write in flight and no earlier failure, only the committed data is recoverable. -/
@@ -241,13 +257,16 @@ def BoltSt.sync (σ : BoltSt) (ok : Bool) : BoltSt :=
   if ok then (if σ.busy || σ.lost then σ else { σ with dur := some [] })
   else { σ with lost := true }
 
-/-- **A commit ends** (after its updates): no meta page write in flight any more; `synced`: it
-ended with a successful `fdatasync` of its meta page (`NoSync` off), which makes the committed data
-the only recoverable state unless a sync failed earlier; `failed`: an `fdatasync` failed. -/
-def BoltSt.settle (σ : BoltSt) (synced failed : Bool) : BoltSt :=
+/-- **A commit ends** (after its commit update): no meta page write in flight any more; `synced`:
+it ended with a successful `fdatasync` of its meta page (`NoSync` off), which makes the committed
+data the only recoverable state unless a sync failed earlier; `failed`: an `fsync`/`fdatasync`
+failed (the meta's, `grow`'s, the data pages'), or the meta write reported an error after writing
+the page; `brk`: the commit failed with the mapping lost. -/
+def BoltSt.settle (σ : BoltSt) (synced failed brk : Bool) : BoltSt :=
   { σ with busy := false,
            lost := σ.lost || failed,
-           dur := if synced && !σ.lost then some [] else σ.dur }
+           broken := σ.broken || brk,
+           dur := if synced && !σ.lost && !failed then some [] else σ.dur }
 
 /-! ## Options -/
 

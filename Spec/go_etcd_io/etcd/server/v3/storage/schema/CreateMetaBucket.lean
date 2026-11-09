@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 /-- **Creates `Meta` in a write section** of `tx`. -/
 def CreateMetaBucket.spec : Prop :=
   ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (P : IProp GF) (Q : View → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ ⌜S.whole .metaB⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ ⌜S.canCreate .metaB⌝ ∗
       wrSect tx go!"LockOutsideApply" P R (fun _ => True) Q ∗ P }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.CreateMetaBucket)) (Val #tx))
   {{ RET #(); ∃ V : View, Q (V.create .metaB) }}

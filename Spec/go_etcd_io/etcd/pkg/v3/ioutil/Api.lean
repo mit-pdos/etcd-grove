@@ -16,7 +16,9 @@ Left out: `NewExactReadCloser` (its one user, `snap.NewMessage`, is trusted as a
 ## Laws
 
 `ReaderAndCloser_reader`, `ReaderAndCloser_closer` (below): the struct's promoted `Read` and `Close`
-are its fields' (`ReaderAndCloser.Read`/`Close` call `rc.Reader.Read`/`rc.Closer.Close`).
+are its fields' (`ReaderAndCloser.Read`/`Close` call `rc.Reader.Read`/`rc.Closer.Close`); their proof
+is 2f's intro law for a wrapper whose `Read`/`Close` is its field's (`Http.readerAt_wrap`,
+`readerCloser_wrap`, requested in `req/net_http.md`): nothing outside 2f can make a `readerAt`.
 -/
 module
 

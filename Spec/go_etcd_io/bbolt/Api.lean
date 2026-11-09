@@ -80,23 +80,34 @@ updates are `⊤ \ ↑γ.ns`).
 
 ## Contracts (opaque, the client's to establish)
 
-* `boltLogger l`: the logger `l` (or nil) may be called as bbolt does (`Debugf`, `Errorf`, `Infof`,
-  `Warningf` with a format and its arguments, `%v`/`%s`/`%d` of errors, strings, numbers and
-  byte slices; the old `Logger.lean`'s `boltLogger`, D20′): each call returns and reads its
-  arguments only. `boltLogger_nil`.
-* `openFileOk f path`: the `OpenFile` option `f` called with `(path, O_RDWR|O_CREATE, mode)`
-  returns an `*os.File` open read-write on `path`'s OsFs file (an fd of it, as `os.OpenFile`
-  would), or an error; the caller (etcd's defrag) proves it from the file it already opened.
+* `boltLogger l` (transparent, the old D20′): nil, or a pointer-typed logger whose `Debugf`,
+  `Errorf`, `Infof`, `Warningf` return for any format and arguments of the kinds bbolt passes
+  (`logArgOk`: basic values, errors whose `Error()` returns, byte slices readable now), reading
+  only them. A `*zapBoltLogger` meets it from zap's `Sugar` specs (4a). `boltLogger_nil`.
+* `openFileOk f path` (transparent): the `OpenFile` option `f` called with `(path, flag, mode)`
+  returns an `*os.File` (`osFileOf`, provisional: the `os` package's representation, `req/os.md`)
+  over an fd of `path`'s OsFs file, read-write, or an error; etcd's defrag closure returning the
+  file it created meets it from that file (`ReqDefrag`).
 * `writerOk w W` (transparent): an `io.Writer` `w` whose `Write` appends a prefix of its argument
   to the stream `W` (the client's predicate of what was written), all unless it fails; with
-  `writerPlain`: its dynamic type has no `ReadFrom` (else `io.CopyN` calls that instead).
+  `writerPlain` (transparent): its dynamic type has no `ReadFrom` (else `io.CopyN` calls that).
 * `boltImage bs D` (an opaque pure fact): `bs` is a bbolt file image holding `D`, which `Open`
-  reads as `D` (realized with batch 4d's decoders: `BboltCommon.metaOf`, `pageItems`, ...).
+  reads as `D` (realized with batch 4d's decoders: `BboltCommon.metaOf`, `pageItems`, ...);
+  `boltImage_wf`.
+* `putLoan tx γ v dv vb` (exclusive): the value slice `v` lent to a write transaction's `Put` (Go:
+  "the value must remain valid for the life of the transaction"), given back once the transaction
+  is done (`putLoan_done`).
+* `txSize tx n` (persistent): `tx.Size()` is `n` (below `2 ^ 48`) and `tx.WriteTo` writes `n` bytes
+  (`boltTx_size`, `txSize_agree`).
+* `dbBroken γ` (persistent): a `Begin` failed because a commit lost the mapping; then the client's
+  state says so (`dbBroken_state`: `σ.broken`).
 
 ## Laws
 
-Persistence, timelessness, fractions, agreement, validity, exclusivity of each predicate;
-`boltTx_later`, `boltTx_nonnull`, `boltTx_base`, `bktH_live`, `txBytes_acc`, `boltTx_fill`; the
+Persistence, timelessness, fractions, agreement, validity, exclusivity of each predicate
+(`boltOpened_closed`); `boltTx_later`, `boltTx_nonnull`, `boltTx_base`, `bktH_live`,
+`txBytes_acc`, `boltTx_fill`; well-formedness (`boltTx_wf`, `boltState_wf`, `boltImage_wf`); the
+size (`boltTx_size`, `txSize_agree`); `putLoan_done`; `dbBroken_state`; the
 updates a holder of `boltState γ 1 σ` can supply (`boltState_read_au`, `boltState_commit_au`,
 `boltState_settle_au`); the file laws (`fileHolds_new`, `fileHolds_image`, `fileHolds_alloc`) and
 **the crash law** (`boltCrash`); the error values (`errIs_init`, `errIs_distinct`).
@@ -210,27 +221,78 @@ def optsArg [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (l : Loc) (dq : DFrac)
     IProp GF :=
   iprop((⌜l = Loc.null ∧ o = OptsM.dflt⌝) ∨ (⌜l ≠ Loc.null⌝ ∗ optsAt l dq o))
 
-/-- **The logger contract** (persistent; see the header). -/
-opaque boltLogger [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (l : GoInterface) : IProp GF :=
-  iprop(True)
-
-/-- **The `OpenFile` contract** for `path` (persistent; see the header). -/
-opaque openFileOk [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (f : GoFunc) (path : GoString) :
-    IProp GF := iprop(True)
-
 /-- `bs` is a bbolt file image holding `D` (see the header). -/
 opaque boltImage (bs : List w8) (D : Data) : Prop
 
-/-- The dynamic type of `wi` has no `ReadFrom` method. -/
-opaque writerPlain (wi : GoInterfaceOk) : Prop
+/-- (provisional, the `os` package's) `f` is an `*os.File` over the fd `fd` (`TrustedCode/os.lean`'s
+`File`/`file`: its `fd` and name), exclusive, as `os.OpenFile` returns it. -/
+opaque osFileOf [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (f : Loc) (fd : w64) : IProp GF :=
+  iprop(True)
+
+/-- The value slice `v` lent to `tx`'s `Put`, back once `tx` is done (exclusive). -/
+opaque putLoan [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName) (v : GoSlice)
+    (dv : DFrac) (vb : GoString) : IProp GF := iprop(True)
+
+/-- `tx.Size()` is `n`, the length of its `WriteTo` image (persistent). -/
+opaque txSize [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (n : w64) : IProp GF :=
+  iprop(True)
+
+/-- A `Begin` on a database of `γ` failed because a commit lost the mapping (persistent). -/
+opaque dbBroken [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (γ : BoltName) : IProp GF :=
+  iprop(True)
 
 end vocab
+
+section plain
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- The dynamic type of `wi` has no `ReadFrom` method (`io.CopyN` would call it). -/
+def writerPlain (wi : GoInterfaceOk) : Prop := methodSet wi.ty !! go!"ReadFrom" = none
+
+end plain
 
 section contracts
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+
+/-- The logger methods bbolt calls (`lg.Debugf`, `Errorf`, `Infof`, `Warningf`). -/
+def boltLogMethods : List GoString := [go!"Debugf", go!"Errorf", go!"Infof", go!"Warningf"]
+
+/-- **An argument bbolt passes to its logger**, under the caller's resource `R`: nil, a basic value
+(`fmt.ArgWf`: numbers, strings), an error whose `Error()` returns (reading under `R`), or a byte
+slice readable under `R`. -/
+def logArgOk (R : IProp GF) : GoInterface → IProp GF
+  | .nil => iprop(True)
+  | .ok ii => iprop(⌜_root_.Perennial.fmt.ArgWf ii⌝ ∨
+      (□ ∀ Φ : val → IProp GF, R -∗ ▷ (∀ e : GoString, R -∗ Φ #e) -∗
+        WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }}) ∨
+      (∃ (sl : GoSlice) (b : GoString),
+        ⌜ii.ty = go.GoType.SliceType go.byte ∧ ii.v = #sl⌝ ∗
+        □ (R -∗ ∃ dq : DFrac, sl ↦*{dq} b ∗ (sl ↦*{dq} b -∗ R))))
+
+/-- **The logger contract** (the old D20′, restated): nil, or a pointer-typed logger whose four
+printf methods return for any format and arguments of `logArgOk`, reading only them. -/
+def boltLogger (l : GoInterface) : IProp GF :=
+  iprop(⌜l = GoInterface.nil⌝ ∨
+    ∃ li : GoInterfaceOk, ⌜l = interface.ok li ∧ loggerPtrOk l⌝ ∗
+      □ ∀ (m fmtS : GoString) (args : GoSlice) (xs : List GoInterface) (dq : DFrac) (R : IProp GF)
+          (Φ : val → IProp GF),
+        ⌜m ∈ boltLogMethods⌝ -∗ args ↦*{dq} xs -∗ ([∗list] x ∈ xs, logArgOk R x) -∗ R -∗
+        ▷ (args ↦*{dq} xs -∗ R -∗ Φ #()) -∗
+        WP (App (App (Val #(methods li.ty m li.v)) (Val #fmtS)) (Val #args)) {{ Φ }})
+
+/-- **The `OpenFile` contract for `path`**: `f(path, flag, mode)` returns an `*os.File` over a
+read-write fd of `path`'s OsFs file, or an error (persistent: `Open` calls it once, its retry
+none). -/
+def openFileOk [HasExt osFsExt] (f : GoFunc) (path : GoString) : IProp GF :=
+  iprop(□ ∀ (flag : w64) (mode : w32) (Φ : val → IProp GF),
+    ▷ (∀ (fl : Loc) (err : GoInterface),
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ fd : w64, osFileOf fl fd ∗
+           osFd fd (DFrac.own 1) ⟨path, true, true⟩) ∨ ⌜err ≠ GoInterface.nil⌝) -∗
+        Φ (PairV #fl #err)) -∗
+    WP (App (App (App (Val #f) (Val #path)) (Val #flag)) (Val #mode)) {{ Φ }})
 
 /-- **An `io.Writer` `w` appending to the stream `W`** (`W bs`: `bs` was written so far; the
 client's): its `Write(b)` writes a prefix of `b`, all of it unless it fails. -/
@@ -306,8 +368,8 @@ def persistent.spec [HasExt osFsExt] : Prop :=
   (∀ db, Persistent (dbClosed (GF := GF) db)) ∧
   (∀ tx γ b p gs, Persistent (bktH (GF := GF) tx γ b p gs)) ∧
   (∀ tx γ s b, Persistent (txBytes (GF := GF) tx γ s b)) ∧
-  (∀ l, Persistent (boltLogger (GF := GF) l)) ∧
-  (∀ f path, Persistent (openFileOk (GF := GF) f path))
+  (∀ tx n, Persistent (txSize (GF := GF) tx n)) ∧
+  (∀ γ, Persistent (dbBroken (GF := GF) γ))
 
 /-- The timeless predicates (`boltTx` is not: it holds the locks' invariants; `boltTx_later`). -/
 def timeless.spec [HasExt osFsExt] : Prop :=
@@ -327,7 +389,35 @@ def boltState_frac.spec [HasExt osFsExt] : Prop :=
 def excl.spec [HasExt osFsExt] : Prop :=
   (∀ γ, boltClosed (GF := GF) γ ∗ boltClosed γ ⊢ False) ∧
   (∀ db γ, boltOpened (GF := GF) db γ ∗ boltOpened db γ ⊢ False) ∧
-  (∀ path D D', fileHolds (GF := GF) path D ∗ fileHolds path D' ⊢ False)
+  (∀ path D D', fileHolds (GF := GF) path D ∗ fileHolds path D' ⊢ False) ∧
+  (∀ tx γ v dv vb, putLoan (GF := GF) tx γ v dv vb ∗ putLoan tx γ v dv vb ⊢ False)
+
+/-- **The close right excludes a close** (`boltOpened` is held until the right's `Close`). -/
+def boltOpened_closed.spec [HasExt osFsExt] : Prop :=
+  ∀ db γ, boltOpened (GF := GF) db γ ∗ dbClosed db ⊢ False
+
+/-- **Every state is well-formed** (sorted keys, recursively): a transaction's views and the
+committed data. -/
+def boltTx_wf.spec [HasExt osFsExt] : Prop :=
+  (∀ tx γ q T, boltTx (GF := GF) tx γ q T ⊢ ⌜T.cur.wf ∧ T.base.wf⌝) ∧
+  (∀ γ q σ, boltState (GF := GF) γ q σ ⊢ ⌜σ.data.wf⌝)
+
+/-- An image holds a well-formed database. -/
+def boltImage_wf.spec : Prop := ∀ bs D, boltImage bs D → D.wf
+
+/-- **A transaction's size** (`Size()`, `WriteTo`'s length), below `2 ^ 48`, fixed for its life. -/
+def boltTx_size.spec [HasExt osFsExt] : Prop :=
+  (∀ tx γ q T, boltTx (GF := GF) tx γ q T ⊢ ∃ n : w64, txSize tx n ∗ ⌜uint.nat n < 2 ^ 48⌝) ∧
+  (∀ tx n m, txSize (GF := GF) tx n ∗ txSize tx m ⊢ ⌜n = m⌝)
+
+/-- **A `Put`'s value comes back once the transaction is done** (committed or rolled back). -/
+def putLoan_done.spec [HasExt osFsExt] : Prop :=
+  ∀ (E : CoPset) tx γ v dv vb, ↑γ.ns ⊆ E →
+    txDone (GF := GF) tx ∗ putLoan tx γ v dv vb ⊢ |={E}=> v ↦*{dv} vb
+
+/-- **A broken database is one whose client state says so.** -/
+def dbBroken_state.spec [HasExt osFsExt] : Prop :=
+  ∀ γ q σ, dbBroken (GF := GF) γ ∗ boltState γ q σ ⊢ ⌜σ.broken = true⌝
 
 /-- **A later transaction is a transaction, given its database** (the old D-A: `boltTx` holds
 the locks' and bbolt's invariants, which are not timeless; they come from `isBolt`). -/
@@ -431,7 +521,7 @@ def boltCrash.spec [HasExt osFsExt] : Prop :=
       crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) (γ.path :: Ps)
 
 /-- The nil logger meets the contract (`Open` replaces it by the discard logger). -/
-def boltLogger_nil.spec [HasExt osFsExt] : Prop :=
+def boltLogger_nil.spec : Prop :=
   ⊢ boltLogger (GF := GF) GoInterface.nil
 
 /-- **bbolt's error variables hold their values after initialization** (`errors.New`'s in

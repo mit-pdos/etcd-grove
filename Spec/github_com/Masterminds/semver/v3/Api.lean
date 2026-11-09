@@ -14,7 +14,9 @@ peers' `X-Server-Version`/`X-Min-Cluster-Version` headers, a committed `ClusterV
 * `parse s` (opaque function): **what `NewVersion(s)` makes of `s`** (`none`: an error). With the
   package's default `CoerceNewVersion = true` it is the lenient parser (`coerceNewVersion`: a
   leading `v`, missing minor or patch); etcd never writes the variable. Laws pin it down where
-  callers need it: `parse_render` (a parsed version's `String()` parses back to it),
+  callers need it: `parse_render` (a parsed version's `String()` parses back to it, if it is
+  within `maxVersionLen`: the lenient parser accepts `1-<254 a's>`, whose `String()` has 260 bytes),
+  `preLtb_irrefl`, `preLtb_asymm`,
   `parse_plain` (`a.b.c` parses), `parse_version` (etcd's own `version.Version`).
 * `render v` (transparent): **`String()`**: `major.minor.patch`, then `-pre` and `+meta` if not
   empty (decimal, Perennial's `fmt.decimal`).
@@ -69,6 +71,9 @@ opaque parse : GoString → Option SemVer
 /-- semver 2.0's precedence of two non-empty prerelease strings (opaque). -/
 opaque preLtb : GoString → GoString → Bool
 
+/-- `NewVersion`'s length limit (`MaxVersionLen`, `version.go:60`): a longer string is an error. -/
+def maxVersionLen : Nat := 256
+
 /-- **`String()`**: `major.minor.patch[-pre][+meta]`. -/
 def render (v : SemVer) : GoString :=
   _root_.Perennial.fmt.decimal (uint.Z v.major) ++ go!"." ++
@@ -106,7 +111,15 @@ section laws
 variable [GooseExts]
 
 /-- A parsed version's `String()` parses back to it. -/
-def parse_render.spec : Prop := ∀ s sv, parse s = some sv → parse (render sv) = some sv
+def parse_render.spec : Prop := ∀ s sv, parse s = some sv → (render sv).length ≤ maxVersionLen →
+  parse (render sv) = some sv
+
+/-- `comparePrerelease(x, x) = 0` (`comparePrePart` of equal parts is `0`, `version.go:680-684`):
+no version is below itself. -/
+def preLtb_irrefl.spec : Prop := ∀ s, preLtb s s = false
+
+/-- `comparePrerelease` is a strict order's comparison: never both ways. -/
+def preLtb_asymm.spec : Prop := ∀ s t, preLtb s t = true → preLtb t s = false
 
 /-- `a.b.c` (decimal, no prerelease or metadata) parses. -/
 def parse_plain.spec : Prop := ∀ a b c : w64,

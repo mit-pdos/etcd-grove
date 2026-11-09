@@ -4,12 +4,14 @@
 package schema
 
 import (
+	"github.com/Masterminds/semver/v3"
 	"go.uber.org/zap"
 
 	"go.etcd.io/etcd/api/v3/authpb"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
+	"go.etcd.io/etcd/server/v3/etcdserver/version"
 	"go.etcd.io/etcd/server/v3/lease/leasepb"
 	"go.etcd.io/etcd/server/v3/storage/backend"
 	eschema "go.etcd.io/etcd/server/v3/storage/schema"
@@ -181,5 +183,88 @@ func ReqMembersSaveRead(lg *zap.Logger, be backend.Backend, m *membership.Member
 	members, removed := mb.MustReadMembersFromBackend()
 	if members[m.ID] == nil || !removed[id2] || members[id2] != nil {
 		panic("members-save-read: members not as written")
+	}
+}
+
+// REQ schema/list-users-readtx: the users listed through a read transaction are each stored user
+// once (in some order: bolt's entries then the read buffer's).
+// Users: auth/store.go:602 (UserList: GetAllUsers), auth/store.go (RoleDelete's scan).
+// Assumes: the caller owns the auth buckets (no concurrent writer); "alice" was stored.
+// Specs: authBackend.GetAllUsers.spec (entsAny), authReadTx.UnsafeGetAllUsers.spec.
+func ReqListUsersReadTx(lg *zap.Logger, be backend.Backend) {
+	abe := eschema.NewAuthBackend(lg, be)
+	n := 0
+	for _, u := range abe.GetAllUsers() {
+		if string(u.Name) == "alice" {
+			n++
+		}
+	}
+	if n != 1 {
+		panic("list-users-readtx: stored user not listed exactly once")
+	}
+}
+
+// REQ schema/delete-user-role: a deleted user or role is gone from the batch.
+// Users: auth/store.go (UserDelete: UnsafeDeleteUser; RoleDelete: UnsafeDeleteRole).
+// Assumes: the caller owns the auth buckets.
+// Specs: authBatchTx.{Lock,UnsafeDeleteUser,UnsafeDeleteRole,UnsafeGetUser,UnsafeGetRole,Unlock}.spec.
+func ReqDeleteUserRole(lg *zap.Logger, be backend.Backend, user, role string) {
+	tx := eschema.NewAuthBackend(lg, be).BatchTx()
+	tx.Lock()
+	tx.UnsafeDeleteUser(user)
+	tx.UnsafeDeleteRole(role)
+	if tx.UnsafeGetUser(user) != nil || tx.UnsafeGetRole(role) != nil {
+		panic("delete-user-role: deleted record read back")
+	}
+	tx.Unlock()
+}
+
+// REQ schema/ci-read-under-batch-lock: the post-lock hook reads the stored consistent index through
+// the shared read transaction without RLock, the batch lock held.
+// Users: etcdserver/cindex/cindex.go:107 (UnsafeConsistentIndex, from the post-lock hook,
+// server.go:2478-2484).
+// Assumes: this goroutine holds be's batch lock (the hook runs under it); Meta exists.
+// Specs: UnsafeReadConsistentIndex.spec (txRd of the shared ReadTx under the batch lock: 4a's).
+func ReqCIReadUnderBatchLock(be backend.Backend) uint64 {
+	tx := be.BatchTx()
+	tx.LockInsideApply()
+	v, _ := eschema.UnsafeReadConsistentIndex(be.ReadTx())
+	tx.Unlock()
+	return v
+}
+
+// REQ schema/lease-delete-under-txn: the lessor deletes its record while another component (mvcc's
+// write transaction) holds the batch lock.
+// Users: lease/lessor.go:340-360 (Revoke: UnsafeDeleteLease inside the range deleter's txn).
+// Assumes: the lock's holder lends "held" to the lease part's owner (4a); the lessor owns Lease.
+// Specs: UnsafeDeleteLease.spec, MustUnsafeGetAllLeases.spec.
+func ReqLeaseDeleteUnderTxn(be backend.Backend, id int64) {
+	tx := be.BatchTx()
+	tx.LockInsideApply() // mvcc's Write()
+	eschema.UnsafeDeleteLease(be.BatchTx(), &leasepb.Lease{ID: id})
+	for _, l := range eschema.MustUnsafeGetAllLeases(tx) {
+		if l.ID == id {
+			panic("lease-delete-under-txn: deleted lease read back")
+		}
+	}
+	tx.Unlock() // mvcc's End()
+}
+
+// REQ schema/cluster-version-save-read: the cluster version and downgrade info saved are read back.
+// Users: membership/cluster.go:610-614 (SetVersion), :814 (SetDowngradeInfo), :249-259 (Recover).
+// Assumes: the caller owns the membership buckets; v is a major.minor.0 version (it parses back).
+// Specs: membershipBackend.{MustCreateBackendBuckets,MustSaveClusterVersionToBackend,
+// MustSaveDowngradeToBackend,ClusterVersionFromBackend,DowngradeInfoFromBackend}.spec;
+// Semver.Version.LessThan.spec, laws parse_plain, preLtb_irrefl.
+func ReqClusterVersionSaveRead(lg *zap.Logger, be backend.Backend, v *semver.Version) {
+	mb := eschema.NewMembershipBackend(lg, be)
+	mb.MustCreateBackendBuckets()
+	mb.MustSaveClusterVersionToBackend(v)
+	mb.MustSaveDowngradeToBackend(&version.DowngradeInfo{Enabled: false})
+	if w := mb.ClusterVersionFromBackend(); w == nil || w.LessThan(v) || v.LessThan(w) {
+		panic("cluster-version-save-read: version lost")
+	}
+	if d := mb.DowngradeInfoFromBackend(); d == nil || d.Enabled {
+		panic("cluster-version-save-read: downgrade info lost")
 	}
 }

@@ -7,7 +7,9 @@ connReadLimitByte`, 64 KiB), read by `io.ReadAll`. Snippet: `examples/specreq/pk
 **Proof sketch.** Allocates `&limitedBufferReader{r, n}`. Its `Read(p)` (translated) slices `p` to
 `n` (in bounds for `0 ≤ n`: `np[:n]` panics at a negative `n`) and calls `r.Read` on the prefix
 (`Http.readerAt_read.spec`): the bytes land in `p`'s prefix (the sub-slice aliases it), so each call
-is a `Read` of `r` with the same knowledge; hence the returned reader has `r`'s contract.
+is a `Read` of `r` on a prefix of `p` with the same result; 2f's intro law for such a wrapper
+(`Http.readerAt_wrap`, requested in `req/net_http.md`, "from 4b, round 1") makes it a `readerAt`
+with `r`'s knowledge.
 
 **Changes.** From `specs-ref`'s `NewLimitedBufferReader.lean` (`prefixReaderOk`, `0 < n`): over
 2f's `readerAt`; `0 ≤ n` (a zero cap reads nothing but does not panic).

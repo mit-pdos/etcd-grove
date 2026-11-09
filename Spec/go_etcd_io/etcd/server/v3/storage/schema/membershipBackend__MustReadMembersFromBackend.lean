@@ -4,7 +4,8 @@
 **Users.** Bootstrap (`bootstrap.go:133`), `RaftCluster.Recover`, `ValidateConfigurationChange` (2e). Snippet: `examples/specreq/schema/schema.go` (`ReqMembersSaveRead`).
 
 **Assumed** (`membership.go`): `be.ReadTx()`, `RLock()` (a reader slot: the caller's thread token), two `UnsafeForEach` (an absent bucket: nothing; each key parses as a member id: the keys are `BackendMemberKey`'s; each value unmarshals to a member, `json.Marshal`'s output), `RUnlock()`; `lg.Panic` unreachable. The buckets' records are as `memberBkts` says (the API's
-header); a read transaction sees them as their only writer left them (the holder is outside a write
+header; the lock calls' `ETCD_VERIFY` checks hold at etcd's call sites: 4a's environment premise,
+carried by `memberBkts`'s and `applyHook`'s realization); a read transaction sees them as their only writer left them (the holder is outside a write
 section: `specs-ref`'s `TestBksReadInsidePendingBatch`).
 
 **Changes.** From `specs-ref`'s `membershipBackend__MustReadMembersFromBackend.lean` where there was one (over the real

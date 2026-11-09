@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 /-- **Writes the index (unless `0`) and the term (unless `0`), the index not decreasing (`ETCD_VERIFY` off, or the stored index at most `i`).** -/
 def UnsafeUpdateConsistentIndex.spec : Prop :=
   ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData) (i t : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ txRd tx S R ∗ (Verify.verifyOff ∨ ⌜i = W64 0 ∨ uint.Z (ciOf m).1 ≤ uint.Z i⌝) ∗ R V ∗ ⌜S.has .metaB ciKey ∧ S.has .metaB termKey⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ (Verify.verifyOff ∨ (txRd tx S R ∗ ⌜i = W64 0 ∨ uint.Z (ciOf m).1 ≤ uint.Z i⌝)) ∗ R V ∗ ⌜S.has .metaB ciKey ∧ S.has .metaB termKey⌝ ∗
       ⌜i ≠ W64 0 → V .metaB = some m ∧ ciWf m⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex)) (Val #tx)) (Val #i)) (Val #t))
   {{ RET #(); R (if i = W64 0 then V else V.set .metaB (ciPut m i t)) }}

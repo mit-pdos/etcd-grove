@@ -24,7 +24,8 @@ import (
 // decoding of what the proposer marshalled).
 // Users: rafthttp/msg_codec.go:40, pipeline.go:99 (MustMarshalMessage), msgappv2_codec.go
 // (MustUnmarshalMessage of an Entry), etcdserver/apply.go:29 (MustUnmarshalMessage).
-// Assumes: nothing (a raft message always marshals).
+// Assumes: m is a message R1's predicates hold of (its byte slices distinct allocations, so its
+// content fits: Proto.Content.fits).
 // Specs: PbUtil.MustMarshalMessage.spec, PbUtil.MustUnmarshalMessage.spec; Proto.encodes_fun.
 func ReqMarshalRoundTrip(m *raftpb.Message) {
 	b := pbutil.MustMarshalMessage(m)
@@ -81,7 +82,7 @@ func ReqGracefulClose(resp *http.Response) {
 // Users: rafthttp/util.go:134-175 (compareMajorMinorVersion, serverVersion, checkVersionCompatibility),
 // apply/backend.go:272-275 (ClusterVersionSet).
 // Assumes: hdr parses (the peer protocol's header knowledge).
-// Specs: Semver.MustParse.spec (parse_version), Version.LessThan.spec.
+// Specs: Semver.MustParse.spec (parse_version), Version.LessThan.spec; law preLtb_irrefl.
 func ReqParseCompare(hdr string) bool {
 	lv := semver.MustParse("3.8.0-alpha.0")
 	rv := semver.MustParse(hdr)
@@ -104,8 +105,9 @@ func ReqMajorMinor(v *semver.Version) {
 
 // REQ semver/round-trip: a version's String() parses back to it (the stored cluster version).
 // Users: membership/cluster.go:586 (MustParse(c.version.String())), schema/membership.go:156,205.
-// Assumes: s parses.
-// Specs: MustParse.spec, Version.String.spec, NewVersion.spec; law parse_render.
+// Assumes: s parses, and its version's String() has at most 256 bytes (maxVersionLen: the stored
+// cluster version is a major.minor.0).
+// Specs: MustParse.spec, Version.String.spec, NewVersion.spec; laws parse_render, preLtb_irrefl.
 func ReqRoundTrip(s string) {
 	v := semver.MustParse(s)
 	w, err := semver.NewVersion(v.String())
@@ -131,7 +133,8 @@ func ReqDialRetry(ctx context.Context) {
 // REQ probing/prober-lifecycle: probers are made, given peers, and emptied; the probing handler is
 // registered on the peer mux.
 // Users: rafthttp/transport.go:146-147,166,221-222,349-350,385-387; probing_status.go:41-57.
-// Assumes: rt is a round tripper.
+// Assumes: rt is a round tripper; us is non-empty, read-only from now on, and every URL parses
+// (urlParses: rafthttp's are parsed peer URLs + "/raft/probing").
 // Specs: Probing.NewProber.spec (proberOk), NewHandler.spec; Http.ServeMux.Handle.spec.
 func ReqProberLifecycle(rt http.RoundTripper, mux *http.ServeMux, id string, us []string) {
 	p := probing.NewProber(rt)
@@ -139,4 +142,17 @@ func ReqProberLifecycle(rt http.RoundTripper, mux *http.ServeMux, id string, us 
 	_ = p.Remove(id)
 	p.RemoveAll()
 	mux.Handle("/raft/probing", probing.NewHandler())
+}
+
+// REQ rate/reserve-delay: a bucket rate limiter's reservation gives a non-negative delay.
+// Users: client-go's TypedBucketRateLimiter.When (k8s.io/client-go/util/workqueue).
+// Assumes: nothing.
+// Specs: Rate.NewLimiter.spec, Limiter.Reserve.spec, Reservation.Delay.spec.
+func ReqReserveDelay() time.Duration {
+	rl := rate.NewLimiter(rate.Limit(10), 100)
+	d := rl.Reserve().Delay()
+	if d < 0 {
+		panic("reserve-delay: negative delay")
+	}
+	return d
 }

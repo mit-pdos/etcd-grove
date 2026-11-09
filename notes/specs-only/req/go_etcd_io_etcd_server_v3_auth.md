@@ -149,3 +149,9 @@ panics: `nonissues/etcd-auth-readtx-getallroles-panics.md`); `GetAllRoles` uses 
 transaction under `LockInsideApply` (the post-lock hook runs: the auth store's caller supplies its
 pre). `UnsafePutUser`/`UnsafePutRole` take the message read-only for good (`DFrac.discard`: the
 backend keeps its `Name` slice).
+
+## from 4b, round 1
+
+`authBatchTx.UnsafePutUser`/`UnsafePutRole` take `∀ bs, Proto.encodes t c bs → Schema.putFits
+(userName c) bs` (bbolt's limits: your `recordsFit`); `GetAllUsers`/`UnsafeGetAllUsers` give each
+record once, in some order (`Schema.entsAny`), not sorted.

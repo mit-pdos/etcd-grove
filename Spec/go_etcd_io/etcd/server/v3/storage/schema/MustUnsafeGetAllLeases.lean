@@ -5,9 +5,10 @@
 lock held). Snippet: `examples/specreq/schema/schema.go` (`ReqLeaseRecover`).
 
 **Assumed** (`lease.go:31-46`): `tx.UnsafeForEach(Lease, f)` (`txRd`: every entry, in key order),
-`f` unmarshals each value into a fresh `leasepb.Lease` (`Proto.Unmarshal.spec`: each value is a
-record's encoding, `leaseBktIs`, so no error and no panic) and appends its pointer. The key order is
-the ids' unsigned order (big-endian keys). The messages are plain structs afterwards
+`f` (each entry once) unmarshals each value, inside the call, into a fresh `leasepb.Lease` (`Proto.Unmarshal.spec`: each value is a
+record's encoding, `leaseBktIs`, so no error and no panic; `Unmarshal` copies the lent bytes) and
+appends its pointer. On the batch transaction the order is the ids' (big-endian keys); the spec says
+only "each once" (no caller needs the order). The messages are plain structs afterwards
 (`leaseMsg_to_struct`).
 
 **Changes.** From `specs-ref`'s `MustUnsafeGetAllLeases.lean` (over the real backend's locked
@@ -38,14 +39,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **The lease records**, one fresh `*leasepb.Lease` each, in id order. -/
+/-- **The lease records**, one fresh `*leasepb.Lease` each, each once (in some order). -/
 def MustUnsafeGetAllLeases.spec : Prop :=
   ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData)
     (L : w64 → Option LeaseRec),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txRd tx S R ∗ R V ∗ ⌜S.whole .lease ∧ V .lease = some m ∧ leaseBktIs m L⌝ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeGetAllLeases)) (Val #tx))
   {{ (sl : GoSlice), RET #sl; R V ∗ ∃ (l : List LeaseRec) (ps : List Loc),
-      ⌜l.Pairwise (fun a b => uint.Z a.1 < uint.Z b.1) ∧ ∀ r, r ∈ l ↔ L r.1 = some r⌝ ∗
+      ⌜(l.map (·.1)).Nodup ∧ ∀ r, r ∈ l ↔ L r.1 = some r⌝ ∗
       sl ↦* ps ∗ [∗list] p; r ∈ ps; l, leaseAt p r }}
 
 end spec

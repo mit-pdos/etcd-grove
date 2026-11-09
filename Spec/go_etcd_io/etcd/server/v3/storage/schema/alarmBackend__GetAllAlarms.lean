@@ -6,7 +6,8 @@
 (`ReqAlarmPutGet`).
 
 **Assumed** (`alarm.go`): `be.ReadTx()`, `RLock()` (a reader slot: the caller's thread token, given back at `RUnlock`), `UnsafeForEach(Alarm, f)` (`f` unmarshals each key: the bucket's keys are marshalled alarms, so no error), `RUnlock()`. The read transaction sees the bucket as its only writer left it. The bucket's records are as `alarmBkt` says (its realization in the
-API's header).
+API's header). The lock calls' `ETCD_VERIFY` checks (`backend/verify.go`) hold at etcd's call sites:
+that is 4a's environment premise, carried by `alarmBkt`'s and `applyHook`'s realization.
 
 **Changes.** New (the old alarm store's backend calls were inside its trusted specs).
 **Margin.** None.

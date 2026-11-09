@@ -11,7 +11,8 @@ an event (`AddEvent`). Nothing etcd computes depends on a span.
 ## Vocabulary
 
 * `spanOk sp` (transparent, persistent: a bundle of an interface value's triples): `sp` is a
-  `trace.Span` whose `End`, `RecordError` and `AddEvent` return. otel's spans are safe for
+  `trace.Span` whose `End`, `RecordError`, `AddEvent`, `SpanContext` and `IsRecording` return (the
+  last two: what the no-op tracer's `Start` calls on the context's span, `noop/noop.go:54-73`). otel's spans are safe for
   concurrent use (the SDK's take their mutex; the no-op span does nothing).
 * `ctxSpanOk ctx` (opaque, persistent): **the span context `ctx` carries** at otel's key
   (`currentSpanKey`, of type `traceContextKeyType`), if any, **is a genuine otel span**
@@ -50,7 +51,8 @@ section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **`sp` is a span whose `End`, `RecordError` and `AddEvent` return** (persistent bundle). -/
+/-- **`sp` is a span whose `End`, `RecordError`, `AddEvent`, `SpanContext`, `IsRecording` return**
+(persistent bundle). -/
 def spanOk (sp : GoInterface) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜sp = GoInterface.ok i⌝ ∗
     (□ ∀ (opts : GoSlice) (Φ : val → IProp GF), ▷ Φ #() -∗
@@ -58,7 +60,11 @@ def spanOk (sp : GoInterface) : IProp GF :=
     (□ ∀ (err : GoInterface) (opts : GoSlice) (Φ : val → IProp GF), ▷ Φ #() -∗
       WP (App (App (Val #(methods i.ty go!"RecordError" i.v)) (Val #err)) (Val #opts)) {{ Φ }}) ∗
     (□ ∀ (name : GoString) (opts : GoSlice) (Φ : val → IProp GF), ▷ Φ #() -∗
-      WP (App (App (Val #(methods i.ty go!"AddEvent" i.v)) (Val #name)) (Val #opts)) {{ Φ }}))
+      WP (App (App (Val #(methods i.ty go!"AddEvent" i.v)) (Val #name)) (Val #opts)) {{ Φ }}) ∗
+    (□ ∀ Φ : val → IProp GF, ▷ (∀ r : val, Φ r) -∗
+      WP (App (Val #(methods i.ty go!"SpanContext" i.v)) (Val #())) {{ Φ }}) ∗
+    (□ ∀ Φ : val → IProp GF, ▷ (∀ b : Bool, Φ #b) -∗
+      WP (App (Val #(methods i.ty go!"IsRecording" i.v)) (Val #())) {{ Φ }}))
 
 /-- **The span `ctx` carries, if any, is an otel span** (persistent; see the header). -/
 opaque ctxSpanOk (ctx : GoInterface) : IProp GF := iprop(True)

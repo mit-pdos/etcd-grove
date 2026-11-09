@@ -4,7 +4,8 @@
 **Users.** `RaftCluster.Recover` (`cluster.go:257`, 2e). Snippet: `examples/specreq/schema/schema.go` (`ReqMembersSaveRead`).
 
 **Assumed** (`membership.go`): `be.ReadTx()`, `RLock()` (the caller's thread token), `UnsafeRange(Cluster, clusterVersion, nil, 0)` (an absent bucket or key: `nil`), `semver.MustParse` of the stored `String()` (the premise: it parses back), `RUnlock()`. The buckets' records are as `memberBkts` says (the API's
-header); a read transaction sees them as their only writer left them (the holder is outside a write
+header; the lock calls' `ETCD_VERIFY` checks hold at etcd's call sites: 4a's environment premise,
+carried by `memberBkts`'s and `applyHook`'s realization); a read transaction sees them as their only writer left them (the holder is outside a write
 section: `specs-ref`'s `TestBksReadInsidePendingBatch`).
 
 **Changes.** From `specs-ref`'s `membershipBackend__ClusterVersionFromBackend.lean` where there was one (over the real

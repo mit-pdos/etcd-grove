@@ -4,7 +4,8 @@
 **Users.** `RaftCluster.Recover` (`cluster.go:249`, 2e). Snippet: `examples/specreq/schema/schema.go` (`ReqMembersSaveRead`).
 
 **Assumed** (`membership.go`): `be.BatchTx()`, `LockOutsideApply()` (no hook), three `UnsafeCreateBucket`s, `Unlock()`. The buckets' records are as `memberBkts` says (the API's
-header); a read transaction sees them as their only writer left them (the holder is outside a write
+header; the lock calls' `ETCD_VERIFY` checks hold at etcd's call sites: 4a's environment premise,
+carried by `memberBkts`'s and `applyHook`'s realization); a read transaction sees them as their only writer left them (the holder is outside a write
 section: `specs-ref`'s `TestBksReadInsidePendingBatch`).
 
 **Changes.** From `specs-ref`'s `membershipBackend__MustCreateBackendBuckets.lean` where there was one (over the real

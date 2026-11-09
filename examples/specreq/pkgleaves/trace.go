@@ -107,3 +107,20 @@ func ReqSubTrace(tr *traceutil.Trace, key string) {
 	tr.Step("range keys from bolt db")
 	tr.StopSubTrace()
 }
+
+// REQ otel/span-events: a span gets events and is ended from another goroutine (a watch's cancel
+// closure).
+// Users: server/etcdserver/v3_server.go:1112-1125 (AddEvent), storage/mvcc/watcher.go:140-144
+// (span.End() in a cancel closure), etcdserver/api/v3rpc/watch.go:333.
+// Assumes: ctx is a context whose span, if any, is otel's (ctxSpanOk).
+// Specs: Tracer.Start.spec, OtelTrace.spanOk (persistent: usable from any goroutine).
+func ReqSpanEvents(ctx context.Context) {
+	_, span := traceutil.Tracer.Start(ctx, "watch")
+	span.AddEvent("event")
+	done := make(chan struct{})
+	go func() {
+		span.End()
+		close(done)
+	}()
+	<-done
+}

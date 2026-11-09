@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 /-- **Creates `Lease`** (if absent; its records unchanged). -/
 def UnsafeCreateLeaseBucket.spec : Prop :=
   ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.whole .lease⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.canCreate .lease⌝ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateLeaseBucket)) (Val #tx))
   {{ RET #(); R (V.create .lease) }}
 

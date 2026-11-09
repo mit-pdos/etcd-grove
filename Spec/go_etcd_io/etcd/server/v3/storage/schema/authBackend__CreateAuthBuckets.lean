@@ -36,7 +36,7 @@ def authBackend.CreateAuthBuckets.spec : Prop :=
   ∀ (abe lg : Loc) (be btx : GoInterface) (S : Scope) (R : View → IProp GF) (P : IProp GF)
     (Q : View → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ (abe ↦□ (go_etcd_io.etcd.server.v3.storage.schema.authBackend.mk be lg) : IProp GF) ∗ retOk be go!"BatchTx" btx ∗ txWr btx S R ∗
-      ⌜S.whole .auth ∧ S.whole .authUsers ∧ S.whole .authRoles⌝ ∗
+      ⌜S.canCreate .auth ∧ S.canCreate .authUsers ∧ S.canCreate .authRoles⌝ ∗
       wrSect btx go!"LockOutsideApply" P R (fun _ => True) Q ∗ P }}
     (App (Val (abe @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty @!! go!"CreateAuthBuckets")) (Val #()))
   {{ RET #(); ∃ V : View, Q (((V.create .auth).create .authUsers).create .authRoles) }}
