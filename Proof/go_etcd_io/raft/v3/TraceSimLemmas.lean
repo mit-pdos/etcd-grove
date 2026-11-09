@@ -1567,6 +1567,113 @@ theorem next_l (t : Etcdraft.Trace) (ts : Etcdraft.TState) (r : List Etcdraft.TS
                     · left; rfl)
             hr x hx
 
+theorem foldlM_congr_mem {α β ε : Type} (f g : α → β → Except ε α) :
+    ∀ (l : List β) (a : α), (∀ a b, b ∈ l → f a b = g a b) → l.foldlM f a = l.foldlM g a := by
+  intro l
+  induction l with
+  | nil => intro a _; rfl
+  | cons b l ih =>
+    intro a h
+    simp only [List.foldlM_cons]
+    rw [h a b (by simp)]
+    cases g a b with
+    | error e => rfl
+    | ok a' =>
+      simp only [bind, Except.bind]
+      exact ih a' (fun a b hb => h a b (by simp [hb]))
+
+/-- The traces agree up to line `l0`. -/
+def AgreeTo (t t' : Etcdraft.Trace) (l0 : Nat) : Prop :=
+  t'.server = t.server ∧ (∀ k, k ≤ l0 → t'.line k = t.line k) ∧
+  t'.bootstrap.getD (l0 - 1) false = t.bootstrap.getD (l0 - 1) false ∧ l0 ≤ t.len ∧ l0 ≤ t'.len
+
+/-- A round of `StepLine`'s loop from states on line `l0` is the same in traces that agree up to it. -/
+theorem stepRound_congr (t t' : Etcdraft.Trace) (l0 : Nat) (inv : Bool) (frontier : List Etcdraft.TState)
+    (st : List Etcdraft.TState × List Etcdraft.TState × Etcdraft.StepInfo) (ha : AgreeTo t t' l0)
+    (hf : ∀ f ∈ frontier, f.l = l0) :
+    t'.stepRound l0 inv frontier st = t.stepRound l0 inv frontier st := by
+  obtain ⟨hs, hl, hb, hlen, hlen'⟩ := ha
+  unfold Etcdraft.Trace.stepRound
+  apply foldlM_congr_mem
+  intro a f hfm
+  have hfl := hf f hfm
+  have hn : t'.next f = t.next f :=
+    next_congr t t' f hs (fun k hk => hl k (by omega)) (by rw [hfl]; exact hb) (by omega) (by omega)
+  simp only [hn]
+
+theorem foldlM_inv_mem {α β ε : Type} (f : α → β → Except ε α) (P : α → Prop) :
+    ∀ (l : List β) (a r : α), P a → (∀ a b r, b ∈ l → P a → f a b = .ok r → P r) →
+      l.foldlM f a = .ok r → P r := by
+  intro l
+  induction l with
+  | nil => intro a r ha _ h; simp [List.foldlM, pure, Except.pure] at h; subst h; exact ha
+  | cons b l ih =>
+    intro a r ha hf h
+    simp only [List.foldlM_cons, bind, Except.bind] at h
+    cases hb : f a b with
+    | error e => rw [hb] at h; cases h
+    | ok a' =>
+      rw [hb] at h
+      exact ih a' r (hf a b a' (by simp) ha hb) (fun a b r hb' => hf a b r (by simp [hb'])) h
+
+/-- A round's new frontier is on line `l0` (the states it reaches on the next line go to `out`). -/
+theorem stepRound_next_l (t : Etcdraft.Trace) (l0 : Nat) (inv : Bool) (frontier : List Etcdraft.TState)
+    (st : List Etcdraft.TState × List Etcdraft.TState × Etcdraft.StepInfo)
+    (out visited next : List Etcdraft.TState) (info : Etcdraft.StepInfo)
+    (hf : ∀ f ∈ frontier, f.l = l0)
+    (h : t.stepRound l0 inv frontier st = .ok (out, visited, next, info)) : ∀ x ∈ next, x.l = l0 := by
+  unfold Etcdraft.Trace.stepRound at h
+  refine foldlM_inv_mem _ (fun acc : List Etcdraft.TState × List Etcdraft.TState × List Etcdraft.TState ×
+      Etcdraft.StepInfo => ∀ x ∈ acc.2.2.1, x.l = l0) _ _ (out, visited, next, info) (by simp) ?_ h
+  intro acc f r hfm hacc hstep
+  have hfl := hf f hfm
+  obtain ⟨o, v, n, i⟩ := acc
+  simp only at hstep hacc
+  split at hstep
+  · simp only [pure, Except.pure, Except.ok.injEq] at hstep; subst hstep; exact hacc
+  cases hn : t.next f with
+  | error e => simp [hn, bind, Except.bind] at hstep
+  | ok succ =>
+    have hsl := next_l t f succ hn
+    simp only [hn, bind, Except.bind] at hstep
+    generalize hin : List.foldlM (m := Etcdraft.EvalM) _ _ succ = res at hstep
+    cases res with
+    | error e => cases hstep
+    | ok q =>
+      simp only [pure, Except.pure, Except.ok.injEq] at hstep
+      subst hstep
+      simp only
+      refine foldlM_inv_mem _ (fun a : List Etcdraft.TState × List Etcdraft.TState × List Etcdraft.TState ×
+        List Etcdraft.TState × Etcdraft.StepInfo => ∀ x ∈ a.2.2.1, x.l = l0) _ _ q hacc ?_ hin
+      intro a s2 r' hs2 ha hst
+      have hs2l := hsl s2 hs2
+      generalize hT : (if (s2.l == l0 + 1) = true then
+          (if Etcdraft.memEq a.1 s2 = true then (a.1, a.2.1, a.2.2.1, false) else (a.1 ++ [s2], a.2.1, a.2.2.1, true))
+        else (if Etcdraft.memEq a.2.1 s2 = true then (a.1, a.2.1, a.2.2.1, false)
+          else (a.1, a.2.1 ++ [s2], a.2.2.1 ++ [s2], true))) = T at hst
+      have key : ∀ x ∈ T.2.2.1, x.l = l0 := by
+        rw [← hT]
+        split
+        · split <;> exact ha
+        · rename_i hne
+          split
+          · exact ha
+          · intro x hx
+            simp only [List.mem_append, List.mem_singleton] at hx
+            rcases hx with hx | rfl
+            · exact ha x hx
+            · simp only [beq_iff_eq] at hne; omega
+      split at hst
+      · simp only [pure, Except.pure, Except.ok.injEq] at hst; subst hst; exact ha
+      split at hst
+      · simp only [pure, Except.pure, Except.ok.injEq] at hst; subst hst; exact key
+      split at hst
+      · cases hvi : s2.s.violated with
+        | error e => simp [hvi] at hst
+        | ok v =>
+          cases v <;> simp [hvi, pure, Except.pure] at hst <;> subst hst <;> exact key
+      · simp only [pure, Except.pure, Except.ok.injEq] at hst; subst hst; exact key
+
 end TraceSim
 
 end EtcdGrove
