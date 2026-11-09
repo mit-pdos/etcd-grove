@@ -117,15 +117,35 @@ opaque walBaseGName (w : Loc) : GName
 `storage.walOpen`'s): once `σ.b ≤ σ.commit`, what `ReadAll` returns when a restart opens the WAL at
 its snapshot record of the highest index at or below the saved commit: the snapshot record at
 `σ.base`, the last hard state `σ.hs`, the entries above `σ.base`. With the authority over its base's
-lower bounds (`walBaseLb`): the base only grows. -/
-@[no_expose] def walRecs (w : Loc) (σ : StorContents) : IProp GF :=
-  iprop(ghostVar (walRecGName w) 1 σ ∗ monoNatAuthOwn (walBaseGName w) 1 σ.b)
+lower bounds (`walBaseLb`): the base only grows.
+
+(raft-entsize §5, [r3g], 2026-11-09) **`sized`** (default `false`, today's meaning): when `true`,
+every entry record in the WAL is `pbutil.MustMarshalMessage(e)` of an entry object `e` that held a
+content `c` with `entSizeOk c` when it was saved (the `Save` law at `sized = true` takes those
+objects; `saveEntry` marshals the saved object, `wal.go:~979-988`, called per entry from `Save`'s
+loop, `:1005-1014`). `wal.Create` starts with no entry records, so `bootstrap`'s first start gives
+`true` (`wal.bootOk`). `false` claims nothing of the records' contents, so `true` weakens to it
+(`walRecs_unsize`). The flag is in the records' ghost variable, so every `Save` and `Close` of the
+WAL sees the same flag (whichever storage over `w` they go through). -/
+@[no_expose] def walRecs (w : Loc) (σ : StorContents) (sized : Bool := false) : IProp GF :=
+  iprop(ghostVar (walRecGName w) 1 (σ, sized) ∗ monoNatAuthOwn (walBaseGName w) 1 σ.b)
 
 /-- **The WAL `w`'s records' base is at least `i`** (persistent). -/
 @[no_expose] def walBaseLb (w : Loc) (i : Nat) : IProp GF := monoNatLbOwn (walBaseGName w) i
 
-instance walRecs_timeless (w : Loc) (σ : StorContents) : Timeless (walRecs (GF := GF) w σ) := by
+instance walRecs_timeless (w : Loc) (σ : StorContents) (sized : Bool) :
+    Timeless (walRecs (GF := GF) w σ sized) := by
   unfold walRecs; infer_instance
+
+/-- (raft-entsize §5, [r3g]) **A sized WAL's records are also unsized ones**: `sized = false`
+claims nothing of the records' contents. -/
+theorem walRecs_unsize (w : Loc) (σ : StorContents) (sized : Bool) :
+    walRecs (GF := GF) w σ sized ⊢ |==> walRecs w σ false := by
+  unfold walRecs
+  iintro ⟨Hv, Ha⟩
+  imod ghostVar_update (σ, false) (walRecGName w) (σ, sized) $$ Hv with Hv
+  imodintro
+  iframe Hv Ha
 
 instance walBaseLb_persistent (w : Loc) (i : Nat) : Persistent (walBaseLb (GF := GF) w i) := by
   unfold walBaseLb; infer_instance
@@ -134,8 +154,8 @@ instance walBaseLb_timeless (w : Loc) (i : Nat) : Timeless (walBaseLb (GF := GF)
   unfold walBaseLb; infer_instance
 
 /-- Two records of one WAL exclude each other. -/
-theorem walRecs_excl (w : Loc) (σ σ' : StorContents) :
-    walRecs (GF := GF) w σ ∗ walRecs w σ' ⊢ False := by
+theorem walRecs_excl (w : Loc) (σ σ' : StorContents) (s : Bool := false) (s' : Bool := false) :
+    walRecs (GF := GF) w σ s ∗ walRecs w σ' s' ⊢ False := by
   unfold walRecs
   iintro ⟨⟨-, A1⟩, ⟨-, A2⟩⟩
   iapply monoNatAuthOwn_exclusive (walBaseGName w) σ.b σ'.b $$ A1 A2
@@ -186,12 +206,21 @@ member `id` of the cluster `cid`** (axiomatized, timeless; a trust-boundary toke
 `WalDir.lean`: the user's choice, 2026-11-03): `wal.Open(dir, s)` at the snapshot record
 `recoverSnapshot` picks (the highest valid one), then `ReadAll`, returns `σ` and the metadata.
 Made by `Close`; consumed by a restart's `bootstrap` (its contract). A graceful stop in one
-process. No axiom says it is exclusive: read as `True`, every axiom about it holds. -/
+process. No axiom says it is exclusive: read as `True`, every axiom about it holds.
+
+(raft-entsize §5, [r3g], 2026-11-09) **`sized`** (default `false`, today's meaning): when `true`,
+every entry record in the files is `pbutil.MustMarshalMessage(e)` of a saved entry object whose
+content `c` had `entSizeOk c` (`walRecs`'s `sized`, which `Close` carries into the files: `Close`
+syncs and closes, it writes no record). `ReadAll` decodes each entry record with `Unmarshal`, whose
+exact round trip (stage A's `D2`, `proto/UnmarshalPb.lean`) gives back the saved content, unknown
+fields included, so the replayed entries are `entSizeOk`: that fact is to be stated by the restart
+contract's `ReadAll` (deferred to the restart contract's work; no statement gives it yet). A WAL
+written by another program is at `false`: today's facts only. -/
 axiom walFiles {GF : BundledGFunctors} [GooseExts] (dir : GoString) (id cid : w64)
-    (σ : StorContents) : IProp GF
+    (σ : StorContents) (sized : Bool := false) : IProp GF
 
 axiom walFiles_timeless {GF : BundledGFunctors} [GooseExts] (dir : GoString) (id cid : w64)
-    (σ : StorContents) : Timeless (walFiles (GF := GF) dir id cid σ)
+    (σ : StorContents) (sized : Bool := false) : Timeless (walFiles (GF := GF) dir id cid σ sized)
 
 attribute [instance] walFiles_timeless
 
