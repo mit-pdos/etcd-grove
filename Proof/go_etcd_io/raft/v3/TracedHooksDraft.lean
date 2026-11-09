@@ -40,6 +40,7 @@ public import Spec.go_etcd_io.raft.v3.raft__send
 public import Proof.go_etcd_io.raft.v3.TraceSimLemmas
 public import Proof.go_etcd_io.raft.v3.TraceSimGhost
 public import Proof.go_etcd_io.raft.v3.TraceSimFacts
+public import Proof.go_etcd_io.raft.v3.TraceSimSpecInv
 public import Proof.strconv.FormatUintDefs
 
 @[expose] public section
@@ -255,11 +256,11 @@ def MsgsUniq (σ : Etcdraft.State) : Prop :=
 
 /-- **The specification state's facts in `simInv`** (Draft): every voter's raft facts (`allFacts`:
 `MoreThanOneLeaderInv`, `LogInv`, `LogMatchingInv`, `CommitOk`, and with the vote table
-`LeaderCompletenessInv`), the specification invariants `LeaderEntries` (`ElectionSafetyInv`),
-`DurInv` (`CommittedIsDurableInv`) and `CommitWithinLeader`, and `QuorumLogInv`'s fact; the bags'
-uniqueness (`MsgsDet`) to be added. -/
+`LeaderCompletenessInv`), the specification invariant `SpecInv` (`TraceSimSpecInv.lean`: with it
+`ElectionSafetyInv`, `CommittedIsDurableInv`, `CommitWithinLeader`; it replaces `DurInv`, false as
+stated), `QuorumLogInv`'s fact and the bags' uniqueness. -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
-  iprop(allFacts γ C σ ∗ ⌜LeaderEntries σ ∧ DurInv σ ∧ CommitWithinLeader σ ∧ QuorumLogF σ ∧ MsgsUniq σ⌝)
+  iprop(allFacts γ C σ ∗ ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ⌝)
 
 instance simFx_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
     Persistent (simFx (GF := GF) γ C σ) := by
@@ -275,14 +276,15 @@ theorem simFx_violated (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (hs
   iintro ⟨Htbl, Hfx⟩
   iunfold simFx at Hfx
   icases Hfx with ⟨#Hal, %Hp⟩
-  obtain ⟨hle, hdur, hcw, hq, -⟩ := Hp
+  obtain ⟨hsi, hq, -⟩ := Hp
+  have hcw := hsi.commitWithinLeader
   icases allFacts_oneLeader γ C σ hsrv $$ Hal with %h1
   icases allFacts_logInv γ C σ hsrv $$ Hal with %h2
   icases allFacts_logMatching γ C σ hsrv $$ Hal with %h3
   icases allFacts_commitOk γ C σ hsrv $$ Hal with %h4
   icases allFacts_leaderCompleteness γ C σ hsrv hcw $$ [$Htbl $Hal] with %h5
   ipureintro
-  exact violated_none σ ⟨h4, h2, h1, electionSafety_of_leaderEntries σ hle, h3, hq, h5, durable_of_durInv σ hdur⟩
+  exact violated_none σ ⟨h4, h2, h1, hsi.electionSafety, h3, hq, h5, hsi.committedIsDurable⟩
 
 /-- **The simulation's capability** on a hook path (Q8): `emp` in an untraced cluster; in a traced
 one, the node's share `(cs, P)` with the function's phase `Φ C cs P` (`C` the voters, raft's
