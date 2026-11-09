@@ -1170,6 +1170,76 @@ theorem appendEntriesToSelf_send (st : Etcdraft.State) (C : List w64) (bl : Nat)
   simp only [hmsg, Option.get_some]
   rw [h1, h6, logAbs_length, plastIndex_length bl s hs]
 
+/-- The specification's candidate has not heard from `w` when raft's has no vote of `w`. -/
+theorem not_responded (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (w : w64)
+    (hR : SimServerR C bl s a) (hc : s.role = .candidate) (hw : s.votes !! w = none) :
+    a.votesResponded.contains (idAbs w) = false := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, h10, -⟩ := hR
+  rw [(h10 hc).1]
+  cases h : List.contains _ (idAbs w)
+  · rfl
+  · exfalso
+    rw [List.contains_iff_mem, setIds_mk_mem, mem_keysAbs] at h
+    obtain ⟨k, v, hk, e⟩ := h
+    rw [idAbs_inj.1 e] at hk; rw [hw] at hk; cases hk
+
+/-- **A vote request a candidate sends** (`campaign`: its last index and term, to a voter it has
+no vote of): the specification's `RequestVote(i, j)` sends its abstraction. -/
+theorem requestVote_send (st : Etcdraft.State) (C : List w64) (bl : Nat) (s : PState) (id : w64)
+    (m : Msg) (hR : SimServerR C bl s (st.s (idAbs id))) (hc : s.role = .candidate)
+    (hs : LogShapeOk bl s) (hty : m.ty = .vote) (hsrc : m.src = id) (hdst : m.dst ≠ id)
+    (hC : m.dst ∈ C) (hw : s.votes !! m.dst = none) (hterm : m.term = s.term)
+    (hidx : m.index = (plogLast s.base s.log).index') (hlt : m.logterm = (plogLast s.base s.log).term') :
+    st.requestVote (idAbs id) (idAbs m.dst) =
+      some (st.send ((msgAbs C bl m).get (by simp [msgAbs, hty]))) := by
+  have hnr := not_responded C bl s _ m.dst hR hc hw
+  obtain ⟨h1, h2, -, -, -, h6, -, h8, -, -, -⟩ := hR
+  have hne : idAbs id ≠ idAbs m.dst := fun e => hdst (idAbs_inj.1 e).symm
+  unfold Etcdraft.State.requestVote
+  have hcand : ((st.s (idAbs id)).state == Etcdraft.candidate) = true := by rw [h2, hc]; rfl
+  have hcont : (((st.getConfig (idAbs id)).union (st.getLearners (idAbs id))).minus
+      (st.s (idAbs id)).votesResponded).contains (idAbs m.dst) = true := by
+    unfold Etcdraft.SetIds.minus
+    rw [List.contains_iff_mem, List.mem_filter]
+    refine ⟨?_, by rw [hnr]; rfl⟩
+    rw [← List.contains_iff_mem]
+    unfold Etcdraft.State.getConfig Etcdraft.State.getLearners; rw [h8]; exact peer_contains C _ hC
+  have hne' : (idAbs id != idAbs m.dst) = true := by simp [hne]
+  simp only [hcand, hcont, Bool.and_self, ↓reduceIte, hne']
+  have hmsg : msgAbs C bl m = some
+      { type := .requestVoteRequest, term := uint.Z m.term, source := idAbs m.src, dest := idAbs m.dst,
+        lastLogIndex := uint.Z m.index, lastLogTerm := uint.Z m.logterm } := by
+    simp only [msgAbs, hty]
+  simp only [hmsg, Option.get_some]
+  rw [h1, h6, lastTerm_logAbs C bl s hs, logAbs_length, ← lastIndex_plogLast bl s hs, hsrc, hterm, hidx, hlt]
+
+/-- **A candidate's vote for itself** (`campaign`'s self-addressed `MsgVoteResp`): the
+specification's `RequestVote(i, i)`. -/
+theorem requestVoteSelf_send (st : Etcdraft.State) (C : List w64) (bl : Nat) (s : PState) (id : w64)
+    (m : Msg) (hR : SimServerR C bl s (st.s (idAbs id))) (hc : s.role = .candidate)
+    (hty : m.ty = .voteResp) (hsrc : m.src = id) (hdst : m.dst = id) (hC : id ∈ C)
+    (hw : s.votes !! id = none) (hterm : m.term = s.term) (hrej : m.reject = false) :
+    st.requestVote (idAbs id) (idAbs id) =
+      some (st.send ((msgAbs C bl m).get (by simp [msgAbs, hty]))) := by
+  have hnr := not_responded C bl s _ id hR hc hw
+  obtain ⟨h1, h2, -, -, -, -, -, h8, -, -, -⟩ := hR
+  unfold Etcdraft.State.requestVote
+  have hcand : ((st.s (idAbs id)).state == Etcdraft.candidate) = true := by rw [h2, hc]; rfl
+  have hcont : (((st.getConfig (idAbs id)).union (st.getLearners (idAbs id))).minus
+      (st.s (idAbs id)).votesResponded).contains (idAbs id) = true := by
+    unfold Etcdraft.SetIds.minus
+    rw [List.contains_iff_mem, List.mem_filter]
+    refine ⟨?_, by rw [hnr]; rfl⟩
+    rw [← List.contains_iff_mem]
+    unfold Etcdraft.State.getConfig Etcdraft.State.getLearners; rw [h8]; exact peer_contains C _ hC
+  simp only [hcand, hcont, Bool.and_self, ↓reduceIte, bne_self_eq_false, Bool.false_eq_true]
+  have hmsg : msgAbs C bl m = some
+      { type := .requestVoteResponse, term := uint.Z m.term, source := idAbs m.src, dest := idAbs m.dst,
+        voteGranted := !m.reject } := by
+    simp only [msgAbs, hty]
+  simp only [hmsg, Option.get_some]
+  rw [h1, hsrc, hdst, hterm, hrej]; rfl
+
 end TraceSim
 
 end EtcdGrove
