@@ -255,11 +255,48 @@ def newTraceWith (events : List Event) (preVote checkQuorum : Bool) : Except Tra
       preVote := preVote, checkQuorum := checkQuorum }
   return { lines := lines, server := server, initSrv := initSrv, bootstrap := bootstrap, init := st }
 
-/-- A trace of `events` has a line per event (Draft: proved with layer B's lemmas on `newTraceWith`
-of a trace extended by a line). -/
+/-- What a successful `newTraceWith` is made of: the events' lines, and its bootstrap flags read
+from them for its servers. -/
+theorem newTraceWith_ok (events : List Event) (pv cq : Bool) (t : Trace)
+    (h : newTraceWith events pv cq = .ok t) :
+    ((List.range events.length).zip events).mapM (fun p => parseLine p.1 p.2) = .ok t.lines ∧
+    t.bootstrap = (List.range t.lines.length).map (fun k =>
+      (t.server.map (fun i => (i, bootstrapOf t.lines i))).any (fun p => p.2.1.getD k false)) := by
+  unfold newTraceWith at h
+  simp only [bind, Except.bind, pure, Except.pure, throw, throwThe, MonadExceptOf.throw] at h
+  repeat' (split at h)
+  all_goals first
+    | (cases h; done)
+    | (injection h with h; subst h; exact ⟨by assumption, rfl⟩)
+
+theorem mapM_ok_length {α β ε : Type} (f : α → Except ε β) :
+    ∀ (l : List α) (r : List β), l.mapM f = .ok r → r.length = l.length := by
+  intro l
+  induction l with
+  | nil => intro r h; simp [List.mapM_nil, pure, Except.pure] at h; subst h; rfl
+  | cons a l ih =>
+    intro r h
+    rw [List.mapM_cons] at h
+    simp only [bind, Except.bind] at h
+    cases hf : f a with
+    | error e => rw [hf] at h; cases h
+    | ok b =>
+      rw [hf] at h
+      simp only at h
+      cases hl : l.mapM f with
+      | error e => rw [hl] at h; cases h
+      | ok r' =>
+        rw [hl] at h
+        simp only [pure, Except.pure, Except.ok.injEq] at h
+        subst h
+        simp [ih r' hl]
+
+/-- A trace of `events` has a line per event. -/
 theorem newTraceWith_len (events : List Event) (pv cq : Bool) (t : Trace) :
     newTraceWith events pv cq = .ok t → t.len = events.length := by
-  sorry
+  intro h
+  have := mapM_ok_length _ _ _ (newTraceWith_ok events pv cq t h).1
+  simpa [Trace.len] using this
 
 /-- The empty trace is refused. -/
 theorem newTraceWith_nil (pv cq : Bool) : ∀ t, newTraceWith [] pv cq ≠ .ok t := by

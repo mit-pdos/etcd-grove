@@ -183,12 +183,16 @@ def SimRun (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) : Prop :=
   ∃ lines ts, parseLines (L.map evConv) = .ok lines ∧
     Etcdraft.Trace.RunRel (linesTrace C lines) L.length ts ∧ ts.s = σ ∧ ts.l = L.length + 1
 
-/-- Draft (to be proved, with `newTraceWith_len`): `newTraceWith` reads the events' lines, and its
-bootstrap flags are `bootFlags` of its servers. -/
+/-- `newTraceWith` reads the events' lines, and its bootstrap flags are `bootFlags` of its servers. -/
 theorem newTraceWith_lines (evs : List Etcdraft.Event) (t : Etcdraft.Trace) :
     Etcdraft.newTraceWith evs false false = .ok t →
     parseLines evs = .ok t.lines ∧ t.bootstrap = bootFlags t.server t.lines := by
-  sorry
+  intro h
+  obtain ⟨h1, h2⟩ := Etcdraft.newTraceWith_ok evs false false t h
+  refine ⟨h1, ?_⟩
+  rw [h2]
+  unfold bootFlags
+  simp [List.any_map, Function.comp_def]
 
 /-- A bag of the messages of a list. -/
 def bagOf (l : List Etcdraft.Msg) : Etcdraft.Bag := l.foldl Etcdraft.Bag.with []
