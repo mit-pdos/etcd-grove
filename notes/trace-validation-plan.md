@@ -150,6 +150,21 @@ stale request's phantom reply, which must go to the phantoms, not the node's sha
 `Ready` (its bags move as a function of the pending bag, outside `withNode`'s shape: its own law),
 `BecomeFollower` (the skip bit) and the bootstrap lines.
 
+**S5 Draft review round 2 (`notes/trace-validation-reviews/s5-r2.md`): seven first-tier findings.**
+Repaired: A1 (`PhaseStep`/`PhaseStepR` given raft's configuration facts), A2 (`FxPres`/`FxPresR` given
+the call site's premises: pre-vote/check-quorum off, `σ.violated = none`, the received message in
+the bag, and the vote table threaded through), A3 (`simFx` carries every message's facts,
+`msgFacts`: an append request's source leads its term, its entries' records), A4 (`send` and
+`traceCommit` take the caller's `FxPresT`; `maybeCommit` proves its own, blocked until
+`QuorumLogInv`'s history copy), A5's first half (`MsgsUniq` over both bags), A8 (`DurS` bounds the
+servers' match indices only; `advanceCommitIndex`'s preservation takes the configuration within the
+servers). Open, the next slices: A5's second half (`Ready`'s own law: its bags move as a function of
+the pending bag, phantoms included), A6 (a receipt answered by a phantom: the reply split between the
+share and the phantoms), A7 (laws for bootstrap-named lines after a node's segment, with a per-node
+"segment over" witness, for the bootstrap lines themselves, and for the self-addressed messages'
+tokens at `Advance`), A9 (whether the leader's facts at a `Replicate` line can have the new entry's
+records: raft creates them after the hook), A10-A12 (monotonicity of `TraceFire`, cosmetics).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
