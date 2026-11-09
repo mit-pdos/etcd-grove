@@ -445,6 +445,99 @@ theorem hasNoConflict_abs (st : Etcdraft.State) (i : Etcdraft.ID) (C : List w64)
         entAbs_term C bl _ e (fun hb => hbe k e hb he), this]
     · left; omega
 
+/-- An uncompacted log's term at a positive index. -/
+theorem plogTermAt_base0 (es : List EntryM) (i : w64) (hi : 0 < uint.Z i) :
+    plogTermAt (entryID.mk (W64 0) (W64 0)) es i = es[uint.nat i - 1]?.map EntryM.Term' := by
+  unfold plogTermAt
+  have h0 : uint.Z (entryID.mk (W64 0) (W64 0)).index' = 0 := rfl
+  have h1 : ¬ uint.Z i < 0 := by omega
+  have h2 : ¬ uint.Z i = 0 := by omega
+  simp only [h0, h1, h2, ↓reduceIte]
+  have : (uint.Z i - 0 - 1).toNat = uint.nat i - 1 := by word
+  rw [this]; rfl
+
+/-- Raft's `matchTerm` of a batch entry, on an uncompacted log: the log has an entry there, of the
+same term. -/
+theorem plogMatches_base0 (es : List EntryM) (e : EntryM) (q : Nat) (hq : uint.Z e.Index' = q + 1) :
+    PlogMatches (entryID.mk (W64 0) (W64 0)) es (entId e) ↔ es[q]?.map EntryM.Term' = some e.Term' := by
+  unfold PlogMatches entId
+  simp only
+  rw [plogTermAt_base0 es _ (by omega)]
+  have : uint.nat e.Index' - 1 = q := by word
+  rw [this]
+
+theorem subSeqM_init (l : List Etcdraft.Entry) :
+    Etcdraft.subSeqM l 1 ((l.length : Int) - 1) = .ok (l.take (l.length - 1)) := by
+  unfold Etcdraft.subSeqM Etcdraft.subSeq
+  by_cases h : (1 : Int) > (l.length : Int) - 1
+  · have : l.length - 1 = 0 := by omega
+    simp only [h, ↓reduceIte, this, List.take_zero]; rfl
+  · have h2 : ¬ ((1 : Int) < 1 ∨ (l.length : Int) - 1 > l.length) := by omega
+    simp only [h, h2, ↓reduceIte]
+    have : ((l.length : Int) - 1).toNat - 1 + 1 = l.length - 1 := by omega
+    simp only [Int.toNat_one, Nat.sub_self, List.drop_zero]
+    rw [this]; rfl
+
+theorem subSeqM_drop (l : List Etcdraft.Entry) (d : Nat) :
+    Etcdraft.subSeqM l ((d : Int) + 1) l.length = .ok (l.drop d) := by
+  unfold Etcdraft.subSeqM Etcdraft.subSeq
+  by_cases h : (d : Int) + 1 > l.length
+  · simp only [h, ↓reduceIte, List.drop_eq_nil_of_le (by omega : l.length ≤ d)]; rfl
+  · have h2 : ¬ ((d : Int) + 1 < 1 ∨ (l.length : Int) > l.length) := by omega
+    simp only [h, h2, ↓reduceIte]
+    have : ((d : Int) + 1).toNat - 1 = d := by omega
+    rw [this, List.take_of_length_le (by simp; omega)]; rfl
+
+/-- The abstract log after a truncation to `q` and the batch from `d` on, `q = p + d`. -/
+theorem logAbs_truncAppend (C : List w64) (bl p d : Nat) (es ents : List EntryM)
+    (hq : p + d ≤ es.length) :
+    logAbs C bl 1 (es.take (p + d)) ++ (logAbs C bl (p + 1) ents).drop d =
+      logAbs C bl 1 (es.take (p + d) ++ ents.drop d) := by
+  apply List.ext_getElem?
+  intro k
+  rw [logAbs_getElem?, List.getElem?_append, List.getElem?_append]
+  simp only [logAbs_length, List.length_take, Nat.min_eq_left hq]
+  split
+  · rw [logAbs_getElem?]
+  · rw [List.getElem?_drop, logAbs_getElem?, List.getElem?_drop]
+    congr 1; funext e; congr 1; omega
+
+/-- **`ConflictAppendEntriesRequest`** on raft's abstract log of `n` entries, while the batch
+conflicts with it: the last entry is dropped. -/
+theorem conflict_step (st : Etcdraft.State) (i : Etcdraft.ID) (m : Etcdraft.Msg) (C : List w64)
+    (bl p n : Nat) (es ents : List EntryM) (hlog : (st.s i).log = logAbs C bl 1 (es.take n))
+    (hents : m.entries = logAbs C bl (p + 1) ents) (hn : n ≤ es.length) (hpn : p ≤ n)
+    (hc : (st.s i).commitIndex < (p : Int) + 1) (hne : ents ≠ [])
+    (hbl : BootTerms bl 1 es) (hbe : BootTerms bl (p + 1) ents)
+    (hconf : ¬ ∀ k e, ents[k]? = some e → p + k < n → ((es.take n)[p + k]?).map EntryM.Term' = some e.Term') :
+    st.conflictAppendEntriesRequest i ((p : Int) + 1) m =
+      .ok (some (st.upd i (fun v => { v with log := logAbs C bl 1 (es.take (n - 1)) }))) := by
+  have hlen : (es.take n).length = n := by simp; omega
+  have hnc : st.hasNoConflict i ((p : Int) + 1) m.entries = false := by
+    rw [hents]
+    cases h : st.hasNoConflict i ((p : Int) + 1) (logAbs C bl (p + 1) ents)
+    · rfl
+    · exfalso; apply hconf
+      have := (hasNoConflict_abs st i C bl p (es.take n) ents hlog (by omega) (hbl.take n) hbe).1 h
+      rw [hlen] at this; exact this
+  unfold Etcdraft.State.conflictAppendEntriesRequest
+  have hne' : m.entries.isEmpty = false := by
+    rw [hents]; cases ents with
+    | nil => exact absurd rfl hne
+    | cons _ _ => simp [logAbs]
+  simp only [hne', hnc, hc, decide_true, Bool.not_false, Bool.not_true, Bool.and_self,
+    Bool.false_eq_true, ↓reduceIte]
+  rw [hlog]
+  have := subSeqM_init (logAbs C bl 1 (es.take n))
+  rw [logAbs_length, hlen] at this
+  rw [logAbs_length, hlen]
+  simp only [bind, Except.bind, this, pure, Except.pure]
+  have hl : (logAbs C bl 1 (List.take n es)).take (n - 1) = logAbs C bl 1 (List.take (n - 1) es) := by
+    apply List.ext_getElem?; intro k
+    rw [List.getElem?_take, logAbs_getElem?, logAbs_getElem?, List.getElem?_take, List.getElem?_take]
+    split <;> (try split) <;> first | rfl | omega
+  rw [hl]
+
 end TraceSim
 
 end EtcdGrove
