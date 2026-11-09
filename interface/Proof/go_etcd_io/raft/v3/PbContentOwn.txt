@@ -23,9 +23,14 @@ def snapOptCC (p : Loc) (dq : DFrac) : Option SnapC → IProp GF :=
   | none => iprop(⌜p = null⌝)
   | some s => ownSnapCC p dq s
 
+theorem ccsRoC_ccsRO (p : Loc) (c : ConfChangeSingleM) (uf : List w8) : ccsRoC p c uf ⊢ ccsRO p c
+
 theorem smOptCC_smOpt (p : Loc) (dq : DFrac) (o : Option SnapMetaC) (h : ∀ (m : SnapMetaC), m ∈ o →
     ∀ (cs : CSC), cs ∈ m.confState → cs.uf = []) : smOptCC p dq o ⊢ smOpt p dq ((Option.map
     SnapMetaC.model o).getD metaZero)
+
+theorem ccPtsCC_own (c : GoInterface) (dq : DFrac) (cc : ConfChangeIC) : ccPtsCC c dq cc ⊢
+    ownConfChangeI c dq (some cc.model)
 
 theorem csPtsCC_discard_persistent (p : Loc) (c : CSC) (al : Bool) : Persistent (csPtsCC p
     DFrac.discard c al)
@@ -33,11 +38,50 @@ theorem csPtsCC_discard_persistent (p : Loc) (c : CSC) (al : Bool) : Persistent 
 theorem bytesCC_persist (ds : GoSlice) (dq : DFrac) (o : Option (List w8)) : bytesCC ds dq o ⊢ |==>
     bytesCC ds DFrac.discard o
 
+def ccSize : ConfChangeIC → Nat :=
+  match x✝ with
+  | ConfChangeIC.v1 m uf => m.context.length + uf.length
+  | ConfChangeIC.v2 transition chs ctx uf => ctx.length + uf.length + (List.map (fun ch => ch.snd.length + 32) chs).sum
+
+def ccPtsCC (c : GoInterface) (dq : DFrac) : ConfChangeIC → IProp GF :=
+  match x✝ with
+  | ConfChangeIC.v1 m uf =>
+    iprop(∃ p pt pn pi cs,
+        ⌜c = interface.mkOk raftpb.ConfChange.ty.PointerType (intoVal p) ∧ p ≠ null⌝ ∗
+          typedPointsto (structFieldRef raftpb.ConfChange go!"Type" p) pt dq ∗
+            cellRO pt m.type ∗
+              typedPointsto (structFieldRef raftpb.ConfChange go!"NodeId" p) pn dq ∗
+                cellRO pn m.nodeId ∗
+                  typedPointsto (structFieldRef raftpb.ConfChange go!"Id" p) pi dq ∗
+                    cellRO pi m.id ∗
+                      typedPointsto (structFieldRef raftpb.ConfChange go!"Context" p)
+                          cs dq ∗
+                        ownSlice cs m.context DFrac.discard ∗ pbMsg raftpb.ConfChange p uf)
+  | ConfChangeIC.v2 t chs ctx uf =>
+    iprop(∃ p pt sc ls cs,
+        ⌜c = interface.mkOk raftpb.ConfChangeV2.ty.PointerType (intoVal p) ∧ p ≠ null⌝ ∗
+          typedPointsto
+              (structFieldRef raftpb.ConfChangeV2 go!"Transition" p)
+              pt dq ∗
+            cellRO pt t ∗
+              typedPointsto (structFieldRef raftpb.ConfChangeV2 go!"Changes" p) sc dq ∗
+                ownSlice sc ls dq ∗
+                  ([∗list] q;ch ∈ ls;chs, ccsRoC q ch.fst ch.snd) ∗
+                    typedPointsto (structFieldRef raftpb.ConfChangeV2 go!"Context" p)
+                        cs dq ∗
+                      ownSlice cs ctx DFrac.discard ∗ pbMsg raftpb.ConfChangeV2 p uf)
+
 theorem smPtsCC_discard_persistent (p : Loc) (m : SnapMetaC) : Persistent (smPtsCC p DFrac.discard
     m)
 
+theorem ccsROs_ccsRoCs (ls : List Loc) (cs : List ConfChangeSingleM) : ([∗list] q;c ∈ ls;cs, ccsRO q
+    c) ⊢ ∃ chs, ([∗list] q;ch ∈ ls;chs, ccsRoC q ch.fst ch.snd) ∗ ⌜List.map Prod.fst chs = cs⌝
+
 theorem entPts_iff_CC (l : Loc) (dq : DFrac) (e : EntryM) : entPts l dq e ⊣⊢ ∃ c, entPtsCC l dq c ∗
     ⌜c.model = e⌝
+
+theorem ccsRoCs_ccsROs (ls : List Loc) (chs : List (ConfChangeSingleM × List w8)) : ([∗list] q;ch ∈
+    ls;chs, ccsRoC q ch.fst ch.snd) ⊢ [∗list] q;c ∈ ls;List.map Prod.fst chs, ccsRO q c
 
 def smPtsCC (p : Loc) (dq : DFrac) (m : SnapMetaC) : IProp GF :=
   iprop(∃ pc pi pt,
@@ -177,6 +221,18 @@ theorem smPts_smPtsCC (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : smPts p 
 theorem smPtsCC_smPts (p : Loc) (dq : DFrac) (m : SnapMetaC) (h : ∀ (cs : CSC), cs ∈ m.confState →
     cs.uf = []) : smPtsCC p dq m ⊢ smPts p dq m.model
 
+theorem own_ccPtsCC (c : GoInterface) (dq : DFrac) (o : ConfChangeIM) : ownConfChangeI c dq (some o)
+    ⊢ ∃ cc, ccPtsCC c dq cc ∗ ⌜cc.model = o⌝
+
+def ccsRoC (p : Loc) (c : ConfChangeSingleM) (uf : List w8) : IProp GF :=
+  iprop(∃ pt pn,
+      ⌜p ≠ null⌝ ∗
+        typedPointsto (structFieldRef raftpb.ConfChangeSingle go!"Type" p) pt DFrac.discard ∗
+          cellRO pt c.Type' ∗
+            typedPointsto (structFieldRef raftpb.ConfChangeSingle go!"NodeId" p) pn
+                DFrac.discard ∗
+              cellRO pn c.NodeId' ∗ pbMsg raftpb.ConfChangeSingle p uf)
+
 theorem entPtsCC_discard_persistent (l : Loc) (c : EntryC) : Persistent (entPtsCC l DFrac.discard c)
 
 def bytesCC (ds : GoSlice) (dq : DFrac) : Option (List w8) → IProp GF :=
@@ -187,19 +243,37 @@ def bytesCC (ds : GoSlice) (dq : DFrac) : Option (List w8) → IProp GF :=
 theorem csOptCC_discard_persistent (p : Loc) (o : Option CSC) : Persistent (csOptCC p DFrac.discard
     o)
 
+theorem ccsRO_ccsRoC (p : Loc) (c : ConfChangeSingleM) : ccsRO p c ⊢ ∃ uf, ccsRoC p c uf
+
 def smOptCC (p : Loc) (dq : DFrac) : Option SnapMetaC → IProp GF :=
   match x✝ with
   | none => iprop(⌜p = null⌝)
   | some m => smPtsCC p dq m
 
+def ccRoC (c : GoInterface) (cc : ConfChangeIC) : IProp GF :=
+  ccPtsCC c DFrac.discard cc
+
+theorem ccsRoC_persistent (p : Loc) (c : ConfChangeSingleM) (uf : List w8) : Persistent (ccsRoC p c
+    uf)
+
 theorem csPtsCC_csPts (p : Loc) (dq : DFrac) (c : CSC) (al : Bool) (h : c.uf = []) : csPtsCC p dq c
     al ⊢ csPts p dq c.model al
+
+inductive ConfChangeIC : Type
+  | ConfChangeIC.v1 (m : ConfChangeM) (uf : List w8) : ConfChangeIC
+  | ConfChangeIC.v2 (transition : raftpb.ConfChangeTransition) (chs : List (ConfChangeSingleM × List
+      w8)) (context uf : List w8) : ConfChangeIC
 
 theorem csOptCC_persist (p : Loc) (dq : DFrac) (o : Option CSC) : csOptCC p dq o ⊢ |==> csOptCC p
     DFrac.discard o
 
 theorem ownSnapCC_discard_persistent (p : Loc) (s : SnapC) : Persistent (ownSnapCC p DFrac.discard
     s)
+
+def ConfChangeIC.model : ConfChangeIC → ConfChangeIM :=
+  match x✝ with
+  | ConfChangeIC.v1 m uf => ConfChangeIM.v1 m
+  | ConfChangeIC.v2 t chs ctx uf => ConfChangeIM.v2 { transition := t, changes := List.map Prod.fst chs, context := ctx }
 
 theorem snapOptCC_discard_persistent (p : Loc) (o : Option SnapC) : Persistent (snapOptCC p
     DFrac.discard o)

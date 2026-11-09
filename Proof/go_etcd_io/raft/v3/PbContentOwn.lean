@@ -627,5 +627,184 @@ theorem msgPtsCC_persist (l : Loc) (dq : DFrac) (c : MsgC) :
 
 end defs
 
+/-! ### Conf changes (raft-entsize §3, [r3e]: the bound on a proposed conf change is content-level) -/
+
+/-- **A conf change's content** (`ProposeConfChange`'s argument; raft-entsize §3, decided [r3e]):
+its model and the unknown fields its model does not hold: the message's (`uf`), and for a
+`ConfChangeV2` each change's (`chs`, the changes with their unknown fields). Scalar presence is not
+recorded (today's `ownConfChange` reads the cells with `cellRO`); the size measure `ccSize` covers
+it in its framing. -/
+inductive ConfChangeIC [GooseExts] where
+  | v1 (m : ConfChangeM) (uf : List w8)
+  | v2 (transition : raftpb.ConfChangeTransition) (chs : List (ConfChangeSingleM × List w8))
+      (context : List w8) (uf : List w8)
+
+/-- The model of a conf change's content. -/
+def ConfChangeIC.model [GooseExts] : ConfChangeIC → ConfChangeIM
+  | .v1 m _ => .v1 m
+  | .v2 t chs ctx _ => .v2 ⟨t, chs.map Prod.fst, ctx⟩
+
+/-- **A conf change's size measure** (raft-entsize §3): its byte content (the `Context` and every
+level's unknown fields), plus `32` per `ConfChangeV2` change. Its encoding, the data of the entry
+`ProposeConfChange` proposes, is at most `ccSize cc + 64` bytes: a `ConfChange`'s three scalars and
+the `Context`'s tag and length take at most `39`; a `ConfChangeV2`'s transition and `Context` framing
+at most `18`, each change at most `29` beside its unknown fields (its tag, length, two scalars). -/
+def ccSize [GooseExts] : ConfChangeIC → Nat
+  | .v1 m uf => m.context.length + uf.length
+  | .v2 _ chs ctx uf => ctx.length + uf.length + (chs.map fun ch => ch.2.length + 32).sum
+
+section ccDefs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- A `ConfChangeV2`'s change, frozen, holding `c` with the unknown fields `uf` (`ccsRO`'s content
+form). -/
+def ccsRoC (p : Loc) (c : ConfChangeSingleM) (uf : List w8) : IProp GF :=
+  iprop(∃ (pt pn : Loc),
+    ⌜p ≠ null⌝ ∗
+    p.[raftpb.ConfChangeSingle, go!"Type"] ↦{DFrac.discard} pt ∗ cellRO pt c.Type' ∗
+    p.[raftpb.ConfChangeSingle, go!"NodeId"] ↦{DFrac.discard} pn ∗ cellRO pn c.NodeId' ∗
+    pbMsg raftpb.ConfChangeSingle p uf)
+
+instance ccsRoC_persistent (p : Loc) (c : ConfChangeSingleM) (uf : List w8) :
+    Persistent (ccsRoC (GF := GF) p c uf) := by
+  unfold ccsRoC; infer_instance
+
+/-- **A conf change at `dq` holding exactly the content `cc`** (raft-entsize §3, [r3e]:
+`ownConfChangeI`'s content form, its unknown fields pinned; `ccRoC` is its frozen instance). -/
+def ccPtsCC (c : GoInterface) (dq : DFrac) : ConfChangeIC → IProp GF
+  | .v1 m uf => iprop(∃ (p pt pn pi : Loc) (cs : GoSlice),
+      ⌜c = interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p ∧ p ≠ null⌝ ∗
+      p.[raftpb.ConfChange, go!"Type"] ↦{dq} pt ∗ cellRO pt m.type ∗
+      p.[raftpb.ConfChange, go!"NodeId"] ↦{dq} pn ∗ cellRO pn m.nodeId ∗
+      p.[raftpb.ConfChange, go!"Id"] ↦{dq} pi ∗ cellRO pi m.id ∗
+      p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
+      pbMsg raftpb.ConfChange p uf)
+  | .v2 t chs ctx uf => iprop(∃ (p pt : Loc) (sc : GoSlice) (ls : List Loc) (cs : GoSlice),
+      ⌜c = interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p ∧ p ≠ null⌝ ∗
+      p.[raftpb.ConfChangeV2, go!"Transition"] ↦{dq} pt ∗ cellRO pt t ∗
+      p.[raftpb.ConfChangeV2, go!"Changes"] ↦{dq} sc ∗ sc ↦*{dq} ls ∗
+        ([∗list] q;ch ∈ ls;chs, ccsRoC q ch.1 ch.2) ∗
+      p.[raftpb.ConfChangeV2, go!"Context"] ↦{dq} cs ∗ cs ↦*□ ctx ∗
+      pbMsg raftpb.ConfChangeV2 p uf)
+
+/-- A frozen conf change holding exactly `cc` (the decision [r3e]'s `ccRoC`). -/
+abbrev ccRoC (c : GoInterface) (cc : ConfChangeIC) : IProp GF := ccPtsCC c DFrac.discard cc
+
+theorem ccsRO_ccsRoC (p : Loc) (c : ConfChangeSingleM) :
+    ccsRO (GF := GF) p c ⊢ ∃ uf, ccsRoC p c uf := by
+  unfold ccsRO ccsPts
+  iintro ⟨%pt, %pn, %uf, %Hnn, #HT, #cT, #HN, #cN, #Hpb⟩
+  iexists uf
+  unfold ccsRoC
+  iexists pt, pn
+  iframe HT cT HN cN Hpb
+  ipureintro; exact Hnn
+
+theorem ccsRoC_ccsRO (p : Loc) (c : ConfChangeSingleM) (uf : List w8) :
+    ccsRoC (GF := GF) p c uf ⊢ ccsRO p c := by
+  unfold ccsRO ccsPts ccsRoC
+  iintro ⟨%pt, %pn, %Hnn, #HT, #cT, #HN, #cN, #Hpb⟩
+  iexists pt, pn, uf
+  iframe HT cT HN cN Hpb
+  ipureintro; exact Hnn
+
+theorem ccsROs_ccsRoCs : ∀ (ls : List Loc) (cs : List ConfChangeSingleM),
+    ([∗list] q;c ∈ ls;cs, ccsRO (GF := GF) q c) ⊢
+      ∃ chs : List (ConfChangeSingleM × List w8),
+        ([∗list] q;ch ∈ ls;chs, ccsRoC q ch.1 ch.2) ∗ ⌜chs.map Prod.fst = cs⌝
+  | [], [] => by
+    iintro -; iexists []
+    isplitl
+    · iapply BigSepL2.bigSepL2_nil.2; iempintro
+    · ipureintro; rfl
+  | [], _ :: _ => false_elim
+  | _ :: _, [] => false_elim
+  | p :: ps, c :: cs => by
+    iintro ⟨#H, #Hr⟩
+    ihave ⟨%uf, #Hc⟩ := ccsRO_ccsRoC p c $$ H
+    ihave ⟨%chs, #Hcs, %hcs⟩ := ccsROs_ccsRoCs ps cs $$ Hr
+    iexists ((c, uf) :: chs)
+    simp only [BigSepL2.bigSepL2_cons, List.map_cons]
+    iframe Hc Hcs
+    ipureintro; rw [hcs]
+
+theorem ccsRoCs_ccsROs : ∀ (ls : List Loc) (chs : List (ConfChangeSingleM × List w8)),
+    ([∗list] q;ch ∈ ls;chs, ccsRoC (GF := GF) q ch.1 ch.2) ⊢
+      [∗list] q;c ∈ ls;chs.map Prod.fst, ccsRO q c
+  | [], [] => by
+    iintro -
+    simp only [List.map_nil]
+    iapply BigSepL2.bigSepL2_nil.2; iempintro
+  | [], _ :: _ => false_elim
+  | _ :: _, [] => false_elim
+  | p :: ps, ch :: chs => by
+    iintro ⟨#H, #Hr⟩
+    ihave #Hc := ccsRoC_ccsRO p ch.1 ch.2 $$ H
+    ihave #Hcs := ccsRoCs_ccsROs ps chs $$ Hr
+    simp only [BigSepL2.bigSepL2_cons, List.map_cons]
+    iframe Hc Hcs
+
+/-- **The content form gives today's conf change** (at the same fraction). -/
+theorem ccPtsCC_own (c : GoInterface) (dq : DFrac) (cc : ConfChangeIC) :
+    ccPtsCC (GF := GF) c dq cc ⊢ ownConfChangeI c dq (some cc.model) := by
+  cases cc with
+  | v1 m uf =>
+    simp only [ccPtsCC, ConfChangeIC.model, ownConfChangeI]
+    iintro ⟨%p, %pt, %pn, %pi, %cs, %Hc, HT, #cT, HN, #cN, HI, #cI, HC, #Hcs, #Hpb⟩
+    iexists p
+    isplitr
+    · ipureintro; exact Hc.1
+    unfold ownConfChange
+    iexists pt, pn, pi, cs, uf
+    iframe HT cT HN cN HI cI HC Hcs Hpb
+    ipureintro; exact Hc.2
+  | v2 t chs ctx uf =>
+    simp only [ccPtsCC, ConfChangeIC.model, ownConfChangeI]
+    iintro ⟨%p, %pt, %sc, %ls, %cs, %Hc, HT, #cT, HCh, Hch, #Hccs, HC, #Hcs, #Hpb⟩
+    iexists p
+    isplitr
+    · ipureintro; exact Hc.1
+    ihave #Hccs' := ccsRoCs_ccsROs ls chs $$ Hccs
+    unfold ownConfChangeV2
+    iexists pt, sc, ls, cs, uf
+    iframe HT cT HCh Hch Hccs' HC Hcs Hpb
+    ipureintro; exact Hc.2
+
+/-- **Today's conf change has a content form** (at the same fraction). -/
+theorem own_ccPtsCC (c : GoInterface) (dq : DFrac) (o : ConfChangeIM) :
+    ownConfChangeI (GF := GF) c dq (some o) ⊢ ∃ cc, ccPtsCC c dq cc ∗ ⌜cc.model = o⌝ := by
+  cases o with
+  | v1 m =>
+    simp only [ownConfChangeI]
+    iintro ⟨%p, %Hc, H⟩
+    unfold ownConfChange
+    icases H with ⟨%pt, %pn, %pi, %cs, %uf, %Hnn, HT, #cT, HN, #cN, HI, #cI, HC, #Hcs, #Hpb⟩
+    iexists (ConfChangeIC.v1 m uf)
+    simp only [ccPtsCC]
+    isplitl
+    · iexists p, pt, pn, pi, cs
+      iframe HT cT HN cN HI cI HC Hcs Hpb
+      ipureintro; exact ⟨Hc, Hnn⟩
+    · ipureintro; rfl
+  | v2 m =>
+    simp only [ownConfChangeI]
+    iintro ⟨%p, %Hc, H⟩
+    unfold ownConfChangeV2
+    icases H with ⟨%pt, %sc, %ls, %cs, %uf, %Hnn, HT, #cT, HCh, Hch, #Hccs, HC, #Hcs, #Hpb⟩
+    ihave ⟨%chs, #Hchs, %hchs⟩ := ccsROs_ccsRoCs ls m.changes $$ Hccs
+    iexists (ConfChangeIC.v2 m.transition chs m.context uf)
+    simp only [ccPtsCC]
+    isplitl
+    · iexists p, pt, sc, ls, cs
+      iframe HT cT HCh Hch Hchs HC Hcs Hpb
+      ipureintro; exact ⟨Hc, Hnn⟩
+    · ipureintro
+      simp only [ConfChangeIC.model, hchs]
+
+end ccDefs
+
 end EtcdGrove
 end Perennial
