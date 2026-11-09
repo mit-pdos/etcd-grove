@@ -81,28 +81,29 @@ theorem RawNode.acceptReady.wp_proof [package_sem : Assumptions] (wp_IsEmptyHard
   -- `Perennial.EtcdGrove.RawNode.acceptReady.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
     (h : HardStateM) (L : Option SnapLoan),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗ "#Hh" ∷ hsOpt rd.HardState' h -∗
-          (▷
-              ∀ steps ss,
-                "#Hss" ∷ softStateIs rd.SoftState' ss ∗
-                    "%Hssn" ∷ ⌜rd.SoftState' = null → ss = none⌝ ∗
-                      "Hrn" ∷
-                        ownRawNode γ rn id
-                          { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
-                            storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode,
-                            cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, slent := L, phs := phsNext rs.phs h,
-                            dur := readyDurable rs.dur (phsNext rs.phs h) L es, role := roleAfter rs.role ss, bw := rs.bw,
-                            hlb := rs.hlb } -∗
-                  Φ (intoVal ())) -∗
-            WP
-              ((intoVal
-                  (methods RawNode.ty.PointerType go!"acceptReady"
-                    (intoVal rn)))
-                (intoVal rd))
-              {{ Φ }}
+    γ.reTrace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗ "#Hh" ∷ hsOpt rd.HardState' h -∗
+            (▷
+                ∀ steps ss,
+                  "#Hss" ∷ softStateIs rd.SoftState' ss ∗
+                      "%Hssn" ∷ ⌜rd.SoftState' = null → ss = none⌝ ∗
+                        "Hrn" ∷
+                          ownRawNode γ rn id
+                            { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
+                              storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode,
+                              cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, slent := L, phs := phsNext rs.phs h,
+                              dur := readyDurable rs.dur (phsNext rs.phs h) L es, role := roleAfter rs.role ss,
+                              bw := rs.bw, hlb := rs.hlb } -∗
+                    Φ (intoVal ())) -∗
+              WP
+                ((intoVal
+                    (methods RawNode.ty.PointerType
+                      go!"acceptReady" (intoVal rn)))
+                  (intoVal rd))
+                {{ Φ }}
 
 theorem readyNstate.proj_vote (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
     Nat := s.logst.dtk) : (readyNstate s L ce sz dk).vote = s.vote
@@ -118,7 +119,8 @@ theorem readyNstate.proj_isLearner (s : NState) (L : Option SnapLoan) (ce : List
 
 theorem readyNstate.proj_gh (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64) (dk :
     Nat := s.logst.dtk) : (readyNstate s L ce sz dk).gh = have __src := s.gh; { tc := __src.tc, ns
-    := __src.ns, xw := __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn }
+    := __src.ns, xw := __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn, tr :=
+    __src.tr }
 
 theorem readyNstate.proj_prevote (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
     (dk : Nat := s.logst.dtk) : (readyNstate s L ce sz dk).prevote = s.prevote
@@ -133,7 +135,8 @@ def readyNstate (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
     logst := logAcceptApplying (logAcceptUnstable (rdyLs L s.logst dk)) ce sz, prvals := s.prvals, prevote := s.prevote,
     gh :=
       have __src := s.gh;
-      { tc := __src.tc, ns := __src.ns, xw := __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn },
+      { tc := __src.tc, ns := __src.ns, xw := __src.xw, slent := L.isSome, snp := loanTrip L, sn := __src.sn,
+        tr := __src.tr },
     rd :=
       have __src := s.rd;
       { ro := __src.ro, pend := __src.pend },

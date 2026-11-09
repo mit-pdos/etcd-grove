@@ -1211,6 +1211,7 @@ structure NGhost : Type where
   slent : Bool
   snp : Option SnapTrip
   sn : StorNames
+  tr : Option GName
 
 theorem becomeLeaderLog.proj_progress [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s :
     NState) : (becomeLeaderLog id s).progress = (becomeLeaderPre id s).progress
