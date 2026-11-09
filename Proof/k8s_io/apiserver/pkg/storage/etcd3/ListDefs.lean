@@ -136,6 +136,17 @@ instance newItemOk_persistent (S : ObjSpec GF Obj) (f : GoFunc) :
     Persistent (newItemOk S f) := by
   unfold newItemOk; infer_instance
 
+/-- **A context that is never done** (persistent; Draft §3.4's `ctxNeverDone`): its `Done()` is the
+`nil` channel, so a `select` on it with a `default` runs the default (`processListItem`'s timeout
+check). True of `context.Background()` (an `emptyCtx`) and of value contexts over it. -/
+def ctxNeverDone (ctx : GoInterface) : IProp GF :=
+  iprop(∃ ci : GoInterfaceOk, ⌜ctx = GoInterface.ok ci⌝ ∗
+    □ ∀ Φ : val → IProp GF, ▷ Φ #(chan.nil : GoChan) -∗
+      WP (App (Val #(methods ci.ty go!"Done" ci.v)) (Val #())) {{ Φ }})
+
+instance ctxNeverDone_persistent (ctx : GoInterface) : Persistent (ctxNeverDone (GF := GF) ctx) := by
+  unfold ctxNeverDone; infer_instance
+
 /-- `rem` holds the remaining count `remV`: `nil` for `none`, a cell holding `n` for `some n`
 (`PrepareContinueToken`'s `*int64`). -/
 def remIs (rem : Loc) : Option w64 → IProp GF
