@@ -46,8 +46,8 @@ rests on `pbEnc_ok`, which proves `False` (lean `cffe36ea9d`, `notes/pbenc-ok-in
 on grpc's refuted `ProtoMsg` axioms: until etcd-grove-c9's per-type fix lands, they hold vacuously.
 They also rest on false axioms until the axiom sweep's repairs of batch 1 land (lean `0eda5f10de`,
 `notes/axiom-review/`): `zap.Logger.{Debug,Error,Fatal,Info,Warn}`, `errors.IsCtxErr`,
-`context.ValueStartTime`, `http.Handle_ok`, and the k8s `DefaultFeatureGate` and
-`DefaultFeatureSupportChecker` initializers.
+`context.ValueStartTime` (a theorem since sweep repairs 1's B2, 2026-11-08), `http.Handle_ok`, and
+the k8s `DefaultFeatureGate` and `DefaultFeatureSupportChecker` initializers.
 -/
 module
 

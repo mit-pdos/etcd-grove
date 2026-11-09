@@ -4,6 +4,7 @@ lease). Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.client.v3.InvLessor
 
 @[expose] public section
@@ -35,7 +36,7 @@ abbrev lessor.keepAliveCtxCloser.spec : Prop :=
   ∀ (l : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (id : w64) (kd : GoChan) (γkd : ChanNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
-      context.isContext ctx cd ∗ ownBroadcastChan kd γkd iprop(True) .Unknown }}
+      context.isContext ctx cd ∗ context.keepAliveOk ctx ∗ ownBroadcastChan kd γkd iprop(True) .Unknown }}
     (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"keepAliveCtxCloser"))
       (Val #(GoInterface.ok ctx))) (Val #id)) (Val #kd))
   {{ RET #(); True }}

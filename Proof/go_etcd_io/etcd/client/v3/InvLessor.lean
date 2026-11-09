@@ -53,6 +53,7 @@ requests carry ghost bounds `0`, whose content the registration's `Up` gives (`k
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.client.v3.InvLease
 public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 public import Proof.google_golang_org.grpc.InvGrpcStream
@@ -154,10 +155,12 @@ instance ctxErrTargets_persistent : Persistent (ctxErrTargets (GF := GF)) := by
 
 /-! ## Keep-alives -/
 
-/-- A keep-alive's context (`ka.ctxs`'s element): a context. -/
+/-- A keep-alive's context (`ka.ctxs`'s element): a context, whose keep-alive key answers a context
+pointer (`keepAliveOk`, sweep repairs 1, B2b: `lessor.KeepAlive` stores only `WithValue(ctx,
+keepAliveCtxKey{}, &ctx)`). -/
 def kaCtxOk (c : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜c = GoInterface.ok ci⌝ ∗
-    context.isContext ci cd)
+    context.isContext ci cd ∗ context.keepAliveOk ci)
 
 instance kaCtxOk_persistent (c : GoInterface) : Persistent (kaCtxOk (GF := GF) c) := by
   unfold kaCtxOk; infer_instance

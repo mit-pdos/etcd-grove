@@ -51,7 +51,7 @@ theorem EtcdServer.Authenticate.wp_proof
     (hIs : errors.Is.spec (GF := GF) (hG := hG)) :
     EtcdServer.Authenticate.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr γa ctx cd ast r name pw F hγa
-  wp_start as ⟨#Hsrv, #Hrdv, #Hast, #Hauthn, #HNR, #HF, #Hctx, #Hspc, %Hrn, #HN, Hpw, Hlt, Hlg, Hrr, Hrd⟩
+  wp_start as ⟨#Hsrv, #Hrdv, #Hast, #Hauthn, #HNR, #HF, #Hctx, #Hspc, #Hst, %Hrn, #HN, Hpw, Hlt, Hlg, Hrr, Hrd⟩
   ihave #Hrd' := Hrdv
   iunfold isServerReadM at Hrd'
   icases Hrd' with ⟨%w, #Hw⟩

@@ -80,6 +80,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.PerTypeKVRest
 public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.KVService
 public import Proof.go_etcd_io.etcd.client.v3.LinkMembers
@@ -1161,6 +1162,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   ihave Hu := HNR
   imod Hu with Hid
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
@@ -1187,7 +1189,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   | some e =>
     icases Hpost with ⟨#Hco, Hc, Hc0, -⟩
     unfold v3rpc.srvCall
-    icases Hc with ⟨%ci', %cd', -, -, -, -, -, Hlt⟩
+    icases Hc with ⟨%ci', %cd', -, -, -, -, -, -, Hlt⟩
     iunfold v3rpc.checkOut at Hco
     icases Hco with ⟨-, #Hev⟩
     iunfold txn.errVarIs at Hev
@@ -1332,6 +1334,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   ihave Hu := HNR
   imod Hu with Hid
   imod (v3rpc.kvDepOwnM_of_dep E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d) $$ Hdep with Hdep
@@ -1356,7 +1359,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   | some e =>
     icases Hpost with ⟨#Hco, Hc, Hcr, -⟩
     unfold v3rpc.srvCall
-    icases Hc with ⟨%ci', %cd', -, -, -, -, -, Hlt⟩
+    icases Hc with ⟨%ci', %cd', -, -, -, -, -, -, Hlt⟩
     iunfold v3rpc.checkOut at Hco
     icases Hco with ⟨-, #Hev⟩
     iunfold txn.errVarIs at Hev
@@ -1482,6 +1485,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   ihave Hu := HNR
   imod Hu with Hid
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
@@ -1511,7 +1515,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   | some e =>
     icases Hpost with ⟨#Hco, Hc, Hc0, -⟩
     unfold v3rpc.srvCall
-    icases Hc with ⟨%ci', %cd', -, -, -, -, -, Hlt⟩
+    icases Hc with ⟨%ci', %cd', -, -, -, -, -, -, Hlt⟩
     iunfold v3rpc.checkOut at Hco
     icases Hco with ⟨-, #Hev⟩
     iunfold txn.errVarIs at Hev
@@ -1643,6 +1647,7 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrr, Hrd⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   imod HNR with Hid
   ihave #Hrv' : kvRevLbZ ρ.rd.kv (sint.Z req.Revision' + ρ.rd.kv.cret) $$ []
   · iexact Hrv
@@ -1851,6 +1856,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   ihave Hu := HNR
   imod Hu with Hid
   iapply wp_fupd
@@ -1880,7 +1886,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     simp only [hc]
     icases Hpost with ⟨#Hco, Hc, Hcr, -⟩
     unfold v3rpc.srvCall
-    icases Hc with ⟨%ci', %cd', -, -, -, -, -, Hlt⟩
+    icases Hc with ⟨%ci', %cd', -, -, -, -, -, -, Hlt⟩
     iunfold v3rpc.checkOut at Hco
     icases Hco with ⟨-, #Hev⟩
     iunfold txn.errVarIs at Hev

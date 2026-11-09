@@ -1,7 +1,6 @@
 /-
-The trust boundary: a context's `Value` at clientv3's `keepAliveCtxKey` (item 1, the client lease;
-Perennial's `isContext` specifies `Value` only at `&cancelCtxKey`; a `valueCtx` looks the key up
-along its parents, and only `lessor.KeepAlive` stores a value, a `*context.Context`, under it).
+`ctx.Value(keepAliveCtxKey{})` under `keepAliveOk` (sweep repairs 1, B2b, 2026-11-08: the
+trust-boundary axiom it replaces claimed it of every `isContext`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -23,8 +22,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : context.Assumptions]
 
-/-- **Trust boundary** (item 1, the client lease): see `Spec/context/ValueKeepAlive.lean`. -/
-axiom context.ValueKeepAlive.wp_proof : context.ValueKeepAlive.spec (GF := GF) (hG := hG)
+/-- Unfolds `keepAliveOk` (sweep repairs 1, B2b; until then a trust-boundary axiom). -/
+theorem context.ValueKeepAlive.wp_proof : context.ValueKeepAlive.spec (GF := GF) (hG := hG) := by
+  intro ctx
+  iintro %Φ #Hka HΦ
+  unfold context.keepAliveOk
+  iapply Hka
+  inext
+  iintro %v %hv
+  iapply HΦ; ipureintro; exact hv
 
 end proof
 

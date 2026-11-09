@@ -74,7 +74,7 @@ theorem runChecks.wp_proof
   haveI := fun kv γ => hpers.1 kv γ
   haveI := fun ws γ ι => hpers.2.1 ws γ ι
   haveI := fun B f => hpers.2.2.2.1 B f
-  wp_start as ⟨Hfile, #Hev, #Hks, Htok⟩
+  wp_start as ⟨Hfile, #Hks, Htok, #Hvoff⟩
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨ThreadBoundLe.le_of (2 ^ 28) (by omega)⟩
   wp_auto
   wp_apply wp_NewNop as %lg #Hlgz
@@ -86,7 +86,7 @@ theorem runChecks.wp_proof
   imod halloc with ⟨%gx, Hreg, HW⟩
   wp_apply (wp_bNew _ (rcP bc.BatchLimit') ∅ (fun _ => mvccW gx) (fun _ => iprop(True))
       backend.bFresh) $$ [Hfile HW Htok] as %r Hr
-  · iframe Hfile Htok
+  · iframe Hfile Htok Hvoff
     isplitr
     · ipureintro
       refine ⟨rcP_wf _ (by rw [hlim]; decide) (by rw [hlim]; decide), rfl⟩
@@ -95,9 +95,7 @@ theorem runChecks.wp_proof
       iintro !> %γ %b %t _ _
       iunfold backend.hooksSpec
       ileft; ipureintro; exact hhooks
-    · isplitr
-      · iexact Hev
-      iintro %γ ⟨-, Hf⟩
+    · iintro %γ ⟨-, Hf⟩
       imodintro
       iframe HW Hf
   icases Hr with (⟨%b, %γB, %Hr, Hnew, #Hhooks, #Hbf, -⟩ | %Hpan)

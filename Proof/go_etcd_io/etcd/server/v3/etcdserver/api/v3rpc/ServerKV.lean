@@ -29,6 +29,7 @@ take (`srvErrIs`, from `applyErrIs`: `srvErrIs_of_applyErrIs`).
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
@@ -99,7 +100,7 @@ gRPC handler's context has no `TraceKey` value), and (the trace fix, 2026-11-07)
 (`trace.spanCtxOk`, which the server's write paths take; a run context's, `spanCtxOk_of_runCtx`). -/
 def srvCall (s : Loc) (ρ : ReqNames) (ctx : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜ctx = GoInterface.ok ci⌝ ∗
-    context.isContext ci cd ∗ trace.spanCtxOk ci ∗ traceutil.ctxTraceIs ci none ∗ idCred ρ.ids 1 ∗
+    context.isContext ci cd ∗ trace.spanCtxOk ci ∗ context.startTimeOk ci ∗ traceutil.ctxTraceIs ci none ∗ idCred ρ.ids 1 ∗
     srvLeadTimeReader s)
 
 /-- `putAppliedOk` but the caller's reader slot: the answer's facts (the vertical slice's unit
