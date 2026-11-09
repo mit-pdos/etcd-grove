@@ -68,6 +68,22 @@ def serverOwn (p : Loc) (v : Server) : IProp GF :=
     ⌜∀ j : w64, sint.Z ((mm !! j).getD (W64 0)) = v.matchIndex (uint.nat j)⌝ ∗
     configRO g.Config' v.config ∗ durableRO g.Durable' v.durable)
 
+/-- A copy, from its struct's fields (layer C's actions, 2026-11-09: a write to the copy `mut` returned
+builds the new struct, then this). -/
+theorem serverOwn_intro (p : Loc) (g : G.Server) (mm : GMap w64 w64) (v : Server)
+    (hf : sint.Z g.CurrentTerm' = v.currentTerm ∧ strRel g.State' v.state ∧
+      uint.nat g.VotedFor' = v.votedFor ∧ uint.nat g.Lead' = v.lead ∧ sint.Z g.CommitIndex' = v.commitIndex ∧
+      sint.Z g.PendingConfChangeIndex' = v.pendingConfChangeIndex)
+    (hm : ∀ j : w64, sint.Z ((mm !! j).getD (W64 0)) = v.matchIndex (uint.nat j)) :
+    p ↦ g ∗ g.MatchIndex' ↦$ mm ∗ logRO g.Log' v.log ∗ setRO g.VotesResponded' v.votesResponded ∗
+      setRO g.VotesGranted' v.votesGranted ∗ configRO g.Config' v.config ∗ durableRO g.Durable' v.durable ⊢
+      serverOwn (GF := GF) p v := by
+  iintro ⟨Hp, Hm, Hl, Hr, Hg, Hc, Hd⟩
+  iunfold serverOwn
+  iexists g, mm
+  iframe Hp Hm Hl Hr Hg Hc Hd
+  ipureintro; exact ⟨hf, hm⟩
+
 /-- A written copy, frozen. -/
 theorem serverOwn_persist (p : Loc) (v : Server) :
     serverOwn (GF := GF) p v ⊢ |==> serverRO p v := by
@@ -177,7 +193,48 @@ theorem stateOwnHole_close (p : Loc) (st : State) (M : List ID) (i : ID) (c : Lo
     exact .rfl
   ipureintro; exact Hrc
 
+/-- `stateOwnHole_close`, with the server's update as a function (the Lean actions' `upd`). -/
+theorem stateOwnHole_close_upd (p : Loc) (st : State) (M : List ID) (i : ID) (c : Loc) (f : Server → Server)
+    (hi : i ∈ st.server) :
+    stateOwnHole (GF := GF) p st M i c ∗ serverOwn c (f (st.s i)) ⊢ stateOwn p (st.upd i f) (i :: M) :=
+  stateOwnHole_close p st M i c (f (st.s i)) hi
+
 end defs
+
+/-! ## Tactics for the actions' proofs (layer C, 2026-11-09)
+
+Hygiene off: they name the proof's hypotheses. `mut_open p, st, M, i` calls `p.mut(i)` (the callee's spec
+`wp_mut` in scope, `stateOwn p st M` as `Hst`, `Hi : uint.nat i ∈ st.server`), leaving the hole `Hh` and
+the copy at `cp`, its struct `gc` split into its named fields, its map `Hcm` (`mc`, `Hcmi`), its other
+predicates `Hcl Hcr Hcg Hcc Hcd`, `Hcf` its pure facts. `close_copy gv, f, hv` puts the fields back as
+the struct `gv`, holding `f (st.s (uint.nat i))` (`hv` its pure facts, as `serverOwn_intro`'s), and
+closes the hole: `Hs : stateOwn p (st.upd (uint.nat i) f) (uint.nat i :: M)`. -/
+
+set_option hygiene false in
+macro "mut_open" p:term "," st:term "," M:term "," i:term : tactic => `(tactic| (
+    wp_apply wp_mut $p $st $M $i $$ [Hst] as %cp ⟨Hh, Hc⟩
+    · iframe Hst; ipureintro; exact Hi
+    try wp_auto
+    iunfold serverOwn at Hc
+    icases Hc with ⟨%gc, %mc, Hcp, %Hcf, #Hcl, #Hcr, #Hcg, Hcm, %Hcmi, #Hcc, #Hcd⟩
+    icases typedPointsto_not_null_dup _ _ _ $$ Hcp with ⟨Hcp, %Hcnn⟩
+    icases typedPointsto_split _ _ _ $$ Hcp with Hcpf
+    simp only [TypedPointsto.typedPointstoDef]
+    iNamed Hcpf))
+
+set_option hygiene false in
+macro "close_copy" gv:term "," f:term "," hv:term : tactic => `(tactic| (
+    ihave Hcp : cp ↦ ($gv : G.Server) $$ [CurrentTerm State VotedFor Lead Log CommitIndex VotesResponded
+        VotesGranted MatchIndex PendingConfChangeIndex Config Durable]
+    · iapply typedPointsto_combine _ _ _ Hcnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    ihave Hc := serverOwn_intro cp ($gv : G.Server) mc (($f : Server → Server) (st.s (uint.nat i))) $hv Hcmi
+        $$ [Hcp Hcm]
+    · iframe Hcp Hcm Hcl Hcr Hcg Hcc Hcd
+    ihave Hs := stateOwnHole_close_upd _ _ _ _ _ ($f : Server → Server) Hi $$ [Hh Hc]
+    · iframe))
+
 
 end Etcdraft
 end EtcdGrove
