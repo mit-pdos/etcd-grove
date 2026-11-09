@@ -27,6 +27,15 @@ theorem smOptCC_smOpt (p : Loc) (dq : DFrac) (o : Option SnapMetaC) (h : ∀ (m 
     ∀ (cs : CSC), cs ∈ m.confState → cs.uf = []) : smOptCC p dq o ⊢ smOpt p dq ((Option.map
     SnapMetaC.model o).getD metaZero)
 
+theorem csPtsCC_discard_persistent (p : Loc) (c : CSC) (al : Bool) : Persistent (csPtsCC p
+    DFrac.discard c al)
+
+theorem bytesCC_persist (ds : GoSlice) (dq : DFrac) (o : Option (List w8)) : bytesCC ds dq o ⊢ |==>
+    bytesCC ds DFrac.discard o
+
+theorem smPtsCC_discard_persistent (p : Loc) (m : SnapMetaC) : Persistent (smPtsCC p DFrac.discard
+    m)
+
 theorem entPts_iff_CC (l : Loc) (dq : DFrac) (e : EntryM) : entPts l dq e ⊣⊢ ∃ c, entPtsCC l dq c ∗
     ⌜c.model = e⌝
 
@@ -44,6 +53,12 @@ def smPtsCC (p : Loc) (dq : DFrac) (m : SnapMetaC) : IProp GF :=
 
 theorem msgPtsCC_msgPtsC (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) (h : c.csUfNil) :
     msgPtsCC l dq dqe cap c ⊢ msgPtsC l dq dqe cap c.model
+
+theorem snapOptCC_persist (p : Loc) (dq : DFrac) (o : Option SnapC) : snapOptCC p dq o ⊢ |==>
+    snapOptCC p DFrac.discard o
+
+theorem smPtsCC_persist (p : Loc) (dq : DFrac) (m : SnapMetaC) : smPtsCC p dq m ⊢ |==> smPtsCC p
+    DFrac.discard m
 
 theorem csOptA_csOptCC (p : Loc) (dq : DFrac) (c : ConfStateM) : csOptA p dq c ⊢ ∃ o, csOptCC p dq o
     ∗ ⌜(Option.map CSC.model o).getD csZero = c ∧ ∀ (cc : CSC), cc ∈ o → cc.uf = []⌝
@@ -110,6 +125,12 @@ theorem smOpt_smOptCC (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : smOpt p 
     p dq o ∗ ⌜(Option.map SnapMetaC.model o).getD metaZero = md ∧ ∀ (m : SnapMetaC), m ∈ o → ∀ (cs :
     CSC), cs ∈ m.confState → cs.uf = []⌝
 
+theorem smOptCC_discard_persistent (p : Loc) (o : Option SnapMetaC) : Persistent (smOptCC p
+    DFrac.discard o)
+
+theorem bytesCC_discard_persistent (ds : GoSlice) (o : Option (List w8)) : Persistent (bytesCC ds
+    DFrac.discard o)
+
 def csPtsCC (p : Loc) (dq : DFrac) (c : CSC) (al : Bool) : IProp GF :=
   iprop(∃ sv sl so sn pa,
       ⌜p ≠ null⌝ ∗
@@ -141,6 +162,9 @@ theorem snapOpt_snapOptCC (p : Loc) (dq : DFrac) (o : Option SnapshotM) : snapOp
     snapOptCC p dq oc ∗ ⌜Option.map SnapC.model oc = o ∧ ∀ (s : SnapC), s ∈ oc → ∀ (m : SnapMetaC),
     m ∈ s.metadata → ∀ (cs : CSC), cs ∈ m.confState → cs.uf = []⌝
 
+theorem ownSnapCC_persist (p : Loc) (dq : DFrac) (s : SnapC) : ownSnapCC p dq s ⊢ |==> ownSnapCC p
+    DFrac.discard s
+
 def MsgC.blank : MsgC :=
   MsgC.mk
     { type := none, to := none, frm := none, term := none, logTerm := none, index := none, entries := [], commit := none,
@@ -160,6 +184,9 @@ def bytesCC (ds : GoSlice) (dq : DFrac) : Option (List w8) → IProp GF :=
   | none => iprop(⌜ds = slice.nil⌝)
   | some bs => iprop(⌜ds ≠ slice.nil⌝ ∗ ownSlice ds bs dq)
 
+theorem csOptCC_discard_persistent (p : Loc) (o : Option CSC) : Persistent (csOptCC p DFrac.discard
+    o)
+
 def smOptCC (p : Loc) (dq : DFrac) : Option SnapMetaC → IProp GF :=
   match x✝ with
   | none => iprop(⌜p = null⌝)
@@ -167,6 +194,18 @@ def smOptCC (p : Loc) (dq : DFrac) : Option SnapMetaC → IProp GF :=
 
 theorem csPtsCC_csPts (p : Loc) (dq : DFrac) (c : CSC) (al : Bool) (h : c.uf = []) : csPtsCC p dq c
     al ⊢ csPts p dq c.model al
+
+theorem csOptCC_persist (p : Loc) (dq : DFrac) (o : Option CSC) : csOptCC p dq o ⊢ |==> csOptCC p
+    DFrac.discard o
+
+theorem ownSnapCC_discard_persistent (p : Loc) (s : SnapC) : Persistent (ownSnapCC p DFrac.discard
+    s)
+
+theorem snapOptCC_discard_persistent (p : Loc) (o : Option SnapC) : Persistent (snapOptCC p
+    DFrac.discard o)
+
+theorem msgPtsCC_discard_persistent (l : Loc) (c : MsgC) : Persistent (msgPtsCC l DFrac.discard
+    DFrac.discard false c)
 
 def entPtsCC (l : Loc) (dq : DFrac) (c : EntryC) : IProp GF :=
   iprop(∃ pt pi pty ds,
@@ -180,6 +219,9 @@ def entPtsCC (l : Loc) (dq : DFrac) (c : EntryC) : IProp GF :=
                     typedPointsto (structFieldRef raftpb.Entry go!"Data" l) ds dq ∗
                       bytesC ds c.data ∗ pbMsg raftpb.Entry l c.uf)
 
+theorem csPtsCC_persist (p : Loc) (dq : DFrac) (c : CSC) (al : Bool) : csPtsCC p dq c al ⊢ |==>
+    csPtsCC p DFrac.discard c al
+
 theorem bytesCC_own (ds : GoSlice) (dq : DFrac) (o : Option (List w8)) : bytesCC ds dq o ⊢ ownSlice
     ds (o.getD []) dq
 
@@ -192,3 +234,9 @@ theorem msgPtsC_iff_CC (l : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt) : ms
 
 theorem csPts_csPtsCC (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) : csPts p dq c al ⊢ ∃ cc,
     csPtsCC p dq cc al ∗ ⌜cc.model = c ∧ cc.uf = []⌝
+
+theorem smOptCC_persist (p : Loc) (dq : DFrac) (o : Option SnapMetaC) : smOptCC p dq o ⊢ |==>
+    smOptCC p DFrac.discard o
+
+theorem msgPtsCC_persist (l : Loc) (dq : DFrac) (c : MsgC) : msgPtsCC l dq DFrac.discard false c ⊢
+    |==> msgPtsCC l DFrac.discard DFrac.discard false c

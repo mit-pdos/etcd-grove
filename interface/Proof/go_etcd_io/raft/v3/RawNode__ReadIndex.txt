@@ -12,7 +12,8 @@ theorem RawNode.ReadIndex.wp_proof [package_sem : Assumptions] (wp_raft_Step : r
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             "Hrn" ∷ ownRawNode γ rn id rs ∗
               "#Hctx" ∷ ownSlice rctx c DFrac.discard ∗
-                "Hfr" ∷ rdFresh γ c ∗ "#Hau" ∷ readAu γ Qr ∗ "#HL0" ∷ isCommitted γ L0 ∗ "Hcred" ∷ rdCred γ 1 -∗
+                "%Hmd" ∷ ⌜∀ (b : Nat), γ.maxData = some b → c.length ≤ b⌝ ∗
+                  "Hfr" ∷ rdFresh γ c ∗ "#Hau" ∷ readAu γ Qr ∗ "#HL0" ∷ isCommitted γ L0 ∗ "Hcred" ∷ rdCred γ 1 -∗
           ▷
               (("Hrn" ∷ ownRawNode γ rn id rs ∗
                   ∃ Lc, "%HL0c" ∷ ⌜L0 <+: Lc⌝ ∗ "#Hrq" ∷ readReq γ c Lc ∗ "#Hrd" ∷ isRead γ c Qr) -∗

@@ -530,6 +530,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave Hnboot' : iprop(nodeBoot γ.cl srvClusterN ps ctxs cv.ID' ∗
       raftState γ.cl cv.ID' RaftState.init ∗ nodeVacant γ.cl cv.ID') $$ [Hnboot]
   · rw [← Hrvs, Hrid]; iexact Hnboot
+  -- (raft-entsize §3; interim, until `BootCore`) the cluster states no bound on proposed data
+  ihave %Hmd : ⌜γ.cl.maxData = none⌝ $$ []
+  · ihave #Hsrl0 : srvRaftLogInv (GF := GF) (⟨γ, [], W64 0⟩ : ServerRaftNames) $$ []
+    · rw [← HρRaft]; iexact Hsrl
+    iunfold srvRaftLogInv at Hsrl0
+    icases Hsrl0 with ⟨-, #Hcl, -⟩
+    iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+    ipureintro; exact H
   wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)) bs.raft'
     bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs νw pv ps ctxs ρ.ids.issued)
     $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok]
@@ -540,7 +549,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     -- (`raftNode.bootCfg`), the directory's bound, the WAL read and the receipt bound
     ipureintro
     exact ⟨Hrcfg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc, Hrnodup, Hr0,
-      Hrpslen, Hrvs, HwalR, by omega⟩
+      Hrpslen, Hrvs, HwalR, by omega, Hmd⟩
   clear Hrcfg
   (try wp_auto)
   -- the configuration, field by field from here on

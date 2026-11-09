@@ -228,7 +228,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
   -- the node API's cluster from the bootstrap log, proposals not duplicated
   imod (cluster_alloc (GF := GF) srvClusterN ps ctxs boot false sl none ⊤ Hrb Hne Hnd Hnz
       (by omega) (fun _ => HB) (fun _ h => by cases h) (fun _ h => by cases h)) $$ [Hmarsh]
-    with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl, -⟩, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hslots, Hboots⟩
+    with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl, %Hmd⟩, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hslots, Hboots⟩
   · rw [if_neg hbne]; iexact Hmarsh
   isimp only [hbne, ↓reduceIte] at Hboots
   icases Hboots with ⟨#Hbl0c, Hboots⟩
@@ -252,7 +252,7 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
     iframe Hst Hpol Hca0 Hfits Hsinv
     ipureintro
     exact ⟨Hdup, srvRule_keeps _ _ _ hval, by rw [Hcsl, hsl], by rw [Hbl, hbt]; simp [LogEntry.toEntries],
-      by rw [hbt]; exact Hurl⟩
+      by rw [hbt]; exact Hurl, Hmd⟩
   ihave #Hsrl : srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) $$ []
   · iunfold srvRaftLogInv
     iframe Hli Hcok Hlb0

@@ -531,6 +531,8 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
   · iexact Hr
   isplitr
   · iintro !> %m %st ⟨#Hmo, #Hrm, Hc, %Hns⟩
+    -- (raft-entsize §2) today's form of the handed-out message (the bundle's)
+    ihave #Hmo := (letI := srvStor (GF := GF) γw.node; msgOut_msgOwn γw.node.cl m DFrac.discard st) $$ Hmo
     rw [hraft, hid] at *
     isplitl [Hc]
     · iunfold srvMsgNet

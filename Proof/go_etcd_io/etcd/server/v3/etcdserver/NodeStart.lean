@@ -372,7 +372,10 @@ abbrev NodeStartSpec : Prop :=
         -- `rnEnvOk` ties the names.)
         "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ 0 < sint.Z bv.heartbeat' ∧
           ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧ γr.vs = ps ∧
-          storage.walReady wal ∧ receiptBound GF + γr.boot.length ≤ 2 ^ 61⌝ ∗
+          storage.walReady wal ∧ receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧
+          -- (raft-entsize §3, 2026-11-09; interim, until `BootCore`) the cluster states no bound on
+          -- proposed data (`srvClusterOk`'s; `bootstrappedRaft.newRaftNode.spec`'s)
+          γr.cl.maxData = none⌝ ∗
         -- the receiver, the config and its logger
         "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
         -- (2026-10-30, the repair) the fresh registered `MemoryStorage`, as `NewMemoryStorage`
@@ -485,7 +488,7 @@ theorem raftNode_of_StartNode
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
   iNamed Hpre
-  obtain ⟨Hcfg, Hhb, Hnodup, H0, Hpslen, Hvs, Hwal, Hfit⟩ := Hraft
+  obtain ⟨Hcfg, Hhb, Hnodup, H0, Hpslen, Hvs, Hwal, Hfit, Hmd⟩ := Hraft
   ihave Hbs := srvMem_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries γr bv.storage' γs
       (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
@@ -502,7 +505,7 @@ theorem raftNode_of_StartNode
     as %r Hpost
   · iframe #; iframe Hb Hc Hbs Hpeers HrS Hvac
     ipureintro
-    exact ⟨Hcfg, Hhb, Hwal⟩
+    exact ⟨Hcfg, Hhb, Hwal, Hmd⟩
   icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hsfresh, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
     %Hstss, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hwt0⟩ := Hnames

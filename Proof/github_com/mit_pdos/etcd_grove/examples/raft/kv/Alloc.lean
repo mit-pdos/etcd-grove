@@ -105,7 +105,8 @@ bootstrap log (`γ.bootLen = 0`; 2026-11-01, durability stage II (l): `RestartNo
 and each voter's durable state at `RaftState.init` and its vacant id. -/
 theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
     ⊢ |={E}=> ∃ γr : RKVNames,
-        ⌜γr.cluster.dup = false ∧ γr.cluster.snapLoc = (fun _ => none) ∧ γr.cluster.bootLen = 0⌝ ∗
+        ⌜γr.cluster.dup = false ∧ γr.cluster.snapLoc = (fun _ => none) ∧ γr.cluster.bootLen = 0 ∧
+          γr.cluster.maxData = none⌝ ∗
         kvCluster γr ∗ rkvInv γr ∗
         rkvVal γr kvEmpty ∗ ([∗map] id ↦ s ∈ S0, id ↪[γr.seq] s) ∗
         [∗list] id ∈ kvVoters, raftState γr.cluster id RaftState.init ∗ nodeVacant γr.cluster id := by
@@ -122,7 +123,7 @@ theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF 
   imodintro
   iexists γr
   isplitr
-  · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1⟩
+  · ipureintro; exact Hγ
   iframe Hinv Hval Hseqs Hslots
   unfold kvCluster
   iframe Hiscl Hpol Hca0 Hsinv

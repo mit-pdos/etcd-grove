@@ -385,6 +385,13 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     iunfold srvClusterOk at Hcl
     icases Hcl with ⟨-, -, -, -, %H, -⟩
     ipureintro; exact H
+  ihave %Hmd : ⌜E.γr.raft.raft.cl.maxData = none⌝ $$ []
+  · ihave #Hcl := Hinv
+    iunfold srvRaftLogInv at Hcl
+    icases Hcl with ⟨-, #Hcl, -⟩
+    iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+    ipureintro; exact H
   iunfold raftPropose
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -405,6 +412,9 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   wp_apply wp_Propose γ.nl E.γr.raft.raft.cl srvClusterN γ.id dsl data ctx cd $$ [Hapi]
     as %err #Herr
   · iframe #
+    -- (raft-entsize §3) the cluster states no bound on proposed data (interim, `srvClusterOk`)
+    isplitr
+    · ipureintro; intro b h; simp [Hmd] at h
     rw [Hdup]
     iexact Hapi
   iapply HΦ
@@ -516,6 +526,11 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
   · iunfold srvClusterOk at Hcl
     icases Hcl with ⟨#H, -⟩
     iexact H
+  -- (raft-entsize §3) the cluster states no bound on proposed data (interim, `srvClusterOk`)
+  ihave %Hmd : ⌜γ.node.cl.maxData = none⌝ $$ []
+  · iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+    ipureintro; exact H
   iunfold isRaftNodeIfc
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -720,6 +735,8 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     wp_apply wp_ReadIndex γ.nl γ.node.cl srvClusterN γ.id sl (beBytes id)
       (srvReadQ E.γr.raft Qr) ctx cd $$ [] as %err #Herr
     · iframe #
+      -- (raft-entsize §3) the cluster states no bound on proposed data (interim, `srvClusterOk`)
+      ipureintro; intro b h; simp [Hmd] at h
     ihave #Herr' := nodeErrS_nodeErr _ _ _ cd err $$ Herr
     iapply HΦ
     isplitr

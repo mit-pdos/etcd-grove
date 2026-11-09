@@ -43,6 +43,8 @@ abbrev StartCluster.spec : Prop :=
       kdStorInv ∗ ⌜γ.r.cluster.dup = true⌝ ∗ ⌜γ.r.cluster.bootLen = 0⌝ ∗
       -- (2026-11-02, `lean`'s J8a) no snapshot directories, for `Cluster.step`'s `snapLocalMsg`
       ⌜γ.r.cluster.snapLoc = fun _ => none⌝ ∗
+      -- (raft-entsize §2, 2026-11-09) no bound on proposed data, for the node API's size premises
+      ⌜γ.r.cluster.maxData = none⌝ ∗
       -- (2026-11-02, stage II (t)) `RestartNode`'s premise, for `Cluster.start`
       readyFits γ.r.cluster kdRaftN ∗
       ([∗list] id ∈ vs, raftState γ.r.cluster id RaftState.init ∗ nodeVacant γ.r.cluster id ∗

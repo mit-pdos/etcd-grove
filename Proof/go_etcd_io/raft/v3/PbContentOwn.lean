@@ -458,6 +458,173 @@ theorem entPts_iff_CC (l : Loc) (dq : DFrac) (e : EntryM) :
     iframe HT cT' HI cI' HY cY' HD Hd' Hpb
     ipureintro; exact Hnn
 
+/-! ### Read-only content forms are persistent -/
+
+instance bytesCC_discard_persistent (ds : GoSlice) (o : Option (List w8)) :
+    Persistent (bytesCC (GF := GF) ds DFrac.discard o) := by
+  cases o <;> unfold bytesCC <;> infer_instance
+
+instance csPtsCC_discard_persistent (p : Loc) (c : CSC) (al : Bool) :
+    Persistent (csPtsCC (GF := GF) p DFrac.discard c al) := by
+  unfold csPtsCC
+  repeat (first
+    | infer_instance
+    | (refine @exists_persistent _ _ _ _ ?_; intro _)
+    | refine @sep_persistent _ _ _ _ ?_ ?_)
+
+instance csOptCC_discard_persistent (p : Loc) (o : Option CSC) :
+    Persistent (csOptCC (GF := GF) p DFrac.discard o) := by
+  cases o <;> unfold csOptCC <;> infer_instance
+
+instance smPtsCC_discard_persistent (p : Loc) (m : SnapMetaC) :
+    Persistent (smPtsCC (GF := GF) p DFrac.discard m) := by
+  unfold smPtsCC
+  repeat (first
+    | infer_instance
+    | (refine @exists_persistent _ _ _ _ ?_; intro _)
+    | refine @sep_persistent _ _ _ _ ?_ ?_)
+
+instance smOptCC_discard_persistent (p : Loc) (o : Option SnapMetaC) :
+    Persistent (smOptCC (GF := GF) p DFrac.discard o) := by
+  cases o <;> unfold smOptCC <;> infer_instance
+
+instance ownSnapCC_discard_persistent (p : Loc) (s : SnapC) :
+    Persistent (ownSnapCC (GF := GF) p DFrac.discard s) := by
+  unfold ownSnapCC
+  repeat (first
+    | infer_instance
+    | (refine @exists_persistent _ _ _ _ ?_; intro _)
+    | refine @sep_persistent _ _ _ _ ?_ ?_)
+
+instance snapOptCC_discard_persistent (p : Loc) (o : Option SnapC) :
+    Persistent (snapOptCC (GF := GF) p DFrac.discard o) := by
+  cases o <;> unfold snapOptCC <;> infer_instance
+
+/-- A read-only message at its content (no capacity) is persistent. -/
+instance msgPtsCC_discard_persistent (l : Loc) (c : MsgC) :
+    Persistent (msgPtsCC (GF := GF) l DFrac.discard DFrac.discard false c) := by
+  unfold msgPtsCC
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  repeat (first
+    | infer_instance
+    | (refine @exists_persistent _ _ _ _ ?_; intro _)
+    | refine @sep_persistent _ _ _ _ ?_ ?_)
+
+/-! ### Freezing a content form (raft-entsize §2: a `Ready`'s message persisted read-only) -/
+
+theorem bytesCC_persist (ds : GoSlice) (dq : DFrac) (o : Option (List w8)) :
+    bytesCC (GF := GF) ds dq o ⊢ |==> bytesCC ds DFrac.discard o := by
+  rcases o with _ | bs
+  · simp only [bytesCC]; iintro %H; imodintro; ipureintro; exact H
+  · simp only [bytesCC]
+    iintro ⟨%H, Hs⟩
+    imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hs with #Hs
+    imodintro
+    iframe Hs
+    ipureintro; exact H
+
+theorem csPtsCC_persist (p : Loc) (dq : DFrac) (c : CSC) (al : Bool) :
+    csPtsCC (GF := GF) p dq c al ⊢ |==> csPtsCC p DFrac.discard c al := by
+  unfold csPtsCC
+  iintro ⟨%sv, %sl, %so, %sn, %pa, %Hnn, HV, Hv, HL, Hl, HO, Ho, HN, Hn, HA, #cA, %Hal, #Hpb⟩
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HV with #HV
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hv with #Hv
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HL with #HL
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hl with #Hl
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HO with #HO
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Ho with #Ho
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HN with #HN
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hn with #Hn
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HA with #HA
+  imodintro
+  iexists sv, sl, so, sn, pa
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+  ipureintro; exact Hal
+
+theorem csOptCC_persist (p : Loc) (dq : DFrac) (o : Option CSC) :
+    csOptCC (GF := GF) p dq o ⊢ |==> csOptCC p DFrac.discard o := by
+  rcases o with _ | c
+  · simp only [csOptCC]; iintro %H; imodintro; ipureintro; exact H
+  · simp only [csOptCC]
+    iintro (H | H)
+    · imod csPtsCC_persist _ _ _ _ $$ H with H
+      imodintro; ileft; iexact H
+    · imodintro; iright; iexact H
+
+theorem smPtsCC_persist (p : Loc) (dq : DFrac) (m : SnapMetaC) :
+    smPtsCC (GF := GF) p dq m ⊢ |==> smPtsCC p DFrac.discard m := by
+  unfold smPtsCC
+  iintro ⟨%pc, %pi, %pt, %Hnn, HC, Hc, HI, #cI, HT, #cT, #Hpb⟩
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HC with #HC
+  imod csOptCC_persist _ _ _ $$ Hc with Hc
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HI with #HI
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HT with #HT
+  imodintro
+  iexists pc, pi, pt
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HC Hc HI cI HT cT Hpb
+
+theorem smOptCC_persist (p : Loc) (dq : DFrac) (o : Option SnapMetaC) :
+    smOptCC (GF := GF) p dq o ⊢ |==> smOptCC p DFrac.discard o := by
+  rcases o with _ | m
+  · simp only [smOptCC]; iintro %H; imodintro; ipureintro; exact H
+  · simp only [smOptCC]; iapply smPtsCC_persist
+
+theorem ownSnapCC_persist (p : Loc) (dq : DFrac) (s : SnapC) :
+    ownSnapCC (GF := GF) p dq s ⊢ |==> ownSnapCC p DFrac.discard s := by
+  unfold ownSnapCC
+  iintro ⟨%ds, %pm, %Hnn, HD, Hd, HM, Hm, #Hpb⟩
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HD with #HD
+  imod bytesCC_persist _ _ _ $$ Hd with Hd
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HM with #HM
+  imod smOptCC_persist _ _ _ $$ Hm with Hm
+  imodintro
+  iexists ds, pm
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HD Hd HM Hm Hpb
+
+theorem snapOptCC_persist (p : Loc) (dq : DFrac) (o : Option SnapC) :
+    snapOptCC (GF := GF) p dq o ⊢ |==> snapOptCC p DFrac.discard o := by
+  rcases o with _ | s
+  · simp only [snapOptCC]; iintro %H; imodintro; ipureintro; exact H
+  · simp only [snapOptCC]; iapply ownSnapCC_persist
+
+/-- **A message at its content, frozen read-only** (its entries already frozen, no capacity): the
+same content (a `Ready`'s message, persisted by the application, raft-entsize §2). -/
+theorem msgPtsCC_persist (l : Loc) (dq : DFrac) (c : MsgC) :
+    msgPtsCC (GF := GF) l dq DFrac.discard false c ⊢
+      |==> msgPtsCC l DFrac.discard DFrac.discard false c := by
+  unfold msgPtsCC
+  iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rsl, %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
+    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, Hcap, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
+  imod (typedPointsto_dfractional (GF := GF) _ pty).dfractional_persist _ $$ HTy with #HTy
+  imod (typedPointsto_dfractional (GF := GF) _ pto).dfractional_persist _ $$ HTo with #HTo
+  imod (typedPointsto_dfractional (GF := GF) _ pfr).dfractional_persist _ $$ HFr with #HFr
+  imod (typedPointsto_dfractional (GF := GF) _ pte).dfractional_persist _ $$ HTe with #HTe
+  imod (typedPointsto_dfractional (GF := GF) _ plt).dfractional_persist _ $$ HLt with #HLt
+  imod (typedPointsto_dfractional (GF := GF) _ pix).dfractional_persist _ $$ HIx with #HIx
+  imod (typedPointsto_dfractional (GF := GF) _ pco).dfractional_persist _ $$ HCo with #HCo
+  imod (typedPointsto_dfractional (GF := GF) _ pvo).dfractional_persist _ $$ HVo with #HVo
+  imod (typedPointsto_dfractional (GF := GF) _ prj).dfractional_persist _ $$ HRj with #HRj
+  imod (typedPointsto_dfractional (GF := GF) _ prh).dfractional_persist _ $$ HRh with #HRh
+  imod (typedPointsto_dfractional (GF := GF) _ es).dfractional_persist _ $$ HEs with #HEs
+  imod (typedPointsto_dfractional (GF := GF) _ ps).dfractional_persist _ $$ HSn with #HSn
+  imod snapOptCC_persist _ _ _ $$ Hsn with Hsn
+  imod (typedPointsto_dfractional (GF := GF) _ cs).dfractional_persist _ $$ HCx with #HCx
+  imod (typedPointsto_dfractional (GF := GF) _ rsl).dfractional_persist _ $$ HRs with #HRs
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hrs with #Hrs
+  imodintro
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rsl
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HTy cTy HTo cTo HFr cFr HTe cTe HLt cLt HIx cIx HCo cCo HVo cVo HRj cRj HRh cRh
+    HEs Hes Hents Hcap HSn Hsn HCx Hcx HRs Hrs Hpb
+
 end defs
 
 end EtcdGrove

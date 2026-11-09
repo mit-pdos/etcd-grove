@@ -376,7 +376,10 @@ def isReplica (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) : IPr
     "#Hstats" ∷ isStats sts ∗
     "#HisNode" ∷ isNode n γr.cluster kvrRaftN id ∗
     "#Hcl" ∷ kvrCluster γr vs ∗
-    "#Hmu" ∷ sync.isMutex (r.[RReplica, go!"mu"]) (lockInv γr id r))
+    "#Hmu" ∷ sync.isMutex (r.[RReplica, go!"mu"]) (lockInv γr id r) ∗
+    -- (raft-entsize §2, 2026-11-09) no bound on proposed data (`cluster_alloc`'s `md = none`): the
+    -- node API's size premises hold vacuously
+    "%Hmd" ∷ ⌜γr.cluster.maxData = none⌝)
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in

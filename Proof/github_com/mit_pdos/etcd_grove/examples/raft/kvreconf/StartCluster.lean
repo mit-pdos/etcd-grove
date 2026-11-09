@@ -81,7 +81,7 @@ theorem StartCluster.wp_proof
     (bootVoters_nodup _ (by omega)) (bootVoters_zero _ (by omega))
     (by rw [bootVoters_length]; omega) (fun h => absurd rfl h) (fun _ h => by cases h)
     (fun _ h => by cases h)
-    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl, -⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
+    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl, %Hmd⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
   · rw [if_pos rfl]; iempintro
   -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
   ihave #Hfits : readyFits (GF := GF) γ kvrRaftN $$ []
@@ -193,7 +193,7 @@ theorem StartCluster.wp_proof
     simp only [named]
     iframe #
     ipureintro
-    exact ⟨Hdup, Hsl, Hbl, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
+    exact ⟨Hdup, Hsl, Hmd, Hbl, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
   try wp_auto
   have HVv : uint.nat o.Voters' ≤ 9 := by omega
   have Hvnd : (bootVoters (uint.nat o.Voters')).Nodup := bootVoters_nodup _ (by omega)
@@ -263,7 +263,7 @@ theorem StartCluster.wp_proof
         (fun S => iprop(raftState γr.cluster k S ∗ ⌜S = RaftState.init⌝))
         (fun K => iprop(memStorMeta ms γs' (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
           memStorInvP ms γs' (kvrJ γr.cluster K)))
-        HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (Or.inl (by rw [HcAp]; rfl))
+        HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h) (Or.inl (by rw [HcAp]; rfl))
         (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
         (by rw [Hbl]; simp [StorContents.commit]) (bootCS_is _ Hvnd))
       $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
@@ -295,6 +295,7 @@ theorem StartCluster.wp_proof
         K Htk Hvnd Hvl (bootCS_is _ Hvnd))
       $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $HrS $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap
         $HbootCS $Hf $Hseq] as %r ⟨#Hr, Hrs⟩
+    · ipureintro; exact Hmd
     have HRn : R !! k = none := by
       cases h : R !! k with
       | none => rfl

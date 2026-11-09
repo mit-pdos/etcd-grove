@@ -38,10 +38,8 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
        (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg γ m)) := by
   iintro H
   iunfold rnMsgR at H
-  icases H with (⟨%to, %ty, #Hat, %Hty, HM⟩ | Hs)
-  · iunfold msgAt at Hat
-    icases Hat with ⟨%st, #Hm, %Hst⟩
-    obtain ⟨rfl, rfl⟩ := Hst
+  icases H with (⟨%st, #Hmo, %Hty, HM⟩ | Hs)
+  · ihave #Hm := (letI := srvStor (GF := GF) γ.node; msgOut_msgOwn γ.node.cl m DFrac.discard st) $$ Hmo
     iexists DFrac.discard, st
     iframe Hm
     isplit

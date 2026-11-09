@@ -98,7 +98,11 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
     iapply (nodeSnapLocal_of_elem γ.node.cl γ.id γd (by rw [Hcsl.1]; exact Hd))
     iunfold snapSaved at Hsav
     iexact Hsav
-  iapply stepIn_intro γ.node.cl srvClusterN γ.id ml sid st Hto
+  -- (raft-entsize §2) the copy's content form; the cluster states no bound on proposed data
+  -- (`srvClusterOk`'s, interim: rafthttp's receive gives the size fact once it does)
+  icases msgPtsC_msgPtsCC _ _ _ _ _ $$ Hm with ⟨%cm, Hm, %Hcm⟩
+  iapply stepIn_intro γ.node.cl srvClusterN γ.id ml sid st cm Hto Hcm.1 Hcm.2
+    (fun b h => by simp [Hcsl.2.2.2] at h)
   iframe Hrm Hm HO Hloc
 
 end lemmas

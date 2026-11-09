@@ -135,6 +135,7 @@ theorem Replica.propose.wp_proof
     wp_for HI
     wp_apply wp_node_Propose n γ.r.cluster kdRaftN id opsl d ctx' cd
       $$ [$Hraftinit $HisNode $Hnc $Hopsl $Hpau] as %err -
+    · ipureintro; intro b h; simp [Hmd] at h
     try wp_auto
     cases err
     case' ok i =>

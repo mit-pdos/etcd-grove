@@ -40,7 +40,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   letI := srvStor (GF := GF) γr
   wp_start as Hpre
   iNamed Hpre
-  obtain ⟨Hcfg, Hhb, Hwal⟩ := Hraft
+  obtain ⟨Hcfg, Hhb, Hwal, Hmd⟩ := Hraft
   icases typedPointsto_not_null_dup _ _ _ $$ Hb with ⟨Hb, %Hbnn⟩
   iStructNamedSuffix Hb "B"
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -93,7 +93,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
       memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
       bv.peers' dq pv Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
-      Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync Hcfg.applied
+      Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun h => absurd Hmd h) Hcfg.applied
       rfl rfl rfl rfl rfl Hcfg.peers) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
     as %nd ⟨%n, %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, Hpeers⟩
   · iframe #; iframe Hc Hpeers Hboot Hvac Hau

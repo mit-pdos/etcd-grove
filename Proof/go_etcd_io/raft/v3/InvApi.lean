@@ -3575,17 +3575,22 @@ theorem perm_elements_listToSet' (l : List w64) (h : l.Nodup) :
 
 /-- **Stepping a sent message** (the draft's `stepIn_intro`). -/
 theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64)
-    (st : MsgSt) :
+    (st : MsgSt) (c : MsgC) :
     -- (raft-final, 2026-10-29, U7: the design's §2.5; until then also `NetMsgOk` of a message not a
     -- proposal, no transfer request, and a snapshot's index below `2^61`)
     st.msg.To' = id →
+    -- (raft-entsize §2, 2026-11-09) the content form (the size fact is for the size law's proof)
+    c.model = ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ → c.csUfNil →
+    (∀ b, γ.raft.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c) →
     sentMsg (GF := GF) γ N src st ∗
-      msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
+      msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
       msgCredits γ N st ∗ snapLocalMsg γ id st ⊢
     |==> stepIn γ N id ml := by
-  intro Hto
+  intro Hto Hc Hcs _
   subst Hto
   iintro ⟨#Hsent, Hm, Htk, #Hloc⟩
+  ihave Hm := msgPtsCC_msgPtsC ml (DFrac.own 1) (DFrac.own 1) true c Hcs $$ Hm
+  rw [Hc]
   icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
   ihave %Hbnd : ⌜st.msg.Type' = MsgSnap →
       ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ $$ []

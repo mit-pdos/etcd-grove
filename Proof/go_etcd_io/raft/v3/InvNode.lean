@@ -461,15 +461,23 @@ exclusion (a stamped `MsgTransferLeader` carries its destination's leadership, `
 (2026-10-27, for etcd's server: no premise on a forwarded proposal's context. 2026-10-29, stage U4:
 no pre-vote premise: a node at term `0` has an empty log and grants a pre-vote request. 2026-10-29,
 stage U7: `node.Step` takes its own time receipt, no tick credit for a `MsgTimeoutNow`.) -/
-theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) :
+theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt)
+    (c : MsgC) :
     st.msg.To' = id →
+    -- (raft-entsize §2, 2026-11-09) the object at a content `c` (`msgPtsCC`; until then
+    -- `msgPtsC ml 1 1 true ⟨st…, []⟩`, which is `c`'s model with no unknown fields in its snapshot's
+    -- conf state, `msgPtsC_iff_CC`), of bounded size in a cluster with a bound on proposed data,
+    -- but a `MsgSnap`
+    c.model = ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ → c.csUfNil →
+    (∀ b, γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c) →
     sentMsg (GF := GF) γ N src st ∗
-      msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
+      msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
       msgCredits γ N st ∗ snapLocalMsg γ id st ⊢
     |==> stepIn γ N id ml := by
-  intro H3
+  intro H3 Hc Hcs Hsz
   unfold sentMsg msgCredits stepIn snapLocalMsg
-  exact ApiImpl.stepIn_intro_impl γ N id ml src st H3
+  unfold Cluster.maxData at Hsz
+  exact ApiImpl.stepIn_intro_impl γ N id ml src st c H3 Hc Hcs Hsz
 
 /-- (raft-final, 2026-10-29, U7: the design's §2.5, C12's `sentMsg_shape`) **A sent message has the
 shape raft sends** (`SentMsgShape`: its type, a nonzero sender, stamped or not by type, from another
@@ -639,6 +647,20 @@ instance Cluster.outEnt_persistent (γ : Cluster) (e : Loc) (c : EntryC) :
     Persistent (γ.outEnt (GF := GF) e c) := by
   unfold Cluster.outEnt; infer_instance
 
+/-- **A handed-out message is of bounded size** (raft-entsize §2, derived from the tracked
+`out_size`): in a cluster with a bound on proposed data, unless a `MsgSnap`. -/
+theorem Cluster.outObj_size (γ : Cluster) (m : Loc) (c : MsgC) (b : Nat) :
+    γ.outObj (GF := GF) m c ⊢ ⌜γ.maxData = some b → c.model.msg.Type' ≠ MsgSnap → msgSizeOk c⌝ := by
+  unfold Cluster.outObj Cluster.maxData
+  exact outObjR_size γ.raft m c b
+
+/-- **A handed-out entry is of bounded size** (raft-entsize §2, derived from the tracked
+`out_size`): in a cluster with a bound on proposed data. -/
+theorem Cluster.outEnt_size (γ : Cluster) (e : Loc) (c : EntryC) (b : Nat) :
+    γ.outEnt (GF := GF) e c ⊢ ⌜γ.maxData = some b → entSizeOk c⌝ := by
+  unfold Cluster.outEnt Cluster.maxData
+  exact outEntR_size γ.raft e c b
+
 /-- **A message a `Ready` hands out**: owned at `dq` (its entries and `Context` frozen, no capacity:
 as `msgOwn`) holding `st`, at a content `c` raft pinned (`MsgC.sentOk`: its snapshot's conf state
 without unknown fields, and a `MsgSnap` without top-level unknown fields, the literal's), handed out
@@ -663,6 +685,22 @@ theorem msgOut_msgOwn (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) :
   unfold msgOut Cluster.outObj
   exact msgOutR_msgOwn γ.raft l dq st
 
+instance msgOut_discard_persistent (γ : Cluster) (l : Loc) (st : MsgSt) :
+    Persistent (msgOut (GF := GF) γ l DFrac.discard st) := by
+  unfold msgOut; infer_instance
+
+/-- **A handed-out message, frozen read-only** (raft-entsize §2): at the content it was handed out
+with (what the server's transport keeps of it). -/
+theorem msgOut_persist_fupd (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) (E : CoPset) :
+    msgOut (GF := GF) γ l dq st ⊢ |={E}=> msgOut γ l DFrac.discard st := by
+  unfold msgOut
+  iintro ⟨%c, Hc, %Hm, #Ho⟩
+  imod msgPtsCC_persist l dq c $$ Hc with Hc
+  imodintro
+  iexists c
+  iframe Hc Ho
+  ipureintro; exact Hm
+
 /-- **The `MsgSnap` law**: a handed-out `MsgSnap` has no top-level unknown fields. -/
 theorem msgOut_snap (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) :
     msgOut (GF := GF) γ l dq st ⊢
@@ -670,6 +708,22 @@ theorem msgOut_snap (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) :
         ⌜c.model = st ∧ c.csUfNil ∧ (st.msg.Type' = MsgSnap → c.f.uf = [])⌝ := by
   unfold msgOut Cluster.outObj
   exact msgOutR_snap γ.raft l dq st
+
+/-- **A handed-out message is of bounded size** (raft-entsize §2, from `Cluster.outObj_size`, the
+tracked `out_size`): at its content, in a cluster with a bound on proposed data, unless a `MsgSnap`.
+What the server's transport derives its encoder's size bound from (rafthttp, a later step). -/
+theorem msgOut_size (γ : Cluster) (l : Loc) (dq : DFrac) (st : MsgSt) (b : Nat) :
+    msgOut (GF := GF) γ l dq st ⊢
+      ∃ c : MsgC, msgPtsCC l dq DFrac.discard false c ∗
+        ⌜c.model = st ∧ (γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝ := by
+  unfold msgOut
+  iintro ⟨%c, Hc, %Hm, #Ho⟩
+  ihave %Hsz := Cluster.outObj_size γ l c b $$ Ho
+  iexists c
+  iframe Hc
+  ipureintro
+  refine ⟨Hm.1, fun h1 h2 => Hsz h1 ?_⟩
+  rw [Hm.1]; exact h2
 
 /-- A `Ready`'s entries are today's read-only entries. -/
 theorem readyEnts_entsRO (γ : Cluster) (s : GoSlice) (es : List EntryM) :

@@ -132,6 +132,7 @@ theorem Replica.read.wp_proof
   iNamed Hctx'
   wp_apply wp_node_ReadIndex n γr.cluster kvrRaftN id b (readCtxB id (ns + W64 1) key)
     (fun _ => iprop(True)) ctx' cd $$ [$Hraftinit $HisNode $Hnc $Hb $Hrc] as %err -
+  · ipureintro; intro b h; simp [Hmd] at h
   try wp_auto
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone
   wp_auto_lc 1
