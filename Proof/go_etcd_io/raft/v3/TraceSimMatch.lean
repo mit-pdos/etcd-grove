@@ -352,22 +352,6 @@ theorem simRun_ready (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hr
 
 /-! ### Message lines -/
 
-/-- `MessageType.String()` of the traced types. -/
-def msgTypeStr : MsgType → GoString
-  | .vote => go!"MsgVote"
-  | .voteResp => go!"MsgVoteResp"
-  | .app => go!"MsgApp"
-  | .appResp => go!"MsgAppResp"
-  | .heartbeat => go!"MsgHeartbeat"
-  | .heartbeatResp => go!"MsgHeartbeatResp"
-  | _ => go!""
-
-/-- The traced message `tm` of raft's message `m` (`makeTracingMessage`, a non-snapshot). -/
-def MsgEvOf (m : Msg) (tm : TraceMsg) : Prop :=
-  tm.typ = msgTypeStr m.ty ∧ tm.term = m.term ∧ tm.frm = decStr m.src ∧ tm.to = decStr m.dst ∧
-  tm.entries = W64 m.entries.length ∧ tm.logTerm = m.logterm ∧ tm.index = m.index ∧
-  tm.commit = m.commit ∧ tm.reject = m.reject
-
 /-- A message event's line. -/
 def msgLine (e : TraceEv) (id vote f d : w64) (xs : List w64) : Etcdraft.Line :=
   { ev := evConv e, nid := idAbs id, vote := idAbs vote, role := (evConv e).role,
@@ -502,16 +486,6 @@ theorem simRun_msg (C : List w64) (L : List TraceEv) (σ σ' : Etcdraft.State) (
   · simp only [linesTrace]; rw [hl']; simpa using hboot lines _ hl
   · rw [linesTrace_line_last C lines _ _ (by omega)]; simpa [msgLine, evConv] using hrecv
   · exact hnr lines ts hl hts hl'
-
-/-- The events `traceSendMessage(r, m)` may log for a traced message `m` (`traceEvent` with the
-message; its properties unconstrained). -/
-def SendEvOf (evt : w64) (id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceEv) : Prop :=
-  evtNames[uint.nat evt]? = some e.name ∧
-  e.nid = decStr id ∧ e.term = s.term ∧ e.vote = decStr s.vote ∧ e.commit = s.logst.committed ∧
-  e.role = roleStr s.role ∧ e.logSize = plastIndex (toPState s) ∧
-  (∃ xs ys : List w64, xs ≡ₚ elements c.incoming ∧ ys ≡ₚ elements c.outgoing ∧
-    e.conf = (xs.map decStr, ys.map decStr)) ∧
-  (∃ tm, e.msg = some tm ∧ MsgEvOf m tm) ∧ e.cc = none
 
 theorem elements_empty_nil : elements (∅ : GSet w64) = [] :=
   List.eq_nil_of_length_eq_zero (by rw [GMap.length_elements, GMap.size_empty])

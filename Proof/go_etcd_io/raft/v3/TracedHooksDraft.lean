@@ -24,6 +24,14 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
 public import Spec.go_etcd_io.raft.v3.traceCommit
 public import Spec.go_etcd_io.raft.v3.traceNodeEvent
+public import Spec.go_etcd_io.raft.v3.traceSendMessage
+public import Spec.go_etcd_io.raft.v3.traceReceiveMessage
+public import Spec.go_etcd_io.raft.v3.traceBecomeFollower
+public import Spec.go_etcd_io.raft.v3.traceBecomeCandidate
+public import Spec.go_etcd_io.raft.v3.traceBecomeLeader
+public import Spec.go_etcd_io.raft.v3.traceReady
+public import Spec.go_etcd_io.raft.v3.traceReplicate
+public import Spec.go_etcd_io.raft.v3.raft__send
 public import Proof.go_etcd_io.raft.v3.TraceSimLemmas
 public import Proof.go_etcd_io.raft.v3.TraceSimGhost
 public import Proof.strconv.FormatUintDefs
@@ -89,6 +97,52 @@ def AdvancesTo (a : Etcdraft.Server) (n : Int) : Prop :=
   ∀ (st : Etcdraft.State) (i : Etcdraft.ID), st.s i = a →
     st.advanceCommitIndex i = some (st.commitTo i n)
 
+/-- `MessageType.String()` of the traced types. -/
+def msgTypeStr : MsgType → GoString
+  | .vote => go!"MsgVote"
+  | .voteResp => go!"MsgVoteResp"
+  | .app => go!"MsgApp"
+  | .appResp => go!"MsgAppResp"
+  | .heartbeat => go!"MsgHeartbeat"
+  | .heartbeatResp => go!"MsgHeartbeatResp"
+  | _ => go!""
+
+/-- The traced message `tm` of raft's message `m` (`makeTracingMessage`, a non-snapshot). -/
+def MsgEvOf (m : Msg) (tm : TraceMsg) : Prop :=
+  tm.typ = msgTypeStr m.ty ∧ tm.term = m.term ∧ tm.frm = decStr m.src ∧ tm.to = decStr m.dst ∧
+  tm.entries = W64 m.entries.length ∧ tm.logTerm = m.logterm ∧ tm.index = m.index ∧
+  tm.commit = m.commit ∧ tm.reject = m.reject
+
+/-- The events `traceSendMessage(r, m)` may log for a traced message `m` (`traceEvent` with the
+message; its properties unconstrained). -/
+def SendEvOf (evt : w64) (id : w64) (s : NState) (c : CfgM) (m : Msg) (e : TraceEv) : Prop :=
+  evtNames[uint.nat evt]? = some e.name ∧
+  e.nid = decStr id ∧ e.term = s.term ∧ e.vote = decStr s.vote ∧ e.commit = s.logst.committed ∧
+  e.role = roleStr s.role ∧ e.logSize = plastIndex (toPState s) ∧
+  (∃ xs ys : List w64, xs ≡ₚ elements c.incoming ∧ ys ≡ₚ elements c.outgoing ∧
+    e.conf = (xs.map decStr, ys.map decStr)) ∧
+  (∃ tm, e.msg = some tm ∧ MsgEvOf m tm) ∧ e.cc = none
+
+/-- `traceSendMessage`'s event, by the message's type (`rsmSend*`); `none`: not traced (a snapshot
+is `SendAppendEntriesRequest` in Go, never sent in a traced cluster, P2). -/
+def sendEvt : MsgType → Option w64
+  | .app | .heartbeat => some (W64 9)
+  | .appResp | .heartbeatResp => some (W64 11)
+  | .vote => some (W64 13)
+  | .voteResp => some (W64 15)
+  | _ => none
+
+/-- `traceReceiveMessage`'s event, by the message's type (`rsmReceive*`). -/
+def recvEvt : MsgType → Option w64
+  | .app | .heartbeat => some (W64 10)
+  | .appResp | .heartbeatResp => some (W64 12)
+  | .vote => some (W64 14)
+  | .voteResp => some (W64 16)
+  | _ => none
+
+/-- The normal entries of a batch (`traceReplicate` logs one `Replicate` per normal entry). -/
+def normalCount (ents : List EntryM) : Nat := (ents.filter (fun e => decide (e.Type' = EntryNormal))).length
+
 end pure
 
 /-! ## The capability -/
@@ -123,6 +177,22 @@ def trCap (tr : Option GName) (r : Loc) (id : w64)
       (P : List Etcdraft.Msg),
       traceDir γd tn ∗ ⌜tn.voters = C⌝ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ isTraceLogger tn.tr tl ∗
       ⌜tl ≠ interface.nil⌝ ∗ inv simNS (simInv C tn) ∗ simNode tn id c P ∗ ⌜Φ C c P⌝)
+
+/-- **What a hook's caller gives for an event that may or may not be logged**: `some E`, as
+`TraceFire`; `none` (a message type the hook does not trace), the logger's contract (traced) and
+`Q`. -/
+def TraceFireOpt (tr : Option GName) (tl : GoInterface) (oE : Option (TraceEv → Prop)) (Q : IProp GF) :
+    IProp GF :=
+  match oE with
+  | some E => TraceFire tr tl E Q
+  | none => match tr with
+    | none => iprop(⌜TraceLoggerOk tl⌝ ∗ Q)
+    | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗ isTraceLogger tn.tr tl ∗ ⌜tl ≠ interface.nil⌝ ∗ Q)
+
+/-- **`n` events in a row** (`traceReplicate`'s loop), each `E`'s, the caller's updates nested. -/
+def TraceFireN (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) : Nat → IProp GF → IProp GF
+  | 0, Q => TraceFireOpt tr tl none Q
+  | n + 1, Q => TraceFire tr tl E (TraceFireN tr tl E n Q)
 
 /-- In an untraced cluster the capability is nothing. -/
 theorem trCap_none (r : Loc) (id : w64) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) :
@@ -173,6 +243,77 @@ abbrev raft.maybeCommit.tracedSpec : Prop :=
       ⌜b = true → CommitOkC c (toPState s) N⌝ ∗
       trCap s.gh.tr r id (fun C =>
         SimIdle C (if b then { s with logst := { s.logst with committed := N } } else s)) }}
+
+/-! ## The other hooks, traced -/
+
+/-- **`traceSendMessage(r, m)`, traced**: reads the logger; for a traced type (`sendEvt`), reads
+`r`'s state and the message (both given back) and fires the caller's update with a `SendEvOf`
+event of the message as sent (`absMsg`: `send` has stamped `From` and `Term`); for another type
+nothing. A snapshot is never traced in a traced cluster (P2). -/
+abbrev traceSendMessage.tracedSpec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq : DFrac) (ms : MsgSt) (ty : MsgType)
+    (tl : GoInterface) (Q : IProp GF),
+  mtypeOf ms.msg.Type' = some ty → (s.gh.tr.isSome → ty ≠ .snap) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms ∗
+      TraceFireOpt s.gh.tr tl ((sendEvt ty).map (fun evt => SendEvOf evt id s c (absMsg ty ms.msg ms.ents))) Q }}
+    (App (App (Val #(functions traceSendMessage [])) (Val #r)) (Val #ml))
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms ∗ Q }}
+
+/-- **`traceReceiveMessage(r, m)`, traced**: at `raft.Step`'s entry, before any handling: the
+receipt's event (`recvEvt`), with `r`'s state as it is. -/
+abbrev traceReceiveMessage.tracedSpec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq : DFrac) (ms : MsgSt) (ty : MsgType)
+    (tl : GoInterface) (Q : IProp GF),
+  mtypeOf ms.msg.Type' = some ty → (s.gh.tr.isSome → ty ≠ .snap) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms ∗
+      TraceFireOpt s.gh.tr tl ((recvEvt ty).map (fun evt => SendEvOf evt id s c (absMsg ty ms.msg ms.ents))) Q }}
+    (App (App (Val #(functions traceReceiveMessage [])) (Val #r)) (Val #ml))
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms ∗ Q }}
+
+/-- **`traceBecomeFollower(r)`, traced**: a `BecomeFollower` node event of `r`'s state. -/
+abbrev traceBecomeFollower.tracedSpec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ownRaftPhysCV c c.voters r id s ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 2) id s c) Q }}
+    (App (Val #(functions traceBecomeFollower [])) (Val #r))
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ Q }}
+
+/-- **`traceBecomeCandidate(r)`, traced**. -/
+abbrev traceBecomeCandidate.tracedSpec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ownRaftPhysCV c c.voters r id s ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 1) id s c) Q }}
+    (App (Val #(functions traceBecomeCandidate [])) (Val #r))
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ Q }}
+
+/-- **`traceBecomeLeader(r)`, traced**. -/
+abbrev traceBecomeLeader.tracedSpec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ownRaftPhysCV c c.voters r id s ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 3) id s c) Q }}
+    (App (Val #(functions traceBecomeLeader [])) (Val #r))
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ Q }}
+
+/-- **`traceReady(r)`, traced**. -/
+abbrev traceReady.tracedSpec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ownRaftPhysCV c c.voters r id s ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 8) id s c) Q }}
+    (App (Val #(functions traceReady [])) (Val #r))
+  {{ RET #(); ownRaftPhysCV c c.voters r id s ∗ Q }}
+
+/-- **`traceReplicate(r, es...)`, traced**: one `Replicate` node event per normal entry of the batch,
+of `r`'s state before the append (`appendEntry` traces first). -/
+abbrev traceReplicate.tracedSpec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice) (dq : DFrac) (ents : List EntryM)
+    (tl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ entsPts es dq ents ∗
+      r.[raft, go!"traceLogger"] ↦□ tl ∗ ownRaftPhysCV c c.voters r id s ∗
+      TraceFireN s.gh.tr tl (NodeEvOf (W64 5) id s c) (normalCount ents) Q }}
+    (App (App (Val #(functions traceReplicate [])) (Val #r)) (Val #es))
+  {{ RET #(); entsPts es dq ents ∗ ownRaftPhysCV c c.voters r id s ∗ Q }}
 
 end ghost
 
