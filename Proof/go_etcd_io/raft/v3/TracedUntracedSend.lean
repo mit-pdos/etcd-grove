@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
 public import Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
 public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Spec.go_etcd_io.raft.v3.raft__appendEntry
+public import Spec.go_etcd_io.raft.v3.raft__becomeLeader
 
 @[expose] public section
 
@@ -265,7 +266,7 @@ theorem raft.appendEntry.untraced (h : raft.appendEntry.spec (GF := GF) (hG := h
   intro c r id s es ents dq m Hsmall Hnz htr
   iintro %Φ ⟨#Hpkg, Hphys, Hes, #Hrc⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s es ents dq m iprop(emp) Hsmall Hnz $$ [Hphys Hes]
+  iapply h c r id s es ents dq m iprop(emp) iprop(emp) iprop(emp) Hsmall Hnz $$ [Hphys Hes]
   · iframe Hpkg Hphys Hes Hrc
     isplitr
     · iempintro
@@ -279,9 +280,61 @@ theorem raft.appendEntry.untraced (h : raft.appendEntry.spec (GF := GF) (hG := h
     iapply hookGateOpt_none r _ tl iprop(emp) Htlok
     iframe Htl
   inext
-  iintro %acc ⟨#Hrc', -, Hrest⟩
+  iintro %acc ⟨#Hrc', %Hacc, Hes, Hrest⟩
   iapply HΦ $$ %acc
-  iframe Hrc' Hrest
+  iframe Hrc' Hes
+  isplitr
+  · ipureintro; exact Hacc
+  cases acc
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hrest with ⟨Hp, -⟩
+    iexact Hp
+  · simp only [↓reduceIte]
+    icases Hrest with ⟨Hp, -⟩
+    iexact Hp
+
+/-- `raft.becomeLeader.spec` at an untraced node (the statement before slice 6). -/
+abbrev raft.becomeLeader.untracedTriple : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  s.role ≠ .follower →
+  s.role ≠ .leader →
+  s.term ≠ W64 0 →
+  s.gh.tr = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
+  {{ (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c c.voters r id { becomeLeader id s with prvals := pvs } ∗
+      ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ }}
+
+/-- `raft.becomeLeader.spec`'s untraced instance: every gate the struct's nil logger. -/
+theorem raft.becomeLeader.untraced (h : raft.becomeLeader.spec (GF := GF) (hG := hG)) :
+    raft.becomeLeader.untracedTriple (GF := GF) (hG := hG) := by
+  intro c r id s Hrole Hnl Hnz htr
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iapply h c r id s iprop(emp) iprop(emp) iprop(emp) iprop(emp) Hrole Hnl Hnz $$ [Hphys]
+  · iframe Hpkg Hphys
+    isplitr
+    · iempintro
+    isplitr
+    · iintro -
+      rw [htr]
+      iapply hookGate_none r _ tl iprop(emp) Htlok
+      iframe Htl
+    isplitr
+    · iintro -
+      rw [htr]
+      iapply hookGateN_none r _ _ tl iprop(emp) Htlok
+      iframe Htl
+    iintro -
+    rw [htr]
+    iapply hookGateOpt_none r _ tl iprop(emp) Htlok
+    iframe Htl
+  inext
+  iintro %pvs ⟨Hphys, %H1, -⟩
+  iapply HΦ $$ %pvs
+  iframe Hphys
+  ipureintro; exact H1
 
 end untraced
 

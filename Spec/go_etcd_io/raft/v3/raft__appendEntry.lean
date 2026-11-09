@@ -169,8 +169,9 @@ and appended. (Phase 2 of R4 stated copies `ents'` whose `Data` slices differed,
 
 ### One spec for both trace modes (2026-11-09, trace-check Q8 stage 1 slice 6)
 
-The caller's `G` goes through the two hook gates of the accept path and comes back (untouched on the
-reject path): `traceReplicate`'s (`HookGateN`: one `Replicate` node event per normal entry of the
+The caller's resource goes through the two hook gates of the accept path in turn, `G` to `G1` to
+`G2` (each line may move the caller's state, as the capability's phase), and comes back as `G2`; on
+the reject path it comes back as `G`, no gate run. The gates: `traceReplicate`'s (`HookGateN`: one `Replicate` node event per normal entry of the
 batch, of the state before the append, which is when Go traces) and the self-acknowledgement's
 (`send`'s `HookGateOpt`, at the state with the batch appended). A traced caller's `Replicate` gate is
 where the line's `FxPresU` creates the records of the leader's new entries (the plan's round 6, F1):
@@ -179,7 +180,7 @@ it runs before the append, and the records exist by the time the self-acknowledg
 `raft.appendEntry.untraced`'s (`TracedUntracedSend.lean`). -/
 abbrev raft.appendEntry.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
-    (ents : List EntryM) (dq : DFrac) (m : Nat) (G : IProp GF),
+    (ents : List EntryM) (dq : DFrac) (m : Nat) (G G1 G2 : IProp GF),
   -- a batch small enough that `lastIndex()+1+k` does not wrap
   (ents.length : Int) < 2^61 →
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
@@ -193,16 +194,16 @@ abbrev raft.appendEntry.spec : Prop :=
       -- caller's resource, through the gates below
       "HG" ∷ G ∗
       -- the `Replicate` lines' gate: one event per normal entry, of the state before the append
-      "Hgrep" ∷ (G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount ents) G) ∗
+      "Hgrep" ∷ (G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount ents) G1) ∗
       -- the self-acknowledgement's gate, at the state with the batch appended
-      "Hgack" ∷ (G -∗ HookGateOpt s.gh.tr r (sendOutGate id
+      "Hgack" ∷ (G1 -∗ HookGateOpt s.gh.tr r (sendOutGate id
           { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c
           MsgAppResp
           [selfAck id
-            { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }]) G) }}
+            { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }]) G2) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
   {{ (accepted : Bool), RET #accepted;
-      ⧖ (m + ents.length) ∗ G ∗
+      ⧖ (m + ents.length) ∗
       -- an all-empty batch is never dropped -- see above
       ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
       -- (stage R4) the caller's batch, untouched
@@ -214,10 +215,10 @@ abbrev raft.appendEntry.spec : Prop :=
                 logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
             [selfAck id
               { s with logst :=
-                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
+                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }]) ∗ G2
       else
         -- dropped: `Warningf` and `return false`, nothing written
-        ownRaftPhysCV c c.voters r id s }}
+        ownRaftPhysCV c c.voters r id s ∗ G }}
 
 end spec
 

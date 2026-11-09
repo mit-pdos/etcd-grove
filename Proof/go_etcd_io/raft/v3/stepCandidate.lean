@@ -71,6 +71,7 @@ theorem stepCandidate.wp_proof
     stepCandidate.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
   have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
+  have wp_raft_becomeLeader := raft.becomeLeader.untraced wp_raft_becomeLeader
   have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
   intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap Htr
   wp_start as H
