@@ -35,7 +35,73 @@ changed and why, what is left.
    snapshot's backend and gives no contract for it; `lessorW` for the follower after the restore needs
    `lessorBackend` at the new backend, which only `lessorApplyOk` (in `NewLessor.specR`'s post, so
    `open` has it) provides. Statements changed: `lessorW` (so `memCore`, `memW`, `writerOwn`), additive.
-3. **`runner.restore.spec` needs `ops.length ≤ Ops`** (to come, with the restore proof): the builder's
-   file `buildPath (nb + 1)` is in `writerOwn`'s unused-file list only if `nb + 1 ≤ Ops`, and the
-   builder's grants need write-back tokens (`Ops ≤ k + b.ops`) only while `b.ops < ops.length ≤ Ops`.
-   `write`'s spec has the premise; `restore`'s did not.
+3. **`runner.restore.spec` takes `ops.length ≤ Ops` and `Ops < 2 ^ 38`** (both `write`'s premises,
+   which calls it): the builder's file `buildPath (nb + 1)` is among `writerOwn`'s unused files only
+   if `nb + 1 ≤ Ops`, the builder's grants have write-back tokens (`Ops ≤ k + b.ops`) only while
+   `b.ops < ops.length ≤ Ops`, and the snapshot's backend's kept tokens (`Ops + 1`, for the follower's
+   later grants and `SetTxPostLockInsideApplyHook`) fit in `wbInit` only for a bounded `Ops`.
+4. **`[ReceiptBoundLe GF (2 ^ 38)]`, not `2 ^ 48`, in `open`, `newMember`, `restart`, `restore`,
+   `write`.** `inc_open_backend`'s premise `receiptBound GF + k + 4 ≤ backend.wbInit` (`wbInit =
+   2 ^ 40 - 1`, `k ≥ Ops`) cannot be met from `receiptBound ≤ 2 ^ 48`: `open` and `restore` were
+   unprovable. `Run` has `2 ^ 38` (as mvccrand's); `New.specR`'s `2 ^ 48` follows
+   (`ReceiptBoundLe.pow_succ`).
+5. `etc/link-lean-first-mvccfull.txt`: `runner__restore` takes `mvccClosed_rest.law` (for
+   `inc_open_backend`); `Link.lean` regenerated.
+
+## `runner.restore`: where the proof is (`runner__restore.lean`, one `sorry` left)
+
+Proved, in Go's order: `builds++`; `buildPath`; `newMember(2, …)` on the first unused builder file
+(the history's lower bound `hist0`); the loop `for b.ops < l.ops { apply(b, log[b.ops], false) }`
+(the log's slice and its persistent `opIs`, `leadPre false` from the leader's lower bound, the
+builder's write-back tokens from `Ops ≤ k + b.ops`); the builder retired (`inc_retire`, its whole
+token: no reader or stream ever had a share) and `shut`, its file the image of `σOf ks ops l.ops`
+(`inc_stop_image` inside `shut`) with the live leases' records; the follower's `revHi`, `cmpHi`
+raised to the builder's inside its incarnation (`bnd_acc`: the bounds hold at the follower's state,
+`revAfter_mono`, `cmpAfter_mono`); `openBackend` on the builder's file at a fresh registration;
+`inc_open_backend` at the image.
+
+Left (the `sorry`), with what each step needs, all checked against the statements:
+
+- `kv := f.kv`; `f.le.Recover(newbe, func…)`. `Recover`'s premises: the records are the builder's
+  (`leaseRecsOk (rbData P D) (leasesAfter l.ops)`, through `rbPart` of the new backend); `mono = false`
+  (`lessorRevocable`); `id ∈ U → id ∈ L` from `logOk_recover` (`v1.U ⊆ grantedAfter v1.ops`, in
+  `memCore`); `reqOf := 3600`; the `leaseReqIs`-or-fresh list from `lessorW`'s `□ [∗list] U`
+  (a list-membership split); `leaseGranted γl id` from the guard `True` (**unfolds `lease.leaseGranted`:
+  a missing law of lease, `leaseGranted_of_guard`**); the new backend's `isBackend` (`bkKeep`), an open
+  share (`bkKeep`'s half, lent), two write-back tokens (`inc_open_backend`'s). With `Lr := L`
+  (`leaseRecsOk`'s `recs.map (·.1) = L`), `leaseOwn γl L ∅` comes back, which `Restore` takes.
+  The closure's `mvccDeleter` (the `kv` cell persisted; `KV.Write`'s contract; the
+  `TxnWrite → TxnDelete` conversion) is a lemma to write.
+- `f.kv.Restore(newbe)`: `KV.Restore.contract` (through `shapes.law`), at `σ' := σOf ks ops l.ops`
+  (`MvccReachable` from `logOk_hist`, pure, `sorry`'d; items from `logOk_leases`, pure, `sorry`'d), the
+  storage from `inc_open_backend`, the hook share `plHook γB nil` (`f = nil`), the update
+  **`restore_au` (proved)**. Post: the new backend's share, the old storage's rest, the leases'
+  items.
+- `SetTxPostLockInsideApplyHook(f.hook)`: `plHook γB nil` to `f.hook`, then `plHook_persist` gives
+  `hookIs` (**unfolds `backend.plHook`/`plHookRO` against `storageHook`'s `etcdStorage_hookIs`, a
+  definitional equation of mvcc's API: fine**); a write-back token from the new `bkKeep`'s `k`.
+- the old backend's census (`bkCensus` of the old `bkKeep` with `Restore`'s `storageRest`) and
+  `backend.Close`; the fields; `revLo`/`cmpLo` stores (`bnd_acc` again: `revLo := σ'.rev`,
+  `cmpLo := σ'.crev`, which hold after `Restore`); the checks (`KV.Rev`, `KV.Read`, `FirstRev`,
+  `End`); `checkLeases`; the counter; `writerOwn` at `nb + 1` (the follower's `lessorW` on the new
+  backend from `lessorApplyOk`, change 2, with `plHookRO γB f`).
+
+No step found a false statement beyond changes 2-4; the risky ones (the builder's image, the
+bounds' window, `Restore`'s update at a live incarnation) are proved.
+
+## Laws still `sorry` (Writer.lean) and why
+
+- `inc_open_backend`: `mvccrand.rc_open`'s proof at an image (`etcdStorage_open.law` in place of
+  `mvccImage_fresh.law`) and `bkCensus` in place of `rcCensus`: mechanical, no invariant risk.
+- the pure model lemmas `logOk_once`, `logOk_hist`, `runM_mono`, `logOk_leases`, `logOk_recover`
+  (no invariant risk; `runM_mono`'s parts are now `revAfter_mono`, `cmpAfter_mono`,
+  `runM_hs_prefix`, proved in `WriterShares.lean`).
+
+## Unfolds of other packages' definitions (each a missing law of that package)
+
+- `apply.bkRT` (etcdserver's apply package) in `inc_census`: its open share `bOpen rdOpen`
+  (`bkRT_open : bkRT B ⊢ bOpen B.γB rdOpen ∗ …`).
+- `backend.bStopView` (backend's `InvStop`) in `inc_stop_image`: its `rbOwn (rbData P D)`, against
+  the writer's `rbPart` (`bStopView_rbPart_agree`).
+- `backend.rbOwn` (an abbreviation of `rbPart γ ⊤`) with `backend.rbPart_agree` (a backend lemma,
+  used as is).
