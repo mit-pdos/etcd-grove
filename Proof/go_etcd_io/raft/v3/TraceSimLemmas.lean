@@ -1674,6 +1674,64 @@ theorem stepRound_next_l (t : Etcdraft.Trace) (l0 : Nat) (inv : Bool) (frontier 
           cases v <;> simp [hvi, pure, Except.pure] at hst <;> subst hst <;> exact key
       · simp only [pure, Except.pure, Except.ok.injEq] at hst; subst hst; exact key
 
+/-- A round's states on the next line (`out`) are on line `l0 + 1`. -/
+theorem stepRound_out_l (t : Etcdraft.Trace) (l0 : Nat) (inv : Bool) (frontier : List Etcdraft.TState)
+    (st : List Etcdraft.TState × List Etcdraft.TState × Etcdraft.StepInfo)
+    (out visited next : List Etcdraft.TState) (info : Etcdraft.StepInfo)
+    (hf : ∀ f ∈ frontier, f.l = l0) (hst : ∀ x ∈ st.1, x.l = l0 + 1)
+    (h : t.stepRound l0 inv frontier st = .ok (out, visited, next, info)) : ∀ x ∈ out, x.l = l0 + 1 := by
+  unfold Etcdraft.Trace.stepRound at h
+  refine foldlM_inv_mem _ (fun acc : List Etcdraft.TState × List Etcdraft.TState × List Etcdraft.TState ×
+      Etcdraft.StepInfo => ∀ x ∈ acc.1, x.l = l0 + 1) _ _ (out, visited, next, info) hst ?_ h
+  intro acc f r hfm hacc hstep
+  have hfl := hf f hfm
+  obtain ⟨o, v, n, i⟩ := acc
+  simp only at hstep hacc
+  split at hstep
+  · simp only [pure, Except.pure, Except.ok.injEq] at hstep; subst hstep; exact hacc
+  cases hn : t.next f with
+  | error e => simp [hn, bind, Except.bind] at hstep
+  | ok succ =>
+    have hsl := next_l t f succ hn
+    simp only [hn, bind, Except.bind] at hstep
+    generalize hin : List.foldlM (m := Etcdraft.EvalM) _ _ succ = res at hstep
+    cases res with
+    | error e => cases hstep
+    | ok q =>
+      simp only [pure, Except.pure, Except.ok.injEq] at hstep
+      subst hstep
+      simp only
+      refine foldlM_inv_mem _ (fun a : List Etcdraft.TState × List Etcdraft.TState × List Etcdraft.TState ×
+        List Etcdraft.TState × Etcdraft.StepInfo => ∀ x ∈ a.1, x.l = l0 + 1) _ _ q hacc ?_ hin
+      intro a s2 r' hs2 ha hst
+      have hs2l := hsl s2 hs2
+      generalize hT : (if (s2.l == l0 + 1) = true then
+          (if Etcdraft.memEq a.1 s2 = true then (a.1, a.2.1, a.2.2.1, false) else (a.1 ++ [s2], a.2.1, a.2.2.1, true))
+        else (if Etcdraft.memEq a.2.1 s2 = true then (a.1, a.2.1, a.2.2.1, false)
+          else (a.1, a.2.1 ++ [s2], a.2.2.1 ++ [s2], true))) = T at hst
+      have key : ∀ x ∈ T.1, x.l = l0 + 1 := by
+        rw [← hT]
+        split
+        · rename_i heq
+          split
+          · exact ha
+          · intro x hx
+            simp only [List.mem_append, List.mem_singleton] at hx
+            rcases hx with hx | rfl
+            · exact ha x hx
+            · simpa using heq
+        · split <;> exact ha
+      split at hst
+      · simp only [pure, Except.pure, Except.ok.injEq] at hst; subst hst; exact ha
+      split at hst
+      · simp only [pure, Except.pure, Except.ok.injEq] at hst; subst hst; exact key
+      split at hst
+      · cases hvi : s2.s.violated with
+        | error e => simp [hvi] at hst
+        | ok v =>
+          cases v <;> simp [hvi, pure, Except.pure] at hst <;> subst hst <;> exact key
+      · simp only [pure, Except.pure, Except.ok.injEq] at hst; subst hst; exact key
+
 end TraceSim
 
 end EtcdGrove
