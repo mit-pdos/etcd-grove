@@ -33603,3 +33603,15 @@ as `MsgEvOf` reads it, `out`'s), then the pop. Untraced callers: `raft.send.untr
 `TracedHooks.lean`): for a traced type the line's law (`trCap_fire` before the node's segment is over,
 `trCap_fire_booted` after), the facts `FxPresT` as `FxPresU` (`fxPres_upd`), `out` a singleton
 (`sendOk_traced_single`); otherwise `trCapB_mono`.
+
+**`send`'s callers.** A caller making one send takes the send's gate at the message it builds
+(`sendTimeoutNow`: at no event, `MsgTimeoutNow` not being traced; `sendHeartbeat`: `∀ cm`, the
+heartbeat's commit, with its two bounds), and gives `Q` back. A loop of sends (`bcastHeartbeatWithCtx`,
+`bcastHeartbeat`) takes a persistent per-send gate turning the caller's `G` into `G` (`□ (∀ to cm, … -∗
+G -∗ HookGateOpt … G)`) and `G`, threaded through the loop's invariant: the traced caller's `G` is the
+capability in a phase each heartbeat line keeps. Each send's event is stated at the loop's entry state
+`s`: the event's header reads nothing a send changes, so the gate at `{ sendMsgs s ms with prvals := … }`
+is the gate at `s` (`rfl`). `maybeSendSnapshot` stays untraced by design (a traced node sends no
+snapshot, P2). Not done in this slice: `maybeSendAppend`, `sendAppend`, `bcastAppend`,
+`sendMsgReadIndexResponse`, `releasePendingReadIndexMessages`, `appendEntry`, `becomeLeader` (plan, "Q8
+stage 1 (slice 5)").
