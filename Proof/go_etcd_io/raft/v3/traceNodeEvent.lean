@@ -33,10 +33,17 @@ theorem traceNodeEvent.wp_proof
   · iapply trOwn_wand
     iframe Hown
     iintro Hphys
-    iexists c, id, s
+    iexists c, id, s, ownRaftPhysCV c c.voters r id s, none, noProps
     iframe Hphys
     isplitr
-    · ipureintro; exact ⟨rfl, rfl, Hevt, fun _ h => h⟩
+    · iapply raftLend_self
+    isplitr
+    · iapply msgLend_nil
+    isplitr
+    · iapply tracingPropsRep_nil
+    isplitr
+    · ipureintro
+      exact ⟨Hevt, fun e h hm hc h1 h2 h3 => nodeEvOf_of_hdr h hm hc h1 h2 h3⟩
     iintro H; iexact H
   iapply HΦ $$ HR
 

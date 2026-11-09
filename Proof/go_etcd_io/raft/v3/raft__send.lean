@@ -20,6 +20,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
 public import Proof.go_etcd_io.raft.v3.raft__Step.Dispatch
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -221,6 +222,8 @@ theorem raft.send.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     raft.send.spec (GF := GF) (hG := hG) := by
+  -- (Q8 stage 1, slice 4) the hook's untraced instance: `send` stays untraced
+  have wp_traceSendMessage := traceSendMessage.untraced wp_traceSendMessage
   intro c r id s ml m ents sn ctx rs out Hfrom Hok Hsn Hsh Hrs Htr
   wp_start as H
   iNamed H

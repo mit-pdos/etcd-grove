@@ -2,15 +2,24 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem traceReceiveMessage.wp_proof [package_sem : Assumptions] : traceReceiveMessage.spec
+theorem traceReceiveMessage.wp_proof [package_sem : Assumptions] (wp_traceEvent : traceEvent.spec)
+    (wp_GetType : raftpb.Message.GetType.spec) (wp_Sleep : time.Sleep.spec) :
+    traceReceiveMessage.spec
   -- `Perennial.EtcdGrove.traceReceiveMessage.spec`, unfolded:
-  ∀ (r mp : Loc) (tl : GoInterface),
+  ∀ (r ml : Loc) (tl : GoInterface) (tr : Option GName) (oE : Option (TraceEv → Prop)) (Q R : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             typedPointsto
                 (structFieldRef raft go!"traceLogger" r) tl
                 DFrac.discard ∗
-              ⌜TraceLoggerOk tl⌝ -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
-            WP (((intoVal (functions traceReceiveMessage [])) (intoVal r)) (intoVal mp)) {{ Φ }}
+              ⌜tr = none → TraceLoggerOk tl⌝ ∗
+                trOwn tr
+                    iprop(∃ c id s P a,
+                        P ∗
+                          RaftLend P c r id s ∗
+                            MsgLend P ml (some a) ∗
+                              ⌜mtypeOf a.ms.msg.Type' ≠ some MsgType.snap ∧ oE = recvGate id s c a.ms⌝ ∗ (P -∗ R)) ∗
+                  TraceFireOpt tr tl oE Q -∗
+          ▷ (trOwn tr R ∗ Q -∗ Φ (intoVal ())) -∗
+            WP (((intoVal (functions traceReceiveMessage [])) (intoVal r)) (intoVal ml)) {{ Φ }}

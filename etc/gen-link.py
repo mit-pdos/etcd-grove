@@ -562,6 +562,8 @@ REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
+                 # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
+                 "--raft": ["Perennial.Proof.time.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)
                  "--k8s-etcd3": ["Perennial.Proof.time.Link"],
                  # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)

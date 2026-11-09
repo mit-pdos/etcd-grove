@@ -3,7 +3,7 @@ Port of `election_proof/spec_traceReceiveMessage.v` (feb5c73d4).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -21,17 +21,25 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceReceiveMessage`: reads `r.traceLogger` and returns when it is nil; otherwise sleeps 1ms (`time.Sleep`) and reports the message's receipt. Under `TraceLoggerOk` (increment 1, `notes/trace-validation-hooks.md`: the logger is nil) it
-returns at once, owning nothing but the field, shared (`ownRaftPhysC_traceLogger`). Until
-2026-11-08 the translated build was the no-op one (`state_trace_nop.go`) and the spec owned
-nothing; increment 2 (`notes/trace-validation-sim.md`) replaces
-`TraceLoggerOk` by the logger's contract `isTraceLogger γt`, changing this statement. -/
+/-- `traceReceiveMessage(r, m)`: reads `r.traceLogger` and returns when it is nil; otherwise, for a
+message type it traces (`MsgApp`, `MsgHeartbeat`, `MsgSnap`, `MsgAppResp`, `MsgHeartbeatResp`,
+`MsgVote`, `MsgVoteResp`), sleeps 1ms (`time.Sleep`) and logs the receipt (`traceEvent`, with the
+message); for any other type nothing.
+
+One spec for both modes (Q8 stage 1, slice 4, 2026-11-09), as `traceSendMessage.spec`, with the
+receive hook's gate (`recvGate`, the Draft's). The Draft's `traceReceiveMessage.tracedSpec` follows
+(`TracedHooks.lean`). Until slice 4 the spec was the untraced case alone (`⌜TraceLoggerOk tl⌝`,
+giving `True`), which is `traceReceiveMessage.untraced` (`TracedUntraced.lean`). -/
 abbrev traceReceiveMessage.spec : Prop :=
-  ∀ (r : Loc) (mp : Loc) (tl : GoInterface),
+  ∀ (r ml : Loc) (tl : GoInterface) (tr : Option GName) (oE : Option (TraceEv → Prop)) (Q R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
-      ⌜TraceLoggerOk tl⌝ }}
-    (App (App (Val #(functions traceReceiveMessage [])) (Val #r)) (Val #mp))
-  {{ RET #(); True }}
+      ⌜tr = none → TraceLoggerOk tl⌝ ∗
+      trOwn tr iprop(∃ (c : CfgM) (id : w64) (s : NState) (P : IProp GF) (a : MsgArg),
+        P ∗ RaftLend P c r id s ∗ MsgLend P ml (some a) ∗
+        ⌜mtypeOf a.ms.msg.Type' ≠ some .snap ∧ oE = recvGate id s c a.ms⌝ ∗ (P -∗ R)) ∗
+      TraceFireOpt tr tl oE Q }}
+    (App (App (Val #(functions traceReceiveMessage [])) (Val #r)) (Val #ml))
+  {{ RET #(); trOwn tr R ∗ Q }}
 
 end spec
 

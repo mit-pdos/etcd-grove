@@ -231,19 +231,23 @@ stateMachineEventType__String:
 StateType__String:
 formatConf: strconv_FormatUint
 makeTracingState: raft__hardState raftpb_HardState__GetTerm raftpb_HardState__GetVote raftpb_HardState__GetCommit strconv_FormatUint
-makeTracingMessage:
+# (Q8 stage 1, slice 4) the message's case: its getters, `MessageType.String` (Q9's trusted model,
+# whose fallback is `strconv.Itoa`'s trust-boundary axiom, already the server's)
+raftpb_MessageType__String: strconv_Itoa
+strconv_Itoa:
+makeTracingMessage: raftpb_Message__GetLogTerm raftpb_Message__GetEntries raftpb_Message__GetIndex raftpb_Message__GetType raftpb_Message__GetSnapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_MessageType__String raftpb_Message__GetTerm raftpb_Message__GetFrom raftpb_Message__GetTo raftpb_Message__GetCommit raftpb_Message__GetVote raftpb_Message__GetReject raftpb_Message__GetRejectHint strconv_FormatUint
 traceEvent: stateMachineEventType__String strconv_FormatUint makeTracingState raftLog__lastIndex quorum_MajorityConfig__Slice formatConf StateType__String makeTracingMessage
 traceNodeEvent: traceEvent
 traceInitState: traceNodeEvent
 traceConfChangeEvent:
 traceCommit: traceNodeEvent
-traceSendMessage:
+traceSendMessage: traceEvent raftpb_Message__GetType raftpb_Message__GetFrom
 traceBecomeFollower: traceNodeEvent
 traceBecomeCandidate: traceNodeEvent
 traceBecomeLeader: traceNodeEvent
 traceReplicate: traceNodeEvent raftpb_Entry__GetType
 traceChangeConfEvent: traceEvent raftpb_ConfChange__AsV2 raftpb_ConfChangeV2__AsV2 raftpb_ConfChangeSingle__GetType raftpb_ConfChangeSingle__GetNodeId strconv_FormatUint
-traceReceiveMessage:
+traceReceiveMessage: traceEvent raftpb_Message__GetType =_root_.Perennial.time.wp_Sleep
 traceReady: traceNodeEvent
 lockedRand__Intn: big_NewInt rand_Int big_Int__Int64
 raft__resetRandomizedElectionTimeout: lockedRand__Intn

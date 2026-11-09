@@ -8,12 +8,18 @@ the hook's gate `HookGate none` given by the struct's nil logger (`ownRaftPhysC_
 `hookGate_none`), with `Q := emp`. Not specs: each is a consequence of its function's one spec, for
 the callers that stay untraced (`raft.Step`'s handlers, `stepLeader`, `switchToConfig`, `newRaft`,
 `RawNode.Bootstrap`, `campaign`).
+
+(Slice 4, 2026-11-09) The message hooks `traceSendMessage` and `traceReceiveMessage`, one spec for
+both modes since slice 4, have their untraced instances here too (the specs before slice 4: the nil
+logger, giving `True`), for `raft.send` and `raft.Step`'s receipt, which stay untraced.
 -/
 module
 
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 public import Spec.go_etcd_io.raft.v3.raft__becomeCandidate
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
+public import Spec.go_etcd_io.raft.v3.traceSendMessage
+public import Spec.go_etcd_io.raft.v3.traceReceiveMessage
 
 @[expose] public section
 
@@ -116,6 +122,58 @@ theorem raft.maybeCommit.untraced (h : raft.maybeCommit.spec (GF := GF) (hG := h
   iapply HΦ $$ %b %N
   iframe Hphys
   ipureintro; exact HN
+
+/-- `traceSendMessage.spec` at an untraced node (the statement before slice 4). -/
+abbrev traceSendMessage.untracedTriple : Prop :=
+  ∀ (r : Loc) (mp : Loc) (tl : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ⌜TraceLoggerOk tl⌝ }}
+    (App (App (Val #(functions traceSendMessage [])) (Val #r)) (Val #mp))
+  {{ RET #(); True }}
+
+/-- `traceSendMessage.spec`'s untraced instance. -/
+theorem traceSendMessage.untraced (h : traceSendMessage.spec (GF := GF) (hG := hG)) :
+    traceSendMessage.untracedTriple (GF := GF) (hG := hG) := by
+  intro r mp tl
+  iintro %Φ ⟨#Hpkg, #Htl, %Hok⟩ HΦ
+  iapply h r mp tl none none iprop(True) iprop(True) $$ [Hpkg Htl]
+  · iframe Hpkg Htl
+    isplitr
+    · ipureintro; intro _; exact Hok
+    isplitr
+    · iapply trOwn_none_intro
+    simp only [TraceFireOpt]
+    itrivial
+  inext
+  iintro -
+  iapply HΦ
+  itrivial
+
+/-- `traceReceiveMessage.spec` at an untraced node (the statement before slice 4). -/
+abbrev traceReceiveMessage.untracedTriple : Prop :=
+  ∀ (r : Loc) (mp : Loc) (tl : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ⌜TraceLoggerOk tl⌝ }}
+    (App (App (Val #(functions traceReceiveMessage [])) (Val #r)) (Val #mp))
+  {{ RET #(); True }}
+
+/-- `traceReceiveMessage.spec`'s untraced instance. -/
+theorem traceReceiveMessage.untraced (h : traceReceiveMessage.spec (GF := GF) (hG := hG)) :
+    traceReceiveMessage.untracedTriple (GF := GF) (hG := hG) := by
+  intro r mp tl
+  iintro %Φ ⟨#Hpkg, #Htl, %Hok⟩ HΦ
+  iapply h r mp tl none none iprop(True) iprop(True) $$ [Hpkg Htl]
+  · iframe Hpkg Htl
+    isplitr
+    · ipureintro; intro _; exact Hok
+    isplitr
+    · iapply trOwn_none_intro
+    simp only [TraceFireOpt]
+    itrivial
+  inext
+  iintro -
+  iapply HΦ
+  itrivial
 
 end untraced
 
