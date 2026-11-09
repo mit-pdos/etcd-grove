@@ -3766,6 +3766,47 @@ theorem lineEffect_replicate (C : List w64) (e : TraceEv) (id : w64) (s : NState
   · rw [hts]; exact confAbs_nodup C
   · rw [hts, mem_confAbs]; exact hC
   · exact hcr
+
+/-- **A `BecomeCandidate` line's effect**: the specification's `Timeout` (pre-vote off). -/
+theorem lineEffect_becomeCandidate (C : List w64) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (a : Etcdraft.Server) (Mid : Etcdraft.Server → Prop)
+    (hev : NodeEvOf (W64 1) id s cfg e) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hrl : a.state = Etcdraft.follower ∨ a.state = Etcdraft.candidate)
+    (hcfg : a.config.incoming = confAbs C)
+    (hrole : s.role = .candidate) (hterm : a.currentTerm + 1 = uint.Z s.term) (bt : uint.Z s.term < 2 ^ 63) :
+    LineEffect C false e (idAbs id) a (candOf (idAbs id) a) none _root_.id _root_.id Mid := by
+  obtain ⟨hname, hnid, hterm', hvote, -, hrl', -, ⟨xs, ys, -, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "BecomeCandidate" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"BecomeCandidate" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  apply lineEffect_nr C false e (idAbs id) a _ _root_.id Mid (nodeLine e id s.vote xs)
+    (parseLine_node 0 e id s.vote xs [] hnid hvote hconf hmsg (by rw [hname']; rfl) (by rw [hname']; decide)) rfl
+    (by simp [nodeLine, evConv, hname']; rfl)
+  intro t l pl σ hline hl hts _ hsrv hσi hpv _
+  have hto : σ.timeout (idAbs id) = some (σ.upd (idAbs id) (candOf (idAbs id))) := by
+    unfold Etcdraft.State.timeout Etcdraft.State.timeoutEnabled Etcdraft.Server.timeoutRoleOk
+      Etcdraft.State.getConfig
+    have hcont : (confAbs C).contains (idAbs id) = true := by
+      rw [List.contains_iff_mem, mem_confAbs]; exact hC
+    rw [hσi]
+    rcases hrl with h | h <;> simp only [h, hcfg, hcont, hpv, beq_self_eq_true, Bool.true_or, Bool.or_true,
+      Bool.true_and, Bool.not_false, ↓reduceIte] <;> rfl
+  have hF : withNode σ (idAbs id) (candOf (idAbs id) a) _root_.id _root_.id = σ.upd (idAbs id) (candOf (idAbs id)) := by
+    rw [upd_eq_withNode, hσi]
+  rw [hF]
+  apply nonReceive_becomeCandidate _ _ (idAbs id) _ hl
+  · rw [hline]; simp [nodeLine, evConv, hname']
+  · rw [hline]; rfl
+  · rw [hts]; exact confAbs_nodup C
+  · rw [hts, mem_confAbs]; exact hC
+  · exact hto
+  · rw [hline]; simp only [nodeLine, evConv, hrl', hrole]; rfl
+  · rw [upd_self]; rfl
+  · rw [upd_self, hline, hσi]; simp only [candOf, nodeLine, evConv, hterm']; rw [gInt_of_lt _ bt, hterm]
 end TraceSim
 
 end EtcdGrove
