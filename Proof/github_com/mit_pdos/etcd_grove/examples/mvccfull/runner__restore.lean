@@ -419,6 +419,33 @@ theorem runner.restore.wp_proof
     · iframe #; iframe
     rw [hkveq]
     (try wp_auto)
+    ihave #Hreq : storageReq (etcdStorage (mvccrand.rcKB γB bnb gx (limOf cfg))) iprop(True)
+        iprop(True) iprop(True) $$ []
+    · rw [etcdStorage_req]; iapply backend.commitReq_true
+    have hRst := hKRest v1.ι.kv (etcdStorage v1.bk) (etcdStorage (mvccrand.rcKB γB bnb gx (limOf cfg)))
+        iprop(True) iprop(True) (σOf ks ops v0.ops) u (leasesAfter ks ops v0.ops)
+        (DFrac.own (1 : Qp).half) func.nil iprop(True) iprop(True) iprop(True) iprop(True)
+        iprop(True) (fun _ => iprop(ghostVar v1.ι.ret qw1 () ∗
+          ghostVar γ.m1.σ (Qp.half 1) (σOf ks ops v0.ops) ∗ ghostVar γ.m1.bnd (Qp.half 1) b2))
+    rw [etcdStorage_val, mvccrand.rcKB_be] at hRst
+    wp_apply hRst $$ [Hopen1 Hback1 Hsf Hplh HlOwn Hau]
+    · iframe #; iframe
+      isplitr
+      · ipureintro; exact ⟨hσb.2.2, rfl⟩
+      isplitl [Hplh]
+      · rw [etcdStorage_hook]; iexact Hplh
+      isplitr
+      · ipureintro; left; rfl
+      isplitr
+      · iunfold api.hookRun; simp only [↓reduceIte]; iintro _; imodintro; itrivial
+      isplitr
+      · iintro _; itrivial
+      ipureintro; exact hitems
+    iintro ⟨Hopen1, Hback1, Hrest0, Hplh, -, HlOwn, %σq, Hret1, Hσw1, Hbw1⟩
+    (try wp_auto)
+    wp_apply wp_check
+    · ipureintro; simp
+    (try wp_auto)
     sorry
 
 end proof
