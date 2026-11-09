@@ -201,6 +201,20 @@ ones included; keeping them until `Advance` is the `RawNode`'s spec. A10: `trace
 `traceFireOpt_mono` (Iris-Lean lacks `atomic_update_wand`: a local `aupd_wand_post`,
 `notes/perennial-changes.md`). Open of round 2: A9 (`Replicate`'s records), A11, A12; then round 3.
 
+**The last effects, the ASCII clause, `newTraceWith` (2026-11-09, proved).** Every line kind of the
+workload now has its effect: an accepted append request (`lineEffect_appRecv`, the truncation chain's
+intermediate servers `appMid`; after a first round, `lineEffect_appRecvU`), a lower-term response
+dropped (`lineEffect_staleResp`) and a lower-term request answered by a phantom (`lineEffect_staleReq`,
+`phantomOf`), the application's `ApplyConfChange` (`lineEffect_applyCC`); the higher-term variants of
+the one-handler receipts go through `lineEffect_recv2`. `ConvertEvents`'s ASCII premise is a `simInv`
+clause (`∀ x ∈ L, TraceEv.Ascii x`, the definition moved to raft's `TraceSim.lean`), which the laws
+keep from their events (premise `∀ e, E e → TraceEv.Ascii e`, from `nodeEvOf_ascii`/
+`sendEvOf_ascii`: `SendEvOf` now records the message's vote a decimal and no `cc` property, as
+`makeTracingMessage`/`traceSendMessage` write). `newTraceWith_len` and `newTraceWith_lines` are
+proved (`newTraceWith_ok`), so the simulation's files have no `sorry`. Review round 3 of the S5
+Draft started (a fresh reviewer, `notes/trace-validation-reviews/s5-r3.md`); layer C's
+`invariants.go` delegated (branch `trace-check-layerc-inv`), `spec.go`'s agent still at work.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
