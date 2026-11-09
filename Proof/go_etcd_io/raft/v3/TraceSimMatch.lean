@@ -607,6 +607,52 @@ theorem nonReceive_skipResp (t : Etcdraft.Trace) (ts : Etcdraft.TState) (hl : ts
     simp only [h, hf, hskip]
     simp [pure, Except.pure, bind, Except.bind]
 
+/-- **A reply's send line's step**: a response raft sends to another node (the receive line already
+queued it in the specification): the state stays. -/
+theorem simRun_skipResp (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64)
+    (hevt : evt = W64 11 ∨ evt = W64 15)
+    (hev : SendEvOf evt id s cfg m e) (hout : cfg.outgoing = ∅) (hne : m.src ≠ m.dst)
+    (htr : m.ty = .appResp ∨ m.ty = .heartbeatResp ∨ m.ty = .voteResp)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : σ.violated = .ok none) :
+    SimRun C (L ++ [e]) σ := by
+  obtain ⟨hname, hnid, -, hvote, -, -, -, ⟨xs, ys, -, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendAppendEntriesResponse" ∨ gsStr e.name = "SendRequestVoteResponse" := by
+    simp only [evtNames] at hname
+    rcases hevt with rfl | rfl
+    · left
+      have : e.name = go!"SendAppendEntriesResponse" := by have := hname; simp at this; exact this.symm
+      rw [this]; rfl
+    · right
+      have : e.name = go!"SendRequestVoteResponse" := by have := hname; simp at this; exact this.symm
+      rw [this]; rfl
+  have hne' : idAbs m.src ≠ idAbs m.dst := fun h => hne (idAbs_inj.1 h)
+  have htyp : (Etcdraft.raftMsgType (gsStr tm.typ)).isSome = true := by
+    rw [hm.1]; rcases htr with h | h | h <;> rw [h] <;> rfl
+  apply simRun_msg C L σ σ hrun hL e id s.vote m.src m.dst xs tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+    htyp (by rcases hname' with h | h <;> rw [h] <;> rfl) (by rcases hname' with h | h <;> rw [h] <;> decide)
+    hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (msgLine e id s.vote m.src m.dst xs) ts.l (by omega)
+  rw [← hts]
+  apply nonReceive_skipResp _ ts (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  · rw [hline]; simpa [msgLine, evConv] using hname'
+  · rw [hline]; exact hne'
+  · rw [hline]
+    refine ⟨_, by simp [msgLine, evConv, hmsg]; rfl, ?_⟩
+    simp only [hm.2.2.1, hm.2.2.2.1]
+    intro h
+    exact hne' (by
+      have h1 := parseID_decStr m.src; have h2 := parseID_decStr m.dst
+      rw [h] at h1; rw [h1] at h2; exact Option.some.inj h2)
+
 end TraceSim
 
 end EtcdGrove
