@@ -8,6 +8,13 @@ bootstrap clause, once every voter's are logged), a run through every line of th
 (`Trace.RunRel`), which gives `CheckTrace`'s no-evaluation-error premise and its verdict
 (`Trace.RunRel.checkTraceOk`, `Trace.RunRel.checkTraceRel_eq`). `simRun_accepts`
 (`TraceSimGhost.lean`) is its corollary for `TraceAccepts`.
+
+Layer B's exports (2026-11-09): `simInv_end`, what `simInv`'s body gives at the end of a run with the
+recorder's half of the trace (the run `SimRun` of the recorder's `L`, the events ASCII), and
+`simRun_runAccepted`, `mainPure`'s `RunAccepted L` from it and the bootstrap facts. `mainPure`'s other
+hypotheses on the events (`ScopeOk`, `NumsBelow`, `ConfsWithin`, `BootLogsOk`, the event count) are
+not `simInv` clauses: the frozen laws' events give none of them (`notes/trace-validation-plan.md`,
+layer B, "Layer B's exports").
 -/
 module
 
@@ -53,6 +60,49 @@ theorem simRun_runRel (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (t
       simpa using Etcdraft.newTraceWith_len _ false false t hnt
     rw [← hlen] at hr
     exact ⟨ts, hr⟩
+
+/-- **`Main`'s run premise** (`tracecheck/MainPure.lean`'s `RunAccepted L`, unfolded), from the
+simulation's run at the end, once the whole trace parses (`newTrace` succeeds) and its initial state
+and servers are the voters' (layer B's bootstrap clause, owed: the bootstrap facts). -/
+theorem simRun_runAccepted (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (t : Etcdraft.Trace)
+    (hrun : SimRun C L σ) (hnt : Etcdraft.newTrace (L.map evConv) = .ok t)
+    (hinit : t.init = simInit C) (hsrv : t.server = confAbs C) (hisrv : t.initSrv = confAbs C) :
+    ∃ t ts, Etcdraft.newTrace (L.map evConv) = .ok t ∧ t.RunRel t.len ts := by
+  obtain ⟨ts, hr⟩ := simRun_runRel C L σ t hrun hnt hinit hsrv hisrv
+  exact ⟨t, ts, hnt, hr⟩
+
+open Iris.BI Iris.ProofMode in
+/-- The two halves of the trace agree, kept. -/
+theorem trace_agree_keep (γt : GName) (L1 L2 : List TraceEv) :
+    (traceAuth γt L1 ∗ traceFrag γt L2 : IProp GF) ⊢ (traceAuth γt L1 ∗ traceFrag γt L2) ∗ ⌜L1 = L2⌝ := by
+  refine (and_intro .rfl ?_).trans persistent_and_sep.1
+  iintro ⟨H1, H2⟩
+  iapply trace_agree γt L1 L2 $$ H1 H2
+
+open Iris.BI Iris.ProofMode in
+/-- **The simulation's invariant at the end of a run** (its body, as `Main` holds it once the run is
+over, with the recorder's half of the trace): the trace the simulation ran is the recorder's `L`,
+it runs from `simInit C` (`SimRun`, for `simRun_runAccepted`), and its events are ASCII
+(`ConvertEvents`' premise). -/
+theorem simInv_end (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) (L : List TraceEv) :
+    traceAuth tn.tr L ∗ simInv C tn Fx ⊢
+      traceAuth tn.tr L ∗ simInv C tn Fx ∗
+        ⌜∃ σ, SimRun C L σ ∧ σ.server = confAbs C ∧ ∀ x ∈ L, TraceEv.Ascii x⌝ := by
+  iintro ⟨Ha, Hi⟩
+  iunfold simInv at Hi
+  icases Hi with ⟨%L', %σ, %A, %B, %phP, %phM, %Bt, HL, HA, HB, HBt, Hfx, %Hp⟩
+  icases trace_agree_keep tn.tr L L' $$ [Ha HL] with ⟨⟨Ha, HL⟩, %hLL⟩
+  · iframe
+  subst hLL
+  isplitl [Ha]; · iexact Ha
+  isplitl [HL HA HB HBt Hfx]
+  · iunfold simInv
+    iexists L, σ, A, B, phP, phM, Bt
+    iframe HL HA HB HBt Hfx
+    ipureintro; exact Hp
+  ipureintro
+  obtain ⟨hrun, hsrv, -, -, -, -, -, -, -, -, hasc⟩ := Hp
+  exact ⟨σ, hrun, hsrv, hasc⟩
 
 end ghost
 

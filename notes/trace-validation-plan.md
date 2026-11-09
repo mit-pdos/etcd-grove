@@ -891,6 +891,38 @@ The invariants: from the existing safety results (leader completeness, log match
 safety, `Protocol/Facts`), restated on `σ` through `R`; `MoreUpToDateCorrectInv`,
 `QuorumLogInv`, `CommittedIsDurableInv` may need more.
 
+**Layer B's exports (2026-11-09, branch `trace-check-layerb-exp`): the run exported; the per-event
+facts blocked by the frozen laws.** Done: `simInv_end` (`TraceSimEnd.lean`: `traceAuth tn.tr L ∗
+simInv C tn Fx ⊢ traceAuth tn.tr L ∗ simInv C tn Fx ∗ ⌜∃ σ, SimRun C L σ ∧ σ.server = confAbs C ∧
+∀ x ∈ L, TraceEv.Ascii x⌝`, the trace the simulation ran is the recorder's) and `simRun_runAccepted`
+(`mainPure`'s `RunAccepted L`, unfolded, from `SimRun` and the bootstrap facts `newTrace` succeeding,
+`t.init = simInit C`, `t.server = t.initSrv = confAbs C`, which layer B's bootstrap clause still owes).
+**Not done: `ScopeOk L`, `NumsBelow K`, `ConfsWithin |C|`, `BootLogsOk L` and the event count as
+`simInv` clauses**, because no `trCap_fire*` law can keep them: the laws are generic in the event
+predicate `E` and, frozen (tag `trace-check-frozen`), take of it only what their phase steps say and
+`∀ e, E e → TraceEv.Ascii e`. Per law: `trCap_fire_ready` (`NodeEvOf (W64 8)`, `Ready`) and
+`trCap_fire_bf` (`NodeEvOf (W64 2)`, `BecomeFollower`) give `InScope`; `trCap_fire_boot` gives the
+unbooted disjunct of `EvScopeOk`; but `trCap_fire`, `trCap_fire_any`, `trCap_fire_booted` and
+`trCap_fire_recv` allow a `ChangeConf` line, a `SendAppendEntriesRequest` of a `MsgSnap`, and (the
+last three, past the node's segment: `PhaseStepB` excludes only `BecomeFollower`) an `InitState`, since
+their `LineEffect` only asks for a run of the line (the specification has those actions); P1-P3 hold
+of raft's hooks (their `NodeEvOf`/`SendEvOf`/`CCEvOf` name the events; `sendEvt` of a snapshot is
+`none`), not of the laws. No law bounds an event's numbers, its configuration lists (`trCap_fire_ready`'s
+`NodeEvOf` is at any configuration `cfg`) or a bootstrap line's log size, and nothing counts the
+events. So these facts must reach `simInv` through the laws' premises, a change to the frozen
+statements (the user's): replacing, in the seven laws, `∀ e, E e → TraceEv.Ascii e` by `∀ e, E e →
+TraceEv.Ok e` with `TraceEv.Ok e := Ascii ∧ InScope ∧ NumsBelow K ∧ ConfsWithin 3 ∧ uint.nat e.logSize
+≤ 3` (the boot law: `InScope` replaced by the unbooted disjunct, which it has), `K` a constant of the
+adequacy theorem whose source in the hooks is raft's time receipts (`budgetInv` for terms,
+`isEntryR_receipt` for indices, `notes/trace-validation-sim.md`, "Increment 2": the receipt bound
+then at most `2^61 - 1`, not `2^62 - 2`); the event count needs a ghost counter the laws increment,
+bounded by the adequacy theorem's step bound (one step at least per event), for which raft's laws have
+no resource either. With the premise, each law's re-proof is one more conjunct in its `simInv` update
+(`scopeOk_snoc`, `bootLogsOk_snoc`, and `∀`-snoc for the others, as `ascii_snoc`). The export to `Main`
+also needs `TraceSimGhost` and `TraceSimEnd` importable (`etc/api/raft.txt`), and with them their
+public imports `TraceSimBag` and `TraceSimLemmas`: deferred to `Main`'s proof, the first importer
+(`MainPure` takes `RunAccepted` as a hypothesis).
+
 ### C. The checker (Go, verified against the Lean transcription)
 
 The transcription is split for the proof: the core (`etcdraft`: the specification, the trace
