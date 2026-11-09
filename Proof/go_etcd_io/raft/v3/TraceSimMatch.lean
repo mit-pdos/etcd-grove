@@ -867,6 +867,107 @@ theorem simRun_selfVote (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) 
       simp [msgAbs, hty, hsrc, hdst]
     simp [this, hsd]
 
+theorem gsStr_msgTypeStr_appResp : gsStr (msgTypeStr .appResp) = "MsgAppResp" := by rfl
+
+/-- **An accepting append response's line predicate** (`LoglineIsAppendEntriesResponse`). -/
+theorem isAEResp_appResp (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64) (xs : List w64) (m : Msg)
+    (tm : TraceMsg) (hmsg : e.msg = some tm) (hm : MsgEvOf m tm) (hty : m.ty = .appResp) (hrej : m.reject = false)
+    (bt : uint.Z m.term < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63) :
+    (msgLine e id vote m.src m.dst xs).isAppendEntriesResponse
+      ((msgAbs C bl m).get (by simp [msgAbs, hty])) = true := by
+  obtain ⟨htyp, hterm, -, -, -, -, hidx, -, hrej'⟩ := hm
+  have hmsg' : (msgAbs C bl m) = some
+      { type := .appendEntriesResponse, subtype := "app", term := uint.Z m.term, success := true,
+        matchIndex := uint.Z m.index, source := idAbs m.src, dest := idAbs m.dst } := by
+    simp [msgAbs, hty, hrej]
+  simp only [hmsg', Option.get_some]
+  unfold Etcdraft.Line.isAppendEntriesResponse
+  simp only [msgLine, evConv, hmsg, Option.map_some]
+  rw [htyp, hty, hterm, hidx, hrej', hrej, gInt_of_lt _ bt, gInt_of_lt _ bi, gsStr_msgTypeStr_appResp]
+  simp [Etcdraft.raftMsgType, Etcdraft.raftMsgSubtype]
+
+/-- A self acknowledgement's line's non-receive successors: the specification's
+`AppendEntriesToSelf(i)`. -/
+theorem nonReceive_selfAck (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdraft.ID)
+    (s2 : Etcdraft.State) (hl : ts.l ≤ t.len)
+    (hname : (t.line ts.l).ev.name = "SendAppendEntriesResponse")
+    (hfrom : (t.line ts.l).from = i) (hto : (t.line ts.l).to = i)
+    (hself : ∃ em, (t.line ts.l).ev.msg = some em ∧ em.from = em.to)
+    (hnd : t.server.Nodup) (hi : i ∈ t.server)
+    (hae : ts.s.appendEntriesToSelf i = some s2) (hpost : (t.line ts.l).stateMatches s2 i = true)
+    (hnew : Etcdraft.newPending ts.s s2 (fun m => (t.line ts.l).isAppendEntriesResponse m && m.source == m.dest) = true) :
+    t.nonReceive ts = .ok [s2] := by
+  obtain ⟨em, hem, heq⟩ := hself
+  have hsome : (t.line ts.l).ev.msg.isSome = true := by rw [hem]; rfl
+  have hf : t.server.flatMap (t.appendEntriesToSelfIfLogged ts) = [s2] := by
+    apply flatMap_single _ _ i s2 hnd hi
+    · simp [Etcdraft.Trace.appendEntriesToSelfIfLogged, Etcdraft.Trace.isMessageEvent, Etcdraft.Trace.isEvent,
+        Etcdraft.Trace.validatePostStates, hl, hname, hfrom, hto, hsome, hae, hpost, hnew]
+    · intro j _ hj
+      simp [Etcdraft.Trace.appendEntriesToSelfIfLogged, Etcdraft.Trace.isMessageEvent, Etcdraft.Trace.isEvent,
+        hfrom, Ne.symm hj]
+  have hskip : t.skipUnusedLogline ts = false := by
+    unfold Etcdraft.Trace.skipUnusedLogline Etcdraft.Trace.isEvent
+    simp [hname, hem, heq, Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, Etcdraft.Trace.isEvent]
+  unfold Etcdraft.Trace.nonReceive
+  simp only [hname, hf, hskip]
+  simp [pure, Except.pure, bind, Except.bind]
+
+/-- **A leader's self acknowledgement's line's step** (`appendEntry`'s `MsgAppResp` to itself at
+its last index): the specification's `AppendEntriesToSelf(i)`. -/
+theorem simRun_selfAck (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (hev : SendEvOf (W64 11) id s cfg (pselfAck id (toPState s)) e) (hin : (elements cfg.incoming).Perm C)
+    (hout : cfg.outgoing = ∅) (hC : id ∈ C) (hsrv : σ.server = confAbs C)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs id))) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .leader)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.send ((msgAbs C C.length (pselfAck id (toPState s))).get
+      (by simp [msgAbs, pselfAck]))).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.send ((msgAbs C C.length (pselfAck id (toPState s))).get
+      (by simp [msgAbs, pselfAck]))) := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendAppendEntriesResponse" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"SendAppendEntriesResponse" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have htyp : tm.typ = msgTypeStr .appResp := by rw [hm.1]; rfl
+  have hae := appendEntriesToSelf_send σ C C.length (toPState s) id hR (by simp [toPState, hrole, proleRole]) hs
+  apply simRun_msg C L σ _ hrun hL e id s.vote id id xs tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+    (by rw [htyp]; rfl) (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (msgLine e id s.vote id id xs) ts.l (by omega)
+  apply nonReceive_selfAck _ ts (idAbs id) _ (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  · rw [hline]; simp [msgLine, evConv, hname']
+  · rw [hline]; rfl
+  · rw [hline]; rfl
+  · rw [hline]
+    refine ⟨_, by simp [msgLine, evConv, hmsg]; rfl, ?_⟩
+    simp only [hm.2.2.1, hm.2.2.2.1]; rfl
+  · exact confAbs_nodup C
+  · simp only [linesTrace]; rw [mem_confAbs]; exact hC
+  · rw [hts]; exact hae
+  · rw [hline]
+    have := stateMatches_node C s (σ.s (idAbs id)) e id xs hR hs (by rw [hrole]; decide) hterm' hcommit' hrl
+      hlog (hxs.trans hin) bt bc bl σ rfl (by rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC)
+    unfold Etcdraft.Line.stateMatches at this ⊢
+    simpa [Etcdraft.State.send, msgLine, nodeLine] using this
+  · rw [hline, hts]
+    apply newPending_send
+    have := isAEResp_appResp C C.length e id s.vote xs (pselfAck id (toPState s)) tm hmsg hm rfl rfl
+      (by simp [pselfAck, toPState]; exact bt) (by simpa [pselfAck] using bl)
+    simp only [msgAbs, pselfAck, Option.get_some] at this
+    simp only [msgAbs, pselfAck, Option.get_some, Bool.and_eq_true, beq_self_eq_true, and_true]
+    exact this
+
 end TraceSim
 
 end EtcdGrove
