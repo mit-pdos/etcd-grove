@@ -1953,3 +1953,16 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   admitted proof.
 - **Status.** Recorded only; not reduced to a minimal example.
 
+
+## Iris-Lean lacks `atomic_update_wand` (2026-11-09, trace-check S5, review round 2's A10)
+
+- **Missing.** Rocq Iris's `atomic_update_wand` (`(∀.. x y, Φ1 x y -∗ Φ2 x y) -∗ AU Φ1 -∗ AU Φ2`,
+  weakening an atomic update's postcondition) is not in `Iris/BI/Lib/Atomic.lean` (it has
+  `atomic_acc_wand`, `aupd_aacc`, `aupd_intro`). Needed by `traceFire_mono`, which hook callers
+  chaining `TraceFire` (`TraceFireN`) use.
+- **Local workaround.** `aupd_wand_post` (`Proof/go_etcd_io/raft/v3/TracedHooksDraft.lean`), proved
+  from `aupd_intro`, `aupd_aacc` and `atomic_acc_wand`, the update before the wand so that
+  `iapply` fixes the postcondition first.
+- **Proposed (general).** Port `atomic_update_wand` to Iris-Lean (upstream of Perennial's pin), with
+  `rocq_alias`; then drop the local copy.
+- **Status.** Recorded only.

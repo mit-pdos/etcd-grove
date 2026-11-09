@@ -355,6 +355,58 @@ def TraceFireOpt (tr : Option GName) (tl : GoInterface) (oE : Option (TraceEv �
   | some E => TraceFire tr tl E Q
   | none => Q
 
+/-- An atomic update's postcondition weakened (Rocq Iris's `atomic_update_wand`, absent from the
+Lean port: `notes/perennial-changes.md`). -/
+theorem aupd_wand_post {TA TB : Std.Tele} {Eo Ei : CoPset} {α : TA.Arg → IProp GF}
+    {β Φ1 Φ2 : TA.Arg → TB.Arg → IProp GF} :
+    iprop(atomic_update Eo Ei α β Φ1 ∗ (∀.. x, ∀.. y, Φ1 x y -∗ Φ2 x y)) ⊢ atomic_update Eo Ei α β Φ2 := by
+  have h := aupd_intro (P := iprop(True))
+    (Q := iprop(atomic_update Eo Ei α β Φ1 ∗ (∀.. x, ∀.. y, Φ1 x y -∗ Φ2 x y))) (α := α) (β := β)
+    (Φ := Φ2) (Eo := Eo) (Ei := Ei) (by
+      iintro ⟨-, ⟨HAU, HW⟩⟩
+      ihave Hacc : atomic_acc Eo Ei α (atomic_update Eo Ei α β Φ1) β Φ1 $$ [HAU]
+      · iapply aupd_aacc; iexact HAU
+      iapply atomic_acc_wand $$ [HW] Hacc
+      isplit
+      · iintro HAU'; iframe
+      · iexact HW)
+  iintro H
+  iapply h
+  isplit
+  · ipureintro; trivial
+  · iexact H
+
+/-- **`TraceFire`'s monotonicity** (review round 2's A10). -/
+theorem traceFire_mono (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) (Q Q' : IProp GF) :
+    iprop((Q -∗ Q') ∗ TraceFire tr tl E Q) ⊢ TraceFire tr tl E Q' := by
+  cases tr with
+  | none =>
+    dsimp only [TraceFire]
+    iintro ⟨HW, %Hok, HQ⟩
+    isplitr; · ipureintro; exact Hok
+    iapply HW $$ HQ
+  | some γd =>
+    dsimp only [TraceFire]
+    iintro ⟨HW, %tn, Hd, Hl, %Hnn, HAU⟩
+    iexists tn
+    iframe Hd Hl
+    isplitr; · ipureintro; exact Hnn
+    iintro %e %HE
+    iapply aupd_wand_post
+    isplitl [HAU]
+    · iapply HAU $$ %e %HE
+    · isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+      iintro %L HQ
+      iapply HW $$ HQ
+
+/-- ... and `TraceFireOpt`'s. -/
+theorem traceFireOpt_mono (tr : Option GName) (tl : GoInterface) (oE : Option (TraceEv → Prop))
+    (Q Q' : IProp GF) :
+    iprop((Q -∗ Q') ∗ TraceFireOpt tr tl oE Q) ⊢ TraceFireOpt tr tl oE Q' := by
+  cases oE with
+  | none => dsimp only [TraceFireOpt]; iintro ⟨HW, H⟩; iapply HW $$ H
+  | some E => dsimp only [TraceFireOpt]; exact traceFire_mono tr tl E Q Q'
+
 /-- **`n` events in a row** (`traceReplicate`'s loop), each `E`'s, the caller's updates nested. -/
 def TraceFireN (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) : Nat → IProp GF → IProp GF
   | 0, Q => TraceFireOpt tr tl none Q
