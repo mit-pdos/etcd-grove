@@ -2275,6 +2275,44 @@ theorem receive_appResp (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.serv
   have hsrv' : m.dest ∈ st.server := List.contains_iff_mem.1 hsrv
   simp [hsrv', hty, hut, hds, hh, Etcdraft.somes, pure, Except.pure]
 
+/-- A replied-to message is one less (`Reply` removes the request). -/
+theorem oneLess_reply (s st' : Etcdraft.State) (resp m : Etcdraft.Msg) (hms : st'.messages = s.messages)
+    (hnd : s.messages.domain.Nodup) (hm : 0 < Etcdraft.Bag.count s.messages m) :
+    Etcdraft.oneLessMessage s (st'.reply resp m) m = true := by
+  have : st'.reply resp m = { st'.discard m with pendingMessages := st'.pendingMessages.with resp } := rfl
+  rw [this]
+  have h := oneLess_discard s st' m hms hnd hm
+  unfold Etcdraft.oneLessMessage at h ⊢
+  exact h
+
+/-- `HandleRequestVoteRequest`'s result, at a vote request of the server's term. -/
+def voteReqResult (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg) : Etcdraft.State :=
+  (st.handleRequestVoteRequest i j m).getD st
+
+/-- **A vote request of the node's term** (`HandleRequestVoteRequest`, one round). -/
+theorem receive_voteReq (st : Etcdraft.State) (m : Etcdraft.Msg) (hsrv : st.server.contains m.dest = true)
+    (hty : m.type = .requestVoteRequest) (hterm : m.term = (st.s m.dest).currentTerm) :
+    st.receive m = .ok [voteReqResult st m.dest m.source m] := by
+  unfold Etcdraft.State.receive
+  have hut : st.updateTerm m.dest m.source m = none := by
+    unfold Etcdraft.State.updateTerm; simp [hterm]
+  have hh : ∃ r, st.handleRequestVoteRequest m.dest m.source m = some r := by
+    unfold Etcdraft.State.handleRequestVoteRequest; simp [hterm]
+  obtain ⟨r, hr⟩ := hh
+  have hsrv' : m.dest ∈ st.server := List.contains_iff_mem.1 hsrv
+  simp [hsrv', hty, hut, hr, voteReqResult, Etcdraft.somes, pure, Except.pure]
+
+theorem oneLess_voteReq (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg)
+    (hterm : m.term ≤ (st.s i).currentTerm) (hnd : st.messages.domain.Nodup)
+    (hm : 0 < Etcdraft.Bag.count st.messages m) :
+    Etcdraft.oneLessMessage st (voteReqResult st i j m) m = true := by
+  unfold voteReqResult Etcdraft.State.handleRequestVoteRequest
+  have hc : (!decide (m.term ≤ (st.s i).currentTerm)) = false := by simp [hterm]
+  simp only [hc, Bool.false_eq_true, ↓reduceIte, Option.getD_some]
+  split
+  · exact oneLess_reply st _ _ m rfl hnd hm
+  · exact oneLess_reply st _ _ m rfl hnd hm
+
 end TraceSim
 
 end EtcdGrove
