@@ -5,7 +5,8 @@ the persistent raft facts `σ.s j` stands for) and the specification's invariant
 
 - `srvFacts γ C j v`: server `v` (node `j`'s in `σ`) is raft's log `es` read by `logAbs` (the
   bootstrap the `|C|` configuration entries), with `es`'s records (`logRecs`), its committed prefix
-  committed (`isCommitted`), and, a leader, raft's leader of its term (`isLeader`); its numbers in
+  committed (`isCommitted`), its commit index's certificate (`commitIn`), and, a leader, raft's
+  leader of its term (`isLeader`) with `es` its full log of the term (`leadFull`); its numbers in
   range.
 - `allFacts γ C σ`: every voter's.
 
@@ -222,7 +223,9 @@ def srvFacts (γ : RaftNames) (C : List w64) (j : w64) (v : Etcdraft.Server) : I
       PlogWfR (entryID.mk (W64 0) (W64 0)) es ∧ es.length < 2 ^ 63 ∧
       0 ≤ v.commitIndex ∧ v.commitIndex ≤ es.length ∧ 0 ≤ v.currentTerm ∧ v.currentTerm < 2 ^ 63⌝ ∗
     logRecs γ ⟨W64 0, W64 0⟩ es ∗ isCommitted γ (es.take v.commitIndex.toNat) ∗
-    (if v.state = Etcdraft.leader then isLeader γ j (W64 v.currentTerm) else iprop(True)))
+    (if v.state = Etcdraft.leader then iprop(isLeader γ j (W64 v.currentTerm) ∗ leadFull γ (W64 v.currentTerm) es)
+     else iprop(True)) ∗
+    commitIn γ es (W64 v.commitIndex) (W64 v.currentTerm))
 
 instance srvFacts_persistent (γ : RaftNames) (C : List w64) (j : w64) (v : Etcdraft.Server) :
     Persistent (srvFacts (GF := GF) γ C j v) := by
@@ -274,10 +277,12 @@ theorem allFacts_oneLeader (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
   ihave Hfi := H $$ %i %hi
   ihave Hfj := H $$ %j %hj
   iunfold srvFacts at Hfi Hfj
-  icases Hfi with ⟨%esi, %Hpi, -, -, Hli⟩
-  icases Hfj with ⟨%esj, %Hpj, -, -, Hlj⟩
+  icases Hfi with ⟨%esi, %Hpi, -, -, Hli, -⟩
+  icases Hfj with ⟨%esj, %Hpj, -, -, Hlj, -⟩
   simp only [hli, hlj, ite_true]
   rw [ht]
+  icases Hli with ⟨Hli, -⟩
+  icases Hlj with ⟨Hlj, -⟩
   icases isLeader_unique γ i j _ $$ Hli Hlj with %He
   exact absurd He hne
 
@@ -308,8 +313,8 @@ theorem allFacts_logInv (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
   ihave Hfi := H $$ %i %hi
   ihave Hfj := H $$ %j %hj
   iunfold srvFacts at Hfi Hfj
-  icases Hfi with ⟨%esi, %Hpi, -, Hci, -⟩
-  icases Hfj with ⟨%esj, %Hpj, -, Hcj, -⟩
+  icases Hfi with ⟨%esi, %Hpi, -, Hci, -, -⟩
+  icases Hfj with ⟨%esj, %Hpj, -, Hcj, -, -⟩
   icases isCommitted_agree γ _ _ $$ Hci Hcj with %Hag
   exfalso
   apply hc
@@ -335,8 +340,8 @@ theorem allFacts_logMatching (γ : RaftNames) (C : List w64) (σ : Etcdraft.Stat
   ihave Hfi := H $$ %i %hi
   ihave Hfj := H $$ %j %hj
   iunfold srvFacts at Hfi Hfj
-  icases Hfi with ⟨%esi, %Hpi, Hri, -, -⟩
-  icases Hfj with ⟨%esj, %Hpj, Hrj, -, -⟩
+  icases Hfi with ⟨%esi, %Hpi, Hri, -, -, -⟩
+  icases Hfj with ⟨%esj, %Hpj, Hrj, -, -, -⟩
   icases logRecs_agree γ _ _ _ _ $$ Hri Hrj with %Hra
   exfalso
   apply hc
@@ -365,7 +370,7 @@ theorem allFacts_commitOk (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
   obtain ⟨i, hi, rfl⟩ := mem_confAbs_inv C x hx
   ihave Hfi := H $$ %i %hi
   iunfold srvFacts at Hfi
-  icases Hfi with ⟨%esi, %Hpi, -, -, -⟩
+  icases Hfi with ⟨%esi, %Hpi, -, -, -, -⟩
   exfalso; apply hc
   obtain ⟨hl, -, -, -, h0, h1, -⟩ := Hpi
   rw [hl, logAbs_length]; exact ⟨h0, h1⟩
