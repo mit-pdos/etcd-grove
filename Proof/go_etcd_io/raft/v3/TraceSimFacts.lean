@@ -134,6 +134,13 @@ theorem terms_of_plog (es1 es2 : List EntryM) (c : Nat) (hc : c < 2 ^ 63)
   rw [plogTermAt_base0 _ _ hk1, plogTermAt_base0 _ _ hk1, hkn] at this
   exact this
 
+/-- **A server's commit index within its term's leader's log** (the specification invariant
+`LeaderCompletenessInv`'s same-term case needs: `notes/trace-validation-sim.md`, "The invariants from
+the facts"). -/
+def CommitWithinLeader (σ : Etcdraft.State) : Prop :=
+  ∀ i ∈ σ.server, ∀ l ∈ σ.server, (σ.s l).state = Etcdraft.leader →
+    (σ.s i).currentTerm = (σ.s l).currentTerm → (σ.s i).commitIndex ≤ (σ.s l).log.length
+
 /-! ### `ElectionSafetyInv` by a specification invariant (route (b)) -/
 
 /-- **The leaders' term entries** (route (b) of the notes' `ElectionSafetyInv`): for every leader `i`
@@ -247,7 +254,7 @@ def srvFacts (γ : RaftNames) (C : List w64) (j : w64) (v : Etcdraft.Server) : I
     ⌜v.log = logAbs C C.length 1 es ∧ BootTerms C.length 1 es ∧
       PlogWfR (entryID.mk (W64 0) (W64 0)) es ∧ es.length < 2 ^ 63 ∧
       0 ≤ v.commitIndex ∧ v.commitIndex ≤ es.length ∧ 0 ≤ v.currentTerm ∧ v.currentTerm < 2 ^ 63⌝ ∗
-    logRecs γ ⟨W64 0, W64 0⟩ es ∗ isCommitted γ (es.take v.commitIndex.toNat) ∗
+    logRecs γ base0 es ∗ isCommitted γ (es.take v.commitIndex.toNat) ∗
     (if v.state = Etcdraft.leader then iprop(isLeader γ j (W64 v.currentTerm) ∗ leadFull γ (W64 v.currentTerm) es)
      else iprop(True)) ∗
     commitIn γ es (W64 v.commitIndex) (W64 v.currentTerm))
@@ -440,6 +447,70 @@ theorem allFacts_logMatching (γ : RaftNames) (C : List w64) (σ : Etcdraft.Stat
       ((logAbs C C.length 1 esj)[n]?).map Etcdraft.Entry.term
   · rw [logAbs_match C esi esj hbi hbj hwi hwj hlni hlnj Hra n (by omega) (by omega) ht]; simp
   · simp [ht]
+
+/-- **`LeaderCompletenessInv` from the facts** (with raft's vote table and `CommitWithinLeader`):
+every committed entry of a server is in every leader's log of a term above the entry's and at least
+the server's (`commit_in_leader`, then the entries from the terms). -/
+theorem allFacts_leaderCompleteness (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
+    (hsrv : σ.server = confAbs C) (hcw : CommitWithinLeader σ) :
+    votesTbl (GF := GF) γ ∗ allFacts γ C σ ⊢
+      ⌜∀ i ∈ σ.server, ∀ idx0 < (committedL σ i).length, ∀ l ∈ σ.currentLeaders,
+        (σ.s l).currentTerm > (((σ.s i).log[idx0]?).getD default).term →
+        (σ.s l).currentTerm ≥ (σ.s i).currentTerm →
+        (σ.s l).log[idx0]? = some (((σ.s i).log[idx0]?).getD default)⌝ := by
+  iintro ⟨Htbl, #H⟩
+  iunfold allFacts at H
+  by_cases hc : ∀ i ∈ σ.server, ∀ idx0 < (committedL σ i).length, ∀ l ∈ σ.currentLeaders,
+        (σ.s l).currentTerm > (((σ.s i).log[idx0]?).getD default).term →
+        (σ.s l).currentTerm ≥ (σ.s i).currentTerm →
+        (σ.s l).log[idx0]? = some (((σ.s i).log[idx0]?).getD default)
+  · ipureintro; exact hc
+  simp only [Classical.not_forall] at hc
+  obtain ⟨x, hx, idx0, hidx, y, hy, -, hge, hne⟩ := hc
+  have hy' : y ∈ σ.server := (List.mem_filter.1 hy).1
+  have hyl : (σ.s y).state = Etcdraft.leader := by simpa using (List.mem_filter.1 hy).2
+  have hcw' := hcw x hx y hy' hyl
+  rw [hsrv] at hx hy'
+  obtain ⟨i, hi, rfl⟩ := mem_confAbs_inv C x hx
+  obtain ⟨l, hl, rfl⟩ := mem_confAbs_inv C y hy'
+  ihave Hfi := H $$ %i %hi
+  ihave Hfl := H $$ %l %hl
+  iunfold srvFacts at Hfi Hfl
+  icases Hfi with ⟨%esi, %Hpi, #Hri, -, -, #Hci⟩
+  icases Hfl with ⟨%esl, %Hpl, -, -, Hll, -⟩
+  simp only [hyl, ite_true]
+  icases Hll with ⟨-, #HL⟩
+  obtain ⟨hli, hbi, hwi, hlni, hc0, hc1, ht0, ht1⟩ := Hpi
+  obtain ⟨hll, hbl, hwl, hlnl, -, -, hT0, hT1⟩ := Hpl
+  have hwi' : PlogWf base0 esi := PlogWfR_wf _ _ hwi (by unfold plogLastIndexZ; rw [base0_index]; simp; omega)
+  have hcZ : uint.Z (W64 (σ.s (idAbs i)).commitIndex) = (σ.s (idAbs i)).commitIndex := by word
+  have hcN : ((σ.s (idAbs i)).commitIndex.toNat : Int) = (σ.s (idAbs i)).commitIndex := by omega
+  have htZ : uint.Z (W64 (σ.s (idAbs i)).currentTerm) = (σ.s (idAbs i)).currentTerm := by word
+  have hTZ : uint.Z (W64 (σ.s (idAbs l)).currentTerm) = (σ.s (idAbs l)).currentTerm := by word
+  icases commit_in_leader γ esi esl (W64 (σ.s (idAbs i)).commitIndex) (W64 (σ.s (idAbs i)).currentTerm)
+      (W64 (σ.s (idAbs l)).currentTerm) hwi' (by rw [hcZ]; omega) (by rw [htZ, hTZ]; omega)
+      (fun he => by
+        have := w64_of_int_inj _ _ ht0 ht1 hT0 hT1 he
+        rw [hcZ]; have := hcw' this; rw [hll, logAbs_length] at this; exact this)
+      $$ [$Htbl $Hri $Hci $HL] with %Hag
+  exfalso
+  apply hne
+  -- the committed prefix's length is the commit index
+  have hlen : (committedL σ (idAbs i)).length = (σ.s (idAbs i)).commitIndex.toNat := by
+    unfold committedL; rw [List.length_take, hli, logAbs_length]; omega
+  rw [hlen] at hidx
+  have hcN63 : (σ.s (idAbs i)).commitIndex.toNat < 2 ^ 63 := by omega
+  have hag := terms_of_plog esl esi _ hcN63 (by
+    intro j hj; apply Hag j; rw [hcZ]; omega)
+  -- `l`'s log reaches the commit index
+  have hcl : (σ.s (idAbs i)).commitIndex.toNat ≤ esl.length := by
+    have h1 := hag ((σ.s (idAbs i)).commitIndex.toNat - 1) (by omega)
+    rw [List.getElem?_eq_getElem (by omega : (σ.s (idAbs i)).commitIndex.toNat - 1 < esi.length)] at h1
+    rcases Nat.lt_or_ge ((σ.s (idAbs i)).commitIndex.toNat - 1) esl.length with h | h
+    · omega
+    · rw [List.getElem?_eq_none h] at h1; cases h1
+  rw [hll, hli]
+  exact logAbs_get_of_terms C esl esi _ idx0 hcl (by omega) hag hidx
 
 /-- **`CommitOk` from the facts.** -/
 theorem allFacts_commitOk (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
