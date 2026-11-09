@@ -92,6 +92,10 @@ def isR0Class (n : Name) : Bool :=
     (l == "Semantics" && (match p with | .str _ s => s == "go" | _ => false))
   | _ => false
 
+/-- A package `Assumptions` class, by name: R0 for the walk, but rule 7 checks where it is declared. -/
+def isAssumptionsName (n : Name) : Bool :=
+  match n with | .str _ l => l == "Assumptions" | _ => false
+
 def CONTAINERS : List Name :=
   [`List, `Option, `Array, `Prod, `Sum, `PProd, `MProd, `Subtype, `Sigma, `PSigma]
 
@@ -712,11 +716,14 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
       let body := body.consumeMData
       -- binders by type: only the R0 instance binders, `{GF}`/`{hlc}`, and an instance of a
       -- Prop-valued class declared in a Goose-generated module (a package's `Assumptions`)
-      let mut hyp := false
-      for (_, bi, bt, isP) in (← binderKinds env ci.type) do
+      let kinds ← binderKinds env ci.type
+      -- binders that do not elaborate in context are refused (no exemption on a failure)
+      let mut hyp := kinds.size != (stripBinders ci.type).1.size
+      for (_, bi, bt, isP) in kinds do
         let ok := match bt.getAppFn with
           | .const c _ =>
-            (bi.isInstImplicit && (isR0Class c || (isP && gooseModule parts (modOf env c)))) ||
+            (bi.isInstImplicit && ((isR0Class c && !isAssumptionsName c) || (isP && (env.getModuleIdxFor? c).isSome &&
+              gooseModule parts (modOf env c)))) ||
             (bi.isImplicit && (c == `Perennial.BundledGFunctors || c == `Iris.HasLC ||
               c == `Iris.BundledGFunctors || c.getString! == "BundledGFunctors"))
           | _ => false
