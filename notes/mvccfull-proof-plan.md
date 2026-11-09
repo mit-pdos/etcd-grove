@@ -309,3 +309,44 @@ snapshot, which extends `Hl`.
 
 **Probe targets** (the risks, from the Scope): B3 + L's pool at a restart (the writer's `restart`),
 E's stamp (`recvOne`), and the builder → `Restore` handoff (`restore`).
+
+## Draft: B3's candidate (2026-11-09)
+
+The candidate statement is in `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiNewRestoring.lean`
+(`New.specR`, `NewStore.specR`). It typechecks.
+
+- **The generalization.** From `mvccStart` to any `σ` with `MvccReachable σ` and `σ.pending =
+  none`, at `mvccStorageFor B Pk σ.log σ.crev u`.
+- **The leases.** The lessor's owner part `leaseOwn γl Ls ∅` is lent, with `Restore`'s item premise
+  (`lid ∈ Ls`), and comes back at `pendItems σ.log []`.
+- **The resumed compaction**, gated by `u`, with `Restore`'s hook and commit-request resources.
+- Today's spec is its instance at `mvccStart`, `u = false`, up to lending `leaseOwn γl [] ∅`. Both
+  callers (mvccrand, `NewServer`) hold it. The alternative, the lease part conditional on items,
+  gives an exact instance with an uglier statement: for Review.
+
+What the survey found:
+
+- **B2 is not a prerequisite.** The `lateWB` merge already happened (`InvRestart.lean:351`); the
+  restart plan's B2 row looks stale, for its owner to confirm.
+- **The proof** generalizes the internal `NewStore.spec` (the `ns = false` restore path, the
+  image's records in place of `kbNoCmp`), `newWatchableStore` and `New` (the log through the
+  watcher groups) and the API proofs (`restore_of_storage`'s bridge in place of `imageOk_start`).
+  About 800-1300 lines, 1.5-2 weeks.
+- **The risks:**
+  - the index's ghost allocated at a non-initial log;
+  - the receipt budget from `⧖ (logCh L)` (`Restore`'s `restoreRcptM`);
+  - the resumed job's `Post ∗ Y`, as `Restore`'s;
+  - the reader-token count with a resumed job.
+
+**Blocker for both clients: `lease.NewLessor` on a bucket with records.** Its trust-boundary axiom
+(`Spec/.../lease/NewLessor.lean`) requires an empty lease bucket and returns `leaseOwn γl [] ∅`.
+Every restart with live leases (the tester's, the server's) reopens a non-empty one.
+
+- Proving `NewLessor` means translating and verifying `runLoop` (expiry, checkpoints): a stage of
+  its own.
+- *Draft's choice:* restate the axiom over a lease bucket with records, its recovered state
+  mirroring the **proved** `lessor.Recover` spec (`Spec/.../lease/lessor__Recover.lean`: the same
+  `initAndRecover`; records each what `Grant` wrote; the live set the records' ids; one fresh
+  lease per record, no items).
+- This restated trusted text goes on the Freeze list, attacked first by the `axiom` skill. The
+  restart plan (R2d'b) needs the same restatement, so it is done once for both.
