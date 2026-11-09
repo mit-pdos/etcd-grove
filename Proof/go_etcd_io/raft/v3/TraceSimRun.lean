@@ -360,6 +360,26 @@ theorem booted_snoc_other (L : List TraceEv) (e : TraceEv) (ln : Etcdraft.Line) 
   · rintro ⟨x, hx, ln', hp', hn', hb'⟩
     exact ⟨x, List.mem_append_left _ hx, ln', hp', hn', hb'⟩
 
+/-- **A bootstrap line's step** (the trace's flag set: `TraceNext` steps over it, the state
+unchanged). -/
+theorem simRun_boot (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hσinv : σ.violated = .ok none) (e : TraceEv) (ln : Etcdraft.Line)
+    (he : Etcdraft.parseLine 0 (evConv e) = .ok ln)
+    (hflag : ∀ lines, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = true) :
+    SimRun C (L ++ [e]) σ := by
+  apply simRun_snoc_single_any C L σ σ e ln hrun hσinv (parseLine_idx 0 _ _ _ he) _ hσinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  unfold Etcdraft.Trace.next
+  have h1 : (decide (ts.l > (linesTrace C (lines ++ [ln])).len) || ts.l == 0) = false := by
+    simp [linesTrace, Etcdraft.Trace.len]; omega
+  have h2 : (linesTrace C (lines ++ [ln])).bootstrap.getD (ts.l - 1) false = true := by
+    simp only [linesTrace]; rw [hl']; simpa using hflag lines hl
+  simp only [h1, h2, Bool.false_eq_true, ↓reduceIte, pure, Except.pure]
+  rw [hts]
+
 end TraceSim
 
 end EtcdGrove
