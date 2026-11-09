@@ -2565,6 +2565,142 @@ theorem simRun_recvVoteReqHigher (C : List w64) (L : List TraceEv) (σ : Etcdraf
       (by rw [hmdst, hUf.2.2.2.1])
     rw [this, hmdst, hmsrc]
 
+/-- **A higher-term append request's receive line's step** (raft's `becomeFollower` then
+`maybeAppend` succeeding): `UpdateTerm`, then the specification's truncations, append and
+`AppendEntriesAlreadyDone` over the new log, at the request's term. -/
+theorem simRun_recvAppHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg)
+    (hev : SendEvOf (W64 10) m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
+    (hpre : s.role ≠ .preCandidate) (hty : m.ty = .app) (hgt : uint.Z s.term < uint.Z m.term)
+    (hcom : uint.Z (toPState s).commit ≤ uint.Z m.index)
+    (lastnewi : w64) (es' : List EntryM)
+    (happ : plogMaybeAppend (entryID.mk (W64 0) (W64 0)) (toPState s).log
+      (entryID.mk m.logterm (W64 (uint.nat m.index))) m.entries = some (lastnewi, es'))
+    (hbe : BootTerms C.length (uint.nat m.index + 1) m.entries)
+    (hwf : ∀ (k : Nat) (x : EntryM), m.entries[k]? = some x → uint.Z x.Index' = (uint.nat m.index : Int) + k + 1)
+    (hlt0 : uint.nat m.index = 0 → m.logterm = W64 0)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63)
+    (blt : uint.Z m.logterm < 2 ^ 63) (bk : m.entries.length < 2 ^ 63) (bmc : uint.Z m.commit < 2 ^ 63)
+    (bmt : uint.Z m.term < 2 ^ 63)
+    (hnw : (uint.nat m.index : Int) + m.entries.length + 1 < 2 ^ 64)
+    (mabs : Etcdraft.Msg) (hmabs : msgAbs C C.length m = some mabs)
+    (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
+    (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
+    (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs →
+      recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinvU : (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term).violated = .ok none)
+    (hinvT : ∀ k, uint.nat m.index ≤ k → k < (toPState s).log.length →
+      (truncSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) (idAbs m.dst) (idAbs m.src)
+        (logAbs C C.length 1 ((toPState s).log.take k))).violated = .ok none)
+    (hinvA : (truncSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) (idAbs m.dst) (idAbs m.src)
+      (logAbs C C.length 1 es')).violated = .ok none)
+    (hinvD : (doneSt (truncSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) (idAbs m.dst) (idAbs m.src)
+      (logAbs C C.length 1 es')) mabs (uint.nat m.index) m.entries.length).violated = .ok none) :
+    SimRun C (L ++ [e]) (doneSt (truncSt (σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term) (idAbs m.dst)
+      (idAbs m.src) (logAbs C C.length 1 es')) mabs (uint.nat m.index) m.entries.length) := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "ReceiveAppendEntriesRequest" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"ReceiveAppendEntriesRequest" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have htyp : tm.typ = msgTypeStr .app := by rw [hm.1, hty]
+  have hparse : Etcdraft.parseLine L.length (evConv e) = .ok (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) := by
+    rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    exact parseLine_msg L.length e m.dst s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      (by rw [htyp]; rfl) (by rw [hname']; decide)
+  have hidxZ : ((uint.nat m.index : Nat) : Int) = uint.Z m.index := by word
+  have hgt' : uint.Z (toPState s).term < uint.Z m.term := hgt
+  have hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true := by
+    unfold recvPred
+    have hn1 : (or ((msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)).ev.name == "ReceiveAppendEntriesRequest")
+        ((msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)).ev.name == "ReceiveSnapshot")) = true := by
+      simp [msgLine, evConv, hname']
+    simp only [hn1, ↓reduceIte]
+    rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have := isAER_app C C.length e m.dst s.vote xs m tm hmsg hm hty bmt bmc bi blt bk
+    simp only [hmabs, Option.get_some] at this; exact this
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  have hsm : (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)).stateMatches σ (idAbs m.dst) = true := by
+    rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have := stateMatches_node C s (σ.s (idAbs m.dst)) e m.dst xs hR hs hpre hterm' hcommit' hrl
+      hlog (hxs.trans hin) bt bc bl σ rfl hcontains
+    unfold Etcdraft.Line.stateMatches at this ⊢
+    simpa [msgLine, nodeLine] using this
+  have hmt : mabs.type = .appendEntriesRequest := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmsub : mabs.subtype = "app" := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmterm : mabs.term = uint.Z m.term := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmprev : mabs.prevLogIndex = (uint.nat m.index : Nat) := by
+    rw [hidxZ]; simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmpt : mabs.prevLogTerm = uint.Z m.logterm := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hments : mabs.entries = logAbs C C.length (uint.nat m.index + 1) m.entries := by
+    simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmsrc : mabs.source = idAbs m.src := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+  have hcur : (σ.s mabs.dest).currentTerm < mabs.term := by rw [hmdst, hR.1, hmterm]; exact hgt
+  have hrcv1 : σ.receive mabs = .ok [σ.becomeFollowerOfTerm (idAbs m.dst) mabs.term] := by
+    have := receive_updateTerm σ mabs (by rw [hmdst]; exact hcontains) (Or.inr (Or.inr (Or.inl hmt))) hcur
+    rw [hmdst] at this; exact this
+  have hUf := becomeFollowerOfTerm_facts σ (idAbs m.dst) mabs.term
+  apply simRun_snoc_chain C L σ _ e _ hrun hL hparse
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) ts.l (by omega)
+  obtain ⟨tl, tsl, tpl⟩ := ts
+  simp only at hts hl'
+  subst hts hl'
+  refine ⟨⟨doneSt (truncSt (tl.becomeFollowerOfTerm (idAbs m.dst) mabs.term) (idAbs m.dst) (idAbs m.src)
+    (logAbs C C.length 1 es')) mabs (uint.nat m.index) m.entries.length, L.length + 1 + 1, L.length + 1⟩, rfl, ?_⟩
+  have hb : (linesTrace C (lines ++ [msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)])).bootstrap.getD
+      (L.length + 1 - 1) false = false := by
+    simp only [linesTrace]; simpa using hboot lines _ hl
+  have hrecvN : Etcdraft.isReceiveName (((linesTrace C (lines ++ [msgLine e m.dst s.vote m.src m.dst
+      (elements cfg.incoming)])).line (L.length + 1)).ev.name) = true := by
+    rw [hline]; simp [msgLine, evConv, hname']; rfl
+  have hone1 : Etcdraft.oneLessMessage tl (tl.becomeFollowerOfTerm (idAbs m.dst) mabs.term) mabs = false := by
+    unfold Etcdraft.oneLessMessage; rw [hUf.2.1]; simp; intro h; rw [h]; decide
+  apply Chain.step _ _ ⟨tl.becomeFollowerOfTerm (idAbs m.dst) mabs.term, L.length + 1, L.length + 1⟩ _ _ rfl
+    (memEq_false_of_logs_or_term _ _ (idAbs m.dst) (by
+      intro v hv; simp only [List.mem_singleton] at hv; subst hv
+      refine ⟨List.contains_iff_mem.1 hcontains, Or.inr ?_⟩
+      simp only; rw [hUf.2.2.2.1, hR.1, hmterm]; exact Int.ne_of_lt hgt')) hinvU
+  · rw [← hmsrc, ← hmdst]
+    rw [← hmsrc, ← hmdst] at hinvT hinvA hinvD
+    rw [← hmdst] at hUf
+    have := chain_appAccept (linesTrace C (lines ++ [msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)]))
+      (L.length + 1) (L.length + 1) (tl.becomeFollowerOfTerm mabs.dest mabs.term) mabs C C.length (uint.nat m.index)
+      m.logterm lastnewi (toPState s).log m.entries es' [⟨tl, L.length + 1, tpl⟩]
+      (by
+        intro v hv; simp only [List.mem_singleton] at hv; subst hv
+        refine ⟨by rw [hmdst]; exact List.contains_iff_mem.1 hcontains, ?_⟩
+        simp only; rw [hUf.2.2.2.1, hmdst, hR.1, hmterm]; exact Int.ne_of_lt hgt')
+      (by simp) (by simp [linesTrace, Etcdraft.Trace.len]; omega) hb hrecvN
+      (by rw [hUf.2.1]; exact hnd) (by rw [hUf.2.1]; exact hmem) (by rw [hUf.2.1]; exact hcnt)
+      (by rw [hline]; exact hpred) (validatePre_later _ _ (by omega) _ _)
+      (by rw [hUf.2.1, hline]; exact huniq)
+      (by rw [hUf.1, hmdst]; exact hcontains) hmt hUf.2.2.1 (by rw [hUf.2.2.2.1]) hmsub
+      (by rw [hUf.2.2.2.2.2, hmdst]; exact hR.2.2.2.2.2.1)
+      hments hmprev hmpt (fun h => hlt0 h)
+      (by rw [hUf.2.2.2.2.1, hmdst, hR.2.2.2.2.2.2.1, hidxZ]; omega) (fun k x hk hx => hs.2.2 k x (by omega) hx)
+      hbe hwf (by word) hnw happ hinvT hinvA hinvD
+    exact this
+  · have := next_receive (linesTrace C (lines ++ [msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)]))
+      ⟨tl, L.length + 1, tpl⟩ mabs _ (by simp)
+      (by simp [linesTrace, Etcdraft.Trace.len]; omega) hb hrecvN hnd hmem
+      (by rw [hline]; exact hpred)
+      (by unfold Etcdraft.Trace.validatePreStates; rw [hline, hmdst, hsm]; simp)
+      (fun m' hm' hne => by rw [hline]; simp [huniq m' hm' hne]) hrcv1
+    rw [this]; simp [recvNext, hone1]
+
 end TraceSim
 
 end EtcdGrove
