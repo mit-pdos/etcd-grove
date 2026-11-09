@@ -1140,6 +1140,19 @@ theorem heartbeat_send (st : Etcdraft.State) (C : List w64) (bl : Nat) (s : PSta
   simp only [Etcdraft.State.send]
   rfl
 
+/-- **A candidate that lost** (the rule `lose`: `becomeFollower(r.Term, None)`): the
+specification's `StepDownToFollower(i)` (`BecomeFollowerOfTerm` at its own term). -/
+theorem sim_lose (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server)
+    (hR : SimServerR C bl s a) :
+    SimServerR C bl (pbecomeFollower s s.term (W64 0))
+      { a with currentTerm := a.currentTerm, state := Etcdraft.follower, lead := Etcdraft.nil,
+               votedFor := if a.currentTerm != a.currentTerm then Etcdraft.nil else a.votedFor } := by
+  obtain ⟨h1, -, h3, -, h5, h6, h7, h8, h9, -, -⟩ := hR
+  refine ⟨h1, rfl, ?_, rfl, h5, h6, h7, h8, h9, ?_, ?_⟩
+  · simp only [bne_self_eq_false, Bool.false_eq_true, ↓reduceIte, pbecomeFollower]; exact h3
+  · intro h; cases h
+  · intro h; cases h
+
 end TraceSim
 
 end EtcdGrove
