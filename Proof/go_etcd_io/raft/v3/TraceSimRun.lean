@@ -122,6 +122,22 @@ theorem simRun_first (C : List w64) (e : TraceEv) (ln : Etcdraft.Line) (ts' : Et
   right
   exact ⟨[ln], ts', hpl, hstep, rfl, hl'⟩
 
+/-- **A run extended by a line with one successor** (after the first line): the new line `ln`
+(of event `e`), from any state of the run's end, has the one successor `σ'`, on the next line,
+satisfying the invariants. -/
+theorem simRun_snoc_single (C : List w64) (L : List TraceEv) (σ σ' : Etcdraft.State) (e : TraceEv)
+    (ln : Etcdraft.Line) (hrun : SimRun C L σ) (hL : L ≠ [])
+    (he : Etcdraft.parseLine L.length (evConv e) = .ok ln)
+    (hnext : ∀ lines (ts : Etcdraft.TState), parseLines (L.map evConv) = .ok lines → ts.s = σ →
+      ts.l = L.length + 1 →
+      (linesTrace C (lines ++ [ln])).next ts = .ok [{ s := σ', l := ts.l + 1, pl := ts.l }])
+    (hinv : σ'.violated = .ok none) :
+    SimRun C (L ++ [e]) σ' := by
+  rcases hrun with ⟨hL0, -⟩ | ⟨lines, ts, hl, hr, hσ, hts⟩
+  · exact absurd hL0 hL
+  have hc := checkLine_single _ ts _ (hnext lines ts hl hσ hts) rfl hinv
+  exact simRun_snoc C L e ln ts _ _ lines hl hr he hc rfl rfl
+
 end TraceSim
 
 end EtcdGrove
