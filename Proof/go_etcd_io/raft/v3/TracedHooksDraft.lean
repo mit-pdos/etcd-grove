@@ -228,8 +228,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The simulation's invariant's namespace. -/
-def simNS : Namespace := (nroot.@"raft").@"tracesim"
+/-- The simulation's invariant's namespace, beside raft's commit invariant's (`raftLogN`, `raftRegN`). -/
+def simNS (γ : RaftNames) : Namespace := (raftN γ).@"tracesim"
 
 /-- **What a hook's caller gives the event builder**, by the cluster's trace mode: untraced, a nil
 logger and `Q`; traced, the logger's contract and, for any event `e` the builder may log (`E e`),
@@ -281,7 +281,7 @@ def trCap (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
       (P : List Etcdraft.Msg),
       traceDir γd tn ∗ ⌜tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C⌝ ∗
       r.[raft, go!"traceLogger"] ↦□ tl ∗ isTraceLogger tn.tr tl ∗
-      ⌜tl ≠ interface.nil⌝ ∗ inv simNS (simInv C tn (simFx γ C)) ∗ simNode tn id cs P ∗ ⌜Φ C cs P⌝)
+      ⌜tl ≠ interface.nil⌝ ∗ inv (simNS γ) (simInv C tn (simFx γ C)) ∗ raftLogInv γ ∗ simNode tn id cs P ∗ ⌜Φ C cs P⌝)
 
 /-- **What a hook's caller gives for an event that may or may not be logged**: `some E`, as
 `TraceFire`; `none` (a message type the hook does not trace), `Q` (review round 1's S6). -/
