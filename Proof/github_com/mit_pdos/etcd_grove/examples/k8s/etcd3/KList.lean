@@ -14,8 +14,8 @@ its past-revision reads use, as the pure functions its helpers compute (their sp
   boundary);
 - the loop, `listLoopL x its`: `ListModel.loop` (7e-3a) on the items in scope, keyed by their store
   keys;
-- `encL`, the continue token of `storage.EncodeContinue` on a key, a prefix and a revision: an
-  opaque function (both the store and the Go model call the same `EncodeContinue`; no property of
+- `encL`, the continue token of `storage.EncodeContinue` on a key, a prefix and a revision: opaque
+  functions' composition (both the store and the Go model call the same `EncodeContinue`; no property of
   it is used, Q7e-1), defined only when the prefix is a non-empty prefix of the key (`encOkL`);
 - `HSt`, the model's state: a store and its history (`hist[R-1]` the store at revision `R`),
   `histAtL` (`histAt`), `advanceL` (`advance`: the history grows iff the revision does);
@@ -28,6 +28,8 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ListModel
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.encoding.json.Token
+public import Proof.encoding.base64.Base
 
 @[expose] public section
 
@@ -160,9 +162,13 @@ theorem listLoopL_le (x : Input) (its : List item) :
     unfold scopeL
     exact Nat.le_trans (List.length_filter_le _ _) (by simp)
 
-/-- `storage.EncodeContinue(key, prefix, rv)`'s token, where it is defined (`encOkL`). Opaque:
-nothing about the token is used, only that the store and the model compute the same (Q7e-1). -/
-opaque encL : GoString → GoString → w64 → GoString
+/-- `storage.EncodeContinue(key, prefix, rv)`'s token, where it is defined (`encOkL`): base64 (URL
+alphabet, no padding) of the JSON of `{"v": "meta.k8s.io/v1", "rv": rv, "start": key without
+prefix}`, through the opaque `rawUrlEnc` and `tokJson` (stage 7e-2, `notes/k8s-7e-2-draft.md` #23;
+until then an opaque function). No property of it is used (Q7e-1; no injectivity), only that the
+store and the model compute the same. -/
+def encL (key pfx : GoString) (rv : w64) : GoString :=
+  encoding.base64.rawUrlEnc (encoding.json.tokJson rv (key.drop pfx.length))
 
 /-- `EncodeContinue(key, prefix, rv)` has no error: `strings.TrimPrefix(key, prefix)` is not
 `key` (and `json.Marshal` of a continue token never fails). -/

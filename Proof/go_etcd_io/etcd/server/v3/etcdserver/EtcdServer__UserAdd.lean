@@ -37,7 +37,7 @@ theorem EtcdServer.UserAdd.wp_proof
   wp_auto
   ihave #Hb64 : isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 $$ []
   · solve_pkg_init
-  ihave ⟨%e, #He, #Henc⟩ := encoding.base64.base64Init_access $$ Hb64
+  ihave ⟨%e, #He, #Henc⟩ := encoding.base64.stdEncInit_access $$ Hb64
   iunfold bcryptCostOk at Hcost
   ihave #Hopts' := Hopts
   iunfold auth.userOptsAt at Hopts'

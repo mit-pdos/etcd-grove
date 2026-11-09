@@ -121,6 +121,14 @@ instance tooLargeErrIs_persistent (err : GoInterface) :
     Persistent (tooLargeErrIs (GF := GF) err) := by
   unfold tooLargeErrIs; infer_instance
 
+/-- A too-large error is a `*StatusError` (the former post of `NewTooLargeResourceVersionError`). -/
+theorem tooLargeErrIs_ptr (err : GoInterface) :
+    tooLargeErrIs (GF := GF) err ⊢ ⌜∃ l : Loc, err = interface.mkOk
+      (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ := by
+  unfold tooLargeErrIs apiErrAt
+  iintro ⟨%st, %cs, ⟨%l, %h, -⟩, -⟩
+  ipureintro; exact ⟨l, h⟩
+
 end defs
 
 end apierrors

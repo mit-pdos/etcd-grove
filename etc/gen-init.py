@@ -719,19 +719,26 @@ polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
 )
 
 SPECIAL['encoding.base64'] = dict(
-    doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26):
-`StdEncoding` holds a fixed `*Encoding` whose `EncodeToString` returns the standard encoding
-(`stdEnc`) of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
+    doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26;
+k8s 7e-2, 2026-11-09): `StdEncoding` and `RawURLEncoding` hold fixed `*Encoding`s whose
+`EncodeToString` returns the standard encoding (`stdEnc`), resp. the URL encoding without padding
+(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
 Its initializer runs its variables' untranslated initializers (`base64.go`); the trust-boundary
-axiom `StdEncoding_init` states the one the fact reads (`NewEncoding(encodeStd)`, a fresh
-`*Encoding` with the standard alphabet and padding, whose `EncodeToString` allocates its output
-buffer, `Encode`s into it and returns it as a string: no panic, no write to its argument),
-`opaqueInitsOk` the others.''',
+axioms `StdEncoding_init` and `RawURLEncoding_init` state the ones the fact reads
+(`NewEncoding(encodeStd)`, `URLEncoding.WithPadding(NoPadding)`: fixed `*Encoding`s whose
+`EncodeToString` allocates its output buffer, `Encode`s into it and returns it as a string: no
+panic, no write to its argument), `opaqueInitsOk` the others.''',
     custom={'StdEncoding': dict(
         doc='/-- `StdEncoding = NewEncoding(encodeStd)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the standard base64 encoding `stdEnc` of its argument\'s bytes, reading and keeping the slice. -/',
-        post='_root_.Perennial.encoding.base64.base64Init (GF := GF)',
+        post='_root_.Perennial.encoding.base64.stdEncInit (GF := GF)',
+        pat='#H@'),
+            'RawURLEncoding': dict(
+        doc='/-- `RawURLEncoding = URLEncoding.WithPadding(NoPadding)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the URL base64 encoding without padding `rawUrlEnc` of its argument\'s bytes, reading and keeping the slice (stage 7e-2, `notes/k8s-7e-2-draft.md` §5.4, attacked T15). -/',
+        post='_root_.Perennial.encoding.base64.rawUrlEncInit (GF := GF)',
         pat='#H@')},
-    finish=FIN_PRE[:6],
+    finish=FIN_PRE[:6] + ['isplitl []', '· imodintro; itrivial', 'imodintro',
+            'unfold _root_.Perennial.encoding.base64.base64Init', 'isplitl', '· iexact HStdEncoding',
+            'iexact HRawURLEncoding'],
 )
 
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
