@@ -130,6 +130,37 @@ theorem sim_vote_grant (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Serv
   · intro _
     exact ⟨h1, h2, rfl, h4, h5, h6, h7, h8, h9, h10, h11⟩
 
+/-- **A message of a later term** (the rule `higherTerm`, before the handling): the specification's
+`UpdateTerm` (`BecomeFollowerOfTerm`) and raft's `becomeFollower` without a leader agree; a message
+from a leader then sets `lead` in both, at the handling (`padoptLeader`, the handler's `lead' = j`). -/
+theorem sim_higherTerm (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (t : w64)
+    (hR : SimServerR C bl s a) (ht : uint.Z s.term < uint.Z t) :
+    SimServerR C bl (pbecomeFollower s t (W64 0))
+      { a with currentTerm := uint.Z t, state := Etcdraft.follower, lead := Etcdraft.nil,
+               votedFor := if a.currentTerm != uint.Z t then Etcdraft.nil else a.votedFor } := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hR
+  have hne : t ≠ s.term := fun h => by rw [h] at ht; exact Int.lt_irrefl _ ht
+  have hne' : a.currentTerm != uint.Z t := by
+    rw [h1]; simp only [bne_iff_ne, ne_eq]; intro h; exact hne (word.unsigned_inj h).symm
+  refine ⟨rfl, rfl, ?_, rfl, h5, h6, h7, h8, h9, ?_, ?_⟩
+  · simp only [hne', ↓reduceIte, pbecomeFollower, hne]; rfl
+  · intro h; cases h
+  · intro h; cases h
+
+/-- **A campaign** (the rule `campaign`, its `becomeCandidate`; PreVote off): the specification's
+`Timeout(i)` and raft's `becomeCandidate` agree (the vote requests and the self vote that follow are
+the trace's `SendRequestVote*` lines, `RequestVote(i, j)`). -/
+theorem sim_campaign (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (id : w64)
+    (hR : SimServerR C bl s a) (ht : uint.Z s.term + 1 < 2 ^ 64) :
+    SimServerR C bl (pbecomeCandidate id s)
+      { a with state := Etcdraft.candidate, currentTerm := a.currentTerm + 1, votedFor := idAbs id,
+               lead := Etcdraft.nil, votesResponded := [], votesGranted := [] } := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hR
+  refine ⟨?_, rfl, rfl, rfl, h5, h6, h7, h8, h9, ?_, ?_⟩
+  · simp only [pbecomeCandidate]; rw [h1]; word
+  · intro _; simp [pbecomeCandidate, GMap.toList_empty]; rfl
+  · intro h; cases h
+
 end TraceSim
 
 end EtcdGrove
