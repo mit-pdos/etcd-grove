@@ -62,7 +62,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
     (hSize : backend.snapshot.Size.spec (GF := GF) (hG := hG))
     (hNM : snap.NewMessage.spec (GF := GF) (hG := hG)) :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) := by
-  intro s ml st snapt snapi cs lg kv be dq RC RC' RS RS' Qd
+  intro s ml st snapt snapi cs lg kv be dq RC RC' RS RS' Qd γs Hsz20
   wp_start as ⟨#Hlgf, %Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Hcs, Htok⟩
   (try wp_auto)
   wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
@@ -103,13 +103,16 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   ihave #Pproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit
   -- `proto.Clone(confState)`: the clone holds `c`, owned (nil for nil)
-  iunfold epCsOk at Hcs
-  ihave #Hc : iprop(∃ c : ConfStateM, csOpt cs DFrac.discard c) $$ []
-  · icases Hcs with (%Hn | ⟨%c, #Hc⟩)
-    · iexists ConfStateM.mk [] [] [] [] false
-      iunfold csOpt; ileft; ipureintro; exact ⟨Hn, rfl⟩
-    · iexists c; iunfold csOpt; iright; iexact Hc
-  icases Hc with ⟨%c, #Hc⟩
+  -- (raft-entsize [r3c]) the voters' conf state, of at most `2 ^ 20` ids
+  iunfold epCsVoters at Hcs
+  icases Hcs with ⟨%c, #Hc0, %Hci⟩
+  ihave #Hc : csOpt cs DFrac.discard c $$ []
+  · iunfold csOpt; iright; iexact Hc0
+  have Hclen : (c.Voters' ++ c.Learners' ++ c.VotersOutgoing' ++ c.LearnersNext').length ≤ 2 ^ 20 := by
+    obtain ⟨hv, hvo, hl, hln, -⟩ := Hci
+    simp only [List.length_append, hv.length_eq, hvo.length_eq, hl.length_eq, hln.length_eq,
+      GMap.length_elements, Membership.simple, GMap.size_empty]
+    omega
   wp_apply wp_clone_csOpt hClone cs c $$ [] as %p' Hp'
   · iframe #
   (try wp_auto)
@@ -152,10 +155,12 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   iframe Hlr HRS' Hbef Htok
   iexists rc, D, c
   iframe Hm Hc Hrs HQ
-  iunfold mergedMsg
-  iframe Hmi
-  iexists tsz, cc, γc
-  iframe Htsz Hcc Hccb
+  isplitl
+  · iunfold mergedMsg
+    iframe Hmi
+    iexists tsz, cc, γc
+    iframe Htsz Hcc Hccb
+  ipureintro; exact Hclen
 
 end proof
 

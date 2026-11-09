@@ -95,7 +95,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
   ihave HKV := (srvApplyKVM_C C s E ρ.wait x sa).2 $$ HKV
   ihave HtokR : srvTokRights E (ciEff γ st.k) $$ [HtokR]
   · rw [srvTokRights_eq C E _ hM]; iexact HtokR
-  icases srvApRes_cfg_size s γr (ghostOf rp A) $$ HAR with ⟨HAR, %hsz⟩
+  icases srvApRes_cfg_size s γr (ghostOf rp A) $$ HAR with ⟨HAR, %hsz20⟩
+  have hsz : GMap.size γr.raft.raft.cfg < 2 ^ 61 := by omega
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS, -⟩
@@ -494,9 +495,15 @@ theorem EtcdServer.applyAll.wp_proofBatch
             -- the snapshot's reader slot; the reader goroutine's fork token comes back
             iunfold srvGoRes at Hgr
             icases Hgr with ⟨HgrW, HgT⟩
-            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd)
+            -- (raft-entsize [r3c]) the voters' conf state (the applied log is not empty)
+            ihave #Hcv0 : epCsCfg γr cs' $$ []
+            · icases Hecs with (%H0 | #H)
+              · exfalso; omega
+              · iexact H
+            iunfold epCsCfg at Hcv0
+            wp_apply (hCM s m sm at' ai' cs' sv.lg kv be dq RC RC' RS RS' Qd γr.raft hsz20)
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
-              as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, HQd⟩
+              as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %D, %c, #Hmg, #Hml, #Hcso, %Hcml, Hrs, HQd⟩
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT; ipureintro; exact Hlgnn
             ihave Hgr : srvGoRes s $$ [HgrW HgT]
             · iunfold srvGoRes; iframe HgrW HgT

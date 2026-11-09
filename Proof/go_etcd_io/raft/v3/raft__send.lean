@@ -90,8 +90,11 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
        have Hs := Hsh1 h'
        unfold AppShape at Hs ⊢; simp only at Hs ⊢; exact Hs)
     | (simp only at h; exact absurd h (by tyd))
-  -- (raft-final) no transfer message here
-  · intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd)
+  -- (raft-final) no transfer message here; (raft-entsize [r3c]) a `MsgSnap` has no entries and no
+  -- context (`SendOk`'s)
+  · first
+    | exact fun _ => ⟨Hsents, Hsctx⟩
+    | (intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd))
   -- (2026-10-22, D38a) no responses (the premise)
   · first | exact Hrs | (simp only; exact Hrs)
   · intro h
@@ -258,7 +261,7 @@ theorem raft.send.wp_proof
   unfold SendOk at Hok
   rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Htc, rfl⟩ |
     ⟨ty, Hlty, Hty, Hmterm, Hself, Hstz, rfl⟩ |
-    (⟨HSnap, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, Hxw⟩) |
+    (⟨HSnap, Hsents, Hsctx, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, Hxw⟩) |
     ⟨HAR, Hmterm, Hstz, Hself2, rfl⟩ |
     (⟨HProp, Hmterm, Hself, rfl⟩ | ⟨HRI, Hmterm, Hself, rfl⟩)
   · -- (a) a vote message: `Term` is kept. A request goes onto `r.msgs`, a response onto

@@ -132,6 +132,8 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
      out = [absMsgFrom ty m id s.term ents ctx])
   ∨
   ((m.Type' = MsgSnap ∧
+    -- (raft-entsize [r3c], 2026-11-09) no entries and no context (`SentMsgShape`)
+    ents = [] ∧ ctx = [] ∧
     m.Term' = W64 0 ∧
     m.To' ≠ id ∧
     -- (2026-10-19, D21 M3) not in the no-snapshot mode

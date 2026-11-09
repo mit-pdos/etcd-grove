@@ -123,7 +123,8 @@ def SentMsgShape (st : MsgSt) : Prop :=
                   st.msg.Type' ≠ MsgTransferLeader →
                     (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To') ∧
             (st.msg.Type' = MsgApp → AppShape st) ∧
-              (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
+              (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader ∨ st.msg.Type' = MsgSnap →
+                  st.ents = [] ∧ st.ctx = []) ∧
                 st.resps = []
 
 def propEntryM (d : List w8) : EntryM :=

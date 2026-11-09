@@ -356,6 +356,20 @@ theorem sentMsg_appFrom (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) 
     sentMsg (GF := GF) γ N src st ⊢ ⌜AppFrom src st⌝ := by
   unfold sentMsg; exact ApiImpl.sentMsg_appFrom_impl γ N src st
 
+/-- (raft-entsize [r3c], 2026-11-09) **A sent `MsgSnap` has no entries and no context**
+(`SentMsgShape`'s: raft builds it as `pb.Message{To, Type: MsgSnap, Snapshot}`,
+`maybeSendSnapshot`): what bounds the size of etcd's merged snapshot message, which keeps the rest
+of raft's message. -/
+theorem sentMsg_snap_empty (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    sentMsg (GF := GF) γ N src st ⊢ ⌜st.msg.Type' = MsgSnap → st.ents = [] ∧ st.ctx = []⌝ := by
+  unfold sentMsg
+  iintro Hs
+  iunfold ApiImpl.sentMsg at Hs
+  icases Hs with ⟨-, Hr, -⟩
+  iunfold isRaftMsg at Hr
+  icases Hr with ⟨%Hsh, -⟩
+  ipureintro; exact fun h => Hsh.2.2.2.2.2.2.1 (Or.inr (Or.inr h))
+
 /-- (open) **What a sent message carries for its receiver's `Step`** (today `rdCred`, one for a
 `MsgReadIndex`, and `stTks`, a forwarded proposal's tickets). -/
 @[no_expose] def msgCredits (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
