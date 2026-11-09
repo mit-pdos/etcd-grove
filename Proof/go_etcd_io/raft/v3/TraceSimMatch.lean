@@ -1643,7 +1643,8 @@ theorem truncSt_facts (st : Etcdraft.State) (i j : Etcdraft.ID) (L : List Etcdra
 batch's `d`-th entry, `p + d` past the log's start): the specification's rounds from the line's
 first state, the truncations down to `p + d`, the append, `AppendEntriesAlreadyDone`, as a chain. -/
 theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State) (mabs : Etcdraft.Msg)
-    (C : List w64) (bl p d : Nat) (es ents : List EntryM)
+    (C : List w64) (bl p d : Nat) (es ents : List EntryM) (pre : List Etcdraft.TState)
+    (hpreT : ∀ v ∈ pre, mabs.dest ∈ v.s.server ∧ (v.s.s mabs.dest).currentTerm ≠ (σ.s mabs.dest).currentTerm)
     (hl0 : l0 ≠ 0) (hl : l0 ≤ t.len) (hb : t.bootstrap.getD (l0 - 1) false = false)
     (hrecv : Etcdraft.isReceiveName (t.line l0).ev.name = true)
     (hnd : σ.messages.domain.Nodup) (hm : mabs ∈ σ.messages.domain)
@@ -1671,7 +1672,7 @@ theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.Sta
     (hinvA : (truncSt σ mabs.dest mabs.source (logAbs C bl 1 (es.take (p + d) ++ ents.drop d))).violated = .ok none)
     (hinvD : (doneSt (truncSt σ mabs.dest mabs.source (logAbs C bl 1 (es.take (p + d) ++ ents.drop d)))
       mabs p ents.length).violated = .ok none) :
-    Chain t l0 [⟨σ, l0, pl0⟩] ⟨σ, l0, pl0⟩
+    Chain t l0 (pre ++ [⟨σ, l0, pl0⟩]) ⟨σ, l0, pl0⟩
       ⟨doneSt (truncSt σ mabs.dest mabs.source (logAbs C bl 1 (es.take (p + d) ++ ents.drop d)))
         mabs p ents.length, l0 + 1, l0⟩ := by
   -- the log after the batch, and its facts
@@ -1762,13 +1763,17 @@ theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.Sta
     have hlogN : (σ.s mabs.dest).log = logAbs C bl 1 (es.take es.length) := by rw [List.take_length, hlog]
     apply Chain.step _ _ ⟨S (es.length - 1), l0, l0⟩ _
       (htr es.length hlt (Nat.le_refl _) σ pl0 hpre0 rfl rfl rfl rfl rfl hlogN rfl) rfl
-      (memEq_false_of_logs _ _ mabs.dest (by
-        intro v hv; simp only [List.mem_singleton] at hv; subst hv
-        refine ⟨hdestσ, ?_⟩
+      (memEq_false_of_logs_or_term _ _ mabs.dest (by
+        intro v hv
+        rw [List.mem_append, List.mem_singleton] at hv
+        rcases hv with hv | rfl
+        · obtain ⟨hvs, hvt⟩ := hpreT v hv
+          exact ⟨hvs, Or.inr (by simp only; rw [(hSf _).2.2.2.1]; exact hvt)⟩
+        refine ⟨hdestσ, Or.inl ?_⟩
         simp only; rw [hlogN, (hSf _).2.2.2.2.2]; exact logAbs_take_ne C bl es _ _ (Nat.le_refl _) (by omega) (by omega)))
       (hinvT _ (by omega) (by omega))
     have hcd := chain_down t l0 mabs.dest S (fun k => logAbs C bl 1 (es.take k)) (p + d) es.length
-      ⟨doneSt A mabs p ents.length, l0 + 1, l0⟩
+      ⟨doneSt A mabs p ents.length, l0 + 1, l0⟩ (σ.s mabs.dest).currentTerm (fun k => (hSf k).2.2.2.1)
       (fun k hk1 hk2 => htr k hk1 hk2 (S k) l0 (validatePre_later t l0 hl0 _ _) (hSf k).2.1 (hSf k).1
         (hSf k).2.2.1 (hSf k).2.2.2.1 (hSf k).2.2.2.2.1 (hSf k).2.2.2.2.2 (truncSt_truncSt _ _ _ _ _))
       (fun k => by rw [(hSf k).1]; exact hdestσ) (fun k => (hSf k).2.2.2.2.2)
@@ -1779,23 +1784,26 @@ theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.Sta
         apply Chain.step visited ⟨S (p + d), l0, l0⟩ ⟨A, l0, l0⟩ _
           (happ (S (p + d)) l0 (validatePre_later t l0 hl0 _ _) (hSf _).2.1 (hSf _).1 (hSf _).2.2.1
             (hSf _).2.2.2.1 (hSf _).2.2.2.2.1 (hSf _).2.2.2.2.2 (by rw [truncSt_truncSt, hA])) rfl
-          (memEq_false_of_logs _ _ mabs.dest (by
+          (memEq_false_of_logs_or_term _ _ mabs.dest (by
             intro v hv
-            obtain ⟨hvs, k', hk1, hk2, hk⟩ := hvis v hv
+            obtain ⟨hvs, hor⟩ := hvis v hv
             refine ⟨hvs, ?_⟩
-            simp only; rw [hk, hAlog]
-            rcases Nat.lt_or_ge (p + d) k' with h | h
-            · exact hAne k' h hk2
-            · exact hlenAne k' h))
+            rcases hor with ⟨k', hk1, hk2, hk⟩ | ht
+            · left; simp only; rw [hk, hAlog]
+              rcases Nat.lt_or_ge (p + d) k' with h | h
+              · exact hAne k' h hk2
+              · exact hlenAne k' h
+            · right; simp only; rw [hAterm]; exact ht))
           hinvA (hlast _))
       (es.length - 1 - (p + d))
-      [⟨σ, l0, pl0⟩, ⟨S (es.length - 1), l0, l0⟩] (by omega)
+      ((pre ++ [⟨σ, l0, pl0⟩]) ++ [⟨S (es.length - 1), l0, l0⟩]) (by omega)
       (by
         intro v hv
-        simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
-        rcases hv with rfl | rfl
-        · exact ⟨hdestσ, es.length, by omega, Nat.le_refl _, by simp only; rw [hlogN]⟩
-        · exact ⟨by rw [(hSf _).1]; exact hdestσ, es.length - 1, by omega, by omega, (hSf _).2.2.2.2.2⟩)
+        rw [List.mem_append, List.mem_append, List.mem_singleton, List.mem_singleton] at hv
+        rcases hv with (hv | rfl) | rfl
+        · obtain ⟨hvs, hvt⟩ := hpreT v hv; exact ⟨hvs, Or.inr hvt⟩
+        · exact ⟨hdestσ, Or.inl ⟨es.length, by omega, Nat.le_refl _, by simp only; rw [hlogN]⟩⟩
+        · exact ⟨by rw [(hSf _).1]; exact hdestσ, Or.inl ⟨es.length - 1, by omega, by omega, (hSf _).2.2.2.2.2⟩⟩)
     have hk : p + d + (es.length - 1 - (p + d)) = es.length - 1 := by omega
     rw [hk] at hcd
     exact hcd
@@ -1803,16 +1811,20 @@ theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.Sta
     have heq : p + d = es.length := by omega
     have hlogT : (σ.s mabs.dest).log = logAbs C bl 1 (es.take (p + d)) := by rw [hlog, heq, List.take_length]
     apply Chain.step _ _ ⟨A, l0, l0⟩ _ (happ σ pl0 hpre0 rfl rfl rfl rfl rfl hlogT hA) rfl
-      (memEq_false_of_logs _ _ mabs.dest (by
-        intro v hv; simp only [List.mem_singleton] at hv; subst hv
-        refine ⟨hdestσ, ?_⟩
+      (memEq_false_of_logs_or_term _ _ mabs.dest (by
+        intro v hv
+        rw [List.mem_append, List.mem_singleton] at hv
+        rcases hv with hv | rfl
+        · obtain ⟨hvs, hvt⟩ := hpreT v hv
+          exact ⟨hvs, Or.inr (by simp only; rw [hAterm]; exact hvt)⟩
+        refine ⟨hdestσ, Or.inl ?_⟩
         simp only; rw [hlogT, hAlog]; exact hlenAne _ (Nat.le_refl _)))
       hinvA (hlast _)
 
 /-- **An accepted append request's line without a conflict** (every entry of the batch in the log):
 one round, `AppendEntriesAlreadyDone`. -/
 theorem chain_appNoConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State) (mabs : Etcdraft.Msg)
-    (C : List w64) (bl p : Nat) (es ents : List EntryM)
+    (C : List w64) (bl p : Nat) (es ents : List EntryM) (pre : List Etcdraft.TState)
     (hl0 : l0 ≠ 0) (hl : l0 ≤ t.len) (hb : t.bootstrap.getD (l0 - 1) false = false)
     (hrecv : Etcdraft.isReceiveName (t.line l0).ev.name = true)
     (hnd : σ.messages.domain.Nodup) (hm : mabs ∈ σ.messages.domain)
@@ -1830,7 +1842,7 @@ theorem chain_appNoConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.S
     (hok : LogOkL mabs (logAbs C bl 1 es) = true)
     (hnc : ∀ k e, ents[k]? = some e → p + k < es.length → (es[p + k]?).map EntryM.Term' = some e.Term')
     (hinvD : (doneSt σ mabs p ents.length).violated = .ok none) :
-    Chain t l0 [⟨σ, l0, pl0⟩] ⟨σ, l0, pl0⟩ ⟨doneSt σ mabs p ents.length, l0 + 1, l0⟩ :=
+    Chain t l0 (pre ++ [⟨σ, l0, pl0⟩]) ⟨σ, l0, pl0⟩ ⟨doneSt σ mabs p ents.length, l0 + 1, l0⟩ :=
   Chain.last _ ⟨σ, l0, pl0⟩ ⟨doneSt σ mabs p ents.length, l0 + 1, l0⟩
     (next_done t l0 pl0 σ mabs C bl p es ents hl0 hl hb hrecv hnd hm hcnt hmatch hpre0 huniq hsrv hty hf hterm
       hsub hlog hents hprev hq hc hbl hbe (by have := hok; unfold LogOkL at this; rw [hlog]; exact this) hnc)
@@ -1853,7 +1865,8 @@ theorem doneSt_truncSt_same (σ : Etcdraft.State) (mabs : Etcdraft.Msg) (p k : N
 batch `ents` after index `p`, of the previous term `lt`; the new log `es'`): the specification's
 rounds as a chain, ending at `AppendEntriesAlreadyDone`'s state over the new log. -/
 theorem chain_appAccept (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State) (mabs : Etcdraft.Msg)
-    (C : List w64) (bl p : Nat) (lt lastnewi : w64) (es ents es' : List EntryM)
+    (C : List w64) (bl p : Nat) (lt lastnewi : w64) (es ents es' : List EntryM) (pre : List Etcdraft.TState)
+    (hpreT : ∀ v ∈ pre, mabs.dest ∈ v.s.server ∧ (v.s.s mabs.dest).currentTerm ≠ (σ.s mabs.dest).currentTerm)
     (hl0 : l0 ≠ 0) (hl : l0 ≤ t.len) (hb : t.bootstrap.getD (l0 - 1) false = false)
     (hrecv : Etcdraft.isReceiveName (t.line l0).ev.name = true)
     (hnd : σ.messages.domain.Nodup) (hm : mabs ∈ σ.messages.domain)
@@ -1876,7 +1889,7 @@ theorem chain_appAccept (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State
       (truncSt σ mabs.dest mabs.source (logAbs C bl 1 (es.take k))).violated = .ok none)
     (hinvA : (truncSt σ mabs.dest mabs.source (logAbs C bl 1 es')).violated = .ok none)
     (hinvD : (doneSt (truncSt σ mabs.dest mabs.source (logAbs C bl 1 es')) mabs p ents.length).violated = .ok none) :
-    Chain t l0 [⟨σ, l0, pl0⟩] ⟨σ, l0, pl0⟩
+    Chain t l0 (pre ++ [⟨σ, l0, pl0⟩]) ⟨σ, l0, pl0⟩
       ⟨doneSt (truncSt σ mabs.dest mabs.source (logAbs C bl 1 es')) mabs p ents.length, l0 + 1, l0⟩ := by
   have hpz : uint.Z (W64 p) = p := by word
   have hwf' : PlogWf (entryID.mk lt (W64 p)) ents := by
@@ -1890,7 +1903,7 @@ theorem chain_appAccept (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State
     exact (plogMatches_prefix es es2 lt p hp hpre).2 hmatchP
   rcases hcase with ⟨rfl, hq, hnc⟩ | ⟨d, hd, hpd, rfl, -, -, hbef, hconf⟩
   · rw [doneSt_truncSt_same σ mabs p ents.length _ hlog]
-    exact chain_appNoConflict t l0 pl0 σ mabs C bl p es' ents hl0 hl hb hrecv hnd hm hcnt hmatch hpre0 huniq hsrv
+    exact chain_appNoConflict t l0 pl0 σ mabs C bl p es' ents pre hl0 hl hb hrecv hnd hm hcnt hmatch hpre0 huniq hsrv
       hty hf hterm hsub hlog hents hprev hq hc hbl hbe (hokP es' hbl (fun _ _ => rfl)) hnc
       (by rw [← doneSt_truncSt_same σ mabs p ents.length _ hlog]; exact hinvD)
   · have hmis : p + d < es.length → ∃ e, ents[d]? = some e ∧ (es[p + d]?).map EntryM.Term' ≠ some e.Term' := by
@@ -1904,7 +1917,7 @@ theorem chain_appAccept (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State
         rwa [List.getElem?_take_of_lt (by omega)] at this
       · have : k = d := by omega
         subst this; rw [he] at hk; cases hk; exact hmt
-    exact chain_appConflict t l0 pl0 σ mabs C bl p d es ents hl0 hl hb hrecv hnd hm hcnt hmatch hpre0 huniq hsrv
+    exact chain_appConflict t l0 pl0 σ mabs C bl p d es ents pre hpreT hl0 hl hb hrecv hnd hm hcnt hmatch hpre0 huniq hsrv
       hty hf hterm hsub hlog hents hprev hc hbl hbe hd hpd hbef hconf hmis
       (fun k hk1 hk2 => hokP _ (hbl.take k) (fun k' hk' => List.getElem?_take_of_lt (by omega)))
       (hokP _ (bootTerms_truncAppend bl p d es ents hpd hbl hbe) (fun k' hk' => by
@@ -1999,8 +2012,8 @@ theorem simRun_recvApp (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (
     m.entries.length, L.length + 1 + 1, L.length + 1⟩, rfl, ?_⟩
   rw [← hmsrc, ← hmdst]
   rw [← hmsrc, ← hmdst] at hinvT hinvA hinvD
-  apply chain_appAccept (linesTrace C (lines ++ [msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)])) (L.length + 1) tpl tl mabs C C.length (uint.nat m.index) m.logterm lastnewi (toPState s).log m.entries es'
-    (by omega) (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  apply chain_appAccept (linesTrace C (lines ++ [msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)])) (L.length + 1) tpl tl mabs C C.length (uint.nat m.index) m.logterm lastnewi (toPState s).log m.entries es' []
+    (by simp) (by omega) (by simp [linesTrace, Etcdraft.Trace.len]; omega)
     (by simp only [linesTrace]; simpa using hboot lines _ hl)
     (by rw [hline]; simp [msgLine, evConv, hname']; rfl) hnd hmem hcnt (by rw [hline]; exact hpred)
     (by unfold Etcdraft.Trace.validatePreStates; rw [hline, hmdst, hsm]; simp)

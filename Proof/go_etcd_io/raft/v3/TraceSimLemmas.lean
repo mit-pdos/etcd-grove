@@ -2573,20 +2573,46 @@ theorem memEq_false_of_logs (visited : List Etcdraft.TState) (g : Etcdraft.TStat
   have := tstate_eq_of_log_ne v g i (h v hv).1 (h v hv).2
   simp [this]
 
+/-- States whose server `i` has different terms are not equal. -/
+theorem state_eq_of_term_ne (s t : Etcdraft.State) (i : Etcdraft.ID) (hi : i ∈ s.server)
+    (h : (s.s i).currentTerm ≠ (t.s i).currentTerm) : s.eq t = false := by
+  unfold Etcdraft.State.eq
+  have : (s.server.all (fun j => (s.s j).eq (t.s j) s.server)) = false := by
+    rw [List.all_eq_false]
+    refine ⟨i, hi, ?_⟩
+    unfold Etcdraft.Server.eq
+    simp [h]
+  simp [this]
+
+theorem memEq_false_of_logs_or_term (visited : List Etcdraft.TState) (g : Etcdraft.TState) (i : Etcdraft.ID)
+    (h : ∀ v ∈ visited, i ∈ v.s.server ∧ ((v.s.s i).log ≠ (g.s.s i).log ∨
+      (v.s.s i).currentTerm ≠ (g.s.s i).currentTerm)) :
+    Etcdraft.memEq visited g = false := by
+  unfold Etcdraft.memEq
+  rw [List.any_eq_false]
+  intro v hv
+  obtain ⟨hvs, hor⟩ := h v hv
+  rcases hor with hl | ht
+  · have := tstate_eq_of_log_ne v g i hvs hl; simp [this]
+  · unfold Etcdraft.TState.eq; rw [state_eq_of_term_ne v.s g.s i hvs ht]; simp
+
 /-- **The truncation rounds as a chain**: states `S k` (`q ≤ k ≤ N`) each stepping to `S (k - 1)`
 above `q`, each satisfying the invariants, their server `i`'s logs `F k` pairwise different; from
 the chain at `S q` (whatever was visited, provided its logs are `F k'`, `k' ≥ q`), the chain at
 every `S k`. -/
 theorem chain_down (t : Etcdraft.Trace) (l0 : Nat) (i : Etcdraft.ID) (S : Nat → Etcdraft.State)
-    (F : Nat → List Etcdraft.Entry) (q N : Nat) (tsF : Etcdraft.TState)
+    (F : Nat → List Etcdraft.Entry) (q N : Nat) (tsF : Etcdraft.TState) (T : Int)
+    (hT : ∀ k, ((S k).s i).currentTerm = T)
     (hstep : ∀ k, q < k → k ≤ N → t.next ⟨S k, l0, l0⟩ = .ok [⟨S (k - 1), l0, l0⟩])
     (hsrv : ∀ k, i ∈ (S k).server) (hlog : ∀ k, ((S k).s i).log = F k)
     (hF : ∀ k k', k ≤ N → k' ≤ N → k ≠ k' → F k ≠ F k')
     (hinv : ∀ k, q ≤ k → k < N → (S k).violated = .ok none)
-    (hbase : ∀ visited, (∀ v ∈ visited, i ∈ v.s.server ∧ ∃ k', q ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') →
+    (hbase : ∀ visited, (∀ v ∈ visited, i ∈ v.s.server ∧
+        ((∃ k', q ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') ∨ (v.s.s i).currentTerm ≠ T)) →
       Chain t l0 visited ⟨S q, l0, l0⟩ tsF) :
     ∀ d, ∀ visited, q + d ≤ N →
-      (∀ v ∈ visited, i ∈ v.s.server ∧ ∃ k', q + d ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') →
+      (∀ v ∈ visited, i ∈ v.s.server ∧
+        ((∃ k', q + d ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') ∨ (v.s.s i).currentTerm ≠ T)) →
       Chain t l0 visited ⟨S (q + d), l0, l0⟩ tsF := by
   intro d
   induction d with
@@ -2597,19 +2623,23 @@ theorem chain_down (t : Etcdraft.Trace) (l0 : Nat) (i : Etcdraft.ID) (S : Nat �
     · have := hstep (q + (d + 1)) (by omega) hN
       simpa using this
     · rfl
-    · apply memEq_false_of_logs visited _ i
+    · apply memEq_false_of_logs_or_term visited _ i
       intro v hvm
-      obtain ⟨hvs, k', hk1, hk2, hk⟩ := hv v hvm
+      obtain ⟨hvs, hor⟩ := hv v hvm
       refine ⟨hvs, ?_⟩
-      rw [hk]; simp only; rw [hlog]; exact hF k' (q + d) hk2 (by omega) (by omega)
+      rcases hor with ⟨k', hk1, hk2, hk⟩ | ht
+      · left; rw [hk]; simp only; rw [hlog]; exact hF k' (q + d) hk2 (by omega) (by omega)
+      · right; simp only; rw [hT]; exact ht
     · exact hinv (q + d) (by omega) (by omega)
     · apply ih _ (by omega)
       intro v hvm
       rw [List.mem_append, List.mem_singleton] at hvm
       rcases hvm with hvm | rfl
-      · obtain ⟨hvs, k', hk1, hk2, hk⟩ := hv v hvm
-        exact ⟨hvs, k', by omega, hk2, hk⟩
-      · exact ⟨hsrv _, q + d, Nat.le_refl _, by omega, hlog _⟩
+      · obtain ⟨hvs, hor⟩ := hv v hvm
+        rcases hor with ⟨k', hk1, hk2, hk⟩ | ht
+        · exact ⟨hvs, Or.inl ⟨k', by omega, hk2, hk⟩⟩
+        · exact ⟨hvs, Or.inr ht⟩
+      · exact ⟨hsrv _, Or.inl ⟨q + d, Nat.le_refl _, by omega, hlog _⟩⟩
 
 /-- An append request's `logOk` on a log. -/
 def LogOkL (m : Etcdraft.Msg) (Lg : List Etcdraft.Entry) : Bool :=
