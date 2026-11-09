@@ -16,6 +16,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.TraceSimInv
 public import Proof.go_etcd_io.raft.v3.Protocol.Ghost
+public import Proof.go_etcd_io.raft.v3.Protocol.LeaderCompleteness
 
 @[expose] public section
 
@@ -237,10 +238,8 @@ theorem durable_of_durInv (σ : Etcdraft.State) (h : DurInv σ) : σ.committedIs
 end pure
 
 section ghost
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
+variable [GooseExts]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **A server's facts**: node `j`'s server `v` in the simulation's state. -/
 def srvFacts (γ : RaftNames) (C : List w64) (j : w64) (v : Etcdraft.Server) : IProp GF :=
@@ -271,6 +270,67 @@ theorem w64_of_int_inj (a b : Int) (ha : 0 ≤ a) (ha' : a < 2 ^ 63) (hb : 0 ≤
   have h1 : uint.Z (W64 a) = a := by word
   have h2 : uint.Z (W64 b) = b := by word
   rw [← h1, ← h2, h]
+
+/-- **A commit certificate in a leader's full log** (the three cases of `restart_ack_one`,
+`Protocol/Enter.lean`): a log `es` with records and a commit certificate `commitIn γ es c tm`, and a
+full log `G'` of a term `T ≥ tm` (`leadFull`), long enough to reach `c` when `T` is the certificate's
+own term, agree on terms up to `c` (bootstrap: both start with the bootstrap log; a commit fact of
+`T`: two full logs of one term; an earlier term: `lc_core`, with the vote table). -/
+theorem commit_in_leader (γ : RaftNames) (es G' : List EntryM) (c tm T : w64)
+    (hw : PlogWf base0 es) (hc : uint.Z c ≤ es.length) (htm : uint.Z tm ≤ uint.Z T)
+    (hlen : tm = T → uint.Z c ≤ G'.length) :
+    votesTbl (GF := GF) γ ∗ logRecs γ base0 es ∗ commitIn γ es c tm ∗ leadFull γ T G' ⊢
+      ⌜∀ j : w64, uint.Z j ≤ uint.Z c → plogTermAt base0 G' j = plogTermAt base0 es j⌝ := by
+  iintro ⟨Htbl, #Hr, #Hci, #HL⟩
+  icases leadFull_wf γ T G' $$ HL with ⟨%HwL, #HrL⟩
+  have HlenL : plogLastIndexZ base0 G' = (G'.length : Int) := by
+    unfold plogLastIndexZ; rw [base0_index]; simp
+  ihave #Hcj := commitIn_j γ es c tm $$ Hci
+  unfold commitJ
+  icases Hcj with (%Hb0 | ⟨%t, %n, %G, #Hq, %Hcn⟩)
+  · -- the bootstrap log, which both start with
+    icases logRecs_boot_termAt γ es hw $$ Hr with %Hbe
+    icases logRecs_boot_termAt γ G' HwL.1 $$ HrL with %HbL
+    icases leadFull_boot γ T G' $$ HL with %Hbt
+    have HbG := Hbt.1.length_le
+    ipureintro
+    intro j hj
+    rw [← HbL j (by omega) (by omega), ← Hbe j (by omega) (by omega)]
+  obtain ⟨Hcn, Htt, HGe⟩ := Hcn
+  icases cq_base γ t n G $$ Hq with ⟨%HGn, #HGl⟩
+  icases leadFull_wf γ t G $$ HGl with ⟨%HwG, #HrG⟩
+  have Hn := (plogTermAt_some_range _ _ _ _ HGn).2
+  icases full_match γ G es c HwG.1 hw
+      (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by omega⟩) HGe
+      $$ HrG Hr with %HGall
+  by_cases hT : t = T
+  · subst hT
+    have hlen := hlen (uint_Z_inj.mp (by omega))
+    icases leadFull_agree γ t G' G c
+        (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by rw [HlenL]; omega⟩)
+        (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by omega⟩)
+        $$ HL HGl with %HLG
+    icases full_match γ G' G c HwL.1 HwG.1
+        (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by rw [HlenL]; omega⟩) HLG
+        $$ HrL HrG with %HLGall
+    ipureintro
+    intro j hj
+    rw [HLGall j hj, HGall j hj]
+  · have Hlt : uint.Z t < uint.Z T := by
+      have : uint.Z t ≠ uint.Z T := fun h => hT (uint_Z_inj.mp h)
+      omega
+    icases leadFull_camp γ T G' $$ HL with ⟨%ldr, %F0, #Hl, #Hc0, %Hpre⟩
+    icases isCamp_ok γ ldr T F0 $$ Hc0 with %Hcok
+    have Hcl := camp_last T F0 Hcok
+    icases lc_core γ ((uint.Z T).toNat + 1) T t n G ldr F0 G'
+        (by have := uint_Z_nonneg T; omega) Hlt HwL.1
+        (by rw [plogTermAt_prefix _ F0 _ _ Hpre (by rw [Hcl]; rfl)]; exact Hcl)
+        $$ Htbl Hq Hl Hc0 HrL with %HnL
+    icases full_match γ G' G n HwL.1 HwG.1 (by rw [HnL]; rfl) (by rw [HnL, HGn])
+        $$ HrL HrG with %HLG
+    ipureintro
+    intro j hj
+    rw [HLG j (by omega), HGall j hj]
 
 /-- **`MoreThanOneLeaderInv` from the facts** (`isLeader_unique`). -/
 theorem allFacts_oneLeader (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
