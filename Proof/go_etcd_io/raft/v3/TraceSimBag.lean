@@ -176,6 +176,146 @@ theorem bagRep_without (b : Etcdraft.Bag) (l : List Etcdraft.Msg) (m : Etcdraft.
       rw [List.count_erase_self]; omega
     · rw [bag_count_without_other b y m (Ne.symm hy), hc, List.count_erase_of_ne hy]
 
+/-- A bag by its counts: no duplicate message, positive counts, the counts `f`. -/
+def BagCnt (b : Etcdraft.Bag) (f : Etcdraft.Msg → Nat) : Prop :=
+  b.domain.Nodup ∧ (∀ it ∈ b, 0 < it.2) ∧ ∀ m, Etcdraft.Bag.count b m = f m
+
+theorem bagRep_iff (b : Etcdraft.Bag) (l : List Etcdraft.Msg) : BagRep b l ↔ BagCnt b (fun m => l.count m) := Iff.rfl
+
+theorem bag_count_filter (b : Etcdraft.Bag) (p : Etcdraft.Msg → Bool) (m : Etcdraft.Msg) :
+    (b.filterMsgs p).count m = if p m then b.count m else 0 := by
+  unfold Etcdraft.Bag.filterMsgs
+  induction b with
+  | nil => simp [Etcdraft.Bag.count]
+  | cons it b ih =>
+    rw [List.filter_cons]
+    by_cases hp : p it.1 = true
+    · simp only [hp, ↓reduceIte]
+      rw [bag_count_cons, bag_count_cons, ih]
+      by_cases he : it.1 = m
+      · subst he; simp [hp]
+      · simp [he]
+    · simp only [hp, Bool.false_eq_true, ↓reduceIte]
+      rw [ih, bag_count_cons]
+      by_cases he : it.1 = m
+      · subst he; simp [hp]
+      · simp [he]
+
+theorem bagCnt_filter (b : Etcdraft.Bag) (f : Etcdraft.Msg → Nat) (p : Etcdraft.Msg → Bool) (h : BagCnt b f) :
+    BagCnt (b.filterMsgs p) (fun m => if p m then f m else 0) := by
+  obtain ⟨hnd, hpos, hc⟩ := h
+  refine ⟨?_, ?_, ?_⟩
+  · unfold Etcdraft.Bag.filterMsgs Etcdraft.Bag.domain at *
+    exact hnd.sublist (List.filter_sublist.map _)
+  · intro it hit; exact hpos it (List.mem_filter.1 hit).1
+  · intro m; rw [bag_count_filter, hc]
+
+theorem bag_count_add (b : Etcdraft.Bag) (m x : Etcdraft.Msg) (n : Nat) :
+    (b.add m n).count x = b.count x + (if m = x then n else 0) := by
+  unfold Etcdraft.Bag.add
+  split
+  · rename_i hany
+    unfold Etcdraft.Bag.count
+    rw [List.find?_map]
+    have : ((fun it : Etcdraft.Msg × Nat => it.1 == x) ∘
+        fun it => if (it.1 == m) = true then (it.1, it.2 + n) else it) = (fun it => it.1 == x) := by
+      funext y; simp only [Function.comp]; split <;> rfl
+    rw [this]
+    cases hf : b.find? (fun it => it.1 == x) with
+    | none =>
+      by_cases hmx : m = x
+      · subst hmx
+        exfalso
+        obtain ⟨y, hy, hym⟩ := List.any_eq_true.1 hany
+        exact (List.find?_eq_none.1 hf) y hy hym
+      · simp [hmx]
+    | some it =>
+      have hit : it.1 = x := by simpa using List.find?_some (p := fun it : Etcdraft.Msg × Nat => it.1 == x) hf
+      by_cases hmx : m = x
+      · subst hmx; simp [hit]
+      · have hxm : x ≠ m := fun e => hmx e.symm
+        simp [hit, hmx, hxm]
+  · rename_i hany
+    unfold Etcdraft.Bag.count
+    rw [List.find?_append]
+    cases hf : b.find? (fun it => it.1 == x) with
+    | some it =>
+      have hit : it.1 = x := by simpa using List.find?_some (p := fun it : Etcdraft.Msg × Nat => it.1 == x) hf
+      by_cases hmx : m = x
+      · subst hmx
+        exfalso; exact hany (List.any_eq_true.2 ⟨it, List.mem_of_find?_eq_some hf, by simp [hit]⟩)
+      · simp [hmx]
+    | none => by_cases hmx : m = x <;> simp [hmx]
+
+theorem bagCnt_add (b : Etcdraft.Bag) (f : Etcdraft.Msg → Nat) (m : Etcdraft.Msg) (n : Nat) (hn : 0 < n)
+    (h : BagCnt b f) : BagCnt (b.add m n) (fun x => f x + if m = x then n else 0) := by
+  obtain ⟨hnd, hpos, hc⟩ := h
+  refine ⟨?_, ?_, fun x => by rw [bag_count_add, hc]⟩
+  · unfold Etcdraft.Bag.add Etcdraft.Bag.domain at *
+    split
+    · rw [List.map_map]
+      have : (Prod.fst ∘ fun it : Etcdraft.Msg × Nat => if (it.1 == m) = true then (it.1, it.2 + n) else it) =
+          Prod.fst := by funext x; simp only [Function.comp]; split <;> rfl
+      rw [this]; exact hnd
+    · rename_i hany
+      rw [List.map_append, List.nodup_append]
+      refine ⟨hnd, by simp, ?_⟩
+      intro x hx y hy; simp at hy; subst hy
+      intro e; subst e
+      obtain ⟨it, hit, rfl⟩ := List.mem_map.1 hx
+      exact hany (List.any_eq_true.2 ⟨it, hit, by simp⟩)
+  · unfold Etcdraft.Bag.add
+    split
+    · intro it hit
+      obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hit
+      split
+      · have := hpos x hx; simp; omega
+      · exact hpos x hx
+    · intro it hit
+      rw [List.mem_append] at hit
+      rcases hit with hit | hit
+      · exact hpos it hit
+      · simp at hit; subst hit; exact hn
+
+theorem bagCnt_plus (c : Etcdraft.Bag) (g : Etcdraft.Msg → Nat) (hcg : BagCnt c g) :
+    ∀ (b : Etcdraft.Bag) (f : Etcdraft.Msg → Nat), BagCnt b f → BagCnt (b.plus c) (fun x => f x + g x) := by
+  obtain ⟨hnd, hpos, hc⟩ := hcg
+  unfold Etcdraft.Bag.plus
+  induction c generalizing g with
+  | nil =>
+    intro b f h
+    refine ⟨h.1, h.2.1, fun x => ?_⟩
+    have := hc x
+    simp [Etcdraft.Bag.count] at this
+    simp only [List.foldl_nil]
+    rw [h.2.2, ← this]; simp
+  | cons it c ih =>
+    intro b f h
+    simp only [List.foldl_cons]
+    simp only [Etcdraft.Bag.domain, List.map_cons, List.nodup_cons] at hnd
+    have hrest : ∀ x, Etcdraft.Bag.count c x = g x - (if it.1 = x then it.2 else 0) := by
+      intro x
+      have := hc x
+      rw [bag_count_cons] at this
+      by_cases he : it.1 = x
+      · subst he
+        have h0 : Etcdraft.Bag.count c it.1 = 0 := by
+          unfold Etcdraft.Bag.count
+          rw [show c.find? (fun y => y.1 == it.1) = none from by
+            rw [List.find?_eq_none]; intro y hy hye
+            exact hnd.1 (by simp only [beq_iff_eq] at hye; rw [← hye]; exact List.mem_map_of_mem hy)]
+        simp at this; rw [h0]; simp; omega
+      · simp [he] at this; simp [he, this]
+    have := ih (fun x => g x - (if it.1 = x then it.2 else 0)) hnd.2 (fun y hy => hpos y (by simp [hy])) hrest
+      (b.add it.1 it.2) _ (bagCnt_add b f it.1 it.2 (hpos it (by simp)) h)
+    refine ⟨this.1, this.2.1, fun x => ?_⟩
+    rw [this.2.2 x]
+    have := hc x
+    rw [bag_count_cons] at this
+    by_cases he : it.1 = x
+    · simp only [he, ↓reduceIte] at this ⊢; omega
+    · simp only [he, ↓reduceIte] at this ⊢; omega
+
 end TraceSim
 
 end EtcdGrove
