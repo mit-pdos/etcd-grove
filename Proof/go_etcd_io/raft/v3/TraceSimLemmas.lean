@@ -786,6 +786,51 @@ theorem appLogOk_abs (C : List w64) (bl : Nat) (es : List EntryM) (p : Nat) (lt 
       refine ⟨⟨by omega, by omega⟩, ?_⟩
       rw [entAbs_term C bl _ x (fun hb => hbl (p - 1) x (by omega) hx), h]
 
+/-- **A non-leader adopts the sender of an append request or heartbeat of its term as leader**
+(`becomeFollower(m.Term, m.From)` at a candidate, `r.lead = m.From` at a follower): the
+specification's `ReturnToFollowerState` (at a candidate) and the handler's `lead' = j`. -/
+theorem sim_adoptLeader (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (src : w64)
+    (hR : SimServerR C bl s a) :
+    SimServerR C bl (padoptLeader s src) { a with state := Etcdraft.follower, lead := idAbs src } := by
+  obtain ⟨h1, -, h3, -, h5, h6, h7, h8, h9, -, -⟩ := hR
+  refine ⟨h1, rfl, h3, rfl, h5, h6, h7, h8, h9, ?_, ?_⟩
+  · intro h; simp [padoptLeader] at h
+  · intro h; simp [padoptLeader] at h
+
+/-- **`commitTo`** (raft's `raftLog.commitTo`, the specification's `CommitTo`): both take the
+maximum. -/
+theorem sim_commitTo (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (c : w64)
+    (hR : SimServerR C bl s a) :
+    SimServerR C bl { s with commit := plogCommitTo s.commit c }
+      { a with commitIndex := max a.commitIndex (uint.Z c) } := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hR
+  refine ⟨h1, h2, h3, h4, h5, h6, ?_, h8, h9, h10, h11⟩
+  simp only [plogCommitTo]; rw [h7]
+  split <;> omega
+
+/-- **A successful append response at a leader** (the rule `appResp`: `MaybeUpdate` of the
+sender's `Match`): the specification's `HandleAppendEntriesResponse` (its `matchIndex[j]` the
+maximum of the old and the response's). -/
+theorem sim_appResp (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (src idx x : w64)
+    (hR : SimServerR C bl s a) (hx : s.matched !! src = some x) :
+    SimServerR C bl
+      { s with matched := <[src := (if uint.Z x < uint.Z idx then idx else x)]> s.matched }
+      { a with matchIndex := fun k =>
+          if k = idAbs src then max (a.matchIndex (idAbs src)) (uint.Z idx) else a.matchIndex k } := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hR
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, ?_⟩
+  intro hl j hj
+  have hold := h11 hl
+  simp only
+  by_cases hjs : j = src
+  · subst hjs
+    simp only [↓reduceIte, GMap.lookup_insert, Option.getD_some]
+    rw [hold j hj, hx, Option.getD_some]
+    split <;> omega
+  · have hne : idAbs j ≠ idAbs src := fun e => hjs (idAbs_inj.1 e)
+    simp only [hne, ↓reduceIte]
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm hjs), hold j hj]
+
 end TraceSim
 
 end EtcdGrove
