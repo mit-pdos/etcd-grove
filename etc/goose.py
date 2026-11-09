@@ -831,6 +831,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccrand")],
     ),
     Project(
+        name="mvccfull",
+        # mvcc's full tester (notes/mvccfull.md): two members over real backends and lessors,
+        # one log with compactions, snapshot installs and restarts, concurrent readers, hash
+        # checks and watch streams, every choice from primitive.RandomUint64. A package of the
+        # examples' Go module (examples/go.mod); its imports are the etcd project's translations
+        # (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "mvccfull"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/Masterminds/semver=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=", "google.golang.org=",
+                    "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccfull")],
+    ),
+    Project(
         name="watchkv",
         # The watch example: one member started in-process, as in putget, a prefix watch from
         # revision 1, writer goroutines putting random keys under the prefix, and a check of the
