@@ -793,6 +793,41 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   laws and prove the facts at the end from raft's run some other way (no such source in layer B).
   **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, after
   slice 5 lands (it edits the same files).
+  **Q13 (a) done (2026-11-09, branch `trace-check-q13`), save one blocker (below).** The facts
+  `mainPure` takes of the events moved to raft (`TraceSim.lean`: `TraceEv.InScope`, `NumsBelow`,
+  `ConfsWithin`, `ScopeOk`, `BootLogsOk`), with `TraceEv.Ok n e := Ascii ∧ InScope ∧ NumsBelow
+  traceNumBound ∧ ConfsWithin n` (`traceNumBound = 2^61`) and, for the bootstrap law,
+  `TraceEv.OkBoot n e := Ascii ∧ NumsBelow traceNumBound ∧ ConfsWithin n ∧ logSize < 2^40` (not in
+  scope: `InitState` is a bootstrap line). The seven laws (`TracedCap.lean`) take `∀ e, E e →
+  TraceEv.Ok (elements c.incoming).length e` (`OkBoot` for `trCap_fire_boot`; `trCap_fire_bf` gained
+  the premise); `simInv`'s last clause is `SimEvents C.length L` (ASCII, `ScopeOk`, `BootLogsOk`, the
+  numbers, the configuration lists), kept by `simEvents_snoc`/`simEvents_snoc_boot`; the Draft's traced
+  statements on the capability (`traceCommit`, `raft.maybeCommit`, `raft.send`) and the derived
+  `raft.becomeCandidate/becomeFollower/maybeCommit.traced` take the premise when traced
+  (`s.gh.tr.isSome →`); `nodeEvOf_ok`/`nodeEvOf_okBoot` discharge it for a node event from its state's
+  numbers. Decided by the agent against the plan's wording: **no `K` parameter** (the laws' bound is
+  `traceNumBound` itself; a caller with a smaller bound weakens it), **the configuration bound from
+  raft's configuration** (`(elements c.incoming).length`, the voters `C` by `trCapB`'s permutation, not
+  a literal 3, which nothing supplied: review round 1's F2), **no event counter** (`L.length` is the
+  count; it is bounded by the run's steps, through the recorder that holds `traceAuth`, not by the
+  simulation: left to layer D and the adequacy theorem), and `OkBoot`'s log bound is the consumer's
+  `2^40`, not the bootstrap's `≤ 3`. `simInv_end` (`TraceSimEnd.lean`) now gives `SimEvents C.length L`,
+  and `tracecheck/MainSim.lean` (`mainPure_of_sim`, `simInv_main`) gives all of `mainPure`'s
+  conclusion from `simInv`, the recorder's `traceAuth`, the bootstrap facts (layer B's bootstrap clause,
+  owed), `|C| < numBound` and `L.length < numBound` (adequacy). `TraceSimEnd`, `TraceSimGhost`,
+  `TraceSimBag`, `TraceSimLemmas` are now importable (`etc/api/raft.txt`). Reviews:
+  `notes/trace-validation-reviews/q13-r*.md`. **Blocker (review round 1's F1): `MsgEvOf` leaves the
+  traced message's `rejectHint` free**, so no `SendEvOf` event can be shown `TraceEv.Ok` (which bounds
+  it, as `Event.Bounded` does): `raft.send.tracedSpec`'s new premise and every send or receive law use
+  are undischargeable until `MsgEvOf` gains `tm.rejectHint = m.rejecthint` (raft writes it,
+  `state_trace.go`; `absMsg` carries it). The repair touches `TracedMsg.lean` (`msgEvOf_traceMsgOf`, one
+  `rfl`) and `raft__send.lean` (`msgEvOf_absMsg_from`, one hypothesis), the files of the agent working on
+  raft's Go-level specs, so it was not made here; the re-freeze waits for it. **Owed by the Prove
+  phase:** (F3) the traced cluster's receipt bound such that raft's terms and indices stay below
+  `traceNumBound` (about `receiptBound GF + |C| < 2^61`, stated at `cluster_alloc`'s traced premise,
+  replacing `notes/trace-validation-sim.md`'s `2^62 − 2`); (F4) a received message's numbers (a
+  receive line's event is of the message), from raft's message facts or from a `simInv` clause on
+  the bags (every message in them was logged by a send line already bounded).
 - **Q12 (2026-11-09, `Main`'s pure obligations): the checker's `numBound` against the step bound.**
   `numBound = 2^40` (`etcdraft/Rep.lean`, a constant of the proof, not of the Go) bounds the trace's
   numbers (`Event.Bounded`) and its length; raft's terms, indices and event count grow with the steps,
