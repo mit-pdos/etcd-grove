@@ -419,7 +419,7 @@ accessor; with them the `BecomeLeader` line's term log and the `Replicate` lines
 1's S5, and a traced `newRaft` would create the node's capability); `RawNode.acceptReady` (the struct is
 open at `traceReady`, `ownRaftPhysReady`'s fields, and the RawNode-level spec hides the struct,
 configuration and state). Next: the traced `raft.Step` handlers' phase steps and facts (from raft's
-ghost) for these lines, with the win's split; `send` after Q9.
+ghost) for these lines, with the win's split; `send` after Q9. Checked: full `lake build` green; `etc/tcb-report.py --check` (807 axioms, 4 `sorry`s, unchanged) and every collection `--reuse --check`; `interface/` differs in the three functions' proof files only; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
