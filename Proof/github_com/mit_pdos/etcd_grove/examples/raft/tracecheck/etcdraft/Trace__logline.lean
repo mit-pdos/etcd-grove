@@ -54,6 +54,7 @@ theorem Trace.logline.wp_proof : Trace.logline.spec (GF := GF) (hG := hG) := by
   icases ownSlice_elem_acc _ x _ _ lns hb.1 Hx $$ Hlns with ⟨#Hxe, -⟩
   wp_auto
   iapply HΦ
+  iunfold linePtrRO
   iexists x
   isplitr
   · iexact Hxe

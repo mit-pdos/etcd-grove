@@ -39,9 +39,9 @@ theorem Trace.loglineIsMessageEvent.wp_proof (wp_logline : Trace.logline.spec (G
     rw [this]; iapply HΦ; ipureintro; trivial
   have hle : ts.l ≤ tr.len := by unfold Trace.isEvent at hev; simp at hev; exact hev.1
   wp_auto
-  wp_apply wp_logline t tr g ts $$ [Ht Hts] as %q ⟨%ln, #Hq, #Hln⟩
+  wp_apply wp_logline t tr g ts $$ [Ht Hts] as %q #Hlp
   · iframe Ht Hts; ipureintro; exact ⟨Hl1, hle⟩
-  open_line
+  open_lineP
   wp_auto
   cases hm : (tr.line ts.l).ev.msg with
   | none =>

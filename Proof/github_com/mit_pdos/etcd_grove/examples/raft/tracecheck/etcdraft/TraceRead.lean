@@ -138,6 +138,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.
 def tstateRO (g : G.TState) (ts : TState) : IProp GF :=
   iprop(stateRO g.S' ts.s ∗ ⌜sint.Z g.L' = ts.l ∧ sint.Z g.PL' = ts.pl⌝)
 
+/-- A Go `*line` holding `x` (`logline`'s result, the receiver of `line`'s methods). -/
+def linePtrRO (q : Loc) (x : Line) : IProp GF := iprop(∃ ln : G.line, q ↦□ ln ∗ lineRO ln x)
+
+instance linePtrRO_persistent (q : Loc) (x : Line) : Persistent (linePtrRO (GF := GF) q x) := by
+  unfold linePtrRO; infer_instance
+
 instance tstateRO_persistent (g : G.TState) (ts : TState) : Persistent (tstateRO (GF := GF) g ts) := by
   unfold tstateRO; infer_instance
 
@@ -174,7 +180,7 @@ macro "open_ts" : tactic => `(tactic| (
   icases Hts0 with ⟨#Hst, %Hg⟩))
 
 set_option hygiene false in
-/-- Open a line `Hq : q ↦□ ln`, `Hln : lineRO ln x`: its fields and its event's (`ge`), their
+/-- Open a line `Hq : q ↦□ ln`, `Hln : lineRO ln x` (`open_lineP`: from `Hlp : linePtrRO q x`): its fields and its event's (`ge`), their
 relations (`Hlf`, `Hef`), its message (`Hemsg`, a `match` on `x.ev.msg`) and properties. -/
 macro "open_line" : tactic => `(tactic| (
   iunfold lineRO at Hln
@@ -187,6 +193,13 @@ macro "open_line" : tactic => `(tactic| (
   icases typedPointsto_split _ _ _ $$ Hev with Hevf
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hevf))
+
+set_option hygiene false in
+macro "open_lineP" : tactic => `(tactic| (
+  ihave #Hlp0 := Hlp
+  iunfold linePtrRO at Hlp0
+  icases Hlp0 with ⟨%ln, #Hq, #Hln⟩
+  open_line))
 
 end Etcdraft
 end EtcdGrove

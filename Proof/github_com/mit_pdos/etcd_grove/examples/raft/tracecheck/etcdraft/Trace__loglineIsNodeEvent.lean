@@ -38,9 +38,9 @@ theorem Trace.loglineIsNodeEvent.wp_proof (wp_logline : Trace.logline.spec (GF :
     rw [this]; iapply HΦ; ipureintro; trivial
   have hle : ts.l ≤ tr.len := by unfold Trace.isEvent at hev; simp at hev; exact hev.1
   wp_auto
-  wp_apply wp_logline t tr g ts $$ [Ht Hts] as %q ⟨%ln, #Hq, #Hln⟩
+  wp_apply wp_logline t tr g ts $$ [Ht Hts] as %q #Hlp
   · iframe Ht Hts; ipureintro; exact ⟨Hl1, hle⟩
-  open_line
+  open_lineP
   wp_auto
   rw [decide_eq_decide.2 (uint_eq_iff _ _ _ _ Hlf.1 rfl)]
   have : tr.isNodeEvent ts es (uint.nat i) = decide ((tr.line ts.l).nid = uint.nat i) := by

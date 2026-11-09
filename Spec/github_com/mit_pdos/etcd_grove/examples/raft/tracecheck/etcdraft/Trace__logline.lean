@@ -29,7 +29,7 @@ abbrev Trace.logline.spec : Prop :=
       traceRO t tr ∗ tstateRO g ts ∗ ⌜1 ≤ ts.l ∧ ts.l ≤ tr.len⌝ }}
     (App (Val (t @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Trace.ty
       @!! go!"logline")) (Val #g))
-  {{ (q : Loc), RET #q; ∃ ln : G.line, q ↦□ ln ∗ lineRO ln (tr.line ts.l) }}
+  {{ (q : Loc), RET #q; linePtrRO q (tr.line ts.l) }}
 
 end spec
 

@@ -43,18 +43,9 @@ theorem Trace.loglineIsEvent.wp_proof (wp_logline : Trace.logline.spec (GF := GF
   by_cases hle : ts.l ≤ tr.len
   · rw [decide_eq_true (show sint.Z g.L' ≤ sint.Z gt.lines'.len by rw [Hg.1, ← hlenZ]; exact_mod_cast hle)]
     wp_auto
-    wp_apply wp_logline t tr g ts $$ [Ht Hts] as %q ⟨%ln, #Hq, #Hln⟩
+    wp_apply wp_logline t tr g ts $$ [Ht Hts] as %q #Hlp
     · iframe Ht Hts; ipureintro; exact ⟨Hl1, hle⟩
-    iunfold lineRO at Hln
-    icases Hln with ⟨⟨%ge, #Hev, #Hevr⟩, -⟩
-    iunfold eventRO at Hevr
-    icases Hevr with ⟨%Hef, -⟩
-    icases typedPointsto_split _ _ _ $$ Hq with Hqf
-    simp only [TypedPointsto.typedPointstoDef]
-    iNamed Hqf
-    icases typedPointsto_split _ _ _ $$ Hev with Hevf
-    simp only [TypedPointsto.typedPointstoDef]
-    iNamed Hevf
+    open_lineP
     wp_auto
     rw [decide_strRel Hef.1 He]
     have : tr.isEvent ts es = decide ((tr.line ts.l).ev.name = es) := by
