@@ -602,6 +602,27 @@ theorem alreadyDone_accept (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdra
   simp only [hne', hnc', hc', hgt, hprev, hsub', hml, hle2, decide_true, decide_false, Bool.not_false,
     Bool.false_or, Bool.and_self, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
 
+/-- `AppendEntriesAlreadyDone` of an accepted append request, with or without entries. -/
+theorem alreadyDone_any (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Msg) (C : List w64)
+    (bl p : Nat) (L ents : List EntryM) (hlog : (st.s i).log = logAbs C bl 1 L)
+    (hents : m.entries = logAbs C bl (p + 1) ents) (hprev : m.prevLogIndex = p)
+    (hq : p + ents.length ≤ L.length) (hc : (st.s i).commitIndex < (p : Int) + 1)
+    (hsub : m.subtype ≠ "heartbeat") (hbl : BootTerms bl 1 L) (hbe : BootTerms bl (p + 1) ents)
+    (hnc : ∀ k e, ents[k]? = some e → p + k < L.length → (L[p + k]?).map EntryM.Term' = some e.Term') :
+    st.appendEntriesAlreadyDone i j ((p : Int) + 1) m =
+      some ((st.commitTo i (min m.commitIndex ((p : Int) + ents.length))).reply
+        { type := .appendEntriesResponse, subtype := m.subtype, term := (st.s i).currentTerm,
+          success := true, matchIndex := (p : Int) + ents.length, source := i, dest := j } m) := by
+  cases ents with
+  | cons e es' => exact alreadyDone_accept st i j m C bl p L (e :: es') hlog hents hprev hq hc (by simp) hsub hbl hbe hnc
+  | nil =>
+    have hem : m.entries = [] := by rw [hents]; rfl
+    have hc' : ¬ ((p : Int) + 1 ≤ (st.s i).commitIndex) := by omega
+    have hgt : (p : Int) + 1 > (st.s i).commitIndex := hc
+    have hsub' : (m.subtype == "heartbeat") = false := by simp [hsub]
+    unfold Etcdraft.State.appendEntriesAlreadyDone
+    simp [hem, hc', hgt, hprev, hsub']
+
 /-- `findConflict` is the index of the first entry the log does not match (as `StepRInv`'s
 `plogFindConflict_first`, which this module does not import). -/
 theorem findConflict_first (b : entryID) (es : List EntryM) :
@@ -2493,7 +2514,7 @@ theorem receive_done (st : Etcdraft.State) (m : Etcdraft.Msg) (C : List w64) (bl
     (hsub : m.subtype = "app")
     (hlog : (st.s m.dest).log = logAbs C bl 1 L)
     (hents : m.entries = logAbs C bl (p + 1) ents) (hprev : m.prevLogIndex = p)
-    (hq : p + ents.length ≤ L.length) (hc : (st.s m.dest).commitIndex < (p : Int) + 1) (hne : ents ≠ [])
+    (hq : p + ents.length ≤ L.length) (hc : (st.s m.dest).commitIndex < (p : Int) + 1)
     (hbl : BootTerms bl 1 L) (hbe : BootTerms bl (p + 1) ents)
     (hlogOk : (or (m.prevLogIndex == 0) (decide (m.prevLogIndex > 0) && decide (m.prevLogIndex ≤ (st.s m.dest).log.length) &&
       some m.prevLogTerm == (((st.s m.dest).log[(m.prevLogIndex - 1).toNat]?).map Etcdraft.Entry.term))) = true)
@@ -2506,7 +2527,7 @@ theorem receive_done (st : Etcdraft.State) (m : Etcdraft.Msg) (C : List w64) (bl
     rw [hents]; exact (hasNoConflict_abs st m.dest C bl p L ents hlog (by omega) hbl hbe).2 hnc
   have hle : m.prevLogIndex + (m.entries.length : Int) ≤ (st.s m.dest).log.length := by
     rw [hprev, hents, hlog, logAbs_length, logAbs_length]; omega
-  have had := alreadyDone_accept st m.dest m.source m C bl p L ents hlog hents hprev hq hc hne
+  have had := alreadyDone_any st m.dest m.source m C bl p L ents hlog hents hprev hq hc
     (by rw [hsub]; decide) hbl hbe hnc
   apply receive_aer st m _ hsrv hty hterm
   apply handleAER_accept st m.dest m.source m _ hf hterm hlogOk (by rw [hsub]; decide) _ _

@@ -1615,14 +1615,14 @@ theorem next_done (t : Etcdraft.Trace) (l0 pl : Nat) (st : Etcdraft.State) (mabs
     (hsub : mabs.subtype = "app")
     (hlog : (st.s mabs.dest).log = logAbs C bl 1 L)
     (hents : mabs.entries = logAbs C bl (p + 1) ents) (hprev : mabs.prevLogIndex = p)
-    (hq : p + ents.length ≤ L.length) (hc : (st.s mabs.dest).commitIndex < (p : Int) + 1) (hne : ents ≠ [])
+    (hq : p + ents.length ≤ L.length) (hc : (st.s mabs.dest).commitIndex < (p : Int) + 1)
     (hbl : BootTerms bl 1 L) (hbe : BootTerms bl (p + 1) ents)
     (hlogOk : (or (mabs.prevLogIndex == 0) (decide (mabs.prevLogIndex > 0) && decide (mabs.prevLogIndex ≤ (st.s mabs.dest).log.length) &&
       some mabs.prevLogTerm == (((st.s mabs.dest).log[(mabs.prevLogIndex - 1).toNat]?).map Etcdraft.Entry.term))) = true)
     (hnc : ∀ k e, ents[k]? = some e → p + k < L.length → (L[p + k]?).map EntryM.Term' = some e.Term') :
     t.next ⟨st, l0, pl⟩ = .ok [⟨doneSt st mabs p ents.length, l0 + 1, l0⟩] := by
   have hrcv : st.receive mabs = .ok [doneSt st mabs p ents.length] :=
-    receive_done st mabs C bl p L ents hsrv hty hf hterm hsub hlog hents hprev hq hc hne hbl hbe hlogOk hnc
+    receive_done st mabs C bl p L ents hsrv hty hf hterm hsub hlog hents hprev hq hc hbl hbe hlogOk hnc
   have hone : Etcdraft.oneLessMessage st (doneSt st mabs p ents.length) mabs = true := by
     have hmsgs : (doneSt st mabs p ents.length).messages = (st.discard mabs).messages := rfl
     have h := oneLess_discard st st mabs rfl hnd hcnt
@@ -1698,7 +1698,7 @@ theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.Sta
       (by rw [hAmsg]; exact hnd) (by rw [hAmsg]; exact hm) (by rw [hAmsg]; exact hcnt) hmatch
       (validatePre_later t l0 hl0 A _) (by rw [hAmsg]; exact huniq) (by rw [hAsrv]; exact hsrv) hty
       (by rw [hAst]; exact hf) (by rw [hAterm]; exact hterm) hsub hAlog hents hprev (by omega)
-      (by rw [hAcom]; exact hc) hne hblA hbe
+      (by rw [hAcom]; exact hc) hblA hbe
       (by have := hokA; unfold LogOkL at this; rw [hAlog]; exact this) hncA
   -- the append round, from a state whose server's log is the abstract `p + d` first entries
   have happ : ∀ (X : Etcdraft.State) (pl : Nat), t.validatePreStates ⟨X, l0, pl⟩ mabs.dest = true →
@@ -1808,6 +1808,33 @@ theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.Sta
         refine ⟨hdestσ, ?_⟩
         simp only; rw [hlogT, hAlog]; exact hlenAne _ (Nat.le_refl _)))
       hinvA (hlast _)
+
+/-- **An accepted append request's line without a conflict** (every entry of the batch in the log):
+one round, `AppendEntriesAlreadyDone`. -/
+theorem chain_appNoConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State) (mabs : Etcdraft.Msg)
+    (C : List w64) (bl p : Nat) (es ents : List EntryM)
+    (hl0 : l0 ≠ 0) (hl : l0 ≤ t.len) (hb : t.bootstrap.getD (l0 - 1) false = false)
+    (hrecv : Etcdraft.isReceiveName (t.line l0).ev.name = true)
+    (hnd : σ.messages.domain.Nodup) (hm : mabs ∈ σ.messages.domain)
+    (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
+    (hmatch : recvPred (t.line l0) mabs = true)
+    (hpre0 : t.validatePreStates ⟨σ, l0, pl0⟩ mabs.dest = true)
+    (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs → recvPred (t.line l0) m' = false)
+    (hsrv : σ.server.contains mabs.dest = true) (hty : mabs.type = .appendEntriesRequest)
+    (hf : (σ.s mabs.dest).state = Etcdraft.follower) (hterm : mabs.term = (σ.s mabs.dest).currentTerm)
+    (hsub : mabs.subtype = "app")
+    (hlog : (σ.s mabs.dest).log = logAbs C bl 1 es)
+    (hents : mabs.entries = logAbs C bl (p + 1) ents) (hprev : mabs.prevLogIndex = p)
+    (hq : p + ents.length ≤ es.length) (hc : (σ.s mabs.dest).commitIndex < (p : Int) + 1)
+    (hbl : BootTerms bl 1 es) (hbe : BootTerms bl (p + 1) ents)
+    (hok : LogOkL mabs (logAbs C bl 1 es) = true)
+    (hnc : ∀ k e, ents[k]? = some e → p + k < es.length → (es[p + k]?).map EntryM.Term' = some e.Term')
+    (hinvD : (doneSt σ mabs p ents.length).violated = .ok none) :
+    Chain t l0 [⟨σ, l0, pl0⟩] ⟨σ, l0, pl0⟩ ⟨doneSt σ mabs p ents.length, l0 + 1, l0⟩ :=
+  Chain.last _ ⟨σ, l0, pl0⟩ ⟨doneSt σ mabs p ents.length, l0 + 1, l0⟩
+    (next_done t l0 pl0 σ mabs C bl p es ents hl0 hl hb hrecv hnd hm hcnt hmatch hpre0 huniq hsrv hty hf hterm
+      hsub hlog hents hprev hq hc hbl hbe (by have := hok; unfold LogOkL at this; rw [hlog]; exact this) hnc)
+    rfl hinvD
 
 end TraceSim
 
