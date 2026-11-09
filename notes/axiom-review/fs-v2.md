@@ -343,8 +343,10 @@ The directory tree and the journal:
   `lstat`.
 
 Data and sizes:
-- **Crash sizes** (`CrashImage`, `:724-728`). Delayed allocation's intermediate `i_disksize`, xfs's
-  size before data (zeros: every sector's version list contains the zero version it started from),
+- **Crash sizes** (`CrashImage`, `:724-728`). Delayed allocation's intermediate `i_disksize`,
+  ext4's size committed before an append into the block holding the end (that sector is not fresh:
+  its synced version stays allowed; xfs never commits a write's size before its data, measured,
+  `fs-v2-f3/ordered.sh`, and a fresh sector's synced version is excluded since "Ordered growth"),
   and a shrink's orphan-list completion (the size changes first, then blocks are freed) all lie in
   `[sizeLo, sizeHi]`, widened by an in-flight change's target.
 - **Sector versions against page writeback.** Writeback writes whole pages or blocks, but the
