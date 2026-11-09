@@ -11,6 +11,7 @@ through the package fact (`Base.lean`'s `etcdraftInit`) as the transcription's f
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.StateRead
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Own
 
 @[expose] public section
 
@@ -148,6 +149,44 @@ theorem etcdraftInit_get :
   isPkgInit_access _
 
 end defs
+
+/-! ## Proof tactics (hygiene off: they name the proof's hypotheses) -/
+
+set_option hygiene false in
+/-- Open `Ht : traceRO t tr`: the trace's fields (`gt`, its points-to's by field name), its lines
+(`lns`, `Hlns`, `Hl`) and their number (`hlenZ`). -/
+macro "open_trace" : tactic => `(tactic| (
+  ihave #Ht0 := Ht
+  iunfold traceRO at Ht0
+  icases Ht0 with ⟨%Hv, %gt, #Hp, ⟨%lns, #Hlns, #Hl⟩, #Hsrv, #Hinit, #Hboot, #Hinit0⟩
+  ihave %Hlen := ownSlice_len $$ Hlns
+  ihave %Hll := BigSepL2.bigSepL2_length $$ Hl
+  have hlenZ : (tr.len : Int) = sint.Z gt.lines'.len := by unfold Trace.len; rw [← Hll, Hlen.1]; word
+  icases typedPointsto_split _ _ _ $$ Hp with Hpf
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed Hpf))
+
+set_option hygiene false in
+/-- Open `Hts : tstateRO g ts`: `Hst : stateRO g.S' ts.s` and `Hg` (its positions). -/
+macro "open_ts" : tactic => `(tactic| (
+  ihave #Hts0 := Hts
+  iunfold tstateRO at Hts0
+  icases Hts0 with ⟨#Hst, %Hg⟩))
+
+set_option hygiene false in
+/-- Open a line `Hq : q ↦□ ln`, `Hln : lineRO ln x`: its fields and its event's (`ge`), their
+relations (`Hlf`, `Hef`), its message (`Hemsg`, a `match` on `x.ev.msg`) and properties. -/
+macro "open_line" : tactic => `(tactic| (
+  iunfold lineRO at Hln
+  icases Hln with ⟨⟨%ge, #Hev, #Hevr⟩, %Hlf, %ca, %cb, %Hcab, #Hc0, #Hc1⟩
+  iunfold eventRO at Hevr
+  icases Hevr with ⟨%Hef, -, #Hemsg, #Heprop⟩
+  icases typedPointsto_split _ _ _ $$ Hq with Hqf
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed Hqf
+  icases typedPointsto_split _ _ _ $$ Hev with Hevf
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed Hevf))
 
 end Etcdraft
 end EtcdGrove
