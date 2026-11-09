@@ -371,7 +371,9 @@ instance msgFacts_timeless (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) :
 
 /-- **The specification state's facts in `simInv`** (Draft): every voter's raft facts (`allFacts`:
 `MoreThanOneLeaderInv`, `LogInv`, `LogMatchingInv`, `CommitOk`, and with the vote table
-`LeaderCompletenessInv`), the specification invariant `SpecInv` (`TraceSimSpecInv.lean`: with it
+`LeaderCompletenessInv`; a leader's log is its records followed by its pending entries, those its
+`Replicate` lines announced before raft appends them: `srvFacts`, review finding A9), the
+specification invariant `SpecInv` (`TraceSimSpecInv.lean`: with it
 `ElectionSafetyInv`, `CommittedIsDurableInv`, `CommitWithinLeader`; it replaces `DurInv`, false as
 stated), `QuorumLogInv`'s fact and the bags' uniqueness. -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
