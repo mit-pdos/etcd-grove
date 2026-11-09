@@ -15,8 +15,8 @@ are the leader's own last index and next index, the same for every follower.
 `Traceetcdraft.tla` matches a `SendAppendEntriesRequest` line by the message's fields only, and
 etcd's trace validation (`etcd-io/raft`'s `tla/` tooling) ignores `match`/`next`. A trace consumer
 that used them would be misled; the fix is `r.trk.Progress[m.GetTo()]`
-([`state_trace.go`](https://github.com/etcd-io/raft/blob/b867cf1318b67a6ba5e8a10ac5da0fb7a1cc4b9e/state_trace.go#L295-L301),
-raft v3.7.0, as `.lake/goose/raft/state_trace.go:296-300` of the verified fork).
+([`state_trace.go`](https://github.com/etcd-io/raft/blob/v3.7.0/state_trace.go), `traceSendMessage`;
+`.lake/goose/raft/state_trace.go:296-300` in the verified fork, commit `565c2bd`).
 
 ## Proof
 
