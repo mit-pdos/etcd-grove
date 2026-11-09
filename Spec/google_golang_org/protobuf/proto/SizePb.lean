@@ -29,8 +29,7 @@ it. Above, Go's `int` sum wraps silently, without panicking, so the post says no
 
 Against protobuf-go v1.36.11 (`proto/size.go:19`, `:40`): the size of the encoding `Marshal`
 produces; the size cache is stored atomically (a hidden field in the instance's `pbMsg` invariant);
-the wrapping additions are at `internal/impl/encode.go:34-45` and `:63-117`. Measured by the harness
-`/shared/tmp/c9-entsize-harness` (`run.sh`; raft at `565c2bd`, protobuf-go v1.36.11, go1.27.3): an aliased message of true size `2^64` sizes without a panic (`TestC9SizeWrap`). Go's stack exhaustion on a deep chain of `Message` responses (a recursion through `Responses`, a fatal error, not a panic) is outside the model, as memory exhaustion is (`notes/txn-nested.md`, the axiom review's note on very deep trees). -/
+the wrapping additions are at `internal/impl/encode.go:34-45` and `:63-117`. Measured in Go (raft at `565c2bd`, protobuf-go v1.36.11, go1.27.3; the per-type stage's harness, not committed: a size-limited copy is not useful here): an aliased message of true size `2^64` sizes without a panic. Go's stack exhaustion on a deep chain of `Message` responses (a recursion through `Responses`, a fatal error, not a panic) is outside the model, as memory exhaustion is (`notes/txn-nested.md`, the axiom review's note on very deep trees). -/
 abbrev proto.SizePb.spec : Prop :=
   ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
   ∀ (l : Loc) (c : I.data.C),

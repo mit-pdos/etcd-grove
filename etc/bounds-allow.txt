@@ -48,6 +48,6 @@ stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/(RunChecksWorld|ru
 
 # The registered message models (per-type models, stage A, 2026-11-08): each instance's own file
 # owns its `wireLen` and proves, from it, rule 7's witness `∃ m, wireLen m < grpcMsgMax` and the
-# length bounds its `ReqSat` store needs (`wireLen m < grpcMsgMax` gives the key's length): the
-# owner of the bound unfolds it, as `InvKVConn`'s size lemmas do for the client.
-wire-unfold /PerType[A-Za-z]*\.lean$
+# length bounds its `ReqSat` store needs (`wireLen m < grpcMsgMax` gives the key's length); only the
+# registered instances' files in their owner packages.
+wire-unfold ^Proof/go_etcd_io/etcd/(client/v3|api/v3/etcdserverpb|server/v3/etcdserver/api/v3rpc)/PerType[A-Za-z]*\.lean$

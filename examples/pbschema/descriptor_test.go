@@ -10,8 +10,13 @@
 //     fixed64 1, a fixed32 5, bytes/string/message 2, a group 3; a repeated packable scalar both
 //     its own wire type and 2, packed or not). An over-declared schema makes the decoder trust
 //     (D1) false, an under-declared one the round trip (D2);
-//   - D1's size bound condition: no reachable type has a proto2 unpacked repeated scalar field
-//     numbered 16 or more (a 2-byte tag re-encoded packed would break size c <= 2|bs|).
+//   - D1's size bound condition (sizeBoundViolation): no reachable type has a proto2 unpacked
+//     repeated int32 or enum field at any number, nor another unpacked repeated scalar numbered 16
+//     or more (each would break size c <= 2|bs| on a packed input).
+//
+// TestSizeBoundCondition checks sizeBoundViolation itself, without the dump. The tests of
+// d1post_test.go check the decoder's post D1, the round trip D2 and the encoder axioms (they need
+// no dump either).
 package pbschema
 
 import (
@@ -23,8 +28,13 @@ import (
 	"testing"
 
 	"go.etcd.io/raft/v3/raftpb"
+	"google.golang.org/protobuf/encoding/protowire"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 // The Go messages the Lean roots name (protobuf full names); a root missing here fails the test.
@@ -55,6 +65,29 @@ func wireTypes(f protoreflect.FieldDescriptor) []int {
 		return []int{wt, 2}
 	}
 	return []int{wt}
+}
+
+// sizeBoundViolation is D1's size bound condition on one field ("" if it holds). A proto2 unpacked
+// repeated scalar re-encodes each element of a packed input with its own tag: with a 1-byte tag a
+// 1-byte element becomes 2 bytes (the ratio tends to 2, as ConfState's packed zeros), with a tag of
+// 2 bytes or more (number >= 16) 3, past the 2x bound. An int32 or enum element is worse at any
+// number: the packed 5-byte varint `ff ff ff ff 0f` decodes as int32(-1), which re-encodes
+// sign-extended in 10 bytes plus its tag (protobuf-go internal/impl/codec_gen.go consumeInt32Slice,
+// sizeInt32Slice; the ratio tends to 2.2).
+func sizeBoundViolation(fd protoreflect.FieldDescriptor) string {
+	if !fd.IsList() || fd.IsPacked() {
+		return ""
+	}
+	switch fd.Kind() {
+	case protoreflect.MessageKind, protoreflect.GroupKind, protoreflect.StringKind, protoreflect.BytesKind:
+		return ""
+	case protoreflect.Int32Kind, protoreflect.EnumKind:
+		return fmt.Sprintf("unpacked repeated %s (number %d)", fd.Kind(), fd.Number())
+	}
+	if fd.Number() >= 16 {
+		return fmt.Sprintf("unpacked repeated scalar numbered %d >= 16", fd.Number())
+	}
+	return ""
 }
 
 func render(md protoreflect.MessageDescriptor) string {
@@ -144,10 +177,8 @@ func TestSchemas(t *testing.T) {
 		fs := md.Fields()
 		for i := 0; i < fs.Len(); i++ {
 			fd := fs.Get(i)
-			if fd.IsList() && !fd.IsPacked() && fd.Number() >= 16 && fd.Kind() != protoreflect.MessageKind &&
-				fd.Kind() != protoreflect.StringKind && fd.Kind() != protoreflect.BytesKind &&
-				fd.Kind() != protoreflect.GroupKind {
-				t.Errorf("%s.%s: unpacked repeated scalar numbered %d >= 16 (D1's 2x bound)", name, fd.Name(), fd.Number())
+			if why := sizeBoundViolation(fd); why != "" {
+				t.Errorf("%s.%s: %s (D1's 2x bound)", name, fd.Name(), why)
 			}
 			if fd.Message() != nil {
 				walk(fd.Message())
@@ -174,4 +205,88 @@ func TestSchemas(t *testing.T) {
 			t.Errorf("%s: a Lean schema no root reaches", name)
 		}
 	}
+}
+
+// TestSizeBoundCondition: sizeBoundViolation on a synthetic proto2 message (each refused field breaks
+// the 2x bound on a packed input under protobuf-go, each accepted one does not), and on the raftpb
+// types reachable from the known roots (none refused).
+func TestSizeBoundCondition(t *testing.T) {
+	rep := descriptorpb.FieldDescriptorProto_LABEL_REPEATED.Enum()
+	field := func(name string, num int32, typ descriptorpb.FieldDescriptorProto_Type, packed bool) *descriptorpb.FieldDescriptorProto {
+		f := &descriptorpb.FieldDescriptorProto{Name: proto.String(name), Number: proto.Int32(num), Label: rep, Type: typ.Enum()}
+		if packed {
+			f.Options = &descriptorpb.FieldOptions{Packed: proto.Bool(true)}
+		}
+		return f
+	}
+	T := descriptorpb.FieldDescriptorProto_TYPE_INT32
+	U := descriptorpb.FieldDescriptorProto_TYPE_UINT64
+	S := descriptorpb.FieldDescriptorProto_TYPE_SINT32
+	E := descriptorpb.FieldDescriptorProto_TYPE_ENUM
+	en := field("e", 5, E, false)
+	en.TypeName = proto.String(".sbc.En")
+	fdp := &descriptorpb.FileDescriptorProto{
+		Name: proto.String("sbc.proto"), Package: proto.String("sbc"), Syntax: proto.String("proto2"),
+		EnumType: []*descriptorpb.EnumDescriptorProto{{Name: proto.String("En"),
+			Value: []*descriptorpb.EnumValueDescriptorProto{{Name: proto.String("Z"), Number: proto.Int32(0)},
+				{Name: proto.String("NEG"), Number: proto.Int32(-1)}}}},
+		MessageType: []*descriptorpb.DescriptorProto{{Name: proto.String("M"), Field: []*descriptorpb.FieldDescriptorProto{
+			field("i32", 1, T, false), field("u64", 2, U, false), field("u64hi", 16, U, false),
+			field("i32packed", 3, T, true), field("s32", 4, S, false), en}}},
+	}
+	fd, err := protodesc.NewFile(fdp, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	md := fd.Messages().ByName("M")
+	want := map[string]bool{"i32": true, "u64": false, "u64hi": true, "i32packed": false, "s32": false, "e": true}
+	for name, refused := range want {
+		f := md.Fields().ByName(protoreflect.Name(name))
+		if got := sizeBoundViolation(f) != ""; got != refused {
+			t.Errorf("sizeBoundViolation(M.%s) refuses %v, want %v", name, got, refused)
+		}
+		// the worst packed input for the field: k elements, -1 as a 5-byte varint (int32, enum),
+		// otherwise 0 (1 byte)
+		const k = 1000
+		var body []byte
+		for i := 0; i < k; i++ {
+			if f.Kind() == protoreflect.Int32Kind || f.Kind() == protoreflect.EnumKind {
+				body = append(body, 0xff, 0xff, 0xff, 0xff, 0x0f)
+			} else {
+				body = append(body, 0)
+			}
+		}
+		bs := protowire.AppendBytes(protowire.AppendTag(nil, f.Number(), protowire.BytesType), body)
+		m := dynamicpb.NewMessage(md)
+		if err := proto.Unmarshal(bs, m); err != nil {
+			t.Fatalf("M.%s: %v", name, err)
+		}
+		sz := proto.Size(m)
+		if broken := sz > 2*len(bs); broken != refused {
+			t.Errorf("M.%s: packed input %d bytes, proto.Size %d: bound broken %v, refused %v", name, len(bs), sz, broken, refused)
+		} else {
+			t.Logf("M.%s: packed input %d bytes, proto.Size %d (ratio %.3f), refused %v", name, len(bs), sz, float64(sz)/float64(len(bs)), refused)
+		}
+	}
+	seen := map[protoreflect.FullName]bool{}
+	var walk func(md protoreflect.MessageDescriptor)
+	walk = func(md protoreflect.MessageDescriptor) {
+		if seen[md.FullName()] {
+			return
+		}
+		seen[md.FullName()] = true
+		for i := 0; i < md.Fields().Len(); i++ {
+			f := md.Fields().Get(i)
+			if why := sizeBoundViolation(f); why != "" {
+				t.Errorf("%s.%s: %s", md.FullName(), f.Name(), why)
+			}
+			if f.Message() != nil {
+				walk(f.Message())
+			}
+		}
+	}
+	for _, md := range known {
+		walk(md)
+	}
+	t.Logf("%d raftpb types reachable from the known roots: none refused", len(seen))
 }

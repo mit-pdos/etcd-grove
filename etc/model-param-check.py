@@ -74,7 +74,28 @@ def run(json_path):
     os.replace(json_path + ".tmp", json_path)
 
 
+import goose  # noqa: E402  (the projects' owned output paths)
+
+OWNED = {((root or ""), o.replace(os.sep, "/")) for p in goose.PROJECTS
+         for root, _, _, ow in goose.pieces(p) for o in ow}
+
+
+def goose_owned(module):
+    """Whether `module` (a `Code` module, or a part's) is under a path `etc/goose.py` owns, i.e.
+    a translation `etc/goose.py --check` regenerates ([v6a] 4)."""
+    parts = module.split(".")
+    if parts[0] == "Code":
+        root, rel = "", "/".join(parts[1:])
+    elif len(parts) > 2 and parts[1] == "Code":
+        root, rel = parts[0], "/".join(parts[2:])
+    else:
+        return False
+    return any(r == root and (rel == o or rel.startswith(o + "/")) for r, o in OWNED)
+
+
 def code_line_ok(module, name, cache={}):
+    if not module.startswith("Perennial.") and not goose_owned(module):
+        return False
     if module.startswith("Perennial."):
         path = os.path.join(proof_roots._perennial_dir(), *module.split(".")) + ".lean"
     else:
@@ -141,7 +162,10 @@ def main():
            "a Sat theorem resting on a hand-written zero_val": "Foo.zero_val",
            "a request registration keeping the default wireLen": "wireLen",
            "a vacuous Sat theorem": "no theorem of type", "a reversed wireLen witness": "wireLen",
-           "an unbounded membership binder": '"t":"atom"'}
+           "an unbounded membership binder": '"t":"atom"',
+           "a Sat theorem over an Empty binder": "no theorem of type",
+           "a Sat theorem over a hand-written False Assumptions": "no theorem of type",
+           "a wireLen witness of wireLen m - wireLen m": "wireLen"}
     for st in selftests:
         for k, w in why.items():
             if st["name"].startswith(k) and st.get("refused") and w not in st.get("by", ""):
