@@ -281,6 +281,33 @@ theorem trCap_none (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
 theorem traceFire_none (tl : GoInterface) (E : TraceEv → Prop) (Q : IProp GF) :
     TraceFire (GF := GF) none tl E Q ⊣⊢ iprop(⌜TraceLoggerOk tl⌝ ∗ Q) := .rfl
 
+/-! ## The global step (Draft statement, review round 1's S1) -/
+
+/-- **The facts kept by a phase's lines**: for every share in phase `Φ`, event `E` allows and effect
+of it (`PhaseStep`'s), the specification state's facts (`simFx`) at any state whose node `id` is the
+share's server hold at the state the line leads to, and at its intermediate states (`Mid`-shaped:
+none for a line consuming no message). The caller proves it from node `id`'s raft ghost (a leader's
+term log, its records, its commit certificate), which only it holds. -/
+def FxPres (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : IProp GF :=
+  iprop(□ ∀ (C : List w64) (cs : ServerC) (P : List Etcdraft.Msg) (e : TraceEv) (a a' : Etcdraft.Server)
+      (P' : List Etcdraft.Msg) (σ : Etcdraft.State),
+    ⌜Φ C cs P ∧ E e ∧ toC (confAbs C) a = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
+      LineEffect C false e (idAbs id) a a' none _root_.id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False) ∧
+      σ.server = confAbs C ∧ σ.s (idAbs id) = a⌝ -∗
+    simFx γ C σ -∗ simFx γ C (withNode σ (idAbs id) a' _root_.id (fun b => P'.foldl Etcdraft.Bag.with b)))
+
+/-- **The global step, as one law** (Draft statement; its proof is `simRun_lineEffect` inside the
+logger's update, with the invariants from `simFx` and the bags' uniqueness): a capability in phase
+`Φ`, a phase step by the events `E` and the facts kept give the event builder's gate whose update
+leaves the capability in phase `Φ'`. -/
+abbrev trCap_fire.statement : Prop :=
+  ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop),
+  PhaseStep E Φ Φ' →
+  (trCap (some γd) γ r id c Φ ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ FxPres γ id E Φ Φ' : IProp GF) ⊢
+    TraceFire (some γd) tl E (trCap (some γd) γ r id c Φ')
+
 /-! ## The `Commit` path, traced -/
 
 /-- **`traceNodeEvent(evt, r)`, traced** (`traceNodeEvent.spec` with the gate): reads the logger;
