@@ -155,15 +155,36 @@ def simInit (C : List w64) : Etcdraft.State :=
   { server := srv, s := fun _ => { v with durable := Etcdraft.durableOf v }, messages := [],
     pendingMessages := [], reconfigCount := 0 }
 
+/-- The events' lines, as `newTraceWith` parses them. -/
+def parseLines (evs : List Etcdraft.Event) : Except Etcdraft.TraceError (List Etcdraft.Line) :=
+  ((List.range evs.length).zip evs).mapM (fun p => Etcdraft.parseLine p.1 p.2)
+
+/-- Which lines are bootstrap lines of one of the servers `srv` (as `newTraceWith` computes them). -/
+def bootFlags (srv : Etcdraft.SetIds) (lines : List Etcdraft.Line) : List Bool :=
+  (List.range lines.length).map (fun k =>
+    (srv.map (fun i => (Etcdraft.bootstrapOf lines i).1)).any (fun f => f.getD k false))
+
+/-- The trace specification of the lines so far, read with the voters' servers and initial state
+(`newTraceWith` of a prefix may fail where the whole trace does not: before every voter's bootstrap
+lines are in, the first node's configuration names servers not yet seen). -/
+def linesTrace (C : List w64) (lines : List Etcdraft.Line) : Etcdraft.Trace :=
+  { lines := lines, server := confAbs C, initSrv := confAbs C,
+    bootstrap := bootFlags (confAbs C) lines, init := simInit C }
+
 /-- The trace so far runs, from `simInit C`, to `σ` (TLC's verdict on it so far: one state per
-line, no branching, the invariants). The trace of a prefix is read with the voters' initial state
-and server set (a voter not yet started has logged nothing; `simRun_accepts` relates it to the
-whole trace's once every voter's bootstrap lines are in). -/
+line, no branching, the invariants), read by `linesTrace` (`simRun_accepts` relates it to the whole
+trace's `newTraceWith` once every voter's bootstrap lines are in). -/
 def SimRun (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) : Prop :=
   (L = [] ∧ σ = simInit C) ∨
-  ∃ t, Etcdraft.newTraceWith (L.map evConv) false false = .ok t ∧
-    Etcdraft.Trace.RunRel { t with init := simInit C, server := confAbs C } L.length
-      { s := σ, l := L.length + 1, pl := L.length }
+  ∃ lines, parseLines (L.map evConv) = .ok lines ∧
+    Etcdraft.Trace.RunRel (linesTrace C lines) L.length { s := σ, l := L.length + 1, pl := L.length }
+
+/-- Draft (to be proved, with `newTraceWith_len`): `newTraceWith` reads the events' lines, and its
+bootstrap flags are `bootFlags` of its servers. -/
+theorem newTraceWith_lines (evs : List Etcdraft.Event) (t : Etcdraft.Trace) :
+    Etcdraft.newTraceWith evs false false = .ok t →
+    parseLines evs = .ok t.lines ∧ t.bootstrap = bootFlags t.server t.lines := by
+  sorry
 
 /-- A bag of the messages of a list. -/
 def bagOf (l : List Etcdraft.Msg) : Etcdraft.Bag := l.foldl Etcdraft.Bag.with []
@@ -198,15 +219,20 @@ corollary's `TraceAccepts`), once the whole trace's own initial state and server
 voter's are logged). -/
 theorem simRun_accepts (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (t : Etcdraft.Trace) :
     SimRun C L σ → Etcdraft.newTraceWith (L.map evConv) false false = .ok t →
-    t.init = simInit C → t.server = confAbs C →
+    t.init = simInit C → t.server = confAbs C → t.initSrv = confAbs C →
     Etcdraft.TraceAccepts (L.map evConv) false false := by
-  intro hrun hnt hinit hsrv
-  rcases hrun with ⟨hL, -⟩ | ⟨t', ht', hr⟩
+  intro hrun hnt hinit hsrv hisrv
+  rcases hrun with ⟨hL, -⟩ | ⟨lines, hl, hr⟩
   · subst hL; exact absurd hnt (Etcdraft.newTraceWith_nil false false t)
-  · rw [hnt] at ht'
-    cases ht'
-    have heq : ({ t with init := simInit C, server := confAbs C } : Etcdraft.Trace) = t := by
-      rw [← hinit, ← hsrv]
+  · obtain ⟨hpl, hb⟩ := newTraceWith_lines _ t hnt
+    rw [hl] at hpl
+    cases hpl
+    have heq : linesTrace C t.lines = t := by
+      unfold linesTrace
+      rcases t with ⟨tl, ts, ti, tb, tin⟩
+      simp only at hinit hsrv hisrv hb ⊢
+      subst hinit hsrv hisrv hb
+      rfl
     rw [heq] at hr
     have hlen : t.len = L.length := by
       simpa using Etcdraft.newTraceWith_len _ false false t hnt
