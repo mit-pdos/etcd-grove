@@ -1388,6 +1388,115 @@ theorem advanceCommitIndex_noop (st : Etcdraft.State) (i : Etcdraft.ID) (C : Lis
       rw [h7]; omega
     · rfl
 
+/-! ### Traces that agree up to a line -/
+
+theorem foldl_range_congr {α : Type} (f g : α → Nat → α) (a : α) (n : Nat)
+    (h : ∀ acc k, k < n → f acc k = g acc k) :
+    (List.range n).foldl f a = (List.range n).foldl g a := by
+  induction n generalizing a with
+  | zero => rfl
+  | succ n ih =>
+    rw [List.range_succ, List.foldl_append, List.foldl_append, ih a (fun acc k hk => h acc k (by omega))]
+    simp only [List.foldl_cons, List.foldl_nil]
+    exact h _ n (by omega)
+
+/-- `LoglineIsBecomeFollowerInUpdateTermOrReturnToFollower` reads the lines up to the state's. -/
+theorem isBF_congr (t t' : Etcdraft.Trace) (ts : Etcdraft.TState)
+    (hl : ∀ k, k ≤ ts.l → t'.line k = t.line k) (hlen : ts.l ≤ t.len) (hlen' : ts.l ≤ t'.len) :
+    t'.isBecomeFollowerInUpdateTermOrReturnToFollower ts = t.isBecomeFollowerInUpdateTermOrReturnToFollower ts := by
+  unfold Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower Etcdraft.Trace.isEvent
+  have h3 : (ts.l ≤ t.len) = True := by simp; omega
+  have h4 : (ts.l ≤ t'.len) = True := by simp; omega
+  rw [hl ts.l (Nat.le_refl _)]
+  have hk : (List.range (ts.l - 1)).foldl
+      (fun (acc : Nat) n => if (t'.line (n + 1)).ev.nid == (t.line ts.l).ev.nid then n + 1 else acc) 0 =
+      (List.range (ts.l - 1)).foldl
+      (fun (acc : Nat) n => if (t.line (n + 1)).ev.nid == (t.line ts.l).ev.nid then n + 1 else acc) 0 := by
+    apply foldl_range_congr; intro acc k hk; rw [hl (k + 1) (by omega)]
+  simp only [h3, h4]
+  rw [hk]
+  generalize hK : (List.range (ts.l - 1)).foldl _ 0 = K
+  have hKle : K ≤ ts.l := by
+    rw [← hK]
+    suffices ∀ m a, a ≤ ts.l → m ≤ ts.l - 1 → (List.range m).foldl
+        (fun (acc : Nat) n => if (t.line (n + 1)).ev.nid == (t.line ts.l).ev.nid then n + 1 else acc) a ≤ ts.l by
+      exact this _ 0 (Nat.zero_le _) (Nat.le_refl _)
+    intro m
+    induction m with
+    | zero => intro a ha _; exact ha
+    | succ m ih =>
+      intro a ha hm
+      rw [List.range_succ, List.foldl_append]
+      simp only [List.foldl_cons, List.foldl_nil]
+      have := ih a ha (by omega)
+      split <;> omega
+  by_cases hK0 : K = 0
+  · simp [hK0]
+  · rw [hl K hKle]
+
+set_option linter.unusedSimpArgs false in
+/-- **`TraceNext` reads the trace only up to the state's line**: two traces with the same servers,
+the same lines up to `l` and the same bootstrap flag at `l`, both at least `l` long, have the same
+successors from a state on line `l`. -/
+theorem next_congr (t t' : Etcdraft.Trace) (ts : Etcdraft.TState) (hs : t'.server = t.server)
+    (hl : ∀ k, k ≤ ts.l → t'.line k = t.line k)
+    (hb : t'.bootstrap.getD (ts.l - 1) false = t.bootstrap.getD (ts.l - 1) false)
+    (hlen : ts.l ≤ t.len) (hlen' : ts.l ≤ t'.len) :
+    t'.next ts = t.next ts := by
+  have h1 : decide (ts.l > t.len) = false := by simp; omega
+  have h2 : decide (ts.l > t'.len) = false := by simp; omega
+  have h3 : decide (ts.l ≤ t.len) = true := by simp; omega
+  have h4 : decide (ts.l ≤ t'.len) = true := by simp; omega
+  have hl0 := hl ts.l (Nat.le_refl _)
+  have hbf := isBF_congr t t' ts hl hlen hlen'
+  have v1 : t'.isEvent ts = t.isEvent ts := by
+    funext e; simp only [Etcdraft.Trace.isEvent, h3, h4, hl0]
+  have v2 : t'.isNodeEvent ts = t.isNodeEvent ts := by
+    funext e i; simp only [Etcdraft.Trace.isNodeEvent, v1, hl0]
+  have v3 : t'.isMessageEvent ts = t.isMessageEvent ts := by
+    funext e i j; simp only [Etcdraft.Trace.isMessageEvent, v1, hl0]
+  have v4 : t'.validatePreStates ts = t.validatePreStates ts := by
+    funext i; simp only [Etcdraft.Trace.validatePreStates, hl0]
+  have v5 : t'.validatePostStates ts = t.validatePostStates ts := by
+    funext s2 i; simp only [Etcdraft.Trace.validatePostStates, hl0]
+  have v6 : t'.validateAfterAppendEntries ts = t.validateAfterAppendEntries ts := by
+    funext s2 i; simp only [Etcdraft.Trace.validateAfterAppendEntries, v5, hl0]
+  have c_requestVoteIfLogged : t'.requestVoteIfLogged ts = t.requestVoteIfLogged ts := by
+    unfold Etcdraft.Trace.requestVoteIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_becomeLeaderIfLogged : t'.becomeLeaderIfLogged ts = t.becomeLeaderIfLogged ts := by
+    unfold Etcdraft.Trace.becomeLeaderIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_clientRequestIfLogged : t'.clientRequestIfLogged ts = t.clientRequestIfLogged ts := by
+    unfold Etcdraft.Trace.clientRequestIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_advanceCommitIndexIfLogged : t'.advanceCommitIndexIfLogged ts = t.advanceCommitIndexIfLogged ts := by
+    unfold Etcdraft.Trace.advanceCommitIndexIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_appendEntriesIfLogged : t'.appendEntriesIfLogged ts = t.appendEntriesIfLogged ts := by
+    unfold Etcdraft.Trace.appendEntriesIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_heartbeatIfLogged : t'.heartbeatIfLogged ts = t.heartbeatIfLogged ts := by
+    unfold Etcdraft.Trace.heartbeatIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_sendSnapshotIfLogged : t'.sendSnapshotIfLogged ts = t.sendSnapshotIfLogged ts := by
+    unfold Etcdraft.Trace.sendSnapshotIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_appendEntriesToSelfIfLogged : t'.appendEntriesToSelfIfLogged ts = t.appendEntriesToSelfIfLogged ts := by
+    unfold Etcdraft.Trace.appendEntriesToSelfIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_preTimeoutIfLogged : t'.preTimeoutIfLogged ts = t.preTimeoutIfLogged ts := by
+    unfold Etcdraft.Trace.preTimeoutIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_ignoreInLeaseIfLogged : t'.ignoreInLeaseIfLogged ts = t.ignoreInLeaseIfLogged ts := by
+    unfold Etcdraft.Trace.ignoreInLeaseIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_timeoutIfLogged : t'.timeoutIfLogged ts = t.timeoutIfLogged ts := by
+    unfold Etcdraft.Trace.timeoutIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_changeConfIfLogged : t'.changeConfIfLogged ts = t.changeConfIfLogged ts := by
+    unfold Etcdraft.Trace.changeConfIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_applySimpleConfChangeIfLogged : t'.applySimpleConfChangeIfLogged ts = t.applySimpleConfChangeIfLogged ts := by
+    unfold Etcdraft.Trace.applySimpleConfChangeIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_readyIfLogged : t'.readyIfLogged ts = t.readyIfLogged ts := by
+    unfold Etcdraft.Trace.readyIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_restartIfLogged : t'.restartIfLogged ts = t.restartIfLogged ts := by
+    unfold Etcdraft.Trace.restartIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  have c_stepDownToFollowerIfLogged : t'.stepDownToFollowerIfLogged ts = t.stepDownToFollowerIfLogged ts := by
+    unfold Etcdraft.Trace.stepDownToFollowerIfLogged; simp only [v1, v2, v3, v4, v5, v6, hbf, hs, hl0, Etcdraft.Trace.pairs]
+  simp only [Etcdraft.Trace.next, Etcdraft.Trace.nonReceive, Etcdraft.Trace.receive,
+    Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.pairs, v1, v2, v3, v4, v5, v6, hbf, hs, hl0, hb, h1, h2, c_requestVoteIfLogged, c_becomeLeaderIfLogged, c_clientRequestIfLogged, c_advanceCommitIndexIfLogged, c_appendEntriesIfLogged, c_heartbeatIfLogged, c_sendSnapshotIfLogged, c_appendEntriesToSelfIfLogged, c_preTimeoutIfLogged, c_ignoreInLeaseIfLogged, c_timeoutIfLogged, c_changeConfIfLogged, c_applySimpleConfChangeIfLogged, c_readyIfLogged, c_restartIfLogged, c_stepDownToFollowerIfLogged]
+  congr
+
 end TraceSim
 
 end EtcdGrove
