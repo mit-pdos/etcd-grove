@@ -11,17 +11,19 @@ needs, an explicit hypothesis named `h…` and documented in the lemma's docstri
 simulation supplies from raft's ghost state.
 
 `SpecInv` is `LeaderEntries ∧ DurS ∧ TermsLe ∧ CandS ∧ PrevOk ∧ CommitInDurable ∧ ReqCommit ∧
-ReqCommitC ∧ LeaderDurPrefix ∧ LogTermsLe`: `DurS` strengthens `DurInv` (a leader's durable log within
-its log, the pending requests and acknowledgements within its log), `CandS` is a candidate's (no
-append request or acknowledgement of its term; persisted once anything of its term has left it),
-`TermsLe` and `PrevOk` are the messages', `CommitInDurable` strengthens `CommitWithinLeader` (a
-server's commit index within its term's leader's durable log), `ReqCommit` and `ReqCommitC` the append
-requests' commit indices (within their term's leader's durable log; within their sender's commit
-index), `LeaderDurPrefix` a leader's durable log (it holds the entries of the earlier terms: its log
-when it was elected, persisted), `LogTermsLe` the entries' terms (within their server's term, their
-message's term). It gives `LeaderEntries`, `CommitWithinLeader`, `ElectionSafetyInv`,
-`CommittedIsDurableInv` and `DurInvFixed`, but not `DurInv`, which is not an invariant
-(`durInv_not_preserved`).
+ReqCommitC ∧ LeaderDurPrefix ∧ LogTermsLe ∧ CfgFixed`: `DurS` strengthens `DurInv` (a leader's
+durable log within its log, the pending requests and acknowledgements within its log), `CandS` is a
+candidate's (no append request or acknowledgement of its term; persisted once anything of its term
+has left it), `TermsLe` and `PrevOk` are the messages', `CommitInDurable` strengthens
+`CommitWithinLeader` (a server's commit index within its term's leader's durable log), `ReqCommit`
+and `ReqCommitC` the append requests' commit indices (within their term's leader's durable log;
+within their sender's commit index), `LeaderDurPrefix` a leader's durable log (it holds the entries
+of the earlier terms: its log when it was elected, persisted), `LogTermsLe` the entries' terms
+(within their server's term, their message's term), `CfgFixed` the configurations (every server's
+the server set, review round 4's D1; `ApplySimpleConfChange` reapplying it keeps it,
+`specInv_applySimpleConfChange`). It gives `LeaderEntries`, `CommitWithinLeader`,
+`ElectionSafetyInv`, `CommittedIsDurableInv` and `DurInvFixed`, but not `DurInv`, which is not an
+invariant (`durInv_not_preserved`).
 
 The hypotheses the simulation supplies:
 - `MoreThanOneLeaderInv` of the state (`ClientRequest`, `AdvanceCommitIndex`, `AppendEntries`,
@@ -39,7 +41,8 @@ log by `CommitInDurable` (review round 3's B6(b)).
 
 `QuorumLogS` restates `TracedHooksDraft`'s `QuorumLogF` (equal by `rfl`: `QuorumLogF_eq` there);
 `quorumLog_appendEntriesAlreadyDone` re-establishes it when a follower's commit index rises (review
-round 3's B6(a)), from `ReqCommitC` and the post-state's committed prefixes (`allFacts_logInv`).
+round 3's B6(a)), from `ReqCommitC`, `CfgFixed` (the sender's quorum condition is over the
+receiver's configuration) and the post-state's committed prefixes (`allFacts_logInv`).
 -/
 module
 
@@ -949,6 +952,25 @@ theorem specInv_handleAppendEntriesResponse {σ σ' : State} {i j : ID} {m : Etc
       · rw [upd_s_ne _ _ _ _ hli]; exact (h.2.1 l hl hll).2.2.1 k hk
     · exact h
 
+/-- **`ApplySimpleConfChange(i)` reapplying `i`'s configuration** (the case the simulation takes,
+`TraceSimMatch`'s `AccIdle`: the last committed configuration entry is `i`'s configuration `(nc, lr)`;
+`applySimpleConfChange_idle` gives this successor, as `accSrv`): the configuration and every other
+field kept but `i`'s match indices, those outside `nc ∪ lr` zeroed. Only `DurS` reads them, and a zero
+is within the durable log. -/
+theorem specInv_applySimpleConfChange {σ : State} {i : ID} {nc lr : SetIds} (h : SpecInv σ) :
+    SpecInv (σ.upd i (fun v => { v with matchIndex := fun j => if (nc.union lr).contains j then v.matchIndex j else 0 })) := by
+  refine specInv_congr_m h rfl rfl rfl ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+  all_goals try (intro k; by_cases hk : k = i <;> simp [upd_s, hk]; done)
+  intro l hl hll k hk
+  have hm := (h.2.1 l hl hll).2.2.1 k hk
+  by_cases hli : l = i
+  · subst hli
+    rw [upd_s_self]; dsimp only
+    split
+    · exact hm
+    · exact Int.natCast_nonneg _
+  · rw [upd_s_ne _ _ _ _ hli]; exact hm
+
 /-- **`RejectAppendEntriesRequest(i, j, m, logOk)`** (no `PreVote`, no `CheckQuorum`: the rejection
 is unsuccessful). -/
 theorem specInv_rejectAppendEntriesRequest {σ σ' : State} {i j : ID} {m : Etcdraft.Msg} {logOk : Bool}
@@ -1285,9 +1307,10 @@ theorem isQuorum_nonempty {q c : SetIds} (h : isQuorum q c = true) : ∃ k, k �
 indices, within the durable log) and within the log. -/
 theorem specInv_advanceCommitIndex {σ σ' : State} {i : ID} (h : SpecInv σ) (hi : i ∈ σ.server)
     (hone : σ.moreThanOneLeaderInv = true)
-    -- (review round 2's A8) the configuration's members are servers
-    (hcfg : ∀ k ∈ σ.getConfig i, k ∈ σ.server)
     (hstep : σ.advanceCommitIndex i = some σ') : SpecInv σ' := by
+  -- (review round 2's A8) the configuration's members are servers (`CfgFixed`)
+  have hcfg : ∀ k ∈ σ.getConfig i, k ∈ σ.server := by
+    intro k hk; simp only [State.getConfig, h.cfgFixed i hi] at hk; exact hk
   unfold State.advanceCommitIndex at hstep; dsimp only at hstep
   split at hstep
   · cases hstep
