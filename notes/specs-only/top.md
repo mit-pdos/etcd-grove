@@ -139,21 +139,32 @@ committed once, rafthttp never resending).
 configured), an alarm's activation, a member's publication. Nothing else changes the state.
 
 **K6 — the history is the committed log's**: snapshots, restores, restarts and membership changes
-continue the same `σ`; an answered step is durable on a quorum (no crash transition in the model).
-After a crash too, at any point of a member's life: the program keeps each member's
-`EtcdServer.diskState` in its crash invariant and its crash frame applies `EtcdServer.disk_crash`
-(2e's one crash law per disk, from the old generation's `crashed` and OsFs's `crashRest`, over R1's
-`Raft.raftState_gen`/`raftState_crash`, the WAL's, the snapshotter's and 4a's crash laws), and the
-cluster's resources serve every generation (`EtcdModel.etcdState_gen`, `etcdLb_gen`, `envUpd_gen`,
-`Raft.global`, `EtcdServer.srvNet_gen`, `Rafthttp.peerAddr_gen`). Its environment premise (the
-user's decision, open question 2.8): every crash leaves each member's WAL so that `Open` + `ReadAll`
-returns records meeting `Wal.Recs.crashScopeOk` (at most one conf-change entry above the stored
-commit, `issues/raft-commit-lost-with-entries-kept.md`; no snapshot record above it), the case
-`disk_crash`'s `crashOutOfScope` names. Recorded gaps: the old backend still open at
-`applySnapshot`'s rename (`server.go:1068,1144`); a first boot's backend file with no durable name
-after `Close` (no directory fsync; `repair3-boot.md`); and how the crash frame takes `diskState` out
-of an invariant the running server opens inside callees' atomic updates (Perennial: a crash-aware
-invariant, `notes/perennial-changes.md`).
+continue the same `σ`; an answered step is durable on a quorum. **Crashes** are Perennial's crash
+rule (the whole program's machine; every thread of the generation dies), at any point of a
+member's life. The program keeps each member's `EtcdServer.diskState` in its crash invariant, and
+its crash frame applies `EtcdServer.disk_crash`: 2e's one crash law per disk, from the old
+generation's `crashed` and OsFs's `crashRest`, over R1's `Raft.raftState_gen`/`raftState_crash`,
+the WAL's `walRecs_crash`/`walWriting_crash`, the snapshotter's laws and 4a's
+(`beFile_crash`, `beCrash`, `beDetached_crash` for a backend renamed over while open). It gives the
+next generation the disk, idle, at the kind the crash left. The cluster's resources serve every
+generation (`EtcdModel.etcdState_gen`, `etcdLb_gen`, `envUpd_gen`, `Raft.global`,
+`EtcdServer.srvNet_gen`, `srvEp_gen`, `Rafthttp.peerAddr_gen`). An address's protocols are a
+family set once for the run, each generation serving its own member (`Http.protoFam_gen`,
+`protoFam_at`), so a restarted member serves its peer address again and its client address with
+the next generation's contract. **The adequacy theorem's environment premises** for crashes,
+beside `ServerStorage.diskOk`: `Wal.crashInScope`, that every crash leaves each member's WAL so
+that `Open` + `ReadAll` returns records meeting `Wal.Recs.crashScopeOk` (at most one conf-change
+entry above the stored commit, `issues/raft-commit-lost-with-entries-kept.md`; no snapshot record
+above it; the user's decision, open question 2.8). The WAL's crash laws and `disk_crash` take it,
+so the proof has no out-of-scope case. **Pending the user**: a first boot's backend file, which
+`bolt.Open` creates with no directory sync, may vanish at a crash until `member/snap` is synced
+(its revert list holds `none`); after the member's first local snapshot the restart then panics
+(`nonissues/etcd-backend-name-lost-restart-panic.md`), so `disk_crash` is not realizable for that
+disk until a premise, a scope restriction or a fork fix is chosen. Recorded gaps (Perennial,
+`notes/perennial-changes.md`): how the crash frame takes `diskState` out of an invariant that the
+running server opens inside callees' atomic updates (a crash-aware invariant); and OsFs's `rename`
+(the realization of every revert entry: renames onto the backend's path, and a backend renamed
+over while open).
 
 **K7 — the resource's laws** (2c/2d realize `etcdState` and `etcdLb` from the committed log's
 states): `etcdState_timeless`, `etcdState_excl`, `etcdLb_persistent`, `etcdLb_timeless`,

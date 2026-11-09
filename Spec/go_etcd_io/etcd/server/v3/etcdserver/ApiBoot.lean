@@ -17,7 +17,9 @@ cannot share an address: round 1, provability F3); no shared apply configuration
 configured differently: 2d's `srvCfg`, a member's own 3a `Apply.MemberCfg`). It gets
 `etcdState γ (State.init ms)` in full, one `memberBoot γ ms m` per initial member, the cluster's
 raft network `srvNet γ ν` (2f's `Net`) and, for each reserved host, the persistent
-`Http.protoAt a (Rafthttp.raftProto ν)` with which the program serves the member's raft handler.
+`Http.protoFam a (Rafthttp.raftFam ν)`, the run's family of protocols with which the program serves
+the member's raft handler (in each generation `Http.protoFam_at` gives `Http.protoAt a
+(Rafthttp.raftProto ν)`; second crash pass: net/http's protocols are per generation).
 
 **A member's files** are keyed by its directories (`Config.Dirs`). At program start a directory
 is `dataDirFresh ds` (the adequacy theorem's per-directory token: the paths pairwise distinct for
@@ -68,18 +70,25 @@ code (reads take it shared, `Cleanup` exclusively after the server is marked sto
 fail with `ErrStopped`), would let `isServer` serve a stopped server: recorded as the fork fix the
 user may choose (`batch-2e.md` Q7).
 
-**Serving clients at an address** (repair3-boot: the relay's requests 1 and 2). A member's client
-address `ep` is bound to one member of one cluster for the whole run: `srvEp_reserve` turns the
-environment's `Http.addrFree ep` into the address's protocol (`Http.protoAt ep P`, the program picks
-`Grpc.grpcOver (etcdContract γ ep) _`, i.e. `Grpc.addrAt`) and `srvEp γ ep id` (persistent, agreeing
-in `γ` and `id`, the same at every generation: `srvEp_gen`). `srvAt s γ ep` (2c's lease specs and
-2a's `Server.spec` take it) is transparent: `srvFields s γ id ∗ srvEp γ ep id`. So a member
-restarted at its address (a new server object `s'`, after a stop or a crash) is at it again from its
-own `srvFields`, while no other member ever is: W0's `leaseViewLb γ ep` is a view of member `id`'s
-lessor, which only moves forward over the member's life in a generation (a stop's `Close` commits
-the batch: `backend.go:470-471`, and the restart's lessor is recovered from that backend). It is not
-carried across a crash (no `leaseViewLb_gen`: the batch a crash loses may hold applied grants). The
-cost: a client address serves one member id over the run (as peer-URL sets). `leaseURLOf_intro`
+**Serving clients at an address** (repair3-boot: the relay's requests 1 and 2; second crash pass:
+F-server-boot F3, F5). A member's client address `ep` is bound to one member of a cluster for the
+whole run: `srvEp_reserve` turns the environment's `Http.addrFree ep` into the address's protocol
+family (`Http.protoFam ep F`: the program picks `F L := Grpc.grpcOver (etcdContract γ ep at the heap
+⟨g, L⟩) _`, so that in each generation `Http.protoFam_at` gives that generation's `Grpc.addrAt ep
+(etcdContract γ ep)`) and `srvEp γ ep id` (persistent, agreeing in `id`, the same at every
+generation: `srvEp_gen`). `srvAt s γ ep` (2c's lease specs and 2a's `Server.spec` take it) is
+transparent: `srvFields s γ id ∗ srvEp γ ep id`. So a member restarted at its address (a new server
+object `s'`, after a stop or a crash) is at it again from its own `srvFields`, while no other member
+of `γ` ever is: W0's `leaseViewLb γ ep` is a view of member `id`'s lessor, which only moves forward
+over the member's life in a generation (a stop's `Close` commits the batch: `backend.go:470-471`,
+and the restart's lessor is recovered from that backend). It is not carried across a crash (no
+`leaseViewLb_gen`: the batch a crash loses may hold applied grants), and it need not be: **the
+contract the address serves is the generation's** (net/http's protocols are per generation, the
+family set once: a crash kills every client of the old contract, and no request crosses it), so a
+restarted member serves the next generation's contract, whose lease rows name that generation's
+views, never the dead one's (F-server-boot F3: with one protocol for the run, built at the first
+generation's heap, the restarted member could serve neither). The cost: a client address serves one
+member id over the run (as peer-URL sets). `leaseURLOf_intro`
 gives 4b's `Leasehttp.leaseURLOf γ ep (u ++ "/leases/internal")` for the peer URLs `u` of `ep`'s
 member, under the existing deployment premise `Leasehttp.leasePeerURL` of that URL; W0's
 `peerLeaseServed γ` (every member's peer URLs serve its lease handler: what 2c's forwarded
@@ -91,8 +100,14 @@ premise of its member's peer URLs (`peerLeaseServed_intro`) and eliminated into 
 
 * `Cluster` holds raft's cluster names (`Raft.Cluster`, `dup = false`: 2d), the raft network `ν`
   (2f's `Net`, its `img`/`dbIn` the server's: a database image of the committed state through `i`;
-  a saved file of index `i` in the member's snapshot directory), the URL-set authority; `etcdState`
-  is 2c/2d's. The bridge to 2d's server-level `Names` (`.etcd = γ`) is `isServer_names`/
+  `dbIn id i`, **member `id`'s snapshot directory has saved a file of index `i` of a certified image**,
+  a persistent fragment of a generation-independent record per member, the history of saves of the
+  directory member `id`'s disk names, whose authority the directory's invariant holds and
+  `saveOk ν id sd`'s commit extends; with the member's deletion right `snapDel` the install knows the
+  file is still there: second crash pass, F-server-boot F4, `dbIn` keyed by the receiver and built
+  from global vocabulary only, since `ν` is the same at every generation, `srvNet_gen`), the URL-set
+  authority, the client-address map (`srvEp`'s: `ep ↦ id` in an invariant at `srvEpN`, each entry
+  holding its `Http.protoFam`; second crash pass, F-server-boot F5); `etcdState` is 2c/2d's. The bridge to 2d's server-level `Names` (`.etcd = γ`) is `isServer_names`/
   `srvMember_node` (W0 declined making `Cluster` a structure: the client API's ghost name stays
   opaque); the realization fixes one `Names` per `Cluster` (`srvNode_agree`).
 * `memberBoot γ ms m`: raft's `raftState γ.raft m.id Durable.init ∗ nodeVacant γ.raft m.id` (raft's
@@ -156,8 +171,9 @@ premise of its member's peer URLs (`peerLeaseServed_intro`) and eliminated into 
 
 **One crash law per disk, at every point of its life** (`disk_crash`): from `diskState γ ds k`, the
 old generation's `crashed` and the OS's crash rest (`crashRest`, the disk's files taken out of it:
-`diskFiles ds`), the next generation `L'` gets the disk, **idle** (the crash killed every thread) and
-at the kind the crash left; or the crash was out of scope (`crashOutOfScope`, below). Whether a
+`diskFiles ds`), under the environment premises `ServerStorage.diskOk` and `Wal.crashInScope`, the
+next generation `L'` gets the disk, **idle** (the crash killed every thread) and at the kind the
+crash left (second crash pass, F-server-boot F2: no out-of-scope case, "Scope" below). Whether a
 server ran is the realization's, not the law's: there is no `crashGone`, and `diskIdle` is not a
 premise (R-A8 N4: `crashGone` came only from a running server's `srvRunning`, so a crash inside
 `NewServer`/`bootstrap`, before `Start`, inside `HardStop`/`Cleanup` or after `Cleanup` found
@@ -175,17 +191,24 @@ write that is not atomic on disk has two updates with the in-flight state betwee
   flight), raft's `raftState γ.raft id D` with `walHolds R D` and, while a batch is in flight, its
   unfired `readyEnter` (deposited before `Save`, fired at its synced write: the raft loop's), the
   backend file (closed from `bootstrap`'s start to `OpenBackend`'s open and from `Close`'s on; open
-  from `New`'s allocation step to `Close`), its revert state, the snapshot dbs' deletion right.
+  from `New`'s allocation step to `Close`), its revert state (with `none` while a file `bolt.Open`
+  created has no durable name: 4a's `beOpenUpd`, second crash pass G-a), during an install the old
+  backend renamed over while open (its history and `Backend.beDetached`, until its `Close`: second
+  crash pass G-b), the snapshot dbs' deletion right.
 The snapshot directory's invariant (`snapDbs`/`snapSaving` with `snapGone`, allocated from
-`dataDirFresh`, keyed per generation) is beside it; `disk_crash` opens it.
+`dataDirFresh`, keyed per generation) is beside it; `disk_crash` opens it. The record behind 2f's
+`ν.dbIn id i` (the directory's history of saves) is not keyed per generation (second crash pass,
+F-server-boot F4: `ν` is the same at every generation, so its meaning must be too): a save's record
+is made at `SaveDBFrom`'s directory fsync (durable), its authority moves with the invariant across
+the crash, and only the member's own deleter (`snapDel`) removes such a file.
 
-The crossing: the WAL by `Wal.walRecs_crash`/`walWriting_crash` (records `R'`); if
-`¬ R'.crashScopeOk`, the right disjunct, with `walRecs` at `L'`; otherwise raft's state by
+The crossing: the WAL by `Wal.walRecs_crash`/`walWriting_crash` (records `R'`, meeting
+`R'.crashScopeOk` under `Wal.crashInScope`); raft's state by
 `Raft.raftState_gen` (no batch in flight) or `Raft.raftState_crash` (the deposited `readyEnter`; `D'`
 the restart view of `R'`: `R.crashedDuring w R'`'s cases are `D.crashOk b D'`'s, and
 `R'.confAboveOk` gives `D'.confAboveOk`), each giving `raftState` and `nodeVacant` at `L'`; the
 backend by 4a's `Backend.beFile_crash` (closed) or `beCrash` (open), each taking the file out of
-`crashRest`; the snapshot directory by `Snap.snapDbs_crash`/`snapSaving_crash`; `memberBoot` and
+`crashRest`, after a detached old backend is folded into the revert list (`Backend.beDetached_crash`); the snapshot directory by `Snap.snapDbs_crash`/`snapSaving_crash`; `memberBoot` and
 `memberJoin` by their crash laws (raft's crossing of the reserved durable state and vacancy,
 `Raft.global` for their persistent facts, 2f's `Rafthttp.peerAddr_gen` for the addresses); then
 `diskState` and `diskIdle` at `L'` (with `nodeVacant` in `diskIdle` for a member's files). **The kind
@@ -193,22 +216,29 @@ changes** only from `.boot`/`.join` to `.member id`, at the WAL's creation (`wal
 temporary directory, renames it onto the WAL's path and fsyncs the parent before returning: a crash
 before the rename's fsync leaves no WAL, nothing of raft started, the kind unchanged).
 
-**Scope** (`crashOutOfScope ds`, transparent; R-A8 N2: it was an unconstrained opaque, so `True`
-realized `disk_crash` by its right disjunct): **the WAL a restart reads** (2e's trusted `walRecs`:
-what `Open` + `ReadAll` return) **fails `Wal.Recs.crashScopeOk`**: more than one conf-change entry
-above the stored commit (R1's `Durable.confAboveOk`; `issues/raft-commit-lost-with-entries-kept.md`,
-a reproduced raft safety bug; the alternative is a raft/etcd fix), or a snapshot record above it (a
-crash after a received snapshot's WAL record and before its batch's state record). It needs the
-next generation's `walRecs` at those records, which only the WAL's trusted crash laws give, so the
-realization cannot choose it at will; W0's adequacy theorem excludes it by its environment premise
-over the run ("every crash leaves each member's WAL meeting `crashScopeOk`": `walRecs`'s meaning makes
-it a statement about the run). The user's decision (`batch-2e.md` Q2, open question 2.8). Margin:
-an at-rest crash of a lagging follower whose WAL holds two conf changes above its commit is also
-out of scope by this statement, though raft handles it (`raftState_gen` has no `confAboveOk`
-premise); telling it apart needs the record order (the state record after the entries) in
-`Wal.Recs`. `diskState` keeps **no** conf-entry bound (round 2's header claimed one: false, a lagging
-follower's WAL holds committed entries with several conf changes above its stored commit, open
-question 2.8; R-A8 N2, S4).
+**Scope** (second crash pass, F-server-boot F2; R-A8 N2 before it). The covered crashes are those
+after which **the WAL a restart reads** (2e's trusted `walRecs`: what `Open` + `ReadAll` return)
+**meets `Wal.Recs.crashScopeOk`**: at most one conf-change entry above the stored commit (R1's
+`Durable.confAboveOk`; `issues/raft-commit-lost-with-entries-kept.md`, a reproduced raft safety bug;
+the alternative is a raft/etcd fix), and no snapshot record above it (a crash after a received
+snapshot's WAL record and before its batch's state record). That is W0's environment premise, the
+opaque `Prop` `Wal.crashInScope` ("every crash of the run leaves each WAL meeting `crashScopeOk`"),
+which the WAL's crash laws take and turn into `⌜R'.crashScopeOk⌝` of the records they give, and
+which `disk_crash` takes beside `ServerStorage.diskOk`, so the adequacy proof needs no case for a
+crash out of scope (round 2's transparent `crashOutOfScope` disjunct was not vacuous, but no proof
+could refute it, so K6 could not be proved: F-server-boot F2). The user's decision (`batch-2e.md`
+Q2, open question 2.8). Margin: an at-rest crash of a lagging follower whose WAL holds two conf
+changes above its commit is also out of scope by this premise, though raft handles it
+(`raftState_gen` has no `confAboveOk` premise); telling it apart needs the record order (the state
+record after the entries) in `Wal.Recs`. `diskState` keeps **no** conf-entry bound (round 2's header
+claimed one: false, a lagging follower's WAL holds committed entries with several conf changes
+above its stored commit, open question 2.8; R-A8 N2, S4).
+
+**A first boot's backend file may vanish (second crash pass, G-a; pending the user).** `bolt.Open`
+creates `member/snap/db` and nothing syncs `member/snap` until a received snapshot's `SaveDBFrom`, so
+4a's revert list holds `none` for it and a crash may lose it; a restart after the member's first
+local snapshot then panics (`nonissues/etcd-backend-name-lost-restart-panic.md`). `disk_crash`'s
+realization needs the user's decision there (`disk_crash`'s docstring).
 
 **How the program reaches `diskState` at a crash (a gap, recorded).** Perennial's crash frame is
 proved at boot and gets only invariants and its own closure (`CrashAdequacy.lean`). The program
@@ -301,6 +331,9 @@ def DiskKind.id? : DiskKind → Option Nat
 /-- The namespace of the program's disk invariants (`diskAcc`'s mask). -/
 def diskN : Namespace := nroot .@ "etcdDisk"
 
+/-- The namespace of a cluster's client-address map (`srvEp_reserve`'s mask; second crash pass). -/
+def srvEpN : Namespace := nroot .@ "etcdSrvEp"
+
 /-- The member list a membership answer carries (the members after the change). -/
 def respMembers : Resp → Option (List Member)
   | .ok (.memberAdd _ l) => some l
@@ -339,12 +372,9 @@ opaque diskState [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFuncto
 /-- **No server runs on `ds`, whose disk is of kind `k`** (exclusive). -/
 opaque diskIdle [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ds : Config.Dirs) (k : DiskKind) : IProp GF := iprop(True)
 
-/-- **The crash left `ds` outside the covered executions** (transparent; see the header, "Scope";
-verify round, crash pass: R-A8 N2, it was an unconstrained opaque): the WAL a restart reads holds
-records failing `Wal.Recs.crashScopeOk`. Stated at the generation that reads it (`disk_crash`'s
-conclusion: the next one's). -/
-def crashOutOfScope (ds : Config.Dirs) : IProp GF :=
-  iprop(∃ R : Wal.Recs, Wal.walRecs (Config.walDirOf ds) R ∗ ⌜¬ R.crashScopeOk⌝)
+-- (second crash pass, F-server-boot F2) `crashOutOfScope ds` is gone: `disk_crash` takes W0's
+-- environment premise `Wal.crashInScope`, under which the WAL's crash laws give records meeting
+-- `Wal.Recs.crashScopeOk`.
 
 /-- The files of the disk `ds` whose crash-time contents `disk_crash` takes from the OS's crash
 rest (`crashRest`): the backend's file (`member/snap/db`). -/
@@ -647,7 +677,12 @@ ids, `memberIdOf`, and a SHA-1 id equal to one is a 2^-63 chance etcd never chec
 is the same chance, recorded there, not excluded by the model. Changes: verify-round (client-core's
 RR-1 request, repair3-boot): the post also gives the whole `urlsReserve γ 1` (W0's right to reserve
 peer-URL sets, which `urls_reserve` spends and `soleMember_intro` gives up); realization: the
-token's ghost name is allocated with `γ`, the full fraction handed out. -/
+token's ghost name is allocated with `γ`, the full fraction handed out. Changes: verify-round
+(second crash pass, F-server-boot F3): each reserved host's protocol is the run's family
+`Http.protoFam a (Rafthttp.raftFam ν)` (was `Http.protoAt a (Rafthttp.raftProto ν)`, now a
+generation's: `Http.protoFam_at` gives it in each generation, so the program serves the raft handler
+again after a crash); the allocation also allocates the cluster's client-address map (`srvEpN`,
+F5). -/
 def cluster_alloc.spec : Prop := ∀ (ms : List Member) (hs : Member → List GoString)
     (E : CoPset),
   (∀ m ∈ ms, Types.urlsHosts m.peerURLs = some (hs m)) →
@@ -655,7 +690,7 @@ def cluster_alloc.spec : Prop := ∀ (ms : List Member) (hs : Member → List Go
   ([∗list] m ∈ ms, [∗list] a ∈ hs m, Http.addrFree (GF := GF) a) ⊢
     |={E}=> ∃ (γ : Cluster) (ν : Rafthttp.Net GF), etcdState γ (State.init ms) ∗ srvNet γ ν ∗
       urlsReserve γ 1 ∗ ([∗list] m ∈ ms, memberBoot γ ms m ∗
-        [∗list] a ∈ hs m, Http.protoAt a (Rafthttp.raftProto ν))
+        [∗list] a ∈ hs m, Http.protoFam a (Rafthttp.raftFam ν))
 
 /-- **A new peer-URL set** for a member to be added: its hosts reserved for the cluster's network;
 the right to give it to a member (once) and the right to join as that member (once). It spends a
@@ -663,12 +698,14 @@ share `q` of `urlsReserve γ` (not given back): every `urlsRight` comes from a s
 the whole `urlsReserve γ 1` knows none was minted (`soleMember_intro`). Changes: verify-round
 (client-core's RR-1 request, repair3-boot): takes `urlsReserve γ q`; realization: the cluster's
 invariant holds the spent shares beside the minted rights (a minted `urlsRight` entry exists only
-when the invariant's share is not the whole), so the whole share outside excludes any entry. -/
+when the invariant's share is not the whole), so the whole share outside excludes any entry.
+Changes: verify-round (second crash pass, F-server-boot F3): the hosts' protocol is the run's family
+`Http.protoFam a (Rafthttp.raftFam ν)`, as `cluster_alloc`'s. -/
 def urls_reserve.spec : Prop := ∀ (γ : Cluster) (ν : Rafthttp.Net GF) (urls hs : List GoString)
     (q : Qp),
   Types.urlsHosts urls = some hs →
   urlsReserve (GF := GF) γ q ∗ srvNet γ ν ∗ ([∗list] a ∈ hs, Http.addrFree (GF := GF) a) ⊢
-    |==> urlsRight γ urls ∗ memberJoin γ urls ∗ [∗list] a ∈ hs, Http.protoAt a (Rafthttp.raftProto ν)
+    |==> urlsRight γ urls ∗ memberJoin γ urls ∗ [∗list] a ∈ hs, Http.protoFam a (Rafthttp.raftFam ν)
 
 /-- **A new member's disk**: its boot token and a fresh directory. -/
 def disk_new.spec : Prop := ∀ (γ : Cluster) (ms : List Member) (m : Member) (ds : Config.Dirs),
@@ -687,27 +724,40 @@ def srvNet_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (ν : Ra
   srvNet (GF := GF) γ ν ⊣⊢ srvNet (hG := ⟨hG.goose_globalGS, L'⟩) γ ν
 
 /-- **A crash, at any point of the disk's life** (verify round, crash pass: R-A8 N1, N2, N4; the
-header's "Crashes"): the next generation `L'` has the disk, idle, of the kind the crash left (a fresh
-directory stays one, or became member `id`'s files once the WAL was created), its files taken out of
-the OS's crash rest; or the crash left a WAL a restart reads out of scope (`crashOutOfScope` at
-`L'`). The in-flight states (a WAL write, raft's batch, a snapshot save, a pending rename, an open
+header's "Crashes"): under the environment premises `ServerStorage.diskOk` and `Wal.crashInScope`,
+the next generation `L'` has the disk, idle, of the kind the crash left (a fresh directory stays one,
+or became member `id`'s files once the WAL was created), its files taken out of the OS's crash rest.
+The in-flight states (a WAL write, raft's batch, a snapshot save, a pending rename, an open
 backend) are resolved by their own crash laws (R1's `raftState_gen`/`raftState_crash`, the WAL's
 `walRecs_crash`/`walWriting_crash`, the snapshotter's `snapDbs_crash`/`snapSaving_crash`, 4a's
 `beFile_crash`/`beCrash`). Changes: round 2's `crashGone` premise (from a running server only) and
 `diskIdle_crash` (an idle disk, with no `crashRest`: it could not produce the backend file) are
-replaced by this one law; `crashOutOfScope` is transparent, over the WAL's records. Verify-round
+replaced by this one law; `crashOutOfScope` was transparent, over the WAL's records. Verify-round
 (F-server-boot F1, F-raft-storage F1): statement unchanged; it holds at every `L'`, a crash name
 used before included, by `diskIdle`'s realization (a token or the generation's `crashed`: the
 header) and raft's crossings, which hold at every `L'`; `diskIdle_excl`, `diskIdle_agree`,
-`memberDisk_excl` give `crashed` in place of `False`. -/
+`memberDisk_excl` give `crashed` in place of `False`. Changes (second crash pass, F-server-boot F2):
+takes `ServerStorage.diskOk` (the WAL's crash laws, which its realization applies, take it; it was
+missing) and W0's environment premise `Wal.crashInScope`, and loses the `crashOutOfScope` disjunct
+(no proof could refute it, so K6 and `ReqCrashRecover` could not be proved): the WAL's crash laws now
+give `R'.crashScopeOk` under the premise. At `L' = L` it is still the identity on the disk (one
+`diskState` consumed, one given; `crashRest` one-shot per file). **Recorded, pending the user (second
+crash pass, G-a):** 4a's laws now say that a first boot's backend file, which `bolt.Open` created
+with no directory sync since, may be gone after the crash (`beOpenUpd`'s `none` in the revert list);
+the restart then replays the WAL from index `0` while it holds no snapshot record above `0`, but after
+a local snapshot `bootstrap` panics (`recoverSnapshot`, `bootstrap.go:482`:
+`nonissues/etcd-backend-name-lost-restart-panic.md`), so for such a disk no restartable `diskState`
+exists and this law is not realizable there until the user picks a premise (a created file's name
+durable at its first sync, ext4's and xfs's behavior), a scope restriction or a fork fix
+(`verify/repair5-crash.md`, New decisions). -/
 def disk_crash.spec : Prop := ∀ [HasExt osFsExt] (L' : GooseLocalGS GF) (γ : Cluster)
     (ds : Config.Dirs) (k : DiskKind) (Ps : List GoString),
+  ServerStorage.diskOk → Wal.crashInScope →
   (∀ p ∈ diskFiles ds, p ∉ Ps) →
   diskState (GF := GF) γ ds k ∗ crashed ∗
     crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) Ps ⊢
-    |={⊤}=> ((∃ k', diskState (hG := ⟨hG.goose_globalGS, L'⟩) γ ds k' ∗
-          diskIdle (hG := ⟨hG.goose_globalGS, L'⟩) γ ds k' ∗ ⌜k' = k ∨ ∃ id, k' = .member id⌝) ∨
-        crashOutOfScope (hG := ⟨hG.goose_globalGS, L'⟩) ds) ∗
+    |={⊤}=> (∃ k', diskState (hG := ⟨hG.goose_globalGS, L'⟩) γ ds k' ∗
+          diskIdle (hG := ⟨hG.goose_globalGS, L'⟩) γ ds k' ∗ ⌜k' = k ∨ ∃ id, k' = .member id⌝) ∗
       crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) (diskFiles ds ++ Ps)
 
 /-- **A boot token crosses a crash** (verify round, crash pass: a program that allocated the cluster
@@ -774,26 +824,41 @@ def srvEp_persistent.spec : Prop := ∀ γ ep id, Persistent (srvEp (GF := GF) �
 
 def srvAt_persistent.spec : Prop := ∀ s γ ep, Persistent (srvAt (GF := GF) s γ ep)
 
-/-- One member of one cluster per client address (was 2c's `srvAt_agree`, `s = s'` too: false of a
-member restarted at its address, a new server object). -/
-def srvEp_agree.spec : Prop := ∀ γ γ' ep id id',
-  srvEp (GF := GF) γ ep id ∗ srvEp γ' ep id' ⊢ ⌜γ = γ' ∧ id = id'⌝
+/-- One member of a cluster per client address (was 2c's `srvAt_agree`, `s = s'` too: false of a
+member restarted at its address, a new server object). Changes: verify-round (second crash pass,
+F-server-boot F5): within one cluster (it also gave `γ = γ'`, which no user needs and nothing in
+net/http's API can realize: only net/http's map is global to the run, and it holds no tag);
+realization: the cluster's client-address map (`srvEp_reserve`), a ghost map `ep ↦ id` whose
+persistent fragments agree. -/
+def srvEp_agree.spec : Prop := ∀ γ ep id id',
+  srvEp (GF := GF) γ ep id ∗ srvEp γ ep id' ⊢ ⌜id = id'⌝
 
 /-- **Reserve a client address for member `id` of `γ`** (the serving start: `etcdstart`'s `Serve`,
 embed's `serveClients`, before `v3rpc.Server` and `Grpc.start`): the environment's `Http.addrFree ep`
-gives the address's protocol, as `Http.reserve` does (the program picks `Grpc.grpcOver (etcdContract
-γ ep) P'`, `Grpc.addrAt ep (etcdContract γ ep)`), and binds the address to the member. With
-`srvFields s γ id` (any server object of `id`: `NewServer`'s), `srvAt s γ ep`. Realization: as
-`cluster_alloc`'s reservation of peer hosts, net/http's intended realization (a global ghost map from
-addresses to saved protocols, set once, `addrFree a` its unset key) keeps beside the protocol the
-reserver's saved tag, here `(γ, id)`; `srvEp γ ep id` is the persistent entry with that tag, so
-`srvEp_agree` is the map's agreement. Once per run, as `addrFree`. -/
-def srvEp_reserve.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (id : Nat) (P : Http.Proto GF),
-  Http.addrFree (GF := GF) ep ⊢ |==> Http.protoAt ep P ∗ srvEp γ ep id
+gives the address's protocol family, as `Http.reserve` does (the program picks `F L :=
+Grpc.grpcOver (etcdContract (hG := ⟨hG.goose_globalGS, L⟩) γ ep) (P' L)`, whose current member,
+`Http.protoFam_at`, is `Grpc.addrAt ep (etcdContract γ ep)` in each generation), and binds the
+address to the member. With `srvFields s γ id` (any server object of `id`: `NewServer`'s), `srvAt s γ
+ep`. Once per run, as `addrFree`. Changes: verify-round (second crash pass, F-server-boot F3, F5):
+reserves a family (was one protocol for the run, built at the first generation's heap, which a
+member restarted after a crash could not serve: F3); takes `srvNet γ ν` and opens the cluster's
+client-address map at `srvEpN` (the old realization, a tag in net/http's map, had no source in
+net/http's API: F5). Realization: `srvNet γ ν` holds the invariant `∃ M, ghost_map_auth γ.ep M ∗
+[∗map] e ↦ _ ∈ M, ∃ F' L, Http.protoFam (hG := ⟨g, L⟩) e F'` (its body over the global ghost state
+`g` only); `ep ∉ dom M`, since an entry's `protoFam ep F'` with `Http.protoFam_at` and the caller's
+`addrFree ep` give `False` by `Http.addrFree_protoAt_excl`; then `Http.reserve`, insert `ep ↦ id`
+and persist its fragment, `srvEp γ ep id`. -/
+def srvEp_reserve.spec : Prop := ∀ (γ : Cluster) (ν : Rafthttp.Net GF) (ep : GoString) (id : Nat)
+    (F : GooseLocalGS GF → Http.Proto GF) (E : CoPset),
+  ↑srvEpN ⊆ E →
+  srvNet (GF := GF) γ ν ∗ Http.addrFree ep ⊢ |={E}=> Http.protoFam ep F ∗ srvEp γ ep id
 
 /-- **The binding is the run's** (crash pass): a member restarted after a crash serves at the same
 address, as the same member, from its new `srvFields` (no `srvAt` crosses: `s` is the new
-generation's). Realization: the global map above (`GooseGlobalGS`), as `Http.protoAt_gen`. -/
+generation's), the next generation's contract (`Http.protoFam_gen`, `protoFam_at`). Realization: the
+cluster's client-address map (`srvEp_reserve`: an `own` of a global name and an invariant whose body
+names only the global ghost state, `GooseGlobalGS`). Changes (second crash pass): its realization
+was over `Http.protoAt_gen` (withdrawn). -/
 def srvEp_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (ep : GoString) (id : Nat),
   srvEp (GF := GF) γ ep id ⊣⊢ srvEp (hG := ⟨hG.goose_globalGS, L'⟩) γ ep id
 

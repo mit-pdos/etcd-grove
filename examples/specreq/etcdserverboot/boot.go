@@ -306,25 +306,29 @@ func ReqStopDrained(s *etcdserver.EtcdServer) {
 }
 
 // REQ etcdserverboot/crash-restart: after a crash of the process at any point of the member's life
-// (inside NewServer or bootstrap, before Start, while serving, inside HardStop or Cleanup, after
-// Cleanup), outside the scope crashOutOfScope names, the member restarted on its directory
+// (inside NewServer or bootstrap, before Start, while serving, inside a snapshot install, inside
+// HardStop or Cleanup, after Cleanup), in the crash scope, the member restarted on its directory
 // continues the cluster's history: a write acknowledged before the crash is read after the restart.
 // Not runnable in-process (a crash is the adequacy theorem's crash rule: the restart below is the
 // next generation's boot program).
 // Users: every etcd deployment (systemd restarts after a kill); examples/etcd/restart's crash variant.
 // Assumes: the program keeps the member's diskState (and etcdState) in its crash invariant and its
 // crash frame applies disk_crash with the old generation's crashed and the OS's crash rest; the
-// WAL a restart reads meets Wal.Recs.crashScopeOk (W0's environment premise: at most one conf
-// change above the stored commit, no snapshot record above it); k was put before the crash by a
-// client that got an answer. (The backend's open and close move the file through the disk's state
-// by 4a's beOpenUpd/beCloseUpd: no window, repair3-boot.)
-// Specs: disk_crash (its post gives diskState and diskIdle at one kind: diskIdle_agree, whose
-// crashed alternative is the crashed generation's only, is not needed; the crossing laws hold at
-// every next generation, verify-round F-raft-storage F1), memberStart_disk, NewServer.spec,
-// EtcdServer.Start.spec, the
-// request path's Range (2c); across the crash: EtcdModel.etcdState_gen, etcdLb_gen, envUpd_gen,
-// srvNet_gen, Rafthttp.peerAddr_gen (the program serves the raft handler again), srvEp_gen and
-// Http.protoAt_gen (the client address: srvAt again from the new srvFields).
+// environment premises ServerStorage.diskOk and Wal.crashInScope (W0's: every crash leaves the WAL
+// a restart reads meeting Wal.Recs.crashScopeOk, at most one conf change above the stored commit
+// and no snapshot record above it), which disk_crash takes; k was put before the crash by a client
+// that got an answer, and no later write deletes or overwrites it. (The backend's open and close
+// move the file through the disk's state by 4a's beOpenUpd/beCloseUpd: no window, repair3-boot; a
+// first boot's file whose name is not durable is in the revert list, and an old backend renamed
+// over while open is detached: second crash pass, G-a and G-b.)
+// Specs: disk_crash (no out-of-scope case; its post gives diskState and diskIdle at one kind:
+// diskIdle_agree, whose crashed alternative is the crashed generation's only, is not needed; the
+// crossing laws hold at every next generation, verify-round F-raft-storage F1), Wal.walRecs_crash,
+// Wal.walWriting_crash (under crashInScope), Backend.beDetached_crash, memberStart_disk,
+// NewServer.spec, EtcdServer.Start.spec, the request path's Range (2c); across the crash:
+// EtcdModel.etcdState_gen, etcdLb_gen, envUpd_gen, srvNet_gen, Rafthttp.peerAddr_gen (the program
+// serves the raft handler again: Http.protoFam_at of the family), srvEp_gen and Http.protoFam_gen
+// (the client address: srvAt again from the new srvFields, and the next generation's contract).
 func ReqCrashRecover(name, peerAddr, clientAddr string, lg *zap.Logger) {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
 	s, err := etcdserver.NewServer(memberConfig(name, peer, clientAddr, types.URLsMap{name: peer},

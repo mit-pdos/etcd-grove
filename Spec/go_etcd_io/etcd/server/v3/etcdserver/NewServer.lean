@@ -58,7 +58,13 @@ are not moved into the server's invariant (`srvBuilt`'s realization). The one wi
 the backend's `New` (its precondition took the file); repair3-boot closed it (4a's `New` takes the
 file through `beOpenUpd` at bbolt's open, `Close` gives it back through `beCloseUpd`, both fired
 inside `diskAcc`; the error path's `bootstrappedServer.Close` passes the disk's `beCloseUpd`).
-Statement unchanged.
+Statement unchanged. Second crash pass (F-server-boot F2): a member's files after a crash reach this
+call through `disk_crash`, which now takes the environment premises `ServerStorage.diskOk` (this
+spec's too) and W0's `Wal.crashInScope`, and has no out-of-scope case, so a restart after any covered
+crash has its `memberStart` (`memberStart_disk` at the kind `disk_crash` left). `NewServer` itself
+takes no crash premise: its triple is a WP, crash-free, and no crash law is applied inside it (the
+crash frame applies `disk_crash`, and `bootstrap` uses only the restart view `walHolds` of the
+records it reads, never `crashScopeOk`). Statement unchanged.
 
 **Round 1** (provability F3/F4/F7, completeness F1/F5; 2d's request): the start right carries
 the reserved peer addresses (`cluster_alloc`, `urls_reserve`: 2f's `protoAt`/`peerAddr`, so two

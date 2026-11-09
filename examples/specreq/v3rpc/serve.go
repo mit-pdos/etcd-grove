@@ -13,9 +13,12 @@ import (
 // Users: server/embed (serveClients: v3rpc.Server then Serve), examples/lib/etcdstart (Serve).
 // Assumes: s is a started member of a cluster (EtcdServer.isServer, 2e) serving the client address
 // ep (EtcdServer.srvAt s γ ep: s's srvFields and srvEp γ ep id); lis is net.Listen's at ep, which
-// the program reserved for etcd's contracts and member id (2e's srvEp_reserve, Http.addrFree ep to
-// Http.protoAt ep (Grpc.grpcOver (etcdContract γ ep) P), i.e. Grpc.addrAt, and srvEp γ ep id; a
-// restart, after a stop or a crash, reuses both: srvEp_gen, Http.protoAt_gen); a
+// the program reserved once for etcd's contracts and member id (2e's srvEp_reserve with srvNet:
+// Http.addrFree ep to the family Http.protoFam ep F, F L := Grpc.grpcOver (etcdContract γ ep at
+// generation L) (P L), and srvEp γ ep id); in this generation Http.protoFam_at gives Grpc.addrAt ep
+// (etcdContract γ ep). A restart after a stop reuses both as they are; after a crash, the next
+// generation's: srvEp_gen, Http.protoFam_gen, then protoFam_at at the new generation, whose
+// contract names the new generation's lease views (the old generation's clients died with it); a
 // pool of the program's thread tokens (Http.handlerPool); the program's messages fit (Grpc.msgsFit).
 // Specs: Server.spec, Grpc.srvBuild_ne_null, Grpc.start.spec, Grpc.Server.Serve.spec; laws:
 // servesAt_addr.

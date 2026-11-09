@@ -99,11 +99,27 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
   same bytes each time (bbolt's `Tx.WriteTo` reads the free pages below the high-water mark from the
   file, which a concurrent commit may rewrite: A11-completeness F5).
 * `beFile p o` (exclusive, timeless): the closed database file at `p` holds `o` (`none`: no file,
-  or an empty one). Intended realization: 4c's `fileHolds p D` with `imgOf D = I`; for `none`,
-  `boltFresh_alloc`'s premise. `beRevs p os` (exclusive; second pass, a list at the
-  re-review): the files a crash may bring back at `p`, renamed over and not yet synced (`[]`:
+  or an empty one). Intended realization: the file's OsFs resources, every byte clean and durable,
+  an image of `D` with `imgOf D = I` (4c's `fileHolds p D` when its name is durable, its premise but
+  for the name otherwise: `Bbolt.boltReopen_alloc` opens it); for `none`, `boltFresh_alloc`'s
+  premise. **Its name may not be durable** (second crash pass, G-a: a file `bolt.Open` created in
+  this generation, whose directory nothing synced since): the revert state says so. `beRevs p os`
+  (exclusive; second pass, a list at the re-review): the files a crash may bring back at `p`, renamed
+  over and not yet synced, and `none` while a file created here has no durable name (`[]`:
   `beNoRevert p`; else `beRevertL p os`; `beRevert`, `beRev` transitional one-file forms;
-  `Durable.lean`).
+  `Durable.lean`). Realization: 4a's per-path ghost record of `p`'s pending name states, its
+  authority in the file's invariant (`beFileN`) with OsFs's name state of `p` (`osMeta`'s `named`)
+  and the previous inodes' contents, keeping `named = false → none ∈ os` for a file of an image.
+  The open's update (`beOpenUpd`) takes both and, opening a `none` file (bbolt creates it, no
+  directory sync: `nonissues/bbolt-create-dir-not-synced.md`), adds `none` to the list; a directory
+  sync (`SaveDBFrom`'s, the same directory `member/snap`) clears it.
+* `beDetached γ p` (exclusive; second crash pass, G-b): **the open backend `γ`'s file was renamed
+  over at `p`** (etcd's `applySnapshot` installs the snapshot's file while the old backend is open,
+  `server.go:1068` vs `:1144`): its bytes stay reachable through the open handle until its `Close`,
+  and a crash before a directory sync may bring it back at `p` at any committed image of its
+  history. Given by the rename's update over the open form (`beAt p (.opened γ L)`,
+  `beRenamedOver`), taken by the old backend's close (`beCloseUpd`'s detached form, which puts the
+  final image into the revert list) or, at a crash, by `Durable.lean`'s `beDetached_crash`.
 * `bucketOk bk bi` (transparent, persistent): `bk`'s methods `ID()`, `Name()`,
   `IsSafeRangeBucket()` return `bi` (4b proves it of `Schema.bucketAt`).
 * `envOk` (persistent): **the program-start environment**: `ETCD_VERIFY` unset (the lock checks and
@@ -150,7 +166,8 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
 `beHist_mem`, `beHist_final`, `beHist_lb`, `beHist_lb_prefix`, `beHistLb_persistent`, `beHistLb_mono`,
 `beHistLb_nil`, `beCommitted_persistent`, `beFinal_persistent`, `beFinal_cur`,
 `beRdToks_split`, `beLive_fractional`, `beReaderN_ge`, `beHook_fractional`, `beHook_agree`, `beHook_persistent`, `beDel_excl`,
-`beCur_freeze`, `beMade_persistent`, `beMade_cur`, `beFile_timeless`, `beFile_excl`,
+`beCur_freeze`, `beMade_persistent`, `beMade_cur`, `beFile_timeless`, `beFile_excl`, `beDetached_excl`
+(second crash pass, G-b),
 `beBkt_{persistent, inj}`, `beHookFp_persistent`, `beSynced_persistent`, `beDurInv_persistent`,
 `safeRegOk_persistent`, `envOk_{persistent, intro}`, `imgBytes_size`, `beReq_true`, `beReq_persistent`.
 
@@ -483,6 +500,10 @@ opaque beFile [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
 which held `os`** (exclusive; meaningful for a non-empty `os`; `Durable.lean`'s header). -/
 opaque beRevertL [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoString) (os : List (Option Image)) : IProp GF := iprop(True)
 
+/-- **The open backend `γ`'s file was renamed over at `p`** (exclusive; second crash pass, G-b; see
+the header). -/
+opaque beDetached [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (p : GoString) : IProp GF := iprop(True)
+
 /-- **No rename onto `p` awaits a directory sync** (exclusive). -/
 opaque beNoRevert [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : GoString) : IProp GF := iprop(True)
 
@@ -531,6 +552,28 @@ opaque beSynced [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctor
 
 /-- **The crash invariant of the backend's file `p`** (persistent; realized by 4c's `boltFile`). -/
 opaque beDurInv [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : BeNames) (p : GoString) : IProp GF := iprop(True)
+
+/-- **The state of the file at `p` a rename onto `p` replaces** (second crash pass, G-b): closed,
+holding `o` (`beFile p o`), or the open backend `γ`'s, of history `L` (`beDurInv γ p ∗ beHist γ L`:
+the old backend still commits through the client's `commitOk`, so the update gives its history
+back). -/
+inductive FileSt where
+  | closed (o : Option Image)
+  | opened (γ : BeNames) (L : List Image)
+
+/-- The client's crash state of `p` in the form `d`. -/
+def beAt (p : GoString) : FileSt → IProp GF
+  | .closed o => beFile p o
+  | .opened γ L => iprop(beDurInv γ p ∗ beHist γ L)
+
+/-- **What a rename onto `p` leaves of the replaced file `d`** (second crash pass, G-b): a closed
+file joins the revert list (`o :: os`); an open one keeps its history and is detached
+(`beDetached γ p`: its entry joins the list when it closes, `beCloseUpd`, or at a crash,
+`beDetached_crash`). -/
+def beRenamedOver (p : GoString) (os : List (Option Image)) : FileSt → IProp GF
+  | .closed o => beRevs p (o :: os)
+  | .opened γ L => iprop(beDurInv γ p ∗ beHist γ L ∗ beDetached γ p ∗ beRevs p os)
+
 
 /-- **The safe-range registry names only safe-range buckets** (persistent; `safeRangeBucketNames`,
 filled by the schema's initialization, `schema/bucket.go:64`): what a non-blocking defragmentation's
@@ -673,18 +716,35 @@ def beFileN : Namespace := nroot .@ "etcdBackendFile"
 open, a ghost step; takes the closed file at `p` holding `o` out of the client's crash state and
 puts the open file's in its place: its crash invariant, crash safety (with `UnsafeNoFsync` off),
 the history at the file's image. `R γ` is the client's, handed to its allocation step. A client
-with no invariant builds it from `beFile p o` it owns (`R γ` then holds what the commit gives). -/
+with no invariant builds it from `beFile p o ∗ beRevs p os` it owns (`R γ` then holds what the commit
+gives). Changes (second crash pass, G-a): it also takes the revert state and, for `o = none` (bbolt
+creates the file, with no directory sync), gives it back with `none` added: until a sync of the
+directory a crash may leave no file, also after `Close` (`beFile_crash`'s `o' ∈ os`), where
+`beFile_crash` claimed the file survives. -/
 def beOpenUpd (p : GoString) (o : Option Image) (ns : Bool) (R : BeNames → IProp GF) : IProp GF :=
-  iprop(AU <{ beFile p o }> @ ⊤ \ ↑beFileN, ∅
+  iprop(AU <{ ∃∃ (os : List (Option Image)), beFile p o ∗ beRevs p os }> @ ⊤ \ ↑beFileN, ∅
     <{ ∀∀ (γ : BeNames), beDurInv γ p ∗ (if ns then iprop(True) else beSynced γ) ∗
-        beHist γ [o.getD Image.empty], COMM R γ }>)
+        beHist γ [o.getD Image.empty] ∗
+        beRevs p (match o with
+          | none => none :: os
+          | some _ => os), COMM R γ }>)
 
 /-- **The close's update** (repair3-boot, the crash pass's request 2): fired by `Close` at the
 release after bbolt's `DB.Close`; takes the history out of the client's crash state and puts the
-closed file, at its last image, in its place. `Q I` is the client's, returned by `Close`. -/
+closed file, at its last image, in its place. `Q I` is the client's, returned by `Close`. Changes
+(second crash pass, G-b): a **detached** file (`d = some os`: renamed over while open, `beDetached γ
+p`; `applySnapshot`'s old backend) is no longer named `p`, so its close gives no `beFile p`: its
+final image joins `p`'s revert list (`some I :: os`, the file a crash before a directory sync may
+bring back). -/
 def beCloseUpd (γ : BeNames) (p : GoString) (Q : Image → IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ (L : List Image), beHist γ L }> @ ⊤ \ ↑beFileN, ∅
-    <{ ∀∀ (I : Image), ⌜L.getLast? = some I⌝ ∗ beFile p (some I), COMM Q I }>)
+  iprop(AU <{ ∃∃ (L : List Image) (d : Option (List (Option Image))), beHist γ L ∗
+        (match d with
+         | none => iprop(emp)
+         | some os => iprop(beDetached γ p ∗ beRevs p os)) }> @ ⊤ \ ↑beFileN, ∅
+    <{ ∀∀ (I : Image), ⌜L.getLast? = some I⌝ ∗
+        (match d with
+         | none => beFile p (some I)
+         | some os => beRevs p (some I :: os)), COMM Q I }>)
 
 end vocab
 
@@ -843,6 +903,9 @@ def beMade_cur.spec : Prop := ∀ γ q F S b,
 def beFile_timeless.spec : Prop := ∀ p o, Timeless (beFile (GF := GF) p o)
 
 def beFile_excl.spec : Prop := ∀ p o o', beFile (GF := GF) p o ∗ beFile p o' ⊢ iprop(False)
+
+/-- One detached file per backend and path (second crash pass, G-b). -/
+def beDetached_excl.spec : Prop := ∀ γ p, beDetached (GF := GF) γ p ∗ beDetached γ p ⊢ iprop(False)
 
 def beBkt_persistent.spec : Prop := ∀ γ bi, Persistent (beBkt (GF := GF) γ bi)
 

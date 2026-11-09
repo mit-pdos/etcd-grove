@@ -18,8 +18,9 @@ chooses: for etcd's server, the backend of the committed state through `i`).
 its `msgCredit ν.γ m` (R1); `SendSnapshot` takes a `MsgSnap`'s with its database reader, whose
 complete streams are `snapImg` images. Each message is delivered **at most once**, to the member
 serving the URL its `To` names, as a call of that member's `Raft.Process` with a fresh copy of `m`
-and the same two facts (`recvd`); a `MsgSnap`'s database is saved in the receiver's snapshot
-directory first (the client's `saveOk` update fired: `ν.dbIn`). Messages may be lost and reordered; nothing is promised about
+and the same two facts (`recvd ν id m`, for the receiver `id`); a `MsgSnap`'s database is saved in
+the receiver's snapshot directory first (the client's `saveOk` update fired: `ν.dbIn id i`, keyed by
+the receiver's id, second crash pass: F-server-boot F4). Messages may be lost and reordered; nothing is promised about
 `ReportUnreachable`/`ReportSnapshot` beyond their being calls of the receiver's contract
 (liveness only). The receiver's `Raft` is the client's (`raftOk`): `Process` must accept such a
 message (it checks `To` itself: etcd's answers `403` to a message for another member).
@@ -35,8 +36,9 @@ over rafthttp; the proof carries the one-shot credit through the HTTP boundary b
 snapshot) or the reader's per-frame tokens (streams), below.
 
 **Addresses.** The closed world of the HTTP boundary (`Spec/net/http/Api.lean`): a member's peer
-URLs are reserved for a protocol that agrees with rafthttp's `raftProto ν` under `/raft`
-(`peerAddr ν a`), and only members' transports send to them. Every URL the client gives the
+URLs are reserved for a protocol family whose every generation's member agrees with rafthttp's
+`raftProto ν` under `/raft` (`peerAddr ν a`; second crash pass: net/http's protocols are per
+generation, `Http.protoFam`), and only members' transports send to them. Every URL the client gives the
 transport (`AddPeer`, `AddRemote`, `UpdatePeer`, the local `URLs` advertised in `X-PeerURLs`) has
 such a host; the client (the server's membership) keeps that fact for its members' URLs.
 
@@ -155,13 +157,18 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 /-- **A raft network**: the transport layer of the raft cluster `γ`, with the client's two
 meanings fixed at its allocation (round 1, F4: fields, not saved predicates): `img i b`, what a
 database image sent with a snapshot of index `i` is (for etcd: the backend holding the committed
-state through `i`); `dbIn i`, what a receiver's `Process` learns of a `MsgSnap` of index `i` once
-its image was saved in the snapshot directory (the client's: its invariant over 2e's `snapDbs`). -/
+state through `i`); `dbIn id i`, what the receiver `id`'s `Process` learns of a `MsgSnap` of index
+`i` once its image was saved in `id`'s snapshot directory (the client's: its record over 2e's
+`snapDbs` of that directory). Changes (second crash pass, F-server-boot F4): `dbIn` is keyed by the
+receiver's id (it took the index only, so one meaning served every member, and `Process` could not
+learn "the image is in *my* directory", which `applySnapshot` needs). The fields are fixed for the
+network's life, every generation's (`srvNet_gen`): the client builds them from global vocabulary
+only (2e's realization: a generation-independent record per directory). -/
 structure Net (GF : BundledGFunctors) where
   γ : Raft.Cluster
   names : NetNames
   img : w64 → Snap.BeImage → IProp GF
-  dbIn : w64 → IProp GF
+  dbIn : w64 → w64 → IProp GF
 
 /-! ## Provisional: other batches' vocabulary
 
@@ -209,8 +216,10 @@ def snapImg (ν : Net GF) (i : w64) (img : Snap.BeImage) : IProp GF := iprop(□
 
 /-- **rafthttp's HTTP protocol** for the paths under `/raft` (see the header). Verify round, crash
 pass: the heap binders are explicit (they were missing, so the realization, which names raft's
-`msgSent`/`msgCredit` at the heap, could not be written); `raftProto_gen` says it is the same at
-every local generation. -/
+`msgSent`/`msgCredit` at the heap, could not be written). Second crash pass: it is a generation's
+protocol (net/http's `protoAt`); the run's family is `raftFam ν` (`raftProto_gen`, which equated the
+generations' values, is withdrawn: nothing needs it now, and it was realizable only if the body
+ignored the heap). -/
 opaque raftProto [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ν : Net GF) : Http.Proto GF :=
   ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ _ => iprop(True),
     fun _ _ _ _ _ => iprop(True)⟩
@@ -224,35 +233,38 @@ def raftCompat (ν : Net GF) (P : Http.Proto GF) : Prop :=
   ∀ R τ, ¬ Http.pathUnder go!"/raft" R.path → ¬ Http.pathUnder go!"/raft/" R.path →
     (⊢ □ P.resp R τ (W64 404) [] []) ∧ (⊢ □ P.resp R τ (W64 301) [] [])
 
-/-- **`a` is a peer address of `ν`** (persistent): reserved (`Http.reserve`) for a protocol
-compatible with `raftProto ν`. -/
-def peerAddr (ν : Net GF) (a : GoString) : IProp GF :=
-  iprop(∃ P : Http.Proto GF, Http.protoAt a P ∗ ⌜raftCompat ν P⌝)
+/-- **rafthttp's protocol family** (second crash pass): `raftProto ν` at each generation's heap, the
+family a peer address is reserved for (`Http.reserve`); at this generation, `raftProto ν` itself
+(`Http.protoFam_at`: `⟨hG.goose_globalGS, hG.goose_localGS⟩` is `hG`). -/
+def raftFam (ν : Net GF) : GooseLocalGS GF → Http.Proto GF :=
+  fun L => raftProto (hG := ⟨hG.goose_globalGS, L⟩) ν
 
-/-- **rafthttp's protocol does not depend on the local generation** (verify round, crash pass: R-A8
-N1): the protocol at the next generation's heap `⟨hG.goose_globalGS, L'⟩` is the same value, so an
-address reserved for it before a crash serves it after. Realization: its parts are built from raft's
-global vocabulary (`msgSent`, `msgCredit`: `Raft.global`), `ν`'s fields, invariants and ticket and
-token names (`GooseGlobalGS`), never a heap or thread resource. -/
-def raftProto_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (ν : Net GF),
-  raftProto (hG := ⟨hG.goose_globalGS, L'⟩) ν = raftProto ν
+/-- **`a` is a peer address of `ν`** (persistent): reserved (`Http.reserve`) for a protocol family
+whose member at every generation is compatible with `raftProto ν` there. At this generation it gives
+`Http.protoAt a P` with `raftCompat ν P` (`Http.protoFam_at`). Changes (second crash pass,
+F-server-boot F3): over net/http's run-level `protoFam` (it was over `protoAt`, which is now a
+generation's), so that it crosses a crash (`peerAddr_gen`). -/
+def peerAddr (ν : Net GF) (a : GoString) : IProp GF :=
+  iprop(∃ F : GooseLocalGS GF → Http.Proto GF, Http.protoFam a F ∗
+    ⌜∀ L : GooseLocalGS GF, raftCompat (hG := ⟨hG.goose_globalGS, L⟩) ν (F L)⌝)
 
 /-- **A peer address crosses a crash** (verify round, crash pass: R-A8 N1): the program serves the
 member's raft handler at the same reserved address after a restart. Realization: `peerAddr` is
-transparent over net/http's `protoAt` (generation-independent: `Http.protoAt_gen`, repair3-boot;
-the address's reservation is the run's, `Http.reserve`) and `raftCompat` (pure over `raftProto`:
-`raftProto_gen`). -/
+transparent over net/http's `protoFam` (the run's: `Http.protoFam_gen`) and a pure fact over the
+global ghost state's generations (second crash pass: was over `Http.protoAt_gen` and
+`raftProto_gen`, both withdrawn). -/
 def peerAddr_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (ν : Net GF) (a : GoString),
   peerAddr ν a ⊣⊢ peerAddr (hG := ⟨hG.goose_globalGS, L'⟩) ν a
 
-/-- **What a received message carries** (to a receiver of network `ν`): raft's facts, and for a
-`MsgSnap` the client's `dbIn` of its snapshot's index (round 1, F5 and completeness F3: given by
+/-- **What a received message carries** (to the receiver `id` of network `ν`): raft's facts, and
+for a `MsgSnap` the client's `dbIn id` of its snapshot's index (second crash pass, F-server-boot F4:
+keyed by the receiver whose handler saved the image, `saveOk ν id sd`; `Process` checks `To` itself) (round 1, F5 and completeness F3: given by
 the client's own save update, which `SaveDBFrom` fired over 2e's `snapDbs` with an image the sender
 certified; whatever file `SaveDBFrom` kept, the client's invariant says what it holds). -/
-def recvd (ν : Net GF) (m : Msg) : IProp GF :=
+def recvd (ν : Net GF) (id : w64) (m : Msg) : IProp GF :=
   iprop(msgSent ν.γ m ∗ msgCredit ν.γ m ∗
     (if m.type = MsgSnap then
-      iprop(∃ s : Snapshot, ⌜m.snapshot = some s⌝ ∗ ν.dbIn s.index)
+      iprop(∃ s : Snapshot, ⌜m.snapshot = some s⌝ ∗ ν.dbIn id s.index)
      else iprop(True)))
 
 /-- **The client's save updates** for the snapshot directory `sd` (persistent): for any image the
@@ -262,11 +274,11 @@ sender certified for index `i`, the two updates `SaveDBFrom` fires (2e's): the f
 state of an entry `p` of `sd` the client chose (`Backend.beRevs p os`, any number of pending
 renames, made `beNoRevert p`: the fsync makes the pending renames onto `p` durable; for etcd's
 server `p` is the backend file `<snap dir>/db`, `Config.backendPath_entry`), and whose commit gives
-`ν.dbIn i`. (Final relay round: server-boot moved the revert state into `SaveDBFrom`'s second
+`ν.dbIn lid i` (the receiver `lid`'s record: second crash pass, F-server-boot F4). (Final relay round: server-boot moved the revert state into `SaveDBFrom`'s second
 update, so the client supplies it at the fsync from its invariant; no loan across the call. Verify
 round, crash pass: the list form `beRevs` in place of the one-file `beRev`, R-A8 N3: two installs
 before a sync leave two pending renames, which the server's invariant must be able to hand over.) -/
-def saveOk (ν : Net GF) (sd : GoString) : IProp GF :=
+def saveOk (ν : Net GF) (lid : w64) (sd : GoString) : IProp GF :=
   iprop(∃ p : GoString, ⌜Snap.inDir sd p⌝ ∗
     □ ∀ (i : w64) (img : Snap.BeImage), □ ν.img i img -∗
       AU <{ ∃∃ (F : Nat → Option Snap.BeImage), Snap.snapDbs sd F }> @ ⊤, ∅
@@ -274,7 +286,7 @@ def saveOk (ν : Net GF) (sd : GoString) : IProp GF :=
            AU <{ ∃∃ (os : List (Option Snap.BeImage)), Snap.snapSaving sd F (uint.nat i) img ∗
                    Backend.beRevs p os }> @ ⊤, ∅
              <{ Snap.snapDbs sd (Snap.saveAt F (uint.nat i) img) ∗ Backend.beNoRevert p,
-                COMM ν.dbIn i }> }>)
+                COMM ν.dbIn lid i }> }>)
 
 /-- **An error `Process` may return** (persistent): `nil`, or an error whose `Error()` returns, on
 which `errors.As` against `writerToResponse` returns, and whose `WriteTo(w)` (if it has one) writes
@@ -293,7 +305,7 @@ token; `IsIDRemoved(x)` (with a token: etcd's reads its membership under a lock)
 def raftOk (ν : Net GF) (id : w64) (r : GoInterface) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜r = interface.ok i⌝ ∗
     (□ ∀ (ctx : GoInterface) (ml : Loc) (m : Msg) (Ψ : val → IProp GF),
-      Context.ctxOk ctx -∗ msgRecv ml m -∗ recvd ν m -∗ threadTok -∗
+      Context.ctxOk ctx -∗ msgRecv ml m -∗ recvd ν id m -∗ threadTok -∗
       ▷ (∀ err : GoInterface, procErr err -∗ threadTok -∗ Ψ #err) -∗
       WP (App (App (Val #(methods i.ty go!"Process" i.v)) (Val #ctx)) (Val #ml)) {{ Ψ }}) ∗
     (□ ∀ (x : w64) (Ψ : val → IProp GF),
@@ -343,7 +355,7 @@ other fields are any (`Start` sets the round trippers, maps and probers; `TLSInf
 def trCfg (tv : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport) (ν : Net GF) :
     IProp GF :=
   iprop((⌜tv.Logger' = null⌝ ∨ Zap.isLogger tv.Logger') ∗
-    raftOk ν tv.ID' tv.Raft' ∗ (∃ sd, Snap.isSnapshotter tv.Snapshotter' sd ∗ saveOk ν sd) ∗
+    raftOk ν tv.ID' tv.Raft' ∗ (∃ sd, Snap.isSnapshotter tv.Snapshotter' sd ∗ saveOk ν tv.ID' sd) ∗
     serverStatsOk tv.ServerStats' ∗ leaderStatsOwn tv.LeaderStats' ∗ errChanOk tv.ErrorC' ∗
     (∃ hs, Types.urlsAt tv.URLs' hs ∗ urlsNoComma tv.URLs' ∗ [∗list] a ∈ hs, peerAddr ν a) ∗
     ⌜tv.mu' = zero_val _root_.Perennial.sync.RWMutex⌝)
@@ -381,8 +393,9 @@ opaque msgChanAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFuncto
   iprop(True)
 
 /-- (internal) **A receive queue** `ch` of member `lid` (a peer's `recvc`/`propc`; persistent):
-every value is a fresh message (`msgRecv`) with what a received message carries (`recvd`). -/
-opaque recvChanAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) (ν : Net GF) : IProp GF := iprop(True)
+every value is a fresh message (`msgRecv`) with what a received message carries (`recvd ν lid`;
+second crash pass: the receiver's id is a parameter, F-server-boot F4). -/
+opaque recvChanAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ch : GoChan) (ν : Net GF) (lid : w64) : IProp GF := iprop(True)
 
 /-- (internal) A started `*streamWriter` (persistent), its stop right; one attached (pending)
 connection's right. -/
@@ -577,7 +590,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 
 def persistent.spec : Prop :=
   (∀ ν i img, Persistent (snapImg (GF := GF) ν i img)) ∧
-  (∀ ν sd, Persistent (saveOk (GF := GF) ν sd)) ∧
+  (∀ ν lid sd, Persistent (saveOk (GF := GF) ν lid sd)) ∧
   (∀ tp ν id, Persistent (transporterOk (GF := GF) tp ν id)) ∧
   (∀ ν a, Persistent (peerAddr (GF := GF) ν a)) ∧
   (∀ err, Persistent (procErr (GF := GF) err)) ∧
@@ -589,11 +602,13 @@ def trRunning_fractional.spec : Prop := ∀ t, Fractional (trRunning (GF := GF) 
 /-- **A new network** for cluster `γ`, with the client's meanings of database images and of a saved
 snapshot (round 1, F4: the fields are what the client chose, literally). -/
 def net_alloc.spec : Prop :=
-  ∀ (γ : Raft.Cluster) (Img : w64 → Snap.BeImage → IProp GF) (DbIn : w64 → IProp GF),
+  ∀ (γ : Raft.Cluster) (Img : w64 → Snap.BeImage → IProp GF) (DbIn : w64 → w64 → IProp GF),
     ⊢ (|==> ∃ ν : Net GF, ⌜ν.γ = γ ∧ ν.img = Img ∧ ν.dbIn = DbIn⌝ : IProp GF)
 
-/-- **Reserve a peer address** for `ν`'s raft protocol (the whole address; a server composing
-other protocols on its peer port reserves with `Http.reserve` and a `raftCompat` protocol). -/
+/-- **Reserve a peer address** for `ν`'s raft protocol (the whole address, the family `raftFam ν`;
+a server composing other protocols on its peer port reserves with `Http.reserve` a family whose every
+member is `raftCompat`). The post's `protoAt` is this generation's; the program keeps `peerAddr` (or
+the family) across a crash. -/
 def peerAddr_reserve.spec : Prop :=
   ∀ (ν : Net GF) (a : GoString),
     Http.addrFree (GF := GF) a ⊢ |==> peerAddr ν a ∗ Http.protoAt a (raftProto ν)

@@ -44,6 +44,14 @@ of `New` finds the file in the client's crash state, closed before the open and 
 (`beFile_crash`, `beCrash`): the window `OpenBackend` recorded is gone. The history left `beNew`;
 the client's `R γ` (the update's `COMM`) goes to its allocation step.
 
+**Changes** (second crash pass, G-a of `verify/F-server-boot.md`): statement unchanged; `beOpenUpd`
+now also takes the revert state and, opening a `none` file, gives it back with `none` added (bbolt
+creates it without a directory sync). The ghost step's 4c source: `fileHolds_alloc` for a file whose
+name is durable, 4c's new `boltReopen_alloc` for one whose name is not (a first boot's file closed
+and reopened in the same generation: `beFile p (some I)` is now realized by the OsFs resources of a
+clean image, its name either way, the revert state recording a non-durable one), `boltFresh_alloc`
+for `none`.
+
 **Margin.** The configuration's batch interval and limit, the freelist type and the metrics are
 not stated. **Scope** (filed, 4c's D13): `Mlock` off (`--experimental-memory-mlock` excluded: bbolt's
 file model has no `mlock`). **Modes**: `UnsafeNoFsync` is recorded (`beSynced` only when off): with it

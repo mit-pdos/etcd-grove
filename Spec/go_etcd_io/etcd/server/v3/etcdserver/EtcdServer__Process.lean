@@ -10,10 +10,14 @@ interface. Snippet `raftnode.go` (`ReqProcess`).
 no `srvMember`, which needs the transport set after `tr.Start()`); `s.cluster.IsIDRemoved(from)` (2e's `Membership`: any answer); `MemberID() != to`:
 an error (`httptypes.NewHTTPError`, 2e's); a `MsgApp`'s size (`proto.Size`, 2a's) into the stats
 (2e's `v2stats`); `s.r.Step(ctx, m)` (`raftNode.Step.spec`, with `m.to = id` now known). The message
-comes with 2f's `recvd ν m` for the server's network (2e's `srvNet γ.etcd ν`, whose `img` is 2d's `imgAt γ`): `msgSent`, `msgCredit`, and for a
-`MsgSnap` of index `i` its database kept (`ν.dbIn i`), which `Process` deposits in the member's
-invariant over its snapshot directory, where the batch of the snapshot's install takes it
-(`snapImage`, round 1, completeness F6). **Changes** from `specs-ref`'s spec (the transport's `stepIn` bundle): over R1's
+comes with 2f's `recvd ν (W64 id) m` for the server's network (2e's `srvNet γ.etcd ν`, whose `img` is 2d's `imgAt γ`): `msgSent`, `msgCredit`, and for a
+`MsgSnap` of index `i` its database kept in **this member's** snapshot directory (`ν.dbIn (W64 id)
+i`: second crash pass, F-server-boot F4, `dbIn` is keyed by the receiver), which `Process` deposits
+in the member's invariant over its snapshot directory, where the batch of the snapshot's install
+takes it (`snapImage`, round 1, completeness F6; the record is generation-independent, ApiBoot's
+realization of `ν.dbIn`, so a deposit by any incarnation's handler serves the install).
+Changes: verify-round (second crash pass, F-server-boot F4): takes `recvd ν (W64 id) m`, the
+receiver's own (was `recvd ν m`, whose `dbIn i` named no receiver). **Changes** from `specs-ref`'s spec (the transport's `stepIn` bundle): over R1's
 `msgSent`/`msgCredit`; the error is 2f's `procErr` (its `raftOk` contract: `procErr_forbidden`
 for the 403s, `Rafthttp.procErr_nodeErr` for raft's), and the thread token 2f's contract lends
 (`lgMu` and the membership are read under read locks). Callable from `NewServer` on (`srvNode`):
@@ -54,7 +58,7 @@ def EtcdServer.Process.spec : Prop :=
     (m : Raft.Msg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ srvNet γ.etcd ν ∗ Context.ctxOk ctx ∗ Raft.msgRecv mp m ∗
-      Rafthttp.recvd ν m ∗ threadTok }}
+      Rafthttp.recvd ν (W64 id) m ∗ threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"Process")) (Val #ctx)) (Val #mp))
   {{ (err : GoInterface), RET #err; Rafthttp.procErr err ∗ threadTok }}

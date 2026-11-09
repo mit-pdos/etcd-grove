@@ -19,8 +19,9 @@ got wrong, and this one avoids (`specs-ref/notes/grpc-msg-models.md`, `per-type-
   grpc runs at most `n` handlers of one server at once, a bound the adequacy theorem fixes. On the
   TLS path the runs are net/http's (`ServeHTTP`), with net/http's pool. No statement here hands out
   a token it did not take.
-* **One address, one protocol** (round 1): an address is bound through 2f's `Http.protoAt` to the
-  protocol `grpcOver C P` (`addrAt`), with net/http's listeners (`Http.listenerAt`, 2f's
+* **One address, one protocol** (round 1; per generation since the second crash pass): an address
+  is bound through 2f's `Http.protoAt` to the protocol `grpcOver C P` (`addrAt`) in the current
+  generation (net/http's `protoFam` is the run's family of them), with net/http's listeners (`Http.listenerAt`, 2f's
   `net.Listen`) and environment premise (one reserved string per socket). cmux's sub-listeners
   (`cmuxSubAt`) and the TLS path (`Server.ServeHTTP`) serve that same protocol.
 * **Status messages** arrive as `fixUtf8 msg` (invalid UTF-8 replaced); etcd's are ASCII.
@@ -343,10 +344,15 @@ another protocol; etcd's TLS path (net/http serving `grpcHandlerFunc`, which han
 `ServeHTTP`) meets this protocol through `Server.ServeHTTP.spec`. -/
 opaque grpcOver (_C : AddrContract (GF := GF)) (P : Http.Proto GF) : Http.Proto GF := P
 
-/-- **The address `ep` is bound to the contracts `C`** for good (persistent): 2f's `protoAt` of the
-address string, set once from the environment's `Http.addrFree ep` (`Http.reserve`; the
-environment's premise: one reserved string per socket), so every server the program ever starts
-at `ep` serves `C` (a member restarted at its client URL serves the same contracts). -/
+/-- **The address `ep` is bound to the contracts `C` in this generation** (persistent): 2f's
+`protoAt` of the address string, the current generation's member of the family set once from the
+environment's `Http.addrFree ep` (`Http.reserve`, `Http.protoFam_at`; the environment's premise: one
+reserved string per socket), so every server the program starts at `ep` in this generation serves
+`C` (a member restarted at its client URL after a stop serves the same contracts). Changes (second
+crash pass, F-server-boot F3): per generation, was "for good": after a crash the address serves the
+family's next member, e.g. etcd's contract at the next generation's heap (whose lease rows name that
+generation's lease views), which a program reserving `fun L => grpcOver (C@L) (P L)` gets by
+`Http.protoFam_gen` and `protoFam_at`. -/
 def addrAt (ep : GoString) (C : AddrContract (GF := GF)) : IProp GF :=
   iprop(∃ P : Http.Proto GF, Http.protoAt ep (grpcOver C P))
 

@@ -15,11 +15,11 @@ import (
 // Users: server/etcdserver/bootstrap.go:240 (OpenBackend over the data directory at boot) after
 // server.go's Cleanup (the backend's Close), etcdutl's offline tools.
 // Assumes: the caller owns the Alarm bucket's cells; nothing else uses the backend; no crash
-// (a crash leaves the file at one of the committed images: beHist); the file at path exists
-// with a durable name before the first open (beFile path (some I), from beFile_of or an earlier
-// generation's Close): a file the first open creates in this generation has no durable name, and
-// backend.Close.spec is not provable for it (the recorded gap: backend__Close.lean, top.md K6;
-// verify-round F-raft-storage F2; etcd's first boot's member/snap/db is such a file).
+// (a crash leaves the file at one of the committed images: beHist); the caller owns the file's
+// closed state and revert state (beFile path o, beRevs path os: a file the first open creates has
+// no durable name, which the open's update records as none in the revert list, so Close gives
+// beFile path (some I) for it too and the second open is 4c's boltReopen_alloc: second crash pass,
+// G-a; it was a durable-name assumption, verify-round F-raft-storage F2).
 // Specs: New.spec (beOpenUpd from the owned beFile), UnsafeCreateBucket.spec, UnsafePut.spec,
 // Unlock.spec, backend.Close.spec (beFinal; the file through beCloseUpd from the owned beHist),
 // beHist_final, beFinal_cur, readTx.RLock.spec,

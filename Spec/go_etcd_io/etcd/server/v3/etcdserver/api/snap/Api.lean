@@ -224,20 +224,29 @@ proof needs: verify-round, A8 provability F5). At the rename the file at `i` lea
 is the destination's file; the removal is recorded in `snapGone`; the rename is not durable until
 the directory is fsynced: the destination's previous file `o` may come back after a crash
 (`revertSt dst (o :: os)`, 4a's `beCrash`/`beFile_crash`), until `SaveDBFrom`'s directory fsync. A failure other
-than a missing file is `ServerStorage.diskOk`'s (`applySnapshot` panics on it, `bootstrap` fails). -/
+than a missing file is `ServerStorage.diskOk`'s (`applySnapshot` panics on it, `bootstrap` fails).
+Changes (second crash pass, G-b of `verify/F-server-boot.md`): the destination may be **open**
+(`Backend.FileSt.opened γ L`: `applySnapshot` renames onto the backend's path while the old backend
+is open, `server.go:1068` vs `:1144`; `bootstrap`'s recovery closes it first): `os.Rename` replaces
+the directory entry, and the open handle keeps the old inode's bytes until its `Close`; the update
+then gives the old backend's history back with `Backend.beDetached γ dst`
+(`Backend.beRenamedOver`), whose entry joins the revert list at its close or at a crash. And the
+renamed file `beFile dst (some img)` goes into the caller's state at the rename, not into the post
+(it was in the post, while `OpenSnapshotBackend`'s update, since repair3-boot, puts it in its
+client's state at the commit: a crash between the rename and the return found it in neither). -/
 def dbFile_rename.spec : Prop :=
   ∀ (sd : GoString) (i : Nat) (dst : GoString) (Q : Option BeImage → IProp GF),
   {{ ⌜ServerStorage.diskOk⌝ ∗
-      (AU <{ ∃∃ (F : Nat → Option BeImage) (H : Nat → BeImage → Prop) (o : Option BeImage)
+      (AU <{ ∃∃ (F : Nat → Option BeImage) (H : Nat → BeImage → Prop) (d : Backend.FileSt)
                 (os : List (Option BeImage)),
-              snapDbs sd F ∗ snapGone sd H ∗ beFile dst o ∗ revertSt dst os }> @ ⊤, ∅
+              snapDbs sd F ∗ snapGone sd H ∗ Backend.beAt dst d ∗ revertSt dst os }> @ ⊤, ∅
         <{ snapDbs sd (releaseAt F i) ∗ snapGone sd (goneAdd H F (releaseAt F i)) ∗
             (match F i with
-             | some _ => revertSt dst (o :: os)
-             | none => beFile dst o ∗ revertSt dst os), COMM Q (F i) }>) }}
+             | some img => beFile dst (some img) ∗ Backend.beRenamedOver dst os d
+             | none => Backend.beAt dst d ∗ revertSt dst os), COMM Q (F i) }>) }}
     (App (App (Val (@! os.Rename)) (Val #(dbPathOf sd i))) (Val #dst))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ img, Q (some img) ∗ beFile dst (some img)) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ img, Q (some img)) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ Q none) }}
 
 end rename

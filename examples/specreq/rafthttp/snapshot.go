@@ -29,11 +29,12 @@ func ReqSendMergedSnapshot(tr *rh.Transport, m *raftpb.Message, rc io.ReadCloser
 // Users: server/etcdserver/server.go:1068-1071 (applySnapshot: OpenSnapshotBackend, which panics
 // if <index>.snap.db is missing), rafthttp's snapshot handler (http.go:275, SaveDBFrom before
 // Process).
-// Assumes: the network's dbIn i is the server's "a file of index i is in the directory until the
-// apply thread installs an index >= i" (its invariant over snap's snapDbs); r processed a MsgSnap
-// of index i and nothing was installed or released since. dbIn is not persistent: Process, which
-// receives it with the message (recvd), stores it in r.mu's lock invariant beside snapIndex
-// (dbIn snapIndex, or nothing at 0), and this reader takes it from there under the lock.
+// Assumes: the network's dbIn id i is the server's "member id's directory has a file of index i
+// until its apply thread installs an index >= i" (its record over snap's snapDbs; keyed by the
+// receiver id, second crash pass F-server-boot F4); r, member id's Raft, processed a MsgSnap of
+// index i and nothing was installed or released since. dbIn is not persistent: Process, which
+// receives it with the message (recvd ν id), stores it in r.mu's lock invariant beside snapIndex
+// (dbIn id snapIndex, or nothing at 0), and this reader takes it from there under the lock.
 // Specs: Transport.Handler.spec (snapshotHandler: saveOk's two updates fired, around the rename
 // and the directory fsync (snapSaving between), then Process with dbIn),
 // Snapshotter.DBFilePath (2e).

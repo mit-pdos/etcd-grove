@@ -2084,6 +2084,11 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Local workaround.** The specs-only branch states `Snap.dbFile_rename` as a trusted triple and gives the
   backend a `beRevert`/`beNoRevert` token with a revert case in `beCrash`
   (`Spec/go_etcd_io/etcd/server/v3/storage/backend/`); that case's realization is open until OsFs has it.
+  The second crash pass (`notes/specs-only/verify/repair5-crash.md`, G-b) adds two more uses of the same
+  gap: a file renamed over while still open (`Backend.beDetached`, `applySnapshot`'s old backend, whose
+  open handle keeps the unlinked inode until `Close`), and its close or crash folding that inode's image
+  into the revert list (`beCloseUpd`'s detached form, `beDetached_crash`): both need OsFs's files to be
+  inodes a rename can unlink while open, not paths.
 - **Proposed (general; record only, nothing changed in Perennial).** OsFs `rename` with POSIX semantics,
   its crash case (the old directory entry survives unless the directory was fsynced after the rename),
   and a directory fsync.

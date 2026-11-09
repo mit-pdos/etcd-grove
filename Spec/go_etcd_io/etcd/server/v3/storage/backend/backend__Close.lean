@@ -36,12 +36,20 @@ backend's shares and the history authority's, the latter freed by the update's `
 durable (the final commit fsynced: `UnsafeNoFsync` off, `beSynced`; `dur = some []`, no commit in
 flight), so `fileHolds_image` makes them `beFile p (some I)` for the update's commit. No `beCrash`
 after it (no history), `beFile_crash` instead. A client with no invariant builds the update from
-the `beHist` it owns (`Q I` then holds the file). **Not fixed (recorded):** `fileHolds_image` needs
-the file's name durable; a file created in this generation (`beFile p none` at `New`: 4c's
-`boltFresh_alloc`, `BoltSt.named = false`; etcd's first boot's `member/snap/db`, created by
-`bolt.Open` with no directory fsync) is not `beFile p (some I)` after its close until a sync of its
-directory, which no law here records (the restart in the same generation after a first boot needs
-it; also the old post's).
+the `beHist` it owns (`Q I` then holds the file). (Repair3-boot recorded, as not fixed, that a file
+created in this generation is not `beFile p (some I)` after its close: `fileHolds_image` needs the
+name durable.)
+
+**Changes** (second crash pass, G-a and G-b of `verify/F-server-boot.md`): statement unchanged.
+*G-a, fixed:* `beFile p (some I)` is now the closed file's OsFs resources at a clean image of `D`,
+**its name durable or not** (`Api.lean`'s header): `boltRelease`'s resources make it whatever
+`σ.named` is; a non-durable name is recorded by the client's revert state, which holds `none` since
+the open (`beOpenUpd`'s new form), so `beFile_crash`'s "may vanish" case (`o' ∈ os`) covers the
+crash after a first boot's close, and the reopen in the same generation is 4c's `boltReopen_alloc`.
+*G-b:* `beCloseUpd`'s detached form (the file renamed over while open, `beDetached γ p`:
+`applySnapshot`'s old backend): the release gives no `beFile p`, and the final image joins `p`'s
+revert list (`some I :: os`); realization of that entry: the unlinked inode's resources, the OsFs
+rename gap (`Durable.lean`'s header). `ReqReopen`'s durable-name assumption is dropped.
 
 **Margin.** `DB.Close`'s error is returned but its kind not stated.
 -/

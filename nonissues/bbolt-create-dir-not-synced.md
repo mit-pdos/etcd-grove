@@ -22,7 +22,8 @@ Other file systems (and POSIX as written) do not promise it. No test here: it ne
 simulation of the directory (found by reading OsFs's model, D4 of `notes/osfs-ext-plan.md`, where
 a created file's name is not durable until its directory is synced). A first boot whose database
 vanishes is recovered by etcd from its WAL (the consistent index restarts at 0), so etcd's
-correctness does not rest on it.
+correctness does not rest on it, but only before the member's first local snapshot: after one, the
+restart panics (`etcd-backend-name-lost-restart-panic.md`, found 2026-11-09).
 
 ## Proof
 

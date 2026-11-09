@@ -48,8 +48,18 @@ The laws that tie 4a's file vocabulary to 4c's (`Spec/go_etcd_io/bbolt/Api.lean`
   history: two laws for one file, `beCrash`'s without the file's resources).
 * `beFile_crash` (verify round, crash pass: R-A8 N4): **a closed file at rest crosses a crash**
   unchanged (a bbolt file's last commit was fsynced before `Close`), or reverted to a previous file
-  of a pending rename; 2e's `disk_crash` uses it for a member whose backend is closed (before
-  `OpenBackend`, after `Close`), `beCrash` for an open one.
+  of a pending rename, or gone if its name is not durable (second crash pass, G-a: the open's update
+  put `none` in the revert list); 2e's `disk_crash` uses it for a member whose backend is closed
+  (before `OpenBackend`, after `Close`), `beCrash` for an open one.
+* **A file renamed over while open** (second crash pass, G-b: `applySnapshot` renames the snapshot's
+  file onto the backend's path before it closes the old backend, `server.go:1068,1144`): the rename's
+  update over the open form (`beAt p (.opened γ L)`) keeps the old backend's history with the client
+  and gives `beDetached γ p`; the old backend's `Close` (`beCloseUpd`'s detached form) puts its final
+  image into the revert list; a crash before that close folds it in first (`beDetached_crash`, at
+  the crashed generation: some committed image of the old history, which a crash before a directory
+  sync may bring back at `p`), and then the new file's law (`beFile_crash` or `beCrash`) applies.
+  Realization: the old inode's resources stay in 4c's `boltFile` of `γ` until its release; the revert
+  entry needs OsFs's `rename` (the recorded gap, `notes/perennial-changes.md`).
 
 The next generation's `beFile` is at the next generation's heap (`⟨hG.goose_globalGS, L'⟩`), as
 `Bbolt.boltCrash`'s `fileHolds` (verify-round, A10-provability B2: it was stated at the crashed
@@ -148,13 +158,17 @@ def beCrash.spec : Prop :=
 /-- **A closed file crosses a crash** (verify round, crash pass: R-A8 N4; server-boot's): the
 backend's file at rest (`beFile p o`: closed, so no commit in flight; a member before `OpenBackend`,
 or after `Close`), with its revert state, gives the next generation `L'` the same file or, with
-renames onto `p` pending (`os`), one of the previous files; the revert state comes back
-`beNoRevert`. Taken out of the OS's crash rest `crashRest`. Realization: `beFile p (some I)` is 4c's
-`fileHolds p D` (`imgOf D = I`): every byte clean and durable to the file's size and its name durable
-(`fileHolds`' premise), so OsFs's crash relation keeps the file as it is (`crashRest_take` with
-`osMeta`'s fragment, then `fileHolds` at `L'`); `beFile p none` is `osMeta p none` or an empty file,
-which a crash leaves absent or empty (`beFile_none` at `L'`); the revert case is `beRevertL`'s (the
-unsynced rename's old entry back), the same OsFs gap as `beCrash`'s (the header). True of the Go: a
+renames onto `p` pending or its name not durable (`os`), one of the previous files or none; the
+revert state comes back `beNoRevert`. Taken out of the OS's crash rest `crashRest`. Realization:
+`beFile p (some I)` is the file's OsFs resources at an image of `D` (`imgOf D = I`), every byte clean
+and durable to the file's size, so OsFs's crash relation keeps its bytes (`crashRest_take` with
+`osMeta`'s fragment); with its name durable, `fileHolds` at `L'`; with it not durable (`named =
+false`), OsFs's D4 may drop the name, and then the revert state's `none` (the open's update put it
+there: `beOpenUpd`) is the outcome (`beFile_none` at `L'`); `beFile p none` is `osMeta p none` or an
+empty file, which a crash leaves absent or empty; the revert case is `beRevertL`'s (the unsynced
+rename's old entry back), the same OsFs gap as `beCrash`'s (the header). Changes (second crash pass,
+G-a): statement unchanged; it was false after a first boot's `Close` (the file `bolt.Open` created,
+its directory never synced, may vanish), now true because that file's revert list holds `none`. True of the Go: a
 bbolt file is written only while open (`Open` with `NoFreelistSync`, commits, `Close`), and each
 commit fsyncs its pages and meta before `Close` returns (`UnsafeNoFsync` off: `beSynced`; a file
 `OpenBackend` closed with `UnsafeNoFsync` on is not at rest in this sense, and 2e's `diskCfgOk`
@@ -169,6 +183,20 @@ def beFile_crash.spec : Prop :=
       @beFile _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p o' ∗
       @beNoRevert _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p ∗
       crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) (p :: Ps)
+
+/-- **A detached open file folds into the revert list at a crash** (second crash pass, G-b; see the
+header): after the generation crashed, the old backend `γ` renamed over at `p` while open (its crash
+invariant, crash safety, its history `L`) leaves at `p`, if the rename is lost (no directory sync
+since), its file at some committed image `I ∈ L` (4c's `boltCrash` of `γ`'s file: the last fsynced
+commit, or the one in flight), or no file if its name was never durable (then `none` is already in
+`os`: the open's update). Stated at the crashed generation (no `L'`): it consumes the history and the
+detached token, so the new file's crash law (`beFile_crash` or `beCrash`) then applies with the
+extended list. Realization: `beRevertL`'s record gets `γ`'s entry from 4c's `boltCrash` of `γ`'s
+file, at the old inode, which needs OsFs's `rename` (the recorded gap, as every revert entry). -/
+def beDetached_crash.spec : Prop :=
+  ∀ [HasExt osFsExt] (γ : BeNames) (p : GoString) (L : List Image) (os : List (Option Image)),
+    beDetached (GF := GF) γ p ∗ beDurInv γ p ∗ beSynced γ ∗ beHist γ L ∗ beRevs p os ∗ crashed ⊢
+    |={⊤}=> ∃ I : Image, ⌜I ∈ L⌝ ∗ beRevs p (some I :: os)
 
 /-- **The package's bbolt options** (second pass, 4c's A11 F7: no keyed-literal spec in bbolt; the
 initializer `&bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}`,

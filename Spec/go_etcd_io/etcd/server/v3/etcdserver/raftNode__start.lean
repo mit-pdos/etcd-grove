@@ -31,7 +31,7 @@ WAL's write half, the delivered log `st.delivered`, the ready handler's `readyHa
    program's `diskState`, which holds `raftState γ.raft id D` with the WAL's records: 2e, "from 2e,
    round 2"), and `Save`'s update over `Wal.walRecs` (opened inside `diskAcc`'s, mask `⊤ \ diskN`)
    fires it at the synced write (moving `D` to `D.next b`, R1; a crash in between is `disk_crash`'s,
-   by R1's `raftState_crash` of the deposited batch, unless `crashOutOfScope`), giving the driver back
+   by R1's `raftState_crash` of the deposited batch, under W0's `Wal.crashInScope`), giving the driver back
    (`nodeDriver n γ.raft (st.after b dl)`), `msgSent` of every message and the read states. No
    error: 2e's disk premise (`lg.Fatal` unreachable). With a snapshot: `Sync`, `notifyc <- {}` (the
    apply thread may now open the snapshot's db and `Release` the WAL below it),
@@ -63,6 +63,8 @@ ghost).
 **Margin**: none (a goroutine).
 
 Changes: verify-round (server-boot's request): each `Save`/`SaveSnap` fires two updates through `diskAcc` (now an invariant-style accessor at `diskN`, raft's namespace open): `walWriting` (the write begun) then `walRecs` (synced), the second firing the batch's `readyEnter`; the snapshot file's `snapSaving` then its saved state likewise.
+
+Changes: verify-round (second crash pass, F-server-boot F2): step 6's crash text names W0's `Wal.crashInScope` in place of the deleted `crashOutOfScope` (text only).
 -/
 module
 

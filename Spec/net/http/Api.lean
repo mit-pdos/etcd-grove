@@ -4,8 +4,9 @@
 `net/http` is translated names-only: every statement here and in this directory is **assumed**.
 They restate the boundary the user reviewed for rafthttp (`specs-ref/notes/rafthttp-http-boundary.md`,
 2026-10-22; D38b, D42 and stage 5e's header model, `specs-ref/notes/rafthttp-plan.md`), over opaque
-predicates, with one correction (below, "Tickets"). Why each is true of Go's `net/http` over TCP is
-said where it is stated.
+predicates, with one correction (below, "Tickets") and one generalization (below, "Generations":
+an address's protocol is a family over the local generation, second crash pass). Why each is true of
+Go's `net/http` over TCP is said where it is stated.
 
 ## The model
 
@@ -21,18 +22,32 @@ said where it is stated.
 * **The closed world** (the user's decision 1, 2026-10-22; round 1, F3: tied to the bound socket).
   A listener is the socket a bind made: `net.Listen`/`NewListener` give `listenerAt l a` for the
   address string `a` the socket is bound at (the given one, or for port `0` the actual one the bind
-  chose, `l.Addr()`). An address string's protocol is fixed once (`reserve`: the environment's
-  `addrFree a` becomes the persistent `protoAt a P`; it may precede the bind, since a member sends
-  to its peers before they listen), and `Serve` on a listener at `a` serves `protoAt a P`'s `P`.
-  Every request a handler on that listener reads was sent by a client of the program through
-  `RoundTrip` to a host string with `protoAt _ P` that reaches the socket; so the handler gets the
-  facts the client proved. A rebind of `a` (a restarted member) serves the same `P` (`protoAt` is
-  persistent and set once). **The environment's physical premise**: `addrFree` is issued for at most
+  chose, `l.Addr()`). An address string's protocols are fixed once for the run (`reserve`: the
+  environment's `addrFree a` becomes the persistent `protoFam a F`, one protocol `F L` per local
+  generation `L`; it may precede the bind, since a member sends to its peers before they listen):
+  in a generation `L` the address serves `protoAt a (F L)` (`protoFam_at`), and `Serve` on a
+  listener at `a` serves `protoAt a P`'s `P`. Every request a handler on that listener reads was
+  sent by a client of the program through `RoundTrip` to a host string with `protoAt _ P` that
+  reaches the socket; so the handler gets the facts the client proved. A rebind of `a` (a member
+  restarted after a stop) serves the same `P` (`protoAt` is persistent, and the family set once); a
+  rebind after a crash serves the next generation's member of the family. **The environment's
+  physical premise**: `addrFree` is issued for at most
   one string per socket (the strings the program dials its peers by are the ones their listeners
   are bound at: no two reserved strings, as `localhost:p` and `127.0.0.1:p`, name one socket),
   never for a port-`0` string, and no proxy relays peer traffic (rafthttp's round trippers use
   `ProxyFromEnvironment`: the deployment sets none for peer URLs). Port `0` needs nothing more: only
   the actual string the bind reports can be reserved and dialed.
+* **Generations** (second crash pass, F-server-boot F3). A crash (Perennial's crash rule: the whole
+  program's machine) closes every socket and every connection, and nothing is replayed across it:
+  a request a handler of generation `L` reads was sent by a `RoundTrip` of generation `L`, over a
+  connection of `L`. So an address's protocol may differ per generation, and a protocol whose
+  predicates name generation-local vocabulary (a member's lease view, `EtcdModel.leaseViewLb`, which
+  a crash does not carry) is reserved as the family of its instances at each generation's heap
+  (`fun L => P (hG := ⟨hG.goose_globalGS, L⟩)`); a protocol of global vocabulary only is a constant
+  family. The family, not a protocol, crosses a crash (`protoFam_gen`); `protoAt` is the current
+  generation's. (Repair3-boot's `protoAt_gen`, one protocol for the run, is withdrawn: a client
+  address's etcd contract names per-generation lease views, so the restarted member could not serve
+  the first generation's contract, nor reserve its own, F-server-boot F3.)
 * **Bodies are prefixes** (D42). A body reader yields successive pieces whose concatenation is a
   prefix of what the sender's side produced (the client's body reader; the handler's writes);
   `EOF` only at the end of a complete stream (HTTP/1.1 framing, chunked or with a length, makes a
@@ -64,7 +79,8 @@ said where it is stated.
 ## Vocabulary
 
 Pure: `HReq`, `Proto`, `hdrGet`, `hdrSet`, `canonKey`, `srvKeys`, `hdrView`, `onceOnly`.
-Resources: `addrFree a` (exclusive, the environment's), `protoAt a P` (persistent),
+Resources: `addrFree a` (exclusive, the environment's), `protoFam a F` (persistent, the run's),
+`protoAt a P` (persistent, the current generation's),
 `listenerAt l a` (exclusive: a listener bound at `a`), `listenerCloser l` (persistent),
 `handlerPool p n` (exclusive), `reqTicket τ` (exclusive),
 `reqOwn r R bd` (a client's request being built), `hdrMap hm hs` (an owned header map),
@@ -74,15 +90,19 @@ response writer), `muxOwn m L` (a `ServeMux` being built). Bundles (an interface
 `sync.isLocker`): `roundTripperOk rt`, `handlerOk h P pfx`.
 
 Intended realization: a trusted model of the network (a global ghost map from addresses to saved
-protocols, set once; per connection, ghost byte streams), with these as its facts; it stays a
-boundary (net/http is not verified here).
+protocol families, set once, `addrFree a` the exclusive fragment of `a`'s unset key and `protoFam a
+F` the discarded fragment of its set value; `protoAt a P := ∃ F, protoFam a F ∗ ⌜F
+hG.goose_localGS = P⌝`; per connection, ghost byte streams of the generation that made it), with
+these as its facts; it stays a boundary (net/http is not verified here).
 
 ## Specs (this directory)
 
 `Serve`, `Listen` (`net.Listen`), `Listener.Close`, `NewServeMux`, `ServeMux.Handle`, `NewRequest`, `Request.WithContext`, `Header.Set`,
 `Header.Get`, `Error`, `Transport.CloseIdleConnections`; the bundles' methods (`RoundTrip`, a body's
 `Read`/`Close`, a response writer's `Header`/`WriteHeader`/`Write`/`Flush`) are inside their
-bundles. Laws: `reserve`, `protoAt_gen`, `addrFree_gen` (repair3-boot), `handlerPool_alloc`, `reqTicket_alloc`, `reqTicket_excl`,
+bundles. Laws: `reserve`, `protoFam_at`, `protoFam_gen` (second crash pass; repair3-boot's
+`protoAt_gen` withdrawn), `addrFree_gen` (repair3-boot), `addrFree_protoAt_excl` (second crash pass,
+F-server-boot F5), `handlerPool_alloc`, `reqTicket_alloc`, `reqTicket_excl`,
 `mux_handlerOk`, `respW_agree`, `handlerOk_agree`, `handlerOk_narrow`, `NewBuffer_reader`,
 `MultiReader_reader`, persistence.
 -/
@@ -192,7 +212,12 @@ def Proto.agreeUnder (pfx : GoString) (P P' : Proto GF) : Prop :=
 address and run). -/
 opaque addrFree [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (a : GoString) : IProp GF := iprop(True)
 
-/-- **Address `a` serves the protocol `P`** (persistent; set once, `reserve`). -/
+/-- **Address `a`'s protocols, one per local generation, are the family `F`** (persistent; set once
+for the run, `reserve`; second crash pass, F-server-boot F3). -/
+opaque protoFam [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (a : GoString) (F : GooseLocalGS GF → Proto GF) : IProp GF := iprop(True)
+
+/-- **Address `a` serves the protocol `P` in this generation** (persistent; the current generation's
+member of `a`'s family, `protoFam_at`). -/
 opaque protoAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (a : GoString) (P : Proto GF) : IProp GF := iprop(True)
 
 /-- **The listener `l`, the socket a bind made, bound at the address string `a`** (exclusive;
@@ -352,6 +377,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 
 def persistent.spec : Prop :=
   (∀ a P, Persistent (protoAt (GF := GF) a P)) ∧
+  (∀ a F, Persistent (protoFam (GF := GF) a F)) ∧
   (∀ rd, Persistent (readerCloser (GF := GF) rd)) ∧
   (∀ resp st hc rd, Persistent (respAt (GF := GF) resp st hc rd)) ∧
   (∀ r R rd, Persistent (srvReq (GF := GF) r R rd)) ∧
@@ -363,19 +389,35 @@ def persistent.spec : Prop :=
   (∀ rt, Persistent (roundTripperOk (GF := GF) rt)) ∧
   (∀ h P pfx, Persistent (handlerOk (GF := GF) h P pfx))
 
-/-- **Reserve an address** for a protocol, once (before or after its bind). -/
+/-- **Reserve an address** for a family of protocols, one per generation, once for the run (before
+or after its bind). Changes (second crash pass, F-server-boot F3): reserves a family (`protoFam`), was
+one protocol (`protoAt a P`, now `protoFam_at` of a constant family `fun _ => P`). -/
 def reserve.spec : Prop :=
-  ∀ (a : GoString) (P : Proto GF), addrFree (GF := GF) a ⊢ |==> protoAt a P
+  ∀ (a : GoString) (F : GooseLocalGS GF → Proto GF), addrFree (GF := GF) a ⊢ |==> protoFam a F
 
-/-- **An address's reservation is the run's, not a generation's** (repair3-boot, the crash pass's
-request: `Rafthttp.peerAddr_gen`, 2e's `srvEp_gen`, and a restarted member's `Grpc.addrAt`): the
-protocol reserved before a crash is the one the address serves after it, and an address left free
-stays free. Realization: the intended model's global ghost map from addresses to saved protocols
-(the header) is in `GooseGlobalGS`, and the protocol is a saved value, not a heap resource (a
-protocol whose predicates name generation-local state is the reserver's to restate: `P` is the same
-value on both sides). -/
-def protoAt_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (a : GoString) (P : Proto GF),
-  protoAt (GF := GF) a P ⊣⊢ protoAt (hG := ⟨hG.goose_globalGS, L'⟩) a P
+/-- **The current generation's protocol of a reserved address** (second crash pass, F-server-boot
+F3): the family's member at this heap's local generation. -/
+def protoFam_at.spec : Prop := ∀ (a : GoString) (F : GooseLocalGS GF → Proto GF),
+  protoFam (GF := GF) a F ⊢ protoAt a (F hG.goose_localGS)
+
+/-- **An address's reservation is the run's, not a generation's** (repair3-boot; second crash pass:
+of the family, F-server-boot F3): the family reserved before a crash is the address's after it, and
+an address left free stays free (`addrFree_gen`). Realization: the intended model's global ghost map
+from addresses to saved families (the header) is in `GooseGlobalGS`; `F` is a value, the same on both
+sides. Repair3-boot's `protoAt_gen` (one protocol for the run) is withdrawn: the protocol is the
+generation's (the header, "Generations"). -/
+def protoFam_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (a : GoString) (F : GooseLocalGS GF → Proto GF),
+  protoFam (GF := GF) a F ⊣⊢ protoFam (hG := ⟨hG.goose_globalGS, L'⟩) a F
+
+/-- **A reserved address is not free** (second crash pass, F-server-boot F5: what lets a client keep
+its own map over reserved addresses, 2e's `srvEp`). True of the model: `addrFree a` is the exclusive
+fragment of `a`'s unset key in the set-once map, and `protoAt a P` (at any generation) exists only
+once `reserve` has set the key, consuming that fragment; the environment issues `addrFree a` at most
+once per address and run (the header's physical premise). Realization: the map's fragments, `a ↪{1}
+unset` against `a ↪□ F` (`ghost_map_elem_valid_2`: the fractions `1` and discarded do not combine), a
+plain entailment. -/
+def addrFree_protoAt_excl.spec : Prop := ∀ (a : GoString) (P : Proto GF),
+  addrFree (GF := GF) a ∗ protoAt a P ⊢ iprop(False)
 
 def addrFree_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (a : GoString),
   addrFree (GF := GF) a ⊣⊢ addrFree (hG := ⟨hG.goose_globalGS, L'⟩) a

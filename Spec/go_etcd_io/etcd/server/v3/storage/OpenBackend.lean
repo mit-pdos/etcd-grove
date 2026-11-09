@@ -18,7 +18,9 @@ premise `diskOk`, the configuration's by the backend's provisional slot. Verify-
 provability F5): over 4a's vocabulary: the post is `Backend.New.spec`'s (the client's allocation
 step `Pk`/`K`, the buckets `Bs`, the hooks' footprint `Fh`, `isBackend`, the crash invariant and
 `beSynced`), the file 4a's `beFile`; the provisional `ServerStorage.beOpen`/`Snap.emptyImage` gone
-from this spec. **Margin.** None.
+from this spec. Changes: verify-round (second crash pass, G-a): statement unchanged; `Backend.beOpenUpd` now also takes the revert state (adding `none` when it opens a `none` file: bbolt creates it with no directory sync), so a client's crash state builds it from `beFile p o ∗ beRevs p os`.
+
+**Margin.** None.
 
 Verify round, crash pass (R-A8 N4): a crash **inside** the call finds the backend file in neither
 the caller's disk state nor the file's crash invariant: `New` (4a) takes `beFile` in its

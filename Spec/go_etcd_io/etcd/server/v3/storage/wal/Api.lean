@@ -48,7 +48,8 @@ here can check.
 
 `walRecs_timeless`, `walRecs_excl`, `walOpen_excl`, `walPurgeRight_excl`, `walWriting_timeless`,
 `walWriting_excl`, `walWriting_recs_excl`, and the crash laws `walRecs_crash`, `walWriting_crash`;
-the crash scope `Recs.crashScopeOk` (transparent, verify round crash pass).
+the crash scope `Recs.crashScopeOk` (transparent, verify round crash pass) and its environment
+premise `crashInScope` (an opaque `Prop`, second crash pass: F-server-boot F2).
 
 ## Crashes (verify-round, A8 provability F1.2-3)
 
@@ -73,6 +74,22 @@ CRC-chained, and a restart's `ReadAll` stops at a torn tail (`io.ErrUnexpectedEO
 corrupts a record behind a later surviving one (or leaves garbage passing the CRC) makes `ReadAll`
 fail with `ErrCRCMismatch`, which `bootstrap` treats as fatal: excluded by `ServerStorage.diskOk`
 (its docstring lists it), which the crash laws take.
+
+**The crash scope** (second crash pass, F-server-boot F2): `crashInScope` (an opaque `Prop`, like
+`ServerStorage.diskOk`) is W0's environment premise "every crash of the run leaves each WAL
+directory so that the next `Open` + `ReadAll` returns records meeting `Recs.crashScopeOk`". Its text
+is its meaning: a statement about the run, which `walRecs`'s trusted meaning (what a restart reads)
+makes checkable against each crash, and which no proof here can establish. The crash laws take it
+and add `⌜R'.crashScopeOk⌝` to the records they give, so the logic sees the premise: 2e's
+`disk_crash` takes it and has no out-of-scope case (round 2's `crashOutOfScope` disjunct, which no
+proof could refute, is gone). True under the premise: the records the laws give are the ones the
+crash left, which the premise says meet `crashScopeOk`. Not vacuous: only a run whose crash leaves
+records failing `crashScopeOk` makes the premise false (the margin of `crashScopeOk`'s docstring:
+also an at-rest crash of a lagging follower with two conf changes above its stored commit), and a
+law applied to records that already fail it at rest (a crash can only lower the stored commit, so
+they fail after it too) gives `False` exactly for such a run. A law applies only with the old
+generation's `crashed`, i.e. once that generation has crashed, so the premise is never used of a
+running generation's records.
 
 **Generations.** The laws take the old generation's crash token (`crashed`, Perennial's
 `CrashToken`) and give `walRecs` at the next generation's heap `⟨hG.goose_globalGS, L'⟩`, as 4c's
@@ -234,9 +251,20 @@ record of its batch reaches the disk: the restart ignores the record, `ValidSnap
 `raftState_crash` covers a snapshot batch with nothing or all of it written). Outside the WAL's
 records, the crash is never out of scope. W0's adequacy theorem takes "every crash leaves each
 member's WAL so that `Open` + `ReadAll` returns records meeting `crashScopeOk`" as its
-environment premise (`walRecs`'s trusted meaning makes it a statement about the run). -/
+environment premise (`walRecs`'s trusted meaning makes it a statement about the run): `crashInScope`
+below, which the crash laws take (second crash pass, F-server-boot F2). Margin: an at-rest crash of a
+lagging follower whose WAL holds two conf changes above its stored commit fails (a) too, though raft
+handles it (`Raft.raftState_gen` has no such premise); telling it apart needs the record order in
+`Recs`. -/
 def Recs.crashScopeOk (R : Recs) : Prop :=
   R.confAboveOk ∧ ∀ s ∈ R.snaps, uint.nat s.index ≤ uint.nat R.hs.commit
+
+/-- **W0's environment premise of the crash scope** (second crash pass, F-server-boot F2; see the
+header, "The crash scope"): every crash of the run leaves each WAL directory so that the next `Open`
++ `ReadAll` returns records meeting `Recs.crashScopeOk`. Opaque: its text is its meaning, a fact
+about the run that the adequacy theorem of a program takes as a premise beside
+`ServerStorage.diskOk`; the WAL's crash laws take it. -/
+opaque crashInScope : Prop
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -275,19 +303,24 @@ def walWriting_recs_excl.spec : Prop := ∀ wd R R' w,
   walWriting (GF := GF) wd R w ∗ walRecs wd R' ⊢ iprop(False)
 
 /-- **A crash of records at rest** (trusted; see the header): the next generation `L'` finds the
-records `R` with a commit-only state possibly lost. -/
+records `R` with a commit-only state possibly lost, in the crash scope. Changes (second crash pass,
+F-server-boot F2): takes the environment premise `crashInScope` and gives `⌜R'.crashScopeOk⌝` (true
+under it: `R'` is what the crash left). -/
 def walRecs_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (wd : GoString) (R : Recs),
-  ServerStorage.diskOk →
+  ServerStorage.diskOk → crashInScope →
   walRecs (GF := GF) wd R ∗ crashed ⊢
-    |==> ∃ R' : Recs, ⌜R.crashed R'⌝ ∗ @walRecs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ wd R'
+    |==> ∃ R' : Recs, ⌜R.crashed R' ∧ R'.crashScopeOk⌝ ∗
+      @walRecs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ wd R'
 
 /-- **A crash during a write** (trusted; see the header): the next generation `L'` finds a state
-the interrupted write may leave. -/
+the interrupted write may leave, in the crash scope. Changes (second crash pass, F-server-boot F2):
+as `walRecs_crash`. -/
 def walWriting_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (wd : GoString) (R : Recs)
     (w : WalWrite),
-  ServerStorage.diskOk →
+  ServerStorage.diskOk → crashInScope →
   walWriting (GF := GF) wd R w ∗ crashed ⊢
-    |==> ∃ R' : Recs, ⌜R.crashedDuring w R'⌝ ∗ @walRecs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ wd R'
+    |==> ∃ R' : Recs, ⌜R.crashedDuring w R' ∧ R'.crashScopeOk⌝ ∗
+      @walRecs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ wd R'
 
 end res
 

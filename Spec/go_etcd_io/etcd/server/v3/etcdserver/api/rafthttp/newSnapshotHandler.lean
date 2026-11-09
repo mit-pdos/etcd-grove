@@ -5,7 +5,7 @@
 
 **Proof sketch.** The literal.
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. Second crash pass (F-server-boot F4): `saveOk ν lid sd`, the save updates of the receiver `lid`'s directory (`dbIn` is keyed by the receiver).
 
 **Margin.** None.
 -/
@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- (internal) The snapshot handler of the transport (its `Raft` and snapshotter the transport's). -/
 def newSnapshotHandler.spec : Prop :=
   ∀ (t : Loc) (ν : Net GF) (lid : w64) (ss : Loc) (sd : GoString) (r : GoInterface) (cid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ raftOk ν lid r ∗ Snap.isSnapshotter ss sd ∗ saveOk ν sd }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ raftOk ν lid r ∗ Snap.isSnapshotter ss sd ∗ saveOk ν lid sd }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newSnapshotHandler)) (Val #t)) (Val #r)) (Val #ss)) (Val #cid))
   {{ (h : GoInterface), RET #h; ∃ hp : Loc, ⌜h = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler.ty) #hp⌝ ∗ shAt hp ν lid }}
 

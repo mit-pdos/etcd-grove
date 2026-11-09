@@ -146,7 +146,8 @@ size (`boltTx_size`, with `txSize`'s agreement); `putLoan_done`; `dbBroken_state
 (a write transaction pays for `Stats`); the updates a holder of `boltState γ 1 σ` can supply
 (`boltState_read_au`, `boltState_commit_au`: a commit's two updates, the settling one given at the
 commit's, `commitAU`; `boltState_settle_au`, any update, a sync's); the file laws
-(`fileHolds_new`, `fileHolds_image`, `fileHolds_alloc`, `boltFresh_alloc`, `boltRelease`) and **the crash law**
+(`fileHolds_new`, `fileHolds_image`, `fileHolds_alloc`, `boltFresh_alloc`, `boltReopen_alloc` (second
+crash pass: a file whose name may not be durable, reopened), `boltRelease`) and **the crash law**
 (`boltCrash`). The error values (`errIs`, `isErr`; laws `errIs_init`,
 `errIs_distinct`) are `bbolt/errors`' (`Spec/go_etcd_io/bbolt/errors/Api.lean`, re-exported).
 
@@ -593,6 +594,24 @@ def fileHolds_alloc.spec [HasExt osFsExt] : Prop :=
   ∀ (E : CoPset) (N : Namespace) (path : GoString) (D : Data), ↑N ## ↑osN →
     fileHolds (GF := GF) path D ⊢ |={E}=> ∃ γ : BoltName, ⌜γ.ns = N ∧ γ.path = path⌝ ∗
       boltFile γ ∗ boltClosed γ ∗ boltState γ 1 (BoltSt.init D)
+
+/-- **Allocating a database's names over a file whose name may not be durable** (second crash
+pass, G-a of `notes/specs-only/verify/F-server-boot.md`: etcd's first boot's `member/snap/db`, created
+by `Open` with no directory sync, closed, and opened again in the same generation, a member stopped
+and restarted): a durable image of `D`, `fileHolds_image`'s premise but for the name; as
+`fileHolds_alloc`, with the state `BoltSt.init D` at the file's name state `m.named` (so a crash may
+leave no file while it is not durable: `BoltSt.recovers`, `boltCrash`'s second case). True of the
+Go: `Open` reads the file it finds, whatever its directory's durability; the crash law's claim is
+OsFs's D4 (a name not synced may vanish), as for `boltFresh_alloc`. With `m.named = true` it is
+`fileHolds_image` then `fileHolds_alloc`. -/
+def boltReopen_alloc.spec [HasExt osFsExt] : Prop :=
+  ∀ (E : CoPset) (N : Namespace) (path : GoString) (m : OsMeta) (xs : List (w8 × Bool)) (D : Data),
+    ↑N ## ↑osN →
+    ⌜boltImage (xs.map Prod.fst) D ∧ (∀ x ∈ xs, x.2 = true) ∧ m.size = xs.length ∧
+      m.lo = xs.length ∧ m.hi = xs.length ∧ m.maps = ∅⌝ ∗
+    osMeta (GF := GF) path (DFrac.own 1) (some m) ∗ osBytes (GF := GF) path 0 (DFrac.own 1) xs
+    ⊢ |={E}=> ∃ γ : BoltName, ⌜γ.ns = N ∧ γ.path = path⌝ ∗
+      boltFile γ ∗ boltClosed γ ∗ boltState γ 1 { BoltSt.init D with named := m.named }
 
 /-- **A closed database's file comes back out of its crash invariant** (verify-round
 A11-completeness F3: etcd's defrag renames the synced copy over the database, removes it on a
