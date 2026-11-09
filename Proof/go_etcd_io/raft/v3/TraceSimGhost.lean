@@ -214,6 +214,10 @@ def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) :
       BagRep σ.pendingMessages ((C.flatMap (fun i => ((A !! i).map Prod.snd).getD [])) ++ phP) ∧
       BagRep σ.messages ((GMap.toList B).map Prod.snd ++ phM)⌝)
 
+instance simInv_timeless (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF)
+    [hFx : ∀ σ, Timeless (Fx σ)] : Timeless (simInv C tn Fx) := by
+  unfold simInv traceFrag; infer_instance
+
 /-- The exported law (layer D's): a trace the simulation ran through every line is accepted (the
 corollary's `TraceAccepts`), once the whole trace's own initial state and servers are the voters'
 (`newTrace` reads them from the bootstrap lines: layer B's bootstrap clause gives it once every

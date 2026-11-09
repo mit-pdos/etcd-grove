@@ -263,12 +263,20 @@ instance srvFacts_persistent (γ : RaftNames) (C : List w64) (j : w64) (v : Etcd
     Persistent (srvFacts (GF := GF) γ C j v) := by
   unfold srvFacts; split <;> infer_instance
 
+instance srvFacts_timeless (γ : RaftNames) (C : List w64) (j : w64) (v : Etcdraft.Server) :
+    Timeless (srvFacts (GF := GF) γ C j v) := by
+  unfold srvFacts; split <;> infer_instance
+
 /-- **Every voter's facts** in state `σ`. -/
 def allFacts (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(□ ∀ j, ⌜j ∈ C⌝ → srvFacts γ C j (σ.s (idAbs j)))
 
 instance allFacts_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
     Persistent (allFacts (GF := GF) γ C σ) := by
+  unfold allFacts; infer_instance
+
+instance allFacts_timeless (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
+    Timeless (allFacts (GF := GF) γ C σ) := by
   unfold allFacts; infer_instance
 
 /-- A leader's term's word. -/

@@ -98,3 +98,42 @@ end pure
 
 end EtcdGrove
 end Perennial
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 TraceSim
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **The global step's law** (`trCap_fire.statement`). -/
+theorem trCap_fire : trCap_fire.statement (GF := GF) := by
+  intro γd γ r id c tl E Φ Φ' hps
+  iintro ⟨Hcap, #Htl, Hfx⟩
+  iunfold FxPres at Hfx
+  icases Hfx with #Hfx
+  iunfold trCap at Hcap
+  icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, %HΦ⟩
+  icombine Htl Htl' gives %Htleq
+  subst Htleq
+  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  have hnd : C.Nodup := hperm.nodup_iff.1 (NoDup_elements _)
+  iunfold TraceFire
+  iexists tn
+  iframe Hdir Hlg
+  isplitr; · ipureintro; exact Hnn
+  iintro %e %HE
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  sorry
+
+end ghost
+
+end EtcdGrove
+end Perennial

@@ -254,6 +254,14 @@ uniqueness (`MsgsDet`) to be added. -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(allFacts γ C σ ∗ ⌜LeaderEntries σ ∧ DurInv σ ∧ CommitWithinLeader σ ∧ QuorumLogF σ⌝)
 
+instance simFx_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
+    Persistent (simFx (GF := GF) γ C σ) := by
+  unfold simFx; infer_instance
+
+instance simFx_timeless (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
+    Timeless (simFx (GF := GF) γ C σ) := by
+  unfold simFx; infer_instance
+
 /-- **The facts give the invariants** (`violated = none`), with raft's vote table. -/
 theorem simFx_violated (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (hsrv : σ.server = confAbs C) :
     votesTbl (GF := GF) γ ∗ simFx γ C σ ⊢ ⌜σ.violated = .ok none⌝ := by
