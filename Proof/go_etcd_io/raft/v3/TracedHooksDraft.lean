@@ -246,13 +246,20 @@ def QuorumLogF (σ : Etcdraft.State) : Prop :=
   ∀ i ∈ σ.server, Etcdraft.isQuorum ((σ.getConfig i).filter (fun j =>
     or (!σ.server.contains j) (!Etcdraft.isPrefix (committedL σ i) (σ.s j).log))) (σ.getConfig i) = false
 
+/-- **The bags' uniqueness** (the notes' `MsgsDet`/`AppSlices`): two messages in flight that a line
+matches are equal (so a receive line's message is the one its token names; its preservation, at
+the `Ready` lines that hand messages out, is the next slice's). -/
+def MsgsUniq (σ : Etcdraft.State) : Prop :=
+  ∀ (ln : Etcdraft.Line) (m1 m2 : Etcdraft.Msg), m1 ∈ σ.messages.domain → m2 ∈ σ.messages.domain →
+    recvPred ln m1 = true → recvPred ln m2 = true → m1 = m2
+
 /-- **The specification state's facts in `simInv`** (Draft): every voter's raft facts (`allFacts`:
 `MoreThanOneLeaderInv`, `LogInv`, `LogMatchingInv`, `CommitOk`, and with the vote table
 `LeaderCompletenessInv`), the specification invariants `LeaderEntries` (`ElectionSafetyInv`),
 `DurInv` (`CommittedIsDurableInv`) and `CommitWithinLeader`, and `QuorumLogInv`'s fact; the bags'
 uniqueness (`MsgsDet`) to be added. -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
-  iprop(allFacts γ C σ ∗ ⌜LeaderEntries σ ∧ DurInv σ ∧ CommitWithinLeader σ ∧ QuorumLogF σ⌝)
+  iprop(allFacts γ C σ ∗ ⌜LeaderEntries σ ∧ DurInv σ ∧ CommitWithinLeader σ ∧ QuorumLogF σ ∧ MsgsUniq σ⌝)
 
 instance simFx_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
     Persistent (simFx (GF := GF) γ C σ) := by
@@ -268,7 +275,7 @@ theorem simFx_violated (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (hs
   iintro ⟨Htbl, Hfx⟩
   iunfold simFx at Hfx
   icases Hfx with ⟨#Hal, %Hp⟩
-  obtain ⟨hle, hdur, hcw, hq⟩ := Hp
+  obtain ⟨hle, hdur, hcw, hq, -⟩ := Hp
   icases allFacts_oneLeader γ C σ hsrv $$ Hal with %h1
   icases allFacts_logInv γ C σ hsrv $$ Hal with %h2
   icases allFacts_logMatching γ C σ hsrv $$ Hal with %h3
