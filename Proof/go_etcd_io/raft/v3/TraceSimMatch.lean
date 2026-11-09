@@ -2377,6 +2377,67 @@ theorem simRun_recvStaleResp (C : List w64) (L : List TraceEv) (σ : Etcdraft.St
     · exact receive_staleResp σ mabs (by rw [hmdst]; exact hcontains) (Or.inr hmt)
         (by rw [hmdst, hR.1, hmterm]; exact hlt)
 
+/-- The specification's phantom reply to a lower-term request. -/
+def phantomReply (σ : Etcdraft.State) (mabs : Etcdraft.Msg) : Etcdraft.Msg :=
+  if mabs.type = .requestVoteRequest then
+    { type := .requestVoteResponse, term := (σ.s mabs.dest).currentTerm, voteGranted := false, source := mabs.dest, dest := mabs.source }
+  else
+    { type := .appendEntriesResponse, subtype := "app", term := (σ.s mabs.dest).currentTerm, success := false, matchIndex := 0, source := mabs.dest, dest := mabs.source }
+
+/-- **A lower-term request's receive line's step** (raft ignores it, pre-vote and check-quorum off;
+the specification answers it with a phantom). -/
+theorem simRun_recvStaleReq (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64)
+    (htyev : (m.ty = .app ∧ evt = W64 10) ∨ (m.ty = .vote ∧ evt = W64 14))
+    (hev : SendEvOf evt m.dst s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C) (hpv : σ.preVote = false) (hcq : σ.checkQuorum = false)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
+    (hpre : s.role ≠ .preCandidate) (hlt : uint.Z m.term < uint.Z s.term)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63)
+    (blt : uint.Z m.logterm < 2 ^ 63) (bk : m.entries.length < 2 ^ 63) (bmc : uint.Z m.commit < 2 ^ 63)
+    (mabs : Etcdraft.Msg) (hmabs : msgAbs C C.length m = some mabs)
+    (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
+    (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
+    (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs →
+      recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.reply (phantomReply σ mabs) mabs).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.reply (phantomReply σ mabs) mabs) := by
+  have hev' := hev
+  obtain ⟨hname, -, -, -, -, -, -, -, ⟨tm, hmsg, hm⟩, -⟩ := hev'
+  have hnames := recvName_of evt e hname
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  rcases htyev with ⟨hty, rfl⟩ | ⟨hty, rfl⟩
+  · have hmt : mabs.type = .appendEntriesRequest := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hmterm : mabs.term = uint.Z m.term := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hname' := hnames.1 rfl
+    have hph : phantomReply σ mabs = { type := .appendEntriesResponse, subtype := "app", term := (σ.s mabs.dest).currentTerm, success := false, matchIndex := 0, source := mabs.dest, dest := mabs.source } := by
+      unfold phantomReply; simp [hmt]
+    apply simRun_recvMsg1 C L σ _ hrun hL e s cfg m _ _ hev hname' (by rfl) (by rw [hty]; rfl) hin hout hC hsrv hR hs
+      hpre bt bc bl mabs hmdst _ hnd hmem hcnt huniq _ (by rfl) hboot hinv
+    · rw [recvPred_aer _ _ (by rw [msgLine_name, hname'])]
+      have := isAER_app C C.length e m.dst s.vote (elements cfg.incoming) m tm hmsg hm hty (by omega) bmc bi blt bk
+      simp only [hmabs, Option.get_some] at this; exact this
+    · rw [hph]
+      exact receive_staleAER σ mabs (by rw [hmdst]; exact hcontains) hmt (by rw [hmdst, hR.1, hmterm]; exact hlt) hpv hcq
+  · have hmt : mabs.type = .requestVoteRequest := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hmdst : mabs.dest = idAbs m.dst := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hmterm : mabs.term = uint.Z m.term := by simp [msgAbs, hty] at hmabs; rw [← hmabs]
+    have hname' := hnames.2.2.1 rfl
+    have hph : phantomReply σ mabs = { type := .requestVoteResponse, term := (σ.s mabs.dest).currentTerm, voteGranted := false, source := mabs.dest, dest := mabs.source } := by
+      unfold phantomReply; simp [hmt]
+    apply simRun_recvMsg1 C L σ _ hrun hL e s cfg m _ _ hev hname' (by rfl) (by rw [hty]; rfl) hin hout hC hsrv hR hs
+      hpre bt bc bl mabs hmdst _ hnd hmem hcnt huniq _ (by rfl) hboot hinv
+    · rw [recvPred_rvreq _ _ (by rw [msgLine_name, hname'])]
+      have := isRVReq_vote C C.length e m.dst s.vote (elements cfg.incoming) m tm hmsg hm hty (by omega) bi blt
+      simp only [hmabs, Option.get_some] at this; exact this
+    · rw [hph]
+      exact receive_staleVoteReq σ mabs (by rw [hmdst]; exact hcontains) hmt (by rw [hmdst, hR.1, hmterm]; exact hlt)
+
 end TraceSim
 
 end EtcdGrove
