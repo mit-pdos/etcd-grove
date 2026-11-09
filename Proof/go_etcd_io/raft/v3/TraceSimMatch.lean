@@ -350,6 +350,76 @@ theorem simRun_ready (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hr
   · exact confAbs_nodup C
   · simp only [linesTrace]; rw [mem_confAbs]; exact hC
 
+/-! ### Message lines -/
+
+/-- `MessageType.String()` of the traced types. -/
+def msgTypeStr : MsgType → GoString
+  | .vote => go!"MsgVote"
+  | .voteResp => go!"MsgVoteResp"
+  | .app => go!"MsgApp"
+  | .appResp => go!"MsgAppResp"
+  | .heartbeat => go!"MsgHeartbeat"
+  | .heartbeatResp => go!"MsgHeartbeatResp"
+  | _ => go!""
+
+/-- The traced message `tm` of raft's message `m` (`makeTracingMessage`, a non-snapshot). -/
+def MsgEvOf (m : Msg) (tm : TraceMsg) : Prop :=
+  tm.typ = msgTypeStr m.ty ∧ tm.term = m.term ∧ tm.frm = decStr m.src ∧ tm.to = decStr m.dst ∧
+  tm.entries = W64 m.entries.length ∧ tm.logTerm = m.logterm ∧ tm.index = m.index ∧
+  tm.commit = m.commit ∧ tm.reject = m.reject
+
+/-- A message event's line. -/
+def msgLine (e : TraceEv) (id vote f d : w64) (xs : List w64) : Etcdraft.Line :=
+  { ev := evConv e, nid := idAbs id, vote := idAbs vote, role := (evConv e).role,
+    conf := (Etcdraft.SetIds.mk (xs.map idAbs), Etcdraft.SetIds.mk (([] : List w64).map idAbs)),
+    «from» := idAbs f, to := idAbs d }
+
+/-- A fold appending each element's results, where one element gives one result and the others
+none. -/
+theorem foldlM_append_single {α β ε : Type} [DecidableEq α] (l : List α) (f : α → Except ε (List β))
+    (a : α) (x : β) (hnd : l.Nodup) (ha : a ∈ l) (hfa : f a = .ok [x]) (hf : ∀ b ∈ l, b ≠ a → f b = .ok []) :
+    l.foldlM (fun acc p => do return acc ++ (← f p)) [] = .ok [x] := by
+  suffices ∀ (l : List α) (acc : List β), l.Nodup → (∀ b ∈ l, b ≠ a → f b = .ok []) →
+      l.foldlM (fun acc p => do return acc ++ (← f p)) acc = .ok (if a ∈ l then acc ++ [x] else acc) by
+    have := this l [] hnd hf; simpa [ha] using this
+  intro l
+  induction l with
+  | nil => intro acc _ _; simp [pure, Except.pure]
+  | cons b l ih =>
+    intro acc hnd hf
+    rw [List.nodup_cons] at hnd
+    simp only [List.foldlM_cons, bind, Except.bind, pure, Except.pure] at ih ⊢
+    by_cases hb : b = a
+    · subst hb
+      rw [hfa]
+      simp only
+      rw [ih _ hnd.2 (fun c hc hne => hf c (by simp [hc]) hne)]
+      simp [hnd.1]
+    · rw [hf b (by simp) hb]
+      simp only [List.append_nil]
+      rw [ih _ hnd.2 (fun c hc hne => hf c (by simp [hc]) hne)]
+      simp [Ne.symm hb]
+
+theorem mem_pairs (t : Etcdraft.Trace) (i j : Etcdraft.ID) : (i, j) ∈ t.pairs ↔ i ∈ t.server ∧ j ∈ t.server := by
+  unfold Etcdraft.Trace.pairs; simp
+
+theorem product_nodup (l s : List Etcdraft.ID) (hl : l.Nodup) (hs : s.Nodup) :
+    (l.flatMap (fun i => s.map (fun j => (i, j)))).Nodup := by
+  induction l with
+  | nil => simp
+  | cons a l ih =>
+    rw [List.nodup_cons] at hl
+    rw [List.flatMap_cons, List.nodup_append]
+    refine ⟨hs.map (f := fun j => (a, j)) (fun _ _ hab e => hab (by simpa using e)), ih hl.2, ?_⟩
+    intro x hx y hy hxy
+    simp only [List.mem_map] at hx; obtain ⟨_, _, rfl⟩ := hx
+    simp only [List.mem_flatMap, List.mem_map] at hy; obtain ⟨b, hb, _, _, rfl⟩ := hy
+    simp only [Prod.mk.injEq] at hxy
+    exact hl.1 (hxy.1 ▸ hb)
+
+theorem pairs_nodup (t : Etcdraft.Trace) (h : t.server.Nodup) : t.pairs.Nodup := by
+  unfold Etcdraft.Trace.pairs; exact product_nodup _ _ h h
+
 end TraceSim
 
 end EtcdGrove
