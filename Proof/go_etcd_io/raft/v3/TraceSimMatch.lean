@@ -2240,6 +2240,69 @@ theorem simRun_recvReject (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
       (by rw [hmdst, hR.1, hmterm, hterm]; rfl) hpv hcq hlok
     rw [this]; rfl
 
+/-- **An append response's line predicate**, accepting or rejecting. -/
+theorem isAEResp_any (C : List w64) (bl : Nat) (e : TraceEv) (id vote : w64) (xs : List w64) (m : Msg)
+    (tm : TraceMsg) (hmsg : e.msg = some tm) (hm : MsgEvOf m tm) (hty : m.ty = .appResp)
+    (bt : uint.Z m.term < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63) :
+    (msgLine e id vote m.src m.dst xs).isAppendEntriesResponse
+      ((msgAbs C bl m).get (by simp [msgAbs, hty])) = true := by
+  obtain ⟨htyp, hterm, -, -, -, -, hidx, -, hrej'⟩ := hm
+  simp only [msgAbs, hty, Option.get_some]
+  unfold Etcdraft.Line.isAppendEntriesResponse
+  simp only [msgLine, evConv, hmsg, Option.map_some]
+  rw [htyp, hty, hterm, hidx, hrej', gInt_of_lt _ bt, gInt_of_lt _ bi, gsStr_msgTypeStr_appResp]
+  cases m.reject <;> simp [Etcdraft.raftMsgType, Etcdraft.raftMsgSubtype]
+
+/-- **A one-round receive line's step for any message** (generic): the event of raft's receipt of `m`
+at its `Step` (the receive name `nm`), the line matching `msgAbs m`, its one successor `S` consuming
+it. -/
+theorem simRun_recvMsg1 (C : List w64) (L : List TraceEv) (σ S : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (s : NState) (cfg : CfgM) (m : Msg) (evt : w64) (nm : String)
+    (hev : SendEvOf evt m.dst s cfg m e) (hname' : gsStr e.name = nm)
+    (hrecvnm : Etcdraft.isReceiveName nm = true)
+    (htyp : (Etcdraft.raftMsgType (gsStr (msgTypeStr m.ty))).isSome = true)
+    (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : m.dst ∈ C) (hsrv : σ.server = confAbs C)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs m.dst))) (hs : LogShapeOk C.length (toPState s))
+    (hpre : s.role ≠ .preCandidate)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63)
+    (mabs : Etcdraft.Msg) (hmdst : mabs.dest = idAbs m.dst)
+    (hpred : recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) mabs = true)
+    (hnd : σ.messages.domain.Nodup) (hmem : mabs ∈ σ.messages.domain)
+    (hcnt : 0 < Etcdraft.Bag.count σ.messages mabs)
+    (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs →
+      recvPred (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) m' = false)
+    (hrcv : σ.receive mabs = .ok [S]) (hmsgs : S.messages = (σ.discard mabs).messages)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : S.violated = .ok none) :
+    SimRun C (L ++ [e]) S := by
+  obtain ⟨-, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hparse : Etcdraft.parseLine L.length (evConv e) =
+      .ok (msgLine e m.dst s.vote m.src m.dst (elements cfg.incoming)) := by
+    rw [← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    exact parseLine_msg L.length e m.dst s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      (by rw [hm.1]; exact htyp)
+      (by rw [hname']; intro h; rw [h] at hrecvnm; exact absurd hrecvnm (by decide))
+  have hcontains : σ.server.contains (idAbs m.dst) = true := by
+    rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  apply simRun_recv1 C L σ S hrun hL e _ mabs hparse (by simp only [msgLine, evConv]; rw [hname']; exact hrecvnm)
+    hnd hmem hpred
+  · rw [hmdst, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
+    have hsm := stateMatches_node C s (σ.s (idAbs m.dst)) e m.dst xs hR hs hpre hterm' hcommit' hrl
+      hlog (hxs.trans hin) bt bc bl σ rfl hcontains
+    unfold Etcdraft.Line.stateMatches at hsm ⊢
+    simpa [msgLine, nodeLine] using hsm
+  · intro lines ts _ m' hm' hne; simp [huniq m' hm' hne]
+  · exact hrcv
+  · exact oneLess_of_msgs σ S mabs hmsgs hnd hcnt
+  · exact hboot
+  · exact hinv
+
 end TraceSim
 
 end EtcdGrove
