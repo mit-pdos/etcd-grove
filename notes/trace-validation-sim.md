@@ -639,7 +639,16 @@ requests and successful responses to it within its durable log). Left:
   `plog_match_down` twice (`l`'s log against `G` down to `c`, then against `i`'s below `c`). For
   `t = T_l`: the certificate is `l`'s own (`isLeader_unique`), and `leadPrefix_agree` relates `G` to
   `l`'s current log (a leader's facts gain its `leadPrefix`); only the entries of terms below `T_l`
-  are asked, which sit below the term's first index.
+  are asked, which sit below the term's first index. **Found (2026-11-09):** that last step needs
+  more than the persistent facts give: `leadFull_agree` relates two full logs of a term only where
+  both are defined, and a commit fact's log `G` may be longer than any full log persisted for `l`
+  (raft's term log grows; the facts record no upper bound), while `leadFrags` does not say that the
+  entries past the campaign log are of the term. The step then needs `c ≤ |log_l|` whenever `i`'s
+  certificate is of `l`'s term (so `term_i = T_l`): a specification invariant (a follower of term
+  `T` learns its commit index from `T`'s leader's messages, each within the leader's log, which only
+  grows during `T`), maintained with `LeaderEntries` and `DurInv`; or a leader clause from `l`'s term
+  log authority at its hooks. `restart_ack_one` (`Protocol/Enter.lean`) is the template of the
+  three cases (bootstrap, same term, earlier term).
 - `QuorumLogInv`: the acknowledgement-history copy of the table above (`histsOk`), as planned.
 
 ## Increment 2 of the hooks' specs (what S4 decides)
