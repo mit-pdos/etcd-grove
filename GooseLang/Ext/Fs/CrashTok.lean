@@ -70,10 +70,10 @@ def osStartG (hL : OsGS GF) (st : OsState) (V : Hist) : IProp GF :=
 are well formed and coherent with the history `V`. -/
 theorem os_local_initG (hPre : OsGpreS GF) (st : OsState) (V : Hist)
     (hp : st.proc = ProcState.empty) (hwf : OsWf st) (htw : FsTreeWf st)
-    (htc : TreeCoh st V ∅ ∅) (hfr : ∀ i f, st.fs.files !! i = some f → FrOk (frOf f) f) :
+    (htc : TreeCoh st V ∅ ∅) (hdz : ∀ i f, st.fs.files !! i = some f → DiskZeros f) :
     ⊢@{IProp GF} |==> ∃ hL : OsGS GF, osCtx hL st ∗ osStartG hL st V := by
   letI := hPre.osPreAllG
-  have hcoh := osCohG hp hwf hfr
+  have hcoh := osCohG hp hwf hdz
   imod ghost_map_alloc (GF := GF) (bytesMapG st) with ⟨%γb, Hab, Hb⟩
   imod ghost_map_alloc (GF := GF) (metaMapG st) with ⟨%γm, Ham, Hm⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap w64 OsFd) with ⟨%γf, Haf, -⟩
@@ -481,8 +481,8 @@ theorem os_local_crash (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (s
     ⟨%V, %Γdf, %Γc, %htw, HAd, -, -, -, -⟩⟩
   obtain ⟨hp, hroots, hwf', htw', V', htc', hcr, hnamed, hrel⟩ :=
     osCrash_rel hwc.1 hwc.2 htw.1 htw.2 hc
-  have hfr := fsInit_fr (machineCrash_init htw.1 htw.2 hc).1
-  imod os_local_initG hPre st' V' hp hwf' htw' htc' hfr with ⟨%hL', Hctx, Hst⟩
+  have hdz := fsInit_dz (machineCrash_init htw.1 htw.2 hc).1
+  imod os_local_initG hPre st' V' hp hwf' htw' htc' hdz with ⟨%hL', Hctx, Hst⟩
   unfold osCtx osCtxF treeCtx
   icases osStartG_files hL' st' V' $$ Hst with ⟨Hfs, Hv, Hd⟩
   imodintro
@@ -538,10 +538,9 @@ def osFileStart [L : GooseLocalGS GF] (i : Ino) (f : OsFile) : IProp GF :=
     osBytes (L := L) i 0 (DFrac.own 1) (f.contents.map (·, true)))
 
 /-- After a machine crash a file is on disk: its start is the first generation's. -/
-theorem osFileStartG_ofDisk [L : GooseLocalGS GF] (i : Ino) (vs : Nat → SecBytes) (sz : Nat)
-    (kp : Bool) :
-    osFileStartG (L := L) i (OsFile.ofDisk vs sz kp) ⊣⊢
-      osFileStart (L := L) i (OsFile.ofDisk vs sz kp) := by
+theorem osFileStartG_ofDisk [L : GooseLocalGS GF] (i : Ino) (vs : Nat → SecBytes) (sz : Nat) :
+    osFileStartG (L := L) i (OsFile.ofDisk vs sz) ⊣⊢
+      osFileStart (L := L) i (OsFile.ofDisk vs sz) := by
   unfold osFileStartG osFileStart
   rw [metaOf_ofDisk, bytesOf_ofDisk]
   exact .rfl

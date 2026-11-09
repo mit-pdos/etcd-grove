@@ -25,7 +25,7 @@ def shMeta (m : OsMeta) (sz : Nat) : OsMeta := { m with lo := min m.lo sz }
 
 /-- The `OsMeta` of a file after a truncate to `sz ≤ m.size`. -/
 def OsMeta.shrunk (m : OsMeta) (sz : Nat) : OsMeta :=
-  { m with size := sz, lo := min m.lo sz, vk := none, fr := m.fr.map (max · (pageUp sz)) }
+  { m with size := sz, lo := min m.lo sz, vk := none }
 
 theorem OsMeta.shrunk_size (m : OsMeta) (sz : Nat) : (m.shrunk sz).size = sz := rfl
 theorem OsMeta.shrunk_maps (m : OsMeta) (sz : Nat) : (m.shrunk sz).maps = m.maps := rfl
@@ -34,7 +34,7 @@ theorem OsMeta.shrunk_shMeta (m : OsMeta) (sz : Nat) : (shMeta m sz).shrunk sz =
   simp only [OsMeta.shrunk, shMeta, Nat.min_assoc, Nat.min_self]
 
 theorem OsMeta.shrunk_shrunk (m : OsMeta) (sz : Nat) : (m.shrunk sz).shrunk sz = m.shrunk sz := by
-  simp only [OsMeta.shrunk, Nat.min_assoc, Nat.min_self, frUp_idem]
+  simp only [OsMeta.shrunk, Nat.min_assoc, Nat.min_self]
 
 /-! ## The file after a shrinking truncate -/
 
@@ -136,7 +136,7 @@ theorem shFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     (∀ i, InflightAt st p i ↔ sz ≤ i) ∧
     OsWf stn ∧
     OsCoh stn (deleteBytes p f'.size (f.size - f'.size) Γb)
-      (<[p := { ti.om with size := f'.size, vk := none, fr := ti.om.fr.map (max · (pageUp sz)) }]>
+      (<[p := { ti.om with size := f'.size, vk := none }]>
         Γm) Γf (GMap.delete t Γt) := by
   intro stn
   have hct : st.proc.inflight !! t = some ti.c := by
@@ -239,10 +239,8 @@ theorem shFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
         fun hok k hd => by
           rw [(hg.ok k hd).1]
           exact hmo.ok hok k (by rw [← (hg.ok k hd).2]; exact hd),
-        hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_, by
-          rcases hg.either with rfl | rfl
-          · exact frOk_truncate_up hmo.fr sz sz (Nat.le_refl _)
-          · exact frOk_up hmo.fr _, (fun _ h => by cases h), fun z hz b hzb v hv => ?_⟩⟩
+        hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_,
+          (fun _ h => by cases h), fun z hz b hzb v hv => ?_⟩⟩
       · obtain ⟨h1, n1⟩ := hdel t' c' h1
         exact absurd h2 (hother t' c' n1 h1)
       · obtain ⟨w, hw⟩ : ∃ w, (f.secs (b / 512)).vers.head? = some w := by
@@ -260,7 +258,7 @@ theorem shFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, ?_, ⟨hm1.size, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
-        hm1.dur, hm1.fr, hm1.vk, hm1.dz⟩⟩
+        hm1.dur, hm1.vk, hm1.dz⟩⟩
       · show ((st.setProc { st.proc with inflight := GMap.delete t st.proc.inflight } : OsState).setFile p _).fs.files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg' c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -421,7 +419,7 @@ theorem wp_osFtruncateShrinkStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsM
     ⟨rfl, rfl, rfl, Nat.min_le_left _ _, Nat.le_refl _,
       by rw [← hc]; simp only [OsChange.target, shMeta]; omega,
       by rw [← hc]; simp only [OsChange.target, shMeta]; have := hmo.hi; have := hmo.size
-         have := hszf.2; omega, rfl, rfl, rfl, rfl⟩
+         have := hszf.2; omega, rfl, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi', hxs]) (fun k hk => by rw [hlo]; exact Hbl k hk)
   -- the cells: the file is unmapped, so none changes
@@ -483,7 +481,7 @@ theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
           (⌜e ≠ 0⌝ ∗ (osMeta (L := L) p (DFrac.own 1) (m.shrunk sz) ∨
             ∃ ys : List (w8 × Bool), ⌜ys.map Prod.fst = xs.map Prod.fst⌝ ∗
               osMeta (L := L) p (DFrac.own 1)
-                { shMeta m sz with vk := none, fr := m.fr.map (max · (pageUp sz)) } ∗
+                { shMeta m sz with vk := none } ∗
               osBytes (L := L) p sz (DFrac.own 1) ys))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
@@ -567,7 +565,7 @@ theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
     rw [hcp, show ti.q = 1 by rw [← hti0]]
   ihave Hm := eqm $$ Hm
   imod meta_replace _ (q := 1)
-    (om := { ti.om with size := n, vk := none, fr := ti.om.fr.map (max · (pageUp sz)) })
+    (om := { ti.om with size := n, vk := none })
     (fun h1 => absurd rfl h1)
     $$ [HAm Hm] with ⟨HAm, Hm⟩
   · iframe
@@ -636,7 +634,7 @@ theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
     isplitr
     · ipureintro; rfl
     unfold osMeta
-    rw [show ({ ti.om with size := n, vk := none, fr := ti.om.fr.map (max · (pageUp sz)) } : OsMeta) =
+    rw [show ({ ti.om with size := n, vk := none } : OsMeta) =
         (m.shrunk sz) by
       rw [hti_om, hn]; rfl]
     iexact Hm
@@ -647,7 +645,7 @@ theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
       · ipureintro; exact he
       ileft
       unfold osMeta
-      rw [show ({ ti.om with size := n, vk := none, fr := ti.om.fr.map (max · (pageUp sz)) } : OsMeta) =
+      rw [show ({ ti.om with size := n, vk := none } : OsMeta) =
         (m.shrunk sz) by
         rw [hti_om, hn]; rfl]
       iexact Hm
@@ -662,8 +660,8 @@ theorem wp_osFtruncateShrinkFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta)
       isplitr
       · ipureintro; rw [hsv', List.map_map, List.map_map]; rfl
       unfold osMeta osBytes
-      rw [show ({ ti.om with size := n, vk := none, fr := ti.om.fr.map (max · (pageUp sz)) } : OsMeta) =
-          { shMeta m sz with vk := none, fr := m.fr.map (max · (pageUp sz)) } by
+      rw [show ({ ti.om with size := n, vk := none } : OsMeta) =
+          { shMeta m sz with vk := none } by
         rw [hti_om, hn, ← hmsz]; rfl]
       iframe
 

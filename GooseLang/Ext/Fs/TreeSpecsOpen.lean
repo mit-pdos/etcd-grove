@@ -76,10 +76,6 @@ theorem file_of_lookup {st : OsState} (hw : FsTreeWf st) {p : GoString} {i : Ino
 known as zeros from offset 0 on (every sector's one version is zeros: `dz`). -/
 abbrev newMeta : OsMeta := { initMeta newFile with dz := some 0 }
 
-/-- A new file's sectors are all fresh. -/
-theorem newMeta_fr : newMeta.fr = some 0 := by
-  simp [initMeta, frOf, pageUp, newFile, OsFile.ofBytes, OsFile.ofDisk]
-
 theorem newFile_size : newFile.size = 0 := rfl
 theorem newFile_contents : newFile.contents = [] := rfl
 
@@ -87,9 +83,10 @@ theorem newFile_contents : newFile.contents = [] := rfl
 theorem newMeta_dz : ∀ z, newMeta.dz = some z → ∀ b, z ≤ b →
     ∀ v, (newFile.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = 0 := by
   intro z _ b _ v hv
-  simp only [newFile, OsFile.ofBytes, OsFile.ofDisk, List.head?_cons, Option.some.injEq] at hv
+  simp only [newFile, OsFile.ofBytes, OsFile.ofDisk, diskSec, List.head?_cons, Option.some.injEq,
+    pageIn, List.length_nil, Nat.not_lt_zero, decide_false, Bool.false_eq_true, if_false] at hv
   subst hv
-  simp [secOf, List.getD_eq_getElem?_getD]
+  simp [zeroSec]
   split <;> rfl
 
 section create
@@ -153,7 +150,7 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
         fun _ k _ => by simp [newFile, OsFile.ofBytes, OsFile.ofDisk], fun b len => ?_,
         fun t c ht hc => absurd hc (hnt t c ht), fun i d h => by
           simp [newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, OsFile.contents, pageUp] at h,
-        by rw [newMeta_fr]; exact frOk_newFile, fun ns hns k => by
+        fun ns hns k => by
           simp only [newMeta, initMeta, Option.some.injEq] at hns; subst hns
           simp [newFile, OsFile.ofBytes, OsFile.ofDisk], newMeta_dz⟩⟩
       simp only [newMeta, initMeta, GMap.lookup_empty, reduceCtorEq, false_iff]

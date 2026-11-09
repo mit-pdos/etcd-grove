@@ -8,22 +8,29 @@ fixed roots (`Tree.lean`), each file's page cache and what its disk may hold, by
 and the process's fds, directory fds, system calls in flight and read-only shared mappings. The
 machine's part (`FsState`) survives the process; the process's part (`ProcState`) does not.
 
+**Configuration C** (the one target; `notes/axiom-review/fs-config/README.md`, whose `check.sh`
+checks a machine against it and whose `mkfs-mount.sh` every experiment uses). Linux 7.0, x86-64,
+4 KiB pages, no swap; one local ext4 filesystem made by `mkfs.ext4` with its defaults (4 KiB
+blocks, extents, a journal; no `bigalloc`, `fast_commit`, `casefold` or `inline_data`), mounted
+with ext4's default options (`data=ordered`, `delalloc`, `dioread_nolock`, barriers; any `commit=`
+interval; not `journal_async_commit`, `nobarrier`, `data=journal`/`writeback`, `nodelalloc`,
+`dioread_lock`, read-only); the process's `RLIMIT_FSIZE` unlimited; Go 1.27.3. Other
+filesystems, options and kernels are outside the model until tested on their own.
+
 **Environment** (hypotheses of the adequacy statement, not of this file). The roots (`FsState.roots`)
-name distinct directories of one local filesystem (one journal: the same `st_dev`), ext4
-(`data=ordered` or `data=journal`, with the journal, without `fast_commit`) or xfs, mounted without
-`nobarrier` and without `journal_async_commit`, with no case-insensitive (casefold) directory, none
-in another's tree; every entry in their trees is a regular file or a directory (no symlink, mount
-point, device, FIFO or socket) and no file is a hard link of another; no other process changes
-their trees or moves a directory above a root; the filesystem is never read-only and has no error
-or shutdown event (then an `fsync` may return 0 without committing); the tree at boot is their
-trees' entries. The journal commits whole transactions, in order (ext4's jbd2; xfs's log, whose checkpoints
-are ordered); a metadata call joins a transaction no earlier than those of the calls that returned
-before it began, and two calls that lock a common directory (`i_rwsem`), or two renames across
-directories (the filesystem's rename lock), join transactions in the order they took effect; an
-`fsync` of a directory commits every transaction holding a change of that directory's inode (ext4
-commits the whole journal; xfs forces its log through the inode's last change). Linux 6.x.
+name distinct directories of the filesystem, none in another's tree; every entry in their trees is
+a regular file or a directory (no symlink, mount point, device, FIFO or socket) and no file is a
+hard link of another; no other process changes their trees or moves a directory above a root; the
+filesystem has no error or shutdown event (then an `fsync` may return 0 without committing); the
+tree at boot is their trees' entries. The journal (jbd2) commits whole transactions, in order; a
+metadata call joins a transaction no earlier than those of the calls that returned before it
+began, and two calls that lock a common directory (`i_rwsem`), or two renames across directories
+(the filesystem's rename lock), join transactions in the order they took effect; an `fsync` of a
+directory commits the whole journal.
 **Restarts**: the program restarts only after a machine restart, or after the previous process
-has exited (every thread of it returned from the kernel) and a `sync(2)` has made everything it
+has exited (every thread of it returned from the kernel; by any means, a Go runtime fatal error
+such as `netpollinit failed` at the first `os.OpenFile` included, which the model does not
+describe otherwise) and a `sync(2)` has made everything it
 left durable (a supervisor runs `sync` before restarting the program, e.g. systemd's
 `ExecStartPre=/bin/sync`): with no failed writeback, the disk then holds the page cache and the
 journal is committed, so a process's restart is the machine crash that keeps everything, and the
@@ -31,7 +38,7 @@ model has machine crashes only (`notes/fs-semantics-v2.md`). The device honours 
 atomically: a crash leaves each sector of a write entirely as it was or entirely as sent (sound for
 512n and 4Kn devices alike; it excludes a device whose write damages sectors it was not writing).
 **No mixed writeback**: the data a writeback sends never mixes a page's contents before and after
-a concurrent write into it (ordinary ext4 and xfs do not promise this: without stable pages a write
+a concurrent write into it (ext4 does not promise this: without stable pages a write
 may change a page during its DMA; it is assumed, `notes/fs-semantics-v2.md`). **No failed
 writeback**: no writeback of a file in the roots' trees fails (the device returns no I/O error, and
 writeback never fails to allocate blocks, ext4's "Delayed block allocation failed"): Linux may drop
@@ -77,20 +84,17 @@ the journal's order, `Follows`); every file that tree names
 becomes a crash image (a size it had since its last successful sync, or one an in-flight change
 gives it; each sector one of the versions it had since its last successful sync, or the current one
 with part of an in-flight change, whole: on ext4 a block's tail past a recovered size may hold data
-whose size change was lost); every other file, and the process's state, is gone. **Ordered
-growth**: a sector the crash's size covers is not its synced version if its page had no block
-(`Sector.fresh`). ext4 (`data=ordered`) allocates a block a file did not have at writeback, in the
-transaction that commits the size covering it, its data written first, and orders the zeroing a
-truncate-up or a write past the end does in the block holding the old end; xfs sets the size at
-I/O completion and writes the zeroing before logging a truncate-up. Neither orders an append into
-the block that holds the old end: a crash may keep the new size with that block's old bytes, stale
-ones past the old end included. So a page has no block if it lay past the size at the last
-successful sync (or the boot or crash the file comes from: Linux leaves no block past a file's last
-page but `FALLOC_FL_KEEP_SIZE`'s, `OsFile.kept`), and no size since reached it but by a change
-that gave the sector a newer version (any other sector of the page may be written back, zeroed past
-the size, and later covered by a write that is not ordered). Block size at most 4096 bytes. Tested
-on Linux 7.0 (`notes/axiom-review/fs-v2-f3/`). An extension (truncate-up, a write past the end,
-`fallocate`) reads zeros past the old size, stale bytes included (tested, F3).
+whose size change was lost); every other file, and the process's state, is gone. **Durable
+zeros**: at every point where a file's size is durable (a successful sync, a boot, a crash), the
+sectors of each page wholly past that size are zeros: such a page has no block, or an unwritten
+one (`FALLOC_FL_KEEP_SIZE`'s), which reads as zeros (`diskSec`, `OsFile.synced`). With no other
+rule, a crash that keeps a size covering such a page leaves each of its sectors zeros or a later
+version: ext4 (`dioread_nolock`) commits a new block as an unwritten extent with the size that
+covers it before the data is written, and converts it when the write completes. The page holding
+the end keeps its sectors' versions past the size, stale bytes on disk included: an append into it
+is not ordered before its size. An extension (truncate-up, a write past the end, `fallocate`) reads
+zeros past the old size, stale bytes included. All measured on C (`notes/axiom-review/fs-config/
+crash.sh`, `fs-v2-f3/f3.sh`).
 -/
 module
 
@@ -118,11 +122,6 @@ later one does not redo it: the sector is *lost*, not dirty with more than one v
 structure Sector where
   vers : List SecBytes
   dirty : Bool
-  /-- The sector's page had no block at the file's last successful sync (or the boot or crash it
-  comes from) and the file's size has not reached the page since, except by a change that gave
-  this sector a newer version: under a size that covers it, the disk never holds the first
-  version (ordered growth, the header). -/
-  fresh : Bool
 
 /-- The page cache's version of the sector. -/
 def Sector.last (s : Sector) : SecBytes := s.vers.getLast?.getD zeroSec
@@ -135,22 +134,24 @@ structure OsFile where
   size : Nat
   sizeLo : Nat
   sizeHi : Nat
-  /-- A `fallocate(FALLOC_FL_KEEP_SIZE)` may have allocated blocks past the end (kept through syncs
-  and crashes): no page is known to have no block. -/
-  kept : Bool := false
 
 /-- Sector `n` of the bytes `c`, zero past their end. -/
 def secOf (c : List w8) (n : Nat) : SecBytes := Vector.ofFn (fun j : Fin 512 => c.getD (512 * n + j) 0)
 
-/-- The page of sector `n` holds a byte below the size `sz` (4096-byte pages). -/
+/-- The page of sector `n` holds a byte below the size `sz` (4096-byte pages, which are the
+blocks of the configuration: the header). -/
 def pageIn (sz n : Nat) : Bool := decide (4096 * (n / 8) < sz)
 
+/-- What the disk holds in sector `n` of a file of durable size `sz` whose sectors hold `vs`:
+`vs n` in a page that holds a byte below `sz`; zeros past it, a page with no block or an unwritten
+one (**durable zeros**, the header). -/
+def diskSec (vs : Nat → SecBytes) (sz n : Nat) : SecBytes := if pageIn sz n then vs n else zeroSec
+
 /-- A file of size `sz` whose sector `n` holds `vs n`, all of it on disk (a boot and a crash find
-files so; the bytes past the size are whatever the sectors hold); a page past the size has no
-block unless `kept`. -/
-def OsFile.ofDisk (vs : Nat → SecBytes) (sz : Nat) (kept : Bool := false) : OsFile :=
-  { secs := fun n => ⟨[vs n], false, !kept && !pageIn sz n⟩, size := sz, sizeLo := sz,
-    sizeHi := sz, kept := kept }
+files so): the bytes past the size in its last page are whatever the sectors hold (stale ones
+included), the pages past it zeros (`diskSec`). -/
+def OsFile.ofDisk (vs : Nat → SecBytes) (sz : Nat) : OsFile :=
+  { secs := fun n => ⟨[diskSec vs sz n], false⟩, size := sz, sizeLo := sz, sizeHi := sz }
 
 /-- A file holding `c`, all of it on disk, zero past its end. -/
 def OsFile.ofBytes (c : List w8) : OsFile := OsFile.ofDisk (secOf c) c.length
@@ -286,16 +287,13 @@ def OsFile.written (f : OsFile) (off : Nat) (d : List w8) : List w8 :=
 
 /-- `f` with its contents changed to `c` by a change of the bytes `[lo, hi)`: each sector those
 bytes meet gets the new version and becomes dirty (a lost sector written again is dirty again: the
-next sync writes it); any other sector whose page the new size reaches and the old one did not is
-no longer fresh; the size range widens to `c`'s length. -/
+next sync writes it); the size range widens to `c`'s length. -/
 def OsFile.change (f : OsFile) (c : List w8) (lo hi : Nat) : OsFile :=
   { secs := fun n => let s := f.secs n
-      if secHits lo hi n then ⟨s.vers ++ [secOf c n], true, s.fresh⟩
-      else { s with fresh := s.fresh && !(pageIn c.length n && !pageIn f.size n) },
+      if secHits lo hi n then ⟨s.vers ++ [secOf c n], true⟩ else s,
     size := c.length,
     sizeLo := min f.sizeLo c.length,
-    sizeHi := max f.sizeHi c.length,
-    kept := f.kept }
+    sizeHi := max f.sizeHi c.length }
 
 /-- `f` with `k` bytes of a `pwrite` of `data` at `off` landed (nothing if `k = 0`): the bytes
 `[min off size, off + k)` change, the zero gap before them included. -/
@@ -307,29 +305,24 @@ def OsFile.landWrite (f : OsFile) (off : Nat) (data : List w8) (k : Nat) : OsFil
 def OsFile.truncate (f : OsFile) (sz : Nat) : OsFile :=
   f.change (f.resized sz) (min f.size sz) (max f.size sz)
 
-/-- `f` after a successful sync: every dirty sector not under an in-flight change (`busy`) is
-written, its versions collapsed to the last (fresh if its page lies past the size: the sync
-committed the blocks a shrink freed); a lost one is unchanged (Linux does not write it); the size
-is durable. -/
+/-- `f` after a successful sync: the size is durable; of the sectors not under an in-flight change
+(`busy`), one in a page past the size is durable zeros (the sync committed the freeing of the blocks
+a shrink cut off; the header), and a dirty one is written, its versions collapsed to the last; a
+lost one is unchanged (Linux does not write it). -/
 def OsFile.synced (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] : OsFile :=
   { f with
     secs := fun n => let s := f.secs n
-      if s.dirty ∧ ¬ busy n then ⟨[s.last], false, !f.kept && !pageIn f.size n⟩ else s,
+      if busy n then s
+      else if pageIn f.size n then (if s.dirty then ⟨[s.last], false⟩ else s)
+      else ⟨[zeroSec], false⟩,
     sizeLo := f.size, sizeHi := f.size }
 
 /-- `f` after a failed sync: the writeback of each dirty sector not under an in-flight change
-(`busy`) failed and Linux marks it clean: it is lost, its versions kept. The sizes are unchanged.
-A fresh sector stays fresh: with no failed writeback (the header), a block the failed sync
-allocated holds a later version than the synced one. -/
+(`busy`) failed and Linux marks it clean: it is lost, its versions kept. The sizes are unchanged. -/
 def OsFile.syncFailed (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] : OsFile :=
   { f with
     secs := fun n => let s := f.secs n
       if s.dirty ∧ ¬ busy n then { s with dirty := false } else s }
-
-/-- `f` after a `fallocate(FALLOC_FL_KEEP_SIZE)`: blocks anywhere may be allocated, now and after
-any later sync or crash. -/
-def OsFile.keepAlloc (f : OsFile) : OsFile :=
-  { f with secs := fun n => { f.secs n with fresh := false }, kept := true }
 
 /-- `f'` is `f` with each of the changes `ks`, in order, landed as some prefix: some bytes of a
 write (possibly none or all), a resize to any size between the file's and its target (ext4 resizes
@@ -814,13 +807,13 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        st' = st0.setFile i (f.truncate sz) ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
          (st' = st0 ∨ ∃ sz', f.size ≤ sz' ∧ sz' ≤ sz ∧ st' = st0.setFile i (f.truncate sz')))
-  /- `fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: `(#fd, #off, #len) ↦ #errno`. No visible change;
-  it may allocate blocks past the end, which a later append fills without ordering (`keepAlloc`);
-  any errno. Stuck on a negative offset or a length not above 0. -/
-  | "FallocKeep" => ∃ (fd off len e : w64) (d : OsFd) (f : OsFile),
+  /- `fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: `(#fd, #off, #len) ↦ #errno`. No change: the
+  blocks it allocates past the end are unwritten extents, which read as zeros until written, as a
+  page with no block does (durable zeros, the header); any errno. Stuck on a negative offset or a
+  length not above 0. -/
+  | "FallocKeep" => ∃ (fd off len e : w64) (d : OsFd),
       v = PairV (#fd) (PairV (#off) (#len)) ∧
-      FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧ 0 < len.toInt ∧ st.file d.ino = some f ∧
-      st' = st.setFile d.ino f.keepAlloc ∧ e' = Val (#e)
+      FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧ 0 < len.toInt ∧ st' = st ∧ e' = Val (#e)
   /- `fcntl(fd, F_OFD_SETLK[W], ...)`: `(#fd, #cmd) ↦ #errno`. Trivial, as `Flock`: the lock state
   is not modelled, so the errno is anything. -/
   | "OfdLock" => ∃ (fd cmd e : w64) (d : OsFd), v = PairV (#fd) (#cmd) ∧ FdOpen st fd d ∧
@@ -848,28 +841,15 @@ def SecCand (st : OsState) (i : Ino) (f : OsFile) (n : Nat) (v : SecBytes) : Pro
   v ∈ (f.secs n).vers ∨
   ∃ ks f', ks.Perm (changesOn st i) ∧ Landed ks f f' ∧ v = (f'.secs n).last
 
-/-- The versions of the sector `s` the disk may hold under a size that covers it: all, but the
-first if the sector is fresh. -/
-def Sector.covVers (s : Sector) : List SecBytes := if s.fresh then s.vers.tail else s.vers
-
-/-- `v` is a version a crash may leave in sector `n` of the file `f` of inode `i` under a size
-that covers the sector: as `SecCand`, but never the first version of a fresh sector (ordered
-growth, the header). -/
-def CovCand (st : OsState) (i : Ino) (f : OsFile) (n : Nat) (v : SecBytes) : Prop :=
-  v ∈ (f.secs n).covVers ∨
-  ∃ ks f', ks.Perm (changesOn st i) ∧ Landed ks f f' ∧ v = (f'.secs n).last ∧
-    (f'.secs n).last ∈ (f'.secs n).covVers
-
 /-- `f'` is what a machine crash may leave of the file `f` of inode `i`: a size it had since its
 last successful sync, or between such a size and one an in-flight change would give it; each sector a
-version `SecCand` allows, whole (its bytes past the size included), and one `CovCand` allows if the
-size covers it; all of it on disk. -/
+version `SecCand` allows, whole (its bytes past the size included); all of it on disk (`ofDisk`: the
+pages past the size durable zeros). -/
 def CrashFile (st : OsState) (i : Ino) (f f' : OsFile) : Prop :=
   ∃ (sz : Nat) (vs : Nat → SecBytes),
     ((f.sizeLo ≤ sz ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target st ≤ sz) ∧
      (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target st)) ∧
-    (∀ n, SecCand st i f n (vs n)) ∧ (∀ n, 512 * n < sz → CovCand st i f n (vs n)) ∧
-    f' = OsFile.ofDisk vs sz f.kept
+    (∀ n, SecCand st i f n (vs n)) ∧ f' = OsFile.ofDisk vs sz
 
 /-- The file `i` is named in the tree `m`. -/
 def Named (m : Tree) (i : Ino) : Prop := ∃ j b, m.entry j b = some (.file i)
@@ -898,7 +878,7 @@ def FsInit (st : OsState) : Prop :=
   st.proc = ProcState.empty ∧ st.fs.metaLog = [] ∧ (∀ y, ¬ st.fs.committed y) ∧
   RootsOk st.fs.roots ∧ TreeWf st.fs.roots st.fs.treeDur ∧
   (∀ i, Named st.fs.treeDur i → st.fs.files !! i ≠ none) ∧
-  (∀ i f, st.fs.files !! i = some f → Named st.fs.treeDur i ∧ ∃ vs sz kp, f = OsFile.ofDisk vs sz kp) ∧
+  (∀ i f, st.fs.files !! i = some f → Named st.fs.treeDur i ∧ ∃ vs sz, f = OsFile.ofDisk vs sz) ∧
   (∀ i, i ∈ st.fs.files → i < st.fs.nextIno) ∧ (∀ j, j ∈ st.fs.treeDur → j < st.fs.nextIno)
 
 instance fs_semantics : ExtSemantics fsExt where

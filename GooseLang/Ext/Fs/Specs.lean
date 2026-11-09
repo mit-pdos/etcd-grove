@@ -35,7 +35,7 @@ theorem osWf_fds {st : OsState} (hwf : OsWf st) (X : GMap w64 OsFd)
 
 theorem MetaOk.fds {st : OsState} {p : Ino} {m : OsMeta} {f : OsFile} (X : GMap w64 OsFd)
     (h : MetaOk st p m f) : MetaOk (st.setProc { st.proc with fds := X }) p m f :=
-  ⟨h.size, h.lo, h.hi, h.ok, h.maps, h.targets, h.dur, h.fr, h.vk, h.dz⟩
+  ⟨h.size, h.lo, h.hi, h.ok, h.maps, h.targets, h.dur, h.vk, h.dz⟩
 
 theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (X : GMap w64 OsFd) :
     OsCoh (st.setProc { st.proc with fds := X }) Γb Γm X Γt :=
@@ -529,11 +529,10 @@ theorem durOf_some {lo : Nat} {xs : List (w8 × Bool)} {i : Nat} {d : w8}
 
 /-- The `OsMeta` after a successful sync of the bytes `xs` from `lo`: the size is durable, and the
 durable bytes known are `xs`'s if no byte is lost (`m.ok`; then every byte is durable), none
-otherwise; the fresh sectors known from the size's last page on at most. -/
+otherwise; durable zeros from the end of the size's last page on (`OsFile.synced`). -/
 def OsMeta.synced (m : OsMeta) (lo : Nat) (xs : List (w8 × Bool)) : OsMeta :=
   { m with lo := m.size, hi := m.size, dur := if m.ok then durOf lo xs else [],
-           vk := if m.ok then some [] else m.vk, dz := none,
-           fr := m.fr.map (max · (pageUp m.size)) }
+           vk := if m.ok then some [] else m.vk, dz := some (pageUp m.size) }
 
 /-- The bytes after a successful sync: clean, unless a failed sync may have lost one. -/
 def syncedBytes (m : OsMeta) (xs : List (w8 × Bool)) : List (w8 × Bool) :=
@@ -571,12 +570,15 @@ theorem durOverlay_some : ∀ {a b : List (Option w8)} {i : Nat} {d : w8},
 theorem synced_keepClean (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] (b : Nat)
     (hsz : f.sizeLo ≤ f.size) (h : CleanPhys f b) : CleanPhys (f.synced busy) b := by
   obtain ⟨h1, h2⟩ := h
+  have h1' : b < f.size := by omega
   refine ⟨by simp [OsFile.synced]; omega, fun v hv => ?_⟩
-  rw [synced_rawAt]
-  simp only [OsFile.synced] at hv
+  rw [synced_rawAt _ _ _ h1']
+  simp only [OsFile.synced, pageIn_of_lt h1', if_true] at hv
   split at hv
-  · simp only [List.mem_singleton] at hv; subst hv; rfl
   · exact h2 v hv
+  · split at hv
+    · simp only [List.mem_singleton] at hv; subst hv; rfl
+    · exact h2 v hv
 
 /-- The oldest version of a clean byte's sector holds the page cache's byte. -/
 theorem clean_head {f : OsFile} {b : Nat} (h : CleanPhys f b) :
@@ -688,32 +690,33 @@ theorem wp_osFsync_keep (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Na
           by simp [OsMeta.syncedKeep, OsMeta.synced, OsFile.synced, hmo.size],
           (fun hok n hd => by
             simp only [OsMeta.syncedKeep, OsMeta.synced] at hok
-            simp only [OsFile.synced] at hd ⊢
-            split
-            · simp
-            · rename_i hn
-              split at hd
-              · exact absurd ‹_› hn
-              · exact hmo.ok hok n hd),
+            simp only [OsFile.synced, if_neg (hnoS n)] at hd ⊢
+            by_cases hp : pageIn f.size n = true
+            · by_cases hdd : (f.secs n).dirty = true
+              · simp [hp, hdd]
+              · simp only [hp, if_true, hdd, if_false] at hd ⊢; exact hmo.ok hok n hd
+            · simp [hp]),
           hmo.maps, fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), ?_,
-          by simp only [OsMeta.syncedKeep, OsMeta.synced]; rw [hmo.size]
-             exact frOk_synced hmo.fr _,
           fun ns hns n => by
             simp only [OsMeta.syncedKeep, OsMeta.synced] at hns
-            simp only [OsFile.synced]
-            split
-            · split <;> simp
-            · rename_i hn
-              split at hns
-              · rename_i hok
-                cases hns
-                have hd : (f.secs n).dirty = false := by
-                  cases hd : (f.secs n).dirty
-                  · rfl
-                  · exact absurd ⟨hd, hnoS n⟩ hn
-                simpa using hmo.ok hok n hd
-              · exact hmo.vk ns hns n,
-          fun z hz => by simp [OsMeta.syncedKeep, OsMeta.synced] at hz⟩
+            simp only [OsFile.synced, if_neg (hnoS n)]
+            by_cases hp : pageIn f.size n = true
+            · by_cases hdd : (f.secs n).dirty = true
+              · simp only [hp, if_true, hdd]; split <;> simp
+              · simp only [hp, if_true, hdd, if_false]
+                split at hns
+                · rename_i hok
+                  cases hns
+                  simpa using hmo.ok hok n (by simpa using hdd)
+                · exact hmo.vk ns hns n
+            · simp [hp]; split <;> simp,
+          fun z hz b hzb v hv => by
+            simp only [OsMeta.syncedKeep, OsMeta.synced, Option.some.injEq] at hz; subst hz
+            have hp : pageIn f.size (b / 512) = false :=
+              pageIn_pageUp (by rw [← hmo.size]; unfold pageUp at hzb ⊢; omega)
+            simp only [OsFile.synced, if_neg (hnoS _), hp] at hv
+            simp only [Bool.false_eq_true, if_false, List.head?_cons, Option.some.injEq] at hv
+            subst hv; simp [zeroSec]; split <;> rfl⟩
         intro i b hib0 v hv
         simp only [OsMeta.syncedKeep] at hib0
         rcases durOverlay_some hib0 with hib2 | hib
@@ -721,9 +724,8 @@ theorem wp_osFsync_keep (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Na
           obtain ⟨f1, h1, hb, hc1⟩ := hcoh.bytes _ _ _ (Hbl2 k hk)
           rw [hf] at h1; cases h1
           have hc := hkeep _ (hc1 (hc2 _ (List.getElem_mem hk))).1
-          rw [clean_head hc v hv, synced_rawAt]
           rw [contents_getElem?] at hb; split at hb
-          · exact Option.some.inj hb
+          · rename_i hi; rw [clean_head hc v hv, synced_rawAt _ _ _ hi]; exact Option.some.inj hb
           · cases hb
         simp only [OsMeta.synced] at hib
         split at hib
@@ -733,7 +735,7 @@ theorem wp_osFsync_keep (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Na
           rw [hf] at h1; cases h1
           rw [contents_getElem?] at hb; split at hb
           · rename_i hi
-            rw [clean_head (hokc hok _ hi) v hv, synced_rawAt]; exact Option.some.inj hb
+            rw [clean_head (hokc hok _ hi) v hv, synced_rawAt _ _ _ hi]; exact Option.some.inj hb
           · cases hb
         · simp at hib
       · intro k hk; unfold syncedBytes at hk ⊢; split <;> simp
@@ -774,7 +776,6 @@ theorem wp_osFsync_keep (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Na
         hkeep ?_ hnoI⟩
       · refine ⟨hmo.size, hmo.lo, hmo.hi, (fun h => by cases h), hmo.maps,
           fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), ?_,
-          frOk_syncFailed hmo.fr _,
           fun ns hns n => by
             simp only [OsFile.syncFailed]
             split <;> exact hmo.vk ns (by simpa using hns) n,
@@ -987,13 +988,13 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
         simp only [OsState.setProc, GMap.lookup_insert_eq_iff] at hq
         split at hq
         · subst_vars; cases hq
-          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           simp only [OsState.setProc, GMap.lookup_insert_eq_iff]
           split
           · simp
           · exact hmo.maps b len0
         · rename_i hpq
-          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           obtain ⟨f1, -, hmo1⟩ := hcoh.meta_some q m' hq
           rw [hmo1.maps b len0]
           simp only [OsState.setProc, GMap.lookup_insert_eq_iff]
@@ -1113,13 +1114,13 @@ theorem wp_osMunmap (base : Loc) (len cap : w64) (p : Ino) (m : OsMeta) (n : Nat
         simp only [OsState.setProc, GMap.lookup_insert_eq_iff] at hq
         split at hq
         · subst_vars; cases hq
-          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           simp only [OsState.setProc, GMap.lookup_delete_iff]
           split
           · simp
           · exact hmo.maps b len0
         · rename_i hpq
-          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           obtain ⟨f1, -, hmo1⟩ := hcoh.meta_some q m' hq
           rw [hmo1.maps b len0]
           simp only [OsState.setProc, GMap.lookup_delete_iff]

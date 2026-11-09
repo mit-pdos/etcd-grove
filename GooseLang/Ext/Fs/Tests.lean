@@ -14,11 +14,15 @@ executions: each test exhibits the model's outcome. Untrusted (a check of the tr
   directory made in it during the same run.
 * `rmdir_open_fd`: `rmdir` of an empty directory succeeds while an fd is open on it.
 * `crash_append_old_block`: an append into the block holding the old end, then a crash: the new
-  size may come back with the block's old bytes (ext4 does not order it).
-* `crash_fresh_written` (a guarantee): a new file's first write, crashed to a size that covers it,
-  is never the zeros from before (ordered growth).
-* `crash_current`: under `FreshOk`, which every file effect keeps (`freshOk_*`), a crash may keep a
-  file as it is: the ordered-growth rule never leaves a file without a crash image.
+  size may come back with the block's old bytes (ext4 does not order it; `fs-config/crash.sh
+  append-end`).
+* `crash_new_block_zeros`: a new file's first write, then a crash: the new size may come back with
+  zeros where the write was (ext4 commits the unwritten extent first; `crash.sh empty-write`).
+* `crash_past_end_zeros` (a guarantee): a file grown past its durable size's last page, then a
+  crash: the grown pages read zeros, whatever the disk held past the old end (durable zeros;
+  `crash.sh shrink-grow`, `keep-size`).
+* `crash_current`: under `VersOk`, which every file effect keeps (`versOk_*`), a crash may keep a
+  file as it is: the crash rule never leaves a file without a crash image.
 -/
 module
 
@@ -52,8 +56,28 @@ theorem secOf_far (c : List w8) (hc : c.length ≤ 1) (n : Nat) (h : 1 ≤ n) :
   rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega),
     List.getElem?_nil]
 
+/-- The disk's sector of a file holding `c` (or more): `c`'s, zero past its end. -/
+theorem diskSec_secOf_le {c : List w8} {sz : Nat} (h : c.length ≤ sz) (n : Nat) :
+    diskSec (secOf c) sz n = secOf c n := by
+  unfold diskSec; split
+  · rfl
+  · rename_i hp
+    simp only [pageIn, decide_eq_true_eq, Nat.not_lt] at hp
+    unfold secOf zeroSec; congr 1; funext j
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+
+/-- A resized file's sector past its old size is zeros (an extension reads zeros). -/
+theorem secOf_resized_past (f : OsFile) (sz n : Nat) (h : f.size ≤ 512 * n) :
+    secOf (f.resized sz) n = zeroSec := by
+  unfold secOf zeroSec; congr 1; funext j
+  rw [List.getD_eq_getElem?_getD]
+  simp only [OsFile.resized, List.getElem?_map]
+  by_cases hb : 512 * n + j.1 < sz
+  · rw [List.getElem?_range hb]; simp; omega
+  · rw [List.getElem?_eq_none (by simp; omega)]; rfl
+
 theorem fXY_vers : (fXY.secs 0).vers = [secOf [] 0, secOf [bx] 0, secOf [byt] 0] := by
-  simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits]
+  simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le, secHits]
 
 /-- Before the crash: the file of inode 0 created as `t` in the root (inode 1), renamed to `a`,
 neither committed. -/
@@ -101,17 +125,15 @@ theorem crash_old_name_new_bytes : OsCrash stOld stNew := by
       by rw [keptOps_first]; rfl⟩, fun i => ⟨fun hi => ?_, fun hi => ?_⟩⟩
   · obtain rfl := (named_new i).1 hi
     refine ⟨fXY, OsFile.ofBytes [byt], by simp [stOld], ?_, by simp [stNew]⟩
-    refine ⟨1, secOf [byt], ⟨.inl ?_, .inl ?_⟩, fun n => .inl ?_, fun n hn => .inl ?_, ?_⟩
-    · simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
-    · simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
+    refine ⟨1, secOf [byt], ⟨.inl ?_, .inl ?_⟩, fun n => .inl ?_, ?_⟩
+    · simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le]
+    · simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le]
     · rcases Nat.eq_zero_or_pos n with rfl | hn
       · rw [fXY_vers]; simp
       · rw [secOf_far _ (by simp) n hn]
         have h0 : 512 * n ≠ 0 := by omega
-        simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits, h0]
-    · obtain rfl : n = 0 := by omega
-      unfold Sector.covVers; split <;> rw [fXY_vers] <;> simp
-    · simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
+        simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le, secHits, h0]
+    · simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le]
   · have : i ≠ 0 := fun h => hi ((named_new i).2 h)
     simp [stNew, Ne.symm this]
 
@@ -122,8 +144,8 @@ def f1 : OsFile := (OsFile.ofBytes [bx]).change [byt] 0 1
 def fLost : OsFile := (f1.syncFailed (fun _ => False)).synced (fun _ => False)
 
 theorem fLost_vers : (fLost.secs 0).vers = [secOf [bx] 0, secOf [byt] 0] := by
-  simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes, OsFile.ofDisk,
-    secHits]
+  simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le,
+    secHits, pageIn]
 
 /-- One file, named `a` in the root, its name durable. -/
 def oneFile (f : OsFile) : OsState :=
@@ -144,37 +166,32 @@ theorem named_one (f : OsFile) (i : Ino) : Named (oneFile f).fs.treeDur i ↔ i 
 
 /-- A machine crash of `oneFile f` leaving the one-byte file `[b]`, from versions of its sectors. -/
 theorem crash_one (f : OsFile) (b : w8) (hlo : f.sizeLo ≤ 1) (hhi : 1 ≤ f.sizeHi)
-    (hv : secOf [b] 0 ∈ (f.secs 0).vers) (hz : ∀ n, 1 ≤ n → secOf [] n ∈ (f.secs n).vers)
-    (hfr : (f.secs 0).fresh = false) (hk : f.kept = false) :
+    (hv : secOf [b] 0 ∈ (f.secs 0).vers) (hz : ∀ n, 1 ≤ n → secOf [] n ∈ (f.secs n).vers) :
     OsCrash (oneFile f) (oneFile (OsFile.ofBytes [b])) := by
   refine ⟨rfl, rfl, rfl, fun _ h => h, rfl,
     ⟨fun _ => False, fun _ h => h.elim, fun _ h => h, fun _ _ h => h.elim, rfl⟩,
     fun i => ⟨fun hi => ?_, fun hi => ?_⟩⟩
   · obtain rfl := (named_one _ i).1 hi
     refine ⟨f, OsFile.ofBytes [b], by simp [oneFile], ?_, by simp [oneFile]⟩
-    refine ⟨1, secOf [b], ⟨.inl hlo, .inl hhi⟩, fun n => .inl ?_, fun n hn => .inl ?_,
-      by rw [hk]; rfl⟩
-    · rcases Nat.eq_zero_or_pos n with rfl | hn
-      · exact hv
-      · rw [secOf_far _ (by simp) n hn]; exact hz n hn
-    · obtain rfl : n = 0 := by omega
-      simpa [Sector.covVers, hfr] using hv
+    refine ⟨1, secOf [b], ⟨.inl hlo, .inl hhi⟩, fun n => .inl ?_, rfl⟩
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · exact hv
+    · rw [secOf_far _ (by simp) n hn]; exact hz n hn
   · have : i ≠ 0 := fun h => hi ((named_one _ i).2 h)
     simp [oneFile, Ne.symm this]
 
 /-- **A lost sector stays lost across a successful sync**: a crash may leave `X`. -/
 theorem crash_lost_after_sync : OsCrash (oneFile fLost) (oneFile (OsFile.ofBytes [bx])) :=
   crash_one fLost bx (by simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change,
-      OsFile.ofBytes, OsFile.ofDisk]) (by simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change,
-      OsFile.ofBytes, OsFile.ofDisk]) (by rw [fLost_vers]; simp) (fun n hn => by
-      simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes, OsFile.ofDisk,
+      OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le]) (by simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change,
+      OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le]) (by rw [fLost_vers]; simp) (fun n hn => by
+      simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le,
         OsFile.ofDisk, secHits, Sector.last]
       have h0 : 512 * n ≠ 0 := by omega
-      rw [secOf_far _ (by simp) n hn]; simp [h0])
-    (by simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes,
-      OsFile.ofDisk, secHits, pageIn])
-    (by simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes,
-      OsFile.ofDisk])
+      rw [secOf_far _ (by simp) n hn]
+      by_cases hp : 4096 * (n / 8) < 1
+      · simp [hp, pageIn, h0]
+      · simp [hp, pageIn, h0]; unfold secOf zeroSec; congr 1)
 
 /-! ## Unsynced bytes may be lost -/
 
@@ -182,31 +199,28 @@ theorem crash_lost_after_sync : OsCrash (oneFile fLost) (oneFile (OsFile.ofBytes
 the crash may leave `X`. (A process's restart is a machine crash, by the environment's assumption
 on restarts.) -/
 theorem crash_loses_unsynced : OsCrash (oneFile f1) (oneFile (OsFile.ofBytes [bx])) := by
-  refine crash_one f1 bx ?_ ?_ ?_ ?_ ?_ ?_
-  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
-  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
-  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits]
+  refine crash_one f1 bx ?_ ?_ ?_ ?_
+  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le]
+  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le]
+  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le, secHits]
   · intro n hn
     have h0 : 512 * n ≠ 0 := by omega
-    simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits, h0]
+    simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le, secHits, h0]
     exact (secOf_far _ (by simp) n hn).symm
-  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits, pageIn]
-  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
 
-/-! ## Ordered growth -/
+/-! ## Durable zeros -/
 
 /-- A machine crash of `oneFile f` leaving the file of size `sz` whose sectors are `vs`: versions of
-`f`'s sectors, not the first one of a fresh sector the size covers. -/
+`f`'s sectors. -/
 theorem crash_oneD (f : OsFile) (vs : Nat → SecBytes) (sz : Nat) (hlo : f.sizeLo ≤ sz)
-    (hhi : sz ≤ f.sizeHi) (hv : ∀ n, vs n ∈ (f.secs n).vers)
-    (hc : ∀ n, 512 * n < sz → vs n ∈ (f.secs n).covVers) :
-    OsCrash (oneFile f) (oneFile (OsFile.ofDisk vs sz f.kept)) := by
+    (hhi : sz ≤ f.sizeHi) (hv : ∀ n, vs n ∈ (f.secs n).vers) :
+    OsCrash (oneFile f) (oneFile (OsFile.ofDisk vs sz)) := by
   refine ⟨rfl, rfl, rfl, fun _ h => h, rfl,
     ⟨fun _ => False, fun _ h => h.elim, fun _ h => h, fun _ _ h => h.elim, rfl⟩,
     fun i => ⟨fun hi => ?_, fun hi => ?_⟩⟩
   · obtain rfl := (named_one _ i).1 hi
-    exact ⟨f, _, by simp [oneFile], ⟨sz, vs, ⟨.inl hlo, .inl hhi⟩, fun n => .inl (hv n),
-      fun n hn => .inl (hc n hn), rfl⟩, by simp [oneFile]⟩
+    exact ⟨f, _, by simp [oneFile], ⟨sz, vs, ⟨.inl hlo, .inl hhi⟩, fun n => .inl (hv n), rfl⟩,
+      by simp [oneFile]⟩
   · have : i ≠ 0 := fun h => hi ((named_one _ i).2 h)
     simp [oneFile, Ne.symm this]
 
@@ -214,116 +228,103 @@ theorem crash_oneD (f : OsFile) (vs : Nat → SecBytes) (sz : Nat) (hlo : f.size
 def fApp : OsFile := (OsFile.ofBytes [bx]).change [bx, byt] 1 2
 
 /-- **An append into the block holding the old end is not ordered**: a crash may keep the new size
-with the sector as it was (ext4 commits the size without the data,
-`notes/axiom-review/fs-v2-f3/ordered.sh append-alloc`): the file reads `X 0`. -/
+with the sector as it was (ext4 commits the size without the data, `crash.sh append-end`): the
+file reads `X 0`. -/
 theorem crash_append_old_block :
     OsCrash (oneFile fApp) (oneFile (OsFile.ofDisk (secOf [bx]) 2)) := by
-  have h := crash_oneD fApp (secOf [bx]) 2 (by simp [fApp, OsFile.change, OsFile.ofBytes,
-    OsFile.ofDisk]) (by simp [fApp, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]) (fun n => ?_)
-    (fun n hn => ?_)
-  · simpa [fApp, OsFile.change, OsFile.ofBytes, OsFile.ofDisk] using h
-  · rcases Nat.eq_zero_or_pos n with rfl | hn
-    · simp [fApp, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits]
-    · have h0 : ¬ 512 * n < 2 := by omega
-      simp [fApp, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits, h0]
-  · obtain rfl : n = 0 := by omega
-    simp [Sector.covVers, fApp, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits, pageIn]
+  refine crash_oneD fApp (secOf [bx]) 2 (by simp [fApp, OsFile.change, OsFile.ofBytes,
+    OsFile.ofDisk]) (by simp [fApp, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le]) (fun n => ?_)
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · simp [fApp, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le, secHits]
+  · have h0 : ¬ 512 * n < 2 := by omega
+    simp [fApp, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le, secHits, h0]
 
 /-- A new file, `Y` written into it, never synced. -/
 def fNew : OsFile := (OsFile.ofBytes []).change [byt] 0 1
 
-/-- **Ordered growth** (a guarantee): a crash that leaves the new file with its one byte leaves `Y`,
-never the zero its sector held before (its page had no block). -/
-theorem crash_fresh_written (f' : OsFile) (h : CrashFile (oneFile fNew) 0 fNew f')
-    (hs : f'.size = 1) : f'.contents = [byt] := by
-  obtain ⟨sz, vs, -, -, hcov, rfl⟩ := h
-  have hsz : sz = 1 := by simpa [OsFile.ofDisk] using hs
+/-- **A new block may come back as zeros under the size that covers it** (ext4 with
+`dioread_nolock` commits the size and the unwritten extent before the data, `crash.sh
+empty-write`): the file reads `0`. -/
+theorem crash_new_block_zeros :
+    OsCrash (oneFile fNew) (oneFile (OsFile.ofDisk (fun _ => zeroSec) 1)) := by
+  refine crash_oneD fNew _ 1 (by simp [fNew, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le])
+    (by simp [fNew, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le]) (fun n => ?_)
+  have hz : secOf [] n = zeroSec := by
+    unfold secOf zeroSec; congr 1
+  simp only [fNew, OsFile.change, OsFile.ofBytes, OsFile.ofDisk,
+    diskSec_secOf_le (c := []) (sz := 0) (Nat.le_refl _), hz, List.length_nil]
+  split <;> simp
+
+/-- A file of size 1 as a crash may find it on disk, holding the stale bytes `vs` past its end
+(any), grown to 8192 bytes. -/
+def fGrow (vs : Nat → SecBytes) : OsFile := (OsFile.ofDisk vs 1).truncate 8192
+
+/-- **Durable zeros** (a guarantee): after the file is grown past its durable size's last page, a
+crash that keeps the new size leaves the grown pages zeros, whatever the disk held past the old end
+(`crash.sh shrink-grow`, `keep-size`): byte 4096 reads 0. -/
+theorem crash_past_end_zeros (vs : Nat → SecBytes) (f' : OsFile)
+    (h : CrashFile (oneFile (fGrow vs)) 0 (fGrow vs) f') (hs : f'.size = 8192) :
+    f'.contents[4096]? = some 0 := by
+  obtain ⟨sz, ws, -, hv, rfl⟩ := h
+  have hsz : sz = 8192 := by simpa [OsFile.ofDisk] using hs
   subst hsz
-  have h0 : vs 0 = secOf [byt] 0 := by
-    rcases hcov 0 (by omega) with h | ⟨ks, f'', hp, hl, hv, -⟩
-    · simpa [Sector.covVers, fNew, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits,
-        pageIn] using h
+  have h8 : ws 8 = zeroSec := by
+    rcases hv 8 with h | ⟨ks, f'', hp, hl, hw⟩
+    · have hd : diskSec vs 1 8 = zeroSec := by simp [diskSec, pageIn]
+      simp only [fGrow, OsFile.truncate, OsFile.change, secHits] at h
+      simpa [OsFile.ofDisk, hd, secOf_resized_past] using h
     · have hk : ks = [] := List.perm_nil.mp (by simpa [changesOn, oneFile, ProcState.empty] using hp)
-      subst hk; cases hl; rw [hv]
-      simp [fNew, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits, Sector.last]
-  simp [OsFile.contents, OsFile.rawAt, OsFile.ofDisk, Sector.last, h0, secOf]
+      subst hk; cases hl; rw [hw]
+      simp [fGrow, OsFile.truncate, OsFile.change, secHits, Sector.last, secOf_resized_past,
+        OsFile.ofDisk]
+  simp [OsFile.contents, OsFile.rawAt, OsFile.ofDisk, Sector.last, diskSec, pageIn, h8, zeroSec]
 
 /-! ## A crash may always keep a file as it is -/
 
-/-- Every sector has a version, and a fresh one in a page the size reaches has two: the invariant
-of every file the semantics makes (`freshOk_*`), under which the crash rule allows the file as it
-is (`crash_current`): ordered growth never leaves a file without a crash image. -/
-def FreshOk (f : OsFile) : Prop :=
-  ∀ n, (f.secs n).vers ≠ [] ∧ ((f.secs n).fresh → pageIn f.size n → 2 ≤ (f.secs n).vers.length)
+/-- Every sector has a version: the invariant of every file the semantics makes (`versOk_*`),
+under which the crash rule allows the file as it is (`crash_current`). -/
+def VersOk (f : OsFile) : Prop := ∀ n, (f.secs n).vers ≠ []
 
 theorem last_mem {s : Sector} (h : s.vers ≠ []) : s.last ∈ s.vers := by
   unfold Sector.last; rw [List.getLast?_eq_getLast h]; exact List.getLast_mem h
 
-theorem last_mem_tail {s : Sector} (h : 2 ≤ s.vers.length) : s.last ∈ s.vers.tail := by
-  unfold Sector.last
-  match hv : s.vers, h with
-  | a :: b :: t, _ =>
-    rw [List.getLast?_eq_getLast (by simp)]
-    simp only [List.tail_cons]
-    rw [List.getLast_cons (by simp)]
-    exact List.getLast_mem _
-
-theorem crash_current (st : OsState) (i : Ino) (f : OsFile) (hok : FreshOk f)
+theorem crash_current (st : OsState) (i : Ino) (f : OsFile) (hok : VersOk f)
     (hlo : f.sizeLo ≤ f.size) (hhi : f.size ≤ f.sizeHi) :
-    CrashFile st i f (OsFile.ofDisk (fun n => (f.secs n).last) f.size f.kept) := by
-  refine ⟨f.size, _, ⟨.inl hlo, .inl hhi⟩, fun n => .inl (last_mem (hok n).1),
-    fun n hn => .inl ?_, rfl⟩
-  unfold Sector.covVers; split
-  · exact last_mem_tail ((hok n).2 ‹_› (by simp [pageIn]; omega))
-  · exact last_mem (hok n).1
+    CrashFile st i f (OsFile.ofDisk (fun n => (f.secs n).last) f.size) :=
+  ⟨f.size, _, ⟨.inl hlo, .inl hhi⟩, fun n => .inl (last_mem (hok n)), rfl⟩
 
-theorem freshOk_ofDisk (vs : Nat → SecBytes) (sz : Nat) (kp : Bool) :
-    FreshOk (OsFile.ofDisk vs sz kp) := by
-  intro n; cases hp : pageIn sz n <;> simp [OsFile.ofDisk, hp]
+theorem versOk_ofDisk (vs : Nat → SecBytes) (sz : Nat) : VersOk (OsFile.ofDisk vs sz) := by
+  intro n; simp [OsFile.ofDisk]
 
-theorem freshOk_change {f : OsFile} (hok : FreshOk f) (c : List w8) (lo hi : Nat) :
-    FreshOk (f.change c lo hi) := by
-  intro n
-  obtain ⟨hne, hfr⟩ := hok n
-  dsimp only [OsFile.change]
+theorem versOk_change {f : OsFile} (hok : VersOk f) (c : List w8) (lo hi : Nat) :
+    VersOk (f.change c lo hi) := by
+  intro n; dsimp only [OsFile.change]; split
+  · simp
+  · exact hok n
+
+theorem versOk_synced {f : OsFile} (hok : VersOk f) (busy : Nat → Prop) [DecidablePred busy] :
+    VersOk (f.synced busy) := by
+  intro n; dsimp only [OsFile.synced]
   split
-  · refine ⟨by simp, fun _ _ => ?_⟩
-    have := List.length_pos_iff.mpr hne
-    simp; omega
-  · refine ⟨hne, fun h hp => ?_⟩
-    simp only [hp, Bool.true_and, Bool.and_eq_true, Bool.not_eq_true', Bool.not_eq_false'] at h
-    exact hfr h.1 h.2
+  · exact hok n
+  · split
+    · split
+      · simp
+      · exact hok n
+    · simp
 
-theorem freshOk_synced {f : OsFile} (hok : FreshOk f) (busy : Nat → Prop) [DecidablePred busy] :
-    FreshOk (f.synced busy) := by
-  intro n
-  obtain ⟨hne, hfr⟩ := hok n
-  dsimp only [OsFile.synced]
-  split
-  · refine ⟨by simp, fun h hp => ?_⟩
-    simp [hp] at h
-  · exact ⟨hne, hfr⟩
+theorem versOk_syncFailed {f : OsFile} (hok : VersOk f) (busy : Nat → Prop)
+    [DecidablePred busy] : VersOk (f.syncFailed busy) := by
+  intro n; dsimp only [OsFile.syncFailed]; split <;> exact hok n
 
-theorem freshOk_syncFailed {f : OsFile} (hok : FreshOk f) (busy : Nat → Prop)
-    [DecidablePred busy] : FreshOk (f.syncFailed busy) := by
-  intro n
-  obtain ⟨hne, hfr⟩ := hok n
-  dsimp only [OsFile.syncFailed]
-  split
-  · exact ⟨hne, hfr⟩
-  · exact ⟨hne, hfr⟩
-
-theorem freshOk_keepAlloc {f : OsFile} (hok : FreshOk f) : FreshOk f.keepAlloc :=
-  fun n => ⟨(hok n).1, fun h => by simp [OsFile.keepAlloc] at h⟩
-
-theorem freshOk_landWrite {f : OsFile} (hok : FreshOk f) (off : Nat) (data : List w8) (k : Nat) :
-    FreshOk (f.landWrite off data k) := by
+theorem versOk_landWrite {f : OsFile} (hok : VersOk f) (off : Nat) (data : List w8) (k : Nat) :
+    VersOk (f.landWrite off data k) := by
   unfold OsFile.landWrite; split
   · exact hok
-  · exact freshOk_change hok _ _ _
+  · exact versOk_change hok _ _ _
 
-theorem freshOk_truncate {f : OsFile} (hok : FreshOk f) (sz : Nat) : FreshOk (f.truncate sz) :=
-  freshOk_change hok _ _ _
+theorem versOk_truncate {f : OsFile} (hok : VersOk f) (sz : Nat) : VersOk (f.truncate sz) :=
+  versOk_change hok _ _ _
 
 /-! ## Overlapping calls in disjoint directories: either may survive alone -/
 
@@ -393,8 +394,8 @@ theorem crash_overlap : OsCrash stOv stOv' := by
       rcases (named_ov i).1 hi with rfl | rfl <;> exact ⟨newFile, by simp [stOv, stOv']⟩
     obtain ⟨f, hfi, rfl, hfi'⟩ := hf
     refine ⟨newFile, OsFile.ofBytes [], hfi, ⟨0, secOf [], ⟨.inl ?_, .inl ?_⟩,
-      fun n => .inl ?_, fun n hn => absurd hn (by omega), rfl⟩, hfi'⟩ <;>
-      simp [newFile, OsFile.ofBytes, OsFile.ofDisk]
+      fun n => .inl ?_, rfl⟩, hfi'⟩ <;>
+      simp [newFile, OsFile.ofBytes, OsFile.ofDisk, diskSec_secOf_le]
   · have h6 : i ≠ 6 := fun h => hi ((named_ov i).2 (.inl h))
     have h7 : i ≠ 7 := fun h => hi ((named_ov i).2 (.inr h))
     simp [stOv', Ne.symm h6, Ne.symm h7]

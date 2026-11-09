@@ -191,13 +191,18 @@ end rel
 open Classical in
 /-- The ghost `OsMeta` of a file of a new generation: its sizes and crash bounds, whether no sector
 is lost, its known durable bytes (those of the oldest version of each sector, through the end of
-the last page), no mapping, and no claim of zeros past the size. -/
+the last page), no mapping, and durable zeros past the last page (`DiskZeros`). -/
 def metaOf (f : OsFile) : OsMeta :=
   ⟨f.size, f.sizeLo, f.sizeHi,
     decide (∀ n, (f.secs n).dirty = false → (f.secs n).vers.length ≤ 1), ∅,
     (List.range (pageUp f.size)).map (fun b =>
       some ((((f.secs (b / 512)).vers.head?).getD zeroSec).toList.getD (b % 512) 0)),
-    frOf f, if ∀ n, (f.secs n).vers.length ≤ 1 then some [] else none, none⟩
+    if ∀ n, (f.secs n).vers.length ≤ 1 then some [] else none, some (pageUp f.size)⟩
+
+/-- The oldest version of every sector past the file's last page is zeros (as `OsFile.ofDisk`
+makes it: durable zeros). -/
+def DiskZeros (f : OsFile) : Prop :=
+  ∀ b, pageUp f.size ≤ b → ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = 0
 
 open Classical in
 /-- The bytes of a file of a new generation, each flagged clean if it is. -/
@@ -207,23 +212,23 @@ def bytesOf (f : OsFile) : List (w8 × Bool) :=
 theorem bytesOf_length (f : OsFile) : (bytesOf f).length = f.size := by simp [bytesOf]
 
 /-- A file on disk: one version per sector, the size range a point. -/
-theorem ofDisk_clean (vs : Nat → SecBytes) (sz b : Nat) {kp : Bool} (hb : b < sz) :
-    CleanPhys (OsFile.ofDisk vs sz kp) b := by
+theorem ofDisk_clean (vs : Nat → SecBytes) (sz b : Nat) (hb : b < sz) :
+    CleanPhys (OsFile.ofDisk vs sz) b := by
   refine ⟨by simp [OsFile.ofDisk]; exact hb, fun v hv => ?_⟩
   simp only [OsFile.ofDisk, List.mem_singleton] at hv; subst hv
   simp [OsFile.rawAt, OsFile.ofDisk, Sector.last]
 
 /-- **After a machine crash, a file's ghost values say it is on disk.** -/
-theorem metaOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) (kp : Bool) :
-    metaOf (OsFile.ofDisk vs sz kp) = initMeta (OsFile.ofDisk vs sz kp) := by
+theorem metaOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) :
+    metaOf (OsFile.ofDisk vs sz) = initMeta (OsFile.ofDisk vs sz) := by
   unfold metaOf initMeta
   congr 1
   · simp [OsFile.ofDisk]
   · rw [if_pos (fun n => by simp [OsFile.ofDisk])]
 
 open Classical in
-theorem bytesOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) (kp : Bool) :
-    bytesOf (OsFile.ofDisk vs sz kp) = (OsFile.ofDisk vs sz kp).contents.map (·, true) := by
+theorem bytesOf_ofDisk (vs : Nat → SecBytes) (sz : Nat) :
+    bytesOf (OsFile.ofDisk vs sz) = (OsFile.ofDisk vs sz).contents.map (·, true) := by
   simp only [bytesOf, OsFile.contents, List.map_map]
   apply List.map_congr_left
   intro b hb
@@ -258,17 +263,17 @@ theorem bytesOf_get (f : OsFile) (b : Nat) :
   · rename_i h; rw [List.getElem?_range h]; rfl
   · rename_i h; rw [List.getElem?_eq_none (by simp; omega)]; rfl
 
-/-- The files of a state a program may start in have the fresh sectors `frOf` says. -/
-theorem fsInit_fr {st : OsState} (h : FsInit st) :
-    ∀ i f, st.fs.files !! i = some f → FrOk (frOf f) f := by
+/-- The files of a state a program may start in hold durable zeros past their last page. -/
+theorem fsInit_dz {st : OsState} (h : FsInit st) :
+    ∀ i f, st.fs.files !! i = some f → DiskZeros f := by
   intro i f hf
-  obtain ⟨vs, sz, kp, rfl⟩ := (h.2.2.2.2.2.2.1 i f hf).2
-  exact ofDisk_fr vs sz kp
+  obtain ⟨vs, sz, rfl⟩ := (h.2.2.2.2.2.2.1 i f hf).2
+  exact ofDisk_dz vs sz
 
-/-- A state with no process state, well formed, whose files have the fresh sectors `frOf` says,
-is coherent with the ghost maps of its files. -/
+/-- A state with no process state, well formed, whose files hold durable zeros past their last
+page, is coherent with the ghost maps of its files. -/
 theorem osCohG {st : OsState} (hp : st.proc = ProcState.empty) (hwf : OsWf st)
-    (hfr : ∀ i f, st.fs.files !! i = some f → FrOk (frOf f) f) :
+    (hdz : ∀ i f, st.fs.files !! i = some f → DiskZeros f) :
     OsCoh st (bytesMapG st) (metaMapG st) ∅ ∅ := by
   classical
   have hnoinfl : ∀ i b, ¬ InflightAt st i b := by
@@ -282,11 +287,12 @@ theorem osCohG {st : OsState} (hp : st.proc = ProcState.empty) (hwf : OsWf st)
     | some f =>
       simp only [hfo, Option.map_some, Option.some.injEq] at hm
       subst hm
-      refine ⟨f, rfl, ⟨rfl, Nat.le_refl _, Nat.le_refl _, ?_, ?_, ?_, ?_, hfr i f hfo, (fun ns hns n => by
+      refine ⟨f, rfl, ⟨rfl, Nat.le_refl _, Nat.le_refl _, ?_, ?_, ?_, ?_, (fun ns hns n => by
           simp only [metaOf] at hns
           split at hns
           · rename_i h1; cases hns; simpa using h1 n
-          · cases hns), fun z hz => by simp [metaOf] at hz⟩⟩
+          · cases hns), fun z hz => by
+            simp only [metaOf, Option.some.injEq] at hz; subst hz; exact hdz i f hfo⟩⟩
       · intro h; simp only [metaOf] at h; exact of_decide_eq_true h
       · intro b len; simp [metaOf, hp, ProcState.empty]
       · intro t c ht; simp [hp, ProcState.empty] at ht
@@ -371,8 +377,8 @@ theorem machineCrash_init (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc)
   · intro i f hf
     by_cases hi : Named st'.fs.treeDur i
     · refine ⟨hi, ?_⟩
-      obtain ⟨f0, f', -, ⟨sz, vs, -, -, -, rfl⟩, hf'⟩ := (hfiles i).1 hi
-      rw [hf] at hf'; cases hf'; exact ⟨vs, sz, _, rfl⟩
+      obtain ⟨f0, f', -, ⟨sz, vs, -, -, rfl⟩, hf'⟩ := (hfiles i).1 hi
+      rw [hf] at hf'; cases hf'; exact ⟨vs, sz, rfl⟩
     · rw [(hfiles i).2 hi] at hf; cases hf
   · intro i hi
     rw [hino]

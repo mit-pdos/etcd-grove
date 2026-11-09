@@ -35,8 +35,14 @@ theorem secOf_getD (c : List w8) (b : Nat) :
   simp only [secOf, List.getD_eq_getElem?_getD, Vector.toList_ofFn, List.getElem?_ofFn]
   simp [hb, he]
 
-theorem last_mk_append (vs : List SecBytes) (v : SecBytes) (d fr : Bool) :
-    (⟨vs ++ [v], d, fr⟩ : Sector).last = v := by simp [Sector.last]
+theorem last_mk_append (vs : List SecBytes) (v : SecBytes) (d : Bool) :
+    (⟨vs ++ [v], d⟩ : Sector).last = v := by simp [Sector.last]
+
+/-- Below the durable size, the disk's sector is the one given. -/
+theorem diskSec_of_lt {vs : Nat → SecBytes} {sz b : Nat} (h : b < sz) :
+    diskSec vs sz (b / 512) = vs (b / 512) := by
+  have : pageIn sz (b / 512) = true := by simp only [pageIn, decide_eq_true_eq]; omega
+  simp [diskSec, this]
 
 /-- A change leaves a byte outside its bytes as it was, if the new contents keep it. -/
 theorem rawAt_change (f : OsFile) (c : List w8) (lo hi b : Nat) (hb : ¬ (lo ≤ b ∧ b < hi))
@@ -166,10 +172,11 @@ theorem crash_keeps_clean {st : OsState} {i : Ino} {f f' : OsFile} {b : Nat} {x 
     (hv : ∀ v ∈ (f.secs (b / 512)).vers, v.toList.getD (b % 512) 0 = x)
     (hn : ¬ InflightAt st i b) (hsz : b < f'.size) :
     f'.contents[b]? = some x := by
-  obtain ⟨sz, vs, -, hcand, -, rfl⟩ := hc
+  obtain ⟨sz, vs, -, hcand, rfl⟩ := hc
   have hb : b < sz := hsz
   simp only [OsFile.contents, OsFile.ofDisk, List.getElem?_map, List.getElem?_range hb,
-    Option.map_some, OsFile.rawAt, Sector.last, List.getLast?_singleton, Option.getD_some]
+    Option.map_some, OsFile.rawAt, Sector.last, List.getLast?_singleton, Option.getD_some,
+    diskSec_of_lt hb]
   congr 1
   rcases hcand (b / 512) with hmem | ⟨ks, g, hperm, hl, hvg⟩
   · exact hv _ hmem

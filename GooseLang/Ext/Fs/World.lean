@@ -397,8 +397,7 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
     · exact h0
     · exact h0.trans (treeFrame_setFile _ i _ f hf)
   · -- FallocKeep
-    obtain ⟨_, _, _, _, d, f, -, -, -, -, -, hf, rfl, -⟩ := h
-    exact treeFrame_setFile _ d.ino _ f hf
+    obtain ⟨_, _, _, _, d, -, -, -, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
   · -- OfdLock
     obtain ⟨_, _, _, _, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
 

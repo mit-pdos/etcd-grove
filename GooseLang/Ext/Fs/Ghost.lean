@@ -51,21 +51,16 @@ structure OsMeta where
   sector (the disk's as of the last successful sync) holds `d` there. A write adds versions after
   it, a failed sync keeps them, a successful one collapses them. -/
   dur : List (Option w8)
-  /-- Fresh sectors known from an offset: `some p` if the file has no `FALLOC_FL_KEEP_SIZE` blocks
-  (`OsFile.kept`) and every sector from byte `p` on is fresh (`Sector.fresh`: under a crash size
-  that covers it, never its synced version). A new file: `some 0`; a file on disk: its size
-  rounded up to a page; a change rounds it up to its new size's page unless it covers every sector
-  from `p` to there (`frChange`). -/
-  fr : Option Nat
   /-- Versions known per sector: `some ns` if, since the last successful sync, every sector has at
   most one version except those in `ns`, which have at most two (the synced contents and one
   change); `none` if nothing is known. A crash then leaves such a sector whole: its synced version,
   its current one (or a change in flight, landed). -/
   vk : Option (List Nat)
   /-- Durable zeros known past an offset: `some z` if, at every byte from `z` on, the oldest
-  version of its sector holds 0 (a file created in this generation: `some 0`). A finite
-  `dur` for a fresh file's unbounded zeros; a write, a truncate and a failed sync keep it (they add
-  versions after the oldest); a successful sync forgets it. -/
+  version of its sector holds 0 (the semantics' durable zeros: a file created in this generation,
+  `some 0`; a file on disk, or after a successful sync, the end of its size's last page). A finite
+  `dur` for the unbounded zeros; a write, a truncate and a failed sync keep it (they add versions
+  after the oldest). -/
   dz : Option Nat := none
 
 /-- The sectors that a change of the bytes `[lo, hi)` meets. -/
@@ -95,11 +90,11 @@ structure TokInfo where
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.fr, m.vk, m.dz))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.vk, m.dz))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8 h9; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -220,11 +215,6 @@ structure OsWf : Prop where
   /-- Every sector has a version (its page cache's, the last). -/
   vers : ∀ i f n, st.file i = some f → (f.secs n).vers ≠ []
 
-/-- `fr` holds of `f`: if `some p`, `f` has no `FALLOC_FL_KEEP_SIZE` blocks and every sector from
-byte `p` on is fresh (`OsMeta.fr`). -/
-def FrOk (fr : Option Nat) (f : OsFile) : Prop :=
-  ∀ p, fr = some p → f.kept = false ∧ ∀ n, p ≤ 512 * n → (f.secs n).fresh = true
-
 /-- What the ghost `OsMeta` `m` of the file `f` of inode `i` says of it. -/
 structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   size : m.size = f.size
@@ -236,7 +226,6 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
     m.lo ≤ c.target st ∧ c.target st ≤ m.hi
   dur : ∀ (b : Nat) (d : w8), m.dur[b]? = some (some d) →
     ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = d
-  fr : FrOk m.fr f
   vk : ∀ ns, m.vk = some ns → ∀ n, (f.secs n).vers.length ≤ if n ∈ ns then 2 else 1
   dz : ∀ z, m.dz = some z → ∀ b, z ≤ b →
     ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = 0
@@ -731,23 +720,20 @@ theorem pageIn_pageUp {L n : Nat} (h : pageUp L ≤ 512 * n) : pageIn L n = fals
 theorem pageUp_mono {a b : Nat} (h : a ≤ b) : pageUp a ≤ pageUp b := by
   simp only [pageUp]; omega
 
-/-- The fresh sectors a file on disk is known to have: those past its last page, unless `kept`. -/
-def frOf (f : OsFile) : Option Nat := if f.kept then none else some (pageUp f.size)
-
 /-- The ghost `OsMeta` of a file as on disk: all of it durable, the bytes known through the end of
 its last page (those past the size are the sectors' bytes there, which a crash that grows the file
-over them may keep: `OsFile.rawAt`). -/
+over them may keep: `OsFile.rawAt`), and zeros past it (durable zeros). -/
 def initMeta (f : OsFile) : OsMeta :=
   ⟨f.size, f.size, f.size, true, ∅, (List.range (pageUp f.size)).map (fun b => some (f.rawAt b)),
-    frOf f, some [], none⟩
+    some [], some (pageUp f.size)⟩
 
-/-- A file on disk has the fresh sectors `frOf` says. -/
-theorem ofDisk_fr (vs : Nat → SecBytes) (sz : Nat) (kp : Bool) :
-    ∀ p, frOf (OsFile.ofDisk vs sz kp) = some p → (OsFile.ofDisk vs sz kp).kept = false ∧
-      ∀ n, p ≤ 512 * n → ((OsFile.ofDisk vs sz kp).secs n).fresh = true := by
-  intro p hp
-  cases kp <;> simp [frOf, OsFile.ofDisk] at hp ⊢
-  subst hp; intro n hn; simp [pageIn_pageUp hn]
+/-- A file on disk holds zeros from the end of its last page on (`diskSec`). -/
+theorem ofDisk_dz (vs : Nat → SecBytes) (sz : Nat) : ∀ b, pageUp sz ≤ b →
+    ∀ v, ((OsFile.ofDisk vs sz).secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = 0 := by
+  intro b hb v hv
+  have hp : pageIn sz (b / 512) = false := pageIn_pageUp (by unfold pageUp at hb ⊢; omega)
+  simp only [OsFile.ofDisk, diskSec, hp, List.head?_cons, Option.some.injEq] at hv
+  subst hv; simp [zeroSec]; split <;> rfl
 
 /-- The bytes of the files of `st`, all clean. -/
 def bytesMap (st : OsState) : GMap (Ino × Nat) (w8 × Bool) :=
@@ -851,14 +837,14 @@ theorem contents_getElem? (f : OsFile) (b : Nat) :
   · rename_i h; simp [List.getElem?_range h]
   · rename_i h; simp [List.getElem?_range', h]
 
-theorem ofDisk_rawAt (vs : Nat → SecBytes) (sz b : Nat) (kp : Bool) :
-    (OsFile.ofDisk vs sz kp).rawAt b = (vs (b / 512)).toList.getD (b % 512) 0 := by
+theorem ofDisk_rawAt (vs : Nat → SecBytes) (sz b : Nat) :
+    (OsFile.ofDisk vs sz).rawAt b = (diskSec vs sz (b / 512)).toList.getD (b % 512) 0 := by
   simp [OsFile.rawAt, OsFile.ofDisk, Sector.last]
 
 theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     OsWf st ∧ OsCoh st (bytesMap st) (metaMap st) ∅ ∅ := by
   obtain ⟨hproc, -, -, -, -, -, hdisk, -, -⟩ := h
-  have hdisk' : ∀ i f, st.file i = some f → ∃ vs sz kp, f = OsFile.ofDisk vs sz kp :=
+  have hdisk' : ∀ i f, st.file i = some f → ∃ vs sz, f = OsFile.ofDisk vs sz :=
     fun i f hf => (hdisk i f hf).2
   have hnoinfl : ∀ i b, ¬ InflightAt st i b := by
     rintro i b ⟨t, c, ht, -⟩; simp [hproc, ProcState.empty] at ht
@@ -869,9 +855,9 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
   · intro t c h; simp [hproc, ProcState.empty] at h
   · intro t1 c1 _ _ _ h; simp [hproc, ProcState.empty] at h
   · intro i f hf
-    obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
+    obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
   · intro i f n hf
-    obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
+    obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
   · intro i; simp [metaMap]
   · intro i m hm
     simp only [metaMap, GMap.lookup_fmap] at hm
@@ -880,10 +866,12 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     | some f =>
       simp only [hfo, Option.map_some, Option.some.injEq] at hm
       subst hm
-      obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hfo
-      refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ofDisk_fr vs sz kp,
+      obtain ⟨vs, sz, rfl⟩ := hdisk' i f hfo
+      refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_,
         fun ns hns n => by simp [initMeta] at hns; subst hns; simp [OsFile.ofDisk],
-        fun z hz => by simp [initMeta] at hz⟩⟩
+        fun z hz => by
+          simp only [initMeta, Option.some.injEq] at hz; subst hz
+          exact ofDisk_dz vs sz⟩⟩
       · simp [initMeta, OsFile.ofDisk]
       · simp [initMeta, OsFile.ofDisk]
       · intro _ n _; simp [OsFile.ofDisk]
@@ -904,11 +892,11 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
       simp only [hf, Option.bind_some, Option.map_eq_some_iff] at hx
       obtain ⟨y, hy, rfl⟩ := hx
       refine ⟨f, rfl, hy, fun _ => ⟨⟨?_, ?_⟩, hnoinfl i b⟩⟩
-      · obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hf
+      · obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf
         rw [contents_getElem?] at hy; split at hy
         · simpa [OsFile.ofDisk]
         · cases hy
-      · obtain ⟨vs, sz, kp, rfl⟩ := hdisk' i f hf
+      · obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf
         intro v hv
         simp only [OsFile.ofDisk, List.mem_singleton] at hv
         subst hv; rw [ofDisk_rawAt]

@@ -169,13 +169,13 @@ variable {Q : OsState → OsState → Prop}
 /-- **A crashed file is on disk** (`MachineCrash`'s files). -/
 theorem crashSeen_ofDisk {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × List (w8 × Bool))}
     {ts : List (Nat × TokInfo)} {f : OsFile} (h : CrashSeenR Q i m rs ts (some f)) :
-    ∃ vs sz kp, f = OsFile.ofDisk vs sz kp := by
+    ∃ vs sz, f = OsFile.ofDisk vs sz := by
   obtain ⟨st, st', Γb, Γm, Γf, Γt, -, hcr, -, hfo, -⟩ := h
   obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hcr
   by_cases hn : Named st'.fs.treeDur i
-  · obtain ⟨f0, f'', -, ⟨sz, vs, -, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
+  · obtain ⟨f0, f'', -, ⟨sz, vs, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
     rw [h''] at hfo; cases hfo
-    exact ⟨vs, sz, _, rfl⟩
+    exact ⟨vs, sz, rfl⟩
   · rw [(hfiles i).2 hn] at hfo; cases hfo
 
 /-- **A crash leaves the runs' bytes clean** (a crashed file is on disk). -/
@@ -203,7 +203,7 @@ theorem crashSeen_runsKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Li
   · -- a machine crash: the file is on disk
     obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
     by_cases hn : Named st'.fs.treeDur i
-    · obtain ⟨f0, f'', -, ⟨sz, vs, -, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
+    · obtain ⟨f0, f'', -, ⟨sz, vs, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
       rw [h''] at hf'; cases hf'
       exact ofDisk_clean vs sz _ hbs
     · rw [(hfiles i).2 hn] at hf'; cases hf'
@@ -220,7 +220,7 @@ theorem crashSeen_tailKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Li
   have hc := hcr
   · obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
     by_cases hn : Named st'.fs.treeDur i
-    · obtain ⟨f0, f'', -, ⟨sz, vs, -, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
+    · obtain ⟨f0, f'', -, ⟨sz, vs, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
       rw [h''] at hf'; cases hf'
       exact ofDisk_clean vs sz _ hb2
     · rw [(hfiles i).2 hn] at hf'; cases hf'
@@ -352,7 +352,7 @@ theorem crashSeen_tokKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Lis
   have hc := hcr
   · obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
     by_cases hn : Named st'.fs.treeDur i
-    · obtain ⟨f1, f'', -, ⟨sz, vs, -, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
+    · obtain ⟨f1, f'', -, ⟨sz, vs, -, -, rfl⟩, h''⟩ := (hfiles i).1 hn
       rw [h''] at hf'; cases hf'
       exact ofDisk_clean vs sz _ hjs
     · rw [(hfiles i).2 hn] at hf'; cases hf'

@@ -4,13 +4,12 @@
 
 A crash leaves sector `n` of a file whose `OsMeta` knows its versions (`OsMeta.vk`) as:
 
-* its durable version (the bytes `OsMeta.dur`/`dz` know), unless the sector is the first of its
-  page, known fresh (`OsMeta.fr`) and under the crash's size (ordered growth, `CovCand`);
+* zeros, if its page lies past the crash's size (durable zeros);
+* its durable version (the bytes `OsMeta.dur`/`dz` know);
 * its page cache's version, the sector having two (then `n ∈ ns`): the bytes the client holds
   below the size;
-* the client's write in flight landed over it in part (`k` bytes, a page cut by `NoTearCrash`, or
-  any count for a fresh sector a crash grows over): the write's bytes inside `[off, off + k)`, the
-  client's below the size outside, zeros past it;
+* the client's write in flight landed over it in part (`k` bytes, a page cut by `NoTearCrash`):
+  the write's bytes inside `[off, off + k)`, the client's below the size outside, zeros past it;
 * the client's growing truncate in flight landed over it: the client's bytes below the size, zeros
   past it.
 
@@ -88,44 +87,22 @@ theorem landed_emptyWrites : ∀ {ks : List OsChangeKind} {f g : OsFile}, Landed
 
 /-! ## The sector a landing leaves -/
 
-/-- A landing of a write that misses sector `n` leaves its versions; if `n` is the first of its
-page, its freshness too. -/
-theorem landWrite_miss (f : OsFile) (off : Nat) (data : List w8) (k : Nat) (hk : k ≤ data.length)
-    (hoff : off ≤ f.size) (n : Nat) (hn : k = 0 ∨ secHits (min off f.size) (off + k) n = false) :
-    ((f.landWrite off data k).secs n).vers = (f.secs n).vers ∧
-    (n % 8 = 0 → ((f.landWrite off data k).secs n).fresh = (f.secs n).fresh) := by
+/-- A landing of a write that misses sector `n` leaves its versions. -/
+theorem landWrite_miss (f : OsFile) (off : Nat) (data : List w8) (k : Nat)
+    (n : Nat) (hn : k = 0 ∨ secHits (min off f.size) (off + k) n = false) :
+    ((f.landWrite off data k).secs n).vers = (f.secs n).vers := by
   unfold OsFile.landWrite
   split
-  · exact ⟨rfl, fun _ => rfl⟩
+  · rfl
   · rename_i hk0
     have hn := hn.resolve_left hk0
-    have hlen : (data.take k).length = k := by simp; omega
-    have hd : data.take k ≠ [] := fun h => by rw [h] at hlen; simp at hlen; omega
-    have hl := written_length f off (data.take k) hd
-    rw [hlen] at hl
     simp only [OsFile.change, hn, Bool.false_eq_true, if_false]
-    refine ⟨by first | rfl | trivial, fun h8 => ?_⟩
-    simp only [secHits, Bool.and_eq_false_iff, decide_eq_false_iff_not, Nat.not_lt] at hn
-    simp only [hl, pageIn, Bool.and_eq_left_iff_imp]
-    intro _
-    simp only [Bool.not_eq_true', Bool.and_eq_false_iff, decide_eq_false_iff_not,
-      Bool.not_eq_false', decide_eq_true_eq, Nat.not_lt]
-    omega
 
-/-- A landing of a growing truncate that misses sector `n` leaves its versions; if `n` is the
-first of its page, its freshness too. -/
-theorem truncate_miss (f : OsFile) (sz : Nat) (hsz : f.size ≤ sz) (n : Nat)
+/-- A landing of a growing truncate that misses sector `n` leaves its versions. -/
+theorem truncate_miss (f : OsFile) (sz : Nat) (n : Nat)
     (hn : secHits (min f.size sz) (max f.size sz) n = false) :
-    ((f.truncate sz).secs n).vers = (f.secs n).vers ∧
-    (n % 8 = 0 → ((f.truncate sz).secs n).fresh = (f.secs n).fresh) := by
+    ((f.truncate sz).secs n).vers = (f.secs n).vers := by
   simp only [OsFile.truncate, OsFile.change, hn, Bool.false_eq_true, if_false]
-  refine ⟨by first | rfl | trivial, fun h8 => ?_⟩
-  simp only [secHits, Bool.and_eq_false_iff, decide_eq_false_iff_not, Nat.not_lt] at hn
-  simp only [resized_length, pageIn, Bool.and_eq_left_iff_imp]
-  intro _
-  simp only [Bool.not_eq_true', Bool.and_eq_false_iff, decide_eq_false_iff_not,
-    Bool.not_eq_false', decide_eq_true_eq, Nat.not_lt]
-  omega
 
 /-- The bytes of sector `n` after a landing of `k` bytes of a write that hits it: the write's
 inside `[off, off + k)`, the file's below its size outside, zeros past it. -/
@@ -180,11 +157,6 @@ theorem truncate_hit_byte (f : OsFile) (sz : Nat) (hsz : f.size ≤ sz) (n : Nat
 section seen
 variable {Q : OsState → OsState → Prop}
 
-/-- Sector `n` is the first of its page, known fresh by `m`, and under the size `sz`: a crash to
-`sz` never leaves its durable version (ordered growth). -/
-def FreshCov (m : OsMeta) (n sz : Nat) : Prop :=
-  n % 8 = 0 ∧ (∃ p, m.fr = some p ∧ p ≤ 512 * n) ∧ 512 * n < sz
-
 /-- **A crash leaves any sector whose versions are known whole** (see the file header). -/
 theorem crashSeen_secAny (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : Ino} {m : OsMeta}
     {rs : List (Nat × DFrac × List (w8 × Bool))} {ts : List (Nat × TokInfo)} {f' : OsFile}
@@ -193,13 +165,12 @@ theorem crashSeen_secAny (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i :
       ∃ t ti, ts = [(t, ti)] ∧ ti.q = 1 ∧ ti.c.ino = i ∧
         ((∃ off data, ti.c.kind = .write off data ∧ off ≤ m.size) ∨
          ∃ sz, ti.c.kind = .truncate sz ∧ m.size ≤ sz)) :
-    (¬ FreshCov m n f'.size ∧
-      ∀ j < 512, ∀ d, m.DurAt (512 * n + j) d → secByte (f'.secs n).last j = d) ∨
+    (pageIn f'.size n = false ∧ ∀ j < 512, secByte (f'.secs n).last j = 0) ∨
+    (∀ j < 512, ∀ d, m.DurAt (512 * n + j) d → secByte (f'.secs n).last j = d) ∨
     (n ∈ ns ∧ ∀ j < 512, 512 * n + j < m.size → ∀ y, ByteSeen m rs ts (512 * n + j) y →
       secByte (f'.secs n).last j = y) ∨
     (∃ t ti off data k, ts = [(t, ti)] ∧ ti.c.kind = .write off data ∧ off ≤ m.size ∧ 0 < k ∧
-      k ≤ data.length ∧ secHits (min off m.size) (off + k) n = true ∧
-      (PageCut off data.length k ∨ FreshCov m n f'.size) ∧
+      k ≤ data.length ∧ secHits (min off m.size) (off + k) n = true ∧ PageCut off data.length k ∧
       ∀ j < 512,
         (off ≤ 512 * n + j → 512 * n + j < off + k →
           secByte (f'.secs n).last j = data.getD (512 * n + j - off) 0) ∧
@@ -284,15 +255,19 @@ theorem crashSeen_secAny (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i :
   have hcur : ∀ j < 512, 512 * n + j < m.size → ∀ y, ByteSeen m rs ts (512 * n + j) y →
       secByte (f.secs n).last j = y := fun j hj hb y hy =>
     last_byte f n j hj (by omega) y (hseenB _ y hy)
-  obtain ⟨sz, vs, -, hcand, hcov, rfl⟩ := hcf
-  have hV : ((OsFile.ofDisk vs sz f.kept).secs n).last = vs n := by
-    simp [OsFile.ofDisk, Sector.last]
-  have hsz' : (OsFile.ofDisk vs sz f.kept).size = sz := rfl
-  rw [hV, hsz']
-  -- freshness from the ghost
-  have hfresh : FreshCov m n sz → (f.secs n).fresh = true := by
-    rintro ⟨-, ⟨p, hp, hpn⟩, -⟩
-    exact (hmo.fr p hp).2 n hpn
+  obtain ⟨sz, vs, -, hcand, rfl⟩ := hcf
+  -- a page past the crash's size: durable zeros
+  by_cases hpg : pageIn sz n = false
+  · left
+    refine ⟨hpg, fun j hj => ?_⟩
+    simp only [OsFile.ofDisk, diskSec, hpg, Bool.false_eq_true, if_false, Sector.last,
+      List.getLast?_singleton, Option.getD_some, secByte, zeroSec]
+    simp; split <;> rfl
+  right
+  have hV : ((OsFile.ofDisk vs sz).secs n).last = vs n := by
+    simp only [Bool.not_eq_false] at hpg
+    simp [OsFile.ofDisk, diskSec, hpg, Sector.last]
+  rw [hV]
   -- a version of the sector: the durable one or, of a sector with two, the page cache's
   have hver : vs n ∈ (f.secs n).vers →
       (vs n = w ∨ ((f.secs n).vers.length = 2 ∧ vs n = (f.secs n).last)) := by
@@ -312,20 +287,20 @@ theorem crashSeen_secAny (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i :
         secByte (vs n) j = y := by
     intro hl2 he
     exact ⟨hns2 hl2, fun j hj hb y hy => by rw [he]; exact hcur j hj hb y hy⟩
-  -- the covered fresh case: by `CovCand`, the page cache's version of a sector with two, or a
-  -- landing that hits the sector
-  have hcovv : vs n ∈ (f.secs n).covVers → (f.secs n).fresh = true →
-      (f.secs n).vers.length = 2 ∧ vs n = (f.secs n).last := by
-    intro hv hfr
-    simp only [Sector.covVers, hfr, if_true] at hv
-    have hl : (f.secs n).vers.tail.length ≤ 1 := by simp; omega
-    match hvs : (f.secs n).vers, hl, hv with
-    | [], _, hv => simp [hvs] at hv
-    | [a], _, hv => simp [hvs] at hv
-    | [a, b], _, hv =>
-      simp only [hvs, List.tail_cons, List.mem_singleton] at hv
-      exact ⟨by simp [hvs], by simp [Sector.last, hvs, hv]⟩
-    | a :: b :: c :: _, _, _ => simp [hvs] at hlen
+  -- a version of the sector, as one of the cases
+  have hverC : vs n ∈ (f.secs n).vers →
+      (∀ j < 512, ∀ d, m.DurAt (512 * n + j) d → secByte (vs n) j = d) ∨
+      (n ∈ ns ∧ ∀ j < 512, 512 * n + j < m.size → ∀ y, ByteSeen m rs ts (512 * n + j) y →
+        secByte (vs n) j = y) := by
+    intro hvin
+    rcases hver hvin with he | ⟨h2, he⟩
+    · left; rw [he]; exact hdur
+    · right; exact hL2 h2 he
+  have hlastIn : (f.secs n).last ∈ (f.secs n).vers := by
+    simp only [Sector.last]
+    cases hvs : (f.secs n).vers.getLast? with
+    | none => simp [List.getLast?_eq_none_iff.1 hvs] at hne
+    | some a => simpa using List.mem_of_getLast? hvs
   -- the changes in flight on the file
   have hchg : ∀ k ∈ changesOn st i, ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.kind = k := by
     intro k hk
@@ -365,22 +340,10 @@ theorem crashSeen_secAny (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i :
       rcases hcand n with hv | ⟨ks, g, hp, hl, hv⟩
       · exact hv
       · rw [landed_emptyWrites hl (fun k hk => hempty k (hp.mem_iff.1 hk))] at hv
-        rw [hv]; simp only [Sector.last]
-        cases hvs : (f.secs n).vers.getLast? with
-        | none => simp [List.getLast?_eq_none_iff.1 hvs] at hne
-        | some a => simpa using List.mem_of_getLast? hvs
-    by_cases hfc : FreshCov m n sz
-    · right; left
-      rcases hcov n hfc.2.2 with hv | ⟨ks, g, hp, hl, hv, hvc⟩
-      · obtain ⟨h2, he⟩ := hcovv hv (hfresh hfc)
-        exact hL2 h2 he
-      · rw [landed_emptyWrites hl (fun k hk => hempty k (hp.mem_iff.1 hk))] at hv hvc
-        rw [← hv] at hvc
-        obtain ⟨h2, he⟩ := hcovv hvc (hfresh hfc)
-        exact hL2 h2 he
-    · rcases hver hvin with he | ⟨h2, he⟩
-      · left; rw [he]; exact ⟨hfc, hdur⟩
-      · right; left; exact hL2 h2 he
+        rw [hv]; exact hlastIn
+    rcases hverC hvin with h1 | h1
+    · exact .inl h1
+    · exact .inr (.inl h1)
   · -- the client's change, the only one in flight on the file
     have hti := hts' _ List.mem_cons_self
     have hct : st.proc.inflight !! t = some ti.c := by
@@ -393,30 +356,6 @@ theorem crashSeen_secAny (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i :
     rcases hkind with ⟨off, data, hkd, hoff⟩ | ⟨sz', hkd, hgrow⟩
     · -- a write
       have hoff' : off ≤ f.size := by omega
-      -- a landing of `k` bytes that hits the sector: the client's write's case
-      have hW : ∀ k, k ≤ data.length → 0 < k → secHits (min off f.size) (off + k) n = true →
-          (PageCut off data.length k ∨ FreshCov m n sz) →
-          vs n = ((f.landWrite off data k).secs n).last →
-          ∃ t' ti' off' data' k', [(t, ti)] = [(t', ti')] ∧ ti'.c.kind = .write off' data' ∧
-            off' ≤ m.size ∧ 0 < k' ∧ k' ≤ data'.length ∧
-            secHits (min off' m.size) (off' + k') n = true ∧
-            (PageCut off' data'.length k' ∨ FreshCov m n sz) ∧
-            ∀ j < 512,
-              (off' ≤ 512 * n + j → 512 * n + j < off' + k' →
-                secByte (vs n) j = data'.getD (512 * n + j - off') 0) ∧
-              ((512 * n + j < off' ∨ off' + k' ≤ 512 * n + j) → 512 * n + j < m.size →
-                ∀ y, ByteSeen m rs [(t, ti)] (512 * n + j) y → secByte (vs n) j = y) ∧
-              ((512 * n + j < off' ∨ off' + k' ≤ 512 * n + j) → m.size ≤ 512 * n + j →
-                secByte (vs n) j = 0) := by
-        intro k hk hk0 hhit hcut he
-        refine ⟨t, ti, off, data, k, rfl, hkd, hoff, hk0, hk, by rw [hsz]; exact hhit, hcut,
-          fun j hj => ⟨fun h1 h2 => ?_, fun h1 h2 y hy => ?_, fun h1 h2 => ?_⟩⟩
-        · rw [he, landWrite_hit_byte f off data k hk hk0 hoff' n hhit j hj, if_pos ⟨h1, h2⟩]
-        · rw [he, landWrite_hit_byte f off data k hk hk0 hoff' n hhit j hj, if_neg (by omega),
-            if_pos (by omega)]
-          exact hraw _ (by omega) y hy
-        · rw [he, landWrite_hit_byte f off data k hk hk0 hoff' n hhit j hj, if_neg (by omega),
-            if_neg (by omega)]
       -- what the crash leaves of the sector: a version of it, or a page cut that hits it
       have hcases : vs n ∈ (f.secs n).vers ∨
           ∃ k, k ≤ data.length ∧ 0 < k ∧ secHits (min off f.size) (off + k) n = true ∧
@@ -431,18 +370,12 @@ theorem crashSeen_secAny (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i :
             by_cases hk0 : k = 0
             · subst hk0; left; rw [h1]
               have : f.landWrite off data 0 = f := by simp [OsFile.landWrite]
-              rw [this]
-              simp only [Sector.last]
-              cases hvs : (f.secs n).vers.getLast? with
-              | none => simp [List.getLast?_eq_none_iff.1 hvs] at hne
-              | some a => simpa using List.mem_of_getLast? hvs
+              rw [this]; exact hlastIn
             by_cases hh : secHits (min off f.size) (off + k) n = true
             · exact .inr ⟨k, hk.1, by omega, hh, hk, h1⟩
             · left
-              rw [h1, Sector.last, (landWrite_miss f off data k hk.1 hoff' n (.inr (by simpa using hh))).1]
-              cases hvs : (f.secs n).vers.getLast? with
-              | none => simp [List.getLast?_eq_none_iff.1 hvs] at hne
-              | some a => simpa using List.mem_of_getLast? hvs
+              rw [h1, Sector.last, landWrite_miss f off data k n (.inr (by simpa using hh))]
+              exact hlastIn
         · left
           rcases hcand n with hv | ⟨ks, g, hp, hl, hv⟩
           · exact hv
@@ -450,114 +383,47 @@ theorem crashSeen_secAny (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i :
             cases hl with
             | write _ _ k _ _ _ hk hl' =>
               cases hl'
-              rw [hv, Sector.last, (landWrite_miss f off data k hk hoff' n (.inr (by
+              rw [hv, Sector.last, landWrite_miss f off data k n (.inr (by
                 simp only [Bool.not_eq_true, secHits, Bool.and_eq_false_iff, decide_eq_false_iff_not,
                   Nat.not_lt] at hhit ⊢
-                omega))).1]
-              cases hvs : (f.secs n).vers.getLast? with
-              | none => simp [List.getLast?_eq_none_iff.1 hvs] at hne
-              | some a => simpa using List.mem_of_getLast? hvs
+                omega))]
+              exact hlastIn
       rcases hcases with hvin | ⟨k, hk, hk0, hhit, hcut, he⟩
-      · by_cases hfc : FreshCov m n sz
-        · rcases hcov n hfc.2.2 with hv | ⟨ks, g, hp, hl, hv, hvc⟩
-          · right; left
-            obtain ⟨h2, he⟩ := hcovv hv (hfresh hfc)
-            exact hL2 h2 he
-          · rw [hks ks hp, hkd] at hl
-            cases hl with
-            | write _ _ k _ _ _ hk hl' =>
-              cases hl'
-              by_cases hh : 0 < k ∧ secHits (min off f.size) (off + k) n = true
-              · right; right; left
-                exact hW k hk hh.1 hh.2 (.inr hfc) hv
-              · right; left
-                obtain ⟨hvs, hfr⟩ := landWrite_miss f off data k hk hoff' n (by
-                  by_cases hk0 : k = 0
-                  · exact .inl hk0
-                  · exact .inr (by simpa using fun h => hh ⟨by omega, h⟩))
-                have hvc' : vs n ∈ (f.secs n).covVers := by
-                  rw [hv]; unfold Sector.covVers at hvc ⊢
-                  rw [hfr hfc.1, hvs] at hvc
-                  simpa [Sector.last, hvs] using hvc
-                obtain ⟨h2, he⟩ := hcovv hvc' (hfresh hfc)
-                exact hL2 h2 he
-        · rcases hver hvin with he | ⟨h2, he⟩
-          · left; rw [he]; exact ⟨hfc, hdur⟩
-          · right; left; exact hL2 h2 he
+      · rcases hverC hvin with h1 | h1
+        · exact .inl h1
+        · exact .inr (.inl h1)
       · right; right; left
-        exact hW k hk hk0 hhit (.inl hcut) he
-    · -- a growing truncate
-      have hT : ∀ sz'', f.size ≤ sz'' → secHits (min f.size sz'') (max f.size sz'') n = true →
-          vs n = ((f.truncate sz'').secs n).last →
-          ∃ t' ti' sz, [(t, ti)] = [(t', ti')] ∧ ti'.c.kind = .truncate sz ∧
-            ∀ j < 512,
-              (512 * n + j < m.size → ∀ y, ByteSeen m rs [(t, ti)] (512 * n + j) y →
-                secByte (vs n) j = y) ∧
-              (m.size ≤ 512 * n + j → secByte (vs n) j = 0) := by
-        intro sz'' hge hhit he
-        refine ⟨t, ti, sz', rfl, hkd, fun j hj => ⟨fun h1 y hy => ?_, fun h1 => ?_⟩⟩
-        · rw [he, truncate_hit_byte f sz'' hge n hhit j hj, if_pos (by omega)]
+        refine ⟨t, ti, off, data, k, rfl, hkd, hoff, hk0, hk, by rw [hsz]; exact hhit, hcut,
+          fun j hj => ⟨fun h1 h2 => ?_, fun h1 h2 y hy => ?_, fun h1 h2 => ?_⟩⟩
+        · rw [he, landWrite_hit_byte f off data k hk hk0 hoff' n hhit j hj, if_pos ⟨h1, h2⟩]
+        · rw [he, landWrite_hit_byte f off data k hk hk0 hoff' n hhit j hj, if_neg (by omega),
+            if_pos (by omega)]
           exact hraw _ (by omega) y hy
-        · rw [he, truncate_hit_byte f sz'' hge n hhit j hj, if_neg (by omega)]
-      have hland : ∀ ks g, ks.Perm (changesOn st i) → Landed ks f g →
-          (∃ sz'', f.size ≤ sz'' ∧ secHits (min f.size sz'') (max f.size sz'') n = true ∧
-            (g.secs n).last = ((f.truncate sz'').secs n).last) ∨
-          ((g.secs n).vers = (f.secs n).vers ∧ (n % 8 = 0 → (g.secs n).fresh = (f.secs n).fresh)) := by
-        intro ks g hp hl
-        rw [hks ks hp, hkd] at hl
-        cases hl with
-        | trunc _ sz'' _ _ _ h1 h2 hl' =>
-          cases hl'
-          by_cases hh : secHits (min f.size sz'') (max f.size sz'') n = true
-          · exact .inl ⟨sz'', by omega, hh, rfl⟩
-          · exact .inr (truncate_miss f sz'' (by omega) n (by simpa using hh))
-      have hlastIn : (f.secs n).last ∈ (f.secs n).vers := by
-        simp only [Sector.last]
-        cases hvs : (f.secs n).vers.getLast? with
-        | none => simp [List.getLast?_eq_none_iff.1 hvs] at hne
-        | some a => simpa using List.mem_of_getLast? hvs
+        · rw [he, landWrite_hit_byte f off data k hk hk0 hoff' n hhit j hj, if_neg (by omega),
+            if_neg (by omega)]
+    · -- a growing truncate
       have hcases : vs n ∈ (f.secs n).vers ∨
           ∃ sz'', f.size ≤ sz'' ∧ secHits (min f.size sz'') (max f.size sz'') n = true ∧
             vs n = ((f.truncate sz'').secs n).last := by
         rcases hcand n with hv | ⟨ks, g, hp, hl, hv⟩
         · exact .inl hv
-        · rcases hland ks g hp hl with ⟨sz'', h1, h2, h3⟩ | ⟨h1, -⟩
-          · exact .inr ⟨sz'', h1, h2, hv.trans h3⟩
-          · left; rw [hv, Sector.last, h1]; exact hlastIn
+        · rw [hks ks hp, hkd] at hl
+          cases hl with
+          | trunc _ sz'' _ _ _ h1 h2 hl' =>
+            cases hl'
+            by_cases hh : secHits (min f.size sz'') (max f.size sz'') n = true
+            · exact .inr ⟨sz'', by omega, hh, hv⟩
+            · left; rw [hv, Sector.last, truncate_miss f sz'' n (by simpa using hh)]
+              exact hlastIn
       rcases hcases with hvin | ⟨sz'', h1, h2, he⟩
-      · by_cases hfc : FreshCov m n sz
-        · rcases hcov n hfc.2.2 with hv | ⟨ks, g, hp, hl, hv, hvc⟩
-          · right; left
-            obtain ⟨h2, he⟩ := hcovv hv (hfresh hfc)
-            exact hL2 h2 he
-          · rcases hland ks g hp hl with ⟨sz'', h1, h2, h3⟩ | ⟨hvs, hfr⟩
-            · right; right; right; exact hT sz'' h1 h2 (hv.trans h3)
-            · right; left
-              have hvc' : vs n ∈ (f.secs n).covVers := by
-                rw [hv]; unfold Sector.covVers at hvc ⊢
-                rw [hfr hfc.1, hvs] at hvc
-                simpa [Sector.last, hvs] using hvc
-              obtain ⟨h2, he⟩ := hcovv hvc' (hfresh hfc)
-              exact hL2 h2 he
-        · rcases hver hvin with he | ⟨h2, he⟩
-          · left; rw [he]; exact ⟨hfc, hdur⟩
-          · right; left; exact hL2 h2 he
-      · right; right; right; exact hT sz'' h1 h2 he
-
-/-- A crash keeps a file with no `FALLOC_FL_KEEP_SIZE` blocks so, if its `OsMeta` knows fresh
-sectors. -/
-theorem crashSeen_kept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × List (w8 × Bool))}
-    {ts : List (Nat × TokInfo)} {f' : OsFile} (h : CrashSeenR Q i m rs ts (some f')) {p : Nat}
-    (hp : m.fr = some p) : f'.kept = false := by
-  obtain ⟨st, st', Γb, Γm, Γf, Γt, hcoh, hcr, hQst, hfo, hm, -, -, -, -⟩ := h
-  obtain ⟨f, hf, hmo⟩ := hcoh.meta_some i m hm
-  obtain ⟨-, -, -, -, -, -, hfiles⟩ := hcr
-  by_cases hN : Named st'.fs.treeDur i
-  · obtain ⟨f1, f'', hf1, hc, hf''⟩ := (hfiles i).1 hN
-    rw [hf] at hf1; cases hf1; rw [hfo] at hf''; cases hf''
-    obtain ⟨sz, vs, -, -, -, rfl⟩ := hc
-    exact (hmo.fr p hp).1
-  · rw [(hfiles i).2 hN] at hfo; cases hfo
+      · rcases hverC hvin with h1 | h1
+        · exact .inl h1
+        · exact .inr (.inl h1)
+      · right; right; right
+        refine ⟨t, ti, sz', rfl, hkd, fun j hj => ⟨fun h3 y hy => ?_, fun h3 => ?_⟩⟩
+        · rw [he, truncate_hit_byte f sz'' h1 n h2 j hj, if_pos (by omega)]
+          exact hraw _ (by omega) y hy
+        · rw [he, truncate_hit_byte f sz'' h1 n h2 j hj, if_neg (by omega)]
 
 end seen
 

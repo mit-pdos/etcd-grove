@@ -176,7 +176,6 @@ theorem landWrite_cut_last (f : OsFile) (off : Nat) (data : List w8) (k : Nat)
     rw [if_neg hk0]
     simp only [OsFile.change, Nat.min_eq_left hoff]
     rw [if_neg hh]
-    rfl
 
 /-! ## The crash lemma -/
 
@@ -191,7 +190,7 @@ variable {Q : OsState → OsState → Prop}
 theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : Ino} {m : OsMeta}
     {rs : List (Nat × DFrac × List (w8 × Bool))} {ts : List (Nat × TokInfo)} {f' : OsFile}
     (h : CrashSeenR Q i m rs ts (some f')) {ns : List Nat} (hvk : m.vk = some ns)
-    (n : Nat) (hn : 512 * n + 512 ≤ m.size)
+    (n : Nat) (hn : 512 * n + 512 ≤ m.size) (hin : 512 * n < f'.size)
     (hts : (ts = [] ∧ ∀ b < m.size, ∃ r ∈ rs, r.1 ≤ b ∧ b < r.1 + r.2.2.length) ∨
       ∃ t ti, ts = [(t, ti)] ∧ ti.q = 1 ∧ ti.c.ino = i ∧
         ((∃ off data, ti.c.kind = .write off data ∧ off ≤ m.size) ∨
@@ -262,9 +261,12 @@ theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : In
   have hcur : ∀ j < 512, ∀ y, ByteSeen m rs ts (512 * n + j) y →
       secByte (f.secs n).last j = y := fun j hj y hy =>
     last_byte f n j hj (by omega) y (hseen j hj y hy)
-  obtain ⟨sz, vs, -, hcand, -, rfl⟩ := hcf
-  have hV : ((OsFile.ofDisk vs sz f.kept).secs n).last = vs n := by
-    simp [OsFile.ofDisk, Sector.last]
+  obtain ⟨sz, vs, -, hcand, rfl⟩ := hcf
+  have hpg : pageIn sz n = true := by
+    have : 512 * n < sz := hin
+    simp only [pageIn, decide_eq_true_eq]; omega
+  have hV : ((OsFile.ofDisk vs sz).secs n).last = vs n := by
+    simp [OsFile.ofDisk, diskSec, hpg, Sector.last]
   rw [hV]
   -- a version of the sector: the durable one or the page cache's
   have hver : vs n ∈ (f.secs n).vers →
@@ -335,7 +337,7 @@ theorem crashSeen_sec (hQ : ∀ st st', Q st st' → NoTearCrash st st') {i : In
           rw [hct, show ti.c = ⟨i, .write off data⟩ by rw [← hino, ← hkd]]
         obtain ⟨k, hk, hcut⟩ := hQ st st' hQst t i off data hci f _ hf hfo
         rcases hcut n (by rw [Nat.min_eq_left (by omega : off ≤ f.size)]; exact hhit) with h1 | h1
-        · have hV' : ((OsFile.ofDisk vs sz f.kept).secs n).last ∈ (f.secs n).vers := h1
+        · have hV' : ((OsFile.ofDisk vs sz).secs n).last ∈ (f.secs n).vers := h1
           rw [hV] at hV'
           rcases hver hV' with h2 | h2
           · exact .inl h2
