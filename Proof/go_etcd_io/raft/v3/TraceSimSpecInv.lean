@@ -1982,7 +1982,10 @@ theorem committedCmp_reply (st : State) (r q : Etcdraft.Msg) (a b : ID) :
 `CommitTo`, and an accepted or stale append's): `i`'s commit index rises to at most `m`'s, which is
 within its sender's (`ReqCommitC`). What the simulation supplies: `hco`, `CommitOk` of the state
 (`allFacts_commitOk`); `hcmp`, the committed prefixes of `i` and `m`'s sender in the new state
-comparable (`allFacts_logInv` of the new state, from raft's ghost state after the step). -/
+comparable (`allFacts_logInv` of the new state; review round 4's D4: the receipt's facts are due at
+`Step`'s entry, before any handler, so the follower's raised commit index's `isCommitted`/`commitIn`
+come from the message's commit certificate, `msgFacts`' committed log `L`, not from raft's later
+update). -/
 theorem quorumLog_appendEntriesAlreadyDone {σ σ' : State} {i j : ID} {index : Int} {m : Etcdraft.Msg}
     (h : SpecInv σ) (hq : QuorumLogS σ) (hm : m ∈ σ.messages.domain)
     (hty : m.type = .appendEntriesRequest) (hco : TraceSim.CommitOk σ)
