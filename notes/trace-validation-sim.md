@@ -523,6 +523,31 @@ This is the largest part of layer B's proof; S5's estimate starts here.
   enqueue each link's messages synchronously, in the application goroutine, in `rd.Messages`
   order across `Ready`s; only the link's goroutine delivers.
 
+## S5: the hook paths (2026-11-09)
+
+The call graph from raft's entry points to its hooks (computed from the pinned source,
+`.lake/goose/raft`, by a syntactic pass over the package: calls by name, `r.step` resolved to the
+three `step*`, `r.tick` to the two `tick*`; a few name collisions removed by hand). The functions on
+some path, whose specs carry the simulation's capability (Q8 of the plan: `trCap s.tr r id ph`):
+
+- entry points: `raft.Step` (from `RawNode.Step`, `node.run`; `Advance`'s self-addressed
+  messages), `raft.tickElection`/`tickHeartbeat` (`RawNode.Tick`), `RawNode.acceptReady`
+  (`traceReady`), `RawNode.ApplyConfChange` (`applyConfChange`, `switchToConfig`:
+  `traceConfChangeEvent`), and the bootstrap ones, not simulated (`newRaft`: `traceInitState`;
+  `RawNode.Bootstrap`: `becomeFollower`, `applyConfChange`);
+- `raft.Step`'s branches: `stepLeader` (`traceChangeConfEvent`), `stepCandidate`, `stepFollower`,
+  `hup`, `campaign`, `handleAppendEntries`, `handleHeartbeat`, `handleSnapshot` (no snapshot in
+  the workload: P-level, but on the path), `appliedTo`/`appliedSnap`;
+- the hooks' direct callers: `send` (`traceSendMessage`), `appendEntry` (`traceReplicate`),
+  `becomeCandidate`, `becomeFollower`, `becomeLeader` (theirs), `maybeCommit` (`traceCommit`,
+  deferred), `switchToConfig` (`traceConfChangeEvent`);
+- `send`'s callers: `sendAppend`, `maybeSendAppend`, `maybeSendSnapshot`, `bcastAppend`,
+  `sendHeartbeat`, `bcastHeartbeat`, `bcastHeartbeatWithCtx`, `sendTimeoutNow`,
+  `sendMsgReadIndexResponse`, `releasePendingReadIndexMessages`, and the above.
+
+Every other function of the package owns the physical predicate without touching the logger, so its
+spec is unchanged under Q8's option (a).
+
 ## Increment 2 of the hooks' specs (what S4 decides)
 
 **The logger's contract is generic** (round 2's N4; the `spec` skill's "TaDa, not HoCAP"): the

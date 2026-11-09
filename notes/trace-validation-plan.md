@@ -268,6 +268,25 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (the transcription is then exactly TLC's search); it still changes `lineFuel`'s definition, which
   `traceAccepts` is written in terms of. **Not taken** (no recommendation in the plan); the agent's
   recommendation: (c), else (b).
+- **Q8 (2026-11-09, S5 Draft): the trace mode in raft's node state, and the hook paths' specs.**
+  A traced cluster's logger is non-nil, so the hooks fire the simulation's update, which needs
+  resources (the node's share, the phase) that only the functions between an entry point and a
+  hook can thread. Raft's physical predicate fixes the logger to nil (`ownRaftPhysG`'s `Htl`,
+  `TraceLoggerOk`), and every internal spec is stated on it (814 occurrences, 142 files). Options:
+  (a) a field `tr : Option GName` in `NState` (the cluster's trace directory, constant, like `cq`):
+  `Htl` becomes `TraceLoggerOkS s.tr tl` (nil when `none`, unconstrained when `some`), so every spec
+  off the hook paths stays as it is (its `s` carries the mode through `{ s with … }`), and the
+  specs of the functions on the hook paths (the call graph from the entry points to the hooks:
+  about 35, `notes/trace-validation-sim.md`, "S5: the hook paths") gain one capability
+  `trCap s.tr r id ph` in their pre- and postconditions (`emp` when `s.tr = none`), one spec per
+  function for both modes; the node invariant ties `s.tr` to `Cluster.trace γ`. `interface/` then
+  differs by the field (`Defs.txt`) and those specs' added capability, besides the gated additions:
+  not exactly the acceptance test's letter ("only gated additions and the pure fact"), though every
+  closed statement is unchanged and untraced clients only meet `trCap none = emp`. (b) An optional
+  argument on `ownRaftPhysCV`: the specs off the hook paths are then not mode-polymorphic (hundreds
+  of statements to generalize). (c) A second, traced copy of the hook paths' proofs: two specs per
+  function, against the hard rule. **Taken by the agent, pending the user's veto: (a)**, with the
+  `interface/` diff explained in the commit that makes it.
 - **Q2 (2026-11-08, S3): raft's results rest on `strconv.FormatUint`'s axiom.**
   `traceChangeConfEvent` formats the change's ids (`strconv.FormatUint`) before its nil check, so
   the translated raft calls it even without a logger, and raft's linked results now rest on
