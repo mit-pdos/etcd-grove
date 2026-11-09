@@ -1210,3 +1210,89 @@ theorem specInv_becomeLeader {σ σ' : State} {i : ID} (h : SpecInv σ) (hi : i 
       · subst hli; exact absurd ht (hfreshReq x (hmsg ▸ hx) hty)
       · rw [hne l hli] at hll; exact hRC l (hsrv ▸ hl) hll x (hmsg ▸ hx) hty ht
   · cases hstep
+
+/-! ## Append requests -/
+
+theorem subSeq_get {s l : List Entry} {m n : Int} (h : subSeq s m n = some l) {k : Nat} {e : Entry}
+    (hk : l[k]? = some e) : 1 ≤ m ∧ s[(m.toNat - 1) + k]? = some e := by
+  unfold subSeq at h
+  split at h
+  · cases h; simp at hk
+  · split at h
+    · cases h
+    · cases h
+      rename_i h1 h2
+      refine ⟨by omega, ?_⟩
+      rw [List.getElem?_take] at hk
+      split at hk
+      · rw [List.getElem?_drop] at hk; exact hk
+      · cases hk
+
+theorem subSeq_len {s l : List Entry} {m n : Int} (h : subSeq s m n = some l) :
+    (n < m ∧ l = []) ∨ (1 ≤ m ∧ m ≤ n ∧ n ≤ s.length ∧ (l.length : Int) = n - m + 1) := by
+  unfold subSeq at h
+  split at h
+  · cases h; left; constructor <;> first | omega | rfl
+  · split at h
+    · cases h
+    · cases h
+      rename_i h1 h2
+      right
+      refine ⟨by omega, by omega, by omega, ?_⟩
+      simp only [List.length_take, List.length_drop]
+      omega
+
+/-- **`AppendEntriesInRangeToPeer(subtype, i, j, <<b, e>>)`**, `b` within `NextAsync`'s range
+(`hb`: `b ≤ Len(log[i]) + 1`; past it, an empty request's `prevLogIndex` is past the leader's log and
+a follower that has the entries of an older term acknowledges them: then `DurInv`, and
+`CommittedIsDurableInv`, fail). -/
+theorem specInv_appendEntriesInRangeToPeer {σ σ' : State} {subtype : String} {i j : ID} {b e : Int}
+    (h : SpecInv σ) (hi : i ∈ σ.server) (hone : σ.moreThanOneLeaderInv = true)
+    (hb : b ≤ (σ.s i).log.length + 1)
+    (hstep : σ.appendEntriesInRangeToPeer subtype i j b e = .ok (some σ')) : SpecInv σ' := by
+  unfold State.appendEntriesInRangeToPeer at hstep; dsimp only at hstep
+  split at hstep
+  · cases hstep
+  · rename_i hc
+    cases hsub : subSeq (σ.s i).log b (min ((σ.s i).log.length : Int) (e - 1)) with
+    | none => simp [subSeqM, hsub, throw, throwThe, MonadExceptOf.throw, Functor.map, Except.map] at hstep
+    | some ents =>
+      simp [subSeqM, hsub] at hstep
+      simp only [pure, Except.pure, Except.ok.injEq, Option.some.injEq] at hstep
+      subst hstep
+      have hl : (σ.s i).state = leader :=
+        Classical.byContradiction fun hn => hc (by simp [hn])
+      have hcw := h.2.2.2.2.2.1 i hi i hi hl rfl
+      have hlen := subSeq_len hsub
+      apply specInv_send h
+      refine ⟨?_, ?_, ⟨Int.le_refl _, ?_⟩, ?_, ?_⟩
+      · intro l hl' hll k x hk ht
+        obtain ⟨hb1, hx⟩ := subSeq_get hsub hk
+        have : (b - 1).toNat = b.toNat - 1 := by omega
+        show ((σ.s l).log[((b - 1).toNat + k)]?).map Entry.term = some x.term
+        rw [this]
+        exact (h.1 l hl' hll).1 i hi _ x hx ht
+      · intro l hl' hll
+        refine ⟨fun hs _ _ => ?_, fun _ hty => absurd hty (by simp), fun _ ht => ?_⟩
+        · change i = l at hs; subst hs
+          show b - 1 + (ents.length : Int) ≤ (σ.s i).log.length
+          rcases hlen with ⟨_, rfl⟩ | ⟨_, _, _, hn⟩
+          · simp only [List.length_nil]; omega
+          · omega
+        · change (σ.s i).currentTerm = (σ.s l).currentTerm at ht
+          have := oneLeader hone hi hl' hl hll ht
+          subst this
+          show (if subtype = "heartbeat" then min (σ.s i).commitIndex ((σ.s i).matchIndex j)
+              else if subtype = "snapshot" then min (σ.s i).commitIndex (min ((σ.s i).log.length : Int) (e - 1))
+              else (σ.s i).commitIndex) ≤ (σ.s i).log.length
+          (repeat' split) <;> omega
+      · rintro (⟨hty, _⟩ | ⟨hty, _⟩) <;> exact absurd hty (by simp)
+      · intro l _ hc'
+        refine ⟨fun hs _ => ?_, fun _ hty => absurd hty (by simp), fun _ _ hty => absurd hty (by simp)⟩
+        change i = l at hs; subst hs
+        exact absurd (hc'.symm.trans hl) candidate_ne_leader
+      · intro hne
+        show 0 ≤ b - 1
+        rcases hlen with ⟨_, hn⟩ | ⟨_, _, _, _⟩
+        · exact absurd hn hne
+        · omega
