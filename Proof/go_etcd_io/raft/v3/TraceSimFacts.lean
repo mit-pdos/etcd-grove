@@ -32,6 +32,27 @@ theorem mem_confAbs_inv (C : List w64) (x : Etcdraft.ID) (h : x ∈ confAbs C) :
   unfold confAbs at h; rw [setIds_mk_mem, List.mem_map] at h
   obtain ⟨w, hw, e⟩ := h; exact ⟨w, hw, e.symm⟩
 
+theorem logAbs_take (C : List w64) (bl f : Nat) (l : List EntryM) (n : Nat) :
+    (logAbs C bl f l).take n = logAbs C bl f (l.take n) := by
+  unfold logAbs
+  apply List.ext_getElem?
+  intro k
+  simp only [List.getElem?_take, List.getElem?_mapIdx]
+  split <;> simp_all
+
+theorem logAbs_prefix (C : List w64) (bl f : Nat) (l1 l2 : List EntryM) (h : l1 <+: l2) :
+    logAbs C bl f l1 <+: logAbs C bl f l2 := by
+  obtain ⟨r, rfl⟩ := h
+  refine ⟨(logAbs C bl f (l1 ++ r)).drop l1.length, ?_⟩
+  have : logAbs C bl f l1 = (logAbs C bl f (l1 ++ r)).take l1.length := by
+    rw [logAbs_take, List.take_left' rfl]
+  rw [this, List.take_append_drop]
+
+theorem isPrefix_of_prefix (s t : List Etcdraft.Entry) (h : s <+: t) : Etcdraft.isPrefix s t = true := by
+  unfold Etcdraft.isPrefix
+  obtain ⟨r, rfl⟩ := h
+  simp
+
 end pure
 
 section ghost
@@ -104,6 +125,43 @@ theorem allFacts_oneLeader (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
   rw [ht]
   icases isLeader_unique γ i j _ $$ Hli Hlj with %He
   exact absurd He hne
+
+/-- A server's committed prefix, from its facts' log. -/
+theorem committedL_abs (C : List w64) (σ : Etcdraft.State) (i : Etcdraft.ID) (es : List EntryM)
+    (hlog : (σ.s i).log = logAbs C C.length 1 es) :
+    committedL σ i = logAbs C C.length 1 (es.take (σ.s i).commitIndex.toNat) := by
+  unfold committedL; rw [hlog, logAbs_take]
+
+/-- **`LogInv`'s facts** (`isCommitted_agree`): any two voters' committed prefixes are prefixes one of
+the other. -/
+theorem allFacts_logInv (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
+    (hsrv : σ.server = confAbs C) :
+    allFacts (GF := GF) γ C σ ⊢ ⌜∀ i ∈ σ.server, ∀ j ∈ σ.server,
+      (or (Etcdraft.isPrefix (committedL σ i) (committedL σ j))
+        (Etcdraft.isPrefix (committedL σ j) (committedL σ i))) = true⌝ := by
+  iintro #H
+  iunfold allFacts at H
+  by_cases hc : ∀ i ∈ σ.server, ∀ j ∈ σ.server,
+      (or (Etcdraft.isPrefix (committedL σ i) (committedL σ j))
+        (Etcdraft.isPrefix (committedL σ j) (committedL σ i))) = true
+  · ipureintro; exact hc
+  simp only [Classical.not_forall] at hc
+  obtain ⟨x, hx, y, hy, hc⟩ := hc
+  rw [hsrv] at hx hy
+  obtain ⟨i, hi, rfl⟩ := mem_confAbs_inv C x hx
+  obtain ⟨j, hj, rfl⟩ := mem_confAbs_inv C y hy
+  ihave Hfi := H $$ %i %hi
+  ihave Hfj := H $$ %j %hj
+  iunfold srvFacts at Hfi Hfj
+  icases Hfi with ⟨%esi, %Hpi, -, Hci, -⟩
+  icases Hfj with ⟨%esj, %Hpj, -, Hcj, -⟩
+  icases isCommitted_agree γ _ _ $$ Hci Hcj with %Hag
+  exfalso
+  apply hc
+  rw [committedL_abs C σ _ esi Hpi.1, committedL_abs C σ _ esj Hpj.1]
+  rcases Hag with h | h
+  · simp [isPrefix_of_prefix _ _ (logAbs_prefix C C.length 1 _ _ h)]
+  · simp [isPrefix_of_prefix _ _ (logAbs_prefix C C.length 1 _ _ h)]
 
 end ghost
 
