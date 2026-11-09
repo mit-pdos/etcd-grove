@@ -1998,6 +1998,59 @@ theorem next_commit (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdraft.ID
     simp [hname, Etcdraft.isReceiveName, pure, Except.pure]
   simp [hnr, hrv, bind, Except.bind, pure, Except.pure]
 
+/-- A non-receive line whose non-receive successors are one state has that one successor. -/
+theorem next_of_nonReceive (t : Etcdraft.Trace) (ts : Etcdraft.TState) (s2 : Etcdraft.State)
+    (hl0 : ts.l ≠ 0) (hl : ts.l ≤ t.len) (hb : t.bootstrap.getD (ts.l - 1) false = false)
+    (hrecv : Etcdraft.isReceiveName (t.line ts.l).ev.name = false)
+    (hnr : t.nonReceive ts = .ok [s2]) :
+    t.next ts = .ok [{ s := s2, l := ts.l + 1, pl := ts.l }] := by
+  have h1 : (decide (ts.l > t.len) || ts.l == 0) = false := by simp; omega
+  unfold Etcdraft.Trace.next
+  simp only [h1, hb, Bool.false_eq_true, ↓reduceIte]
+  have hrv : t.receive ts = .ok [] := by
+    unfold Etcdraft.Trace.receive
+    simp [hrecv, pure, Except.pure]
+  simp [hnr, hrv, bind, Except.bind, pure, Except.pure]
+
+/-- A `BecomeLeader` line's non-receive successors: the specification's `BecomeLeader` at the line's
+node, when it matches the line's state. -/
+theorem nonReceive_becomeLeader (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdraft.ID)
+    (s2 : Etcdraft.State) (hl : ts.l ≤ t.len)
+    (hname : (t.line ts.l).ev.name = "BecomeLeader") (hnid : (t.line ts.l).nid = i)
+    (hnd : t.server.Nodup) (hi : i ∈ t.server) (hbl : ts.s.becomeLeader i = some s2)
+    (hpost : (t.line ts.l).stateMatches s2 i = true) (hrole : (t.line ts.l).ev.role = Etcdraft.leader)
+    (hlead : (s2.s i).state = Etcdraft.leader) :
+    t.nonReceive ts = .ok [s2] := by
+  have hf : t.server.flatMap (t.becomeLeaderIfLogged ts) = [s2] := by
+    apply flatMap_single _ _ i s2 hnd hi
+    · simp [Etcdraft.Trace.becomeLeaderIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
+        Etcdraft.Trace.validatePostStates, hl, hname, hnid, hbl, hpost, hrole, hlead]
+    · intro j _ hj
+      simp [Etcdraft.Trace.becomeLeaderIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
+        hnid, Ne.symm hj]
+  unfold Etcdraft.Trace.nonReceive
+  simp only [hname, hf]
+  simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
+    Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure, bind, Except.bind]
+
+/-- A `Replicate` line's non-receive successors: the specification's `ClientRequest(i, 0)`. -/
+theorem nonReceive_replicate (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etcdraft.ID)
+    (s2 : Etcdraft.State) (hl : ts.l ≤ t.len)
+    (hname : (t.line ts.l).ev.name = "Replicate") (hnid : (t.line ts.l).nid = i)
+    (hnd : t.server.Nodup) (hi : i ∈ t.server) (hcr : ts.s.clientRequest i 0 = some s2) :
+    t.nonReceive ts = .ok [s2] := by
+  have hf : t.server.flatMap (fun j => t.clientRequestIfLogged ts j 0) = [s2] := by
+    apply flatMap_single _ _ i s2 hnd hi
+    · simp [Etcdraft.Trace.clientRequestIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
+        hl, hname, hnid, hcr, Etcdraft.somes]
+    · intro j _ hj
+      simp [Etcdraft.Trace.clientRequestIfLogged, Etcdraft.Trace.isNodeEvent, Etcdraft.Trace.isEvent,
+        hnid, Ne.symm hj]
+  unfold Etcdraft.Trace.nonReceive
+  simp only [hname, hf]
+  simp [Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.isEvent, hname,
+    Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, pure, Except.pure, bind, Except.bind]
+
 end TraceSim
 
 end EtcdGrove
