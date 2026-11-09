@@ -33,6 +33,22 @@ premises a proof needs, gated on a traced cluster, existing proofs kept; shown s
 Lean), the verified raft fork gaining 0001 and 0011's trace logging (raft code), then layer C's
 remaining actions and the checker's loop (S6), the simulation (S5), the harness (S7).
 
+**Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
+every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
+keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
+collections) shows no new axiom or `sorry`, and `interface/` differs only by the gated additions
+and the untraced clients' pure fact `γ.raft.reTrace = none`. Order: the gate first (the field,
+`cluster_alloc`'s argument, the pure fact), checked against this test, then each traced-only item.
+
+**The verdict and the tokens (the user's, 2026-11-08):** the closed theorem keeps TLC's verdict
+(`TraceMatched`: no branching, the invariants on every state explored), and the message tokens keep
+both halves: a message is received at most once, and only after its sender's `Ready` line. The
+alternative considered (existential acceptance, invariant violations pruning branches, duplication
+modelled) would drop layer B's determinism proof but no longer match TLC's verdict. Why the tokens'
+at-most-once premise is one etcd meets: rafthttp never resends an application message (a failed
+stream write or pipeline post reports the peer unreachable and drops it: `stream.go`'s `msgc` case,
+`pipeline.go`'s `handle`), and TCP never delivers a segment twice.
+
 ## The corrected model (2026-11-08, the user's request)
 
 Asked: could the stage be resumed against a corrected `etcdraft.tla`, and what would make that worth

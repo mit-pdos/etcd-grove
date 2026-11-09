@@ -409,6 +409,12 @@ structure RaftNames where
   `false` (the default): a proposal's update and ticket are one-shot. Pure data, fixed at
   allocation. -/
   dup : Bool := false
+  /-- **A traced cluster** (2026-11-08, trace-check's Q6, `notes/trace-validation-q6.md`):
+  `some γt` names the trace's ghost state (the events logged so far and the simulated state of
+  `etcdraft.tla`, `notes/trace-validation-sim.md`), whose nodes run with a trace logger and under
+  the traced-only premises of the node API; `none` (the default) for every other cluster, which
+  sees none of them (each gated on this field). Pure data, fixed at allocation. -/
+  reTrace : Option GName := none
   /-- **Each node's slot** (2026-10-31, durability stage I-1, `notes/raft-durability-proof-plan.md`):
   `reSlot !! id = some (γv, γq, γg)` names node `id`'s ghost variable of its virtual maps (the
   entered promises with the queued batch applied, `DurMaps`: half in the slot invariant

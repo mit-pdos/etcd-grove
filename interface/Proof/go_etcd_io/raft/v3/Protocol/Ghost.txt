@@ -51,6 +51,7 @@ structure RaftNames : Type 1 where
   reSnapReg : Option GName
   reDec : Option GName
   dup : Bool
+  reTrace : Option GName
   reSlot : GMap w64 (GName × GName × GName)
 
 theorem witsB_agree [ReceiptGS GF] (γ : RaftNames) (F F' : List EntryM) (lim : Nat) (B : Int) :
