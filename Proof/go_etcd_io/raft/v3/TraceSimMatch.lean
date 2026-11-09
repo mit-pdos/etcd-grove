@@ -3523,6 +3523,58 @@ theorem lineEffect_msgApp (C : List w64) (e : TraceEv) (id : w64) (s : NState) (
           (by rw [hcommit]; simpa [toPState] using bc) bi blt (by omega)
         rw [hsrc] at this ⊢
         exact this
+
+/-- **A vote request's send effect**: the candidate's server unchanged, the request pending. -/
+theorem lineEffect_requestVote (C : List w64) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM) (m : Msg)
+    (a : Etcdraft.Server) (Mid : Etcdraft.Server → Prop)
+    (hev : SendEvOf (W64 13) id s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hdC : m.dst ∈ C)
+    (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .candidate) (hty : m.ty = .vote) (hsrc : m.src = id) (hdst : m.dst ≠ id)
+    (hw : (toPState s).votes !! m.dst = none) (hterm : m.term = s.term)
+    (hidx : m.index = (plogLast (toPState s).base (toPState s).log).index')
+    (hlt : m.logterm = (plogLast (toPState s).base (toPState s).log).term')
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bi : uint.Z m.index < 2 ^ 63)
+    (blt : uint.Z m.logterm < 2 ^ 63) :
+    LineEffect C false e (idAbs id) a a none _root_.id
+      (fun b => b.with ((msgAbs C C.length m).get (by simp [msgAbs, hty]))) Mid := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendRequestVoteRequest" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"SendRequestVoteRequest" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have htyp : tm.typ = msgTypeStr .vote := by rw [hm.1, hty]
+  apply lineEffect_nr C false e (idAbs id) a a _ Mid (msgLine e id s.vote m.src m.dst xs)
+    (parseLine_msg 0 e id s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      (by rw [htyp]; rfl) (by rw [hname']; decide)) rfl (by simp [msgLine, evConv, hname']; rfl)
+  intro t l pl σ hline hl hts _ hsrv hσi hpv _
+  have hrv := requestVote_send σ C C.length (toPState s) id m (by rw [hσi]; exact hR)
+    (by simp [toPState, hrole, proleRole]) hs hty hsrc hdst hdC hw (by rw [hterm]; rfl) hidx hlt
+  rw [← hσi, withNode_same]
+  apply nonReceive_requestVote _ ⟨σ, l, pl⟩ (idAbs m.src) (idAbs m.dst) _ hl
+  · rw [hline]; simp [msgLine, evConv, hname']
+  · rw [hline]; rfl
+  · rw [hline]; rfl
+  · rw [hline]; simp [msgLine, evConv, hmsg]
+  · rw [hts]; exact confAbs_nodup C
+  · rw [hts, mem_confAbs, hsrc]; exact hC
+  · rw [hts, mem_confAbs]; exact hdC
+  · exact hpv
+  · rw [hsrc]; exact hrv
+  · rw [hline, hsrc]
+    have := stateMatches_node C s (σ.s (idAbs id)) e id xs (by rw [hσi]; exact hR) hs (by rw [hrole]; decide)
+      hterm' hcommit' hrl hlog (hxs.trans hin) bt bc bl σ rfl (by rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC)
+    unfold Etcdraft.Line.stateMatches at this ⊢
+    simpa [Etcdraft.State.send, msgLine, nodeLine] using this
+  · rw [hline]
+    apply newPending_send
+    have := isRVReq_vote C C.length e id s.vote xs m tm hmsg hm hty (by rw [hterm]; exact bt) bi blt
+    rw [hsrc] at this ⊢
+    simp [this]
 end TraceSim
 
 end EtcdGrove
