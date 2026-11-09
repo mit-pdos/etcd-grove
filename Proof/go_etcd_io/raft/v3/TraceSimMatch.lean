@@ -4337,6 +4337,40 @@ theorem lineEffect_recv2 (C : List w64) (e : TraceEv) (i : Etcdraft.ID) (a u a' 
       (by unfold Etcdraft.Trace.validatePreStates; rw [hline, hdest, hsm]; simp)
       (fun m' hm' hne => by rw [hline]; simp [huniq m' hm' hne]) hr1
     rw [this]; simp [recvNext, hone1]
+
+theorem truncSt_eq (σ : Etcdraft.State) (i j : Etcdraft.ID) (L : List Etcdraft.Entry) :
+    truncSt σ i j L = withNode σ i { σ.s i with log := L, lead := j } _root_.id _root_.id := by
+  unfold truncSt withLead withNode Etcdraft.State.upd
+  simp only
+  congr 1
+  funext k; by_cases hk : k = i <;> simp [hk]
+
+/-- The accepted append request's last state's server. -/
+def doneSrv (a : Etcdraft.Server) (L : List Etcdraft.Entry) (j : Etcdraft.ID) (c : Int) : Etcdraft.Server :=
+  { a with log := L, lead := j, commitIndex := max a.commitIndex c }
+
+/-- The accepted append request's response. -/
+def doneResp (a : Etcdraft.Server) (m : Etcdraft.Msg) (p k : Nat) : Etcdraft.Msg :=
+  { type := .appendEntriesResponse, subtype := m.subtype, term := a.currentTerm, success := true, matchIndex := (p : Int) + k, source := m.dest, dest := m.source }
+
+theorem withNode_withNode (σ : Etcdraft.State) (i : Etcdraft.ID) (v w : Etcdraft.Server)
+    (fM fP : Etcdraft.Bag → Etcdraft.Bag) :
+    withNode (withNode σ i v _root_.id _root_.id) i w fM fP = withNode σ i w fM fP := by
+  unfold withNode
+  simp only
+  congr 1
+  funext k; by_cases hk : k = i <;> simp [hk]
+
+theorem withNode_s_self (σ : Etcdraft.State) (i : Etcdraft.ID) (v : Etcdraft.Server) (fM fP : Etcdraft.Bag → Etcdraft.Bag) :
+    (withNode σ i v fM fP).s i = v := by simp [withNode]
+
+theorem doneSt_truncSt_eq (σ : Etcdraft.State) (m : Etcdraft.Msg) (L : List Etcdraft.Entry) (p k : Nat) :
+    doneSt (truncSt σ m.dest m.source L) m p k =
+      withNode σ m.dest (doneSrv (σ.s m.dest) L m.source (min m.commitIndex ((p : Int) + k)))
+        (fun b => b.without m) (fun b => b.with (doneResp (σ.s m.dest) m p k)) := by
+  unfold doneSt Etcdraft.State.commitTo
+  rw [withLead_reply_upd, truncSt_eq, withNode_s_self, withNode_withNode]
+  rfl
 end TraceSim
 
 end EtcdGrove
