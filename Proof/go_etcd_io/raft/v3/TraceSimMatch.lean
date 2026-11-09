@@ -1533,12 +1533,13 @@ theorem validatePre_later (t : Etcdraft.Trace) (l0 : Nat) (hl0 : l0 ≠ 0) (st :
 /-- **A truncation round's successor** at a later round of the line (the message the line matches
 the one in the network; the state `st`'s server a follower whose log is the abstract `n` first
 entries of `es`, conflicting with the batch). -/
-theorem next_trunc (t : Etcdraft.Trace) (l0 : Nat) (st : Etcdraft.State) (mabs : Etcdraft.Msg)
+theorem next_trunc (t : Etcdraft.Trace) (l0 pl : Nat) (st : Etcdraft.State) (mabs : Etcdraft.Msg)
     (C : List w64) (bl p n : Nat) (es ents : List EntryM)
     (hl0 : l0 ≠ 0) (hl : l0 ≤ t.len) (hb : t.bootstrap.getD (l0 - 1) false = false)
     (hrecv : Etcdraft.isReceiveName (t.line l0).ev.name = true)
     (hnd : st.messages.domain.Nodup) (hm : mabs ∈ st.messages.domain)
     (hmatch : recvPred (t.line l0) mabs = true)
+    (hpre : t.validatePreStates ⟨st, l0, pl⟩ mabs.dest = true)
     (huniq : ∀ m' ∈ st.messages.domain, m' ≠ mabs → recvPred (t.line l0) m' = false)
     (hsrv : st.server.contains mabs.dest = true) (hty : mabs.type = .appendEntriesRequest)
     (hf : (st.s mabs.dest).state = Etcdraft.follower) (hterm : mabs.term = (st.s mabs.dest).currentTerm)
@@ -1550,7 +1551,7 @@ theorem next_trunc (t : Etcdraft.Trace) (l0 : Nat) (st : Etcdraft.State) (mabs :
     (hlogOk : (or (mabs.prevLogIndex == 0) (decide (mabs.prevLogIndex > 0) && decide (mabs.prevLogIndex ≤ (st.s mabs.dest).log.length) &&
       some mabs.prevLogTerm == (((st.s mabs.dest).log[(mabs.prevLogIndex - 1).toNat]?).map Etcdraft.Entry.term))) = true)
     (hconf : ¬ ∀ k e, ents[k]? = some e → p + k < n → ((es.take n)[p + k]?).map EntryM.Term' = some e.Term') :
-    t.next ⟨st, l0, l0⟩ = .ok [⟨truncSt st mabs.dest mabs.source (logAbs C bl 1 (es.take (n - 1))), l0, l0⟩] := by
+    t.next ⟨st, l0, pl⟩ = .ok [⟨truncSt st mabs.dest mabs.source (logAbs C bl 1 (es.take (n - 1))), l0, l0⟩] := by
   have hrcv := receive_trunc st mabs C bl p n es ents hsrv hty hf hterm hsub hlog hents hprev hn hpn hc hne hbl hbe
     hlogOk hconf
   have hone : Etcdraft.oneLessMessage st (truncSt st mabs.dest mabs.source (logAbs C bl 1 (es.take (n - 1))))
@@ -1558,17 +1559,18 @@ theorem next_trunc (t : Etcdraft.Trace) (l0 : Nat) (st : Etcdraft.State) (mabs :
     unfold Etcdraft.oneLessMessage
     have : (truncSt st mabs.dest mabs.source (logAbs C bl 1 (es.take (n - 1)))).messages = st.messages := rfl
     rw [this]; simp; intro h; rw [h]; decide
-  have := next_receive t ⟨st, l0, l0⟩ mabs _ hl0 hl hb hrecv hnd hm hmatch (validatePre_later t l0 hl0 st _)
+  have := next_receive t ⟨st, l0, pl⟩ mabs _ hl0 hl hb hrecv hnd hm hmatch hpre
     (fun m' hm' hne => by simp [huniq m' hm' hne]) hrcv
   rw [this]; simp [recvNext, hone]
 
 /-- **The append round's successor** at a later round of the line. -/
-theorem next_append (t : Etcdraft.Trace) (l0 : Nat) (st : Etcdraft.State) (mabs : Etcdraft.Msg)
+theorem next_append (t : Etcdraft.Trace) (l0 pl : Nat) (st : Etcdraft.State) (mabs : Etcdraft.Msg)
     (C : List w64) (bl p : Nat) (L ents : List EntryM)
     (hl0 : l0 ≠ 0) (hl : l0 ≤ t.len) (hb : t.bootstrap.getD (l0 - 1) false = false)
     (hrecv : Etcdraft.isReceiveName (t.line l0).ev.name = true)
     (hnd : st.messages.domain.Nodup) (hm : mabs ∈ st.messages.domain)
     (hmatch : recvPred (t.line l0) mabs = true)
+    (hpre : t.validatePreStates ⟨st, l0, pl⟩ mabs.dest = true)
     (huniq : ∀ m' ∈ st.messages.domain, m' ≠ mabs → recvPred (t.line l0) m' = false)
     (hsrv : st.server.contains mabs.dest = true) (hty : mabs.type = .appendEntriesRequest)
     (hf : (st.s mabs.dest).state = Etcdraft.follower) (hterm : mabs.term = (st.s mabs.dest).currentTerm)
@@ -1580,7 +1582,7 @@ theorem next_append (t : Etcdraft.Trace) (l0 : Nat) (st : Etcdraft.State) (mabs 
     (hlogOk : (or (mabs.prevLogIndex == 0) (decide (mabs.prevLogIndex > 0) && decide (mabs.prevLogIndex ≤ (st.s mabs.dest).log.length) &&
       some mabs.prevLogTerm == (((st.s mabs.dest).log[(mabs.prevLogIndex - 1).toNat]?).map Etcdraft.Entry.term))) = true)
     (hnc : ∀ k e, ents[k]? = some e → p + k < L.length → (L[p + k]?).map EntryM.Term' = some e.Term') :
-    t.next ⟨st, l0, l0⟩ = .ok [⟨truncSt st mabs.dest mabs.source
+    t.next ⟨st, l0, pl⟩ = .ok [⟨truncSt st mabs.dest mabs.source
       (logAbs C bl 1 L ++ (logAbs C bl (p + 1) ents).drop (L.length - p)), l0, l0⟩] := by
   have hrcv := receive_append st mabs C bl p L ents hsrv hty hf hterm hsub hlog hents hprev hpq hq hc hbl hbe
     hlogOk hnc
@@ -1590,7 +1592,7 @@ theorem next_append (t : Etcdraft.Trace) (l0 : Nat) (st : Etcdraft.State) (mabs 
     have : (truncSt st mabs.dest mabs.source
       (logAbs C bl 1 L ++ (logAbs C bl (p + 1) ents).drop (L.length - p))).messages = st.messages := rfl
     rw [this]; simp; intro h; rw [h]; decide
-  have := next_receive t ⟨st, l0, l0⟩ mabs _ hl0 hl hb hrecv hnd hm hmatch (validatePre_later t l0 hl0 st _)
+  have := next_receive t ⟨st, l0, pl⟩ mabs _ hl0 hl hb hrecv hnd hm hmatch hpre
     (fun m' hm' hne => by simp [huniq m' hm' hne]) hrcv
   rw [this]; simp [recvNext, hone]
 
@@ -1599,13 +1601,14 @@ def doneSt (st : Etcdraft.State) (mabs : Etcdraft.Msg) (p k : Nat) : Etcdraft.St
   withLead ((st.commitTo mabs.dest (min mabs.commitIndex ((p : Int) + k))).reply { type := .appendEntriesResponse, subtype := mabs.subtype, term := (st.s mabs.dest).currentTerm, success := true, matchIndex := (p : Int) + k, source := mabs.dest, dest := mabs.source } mabs) mabs.dest mabs.source
 
 /-- **The last round's successor**: the request consumed, on the next line. -/
-theorem next_done (t : Etcdraft.Trace) (l0 : Nat) (st : Etcdraft.State) (mabs : Etcdraft.Msg)
+theorem next_done (t : Etcdraft.Trace) (l0 pl : Nat) (st : Etcdraft.State) (mabs : Etcdraft.Msg)
     (C : List w64) (bl p : Nat) (L ents : List EntryM)
     (hl0 : l0 ≠ 0) (hl : l0 ≤ t.len) (hb : t.bootstrap.getD (l0 - 1) false = false)
     (hrecv : Etcdraft.isReceiveName (t.line l0).ev.name = true)
     (hnd : st.messages.domain.Nodup) (hm : mabs ∈ st.messages.domain)
     (hcnt : 0 < Etcdraft.Bag.count st.messages mabs)
     (hmatch : recvPred (t.line l0) mabs = true)
+    (hpre : t.validatePreStates ⟨st, l0, pl⟩ mabs.dest = true)
     (huniq : ∀ m' ∈ st.messages.domain, m' ≠ mabs → recvPred (t.line l0) m' = false)
     (hsrv : st.server.contains mabs.dest = true) (hty : mabs.type = .appendEntriesRequest)
     (hf : (st.s mabs.dest).state = Etcdraft.follower) (hterm : mabs.term = (st.s mabs.dest).currentTerm)
@@ -1617,7 +1620,7 @@ theorem next_done (t : Etcdraft.Trace) (l0 : Nat) (st : Etcdraft.State) (mabs : 
     (hlogOk : (or (mabs.prevLogIndex == 0) (decide (mabs.prevLogIndex > 0) && decide (mabs.prevLogIndex ≤ (st.s mabs.dest).log.length) &&
       some mabs.prevLogTerm == (((st.s mabs.dest).log[(mabs.prevLogIndex - 1).toNat]?).map Etcdraft.Entry.term))) = true)
     (hnc : ∀ k e, ents[k]? = some e → p + k < L.length → (L[p + k]?).map EntryM.Term' = some e.Term') :
-    t.next ⟨st, l0, l0⟩ = .ok [⟨doneSt st mabs p ents.length, l0 + 1, l0⟩] := by
+    t.next ⟨st, l0, pl⟩ = .ok [⟨doneSt st mabs p ents.length, l0 + 1, l0⟩] := by
   have hrcv : st.receive mabs = .ok [doneSt st mabs p ents.length] :=
     receive_done st mabs C bl p L ents hsrv hty hf hterm hsub hlog hents hprev hq hc hne hbl hbe hlogOk hnc
   have hone : Etcdraft.oneLessMessage st (doneSt st mabs p ents.length) mabs = true := by
@@ -1625,7 +1628,7 @@ theorem next_done (t : Etcdraft.Trace) (l0 : Nat) (st : Etcdraft.State) (mabs : 
     have h := oneLess_discard st st mabs rfl hnd hcnt
     unfold Etcdraft.oneLessMessage at h ⊢
     rw [hmsgs]; exact h
-  have := next_receive t ⟨st, l0, l0⟩ mabs _ hl0 hl hb hrecv hnd hm hmatch (validatePre_later t l0 hl0 st _)
+  have := next_receive t ⟨st, l0, pl⟩ mabs _ hl0 hl hb hrecv hnd hm hmatch hpre
     (fun m' hm' hne => by simp [huniq m' hm' hne]) hrcv
   rw [this]; simp only [recvNext, hone, ↓reduceIte]
 
