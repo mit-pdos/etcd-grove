@@ -350,3 +350,43 @@ Every restart with live leases (the tester's, the server's) reopens a non-empty 
   lease per record, no items).
 - This restated trusted text goes on the Freeze list, attacked first by the `axiom` skill. The
   restart plan (R2d'b) needs the same restatement, so it is done once for both.
+
+## Draft: B3's internal chain (2026-11-09)
+
+Side-by-side candidates: `mvcc.NewStore.specR` (`Spec/.../mvcc/NewStoreR.lean`),
+`mvcc.newWatchableStore.specR` (`newWatchableStoreR.lean`) and `mvcc.New.specR` (`NewR.lean`, with
+the API glue `mvcc.api.New.specR_of_internal`, a `sorry` with its outline). They typecheck.
+
+- **Real backend only.** `kb = some d`; no caller uses `none`.
+- **The pre at the image.** `L' = [[],[]] ++ R` at the records `r`:
+  - `restoreImageM` in place of `kbView ∅ ∗ kbNoCmp`;
+  - the contract with the records (`isKeyBackendGR … (kbRecs …) r`);
+  - a clean read `keyCleanReadR … RC` (restore's `ns = false` path);
+  - `restoreRcptM`;
+  - the certificate map at `M` (`certOk`'s shape);
+  - the permit at `r.finRev`/`r.crev`;
+  - the lessor's owner part;
+  - `resumeCtxM` gated by `r.resumes`.
+- **The posts** at `L'`/`r.crev`, with the mode-indexed closers (`storeCloserM`, `wsCloserM`).
+- **The fresh specs are not exact instances** (`spec_of_specR`, `sorry`): `kb = none` is dropped,
+  the view must be clean, the lessor part is lent, and mode on gets `compactRightR` at `-1`, which
+  every mode-on caller makes at once. So callers move to `specR`. Splitting on an empty image would
+  prove the code's path twice.
+- **Size.** About 300-500 changed lines in `NewStore`'s proof, 100-200 in `newWatchableStore`/`New`,
+  300-400 in the API proofs.
+
+**The risks:**
+
+- **R1, the main one.** `NewStore`'s batch session (`CreateBucket`, `Unlock`, `ForceCommit`) runs
+  before `restore()`, so the registration is fixed and `dlInit` is gone. `Restore`'s
+  `restoreFixM -∗` cannot be reused: a new backend lemma is needed, a clean read over the fixed
+  registration from `dlsOwn ∅` (nothing deleted since the open).
+- **R2.** The view stays clean through that session (nothing written to `Key`): a backend fact,
+  not yet in the contract.
+- **R3.** The index ghost at a non-initial log versus its compactor names (`idx_renew`'s pattern).
+- **R4.** The reader count with a resumed job (`nJobRd`), against `compactLockfree`'s budgets.
+- **R5.** `compactRightR` is made before `restore` in mode on.
+- **R6.** `NewLessor` on a bucket with records, the restated axiom above.
+- To confirm: the server's restart supplies the certificate map's `M`.
+
+R1 and R2 are the Probe's first targets for B3.
