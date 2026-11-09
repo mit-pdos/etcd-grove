@@ -195,6 +195,12 @@ entries at `MaxSizePerMsg ≤ 2^20` (the starters' premise) or sends one entry. 
 **Why a `sorry`.** Its proof needs raft's log invariant on entry *objects* (their content, not only
 their model), which raft's proofs do not carry yet.
 
+**A condition of its truth for restarted nodes** (etcd-grove-81, 2026-11-09, scope r3 [r3h]): a
+restarted node's storage entries are WAL-replayed, so the law needs them to satisfy `entSizeOk`. That
+is the `ReadAll` fact (`walFiles … true`, `WalRecs.lean`, gives the replayed objects with
+`entSizeOk`), which goes into the restart contract with R2d'b or with this law's proof, whichever
+comes first; until then the law's Go argument covers restarts only under it.
+
 **The later stage** ("raft-entsize proof") proves it from that invariant; the count goes back from
 5 to 4 then. `outObjR_size`/`outEntR_size` (and the node API's `Cluster.outObj_size`/
 `Cluster.outEnt_size`) are derived from it. -/
