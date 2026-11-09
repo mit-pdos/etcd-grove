@@ -1949,6 +1949,11 @@ theorem NewTraceWith.wp_proof
         iapply setRO_nil
       ipureintro
       refine ⟨by word, by word, by simp [hesl]⟩
+    have hmx : sint.nat m = LL.length := by
+      have := Hlogl.1; simp at this; rw [hLLl, this]; word
+    rw [hmx, List.take_length, show es.take LL.length = es by rw [← hesl, List.take_length]]
+    imod ownSlice_persist $$ Hlog with #Hlog
+    try wp_auto
     sorry
   sorry
 
