@@ -601,7 +601,7 @@ theorem runner.wp_newMember [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem runner.wp_restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.restore.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccfull.runner.restore.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccW_alloc_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds wp_buildPath (runner.wp_newMember h_ApiNewRestoring_R h_lease_NewLessor_R) runner.wp_apply runner.wp_shut runner.wp_openBackend lease.lessor.wp_Recover traceutil.wp_TODO wp_check backend.backend.wp_SetTxPostLockInsideApplyHook backend.backend.wp_Close runner.wp_checkLeases
+  EtcdGrove.mvccfull.runner.restore.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccW_alloc_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds wp_buildPath (runner.wp_newMember h_ApiNewRestoring_R h_lease_NewLessor_R) runner.wp_apply runner.wp_shut runner.wp_openBackend lease.lessor.wp_Recover traceutil.wp_TODO wp_check backend.backend.wp_SetTxPostLockInsideApplyHook backend.backend.wp_Close runner.wp_checkLeases
 
 theorem runner.wp_restart [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.runner.restart.spec (GF := GF) (hG := hG) :=

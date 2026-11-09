@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart). The proof of `runner.restore`: Draft, to come.
+/- Lean-first (no Rocq counterpart). The proof of `runner.restore` (Probe: proved).
 
 The outline: as the file header, in Go's order: `buildPath`, `newMember(2, …)`, `apply` per
 operation (the history's lower bound from the leader's `histW`), the builder's `inc_retire` and
@@ -52,7 +52,7 @@ set_option maxHeartbeats 1600000 in
 theorem runner.restore.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
-    (hreach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
+    (_hreach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (halloc : mvccW_alloc.law (GF := GF))
     (hopen : etcdStorage_open.law (GF := GF))
     (hrest : backendRest_open.law (GF := GF))
@@ -325,7 +325,7 @@ theorem runner.restore.wp_proof
       Hlrd, HlOwn, HlRevk, HlEver, #HreqU, HrdOwn, -, HbeOn, -, -, Hstop1⟩
     iunfold bkKeep at Hbkn
     icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnoh, HnRT, Hntoks, Hncen⟩
-    simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+    simp only [mvccrand.rcKB_P]
     ihave Hwb2' : ownToks γB.wb 2 $$ [Hwb1 Hwb2]
     · iunfold backend.wbTok at Hwb1 Hwb2
       iapply (ownToks_add 1 1 γB.wb).2; iframe
@@ -455,7 +455,7 @@ theorem runner.restore.wp_proof
     wp_apply (wp_SetHook γB (mvccrand.rcP (limOf cfg)) (mvccW gx) iprop(True) bnb (1 : Qp).half
         func.nil f1) $$ [Hnoh Hplh Hw1] as ⟨Hnoh, Hplh⟩
     · iframe #; iframe; iunfold backend.wbTok; iexact Hw1
-    imod backend.plHook_persist γB f1 $$ Hplh with #Hhk1
+    imod backend.plHook_persist γB f1 $$ Hplh with #HhkRO
     (try wp_auto)
     -- the old backend: its census (`Restore` gave the store's rest back), `Close`
     iunfold bkKeep at Hbk1
@@ -621,7 +621,7 @@ theorem runner.restore.wp_proof
       iapply HapplyOk $$ %(mvccrand.rcKB γB bnb gx (limOf cfg)) %(mvccW gx) %iprop(True) %f1
         %(lease.lessorBeOn v1.lp (mvccrand.rcKB γB bnb gx (limOf cfg)).be)
       · simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]; iexact Hnisb
-      · simp only [mvccrand.rcKB_γB]; iexact Hhk1
+      · simp only [mvccrand.rcKB_γB]; iexact HhkRO
       · ipureintro; exact Hf1
       · iunfold rwLens; iintro !> H; iframe H; iintro H; iexact H
     ihave Hrbn' := backend.rbOwnIn_part γB _ _ $$ Hrbn
@@ -643,7 +643,7 @@ theorem runner.restore.wp_proof
       isplitl [Hret1 Hσw1 Hbw1]
       · iunfold incW; iframe #; iframe
       isplitr
-      · rw [etcdStorage_hookIs]; simp only [mvccrand.rcKB_γB]; iexact Hhk1
+      · rw [etcdStorage_hookIs]; simp only [mvccrand.rcKB_γB]; iexact HhkRO
       isplitl [Hrdrs1 Hr1]
       · iapply hR1'.2; iframe
       isplitl [Hnbf Hnoh HnRT Hntoks Hncen]
@@ -682,7 +682,39 @@ theorem runner.restore.wp_proof
     · inext; iexists _; iframe
     imodintro
     (try wp_auto)
-    sorry
+    -- the writer between steps, one more build, the follower at the leader's count
+    iapply HΦ
+    iframe Htok
+    iexists ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccrand.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl, hkveq, rfl⟩
+    iunfold writerOwn
+    dsimp only
+    rw [hkveq]
+    iframe #
+    iframe HhW Hrd Hss0 Hss1 Hadd
+    isplitl [Hlog1 Hlog2 Hlog3]
+    · iunfold logOwn; iexists lsl, lps; iframe; iframe #; ipureintro; exact Hlogp
+    isplitl [Hnl Hvals Hbuilds]
+    · iunfold writerCtrs; iexists nl
+      have hb1 : W64 (nb : Int) + W64 1 = W64 ((nb + 1 : Nat) : Int) := by word
+      rw [hb1]; iframe; ipureintro; exact Hnl'
+    isplitr
+    · ipureintro; exact ⟨Hops.1, Nat.le_refl _⟩
+    isplitr
+    · ipureintro; exact ⟨by omega, fun _ => rfl⟩
+    isplitl [Hfiles]
+    · iexact Hfiles
+    isplitl [Hops0 Hhk0 Hc0]
+    · iexists qw0, nw0, k0; iunfold memW; iframe; ipureintro; exact Hl0
+    · iexists qw1, nw1, (sint.Z cfg.Ops').toNat
+      iunfold memW; iframe
+      isplitl
+      · icases Hhk1 with ⟨%a1, %s1, Hpre1, %Ha1⟩
+        iexists a1, s1; iframe; ipureintro
+        exact ⟨Ha1.1, by show sint.Z a1 ≤ ((v0.ops : Nat) : Int); omega⟩
+      · ipureintro
+        exact ⟨Hl1.1, Hl1.2.1, by show _ ≤ (sint.Z cfg.Ops').toNat + v0.ops; omega⟩
 
 end proof
 
