@@ -196,7 +196,7 @@ def posOf (W : WatcherM) (id : w64) (rs : List WResp) : Nat :=
 responses with events (a progress does not move it): what the store's `minRev - 1` bounds, so what a
 compaction response is checked against (round 1, F1: after a snapshot `Restore` a watcher told by a
 progress that nothing changed up to `P` may still be sent a compaction at or below `P`,
-`nonissues/etcd-mvcc-watch-compacted-after-progress-restore.md`). -/
+`issues/etcd-mvcc-watch-compacted-after-progress-restore.md`). -/
 def posEvOf (W : WatcherM) (id : w64) (rs : List WResp) : Nat :=
   rs.foldl (fun p x =>
     if x.id = id ∧ x.compactRev = W64 0 then

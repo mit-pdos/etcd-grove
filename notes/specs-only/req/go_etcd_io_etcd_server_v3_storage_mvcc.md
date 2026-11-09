@@ -315,7 +315,7 @@ are `evOwn` (struct owned, `Kv` read-only at `DFrac.discard`, `PrevKv` `nil`).
 3. (to 2b) Item (b) of "from 3f, to 2b" is stale: 1b's `watchStep` now takes `exactFrom`. New: a
    compaction response is stated against the watcher's events position (`posEvOf`), since a progress
    does not protect a watcher from a compaction after a snapshot `Restore`
-   (`nonissues/etcd-mvcc-watch-compacted-after-progress-restore.md`); reader tokens stay (the
+   (`issues/etcd-mvcc-watch-compacted-after-progress-restore.md`); reader tokens stay (the
    coordinator's decision): `req/..._etcdserver_api_v3rpc.md`, "from 3f".
 
 ## 3e → 3f (round 1 repairs)

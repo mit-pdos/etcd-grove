@@ -276,7 +276,7 @@ Everything builds (`etc/specs-build.sh --dir` of `etcdserver`, `etcdserver/{erro
   - New outcome: `ErrCompacted` with no chunk.
   - New premise: `rangeStreamOk` (default order, no revision filters).
   - `rsSink` lost `Q` and `fin`.
-  - Filed: `nonissues/etcd-rangestream-auth-revoked-midstream.md` (the probable bug: keys read after
+  - Filed: `issues/etcd-rangestream-auth-revoked-midstream.md` (the probable bug: keys read after
     a revocation are delivered, then the error; no test written) and
     `nonissues/etcd-rangestream-count-compacted.md`.
 - **`readEnv` (prov. F3)**: the method triples are now Iris triples (persistent) inside `readEnv`, not

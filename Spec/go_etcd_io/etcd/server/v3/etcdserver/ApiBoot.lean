@@ -133,7 +133,7 @@ and fsynced: `UnsafeNoFsync` false); a member's files then restart by `memberSta
 
 **Scope** (`crashScope`, a premise of `disk_crash`; Q2 of `batch-2e.md`, the user's): (1) R1's
 `Durable.confAboveOk` of the crashed state: at most one conf-change entry above the stored commit
-(`nonissues/raft-commit-lost-with-entries-kept.md`: otherwise a restarted node can win an election
+(`issues/raft-commit-lost-with-entries-kept.md`: otherwise a restarted node can win an election
 counted in an older configuration; the alternative is a raft/etcd fix); (2) no crash during the
 write of a batch that carries a snapshot (R1's law excludes them: the loop's `SaveSnap` is fsynced
 first, but the state record that makes it valid follows). A graceful stop is the instance with no

@@ -61,7 +61,7 @@ code (`.lake/src/client/leasing`, the fork `a4d2bb17`):
    attempt that took effect.
 
 Two more differences of shape: a range delete drops the caller's `WithPrevKV` (`deleteRangeRPC`
-sends its own `OpDelete(key, WithRange(end))`: `nonissues/leasing-delete-range-drops-prevkv.md`,
+sends its own `OpDelete(key, WithRange(end))`: `issues/leasing-delete-range-drops-prevkv.md`,
 `execReq`); the replies of `Put` and of a transaction are read-only (their header is shared with the
 cache, `leaseCache.Update` keeps the pointer: `putReplyL`, `txnReplyL`). Every call but `Compact`,
 `Txn` and `If`/`Then`/`Else` takes a thread token for the cache's reader slots (given back;

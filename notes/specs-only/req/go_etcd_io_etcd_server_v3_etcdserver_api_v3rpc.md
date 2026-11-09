@@ -222,7 +222,7 @@ precondition, as you asked: "from 2a" item 3).
 3. **`rsSink`'s laws** (yours, as you planned `rsSink_intro`/`rsSink_out`): a send appends a chunk
    (any page; no `Q`); the stream's `Q` comes with `RangeStream`'s `nil` return (`streamMatches` of all
    chunks): the code sends the last chunk before it knows the permission held
-   (`nonissues/etcd-rangestream-auth-revoked-midstream.md`), so `Q` must reach the client with the
+   (`issues/etcd-rangestream-auth-revoked-midstream.md`), so `Q` must reach the client with the
    end of the stream (status OK), not with the last chunk; `RangeStream` may also end with
    `ErrAuthOldRevision` after every chunk, or `ErrCompacted` with **no** chunk
    (`nonissues/etcd-rangestream-count-compacted.md`): `rsSink_out` must admit both.

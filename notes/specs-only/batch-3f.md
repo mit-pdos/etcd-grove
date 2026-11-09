@@ -176,7 +176,7 @@ boundary; 2a's `checkIntervals` and 3d's permission cache use `Adt`'s vocabulary
   store's `minRev - 1` bounds on every path: `posEvOf W id rs + 1 < cr ∧ cr ≤ h.compacted`.
   `WatchInternal.lean`'s realization sentence corrected (a synced watcher with no events keeps its
   registration `minRev`); `wsCmpSendable` restated against `minRev`. The behavior is recorded:
-  `nonissues/etcd-mvcc-watch-compacted-after-progress-restore.md`, with a Go test that fails at the
+  `issues/etcd-mvcc-watch-compacted-after-progress-restore.md`, with a Go test that fails at the
   pinned fork (a progress at 21, a `Restore` onto a later store compacted at 10, a compaction
   response at 10), at mvcc's API (moving it to `issues/` needs an integration test through a
   follower's snapshot). 1b is told to weaken `watchStep` alike (coordinator).

@@ -278,7 +278,7 @@ WAL's `Save`. Rebuilt: `etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` OK (22
   term/vote are both safe. **The one condition raft needs is `confAboveOk`**: at most one
   conf-change entry above the stored commit. Without it, the restarted node has its committed
   conf changes in its log but a commit too low for the campaign guard, and can win counted in an
-  older configuration (`nonissues/raft-commit-lost-with-entries-kept.md`, a model execution).
+  older configuration (`issues/raft-commit-lost-with-entries-kept.md`, a model execution).
 - **For 2e (a finding to carry):** etcd's WAL writes the entry records, then the state record,
   then one fsync; a crash in between keeps a prefix of entries with the old commit, which can break
   `confAboveOk` when the batch carries two or more conf changes above the old commit (a lagging

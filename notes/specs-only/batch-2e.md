@@ -291,7 +291,7 @@ the changed vocabulary. Snippets: `go vet`, `gofmt` clean. This supersedes round
 **Open question Q2 (revised, the user's):** crash restart holds only within `crashScope`. Two crash
 points are outside: (a) a crash leaving two or more conf-change entries above the stored commit (a
 restarted node can win an election counted in an older configuration:
-`nonissues/raft-commit-lost-with-entries-kept.md`), which a raft/etcd fix would remove (e.g. syncing
+`issues/raft-commit-lost-with-entries-kept.md`), which a raft/etcd fix would remove (e.g. syncing
 the commit before acknowledging a second pending conf change); (b) a crash during a
 snapshot-carrying write, which needs R1's crash law extended to snapshot batches. Accept the scope,
 or ask for a fix?

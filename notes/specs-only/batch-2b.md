@@ -186,7 +186,7 @@ Reviews: `reviews/2b-provability-1.md`, `reviews/2b-completeness-1.md`. All 16 m
   writes: true of both ends), 1b and 2a adjusting their laws alike, and a pipe realization of the
   stream slots (the adapter belongs to no batch); or leave them out.
 * **Cross-user principal on the in-process stream** (compl., suspected bug):
-  `nonissues/etcd-v3lock-watch-shared-stream-principal.md` with a test recipe (not run): every
+  `issues/etcd-v3lock-watch-shared-stream-principal.md` with a test recipe (not run): every
   v3lock/v3election watch shares the stream opened with the first caller's context, so with auth on
   it is checked as the first caller's user.
 * **Client-certificate auth** (prov. F5): `req/go_etcd_io_etcd_server_v3_auth.md` and

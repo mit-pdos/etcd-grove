@@ -427,7 +427,7 @@ def Durable.crashed (D : Durable) (b : Batch) (j : Nat) (hs : HardState) : Durab
 cut): what makes a restart from it safe. A node whose stored log holds two configuration changes
 above its stored commit restarts at a configuration older than its committed log, with a commit too
 low for raft's campaign guard to see the pending change, and can win an election counted in that
-older configuration (`nonissues/raft-commit-lost-with-entries-kept.md`, a model execution). -/
+older configuration (`issues/raft-commit-lost-with-entries-kept.md`, a model execution). -/
 def Durable.confAboveOk (D : Durable) : Prop :=
   ((D.ents.zipIdx (uint.nat D.base.index + 1)).filter
     (fun p => uint.nat D.commit < p.2 ∧ p.1.isConfChange)).length ≤ 1
