@@ -46,9 +46,11 @@
 //     puts with a lease; Compact, at any revision (past the compaction revision, at or below it, in
 //     the future), waiting for the compaction to finish or not; Commit; reads at the writer's own
 //     revision; the lessor's record of each key's lease and each lease's keys. Member steps: the
-//     follower applies some of the log; the follower installs a snapshot of the leader's backend
-//     (backend.Snapshot written to a file, a backend opened on it, Lessor.Recover, Restore, the
-//     hook on the new backend, the old backend closed: the server's applySnapshot); a member
+//     follower applies some of the log; the follower installs a snapshot at the leader's point (a
+//     backend opened on the snapshot's file, Lessor.Recover, Restore, the hook on the new backend,
+//     the old backend closed: the server's applySnapshot; the file made by a third store applying
+//     the log, then closed, in place of the leader's backend.Snapshot: an image of the same
+//     history, which is all Restore's contract asks); a member
 //     restarts (its watch streams drained and closed, the store, lessor and backend closed, then
 //     reopened on the same file, possibly with another configuration: a resumed compaction, the
 //     index and the leases restored from the file).
@@ -61,19 +63,23 @@
 //     compaction revision must be equal.
 //   - Watch streams on each member (two goroutines each, as the watch server's): one registers
 //     watchers (from revision 0, i.e. from now; from a past, current or future revision; over a
-//     key, a range or a from-key range; with the watch server's NoPut or NoDelete filter; with an
-//     automatic or an explicit id), cancels them, asks for progress (RequestProgress,
-//     RequestProgressAll) and the stream's revision, and makes the calls that must fail (an empty
-//     range, a duplicate id); the other receives the responses and, for some events, reads the
-//     key's previous value as the watch server does (Range at the event's revision minus one).
+//     key, a range or a from-key range; with the watch server's NoPut or NoDelete filter; the
+//     stream picking the id, as etcd's client asks), cancels them, asks for progress
+//     (RequestProgress, RequestProgressAll) and the stream's revision, and watches an empty range
+//     (which must fail); the other receives the responses and, for some events, reads the key's
+//     previous value as the watch server does (Range at the event's revision minus one).
 //
 // # The checks
 //
-// Each watcher's events must be exactly the changes in its range (filtered) from its start
+// Only what mvcc's contract promises its clients (Spec/.../storage/mvcc/Api.lean, wsRecvOk):
+// each watcher's events must be exactly the changes in its range (filtered) from its start
 // revision on, in order, with every field, each in a response whose revision is at least its
-// event's; a progress response at P must come after every such change up to P (one for the whole
-// stream after those of every watcher it was asked for); a compaction response must name a
-// revision compacted, above everything the watcher received, and be the watcher's last. When a
+// event's; a watcher's progress response at P must come after every such change up to P and be at
+// least its start revision less one; a stream's progress response must come after those of every
+// watcher not cancelled that registered before it was sent (which the receiver knows of the
+// watchers registered before it last found the channel empty, recvOne); the revisions of the
+// responses without events never decrease; a compaction response must name a revision compacted.
+// When a
 // stream is closed (at a restart, and at the end), every watcher not cancelled or compacted must
 // have received every change up to the member's revision: the stream is drained first, so Main
 // returns only if mvcc delivered every event (a liveness check that partial correctness can
@@ -90,7 +96,6 @@
 //   - Fewer than 512 watchers per member (maxWatchersPerSync; issues/etcd-watch-compacted-resent.md).
 //   - No negative compaction batch limit (nonissues/etcd-compaction-negative-batch-limit.md).
 //   - Restarts are clean (the store, lessor and backend closed): no crash.
-//   - Explicit watch ids are never reused (issues/etcd-watch-id-reuse-stale-events.md).
 //   - No full-store Hash() (issues/etcd-mvcc-hash-currentrev-race.md, fixed upstream after the pin).
 //   - HashByRev's stored-hash path is not checked for its current revision
 //     (issues/etcd-mvcc-hashbyrev-restore-rev1.md).
@@ -104,7 +109,6 @@ package mvccfull
 
 import (
 	"context"
-	"os"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -369,7 +373,6 @@ func checkKV(kv *mvccpb.KeyValue, k string, e kvRec, keysOnly bool) {
 // after a step, each hi before). life is held shared by the readers and exclusively by a restart.
 type member struct {
 	id       int
-	gen      int
 	path     string
 	life     sync.RWMutex
 	be       backend.Backend
@@ -445,13 +448,26 @@ type runner struct {
 	log       []*op
 	nextLease int64
 	vals      int
+	builds    int
 
 	revisions, events, progress, compacted, cancels, reads, hashPairs, compactions,
 	restores, restarts atomic.Int64
 }
 
-func (x *runner) memberPath(m *member) string {
-	return x.cfg.Prefix + "-" + itoa(m.id) + "-" + itoa(m.gen) + ".db"
+// memberPath is the file of member id (0 the leader, 1 the follower), buildPath the file of the
+// n-th snapshot builder (restore): FilePaths lists them.
+func memberPath(prefix string, id int) string { return prefix + "-" + itoa(id) + ".db" }
+
+func buildPath(prefix string, n int) string { return prefix + "-b" + itoa(n) + ".db" }
+
+// FilePaths is every file a run of cfg may create (absent at its start): the two members' and one
+// per snapshot install, at most one per writer step.
+func FilePaths(cfg Config) []string {
+	ps := []string{memberPath(cfg.Prefix, 0), memberPath(cfg.Prefix, 1)}
+	for n := 1; n <= cfg.Ops; n++ {
+		ps = append(ps, buildPath(cfg.Prefix, n))
+	}
+	return ps
 }
 
 // openBackend opens a backend on path, with the configuration's batch settings.
@@ -492,9 +508,9 @@ func (x *runner) shut(m *member) {
 	check(m.be.Close() == nil, "a backend's close failed")
 }
 
-func (x *runner) newMember(id int) *member {
-	m := &member{id: id, rev: 1, cmp: -1}
-	m.path = x.memberPath(m)
+// newMember opens a member over a fresh file.
+func (x *runner) newMember(id int, path string) *member {
+	m := &member{id: id, path: path, rev: 1, cmp: -1}
 	m.hook = func() {
 		if a := m.applying.Load(); a > m.saved.Load() {
 			m.saved.Store(a)
@@ -519,34 +535,33 @@ func (x *runner) restart(m *member) {
 	x.startEpoch(m)
 }
 
-// restore installs a snapshot of the leader l's backend on the follower f, as the server's
-// applySnapshot does: the snapshot written to a new file of f's, a backend opened on it, the
-// lessor recovered from it, the store restored on it, the hook installed on it, the old backend
-// closed.
+// restore installs a snapshot on the follower f at the leader l's point of the log, as the
+// server's applySnapshot does (a backend opened on the snapshot's file, the lessor recovered from
+// it, the store restored on it, the hook installed on it, the old backend closed). The snapshot's
+// file is made by a third store, the builder: a fresh member applying the log up to l's point,
+// then closed (the file then holds an image of that history, as a leader's backend snapshot
+// does; Restore takes any image of a history extending the store's).
 func (x *runner) restore(l, f *member) {
-	f.gen++
-	path := x.memberPath(f)
-	snap := l.be.Snapshot()
-	file, err := os.Create(path)
-	check(err == nil, "a snapshot file could not be created")
-	_, err = snap.WriteTo(file)
-	check(err == nil, "a snapshot could not be written")
-	check(file.Close() == nil, "a snapshot file could not be closed")
-	check(snap.Close() == nil, "a snapshot could not be closed")
+	x.builds++
+	b := x.newMember(2, buildPath(x.cfg.Prefix, x.builds))
+	for b.ops < l.ops {
+		x.apply(b, x.log[b.ops], false)
+	}
+	x.shut(b)
 
-	f.revHi.Store(l.rev)
-	f.cmpHi.Store(l.cmp)
-	newbe := x.openBackend(path)
+	f.revHi.Store(b.rev)
+	f.cmpHi.Store(b.cmp)
+	newbe := x.openBackend(b.path)
 	f.le.Recover(newbe, func() lease.TxnDelete { return f.kv.Write(traceutil.TODO()) })
 	check(f.kv.Restore(newbe) == nil, "a restore failed")
 	newbe.SetTxPostLockInsideApplyHook(f.hook)
 	oldbe := f.be
 	f.be = newbe
-	f.path = path
+	f.path = b.path
 	check(oldbe.Close() == nil, "the old backend's close failed")
 
-	f.ops, f.rev, f.cmp = l.ops, l.rev, l.cmp
-	f.leases = append([]int64(nil), l.leases...)
+	f.ops, f.rev, f.cmp = b.ops, b.rev, b.cmp
+	f.leases = append([]int64(nil), b.leases...)
 	f.revLo.Store(f.rev)
 	f.cmpLo.Store(f.cmp)
 	check(f.kv.Rev() == f.rev, "a restored store's revision is not the snapshot's")
@@ -1126,9 +1141,9 @@ func (x *runner) checkHash(m *member, r int64, h mvcc.KeyValueHash, cur int64, e
 // A watcher's expectation: its range and filter (0 none, 1 no puts, 2 no deletes), its start
 // revision, and the position of its next event (revision rev, the index-th matching change of
 // it). A watcher from revision 0 starts somewhere in [floatLo, rev] until its first event
-// anchors it (floatLo 0 once anchored, or for a watcher from a given revision). last is the
-// revision of its last event; cancelled and compacted say whether it was cancelled, or received a
-// compaction response.
+// anchors it (floatLo 0 once anchored, or for a watcher from a given revision). stamped says
+// whether every response sent before it registered has been received (recvOne); cancelled
+// whether it is being or was cancelled; compacted whether it received a compaction response.
 type watcher struct {
 	key, end  []byte
 	filter    int
@@ -1136,7 +1151,7 @@ type watcher struct {
 	floatLo   int64
 	rev       int64
 	index     int
-	last      int64
+	stamped   bool
 	cancelled bool
 	compacted bool
 }
@@ -1151,22 +1166,20 @@ func (w *watcher) matches(ch change) bool {
 	return w.filter != 1
 }
 
-// A stream is one watch stream of a member, with its watchers by id (registration order in
-// order), the watcher sets of its RequestProgressAll calls whose response has not been received,
-// and its goroutines' signals.
+// A stream is one watch stream of a member, with its watchers by id (in registration order in
+// order), the largest revision of a response without events so far, and its goroutines' signals.
 type stream struct {
-	x            *runner
-	m            *member
-	kv           mvcc.WatchableKV
-	ws           mvcc.WatchStream
-	mu           sync.Mutex
-	watchers     map[mvcc.WatchID]*watcher
-	order        []mvcc.WatchID
-	allQ         [][]mvcc.WatchID
-	nextExplicit int64
-	stop         atomic.Int64
-	regDone      sync.WaitGroup
-	recvDone     sync.WaitGroup
+	x         *runner
+	m         *member
+	kv        mvcc.WatchableKV
+	ws        mvcc.WatchStream
+	mu        sync.Mutex
+	watchers  map[mvcc.WatchID]*watcher
+	order     []mvcc.WatchID
+	eventless int64
+	stop      atomic.Int64
+	regDone   sync.WaitGroup
+	recvDone  sync.WaitGroup
 }
 
 // startEpoch opens m's watch streams, each with its receiving goroutine and its registering one,
@@ -1175,11 +1188,10 @@ func (x *runner) startEpoch(m *member) {
 	m.regs.Store(0)
 	for j := 0; j < x.cfg.Streams; j++ {
 		s := &stream{x: x, m: m, kv: m.kv, ws: m.kv.NewWatchStream(),
-			watchers: map[mvcc.WatchID]*watcher{}, nextExplicit: int64(1) << 40}
+			watchers: map[mvcc.WatchID]*watcher{}}
 		s.recvDone.Add(1)
 		go func() {
-			for resp := range s.ws.Chan() {
-				s.receive(resp)
+			for s.recvOne() {
 				time.Sleep(x.cfg.Mix.RecvPause)
 			}
 			s.recvDone.Done()
@@ -1220,10 +1232,11 @@ func (x *runner) endEpoch(m *member) {
 	m.streams = nil
 }
 
-// act is the registering goroutine's step: register a watcher, cancel one, ask for progress,
-// check the stream's revision, or make a call that must fail.
+// act is the registering goroutine's step: register a watcher, cancel one, ask for one's
+// progress or the stream's, check the stream's revision, or watch an empty range (which must
+// fail).
 func (s *stream) act() {
-	switch pick(s.x.cfg.Mix.Act, 7) {
+	switch pick(s.x.cfg.Mix.Act, 6) {
 	case 0:
 		s.watch()
 	case 1:
@@ -1236,33 +1249,14 @@ func (s *stream) act() {
 			s.ws.RequestProgress(id)
 		}
 	case 3:
-		s.mu.Lock()
-		var set []mvcc.WatchID
-		for _, id := range s.order {
-			if !s.watchers[id].cancelled {
-				set = append(set, id)
-			}
-		}
-		if s.ws.RequestProgressAll() {
-			s.allQ = append(s.allQ, set)
-		}
-		s.mu.Unlock()
+		s.ws.RequestProgressAll()
 	case 4:
 		lo := s.m.revLo.Load()
 		inBounds(lo, s.ws.Rev(), &s.m.revHi, "a watch stream's revision")
-	case 5:
+	default:
 		k := s.x.genKey()
 		id, err := s.ws.Watch(context.TODO(), 0, k, k, 0)
 		check(id == -1 && err == mvcc.ErrEmptyWatcherRange, "a watch of an empty range did not fail")
-	default:
-		s.mu.Lock()
-		id, ok := s.pick()
-		// (id 0 is clientv3.AutoWatchID: a watch with it gets a new id)
-		if ok && id != 0 {
-			got, err := s.ws.Watch(context.TODO(), id, s.x.genKey(), nil, 0)
-			check(got == -1 && err == mvcc.ErrWatcherDuplicateID, "a watch with a live watcher's id did not fail")
-		}
-		s.mu.Unlock()
 	}
 }
 
@@ -1280,8 +1274,8 @@ func (s *stream) pick() (mvcc.WatchID, bool) {
 	return live[choose(len(live))], true
 }
 
-// watch registers a watcher: from revision 0 or any revision up to two past the member's, over
-// any non-empty range, with any filter, with an automatic or a new explicit id.
+// watch registers a watcher (the stream picks its id, as etcd's client asks): from revision 0
+// or any revision up to two past the member's, over any non-empty range, with any filter.
 func (s *stream) watch() {
 	if s.m.regs.Load() >= int64(s.x.cfg.Watchers) {
 		return
@@ -1307,41 +1301,37 @@ func (s *stream) watch() {
 	} else if w.filter == 2 {
 		fcs = append(fcs, func(e *mvccpb.Event) bool { return e.Type == mvccpb.Event_DELETE })
 	}
-	id := mvcc.WatchID(0)
-	if choose(2) == 0 {
-		id = mvcc.WatchID(s.nextExplicit)
-		s.nextExplicit++
-	}
 	s.mu.Lock()
 	lo := s.m.revLo.Load()
-	got, err := s.ws.Watch(context.TODO(), id, w.key, w.end, w.start, fcs...)
+	id, err := s.ws.Watch(context.TODO(), 0, w.key, w.end, w.start, fcs...)
 	hi := s.m.revHi.Load()
 	check(err == nil, "a watch failed")
-	check(id == 0 || got == id, "a watch with an explicit id got another")
-	check(s.watchers[got] == nil, "a watch id was reused")
+	check(s.watchers[id] == nil, "a watch id was reused")
 	if w.start == 0 {
 		w.floatLo, w.rev = lo+1, hi+1
 	} else {
 		w.rev = w.start
 	}
-	s.watchers[got] = w
-	s.order = append(s.order, got)
+	s.watchers[id] = w
+	s.order = append(s.order, id)
 	s.mu.Unlock()
 }
 
-// cancel cancels a watcher not cancelled, and checks that a second cancel fails.
+// cancel cancels a watcher not cancelled (marked first, so that the receiver stops counting on
+// the stream's progress responses for it), and cancels it again, which may fail.
 func (s *stream) cancel() {
 	s.mu.Lock()
 	id, ok := s.pick()
+	if ok {
+		s.watchers[id].cancelled = true
+	}
 	s.mu.Unlock()
 	if !ok {
 		return
 	}
 	check(s.ws.Cancel(id) == nil, "a cancel failed")
-	s.mu.Lock()
-	s.watchers[id].cancelled = true
-	s.mu.Unlock()
-	check(s.ws.Cancel(id) == mvcc.ErrWatcherNotExist, "a second cancel did not fail")
+	err := s.ws.Cancel(id)
+	check(err == nil || err == mvcc.ErrWatcherNotExist, "a second cancel failed otherwise")
 	s.x.cancels.Add(1)
 }
 
@@ -1369,59 +1359,80 @@ func (s *stream) covered(w *watcher, p int64, what string) {
 	check(!more, what+" came before a change at or below its revision")
 }
 
-// receive checks a response of the stream.
-func (s *stream) receive(resp mvcc.WatchResponse) {
+// recvOne receives one response and checks it (false once the channel is closed and drained).
+// Before it blocks, it polls the channel with the stream's lock held: if it is empty, every
+// response sent so far has been received, so every watcher registered so far is stamped (v3rpc's
+// sendLoop drains its channel down to a new watcher's stamp the same way): a stream progress
+// response received later was sent after the watcher registered, and covers it.
+func (s *stream) recvOne() bool {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	select {
+	case resp, ok := <-s.ws.Chan():
+		if !ok {
+			s.mu.Unlock()
+			return false
+		}
+		s.receive(resp)
+		s.mu.Unlock()
+		return true
+	default:
+		for _, id := range s.order {
+			s.watchers[id].stamped = true
+		}
+		s.mu.Unlock()
+	}
+	resp, ok := <-s.ws.Chan()
+	if !ok {
+		return false
+	}
+	s.mu.Lock()
+	s.receive(resp)
+	s.mu.Unlock()
+	return true
+}
+
+// receive checks a response of the stream (s.mu held).
+func (s *stream) receive(resp mvcc.WatchResponse) {
 	m := s.m
 	check(resp.Revision <= m.revHi.Load(), "a watch response is at a revision not yet written")
+	if len(resp.Events) == 0 && resp.CompactRevision == 0 {
+		// progress (the watcher's, or the stream's): the revisions of the responses without events
+		// never decrease
+		check(resp.Revision >= s.eventless, "a progress response's revision went back")
+		s.eventless = resp.Revision
+		s.x.progress.Add(1)
+	}
 	if resp.WatchID == -1 {
-		// a progress response for the stream: covers the watchers of the RequestProgressAll call
-		// it answers, which is one of those not yet answered (a response may have been dropped
-		// when the channel was full), so those in all of them
-		check(len(resp.Events) == 0 && resp.CompactRevision == 0, "a stream's progress response has events")
-		check(len(s.allQ) > 0, "a stream's progress response no one asked for")
-		for _, id := range s.allQ[0] {
-			in := true
-			for _, set := range s.allQ[1:] {
-				found := false
-				for _, id2 := range set {
-					if id2 == id {
-						found = true
-					}
-				}
-				in = in && found
-			}
-			if in {
-				s.covered(s.watchers[id], resp.Revision, "a stream's progress response")
+		// the stream's progress: covers every watcher stamped before it and not cancelled
+		check(len(resp.Events) == 0 && resp.CompactRevision == 0 && resp.Revision >= 1,
+			"a stream's progress response is not progress")
+		for _, id := range s.order {
+			w := s.watchers[id]
+			if w.stamped && !w.cancelled {
+				s.covered(w, resp.Revision, "a stream's progress response")
 			}
 		}
-		s.allQ = s.allQ[1:]
-		s.x.progress.Add(1)
 		return
 	}
 	w := s.watchers[resp.WatchID]
 	check(w != nil, "a watch response for an unknown watcher")
-	check(!w.compacted, "a watch response after the watcher's compaction response")
 	if resp.CompactRevision != 0 {
-		check(len(resp.Events) == 0, "a compaction response has events")
-		lower := w.start
-		if w.last+1 > lower {
-			lower = w.last + 1
-		}
-		if w.floatLo > lower {
-			lower = w.floatLo
-		}
-		check(lower < resp.CompactRevision, "a watcher was compacted at or below its position")
-		check(resp.CompactRevision <= m.cmpHi.Load(), "a watcher was compacted at a revision not compacted")
+		check(len(resp.Events) == 0 && resp.Revision == 0, "a compaction response has events")
+		check(0 < resp.CompactRevision && resp.CompactRevision <= m.cmpHi.Load(),
+			"a watcher was compacted at a revision not compacted")
 		w.compacted = true
 		s.x.compacted.Add(1)
 		return
 	}
 	if len(resp.Events) == 0 {
-		check(resp.Revision >= w.start, "a progress response is below its watcher's start")
+		// the watcher's progress: at least its first revision less one, after its every change up
+		// to its revision
+		lower := w.start
+		if w.floatLo > lower {
+			lower = w.floatLo
+		}
+		check(resp.Revision+1 >= lower, "a progress response is below its watcher's start")
 		s.covered(w, resp.Revision, "a progress response")
-		s.x.progress.Add(1)
 		return
 	}
 	for _, ev := range resp.Events {
@@ -1449,7 +1460,6 @@ func (s *stream) receive(resp mvcc.WatchResponse) {
 			w.rev, w.index = r, 0
 		}
 		w.index++
-		w.last = r
 		s.x.events.Add(1)
 		if choose(4) == 0 {
 			// the watch server's previous key-value: the key at the revision before the event
@@ -1539,8 +1549,8 @@ func Run(cfg Config) Report {
 	cfg = normalize(cfg)
 	x := &runner{cfg: cfg, keys: walkKeys(nil, "", cfg.Depth), lg: zap.NewNop(),
 		h: &history{states: []map[string]kvRec{{}, {}}, changes: [][]change{nil, nil}}}
-	x.ms = append(x.ms, x.newMember(0))
-	x.ms = append(x.ms, x.newMember(1))
+	x.ms = append(x.ms, x.newMember(0, memberPath(cfg.Prefix, 0)))
+	x.ms = append(x.ms, x.newMember(1, memberPath(cfg.Prefix, 1)))
 	for _, m := range x.ms {
 		x.startEpoch(m)
 	}

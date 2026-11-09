@@ -18,7 +18,7 @@ func small(t *testing.T) Config {
 			Step:     []int{80, 16, 1, 1, 1, 1},
 			Op:       []int{25, 12, 25, 5, 5, 10, 4, 10, 4},
 			RangeRev: []int{1, 1, 2, 0},
-			Act:      []int{4, 1, 1, 1, 1, 1, 1},
+			Act:      []int{4, 1, 1, 1, 1, 1},
 			Start:    []int{1, 3, 0},
 			Pause:    100 * time.Microsecond,
 		}}
@@ -44,7 +44,7 @@ func slowReceiver(t *testing.T) Config {
 	c.Depth = 1
 	c.Watchers = 100
 	c.Mix.RecvPause = 5 * time.Millisecond
-	c.Mix.Act = []int{8, 1, 1, 1, 1, 0, 0}
+	c.Mix.Act = []int{8, 1, 1, 1, 1, 0}
 	c.Mix.Start = []int{1, 8, 1}
 	return c
 }
@@ -54,7 +54,7 @@ func slowReceiver(t *testing.T) Config {
 func churn(t *testing.T) Config {
 	c := small(t)
 	c.BatchLimit = 1
-	c.Mix.Step = []int{60, 5, 8, 6, 6, 3}
+	c.Mix.Step = []int{60, 5, 2, 6, 6, 3}
 	c.Mix.Op = []int{25, 10, 20, 8, 6, 15, 4, 8, 4}
 	return c
 }

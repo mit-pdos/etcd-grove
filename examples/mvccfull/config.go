@@ -12,7 +12,8 @@ import (
 // what is checked. Engineered Configs (mvccfull_test.go) make the executions behind a class of
 // bugs likely; Main's reaches past mvcc's internal thresholds.
 //
-//   - Prefix: the members' files are Prefix-<member>-<generation>.db (absent at the start).
+//   - Prefix: the files are Prefix-0.db and Prefix-1.db (the members') and Prefix-b<n>.db (the
+//     n-th snapshot's), FilePaths(cfg), absent at the start.
 //   - Ops: the operations in the log. Depth: the keys are the strings over a, b, c of length 1 to
 //     Depth. MaxVal: values have up to MaxVal bytes (beyond the counter that makes them unique).
 //   - Readers, Reads: readers on each member, and reads each. Streams: watch streams on each
@@ -68,8 +69,7 @@ type Mix struct {
 	// own Range, the corruption checker's hashes
 	Read []int
 	// the registering goroutine's action: register a watcher, cancel one, ask one's progress, ask
-	// the stream's progress, check the stream's revision, watch an empty range, watch with a live
-	// id
+	// the stream's progress, check the stream's revision, watch an empty range
 	Act []int
 	// a watcher's start revision: 0 (from now), any from 1 to two past the current revision, the
 	// compaction revision
@@ -79,7 +79,7 @@ type Mix struct {
 	RecvPause time.Duration
 }
 
-// MainConfig is Main's Config, with the members' files prefix-<member>-<generation>.db: sizes
+// MainConfig is Main's Config, with the files' prefix prefix: sizes
 // past mvcc's internal thresholds (mvccfull.go, "Auditing"), batch limits small enough that
 // commits and compactions go by count, and a mix weighed toward the log's operations.
 func MainConfig(prefix string) Config {
@@ -92,7 +92,7 @@ func MainConfig(prefix string) Config {
 			CompactAt: []int{1, 1, 0},
 			RangeRev:  []int{1, 1, 2, 0},
 			Read:      []int{1, 1, 2, 1, 1, 2},
-			Act:       []int{4, 1, 1, 1, 1, 1, 1},
+			Act:       []int{4, 1, 1, 1, 1, 1},
 			Start:     []int{1, 3, 0},
 			Pause:     100 * time.Microsecond,
 		}}

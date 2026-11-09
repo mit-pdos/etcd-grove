@@ -7,6 +7,37 @@ in mvcc's correctness. Then (mid-session): keep the core easy to audit. What onl
 interesting executions likely goes in a configuration, the theorem is for all configurations, and
 the Go tests run engineered configurations. No proof yet.
 
+## Revision 2 (2026-11-09): only what clients rely on
+
+The user: "if clients don't depend on it, let's not encode it in this top-level test". Every check
+the contract (`wsRecvOk`, `Cancel`) does not promise, because no client needs it, went:
+
+- **Stream progress responses (id −1).** There is no request queue now; a −1 response may come
+  unasked. It covers the watchers the receiver *stamped*: registered before the receiver last found
+  the channel empty, polled under the stream's lock (`recvOne`). That is v3rpc's drain to a new
+  watcher's stamp, giving the contract's `w.k ≤ j`. Watchers marked cancelled (before `Cancel` is
+  called) are skipped (the contract's `live`).
+- **A watcher's progress** is at least its start revision less one (the contract's `lo ≤ P + 1`).
+- **New check: progress revisions never decrease** along the stream (the contract's clause 5,
+  which client/v3 needs).
+- **A compaction response** is checked only for its shape: a known watcher, no events, revision
+  `0`, compaction revision positive and at most the member's. Not checked any more: "above the
+  watcher's position", and "nothing after it".
+- **A second `Cancel`** may return `nil` or `ErrWatcherNotExist`.
+- **Explicit watch ids are dropped.** client/v3 asks for an automatic id, and v3rpc's proof
+  assumes id 0.
+- **Snapshot install through a builder store.** No file of bytes can be shown to hold a database
+  without the server's snapshot-directory axioms, so a third store applies the log up to the
+  leader's point on a fresh file and is closed (`mvccImage_stop.law`: an image of its history). The
+  follower opens a backend on that file and `Restore`s from it: `Restore`'s contract takes any
+  image of a history extending the store's. The files are `Prefix-0.db`, `Prefix-1.db` and
+  `Prefix-b<n>.db` for `n ≤ Ops` (`FilePaths`).
+
+Checked: `go test -race -short` passes (5 configurations; 8 minutes, the builder replaying the log
+at each install); `TestMain_` 65 s, with 101 installs and 103 restarts. Mutations: M15 and M16
+still fail. M6 fails in 2 of 3 runs of `slowReceiver` (timing-dependent). Retranslated; both files
+elaborate.
+
 ## What mvccrand left out (the review that started this)
 
 mvccrand covers the part of mvcc that etcd's current proof relies on: one writer with txn-style
@@ -77,7 +108,6 @@ The package doc comment (`mvccfull.go`) is the specification. In short:
 |---|---|
 | no `Compact(0)` | `issues/etcd-mvcc-hashbyrev-zero-stored.md`, `issues/etcd-restore-scheduled-compact-zero.md` |
 | < 512 watchers per member | `issues/etcd-watch-compacted-resent.md` |
-| explicit watch ids never reused | `issues/etcd-watch-id-reuse-stale-events.md` |
 | no full-store `Hash()` | `issues/etcd-mvcc-hash-currentrev-race.md` (fixed upstream after the pin) |
 | stored-hash path's current revision unchecked | `issues/etcd-mvcc-hashbyrev-restore-rev1.md` |
 | the writer waits for a compaction only before its next step | `issues/etcd-restore-pending-compaction-unclosed.md` |
