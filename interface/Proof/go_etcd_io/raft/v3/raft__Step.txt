@@ -226,7 +226,8 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                                             slent := __src.slent,
                                                                                             snp := __src.snp,
                                                                                             sn := __src.sn,
-                                                                                            tr := __src.tr }) ∧
+                                                                                            tr := __src.tr,
+                                                                                            lq := __src.lq }) ∧
                                                                                         ∀ (p : w64 × w64),
                                                                                           p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
                                                                               "%Hterm" ∷

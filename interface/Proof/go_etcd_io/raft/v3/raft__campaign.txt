@@ -14,24 +14,14 @@ def vrespTy (pre : Bool) : MsgType :=
 def vrespW32 (pre : Bool) : w32 :=
   if pre = true then MsgPreVoteResp else MsgVoteResp
 
-def campRoleState [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) (pre : Bool) :
-    NState :=
-  if pre = true then becomePrecandidate s else becomeCandidate id s
-
 def vreqW32 (pre : Bool) : w32 :=
   if pre = true then MsgPreVote else MsgVote
 
 theorem sendMsgs_logst [GoGlobalContext] [GoSemanticsFunctions] (s0 : NState) (ms : List Msg) :
     (sendMsgs s0 ms).logst = s0.logst
 
-theorem campRoleState_logst [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) (pre :
-    Bool) : (campRoleState id s pre).logst = s.logst
-
 def campMsg (pre : Bool) (id T : w64) (e : entryID) (cl : List w8) (y : w64) : Msg :=
   if y = id then Msg.plain (vrespTy pre) id id T false else campReq pre id y T e cl
-
-theorem campRoleState_gh [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) (pre :
-    Bool) : (campRoleState id s pre).gh = s.gh
 
 theorem sendMsgs_app [GoGlobalContext] [GoSemanticsFunctions] (s0 : NState) (ms1 ms2 : List Msg) :
     sendMsgs (sendMsgs s0 ms1) ms2 = sendMsgs s0 (ms1 ++ ms2)

@@ -5,18 +5,17 @@
 theorem raft.sendTimeoutNow.wp_proof [package_sem : Assumptions] (wp_raft_send : raft.send.spec)
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) : raft.sendTimeoutNow.spec
   -- `Perennial.EtcdGrove.raft.sendTimeoutNow.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (Q : IProp GF),
     to ≠ id →
       s.term ≠ W64 0 →
-        s.gh.tr = none →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s -∗
-                ▷ (ownRaftPhysCV c c.voters r id s -∗ Φ (intoVal ())) -∗
-                  WP
-                    ((intoVal
-                        (methods raft.ty.PointerType
-                          go!"sendTimeoutNow"
-                          (intoVal r)))
-                      (intoVal to))
-                    {{ Φ }}
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗ HookGateOpt s.gh.tr r none Q -∗
+              ▷ (ownRaftPhysCV c c.voters r id s ∗ Q -∗ Φ (intoVal ())) -∗
+                WP
+                  ((intoVal
+                      (methods raft.ty.PointerType
+                        go!"sendTimeoutNow"
+                        (intoVal r)))
+                    (intoVal to))
+                  {{ Φ }}
