@@ -323,17 +323,22 @@ theorem w64_of_int_inj (a b : Int) (ha : 0 ≤ a) (ha' : a < 2 ^ 63) (hb : 0 ≤
   have h2 : uint.Z (W64 b) = b := by word
   rw [← h1, ← h2, h]
 
-/-- **A commit certificate in a leader's full log** (the three cases of `restart_ack_one`,
-`Protocol/Enter.lean`): a log `es` with records and a commit certificate `commitIn γ es c tm`, and a
-full log `G'` of a term `T ≥ tm` (`leadFull`), long enough to reach `c` when `T` is the certificate's
-own term, agree on terms up to `c` (bootstrap: both start with the bootstrap log; a commit fact of
-`T`: two full logs of one term; an earlier term: `lc_core`, with the vote table). -/
-theorem commit_in_leader (γ : RaftNames) (es G' : List EntryM) (c tm T : w64)
-    (hw : PlogWf base0 es) (hc : uint.Z c ≤ es.length) (htm : uint.Z tm ≤ uint.Z T)
-    (hlen : tm = T → uint.Z c ≤ G'.length) :
-    votesTbl (GF := GF) γ ∗ logRecs γ base0 es ∗ commitIn γ es c tm ∗ leadFull γ T G' ⊢
+/-- **A commit certificate in a leader's full log, keyed on the certificate's term** (the three
+cases of `restart_ack_one`, `Protocol/Enter.lean`; review round 4's D2): a log `es` with records and
+a commit certificate `commitIn γ es c tm`, and a full log `G'` of a term `T ≥ tm` (`leadFull`), agree
+on terms up to `c` (bootstrap: both start with the bootstrap log; a commit fact of `T`: two full logs
+of one term; an earlier term: `lc_core`, with the vote table). `hlen` is needed only for a commit
+fact of `T` itself backing `c` (`cq γ T n G` with `c ≤ n`, which the certificate's `T ≤ tm` makes
+possible only when `tm = T`): `G'` reaches `c` then. Keyed on the certificate's term, not on the
+server's, it can be discharged for a server of `T` by excluding such a fact (no entry of `T` yet:
+the `BecomeLeader` line, `TraceSimLeader.lean`). -/
+theorem commit_in_leader_cert (γ : RaftNames) (es G' : List EntryM) (c tm T : w64)
+    (hw : PlogWf base0 es) (hc : uint.Z c ≤ es.length) (htm : uint.Z tm ≤ uint.Z T) :
+    votesTbl (GF := GF) γ ∗ logRecs γ base0 es ∗ commitIn γ es c tm ∗ leadFull γ T G' ∗
+      (∀ n G, cq γ T n G -∗ ⌜uint.Z c ≤ uint.Z n ∧ uint.Z T ≤ uint.Z tm⌝ -∗
+        ⌜uint.Z c ≤ G'.length⌝) ⊢
       ⌜∀ j : w64, uint.Z j ≤ uint.Z c → plogTermAt base0 G' j = plogTermAt base0 es j⌝ := by
-  iintro ⟨Htbl, #Hr, #Hci, #HL⟩
+  iintro ⟨Htbl, #Hr, #Hci, #HL, Hlen⟩
   icases leadFull_wf γ T G' $$ HL with ⟨%HwL, #HrL⟩
   have HlenL : plogLastIndexZ base0 G' = (G'.length : Int) := by
     unfold plogLastIndexZ; rw [base0_index]; simp
@@ -357,7 +362,8 @@ theorem commit_in_leader (γ : RaftNames) (es G' : List EntryM) (c tm T : w64)
       $$ HrG Hr with %HGall
   by_cases hT : t = T
   · subst hT
-    have hlen := hlen (uint_Z_inj.mp (by omega))
+    ihave %hlen := Hlen $$ %n %G Hq
+    have hlen := hlen ⟨Hcn, Htt⟩
     icases leadFull_agree γ t G' G c
         (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by rw [HlenL]; omega⟩)
         (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by omega⟩)
@@ -383,6 +389,20 @@ theorem commit_in_leader (γ : RaftNames) (es G' : List EntryM) (c tm T : w64)
     ipureintro
     intro j hj
     rw [HLG j (by omega), HGall j hj]
+
+/-- **A commit certificate in a leader's full log** (`commit_in_leader_cert`, keyed on the
+server's term `tm`): `G'` reaches `c` when `T` is `tm`. -/
+theorem commit_in_leader (γ : RaftNames) (es G' : List EntryM) (c tm T : w64)
+    (hw : PlogWf base0 es) (hc : uint.Z c ≤ es.length) (htm : uint.Z tm ≤ uint.Z T)
+    (hlen : tm = T → uint.Z c ≤ G'.length) :
+    votesTbl (GF := GF) γ ∗ logRecs γ base0 es ∗ commitIn γ es c tm ∗ leadFull γ T G' ⊢
+      ⌜∀ j : w64, uint.Z j ≤ uint.Z c → plogTermAt base0 G' j = plogTermAt base0 es j⌝ := by
+  iintro ⟨Htbl, #Hr, #Hci, #HL⟩
+  iapply commit_in_leader_cert γ es G' c tm T hw hc htm
+  iframe Htbl Hr Hci HL
+  iintro %n %G - %h
+  ipureintro
+  exact hlen (uint_Z_inj.mp (by omega))
 
 /-- **A commit certificate in a leader's log with pending entries**: as `commit_in_leader`, for the
 leader's recorded full log `G'` followed by its pending entries `pl` (of its term `T`), which reach
