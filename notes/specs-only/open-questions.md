@@ -10,7 +10,10 @@ listing them all. Questions a later round settled are left out; technical gaps t
 "Not done" and "Needed from" sections.
 
 The verification round's repairs (`notes/specs-only/verify/repair-*.md`, 2026-11-09) added section C
-(at the end) and the **verify-round:** notes under the entries they settle or change.
+(at the end) and the **verify-round:** notes under the entries they settle or change. The re-review
+rounds' repairs (`verify/repair2-*`, `repair3-boot`, `cleanup`, `repair4-*`, `repair5-crash`, second
+half of 2026-11-09) added section D and the **re-review:** notes; entries they replace are marked
+**Superseded**, not deleted.
 
 Sections: [A. Decided by the coordinator](#a-decided-by-the-coordinator-revisit-if-you-disagree) ·
 [1. Top-level model & client](#1-top-level-model--client) · [2. Raft](#2-raft) ·
@@ -19,7 +22,8 @@ Sections: [A. Decided by the coordinator](#a-decided-by-the-coordinator-revisit-
 [6. Fork fixes proposed for real etcd/raft bugs](#6-fork-fixes-proposed-for-real-etcdraft-bugs) ·
 [7. Perennial / translation changes](#7-perennial--translation-changes) ·
 [Real bugs found](#real-bugs-found) ·
-[C. Decisions from the verification round](#c-decisions-from-the-verification-round-2026-11-09)
+[C. Decisions from the verification round](#c-decisions-from-the-verification-round-2026-11-09) ·
+[D. Decisions from the re-review rounds](#d-decisions-from-the-re-review-rounds-2026-11-09-second-half)
 
 ## A. Decided by the coordinator (revisit if you disagree)
 
@@ -48,6 +52,11 @@ A4. **Per-member lease reads in scope.** `State.leaseHist`, `leaseViewLb γ ep i
    **verify-round (re-review N1, `verify/R-A2-client-watch-lease.md`):** the description above was wrong for
    `TimeToLive`: a follower forwards it to the leader (`v3_server.go:636-676`), so only `Grant` and `Leases`
    answer from the member's own table; the per-member clause is dropped for `TimeToLive`.
+   **re-review:** the single-member alternative is now in place, as a gated row: `TimeToLive`'s
+   per-member clause holds under `soleMember γ ∗ peerLeaseServed γ` (W0's new persistent facts, from
+   2e's `soleMember_intro` with `urlsReserve γ 1` and `peerLeaseServed_intro`), in 1c's `viaFact`, 2c's
+   `srvLeaseFact` and 2a's `leaseFact`; the general per-member `TimeToLive` stays dropped. See D1, D8.
+   (`verify/repair2-client.md` RR-1, `repair4-lease.md` F1.)
 A5. **The principal per call** (`ctxPrin dflt ctx p`, W0 round 3): forwarded tokens (proxy,
    `v3client`) authenticate as their user. Alt.: one principal per client handle (excludes the proxy
    and `v3client`). (`batch-W0.md` round 3; `batch-1e.md` "Decisions, updated" (3).)
@@ -219,6 +228,10 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    (`crashGone`, 2e round 2).
    **verify-round:** `crashGone_intro` (from `srvRunning` at the crash) is now its producer, and
    `diskIdle_crash` carries an idle disk across. (`repair-server-core.md`.)
+   **re-review (supersedes the verify-round line):** `crashGone`, `crashGone_intro` and
+   `diskIdle_crash` are deleted. The vacancy now comes with `raftState`'s generation crossing (D18);
+   there is one disk crash law, `disk_crash` (D21); per-generation tokens' exclusivity gives the
+   generation's `crashed` (D28). (`verify/repair2-crash.md` N1, `repair4-raft-crash.md`.)
 2.8 **Crash restart scope `confAboveOk`** (at most one conf-change entry above the stored commit) and
    no crash during a snapshot-carrying batch's write. etcd's WAL writes entries, then the state, then
    one fsync: a crash in between can break `confAboveOk` (a lagging follower catching up across several
@@ -233,6 +246,13 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    `raftState_crash` is split into two whole-record cases matching the WAL's `crashedMid`; the WAL and
    the snapshotter have crash laws (C40). The question stands. (`repair-server-core.md`,
    `repair-raft-core.md`, `repair-server-boot.md`.)
+   **re-review (supersedes the verify-round line):** `crashOutOfScope` and the `crashScope` premise
+   are deleted. The scope is stated over the WAL's records, `Wal.Recs.crashScopeOk` (the window
+   between a snapshot record and the state record, plus `confAboveOk`), and enters the logic as W0's
+   environment premise `Wal.crashInScope` (every crash leaves WAL records meeting `crashScopeOk`),
+   taken by the WAL's crash laws and by `disk_crash`, which has no out-of-scope case. `raftState_crash`
+   covers snapshot batches written not at all or wholly. The question (accept the scope or fix, §6 F8)
+   stands. (`verify/repair2-crash.md` N2, decision 3; `repair5-crash.md` F2.) See D19, D29.
 
 ## 3. Server
 
@@ -247,6 +267,10 @@ A18. **Decided inside W0 (not the coordinator):** `Cluster` stays an opaque clie
    which a join always fails. Specify it, or keep joins out of the examples? 2e Q8.
    **verify-round:** specifying it (a `leaseCompat` protocol on `/leases/internal`) would also make
    lease-auth's `leasePeerURL` premise derivable (C24). (`repair-lease-auth.md`.)
+   **re-review:** a second reason to specify it: `examples/etcd/leaseexpiry`'s `TimeToLive` check needs
+   a starter serving `s.LeaseHandler()` on the peer address (`etcdstart` serves only the raft
+   handler), with a `LeaseHandler` spec making `leasePeerURL` derivable (D8). (`verify/repair3-boot.md`
+   decision 1, `repair4-lease.md` decision 1.)
 3.3 **A failed `NewServer` loses the start right** (a half-made WAL or backend; a started raft node
    leaks if the transport fails): a program cannot retry a failed start. Accept? 2e Q3.
 3.4 **`bootstrap`'s scope**: excludes `--force-new-cluster` and discovery; trusts remote peers'
@@ -447,7 +471,7 @@ F7. **`MsgApp` slice aliasing** (`nonissues/raft-msgapp-inprocess-aliasing.md`):
 F8. **Commit lost with entries kept** (`issues/raft-commit-lost-with-entries-kept.md`): raft's campaign
    guard scanning the whole stored log above `applied`, or etcd writing the commit with the entries
    atomically (or syncing the commit before acknowledging a second pending conf change). **Now:**
-   `crashScope` (2.8).
+   the environment premise `Wal.crashInScope` over `Wal.Recs.crashScopeOk` (2.8; was `crashScope`).
 F9. **Two merged snapshots of one index** (`nonissues/etcd-merged-snapshot-same-index-image.md`,
    blocks-proof: yes; Go names the file by index only): a fork fix would remove the scope premise "a
    member never saves two merged snapshots of one index with different points before installing one".
@@ -562,6 +586,7 @@ New in `nonissues/`:
 - `raft-msgapp-inprocess-aliasing`: a stepped `MsgApp`'s entries slice is adopted, so its spare capacity must be the receiver's (no).
 - `recipes-dbarrier-leave-without-key`: `DoubleBarrier.Leave`, `RWMutex.Unlock`/`RUnlock` panic when the process created no key (no).
 - Updated: `bbolt-hashmap-init-empty-stale-cache` (the four specs' premise), `bbolt-txid0-reader-release` (mechanism: two calls; the `2^64-1` mirror), `etcd-client-dialoptions-unary-interceptor` (the gRPC proxy).
+- re-review: `etcd-backend-name-lost-restart-panic` (a crash after a first boot's first local snapshot can lose `member/snap/db`'s name, and the restart panics in `recoverSnapshot`; yes, pending D7). Updated: `bbolt-create-dir-not-synced` ("etcd recovers from its WAL" only before the first local snapshot), `etcd-admin-check-authenable-race` (the denial's principal, D9).
 - verify-round: `bbolt-create-dir-not-synced` (a database file bbolt creates can vanish at a crash; C2), `etcd-auth-read-denied-across-views` (a read denied though permitted at every auth state it spans), `etcd-backend-defrag-rollback-nil-tx` (a deferred `Rollback` on a `nil` transaction), `etcd-client-withrange-empty-end` (C3), `etcd-member-id-raft-reserved` (a member id raft reserves, about 2^-63) (all no).
 
 ## C. Decisions from the verification round (2026-11-09)
@@ -716,7 +741,9 @@ C18. **The lease deleter's contract is a slot `kvDelOk` beside `kvOk`/`kvSt`** (
    by `kvSt`/`kvOk`'s realization, so the three are introduced together (2d's `srvStores_kv`); `lessorSt`
    now takes the KV and the backend. Files: `server/v3/etcdserver/{apply/Api,ApiApply}.lean`.
    (`repair-apply-txn` F2, "New decisions".)
-C19. **`CheckTxnAuth` and its helpers give `endsDecoded`/`opsDecoded` back** (differently from "the
+C19. **Superseded by D10 (re-review RR3, `verify/repair2-server.md`): the three check specs take
+   only the request's own predicate, and 3h's `endsDecoded` family is deleted.** Was:
+   **`CheckTxnAuth` and its helpers give `endsDecoded`/`opsDecoded` back** (differently from "the
    persistent closure"): the request path holds the request at a share, so a persistent form cannot be
    produced there; the apply thread uses the `□` form (`endsDecoded_ro`). Files:
    `server/v3/etcdserver/apply/` (`CheckTxnAuth`, `checkTxnPermission`, `checkTxnReqsPermission`).
@@ -724,7 +751,8 @@ C19. **`CheckTxnAuth` and its helpers give `endsDecoded`/`opsDecoded` back** (di
 
 ### Lease and auth
 
-C20. **The lessor's run loop takes a thread token**: `NewLessor` takes a `threadTok` and `Stop` gives
+C20. **Partly superseded by D13 (`verify/repair2-server-core.md`): `NewLessor` returns the caller's
+   token and the loop runs on its fork's own; `Stop` returns none.** Was: **The lessor's run loop takes a thread token**: `NewLessor` takes a `threadTok` and `Stop` gives
    it back; `ckptOk` is at `context.Background()` with a token, and `lessor.Renew` takes the caller's.
    The untranslated loop is a goroutine of the program and calls the checkpointer, whose server closure
    needs a token. Alt.: none (the trusted `NewLessor` would otherwise hand a counted resource to a
@@ -754,6 +782,13 @@ C24. **`leasePeerURL` is a deployment premise** of the new trusted `leasehttp.Ti
    `leasehttp/Api.lean` replaces the premise. Files: `server/v3/lease/leasehttp/TimeToLiveHTTP.lean`,
    `server/v3/etcdserver/ApiReq.lean` (`ltlReply_replyHdr`). (`repair-lease-auth` second pass;
    `repair-server-core` second pass.)
+   **re-review:** the premise now also enters through a gate: `leaseURLOf_intro` (2e) gives
+   `Leasehttp.leaseURLOf γ ep (u ++ "/leases/internal")` from `srvEp` and `leasePeerURL`, and
+   `leaseURLOf_peerURL` gives `leasePeerURL` back to `TimeToLiveHTTP`'s callers; the lessor view
+   `ltlView` is gated on `leaseURLOf` (D15). `leasePeerURL` is false of `etcdstart`'s peer URLs, so the
+   `TimeToLive` row's gate `peerLeaseServed` cannot be met there (D8). Still no law derives
+   `leasePeerURL`; specifying `LeaseHandler` (3.2) would. (`verify/repair3-boot.md` item 3, decision 1;
+   `repair2-relay.md`; `repair4-lease.md`.)
 
 ### Storage and bbolt
 
@@ -859,6 +894,11 @@ C42. **Install-then-crash: the backend reverts an unsynced rename** (`beRevert p
    `server/v3/storage/backend/{Api,Durable}.lean`, `server/v3/etcdserver/api/snap/`,
    `server/v3/storage/OpenSnapshotBackend.lean`. (`repair-server-boot` "New decisions", last pass;
    `repair-backend-schema` second pass.)
+   **re-review:** `beRevert`/`beNoRevert` are replaced by a revert list, `Backend.beRevs p os`
+   (`Snap.revertSt` is it); `beOpenUpd` adds `none` to the list for a file bbolt creates (D7);
+   `Snap.dbFile_rename`/`OpenSnapshotBackend` take the destination as `beAt p d`, and a renamed-over
+   open backend becomes `beDetached` (D3). The crash law is the one `disk_crash` (D21).
+   (`verify/repair2-crash.md` N3, `repair5-crash.md` G-a, G-b.)
 C43. **`os.Rename` at the snapshotter's files is a trusted triple** (`Snap.dbFile_rename`, with the new
    opaque `dbPathOf`), not a `snapDbs ↔ osMeta` bridge: `snapDbs` is itself a trusted ghost variable, as
    `walRecs` is. Files: `server/v3/etcdserver/api/snap/`. (`repair-server-boot` F5, "New decisions".)
@@ -929,7 +969,7 @@ Items a repair report says it could not fix, with its reason (items a later pass
   `rename` and a crash case bringing back an unsynced rename's old entry (Perennial gap below; neither
   OsFs nor `boltCrash` states it). (`repair-backend-schema` second pass; `repair-bbolt` A11-C F3.)
 - **A non-blocking defrag snippet**: not added (optional). (`repair-bbolt` A11-C S2.)
-- **`leasePeerURL`**: no law derives it (C24). (`repair-lease-auth` second pass; `repair-server-core`
+- **`leasePeerURL`**: no law derives it (C24; re-review: now used through `leaseURLOf_intro` and `peerLeaseServed`, D8). (`repair-lease-auth` second pass; `repair-server-core`
   second pass.)
 - **`KV.Restore.contract`'s whole gate** (A8, A10 O1) and **`Watch`'s id fixed to `0`** (3.8, A10 O3):
   your decisions. (`repair-mvcc`.)
@@ -956,6 +996,10 @@ Items a repair report says it could not fix, with its reason (items a later pass
   configuration's size bound has no source (`SetConfState`'s model is `Raft.ConfState`, not a content:
   needs raft-conf-pb's `encSize` of a configuration); (c) whether `txStoredCI_sess` needs
   `beCur γ ciCells`. (`repair-server-boot` last pass.)
+- **4a `backend.Close` for a file created in the same generation** (requested by
+  `verify/repair4-raft-crash.md`: no durable name, C2's root). **Resolved** by `repair5-crash.md` G-a
+  (`beOpenUpd` records the may-vanish case in `beRevs`, `Bbolt.boltReopen_alloc`), and replaced by the
+  first-boot decision D7.
 - **The crash cases of `storage.go`/`snap.go`** (`crashedMid`'s second disjunct, `snapCrashed`): not
   runnable as Go tests. (`repair-server-boot`; `repair-server-core`.)
 - **`histPropose`'s step budget**: waits on 5.1. (`repair-server-core` A7-P F8.)
@@ -973,3 +1017,214 @@ Items a repair report says it could not fix, with its reason (items a later pass
   install); worked around by the trusted `Snap.dbFile_rename` and `beRevert`/`beNoRevert` (C42), whose
   revert case is unrealized; proposed: POSIX `rename`, its crash case, and a directory fsync. Recorded
   only.
+
+## D. Decisions from the re-review rounds (2026-11-09, second half)
+
+Every decision the repairs after the re-reviews (`RR-*`, `F-*`) flagged ("New decisions", and those
+in their final requests), from `notes/specs-only/verify/` `repair2-client`, `repair2-server`,
+`repair2-raft` (none), `repair2-server-core`, `repair2-relay`, `repair2-crash`, `repair3-boot`,
+`cleanup` (none; one law strengthened: `holds_norm`'s watch clause drops its `endsOk` premise),
+`repair4-lease`, `repair4-raft-crash`, `repair5-crash`. Spec paths are under `Spec/go_etcd_io/etcd/`
+unless they start otherwise. The specs are written to each choice except D6 (open) and D7 (pending).
+
+### Needs your approval
+
+New client-visible ghost state, or a change to an API or decision you approved.
+
+D1. **A single-member mode for `TimeToLive`: `soleMember`, `urlsReserve`, `peerLeaseServed` (RR-1,
+   A4).** To prove `examples/etcd/leaseexpiry`'s "gone by `TimeToLive`, so not listed" check, the
+   per-member `TimeToLive` clause is back as a row gated on `soleMember γ ∗ peerLeaseServed γ` (W0
+   `api/v3/State.lean`; in 1c's `viaFact`, 2c's `srvLeaseFact`, 2a's `leaseFact`, the assumed
+   `EtcdServer.leaseTimeToLive`). `soleMember γ` (persistent: the cluster never has a member but its
+   one initial member) comes from `soleMember_intro` (2e `ApiBoot.lean`), which gives up the whole new
+   fractional `urlsReserve γ 1`, the right to reserve peer-URL sets: `cluster_alloc` gives it whole,
+   `urls_reserve` spends a share. `peerLeaseServed γ` (persistent, W0: every member serves its own
+   lessor's lease handler at `u ++ "/leases/internal"`) comes from `peerLeaseServed_intro` under
+   `soleMember` and 4b's `leasePeerURL` of the member's peer URLs; without it (repair4-lease F1) the
+   row was false under `etcdstart`. Alternatives: a membership history in W0's model (declined for
+   A4/A6), or drop leaseexpiry's check from the Users (unproved). Cost: every program that reserves a
+   URL set (to add a member) now holds a share of `urlsReserve`; two new W0 opaques.
+   (`repair2-client.md` "New decisions"; `repair3-boot.md` item 1; `repair4-lease.md` F1.)
+D2. **One member per client address for the run: `srvEp γ ep id` and `srvAt s γ ep`.** The lease
+   rows are per endpoint (W0's persistent `leaseViewLb γ ep`) and the server specs per member, so 2a's
+   `Server.spec` and the lease handlers now hold only for the endpoint the server is bound to, under
+   the persistent `srvAt s γ ep := ∃ id, srvFields s γ id ∗ srvEp γ ep id` (2e `ApiBoot.lean`).
+   `srvEp` (persistent, keyed by member id, `srvEp_gen` across a crash) is introduced by
+   `srvEp_reserve` from `Http.addrFree ep`: a removed member's client URL cannot serve a new member,
+   as for peer-URL sets. Keyed by id, not by server object, because a stop-and-restart in one
+   generation serves the same member again (the old `srvAt_agree : s = s'` was false of it). The view
+   does not survive a crash (no `leaseViewLb_gen`). Alternatives: a member-indexed view
+   `srvLeaseLb s j` with a 2a conversion law (the same bridge in 2a); a per-generation binding (needs
+   a per-generation address token nothing issues); keeping `∀ ep` (unsound for the lease rows). Cost:
+   a deployment cannot reuse a client address for another member. (`repair2-server-core.md`,
+   `repair2-relay.md` decision 3, `repair3-boot.md` item 2 and decision 2; `srvEp_agree` narrowed in D5.)
+D3. **`beDetached`: a backend file renamed over while open (4a, G-b).** `applySnapshot` renames the
+   received database over `member/snap/db` while the old backend is still open (`server.go:1068`,
+   closed at `:1144`). New in 4a `storage/backend/Api.lean`: `FileSt` (`closed o` | `opened γ L`),
+   `beAt p d` (the destination's crash state), `beRenamedOver p os d`, an exclusive `beDetached γ p`
+   (`beDetached_excl`) for an open destination, a detached form of `beCloseUpd` (its final image
+   joins the revert list); in `Durable.lean`, `beDetached_crash` (the detached history folds into the
+   revert list as some `I ∈ L`). `Snap.dbFile_rename` and `OpenSnapshotBackend` take `beAt p d`
+   (`applySnapshot` the open form, `bootstrap`'s recovery the closed one) and now give the renamed
+   `beFile` at the commit, fixing a window where a crash found it nowhere. Alternative: leave
+   `applySnapshot` outside 4a's crash laws (repair3-boot's recorded gap). Cost: new client vocabulary
+   in 4a's file API; its realization waits on OsFs's `rename` (Perennial gap, as every revert entry).
+   (`repair5-crash.md` G-b, decision 4; `repair3-boot.md` decision 3.)
+D4. **net/http's protocols are per generation (revises the 2026-10-22 HTTP boundary decision 1, "an
+   address string's protocol is fixed once").** What is fixed once is now a family, `Http.protoFam a F`
+   (`F : GooseLocalGS GF → Proto GF`, persistent, `protoFam_gen`); `reserve` reserves a family, and
+   `protoAt a P` is the current generation's member (`protoFam_at`). True of Go: a crash kills every
+   connection, so a request a generation-`L` handler reads was sent in `L`. Needed because the client
+   contract names per-generation lease views, which a crash loses: with one protocol for the run, a
+   member restarted after a crash could neither serve the old contract nor reserve its own. It
+   withdraws repair3-boot's `Http.protoAt_gen` and 2f's `raftProto_gen` (new `Rafthttp.raftFam ν`;
+   `peerAddr` over `protoFam`), makes grpc's `addrAt` per generation, and changes the posts of
+   `cluster_alloc`, `urls_reserve`, `srvEp_reserve` (whose family serves each generation its own
+   `etcdContract`). Alternative: index W0's lease views by an incarnation (changes the client API).
+   Cost: a trusted-boundary change. (`repair5-crash.md` F3, decision 1.)
+D5. **A new trusted net/http law, `Http.addrFree_protoAt_excl : addrFree a ∗ protoAt a P ⊢ False`,
+   and `srvEp_agree` within one cluster.** The law is true of the set-once address map (its
+   realization is the fragments' validity). With it, `srvEp_reserve` becomes a fancy update at the new
+   namespace `srvEpN`, taking `srvNet γ ν`, that opens the cluster's client-address map (allocated by
+   `cluster_alloc`) and refutes an existing entry; `srvEp_agree` gives `id = id'` for one `γ` only
+   (cross-cluster `γ = γ'` is not realizable from net/http's API; no user needs it). Alternative:
+   `srvEp_agree` without a source (F-server-boot F5). Cost: one more trusted law in the trust base.
+   (`repair5-crash.md` F5, decision 2.)
+D6. **Open (soundness): raft's `readyBatch` for `raftState_crash` (repair4-raft-crash N1).**
+   `raftState_crash.spec` takes `readyEnter n γ id st b dl` as evidence of a batch, but that wand's
+   premise includes `nodeRunning n q`, which a stopped node refutes (`nodeStopped`, `exclusive`), so a
+   client can forge it for any batch and get `raftState` at a state raft never made (a second vote in
+   a term), turning into a safety violation in the next generation; pre-existing since round 3.
+   Proposed, not done: an opaque persistent `readyBatch n γ st b` (raft's record of the batch handed
+   out at `st`), given by `readyGot`, taken by `raftState_crash` instead of `readyEnter`; 2e's disk
+   realization deposits it beside the `readyEnter` it fires. Alternative: none found (raft's proof
+   cannot inspect a wand without firing it, and firing mints `msgSent`). Cost: a new client-visible
+   opaque in raft's approved node API. The law's docstring says "Open (soundness, escalated)".
+   (`repair4-raft-crash.md` N1, decision 2.)
+D7. **Pending: a first boot's backend file may vanish at a crash, and the restart then panics
+   (G-a).** `bolt.Open` creates `member/snap/db` and nothing syncs `member/snap` unless a snapshot
+   is received; on a file system that drops unsynced names (POSIX, OsFs's model), a crash after the
+   member's first local snapshot loses the backend while the WAL keeps a snapshot record `k > 0`, and
+   `recoverSnapshot` panics (`bootstrap.go:482`): `nonissues/etcd-backend-name-lost-restart-panic.md`
+   (blocks-proof: yes). The specs now say the file may vanish (`beOpenUpd` adds `none` to `beRevs`;
+   `Bbolt.boltReopen_alloc` for a same-generation reopen; `ReqReopen`'s durable-name Assumes dropped),
+   so `disk_crash` is not realizable for such a disk until you choose: **(a)** an environment premise
+   "a created file's name is durable at its first sync" (ext4 `data=ordered`/xfs; an OsFs crash-rule
+   variant in Perennial, and `BoltSt.named` true at `Open`'s first sync, revisiting C2); **(b)** a
+   scope restriction "no crash before `member/snap` is synced" (excludes almost every crash of a member
+   that never received a snapshot); **(c)** a fork fix, `fileutil.Fsync(cfg.SnapDir())` after
+   `OpenBackend` creates the file (smallest; what the WAL does). The repair recommends (c), with (a)
+   as what etcd relies on in practice. (`repair5-crash.md` G-a, decision 3.)
+D8. **leaseexpiry needs a starter serving `s.LeaseHandler()` on the peer address.**
+   `examples/lib/etcdstart` serves only `s.RaftHandler()`; a sole member asked before its first
+   election forwards `TimeToLive` to its own peer URL, gets rafthttp's `404`, and answers
+   `ErrLeaseNotFound` for a lease a client saw. So `leasePeerURL` is false of `etcdstart`'s URLs, D1's
+   gate `peerLeaseServed` cannot be met there, and leaseexpiry's final check is unproved (true in
+   practice: a single voter keeps leading once it leads). Options: change the shared harness to serve
+   a mux with the raft handler at `/raft`, `/raft/` and `LeaseHandler` at `/leases`,
+   `/leases/internal` (as `etcdhttp.newPeerHandler`), with a `LeaseHandler` spec deriving
+   `leasePeerURL` (3.2, C24); or have leaseexpiry use a starter that does. Not done: the harness is
+   shared. The rejected alternative, the row under `soleMember` alone, left a trusted contract false
+   as stated. (`repair3-boot.md` decision 1; `repair4-lease.md` decision 1.)
+
+### Other decisions
+
+D9. **The admin denial's principal (RR2).** W0's denial admits the request's principal, or no
+   principal (`ErrUserEmpty` only, admissible once auth was ever enabled: a lagging member may apply
+   `AuthEnable` between the check's two reads); a root compactor can be refused with `ErrUserEmpty`,
+   never as another user. The certificate's name `tls` is kept only at 2a, where W0's one-identity
+   scope makes it the principal or none (`adminDenied_of`), so W0 takes no `tls` argument.
+   Alternative: thread `tls` into W0. Cost: none for clients beyond the `ErrUserEmpty` reading.
+   `nonissues/etcd-admin-check-authenable-race.md` updated. (`repair2-client.md`.)
+D10. **3h's `endsDecoded` family retired (RR3; supersedes C19).** `CheckTxnAuth`,
+   `checkTxnPermission`, `checkTxnReqsPermission` take and give back only `txnReqOwn`/`msgsOwn`; the
+   range-end facts come from W0's `*Own_unfold` and 3h's `*ReqOwn_msgAt` (`endsOk`).
+   `EtcdServer.Txn`'s read path splits the request into two shares and rejoins them (statement
+   unchanged). Deleted: `endsDecoded`, `opsDecoded`, `cmpsDecoded`, `endsDecoded_of_canon`,
+   `endsDecoded_ro`, `endsDecoded_*`. Alternative: C19's give-back. Cost: none (no statement used
+   them). (`repair2-server.md` RR3.)
+D11. **The stringers' depth bound is kept and supplied (RR4).** Text marshaling recurses like
+   `Marshal`/`Size`/`Clone`/`Equal`, which all take `depth c < depthMax`; dropping it for the
+   stringers alone would make them the one unbounded protobuf recursion in the trust base.
+   `EtcdServer.Txn` keeps a write-only depth premise (the read path gets `txnMsgDepth t ≤ 3` from
+   `t.readonly`, not the reviewer's unconditional premise); `WarnOfExpensiveReadOnlyTxnRequest` takes
+   the depth itself. Alternative: revert the premise. Cost: callers supply the bound. (`repair2-server.md`.)
+D12. **`Config()` over `isServer`.** Available only after `Start` (since `start` writes two `Cfg`
+   fields); every user in the code is post-start. Alternative: a fork change defaulting the fields in
+   `NewServer`. Cost: none known. (`repair2-server-core.md`.)
+D13. **The lessor's run-loop token is the fork's own** (partly supersedes C20): `NewLessor` returns
+   the caller's `threadTok`, `Stop` returns none, removing a token `Cleanup` silently dropped.
+   Alternative: C20's loan. (`repair2-server-core.md`.)
+D14. **No thread token for the token provider.** `auth.NewTokenProvider` takes none (the request
+   asked for one returned on success): the simple token's keeper runs on its fork's own token, so the
+   "reserved token" design (stored in the keeper field, returned through `donec`) is removed and
+   `keeper.stop` returns nothing. (`repair2-relay.md`.)
+D15. **`leasehttp`'s lessor view is gated on `leaseURLOf`, not a premise.** `TimeToLiveHTTP` stays
+   usable with any URL; only a caller that knows the URL is the serving member's own handler
+   (`Leasehttp.leaseURLOf γ ep url`, from 2e's `leaseURLOf_intro`) gets the view (`ltlView`). Keeps
+   the trusted spec's assumption to what `leasePeerURL` already assumes. (`repair2-relay.md`;
+   `repair3-boot.md` item 3.) See D27.
+D16. **`Server.spec` per endpoint**, under `srvAt` (D2); keeping `∀ ep` was unsound for the lease
+   rows. (`repair2-relay.md`.)
+D17. **The crash frame's access to the disk is a Perennial gap.** Perennial's crash frame gets only
+   invariants and its own closure; the program keeps `diskState` in an invariant that callees' atomic
+   updates open (`diskAcc`), and an accessor fired inside such an update cannot rule out that the frame
+   took it (that needs the generation's `notCrashed`, which only a step owns). Common to every crash
+   law over client-owned durable state (`beCrash`, `boltCrash`, the WAL's, the snapshotter's).
+   Options: a crash-aware invariant in Perennial (opened at a step, handed whole to the crash frame),
+   or durable callees whose updates admit a `crashed` answer; recorded in `notes/perennial-changes.md`
+   (crash-frame extraction gap); F-raft-storage's "one-shot witness of `L → L'`" is the general fix
+   proposed there. (`repair2-crash.md` decision 1; `repair4-raft-crash.md` requests.)
+D18. **The vacancy comes with `raftState`'s crossing**, not a node crash law (false: R-A8 N1); raft's
+   realization gives `raftState` a per-id generation record. (`repair2-crash.md` decision 2.) See 2.7.
+D19. **The crash scope over the WAL's records** (`Wal.Recs.crashScopeOk`); `raftState_crash` covers
+   snapshot batches written not at all or wholly, so the scope is only the window between the
+   snapshot record and the state record (narrower than "no crash during a snapshot batch"), and
+   conservative about a lagging follower at rest. (`repair2-crash.md` decision 3.) See 2.8, D29.
+D20. **Generation independence as `⊣⊢` laws** (`*_gen`: raft's `global`, W0's, `srvNet`,
+   `peerAddr`), not a "does not take `hG`" claim, since opaques take `hG` by the convention;
+   `raftProto` and `Leasehttp.leaseURLOf` got explicit heap binders (they had none: unrealizable).
+   (`repair2-crash.md` decisions 4, 8; `repair3-boot.md` item 3.)
+D21. **One disk crash law, `disk_crash`.** `crashGone`, `crashGone_intro`, `diskIdle_crash` are
+   deleted; every durable resource is in `diskState` at every step and files no longer move into the
+   running server's invariant. (`repair2-crash.md` decision 5.) See 2.7.
+D22. **`ReqCrashRecover` narrowed by the window inside `backend.New`** (`repair2-crash.md` decision 6):
+   **closed** by D24, the window exclusion removed.
+D23. **The rename's joint crash (R-A8 S1) left open**: the model may fail a restart Go completes
+   (backend reverted and source gone); fixing it needs a joint crash law across 4a and the
+   snapshotter. (`repair2-crash.md` decision 7.)
+D24. **The backend file moves through updates at open and close.** New `beOpenUpd p o ns R` (an AU
+   from `beFile p o` to `beDurInv ∗ beSynced? ∗ beHist γ [I]`, fired at the ghost step before
+   `bolt.Open`) in `New`, `newBackend`, `OpenBackend`, `OpenSnapshotBackend`; `beNew` no longer holds
+   `beHist`. `backend.Close.spec` takes `beCloseUpd γ p Q` (from `beHist γ L` to `beFile p (some I)`,
+   at the release after `DB.Close`) and posts `beFinal γ I ∗ Q I`; 2e's `bootstrapped*.Close` and
+   `beClosable` follow. So a crash inside `New` or after `Close` finds the file in the client's crash
+   state. Alternative: `beFile` handed over in the post (a crash window). Cost: every opener and
+   closer changes shape. (`repair3-boot.md` item 7; `repair2-crash.md` requests 1-2.)
+D25. **`applySnapshot`'s backend swap outside 4a's crash laws** (`repair3-boot.md` decision 3):
+   **resolved** by D3.
+D26. **`leaseViewLb γ ep 0` is free** (`leaseViewLb_zero`, W0, no premise: the trivial view means
+   nothing known), replacing `viaPre`'s explicit `i = 0` alternative, one form of the per-member
+   premise across 1c and 2a. (`repair4-lease.md` F2, decision 2.)
+D27. **`TimeToLiveHTTP` takes the caller's view in its pre** (F3, soundness: `ltlView` accepted views
+   obtained after the answer, deriving `False`). New `Leasehttp.leaseLbOpt γ ep vi` (2c's
+   `srvLeaseLbOpt` is an abbrev); `ltlView γ ep vi url id found` is about the view held at the call;
+   new `leaseURLOf_peerURL`. A caller with no view passes `none` and gets nothing.
+   (`repair4-lease.md` F3, decision 3.)
+D28. **Per-generation tokens are a token or the generation's `crashed`.** Their exclusivity (raft's
+   vacancy; 2e's `diskIdle_excl`, `memberDisk_excl`) gives `crashed`, not `False`, and `diskIdle_agree`
+   gives `⌜k = k'⌝ ∨ crashed` (fixing F-raft-storage F1/F-server-boot F1: `raftState ∗ crashed ⊢ False`
+   made every crash frame trivial). A running program never sees the alternative (a step refutes it).
+   Cost: a client cannot refute two vacancies in pure reasoning, only at a step; none did.
+   (`repair4-raft-crash.md` decision 1.)
+D29. **The crash scope enters the logic as an environment premise, `Wal.crashInScope`** (opaque
+   `Prop`, `storage/wal/Api.lean`, like `ServerStorage.diskOk`): every crash leaves WAL records
+   meeting `crashScopeOk`. `walRecs_crash`/`walWriting_crash` take it and give `⌜R'.crashScopeOk⌝`;
+   `disk_crash` takes it and `ServerStorage.diskOk`, and loses its `crashOutOfScope` disjunct
+   (deleted), so adequacy needs no out-of-scope case. `NewServer` takes no new premise (crash-free WP).
+   Alternative: the opaque `crashOutOfScope` disjunct (unconstrained: F-server-boot F2). Cost: W0's
+   adequacy statement gains the premise (`top.md` K6). (`repair5-crash.md` F2.) See 2.8.
+D30. **`Net.dbIn` names its receiver** (F4): `Net.dbIn : w64 → w64 → IProp GF` (receiver, index);
+   `recvd ν id m`, `raftOk ν id`'s `Process`, `saveOk ν lid sd`, `trCfg`, `net_alloc`,
+   `recvChanAt`, `newSnapshotHandler` follow, and `EtcdServer.Process` takes the member's own
+   `recvd`. Generation-independent (made at `SaveDBFrom`'s directory fsync). (`repair5-crash.md` F4.)
