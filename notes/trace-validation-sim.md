@@ -810,6 +810,29 @@ What the contract's proof meets:
   cluster (a property of the cluster, round 7's T7) and `Propose` non-empty data (round 6's S1; the
   harness proposes non-empty data).
 
+### The recorder's side, proved (layer D, 2026-11-09)
+
+`Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/` (`Recorder`, `Logger`, `Convert`
+and the proofs of `SyncRecorder.TraceEvent`, `SyncRecorder.Events`, `ConvertEvents`): the recorder's
+lock invariant holds `traceAuth γt L` and its slice of copied events (`traceEventsRep`, built from
+`tracingEventVal`, `tracingEventRep` without its pointer); `isSyncRecorder_traceLogger` gives
+`isTraceLogger γt` of `c.rec`; `syncRecorder_alloc` gives `isSyncRecorder γt r ∗ traceFrag γt []`
+from `&SyncRecorder{}`; `Events` takes `traceFrag γt L` and returns a slice holding `L`;
+`ConvertEvents` returns `eventsRO out (L.map evConv)`, `NewTrace`'s input. `evConv` agrees with
+`ConvertEvents` on the numbers (`sint.Z`, the `int(·)` conversion), the message, the properties
+(present when the map has a key; `cc` only when it holds a configuration change) and the ignored
+`ConfChange` field, with one premise: **the copied strings ASCII** (`TraceEv.Ascii`). The checker's
+representation relates strings byte by character (`strRel`), which only an ASCII string satisfies,
+while `evConv`'s `gsStr` maps any byte `c` to `Char.ofNat c`: they agree exactly on ASCII strings.
+Raft's event names, roles and message types are ASCII constants and its ids `strconv.FormatUint`'s,
+so the premise holds, but layer B has to state it (a `simInv` clause: every event of the trace is
+`TraceEv.Ascii`, or the hooks' `eventOf` shown ASCII). Two smaller points: `isTraceLogger`'s update
+is over `traceAuth`, which `InvTrace.lean` calls the logger's half, while the client (the
+simulation) holds `traceFrag`; both are `ghostVar γt ½`, so the proof goes through, but the update
+would read better over `traceFrag`. And a Lean gotcha met in `ConvertEvents`' proof: a local named
+`done` (an existential's witness) made `word`'s auxiliary proofs ill-applied (a kernel "application
+type mismatch" on `_proof_1_N`); renaming it fixed it.
+
 ## Open (for the next round)
 
 - The handling phase's statement inside `raft__Step`'s 36 branches (one shape per branch kind,
