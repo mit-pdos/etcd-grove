@@ -265,6 +265,18 @@ Open: C5 (pure premises into preconditions, when the traced statements become `X
 `trace.go` delegated (branch `trace-check-layerc-trace`); review round 4 under way
 (`notes/trace-validation-reviews/s5-r4.md`; D1 done: `SpecInv`'s `CfgFixed`, `hcfg` gone).
 
+**Round 4's first tier (2026-11-09).** D1 merged (`SpecInv`'s `CfgFixed`; `specInv_applySimpleConfChange`).
+D2 merged: `becomeLeader_hyps` (`TraceSimLeader.lean`) derives `specInv_becomeLeader`'s four hypotheses
+from the new leader's `isLeader`/`isCamp`/`logRecs F0`, its term map without the term, the vote table
+and `simFx`; `msgFacts` now also says only an append request carries entries, within `w64` (raft's
+every message), and carries an append request's commit certificate (D4). **Open for the Prove phase
+(raft's own proof, not the Draft):** raft's ghost takes a vote win in one step
+(`ownRaftGhost_step_win`, after `stepCandidate` returns), so at `traceBecomeLeader` it never holds
+`isLeader γ i T` with no term log of `T`; the step must be split, the registration (`reWins`,
+`win_register`) before `becomeLeader`'s hook and the term log with the empty entry at its append, with
+`WinsOk` relaxed for a registered win. D3, D4, D6 done; D5 (`FxPresBF` a lemma for `VoteLost`) left as
+the caller's; C5-C7 open (second tier).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

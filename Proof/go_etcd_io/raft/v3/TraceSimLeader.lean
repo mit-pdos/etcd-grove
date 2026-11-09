@@ -20,11 +20,8 @@ the empty entry. Both halves are needed at once: the first half of the step (fre
 `reWins`, `win_register`) must be taken before the hook, the second (the term log with the entry) at
 the append, with `WinsOk` relaxed for a candidate whose win is registered.
 
-And `hents`, which no fact of the simulation gives (`specInv_becomeLeader`'s `hfreshMsg` needs it):
-a message carrying entries is an append request with its entries' indices below `2 ^ 64`. Neither
-`msgFacts` (`True` for every other type; an append request's records only in range) nor `SpecInv`
-says so; raft has it of every message it sends (`msgAbs`: only `MsgApp` carries entries; their
-indices are `w64`s), so it belongs in `msgFacts`.
+`hents` (a message carrying entries is an append request, its entries' indices below `2 ^ 64`) is
+now `msgFacts`' (review round 4's D2: raft has it of every message it sends), derived inside.
 -/
 module
 
@@ -152,8 +149,7 @@ specification's state before the line, `i` its candidate of term `T` (the new le
 - `hfreshLog`: a log's entry is recorded (its record names `T`'s leader `i`'s term log, which does not
   exist, `isEntryR_term_ne`) or a leader's pending one, of that leader's term (`srvFacts`): a leader
   of `T` is `i` (`isLeader_unique`), a candidate in `σ`;
-- `hfreshMsg`: a message's entry is an append request's (`hents`) with a record (`msgFacts`, in range
-  by `hents`), not of `T` (`isEntryR_term_ne`), or at a bootstrap position, of term `1`, below a
+- `hfreshMsg`: a message's entry is an append request's (`msgFacts`) with a record (`msgFacts`, in range), not of `T` (`isEntryR_term_ne`), or at a bootstrap position, of term `1`, below a
   leader's term (`isLeader_boot`, with `hboot`);
 - `hfreshReq`: an append request of `T` is from `T`'s leader (`msgFacts`), `i`, which as a candidate
   has none of its term out (`CandS`);
@@ -165,9 +161,7 @@ theorem becomeLeader_hyps (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) 
     (hcand : (σ.s (idAbs i)).state = Etcdraft.candidate) (hspec : TraceSpecInv.SpecInv σ)
     (hF0 : (σ.s (idAbs i)).log.length = F0.length)
     (hγm : γ.reTerms !! i = some γm) (hfree : terms !! W64 (σ.s (idAbs i)).currentTerm = none)
-    (hboot : γ.reBoot ≠ [])
-    (hents : ∀ m ∈ TraceSpecInv.msgs σ, m.entries ≠ [] →
-      m.type = .appendEntriesRequest ∧ m.prevLogIndex + m.entries.length < 2 ^ 64) :
+    (hboot : γ.reBoot ≠ []) :
     ⊢ votesTbl (GF := GF) γ -∗ allFacts γ C σ -∗
       (□ ∀ m, ⌜m ∈ σ.messages.domain ++ σ.pendingMessages.domain⌝ → msgFacts γ C m) -∗
       isLeader γ i (W64 (σ.s (idAbs i)).currentTerm) -∗
@@ -180,6 +174,23 @@ theorem becomeLeader_hyps (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) 
         (∀ k ∈ σ.server, (σ.s k).currentTerm = (σ.s (idAbs i)).currentTerm →
           (σ.s k).commitIndex ≤ (σ.s (idAbs i)).log.length)⌝ := by
   iintro Htbl #Hal #Hmf #Hl #Hc #HrF Ha
+  -- only an append request carries entries, within `w64` (`msgFacts`, review round 4's D2)
+  ihave %hents : ⌜∀ m ∈ TraceSpecInv.msgs σ, m.entries ≠ [] →
+      m.type = .appendEntriesRequest ∧ m.prevLogIndex + m.entries.length < 2 ^ 64⌝ $$ []
+  · by_cases hc : ∀ m ∈ TraceSpecInv.msgs σ, m.entries ≠ [] →
+        m.type = .appendEntriesRequest ∧ m.prevLogIndex + m.entries.length < 2 ^ 64
+    · ipureintro; exact hc
+    simp only [Classical.not_forall] at hc
+    obtain ⟨m, hm, hne, hbad⟩ := hc
+    ihave Hm := Hmf $$ %m %hm
+    iunfold msgFacts at Hm
+    by_cases hty : m.type = .appendEntriesRequest
+    · simp only [hty, ↓reduceIte]
+      icases Hm with ⟨%src, %es, %hpm, -⟩
+      exact absurd ⟨hty, hpm.2.2⟩ hbad
+    · simp only [hty, ↓reduceIte]
+      icases Hm with %he
+      exact absurd he hne
   generalize hT : (σ.s (idAbs i)).currentTerm = T at hfree ⊢
   iunfold allFacts at Hal
   -- `T`'s range, from `i`'s facts
@@ -263,8 +274,8 @@ theorem becomeLeader_hyps (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) 
     ihave Hm := Hmf $$ %m %hm
     iunfold msgFacts at Hm
     simp only [hty, ↓reduceIte]
-    icases Hm with ⟨%src, %es, %hpm, -, #Hr⟩
-    have hme := hpm.2
+    icases Hm with ⟨%src, %es, %hpm, -, #Hr, -⟩
+    have hme := hpm.2.1
     obtain ⟨k, hk⟩ := List.getElem?_of_mem he
     have hkm : k < m.entries.length := (List.getElem?_eq_some_iff.mp hk).1
     rw [hme, logAbs_getElem?] at hk

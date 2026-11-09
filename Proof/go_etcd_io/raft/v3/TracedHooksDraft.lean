@@ -361,16 +361,18 @@ def MsgsUniq (σ : Etcdraft.State) : Prop :=
 
 /-- **A message's facts** (review round 2's A3): an append request carries its source's leadership of
 its term (`isLeader`: raft sends one only while leading), its entries' records after its previous
-entry (`logRecs`), and (review round 4's D4) its commit index's certificate: a committed log `L` of
+entry (`logRecs`, their indices within `w64`), and (review round 4's D4) its commit index's certificate: a committed log `L` of
 that length, recorded (its sender's committed prefix when it sends), from which the receiver's
 raised commit index gets its `isCommitted`/`commitIn` at `Step`'s entry, before any handler. -/
 def msgFacts (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) : IProp GF :=
   if m.type = .appendEntriesRequest then
     iprop(∃ (src : w64) (es : List EntryM),
-      ⌜m.source = idAbs src ∧ m.entries = logAbs C C.length (m.prevLogIndex.toNat + 1) es⌝ ∗
+      ⌜m.source = idAbs src ∧ m.entries = logAbs C C.length (m.prevLogIndex.toNat + 1) es ∧
+        m.prevLogIndex + m.entries.length < 2 ^ 64⌝ ∗
       isLeader γ src (W64 m.term) ∗ logRecs γ (entryID.mk (W64 m.prevLogTerm) (W64 m.prevLogIndex)) es ∗
       ∃ L : List EntryM, ⌜(L.length : Int) = m.commitIndex⌝ ∗ isCommitted γ L ∗ logRecs γ base0 L)
-  else iprop(True)
+  -- (review round 4's D2) only an append request carries entries (raft's `MsgApp`)
+  else iprop(⌜m.entries = []⌝)
 
 instance msgFacts_persistent (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) :
     Persistent (msgFacts (GF := GF) γ C m) := by
