@@ -506,7 +506,15 @@ sends, the Draft's P2: its one spec would carry `s.gh.tr = none` anyway); `maybe
 the heartbeats'), `sendMsgReadIndexResponse` and `releasePendingReadIndexMessages` (their heartbeats at
 the state after `readOnly.addRequest`/`recvAck`, which their gates must name), `appendEntry` (with the
 `Replicate` lines' records created in their `FxPresU`) and `becomeLeader` (the term log in the
-`BecomeLeader` line's `FxPresU`, after `appendEntry`): next slice.
+`BecomeLeader` line's `FxPresU`, after `appendEntry`): next slice. Also: `raft__campaign`'s layout
+violation (`campRoleState_gh`, stage 0) fixed, `campRoleState` and its facts moved to
+`LemmasCampaign.lean`. Checked (after merging `trace-check`, at `dcc3106c4d`): full `lake build` green
+(13778 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections
+`--reuse --check`; `interface/` differs by `NGhost.lq` (`Defs.txt`, the record literals of
+`RawNode__acceptReady.txt` and `raft__Step.txt`), `MsgSt`'s move (`InvPb.txt` → `PbModel.txt`), the five
+gated specs' proof files and `raft__campaign.txt`'s moved helpers; `etc/api-check.py` 0 errors;
+`etc/gen-link.py --raft` unchanged; `--layout`: one new violation not this slice's (`traceEvent`'s
+`wp_makeTracingMessage_arg`, slice 4).
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
