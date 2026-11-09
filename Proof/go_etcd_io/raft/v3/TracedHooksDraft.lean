@@ -356,13 +356,16 @@ def MsgsUniq (σ : Etcdraft.State) : Prop :=
     recvPred ln m1 = true → recvPred ln m2 = true → m1 = m2
 
 /-- **A message's facts** (review round 2's A3): an append request carries its source's leadership of
-its term (`isLeader`: raft sends one only while leading) and its entries' records after its previous
-entry (`logRecs`). -/
+its term (`isLeader`: raft sends one only while leading), its entries' records after its previous
+entry (`logRecs`), and (review round 4's D4) its commit index's certificate: a committed log `L` of
+that length, recorded (its sender's committed prefix when it sends), from which the receiver's
+raised commit index gets its `isCommitted`/`commitIn` at `Step`'s entry, before any handler. -/
 def msgFacts (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) : IProp GF :=
   if m.type = .appendEntriesRequest then
     iprop(∃ (src : w64) (es : List EntryM),
       ⌜m.source = idAbs src ∧ m.entries = logAbs C C.length (m.prevLogIndex.toNat + 1) es⌝ ∗
-      isLeader γ src (W64 m.term) ∗ logRecs γ (entryID.mk (W64 m.prevLogTerm) (W64 m.prevLogIndex)) es)
+      isLeader γ src (W64 m.term) ∗ logRecs γ (entryID.mk (W64 m.prevLogTerm) (W64 m.prevLogIndex)) es ∗
+      ∃ L : List EntryM, ⌜(L.length : Int) = m.commitIndex⌝ ∗ isCommitted γ L ∗ logRecs γ base0 L)
   else iprop(True)
 
 instance msgFacts_persistent (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) :
@@ -535,7 +538,8 @@ def FxPresT (tr : Option GName) (γ : RaftNames) (id : w64) (E : TraceEv → Pro
 /-- **The global step, as one law** (Draft statement; its proof is `simRun_lineEffect` inside the
 logger's update, with the invariants from `simFx` and the bags' uniqueness): a capability in phase
 `Φ`, a phase step by the events `E` and the facts kept give the event builder's gate whose update
-leaves the capability in phase `Φ'`. -/
+leaves the capability in phase `Φ'`. Internal (review round 4's D6): callers use `trCap_fire_any`,
+of which this is the case of a node whose segment may not be over. -/
 abbrev trCap_fire.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
@@ -618,7 +622,8 @@ abbrev trCap_fire_ready.statement : Prop :=
     TraceFire (some γd) tl E iprop(trCapB (some γd) γ r id c true Φ' Λ' ∗
       ∃ (tn : TraceNames) (P : List Etcdraft.Msg) (Bn : GMap Nat Etcdraft.Msg), traceDir γd tn ∗
         -- (review round 3's B1) the list the tokens are for: the share's pending messages before the
-        -- line, in phase `Φ` (with `SimIdle`, `pendAbs C` of raft's outbox)
+        -- line, in phase `Φ`: the outbox `readyWithoutAccept` handed out (review round 4's D3: at the
+        -- hook raft's outbox is already cleared, so the caller's phase is anchored at the hand-out)
         ⌜∃ cs, Φ tn.voters cs P⌝ ∗
         ⌜((GMap.toList Bn).map Prod.snd).Perm P⌝ ∗ [∗map] k ↦ m ∈ Bn, inFlight tn k m)
 
@@ -648,7 +653,8 @@ def PhaseStepB (id : w64) (c : CfgM) (E : TraceEv → Prop) (Φ Φ' : List w64 �
       LineEffect C false e (idAbs id) a a' none _root_.id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False)
 
 /-- **The global step of a booted node's line, as one law** (`trCap_fire`'s, any name but
-`BecomeFollower`, the node's segment over). -/
+`BecomeFollower`, the node's segment over). Internal (review round 4's D6): callers use
+`trCap_fire_any`. -/
 abbrev trCap_fire_booted.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
