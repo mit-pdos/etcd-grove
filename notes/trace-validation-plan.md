@@ -232,7 +232,15 @@ allows a leader's pending entries (its `Replicate` lines' entries, which raft ap
 records, only after the hook): the abstract log is `es ++ pend`, records and `leadFull` over `es`,
 `pend` the leader's own term's (branch `trace-check-a9`). The alternative, the leader minting the
 records before the hook, would leave raft's predicate with its ghost log ahead of its physical one
-at `traceReplicate`'s call. Open: C1 (`FxPresReady`/`FxPresBF` proved once, after B6), C5, C6
+at `traceReplicate`'s call. **Done (branch `trace-check-a9`):** `srvFacts` as decided, plus one clause the decision
+missed: with `pend ≠ []`, the leader's campaign log `F0` (`isCamp`) is a prefix of `es`, and `es` is
+`F0` or ends in an entry of the term (raft's `campOwn` for a leader; `es = F0` at `becomeLeader`'s own
+entry, traced before the win's append). Without it `LogMatchingInv` does not follow: `leadFull γ T
+es` is a lower bound (a full log the leader once had), so another server's recorded entry of `T` past
+`es` is not excluded, and nothing persistent stops `es` from extending `F0` by entries of earlier terms
+(`isTermLog`'s initial log and `isCamp`'s `F0` are separate records), where that server's log has
+`T` from `F0` on (`recs_chain`): their terms would differ below a position where both have `T`. All
+derivations re-proved with their statements unchanged (`pend_match`, `commit_in_leader_pend`). Open: C1 (`FxPresReady`/`FxPresBF` proved once, after B6), C5, C6
 (`MsgsDet`), C7; then round 4.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
