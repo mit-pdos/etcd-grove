@@ -739,6 +739,15 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q12 (2026-11-09, `Main`'s pure obligations): the checker's `numBound` against the step bound.**
+  `numBound = 2^40` (`etcdraft/Rep.lean`, a constant of the proof, not of the Go) bounds the trace's
+  numbers (`Event.Bounded`) and its length; raft's terms, indices and event count grow with the steps,
+  and the statement's step bound is `n < 2^61` ("as the kv examples' unless the proof needs another",
+  the user's, 2026-11-08). Options: (a) raise `numBound` (and, if the reached states' margin
+  `numBound + len + 1` then exceeds the actions' internal `2^62` bound, raise that bound, also the
+  proof's: the Go's integers are `int64`), so the statement keeps `n < 2^61`; (b) lower the step bound
+  to about `2^40`. **Taken by the coordinator, pending the user's veto: (a)**: the closed statement
+  keeps the bound the user set, and only proof-internal constants move. Done in S7.
 - **Q11 (2026-11-09, Q8 stage 1 slice 4): a ghost record of the just-queued message.** `raft.send`
   queues the message before its trace hook runs, so at the hook raft's queues own it, and
   `ownRaftPhysCV` keeps the queues existential (the abstract outbox up to permutation, no pointers):
@@ -1197,6 +1206,37 @@ docstring, which also says every line is bounded though only bootstrap lines fee
 unchanged.
 Acceptance (after merging `trace-check` at `452d95929b`): full `lake build` green, `etc/tcb-report.py --check`
 (baseline unchanged: 806 axioms, 4 `sorry`s), `etc/gen-init.py --check`.
+
+**`Main`'s pure obligations, proved (2026-11-09, branch `trace-check-mainpure`).** Everything `Main`
+supplies to `NewTrace` and `CheckTrace` is one pure lemma, `TraceCheck.mainPure`
+(`tracecheck/MainPure.lean`, no `sorry`, no axiom), from facts about raft's events `L : List TraceEv`
+stated in raft's values: `RunAccepted L` (`newTrace (L.map evConv) = .ok t` and `t.RunRel t.len ts`),
+`ScopeOk L`, `∀ e ∈ L, e.NumsBelow K` with `K ≤ 2^40`, `L.length < numBound`, `∀ e ∈ L, e.ConfsWithin n`
+with `n < numBound`; it gives `NewTrace`'s premises on `L.map evConv` (`Event.Bounded`, the length),
+`newTrace`'s success, `t.CheckTraceOk true`, the search's only result `{ ok := true }` and
+`TraceAccepts`. The parts: (1) **the lines in scope** (round 2's T2-2, the weakened spec's review S-2),
+`linesInScope_of_scopeOk`: `ScopeOk L` says each event, after those before it, is in scope
+(`TraceEv.InScope`: no `ChangeConf`, no `InitState`, no `MsgSnap` sent) or is bootstrap-named while its
+node is `Unbooted` (has logged only bootstrap-named lines: `¬ TraceSim.booted`), and such a line is
+flagged by `bootstrapOf` whatever follows it (`bootstrapOf_unbooted`: its node's first bootstrap-named
+line is at or before it, its first other line after it); every line's node is a server
+(`newTraceWith_nid_mem`). `ScopeOk` is kept event by event (`scopeOk_nil`, `scopeOk_snoc`), as `simInv`'s
+ASCII clause is: P1 makes `InitState` its node's first event (at `StartNode`), P3 rules out `ChangeConf`
+(the bootstrap's changes are logged `ApplyConfChange`, in scope), P2 a `MsgSnap`. No event raft logs in
+the workload breaks scope. (2) `confsBounded_of_events` (through `Trace.confsBounded_of_newTrace`).
+(3) `Trace.RunRel.checkTraceOk`/`noEvalError` of the run (existing). (4) `evConv_bounded`. The ASCII
+premise needs no pure lemma (`ConvertEvents.spec` takes `simInv`'s clause). **What layer B must export**
+(at the end of the run, from `simInv`): `RunAccepted L` (`TraceSimEnd.lean`'s `simRun_runRel` gives it
+from `SimRun` once the whole trace's initial state and servers are the voters', `t.init = simInit C`,
+`t.server = t.initSrv = confAbs C`, which layer B's bootstrap clause owes, and from `newTrace`'s
+success, also owed); `ScopeOk L`, `NumsBelow`, `ConfsWithin |C|` as `simInv` clauses per event; and the
+event count. `TraceSimGhost`/`TraceSimEnd` are not importable outside raft (`etc/api/raft.txt` lists
+`InvTrace`, `TraceSim`), so the export is an API addition. **Found: the step bound.** `numBound` is
+`2^40`, so `Event.Bounded` needs every term and index, and `NewTrace` the number of events, below `2^40`;
+the plan's step bound `n < 2^61` does not give that (Goose's semantics allows unboundedly many elections:
+terms and the event count grow with the steps). So either `Main`'s adequacy bound (and the time-receipt
+bound layer B uses) is at most about `2^40`, or the checker's `numBound` is raised (the reached states'
+margin `numBound + len + 1` must stay below the actions' `2^62`): the user's choice for S7.
 
 ### D. The harness and Main (the workload)
 
