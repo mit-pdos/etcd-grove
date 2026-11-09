@@ -554,6 +554,31 @@ theorem runner.restore.wp_proof
     wp_apply wp_check
     · ipureintro; simp
     (try wp_auto)
+    -- `tr := f.kv.Read(…)`; `check(tr.FirstRev() == f.cmp)`; `tr.End()`
+    wp_apply wp_traceTODO as %trc ⟨%Htrc, Htrco⟩
+    (try wp_auto)
+    ihave Hau := read_au hpers ks γ.h 1 mp1 γ.m1 v1.ι (interface.mkOk kty kvv) qw1
+      (σOf ks ops v0.ops) $$ [Hret1 Hσw1]
+    · iframe #; iframe
+    wp_apply (hKR v1.ι.kv (W32 1) trc true (fun σ => iprop(⌜σ = σOf ks ops v0.ops⌝ ∗
+        ghostVar v1.ι.ret qw1 () ∗ ghostVar γ.m1.σ (1 : Qp).half (σOf ks ops v0.ops))))
+      $$ [Hr1 Htrco Hau] as %tx ⟨-, %σr, Htx, %Hσr, Hret1, Hσw1⟩
+    · iframe #; iframe; ipureintro; exact Htrc
+    subst Hσr
+    ihave %Htxs := hsh.2.2.1 tx v1.ι.kv trc (.read (σOf ks ops v0.ops)) $$ Htx
+    obtain ⟨tty, tv, htx, hTRev, hTFR, -, -, -, -, hTEnd⟩ := Htxs
+    subst htx
+    (try wp_auto)
+    wp_apply (hTFR v1.ι.kv trc (.read (σOf ks ops v0.ops))) $$ [Htx] as Htx
+    · iframe #; iframe
+    (try wp_auto)
+    wp_apply wp_check
+    · ipureintro; simp [σOf]
+    (try wp_auto)
+    wp_apply (hTEnd v1.ι.kv trc (.read (σOf ks ops v0.ops)) 1 (etcdStorage v1.bk) iprop(True)
+      iprop(True)) $$ [Htx] as ⟨Hr1, -⟩
+    · iframe #; iframe
+    (try wp_auto)
     sorry
 
 end proof
