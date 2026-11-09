@@ -2584,9 +2584,33 @@ theorem state_eq_of_term_ne (s t : Etcdraft.State) (i : Etcdraft.ID) (hi : i ∈
     simp [h]
   simp [this]
 
+/-- A server's term and role: the fields a receive line's handler rounds before the log change
+(`UpdateTerm`, `ReturnToFollower`) move. -/
+def srvKey (v : Etcdraft.Server) : Int × Etcdraft.Role := (v.currentTerm, v.state)
+
+theorem srvKey_ne_of_term (a b : Etcdraft.Server) (h : a.currentTerm ≠ b.currentTerm) : srvKey a ≠ srvKey b := by
+  intro h'; exact h (congrArg Prod.fst h')
+
+theorem srvKey_ne_of_state (a b : Etcdraft.Server) (h : a.state ≠ b.state) : srvKey a ≠ srvKey b := by
+  intro h'; exact h (congrArg Prod.snd h')
+
+/-- States whose server `i` has different terms or roles are not equal. -/
+theorem state_eq_of_key_ne (s t : Etcdraft.State) (i : Etcdraft.ID) (hi : i ∈ s.server)
+    (h : srvKey (s.s i) ≠ srvKey (t.s i)) : s.eq t = false := by
+  unfold Etcdraft.State.eq
+  have : (s.server.all (fun j => (s.s j).eq (t.s j) s.server)) = false := by
+    rw [List.all_eq_false]
+    refine ⟨i, hi, ?_⟩
+    unfold Etcdraft.Server.eq
+    by_cases ht : (s.s i).currentTerm = (t.s i).currentTerm
+    · have hst : (s.s i).state ≠ (t.s i).state := fun h2 => h (by simp [srvKey, ht, h2])
+      simp [hst]
+    · simp [ht]
+  simp [this]
+
 theorem memEq_false_of_logs_or_term (visited : List Etcdraft.TState) (g : Etcdraft.TState) (i : Etcdraft.ID)
     (h : ∀ v ∈ visited, i ∈ v.s.server ∧ ((v.s.s i).log ≠ (g.s.s i).log ∨
-      (v.s.s i).currentTerm ≠ (g.s.s i).currentTerm)) :
+      srvKey (v.s.s i) ≠ srvKey (g.s.s i))) :
     Etcdraft.memEq visited g = false := by
   unfold Etcdraft.memEq
   rw [List.any_eq_false]
@@ -2594,25 +2618,25 @@ theorem memEq_false_of_logs_or_term (visited : List Etcdraft.TState) (g : Etcdra
   obtain ⟨hvs, hor⟩ := h v hv
   rcases hor with hl | ht
   · have := tstate_eq_of_log_ne v g i hvs hl; simp [this]
-  · unfold Etcdraft.TState.eq; rw [state_eq_of_term_ne v.s g.s i hvs ht]; simp
+  · unfold Etcdraft.TState.eq; rw [state_eq_of_key_ne v.s g.s i hvs ht]; simp
 
 /-- **The truncation rounds as a chain**: states `S k` (`q ≤ k ≤ N`) each stepping to `S (k - 1)`
 above `q`, each satisfying the invariants, their server `i`'s logs `F k` pairwise different; from
 the chain at `S q` (whatever was visited, provided its logs are `F k'`, `k' ≥ q`), the chain at
 every `S k`. -/
 theorem chain_down (t : Etcdraft.Trace) (l0 : Nat) (i : Etcdraft.ID) (S : Nat → Etcdraft.State)
-    (F : Nat → List Etcdraft.Entry) (q N : Nat) (tsF : Etcdraft.TState) (T : Int)
-    (hT : ∀ k, ((S k).s i).currentTerm = T)
+    (F : Nat → List Etcdraft.Entry) (q N : Nat) (tsF : Etcdraft.TState) (T : Int × Etcdraft.Role)
+    (hT : ∀ k, srvKey ((S k).s i) = T)
     (hstep : ∀ k, q < k → k ≤ N → t.next ⟨S k, l0, l0⟩ = .ok [⟨S (k - 1), l0, l0⟩])
     (hsrv : ∀ k, i ∈ (S k).server) (hlog : ∀ k, ((S k).s i).log = F k)
     (hF : ∀ k k', k ≤ N → k' ≤ N → k ≠ k' → F k ≠ F k')
     (hinv : ∀ k, q ≤ k → k < N → (S k).violated = .ok none)
     (hbase : ∀ visited, (∀ v ∈ visited, i ∈ v.s.server ∧
-        ((∃ k', q ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') ∨ (v.s.s i).currentTerm ≠ T)) →
+        ((∃ k', q ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') ∨ srvKey (v.s.s i) ≠ T)) →
       Chain t l0 visited ⟨S q, l0, l0⟩ tsF) :
     ∀ d, ∀ visited, q + d ≤ N →
       (∀ v ∈ visited, i ∈ v.s.server ∧
-        ((∃ k', q + d ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') ∨ (v.s.s i).currentTerm ≠ T)) →
+        ((∃ k', q + d ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') ∨ srvKey (v.s.s i) ≠ T)) →
       Chain t l0 visited ⟨S (q + d), l0, l0⟩ tsF := by
   intro d
   induction d with

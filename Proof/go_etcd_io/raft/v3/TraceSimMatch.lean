@@ -1639,12 +1639,16 @@ theorem truncSt_facts (st : Etcdraft.State) (i j : Etcdraft.ID) (L : List Etcdra
     ((truncSt st i j L).s i).commitIndex = (st.s i).commitIndex ∧ ((truncSt st i j L).s i).log = L := by
   simp [truncSt, withLead, Etcdraft.State.upd]
 
+theorem srvKey_truncSt (σ : Etcdraft.State) (i j : Etcdraft.ID) (L : List Etcdraft.Entry) :
+    srvKey ((truncSt σ i j L).s i) = srvKey (σ.s i) := by
+  simp [srvKey, truncSt, withLead, Etcdraft.State.upd]
+
 /-- **An accepted append request's line, with a conflict** (raft's `maybeAppend` truncating at the
 batch's `d`-th entry, `p + d` past the log's start): the specification's rounds from the line's
 first state, the truncations down to `p + d`, the append, `AppendEntriesAlreadyDone`, as a chain. -/
 theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State) (mabs : Etcdraft.Msg)
     (C : List w64) (bl p d : Nat) (es ents : List EntryM) (pre : List Etcdraft.TState)
-    (hpreT : ∀ v ∈ pre, mabs.dest ∈ v.s.server ∧ (v.s.s mabs.dest).currentTerm ≠ (σ.s mabs.dest).currentTerm)
+    (hpreT : ∀ v ∈ pre, mabs.dest ∈ v.s.server ∧ srvKey (v.s.s mabs.dest) ≠ srvKey (σ.s mabs.dest))
     (hl0 : l0 ≠ 0) (hl : l0 ≤ t.len) (hb : t.bootstrap.getD (l0 - 1) false = false)
     (hrecv : Etcdraft.isReceiveName (t.line l0).ev.name = true)
     (hnd : σ.messages.domain.Nodup) (hm : mabs ∈ σ.messages.domain)
@@ -1691,6 +1695,7 @@ theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.Sta
   have hAf := truncSt_facts σ mabs.dest mabs.source (logAbs C bl 1 (es.take (p + d) ++ ents.drop d))
   rw [hA] at hAf
   obtain ⟨hAsrv, hAmsg, hAst, hAterm, hAcom, hAlog⟩ := hAf
+  have hAkey : srvKey (A.s mabs.dest) = srvKey (σ.s mabs.dest) := by simp [srvKey, hAst, hAterm]
   -- the last round, from the batch appended
   have hlast : ∀ visited, Chain t l0 visited ⟨A, l0, l0⟩ ⟨doneSt A mabs p ents.length, l0 + 1, l0⟩ := by
     intro visited
@@ -1768,12 +1773,12 @@ theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.Sta
         rw [List.mem_append, List.mem_singleton] at hv
         rcases hv with hv | rfl
         · obtain ⟨hvs, hvt⟩ := hpreT v hv
-          exact ⟨hvs, Or.inr (by simp only; rw [(hSf _).2.2.2.1]; exact hvt)⟩
+          exact ⟨hvs, Or.inr (by simp only; rw [srvKey_truncSt]; exact hvt)⟩
         refine ⟨hdestσ, Or.inl ?_⟩
         simp only; rw [hlogN, (hSf _).2.2.2.2.2]; exact logAbs_take_ne C bl es _ _ (Nat.le_refl _) (by omega) (by omega)))
       (hinvT _ (by omega) (by omega))
     have hcd := chain_down t l0 mabs.dest S (fun k => logAbs C bl 1 (es.take k)) (p + d) es.length
-      ⟨doneSt A mabs p ents.length, l0 + 1, l0⟩ (σ.s mabs.dest).currentTerm (fun k => (hSf k).2.2.2.1)
+      ⟨doneSt A mabs p ents.length, l0 + 1, l0⟩ (srvKey (σ.s mabs.dest)) (fun k => srvKey_truncSt _ _ _ _)
       (fun k hk1 hk2 => htr k hk1 hk2 (S k) l0 (validatePre_later t l0 hl0 _ _) (hSf k).2.1 (hSf k).1
         (hSf k).2.2.1 (hSf k).2.2.2.1 (hSf k).2.2.2.2.1 (hSf k).2.2.2.2.2 (truncSt_truncSt _ _ _ _ _))
       (fun k => by rw [(hSf k).1]; exact hdestσ) (fun k => (hSf k).2.2.2.2.2)
@@ -1793,7 +1798,7 @@ theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.Sta
               rcases Nat.lt_or_ge (p + d) k' with h | h
               · exact hAne k' h hk2
               · exact hlenAne k' h
-            · right; simp only; rw [hAterm]; exact ht))
+            · right; simp only; rw [hAkey]; exact ht))
           hinvA (hlast _))
       (es.length - 1 - (p + d))
       ((pre ++ [⟨σ, l0, pl0⟩]) ++ [⟨S (es.length - 1), l0, l0⟩]) (by omega)
@@ -1816,7 +1821,7 @@ theorem chain_appConflict (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.Sta
         rw [List.mem_append, List.mem_singleton] at hv
         rcases hv with hv | rfl
         · obtain ⟨hvs, hvt⟩ := hpreT v hv
-          exact ⟨hvs, Or.inr (by simp only; rw [hAterm]; exact hvt)⟩
+          exact ⟨hvs, Or.inr (by simp only; rw [hAkey]; exact hvt)⟩
         refine ⟨hdestσ, Or.inl ?_⟩
         simp only; rw [hlogT, hAlog]; exact hlenAne _ (Nat.le_refl _)))
       hinvA (hlast _)
@@ -1866,7 +1871,7 @@ batch `ents` after index `p`, of the previous term `lt`; the new log `es'`): the
 rounds as a chain, ending at `AppendEntriesAlreadyDone`'s state over the new log. -/
 theorem chain_appAccept (t : Etcdraft.Trace) (l0 pl0 : Nat) (σ : Etcdraft.State) (mabs : Etcdraft.Msg)
     (C : List w64) (bl p : Nat) (lt lastnewi : w64) (es ents es' : List EntryM) (pre : List Etcdraft.TState)
-    (hpreT : ∀ v ∈ pre, mabs.dest ∈ v.s.server ∧ (v.s.s mabs.dest).currentTerm ≠ (σ.s mabs.dest).currentTerm)
+    (hpreT : ∀ v ∈ pre, mabs.dest ∈ v.s.server ∧ srvKey (v.s.s mabs.dest) ≠ srvKey (σ.s mabs.dest))
     (hl0 : l0 ≠ 0) (hl : l0 ≤ t.len) (hb : t.bootstrap.getD (l0 - 1) false = false)
     (hrecv : Etcdraft.isReceiveName (t.line l0).ev.name = true)
     (hnd : σ.messages.domain.Nodup) (hm : mabs ∈ σ.messages.domain)
@@ -2464,7 +2469,7 @@ theorem simRun_recv2 (C : List w64) (L : List TraceEv) (σ U S : Etcdraft.State)
     (huniq : ∀ m' ∈ σ.messages.domain, m' ≠ mabs → recvPred ln m' = false)
     (hdest : mabs.dest ∈ σ.server)
     (hrcv1 : σ.receive mabs = .ok [U]) (hU : U.messages = σ.messages) (hUs : U.server = σ.server)
-    (hUt : (U.s mabs.dest).currentTerm ≠ (σ.s mabs.dest).currentTerm)
+    (hUt : srvKey (U.s mabs.dest) ≠ srvKey (σ.s mabs.dest))
     (hrcv2 : U.receive mabs = .ok [S]) (hone2 : Etcdraft.oneLessMessage U S mabs = true)
     (hboot : ∀ lines ln', parseLines (L.map evConv) = .ok lines →
       (bootFlags (confAbs C) (lines ++ [ln'])).getD L.length false = false)
@@ -2549,7 +2554,7 @@ theorem simRun_recvVoteReqHigher (C : List w64) (L : List TraceEv) (σ : Etcdraf
     hnd hmem hcnt _ _ huniq hdest
     (by have := receive_updateTerm σ mabs (by rw [hmdst]; exact hcontains) (Or.inl hmt) (by rw [hmdst]; exact hcur)
         rw [hmdst] at this; exact this)
-    hUf.2.1 hUf.1 (by rw [hmdst, hUf.2.2.2.1]; omega) _
+    hUf.2.1 hUf.1 (srvKey_ne_of_term _ _ (by rw [hmdst, hUf.2.2.2.1]; omega)) _
     (oneLess_voteReq _ _ _ mabs (by rw [hUf.2.2.2.1]; omega) (by rw [hUf.2.1]; exact hnd) (by rw [hUf.2.1]; exact hcnt))
     hboot hinvU hinv
   · rw [recvPred_rvreq _ _ (by rw [msgLine_name, hname'])]
@@ -2671,7 +2676,7 @@ theorem simRun_recvAppHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.St
   apply Chain.step _ _ ⟨tl.becomeFollowerOfTerm (idAbs m.dst) mabs.term, L.length + 1, L.length + 1⟩ _ _ rfl
     (memEq_false_of_logs_or_term _ _ (idAbs m.dst) (by
       intro v hv; simp only [List.mem_singleton] at hv; subst hv
-      refine ⟨List.contains_iff_mem.1 hcontains, Or.inr ?_⟩
+      refine ⟨List.contains_iff_mem.1 hcontains, Or.inr (srvKey_ne_of_term _ _ ?_)⟩
       simp only; rw [hUf.2.2.2.1, hR.1, hmterm]; exact Int.ne_of_lt hgt')) hinvU
   · rw [← hmsrc, ← hmdst]
     rw [← hmsrc, ← hmdst] at hinvT hinvA hinvD
@@ -2681,7 +2686,7 @@ theorem simRun_recvAppHigher (C : List w64) (L : List TraceEv) (σ : Etcdraft.St
       m.logterm lastnewi (toPState s).log m.entries es' [⟨tl, L.length + 1, tpl⟩]
       (by
         intro v hv; simp only [List.mem_singleton] at hv; subst hv
-        refine ⟨by rw [hmdst]; exact List.contains_iff_mem.1 hcontains, ?_⟩
+        refine ⟨by rw [hmdst]; exact List.contains_iff_mem.1 hcontains, srvKey_ne_of_term _ _ ?_⟩
         simp only; rw [hUf.2.2.2.1, hmdst, hR.1, hmterm]; exact Int.ne_of_lt hgt')
       (by simp) (by simp [linesTrace, Etcdraft.Trace.len]; omega) hb hrecvN
       (by rw [hUf.2.1]; exact hnd) (by rw [hUf.2.1]; exact hmem) (by rw [hUf.2.1]; exact hcnt)
@@ -2749,7 +2754,7 @@ theorem simRun_recvMsg2 (C : List w64) (L : List TraceEv) (σ S : Etcdraft.State
     hnd hmem hcnt hpred _ huniq (by rw [hmdst]; exact List.contains_iff_mem.1 hcontains)
     (by have := receive_updateTerm σ mabs (by rw [hmdst]; exact hcontains) hmty hcur
         rw [hmdst] at this; exact this)
-    hUf.2.1 hUf.1 (by rw [hmdst, hUf.2.2.2.1, ← hmdst]; exact Int.ne_of_gt hcur)
+    hUf.2.1 hUf.1 (srvKey_ne_of_term _ _ (by rw [hmdst, hUf.2.2.2.1, ← hmdst]; exact Int.ne_of_gt hcur))
     hrcv2 hone2 hboot hinvU hinv
   rw [hmdst, ← msgLine_perm e m.dst s.vote m.src m.dst xs _ hxs]
   have hsm := stateMatches_node C s (σ.s (idAbs m.dst)) e m.dst xs hR hs hpre hterm' hcommit' hrl
