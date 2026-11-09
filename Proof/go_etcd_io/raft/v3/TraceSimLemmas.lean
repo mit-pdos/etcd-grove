@@ -326,6 +326,125 @@ theorem sim_recordVote (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Serv
           · rw [GMap.lookup_insert_ne _ _ (Ne.symm hks)] at hk; exact Or.inl ⟨k, hk, rfl⟩
   · intro h; rw [hc] at h; cases h
 
+/-- Raft's `lastIndex()` is the abstract log's length. -/
+theorem plastIndex_length (bl : Nat) (s : PState) (h : LogShapeOk bl s) :
+    uint.Z (plastIndex s) = s.log.length := by
+  have hl := lastIndex_plogLast bl s h
+  have hb : uint.Z (plogLast s.base s.log).index' < 2 ^ 64 := by word
+  obtain ⟨hb0, -, -⟩ := h
+  unfold plastIndex plogLastIndexZ
+  rw [hb0]
+  have : uint.Z (W64 0) = 0 := rfl
+  rw [this]
+  word
+
+/-- **A candidate becomes leader** (`becomeLeader` up to `traceBecomeLeader`, after `reset`: the
+won tally is the simulation's ghost, so the specification's guard is not this lemma's): the
+specification's `BecomeLeader(i)` update. -/
+theorem sim_becomeLeader (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (id : w64)
+    (mt : GMap w64 w64) (hR : SimServerR C bl s a) (hs : LogShapeOk bl s) (hm : LeaderMatchOk id s mt) :
+    SimServerR C bl (pbecomeLeader id s mt)
+      { a with state := Etcdraft.leader, lead := idAbs id,
+               matchIndex := fun j => if j = idAbs id then (a.log.length : Int) else 0 } := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hR
+  obtain ⟨hmi, hmo⟩ := hm
+  refine ⟨h1, rfl, h3, rfl, h5, h6, h7, h8, h9, ?_, ?_⟩
+  · intro h; cases h
+  · intro _ j _
+    simp only [pbecomeLeader]
+    by_cases hj : j = id
+    · subst hj
+      simp only [↓reduceIte, hmi, Option.getD_some]
+      rw [plastIndex_length bl s hs, h6, logAbs_length]
+    · have hne : idAbs j ≠ idAbs id := fun e => hj (idAbs_inj.1 e)
+      simp only [hne, ↓reduceIte]
+      cases hx : mt !! j with
+      | none => rfl
+      | some x => rw [hmo j x hj hx]; rfl
+
+/-- **An entry appended at a leader** (`appendEntry`: the new leader's empty entry, a proposal),
+past the bootstrap entries and at the node's term: the specification's `ClientRequest(i, 0)`
+(`Replicate`). -/
+theorem sim_append (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (e : EntryM)
+    (hR : SimServerR C bl s a) (hb : bl ≤ s.log.length) (he : e.Term' = s.term) :
+    SimServerR C bl (pappend s [e])
+      { a with log := a.log ++ [{ term := a.currentTerm, type := .value, value := .val 0 }] } := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hR
+  refine ⟨h1, h2, h3, h4, h5, ?_, h7, h8, h9, h10, h11⟩
+  simp only [pappend, h6, logAbs, List.mapIdx_append, List.mapIdx_singleton]
+  congr 2
+  simp only [entAbs, he, h1]
+  split
+  · omega
+  · rfl
+
+/-! ### Append requests -/
+
+/-- An abstract entry's term is raft's, where raft's bootstrap entries have term 1. -/
+theorem entAbs_term (C : List w64) (bl k : Nat) (e : EntryM) (h : k ≤ bl → e.Term' = W64 1) :
+    (entAbs C bl k e).term = uint.Z e.Term' := by
+  unfold entAbs
+  split
+  · rename_i hk; rw [h hk]; rfl
+  · rfl
+
+theorem logAbs_getElem? (C : List w64) (bl first : Nat) (l : List EntryM) (k : Nat) :
+    (logAbs C bl first l)[k]? = l[k]?.map (entAbs C bl (first + k)) := by
+  unfold logAbs; rw [List.getElem?_mapIdx]
+
+/-- The bootstrap entries of a list starting at index `first` have term 1. -/
+def BootTerms (bl first : Nat) (l : List EntryM) : Prop :=
+  ∀ k e, first + k ≤ bl → l[k]? = some e → e.Term' = W64 1
+
+theorem BootTerms.take {bl first : Nat} {l : List EntryM} (h : BootTerms bl first l) (n : Nat) :
+    BootTerms bl first (l.take n) := by
+  intro k e hk he
+  rw [List.getElem?_take] at he
+  split at he
+  · exact h k e hk he
+  · cases he
+
+/-- **`HasNoConflict` is raft's term match**: on the abstract log of the first `n` entries of a log
+(from index 1), the abstract batch after index `p` has no conflict exactly when every entry of the
+batch the log has carries the log's term. -/
+theorem hasNoConflict_abs (st : Etcdraft.State) (i : Etcdraft.ID) (C : List w64) (bl p : Nat)
+    (es ents : List EntryM) (hl : (st.s i).log = logAbs C bl 1 es) (hp : p ≤ es.length)
+    (hbl : BootTerms bl 1 es) (hbe : BootTerms bl (p + 1) ents) :
+    st.hasNoConflict i ((p : Int) + 1) (logAbs C bl (p + 1) ents) = true ↔
+      ∀ k e, ents[k]? = some e → p + k < es.length → (es[p + k]?).map EntryM.Term' = some e.Term' := by
+  unfold Etcdraft.State.hasNoConflict
+  rw [hl]; simp only []
+  rw [logAbs_length, logAbs_length]
+  simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range,
+    Bool.or_eq_true, Bool.not_eq_true', decide_eq_false_iff_not, beq_iff_eq]
+  constructor
+  · rintro ⟨-, h⟩ k e hk hpk
+    have hkl : k < ents.length := (List.getElem?_eq_some_iff.1 hk).1
+    rcases h k hkl with h | h
+    · omega
+    · have : ((p : Int) + 1 + k - 1).toNat = p + k := by omega
+      rw [this, logAbs_getElem?, logAbs_getElem?, hk] at h
+      obtain ⟨x, hx⟩ : ∃ x, es[p + k]? = some x := ⟨es[p + k], List.getElem?_eq_getElem hpk⟩
+      rw [hx] at h ⊢
+      simp only [Option.map_some, Option.some.injEq] at h ⊢
+      rw [entAbs_term C bl _ x (fun hb => hbl (p + k) x (by omega) hx),
+        entAbs_term C bl _ e (fun hb => hbe k e hb hk)] at h
+      exact uint_Z_inj.mp h
+  · intro h
+    refine ⟨by omega, fun k hk => ?_⟩
+    by_cases hpk : p + k < es.length
+    · right
+      have : ((p : Int) + 1 + k - 1).toNat = p + k := by omega
+      rw [this, logAbs_getElem?, logAbs_getElem?]
+      obtain ⟨e, he⟩ : ∃ e, ents[k]? = some e := ⟨ents[k], List.getElem?_eq_getElem hk⟩
+      obtain ⟨x, hx⟩ : ∃ x, es[p + k]? = some x := ⟨es[p + k], List.getElem?_eq_getElem hpk⟩
+      have := h k e he hpk
+      rw [hx] at this ⊢; rw [he]
+      simp only [Option.map_some, Option.some.injEq] at this ⊢
+      rw [entAbs_term C bl _ x (fun hb => hbl (p + k) x (by omega) hx),
+        entAbs_term C bl _ e (fun hb => hbe k e hb he), this]
+    · left; omega
+
 end TraceSim
 
 end EtcdGrove
