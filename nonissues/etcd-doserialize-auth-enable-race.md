@@ -3,7 +3,7 @@ upstream: none
 checked: 2026-11-09
 links:
   - etcd-io/etcd#21909 pr open: related, not this bug (the auth revision check for verify-only JWT providers)
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # etcdserver: a read that starts while auth is disabled can return a key written after auth was enabled, to a client with no permission
@@ -25,12 +25,11 @@ promote it: a failpoint (or a sleep injected in `doSerialize` after `chk`), an u
 
 ## Proof
 
-yes: the client's model (`Spec/go_etcd_io/etcd/api/v3/Model.lean`, `kvStep`'s linearizable range)
-checks a read's permission at the state the read answers from, which this interleaving violates;
-the cluster contract's K4 is false there. The proof needs a fix on the fork (re-check the
-permission, or the auth revision, after the read whenever auth is enabled at the end of it) or a
-scope premise (no `AuthEnable` while reads are in flight), recorded in `notes/specs-only/top.md`,
-K8.
+no: the client's model covers it (round 4 of the specs-only W0 batch): a linearizable read's
+permission is checked at some auth state the cluster had from the call's start on
+(`Spec/go_etcd_io/etcd/api/v3/Model.lean`, `State.authOffSince`, `State.deniedSince`, `Step`'s
+`lo`), so a read whose check saw auth off is answered whatever the auth state at the answer, as
+etcd does. Clients see it: an unauthenticated read that started before `AuthEnable` may succeed.
 
 ## Notes
 

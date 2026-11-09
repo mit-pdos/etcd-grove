@@ -152,9 +152,9 @@ plan's rule: the bound at its owner).
 **K8 — scope** (configuration premises at `NewServer`, each an issue): `--max-txn-ops ≤ 4999`
 (`issues/etcd-txn-nested-depth-apply-panic.md`), `--max-request-bytes` below the bound of
 `issues/etcd-txn-keysonly-reply-alloc-panic.md`; at the client, `Compact` at a revision other than
-`0` (`issues/etcd-restore-scheduled-compact-zero.md`). Open, for the user: a read racing
-`AuthEnable` (`nonissues/etcd-doserialize-auth-enable-race.md`: a fix on the fork, or a premise
-"no `AuthEnable` while reads are in flight"); a user or role name over 32 KiB makes every member
+`0` (`issues/etcd-restore-scheduled-compact-zero.md`). A read racing `AuthEnable`
+(`nonissues/etcd-doserialize-auth-enable-race.md`) is in the model (a read's permission is checked
+at an auth state since its start: `Step`'s `lo`), no premise; a user or role name over 32 KiB makes every member
 exit (`issues/etcd-auth-useradd-long-name-fatal.md`): zap's `Fatal` diverges, so it is liveness
 only, no premise.
 

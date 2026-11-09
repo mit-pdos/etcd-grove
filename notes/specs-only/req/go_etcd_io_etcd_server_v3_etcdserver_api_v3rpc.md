@@ -46,9 +46,10 @@ start-up parts go to 2e (`req/go_etcd_io_etcd_server_v3_etcdserver.md`).
      the member's view, `KVHist.IsView`, the update fired at the current state);
    * an **unpinned `RangeStream`** whose pinned revision is compacted between two chunks ends with
      `ErrCompacted` and no `Q` (`wireStreamAt_recv`'s compaction disjunct);
-   * the **permission** of a read is checked at the state it answers from; `doSerialize`'s race
-     with `AuthEnable` breaks it (`nonissues/etcd-doserialize-auth-enable-race.md`): a fix or a
-     scope premise, the user's decision;
+   * the **permission** of a linearizable read is checked at an auth state the cluster had from
+     the call's start (`Step`'s `lo`) to the answer: `State.authOffSince` (the check saw auth
+     off: `doSerialize`'s race with `AuthEnable`), `State.deniedSince` (a denial at the state
+     checked); a `Compact` and a keep-alive may be refused by a member's local auth state;
    * an error after which the request may still take effect is indefinite: `ErrTimeout*`,
      `ErrStopped`, `ErrNoLeader`, `ErrLeaderChanged`, ... (`EtcdErr.indefinite`).
    Used by: every `KV.*Triple` (exclusive or persistent updates), `txn.Commit.spec`.

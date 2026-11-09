@@ -142,6 +142,13 @@ opaque servesAt (γ : Cluster) (ep : GoString) : IProp GF := iprop(True)
 
 def servesAt_persistent.spec : Prop := ∀ γ ep, Persistent (servesAt (GF := GF) γ ep)
 
+/-- **The auth state had index `lo` or more before now** (persistent; `lo = 0` always): what a read
+spec takes to bound the auth states its permission check may see (`Step`'s `lo`,
+`State.authOffSince`). A caller gets it from an `etcdLb` it holds (taken at the call's start inside
+its own invariant, or any earlier one). -/
+def authLb (γ : Cluster) (lo : Nat) : IProp GF :=
+  iprop(⌜lo = 0⌝ ∨ ∃ σ0 : State, etcdLb γ σ0 ∗ ⌜lo < σ0.authTables.length⌝)
+
 /-- **A permission to change the cluster's state by `T`** (transparent, persistent): a persistent
 atomic update performing any transition `T σ σ'`, whose commit gives `etcdLb` of both states.
 The one shape the client libraries take from their callers (1d's sessions, mutexes, STMs; 1f's

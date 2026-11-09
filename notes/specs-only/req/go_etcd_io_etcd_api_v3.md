@@ -167,3 +167,15 @@ On the cluster contract (`top.md`, K1-K2), as 2e stated it (`ApiBoot.lean`):
    2e's specs (no crash rule: open question Q2 of `batch-2e.md`).
 4. Metrics: 2e uses a provisional `EtcdServer.gaugeVecOk gv` (`addFeatureGateMetrics`); W0 owns the
    metrics boundary.
+
+## from W0 (round 4): to 2c, the names of the read window and the principal
+
+`Step who rq σ σ' res lo` (optional `lo`, the auth state's index at the call's start): a linearizable
+read's permission is checked at `σ`, or the check saw auth off since `lo`
+(`State.authOffSince`), and a denial is at an auth state since `lo` (`State.deniedSince`), over the
+new `State.authHist`/`State.authTables`. 2c's read path fires the client's persistent update with
+`lo` the auth history's length at the read's registration (minus one). The principal: `who` is the
+server's principal with auth on (the token's user, else the certificate's CN); with auth off no
+check depends on it. `Authenticate` answers `.ok .authenticate` (no token); the token is
+`tokenUser γ tok u`, a persistent fact 2c/3d give with the reply. Compact's admin check and
+keep-alive's permission error are at any auth state the cluster has had.

@@ -272,14 +272,20 @@ structure State where
   revocation): what a member whose lessor is behind answers a lease read from -/
   leaseHist : List (Int → Option LeaseRec)
   auth : AuthState
+  /-- the auth states the cluster has had before the current one, in order (one per change of the
+  auth state, `AuthEnable` included): what a read's permission check may have seen -/
+  authHist : List AuthState
   members : List Member
   alarms : List Alarm
 
 /-- A new cluster with the members `ms`: revision `1`, nothing stored, no lease, auth off. -/
 def State.init (ms : List Member) : State :=
-  { kv := { revs := [], compacted := 0 }, leases := fun _ => none, granted := [], leaseHist := [],
+  { kv := { revs := [], compacted := 0 }, leases := fun _ => none, granted := [], leaseHist := [], authHist := [],
     auth := { enabled := false, rev := 1, users := fun _ => none, roles := fun _ => none },
     members := ms, alarms := [] }
+
+/-- **Every auth state the cluster has had**, the current one last. -/
+def State.authTables (σ : State) : List AuthState := σ.authHist ++ [σ.auth]
 
 /-- The keys attached to lease `id`: the keys whose record names it. -/
 def State.attached (σ : State) (id : Int) (k : Key) : Prop :=
@@ -501,8 +507,8 @@ inductive RespBody where
   | authEnable
   | authDisable
   | authStatus (enabled : Bool) (authRev : Nat)
-  /-- the token (not modelled further) -/
-  | authenticate (token : GoString)
+  /-- authenticated (the token the reply carries is not modelled: `State.lean`'s `tokenUser`) -/
+  | authenticate
   | userAdd
   | userGet (roles : List GoString)
   | userList (users : List GoString)
@@ -815,6 +821,20 @@ def State.permits (σ : State) (who : Principal) (ps : List (PermType × KeyRang
      ∀ l ∈ ls, ∀ k, (∃ r, σ.kv.store k = some r ∧ r.lease = l) →
        ∃ u, who = some u ∧ σ.auth.covers u .write { key := k, rangeEnd := [] })
 
+/-- **A read checked at an auth state with auth off, since the auth state `lo`** (`doSerialize`:
+with auth off at the check, `AuthInfoFromCtx` gives no credentials, the check passes and no
+revision is re-checked after the read, so a read whose check saw auth off is answered whatever the
+auth state at the answer: `nonissues/etcd-doserialize-auth-enable-race.md`). `lo` is the index of
+the auth state when the call started (`authLb`). -/
+def State.authOffSince (σ : State) (lo : Nat) : Prop :=
+  ∃ j a, lo ≤ j ∧ σ.authTables[j]? = some a ∧ a.enabled = false
+
+/-- **A read denied at an auth state since `lo`** (the check fails at the auth state it saw, which
+may be older than the answer's). -/
+def State.deniedSince (σ : State) (lo : Nat) (who : Principal) (ps : List (PermType × KeyRange)) :
+    Prop :=
+  ∃ j a, lo ≤ j ∧ σ.authTables[j]? = some a ∧ ¬ ({ σ with auth := a } : State).permits who ps []
+
 /-- The error of a failed permission check: no principal (`ErrUserEmpty`), or a denial. -/
 def AuthState.permErr (who : Principal) : EtcdErr :=
   match who with
@@ -864,7 +884,7 @@ def State.attachedKVs (σ : State) (id : Int) (l : List KV) : Prop :=
 /-- The KV steps (the success and the deterministic errors of `Range`, `Put`, `DeleteRange`,
 `Txn`, `Compact`), in the order etcd checks: the gRPC layer's validation, the permission check,
 then the operation's own checks. -/
-def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
+def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat := 0) : Prop :=
   match rq with
   | .range r =>
       σ' = σ ∧
@@ -877,9 +897,10 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
        -- state it answers from: `nonissues/etcd-doserialize-auth-enable-race.md` (a race with
        -- `AuthEnable` breaks it; a fix or a premise, open)
        ∃ v, (if r.serializable then σ.kv.IsView v else v = σ.kv) ∧
-         ((¬ σ.permits who [(.read, r.range)] [] ∨ r.serializable = true) ∧
+         ((¬ σ.permits who [(.read, r.range)] [] ∨ r.serializable = true ∨
+             σ.deniedSince lo who [(.read, r.range)]) ∧
             res = .err (AuthState.permErr who) ∨
-          (σ.permits who [(.read, r.range)] [] ∨ r.serializable = true) ∧
+          (σ.permits who [(.read, r.range)] [] ∨ r.serializable = true ∨ σ.authOffSince lo) ∧
           ((∃ e, r.revErr v = some e ∧ res = .err e) ∨
            r.revErr v = none ∧ ∃ a, r.answers (v.storeAt (r.readRev v)) a ∧
              res = .ok (.range v.rev a))))
@@ -913,11 +934,13 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
       -- a read-only serializable transaction is checked at the answering member's auth state,
       -- which may be behind
       ((¬ σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
-          (RequestOp.txn t.compare t.success t.failure).leases ∨ (t.readonly ∧ t.serializable)) ∧
+          (RequestOp.txn t.compare t.success t.failure).leases ∨ (t.readonly ∧ t.serializable) ∨
+          (t.readonly ∧ σ.deniedSince lo who (RequestOp.txn t.compare t.success t.failure).perms)) ∧
           σ' = σ ∧ res = .err (AuthState.permErr who)) ∨
       t.valid ∧
       (σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
-          (RequestOp.txn t.compare t.success t.failure).leases ∨ (t.readonly ∧ t.serializable)) ∧
+          (RequestOp.txn t.compare t.success t.failure).leases ∨ (t.readonly ∧ t.serializable) ∨
+          (t.readonly ∧ σ.authOffSince lo)) ∧
       -- a read-only serializable transaction (the empty one included) is answered at the view
       -- of a member that may be behind (`issues/etcd-txn-empty-serializable.md`)
       ∃ v, (if t.readonly ∧ t.serializable then σ.kv.IsView v else v = σ.kv) ∧
@@ -930,6 +953,9 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
            σ' = σ.withKV (σ.kv.commit evs) ∧
            res = .ok (.txn (if evs = [] then v.rev else v.rev + 1) ok rs))
   | .compact rev _ =>
+      -- the gRPC layer's administrator check, at the member's local auth state (a state the
+      -- cluster has had: `kvServer.Compact`)
+      (∃ a ∈ σ.authTables, ¬ a.admin who ∧ σ' = σ ∧ res = .err (a.adminErr who)) ∨
       rev ≤ (σ.kv.compacted : Int) ∧ σ' = σ ∧ res = .err .compacted ∨
       (σ.kv.rev : Int) < rev ∧ σ' = σ ∧ res = .err .futureRev ∨
       (σ.kv.compacted : Int) < rev ∧ rev ≤ (σ.kv.rev : Int) ∧
@@ -966,7 +992,8 @@ def leaseStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop 
         (σ.permits who [] [id] ∧ σ' = σ.revoke id l ∧ res = .ok .leaseRevoke ∨
          ¬ σ.permits who [] [id] ∧ σ' = σ ∧ res = .err (AuthState.permErr who))
   | .leaseKeepAlive id =>
-      σ' = σ ∧ (res = .err .leaseNotFound ∨ ∃ ttl, -2 ^ 63 ≤ ttl ∧ ttl < 2 ^ 63 ∧ res = .ok (.leaseKeepAlive id ttl))
+      -- `checkLeaseRenew`'s permission error, at a member's auth state
+      σ' = σ ∧ (res = .err .leaseNotFound ∨ res = .err (AuthState.permErr who) ∨ ∃ ttl, -2 ^ 63 ≤ ttl ∧ ttl < 2 ^ 63 ∧ res = .ok (.leaseKeepAlive id ttl))
   | .leaseTimeToLive id keys =>
       σ' = σ ∧
       -- answered from the lease table `i` of the (leader's) lessor, which may be behind
@@ -1022,13 +1049,14 @@ open Classical in
 the user and role reads need an administrator (a user may read its own record). -/
 def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
   let a := σ.auth
-  let bump (a' : AuthState) : State := { σ with auth := { a' with rev := a.rev + 1 } }
+  let bump (a' : AuthState) : State :=
+    { σ with auth := { a' with rev := a.rev + 1 }, authHist := σ.authHist ++ [σ.auth] }
   match rq with
   | .authenticate name pw =>
       σ' = σ ∧
       (a.enabled = false ∧ res = .err .authNotEnabled ∨
        a.enabled = true ∧
-         ((∃ ur, a.users name = some ur ∧ ur.password = some pw) ∧ ∃ tok, res = .ok (.authenticate tok) ∨
+         ((∃ ur, a.users name = some ur ∧ ur.password = some pw) ∧ res = .ok .authenticate ∨
           ¬ (∃ ur, a.users name = some ur ∧ ur.password = some pw) ∧ res = .err .authFailed))
   | .authStatus => σ' = σ ∧ res = .ok (.authStatus a.enabled a.rev)
   | _ =>
@@ -1042,7 +1070,8 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
           (a.users rootUser = none ∧ σ' = σ ∧ res = .err .rootUserNotExist ∨
            ¬ a.isRoot rootUser ∧ a.users rootUser ≠ none ∧ σ' = σ ∧ res = .err .rootRoleNotExist ∨
            -- `AuthEnable` keeps the auth revision (`setRevision` of the stored one)
-           a.isRoot rootUser ∧ σ' = { σ with auth := { a with enabled := true } } ∧
+           a.isRoot rootUser ∧
+             σ' = { σ with auth := { a with enabled := true }, authHist := σ.authHist ++ [σ.auth] } ∧
              res = .ok .authEnable)
     | .authDisable =>
         σ' = (if a.enabled then (bump { a with enabled := false }) else σ) ∧ res = .ok .authDisable
@@ -1177,10 +1206,15 @@ def clusterStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Pro
   | _ => False
 
 /-- **One request's linearized effect**: a refusal (any request, the state unchanged, an error of
-`EtcdErr.refusal`), or the request's own step. -/
-def Step (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
+`EtcdErr.refusal`), or the request's own step. `lo` (default `0`: any auth state the cluster has had)
+is the index of the auth state when the call started: a linearizable read's permission is checked
+at an auth state from `lo` on (`State.authOffSince`, `State.deniedSince`); the client's read specs
+pass the `lo` the caller knows (`authLb`). The principal `who` is the one the server uses with auth
+on (the token's user, else the client certificate's common name); with auth off no check depends
+on it, so the certificate's name used then (`AuthInfoFromTLS`) is covered by every `who`. -/
+def Step (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat := 0) : Prop :=
   (σ' = σ ∧ ∃ e, e.refusal = true ∧ res = .err e) ∨
-  kvStep who rq σ σ' res ∨ leaseStep who rq σ σ' res ∨ authStep who rq σ σ' res ∨
+  kvStep who rq σ σ' res lo ∨ leaseStep who rq σ σ' res ∨ authStep who rq σ σ' res ∨
   clusterStep who rq σ σ' res
 
 /-- **The cluster's configuration, as far as the environment's steps depend on it**: whether the

@@ -330,3 +330,22 @@ the per-endpoint guarantees in its lease specs.
 
 The initial members' ids (`State.init ms`) are uint64s by the cluster contract (K1: they come from
 the configuration).
+
+## Round 4 repairs (2026-11-09)
+
+The coordinator's decision (the `doSerialize`/`AuthEnable` race in the model, no premise) and 2a/2c's
+reviews (keep-alive and `Compact` permission errors; 2c's F1, F7).
+
+| name | change |
+|---|---|
+| `EtcdModel.State` | **new field** `authHist : List AuthState` (earlier auth states; every auth change, `AuthEnable` included, appends the old one); `State.init` empty |
+| `EtcdModel.State.authTables` | **new**: every auth state, the current last |
+| `EtcdModel.State.authOffSince σ lo`, `State.deniedSince σ lo who ps` | **new**: some auth state from index `lo` on had auth off; denied the pairs |
+| `EtcdModel.Step`, `kvStep` | **new optional last argument** `(lo : Nat := 0)`, the auth state's index at the call's start; existing uses `Step who rq σ σ' res` keep meaning "any `lo`" (`0`, the weakest). A linearizable `Range` or read-only `Txn` succeeds if permitted at `σ` **or** `σ.authOffSince lo` (the race: its check saw auth off), and may be denied when `σ.deniedSince lo` (the check's state). Exactly etcd's outcomes: with auth on at the check the auth revision is re-checked after the read (`ErrAuthOldRevision`, a refusal), so success then needs the permission at the answer's auth state |
+| `EtcdModel.authLb γ lo` (State.lean, def) | **new**: `lo = 0`, or an `etcdLb` of a state whose auth history has an index `lo` |
+| `KV.GetTriple`, `KV.DoTriple`, `KV.GetStreamTriple`, `Txn.CommitTriple`, `RemoteKV.{Range,RangeStream,Txn}Triple` | **new binder** `(lo : Nat)`, **new premise** `authLb γ lo`; the update's step is `Step p rq σ σ' res lo` |
+| `kvStep .compact` | may be refused for a non-administrator at any auth state the cluster has had (`kvServer.Compact`'s local check); success not conditioned on `σ`'s administrators |
+| `leaseStep .leaseKeepAlive` | may answer `permErr who` (`checkLeaseRenew`) |
+| `EtcdModel.RespBody.authenticate` | **arity**: no argument (was `authenticate (token)`); the token is given by `tokenUser γ tok u` (2c's F1). `ErrAuthNotEnabled`, `ErrAuthFailed` were already definite answers of `authStep .authenticate` |
+| `ClientV3.ctxPrin` (doc) | `p` is the principal the server uses with auth on (token, else certificate CN); with auth off no step depends on the principal, so the certificate's name `AuthInfoFromTLS` gives then is covered (2c's F7); no statement change |
+| `nonissues/etcd-doserialize-auth-enable-race.md` | `blocks-proof: no`: the model covers it |

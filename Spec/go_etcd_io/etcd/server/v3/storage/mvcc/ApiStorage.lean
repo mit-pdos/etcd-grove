@@ -1,0 +1,391 @@
+/-
+# mvcc's storage contract (batch 3e): what the store needs of its backend
+
+mvcc keeps its history in a `backend.Backend` (an interface value); **its API is stated over this
+contract, not over etcd's backend** (the user, 2026-11-06: "mvcc should respect the abstractions it
+builds on", `notes/decisions.md`, "mvcc's API over its storage abstraction"; PRINCIPLES, "An API is
+stated over the abstractions it builds on"). etcd's backend is one storage meeting it: batch 4a
+proves `keyBackend` of etcd's backend (`req/go_etcd_io_etcd_server_v3_storage_backend.md`, "from
+3e"), and the server, which chooses the backend, discharges the store's storage premises through it.
+
+## mvcc's part of a storage
+
+`KeyData`: the part of a storage mvcc owns: the `Key` bucket (revision bytes ↦ an encoded
+`mvccpb.KeyValue`) and the two compaction keys of the `Meta` bucket (`scheduledCompactRev`,
+`finishedCompactRev`), and whether mvcc's two buckets exist. The storage's other buckets and `Meta`'s
+other keys are its other users' (the consistent index, the lessor, auth, membership); the contract
+says nothing of them.
+
+## Vocabulary
+
+* `MvccStorage` (opaque type): a storage's names; `storageVal B` its `backend.Backend` value;
+  `kbBatchTx B` its batch transaction (the value `BatchTx()` returns, fixed), `kbReadTx B` its shared
+  read transaction (`ReadTx()`'s, fixed); `bucketVal b` the `backend.Bucket` values of `schema.Key`
+  and `schema.Meta`, `metaKey m` the bytes of the compaction keys' names (schema's, 4b's init law).
+* `kbData B D` (exclusive, timeless): **mvcc's part of the storage, as a read begun now sees it, is
+  `D`**. The store's invariant holds it; it changes only at a batch transaction's `Unlock` (the
+  write-back: what the batch wrote becomes visible).
+* `kbLocked B D` (exclusive): **the batch transaction's lock is held, and mvcc's part as the batch
+  sees it (its own writes included) is `D`**. `LockInsideApply`/`LockOutsideApply` give it at the
+  visible data; `Unlock` makes `D` visible.
+* `kbRead B rt D` (exclusive): **`rt` is a read transaction, begun, seeing `D`** (a snapshot of the
+  visible data: `ConcurrentReadTx()` at its creation, the shared `ReadTx()` at its `RLock`).
+* `kbRdToks B n` (exclusive, counted, splits): `n` of the storage's reader slots (each begun read
+  transaction holds one until its `RUnlock`; the storage's own bound on its readers, as Go's
+  `RWMutex`'s reader limit: the bounds plan, the owner of the count is the storage's opener).
+* `kbSafe B`, `kbSafeHeld B` (exclusive): the right to delete from the `Key` bucket, idle or held
+  (`LockForSafeRangeDelete` ... `UnlockForSafeRangeDelete`: the store's compaction, one at a time).
+* `kbMade B b` (persistent): mvcc's bucket `b` exists (reads and writes of a missing bucket are
+  fatal in etcd's backend); `UnsafeCreateBucket` gives it.
+* `storageHook B dq f` (fractional; persistent at `discard`, `hookIs B f`): a share of the storage's
+  post-lock hook, at `f` (`nil`: none). `LockInsideApply` runs it under the batch lock (`hookRun`).
+* `storageReq B Pk X Y` (persistent): **a forced commit turns `X` into `Y`** (the storage's commit
+  runs its pre-commit hooks under the batch lock, whose invariant is `Pk`: etcd's server saves its
+  consistent index there, 2d). `storageReq_true`: a commit asking nothing is always allowed.
+* `keyBackend B Pk` (persistent, transparent: **the contract**): the triples of every method mvcc
+  calls on the storage, its batch transaction and its read transactions, at the batch lock's
+  invariant `Pk` (the client's: the hook's and the commit's resources). A bundle of an interface
+  value's contracts (PRINCIPLES, "an interface value gets a bundle"), as `Schedule.isSched`.
+* `mvccImage D h u` (opaque `Prop`, mvcc's own meaning): **`D` is a storage image of the history
+  `h`** (its compaction revision `h.compacted`), recording an unfinished compaction iff `u` (the
+  scheduled compaction key above the finished one: `restore` resumes it). Intended realization: the
+  `Key` bucket holds, for each event of `h`, its revision's bytes (`BucketKeyToBytes`) ↦ the
+  encoding of the key-value it wrote (a tombstone's: the key alone), but the entries a compaction at
+  `h.compacted` removes (all of them when `u = false`, any subset of them when `u = true`); the
+  finished compaction key is `h.compacted` (absent at `0`), the scheduled one at least it; every key
+  of the bucket is well formed (`BytesToRev` does not panic: `hashByRev` and `restore` parse each).
+* `mvccStorageFor B Pk h u` (transparent): **the storage `B`, its batch lock's invariant `Pk`, holds
+  an image of `h`, ready for a store**: what `NewStore`, `New` (3f) and `Restore` take. The contract,
+  the visible data at an image of `h` (fresh: `KeyData.empty` at the empty history,
+  `mvccImage_empty`), the history's receipt `⧖ (evCount h)` (mvcc's bound on its revisions: an
+  execution's receipts bound every history the cluster makes, the sender's too, round 16 of the mvcc
+  API), the delete right and the store's reader slots (`mvccReaderN`, sealed).
+* `storageRest B` (transparent): what a store gives back of a storage it no longer uses (its reader
+  slots, the delete right, the data): `Restore`'s old storage, and the shutdown law
+  (`Api.lean`, `mvccClosed_rest`).
+
+## Laws
+
+`kbData_timeless`, `kbData_excl`, `kbLocked_excl`, `kbRdToks_split`, `kbMade_persistent`,
+`storageReq_persistent`, `storageReq_true`, `storageHook_fractional`, `hookIs_persistent`,
+`kbSafe_excl`, `mvccImage_empty`.
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Model
+public import Perennial.ProgramLogic.Bounds
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace Mvcc
+
+open Iris Iris.BI EtcdModel
+
+/-- A storage's names (opaque). -/
+opaque MvccStorage : Type := Unit
+
+/-- mvcc's two buckets. -/
+inductive MBucket where
+  | keyB
+  | metaB
+
+/-- The compaction keys of `Meta`. -/
+inductive MetaKey where
+  | sched
+  | fin
+
+section pure
+variable [GooseExts]
+
+/-- **mvcc's part of a storage** (see the header): whether its `Key` and `Meta` buckets exist, the
+`Key` bucket's entries, the compaction keys' values (`none`: absent). -/
+structure KeyData where
+  keyMade : Bool
+  metaMade : Bool
+  keys : GoString → Option GoString
+  sched : Option GoString
+  fin : Option GoString
+
+/-- A fresh storage's: no bucket, nothing in it. -/
+def KeyData.empty : KeyData := ⟨false, false, fun _ => none, none, none⟩
+
+def KeyData.made (D : KeyData) : MBucket → Bool
+  | .keyB => D.keyMade
+  | .metaB => D.metaMade
+
+def KeyData.create (D : KeyData) : MBucket → KeyData
+  | .keyB => { D with keyMade := true }
+  | .metaB => { D with metaMade := true }
+
+def KeyData.putKey (D : KeyData) (k v : GoString) : KeyData :=
+  { D with keys := fun k' => if k' = k then some v else D.keys k' }
+
+def KeyData.delKey (D : KeyData) (k : GoString) : KeyData :=
+  { D with keys := fun k' => if k' = k then none else D.keys k' }
+
+def KeyData.getMeta (D : KeyData) : MetaKey → Option GoString
+  | .sched => D.sched
+  | .fin => D.fin
+
+def KeyData.putMeta (D : KeyData) (m : MetaKey) (v : GoString) : KeyData :=
+  match m with
+  | .sched => { D with sched := some v }
+  | .fin => { D with fin := some v }
+
+/-- The bytes of a compaction key's name (`schema.ScheduledCompactKeyName`,
+`FinishedCompactKeyName`). -/
+def metaKey : MetaKey → GoString
+  | .sched => go!"scheduledCompactRev"
+  | .fin => go!"finishedCompactRev"
+
+open Classical in
+/-- **A backend range of a bucket's map `m`** (`UnsafeRange(bucket, k, e, limit)`): an empty `e` the
+key `k` alone; else the entries of `[k, e)` in key order, cut at a positive `limit`. -/
+def bkRange (m : GoString → Option GoString) (k e : GoString) (limit : Int)
+    (l : List (GoString × GoString)) : Prop :=
+  if e = [] then l = (match m k with | some v => [(k, v)] | none => [])
+  else ∃ all : List (GoString × GoString),
+    all.Pairwise (fun a b => go.GoStringLt a.1 b.1) ∧
+    (∀ x, x ∈ all ↔ (go.GoStringLe k x.1 ∧ go.GoStringLt x.1 e ∧ m x.1 = some x.2)) ∧
+    l = (if 0 < limit ∧ limit < all.length then all.take limit.toNat else all)
+
+/-- What a range of mvcc's bucket `b` reads of `D` (in `Meta`, only the compaction keys are
+mvcc's: a read of `Meta` asks for one of them, `metaKey`). -/
+def KeyData.range (D : KeyData) (b : MBucket) (k e : GoString) (limit : Int)
+    (l : List (GoString × GoString)) : Prop :=
+  match b with
+  | .keyB => bkRange D.keys k e limit l
+  | .metaB => bkRange (fun x => if x = metaKey .sched then D.sched
+      else if x = metaKey .fin then D.fin else none) k e limit l
+
+/-- **`D` is an image of the history `h`** (mvcc's meaning; see the header): opaque. -/
+opaque mvccImage (D : KeyData) (h : KVHist) (u : Bool) : Prop
+
+/-- **The store's reader slots** (sealed constant): how many of the storage's reader slots a store
+takes (each reader of the store: a client's reader token, its own goroutines'). -/
+opaque mvccReaderN : Nat
+
+end pure
+
+section vocab
+variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
+
+/-- **The storage's `backend.Backend` value.** -/
+opaque storageVal (B : MvccStorage) : GoInterfaceOk :=
+  interface.mk (go.GoType.StructType []) #()
+
+/-- Its batch transaction (`BatchTx()`'s value, fixed). -/
+opaque kbBatchTx (B : MvccStorage) : GoInterfaceOk :=
+  interface.mk (go.GoType.StructType []) #()
+
+/-- Its shared read transaction (`ReadTx()`'s value, fixed). -/
+opaque kbReadTx (B : MvccStorage) : GoInterfaceOk :=
+  interface.mk (go.GoType.StructType []) #()
+
+/-- The `backend.Bucket` values of `schema.Key` and `schema.Meta`. -/
+opaque bucketVal (b : MBucket) : GoInterface := GoInterface.nil
+
+/-- **mvcc's part of the storage, as a read begun now sees it, is `D`** (exclusive). -/
+opaque kbData (B : MvccStorage) (D : KeyData) : IProp GF := iprop(True)
+
+/-- **The batch lock is held; mvcc's part, as the batch sees it, is `D`** (exclusive). -/
+opaque kbLocked (B : MvccStorage) (D : KeyData) : IProp GF := iprop(True)
+
+/-- **`rt` is a begun read transaction seeing `D`** (exclusive). -/
+opaque kbRead (B : MvccStorage) (rt : GoInterfaceOk) (D : KeyData) : IProp GF := iprop(True)
+
+/-- **`n` of the storage's reader slots** (exclusive, counted). -/
+opaque kbRdToks (B : MvccStorage) (n : Nat) : IProp GF := iprop(True)
+
+/-- The right to delete from `Key` (idle). -/
+opaque kbSafe (B : MvccStorage) : IProp GF := iprop(True)
+
+/-- The right to delete from `Key`, the safe-range lock held. -/
+opaque kbSafeHeld (B : MvccStorage) : IProp GF := iprop(True)
+
+/-- mvcc's bucket `b` exists (persistent). -/
+opaque kbMade (B : MvccStorage) (b : MBucket) : IProp GF := iprop(True)
+
+/-- **A share `dq` of the storage's post-lock hook, at `f`** (`nil`: none). -/
+opaque storageHook (B : MvccStorage) (dq : DFrac) (f : GoFunc) : IProp GF := iprop(True)
+
+/-- **The storage's hook is `f`, for good** (its discarded share). -/
+abbrev hookIs (B : MvccStorage) (f : GoFunc) : IProp GF := storageHook B DFrac.discard f
+
+/-- **A forced commit turns `X` into `Y`** (persistent), the batch lock's invariant `Pk`. -/
+opaque storageReq (B : MvccStorage) (Pk X Y : IProp GF) : IProp GF := iprop(True)
+
+/-- **What the post-lock hook `f` does** under the batch lock of invariant `Pk`, from the caller's
+`Pre`: `f`'s triple to `Q`, or with no hook, the caller's view shift. -/
+def hookRun (Pk : IProp GF) (f : GoFunc) (Pre Q : IProp GF) : IProp GF :=
+  if f = func.nil then iprop(Pk ∗ Pre ={⊤}=∗ Q)
+  else iprop(□ ∀ Φ : val → IProp GF, Pk ∗ Pre -∗ ▷ (Q -∗ Φ #()) -∗ WP (App (Val #f) (Val #())) {{ Φ }})
+
+/-- A slice of byte slices, read-only, holding `l`. -/
+def bytesListAt (sl : GoSlice) (l : List GoString) : IProp GF :=
+  iprop(∃ ps : List GoSlice, sl ↦*□ ps ∗ [∗list] p; b ∈ ps; l, p ↦*□ b)
+
+/-- An atomic read of the visible data, the caller's `Φ` at it. -/
+def kbObs (B : MvccStorage) (Φ : KeyData → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (D : KeyData), kbData B D }> @ ⊤, ∅ <{ kbData B D, COMM Φ D }>)
+
+/-- **`UnsafeRange(bk, k, e, limit)`'s triple** on a transaction `t` seeing `D` through the
+resource `R` (kept). -/
+def rangeOk (t : GoInterfaceOk) (R : IProp GF) (D : KeyData) : IProp GF :=
+  iprop(□ ∀ (b : MBucket) (ks es : GoSlice) (k e : GoString) (dk de : DFrac) (limit : w64)
+      (Φ : val → IProp GF),
+    R -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜D.made b = true⌝ -∗
+    ▷ (∀ (kl vl : GoSlice) (l : List (GoString × GoString)),
+        R -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜D.range b k e (sint.Z limit) l⌝ -∗
+        bytesListAt kl (l.map Prod.fst) -∗ bytesListAt vl (l.map Prod.snd) -∗
+        Φ (PairV #kl #vl)) -∗
+    WP (App (App (App (App (Val #(methods t.ty go!"UnsafeRange" t.v)) (Val #(bucketVal b)))
+      (Val #ks)) (Val #es)) (Val #limit)) {{ Φ }})
+
+/-- **The storage contract** (see the header): the triples of the methods mvcc calls. -/
+def keyBackend (B : MvccStorage) (Pk : IProp GF) : IProp GF :=
+  let bk := storageVal B
+  let tx := kbBatchTx B
+  iprop(
+    -- Backend.BatchTx(), ReadTx(): the fixed transactions
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #(GoInterface.ok tx) -∗
+      WP (App (Val #(methods bk.ty go!"BatchTx" bk.v)) (Val #())) {{ Φ }}) ∗
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #(GoInterface.ok (kbReadTx B)) -∗
+      WP (App (Val #(methods bk.ty go!"ReadTx" bk.v)) (Val #())) {{ Φ }}) ∗
+    -- Backend.ConcurrentReadTx(): a snapshot of the visible data, at the call
+    (□ ∀ (Ψ : KeyData → IProp GF) (Φ : val → IProp GF),
+      kbRdToks B 1 -∗ kbObs B Ψ -∗
+      ▷ (∀ (rt : GoInterfaceOk) (D : KeyData), ⌜rt ≠ kbReadTx B⌝ -∗ kbRead B rt D -∗ Ψ D -∗
+          Φ #(GoInterface.ok rt)) -∗
+      WP (App (Val #(methods bk.ty go!"ConcurrentReadTx" bk.v)) (Val #())) {{ Φ }}) ∗
+    -- ReadTx.RLock(): the shared one's snapshot, at the lock; a concurrent one's, nothing
+    (□ ∀ (Ψ : KeyData → IProp GF) (Φ : val → IProp GF),
+      kbRdToks B 1 -∗ kbObs B Ψ -∗
+      ▷ (∀ D : KeyData, kbRead B (kbReadTx B) D -∗ Ψ D -∗ Φ #()) -∗
+      WP (App (Val #(methods (kbReadTx B).ty go!"RLock" (kbReadTx B).v)) (Val #())) {{ Φ }}) ∗
+    (□ ∀ (rt : GoInterfaceOk) (D : KeyData) (Φ : val → IProp GF),
+      ⌜rt ≠ kbReadTx B⌝ -∗ kbRead B rt D -∗ ▷ (kbRead B rt D -∗ Φ #()) -∗
+      WP (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #())) {{ Φ }}) ∗
+    -- ReadTx.RUnlock(): the reader slot back
+    (□ ∀ (rt : GoInterfaceOk) (D : KeyData) (Φ : val → IProp GF),
+      kbRead B rt D -∗ ▷ (kbRdToks B 1 -∗ Φ #()) -∗
+      WP (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ Φ }}) ∗
+    -- ReadTx.UnsafeRange: of the snapshot
+    (□ ∀ (rt : GoInterfaceOk) (D : KeyData), rangeOk rt (kbRead B rt D) D) ∗
+    -- BatchTx.LockInsideApply(): the batch lock, the hook run under it
+    (□ ∀ (dq : DFrac) (f : GoFunc) (Pre Q : IProp GF) (Ψ : KeyData → IProp GF)
+        (Φ : val → IProp GF),
+      storageHook B dq f -∗ Pre -∗ hookRun Pk f Pre Q -∗ kbObs B Ψ -∗
+      ▷ (∀ D : KeyData, storageHook B dq f -∗ Q -∗ kbLocked B D -∗ Ψ D -∗ Φ #()) -∗
+      WP (App (Val #(methods tx.ty go!"LockInsideApply" tx.v)) (Val #())) {{ Φ }}) ∗
+    -- BatchTx.LockOutsideApply(): the batch lock, no hook
+    (□ ∀ (Ψ : KeyData → IProp GF) (Φ : val → IProp GF),
+      kbObs B Ψ -∗ ▷ (∀ D : KeyData, Pk -∗ kbLocked B D -∗ Ψ D -∗ Φ #()) -∗
+      WP (App (Val #(methods tx.ty go!"LockOutsideApply" tx.v)) (Val #())) {{ Φ }}) ∗
+    -- BatchTx.Unlock(): the batch's data made visible (it may commit, under `Pk`)
+    (□ ∀ (D : KeyData) (Ψ : IProp GF) (Φ : val → IProp GF),
+      kbLocked B D -∗ Pk -∗
+      (AU <{ ∃∃ (D0 : KeyData), kbData B D0 }> @ ⊤, ∅ <{ kbData B D, COMM Ψ }>) -∗
+      ▷ (Ψ -∗ Φ #()) -∗
+      WP (App (Val #(methods tx.ty go!"Unlock" tx.v)) (Val #())) {{ Φ }}) ∗
+    -- BatchTx.UnsafeCreateBucket(b)
+    (□ ∀ (b : MBucket) (D : KeyData) (Φ : val → IProp GF),
+      kbLocked B D -∗ ▷ (kbLocked B (D.create b) -∗ kbMade B b -∗ Φ #()) -∗
+      WP (App (Val #(methods tx.ty go!"UnsafeCreateBucket" tx.v)) (Val #(bucketVal b))) {{ Φ }}) ∗
+    -- BatchTx.UnsafePut / UnsafeSeqPut of `Key` (read-only bytes: the storage may keep them)
+    (□ ∀ (m : GoString) (D : KeyData) (ks vs : GoSlice) (k v : GoString) (Φ : val → IProp GF),
+      ⌜m = go!"UnsafePut" ∨ m = go!"UnsafeSeqPut"⌝ -∗
+      kbLocked B D -∗ ⌜D.keyMade = true⌝ -∗ ks ↦*□ k -∗ vs ↦*□ v -∗
+      ▷ (kbLocked B (D.putKey k v) -∗ Φ #()) -∗
+      WP (App (App (App (Val #(methods tx.ty m tx.v)) (Val #(bucketVal .keyB))) (Val #ks)) (Val #vs))
+        {{ Φ }}) ∗
+    -- BatchTx.UnsafePut of a compaction key of `Meta`
+    (□ ∀ (mk : MetaKey) (D : KeyData) (ks vs : GoSlice) (v : GoString) (Φ : val → IProp GF),
+      kbLocked B D -∗ ⌜D.metaMade = true⌝ -∗ ks ↦*□ metaKey mk -∗ vs ↦*□ v -∗
+      ▷ (kbLocked B (D.putMeta mk v) -∗ Φ #()) -∗
+      WP (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #(bucketVal .metaB)))
+        (Val #ks)) (Val #vs)) {{ Φ }}) ∗
+    -- BatchTx.UnsafeDelete of `Key`: the safe-range lock held
+    (□ ∀ (D : KeyData) (ks : GoSlice) (k : GoString) (dk : DFrac) (Φ : val → IProp GF),
+      kbLocked B D -∗ kbSafeHeld B -∗ ⌜D.keyMade = true⌝ -∗ ks ↦*{dk} k -∗
+      ▷ (kbLocked B (D.delKey k) -∗ kbSafeHeld B -∗ ks ↦*{dk} k -∗ Φ #()) -∗
+      WP (App (App (Val #(methods tx.ty go!"UnsafeDelete" tx.v)) (Val #(bucketVal .keyB))) (Val #ks))
+        {{ Φ }}) ∗
+    -- BatchTx.UnsafeRange: of the batch's data
+    (□ ∀ D : KeyData, rangeOk tx (kbLocked B D) D) ∗
+    -- Backend.ForceCommit(): the client's commit request
+    (□ ∀ (X Y : IProp GF) (Φ : val → IProp GF),
+      X -∗ storageReq B Pk X Y -∗ ▷ (Y -∗ Φ #()) -∗
+      WP (App (Val #(methods bk.ty go!"ForceCommit" bk.v)) (Val #())) {{ Φ }}) ∗
+    -- Backend.LockForSafeRangeDelete(), UnlockForSafeRangeDelete()
+    (□ ∀ Φ : val → IProp GF, kbSafe B -∗ ▷ (kbSafeHeld B -∗ Φ #()) -∗
+      WP (App (Val #(methods bk.ty go!"LockForSafeRangeDelete" bk.v)) (Val #())) {{ Φ }}) ∗
+    (□ ∀ Φ : val → IProp GF, kbSafeHeld B -∗ ▷ (kbSafe B -∗ Φ #()) -∗
+      WP (App (Val #(methods bk.ty go!"UnlockForSafeRangeDelete" bk.v)) (Val #())) {{ Φ }}) ∗
+    -- Backend.Size(), SizeInUse(), OpenReadTxN(): any `int64`, at any time
+    (□ ∀ (m : GoString) (Φ : val → IProp GF),
+      ⌜m = go!"Size" ∨ m = go!"SizeInUse" ∨
+        m = go!"OpenReadTxN"⌝ -∗ ▷ (∀ n : w64, Φ #n) -∗
+      WP (App (Val #(methods bk.ty m bk.v)) (Val #())) {{ Φ }}))
+
+/-- **The storage `B` holds an image of `h`, ready for a store** (see the header). -/
+def mvccStorageFor (B : MvccStorage) (Pk : IProp GF) (h : KVHist) (u : Bool) : IProp GF :=
+  iprop(keyBackend B Pk ∗ (∃ D : KeyData, kbData B D ∗ ⌜mvccImage D h u⌝ ∗
+      (⌜D = KeyData.empty⌝ ∨ (kbMade B .keyB ∗ kbMade B .metaB ∗ ⌜D.keyMade ∧ D.metaMade⌝))) ∗
+    ⧖ (evCount h) ∗ kbSafe B ∗ kbRdToks B mvccReaderN)
+
+/-- **What a store gives back of a storage it no longer uses.** -/
+def storageRest (B : MvccStorage) : IProp GF :=
+  iprop((∃ D : KeyData, kbData B D) ∗ kbSafe B ∗ kbRdToks B mvccReaderN)
+
+end vocab
+
+/-! ## Laws (obligations of the storage's implementation, and of mvcc for `mvccImage`) -/
+
+section laws
+variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
+
+def kbData_timeless.spec : Prop := ∀ B D, Timeless (kbData (GF := GF) B D)
+
+def kbData_excl.spec : Prop := ∀ B D D', kbData (GF := GF) B D ∗ kbData B D' ⊢ iprop(False)
+
+def kbLocked_excl.spec : Prop := ∀ B D D', kbLocked (GF := GF) B D ∗ kbLocked B D' ⊢ iprop(False)
+
+def kbSafe_excl.spec : Prop := ∀ B, kbSafe (GF := GF) B ∗ kbSafeHeld B ⊢ iprop(False)
+
+def kbRdToks_split.spec : Prop := ∀ B n m,
+  kbRdToks (GF := GF) B (n + m) ⊣⊢ kbRdToks B n ∗ kbRdToks B m
+
+def kbMade_persistent.spec : Prop := ∀ B b, Persistent (kbMade (GF := GF) B b)
+
+def storageReq_persistent.spec : Prop := ∀ B (Pk X Y : IProp GF), Persistent (storageReq B Pk X Y)
+
+/-- A commit asking nothing. -/
+def storageReq_true.spec : Prop := ∀ B (Pk : IProp GF), ⊢ storageReq B Pk iprop(True) iprop(True)
+
+def storageHook_fractional.spec : Prop := ∀ B f,
+  Fractional (fun q => storageHook (GF := GF) B (DFrac.own q) f)
+
+def hookIs_persistent.spec : Prop := ∀ B f, Persistent (hookIs (GF := GF) B f)
+
+/-- Two shares of the hook agree. -/
+def storageHook_agree.spec : Prop := ∀ B dq dq' f f',
+  storageHook (GF := GF) B dq f ∗ storageHook B dq' f' ⊢ ⌜f = f'⌝
+
+def keyBackend_persistent.spec : Prop := ∀ B (Pk : IProp GF), Persistent (keyBackend B Pk)
+
+/-- **A fresh storage is an image of the empty history** (mvcc's: no bucket, nothing in it, no
+compaction). -/
+def mvccImage_empty.spec : Prop := mvccImage KeyData.empty ⟨[], 0⟩ false
+
+end laws
+
+end Mvcc
+end EtcdGrove
+end Perennial
