@@ -663,11 +663,15 @@ What the result says about raft rests on one transcription of `etcdraft.tla` and
 - the **corollary** is stated with the Lean `TraceAccepts`: its meaning rests on the Lean
   transcription's faithfulness, the Go checker being a verified implementation of it.
 
-Layer C proves the two equal (`CheckTrace` accepts exactly when `TraceAccepts` holds), so the
-evidence for either is evidence for both: the Go transcription's three-way comparison with TLC (the
-state spaces under four bounds, clean, mutated and full-featured traces, verdicts and failing lines)
-and the independent review (`notes/raft-trace-validation.md`) count for the Lean one once the
-checker's spec is proved. "Faithful" is the one question: that the transcription computes what the
+Layer C proves the two equal on the traces `CheckTrace.spec`'s premise `Trace.CheckTraceOk` admits
+(Q10, 2026-11-09: the lines in scope, the reached states bounded, no evaluation error; raft's traces
+are in that class, so the closed theorem is unaffected): there `CheckTrace` accepts exactly when
+`TraceAccepts` holds. So the evidence for either is evidence for both on that class: the Go
+transcription's three-way comparison with TLC (the state spaces under four bounds, clean, mutated and
+full-featured traces, verdicts and failing lines) and the independent review
+(`notes/raft-trace-validation.md`) count for the Lean one on the in-scope traces without evaluation
+errors; the full-featured traces (`ChangeConf`, restarts, snapshots) and the evaluation-error cases
+are outside what the proof transfers. "Faithful" is the one question: that the transcription computes what the
 TLA+ says (not that raft or the harness are right: those are verified).
 
 The rest of the trust base:
@@ -726,7 +730,9 @@ semantics on in-memory events, `CheckTrace`) in Goose's subset without `fmt`, `s
 `encoding/json`, `sort.Slice` (structural equality or a hand-written encoding for the view's
 keys, sorted slices by `slices.Sort` or insertion); NDJSON reading and the porcupine model in
 packages of their own, not translated. Its spec: `CheckTrace(events)` returns `TLCOK` exactly when
-`TraceAccepts(events)` (sound and complete; the evaluation errors are failures). Size: the Go is
+`TraceAccepts(events)` (sound and complete; the evaluation errors are failures), as planned; as proved
+(Q10, 2026-11-09), on the traces `Trace.CheckTraceOk` admits (lines in scope, reached states bounded,
+no evaluation error), which raft's traces are. Size: the Go is
 about 1,500 lines; the proof is mostly the actions' functional correctness against their Lean
 counterparts, and the search's.
 
@@ -923,16 +929,19 @@ pending the user's veto).** `CheckTrace.spec` takes one more, pure, premise, its
 `Trace.CheckTraceOk tr invariants` (`CheckOk.lean`), the conjunction of
 - `tr.LinesInScope`: every line outside the bootstrap `Line.InScope` (no `ChangeConf`, no `InitState`,
   no `MsgSnap` sent), a property of the trace alone;
-- `∀ ts, tr.Reach ts → ts.s.SearchOk tr`: every state of the trace specification the search can reach
-  (`Trace.Reach`: `TraceInit`, closed under `Trace.next`'s successors) has the trace's servers and meets
-  the actions' bounds and flags (`State.ActOk`) and the messages' (`State.MsgsOk`);
+- `∀ ts, tr.Reach ts → ts.s.SearchOk`: every state of the trace specification reachable from
+  `TraceInit` (`Trace.Reach`, closed under `Trace.next`'s successors: a superset of what the search
+  looks at) meets the actions' bounds (`State.Bounds`, `State.ActOk` but its flags) and the messages'
+  (`State.MsgsOk`);
 - `∀ res, CheckTraceRel tr invariants res → res.evalError = none`: the search raises no evaluation
   error (the Go would panic with an `EvalError` and recover).
 Proved (no `sorry`, no axiom): `CheckTrace.wp_proof` over the specs of `Trace.Init`, `Trace.Len`,
 `Trace.StepLine`, `indexOf`, `State.Violated` (the loop invariant above; the Go's running `r.Branched` is
 `brOf`, the line's branching so far; the `invariants` branch split without substituting the flag, so the
 search's proof is written once); and the pure lemmas that reduce `StepLine`'s premises to the three parts:
-a reached state's `l ≥ 1` (`Trace.Reach.l_pos`, from `Trace.next_l`), the states `StepLine` expands
+every reached state has the trace's servers and `PreVote`, `CheckQuorum` off (`Trace.Valid.reach_frame`,
+`Frame.lean`: every action builds its state with `{ st with … }`, `State.Frame` per action and per
+`IfLogged` action, `Trace.next_frame`), a reached state's `l ≥ 1` (`Trace.Reach.l_pos`, from `Trace.next_l`), the states `StepLine` expands
 reached (`Trace.LineReach.reach`), so `Trace.StepLineOk` of every reached state
 (`Trace.CheckTraceOk.stepLineOk`, with `State.ActOk.violOk`: `Violated`'s bounds are among the actions');
 the states a line's search returns reached and at the next line (`Trace.StepLineRel.reach`), a
@@ -947,11 +956,11 @@ failures (`TLCOK` false), and the premise excludes the case.
 **`Main`'s remaining obligation (S7)**, for the trace `tr` that `NewTrace` returns on its events:
 1. `tr.LinesInScope`: layer B's P1-P3 (no restart, no configuration change after the bootstrap, no
    snapshot sent: raft sends one only for entries missing from storage, and the harness never compacts);
-2. `∀ ts, tr.Reach ts → ts.s.SearchOk tr`: an invariant of the trace specification, over every action
+2. `∀ ts, tr.Reach ts → ts.s.SearchOk`: an invariant of the trace specification, over every action
    `Trace.next` can take from a reached state (not only the run's states: the search also expands a
    receive line's intermediate states and the successors it then discards), proved by induction on
-   `Trace.Reach`: the trace's servers and the flags off (every action builds its state with
-   `{ st with … }`, and `newTrace` sets the flags off), the pending bag's messages distinct
+   `Trace.Reach` (the trace's servers and the flags off are already proved, `Trace.Valid.reach_frame`,
+   and give the invariant its frame): the bags' messages distinct
    (`Bag.add_nodup`), no pre-vote message and no snapshot (none sent: the flags off, and the `MsgSnap` lines
    excluded by part 1), `prevLogIndex ≥ 0`, and the numbers below their bounds (logs, entries, terms,
    granted votes, configurations, progress, the bags' counts, `reconfigCount`), each bounded by the
@@ -962,6 +971,26 @@ failures (`TLCOK` false), and the premise excludes the case.
 3. `∀ res, CheckTraceRel tr true res → res.evalError = none`: `Trace.RunRel.noEvalError` of the run
    layer B's simulation carries (`Trace.RunRel tr tr.len ts`), which `Main` needs anyway for `TLCOK`.
 Part 2 is the one pure proof left, workload-agnostic but over every action of `Tla/Spec.lean`.
+
+**Review of the changed `CheckTrace.spec` (2026-11-09, `spec-reviewer`, fresh).** Round 1: the
+post fits `Main` (with `RunRel`, `checkTraceRel_eq` pins the result to `{ ok := true }`), the spec is
+true of `check.go` on every outcome, part 3 and `Trace.Reach` are the right shapes. First tier, both
+repaired: (T1-1) this plan still claimed `CheckTrace` and `TraceAccepts` equal on every trace (the
+"Trust base" paragraph and layer C's spec sentence): now qualified, the proof transfers the Go
+checker's evidence to the Lean transcription only on the class `CheckTraceOk` admits; (T1-2)
+`CheckOk.lean`'s header said part 2 follows for bounded events (it needs the configurations' lists
+bounded too) and the spec's header called part 2 "bounded" only: both say what part 2 holds. Second
+tier: (T2-1) part 2 exports the checker's overflow margins to `Main`; it should be a lemma of the
+checker package, `Trace.Valid` (with `Event.Bounded` covering the configurations' lists) and
+`LinesInScope` giving it. Taken in part: the conjuncts provable now are proved and left the premise
+(the servers and the flags, `Frame.lean`; `SearchOk` is now `State.Bounds ∧ State.MsgsOk`); the rest
+stays a premise until the invariant is proved, since a `sorry` in its place is not allowed in a
+committed state: when it is, `CheckTraceOk` loses part 2 and `Event.Bounded` gains the lists' bounds
+(the lemma `Trace.Valid.reach_searchOk` then states it). (T2-2) `LinesInScope` has no law from the
+events `Main` holds (the bootstrap flags are `bootstrapOf`'s): left to S7, where layer B's form of
+P1-P3 decides the law's shape. Third tier: `Trace.Reach`'s docstring (a superset of what the search
+looks at), `State.MsgsOk`'s (its bag conjunct), `TraceAccepts evs false false`: repaired; part 3
+unnamed: left.
 
 ### D. The harness and Main (the workload)
 

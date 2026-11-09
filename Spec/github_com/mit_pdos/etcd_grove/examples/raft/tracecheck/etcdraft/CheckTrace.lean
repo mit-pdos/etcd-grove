@@ -7,16 +7,19 @@ view `<<vars, l>>`, the invariants checked at every state reached when `invarian
 TLC would fail is a failure). Its spec: what it returns is the result the Lean transcription's
 `CheckTraceRel` (`Tla/Check.lean`, the search as a relation, without fuel: Q7, the user's choice
 2026-11-08) relates the trace to, on the fields it records (`resultRel`); so `Result.TLCOK()` holds
-only of a trace the relation accepts, and with `NewTrace`'s spec, `TraceAccepts` is `Main`'s check.
+only of a trace the relation accepts, and with `NewTrace`'s spec, `TraceAccepts evs false false` is
+`Main`'s check.
 Partial correctness: a search that never ends returns nothing.
 The trace is read, not written (`traceRO`, which carries what `NewTrace` establishes: the Go's search
 relies on that, review round 1 of layer C, F1).
 Its premise `Trace.CheckTraceOk` (`CheckOk.lean`; Q10 of the plan, 2026-11-09): the search meets its
-callees' premises, which are stated where the Lean transcription evaluates and on bounded states of
-the workload's kinds of lines: the lines outside the bootstrap in scope, every state the search can
-reach bounded, and no evaluation error in the search (where TLC fails, the Go panics with an
-`EvalError` and recovers, which its callees' triples do not describe). `Main` discharges it of the
-trace raft produces.
+callees' premises, which are stated where the Lean transcription evaluates, on the workload's kinds of
+lines and on states far from overflow: the lines outside the bootstrap in scope (no configuration
+change, restart or snapshot), every state reachable from `TraceInit` (`Trace.Reach`) bounded with its
+messages as the actions expect them (bags without duplicates, no pre-vote message, no snapshot:
+`State.SearchOk`), and no evaluation error in the search (where TLC fails, the Go panics with an
+`EvalError` and recovers, which its callees' triples do not describe). So the spec says nothing of the
+traces outside that class. `Main` discharges it of the trace raft produces.
 -/
 module
 

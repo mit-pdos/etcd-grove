@@ -28,6 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions]
 
 set_option maxHeartbeats 2000000 in
+-- (the loop conditions' simp sets cover the forms the goals take in the two `invariants` cases)
+set_option linter.unusedSimpArgs false in
 theorem CheckTrace.wp_proof
     (wp_Init : Trace.Init.spec (GF := GF) (hG := hG))
     (wp_Len : Trace.Len.spec (GF := GF) (hG := hG))
@@ -63,7 +65,7 @@ theorem CheckTrace.wp_proof
       have := Hnoerr { evalError := some e, errLine := 0 } (by unfold CheckTraceRel; rw [hI]; simp [h])
       simp at this
     | ok r0 => exact ⟨r0, rfl⟩
-  have hb0 := Hbnd _ Trace.Reach.init
+  have hb0 := Trace.CheckTraceOk.actOk (tr := tr) Hv ⟨Hscope, Hbnd, Hnoerr⟩ Trace.Reach.init
   ihave #Hg0' := Hg0
   iunfold tstateRO at Hg0'
   icases Hg0' with ⟨#Hs0, %Hg0l⟩
@@ -73,7 +75,7 @@ theorem CheckTrace.wp_proof
   ihave Hfr := Hfrb $$ He
   rw [show ([g0] : List G.TState).set (sint.Z (W64 0)).toNat g0 = [g0] by simp]
   wp_apply wp_Violated g0.S' tr.initState.s r0 $$ [Hs0] as %vgo %Hvgo
-  · iframe Hs0; ipureintro; exact ⟨hb0.2.1.violOk.1, hb0.2.1.violOk.2, hr0⟩
+  · iframe Hs0; ipureintro; exact ⟨hb0.violOk.1, hb0.violOk.2, hr0⟩
   rcases r0 with _ | w
   rotate_left
   · -- the initial state violates an invariant: the result
@@ -195,7 +197,7 @@ theorem CheckTrace.wp_proof
         try wp_auto
         wp_apply wp_StepLine t tr gx x invariants $$ [Ht Hgxx] as %ssl %gi Hpost
         · iframe Ht Hgxx; ipureintro
-          exact ⟨Trace.CheckTraceOk.stepLineOk (tr := tr) ⟨Hscope, Hbnd, Hnoerr⟩ hxr, hnoe⟩
+          exact ⟨Trace.CheckTraceOk.stepLineOk (tr := tr) Hv ⟨Hscope, Hbnd, Hnoerr⟩ hxr, hnoe⟩
         icases Hpost with ⟨%tss, %info, %Hst, Hss⟩
         obtain ⟨Hrel, Hgb, Hgv⟩ := Hst
         iunfold tstatesOut at Hss

@@ -33339,8 +33339,9 @@ derivable at all from `Event.Bounded`.
 `⌜tr.CheckTraceOk invariants⌝` (`CheckOk.lean`), the conjunction of three parts chosen to be as
 close to what `Main` has as the proof allows: (1) `tr.LinesInScope`, a property of the trace alone
 (layer B's P1-P3); (2) every state `Trace.Reach` gives (the closure of `TraceInit` under
-`Trace.next`) has the trace's servers, `State.ActOk` and `State.MsgsOk`, an invariant of the
-specification `Main` proves by induction over the actions; (3) no result of `CheckTraceRel` carries
+`Trace.next`) meets `State.Bounds` (`State.ActOk` but its flags) and `State.MsgsOk`, an invariant of
+the specification proved by induction over the actions (the servers and the flags off are already
+proved, `Trace.Valid.reach_frame`, after review round 1's T2-1); (3) no result of `CheckTraceRel` carries
 an evaluation error, which `Main` gets from layer B's run by determinism
 (`Trace.RunRel.noEvalError`). Everything else `StepLine`'s premise asked for is proved here
 (`Trace.CheckTraceOk.stepLineOk`: positions, the expanded states reached, `Violated`'s bounds from
@@ -33361,6 +33362,11 @@ evaluation error never is, and its accepted run has no error anyway. The seven o
 and `HandleSnapshotRequest` would also need specs. Option (a) stays available if the user wants
 `CheckTrace` correct on every valid trace.
 
-**Rejected: strengthening `Event.Bounded` now.** The configurations' sizes are the one bound
-`Trace.Valid` cannot give; part 2 lets `Main` supply them from raft's events (three voters) inside
-its invariant proof, without changing `Trace.Valid`, which `NewTrace.spec` establishes.
+**Deferred: part 2 as a lemma, `Event.Bounded` strengthened.** Review round 1 (T2-1) found that part
+2 exports the checker's overflow margins (`State.Bounds`, `Bag.Ok`) to `Main`, a client in another
+package, though it depends only on `Trace.Valid`, `LinesInScope` and the configurations' sizes. The
+right end state is a lemma of the checker, `Trace.Valid.reach_searchOk : tr.Valid → tr.LinesInScope →
+∀ ts, tr.Reach ts → ts.s.SearchOk`, with `Event.Bounded` bounding the events' configuration lists
+(raft's have three ids, so `NewTrace`'s premise costs `Main` nothing more); `CheckTraceOk` then loses
+part 2. Until that invariant is proved it stays a premise: a `sorry` in its place is not allowed in a
+committed state. What was provable now moved out of the premise (the servers and the flags).
