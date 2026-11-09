@@ -138,6 +138,16 @@ theorem uint_decide {a b : w64} {x y : Nat} (ha : uint.nat a = x) (hb : uint.nat
     decide (a = b) = decide (x = y) :=
   decide_eq_decide.2 (uint_eq_iff a b x y ha hb)
 
+/-- `z == y + x` on `int`s with `y` and `z` far from overflow: the sum wraps only out of their range,
+so the Go's comparison is the Lean's on integers whatever `x` (`appendEntriesIfLogged`'s
+`e != b+ev.Entries`). -/
+theorem add_eq_iff_small (x y z : w64) (hy : -2 ^ 62 < sint.Z y ∧ sint.Z y < 2 ^ 62)
+    (hz : -2 ^ 62 < sint.Z z ∧ sint.Z z < 2 ^ 62) :
+    z = y + x ↔ sint.Z z = sint.Z y + sint.Z x := by
+  constructor
+  · intro h; subst h; word
+  · intro h; word
+
 /-! ## A trace's lines, purely -/
 
 /-- The line at a position in range is the list's. -/
@@ -145,6 +155,22 @@ theorem Trace.line_eq (tr : Trace) (l : Nat) (h1 : 1 ≤ l) (h2 : l ≤ tr.len) 
     tr.lines[l - 1]? = some (tr.line l) := by
   unfold Trace.line Trace.len at *
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]; rfl
+
+theorem Trace.isEvent_le {tr : Trace} {ts : TState} {e : String} (h : tr.isEvent ts e = true) :
+    ts.l ≤ tr.len := by
+  unfold Trace.isEvent at h; simp only [Bool.and_eq_true, decide_eq_true_eq] at h; exact h.1
+
+theorem Trace.isNodeEvent_le {tr : Trace} {ts : TState} {e : String} {i : ID}
+    (h : tr.isNodeEvent ts e i = true) : ts.l ≤ tr.len := by
+  unfold Trace.isNodeEvent at h; simp only [Bool.and_eq_true] at h; exact Trace.isEvent_le h.1
+
+theorem Trace.isMessageEvent_le {tr : Trace} {ts : TState} {e : String} {i j : ID}
+    (h : tr.isMessageEvent ts e i j = true) : ts.l ≤ tr.len := by
+  unfold Trace.isMessageEvent at h; simp only [Bool.and_eq_true] at h; exact Trace.isEvent_le h.1.1.1
+
+theorem Trace.isMessageEvent_msg {tr : Trace} {ts : TState} {e : String} {i j : ID}
+    (h : tr.isMessageEvent ts e i j = true) : (tr.line ts.l).ev.msg.isSome = true := by
+  unfold Trace.isMessageEvent at h; simp only [Bool.and_eq_true] at h; exact h.1.1.2
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -275,6 +301,39 @@ macro "ret_single" q:term "," s:term "," Hs:ident "[" xs:ident,* "]" : tactic =>
     iexact $Hs:ident
   iapply HΦ' $$ [] Hout
   ipureintro; simp [$[$xs:ident],*]))
+
+set_option hygiene false in
+/-- `ret_nil`, for an action the Lean evaluates (`Hev : <the Lean's> = .ok sts`, `HΦ'` over `sts`). -/
+macro "ret_nil" "[" xs:ident,* "]" "at" Hev:ident : tactic => `(tactic| (
+  try simp only [Bool.not_false, Bool.not_true]
+  try wp_auto
+  ihave Hn : statesOut (GF := GF) slice.nil [] $$ []
+  · iapply statesOut_nil
+  iapply HΦ' $$ [] Hn
+  ipureintro
+  simp [Pure.pure, Except.pure, Bind.bind, Except.bind, $[$xs:ident],*] at $Hev:ident
+  first | exact $Hev:ident | exact ($Hev:ident).symm))
+
+set_option hygiene false in
+/-- `ret_single`, for an action the Lean evaluates. -/
+macro "ret_single" q:term "," s:term "," Hs:ident "[" xs:ident,* "]" "at" Hev:ident : tactic => `(tactic| (
+  try simp only [Bool.not_false, Bool.not_true]
+  try wp_auto
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %sl0 ⟨Hsl0, Hcap0⟩
+  try wp_auto
+  ihave Hout := statesOut_single _ $q $s $$ [Hsl0 Hcap0]
+  · isplitl [Hsl0]
+    · iexact Hsl0
+    isplitl [Hcap0]
+    · iexact Hcap0
+    iexact $Hs:ident
+  iapply HΦ' $$ [] Hout
+  ipureintro
+  simp [Pure.pure, Except.pure, Bind.bind, Except.bind, $[$xs:ident],*] at $Hev:ident
+  first | exact $Hev:ident | exact ($Hev:ident).symm))
 
 end Etcdraft
 end EtcdGrove
