@@ -115,6 +115,67 @@ theorem flatMap_update_perm {K V : Type} [DecidableEq K] (C : List K) (f g : K �
       rw [ho c hc, List.append_assoc]
       exact List.Perm.append_left _ (ih hnd.2 hi')
 
+/-- `without`'s step on one entry keeps its message. -/
+theorem without_step (m : Etcdraft.Msg) (it : Etcdraft.Msg × Nat) :
+    ((if (it.1 == m) = true then (if it.2 > 1 then some (it.1, it.2 - 1) else none) else some it) = none ∧
+      it.1 = m) ∨
+      ∃ n, (if (it.1 == m) = true then (if it.2 > 1 then some (it.1, it.2 - 1) else none) else some it) =
+        some (it.1, n) ∧ (it.1 ≠ m → n = it.2) := by
+  by_cases h : (it.1 == m) = true
+  · simp only [h, ↓reduceIte]
+    by_cases h2 : it.2 > 1
+    · right; exact ⟨it.2 - 1, by simp [h2], fun hne => absurd (by simpa using h) hne⟩
+    · left; exact ⟨by simp [h2], by simpa using h⟩
+  · right; refine ⟨it.2, by simp [h], fun _ => rfl⟩
+
+theorem bag_count_without_other (b : Etcdraft.Bag) (m m' : Etcdraft.Msg) (h : m' ≠ m) :
+    (b.without m').count m = b.count m := by
+  unfold Etcdraft.Bag.without Etcdraft.Bag.sub
+  induction b with
+  | nil => rfl
+  | cons it b ih =>
+    rw [List.filterMap_cons]
+    rcases without_step m' it with ⟨hn, hit⟩ | ⟨n, hs, hn⟩
+    · rw [hn]; simp only; rw [ih, bag_count_cons, hit]; simp [h]
+    · rw [hs, bag_count_cons, bag_count_cons, ih]
+      by_cases hm : it.1 = m
+      · have : it.1 ≠ m' := fun e => h (e ▸ hm)
+        simp [hm, hn this]
+      · simp [hm]
+
+theorem bag_without_domain (b : Etcdraft.Bag) (m : Etcdraft.Msg) :
+    (b.without m).domain.Sublist b.domain := by
+  unfold Etcdraft.Bag.without Etcdraft.Bag.sub Etcdraft.Bag.domain
+  induction b with
+  | nil => simp
+  | cons it b ih =>
+    rw [List.filterMap_cons]
+    rcases without_step m it with ⟨hn, -⟩ | ⟨n, hs, -⟩
+    · rw [hn]; exact ih.cons _
+    · rw [hs]; simp only [List.map_cons]; exact ih.cons_cons _
+
+theorem bagRep_without (b : Etcdraft.Bag) (l : List Etcdraft.Msg) (m : Etcdraft.Msg) (h : BagRep b l)
+    (hm : m ∈ l) : BagRep (b.without m) (l.erase m) := by
+  obtain ⟨hnd, hpos, hc⟩ := h
+  have hcm : 0 < Etcdraft.Bag.count b m := by rw [hc]; exact List.count_pos_iff.2 hm
+  refine ⟨hnd.sublist (bag_without_domain b m), ?_, ?_⟩
+  · unfold Etcdraft.Bag.without Etcdraft.Bag.sub
+    intro it hit
+    obtain ⟨y, hy, hye⟩ := List.mem_filterMap.1 hit
+    have hpy := hpos y hy
+    by_cases h1 : (y.1 == m) = true
+    · by_cases h2 : y.2 > 1
+      · simp only [h1, h2, ↓reduceIte, Option.some.injEq] at hye; subst hye; simp; omega
+      · simp [h1, h2] at hye
+    · simp only [h1, Bool.false_eq_true, ↓reduceIte, Option.some.injEq] at hye; subst hye; exact hpy
+  · intro y
+    by_cases hy : y = m
+    · subst hy
+      have := bag_count_without b y hnd hcm
+      rw [hc] at this
+      rw [List.count_erase_self]; omega
+    · rw [bag_count_without_other b y m (Ne.symm hy), hc, List.count_erase_of_ne hy]
+
 end TraceSim
 
 end EtcdGrove
