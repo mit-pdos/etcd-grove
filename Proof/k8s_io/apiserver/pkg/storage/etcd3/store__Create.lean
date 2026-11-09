@@ -73,7 +73,7 @@ theorem store.Create.wp_proof
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
     #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
   iunfold storeListOk at Hlst
-  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf⟩
+  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
   · iPkgInit
   ihave #Pat : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» $$ []
@@ -122,7 +122,7 @@ theorem store.Create.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce', -⟩
   · iframe #
   (try wp_auto)
   iunfold versionerOk at Hver

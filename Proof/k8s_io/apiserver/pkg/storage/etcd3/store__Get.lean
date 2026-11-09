@@ -107,7 +107,7 @@ theorem store.Get.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce', -⟩
   · iframe #
   (try wp_auto)
   wp_apply _root_.Perennial.time.wp_Now as %t0 -

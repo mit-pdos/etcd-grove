@@ -116,7 +116,8 @@ def storeListOk (sp : Loc) (c : StoreCfg GF Obj) : IProp GF :=
     threadPool.isThreadPool storePoolN γp
       (sync.ownRWMutex (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"collectorMux" sp)
         (rseNilR sp)) ∗
-    ⌜utf8Valid c.gr.Group' ∧ utf8Valid c.gr.Resource'⌝)
+    ⌜utf8Valid c.gr.Group' ∧ utf8Valid c.gr.Resource'⌝ ∗
+    ⌜prepareKeyM c.resourcePrefix c.resourcePrefix false = some c.resourcePrefix⌝)
 
 instance storeListOk_persistent (sp : Loc) (c : StoreCfg GF Obj) :
     Persistent (storeListOk sp c) := by

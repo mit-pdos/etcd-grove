@@ -18,6 +18,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Store
+public import Proof.k8s_io.component_base.tracing.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ListModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KList
 
@@ -142,9 +143,11 @@ variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable {Obj : Type} [DecidableEq Obj]
 
 /-- **Every revision of `σ` is the store's** (D30i, at each revision a past read may read): the key-
-values under the prefix decode. -/
+values under the prefix decode, and (B3, decided by etcd-grove-81) every mod revision is positive and at
+most `r` (as `KWf`'s). -/
 def kvWfHist (c : StoreCfg GF Obj) (σ : KVState) : Prop :=
-  ∀ r, r ≤ σ.rev → ∀ v ∈ (σ.at r).kvs, c.pfx <+: v.key → c.S.dec v.value ≠ none
+  ∀ r, r ≤ σ.rev → ∀ v ∈ (σ.at r).kvs, (c.pfx <+: v.key → c.S.dec v.value ≠ none) ∧
+    0 < uint.nat v.modRev ∧ uint.nat v.modRev ≤ r
 
 /-- **The default gate has `EtcdRangeStream` off** (Draft §2, #13, persistent): the gate
 `DefaultFeatureGate` holds (read-only, as `features`' fact `featuresInit` says) had
@@ -166,17 +169,6 @@ def newItemOk (S : ObjSpec GF Obj) (f : GoFunc) : IProp GF :=
 instance newItemOk_persistent (S : ObjSpec GF Obj) (f : GoFunc) :
     Persistent (newItemOk S f) := by
   unfold newItemOk; infer_instance
-
-/-- **A context that is never done** (persistent; Draft §3.4's `ctxNeverDone`): its `Done()` is the
-`nil` channel, so a `select` on it with a `default` runs the default (`processListItem`'s timeout
-check). True of `context.Background()` (an `emptyCtx`) and of value contexts over it. -/
-def ctxNeverDone (ctx : GoInterface) : IProp GF :=
-  iprop(∃ ci : GoInterfaceOk, ⌜ctx = GoInterface.ok ci⌝ ∗
-    □ ∀ Φ : val → IProp GF, ▷ Φ #(chan.nil : GoChan) -∗
-      WP (App (Val #(methods ci.ty go!"Done" ci.v)) (Val #())) {{ Φ }})
-
-instance ctxNeverDone_persistent (ctx : GoInterface) : Persistent (ctxNeverDone (GF := GF) ctx) := by
-  unfold ctxNeverDone; infer_instance
 
 /-- `rem` holds the remaining count `remV`: `nil` for `none`, a cell holding `n` for `some n`
 (`PrepareContinueToken`'s `*int64`). -/

@@ -165,6 +165,11 @@ reader token from `storeListOk`'s pool).
   half, all `readErrIs` uses) and a hypothesis `Client.GetAt.spec` with §7's answer, both premises of
   `getList`'s proof only.
 
+**Decided by etcd-grove-81 (2026-11-09, under the user's delegation):** forms (1)-(5) accepted; B1
+(a); B2 the restatement, `tracing.Start.spec` gaining `□ (ctxNeverDone ctx -∗ ctxNeverDone ctx')`,
+after a Go test (`examples/k8s7e2attack`) that the derived context of `context.Background()` has a
+`nil` `Done()`; B3 as recommended; B4 as recommended (`Client.GetAt.spec` a hypothesis until 7c-3).
+
 ## 0. Summary
 
 | # | Item | Status | Producer |

@@ -437,7 +437,7 @@ theorem store.GuaranteedUpdate.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce', -⟩
   · iframe #
   (try wp_auto)
   wp_apply wp_EnforcePtr c.S.objTy p $$ [] as %v %eerr %Hen'

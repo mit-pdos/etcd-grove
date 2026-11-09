@@ -49,6 +49,7 @@ abbrev New.spec : Prop :=
     (vi ti di : GoInterfaceOk) (lmc : k8s_io.apiserver.pkg.storage.etcd3.LeaseManagerConfig),
   path.PathCleanAbs pfx0 → go!"/" <+: rp → rp ≠ go!"/" →
   utf8Valid gr.Group' → utf8Valid gr.Resource' → threadBound GF ≤ 2 ^ 30 - 1 →
+  prepareKeyM rp rp false = some rp →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
