@@ -1954,6 +1954,29 @@ theorem NewTraceWith.wp_proof
     rw [hmx, List.take_length, show es.take LL.length = es by rw [← hesl, List.take_length]]
     imod ownSlice_persist $$ Hlog with #Hlog
     try wp_auto
+    wp_apply wp_map_make1 (K := w64) (V := w64) as %mim Hmim
+    try wp_auto
+    icases Hes with #Hes
+    obtain ⟨V0, hV0⟩ : ∃ V0 : Server, V0 =
+        { currentTerm := xL.ev.state.term, state := xL.role, votedFor := xL.vote, lead := nil, log := LL,
+          commitIndex := xL.ev.state.commit, votesResponded := [], votesGranted := [],
+          matchIndex := fun _ => 0, pendingConfChangeIndex := 0,
+          config := { incoming := cfg, outgoing := [], learners := [] }, durable := default } := ⟨_, rfl⟩
+    ihave #HlogV : logRO logsl V0.log $$ []
+    · rw [hV0]; iunfold logRO; iexists es; iframe Hlog Hes
+    ihave #HcfgV : configRO (⟨array.mk 2 (((List.replicate 2 (zero_val GoSlice)).set 0 cs1).set (sint.nat (W64 (0 + 1)))
+        slice.nil), slice.nil⟩ : G.Config) V0.config $$ []
+    · rw [hV0]; iunfold configRO; iexists cs1, slice.nil
+      isplitl []
+      · ipureintro; rfl
+      iframe Hcfg
+      isplitl [] <;> iapply setRO_nil
+    wp_apply wp_durableOf _ _ _ V0 $$ [«$r0»] as %dv ⟨«$r0», #Hdv⟩
+    · iframe «$r0» HlogV HcfgV
+      ipureintro
+      rw [hV0]
+      exact ⟨HefL.2.2.1, HlfL.2.1, HefL.2.2.2.2.1⟩
+    try wp_auto
     sorry
   sorry
 
