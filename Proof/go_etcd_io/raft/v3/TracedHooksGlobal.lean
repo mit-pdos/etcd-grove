@@ -111,6 +111,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- A pure consequence, the resource kept. -/
+theorem keep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ P ∗ ⌜φ⌝ :=
+  (and_intro .rfl h).trans persistent_and_sep.1
+
 /-- **The global step's law** (`trCap_fire.statement`). -/
 theorem trCap_fire : trCap_fire.statement (GF := GF) := by
   intro γd γ r id c tl E Φ Φ' hps
@@ -131,7 +135,74 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
   iauintro
   unfold atomic_acc
   iinv Hinv with >Hi Hclose
-  sorry
+  iunfold simInv at Hi
+  icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, HL, HA, HB, #Hfσ, %Hp⟩
+  iunfold raftLogInv at Hrinv
+  have Hsub : (↑(raftLogN γ) : CoPset) ⊆ ⊤ \ ↑(simNS γ) :=
+    mask_ndot_ne' (raftN γ) "log" "tracesim" (by decide)
+  iinv Hrinv with Hr Hrclose
+  iunfold raftLogInvBody at Hr
+  icases Hr with ⟨%lc, Hc, Hj, >Htbl, Hw, Hrest⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists L
+  iunfold traceFrag at HL
+  iunfold traceAuth
+  iframe HL
+  isplit
+  · iintro HL
+    imod Hmask with -
+    imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
+    · inext; iunfold raftLogInvBody; iexists lc; iframe
+    imod Hclose $$ [HL HA HB] with -
+    · inext; iunfold simInv; iexists L, σ, A, B, phP, phM; iunfold traceFrag; iframe HL HA HB Hfσ; ipureintro; exact Hp
+    imodintro
+    iframe Hnode
+  · iintro HL
+    imod Hmask with -
+    iunfold simNode at Hnode
+    icases ghost_map_lookup $$ HA Hnode with %HAid
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq⟩ := Hp
+    obtain ⟨Q, hQ⟩ := hA id hC
+    rw [HAid] at hQ
+    simp only [Option.some.injEq, Prod.mk.injEq] at hQ
+    obtain ⟨hcs, hQP⟩ := hQ
+    obtain ⟨hname, hall⟩ := hps C cs P HΦ e HE
+    obtain ⟨a', P', hΦ', hle⟩ := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
+    have hpre : Φ C cs P ∧ E e ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
+        LineEffect C false e (idAbs id) (σ.s (idAbs id)) a' none _root_.id
+          (fun b => List.foldl Etcdraft.Bag.with b P') (fun _ => False) ∧
+        σ.server = confAbs C ∧ σ.s (idAbs id) = σ.s (idAbs id) :=
+      ⟨HΦ, HE, by rw [hcs, hsrv], hΦ', hle, hsrv, rfl⟩
+    ihave #Hfσ' := Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Hfσ
+    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
+    have hsrv' : (withNode σ (idAbs id) a' _root_.id (fun b => List.foldl Etcdraft.Bag.with b P')).server =
+        confAbs C := hsrv
+    icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
+    have hAid : A !! id = some (toC σ.server (σ.s (idAbs id)), P) := by rw [HAid, hcs]
+    obtain ⟨hrun', hsrvN, hA', hAn', hPb', hM'⟩ :=
+      simStep_pure C L σ A phP id hC hnd P e a' P' hrun hsrv hA hAid hAn hPb hpv hcq hname
+        hle hv hv'
+    imod ghost_map_update (toC σ.server a', P ++ P') $$ HA Hnode with ⟨HA, Hnode⟩
+    imod Hrclose $$ [Hc Hj Htbl Hw Hrest] with -
+    · inext; iunfold raftLogInvBody; iexists lc; iframe
+    imod Hclose $$ [HL HA HB] with -
+    · inext; iunfold simInv
+      iexists L ++ [e], withNode σ (idAbs id) a' _root_.id (fun b => List.foldl Etcdraft.Bag.with b P'),
+        A.insert id (toC σ.server a', P ++ P'), B, phP, phM
+      iunfold traceFrag; iframe HL HA HB Hfσ'
+      ipureintro
+      exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq⟩
+    imodintro
+    iunfold trCap
+    iexists tn, C, tl, toC σ.server a', P ++ P'
+    iunfold simNode
+    iframe Hdir Htl Hlg Hinv Hnode
+    isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
+    isplitr; · ipureintro; exact Hnn
+    isplitr; · iunfold raftLogInv; iexact Hrinv
+    ipureintro; rw [hsrv]; exact hΦ'
 
 end ghost
 
