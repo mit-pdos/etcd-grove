@@ -181,6 +181,40 @@ theorem parseLine_node (k : Nat) (e : TraceEv) (id vote : w64) (xs ys : List w64
   have h6 : (evConv e).name = gsStr e.name := rfl
   simp [h1, h2, h3, h4, h5, h6, hname, hcc, bind, Except.bind, pure, Except.pure]
 
+/-- **A message event's line** (raft's sender and receiver formatted, a type the checker knows):
+its node, vote, configuration, sender and receiver are raft's. -/
+theorem parseLine_msg (k : Nat) (e : TraceEv) (id vote f d : w64) (xs ys : List w64) (tm : TraceMsg)
+    (hnid : e.nid = decStr id) (hvote : e.vote = decStr vote)
+    (hconf : e.conf = (xs.map decStr, ys.map decStr)) (hmsg : e.msg = some tm)
+    (hfrm : tm.frm = decStr f) (hto : tm.to = decStr d)
+    (htyp : (Etcdraft.raftMsgType (gsStr tm.typ)).isSome = true) (hcc : gsStr e.name ≠ "ChangeConf") :
+    Etcdraft.parseLine k (evConv e) =
+      .ok { ev := evConv e, nid := idAbs id, vote := idAbs vote, role := (evConv e).role,
+            conf := (Etcdraft.SetIds.mk (xs.map idAbs), Etcdraft.SetIds.mk (ys.map idAbs)),
+            «from» := idAbs f, to := idAbs d } := by
+  unfold Etcdraft.parseLine
+  have h1 : Etcdraft.parseID (evConv e).nid = some (idAbs id) := by
+    simp only [evConv, hnid]; exact parseID_decStr id
+  have h2 : Etcdraft.parseID (evConv e).state.vote = some (idAbs vote) := by
+    simp only [evConv, hvote]; exact parseID_decStr vote
+  have h3 : Etcdraft.toSet (evConv e).conf.1 = some (Etcdraft.SetIds.mk (xs.map idAbs)) := by
+    simp only [evConv, hconf, List.map_map]; exact toSet_decStr xs
+  have h4 : Etcdraft.toSet (evConv e).conf.2 = some (Etcdraft.SetIds.mk (ys.map idAbs)) := by
+    simp only [evConv, hconf, List.map_map]; exact toSet_decStr ys
+  have h6 : (evConv e).name = gsStr e.name := rfl
+  have h7 : Etcdraft.parseID (gsStr tm.frm) = some (idAbs f) := by rw [hfrm]; exact parseID_decStr f
+  have h8 : Etcdraft.parseID (gsStr tm.to) = some (idAbs d) := by rw [hto]; exact parseID_decStr d
+  cases hem : (evConv e).msg with
+  | none => simp [evConv, hmsg] at hem
+  | some em =>
+    have hf : em.from = gsStr tm.frm := by simp [evConv, hmsg] at hem; rw [← hem]
+    have ht' : em.to = gsStr tm.to := by simp [evConv, hmsg] at hem; rw [← hem]
+    have hty : em.type = gsStr tm.typ := by simp [evConv, hmsg] at hem; rw [← hem]
+    cases ht : Etcdraft.raftMsgType (gsStr tm.typ) with
+    | none => rw [ht] at htyp; cases htyp
+    | some mt =>
+      simp [h1, h2, h3, h4, h6, hf, ht', hty, h7, h8, ht, hcc, bind, Except.bind, pure, Except.pure]
+
 end TraceSim
 
 end EtcdGrove
