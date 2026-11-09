@@ -416,6 +416,23 @@ packages of their own, not translated. Its spec: `CheckTrace(events)` returns `T
 about 1,500 lines; the proof is mostly the actions' functional correctness against their Lean
 counterparts, and the search's.
 
+**`types.go`'s leaves proved (2026-11-09, branch `trace-check-layerc-types`).** Specs and complete
+proofs (no `sorry`, no axiom), each against its `Tla/Types.lean` definition: `NewSet` (`SetIds.mk`),
+`Set`'s `Union`, `Add`, `Minus`, `Remove`, `Equal`; `Value.Equal`, `Entry.Equal`, `EntriesEqual`,
+`IsPrefix`, `SubSeq`, `LastTerm`, `(*Msg).Equal`; `Bag`'s `find`, `Count`, `Len`, `Domain`, `add`,
+`sub`, `With`, `Without`, `Filter`, `Plus`, `Minus`, `Equal`. Results the Go builds are fresh and
+returned read-only like the inputs (`setRO`, `logRO`, `bagRO`; `msgsRO` for `Domain`, added to
+`Rep.lean`, with `logRO_subslice`). Premises the Go needs and the transcription leaves implicit:
+- **a bag's messages distinct** (`add`, `sub`, `With`, `Without`, `Plus`, `Minus`): the Go updates
+  the first item holding `m`, the Lean (`Bag.add`/`Bag.sub`) every one; `Bag`'s docstring says the
+  messages are distinct and `add`/`sub` keep them so (`Bag.add_nodup`, `Bag.sub_nodup`), but
+  `bagRO` does not carry it: S6's invariant must (or `bagRO` take it, as `stateRO` took `Nodup`);
+- **counts within `int`**: `add` (`count m + n < 2^63`), `With` (`+ 1`), `Plus` (the two bags' total
+  counts below `2^63`);
+- **`SubSeq` defined** (`subSeq s m n = some r`): where TLC fails the Go panics with an `EvalError`,
+  which a triple cannot state; `subSeqM`'s caller checks the same condition.
+No disagreement between the Go and the transcription was found.
+
 ### D. The harness and Main (the workload)
 
 The concurrent harness (`concurrent.go`, its Goose translation needs no change): each replica a
