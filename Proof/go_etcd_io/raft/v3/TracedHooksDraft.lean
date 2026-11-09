@@ -254,13 +254,32 @@ def MsgsUniq (σ : Etcdraft.State) : Prop :=
   ∀ (ln : Etcdraft.Line) (m1 m2 : Etcdraft.Msg), m1 ∈ σ.messages.domain → m2 ∈ σ.messages.domain →
     recvPred ln m1 = true → recvPred ln m2 = true → m1 = m2
 
+/-- **A message's facts** (review round 2's A3): an append request carries its source's leadership of
+its term (`isLeader`: raft sends one only while leading) and its entries' records after its previous
+entry (`logRecs`). -/
+def msgFacts (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) : IProp GF :=
+  if m.type = .appendEntriesRequest then
+    iprop(∃ (src : w64) (es : List EntryM),
+      ⌜m.source = idAbs src ∧ m.entries = logAbs C C.length (m.prevLogIndex.toNat + 1) es⌝ ∗
+      isLeader γ src (W64 m.term) ∗ logRecs γ (entryID.mk (W64 m.prevLogTerm) (W64 m.prevLogIndex)) es)
+  else iprop(True)
+
+instance msgFacts_persistent (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) :
+    Persistent (msgFacts (GF := GF) γ C m) := by
+  unfold msgFacts; split <;> infer_instance
+
+instance msgFacts_timeless (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) :
+    Timeless (msgFacts (GF := GF) γ C m) := by
+  unfold msgFacts; split <;> infer_instance
+
 /-- **The specification state's facts in `simInv`** (Draft): every voter's raft facts (`allFacts`:
 `MoreThanOneLeaderInv`, `LogInv`, `LogMatchingInv`, `CommitOk`, and with the vote table
 `LeaderCompletenessInv`), the specification invariant `SpecInv` (`TraceSimSpecInv.lean`: with it
 `ElectionSafetyInv`, `CommittedIsDurableInv`, `CommitWithinLeader`; it replaces `DurInv`, false as
 stated), `QuorumLogInv`'s fact and the bags' uniqueness. -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
-  iprop(allFacts γ C σ ∗ ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ⌝)
+  iprop(allFacts γ C σ ∗ (□ ∀ m, ⌜m ∈ σ.messages.domain ++ σ.pendingMessages.domain⌝ → msgFacts γ C m) ∗
+    ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ⌝)
 
 instance simFx_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
     Persistent (simFx (GF := GF) γ C σ) := by
@@ -275,7 +294,7 @@ theorem simFx_violated (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (hs
     votesTbl (GF := GF) γ ∗ simFx γ C σ ⊢ ⌜σ.violated = .ok none⌝ := by
   iintro ⟨Htbl, Hfx⟩
   iunfold simFx at Hfx
-  icases Hfx with ⟨#Hal, %Hp⟩
+  icases Hfx with ⟨#Hal, -, %Hp⟩
   obtain ⟨hsi, hq, -⟩ := Hp
   have hcw := hsi.commitWithinLeader
   icases allFacts_oneLeader γ C σ hsrv $$ Hal with %h1

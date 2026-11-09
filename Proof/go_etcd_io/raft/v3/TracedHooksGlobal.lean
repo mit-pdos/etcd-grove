@@ -375,7 +375,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     icases Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', #Hmid⟩
     ihave #Hfσc := Hfσ
     iunfold simFx at Hfσc
-    icases Hfσc with ⟨-, %hfx⟩
+    icases Hfσc with ⟨-, -, %hfx⟩
     have huq : MsgsUniq σ := hfx.2.2
     icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
     have hsrv' : (withNode σ (idAbs id) a' (fun b => b.without m) (fun b => List.foldl Etcdraft.Bag.with b P')).server =
