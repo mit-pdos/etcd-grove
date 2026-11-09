@@ -1497,6 +1497,76 @@ theorem next_congr (t t' : Etcdraft.Trace) (ts : Etcdraft.TState) (hs : t'.serve
     Etcdraft.Trace.skipUnusedLogline, Etcdraft.Trace.pairs, v1, v2, v3, v4, v5, v6, hbf, hs, hl0, hb, h1, h2, c_requestVoteIfLogged, c_becomeLeaderIfLogged, c_clientRequestIfLogged, c_advanceCommitIndexIfLogged, c_appendEntriesIfLogged, c_heartbeatIfLogged, c_sendSnapshotIfLogged, c_appendEntriesToSelfIfLogged, c_preTimeoutIfLogged, c_ignoreInLeaseIfLogged, c_timeoutIfLogged, c_changeConfIfLogged, c_applySimpleConfChangeIfLogged, c_readyIfLogged, c_restartIfLogged, c_stepDownToFollowerIfLogged]
   congr
 
+/-- A monadic fold keeps a property of its accumulator that every step keeps. -/
+theorem foldlM_inv {α β ε : Type} (f : α → β → Except ε α) (P : α → Prop) :
+    ∀ (l : List β) (a r : α), P a → (∀ a b r, P a → f a b = .ok r → P r) →
+      l.foldlM f a = .ok r → P r := by
+  intro l
+  induction l with
+  | nil => intro a r ha _ h; simp [List.foldlM, pure, Except.pure] at h; subst h; exact ha
+  | cons b l ih =>
+    intro a r ha hf h
+    simp only [List.foldlM_cons, bind, Except.bind] at h
+    cases hb : f a b with
+    | error e => rw [hb] at h; cases h
+    | ok a' => rw [hb] at h; exact ih a' r (hf a b a' ha hb) hf h
+
+theorem ite_ok_inv {ε α : Type} {c : Bool} {a r : α} {x : Except ε α}
+    (h : (if c = true then Except.ok a else x) = Except.ok r) : r = a ∨ x = Except.ok r := by
+  cases c
+  · right; simpa using h
+  · left; simp at h; exact h.symm
+
+/-- `TraceNext`'s successors are on the state's line or the next. -/
+theorem next_l (t : Etcdraft.Trace) (ts : Etcdraft.TState) (r : List Etcdraft.TState)
+    (h : t.next ts = .ok r) : ∀ x ∈ r, x.l = ts.l ∨ x.l = ts.l + 1 := by
+  unfold Etcdraft.Trace.next at h
+  split at h
+  · simp [pure, Except.pure] at h; subst h; simp
+  split at h
+  · simp [pure, Except.pure] at h; subst h; simp
+  simp only [bind, Except.bind] at h
+  cases hn : t.nonReceive ts with
+  | error e => rw [hn] at h; cases h
+  | ok nr =>
+    rw [hn] at h
+    simp only at h
+    cases hr : t.receive ts with
+    | error e => rw [hr] at h; cases h
+    | ok rv =>
+      rw [hr] at h
+      simp only [pure, Except.pure, Except.ok.injEq] at h
+      subst h
+      intro x hx
+      rw [List.mem_append] at hx
+      rcases hx with hx | hx
+      · rw [List.mem_map] at hx; obtain ⟨_, _, rfl⟩ := hx; right; rfl
+      · unfold Etcdraft.Trace.receive at hr
+        simp only at hr
+        split at hr
+        · simp [pure, Except.pure] at hr; subst hr; simp at hx
+        · exact foldlM_inv _ (fun acc : List Etcdraft.TState => ∀ y ∈ acc, y.l = ts.l ∨ y.l = ts.l + 1)
+            _ [] rv (by simp)
+            (by
+              intro acc m r' hacc hstep y hy
+              rcases ite_ok_inv hstep with hst | hst
+              · subst hst; exact hacc y hy
+              · cases hrc : ts.s.receive m with
+                | error e => rw [hrc] at hst; cases hst
+                | ok succ =>
+                  rw [hrc] at hst
+                  simp only [bind, Except.bind, pure, Except.pure, Except.ok.injEq] at hst
+                  subst hst
+                  rw [List.mem_append] at hy
+                  rcases hy with hy | hy
+                  · exact hacc y hy
+                  · rw [List.mem_map] at hy
+                    obtain ⟨s2, _, rfl⟩ := hy
+                    split
+                    · right; rfl
+                    · left; rfl)
+            hr x hx
+
 end TraceSim
 
 end EtcdGrove
