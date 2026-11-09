@@ -239,7 +239,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     iexists rsl, sl1, sl2, ms1, ms2
     simp only [named]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog Hundo Hclose Hscert
+      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog Hundo Hclose Hscert Hsuf1 Hsuf2
     ipureintro
     exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
   ipureintro
@@ -469,7 +469,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
   ihave Hown2 := (qOwns_self_split id ms2).2 $$ [Hself Hoth]
   · iframe Hself Hoth
   ihave Hob := outboxRel_join s.outbox ms1 ms2 $$ [Hown1 Hown2]
-  · iframe Hown1 Hown2; ipureintro; exact Houtbox
+  · iframe Hown1 Hown2 Hsuf1 Hsuf2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
   ihave Hlog : ownRaftLog s.log s.logst $$ [Hlog]
   · iExactEq Hlog; rfl

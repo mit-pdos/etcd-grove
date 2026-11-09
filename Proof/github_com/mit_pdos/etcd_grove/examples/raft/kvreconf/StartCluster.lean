@@ -76,11 +76,12 @@ theorem StartCluster.wp_proof
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   -- the ghost state
-  imod cluster_alloc (GF := GF) kvrRaftN (bootVoters (uint.nat o.Voters')) [] [] true (fun _ => none) ⊤ (by omega)
+  imod cluster_alloc (GF := GF) kvrRaftN (bootVoters (uint.nat o.Voters')) [] [] true (fun _ => none) none ⊤ (by omega)
     (by intro h; have := congrArg List.length h; rw [bootVoters_length] at this; simp at this; omega)
     (bootVoters_nodup _ (by omega)) (bootVoters_zero _ (by omega))
-    (by rw [bootVoters_length]; omega) (fun h => absurd rfl h)
-    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
+    (by rw [bootVoters_length]; omega) (fun h => absurd rfl h) (fun _ h => by cases h)
+    (fun _ h => by cases h)
+    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl, -⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
   · rw [if_pos rfl]; iempintro
   -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
   ihave #Hfits : readyFits (GF := GF) γ kvrRaftN $$ []

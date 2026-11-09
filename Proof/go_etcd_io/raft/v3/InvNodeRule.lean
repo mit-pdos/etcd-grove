@@ -205,25 +205,30 @@ none (raft keeps the bootstrap log in every node's log, which a newcomer's empty
 hold). The term budget, backed by time receipts (`receiptBound`), is the cluster's; so (U9) are the
 read requests' credits, and leader transfer is on in every cluster. -/
 theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (dup : Bool) (sl : w64 → Option GName) (E : CoPset) :
+    (dup : Bool) (sl : w64 → Option GName)
+    -- (raft-entsize §2, 2026-11-09) the bound on proposed data (`Cluster.maxData`): at most `2^31`,
+    -- and met by the bootstrap log's entries (both vacuous at `none`)
+    (md : Option Nat) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     (boot ≠ [] → BootLog vs ctxs boot) →
+    (∀ b, md = some b → b ≤ 2 ^ 31) →
+    (∀ b, md = some b → ∀ e ∈ boot, e.data.length ≤ b) →
     ⊢ (if boot = [] then emp else bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗
-      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
         ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
         if boot = [] then joinAuth γ (GMap.listToSet vs)
         else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
-  intro Hrb Hne Hnd Hnz Hlen HB
+  intro Hrb Hne Hnd Hnz Hlen HB Hmd HmdB
   unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
-    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen isCommittedLogLb raftState
-    nodeVacant
+    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.maxData isCommittedLogLb
+    raftState nodeVacant
   by_cases hb : boot = []
   · subst hb
     rw [if_pos rfl]
     iintro -
-    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup sl E Hrb Hne Hnd Hnz Hlen
+    imod ApiImpl.cluster_alloc_dec_impl (GF := GF) N vs dup sl E md Hmd Hrb Hne Hnd Hnz Hlen
       with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, Hja, Hfs⟩
     imodintro
     iexists γ
@@ -232,7 +237,8 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     ipureintro; exact Hd
   · simp only [hb, ↓reduceIte]
     iintro Hm
-    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E Hrb Hne Hnd Hnz Hlen (HB hb)
+    imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E md Hmd HmdB Hrb Hne Hnd
+      Hnz Hlen (HB hb)
       $$ Hm with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
     icases (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => ApiImpl.nodeBootU (GF := GF) γ N vs ctxs id)
       (Ψ := fun _ id => iprop(ApiImpl.raftStateU (GF := GF) γ id RaftState.init ∗

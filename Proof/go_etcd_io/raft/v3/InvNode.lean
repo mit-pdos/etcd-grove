@@ -78,6 +78,11 @@ update is persistent (`node.Propose`'s `□?γ.dup`), and so are a `MsgProp`'s c
 (`msgCredits_copy`). -/
 @[no_expose] def Cluster.dup (γ : Cluster) : Bool := γ.raft.dup
 
+/-- **The cluster's bound on proposed data** (raft-entsize §2, 2026-11-09): chosen by the client at
+allocation (`cluster_alloc`'s `md`; `none`, no bound, for a cluster that states none). The size law
+of the objects a `Ready` hands out is conditioned on it. -/
+@[no_expose] def Cluster.maxData (γ : Cluster) : Option Nat := γ.raft.maxData
+
 /-- **The committed requested entries, the client's** (exclusive): `opsOf` of the committed log.
 Raft changes it only by firing an update the client gave it, when the requested entry commits;
 fillers commit without changing it. -/

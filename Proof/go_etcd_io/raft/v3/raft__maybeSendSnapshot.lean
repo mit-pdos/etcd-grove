@@ -232,13 +232,13 @@ theorem raft.maybeSendSnapshot.wp_proof
     ihave Hnilr : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
     · iapply ownSlice_nil
     let mm : MessageM := ⟨W32 7, to, 0, 0, 0, 0, 0, 0, false, 0⟩
-    imod msgOwn_of_struct «$a0_ptr»
+    imod msgOwn_of_struct_uf «$a0_ptr»
       { state' := zeroValDef, Type' := pty, To' := «$v0_ptr», From' := null, Term' := null,
         LogTerm' := null, Index' := null, Entries' := slice.nil, Commit' := null, Vote' := null,
         Snapshot' := snap, Reject' := null, RejectHint' := null, Context' := slice.nil,
         Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 }
       [] ⟨mm, [], some sv, [], []⟩ ⊤ rfl
-      $$ [«$a0» Hsback Hnilr] with Hm
+      $$ [«$a0» Hsback Hnilr] with ⟨Hm, #Hpb⟩
     · iframe «$a0» cTy cTo Hnil Hnilb Hnilr
       simp only [snapOpt]
       iframe Hsback
@@ -250,8 +250,11 @@ theorem raft.maybeSendSnapshot.wp_proof
     wp_apply wp_raft_send c r id _ «$a0_ptr» mm [] (some sv) [] []
         [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] (Or.inl rfl) Hok
         (fun _ => ⟨sv, rfl, rfl⟩) (fun h => absurd h (by simp [mm, MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
-    · -- (D22 S-b′3) the snapshot's certificate, from `raftLog.snapshot`
-      iapply Hcert
+    · -- (D22 S-b′3) the snapshot's certificate, from `raftLog.snapshot`; (raft-entsize §2) the
+      -- literal's unknown fields none
+      isplitr
+      · iapply Hcert
+      · unfold snapUfT; iright; iexact Hpb
     iapply HΦ $$ %true %([absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] : List Msg)
       %(<[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals)
     isplitl [Hphys]

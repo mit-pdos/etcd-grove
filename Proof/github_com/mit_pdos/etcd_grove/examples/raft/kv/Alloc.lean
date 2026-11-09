@@ -110,8 +110,9 @@ theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF 
         rkvVal γr kvEmpty ∗ ([∗map] id ↦ s ∈ S0, id ↪[γr.seq] s) ∗
         [∗list] id ∈ kvVoters, raftState γr.cluster id RaftState.init ∗ nodeVacant γr.cluster id := by
   iintro
-  imod cluster_alloc (GF := GF) kvRaftN kvVoters [] [] false (fun _ => none) E Hrb (by decide) (by decide)
-      (by decide) (by decide) (fun h => absurd rfl h) $$ [] with
+  imod cluster_alloc (GF := GF) kvRaftN kvVoters [] [] false (fun _ => none) none E Hrb (by decide) (by decide)
+      (by decide) (by decide) (fun h => absurd rfl h) (fun _ h => by cases h) (fun _ h => by cases h)
+      $$ [] with
     ⟨%γ, %Hγ, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hslots, -⟩
   · iempintro
   imod confPolicy_alloc γ kvConfN kvRule E $$ Hdec with #Hpol
@@ -121,7 +122,7 @@ theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF 
   imodintro
   iexists γr
   isplitr
-  · ipureintro; exact Hγ
+  · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1⟩
   iframe Hinv Hval Hseqs Hslots
   unfold kvCluster
   iframe Hiscl Hpol Hca0 Hsinv

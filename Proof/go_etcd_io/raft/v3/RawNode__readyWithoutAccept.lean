@@ -152,7 +152,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   iNamed Hv
   -- (D22 S-b′3) the queued messages' certificates, through the storage's link
   imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink Hscert with #Hqc
-  icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Houtbox, Hown1, Hown2⟩
+  icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Houtbox, Hown1, Hown2, #Hsuf1, #Hsuf2⟩
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hwf3, Hlog⟩
@@ -527,7 +527,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     iexists rss, sl1, sl2, ms1, ms2
     simp only [named, rdyLog, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose Hscert
+      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose Hscert Hsuf1 Hsuf2
     ipureintro
     refine ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, ?_⟩
     simp only [List.length_append]

@@ -83,6 +83,7 @@ public import Proof.go_etcd_io.raft.v3.InvTrackerC
 public import Proof.go_etcd_io.raft.v3.InvLogger
 public import Proof.go_etcd_io.raft.v3.InvMisc
 public import Proof.go_etcd_io.raft.v3.LemmasRaftlogW
+public import Proof.go_etcd_io.raft.v3.MsgOut
 
 @[expose] public section
 
@@ -138,7 +139,7 @@ messages (`msgQ`), so it is **no longer persistent**. -/
 
 /-- A queued message, owned, and its contribution (stage R4). -/
 def msgQ (q : QMsg) (a : Option Msg) : IProp GF :=
-  iprop(msgOwn q.loc (DFrac.own 1) q.st ∗ ⌜msgAbs q.st a⌝)
+  iprop((msgOwn q.loc (DFrac.own 1) q.st ∗ snapUf q.loc q.st) ∗ ⌜msgAbs q.st a⌝)
 
 def absList (as_ : List (Option Msg)) : List Msg := as_.filterMap id
 
@@ -882,6 +883,14 @@ instance tsSrc_pers (sn : StorNames) (ty : w32) (snap : Option SnapshotM) :
 theorem tsSrc_ne (sn : StorNames) (ty : w32) (snap : Option SnapshotM) (h : ty ≠ MsgSnap) :
     ⊢ tsSrc (GF := GF) sn ty snap := by
   unfold tsSrc; ileft; ipureintro; exact h
+
+/-- (raft-entsize §2) `send`'s premise for a message of another type than `MsgSnap`: no
+certificate, and no unknown fields pinned (`snapUfT`). -/
+theorem tsSrcU_ne (sn : StorNames) (ty : w32) (snap : Option SnapshotM) (l : Loc)
+    (h : ty ≠ MsgSnap) : ⊢ tsSrc (GF := GF) sn ty snap ∗ snapUfT l ty := by
+  isplitl
+  · unfold tsSrc; ileft; ipureintro; exact h
+  · unfold snapUfT; ileft; ipureintro; exact h
 
 /-- ... and a `MsgSnap`'s, from its snapshot's validity ... -/
 theorem tsSrc_snap (sn : StorNames) (ty : w32) (sv : SnapshotM) :
@@ -2552,15 +2561,16 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome)⌝ -∗
            -- (2026-11-01, durability stage II (m)) not self-addressed (`send`'s panic)
            ⌜st'.msg.To' ≠ id⌝ -∗
-           -- (D22 S-b′3) the message's certificate's source
-           tsSrc s.gh.sn st'.msg.Type' st'.snap -∗
+           -- (D22 S-b′3) the message's certificate's source; (raft-entsize §2) a `MsgSnap`'s unknown
+           -- fields pinned (`snapUfT`)
+           (tsSrc s.gh.sn st'.msg.Type' st'.snap ∗ snapUfT l' st'.msg.Type') -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
   iintro H
   iNamed_physC H
   icases raft_split_msgs r rv $$ Hr with ⟨Hf, Hback⟩
   iexists rv.msgs', msgs.map QMsg.loc
   iframe Hf Hmsgs Hmsgs_cap
-  iintro %sl' %l' %st' %a Hf Hmsgs Hmsgs_cap Hm %Ha %Hot %Hans %Hxq %Hto #Hq
+  iintro %sl' %l' %st' %a Hf Hmsgs Hmsgs_cap Hm %Ha %Hot %Hans %Hxq %Hto ⟨#Hq, #Hu⟩
   have HmsgsAA_ok : QOk id s.term (msgs ++ [(⟨l', st'⟩ : QMsg)]) msgsAA := by
     refine ⟨HmsgsAA_ok.1, fun m Hm => ?_⟩
     rcases List.mem_append.1 Hm with Hm | Hm
@@ -2598,7 +2608,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
   ihave Hmsgs : (sl' ↦* (msgs ++ [(⟨l', st'⟩ : QMsg)]).map QMsg.loc : IProp GF) $$ [Hmsgs]
   · simp only [List.map_append, List.map_cons, List.map_nil]; iexact Hmsgs
   ihave Houtbox := outboxRel_snoc _ _ _ ⟨l', st'⟩ a $$ Houtbox [Hm]
-  · unfold msgQ; iframe Hm; ipureintro; exact Ha
+  · unfold msgQ; iframe Hm Hu; ipureintro; exact Ha
   iapply ownRaftPhysCV_intro c _ _ _ { s with outbox := s.outbox ++ absList [a] }
       { rv with msgs' := sl' } (msgs ++ [(⟨l', st'⟩ : QMsg)]) msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
@@ -2626,15 +2636,16 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
            ⌜SentMsgShape st' ∧ AppFrom id st' ∧
              (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome)⌝ -∗
-           -- (D22 S-b′3) the message's certificate's source
-           tsSrc s.gh.sn st'.msg.Type' st'.snap -∗
+           -- (D22 S-b′3) the message's certificate's source; (raft-entsize §2) a `MsgSnap`'s unknown
+           -- fields pinned (`snapUfT`)
+           (tsSrc s.gh.sn st'.msg.Type' st'.snap ∗ snapUfT l' st'.msg.Type') -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
   iintro H
   iNamed_physC H
   icases raft_split_msgsAA r rv $$ Hr with ⟨Hf, Hback⟩
   iexists rv.msgsAfterAppend', msgsAA.map QMsg.loc
   iframe Hf HmsgsAA HmsgsAA_cap
-  iintro %sl' %l' %st' %a Hf HmsgsAA HmsgsAA_cap Hm %Ha %Hok %Hot %Hans %Hxq #Hq
+  iintro %sl' %l' %st' %a Hf HmsgsAA HmsgsAA_cap Hm %Ha %Hok %Hot %Hans %Hxq ⟨#Hq, #Hu⟩
   ihave #Hscert : qSrcs (GF := GF) s.gh.sn (msgs ++ (msgsAA ++ [(⟨l', st'⟩ : QMsg)])) $$ []
   · icases (qSrcs_app (GF := GF) s.gh.sn msgs msgsAA).1 $$ Hscert with ⟨#H1, #H2⟩
     iapply (qSrcs_app (GF := GF) s.gh.sn msgs _).2
@@ -2672,7 +2683,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
   ihave HmsgsAA : (sl' ↦* (msgsAA ++ [(⟨l', st'⟩ : QMsg)]).map QMsg.loc : IProp GF) $$ [HmsgsAA]
   · simp only [List.map_append, List.map_cons, List.map_nil]; iexact HmsgsAA
   ihave Houtbox := outboxRel_snocAA _ _ _ ⟨l', st'⟩ a $$ Houtbox [Hm]
-  · unfold msgQ; iframe Hm; ipureintro; exact Ha
+  · unfold msgQ; iframe Hm Hu; ipureintro; exact Ha
   iapply ownRaftPhysCV_intro c _ _ _ { s with outbox := s.outbox ++ absList [a] }
       { rv with msgsAfterAppend' := sl' } msgs (msgsAA ++ [(⟨l', st'⟩ : QMsg)]) lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner

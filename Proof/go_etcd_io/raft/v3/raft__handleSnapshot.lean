@@ -121,7 +121,7 @@ theorem raft.handleSnapshot.wp_proof
       (appResp_sendOk id s1 m.From' s1.logst.committed Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
-    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_
     iframe Hphys
     ipureintro
@@ -162,7 +162,7 @@ theorem raft.handleSnapshot.wp_proof
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
-    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_
     iframe Hphys
     ipureintro
@@ -207,7 +207,7 @@ theorem raft.handleSnapshot.wp_proof
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
-    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_
     iframe Hphys
     ipureintro

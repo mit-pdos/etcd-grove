@@ -258,6 +258,8 @@ theorem msgCredits_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespa
 
 theorem nodeAppliedLb_timeless (γ : Cluster) (K : GName) (k : Nat) : Timeless (nodeAppliedLb γ K k)
 
+def (sealed) Cluster.maxData (γ : Cluster) : Option Nat
+
 theorem nodeErrS_nodeErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (cd :
     context.ContextDesc (IProp GF)) (err : GoInterface) : nodeErrS n γ N cd err ⊢ nodeErr cd err
 

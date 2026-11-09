@@ -178,10 +178,11 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
   have Hlen := raft_kvreconf.bootVoters_length (uint.nat o.Voters')
   iintro #Hfiles Hfs
   -- raft's cluster, with no bootstrap log
-  imod cluster_alloc (GF := GF) kdRaftN (raft_kvreconf.bootVoters (uint.nat o.Voters')) [] [] true (fun _ => none) E
+  imod cluster_alloc (GF := GF) kdRaftN (raft_kvreconf.bootVoters (uint.nat o.Voters')) [] [] true (fun _ => none) none E
     Hrb (by intro h; rw [h] at Hlen; simp at Hlen; word)
     (raft_kvreconf.bootVoters_nodup _ (by omega)) (raft_kvreconf.bootVoters_zero _ (by omega))
-    (by rw [Hlen]; word) (fun h => absurd rfl h) $$ [] with
+    (by rw [Hlen]; word) (fun h => absurd rfl h) (fun _ h => by cases h) (fun _ h => by cases h)
+    $$ [] with
     ⟨%γc, %Hd, Hops, HU, #Hcl, Hdec, #Hca, Hsm, Hrs, Hja⟩
   · simp only [↓reduceIte]; iempintro
   simp only [↓reduceIte] at Hd ⊢
@@ -205,7 +206,7 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
   rw [Hlen]
   iframe Hja Hopn Hn Hrseq Hcur Hval
   isplitr
-  · ipureintro; exact ⟨rfl, Hd.1, Hd.2.1, Hd.2.2⟩
+  · ipureintro; exact ⟨rfl, Hd.1, Hd.2.1, Hd.2.2.1⟩
   isplitl [Hsnap Hinv]
   · unfold kdCluster
     rw [Hγc, Hγf]
