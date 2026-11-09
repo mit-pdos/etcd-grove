@@ -860,6 +860,76 @@ theorem isQuorum_filter_confAbs (C : List w64) (h : C.Nodup) (P : Etcdraft.ID �
     exact List.elem_iff.2 (List.mem_filter.1 hx).1
   rw [this, Bool.true_and]
 
+/-- `AdvanceCommitIndex`'s `maxAgree` (a fold over the log's indices) is the largest index at most
+`L` that `q` holds at, or 0. -/
+theorem maxAgree_spec (q : Nat → Bool) (L : Nat) :
+    let M := (List.range L).foldl (fun acc n => if q (n + 1) then n + 1 else acc) 0
+    (M = 0 ∨ (1 ≤ M ∧ M ≤ L ∧ q M = true)) ∧ ∀ k, M < k → k ≤ L → q k = false := by
+  induction L with
+  | zero => simp; intro k h1 h2; omega
+  | succ L ih =>
+    simp only [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil] at ih ⊢
+    obtain ⟨h1, h2⟩ := ih
+    by_cases hq : q (L + 1) = true
+    · simp only [hq, ↓reduceIte]
+      refine ⟨Or.inr ⟨by omega, Nat.le_refl _, trivial⟩, fun k hk hk' => by omega⟩
+    · simp only [hq, Bool.false_eq_true, ↓reduceIte]
+      refine ⟨?_, fun k hk hk' => ?_⟩
+      · rcases h1 with h | ⟨a, b, c⟩
+        · exact Or.inl h
+        · exact Or.inr ⟨a, by omega, c⟩
+      · by_cases hkl : k = L + 1
+        · subst hkl; simpa using hq
+        · exact h2 k hk (by omega)
+
+/-- ... so it is any index `n ≤ L` that `q` holds at and at no larger index up to `L`. -/
+theorem maxAgree_eq (q : Nat → Bool) (L n : Nat) (hn1 : 1 ≤ n) (hnL : n ≤ L) (hq : q n = true)
+    (hmax : ∀ k, n < k → k ≤ L → q k = false) :
+    (List.range L).foldl (fun acc n => if q (n + 1) then n + 1 else acc) 0 = n := by
+  obtain ⟨h1, h2⟩ := maxAgree_spec q L
+  generalize hM : (List.range L).foldl (fun acc n => if q (n + 1) then n + 1 else acc) 0 = M at h1 h2
+  rcases Nat.lt_trichotomy M n with h | h | h
+  · have := h2 n h hnL; rw [hq] at this; cases this
+  · exact h
+  · rcases h1 with h0 | ⟨_, hML, hqM⟩
+    · omega
+    · have := hmax M h hML; rw [hqM] at this; cases this
+
+/-- Raft's quorum of the voters acknowledging index `n > 0` (`ackedBy`), as a count over the
+bootstrap configuration. -/
+theorem isQuorum_ackedBy (C : List w64) (hnd : C.Nodup) (s : PState) (n : w64) (hn : 0 < uint.Z n) :
+    IsQuorum (GMap.listToSet C) (ackedBy s n) ↔
+      C.length < 2 * (C.filter (fun j => decide (uint.Z n ≤ uint.Z (matchOf s j)))).length := by
+  unfold IsQuorum
+  have hset : ackedBy s n ∩ GMap.listToSet C =
+      GMap.listToSet (C.filter (fun j => decide (uint.Z n ≤ uint.Z (matchOf s j)))) := by
+    apply GMap.set_eq; intro j
+    rw [GMap.elem_of_intersection, GMap.elem_of_list_to_set, GMap.elem_of_list_to_set, List.mem_filter,
+      ackedBy, GMap.elem_of_dom, GMap.lookup_filter, decide_eq_true_iff]
+    unfold matchOf
+    constructor
+    · rintro ⟨⟨v, hv⟩, hj⟩
+      refine ⟨hj, ?_⟩
+      cases hm : s.matched !! j with
+      | none => rw [hm] at hv; cases hv
+      | some x =>
+        rw [hm] at hv
+        simp only [Option.filter_some, decide_eq_true_eq] at hv
+        split at hv
+        · rename_i h; simpa using h
+        · cases hv
+    · rintro ⟨hj, hle⟩
+      refine ⟨?_, hj⟩
+      cases hm : s.matched !! j with
+      | none =>
+        rw [hm] at hle; simp only [Option.getD_none] at hle
+        have : uint.Z (W64 0) = 0 := rfl
+        omega
+      | some x =>
+        rw [hm] at hle; simp only [Option.getD_some] at hle
+        exact ⟨x, by simp only [Option.filter_some, decide_eq_true_eq]; simp only [hle, ↓reduceIte]⟩
+  rw [hset, GMap.size_list_to_set _ hnd, GMap.size_list_to_set _ (hnd.filter _)]
+
 end TraceSim
 
 end EtcdGrove
