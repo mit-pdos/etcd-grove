@@ -347,6 +347,22 @@ macro "read_msg" : tactic => `(tactic| (
     simp only [TypedPointsto.typedPointstoDef]
     icases Hqmf with ⟨#M1, #M2, #M3, #M4, #M5, #M6, #M7, #M8, #M9, #M10, #M11, #M12, #M13, #M14, -⟩))
 
+/-! `close_copy' gv, f, hv with Hl Hr Hg Hc Hd`: `close_copy`, the new struct's log, votes, configuration
+and durable state given by the named hypotheses (a write that replaced one of them). -/
+set_option hygiene false in
+macro "close_copy'" gv:term "," f:term "," hv:term "with" hl:ident hr:ident hg:ident hc:ident hd:ident :
+    tactic => `(tactic| (
+    ihave Hcp : cp ↦ ($gv : G.Server) $$ [CurrentTerm State VotedFor Lead Log CommitIndex VotesResponded
+        VotesGranted MatchIndex PendingConfChangeIndex Config Durable]
+    · iapply typedPointsto_combine _ _ _ Hcnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    ihave Hc := serverOwn_intro cp ($gv : G.Server) mc (($f : Server → Server) (st.s (uint.nat i))) $hv Hcmi
+        $$ [Hcp Hcm]
+    · iframe Hcp Hcm $hl:ident $hr:ident $hg:ident $hc:ident $hd:ident
+    ihave Hs := stateOwnHole_close_upd _ _ _ _ _ ($f : Server → Server) Hi $$ [Hh Hc]
+    · iframe))
+
 end Etcdraft
 end EtcdGrove
 end Perennial
