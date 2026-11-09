@@ -57,6 +57,7 @@ theorem runner.restore.wp_proof
     (hopen : etcdStorage_open.law (GF := GF))
     (hrest : backendRest_open.law (GF := GF))
     (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
+    (hRdSplit : mvcc.api.mvccReaders_split.law (GF := GF))
     (wp_buildPath : buildPath.spec (GF := GF) (hG := hG))
     (wp_newMember : runner.newMember.spec (GF := GF) (hG := hG))
     (wp_apply : runner.apply.spec (GF := GF) (hG := hG))
@@ -535,6 +536,23 @@ theorem runner.restore.wp_proof
       rw [hcbZ]; exact Int.le_refl _
     imod Hcls $$ %b4 %hok4 Hrl Hrh Hcl Hch with ⟨Hret1, Hσw1, Hbw1⟩
     imodintro
+    (try wp_auto)
+    -- `check(f.kv.Rev() == f.rev)`
+    have hR1' : mvccReaders (GF := GF) v1.ι.kv nw1 ⊣⊢
+        mvccReaders v1.ι.kv (nw1 - 1) ∗ mvccReaders v1.ι.kv 1 := by
+      have := hRdSplit v1.ι.kv (nw1 - 1) 1; rwa [Nat.sub_add_cancel Hl1.2.1] at this
+    icases hR1'.1 $$ Hrdrs1 with ⟨Hrdrs1, Hr1⟩
+    ihave Hau := read_au hpers ks γ.h 1 mp1 γ.m1 v1.ι (interface.mkOk kty kvv) qw1
+      (σOf ks ops v0.ops) $$ [Hret1 Hσw1]
+    · iframe #; iframe
+    wp_apply (hKRev v1.ι.kv (fun σ => iprop(⌜σ = σOf ks ops v0.ops⌝ ∗ ghostVar v1.ι.ret qw1 () ∗
+        ghostVar γ.m1.σ (1 : Qp).half (σOf ks ops v0.ops)))) $$ [Hr1 Hau] as %rv ⟨Hr1, %σr, ⟨%Hσr, Hret1, Hσw1⟩, %Hrv⟩
+    · iframe #; iframe
+    subst Hσr Hrv
+    (try wp_auto)
+    rw [σOf_rev]
+    wp_apply wp_check
+    · ipureintro; simp
     (try wp_auto)
     sorry
 
