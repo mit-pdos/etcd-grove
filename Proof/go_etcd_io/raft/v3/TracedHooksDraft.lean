@@ -183,7 +183,7 @@ def LineEffect (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.ID) (a a' 
   ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧ ln.nid = i ∧
   ∀ (t : Etcdraft.Trace) (l pl : Nat) (σ : Etcdraft.State),
     t.line l = ln → l ≠ 0 → l ≤ t.len → t.bootstrap.getD (l - 1) false = false → t.server = confAbs C →
-    t.isBecomeFollowerInUpdateTermOrReturnToFollower ⟨σ, l, pl⟩ = bf → pl = l - 1 →
+    t.isBecomeFollowerInUpdateTermOrReturnToFollower ⟨σ, l, pl⟩ = bf →
     σ.server = confAbs C → σ.s i = a → σ.preVote = false → σ.checkQuorum = false →
     (match rcv with
      | none => True

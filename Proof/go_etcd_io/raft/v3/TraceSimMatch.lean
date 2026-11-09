@@ -3339,7 +3339,7 @@ theorem lineEffect_heartbeat (C : List w64) (e : TraceEv) (id : w64) (s : NState
   refine ⟨msgLine e m.src s.vote m.src m.dst xs,
     parseLine_msg 0 e m.src s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
       (by rw [htyp]; rfl) (by rw [hname']; decide), rfl, ?_⟩
-  intro t l pl σ hline hl0 hl hb hts _ hpl hsrv hσi _ _ _
+  intro t l pl σ hline hl0 hl hb hts _ hsrv hσi _ _ _
   have hhb := heartbeat_send σ C C.length (toPState s) m.src m (by rw [hσi]; exact hR)
     (by simp [toPState, hrole, proleRole]) hty rfl hdst hdC (by rw [hterm]; rfl) hcommit
   refine ⟨⟨σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty])), l + 1, l⟩, [], RoundChain.last _ _ _ ?_ rfl,
@@ -3377,6 +3377,52 @@ theorem chain_of_roundChain (t : Etcdraft.Trace) (l0 : Nat) :
   | step visited f g tsF mids hn hl hfresh _ ih =>
     intro hm hF
     exact Chain.step visited f g tsF hn hl hfresh (hm g.s (by simp)) (ih (fun st hs => hm st (by simp [hs])) hF)
+
+theorem parseLine_idx (k k' : Nat) (ev : Etcdraft.Event) (ln : Etcdraft.Line)
+    (h : Etcdraft.parseLine k ev = .ok ln) : Etcdraft.parseLine k' ev = .ok ln := by
+  unfold Etcdraft.parseLine at h ⊢
+  simp only [bind, Except.bind, pure, Except.pure, throw, throwThe, MonadExceptOf.throw] at h ⊢
+  repeat' (first | (split at h) | (split) | (cases h; rfl) | (cases h) | rfl)
+  all_goals simp_all
+
+/-- **The global step of a line with an effect** (the pure core of the global theorem): a run
+reaching `σ`, node `i`'s server `a`, extended by a line `e` whose effect (`LineEffect`) holds,
+given the conditions only the whole state knows (the line past the bootstrap, the skip bit, a
+received message the only match) and the invariants at the intermediate and final states. -/
+theorem simRun_lineEffect (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (bf : Bool) (i : Etcdraft.ID) (a a' : Etcdraft.Server)
+    (rcv : Option Etcdraft.Msg) (fM fP : Etcdraft.Bag → Etcdraft.Bag) (Mid : Etcdraft.Server → Prop)
+    (hle : LineEffect C bf e i a a' rcv fM fP Mid)
+    (hsrv : σ.server = confAbs C) (hσi : σ.s i = a) (hpv : σ.preVote = false) (hcq : σ.checkQuorum = false)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hbf : ∀ lines ln pl, parseLines (L.map evConv) = .ok lines →
+      (linesTrace C (lines ++ [ln])).isBecomeFollowerInUpdateTermOrReturnToFollower ⟨σ, L.length + 1, pl⟩ = bf)
+    (hrcv : ∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln →
+      match rcv with
+      | none => True
+      | some m => σ.messages.domain.Nodup ∧ m ∈ σ.messages.domain ∧ 0 < Etcdraft.Bag.count σ.messages m ∧
+          ∀ m' ∈ σ.messages.domain, m' ≠ m → recvPred ln m' = false)
+    (hmids : ∀ st : Etcdraft.State, (∀ j, j ≠ i → st.s j = σ.s j) → st.server = σ.server → Mid (st.s i) →
+      st.violated = .ok none)
+    (hinv : (withNode σ i a' fM fP).violated = .ok none) :
+    SimRun C (L ++ [e]) (withNode σ i a' fM fP) := by
+  obtain ⟨ln, hparse, _, hall⟩ := hle
+  apply simRun_snoc_chain C L σ _ e ln hrun hL (parseLine_idx 0 _ _ _ hparse)
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  obtain ⟨tl, tsl, tpl⟩ := ts
+  simp only at hts hl'
+  subst hts hl'
+  obtain ⟨tsF, mids, hrc, hF, hm⟩ := hall (linesTrace C (lines ++ [ln])) (L.length + 1) tpl tl
+    (linesTrace_line_last C lines ln _ (by omega)) (by omega) (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+    (by simp only [linesTrace]; simpa using hboot lines _ hl) rfl (hbf lines ln tpl hl) hsrv hσi hpv hcq
+    (hrcv ln hparse)
+  refine ⟨tsF, hF, ?_⟩
+  apply chain_of_roundChain _ _ _ _ _ mids hrc
+  · intro st hst; obtain ⟨h1, h2, h3⟩ := hm st hst; exact hmids st h1 h2 h3
+  · rw [hF]; exact hinv
 end TraceSim
 
 end EtcdGrove
