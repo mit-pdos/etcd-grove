@@ -811,6 +811,62 @@ theorem nonReceive_selfVote (t : Etcdraft.Trace) (ts : Etcdraft.TState) (i : Etc
   simp only [hname, hf, hskip]
   simp [pure, Except.pure, bind, Except.bind]
 
+/-- **A candidate's self vote's line's step**: `campaign`'s `MsgVoteResp` to itself, the
+specification's `RequestVote(i, i)`. -/
+theorem simRun_selfVote (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hL : L ≠ []) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM) (m : Msg)
+    (hev : SendEvOf (W64 15) id s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hsrv : σ.server = confAbs C) (hpv : σ.preVote = false)
+    (hR : SimServerR C C.length (toPState s) (σ.s (idAbs id))) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .candidate) (hty : m.ty = .voteResp) (hsrc : m.src = id) (hdst : m.dst = id)
+    (hw : (toPState s).votes !! id = none) (hterm : m.term = s.term) (hrej : m.reject = false)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63)
+    (hboot : ∀ lines ln, parseLines (L.map evConv) = .ok lines →
+      (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false)
+    (hinv : (σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty]))).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty]))) := by
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendRequestVoteResponse" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"SendRequestVoteResponse" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have htyp : tm.typ = msgTypeStr .voteResp := by rw [hm.1, hty]
+  have hrv := requestVoteSelf_send σ C C.length (toPState s) id m hR (by simp [toPState, hrole, proleRole]) hty
+    hsrc hdst hC hw (by rw [hterm]; rfl) hrej
+  apply simRun_msg C L σ _ hrun hL e id s.vote m.src m.dst xs tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+    (by rw [htyp]; rfl) (by rw [hname']; rfl) (by rw [hname']; decide) hboot _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (msgLine e id s.vote m.src m.dst xs) ts.l (by omega)
+  apply nonReceive_selfVote _ ts (idAbs id) _ (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  · rw [hline]; simp [msgLine, evConv, hname']
+  · rw [hline, hsrc]; rfl
+  · rw [hline, hdst]; rfl
+  · rw [hline]
+    refine ⟨_, by simp [msgLine, evConv, hmsg]; rfl, ?_⟩
+    simp only [hm.2.2.1, hm.2.2.2.1, hsrc, hdst]
+  · exact confAbs_nodup C
+  · simp only [linesTrace]; rw [mem_confAbs]; exact hC
+  · rw [hts]; exact hpv
+  · rw [hts]; exact hrv
+  · rw [hline]
+    have := stateMatches_node C s (σ.s (idAbs id)) e id xs hR hs (by rw [hrole]; decide) hterm' hcommit' hrl
+      hlog (hxs.trans hin) bt bc bl σ rfl (by rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC)
+    unfold Etcdraft.Line.stateMatches at this ⊢
+    simpa [Etcdraft.State.send, msgLine, nodeLine] using this
+  · rw [hline, hts]
+    apply newPending_send
+    have := isRVResp_voteResp C C.length e id s.vote xs m tm hmsg hm hty (by rw [hterm]; exact bt)
+    have hsd : ((msgAbs C C.length m).get (by simp [msgAbs, hty])).source =
+        ((msgAbs C C.length m).get (by simp [msgAbs, hty])).dest := by
+      simp [msgAbs, hty, hsrc, hdst]
+    simp [this, hsd]
+
 end TraceSim
 
 end EtcdGrove
