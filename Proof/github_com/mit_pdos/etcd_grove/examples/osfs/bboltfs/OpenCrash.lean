@@ -104,7 +104,7 @@ theorem openStart_disk (vs : Nat → SecBytes) (sz : Nat) (kp : Bool)
   · simp only [Fs.initMeta, frOf] at hp; split at hp
     · cases hp
     · cases hp; simp only [Fs.initMeta, hsz, pageUp]; omega
-  · obtain ⟨hk, -⟩ := hg.2 h4
+  · obtain ⟨hk, -⟩ := hg.2.1 h4
     refine ⟨pageUp sz, by simp [Fs.initMeta, frOf, hk, hsz], by simp [Fs.initMeta, hsz]⟩
   · simp only [Fs.initMeta, hsz] at hs ⊢
     have hpu : 4096 * j + 80 ≤ pageUp sz := by unfold pageUp; omega
@@ -128,7 +128,7 @@ theorem openStart_disk (vs : Nat → SecBytes) (sz : Nat) (kp : Bool)
       · have := hn j hj (by rw [contents_length]; exact h80)
         rw [fileMeta_contents h80] at this
         exact this hv
-      · exact (hg.2 (by omega)).2 j hj hs hv
+      · exact (hg.2.1 (by omega)).2 j hj hs hv
 
 theorem startSt_open {j : Ino} {b : GoString} {V : Hist} {i : Ino} {s : CState}
     (hs : StartSt s) (hi : s = none ∨ sIno s = some i) :

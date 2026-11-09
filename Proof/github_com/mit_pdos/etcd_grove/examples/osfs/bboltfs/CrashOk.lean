@@ -311,9 +311,10 @@ theorem crashRaw_seen {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (f : OsF
 /-- **The obligation of a state, from its images and slots** (see the file header): every crash
 of the state `s` is `Good` if every image `crashImg` and `crashRaw` allow is. -/
 theorem fileOkS_crashRaw {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
-    (H : ∀ f, crashImg s f.contents → crashRaw s f → Good (some f)) :
+    (H : ∀ f, crashImg s f.contents → crashRaw s f → goodImg f.contents ∧ RawOk f) :
     FileOkS NoTearCrash Good i s := fun f hfc hseen =>
-  H f (crashImg_seen s hwf hbz f hfc hseen) (crashRaw_seen s hwf hbz f hseen)
+  let h := H f (crashImg_seen s hwf hbz f hfc hseen) (crashRaw_seen s hwf hbz f hseen)
+  ⟨h.1, h.2, crashSeen_ofDisk hseen⟩
 
 /-- **The obligation of a state of at least four pages since the last sync, from its images**:
 every crash of `s` is `Good` if every image `crashImg` allows is good. -/

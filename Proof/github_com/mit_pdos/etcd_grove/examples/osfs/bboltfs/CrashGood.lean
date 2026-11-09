@@ -79,10 +79,11 @@ def RawOk (f : OsFile) : Prop :=
     ∀ i < 2, 4096 * i < f.size → ¬ metaValid (decode (rawSlot f i) : Meta)
 
 /-- **minibolt's crash invariant**: the database file is absent, or a `Good` image whose meta slots
-past its end, if it is short, are not valid (`RawOk`: `init` grows the file over them). -/
+past its end, if it is short, are not valid (`RawOk`: `init` grows the file over them), as a crash
+leaves files (on disk, `OsFile.ofDisk`). -/
 def Good : Option OsFile → Prop
   | none => True
-  | some f => goodImg f.contents ∧ RawOk f
+  | some f => goodImg f.contents ∧ RawOk f ∧ ∃ vs sz kp, f = OsFile.ofDisk vs sz kp
 
 theorem goodImg_fileOk (img : List w8) (h : goodImg img) :
     fileOk (img.map (·, true)) := by
