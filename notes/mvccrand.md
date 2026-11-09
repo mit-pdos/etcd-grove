@@ -7,6 +7,20 @@ version") exercised mvcc beyond what etcd's proof relies on; its adequacy is not
 specs on `lean` (`b1712c2187`), for the reasons listed there. 2026-11-01: rewritten, at the user's
 request, to exercise what etcd relies on; no proof attempted yet.
 
+## The closed theorem (2026-11-08)
+
+`Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Adequacy.lean`'s `mvccrand_adequate`: every
+real execution of the package's initialization then `Main()`, from a fresh state with one thread:
+the main thread's result, if any, is `#()`, no thread is stuck, no thread has ended in a panic (so
+no check fails, in any interleaving). Over `goose_adequacy_start_files` (program start gives
+`ETCD_VERIFY` off and `fileHolds "mvccrand.db" ∅`), from `mvccrand.wp_Main` (`Results.lean`'s
+`mvccrand_Main`: `Main` → `Run` → `runChecks`, `le.Stop()`, `be.Close()`). Hypotheses:
+`dbOpenOk`, `dbCloseOk`, `dbFilesAbsent prog ["mvccrand.db"]`, `verifyEnvOff prog`, `ckptEffectsOk`,
+`n + 2 ≤ 2 ^ 28`, the package assumptions, and at every ghost-state instance `sort.Slice.spec`
+(specified, neither proved nor assumed) and `□ keySized` (fewer than `2 ^ 62` keys in a read
+state). The decisions: `notes/decisions.md`, "mvccrand's closed theorem". Not covered: liveness
+(`TestRun`'s `Drain`), and the reads' and watches' exact results beyond what the checks test.
+
 ## What etcd relies on mvcc for
 
 From etcd's calls (non-test, at the pin) and the mvcc results its proofs link (the server's, the

@@ -43,11 +43,11 @@ theorem backend.New.wp_proof
     iexists b, γ
     iframe Hp Hhka Hbf Htok
     ipureintro; rfl
-  · obtain ⟨pv, rfl⟩ := Hpan
+  · obtain ⟨Hno, pv, rfl⟩ := Hpan
     wp_auto
     iapply HΦ
     iright
-    ipureintro; exact ⟨_, rfl⟩
+    ipureintro; exact ⟨Hno, _, rfl⟩
 
 end proof
 

@@ -250,7 +250,7 @@ axiom Perennial.runtime.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
-axiom addrsUnclaimed
+axiom addrUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj
@@ -341,8 +341,10 @@ axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom credentials.perRPCCredential.UpdateAuthToken.wp_proof
+axiom dataDirAbsent
 axiom dataDirFresh
-axiom dataDirsAbsent
+axiom dataDirsApart
+axiom dbFileAbsent
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
@@ -361,7 +363,7 @@ axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
-axiom goose_adequacy_start
+axiom goose_adequacy_start_files
 axiom grpc.ChainStreamInterceptor.wp_proof
 axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -498,7 +500,7 @@ axiom prometheus.Register.wp_proof
 axiom prometheus.collectorName
 axiom prometheus.counterOpts
 axiom prometheus.nameFree
-axiom prometheus.namesUnclaimed
+axiom prometheus.nameUnclaimed
 axiom prometheus.wp_counterOptsLit
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof

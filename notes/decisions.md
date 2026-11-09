@@ -34011,3 +34011,37 @@ lessor changes: `KeepAlive.spec` is unchanged, the closer is internal. Go:
 `examples/sweeprepairs/keepalive` (a live one-member server; 60 keep-alives over user contexts that
 panic at a key of that name, each canceled: every channel closed by the closer, the user contexts
 never asked; and the old claim false of such a context).
+
+## mvccrand's closed theorem: `dbOpenOk`, a fresh database file at program start, start premises item by item (2026-11-08 · the user's decisions · branch `mvccrand-adequacy`)
+
+The user asked for a closed theorem of mvcc's randomized tester (`examples/mvccrand`'s `Main`) like
+the other examples', and decided its shape:
+
+* **No panics.** The closed theorem states that no thread ends in a panic, as the others (Perennial's
+  `goose_adequacy` needs `φ` to exclude every panic; a theorem "the only panic is the backend's"
+  would need a new adequacy theorem: considered and declined, the user: "to avoid proving a new
+  adequacy theorem"). `backend.New` panics when bbolt's `Open` fails; the user: "add an assumption
+  that the backend opening doesn't panic". Done as `DB.Close_kv`'s `¬ dbCloseOk`: an opaque
+  environment premise `backend.dbOpenOk` (`InvBbolt.lean`), which `bbolt.Open_kv`'s axiom gives
+  negated on an error (`⌜err ≠ nil ∧ ¬ dbOpenOk⌝`); `newBackend`'s and `New`'s specs then admit
+  their panic only under `¬ dbOpenOk` (proved), and `runChecks`/`Run`/`Main` take `dbOpenOk` (and
+  `dbCloseOk`, for `Run`'s `check(be.Close() == nil, …)`). One opaque `Prop` and a stronger error
+  disjunct of an existing axiom, rather than a second axiom stating `New` without the panic. The
+  server's `storage.dbOpensOk` states the same of its files, for `storage.OpenBackend`'s axiom; the
+  two are not related (a later cleanup could make `dbOpensOk` imply `dbOpenOk`).
+* **The fresh file comes from program start.** `runChecks` needs `fileHolds "mvccrand.db" ∅`; the
+  server examples get theirs from `dataDirFresh` through `bootstrap`'s contract premise. The user
+  chose a new start right (over a persistent wand premise): `goose_adequacy_start` (an axiom) is
+  generalized to `goose_adequacy_start_files`, whose WP proof also receives `backend.fileHolds f ∅`
+  for each path of `Fs`, under `dbFilesAbsent e Fs` (`dbFileAbsent` of each: one file for the run,
+  absent at start, touched only by the backend's and bbolt's operations, in no data directory).
+  `goose_adequacy_start` is now the theorem at `Fs = []`: one axiom, every caller unchanged.
+* **The start premises item by item.** A program with no names, addresses or data directories
+  (mvccrand) must give `namesUnclaimed e []`, `addrsUnclaimed e []`, `dataDirsAbsent e []`, opaque
+  until now: they are now definitions over per-item axiomatized propositions
+  (`prometheus.nameUnclaimed`, `addrUnclaimed`, `dataDirAbsent`, and `dataDirsApart` for clause 4,
+  pairwise), the same claims; every caller passes them as hypotheses, unchanged.
+* **`Run` closes what `runChecks` opened.** `runChecks`' post now gives the lessor's stop token and
+  `backend.Close`'s precondition: the backend's whole open token, from the server's census
+  (`stop_census_open`) over the store's `mvccClosed` with every reader token (the goroutines give
+  theirs back through the wait group) and the open token's shares `rc_open` used to drop.

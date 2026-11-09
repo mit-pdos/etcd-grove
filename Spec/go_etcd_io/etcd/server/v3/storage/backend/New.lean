@@ -47,7 +47,8 @@ abbrev backend.New.spec : Prop :=
           hooksAt b cfg.Hooks' ∗
           -- (2026-11-04, R2b-3c part 2) the backend's file is the configuration's path
           bFile γ cfg.Path' ∗ threadTok) ∨
-      ⌜∃ p : val, r = PanicV p⌝ }}
+      -- (2026-11-08) a panic only where bbolt's `Open` failed (`dbOpenOk`, `Open_kv`'s)
+      ⌜¬ dbOpenOk ∧ ∃ p : val, r = PanicV p⌝ }}
 
 end spec
 

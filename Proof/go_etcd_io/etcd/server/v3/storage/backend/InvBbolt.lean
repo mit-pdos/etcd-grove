@@ -75,6 +75,16 @@ receiver epochs, S8d, W7, 2026-10-25): `db.Close()` does not fail for the enviro
 the old backend panics on an error, `server.go:1137`). -/
 opaque dbCloseOk : Prop
 
+/-- **bbolt's `Open` succeeds** (opaque, a named premise about the program's environment, as
+`dbCloseOk`; 2026-11-08, the user's decision for mvccrand's closed theorem: "an assumption that the
+backend opening doesn't panic"): `bolt.Open(path, …)` of the program's database files does not fail
+for the environment's reasons (the file's creation, lock, `mmap` of the initial size, reads and the
+first meta pages' writes: I/O, address space, another process holding the lock). `Open_kv`'s axiom
+gives `¬ dbOpenOk` on an error, so `backend.New`, which panics on one (`backend.go:236`), panics
+only under `¬ dbOpenOk`. The server's `storage.dbOpensOk` (`InvOpen.lean`) states the same of
+the files `storage.OpenBackend` opens, for its own axiom. -/
+opaque dbOpenOk : Prop
+
 /-- The ghost names of a database. -/
 structure DBNames where
   db : GName
