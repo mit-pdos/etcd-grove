@@ -53,6 +53,59 @@ theorem isPrefix_of_prefix (s t : List Etcdraft.Entry) (h : s <+: t) : Etcdraft.
   obtain ⟨r, rfl⟩ := h
   simp
 
+/-- An abstract entry is its position's and its term's. -/
+theorem entAbs_eq (C : List w64) (bl k : Nat) (e1 e2 : EntryM) (h : e1.Term' = e2.Term') :
+    entAbs C bl k e1 = entAbs C bl k e2 := by
+  unfold entAbs; split <;> simp [h]
+
+/-- **Log matching on the abstract logs** (from raft's records' agreement, `plog_match_down`): two
+logs with the same term at a position agree up to it. -/
+theorem logAbs_match (C : List w64) (es1 es2 : List EntryM)
+    (hb1 : BootTerms C.length 1 es1) (hb2 : BootTerms C.length 1 es2)
+    (hw1 : PlogWfR (entryID.mk (W64 0) (W64 0)) es1) (hw2 : PlogWfR (entryID.mk (W64 0) (W64 0)) es2)
+    (hl1 : es1.length < 2 ^ 63) (_hl2 : es2.length < 2 ^ 63)
+    (hra : RecsAgree (entryID.mk (W64 0) (W64 0)) es1 (entryID.mk (W64 0) (W64 0)) es2)
+    (n : Nat) (hn1 : n < es1.length) (hn2 : n < es2.length)
+    (ht : ((logAbs C C.length 1 es1)[n]?).map Etcdraft.Entry.term = ((logAbs C C.length 1 es2)[n]?).map Etcdraft.Entry.term) :
+    (logAbs C C.length 1 es1).take (n + 1) = (logAbs C C.length 1 es2).take (n + 1) := by
+  rw [logAbs_take, logAbs_take]
+  -- the raft terms agree at every position up to `n`
+  have hT : ∀ k, k ≤ n → es1[k]?.map EntryM.Term' = es2[k]?.map EntryM.Term' := by
+    have hn : es1[n]?.map EntryM.Term' = es2[n]?.map EntryM.Term' := by
+      simp only [logAbs, List.getElem?_mapIdx, List.getElem?_eq_getElem hn1, List.getElem?_eq_getElem hn2,
+        Option.map_some] at ht
+      simp only [List.getElem?_eq_getElem hn1, List.getElem?_eq_getElem hn2, Option.map_some, Option.some.injEq] at ht ⊢
+      by_cases hk : 1 + n ≤ C.length
+      · rw [hb1 n _ hk (List.getElem?_eq_getElem hn1), hb2 n _ hk (List.getElem?_eq_getElem hn2)]
+      · rw [entAbs_term C C.length _ _ (fun h => absurd h hk), entAbs_term C C.length _ _ (fun h => absurd h hk)] at ht
+        exact uint_Z_inj.mp ht
+    have hi : 0 < uint.Z (W64 ((n : Int) + 1)) := by word
+    have hin : uint.nat (W64 ((n : Int) + 1)) - 1 = n := by word
+    have hS : (plogTermAt (entryID.mk (W64 0) (W64 0)) es1 (W64 ((n : Int) + 1))).isSome := by
+      rw [plogTermAt_base0 _ _ hi, hin, List.getElem?_eq_getElem hn1]; rfl
+    have hE : plogTermAt (entryID.mk (W64 0) (W64 0)) es1 (W64 ((n : Int) + 1)) =
+        plogTermAt (entryID.mk (W64 0) (W64 0)) es2 (W64 ((n : Int) + 1)) := by
+      rw [plogTermAt_base0 _ _ hi, plogTermAt_base0 _ _ hi, hin, hn]
+    have hd := plog_match_down _ es1 _ es2 _ hw1 hw2 hra hS hE
+    intro k hk
+    have hk1 : 0 < uint.Z (W64 ((k : Int) + 1)) := by word
+    have hkn : uint.nat (W64 ((k : Int) + 1)) - 1 = k := by word
+    have := hd (W64 ((k : Int) + 1)) (by simp) (by simp) (by word)
+    rw [plogTermAt_base0 _ _ hk1, plogTermAt_base0 _ _ hk1, hkn] at this
+    exact this
+  apply List.ext_getElem?
+  intro k
+  simp only [logAbs, List.getElem?_mapIdx, List.getElem?_take]
+  split
+  · rename_i hk
+    have := hT k (by omega)
+    have hk1 : k < es1.length := by omega
+    have hk2 : k < es2.length := by omega
+    rw [List.getElem?_eq_getElem hk1, List.getElem?_eq_getElem hk2] at this ⊢
+    simp only [Option.map_some, Option.some.injEq] at this ⊢
+    exact entAbs_eq C C.length _ _ _ this
+  · rfl
+
 end pure
 
 section ghost
@@ -65,6 +118,7 @@ variable [sem : go.Semantics]
 def srvFacts (γ : RaftNames) (C : List w64) (j : w64) (v : Etcdraft.Server) : IProp GF :=
   iprop(∃ es : List EntryM,
     ⌜v.log = logAbs C C.length 1 es ∧ BootTerms C.length 1 es ∧
+      PlogWfR (entryID.mk (W64 0) (W64 0)) es ∧ es.length < 2 ^ 63 ∧
       0 ≤ v.commitIndex ∧ v.commitIndex ≤ es.length ∧ 0 ≤ v.currentTerm ∧ v.currentTerm < 2 ^ 63⌝ ∗
     logRecs γ ⟨W64 0, W64 0⟩ es ∗ isCommitted γ (es.take v.commitIndex.toNat) ∗
     (if v.state = Etcdraft.leader then isLeader γ j (W64 v.currentTerm) else iprop(True)))
@@ -162,6 +216,38 @@ theorem allFacts_logInv (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
   rcases Hag with h | h
   · simp [isPrefix_of_prefix _ _ (logAbs_prefix C C.length 1 _ _ h)]
   · simp [isPrefix_of_prefix _ _ (logAbs_prefix C C.length 1 _ _ h)]
+
+/-- **`LogMatchingInv` from the facts** (`logRecs_agree`, then `logAbs_match`). -/
+theorem allFacts_logMatching (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
+    (hsrv : σ.server = confAbs C) :
+    allFacts (GF := GF) γ C σ ⊢ ⌜σ.logMatchingInv = true⌝ := by
+  iintro #H
+  iunfold allFacts at H
+  by_cases hc : σ.logMatchingInv = true
+  · ipureintro; exact hc
+  unfold Etcdraft.State.logMatchingInv at hc
+  rw [hsrv, List.all_eq_true] at hc
+  simp only [Classical.not_forall, List.all_eq_true] at hc
+  obtain ⟨x, hx, y, hy, n, hn, hc⟩ := hc
+  obtain ⟨i, hi, rfl⟩ := mem_confAbs_inv C x hx
+  obtain ⟨j, hj, rfl⟩ := mem_confAbs_inv C y hy
+  ihave Hfi := H $$ %i %hi
+  ihave Hfj := H $$ %j %hj
+  iunfold srvFacts at Hfi Hfj
+  icases Hfi with ⟨%esi, %Hpi, Hri, -, -⟩
+  icases Hfj with ⟨%esj, %Hpj, Hrj, -, -⟩
+  icases logRecs_agree γ _ _ _ _ $$ Hri Hrj with %Hra
+  exfalso
+  apply hc
+  obtain ⟨hli, hbi, hwi, hlni, -⟩ := Hpi
+  obtain ⟨hlj, hbj, hwj, hlnj, -⟩ := Hpj
+  rw [List.mem_range] at hn
+  rw [hli, hlj] at hn ⊢
+  rw [logAbs_length, logAbs_length] at hn
+  by_cases ht : ((logAbs C C.length 1 esi)[n]?).map Etcdraft.Entry.term =
+      ((logAbs C C.length 1 esj)[n]?).map Etcdraft.Entry.term
+  · rw [logAbs_match C esi esj hbi hbj hwi hwj hlni hlnj Hra n (by omega) (by omega) ht]; simp
+  · simp [ht]
 
 end ghost
 
