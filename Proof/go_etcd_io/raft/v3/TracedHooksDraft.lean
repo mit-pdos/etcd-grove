@@ -114,10 +114,14 @@ acknowledgement-history copy of the vote table (`QuorumLogF` is a `simFx` clause
 abbrev raft.maybeCommit.tracedSpec : Prop :=
   ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (b0 : Bool) (Λ Λ' : Option TraceEv → Prop),
   s.role = .leader →
-  (∀ e, NodeEvOf rsmCommit id s c e → Λ' (some e)) →
-  -- (Q13) the line's event, of the state at the outcome, as the laws take it
+  -- (Q13 review round 3's B) the line's event is of the state at the outcome (`defer traceCommit`,
+  -- after the commit), as `raft.maybeCommit.traced` states it; until Q13 this was at `s`
+  (∀ b N, maybeCommitOut c s b N → ∀ e, NodeEvOf rsmCommit id
+    (if b then { s with logst := { s.logst with committed := N } } else s) c e → Λ' (some e)) →
+  -- (Q13) the line's event as the laws take it
   (s.gh.tr.isSome → ∀ b N, maybeCommitOut c s b N → ∀ e, NodeEvOf rsmCommit id
-    (if b then { s with logst := { s.logst with committed := N } } else s) c e → TraceEv.Ok (elements c.incoming).length e) →
+    (if b then { s with logst := { s.logst with committed := N } } else s) c e →
+      TraceEv.Ok (elements c.incoming).length e) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ trCapB s.gh.tr γ r id c b0 (fun C => SimIdle C s) Λ }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))

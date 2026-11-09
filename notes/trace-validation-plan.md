@@ -836,6 +836,17 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   `TraceEv.ok_mono`/`okBoot_mono`), the routing (the capability's configuration apart from the
   struct's) left to the bootstrap clause's work; F3 (`simInv_main` restated `newTrace`'s success)
   repaired: the success is a hypothesis, listed as owed; F4 the interfaces, regenerated.
+  Review round 3 (`q13-r3.md`): A = F1, open (the blocker); B, `raft.maybeCommit.tracedSpec`'s `hΛ` at
+  the pre-commit state while Go logs `Commit` after it (predating Q13, and now disagreeing with the new
+  premise at the outcome): repaired, `hΛ` at the outcome as `raft.maybeCommit.traced` states it; C = F2's
+  routing, also at `newRaft`'s `becomeFollower`, open (noted on `raft.becomeFollower.traced`). Second
+  tier done: `ccEvOf_ok`, the bootstrap lemmas' redundant number premise. The receipt bound (F3) has a
+  source: `readyFits` states `receiptBound GF + bootLen ≤ 2^61` (`InvNode.lean`); owed is the law turning
+  it into bounds below `traceNumBound` at `raft.Step`'s handlers. Open second tier (left for the Prove
+  phase or the user): literal `2^40`/`2^61` beside `bootLogBound`/`numBound` (`TraceSim` does not import
+  `Rep`), unnamed event indices, the pure premises outside the triples, the repeated outcome state in the
+  `maybeCommit` statements, `SimIdle`'s `2^63` beside `traceNumBound`, and the API widening (a sealed module
+  exposing only `simInv_end` would be smaller).
 - **Q12 (2026-11-09, `Main`'s pure obligations): the checker's `numBound` against the step bound.**
   `numBound = 2^40` (`etcdraft/Rep.lean`, a constant of the proof, not of the Go) bounds the trace's
   numbers (`Event.Bounded`) and its length; raft's terms, indices and event count grow with the steps,

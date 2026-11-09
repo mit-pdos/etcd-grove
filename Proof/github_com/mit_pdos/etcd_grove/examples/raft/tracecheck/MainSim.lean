@@ -16,9 +16,10 @@ simulation (hypotheses here):
   the run, so the adequacy theorem's step bound (`n < 2^61`) bounds it, through the recorder (which
   holds the trace's authority) rather than the simulation.
 
-(Also owed, but inside the simulation's laws' premises, by their callers in the Prove phase: raft's
-numbers below `traceNumBound` from the time receipts, a received message's numbers, and `MsgEvOf`
-pinning the traced message's `rejectHint`: `notes/trace-validation-plan.md`, "Q13 (a) done".)
+(Inside the simulation, the laws' premises are owed by their callers in the Prove phase: raft's
+numbers below `traceNumBound` from the time receipts, a received message's numbers. Not yet
+dischargeable for a send or receive line: `MsgEvOf` does not pin the traced message's `rejectHint`,
+the re-freeze's blocker, `notes/trace-validation-plan.md`, "Q13 (a) done".)
 -/
 module
 

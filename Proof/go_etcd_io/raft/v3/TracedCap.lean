@@ -337,9 +337,9 @@ entries). -/
 theorem nodeEvOf_okBoot (evt id : w64) (s : NState) (c : CfgM) (e : TraceEv) (n : Nat)
     (h : NodeEvOf evt id s c e) (ht : uint.nat s.term < traceNumBound)
     (hc : uint.nat s.logst.committed < traceNumBound)
-    (hl : uint.nat (plastIndex (toPState s)) < traceNumBound)
     (hlb : uint.nat (plastIndex (toPState s)) < 2 ^ 40) (hn : (elements c.incoming).length ≤ n) :
     e.OkBoot n := by
+  have hl : uint.nat (plastIndex (toPState s)) < traceNumBound := by unfold traceNumBound; omega
   refine ⟨nodeEvOf_ascii evt id s c e h, nodeEvOf_numsBelow evt id s c e _ h ht hc hl,
     nodeEvOf_confsWithin evt id s c e _ h hn, ?_⟩
   rw [h.2.2.2.2.2.2.1]; exact hlb
@@ -349,13 +349,35 @@ numbers, its log below `2^40`, its old and new configurations within `n`. -/
 theorem ccEvOf_okBoot (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (n : Nat)
     (h : CCEvOf id s c cn e) (ht : uint.nat s.term < traceNumBound)
     (hc : uint.nat s.logst.committed < traceNumBound)
-    (hl : uint.nat (plastIndex (toPState s)) < traceNumBound)
     (hlb : uint.nat (plastIndex (toPState s)) < 2 ^ 40) (hn : (elements c.incoming).length ≤ n)
     (hn' : (elements cn.incoming).length ≤ n) : e.OkBoot n := by
+  have hl : uint.nat (plastIndex (toPState s)) < traceNumBound := by unfold traceNumBound; omega
   have ha := ccEvOf_ascii id s c cn e h
   obtain ⟨-, -, hterm, -, hcommit, -, hlog, ⟨xs, ys, hxs, -, hconf⟩, hmsg, -, ⟨ns, hns, hcc⟩, -, -⟩ := h
   refine ⟨ha, ⟨by rw [hterm]; exact ht, by rw [hcommit]; exact hc, by rw [hlog]; exact hl, ?_⟩, ⟨?_, ?_⟩,
     by rw [hlog]; exact hlb⟩
+  · intro m hm; rw [hmsg] at hm; cases hm
+  · rw [hconf]; simp only [List.length_map]; rw [hxs.length_eq]; exact hn
+  · intro c' hc'; rw [hcc] at hc'; cases hc'
+    simp only [List.length_map]; rw [hns.length_eq]; exact hn'
+
+/-- **An `ApplyConfChange` event past the bootstrap, as the laws take it** (`TraceEv.Ok n`; the
+application's after the first `Ready`): in scope (`ApplyConfChange` is neither `InitState` nor
+`ChangeConf`), its numbers, its old and new configurations within `n`. -/
+theorem ccEvOf_ok (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (n : Nat)
+    (h : CCEvOf id s c cn e) (ht : uint.nat s.term < traceNumBound)
+    (hc : uint.nat s.logst.committed < traceNumBound)
+    (hl : uint.nat (plastIndex (toPState s)) < traceNumBound) (hn : (elements c.incoming).length ≤ n)
+    (hn' : (elements cn.incoming).length ≤ n) : e.Ok n := by
+  have ha := ccEvOf_ascii id s c cn e h
+  obtain ⟨hname, -, hterm, -, hcommit, -, hlog, ⟨xs, ys, hxs, -, hconf⟩, hmsg, -, ⟨ns, hns, hcc⟩, -, -⟩ := h
+  have hk : 7 < evtNames.length := (List.getElem?_eq_some_iff.1 hname).1
+  obtain ⟨hk1, hk2⟩ := List.getElem?_eq_some_iff.1 hname
+  have hsc := evtNames_inScope ⟨7, hk⟩ (show (7 : Nat) ≠ 0 by omega) (show (7 : Nat) ≠ 6 by omega)
+  simp only [Fin.getElem_fin] at hsc
+  rw [hk2] at hsc
+  refine ⟨ha, ⟨hsc.1, hsc.2, fun _ m hm => by rw [hmsg] at hm; cases hm⟩,
+    ⟨by rw [hterm]; exact ht, by rw [hcommit]; exact hc, by rw [hlog]; exact hl, ?_⟩, ⟨?_, ?_⟩⟩
   · intro m hm; rw [hmsg] at hm; cases hm
   · rw [hconf]; simp only [List.length_map]; rw [hxs.length_eq]; exact hn
   · intro c' hc'; rw [hcc] at hc'; cases hc'

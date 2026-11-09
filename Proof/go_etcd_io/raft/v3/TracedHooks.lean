@@ -406,7 +406,10 @@ theorem raft.becomeCandidate.traced (h : raft.becomeCandidate.spec (GF := GF) (h
 
 /-- **`r.becomeFollower(term, lead)` on the capability**: the `BecomeFollower` line, a bootstrap line
 before the node's segment is over (`b = false`, `trCap_fire_boot`), a step-down or a skip after it
-(`trCap_fire_bf`, the caller's `PhaseStepBF` and `FxPresBF`). -/
+(`trCap_fire_bf`, the caller's `PhaseStepBF` and `FxPresBF`). **Open** (Q13 review rounds 2-3, predating
+Q13): the capability is at the cluster's configuration `c`, the struct's here too, while raft's is still
+empty at `Bootstrap`'s and `newRaft`'s `becomeFollower`; the unbooted case (`b = false`) needs the two
+configurations apart (with `TraceEv.okBoot_mono` for the event's bound). -/
 theorem raft.becomeFollower.traced (h : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) (term lead : w64) (γ : RaftNames)
     (b : Bool) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop)
