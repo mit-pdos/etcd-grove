@@ -34,9 +34,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `txn.Then` of a leasing transaction (`LTxn.ThenTriple`). -/
 def txnLeasing.Then.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (ctx : GoInterface),
+  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface),
   LTxn.ThenTriple (GF := GF) (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"Then")
-    (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx ctx
+    (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx
 
 end spec
 

@@ -32,7 +32,8 @@ snapshot's (read-only), `rangeRespOwn ... DFrac.discard`.
 For the root cache (`pfx = ""`) the cache lists and watches from `"\x00"` (`OpGet`/`OpWatch`
 rewrite an empty key) while `prefixRange ""` includes the empty key: W0's `etcdLb_keyNonEmpty`
 (no state the cluster has been in stores, or has an event of, the empty key) closes the gap.
-Changes: (round 1) a thread token, given back, for the store's and the progress requestor's reader
+Changes: (round 1b) `ErrFutureRev` stated (`getErr`'s third clause; etcd's `testGet` checks it with
+`errors.Is`, W0's `errorsIs_errVal`); snippet `ReqGetFutureRev`. (round 1) a thread token, given back, for the store's and the progress requestor's reader
 slots (the read locks of `LatestRev`, `waitTillRevision`, `getSnapshot`: a thread pool over
 Perennial's `RWMutex`, as leasing's reads); `ErrUnsupportedRequest` stated (`wrapsErr`). From
 `specs-ref`'s `Cache__Get.lean`: stated over W0's model (`Store.rangeKVs` of
@@ -84,7 +85,7 @@ def Cache.Get.spec : Prop :=
       optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗ etcdLb γ σ0 ∗ cacheRevLb c r0 ∗ threadTok }}
     (App (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"Get")) (Val #ctx)) (Val #key)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); optsAt opts gs ∗ threadTok ∗
-      (getErr pfx ctx (cacheRange key (opGetM key gs)) (opGetM key gs) resp err ∨
+      (getErr γ pfx ctx (cacheRange key (opGetM key gs)) (opGetM key gs) resp err ∨
        (⌜¬ getUnsupported (opGetM key gs) ∧ rangeOk pfx (cacheRange key (opGetM key gs))⌝ ∗
         getOk c γ (cacheRange key (opGetM key gs)) (opGetM key gs) σ0 r0 resp err)) }}
 

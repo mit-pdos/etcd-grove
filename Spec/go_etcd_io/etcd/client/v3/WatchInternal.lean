@@ -49,7 +49,9 @@ the channel `watchChAt` is the consumer of.
   (`sendCloseSubstream`'s).
 * `deliverOk s γ who tgt m` (persistent): what the substream(s) `m` goes to may do with it:
   `tgt = none` (a broadcast progress): for every registered substream, a `watchStep` at its
-  position; `tgt = some id`: if no substream is registered as `id` (a refused create's `-1`, a
+  position (a substream in `r.subs` never had its cancel sent: `run` cancels only ids with no
+  substream, after `closeSubstream` or for an unknown id, so `wireStep`'s exemption never meets
+  one); `tgt = some id`: if no substream is registered as `id` (a refused create's `-1`, a
   canceled or stale id), nothing; else, for that substream, a `Created` (forwarded to the
   consumer only while `retc` is pending and with `createdNotify`, else dropped: a watch without
   `createdNotify`, a resumed substream) or a `watchStep` at its position (the ghost tie).

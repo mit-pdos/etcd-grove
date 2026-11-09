@@ -50,7 +50,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`sws.isWatchPermitted(wcr)`**: `nil` only if a state the cluster reached permits the stream's
 principal to read the range `[Key, RangeEnd)`. -/
 def serverWatchStream.isWatchPermitted.spec : Prop :=
-  ∀ (sws : Loc) (γ : Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames)
+  ∀ (sws : Loc) (γ : EtcdModel.Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames)
     (wcr : Loc) (ks es : GoSlice) (k e : GoString) (dk de : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       swsAt sws γ who st g ∗ threadTok ∗

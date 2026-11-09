@@ -71,3 +71,22 @@ opaque: 3h realizes them from its own message vocabulary and proves the laws.
 4. (1b, round 1) **A create's key in `watchReqOwn`**: `toPB` sends the watch's own key, which is
    `""` when `w.range.key` is `"\x00"` (the member normalizes it): realize `watchReqOwn p dq
    (.create w s)` as a message whose key is `w.range.key`, or `""` when that is `"\x00"`.
+
+## from 2b
+
+Batch 2b (the gRPC watch handler) reads and builds watch messages through 1b's slots
+`watchReqOwn p dq r` (a `pb.WatchRequest` modelled by `WireWatchReq`) and `wireWatchRespOwn p dq m`
+(a `pb.WatchResponse`), and 1b's `eventOwn`. Their realizer (3h, with W0's `Wire.lean`) owes the
+laws 2b states in `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`:
+
+1. **`watchReqOwn_unfold`**: the oneof a non-`nil` wrapper of a non-`nil` inner request; a create's
+   fields (`Key`/`RangeEnd` raw, `createRange k e = w.range`; `StartRevision`; the flags; the filter
+   types containing `NOPUT` (`0`) iff `filterPut`, `NODELETE` (`1`) iff `filterDelete`; `WatchId =
+   0`); a cancel's `WatchId`. So a wire request is what etcd's Go client sends (`toPB`); the server
+   writes the create's `Key` and `RangeEnd` (owned in full from `Recv`).
+2. **`wireWatchRespOwn_unfold`**: the response's fields (header `optOwn respHeaderOwn`, events
+   `msgsOwn eventOwn`, the flags, `WatchId`), so that the handler builds one from a fresh struct.
+3. **`wireWatchRespOwn_persist`**: own `1` to `DFrac.discard` (the handler shares a header and the
+   events among a response's fragments).
+
+Used by: `serverWatchStream.recvLoop.spec`, `sendLoop.spec`, `sendFragments.spec`.

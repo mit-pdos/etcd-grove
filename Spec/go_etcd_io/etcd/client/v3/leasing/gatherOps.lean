@@ -1,8 +1,8 @@
 /-
-`gatherOps` (`util.go`): the operations with each transaction replaced by its branches' (appending
-a nested transaction's `elseOps` into its `thenOps`, beyond its length: the caller's memory). Stated
-for operations that are not transactions (all the leasing KV passes: `flatTxn`), where it copies
-them. Changes: the old spec covered trees with owned capacities (`opTAtC`); flat only now.
+`gatherOps` (`util.go`): the operations with each transaction replaced by its branches', at any
+depth (`gatherL`); `append(thenOps, elseOps...)` writes no caller memory as the nested branch slices
+have no spare capacity (`opsCapOk`; `nonissues/leasing-gatherops-spare-capacity.md`). Changes: the
+old spec took the capacities owned (`opTAtC`).
 -/
 module
 
@@ -26,12 +26,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `gatherOps(ops)` of operations that are not transactions: a copy. -/
+/-- `gatherOps(ops)`. -/
 def gatherOps.spec : Prop :=
   ∀ (ops : GoSlice) (os : List OpM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ opsAt ops os ∗ ⌜∀ o ∈ os, o.t ≠ tTxn⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ opsAt ops os ∗ opsCapOk ops }}
     (App (Val (@! go_etcd_io.etcd.client.v3.leasing.gatherOps)) (Val #ops))
-  {{ (ret : GoSlice), RET #ret; opsAt ops os ∗ opsAt ret os }}
+  {{ (ret : GoSlice), RET #ret; opsAt ret (gatherL os) ∗ opsCapOk ret }}
 
 end spec
 

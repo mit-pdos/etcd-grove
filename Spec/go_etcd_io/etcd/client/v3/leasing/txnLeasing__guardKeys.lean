@@ -26,10 +26,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `guardKeys(ops)`: comparisons, in a slice whose spare capacity is owned (`guard` appends). -/
 def txnLeasing.guardKeys.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (ctx : GoInterface) (st : TxnSt) (ops : GoSlice) (os : List OpM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx ctx st ∗ opsAt ops os ∗ threadTok }}
+  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (st : TxnSt) (ops : GoSlice) (os : List OpM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ opsAt ops os ∗ threadTok }}
     (App (Val (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"guardKeys")) (Val #ops))
-  {{ (cs : GoSlice), RET #cs; ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx ctx st ∗ opsAt ops os ∗ threadTok ∗
+  {{ (cs : GoSlice), RET #cs; ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ opsAt ops os ∗ threadTok ∗
       ∃ ms, cmpsAt cs ms ∗ ownSliceCap go_etcd_io.etcd.client.v3.Cmp cs (DFrac.own 1) }}
 
 end spec

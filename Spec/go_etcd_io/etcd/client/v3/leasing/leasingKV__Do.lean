@@ -10,9 +10,10 @@ Proof sketch: the getters (`Op.IsGet`, ... W0's specs over `opAt`) select the ca
 `leasingKV.get.spec` (the open token's share used), then `GetResponse.OpResponse.spec`; a put:
 `leasingKV.put.spec`; a delete: `leasingKV.delete.spec`; a transaction: `Op.Txn.spec` (W0: the
 comparisons and branches, read-only), then `leasingKV.Txn.spec`, `LTxn.IfTriple`, `ThenTriple`,
-`ElseTriple` (the branches flat: `flatTxn`), `CommitTriple` with the caller's update (its request is
+`ElseTriple` (`opsCapOk` of the branches, from `opCapOk op`), `CommitTriple` with the caller's update (its request is
 `.txn st.req` with `st` the comparisons and branches' requests: `toReq`'s); then
-`TxnResponse.OpResponse.spec`. The update is `LStep pfx who rq` throughout (`toReq`). An `Op` of no
+`TxnResponse.OpResponse.spec`. The update is `lstep γL pfx who rq` throughout, the marks
+`reqWrites rq` (`toReq`). An `Op` of no
 type is excluded by `toReq` (the code returns an empty response, no panic).
 
 Changes: the old specs (`specs-ref`'s `leasingKV__*.lean`) took the old client's
@@ -20,13 +21,14 @@ contracts at prefix `[]` (`isEtcdKV`, `isEtcdTxnKVO`), a revision certificate `e
 size bound (`OpShape`), and returned implementation outcomes (`getCached`, `getAcquired`,
 `getNotAcquired`, `putCommitted`, `opCommitted`: the cache's states, its log, the history premise
 `LeasingProtocol`); restated over W0's `etcdState` as a weakening of the KV contract (`Api.lean`'s
-header): the caller's update persistent and over `LStep`, an error settling nothing; no size bound
+header): the caller's update persistent and over `lstep` (`LStep` with the marks of the keys
+written through the KV: a cached answer is W0's serializable one for an unmarked key, the old proof's
+"Theorem 1"), an error settling nothing; no size bound
 (W0: the gRPC boundary fails on an oversized message), no certificate (the answer's revision is in
 the update's state), no history premise (the contract claims nothing a protocol violation could
-break). **Restricted**: a transaction's operations may not be transactions
-(`flatTxn`; was the old `txnOpOf`'s flat operations too): `gatherOps` appends a nested transaction's
-`elseOps` into its `thenOps`' spare capacity, the caller's memory (a finding; the proxy's slices have
-no spare capacity, so it is safe there: an open question in the batch report).
+break). **Nested transactions** (was flat only): a nested transaction's branch slices without spare
+capacity (`opCapOk`: `gatherOps` appends into them, `nonissues/leasing-gatherops-spare-capacity.md`);
+the proxy's `TxnRequestToOp` `make`s them so. **New**: the marks of the request's writes.
 
 Margin: as the three operations' and `Commit`'s.
 -/
@@ -56,7 +58,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 def leasingKV.Do.spec : Prop :=
   ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (q : Qp),
   LKV.DoTriple (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"Do")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ lkvOpen γL q)) γ who pfx
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ lkvOpen γL q)) γ who pfx γL
 
 end spec
 

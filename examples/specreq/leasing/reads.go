@@ -62,3 +62,49 @@ func ReqGetStreamUnsupported(ctx context.Context, lkv clientv3.KV, k string) {
 	for range ch {
 	}
 }
+
+// REQ leasing/cached-read-unwritten: a key never written through the leasing KV is read as some
+// past state of the cluster had it (W0's serializable answer), cached or not.
+// Users: tests/integration/clientv3/lease/leasing_test.go (TestLeasingGetSerializable,
+// TestLeasingOverwriteResponse); the proxy's read-only users (the watch proxy's permission check,
+// /health).
+// Assumes: the common assumptions; k owned, absent before, written only by this plain put; the
+// program keeps lkvClean of k (never marks it).
+// Specs: Client.Put.spec, leasingKV.Get.spec (CachedRange1: CachedSer or a plain get's, the key
+// unmarked: lkvClean_marks); laws: etcdLb_reach.
+func ReqCachedReadUnwritten(ctx context.Context, cli *clientv3.Client, lkv clientv3.KV, k string) {
+	if _, err := cli.Put(ctx, k, "abc"); err != nil {
+		return
+	}
+	for i := 0; i < 2; i++ {
+		g, err := lkv.Get(ctx, k)
+		if err != nil {
+			return
+		}
+		if len(g.Kvs) == 1 && string(g.Kvs[0].Value) != "abc" {
+			panic("cached-read-unwritten: a value the key never had")
+		}
+	}
+}
+
+// REQ leasing/get-prefix: a prefix Get is never served from the cache: after acknowledged puts of
+// owned keys under the prefix, it returns all of them.
+// Users: tests/integration/clientv3/lease/leasing_test.go (TestLeasingInterval,
+// TestLeasingTxnOwnerGetRange); the proxy's ranges; endpoints.Manager's prefix Get then watch.
+// Assumes: the common assumptions; every key under p owned, only these two put.
+// Specs: Client.Put.spec, leasingKV.Get.spec (CachedRange1 needs no range end: the answer is a Step).
+func ReqGetPrefix(ctx context.Context, cli *clientv3.Client, lkv clientv3.KV, p string) {
+	if _, err := cli.Put(ctx, p+"a", "1"); err != nil {
+		return
+	}
+	if _, err := cli.Put(ctx, p+"b", "2"); err != nil {
+		return
+	}
+	g, err := lkv.Get(ctx, p, clientv3.WithPrefix())
+	if err != nil {
+		return
+	}
+	if len(g.Kvs) != 2 {
+		panic("get-prefix: a key missing")
+	}
+}

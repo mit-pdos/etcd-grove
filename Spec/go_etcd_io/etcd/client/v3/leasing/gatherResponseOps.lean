@@ -1,8 +1,7 @@
 /-
 `gatherResponseOps` (`util.go`): each transaction among `ops` replaced by the operations of the
-branch its response took. Stated one level deep (`gatherRespOk`: what `commitToCache` passes; a
-non-transaction response at a transaction's index would be a nil dereference). Changes: over W0's
-messages and `gatherRespM` (was `OpT.chosenL`).
+branch its response took, at any depth (`gatherRespL`; `respOkL`: a non-transaction response at a
+transaction's index would be a nil dereference). Changes: over W0's messages (was `OpT.chosenL`).
 -/
 module
 
@@ -29,10 +28,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 /-- `gatherResponseOps(resps, ops)`. -/
 def gatherResponseOps.spec : Prop :=
   ∀ (rsl : GoSlice) (dq : DFrac) (ms : List ResponseOpM) (ops : GoSlice) (os : List OpM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ msgsOwn responseOpOwn rsl dq ms ∗ opsAt ops os ∗ ⌜gatherRespOk ms os⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ msgsOwn responseOpOwn rsl dq ms ∗ opsAt ops os ∗ ⌜respOkL ms os⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.leasing.gatherResponseOps)) (Val #rsl)) (Val #ops))
   {{ (ret : GoSlice), RET #ret; msgsOwn responseOpOwn rsl dq ms ∗ opsAt ops os ∗
-      opsAt ret (gatherRespM ms os) }}
+      opsAt ret (gatherRespL ms os) }}
 
 end spec
 

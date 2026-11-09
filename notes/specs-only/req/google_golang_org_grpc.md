@@ -183,3 +183,50 @@ in `ApiClient.lean`, to be stated as 2a's specs or laws):
    `getToken` first): a definite refusal (`ErrAuthFailed`, ...) can be returned when opening a
    stream (`siOk_call`'s error disjunct). W0's `RemoteKV.RangeStreamTriple` (open error:
    `indefCall`) and 1b's watch open must admit it (`req/go_etcd_io_etcd_client_v3.md`, from 1c).
+
+## from 2b
+
+Batch 2b (the member's watch handler, `v3rpc/watch.go`) states the **server end of a watch stream**
+as slots in `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`, with their laws as
+obligations of 2a's boundary (with 3h's messages), mirroring 1b's client end (the same
+`WatchStreamNames` `g` name the stream at both ends):
+
+1. **Registration** (`grpc.go:81`, `pb.RegisterWatchServer(grpcServer, NewWatchServer(s))`): 2a's
+   `Server` registers the `pb.WatchServer` value with its contract `watchServiceAt v γ`
+   (`watchServiceAt_methods`: `WatchServer.WatchTriple`), which `NewWatchServer.spec` and
+   `watchServerAt_service` give. For each stream a client of `γ` opens as `who` (`remoteWatchAt_watch`,
+   1b), grpc calls the handler (`_Watch_Watch_Handler`) with a server end `st` and
+   `srvWatchStreamAt st γ who g ∗ srvWatchRecv st g [] ∗ srvWatchSend st γ who g WireSt.init`, `g`
+   the names of the client's halves (`wireWatchSend wc γ who g []`, `wireWatchRecv wc γ who g
+   WireSt.init`). The handler needs **no thread token** (its goroutines get theirs from `Fork`).
+   ```go
+   pb.RegisterWatchServer(gs, v3rpc.NewWatchServer(s))
+   ```
+2. **`Recv`** (`srvWatchRecv_recv`): the client's requests in the order sent, each a fresh message
+   owned in full, modelled by 1b's `WireWatchReq` through 1b's `watchReqOwn` (the same predicate as
+   the client's `Send` takes: one wire model); an error (`io.EOF` after `CloseSend`, a context's or
+   transport's) leaves the half; later receives fail. `srvWatchRecv_lb`, `srvWatchRecvdLb_sent`
+   (what was received was sent: `srvWatchRecvdLb g rs ⊢ wireWatchSentLb g rs`). Only `recvLoop`
+   receives.
+3. **`Send`** (`srvWatchSend_send`): a response message at any fraction (read, given back: the
+   handler shares a header and events among fragments, read-only) with its facts (`etcdLb γ σ`,
+   `etcdLb γ σa`, `srvWatchRecvdLb g rs`, `srvWireStep who σ σa rs sst m sst'`), delivered in order;
+   the client's `wireWatchRecv_recv` gives them back with the message (after 1b adopts the
+   correction of `req/go_etcd_io_etcd_client_v3.md`, `## from 2b`, `srvWireStep` is `wireStep`).
+   On an error the half is gone (the handler stops sending). Only `sendLoop` sends.
+4. **`Context()`** (`srvWatchStreamAt_context`): a `Context.ctxOk` context with `srvCtxPrin ctx who`
+   (its incoming metadata names `who`: the client's outgoing metadata, `ctxPrin`, through 1c's
+   interceptors and 2a's stream interceptor); `Done()`/`Err()` as W0's context specs. If 2a states a
+   server-context principal for the unary handlers (W0's item 6), 2b uses it instead of
+   `srvCtxPrin`.
+5. **Errors and helpers** the handler calls on stream errors: `errors.Is(err, io.EOF)`,
+   `errors.Is(err, context.Canceled)` (any error, no panic); `isClientCtxErr(ctxErr, err)`
+   (`v3rpc/util.go`, names only: a trusted spec, any arguments, no panic); `rpctypes.ErrGRPCWatchCanceled`,
+   `ErrGRPCInvalidAuthToken`, `ErrGRPCAuthOldRevision`, `ErrGRPCUserEmpty`,
+   `ErrGRPCPermissionDenied`, `ErrCompacted` initialized (rpctypes' `isPkgInit`) with `Error()` a
+   **non-empty** string (a refused create's `CancelReason`, `wireStep`'s `cancelReason ≠ []`).
+6. **`proto.Size(wr)`** (`sendFragments`): an `int` for a `pb.WatchResponse` owned at any
+   fraction, no panic (the protobuf boundary).
+
+Used by: `watchServer.Watch.spec`, `serverWatchStream.{recvLoop,sendLoop,isWatchPermitted}.spec`,
+`sendFragments.spec`; the snippets `examples/specreq/v3rpcwatch/`.

@@ -16,7 +16,9 @@ contracts at prefix `[]` (`isEtcdKV`, `isEtcdTxnKVO`), a revision certificate `e
 size bound (`OpShape`), and returned implementation outcomes (`getCached`, `getAcquired`,
 `getNotAcquired`, `putCommitted`, `opCommitted`: the cache's states, its log, the history premise
 `LeasingProtocol`); restated over W0's `etcdState` as a weakening of the KV contract (`Api.lean`'s
-header): the caller's update persistent and over `LStep`, an error settling nothing; no size bound
+header): the caller's update persistent and over `lstep` (`LStep` with the marks of the keys
+written through the KV: a cached answer is W0's serializable one for an unmarked key, the old proof's
+"Theorem 1"), an error settling nothing; no size bound
 (W0: the gRPC boundary fails on an oversized message), no certificate (the answer's revision is in
 the update's state), no history premise (the contract claims nothing a protocol violation could
 break). The old `commitOutcome` (`evalResult`: the cache's log state;
@@ -50,9 +52,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `txn.Commit` of a leasing transaction (`LTxn.CommitTriple`). -/
 def txnLeasing.Commit.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (ctx : GoInterface),
+  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface),
   LTxn.CommitTriple (GF := GF) (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"Commit")
-    (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx ctx
+    (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx
 
 end spec
 

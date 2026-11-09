@@ -152,3 +152,77 @@ None.
   `Session.Lease.spec`; `Session.Done.spec` returns Perennial's `ownBroadcastChan ch γc True .Unknown`
   (persistent; blocking, `select` and non-blocking receives: `broadcast_chan_receive`,
   `ownBroadcastChan_nonblocking_receive`). The `threadTok` per `NewSession` is open question 3.
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/1d-provability-1.md` (F1–F8, S1–S5), `reviews/1d-completeness-1.md` (C1–C6,
+S1–S8); the coordinator's decisions (the permission lent per call; drop the thread tokens). Rebuilt
+(63 modules OK, against W0's round 2: its `etcdPerm`/`etcdPeek` in `State.lean`, `etcdLb_init`,
+`callErr_errorsNew`); snippets re-vetted.
+
+**Changed names (for 1e, 1f, 2e and the integration):**
+
+| name | change |
+|---|---|
+| `Concurrency.etcdPerm` | **removed**: W0's `EtcdModel.etcdPerm`/`etcdPeek` (State.lean) |
+| `Concurrency.etcdLent γ T P` | **new** (transparent): `etcdPeek γ` and an update performing `T` fired only by giving up the caller's token `P`, back at its commit |
+| `isSession s c γ id` | **was** `isSession s γ who id`: names its client, no principal (F7, C5) |
+| `Session.Client.spec` | returns the session's client `c` |
+| `keysEff` | **removed**; `putEff ks vs lease`, `delEff ks`, `mutexEff pfx lease`, `campaignEff pfx val lease` |
+| `observeAt ch γ pfx σ0`, `observeProd` | **was** indexed by the last header revision `R`; no order between headers (F5) |
+| `observeAt_recvAu` | **new law** (C4) |
+| `stmAt_reads` | **new law** (F6, S1): an attempt's reads are some reached revision's |
+| `applyOk` | over attempts with no writes (F2) |
+| `stmResult γ iso F Rel P σ0 resp err` | gains the token `P` (back on success) and `σ0` |
+| `STM.CommitTriple` | takes `etcdLent γ T P ∗ P ∗ etcdLb γ σ0`, gives `P` back |
+| `isSession_client` | the client and lease fields, `s ≠ null` (no `isClient`) |
+| `concErrVal_ok` | also: each value is an `*errors.errorString`; **new** `concErrVal_notCanceled` |
+
+**Fixes, by finding.**
+- **F1/C1 (thread tokens)**: dropped from `NewSession`, `Election.Observe`, `NewSTM*`, `runSTM`
+  (Perennial's `wp_fork` takes none). Open question 3 withdrawn. New snippet `ReqSessionLoop`.
+- **F2 (applyOk)**: quantified over attempts without writes.
+- **F3/C2 (Proclaim at revision 0)**: success is `(ownerCmp leaderKey leaderRev).holds σ.kv.store`
+  (W0's `Compare.holds`), failure its negation. `nonissues/etcd-v3election-proclaim-rev-zero.md`.
+- **F4/C6 (Resign's effect)**: delete only (`delEff (· = leaderKey)`); Proclaim's put only
+  (`putEff (· = leaderKey) (· = val) id`); Unlock's the delete of its key; Campaign's
+  `campaignEff` contains both its cleanups'.
+- **F5 (Observe's order)**: dropped; `v.modRev ≤ header ≤ σ.rev` and `ObservedAt` kept. `ReqObserve`
+  is now v3election's `select` loop (C4, `observeAt_recvAu`).
+- **F6/S1 (the reads during an attempt)**: `stmAt_reads`; with `etcdLb_init`, `ReqSTMRepeatable` is
+  provable.
+- **F7 (the session's client)**: `isSession s c γ id`; `ReqSessionLease`'s check provable.
+- **F8 (the permission never ends)**: the coordinator's option (a): KV writes of mutexes, elections
+  and STMs take `etcdLent γ T P ∗ P` and give `P` back on every outcome whose writes were all
+  answered (success, `ErrLocked`, `ErrSessionExpired`, `ErrLockReleased`, `ErrElectionNotLeader`, a
+  nil leader session); the generic error disjuncts (an indefinite error may leave a write pending)
+  keep it. The session's grant and revoke keep W0's persistent `etcdPerm` (repeatable calls: an
+  earlier attempt may still apply after the answer). `ReqCampaignProclaim`'s assumption restated
+  over the token.
+- **C3 (results after the call began)**: every state-returning spec takes `etcdLb γ σ0` and returns
+  `Reach σ0 σ` (`Lock`, `TryLock`, `Unlock`, `tryAcquire`, `waitDeletes`, `Campaign`, `Proclaim`,
+  `Resign`, `Leader`, `Observe` through `observeAt`, `NewSession`'s grant, `Close`, `NewSTM*`,
+  `runSTM`, the commits). New snippet `ReqLockAfterUnlock` (v3lock's test's header order).
+- **C5 (the in-process client's principal)**: the principal is per call: mutex and election
+  methods take `isClient c γ who ∗ ctxPrin ctx who`; cleanups on `client.Ctx()` run as the client's
+  own principal (`Client.Ctx.spec`, 1c). Needs written in `req/go_etcd_io_etcd_client_v3.md` ("from
+  1d (round 1)") and `req/go_etcd_io_etcd_server_v3_etcdserver.md` ("from 1d"). The suspected
+  leftover waiter key: `nonissues/etcd-v3lock-auth-cleanup-unauthenticated.md` (unconfirmed, a test
+  sketched).
+- **Error identity** (open question 2 of round 0): settled by W0's `callErr_errorsNew` and
+  `concErrVal_notCanceled`; `TryLock`'s and `Proclaim`'s other errors are stated distinct from the
+  package's values; `ReqTryLock`'s assumption dropped.
+- **Second tier**: S2 (the header and `IsOwner`'s margin: a serializable read-only fence proves
+  nothing); S3 (`ReqLocker` no longer asserts `error`); S4 (Proclaim's relation, above); C-S2 (lease
+  `0` never live: from `etcdLb_init`, grants never choose `0`). Not done: C-S3 (a snippet of what a
+  v3lock remote client can rely on from `(Key, Header)`: 2e's contract).
+
+**Open questions now** (replacing the round-0 list):
+1. **The permission's shape** (coordinator chose lent-per-call): the alternative is one persistent
+   permission for everything (round 0), simpler to give but callers then know nothing of their keys'
+   contents or lease ids after a call. With `P := True` the lent one is that, so the choice only
+   restricts nothing; recorded for the user.
+2. **`issues/mutex-lock-recreated.md`**: unchanged (`lockedSince`: create revision `≥ c`).
+3. **`Session.Done` carries nothing** (`Q := True`): unchanged.
+4. **The in-process client** (C5): 1d's statements are ready for a per-call principal; W0 and 2e
+   must model the in-process client (above).

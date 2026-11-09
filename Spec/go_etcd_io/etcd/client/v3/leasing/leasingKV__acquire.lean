@@ -29,8 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `acquire(ctx, key, OpGet(key))`: an error, or the owned reply: its first response the plain
-get's, shaped as a cached response of `key` at a revision reached (`cachedRespOk`, the header the
-reply's). -/
+get's at the reply's revision: `key`'s record there (`recAtHdr`: the only write is the lease key
+`pfx ++ key ≠ key`, `pfx ≠ []`), shaped as a cached response (`cachedRespOk`). -/
 def leasingKV.acquire.spec : Prop :=
   ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (key : GoString) (op : go_etcd_io.etcd.client.v3.Op),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ opAt op (opGetM key []) ∗ threadTok }}
@@ -39,7 +39,8 @@ def leasingKV.acquire.spec : Prop :=
       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∨
        (⌜err = GoInterface.nil⌝ ∗ sessionReady γL ∗ ∃ (σ0 : State) (m : TxnRespM) (rm : RangeRespM)
           (r2 : ResponseOpM), etcdLb γ σ0 ∗ txnRespOwn resp (DFrac.own 1) m ∗
-          ⌜m.responses = [.range rm, r2] ∧ cachedRespOk key σ0 { rm with hdr := some m.hdr }⌝)) }}
+          ⌜m.responses = [.range rm, r2] ∧ cachedRespOk key σ0 { rm with hdr := some m.hdr } ∧
+            recAtHdr key σ0 { rm with hdr := some m.hdr }⌝)) }}
 
 end spec
 

@@ -30,8 +30,8 @@ func UnmetPutOnce(ctx context.Context, cli *clientv3.Client, lkv clientv3.KV, k 
 // UNMET leasing/read-your-write-across: a write through another leasing KV (or the plain client)
 // is seen by a later Get of this one.
 // Violated: the lease-expiry window (no time model; etcd-io/etcd#19091),
-// issues/leasing-stale-entry-after-reset.md, issues/leasing-wait-rescind-no-delete.md (range
-// deletes), and any plain-client writer (the protocol fences only leasing writers).
+// issues/leasing-stale-entry-after-reset.md, and any plain-client writer (the protocol fences
+// only leasing writers).
 // Assumes: k owned by this program.
 func UnmetReadAcross(ctx context.Context, lkv1, lkv2 clientv3.KV, k, v string) {
 	if _, err := lkv1.Get(ctx, k); err != nil {
@@ -111,5 +111,39 @@ func UnmetTxnMissingKey(ctx context.Context, lkv clientv3.KV, k string) {
 	}
 	if !t.Succeeded {
 		panic("txn-missing-key: wrong branch")
+	}
+}
+
+// UNMET leasing/sequential-puts: after two acknowledged puts of one key, the second's value stays.
+// Violated: nonissues/leasing-write-resend-after-error.md (the first put's first attempt, failed
+// with an error that settles nothing, lands after its resend succeeded and after the second put).
+// Assumes: k owned.
+func UnmetSequentialPuts(ctx context.Context, cli *clientv3.Client, lkv clientv3.KV, k string) {
+	if _, err := lkv.Put(ctx, k, "v1"); err != nil {
+		return
+	}
+	if _, err := lkv.Put(ctx, k, "v2"); err != nil {
+		return
+	}
+	g, err := cli.Get(ctx, k)
+	if err != nil || len(g.Kvs) != 1 {
+		return
+	}
+	if string(g.Kvs[0].Value) != "v2" {
+		panic("sequential-puts: an earlier write landed late")
+	}
+}
+
+// UNMET leasing/txn-atomic-cache: a cached read-only transaction reads its keys at one revision.
+// Violated: each cached Get answers at its own entry's revision (txn.go: evalOps), with only the
+// latest header for the whole (TestLeasingTxnAtomicCache checks ModRevisions only).
+func UnmetTxnAtomicCache(ctx context.Context, lkv clientv3.KV, k1, k2 string) {
+	t, err := lkv.Txn(ctx).Then(clientv3.OpGet(k1), clientv3.OpGet(k2)).Commit()
+	if err != nil || len(t.Responses) != 2 {
+		return
+	}
+	r1, r2 := t.Responses[0].GetResponseRange(), t.Responses[1].GetResponseRange()
+	if r1.Header != nil && r2.Header != nil && r1.Header.Revision != r2.Header.Revision {
+		panic("txn-atomic-cache: ranges at different revisions")
 	}
 }

@@ -339,7 +339,10 @@ made the state `st`; `st'` the state after it. `σ`, `σa` reached states as in 
   creation's header revision: every event above it is sent);
 * `Canceled` without compaction ends the id's registration (a cancel's answer);
 * the id `-1` (no events, not created, canceled or compacted): a progress notification for every
-  registration (each `watchStep`'s progress case at the same header);
+  registration whose cancel the member has not read (each `watchStep`'s progress case at the same
+  header; a registration with a cancel in `ss` keeps its position: the member dropped it from mvcc
+  before computing the progress, and its cancel response may come later; the client never
+  delivers the progress to it, having removed its substream before sending the cancel);
 * an id with a registration: a `watchStep` of it (events, progress, compaction);
 * an id with none (canceled, or a stale one): nothing. -/
 def wireStep (who : Principal) (σ σa : State) (ss : List WireWatchReq) (st : WireSt)
@@ -366,9 +369,11 @@ def wireStep (who : Principal) (σ σa : State) (ss : List WireWatchReq) (st : W
   else if m.watchId = -1 then
     evs = [] ∧ m.canceled = false ∧ m.compactRev = W64 0 ∧
     ∃ P : Nat, sint.Z (m.hdr.getD HeaderM.zero).revision = P ∧ (P : Int) ≤ σ.kv.rev ∧
-      (∀ r ∈ st.regs, ∀ c, r.2.2.done = some c → c ≤ P ∧ watchEvents r.2.1 σ.kv (c + 1) P = []) ∧
+      (∀ r ∈ st.regs, WireWatchReq.cancel r.1 ∉ ss →
+        ∀ c, r.2.2.done = some c → c ≤ P ∧ watchEvents r.2.1 σ.kv (c + 1) P = []) ∧
       st' = { st with
-        regs := st.regs.map (fun r => (r.1, r.2.1, { r.2.2 with done := r.2.2.done.map (fun _ => P) })),
+        regs := st.regs.map (fun r => if WireWatchReq.cancel r.1 ∈ ss then r
+          else (r.1, r.2.1, { r.2.2 with done := r.2.2.done.map (fun _ => P) })),
         frag := none }
   else
     match st.reg m.watchId with

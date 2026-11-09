@@ -16,16 +16,20 @@ contracts at prefix `[]` (`isEtcdKV`, `isEtcdTxnKVO`), a revision certificate `e
 size bound (`OpShape`), and returned implementation outcomes (`getCached`, `getAcquired`,
 `getNotAcquired`, `putCommitted`, `opCommitted`: the cache's states, its log, the history premise
 `LeasingProtocol`); restated over W0's `etcdState` as a weakening of the KV contract (`Api.lean`'s
-header): the caller's update persistent and over `LStep`, an error settling nothing; no size bound
+header): the caller's update persistent and over `lstep` (`LStep` with the marks of the keys
+written through the KV: a cached answer is W0's serializable one for an unmarked key, the old proof's
+"Theorem 1"), an error settling nothing; no size bound
 (W0: the gRPC boundary fails on an oversized message), no certificate (the answer's revision is in
 the update's state), no history premise (the contract claims nothing a protocol violation could
 break). Also: the open token and the thread token as before (`leasingOpen`,
 `threadTok`); the outcomes `getCached`/`getAcquired`/`getNotAcquired` are now one cached-answer
 step (`CachedAns`), the server's answers W0's `getReply`.
 
-Margin: an answer from a member is linearized (or serializable as asked); a cached answer is, in
-the pinned code, only shaped like an answer about the key (`CachedRange`): with the fixes of the
-issues it is the key's record at a past revision (`Api.lean`'s header).
+Margin: an answer from a member is linearized (or serializable as asked); a cached answer (only
+for a single key at revision `0`) is W0's serializable answer for a key never written through this
+KV (unmarked: the program holds its `lkvClean`), up to a keys-only answer's lease, and only shaped
+(`CachedRange`) for a marked key (`issues/leasing-update-stale.md`); a failed acquisition answers
+a plain get, ignoring the options.
 -/
 module
 
@@ -53,7 +57,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 def leasingKV.Get.spec : Prop :=
   ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (q : Qp),
   LKV.GetTriple (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"Get")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ lkvOpen γL q)) γ who pfx
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ lkvOpen γL q)) γ who pfx γL
 
 end spec
 

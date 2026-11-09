@@ -92,7 +92,7 @@ opaque CNames : Type := Unit
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- `c` is a `*RaftCluster` of cluster id `cid` and local member `lid`, its view named `γ`. -/
 opaque isCluster (c : Loc) (γ : CNames) (cid lid : w64) : IProp GF := iprop(True)

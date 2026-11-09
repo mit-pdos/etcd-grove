@@ -52,7 +52,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`NewWatchServer(s)`** of a member `s` of `γ`: a `*watchServer` serving `γ`'s watches. -/
 def NewWatchServer.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster),
+  ∀ (s : Loc) (γ : EtcdModel.Cluster),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       watchMemberAt s γ }}
     (App (Val (@! v3rpc.NewWatchServer)) (Val #s))

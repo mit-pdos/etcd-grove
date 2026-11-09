@@ -71,3 +71,23 @@ func ReqCompactThroughLeasing(ctx context.Context, lkv clientv3.KV, rev int64) {
 	}
 	_, _ = lkv.Compact(ctx, rev)
 }
+
+// REQ leasing/delete-range-then-plain-get: after a prefix delete through the leasing KV, a plain
+// prefix read is empty.
+// Users: tests/integration/clientv3/lease/leasing_test.go (TestLeasingOwnerDeletePrefix,
+// TestLeasingDo); the proxy's DeleteRange with a range end.
+// Assumes: the common assumptions; every key under p owned, none written while this runs; the
+// prefix marked (lkvClean_mark).
+// Specs: leasingKV.Delete.spec (execReq: the range delete), Client.Get.spec; laws: etcdLb_reach.
+func ReqDeleteRangeThenPlainGet(ctx context.Context, cli *clientv3.Client, lkv clientv3.KV, p string) {
+	if _, err := lkv.Delete(ctx, p, clientv3.WithPrefix()); err != nil {
+		return
+	}
+	g, err := cli.Get(ctx, p, clientv3.WithPrefix())
+	if err != nil {
+		return
+	}
+	if len(g.Kvs) != 0 {
+		panic("delete-range-then-plain-get: a key still there")
+	}
+}

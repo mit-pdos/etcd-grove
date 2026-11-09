@@ -17,6 +17,15 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose leaves a `select` case's variable unbound in the `default:` branch (2026-11-09, specs-only batch 2b)
+
+In etcd's `serverWatchStream.recvLoop` (`server/etcdserver/api/v3rpc/watch.go`), a type switch's
+`default:` branch reads the switched variable `uv`; the translation leaves `uv` unbound in that
+branch, so the branch is stuck in the model (a model artifact: Go runs it). Found while writing the
+specs-only branch's watch-server specs, which restrict the scope to well-formed client requests
+partly because of it (`notes/specs-only/batch-2b.md`). To fix in Goose (bind the switched value in
+every branch, `default` included); not yet reported upstream.
+
 ### `sort.Sort`'s size premise (2026-11-03, mvcc's API, branch `mvcc-api`)
 
 - **Missing.** Perennial's proof of `sort.Sort` (`Perennial/Proof/sort/Sort.lean`, over `pdqsort`)

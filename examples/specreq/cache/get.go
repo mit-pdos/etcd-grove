@@ -15,6 +15,7 @@ import (
 	"errors"
 
 	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	"go.etcd.io/etcd/cache/v3"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -119,5 +120,23 @@ func ReqRangeInvalid(ctx context.Context, c *cache.Cache) {
 		panic("range-invalid: served an unsupported option")
 	} else if ctx.Err() == nil && !errors.Is(err, cache.ErrUnsupportedRequest) {
 		panic("range-invalid: an unsupported option's error is not ErrUnsupportedRequest")
+	}
+}
+
+// REQ cache/get-future-rev: a serializable Get at a revision the cluster has not reached fails
+// with ErrFutureRev (the context alive).
+// Users: tests/integration/cache_test.go testGet (12 cases: errors.Is(err, rpctypes.ErrFutureRev),
+// serializable and not; the linearizable ones also pass when the client's own Get succeeds).
+// Assumes: the cluster's revision is r and nobody writes during the call (the owner's invariant);
+// k is in the cache's range; ctx is not done (the caller's own context).
+// Specs: Cache.Get.spec (getErr's ErrFutureRev clause, getOk's o.rev <= L <= σ.kv.rev);
+// laws: etcdLb_reach, errorsIs_errVal.
+func ReqGetFutureRev(ctx context.Context, c *cache.Cache, k string, r int64) {
+	_, err := c.Get(ctx, k, clientv3.WithSerializable(), clientv3.WithRev(r+1))
+	if err == nil {
+		panic("get-future-rev: answered at a revision the cluster has not reached")
+	}
+	if ctx.Err() == nil && !errors.Is(err, rpctypes.ErrFutureRev) {
+		panic("get-future-rev: wrong error")
 	}
 }

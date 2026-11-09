@@ -13,7 +13,12 @@ import (
 // Specs: leasingKV.Do.spec (LKV.DoTriple, doReplyL), OpGet.spec, WithSerializable.spec; laws:
 // msgOwn_ne_null.
 func ReqDoProxyRange(ctx context.Context, lkv clientv3.KV, k string) {
-	resp, err := lkv.Do(ctx, clientv3.OpGet(k, clientv3.WithSerializable()))
+	// as RangeRequestToOp builds it, from a request with zero fields but serializable
+	op := clientv3.OpGet(k, clientv3.WithRev(0), clientv3.WithLimit(0),
+		clientv3.WithSort(clientv3.SortByKey, clientv3.SortNone),
+		clientv3.WithMaxCreateRev(0), clientv3.WithMinCreateRev(0),
+		clientv3.WithMaxModRev(0), clientv3.WithMinModRev(0), clientv3.WithSerializable())
+	resp, err := lkv.Do(ctx, op)
 	if err != nil {
 		return
 	}
@@ -22,15 +27,24 @@ func ReqDoProxyRange(ctx context.Context, lkv clientv3.KV, k string) {
 	}
 }
 
-// REQ leasing/do-txn: the proxy's Txn: Do of OpTxn over slices of exactly their length, whose
-// branches are not transactions, returns a transaction reply on success.
+// REQ leasing/do-txn: the proxy's Txn: Do of OpTxn over slices of exactly their length, nested
+// transactions included, returns a transaction reply on success.
 // Users: server/proxy/grpcproxy/kv.go:116 (TxnRequestToOp).
 // Assumes: the common assumptions.
-// Specs: leasingKV.Do.spec (flatTxn), OpTxn.spec, Compare.spec, ModRevision.spec.
+// Assumes (also): k marked (lkvClean_mark).
+// Specs: leasingKV.Do.spec (opCapOk: opCapOk_intro over the make'd slices), OpTxn.spec,
+// Compare.spec, ModRevision.spec.
 func ReqDoTxn(ctx context.Context, lkv clientv3.KV, k, v string, rev int64) {
-	cmps := []clientv3.Cmp{clientv3.Compare(clientv3.ModRevision(k), "=", rev)}
-	thenOps := []clientv3.Op{clientv3.OpPut(k, v)}
-	elseOps := []clientv3.Op{clientv3.OpGet(k)}
+	// as TxnRequestToOp builds it: slices of exactly their length, a nested transaction
+	inner := make([]clientv3.Op, 1)
+	inner[0] = clientv3.OpGet(k)
+	cmps := make([]clientv3.Cmp, 1)
+	cmps[0] = clientv3.Compare(clientv3.ModRevision(k), "=", rev)
+	thenOps := make([]clientv3.Op, 2)
+	thenOps[0] = clientv3.OpPut(k, v)
+	thenOps[1] = clientv3.OpTxn(nil, inner, make([]clientv3.Op, 0))
+	elseOps := make([]clientv3.Op, 1)
+	elseOps[0] = clientv3.OpGet(k)
 	resp, err := lkv.Do(ctx, clientv3.OpTxn(cmps, thenOps, elseOps))
 	if err != nil {
 		return
@@ -45,6 +59,7 @@ func ReqDoTxn(ctx context.Context, lkv clientv3.KV, k, v string, rev int64) {
 // Users: tests/integration/clientv3/lease/leasing_test.go (TestLeasingTxnOwnerIf,
 // TestLeasingTxnRandIfThenOrElse).
 // Assumes: the common assumptions.
+// Assumes (also): k marked (lkvClean_mark).
 // Specs: leasingKV.Txn.spec, txnLeasing.{If,Then,Else,Commit}.spec (LTxn.*Triple, txnReplyL).
 func ReqTxnCAS(ctx context.Context, lkv clientv3.KV, k, v string, rev int64) {
 	resp, err := lkv.Txn(ctx).
@@ -77,5 +92,46 @@ func ReqTxnReadOnly(ctx context.Context, cli *clientv3.Client, lkv clientv3.KV, 
 	}
 	if g.Header.Revision < resp.Header.Revision {
 		panic("txn-read-only: a revision the cluster never reached")
+	}
+}
+
+// REQ leasing/txn-positional: a transaction's responses are, by position, of the kinds of the
+// branch it reports (the proxy's txnToCache dereferences them so).
+// Users: server/proxy/grpcproxy/kv.go:99-113 (txnToCache).
+// Assumes: the common assumptions; k1 marked (lkvClean_mark).
+// Specs: txnLeasing.Commit.spec (txnReplyL: ofResps of the branch; CachedAns: a branch of ranges
+// only, so not the then-branch with its put); laws: txnRespOwn_unfold, responseOpOwn_unfold.
+func ReqTxnPositional(ctx context.Context, lkv clientv3.KV, k1, k2 string, rev int64) {
+	resp, err := lkv.Txn(ctx).
+		If(clientv3.Compare(clientv3.ModRevision(k1), "=", rev)).
+		Then(clientv3.OpPut(k1, "v"), clientv3.OpGet(k2)).
+		Else(clientv3.OpGet(k1)).
+		Commit()
+	if err != nil {
+		return
+	}
+	if resp.Succeeded {
+		if len(resp.Responses) != 2 || resp.Responses[0].GetResponsePut() == nil ||
+			resp.Responses[1].GetResponseRange() == nil {
+			panic("txn-positional: then-branch responses")
+		}
+	} else if len(resp.Responses) != 1 || resp.Responses[0].GetResponseRange() == nil {
+		panic("txn-positional: else-branch responses")
+	}
+}
+
+// REQ leasing/one-client-both-kvs: one function serves a plain KV and a leasing KV alike (the
+// proxy's kvProxy, with or without --experimental-leasing-prefix).
+// Users: server/proxy/grpcproxy/kv.go (NewKvProxy over client.KV).
+// Assumes: the common assumptions; kv meets W0's KV contract (kvAt_lkvAt, lkvAlloc) or is a
+// leasing KV (NewKV.spec).
+// Specs: lkvAt_methods (LKV.DoTriple), kvAt_lkvAt, lkvAlloc.
+func ReqOneClientBothKVs(ctx context.Context, kv clientv3.KV, k string) {
+	resp, err := kv.Do(ctx, clientv3.OpGet(k))
+	if err != nil {
+		return
+	}
+	if resp.Get() == nil {
+		panic("one-client-both-kvs: no range reply")
 	}
 }

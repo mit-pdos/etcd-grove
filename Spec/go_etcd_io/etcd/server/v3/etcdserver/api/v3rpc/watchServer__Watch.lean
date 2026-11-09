@@ -72,7 +72,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`ws.Watch(stream)`** on the server end of a watch stream of a client of `γ` as `who`: serves
 the watch protocol on it (every response it sends a `srvWireStep`, through `srvWatchSend_send`). -/
 def watchServer.Watch.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (st : GoInterface) (who : Principal) (g : WatchStreamNames),
+  ∀ (p : Loc) (γ : EtcdModel.Cluster) (st : GoInterface) (who : Principal) (g : WatchStreamNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       watchServerAt p γ ∗ srvWatchStreamAt st γ who g ∗ srvWatchRecv st g [] ∗
       srvWatchSend st γ who g WireSt.init }}

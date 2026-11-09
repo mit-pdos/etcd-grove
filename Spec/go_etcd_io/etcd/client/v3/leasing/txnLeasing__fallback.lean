@@ -26,10 +26,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `fallback(ops)`: gets (ranges) only. -/
 def txnLeasing.fallback.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (ctx : GoInterface) (st : TxnSt) (ops : GoSlice) (os : List OpM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx ctx st ∗ opsAt ops os }}
+  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (st : TxnSt) (ops : GoSlice) (os : List OpM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ opsAt ops os }}
     (App (Val (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"fallback")) (Val #ops))
-  {{ (fb : GoSlice), RET #fb; ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx ctx st ∗ opsAt ops os ∗ ∃ (fos : List OpM) (rs : List RequestOp),
+  {{ (fb : GoSlice), RET #fb; ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ opsAt ops os ∗ ∃ (fos : List OpM) (rs : List RequestOp),
       opsAt fb fos ∗ ⌜OpM.toReqOps fos = some rs ∧ ∀ r ∈ rs, ∃ rr, r = RequestOp.range rr⌝ }}
 
 end spec

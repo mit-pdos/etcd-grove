@@ -26,11 +26,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- `revokeFallback(fbResps)`: the responses (ranges) read-only, given back. -/
 def txnLeasing.revokeFallback.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (ctx : GoInterface) (st : TxnSt) (sl : GoSlice) (dq : DFrac) (ms : List ResponseOpM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx ctx st ∗ msgsOwn responseOpOwn sl dq ms ∗ ⌜∀ r ∈ ms, ∃ rm, r = ResponseOpM.range rm⌝ ∗
+  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (st : TxnSt) (sl : GoSlice) (dq : DFrac) (ms : List ResponseOpM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ msgsOwn responseOpOwn sl dq ms ∗ ⌜∀ r ∈ ms, ∃ rm, r = ResponseOpM.range rm⌝ ∗
       threadTok }}
     (App (Val (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"revokeFallback")) (Val #sl))
-  {{ (err : GoInterface), RET #err; ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx ctx st ∗ msgsOwn responseOpOwn sl dq ms ∗ threadTok }}
+  {{ (err : GoInterface), RET #err; ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ msgsOwn responseOpOwn sl dq ms ∗ threadTok }}
 
 end spec
 

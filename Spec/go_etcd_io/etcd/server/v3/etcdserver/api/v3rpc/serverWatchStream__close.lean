@@ -37,7 +37,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`sws.close()`**: closes the run's mvcc stream and `closec`, and waits for the send loop. -/
 def serverWatchStream.close.spec : Prop :=
-  ∀ (sws : Loc) (γ : Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames),
+  ∀ (sws : Loc) (γ : EtcdModel.Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       swsAt sws γ who st g ∗ swsCloser sws }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"close")) (Val #()))

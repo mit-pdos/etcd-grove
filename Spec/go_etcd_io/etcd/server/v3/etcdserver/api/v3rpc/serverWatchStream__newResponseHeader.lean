@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`sws.newResponseHeader(rev)`**: a fresh header with the revision `rev`. -/
 def serverWatchStream.newResponseHeader.spec : Prop :=
-  ∀ (sws : Loc) (γ : Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames)
+  ∀ (sws : Loc) (γ : EtcdModel.Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames)
     (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       swsAt sws γ who st g }}

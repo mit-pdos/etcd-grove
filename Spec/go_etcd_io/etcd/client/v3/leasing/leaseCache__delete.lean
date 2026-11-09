@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 def leaseCache.delete.spec : Prop :=
   ∀ (lc : Loc) (γ : Cluster) (γL : LeasingNames) (key : GoString) (hdr : Loc) (dq : DFrac) (hm : HeaderM) (σ0 : State),
   {{ lcHeld (GF := GF) lc γ γL 1 ∗ respHeaderOwn hdr dq hm ∗ etcdLb γ σ0 ∗
-      ⌜0 ≤ sint.Z hm.revision ∧ sint.Z hm.revision ≤ σ0.kv.rev⌝ }}
+      ⌜0 ≤ sint.Z hm.revision ∧ sint.Z hm.revision ≤ σ0.kv.rev⌝ ∗ lkvMarks γL (fun k => k = key) }}
     (App (App (Val (lc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leaseCache.ty @!! go!"delete")) (Val #key)) (Val #hdr))
   {{ RET #(); lcHeld lc γ γL 1 ∗ respHeaderOwn hdr dq hm }}
 

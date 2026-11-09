@@ -30,8 +30,9 @@ def leasingKV.deleteRange.spec : Prop :=
   ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
     (Q : State → State → Resp → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ opAt op o ∗ ⌜o.t = tDeleteRange ∧ o.rangeEnd.getD [] ≠ []⌝ ∗
-      threadTok ∗ □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), ⌜LStep pfx who (.deleteRange o.deleteReq) σ σ' r⌝ ∗ etcdState γ σ',
+      lkvMarks γL (reqWrites (.deleteRange o.deleteReq)) ∗ threadTok ∗
+      □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx who (.deleteRange o.deleteReq) σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"deleteRange")) (Val #ctx)) (Val #op))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗

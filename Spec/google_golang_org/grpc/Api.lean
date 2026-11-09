@@ -213,6 +213,24 @@ structure SrvCfg where
 /-- **`err` is a gRPC status error** with `code` and `msg`. -/
 opaque statusErr (err : GoInterface) (code : w32) (msg : GoString) : IProp GF := iprop(True)
 
+/-- **`err`'s `Error()` returns `msg`**, on every call (persistent; `err` not nil): what
+`status.FromError` reads of an error that is not a status. -/
+opaque errMsg (err : GoInterface) (msg : GoString) : IProp GF := iprop(True)
+
+/-- **A `*status.Status` with `code` and `msg`** (persistent; read-only: grpc never writes one it
+handed out; `nil` is `OK` with no message). -/
+opaque statusAt (s : Loc) (code : w32) (msg : GoString) : IProp GF := iprop(True)
+
+/-- **What `status.FromError` sees of `err`**: a status error (`ok`), or another error, `Unknown`
+with its message (not `ok`), or `nil` (`OK`, `ok`). -/
+def errView (err : GoInterface) (code : w32) (msg : GoString) (ok : Bool) : IProp GF :=
+  iprop((⌜ok = true⌝ ∗ statusErr err code msg) ∨
+        (⌜ok = false ∧ code = cUnknown⌝ ∗ errMsg err msg) ∨
+        ⌜err = GoInterface.nil ∧ ok = true ∧ code = cOK ∧ msg = []⌝)
+
+/-- **A `*peer.Peer`** whose `Addr.String()` returns (persistent). -/
+opaque peerOk (p : Loc) : IProp GF := iprop(True)
+
 /-- **The status a server sends for a handler's error `err`**. -/
 opaque sentStatus (err : GoInterface) (code : w32) (msg : GoString) : IProp GF := iprop(True)
 
@@ -378,6 +396,16 @@ def streamOk (h : val) (ss : GoInterface) (sic : Option val) (reqT repT : go.GoT
 
 /-! ### Laws -/
 
+/-- `errMsg`'s meaning: `Error()` returns `msg`. -/
+def errMsg_call.spec : Prop := ∀ (err : GoInterface) (msg : GoString),
+  {{ errMsg (GF := GF) err msg }}
+    (App (Val (err @!! go.error @!! go!"Error")) (Val #()))
+  {{ RET #msg; True }}
+
+/-- A non-status error is sent as `Unknown` with its message. -/
+def errMsg_sent.spec : Prop := ∀ (err : GoInterface) (msg : GoString),
+  errMsg (GF := GF) err msg ∗ (∀ c m, statusErr err c m -∗ False) ⊢ sentStatus err cUnknown msg
+
 def grpc_persistent.spec : Prop :=
   (∀ err code msg, Persistent (statusErr (GF := GF) err code msg)) ∧
   (∀ err code msg, Persistent (sentStatus (GF := GF) err code msg)) ∧
@@ -391,7 +419,10 @@ def grpc_persistent.spec : Prop :=
   (∀ cc A R inv, Persistent (attemptOk (GF := GF) cc A R inv)) ∧
   (∀ cc A R str, Persistent (streamerOk (GF := GF) cc A R str)) ∧
   (∀ ctx md, Persistent (rpcCtx (GF := GF) ctx md)) ∧
-  (∀ v f, Persistent (srvOptAt (GF := GF) v f))
+  (∀ v f, Persistent (srvOptAt (GF := GF) v f)) ∧
+  (∀ err msg, Persistent (errMsg (GF := GF) err msg)) ∧
+  (∀ s c m, Persistent (statusAt (GF := GF) s c m)) ∧
+  (∀ p, Persistent (peerOk (GF := GF) p))
 
 /-- An error grpc made itself is a status with one of grpc's own messages. -/
 def ownErr_grpcMsg.spec : Prop := ∀ err,

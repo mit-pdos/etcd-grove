@@ -105,11 +105,12 @@ discard_persistent}`, `isFreeList_persistent`.
 3. **`New` takes `etcdPeek γ`** (the program's read permission over the cluster's state): new
    premise on a client-facing spec, needed because the cache's background list is a client `Get`
    that needs an update. Any owner of `etcdState` can give it.
-4. **Errors of `Get`** (corrected in round 1): `ErrUnsupportedRequest` and `ErrKeyRangeInvalid` are
-   stated; `ErrFutureRev` is not, though etcd's `testGet` checks it with `errors.Is` (12 cases): the
-   linearizable path may fail first in the client's own `Get`, and the serializable one is
-   deterministic only given the cache's latest revision, which the caller does not know. Stating
-   it would need a `getErr` clause over the latest revision; left as a margin, your call.
+4. **Errors of `Get`** (round 1b, the coordinator: a completeness requirement, not a decision):
+   `ErrUnsupportedRequest`, `ErrKeyRangeInvalid` and `ErrFutureRev` are stated (`getErr`). The
+   `ErrFutureRev` clause: for a served request, `err = errVal .futureRev` unless the context is done,
+   the revision was reached by the cluster, or the request is linearizable (the client's `Get` and
+   the timeout may fail first): the serializable cases of `testGet` follow exactly, the
+   linearizable ones only when the client's own `Get` succeeds (margin). Snippet `ReqGetFutureRev`.
 5. `isCache` carries the client's principal `who` (W0's round 1: `Get` passes the caller's context
    to the client's `Get`, which needs `ctxPrin ctx who`).
 
@@ -164,5 +165,5 @@ findings filed as `nonissues/` (and P-S1's re-watch as
   response needs a conversion, or an error arm; the code rejects it, `validateRevisions`); P-S3
   (receive laws for `watcherConsumer`/`storeApplier`, a `cacheWatchAt_recvAu` for `select`);
   C-F4 (a floor for a watch "from now"); C-F6's snippets (multi-key revisions, header equality, a
-  future revision); C-F3' (`ErrFutureRev`, open question 4); C-F7/P (the drop-in watch vocabulary,
+  future revision); C-F7/P (the drop-in watch vocabulary,
   open question 1).

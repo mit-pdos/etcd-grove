@@ -48,3 +48,13 @@ lock from any goroutine.
    return lkv.session.Lease()
    ```
    Used by: `leasingKV.readySession.spec`, `leasingKV.leaseID.spec`, `monitorSession`.
+
+## from 1e (round 1)
+
+3. **`NewSession` over `clientRest c γ who`** (W0's: everything of the client but its `KV` field),
+   not `isClient`: the leasing KV's session monitor calls `NewSession(lkv.cl, ...)` after the gRPC
+   proxy has overwritten `client.KV` with the leasing KV itself (`clientMut_split`), so `isClient`
+   is no longer available; `NewSession` reads `Lease`, `Ctx()`, the logger, never `KV`. Used by:
+   `leasingKV.monitorSession.spec`, `NewKV.spec`. (1e now uses `sessOptsAt`, `optCtxOk`,
+   `etcdPerm` with `effIn (readEff ∨ grantEff)`: its `ProtoStep` contains both; the slot
+   `sessOptsOk` is gone.)

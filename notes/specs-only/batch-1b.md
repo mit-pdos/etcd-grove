@@ -166,3 +166,13 @@ member. `examples/etcd/auth/authkv.go:272` relies on it with one member. Options
 on the admitting state for a one-member cluster, taken at the call (`σ.members.length = 1 → Reach
 σ₀ σa`), one spec; (b) keep the spec as is and record that authkv's check rests on its single
 member (done for now).
+
+## Round 1b: 2b's correction of `wireStep` (2026-11-09)
+
+Adopted as 2b asked (`req/go_etcd_io_etcd_client_v3.md`, "from 2b"): in `wireStep`'s id `-1`
+case a registration whose cancel request is in `ss` is exempt (no claim, position kept). Checked:
+the member's `recvLoop` runs mvcc's `Cancel` before queueing the cancel response, and `sendLoop` may
+send a later progress first (`v3rpc/watch.go:374-402, 514-546`); the client sends a cancel only for an
+id with no substream (`closeSubstream` removed it, or an unknown id), and `broadcastResponse` reaches
+only `w.substreams`, so no consumer is told anything less (`deliverOk`'s header says so). `srvWireStep`
+(2b) and `wireStep` now agree.

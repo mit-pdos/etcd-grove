@@ -82,7 +82,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`sws.sendLoop()`**: sends the run's responses down the stream, each with its `srvWireStep`
 facts, until a send fails, a channel closes or the run closes. -/
 def serverWatchStream.sendLoop.spec : Prop :=
-  ∀ (sws : Loc) (γ : Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames),
+  ∀ (sws : Loc) (γ : EtcdModel.Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       swsAt sws γ who st g ∗ srvWatchSend st γ who g WireSt.init ∗ swsSender sws ∗ threadTok }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"sendLoop")) (Val #()))

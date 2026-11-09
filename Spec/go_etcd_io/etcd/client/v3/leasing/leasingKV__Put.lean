@@ -13,15 +13,20 @@ contracts at prefix `[]` (`isEtcdKV`, `isEtcdTxnKVO`), a revision certificate `e
 size bound (`OpShape`), and returned implementation outcomes (`getCached`, `getAcquired`,
 `getNotAcquired`, `putCommitted`, `opCommitted`: the cache's states, its log, the history premise
 `LeasingProtocol`); restated over W0's `etcdState` as a weakening of the KV contract (`Api.lean`'s
-header): the caller's update persistent and over `LStep`, an error settling nothing; no size bound
+header): the caller's update persistent and over `lstep` (`LStep` with the marks of the keys
+written through the KV: a cached answer is W0's serializable one for an unmarked key, the old proof's
+"Theorem 1"), an error settling nothing; no size bound
 (W0: the gRPC boundary fails on an oversized message), no certificate (the answer's revision is in
 the update's state), no history premise (the contract claims nothing a protocol violation could
-break). The old `putCommitted` (the cache's step) is internal now.
+break). The old `putCommitted` (the cache's step) is internal now. **New**: the
+key's mark (`lkvMarks`).
 
 Margin: on success the put was applied at least once, and the reply is one application's answer;
 it may have been applied more often (`issues/leasing-modify-uncached-once.md`: twice whenever the
-key was not cached and no other client held it), each application firing the caller's update; the
-reply is read-only.
+key was not cached and no other client held it), and an earlier attempt may still land after the
+call returned (`nonissues/leasing-write-resend-after-error.md`), each application firing the
+caller's update; the reply is read-only. A token lent with the update and given back at the return
+(completeness review F1) would be false of the code for that reason.
 -/
 module
 
@@ -49,7 +54,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 def leasingKV.Put.spec : Prop :=
   ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames),
   LKV.PutTriple (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"Put")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL)) γ who pfx
+    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL)) γ who pfx γL
 
 end spec
 

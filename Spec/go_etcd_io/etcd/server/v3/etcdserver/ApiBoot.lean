@@ -10,7 +10,8 @@ whose `Api.lean` modules import this one: `isServer` below is the handle their s
 
 **A cluster** is W0's `Cluster` (`api/v3/State.lean`). The program allocates its state with the
 members it will start (`cluster_alloc`, K1): it gets `etcdState γ (State.init ms)` in full, one
-`memberBoot γ ms m` per initial member, and `memberIds γ ids`, the ids handed out so far.
+`memberBoot γ ms m` per initial member, and `memberUrls γ U`, the peer-URL sets taken so far (the
+initial members').
 
 **A member's files** are keyed by its directories (`Config.Dirs`: the data directory and the
 dedicated WAL directory, `Config.dirsOf cfg`). At program start a directory is `dataDirFresh ds`
@@ -19,21 +20,29 @@ for the whole run, canonical, no other string naming one of them: the axiom swee
 stopped member's directory is `memberDisk γ id ds`: **its durable state, client-owned**; nothing
 else is needed to start the member again on it.
 
-**Starting a member** (`NewServer`, K2) takes the right to start member `id` with configuration
-`cfg`, `memberStart γ id cfg c`, introduced in three ways, one law each:
+**Starting a member** (`NewServer`, K2) takes the right to start a member of `γ` with
+configuration `cfg`, `memberStart γ cfg c`, introduced in three ways, one law each:
 * a member of a new cluster (`memberStart_new`): its `memberBoot` and a fresh directory, the
   configuration a new cluster's whose initial members are the allocated ones;
-* a member a `MemberAdd` answered (`memberStart_join`): its `memberJoin γ id` (from
-  `memberIds_take`: an id is started from a fresh directory at most once, as raft's
-  `freshIds_take`), a fresh directory, and `etcdLb γ σ` with the member in `σ.members` under the
-  configuration's peer URLs;
+* a member added by a `MemberAdd` (`memberStart_join`): `memberJoin γ urls` for its peer URLs
+  (from `memberUrls_take`: a peer-URL set is joined from a fresh directory at most once) and a
+  fresh directory. **Keyed by the URLs, not the id**: `bootstrap` takes the id the cluster
+  currently has for the configuration's peer URLs (`GetClusterFromRemotePeers`,
+  `ValidateClusterAndAssignIDs`), which is not the id of an earlier `MemberAdd` if those URLs were
+  removed and added again since; a token per id would let two processes run one id. With the
+  token per URL set, the cluster's invariant reserves raft's vacancy for every id added under a
+  pending URL set (etcd never commits an add of an id it has seen: `ErrIDRemoved`, `ErrIDExists`),
+  and the joiner runs as whichever it finds. No `etcdLb` is needed: a member not in the cluster
+  fails `bootstrap`'s validation (an error);
 * a stopped member (`memberStart_restart`): its `memberDisk` (a WAL in the directory: etcd ignores
   `NewCluster` and replays it; any durable state, after snapshots and compactions).
 
 and the environment's permission `envUpd γ ecfg` (W0's), the configuration's scope premises (one
 sealed slot per subsystem, below) and the boundary resources (the logger, the feature gate, the
-configuration's heap parts, the disk premise). It returns `srvMember s γ id` (persistent: the
-server object is member `id` of `γ`) and `srvBuilt s γ id cfg` (exclusive: built, not started).
+configuration's heap parts, the disk premise). It returns, for some member id `id`
+(the restarted one's, the initial member's, the joined one's), `srvMember s γ id` (persistent: the
+server object is member `id` of `γ`; `MemberID()` returns `id`) and `srvBuilt s γ id cfg`
+(exclusive: built, not started).
 
 **Starting it** (`Start`) turns `srvBuilt` into `isServer s γ` (persistent: the request path's
 handle, what 2a's `v3rpc.Server` takes to register services that give `servesAt γ ep`, K3) and
@@ -55,8 +64,10 @@ obligation, `req/go_etcd_io_etcd_server_v3_etcdserver.md`, "from 2e").
   each member: `bootstrapRaftFromCluster`), and the boot log's `confDecided` facts. When the ids of
   `ms` are not distinct or include `0`, `bootstrap` fails for every member (`NewClusterFromURLsMap`):
   the allocation then gives tokens no start can use (a classical case split; no premise).
-* `memberIds γ U`: raft's `freshIds γ.raft U`. `memberJoin γ id`: `raftState γ.raft id Durable.init ∗
-  nodeVacant γ.raft id` (`freshIds_take`).
+* `memberUrls γ U`: the authority of the reserved URL sets; `memberJoin γ urls`: its fragment,
+  with which the cluster's invariant (it sees every committed `MemberAdd`) keeps, for each id added
+  under `urls` while it is pending, `raftState γ.raft id Durable.init ∗ nodeVacant γ.raft id`
+  (raft's `freshIds_take`: the ids an add commits are fresh).
 * `memberDisk γ id ds` (the R2d'a lesson: every binder tied to the files, never a `∀` over states the
   files do not pin): `∃ R F img D ci, Wal.walRecs (walDirOf ds) R ∗ Snap.snapDbs (snapDirOf
   ds.dataDir) F ∗ Snap.beFile (backendPathOf ds.dataDir) (some img) ∗ raftState γ.raft id D ∗
@@ -71,7 +82,7 @@ obligation, `req/go_etcd_io_etcd_server_v3_etcdserver.md`, "from 2e").
   only above `ci`. The snapshot record `bootstrap` reconstructs carries the backend's configuration at
   `ci`, not at its own index `si` (`bootstrap.go:107-115`; R1 provisability F3): raft's
   `snapValid` must admit it (`req/go_etcd_io_raft_v3.md`, "from 2e").
-* `memberStart γ id cfg c`: the disjunction of the three intro laws' left sides, at their pure
+* `memberStart γ cfg c`: the disjunction of the three intro laws' left sides, at their pure
   conditions (each law is its injection; `NewServer`'s proof eliminates by cases inside the
   package).
 * `srvMember s γ id`: read-only fields `memberID`, `r.transport` (2f's transport handle of member
@@ -110,7 +121,7 @@ loses nothing a stop and restart see).
 
 `srvMember_persistent`, `srvMember_agree`, `isServer_persistent`, `memberDisk_timeless`,
 `memberDisk_excl`, `dataDirFresh_timeless`, `dataDirFresh_excl`, `memberBoot_timeless`,
-`memberJoin_excl`, `memberIds_excl`, `cluster_alloc`, `memberIds_take`, `memberStart_new`,
+`memberJoin_excl`, `memberUrls_excl`, `cluster_alloc`, `memberUrls_take`, `memberStart_new`,
 `memberStart_join`, `memberStart_restart`, `stoppingCh_persistent`.
 
 ## Requirement snippets
@@ -151,20 +162,21 @@ opaque dataDirFresh (ds : Config.Dirs) : IProp GF := iprop(True)
 /-- **Member `m` of the new cluster `γ` of initial members `ms` may start once** (exclusive). -/
 opaque memberBoot (γ : Cluster) (ms : List Member) (m : Member) : IProp GF := iprop(True)
 
-/-- **The member ids handed out so far** (the initial members' and every `memberIds_take`'s;
+/-- **The peer-URL sets taken so far** (the initial members' and every `memberUrls_take`'s;
 exclusive). -/
-opaque memberIds (γ : Cluster) (U : List Nat) : IProp GF := iprop(True)
+opaque memberUrls (γ : Cluster) (U : List (List GoString)) : IProp GF := iprop(True)
 
-/-- **Member `id` may join `γ` once, from a fresh directory** (exclusive). -/
-opaque memberJoin (γ : Cluster) (id : Nat) : IProp GF := iprop(True)
+/-- **A member with the peer URLs `urls` may join `γ` once, from a fresh directory**
+(exclusive). -/
+opaque memberJoin (γ : Cluster) (urls : List GoString) : IProp GF := iprop(True)
 
 /-- **The directories `ds` hold the durable state of member `id` of `γ`, stopped** (exclusive,
 timeless; client-owned). -/
 opaque memberDisk (γ : Cluster) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
 
-/-- **The right to start member `id` of `γ` with configuration `cfg`** (whose heap parts are `c`):
+/-- **The right to start a member of `γ` with configuration `cfg`** (whose heap parts are `c`):
 exclusive; introduced by `memberStart_new`, `memberStart_join`, `memberStart_restart`. -/
-opaque memberStart (γ : Cluster) (id : Nat) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+opaque memberStart (γ : Cluster) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (c : Config.Model) : IProp GF := iprop(True)
 
 /-! ## The server object -/
@@ -272,23 +284,23 @@ def dataDirFresh_excl.spec : Prop := ∀ ds,
 
 def memberBoot_timeless.spec : Prop := ∀ γ ms m, Timeless (memberBoot (GF := GF) γ ms m)
 
-def memberJoin_excl.spec : Prop := ∀ γ id,
-  memberJoin (GF := GF) γ id ∗ memberJoin γ id ⊢ iprop(False)
+def memberJoin_excl.spec : Prop := ∀ γ urls urls', urls.Perm urls' →
+  memberJoin (GF := GF) γ urls ∗ memberJoin γ urls' ⊢ iprop(False)
 
-def memberIds_excl.spec : Prop := ∀ γ U U',
-  memberIds (GF := GF) γ U ∗ memberIds γ U' ⊢ iprop(False)
+def memberUrls_excl.spec : Prop := ∀ γ U U',
+  memberUrls (GF := GF) γ U ∗ memberUrls γ U' ⊢ iprop(False)
 
 /-- **K1: a new cluster** of the members `ms` (each with the id `bootstrap` computes:
-`Membership.initialMembers`), for the environment the program will permit: the state, one start
-token per member, the ids handed out. -/
+`Membership.initialMembers`): the state, one start token per member, their URL sets taken. -/
 def cluster_alloc.spec : Prop := ∀ (ms : List Member) (E : CoPset),
   ⊢ |={E}=> ∃ γ : Cluster, etcdState (GF := GF) γ (State.init ms) ∗
-      memberIds γ (ms.map (·.id)) ∗ [∗list] m ∈ ms, memberBoot γ ms m
+      memberUrls γ (ms.map (·.peerURLs)) ∗ [∗list] m ∈ ms, memberBoot γ ms m
 
-/-- **An id for a member to join** (one a `MemberAdd` answered with): handed out once. -/
-def memberIds_take.spec : Prop := ∀ (γ : Cluster) (U : List Nat) (id : Nat),
-  id ∉ U → id ≠ 0 → id < 2 ^ 64 → Raft.isLocalTarget (W64 id) = false →
-  memberIds (GF := GF) γ U ⊢ |==> memberIds γ (id :: U) ∗ memberJoin γ id
+/-- **A peer-URL set for a member to join** (before or after its `MemberAdd`): taken once. -/
+def memberUrls_take.spec : Prop := ∀ (γ : Cluster) (U : List (List GoString))
+    (urls : List GoString),
+  (∀ u ∈ U, ¬ u.Perm urls) →
+  memberUrls (GF := GF) γ U ⊢ |==> memberUrls γ (urls :: U) ∗ memberJoin γ urls
 
 /-- **Start a member of a new cluster**: its boot token and a fresh directory, under a
 configuration of a new cluster whose initial members are the allocated ones (`NewCluster`, the
@@ -298,19 +310,16 @@ def memberStart_new.spec : Prop :=
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Config.Model),
   cfg.NewCluster' = true → m ∈ ms → m.name = cfg.Name' →
   (Membership.initialMembers cfg.InitialClusterToken' c.initialCluster).Perm ms →
-  memberBoot (GF := GF) γ ms m ∗ dataDirFresh (Config.dirsOf cfg) ⊢ memberStart γ m.id cfg c
+  memberBoot (GF := GF) γ ms m ∗ dataDirFresh (Config.dirsOf cfg) ⊢ memberStart γ cfg c
 
-/-- **Join as a member a `MemberAdd` answered**: its join token, a fresh directory, and a state
-of the cluster in which member `id` has the configuration's peer URLs (under the configuration's
-own name in the initial-cluster map). -/
+/-- **Join as the member added with the configuration's peer URLs** (listed under the
+configuration's own name in the initial-cluster map): its join token and a fresh directory. -/
 def memberStart_join.spec : Prop :=
-  ∀ (γ : Cluster) (id : Nat) (σ : State)
+  ∀ (γ : Cluster) (urls : List GoString)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (c : Config.Model),
-  cfg.NewCluster' = false →
-  (∃ m ∈ σ.members, m.id = id ∧ m.peerURLs.Perm c.peerURLs ∧
-    ∃ u, c.initialURLs cfg.Name' = some u ∧ u.Perm c.peerURLs) →
-  memberJoin (GF := GF) γ id ∗ dataDirFresh (Config.dirsOf cfg) ∗ etcdLb γ σ ⊢
-    memberStart γ id cfg c
+  cfg.NewCluster' = false → urls.Perm c.peerURLs →
+  (∃ u, c.initialURLs cfg.Name' = some u ∧ u.Perm c.peerURLs) →
+  memberJoin (GF := GF) γ urls ∗ dataDirFresh (Config.dirsOf cfg) ⊢ memberStart γ cfg c
 
 /-- **Restart a stopped member** on its directories (any configuration but
 `--force-new-cluster`, a disaster-recovery mode outside the protocol: R1's `RestartNode`
@@ -319,7 +328,7 @@ def memberStart_restart.spec : Prop :=
   ∀ (γ : Cluster) (id : Nat) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (c : Config.Model),
   cfg.ForceNewCluster' = false →
-  memberDisk (GF := GF) γ id (Config.dirsOf cfg) ⊢ memberStart γ id cfg c
+  memberDisk (GF := GF) γ id (Config.dirsOf cfg) ⊢ memberStart γ cfg c
 
 end vocab
 

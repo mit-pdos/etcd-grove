@@ -147,3 +147,85 @@ Internal (`Internal.lean`): `cachedRespOk`, `leaseGetM`, `evalCmpM`, `inRangeM`,
   updates from a persistent lease-grant/keep-alive permission; `Session.Lease`, `Session.Done`.
 * `google_golang_org_grpc.md`: (2a) `status.Error(Unimplemented, ...)` is `callErr .other`;
   `status.FromError`.
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/1e-provability-1.md` (P), `reviews/1e-completeness-1.md` (C). Built against W0's
+round 2 (`TxnReq.valid`, `clientRest`/`clientMut_split`, `etcdPerm`). 68 modules build; the
+snippets vet. **This section supersedes the earlier ones where they differ** (the vocabulary below).
+
+**First tier.**
+
+* **P-F1** (guarded single-op success ⇒ the op's `Step`): W0 added `TxnReq.valid` to `kvStep .txn`'s
+  applied branch; cited ("`kvStep`'s `t.valid`") in `tryModifyOp`, `revoke`, `deleteRangeRPC`,
+  `serverTxn`.
+* **P-F2 / C-F4a** (one proof over both kinds of KV): `LStep`'s answer case accepts W0's `Step who rq`
+  as well as `Step who (execReq rq)`; new laws `kvAt_lkvAt`, `txnAt_ltxnAt`, `lkvAlloc` (ghost names
+  for a plain KV); `LTxn.{If,Then,Else}Triple` give `ltxnAt r` for the returned `r` (W0's new shape).
+  Snippet `ReqOneClientBothKVs`.
+* **P-F3 / C-F4a** (`ReqNewKVProxy`): `NewKV` takes `clientRest cl γ who` and the `KV` field at any
+  share with its `kvAt` (given back), as W0's `clientMut_split` leaves the proxy; `NewSession` over
+  `clientRest` requested of 1d (`req/..._concurrency.md`, from 1e round 1).
+* **C-F1** (lend an exclusive token so a write cannot land after the return): **not done, false of
+  the code.** `put`/`delete` resend after an error of the first attempt (`tryModifyOp`'s error path
+  → `revoke`), and that first attempt may still be applied by the cluster after the resend succeeded
+  and the call returned; its inner update must be able to fire then, so the caller's token cannot be
+  given back (provability S4 found the same). Filed as `nonissues/leasing-write-resend-after-error.md`
+  (blocks-proof: yes), stated in the header (reason 1) and `Put`'s Margin, and `UnmetSequentialPuts`
+  records the requirement. Decision for the user (with the fixes, below).
+* **C-F2**: a cached answer only for a single key at revision `≤ 0` (`CachedRange1`: `isBadOp`
+  false), in a cached transaction too. Snippet `ReqGetPrefix`.
+* **C-F3** (the old Theorem 1): new `lkvMarks γL M` (persistent: keys that may be written through
+  the KV; every write takes the marks of `reqWrites rq`) and `lkvClean γL K` (exclusive; `NewKV` gives
+  every key; `lkvClean_split`, `lkvClean_marks`, `lkvClean_mark`, `lkvMarks_none/mono/join`). A
+  cached range is W0's serializable answer (`CachedSer`, up to a keys-only answer's lease), or a
+  plain get's (the failed acquisition), or, for a marked key or an invalid sort, only its shape. The
+  update's step is `lstep γL … := ∃ M, ⌜LStep … M …⌝ ∗ lkvMarks γL M`, so a program holding
+  `lkvClean` of a key concludes the serializable case. Internal: `recAtHdr`, `entryOk` (the cache
+  keeps, per entry, "the key's record at the header's revision, or the key marked"); `Update`,
+  `delete`, `Delete`, `commitToCache` take the marks. `NewKV` again takes `pfx ≠ []` (with an empty
+  prefix the acquisition overwrites the data key, and no cached answer is a past state's). Snippet
+  `ReqCachedReadUnwritten`. *Uncertain (the reviewer's too)*: that `leaseKey.get`'s `Count` and
+  filters agree with `RangeReq.answers` on one key; checked by reading (count = the unfiltered
+  `all.length`, the filters as `keeps`), not by a run.
+* **C-F4b** (per-request principal): W0's contract fixes `who` per handle; requested of W0
+  (`req/go_etcd_io_etcd_client_v3.md`, from 1e round 1, item 5); the proxy snippets model auth off.
+  Suspected bypass filed: `nonissues/grpcproxy-leasing-auth-cached-read.md` (blocks-proof: no:
+  W0's serializable read may skip the permission check).
+* **C-F5**: `flatTxn` dropped; `opCapOk op`/`opsCapOk sl` (persistent; `opCapOk_intro`: not a
+  transaction, or branch slices with `cap = len` whose ops are `opCapOk`); `gatherOps` and
+  `gatherResponseOps` at any depth (`gatherL`, `gatherRespL`, `respOkL`). `ReqDoTxn` is now nested,
+  built as `TxnRequestToOp`.
+* **C-F6**: snippet `ReqTxnPositional`.
+* **C-F7**: `NewKV` takes 1d's `Concurrency.sessOptsAt osl gs` and `optCtxOk`; the slot `sessOptsOk`
+  is gone; `protoUpd := etcdPerm γ (ProtoStep pfx who)` (W0's shape) and `ProtoStep` contains 1d's
+  `grantEff` (inlined, any TTL), so `NewSession`'s `effIn` holds. Snippet `ReqNewKVWithTTL`.
+* `unmet.go`: `UnmetReadAcross` no longer cites the range-delete issue.
+
+**Second tier done.** P-S1 / the coordinator's list: filed in `nonissues/` (none has a run test yet;
+each has its recipe): `leasing-delete-range-drops-prevkv` (blocks-proof: yes; deterministic, move to
+`issues/` with its test), `leasing-gatherops-spare-capacity` (no), `leasing-delete-fromkey-skips-revoke`
+(no; deterministic, move to `issues/` with its test), `leasing-txn-own-lease-key-livelock` (no),
+`leasing-monitorlease-spin-done-ctx` (no), `grpcproxy-leasing-auth-cached-read` (no),
+`leasing-write-resend-after-error` (yes); `etc/issues-status.py --index` run, `--check` passes.
+P-S3.3 (the `leaseExpiry = false` mode in the header), P-S4 (late application: header, `Put`'s
+Margin), P-S5 (thread tokens wording), P-S2 (via C-F5). C §3.2 (`ReqDeleteRangeThenPlainGet`), §3.4
+(`UnmetTxnAtomicCache`), §3.6 (the package comment says the proxy snippets model auth off), §3.7
+(`ReqDoProxyRange` builds its op as `RangeRequestToOp`). Not done: C §3.1 (two leasing KVs on one
+prefix: provable as `ReqPutRevision` with two handles; no new proof obligation), §3.3 (health's
+meaning: a note, not filed), §3.5 (a persistent "never closed" open share: a law the proxy may want).
+
+**Vocabulary now** (`Api.lean`): `ProtoStep`, `CachedRange`, `kvUpToLease`, `CachedSer`,
+`plainGet`, `CachedRange1`, `CachedAns who M`, `execReq`, `opWrites`/`opsWrites`/`reqWrites`,
+`LStep pfx who M`, `lstep γL`, `LQ`, `protoUpd`; `LeasingNames`, `isLeasingKV`, `lkvAt`, `lkvOpen`,
+`closeFnAt`, `ltxnAt … γL …`, `lkvMarks`, `lkvClean`, `opCapOk`, `opsCapOk`; replies `putReplyL`,
+`txnReplyL`, `doReplyL`; contracts `LKV.*Triple`, `LTxn.*Triple` (now with `γL`); laws
+`handles_persistent`, `lkvOpen_split`, `lkvMarks_none/mono/join`, `lkvClean_split/marks/mark`,
+`lkvAlloc`, `opCapOk_intro`, `lkvAt_methods`, `isLeasingKV_lkvAt`, `kvAt_lkvAt`, `txnAt_ltxnAt`,
+`ltxnAt_methods`, `closeFnAt_call`.
+
+**Decisions for the user, updated.** (1) The pinned code (this contract) or the fixes: with the six
+fixes, `put`/`delete` not resending after an error, and the `WithPrevKV` fix, writes would take W0's
+exclusive update (no late landing) and every cached answer, marked or not, would be serializable;
+the marks would then be unnecessary. (2) Linearizable cached reads need a time model. (3) The
+per-request principal (W0).

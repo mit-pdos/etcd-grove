@@ -81,3 +81,55 @@ terms, what the server batches must give (statements in `top.md`, "The cluster c
 3. **`tokenOf γ tok u`** (3d's token providers through 2a's `Authenticate`): a token the server
    issued names the user it authenticated, for as long as the server accepts it (an expired token is
    `ErrInvalidAuthToken`, never another user). Used by: `cfgPrincipal_token`, `authReply`.
+
+## from 1d
+
+v3lock and v3election (2e owns their server side) call `client/v3/concurrency` over the
+in-process client `v3client.New(s)`. What 1d's specs need there:
+
+1. **A client handle valid for each RPC's principal**: `isClient c γ who` (W0's, or its
+   `clientRest` with a per-call principal) for the principal `who` an RPC was authenticated as, and
+   `ctxPrin rpcCtx who` for its context (the incoming metadata names `who`). 1d's
+   `NewSession.spec`, `Mutex.Lock.spec`, `Election.{Campaign,Proclaim,Resign,Leader,Observe}.spec`
+   take these per call (`req/go_etcd_io_etcd_client_v3.md`, "from 1d (round 1)", item 2).
+2. **The handlers' permission**: 1d's mutex and election methods take a lent permission
+   (`Concurrency.etcdLent γ T P` with the token `P`) whose `T` contains their effects (`mutexEff`,
+   `campaignEff`, the leader key's put or delete) and the session's grant/revoke through
+   `etcdPerm`. The server's invariant (or the program's, through the cluster contract) must supply
+   it for every lock/election RPC: `T` the remote principal's lock and election writes, `P := True`
+   (a server that serves concurrent RPCs cannot hand out an exclusive token per key).
+3. **Cleanups run without a principal under auth**: `Mutex.Lock`'s and `Campaign`'s cleanups use
+   `client.Ctx()` (`nonissues/etcd-v3lock-auth-cleanup-unauthenticated.md`): the handlers' specs
+   cannot promise the waiter key is gone after a canceled RPC.
+4. **A remote `Proclaim`/`Resign` with leader revision `0`** creates (resp. deletes nothing of) an
+   absent key (`nonissues/etcd-v3election-proclaim-rev-zero.md`): 2e's handler specs inherit it
+   from `Election.Proclaim.spec`'s fence, stated as the comparison.
+
+## from 2b
+
+Batch 2b (the gRPC watch service, `v3rpc/watch.go`) takes a started member as one slot,
+**`watchMemberAt s γ`** (persistent; `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`):
+"the `*EtcdServer` `s` is a member of the cluster `γ` whose watch path is ready". The server
+batches (2c/2d/2e) produce it where a member starts (with `servesAt`'s other parts, so that 2a's
+`Server` can call `NewWatchServer(s)`) and prove its laws. In plain terms:
+
+1. **Configuration** (`watchMemberAt_cfg`, stated): `s.Cfg.Logger` (`nil` or a logger),
+   `s.Cfg.MaxRequestBytes` and `s.Cfg.WatchProgressNotifyInterval` read-only (`↦□`: nothing writes
+   `s.Cfg` after start; the fork's fix of `nonissues/etcd-cfg-watch-progress-interval-race.md`), the
+   interval with **`watchIntervalCfgOk`** (`≤ 0`, or raised to 100ms at most about 265 years:
+   `nonissues/etcd-watch-progress-interval-overflow.md`): a **configuration scope premise** of
+   `NewServer` (as K8's). `(*ServerConfig).MaxRequestBytesWithOverhead()` (the config package):
+   no panic.
+2. **Ids**: `s.Cluster().ID()` (`api.Cluster` holding the member's `*RaftCluster`), `s.MemberID()`:
+   no panic, no thread token.
+3. **`s.Watchable()`**: the member's `mvcc.WatchableKV`, **whose watch streams and reads deliver the
+   cluster's history** as the member applies it (`req/go_etcd_io_etcd_server_v3_storage_mvcc.md`,
+   `## from 2b`, stated against `etcdLb γ σ`): the bridge from mvcc's state to `γ` (the store's
+   history is the committed log's; its compaction at most the cluster's).
+4. **`s` as `apply.RaftStatusGetter`**: `Term()`, `Leader()`: any values, no panic, no thread token.
+5. **`s` as `v3rpc.AuthGetter`**: `AuthInfoFromCtx(ctx)` and `AuthStore()` as
+   `req/go_etcd_io_etcd_server_v3_auth.md`, `## from 2b` (for a context with `srvCtxPrin ctx who`;
+   the auth store's state the cluster's auth state at reached states).
+
+Used by: `NewWatchServer.spec` (its precondition), and through `watchServerAt` every watch spec;
+snippet `examples/specreq/v3rpcwatch/serve.go`.

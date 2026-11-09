@@ -306,14 +306,20 @@ open go_etcd_io.etcd.cache.v3 in
 /-- **What a failed `Get` returns**: no response, a non-`nil` error; for a request with an option the
 cache does not serve, an error wrapping `ErrUnsupportedRequest`; for a served request whose range
 it rejects, `ErrKeyRangeInvalid` (either, or the context's error, if the cache was not yet ready and
-the context is done). -/
-def getErr (pfx : GoString) (ctx : GoInterface) (rng : KeyRange) (o : OpM) (resp : Loc)
+the context is done); for a served request, `ErrFutureRev` (rpctypes', unwrapped) unless the
+context is done, the revision asked for is one the cluster reached (the cache's other errors:
+`ErrCompacted`, a negative revision), or the request is linearizable (the client's own `Get` and the
+timeout may fail first). -/
+def getErr (γ : Cluster) (pfx : GoString) (ctx : GoInterface) (rng : KeyRange) (o : OpM) (resp : Loc)
     (err : GoInterface) : IProp GF :=
   iprop(⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗
     (⌜getUnsupported o⌝ -∗
       ((∃ e, globalAddr ErrUnsupportedRequest ↦□ e ∗ wrapsErr err e) ∨ Context.ctxDone ctx)) ∗
     (⌜¬ getUnsupported o ∧ ¬ rangeOk pfx rng⌝ -∗
-      (globalAddr ErrKeyRangeInvalid ↦□ err ∨ Context.ctxDone ctx)))
+      (globalAddr ErrKeyRangeInvalid ↦□ err ∨ Context.ctxDone ctx)) ∗
+    (⌜¬ getUnsupported o ∧ rangeOk pfx rng⌝ -∗
+      (⌜err = errVal .futureRev⌝ ∨ Context.ctxDone ctx ∨
+       (∃ σ : State, etcdLb γ σ ∗ ⌜sint.Z o.rev ≤ σ.kv.rev⌝) ∨ ⌜o.serializable = false⌝)))
 
 /-- **The `KeyPredicate` closure `f` decides `P`** on the key a read-only slice holds (persistent;
 `ExactKey`, `FromKey`, `Range`, `KeyPredForRange`'s results). -/

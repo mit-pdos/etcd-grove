@@ -10,24 +10,30 @@
 // NewKV the permission for the protocol's steps under the prefix (protoUpd) and keeps its
 // invariant stable under them (its keys outside the prefix, attached to none of who's leases);
 // keys named "owned" are written by no other principal and by no call of this program still in
-// flight. Contexts carry the client's principal (ctxPrin).
+// flight. Contexts carry the client's principal (ctxPrin). A key written through a leasing KV
+// is marked first (lkvClean_mark: the program gives up its lkvClean for it); a key never marked
+// is read through the cache as W0's serializable read. The proxy's snippets model auth disabled,
+// or one principal (its requests carry each requester's token: req/go_etcd_io_etcd_client_v3.md).
 package leasing
 
 import (
 	"context"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/concurrency"
 	"go.etcd.io/etcd/client/v3/leasing"
 )
 
 // REQ leasing/newkv-proxy: NewKV with no session options returns a KV that serves the client's
 // KV API; its close function and error may be ignored.
 // Users: server/etcdmain/grpc_proxy.go:488.
-// Assumes: the common assumptions; pfx is the program's lease prefix.
-// Specs: NewKV.spec (sessOptsOk_nil), lkvAt_methods (LKV.GetTriple).
+// Assumes: the common assumptions, the client's interface fields writable (clientMut, as the
+// proxy's); pfx is the program's lease prefix, non-empty.
+// Specs: clientMut_split (W0: the KV field kept writable, clientRest for good), NewKV.spec (its KV
+// field read and given back; no options: sessOptsAt of nil), lkvAt_methods (LKV.GetTriple).
 func ReqNewKVProxy(ctx context.Context, cli *clientv3.Client, pfx, k string) {
 	kv, _, _ := leasing.NewKV(cli, pfx)
-	cli.KV = kv // the proxy serves this KV from now on (a W0 req: clientMut with a weaker KV contract)
+	cli.KV = kv // the proxy serves this KV from now on
 	if _, err := kv.Get(ctx, k); err != nil {
 		return
 	}
@@ -36,9 +42,22 @@ func ReqNewKVProxy(ctx context.Context, cli *clientv3.Client, pfx, k string) {
 // REQ leasing/newkv-close: the close function returns once no call is running or to come.
 // Users: tests/integration/clientv3/lease/leasing_test.go (defer closeLKV()).
 // Assumes: the common assumptions.
-// Specs: NewKV.spec, closeFnAt_call (with lkvOpen γL 1), lkvOpen_split.
+// Specs: NewKV.spec (isClient_KV, isClient_rest), closeFnAt_call (with lkvOpen γL 1), lkvOpen_split.
 func ReqNewKVClose(ctx context.Context, cli *clientv3.Client, pfx, k string) {
 	lkv, closeLKV, err := leasing.NewKV(cli, pfx)
+	if err != nil {
+		return
+	}
+	_, _ = lkv.Get(ctx, k)
+	closeLKV()
+}
+
+// REQ leasing/newkv-options: NewKV with session options (a TTL).
+// Users: tests/integration/clientv3/lease/leasing_test.go:1677, :1749 (WithTTL(1)).
+// Assumes: the common assumptions; pfx non-empty.
+// Specs: concurrency.WithTTL.spec (1d: sessOptsAt), NewKV.spec, closeFnAt_call.
+func ReqNewKVWithTTL(ctx context.Context, cli *clientv3.Client, pfx, k string) {
+	lkv, closeLKV, err := leasing.NewKV(cli, pfx, concurrency.WithTTL(1))
 	if err != nil {
 		return
 	}

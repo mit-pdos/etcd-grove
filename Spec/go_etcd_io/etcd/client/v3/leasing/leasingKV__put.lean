@@ -31,9 +31,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 def leasingKV.put.spec : Prop :=
   ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
     (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ opAt op o ∗ ⌜o.t = tPut⌝ ∗ threadTok ∗
-      □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), ⌜LStep pfx who (.put o.putReq) σ σ' r⌝ ∗ etcdState γ σ',
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ opAt op o ∗ ⌜o.t = tPut⌝ ∗
+      lkvMarks γL (reqWrites (.put o.putReq)) ∗ threadTok ∗ □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx who (.put o.putReq) σ σ' r ∗ etcdState γ σ',
            COMM LQ Q σ σ' r }> }}
     (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"put")) (Val #ctx)) (Val #op))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗

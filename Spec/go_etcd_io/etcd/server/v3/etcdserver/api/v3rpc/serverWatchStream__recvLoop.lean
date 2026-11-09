@@ -70,7 +70,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`sws.recvLoop()`**: answers each request it receives (through the control channel and the
 mvcc stream), until the stream fails or the run closes; gives back its share. -/
 def serverWatchStream.recvLoop.spec : Prop :=
-  ∀ (sws : Loc) (γ : Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames)
+  ∀ (sws : Loc) (γ : EtcdModel.Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames)
     (rs : List WireWatchReq),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       swsAt sws γ who st g ∗ srvWatchRecv st g rs ∗ swsRecver sws rs ∗ threadTok }}

@@ -14,9 +14,8 @@ import (
 // Users: server/etcdserver/api/v3election/election.go:39-60 (Campaign; Key, Rev, Header, Lease
 // returned), etcd's tests (election_test.go).
 // Assumes: the caller's invariant: keys under pfx+"/" with this session's lease are written only
-// through this election's lent permission (its token P, which the caller holds between calls),
-// and the lease does not expire during the snippet (EnvCfg.leaseExpiry = false), else a Get may
-// see the key re-created by a later Campaign.
+// through this election's lent permission (its token P, which the caller holds between calls; a
+// lease expiry deletes the key, and a re-creation has a later create revision).
 // Specs: NewSession.spec, NewElection.spec, Election.Campaign.spec, Election.Key.spec,
 // Election.Rev.spec, Election.Header.spec, Election.Proclaim.spec, Election.Resign.spec,
 // Client.Get.spec.

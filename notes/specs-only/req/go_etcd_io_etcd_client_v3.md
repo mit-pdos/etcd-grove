@@ -324,3 +324,86 @@ its `KV` contract. The promoted `Client.{Get,...}` specs still need `isClient` (
 * **To 1f (item 1)**: `Watch` returns a non-`nil` channel (`⌜ch ≠ null⌝` in `Watcher.WatchTriple`).
 * **To 1g (item 2)**: `watchRespAt_persist` (to `watchRespRO`, persistent: header and events at
   `DFrac.discard`) and `eventOwn_persist`.
+
+## from 2b (to 1b: a correction of `wireStep`)
+
+Batch 2b (the member's watch handler, `v3rpc/watch.go`) states its contract as 1b's wire protocol,
+`srvWireStep` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`): `wireStep`
+with **one correction**, which 2b needs 1b to adopt in `wireStep` itself (then `srvWireStep` is
+`wireStep`, and 2a's boundary can carry a sent response's facts to the client's `Recv`).
+
+**The id `-1` case is false of the member.** `wireStep` says a progress notification of id `-1` at
+`P` is a progress of *every* registration of the client's state `st`. A client that cancels a watch
+`W` the member has not caught up with (an unsynced watcher, events below `P` not yet sent), then
+requests progress, can receive the progress at `P` before `W`'s cancel response: the member's
+`recvLoop` runs mvcc's `Cancel(W)` (so `RequestProgressAll` no longer counts `W`) and queues the
+cancel response on the control channel; the progress goes through mvcc's channel; `sendLoop`'s
+`select` may take the progress first; `W`'s missing events are never sent. `W` is still in the
+client's `st.regs` (its cancel response has not arrived), so the progress's claim about `W` is false.
+(Found by code reading: `watch.go:374-402` and `:514-546`; no test written.)
+
+**The correction**: in the id `-1` case, a registration `r` whose cancel request the member had
+read (`WireWatchReq.cancel r.1 ∈ ss`) is exempt and keeps its position:
+
+```lean
+(∀ r ∈ st.regs, WireWatchReq.cancel r.1 ∉ ss →
+  ∀ c, r.2.2.done = some c → c ≤ P ∧ watchEvents r.2.1 σ.kv (c + 1) P = []) ∧
+st' = { st with
+  regs := st.regs.map (fun r => if WireWatchReq.cancel r.1 ∈ ss then r
+                                else (r.1, r.2.1, { r.2.2 with done := r.2.2.done.map (fun _ => P) })),
+  frag := none }
+```
+
+**What it costs the client: nothing observable.** `run` sends a watch's cancel only after
+`closeSubstream` removed it from `w.substreams` (`watch.go:695-715`), and for a response of an
+unknown id (`:663`, no substream); `broadcastResponse` sends a progress only to `w.substreams`
+(`:756`). So the exempt registrations are never delivered the progress; 1b's `run` sketch must use
+that (a registration whose cancel was sent has no substream). Used by 2b's `sendLoop` sketch (the
+progress of id `-1` covers the registrations live when mvcc produced it; one canceled before then
+had its cancel request received).
+
+Also (no change asked): 2b's sketches meet 1b's round-1 changes (`WireSt.frag` with its id; a
+registration from `0` at `WatchPos.init 0 H`, `H` the `Created` header's revision: the member
+registers at `R` and reads `H = Rev()` after, `R ≤ H`, its events from `R + 1`).
+
+## from 1d (round 1)
+
+Updates to "from 1d": item 3 (non-decreasing watch headers) is **withdrawn** (1d's `observeAt_recv`
+no longer orders headers: false after a reconnect to a lagging member); item 5 is met by W0's
+`callErr_errorsNew` (1d adds `concErrVal_notCanceled`). Item 1 is restated, and a new need:
+
+1. **(1c, W0) `Client.Ctx()` gives a context of the client's own principal**: under `isClient c γ
+   who` (or `clientRest c γ who`), `ctx` with `Context.ctxOk ctx ∗ ctxPrin ctx who'` for a principal
+   `who'` with `isClient c γ who'` (for an ordinary client `who' = who`). 1d's cleanups run on it:
+   `m.Unlock(client.Ctx())` (`mutex.go:92,99`), `e.Resign(client.Ctx())` (`election.go:98`),
+   `lockerMutex`; `NewSession`/`NewSTM` without a context option.
+   Used by: `Mutex.Lock.spec`, `Election.Campaign.spec`, `lockerMutex.*.spec`, `NewSession.spec`,
+   `NewSTM.spec`.
+2. **(W0, 2e) The in-process client's principal is per request** (the completeness review's C5):
+   v3lock and v3election use `v3client.New(s)`, whose KV and Lease call the server's handlers with
+   the caller's context, so each request runs as the principal of that context's incoming metadata
+   (`server/auth/store.go`'s `AuthInfoFromCtx`), not as one principal fixed by the client. 1d's
+   specs now take the principal per call: each mutex/election method takes `isClient c γ who` and
+   `ctxPrin ctx who` for its context; the session names only its client (`isSession s c γ id`).
+   Wanted from W0: for the in-process client, `isClient c γ who` for **every** `who` (or a
+   `clientRest`-style handle with a per-call `who`), and `ctxPrin rpcCtx who` for the RPC context
+   of a request authenticated as `who` (2e/2a: the server side establishes it). The cleanups on
+   `client.Ctx()` then run as the in-process client's own principal (none, with auth on: refused,
+   `nonissues/etcd-v3lock-auth-cleanup-unauthenticated.md`); 1d's specs only need their effect to be
+   within the permission, which a refusal is.
+   ```go
+   s, err := concurrency.NewSession(ls.c, concurrency.WithLease(clientv3.LeaseID(req.Lease)),
+       concurrency.WithContext(ctx))       // ctx: the Lock RPC's context
+   m := concurrency.NewMutex(s, string(req.Name)); err = m.Lock(ctx)
+   ```
+   Used by: every 1d spec at v3lock's and v3election's call sites.
+
+## from 1e (round 1)
+
+5. **(W0) A per-request principal.** The gRPC proxy sends each request with its requester's token
+   (`AuthUnaryClientInterceptor`, `server/etcdmain/grpc_proxy.go:345`), so with auth on its calls run
+   as many principals through one client. `kvAt v γ who` and every `KV.*Triple` fix `who` (with
+   `ctxPrin ctx who`); the leasing contract follows them. Needed for the proxy with auth: the
+   principal taken per call (`ctxPrin ctx who'` for any `who'`), the handle not naming one. Until
+   then 1e's snippets model the proxy with auth disabled. Related finding:
+   `nonissues/grpcproxy-leasing-auth-cached-read.md`. Used by: every `LKV.*Triple`.

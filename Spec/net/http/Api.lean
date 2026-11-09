@@ -192,11 +192,11 @@ header map owned (`Header.Set` on `req.Header`), its body reader `bd` (`nil`: no
 opaque reqOwn (r : Loc) (R : HReq) (bd : GoInterface) : IProp GF := iprop(True)
 
 /-- **An owned header map** `hm` (an `http.Header`) holding `hs`. Exclusive. -/
-opaque hdrMap (hm : GoInterface) (hs : List (GoString × GoString)) : IProp GF := iprop(True)
+opaque hdrMap (hm : GoMap) (hs : List (GoString × GoString)) : IProp GF := iprop(True)
 
 /-- **A read-only header map** `hm` holding `hs` (a received request's, a client's response's, a
 sent request's). Persistent. -/
-opaque hdrRO (hm : GoInterface) (hs : List (GoString × GoString)) : IProp GF := iprop(True)
+opaque hdrRO (hm : GoMap) (hs : List (GoString × GoString)) : IProp GF := iprop(True)
 
 /-- **A sent request** `r` (after `RoundTrip`), read-only: its line and headers `R` (`r.URL`,
 `r.Header` readable for good; Go's `RoundTrip` does not modify it). Persistent. -/
@@ -303,6 +303,9 @@ def handlerOk (h : GoInterface) (P : Proto GF) (pfx : GoString) : IProp GF :=
 URL from `types.NewURLs`), so its `String()` parses again. -/
 opaque urlOk (u : _root_.Perennial.net.url.URL) : Prop := True
 
+/-- **`u.String()`** (pure, opaque: `url.URL.String`'s result). -/
+opaque urlStr (u : _root_.Perennial.net.url.URL) : GoString := []
+
 end vocab
 
 /-! ## Laws (assumed) -/
@@ -366,7 +369,7 @@ def respW_header.spec : Prop :=
   w = interface.ok i →
   {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ respW w R τ P c hs bs }}
     (App (Val #(methods i.ty go!"Header" i.v)) (Val #()))
-  {{ (hm : GoInterface), RET #hm;
+  {{ (hm : GoMap), RET #hm;
       (⌜c = none⌝ ∗ hdrMap hm hs ∗
         (∀ hs', hdrMap hm hs' -∗ respW w R τ P none hs' bs)) ∨
       (⌜c ≠ none⌝ ∗ respW w R τ P c hs bs ∗ ∃ hs', hdrMap hm hs') }}
@@ -410,6 +413,43 @@ def respW_flusher.spec : Prop :=
   ∀ (w : GoInterface) R τ (P : Proto GF) c hs bs,
   respW (GF := GF) w R τ P c hs bs ⊢ ∃ i : GoInterfaceOk, ⌜w = interface.ok i ∧
     go.typeSetContains i.ty _root_.Perennial.net.http.Flusher.ty = true⌝
+
+/-- **A request being built: its `Header` field** (a load of `r.Header` reads `hm`, whose `Set`s
+update the request's headers). -/
+def reqOwn_header.spec : Prop :=
+  ∀ (r : Loc) (R : HReq) (bd : GoInterface),
+    reqOwn (GF := GF) r R bd ⊢ ∃ hm : GoMap,
+      structFieldRef _root_.Perennial.net.http.Request go!"Header" r ↦□ hm ∗ hdrMap hm R.hdr ∗
+      (∀ hs, hdrMap hm hs -∗ reqOwn r { R with hdr := hs } bd)
+
+/-- **A received request's fields**, read-only: `Method`, `URL` (its `Path`), `Header`, `Body`. -/
+def srvReq_fields.spec : Prop :=
+  ∀ (r : Loc) (R : HReq) (rd : GoInterface),
+    srvReq (GF := GF) r R rd ⊢
+      structFieldRef _root_.Perennial.net.http.Request go!"Method" r ↦□ R.meth ∗
+      (∃ u : Loc, structFieldRef _root_.Perennial.net.http.Request go!"URL" r ↦□ u ∗
+        structFieldRef _root_.Perennial.net.url.URL go!"Path" u ↦□ R.path) ∗
+      (∃ hm : GoMap, structFieldRef _root_.Perennial.net.http.Request go!"Header" r ↦□ hm ∗
+        hdrRO hm R.hdr) ∗
+      structFieldRef _root_.Perennial.net.http.Request go!"Body" r ↦□ rd ∗
+      (∃ a : GoString, structFieldRef _root_.Perennial.net.http.Request go!"RemoteAddr" r ↦□ a)
+
+/-- **A client's response's fields**, read-only: `StatusCode`, `Header`, `Body`. -/
+def respAt_fields.spec : Prop :=
+  ∀ (resp : Loc) (st : w64) hc (rd : GoInterface),
+    respAt (GF := GF) resp st hc rd ⊢
+      structFieldRef _root_.Perennial.net.http.Response go!"StatusCode" resp ↦□ st ∗
+      (∃ hm : GoMap, structFieldRef _root_.Perennial.net.http.Response go!"Header" resp ↦□ hm ∗
+        hdrRO hm hc) ∗
+      structFieldRef _root_.Perennial.net.http.Response go!"Body" resp ↦□ rd
+
+/-- **A sent request's `URL` and `Header`**, read-only. -/
+def reqRO_fields.spec : Prop :=
+  ∀ (r : Loc) (R : HReq),
+    reqRO (GF := GF) r R ⊢
+      (∃ u : Loc, structFieldRef _root_.Perennial.net.http.Request go!"URL" r ↦□ u) ∗
+      (∃ hm : GoMap, structFieldRef _root_.Perennial.net.http.Request go!"Header" r ↦□ hm ∗
+        hdrRO hm R.hdr)
 
 /-- **A built mux serves its patterns' handlers** (`ServeMux.ServeHTTP`): a request under `pfx` is
 routed to the handler of the longest pattern under which its path is, or answered `404`/`301` by

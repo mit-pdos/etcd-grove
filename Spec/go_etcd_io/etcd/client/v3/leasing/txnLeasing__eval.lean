@@ -1,8 +1,8 @@
 /-
 `(*txnLeasing).eval` (`txn.go`): answers the transaction from the cache if every comparison's key
-and the chosen branch's gets are cached. Proof sketch: `gatherOps` (flat), `NotifyOps` and the waits
-(the context's `Done`), read lock, `leaseCache.evalCmp`, `evalOps` (`cachedRespOk` of each with an
-`etcdLb`, the latest of them: `etcdLb_ord`), `copyHeader` of the cache's header (reached).
+and the chosen branch's gets are cached. Proof sketch: `gatherOps` (`opsCapOk`, in `ltxnAt`), `NotifyOps` and the waits
+(the context's `Done`), read lock, `leaseCache.evalCmp`, `evalOps` (`entryOk` of each with an `etcdLb`, the
+latest of them: `etcdLb_ord`; `CachedRange1` of each as in `get`, the marks joined), `copyHeader` of the cache's header (reached).
 Changes: from `specs-ref`'s `txnLeasing__eval.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
 -/
 module
@@ -30,13 +30,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 /-- `eval()`: nothing (`nil`, `nil`: not answerable from the cache), the context's error, or a
 cached answer (`CachedAns` at a state reached). -/
 def txnLeasing.eval.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (ctx : GoInterface) (st : TxnSt),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx ctx st ∗ threadTok }}
+  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (st : TxnSt),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ threadTok }}
     (App (Val (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"eval")) (Val #()))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx ctx st ∗ threadTok ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ threadTok ∗
       (⌜resp = null ∧ err = GoInterface.nil⌝ ∨ ⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∨
-       (∃ (σ0 : State) (res : Resp), etcdLb γ σ0 ∗ ⌜CachedAns (.txn st.req) σ0 res⌝ ∗
-          txnReplyL res resp err)) }}
+       (∃ (σ0 : State) (res : Resp) (M : Key → Prop), etcdLb γ σ0 ∗ lkvMarks γL M ∗
+          ⌜CachedAns who M (.txn st.req) σ0 res⌝ ∗ txnReplyL res resp err)) }}
 
 end spec
 

@@ -25,7 +25,7 @@ request is `answered γ k id res` (persistent). So **the history is the committe
 snapshot, a restore and a restart continue the same `histAt`; the member's own position in it is
 its applied index.
 
-**A member.** `isServer s γ id` (persistent): `s` is member `id`'s `*EtcdServer` (its fields after
+**A member.** `srvNode s γ id` (persistent): `s` is member `id`'s `*EtcdServer` (its fields after
 `start`, their invariants). `srvApplied s γ k` (persistent): the member has applied the committed
 log's first `k` entries, so its KV store (and lessor, auth store, membership) is at least at
 `histAt γ k` (2c's linearizable reads wait for it: `applyWait`). `srvRunTok s γ id` (exclusive):
@@ -67,7 +67,7 @@ in it on a quorum.
   with `committedOps γ.raft ops`, `⌜|hist| = |committed log|⌝`, the answers (`answered`, a persistent
   map from index to `(id, res)`), the cluster's half of `etcdState γ.etcd (last hist)`, raft's
   `confDecisions`/`snapsMade`/`readCtxs`, each made snapshot's database image (`snapImage`)).
-* `isServer s γ id`: the server's read-only fields (`s.r`, `s.w`, `s.applyWait`, `s.consistIndex`,
+* `srvNode s γ id`: the server's read-only fields (`s.r`, `s.w`, `s.applyWait`, `s.consistIndex`,
   `s.cluster`, `s.kv`, `s.lessor`, `s.authStore`, `s.alarmStore`, `s.beHooks`, `s.snapshotter`,
   `s.Cfg`, the channels) as persistent points-to's, the invariants of the atomics (`appliedIndex`
   with `srvApplied` of its value, `committedIndex` with a committed prefix at least that long,
@@ -147,11 +147,15 @@ structure ApplyBatch where
   snap : Option Raft.Snapshot
   term : w64
 
-/-- The delivered log's length after the batch. -/
-def ApplyBatch.last (B : ApplyBatch) : Nat :=
+/-- The applied index once the batch's snapshot (if any) is installed. -/
+def ApplyBatch.base (B : ApplyBatch) : Nat :=
   match B.snap with
   | some s => uint.nat s.index
-  | none => B.prev + B.ents.length
+  | none => B.prev
+
+/-- The delivered log's length after the batch (raft hands out no committed entries with a
+snapshot, R1's `BatchOk`). -/
+def ApplyBatch.last (B : ApplyBatch) : Nat := B.base + B.ents.length
 
 /-- The `ShouldApplyV3` of an entry at index `i` for a consistent index `ci`: whether its effects go
 to the backend (`apply`, `server.go:1934`). -/
@@ -182,7 +186,7 @@ opaque snapImage (γ : Names) (s : Raft.Snapshot) : IProp GF := iprop(True)
 /-! ### A member -/
 
 /-- **`s` is member `id`'s server in cluster `γ`** (after `start`). Persistent. -/
-opaque isServer (s : Loc) (γ : Names) (id : w64) : IProp GF := iprop(True)
+opaque srvNode (s : Loc) (γ : Names) (id : w64) : IProp GF := iprop(True)
 
 /-- **Member `s` has applied the committed log's first `k` entries.** Persistent. -/
 opaque srvApplied (s : Loc) (γ : Names) (k : Nat) : IProp GF := iprop(True)
@@ -263,6 +267,10 @@ opaque nodeAdvanced (r : Loc) (k : Nat) : IProp GF := iprop(True)
 Persistent. -/
 opaque nodeSnapLb (r : Loc) (k : Nat) : IProp GF := iprop(True)
 
+/-- `rac` is a batch's `raftAdvancedC`: closed once raft has advanced past the delivered log's first
+`k` entries; a receive gives `nodeAdvanced r k`. Persistent. -/
+opaque advancedAt (r rac : Loc) (k : Nat) : IProp GF := iprop(True)
+
 /-- `ch` is driver `r`'s `applyc`. Persistent. -/
 opaque rnApplyc (r : Loc) (ch : Loc) : IProp GF := iprop(True)
 
@@ -271,9 +279,9 @@ opaque rnReadStateC (r : Loc) (ch : Loc) : IProp GF := iprop(True)
 
 /-! ### Values exchanged with other packages (provisional: their batches' vocabulary) -/
 
-/-- (provisional, raftpb's, 3h) **`p` points to a committed entry `e`**, read-only for good (an
+/-- (provisional, raftpb's, 3h) **`p` points to entry `e` at index `k`**, read-only for good (an
 element of R1's `entriesRO`). Persistent. -/
-opaque entryAt (p : Loc) (e : Raft.LogEntry) : IProp GF := iprop(True)
+opaque entryAt (p : Loc) (k : Nat) (e : Raft.LogEntry) : IProp GF := iprop(True)
 
 /-- (provisional, the backend's, 4a) **`bs` is a backend snapshot** (`backend.Snapshot`) of the state
 machine at a committed point `k`, with consistent index `k`. Exclusive (its `Close`). -/
@@ -313,7 +321,7 @@ def persistent.spec : Prop :=
   (∀ γ k σ, Persistent (histAt (GF := GF) γ k σ)) ∧
   (∀ γ k id res, Persistent (answered (GF := GF) γ k id res)) ∧
   (∀ γ s, Persistent (snapImage (GF := GF) γ s)) ∧
-  (∀ s γ id, Persistent (isServer (GF := GF) s γ id)) ∧
+  (∀ s γ id, Persistent (srvNode (GF := GF) s γ id)) ∧
   (∀ s γ k, Persistent (srvApplied (GF := GF) s γ k)) ∧
   (∀ r γ id n, Persistent (isRaftNode (GF := GF) r γ id n)) ∧
   (∀ rh s γ, Persistent (readyHandlerOk (GF := GF) rh s γ)) ∧
@@ -321,7 +329,8 @@ def persistent.spec : Prop :=
   (∀ r k, Persistent (nodeSnapLb (GF := GF) r k)) ∧
   (∀ r ch, Persistent (rnApplyc (GF := GF) r ch)) ∧
   (∀ r ch, Persistent (rnReadStateC (GF := GF) r ch)) ∧
-  (∀ p e, Persistent (entryAt (GF := GF) p e)) ∧
+  (∀ p k e, Persistent (entryAt (GF := GF) p k e)) ∧
+  (∀ r rac k, Persistent (advancedAt (GF := GF) r rac k)) ∧
   (∀ sl ids, Persistent (expiredLeases (GF := GF) sl ids))
 
 def timeless.spec : Prop :=
@@ -359,6 +368,15 @@ def answered_agree.spec : Prop :=
   ∀ γ k (id id' : w64) (res res' : EtcdModel.Resp),
     answered (GF := GF) γ k id res ∗ answered γ k id' res' ⊢ iprop(⌜id = id' ∧ res = res'⌝)
 
+/-- **Only etcd's own entries are committed**: normal entries and legacy conf changes (etcd proposes
+no `ConfChangeV2`, so raft never enters a joint configuration and appends no empty
+`EntryConfChangeV2`: R1's `committedLb_emptyV2`). The cluster's invariant: every proposal update it
+fires is one of etcd's (2c's `processInternalRaftRequestOnce`, `configure`). -/
+def committed_types.spec : Prop :=
+  ∀ γ (l : List Raft.LogEntry) (E : CoPset), ↑EtcdModel.etcdN ⊆ E →
+    Raft.committedLb (GF := GF) γ.raft l ⊢
+      |={E}=> ⌜∀ e ∈ l, e.type = Raft.EntryNormal ∨ e.type = Raft.EntryConfChange⌝
+
 /-- A snapshot's image is at a committed point (its index has a state). -/
 def snapImage_hist.spec : Prop :=
   ∀ γ (s : Raft.Snapshot), snapImage (GF := GF) γ s ⊢ ∃ σ, histAt γ (uint.nat s.index) σ
@@ -375,8 +393,8 @@ def srvApplied_hist.spec : Prop :=
   ∀ s γ (k : Nat), srvApplied (GF := GF) s γ k ⊢ ∃ σ, histAt γ k σ
 
 /-- The server's raft node driver is at `s.r`. -/
-def isServer_raftNode.spec : Prop :=
-  ∀ s γ id, isServer (GF := GF) s γ id ⊢
+def srvNode_raftNode.spec : Prop :=
+  ∀ s γ id, srvNode (GF := GF) s γ id ⊢
     ∃ n, isRaftNode (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) γ id n
 
 /-- The driver's node is a node of the raft cluster. -/
@@ -410,7 +428,7 @@ def readStateC_recv.spec : Prop :=
     rnReadStateC (GF := GF) r ch ∗ isRaftNode r γ id n ⊢
       ∃ (_ : Pos.Countable go_etcd_io.raft.v3.ReadState) (γc : ChanNames),
         isChan ch γc go_etcd_io.raft.v3.ReadState ∗
-        (£ 1 ∗ £ 1 -∗ (▷ ∀ rs, (∃ c, ownSlice rs.RequestCtx' c DFrac.discard ∗
+        (£ 1 ∗ £ 1 -∗ (▷ ∀ rs, (∃ c, rs.RequestCtx' ↦*□ c ∗
             Raft.readState γ.raft c rs.Index') -∗ Φ rs true) -∗
           recvAu γc go_etcd_io.raft.v3.ReadState Φ)
 
