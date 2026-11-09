@@ -3312,6 +3312,66 @@ theorem simRun_bfStepDown (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
   rw [hline]
   exact stateMatches_node C s _ e id xs hR hs hpre hterm' hcommit' hrl hlog (hxs.trans hin) bt bc bl _ rfl
     (by simp [Etcdraft.State.becomeFollowerOfTerm, Etcdraft.State.upd]; exact List.contains_iff_mem.1 hcontains)
+
+/-! ### Local effects (testing `LineEffect`, the Draft's) -/
+
+/-- **A heartbeat send's local effect**: the leader's server unchanged, the heartbeat pending. -/
+theorem lineEffect_heartbeat (C : List w64) (ln0 : Etcdraft.Line) (e : TraceEv) (id : w64) (s : NState)
+    (cfg : CfgM) (m : Msg) (a : Etcdraft.Server) (P : List Etcdraft.Msg)
+    (hev : SendEvOf (W64 9) id s cfg m e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hdC : m.dst ∈ C)
+    (hR : SimServerR C C.length (toPState s) a) (hs : LogShapeOk C.length (toPState s))
+    (hrole : s.role = .leader) (hty : m.ty = .heartbeat) (hsrc : m.src = id) (hdst : m.dst ≠ id)
+    (hterm : m.term = s.term) (hents : m.entries = [])
+    (hcommit : uint.Z m.commit = min (uint.Z (toPState s).commit) (uint.Z (matchOf (toPState s) m.dst)))
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) (bmc : uint.Z m.commit < 2 ^ 63) :
+    LineEffect C ln0 e a P [] a (P ++ [(msgAbs C C.length m).get (by simp [msgAbs, hty])]) [] := by
+  subst hsrc
+  obtain ⟨hname, hnid, hterm', hvote, hcommit', hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, ⟨tm, hmsg, hm⟩, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "SendAppendEntriesRequest" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"SendAppendEntriesRequest" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have htyp : tm.typ = msgTypeStr .heartbeat := by rw [hm.1, hty]
+  have hparse : Etcdraft.parseLine 1 (evConv e) = .ok (msgLine e m.src s.vote m.src m.dst xs) :=
+    parseLine_msg 1 e m.src s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
+      (by rw [htyp]; rfl) (by rw [hname']; decide)
+  have hst : (locSt C a P []).s (idAbs m.src) = a := rfl
+  have hhb := heartbeat_send (locSt C a P []) C C.length (toPState s) m.src m hR (by simp [toPState, hrole, proleRole])
+    hty rfl hdst hdC (by rw [hterm]; rfl) hcommit
+  have hline : (locTrace C ln0 (msgLine e m.src s.vote m.src m.dst xs)).line 2 = msgLine e m.src s.vote m.src m.dst xs := rfl
+  refine ⟨msgLine e m.src s.vote m.src m.dst xs,
+    ⟨(locSt C a P []).send ((msgAbs C C.length m).get (by simp [msgAbs, hty])), 2 + 1, 2⟩, hparse,
+    NextChain.last _ _ ?_ rfl, ?_, ?_, ?_⟩
+  · apply next_of_nonReceive _ ⟨locSt C a P [], 2, 1⟩ _ (by simp) (by simp [locTrace, Etcdraft.Trace.len]) rfl
+      (by rw [hline]; simp [msgLine, evConv, hname']; rfl)
+    apply nonReceive_heartbeat _ _ (idAbs m.src) (idAbs m.dst) _ (by simp [locTrace, Etcdraft.Trace.len])
+    · rw [hline]; simp [msgLine, evConv, hname']
+    · rw [hline]; rfl
+    · rw [hline]; rfl
+    · rw [hline]; simp [msgLine, evConv, hmsg, htyp]; rfl
+    · exact confAbs_nodup C
+    · simp only [locTrace]; rw [mem_confAbs]; exact hC
+    · simp only [locTrace]; rw [mem_confAbs]; exact hdC
+    · exact hhb
+    · unfold Etcdraft.Trace.validateAfterAppendEntries Etcdraft.Trace.validatePostStates
+      rw [hline, Bool.and_eq_true]
+      constructor
+      · have := stateMatches_node C s a e m.src xs hR hs (by rw [hrole]; decide) hterm' hcommit' hrl
+          hlog (hxs.trans hin) bt bc bl (locSt C a P []) hst
+          (by simp only [locSt, simInit]; rw [List.contains_iff_mem, mem_confAbs]; exact hC)
+        unfold Etcdraft.Line.stateMatches at this ⊢
+        simpa [Etcdraft.State.send, msgLine, nodeLine] using this
+      · apply newPending_send
+        have := isAER_heartbeat C C.length e m.src s.vote xs m tm hmsg hm hty hents (by rw [hterm]; exact bt) bmc
+        exact this
+  · rfl
+  · simp [Etcdraft.State.send, locSt, bagOf, List.foldl_append]
+  · rfl
 end TraceSim
 
 end EtcdGrove
