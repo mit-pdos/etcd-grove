@@ -1181,6 +1181,77 @@ theorem simRun_msgApp (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (h
         rw [hsrc] at this ⊢
         exact this
 
+/-! ### Receive lines -/
+
+/-- The message predicate a receive line applies (`receive`'s `isMatch`). -/
+def recvPred (ln : Etcdraft.Line) (m : Etcdraft.Msg) : Bool :=
+  if (or (ln.ev.name == "ReceiveAppendEntriesRequest") (ln.ev.name == "ReceiveSnapshot")) = true then
+    ln.isAppendEntriesRequest m
+  else if (ln.ev.name == "ReceiveAppendEntriesResponse") = true then ln.isAppendEntriesResponse m
+  else if (ln.ev.name == "ReceiveRequestVoteRequest") = true then ln.isRequestVoteRequest m
+  else ln.isRequestVoteResponse m
+
+/-- A receive's successor state: on the next line once the message is consumed. -/
+def recvNext (ts : Etcdraft.TState) (s2 : Etcdraft.State) (m : Etcdraft.Msg) : Etcdraft.TState :=
+  if Etcdraft.oneLessMessage ts.s s2 m then { s := s2, l := ts.l + 1, pl := ts.l }
+  else { s := s2, l := ts.l, pl := ts.l }
+
+/-- `receive`, with its predicate `recvPred` and successor `recvNext`. -/
+theorem receive_eq (t : Etcdraft.Trace) (ts : Etcdraft.TState) :
+    t.receive ts = (if !Etcdraft.isReceiveName (t.line ts.l).ev.name then pure [] else
+      ts.s.messages.domain.foldlM (fun acc m =>
+        if (or (!recvPred (t.line ts.l) m) (!t.validatePreStates ts m.dest)) = true then pure acc
+        else do
+          let succ ← ts.s.receive m
+          pure (acc ++ succ.map (fun s2 => recvNext ts s2 m))) []) := by
+  unfold Etcdraft.Trace.receive
+  simp only [bind, pure]
+  split <;> rfl
+
+/-- **A receive line's successors from one state**: the one message of the network the line
+matches (validated before its first round), received with one successor `s2`. -/
+theorem next_receive (t : Etcdraft.Trace) (ts : Etcdraft.TState) (m : Etcdraft.Msg) (s2 : Etcdraft.State)
+    (hl0 : ts.l ≠ 0) (hl : ts.l ≤ t.len) (hb : t.bootstrap.getD (ts.l - 1) false = false)
+    (hrecv : Etcdraft.isReceiveName (t.line ts.l).ev.name = true)
+    (hnd : ts.s.messages.domain.Nodup) (hm : m ∈ ts.s.messages.domain)
+    (hmatch : recvPred (t.line ts.l) m = true) (hpre : t.validatePreStates ts m.dest = true)
+    (huniq : ∀ m' ∈ ts.s.messages.domain, m' ≠ m →
+      (recvPred (t.line ts.l) m' && t.validatePreStates ts m'.dest) = false)
+    (hrcv : ts.s.receive m = .ok [s2]) :
+    t.next ts = .ok [recvNext ts s2 m] := by
+  -- the non-receive successors: none (a receive name is no other action's)
+  have hnr : t.nonReceive ts = .ok [] := by
+    have hskip : t.skipUnusedLogline ts = false := by
+      unfold Etcdraft.Trace.skipUnusedLogline Etcdraft.Trace.isEvent
+      unfold Etcdraft.isReceiveName at hrecv
+      simp only [Bool.or_eq_true, beq_iff_eq] at hrecv
+      rcases hrecv with (((h | h) | h) | h) | h <;>
+        simp [h, Etcdraft.Trace.isBecomeFollowerInUpdateTermOrReturnToFollower, Etcdraft.Trace.isEvent]
+    unfold Etcdraft.Trace.nonReceive
+    unfold Etcdraft.isReceiveName at hrecv
+    simp only [Bool.or_eq_true, beq_iff_eq] at hrecv
+    rcases hrecv with (((h | h) | h) | h) | h <;> simp [h, hskip, pure, Except.pure, bind, Except.bind]
+  -- the receive successors: the one matching message's
+  have hrv : t.receive ts = .ok [recvNext ts s2 m] := by
+    rw [receive_eq]
+    simp only [hrecv, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+    rw [foldlM_concat _ (fun m' => if m' = m then [recvNext ts s2 m] else [])]
+    · simp only [List.nil_append]
+      congr 1
+      apply flatMap_single _ _ m _ hnd hm (by simp)
+      intro m' _ hne; simp [hne]
+    · intro acc m' hm'
+      by_cases he : m' = m
+      · subst he
+        simp [hmatch, hpre, hrcv, bind, Except.bind, pure, Except.pure]
+      · have hu := huniq m' hm' he
+        rw [Bool.and_eq_false_iff] at hu
+        rcases hu with hu | hu <;> simp [hu, he, pure, Except.pure]
+  have h1 : (decide (ts.l > t.len) || ts.l == 0) = false := by simp; omega
+  unfold Etcdraft.Trace.next
+  simp only [h1, hb, Bool.false_eq_true, ↓reduceIte]
+  simp [hnr, hrv, bind, Except.bind, pure, Except.pure]
+
 end TraceSim
 
 end EtcdGrove
