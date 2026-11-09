@@ -47,7 +47,9 @@ updates are `⊤ \ ↑γ.ns`).
   backed by time receipts). It owns `DB`'s exported fields (`StrictMode`, `NoSync`, `MaxSize`,
   `AllocSize`, ...): a client must not write them after `Open` (no client holds their
   points-to; etcd writes none).
-* **`boltOpened db γ`** (exclusive): the right to close `db` and get `boltClosed γ` back.
+* **`boltOpened db γ`** (exclusive): the right to close `db` and get `boltClosed γ` back; while it
+  is held, `db` stays open. **`dbClosed db`** (persistent): `db` was closed (a later `Close` does
+  nothing).
 * **`boltTx tx γ q T`** (fractional): `tx` is a live transaction of `γ` with the view `T`
   (`TxView`). A read transaction's whole holds the reader slot its `Begin` took for the caller's
   `threadTok`; a write transaction holds `rwlock`. Read operations take any fraction; a write
@@ -168,6 +170,9 @@ opaque isBolt [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (db : Loc) (γ : Bol
 /-- The right to close `db` (exclusive). -/
 opaque boltOpened [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (db : Loc) (γ : BoltName) :
     IProp GF := iprop(True)
+
+/-- `db` was closed (persistent): a later `Close` does nothing. -/
+opaque dbClosed [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (db : Loc) : IProp GF := iprop(True)
 
 /-- **`tx` is a live transaction of `γ` with the view `T`**, at fraction `q`. -/
 opaque boltTx [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName) (q : Qp)
@@ -296,6 +301,7 @@ def persistent.spec [HasExt osFsExt] : Prop :=
   (∀ db γ ns, Persistent (isBolt (GF := GF) db γ ns)) ∧
   (∀ tx, Persistent (txDone (GF := GF) tx)) ∧
   (∀ tx db, Persistent (txDB (GF := GF) tx db)) ∧
+  (∀ db, Persistent (dbClosed (GF := GF) db)) ∧
   (∀ tx γ b p gs, Persistent (bktH (GF := GF) tx γ b p gs)) ∧
   (∀ tx γ s b, Persistent (txBytes (GF := GF) tx γ s b)) ∧
   (∀ l, Persistent (boltLogger (GF := GF) l)) ∧

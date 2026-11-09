@@ -56,7 +56,8 @@ bundles. What a caller reasons about is the view's **values**: the pure encoding
 
 The alarm and membership backends are translated names only (assumed specs), each a struct over a
 `backend.Backend` that takes the batch lock itself:
-* `alarmBkt be al` (exclusive): **`be`'s `Alarm` bucket holds the alarms `al`** (as a set), as the
+* `alarmBkt be al` (exclusive): **`be`'s `Alarm` bucket holds the alarms `al`** (as a set; `none`:
+  no bucket yet), as the
   bucket's only writer sees it (2e's provisional `beAlarms`).
 * `memberBkts be st` (exclusive): **`be`'s `Members` and `MembersRemoved` buckets hold the view
   `st`** (2e's `ClusterSt`; 2e's provisional `beMembers`).
@@ -64,6 +65,8 @@ Intended realization: 4a's ownership of those buckets (the batch view, equal to 
 outside the writer's sections, since their holder is their only writer) with the records' encodings
 (an alarm: the marshalled `AlarmMember` as the key, an empty value; a member: its id's string ↦ its
 JSON; a removed id ↦ `removed`). Introduced by the backend's opener (2e's `OpenBackend` over 4a).
+* The reads of these two (`GetAllAlarms`, `MustReadMembersFromBackend`) go through `be.ReadTx()`:
+  each takes the caller's `threadTok` for its reader slot (the bounds plan) and gives it back.
 * `applyHook be Pre Q` (provisional, 4a's): `be`'s batch transaction's `LockInsideApply` runs its
   post-lock hook from the caller's `Pre` to `Q` (3c's `beHook` with `Mvcc.hookRun`).
 
@@ -161,6 +164,10 @@ def View.put (V : View) (b : Bkt) (k v : GoString) : View :=
 
 def View.del (V : View) (b : Bkt) (k : GoString) : View :=
   fun b' => if b' = b then (V b).map (·.del k) else V b'
+
+/-- `b`'s entries replaced by `m`. -/
+def View.set (V : View) (b : Bkt) (m : BData) : View :=
+  fun b' => if b' = b then some m else V b'
 
 /-- `UnsafeCreateBucket(b)`: `b` exists (unchanged if it did). -/
 def View.create (V : View) (b : Bkt) : View :=
@@ -265,6 +272,15 @@ opaque userName : Proto.Content → GoString
 /-- (provisional, 3h's `authpb`) **An `authpb.Role` content's name.** -/
 opaque roleName : Proto.Content → GoString
 
+/-- (provisional, 3h's `etcdserverpb`) **An `AlarmMember` content holds the alarm `a`** (its
+member id and type). -/
+opaque alarmMemberIs : Proto.Content → EtcdModel.Alarm → Prop
+
+open Classical in
+/-- An alarm set with `a` (no duplicates). -/
+def alarmsIns (al : List EtcdModel.Alarm) (a : EtcdModel.Alarm) : List EtcdModel.Alarm :=
+  if a ∈ al then al else al ++ [a]
+
 end model
 
 /-! ## Values and resources -/
@@ -300,14 +316,15 @@ def bytesListAt (sl : GoSlice) (l : List GoString) : IProp GF :=
   iprop(∃ ps : List GoSlice, sl ↦*□ ps ∗ [∗list] p; b ∈ ps; l, p ↦*□ b)
 
 /-- **Reading through `tx`** with the caller's view `R V` of its scope `S` (kept; see the header):
-`UnsafeRange` (a range `S` allows, of an existing bucket) and `UnsafeForEach` (of a whole bucket of
+`UnsafeRange` of a single key of the caller's (an empty end), of an existing bucket, and
+`UnsafeForEach` (of a whole bucket of
 `S`, calling `f(k, v)` on its entries in key order, the bytes read-only, until `f` returns an error,
 which it returns). -/
 def txRd (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜tx = GoInterface.ok i⌝ ∗
     (□ ∀ (b : Bkt) (bv : GoInterface) (V : View) (m : BData) (ks es : GoSlice) (k e : GoString)
         (dk de : DFrac) (limit : w64) (Φ : val → IProp GF),
-      bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ S.reads b k e⌝ -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗
+      bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ e = [] ∧ S.has b k⌝ -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗
       ▷ (∀ (kl vl : GoSlice) (l : List (GoString × GoString)),
           R V -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜rangeOf m k e (sint.Z limit) l⌝ -∗
           bytesListAt kl (l.map Prod.fst) -∗ bytesListAt vl (l.map Prod.snd) -∗
@@ -327,6 +344,21 @@ def txRd (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
           ((⌜err = GoInterface.nil⌝ ∗ ∃ l, ⌜entsOf m l⌝ ∗ I l) ∨
            (⌜err ≠ GoInterface.nil⌝ ∗ J err)) -∗ Φ #err) -∗
       WP (App (App (Val #(methods i.ty go!"UnsafeForEach" i.v)) (Val #bv)) (Val #f)) {{ Φ }}))
+
+/-- **Ranges through `tx`** of a whole bucket of the caller's (`UnsafeRange` with an end: a batch
+transaction's, or a read transaction's of a safe-range bucket only: etcd's read transactions panic on
+an interval range of another bucket, `nonissues/etcd-auth-readtx-getallroles-panics.md`). -/
+def txRange (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
+  iprop(∃ i : GoInterfaceOk, ⌜tx = GoInterface.ok i⌝ ∗
+    (□ ∀ (b : Bkt) (bv : GoInterface) (V : View) (m : BData) (ks es : GoSlice) (k e : GoString)
+        (dk de : DFrac) (limit : w64) (Φ : val → IProp GF),
+      bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ S.whole b⌝ -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗
+      ▷ (∀ (kl vl : GoSlice) (l : List (GoString × GoString)),
+          R V -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜rangeOf m k e (sint.Z limit) l⌝ -∗
+          bytesListAt kl (l.map Prod.fst) -∗ bytesListAt vl (l.map Prod.snd) -∗
+          Φ (PairV #kl #vl)) -∗
+      WP (App (App (App (App (Val #(methods i.ty go!"UnsafeRange" i.v)) (Val #bv)) (Val #ks))
+        (Val #es)) (Val #limit)) {{ Φ }}))
 
 /-- **Writing through `tx`** (the batch transaction, its lock held, the caller's view `R V` of its
 scope `S`; see the header): `UnsafePut` (a key of the caller's, of an existing bucket: the bytes
@@ -367,6 +399,15 @@ def rdSect (tx : GoInterface) (P : IProp GF) (R : View → IProp GF) (ok : View 
     ∃ i : GoInterfaceOk, ⌜tx = GoInterface.ok i⌝ ∗
       ∀ V, R V -∗ WP (App (Val #(methods i.ty go!"RUnlock" i.v)) (Val #())) {{ v, ⌜v = #()⌝ ∗ Q V }})
 
+/-- **A write section on the batch transaction `tx`**: `lock()` (`LockInsideApply`,
+`LockOutsideApply`) from `P` gives the caller's view `R V` with `ok V`; `Unlock()` from `R V` gives
+`Q V` (one use each). -/
+def wrSect (tx : GoInterface) (lock : GoString) (P : IProp GF) (R : View → IProp GF)
+    (ok : View → Prop) (Q : View → IProp GF) : IProp GF :=
+  iprop(callOk tx lock P iprop(∃ V, R V ∗ ⌜ok V⌝) ∗
+    ∃ i : GoInterfaceOk, ⌜tx = GoInterface.ok i⌝ ∗
+      ∀ V, R V -∗ WP (App (Val #(methods i.ty go!"Unlock" i.v)) (Val #())) {{ v, ⌜v = #()⌝ ∗ Q V }})
+
 /-- **A `*leasepb.Lease` holding `r`** (owned). -/
 def leaseAt (p : Loc) (r : LeaseRec) : IProp GF :=
   iprop(∃ v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease, p ↦ v ∗
@@ -384,8 +425,8 @@ def recsRes (t : go.GoType) (sl : GoSlice) (l : List GoString) : IProp GF :=
   iprop(⌜l = [] → sl = slice.nil⌝ ∗ ∃ ps : List Loc, sl ↦* ps ∗
     [∗list] p; v ∈ ps; l, ∃ c, Proto.msgAt t p (DFrac.own 1) c ∗ ⌜Proto.encodes t c v⌝)
 
-/-- **`be`'s `Alarm` bucket holds `al`** (exclusive; see the header). -/
-opaque alarmBkt (be : GoInterface) (al : List EtcdModel.Alarm) : IProp GF := iprop(True)
+/-- **`be`'s `Alarm` bucket holds `al`** (`none`: absent; exclusive; see the header). -/
+opaque alarmBkt (be : GoInterface) (al : Option (List EtcdModel.Alarm)) : IProp GF := iprop(True)
 
 /-- **`be`'s member buckets hold the view `st`** (exclusive; see the header). -/
 opaque memberBkts (be : GoInterface) (st : Membership.ClusterSt) : IProp GF := iprop(True)
@@ -417,7 +458,9 @@ def keyNames_init.spec : Prop := ∀ (var name : GoString),
     (go_etcd_io.etcd.server.v3.storage.schema.FinishedCompactKeyName, finKey),
     (go_etcd_io.etcd.server.v3.storage.schema.MetaConfStateName, confStateKey),
     (go_etcd_io.etcd.server.v3.storage.schema.AuthEnabledKeyName, authEnabledKey),
-    (go_etcd_io.etcd.server.v3.storage.schema.AuthRevisionKeyName, authRevKey)] →
+    (go_etcd_io.etcd.server.v3.storage.schema.AuthRevisionKeyName, authRevKey),
+    (go_etcd_io.etcd.server.v3.storage.schema.authEnabled, [W8 1]),
+    (go_etcd_io.etcd.server.v3.storage.schema.authDisabled, [W8 0])] →
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ⊢
     ∃ sl : GoSlice, globalAddr var ↦□ sl ∗ sl ↦*□ name
 
