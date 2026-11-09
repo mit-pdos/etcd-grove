@@ -210,7 +210,8 @@ the node's previous line decides: review round 1's F6): from every share `(cs, P
 each event `E` allows has, for every server `a` the share stands for, an effect into a share in
 phase `Φ'` (review round 1's S2), its pending messages `P'` added. -/
 def PhaseStep (E : TraceEv → Prop) (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
-  ∀ C cs P, Φ C cs P → ∀ e, E e → ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
+  ∀ C cs P, Φ C cs P → ∀ e, E e → gsStr e.name ≠ "BecomeFollower" ∧
+    ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →
     ∃ (i : Etcdraft.ID) (a' : Etcdraft.Server) (P' : List Etcdraft.Msg),
       Φ' C (toC (confAbs C) a') (P ++ P') ∧
       LineEffect C false e i a a' none _root_.id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False)
