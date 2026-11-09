@@ -5,12 +5,14 @@
 theorem traceNodeEvent.wp_proof [package_sem : Assumptions] (wp_traceEvent : traceEvent.spec) :
     traceNodeEvent.spec
   -- `Perennial.EtcdGrove.traceNodeEvent.spec`, unfolded:
-  ∀ (evt : w64) (r : Loc) (tl : GoInterface),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            typedPointsto
-                (structFieldRef raft go!"traceLogger" r) tl
-                DFrac.discard ∗
-              ⌜TraceLoggerOk tl⌝ -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗ WP (((intoVal (functions traceNodeEvent [])) (intoVal evt)) (intoVal r)) {{ Φ }}
+  ∀ (evt : w64) (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+    uint.nat evt < evtNames.length →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              typedPointsto
+                  (structFieldRef raft go!"traceLogger" r) tl
+                  DFrac.discard ∗
+                trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ TraceFire s.gh.tr tl (NodeEvOf evt id s c) Q -∗
+            ▷ (trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q -∗ Φ (intoVal ())) -∗
+              WP (((intoVal (functions traceNodeEvent [])) (intoVal evt)) (intoVal r)) {{ Φ }}

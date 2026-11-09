@@ -291,15 +291,14 @@ end pure
 
 /-! ## The capability -/
 
-section ghost
+section gate
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The simulation's invariant's namespace, beside raft's commit invariant's (`raftLogN`, `raftRegN`). -/
-def simNS (γ : RaftNames) : Namespace := (raftN γ).@"tracesim"
+/-! (Q8 stage 1, slice 2) The event builder's gate and the gate `trOwn`, at any `HasLC`: the hook specs
+state them, and their callers' proofs are at any `HasLC`. -/
 
 /-- **What a hook's caller gives the event builder**, by the cluster's trace mode: untraced, a nil
 logger and `Q`; traced, the logger's contract and, for any event `e` the builder may log (`E e`),
@@ -309,6 +308,202 @@ def TraceFire (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) (Q :
   | none => iprop(⌜TraceLoggerOk tl⌝ ∗ Q)
   | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗ isTraceLogger tn.tr tl ∗ ⌜tl ≠ interface.nil⌝ ∗
       ∀ e, ⌜E e⌝ -∗ AU <{ ∃∃ L, traceAuth tn.tr L }> @ ⊤, ∅ <{ traceAuth tn.tr (L ++ [e]), COMM Q }>)
+
+/-- **What a hook's caller gives for an event that may or may not be logged**: `some E`, as
+`TraceFire`; `none` (a message type the hook does not trace), `Q` (review round 1's S6). -/
+def TraceFireOpt (tr : Option GName) (tl : GoInterface) (oE : Option (TraceEv → Prop)) (Q : IProp GF) :
+    IProp GF :=
+  match oE with
+  | some E => TraceFire tr tl E Q
+  | none => Q
+
+/-- An atomic update's postcondition weakened (Rocq Iris's `atomic_update_wand`, absent from the
+Lean port: `notes/perennial-changes.md`). -/
+theorem aupd_wand_post {TA TB : Std.Tele} {Eo Ei : CoPset} {α : TA.Arg → IProp GF}
+    {β Φ1 Φ2 : TA.Arg → TB.Arg → IProp GF} :
+    iprop(atomic_update Eo Ei α β Φ1 ∗ (∀.. x, ∀.. y, Φ1 x y -∗ Φ2 x y)) ⊢ atomic_update Eo Ei α β Φ2 := by
+  have h := aupd_intro (P := iprop(True))
+    (Q := iprop(atomic_update Eo Ei α β Φ1 ∗ (∀.. x, ∀.. y, Φ1 x y -∗ Φ2 x y))) (α := α) (β := β)
+    (Φ := Φ2) (Eo := Eo) (Ei := Ei) (by
+      iintro ⟨-, ⟨HAU, HW⟩⟩
+      ihave Hacc : atomic_acc Eo Ei α (atomic_update Eo Ei α β Φ1) β Φ1 $$ [HAU]
+      · iapply aupd_aacc; iexact HAU
+      iapply atomic_acc_wand $$ [HW] Hacc
+      isplit
+      · iintro HAU'; iframe
+      · iexact HW)
+  iintro H
+  iapply h
+  isplit
+  · ipureintro; trivial
+  · iexact H
+
+/-- **`TraceFire`'s monotonicity** (review round 2's A10). -/
+theorem traceFire_mono (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) (Q Q' : IProp GF) :
+    iprop((Q -∗ Q') ∗ TraceFire tr tl E Q) ⊢ TraceFire tr tl E Q' := by
+  cases tr with
+  | none =>
+    dsimp only [TraceFire]
+    iintro ⟨HW, %Hok, HQ⟩
+    isplitr; · ipureintro; exact Hok
+    iapply HW $$ HQ
+  | some γd =>
+    dsimp only [TraceFire]
+    iintro ⟨HW, %tn, Hd, Hl, %Hnn, HAU⟩
+    iexists tn
+    iframe Hd Hl
+    isplitr; · ipureintro; exact Hnn
+    iintro %e %HE
+    iapply aupd_wand_post
+    isplitl [HAU]
+    · iapply HAU $$ %e %HE
+    · isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+      iintro %L HQ
+      iapply HW $$ HQ
+
+/-- ... and `TraceFireOpt`'s. -/
+theorem traceFireOpt_mono (tr : Option GName) (tl : GoInterface) (oE : Option (TraceEv → Prop))
+    (Q Q' : IProp GF) :
+    iprop((Q -∗ Q') ∗ TraceFireOpt tr tl oE Q) ⊢ TraceFireOpt tr tl oE Q' := by
+  cases oE with
+  | none => dsimp only [TraceFireOpt]; iintro ⟨HW, H⟩; iapply HW $$ H
+  | some E => dsimp only [TraceFireOpt]; exact traceFire_mono tr tl E Q Q'
+
+/-- **`n` events in a row** (`traceReplicate`'s loop), each `E`'s, the caller's updates nested. -/
+def TraceFireN (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) : Nat → IProp GF → IProp GF
+  | 0, Q => TraceFireOpt tr tl none Q
+  | n + 1, Q => TraceFire tr tl E (TraceFireN tr tl E n Q)
+
+/-- ... and so is the event builder's gate but the nil logger and `Q`. -/
+theorem traceFire_none (tl : GoInterface) (E : TraceEv → Prop) (Q : IProp GF) :
+    TraceFire (GF := GF) none tl E Q ⊣⊢ iprop(⌜TraceLoggerOk tl⌝ ∗ Q) := .rfl
+
+/-! ## Q8 stage 1: one spec per function, for both modes (2026-11-09)
+
+The Draft's capability is already mode-indexed: `trCapB tr …`, `trCap tr …`, `TraceFire tr …`,
+`FxPresT tr …` and `FxPresUT tr …` are `emp`, `⌜TraceLoggerOk tl⌝ ∗ Q`, `True` and `|==> R'` when
+`tr = none` (by their `match`), so a hook-path spec stated with them at `s.gh.tr` is one spec for
+both modes, whose untraced instance is the stage-0 spec. No wrapper over them is needed
+(`notes/decisions.md`, "Q8 stage 1: the capability's gate"). What stage 1 adds is the gate `trOwn`
+on what a hook reads only to build a traced event (raft's state, the message), so that an untraced
+caller, which may hold the struct open (`send`'s queue accessor, `switchToConfig`'s tracker), keeps
+calling the hook as before; and the untraced instances below. -/
+
+/-- **What a hook reads only when traced** (Q8 stage 1): `P` in a traced cluster, nothing in an
+untraced one, whose hooks return at the nil check. A hook-path spec takes raft's state for its
+event under it (`trOwn s.gh.tr (ownRaftPhysCV …)`), and gives it back the same way. -/
+def trOwn (tr : Option GName) (P : IProp GF) : IProp GF :=
+  match tr with
+  | none => iprop(emp)
+  | some _ => P
+
+theorem trOwn_none (P : IProp GF) : trOwn (GF := GF) none P ⊣⊢ iprop(emp) := .rfl
+
+theorem trOwn_some (γd : GName) (P : IProp GF) : trOwn (GF := GF) (some γd) P ⊣⊢ P := .rfl
+
+/-- An untraced caller supplies the gate with nothing. -/
+theorem trOwn_none_intro (P : IProp GF) : ⊢ trOwn (GF := GF) none P := by
+  exact .rfl
+
+/-- The gate is monotone. -/
+theorem trOwn_wand (tr : Option GName) (P P' : IProp GF) :
+    iprop((P -∗ P') ∗ trOwn tr P) ⊢ trOwn tr P' := by
+  cases tr with
+  | none => simp only [trOwn]; iintro ⟨-, H⟩; iexact H
+  | some _ => simp only [trOwn]; iintro ⟨HW, H⟩; iapply HW $$ H
+
+instance trOwn_persistent (tr : Option GName) (P : IProp GF) [Persistent P] :
+    Persistent (trOwn (GF := GF) tr P) := by
+  cases tr <;> simp only [trOwn] <;> infer_instance
+
+/-- (Q8 stage 1, slice 2) An untraced caller, whose node's mode is `none` (`s.gh.tr = none`),
+supplies the gate with nothing ... -/
+theorem trOwn_of_none {tr : Option GName} (h : tr = none) (P : IProp GF) : ⊢ trOwn tr P := by
+  subst h; exact trOwn_none_intro P
+
+/-- ... and the event builder's gate with the nil logger and `Q`. -/
+theorem traceFire_of_none {tr : Option GName} (h : tr = none) (tl : GoInterface) (E : TraceEv → Prop)
+    (Q : IProp GF) : iprop(⌜TraceLoggerOk tl⌝ ∗ Q) ⊢ TraceFire tr tl E Q := by
+  subst h; exact (traceFire_none tl E Q).2
+
+/-- (Q8 stage 1, slice 2) At a nil logger the gate gives `Q` whatever the mode (a traced node's
+logger is never nil): `traceInitState`'s own nil check. -/
+theorem traceFire_nil (tr : Option GName) (E : TraceEv → Prop) (Q : IProp GF) :
+    TraceFire tr interface.nil E Q ⊢ Q := by
+  cases tr with
+  | none => dsimp only [TraceFire]; iintro ⟨-, HQ⟩; iexact HQ
+  | some γd =>
+    dsimp only [TraceFire]
+    iintro ⟨%tn, -, -, %Hnn, -⟩
+    exact absurd rfl Hnn
+
+/-- (Q8 stage 1, slice 2) The gate for fewer events. -/
+theorem traceFire_mono_E (tr : Option GName) (tl : GoInterface) (E E' : TraceEv → Prop) (Q : IProp GF)
+    (h : ∀ e, E' e → E e) : TraceFire tr tl E Q ⊢ TraceFire tr tl E' Q := by
+  cases tr with
+  | none => exact .rfl
+  | some γd =>
+    dsimp only [TraceFire]
+    iintro ⟨%tn, Hd, Hl, %Hnn, HAU⟩
+    iexists tn
+    iframe Hd Hl
+    isplitr
+    · ipureintro; exact Hnn
+    iintro %e %He
+    iapply HAU $$ %e []
+    ipureintro; exact h e He
+
+/-- (Q8 stage 1, slice 2) `n` untraced events: the nil logger and `Q`. -/
+theorem traceFireN_of_none {tr : Option GName} (h : tr = none) (tl : GoInterface) (E : TraceEv → Prop)
+    (Hok : TraceLoggerOk tl) (Q : IProp GF) : ∀ n, Q ⊢ TraceFireN tr tl E n Q
+  | 0 => by simp only [TraceFireN, TraceFireOpt]; exact .rfl
+  | n + 1 => by
+    simp only [TraceFireN]
+    iintro HQ
+    iapply traceFire_of_none h
+    isplitr
+    · ipureintro; exact Hok
+    iapply traceFireN_of_none h tl E Hok Q n $$ HQ
+
+/-- (Q8 stage 1, slice 2) What a caller holds whole, put under the gate and taken back: the Draft's
+traced statements (which take raft's state in both modes) from the gated specs. -/
+theorem trOwn_split (tr : Option GName) (P : IProp GF) : P ⊢ trOwn tr P ∗ (trOwn tr P -∗ P) := by
+  cases tr with
+  | none => simp only [trOwn]; iintro HP; isplitr; · iempintro
+            iintro -; iexact HP
+  | some _ => simp only [trOwn]; iintro HP; iframe HP; iintro H; iexact H
+
+end gate
+
+set_option hygiene false in
+/-- (Q8 stage 1, slice 2) An untraced call of a node-event hook (`traceBecome*`, `traceCommit`,
+`traceReady`: `X.spec`'s `c r id s tl Q`) where `Hphys : ownRaftPhysCV c V r id _` is held whole and
+the caller's state `s` is untraced (`tr_none`): the logger field and its contract read from it, the
+gate `trOwn` and the event builder's gate `TraceFire` supplied at the nil logger (`Q := True`). The
+hook's spec is instantiated at the caller's `c r id s` (any state of the node's mode will do, the
+gate being `emp`). -/
+macro "wp_node_hookC " h:term:max : tactic => `(tactic| (
+  icases Perennial.EtcdGrove.ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  wp_apply ($h) c r id s tl iprop(True) $$ [Htl] as -
+  · isplitr
+    · iexact Htl
+    isplitr
+    · iapply Perennial.EtcdGrove.trOwn_of_none (by tr_none)
+    iapply Perennial.EtcdGrove.traceFire_of_none (by tr_none)
+    isplitr
+    · ipureintro; exact Htlok
+    itrivial
+  iclear Htl))
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The simulation's invariant's namespace, beside raft's commit invariant's (`raftLogN`, `raftRegN`). -/
+def simNS (γ : RaftNames) : Namespace := (raftN γ).@"tracesim"
 
 /-- `QuorumLogInv`'s fact (Draft: to come from the acknowledgement-history copy of the notes' table;
 until then a clause of its own). -/
@@ -415,79 +610,10 @@ def trCap (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
   | none => iprop(emp)
   | some _ => iprop(∃ b, trCapB tr γ r id c b Φ Λ)
 
-/-- **What a hook's caller gives for an event that may or may not be logged**: `some E`, as
-`TraceFire`; `none` (a message type the hook does not trace), `Q` (review round 1's S6). -/
-def TraceFireOpt (tr : Option GName) (tl : GoInterface) (oE : Option (TraceEv → Prop)) (Q : IProp GF) :
-    IProp GF :=
-  match oE with
-  | some E => TraceFire tr tl E Q
-  | none => Q
-
-/-- An atomic update's postcondition weakened (Rocq Iris's `atomic_update_wand`, absent from the
-Lean port: `notes/perennial-changes.md`). -/
-theorem aupd_wand_post {TA TB : Std.Tele} {Eo Ei : CoPset} {α : TA.Arg → IProp GF}
-    {β Φ1 Φ2 : TA.Arg → TB.Arg → IProp GF} :
-    iprop(atomic_update Eo Ei α β Φ1 ∗ (∀.. x, ∀.. y, Φ1 x y -∗ Φ2 x y)) ⊢ atomic_update Eo Ei α β Φ2 := by
-  have h := aupd_intro (P := iprop(True))
-    (Q := iprop(atomic_update Eo Ei α β Φ1 ∗ (∀.. x, ∀.. y, Φ1 x y -∗ Φ2 x y))) (α := α) (β := β)
-    (Φ := Φ2) (Eo := Eo) (Ei := Ei) (by
-      iintro ⟨-, ⟨HAU, HW⟩⟩
-      ihave Hacc : atomic_acc Eo Ei α (atomic_update Eo Ei α β Φ1) β Φ1 $$ [HAU]
-      · iapply aupd_aacc; iexact HAU
-      iapply atomic_acc_wand $$ [HW] Hacc
-      isplit
-      · iintro HAU'; iframe
-      · iexact HW)
-  iintro H
-  iapply h
-  isplit
-  · ipureintro; trivial
-  · iexact H
-
-/-- **`TraceFire`'s monotonicity** (review round 2's A10). -/
-theorem traceFire_mono (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) (Q Q' : IProp GF) :
-    iprop((Q -∗ Q') ∗ TraceFire tr tl E Q) ⊢ TraceFire tr tl E Q' := by
-  cases tr with
-  | none =>
-    dsimp only [TraceFire]
-    iintro ⟨HW, %Hok, HQ⟩
-    isplitr; · ipureintro; exact Hok
-    iapply HW $$ HQ
-  | some γd =>
-    dsimp only [TraceFire]
-    iintro ⟨HW, %tn, Hd, Hl, %Hnn, HAU⟩
-    iexists tn
-    iframe Hd Hl
-    isplitr; · ipureintro; exact Hnn
-    iintro %e %HE
-    iapply aupd_wand_post
-    isplitl [HAU]
-    · iapply HAU $$ %e %HE
-    · isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-      iintro %L HQ
-      iapply HW $$ HQ
-
-/-- ... and `TraceFireOpt`'s. -/
-theorem traceFireOpt_mono (tr : Option GName) (tl : GoInterface) (oE : Option (TraceEv → Prop))
-    (Q Q' : IProp GF) :
-    iprop((Q -∗ Q') ∗ TraceFireOpt tr tl oE Q) ⊢ TraceFireOpt tr tl oE Q' := by
-  cases oE with
-  | none => dsimp only [TraceFireOpt]; iintro ⟨HW, H⟩; iapply HW $$ H
-  | some E => dsimp only [TraceFireOpt]; exact traceFire_mono tr tl E Q Q'
-
-/-- **`n` events in a row** (`traceReplicate`'s loop), each `E`'s, the caller's updates nested. -/
-def TraceFireN (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) : Nat → IProp GF → IProp GF
-  | 0, Q => TraceFireOpt tr tl none Q
-  | n + 1, Q => TraceFire tr tl E (TraceFireN tr tl E n Q)
-
 /-- In an untraced cluster the capability is nothing. -/
 theorem trCap_none (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) :
     trCap (GF := GF) none γ r id c Φ ⊣⊢ iprop(emp) := .rfl
-
-/-- ... and so is the event builder's gate but the nil logger and `Q`. -/
-theorem traceFire_none (tl : GoInterface) (E : TraceEv → Prop) (Q : IProp GF) :
-    TraceFire (GF := GF) none tl E Q ⊣⊢ iprop(⌜TraceLoggerOk tl⌝ ∗ Q) := .rfl
 
 /-! ## The global step (Draft statement, review round 1's S1) -/
 
@@ -749,44 +875,6 @@ theorem trCapB_trCap (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : Cf
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
     trCapB (GF := GF) (some γd) γ r id c b Φ Λ ⊢ trCap (some γd) γ r id c Φ Λ := by
   iintro H; iunfold trCap; iexists b; iexact H
-
-/-! ## Q8 stage 1: one spec per function, for both modes (2026-11-09)
-
-The Draft's capability is already mode-indexed: `trCapB tr …`, `trCap tr …`, `TraceFire tr …`,
-`FxPresT tr …` and `FxPresUT tr …` are `emp`, `⌜TraceLoggerOk tl⌝ ∗ Q`, `True` and `|==> R'` when
-`tr = none` (by their `match`), so a hook-path spec stated with them at `s.gh.tr` is one spec for
-both modes, whose untraced instance is the stage-0 spec. No wrapper over them is needed
-(`notes/decisions.md`, "Q8 stage 1: the capability's gate"). What stage 1 adds is the gate `trOwn`
-on what a hook reads only to build a traced event (raft's state, the message), so that an untraced
-caller, which may hold the struct open (`send`'s queue accessor, `switchToConfig`'s tracker), keeps
-calling the hook as before; and the untraced instances below. -/
-
-/-- **What a hook reads only when traced** (Q8 stage 1): `P` in a traced cluster, nothing in an
-untraced one, whose hooks return at the nil check. A hook-path spec takes raft's state for its
-event under it (`trOwn s.gh.tr (ownRaftPhysCV …)`), and gives it back the same way. -/
-def trOwn (tr : Option GName) (P : IProp GF) : IProp GF :=
-  match tr with
-  | none => iprop(emp)
-  | some _ => P
-
-theorem trOwn_none (P : IProp GF) : trOwn (GF := GF) none P ⊣⊢ iprop(emp) := .rfl
-
-theorem trOwn_some (γd : GName) (P : IProp GF) : trOwn (GF := GF) (some γd) P ⊣⊢ P := .rfl
-
-/-- An untraced caller supplies the gate with nothing. -/
-theorem trOwn_none_intro (P : IProp GF) : ⊢ trOwn (GF := GF) none P := by
-  exact .rfl
-
-/-- The gate is monotone. -/
-theorem trOwn_wand (tr : Option GName) (P P' : IProp GF) :
-    iprop((P -∗ P') ∗ trOwn tr P) ⊢ trOwn tr P' := by
-  cases tr with
-  | none => simp only [trOwn]; iintro ⟨-, H⟩; iexact H
-  | some _ => simp only [trOwn]; iintro ⟨HW, H⟩; iapply HW $$ H
-
-instance trOwn_persistent (tr : Option GName) (P : IProp GF) [Persistent P] :
-    Persistent (trOwn (GF := GF) tr P) := by
-  cases tr <;> simp only [trOwn] <;> infer_instance
 
 /-- The capability's untraced instance (`trCap_none`'s, with the `booted` flag). -/
 theorem trCapB_none (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)

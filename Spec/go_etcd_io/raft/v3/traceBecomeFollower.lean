@@ -1,7 +1,7 @@
 /- Port of election_proof/spec_traceBecomeFollower.v (feb5c73d4). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedCap
 
 @[expose] public section
 
@@ -19,17 +19,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceBecomeFollower`: reports `BecomeFollower` through `traceNodeEvent` (`traceEvent`), which reads `r.traceLogger` first. Under `TraceLoggerOk` (increment 1, `notes/trace-validation-hooks.md`: the logger is nil) it
-returns at once, owning nothing but the field, shared (`ownRaftPhysC_traceLogger`). Until
-2026-11-08 the translated build was the no-op one (`state_trace_nop.go`) and the spec owned
-nothing; increment 2 (`notes/trace-validation-sim.md`) replaces
-`TraceLoggerOk` by the logger's contract `isTraceLogger γt`, changing this statement. -/
+/-- `traceBecomeFollower(r)`: the node event `BecomeFollower` of `r`'s state, through `traceNodeEvent`.
+
+One spec for both modes (Q8 stage 1, slice 2, 2026-11-09; `traceNodeEvent.spec`'s form): untraced
+(`s.gh.tr = none`) the gate `trOwn` is `emp` and `TraceFire` a nil logger and `Q`; traced, raft's state
+is lent through the gate and the caller's update fires with a `NodeEvOf` event. Its traced instance is
+the Draft's `traceBecomeFollower.tracedSpec` (`TracedHooks.lean`). Until slice 2: `⌜TraceLoggerOk tl⌝`, giving
+`True` (increment 1, `notes/trace-validation-hooks.md`). -/
 abbrev traceBecomeFollower.spec : Prop :=
-  ∀ (r : Loc) (tl : GoInterface),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
-      ⌜TraceLoggerOk tl⌝ }}
+      trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 2) id s c) Q }}
     (App (Val #(functions traceBecomeFollower [])) (Val #r))
-  {{ RET #(); True }}
+  {{ RET #(); trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q }}
 
 end spec
 

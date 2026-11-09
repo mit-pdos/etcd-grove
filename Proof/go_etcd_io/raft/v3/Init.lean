@@ -295,7 +295,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStepPeerNotFound go.error as HESP
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStepLocalMsg go.error as HESL
   wp_apply wp_GlobalAlloc (V := GoInterface) errBreak go.error as HEB
-  wp_apply wp_GlobalAlloc (V := GoArray GoString 4) stmap _ as _
+  wp_apply wp_GlobalAlloc (V := GoArray GoString 4) stmap _ as HSM
   wp_apply wp_GlobalAlloc (V := Loc) globalRand _ as HGR
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrProposalDropped go.error as HEPD
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStopped go.error as HES
@@ -369,6 +369,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ipersist HESOOD
   ipersist HisLocal
   ipersist HisResp
+  ipersist HSM
   iframe Hown
   imodintro
   isplitr
@@ -401,7 +402,11 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ihave #HESOOD' : iprop(∃ e : GoInterface, (globalAddr ErrSnapOutOfDate ↦□ e : IProp GF))
       $$ [HESOOD]
   · iexists _; iexact HESOOD
-  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB' HESOOD'
+  -- (Q8 stage 1, slice 2) `stmap`'s literal, the role names
+  ihave #HSM' : (globalAddr stmap ↦□ stmapV : IProp GF) $$ [HSM]
+  · unfold stmapV
+    iexact HSM
+  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB' HESOOD' HSM'
   simp only [named, EtcdGrove.errorsNewVar]
   iframe #
   ipureintro

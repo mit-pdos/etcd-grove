@@ -136,7 +136,7 @@ theorem raft.becomeLeader.wp_proof
     simp only [becomeLeaderPre, resetTo, resetTo0] at Hli
     word
   subst Hli'
-  wp_trace_hookC wp_traceBecomeLeader
+  wp_node_hookC wp_traceBecomeLeader
   -- (stage R4) `emptyEnt := &pb.Entry{Data: nil}`: a fresh entry, frozen read-only
   ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil

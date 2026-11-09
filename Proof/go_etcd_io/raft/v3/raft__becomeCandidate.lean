@@ -55,7 +55,7 @@ theorem raft.becomeCandidate.wp_proof
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC
-  wp_trace_hookC wp_traceBecomeCandidate
+  wp_node_hookC wp_traceBecomeCandidate
   iapply HΦ $$ %pvs
   -- the stores above give `becomeCandidate` up to the order of the record updates
   iapply ownRaftPhysC_eq $$ Hphys

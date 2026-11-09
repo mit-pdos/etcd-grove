@@ -25,13 +25,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem traceCommit.wp_proof
     (wp_traceNodeEvent : traceNodeEvent.spec (GF := GF) (hG := hG)) :
     traceCommit.spec (GF := GF) (hG := hG) := by
-  intro r tl
-  wp_start as ⟨#Htl, %Hok⟩
+  intro c r id s tl Q
+  wp_start as ⟨#Htl, Hown, Hfire⟩
   wp_auto
-  wp_apply wp_traceNodeEvent $$ [$Htl]
-  · ipureintro; exact Hok
-  iapply HΦ
-  ipureintro; trivial
+  wp_apply wp_traceNodeEvent (W64 4) c r id s tl Q (by decide) $$ [$Htl $Hown $Hfire] as HR
+  iapply HΦ $$ HR
 
 end proof
 

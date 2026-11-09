@@ -192,13 +192,15 @@ theorem trace_append (γt : GName) (L : List TraceEv) (e : TraceEv) :
 /-- The trace logger's contract (increment 2; replaces increment 1's `TraceLoggerOk`, nil only):
 nil, or a logger whose `TraceEvent`, handed the representation of an event `e`, performs the
 caller's atomic update appending `e` to the trace (its linearization point, under the recorder's
-lock), and returns. Generic: it names nothing of the TLA+ specification. -/
+lock), and returns (`#()`: until 2026-11-09, Q8 stage 1 slice 2, any value, a panic's included,
+which left the traced `traceEvent`'s continuation unprovable). Generic: it names nothing of the TLA+
+specification. -/
 def isTraceLogger (γt : GName) (tl : GoInterface) : IProp GF :=
   iprop(⌜tl = interface.nil⌝ ∨
     ∃ l : GoInterfaceOk, ⌜tl = GoInterface.ok l⌝ ∗
       □ ∀ (p : Loc) (e : TraceEv) (Q : IProp GF), tracingEventRep p e -∗
         (AU <{ ∃∃ L, traceAuth γt L }> @ ⊤, ∅ <{ traceAuth γt (L ++ [e]), COMM Q }>) -∗
-        WP (App (Val #(methods l.ty go!"TraceEvent" l.v)) (Val #p)) {{ fun _ => Q }})
+        WP (App (Val #(methods l.ty go!"TraceEvent" l.v)) (Val #p)) {{ fun v => iprop(⌜v = #()⌝ ∗ Q) }})
 
 instance isTraceLogger_persistent (γt : GName) (tl : GoInterface) :
     Persistent (isTraceLogger (GF := GF) γt tl) := by

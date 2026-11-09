@@ -110,6 +110,13 @@ def Perennial.go_etcd_io.raft.v3.tracker_is_pkg_init_inst : IsPkgInit (IProp GF)
               isPkgInit pkg_id.go_etcd_io.raft.v3.quorum ∗ isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ True),
     isPkgInitDef := iprop(True) }
 
+def Perennial.go_etcd_io.raft.v3.stmapV : GoArray GoString 4 :=
+  array.mk 4
+    [go!"StateFollower",
+      go!"StateCandidate",
+      go!"StateLeader",
+      go!"StatePreCandidate"]
+
 def Perennial.go_etcd_io.raft.v3.protobuf_impl_is_pkg_init_inst : IsPkgInit (IProp GF)
     pkg_id.google_golang_org.protobuf.internal.impl :=
   { isPkgInitDeps := iprop(isPkgInit pkg_id.google_golang_org.protobuf.internal.pragma ∗ True),
@@ -244,8 +251,10 @@ def Perennial.go_etcd_io.raft.v3.isInitialized : IProp GF :=
                                                           ∃ e,
                                                             typedPointsto (globalAddr ErrSnapOutOfDate) e DFrac.discard) ∗
                                                         "#ErrSnapOODNew" ∷
-                                                          errorsNewVar ErrSnapOutOfDate
-                                                            go!"requested index is older than the existing snapshot")
+                                                            errorsNewVar ErrSnapOutOfDate
+                                                              go!"requested index is older than the existing snapshot" ∗
+                                                          "#stmap" ∷
+                                                            typedPointsto (globalAddr stmap) stmapV DFrac.discard)
 
 def Perennial.go_etcd_io.raft.v3.protoreflect_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.google_golang_org.protobuf.reflect.protoreflect :=

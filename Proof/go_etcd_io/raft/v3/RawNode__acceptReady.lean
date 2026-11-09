@@ -713,10 +713,15 @@ theorem RawNode.acceptReady.wp_proof
     iempintro
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr0
   icases Hf_traceLogger with ⟨%tl, #Htl, %Htlok⟩
-  wp_apply wp_traceReady $$ [Htl]
+  wp_apply wp_traceReady cf _ id s tl iprop(True) $$ [Htl] as -
   · isplitr
     · iexact Htl
-    ipureintro; exact Htlok
+    isplitr
+    · iapply trOwn_of_none (Hgtr.trans HtrG)
+    iapply traceFire_of_none (Hgtr.trans HtrG)
+    isplitr
+    · ipureintro; exact Htlok
+    itrivial
   -- the self-addressed responses, as the queue's first pending steps (before the raft struct
   -- is closed: `Hself` is about `ms2`)
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h

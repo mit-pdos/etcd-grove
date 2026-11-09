@@ -5,12 +5,13 @@
 theorem traceBecomeCandidate.wp_proof [package_sem : Assumptions] (wp_traceNodeEvent :
     traceNodeEvent.spec) : traceBecomeCandidate.spec
   -- `Perennial.EtcdGrove.traceBecomeCandidate.spec`, unfolded:
-  ∀ (r : Loc) (tl : GoInterface),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             typedPointsto
                 (structFieldRef raft go!"traceLogger" r) tl
                 DFrac.discard ∗
-              ⌜TraceLoggerOk tl⌝ -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗ WP ((intoVal (functions traceBecomeCandidate [])) (intoVal r)) {{ Φ }}
+              trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 1) id s c) Q -∗
+          ▷ (trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q -∗ Φ (intoVal ())) -∗
+            WP ((intoVal (functions traceBecomeCandidate [])) (intoVal r)) {{ Φ }}

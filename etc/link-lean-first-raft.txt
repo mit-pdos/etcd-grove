@@ -226,9 +226,15 @@ newReadOnly:
 # `notes/trace-validation-hooks.md`), and `strconv.FormatUint` (a trust-boundary axiom, the
 # plan's trust base) that `traceChangeConfEvent` calls before its nil check
 strconv_FormatUint:
-traceEvent:
+# (Q8 stage 1, slice 2) the traced `traceEvent`'s builders
+stateMachineEventType__String:
+StateType__String:
+formatConf: strconv_FormatUint
+makeTracingState: raft__hardState raftpb_HardState__GetTerm raftpb_HardState__GetVote raftpb_HardState__GetCommit strconv_FormatUint
+makeTracingMessage:
+traceEvent: stateMachineEventType__String strconv_FormatUint makeTracingState raftLog__lastIndex quorum_MajorityConfig__Slice formatConf StateType__String makeTracingMessage
 traceNodeEvent: traceEvent
-traceInitState:
+traceInitState: traceNodeEvent
 traceConfChangeEvent:
 traceCommit: traceNodeEvent
 traceSendMessage:
