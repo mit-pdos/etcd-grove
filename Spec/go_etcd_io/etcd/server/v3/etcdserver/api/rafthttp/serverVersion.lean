@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) The `X-Server-Version` header as a version (`2.0.0` if absent); its value must parse (`MustParse`). -/
 def serverVersion.spec : Prop :=
-  ∀ (hm : GoInterface) (hs : List (GoString × GoString)),
+  ∀ (hm : GoMap) (hs : List (GoString × GoString)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ Http.hdrRO hm hs ∗ ⌜verHdrOk (Http.hdrGet hs go!"X-Server-Version")⌝ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.serverVersion)) (Val #hm))
   {{ (v : Loc), RET #v; semverAt v }}

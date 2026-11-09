@@ -8,8 +8,10 @@ watch (1b), lease, auth, cluster and maintenance (1c) batches spec theirs agains
 
 ## The shape of every KV spec
 
-A call by a client that authenticates as `who` (`Principal`) to the cluster `γ`, sending the request
-`rq` (`Model.lean`'s `Req`), takes the caller's atomic update
+A call to the cluster `γ` by a client whose own credentials name `who` (its default principal),
+with a context `ctx` under which the server authenticates the request as `p` (`ctxPrin who ctx p`:
+the principal is per call), sending the request `rq` (`Model.lean`'s `Req`), takes the caller's
+atomic update (with `Step p rq ...`)
 
     AU <{ ∃∃ σ, etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
        <{ ∀∀ σ' res, ⌜Step who rq σ σ' res⌝ ∗ etcdState γ σ', COMM Q σ σ' res }>
@@ -522,16 +524,26 @@ opaque wireStreamAt (sc : GoInterface) (γ : Cluster) (who : Principal) (r : Ran
 and closes its watch streams. -/
 opaque ctxRequireLeader (ctx : GoInterface) : IProp GF := iprop(True)
 
-/-- **The principal of a client's requests sent with `ctx`** (persistent): the server
-authenticates them as `who` (the client's own credentials), or refuses them (an invalid token):
-`ctx` carries no `token`/`authorization` outgoing metadata of its own naming another user (the
-server takes the principal from the request's metadata, `auth/store.go`, `AuthInfoFromCtx`).
+/-- **The principal of a call** (persistent): a request sent with `ctx` by a client whose own
+credentials name `dflt` (`isClient c γ dflt`: its username, or none) is authenticated by the server
+as `p`, or refused (an invalid or expired token: a refusal, any principal). The server takes the
+principal from the request's metadata (`auth/store.go`, `AuthInfoFromCtx`: `token`, else
+`authorization`, the first value); a client's own token (a per-RPC credential) comes before the
+context's (grpc puts the credentials' headers first). So the principal is per call: the client's
+own for a context with no token metadata (`ctxPrin_of_noMeta`), the token's user for a client
+without credentials whose context forwards a token (`ctxPrin_token`: the gRPC proxy, the
+in-process `v3client`, a per-request principal), the client's own when the context's token is of
+the same user (`ctxPrin_tokenSame`).
 Introduced for contexts with no gRPC outgoing metadata (`ctxPrin_of_noMeta` from
 `Context.ctxNoMeta`, which a root context's owner discharges; `ctxPrin_background`,
 `ctxPrin_todo`), kept by children (`ctxPrin_child`), by a `WithValue` at another key
 (`ctxPrin_value`), by `WithRequireLeader` and `withVersion` (their specs); a context a caller builds
 with grpc metadata of its own needs an introduction from grpc's `metadata` (2a). -/
-opaque ctxPrin (ctx : GoInterface) (who : Principal) : IProp GF := iprop(True)
+opaque ctxPrin (dflt : Principal) (ctx : GoInterface) (p : Principal) : IProp GF := iprop(True)
+
+/-- **Slot (2a)**: `ctx` carries the outgoing metadata `token: tok` (grpc's `metadata`: the gRPC
+proxy's and the in-process client's forwarded tokens, `examples/etcd/auth`'s contexts). -/
+opaque ctxTokenMd (ctx : GoInterface) (tok : GoString) : IProp GF := iprop(True)
 
 /-- **An error of a call that settles nothing**: a gRPC error of an indefinite kind (a context's
 error is one, `callErr_ctxErr`). -/
@@ -627,12 +639,12 @@ receiver's handle `P`. -/
 caller's update (exclusive), or an indefinite error. The options are given back. `OpPut` must not
 panic (`putPanics`: no range, limit, revision, sort, filter, ... option). -/
 def KV.PutTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (key v : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
+  ∀ (ctx : GoInterface) (p : Principal) (key v : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs ∗ ⌜¬ (opPutM key v gs).putPanics⌝ ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗ ⌜¬ (opPutM key v gs).putPanics⌝ ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
-             ⌜Step who (.put (opPutM key v gs).putReq) σ σ' res⌝ ∗ etcdState γ σ',
+             ⌜Step p (.put (opPutM key v gs).putReq) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #v)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); optsAt opts gs ∗
@@ -641,12 +653,12 @@ def KV.PutTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Pro
 /-- **`Get(ctx, key, opts...)`**: the range `OpGet(key, opts...)` builds (linearizable, or
 serializable: answered at a member's possibly stale view, `Step`), the caller's update persistent. -/
 def KV.GetTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
+  ∀ (ctx : GoInterface) (p : Principal) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
-             ⌜Step who (.range (opGetM key gs).rangeReq) σ σ' res⌝ ∗ etcdState γ σ',
+             ⌜Step p (.range (opGetM key gs).rangeReq) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); optsAt opts gs ∗
@@ -654,13 +666,13 @@ def KV.GetTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Pro
 
 /-- **`Delete(ctx, key, opts...)`**: the delete `OpDelete(key, opts...)` builds. -/
 def KV.DeleteTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
+  ∀ (ctx : GoInterface) (p : Principal) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗
       ⌜¬ prefixAndFromKey gs ∧ ¬ (opDeleteM key gs).deletePanics⌝ ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
-             ⌜Step who (.deleteRange (opDeleteM key gs).deleteReq) σ σ' res⌝ ∗ etcdState γ σ',
+             ⌜Step p (.deleteRange (opDeleteM key gs).deleteReq) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); optsAt opts gs ∗
@@ -671,12 +683,12 @@ def KV.DeleteTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : 
 `0` comes back with another compaction revision than the others, which no model of one cluster
 state describes; no etcd compactor issues `Compact(0)`). -/
 def KV.CompactTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (rev : w64) (opts : GoSlice) (gs : List (CompactOpM → CompactOpM))
+  ∀ (ctx : GoInterface) (p : Principal) (rev : w64) (opts : GoSlice) (gs : List (CompactOpM → CompactOpM))
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ compactOptsAt opts gs ∗ ⌜rev ≠ W64 0⌝ ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ compactOptsAt opts gs ∗ ⌜rev ≠ W64 0⌝ ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
-             ⌜Step who (.compact (sint.Z rev)
+             ⌜Step p (.compact (sint.Z rev)
                 ((gs.foldl (fun (o : CompactOpM) (g : CompactOpM → CompactOpM) => g o)
                   { revision := rev, physical := false }).physical))
                σ σ' res⌝ ∗ etcdState γ σ',
@@ -688,11 +700,11 @@ def KV.CompactTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) :
 /-- **`Do(ctx, op)`**: the request of `op` (a read's update persistent). `op` must be of a type at
 every depth (`toReq`; `Do` and `toRequestOp` panic on a zero `Op`). -/
 def KV.DoTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (rq : Req)
+  ∀ (ctx : GoInterface) (p : Principal) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (rq : Req)
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ opAt op o ∗ ⌜o.toReq = some rq⌝ ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ opAt op o ∗ ⌜o.toReq = some rq⌝ ∗
       □?(rq.isRead) AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who rq σ σ' res⌝ ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p rq σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (Val f) (Val #ctx)) (Val #op))
   {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
@@ -706,26 +718,26 @@ interceptor re-authenticates at every open: `ErrAuthFailed`, ...). The revision 
 negative (`nonissues/etcd-rangestream-negative-revision-unpinned.md`: such a stream is read at a
 new revision on every page). -/
 def KV.GetStreamTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
+  ∀ (ctx : GoInterface) (p : Principal) (key : GoString) (opts : GoSlice) (gs : List (OpM → OpM))
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗ threadTok ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ optsAt opts gs ∗ ⌜¬ prefixAndFromKey gs⌝ ∗ threadTok ∗
       ⌜0 ≤ sint.Z (opGetM key gs).rev⌝ ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
-             ⌜Step who (.range (opGetM key gs).rangeReq) σ σ' res⌝ ∗ etcdState γ σ',
+             ⌜Step p (.range (opGetM key gs).rangeReq) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #key)) (Val #opts))
   {{ (ch : Loc) (err : GoInterface), RET (PairV #ch #err); optsAt opts gs ∗
-      ((⌜err = GoInterface.nil⌝ ∗ streamAt ch γ who (opGetM key gs).rangeReq Q [] false) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ streamAt ch γ p (opGetM key gs).rangeReq Q [] false) ∨
        (⌜ch = null⌝ ∗ threadTok ∗
          (indefCall err ∨ ⌜∃ e : EtcdErr, e.refusal = true ∧ err = errVal e⌝))) }}
 
 /-- **`Txn(ctx)`**: a new transaction over `ctx`, nothing set. -/
 def KV.TxnTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
+  ∀ (ctx : GoInterface) (p : Principal),
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p }}
     (App (Val f) (Val #ctx))
-  {{ (iv : GoInterface), RET #iv; txnAt iv γ who ctx TxnSt.empty }}
+  {{ (iv : GoInterface), RET #iv; txnAt iv γ p ctx TxnSt.empty }}
 
 /-- **`If(cs...)`** (the first of the three; it panics otherwise): the comparisons appended (a
 zero `Cmp` as a zero `Compare`). The transaction is the value returned (`*txn` returns itself; a
@@ -774,69 +786,69 @@ The same updates over the request messages (`api/v3/Wire.lean`, any fraction, gi
 gRPC's errors (`callErr`); the call options `callOptsOk` (a mutable RPC's not repeatable). -/
 
 def RemoteKV.RangeTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (req : Loc) (dq : DFrac) (r : RangeReq) (opts : GoSlice) (rep : Bool)
+  ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (r : RangeReq) (opts : GoSlice) (rep : Bool)
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ rangeReqOwn req dq r ∗ callOptsOk opts rep ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ rangeReqOwn req dq r ∗ callOptsOk opts rep ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who (.range r) σ σ' res⌝ ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p (.range r) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #req)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); rangeReqOwn req dq r ∗
       ((∃ σ σ' res, Q σ σ' res ∗ wireReply getReply res resp err) ∨ wireIndef resp err) }}
 
 def RemoteKV.RangeStreamTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (req : Loc) (dq : DFrac) (r : RangeReq) (opts : GoSlice) (rep : Bool)
+  ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (r : RangeReq) (opts : GoSlice) (rep : Bool)
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ rangeReqOwn req dq r ∗ callOptsOk opts rep ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ rangeReqOwn req dq r ∗ callOptsOk opts rep ∗
       ⌜0 ≤ r.revision⌝ ∗
       □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who (.range r) σ σ' res⌝ ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p (.range r) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #req)) (Val #opts))
   {{ (sc : GoInterface) (err : GoInterface), RET (PairV #sc #err); rangeReqOwn req dq r ∗
-      ((⌜err = GoInterface.nil⌝ ∗ wireStreamAt sc γ who r Q []) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ wireStreamAt sc γ p r Q []) ∨
        (⌜sc = GoInterface.nil⌝ ∗
          (indefCall err ∨ ∃ e : EtcdErr, ⌜e.refusal = true⌝ ∗ callErr err (.etcd e)))) }}
 
 def RemoteKV.PutTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (req : Loc) (dq : DFrac) (r : PutReq) (opts : GoSlice)
+  ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (r : PutReq) (opts : GoSlice)
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ putReqOwn req dq r ∗ callOptsOk opts false ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ putReqOwn req dq r ∗ callOptsOk opts false ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who (.put r) σ σ' res⌝ ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p (.put r) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #req)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putReqOwn req dq r ∗
       ((∃ σ σ' res, Q σ σ' res ∗ wireReply putReply res resp err) ∨ wireIndef resp err) }}
 
 def RemoteKV.DeleteRangeTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (req : Loc) (dq : DFrac) (r : DeleteReq) (opts : GoSlice)
+  ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (r : DeleteReq) (opts : GoSlice)
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ deleteReqOwn req dq r ∗ callOptsOk opts false ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ deleteReqOwn req dq r ∗ callOptsOk opts false ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who (.deleteRange r) σ σ' res⌝ ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p (.deleteRange r) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #req)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); deleteReqOwn req dq r ∗
       ((∃ σ σ' res, Q σ σ' res ∗ wireReply deleteReply res resp err) ∨ wireIndef resp err) }}
 
 def RemoteKV.TxnTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (req : Loc) (dq : DFrac) (t : TxnReq) (opts : GoSlice)
+  ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (t : TxnReq) (opts : GoSlice)
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ txnReqOwn req dq t ∗ callOptsOk opts false ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ txnReqOwn req dq t ∗ callOptsOk opts false ∗
       □?((Req.txn t).isRead) AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who (.txn t) σ σ' res⌝ ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p (.txn t) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #req)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnReqOwn req dq t ∗
       ((∃ σ σ' res, Q σ σ' res ∗ wireReply txnReply res resp err) ∨ wireIndef resp err) }}
 
 def RemoteKV.CompactTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (req : Loc) (dq : DFrac) (rev : Int) (phys : Bool) (opts : GoSlice)
+  ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (rev : Int) (phys : Bool) (opts : GoSlice)
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ compactReqOwn req dq rev phys ∗ callOptsOk opts false ∗ ⌜rev ≠ 0⌝ ∗
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ compactReqOwn req dq rev phys ∗ callOptsOk opts false ∗ ⌜rev ≠ 0⌝ ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who (.compact rev phys) σ σ' res⌝ ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p (.compact rev phys) σ σ' res⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #req)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); compactReqOwn req dq rev phys ∗
@@ -845,6 +857,7 @@ def RemoteKV.CompactTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Princi
 /-! ## Laws -/
 
 def handles_persistent.spec : Prop :=
+  (∀ ctx tok, Persistent (ctxTokenMd (GF := GF) ctx tok)) ∧
   (∀ conn γ who, Persistent (connOk (GF := GF) conn γ who)) ∧
   (∀ sl rep, Persistent (callOptsOk (GF := GF) sl rep)) ∧
   (∀ c γ who, Persistent (clientConnOk (GF := GF) c γ who)) ∧
@@ -861,7 +874,7 @@ def handles_persistent.spec : Prop :=
   (∀ op o, Persistent (opAt (GF := GF) op o)) ∧
   (∀ c m, Persistent (cmpAt (GF := GF) c m)) ∧
   (∀ err k, Persistent (callErr (GF := GF) err k)) ∧
-  (∀ ctx who, Persistent (ctxPrin (GF := GF) ctx who)) ∧
+  (∀ dflt ctx p, Persistent (ctxPrin (GF := GF) dflt ctx p)) ∧
   (∀ c γ who, Persistent (clientRest (GF := GF) c γ who))
 
 /-- **What `opAt` means**: the `Op` struct's fields (its byte slices, sort option, comparisons
@@ -1058,17 +1071,26 @@ def wireStreamAt_recv.spec : Prop := ∀ (sc : GoInterface) (γ : Cluster) (who 
          callErr err (.etcd .compacted) ∨
          indefCall err)) }}
 
-def ctxPrin_persistent.spec : Prop := ∀ ctx who, Persistent (ctxPrin (GF := GF) ctx who)
+def ctxPrin_persistent.spec : Prop := ∀ dflt ctx p, Persistent (ctxPrin (GF := GF) dflt ctx p)
 
 /-- A context with no gRPC outgoing metadata (`Context.ctxNoMeta`, dischargeable by whoever owns
 a root context) carries no token: its requests are the client's. -/
-def ctxPrin_of_noMeta.spec : Prop := ∀ ctx who,
-  Context.ctxNoMeta (GF := GF) ctx ⊢ ctxPrin ctx who
+def ctxPrin_of_noMeta.spec : Prop := ∀ ctx dflt,
+  Context.ctxNoMeta (GF := GF) ctx ⊢ ctxPrin dflt ctx dflt
+
+/-- **A forwarded token**: a client without credentials sends a context's token: its user's
+requests (the gRPC proxy, the in-process client). -/
+def ctxPrin_token.spec : Prop := ∀ (γ : Cluster) (ctx : GoInterface) (tok u : GoString),
+  ctxTokenMd (GF := GF) ctx tok ∗ tokenUser γ tok u ⊢ ctxPrin none ctx (some u)
+
+/-- A client with credentials of `u`, its context carrying a token of `u` too. -/
+def ctxPrin_tokenSame.spec : Prop := ∀ (γ : Cluster) (ctx : GoInterface) (tok u : GoString),
+  ctxTokenMd (GF := GF) ctx tok ∗ tokenUser γ tok u ⊢ ctxPrin (some u) ctx (some u)
 
 /-- A `WithValue` at a key that is not grpc's outgoing-metadata key keeps it. -/
-def ctxPrin_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInterfaceOk) (who : Principal),
-  ctxPrin (GF := GF) ctx who ∗ Context.ctxValueAt ctx ctx' (GoInterface.ok ki) ∗
-    ⌜ki.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ ⊢ ctxPrin ctx' who
+def ctxPrin_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInterfaceOk) (dflt p : Principal),
+  ctxPrin (GF := GF) dflt ctx p ∗ Context.ctxValueAt ctx ctx' (GoInterface.ok ki) ∗
+    ⌜ki.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ ⊢ ctxPrin dflt ctx' p
 
 /-- **A client call's error is no package's own `errors.New` value** (1d's `ErrLocked`, the
 recipes' sentinels): of the `*errors.errorString` errors, a call returns only `context.Canceled`'s
@@ -1079,19 +1101,19 @@ def callErr_errorsNew.spec : Prop := ∀ (err : GoInterface) (k : CallErr) (x : 
     ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x⌝ ⊢
   globalAddr context.Canceled ↦□ err
 
-def ctxPrin_background.spec : Prop := ∀ who,
-  ⊢ ctxPrin (GF := GF) (GoInterface.ok context.backgroundCtxVal) who
+def ctxPrin_background.spec : Prop := ∀ dflt,
+  ⊢ ctxPrin (GF := GF) dflt (GoInterface.ok context.backgroundCtxVal) dflt
 
 /-- `TODO()`'s context carries no metadata. -/
 def ctxPrin_todo.spec : Prop :=
-  ∀ (who : Principal),
+  ∀ (dflt : Principal),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
     (App (Val (@! context.TODO)) (Val #()))
-  {{ (ctx : GoInterface), RET #ctx; ctxPrin ctx who }}
+  {{ (ctx : GoInterface), RET #ctx; ctxPrin dflt ctx dflt }}
 
 /-- A child (`WithCancel`, `WithTimeout`, ...) carries its parent's metadata. -/
-def ctxPrin_child.spec : Prop := ∀ ctx ctx' who,
-  ctxPrin (GF := GF) ctx who ∗ Context.ctxChild ctx ctx' ⊢ ctxPrin ctx' who
+def ctxPrin_child.spec : Prop := ∀ ctx ctx' dflt p,
+  ctxPrin (GF := GF) dflt ctx p ∗ Context.ctxChild ctx ctx' ⊢ ctxPrin dflt ctx' p
 
 /-- One error, one kind. -/
 def callErr_agree.spec : Prop := ∀ err k k',

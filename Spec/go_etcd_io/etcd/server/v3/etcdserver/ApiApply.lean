@@ -236,6 +236,16 @@ its node, storages and transport the configuration's, with their resources. Excl
 opaque rnInit (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (γ : Names) (id : w64) (n : Loc) :
     IProp GF := iprop(True)
 
+/-- **A driver configuration's resources** (`raftNodeConfig` value `cv`, the slot 2e's bootstrap
+fills, `ApiBoot`'s `raftNodeBootCfg` being its configuration part): its `Node` is raft node `n` of
+`γ.raft` with id `id` (R1's `isNode`, `nodeRunning`, `nodeDriver` at the start's driver state, the
+apply side's `nodeConf`), its `raftStorage` that node's attached `MemoryStorage` (`nodeStorage n
+γ.raft (memStor ms)`), its `storage` the member's WAL and snapshotter (2e's: holding `raftState
+γ.raft id D` in its durable invariant, with `StorageHolds D` of the storage's contents), its
+`transport` the member's (2f's), its `isIDRemoved` the membership's query, its logger. Exclusive. -/
+opaque rnCfgOk (cv : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (γ : Names) (id : w64)
+    (n : Loc) : IProp GF := iprop(True)
+
 /-- **The `Ready` loop's token.** Exclusive. -/
 opaque rnLoop (r : Loc) : IProp GF := iprop(True)
 
@@ -360,7 +370,7 @@ def histAt_committed.spec : Prop :=
 
 /-- Every committed point has a state (the cluster's invariant, opened under `etcdN`). -/
 def histAt_of_committed.spec : Prop :=
-  ∀ γ (l : List Raft.LogEntry) (E : CoPset), ↑EtcdModel.etcdN ⊆ E →
+  ∀ (γ : Names) (l : List Raft.LogEntry) (E : CoPset), ↑EtcdModel.etcdN ⊆ E →
     Raft.committedLb (GF := GF) γ.raft l ⊢ |={E}=> ∃ σ, histAt γ l.length σ
 
 /-- An answer is the answer of its entry (one per index). -/
@@ -373,7 +383,7 @@ no `ConfChangeV2`, so raft never enters a joint configuration and appends no emp
 `EntryConfChangeV2`: R1's `committedLb_emptyV2`). The cluster's invariant: every proposal update it
 fires is one of etcd's (2c's `processInternalRaftRequestOnce`, `configure`). -/
 def committed_types.spec : Prop :=
-  ∀ γ (l : List Raft.LogEntry) (E : CoPset), ↑EtcdModel.etcdN ⊆ E →
+  ∀ (γ : Names) (l : List Raft.LogEntry) (E : CoPset), ↑EtcdModel.etcdN ⊆ E →
     Raft.committedLb (GF := GF) γ.raft l ⊢
       |={E}=> ⌜∀ e ∈ l, e.type = Raft.EntryNormal ∨ e.type = Raft.EntryConfChange⌝
 

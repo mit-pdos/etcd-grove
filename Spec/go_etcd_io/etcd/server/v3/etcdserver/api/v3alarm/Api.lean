@@ -72,6 +72,10 @@ opaque alarmSt (γ : AlarmNames) (al : List Alarm) : IProp GF := iprop(True)
 /-- **Provisional (batch 4b):** the alarm bucket behind `ab` holds `al` (exclusive). -/
 opaque alarmBe (ab : GoInterface) (al : List Alarm) : IProp GF := iprop(True)
 
+/-- **Provisional (batch 4b):** the alarm bucket of the open backend `be` holds `al`
+(exclusive); `schema.NewAlarmBackend(lg, be)` turns it into `alarmBe ab al` of its result. -/
+opaque beAlarms (be : GoInterface) (al : List Alarm) : IProp GF := iprop(True)
+
 /-- A read-only `*pb.AlarmMember` holding `a` (persistent). -/
 opaque alarmMemberRO (p : Loc) (a : Alarm) : IProp GF := iprop(True)
 

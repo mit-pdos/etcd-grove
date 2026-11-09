@@ -119,3 +119,32 @@ report `notes/specs-only/batch-R4.md`) reads raftpb's changes and conf states:
 - A field-write law for `msgPts`: `From` (`node.go:388`) and `To` (`raft.go:1743`, `:1762`, `:1784`)
   of an owned message.
 - `confStatePts p dq cs ⊢ ⌜p ≠ null⌝` (`ReqApplyConf`).
+
+## from 2f
+
+Batch 2f (rafthttp). Provisional in `Rafthttp`'s `Api.lean`: `pbEncodes e m` ("`e` is a protobuf
+encoding of `m`"), to be replaced by 3h's wire model.
+
+- **`proto.Marshal` / `pbutil.MustMarshalMessage` of a message** held by `msgPts p dq m` (any
+  `dq`, a message raft sent): returns bytes `e` with `pbEncodes e m` (below `2^63` bytes), never
+  panics (raftpb is proto2 without required fields or strings). `proto.Size(m)` is `e`'s length.
+  ```go
+  _, err := enc.w.Write(pbutil.MustMarshalMessage(m)) // msg_codec.go:40; pipeline.go:99
+  ```
+- **`proto.Unmarshal(bs, &m)`**: an error, or `nil` and a fresh `msgPts (own 1) m'` with
+  `pbEncodes bs m'`; and **`pbEncodes` is functional in the message** (`pbEncodes e m ∧ pbEncodes e
+  m' → m = m'`), so that the receiver's decoded copy is the sent `Msg` (a model equality: R1's
+  `Msg` has no presence bits, so a decoded zero equals an absent field). Also for an entry
+  (`pbutil.MustUnmarshalMessage` of an `*Entry` in the msgappv2 decoder: its bytes are an
+  encoder's, by the stream protocol).
+  ```go
+  if err := proto.Unmarshal(b, &m); err != nil { ... }   // http.go:139 (pipeline handler)
+  ```
+- **`proto.Clone(&linkHeartbeatMessage)`**: a fresh `msgPts` of the link heartbeat (`MsgHeartbeat`,
+  `From = To = 0`).
+- `GetType`, `GetTo`, `GetFrom`, `GetIndex`, `GetLogTerm`, `GetTerm`, `GetCommit`, `Snapshot.Metadata.
+  GetIndex` read through `msgPts` (any fraction); a `MsgSnap` with `snapshot = some s` has a non-nil
+  `Snapshot` and `Metadata` (the snapshot handler dereferences `m.Snapshot.Metadata`).
+Used by: `messageEncoder.encode.spec`, `messageDecoder.decodeLimit.spec`, `msgAppV2Encoder.encode.
+spec`, `msgAppV2Decoder.decode.spec`, `pipeline.handle.spec`, `pipelineHandler.ServeHTTP.spec`,
+`snapshotHandler.ServeHTTP.spec`.

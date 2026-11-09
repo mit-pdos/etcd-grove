@@ -491,6 +491,20 @@ def raftProto_muxAnswers.spec : Prop :=
     (⊢ □ (raftProto (GF := GF) ν).resp R τ (W64 404) [] []) ∧
     (⊢ □ (raftProto (GF := GF) ν).resp R τ (W64 301) [] [])
 
+/-- (internal) **A writer's `Write(b)`** with permission for every prefix of `b`: writes a prefix
+`n` of `b`, all unless it fails. Realized for a stream's connection from `Http.respW_write.spec`
+(the protocol's prefix-closed `resp`) and for a `bytes.Buffer` (any `Ok`; it never fails). -/
+def writerAt_write.spec : Prop :=
+  ∀ (w : GoInterface) (i : GoInterfaceOk) (Ok : List w8 → IProp GF) (bs : List w8) (b : GoSlice)
+    (ys : List w8) (dq : DFrac),
+  w = interface.ok i →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ writerAt w Ok bs ∗ b ↦*{dq} ys ∗
+      □ (∀ ys', ⌜ys' <+: ys⌝ -∗ Ok (bs ++ ys')) }}
+    (App (Val #(methods i.ty go!"Write" i.v)) (Val #b))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      b ↦*{dq} ys ∗ ⌜uint.nat n ≤ ys.length ∧ (err = interface.nil → uint.nat n = ys.length)⌝ ∗
+      writerAt w Ok (bs ++ ys.take (uint.nat n)) ∗ Http.errOk err }}
+
 end laws
 
 end Rafthttp

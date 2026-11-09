@@ -268,13 +268,16 @@ structure State where
   leases : Int → Option LeaseRec
   /-- every lease id ever granted, in order -/
   granted : List Int
+  /-- the lease tables the cluster has had before the current one, in order (one per grant or
+  revocation): what a member whose lessor is behind answers a lease read from -/
+  leaseHist : List (Int → Option LeaseRec)
   auth : AuthState
   members : List Member
   alarms : List Alarm
 
 /-- A new cluster with the members `ms`: revision `1`, nothing stored, no lease, auth off. -/
 def State.init (ms : List Member) : State :=
-  { kv := { revs := [], compacted := 0 }, leases := fun _ => none, granted := [],
+  { kv := { revs := [], compacted := 0 }, leases := fun _ => none, granted := [], leaseHist := [],
     auth := { enabled := false, rev := 1, users := fun _ => none, roles := fun _ => none },
     members := ms, alarms := [] }
 
@@ -832,7 +835,24 @@ def State.withKV (σ : State) (h : KVHist) : State := { σ with kv := h }
 /-- A lease revoked: its keys deleted at one new revision (in key order), the lease gone. -/
 def State.revoke (σ : State) (id : Int) (l : List KV) : State :=
   { σ with kv := σ.kv.commit (l.map (fun kv => .delete kv.key)),
-           leases := fun i => if i = id then none else σ.leases i }
+           leases := fun i => if i = id then none else σ.leases i,
+           leaseHist := σ.leaseHist ++ [σ.leases] }
+
+/-- **Every lease table the cluster has had**, the current one last: table `i` is the live leases
+after the `i`-th grant or revocation. A member's lessor reflects one of them, and a member's
+lessor only moves forward (`State.lean`'s `leaseViewLb`, per member). -/
+def State.leaseTables (σ : State) : List (Int → Option LeaseRec) := σ.leaseHist ++ [σ.leases]
+
+/-- **A lease read answered from lease table `i`** (`LeaseLeases`: exactly the live ids, no
+duplicates, any order; `LeaseTimeToLive` of a live lease, or `ErrLeaseNotFound` of one that is not:
+the lessor of the member answering, `v3_server.go`, which may be behind). -/
+def State.leaseAnsAt (σ : State) (i : Nat) (rq : Req) (res : Resp) : Prop :=
+  ∃ t, σ.leaseTables[i]? = some t ∧
+  match rq, res with
+  | .leaseLeases, .ok (.leaseLeases ids) => ids.Nodup ∧ ∀ x, x ∈ ids ↔ t x ≠ none
+  | .leaseTimeToLive id _, .ok (.leaseTimeToLive id' _ _ _) => id' = id ∧ t id ≠ none
+  | .leaseTimeToLive id _, .err .leaseNotFound => t id = none
+  | _, _ => False
 
 /-- `l`: the keys attached to `id`, sorted. -/
 def State.attachedKVs (σ : State) (id : Int) (l : List KV) : Prop :=
@@ -935,7 +955,7 @@ def leaseStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop 
         (σ' = σ ∧ (id = 0 ∨ σ.leases id ≠ none) ∧ res = .err .leaseExist ∨
          ∃ id' ttl', (id ≠ 0 → id' = id) ∧ id' ≠ 0 ∧ σ.leases id' = none ∧ ttl ≤ ttl' ∧
            σ' = { σ with leases := fun i => if i = id' then some { ttl := ttl' } else σ.leases i,
-                         granted := σ.granted ++ [id'] } ∧
+                         granted := σ.granted ++ [id'], leaseHist := σ.leaseHist ++ [σ.leases] } ∧
            res = .ok (.leaseGrant id' ttl'))
   | .leaseRevoke id =>
       σ.leases id = none ∧ σ' = σ ∧ res = .err .leaseNotFound ∨
@@ -946,16 +966,19 @@ def leaseStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop 
       σ' = σ ∧ (res = .err .leaseNotFound ∨ ∃ ttl, res = .ok (.leaseKeepAlive id ttl))
   | .leaseTimeToLive id keys =>
       σ' = σ ∧
-      (res = .err .leaseNotFound ∨  -- a lessor behind or deposed may not know it
+      -- answered from the lease table `i` of the (leader's) lessor, which may be behind
+      ((∃ i, σ.leaseAnsAt i (.leaseTimeToLive id keys) res) ∧
+       (res = .err .leaseNotFound ∨
+        -- the remaining TTL may exceed the granted one after a leader change (`Promote` extends)
+        ∃ ttl gttl r l, r ≤ σ.kv.rev ∧
+          (∀ k, k ∈ l ↔ ∃ rec, σ.kv.storeAt r k = some rec ∧ rec.lease = id) ∧
+          res = .ok (.leaseTimeToLive id ttl gttl (if keys then l else []))) ∨
        -- the attached keys' read permission, checked at a member's auth state
-       (keys = true ∧ res = .err (AuthState.permErr who)) ∨
-       -- the remaining TTL may exceed the granted one after a leader change (`Promote` extends)
-       id ∈ σ.granted ∧ ∃ ttl gttl r l, r ≤ σ.kv.rev ∧
-         (∀ k, k ∈ l ↔ ∃ rec, σ.kv.storeAt r k = some rec ∧ rec.lease = id) ∧
-         res = .ok (.leaseTimeToLive id ttl gttl (if keys then l else [])))
+       (keys = true ∧ res = .err (AuthState.permErr who)))
   | .leaseLeases =>
       σ' = σ ∧ (res = .err (AuthState.permErr who) ∨
-        ∃ ids, ids.Nodup ∧ (∀ i ∈ ids, i ∈ σ.granted) ∧ res = .ok (.leaseLeases ids))
+        -- the live leases of the lease table `i` of the answering member's lessor
+        ∃ i ids, σ.leaseAnsAt i .leaseLeases res ∧ res = .ok (.leaseLeases ids))
   | _ => False
 
 /-- User `name`'s record replaced. -/

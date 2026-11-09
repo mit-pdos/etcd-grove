@@ -40,7 +40,7 @@ may be left out, listed as such.
 | 3f | 3 | mvcc watch: watchable store, watcher, watcher group; `pkg/v3/adt` | `S/server/storage/mvcc/{watchable_store,watchable_store_txn,watcher,watcher_group}.go`, `S/pkg/adt/` | ~47 + 41 | |
 | 3h | 3 | protobuf messages: raftpb, etcdserverpb, mvccpb/authpb helpers, api/v3 version | `S/raft/raftpb/`, `S/api/etcdserverpb/`, `S/api/{mvccpb,authpb,version}/` | 57 + 84 + 2 | |
 | 4a | 4 | backend | `S/server/storage/backend/*.go` | 91 | |
-| 4b | 4 | schema; pkg leaves (`traceutil`, `pbutil`, `ioutil`, `httputil`) | `S/server/storage/schema/*.go`, `S/pkg/{traceutil,pbutil,ioutil,httputil}/` | 34 + ~25 | |
+| 4b | 4 | schema; pkg leaves (`traceutil`, `pbutil`, `ioutil`, `httputil`); trust boundaries of `probing`, `x/time/rate`, `semver` | `S/server/storage/schema/*.go`, `S/pkg/{traceutil,pbutil,ioutil,httputil}/` | 34 + ~25 | |
 | 4c | 4 | bbolt public API (DB, Tx, Bucket, Cursor) | `S/bbolt/*.go` | 135 | |
 | 4d | 4 | bbolt internals (`internal/common`, `internal/freelist`) | `S/bbolt/internal/{common,freelist}/*.go` | 83 + 14 | |
 | I | 5 | integration: every sketch re-checked against its callees' final specs | all | | |

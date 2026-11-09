@@ -133,3 +133,51 @@ batches (2c/2d/2e) produce it where a member starts (with `servesAt`'s other par
 
 Used by: `NewWatchServer.spec` (its precondition), and through `watchServerAt` every watch spec;
 snippet `examples/specreq/v3rpcwatch/serve.go`.
+
+## from 2f
+
+Batch 2f (rafthttp: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Api.lean`, namespace
+`Rafthttp`; report `notes/specs-only/batch-2f.md`). What the transport's specs need from the server
+(2d: the raft node and `Process`; 2e: `NewServer`'s transport literal, the peer listeners):
+
+1. **A network per cluster** (`Rafthttp.net_alloc.spec`): allocated with the raft cluster `γ` and
+   the meaning of a snapshot's database image (`Img i bs`, persistent: for etcd, "`bs` is a bbolt
+   image of the backend holding the committed state through `i`"); `snapImg ν i bs ∗-∗ Img i bs`.
+   The receiver of a `MsgSnap` gets `dbSaved ss i bs ∗ snapImg ν i bs` (`recvd`), the sender of a
+   merged snapshot must give `Http.readerAt rc ... (snapImg ν i)` of its pipe's reader
+   (`Rafthttp.outSnap`).
+2. **The closed world of peer addresses**: every peer URL of a member (`AddPeer`, `AddRemote`,
+   `UpdatePeer`, and the local `URLs` of the literal) has a host that is a `peerAddr ν a`: reserved
+   once (`Rafthttp.peerAddr_reserve.spec`, or `Http.reserve` with a protocol agreeing with
+   `raftProto ν` under `/raft` when the peer port also serves other endpoints) by the program
+   before it starts the members; the membership invariant keeps the fact for each member's URLs
+   (a `MemberAdd`/`MemberUpdate` of a URL outside the program is outside the closed world: a
+   deployment premise). The member serving an address owns `Http.protoOwn a P`, which `Serve`
+   takes with its listener.
+3. **The server as `Raft`** (`Rafthttp.raftOk ν id ss (srv as Raft)`): `Process(ctx, m)` of a fresh
+   message with `recvd ν ss m` (raft's `msgSent`, `msgCredit`; for a `MsgSnap`, its database saved)
+   on a thread with its `threadTok` (etcd's reads `lgMu` and the membership under read locks),
+   returning `procErr err` and the token: its `403`s (`httptypes.HTTPError`: a law `procErr` of
+   such an error, whose `WriteTo` writes a status and a JSON body), else `node.Step`'s `nodeErr`
+   (`Rafthttp.procErr_nodeErr.spec`); `Process` must check `To` itself (it does, `server.go:712`):
+   rafthttp delivers to the member serving the URL, and `node.Step` needs `m.to = id`.
+   `IsIDRemoved(x)` with a token, any boolean; `ReportUnreachable`, `ReportSnapshot` from nothing.
+   ```go
+   tr := &rafthttp.Transport{..., Raft: srv, Snapshotter: b.ss, ErrorC: srv.errorc} // server.go:412
+   ```
+4. **`Send`'s premise** (`Rafthttp.outMsg`, `sendable id m`): each message of `processMessages`'s
+   output with its `msgSent`/`msgCredit` (raft's `readyEnter`/`readyCheck`), no `MsgSnap` (diverted
+   to `msgSnapC`: it is), a `MsgApp` from the member's id with raft's shape (R1/R2's law requested
+   in `req/go_etcd_io_raft_v3.md`, "from 2f"). Each message's memory is shared with the transport
+   for good (any fraction: `readyDq`'s).
+5. **The literal's fields** (`Rafthttp.trCfg`): the logger, the stats (`stats.NewServerStats`,
+   `NewLeaderStats`: the transport takes the leader stats exclusively), the error channel
+   (`errChanOk srv.errorc`: a `chan error` any goroutine may send on without blocking; `run`
+   receives and stops on it, which is always safe), the snapshotter, an unlocked mutex. `Start`'s
+   error is returned (`server.go:425`).
+6. **`trRunning`**: `AddPeer` takes a share and panics after `Stop`; the server must not apply a
+   conf change or a snapshot's members after `raftNode.onStop` stopped the transport (`Stop` takes
+   the token whole).
+7. **The merged snapshot** (`Transport.SendSnapshot.spec`): `snap.NewMessage`'s message whole
+   (`snapMsgOwn`, with the right to close it, which rafthttp uses exactly once), its raft message a
+   `MsgSnap` with `msgSent` (after `msgSent_replaceSnap`) and the credit.

@@ -414,6 +414,10 @@ def respW_flusher.spec : Prop :=
   respW (GF := GF) w R τ P c hs bs ⊢ ∃ i : GoInterfaceOk, ⌜w = interface.ok i ∧
     go.typeSetContains i.ty _root_.Perennial.net.http.Flusher.ty = true⌝
 
+/-- **A mux is built** once its patterns are registered (no `Handle` after it is served). -/
+def muxOwn_freeze.spec : Prop :=
+  ∀ (m : Loc) (L : List (GoString × GoInterface)), muxOwn (GF := GF) m L ⊢ |==> muxAt m L
+
 /-- **A request being built: its `Header` field** (a load of `r.Header` reads `hm`, whose `Set`s
 update the request's headers). -/
 def reqOwn_header.spec : Prop :=

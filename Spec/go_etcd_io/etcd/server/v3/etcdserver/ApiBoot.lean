@@ -115,7 +115,8 @@ loses nothing a stop and restart see).
 ## Internal vocabulary (the package's own proofs: `bootstrap`, `start`, the closers)
 
 `bootOk b γ id cfg` (what `bootstrap` returns), `bootRaftOk br γ id cfg`, `bootBackendAt b be`,
-`srvPublish s`, `srvPurge s`, `stoppingCh ch`: see each declaration.
+`srvPublish s`, `srvPurge s`, `stoppingCh ch`, `srvClosers s ds`, `srvClosed ds` (with the
+narrow law `srvBuilt_closers`): see each declaration.
 
 ## Laws
 
@@ -222,7 +223,51 @@ opaque srvPurge (s : Loc) : IProp GF := iprop(True)
 
 /-- `ch` is a server's stopping channel (persistent): closed at most once, by the stop; anyone
 may receive from it. -/
-opaque stoppingCh (ch : GoChan) : IProp GF := iprop(True)
+opaque stoppingCh (ch : Loc) : IProp GF := iprop(True)
+
+/-- `cc` is the server `s`'s corruption checker over the hash storage `hs` (persistent: its
+read-only fields). -/
+opaque isCorruptionChecker (cc : Loc) (s : Loc) (hs : GoInterface) : IProp GF := iprop(True)
+
+/-! ## Provisional names of other batches' vocabulary (replaced at integration) -/
+
+/-- **Provisional (2d, the raft node):** `rn` is the raft node `newRaftNode` built for member `id`
+of `γ` over the storage `st` (its `raftNodeConfig`, the started `raft.Node`, the ticker, the
+channels): what 2d's `raftNode.start` takes. Exclusive. -/
+opaque raftNodeBuilt (rn : Loc) (γ : Cluster) (id : Nat) (st : Loc) : IProp GF := iprop(True)
+
+/-- **Provisional (2f, rafthttp):** `h` is the raft HTTP handler of member `id` of `γ` (the
+transport's `Handler()`), which `http.Serve` may serve on the member's peer listener. Persistent. -/
+opaque raftHandler (h : GoInterface) (γ : Cluster) (id : Nat) : IProp GF := iprop(True)
+
+/-- **Provisional (2f, rafthttp):** `tp` is a `rafthttp.Transporter` whose `ActiveSince` may be
+called from any goroutine. Persistent. -/
+opaque transporterOk (tp : GoInterface) : IProp GF := iprop(True)
+
+/-- **Provisional (3h, etcdserverpb):** `r` is `nil` (`b = false`) or a readable
+`*InternalRaftRequest` whose `LeaseRevoke` field is non-nil exactly when `b`. Persistent. -/
+opaque irrIsRevoke (r : Loc) (b : Bool) : IProp GF := iprop(True)
+
+/-- **Provisional (W0, the metrics boundary):** `gv` is a usable `*prometheus.GaugeVec`.
+Persistent. -/
+opaque gaugeVecOk (gv : Loc) : IProp GF := iprop(True)
+
+/-- What `Cleanup` closes (exclusive): the lessor's stop right (3c), the KV store's closer with its
+readers given back (3e: `oneshot-close.md`), the auth store's closer (3d), the backend's whole open
+token (4a, `ServerStorage.beOpen`) and the compactor's handle. Split off `srvBuilt` (embed's error
+path, before `Start`) or off the running server by `run`'s stop, after the raft loop and every
+attached goroutine are done (2d). -/
+opaque srvClosers (s : Loc) (ds : Config.Dirs) : IProp GF := iprop(True)
+
+/-- What `Cleanup` gives back (exclusive): the backend's file at rest, holding the image of its
+last commit (`Snap.beFile (backendPathOf ds.dataDir) (some img)` and what the image is: 2d's
+assembly of `memberDisk` at the stop). -/
+opaque srvClosed (ds : Config.Dirs) : IProp GF := iprop(True)
+
+/-- Split the closers off a built server (embed's error path: `Cleanup` before `Start`). The
+rest (the raft node, which keeps running, the WAL, still open) is dropped. -/
+def srvBuilt_closers.spec : Prop := ∀ s γ id cfg,
+  srvBuilt (GF := GF) s γ id cfg ⊢ srvClosers s (Config.dirsOf cfg)
 
 /-! ## Provisional slots of other batches (see the header) -/
 

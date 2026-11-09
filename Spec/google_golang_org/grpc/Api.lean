@@ -329,6 +329,12 @@ opaque rpcCtx (ctx : GoInterface) (md : MD) : IProp GF := iprop(True)
 /-- **The request decoder of a unary run** (the request's content `c`). -/
 opaque decOk (dec : val) (reqT : go.GoType) (c : Content) : IProp GF := iprop(True)
 
+/-- **The key of the stream `g`** (exclusive; given to the client that opened it, once): what a
+stream's protocol consumes to allocate ghost state keyed by `g` (so that the client's first message
+can fix the parameters the server's later messages are about). Allocating ghost names is free: this
+is no counted resource. -/
+opaque streamKey (g : StreamName) : IProp GF := iprop(True)
+
 /-- A client stream's sending half (`i` sent). -/
 opaque cliSend (cs : GoInterface) (g : StreamName) (S : StreamSpec (GF := GF)) (md : MD) (i : Nat) :
   IProp GF := iprop(True)
@@ -485,7 +491,7 @@ def streamerOk_call.spec : Prop := ∀ (cc : Loc) (A : GoString → IProp GF) (R
     (App (App (App (App (App (Val str) (Val #ctx)) (Val #desc)) (Val #cc)) (Val #m)) (Val #opts))
   {{ (cs err : GoInterface), RET (PairV #cs #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (g : StreamName) (mdc md : MD), □ R mdc ∗ ⌜mdSeen (md0 ++ mdc) md⌝ ∗
-        cliSend cs g S md 0 ∗ cliRecv cs g S md 0) ∨
+        streamKey g ∗ cliSend cs g S md 0 ∗ cliRecv cs g S md 0) ∨
       (⌜cs = GoInterface.nil⌝ ∗ ownErr err) }}
 
 /-- **`cs.SendMsg(m)`** (the `grpc.ClientStream` interface; the generated stubs' `Send`): the
@@ -497,7 +503,7 @@ def cliSend_send.spec : Prop := ∀ (cs : GoInterface) (g : StreamName) (S : Str
     (App (Val (cs @!! google_golang_org.grpc.ClientStream.ty @!! go!"SendMsg")) (Val #(msgVal reqT p)))
   {{ (err : GoInterface), RET #err; msgAt reqT p dq c ∗
       ((⌜err = GoInterface.nil⌝ ∗ cliSend cs g S md (i + 1)) ∨
-       (⌜err ≠ GoInterface.nil⌝ ∗ cliSend cs g S md (i + 1))) }}
+       (⌜err ≠ GoInterface.nil⌝ ∗ (globalAddr io.EOF ↦□ err ∨ ownErr err) ∗ cliSend cs g S md (i + 1))) }}
 
 /-- **`cs.CloseSend()`**: the client's half closed (the server's next receive after the `i`
 messages is `io.EOF`). -/

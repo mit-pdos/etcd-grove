@@ -154,6 +154,27 @@ def etcdPerm (γ : Cluster) (T : State → State → Prop) : IProp GF :=
 reads of 1f's recipes and 1g's cache). -/
 def etcdPeek (γ : Cluster) : IProp GF := etcdPerm γ (fun σ σ' => σ' = σ)
 
+/-- **A member's lessor has reached lease table `i`** (persistent; `State.leaseTables`): the member
+serving `ep` reflects table `i` or a later one, and answers its lease reads (`Leases`; `TimeToLive`
+on the leader) from a table at least `i`. Produced by 1c's lease specs from the server (a grant
+answered through `ep` gives the table after it; a read answered through `ep` at table `j` gives
+`j`), consumed by them (a read through `ep` holding `leaseViewLb γ ep i` is answered at a table
+`≥ i`): what `examples/etcd/{leasegrant,leaseexpiry,leasecatchup}` carry. Realized by 2c/2d from
+the member's applied index. -/
+opaque leaseViewLb (γ : Cluster) (ep : GoString) (i : Nat) : IProp GF := iprop(True)
+
+def leaseViewLb_persistent.spec : Prop := ∀ γ ep i, Persistent (leaseViewLb (GF := GF) γ ep i)
+
+/-- A member's lessor is at a table the cluster has had. -/
+def leaseViewLb_le.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (i : Nat) (σ : State),
+  leaseViewLb (GF := GF) γ ep i ∗ etcdState γ σ ⊢ ⌜i < σ.leaseTables.length⌝
+
+/-- **`tok` is a token the cluster issued to user `u`** (persistent; `Authenticate`'s answer, 1c and
+3d): a request carrying it is `u`'s, or refused once it is invalid or stale. -/
+opaque tokenUser (γ : Cluster) (tok : GoString) (u : GoString) : IProp GF := iprop(True)
+
+def tokenUser_persistent.spec : Prop := ∀ γ tok u, Persistent (tokenUser (GF := GF) γ tok u)
+
 /-- **The environment's permission** (see the header): any environment step of a cluster
 configured as `cfg`, at any time. -/
 def envUpd (γ : Cluster) (cfg : EnvCfg) : IProp GF :=

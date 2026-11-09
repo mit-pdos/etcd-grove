@@ -371,3 +371,38 @@ from `readOnly.AckedIndex.spec`). `JointConfig.CommittedIndex.spec`'s size premi
     (`node.go:388`) rewrites `From` of a proposal `node.Step` received.
 15. Not done (second tier): laws for `TickQuiesced` (`electionElapsed++`) and `WithProgress` (R4's
     `Visit` read-only); neither has a user in scope.
+
+## from 2f
+
+Batch 2f (rafthttp, `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Api.lean`, namespace
+`Rafthttp`). Report: `notes/specs-only/batch-2f.md`.
+
+1. **R1's question S8 (`reviews/R1-completeness-1.md`): rafthttp delivers each message at most
+   once.** Every path dequeues a message once: `peer.send` puts it on one channel without blocking
+   (full: dropped); a stream writer encodes it once on its one live connection, and a broken
+   connection's queue is dropped with its channel (`closeUnlocked`); the reader decodes each frame
+   of its one response once; the pipeline `POST`s it once with no retry, and Go's client never
+   replays a `POST` (`Request.isReplayable`); a `GET` it may replay (a stream's dial) opens a second
+   handler run whose bytes no client reads. So etcd's one-shot credits (`γ.dup = false`) are sound
+   over rafthttp: `Transport.Send.spec` takes `msgCredit γ m` and the receiver's `Process` gets it
+   once (`Rafthttp.raftOk`, `recvd`). Nothing to change in R1.
+2. **The `MsgApp` shape of a sent message**, as a law of `msgSent` (or a fact of `BatchOk` for the
+   `Ready`'s messages): a `MsgApp` of node `id` has `src = id`, `vote = 0`, `snapshot = none`,
+   `reject = false`, `rejectHint = 0`, `context = []` (raft's one constructor, `maybeSendAppend`,
+   `raft.go:651-658`, sets only `To`, `Type`, `Index`, `LogTerm`, `Entries`, `Commit`; `send` sets
+   `From = r.id` and `Term`). The msgappv2 stream's short frame carries only the entries and the
+   commit, and the receiver rebuilds the rest (`From` from the dialed peer, the other fields zero):
+   without the shape the decoded copy is a different `Msg` and its `msgSent` would not hold.
+   ```go
+   // msgappv2_codec.go:95 (encoder) / 185-193 (decoder)
+   case enc.index == m.GetIndex() && enc.term == m.GetLogTerm() && m.GetLogTerm() == m.GetTerm():
+   m = raftpb.Message{Type: MsgApp, From: dec.remote, To: dec.local, Term: dec.term, LogTerm: dec.term, Index: dec.index}
+   ```
+   Wanted: `msgSent_appShape.spec : msgSent γ m ∗ ⌜m.type = MsgApp⌝ ⊢ ⌜m.vote = 0 ∧ m.snapshot =
+   none ∧ m.reject = false ∧ m.rejectHint = 0 ∧ m.context = []⌝`, and that a `Ready` of node `id`
+   (`readyGot`) hands out messages with `m.src = id` (a `BatchOk` conjunct, or a law of
+   `msgSent` with `isNode`). Used by: the server's proof of `Rafthttp.sendable id m` for
+   `Transport.Send.spec`'s premise (2d), and through it every stream delivery.
+3. **No local message is sent**: `msgSent_type.spec` already bounds the type; rafthttp also needs
+   that a sent message is not the link heartbeat (`MsgHeartbeat` from and to `0`): a node's
+   messages are from its non-zero id, which item 2's `m.src = id` gives.
