@@ -2543,6 +2543,53 @@ theorem truncSt_other (st : Etcdraft.State) (i j k : Etcdraft.ID) (L : List Etcd
     (truncSt st i j L).s k = st.s k := by
   simp [truncSt, withLead, Etcdraft.State.upd, hk]
 
+theorem memEq_false_of_logs (visited : List Etcdraft.TState) (g : Etcdraft.TState) (i : Etcdraft.ID)
+    (h : ∀ v ∈ visited, i ∈ v.s.server ∧ (v.s.s i).log ≠ (g.s.s i).log) :
+    Etcdraft.memEq visited g = false := by
+  unfold Etcdraft.memEq
+  rw [List.any_eq_false]
+  intro v hv
+  have := tstate_eq_of_log_ne v g i (h v hv).1 (h v hv).2
+  simp [this]
+
+/-- **The truncation rounds as a chain**: states `S k` (`q ≤ k ≤ N`) each stepping to `S (k - 1)`
+above `q`, each satisfying the invariants, their server `i`'s logs `F k` pairwise different; from
+the chain at `S q` (whatever was visited, provided its logs are `F k'`, `k' ≥ q`), the chain at
+every `S k`. -/
+theorem chain_down (t : Etcdraft.Trace) (l0 : Nat) (i : Etcdraft.ID) (S : Nat → Etcdraft.State)
+    (F : Nat → List Etcdraft.Entry) (q N : Nat) (tsF : Etcdraft.TState)
+    (hstep : ∀ k, q < k → k ≤ N → t.next ⟨S k, l0, l0⟩ = .ok [⟨S (k - 1), l0, l0⟩])
+    (hsrv : ∀ k, i ∈ (S k).server) (hlog : ∀ k, ((S k).s i).log = F k)
+    (hF : ∀ k k', k ≠ k' → F k ≠ F k')
+    (hinv : ∀ k, q ≤ k → k < N → (S k).violated = .ok none)
+    (hbase : ∀ visited, (∀ v ∈ visited, i ∈ v.s.server ∧ ∃ k', q ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') →
+      Chain t l0 visited ⟨S q, l0, l0⟩ tsF) :
+    ∀ d, ∀ visited, q + d ≤ N →
+      (∀ v ∈ visited, i ∈ v.s.server ∧ ∃ k', q + d ≤ k' ∧ k' ≤ N ∧ (v.s.s i).log = F k') →
+      Chain t l0 visited ⟨S (q + d), l0, l0⟩ tsF := by
+  intro d
+  induction d with
+  | zero => intro visited _ hv; exact hbase visited (by simpa using hv)
+  | succ d ih =>
+    intro visited hN hv
+    apply Chain.step visited _ ⟨S (q + d), l0, l0⟩ tsF
+    · have := hstep (q + (d + 1)) (by omega) hN
+      simpa using this
+    · rfl
+    · apply memEq_false_of_logs visited _ i
+      intro v hvm
+      obtain ⟨hvs, k', hk1, hk2, hk⟩ := hv v hvm
+      refine ⟨hvs, ?_⟩
+      rw [hk]; simp only; rw [hlog]; exact hF k' (q + d) (by omega)
+    · exact hinv (q + d) (by omega) (by omega)
+    · apply ih _ (by omega)
+      intro v hvm
+      rw [List.mem_append, List.mem_singleton] at hvm
+      rcases hvm with hvm | rfl
+      · obtain ⟨hvs, k', hk1, hk2, hk⟩ := hv v hvm
+        exact ⟨hvs, k', by omega, hk2, hk⟩
+      · exact ⟨hsrv _, q + d, Nat.le_refl _, by omega, hlog _⟩
+
 end TraceSim
 
 end EtcdGrove
