@@ -4371,6 +4371,39 @@ theorem doneSt_truncSt_eq (σ : Etcdraft.State) (m : Etcdraft.Msg) (L : List Etc
   unfold doneSt Etcdraft.State.commitTo
   rw [withLead_reply_upd, truncSt_eq, withNode_s_self, withNode_withNode]
   rfl
+
+/-- **The `Ready` line's step, any run** (`simRun_ready` without `L ≠ []`). -/
+theorem simRun_ready_any (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hrun : SimRun C L σ)
+    (hσinv : σ.violated = .ok none) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (hev : NodeEvOf (W64 8) id s cfg e) (hout : cfg.outgoing = ∅) (hC : id ∈ C)
+    (hinv : (σ.ready (idAbs id)).violated = .ok none) :
+    SimRun C (L ++ [e]) (σ.ready (idAbs id)) := by
+  obtain ⟨hname, hnid, -, hvote, -, -, -, ⟨xs, ys, -, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "Ready" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"Ready" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  have hparse : Etcdraft.parseLine L.length (evConv e) = .ok (nodeLine e id s.vote xs) :=
+    parseLine_node L.length e id s.vote xs [] hnid hvote hconf hmsg (by rw [hname']; rfl) (by rw [hname']; decide)
+  apply simRun_snoc_single_any C L σ _ e _ hrun hσinv hparse _ hinv
+  intro lines ts hl hts hl'
+  have hlen := parseLines_length _ _ hl
+  simp only [List.length_map] at hlen
+  have hline := linesTrace_line_last C lines (nodeLine e id s.vote xs) ts.l (by omega)
+  apply next_of_nonReceive _ ts _ (by omega) (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+  · simp only [linesTrace]; rw [hl']
+    have := bootFlags_nonBoot (confAbs C) lines (nodeLine e id s.vote xs) (by simp [nodeLine, evConv, hname']; rfl)
+    rw [hlen] at this; exact this
+  · rw [hline]; simp [nodeLine, evConv, hname']; rfl
+  · rw [← hts]
+    apply nonReceive_ready _ ts (idAbs id) (by simp [linesTrace, Etcdraft.Trace.len]; omega)
+    · rw [hline]; simp [nodeLine, evConv, hname']
+    · rw [hline]; rfl
+    · exact confAbs_nodup C
+    · simp only [linesTrace]; rw [mem_confAbs]; exact hC
 end TraceSim
 
 end EtcdGrove
