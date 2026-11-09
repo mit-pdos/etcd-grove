@@ -743,7 +743,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       Hrs_unst, Hrs_clb,
       ⟨Hrnfl.1, Int.not_lt.1 fun h => by
         obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
-      HceOk, fun _ => Hcepre, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs⟩
+      HceOk, fun _ => Hcepre, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs, Hgtr⟩
   isplitr
   · iexact Hce
   isplitr

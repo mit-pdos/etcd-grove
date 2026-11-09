@@ -804,7 +804,7 @@ theorem RawNode.acceptReady.wp_proof
     %rs' %({ s.rd with states := [] } : RdState)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
-    [] [] [] [] [] [] [] [] [] Hlog
+    [] [] [] [] [] [] [] [] [] %rfl Hlog
   · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · rw [List.map_nil]; iapply ownSlice_nil

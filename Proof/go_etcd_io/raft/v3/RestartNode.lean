@@ -390,7 +390,8 @@ private theorem wp_RestartNode_impl
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.spec
-  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ Ha1 Ha2 Hboot Hcs Htlk
+  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ Ha1 Ha2 Hboot Hcs Htlk HtrC
+  have HtrG : γ.raft.reTrace = none := HtrC
   wp_start as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HAU, #Hconf, Hrs⟩
   iunfold EtcdGrove.isCluster at Hcl
   ihave #Hcl' := Hcl
@@ -889,6 +890,7 @@ private theorem wp_RestartNode_impl
           obtain ⟨t, ht, -⟩ := restartCt_complete HcF (by omega) hi2
           exact ⟨hi2, t, ht⟩⟩
       Hsvr.1.symm HphsR
+      (show s.gh.tr = γ.raft.reTrace by rw [Hgh, HtrG])
       $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] Hdurt
     · iunfold sdrOk; iexists _; iexact Hsd0
     · iapply pendList_nil
@@ -1031,7 +1033,7 @@ private theorem wp_RestartNode_impl
     ipureintro; rfl
   -- `go n.run()`
   wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1 Hdur1 Hbw Hfree]
-  · wp_apply wp_node_run γn cv.ID' n_ptr $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1
+  · wp_apply wp_node_run γn cv.ID' n_ptr HtrG $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1
       Hdur1 Hbw Hfree]
     · iframe Hnode
       unfold runPre

@@ -210,7 +210,8 @@ private theorem wp_step_pending
     (Hnw : ∀ pv t, p = .self pv t → s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64)
     (Hghoff : s.gh.unst = false) (Hpf : PreFacts md s)
     (Hpre : ∀ ce (m' : MessageM), p = .applyAck ce → m'.Type' = MsgStorageApplyResp →
-      md.Pre m' ce s) :
+      md.Pre m' ce s)
+    (Htr : s.gh.tr = none) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         ownStepGhost γ md c id s ∗ msgIn ml DFrac.discard st ∗ pendingRel γ id W st p ∗ £ 1 ∗
         -- (2026-11-01, durability stage II (k), fix C) the cut batch's fragments (*enter*'s)
@@ -516,7 +517,8 @@ private theorem wp_step_snapack
     -- `loanDec`) to the snapshot's configuration, `Ml` among the ghost's (the caller absorbed them)
     (Ml : DecMap)
     (Hdf : ∀ D', γ.dyn = some D' → D'.fold Ml D = some (snapTrip sv sv.Metadata'.ConfState'.lists).cfgM)
-    (Hsub : ∀ dec c0 h0 g, md = .dyn dec c0 h0 g → Ml ⊆ g.decs) :
+    (Hsub : ∀ dec c0 h0 g, md = .dyn dec c0 h0 g → Ml ⊆ g.decs)
+    (Htr : s.gh.tr = none) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         ownStepGhost γ md c id s ∗
         msgIn ml DFrac.discard ⟨appendAckM id t (e.getD ⟨W64 0, W64 0⟩), [], some sv, [], []⟩ ∗
@@ -969,6 +971,8 @@ theorem RawNode.Advance.wp_proof
   wp_start as H
   iNamed H
   iNamed Hrn
+  -- (Q8 stage 0) the node untraced
+  have HtrS : s.gh.tr = none := Hgtr.trans HtrG
   have Htcb : uint.Z s.gh.tc < 2 ^ 64 := by word
   rcases Option.eq_none_or_eq_some rs.slent with hsl | ⟨l, hsl⟩
   rotate_left
@@ -1086,6 +1090,7 @@ theorem RawNode.Advance.wp_proof
     have Htrm0 : rs.term = s0.term := Htrm.trans Hs0f.2.2.2.2.2.2.2.2.2.2.1.symm
     have Htcb0 : uint.Z s0.gh.tc < 2 ^ 64 := by word
     have Hs0sn : s0.gh.sn = s.gh.sn := by rw [← Hs0]
+    have Hs0tr : s0.gh.tr = none := by rw [← Hs0]; exact HtrS
     have Hs0dtk : s0.logst.dtk = s.logst.dtk := by rw [← Hs0]; rfl
     have Hs0v : HsLe (hsOf s) (hsOf s0) ∧ uint.Z s.logst.inprogress ≤ uint.Z s0.logst.inprogress := by
       rw [← Hs0]; exact ⟨HsLe.refl _, Int.le_refl _⟩
@@ -1215,7 +1220,7 @@ theorem RawNode.Advance.wp_proof
           Hpok (fun _ _ _ _ h => by cases h) Hs1.1 Hnw1
           (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst) Hpf1
           (fun _ _ h => by cases h)
-          $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1 $Hbw] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
+          (by tr_none) $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1 $Hbw] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
         obtain ⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2, Hsg2', Hsg2'', Hrl2,
           -, Hfl2, Hap2, Hack2, Hsrb2, Hapa2, Hip2⟩ := Hst2
         have Hc12 := Hout2.commit_mono
@@ -1317,7 +1322,7 @@ theorem RawNode.Advance.wp_proof
             (Hsf1 (by rw [Hsn1']; simp)) (by rw [Hsn1']; simp) Hsnp1 Hhas
             (fun hd => ⟨Happ1, fun _ => by rw [Hpv1]; rfl, Hdlen', Hdlast, Hcm1⟩)
             l.decs HlDf (subDecs_of Hsub)
-            $$ [$Hphys $Hghost $Hmin $Hlc1 $Hdl] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
+            (by tr_none) $$ [$Hphys $Hghost $Hmin $Hlc1 $Hdl] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
           obtain ⟨Hwf2, Hmds, Hmdd, prs2, pvs2, il2, Hs2⟩ := Hst2
           have Hmd2 := snapack_mode Hmds Hmdd
           have Hl2 : s2.logst =
@@ -1467,7 +1472,7 @@ theorem RawNode.Advance.wp_proof
             (Hsf1 (by rw [Hsn1']; simp)) (by rw [Hsn1']; simp) Hsnp1 Hhas
             (fun hd => ⟨Happ1, Hsnb1, Hdlen', Hdlast, Hcm1⟩)
             l.decs HlDf (subDecs_of Hsub)
-            $$ [$Hphys $Hghost $Hmin $Hlc1 $Hdl] as %err %s2' %md2 ⟨Hphys, Hghost, %Hst2⟩
+            (by tr_none) $$ [$Hphys $Hghost $Hmin $Hlc1 $Hdl] as %err %s2' %md2 ⟨Hphys, Hghost, %Hst2⟩
           obtain ⟨Hwf2, Hmds, Hmdd, prs2, pvs2, il2, Hs2'⟩ := Hst2
           have Hmd2 := snapack_mode Hmds Hmdd
           have Hl2' : s2'.logst =
@@ -1905,7 +1910,7 @@ theorem RawNode.Advance.wp_proof
     wp_apply wp_step_pending wp_raft_Step γ cf _ rnv.raft' id s1 mm st p rs.bw Hwf1 Hpok
       Hack (Hs1.2.1.trans Hunp') Hnw1
       (by rw [Hsg1.2.2, ← Hrs_unst]; exact Hunst0) Hpf1 Hpre1
-      $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1 $Hbw] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
+      (by tr_none) $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1 $Hbw] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
     obtain ⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2, Hsg2', Hsg2'', Hrl2,
       Hpg2, Hfl2, Hap2, Hack2, Hsrb2, Hapa2, Hip2⟩ := Hst2
     have Hsg2 := And.intro Hsg2 (And.intro Hsg2' Hsg2'')
