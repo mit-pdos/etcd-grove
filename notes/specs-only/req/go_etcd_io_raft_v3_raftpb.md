@@ -148,3 +148,11 @@ encoding of `m`"), to be replaced by 3h's wire model.
 Used by: `messageEncoder.encode.spec`, `messageDecoder.decodeLimit.spec`, `msgAppV2Encoder.encode.
 spec`, `msgAppV2Decoder.decode.spec`, `pipeline.handle.spec`, `pipelineHandler.ServeHTTP.spec`,
 `snapshotHandler.ServeHTTP.spec`.
+
+## from 2d
+
+1. **`entryAt p k e`** (provisional in `ApiApply.lean`): the element of R1's `entriesRO sl k es` at
+   position `i` is a pointer to `es[i]` at index `k + i`, read-only for good (`apply`'s `es[i]`,
+   `applyEntryNormal(e)`, `e.GetIndex()`). A law `entriesRO_elem` from the slice to its elements.
+2. **`pbutil.MustUnmarshalMessage(&cc, e.Data)`** of a committed `EntryConfChange` decodes (R1's
+   `committedLb_confDecodes`) into the `*ConfChange` with `confChangePts ... (.v1 c)`.

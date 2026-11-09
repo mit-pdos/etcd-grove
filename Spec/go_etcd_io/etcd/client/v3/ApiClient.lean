@@ -3,103 +3,101 @@
 
 The vocabulary batch 1c adds to W0's (`Api.lean`): the contracts behind W0's slots `authAt`,
 `clusterAt`, `maintAt` (bundles of their methods' triples, in the KV contract's shape), the
-configuration `New` takes (`cfgOk`), the principal a configuration names (`cfgPrincipal`), and the
+configuration `New` takes (`cfgOk`), the principal a configuration names (`cfgPrincipal`), the
 retry interceptor's contract, which is what makes W0's update shapes sound (`AttemptTriple`,
-`uiOk`). The lease contract (`leaseAt`) is in `ApiLease.lean`.
+`uiOk`), the readiness of a client (`clientReady`), its endpoints (`epsTok`) and the in-process
+client (`clientBare`). The lease contract (`leaseAt`) is in `ApiLease.lean`.
 
 ## The shape of every non-KV call (`CallTriple`)
 
-As W0's KV contract: the caller's atomic update over `etcdState γ` for the request `rq`
-(`Model.lean`'s `Req`: `.userAdd`, `.memberList`, `.leaseGrant`, ...), fired by `Step who rq`, and
-the call returns either the answer's reply (`ansReply`: the reply message for `.ok b`, `errVal e`
-for `.err e`) with the caller's `Q`, or an error that settles nothing (`indefCall`). The update is
-**persistent** (`□`) exactly when the client's retry wrapper marks the RPC repeatable
-(`reqRetryRep`: `retry.go`'s `withRepeatablePolicy()`), whether or not the request writes: the
-interceptor then resends it after an `Unavailable` error, which may follow an attempt that was
-applied, so the cluster may fire the update more than once (**a lease grant may grant two leases, a
-revoke may answer `ErrLeaseNotFound` for a lease this very call revoked**: the program's invariant
-sees every firing, the caller gets the last one's `Q`). Every other RPC's update is exclusive.
+As W0's KV contract (round 3): a call by a client whose credentials name `who`, sent with a
+context carrying the principal `p` (`ctxPrin who ctx p`: `p = who` for a context with no metadata
+of its own), takes the caller's atomic update over `etcdState γ` for the request `rq`
+(`Model.lean`'s `Req`), fired by `Step p rq`, and returns either the answer's reply (`ansReply`: the
+reply message for `.ok b`, `errVal e` for `.err e`) with the caller's `Q`, or an error that settles
+nothing (`indefCall`). The update is **persistent** (`□`) exactly when the client's retry wrapper
+marks the RPC repeatable (`reqRetryRep`: `retry.go`'s `withRepeatablePolicy()`), whether or not
+the request writes: the interceptor then resends it after an `Unavailable` error, which may follow
+an attempt that was applied, so the cluster may fire the update more than once (**a lease grant
+may grant two leases, a revoke may answer `ErrLeaseNotFound` for a lease this very call revoked**:
+the program's invariant sees every firing, the caller gets the last one's `Q`). Every other RPC's
+update is exclusive and fired at most once.
 
 ## The retry interceptor's contract (what W0's at-most-once rests on)
 
 `Client.unaryClientInterceptor` is installed on the client's connection; every unary call (the
 generated stubs' `cc.Invoke`) runs it around grpc's own one-attempt invoker. The two contracts:
 
-* `AttemptTriple inv` (**what grpc's invoker gives, 2a**): one attempt of a unary call
-  (`unaryArgs`: the method, its request message modelled by `rq`, the reply holder) returns
-  (1) success, the update fired; (2) a definite etcd error, the update fired with it; (3) an error
-  after which the request is known **not applied**, the update **given back unfired**: not sent
-  (`CallErr.notSent`), a token refusal (`errRetryAuth`: `ErrInvalidAuthToken`,
-  `ErrAuthOldRevision`, `ErrUserEmpty`), or a learner's refusal (`ErrGRPCNotSupportedForLearner`:
-  `.notSupportedForLearner`, a refusal); or (4) an
-  indefinite error, the update possibly fired later (lost to the caller).
+* `AttemptTriple inv cc` (**what grpc's invoker gives, 2a**, on a connection `grpcConnAt cc`): one
+  attempt of a unary call (`unaryArgs`: the method, its request message modelled by `rq`, the reply
+  holder) returns (1) success, the update fired; (2) a definite etcd error, the update fired with
+  it; (3) an error after which the request is known **not applied**, the update **given back
+  unfired**: not sent (`CallErr.notSent`), a token refusal (`errRetryAuth`: `ErrInvalidAuthToken`,
+  `ErrAuthOldRevision`, `ErrUserEmpty`), or a learner's refusal (`.notSupportedForLearner`); or (4)
+  another indefinite error (never `.notSent`), the update possibly fired later (lost to the caller).
 * `uiOk ui c γ who` (the interceptor's, proved by `Client.unaryClientInterceptor.spec`): for any
-  invoker meeting `AttemptTriple`, the interceptor's call returns (1) or (2), or an indefinite
-  error, never (3): it resends only after (3) (or, for a repeatable RPC, after an `Unavailable` or
-  a timeout of the attempt, the update being persistent), refreshing the token first after a token
-  refusal; when it gives up after (3) with a token refusal it **fires the update itself** with that
-  refusal (`Step.refuse`: every `retryAuth` error is a refusal), and when the refresh fails it
-  fires it with the refresh's error (`ErrAuthFailed` and the other refusals) or returns an
-  indefinite one.
+  invoker meeting `AttemptTriple`, on a ready client (`clientReady c`: its token refresh reads
+  `c.Auth`), the interceptor's call returns (1) or (2), or an indefinite error, never (3): it
+  resends only after (3) (or, for a repeatable RPC, after an `Unavailable` or a timeout of the
+  attempt, the update being persistent), refreshing the token first after a token refusal; when it
+  gives up after (3) it **fires the update itself** with that refusal (every such error is
+  `EtcdErr.refusal`), and when the refresh fails it fires it with the refresh's error (a refusal:
+  `ErrAuthFailed`, ...) or returns an indefinite one. A caller's own interceptor that calls the
+  invoker at most once (the gRPC proxy's) also meets the post: the refusal is fired by a ghost step.
 
 So a non-repeatable write is applied at most once per call: it is resent only after an attempt
 that applied nothing.
 
-## Handles (persistent)
+## Readiness (`clientReady c`)
+
+`newClient` builds the client's members (`NewCluster`, `NewKV`, `NewLease`, ...) from the
+connection before it sets `c.Auth`; a call through a member then would, on a token refusal, refresh
+the token through a `nil` `Auth` and panic. No call is made then, so the specs make the window
+explicit: `clientReady c` (persistent) is minted by `newClient` once `c.Auth` is set (and by
+`clientBare_assemble` for an in-process client); the interceptor laws (`uiOk_call`, `siOk_call`)
+take it, and so do the bundle introductions of the handles the members' constructors return
+(`authHandle_authAt`, `lessorHandle_leaseAt`, ...: each handle records its client `c`; a handle
+over a caller's remote records `null`, `clientReady_null`). The constructors themselves do not
+need it. W0's `kvHandle_kvAt` needs the same premise (`req/go_etcd_io_etcd_client_v3.md`, from 1c).
+
+## Endpoints (`epsTok c dq eps`)
+
+`Client.dial` reads `c.endpoints[0]` without `epMu` and without an emptiness check
+(`issues/etcd-client-dial-empty-endpoints.md`): every dial after `New` (`Client.Dial`, so
+`Maintenance.Status`) needs a fraction of the endpoints token at a non-empty list (no concurrent
+`SetEndpoints`), and `SetEndpoints`/`Sync` the whole token. `New` gives the token when auto-sync is
+off (with auto-sync the client's own goroutine changes the endpoints: the token stays with it, and
+`Status` is out of reach). `epsTok_persist` freezes the list; a client frozen at one endpoint
+(`clientVia c ep := epsTok c DFrac.discard [ep]`) has every call answered by that member, which the
+per-member lease reads use (`ApiLease.lean`).
+
+## Handles (persistent unless said)
 
 * `cfgOk cfg γ who` (def): the configuration `New` takes: its endpoints all serve `γ`
   (`servesAt`), its credentials name the principal `who` (`cfgPrincipal`), its dial options keep the
-  client's interceptors (`dialOptsOk`), its TLS configuration, logger and context are usable, and an
-  auto-sync is on only with verification off (`Verify.verifyOff`: `Sync` asserts a non-empty member
-  list under `ETCD_VERIFY`).
-* `cfgPrincipal γ cfg who` (opaque): the principal the cluster sees for a client so configured:
-  the user name with a password; the token's user (`tokenOf`); the TLS certificate's (`tlsPrincipal`,
-  2e's slot); none otherwise. Intro laws `cfgPrincipal_user`, `cfgPrincipal_token`,
-  `cfgPrincipal_tls`, `cfgPrincipal_none`.
-* `idUpd γ` (def): the program's permission for the client's own read-only calls (the token
-  refresh's `Authenticate`, the auto-sync's `MemberList`): a persistent atomic update that changes
-  nothing. The client needs it because those calls are its own, not a caller's: they need an update
-  to hand to the cluster, and a read's step changes nothing, so the program loses nothing by giving
-  it (its invariant is kept trivially).
-* `clientCore c γ who` (opaque): what the client's own functions read (the configuration, the
-  credentials and token bundle, the `Auth` field, the endpoints under `epMu`, the logger, `idUpd`).
-  Intended realization: read-only points-tos of `cfg`, `creds`, `Username`, `Password`, `Token`,
-  `authTokenBundle` (`bundleAt`), `callOpts` (`callOptsOk _ false`), `lg` (an atomic pointer to an
-  `isLogger`), `ctx`, `cancel`, `resolver`; an invariant over `epMu` holding `endpoints` with
-  `servesAt γ` of each; an invariant holding the `Auth` field (`nil` before `NewAuth`, then
-  `authAt`); `idUpd γ`.
-* `authAt v γ who`, `clusterAt v γ who`, `maintAt v γ who` (W0's slots): the bundles of the methods'
-  triples (`authAt_methods`, ...). Realized for the package's own types by `authHandle_authAt`,
-  `clusterHandle_clusterAt`, `maintHandle_maintAt`.
-* `remoteAuthAt v γ who`, `remoteClusterAt v γ who`, `remoteMaintAt v γ who` (**the gRPC
-  boundary**): the `etcdserverpb.*Client` value `v` meets the wire contract `RemoteCallTriple`:
-  the same updates over the request message (`reqOwn`, 3h), errors as gRPC returns them. Realized
-  for the retry wrappers (`retryAuthHandle_remoteAuthAt`, ...); the stubs over `connOk` are 2a/3h's.
-
-## Values
-
-* `replyOwn p b` (opaque, 3h): the reply message at `p`, owned, carrying the answer `b`; laws for
-  the fields clients read (`replyOwn_authenticate`). `reqOwn p dq rq` (opaque, 3h): the request
-  message of a non-KV call.
-* `tokenOf γ tok u` (persistent, 3d's slot): the token `tok` names the user `u` while valid.
-  `Authenticate`'s reply gives it.
-* `bundleAt b γ who` (persistent, `credentials`' realization): the token bundle `b` holds only `""`
-  or tokens naming `who`.
-
-## Laws
-
-`handles1c_persistent`; the bundles' triples (`authAt_methods`, `clusterAt_methods`,
-`maintAt_methods`); the realizations (`authHandle_authAt`, `clusterHandle_clusterAt`,
-`maintHandle_maintAt`, `retryAuthHandle_remoteAuthAt`, ...); `remote*At_call`; `isClient_core`,
-`clientMut_core`; `uiOk_call`, `siOk_call`; `dialOptsOk_nil`;
-`cfgPrincipal_*`; `replyOwn_authenticate`; `callOptsOk_nil`, `callOptsOk_core`.
+  client's credentials and call each invoker at most once (`dialOptsOk`), its TLS configuration
+  (`Transport.tlsCfgOk`), logger and context are usable, and an auto-sync is on only with
+  verification off (`Verify.verifyOff`).
+* `cfgPrincipal γ cfg who` (opaque): the client's default principal: the user name with a password
+  (and, with a client certificate, a certificate the members do not take as a principal); the
+  token's user (`tokenUser`); the TLS certificate's (`tlsPrincipal`, 2e's slot); none otherwise.
+* `idUpd γ` (def): the identity update the client's own read-only calls hand over (W0's
+  `etcdPeek γ` has the same purpose; `idUpd` is kept for the `COMM True` shape).
+* `clientBase c who` (opaque): the context (`ctxOk`, `ctxPrin who _ who`), cancel function and
+  logger every client has (`Ctx`, `GetLogger`, `Close`'s cancel); `clientPre c γ who` the client
+  under construction (`clientBase`, configuration, credentials, `epMu` with endpoints serving `γ`,
+  resolver, `callOpts`); `clientCore c γ who` the built client (`clientPre`, the connection, the
+  members' fields). Laws: `clientCore_pre`, `clientPre_base`, `clientRest_core` (W0's
+  `clientRest`), `isClient_core`, `clientMut_core`.
+* `clientBare c who` (exclusive): a `NewCtxClient`'s client before its fields are set
+  (`clientBare_assemble`).
+* `authAt v γ who`, `clusterAt`, `maintAt` (W0's slots): bundles (`authAt_methods`, ...), realized
+  by the handles; `remote*At` the wire bundles, realized by the retry wrappers.
 
 ## Requirement snippets
 
-`examples/specreq/clientv3client/`: `lifecycle.go` (`New`, `Close`, `Endpoints`, `Ctx`, a wrapped
-`KV`), `auth.go` (the admin's setup, a user's client, the token refresh's at-most-once),
-`cluster.go` (`MemberList`, `MemberAdd`'s answer), `maint.go` (`Status`, `AlarmList`).
-`examples/specreq/clientv3lease/` for the lease API.
+`examples/specreq/clientv3client/`: `lifecycle.go`, `auth.go`, `cluster.go`, `maint.go`,
+`kubernetes.go`, `tls.go`, `inproc.go`. `examples/specreq/clientv3lease/` for the lease API.
 -/
 module
 
@@ -107,6 +105,8 @@ public import Spec.go_etcd_io.etcd.client.v3.Api
 public import Spec.go_uber_org.zap.Api
 public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Api
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.Api
+public import Spec.go_etcd_io.etcd.client.pkg.v3.transport.Api
+
 
 @[expose] public section
 
@@ -196,6 +196,7 @@ def permTypeM (t : w32) : Option PermType :=
 def alarmKindM (t : w32) : Option AlarmKind :=
   if t = W32 1 then some .nospace else if t = W32 2 then some .corrupt else none
 
+
 /-! ## Resources -/
 
 section res
@@ -208,24 +209,20 @@ opaque replyOwn (p : Loc) (b : RespBody) : IProp GF := iprop(True)
 /-- **The request message `p` of a non-KV call, modelled by `rq`** (fraction `dq`; 3h). -/
 opaque reqOwn (p : Loc) (dq : DFrac) (rq : Req) : IProp GF := iprop(True)
 
-/-- **The token `tok` names the user `u`** while the server accepts it (persistent; slot, 3d). -/
-opaque tokenOf (γ : Cluster) (tok : GoString) (u : GoString) : IProp GF := iprop(True)
-
-/-- **The TLS configuration at `tls` makes the cluster see the principal `who`** (persistent; slot,
-2e: the certificate's common name if the members run with `--client-cert-auth`, else none). -/
+/-- **The TLS configuration at `tls` makes the cluster see the principal `who`** for a request
+with no token (persistent; slot, 2e: the certificate's common name if the members run with
+`--client-cert-auth`, else none). -/
 opaque tlsPrincipal (γ : Cluster) (tls : Loc) (who : Principal) : IProp GF := iprop(True)
 
-/-- **A `*tls.Config` grpc's `credentials.NewTLS` may clone** (persistent, read-only; slot, 2a). -/
-opaque tlsCfgOk (tls : Loc) : IProp GF := iprop(True)
-
-/-- **A slice of `grpc.DialOption`s that keep the client's interceptors and credentials**
-(persistent; slot, 2a): keepalive parameters, context dialers, stats handlers, `WithBlock`, chained
-interceptors that call the invoker once with their arguments (Kubernetes' metrics and tracing); not
-`WithUnaryInterceptor`/`WithStreamInterceptor` (they replace the client's:
-`nonissues/etcd-client-dialoptions-unary-interceptor.md`), not per-RPC credentials. -/
+/-- **A slice of `grpc.DialOption`s that keep the client's calls sound** (persistent; slot, 2a):
+keepalive parameters, context dialers, stats handlers, `WithBlock`, chained interceptors, and
+`WithUnaryInterceptor`/`WithStreamInterceptor` (which replace the client's:
+`nonissues/etcd-client-dialoptions-unary-interceptor.md`; the gRPC proxy's), each interceptor
+calling its invoker or streamer at most once with a context carrying the call's principal; no
+per-RPC credentials. -/
 opaque dialOptsOk (sl : GoSlice) : IProp GF := iprop(True)
 
-/-- **The principal of a client configured by `cfg`** (persistent): see the intro laws. -/
+/-- **The default principal of a client configured by `cfg`** (persistent): see the intro laws. -/
 opaque cfgPrincipal (γ : Cluster) (cfg : go_etcd_io.etcd.client.v3.Config) (who : Principal) :
   IProp GF := iprop(True)
 
@@ -235,21 +232,36 @@ def idUpd (γ : Cluster) : IProp GF :=
   iprop(□ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
     <{ etcdState γ σ, COMM True }>)
 
-/-- **The configuration `New` takes** for a client of `γ` as `who`. `LogConfig` (a zap
-configuration the client would build) is out of scope unless a `Logger` is given. -/
+/-- **The configuration `New` takes** for a client of `γ` with default principal `who`. `LogConfig`
+(a zap configuration the client would build) is out of scope unless a `Logger` is given. -/
 def cfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Principal) : IProp GF :=
   iprop(∃ eps : List GoString, cfg.Endpoints' ↦*□ eps ∗ ([∗list] ep ∈ eps, servesAt γ ep) ∗
     cfgPrincipal γ cfg who ∗ dialOptsOk cfg.DialOptions' ∗
-    (⌜cfg.TLS' = null⌝ ∨ tlsCfgOk cfg.TLS') ∗
+    (⌜cfg.TLS' = null⌝ ∨ Transport.tlsCfgOk cfg.TLS') ∗
     (⌜cfg.Logger' = null ∧ cfg.LogConfig' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗
-    (⌜cfg.Context' = GoInterface.nil⌝ ∨ Context.ctxOk cfg.Context' ∗ ctxPrin cfg.Context' who) ∗
+    (⌜cfg.Context' = GoInterface.nil⌝ ∨ Context.ctxOk cfg.Context' ∗ ctxPrin who cfg.Context' who) ∗
     (⌜cfg.AutoSyncInterval' = W64 0⌝ ∨ Verify.verifyOff) ∗
     idUpd γ)
 
-/-- **What the client's own functions read** (see the header). -/
+/-- **A client's context, cancel function and logger** (persistent). -/
+opaque clientBase (c : Loc) (who : Principal) : IProp GF := iprop(True)
+/-- **The client under construction** (persistent; see the header). -/
+opaque clientPre (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+/-- **What the built client's own functions read** (persistent; see the header). -/
 opaque clientCore (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+/-- **The client `c` is ready for calls** (persistent): its `Auth` field is set (or it has no
+token refresh). -/
+opaque clientReady (c : Loc) : IProp GF := iprop(True)
+/-- **The client's endpoints are `eps`** (fraction `dq`; the whole token to change them). -/
+opaque epsTok (c : Loc) (dq : DFrac) (eps : List GoString) : IProp GF := iprop(True)
+/-- **A client frozen at one endpoint**: every call is answered by the member at `ep`. -/
+def clientVia (c : Loc) (ep : GoString) : IProp GF := epsTok c DFrac.discard [ep]
+/-- **A `NewCtxClient`'s client before its fields are set** (exclusive). -/
+opaque clientBare (c : Loc) (who : Principal) : IProp GF := iprop(True)
+/-- **A `clientv3.Option` closure** (persistent): `WithZapLogger(lg)`'s (stores a logger). -/
+opaque clientOptAt (f : GoFunc) : IProp GF := iprop(True)
 
-/-- **The token bundle `b` holds `""` or tokens naming `who`** (`credentials`' bundle). -/
+/-- **The token bundle `b` holds `""` or tokens of `who`** (`credentials`' bundle). -/
 opaque bundleAt (b : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **A retry option `v`** (`retryOption`, persistent): applying it changes the interceptor's
@@ -268,26 +280,18 @@ def retryOptsAt (sl : GoSlice) (fs : List (RetryOptsM → RetryOptsM)) : IProp G
   iprop(∃ vs : List go_etcd_io.etcd.client.v3.retryOption, sl ↦*□ vs ∗
     [∗list] v; f ∈ vs; fs, retryOptAt v f)
 
-/-- **The interceptor's `*options` at `p`** (read-only), modelled by `o` (`retryAuth` true, a
-backoff function of the package's). -/
+/-- **The interceptor's `*options` at `p`** (read-only), modelled by `o`. -/
 opaque optionsAt (p : Loc) (o : RetryOptsM) : IProp GF := iprop(True)
-
-/-- **The client under construction** (`newClient` before the dial; persistent): its configuration,
-credentials, token bundle, context, `epMu` with the endpoints (each `servesAt γ`), logger,
-`callOpts`, resolver set (what `clientCore` has but the connection and the members). -/
-opaque clientPre (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- **Dial options naming the target** (persistent; slot, 2a and `internal/resolver`):
 `grpc.WithResolvers(r)` of an `EtcdManualResolver` whose endpoints all serve `γ`. -/
 opaque dialTargetOk (sl : GoSlice) (γ : Cluster) : IProp GF := iprop(True)
 
-/-- **Transport credentials a dial may use** (persistent; slot, 2a): `nil` (insecure),
-`credentials.NewTLS` of a `tlsCfgOk` configuration. -/
+/-- **Transport credentials a dial may use** (persistent; slot, 2a). -/
 opaque transportCredsOk (creds : GoInterface) : IProp GF := iprop(True)
 
 /-- **The client's dial options** (persistent): the target's, keepalive parameters, the transport
-credentials, the client's unary and stream interceptors (`uiOk`, `siOk`) for `c` (what
-`dialSetupOpts` returns; `dial` adds the token bundle's per-RPC credentials and `cfg.DialOptions`). -/
+credentials, the client's unary and stream interceptors (`uiOk`, `siOk`) for `c`. -/
 opaque clientDialOpts (sl : GoSlice) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF :=
   iprop(True)
 
@@ -300,54 +304,55 @@ def ansReply (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF :=
   | .ok b => iprop(⌜err = GoInterface.nil⌝ ∗ replyOwn resp b)
   | .err e => iprop(⌜err = errVal e ∧ resp = null⌝)
 
-/-- `Authenticate`'s reply: also the token's principal. -/
+/-- `Authenticate`'s reply: also the token's user (W0's `tokenUser`). -/
 def authReply (γ : Cluster) (name : GoString) (res : Resp) (resp : Loc) (err : GoInterface) :
     IProp GF :=
   iprop(ansReply res resp err ∗
     match res with
-    | .ok (.authenticate tok) => tokenOf γ tok name
+    | .ok (.authenticate tok) => tokenUser γ tok name
     | _ => True)
 
 /-! ### The call shapes -/
 
-/-- **A non-KV call** `e` sending `rq` for the caller's update (persistent if `rep`), `P` the
-caller's resources, `B` given back. -/
-def CallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (who : Principal) (rq : Req) (rep : Bool)
+/-- The update of a call by the principal `p`, persistent if `rep`. -/
+def callAU (γ : Cluster) (p : Principal) (rq : Req) (rep : Bool)
+    (Q : State → State → Resp → IProp GF) : IProp GF :=
+  iprop(□?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p rq σ σ' res⌝ ∗ etcdState γ σ',
+           COMM Q σ σ' res }>)
+
+/-- **A non-KV call** `e` sending `rq` as the principal `p` for the caller's update (persistent if
+`rep`), `P` the caller's resources, `B` given back. -/
+def CallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p : Principal) (rq : Req) (rep : Bool)
     (reply : Resp → Loc → GoInterface → IProp GF) : Prop :=
   ∀ (Q : State → State → Resp → IProp GF),
-  {{ P ∗ □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who rq σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }> }}
+  {{ P ∗ callAU γ p rq rep Q }}
     e
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); B ∗
       ((∃ σ σ' res, Q σ σ' res ∗ reply res resp err) ∨ (⌜resp = null⌝ ∗ indefCall err)) }}
 
 /-- **A non-KV call with a local check** (`ok`: the arguments pass it): if they do not, the call
 returns an error before sending anything, the update given back. -/
-def CheckedCallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (who : Principal) (rq : Req)
+def CheckedCallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p : Principal) (rq : Req)
     (rep : Bool) (ok : Prop) (reply : Resp → Loc → GoInterface → IProp GF) : Prop :=
   ∀ (Q : State → State → Resp → IProp GF),
-  {{ P ∗ □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who rq σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }> }}
+  {{ P ∗ callAU γ p rq rep Q }}
     e
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); B ∗
       ((⌜ok⌝ ∗ ∃ σ σ' res, Q σ σ' res ∗ reply res resp err) ∨ (⌜ok⌝ ∗ ⌜resp = null⌝ ∗ indefCall err) ∨
-       (⌜¬ ok ∧ resp = null ∧ err ≠ GoInterface.nil⌝ ∗
-        □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who rq σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }>)) }}
+       (⌜¬ ok ∧ resp = null ∧ err ≠ GoInterface.nil⌝ ∗ callAU γ p rq rep Q)) }}
 
-/-- **The wire contract of a non-KV unary RPC**: `v`'s method `reqRpc rq` (of the interface type `ty`)
-sends the request message `req` (modelled by `rq`, given back), the update persistent if the RPC is
-repeatable, the options `callOptsOk` (a non-repeatable RPC's not repeatable). -/
+/-- **The wire contract of a non-KV unary RPC**: the method `m (reqRpc rq)` sends the request
+message `req` (modelled by `rq`, given back) with a context carrying the principal `p`, the update
+persistent if the RPC is repeatable, the options `callOptsOk` (a non-repeatable RPC's not
+repeatable). -/
 def RemoteCallTriple (m : GoString → val) (P : IProp GF) (γ : Cluster)
     (who : Principal) (rq : Req) : Prop :=
-  ∀ (ctx : GoInterface) (req : Loc) (dq : DFrac) (opts : GoSlice) (rep : Bool),
+  ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (opts : GoSlice) (rep : Bool),
   (reqRetryRep rq = false → rep = false) →
   CallTriple (App (App (App (Val (m (reqRpc rq))) (Val #ctx)) (Val #req)) (Val #opts))
-    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ reqOwn req dq rq ∗ callOptsOk opts rep) (reqOwn req dq rq)
-    γ who rq (reqRetryRep rq) (wireReply ansReply)
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ reqOwn req dq rq ∗ callOptsOk opts rep)
+    (reqOwn req dq rq) γ p rq (reqRetryRep rq) (wireReply ansReply)
 
 end res
 
@@ -357,41 +362,36 @@ section intc
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
-/-- **A unary call's arguments** (slot, 2a/3h: what a generated stub hands to `cc.Invoke`): the
-method `method` (`"/etcdserverpb.KV/Put"`, ...), the request message `req` (an `any`, read-only,
-modelled by `rq`), the reply holder `reply` (an `any`, owned, empty); `R res` what the caller gets
-on success (the filled reply and the request back). -/
+/-- **A unary call's arguments** (slot, 2a/3h: what a generated stub hands to `cc.Invoke`). -/
 opaque unaryArgs (method : GoString) (req reply : GoInterface) (rq : Req)
   (R : Resp → IProp GF) : IProp GF := iprop(True)
 
-/-- **The gRPC call options grpc's invoker accepts** (persistent; slot, 2a): the client's
-(`callOptsOk`) without its retry options (`filterCallOptions`), and `grpc.Peer(&p)`. -/
+/-- **The gRPC call options grpc's invoker accepts** (persistent; slot, 2a). -/
 opaque grpcCallOptsOk (sl : GoSlice) : IProp GF := iprop(True)
 
-/-- The update of a call, persistent if `rep`. -/
-def callAU (γ : Cluster) (who : Principal) (rq : Req) (rep : Bool)
-    (Q : State → State → Resp → IProp GF) : IProp GF :=
-  iprop(□?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step who rq σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }>)
+/-- **A gRPC client connection** (persistent; slot, 2a): `cc.Target()` and grpc's own use of it
+are safe. -/
+opaque grpcConnAt (cc : Loc) : IProp GF := iprop(True)
 
 /-- **One attempt** (grpc's `UnaryInvoker` `inv`, with the connection `cc`; 2a): success or a
-definite error, the update fired; an error after which the request is known not applied, the update
-given back; or an indefinite error, the update lost. -/
+definite error, the update fired; an error after which the request is known not applied (not sent,
+a token or learner refusal), the update given back; or another indefinite error, the update lost. -/
 def AttemptTriple (inv : val) (cc : Loc) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (method : GoString) (req reply : GoInterface) (rq : Req)
+  ∀ (ctx : GoInterface) (p : Principal) (method : GoString) (req reply : GoInterface) (rq : Req)
     (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ unaryArgs method req reply rq R ∗ grpcCallOptsOk opts ∗
-      callAU γ who rq rep Q }}
+  {{ P ∗ grpcConnAt cc ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ unaryArgs method req reply rq R ∗
+      grpcCallOptsOk opts ∗ callAU γ p rq rep Q }}
     (App (App (App (App (App (App (Val inv) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
       (Val #cc)) (Val #opts))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' b, Q σ σ' (.ok b) ∗ R (.ok b)) ∨
       (∃ σ σ' e, Q σ σ' (.err e) ∗ callErr err (.etcd e) ∗
-        ⌜e.indefinite = false ∧ errRetryAuth e = false ∧ e ≠ .notSupportedForLearner⌝ ∗ unaryArgs method req reply rq R) ∨
-      ((callErr err .notSent ∨ (∃ e, callErr err (.etcd e) ∗ ⌜errRetryAuth e = true ∨ e = .notSupportedForLearner⌝)) ∗
-        callAU γ who rq rep Q ∗ unaryArgs method req reply rq R) ∨
-      (indefCall err ∗ unaryArgs method req reply rq R) }}
+        ⌜e.indefinite = false ∧ errRetryAuth e = false ∧ e ≠ .notSupportedForLearner⌝ ∗
+        unaryArgs method req reply rq R) ∨
+      ((callErr err .notSent ∨
+        (∃ e, callErr err (.etcd e) ∗ ⌜errRetryAuth e = true ∨ e = .notSupportedForLearner⌝)) ∗
+        callAU γ p rq rep Q ∗ unaryArgs method req reply rq R) ∨
+      ((∃ k, callErr err k ∗ ⌜k.indefinite = true ∧ k ≠ .notSent⌝) ∗ unaryArgs method req reply rq R) }}
 
 /-- **The client's unary interceptor `ui`** (persistent): see `uiOk_call`. -/
 opaque uiOk (ui : val) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
@@ -399,16 +399,14 @@ opaque uiOk (ui : val) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := 
 /-- **The client's stream interceptor `si`** (persistent): see `siOk_call`. -/
 opaque siOk (si : val) (c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
-/-- **A call through the unary interceptor**, for any invoker meeting `AttemptTriple`: the update
-fired with a success or a definite answer, or an indefinite error; never a token refusal or a
-not-sent error left unsettled (the interceptor resends or fires the refusal itself). The options
-`callOptsOk opts rep`: a non-repeatable call's update may be exclusive. -/
+/-- **A call through the unary interceptor** of a ready client, for any invoker meeting
+`AttemptTriple`: the update fired with a success or a definite answer, or an indefinite error. -/
 def uiOk_call.spec : Prop := ∀ (ui : val) (c : Loc) (γ : Cluster) (who : Principal) (inv : val)
     (cc : Loc) (Pinv : IProp GF), AttemptTriple inv cc Pinv γ who →
-  ∀ (ctx : GoInterface) (method : GoString) (req reply : GoInterface) (rq : Req)
+  ∀ (ctx : GoInterface) (p : Principal) (method : GoString) (req reply : GoInterface) (rq : Req)
     (R : Resp → IProp GF) (opts : GoSlice) (rep : Bool) (Q : State → State → Resp → IProp GF),
-  {{ uiOk (GF := GF) ui c γ who ∗ □ Pinv ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ unaryArgs method req reply rq R ∗
-      callOptsOk opts rep ∗ callAU γ who rq rep Q }}
+  {{ uiOk (GF := GF) ui c γ who ∗ clientReady c ∗ grpcConnAt cc ∗ □ Pinv ∗ Context.ctxOk ctx ∗
+      ctxPrin who ctx p ∗ unaryArgs method req reply rq R ∗ callOptsOk opts rep ∗ callAU γ p rq rep Q }}
     (App (App (App (App (App (App (App (Val ui) (Val #ctx)) (Val #method)) (Val #req)) (Val #reply))
       (Val #cc)) (Val inv)) (Val #opts))
   {{ (err : GoInterface), RET #err;
@@ -417,23 +415,27 @@ def uiOk_call.spec : Prop := ∀ (ui : val) (c : Loc) (γ : Cluster) (who : Prin
          (∃ e, ⌜res = .err e⌝ ∗ callErr err (.etcd e) ∗ unaryArgs method req reply rq R))) ∨
       (indefCall err ∗ unaryArgs method req reply rq R) }}
 
-/-- **A stream opened through the stream interceptor**: the client's token fetched first
-(`getToken`: an error then, the streamer not called), then the streamer called once with the
-context's values added (`withVersion`) and the gRPC options; whatever the streamer's triple gives. -/
+/-- **A stream opened through the stream interceptor** of a ready client: the client's token
+fetched first (`getToken`: an error then, the streamer not called), then the streamer called once
+with the context's values added (`withVersion`) and the gRPC options (the limit `0`: no per-call
+option raises it, `callOptsOk`); whatever the streamer's triple gives. -/
 def siOk_call.spec : Prop := ∀ (si : val) (c : Loc) (γ : Cluster) (who : Principal)
     (strm : val) (P : IProp GF) (Φ : GoInterface → GoInterface → IProp GF)
-    (ctx : GoInterface) (desc cc : Loc) (method : GoString) (opts : GoSlice),
+    (ctx : GoInterface) (p : Principal) (desc cc : Loc) (method : GoString) (opts : GoSlice)
+    (rep : Bool),
   (∀ (ctx' : GoInterface) (opts' : GoSlice),
-    {{ P ∗ Context.ctxOk ctx' ∗ ctxPrin ctx' who ∗ Context.ctxWithValues ctx ctx' ∗ grpcCallOptsOk opts' }}
+    {{ P ∗ Context.ctxOk ctx' ∗ ctxPrin who ctx' p ∗ Context.ctxWithValues ctx ctx' ∗
+        grpcCallOptsOk opts' }}
       (App (App (App (App (App (Val strm) (Val #ctx')) (Val #desc)) (Val #cc)) (Val #method))
         (Val #opts'))
     {{ (s err : GoInterface), RET (PairV #s #err); Φ s err }}) →
-  {{ siOk (GF := GF) si c γ who ∗ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
+  {{ siOk (GF := GF) si c γ who ∗ clientReady c ∗ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
+      callOptsOk opts rep }}
     (App (App (App (App (App (App (Val si) (Val #ctx)) (Val #desc)) (Val #cc)) (Val #method))
       (Val strm)) (Val #opts))
   {{ (s err : GoInterface), RET (PairV #s #err);
       Φ s err ∨ (⌜s = GoInterface.nil⌝ ∗ P ∗
-        (indefCall err ∨ ∃ e, callErr err (.etcd e) ∗ ⌜e.refusal = true ∨ e = .authFailed⌝)) }}
+        (indefCall err ∨ ∃ e, callErr err (.etcd e) ∗ ⌜e.refusal = true⌝)) }}
 
 end intc
 
@@ -446,112 +448,128 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 /-- `UserAddWithOptions`' options: `nil` (a password required) or a read-only message (slot, 3h). -/
 opaque userAddOptsAt (p : Loc) (noPw : Bool) : IProp GF := iprop(True)
 
-/-- The auth call `m` with arguments `args` (each `ctx` first), sending `rq`. -/
-def Auth.Triple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (args : List val) (rq : Req)
+/-- **One non-KV method call** `f(ctx, args...)` of a client of default principal `who`, with a
+context carrying `p`, sending `rq` (the update persistent iff the RPC is repeatable). -/
+def Call.Triple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) (args : List val) (rq : Req)
     (reply : Resp → Loc → GoInterface → IProp GF := ansReply) : Prop :=
-  ∀ (ctx : GoInterface),
+  ∀ (ctx : GoInterface) (p : Principal),
   CallTriple ((args.foldl (fun e a => App e (Val a)) (App (Val f) (Val #ctx))))
-    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ ctxPrin ctx who) iprop(True) γ who rq (reqRetryRep rq) reply
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p) iprop(True) γ p rq (reqRetryRep rq) reply
 
-/-- **The `Auth` interface's triples**, one per method: the request each sends (`Model.lean`'s
-auth steps). `RoleGrantPermission`: a permission type of the model (`permTypeM`). -/
-def Auth.methods (v : GoInterface) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  let m := fun (s : GoString) => v @!! go_etcd_io.etcd.client.v3.Auth.ty @!! s
-  (∀ name pw : GoString, Auth.Triple (m go!"Authenticate") P γ who [ #name, #pw] (.authenticate name pw)
+/-- **The `Auth` interface's triples**, one per method (`m s`: the receiver's method `s`). -/
+def Auth.methods (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
+  (∀ name pw : GoString, Call.Triple (m go!"Authenticate") P γ who [ #name, #pw] (.authenticate name pw)
       (authReply γ name)) ∧
-  Auth.Triple (m go!"AuthEnable") P γ who [] .authEnable ∧
-  Auth.Triple (m go!"AuthDisable") P γ who [] .authDisable ∧
-  Auth.Triple (m go!"AuthStatus") P γ who [] .authStatus ∧
-  (∀ name pw : GoString, Auth.Triple (m go!"UserAdd") P γ who [ #name, #pw] (.userAdd name pw false)) ∧
+  Call.Triple (m go!"AuthEnable") P γ who [] .authEnable ∧
+  Call.Triple (m go!"AuthDisable") P γ who [] .authDisable ∧
+  Call.Triple (m go!"AuthStatus") P γ who [] .authStatus ∧
+  (∀ name pw : GoString, Call.Triple (m go!"UserAdd") P γ who [ #name, #pw] (.userAdd name pw false)) ∧
   (∀ (name pw : GoString) (o : Loc) (noPw : Bool),
-    Auth.Triple (m go!"UserAddWithOptions") iprop(P ∗ userAddOptsAt o noPw) γ who [ #name, #pw, #o]
+    Call.Triple (m go!"UserAddWithOptions") iprop(P ∗ userAddOptsAt o noPw) γ who [ #name, #pw, #o]
       (.userAdd name pw noPw)) ∧
-  (∀ name : GoString, Auth.Triple (m go!"UserDelete") P γ who [ #name] (.userDelete name)) ∧
-  (∀ name pw : GoString, Auth.Triple (m go!"UserChangePassword") P γ who [ #name, #pw]
+  (∀ name : GoString, Call.Triple (m go!"UserDelete") P γ who [ #name] (.userDelete name)) ∧
+  (∀ name pw : GoString, Call.Triple (m go!"UserChangePassword") P γ who [ #name, #pw]
       (.userChangePassword name pw)) ∧
-  (∀ user role : GoString, Auth.Triple (m go!"UserGrantRole") P γ who [ #user, #role]
+  (∀ user role : GoString, Call.Triple (m go!"UserGrantRole") P γ who [ #user, #role]
       (.userGrantRole user role)) ∧
-  (∀ name : GoString, Auth.Triple (m go!"UserGet") P γ who [ #name] (.userGet name)) ∧
-  Auth.Triple (m go!"UserList") P γ who [] .userList ∧
-  (∀ name role : GoString, Auth.Triple (m go!"UserRevokeRole") P γ who [ #name, #role]
+  (∀ name : GoString, Call.Triple (m go!"UserGet") P γ who [ #name] (.userGet name)) ∧
+  Call.Triple (m go!"UserList") P γ who [] .userList ∧
+  (∀ name role : GoString, Call.Triple (m go!"UserRevokeRole") P γ who [ #name, #role]
       (.userRevokeRole name role)) ∧
-  (∀ name : GoString, Auth.Triple (m go!"RoleAdd") P γ who [ #name] (.roleAdd name)) ∧
+  (∀ name : GoString, Call.Triple (m go!"RoleAdd") P γ who [ #name] (.roleAdd name)) ∧
   (∀ (name key rangeEnd : GoString) (t : w32) (pt : PermType), permTypeM t = some pt →
-    Auth.Triple (m go!"RoleGrantPermission") P γ who [ #name, #key, #rangeEnd, #t]
+    Call.Triple (m go!"RoleGrantPermission") P γ who [ #name, #key, #rangeEnd, #t]
       (.roleGrantPermission name { permType := pt, range := { key := key, rangeEnd := rangeEnd } })) ∧
-  (∀ name : GoString, Auth.Triple (m go!"RoleGet") P γ who [ #name] (.roleGet name)) ∧
-  Auth.Triple (m go!"RoleList") P γ who [] .roleList ∧
-  (∀ role key rangeEnd : GoString, Auth.Triple (m go!"RoleRevokePermission") P γ who
+  (∀ name : GoString, Call.Triple (m go!"RoleGet") P γ who [ #name] (.roleGet name)) ∧
+  Call.Triple (m go!"RoleList") P γ who [] .roleList ∧
+  (∀ role key rangeEnd : GoString, Call.Triple (m go!"RoleRevokePermission") P γ who
       [ #role, #key, #rangeEnd] (.roleRevokePermission role key rangeEnd)) ∧
-  (∀ name : GoString, Auth.Triple (m go!"RoleDelete") P γ who [ #name] (.roleDelete name))
+  (∀ name : GoString, Call.Triple (m go!"RoleDelete") P γ who [ #name] (.roleDelete name))
 
-/-- **The `Cluster` interface's triples.** `MemberAdd`/`MemberUpdate` check the URLs first
-(`urlsValid`: else an error, nothing sent); `MemberList`'s options are `OpOption`s of which only
-`WithSerializable` matters (a serializable list is answered from a member's view). -/
-def Cluster.methods (v : GoInterface) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  let m := fun (s : GoString) => v @!! go_etcd_io.etcd.client.v3.Cluster.ty @!! s
-  (∀ (ctx : GoInterface) (sl : GoSlice) (urls : List GoString) (learner : Bool),
-    CheckedCallTriple (App (App (Val (m (if learner then go!"MemberAddAsLearner" else go!"MemberAdd")))
-        (Val #ctx)) (Val #sl))
-      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ sl ↦*□ urls) iprop(True) γ who (.memberAdd urls learner) false
-      (Types.urlsValid urls) ansReply) ∧
-  (∀ (ctx : GoInterface) (id : w64),
-    CallTriple (App (App (Val (m go!"MemberRemove")) (Val #ctx)) (Val #id))
-      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ ctxPrin ctx who) iprop(True) γ who (.memberRemove (uint.nat id)) false ansReply) ∧
-  (∀ (ctx : GoInterface) (id : w64) (sl : GoSlice) (urls : List GoString),
-    CheckedCallTriple (App (App (App (Val (m go!"MemberUpdate")) (Val #ctx)) (Val #id)) (Val #sl))
-      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ sl ↦*□ urls) iprop(True) γ who (.memberUpdate (uint.nat id) urls)
-      false (Types.urlsValid urls) ansReply) ∧
-  (∀ (ctx : GoInterface) (opts : GoSlice) (gs : List (OpM → OpM)),
-    ¬ prefixAndFromKey gs →
-    CallTriple (App (App (Val (m go!"MemberList")) (Val #ctx)) (Val #opts))
-      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ optsAt opts gs) (optsAt opts gs) γ who
-      (.memberList (!(opGetM [] gs).serializable)) true ansReply) ∧
-  (∀ (ctx : GoInterface) (id : w64),
-    CallTriple (App (App (Val (m go!"MemberPromote")) (Val #ctx)) (Val #id))
-      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ ctxPrin ctx who) iprop(True) γ who (.memberPromote (uint.nat id)) false ansReply)
+/-- `MemberAdd`/`MemberAddAsLearner` (the URLs checked first: `Types.urlsValid`). -/
+def Cluster.MemberAddTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal)
+    (learner : Bool) : Prop :=
+  ∀ (ctx : GoInterface) (p : Principal) (sl : GoSlice) (urls : List GoString),
+  CheckedCallTriple (App (App (Val (m (if learner then go!"MemberAddAsLearner" else go!"MemberAdd")))
+      (Val #ctx)) (Val #sl))
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ sl ↦*□ urls) iprop(True) γ p
+    (.memberAdd urls learner) false (Types.urlsValid urls) ansReply
 
-/-- **A member's status reply** (`StatusResponse`, owned; member-local, no model: its fields are
-whatever the member reports; slot, 3h). -/
+/-- `MemberUpdate`. -/
+def Cluster.MemberUpdateTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) :
+    Prop :=
+  ∀ (ctx : GoInterface) (p : Principal) (id : w64) (sl : GoSlice) (urls : List GoString),
+  CheckedCallTriple (App (App (App (Val (m go!"MemberUpdate")) (Val #ctx)) (Val #id)) (Val #sl))
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ sl ↦*□ urls) iprop(True) γ p
+    (.memberUpdate (uint.nat id) urls) false (Types.urlsValid urls) ansReply
+
+/-- `MemberList(ctx, opts...)`: linearizable unless `WithSerializable`. -/
+def Cluster.MemberListTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) :
+    Prop :=
+  ∀ (ctx : GoInterface) (p : Principal) (opts : GoSlice) (gs : List (OpM → OpM)),
+  ¬ prefixAndFromKey gs →
+  CallTriple (App (App (Val (m go!"MemberList")) (Val #ctx)) (Val #opts))
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ optsAt opts gs) (optsAt opts gs) γ p
+    (.memberList (!(opGetM [] gs).serializable)) true ansReply
+
+/-- **The `Cluster` interface's triples.** -/
+def Cluster.methods (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
+  Cluster.MemberAddTriple m P γ who false ∧ Cluster.MemberAddTriple m P γ who true ∧
+  (∀ id : w64, Call.Triple (m go!"MemberRemove") P γ who [ #id] (.memberRemove (uint.nat id))) ∧
+  Cluster.MemberUpdateTriple m P γ who ∧ Cluster.MemberListTriple m P γ who ∧
+  (∀ id : w64, Call.Triple (m go!"MemberPromote") P γ who [ #id] (.memberPromote (uint.nat id)))
+
+/-- **A member's status reply** (`StatusResponse`, owned; member-local: no model; slot, 3h). -/
 opaque statusRespOwn (p : Loc) : IProp GF := iprop(True)
 
-/-- **The `Maintenance` interface's triples** (those specified: `AlarmList`, `AlarmDisarm` of one
-alarm, `Status`). `AlarmDisarm`'s alarm is one of the model's kinds (`alarmKindM`: not `NONE`, which
-asks to disarm every alarm one by one, not one request). `Status` dials the endpoint and answers
-what that member reports: no step. -/
-def Maint.methods (v : GoInterface) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  let m := fun (s : GoString) => v @!! go_etcd_io.etcd.client.v3.Maintenance.ty @!! s
-  (∀ ctx : GoInterface,
-    CallTriple (App (App (Val (m go!"AlarmList")) (Val #ctx)) (Val #()))
-      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗ ctxPrin ctx who) iprop(True) γ who .alarmList true ansReply) ∧
-  (∀ (ctx : GoInterface) (am : Loc) (mid : w64) (t : w32) (k : AlarmKind), alarmKindM t = some k →
-    CallTriple (App (App (Val (m go!"AlarmDisarm")) (Val #ctx)) (Val #am))
-      iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who ∗
-        am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"MemberID"] ↦□ mid ∗
-        am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"Alarm"] ↦□ t)
-      iprop(True) γ who (.alarmDisarm { memberId := uint.nat mid, kind := k }) true ansReply) ∧
-  (∀ (ctx : GoInterface) (ep : GoString),
-    {{ P ∗ Context.ctxOk ctx ∗ ctxPrin ctx who }}
-      (App (App (Val (m go!"Status")) (Val #ctx)) (Val #ep))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ statusRespOwn resp) ∨ (⌜resp = null⌝ ∗ ∃ k, callErr err k) ∨
-        ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }})
+/-- **The `Maintenance` value `v` dials through the client `c`** (persistent; `null`: over a
+caller's remote, no dial). -/
+opaque maintOf (v : GoInterface) (c : Loc) : IProp GF := iprop(True)
 
-/-- A `*authClient` of `γ` as `who` (its `remote` a `remoteAuthAt` value, its `callOpts` the
-client's). -/
-opaque authHandle (a : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+/-- `AlarmDisarm` of one model alarm (`alarmKindM`). -/
+def Maint.AlarmDisarmTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) :
+    Prop :=
+  ∀ (ctx : GoInterface) (p : Principal) (am : Loc) (mid : w64) (t : w32) (k : AlarmKind),
+  alarmKindM t = some k →
+  CallTriple (App (App (Val (m go!"AlarmDisarm")) (Val #ctx)) (Val #am))
+    iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
+      am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"MemberID"] ↦□ mid ∗
+      am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"Alarm"] ↦□ t)
+    iprop(True) γ p (.alarmDisarm { memberId := uint.nat mid, kind := k }) true ansReply
+
+/-- `Status(ctx, ep)` of a maintenance value dialing through `c`: a fraction of `c`'s endpoints
+token at a non-empty list (`Client.dial` reads `c.endpoints[0]` unlocked); member-local reply. -/
+def Maint.StatusTriple (m : GoString → val) (v : GoInterface) (P : IProp GF) (γ : Cluster)
+    (who : Principal) : Prop :=
+  ∀ (ctx : GoInterface) (p : Principal) (ep : GoString) (c : Loc) (dq : DFrac) (eps : List GoString),
+  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ maintOf v c ∗
+      (⌜c = null⌝ ∨ epsTok c dq eps ∗ ⌜eps ≠ []⌝) ∗ servesAt γ ep }}
+    (App (App (Val (m go!"Status")) (Val #ctx)) (Val #ep))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜c = null⌝ ∨ epsTok c dq eps) ∗
+      ((⌜err = GoInterface.nil⌝ ∗ statusRespOwn resp) ∨ ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
+
+/-- **The `Maintenance` interface's triples** (those specified). -/
+def Maint.methods (m : GoString → val) (v : GoInterface) (P : IProp GF) (γ : Cluster)
+    (who : Principal) : Prop :=
+  Call.Triple (m go!"AlarmList") P γ who [] .alarmList ∧
+  Maint.AlarmDisarmTriple m P γ who ∧ Maint.StatusTriple m v P γ who
+
+/-- A `*authClient` over the client `c` (`null`: over a caller's remote), of `γ` as `who`. -/
+opaque authHandle (a c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- A `*cluster`. -/
-opaque clusterHandle (cl : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque clusterHandle (cl c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- A `*maintenance`. -/
-opaque maintHandle (mt : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque maintHandle (mt c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 /-- **The `AuthClient` value `v` meets the wire contract** for the auth requests. -/
 opaque remoteAuthAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 opaque remoteClusterAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 opaque remoteMaintAt (v : GoInterface) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-/-- A `*retryAuthClient`, `*retryClusterClient`, `*retryMaintenanceClient`. -/
-opaque retryAuthHandle (r : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque retryClusterHandle (r : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
-opaque retryMaintHandle (r : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+/-- A `*retryAuthClient`, `*retryClusterClient`, `*retryMaintenanceClient` over the connection of
+the client `c`. -/
+opaque retryAuthHandle (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque retryClusterHandle (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
+opaque retryMaintHandle (r c : Loc) (γ : Cluster) (who : Principal) : IProp GF := iprop(True)
 
 /-- The auth requests (`Model.lean`'s `authStep`). -/
 def reqIsAuth : Req → Prop
@@ -573,42 +591,49 @@ def reqIsMaint : Req → Prop
 
 def handles1c_persistent.spec : Prop :=
   (∀ γ cfg who, Persistent (cfgPrincipal (GF := GF) γ cfg who)) ∧
-  (∀ γ tok u, Persistent (tokenOf (GF := GF) γ tok u)) ∧
   (∀ γ tls who, Persistent (tlsPrincipal (GF := GF) γ tls who)) ∧
-  (∀ tls, Persistent (tlsCfgOk (GF := GF) tls)) ∧
   (∀ sl, Persistent (dialOptsOk (GF := GF) sl)) ∧
+  (∀ c who, Persistent (clientBase (GF := GF) c who)) ∧
+  (∀ c γ who, Persistent (clientPre (GF := GF) c γ who)) ∧
   (∀ c γ who, Persistent (clientCore (GF := GF) c γ who)) ∧
+  (∀ c, Persistent (clientReady (GF := GF) c)) ∧
+  (∀ c eps, Persistent (epsTok (GF := GF) c DFrac.discard eps)) ∧
+  (∀ f, Persistent (clientOptAt (GF := GF) f)) ∧
   (∀ b γ who, Persistent (bundleAt (GF := GF) b γ who)) ∧
   (∀ ui c γ who, Persistent (uiOk (GF := GF) ui c γ who)) ∧
   (∀ si c γ who, Persistent (siOk (GF := GF) si c γ who)) ∧
   (∀ sl, Persistent (grpcCallOptsOk (GF := GF) sl)) ∧
+  (∀ cc, Persistent (grpcConnAt (GF := GF) cc)) ∧
   (∀ p b, Persistent (userAddOptsAt (GF := GF) p b)) ∧
-  (∀ a γ who, Persistent (authHandle (GF := GF) a γ who)) ∧
-  (∀ a γ who, Persistent (clusterHandle (GF := GF) a γ who)) ∧
-  (∀ a γ who, Persistent (maintHandle (GF := GF) a γ who)) ∧
+  (∀ v c, Persistent (maintOf (GF := GF) v c)) ∧
+  (∀ a c γ who, Persistent (authHandle (GF := GF) a c γ who)) ∧
+  (∀ a c γ who, Persistent (clusterHandle (GF := GF) a c γ who)) ∧
+  (∀ a c γ who, Persistent (maintHandle (GF := GF) a c γ who)) ∧
   (∀ v γ who, Persistent (remoteAuthAt (GF := GF) v γ who)) ∧
   (∀ v γ who, Persistent (remoteClusterAt (GF := GF) v γ who)) ∧
   (∀ v γ who, Persistent (remoteMaintAt (GF := GF) v γ who)) ∧
-  (∀ r γ who, Persistent (retryAuthHandle (GF := GF) r γ who)) ∧
-  (∀ r γ who, Persistent (retryClusterHandle (GF := GF) r γ who)) ∧
-  (∀ r γ who, Persistent (retryMaintHandle (GF := GF) r γ who)) ∧
+  (∀ r c γ who, Persistent (retryAuthHandle (GF := GF) r c γ who)) ∧
+  (∀ r c γ who, Persistent (retryClusterHandle (GF := GF) r c γ who)) ∧
+  (∀ r c γ who, Persistent (retryMaintHandle (GF := GF) r c γ who)) ∧
   (∀ v f, Persistent (retryOptAt (GF := GF) v f)) ∧ (∀ p o, Persistent (optionsAt (GF := GF) p o)) ∧
-  (∀ c γ who, Persistent (clientPre (GF := GF) c γ who)) ∧
   (∀ sl γ, Persistent (dialTargetOk (GF := GF) sl γ)) ∧
   (∀ cr, Persistent (transportCredsOk (GF := GF) cr)) ∧
   (∀ sl c γ who, Persistent (clientDialOpts (GF := GF) sl c γ who)) ∧
   (∀ f, Persistent (backoffOk (GF := GF) f))
 
-/-- A user name with a password (and no token) names that user. -/
+/-- A user name with a password (and no token) names that user, unless a client certificate the
+members take as a principal is configured (then, while auth is off at `New`, the client sends no
+token and the members take the certificate's principal once auth is on). -/
 def cfgPrincipal_user.spec : Prop := ∀ (γ : Cluster) (cfg : go_etcd_io.etcd.client.v3.Config),
   cfg.Username' ≠ [] → cfg.Password' ≠ [] → cfg.Token' = [] →
-  ⊢ cfgPrincipal (GF := GF) γ cfg (some cfg.Username')
+  (⌜cfg.TLS' = null⌝ ∨ tlsPrincipal (GF := GF) γ cfg.TLS' none) ⊢
+    cfgPrincipal γ cfg (some cfg.Username')
 
 /-- A token (and no user name or password) names the token's user. -/
 def cfgPrincipal_token.spec : Prop := ∀ (γ : Cluster) (cfg : go_etcd_io.etcd.client.v3.Config)
     (u : GoString),
   cfg.Token' ≠ [] → cfg.Username' = [] → cfg.Password' = [] →
-  tokenOf (GF := GF) γ cfg.Token' u ⊢ cfgPrincipal γ cfg (some u)
+  tokenUser (GF := GF) γ cfg.Token' u ⊢ cfgPrincipal γ cfg (some u)
 
 /-- No credentials but a TLS configuration: the certificate's principal. -/
 def cfgPrincipal_tls.spec : Prop := ∀ (γ : Cluster) (cfg : go_etcd_io.etcd.client.v3.Config)
@@ -632,16 +657,14 @@ def replyOwn_authenticate.spec : Prop := ∀ (p : Loc) (tok : GoString),
       replyOwn p (.authenticate tok))
 
 /-- **`callOptsOk`'s introductions** (W0's slot, realized here: a read-only slice of the client's
-gRPC call options and the retry options above, full to its capacity when not repeatable, so that
-appending to it allocates and concurrent calls never write a shared array): the nil slice. -/
+gRPC call options and retry options, full to its capacity when not repeatable): the nil slice. -/
 def callOptsOk_nil.spec : Prop := ⊢ callOptsOk (GF := GF) slice.nil false
 
 /-- A non-repeatable options slice is full to capacity (`append` allocates). -/
 def callOptsOk_full.spec : Prop := ∀ sl, callOptsOk (GF := GF) sl false ⊢ ⌜sl.len = sl.cap⌝
 
 /-- **Appending a retry option**: the repeatable policy makes the slice repeatable; a limit of `0`
-(no retry: the lessor's stream) or a backoff keeps it as it was (no per-call option ever raises the
-limit, so the stream interceptor never wraps a stream). (`retry.go`'s wrappers, the lessor's `withMax(0)`.) -/
+or a backoff keeps it (no per-call option raises the limit: no stream is ever wrapped). -/
 def callOptsOk_append.spec : Prop := ∀ (sl : GoSlice) (rep : Bool),
   callOptsOk (GF := GF) sl rep ⊢ ∃ os : List GoInterface, sl ↦*□ os ∗
     □ (∀ (sl' : GoSlice) (v : go_etcd_io.etcd.client.v3.retryOption),
@@ -649,43 +672,73 @@ def callOptsOk_append.spec : Prop := ∀ (sl : GoSlice) (rep : Bool),
         ((repOptAt v -∗ callOptsOk sl' true) ∧ (maxOptAt v (W64 0) -∗ callOptsOk sl' rep) ∧
          (backoffOptAt v -∗ callOptsOk sl' rep)))
 
-/-- A client's (or one under construction's) own pieces. -/
+/-- The pieces of a client. -/
 def isClient_core.spec : Prop := ∀ c γ who, isClient (GF := GF) c γ who ⊢ clientCore c γ who
 def clientMut_core.spec : Prop := ∀ c γ who, clientMut (GF := GF) c γ who ⊢ clientCore c γ who
+/-- W0's `clientRest` (a client whose `KV` field another holds): its own functions' pieces
+(`Ctx`, `GetLogger`, `Endpoints`, `Close`). -/
+def clientRest_core.spec : Prop := ∀ c γ who, clientRest (GF := GF) c γ who ⊢ clientCore c γ who
 def clientCore_pre.spec : Prop := ∀ c γ who, clientCore (GF := GF) c γ who ⊢ clientPre c γ who
+def clientPre_base.spec : Prop := ∀ c γ who, clientPre (GF := GF) c γ who ⊢ clientBase c who
 def clientConnOk_core.spec : Prop := ∀ c γ who,
   clientCore (GF := GF) c γ who ⊢ clientConnOk c γ who
 
-/-- **A writable client's other fields are frozen** (1c realizes `clientMut` with only the `KV` field
-writable: the interceptor, `Close` and the auto-sync read the others concurrently), so a caller
-holding `clientMut` (leasing's proxy, Kubernetes before it wraps `KV`) reads them as `isClient`'s. -/
-def clientMut_fields.spec : Prop := ∀ c γ who,
-  clientMut (GF := GF) c γ who ⊢
-    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Watcher"] ↦□ v ∗ watcherAt v γ who) ∗
-    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Lease"] ↦□ v ∗ leaseAt v γ who) ∗
-    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Auth"] ↦□ v ∗ authAt v γ who) ∗
-    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Cluster"] ↦□ v ∗ clusterAt v γ who) ∗
-    (∃ v : GoInterface, c.[go_etcd_io.etcd.client.v3.Client, go!"Maintenance"] ↦□ v ∗ maintAt v γ who) ∗
-    clientMut c γ who
+/-- A built client is ready (`newClient` set `Auth` before returning it). -/
+def isClient_ready.spec : Prop := ∀ c γ who, isClient (GF := GF) c γ who ⊢ clientReady c
+def clientRest_ready.spec : Prop := ∀ c γ who, clientRest (GF := GF) c γ who ⊢ clientReady c
+def clientMut_ready.spec : Prop := ∀ c γ who, clientMut (GF := GF) c γ who ⊢ clientReady c
+/-- A handle over a caller's remote needs no client. -/
+def clientReady_null.spec : Prop := ⊢ clientReady (GF := GF) null
+
+/-- **The endpoints token**: the list serves the cluster; freezing it (persistent). -/
+def epsTok_serves.spec : Prop := ∀ c dq eps γ who,
+  clientPre (GF := GF) c γ who ∗ epsTok c dq eps ⊢ [∗list] ep ∈ eps, servesAt γ ep
+def epsTok_persist.spec : Prop := ∀ c eps,
+  epsTok (GF := GF) c (DFrac.own 1) eps ⊢ |==> epsTok c DFrac.discard eps
+
+/-- **Assembling an in-process client** (`v3client.New`): a `NewCtxClient`'s client whose six
+interface fields the caller has set, each meeting its contract for the default principal `none`
+(each call's principal is its context's: `ctxPrin none ctx p`, a forwarded token's user). -/
+def clientBare_assemble.spec : Prop := ∀ (c : Loc) (γ : Cluster)
+    (vk vw vl va vc vm : GoInterface),
+  clientBare (GF := GF) c none ∗
+    c.[go_etcd_io.etcd.client.v3.Client, go!"KV"] ↦ vk ∗ kvAt vk γ none ∗
+    c.[go_etcd_io.etcd.client.v3.Client, go!"Watcher"] ↦ vw ∗ watcherAt vw γ none ∗
+    c.[go_etcd_io.etcd.client.v3.Client, go!"Lease"] ↦ vl ∗ leaseAt vl γ none ∗
+    c.[go_etcd_io.etcd.client.v3.Client, go!"Auth"] ↦ va ∗ authAt va γ none ∗
+    c.[go_etcd_io.etcd.client.v3.Client, go!"Cluster"] ↦ vc ∗ clusterAt vc γ none ∗
+    c.[go_etcd_io.etcd.client.v3.Client, go!"Maintenance"] ↦ vm ∗ maintAt vm γ none ∗ maintOf vm null
+  ⊢ |==> isClient c γ none ∗ clientReady c
+
+/-- A bare client's context and logger (what the `From*Client` constructors read). -/
+def clientBare_base.spec : Prop := ∀ c who,
+  clientBare (GF := GF) c who ⊢ clientBase c who ∗ clientBare c who
 
 /-- **The bundles' triples.** -/
 def authAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal),
-  Auth.methods v (authAt (GF := GF) v γ who) γ who
+  Auth.methods (fun s => v @!! go_etcd_io.etcd.client.v3.Auth.ty @!! s) (authAt (GF := GF) v γ who) γ who
 def clusterAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal),
-  Cluster.methods v (clusterAt (GF := GF) v γ who) γ who
+  Cluster.methods (fun s => v @!! go_etcd_io.etcd.client.v3.Cluster.ty @!! s)
+    (clusterAt (GF := GF) v γ who) γ who
 def maintAt_methods.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal),
-  Maint.methods v (maintAt (GF := GF) v γ who) γ who
+  Maint.methods (fun s => v @!! go_etcd_io.etcd.client.v3.Maintenance.ty @!! s) v
+    (maintAt (GF := GF) v γ who) γ who
 
-/-- **The package's types meet them** (their methods' specs). -/
-def authHandle_authAt.spec : Prop := ∀ a γ who,
-  authHandle (GF := GF) a γ who ⊢
+/-- **The package's types meet them** once their client is ready (their methods' specs). -/
+def authHandle_authAt.spec : Prop := ∀ a c γ who,
+  authHandle (GF := GF) a c γ who ∗ clientReady c ⊢
     authAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #a) γ who
-def clusterHandle_clusterAt.spec : Prop := ∀ a γ who,
-  clusterHandle (GF := GF) a γ who ⊢
+def clusterHandle_clusterAt.spec : Prop := ∀ a c γ who,
+  clusterHandle (GF := GF) a c γ who ∗ clientReady c ⊢
     clusterAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.cluster.ty) #a) γ who
-def maintHandle_maintAt.spec : Prop := ∀ a γ who,
-  maintHandle (GF := GF) a γ who ⊢
-    maintAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty) #a) γ who
+def maintHandle_maintAt.spec : Prop := ∀ a c γ who,
+  maintHandle (GF := GF) a c γ who ∗ clientReady c ⊢
+    maintAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty) #a) γ who ∗
+    maintOf (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty) #a) c
+/-- A client's `Maintenance` field dials through it. -/
+def clientCore_maintOf.spec : Prop := ∀ c γ who,
+  clientCore (GF := GF) c γ who ⊢
+    ∃ v, c.[go_etcd_io.etcd.client.v3.Client, go!"Maintenance"] ↦□ v ∗ maintOf v c
 
 /-- **The wire bundles' triples**: every request of the service, by its method. -/
 def remoteAuthAt_call.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who : Principal) (rq : Req),
@@ -698,17 +751,17 @@ def remoteMaintAt_call.spec : Prop := ∀ (v : GoInterface) (γ : Cluster) (who 
   reqIsMaint rq → RemoteCallTriple (fun s => v @!! go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.ty @!! s)
     (remoteMaintAt (GF := GF) v γ who) γ who rq
 
-/-- The retry wrappers meet the wire contracts (their methods' specs, `retry*Client__*.lean`). -/
-def retryAuthHandle_remoteAuthAt.spec : Prop := ∀ r γ who,
-  retryAuthHandle (GF := GF) r γ who ⊢
+/-- The retry wrappers meet the wire contracts once their client is ready. -/
+def retryAuthHandle_remoteAuthAt.spec : Prop := ∀ r c γ who,
+  retryAuthHandle (GF := GF) r c γ who ∗ clientReady c ⊢
     remoteAuthAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty) #r)
       γ who
-def retryClusterHandle_remoteClusterAt.spec : Prop := ∀ r γ who,
-  retryClusterHandle (GF := GF) r γ who ⊢
+def retryClusterHandle_remoteClusterAt.spec : Prop := ∀ r c γ who,
+  retryClusterHandle (GF := GF) r c γ who ∗ clientReady c ⊢
     remoteClusterAt
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryClusterClient.ty) #r) γ who
-def retryMaintHandle_remoteMaintAt.spec : Prop := ∀ r γ who,
-  retryMaintHandle (GF := GF) r γ who ⊢
+def retryMaintHandle_remoteMaintAt.spec : Prop := ∀ r c γ who,
+  retryMaintHandle (GF := GF) r c γ who ∗ clientReady c ⊢
     remoteMaintAt
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryMaintenanceClient.ty) #r)
       γ who

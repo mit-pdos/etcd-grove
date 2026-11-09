@@ -7,7 +7,8 @@ already normalized (`"\x00"` for an empty one) and its range end as received.
 **Proof sketch.** `sws.gRPCStream.Context()` (`srvWatchStreamAt_context`: a context with
 `srvCtxPrin ctx who`); `sws.ag.AuthInfoFromCtx(ctx)` (`ag` the member as `AuthGetter`,
 `watchMemberAt`'s triple, 2c over 3d: an error, or `nil`, or an `*AuthInfo` naming `who`'s user
-with its token's auth revision); `nil` is replaced by `&auth.AuthInfo{}` (no user, revision `0`);
+with its token's auth revision; with `ClientCertAuthEnabled` and no token, `AuthInfoFromTLS`'s:
+the TLS peer's CN, which `srvCtxPrin` must then name, `req/go_etcd_io_etcd_server_v3_auth.md`); `nil` is replaced by `&auth.AuthInfo{}` (no user, revision `0`);
 `sws.ag.AuthStore()` (the member's auth store), `IsRangePermitted(info, wcr.Key, wcr.RangeEnd)`
 (3d, with the thread token as the store's reader slot: `nil` only if a reached state `σa` has auth
 off, or has `info`'s user, of the root role or with read permission over the range: `σa.permits

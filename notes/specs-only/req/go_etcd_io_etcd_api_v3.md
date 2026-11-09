@@ -79,3 +79,75 @@
    revision `m` whose value is not the record `k` holds at `m`, and `Queue.Dequeue`'s value on its
    watch path is unprovable (review 1f-provability-1, F2). Done by W0's round 2: `kvStep`'s
    `putOnce evs`, which `Queue.Dequeue.spec` and `PriorityQueue.Dequeue.spec` cite.
+
+## from 2c
+
+What the server's request path (2c, `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean`) found of
+W0's model, against the code:
+
+1. **`leaseKeepAlive` lacks a permission refusal.** `LeaseRenew` runs `checkLeaseRenew`
+   (`v3_server.go:574`): with auth enabled, a principal without put permission on one of the lease's
+   keys gets `ErrPermissionDenied` (and no principal `ErrUserEmpty`, a refusal). `leaseStep`'s
+   `leaseKeepAlive` allows only `ErrLeaseNotFound` and a TTL. Add `res = .err (AuthState.permErr
+   who)` (as `leaseTimeToLive` has). Until then 2c's `srvStep` carries that disjunct.
+2. **`Authenticate`'s update must be persistent.** The server checks the password at the member's
+   applied auth state, proposes the token, and retries while the auth revision changed
+   (`v3_server.go:852-886`): the answer rests on a state the member read, which the cluster may have
+   left before the call returns; only the read registry (fired at every state after the call began)
+   can fire it there. The client passes a one-shot update (`CallTriple`'s `□?(reqRetryRep rq)`, false
+   for `.authenticate`). Since `authenticate`'s step changes nothing (`σ' = σ`), ask for a persistent
+   one without making the client resend it: `□?(reqRetryRep rq || rq.isAuthenticate)` in the update,
+   `reqRetryRep` alone in the retry policy. Used by: `EtcdServer.Authenticate.spec`.
+3. **The `doSerialize` race** (`nonissues/etcd-doserialize-auth-enable-race.md`, K8's open
+   question): 2c states what the code does, `srvStep`'s race disjunct (a linearizable read whose
+   permission check ran with auth disabled answered at a state where auth is enabled, by the step at
+   that state with auth off). The client's `Step`-only contract holds once the user decides: a fix on
+   the fork (re-check the permission after the read when auth is enabled by then) removes the
+   disjunct; a scope premise (no `AuthEnable` while reads are in flight) makes it unreachable.
+
+## from 2a
+
+What batch 2a found of the model and of W0's boundary requirements against the code (rpctypes,
+v3rpc, grpc-go v1.84):
+
+1. **`kvStep`'s `.compact` lacks the admin refusal.** `kvServer.Compact` (`key.go:144`) checks
+   `aa.isPermitted(ctx)` first: with auth on, a principal without the root role is refused with
+   `ErrPermissionDenied` (or `ErrUserNotFound`, `ErrUserEmpty`), at the member's local auth state,
+   before proposing. The model's compact step has no such answer (`.permissionDenied` and
+   `.userNotFound` are not refusals). Needed: a disjunct `σ' = σ ∧ res = .err (σ.auth.adminErr who)`
+   at any state, as `clusterStep` has for the member and alarm requests. Used by: `kvServer.Compact.spec`,
+   the snippet `examples/specreq/v3rpc/kv.go`'s `ReqCompactAdmin`.
+2. **Six `EtcdErr`s are not mapped by `rpctypes.Error`** (`errStringToError` has no key for their
+   description): `.timeoutWaitAppliedIndex`, `.canceled`, `.deadlineExceeded`,
+   `.invalidClientAPIVersion`, `.watchCanceled`, `.permissionNotGiven`. A status with one of their
+   descriptions stays a status through `rpctypes.Error` and `ContextError`: the client returns it, not
+   `errVal e`. So: (a) W0's header statement that `ErrGRPCCanceled`/`ErrGRPCDeadlineExceeded` are
+   `.etcd` of the indefinite kinds is false: they are `.other` (`Rpctypes.callErr_view`: `.etcd e`
+   only for a mapped `e` or the value `errVal e`), harmless (both indefinite); (b)
+   `ansReply`/`putReply`'s `err = errVal e` for an answer `.err e` is false at
+   `.permissionNotGiven` (a `RoleGrantPermission` answer) and `.invalidClientAPIVersion` (a refusal):
+   the client returns the status. 2a's contract therefore sends those answers as "unsettled"
+   (`V3rpc.indefMsg`), which W0's specs admit; a model where they are never `Step` answers (or the
+   rpctypes map fixed on the fork) would make them definite. (c) `rpctypes.ErrTimeoutWaitAppliedIndex`
+   holds the status error, not `errVal .timeoutWaitAppliedIndex` (`Rpctypes.init.spec`).
+3. **`CallErr.notSent` never occurs**: grpc-go v1.84 has no error with the messages "there is no
+   address available" / "there is no connection available" (`client/retry.go:93` tests for an old
+   grpc's). No error of grpc's is `.notSent` (`Grpc.ownErr` is `.other`: `Rpctypes.callErr_ownErr`), so
+   the retry interceptor resends a mutable RPC only after a token or learner refusal. Sound as W0
+   states it; the case is dead.
+4. **Oversized messages panic in grpc-go** (W0's item 3 of `req/google_golang_org_grpc.md`): a
+   message whose encoding exceeds `2 ^ 48` bytes panics in the codec's allocation, on the client
+   (sending) and the server (replying), `issues/grpc-codec-alloc-before-size-check.md`; below that,
+   limits are `ResourceExhausted` errors. So "an error rather than a panic" is **false of grpc-go**.
+   2a states the boundary under a **workload premise** `Grpc.msgsFit` (every message the program's
+   gRPC clients and servers marshal fits: `Proto.Content.fits`, which also bounds the nesting depth),
+   taken where a connection or a server is made (`Grpc.NewClient.spec`, `Grpc.start.spec`), not by any
+   call: W0's client specs keep no size premise, and the closed theorems are conditional on it (a
+   decision for the user, `notes/specs-only/batch-2a.md`).
+5. **`servesAt` realized** (`V3rpc.servesAt_addr`): `servesAt γ ep ⊣⊢ Grpc.addrAt ep (etcdContract γ)`,
+   the address bound for good to etcd's contracts (so a member restarted at the same address serves
+   the same contracts). Binding an address takes `Grpc.addrFree ep`, a resource of the program's
+   environment given by the adequacy theorem, one per address (decision for the user).
+6. **At most once** (W0's item 1): true of grpc-go as `Grpc.attemptOk_call` states (one run per
+   attempt; transparent retries only of streams that never reached a handler; no retry policy: the
+   client's service config sets only the balancer, and `Grpc.dialOptAt`'s options cannot set one).

@@ -17,7 +17,8 @@ gRPC stream and the owner of `substreams`, `resuming`, `closeErr`, `resumec`), `
 of the response's id being `ws`'s), buffering them in `ws.buf` and delivering them on `ws.outc`,
 the channel `watchChAt` is the consumer of.
 
-* `wgsAt s w γ who` (persistent): `s`'s read-only fields (its watcher `w`, the stub, the call
+* `wgsAt s w γ p` (persistent; `p` the principal the member authenticates the stream as, from its
+  context's metadata, `ctxPrin`; the internal specs name it `who`): `s`'s read-only fields (its watcher `w`, the stub, the call
   options, the context `ctx` (a `WithCancel` over a `valCtx`: never done until `cancel`), `ctxKey`,
   `cancel`, the channels, the logger) and the invariants of its channels: `reqc` (a `Watch`'s
   `*watchRequest`, with its `retc`'s protocol: the channel received on it comes with its
@@ -57,7 +58,8 @@ the channel `watchChAt` is the consumer of.
   `createdNotify`, a resumed substream) or a `watchStep` at its position (the ghost tie).
 * **The tie** between the current stream's registrations and the substreams is a refinement, not
   an equality: a substream's channel position is its registration's, or weaker (`done = none`
-  where the registration has one: a `rev = 0` watch resumed from `H`); an ended substream (its
+  where the registration has one: a `rev = 0` watch resumed from `H`; `prevLoose` kept true, as
+  every re-registration reopens the member's `PrevKv` window); an ended substream (its
   error buffered or delivered) delivers nothing more, whatever its registration says (a resume
   may re-register it from a later header).
 * **Who writes what of a substream**: `ws.id` is `run`'s (in `wgsRun`'s per-substream part:
@@ -143,12 +145,12 @@ def watchInternal_persistent.spec : Prop :=
 
 /-- **A `valCtx` is a context never done** (its `Done` the package's never-closed `valCtxCh`, its
 `Err` `nil`, its values `inctx`'s): what `newWatcherGRPCStream` wraps `WithCancel` around. -/
-def valCtx_ctxOk.spec : Prop := ∀ (vc : Loc) (inctx : GoInterface) (who : Principal),
+def valCtx_ctxOk.spec : Prop := ∀ (vc : Loc) (inctx : GoInterface) (dflt p : Principal),
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
     vc ↦□ ({ Context' := inctx } : go_etcd_io.etcd.client.v3.valCtx) ∗ Context.ctxOk inctx ∗
-    ctxPrin inctx who ⊢
+    ctxPrin dflt inctx p ⊢
   Context.ctxOk (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty) #vc) ∗
-  ctxPrin (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty) #vc) who
+  ctxPrin dflt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty) #vc) p
 
 /-- A response without events (a progress notification, broadcast to every substream) may be
 shared: its header is read-only, it has no events. -/

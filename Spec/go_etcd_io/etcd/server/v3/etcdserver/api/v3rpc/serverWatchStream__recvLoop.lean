@@ -27,7 +27,9 @@ the `default:` branch, stuck in the translation, is unreachable):
   thread token: an auto id, fresh on the stream and not `-1`, registered at `s` over the range and
   filters, its responses on the stream's channel as the run's invariant states; or an error with a
   non-empty message: refused, `-1`). A registration is recorded in the run's ghost map (id ↦ `wq`,
-  `s`, `σa`) and its options under `mu` (`progress`, `prevKV`, `fragment`); the answer `Created`
+  `s`, `σa`) and its options under `mu` (`progress`, `prevKV`, `fragment`: from mvcc's `Watch` to
+  here the send loop may already have built responses of the id without `PrevKv`, the
+  registration's loose window, `issues/etcd-watch-prevkv-before-created.md`); the answer `Created`
   with the id, carrying the registration.
 * `cancel id`: mvcc's `Cancel(id)` (3f): `nil` only for a live registration, which is now canceled
   (no response of it is produced after; the ones queued stay in the channel): the run's canceled

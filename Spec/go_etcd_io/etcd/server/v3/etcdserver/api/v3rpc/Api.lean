@@ -44,9 +44,11 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
   `reqModels m c rq`, `replyModels m b c`, `chunkModels c m` (3h: what a request's or a reply's
   content models; functional in the content), `mdPrin γ md who` (2c/3d: a request with incoming
   metadata `md` is authenticated as `who`, or refused with a refusal; introduced from a token
-  (`tokenOf`) or no token), `srvOk s γ` (2c/2e: the started `*EtcdServer` `s` of a member of `γ`, its
-  request-path methods meeting the shapes of `req/go_etcd_io_etcd_server_v3_etcdserver.md`,
-  "from 2a"), `watchSpec γ` (2b).
+  (`tokenOf`) or no token; 2c's `EtcdServer.reqPrin` of the run's context follows, a law asked of
+  2c/3d), `watchSpec γ` (2b: its `watchServiceAt`, `ApiWatch.lean`), `quotaOk` (2e).
+* Used from 2c (`Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean`): `EtcdServer.isServer s γ`
+  (the handle every server object here is over), `srvErrOf` (the server-side errors
+  `togRPCError` maps), `SrvCallTriple` (the shape of the request path's methods), `txnChecked`.
 * Ghost state of a streamed range: `rsReq g who r Q` (persistent, agreeing: the stream `g` carries
   the read `r` of `who` with `Q`; allocated by the client from grpc's `streamKey g`),
   `rsChunk g j m` (persistent: the `j`-th chunk sent is `m`). Intended realization: a ghost map
@@ -63,9 +65,10 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiClient
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
+public import GeneratedProof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 
 @[expose] public section
@@ -76,7 +79,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto
+open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
 
 /-- The `--max-txn-ops` etcd's specs admit (`issues/etcd-txn-nested-depth-apply-panic.md`: above it a
 nested transaction the gRPC check accepts can exceed protobuf's decoding depth at apply). -/
@@ -106,16 +109,75 @@ def ansOutcome (m : GoString) (rq : Req) (res : Resp) (o : Outcome) : Prop :=
   | _, .ok b => ∃ c, o = .ok c ∧ replyModels m b c
   | _, .err e => ∃ code, o = .status code (Rpctypes.desc e)
 
+/-! ### The gRPC layer's validations, as the code computes them -/
+
+open Classical in
+/-- `checkRangeRequest`. -/
+def rangeCheck (r : RangeReq) : Option EtcdErr :=
+  if r.key = [] then some .emptyKey else if r.validSort then none else some .invalidSortOption
+
+/-- `checkDeleteRequest`. -/
+def deleteCheck (d : DeleteReq) : Option EtcdErr := if d.key = [] then some .emptyKey else none
+
+/-- The first error of a list of checks. -/
+def firstErr : List (Option EtcdErr) → Option EtcdErr
+  | [] => none
+  | some e :: _ => some e
+  | none :: rest => firstErr rest
+
+mutual
+/-- `checkRequestOp(u, n)` (an empty operation is `ErrGRPCKeyNotFound`, the switch's default). -/
+def opCheck (n : Int) : RequestOp → Option EtcdErr
+  | .empty => some .keyNotFound
+  | .range r => rangeCheck r
+  | .put p => p.invalid
+  | .deleteRange d => deleteCheck d
+  | .txn cmps succ fail =>
+      let opc : Int := max (max cmps.length succ.length) fail.length
+      if n < opc then some .tooManyOps
+      else if cmps.any (fun c => decide (c.key = [])) then some .emptyKey
+      else
+        match opsCheck (n - opc) succ with
+        | some e => some e
+        | none => opsCheck (n - opc) fail
+def opsCheck (n : Int) : List RequestOp → Option EtcdErr
+  | [] => none
+  | op :: ops =>
+      match opCheck n op with
+      | some e => some e
+      | none => opsCheck n ops
+end
+
+/-- **`checkTxnRequest(r, n)`**: the error it returns (`none`: `nil`). -/
+def txnCheck (n : Int) (t : TxnReq) : Option EtcdErr := opCheck n (.txn t.compare t.success t.failure)
+
+/-- **`checkIntervals(ops)` returns no error** (opaque: the puts and deletes of the operations,
+recursively through nested transactions, have no key put twice in one branch nor a put inside a
+delete's range, `key.go:217-309`, with the fork's fix of `issues/etcd-txn-delete-then-ignore-put.md`).
+Its realization mirrors the code (a pure function over the key sets and the delete intervals). -/
+opaque intervalsOk : List RequestOp → Prop
+
+/-- **The checks' guarantee** to the request path: a transaction both checks accept at a budget of
+at most `maxTxnOpsMax` is one the apply reads sequentially (2c's `txnChecked`) and nests within
+protobuf's decoding limit (`IrrBody.depthOk`: each level of `checkTxnRequest` costs at least one
+operation of the budget, `notes/irr-depth.md`'s `txnCheck_msgDepth`). A law 2a proves. -/
+def txnCheck_checked.spec : Prop := ∀ (n : Int) (t : TxnReq),
+  n ≤ maxTxnOpsMax → txnCheck n t = none → intervalsOk t.success → intervalsOk t.failure →
+  txnChecked t ∧ (IrrBody.req (.txn t)).depthOk
+
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
+/-- `monitorLeader`'s `*streamsMap` (persistent: its mutex guards the map of streams to cancel). -/
+opaque streamsMapAt (sm : Loc) : IProp GF := iprop(True)
+
+/-- A `*cancellableContext` over `parent` (persistent). -/
+opaque cctxAt (c : Loc) (parent : GoInterface) : IProp GF := iprop(True)
+
 /-- **Slot (2c/3d)**: a request with incoming metadata `md` is authenticated as `who` (or refused
 with a refusal: an invalid token). -/
 opaque mdPrin (γ : Cluster) (md : MD) (who : Principal) : IProp GF := iprop(True)
-
-/-- **Slot (2c/2e)**: the started server `s` of a member of `γ`. -/
-opaque srvOk (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
 
 /-- **The contract of etcd's unary method `m`** (see the header). -/
 def etcdUnary (γ : Cluster) (m : GoString) : UnarySpec (GF := GF) :=
@@ -237,11 +299,6 @@ def rsChunk_ids.spec : Prop := ∀ g j (m m' : RangeRespM),
   m.hdr.map (·.revision) = m'.hdr.map (·.revision) → (m.hdr = none ↔ m'.hdr = none) →
   rsChunk (GF := GF) g j m ⊢ rsChunk g j m'
 
-/-- **Slot (2c)**: `err` is the server-side error of etcd's error `e` (the key of `toGRPCErrorMap`
-whose value is `e`'s `ErrGRPC*`: `mvcc.ErrCompacted` for `.compacted`, `errors.ErrTimeout` for
-`.timeout`, `auth.ErrPermissionDenied`, ...). -/
-opaque srvErrIs (err : GoInterface) (e : EtcdErr) : IProp GF := iprop(True)
-
 /-- **Slot (2e)**: a `storage.Quota` value (its `Available(r)` returns a boolean, no panic). -/
 opaque quotaOk (q : GoInterface) : IProp GF := iprop(True)
 
@@ -270,6 +327,31 @@ streams: it calls the handler once with the stream, possibly wrapped with a cont
 the member loses its leader, or refuses with an indefinite status). Intended realization: the
 analogue of `icEtcdOk` over `Grpc.streamOk`'s run. -/
 opaque sicEtcdOk (i : GoFunc) (γ : Cluster) : IProp GF := iprop(True)
+
+/-- A `*headerFillingRangeStream` at `w` over the stream `rs` with the header at `hp` (read-only). -/
+opaque hfAt (w : Loc) (rs : GoInterface) (hp : Loc) (s : Loc) (γ : Cluster) : IProp GF := iprop(True)
+
+/-- **2c's send end of a streamed range, realized** (2c's `rsSink`, `ApiReq.lean`): the wrapper `w`
+(a `*headerFillingRangeStream` over the run's stream, `hfAt`) with the send half of the stream `g`
+whose request is `r` of `who` with `Q` (`rsReq`) is the sink with nothing sent. -/
+def rsSink_intro.spec : Prop := ∀ (w : Loc) (rs : GoInterface) (hp : Loc) (s : Loc) (γ : Cluster)
+    (g : StreamName) (md : MD) (who : Principal) (r : RangeReq) (Q : State → State → Resp → IProp GF),
+  hfAt w rs hp s γ ∗ srvSend rs g (rangeStreamSpec γ) md 0 ∗ rsReq g who r Q ⊢
+    rsSink (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.headerFillingRangeStream.ty) #w)
+      γ who r Q [] false
+
+/-- **The sink's end**: a sink after the last chunk (`fin`), or one the request path stopped
+sending to with an error, gives the run's `streamOut` for what the handler returns (the end's facts
+are about the chunks sent, which the sink recorded). -/
+def rsSink_out.spec : Prop := ∀ (w : GoInterface) (γ : Cluster) (who : Principal) (r : RangeReq)
+    (Q : State → State → Resp → IProp GF) (ms : List RangeRespM) (fin : Bool) (err : GoInterface)
+    (rs : GoInterface) (g : StreamName) (md : MD),
+  rsSink (GF := GF) w γ who r Q ms fin ∗ rsReq g who r Q ∗
+    (if fin then ⌜err = GoInterface.nil⌝
+     else ∃ code msg, sentStatus err code msg ∗
+       ((∃ σ σ' e, Q σ σ' (.err e) ∗ ⌜msg = Rpctypes.desc e⌝) ∨ ⌜ms ≠ [] ∧ msg = Rpctypes.desc .compacted⌝ ∨
+        ⌜indefMsg msg⌝)) ⊢
+  streamOut rs g (rangeStreamSpec γ) md err
 
 /-- A streamed range's parameters, fixed by the client with the stream's key. -/
 def rsReq_alloc.spec : Prop := ∀ g who r (Q : State → State → Resp → IProp GF),
@@ -302,6 +384,19 @@ opaque quotaAlarmerAt (qa : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quota
 /-- A `notifier` (the health notifier) value. -/
 opaque notifierAt (n : GoInterface) : IProp GF := iprop(True)
 
+/-- **grpc-prometheus's interceptors pass through** (assumed; `getServerMetrics`' value). -/
+def metricsOk_unary.spec : Prop := ∀ (m : Loc) (γ : Cluster),
+  {{ metricsOk (GF := GF) m }}
+    (App (Val (m @!! go.GoType.PointerType github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty
+      @!! go!"UnaryServerInterceptor")) (Val #()))
+  {{ (i : GoFunc), RET #i; icEtcdOk i γ }}
+
+def metricsOk_stream.spec : Prop := ∀ (m : Loc) (γ : Cluster),
+  {{ metricsOk (GF := GF) m }}
+    (App (Val (m @!! go.GoType.PointerType github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty
+      @!! go!"StreamServerInterceptor")) (Val #()))
+  {{ (i : GoFunc), RET #i; sicEtcdOk i γ }}
+
 def handles_persistent.spec : Prop :=
   (∀ p s γ, Persistent (kvServerAt (GF := GF) p s γ)) ∧
   (∀ q kv s γ, Persistent (quotaKVAt (GF := GF) q kv s γ)) ∧
@@ -315,8 +410,12 @@ def handles_persistent.spec : Prop :=
   (∀ aa s γ, Persistent (authAdminAt (GF := GF) aa s γ)) ∧
   (∀ qa s γ, Persistent (quotaAlarmerAt (GF := GF) qa s γ)) ∧
   (∀ n, Persistent (notifierAt (GF := GF) n)) ∧
+  (∀ w rs hp s γ, Persistent (hfAt (GF := GF) w rs hp s γ)) ∧
+  (∀ sm, Persistent (streamsMapAt (GF := GF) sm)) ∧
+  (∀ c p, Persistent (cctxAt (GF := GF) c p)) ∧
+  (∀ m, Persistent (metricsOk (GF := GF) m)) ∧
+  (∀ q, Persistent (quotaOk (GF := GF) q)) ∧
   (∀ γ md who, Persistent (mdPrin (GF := GF) γ md who)) ∧
-  (∀ s γ, Persistent (srvOk (GF := GF) s γ)) ∧
   (∀ g j m, Persistent (rsChunk (GF := GF) g j m)) ∧
   (∀ g who r Q, Persistent (rsReq (GF := GF) g who r Q))
 

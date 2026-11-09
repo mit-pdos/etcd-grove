@@ -10,12 +10,18 @@ the initializer's 10 minutes meets it; the thread token as the reader slot), the
 in `[0, interval / 10)`); the sum, positive and without overflow (`interval + interval / 10 ≤
 2 ^ 63`).
 
-**Changes** from `specs-ref`'s file: the thread pool of the interval's reader slots and the
+**Changes** from `specs-ref`'s file: the post states the interval and the jitter (round 1: a
+positive value only did not serve the tests' restore); the thread pool of the interval's reader slots and the
 `threadBound` premise (`v3rpc.intervalPool`, `watchVars`) folded into `isPkgInit` and the thread
 token (the bounds plan: the owner turns the slots into a protocol over thread tokens).
 
-**Margin.** The value is in `[interval, interval + interval / 10)`; only positivity is stated (the
-ticker's need; no caller relies on the period).
+**Users** also: the tests' save-and-restore (`old := GetProgressReportInterval();
+SetProgressReportInterval(3 * time.Second); defer SetProgressReportInterval(old)`,
+`tests/integration/v3_watch_test.go`): the restore meets `progressIntervalOk old` when the interval
+`I` is at most about `2 ^ 62.8` (`old + old / 10 ≤ 2 ^ 63`), as every interval a test sets (and the
+10-minute default) is.
+
+**Margin.** Exact (the jitter's distribution aside).
 -/
 module
 
@@ -39,12 +45,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`GetProgressReportInterval()`**: a positive duration. -/
+/-- **`GetProgressReportInterval()`**: the interval `I` (within the lock's invariant) plus a jitter
+below a tenth of it. -/
 def GetProgressReportInterval.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       threadTok }}
     (App (Val (@! v3rpc.GetProgressReportInterval)) (Val #()))
-  {{ (d : w64), RET #d; ⌜0 < sint.Z d⌝ ∗ threadTok }}
+  {{ (d : w64), RET #d; threadTok ∗
+      ⌜∃ I : Int, progressIntervalOk I ∧ I ≤ sint.Z d ∧ sint.Z d < I + I / 10⌝ }}
 
 end spec
 

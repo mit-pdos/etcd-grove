@@ -31,11 +31,18 @@ to the committed log's state (2d's realization).
 * `memberPts p dq m` (fractional): a `*Member` at `p` holding `m` (its id, its `RaftAttributes`'
   peer URLs and learner flag, its `Attributes`' name and client URLs: the slices' contents too).
 * `membersOwn sl ms`: a fresh `[]*Member` of the members `ms` (each `memberPts … (own 1)`).
+* `beView c st` (exclusive): the backend's member buckets as `c` writes them (the writers at
+  `shouldApplyV3` move it with the view; `ValidateConfigurationChange` and `Recover` read it: they
+  read the backend, not the maps); `beMembers mb st` (provisional, 4b's) before `SetBackend`.
+* The conf-change check: `decodeCtx`, `decodeMember` (opaque: `encoding/json` on the bytes etcd
+  marshalled), `ccPanicFree c` (the change's type is one of the four v1 kinds and its context
+  decodes: `ValidateConfigurationChange` panics otherwise), `ccResult st c r` (transparent: the
+  outcome `cluster.go:306-391` computes), `vErr e` (the error values).
 
 ## Laws
 
 `isCluster_persistent`, `isCluster_agree`, `clusterSt_timeless`, `clusterSt_excl`,
-`memberPts_fractional`, `memberPts_agree`.
+`memberPts_fractional`, `memberPts_agree`, `vErr_ne_nil`, `vErr_inj`.
 
 ## Requirement snippets
 
@@ -45,6 +52,7 @@ a member listed after its add), the apply thread's writes.
 module
 
 public import Spec.go_etcd_io.etcd.api.v3.Model
+public import Spec.go_etcd_io.raft.v3.Model
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
@@ -56,7 +64,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace Membership
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI EtcdModel Classical
 
 /-- `computeMemberID(urls, token, nil)` (see the header). -/
 opaque memberIdOf (urls : List GoString) (token : GoString) : Nat
@@ -90,6 +98,60 @@ def ClusterSt.isMember (st : ClusterSt) (id : Nat) : Prop := ∃ m ∈ st.member
 /-- A view's ghost names (opaque). -/
 opaque CNames : Type := Unit
 
+/-! ## Validating a configuration change (`ValidateConfigurationChange`, `cluster.go:306-391`) -/
+
+/-- A conf change's context, as `json.Unmarshal` reads it (`ConfigChangeContext`): the member it
+adds (or promotes) and whether it is a promotion. -/
+structure CCContext where
+  member : Member
+  isPromote : Bool
+
+/-- `json.Unmarshal` of an add's context (none: an error, on which Go panics). Opaque: what
+`encoding/json` computes on the bytes etcd itself marshalled (`server.go`'s `AddMember`). -/
+opaque decodeCtx (b : List w8) : Option CCContext
+
+/-- `json.Unmarshal` of an update's context (a `Member`; none: an error, Go panics). -/
+opaque decodeMember (b : List w8) : Option Member
+
+/-- The errors `ValidateConfigurationChange` returns. -/
+inductive VErr where
+  | idRemoved | idNotFound | memberNotLearner | idExists | peerURLExists | tooManyLearners
+
+/-- The conf changes `ValidateConfigurationChange` does not panic on: one of the four v1 types,
+whose context decodes where it is read. -/
+def ccPanicFree (c : Raft.ConfChangeV1) : Prop :=
+  (c.type = Raft.ConfChangeAddNode ∨ c.type = Raft.ConfChangeAddLearnerNode → decodeCtx c.context ≠ none) ∧
+  (c.type = Raft.ConfChangeUpdateNode → decodeMember c.context ≠ none) ∧
+  (c.type = Raft.ConfChangeAddNode ∨ c.type = Raft.ConfChangeAddLearnerNode ∨
+   c.type = Raft.ConfChangeRemoveNode ∨ c.type = Raft.ConfChangeUpdateNode)
+
+/-- **The outcome of validating `c` against the view `st`** (`none`: accepted), as
+`cluster.go:306-391` computes it from the members and removed ids (a learner add may also hit the
+configured learner limit). -/
+def ccResult (st : ClusterSt) (c : Raft.ConfChangeV1) (r : Option VErr) : Prop :=
+  let id := uint.nat c.nodeId
+  let usedBy (pred : Member → Prop) (urls : List GoString) :=
+    ∃ m ∈ st.members, pred m ∧ ∃ u ∈ urls, u ∈ m.peerURLs
+  if id ∈ st.removed then r = some .idRemoved
+  else if c.type = Raft.ConfChangeAddNode ∨ c.type = Raft.ConfChangeAddLearnerNode then
+    ∃ cx, decodeCtx c.context = some cx ∧
+      if cx.isPromote then
+        (if ¬ st.isMember id then r = some .idNotFound
+         else if ∃ m ∈ st.members, m.id = id ∧ m.isLearner = false then r = some .memberNotLearner
+         else r = none)
+      else
+        (if st.isMember id then r = some .idExists
+         else if usedBy (fun _ => True) cx.member.peerURLs then r = some .peerURLExists
+         else if cx.member.isLearner = true ∧ c.type = Raft.ConfChangeAddLearnerNode then
+           r = none ∨ r = some .tooManyLearners
+         else r = none)
+  else if c.type = Raft.ConfChangeRemoveNode then
+    (if st.isMember id then r = none else r = some .idNotFound)
+  else
+    (if ¬ st.isMember id then r = some .idNotFound
+     else ∃ m, decodeMember c.context = some m ∧
+       (if usedBy (fun x => x.id ≠ id) m.peerURLs then r = some .peerURLExists else r = none))
+
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
@@ -102,6 +164,24 @@ opaque clusterSt (γ : CNames) (st : ClusterSt) : IProp GF := iprop(True)
 
 /-- A `*Member` at `p` holding `m`. -/
 opaque memberPts (p : Loc) (dq : DFrac) (m : Member) : IProp GF := iprop(True)
+
+/-- **The backend's member buckets, as the cluster `c` writes them, hold `st`** (exclusive; the
+caller's: the apply thread holds it beside its state machine). Each writer at `shouldApplyV3`
+moves it as it moves the view; `ValidateConfigurationChange` and `Recover` read it. Intended
+realization: 4b's `schema.membershipBackend` bucket contents of `c.be`'s current backend
+(provisional: `req/go_etcd_io_etcd_server_v3_storage_schema.md`, "from 2e"). -/
+opaque beView (c : Loc) (st : ClusterSt) : IProp GF := iprop(True)
+
+/-- **Provisional (batch 4b):** the member buckets of the `MembershipBackend` `mb` hold `st`
+(exclusive); `SetBackend(mb)` turns it into `beView c st`. -/
+opaque beMembers (mb : GoInterface) (st : ClusterSt) : IProp GF := iprop(True)
+
+/-- The Go error value of `ValidateConfigurationChange`'s error `e` (`membership.ErrIDRemoved`,
+...: package variables, non-nil, distinct). -/
+opaque vErr (e : VErr) : GoInterface
+
+def vErr_ne_nil.spec : Prop := ∀ e, vErr e ≠ GoInterface.nil
+def vErr_inj.spec : Prop := ∀ e e', vErr e = vErr e' → e = e'
 
 /-- A fresh `[]*Member` of the members `ms`. -/
 def membersOwn (sl : GoSlice) (ms : List Member) : IProp GF :=

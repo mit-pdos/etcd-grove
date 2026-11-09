@@ -230,3 +230,22 @@ obligations of 2a's boundary (with 3h's messages), mirroring 1b's client end (th
 
 Used by: `watchServer.Watch.spec`, `serverWatchStream.{recvLoop,sendLoop,isWatchPermitted}.spec`,
 `sendFragments.spec`; the snippets `examples/specreq/v3rpcwatch/`.
+
+### from 2b, round 1
+
+* **Client-certificate principals**: see `req/go_etcd_io_etcd_server_v3_auth.md`, "from 2b, round
+  1": with `ClientCertAuthEnabled`, a token-less request's principal is its TLS peer's CN; 2a's
+  `mdPrin`/`rpcCtx` (and 2b's `srvCtxPrin`) must say so, or 2e takes `ClientCertAuthEnabled = false`.
+* **2a's `watchSpec γ` slot and 2b's stream slots**: 2b states the handler over its own server-end
+  slots (`srvWatchStreamAt`, `srvWatchRecv`, `srvWatchSend`, `srvCtxPrin`, the `wireStep` facts on
+  `Send`); 2a's framework names the same stream by `srvRecv`/`srvSend` at `watchSpec γ`. At
+  integration, `watchSpec γ`'s `up` is the request's wire model (`watchReqOwn`'s `WireWatchReq`,
+  recorded in a ghost list keyed by the `StreamName`), `dn` the `wireStep` facts against that list
+  and the client's `WireSt` (ghost, keyed likewise), `fin` nothing; `mdPrin γ md who` with `rpcCtx
+  ctx md` gives `srvCtxPrin ctx who`; and 2b's slots are realized from them (or replaced by them).
+* **`Send` ownership** (`srvWatchSend_send`): the handler sends read-only messages
+  (`DFrac.discard`) and keeps nothing it writes; 2a's `srvSend_send` giving back the fraction sent
+  is stronger than needed (grpc-go may read a message after `SendMsg` returns, grpc-go#5857).
+* **The in-process pipe** (`proxy/grpcproxy/adapter`, used by `v3client`, hence v3lock/v3election)
+  is not grpc and meets none of these laws as stated (it passes the message pointers): out of 2b's
+  scope, an open question (`batch-2b.md`).

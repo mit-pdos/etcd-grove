@@ -28,7 +28,13 @@ Internal to v3rpc's watch: no client sees these names (`watchServer.Watch.spec` 
     response was not) and with the mvcc consumer's positions of those ids; a buffered response
     (`pending`) is of an id whose `Created` was not sent, at the positions from its start;
   - the lock `mu` over `progress` (any), `prevKV`, `fragment` (`prevKV[id]` and `fragment[id]` the
-    registration's `w.prevKV`, `w.fragment`).
+    registration's `w.prevKV`, `w.fragment` once `recvLoop` has recorded them, `false` before: the
+    send loop may read them in between, `issues/etcd-watch-prevkv-before-created.md`; a `true`
+    stays while the id is live);
+  - the send loop's `ids` also holds `-1` after a refused `Created` (harmless: `-1` bypasses the
+    `ids` test).
+  - `isPkgInit v3rpc` (persistent: `watchServer.Watch`'s callees need it; `watchServerAt`'s
+    realization holds it too, `NewWatchServer` has it).
 * `swsRecver sws rs` (exclusive): **the receive loop's share** after the requests `rs`: the
   control channel's producer, the mvcc stream's control side (`Watch`, `Cancel`,
   `RequestProgressAll`), the count of creates answered.

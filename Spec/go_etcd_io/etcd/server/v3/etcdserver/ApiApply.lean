@@ -20,13 +20,18 @@ committed log's first `k` entries is `σ`. Each committed entry moves it by one 
 entry's commit (inside the proposal's update that raft fires, R1's `node.Propose.spec`): a client
 request's `Step` (firing the client's update, 2c's), an environment step (`envUpd`, for the
 lessor's revocations, the compactor's compactions, the alarms, `publishV3`), or nothing (an empty
-entry, a conf change, a lease checkpoint, a cluster version). The answer the commit fixed for a
-request is `answered γ k id res` (persistent). So **the history is the committed log's** (K6): a
+entry, a lease checkpoint, a cluster version). The step is **the apply's model** `applyStep mc σ e
+σ' res` (provisional, 3a's: a function of the state and the entry, at the proposing member's
+configuration `mc`), so the answer fixed at the commit is the one the proposer's apply computes later
+(`answered γ k id res`, persistent). `histPropose` is the law that builds raft's proposal update from
+a proposer's update over `etcdState` (2c's `processInternalRaftRequestOnce`, `configure`), and
+`isServer_names` ties 2e's handle `isServer s γ` (over W0's `Cluster`) to these names. So **the history is the committed log's** (K6): a
 snapshot, a restore and a restart continue the same `histAt`; the member's own position in it is
 its applied index.
 
-**A member.** `srvNode s γ id` (persistent): `s` is member `id`'s `*EtcdServer` (its fields after
-`start`, their invariants). `srvApplied s γ k` (persistent): the member has applied the committed
+**A member.** `srvNode s γ id` (persistent): `s` is member `id`'s `*EtcdServer` as `NewServer` built
+it (its raft node driver, membership, consistent indexer, stores, atomics, and their invariants:
+`Process` may be called from then on); `srvStarted s γ id` (persistent): the fields `start` adds. `srvApplied s γ k` (persistent): the member has applied the committed
 log's first `k` entries, so its KV store (and lessor, auth store, membership) is at least at
 `histAt γ k` (2c's linearizable reads wait for it: `applyWait`). `srvRunTok s γ id` (exclusive):
 what `start` hands `run` (2e builds it at `NewServer`/`start`). `srvStopped s γ id` (exclusive):
@@ -84,6 +89,15 @@ in it on a quorum.
   `Advance`; `raftAdvancedC`'s close carrying R1's `appliedLb n` of the delivered log), `msgSnapC`'s
   payload (a `MsgSnap` the node sent: `msgPts`, `msgSent`), `readStateC`'s (`readState`).
 
+## Laws
+
+Persistence, timelessness, exclusivity; the history: `histAt_agree`, `histAt_lb` (W0's `etcdLb`:
+K7's realization), `histAt_committed`, `histAt_of_committed`, `answered_agree`, `committed_types`,
+`snapImage_hist`, `applyStep_fun` (3a's), `histPropose`; the member: `srvApplied_mono`,
+`srvApplied_zero`, `srvApplied_hist`, `srvNode_raftNode`, `isServer_names`, `isRaftNode_node`,
+`rnInit_place`, `applyThread_at`, `applyThread_applied`, `applyc_recv`, `readStateC_recv`,
+`procErr_forbidden`.
+
 ## Requirement snippets
 
 `examples/specreq/etcdserverapply/`: `apply.go` (a write's waiter answered with the commit's answer;
@@ -101,6 +115,8 @@ public import Spec.go_etcd_io.raft.v3.Api
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.Api
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Api
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
 
 set_option autoImplicit false
 
@@ -157,6 +173,17 @@ def ApplyBatch.base (B : ApplyBatch) : Nat :=
 snapshot, R1's `BatchOk`). -/
 def ApplyBatch.last (B : ApplyBatch) : Nat := B.base + B.ents.length
 
+/-- (provisional, 3a's) A member's configuration as far as its apply's answers depend on it (the
+leases' minimum TTL, `nonissues/etcd-lease-ttl-differs-across-members.md`). -/
+opaque MemberCfg : Type := Unit
+
+/-- (provisional, 3a's with 2e's membership and 3c, 3d, 3e) **The apply's model**: applying the
+committed entry `e` to the model state `σ` at a member configured `mc` gives `σ'` and the answer
+`res` (a function, `applyStep_fun`: the apply is deterministic). For an entry no request waits on
+(an empty entry, a checkpoint, a cluster version) `σ' = σ`. -/
+opaque applyStep (mc : MemberCfg) (σ : EtcdModel.State) (e : Raft.LogEntry) (σ' : EtcdModel.State)
+    (res : EtcdModel.Resp) : Prop
+
 /-- The `ShouldApplyV3` of an entry at index `i` for a consistent index `ci`: whether its effects go
 to the backend (`apply`, `server.go:1934`). -/
 def applyV3 (ci i : Nat) : Bool := decide (ci < i)
@@ -187,6 +214,15 @@ opaque snapImage (γ : Names) (s : Raft.Snapshot) : IProp GF := iprop(True)
 
 /-- **`s` is member `id`'s server in cluster `γ`** (after `start`). Persistent. -/
 opaque srvNode (s : Loc) (γ : Names) (id : w64) : IProp GF := iprop(True)
+
+/-- **`s` is started** (persistent): the fields `start` sets (`s.w` with the request path's
+registration predicate, 2c's; `s.applyWait` over `srvApplied s γ`; `s.stop`, `s.stopping`,
+`s.done`; `s.ctx`; `s.read`; `s.leaderChanged`; the wait group behind `GoAttach`), read-only. -/
+opaque srvStarted (s : Loc) (γ : Names) (id : w64) : IProp GF := iprop(True)
+
+/-- (provisional, 2e's `etcdhttp/types`) `err` is the `*httptypes.HTTPError` with status 403 that
+`Process` returns for a refused message. Persistent. -/
+opaque httpForbidden (err : GoInterface) : IProp GF := iprop(True)
 
 /-- **Member `s` has applied the committed log's first `k` entries.** Persistent. -/
 opaque srvApplied (s : Loc) (γ : Names) (k : Nat) : IProp GF := iprop(True)
@@ -332,6 +368,8 @@ def persistent.spec : Prop :=
   (∀ γ k id res, Persistent (answered (GF := GF) γ k id res)) ∧
   (∀ γ s, Persistent (snapImage (GF := GF) γ s)) ∧
   (∀ s γ id, Persistent (srvNode (GF := GF) s γ id)) ∧
+  (∀ s γ id, Persistent (srvStarted (GF := GF) s γ id)) ∧
+  (∀ err, Persistent (httpForbidden (GF := GF) err)) ∧
   (∀ s γ k, Persistent (srvApplied (GF := GF) s γ k)) ∧
   (∀ r γ id n, Persistent (isRaftNode (GF := GF) r γ id n)) ∧
   (∀ rh s γ, Persistent (readyHandlerOk (GF := GF) rh s γ)) ∧
@@ -387,6 +425,33 @@ def committed_types.spec : Prop :=
     Raft.committedLb (GF := GF) γ.raft l ⊢
       |={E}=> ⌜∀ e ∈ l, e.type = Raft.EntryNormal ∨ e.type = Raft.EntryConfChange⌝
 
+/-- (3a's) The apply is deterministic. -/
+def applyStep_fun.spec : Prop :=
+  ∀ mc σ e (σ1 σ2 : EtcdModel.State) (r1 r2 : EtcdModel.Resp),
+    applyStep mc σ e σ1 r1 → applyStep mc σ e σ2 r2 → σ1 = σ2 ∧ r1 = r2
+
+/-- **Proposing through the history** (2c's `processInternalRaftRequestOnce` and `configure`; the
+cluster's invariant): a proposer at a member configured `mc` turns its update over `etcdState`
+(fired with the apply's step of the entry, whose bytes satisfy `D`) into raft's proposal update
+(R1's `node.Propose.spec`, `node.ProposeConfChange.spec` form): at the entry's commit at index `k`,
+the history's next point is `histAt γ k σ'` and the proposer's update fires there. -/
+def histPropose.spec : Prop :=
+  ∀ (γ : Names) (mc : MemberCfg) (ty : w32) (D : List w8 → Prop) (E : CoPset),
+    ↑EtcdModel.etcdN ⊆ E →
+    (AU <{ ∃∃ σ, EtcdModel.etcdState (GF := GF) γ.etcd σ }> @ ⊤ \ ↑EtcdModel.etcdN, ∅
+      <{ ∀∀ (t : w64) (bs : List w8) (σ' : EtcdModel.State) (res : EtcdModel.Resp),
+          ⌜D bs ∧ applyStep mc σ ⟨t, ty, bs⟩ σ' res⌝ ∗ EtcdModel.etcdState γ.etcd σ', COMM True }>)
+    ⊢ |={E}=> AU <{ ∃∃ (ops : List Raft.LogEntry), Raft.committedOps γ.raft ops }>
+        @ ⊤ \ ↑γ.raft.ns, ∅
+      <{ ∀∀ (t : w64) (bs : List w8), ⌜D bs⌝ ∗ Raft.committedOps γ.raft (ops ++ Raft.opsOf [⟨t, ty, bs⟩]),
+         COMM True }>
+
+/-- **2e's handle names a member of the history** (2c's item 1): a started server of W0's cluster
+`γ` is a member of some server-level names over it. -/
+def isServer_names.spec : Prop :=
+  ∀ (s : Loc) (γ : EtcdModel.Cluster), isServer (GF := GF) s γ ⊢
+    ∃ (N : Names) (id : w64), ⌜N.etcd = γ⌝ ∗ srvNode s N id ∗ srvStarted s N id
+
 /-- A snapshot's image is at a committed point (its index has a state). -/
 def snapImage_hist.spec : Prop :=
   ∀ γ (s : Raft.Snapshot), snapImage (GF := GF) γ s ⊢ ∃ σ, histAt γ (uint.nat s.index) σ
@@ -406,6 +471,11 @@ def srvApplied_hist.spec : Prop :=
 def srvNode_raftNode.spec : Prop :=
   ∀ s γ id, srvNode (GF := GF) s γ id ⊢
     ∃ n, isRaftNode (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) γ id n
+
+/-- **`Process`'s refusals are `Process` errors** (2f's `procErr`: their `Error()` and `WriteTo`
+meet the transport's handlers' needs). -/
+def procErr_forbidden.spec : Prop :=
+  ∀ (err : GoInterface), httpForbidden (GF := GF) err ⊢ Rafthttp.procErr err
 
 /-- The driver's node is a node of the raft cluster. -/
 def isRaftNode_node.spec : Prop :=

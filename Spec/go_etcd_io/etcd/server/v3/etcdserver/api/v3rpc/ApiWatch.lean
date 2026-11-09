@@ -11,48 +11,55 @@ receive loop's control responses down the gRPC stream.
 
 The meaning of the service is **what a client observes on the stream**: 1b's `wireStep`
 (`Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`, the wire protocol of one watch stream, "the
-contract with 2a and 2b"), up to one correction (`srvWireStep`, below). A response the handler
-sends is a `srvWireStep` from the stream's state as the responses before it made it (`WireSt`),
-after the requests the handler had received (`ss`), read against reached states of the cluster
-(`etcdLb γ σ`: the history the events and revisions are read against; `etcdLb γ σa`: the auth
-state that admitted the registration whose response it is). In words:
+contract with 2a and 2b"). A response the handler sends is a `wireStep` from the stream's state as
+the responses before it made it (`WireSt`), after the requests the handler had received (`ss`),
+read against reached states of the cluster (`etcdLb γ σ`: the history the events and revisions are
+read against; `etcdLb γ σa`: the auth state that admitted the registration whose response it is).
+In words (1b's round 2 took 2b's corrections and strengthenings into `wireStep` itself):
 
+* every response has a header;
 * the `k`-th `Created` answers the `k`-th create received: refused (`WatchId = -1`, `Canceled`, a
-  reason: a negative start revision, the permission check, mvcc's refusal), or registered under a
-  fresh id, **the principal permitted to read the range** at `σa`, at `WatchPos.init start`;
+  reason: a negative start revision, always refused; the permission check; mvcc's refusal), or
+  registered (a non-negative start) under an id **never announced before on the stream**, **the
+  principal permitted to read the range** at `σa`, at `WatchPos.init start H`;
 * a response of a registered id is a `watchStep` of its registration: its events are exactly the
   range's (filtered) events of the revisions after its position up to the last event's, whole
-  revisions, `PrevKv` as the history says (`WatchReq.prevOk`), the header revision at least the last
-  event's; a progress (no events) at `P` says nothing of the range changed since the position up to
-  `P`, `P` not below it; a compaction (`Canceled`, `CompactRevision = cr`) says `cr` is at most the
+  revisions, `PrevKv` as the history says (`WatchReq.prevOk`, loose in the registration's window:
+  `issues/etcd-watch-prevkv-before-created.md`), the header revision at least the last event's; a
+  progress (no events) at `P` says nothing of the range changed since the position up to `P`, `P`
+  not below it; a compaction (`Canceled`, `CompactRevision = cr`) says `cr` is at most the
   cluster's compaction and above the position;
 * the id `-1`: a progress notification for every registration **whose cancel the member has not
-  read** (`srvWireStep`'s correction of 1b's `wireStep`, below);
-* `Canceled` without compaction ends the id's registration (a cancel's answer);
-* a fragmented response (`Fragment` set) is sent contiguously, all of one id, the last without
-  `Fragment`.
-
-**The correction (`srvWireStep`).** 1b's `wireStep` gives a progress notification of id `-1` to
-*every* registration of the client's state. That is false of the member: a client that cancels a
-watch `W` whose events the member has not yet sent (an unsynced watcher) and then requests progress
-can receive the progress at `P` *before* `W`'s cancel response (the send loop's `select` takes the
-mvcc channel's progress before the control channel's cancel response; mvcc's `RequestProgressAll`
-no longer counts `W` once it is canceled), while `W`'s events below `P` are never sent. The Go client
-never delivers that progress to `W` (`run` removes a closing substream before sending its cancel), so
-the correction costs it nothing: a registration whose cancel request the member had read keeps its
-position. `req/go_etcd_io_etcd_client_v3.md`, `## from 2b`, asks 1b to adopt it; until then 2a's
-boundary cannot turn a `srvWireStep` into a `wireStep`.
+  read** (a client that cancels an unsynced watch and then requests progress can receive the
+  progress before the cancel response; the Go client never delivers it to the canceled watch);
+* `Canceled` without compaction ends the id's registration (a cancel's answer), and **nothing more
+  of that id** is sent (`WireSt.retired`); no response of an id never announced;
+* a fragment (`Fragment` set) has events, is of a registered watch created with `Fragment`, and its
+  response's fragments are sent contiguously, the last without `Fragment`.
 
 **The scope of the contract: the requests are wire requests.** The handler reads each request
 through 1b's `watchReqOwn p dq r` (the one wire model of both ends): a `WireWatchReq`, so a create
 asks for no watch id of its own (`WatchId = 0`), and no request is an empty or `nil` oneof (the
-unfold law the message's realization owes, `watchReqOwn_unfold`). This is a restriction on the
-stream's clients, which etcd's Go client meets (`watchRequest.toPB`, `progressRequest.toPB`, `run`'s
-cancel request), for two reasons: a create with an explicit id may reuse a canceled watch's id and
-receive its queued events (`issues/etcd-watch-id-reuse-stale-events.md`, a bug), and the translation
-of `recvLoop`'s `default:` branch reads the type switch's variable `uv`, which Goose leaves unbound
-there (a translator bug: the branch is stuck in the model, though harmless in Go). A decision for
-the user (report `notes/specs-only/batch-2b.md`).
+unfold law the message's realization owes, `watchReqOwn_unfold`; the non-`nil` *inner* request is
+the model's choice, the Go code `break`s on one). A restriction on the stream's clients, met by
+etcd's Go client (`watchRequest.toPB`, `progressRequest.toPB`, `run`'s cancel requests), hence by
+grpc-proxy (a clientv3 user towards the member) and the in-process client; **not** by the
+grpc-gateway (`/v3/watch` forwards any JSON, `watch_id` included) nor by foreign clients. Two
+reasons: a create with an explicit id may reuse a canceled watch's id and receive its queued events
+(`issues/etcd-watch-id-reuse-stale-events.md`), and the translation of `recvLoop`'s `default:`
+branch reads the type switch's variable `uv`, which Goose leaves unbound there (stuck in the model,
+harmless in Go). 2a cannot check the restriction of a network peer: `srvWatchRecvdLb_sent` assumes
+every stream is opened by a modelled client. A decision for the user (`notes/specs-only/batch-2b.md`).
+
+**The in-process client is out of scope** (`v3client.New`, `embed/serve.go:148-150`, which v3lock
+and v3election use): it runs this handler on the adapter's pipe stream
+(`proxy/grpcproxy/adapter/chan_stream.go`), which passes the message pointers themselves, so the
+slot laws below (fresh messages at both ends) do not hold of it: the handler writes a received
+create's `Key`/`RangeEnd` (1b's client `Send` gives the request back), reads a sent control
+response's `WatchId`/`Canceled`/`Created` after `Send`, while 1b's client writes the fields of the
+first fragment of a received response (`cur.Events`, `cur.Fragment`). A realization needs `Send` at
+both ends to transfer the message (the sender keeping a read-only share of only the fields it reads
+afterwards, which the receiver never writes). An open question (`batch-2b.md`).
 
 ## Vocabulary
 
@@ -63,13 +70,13 @@ Pure (transparent):
   `nonissues/etcd-watch-progress-interval-overflow.md`), `minWatchProgressIntervalNs`.
 * `filterFuncs fl`: the filter functions `FiltersFromRequest` builds of a request's filter types.
 * `fragmentsOf m ms`, `fragPrefix`: `ms` is how `sendFragments` cuts `m`.
-* `srvWireStep`: the contract (above).
 
 Resources:
 * `watchServerAt p γ` (persistent): **a `*watchServer` of a member of the cluster `γ`**
   (`NewWatchServer`'s). Intended realization: its read-only fields (the logger, the member's
   cluster and member ids, the request budget, `sg`/`ag` the `*EtcdServer` as `RaftStatusGetter` and
-  `AuthGetter`, `watchable` the member's mvcc store), with `watchMemberAt s γ`.
+  `AuthGetter`, `watchable` the member's mvcc store), with `watchMemberAt s γ` and `isPkgInit v3rpc`
+  (persistent: `WatchServer.WatchTriple` does not take it, `watchServer.Watch.spec` does).
 * `watchServiceAt v γ` (persistent): **the `pb.WatchServer` value `v` serves the watch protocol of
   `γ`**: its `Watch` method meets `WatchServer.WatchTriple` (`watchServiceAt_methods`). The slot 2a's
   registration (`grpc.go`'s `Server`, the service's spec at `/etcdserverpb.Watch/Watch`) consumes;
@@ -94,12 +101,15 @@ Resources:
     (`srvWatchRecv_lb`), hence sent by the client (`srvWatchRecvdLb_sent`, with 1b's
     `wireWatchSentLb`);
   - `srvWatchSend st γ who g sst` (exclusive): the sending half, the responses sent so far having
-    made the client's state `sst` (`WireSt`); `Send` takes a response with its `srvWireStep` facts
-    (`srvWatchSend_send`): the facts travel with the message, as the old `GrpcSpec`'s did;
+    made the client's state `sst` (`WireSt`); `Send` takes a read-only response with its `wireStep`
+    facts (`srvWatchSend_send`): the facts travel with the message, as the old `GrpcSpec`'s did;
   - `srvCtxPrin ctx who` (persistent): the server context's incoming metadata names `who` (its
-    token issued to `who`, or no token; a token issued to no one fails `AuthInfoFromCtx`). Consumed
-    by `AuthInfoFromCtx` (2c/3d). If 2a states a server-context principal of its own for the unary
-    handlers (W0's item 6), this one becomes it.
+    token issued to `who`, or no token; a token issued to no one fails `AuthInfoFromCtx`), and,
+    with client-certificate authentication on, a token-less context's TLS peer's CN names `who`
+    (`EtcdServer.AuthInfoFromCtx` falls back to `AuthInfoFromTLS`: `req/..._auth.md`,
+    `req/google_golang_org_grpc.md`, `## from 2b`). Consumed by `AuthInfoFromCtx` (2c/3d). If 2a
+    states a server-context principal of its own for the unary handlers (W0's item 6), this one
+    becomes it.
 * Laws on 1b's message slots that the handler's proof needs, offered to their realizer (3h, with
   W0's `Wire.lean`): `watchReqOwn_unfold` (the request's Go fields; the server writes the create's
   `Key` and `RangeEnd`), `wireWatchRespOwn_unfold` (the response's Go fields: the server builds
@@ -182,25 +192,6 @@ def fragmentsOf (m : WireWatchRespM) (ms : List WireWatchRespM) : Prop :=
 def fragPrefix (m : WireWatchRespM) (ms : List WireWatchRespM) : Prop :=
   ∃ rest, fragmentsOf m (ms ++ rest)
 
-/-- **What a member's response `m` on a watch stream may be** (the contract): 1b's `wireStep`,
-except for a progress notification of id `-1`, which says nothing of a registration whose cancel
-request `ss` contains (its position unchanged). See the header. -/
-def srvWireStep (who : Principal) (σ σa : State) (ss : List WireWatchReq) (st : WireSt)
-    (m : WireWatchRespM) (st' : WireSt) : Prop :=
-  if m.fragment = false ∧ m.created = false ∧ ¬ (m.canceled = true ∧ m.compactRev = W64 0) ∧
-      m.watchId = -1 then
-    (∀ id fe, st.frag = some (id, fe) → m.watchId = id ∧ m.created = false ∧ m.canceled = false) ∧
-    (st.frag.map (·.2)).getD [] ++ m.events = [] ∧ m.canceled = false ∧ m.compactRev = W64 0 ∧
-    ∃ P : Nat, sint.Z (m.hdr.getD HeaderM.zero).revision = P ∧ (P : Int) ≤ σ.kv.rev ∧
-      (∀ r ∈ st.regs, WireWatchReq.cancel r.1 ∉ ss →
-        ∀ c, r.2.2.done = some c → c ≤ P ∧ watchEvents r.2.1 σ.kv (c + 1) P = []) ∧
-      st' = { st with
-        regs := st.regs.map (fun r =>
-          if WireWatchReq.cancel r.1 ∈ ss then r
-          else (r.1, r.2.1, { r.2.2 with done := r.2.2.done.map (fun _ => P) })),
-        frag := none }
-  else wireStep who σ σa ss st m st'
-
 /-! ## Resources -/
 
 section res
@@ -247,7 +238,7 @@ def watchSrvStreamTy : go.GoType :=
 
 /-- **`Watch(stream)`**, the handler of one watch stream: given the server end of a stream of a
 client of `γ` as `who`, both halves at the start, it serves the protocol (every response it sends
-carries its `srvWireStep` facts: `srvWatchSend_send`) and returns some error when the stream ends
+carries its `wireStep` facts: `srvWatchSend_send`) and returns some error when the stream ends
 (the receive loop's error, `ErrGRPCWatchCanceled` for a canceled context, or the context's error:
 not modelled). -/
 def WatchServer.WatchTriple (f : val) (P : IProp GF) (γ : Cluster) : Prop :=
@@ -320,19 +311,20 @@ def srvWatchRecv_lb.spec : Prop := ∀ st g rs,
 def srvWatchRecvdLb_sent.spec : Prop := ∀ g rs,
   srvWatchRecvdLb (GF := GF) g rs ⊢ wireWatchSentLb g rs
 
-/-- **Sending a response** (`st.Send(p)`): the message (read, given back) with its facts (a
-`srvWireStep` from the state the responses sent so far made, after requests received, at reached
+/-- **Sending a response** (`st.Send(p)`): the message, read-only (the handler never writes a
+response after sending it; grpc-go may read it after `SendMsg` returns, grpc-go#5857), with its facts
+(a `wireStep` from the state the responses sent so far made, after requests received, at reached
 states); on success the half at the new state; on an error the half is gone (the handler sends
 nothing more; the message may or may not have been delivered). -/
-def srvWatchSend_send.spec : Prop := ∀ (st : GoInterface) (γ : Cluster) (who : Principal)
-    (g : WatchStreamNames) (sst sst' : WireSt) (p : Loc) (dq : DFrac) (m : WireWatchRespM)
+def srvWatchSend_send.spec : Prop := ∀ (st : GoInterface) (γ : EtcdModel.Cluster) (who : Principal)
+    (g : WatchStreamNames) (sst sst' : WireSt) (p : Loc) (m : WireWatchRespM)
     (σ σa : State) (rs : List WireWatchReq),
   {{ srvWatchStreamAt (GF := GF) st γ who g ∗ srvWatchSend st γ who g sst ∗
-      wireWatchRespOwn p dq m ∗ etcdLb γ σ ∗ etcdLb γ σa ∗ srvWatchRecvdLb g rs ∗
-      ⌜srvWireStep who σ σa rs sst m sst'⌝ }}
+      wireWatchRespOwn p DFrac.discard m ∗ etcdLb γ σ ∗ etcdLb γ σa ∗ srvWatchRecvdLb g rs ∗
+      ⌜wireStep who σ σa rs sst m sst'⌝ }}
     (App (Val (st @!! watchSrvStreamTy @!! go!"Send")) (Val #p))
-  {{ (err : GoInterface), RET #err; wireWatchRespOwn p dq m ∗
-      ((⌜err = GoInterface.nil⌝ ∗ srvWatchSend st γ who g sst') ∨ ⌜err ≠ GoInterface.nil⌝) }}
+  {{ (err : GoInterface), RET #err;
+      (⌜err = GoInterface.nil⌝ ∗ srvWatchSend st γ who g sst') ∨ ⌜err ≠ GoInterface.nil⌝ }}
 
 /-! ### Laws on 1b's message slots (offered to their realizer, 3h) -/
 
@@ -395,9 +387,11 @@ def wireWatchRespOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (m : WireW
     ⌜-2 ^ 63 ≤ m.watchId ∧ m.watchId < 2 ^ 63⌝
 
 /-- A response persisted (read-only), as the send loop shares its header and events among
-fragments. -/
-def wireWatchRespOwn_persist.spec : Prop := ∀ (p : Loc) (m : WireWatchRespM),
-  wireWatchRespOwn (GF := GF) p (DFrac.own 1) m ⊢ |==> wireWatchRespOwn p DFrac.discard m
+fragments and sends read-only messages; a read-only one is persistent. -/
+def wireWatchRespOwn_persist.spec : Prop :=
+  (∀ (p : Loc) (m : WireWatchRespM),
+    wireWatchRespOwn (GF := GF) p (DFrac.own 1) m ⊢ |==> wireWatchRespOwn p DFrac.discard m) ∧
+  (∀ (p : Loc) (m : WireWatchRespM), Persistent (wireWatchRespOwn (GF := GF) p DFrac.discard m))
 
 end res
 

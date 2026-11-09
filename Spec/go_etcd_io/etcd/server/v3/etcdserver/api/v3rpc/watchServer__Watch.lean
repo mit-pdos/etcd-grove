@@ -34,7 +34,7 @@ The receive goroutine may outlive the call (blocked in `Recv` until grpc ends th
 handler returns); its token goes back at its exit.
 
 **Changes** from `specs-ref`'s `watchServer__Watch.lean`: stated over the client's wire protocol
-(`srvWatchSend`'s `srvWireStep`, 1b's `wireStep` corrected) instead of the old server-side stream
+(`srvWatchSend`'s `wireStep`, 1b's wire protocol, which took 2b's corrections in its round 2) instead of the old server-side stream
 specification (`srvStreamIs ... Up Dn`, `watchStreamSpec γs R W tok Dn`, `upOk`, the auxiliary
 name, the auth mode's tag); the principal `who` of the stream in place of the context's token
 (`auth.ctxTokenOf`); no reader resources (`R.E.RD`, `mvccReaders W.γm 2`, the `threadBound`
@@ -70,7 +70,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`ws.Watch(stream)`** on the server end of a watch stream of a client of `γ` as `who`: serves
-the watch protocol on it (every response it sends a `srvWireStep`, through `srvWatchSend_send`). -/
+the watch protocol on it (every response it sends a `wireStep`, through `srvWatchSend_send`). -/
 def watchServer.Watch.spec : Prop :=
   ∀ (p : Loc) (γ : EtcdModel.Cluster) (st : GoInterface) (who : Principal) (g : WatchStreamNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗

@@ -90,3 +90,52 @@ laws 2b states in `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.
    events among a response's fragments).
 
 Used by: `serverWatchStream.recvLoop.spec`, `sendLoop.spec`, `sendFragments.spec`.
+
+## from 2c
+
+Provisional predicates in `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean` that 3h should
+own: **`irrOwn p ir`** (an `InternalRaftRequest` with exactly `ir`'s field set: `Put`, `DeleteRange`,
+`Txn`, `Compaction`, `LeaseGrant`, `LeaseRevoke`, `Alarm`, the auth requests, `Authenticate`'s
+internal one, `LeaseCheckpoint`, `ClusterVersionSet`, `ClusterMemberAttrSet`, `DowngradeInfoSet`;
+`Header` and `ID` unset), built from the client-level request messages (`putReqOwn`, ...,
+`ClientV3.reqOwn`), and **`alarmReqOwn p dq ir`** (an `AlarmRequest`: `GET`, `DEACTIVATE`,
+`ACTIVATE`). And `proto.Marshal` of an `irrOwn` message whose transaction is at most `9999` deep:
+bytes every member's apply decodes back to `ir` with the header set (`irr-depth.md`).
+
+## from 2a
+
+The gRPC boundary (`Spec/google_golang_org/grpc/Api.lean`) and protobuf's
+(`Spec/google_golang_org/protobuf/proto/Api.lean`) transport message **contents**
+(`Proto.Content`, `Proto.msgAt t p dq c`); what a content means is the message type's owner's. What
+2a's specs need of 3h:
+
+1. **Relation laws**, one per message predicate (W0's `Wire.lean`, 1c's `reqOwn`/`replyOwn`, 1b's
+   watch messages, R1's raftpb predicates): `xOwn p dq m ⊣⊢ ∃ c, Proto.msgAt X.ty p dq c ∗
+   ⌜xModels c m⌝`, with `xModels` pure and a function of the content (`xModels c m → xModels c m' →
+   m = m'`). In particular **realize 2a's slots** `V3rpc.reqModels m c rq` (the request content of
+   method `m` models `rq`: for `/etcdserverpb.KV/Put` the `PutRequest` whose `putReqOwn` model is
+   `p` iff `rq = .put p`, ...), `V3rpc.replyModels m b c` (the reply content carries the success body
+   `b`, as W0's `getReply`/`putReply`/.../1c's `ansReply` say: the header's revision, the body's
+   fields; the header's ids free), `V3rpc.chunkModels c m` (a `RangeStreamResponse`'s chunk). Used
+   by: every handler spec's contract (`etcdUnary`), `rangeStreamSpec`.
+2. **Fits and depth**: a message of a non-recursive type whose byte slices are distinct allocations
+   fits (`Proto.Content.fits`); a request accepted by `checkTxnRequest` at a budget of at most `4999`
+   nests below `Proto.depthMax`, and so does its reply (`Grpc.unaryOut` asks the reply's depth: the
+   logging interceptor's `proto.Size`); `marshalOk` of every message a client builds from `bytes`
+   fields (raft's, the KV requests), and of a message with `string` fields when they are valid UTF-8.
+3. **The generated server code**: `_<Svc>_<M>_Handler(srv, ctx, dec, interceptor)` calls `dec(new
+   req)` (`Grpc.decOk_call`) then, with no interceptor, `srv.(<Svc>Server).<M>(ctx, in)`, else
+   `interceptor(ctx, in, info, handler)` with a fresh `UnaryServerInfo` (`FullMethod` the full name)
+   and `handler` the method's call: `Grpc.icHandler` at the end of the chain; streams'
+   `_<Svc>_<M>_Handler(srv, stream)` (`RecvMsg` once for a server stream, then the method with
+   `&grpc.GenericServerStream{stream}` / the typed wrapper); the typed wrappers' `Send`/`Recv` are the
+   stream's `SendMsg`/`RecvMsg` (`Grpc.srvSend_send`, `srvRecv_recv` at the wrapper value);
+   `Register<Svc>Server(s, srv)` is `s.RegisterService(&<Svc>_ServiceDesc, srv)` with the descriptor's
+   init fact `Grpc.serviceDescAt` (its methods' names and handlers). Used by: `V3rpc.Server.spec`
+   (`regsOk`).
+4. **The generated client stubs**: `NewKVClient(cc)`'s methods call `cc.Invoke(ctx, "/etcdserverpb.KV/
+   <M>", in, out, opts...)` with `out := new(<M>Response)` (`Grpc.ClientConn.Invoke.spec`), the
+   streaming ones `cc.NewStream(ctx, &<Svc>_ServiceDesc.Streams[i], name, opts...)` then (server
+   streams) `SendMsg(in)`, `CloseSend()`. Used by: W0's `remoteKVAt` realization (1c, W0), 1b, 1c.
+5. **`proto.Merge` of `RangeResponse`s** (W0's request): `Proto.merge c c'`'s model: `Kvs` appended,
+   `Header`, `More`, `Count` taken when set (a law over `rangeRespOwn`'s relation).

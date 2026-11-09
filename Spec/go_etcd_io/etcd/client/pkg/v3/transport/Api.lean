@@ -3,6 +3,11 @@
 
 * `errStrOk err` (persistent; slot of the error's package): `err` is a non-`nil` error whose
   `Error()` returns a string without panicking.
+* `tlsCfgOk tls` (persistent; slot, 2a and `crypto/tls`): a `*tls.Config` the client may use
+  read-only (grpc's `credentials.NewTLS` clones it). `TLSInfo.ClientConfig` produces it.
+* `tlsInfoAt ti` (persistent): a `TLSInfo` value whose files (`CertFile`, `KeyFile`,
+  `TrustedCAFile`, ...) name readable files or are empty (an environment fact; otherwise
+  `ClientConfig` returns an error, which the spec allows anyway).
 -/
 module
 
@@ -29,6 +34,11 @@ variable [sem : go.Semantics]
 opaque errStrOk (err : GoInterface) : IProp GF := iprop(True)
 
 def errStrOk_persistent.spec : Prop := ∀ err, Persistent (errStrOk (GF := GF) err)
+
+/-- **A `*tls.Config` the client may use read-only** (persistent). -/
+opaque tlsCfgOk (tls : Loc) : IProp GF := iprop(True)
+
+def tlsCfgOk_persistent.spec : Prop := ∀ tls, Persistent (tlsCfgOk (GF := GF) tls)
 
 end res
 

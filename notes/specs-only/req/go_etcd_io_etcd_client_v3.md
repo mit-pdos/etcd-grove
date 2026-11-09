@@ -421,3 +421,35 @@ no longer orders headers: false after a reconnect to a lagging member); item 5 i
    gives `tokenUser γ tok u` for the token it returns (from 3d's token provider); `Client.Ctx()`
    gives `ctxPrin who ctx who`; 1c's lease, auth, cluster and maintenance contracts follow the KV
    triples' shape.
+
+## from 2a
+
+What 2a's boundary gives 1c and W0 to realize their slots, and needs of them (`Spec/google_golang_org/
+grpc/Api.lean`, `Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Api.lean`,
+`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Api.lean`):
+
+1. **`connOk`** from `Grpc.connAt cc A ui si R` (`Grpc.NewClient.spec` with the client's options:
+   `WithUnaryInterceptor`, `WithStreamInterceptor`, `WithResolvers` of a `resolverAt r A` with
+   `A ep := servesAt γ ep`, `WithPerRPCCredentials` of a `perRPCAt pc R` with `R` "the token metadata
+   names `who`", `WithTransportCredentials`); `dialOptsOk sl` realized as "each option `dialOptAt v
+   id`" (neutral: keepalive, dialers, stats, block; never `WithUnaryInterceptor`, nor a default
+   service config with a retry policy). `NewClient` takes the workload premise `Grpc.msgsFit`:
+   `cfgOk` (or `New.spec`) must carry it.
+2. **`AttemptTriple`** from `Grpc.attemptOk_call` with the method's contract `V3rpc.etcdUnary γ m`
+   (`servesAt_addr` and `etcdContract`'s table): the caller builds `S md c Φ` from its `callAU`, its
+   principal (`V3rpc.mdPrin γ md who`, from `ctxPrin` and the credentials' `R`: an introduction law
+   1c and 3d owe, `mdPrin_of`), and `Φ` mapping the outcome: `.ok c` to success (the reply holder's
+   content, 3h's relation), a status with a mapped definite description to case 2, the token or
+   learner refusal to case 3 (the update back), anything else (`indefMsg`, `ownErr`) to case 4.
+3. **The keep-alive stream** (`kaSendAt`, `kaRecvAt`): `Grpc.cliSend`/`cliRecv` of a stream opened
+   on `/etcdserverpb.Lease/LeaseKeepAlive` with `V3rpc.kaSpec γ` (its messages carry nothing:
+   `True`); `Recv`'s errors: `Grpc.ownErr` or a handler's status, classified by
+   `Rpctypes.callErr_status`/`callErr_unmapped`/`callErr_ownErr`.
+4. **Error classification**: `callErr` is realized by `Rpctypes.callErr_view` (what `status.FromError`
+   sees of each kind) and introduced by `callErr_status`, `callErr_unmapped`, `callErr_ownErr`;
+   `status.Error(code, msg)` with a message that is no mapped description is `.other`
+   (`callErr_unmapped`: 1e's `Unimplemented`, 1c's `Canceled`/`DeadlineExceeded`/`Unknown`).
+   `io.EOF` from a stream's `SendMsg`/`RecvMsg` is `.other`: a law for W0's `callErr` (io.EOF is no
+   status, its message no description), which 2a can add when W0 states it.
+5. **`tlsCfgOk`**: `V3rpc.Server.spec` takes 1c's `Transport.tlsCfgOk` for the server's TLS
+   configuration (the same `credentials.NewTransportCredential`).

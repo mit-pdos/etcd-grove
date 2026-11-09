@@ -142,3 +142,40 @@ The lease, auth, cluster and maintenance services, as 1c's wire contract (`Remot
   its events start at `R + 1 ≤ H + 1`).
 * Progress and compaction revisions are the header's / `CompactRevision`'s `sint.Z` value (no
   wrap-around).
+
+## from 2c
+
+The server's request path (`EtcdServer.*`, `ApiReq.lean`) gives the handlers three outcomes per call
+(`SrvCallTriple`): the update fired with the answer (`srvReply`: the reply, or a server error with
+`srvErrOf err e`), the update given back with a `srvUnfired` error (never applied: the client may
+resend; K4's stale auth revision), or a `srvIndef` error. What 2c needs of 2a:
+
+1. **`togRPCError` realizes `srvErrOf`**: `srvErrOf err e → togRPCError(err) = errVal e` as the
+   client sees it (or grpc's `Canceled`/`DeadlineExceeded` codes for the context's errors, which
+   the client classifies `.canceled`/`.deadlineExceeded`); an unmapped error becomes `Unknown`
+   (indefinite at the client). Used by: every handler over a server spec.
+2. **`reqPrin ctx who`** (`ApiReq.lean`) for the handler's incoming context: the same fact as 2b's
+   `srvCtxPrin ctx who` (`api/v3rpc/ApiWatch.lean`): one should be the other (a law
+   `srvCtxPrin ctx who ⊢ reqPrin ctx who`, or one predicate at integration).
+3. **The validations the server's specs take**: `Range`/`RangeStream`: `rm.key ≠ [] ∧ rm.validSort`
+   (`checkRangeRequest`); `Txn`: `txnChecked t` (`ApiReq.lean`, provisional: `checkTxnRequest`'s
+   `nil` at the server's `--max-txn-ops` gives it) and, for a write, `txnMsgDepth t + 1 ≤ 10000`
+   (from `--max-txn-ops ≤ 4999`, `irr-depth.md`'s `txnCheck_msgDepth`).
+   ```go
+   if err := checkTxnRequest(r, int(s.maxTxnOps)); err != nil { return nil, err }
+   resp, err := s.kv.Txn(ctx, r)
+   ```
+4. **The update's persistence at the server**: one-shot for every write and for `LeaseRenew`,
+   `LeaseTimeToLive`, `LeaseLeases`, the auth reads (all fired once); **persistent for `Range`, a
+   read-only `Txn`, `RangeStream` and `Authenticate`** (fired by the read registry at every state
+   after the call began). `Authenticate`'s client update is one-shot today (W0's `CallTriple`,
+   `reqRetryRep`): see `req/go_etcd_io_etcd_api_v3.md`, "from 2c".
+5. **`rsSink rs γ who r Q ms fin`** (provisional slot in `ApiReq.lean`): the server end of a range
+   stream (the `headerFillingRangeStream` over grpc's `ServerStream`), with send laws: a non-final
+   chunk (key-values, no header) appended to `ms`; the final chunk (header, `More`, `Count`) sent
+   with `Q σ σ res` of an answer `res = .ok (.range rev a)` such that `streamMatches r (ms ++ [m]) rev
+   a` (W0's), setting `fin`; `rs.Context()` a context with `reqPrin` of `who`. 2a's
+   `wireStreamAt_recv` (client side) is its mirror. Used by: `EtcdServer.RangeStream.spec`.
+6. **The outcome-2 path to the client**: a `srvUnfired` error the client's interceptor resends
+   (`errRetryAuth`) or treats as `.notSent`/refusal must reach W0's `AttemptTriple`'s "update given
+   back" case with the handler's update (the server gives it back).

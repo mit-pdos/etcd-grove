@@ -28,10 +28,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `w.newWatcherGRPCStream(inctx)`: a new stream of the watcher, its `run` started. -/
 def watcher.newWatcherGRPCStream.spec : Prop :=
-  ∀ (w : Loc) (γ : Cluster) (who : Principal) (inctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w γ who ∗ Context.ctxOk inctx ∗ ctxPrin inctx who }}
+  ∀ (w : Loc) (γ : Cluster) (who p : Principal) (inctx : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w γ who ∗ Context.ctxOk inctx ∗ ctxPrin who inctx p }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"newWatcherGRPCStream")) (Val #inctx))
-  {{ (s : Loc), RET #s; wgsAt s w γ who }}
+  {{ (s : Loc), RET #s; wgsAt s w γ p }}
 
 end spec
 

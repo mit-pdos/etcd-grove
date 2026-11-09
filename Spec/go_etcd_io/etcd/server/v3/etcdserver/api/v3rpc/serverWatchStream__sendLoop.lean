@@ -15,14 +15,18 @@ its start.
 * **An mvcc response** (`<-sws.watchStream.Chan()`, 3f: a response with its facts, its events
   owned (the event structs in full, their `Kv`s read-only, `PrevKv` `nil`); a closed channel ends
   the loop). `sendWatch`: under `mu` (`RLock`, the thread token as the reader slot) the id's
-  `prevKV`; for each event, `IsCreateEvent` (its spec) and, with `prevKV`, mvcc's `Range(ctx, key,
+  `prevKV` (`false` for a registration whose options `recvLoop` has not yet recorded: the loose
+  window of `WatchReq.prevOk`, `WatchPos.prevLoose`; `issues/etcd-watch-prevkv-before-created.md`;
+  the run's invariant: `prevKV[id]` is `false` or the registration's `w.prevKV`, and once `true`
+  stays so while the id is live); for each event, `IsCreateEvent` (its spec) and, with `prevKV`, mvcc's `Range(ctx, key,
   nil, {Rev: ModRevision - 1})` (3f/3e, thread token: the key's record at that revision of a
   reached state's history, or an error only below the member's compaction, at most the cluster's),
   its first record written to `PrevKv`: `WatchReq.prevOk`. The response `wr` (a header by
   `newResponseHeader(wresp.Revision)`, `Canceled` iff a compaction). Its id not `-1` and not in
   `ids`: buffered in `pending` (facts kept), `true`. Else, under `mu`, `fragment[id]`; sent whole
   (`Send`, `srvWatchSend_send`) or by `sendFragments` (its spec, `S ms :=` the half after the
-  fragments `ms`, each fragment's `srvWireStep` from the pending-fragment state; the whole
+  fragments `ms`, each fragment's `wireStep` from the pending-fragment state (a fragment only for an id with
+  `fragment[id]`, i.e. created with `Fragment`; each has events); the whole
   response's from mvcc's facts). The facts of a response of a registered id: mvcc's step of its
   registration (whole revisions of the range's filtered events after its position, the header at
   least the last event's; a progress at a synced watcher's revision, not below its start; a
@@ -31,7 +35,9 @@ its start.
   cancel or compaction response sent): `wireStep`'s "nothing". Of id `-1` (`RequestProgressAll`'s
   answer, never buffered): a progress at `P` of every registration live when it was produced; a
   registration of `sst.regs` not live then was canceled, and its cancel request was received
-  before (`rs`): `srvWireStep`'s exemption. After a successful send with events, `progress[id]`
+  before (`rs`): `wireStep`'s exemption. A cancel response retires its id (`ids` loses it, so
+  its later mvcc responses stay in `pending`: `WireSt.retired`); a `Created` id is new (mvcc's
+  auto ids only grow: `WireSt.seen`); every response gets `newResponseHeader` (`hdr ≠ none`). After a successful send with events, `progress[id]`
   cleared under `mu`. A failed send (`isClientCtxErr`, the log or the metric) ends the loop.
 * **A control response** (`<-sws.ctrlStream`, closed: the loop ends): a `Created` one first drains
   mvcc's channel (`select` with `default`: every response produced before the creation is sent
@@ -53,7 +59,7 @@ On every exit the deferred function stops the ticker and drains mvcc's channel (
 **Changes** from `specs-ref`'s file: the old run record, the down position's `watchDn`, mvcc's
 consumer and received-list authority, the `threadBound` premise and the store's reader token
 replaced by the run's shares (`swsAt`, `swsSender`) and the thread token; the facts are 1b's wire
-protocol (`srvWireStep`); `prevKV`, fragments and filters in scope.
+protocol (`wireStep`); `prevKV`, fragments and filters in scope.
 
 **Margin.** Mirrors the code: what is sent is `srvWatchSend`'s business.
 -/
@@ -79,7 +85,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`sws.sendLoop()`**: sends the run's responses down the stream, each with its `srvWireStep`
+/-- **`sws.sendLoop()`**: sends the run's responses down the stream, each with its `wireStep`
 facts, until a send fails, a channel closes or the run closes. -/
 def serverWatchStream.sendLoop.spec : Prop :=
   ∀ (sws : Loc) (γ : EtcdModel.Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames),

@@ -136,3 +136,81 @@ Internal (`WatchInternal.lean`): `swsAt sws γ who st g` (persistent), `swsRecve
   `IsRangePermitted` at a reached state.
 * `req/go_etcd_io_etcd_server_v3_etcdserver.md`, `## from 2b`: the `watchMemberAt` slot.
 * `req/go_etcd_io_etcd_api_v3_etcdserverpb.md`, `## from 2b`: the message laws.
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/2b-provability-1.md`, `reviews/2b-completeness-1.md`. All 16 modules build
+(`etc/specs-build.sh` on them by name: the directory now also holds 2a's files); the snippets vet.
+
+* **`srvWireStep` dropped** (prov. F6, compl. S1): 1b's round 2 (`batch-1b.md`, "Round 2 (from 2b)")
+  took the `-1` exemption and the strengthenings into `wireStep` (seen/retired ids, a negative start
+  refused, fragments only for a `Fragment` watch and with events, a header on every response, the
+  loose `prevOk` window). `srvWatchSend_send` and every sketch now state `wireStep`; the header
+  restated (the contract's bullets, the scope).
+* **The `PrevKv` race** (prov. F1): reproduced through the real server and filed:
+  `issues/etcd-watch-prevkv-before-created.md`, test
+  `issues/etcd-watch-prevkv-before-created/watch_prevkv_before_created_test.go` (16 streams × 1500
+  `PrevKv` watches under concurrent puts: fails at `GOMAXPROCS=2` and `4` at the fork pin, through
+  `examples`' module in a scratch copy; to rerun at upstream `main` before filing). Possibly
+  kubernetes/kubernetes#121285 and #100112 ("etcd event received with PrevKv=nil",
+  `k8s.io/apiserver/pkg/storage/etcd3/event.go:65`). `blocks-proof: no` with 1b's loose `prevOk`.
+  The sketches (`sendLoop`, `recvLoop`, `WatchInternal`) say `prevKV[id]` is `false` before
+  `recvLoop` records it. **Open question for the user**: fix it on the fork (flush-time `prevKV`
+  lookup in `sendLoop`, or `sws.mu` held across mvcc's `Watch` in `recvLoop`), after which the strong
+  `prevOk` holds and Kubernetes' watches are served exactly, or keep the weakened contract.
+* **Snippets** (prov. F3/F4, compl. F1-F3): `ReqCreatesInOrder` now three creates (from `0`, from
+  `-1`: refused, from `0`), checking only what `wireStep` gives (the negative one refused; registered
+  ids not `-1` and distinct); `ReqCancel` cites `retired`/`seen`; `ReqFromStart` checks `!Fragment`
+  and reads the header through getters; `ReqWholeRevision` cites "no fragment without `Fragment`";
+  `ReqProgress` checks `!r.Fragment` and the header; `ReqFragments` assumes the prefix was never
+  written before; `ReqPrevKV` relies only on a non-`nil` `PrevKv` being the previous record.
+  New (compl. S2): `ReqTwoWatches` (two live watches routed by id), `ReqProgressNotify` (per-id
+  progress), `ReqFilters` (`NOPUT`).
+* **`Send` ownership** (prov. F7): `srvWatchSend_send` takes the response read-only
+  (`DFrac.discard`) and gives nothing back; `wireWatchRespOwn_persist` also states that the
+  read-only form is persistent.
+* **`GetProgressReportInterval`** (compl. S3): the post is the interval `I` with
+  `progressIntervalOk I` plus a jitter below `I / 10`, so the tests' save-and-restore is provable for
+  any interval up to about `2 ^ 62.8`.
+* **`isPkgInit`** (prov. F10): `watchServerAt`'s and the run's realizations hold it (stated in the
+  header and `WatchInternal.lean`); the interval lock's invariant remains part of v3rpc's package
+  init (open question below). **`WatchInternal`** (prov. F9): `ids` holds `-1` after a refusal;
+  `prevKV[id]`'s window.
+* **The in-process client** (compl. F4): **out of scope, stated precisely** (`ApiWatch.lean`'s
+  header; `NewWatchServer.lean`'s Users): `NewWatchServer` serves it, but the handler's contract does
+  not, because the adapter's pipe passes message pointers: the handler writes a received create's
+  `Key`/`RangeEnd` (1b's client `Send` gives the request back), reads a sent control response's
+  fields after `Send`, and 1b's client writes the first fragment it receives. **Open question for
+  the user**: serve v3lock/v3election's watches by restating `Send` at both ends as a transfer (the
+  sender keeping a read-only share of only the fields it reads afterwards, which the receiver never
+  writes: true of both ends), 1b and 2a adjusting their laws alike, and a pipe realization of the
+  stream slots (the adapter belongs to no batch); or leave them out.
+* **Cross-user principal on the in-process stream** (compl., suspected bug):
+  `nonissues/etcd-v3lock-watch-shared-stream-principal.md` with a test recipe (not run): every
+  v3lock/v3election watch shares the stream opened with the first caller's context, so with auth on
+  it is checked as the first caller's user.
+* **Client-certificate auth** (prov. F5): `req/go_etcd_io_etcd_server_v3_auth.md` and
+  `req/google_golang_org_grpc.md`, "from 2b, round 1": with `ClientCertAuthEnabled` a token-less
+  request's principal is its certificate's CN; the principal predicates (`srvCtxPrin`, 2a's `mdPrin`,
+  W0's `ctxPrin`) must include it, or 2e takes `ClientCertAuthEnabled = false` (a decision).
+  `isWatchPermitted`'s sketch notes the fallback.
+* **Scope wording** (compl. S6, prov. F8): grpc-proxy is *inside* the wire-request scope (it reaches
+  the member through clientv3); the **grpc-gateway** and foreign clients are outside; the non-`nil`
+  inner request is the model's choice (Go `break`s). 2a cannot check the restriction of a network
+  peer (`srvWatchRecvdLb_sent` assumes a modelled client).
+* **2a's `watchSpec γ`**: 2a's framework names the watch stream by its `srvRecv`/`srvSend` at its
+  `watchSpec γ` slot; how 2b's slots and that slot meet is written to `req/google_golang_org_grpc.md`
+  ("from 2b, round 1") for integration.
+
+Open questions added to the list above:
+
+* **The `PrevKv` race**: fix on the fork, or keep the loose window (above).
+* **The in-process client** (v3lock/v3election watches): serve it (transfer-style `Send` at both
+  ends, a pipe realization) or leave it out (above).
+* **The wire-request scope, the alternative**: instead of the scope premise, a per-stream weakening
+  (one spec): an empty oneof a no-op (needs the Goose fix of the `default:` branch, recorded for
+  `notes/perennial-changes.md`), an explicit id a create whose guarantees hold while the id was never
+  used on the stream (`WireSt.seen`/`retired` already track it); it would serve the gateway too.
+* **Client-certificate principals** (above).
+
+Also: decision 1's text ("grpc-proxy ... excluded") is corrected by the scope wording above.

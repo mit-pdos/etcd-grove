@@ -65,39 +65,15 @@ func ReqWatchRewrite(ctx context.Context, cli *clientv3.Client, pfx string) {
 	}
 }
 
-// REQ clientv3watch/prev-kv: with WithPrevKV, an update's event carries the key's previous
-// value (when nothing compacted the revision before it).
-// Users: Kubernetes' etcd3 watcher (event.go:67: a non-create event without PrevKv is an error;
-// the old object is PrevKv's value), grpcproxy (forwards PrevKv).
-// Assumes: k is owned; the cluster never compacts (no Compact call, no auto-compactor:
-// envUpd's cfg.autoCompact = false), so its compaction revision stays 0.
-// Specs: Client.Put.spec, Client.Watch.spec, WithPrevKV.spec, WithRev.spec; watchStep
-// (WatchReq.prevOk).
-func ReqWatchPrevKV(ctx context.Context, cli *clientv3.Client, k string) {
-	if _, err := cli.Put(ctx, k, "v1"); err != nil {
-		return
-	}
-	p, err := cli.Put(ctx, k, "v2")
-	if err != nil {
-		return
-	}
-	for wr := range cli.Watch(ctx, k, clientv3.WithRev(p.Header.Revision), clientv3.WithPrevKV()) {
-		if wr.Err() != nil {
-			return
-		}
-		for _, ev := range wr.Events {
-			if ev.PrevKv == nil || string(ev.PrevKv.Value) != "v1" || string(ev.Kv.Value) != "v2" {
-				panic("prev-kv: the update's previous value")
-			}
-			return
-		}
-	}
-}
+// (No snippet "a PrevKv is never nil without compaction": the member may send a new
+// registration's first events without PrevKv (v3rpc/watch.go's prevKV map is set after the watch
+// is registered), and every reconnect re-registers; batch 2b files it.)
 
-// REQ clientv3watch/prev-kv-compacting: under compaction, an update's PrevKv is either nil (the
-// caller treats it as an error) or the key's previous value.
+// REQ clientv3watch/prev-kv-compacting: an update's PrevKv is either nil (the caller treats it as
+// an error: compaction, or the member's window after a (re)registration) or the key's previous
+// value.
 // Users: Kubernetes' etcd3 watcher (event.go:67: a non-create event with a nil PrevKv is an error).
-// Assumes: k is owned (compaction allowed).
+// Assumes: k is owned (compaction allowed, reconnects allowed).
 // Specs: Client.Put.spec, Client.Watch.spec, WithPrevKV.spec; watchStep (WatchReq.prevOk).
 func ReqWatchPrevKVCompacting(ctx context.Context, cli *clientv3.Client, k string) {
 	if _, err := cli.Put(ctx, k, "v1"); err != nil {

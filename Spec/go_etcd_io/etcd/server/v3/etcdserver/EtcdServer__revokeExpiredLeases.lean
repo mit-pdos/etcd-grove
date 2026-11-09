@@ -48,7 +48,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 def EtcdServer.revokeExpiredLeases.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : w64) (sl : GoSlice) (ids : List Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ expiredLeases sl ids ∗ ⌜γ.cfg.leaseExpiry = true⌝ }}
+      srvNode s γ id ∗ srvStarted s γ id ∗ expiredLeases sl ids ∗ ⌜γ.cfg.leaseExpiry = true⌝ }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"revokeExpiredLeases")) (Val #sl))
   {{ RET #(); True }}

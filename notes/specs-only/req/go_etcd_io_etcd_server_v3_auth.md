@@ -31,3 +31,42 @@ assumes, in plain terms:
 
 Used by: `serverWatchStream.isWatchPermitted.spec`, hence `srvWireStep`'s registered-`Created`
 case; snippet `examples/specreq/v3rpcwatch/protocol.go` (`ReqPermission`).
+
+## from 2c
+
+What the request path (2c) needs of the auth store (3d), beyond 2b's items (which 2c's `doSerialize`
+and lease checks also use):
+
+1. **`reqPrin ctx who`'s realization** (`ApiReq.lean`, = 2b's `srvCtxPrin`): `AuthInfoFromCtx(ctx)`
+   (and `AuthInfoFromTLS` with `--client-cert-auth`) returns `nil`, an `AuthInfo` naming `who`'s user
+   at some revision, or `ErrInvalidAuthToken`. Introductions: a context with no auth metadata
+   (`none`: `s.ctx`, the internal requesters'), **`WithRoot(ctx)`** (`some root`: the lessor's
+   expiry, `server.go:881`).
+2. **`CheckPassword(name, pw)`** at the auth store's applied state: the checked revision and `nil`
+   iff auth is enabled and `pw` is `name`'s password (`authStep`'s `authenticate`); else
+   `ErrAuthNotEnabled`/`ErrAuthFailed`. **`GenTokenPrefix()`**, and the apply of an
+   `InternalAuthenticateRequest` assigning the token: `tokenUser γ tok name` (W0's) for
+   the token returned. **`Revision()`**: every change of the auth state bumps it, except
+   `AuthEnable` (W0's model): two equal reads mean the auth state did not change in between unless
+   auth was disabled at the first.
+3. **`IsPutPermitted`**, **`IsAdminPermitted`**, **`IsAuthEnabled`**: as `IsRangePermitted` (2b's
+   item 2), for the lease checks.
+4. **`bcrypt`'s hash in `UserAdd`/`UserChangePassword`**: the apply stores the hash; W0's model keeps
+   the password; the auth store's realization relates them (a trust-boundary spec of
+   `bcrypt.GenerateFromPassword`/`CompareHashAndPassword`).
+
+### from 2b, round 1: client-certificate authentication (to 3d, with 2a and W0)
+
+`EtcdServer.AuthInfoFromCtx` (`etcdserver/v3_server.go:1206-1216`) falls back, when
+`ClientCertAuthEnabled` and the context carries no token, to `AuthInfoFromTLS(ctx)`: the TLS peer
+certificate's CN as the user (no auth revision check). Item 1 above (and 2b's `srvCtxPrin ctx who`)
+said the result is `nil` or `who`'s user: false for a token-less stream over a client certificate
+whose CN names a user while the client's `who` is `none`; the member then registers a watch that
+`σa.permits none …` does not justify (and likewise for every unary request: W0's `ctxPrin`). Needed,
+one of:
+* the principal of a request (`srvCtxPrin`, 2a's `mdPrin`, W0's `ctxPrin`) is defined to include
+  the TLS peer's CN when there is no token and client-certificate auth is on (2a's grpc boundary
+  gives the peer's certificate; 3d's `AuthInfoFromTLS` reads it), so `who` is that user; or
+* a configuration scope premise `ClientCertAuthEnabled = false` (2e's `NewServer`), a decision for
+  the user.
+Used by: `serverWatchStream.isWatchPermitted.spec`; every handler's principal (2a).

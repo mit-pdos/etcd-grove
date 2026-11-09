@@ -181,3 +181,219 @@ Batch 2f (rafthttp: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Api.
 7. **The merged snapshot** (`Transport.SendSnapshot.spec`): `snap.NewMessage`'s message whole
    (`snapMsgOwn`, with the right to close it, which rafthttp uses exactly once), its raft message a
    `MsgSnap` with `msgSent` (after `msgSent_replaceSnap`) and the credit.
+
+## from 2c
+
+Batch 2c (the request path: `v3_server.go`, `etcdserver/read/`, `pkg/{wait,idutil,notify}`) states
+its specs over 2e's handle `isServer s γ` (`ApiBoot.lean`, `γ : EtcdModel.Cluster`) and its own
+vocabulary (`ApiReq.lean`: `srvStep`, `srvErrOf`, `reqPrin`, `IrrBody`, `irrStep`, `applyResult`,
+`SrvCallTriple`; `read/Api.lean`: `readEnv`, `readAt`; `pkg/v3/wait/Api.lean`; `idutil`, `notify`).
+No shared `Api.lean` was written: 2d's `ApiApply.lean` and 2e's `ApiBoot.lean` already hold the
+cluster-level and handle vocabulary, which 2c's sketches cite. What 2c's proof sketches need of the
+apply thread (2d) and the lifecycle (2e), in plain terms:
+
+1. **One name for the cluster** (2d with 2e): `isServer s γ` is over W0's `Cluster`, 2d's
+   `histAt`/`answered`/`srvApplied` over `Names` (with `γ.raft`, `γ.etcd`, `γ.cfg`). 2c's sketches
+   need, from `isServer s γ`, the server-level names `N` with `N.etcd = γ` (a law
+   `isServer_names : isServer s γ ⊢ ∃ N id, ⌜N.etcd = γ⌝ ∗ srvNode s N id`, or `Cluster` holding
+   the raft names, as 2e's header says). Used by: every sketch of `ApiReq.lean`'s specs.
+
+2. **What `isServer s γ` holds for the request path** (2e builds it at `start`, 2d keeps the
+   invariants): `Read.readAt s.read N.raft (srvApplied s N)` (from `Read.readNew_init`, with
+   `readEnv` below); the wait registry `Wait.listAt s.w γw P` with the cluster's answer predicate
+   `P` (item 4) and its `Wait.waitToks γw U` in the cluster's invariant beside the `IdUtil.idFresh`
+   of every `id ∈ U`; the generator `IdUtil.idGen s.reqIDGen γi` (one `idPrefix` per run:
+   `IdUtil.idPrefixes` in the member's durable resources, taken at each start); the apply-wait list
+   `Wait.timeListAt s.applyWait (fun d => srvApplied s N (uint.nat d))` (`NewTimeList` at
+   `srvApplied_zero`, `srvApplied_mono`); `s.done`, `s.stopping` channels any goroutine may
+   receive on (`Read.recvAny`); `s.Cfg.MaxRequestBytes`, `ReqTimeout()` read-only; the auth store
+   (3d), the lessor (3c), the KV store (3e) at the member's applied point (item 6); `s.bemu`'s
+   read lock over the current backend (4a: `ForceCommit`). Used by: `processInternalRaftRequestOnce`,
+   `Range`, `Compact`, `LinearizableReadNotify`.
+   ```go
+   ch := s.w.Register(id)            // v3_server.go:1107
+   err := s.read.LinearizableReadNotify(ctx)
+   ```
+
+3. **`readEnv` at `start`** (2e, over 2d's): `Read.readEnv s (&s.r) N.raft γi (srvApplied s N)`:
+   the server's methods of `read.server` (`interface.go`, `server.go`: `Done`, `Stopping`,
+   `LeaderChanged`, `FirstCommitInTermNotify` as `recvAny` channels, `Logger`, `RequestTimeout`,
+   `AppliedIndex` with `srvApplied`, `ApplyWait(d)` with `srvApplied s N d` on the receive,
+   `NextRequestID` with `idFresh`), the raft wrapper's `ReadState()` (2d's `readStateC_recv`) and
+   `ReadIndex` (R1's `node.ReadIndex.spec` through `raftNode`), `srvApplied s N i ⊢ committedLb`
+   of length `≥ i` (2d's `srvApplied_hist` with `histAt_committed`), and **the registration of
+   read contexts** (the cluster's invariant holds raft's `readCtxs`: a fresh id's `be64 id`
+   registered with `readLbQ l` for a `committedLb l`, its update fired inside the invariant with
+   `committedOps_lb`). Used by: `Read.readNew_init` at `start`, hence every linearizable read.
+
+4. **The proposal's update** (2d's cluster invariant): for a request `ir : IrrBody` by `who` with a
+   fresh id (`idFresh`) and the caller's update over `etcdState γ` by `irrStep who ir` (one-shot,
+   or persistent), an update over R1's `committedOps N.raft` for `node.Propose.spec` that, **at the
+   entry's commit**: appends the history (`histAt`, `answered`), fires the caller's update with the
+   answer the apply will compute at the entry's state (outcome 1), **except a stale auth revision**
+   (`ErrAuthOldRevision` at the auth applier, K4: not fired, kept), and deposits for `id` in the wait
+   registry's `P id`: the `*apply.Result` (`applyResult γ x ir res`) with the update's `Q σ σ' res`,
+   or with the update itself for the stale-revision refusal. Fired **at most once**: raft's
+   cluster must be one-shot (`N.raft.dup = false`) or the invariant fires only an entry's first
+   committed occurrence (by its id). An entry no one proposed with an update (the `.noop` and
+   `.authToken` kinds: checkpoints, cluster version, downgrade, a token) is committed by the
+   invariant alone, the state unchanged. Used by: `processInternalRaftRequestOnce.spec`.
+
+5. **The read registry** (2d's cluster invariant; the realization of K4's read discipline): laws
+   (names suggestions)
+   ```
+   readReg_register : □ AU<etcdState γ, srvStep who rq> (a read: rq.isRead or .authenticate) ={E}=∗
+       ∃ t l0, readTicket N t who rq Q l0 ∗ Raft.committedLb N.raft l0
+   readReg_get : readTicket N t who rq Q l0 ∗ Raft.committedLb N.raft l ∗ ⌜opsOf l0 <+: opsOf l⌝ ∗
+       histAt N k σ ∗ ⌜l.length ≤ k⌝ ∗ ⌜srvStep who rq σ σ res⌝ ={E}=∗ Q σ σ res
+   ```
+   (`l0` the committed log at the registration; `readReg_get` for a serializable read also at a
+   view: the cluster's current state with any answer `Step` allows at it). Realization: the
+   invariant fires each registered persistent update at every history point from its registration
+   on, once for each answer `srvStep` allows there (finitely many: a range's answers are the
+   permutations of ties of a finite list, the views of a finite history, the finitely many errors),
+   and keeps the results; or, if 3b exposes the implementation's answer as a function of the state,
+   once with it. The state at a history point depends only on the operations (`opsOf`) of the log
+   up to it. Used by: `Range.spec`, `Txn.spec` (read-only), `RangeStream.spec`, `Authenticate.spec`.
+
+6. **The member's applied state** (2d with 3b, 3d, 3e): a read of the KV store (`txn.Range`,
+   `txn.Txn` over `s.KV()`), of the auth store (`IsRangePermitted`, `CheckTxnAuth`, `CheckPassword`,
+   `Revision`) or of the lessor (`Lookup`, `Leases`) is answered at the member's applied point `k`
+   (`srvApplied s N k`, `histAt N k σ`), the answer one W0's step allows at `σ`; consecutive reads at
+   non-decreasing points. Used by: `Range`, `Txn`, `doSerialize`, the lease reads, `Authenticate`.
+
+7. **`EtcdServer.LinearizableReadNotify`** (`interface.go`, 2e's file): its spec is
+   `Read.LinearizableReadNotify.spec` at `s.read`. Used by: `examples/specreq/etcdserverreq/read.go`,
+   the corruption checker, the lease HTTP handler.
+
+8. **The internal requesters' updates** (2d, 2e): the lessor's `LeaseRevoke` with
+   `authStore.WithRoot(s.ctx)` (`reqPrin ... (some root)`, 3d) and an update built from `envUpd`
+   (`EnvStep.leaseExpire`; every other answer of `Step` the identity, answered by aborting); the
+   compactor's `Compact` (`EnvStep.compact`, `rev ≠ 0`); the alarms' `raftRequest`/`Alarm` at
+   `.alarmActivate` and `publishV3` at `.publish` **with no update**: their entries' commit is an
+   environment step **the cluster's invariant takes by the `envUpd` it holds** (`EnvStep.alarm`,
+   `EnvStep.publish`; the identity when the member is gone), so `isServer`'s invariant must hold
+   `envUpd γ cfg` (2a's need, "from 2a" item 5); the checkpoints, cluster version and downgrade at
+   `.noop` (no update, the state unchanged). Their contexts need `reqPrin` (`none` for `s.ctx`).
+   Used by: the `raftRequest.spec`, `Alarm.spec`, `LeaseRevoke.spec`, `Compact.spec` callers.
+
+9. **`srvWatchable s γ w`** (provisional slot in `ApiReq.lean`, for `Watchable.spec`): 2b's item 3
+   above (`s.Watchable()` delivers the cluster's history); 2d/3f realize it.
+
+## from 2a
+
+Batch 2a (the gRPC handlers, `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`, and the grpc
+boundary) uses 2c's `ApiReq.lean` as it stands (`isServer`, `reqPrin`, `srvErrOf`, `srvUnfired`,
+`srvIndef`, `SrvCallTriple`, `txnChecked`, `IrrBody.depthOk`, `rsSink`) and needs, in plain terms:
+
+1. **`srvStep` is `Step`** at the handlers: the handlers pass the client's update (over `Step`, W0's
+   `callAU`) to `EtcdServer.Put/Range/...`, whose `SrvCallTriple` takes one over `srvStep` (`Step` or
+   the `doSerialize` auth race). An update over `Step` cannot be fired by `srvStep`: every
+   `kvServer.*.spec` sketch relies on the race being closed (the fork's fix) or on a scope premise
+   that makes `srvStep` `Step`. The user's decision (2c's report); 2a has no way around it.
+2. **The principal**: a law `reqPrin_of_md`: from 2a's run context `Grpc.rpcCtx ctx md` and the
+   contract's `V3rpc.mdPrin γ md who` (the incoming metadata names `who`: its `token` a token of `who`,
+   `tokenOf`, or none), `EtcdServer.reqPrin ctx who` (3d's `AuthInfoFromCtx` reads the `token` or
+   `authorization` key; a TLS peer's common name when there is none). Used by every handler's
+   sketch (`kvServer.*`, `LeaseServer.*`, `AuthServer.*`, `ClusterServer.*`, `AuthAdmin.*`).
+3. **Unmapped errors**: an error a request-path method returns that `togRPCError` does not map
+   (`¬ srvErrOf err e` for every `e`) has a message (`Grpc.errMsg err m`) that is no description of a
+   definite etcd error the client maps (`V3rpc.indefMsg m`), and is not a context's error wrapped in
+   another value (`togRPCError` tests `errors.Is` against the context's errors). `srvErrOf` should not
+   name the context's own error values (`context.Canceled`): `togRPCError` passes them through, and
+   grpc sends them as `Canceled` with grpc's own message, not `ErrGRPCCanceled`'s (`togRPCError.spec`
+   treats them apart). Used by: `togRPCError.spec`, the handlers' third way.
+4. **The configuration bound**: `isServer s γ` gives `s.Cfg.MaxTxnOps ≤ 4999` (K8; `V3rpc.maxTxnOpsMax`,
+   read by `NewKVServer`): `kvServer.Txn`'s discharge of `txnChecked`/`IrrBody.depthOk` (law
+   `V3rpc.txnCheck_checked`). The `--max-request-bytes` bound of K8 is subsumed by the program's
+   workload premise `Grpc.msgsFit` (a reply that cannot be marshaled is outside the boundary's scope),
+   taken by `Grpc.start`; 2e decides whether to keep both.
+5. **`EtcdServer.Alarm` for `ACTIVATE`** (the quota wrappers' `quotaAlarmer.check`): callable with
+   no update from the caller (the server's own environment step, built from the `envUpd` that
+   `isServer` holds), any outcome; for `GET`/`DEACTIVATE` the `SrvCallTriple` of `.alarmList` /
+   `.alarmDisarm` over `alarmReqOwn`.
+6. **`RangeStream`**: 2c's `EtcdServer.RangeStream` over `rsSink`; 2a gives `V3rpc.rsSink_intro`
+   (from grpc's send half of the run's stream, the wrapper `headerFillingRangeStream`, the stream's
+   recorded request `rsReq g who r Q`) and `rsSink_out` (the sink's end to the run's `streamOut`).
+   2c's send law for `rsSink` should record each chunk sent (`V3rpc.rsChunk g j m`: the j-th chunk is
+   `m`, up to the header's ids) and require of the last its `Q` and `streamMatches`. Used by:
+   `kvServer.RangeStream.spec`.
+7. **2e (start and membership)**: `AddMember`, `RemoveMember`, `UpdateMember`, `PromoteMember`,
+   `MemberList` (`ClusterServer.*`'s callees) in `SrvCallTriple`'s shape for the cluster requests;
+   `GoAttach` (monitorLeader's goroutine); the getters `Term`, `Leader`, `MemberID`, `Cluster().ID()`,
+   `KV().Rev()`, `Backend()`, `Logger()`, `Cfg` fields, `IsLearner`, `IsMemberExist`, `Alarms` over
+   `isServer`, read-only. The member's start (`Serve`): binds its client address once to
+   `V3rpc.etcdContract γ` (`Grpc.addrFree_bind`, from the program's `addrFree ep`; a restart reuses
+   the persistent `addrAt`), builds the server (`V3rpc.Server.spec`), applies `Grpc.start.spec` with
+   its listener (`Grpc.listenerAt`, 2e's `net.Listen`) and `Grpc.msgsFit`, then `Server.Serve.spec`;
+   `servesAt γ ep` is then `V3rpc.servesAt_addr`. Used by: `Server.spec`'s users, K3.
+
+## from 2d
+
+Batch 2d (the apply thread and the raft node driver: `ApiApply.lean`, report
+`notes/specs-only/batch-2d.md`). Answers to 2c's items (`## from 2c` above), and what 2d's sketches
+need of 2c (the request path, `pkg/wait`) and 2e (the lifecycle).
+
+**To 2c.**
+
+1. (2c's item 1) `isServer_names` is stated in `ApiApply.lean` (`isServer s γ ⊢ ∃ N id, ⌜N.etcd = γ⌝
+   ∗ srvNode s N id ∗ srvStarted s N id`); 2e proves it when `start` builds `isServer`.
+2. (2c's item 4) `histPropose` (`ApiApply.lean`) is the proposal law: a proposer's update over
+   `etcdState γ.etcd`, fired with `applyStep mc σ ⟨t, ty, bs⟩ σ' res` (the apply's model, 3a's,
+   deterministic: `applyStep_fun`), becomes raft's proposal update. The update's commit step is where
+   2c deposits its `Q` for the waiter (keyed by the request id: 2c's own ghost box), since raft's
+   proposal update returns nothing to the proposer. At-most-once: 2d allocates raft's cluster with
+   `dup = false` (2e's `cluster_alloc`; etcd's transport never resends a message: 2f).
+3. **The wait registry's predicate `P`** (2c's `Wait.listAt s.w γw P`): the apply thread triggers
+   `w.Trigger(id, ar)` for a normal entry at index `k` applied past the consistent index with
+   `answered γ k id res` and 3a's ownership of `ar` holding `res` (`applyResult`), and
+   `w.Trigger(cc.ID, &confChangeResponse{members, raftAdvancedC, err})` for a conf change with
+   `advancedAt (&s.r) raftAdvancedC last` (its close gives `nodeAdvanced`: raft has applied the
+   change). `P` must accept both (plus `nil` from the requester's own give-up). Used by:
+   `applyEntryNormal.spec`, `apply.spec`.
+   ```go
+   s.w.Trigger(id, ar)                                                       // server.go:2009
+   s.w.Trigger(cc.GetId(), &confChangeResponse{s.cluster.Members(), raftAdvancedC, err}) // 1957
+   ```
+4. **`applyWait`** is `Wait.timeListAt s.applyWait (fun d => srvApplied s γ (uint.nat d))`
+   (downward closed: `srvApplied_mono`); the apply thread triggers it at each batch's applied index
+   (`applyAll.spec`). The read loop's `A := srvApplied s N` (2c's `readEnv`) is 2d's.
+5. (2c's item 6, the member's applied state) **open at integration**: a read of mvcc/auth/lessor at
+   the member's applied point is a law over 3e's/3d's/3c's state predicates, which 2d's invariant
+   ties to `histAt` (the apply thread's state machine is at `histAt γ (max appliedi ci)`; readers see
+   the backend's state, which is at or past every `srvApplied`). 2d will state it once 3e's
+   `mvccState` exists (`req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, "from 2d").
+6. (2c's item 8) the lessor's revocation: `revokeExpiredLeases.spec` builds the update for 2c's
+   `LeaseRevoke` from `envUpd` (fired only for a live lease, `EnvStep.leaseExpire`; any other answer
+   aborts) with `authStore.WithRoot(s.ctx)`; it needs `LeaseRevoke.spec` to take a caller's update in
+   that shape and `reqPrin (WithRoot s.ctx) (some root)` (3d).
+7. 2d's `applyEntryNormal` proposes the `NOSPACE` alarm through `raftRequest` (2c's) with an update
+   from `envUpd` (`EnvStep.alarm`) and `s.ctx`.
+
+**To 2e.**
+
+8. **`srvRunTok s γ id`** (what `start` hands `run`): the apply thread at its start
+   (`applyThread s γ ep₀ p₀`, `p₀` at the `MemoryStorage` snapshot's index, which is the node's
+   delivered start: `Applied = 0` in `raftConfig`), the backend's state machine at `histAt γ ci₀`
+   for its consistent index `ci₀ ≥ p₀.appliedi` (any: a crash may leave the backend ahead of the
+   WAL's commit, R1's restart at the backend's configuration), the driver's `rnLoop`/`rnStopper`
+   (`rnInit_place` after `NewServer`'s copy into `s.r`), the ready handler's writers, the expiry
+   channel's receive right (3c), the stop channel's receive right, and the escrow of `done`'s close
+   where `run` deposits `srvStopped s γ id`, which 2e's `srvRunning` claims and turns into
+   `memberDisk γ id ds` (a law of 2e's: `srvStopped` holds the WAL's durable half with `raftState`,
+   the backend's closed image at its consistent index, the node's vacancy).
+9. **`srvNode s γ id`** from `NewServer` (`Process` may run from the transport's start on),
+   **`srvStarted s γ id`** from `start`.
+10. **`raftNodeBootCfg`** (ApiBoot's provisional slot for 2d): `newRaftNode` needs only `0 ≤
+    heartbeat` (a zero heartbeat gives an empty ticker: no ticks, liveness only) and a logger;
+    raft's `ConfigOk` is `StartNode`/`RestartNode`'s (R1), at bootstrap.
+11. **`rnCfgOk cv γ id n`** (`newRaftNode`'s premise): the node of `StartNode`/`RestartNode`
+    with its `nodeDriver`, `nodeRunning`, `nodeConf`; `raftStorage` its attached `MemoryStorage`;
+    `storage` the WAL+snapshotter with the durable invariant (item 12); `transport` 2f's.
+12. **The WAL storage** (`serverstorage.Storage`, `req/go_etcd_io_etcd_server_v3_storage.md`).
+13. **Membership** (`req/go_etcd_io_etcd_server_v3_etcdserver_api_membership.md`).
+14. **The 403 error** of `Process` (`httptypes.NewHTTPError`): `httpForbidden err` (provisional in
+    `ApiApply.lean`), with 2f's `procErr` (`procErr_forbidden`).
+15. **Names**: 2e's `isServer s γ` is over W0's `Cluster`; 2d's vocabulary over `Names` (a structure
+    with `.etcd`, `.raft`, `.cfg`): `isServer_names` bridges them. If W0's `Cluster` becomes a
+    structure with the raft names, `Names` can be replaced by it (a decision for integration).

@@ -11,7 +11,11 @@ an error (`httptypes.NewHTTPError`, 2e's); a `MsgApp`'s size (`proto.Size`, 2a's
 (2e's `v2stats`); `s.r.Step(ctx, m)` (`raftNode.Step.spec`, with `m.to = id` now known). The message
 comes with its `msgSent` and `msgCredit` (rafthttp's delivery: 2f carries them with the bytes,
 `req/` 2f). **Changes** from `specs-ref`'s spec (the transport's `stepIn` bundle): over R1's
-`msgSent`/`msgCredit`. **Margin**: the error is not described (rafthttp only logs it).
+`msgSent`/`msgCredit`; the error is 2f's `procErr` (its `raftOk` contract: `procErr_forbidden`
+for the 403s, `Rafthttp.procErr_nodeErr` for raft's), and the thread token 2f's contract lends
+(`lgMu` and the membership are read under read locks). Callable from `NewServer` on (`srvNode`):
+the transport starts before `start`. **Margin**: which error is not described (rafthttp only
+logs it or answers it).
 -/
 module
 
@@ -44,10 +48,10 @@ def EtcdServer.Process.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : w64) (ctx : GoInterface) (mp : Loc) (m : Raft.Msg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvNode s γ id ∗ Context.ctxOk ctx ∗ Raft.msgPts mp (DFrac.own 1) m ∗
-      Raft.msgSent γ.raft m ∗ Raft.msgCredit γ.raft m }}
+      Raft.msgSent γ.raft m ∗ Raft.msgCredit γ.raft m ∗ threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"Process")) (Val #ctx)) (Val #mp))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err; Rafthttp.procErr err ∗ threadTok }}
 
 end spec
 end EtcdServer

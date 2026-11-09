@@ -48,19 +48,28 @@ nothing is the identity, which an update built from `envUpd` answers by aborting
 
 * `srvErrOf err e` (pure, opaque): `err` is a server-side error value that `togRPCError` maps to
   rpctypes' error `e` (`mvcc.ErrCompacted` for `.compacted`, `auth.ErrPermissionDenied` for
-  `.permissionDenied`, `errors.ErrTimeout` for `.timeout`, `context.Canceled` for `.canceled`, ...).
+  `.permissionDenied`, `errors.ErrTimeout` for `.timeout`, `errors.ErrCanceled` for `.canceled`, ...;
+  never a context's own `Canceled` or `DeadlineExceeded`: `togRPCError` passes those through as
+  grpc's codes, which settle nothing).
   Laws: `srvErrOf_ne_nil`, `srvErrOf_fun`; `readErr_indef` (the read loop's errors are indefinite).
 * `srvIndef err`, `srvUnfired err` (pure, transparent): the error classes of outcomes 3 and 2. An
   error `togRPCError` does not map (a gRPC `Unknown` at the client) is in both.
 * `reqPrin ctx who` (persistent, opaque): the request context's principal (realized by 2a's gRPC
   metadata and 3d's `AuthInfoFromCtx`; introduction laws are theirs).
-* `srvStep who rq` (transparent): the relation the server's updates are fired by (see above).
+* `srvStep who rq` (transparent): the relation the server's updates are fired by (see above; also
+  `LeaseRenew`'s permission refusal, which W0's `leaseStep` lacks, until W0 adds it).
 * `reqReply γ rq res p err` (transparent): the reply message `p` of request `rq` for the answer
   `res`, W0's (`getReply`, `putReply`, ..., `ClientV3.ansReply`, `ClientV3.authReply`); `srvReply`
   the server's return pair (the error a server error, not rpctypes').
 * `IrrBody`, `irrStep`, `irrOwn p ir` (opaque; provisional, 3h's: the `InternalRaftRequest` message
   at `p` with exactly `ir`'s field set, its `Header` and `ID` unset), `respTy`, `irrReply`: the
-  internal request's model and its reply.
+  internal request's model and its reply; `IrrBody.fires` (whether the commit fires the proposer's
+  update: not for `.authToken`, `.noop`); `IrrBody.depthOk`.
+* `txnChecked t` (pure, opaque; provisional, 2a's): `t` passed the gRPC layer's validation.
+* `alarmReqOwn p dq ir` (provisional, 3h's), `rsSink rs γ who r Q ms fin` (provisional, 2a's: a range
+  stream's send end), `srvWatchable s γ w` (provisional, 2d's and 3f's), `traceAt tr` (4b's).
+* `SrvCallTriple e P B γ who rq rep reply`: the three-outcome call shape every client-facing server
+  method's spec instantiates (the update written once, in it).
 * `applyResult x ir res` (transparent): the apply's `*apply.Result` at `x` (3a builds it, 2d
   delivers it through the wait registry): `Err` the answer's error or `nil`, `Resp` the reply,
   `Physc` a channel closed once a physical compaction is done (or `nil`), `Trace` a trace
@@ -136,8 +145,18 @@ inductive IrrBody where
   | alarmActivate (al : Alarm)
   /-- a member's attributes published (`ClusterMemberAttrSet`, `publishV3`) -/
   | publish (id : Nat) (name : GoString) (urls : List GoString)
+  /-- a token assigned to user `name` (`InternalAuthenticateRequest`, `Authenticate`'s; tokens
+  are not in the model) -/
+  | authToken (name : GoString)
   /-- no observable effect: a lease checkpoint, the cluster version, the downgrade info -/
   | noop
+
+/-- Whether the request's commit fires its proposer's update (a client request), or the cluster's
+invariant commits it alone: an environment step (an alarm, a publication) by the environment's
+permission `envUpd` the server holds (2e's `isServer`), or nothing (the state unchanged). -/
+def IrrBody.fires : IrrBody → Bool
+  | .req _ => true
+  | _ => false
 
 /-- The effect of an internal request (by principal `who`). -/
 def irrStep (who : Principal) : IrrBody → State → State → Resp → Prop
@@ -147,7 +166,7 @@ def irrStep (who : Principal) : IrrBody → State → State → Resp → Prop
       ((∃ m ∈ σ.members, m.id = id) ∧
         σ' = { σ with members := σ.members.map (fun m =>
           if m.id = id then { m with name := name, clientURLs := urls } else m) }) ∨ σ' = σ
-  | .noop => fun σ σ' _ => σ' = σ
+  | .authToken _ | .noop => fun σ σ' _ => σ' = σ
 
 -- The protobuf nesting depth of a `RequestOp` (itself `1`, its request `2`, a nested transaction's
 -- `TxnRequest` `2` plus what it holds: a `Compare` one level below it, its operations theirs).
@@ -303,6 +322,10 @@ def irrReply (γ : Cluster) (ir : IrrBody) (res : Resp) (resp : GoInterface) : I
   match ir with
   | .req rq => iprop(∃ p : Loc, ⌜resp = interface.mkOk (go.GoType.PointerType (respTy rq)) #p⌝ ∗
       reqReply γ rq res p GoInterface.nil)
+  | .authToken name => iprop(∃ (p : Loc) (tok : GoString),
+      ⌜resp = interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty) #p⌝ ∗
+      ClientV3.replyOwn p (.authenticate tok) ∗ tokenUser γ tok name)
   | _ => iprop(True)
 
 /-- **The apply's result `x` for `ir` answered `res`** (`*apply.Result`, read-only). -/

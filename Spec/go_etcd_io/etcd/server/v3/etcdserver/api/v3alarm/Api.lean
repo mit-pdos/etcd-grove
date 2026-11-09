@@ -56,6 +56,22 @@ def ofKind (al : List Alarm) (k : Option AlarmKind) : List Alarm :=
   | none => al
   | some k => al.filter (fun b => decide (b.kind = k))
 
+/-- What `Get(at)` returns of the view `al`: every alarm for `NONE` (`0`), those of the kind for
+`NOSPACE`/`CORRUPT`, none for another type. -/
+def getOf (al : List Alarm) (at' : w32) : List Alarm :=
+  if at' = W32 0 then al else
+  match kindOf at' with
+  | some k => al.filter (fun b => decide (b.kind = k))
+  | none => []
+
+/-- The view after raising `a` (a set: unchanged if present). -/
+def raise (al : List Alarm) (a : Alarm) : List Alarm :=
+  if ∃ b ∈ al, sameAlarm a b then al else al ++ [a]
+
+/-- The view after clearing `a`. -/
+def clear (al : List Alarm) (a : Alarm) : List Alarm :=
+  al.filter (fun b => decide (¬ sameAlarm a b))
+
 /-- A view's ghost names (opaque). -/
 opaque AlarmNames : Type := Unit
 

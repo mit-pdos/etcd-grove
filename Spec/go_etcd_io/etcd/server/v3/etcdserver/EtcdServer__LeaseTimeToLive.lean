@@ -1,0 +1,59 @@
+/-
+## `(*EtcdServer).LeaseTimeToLive(ctx, r)`
+
+**Users.** The gRPC lease handler (`api/v3rpc/lease.go:63`), the grpc-proxy. Snippet:
+`examples/specreq/etcdserverreq/lease.go` (`ReqTimeToLive`).
+
+**Proof sketch.** `requireAuthInfo` (a refusal given back); with `keys`, `checkLeaseTimeToLive`
+(`checkLeaseTimeToLive.spec`: the auth revision read first, then the principal's read permission of
+the lease's keys at the auth store's state, a denial `permErr`; an invalid token a refusal);
+`leaseTimeToLive(ctx, r)` (`leaseTimeToLive.spec`, untranslated: the leader's lessor after
+`waitAppliedIndex`, or the leader's over `leasehttp`): a lease granted at some point (W0's
+`granted` only grows) with keys attached at some revision the member applied, or `ErrLeaseNotFound`
+(always a `Step` answer), or an unsettled error (`ErrLeaderChanged`, timeouts, `ErrStopped`); with
+`keys`, the auth revision compared again (a change: `ErrAuthOldRevision`, a refusal). The update is
+fired at the return, at the cluster's current state (every answer is one `leaseStep` allows at any
+later state: `granted` and the history only grow).
+
+**Changes.** The old spec (`specs-ref`'s `EtcdServer__LeaseTimeToLive.lean`, the lease-read plan's
+`raftLeaseRead` contract, `lease-grpc.md`) restated over W0's loose `leaseTimeToLive` step: a
+one-shot update fired at the return.
+
+**Margin.** The TTLs are any (W0's model has no time); a permission denial is fired with the
+member's auth state, which W0's step allows at any state.
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
+
+set_option autoImplicit false
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace EtcdServer
+
+open Iris Iris.BI EtcdModel EtcdWire
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **`s.LeaseTimeToLive(ctx, r)`**: lease `id`'s remaining and granted TTL (and its keys), from the leader's lessor (forwarded if this member is not the leader); the update fired at the return. -/
+def EtcdServer.LeaseTimeToLive.spec : Prop :=
+  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (who : Principal) (r : Loc) (dq : DFrac) (id : Int) (keys : Bool),
+  SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseTimeToLive")) (Val #ctx)) (Val #r))
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
+        Context.ctxOk ctx ∗ reqPrin ctx who ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys))
+    iprop(threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys)) γ who (.leaseTimeToLive id keys) false (ClientV3.ansReply)
+
+end spec
+end EtcdServer
+end EtcdGrove
+end Perennial

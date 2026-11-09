@@ -953,7 +953,10 @@ def leaseStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop 
       σ' = σ ∧ maxLeaseTTL < ttl ∧ res = .err .leaseTTLTooLarge ∨
       ttl ≤ maxLeaseTTL ∧
         (σ' = σ ∧ (id = 0 ∨ σ.leases id ≠ none) ∧ res = .err .leaseExist ∨
-         ∃ id' ttl', (id ≠ 0 → id' = id) ∧ id' ≠ 0 ∧ σ.leases id' = none ∧ ttl ≤ ttl' ∧
+         -- a chosen id is a positive int64 (`reqIDGen.Next()` masked to 63 bits); the TTL is the asked
+         -- one raised to the member's minimum (`lessor.Grant`): positive, at most `MaxLeaseTTL`
+         ∃ id' ttl', (id ≠ 0 → id' = id) ∧ id' ≠ 0 ∧ (id = 0 → 0 < id') ∧ -2 ^ 63 ≤ id' ∧ id' < 2 ^ 63 ∧
+           σ.leases id' = none ∧ ttl ≤ ttl' ∧ 0 < ttl' ∧ ttl' ≤ maxLeaseTTL ∧
            σ' = { σ with leases := fun i => if i = id' then some { ttl := ttl' } else σ.leases i,
                          granted := σ.granted ++ [id'], leaseHist := σ.leaseHist ++ [σ.leases] } ∧
            res = .ok (.leaseGrant id' ttl'))
@@ -963,14 +966,15 @@ def leaseStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop 
         (σ.permits who [] [id] ∧ σ' = σ.revoke id l ∧ res = .ok .leaseRevoke ∨
          ¬ σ.permits who [] [id] ∧ σ' = σ ∧ res = .err (AuthState.permErr who))
   | .leaseKeepAlive id =>
-      σ' = σ ∧ (res = .err .leaseNotFound ∨ ∃ ttl, res = .ok (.leaseKeepAlive id ttl))
+      σ' = σ ∧ (res = .err .leaseNotFound ∨ ∃ ttl, -2 ^ 63 ≤ ttl ∧ ttl < 2 ^ 63 ∧ res = .ok (.leaseKeepAlive id ttl))
   | .leaseTimeToLive id keys =>
       σ' = σ ∧
       -- answered from the lease table `i` of the (leader's) lessor, which may be behind
       ((∃ i, σ.leaseAnsAt i (.leaseTimeToLive id keys) res) ∧
        (res = .err .leaseNotFound ∨
         -- the remaining TTL may exceed the granted one after a leader change (`Promote` extends)
-        ∃ ttl gttl r l, r ≤ σ.kv.rev ∧
+        -- the granted TTL of a known lease is positive (`v3_server.go`, `LeaseTimeToLive`)
+        ∃ ttl gttl r l, r ≤ σ.kv.rev ∧ -2 ^ 63 ≤ ttl ∧ ttl < 2 ^ 63 ∧ 0 < gttl ∧ gttl < 2 ^ 63 ∧
           (∀ k, k ∈ l ↔ ∃ rec, σ.kv.storeAt r k = some rec ∧ rec.lease = id) ∧
           res = .ok (.leaseTimeToLive id ttl gttl (if keys then l else []))) ∨
        -- the attached keys' read permission, checked at a member's auth state
@@ -1133,7 +1137,7 @@ def clusterStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Pro
        learner = true ∧ σ' = σ ∧ res = .err .tooManyLearners ∨
        -- unparsable URLs; an id the server chose that is (or was) a member's
        σ' = σ ∧ (res = .err .memberBadURLs ∨ res = .err .memberExist ∨ res = .err .memberNotFound) ∨
-       ∃ id l, (∀ m ∈ σ.members, m.id ≠ id) ∧
+       ∃ id l, (∀ m ∈ σ.members, m.id ≠ id) ∧ id < 2 ^ 64 ∧
          let m : Member := { id := id, name := [], peerURLs := urls, clientURLs := [],
                              isLearner := learner }
          σ' = { σ with members := σ.members ++ [m] } ∧ l.Perm σ'.members ∧
@@ -1202,7 +1206,7 @@ inductive EnvStep (cfg : EnvCfg) : State → State → Prop
       σ.leases id ≠ none → σ.attachedKVs id l → EnvStep cfg σ (σ.revoke id l)
   | compact (σ : State) (r : Nat) : cfg.autoCompact = true →
       σ.kv.compacted < r → r ≤ σ.kv.rev → EnvStep cfg σ (σ.withKV { σ.kv with compacted := r })
-  | alarm (σ : State) (al : Alarm) :
+  | alarm (σ : State) (al : Alarm) : al.memberId < 2 ^ 64 →
       EnvStep cfg σ { σ with alarms := σ.alarms ++ [al] }
   | publish (σ : State) (id : Nat) (name : GoString) (urls : List GoString) :
       (∃ m ∈ σ.members, m.id = id) →

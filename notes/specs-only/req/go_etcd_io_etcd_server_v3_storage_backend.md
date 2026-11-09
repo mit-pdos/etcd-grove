@@ -1,0 +1,24 @@
+# Requirements on `go.etcd.io/etcd/server/v3/storage/backend` and `storage/schema` (4a, 4b)
+
+## from 2d
+
+What the consistent index (`cindex`) and the apply thread need of the backend (4a) and the schema
+(4b). `cindex/Api.lean` and `ApiApply.lean` declare provisional names for them:
+
+1. **`beStoredCI be v`** (persistent): a read of backend `be`'s consistent index through
+   `be.ReadTx()` (`schema.ReadConsistentIndex`, `UnsafeReadConsistentIndex`) returns `v` (`0`: none)
+   as long as no commit writes it; a commit writes it only from the pre-commit hook's `UnsafeSave`
+   of a non-zero index. Introduced by `OpenBackend`/`OpenSnapshotBackend` (2e) for the image's stored
+   index. Used by: `consistentIndex.ConsistentIndex.spec`, `SetBackend.spec`, `NewConsistentIndex.spec`.
+2. **`txStoredCI tx v`** (exclusive, with the batch transaction's lock): the transaction's view of
+   the stored index; `schema.UnsafeUpdateConsistentIndex(tx, i, t)` sets it to `i` if `i ≠ 0` and
+   `i ≥ v` (its `verify` check). Used by: `consistentIndex.UnsafeSave.spec`.
+3. **The backend's commits save the state machine with its consistent index**: the pre-commit hook
+   (2e's `BackendHooks.OnPreCommitUnsafe`) runs under the batch transaction's lock, so a commit's
+   image is the state machine at `histAt γ c` with stored index `c` (2d's invariant: the in-memory
+   index is the last entry whose writes are in the batch). A crash keeps the last commit's image.
+4. **`backend.Snapshot`** (`beSnap bs γ k`): `s.be.Snapshot()` after `KV().Commit()` is the
+   committed image (at `c`); `WriteTo` streams it, `Size` in `[0, 2^62)`, `Close` returns `nil`.
+   Used by: `createMergedSnapshotMessage.spec`, `newSnapshotReaderCloser.spec`.
+5. **`VerifyBackendConsistency(be, lg, true, buckets...)`** (`applyAll`): no panic on the server's
+   backend (its checks pass, or `ETCD_VERIFY` is off: ApiBoot's `backendBootRes`).

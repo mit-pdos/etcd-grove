@@ -94,6 +94,10 @@ opaque revGetter (rg : GoInterface) : IProp GF := iprop(True)
 /-- **`cp` is a compactor** (persistent). -/
 opaque isCompactor (cp : GoInterface) : IProp GF := iprop(True)
 
+/-- **Provisional (the `clockwork` boundary):** `clk` is a `clockwork.Clock` whose `Now`, `After`
+may be called from any goroutine (`NewRealClock()`'s: the real clock). Persistent. -/
+opaque clockOk (clk : GoInterface) : IProp GF := iprop(True)
+
 /-- `p` is a `*Periodic` compactor (persistent). -/
 opaque isPeriodic (p : Loc) : IProp GF := iprop(True)
 

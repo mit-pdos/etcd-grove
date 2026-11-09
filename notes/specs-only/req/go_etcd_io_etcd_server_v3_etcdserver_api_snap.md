@@ -21,3 +21,12 @@ replace them by snap's names at integration.
    `closeC` has capacity 1) and closes the reader. The `ExactReadCloser` keeps the reader contract
    (`Http.readerAt`) of the reader it wraps, failing a stream of the wrong length. Used by
    `Transport.SendSnapshot.spec`, `createSnapBody.spec`, `snapshotSender.send.spec`.
+
+## from 2d
+
+1. **`snap.NewMessage(m, rc, size)`** (`createMergedSnapshotMessage`): the merged message (2d's
+   `mergedSnap`), with `rc` a reader of the database image (`dbReader rc γ k`, provisional in
+   `ApiApply.lean`) and `size` in `[0, 2^62)`; `CloseNotify()` a channel `sendMergedSnap`'s goroutine
+   receives on once.
+2. **The snapshotter's saved `.snap.db`** of a received merged snapshot (2f's `dbSaved`) is what
+   `OpenSnapshotBackend` opens (`req/go_etcd_io_etcd_server_v3_storage.md`, from 2d, item 3).

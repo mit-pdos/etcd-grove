@@ -3,8 +3,10 @@
 
 **Users.** `v3rpc/grpc.go:81` (`Server`: `pb.RegisterWatchServer(grpcServer, NewWatchServer(s))`,
 batch 2a, which registers the result's `watchServiceAt` at `/etcdserverpb.Watch/Watch`);
-`etcdserver/api/v3client/v3client.go:39` (the in-process client's adapter: not in scope, nothing
-of ours calls it). Snippet: `examples/specreq/v3rpcwatch/serve.go` (`ReqServeWatch`).
+`etcdserver/api/v3client/v3client.go:39` (the in-process client, through the adapter's pipe stream;
+`embed/serve.go:148-150` builds v3lock and v3election on it): this spec serves it (a
+`watchServerAt`), but the handler's contract does not (the pipe passes message pointers, which the
+stream slots do not model: `ApiWatch.lean`'s header, an open question). Snippet: `examples/specreq/v3rpcwatch/serve.go` (`ReqServeWatch`).
 
 **Proof sketch.** `watchMemberAt_cfg` gives the configuration's fields read-only: the logger
 (`nil`, replaced by `zap.NewNop()`, W0's `NewNop.spec`, or a logger), the request budget (the

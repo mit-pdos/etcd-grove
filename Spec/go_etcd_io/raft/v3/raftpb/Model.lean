@@ -31,7 +31,7 @@ predicates of the content that the getters do not show but raft relies on:
   a decoded message is plain iff the encoded one was). It makes a content a function of its Go
   fields (`proto.Equal` compares presence, values and unknown bytes), which `ConfState.Equivalent`
   (`proto.Equal` of two sorted clones) and the size bounds below need.
-* `confStateFull c`, `snapshotFull c`: every pointer field `EnsureConfState`/`EnsureSnapshot` would
+* `csFull c`, `snapFull c`: every pointer field `EnsureConfState`/`EnsureSnapshot` would
   fill is set (`AutoLeave`; the metadata, its `ConfState`, `Index`, `Term`). raft's snapshots are
   always full (`MemoryStorage` and raft ensure them before sharing them), and raft calls `Ensure*`
   on shared read-only snapshots, which must then write nothing.
@@ -50,18 +50,28 @@ per-type-blockers.md` (b)); no statement is quantified over a caller-built wire 
 `Proto.encodes`, and decoding is a function because `encodes` is (`Proto.encodes_fun`).
 
 * `decodeConfChange t bs`: what `proto.Unmarshal` of an entry's bytes into a `ConfChange` (`t =
-  EntryConfChange`) or a `ConfChangeV2` (`EntryConfChangeV2`) gives, when the bytes encode a plain
-  content that nests less than protobuf's recursion limit; `none` otherwise. Defined from
+  EntryConfChange`) or a `ConfChangeV2` (`EntryConfChangeV2`) gives, when the bytes encode a content
+  of that type (`confChangeV1Is`/`confChangeV2Is`: plain, so it nests less than protobuf's recursion
+  limit); `none` otherwise. Defined from
   `Proto.encodes` (classical choice of the unique content).
 * `msgEncodes bs m`, `entryEncodes bs i e`: `bs` is a wire encoding of a well-formed message
   modelled by `m` (an entry at index `i`): what a transport (rafthttp, 2f) carries with `msgSent`.
-* `bootCC id ctx c` (opaque: `c` is the content and `bootEntryData id ctx` (opaque bytes): the content of the
-  `ConfChange{Type: AddNode, NodeId: id, Context: ctx}` that `RawNode.Bootstrap` builds; a relation
-  because protobuf's `Content` type has no element this package could name) and the bytes
-  `proto.Marshal` gives it. Determinism (every founder appends the same bytes) is protobuf-go's:
-  a message without map fields marshals to a function of its content; requested of 2a's boundary
+* `bootCC id ctx c` (opaque, a relation: protobuf's `Content` type has no element this package could
+  name): `c` is the content of the `ConfChange{Type: AddNode, NodeId: id, Context: ctx}` that
+  `RawNode.Bootstrap` builds (`Id` unset); `bootEntryData id ctx` (opaque bytes): what
+  `proto.Marshal` gives it. Determinism (every founder appends the same bytes) is protobuf-go's: a
+  message without map fields marshals to a function of its content; requested of 2a's boundary
   (`req/google_golang_org_protobuf_proto.md`, "from 3h"): once it has `Proto.marshalOut`,
   `bootEntryData id ctx` is `Proto.marshalOut ConfChange.ty c` for the `c` with `bootCC id ctx c`.
+
+**What a content of each type satisfies** (`entryIs`, `hardStateIs`, `confStateIs`, `snapshotIs`,
+`msgIs`, `confChangeV1Is`, `confChangeV2Is`, `singleIs`): the readers' values, plainness (and
+fullness, well-formedness), and three facts protobuf's boundary asks of the owner of a type
+(`proto/Api.lean`): `Proto.marshalOk` (raftpb has no `string` and no required field: every content
+marshals), the nesting depth (raftpb is not recursive once `Responses` is empty: at most four
+levels, `Message`/`Snapshot`/`SnapshotMetadata`/`ConfState`), and the encoded size bounded by the
+model (below). The relation laws of `Api.lean` tie each Go ownership predicate to `Proto.msgAt` of a
+content satisfying its `*Is`.
 
 ## Sizes
 
@@ -159,6 +169,12 @@ structure ConfState where
 deriving Inhabited
 
 def ConfState.empty : ConfState := ⟨[], [], [], [], false⟩
+
+/-- Each list at most `2 ^ 62` long (`slices.Sort`'s bound: `Equivalent` sorts them). Every
+configuration raft builds meets it (R4's `Membership.Valid`: fewer than `2 ^ 62` ids). -/
+def ConfState.lenOk (cs : ConfState) : Prop :=
+  cs.voters.length ≤ 2 ^ 62 ∧ cs.learners.length ≤ 2 ^ 62 ∧ cs.votersOutgoing.length ≤ 2 ^ 62 ∧
+  cs.learnersNext.length ≤ 2 ^ 62
 
 /-- **Two `ConfState`s list the same configuration** (what `Equivalent` checks): each list a
 permutation of the other's, the same `AutoLeave`. -/
@@ -308,14 +324,14 @@ opaque hardStateOf : Proto.Content → HardState
 /-- The `ConfState` a content holds. -/
 opaque confStateOf : Proto.Content → ConfState
 /-- The `ConfState` content has `AutoLeave` set. -/
-opaque confStateFull : Proto.Content → Prop
+opaque csFull : Proto.Content → Prop
 /-- The `SnapshotMetadata` a content holds. -/
 opaque snapMetaOf : Proto.Content → SnapMeta
 /-- The `Snapshot` a content holds (its metadata's fields flattened, zero where unset). -/
 opaque snapshotOf : Proto.Content → Snapshot
 /-- The `Snapshot` content has its metadata, the metadata's `ConfState`, `Index`, `Term` and the
 `ConfState`'s `AutoLeave` set. -/
-opaque snapshotFull : Proto.Content → Prop
+opaque snapFull : Proto.Content → Prop
 /-- The `Message` a content holds (its snapshot `none` iff the field is unset). -/
 opaque msgOf : Proto.Content → Msg
 /-- The `Index` fields of a `Message` content's entries. -/
@@ -339,29 +355,65 @@ def msgWf (c : Proto.Content) : Prop :=
   plain c ∧ msgSnapFull c ∧ msgNoResponses c ∧
   ∀ ixs, (msgOf c).entryIndexes = some ixs → msgEntryIndexes c = ixs
 
+/-- What an `Entry` content at index `i` modelled by `e` satisfies. -/
+def entryIs (c : Proto.Content) (i : w64) (e : LogEntry) : Prop :=
+  plain c ∧ entryIndexOf c = i ∧ entryOf c = e ∧ Proto.marshalOk c ∧ Proto.depth c ≤ 1 ∧
+  Proto.encSize c ≤ 64 + e.data.length
+
+/-- What a `HardState` content satisfies. -/
+def hardStateIs (c : Proto.Content) (hs : HardState) : Prop :=
+  plain c ∧ hardStateOf c = hs ∧ Proto.marshalOk c ∧ Proto.depth c ≤ 1 ∧ Proto.encSize c ≤ 64
+
+/-- What a `ConfState` content satisfies (`full`: `AutoLeave` set). -/
+def confStateIs (c : Proto.Content) (cs : ConfState) (full : Bool) : Prop :=
+  plain c ∧ confStateOf c = cs ∧ cs.lenOk ∧ (full = true → csFull c) ∧ Proto.marshalOk c ∧
+  Proto.depth c ≤ 1 ∧ Proto.encSize c ≤ cs.wireBound
+
+/-- What a `Snapshot` content satisfies (`full`: every field `EnsureSnapshot` fills set). -/
+def snapshotIs (c : Proto.Content) (s : Snapshot) (full : Bool) : Prop :=
+  plain c ∧ snapshotOf c = s ∧ (full = true → snapFull c) ∧ Proto.marshalOk c ∧
+  Proto.depth c ≤ 3 ∧ Proto.encSize c ≤ s.wireBound
+
+/-- What a `Message` content satisfies. -/
+def msgIs (c : Proto.Content) (m : Msg) : Prop :=
+  msgWf c ∧ msgOf c = m ∧ Proto.marshalOk c ∧ Proto.depth c ≤ 4 ∧ Proto.encSize c ≤ m.wireBound
+
+/-- What a `ConfChange` content satisfies. -/
+def confChangeV1Is (c : Proto.Content) (cc : ConfChangeV1) : Prop :=
+  plain c ∧ confChangeOf c = cc ∧ Proto.marshalOk c ∧ Proto.depth c ≤ 1 ∧
+  Proto.encSize c ≤ (ConfChangeI.v1 cc).wireBound
+
+/-- What a `ConfChangeV2` content satisfies. -/
+def confChangeV2Is (c : Proto.Content) (cc : ConfChangeV2) : Prop :=
+  plain c ∧ confChangeV2Of c = cc ∧ Proto.marshalOk c ∧ Proto.depth c ≤ 2 ∧
+  Proto.encSize c ≤ (ConfChangeI.v2 cc).wireBound
+
+/-- What a `ConfChangeSingle` content satisfies. -/
+def singleIs (c : Proto.Content) (s : ConfChangeSingle) : Prop :=
+  plain c ∧ singleOf c = s ∧ Proto.marshalOk c ∧ Proto.depth c ≤ 1 ∧ Proto.encSize c ≤ 32
+
 /-! ## The wire model -/
 
 open go_etcd_io.raft.v3 Classical in
 /-- **What the bytes of a conf-change entry of type `t` decode to** (see the header). -/
 def decodeConfChange (t : w32) (bs : List w8) : Option ConfChangeI :=
   if t = EntryConfChange then
-    if h : ∃ c, Proto.encodes raftpb.ConfChange.ty c bs ∧ Proto.depth c < Proto.depthMax ∧ plain c
+    if h : ∃ c cc, Proto.encodes raftpb.ConfChange.ty c bs ∧ confChangeV1Is c cc
     then some (.v1 (confChangeOf (Classical.choose h))) else none
   else if t = EntryConfChangeV2 then
-    if h : ∃ c, Proto.encodes raftpb.ConfChangeV2.ty c bs ∧ Proto.depth c < Proto.depthMax ∧ plain c
+    if h : ∃ c cc, Proto.encodes raftpb.ConfChangeV2.ty c bs ∧ confChangeV2Is c cc
     then some (.v2 (confChangeV2Of (Classical.choose h))) else none
   else none
 
 open go_etcd_io.raft.v3 in
 /-- **`bs` encodes a well-formed message modelled by `m`** (what a transport carries). -/
 def msgEncodes (bs : List w8) (m : Msg) : Prop :=
-  ∃ c, Proto.encodes raftpb.Message.ty c bs ∧ msgWf c ∧ msgOf c = m ∧ Proto.depth c < Proto.depthMax
+  ∃ c, Proto.encodes raftpb.Message.ty c bs ∧ msgIs c m
 
 open go_etcd_io.raft.v3 in
 /-- **`bs` encodes a plain entry at index `i` modelled by `e`** (rafthttp's `msgappv2` entries). -/
 def entryEncodes (bs : List w8) (i : w64) (e : LogEntry) : Prop :=
-  ∃ c, Proto.encodes raftpb.Entry.ty c bs ∧ plain c ∧ entryIndexOf c = i ∧ entryOf c = e ∧
-    Proto.depth c < Proto.depthMax
+  ∃ c, Proto.encodes raftpb.Entry.ty c bs ∧ entryIs c i e
 
 /-- **`c` is the content of the bootstrap `ConfChange`** for peer `id` with context `ctx`
 (`AddNode`, the node, the context set; `Id` unset; plain): at most one (`bootCC_fun`). -/

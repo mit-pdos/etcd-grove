@@ -11,7 +11,10 @@ KV contract, `KV.*Triple`).
 **One resource, owned by the program.** `etcdState γ σ` says the cluster `γ`'s state is `σ`. The
 program that starts the cluster gets it in full (§3) and keeps it in an invariant of its own; the
 cluster never owns it. Every client call takes an atomic update over it, fired once (a write) or
-as often as the cluster likes (a read: `□ AU`), by `Step who rq σ σ' res`; the environment
+as often as the cluster likes (a read: `□ AU`; also the lease and alarm writes `retry.go` marks
+repeatable, `LeaseGrant`, `LeaseRevoke`, `Alarm`, which the interceptor may resend after an
+attempt that applied: they take persistent updates and may take effect more than once, 1c's specs;
+the KV writes take effect at most once), by `Step who rq σ σ' res`; the environment
 (lease expiry, auto-compaction, alarms, members publishing themselves) changes it only through the
 permission `envUpd γ cfg` the program gave when it started the cluster. So **the program's
 invariant sees every change of the cluster's state, in the order the cluster made them, with each
@@ -121,9 +124,10 @@ endpoint: its KV, lease, auth, cluster and maintenance services answer by `Step`
 caller's update as the client's contract says (K4). The client's `New` (1c) turns `servesAt` into
 `isClient c γ who`.
 
-**K4 — every answer is a `Step`, fired once for a write**: a reply, or a definite error, is the
+**K4 — every answer is a `Step`, fired at most once for a KV write**: a reply, or a definite error, is the
 answer of `Step who rq σ σ' res` at a state where the caller's update was fired, with the reply's
-`Q`; a write is fired at most once per call (at its entry's commit; never for an attempt the
+`Q`; a KV write is fired at most once per call (a repeatable lease or alarm write, `retry.go`'s
+policy, may be fired once per attempt, so its update is persistent) (at its entry's commit; never for an attempt the
 client resends: a stale token); a read's update is registered before its read index is taken and
 may be fired at every state from then on; the read answers with the `Q` of the firing at the state
 the member read; a refusal is a step with no change; an indefinite error fires nothing at

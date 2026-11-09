@@ -406,3 +406,33 @@ Batch 2f (rafthttp, `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Api.
 3. **No local message is sent**: `msgSent_type.spec` already bounds the type; rafthttp also needs
    that a sent message is not the link heartbeat (`MsgHeartbeat` from and to `0`): a node's
    messages are from its non-zero id, which item 2's `m.src = id` gives.
+
+## from 2c
+
+The read loop (`etcdserver/read`) uses R1's read API as stated (`readCtx_register`, `node.ReadIndex`,
+`readState`, `readState_fire`, `readState_registered`, `committedLb_agree`, `committedOps_lb`): the
+round's context registered with the update `readLbQ l` (result `⌜opsOf l <+: ops⌝`), fired by raft at
+the committed operations of its confirmation. Nothing new is needed. The proposals' one-shot updates
+(2c's `processInternalRaftRequestOnce`) need the server's raft cluster allocated with `dup = false`,
+or the server's invariant firing only an entry's first committed occurrence (2d's).
+
+## from 2d
+
+Batch 2d (etcd's apply thread and raft node driver, `ApiApply.lean`):
+
+1. **The term bound for the merged snapshot** (R1's item 10): `msgSent_replaceSnap` needs `s'.term
+   ≤ m.term`. etcd's guard is `m.GetTerm() == apply.raftTerm` (the term of the latest hard state the
+   loop handed out up to this batch); the applied term `appliedt` is at most it if **every committed
+   entry and snapshot a `Ready` hands out has a term at most the batch's hard state's term**
+   (`(b.hs.getD st.hs).term`). Please add it to `BatchOk` (or `readyGot`): it holds (raft's log
+   terms are at most its current term, and a `Ready` reports a changed term in its `HardState`).
+   ```go
+   if m.GetTerm() == apply.raftTerm && m.GetSnapshot().GetMetadata().GetIndex() <= ep.appliedi {
+       merged := s.createMergedSnapshotMessage(m, ep.appliedt, ep.appliedi, ep.confState)
+   ```
+   Used by: `createMergedSnapshotMessage.spec`, `applyAll.spec`.
+2. **One-shot proposals**: etcd's raft cluster is allocated with `dup = false` (rafthttp never
+   resends: 2f); 2c's at-most-once rests on it. Nothing new for R1.
+3. **The restart's applied start**: etcd's `raftConfig` leaves `Applied = 0`, so `RestartNode`'s
+   delivered log starts at the storage's offset, which is the `MemoryStorage` snapshot's index
+   (bootstrap's `ApplySnapshot` then `Append`): `run`'s `etcdProgress` starts there. Nothing new.

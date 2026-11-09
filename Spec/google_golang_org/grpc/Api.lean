@@ -292,6 +292,9 @@ service's full name, its unary methods' (name, `Handler`) and its streams' (name
 opaque serviceDescAt (sd : Loc) (svc : GoString) (ms ss : List (GoString × val)) : IProp GF :=
   iprop(True)
 
+/-- **grpc's `*health.Server`** (persistent: its methods lock internally). -/
+opaque healthAt (hs : Loc) : IProp GF := iprop(True)
+
 /-- **A resolver builder reporting only addresses with `A`** (persistent; the client's resolver,
 1c, over grpc's `resolver/manual`). -/
 opaque resolverAt (r : GoInterface) (A : GoString → IProp GF) : IProp GF := iprop(True)
@@ -356,11 +359,12 @@ stats handlers change nothing the specs model). -/
 opaque srvOptAt (v : GoInterface) (f : SrvCfg → SrvCfg) : IProp GF := iprop(True)
 
 /-- What a unary handler returns for its caller's `Φ`: a reply message (any fraction: grpc only
-reads it) with `Φ` of its content, or an error with `Φ` of the status sent, or an error grpc made
+reads it; nested less than protobuf's decoding limit, so the caller can decode it) with `Φ` of its
+content, or an error with `Φ` of the status sent, or an error grpc made
 itself (the dropped decoding of a request, which `decOk` excludes; a codec's). -/
 def unaryOut (repT : go.GoType) (r err : GoInterface) (Φ : Outcome → IProp GF) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ (p : Loc) (dq : DFrac) (c : Content),
-          ⌜r = msgVal repT p⌝ ∗ msgAt repT p dq c ∗ Φ (.ok c)) ∨
+          ⌜r = msgVal repT p ∧ depth c < depthMax⌝ ∗ msgAt repT p dq c ∗ Φ (.ok c)) ∨
         (⌜err ≠ GoInterface.nil⌝ ∗ ∃ code msg, sentStatus err code msg ∗ Φ (.status code msg)))
 
 /-- **The handler `h` of a unary method** (its `MethodDesc.Handler`, called by grpc with the
@@ -428,7 +432,8 @@ def grpc_persistent.spec : Prop :=
   (∀ v f, Persistent (srvOptAt (GF := GF) v f)) ∧
   (∀ err msg, Persistent (errMsg (GF := GF) err msg)) ∧
   (∀ s c m, Persistent (statusAt (GF := GF) s c m)) ∧
-  (∀ p, Persistent (peerOk (GF := GF) p))
+  (∀ p, Persistent (peerOk (GF := GF) p)) ∧
+  (∀ hs, Persistent (healthAt (GF := GF) hs))
 
 /-- An error grpc made itself is a status with one of grpc's own messages. -/
 def ownErr_grpcMsg.spec : Prop := ∀ err,

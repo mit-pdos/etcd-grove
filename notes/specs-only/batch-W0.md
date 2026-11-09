@@ -317,3 +317,16 @@ a lease is not live in any later table unless its id is granted again, which the
 workload excludes); `leasecatchup` (member 3's listing of the last filler is at a table after the
 filler's grant, which is after the lease's grant through member 3, and nothing revokes). 1c states
 the per-endpoint guarantees in its lease specs.
+
+**Round 3, second part** (1c's provability review F7, F8, S3):
+
+| name | change |
+|---|---|
+| `leaseStep .leaseGrant` | the granted id is an int64 (positive when the server chooses it), the granted TTL `0 < ttl' ≤ maxLeaseTTL` |
+| `leaseStep .leaseKeepAlive`, `.leaseTimeToLive` | the reported TTLs are int64s; a known lease's granted TTL is positive (`v3_server.go`, `LeaseTimeToLive`) |
+| `clusterStep .memberAdd` | the new member's id is a uint64 (`< 2 ^ 64`) |
+| `EnvStep.alarm` | **new premise**: the alarm's member id `< 2 ^ 64` |
+| `notes/specs-only/top.md` §1, K4 | a KV write is fired at most once; the repeatable lease and alarm writes (`LeaseGrant`, `LeaseRevoke`, `Alarm`) may apply more than once and take persistent updates (1c) |
+
+The initial members' ids (`State.init ms`) are uint64s by the cluster contract (K1: they come from
+the configuration).

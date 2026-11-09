@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `w.closeStream(s)`: `s` closed and forgotten. -/
 def watcher.closeStream.spec : Prop :=
-  ∀ (w s : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w γ who ∗ wgsAt s w γ who ∗ wgsDoneTok s γ who }}
+  ∀ (w s : Loc) (γ : Cluster) (who p : Principal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w γ who ∗ wgsAt s w γ p ∗ wgsDoneTok s γ p }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"closeStream")) (Val #s))
   {{ RET #(); True }}
 

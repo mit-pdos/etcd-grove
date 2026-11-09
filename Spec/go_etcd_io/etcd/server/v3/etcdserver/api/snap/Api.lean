@@ -57,6 +57,10 @@ open Iris Iris.BI
 /-- **Provisional (batch 4a):** what a bbolt database file holds, as the backend reads it. -/
 opaque BeImage : Type := Unit
 
+/-- **Provisional (batch 4a):** `img` is the image of a new, empty database (bbolt creates the
+file). -/
+opaque emptyImage (img : BeImage) : Prop
+
 /-- `ReleaseSnapDBs` at index `i`: the files of lower indices removed. -/
 def releaseBelow (F : Nat → Option BeImage) (i : Nat) : Nat → Option BeImage :=
   fun j => if j < i then none else F j
@@ -90,6 +94,12 @@ opaque isMessage (p : Loc) (to : w64) (sz : w64) : IProp GF := iprop(True)
 
 /-- The right to close `p`'s reader once (`CloseWithError`). -/
 opaque msgClose (p : Loc) : IProp GF := iprop(True)
+
+/-- `ch` is `p`'s close-notification channel (persistent): it receives one `bool`, after
+`CloseWithError` (whether the reader closed without an error). -/
+opaque msgCloseCh (p : Loc) (ch : Loc) : IProp GF := iprop(True)
+
+def msgCloseCh_persistent.spec : Prop := ∀ p ch, Persistent (msgCloseCh (GF := GF) p ch)
 
 def isSnapshotter_persistent.spec : Prop := ∀ ss sd, Persistent (isSnapshotter (GF := GF) ss sd)
 

@@ -64,3 +64,14 @@ from mvcc's own vocabulary to `γ` is the server's (2d), `req/go_etcd_io_etcd_se
 Used by: `serverWatchStream.recvLoop.spec`, `sendLoop.spec`, `close.spec`, `watchServer.Watch.spec`
 (the run's invariant, `WatchInternal.lean`'s `swsAt`); hence every `srvWireStep` fact of the watch
 protocol (1b's `wireStep`), and the snippets `examples/specreq/v3rpcwatch/`.
+
+## from 2d
+
+1. **`KV().Commit()`** (`snapshot`, `createMergedSnapshotMessage`): forces a backend commit (the
+   consistent index saved with the state machine's image).
+2. **`kv.Restore(newbe)`** (`applySnapshot`): over a backend opened from a snapshot's image (the state
+   machine at `histAt γ c`), no error; the store at that image's history.
+3. **The member's applied state for readers** (2c's item 6 in `req/..._etcdserver.md`): the store's
+   state predicate (`mvccState`) that 2d's invariant can tie to `histAt γ k` for the member's applied
+   point (reads see the backend, at or past every `srvApplied`). 2d states the law once 3e names the
+   predicate.

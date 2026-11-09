@@ -176,3 +176,31 @@ send a later progress first (`v3rpc/watch.go:374-402, 514-546`); the client send
 id with no substream (`closeSubstream` removed it, or an unknown id), and `broadcastResponse` reaches
 only `w.substreams`, so no consumer is told anything less (`deliverOk`'s header says so). `srvWireStep`
 (2b) and `wireStep` now agree.
+
+## Round 2 (from 2b) (2026-11-09)
+
+Strengthenings of `wireStep` that 2b's reviews asked for (`2b-provability-1.md` F2/F3,
+`2b-completeness-1.md` F1/F2), checked against `v3rpc/watch.go`:
+
+1. **Ids**: `WireSt.seen` (ids announced by a `Created`) and `WireSt.retired` (ids whose cancel
+   response was sent). A registration's id is not in `seen`; a cancel response's and any other
+   response's id is in `seen` and not in `retired` (mvcc's ids only grow, `:468-474`; after a cancel
+   response the id leaves `ids`, so a late response of it stays pending and is never sent,
+   `:564-566`). The client's `run` sketch is unaffected (its broadcast reaches `w.substreams` only).
+2. **Negative start**: a create with a negative start revision is refused (`:272`); a registered
+   watch has a non-negative start.
+3. **Fragments and headers**: a fragment has at least one event and is of a registered watch with
+   `Fragment` set; every response has a header.
+4. **`PrevKv` window** (2b's finding: `sendLoop` reads `prevKV[id]` at `:443-445` before `recvLoop`
+   sets it at `:342-349`): `WatchReq.prevOk` takes `loose`; `WatchPos.prevLoose` is true at a
+   registration and may turn false once (the responses built after the flag was set; the pending
+   ones flushed after `Created` form a prefix), never back. A client's channel keeps it true (every
+   reconnect re-registers), so a consumer gets: a non-`nil` `PrevKv` is the previous record, a `nil`
+   one says nothing. The no-compaction `prev-kv` snippet is dropped (false of the code: recorded in
+   `consume.go`); `ReqWatchPrevKVCompacting` (Kubernetes' pattern: `nil` is an error) stays true.
+
+Also: W0's `ctxPrin dflt ctx p` (a per-call principal) adopted: `Watcher.WatchTriple` and
+`RequestProgressTriple` take `∀ p, ctxPrin who ctx p`, and the consumer's facts are `p`'s;
+`remoteWatchAt_watch` the same; `valCtx_ctxOk` keeps `ctxPrin`; a stream's internal predicates
+are indexed by its own principal (`newWatcherGRPCStream`, `closeStream`). My 40 modules build; the
+directory's other failures are 1c's in-progress `authClient__*` (`Auth.Triple`).

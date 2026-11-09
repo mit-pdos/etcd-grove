@@ -73,6 +73,14 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 when it was opened (exclusive). -/
 opaque beOpen (be : GoInterface) (path : GoString) (img : Snap.BeImage) : IProp GF := iprop(True)
 
+/-- **Provisional (batch 4a):** `be`'s read-only operations (`Size`, `SizeInUse`: atomic reads) may
+be called at any time, also after its close (persistent). -/
+opaque beReadable (be : GoInterface) : IProp GF := iprop(True)
+
+/-- **Provisional (batch 4a):** `tx` is the backend's batch transaction, locked by the committing
+goroutine, writable (exclusive). -/
+opaque beTx (tx : GoInterface) : IProp GF := iprop(True)
+
 /-- `s` is a `*storage` over a WAL writing to `wd` and the snapshotter of `sd` (persistent). -/
 opaque isStorage (s : Loc) (wd sd : GoString) : IProp GF := iprop(True)
 
