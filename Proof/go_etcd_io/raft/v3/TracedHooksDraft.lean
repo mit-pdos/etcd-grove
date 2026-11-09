@@ -153,17 +153,6 @@ def recvPred (ln : Etcdraft.Line) (m : Etcdraft.Msg) : Bool :=
   else if (ln.ev.name == "ReceiveRequestVoteRequest") = true then ln.isRequestVoteRequest m
   else ln.isRequestVoteResponse m
 
-/-- **The rounds of a line** at `l0` (`StepLine`'s loop with one state per round): single successors,
-each fresh against the states visited (`memEq`), from `f` to `tsF` on the next line, through the
-intermediate states `mids`. With the invariants at `mids` and at `tsF` it is `Chain`. -/
-inductive RoundChain (t : Etcdraft.Trace) (l0 : Nat) :
-    List Etcdraft.TState → Etcdraft.TState → Etcdraft.TState → List Etcdraft.State → Prop
-  | last (visited : List Etcdraft.TState) (f tsF : Etcdraft.TState) :
-      t.next f = .ok [tsF] → tsF.l = l0 + 1 → RoundChain t l0 visited f tsF []
-  | step (visited : List Etcdraft.TState) (f g tsF : Etcdraft.TState) (mids : List Etcdraft.State) :
-      t.next f = .ok [g] → g.l = l0 → Etcdraft.memEq visited g = false →
-      RoundChain t l0 (visited ++ [g]) g tsF mids → RoundChain t l0 visited f tsF (g.s :: mids)
-
 /-- `σ` with node `i`'s server `a'` and its bags transformed. -/
 def withNode (σ : Etcdraft.State) (i : Etcdraft.ID) (a' : Etcdraft.Server) (fM fP : Etcdraft.Bag → Etcdraft.Bag) :
     Etcdraft.State :=
@@ -174,10 +163,12 @@ def withNode (σ : Etcdraft.State) (i : Etcdraft.ID) (a' : Etcdraft.Server) (fM 
 revision after it): node `i`'s line `e` takes server `a` to `a'` and the bags by `fM`, `fP`, in **every
 trace and every state** where it could occur: the line (`e`'s) at `t.line l`, past the bootstrap,
 the trace's servers the voters `C`, `BecomeFollower`'s skip the bit `bf`; the state's servers the
-voters, node `i`'s server `a`, pre-vote and check-quorum off, and for a receive line (`rcv = some m`)
-`m` present, the only message the line matches. From the line's first state its rounds are single
-fresh successors to the result, through intermediate states `mids` each `σ` with node `i`'s server
-satisfying `Mid` (what the global step needs for their invariants: a term change, a log prefix). -/
+voters, node `i`'s server `a`, pre-vote and check-quorum off, for a receive line (`rcv = some m`)
+`m` present and the only message the line matches; and the invariants holding at every state that
+is `σ` with node `i`'s server of the shape `Mid` (the line's intermediate states: a term change, a
+log prefix) and at the result. Then the search's rounds from the line's first state are a `Chain`
+to the result (single fresh successors with the invariants). The global step supplies the
+conditions (`simRun_lineEffect`). -/
 def LineEffect (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.ID) (a a' : Etcdraft.Server)
     (rcv : Option Etcdraft.Msg) (fM fP : Etcdraft.Bag → Etcdraft.Bag) (Mid : Etcdraft.Server → Prop) : Prop :=
   ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧ ln.nid = i ∧
@@ -189,9 +180,9 @@ def LineEffect (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.ID) (a a' 
      | none => True
      | some m => σ.messages.domain.Nodup ∧ m ∈ σ.messages.domain ∧ 0 < Etcdraft.Bag.count σ.messages m ∧
          ∀ m' ∈ σ.messages.domain, m' ≠ m → recvPred ln m' = false) →
-    ∃ (tsF : Etcdraft.TState) (mids : List Etcdraft.State),
-      RoundChain t l [⟨σ, l, pl⟩] ⟨σ, l, pl⟩ tsF mids ∧ tsF.s = withNode σ i a' fM fP ∧
-      ∀ st ∈ mids, (∀ j, j ≠ i → st.s j = σ.s j) ∧ st.server = σ.server ∧ Mid (st.s i)
+    (∀ v, Mid v → (withNode σ i v _root_.id _root_.id).violated = .ok none) →
+    (withNode σ i a' fM fP).violated = .ok none →
+    ∃ tsF : Etcdraft.TState, tsF.s = withNode σ i a' fM fP ∧ Chain t l [⟨σ, l, pl⟩] ⟨σ, l, pl⟩ tsF
 
 /-- **A phase step by a line consuming no message**: from every share `(cs, P)` in phase `Φ`, each
 event `E` allows has an effect into a share in phase `Φ'`, its pending messages `P'` (`fP` adds them),

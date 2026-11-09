@@ -3339,11 +3339,14 @@ theorem lineEffect_heartbeat (C : List w64) (e : TraceEv) (id : w64) (s : NState
   refine ⟨msgLine e m.src s.vote m.src m.dst xs,
     parseLine_msg 0 e m.src s.vote m.src m.dst xs [] tm hnid hvote hconf hmsg hm.2.2.1 hm.2.2.2.1
       (by rw [htyp]; rfl) (by rw [hname']; decide), rfl, ?_⟩
-  intro t l pl σ hline hl0 hl hb hts _ hsrv hσi _ _ _
+  intro t l pl σ hline hl0 hl hb hts _ hsrv hσi _ _ _ _ hfin
   have hhb := heartbeat_send σ C C.length (toPState s) m.src m (by rw [hσi]; exact hR)
     (by simp [toPState, hrole, proleRole]) hty rfl hdst hdC (by rw [hterm]; rfl) hcommit
-  refine ⟨⟨σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty])), l + 1, l⟩, [], RoundChain.last _ _ _ ?_ rfl,
-    ?_, by simp⟩
+  have hF : withNode σ (idAbs m.src) a _root_.id
+      (fun b => b.with ((msgAbs C C.length m).get (by simp [msgAbs, hty]))) =
+      σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty])) := by rw [← hσi, withNode_same]; rfl
+  refine ⟨⟨σ.send ((msgAbs C C.length m).get (by simp [msgAbs, hty])), l + 1, l⟩, hF.symm,
+    Chain.last _ _ _ ?_ rfl (by rw [← hF]; exact hfin)⟩
   · apply next_of_nonReceive _ ⟨σ, l, pl⟩ _ hl0 hl hb (by rw [hline]; simp [msgLine, evConv, hname']; rfl)
     apply nonReceive_heartbeat _ _ (idAbs m.src) (idAbs m.dst) _ hl
     · rw [hline]; simp [msgLine, evConv, hname']
@@ -3364,19 +3367,6 @@ theorem lineEffect_heartbeat (C : List w64) (e : TraceEv) (id : w64) (s : NState
         simpa [Etcdraft.State.send, msgLine, nodeLine] using this
       · apply newPending_send
         exact isAER_heartbeat C C.length e m.src s.vote xs m tm hmsg hm hty hents (by rw [hterm]; exact bt) bmc
-  · rw [← hσi, withNode_same]; rfl
-
-/-- **A line's rounds with the invariants are the search's chain.** -/
-theorem chain_of_roundChain (t : Etcdraft.Trace) (l0 : Nat) :
-    ∀ (visited : List Etcdraft.TState) (f tsF : Etcdraft.TState) (mids : List Etcdraft.State),
-      RoundChain t l0 visited f tsF mids → (∀ st ∈ mids, st.violated = .ok none) →
-      tsF.s.violated = .ok none → Chain t l0 visited f tsF := by
-  intro visited f tsF mids h
-  induction h with
-  | last visited f tsF hn hl => intro _ hF; exact Chain.last visited f tsF hn hl hF
-  | step visited f g tsF mids hn hl hfresh _ ih =>
-    intro hm hF
-    exact Chain.step visited f g tsF hn hl hfresh (hm g.s (by simp)) (ih (fun st hs => hm st (by simp [hs])) hF)
 
 theorem parseLine_idx (k k' : Nat) (ev : Etcdraft.Event) (ln : Etcdraft.Line)
     (h : Etcdraft.parseLine k ev = .ok ln) : Etcdraft.parseLine k' ev = .ok ln := by
@@ -3403,8 +3393,7 @@ theorem simRun_lineEffect (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
       | none => True
       | some m => σ.messages.domain.Nodup ∧ m ∈ σ.messages.domain ∧ 0 < Etcdraft.Bag.count σ.messages m ∧
           ∀ m' ∈ σ.messages.domain, m' ≠ m → recvPred ln m' = false)
-    (hmids : ∀ st : Etcdraft.State, (∀ j, j ≠ i → st.s j = σ.s j) → st.server = σ.server → Mid (st.s i) →
-      st.violated = .ok none)
+    (hmids : ∀ v, Mid v → (withNode σ i v _root_.id _root_.id).violated = .ok none)
     (hinv : (withNode σ i a' fM fP).violated = .ok none) :
     SimRun C (L ++ [e]) (withNode σ i a' fM fP) := by
   obtain ⟨ln, hparse, _, hall⟩ := hle
@@ -3415,14 +3404,10 @@ theorem simRun_lineEffect (C : List w64) (L : List TraceEv) (σ : Etcdraft.State
   obtain ⟨tl, tsl, tpl⟩ := ts
   simp only at hts hl'
   subst hts hl'
-  obtain ⟨tsF, mids, hrc, hF, hm⟩ := hall (linesTrace C (lines ++ [ln])) (L.length + 1) tpl tl
+  exact hall (linesTrace C (lines ++ [ln])) (L.length + 1) tpl tl
     (linesTrace_line_last C lines ln _ (by omega)) (by omega) (by simp [linesTrace, Etcdraft.Trace.len]; omega)
     (by simp only [linesTrace]; simpa using hboot lines _ hl) rfl (hbf lines ln tpl hl) hsrv hσi hpv hcq
-    (hrcv ln hparse)
-  refine ⟨tsF, hF, ?_⟩
-  apply chain_of_roundChain _ _ _ _ _ mids hrc
-  · intro st hst; obtain ⟨h1, h2, h3⟩ := hm st hst; exact hmids st h1 h2 h3
-  · rw [hF]; exact hinv
+    (hrcv ln hparse) hmids hinv
 
 /-- **A non-receive line's effect from its `nonReceive`**: a line whose `nonReceive` has, in every trace
 and state where it could occur, the one successor `withNode σ i a' id fP` (no message consumed). -/
@@ -3436,8 +3421,8 @@ theorem lineEffect_nr (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.ID)
       t.nonReceive ⟨σ, l, pl⟩ = .ok [withNode σ i a' _root_.id fP]) :
     LineEffect C bf e i a a' none _root_.id fP Mid := by
   refine ⟨ln, hparse, hnid, ?_⟩
-  intro t l pl σ hline hl0 hl hb hts hbf hsrv hσi hpv hcq _
-  refine ⟨⟨withNode σ i a' _root_.id fP, l + 1, l⟩, [], RoundChain.last _ _ _ ?_ rfl, rfl, by simp⟩
+  intro t l pl σ hline hl0 hl hb hts hbf hsrv hσi hpv hcq _ _ hfin
+  refine ⟨⟨withNode σ i a' _root_.id fP, l + 1, l⟩, rfl, Chain.last _ _ _ ?_ rfl hfin⟩
   exact next_of_nonReceive _ ⟨σ, l, pl⟩ _ hl0 hl hb (by rw [hline]; exact hrecv)
     (hnr t l pl σ hline hl hts hbf hsrv hσi hpv hcq)
 
@@ -3589,10 +3574,10 @@ theorem lineEffect_recv1 (C : List w64) (bf : Bool) (e : TraceEv) (i : Etcdraft.
         Etcdraft.oneLessMessage σ (withNode σ i a' fM fP) m = true) :
     LineEffect C bf e i a a' (some m) fM fP Mid := by
   refine ⟨ln, hparse, hnid, ?_⟩
-  intro t l pl σ hline hl0 hl hb hts _ hsrv hσi hpv hcq hrc
+  intro t l pl σ hline hl0 hl hb hts _ hsrv hσi hpv hcq hrc _ hfin
   obtain ⟨hnd, hmem, hcnt, huniq⟩ := hrc
   obtain ⟨hsm, hr, hone⟩ := hrcv σ hsrv hσi hpv hcq hnd hcnt
-  refine ⟨⟨withNode σ i a' fM fP, l + 1, l⟩, [], RoundChain.last _ _ _ ?_ rfl, rfl, by simp⟩
+  refine ⟨⟨withNode σ i a' fM fP, l + 1, l⟩, rfl, Chain.last _ _ _ ?_ rfl hfin⟩
   have := next_receive t ⟨σ, l, pl⟩ m (withNode σ i a' fM fP) hl0 hl hb (by rw [hline]; exact hrecv) hnd hmem
     (by rw [hline]; exact hmatch)
     (by unfold Etcdraft.Trace.validatePreStates; rw [hline, hdest, hsm]; simp)
