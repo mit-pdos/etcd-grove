@@ -138,6 +138,20 @@ theorem simRun_snoc_single (C : List w64) (L : List TraceEv) (σ σ' : Etcdraft.
   have hc := checkLine_single _ ts _ (hnext lines ts hl hσ hts) rfl hinv
   exact simRun_snoc C L e ln ts _ _ lines hl hr he hc rfl rfl
 
+/-- **A run extended by a line with a chain of single successors** (a receive line's rounds). -/
+theorem simRun_snoc_chain (C : List w64) (L : List TraceEv) (σ σ' : Etcdraft.State) (e : TraceEv)
+    (ln : Etcdraft.Line) (hrun : SimRun C L σ) (hL : L ≠ [])
+    (he : Etcdraft.parseLine L.length (evConv e) = .ok ln)
+    (hchain : ∀ lines (ts : Etcdraft.TState), parseLines (L.map evConv) = .ok lines → ts.s = σ →
+      ts.l = L.length + 1 → ∃ tsF : Etcdraft.TState, tsF.s = σ' ∧
+        Chain (linesTrace C (lines ++ [ln])) ts.l [ts] ts tsF) :
+    SimRun C (L ++ [e]) σ' := by
+  rcases hrun with ⟨hL0, -⟩ | ⟨lines, ts, hl, hr, hσ, hts⟩
+  · exact absurd hL0 hL
+  obtain ⟨tsF, hF, hc⟩ := hchain lines ts hl hσ hts
+  have := simRun_snoc C L e ln ts tsF _ lines hl hr he (checkLine_of_chain _ ts tsF hc) rfl rfl
+  rw [hF] at this; exact this
+
 end TraceSim
 
 end EtcdGrove
