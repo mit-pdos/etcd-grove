@@ -560,3 +560,404 @@ New in `nonissues/`:
 - `recipes-dbarrier-leave-without-key`: `DoubleBarrier.Leave`, `RWMutex.Unlock`/`RUnlock` panic when the process created no key (no).
 - Updated: `bbolt-hashmap-init-empty-stale-cache` (the four specs' premise), `bbolt-txid0-reader-release` (mechanism: two calls; the `2^64-1` mirror), `etcd-client-dialoptions-unary-interceptor` (the gRPC proxy).
 - verify-round: `bbolt-create-dir-not-synced` (a database file bbolt creates can vanish at a crash; C2), `etcd-auth-read-denied-across-views` (a read denied though permitted at every auth state it spans), `etcd-backend-defrag-rollback-nil-tx` (a deferred `Rollback` on a `nil` transaction), `etcd-client-withrange-empty-end` (C3), `etcd-member-id-raft-reserved` (a member id raft reserves, about 2^-63) (all no).
+
+## C. Decisions from the verification round (2026-11-09)
+
+Every decision the repair groups flagged for the user after the verification round (their "New
+decisions"/"Decisions for the user" sections, and the findings "fixed differently" in a way that
+changes an API shape), plus the coordinator's two. A report `repair-<group>` is
+`notes/specs-only/verify/repair-<group>.md`; spec paths are under `Spec/go_etcd_io/etcd/` unless they
+start otherwise. The specs are written to each choice; say if you disagree.
+
+### Coordinator's decisions
+
+C1. **The resolver race is excluded by option (b).** `issues/etcd-client-resolver-build-race.md`:
+   grpc's `Build` of the client's resolver (when the channel leaves idle) races `SetEndpoints`. Now
+   auto-sync and `Sync` are out of the top-level workloads and `SetEndpoints` runs only before the
+   first RPC: a new exclusive `resolverIdle c` (`client/v3/ApiClient.lean`: no RPC can wake the
+   connection) is a premise, given back, of `Client.SetEndpoints.spec`/`Client.Sync.spec`; `newClient`
+   holds it for its own `SetEndpoints` and gives it to no caller; `cfgOk` requires `AutoSyncInterval =
+   0` (the `verifyOff` alternative dropped), so `New`, `newClient`, `kubernetes.New` give the endpoints
+   token unconditionally and `autoSync.spec` covers only interval `0`; snippet `ReqSync` removed. Alt.:
+   (a) a token every RPC on the connection takes a fraction of (keeps a running client's endpoint
+   changes, more bookkeeping), or the resolver's fields stated as racy, outside the model.
+   (`repair-client-core` A2 S4; `repair-client-watch` S4.)
+C2. **bbolt F1: a database file bbolt creates may vanish at a crash.** bbolt opens with `O_CREATE` and
+   never syncs the directory, so under POSIX/OsFs the new file's name is not durable. Chosen: (ii) the
+   bbolt-local flag `BoltSt.named` (`false` for a generation started from no file; `recovers` then
+   admits the empty database) and the new law `boltFresh_alloc` (start a generation from no file, or an
+   empty file whose name may not be durable); `fileHolds_new` takes only an empty file with a durable
+   name and `m.hi = 0`; `boltCrash` may conclude "no file" when `named = false`; the backend's `beCrash`
+   and `beFile_none` follow. Alt.: (i) OsFs says a file's sync makes its name durable (true of
+   ext4/xfs, false of POSIX; changes the shared model), (iii) forbid starting from no file (etcd's
+   first boot unprovable). Files: `Spec/go_etcd_io/bbolt/{Model,Api}.lean`,
+   `server/v3/storage/backend/Durable.lean`; `nonissues/bbolt-create-dir-not-synced.md`.
+   (`repair-bbolt` F1, "New decisions"; `repair-backend-schema` second pass.)
+
+### Client
+
+C3. **Non-`nil` empty range ends are out of scope on the client.** `OpM.emptyEnd = false` (new, with
+   `anyEmptyEnd`) in `KV.{Get,Delete,Do,GetStream}Triple` and `Txn.{Then,Else}Triple`;
+   `Cmp.WithRange.spec` takes `e ≠ []`; leasing's `LKV.*`/`LTxn.*` triples take the same premise. No
+   caller in scope passes such an end. Alt.: a transport mode in the client's request model (a dialed
+   member reads the end as one key, an in-process one as every key from it), which needs a second
+   message model beside `Wire.endOf`. Files: `client/v3/Api.lean`, `client/v3/leasing/`;
+   `nonissues/etcd-client-withrange-empty-end.md`. (`repair-client-core` A1-P F5, "New decisions";
+   `repair-client-users` second pass.) See A14.
+C4. **Readiness recorded per handle through a ghost client.** `NewLeaseFromLeaseClient.spec` takes
+   `cr = c ∨ cr = null` and returns `lessorHandle l cr`; `NewWatchFromWatchClient.spec` takes the stub
+   as `□ (clientReady rc -∗ remoteWatchAt …)` and returns `watcherHandle w rc …`; `NewLease`/`NewWatcher`
+   pass the client, the in-process client passes `null` (`clientReady_null`). The `New*Client` stubs
+   now take the client (`clientConnOk`, `c.conn ↦□ conn`) and give `□ (clientReady c -∗ remote*At …)`.
+   Alt.: record the Go client argument, circular for the in-process client (`clientBare_assemble`
+   mints `clientReady c` only after the fields are set). Files: `client/v3/{ApiLease,ApiWatch,
+   NewWatchFromWatchClient,NewWatcher}.lean`, `api/v3/etcdserverpb/New*Client.lean`.
+   (`repair-client-core` L1, "New decisions"; `repair-client-watch` W3, "New decisions";
+   `repair-grpc-v3rpc` routed requests.)
+C5. **A per-member lease view threaded through the wire contract (`via`).** `AttemptTriple`/`uiOk_call`
+   take `via` (pre `viaPre γ (grpcConnVia cc) via`, post `viaFact`), `CallTriple` an optional extra post,
+   `RemoteCallTriple` an optional member condition `V` (default `False`); `LeaseRead.Triple`'s post is
+   `viaFact` (removing an overpromise: `leaseAnsAt` of a refusal). The report names no alternative; it
+   changes the shape of every attempt triple. Files: `client/v3/{ApiClient,ApiLease}.lean`, grpc-v3rpc's
+   `Realize.lean` (`grpcConnVia_unfold`). (`repair-client-core` A2-P L2.)
+C6. **`GetStream` takes no thread token** (fixed differently from "give it back"): Perennial's
+   `wp_fork` forks without tokens, so the premise is dropped from `KV.GetStreamTriple`'s pre and post;
+   the margin is the leaked goroutine (`nonissues/etcd-client-getstream-abandoned-leak.md`). Files:
+   `client/v3/{Api,kv__GetStream,Client__GetStream}.lean`, leasing's `GetStream`. (`repair-client-core`
+   A1-C F1; `repair-client-users` second pass.)
+C7. **`ctx.Value` through a new persistent predicate `Context.ctxValueIs ctx key v`** (from
+   `WithValue.spec`'s post; `Value.spec`, `ctxValueIs_child`/`_other`/`_wp`), rather than a value
+   argument on `ctxValueAt`, which six other groups' files use; auth's `ctxValIs` is now its
+   abbreviation. Files: `Spec/context/Api.lean`, `server/v3/auth/Api.lean`. (`repair-client-core` A1-C F5;
+   `repair-lease-auth` second pass.)
+C8. **`ctxStreamKey_prin` is a law about W0's `ctxPrin`, stated in 1b's `ApiWatch.lean`**: two contexts
+   with the same stream key have the same principal. It constrains every future `ctxPrin` introduction
+   (outgoing metadata must print injectively), and an introduction at an arbitrary principal (1.5's
+   unissued token) would contradict it. No functionality law for `ctxStreamKey` (grpc's
+   `FromOutgoingContext` does not say whether an empty map was attached). Files: `client/v3/{ApiWatch,
+   streamKeyFromCtx,Api}.lean`, `Spec/fmt/{Api,Sprintf_md}.lean`. (`repair-client-watch` W2, "New
+   decisions"; `repair-client-core` second pass.)
+C9. **Compaction affects only exactness, stated in `watchStep` and mvcc's `wStep`**: outside the
+   `exactFrom` gate, every delivered event is a history event of its revision that the watch keeps (key
+   in range, not filtered; a put's key-value the record its revision wrote). Alt.: every event fact
+   gated (A17's previous form). Files: `client/v3/ApiWatch.lean`, `server/v3/storage/mvcc/ApiWatch.lean`.
+   (`repair-client-watch` S2, "New decisions"; `repair-mvcc` second pass.) See A17.
+C10. **A mutex and an election write only their session's key.** New `sessKey pfx lease := pfx ++
+   hexadecimal lease`; `mutexEff`/`campaignEff` allow only a put or delete of it, the posts name it, and
+   `Mutex.Lock`/`lockerMutex.Lock` give the create-revision order. This narrows the permission callers
+   give and makes 1.13 true under `leaseExpiry = false`. Callers use the real prefix `name ++ "/"`
+   (v3lock and v3election done by server-boot). Alt.: the old effects over any key, under which
+   no-two-holders was unprovable. Files: `client/v3/concurrency/`, `server/v3/etcdserver/api/
+   {v3lock,v3election}/`; snippet `ReqMutexNoTwoHolders`. (`repair-client-users` C-F2, "New decisions";
+   `repair-server-boot` A3 F1.)
+C11. **Recipes' `Dequeue`: only the front stays gated on `exactFrom`.** First the cheap fix (snippets
+   assume `exactFrom`), then, with C9, the claimed key, its record and the value are unconditional;
+   the front (`frontByRev`/`frontByKey`) stays gated because a caller cannot tell the read path from the
+   watch path. Alt.: a post telling the caller which path ran. Files: `client/v3/experimental/recipes/`.
+   (`repair-client-users` P-F3, "New decisions", second pass.)
+C12. **Sentinel errors are read from their globals; their values are existential** (cross-cutting,
+   the brief's item 3). A post returning a sentinel says `globalAddr ErrX ↦□ err`; one excluding them
+   uses `notConcErr`/`notRecipeErr` or the owner's `errIs`; each `init.spec` gives the values non-`nil`,
+   pairwise distinct and (client users) distinct from `context.Canceled`'s and `io.EOF`'s. The server's
+   pure `srvErrOf`/`srvErrVal` are deleted for a persistent `srvErr err e` with `sentinelAt`; the tie of
+   a lower package's sentinels to the server's mapping lives with the owner of the mapping
+   (`etcdserver/errors/Api.lean`: `authErr_srv`, `leaseErr_srv`, `mvccErr_srv`, `bcryptErr_shape`;
+   `membership/Errors.lean`: `errs_srv`), not in the lower package (mvcc: layering). rpctypes' `errVal`
+   stays a constant (`EtcdError` is a struct value). Alt.: Lean constants per error (unrealizable: fresh
+   `errors.New` pointers). Files: `client/v3/{Api,concurrency/Api,experimental/recipes/Api}.lean`,
+   `server/v3/{auth,lease,etcdserver/errors,etcdserver/api/membership,etcdserver/api/rafthttp,
+   storage/mvcc}/`, `Spec/golang_org/x/crypto/bcrypt/`, raft's `raft_init` (`errBreak`).
+   (`repair-client-users` P-F4, "New decisions"; `repair-lease-auth` "New decisions"; `repair-server-core`;
+   `repair-mvcc`; `repair-server-boot`; `repair-rafthttp`; `repair-client-core`; `repair-raft-core`.)
+
+### gRPC and protobuf
+
+C13. **`Proto.Content` holds Go values; the wire carries `norm c`.** Quotienting contents by
+   `proto.Equal` was inconsistent (a `nil` and a non-`nil` empty range end are `Equal`, but W0's `endOf`
+   tells them apart: `False` from a terminating program). Now `norm` is the wire view (implicit-presence
+   zero fields unset, empty repeated fields `nil`, explicit-presence fields kept), decoded contents are
+   canonical (`decodedAt` removed), `Equal` compares `norm`s, `Clone` gives `mergeDst … (norm c)`, and
+   `endsDecoded t p` is redefined as a share of the message with the pure `endsOk`. Every owner of a
+   message relation states a `*_norm` law (`raftpb_norm`, `schema_norm`, `ltlReply_norm`, 3h's
+   `holds_norm` under `endsOk`). Files: `Spec/google_golang_org/protobuf/proto/`,
+   `Spec/google_golang_org/grpc/Api.lean`, `api/v3/etcdserverpb/Api.lean`,
+   `server/v3/etcdserver/api/v3rpc/`. (`repair-grpc-v3rpc` P-F2, "New decisions", follow-up;
+   `repair-raft-conf-pb` second pass.)
+C14. **`Proto.depthMax = 10001`**: protobuf-go decodes 10000 levels; the old bound made the transaction
+   reply at `--max-txn-ops = 4999` unsendable. Alt.: a stricter `maxTxnOps` premise. Files:
+   `Spec/google_golang_org/protobuf/proto/`, `api/v3/etcdserverpb/Api.lean` (`holds_depth_resp`).
+   (`repair-grpc-v3rpc` P-F6, "New decisions".)
+C15. **The election and lock services sit under `etcdContract` with trivial contracts** (a member
+   promises only that a run returns; their handlers run over the in-process `v3client`, 1.5). Alt.: a
+   contract sum `etcdContract ⊕ X`. Files: `server/v3/etcdserver/api/v3rpc/`
+   (`RegisterElectionServer.spec`, `RegisterLockServer.spec`). (`repair-grpc-v3rpc` C-F4, "New
+   decisions".)
+C16. **Dial options are pass-through, with no chain model in `DialCfg`** (fixed differently):
+   `WithChainUnaryInterceptor`, `WithChainStreamInterceptor`, `WithStatsHandler`, `WithContextDialer`
+   are `dialOptAt v (fun cfg => cfg)` under premises on their argument (`cliIcPass`, `cliSicPass`,
+   `statsOk`, `ctxDialerOk`), feeding `dialOptsOk_neutral`; otelgrpc's handlers give `statsOk`; the
+   server's `StatsHandler.spec` takes `statsOk`. Alt.: the reviewer's `uis : List val` in `DialCfg`
+   (changes `connAt`'s arity in other groups' files for no extra guarantee). Files:
+   `Spec/google_golang_org/grpc/`, `client/v3/Api.lean`, `Spec/go_opentelemetry_io/…/otelgrpc/`.
+   (`repair-grpc-v3rpc` C-F2; `repair-client-core` second pass 4.)
+
+### Apply and txn
+
+C17. **`ownStep`: a backend operation is pinned to its request's own step, no refusal**
+   (`opStep_step` concludes `kvStep ∨ leaseStep ∨ authStep ∨ clusterStep`), so a client learns that a
+   valid write was not refused. A law the apply proof proves; nothing added to the trust base. Alt.: W0's
+   whole `Step` (refusal disjunct included). Files: `server/v3/etcdserver/apply/Api.lean`.
+   (`repair-apply-txn` F4, "New decisions".)
+C18. **The lease deleter's contract is a slot `kvDelOk` beside `kvOk`/`kvSt`** (fixed differently from
+   a `□ ∀ …, rdOk` producer in `optsSt`): `rdOk`'s resources are the store's writer resources, named only
+   by `kvSt`/`kvOk`'s realization, so the three are introduced together (2d's `srvStores_kv`); `lessorSt`
+   now takes the KV and the backend. Files: `server/v3/etcdserver/{apply/Api,ApiApply}.lean`.
+   (`repair-apply-txn` F2, "New decisions".)
+C19. **`CheckTxnAuth` and its helpers give `endsDecoded`/`opsDecoded` back** (differently from "the
+   persistent closure"): the request path holds the request at a share, so a persistent form cannot be
+   produced there; the apply thread uses the `□` form (`endsDecoded_ro`). Files:
+   `server/v3/etcdserver/apply/` (`CheckTxnAuth`, `checkTxnPermission`, `checkTxnReqsPermission`).
+   (`repair-apply-txn` second pass.)
+
+### Lease and auth
+
+C20. **The lessor's run loop takes a thread token**: `NewLessor` takes a `threadTok` and `Stop` gives
+   it back; `ckptOk` is at `context.Background()` with a token, and `lessor.Renew` takes the caller's.
+   The untranslated loop is a goroutine of the program and calls the checkpointer, whose server closure
+   needs a token. Alt.: none (the trusted `NewLessor` would otherwise hand a counted resource to a
+   thread that took none). Files: `server/v3/lease/` (`Api`, `NewLessor`, `lessor.{Renew,Stop}`).
+   (`repair-lease-auth` F2, "New decisions".)
+C21. **The token provider's waiter is gated on a persistent `R`** (`waiterOk iw R`; `tokenProviderAt …
+   R …`; new `authGate γa R` from `NewAuthStore`; the server uses `R := srvStarted`). Alt.: a gate token
+   as `SetCheckpointer` has, but the provider never learns the server started (no Go call to hang it
+   on). Files: `server/v3/auth/{Api,Internal}.lean`. (`repair-lease-auth` F7, "New decisions".)
+C22. **The auth store's backend is exclusive writer state, `authBeCur γa be`**, so the hook contract is
+   stated over the backend value (`authHook_intro` from `authBeHook`) while the admin specs keep
+   `authHook γa`; `Recover` moves it and returns `authBackendAt be0 _`. Alt.: fold the backend into
+   `authCur` (changes its arity and every apply statement). Files: `server/v3/auth/Api.lean`,
+   `server/v3/storage/backend/AuthBackend.lean`, `server/v3/etcdserver/apply/Api.lean` (`authSt`,
+   `hooksOk`). (`repair-lease-auth` F4, "New decisions"; `repair-backend-schema` second pass;
+   `repair-apply-txn` F3.)
+C23. **`Lease.clusterOk` is transparent** (fixed differently from an introduction law): the `Version()`
+   triple through the `cluster` interface; each client proves it for its type (`noCluster` from its
+   body, `*RaftCluster` from 2e's new `RaftCluster.Version.spec` with `clusterVerInv`). A law in
+   membership naming `clusterOk` would make membership import lease. Files: `server/v3/lease/Api.lean`,
+   `server/v3/etcdserver/api/membership/`. (`repair-lease-auth` F3; `repair-server-boot` A8-C F3.)
+C24. **`leasePeerURL` is a deployment premise** of the new trusted `leasehttp.TimeToLiveHTTP.spec` and
+   of 2c's `leaseTimeToLive` ("the leader's peer URLs are etcd members' lease endpoints"); without it a
+   malformed `200` reply panics (`issues/etcd-leasehttp-timetolive-nil-{response,header}-panic.md`). It
+   cannot be derived: rafthttp's `raftCompat` allows, but does not forbid, a `200` on `/leases/internal`.
+   Alt.: server-boot strengthens the peer port's protocol (`leaseCompat`, see 3.2), then a law in
+   `leasehttp/Api.lean` replaces the premise. Files: `server/v3/lease/leasehttp/TimeToLiveHTTP.lean`,
+   `server/v3/etcdserver/ApiReq.lean` (`ltlReply_replyHdr`). (`repair-lease-auth` second pass;
+   `repair-server-core` second pass.)
+
+### Storage and bbolt
+
+C25. **The batch lock's turn, `beTurn γ`**: every `Lock*` returns an exclusive token that `Unlock`'s
+   second visible-image update takes back atomically: "no session begins before the previous one's
+   second update fired", which mvcc's bridge (state parked between sessions) needs. Changes the shape of
+   `Unlock`'s second update for every client. Alt.: (a) the backend parks client-chosen state per
+   footprint, (b) generations with a persistent `beEnded` (cannot be tied to the bridge). Files:
+   `server/v3/storage/backend/{Api,MvccStorage,SchemaTx}.lean`. (`repair-backend-schema` B1, "New
+   decisions".)
+C26. **`backend.Snapshot` is bounded below by a history prefix and carries only its size.** It takes
+   `beHistLb γ L0` and returns an image that is the last of an extension of `L0`; `beSnapN γ s I n`
+   replaces `beSnap` (fixed bytes; deleted), and `WriteTo` writes some `bs` with `imgBytes I bs`. Alt.:
+   "the last commit" (false: the history's commit step fires before bbolt's meta write) or "some
+   committed image" (too weak for the merged snapshot). Files: `server/v3/storage/backend/{Api,Durable}.lean`,
+   `server/v3/etcdserver/ApiApply.lean`. (`repair-backend-schema` F1, F5, "New decisions".)
+C27. **mvcc over a backend without `meta`**: `keyBackend_intro` takes `m : Bool` (`m = false` puts
+   `meta`'s existence cell in mvcc's footprint, for `examples/mvccrand`); the server's case `m = true` is
+   unchanged, differing from mvcc's request only in keeping the frozen case's `metaMade := true`. Files:
+   `server/v3/storage/backend/MvccStorage.lean`. (`repair-backend-schema` A10-C F2; `repair-mvcc`.)
+C28. **A bbolt commit's two updates are nested** (fixed differently from one law realized with an
+   invariant): `Tx.Commit`/`DB.Update` take one `commitAU … S` whose commit yields the settling update,
+   with one client predicate `S ok synced failed brk`; a holder of the whole state builds both
+   (`boltState_commit_au`). Every client changes shape. Files: `Spec/go_etcd_io/bbolt/{Api,Tx__Commit,
+   DB__Update}.lean`, the backend's commit citations. (`repair-bbolt` F5, "New decisions";
+   `repair-backend-schema` second pass.)
+C29. **`DeleteBucket` resets the generations strictly below the deleted bucket** (`TxView.dropBkt`):
+   its exact post was unreachable through its own recursion. Clients see no difference (those handles
+   were already stale). Files: `Spec/go_etcd_io/bbolt/{Model,Internal}.lean`. (`repair-bbolt` F9, "New
+   decisions".)
+C30. **No keyed `bolt.Options` literal spec**: no translated code builds one; etcd's one keyed literal,
+   `boltOpenOptions`, is an untranslated initializer whose value is the backend's assumed `PkgInit` fact
+   (`boltOpenOptions_init.spec`, `MmapFlags = MAP_POPULATE`). Files: `Spec/go_etcd_io/bbolt/Options.lean`,
+   `server/v3/storage/backend/Durable.lean`. (`repair-bbolt` F7, "New decisions"; `repair-backend-schema`
+   second pass.)
+C31. **The sector rule of 4.1 needs a second clause**: a sector past the file's durable size written by
+   one `pwrite` since the last sync holds zeros or that write's bytes (ext4 `data=ordered`, xfs; not
+   `data=writeback`), or `init`'s crash safety fails. Under (a) `boltCrash` is as written, under (b) over
+   `crashRestQ`. 4.1 itself is still yours. Files: `Spec/go_etcd_io/bbolt/Api.lean` (header).
+   (`repair-bbolt` F2, F10, "New decisions".)
+
+### Raft and raft messages
+
+C32. **An idle token for the raft struct, `coreIdle r`**: `node.Advance` returns before the run
+   goroutine steps the acknowledgements, so R3 publishes a floor ahead of `applied` in that window, where
+   a `MsgHup` would panic in Go (`hasUnappliedConfChanges`); `node.run`'s sequencing is stated as the
+   token (every step from outside, `hup` and the ticks take it), and `RawNode.Advance.spec` now covers
+   only the steps (a direct caller applies `rawNodeAt_advance` first). Alt.: a "pending Advance" node
+   state (needs the same R3 change and still has the window). Files:
+   `Spec/go_etcd_io/raft/v3/{ApiCore,ApiLog}.lean`. (`repair-raft-core` P3, "New decisions".)
+C33. **`storedLb` as a second, weaker storage bound**: snapshotting a delivered entry before `Advance`
+   (kvdurable, kvreconf) needs only `storedLb` (given by `readyStor_append`'s COMM); compaction still
+   needs `appliedLb`. Alt.: `appliedLb` only (those programs unprovable). Files:
+   `Spec/go_etcd_io/raft/v3/{Api,ApiLog}.lean`. (`repair-raft-core` F1, "New decisions".)
+C34. **`loggerOk` gives the logger no ownership of the arguments** (a transparent bundle: the methods
+   raft calls return), as the old `isLogger` did; a formatting logger (zap's adapter) rests on its own
+   trust-boundary specs. Files: `Spec/go_etcd_io/raft/v3/Api.lean`. (`repair-raft-core` F3, "New
+   decisions".)
+C35. **`fmt.Errorf` with non-`ArgsWf` arguments is a raftpb-local assumed spec**,
+   `RaftPb.fmtErrorf.spec` (raftpb enums under any verb, held `*ConfState`s read only), for
+   `Changer.apply` and `ConfState.Equivalent`. Alt.: restore the old general `Spec/fmt/Errorf.lean`
+   (client-core's directory), or the Perennial change (gaps, below). Files:
+   `Spec/go_etcd_io/raft/v3/raftpb/FmtErrorf.lean`. (`repair-raft-conf-pb` F2, F3, "New decisions".)
+C36. **`msgRecv` is introduced from protobuf's `mergeDst`** (`RaftPb.msgRecv_intro`; `Clone` and
+   `Unmarshal` now give `mergeDst`), not from a new "fresh slices" fact; `msgRecv_lend` lends a read
+   share, not `own 1` (with `own 1` the wand could swap the `Entries` slice). Files:
+   `Spec/go_etcd_io/raft/v3/raftpb/Api.lean`, `Spec/google_golang_org/protobuf/proto/`.
+   (`repair-raft-conf-pb` A5-C F4, "New decisions".) See A12.
+C37. **Messages with `Responses` get their own predicate, `msgOut`**; `Msg`/`msgWf` stay without
+   responses (only local `AsyncStorageWrites` messages carry them, never marshaled), and raft-core states
+   `newStorageApplyMsg`/`newStorageAppendMsg` over it. Alt.: leave the two helpers unspecified as a scope
+   restriction (`ConfigOk` excludes async writes). Files: `Spec/go_etcd_io/raft/v3/raftpb/Api.lean`,
+   raft's `newStorage*Msg`. (`repair-raft-conf-pb` A5-C F5, "New decisions"; `repair-raft-core`.)
+C38. **rafthttp's codecs are transparent definitions** (`msgFrame`, `v2Frame`, `v2Chain`, `v2Compat`,
+   over raftpb's `msgEncodes`; `pbEncodes` gone), not an opaque frame with a determinism law (smaller,
+   but a law about a pure model the README says to spell out, and easy to misstate for link heartbeats).
+   Knock-on: `msgAppV2Encoder.encode` takes `dst ≠ 0`. Files:
+   `server/v3/etcdserver/api/rafthttp/Api.lean`. (`repair-rafthttp` F8, "New decisions".)
+C39. **`raftOk`'s `Process` takes `msgRecv`** (A12 made concrete at the transport): the decoders deliver
+   it, and the server proving `raftOk` receives strictly more. Files:
+   `server/v3/etcdserver/api/rafthttp/Api.lean`, `EtcdServer.Process`, `raftNode.Step`.
+   (`repair-rafthttp` "New decisions"; `repair-server-core`.)
+
+### Server and boot
+
+C40. **WAL and snapshot writes have two linearization points**: `storage.Save`/`SaveSnap` and
+   `SaveDBFrom` take two nested updates with an in-flight state between them (`walWriting`,
+   `snapSaving`), so a crash knows a write is in flight (crash laws `walRecs_crash`, `walWriting_crash`,
+   `snapDbs_crash`, `snapSaving_crash`); the raft loop fires `readyEnter` in the second. Alt.: one update
+   at the start, with a crash relation that may lose the write (the model would claim states before they
+   are durable). Files: `server/v3/storage/{wal/Api,storage__Save,storage__SaveSnap}.lean`,
+   `server/v3/etcdserver/api/snap/`. (`repair-server-boot` F1.2, F9, "New decisions".) See 2.8.
+C41. **The snapshot directory's removals are not durable (`snapGone`)**: etcd fsyncs it only in
+   `SaveDBFrom`, so removals and the install's rename can come back after a crash; the client keeps the
+   removed images and the crash law resurrects only those, so the server's invariant certifies every
+   image ever saved at an index. Files: `server/v3/etcdserver/api/snap/Api.lean`. (`repair-server-boot`
+   F9, "New decisions".)
+C42. **Install-then-crash: the backend reverts an unsynced rename** (`beRevert p o0`/`beNoRevert p`,
+   `beRev`; `beCrash` may conclude the reverted file; `dbFile_rename` gives `beRevert`, `SaveDBFrom`'s
+   directory fsync gives `beNoRevert`, `OpenSnapshotBackend` threads it). Its realization waits on OsFs
+   (gaps). Alt.: a scope premise "no crash between an install and the next snapshot save", or a fork fix
+   (fsync the snapshot directory in `OpenSnapshotBackend`, a simpler model). Files:
+   `server/v3/storage/backend/{Api,Durable}.lean`, `server/v3/etcdserver/api/snap/`,
+   `server/v3/storage/OpenSnapshotBackend.lean`. (`repair-server-boot` "New decisions", last pass;
+   `repair-backend-schema` second pass.)
+C43. **`os.Rename` at the snapshotter's files is a trusted triple** (`Snap.dbFile_rename`, with the new
+   opaque `dbPathOf`), not a `snapDbs ↔ osMeta` bridge: `snapDbs` is itself a trusted ghost variable, as
+   `walRecs` is. Files: `server/v3/etcdserver/api/snap/`. (`repair-server-boot` F5, "New decisions".)
+C44. **v3lock/v3election give the lent `P` back on success only**: the server passes 1d's definite
+   errors through unclassified, so the caller cannot tell them from indefinite ones. Alt.: posts naming
+   the sentinels' globals (then `P` back on 1d's definite errors too, as client-users asked). Files:
+   `server/v3/etcdserver/api/{v3lock,v3election}/`. (`repair-server-boot` A3 F7.)
+C45. **`GoAttach`'s token shape**: the caller keeps its `threadTok` and the goroutine runs with the
+   fork's fresh one, giving it back at its end (attached goroutines need a whole token; callers
+   continue). Realizing it needs the wait group's counter bounded while the goroutine holds a whole
+   token: either the reader pools these callees borrow from move to level ≥ 1 (`threadTokFrom 1`), or the
+   counter is bounded otherwise. A bounds-plan decision. Files:
+   `server/v3/etcdserver/{EtcdServer__GoAttach,ApiApply}.lean`. (`repair-server-core` "New decisions".)
+C46. **The self-stop and the restore gate are scope restrictions in text**: `run.spec`/`applySnapshot.spec`
+   say that no request-path call is in flight when `run` stops on `errorc` (A8-provability F3) and that
+   no hash runs during a snapshot install (A10 O1), outside their statements. Alt.: the fork's stop gate
+   (§6 F3, A7) and A8's hashing alternative. Files: `server/v3/etcdserver/EtcdServer__{run,applySnapshot}.lean`.
+   (`repair-server-core` "New decisions".)
+C47. **`reqCtxOk` is kept at the entry methods** (fixed differently): `EnsureTrace` keeps a found trace
+   only given `traceEmpty`, so dropping the no-trace part would leave the entry points unprovable; the
+   internal requesters (`AuthInfoFromCtx`, `raftRequest`, `processInternalRaftRequestOnce`, `doSerialize`)
+   take the new `reqCtxSpan ctx` (otel's span only). Files: `server/v3/etcdserver/ApiReq.lean`.
+   (`repair-server-core` A7-P F5, "New decisions".)
+
+### Gaps left open by the repairs
+
+Items a repair report says it could not fix, with its reason (items a later pass closed are left out).
+
+- **Unissued token** (`ctxPrin` for `tokenUnissued`): open question 1.5; 3d's vocabulary, and an
+  introduction at any principal would contradict `ctxStreamKey_prin` (C8). (`repair-client-core` A1-C F4.)
+- **zap's `Logger.Core`/`Core.Enabled`, `WithOptions`, `Sugar`**: need a core/sugared-logger predicate;
+  callers' sketches assume them. (`repair-client-core` S1.)
+- **The gRPC proxy's replacing `With*Interceptor` dial options**: not covered by `dialOptsOk_neutral`;
+  `ReqNewTLS` unchanged. (`repair-client-core` A2-C F2, second pass 4.)
+- **Promoted `*kubernetes.Client` methods**: no specs. (`repair-client-core` A2-C S3.)
+- **The cache's "no progress notification without `WithProgressNotify`"**: `cacheWatchAt` does not
+  record the watch's options, so it needs a new index on the predicate and on `Cache.Watch.spec`'s
+  post; second tier, a later round. Not expressible at the client level (a member answers any
+  `RequestProgress` on a shared stream). (`repair-client-users` C-F5; `repair-client-watch` A3 F5.)
+- **`version.LessThan` over any `val`**: `semver.Version` is not translated; the honest fix is naming
+  the type in the Goose configuration. (`repair-grpc-v3rpc` C-F8.)
+- **`sicEtcdOk`'s meaning**: left opaque; a transparent statement needs grpc laws for a wrapped server
+  stream (the halves and `streamOut` transferring between wrapper and stream); `metricsOk_stream`
+  (assumed) still produces an undefined predicate. (`repair-grpc-v3rpc` second tier.)
+- **`LeaseKeepAlive`'s leaked loop sending after the run**: unchanged (3.6). (`repair-grpc-v3rpc`.)
+- **Untranslated handlers' and stubs' proofs** (7.4): their specs are WP-form statements of generated
+  code until the bodies are translated. (`repair-grpc-v3rpc` P-F9.)
+- **No introduction law for `Grpc.genCliAt`/`genSrvAt`**: the generic struct's field cannot be named in
+  today's points-to syntax; the stream specs rely on the intended realization. (`repair-grpc-v3rpc`
+  sub-agent.)
+- **`writeOk` of a `*bytes.Buffer`**: needs Perennial's `bytes.Buffer` spec checked against `writeOk`.
+  (`repair-backend-schema` S5.)
+- **`backend.begin`'s write case does not pin `I` to the last commit** in its pre (`beCommitted γ I`;
+  the realization's `btHeld` does): observed, internal, second tier. (`repair-backend-schema` A11-C F4.)
+- **`schema.ReadStorageVersion`, `UnsafeMigrate`**: no spec (names only, trusted callers);
+  `GracefulClose` stays 3.15. (`repair-backend-schema` A10-C S3, O2.)
+- **`os.WriteFile`** is assumed in `ReqSnapshotFresh` (no OsFs spec of it). (`repair-backend-schema` F1.)
+- **The revert case of `beCrash`** (C42) and **defrag's `os.Rename`**: unrealizable until OsFs has
+  `rename` and a crash case bringing back an unsynced rename's old entry (Perennial gap below; neither
+  OsFs nor `boltCrash` states it). (`repair-backend-schema` second pass; `repair-bbolt` A11-C F3.)
+- **A non-blocking defrag snippet**: not added (optional). (`repair-bbolt` A11-C S2.)
+- **`leasePeerURL`**: no law derives it (C24). (`repair-lease-auth` second pass; `repair-server-core`
+  second pass.)
+- **`KV.Restore.contract`'s whole gate** (A8, A10 O1) and **`Watch`'s id fixed to `0`** (3.8, A10 O3):
+  your decisions. (`repair-mvcc`.)
+- **No spec files for the promoted `storeTxnRead.{Rev,FirstRev,Range}`, `storeTxnWrite.FirstRev`**:
+  internal, served through the delegates; four restating files not written (say if wanted).
+  (`repair-mvcc` A10-C S2.)
+- **`rangeKeys`' proof rests on Perennial's `Errorf` model** (an error argument is not `ArgsWf`):
+  Perennial gap below. (`repair-mvcc` second pass.)
+- **`ReqReadyCycle`'s last-term check is not in `Wf`**: the author is not certain it holds of every
+  state the law covers; it stays a snippet assumption. (`repair-raft-core` A5 S2.)
+- **`Transport.Start` does not take the timeouts' points-to**: no package exports an owned resource for
+  writable package variables after initialization (a cross-package design). (`repair-rafthttp` A8-C S4,
+  second pass.)
+- **`ServerStorage.beReadable`** still provisional (`beTx` superseded at the last pass).
+  (`repair-server-boot` F5.)
+- **`RaftCluster.Recover`'s `MustDetectDowngrade`** over the backend's stored version: not restated.
+  (`repair-server-boot` A8-C F3.)
+- **`NewMember` reading `*now`**: trusted, unchanged. (`repair-server-boot` second tier.)
+- **`electionServer.Observe`'s sent values**: no facts stated (`Send` carries only the reply's model).
+  (`repair-server-boot` second pass.)
+- **The pre-commit hook's three recorded gaps**: (a) `confStateSave_hook` takes `beLive γ (btLoc γ) 1`
+  and a session at `Fp.none`, while `hookOk` lends only the session and `UnsafeSave` returns one at
+  `ciCells` (either `hookOk` lends liveness or the law takes any footprint); (b) the pending
+  configuration's size bound has no source (`SetConfState`'s model is `Raft.ConfState`, not a content:
+  needs raft-conf-pb's `encSize` of a configuration); (c) whether `txStoredCI_sess` needs
+  `beCur γ ciCells`. (`repair-server-boot` last pass.)
+- **The crash cases of `storage.go`/`snap.go`** (`crashedMid`'s second disjunct, `snapCrashed`): not
+  runnable as Go tests. (`repair-server-boot`; `repair-server-core`.)
+- **`histPropose`'s step budget**: waits on 5.1. (`repair-server-core` A7-P F8.)
+- **`CorruptionChecker.InitialCheck`**: untranslated, no caller in the specs (embed only).
+  (`repair-server-core` A7-C S3.)
+- **`ReqReadAfterWrite`'s `KV().Rev()` step** rests on 3e's `KV.Rev` contract with `srvReadAt_mvcc`, not
+  checked. (`repair-server-core` A7-P F4.)
+- **Perennial: `fmt.Errorf`'s spec admits no error argument (`%w`) or `Stringer`**
+  (`notes/perennial-changes.md`, 2026-11-09): `rangeKeys`, `Changer.apply` and `ConfState.Equivalent`
+  fall outside `ArgsWf`; worked around by `RaftPb.fmtErrorf.spec` (C35) and mvcc's `rangeCtxErr` laws;
+  proposed: `%w` (a fresh wrapping error whose `Unwrap` is the argument) and `String`/`Error` arguments.
+  Recorded only.
+- **Perennial: OsFs has no `rename`, and no crash case reverting an unsynced rename**
+  (`notes/perennial-changes.md`, 2026-11-09): etcd renames onto live paths (defrag, the snapshot
+  install); worked around by the trusted `Snap.dbFile_rename` and `beRevert`/`beNoRevert` (C42), whose
+  revert case is unrealized; proposed: POSIX `rename`, its crash case, and a directory fsync. Recorded
+  only.
