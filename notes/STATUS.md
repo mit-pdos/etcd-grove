@@ -59,8 +59,10 @@ first-tier findings, repaired; `notes/trace-validation-reviews/s5-r1.md`); layer
 delegated. Then `simInv`'s per-server facts (`srvFacts`, `TraceSimFacts.lean`) and six of the seven
 invariants from them, with raft's vote table and three specification invariants (`LeaderEntries`,
 `DurInv`, `CommitWithinLeader`; their preservation delegated): `simFx_violated`. Open: `QuorumLogInv`
-(the acknowledgement-history copy), message uniqueness, the global step's Iris law
-(`trCap_fire.statement`, drafted), the other hook-path statements, S6, S7.
+(the acknowledgement-history copy), the global step's laws for `Ready`, `BecomeFollower` and
+bootstrap lines (those for sends/node events and receives are proved: `trCap_fire`,
+`trCap_fire_recv`), the hook-path statements and proofs, S6 (layer C: `types.go` done, `spec.go`
+delegated), S7.
 
 ## Soundness bugs: `grpc.serve`'s handler pool and `pbEnc` across heaps (found 2026-11-07; fixed by the per-type stage, not started)
 

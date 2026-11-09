@@ -120,7 +120,10 @@ leaves the capability in phase `Φ'`: inside the logger's atomic update the simu
 `simRun_lineEffect`, the shares and the pending bag by counts, `BagRep`), the invariants from the facts
 with raft's vote table (`simFx_violated`). Next: the law's variants for receive lines (a token and
 the bags' uniqueness), `BecomeFollower` lines (the skip bit) and `Ready` lines (pending to sent), then
-the hook paths' traced statements and proofs, which supply `PhaseStep` and `FxPres`.
+the hook paths' traced statements and proofs, which supply `PhaseStep` and `FxPres`. The receive variant is proved too (`trCap_fire_recv`: the caller's token `inFlight tn k m`
+consumed, the bags' uniqueness `MsgsUniq` a clause of `simFx`, the intermediate states' invariants
+from the caller's `FxPresR`). Layer C's `types.go` leaves merged (26 functions); `spec.go`'s state
+functions and actions delegated (`trace-check-layerc-spec`). S5 Draft review round 2 started.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
