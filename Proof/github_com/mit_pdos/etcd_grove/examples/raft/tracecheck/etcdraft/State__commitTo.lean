@@ -28,7 +28,7 @@ theorem State.commitTo.wp_proof (wp_mut : State.mut.spec (GF := GF) (hG := hG)) 
   intro p st M i c
   wp_start as ⟨Hst, %Hi⟩
   wp_auto
-  mut_open p, st, M, i
+  mut_open p, st, M, i, Hst
   wp_auto
   wp_if_destruct
   · close_copy { gc with CommitIndex' := c },

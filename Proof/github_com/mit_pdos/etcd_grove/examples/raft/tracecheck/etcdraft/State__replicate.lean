@@ -28,7 +28,7 @@ theorem State.replicate.wp_proof (wp_mut : State.mut.spec (GF := GF) (hG := hG))
   intro p st M i gv w typ
   wp_start as ⟨Hst, #Hv, %Hi⟩
   wp_auto
-  mut_open p, st, M, i
+  mut_open p, st, M, i, Hst
   iunfold logRO at Hcl
   icases Hcl with ⟨%es, #Hes, #Hel⟩
   ihave %Hesl := ownSlice_wf $$ Hes

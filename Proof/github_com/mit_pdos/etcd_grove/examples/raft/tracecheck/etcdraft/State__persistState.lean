@@ -30,7 +30,7 @@ theorem State.persistState.wp_proof (wp_mut : State.mut.spec (GF := GF) (hG := h
   intro p st M i
   wp_start as ⟨Hst, %Hi⟩
   wp_auto
-  mut_open p, st, M, i
+  mut_open p, st, M, i, Hst
   ihave Hcp : cp ↦ gc $$ [CurrentTerm State VotedFor Lead Log CommitIndex VotesResponded
       VotesGranted MatchIndex PendingConfChangeIndex Config Durable]
   · iapply typedPointsto_combine _ _ _ Hcnn

@@ -28,7 +28,7 @@ theorem State.becomeFollowerOfTerm.wp_proof (wp_mut : State.mut.spec (GF := GF) 
   intro p st M i term
   wp_start as ⟨Hst, %Hi⟩
   wp_auto
-  mut_open p, st, M, i
+  mut_open p, st, M, i, Hst
   simp only [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Follower,
     github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Nil]
   wp_auto
