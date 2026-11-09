@@ -602,6 +602,144 @@ theorem alreadyDone_accept (st : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdra
   simp only [hne', hnc', hc', hgt, hprev, hsub', hml, hle2, decide_true, decide_false, Bool.not_false,
     Bool.false_or, Bool.and_self, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
 
+/-- `findConflict` is the index of the first entry the log does not match (as `StepRInv`'s
+`plogFindConflict_first`, which this module does not import). -/
+theorem findConflict_first (b : entryID) (es : List EntryM) :
+    ∀ (ents : List EntryM) (d : Nat) (e : EntryM), ents[d]? = some e →
+    ¬ PlogMatches b es (entId e) →
+    (∀ (j : Nat) (e' : EntryM), j < d → ents[j]? = some e' → PlogMatches b es (entId e')) →
+    plogFindConflict b es ents = e.Index' := by
+  intro ents
+  induction ents with
+  | nil => intro d e hd; simp at hd
+  | cons a ents ih =>
+    intro d e hd hnm hbef
+    cases d with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hd
+      subst hd
+      simp only [plogFindConflict, ite_eq_right hnm]
+    | succ d =>
+      have ha := hbef 0 a (by omega) rfl
+      simp only [plogFindConflict, ite_eq_left ha]
+      exact ih d e (by simpa using hd) hnm
+        (fun j e' hj he' => hbef (j + 1) e' (by omega) (by simpa using he'))
+
+/-- **Raft's `maybeAppend` on an uncompacted log, as the specification's steps** (a batch after
+index `p`, its entries at `p + 1`, ...): either no entry conflicts (the log unchanged, the batch
+all in it), or the first conflict is the batch's `d`-th entry, at index `p + d + 1` within one past
+the log's end; every prefix of the log longer than `p + d` conflicts with the batch, the prefix
+of length `p + d` does not, and the new log is that prefix and the batch from `d` on. -/
+theorem maybeAppend_spec (es ents es' : List EntryM) (p : Nat) (lt lastnewi : w64)
+    (hwf : ∀ (k : Nat) (e : EntryM), ents[k]? = some e → uint.Z e.Index' = (p : Int) + k + 1)
+    (hp : p < 2 ^ 64) (hnw : (p : Int) + ents.length + 1 < 2 ^ 64)
+    (happ : plogMaybeAppend (entryID.mk (W64 0) (W64 0)) es (entryID.mk lt (W64 p)) ents = some (lastnewi, es')) :
+    p ≤ es.length ∧ uint.Z lastnewi = (p : Int) + ents.length ∧
+    ( (es' = es ∧ p + ents.length ≤ es.length ∧
+        ∀ k e, ents[k]? = some e → p + k < es.length → (es[p + k]?).map EntryM.Term' = some e.Term')
+    ∨ (∃ d, d < ents.length ∧ p + d ≤ es.length ∧ es' = es.take (p + d) ++ ents.drop d ∧
+        plogFindConflict (entryID.mk (W64 0) (W64 0)) es ents ≠ W64 0 ∧
+        uint.Z (plogFindConflict (entryID.mk (W64 0) (W64 0)) es ents) = (p : Int) + d + 1 ∧
+        (∀ k e, ents[k]? = some e → p + k < p + d →
+          ((es.take (p + d))[p + k]?).map EntryM.Term' = some e.Term') ∧
+        (∀ n, p + d < n → n ≤ es.length → ¬ ∀ k e, ents[k]? = some e → p + k < n →
+          ((es.take n)[p + k]?).map EntryM.Term' = some e.Term')) ) := by
+  have hpz : uint.Z (W64 p) = p := by word
+  have hwf' : PlogWf (entryID.mk lt (W64 p)) ents := by
+    intro k e he; have := hwf k e he; simp only [hpz]; push_cast; omega
+  have hnw' : uint.Z (entryID.mk lt (W64 p)).index' + (ents.length : Int) + 1 < 2 ^ 64 := by
+    simp only [hpz]; exact hnw
+  obtain ⟨hm, hlast, hcase⟩ := plogMaybeAppend_inv _ _ _ _ _ _ hwf' hnw' happ
+  have hpl : p ≤ es.length := by
+    have := (plogTermAt_some_range _ _ _ _ hm).2
+    simp only [plogLastIndexZ, hpz] at this
+    have h0 : uint.Z (W64 0) = 0 := rfl
+    rw [h0] at this; omega
+  simp only [hpz] at hlast
+  have hmatch : ∀ k e, ents[k]? = some e →
+      (PlogMatches (entryID.mk (W64 0) (W64 0)) es (entId e) ↔ es[p + k]?.map EntryM.Term' = some e.Term') := by
+    intro k e he; exact plogMatches_base0 es e (p + k) (by rw [hwf k e he]; push_cast; omega)
+  refine ⟨hpl, hlast, ?_⟩
+  rcases hcase with ⟨hes, hall⟩ | ⟨d, e, hd, hnm, hbef, hei, hend, rfl⟩
+  · left
+    refine ⟨hes, ?_, fun k e he _ => (hmatch k e he).1 (hall k e he)⟩
+    cases hents : ents.getLast? with
+    | none => rw [List.getLast?_eq_none_iff.1 hents]; simp; exact hpl
+    | some x =>
+      obtain ⟨l', hl'⟩ := List.getLast?_eq_some_iff.1 hents
+      have hx : ents[l'.length]? = some x := by rw [hl']; simp
+      have := (hmatch _ x hx).1 (hall _ x hx)
+      have hlt : p + l'.length < es.length := by
+        cases hh : es[p + l'.length]? with
+        | none => rw [hh] at this; cases this
+        | some _ => exact (List.getElem?_eq_some_iff.1 hh).1
+      rw [hl']; simp; omega
+  · right
+    have hdl : d < ents.length := (List.getElem?_eq_some_iff.1 hd).1
+    have h0 : uint.Z (W64 0) = 0 := rfl
+    simp only [hpz] at hei
+    simp only [plogLastIndexZ, h0] at hend
+    have hfc := findConflict_first _ es ents d e hd hnm hbef
+    refine ⟨d, hdl, by omega, ?_, ?_, ?_, ?_, ?_⟩
+    · simp only [h0]; congr 2; omega
+    · rw [hfc]; intro hz; rw [hz] at hei; rw [h0] at hei; omega
+    · rw [hfc, hei]
+    · intro k e' he' hk
+      rw [List.getElem?_take_of_lt (by omega)]
+      exact (hmatch k e' he').1 (hbef k e' (by omega) he')
+    · intro n hn hnl hall
+      apply hnm
+      rw [hmatch d e hd]
+      have := hall d e hd hn
+      rwa [List.getElem?_take_of_lt hn] at this
+
+/-- Sending changes only the outbox. -/
+theorem sim_psendMsgs (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (ms : List Msg)
+    (hR : SimServerR C bl s a) : SimServerR C bl (psendMsgs s ms) a := hR
+
+/-- After the truncation at `p + d` and the append, the log has the whole batch. -/
+theorem truncAppend_has (es ents : List EntryM) (p d : Nat) (hpd : p + d ≤ es.length)
+    (hbef : ∀ k e, ents[k]? = some e → p + k < p + d →
+      ((es.take (p + d))[p + k]?).map EntryM.Term' = some e.Term') :
+    ∀ k e, ents[k]? = some e → p + k < (es.take (p + d) ++ ents.drop d).length →
+      ((es.take (p + d) ++ ents.drop d)[p + k]?).map EntryM.Term' = some e.Term' := by
+  intro k e he _
+  rw [List.getElem?_append]
+  simp only [List.length_take, Nat.min_eq_left hpd]
+  split
+  · rename_i hk
+    have := hbef k e he hk
+    rwa [List.getElem?_take_of_lt hk] at this ⊢
+  · rename_i hk
+    rw [List.getElem?_drop]
+    have : d + (p + k - (p + d)) = k := by omega
+    rw [this, he]; rfl
+
+/-- **An append request accepted at a follower** (the rule `appAccept`, its log from
+`plogMaybeAppend`): the specification's server after the receive line (the truncations, the append,
+`AppendEntriesAlreadyDone`'s commit; the leader adopted). -/
+theorem sim_appAccept (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) (src mc lastnewi : w64)
+    (es' : List EntryM) (hR : SimServerR C bl s a) (hfol : a.state = Etcdraft.follower) :
+    SimServerR C bl
+      { padoptLeader s src with
+          log := es'
+          commit := plogCommitTo s.commit (if uint.Z mc < uint.Z lastnewi then mc else lastnewi) }
+      { a with
+          log := logAbs C bl 1 es'
+          lead := idAbs src
+          commitIndex := max a.commitIndex (min (uint.Z mc) (uint.Z lastnewi)) } := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := hR
+  have hrole : s.role = .follower := by
+    cases hr : s.role <;> rw [hr, hfol] at h2 <;>
+      first | rfl | (simp [roleAbs, Etcdraft.follower, Etcdraft.candidate, Etcdraft.leader] at h2)
+  refine ⟨h1, ?_, h3, rfl, h5, rfl, ?_, h8, h9, ?_, ?_⟩
+  · simp only [padoptLeader]; rw [h2, hrole]
+  · simp only [plogCommitTo]; rw [h7]
+    repeat' split
+    all_goals omega
+  · intro h; simp [padoptLeader] at h
+  · intro h; simp [padoptLeader] at h
+
 end TraceSim
 
 end EtcdGrove
