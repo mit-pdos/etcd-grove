@@ -2,15 +2,26 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem traceEvent.wp_proof [package_sem : Assumptions] : traceEvent.spec
+theorem traceEvent.wp_proof [package_sem : Assumptions] (wp_evtString :
+    stateMachineEventType.String.spec) (wp_FormatUint : strconv.FormatUint.spec)
+    (wp_makeTracingState : makeTracingState.spec) (wp_lastIndex : raftLog.lastIndex.spec) (wp_Slice
+    : quorum.MajorityConfig.Slice.spec) (wp_formatConf : formatConf.spec) (wp_StateString :
+    StateType.String.spec) (wp_makeTracingMessage : makeTracingMessage.spec) : traceEvent.spec
   -- `Perennial.EtcdGrove.traceEvent.spec`, unfolded:
-  ∀ (evt : w64) (r m : Loc) (prop : GoMap) (tl : GoInterface),
+  ∀ (evt : w64) (r m : Loc) (prop : GoMap) (tl : GoInterface) (tr : Option GName) (E : TraceEv → Prop) (Q R : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             typedPointsto
                 (structFieldRef raft go!"traceLogger" r) tl
                 DFrac.discard ∗
-              ⌜TraceLoggerOk tl⌝ -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
+              trOwn tr
+                  iprop(∃ c id s,
+                      ownRaftPhysCV c c.voters r id s ∗
+                        ⌜m = null ∧
+                              prop = null ∧
+                                uint.nat evt < evtNames.length ∧ ∀ (e : TraceEv), NodeEvOf evt id s c e → E e⌝ ∗
+                          (ownRaftPhysCV c c.voters r id s -∗ R)) ∗
+                TraceFire tr tl E Q -∗
+          ▷ (trOwn tr R ∗ Q -∗ Φ (intoVal ())) -∗
             WP (((((intoVal (functions traceEvent [])) (intoVal evt)) (intoVal r)) (intoVal m)) (intoVal prop)) {{ Φ }}

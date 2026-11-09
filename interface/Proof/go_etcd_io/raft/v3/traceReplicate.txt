@@ -5,7 +5,8 @@
 theorem traceReplicate.wp_proof [package_sem : Assumptions] (wp_traceNodeEvent :
     traceNodeEvent.spec) (wp_Entry_GetType : raftpb.Entry.GetType.spec) : traceReplicate.spec
   -- `Perennial.EtcdGrove.traceReplicate.spec`, unfolded:
-  ∀ (r : Loc) (es : GoSlice) (dq : DFrac) (ents : List EntryM) (tl : GoInterface),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice) (dq : DFrac) (ents : List EntryM) (tl : GoInterface)
+    (Q : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
@@ -13,6 +14,7 @@ theorem traceReplicate.wp_proof [package_sem : Assumptions] (wp_traceNodeEvent :
               typedPointsto
                   (structFieldRef raft go!"traceLogger" r) tl
                   DFrac.discard ∗
-                ⌜TraceLoggerOk tl⌝ -∗
-          ▷ (entsPts es dq ents -∗ Φ (intoVal ())) -∗
+                trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗
+                  TraceFireN s.gh.tr tl (NodeEvOf (W64 5) id s c) (normalCount ents) Q -∗
+          ▷ (entsPts es dq ents ∗ trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q -∗ Φ (intoVal ())) -∗
             WP (((intoVal (functions traceReplicate [])) (intoVal r)) (intoVal es)) {{ Φ }}

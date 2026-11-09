@@ -75,7 +75,7 @@ def isTraceLogger (γt : GName) (tl : GoInterface) : IProp GF :=
                   WP
                     ((intoVal (methods l.ty go!"TraceEvent" l.v))
                       (intoVal p))
-                    {{ x, Q }})
+                    {{ v, ⌜v = intoVal ()⌝ ∗ Q }})
 
 structure TraceCC : Type where
   changes : List (GoString × GoString)
