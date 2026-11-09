@@ -476,6 +476,66 @@ theorem runner.restore.wp_proof
     wp_apply (wp_check true go!"the old backend's close failed") $$ []
     · iframe #; ipureintro; rfl
     (try wp_auto)
+    -- `f.leases = append([]int64(nil), b.leases...)`
+    icases Hleasesb with ⟨%lslb, Hlfb, Hlslb, Hlcapb⟩
+    icases Hleases1 with ⟨%lsl1, Hlf1, -, -⟩
+    (try wp_auto)
+    wp_apply (wp_slice_append (V := w64) slice.nil [] lslb (leasesAfter ks ops v0.ops) (DFrac.own 1))
+      $$ [Hlslb] as %lsln ⟨Hlsln, Hlcapn, -⟩
+    · iframe
+      isplitl
+      · iapply (ownSlice_nil (V := w64) (GF := GF) (DFrac.own 1))
+      · iapply (ownSliceCap_nil (V := w64) (GF := GF))
+    (try wp_auto)
+    -- `f.revLo.Store(f.rev)`, `f.cmpLo.Store(f.cmp)`: the bounds' floors at the restored state
+    have hr0 : 1 ≤ revAfter ks ops v0.ops := by
+      have := runM_hs_len ks ops v0.ops; unfold revAfter MSt.rev; omega
+    rw [hveq] at hrbZ hcbZ hcb1 hcb2
+    wp_apply_core sync.atomic.Int64.wp_Store (mF go!"revLo" mp1)
+      (W64 (revAfter ks ops v0.ops : Int)) $$ [] [-]
+    · iPkgInit
+    imod bnd_acc hpers ks γ.h 1 mp1 γ.m1 v1.ι (interface.mkOk kty kvv) qw1 (σOf ks ops v0.ops) b2
+      $$ [Hret1 Hσw1 Hbw1] with ⟨%Hlf3, %Hokf3, Hrl, Hrh, Hcl, Hch, Hcls⟩
+    · iframe #; iframe
+    iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN 1) from Std.LawfulSet.empty_subset)
+    iintro Hcl2
+    inext
+    iexists _
+    iframe Hrl
+    iintro Hrl
+    imod Hcl2 with -
+    let b3 : Bnd := (W64 (revAfter ks ops v0.ops : Int), b2.2.1, b2.2.2.1, b2.2.2.2)
+    have hok3 : bndOk ks (σOf ks ops v0.ops) b3 Hlf3 := by
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := Hokf3
+      refine ⟨?_, ?_, h3, h4, h5, h6, h7, h8, h9, h10⟩
+      · show 1 ≤ sint.Z (W64 (revAfter ks ops v0.ops : Int)); rw [hrbZ]; omega
+      · show sint.Z (W64 (revAfter ks ops v0.ops : Int)) ≤ ((σOf ks ops v0.ops).rev : Int)
+        rw [hrbZ, σOf_rev]; exact Int.le_refl _
+    imod Hcls $$ %b3 %hok3 Hrl Hrh Hcl Hch with ⟨Hret1, Hσw1, Hbw1⟩
+    imodintro
+    (try wp_auto)
+    wp_apply_core sync.atomic.Int64.wp_Store (mF go!"cmpLo" mp1)
+      (W64 (cmpAfter ks ops v0.ops)) $$ [] [-]
+    · iPkgInit
+    imod bnd_acc hpers ks γ.h 1 mp1 γ.m1 v1.ι (interface.mkOk kty kvv) qw1 (σOf ks ops v0.ops) b3
+      $$ [Hret1 Hσw1 Hbw1] with ⟨%Hlf4, %Hokf4, Hrl, Hrh, Hcl, Hch, Hcls⟩
+    · iframe #; iframe
+    iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑(memberN 1) from Std.LawfulSet.empty_subset)
+    iintro Hcl2
+    inext
+    iexists _
+    iframe Hcl
+    iintro Hcl
+    imod Hcl2 with -
+    let b4 : Bnd := (b3.1, b3.2.1, W64 (cmpAfter ks ops v0.ops), b3.2.2.2)
+    have hok4 : bndOk ks (σOf ks ops v0.ops) b4 Hlf4 := by
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := Hokf4
+      refine ⟨h1, h2, h3, h4, h5, ?_, h7, h8, h9, h10⟩
+      show sint.Z (W64 (cmpAfter ks ops v0.ops)) ≤ (σOf ks ops v0.ops).crev
+      rw [hcbZ]; exact Int.le_refl _
+    imod Hcls $$ %b4 %hok4 Hrl Hrh Hcl Hch with ⟨Hret1, Hσw1, Hbw1⟩
+    imodintro
+    (try wp_auto)
     sorry
 
 end proof
