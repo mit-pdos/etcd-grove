@@ -32,8 +32,3 @@ theorem traceEvent.wp_proof [package_sem : Assumptions] (wp_evtString :
                 TraceFire tr tl E Q -∗
           ▷ (trOwn tr R ∗ Q -∗ Φ (intoVal ())) -∗
             WP (((((intoVal (functions traceEvent [])) (intoVal evt)) (intoVal r)) (intoVal m)) (intoVal prop)) {{ Φ }}
-
-theorem wp_makeTracingMessage_arg [package_sem : Assumptions] (h : makeTracingMessage.spec) (m :
-    Loc) (om : Option MsgArg) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ msgArg m om -∗ (▷ ∀ p,
-    msgArg m om ∗ tracingMsgRep p (msgArgTrace om) -∗ Φ (intoVal p)) -∗ WP ((intoVal (functions
-    makeTracingMessage [])) (intoVal m)) {{ Φ }}
