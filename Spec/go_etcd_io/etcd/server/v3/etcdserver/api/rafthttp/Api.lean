@@ -19,7 +19,7 @@ its `msgCredit ν.γ m` (R1); `SendSnapshot` takes a `MsgSnap`'s with its databa
 complete streams are `snapImg` images. Each message is delivered **at most once**, to the member
 serving the URL its `To` names, as a call of that member's `Raft.Process` with a fresh copy of `m`
 and the same two facts (`recvd`); a `MsgSnap`'s database is saved in the receiver's snapshot
-directory first (`dbSaved`). Messages may be lost and reordered; nothing is promised about
+directory first (the client's `saveOk` update fired: `ν.dbIn`). Messages may be lost and reordered; nothing is promised about
 `ReportUnreachable`/`ReportSnapshot` beyond their being calls of the receiver's contract
 (liveness only). The receiver's `Raft` is the client's (`raftOk`): `Process` must accept such a
 message (it checks `To` itself: etcd's answers `403` to a message for another member).
@@ -52,10 +52,12 @@ reader slot of its `RWMutex`).
 - `Net`: the names of the cluster's raft protocol state for transport: a registry of stream
   readers' token maps (a ghost map from request names to the reader's per-frame tokens, as the
   old `streamRegInv`), `snapImg` a saved predicate fixed at `net_alloc`.
-- `raftProto ν` (the HTTP protocol of `/raft`): a `POST /raft` request whose complete body is a
-  protobuf encoding of a message `m` with `msgSent` and a deposit `inv (msgCredit m ∨ reqTicket
-  τ)` (withdrawn once with the ticket the handler receives); a `POST /raft/snapshot` whose complete
-  body is a message frame of a `MsgSnap` (the same facts) followed by a stream with `snapImg`; a
+- `raftProto ν` (the HTTP protocol of `/raft`): a `POST /raft` request (no idempotency key:
+  `onceOnly`) whose complete body is a protobuf encoding of a message `m`, **not a `MsgSnap`**
+  (`sendable`), with `msgSent` and a deposit `inv (msgCredit m ∨ reqTicket τ)` (withdrawn once with
+  the ticket the handler receives); a `POST /raft/snapshot` whose body's every prefix (`bodyPre`) is
+  a prefix of a message frame of a `MsgSnap` (the same facts) followed by a stream of an image `img`
+  with `snapImg ν i img`, and whose complete body is such; a
   `GET /raft/stream/{msgapp,message}/<B>` with `X-Raft-To` naming the dialed member and `τ` naming
   the reader's token map in the registry, whose `200` responses are prefixes of a chain of frames
   (the codec's: `msgFrame`, or msgappv2's from the initial state) of messages each a link
@@ -209,7 +211,8 @@ def snapImg (ν : Net GF) (i : w64) (img : Snap.BeImage) : IProp GF := iprop(□
 
 /-- **rafthttp's HTTP protocol** for the paths under `/raft` (see the header). -/
 opaque raftProto (ν : Net GF) : Http.Proto GF :=
-  ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ _ _ _ => iprop(True)⟩
+  ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ _ => iprop(True),
+    fun _ _ _ _ _ => iprop(True)⟩
 
 /-- **`P` is compatible with rafthttp's protocol** (round 1, F7 and completeness F1): it agrees with
 `raftProto ν` on `/raft` and its subtree, and allows the mux's `404`/`301` elsewhere (a peer port's
@@ -473,6 +476,11 @@ content type `ct`, advertising the peer URLs with hosts `hs`. -/
 opaque postHdrs (ct : GoString) (frm cid : w64) (hs : List GoString) :
     List (GoString × GoString) := []
 
+/-- (internal) rafthttp's `POST`s are once-only (no idempotency key among `postHdrs`). -/
+def postHdrs_onceOnly.spec : Prop :=
+  ∀ ct frm cid hs (host path : GoString),
+    Http.onceOnly ⟨go!"POST", host, path, postHdrs ct frm cid hs⟩
+
 /-- (internal) `setPeerURLsHeader` turned `hdr` into `hdr'` (an `X-PeerURLs` naming the URLs with
 hosts `hs`, or unchanged for `nil` URLs). -/
 opaque peerURLsSet (hs : List GoString) (hdr hdr' : List (GoString × GoString)) : Prop := True
@@ -503,7 +511,7 @@ def trRunning_fractional.spec : Prop := ∀ t, Fractional (trRunning (GF := GF) 
 snapshot (round 1, F4: the fields are what the client chose, literally). -/
 def net_alloc.spec : Prop :=
   ∀ (γ : Raft.Cluster) (Img : w64 → Snap.BeImage → IProp GF) (DbIn : w64 → IProp GF),
-    ⊢ |==> ∃ ν : Net GF, ⌜ν.γ = γ ∧ ν.img = Img ∧ ν.dbIn = DbIn⌝
+    ⊢ (|==> ∃ ν : Net GF, ⌜ν.γ = γ ∧ ν.img = Img ∧ ν.dbIn = DbIn⌝ : IProp GF)
 
 /-- **Reserve a peer address** for `ν`'s raft protocol (the whole address; a server composing
 other protocols on its peer port reserves with `Http.reserve` and a `raftCompat` protocol). -/

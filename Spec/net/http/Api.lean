@@ -88,6 +88,7 @@ bundles. Laws: `reserve`, `handlerPool_alloc`, `reqTicket_alloc`, `reqTicket_exc
 -/
 module
 
+public import GeneratedProof.net
 public import GeneratedProof.net.http
 public import GeneratedProof.net.url
 public import Spec.PkgInit.net.http

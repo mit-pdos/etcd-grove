@@ -475,3 +475,41 @@ must be one record).
    default principal `none`, each call's principal its context's (the in-process caller's forwarded
    token). Used by: `clientBare_assemble`, snippet `clientv3client/inproc.go`, hence v3lock's and
    v3election's sessions (1d).
+
+### from 2f, round 1
+
+Restated after 2f's round 1 (the names are now those of `Rafthttp`'s `Api.lean`):
+
+1. **`raftOk` is needed from `tr.Start()`** (`server.go:412-426`), before `s.start()`. `AddPeer`
+   (`server.go:436`) starts the peers' `Process` loops and stream readers then, and the handlers
+   may call `Process` once the peer listener serves. `EtcdServer.Process`, `IsIDRemoved`,
+   `ReportUnreachable` and `ReportSnapshot` must be stated over a predicate `NewServer` holds at that
+   point, not over `srvNode` (after `start`). In the Go code everything they read (`lgMu`/`lg`,
+   `cluster`, `stats`, `memberID`, `r`'s node) is set before `tr.Start()`. Also:
+   - `Process`'s post must give `Rafthttp.procErr err`, plus a law that `httptypes.HTTPError`s are
+     `procErr` (their `WriteTo` writes a status and a body; `errors.As` on them returns);
+   - `EtcdServer.IsIDRemoved` (`server.go:725`) needs a spec: any boolean, with a `threadTok` (the
+     membership's read lock);
+   - `Process` gets `Rafthttp.recvd ν m`: `msgSent`, `msgCredit`, and for a `MsgSnap` `ν.dbIn i`.
+2. **The snapshot database** (completeness F3): the network's `ν.dbIn i` is the server's choice. For
+   etcd: "a file of index `i` is in the snapshot directory (2e's `snapDbs sd F`, `F i = some img`
+   with `ν.img i img`) until the apply thread installs an index `≥ i`". `trCfg` now takes
+   `Snap.isSnapshotter ss sd ∗ Rafthttp.saveOk ν sd`: the server's persistent update over its
+   `snapDbs` (held in its invariant) that saves an image certified for `i` (2e's `saveAt`, which
+   keeps an existing file) and commits `ν.dbIn i`. Its proof: the invariant keeps every file's
+   image certified (`ν.img`), whichever stream was kept first. `applySnapshot` then opens
+   `<i>.snap.db` by `ν.dbIn i` (snippet `ReqInstallReceived`).
+3. **`ν.img i img`** for etcd: `img` is the backend image of the committed state through `i`. The
+   sender gives `Snap.dbReader rc img ∗ snapImg ν i img` of its merged message's pipe
+   (`Rafthttp.outSnap`, with 2e's `isMessage`/`msgClose`).
+4. **Thread tokens on the `Transporter` callers**: `ActiveSince`, `ActivePeers`, `CutPeer`,
+   `MendPeer`, `Pause` and `Resume` take the caller's `threadTok` (the transport's read lock).
+   `isConnectedSince` and the other `util.go` heuristics, `adjustTicks` and `EtcdServer.CutPeer`/
+   `MendPeer` must take one. The interface value is `Rafthttp.transporterOk tp ν id`.
+5. **Peer addresses**: `peerAddr ν a` for every member's URLs. A `MemberAdd`/`MemberUpdate` of a URL
+   must carry it; it enters as a premise on the URLs a client supplies, kept by the membership
+   invariant. Serving needs `Http.protoAt a P` (persistent) with `Rafthttp.raftCompat ν P`, the
+   listener, and a pool of the caller's thread tokens (`Http.handlerPool`).
+6. **The package variables**: `Rafthttp.vars_init.spec` gives `ConnReadTimeout`/`ConnWriteTimeout`
+   read-only (at least `5s`) and `ErrClusterIDMismatch`'s error, for `adjustTicks`
+   (`server.go:495`), etcdserver's init (`server.go:119`) and `corrupt.go:533,613`.

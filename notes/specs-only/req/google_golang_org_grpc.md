@@ -287,3 +287,18 @@ Batch 3h's generated stubs (`kVClient.Put.spec`, ..., WP form: `unaryStubWP`, `s
 3. **`HandlerTriple`'s home**: 2a's `V3rpc.HandlerTriple` is written in grpc's vocabulary only; if it
    moves to `Grpc` (`Spec/google_golang_org/grpc/Api.lean`), 3h's handler specs can state their
    `unaryOk` corollary directly (today they are WP forms 2a composes with `icChain_call`).
+
+## from 2f
+
+Batch 2f (the net/http boundary, `Spec/net/http/Api.lean`) and 2a's grpc boundary should state
+the handler runs' thread tokens the same way. The coordinator's decision (2f round 1, provability
+F1), from the repository's earlier fix (`specs-ref/notes/STATUS.md`, "Soundness bugs:
+grpc.serve's handler pool", the user's decision via etcd-grove-82): **`Serve` takes from its caller
+a pool of the caller's thread tokens** (`Http.handlerPool p n`, made from `threadToks n` by
+`Http.handlerPool_alloc`); **each handler run draws one for its life and returns it at its end**;
+no token comes from nothing. The assumed physical fact is that the server runs at most `n`
+handlers at once, a bound the adequacy theorem fixes. A statement realized only by a "trusted model
+whose goroutines are forks" is not acceptable until that model exists, and grpc-go and net/http are
+names-only (2a's `Api.lean:14-19` still claims the fork realization). Please restate `Server.Serve`
+over such a pool. If both boundaries share one pool predicate, 2f will use 2a's name; until then
+`Http.handlerPool` is 2f's.

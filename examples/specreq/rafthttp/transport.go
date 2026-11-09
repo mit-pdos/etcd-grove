@@ -104,9 +104,10 @@ func ReqMembership(tr *rh.Transport, self types.ID, add, upd Member, rm types.ID
 // time; a non-negative count).
 // Users: server/etcdserver/util.go:52-100 (isConnectedSince, numConnectedSince,
 // longestConnected), server.go:504 (adjustTicks), server.go:1655 (mayRemoveMember).
-// Assumes: nothing.
-// Specs: Transport.ActiveSince.spec, Transport.ActivePeers.spec.
-func ReqConnected(tr *rh.Transport, ids []types.ID, since time.Time) int {
+// Assumes: tr holds a started *Transport (transporterOk), as the server's r.transport does; a
+// thread token (the transport's read lock).
+// Specs: Transport.ActiveSince.spec, Transport.ActivePeers.spec; transporterOk.
+func ReqConnected(tr rh.Transporter, ids []types.ID, since time.Time) int {
 	n := 0
 	for _, id := range ids {
 		if t := tr.ActiveSince(id); !t.IsZero() && t.Before(since) {
@@ -134,4 +135,18 @@ func ReqStop(tr *rh.Transport, id types.ID) {
 	tr.Stop()
 	tr.Send(nil)
 	tr.RemovePeer(id)
+}
+
+// REQ rafthttp/errorc: the transport reports fatal errors (errMemberRemoved) on ErrorC without
+// blocking; the server receives one, logs it and stops, which is always safe.
+// Users: rafthttp pipeline.go:170, snapshot_sender.go:113, stream.go:624 (reportCriticalError);
+// server/etcdserver/server.go:845-848 (run).
+// Assumes: errorc is the server's (capacity 1; errChanOk).
+// Specs: reportCriticalError.spec (through the transport); Http.errOk.
+func ReqErrorC(lg *zap.Logger, errorc chan error) {
+	select {
+	case err := <-errorc:
+		lg.Warn("server error", zap.Error(err))
+	default:
+	}
 }

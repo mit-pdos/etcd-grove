@@ -450,3 +450,15 @@ Batch 2d (etcd's apply thread and raft node driver, `ApiApply.lean`):
    `memberDisk`'s realization.
 2. `RestartNode.spec` at a configuration point `a` not bounded by the stored commit (R1 round 1, F1):
    relied on (a stop after the apply thread ran ahead of the raft loop's last `Save` of the commit).
+
+### from 2f, round 1
+
+Item 2 above is **restricted to `MsgApp`** (the review found the general claim false: a follower
+forwards a remote `MsgReadIndex` with its original `From`, `raft.go:1784`, and through `RawNode` a
+stepped remote `MsgProp` keeps its `From`, `raft.go:1743`). What rafthttp needs: a `MsgApp` handed
+out by node `id` has `m.src = id` and the shape (`vote = 0`, `snapshot = none`, `reject = false`,
+`rejectHint = 0`, `context = []`). True of raft: its one constructor is `maybeSendAppend`
+(`raft.go:651-658`) and `send` sets `From = r.id` (`raft.go:515-517`). Stated, for example, as
+`msgSent_appShape.spec : msgSent γ m ∗ ⌜m.type = MsgApp⌝ ⊢ ⌜m.vote = 0 ∧ ...⌝` and a `BatchOk`
+conjunct `∀ m ∈ b.msgs, m.type = MsgApp → m.src = id`. Item 3 is withdrawn (the link heartbeat has
+`To = 0`, which `Send` skips).

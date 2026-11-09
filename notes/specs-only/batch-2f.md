@@ -167,3 +167,109 @@ when this report was written; the server's uses were read from its code (`server
   server stops on `errorc`, always safe; `reportCriticalError` promises nothing more).
 - `nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`: gone with the fork's remote flag; no
   premise.
+
+## Round 1 repairs (2026-11-09)
+
+Reviews: `reviews/2f-provability-1.md`, `reviews/2f-completeness-1.md`, with the coordinator's
+decisions. Rebuilt: `etc/specs-build.sh --dir Spec/net/http
+Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp` OK (119 modules). `go vet` and `gofmt` are
+clean on the snippets. `etc/issues-status.py --check` is clean (index regenerated).
+
+Some statements earlier in this report are superseded by this section: `snapImg` is now the
+network's field `ν.img` over 2e's `BeImage`; `dbSaved`, `snapshotterOk` and `protoOwn` are gone;
+`recvd`/`raftOk` take no snapshotter.
+
+### First tier, provability
+
+- **F1, handler thread tokens.** `Http.Serve.spec` takes `handlerPool p n`, a pool of `n` of the
+  caller's thread tokens (`Http.handlerPool_alloc.spec` from `threadToks n`). Each handler run
+  draws one and returns it. The assumed physical fact (at most `n` concurrent handlers, the bound
+  adequacy fixes) is in the header. The "trusted model's forks" claim is gone. The same requirement
+  is written for 2a in `req/google_golang_org_grpc.md`, "from 2f".
+- **F2, `onceOnly`.** Now: a non-empty method, not `GET`/`HEAD`/`OPTIONS`/`TRACE`, and neither
+  idempotency key **present** (any value), as `isReplayable` tests (`Header.has`). For such a
+  method without a key, Go never replays the request, whether or not its body is rewindable. New
+  law `postHdrs_onceOnly.spec`.
+- **F3, the closed world tied to the bound socket.** `net.Listen` (`Spec/net/http/Listen.lean`) and
+  `NewListener` give a fresh `listenerAt l a` for the string the socket is actually bound at (port
+  `0`: the actual one, `portZero`), plus `listenerCloser`. `Serve` takes the listener and the
+  persistent `protoAt a P`. Only reserved strings can be dialed.
+  - The residual environment premise, stated in the header: `addrFree` is issued for at most one
+    string per socket, never for port 0, and no proxy relays peer traffic. Aliases are the one case
+    the bind cannot settle. A per-socket key alone would be unsound for a rebind after a close (old
+    dial facts reach the new socket), and senders must address peers before those peers listen. So
+    the protocol stays per string, set once and persistent.
+- **F4, `Img` a field.** `Net GF` has the fields `img : w64 → BeImage → IProp` and
+  `dbIn : w64 → IProp`, fixed at `net_alloc` (the post equates them literally). `snapImg ν i img`
+  is `□ ν.img i img`.
+- **F5 + completeness F3, the snapshot database.**
+  - `trCfg` takes `Snap.isSnapshotter ss sd ∗ saveOk ν sd`: the client's persistent update over 2e's
+    `snapDbs`, at 2e's `saveAt` (an existing file kept), committing `ν.dbIn i`.
+  - The handler hands that update to 2e's `SaveDBFrom.spec`, with `readerAt_dbReader.spec`, and
+    `Process` gets `ν.dbIn i` (`recvd`). The client's invariant says what the kept file holds.
+  - `outSnap` now uses 2e's `isMessage`/`msgClose`/`dbReader`.
+  - New snippet `ReqInstallReceived` (`DBFilePath` of the processed index).
+- **F6.** The duplicate-proposal panic in `Receiver.Process` is dropped. The comment says what is
+  true: each message is delivered at most once, but a proposal can reach a member twice as two
+  messages when raft re-forwards it.
+- **F7 + completeness F1.**
+  - New laws: `Http.respW_agree`, `Http.handlerOk_agree` (protocols agreeing under a pattern) and
+    `Http.handlerOk_narrow`.
+  - `Transport.Handler.spec`'s post is now `□ ∀ P, ⌜raftCompat ν P⌝ → handlerOk h P "/"`.
+    `raftCompat` means: agreeing with `raftProto` on `/raft` and `/raft/`, and allowing the mux's
+    `404`/`301` elsewhere. `raftCompat_self.spec` covers the root-serving examples.
+  - `peerAddr` is restated with `raftCompat`.
+  - New snippets: `ReqServeRoot`, and `ReqServePeer` beside another handler.
+
+### First tier, completeness
+
+- **F2, serving an address again.** `protoOwn` is gone and `Serve` takes the persistent `protoAt`.
+  New specs `Listen` (`net.Listen`) and `Listener.Close`. Snippet `ReqRestartServe` serves, closes,
+  listens again and serves a second transport.
+- **F3.** See F5 above.
+- **F4 (mostly 2d's).** Written in `req/go_etcd_io_etcd_server_v3_etcdserver.md`, "from 2f, round
+  1":
+  - `raftOk` is needed from `tr.Start()`, before `s.start()`;
+  - `procErr` must be in `Process`'s post, with a law for `HTTPError`;
+  - `IsIDRemoved` needs a spec, with a thread token;
+  - the `dbIn`/`img` meaning, the `Transporter` callers' thread tokens, peer addresses for
+    `MemberAdd`/`MemberUpdate`, and the package variables.
+
+### Second tier done
+
+- The raft request is restricted to `MsgApp` (item 3 withdrawn).
+- `msgChanAt ch ν lid pid K`: `To = pid`, and a message predicate `K` fixed per stream writer
+  (`swAt … K`).
+  - `peer.send` and `remote.send` take `m.to = pid`.
+  - `pick` gives `K m`.
+  - `streamWriter.attach` of a msgappv2 connection needs `K ⊆ MsgApp`.
+- Body readers that are not HTTP: `Http.NewBuffer_reader.spec` and `Http.MultiReader_reader.spec`
+  (which covers `ReaderAndCloser`); `dbReader_readerAt.spec` for the merged snapshot's pipe.
+- A body's prefix knowledge: `Proto.bodyPre`. `RoundTrip` asks the client's reader prefixes for
+  it, and the handler's reader carries it. This fixes the snapshot handler's order: its metadata is
+  dereferenced before `EOF`.
+- `raftProto` excludes `MsgSnap` on `POST /raft` (header); `protoAt_agree` dropped.
+- `transporterOk tp ν id`, the interface value; `ReqConnected` now goes through `Transporter`.
+- `vars_init.spec`: `ConnReadTimeout`/`ConnWriteTimeout` read-only and at least 5s (a scope
+  restriction), and `ErrClusterIDMismatch`'s error.
+- `urlsNoComma` in `trCfg` (requested of types).
+- `ReqErrorC` snippet.
+- Nonissues filed:
+  - `nonissues/etcd-rafthttp-peerurl-comma-split.md`;
+  - `nonissues/etcd-embed-raft-read-timeout-ticker-panic.md`.
+
+### Not done (second tier)
+
+- Completeness item 4: the `rafthttpBootCfg` slot as a `Rafthttp.bootCfg` IProp with elimination
+  laws. 2e's hub would take `trCfg` directly for now. This goes to the integration pass.
+- Completeness item 8: specs of `http.Client.Do` over `roundTripperOk` for `peerRt`'s monitors
+  (low priority, as the reviewer says).
+- Completeness item 9: a two-goroutine `trRunning` snippet. 2d carries the share to `onStop`.
+
+### Open questions added
+
+6. **The alias premise** (F3): the environment issues `addrFree` for at most one string per socket.
+   Is this residual deployment premise acceptable, or should the boundary model address
+   resolution?
+7. **The handler pool's `n`** (F1): the server picks `n` when it lends `Serve` its thread tokens.
+   The physical premise (at most `n` concurrent handlers) is the assumed part.

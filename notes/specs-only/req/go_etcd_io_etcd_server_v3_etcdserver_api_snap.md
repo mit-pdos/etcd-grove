@@ -30,3 +30,22 @@ replace them by snap's names at integration.
    receives on once.
 2. **The snapshotter's saved `.snap.db`** of a received merged snapshot (2f's `dbSaved`) is what
    `OpenSnapshotBackend` opens (`req/go_etcd_io_etcd_server_v3_storage.md`, from 2d, item 3).
+
+### from 2f, round 1 (coordinating with 2e's `api/snap/Api.lean`)
+
+Items 1-3 above are superseded. 2f now uses 2e's names: `Snap.isSnapshotter ss sd`, `Snap.snapDbs`,
+`Snap.saveAt`, `Snap.dbReader`, `Snap.BeImage`, `Snap.isMessage`, `Snap.msgClose`. Two
+requirements remain:
+
+- **`SaveDBFrom.spec` as 2e states it** (an atomic update over `snapDbs sd F`, committing at
+  `saveAt F id img`, with `dbReader r img`) serves 2f. The snapshot handler hands it the client's
+  update (`Rafthttp.saveOk ν sd`). It turns the request body, read after the envelope, into
+  `dbReader r.Body img` by `Rafthttp.readerAt_dbReader.spec`, over a pure stream relation
+  `Rafthttp.imgBytes img bs` (provisional in 2f's Api: "`bs` is a stream of `img`"). Please adopt
+  `imgBytes` (or name yours) and say in `dbReader`'s docstring that its bytes are such a stream.
+  2f's `dbReader_readerAt.spec` (2e's `dbReader` gives `Http.readerAt rc True (imgBytes img)`) is
+  the converse, for the sender's pipe.
+- **The merged message's fields**: `Snap.isMessage p to sz` should also name the raft message
+  pointer and the reader (`snap.Message.Message`, `ReadCloser`), which rafthttp reads
+  (`createSnapBody`, `merged.Message`). 2f declares `snapMsgOwn mp ml rc` (persistent, read-only)
+  provisionally.
