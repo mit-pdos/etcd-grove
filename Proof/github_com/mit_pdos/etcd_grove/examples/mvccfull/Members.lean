@@ -113,6 +113,7 @@ def memberState (ks : List GoString) (γh : HistNames) (mp : Loc) (m : MemberNam
     monoNatAuthOwn m.rev 1 σ.rev ∗ monoNatAuthOwn m.crev 1 (Int.toNat (σ.crev + 1)) ∗
     monoListLbOwn γh.l Hl ∗
     ⌜sint.Z b.1 ≤ σ.rev ∧ (σ.rev : Int) ≤ sint.Z b.2.1 ∧
+      (σ.notifiedLog.length : Int) ≤ sint.Z b.2.1 + 1 ∧
       sint.Z b.2.2.1 ≤ σ.crev ∧ σ.crev ≤ sint.Z b.2.2.2 ∧ -1 ≤ σ.crev ∧
       histOkM ks σ Hl ∧ onceUpToAll σ.notifiedLog⌝)
 

@@ -428,6 +428,7 @@ execution: a restart is the member's process restarting, and its requests in fli
 | 2 | `lease.NewLessor` on a lease bucket with records: `NewLessor.specR` | **trusted** (an axiom restated); the `axiom` skill before the Freeze | drafted; its instance lemma's proof to fix |
 | 3 | `errVars.law` gains `ErrWatcherNotExist` (`errors.New("mvcc: watcher does not exist")`), which the tester's `Cancel` checks compare with, and **the error variables distinct**: `checkStoreRange` tests `err == ErrCompacted` while `err` may be `ErrFutureRev`, and `errorsNewVar` gives no distinctness. A new conjunct at the end of mvcc's package fact (`etc/gen-init.py`'s `SPECIAL`), so existing patterns are unchanged | API law, proved from mvcc's package initialization (distinct `errors.New` allocations) | to draft |
 | 4 | `pick.specW` (the tester's own: a positive weight's choice) | tester | in progress |
+| 5 | `WatchStream.Watch.contract` takes the caller's update only for a non-empty range (`⌜empty range⌝ ∨ au`): today the update is required even when the code registers nothing (and handed back unused), so a client cannot keep an invariant that excludes unregistered watchers (the tester's `Watch(k, k)` check; its `w != nil` check on progress responses) | API spec weakened in its pre: every caller unchanged | to draft |
 
 Each changed statement goes through the `spec-reviewer` (Review), and the restated axiom through the
 `axiom` skill, before the user's Freeze.
@@ -454,3 +455,37 @@ They typecheck.
    first `startReaders`.
 6. **The writer supplies `histRds (2·Readers)`**, the history lock's reader slots, returned per
    epoch.
+
+## Draft: the streams (2026-11-09)
+
+`Streams.lean` and eleven specs (`startEpoch`, `endEpoch`, `act`, `pick`, `watch`, `cancel`,
+`expect`, `covered`, `recvOne`, `receive`, `complete`). They typecheck. `Streams.lean` reuses the
+readers' vocabulary (`incLive`, `rF`, `ctrInv`, `readQ`).
+
+- **The registry** (`Reg`): each entry records `lo`, the sent count `k` at registration, and the
+  cancel mark.
+- **`regOk' S W C`.** Liveness follows `C`, the ids `Cancel` was called on, whose halves are held
+  by `streamInv` and the registrar. Marking happens under `s.mu`; `Cancel`'s commit happens
+  outside it.
+- **`watcherOk`**: the floating window (`wPosOk'`), `stamped → k ≤ |rs|`, `compacted →` a
+  compaction response received.
+
+**The stamp** (`recvOne`):
+
+1. Under `s.mu`, take `n` = the registry's largest `k`, with its `wsSentLb` (`wsSentLb_zero`
+   when the registry is empty).
+2. Apply `wsChan_recv`'s nonblocking form. Its empty branch gives `n ≤ |rs|`, so every entry may
+   be stamped (`stamp_ok`).
+3. A later −1 response is `rs[j]` with `j ≥ |rs| ≥ k`. Unmarked means live, so `wsRecvOk`'s clause
+   3 applies.
+
+**Found:**
+
+1. **The empty-range `Watch`**: the Freeze list's item 5.
+2. **The notified log** reaches `revHi + 1` (a pending revision's response). `memberState` now
+   says `|σ.notifiedLog| ≤ revHi + 1`; the writer stores `revHi` before the write.
+3. **`ErrWatcherNotExist`**: item 3.
+4. **`time.Sleep.spec`** is taken as a hypothesis (the lease expiry's precedent).
+
+**Left `sorry` in the vocabulary:** `recv_facts` and `maxK_attained`. `complete` says nothing of
+its answer, by design.
