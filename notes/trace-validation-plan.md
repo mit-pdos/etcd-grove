@@ -1132,6 +1132,8 @@ what the Go returns then, that only the incoming `conf` list is bounded (`Event.
 docstring, which also says every line is bounded though only bootstrap lines feed configurations),
 `RunRel.checkTraceOk`'s reference reworded, `Rep.lean`'s header names the new bound; Q10's veto status
 unchanged.
+Acceptance (after merging `trace-check` at `452d95929b`): full `lake build` green, `etc/tcb-report.py --check`
+(baseline unchanged: 806 axioms, 4 `sorry`s), `etc/gen-init.py --check`.
 
 ### D. The harness and Main (the workload)
 
