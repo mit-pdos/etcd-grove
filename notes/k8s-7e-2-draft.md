@@ -85,6 +85,14 @@ d.Causes' ↦*□ cs`, so `cs` is the heap's; `leafErrTy` is stated with
 tokJson rv start` (no `.toBytes`: a `GoString` is bytes); `Value.Kind` returns `#(W64 23)`
 (`reflect.Slice`, inlined by the translation).
 
+**Forms settled at Prove (second third, 2026-11-09; accepted by etcd-grove-81):** the
+`SelectionPredicate.Matches` spec and `getAttrsOk` are stated for any object predicate `objAt`
+(the store's use is `objAt := S.objAt _ _ rv`; `mlist` calls `Matches` on `&o ↦{dq} o`);
+`predOk_driver` takes its callee specs as premises and selects by `selD x` (R4's filling for
+`selOkL x`); `mlist`'s callee triples `mlistMatches`/`mlistPCT` (`examples/k8s/etcd3/PredOk.lean`)
+require the driver's package initialization; `labels.Set.{Get,Has}`, `fields.Set.Get` keep the
+non-`nil` premise, the `nil` maps handled in the selector proofs.
+
 ## 0. Summary
 
 | # | Item | Status | Producer |
