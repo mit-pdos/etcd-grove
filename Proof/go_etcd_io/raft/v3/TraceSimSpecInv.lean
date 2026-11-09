@@ -78,7 +78,7 @@ def DurS (σ : State) : Prop :=
   ∀ i ∈ σ.server, (σ.s i).state = leader →
     ((σ.s i).durable.log.length : Int) ≤ (σ.s i).log.length ∧
     (σ.s i).commitIndex ≤ (σ.s i).durable.log.length ∧
-    (∀ j, (σ.s i).matchIndex j ≤ (σ.s i).durable.log.length) ∧
+    (∀ j ∈ σ.server, (σ.s i).matchIndex j ≤ (σ.s i).durable.log.length) ∧
     (∀ m ∈ σ.messages.domain, m.source = i → m.type = .appendEntriesRequest →
       m.term = (σ.s i).currentTerm → m.prevLogIndex + m.entries.length ≤ (σ.s i).durable.log.length) ∧
     (∀ m ∈ σ.pendingMessages.domain, m.source = i → m.type = .appendEntriesRequest →
@@ -136,7 +136,7 @@ theorem SpecInv.commitWithinLeader {σ : State} (h : SpecInv σ) : CommitWithinL
 theorem SpecInv.durInvFixed {σ : State} (h : SpecInv σ) : DurInvFixed σ := by
   intro i hi hl
   obtain ⟨-, hc, hmi, hrq, -, hrm, hrp⟩ := h.2.1 i hi hl
-  refine ⟨hc, fun j _ => hmi j, hrq, ?_⟩
+  refine ⟨hc, fun j hj => hmi j hj, hrq, ?_⟩
   intro m hm hd ht htm hs hp
   rcases List.mem_append.mp hm with hm | hm
   · exact hrm m hm hd ht htm hs
@@ -359,7 +359,7 @@ theorem specInv_mono {σ σ' : State} (h : SpecInv σ) (hs : σ'.s = σ.s) (hsrv
   · intro i hi hl
     rw [hsrv] at hi; rw [hs] at hl ⊢
     obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := hD i hi hl
-    exact ⟨a1, a2, a3, fun x hx => a4 x (hm x hx), fun x hx => a5 x (hp x hx),
+    exact ⟨a1, a2, fun x hx => a3 x (by rw [hsrv] at hx; exact hx), fun x hx => a4 x (hm x hx), fun x hx => a5 x (hp x hx),
       fun x hx => a6 x (hm x hx), fun x hx => a7 x (hp x hx)⟩
   · intro x hx; unfold MsgTermOk; rw [hs]; exact hT x (hmm x hx)
   · intro i hi hc
@@ -745,7 +745,7 @@ theorem specInv_congr_m {σ σ' : State} (h : SpecInv σ) (hsrv : σ'.server = �
     (hL : ∀ j, (σ'.s j).log = (σ.s j).log) (hD : ∀ j, (σ'.s j).durable = (σ.s j).durable)
     (hV : ∀ j, (σ'.s j).votesGranted = (σ.s j).votesGranted)
     (hC : ∀ j, (σ'.s j).commitIndex = (σ.s j).commitIndex)
-    (hM : ∀ j ∈ σ.server, (σ.s j).state = leader → ∀ k,
+    (hM : ∀ j ∈ σ.server, (σ.s j).state = leader → ∀ k ∈ σ.server,
       (σ'.s j).matchIndex k ≤ (σ.s j).durable.log.length) : SpecInv σ' := by
   obtain ⟨hLE, hDu, hTm, hCa, hP, hCW, hRC⟩ := h
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -754,7 +754,7 @@ theorem specInv_congr_m {σ σ' : State} (h : SpecInv σ) (hsrv : σ'.server = �
     rw [hsrv] at hl; rw [hS] at hll
     obtain ⟨a1, a2, -, a4, a5, a6, a7⟩ := hDu l hl hll
     simp only [hm, hp, hT, hL, hD, hC]
-    exact ⟨a1, a2, hM l hl hll, a4, a5, a6, a7⟩
+    exact ⟨a1, a2, fun j hj => hM l hl hll j (by rwa [hsrv] at hj), a4, a5, a6, a7⟩
   · simp only [TermsLe, MsgTermOk, msgs, hm, hp, hT]; exact hTm
   · simp only [CandS, msgs, persisted, hsrv, hm, hp, hT, hS, hL, hD, hV]; exact hCa
   · simp only [PrevOk, msgs, hm, hp]; exact hP
@@ -777,16 +777,16 @@ theorem specInv_handleAppendEntriesResponse {σ σ' : State} {i j : ID} {m : Etc
     · rename_i hs
       refine specInv_congr_m (σ' := σ.upd i _) h rfl rfl rfl ?_ ?_ ?_ ?_ ?_ ?_ ?_
       all_goals try (intro k; by_cases hk : k = i <;> simp [upd_s, hk]; done)
-      intro l hl hll k
+      intro l hl hll k hk
       by_cases hli : l = i
       · subst hli
         obtain ⟨-, -, a3, -, -, a6, -⟩ := h.2.1 l hl hll
         rw [upd_s_self]
         dsimp only
         split
-        · exact Int.max_le.mpr ⟨a3 _, a6 m hm hdst hty hterm hs⟩
-        · exact a3 k
-      · rw [upd_s_ne _ _ _ _ hli]; exact (h.2.1 l hl hll).2.2.1 k
+        · rename_i hkj; exact Int.max_le.mpr ⟨a3 _ (hkj ▸ hk), a6 m hm hdst hty hterm hs⟩
+        · exact a3 k hk
+      · rw [upd_s_ne _ _ _ _ hli]; exact (h.2.1 l hl hll).2.2.1 k hk
     · exact h
 
 /-- **`RejectAppendEntriesRequest(i, j, m, logOk)`** (no `PreVote`, no `CheckQuorum`: the rejection
@@ -883,7 +883,7 @@ theorem specInv_ready {σ : State} {i : ID} (h : SpecInv σ) : SpecInv (σ.ready
     by_cases hli : l = i
     · subst hli
       rw [hDi]
-      refine ⟨Int.le_refl _, Int.le_trans a2 a1, fun k => Int.le_trans (a3 k) a1, ?_, ?_, ?_, ?_⟩
+      refine ⟨Int.le_refl _, Int.le_trans a2 a1, fun k hk => Int.le_trans (a3 k hk) a1, ?_, ?_, ?_, ?_⟩
       · intro x hx hs' hty ht
         rcases hM x hx with hx | ⟨hx, -⟩
         · exact Int.le_trans (a4 x hx hs' hty ht) a1
@@ -1090,7 +1090,10 @@ theorem isQuorum_nonempty {q c : SetIds} (h : isQuorum q c = true) : ∃ k, k �
 /-- **`AdvanceCommitIndex(i)`**: the new commit index is agreed by a quorum (so within the match
 indices, within the durable log) and within the log. -/
 theorem specInv_advanceCommitIndex {σ σ' : State} {i : ID} (h : SpecInv σ) (hi : i ∈ σ.server)
-    (hone : σ.moreThanOneLeaderInv = true) (hstep : σ.advanceCommitIndex i = some σ') : SpecInv σ' := by
+    (hone : σ.moreThanOneLeaderInv = true)
+    -- (review round 2's A8) the configuration's members are servers
+    (hcfg : ∀ k ∈ σ.getConfig i, k ∈ σ.server)
+    (hstep : σ.advanceCommitIndex i = some σ') : SpecInv σ' := by
   unfold State.advanceCommitIndex at hstep; dsimp only at hstep
   split at hstep
   · cases hstep
@@ -1121,10 +1124,10 @@ theorem specInv_advanceCommitIndex {σ σ' : State} {i : ID} (h : SpecInv σ) (h
               (σ.getConfig i)) (σ.s i).log.length with h0 | ⟨n, h1, h2, h3⟩
           · rw [h0]; constructor <;> omega
           · rw [h1]
-            obtain ⟨k, hk⟩ := isQuorum_nonempty h3
-            have hk := (List.mem_filter.mp hk).2
+            obtain ⟨k, hk0⟩ := isQuorum_nonempty h3
+            have hk := (List.mem_filter.mp hk0).2
             simp only [decide_eq_true_eq] at hk
-            have := a3 k
+            have := a3 k (hcfg k (List.mem_filter.mp hk0).1)
             constructor <;> omega
         · exact ⟨a2, hcw⟩)
     apply specInv_upd_commit h rfl rfl rfl rfl rfl rfl
@@ -1203,7 +1206,7 @@ theorem specInv_becomeLeader {σ σ' : State} {i : ID} (h : SpecInv σ) (hi : i 
         rw [hm, hpm, hT, hL]
         have hd : (σ'.s l).durable = (σ.s l).durable := by rw [hs]; simp
         rw [hd, hC, hpers]
-        refine ⟨Int.le_refl _, hcw l (hsrv ▸ hl) rfl, fun k => ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨Int.le_refl _, hcw l (hsrv ▸ hl) rfl, fun k _ => ?_, ?_, ?_, ?_, ?_⟩
         · rw [hs]; simp only [↓reduceIte]; split <;> omega
         · intro x hx hs' hty ht; have := c1 x (List.mem_append_left _ hx) hs' hty; omega
         · intro x hx hs' hty ht; have := c1 x (List.mem_append_right _ hx) hs' hty; omega
@@ -1211,7 +1214,7 @@ theorem specInv_becomeLeader {σ σ' : State} {i : ID} (h : SpecInv σ) (hi : i 
         · intro x hx hd' hty ht hsc; have := c2 x (List.mem_append_right _ hx) hd' hty hsc; omega
       · rw [hne l hli] at hll ⊢
         rw [hm, hpm]
-        exact hD l (hsrv ▸ hl) hll
+        simpa [hsrv] using hD l (hsrv ▸ hl) hll
     · intro x hx; unfold MsgTermOk; rw [hT, hT]; exact hTm x (hmsg ▸ hx)
     · intro l hl hc
       have hli : l ≠ i := by rintro rfl; rw [hsi] at hc; exact candidate_ne_leader hc.symm
