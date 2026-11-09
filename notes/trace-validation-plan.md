@@ -651,6 +651,37 @@ one); every server's configuration smaller than `2^62` (`QuorumLogInv`, `IsQuoru
 `LeaderCompletenessInv` (it calls `CurrentLeaders`, `spec.go`'s, whose spec is on
 `trace-check-layerc-spec`) and so `Violated` (also needs the package fact to give `Invariants`'
 closures, `Base.lean`'s `True` until S6). No disagreement between the Go and the transcription.
+**`trace.go` proved, but for the functions over unspecified callees and `NewTrace` (2026-11-09, branch
+`trace-check-layerc-trace`).** Specs and complete proofs (no `sorry`, no axiom), each against its
+`Tla/Trace.lean` definition: `parseID`, `toSet`, `isMessageEvent`, `traceError`, `Trace.Len`, `Trace.Event`,
+`Trace.Init`, `TState.Equal`, `indexOf` (the first index `findIdx?`, or `-1`), `logline`, `loglineIsEvent`,
+`loglineIsNodeEvent`, `loglineIsMessageEvent`, `line.msgType`, `line.isAppendEntriesRequest`,
+`isAppendEntriesResponse`, `isRequestVoteRequest`, `isRequestVoteResponse`, `line.stateMatches`,
+`line.confChange`, `validatePreStates`, `validatePostStates`, `oneMoreMessage`, `oneLessMessage`,
+`newPending` (over a closure's spec: a method value, or a closure proved in place),
+`validateAfterAppendEntries`, the actions `becomeLeaderIfLogged`, `clientRequestIfLogged`,
+`advanceCommitIndexIfLogged`, `appendEntriesIfLogged`, `heartbeatIfLogged`, `appendEntriesToSelfIfLogged`,
+`timeoutIfLogged`, `readyIfLogged`, `stepDownToFollowerIfLogged`, `isBecomeFollowerInUpdateTermOrReturnToFollower`,
+`skipUnusedLogline`, and `receive`. The package fact (`Base.lean`) now holds the three tables
+(`RaftMsgType`, `RaftMsgSubtype`, `ReceiveMessageTraceNames`) at their literals, which S6's
+initialization proof must establish; `TraceRead.lean` reads them as the transcription's functions and
+adds `tstateRO` (a `TState`), `linePtrRO`, `statesOut`/`tstatesOut` (fresh successor slices) and the
+proof tactics (`open_trace`, `open_lineP`, `ret_nil`, `ret_single`); a local `go.NotInterface go.string`
+(`Role.String()` on a constant; `notes/perennial-changes.md`). Premises `CheckTrace`'s loop invariant
+must supply: a position `1 ≤ l` (and `l ≤ len` where the Go reads the line before checking), the
+callee actions' premises (servers of the state, `Bag.Ok`, bounds), `appendEntriesIfLogged`/
+`heartbeatIfLogged` where the Lean evaluates (`= .ok sts`), and for `receive` every message of the
+state meeting `State.Receive`'s premises (no pre-vote message or snapshot, `prevLogIndex` in
+`[0, 2^62 - 1)`, entries and the destination's log below `2^62`). No `int` premise beyond those: the
+Go's `b != ev.Index+1` and `e != b+ev.Entries` wrap only away from the small `b`, `e`
+(`add_eq_iff_small`), and `oneMoreMessage`'s `before+1` only past any count. Left: the functions whose
+callees `spec.go` does not specify (`requestVoteIfLogged`: `RequestPreVote`; `preTimeoutIfLogged`,
+`ignoreInLeaseIfLogged`, `sendSnapshotIfLogged`, `changeConfIfLogged`, `applySimpleConfChangeIfLogged`,
+`restartIfLogged`), so `nonReceive` and `Next`; `StepLine` (`Violated`); `TraceError.Error` (no
+transcription); and `NewTraceWith`/`NewTrace` (not started: its closures, the `last` map and the
+bootstrap loops against `newTraceWith`'s `mapM`s; compared by reading, no disagreement found:
+the same checks in an order that changes only which error, `TraceServer`'s ids in another order
+before `SetIds.mk`). No disagreement between the Go and the transcription.
 
 ### D. The harness and Main (the workload)
 
