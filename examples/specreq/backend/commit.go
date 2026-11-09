@@ -16,8 +16,9 @@ import (
 // server.go's Cleanup (the backend's Close), etcdutl's offline tools.
 // Assumes: the caller owns the Alarm bucket's cells; nothing else uses the backend; no crash
 // (a crash leaves the file at one of the committed images: beHist).
-// Specs: New.spec (beFile), UnsafeCreateBucket.spec, UnsafePut.spec, Unlock.spec,
-// backend.Close.spec (beFinal, beFile), beHist_final, beFinal_cur, readTx.RLock.spec,
+// Specs: New.spec (beOpenUpd from the owned beFile), UnsafeCreateBucket.spec, UnsafePut.spec,
+// Unlock.spec, backend.Close.spec (beFinal; the file through beCloseUpd from the owned beHist),
+// beHist_final, beFinal_cur, readTx.RLock.spec,
 // readTx.UnsafeRange.spec.
 func ReqReopen(lg *zap.Logger, path string, k, v []byte) {
 	be := openBackend(lg, path, nil)

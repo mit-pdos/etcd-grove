@@ -92,7 +92,7 @@ holds.
 * `reqPrin_root`: the principal of the lessor's revocations' `WithRoot(s.ctx)` (verify round,
   A7-completeness F5).
 * `SrvCallTriple e P B γ p tls rq rep reply`: the three-outcome call shape. `SrvCallTripleF … F` with a fact `F σ σ' res` in
-  outcome 1; `srvAt s γ ep` (member `s` serves endpoint `ep`), `srvLeaseFact` (2a's `leaseFact`),
+  outcome 1; `srvAt s γ ep` (member `s` serves endpoint `ep`: 2e's since repair3-boot), `srvLeaseFact` (2a's `leaseFact`),
   `srvLeaseLbOpt` (recheck RR-1, client-core's request 2).
 * `txnMsgDepth` (3h's).
 
@@ -569,18 +569,10 @@ def SrvCallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p tls : Principal)
 
 /-! ## The lease requests' member view (recheck RR-1, client-core's request 2) -/
 
-/-- **Member `s` of `γ` answers the clients at endpoint `ep`** (persistent; provisional: introduced
-where the member's gRPC server is bound to `ep`, requested of 2a/2e). The bridge between 2c's
-member and W0's per-endpoint `leaseViewLb γ ep`. Intended realization: `leaseViewLb γ ep j` is
-`∃ s, srvAt s γ ep ∗` (member `s`'s lessor has reflected lease table `j`: its applied index past
-the `j`-th grant or revocation, from 2d's `srvApplied`, its lessor only moving forward), one member
-per endpoint (`srvAt_agree`). -/
-opaque srvAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (ep : GoString) : IProp GF := iprop(True)
-
-def srvAt_persistent.spec : Prop := ∀ s γ ep, Persistent (srvAt (GF := GF) s γ ep)
-
-def srvAt_agree.spec : Prop := ∀ s s' γ γ' ep,
-  srvAt (GF := GF) s γ ep ∗ srvAt s' γ' ep ⊢ ⌜s = s' ∧ γ = γ'⌝
+-- `srvAt s γ ep` (member `s` answers the clients at `ep`) is 2e's (`ApiBoot.lean`, repair3-boot:
+-- transparent, `srvFields s γ id ∗ srvEp γ ep id`, introduced at the serving start by
+-- `srvEp_reserve`; was a provisional opaque here, with `srvAt_agree`'s `s = s'`, false of a member
+-- restarted at its address).
 
 /-- The caller's lease-view bound, if any (`vi`). -/
 def srvLeaseLbOpt (γ : Cluster) (ep : GoString) (vi : Option Nat) : IProp GF :=

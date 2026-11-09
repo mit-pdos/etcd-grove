@@ -164,8 +164,8 @@ func ReqRestart(name, peerAddr, clientAddr string, lg *zap.Logger) {
 // the cluster has for those URLs.
 // Users: etcd's documented runtime reconfiguration (etcdctl member add; then a start with
 // --initial-cluster-state existing); the integration framework's AddMember.
-// Assumes: the program reserved peer2's addresses (urls_reserve: urlsRight, which AddMember takes,
-// and memberJoin, which the start takes) and holds name2+".etcd" fresh. With this repository's
+// Assumes: the program reserved peer2's addresses (urls_reserve, spending a share of urlsReserve:
+// urlsRight, which AddMember takes, and memberJoin, which the start takes) and holds name2+".etcd" fresh. With this repository's
 // starters, s1's peer address serves only the raft handler, which answers bootstrap's GET /members
 // with 404: NewServer then returns an error (the trusted bootstrap's join case; etcd's own peer
 // handler, etcdhttp.NewPeerHandler, has no spec yet: batch-2e.md Q8), so the panic below is checked
@@ -315,12 +315,13 @@ func ReqStopDrained(s *etcdserver.EtcdServer) {
 // Assumes: the program keeps the member's diskState (and etcdState) in its crash invariant and its
 // crash frame applies disk_crash with the old generation's crashed and the OS's crash rest; the
 // WAL a restart reads meets Wal.Recs.crashScopeOk (W0's environment premise: at most one conf
-// change above the stored commit, no snapshot record above it); the crash is not inside the
-// backend's open (backend.New takes the file in its precondition: a recorded gap,
-// verify/repair2-crash.md); k was put before the crash by a client that got an answer.
+// change above the stored commit, no snapshot record above it); k was put before the crash by a
+// client that got an answer. (The backend's open and close move the file through the disk's state
+// by 4a's beOpenUpd/beCloseUpd: no window, repair3-boot.)
 // Specs: disk_crash, diskIdle_agree, memberStart_disk, NewServer.spec, EtcdServer.Start.spec, the
 // request path's Range (2c); across the crash: EtcdModel.etcdState_gen, etcdLb_gen, envUpd_gen,
-// srvNet_gen, Rafthttp.peerAddr_gen (the program serves the raft handler again).
+// srvNet_gen, Rafthttp.peerAddr_gen (the program serves the raft handler again), srvEp_gen and
+// Http.protoAt_gen (the client address: srvAt again from the new srvFields).
 func ReqCrashRecover(name, peerAddr, clientAddr string, lg *zap.Logger) {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
 	s, err := etcdserver.NewServer(memberConfig(name, peer, clientAddr, types.URLsMap{name: peer},

@@ -705,7 +705,10 @@ lessor named `γl` persisting to `be`** (persistent): what the apply thread turn
 `B`, `⌜be = GoInterface.ok (Mvcc.storageVal B)⌝ ∗ Mvcc.mvccDeleter rd γ ∗ Mvcc.mvccLessorIs γ γl ∗
 □ (Mvcc.kbHeld B ∗-∗ Lease.beTxHeld be)` (3e's `Mvcc.mvccDeleter_rdOk`'s premises; the last is 4a's
 `Backend.leaseTxHeld_intro`). Introduced with `kvOk` and `kvSt` by 2d's `EtcdServer.srvStores_kv`
-(from `NewStore`'s post, which sets the deleter; after a snapshot, `applySnapshot`'s new store). -/
+(from `NewStore`'s post, which sets the deleter, `kvstore.go:117`/`watchable_store.go:107`; after a
+snapshot, the server's closure `func() lease.TxnDelete { return s.kv.Write(…) }` that
+`applySnapshot` passes to `lessor.Recover`, `server.go:1087`, over `s.kv`; verify-round cleanup,
+RR-grpc-auth: was "`applySnapshot`'s new store"). -/
 opaque kvDelOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (kv : GoInterface) (γl : Lease.Names) (be : GoInterface) (rd : GoFunc) :
     IProp GF := iprop(True)
 

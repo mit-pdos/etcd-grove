@@ -631,7 +631,9 @@ answers `ErrSnapOutOfDate`, needing no term). What R1's `storedLb_mono` rests on
 def logStored_mono.spec : Prop :=
   ∀ l (i j : Nat) (t : w64), j ≤ i → logStored (GF := GF) l i t ⊢ ∃ t', logStored l j t'
 
-/-- **Floors are downward closed** in the same sense (R1's `appliedLb_mono`). -/
+/-- **Floors are downward closed** in the same sense (R1's `appliedLb_mono`). In both laws `t'` is
+the committed log's term at `j` (so `logFloor_agree` stays consistent; verify-round cleanup,
+RR-raft-core's gloss). -/
 def logFloor_mono.spec : Prop :=
   ∀ l (i j : Nat) (t : w64), j ≤ i → logFloor (GF := GF) l i t ⊢ ∃ t', logFloor l j t'
 

@@ -149,8 +149,9 @@ cluster's resources serve every generation (`EtcdModel.etcdState_gen`, `etcdLb_g
 user's decision, open question 2.8): every crash leaves each member's WAL so that `Open` + `ReadAll`
 returns records meeting `Wal.Recs.crashScopeOk` (at most one conf-change entry above the stored
 commit, `issues/raft-commit-lost-with-entries-kept.md`; no snapshot record above it), the case
-`disk_crash`'s `crashOutOfScope` names. Two recorded gaps: a crash inside the backend's open
-(`backend.New` takes the file in its precondition), and how the crash frame takes `diskState` out
+`disk_crash`'s `crashOutOfScope` names. Recorded gaps: the old backend still open at
+`applySnapshot`'s rename (`server.go:1068,1144`); a first boot's backend file with no durable name
+after `Close` (no directory fsync; `repair3-boot.md`); and how the crash frame takes `diskState` out
 of an invariant the running server opens inside callees' atomic updates (Perennial: a crash-aware
 invariant, `notes/perennial-changes.md`).
 

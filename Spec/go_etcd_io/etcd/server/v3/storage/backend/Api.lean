@@ -118,6 +118,17 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
   bucket only one with no `Fh` cell.
 * `beSynced γ` (persistent, `UnsafeNoFsync` off), `beDurInv γ p` (persistent: the file's crash
   invariant): the crash law (`Durable.lean`).
+* **The file moves between the client's crash state and the backend's at two atomic steps**
+  (repair3-boot, the crash pass's requests 1 and 2): the client keeps the file's crash state in an
+  invariant (outside `beFileN`, the namespace of the backend's file invariants), closed
+  (`beFile p o`) or open (`beDurInv γ p ∗ beSynced γ ∗ beHist γ L`), with its revert state
+  `beRevs p os` beside it throughout. `New` takes the closed file through the update `beOpenUpd`,
+  fired at bbolt's open (4c's `fileHolds_alloc` and 4a's allocation of the history: a ghost step), which
+  puts the open file's crash state in its place; `Close` gives it back through `beCloseUpd`, fired
+  at the release after bbolt's `DB.Close` (4c's `boltRelease`), which takes the history and puts the
+  closed file in its place. So at every point a crash finds one of the two forms in the client's
+  invariant: `beFile_crash` or `beCrash` applies (4c's `Open` and `DB.Close` keep the file in
+  `boltFile`'s crash invariant throughout, closed or open).
 * `dbOpenOk cfg` (opaque `Prop`): **the environment premise**: bbolt's `Open` of `cfg.Path` with
   the backend's options succeeds (the file is a bbolt database or absent, the lock is free or
   `Timeout` is zero, the mmap of `MmapSize` succeeds). `newBackend` panics otherwise.
@@ -647,11 +658,33 @@ def ignOk (ign : GoFunc) : IProp GF :=
 def bktsOk (Bs : BktInfo → Prop) : Prop :=
   ∀ a b, Bs a → Bs b → (a.id = b.id ∨ a.name = b.name) → a = b
 
-/-- **What `New` hands its client's allocation step**: the history at the file's image, the whole
-image (batch and visible), the reader slots, the open token, the hook (none), the delete right. -/
+/-- **What `New` hands its client's allocation step**: the whole image (batch and visible), the
+reader slots, the open token, the hook (none), the delete right. (repair3-boot: the history
+`beHist γ [I]` is no longer here: `beOpenUpd`'s commit puts it in the client's crash state.) -/
 def beNew (γ : BeNames) (I : Image) : IProp GF :=
-  iprop(beHist γ [I] ∗ beCur γ Fp.all I ∗ beVis γ Fp.all I.flushed ∗ beRdToks γ beReaderN ∗
+  iprop(beCur γ Fp.all I ∗ beVis γ Fp.all I.flushed ∗ beRdToks γ beReaderN ∗
     beOpen γ 1 ∗ beHook γ (DFrac.own 1) func.nil ∗ beDel γ)
+
+/-- **The namespace of the backend's file invariants** (4c's `boltFile`, 4a's history authority):
+the masks of `beOpenUpd`/`beCloseUpd` leave it to the backend. -/
+def beFileN : Namespace := nroot .@ "etcdBackendFile"
+
+/-- **The open's update** (repair3-boot, the crash pass's request 1): fired by `New` at bbolt's
+open, a ghost step; takes the closed file at `p` holding `o` out of the client's crash state and
+puts the open file's in its place: its crash invariant, crash safety (with `UnsafeNoFsync` off),
+the history at the file's image. `R γ` is the client's, handed to its allocation step. A client
+with no invariant builds it from `beFile p o` it owns (`R γ` then holds what the commit gives). -/
+def beOpenUpd (p : GoString) (o : Option Image) (ns : Bool) (R : BeNames → IProp GF) : IProp GF :=
+  iprop(AU <{ beFile p o }> @ ⊤ \ ↑beFileN, ∅
+    <{ ∀∀ (γ : BeNames), beDurInv γ p ∗ (if ns then iprop(True) else beSynced γ) ∗
+        beHist γ [o.getD Image.empty], COMM R γ }>)
+
+/-- **The close's update** (repair3-boot, the crash pass's request 2): fired by `Close` at the
+release after bbolt's `DB.Close`; takes the history out of the client's crash state and puts the
+closed file, at its last image, in its place. `Q I` is the client's, returned by `Close`. -/
+def beCloseUpd (γ : BeNames) (p : GoString) (Q : Image → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (L : List Image), beHist γ L }> @ ⊤ \ ↑beFileN, ∅
+    <{ ∀∀ (I : Image), ⌜L.getLast? = some I⌝ ∗ beFile p (some I), COMM Q I }>)
 
 end vocab
 

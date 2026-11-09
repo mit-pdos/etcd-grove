@@ -32,6 +32,18 @@ environment premise `dbOpenOk` (the memory note: environment failures are premis
 thread token for the run loop (no pool), the buckets (T4), the hooks' footprint (T1, T2), the crash
 invariant and the `UnsafeNoFsync` mode (T4).
 
+**Changes** (repair3-boot, the crash pass's request 1 to backend-schema): the file is taken through
+the update `beOpenUpd` (was `beFile cfg.Path' o` in the precondition), fired at bbolt's open: the
+ghost step before `bolt.Open` (`backend.go:233`) runs 4c's `fileHolds_alloc` on the file the update
+hands over (in `beFileN`), allocates the history `beHist γ [I]` and its authority (with a share of
+`boltState`, in `beFileN`) and commits with `beDurInv γ p` (`boltFile`), `beSynced γ` and the
+history, which the client's crash state takes in place of the file. 4c's `Open` supports it: it
+takes `boltFile γ ∗ boltClosed γ` and keeps the file in `boltFile`'s crash invariant throughout
+(closed, then open; an error closes it again, excluded here by `dbOpenOk`). So a crash at any point
+of `New` finds the file in the client's crash state, closed before the open and open after it
+(`beFile_crash`, `beCrash`): the window `OpenBackend` recorded is gone. The history left `beNew`;
+the client's `R γ` (the update's `COMM`) goes to its allocation step.
+
 **Margin.** The configuration's batch interval and limit, the freelist type and the metrics are
 not stated. **Scope** (filed, 4c's D13): `Mlock` off (`--experimental-memory-mlock` excluded: bbolt's
 file model has no `mlock`). **Modes**: `UnsafeNoFsync` is recorded (`beSynced` only when off): with it
@@ -60,17 +72,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`New(cfg)`**: a backend over the file at `cfg.Path` holding `o` (none: a new, empty file), with
-the hooks `cfg.Hooks` (writing the cells `Fh`) and the buckets `Bs`; the client's allocation step gets
+/-- **`New(cfg)`**: a backend over the file at `cfg.Path` holding `o` (none: a new, empty file),
+taken from the client's crash state at the open (`beOpenUpd`), with the hooks `cfg.Hooks` (writing the cells `Fh`) and the buckets `Bs`; the client's allocation step gets
 the fresh ghost state at the file's image and chooses the batch lock's resource `Pk γ`. The caller's
 thread token runs the commit loop until `Close`. -/
 def New.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (o : Option Image) (Bs : BktInfo → Prop) (Fh : Fp)
-    (Pk K : BeNames → IProp GF),
+    (Pk K R : BeNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk ∗ threadTok ∗ ⌜dbOpenOk cfg ∧ cfg.Mlock' = false ∧ bktsOk Bs⌝ ∗
       (⌜cfg.NonBlockingDefrag' = false⌝ ∨ safeRegOk) ∗
-      (⌜cfg.Logger' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗ beFile cfg.Path' o ∗
-      (∀ γ : BeNames, beNew γ (o.getD Image.empty) ={⊤}=∗
+      (⌜cfg.Logger' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗ beOpenUpd cfg.Path' o cfg.UnsafeNoFsync' R ∗
+      (∀ γ : BeNames, R γ -∗ beNew γ (o.getD Image.empty) ={⊤}=∗
         Pk γ ∗ hookOk γ cfg.Hooks' Fh (Pk γ) ∗ commitOk γ (Pk γ) ∗ K γ) }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.New)) (Val #cfg))
   {{ (r : GoInterface), RET #r; ∃ (b : Loc) (γ : BeNames), ⌜r = beIface b⌝ ∗

@@ -42,7 +42,7 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
   `leaseViewLb γ ep` (`leaseFact`); `servesAt_addr` at `ep`. Verify-round relay: `leaseFact` is 2c's
   `srvLeaseFact` (an abbreviation) and the caller's bound 2c's `srvLeaseLbOpt`; the lease handlers
   and `Server.spec` meet the contract only for the endpoint `ep` the member serves (2c's
-  `srvAt s γ ep`, which `Server.spec` takes: introduced by the serving start, requested of 2e).
+  `srvAt s γ ep`, which `Server.spec` takes: introduced by the serving start, 2e's `srvEp_reserve`).
 * The first way fires only answers that are not a token or learner refusal (`firedAns`): those go
   back unfired (1c's `AttemptTriple`); 2c must not fire them at apply.
 * A definite error's code is pinned (`code e`, or `Unknown` for the two `EtcdError`s).

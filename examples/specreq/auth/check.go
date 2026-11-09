@@ -71,7 +71,7 @@ func ReqNoUser(as etcdauth.AuthStore, key []byte) {
 // check of a key and the administrator check agree with W0's permits and admin there.
 // Users: apply/auth.go:53,74,104,215,223,235 (the auth applier's checks, HasRole).
 // Assumes: called by the apply thread between two admin steps (it holds authCur, and the
-// backend's post-lock hook for HasRole's batch lock: authHook).
+// current backend (authBeCur) with its post-lock hook for HasRole's batch lock: authBeHook).
 // Specs: authStore.IsPutPermitted.spec (checkPost's ErrAuthOldRevision: rev below the store's),
 // IsAdminPermitted.spec, HasRole.spec, Revision.spec; laws: authCur_at, authAt_le, authAt_agree.
 func ReqWriterCheck(as etcdauth.AuthStore, user string, rev uint64, key []byte) {

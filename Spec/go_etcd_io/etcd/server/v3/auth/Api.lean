@@ -97,9 +97,13 @@ them, existentially). From W0: `pwHash`/`pwMatch`, `tokenUser` (`tokenUser_agree
 * `authCur γa i a`: the history's last index and state, the writer's half of `enabled`, the right
   to lock the batch transaction (4b; a lock gives the session and 4a's `beTurn`, both given back by
   the same method's `Unlock`, so nothing of them crosses a call), `bcryptCost`.
-* `authBeCur γa be`: the writer's half of a ghost variable holding `be`, whose other half `beMu`'s
-  invariant keeps with `as.be = be` (an admin method reads `as.be` under `beMu` and agrees; re-review
-  N1: no store-indexed hook, so `Recover`'s move of it leaves no stale hook behind).
+* `authBeCur γa be`: the writer's half of the field `as.be ↦{1/2} be` (with the ghost variable
+  holding `be`), whose other half `beMu`'s invariant keeps: the admin methods read `as.be` without
+  `beMu` (`store.go:433`, `UserAdd`; the writer is the only one to write it), the permission checks
+  under `beMu`'s read lock (`lockedReadTx`, `:942`) from the invariant's half, and `Recover` writes it
+  under `beMu.Lock` with both halves (`:399-402`) (re-review N1: no store-indexed hook, so `Recover`'s
+  move of it leaves no stale hook behind; verify-round cleanup, RR-grpc-auth: the field share, not
+  "read under `beMu`").
 * `tokFrom γa n`: the simple provider's map holds no token of an index above `n` (the half of the
   index bound; the other half in the map's lock invariant). JWT and no-op: `True`.
 * `authGate γa R`: `γa`'s recorded gate is `R` (a saved proposition), the provider's.

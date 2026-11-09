@@ -317,7 +317,10 @@ def Durable.next (D : Durable) (b : Batch) : Durable :=
 the first `j` of the batch's entries written (the log cut at the batch's first index; nothing
 written if `j = 0`), and hard state `hs` -- the old one or the batch's, with a commit index in
 between (a commit-only state record lost). The stored commit is then the whole truth
-(`wcommit := hs.commit`). A batch with a snapshot is not covered (`raftState_crash.spec`). -/
+(`wcommit := hs.commit`). This is the no-snapshot case; a batch with a snapshot is covered when
+nothing or all of it is written (`Durable.crashOk`, `Api.lean`, with `raftState_crash.spec`: for a
+batch with no snapshot `crashOk` is this relation). Changes: repair3-boot, the crash pass's request
+(the docstring said snapshot batches were not covered). -/
 def Durable.crashed (D : Durable) (b : Batch) (j : Nat) (hs : HardState) : Durable :=
   let es := b.ents.take j
   let D1 : Durable :=

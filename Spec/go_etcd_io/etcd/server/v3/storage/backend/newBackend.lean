@@ -1,6 +1,6 @@
 /-
 `newBackend(bcfg)` (`backend.go:199-261`): translated; internal (`New`'s body, returning the
-`*backend`). Proof sketch: `New.spec`'s. Changes: as `New`. Margin: as `New`.
+`*backend`). Proof sketch: `New.spec`'s. Changes: as `New` (repair3-boot: the file through `beOpenUpd`). Margin: as `New`.
 -/
 module
 
@@ -28,11 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- **`newBackend(cfg)`**: `New`'s backend, as a `*backend`. -/
 def newBackend.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (o : Option Image) (Bs : BktInfo → Prop) (Fh : Fp)
-    (Pk K : BeNames → IProp GF),
+    (Pk K R : BeNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk ∗ threadTok ∗ ⌜dbOpenOk cfg ∧ cfg.Mlock' = false ∧ bktsOk Bs⌝ ∗
       (⌜cfg.NonBlockingDefrag' = false⌝ ∨ safeRegOk) ∗
-      (⌜cfg.Logger' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗ beFile cfg.Path' o ∗
-      (∀ γ : BeNames, beNew γ (o.getD Image.empty) ={⊤}=∗
+      (⌜cfg.Logger' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗ beOpenUpd cfg.Path' o cfg.UnsafeNoFsync' R ∗
+      (∀ γ : BeNames, R γ -∗ beNew γ (o.getD Image.empty) ={⊤}=∗
         Pk γ ∗ hookOk γ cfg.Hooks' Fh (Pk γ) ∗ commitOk γ (Pk γ) ∗ K γ) }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.newBackend)) (Val #cfg))
   {{ (b : Loc), RET #b; ∃ γ : BeNames, isBackend γ b cfg.Path' (Pk γ) ∗ K γ ∗ beHookFp γ Fh ∗

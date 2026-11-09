@@ -54,9 +54,11 @@ its idle token, at any kind (a new member's, a joiner's, a member's files after 
 **inside** `NewServer` is `disk_crash`'s too: every durable write of the call (in `bootstrap`: the
 WAL's creation, a torn tail's repair, a snapshot backend's recovery; the backend's open) goes through
 `diskAcc` at its atomic point, so `diskState` describes the directories at every step; the files
-are not moved into the server's invariant (`srvBuilt`'s realization). The one window left is inside
-the backend's `New` (its precondition takes the file: requested of backend-schema, recorded in
-`verify/repair2-crash.md`). Statement unchanged.
+are not moved into the server's invariant (`srvBuilt`'s realization). The one window left was inside
+the backend's `New` (its precondition took the file); repair3-boot closed it (4a's `New` takes the
+file through `beOpenUpd` at bbolt's open, `Close` gives it back through `beCloseUpd`, both fired
+inside `diskAcc`; the error path's `bootstrappedServer.Close` passes the disk's `beCloseUpd`).
+Statement unchanged.
 
 **Round 1** (provability F3/F4/F7, completeness F1/F5; 2d's request): the start right carries
 the reserved peer addresses (`cluster_alloc`, `urls_reserve`: 2f's `protoAt`/`peerAddr`, so two

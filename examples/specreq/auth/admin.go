@@ -19,7 +19,8 @@ import (
 // Assumes: the apply thread, the store's only writer (authCur); each step is the committed
 // entry's (its one next state, storeNext, reached; its records fit); hashed is b64 of a hash of
 // some password (W0's pwHash); no user "u" or role "r" before; name "nobody" never added; the
-// backend's post-lock hook for each batch lock (authHook: the applier's, from the apply loop).
+// current backend (authBeCur) with its post-lock hook for each batch lock (authBeHook: the
+// applier's, from the apply loop).
 // Specs: authStore.{RoleAdd,UserAdd,UserGrantRole,UserGet,HasRole,UserDelete,RoleGrantPermission,
 // AuthEnable,AuthDisable,IsAuthEnabled}.spec
 // (AdminTriple, storeNext, admStep); laws: authCur_at.
@@ -59,7 +60,8 @@ func ReqAdminSteps(as etcdauth.AuthStore, hashed string) {
 // user never passes.
 // Users: v3_server.go:893 (EtcdServer.UserAdd hashes and encodes), :853 (Authenticate's
 // CheckPassword); apply/backend.go:167.
-// Assumes: the apply thread adds the user (no user "v" before; the post-lock hook, authHook);
+// Assumes: the apply thread adds the user (no user "v" before; authBeCur and the post-lock hook,
+// authBeHook);
 // auth is on and stays on, and no
 // other step changes "v" (the caller's workload); pw at most 72 bytes.
 // Specs: bcrypt GenerateFromPassword.spec, CompareHashAndPassword.spec; W0's pwHash_match;

@@ -3,9 +3,9 @@
 
 **Users.** `streamWriter.run` (the msgappv2 stream).
 
-**Proof sketch.** `isLinkHeartbeatMessage`; an `AppEntries` frame when `index`, `logTerm`, `term` match the state (the entries' sizes and encodings, `MarshalAppend` into the buffer, the commit), else a full frame (`binary.Write`, `proto.Size`, `MustMarshalMessage`) and the state from the message; `FollowerStats.Succ` (2e: no-op). The shape premise is what makes the short frame's decoding equal `m` (`sendable`).
+**Proof sketch.** `isLinkHeartbeatMessage`; an `AppEntries` frame when `index`, `logTerm`, `term` match the state (the entries' sizes and encodings, `MarshalAppend` into the buffer, the commit), else a full frame (`binary.Write`, `proto.Size`, `MustMarshalMessage`) and the state from the message; `FollowerStats.Succ` (2e: no-op). The shape premise is what makes the short frame's decoding equal `m` (`sendable`). The full frame's next state is the last entry's `GetIndex()`, which `msgPts_msgAt`'s `msgWf` (entries numbered from `Index + 1`) makes `m.index + |m.entries|`, `v2Frame`'s.
 
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (A8 F8): `v2Frame` transparent (was opaque); the premise adds `dst ≠ 0` (a peer's id, which `msgChanAt` carries: `peer.send` takes `m.to ≠ 0`), without which `sendable` says nothing and the short frame would not be `v2Frame`'s.
+**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (A8 F8): `v2Frame` transparent (was opaque); the premise adds `dst ≠ 0` (a peer's id, which `msgChanAt` carries: `peer.send` takes `m.to ≠ 0`), without which `sendable` says nothing and the short frame would not be `v2Frame`'s. verify-round (R-A8 S3): the sketch says where the full frame's consecutive indexes come from (`msgPts`'s `msgWf`); no premise added, statement unchanged.
 
 **Margin.** None.
 -/

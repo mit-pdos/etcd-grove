@@ -31,6 +31,13 @@ Verify round, crash pass: `Snap.revertSt` is 4a's list form `Backend.beRevs` (th
 provable (R-A8 N3's list form). The one crash window left is inside `New` (`OpenBackend`'s recorded
 gap). Statement unchanged.
 
+Changes: verify-round (repair3-boot, the crash pass's request 1): the rename's update now also puts
+the renamed file (`beFile path (some img)`) in the caller's state, beside the revert list, and the
+caller's continuation `Q (some img)` gives `OpenBackend`'s `Backend.beOpenUpd` of it (4a's `New`
+fires it at bbolt's open) with the allocation step over its `R γ`. So the renamed file is never in
+the call alone: a crash between the rename and the open finds it in the caller's state (the
+re-review's text said so of the old statement, which kept it in the call). The window is closed.
+
 **Margin.** The error's cause is not stated.
 -/
 module
@@ -64,7 +71,7 @@ snapshot's index renamed onto the backend's path (the caller's update at the ren
 def OpenSnapshotBackend.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss : Loc) (p : Loc) (dq : DFrac)
     (sn : Raft.Snapshot) (h : Loc) (ci : GoInterface) (o : Option Snap.BeImage)
-    (Bs : Backend.BktInfo → Prop) (Fh : Backend.Fp) (Pk K : Backend.BeNames → IProp GF)
+    (Bs : Backend.BktInfo → Prop) (Fh : Backend.Fp) (Pk K R : Backend.BeNames → IProp GF)
     (Q : Option Snap.BeImage → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ Zap.isLogger cfg.Logger' ∗ EtcdServer.backendBootRes cfg ∗
       ⌜diskOk ∧ cfg.MemoryMlock' = false ∧ Backend.bktsOk Bs⌝ ∗ Backend.envOk ∗ Backend.safeRegOk ∗
@@ -78,12 +85,15 @@ def OpenSnapshotBackend.spec : Prop :=
         <{ Snap.snapDbs (Config.snapDirOf cfg.DataDir') (Snap.releaseAt F (uint.nat sn.index)) ∗
             Snap.snapGone (Config.snapDirOf cfg.DataDir') (Snap.goneAdd H F (Snap.releaseAt F (uint.nat sn.index))) ∗
             (match F (uint.nat sn.index) with
-             | some _ => Snap.revertSt (Config.backendPathOf cfg.DataDir') (o :: os)
+             | some img => Backend.beFile (Config.backendPathOf cfg.DataDir') (some img) ∗
+                 Snap.revertSt (Config.backendPathOf cfg.DataDir') (o :: os)
              | none => Backend.beFile (Config.backendPathOf cfg.DataDir') o ∗
                  Snap.revertSt (Config.backendPathOf cfg.DataDir') os),
             COMM Q (F (uint.nat sn.index)) }>) ∗
-      (∀ (img : Snap.BeImage) (γ : Backend.BeNames), Q (some img) -∗ Backend.beNew γ img ={⊤}=∗
-        Pk γ ∗ Backend.hookOk γ (hooksIface h) Fh (Pk γ) ∗ Backend.commitOk γ (Pk γ) ∗ K γ) }}
+      (∀ (img : Snap.BeImage), Q (some img) -∗
+        Backend.beOpenUpd (Config.backendPathOf cfg.DataDir') (some img) cfg.UnsafeNoFsync' R ∗
+        ∀ γ : Backend.BeNames, R γ -∗ Backend.beNew γ img ={⊤}=∗
+          Pk γ ∗ Backend.hookOk γ (hooksIface h) Fh (Pk γ) ∗ Backend.commitOk γ (Pk γ) ∗ K γ) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend)) (Val #cfg)) (Val #ss)) (Val #p)) (Val #h))
   {{ (be : GoInterface) (err : GoInterface), RET (PairV #be #err); Raft.snapshotPts p dq sn ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (b : Loc) (γ : Backend.BeNames), ⌜be = Backend.beIface b⌝ ∗

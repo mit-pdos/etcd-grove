@@ -51,7 +51,8 @@ func ReqCloneSnapshot(s *pb.Snapshot) *pb.Snapshot {
 // (RawNode.Bootstrap marshals ConfChange{AddNode, id, ctx} at each founder; raft's log matching
 // needs equal entries at equal index and term).
 // Users: bootstrap.go:52-56 (RawNode.Bootstrap), etcd's bootstrap through StartNode.
-// Assumes: ctx is non-empty (etcd's member JSON).
+// Assumes: ctx is non-empty (etcd's member JSON) and below 2^40 bytes (Marshal.spec's size premise,
+// c.fits: encSize ≤ 64 + len(ctx); as ReqMarshalDecode).
 // Specs: bootCC_lit.spec, bootCC_facts.spec (the two literals hold the one bootstrap content),
 // proto's Marshal.spec (`noMaps t → bs = marshalOut t c`); laws: noMaps_raftpb.spec,
 // bootEntryData_marshal.spec (both outputs are bootEntryData id ctx).

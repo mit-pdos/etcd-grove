@@ -41,8 +41,8 @@ The result `bootOk b γ id cfg` has one sealed part per subsystem (`ApiBoot.lean
 durable change is made through `memberStart`'s `diskAcc`, at its atomic point, so that `diskState`
 describes the directories at every step and `disk_crash` holds of a crash at any point: the
 directories' creation (nothing of `diskState`'s), the backend's open (4a's `New`: the file closed
-until the open, then the open file's history; the window inside `New` is the recorded gap of
-`OpenBackend`), `RecoverSnapshotBackend`'s rename (`Snap.dbFile_rename`'s update, the revert list),
+until the open, then the open file's history, swapped at bbolt's open by 4a's `beOpenUpd`, fired
+inside `diskAcc`: repair3-boot, no window left), `RecoverSnapshotBackend`'s rename (`Snap.dbFile_rename`'s update, the revert list),
 `wal.Create` (a temporary directory renamed onto the WAL's path, the parent fsynced before it returns:
 the kind moves from `.boot`/`.join` to `.member id` at the rename, and a crash before the parent's
 fsync may undo it, leaving no WAL and nothing of raft started), `wal.Repair` (a torn tail

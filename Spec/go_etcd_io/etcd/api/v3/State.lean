@@ -208,7 +208,7 @@ def soleMember_persistent.spec : Prop := ∀ γ, Persistent (soleMember (GF := G
 
 /-- **A share `q` of the right to reserve new peer-URL sets for `γ`** (fractional; recheck RR-1):
 `cluster_alloc` gives it whole and `urls_reserve` spends a share (2e, `etcdserver/ApiBoot.lean`;
-requested of server-boot): a program that has reserved no URL set keeps it whole and may give it
+repair3-boot): a program that has reserved no URL set keeps it whole and may give it
 up for `soleMember γ`. -/
 opaque urlsReserve [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (q : Qp) : IProp GF := iprop(True)
 

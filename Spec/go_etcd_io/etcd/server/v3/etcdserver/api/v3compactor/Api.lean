@@ -123,12 +123,12 @@ F2): once `R` holds, `Compact` at the interface's dynamic type is safe for a chi
 builds: `&CompactionRequest{Revision: rev}`, not physical, `periodic.go:142`, `revision.go:92`; second
 pass, server-core's request 2: so the server's `Compact` needs no `srvGate` share), on a goroutine
 holding a thread token. The server proves it from 2c's `EtcdServer.Compact.spec`
-(its `isServer` and gate share from `R`, the context's `ctxNoIncoming` and `reqPrin … none none` from
+(its `isServer` from `R`; no gate share at `phys = false`; the context's `ctxNoIncoming` and `reqPrin … none none` from
 2c's `ctxNoIncoming_background`/`_child`) and `envUpd`; a test's fake from its method's WP
 (`R := True`). Re-review (R-A7 N1): only at a positive revision (`0 < rev`), which 2c's
 `Compact.spec` needs (`rev ≠ 0`) and the loops guarantee: `Revision`'s skips `rev <= 0`
 (`revision.go:82`), `Periodic`'s compacts a revision `Rev()` returned, at least `1` by
-`revGetter`'s contract. -/
+`revGetter`'s contract. (Verify-round cleanup, RR-server-core: the stale "gate share" dropped.) -/
 def compactable_intro.spec : Prop := ∀ (i : GoInterfaceOk) (R : IProp GF),
   (□ (R -∗ ∀ (ctx : GoInterface) (r : Loc) (rev : Int),
       Context.ctxOk ctx ∗ Context.ctxChild (GoInterface.ok context.backgroundCtxVal) ctx ∗

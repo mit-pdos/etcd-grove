@@ -24,11 +24,14 @@ latter's spec added in the second pass, for 2c's `leaseTimeToLive`). Trusted (na
   vocabulary turns it into the fields (requested of server-core with 2c's `replyHdrOwn`).
 * `leaseURLOf γ ep url` (persistent, opaque; verify-round, server-core's RR request 2): **the lease
   endpoint `url` is `NewHandler`'s over the lessor of the member serving the clients at `ep`** in
-  cluster `γ` (the member `s` of 2c's `srvAt s γ ep`). Introduced by the serving start: embed's peer
-  handler serves `leasehttp.NewHandler(s.lessor, s.ApplyWait)` on the member's own peer URLs
-  (requested of server-boot: a law giving it for each of `s`'s own peer URLs `u`, at
-  `u ++ LeaseInternalPrefix`, from `srvAt s γ ep`). 2c reaches it for the leader's URL only under
-  W0's `soleMember γ` (the leader is the member itself).
+  cluster `γ` (the member 2e's `srvEp γ ep id` binds `ep` to, of whichever server object of it).
+  Introduced by 2e's `leaseURLOf_intro` (`etcdserver/ApiBoot.lean`, repair3-boot) for a peer URL
+  `u` of that member at a state the cluster reached, under this package's `leasePeerURL (u ++
+  LeaseInternalPrefix)` (embed's peer handler serves `leasehttp.NewHandler(s.lessor, s.ApplyWait)`
+  on the member's own peer URLs; this repository's starters do not). 2c reaches it for the leader's
+  URL only under W0's `soleMember γ` (the leader is the member itself). Its heap binders are
+  explicit (repair3-boot: the section's variables gave it none, and its realization names 2e's
+  `srvEp` at the heap).
 * `ltlView γ ep url id found` (transparent, persistent): what the handler at `url` answered, as a
   per-member view: if `url` is `ep`'s member's (`leaseURLOf`), then for every view bound `i` of that
   member, the answer was read from a table `j ≥ i` of the cluster's (`etcdLb` of a state that has
@@ -79,8 +82,8 @@ relations: grpc-v3rpc's `holds_norm`). -/
 def ltlReply_norm.spec : Prop := ∀ c id, ltlReply c id ↔ ltlReply (Proto.norm c) id
 
 /-- **The lease endpoint `url` is the handler over the lessor of the member serving `ep`** (see
-the header; introduced by the serving start, requested of server-boot). -/
-opaque leaseURLOf (γ : EtcdModel.Cluster) (ep url : GoString) : IProp GF
+the header; introduced by 2e's `leaseURLOf_intro`). -/
+opaque leaseURLOf [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : EtcdModel.Cluster) (ep url : GoString) : IProp GF := iprop(True)
 
 def leaseURLOf_persistent.spec : Prop := ∀ γ ep url, Persistent (leaseURLOf (GF := GF) γ ep url)
 

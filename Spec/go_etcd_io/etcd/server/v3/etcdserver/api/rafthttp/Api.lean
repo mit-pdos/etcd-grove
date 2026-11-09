@@ -239,8 +239,8 @@ def raftProto_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (ν : Net GF),
 
 /-- **A peer address crosses a crash** (verify round, crash pass: R-A8 N1): the program serves the
 member's raft handler at the same reserved address after a restart. Realization: `peerAddr` is
-transparent over net/http's `protoAt` (whose generation-independence is requested of its owner: the
-address's reservation is the run's, `Http.reserve`) and `raftCompat` (pure over `raftProto`:
+transparent over net/http's `protoAt` (generation-independent: `Http.protoAt_gen`, repair3-boot;
+the address's reservation is the run's, `Http.reserve`) and `raftCompat` (pure over `raftProto`:
 `raftProto_gen`). -/
 def peerAddr_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (ν : Net GF) (a : GoString),
   peerAddr ν a ⊣⊢ peerAddr (hG := ⟨hG.goose_globalGS, L'⟩) ν a
@@ -462,7 +462,11 @@ stream carried) on the stream from `src` to `dst`, and the next state `st'`
   `1`, the entry count, each entry's encoding (at index `st.2 + 1 + j`) with its length, the
   commit; the index moves past the entries;
 - otherwise a full frame of a `MsgApp`: the tag `2`, then the message frame of an encoding of `m`;
-  the state is `m`'s term and its last entry's index (`m`'s index without entries).
+  the state is `m`'s term and its last entry's index (`m`'s index without entries). Go takes the
+  last entry's `GetIndex()` (`msgappv2_codec.go:146-149,251-254`); it is `m.index + |m.entries|` by
+  `msgWf`'s index rule (a `MsgApp`'s entries numbered from `Index + 1`), which the encoder's
+  `msgPts` (`msgPts_msgAt`) and the decoder's `msgEncodes` carry, so no premise of `sendable` is
+  needed (verify-round, R-A8 S3).
 The stream carries only link heartbeats and `MsgApp`s (`msgChanAt`'s `K` for the msgappv2 writer).
 -/
 def v2Frame (st : w64 × w64) (src dst : w64) (m : Msg) (fb : List w8) (st' : w64 × w64) :

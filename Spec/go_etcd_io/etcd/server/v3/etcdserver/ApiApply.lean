@@ -362,7 +362,8 @@ applies, given to the uber-applier's `smAt` while one applies; verify round, A7-
 opaque srvStores [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (σ : EtcdModel.State) : IProp GF := iprop(True)
 
 /-- (internal) **`be` is the member's current backend** (`s.be`, which `bemu` guards): the apply
-thread's half (the other in `bemu`'s invariant, for `Backend()`'s readers); a snapshot install moves
+thread's half of the field, `s.be ↦{1/2} be`, which it reads without `bemu` (`NewUberApplier`,
+`server.go:1193`; the other half in `bemu`'s invariant, for `Backend()`'s readers); a snapshot install moves
 both halves to the new backend under the write lock. Exclusive. Verify round (re-review N2). -/
 opaque srvCurBe [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (be : GoInterface) : IProp GF := iprop(True)
 

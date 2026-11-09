@@ -82,7 +82,7 @@ boundary (net/http is not verified here).
 `Serve`, `Listen` (`net.Listen`), `Listener.Close`, `NewServeMux`, `ServeMux.Handle`, `NewRequest`, `Request.WithContext`, `Header.Set`,
 `Header.Get`, `Error`, `Transport.CloseIdleConnections`; the bundles' methods (`RoundTrip`, a body's
 `Read`/`Close`, a response writer's `Header`/`WriteHeader`/`Write`/`Flush`) are inside their
-bundles. Laws: `reserve`, `handlerPool_alloc`, `reqTicket_alloc`, `reqTicket_excl`,
+bundles. Laws: `reserve`, `protoAt_gen`, `addrFree_gen` (repair3-boot), `handlerPool_alloc`, `reqTicket_alloc`, `reqTicket_excl`,
 `mux_handlerOk`, `respW_agree`, `handlerOk_agree`, `handlerOk_narrow`, `NewBuffer_reader`,
 `MultiReader_reader`, persistence.
 -/
@@ -366,6 +366,19 @@ def persistent.spec : Prop :=
 /-- **Reserve an address** for a protocol, once (before or after its bind). -/
 def reserve.spec : Prop :=
   ∀ (a : GoString) (P : Proto GF), addrFree (GF := GF) a ⊢ |==> protoAt a P
+
+/-- **An address's reservation is the run's, not a generation's** (repair3-boot, the crash pass's
+request: `Rafthttp.peerAddr_gen`, 2e's `srvEp_gen`, and a restarted member's `Grpc.addrAt`): the
+protocol reserved before a crash is the one the address serves after it, and an address left free
+stays free. Realization: the intended model's global ghost map from addresses to saved protocols
+(the header) is in `GooseGlobalGS`, and the protocol is a saved value, not a heap resource (a
+protocol whose predicates name generation-local state is the reserver's to restate: `P` is the same
+value on both sides). -/
+def protoAt_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (a : GoString) (P : Proto GF),
+  protoAt (GF := GF) a P ⊣⊢ protoAt (hG := ⟨hG.goose_globalGS, L'⟩) a P
+
+def addrFree_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (a : GoString),
+  addrFree (GF := GF) a ⊣⊢ addrFree (hG := ⟨hG.goose_globalGS, L'⟩) a
 
 /-- **A pool of the caller's thread tokens** for a `Serve`'s handler runs (see the header). -/
 def handlerPool_alloc.spec : Prop :=

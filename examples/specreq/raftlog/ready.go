@@ -77,7 +77,8 @@ func ReqReadyCycle(l *raftLog, st *MemoryStorage) {
 // confStateFull, which MemoryStorage.CreateSnapshot takes) and data a valid snapshot's at i; no
 // snapshot pending. (Re-review N1.)
 // Specs: MemoryStorage.CreateSnapshot.spec, MemoryStorage.Compact.spec, raftLog.term.spec;
-// laws: logStor_createSnapshot.spec, logStor_compact.spec.
+// laws: logStor_createSnapshot.spec, logStor_compact.spec, raftLog_publish.spec, logFloor_stored.spec
+// (the logStored logStor_createSnapshot takes; recheck RR-raftlog-bbolt).
 func ReqCompactApplied(l *raftLog, st *MemoryStorage, i uint64, cs *pb.ConfState, data []byte) {
 	if _, err := st.CreateSnapshot(i, cs, data); err != nil && err != ErrSnapOutOfDate {
 		panic("compact-applied: snapshot refused")

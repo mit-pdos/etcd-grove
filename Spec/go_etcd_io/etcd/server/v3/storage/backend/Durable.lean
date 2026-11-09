@@ -37,6 +37,15 @@ The laws that tie 4a's file vocabulary to 4c's (`Spec/go_etcd_io/bbolt/Api.lean`
   restart finds a committed image, whose meaning the server's invariant attached at its commit),
   2e's `memberDisk`, 3c's item 4 (a session's writes land in one commit).
 
+* **Which law applies, at every point** (repair3-boot, the crash pass's requests 1 and 2): the
+  client's crash state holds the file closed (`beFile p o`) until `New`'s `beOpenUpd` fires at
+  bbolt's open, then open (`beDurInv ∗ beSynced ∗ beHist`) until `Close`'s `beCloseUpd` fires at the
+  release after `DB.Close`, then closed again (`Api.lean`'s header). Realization of the swaps: 4c's
+  `fileHolds_alloc` (at the open) and `boltRelease` (at the close, with the history authority's
+  share of `boltState`, freed by the client's `beHist`), both in `beFileN`; 4c's `Open` and
+  `DB.Close` keep the file in `boltFile`'s crash invariant between them. `beCrash` before the
+  swaps was not true after `Close` returned (the post gave the file away while the client kept the
+  history: two laws for one file, `beCrash`'s without the file's resources).
 * `beFile_crash` (verify round, crash pass: R-A8 N4): **a closed file at rest crosses a crash**
   unchanged (a bbolt file's last commit was fsynced before `Close`), or reverted to a previous file
   of a pending rename; 2e's `disk_crash` uses it for a member whose backend is closed (before

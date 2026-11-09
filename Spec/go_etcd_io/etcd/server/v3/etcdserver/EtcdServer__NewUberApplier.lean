@@ -7,7 +7,7 @@ transaction limits, the warning threshold).
 **Users**: `NewServer` (step 6), `applySnapshot` (after the new backend is installed).
 
 **Proof sketch**: read the fields (`srvNode`; `s.KV()` by `KV.spec` at `srvNode_kv`'s `s.kv ↦□`, re-review
-RR2: no `isServer`, which neither caller holds; `bemu`'s read lock for `s.be`: the thread's token);
+RR2: no `isServer`, which neither caller holds; `s.be` read without `bemu`, from `srvCurBe`'s half of the field: the thread's token);
 the options' persistent part (3a's `optsOk`) from the stores' handles (`srvStores_agree`'s
 names, 3e's `kvOk`, 3c's `lessorOk` at `srvCfg`'s `mc`, 3d's `authOk`, 2e's membership), the
 server's own handles from `applyLent_opts` at the lent `applyLent s γ`, the hooks' contracts

@@ -68,6 +68,21 @@ code (reads take it shared, `Cleanup` exclusively after the server is marked sto
 fail with `ErrStopped`), would let `isServer` serve a stopped server: recorded as the fork fix the
 user may choose (`batch-2e.md` Q7).
 
+**Serving clients at an address** (repair3-boot: the relay's requests 1 and 2). A member's client
+address `ep` is bound to one member of one cluster for the whole run: `srvEp_reserve` turns the
+environment's `Http.addrFree ep` into the address's protocol (`Http.protoAt ep P`, the program picks
+`Grpc.grpcOver (etcdContract γ ep) _`, i.e. `Grpc.addrAt`) and `srvEp γ ep id` (persistent, agreeing
+in `γ` and `id`, the same at every generation: `srvEp_gen`). `srvAt s γ ep` (2c's lease specs and
+2a's `Server.spec` take it) is transparent: `srvFields s γ id ∗ srvEp γ ep id`. So a member
+restarted at its address (a new server object `s'`, after a stop or a crash) is at it again from its
+own `srvFields`, while no other member ever is: W0's `leaseViewLb γ ep` is a view of member `id`'s
+lessor, which only moves forward over the member's life in a generation (a stop's `Close` commits
+the batch: `backend.go:470-471`, and the restart's lessor is recovered from that backend). It is not
+carried across a crash (no `leaseViewLb_gen`: the batch a crash loses may hold applied grants). The
+cost: a client address serves one member id over the run (as peer-URL sets). `leaseURLOf_intro`
+gives 4b's `Leasehttp.leaseURLOf γ ep (u ++ "/leases/internal")` for the peer URLs `u` of `ep`'s
+member, under the existing deployment premise `Leasehttp.leasePeerURL` of that URL.
+
 ## Intended realization
 
 * `Cluster` holds raft's cluster names (`Raft.Cluster`, `dup = false`: 2d), the raft network `ν`
@@ -220,7 +235,8 @@ crash rule will need `UnsafeNoFsync = false`).
 `dataDirFresh_excl`, `memberBoot_timeless`, `memberJoin_excl` (W0's `urlsRight_excl`), `cluster_alloc`,
 `urls_reserve`, `disk_new`, `disk_join`, the crash laws `disk_crash`, `memberBoot_crash`,
 `memberJoin_crash`, `dataDirFresh_crash` (verify round, crash pass), `memberStart_disk`,
-`srvBuilt_closers`, and
+`srvBuilt_closers`, `srvEp_persistent`, `srvEp_agree`, `srvEp_reserve`, `srvEp_gen`,
+`srvAt_persistent`, `leaseURLOf_intro`, `soleMember_intro`, and
 the slots' introductions
 `raftNodeBootCfg_intro`, `v3rpcBootCfg_intro`, `mvccBootCfg_intro`, `backendBootRes_intro`,
 `leaseBootRes_intro`, `authBootRes_intro`.
@@ -245,6 +261,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
 public import Spec.go_etcd_io.etcd.server.v3.lease.Api
 public import Spec.go_etcd_io.etcd.server.v3.auth.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Durable
+public import Spec.go_etcd_io.etcd.server.v3.lease.leasehttp.Api
 
 @[expose] public section
 
@@ -358,6 +375,20 @@ opaque srvFields [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFuncto
 /-- **`s` is the server object of member `id` of `γ`** (persistent): built by `NewServer`. -/
 opaque srvMember [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (id : Nat) : IProp GF := iprop(True)
 
+/-- **The client address `ep` is member `id`'s of `γ`, for the whole run** (persistent; repair3-boot,
+the relay's request 1): set once, by `srvEp_reserve`, from the environment's `Http.addrFree ep`. -/
+opaque srvEp [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ep : GoString) (id : Nat) : IProp GF := iprop(True)
+
+/-- **Member `s` of `γ` answers the clients at endpoint `ep`** (transparent, persistent; was 2c's
+provisional opaque in `ApiReq.lean`): `s` is a server object of the member `ep` is bound to. Every
+server object of that member (a restart after a stop or a crash) is at `ep`; no other member is.
+The bridge between 2c's member and W0's per-endpoint `leaseViewLb γ ep`, whose intended realization
+is member `id`'s (2d's applied view: `leaseViewLb γ ep j` is `∃ id, srvEp γ ep id ∗` member `id`'s
+lessor has reflected lease table `j` in this generation, the lessor only moving forward over the
+member's life, restarts after a stop included). -/
+def srvAt (s : Loc) (γ : Cluster) (ep : GoString) : IProp GF :=
+  iprop(∃ id, srvFields s γ id ∗ srvEp γ ep id)
+
 /-- **`s` is built from `cfg` and not started** (exclusive). -/
 opaque srvBuilt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (id : Nat)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF := iprop(True)
@@ -387,9 +418,11 @@ opaque readyCh [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 
 /-- **The backend `be` at file `p`, closable**: 4a's handle with its whole open token and its
 footprints, what `backend.Close` takes (verify round, server-boot's request: `OpenBackend` returns
-what `backend.New` returns, so the provisional `ServerStorage.beOpen` is gone). Exclusive. -/
-def beClosable (be : GoInterface) (p : GoString) : IProp GF :=
-  iprop(∃ (γb : Backend.BeNames) (b : Loc) (Pk : IProp GF) (F G Fh : Backend.Fp) (V : Backend.Image),
+what `backend.New` returns, so the provisional `ServerStorage.beOpen` is gone). Exclusive.
+repair3-boot: the backend's names `γb` are a parameter (the closer passes 4a's `beCloseUpd γb p`,
+whose history `beHist γb L` the client's crash state holds). -/
+def beClosable (be : GoInterface) (p : GoString) (γb : Backend.BeNames) : IProp GF :=
+  iprop(∃ (b : Loc) (Pk : IProp GF) (F G Fh : Backend.Fp) (V : Backend.Image),
     ⌜be = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b⌝ ∗
     Backend.isBackend γb b p Pk ∗ Backend.beOpen γb 1 ∗ Backend.beVis γb F V ∗
     Backend.beNoVis γb G ∗ ⌜∀ c, F c ∨ G c⌝ ∗ Backend.beHookFp γb Fh ∗ ⌜Backend.Fp.disj F Fh⌝)
@@ -420,8 +453,9 @@ readers given back, the auth store's closer, the backend's whole open token, the
 opaque srvClosers [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-- What `Cleanup` gives back (exclusive): the backend's file at rest (verify round, crash pass: in
-`diskState`, closed, deposited through `diskAcc` once `Close` returned; until then the disk holds the
-open file's `beHist`, which 4a's `beCrash` takes). -/
+`diskState`, closed; repair3-boot: deposited at 4a's `Close`'s release, through its `beCloseUpd` fired
+inside `diskAcc`, which takes the open file's `beHist` out of the disk at the same step; before it the
+disk holds that history, which 4a's `beCrash` takes, after it the closed file, `beFile_crash`'s). -/
 opaque srvClosed [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-! ## Provisional names of other batches' vocabulary (replaced at integration) -/
@@ -594,21 +628,30 @@ configured differently, 2d's `srvCfg` per member, 3a's TTL-variant histories.) V
 (`LocalAppendThread`, `LocalApplyThread`: raft's `cluster_alloc` needs it; the program computes the
 ids, `memberIdOf`, and a SHA-1 id equal to one is a 2^-63 chance etcd never checks:
 `nonissues/etcd-member-id-raft-reserved.md`). A runtime `MemberAdd` of such an id (time-salted)
-is the same chance, recorded there, not excluded by the model. -/
+is the same chance, recorded there, not excluded by the model. Changes: verify-round (client-core's
+RR-1 request, repair3-boot): the post also gives the whole `urlsReserve γ 1` (W0's right to reserve
+peer-URL sets, which `urls_reserve` spends and `soleMember_intro` gives up); realization: the
+token's ghost name is allocated with `γ`, the full fraction handed out. -/
 def cluster_alloc.spec : Prop := ∀ (ms : List Member) (hs : Member → List GoString)
     (E : CoPset),
   (∀ m ∈ ms, Types.urlsHosts m.peerURLs = some (hs m)) →
   (∀ m ∈ ms, m.id ≠ 0 ∧ Raft.isLocalTarget (W64 m.id) = false) →
   ([∗list] m ∈ ms, [∗list] a ∈ hs m, Http.addrFree (GF := GF) a) ⊢
     |={E}=> ∃ (γ : Cluster) (ν : Rafthttp.Net GF), etcdState γ (State.init ms) ∗ srvNet γ ν ∗
-      ([∗list] m ∈ ms, memberBoot γ ms m ∗
+      urlsReserve γ 1 ∗ ([∗list] m ∈ ms, memberBoot γ ms m ∗
         [∗list] a ∈ hs m, Http.protoAt a (Rafthttp.raftProto ν))
 
 /-- **A new peer-URL set** for a member to be added: its hosts reserved for the cluster's network;
-the right to give it to a member (once) and the right to join as that member (once). -/
-def urls_reserve.spec : Prop := ∀ (γ : Cluster) (ν : Rafthttp.Net GF) (urls hs : List GoString),
+the right to give it to a member (once) and the right to join as that member (once). It spends a
+share `q` of `urlsReserve γ` (not given back): every `urlsRight` comes from a share, so a holder of
+the whole `urlsReserve γ 1` knows none was minted (`soleMember_intro`). Changes: verify-round
+(client-core's RR-1 request, repair3-boot): takes `urlsReserve γ q`; realization: the cluster's
+invariant holds the spent shares beside the minted rights (a minted `urlsRight` entry exists only
+when the invariant's share is not the whole), so the whole share outside excludes any entry. -/
+def urls_reserve.spec : Prop := ∀ (γ : Cluster) (ν : Rafthttp.Net GF) (urls hs : List GoString)
+    (q : Qp),
   Types.urlsHosts urls = some hs →
-  srvNet γ ν ∗ ([∗list] a ∈ hs, Http.addrFree (GF := GF) a) ⊢
+  urlsReserve (GF := GF) γ q ∗ srvNet γ ν ∗ ([∗list] a ∈ hs, Http.addrFree (GF := GF) a) ⊢
     |==> urlsRight γ urls ∗ memberJoin γ urls ∗ [∗list] a ∈ hs, Http.protoAt a (Rafthttp.raftProto ν)
 
 /-- **A new member's disk**: its boot token and a fresh directory. -/
@@ -693,11 +736,62 @@ question A4's single-member alternative): the boot token of the only initial mem
 voter) and the whole right to reserve peer-URL sets give `soleMember γ`; the boot token is given
 back. Since every member addition takes a `urlsRight`, which only `urls_reserve` mints from a share
 of `urlsReserve γ`, no member is ever added (`examples/etcd/leaseexpiry`: `etcdstart.StartServer`
-allocates one member and reserves no URL set). Needs `cluster_alloc` to give `urlsReserve γ 1` and
-`urls_reserve` to spend a share (requested of server-boot). -/
+allocates one member and reserves no URL set). Its source: `cluster_alloc` gives `urlsReserve γ 1`
+and `urls_reserve` spends a share (repair3-boot). Realization: the reservation invariant's spent
+shares are empty (the whole share is outside), so no URL set is minted; `soleMember` is the
+persistent invariant that holds the given-up `urlsReserve γ 1` with `memberBoot`'s persistent
+record that the initial members were `[m]`. -/
 def soleMember_intro.spec : Prop := ∀ (γ : Cluster) (m : Member) (E : CoPset),
   m.isLearner = false →
   memberBoot (GF := GF) γ [m] m ∗ urlsReserve γ 1 ⊢ |={E}=> memberBoot γ [m] m ∗ soleMember γ
+
+/-! ## Serving at a client address (repair3-boot: the relay's requests 1 and 2) -/
+
+def srvEp_persistent.spec : Prop := ∀ γ ep id, Persistent (srvEp (GF := GF) γ ep id)
+
+def srvAt_persistent.spec : Prop := ∀ s γ ep, Persistent (srvAt (GF := GF) s γ ep)
+
+/-- One member of one cluster per client address (was 2c's `srvAt_agree`, `s = s'` too: false of a
+member restarted at its address, a new server object). -/
+def srvEp_agree.spec : Prop := ∀ γ γ' ep id id',
+  srvEp (GF := GF) γ ep id ∗ srvEp γ' ep id' ⊢ ⌜γ = γ' ∧ id = id'⌝
+
+/-- **Reserve a client address for member `id` of `γ`** (the serving start: `etcdstart`'s `Serve`,
+embed's `serveClients`, before `v3rpc.Server` and `Grpc.start`): the environment's `Http.addrFree ep`
+gives the address's protocol, as `Http.reserve` does (the program picks `Grpc.grpcOver (etcdContract
+γ ep) P'`, `Grpc.addrAt ep (etcdContract γ ep)`), and binds the address to the member. With
+`srvFields s γ id` (any server object of `id`: `NewServer`'s), `srvAt s γ ep`. Realization: as
+`cluster_alloc`'s reservation of peer hosts, net/http's intended realization (a global ghost map from
+addresses to saved protocols, set once, `addrFree a` its unset key) keeps beside the protocol the
+reserver's saved tag, here `(γ, id)`; `srvEp γ ep id` is the persistent entry with that tag, so
+`srvEp_agree` is the map's agreement. Once per run, as `addrFree`. -/
+def srvEp_reserve.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (id : Nat) (P : Http.Proto GF),
+  Http.addrFree (GF := GF) ep ⊢ |==> Http.protoAt ep P ∗ srvEp γ ep id
+
+/-- **The binding is the run's** (crash pass): a member restarted after a crash serves at the same
+address, as the same member, from its new `srvFields` (no `srvAt` crosses: `s` is the new
+generation's). Realization: the global map above (`GooseGlobalGS`), as `Http.protoAt_gen`. -/
+def srvEp_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (ep : GoString) (id : Nat),
+  srvEp (GF := GF) γ ep id ⊣⊢ srvEp (hG := ⟨hG.goose_globalGS, L'⟩) γ ep id
+
+/-- **The lease endpoint of a peer URL of `ep`'s member is over its lessor** (repair3-boot, the
+relay's request 2): for a member `m` of a state the cluster reached, `ep`'s member (`srvEp`), and a
+peer URL `u` of `m`'s whose lease endpoint is an etcd member's (4b's trusted deployment premise
+`leasePeerURL`, which `TimeToLiveHTTP` already takes: embed serves `etcdhttp.NewPeerHandler(lg, s)`,
+which mounts `s.LeaseHandler()` = `leasehttp.NewHandler(s.lessor, s.ApplyWait)` at
+`/leases/internal`, `etcdhttp/peer.go:44-71`, on the member's own peer listeners), the endpoint
+`u ++ "/leases/internal"` is `leaseURLOf γ ep`. True: a peer URL set names at most one member over
+the run (single-use sets: `cluster_alloc`, `urls_reserve`, `urlsRight`), so the handler at `u` is
+member `m.id`'s, of some server object of that member, whose lessor is the one `leaseViewLb γ ep`
+views (`srvAt`'s docstring). Realization: `leaseURLOf γ ep url := ∃ id, srvEp γ ep id ∗ ⌜leasePeerURL
+url⌝ ∗` the cluster's URL-set entry of `url`'s set naming `id` (persistent once the set is given).
+**Not true of this repository's starters**: `examples/lib/etcdstart` serves only `s.RaftHandler()`
+on the peer address, so `leasePeerURL` is false of its URLs (a forwarded `TimeToLive` gets a `404`,
+which `TimeToLiveHTTP` turns into `ErrLeaseNotFound`): no `leaseURLOf` there (repair3-boot). -/
+def leaseURLOf_intro.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (σ : State) (m : Member)
+    (u : GoString),
+  m ∈ σ.members → u ∈ m.peerURLs → Leasehttp.leasePeerURL (u ++ go!"/leases/internal") →
+  srvEp (GF := GF) γ ep m.id ∗ etcdLb γ σ ⊢ Leasehttp.leaseURLOf γ ep (u ++ go!"/leases/internal")
 
 end vocab
 

@@ -304,12 +304,15 @@ content `c`, `Clone` copies it). A reply's and an event's models do not distingu
 from an empty one, so `norm` keeps them; a request's range ends do (W0's `endOf`: a non-`nil`
 empty end is `"\x00"`), so a request keeps its model when its ends are `nil` or non-empty
 (`endsOk`); a client whose request has a non-`nil` empty end (`clientv3.WithRange("")`) is answered
-for the key alone, unlike W0's model of it (requested of client-core). -/
+for the key alone, unlike W0's model of it (requested of client-core). A watch create's model
+does not distinguish them either (`watchReqOwn_unfold`: its key and end are the slices' bytes,
+`createRange`), so its clause needs no `endsOk` (verify-round cleanup, RR-client's uncertain note:
+`watchReqOwn_msgAt` gives none, and a client's `WithRange("")` watch has a non-`nil` empty end). -/
 def holds_norm.spec : Prop :=
   (∀ c rq, reqHolds c rq → endsOk c → reqHolds (Proto.norm c) rq) ∧
   (∀ c m, compareHolds c m → endsOk c → compareHolds (Proto.norm c) m) ∧
   (∀ c m, requestOpHolds c m → endsOk c → requestOpHolds (Proto.norm c) m) ∧
-  (∀ c r, watchReqHolds c r → endsOk c → watchReqHolds (Proto.norm c) r) ∧
+  (∀ c r, watchReqHolds c r → watchReqHolds (Proto.norm c) r) ∧
   (∀ c b, bodyHolds c b → bodyHolds (Proto.norm c) b) ∧
   (∀ c m, respHeaderHolds c m → respHeaderHolds (Proto.norm c) m) ∧
   (∀ c m, keyValueHolds c m → keyValueHolds (Proto.norm c) m) ∧

@@ -132,7 +132,8 @@ func ReqMaintenance(be backend.Backend) {
 // backend's path, then OpenBackend).
 // Assumes: the file at path is the bytes of a snapshot of an image holding k = v (beFile_of from
 // 4c's fileHolds_image); a reader slot.
-// Specs: New.spec (beFile), Durable.beFile_of, readTx.RLock.spec, readTx.UnsafeRange.spec.
+// Specs: New.spec (beOpenUpd from the owned beFile), Durable.beFile_of, readTx.RLock.spec,
+// readTx.UnsafeRange.spec.
 func ReqOpenSnapshotFile(lg *zap.Logger, path string, k, v []byte) {
 	be := openBackend(lg, path, nil)
 	rt := be.ReadTx()

@@ -49,6 +49,11 @@ or the update back when the file already had a synced freelist (`hasSyncedFreeli
 **Proof sketch of that step.** `DB.Begin(true)` on the database just shared (`isBolt`), then
 `Tx.Commit.spec` with the instantiated update; on its error `DB.Close` (under the locks) gives
 `boltClosed γ` back.
+**Note for clients (verify-round cleanup, RR-raftlog-bbolt).** A client that holds `boltState γ 1 σ`
+itself (not in an invariant) and gets the update back unfired cannot recover `boltState` without
+firing it; firing it with `ok = false` at `D = σ.data` costs `dur` (`some [σ.data]`, or `none` under
+`NoSync`) until a `DB.Sync`. Keep the state in an invariant (the bank does: its `Sf` does not
+depend on `D`), or pass `emp` with `NoFreelistSync` on (etcd's `New`, defrag).
 
 **Margin.** `Open` also reads `Timeout`, `InitialMmapSize`, `FreelistType`,
 `NoGrowSync`, `PreLoadFreelist`, `MaxBatchSize`, ...: they change no outcome the specs state.

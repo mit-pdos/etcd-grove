@@ -27,6 +27,12 @@ premises on): requested of backend-schema (`New` taking the file through an upda
 with `beDurInv` given to the allocation step), recorded in `verify/repair2-crash.md`; until then
 `ReqCrashRecover`'s "at any point" excludes this window.
 
+Changes: verify-round (repair3-boot): **the window is closed.** The file is taken through 4a's
+`Backend.beOpenUpd` (passed on to `New`, which fires it at bbolt's open; was `Backend.beFile` in the
+precondition); the client's `R γ` goes to its allocation step. A crash inside the call finds the
+file closed in the caller's disk state (before the open) or open there (`beDurInv ∗ beSynced ∗
+beHist`, after it).
+
 The client's allocation step's `Backend.hookOk γ (hooksIface h) Fh (Pk γ)` for etcd's hooks is
 `BackendHooks.OnPreCommitUnsafe.spec` (last pass), at `Fh := hookFp`, from `hooksPkOk`.
 -/
@@ -60,11 +66,11 @@ allocation step at the file's image `o`, an empty one if there is no file). -/
 def OpenBackend.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : Loc) (ci : GoInterface)
     (o : Option Snap.BeImage) (Bs : Backend.BktInfo → Prop) (Fh : Backend.Fp)
-    (Pk K : Backend.BeNames → IProp GF),
+    (Pk K R : Backend.BeNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ Zap.isLogger cfg.Logger' ∗ EtcdServer.backendBootRes cfg ∗
       ⌜diskOk ∧ cfg.MemoryMlock' = false ∧ Backend.bktsOk Bs⌝ ∗ Backend.envOk ∗ Backend.safeRegOk ∗
-      threadTok ∗ isHooks h ci ∗ Backend.beFile (Config.backendPathOf cfg.DataDir') o ∗
-      (∀ γ : Backend.BeNames, Backend.beNew γ (o.getD Backend.Image.empty) ={⊤}=∗
+      threadTok ∗ isHooks h ci ∗ Backend.beOpenUpd (Config.backendPathOf cfg.DataDir') o cfg.UnsafeNoFsync' R ∗
+      (∀ γ : Backend.BeNames, R γ -∗ Backend.beNew γ (o.getD Backend.Image.empty) ={⊤}=∗
         Pk γ ∗ Backend.hookOk γ (hooksIface h) Fh (Pk γ) ∗ Backend.commitOk γ (Pk γ) ∗ K γ) }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.OpenBackend)) (Val #cfg)) (Val #(hooksIface h)))
   {{ (be : GoInterface), RET #be; ∃ (b : Loc) (γ : Backend.BeNames), ⌜be = Backend.beIface b⌝ ∗
