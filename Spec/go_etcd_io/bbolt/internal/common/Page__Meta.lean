@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 /-- `p.Meta()`: the address of the meta after the header (`metaLoc p`). -/
 def Page.Meta.spec : Prop :=
   ∀ (p : Loc) (dq : DFrac) (bs : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ bytesPointsto p dq bs ∗ ⌜pageHeaderSize + metaSize ≤ bs.length⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ bytesPointsto p dq bs ∗ ⌜pageHeaderSize ≤ bs.length⌝ }}
     (App (Val (p @!! go.GoType.PointerType Page.ty @!! go!"Meta")) (Val #()))
   {{ RET #(metaLoc p); bytesPointsto p dq bs }}
 

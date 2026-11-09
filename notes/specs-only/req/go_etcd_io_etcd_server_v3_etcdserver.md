@@ -1004,3 +1004,60 @@ indefinite (`srvIndef`).
 - `Authenticate` (store): an absent or password-less user is `ErrAuthFailed` exactly.
 - `WithRoot`'s users include the health checks (`api/etcdhttp/health.go:222,434`); `rootTokOk`
   stays its premise (the fork fix is the user's decision, `batch-3d.md`).
+
+
+## from 3f
+
+What the watch path needs of `srvWatchable s γ w` (2c's provisional slot, `ApiReq.lean`; realized by
+2d from mvcc's vocabulary), for 2b's facts to have an anchor:
+
+1. **The watchable store**: `∃ γm, watchableAt w γm` (`mvcc/ApiWatch.lean`), and the read updates
+   the stream's `Watch`/`Rev` fire (over 3e's `mvccState γm σ`, which the apply invariant holds):
+   `srvWatchable` hands out, per call, the update that reads the member's store state at the member's
+   applied point (as 2d's read slot does for `Rev`/`Range`).
+2. **Reader tokens** (the coordinator's decision on 3f's F3): the handlers' loops each hold one of
+   the store's reader tokens (`mvccReaders γm 1`) while they run: `srvWatchable` (or the watch
+   server's handle) must give a pool from which a stream takes two and gives them back at its end
+   (the store's `mvccTokN` with the server's own readers, or a conversion the server's invariant does
+   from its thread tokens).
+3. **The bridge from mvcc's history to the cluster's** (3f's review S5): every `mvccLb γm h` the
+   stream's facts carry gives `etcdLb γ σ` for a reached `σ` with `h` a view of `σ.kv`
+   (`KVHist.IsView`: `h.revs` a prefix, `h.compacted ≤ σ.kv.compacted`). True because the apply
+   thread fires `End`'s first (notify) update only for an entry raft committed, and `Restore` only
+   for a snapshot of a committed point: 2d's apply invariant keeps "the member's notified history is a
+   view of `histAt γ k`" for its applied (or applying) index `k`. Stated as a law of the slot:
+   `srvWatchable s γ w ∗ watchableAt w γm ∗ mvccLb γm h ⊢ |={⊤}=> ∃ σ, etcdLb γ σ ∗ ⌜KVHist.IsView σ.kv h⌝`
+   (the mask is the server's).
+Used by: 2b's `sendLoop.spec` (each response's `srvWireStep` against a reached state), `recvLoop.spec`
+(the `Created` header).
+
+## from 3e (round 1 repairs)
+
+What mvcc's specs (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`) now ask of the server
+(2d's apply and snapshot, 2e's boot, stop and compactor):
+
+1. **Reader tokens** (`mvccReaders γ n`; `NewStore`/`New` give `mvccTokN ≥ mvccTokMin = 2^28`): every
+   read of the store takes one (`Read`, `Write`, `Range`, `Put`, `DeleteRange`, `Rev`, `FirstRev`,
+   `HashByRev`, `Hash`). The server stocks them for its readers: the apply thread, the request
+   handlers (2a's header fill included), the hash checkers (`monitorKVHash`, the maintenance handlers).
+2. **The compactor's `Rev()` (2e, coordinator's decision (a))**: at boot the server turns one token into
+   a `Rev` token for the compactor's lifetime (`mvccRevTok_of`: `mvccReaders γ 1 ∗ mvccRevLent γ m ={⊤}=∗
+   mvccRevTok γ ∗ mvccRevLent γ (m+1)`); `KV.Rev.contract` with `revRd γ true` serves after `Close` and
+   after the backend's close (no storage read: the shared read transaction's lock alone). 2e's
+   `V3compactor.revGetter_intro` can be discharged from `isMvcc ∗ mvccRevTok γ` (the token in the
+   compactor's loop). **Shutdown** (`Cleanup`): `mvccClosed_rest` takes `mvccReaders γ n ∗ mvccRevLent γ m`
+   with `n + m = mvccTokN` (every other token back), the state and a backend share; it gives the
+   storage's data at an image of the state, the delete right, `mvccReaderN - m` slots and the history's
+   receipt: what 4a's close takes and what a later boot's `mvccStorageFor` needs.
+3. **No hash during a restore (2d)**: `Hash`/`HashByRev` take a share of `mvccRestoreGate γ q`, `Restore`
+   the whole (`NewStore` gives it whole). The snapshot install (`applySnapshot`) must exclude the hash
+   checkers and the maintenance `Hash`/`HashKV` (true of the pinned fork's code only by this
+   exclusion: `issues/etcd-mvcc-hash-currentrev-race.md`; the open alternative is cherry-picking
+   etcd-io/etcd#22609).
+4. **`Compact(rev)` takes `rev ≠ 0`** (W0's scope: 3a's applier must carry it from the request; a
+   negative `rev` is `ErrCompacted`).
+5. **Images** (boot, restore): `mvccStorageFor B Pk h u` holds `⌜mvccImage D h u⌝` and the receipt
+   `⧖ (evCount h)`; the server gets both from `mvccImage_obs` (the merged snapshot's sender: it now
+   takes the open token, which the apply thread holds) or from `mvccClosed_rest` (the previous run's
+   shutdown), kept with its durable state. `MvccReachable` is no longer a premise (`mvccImage_reachable`).
+   The write updates no longer hand out receipts (nothing used them).

@@ -20,7 +20,8 @@ import (
 // floor or later, and every key-value it returns is at or below its revision.
 // Users: server/etcdserver/txn/range.go:53 (a linearizable Range after the applied index reached
 // the read index), examples/mvccrand/mvccrand.go:636 (readers after the writer's published rev).
-// Assumes: the store reached floor before this call (the client's invariant: the writer published
+// Assumes: a reader token; the store reached floor before this call (the client's invariant: the
+// writer published
 // it after its End); the store is never restored below it.
 // Specs: store.Read.spec (KV.Read.contract: the update fires at the current state, whose revision
 // the caller's invariant bounds below), metricsTxnWrite.Rev/Range/End.spec; laws:
@@ -51,7 +52,8 @@ func ReqReadFloor(kv smvcc.KV, floor int64, key []byte) {
 // revision after End.
 // Users: server/etcdserver/txn/put.go:30, txn.go:32 (the apply thread is the store's sole writer;
 // txn reads the key's previous value inside its write transaction), examples/mvccrand/mvccrand.go:430.
-// Assumes: no other goroutine writes, compacts or restores the store (the caller's invariant holds
+// Assumes: two reader tokens; no other goroutine writes, compacts or restores the store (the
+// caller's invariant holds
 // the store's state); key is not empty; no lease (lease 0).
 // Specs: store.Write.spec, metricsTxnWrite.{Rev,Put,Range,End}.spec (Txn.End's two updates fired
 // at the writer's own state), store.Read.spec.
@@ -88,7 +90,7 @@ func ReqSoleWriter(kv smvcc.KV, key, val []byte) {
 // revision; one of nothing writes no revision.
 // Users: server/etcdserver/txn/delete.go:39 (deleteRange's n and the response's revision),
 // lease/lessor.go:350 (Revoke's deletes), examples/mvccrand/mvccrand.go:445.
-// Assumes: the sole writer (as sole-writer); key is present and alone in [key, end); absent is
+// Assumes: a reader token; the sole writer (as sole-writer); key is present and alone in [key, end); absent is
 // absent.
 // Specs: store.Write.spec, metricsTxnWrite.{DeleteRange,End}.spec (Txn.DeleteRange: rangeKeys of the
 // transaction's store).
@@ -111,7 +113,7 @@ func ReqDeleteRange(kv smvcc.KV, key, end, absent []byte) {
 // REQ mvcc/read-only-txn: a read transaction made a write transaction (txn's read-only path)
 // reads the same, has no changes, and ends as the read transaction.
 // Users: server/etcdserver/txn/txn.go:69, examples/mvccrand/mvccrand.go:475.
-// Assumes: nothing.
+// Assumes: a reader token.
 // Specs: store.Read.spec, NewReadOnlyTxnWrite.spec, txnReadWrite.{Rev,Range,Changes,End}.spec.
 func ReqReadOnlyTxn(kv smvcc.KV, key []byte) {
 	tr := kv.Read(smvcc.SharedBufReadTxMode, traceutil.TODO())
@@ -132,7 +134,8 @@ func ReqReadOnlyTxn(kv smvcc.KV, key []byte) {
 // count.
 // Users: server/etcdserver/txn/range.go:59-108 (executeRange: the options it passes, its error
 // mapping), txn/range.go:174 (checkRange's own check against FirstRev), examples/mvccrand/mvccrand.go:223.
-// Assumes: cur is the store's revision, crev its compaction revision (≥ 1) and no write or
+// Assumes: a reader token per call; cur is the store's revision, crev its compaction revision (≥ 1)
+// and no write or
 // compaction happens meanwhile (the caller's invariant); [key, end) holds at least two keys at cur.
 // Specs: store.Range.spec (KV.Range.contract: rangeOut), init (the error variables).
 func ReqRangeErrors(kv smvcc.KV, cur, crev int64, key, end []byte) {
@@ -166,7 +169,8 @@ func ReqRangeErrors(kv smvcc.KV, cur, crev int64, key, end []byte) {
 // Users: server/etcdserver/v3_server.go:429, 730, api/v3rpc/header.go:35 (s.KV().Rev() for headers),
 // apply/backend.go:78 (the compaction's header: Range of "compaction"), the v3compactor's
 // RevGetter (api/v3compactor/revision.go: Rev()).
-// Assumes: the caller is the sole writer (for the put's revision); no lease.
+// Assumes: a reader token per call; the caller is the sole writer (for the put's revision); no
+// lease; context.TODO() is never done (Context's laws).
 // Specs: store.{Rev,FirstRev,Range,Put}.spec (promoted from the read and write views).
 func ReqViews(kv smvcc.KV, key, val []byte) {
 	rev := kv.Rev()

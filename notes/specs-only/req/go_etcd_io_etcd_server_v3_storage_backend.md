@@ -144,3 +144,24 @@ give the server (2d, 2e) what makes a store's storage from an opened backend. In
 `backendBootRes_intro` (provisional in `ApiBoot`): from `backendEnvOk` (`ETCD_VERIFY` unset, a
 program-start fact) and `QuotaBackendBytes ≤ 8 GiB` (bbolt maps `quota + quota / 10`): state your
 slot's introduction at least this permissive.
+
+## from 3e (round 1 repairs)
+
+Changes to `Mvcc.keyBackend` (`ApiStorage.lean`) after review:
+1. **A read transaction's `UnsafeRange`** (`KeyData.rtRange`) is what `baseReadTx.UnsafeRange` computes
+   (`read_tx.go:75-121`): the read buffer's entries of the range cut at the limit, else bbolt's cut at
+   the limit less them, followed by them; an empty end only as a `nil` slice; `Meta` only one key. The
+   buffer's `Key` entries are above every committed one because a `Key` put's key is above every key
+   present (the put row's premise: mvcc's revisions). `KeyData.clean` ("the buffer holds no `Key`
+   entry"): a put clears it; an opened storage's data has it (`mvccStorageFor`), which `restore`'s
+   chunked scan relies on (it reads the first `limit` entries in key order).
+2. **Lock-only reads**: `kbRdToks_bare` turns a slot into `kbBareSlot B`, with which the shared read
+   transaction's `RLock`/`RUnlock` work at any time, also after the backend's close (a mutex). **The
+   backend's close takes `storageRest B n` for the slots not so kept** (`n = mvccReaderN - m`, `m` the
+   store's `Rev` tokens): readers holding bare slots only lock and unlock the mutex.
+3. **Slots**: the opener hands over `kbRdToks B mvccReaderN` with `mvccReaderN = mvccTokN + mvccOwnN`
+   (`Api.lean`'s `mvccReaderN_eq`, `mvccTokN ≥ 2^28`): the backend's stock must cover it.
+4. **Buckets**: `mvccStorageFor` asks `kbMade` only of the buckets that exist (a fresh member's backend
+   has `Meta` already).
+5. `mvccImage_obs` takes the store's open token; the shutdown law gives the final image
+   (`mvccClosed_rest`), so a reopen of the closed file has its `mvccImage` (item 4 of "from 3e").

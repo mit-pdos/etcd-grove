@@ -18,8 +18,9 @@ history while `s.revMu` is held); read `compactMainRev`, `currentRev` and fire t
 (the frozen API's canonical spec), over W0's history; no certificates, revision tokens, tags or
 callbacks.
 
-**Margin**: none (the state cannot change before `End` because writers wait for `s.mu`; the
-transaction's `mvccTxn` records it).
+**Margin**: none. The transaction reads the state its update saw: a writer takes `s.mu`'s read side
+too and may commit while it is open, but the read's storage snapshot and revision are fixed at its
+begin; only `Compact`/`Restore` (`s.mu` for writing) wait for it.
 -/
 module
 

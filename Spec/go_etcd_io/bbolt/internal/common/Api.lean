@@ -476,7 +476,7 @@ def freelistIds_view.spec : Prop := ∀ (p : Loc) (dq : DFrac) (bs : List w8),
     (freelistIdsSlice p bs ↦*{dq} freelistIdsOf bs -∗ bytesPointsto p dq bs)
 
 /-- **Indexing the elements slice** (`&LeafPageElements()[i]`) is element `i`'s address. -/
-def elemsSlice_index.spec : Prop := ∀ (p : Loc) (n i : Nat), i < n →
+def elemsSlice_index.spec : Prop := ∀ (p : Loc) (n i : Nat), 0 < p.addr → i < n →
   sliceIndexRef leafPageElement (i : Int) (elemsSlice p n) = elemLoc p i ∧
   sliceIndexRef branchPageElement (i : Int) (elemsSlice p n) = elemLoc p i
 

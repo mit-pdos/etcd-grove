@@ -15,9 +15,10 @@ import (
 // header's revision by a Range), apply/uber_applier.go:97 (ErrCompacted is a success),
 // server/etcdserver/v3_server.go (Compact's physical wait on the channel), examples/etcd/putgetc's
 // auto-compactor.
-// Assumes: the caller holds the store's open token (compactions are not concurrent: etcd compacts
+// Assumes: reader tokens for the reads; context.TODO() is never done (Context's laws); the caller
+// holds the store's open token (compactions are not concurrent: etcd compacts
 // from its apply thread); crev < rev ≤ cur where crev, cur are the store's (the caller's invariant
-// holds the state); rev ≥ 1.
+// holds the state); rev ≠ 0 (W0's scope).
 // Specs: store.Compact.spec (KV.Compact.contract: the hook and the commit, compactChanOk),
 // store.FirstRev.spec, store.Range.spec.
 func ReqCompact(kv smvcc.KV, rev int64, key []byte) {
@@ -52,6 +53,7 @@ func ReqCompactErrors(kv smvcc.KV, crev, cur int64) {
 	if !errors.Is(err, smvcc.ErrCompacted) || ch == nil {
 		panic("compact-errors: a compaction at the compaction revision")
 	}
+	<-ch // closed once the compactions before it ran (or never: a stopped store; no panic)
 	ch, err = kv.Compact(traceutil.TODO(), cur+1)
 	if !errors.Is(err, smvcc.ErrFutureRev) || ch != nil {
 		panic("compact-errors: a compaction past the current revision")

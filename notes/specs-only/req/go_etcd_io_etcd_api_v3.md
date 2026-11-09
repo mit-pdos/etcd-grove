@@ -393,3 +393,13 @@ Rounds 5 and 6 answer items 1-4 and 6 of "from 3d" (`pwHash`/`pwMatch`, `tokenUs
   roles sorted, `RoleGet`'s permissions sorted by key (unstable). W0's lists are "any permutation"
   (fine for 3d); if 2d/3a need the apply's answer equal to the committed one, the model must fix an
   order.
+
+
+## from 3f
+
+**`exactFrom` in W0's model** (3f's review S3): 1b's `ClientV3.exactFrom` (`client/v3/ApiWatch.lean`)
+and 3f's `Mvcc.exactFrom` (`mvcc/ApiWatch.lean`) are the same statement over `KVHist` ("every revision
+from `lo` up to the compaction revision changes each key at most once"); mvcc cannot import the
+client's vocabulary. Wanted in `Model.lean` (with `Event.key`): `EtcdModel.exactFrom`, which both then
+cite (mvcc's becomes an abbreviation), so 2b need not prove them equivalent. Used by: 3f's `wStep`,
+`progStep`; 1b's `watchStep`.

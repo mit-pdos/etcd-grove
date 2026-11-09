@@ -173,3 +173,11 @@ indefinite (`srvIndef`).
   recorded state): at the writer, exactly 3a's `rev < a.rev` (`opErr`).
 - `authStore.Authenticate`: an absent or password-less user is `errOf .authFailed` exactly; otherwise
   the provider's error (no-op: `ErrAuthFailed`) or a token.
+
+## from 3e (round 1 repairs)
+
+`KV.Compact.contract`'s channel is now `(ch : Loc)` with `Mvcc.compactChanOk ch` = `∃ γc, isChan ch γc
+Unit ∗ □ ∀ Φ, (∀ v ok, Φ v ok) -∗ recvAu γc Unit Φ` (non-`nil` on success and on `ErrCompacted`), the
+same shape as 2c's `Read.recvAny`: the applier's post `⌜ch = null⌝ ∨ Read.recvAny ch` follows by
+unfolding both to the same body (or 2c defines `recvAny` as it). The premise is `rev ≠ 0` (W0's
+scope), which the applier must carry from the request (`IrrOp.ok`).

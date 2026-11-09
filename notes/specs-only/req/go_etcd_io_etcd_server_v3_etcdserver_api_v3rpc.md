@@ -249,3 +249,36 @@ precondition, as you asked: "from 2a" item 3).
    your slot.
 4. The client address on a restart (second tier F14): the restarted member re-serves the same client
    address; your `addrAt` is persistent, which suffices.
+
+
+## from 3f
+
+**Reader tokens through the watch handler's loops** (the coordinator's decision on 3f's review F3,
+keeping the user's 2026-11-07 decision for mvcc: a call that reads mvcc's store takes one of its
+reader tokens, 3e's `mvccReaders γ 1`, and gives it back; no thread token is converted inside mvcc).
+mvcc's watch stream (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiWatch.lean`) takes one in
+`watchStream.Watch`, `Rev`, `RequestProgress`, `RequestProgressAll` (and `watchableStore.Range`,
+3e's contract, for `prevKV`). So `serverWatchStream.recvLoop` (`Watch`, `Rev`, `RequestProgressAll`)
+and `sendLoop` (`RequestProgress`, `Range`) each need a reader token of the member's store for their
+lifetime: the run (`swsAt`'s shares, `swsRecver`, `swsSender`) carries one per loop, from what
+`watchServer.Watch` gets of the member (2d's `srvWatchable`, below), given back when the loops end.
+```go
+id, err := sws.watchStream.Watch(ctx, mvcc.WatchID(creq.WatchId), creq.Key, creq.RangeEnd, creq.StartRevision, filters...)
+sws.watchStream.RequestProgress(id)   // send loop
+```
+Also from round 1: `Watch` and `Rev` fire a read atomic update of the store's state (3e's `KV.Rev`
+form), so the floor (`Created`'s header from `Rev()` after `Watch`) is at least the watcher's
+position; `Watch` gives `id = n` (the control side's next id, `wsReg_ctl`) and the package's
+`ErrEmptyWatcherRange` on refusal; a compaction response is checked against the watcher's events
+position (`posEvOf`), not its position after progress (1b's `watchStep` changes alike). Used by: 3f's
+`watchStream.*.spec`; 2b's `recvLoop.spec`, `sendLoop.spec`, `watchServer.Watch.spec`.
+
+## from 3e (round 1 repairs)
+
+`header.fill`/`fillWithoutRevision`'s `s.KV().Rev()` (`header.go:35`) is `KV.Rev.contract`: it takes a
+reader token (`mvccReaders γ 1`, given back) or a `Rev` token (`revRd γ rt`). Under the coordinator's
+decision (a), the handler lends one from its allotment (the server's stock, `req/..._etcdserver.md`,
+"from 3e (round 1 repairs)", item 1): `header.fill.spec` needs it in its precondition (with the
+store's `isMvcc` and an update over `mvccState`, or a stale-read form the server's invariant gives).
+The maintenance `Hash`/`HashKV` additionally take a share of `mvccRestoreGate` (no restore during a
+hash). Used by: `header.fill.spec`, `maintenanceServer.{Hash,HashKV}.spec`.

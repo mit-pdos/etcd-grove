@@ -30,12 +30,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `KV.Rev`'s behaviour for the store the view reads. -/
 def readView.Rev.spec : Prop :=
-  ∀ (rv : Loc) (kv : GoInterface) (γ : MvccName) (Q : MvccState → IProp GF),
+  ∀ (rv : Loc) (kv : GoInterface) (γ : MvccName) (rt : Bool) (Q : MvccState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      rv.[readView, go!"kv"] ↦□ kv ∗ isMvcc kv γ ∗ mvccReaders γ 1 ∗
+      rv.[readView, go!"kv"] ↦□ kv ∗ isMvcc kv γ ∗ revRd γ rt ∗
       AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
     (App (Val (rv @!! go.GoType.PointerType readView.ty @!! go!"Rev")) (Val #()))
-  {{ (r : w64), RET #r; mvccReaders γ 1 ∗ ∃ σ : MvccState, Q σ ∗ ⌜r = W64 σ.rev⌝ }}
+  {{ (r : w64), RET #r; revRd γ rt ∗ ∃ σ : MvccState, Q σ ∗ ⌜r = W64 σ.rev⌝ }}
 
 end spec
 end Mvcc

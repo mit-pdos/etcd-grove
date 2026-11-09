@@ -130,19 +130,19 @@ def FLState.canAlloc (F : FLState) (r : Pgid) (n : Nat) : Prop :=
   r ≠ W64 0 ∧ r.toNat + n ≤ 2 ^ 64 ∧ ∀ x : Pgid, inRun r n x = true → x ∈ F.free
 
 /-- `Allocate(txid, n)` returned `r`: the run is no longer free, and is `txid`'s. -/
-def FLState.alloc (F : FLState) (txid r : Pgid) (n : Nat) : FLState :=
+def FLState.alloc (F : FLState) (txid : Txid) (r : Pgid) (n : Nat) : FLState :=
   { F with free := F.free.filter (fun x _ => !inRun r n x), allocs := F.allocs.insert r txid }
 
 /-- `Free(txid, p)` of a page of `n` slots from `id` does not panic: no meta, no wrap, none free
 or pending, and (`Verify`'s check) not allocated by `txid`. -/
-def FLState.canFree (F : FLState) (txid id : Pgid) (n : Nat) : Prop :=
+def FLState.canFree (F : FLState) (txid : Txid) (id : Pgid) (n : Nat) : Prop :=
   2 ≤ id.toNat ∧ id.toNat + n < 2 ^ 64 ∧
   (∀ x : Pgid, inRun id n x = true → x ∉ F.free ∧ x ∉ F.pending) ∧
   (F.allocs.lookup id).getD (W64 0) ≠ txid
 
 /-- `Free(txid, p)`: the page's `n` slots are pending for `txid`, with `id`'s allocating
 transaction (`0` if not known), which `allocs` forgets. -/
-def FLState.freeRun (F : FLState) (txid id : Pgid) (n : Nat) : FLState :=
+def FLState.freeRun (F : FLState) (txid : Txid) (id : Pgid) (n : Nat) : FLState :=
   let pp : PendingPg := ⟨txid, (F.allocs.lookup id).getD (W64 0)⟩
   { F with pending := (List.range n).foldl (fun m (k : Nat) => m.insert (id + W64 (k : Int)) pp) F.pending,
            allocs := F.allocs.delete id }

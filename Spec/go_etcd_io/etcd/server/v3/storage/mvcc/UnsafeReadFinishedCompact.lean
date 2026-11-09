@@ -31,9 +31,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `UnsafeReadFinishedCompact(tx)`: the finished compaction key's main revision and whether it is
 there (`metaRev D.fin`). -/
 def UnsafeReadFinishedCompact.spec : Prop :=
-  ∀ (t : GoInterfaceOk) (R : IProp GF) (D : KeyData),
+  ∀ (t : GoInterfaceOk) (R : IProp GF) (D : KeyData) (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
-      rangeOk t R D ∗ R ∗ ⌜D.metaMade = true ∧ metaOk D.fin⌝ }}
+      rangeOk t R D (if b then KeyData.range else KeyData.rtRange) ∗ R ∗ ⌜D.metaMade = true ∧ metaOk D.fin⌝ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact))
       (Val #(GoInterface.ok t)))
   {{ (x : w64) (found : Bool), RET (PairV #x #found); R ∗ ⌜(x, found) = metaRev D.fin⌝ }}

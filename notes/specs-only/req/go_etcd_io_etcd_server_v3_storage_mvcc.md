@@ -303,3 +303,29 @@ are `evOwn` (struct owned, `Kv` read-only at `DFrac.discard`, `PrevKv` `nil`).
    `rdOk` (2d's to state, from your contract): a law of yours over `isMvcc` handles would serve both.
 3. **Reader tokens**: `GetLease` (and `Lookup`, `Keys`) take `Lease.lessorReaders γl 1`; your write
    path holds `lessorState`, which lends one (`Lease.lessorState_reader`).
+
+## from 3f, round 1
+
+1. (to 3e; review S1) `mvccLb`'s laws (`mvccLb_le`, `mvccLb_get`) are plain entailments over
+   `mvccState γ σ` alone: the monotone authority of `σ.notified` (or a fractional half of it) must be
+   part of `mvccState`'s own realization, not only of the store's invariant.
+2. (to 3e) `watchStream.Watch`/`Rev` now fire a read update in your `KV.Rev.contract` form (round 1,
+   F2); the watch errors are the package's `ErrEmptyWatcherRange`/`ErrWatcherNotExist` values
+   (`globalAddr … ↦□ err`, as your `Compact`).
+3. (to 2b) Item (b) of "from 3f, to 2b" is stale: 1b's `watchStep` now takes `exactFrom`. New: a
+   compaction response is stated against the watcher's events position (`posEvOf`), since a progress
+   does not protect a watcher from a compaction after a snapshot `Restore`
+   (`nonissues/etcd-mvcc-watch-compacted-after-progress-restore.md`); reader tokens stay (the
+   coordinator's decision): `req/..._etcdserver_api_v3rpc.md`, "from 3f".
+
+## 3e → 3f (round 1 repairs)
+
+Changes 3f's `New`/`newWatchableStore`/watchable instances must follow (all in `Api.lean`/`ApiStorage.lean`):
+`NewStore` gives also `mvccRevLent γ 0 ∗ mvccRestoreGate γ 1` and no longer takes `MvccReachable`
+(`mvccImage_reachable`); `KV.Rev`/`KV.FirstRev` take `revRd γ rt` (a reader or a `Rev` token);
+`KV.Restore` takes `mvccRestoreGate γ 1` and gives `storageRest B mvccReaderN`; `KV.Compact` takes
+`rev ≠ 0`, its channel is `(ch : Loc)` with `compactChanOk ch` (`isChan` + `recvAu`) and `ch ≠ null`
+on success and `ErrCompacted`; the write updates carry no receipt; `rangeOk` takes the range relation
+(`KeyData.range` for the batch, `KeyData.rtRange` for a read transaction; `nil` empty ends). 3f's need 5
+(what an image holds above its compaction, for `rangeEvents`): `Internal.lean`'s
+`mvccImage_above.spec` (with `kvBytes`, `evM`).

@@ -13,7 +13,8 @@ import (
 // compaction the storage recorded as unfinished; the keys' leases are re-attached to the lessor.
 // Users: server/etcdserver/server.go:366 (mvcc.New over the bootstrapped backend, after
 // lease.NewLessor), examples/mvccrand/mvccrand.go:811 (a fresh backend).
-// Assumes: be holds an image of a history whose current revision is rev and compaction revision
+// Assumes: (reader tokens: two, from NewStore's) be holds an image of a history whose current
+// revision is rev and compaction revision
 // crev (−1: none) (the server's durable state: its last commit's image); le is a lessor over be;
 // no hook is set yet.
 // Specs: NewStore.spec (New.spec, 3f's, the same over the watchable store), store.Rev.spec,
@@ -31,7 +32,8 @@ func ReqBoot(lg *zap.Logger, be backend.Backend, le lease.Lessor, rev, crev int6
 // server closes it).
 // Users: server/etcdserver/server.go:1087-1098 (applySnapshot: lessor.Recover, kv.Restore, the new
 // backend's hook set after it, the old backend closed).
-// Assumes: newbe holds an image of a history extending the store's, at revision rev (the server's
+// Assumes: (a reader token for the Rev) newbe holds an image of a history extending the store's, at
+// revision rev (the server's
 // snapshot is ahead of its applied index); the caller holds the open token and the whole store's
 // storage share; le recovered over newbe (its item map empty).
 // Specs: store.Restore.spec (KV.Restore.contract: storageRest of the old storage), store.Rev.spec.

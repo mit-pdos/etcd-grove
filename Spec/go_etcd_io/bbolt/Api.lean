@@ -53,7 +53,8 @@ updates are `⊤ \ ↑γ.ns`).
   `threadTok`; a write transaction holds `rwlock`. Read operations take any fraction; a write
   transaction's operations that change it, or its node cache, take all of it. It owns `Tx`'s
   exported field `WriteFlag` (at `0`).
-* **`txDone tx`** (persistent): `tx` was committed or rolled back.
+* **`txDone tx`** (persistent): `tx` was committed or rolled back (its statistics can be read).
+* **`txDB tx db`** (persistent): `tx` is a transaction of the `*DB` `db`.
 * **`bktH tx γ b p gs`** (persistent): `b` is `tx`'s handle of the bucket at path `p`, made when
   the generations of `p`'s prefixes were `gs` (`TxView.gens`). Its operations need `T.gens p = gs`
   (`bktH_live`: the bucket then exists). Owns nothing but `FillPercent`'s use (`boltTx_fill`).
@@ -172,6 +173,9 @@ opaque boltOpened [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (db : Loc) (γ :
 opaque boltTx [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName) (q : Qp)
     (T : TxView) : IProp GF := iprop(True)
 
+/-- `tx` is a transaction of the `*DB` `db` (persistent; what `Tx.DB` returns). -/
+opaque txDB [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx db : Loc) : IProp GF := iprop(True)
+
 /-- `tx` was committed or rolled back (persistent). -/
 opaque txDone [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) : IProp GF := iprop(True)
 
@@ -239,6 +243,10 @@ def writerOk (w : GoInterface) (W : List w8 → IProp GF) :
 def errIs (g : GoString) (err : GoInterface) : IProp GF :=
   iprop(globalAddr g ↦□ err)
 
+/-- `err` is the (non-nil) error `g` of `go.etcd.io/bbolt/errors`. -/
+def isErr (g : GoString) (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ interface.nil⌝ ∗ errIs g err)
+
 end contracts
 
 section vocab2
@@ -287,6 +295,7 @@ def persistent.spec [HasExt osFsExt] : Prop :=
   (∀ γ, Persistent (boltFile (GF := GF) γ)) ∧
   (∀ db γ ns, Persistent (isBolt (GF := GF) db γ ns)) ∧
   (∀ tx, Persistent (txDone (GF := GF) tx)) ∧
+  (∀ tx db, Persistent (txDB (GF := GF) tx db)) ∧
   (∀ tx γ b p gs, Persistent (bktH (GF := GF) tx γ b p gs)) ∧
   (∀ tx γ s b, Persistent (txBytes (GF := GF) tx γ s b)) ∧
   (∀ l, Persistent (boltLogger (GF := GF) l)) ∧

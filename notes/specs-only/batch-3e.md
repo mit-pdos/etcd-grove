@@ -206,3 +206,47 @@ marshals), and the split with 3f in `..._storage_mvcc.md`.
 - The frozen API's `mvccTxn_state` claimed `pending = []` of every transaction: false for a read
   transaction begun between a watchable store's notify and its bump; now only of write
   transactions.
+
+## Round 1 repairs (reviews `3e-provability-1.md`, `3e-completeness-1.md`)
+
+Coordinator's decisions applied: `Rev()` without a token by option (a); hashing excludes `Restore`.
+
+- **`Rev()` after close** (P-S3, C-F1): a reader token can be turned for good into a `Rev` token
+  (`mvccRevTok`, counted by `mvccRevLent`, `mvccRevTok_of`); `KV.Rev`/`KV.FirstRev` take `revRd γ rt`
+  (either). Their path only locks the shared read transaction: new storage rows `kbBareSlot`/`kbBare`
+  (`RLock`/`RUnlock` with no snapshot, also after the storage's close; `kbRdToks_bare`). The shutdown
+  law takes every other token (`n + m = mvccTokN`) and hands back `mvccReaderN - m` slots. Needs filed
+  for 2e/2d (the compactor's token, the stock) and 2a (the header fill's token).
+- **Hash vs Restore** (P-F5, P-F6, C-F8): `mvccRestoreGate γ q` (fractional): `Restore` takes it whole,
+  `Hash`/`HashByRev` a share, so `Restore`'s `storageRest B mvccReaderN` (all old slots) is true; the
+  server's obligation filed for 2d; `issues/etcd-mvcc-hash-currentrev-race.md`'s Proof updated
+  (cherry-picking #22609 the open alternative; the word-sized `currentRev` read noted).
+- **`Compact`** (P-F1, C-F2): premise `rev ≠ 0`; (P-F2) `ch ≠ null` on success and `ErrCompacted`;
+  (C-F3) `compactChanOk (ch : Loc)` is `isChan` + `recvAu` (2c's `recvAny` shape).
+- **Token counts** (P-F3): `mvccTokMin = 2^28`, `mvccOwnN = 4`; laws `mvccTokN_ge`, `mvccReaderN_eq`;
+  the snippets' `Assumes:` name their tokens.
+- **The read transaction's range** (P-F4): `rangeOk` takes the range relation; a read transaction's is
+  `KeyData.rtRange` (bbolt's part cut at `limit − |buffer part|`, then the buffer's), an empty end
+  only as `nil`, `Meta` one key; the `Key` put row requires the key above every key present (so the
+  buffer's entries follow bbolt's in key order); `KeyData.clean` (no `Key` entry buffered), cleared by a
+  put, given by `mvccStorageFor`: what `restore`'s chunked scan relies on, true there because the
+  opened storage has nothing buffered and `NewStore` writes no `Key` entry before it.
+- **A fresh member** (C-F4): `mvccStorageFor` asks `kbMade` of the buckets that exist;
+  `mvccImage_empty` for any empty data (`KeyData.IsEmpty`); snippet `ReqBootFresh`.
+- **Shutdown image** (C-F5): `mvccClosed_rest` takes the state and gives `kbData` at an image of it and
+  the receipt; `mvccImage_obs` takes `mvccOpen` (no second `kbData` after shutdown).
+- **Reachability** (C-F6): `mvccImage_reachable`; the `MvccReachable` premises of `NewStore` and
+  `Restore` dropped.
+- **Receipts** (C-F7): removed from the write updates (`KV.Put`, `KV.DeleteRange`, `Txn.End`,
+  `mvccDeleter_rdOk`: mvcc handed them out and no one used them); kept where a history travels
+  (`mvccStorageFor` takes one; `Restore`'s update, `mvccImage_obs` and the shutdown law give one);
+  who supplies boot's filed for 2d/2e.
+- Second tier: `mvccImage`'s realization per key a prefix (P-S1); `mvccImage_above.spec` (P-S2, C-S7:
+  what an image holds above its compaction, for 3f's `rangeEvents` and `restore`); `mvccDeleter_rdOk`
+  takes `□ (kbHeld B ∗-∗ Lease.beTxHeld …)` as a premise (C-S4); `store__Read`'s margin (P-S5);
+  snippets `ReqCompactorRev`, `ReqBootFresh`, a receive on `ErrCompacted`'s channel (C-S1, part).
+- Not done: C-S2 (a named `mvccCommitAU` abbreviation: PRINCIPLES keep the update in the triple), C-S5
+  (a lessor contract instead of 3c's lessor: the frozen API's decision 6), C-S6 (restore of the store's
+  own storage: tests only), P-S6 (the receipt bound's provenance is the invariant's, as before).
+
+Open questions 1 and 3 above are settled by these decisions; 2 (key/value size for `Marshal`) stays.

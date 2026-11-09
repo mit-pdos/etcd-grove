@@ -1,7 +1,7 @@
 # Batch 3f: mvcc's watchable store and etcd's interval tree
 
-Author's report (round 0, before review). Every file builds: `etc/specs-build.sh --dir
-Spec/go_etcd_io/etcd/pkg/v3/adt` (18 modules) and 3f's 64 modules of
+Author's report (round 1 repairs below, after `reviews/3f-review-1.md`). Every file builds:
+`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/pkg/v3/adt` (31 modules) and 3f's 64 modules of
 `Spec/go_etcd_io/etcd/server/v3/storage/mvcc` (the directory is shared with 3e; 3f's modules are listed
 below; the whole directory's build depends on 3e's work in progress). The snippets vet (`cd examples &&
 go vet ./specreq/mvccwatch/ ./specreq/adt/`) and, run once against a real store (a scratch test, not
@@ -15,6 +15,8 @@ but `ReqRestore` passes; the adt snippets pass too.
 | file | what |
 |---|---|
 | `Spec/go_etcd_io/etcd/pkg/v3/adt/Api.lean` | the vocabulary: the affine order and intervals (pure), the tree's contents as an ordered entry list, the key kinds (`Cmp`), `keyAt`, `ivAt`, the opaque `ivt`, the visitor contract, laws |
+| `Spec/go_etcd_io/etcd/pkg/v3/adt/Internal.lean` | internal (round 1): the red-black model (`RbT`, `RbCtx`, `FixInv`, `DelInv`, the `max` augmentation) and the node, path and sentinel ownership (opaque), ported from `specs-ref`'s proof |
+| internal specs (12, round 1) | `intervalNode__{color,min,successor,updateMax,visit}`, `intervalTree__{find,createIntervalNode,insertFixup,deleteFixup,rotateLeft,rotateRight,replaceParent}` |
 | exported specs (16) | `NewIntervalTree`, `NewStringAffineInterval`, `NewStringAffinePoint`, `NewBytesAffineInterval`, `NewBytesAffinePoint`, `StringAffineComparable__Compare`, `BytesAffineComparable__Compare`, `Interval__Compare`, `intervalTree__{Insert,Delete,Len,Find,Intersects,Contains,Stab,Visit,Union}` |
 | `examples/specreq/adt/` | `watchers.go` (`ReqRangeWatchers`: the watcher groups' pattern), `perms.go` (`ReqPermCover`: the auth cache's), `dups.go` (`ReqNestedDeletes`: `checkIntervals`') |
 
@@ -102,22 +104,15 @@ watch variables and error values with their messages).
 
 ## Functions left out
 
-* **adt's internal red-black helpers**: `intervalNode.{color,height,min,successor,updateMax,visit}`,
-  `intervalTree.{createIntervalNode,find,insertFixup,deleteFixup,rotateLeft,rotateRight,
-  replaceParent}`. They are called (by `Insert`, `Delete`, `Visit`, ...), so the brief's rule does not
-  cover leaving them out: their specs are the tree proof's own (subtrees and zipper contexts over the
-  sentinel-shared node graph: `specs-ref`'s `Proof/.../adt/{Ctx,CtxAt}.lean`, with their proofs; the
-  sentinel's `parent` is written by `Delete`), and restating them over opaque node predicates adds no
-  client-facing fact. Proposed: port them with the tree's proof. (Open question 6.)
-* `intervalTree.Height`, `StringComparable.Compare`, `NewStringInterval`, `NewStringPoint`,
+* `intervalTree.Height`, `intervalNode.height` (no old proof), `StringComparable.Compare`, `NewStringInterval`, `NewStringPoint`,
   `Int64Comparable.Compare`, `NewInt64Interval`, `NewInt64Point`, `newInt64EmptyInterval`: no caller in
   the verified code, no old spec.
 * `ReportEventReceived` (`metrics.go`): 3e's (the split).
 
 ## Open questions for the user
 
-1. **1b's `watchStep` claims exact events unconditionally; mvcc delivers them exactly only under the
-   compaction condition.** What the code does: a compaction at revision `c` keeps, of a key changed
+1. (Resolved before round 1: 1b's `watchStep` now takes `exactFrom`.) **1b's `watchStep` claimed
+   exact events unconditionally; mvcc delivers them exactly only under the compaction condition.** What the code does: a compaction at revision `c` keeps, of a key changed
    twice in `c`, only its last change; a watcher that reads `c` from the storage afterwards gets one
    event where there were two. Through gRPC such a revision exists: a put and a delete of one key in
    sibling nested transactions (`issues/etcd-txn-check-intervals-sibling.md`, accepted at the pin).
@@ -134,14 +129,15 @@ watch variables and error values with their messages).
 3. **A negative start revision is out of scope** (`0 ≤ startRev`): the code sends a compaction
    response at revision `-1` or replays from `0` (`nonissues/etcd-mvcc-watch-negative-start-rev.md`);
    v3rpc refuses it first.
-4. **Reader tokens or thread tokens for the stream's calls.** 3e's store uses counted reader tokens
+4. (Decided by the coordinator, round 1: reader tokens, the user's 2026-11-07 decision.) **Reader
+   tokens or thread tokens for the stream's calls.** 3e's store uses counted reader tokens
    (`mvccReaders`, the user's 2026-11-06/07 decision for mvcc); 2b assumed thread tokens. 3f follows
    3e (one token per reading call, given back): 2b's run needs reader tokens of the member's store,
    which the server's `srvWatchable` slot (2c/2d) must hand out. If the bounds plan's thread tokens are
    to replace mvcc's reader tokens, that is 3e's decision first.
 5. **3e's names are tracked by copy.** `New.spec`/`newWatchableStore.spec` copy `NewStore.spec`'s
    statement (3e's, changing as this was written); `req/` asks 3e to factor it or to signal changes.
-6. The adt internals (above).
+6. (Done in round 1.) The adt internals.
 
 ## `req/` sections written
 
@@ -172,3 +168,50 @@ boundary; 2a's `checkIntervals` and 3d's permission cache use `Adt`'s vocabulary
   `Close` finds no synced watcher.
 * `Restore` keeps every fact: its update's premise (3e's: the new history extends the committed one,
   which is the notified one under `s.mu`) keeps `mvccLb` monotone.
+
+## Round 1 repairs (`reviews/3f-review-1.md`)
+
+* **F1 (unsound compaction clause).** `wStep`'s compaction case is now against the watcher's
+  **events position** `posEvOf` (its last event's revision; a progress does not move it), which the
+  store's `minRev - 1` bounds on every path: `posEvOf W id rs + 1 < cr ∧ cr ≤ h.compacted`.
+  `WatchInternal.lean`'s realization sentence corrected (a synced watcher with no events keeps its
+  registration `minRev`); `wsCmpSendable` restated against `minRev`. The behavior is recorded:
+  `nonissues/etcd-mvcc-watch-compacted-after-progress-restore.md`, with a Go test that fails at the
+  pinned fork (a progress at 21, a `Restore` onto a later store compacted at 10, a compaction
+  response at 10), at mvcc's API (moving it to `issues/` needs an integration test through a
+  follower's snapshot). 1b is told to weaken `watchStep` alike (coordinator).
+* **F2 (ordering).** `watchStream.Watch` and `watchStream.Rev` (and the internal `watchableStore.watch`,
+  `rev`) take the caller's read update in 3e's `KV.Rev.contract` form, fired at the state read:
+  `Watch` gives `Q σ` with `σ.pending = []`, `W.pos = σ.rev` from `0`, `mvccLb γ σ.kv`; `Rev` gives
+  `Q σ` and `r = σ.rev`. 2b's floor (`Created`'s `Rev()` after `Watch`) and the snippets
+  `ReqFromCurrent`, `ReqDrainBeforeCreated` follow from the client's own state order.
+* **F3 (tokens).** Kept reader tokens (coordinator); `req/..._etcdserver_api_v3rpc.md` and
+  `req/..._etcdserver.md`, "from 3f": the watch handler's loops each hold one of the store's reader
+  tokens for their lifetime, from `srvWatchable`.
+* **F4 (snippets).** (a) `Watch` gives `sint.Z id = n` and `wsCtl ι (n + 1)`, with the law
+  `wsReg_ctl` (`wsReg ι id W ∗ wsCtl ι n ⊢ ⌜0 ≤ id < n⌝`): the foreign-id checks hold. (b) The direct
+  receives skip progress responses (`nextNonProgress`). (c) `Watch`'s success excludes an empty
+  range. (d) `ReqClose` keeps only "no panic after `Close`" (2b's proofs need no more: told in
+  `req/`). (e) `ReqCancel` restated to what `Cancel` gives (an error is `ErrWatcherNotExist`; an id
+  never registered is not cancelled); `ReqFreshIds` no longer requires a live cancel to succeed.
+  Re-run against a real store: all pass but `ReqRestore` (not run).
+* **F5 (adt internals).** `adt/Internal.lean` and the twelve helpers' specs, ported from
+  `specs-ref` (its proved statements) at a key kind `c`, pure premises in the precondition. With it,
+  `Api.lean`'s `ivVisitorOk` is the proved one: the callback keeps the lent `IntervalValue`, and
+  `Visit`'s post gives the tree back for the visited entries (a wand), which `Stab` needs.
+* **F6 (error identity).** `Watch`'s refusal gives `globalAddr ErrEmptyWatcherRange ↦□ err`,
+  `Cancel`'s error `globalAddr ErrWatcherNotExist ↦□ err` (`mvccrand`'s `err ==`); the messages by
+  `watch_init.spec`.
+* **S1.** The header and `req/` (3e, "from 3f, round 1") state the realization constraint: the
+  authority behind `mvccLb` is part of `mvccState`'s realization.
+* **S2.** `Watch.spec` takes `[ReceiptBoundLe GF (2 ^ 48)]`: the stream's id counter is bounded by
+  the time receipts of the `Watch` calls (the stream's invariant counts them); `wsCtl`'s header says so.
+* **S3.** `Mvcc.exactFrom` kept (mvcc cannot import client/v3's vocabulary), documented as the same
+  statement as `ClientV3.exactFrom`; `req/go_etcd_io_etcd_api_v3.md`, "from 3f", asks W0 to own one.
+* **S4.** `wStep`'s docstring gives the condition's margin (only the compaction revision matters).
+* **S5.** 2d's bridge relayed: `req/go_etcd_io_etcd_server_v3_etcdserver.md`, "from 3f" (the
+  watchable store, the read updates, reader tokens, `mvccLb γm h` to `etcdLb γ σ` with `h` a view).
+* **S6.** Not changed: `Watch` takes `Context.ctxOk ctx`; that otel's `Tracer.Start` context is
+  `ctxOk` is for 2b and 4b (open; their otel boundary).
+* **S7.** `ivt_agree` dropped from the header (it is `ivt_fractional`'s second conjunct);
+  `intervalNode.height` listed with the never-proved ones.
