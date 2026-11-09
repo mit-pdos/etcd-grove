@@ -606,6 +606,22 @@ local effect steps `σ` to `σ'` (uniquely: other servers' actions do not match 
 receive line's message is the one `MsgsDet` selects), the share updated, the invariants from the
 per-server facts.
 
+**A revision of `LineEffect` under consideration (2026-11-09, pending review round 1).** The local
+two-line trace and the all-`a` local state make the global theorem shift a line's position and graft
+a local state into `σ`, both new and large proofs. Every per-line lemma proved so far is generic in
+the trace and the line's position (`next_receive`, `chain_appAccept`, `nonReceive_*`: any `t`, any
+`l0`), so the effect can be stated **for every trace and every global state** meeting the line's
+conditions: the line `ln` (parsed from `e`) at `t.line l`, past the bootstrap, the trace's servers the
+voters, `BecomeFollower`'s skip a given bit; `σ`'s servers the voters, node `i`'s server `a`, pre-vote
+and check-quorum off, and for a receive line the message `m` it consumes present and the only one
+the line matches; then the rounds from `⟨σ, l, l - 1⟩` are single fresh successors (the search's
+`memEq`) through intermediate states `mids` to `σ` with node `i`'s server `a'` and the bags `fM`,
+`fP` of `σ`'s (the line kind's bag effect: a send `with`s a pending message, a receive `without`s
+its message and `with`s its reply, a `Ready` moves the node's pending messages). The global theorem
+then instantiates `t` with the run's trace and needs only the invariants at `mids` and at the end,
+from the per-server facts (the intermediate states' shapes, a term change or a log prefix of
+node `i`, stated in the effect).
+
 ## Increment 2 of the hooks' specs (what S4 decides)
 
 **The logger's contract is generic** (round 2's N4; the `spec` skill's "TaDa, not HoCAP"): the
