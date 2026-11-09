@@ -421,6 +421,54 @@ open at `traceReady`, `ownRaftPhysReady`'s fields, and the RawNode-level spec hi
 configuration and state). Next: the traced `raft.Step` handlers' phase steps and facts (from raft's
 ghost) for these lines, with the win's split; `send` after Q9. Checked: full `lake build` green; `etc/tcb-report.py --check` (807 axioms, 4 `sorry`s, unchanged) and every collection `--reuse --check`; `interface/` differs in the three functions' proof files only; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 4), 2026-11-09 (branch `trace-check-q8s4`): the message hooks, one spec for both
+modes; `raft.send` blocked on the queued message's lending.** Decided by the agent (`notes/decisions.md`,
+"Q8 stage 1 (slice 4)"). Done: (1) `makeTracingMessage` in full: its message case (a conjunct beside the
+nil one, as the getters' specs) builds a read-only `TracingMessage` holding `traceMsgOf ms` (the type's
+name `raftpb.msgTypeString`, Q9's exact spec; sender, receiver, vote in decimal; a `MsgSnap`'s entry count
+its snapshot's index, `snapIdx`), proved over the getters (`TracedMsg.lean`: `traceMsgOf`,
+`msgEvOf_traceMsgOf`: for a traced type it is the Draft's `MsgEvOf` of the abstraction). (2)
+`traceEvent.spec` generalized to a message and properties: the caller lends raft's state and the message
+in turn out of one resource `P` (`RaftLend`, `MsgLend`, persistent accessors; `traceEvent` reads the
+state, then the message last) and gives the properties read-only (`tracingPropsRep prop e0`); every event
+whose header is the state's (`EvHdrOf`), message `traceMsgOf`, properties `e0`'s is allowed by `E`
+(`traceNodeEvent`'s proof instantiates it with the state alone, no message, `noProps`). (3)
+`traceSendMessage.spec` and `traceReceiveMessage.spec` are one spec for both modes in that lending form, at
+the caller's mode `tr` with the Draft's gates (`TraceFireOpt tr tl oE Q`, `oE = sendGate …`/`recvGate …`),
+the untraced nil logger as a premise (`tr = none → TraceLoggerOk tl`); proved: the type's `switch`, for a
+`MsgApp` the sender's `Progress` read into the properties map (`match`, `next`, the map made read-only:
+`tracingPropsRep_mn`; none when the lookup fails, `tracingPropsRep_empty`), `time.Sleep` on receipt
+(Perennial's proved spec, linked through `Perennial.Proof.time.Link`), `traceEvent`. The Draft's
+`traceSendMessage.tracedSpec` and `traceReceiveMessage.tracedSpec` are derived (`TracedHooks.lean`,
+`X.tracedSpec_of_spec`: the state and message apart, `raftLend_sep`/`msgLend_sep_some`). Their callers stay
+untraced through instance lemmas (`traceSendMessage.untraced`, `traceReceiveMessage.untraced`,
+`TracedUntraced.lean`, the statements before slice 4): `raft.send`'s proof, `raft.Step`'s bundle,
+`wp_Step_MsgProp` and `raft.appliedTo`; their call sites unchanged. **Blocked: `raft.send`'s traced
+case, hence everything above it in this slice** (`sendAppend`, `maybeSendAppend`, `maybeSendSnapshot`,
+`sendHeartbeat`, `sendTimeoutNow`, `bcastAppend`, `bcastHeartbeat(WithCtx)`,
+`releasePendingReadIndexMessages`, `sendMsgReadIndexResponse`, `appendEntry` with the `Replicate` records,
+`becomeLeader` with the term log): slice 1's item 3, "an accessor lending the last queued message of
+`ownRaftPhysCV (sendMsgs s out)`", is not provable. `send` queues `m` before `traceSendMessage(r, m)` runs,
+so at the hook the queue owns the message (`outboxRel`'s `msgQ`, at `1`); the hook reads raft's state
+through specs on `ownRaftPhysCV` (`hardState()` in `makeTracingState`, ...) and the message through its
+getters, alternately (the type, the sender's `Progress`, the state, the message). Raft's state, closed,
+holds the message; reopening it to lend the message needs to know which queued pointer is `m`, and
+`ownRaftPhysCV c V r id s` does not say: its queues are existential (`outboxRel s.outbox msgs msgsAA`,
+the abstract outbox up to permutation, no locations), so a lemma `ownRaftPhysCV … (sendMsgs s out) ⊢
+msgOwn ml 1 st ∗ (msgOwn ml 1 st -∗ ownRaftPhysCV …)` is false (another resource satisfying the predicate
+may queue other pointers), and every read spec gives back an arbitrary `ownRaftPhysCV`, losing the
+witness. What would unblock it (a raft ghost change, for the user or the next slice): record the queued
+message in the state the read specs preserve, e.g. `NGhost.lq : Option (Loc × MsgSt)` with
+`ownRaftPhysCV`'s clause `lq = some q → q ∈ msgs ++ msgsAA` (the lending lemma then holds: `s` pins `q`,
+and every read spec returns the same `s`), set by `send` before its hook and reset before it returns (its
+postcondition unchanged); the queue-draining closures (`ownRaftPhysC_view`'s `Hclose`, `acceptReady`)
+then need `lq = none`, which the `RawNode` predicates would record as stage 0 recorded `s.gh.tr`
+(`%Hgtr`). Not attempted here: it changes `Defs.lean`'s `NGhost` (a full rebuild) and the `RawNode`
+invariants. Trust base: raft's results now reach `strconv.Itoa`'s trust-boundary axiom (Q9's model's
+fallback, through `MessageType.String`, which `makeTracingMessage` calls; the server's already did), and
+Perennial's `time.Sleep` (proved, no axiom); no axiom or `sorry` added. Checked: see the acceptance
+below.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

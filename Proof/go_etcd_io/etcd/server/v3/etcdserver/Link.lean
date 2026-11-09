@@ -464,7 +464,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWrit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__pick
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__unreachable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.waitSchedule
-public import Proof.go_etcd_io.raft.v3.raftpb.MessageType__String
 public import Proof.golang_org.x.time.rate.Every
 public import Proof.golang_org.x.time.rate.Limiter__Wait
 public import Proof.golang_org.x.time.rate.NewLimiter
@@ -515,7 +514,6 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.OpenBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.storage__Release
 public import Proof.strconv.FormatBool
-public import Proof.strconv.Itoa
 public import Proof.strings.TrimSuffix
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
@@ -1106,14 +1104,6 @@ theorem proto.wp_ClonePb :
 theorem pbutil.wp_MustUnmarshalMessagePb :
     pbutil.MustUnmarshalMessagePb.spec (GF := GF) (hG := hG) :=
   pbutil.MustUnmarshalMessagePb.wp_proof proto.wp_UnmarshalPb
-
-theorem strconv.wp_Itoa :
-    strconv.Itoa.spec (GF := GF) (hG := hG) :=
-  strconv.Itoa.wp_proof
-
-theorem raftpb.MessageType.wp_String :
-    raftpb.MessageType.String.spec (GF := GF) (hG := hG) :=
-  raftpb.MessageType.String.wp_proof strconv.wp_Itoa
 
 theorem zap.wp_Bool :
     zap.Bool.spec (GF := GF) (hG := hG) :=

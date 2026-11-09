@@ -33502,3 +33502,34 @@ predicate holds (round 1's S5), and a traced `newRaft` would create the node's c
 from the cluster). `RawNode.acceptReady` keeps `γ.reTrace = none`: the struct is open at `traceReady`
 (`ownRaftPhysReady`'s fields, resealed after it), and its RawNode-level spec hides the raft struct,
 configuration and state the gate and capability name.
+
+## Q8 stage 1 (slice 4): the message hooks in a lending form; `send`'s queued message (2026-11-09 · trace-check, Q8 stage 1 slice 4; decided by the agent under the user's delegation · branch `trace-check-q8s4`; DRAFT until trace-check's Freeze)
+
+**The lending form.** `traceEvent`, `traceSendMessage` and `traceReceiveMessage` read raft's state and the
+message in turn, never together: `traceSendMessage` reads the message's type, then (a `MsgApp`) the
+message's sender and raft's progress map and `Progress`, then `traceEvent` reads raft's state and, last
+(`makeTracingMessage`), the message. Their traced case takes, under `trOwn tr`, one resource `P` of the
+caller's with two persistent accessors, `RaftLend P c r id s` (`P -∗ ownRaftPhysCV … ∗ (ownRaftPhysCV … -∗
+P)`) and `MsgLend P m om` (the same for the message, any fractions: `MsgArg`), and gives back `R` from `P`.
+A caller holding the state and the message apart takes `P` their conjunction (`raftLend_sep`,
+`msgLend_sep_some`): the Draft's statements follow. Rejected: the Draft's form (both held at once) as the
+spec, which a caller whose message is inside raft's struct can never meet; a form lending only the state
+(slice 2's), which cannot carry a message.
+
+**Mode-indexed, not state-indexed.** Like `traceEvent`'s (slice 2), the message hooks' specs take the
+caller's mode `tr` and the gate `oE`, the state inside the lent part (`oE = sendGate id s c a.ms`), and the
+untraced nil logger as a pure premise (`tr = none → TraceLoggerOk tl`: `TraceFireOpt none tl none Q` says
+nothing of the logger), so that their untraced instances need no `NState` (`X.untraced`).
+
+**The properties.** `traceSendMessage` writes the sender's `Progress` (`match`, `next`) into a fresh map
+for a `MsgApp`; the spec gives `traceEvent` the map read-only as an event `e0`'s properties
+(`tracingPropsRep prop e0`, `ownMap_persist`), which the Draft's `SendEvOf` leaves free (but `cc`).
+
+**`raft.send` blocked.** Slice 1 assumed an accessor lending the last queued message of `ownRaftPhysCV
+(sendMsgs s out)`. It cannot be stated on `ownRaftPhysCV` alone: the predicate's queues are existential
+(the abstract outbox up to permutation, no pointers), so no lemma can name the queued pointer `m` out of
+it, and the hook's read specs give back an arbitrary resource of the predicate, so a frame cannot pin it
+either (the predicate owns the queue's field, slice and messages at `1`). The way out recorded in the plan
+("Q8 stage 1 (slice 4)"): the state records the message `send` just queued (`NGhost.lq`, with
+`ownRaftPhysCV`'s membership clause), which the read specs preserve since they keep `s`; a raft ghost
+change with a full rebuild and the `RawNode` invariants' `lq = none`, not taken in this slice.

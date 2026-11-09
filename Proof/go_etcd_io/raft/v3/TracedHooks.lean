@@ -14,10 +14,13 @@ spec is the untraced one still).
 module
 
 public import Proof.go_etcd_io.raft.v3.TracedHooksDraft
+public import Spec.go_etcd_io.raft.v3.traceSendMessage
+public import Spec.go_etcd_io.raft.v3.traceReceiveMessage
 public import Spec.go_etcd_io.raft.v3.traceInitState
 public import Proof.go_etcd_io.raft.v3.TracedHooksGlobal
 public import Spec.go_etcd_io.raft.v3.raft__becomeCandidate
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -127,6 +130,114 @@ theorem traceInitState.tracedSpec_of_spec (h : traceInitState.spec (GF := GF) (h
   iapply HΦ
   iframe HQ
   iapply Hback $$ Hown
+
+/-! ### (Q8 stage 1, slice 4) The message hooks -/
+
+/-- A struct's logger field, untraced: nil. -/
+theorem traceLogger_none_ok (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) :
+    (r.[raft, go!"traceLogger"] ↦□ tl ∗ ownRaftPhysCV c c.voters r id s : IProp GF) ⊢
+      ⌜s.gh.tr = none → TraceLoggerOk tl⌝ ∗ ownRaftPhysCV c c.voters r id s := by
+  cases htr : s.gh.tr with
+  | some _ =>
+    iintro ⟨-, Hphys⟩
+    iframe Hphys
+    ipureintro; intro h; cases h
+  | none =>
+    iintro ⟨#Htl, Hphys⟩
+    icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl', #Htl', %Hok, Hphys⟩
+    icombine Htl Htl' gives %Heq
+    iframe Hphys
+    ipureintro; intro _; rw [Heq]; exact Hok
+
+/-- **`traceSendMessage.tracedSpec`** (the Draft's, frozen) from `traceSendMessage.spec`: raft's state
+and the message held apart, lent out of their conjunction (`raftLend_sep`, `msgLend_sep`); untraced,
+the gate is `emp` and the struct's logger nil. -/
+theorem traceSendMessage.tracedSpec_of_spec (h : traceSendMessage.spec (GF := GF) (hG := hG)) :
+    traceSendMessage.tracedSpec (GF := GF) (hG := hG) := by
+  intro c r id s ml dq ms tl Q Hns
+  iintro %Φ ⟨#Hpkg, #Htl, Hphys, Hm, Hfire⟩ HΦ
+  icases traceLogger_none_ok c r id s tl $$ [$Htl $Hphys] with ⟨%Hok, Hphys⟩
+  revert Hns Hok
+  cases htr : s.gh.tr with
+  | none =>
+    intro _ Hok
+    iapply h r ml tl none (sendGate id s c ms) Q iprop(emp) $$ [$Hpkg $Htl $Hfire]
+    · isplitr
+      · ipureintro; exact Hok
+      iapply trOwn_none_intro
+    inext
+    iintro ⟨-, HQ⟩
+    iapply HΦ
+    iframe Hphys Hm HQ
+  | some γd =>
+    intro Hns Hok
+    iapply h r ml tl (some γd) (sendGate id s c ms) Q
+      iprop(ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms) $$ [$Hpkg $Htl Hphys Hm $Hfire]
+    · isplitr
+      · ipureintro; exact Hok
+      iapply (trOwn_some γd _).2
+      iexists c, id, s, iprop(ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms),
+        ⟨dq, DFrac.discard, false, ms⟩
+      iframe Hphys Hm
+      isplitr
+      · iapply raftLend_sep
+      isplitr
+      · iapply msgLend_sep_some iprop(ownRaftPhysCV c c.voters r id s) ml
+          ⟨dq, DFrac.discard, false, ms⟩
+      isplitr
+      · ipureintro; exact ⟨Hns rfl, rfl⟩
+      iintro H; iexact H
+    inext
+    iintro ⟨Hown, HQ⟩
+    iapply HΦ
+    iframe HQ
+    iapply (trOwn_some γd _).1
+    iexact Hown
+
+/-- **`traceReceiveMessage.tracedSpec`** (the Draft's, frozen) from `traceReceiveMessage.spec`: raft's state
+and the message held apart, lent out of their conjunction (`raftLend_sep`, `msgLend_sep`); untraced,
+the gate is `emp` and the struct's logger nil. -/
+theorem traceReceiveMessage.tracedSpec_of_spec (h : traceReceiveMessage.spec (GF := GF) (hG := hG)) :
+    traceReceiveMessage.tracedSpec (GF := GF) (hG := hG) := by
+  intro c r id s ml dq ms tl Q Hns
+  iintro %Φ ⟨#Hpkg, #Htl, Hphys, Hm, Hfire⟩ HΦ
+  icases traceLogger_none_ok c r id s tl $$ [$Htl $Hphys] with ⟨%Hok, Hphys⟩
+  revert Hns Hok
+  cases htr : s.gh.tr with
+  | none =>
+    intro _ Hok
+    iapply h r ml tl none (recvGate id s c ms) Q iprop(emp) $$ [$Hpkg $Htl $Hfire]
+    · isplitr
+      · ipureintro; exact Hok
+      iapply trOwn_none_intro
+    inext
+    iintro ⟨-, HQ⟩
+    iapply HΦ
+    iframe Hphys Hm HQ
+  | some γd =>
+    intro Hns Hok
+    iapply h r ml tl (some γd) (recvGate id s c ms) Q
+      iprop(ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms) $$ [$Hpkg $Htl Hphys Hm $Hfire]
+    · isplitr
+      · ipureintro; exact Hok
+      iapply (trOwn_some γd _).2
+      iexists c, id, s, iprop(ownRaftPhysCV c c.voters r id s ∗ msgOwn ml dq ms),
+        ⟨dq, DFrac.discard, false, ms⟩
+      iframe Hphys Hm
+      isplitr
+      · iapply raftLend_sep
+      isplitr
+      · iapply msgLend_sep_some iprop(ownRaftPhysCV c c.voters r id s) ml
+          ⟨dq, DFrac.discard, false, ms⟩
+      isplitr
+      · ipureintro; exact ⟨Hns rfl, rfl⟩
+      iintro H; iexact H
+    inext
+    iintro ⟨Hown, HQ⟩
+    iapply HΦ
+    iframe HQ
+    iapply (trOwn_some γd _).1
+    iexact Hown
 
 /-! ### (Q8 stage 1, slice 3) The `Commit` line's phase step -/
 

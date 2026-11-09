@@ -124,7 +124,7 @@ theorem wp_Step_MsgProp
     -- (2026-10-29, stage U5) the four callee specs this branch uses, not `raft.Step.Postulates`:
     -- `raft.appliedTo` steps its automatic leave through this branch, so its proof cannot take
     -- the specs of `Step`'s other callees (`appliedTo` among them)
-    (wp_traceReceiveMessage : traceReceiveMessage.spec (GF := GF) (hG := hG))
+    (wp_traceReceiveMessage : traceReceiveMessage.untracedTriple (GF := GF) (hG := hG))
     (wp_stepFollower : stepFollower.spec (GF := GF) (hG := hG))
     (wp_stepCandidate : stepCandidate.spec (GF := GF) (hG := hG))
     (wp_stepLeader : stepLeader.spec (GF := GF) (hG := hG))

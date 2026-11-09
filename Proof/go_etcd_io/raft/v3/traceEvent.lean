@@ -1,7 +1,8 @@
 /-
 Lean-first (no Rocq counterpart): the proof of `traceEvent` (`Spec/go_etcd_io/raft/v3/traceEvent.lean`).
-Untraced, the nil check; traced (Q8 stage 1, slice 2), the node event's builder: every field read
-from raft's state (lent by the caller), the event's cell and slices made read-only, the logger's
+Untraced, the nil check; traced (Q8 stage 1, slice 2), the event's builder: every field read
+from raft's state (lent by the caller), then the message (slice 4: lent by the caller out of the same
+resource, `makeTracingMessage` of it), the event's cell and slices made read-only, the logger's
 `TraceEvent` handed the caller's update.
 -/
 module
@@ -32,6 +33,34 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- `makeTracingMessage` of the message argument, either case. -/
+theorem wp_makeTracingMessage_arg (h : makeTracingMessage.spec (GF := GF) (hG := hG)) (m : Loc)
+    (om : Option MsgArg) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ msgArg m om }}
+      (App (Val #(functions makeTracingMessage [])) (Val #m))
+    {{ (p : Loc), RET #p; msgArg m om ∗ tracingMsgRep p (msgArgTrace om) }} := by
+  cases om with
+  | none =>
+    iintro %Φ ⟨#Hpkg, Hm⟩ HΦ
+    simp only [msgArg]
+    icases Hm with %Hm
+    subst Hm
+    iapply h.1 $$ [$Hpkg]
+    inext
+    iintro -
+    iapply HΦ $$ %null
+    simp only [msgArgTrace, tracingMsgRep]
+    isplitr <;> ipureintro <;> trivial
+  | some a =>
+    simp only [msgArg]
+    iintro %Φ ⟨#Hpkg, Hm⟩ HΦ
+    iapply h.2 m a.dq a.dqe a.cap a.ms $$ [$Hpkg $Hm]
+    inext
+    iintro %p ⟨Hm, Hrep⟩
+    iapply HΦ $$ %p
+    simp only [msgArgTrace]
+    iframe Hm Hrep
+
 theorem traceEvent.wp_proof
     (wp_evtString : stateMachineEventType.String.spec (GF := GF) (hG := hG))
     (wp_FormatUint : strconv.FormatUint.spec (GF := GF) (hG := hG))
@@ -53,8 +82,10 @@ theorem traceEvent.wp_proof
     iframe
     iapply trOwn_none_intro
   | some γd =>
-    icases (trOwn_some γd _).1 $$ Hown with ⟨%c, %id, %s, Hphys, %Hp, Hback⟩
-    obtain ⟨rfl, rfl, Hevt, HE⟩ := Hp
+    icases (trOwn_some γd _).1 $$ Hown with ⟨%c, %id, %s, %P, %om, %e0, HP, #HRL, #HML, #Hprops, %Hp, Hback⟩
+    obtain ⟨Hevt, HE⟩ := Hp
+    iunfold RaftLend at HRL
+    icases HRL $$ HP with ⟨Hphys, HPb⟩
     dsimp only [TraceFire]
     icases Hfire with ⟨%tn, #Hdir, #Hlog, %Hnn, Hau⟩
     iunfold isTraceLogger at Hlog
@@ -151,37 +182,39 @@ theorem traceEvent.wp_proof
     try wp_auto
     haveI : go.NotInterface go.uint64 := ⟨by unfold go.uint64; trivial⟩
     wp_apply wp_StateString s.role
-    wp_apply wp_makeTracingMessage
+    -- the message, out of the caller's resource
+    ihave HP := HPb $$ Hphys
+    iunfold MsgLend at HML
+    icases HML $$ HP with ⟨Hmsg, HPb⟩
+    wp_apply (wp_makeTracingMessage_arg wp_makeTracingMessage m om) $$ [$Hmsg] as %pm ⟨Hmsg, #Hmrep⟩
+    ihave HP := HPb $$ Hmsg
     try wp_auto
     ipersist «$a0»
     rw [domSet_gset] at Hxs0 Hxs1
-    have HEv : NodeEvOf evt id s c
+    have HEv : EvHdrOf evt id s c
         ⟨nm, nid, ts.Term', ts.Vote', ts.Commit', roleStr s.role, li, (xs0.map decStr, xs1.map decStr),
-          none, none, none, none, none⟩ := by
-      refine ⟨Hnm, Hnid, Hts.1, Hts.2.1, Hts.2.2, rfl, ?_, ⟨xs0, xs1, Hxs0, Hxs1, rfl⟩,
-        rfl, rfl, rfl, rfl, rfl⟩
+          msgArgTrace om, none, e0.propCC, e0.propMatch, e0.propNext⟩ := by
+      refine ⟨Hnm, Hnid, Hts.1, Hts.2.1, Hts.2.2, rfl, ?_, ⟨xs0, xs1, Hxs0, Hxs1, rfl⟩⟩
       rw [plastIndex_toPState]
       unfold logLast
       word
     ihave #Hrep : tracingEventRep «$a0_ptr»
         (⟨nm, nid, ts.Term', ts.Vote', ts.Commit', roleStr s.role, li, (xs0.map decStr, xs1.map decStr),
-          none, none, none, none, none⟩ : TraceEv) $$ []
+          msgArgTrace om, none, e0.propCC, e0.propMatch, e0.propNext⟩ : TraceEv) $$ []
     · iunfold tracingEventRep
       iexists _, a, b
       iframe «$a0» Ha Hb
-      simp only [tracingMsgRep, tracingCCRep, tracingPropsRep]
       isplitr
       · ipureintro; trivial
       isplitr
-      · itrivial
+      · iexact Hmrep
       isplitr
-      · itrivial
-      ileft
-      isplitr
-      · itrivial
-      ipureintro; trivial
+      · simp only [tracingCCRep]; itrivial
+      simp only
+      iapply tracingPropsRep_of prop _ e0 ?_ ?_ ?_ $$ Hprops
+      all_goals rfl
     ihave Hupd := Hau $$ %_ []
-    · ipureintro; exact HE _ HEv
+    · ipureintro; exact HE _ HEv rfl rfl rfl rfl rfl
     wp_bind (App (Val #(methods l.ty go!"TraceEvent" l.v)) (Val #«$a0_ptr»))
     iapply wp_wand $$ (Hm $$ %«$a0_ptr» %_ %Q Hrep Hupd)
     iintro %v ⟨%Hv, HQ⟩
@@ -190,7 +223,7 @@ theorem traceEvent.wp_proof
     iapply HΦ
     iframe HQ
     iapply (trOwn_some γd R).2
-    iapply Hback $$ Hphys
+    iapply Hback $$ HP
 
 end proof
 

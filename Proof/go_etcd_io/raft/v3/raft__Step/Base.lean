@@ -175,7 +175,7 @@ structure raft.Step.Postulates : Prop where
   already run `becomeFollower`. -/
   stepFollower : stepFollower.spec (GF := GF) (hG := hG)
   stepLeader : stepLeader.spec (GF := GF) (hG := hG)
-  traceReceiveMessage : traceReceiveMessage.spec (GF := GF) (hG := hG)
+  traceReceiveMessage : traceReceiveMessage.untracedTriple (GF := GF) (hG := hG)
   lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG)
   isUpToDate : raftLog.isUpToDate.spec (GF := GF) (hG := hG)
   -- the storage acknowledgements (2026-10-05)
