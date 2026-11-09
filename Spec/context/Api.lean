@@ -98,11 +98,15 @@ def ctxOk_of_isContext.spec : Prop :=
 def ctxOk_background.spec : Prop :=
   ⊢ ctxOk (GF := GF) (GoInterface.ok context.backgroundCtxVal)
 
-/-- `TODO()` returns a context. -/
+/-- `TODO()` returns a context, never done. -/
 def TODO.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
     (App (Val (@! context.TODO)) (Val #()))
-  {{ (ctx : GoInterface), RET #ctx; ctxOk ctx }}
+  {{ (ctx : GoInterface), RET #ctx; ctxOk ctx ∗ □ (ctxDone ctx -∗ False) }}
+
+/-- `Background()` is never done (its `Done()` is `nil`). -/
+def ctxDone_background.spec : Prop :=
+  ctxDone (GF := GF) (GoInterface.ok context.backgroundCtxVal) ⊢ iprop(False)
 
 /-- `Background()` returns a context (the one `ctxOk_background` names). -/
 def Background.spec : Prop :=

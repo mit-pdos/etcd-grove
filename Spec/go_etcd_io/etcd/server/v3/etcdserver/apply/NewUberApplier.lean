@@ -18,7 +18,7 @@ refusal is a margin of the result, `resMatch`); one spec for every mode (the aut
 leases, compaction are in `σ`); the options as two slots (`optsOk`, `optsSt`) over the callees'
 vocabulary, not the old `AEnv`.
 
-**Margin.** None.
+**Margin.** None. (Round 1: `uberOpts ua opts`, persistent, gets the stores back out of `smAt`: `smAt_optsSt`, `smAt_alarms`.)
 -/
 module
 
@@ -50,7 +50,7 @@ def NewUberApplier.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       optsOk opts mc γ γc R ∗ optsSt opts σ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier)) (Val #opts))
-  {{ (ua : GoInterface), RET #ua; isUber ua mc γ γc R ∗ smAt ua σ }}
+  {{ (ua : GoInterface), RET #ua; isUber ua mc γ γc R ∗ uberOpts ua opts ∗ smAt ua σ }}
 
 end spec
 

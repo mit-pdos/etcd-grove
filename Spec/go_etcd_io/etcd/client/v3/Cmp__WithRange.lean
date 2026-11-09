@@ -31,12 +31,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `cmp.WithRange(...)`: a copy comparing over the range `[key, end)`. -/
+/-- `cmp.WithRange(...)`: a copy comparing over the range `[key, end)` (an empty `end`, a non-`nil` empty slice, reads as every key from the key on). -/
 def Cmp.WithRange.spec : Prop :=
   ∀ (c : go_etcd_io.etcd.client.v3.Cmp) (m : Option EtcdModel.Compare) (e : GoString) ,
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ cmpAt c m }}
     (App (Val (c @!! go_etcd_io.etcd.client.v3.Cmp.ty @!! go!"WithRange")) (Val #e))
-  {{ (c' : go_etcd_io.etcd.client.v3.Cmp), RET #c'; cmpAt c' (some { m.getD Compare.zero with rangeEnd := e }) }}
+  {{ (c' : go_etcd_io.etcd.client.v3.Cmp), RET #c'; cmpAt c' (some { m.getD Compare.zero with rangeEnd := (if e = [] then [W8 0] else e) }) }}
 
 end spec
 

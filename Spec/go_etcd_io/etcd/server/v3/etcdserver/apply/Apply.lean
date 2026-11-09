@@ -13,19 +13,19 @@ server's `s.uberApply`, `w` its `s.w`, a `*wait.list`). Snippets `examples/specr
 **Proof sketch.** `MustUnmarshalMessage` (4b's `pbutil`, provisional: a fresh message with
 `irrMsgAt p ir` given `irrDecodes e.Data ir`; 2d's `entryAt` gives `e.Data`). `lg.Debug` (`Zap`,
 `zap.Stringer` lazy). The id: `ir.reqId` (`hasId` rules out the panic). `w.IsRegistered(id)` through
-the interface (`w` is a `*list`: 2c's `Wait.list.IsRegistered.spec`, with the thread token; any
-answer). The wrapper allocated (`wrapperAt r ir sk`, `sk = !registered && Txn != nil`). Then the
+the interface (`w` is a `*list`: 2c's `Wait.list.IsRegistered.spec`, with the waiter fact and the
+thread token; `false` gives `waitDone`). The wrapper allocated (`wrapperAt r ir sk`, `sk = !registered && Txn != nil`). Then the
 caller's method triple (`P` to `Q sk ar`), or `nil` with `P` untouched.
 
 **Changes** from `specs-ref`'s `Apply.lean` (the approved shape of
 `.claude/skills/spec/examples/apply-uber-contract.md`): the request is `Irr` (W0-level), not the old
-`IRRModel`; the wait registry is 2c's `listAt` with a thread token, not `waitOk`'s `RD`/`K`/`G`
-(2c's `IsRegistered` gives no fact: see the margin).
+`IRRModel`; the wait registry is 2c's `listAt` with its waiter facts (`waitWasReg`/`waitNever` in,
+`waitDone` out), not `waitOk`'s `RD`/`K`/`G`.
 
-**Margin.** The registry's answer is not reported: a `false` (no one waits) is what makes a skipped
-transaction's result harmless and the `nil` return safe for the waiter; 2c's `IsRegistered.spec`
-gives nothing today (requested: `req/go_etcd_io_etcd_server_v3_etcdserver.md`, from 3a, a persistent
-"no longer registered" fact, which this post will then carry as `⌜sk = false⌝ ∨ …`).
+**Margin.** None. (Round 1: the waiter's fact `waitWasReg ∨ waitNever` taken, as 2c's
+`list.IsRegistered.spec` needs; its `false` answer's `waitDone` given back for a skipped transaction and
+on the `nil` path, as the approved example's `G ot id`: 2d's `applyEntryNormal` then owes the waiter
+nothing.)
 -/
 module
 
@@ -62,7 +62,7 @@ def Apply.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       Zap.isLogger lg ∗ EtcdServer.entryAt ptr k ent ∗ ⌜irrDecodes ent.data ir ∧ ir.hasId⌝ ∗
       ⌜w = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list'.ty) #l⌝ ∗
-      Wait.listAt l γw Pw ∗ threadTok ∗
+      Wait.listAt l γw Pw ∗ (Wait.waitWasReg γw ir.reqId ∨ Wait.waitNever γw ir.reqId) ∗ threadTok ∗
       (∃ ui : GoInterfaceOk, ⌜ua = GoInterface.ok ui⌝ ∗
         □ ∀ (r : Loc) (sk : Bool),
           {{ wrapperAt r ir sk ∗ ⌜sk = true → ir.op.isTxn = true⌝ ∗ threadTok ∗ P }}
@@ -71,7 +71,8 @@ def Apply.spec : Prop :=
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #ptr)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id : w64), RET (PairV #ar #id); threadTok ∗ ⌜id = ir.reqId⌝ ∗
-      ((∃ sk : Bool, Q sk ar) ∨ (⌜ar = null ∧ ir.op.noSideEffect = true⌝ ∗ P)) }}
+      ((∃ sk : Bool, Q sk ar ∗ (⌜sk = false⌝ ∨ Wait.waitDone γw ir.reqId)) ∨
+       (⌜ar = null ∧ ir.op.noSideEffect = true⌝ ∗ Wait.waitDone γw ir.reqId ∗ P)) }}
 
 end spec
 

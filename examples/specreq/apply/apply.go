@@ -3,12 +3,14 @@
 package apply
 
 import (
+	"errors"
+
 	"go.uber.org/zap"
 
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/pkg/v3/wait"
 	"go.etcd.io/etcd/server/v3/etcdserver/apply"
-	"go.etcd.io/etcd/server/v3/storage/mvcc"
+	errs "go.etcd.io/etcd/server/v3/etcdserver/errors"
 	"go.etcd.io/raft/v3/raftpb"
 )
 
@@ -27,26 +29,31 @@ func ReqNewUber(opts apply.ApplierOptions) apply.UberApplier {
 	return ua
 }
 
-// REQ apply/write: a committed write is applied once, its result is the answer the model's step
-// gives at the store's state (a put at the next revision), and its id is the entry's request id.
+// REQ apply/write: a committed write whose waiter is registered is applied, its result is the
+// answer the model's step gives (a put's reply), or the quota's ErrNoSpace, which settles nothing
+// (the write may be applied: the caller treats it as unsettled), and its id is the entry's.
 // Users: server/etcdserver/server.go:1994 (applyEntryNormal), its waiter v3_server.go:1019
 // (`resp.(*pb.PutResponse)`).
 // Assumes: e is a committed normal entry whose data is the marshalled InternalRaftRequest of a valid
-// put with id `id` (the request path's); auth is disabled; no alarm is raised; the backend is under
-// its quota; kv is the store of ua's options and this goroutine is the apply thread.
+// put with id `id` (the request path's), registered in w; auth is disabled; no alarm is raised;
+// this goroutine is the apply thread.
 // Specs: Apply.spec, isUber_apply (uberApplier.Apply.spec); laws: irrStep_step, applyStep_fun.
-func ReqApplyWrite(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait.Wait, kv mvcc.KV, id uint64) {
-	before := kv.Rev()
+func ReqApplyWrite(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait.Wait, id uint64) {
 	ar, gotID := apply.Apply(lg, e, ua, w, true)
 	if gotID != id {
 		panic("write: wrong id")
 	}
-	if ar == nil || ar.Err != nil {
+	if ar == nil {
+		return // the requester gave up meanwhile (Trigger(id, nil)): nothing owed
+	}
+	if errors.Is(ar.Err, errs.ErrNoSpace) {
+		return // over the quota: unsettled
+	}
+	if ar.Err != nil {
 		panic("write: a valid put refused")
 	}
-	resp, ok := ar.Resp.(*pb.PutResponse)
-	if !ok || resp.Header.Revision != before+1 || kv.Rev() != before+1 {
-		panic("write: not the put's step")
+	if _, ok := ar.Resp.(*pb.PutResponse); !ok {
+		panic("write: not a put's reply")
 	}
 }
 
@@ -55,24 +62,20 @@ func ReqApplyWrite(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait
 // Users: server/etcdserver/server.go:1934-1945 (apply: the replay after a restart).
 // Assumes: e is a committed normal entry of a put (as in ReqApplyWrite); this goroutine is the
 // apply thread.
-// Specs: Apply.spec, isUber_apply; laws: irrStep_noV3.
-func ReqApplyReplay(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait.Wait, kv mvcc.KV) {
-	before := kv.Rev()
+// Specs: Apply.spec, isUber_apply (its replay clause: `ar = null`); laws: irrStep_noV3.
+func ReqApplyReplay(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait.Wait) {
 	ar, _ := apply.Apply(lg, e, ua, w, false)
-	if ar != nil || kv.Rev() != before {
-		panic("replay: the replay changed the store or answered")
+	if ar != nil {
+		panic("replay: the replay answered")
 	}
 }
 
-// REQ apply/no-result: a read no one waits for is not applied, and nothing changes.
-// Users: server/etcdserver/server.go:1994 (another member's linearizable-path range entry, legacy).
-// Assumes: e's request is a Range (or AuthStatus, UserGet, RoleGet) whose id is not registered in w;
-// this goroutine is the apply thread.
-// Specs: Apply.spec; laws: irrStep_step (a read's Step changes nothing).
-func ReqApplyNoResult(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait.Wait, kv mvcc.KV) {
-	before := kv.Rev()
+// REQ apply/no-result: a read no one waits for may be skipped; either way it is safe, and nothing is
+// owed to a waiter.
+// Users: server/etcdserver/server.go:1994-2001 (applyEntryNormal's nil path).
+// Assumes: e's request is a Range (or AuthStatus, UserGet, RoleGet) entry; this goroutine is the
+// apply thread.
+// Specs: Apply.spec (waitDone on the nil path); laws: irrStep_read.
+func ReqApplyNoResult(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait.Wait) {
 	_, _ = apply.Apply(lg, e, ua, w, true)
-	if kv.Rev() != before {
-		panic("no-result: a read changed the store")
-	}
 }

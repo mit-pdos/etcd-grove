@@ -43,7 +43,7 @@ def opBody (op : IrrOp) (b : EtcdServer.IrrBody) : Prop :=
   | .userAdd name h np => b = .req (.userAdd name h np)
   | .userChangePassword name h => b = .req (.userChangePassword name h)
   | .authenticate name pw _ => ∃ rev, b = .authToken name pw rev
-  | .alarm .get _ _ => b = .req .alarmList
+  | .alarm .get _ at' => if at' = W32 0 then b = .req .alarmList else b = .noop
   | .alarm .activate mid at' =>
       match V3alarm.kindOf at' with
       | some k => b = .alarmActivate ⟨mid, k⟩
@@ -75,6 +75,15 @@ def checksOut (S : State → IProp GF) (u : GoString) (rev : Nat) (cs : List Che
       (∃ σ', S σ' ∗ ⌜checkErr σ' u rev c = some e⌝) ∗
       [∗list] c' ∈ cs.take i, ∃ σ', S σ' ∗ ⌜checkErr σ' u rev c' = none⌝)
 
+/-- **What one check of the request path reports** (3d's `Auth.checkPost`, from the lower bound
+`i0`): an operation's check with its recorded states (a denial with the states it failed at); a
+lease's keys: nothing when it passes, the failing key's write check when it does not. -/
+def chkPost (γa : Auth.AuthNames) (i0 : Nat) (u : GoString) (rev : w64) (c : Check)
+    (err : GoInterface) : IProp GF :=
+  match c with
+  | .op t rng => Auth.checkPost γa i0 u rev t rng err
+  | .lease _ => iprop(⌜err = GoInterface.nil⌝ ∨ ∃ rng, Auth.checkPost γa i0 u rev .write rng err)
+
 end vocab
 
 section laws
@@ -101,7 +110,9 @@ def isUber_apply.spec : Prop :=
           {{ wrapperAt r ir sk ∗ ⌜ir.op.ok ∧ (sk = true → ir.op.isTxn = true)⌝ ∗ smAt ua σ ∗
               memberUpd γc ir.op Qm ∗ R ∗ threadTok }}
             (App (App (Val #(methods ui.ty go!"Apply" ui.v)) (Val #r)) (Val #v3))
-          {{ (ar : Loc), RET #ar; R ∗ threadTok ∗ Qm ∗ ∃ σ' res, ⌜irrStep mc σ ir v3 σ' res⌝ ∗ smAt ua σ' ∗
+          {{ (ar : Loc), RET #ar; R ∗ threadTok ∗ Qm ∗ ∃ σ' res, ⌜irrStep mc σ ir v3 σ' res ∧
+        (v3 = false → ir.op.isMembership = false →
+          (ir.op.needAdmin = true → adminErr σ.auth ir.user = none) → ar = null)⌝ ∗ smAt ua σ' ∗
               resultAt γ ar ir sk res }}
 
 end laws

@@ -203,15 +203,35 @@ inductive PermType where
   | write
   | readwrite
 
+/-- A permission's range as the store accepts it (`isValidPermissionRange`): a key, and an end that
+is empty, `"\x00"`, or above the key. -/
+def KeyRange.validPerm (r : KeyRange) : Prop :=
+  r.key ≠ [] ∧ (r.rangeEnd = [] ∨ r.rangeEnd = [0#8] ∨ keyLt r.key r.rangeEnd)
+
+/-- An inverted range: a proper end at or below the key (no key in it; the store's interval tree
+may still refuse it). -/
+def KeyRange.inverted (r : KeyRange) : Prop :=
+  r.rangeEnd ≠ [] ∧ r.rangeEnd ≠ [0#8] ∧ ¬ keyLt r.key r.rangeEnd
+
 /-- A role's permission: a type and a key range. -/
 structure Perm where
   permType : PermType
   range : KeyRange
 
-/-- A user: its password (`none` for a user added with `NoPassword`) and roles, in order. -/
+/-- A user: its stored credential (the password's hash the request path computed; `none` for a user
+added with `NoPassword`) and roles, in order. -/
 structure UserRec where
   password : Option Bytes
   roles : List GoString
+
+/-- **`cred` is a hash of `pw`** (bcrypt's `GenerateFromPassword`, at the proposer): opaque, trusted
+(3d's boundary). -/
+opaque pwHash (pw cred : Bytes) : Prop
+
+/-- **`pw` matches the stored credential `cred`** (bcrypt's `CompareHashAndPassword`): opaque,
+trusted; a hash matches its own password (`State.lean`'s `pwHash_match`), and nothing more is
+assumed (bcrypt reads 72 bytes, hashes collide: `nonissues/etcd-auth-password-72-byte-prefix.md`). -/
+opaque pwMatch (cred pw : Bytes) : Prop
 
 /-- **The auth state.** -/
 structure AuthState where
@@ -255,6 +275,8 @@ structure Member where
 inductive AlarmKind where
   | nospace
   | corrupt
+  /-- an alarm type a client's `Alarm(ACTIVATE)` names that etcd has no meaning for -/
+  | other (n : Int)
 
 structure Alarm where
   memberId : Nat
@@ -319,7 +341,10 @@ def EtcdErr.indefinite : EtcdErr → Bool
   | .noLeader | .notLeader | .leaderChanged | .notCapable | .stopped | .timeout
   | .timeoutDueToLeaderFail | .timeoutDueToConnectionLost | .timeoutWaitAppliedIndex
   | .unhealthy | .clusterIdMismatch | .clusterVersionUnavailable | .badLeaderTransferee
-  | .canceled | .deadlineExceeded | .watchCanceled => true
+  | .canceled | .deadlineExceeded | .watchCanceled
+  -- an over-quota member applies a write and answers `ErrNoSpace`
+  -- (`nonissues/etcd-apply-quota-nospace-after-write.md`)
+  | .noSpace => true
   | _ => false
 
 /-- **The refusals any request may meet**, the state unchanged: the server's admission control
@@ -470,6 +495,8 @@ inductive Req where
   | alarmList
   /-- `Alarm(DEACTIVATE, member, alarm)` -/
   | alarmDisarm (a : Alarm)
+  /-- `Alarm(ACTIVATE, member, alarm)` -/
+  | alarmActivate (a : Alarm)
 
 /-! ## Answers -/
 
@@ -835,6 +862,12 @@ def State.deniedSince (σ : State) (lo : Nat) (who : Principal) (ps : List (Perm
     Prop :=
   ∃ j a, lo ≤ j ∧ σ.authTables[j]? = some a ∧ ¬ ({ σ with auth := a } : State).permits who ps []
 
+/-- **A denial of an inverted range** (`auth/range_perm_cache.go`: the interval tree's `Contains`
+of an empty interval may refuse it): auth on, a principal not of the root role, and a pair whose
+range is inverted. -/
+def State.invertedDeny (σ : State) (who : Principal) (ps : List (PermType × KeyRange)) : Prop :=
+  σ.auth.enabled = true ∧ ¬ (∃ u, who = some u ∧ σ.auth.isRoot u) ∧ ∃ p ∈ ps, p.2.inverted
+
 /-- The error of a failed permission check: no principal (`ErrUserEmpty`), or a denial. -/
 def AuthState.permErr (who : Principal) : EtcdErr :=
   match who with
@@ -898,6 +931,7 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat 
        -- `AuthEnable` breaks it; a fix or a premise, open)
        ∃ v, (if r.serializable then σ.kv.IsView v else v = σ.kv) ∧
          ((¬ σ.permits who [(.read, r.range)] [] ∨ r.serializable = true ∨
+             σ.invertedDeny who [(.read, r.range)] ∨
              σ.deniedSince lo who [(.read, r.range)]) ∧
             res = .err (AuthState.permErr who) ∨
           (σ.permits who [(.read, r.range)] [] ∨ r.serializable = true ∨ σ.authOffSince lo) ∧
@@ -918,7 +952,8 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat 
   | .deleteRange d =>
       (d.key = [] ∧ σ' = σ ∧ res = .err .emptyKey) ∨
       d.key ≠ [] ∧
-      (¬ σ.permits who (RequestOp.deleteRange d).perms [] ∧ σ' = σ ∧
+      ((¬ σ.permits who (RequestOp.deleteRange d).perms [] ∨
+          σ.invertedDeny who (RequestOp.deleteRange d).perms) ∧ σ' = σ ∧
           res = .err (AuthState.permErr who) ∨
        σ.permits who (RequestOp.deleteRange d).perms [] ∧
        ∃ l, σ.kv.store.rangeKVs d.range l ∧
@@ -935,7 +970,8 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat 
       -- which may be behind
       ((¬ σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
           (RequestOp.txn t.compare t.success t.failure).leases ∨ (t.readonly ∧ t.serializable) ∨
-          (t.readonly ∧ σ.deniedSince lo who (RequestOp.txn t.compare t.success t.failure).perms)) ∧
+          (t.readonly ∧ σ.deniedSince lo who (RequestOp.txn t.compare t.success t.failure).perms) ∨
+          σ.invertedDeny who (RequestOp.txn t.compare t.success t.failure).perms) ∧
           σ' = σ ∧ res = .err (AuthState.permErr who)) ∨
       t.valid ∧
       (σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
@@ -959,6 +995,7 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat 
       rev ≤ (σ.kv.compacted : Int) ∧ σ' = σ ∧ res = .err .compacted ∨
       (σ.kv.rev : Int) < rev ∧ σ' = σ ∧ res = .err .futureRev ∨
       (σ.kv.compacted : Int) < rev ∧ rev ≤ (σ.kv.rev : Int) ∧
+        (∃ j a, lo ≤ j ∧ σ.authTables[j]? = some a ∧ a.admin who) ∧
         σ' = σ.withKV { σ.kv with compacted := rev.toNat } ∧ res = .ok .compact
   | _ => False
 
@@ -1002,7 +1039,10 @@ def leaseStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop 
         -- the remaining TTL may exceed the granted one after a leader change (`Promote` extends)
         -- the granted TTL of a known lease is positive (`v3_server.go`, `LeaseTimeToLive`)
         ∃ ttl gttl r l, r ≤ σ.kv.rev ∧ -2 ^ 63 ≤ ttl ∧ ttl < 2 ^ 63 ∧ 0 < gttl ∧ gttl < 2 ^ 63 ∧
-          (∀ k, k ∈ l ↔ ∃ rec, σ.kv.storeAt r k = some rec ∧ rec.lease = id) ∧
+          -- keys attached at revision `r` or `r + 1` (the lessor's set may be half updated by an
+          -- entry's writes, or half restored after a snapshot: `nonissues/etcd-lease-keys-mid-apply.md`)
+          (∀ k ∈ l, ∃ rec, (σ.kv.storeAt r k = some rec ∨ σ.kv.storeAt (r + 1) k = some rec) ∧
+            rec.lease = id) ∧
           res = .ok (.leaseTimeToLive id ttl gttl (if keys then l else []))) ∨
        -- the attached keys' read permission, checked at a member's auth state
        (keys = true ∧ res = .err (AuthState.permErr who)))
@@ -1047,7 +1087,7 @@ def Req.isAuthAdmin : Req → Prop
 open Classical in
 /-- The auth steps (`server/auth/store.go`). Every change bumps the auth revision; the changes and
 the user and role reads need an administrator (a user may read its own record). -/
-def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :=
+def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat := 0) : Prop :=
   let a := σ.auth
   let bump (a' : AuthState) : State :=
     { σ with auth := { a' with rev := a.rev + 1 }, authHist := σ.authHist ++ [σ.auth] }
@@ -1056,8 +1096,15 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
       σ' = σ ∧
       (a.enabled = false ∧ res = .err .authNotEnabled ∨
        a.enabled = true ∧
-         ((∃ ur, a.users name = some ur ∧ ur.password = some pw) ∧ res = .ok .authenticate ∨
-          ¬ (∃ ur, a.users name = some ur ∧ ur.password = some pw) ∧ res = .err .authFailed))
+         ((∃ ur c, a.users name = some ur ∧ ur.password = some c ∧ pwMatch c pw) ∧
+            res = .ok .authenticate ∨
+          ¬ (∃ ur c, a.users name = some ur ∧ ur.password = some c ∧ pwMatch c pw) ∧
+            res = .err .authFailed) ∨
+       -- `CheckPassword`'s answers before proposing, at the member's auth state since `lo`
+       (∃ j b, lo ≤ j ∧ σ.authTables[j]? = some b ∧
+          (b.enabled = false ∧ res = .err .authNotEnabled ∨
+           ¬ (∃ ur c, b.users name = some ur ∧ ur.password = some c ∧ pwMatch c pw) ∧
+             res = .err .authFailed)))
   | .authStatus => σ' = σ ∧ res = .ok (.authStatus a.enabled a.rev)
   | _ =>
     rq.isAuthAdmin ∧
@@ -1078,8 +1125,8 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
     | .userAdd name pw noPw =>
         name = [] ∧ σ' = σ ∧ res = .err .userEmpty ∨
         name ≠ [] ∧ a.users name ≠ none ∧ σ' = σ ∧ res = .err .userAlreadyExist ∨
-        name ≠ [] ∧ a.users name = none ∧
-          σ' = bump (a.setUser name (some ⟨if noPw then none else some pw, []⟩)) ∧
+        name ≠ [] ∧ a.users name = none ∧ ∃ cred, (noPw = false → pwHash pw cred) ∧
+          σ' = bump (a.setUser name (some ⟨if noPw then none else some cred, []⟩)) ∧
           res = .ok .userAdd
     | .userDelete name =>
         a.enabled = true ∧ name = rootUser ∧ σ' = σ ∧ res = .err .invalidAuthMgmt ∨
@@ -1092,7 +1139,8 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
         a.users name = none ∧ σ' = σ ∧ res = .err .userNotFound ∨
         ∃ ur, a.users name = some ur ∧
           -- a password-less user stays password-less (`store.go`, `UserChangePassword`)
-          σ' = bump (a.setUser name (some { ur with password := ur.password.map (fun _ => pw) })) ∧
+          ∃ cred, pwHash pw cred ∧
+          σ' = bump (a.setUser name (some { ur with password := ur.password.map (fun _ => cred) })) ∧
           res = .ok .userChangePassword
     | .userGrantRole user role =>
         a.users user = none ∧ σ' = σ ∧ res = .err .userNotFound ∨
@@ -1131,7 +1179,7 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
         -- an invalid range or a missing permission (`store.go`, `RoleGrantPermission`)
         σ' = σ ∧ (res = .err .invalidAuthMgmt ∨ res = .err .permissionNotGiven) ∨
         a.roles name = none ∧ σ' = σ ∧ res = .err .roleNotFound ∨
-        ∃ ps, a.roles name = some ps ∧
+        ∃ ps, a.roles name = some ps ∧ perm.range.validPerm ∧
           σ' = bump (a.setRole name
             (some (Perm.dropRange ps perm.range.key perm.range.rangeEnd ++ [perm]))) ∧
           res = .ok .roleGrantPermission
@@ -1144,9 +1192,9 @@ def authStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Prop :
              σ' = bump (a.setRole role (some (Perm.dropRange ps key rangeEnd))) ∧
              res = .ok .roleRevokePermission)
     | .roleGet name =>
-        σ' = σ ∧ (a.roles name = none ∧ name ≠ rootRole ∧ res = .err .roleNotFound ∨
-          -- the root role answers its fixed permission (`rootPerm`), whatever is stored
-          name = rootRole ∧ (∃ ps, res = .ok (.roleGet ps)) ∨
+        σ' = σ ∧ (a.roles name = none ∧ res = .err .roleNotFound ∨
+          -- a stored root role answers its fixed permission (`rootPerm`)
+          name = rootRole ∧ a.roles name ≠ none ∧ (∃ ps, res = .ok (.roleGet ps)) ∨
           ∃ ps l, name ≠ rootRole ∧ a.roles name = some ps ∧ l.Perm ps ∧ res = .ok (.roleGet l))
     | .roleList =>
         σ' = σ ∧ ∃ l, (∀ r, r ∈ l ↔ a.roles r ≠ none) ∧ res = .ok (.roleList l)
@@ -1196,6 +1244,11 @@ def clusterStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Pro
       σ' = σ ∧ (lin = true → ∃ l, l.Perm σ.members ∧ res = .ok (.memberList l)) ∧
         (lin = false → ∃ ms, res = .ok (.memberList ms))
   | .alarmList => σ' = σ ∧ ∃ l, l.Perm σ.alarms ∧ res = .ok (.alarm l)
+  | .alarmActivate al =>
+      (σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
+      al.memberId < 2 ^ 64 ∧
+        ((∃ b ∈ σ.alarms, b.memberId = al.memberId ∧ b.kind = al.kind) ∧ σ' = σ ∨
+         σ' = { σ with alarms := σ.alarms ++ [al] }) ∧ res = .ok (.alarm [al])
   | .alarmDisarm al =>
       (σ' = σ ∧ res = .err (σ.auth.adminErr who)) ∨
       ((¬ ∃ b ∈ σ.alarms, b.memberId = al.memberId ∧ b.kind = al.kind) ∧ σ' = σ ∧
@@ -1214,7 +1267,7 @@ on (the token's user, else the client certificate's common name); with auth off 
 on it, so the certificate's name used then (`AuthInfoFromTLS`) is covered by every `who`. -/
 def Step (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat := 0) : Prop :=
   (σ' = σ ∧ ∃ e, e.refusal = true ∧ res = .err e) ∨
-  kvStep who rq σ σ' res lo ∨ leaseStep who rq σ σ' res ∨ authStep who rq σ σ' res ∨
+  kvStep who rq σ σ' res lo ∨ leaseStep who rq σ σ' res ∨ authStep who rq σ σ' res lo ∨
   clusterStep who rq σ σ' res
 
 /-- **The cluster's configuration, as far as the environment's steps depend on it**: whether the
@@ -1226,9 +1279,12 @@ structure EnvCfg where
   /-- whether a lease may expire during the run (`false`: a deployment premise, every lease granted
   outlives the run, as `examples/etcd/leasegrant` assumes) -/
   leaseExpiry : Bool
+  /-- how far behind the current revision the auto-compactor compacts (a revision-mode compactor's
+  retention; `0` for the periodic mode or none) -/
+  compactLag : Nat
 
 /-- Every environment step allowed (what `Reach` closes over). -/
-def EnvCfg.all : EnvCfg := { autoCompact := true, leaseExpiry := true }
+def EnvCfg.all : EnvCfg := { autoCompact := true, leaseExpiry := true, compactLag := 0 }
 
 /-- **The environment's steps** in a cluster configured as `cfg`: what no client call causes. A live
 lease expires and the leader revokes it (its keys deleted at one revision); the server's
@@ -1239,7 +1295,7 @@ inductive EnvStep (cfg : EnvCfg) : State → State → Prop
   | leaseExpire (σ : State) (id : Int) (l : List KV) : cfg.leaseExpiry = true →
       σ.leases id ≠ none → σ.attachedKVs id l → EnvStep cfg σ (σ.revoke id l)
   | compact (σ : State) (r : Nat) : cfg.autoCompact = true →
-      σ.kv.compacted < r → r ≤ σ.kv.rev → EnvStep cfg σ (σ.withKV { σ.kv with compacted := r })
+      σ.kv.compacted < r → r + cfg.compactLag ≤ σ.kv.rev → EnvStep cfg σ (σ.withKV { σ.kv with compacted := r })
   | alarm (σ : State) (al : Alarm) : al.memberId < 2 ^ 64 →
       EnvStep cfg σ { σ with alarms := σ.alarms ++ [al] }
   | publish (σ : State) (id : Nat) (name : GoString) (urls : List GoString) :

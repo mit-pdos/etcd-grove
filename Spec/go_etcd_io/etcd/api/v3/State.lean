@@ -177,10 +177,19 @@ def leaseViewLb_le.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (i : Nat) (
   leaseViewLb (GF := GF) γ ep i ∗ etcdState γ σ ⊢ ⌜i < σ.leaseTables.length⌝
 
 /-- **`tok` is a token the cluster issued to user `u`** (persistent; `Authenticate`'s answer, 1c and
-3d): a request carrying it is `u`'s, or refused once it is invalid or stale. -/
+3d; also the tokens a member issues itself: `WithRoot`'s root tokens, the JWTs its keys sign): a
+request carrying it is `u`'s, or refused once it is invalid or stale. -/
 opaque tokenUser (γ : Cluster) (tok : GoString) (u : GoString) : IProp GF := iprop(True)
 
 def tokenUser_persistent.spec : Prop := ∀ γ tok u, Persistent (tokenUser (GF := GF) γ tok u)
+
+/-- A token names one user. -/
+def tokenUser_agree.spec : Prop := ∀ γ tok u u',
+  tokenUser (GF := GF) γ tok u ∗ tokenUser γ tok u' ⊢ ⌜u = u'⌝
+
+/-- No user has the empty name in any state the cluster has had (`UserAdd` refuses it). -/
+def etcdLb_noEmptyUser.spec : Prop := ∀ (γ : Cluster) (σ : State),
+  etcdLb (GF := GF) γ σ ⊢ ⌜∀ a ∈ σ.authTables, a.users [] = none⌝
 
 /-- **The environment's permission** (see the header): any environment step of a cluster
 configured as `cfg`, at any time. -/
@@ -195,6 +204,9 @@ variable [GooseExts] [go_gctx : GoGlobalContext]
 
 /-- **The Go value of rpctypes' error `e`** (`rpctypes.ErrCompacted` for `.compacted`, ...). -/
 opaque errVal (e : EtcdErr) : GoInterface := GoInterface.nil
+
+/-- **A hash matches its own password** (bcrypt's documented contract; trusted, 3d's boundary). -/
+def pwHash_match.spec : Prop := ∀ pw cred : Bytes, pwHash pw cred → pwMatch cred pw
 
 /-- Distinct errors are distinct values. -/
 def errVal_inj.spec : Prop := ∀ (e e' : EtcdErr), errVal e = errVal e' → e = e'

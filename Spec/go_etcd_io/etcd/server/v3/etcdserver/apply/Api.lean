@@ -135,6 +135,7 @@ public import Spec.go_etcd_io.raft.v3.Model
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.Api
+public import Spec.go_etcd_io.etcd.server.v3.auth.Api
 public import Spec.go_uber_org.zap.Api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.apply
@@ -228,12 +229,12 @@ def Irr.user (ir : Irr) : GoString := match ir.hdr with | some h => h.username |
 def Irr.revW (ir : Irr) : w64 := match ir.hdr with | some h => h.authRev | none => W64 0
 def Irr.authRev (ir : Irr) : Nat := uint.nat ir.revW
 
-/-- The request's principal in W0's terms. -/
-def Irr.who (ir : Irr) : Principal := if ir.user = [] then none else some ir.user
-
-/-- A header the request path stamps (`AuthInfoFromCtx`): a user exactly when a revision. The
-refinement laws need it (a user with revision `0` is `ErrUserEmpty` in Go, a denial in W0). -/
-def Irr.hdrOk (ir : Irr) : Prop := ir.user = [] ↔ ir.authRev = 0
+/-- The request's principal in W0's terms (2c's and 3d's): none only for no auth info at all (user
+`""`, revision `0`); a client certificate with an empty common name stamps user `""` at a nonzero
+revision (`AuthInfoFromTLS`), which is the principal `some ""` (Go answers `ErrPermissionDenied`:
+no such user). -/
+def Irr.who (ir : Irr) : Principal :=
+  if ir.user = [] ∧ ir.authRev = 0 then none else some ir.user
 
 /-- `needAdminPermission`. -/
 def IrrOp.needAdmin : IrrOp → Bool
@@ -334,7 +335,7 @@ def opErr (a : AuthState) (u : GoString) (rev : Nat) (t : PermType) (rng : KeyRa
     Option EtcdErr :=
   match preErr a u rev with
   | some e => some e
-  | none => if a.enabled = false ∨ a.isRoot u ∨ a.covers u t rng then none
+  | none => if a.enabled = false ∨ a.isRoot u ∨ (a.covers u t rng ∧ ¬ Auth.rngInverted rng) then none
             else some .permissionDenied
 
 /-- `checkLeasePuts`: nothing for a lease the lessor does not have or an administrator; else each
@@ -467,8 +468,9 @@ def irrStep (mc : MemberCfg) (σ : State) (ir : Irr) (v3 : Bool) (σ' : State) (
     else layersStep mc σ ir.user ir.authRev ir.op (chainLayers σ) σ' res
 
 /-- (provisional, 3h's) **The bytes `bs` decode to an `InternalRaftRequest` carrying `ir`**
-(`pbutil.MustUnmarshalMessage` succeeds: protobuf's limits included, `IrrBody.depthOk`), with one of
-the known fields set. -/
+(`pbutil.MustUnmarshalMessage` succeeds: protobuf's limits included, `IrrBody.depthOk`), with
+**exactly one** of the known request fields set (`needAdminPermission`, `noSideEffect` and
+`dispatch` test them in different orders). -/
 opaque irrDecodes (bs : List w8) (ir : Irr) : Prop
 
 /-- **The apply's model of a committed normal entry** (2d's `applyStep`, same signature): an empty
@@ -514,8 +516,25 @@ def IrrOp.ok (op : IrrOp) : Prop :=
   match op with
   | .req rq => reqIsIrr rq = true ∧ reqAdmitted rq ∧ authRecordFits op
   | .userAdd .. | .userChangePassword .. => authRecordFits op
-  | .alarm .activate _ at' => at' = W32 0 ∨ V3alarm.kindOf at' ≠ none
+  | .alarm .activate m at' => m < 2 ^ 64 ∧ (at' = W32 0 ∨ V3alarm.kindOf at' ≠ none)
+  | .alarm _ m _ => m < 2 ^ 64
   | .clusterVersionSet ver => clusterVerOk ver
+  | _ => True
+
+/-- **A state the cluster can be in** (W0's `etcdLb_init` gives it of every recorded state): the
+pure facts the refinement laws need follow from it (lease `0` never live, no key naming a dead
+lease, no user with the empty name). -/
+def reachable (σ : State) : Prop := ∃ ms : List Member, Reach (State.init ms) σ
+
+/-- **No inverted range among a request's checks** (`Auth.rngInverted`): Go's permission cache
+refuses an inverted range that W0's `covers` holds vacuously (W0 is asked to align:
+`req/go_etcd_io_etcd_api_v3.md`, "from 3a (round 1)"); until then the refinement law excludes it. -/
+def checksSane (op : IrrOp) : Prop :=
+  match op with
+  | .req (.range r) => ¬ Auth.rngInverted r.range
+  | .req (.deleteRange d) => ¬ Auth.rngInverted d.range
+  | .req (.txn t) => ∀ k rng, Check.op k rng ∈ RequestOp.checks (RequestOp.txn t.compare t.success t.failure) →
+      ¬ Auth.rngInverted rng
   | _ => True
 
 /-! ## TTL variants -/
@@ -571,6 +590,11 @@ opaque isUber (ua : GoInterface) (mc : MemberCfg) (γ : Cluster) (γc : Membersh
 
 /-- **The state machine behind `ua` is at `σ`.** Exclusive. -/
 opaque smAt (ua : GoInterface) (σ : State) : IProp GF := iprop(True)
+
+/-- **`ua` was built over the options `o`** (`NewUberApplier`'s; persistent): what gets the
+stores back out of `smAt` (`smAt_optsSt`, `smAt_alarms`). -/
+opaque uberOpts (ua : GoInterface) (o : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
+    IProp GF := iprop(True)
 
 /-- **The membership update an apply of `op` makes**: for a member's attributes, the caller's
 atomic update of the view (2e's `clusterSt γc`) from a view that knows the member (a member or
@@ -726,6 +750,20 @@ def persistent.spec : Prop :=
 
 def smAt_timeless.spec : Prop := ∀ ua σ, Timeless (smAt (GF := GF) ua σ)
 
+/-- **The stores back out of the state machine** (giving up the applier: `applySnapshot` recovers
+them, then builds a new one with `NewUberApplier`). -/
+def smAt_optsSt.spec : Prop :=
+  ∀ ua o σ, uberOpts (GF := GF) ua o ∗ smAt ua σ ⊢ optsSt o σ
+
+/-- **The alarm store's view, lent out of the state machine** (`applyEntryNormal`'s
+`alarmStore.Get(NOSPACE)` while the apply thread holds `smAt`). -/
+def smAt_alarms.spec : Prop :=
+  ∀ ua o σ, uberOpts (GF := GF) ua o ∗ smAt ua σ ⊢
+    ∃ γa, V3alarm.isAlarmStore o.AlarmStore' γa ∗ V3alarm.alarmSt γa σ.alarms ∗
+      (V3alarm.alarmSt γa σ.alarms -∗ smAt ua σ)
+
+def uberOpts_persistent.spec : Prop := ∀ ua o, Persistent (uberOpts (GF := GF) ua o)
+
 def smAt_excl.spec : Prop := ∀ ua σ σ', smAt (GF := GF) ua σ ∗ smAt ua σ' ⊢ iprop(False)
 
 /-- (internal) The state machine of an `*uberApplier` is its chain at the alarms' selection and its
@@ -756,8 +794,8 @@ def opStep_total.spec : Prop := ∀ mc σ op, op.ok → ∃ σ' res, opStep mc �
 through (the auth layer passed: `layersErr` none at the chain the alarms select), for an admitted
 request at a configuration etcd builds. -/
 def opStep_step.spec : Prop :=
-  ∀ (mc : MemberCfg) σ (ir : Irr) rq σ' res, mc.ok → ir.op = .req rq → ir.op.ok → ir.hdrOk →
-    (ir.op.needAdmin = true → adminErr σ.auth ir.user = none) →
+  ∀ (mc : MemberCfg) σ (ir : Irr) rq σ' res, mc.ok → ir.op = .req rq → ir.op.ok → reachable σ →
+    checksSane ir.op → (ir.op.needAdmin = true → adminErr σ.auth ir.user = none) →
     layersErr σ ir.user ir.authRev ir.op (chainLayers σ) = none →
     opStep mc σ (.req rq) σ' res → Step ir.who rq σ σ' res
 
@@ -782,10 +820,20 @@ def opStep_userChangePassword.spec : Prop :=
     ∀ who, σ.auth.mayCall who (.userChangePassword name h) →
       authStep who (.userChangePassword name h) σ σ' res
 
-/-- **Two members configured differently, at TTL-variant states, apply alike up to TTLs.** -/
+/-- **Two members configured differently, at TTL-variant states, apply alike up to TTLs; with one
+configuration, the same answer** (no answer reads a stored TTL: a grant's is the request's raised
+to the minimum). -/
 def opStep_ttl.spec : Prop :=
   ∀ mc₁ mc₂ σ₁ σ₂ op σ₁' σ₂' r₁ r₂, ttlEq σ₁ σ₂ →
-    opStep mc₁ σ₁ op σ₁' r₁ → opStep mc₂ σ₂ op σ₂' r₂ → ttlEq σ₁' σ₂' ∧ respTtlEq r₁ r₂
+    opStep mc₁ σ₁ op σ₁' r₁ → opStep mc₂ σ₂ op σ₂' r₂ → ttlEq σ₁' σ₂' ∧ respTtlEq r₁ r₂ ∧
+      (mc₁ = mc₂ → r₁ = r₂)
+
+/-- **The backend never answers a stale auth revision** (its stores' own errors only). -/
+def opStep_noOldRev.spec : Prop := ∀ mc σ op σ', ¬ opStep mc σ op σ' (.err .authOldRevision)
+
+/-- **A read's operation changes nothing.** -/
+def opStep_read.spec : Prop :=
+  ∀ mc σ op σ' res, op.noSideEffect = true → opStep mc σ op σ' res → σ' = σ
 
 /-! ### Consequences (laws of the model, for 2c and 2d) -/
 
@@ -806,12 +854,36 @@ def applyStep_total.spec : Prop :=
 
 /-- **A client request's apply is a `Step` of W0's model by its principal**: its refusals
 (`ErrCorrupt`, `ErrNoSpace`, `ErrAuthOldRevision`, `ErrUserEmpty`), its permission errors, its
-operation (2c's commit-time firing). The state has no user with the empty name (W0's reachable
-states). -/
+operation (2c's commit-time firing), at a reachable state (lease `0` never live, keys name live
+leases, no user `""`), for a request with no inverted range. -/
 def irrStep_step.spec : Prop :=
-  ∀ (mc : MemberCfg) σ (ir : Irr) rq σ' res, mc.ok → ir.op = .req rq → ir.op.ok → ir.hdrOk →
-    σ.auth.users [] = none →
+  ∀ (mc : MemberCfg) σ (ir : Irr) rq σ' res, mc.ok → ir.op = .req rq → ir.op.ok → reachable σ →
+    checksSane ir.op →
     irrStep mc σ ir true σ' res → Step ir.who rq σ σ' res
+
+/-- **An alarm action is W0's step**: `GET` of every type (`NONE`) is `alarmList`, `DEACTIVATE`
+and `ACTIVATE` of a known kind are `alarmDisarm` and `alarmActivate` (by any principal: no
+administrator check at the apply; W0's admin refusal is the request path's). -/
+def irrStep_alarm.spec : Prop :=
+  ∀ mc σ (ir : Irr) σ' res,
+    irrStep mc σ ir true σ' res →
+    (∀ m, ir.op = .alarm .get m (W32 0) → Step ir.who .alarmList σ σ' res) ∧
+    (∀ m at' k, ir.op = .alarm .deactivate m at' → V3alarm.kindOf at' = some k →
+      Step ir.who (.alarmDisarm ⟨m, k⟩) σ σ' res) ∧
+    (∀ m at' k, ir.op = .alarm .activate m at' → m < 2 ^ 64 → V3alarm.kindOf at' = some k →
+      Step ir.who (.alarmActivate ⟨m, k⟩) σ σ' res)
+
+/-- **A read changes nothing** (`noSideEffect`: a range, a user or role read, the auth status), in
+any state and mode. -/
+def irrStep_read.spec : Prop :=
+  ∀ mc σ (ir : Irr) v3 σ' res, ir.op.noSideEffect = true → irrStep mc σ ir v3 σ' res → σ' = σ
+
+/-- **The history is one `Reach` sequence** (2d's `applyStep_reach`): applying an entry the
+request path proposes, at a reachable state, moves to a state reachable from it (a client
+request's `Step`, possibly with the hash in a password's place; an environment step; or nothing). -/
+def applyStep_reach.spec : Prop :=
+  ∀ mc σ (e : Raft.LogEntry) ir σ' res, mc.ok → reachable σ → irrDecodes e.data ir → ir.op.ok →
+    checksSane ir.op → applyStep mc σ e σ' res → Reach σ σ'
 
 /-- **An alarm activation or a member's publication is an environment step, or nothing.** -/
 def irrStep_env.spec : Prop :=
@@ -835,6 +907,12 @@ def irrStep_noV3.spec : Prop := ∀ mc σ ir σ' res, irrStep mc σ ir false σ'
 /-- **A stale auth revision changes nothing**: an answer `ErrAuthOldRevision` leaves the state. -/
 def irrStep_oldRev.spec : Prop :=
   ∀ mc σ ir v3 σ', irrStep mc σ ir v3 σ' (.err .authOldRevision) → σ' = σ
+
+/-- **One configuration on TTL-variant states gives the same answer** (2d's round-1b item 1: the
+proposer's replica is a TTL-variant of the history). -/
+def applyStep_ttl_same.spec : Prop :=
+  ∀ mc σ₁ σ₂ e σ₁' σ₂' r₁ r₂, ttlEq σ₁ σ₂ →
+    applyStep mc σ₁ e σ₁' r₁ → applyStep mc σ₂ e σ₂' r₂ → ttlEq σ₁' σ₂' ∧ r₁ = r₂
 
 /-- **Members configured differently stay TTL-variants** of each other. -/
 def irrStep_ttl.spec : Prop :=

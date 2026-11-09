@@ -140,6 +140,9 @@ configured), an alarm's activation, a member's publication. Nothing else changes
 
 **K6 — the history is the committed log's**: snapshots, restores, restarts and membership changes
 continue the same `σ`; an answered step is durable on a quorum (no crash transition in the model).
+After a crash too, under the adequacy theorem's crash rule (`EtcdServer.crashGone`, `diskState`) and
+its environment premise `crashScope` (2e's; the user's decision): until raft's crash transition
+exists, K6 is proved for graceful stops (`HardStop`/`Stop`) only.
 
 **K7 — the resource's laws** (2c/2d realize `etcdState` and `etcdLb` from the committed log's
 states): `etcdState_timeless`, `etcdState_excl`, `etcdLb_persistent`, `etcdLb_timeless`,

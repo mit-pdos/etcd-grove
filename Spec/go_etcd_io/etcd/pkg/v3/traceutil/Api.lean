@@ -50,6 +50,8 @@ Snippets: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`, `ReqApplyTra
   predeclared basic type (`fieldsFmt`: the logger formats them with `%v`; a basic value has no
   methods to call and is immutable, so formatting it later, from the logger, races with nothing).
 * `traceOpt t` (transparent): `t` is `nil` or an owned trace (the apply layer's result traces).
+* `tracerAt tr` (transparent, persistent): the package variable `Tracer` holds `tr` (otel's tracer,
+  `Tracer.Start.spec`); `tracer_init` gives it from the package's initialization.
 
 ## Laws
 
@@ -113,6 +115,11 @@ def fieldsOwn (sl : GoSlice) : IProp GF :=
   iprop(∃ fs : List go_etcd_io.etcd.pkg.v3.traceutil.Field, sl ↦* fs ∗
     ownSliceCap go_etcd_io.etcd.pkg.v3.traceutil.Field sl (DFrac.own 1) ∗ ⌜fieldsFmt fs⌝)
 
+/-- **`tr` is the tracer the package variable `Tracer` holds** (persistent: never written after the
+package's initialization, in this scope: `tracer_init.spec`). -/
+def tracerAt (tr : GoInterfaceOk) : IProp GF :=
+  iprop(globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr)
+
 /-- **`t` is `nil` or an owned trace.** -/
 def traceOpt (t : Loc) : IProp GF :=
   if t = null then iprop(True) else traceOwn t
@@ -155,6 +162,13 @@ def ctxTraceIs_child.spec : Prop := ∀ ctx ctx' o,
 def ctxTraceIs_value.spec : Prop := ∀ (ctx ctx' : GoInterface) (ki : GoInterfaceOk) o,
   ctxTraceIs (GF := GF) ctx o ∗ Context.ctxValueAt ctx ctx' (GoInterface.ok ki) ∗
     ⌜ki.ty ≠ go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty⌝ ⊢ ctxTraceIs ctx' o
+
+/-- **The package's tracer** (assumed of the package's initialization: `noop.NewTracerProvider().
+Tracer(...)`, a non-nil interface value). **Scope**: `traceutil.Init`, which `embed` calls when
+distributed tracing is configured (`--experimental-enable-distributed-tracing`), rewrites the
+variable; a run that calls it is outside these specs (a decision of the user's, batch 4b's report). -/
+def tracer_init.spec : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ⊢ ∃ tr, tracerAt tr
 
 end laws
 

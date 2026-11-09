@@ -146,7 +146,8 @@ def SortNone : w64 := W64 0
 def SortAscend : w64 := W64 1
 def SortDescend : w64 := W64 2
 
-/-- **A `clientv3.Op`**, field by field. `rangeEnd` is `end` (`none`: `nil`); `sort` is the sort
+/-- **A `clientv3.Op`**, field by field. `rangeEnd` is `end` (`none`: `nil`; `some e`: a non-`nil`
+slice holding `e`, which may be empty: `WithRange("")`); `sort` is the sort
 option (`none`: `nil`) as (`Target`, `Order`); `cmps` the comparisons (`none`: a zero `Cmp`). -/
 structure OpM where
   t : w64
@@ -282,9 +283,16 @@ def OpM.watchPanics (o : OpM) : Prop := o.leaseID ≠ W64 0 ∨ o.hasRangeOpts
 /-- A Go `int` (`SortOption`'s fields) converted to the `int32` of a protobuf enum. -/
 def toEnum32 (x : w64) : Int := sint.Z (W32 (sint.Z x))
 
+/-- The request's range end of an `Op`'s `end` (`Wire.endOf`): `nil` one key, a non-`nil` empty end
+every key from the key on. -/
+def OpM.endReq (o : OpM) : GoString :=
+  match o.rangeEnd with
+  | none => []
+  | some e => if e = [] then [W8 0] else e
+
 /-- `toRangeRequest`. -/
 def OpM.rangeReq (o : OpM) : RangeReq :=
-  { key := o.key, rangeEnd := o.rangeEnd.getD [], limit := sint.Z o.limit,
+  { key := o.key, rangeEnd := o.endReq, limit := sint.Z o.limit,
     revision := sint.Z o.rev,
     sortOrder := (o.sort.map (fun s => toEnum32 s.2)).getD 0,
     sortTarget := (o.sort.map (fun s => toEnum32 s.1)).getD 0,
@@ -299,7 +307,7 @@ def OpM.putReq (o : OpM) : PutReq :=
 
 /-- The `DeleteRangeRequest` `Do` and `toRequestOp` build. -/
 def OpM.deleteReq (o : OpM) : DeleteReq :=
-  { key := o.key, rangeEnd := o.rangeEnd.getD [], prevKv := o.prevKV }
+  { key := o.key, rangeEnd := o.endReq, prevKv := o.prevKV }
 
 /-- A zero `Compare` (what `GetCompare` makes of a zero `Cmp`). -/
 def Compare.zero : EtcdModel.Compare :=
@@ -538,7 +546,11 @@ in-process `v3client`, a per-request principal), the client's own when the conte
 the same user (`ctxPrin_tokenSame`). `p` is the principal the server uses **with auth on** (the
 token's user, else the client certificate's common name); with auth off the server may use the
 certificate's name (`AuthInfoFromTLS`), but no check of `Step` depends on the principal then, so a
-context carrying both a token and a certificate is covered by the token's user.
+context carrying both a token and a certificate is covered by the token's user **provided the
+certificate, if the client has one, names the same user** (a scope premise of the client's
+connection, `connOk`, 1c: one identity per client; a client forwarding others' tokens,
+`ctxPrin_token`, has no certificate). Otherwise a write proposed with auth off and applied after
+`AuthEnable` is checked as the certificate's user (`nonissues/etcd-write-tls-principal-auth-enable.md`).
 Introduced for contexts with no gRPC outgoing metadata (`ctxPrin_of_noMeta` from
 `Context.ctxNoMeta`, which a root context's owner discharges; `ctxPrin_background`,
 `ctxPrin_todo`), kept by children (`ctxPrin_child`), by a `WithValue` at another key
@@ -688,15 +700,15 @@ def KV.DeleteTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : 
 `0` comes back with another compaction revision than the others, which no model of one cluster
 state describes; no etcd compactor issues `Compact(0)`). -/
 def KV.CompactTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (p : Principal) (rev : w64) (opts : GoSlice) (gs : List (CompactOpM → CompactOpM))
+  ∀ (ctx : GoInterface) (p : Principal) (lo : Nat) (rev : w64) (opts : GoSlice) (gs : List (CompactOpM → CompactOpM))
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ compactOptsAt opts gs ∗ ⌜rev ≠ W64 0⌝ ∗
+  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ compactOptsAt opts gs ∗ ⌜rev ≠ W64 0⌝ ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp),
              ⌜Step p (.compact (sint.Z rev)
                 ((gs.foldl (fun (o : CompactOpM) (g : CompactOpM → CompactOpM) => g o)
                   { revision := rev, physical := false }).physical))
-               σ σ' res⌝ ∗ etcdState γ σ',
+               σ σ' res lo⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #rev)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); compactOptsAt opts gs ∗
@@ -849,11 +861,11 @@ def RemoteKV.TxnTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal)
       ((∃ σ σ' res, Q σ σ' res ∗ wireReply txnReply res resp err) ∨ wireIndef resp err) }}
 
 def RemoteKV.CompactTriple (f : val) (P : IProp GF) (γ : Cluster) (who : Principal) : Prop :=
-  ∀ (ctx : GoInterface) (p : Principal) (req : Loc) (dq : DFrac) (rev : Int) (phys : Bool) (opts : GoSlice)
+  ∀ (ctx : GoInterface) (p : Principal) (lo : Nat) (req : Loc) (dq : DFrac) (rev : Int) (phys : Bool) (opts : GoSlice)
     (Q : State → State → Resp → IProp GF),
-  {{ P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ compactReqOwn req dq rev phys ∗ callOptsOk opts false ∗ ⌜rev ≠ 0⌝ ∗
+  {{ P ∗ Context.ctxOk ctx ∗ authLb γ lo ∗ ctxPrin who ctx p ∗ compactReqOwn req dq rev phys ∗ callOptsOk opts false ∗ ⌜rev ≠ 0⌝ ∗
       AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p (.compact rev phys) σ σ' res⌝ ∗ etcdState γ σ',
+        <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p (.compact rev phys) σ σ' res lo⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     (App (App (App (Val f) (Val #ctx)) (Val #req)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); compactReqOwn req dq rev phys ∗
@@ -898,7 +910,7 @@ def opAt_unfold.spec : Prop := ∀ (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
     op.key' ↦*□ o.key ∗
     (match o.rangeEnd with
      | none => iprop(⌜op.end' = slice.nil⌝)
-     | some e => iprop(op.end' ↦*□ e)) ∗
+     | some e => iprop(⌜op.end' ≠ slice.nil⌝ ∗ op.end' ↦*□ e)) ∗
     (match o.sort with
      | none => iprop(⌜op.sort' = null⌝)
      | some (tg, od) => iprop(op.sort' ↦□

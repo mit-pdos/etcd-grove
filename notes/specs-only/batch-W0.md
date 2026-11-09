@@ -349,3 +349,41 @@ reviews (keep-alive and `Compact` permission errors; 2c's F1, F7).
 | `EtcdModel.RespBody.authenticate` | **arity**: no argument (was `authenticate (token)`); the token is given by `tokenUser γ tok u` (2c's F1). `ErrAuthNotEnabled`, `ErrAuthFailed` were already definite answers of `authStep .authenticate` |
 | `ClientV3.ctxPrin` (doc) | `p` is the principal the server uses with auth on (token, else certificate CN); with auth off no step depends on the principal, so the certificate's name `AuthInfoFromTLS` gives then is covered (2c's F7); no statement change |
 | `nonissues/etcd-doserialize-auth-enable-race.md` | `blocks-proof: no`: the model covers it |
+
+## Round 5 repairs (2026-11-09)
+
+The coordinator's decision (`ErrNoSpace` indefinite), the requests after round 4 in
+`req/go_etcd_io_etcd_api_v3.md` and `req/context.md` (2c, 2e, 3a, 3b, 3c, 3d, 2d), and 3b's review F1.
+
+| name | change |
+|---|---|
+| `EtcdErr.indefinite` | `.noSpace` is indefinite (still a refusal too): an over-quota member applies a write and answers `ErrNoSpace` (`nonissues/etcd-apply-quota-nospace-after-write.md`); `callErr`'s classification follows (`CallErr.indefinite (.etcd .noSpace)`) |
+| `EtcdModel.pwHash`, `EtcdModel.pwMatch` | **new** (opaque, trusted; 3a, 3d): `UserRec.password` is the stored credential; `userAdd`/`userChangePassword` store some `cred` with `pwHash pw cred`; `authenticate` succeeds iff the stored credential `pwMatch`es (not "is the password"); law `pwHash_match.spec` (State.lean) |
+| `authStep` | **new optional last argument** `(lo : Nat := 0)` (`Step` passes its `lo`): `Authenticate`'s `CheckPassword` answers (`ErrAuthNotEnabled`, `ErrAuthFailed`) at an auth state since `lo` (2c's item 2) |
+| `authStep .roleGet` | `"root"` answers `ErrRoleNotFound` when no root role is stored; a stored one any permissions (3d's item 6) |
+| `authStep .roleGrantPermission` | success only for a valid range (`KeyRange.validPerm`, new) (3d's item 3) |
+| `KeyRange.validPerm`, `KeyRange.inverted`, `State.invertedDeny` | **new**: a range, read, delete or transaction naming an inverted range may be denied with auth on for a non-root principal (3d's item 4) |
+| `kvStep .compact` | success only for an administrator at an auth state since `lo` (2a); `KV.CompactTriple`, `RemoteKV.CompactTriple` gain the binder `(lo : Nat)` and the premise `authLb γ lo` |
+| `leaseStep .leaseTimeToLive` | the keys are attached at revision `r` or `r + 1` (a lessor's set half updated by an entry or half restored: 3c's items, 2c's item 4); no longer "exactly those of `r`" |
+| `EtcdModel.AlarmKind.other`, `Req.alarmActivate` | **new**: a client's `Alarm(ACTIVATE)` (any type, unknown ones as `other n`), admin-refusable at a local auth state (2e's item 5) |
+| `EtcdModel.EnvCfg` | **new field** `compactLag : Nat`; `EnvStep.compact` requires `r + cfg.compactLag ≤ σ.kv.rev` (2e's F6); `EnvCfg.all` has `0` |
+| `EtcdModel.tokenUser_agree`, `etcdLb_noEmptyUser` | **new laws** (3d, 3a); `tokenUser`'s meaning includes a member's own root tokens and JWTs |
+| `Context.TODO.spec` | post adds `□ (ctxDone ctx -∗ False)`; **new law** `ctxDone_background` (3b) |
+| `EtcdWire.endOf es bs` | **new**: a range end as mvcc reads the slice (`nil`: one key; non-`nil` empty: from the key on, `"\x00"`; else itself). `rangeReqOwn_unfold`, `deleteReqOwn_unfold`, `compareOwn_unfold` now say `r.rangeEnd = endOf es ebs` (3b's review F1: `WithRange("")` through the in-process adapter) |
+| `ClientV3.OpM.endReq` | **new**: the request end of an `Op` (`some []` is `"\x00"`); `OpM.rangeReq`, `OpM.deleteReq` use it; `opAt_unfold`'s `some e` adds `op.end' ≠ slice.nil`; `Cmp.WithRange.spec` gives `"\x00"` for an empty end |
+| `ClientV3.ctxPrin` (doc) | the token-and-certificate case: covered when the client's certificate, if any, names its own principal (a scope premise of `connOk`, 1c: one identity per client); otherwise `nonissues/etcd-write-tls-principal-auth-enable.md` (2c's item 3, 3d's item 5) |
+| `top.md` K6 | crash restarts under the adequacy's crash rule and `crashScope` (2e) |
+
+**Declined, with the reason.**
+- **3b's "an empty range end is `nil`" in the request predicates**: superseded by 3b's review F1
+  (`endOf`): a non-`nil` empty end is a real input (in-process adapter), so the predicates say how
+  mvcc reads it rather than excluding it.
+- **2d's `Cluster` as a structure carrying the raft names and the configuration**: `Cluster` is the
+  client API's ghost name; making it hold raft's names would put raft's vocabulary into every
+  client spec (PRINCIPLES: the spec of an API, not of an implementation; coupling). The bridge
+  `isServer_names` (2c/2d/2e) stays where the server needs it.
+- **3c's per-member granted TTLs**: no change: `leaseTimeToLive` already allows any positive granted
+  TTL; no client needs a member's own.
+- **3a's item 4 (members' TTLs alike)**: the same; a user decision if wanted (`batch-3a.md`).
+- **2e's adequacy resources** (`dataDirFresh`, `addrFree`, `backendEnvOk`) and the join by peer-URL
+  rights: 2e's vocabulary, stated in its specs; K1/K2 in `top.md` refer to 2e for them.

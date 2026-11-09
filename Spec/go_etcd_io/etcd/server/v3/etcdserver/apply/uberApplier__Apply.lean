@@ -60,7 +60,9 @@ def uberApplier.Apply.spec : Prop :=
       memberUpd γc ir.op Qm ∗ R ∗ threadTok }}
     (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty @!!
       go!"Apply")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; R ∗ threadTok ∗ Qm ∗ ∃ σ' res, ⌜irrStep mc σ ir v3 σ' res⌝ ∗
+  {{ (ar : Loc), RET #ar; R ∗ threadTok ∗ Qm ∗ ∃ σ' res, ⌜irrStep mc σ ir v3 σ' res ∧
+        (v3 = false → ir.op.isMembership = false →
+          (ir.op.needAdmin = true → adminErr σ.auth ir.user = none) → ar = null)⌝ ∗
       smAt (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty) #p) σ' ∗
       resultAt γ ar ir sk res }}

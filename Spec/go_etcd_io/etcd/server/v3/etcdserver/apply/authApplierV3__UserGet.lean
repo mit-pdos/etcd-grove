@@ -7,7 +7,7 @@
 
 **Changes** from `specs-ref`'s `authApplierV3__UserGet.lean`: the old per-mode chain predicates (`apply.chainRes`, `kvOwnPre`) restated over `applierAt`, `stAt` and `layersStep`
 
-**Margin.** A refused `UserGet`/`RoleGet` resets `authInfo` (the call's `aiAt` returned at its value: the request's later calls are none).
+**Margin.** A refused call resets `authInfo` to `""`/`0` (`auth.go:225-226`, `236-237`): `aiAt` comes back at some value.
 -/
 module
 
@@ -45,7 +45,7 @@ def authApplierV3.UserGet.spec : Prop :=
       threadTok }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3.ty @!! go!"UserGet")) (Val #rq))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      R ∗ threadTok ∗ aiAt aa u rev ∗ ∃ σ' res res', ⌜layersStep mc σ u (uint.nat rev) op baseLayers σ' res ∧ resMatch op false res res'⌝ ∗
+      R ∗ threadTok ∗ (∃ u' rv', aiAt aa u' rv') ∗ ∃ σ' res res', ⌜layersStep mc σ u (uint.nat rev) op baseLayers σ' res ∧ resMatch op false res res'⌝ ∗
       stAt b σ' ∗ replyAt γ op res' (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty) #resp) err }}
 
 end spec

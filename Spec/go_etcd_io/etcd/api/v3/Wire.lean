@@ -151,6 +151,13 @@ opaque requestOpOwn (p : Loc) (dq : DFrac) (op : RequestOp) : IProp GF := iprop(
 opaque txnReqOwn (p : Loc) (dq : DFrac) (t : TxnReq) : IProp GF := iprop(True)
 opaque compactReqOwn (p : Loc) (dq : DFrac) (rev : Int) (physical : Bool) : IProp GF := iprop(True)
 
+/-- **A range end as mvcc reads the slice** (`treeIndex`, `index.go`): a `nil` end names one key
+(`[]`), a non-`nil` empty end every key from the key on (`"\x00"`, as `KeyRange.mem` reads it), any
+other end itself. (Protobuf decodes an absent end as `nil`; `clientv3.WithRange("")` and the
+in-process adapter pass a non-`nil` empty one.) -/
+def endOf (es : GoSlice) (bs : GoString) : GoString :=
+  if es = slice.nil then [] else if bs = [] then [0#8] else bs
+
 /-- A slice of message pointers, each owning its model. -/
 def msgsOwn {M : Type} (own : Loc → DFrac → M → IProp GF) (sl : GoSlice) (dq : DFrac)
     (ms : List M) : IProp GF :=
@@ -270,9 +277,10 @@ def replyPersist.spec : Prop :=
 
 def rangeReqOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (r : RangeReq),
   rangeReqOwn (GF := GF) p dq r ⊣⊢
-    ∃ (ks es : GoSlice), protoRest etcdserverpb.RangeRequest p dq ∗
+    ∃ (ks es : GoSlice) (ebs : GoString), protoRest etcdserverpb.RangeRequest p dq ∗
     p.[etcdserverpb.RangeRequest, go!"Key"] ↦{dq} ks ∗ ks ↦*□ r.key ∗
-    p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ r.rangeEnd ∗
+    p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ∗
+    ⌜r.rangeEnd = endOf es ebs⌝ ∗
     p.[etcdserverpb.RangeRequest, go!"Limit"] ↦{dq} (W64 r.limit) ∗
     p.[etcdserverpb.RangeRequest, go!"Revision"] ↦{dq} (W64 r.revision) ∗
     p.[etcdserverpb.RangeRequest, go!"SortOrder"] ↦{dq} (W32 r.sortOrder) ∗
@@ -305,9 +313,10 @@ def putReqOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (r : PutReq),
 
 def deleteReqOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (r : DeleteReq),
   deleteReqOwn (GF := GF) p dq r ⊣⊢
-    ∃ (ks es : GoSlice), protoRest etcdserverpb.DeleteRangeRequest p dq ∗
+    ∃ (ks es : GoSlice) (ebs : GoString), protoRest etcdserverpb.DeleteRangeRequest p dq ∗
     p.[etcdserverpb.DeleteRangeRequest, go!"Key"] ↦{dq} ks ∗ ks ↦*□ r.key ∗
-    p.[etcdserverpb.DeleteRangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ r.rangeEnd ∗
+    p.[etcdserverpb.DeleteRangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ∗
+    ⌜r.rangeEnd = endOf es ebs⌝ ∗
     p.[etcdserverpb.DeleteRangeRequest, go!"PrevKv"] ↦{dq} r.prevKv
 
 /-- The `TargetUnion` oneof of a `Compare` holding `v`. -/
@@ -335,11 +344,12 @@ def cmpOneof (iv : GoInterface) (dq : DFrac) : CmpVal → IProp GF
 
 def compareOwn_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (c : EtcdModel.Compare),
   compareOwn (GF := GF) p dq c ⊣⊢
-    ∃ (ks es : GoSlice) (iv : GoInterface), protoRest etcdserverpb.Compare p dq ∗
+    ∃ (ks es : GoSlice) (ebs : GoString) (iv : GoInterface), protoRest etcdserverpb.Compare p dq ∗
     p.[etcdserverpb.Compare, go!"Result"] ↦{dq} (W32 c.result) ∗
     p.[etcdserverpb.Compare, go!"Target"] ↦{dq} (W32 c.target) ∗
     p.[etcdserverpb.Compare, go!"Key"] ↦{dq} ks ∗ ks ↦*□ c.key ∗
-    p.[etcdserverpb.Compare, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ c.rangeEnd ∗
+    p.[etcdserverpb.Compare, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ∗
+    ⌜c.rangeEnd = endOf es ebs⌝ ∗
     p.[etcdserverpb.Compare, go!"TargetUnion"] ↦{dq} iv ∗ cmpOneof iv dq c.targetUnion ∗
     ⌜(-2 ^ 31 ≤ c.result ∧ c.result < 2 ^ 31) ∧ (-2 ^ 31 ≤ c.target ∧ c.target < 2 ^ 31)⌝
 

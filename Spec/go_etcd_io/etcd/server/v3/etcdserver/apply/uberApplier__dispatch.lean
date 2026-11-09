@@ -42,7 +42,8 @@ def uberApplier.dispatch.spec : Prop :=
       memberUpd γc ir.op Qm ∗ R ∗ threadTok }}
     (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; R ∗ threadTok ∗ Qm ∗ (∃ u rv, aiAt aa u rv) ∗
-      ∃ σ' res, ⌜irrStep mc σ ir v3 σ' res⌝ ∗ uberChain p (chainLayers σ') ∗ stAt b σ' ∗
+      ∃ σ' res, ⌜irrStep mc σ ir v3 σ' res ∧
+        (v3 = false → ir.op.isMembership = false → ar = null)⌝ ∗ uberChain p (chainLayers σ') ∗ stAt b σ' ∗
         resultAt γ ar ir sk res }}
 
 end spec
