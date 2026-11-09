@@ -49,6 +49,13 @@ an open one the post keeps its history with the caller and adds `Backend.beDetac
 Second crash pass (G-a): `Q (some img)` gives `Backend.beOpenUpd`, which now also takes the revert
 list (`OpenBackend`'s premise, unchanged).
 
+Changes: verify-round (third crash pass, F2-crash N1): the rename's update also takes the snapshot
+directory's rename record (`Snap.snapRen sd r`) and sets it to `some (index, BackendPath())` at the
+rename, as `Snap.dbFile_rename`'s does (the `none` arm leaves it), so that a crash resolves the
+rename's source and destination together (`Snap.snapDbs_crash`'s `renCrashed`): the old backend
+never comes back with the source gone, the state on which `bootstrap`'s recovery panics. Proof: as
+before.
+
 **Margin.** The error's cause is not stated.
 -/
 module
@@ -89,16 +96,21 @@ def OpenSnapshotBackend.spec : Prop :=
       threadTok ∗ Snap.isSnapshotter ss (Config.snapDirOf cfg.DataDir') ∗ Raft.snapshotPts p dq sn ∗
       isHooks h ci ∗
       (AU <{ ∃∃ (F : Nat → Option Snap.BeImage) (H : Nat → Snap.BeImage → Prop) (d : Backend.FileSt)
-                (os : List (Option Snap.BeImage)),
+                (os : List (Option Snap.BeImage)) (r : Option (Nat × GoString)),
               Snap.snapDbs (Config.snapDirOf cfg.DataDir') F ∗ Snap.snapGone (Config.snapDirOf cfg.DataDir') H ∗
+              Snap.snapRen (Config.snapDirOf cfg.DataDir') r ∗
               Backend.beAt (Config.backendPathOf cfg.DataDir') d ∗
               Snap.revertSt (Config.backendPathOf cfg.DataDir') os }> @ ⊤, ∅
         <{ Snap.snapDbs (Config.snapDirOf cfg.DataDir') (Snap.releaseAt F (uint.nat sn.index)) ∗
             Snap.snapGone (Config.snapDirOf cfg.DataDir') (Snap.goneAdd H F (Snap.releaseAt F (uint.nat sn.index))) ∗
             (match F (uint.nat sn.index) with
-             | some img => Backend.beFile (Config.backendPathOf cfg.DataDir') (some img) ∗
+             | some img =>
+                 Snap.snapRen (Config.snapDirOf cfg.DataDir')
+                   (some (uint.nat sn.index, Config.backendPathOf cfg.DataDir')) ∗
+                 Backend.beFile (Config.backendPathOf cfg.DataDir') (some img) ∗
                  Backend.beRenamedOver (Config.backendPathOf cfg.DataDir') os d
-             | none => Backend.beAt (Config.backendPathOf cfg.DataDir') d ∗
+             | none => Snap.snapRen (Config.snapDirOf cfg.DataDir') r ∗
+                 Backend.beAt (Config.backendPathOf cfg.DataDir') d ∗
                  Snap.revertSt (Config.backendPathOf cfg.DataDir') os),
             COMM Q (F (uint.nat sn.index)) }>) ∗
       (∀ (img : Snap.BeImage), Q (some img) -∗

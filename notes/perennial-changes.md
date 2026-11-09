@@ -2111,6 +2111,28 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   extension operations whose atomic updates admit a `crashed` answer, refuted at their own step.
 - **Status.** Recorded only.
 
+## No WP step lemma refutes the generation's `crashed` (2026-11-09, branch `specs-only`)
+
+- **The gap.** Every thread step's state interpretation holds the generation's `notCrashed`
+  (`Lifting.lean:752`, `goose_bstateInterp_eq`), and `notCrashed_crashed` (`CrashToken.lean:50`)
+  refutes `crashed` with it, but no lemma hands a WP step that fact: nothing proves
+  `crashed -∗ WP e {{ Φ }}` for an expression that takes a step, or lets an atomic step's proof use
+  `notCrashed` (a grep for uses of `notCrashed_crashed`, or for `crashed -∗ WP`, finds none).
+- **Who needs it.** The specs-only branch's per-generation tokens are a token **or the generation's
+  `crashed`** (raft's `nodeVacant`, 2e's `diskIdle`; `notes/specs-only/verify/repair4-raft-crash.md`,
+  open question D28), so that the crossing laws hold at every next generation, the current one
+  included; their realizations refute the `crashed` disjunct at the consumer's first step (raft's
+  `StartNode`/`RestartNode`, `NewServer`), which needs this lemma (`verify/F2-crash.md`, second tier
+  s1). Distinct from the crash-aware invariant entry above, which is about the crash frame taking
+  resources out of an invariant; this one is about a running thread ruling out `crashed`.
+- **Local workaround.** None needed in the statements: the realizations' text cites the step fact,
+  and the laws are stated as obligations.
+- **Proposed (general; record only, nothing changed in Perennial).** A lifting lemma
+  `wp_crashed_elim : ¬ IsValue e → crashed ⊢ WP e @ s; E {{ Φ }}` (the first step's state
+  interpretation gives `notCrashed`, hence `False`), and its atomic-step form for a step proof that
+  opens an invariant holding a `token ∨ crashed` disjunction.
+- **Status.** Recorded only.
+
 ## No specs of `fmt.Fprintf` / `strings.Builder` (2026-11-09, branch `specs-only`)
 
 - **The gap.** raft's `DescribeConfChange` and raftpb's `ConfChangesToString` build strings with a

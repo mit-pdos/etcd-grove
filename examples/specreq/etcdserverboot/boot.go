@@ -324,7 +324,11 @@ func ReqStopDrained(s *etcdserver.EtcdServer) {
 // Specs: disk_crash (no out-of-scope case; its post gives diskState and diskIdle at one kind:
 // diskIdle_agree, whose crashed alternative is the crashed generation's only, is not needed; the
 // crossing laws hold at every next generation, verify-round F-raft-storage F1), Wal.walRecs_crash,
-// Wal.walWriting_crash (under crashInScope), Backend.beDetached_crash, memberStart_disk,
+// Wal.walWriting_crash (under crashInScope), Wal.walCreating_crash (a crash inside wal.Create,
+// between its rename and its parent's fsync: the WAL at Recs.init, or none), Backend.beDetached_crash,
+// Snap.snapDbs_crash/snapSaving_crash (with the install's rename record, before 4a's crash laws: an
+// install's rename is kept or lost with its source, so the old backend never comes back with the
+// snapshot file gone, on which Go's restart panics), memberStart_disk,
 // NewServer.spec, EtcdServer.Start.spec, the request path's Range (2c); across the crash:
 // EtcdModel.etcdState_gen, etcdLb_gen, envUpd_gen, srvNet_gen, Rafthttp.peerAddr_gen (the program
 // serves the raft handler again: Http.protoFam_at of the family), srvEp_gen and Http.protoFam_gen

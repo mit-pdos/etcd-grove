@@ -26,6 +26,13 @@ The laws that tie 4a's file vocabulary to 4c's (`Spec/go_etcd_io/bbolt/Api.lean`
   turns `beRevs p os` into `beNoRevert p`. Realization: OsFs's name state of `p` (`named`) with the
   previous inode's contents; **needs OsFs's crash relation for an unsynced rename to bring the old
   entry back** (4c's `boltCrash` says only "may be gone" for `named = false`): recorded as a gap.
+  **The rename's source** (third crash pass, F2-crash N1): a rename that brings `p`'s previous file
+  back also brings its source back (one directory's two entries, kept or lost together), which this
+  module cannot say (the source is the snapshotter's). The snapshotter's crash laws
+  (`Snap.snapDbs_crash`, `snapSaving_crash`) take the newest install's rename record with
+  `beRevs p os` and give it back resolved (`[]` if the rename is kept; unchanged, with the source
+  back, if lost), at the crashed generation; the frame applies them before `beFile_crash`/`beCrash`,
+  whose statements are unchanged.
 * `beCrash`: **a crash leaves the file at one of the committed images** (4c's `boltCrash`, over the
   history the client keeps in an invariant): from the file's crash invariant `beDurInv γ p`, crash
   safety on (`beSynced γ`: `UnsafeNoFsync` off), the client's `beHist γ L` (any fraction of bbolt's

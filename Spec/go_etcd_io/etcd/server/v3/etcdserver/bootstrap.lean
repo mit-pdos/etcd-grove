@@ -34,7 +34,10 @@ cannot open it: `diskOk`), and then by the WAL directory's existence (`wal.Exist
   metadata, the cluster's view recovered from the backend (`RaftCluster.Recover`), the snapshot's
   configuration rebuilt from the backend's members (`buildConfStateFromV3store`), a
   `MemoryStorage` of the snapshot, the hard state and the entries (`StorageHolds` of the durable
-  state `memberDisk` holds), raft's record with no peers.
+  state `memberDisk` holds), raft's record with no peers. This includes a WAL at `Recs.init md`, left
+  by a crash inside `wal.Create` after its rename (`Wal.walCreating_crash`): the zero snapshot record,
+  no entries, a backend at index `0` (nothing to recover), `RestartNode` from an empty storage with
+  the configuration the backend holds (third crash pass, F2-crash N2).
 The result `bootOk b γ id cfg` has one sealed part per subsystem (`ApiBoot.lean`).
 
 **Crashes inside `bootstrap`** (verify round, crash pass: R-A8 N4; trusted, as the rest): every
@@ -42,10 +45,14 @@ durable change is made through `memberStart`'s `diskAcc`, at its atomic point, s
 describes the directories at every step and `disk_crash` holds of a crash at any point: the
 directories' creation (nothing of `diskState`'s), the backend's open (4a's `New`: the file closed
 until the open, then the open file's history, swapped at bbolt's open by 4a's `beOpenUpd`, fired
-inside `diskAcc`: repair3-boot, no window left), `RecoverSnapshotBackend`'s rename (`Snap.dbFile_rename`'s update, the revert list),
-`wal.Create` (a temporary directory renamed onto the WAL's path, the parent fsynced before it returns:
-the kind moves from `.boot`/`.join` to `.member id` at the rename, and a crash before the parent's
-fsync may undo it, leaving no WAL and nothing of raft started), `wal.Repair` (a torn tail
+inside `diskAcc`: repair3-boot, no window left), `RecoverSnapshotBackend`'s rename (`Snap.dbFile_rename`'s update, the revert list and the snapshot
+directory's rename record `Snap.snapRen`, third crash pass, F2-crash N1),
+`wal.Create` (a temporary directory renamed onto the WAL's path, `wal.go:185`, the parent fsynced
+before it returns, `:225`: the disk, still `.boot`/`.join`, holds `Wal.walCreating wd md` from the
+rename's access to the fsync's, where the kind moves to `.member id` with `Wal.walRecs wd (Recs.init
+md)`; a crash in between gives the WAL at `Recs.init md` or no WAL, `Wal.walCreating_crash`, and
+`disk_crash`'s kind `.member id` or the old one: third crash pass, F2-crash N2, which found this text
+and `ApiBoot`'s disagreeing on where the kind moves), `wal.Repair` (a torn tail
 truncated: `walRecs` is what `ReadAll` returns, which the tail never was part of). The WAL replay
 reads only.
 
@@ -61,6 +68,11 @@ bootstrap defragmentation (`BootstrapDefragThresholdMegabytes`: the backend's `D
 image: 4a's spec) are inside the configurations the premises admit or excluded as said.
 
 Changes: verify-round (server-boot's request): `OpenBackend` returns 4a's `isBackend` through the allocation step, its hook contract `Backend.hookOk` from cindex's `UnsafeSave` (cindex/Api's header), with premises `backendBootRes` (now `Backend.envOk` and the quota, `MemoryMlock = false`), `safeRegOk`, `threadTok`; the snapshot directory's invariant is allocated with `Snap.snapGone sd H` beside `snapDbs` at `(fun _ _ => False)`.
+
+Changes: verify-round (third crash pass, F2-crash N1, N2; trusted text only, statement unchanged):
+the snapshot directory's invariant is allocated with `Snap.snapRen sd none` beside `snapGone`; the
+WAL's creation holds `Wal.walCreating` between its rename and its parent's fsync, and the kind moves
+at the fsync; the WAL path covers a WAL at `Recs.init`.
 
 Changes: verify-round, last relay (server-boot's request): the opener gets the backend file's `Backend.beNoRevert` (4a's `beFile_of`/`beFile_none` give it with the file), kept in `diskState`'s realization for `applySnapshot`'s `OpenSnapshotBackend`.
 -/

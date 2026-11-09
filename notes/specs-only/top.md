@@ -160,7 +160,11 @@ so the proof has no out-of-scope case. **Pending the user**: a first boot's back
 `bolt.Open` creates with no directory sync, may vanish at a crash until `member/snap` is synced
 (its revert list holds `none`); after the member's first local snapshot the restart then panics
 (`nonissues/etcd-backend-name-lost-restart-panic.md`), so `disk_crash` is not realizable for that
-disk until a premise, a scope restriction or a fork fix is chosen. Recorded gaps (Perennial,
+disk until a premise, a scope restriction or a fork fix is chosen; under the same model `member/`
+itself is never synced in the data directory (`nonissues/etcd-member-dir-not-synced.md`), so the
+WAL's crash laws rest on the same choice, which only a premise over directory entries in general
+settles (open question D7); and raft's `raftState_crash` is not realizable until its batch evidence
+cannot be forged (`readyBatch`, open question D6). Recorded gaps (Perennial,
 `notes/perennial-changes.md`): how the crash frame takes `diskState` out of an invariant that the
 running server opens inside callees' atomic updates (a crash-aware invariant); and OsFs's `rename`
 (the realization of every revert entry: renames onto the backend's path, and a backend renamed

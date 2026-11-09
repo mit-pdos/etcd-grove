@@ -35,6 +35,13 @@ specs are trusted, each stating what the Go code computes (`db.go`, `snapshotter
   fsynced). Client-owned with `snapDbs`, moved by the removals' updates (`ReleaseSnapDBs`, the
   install's rename `dbFile_rename`), as 4a's `beHist` is by commits; monotone (a later directory
   fsync makes the removals durable, which the model does not track: weaker, still true).
+* `snapRen sd r` (exclusive, timeless; third crash pass, F2-crash N1): **the newest rename of a db
+  file of `sd` onto a path** (`r = some (i, dst)`: `<sd>/<i:016x>.snap.db` onto `dst`; `none`: none
+  this generation). Client-owned with `snapGone`, set by the install's rename (`dbFile_rename`), at
+  `none` from the directory's allocation and at each next generation (the crash laws). Not reset by
+  a directory fsync: once `SaveDBFrom` has synced the directory the record is stale, which the crash
+  laws allow (their "kept" case, below, is then the true one). It ties the rename's two directory
+  entries together at a crash (`renCrashed`).
 * `dbReader r img` (exclusive): **provisional, batch 2f's**: the `io.Reader` `r` yields the bytes
   of `img` and then `EOF` (or fails: a cut stream). rafthttp's merged-snapshot reader is one.
 * `isMessage p to sz` (persistent) and `msgClose p` (exclusive, once): a `*snap.Message` to member
@@ -49,7 +56,7 @@ specs are trusted, each stating what the Go code computes (`db.go`, `snapshotter
 `msgCloseCh_persistent`; the trusted rename of a db file (`dbFile_rename`: `os.Rename` of
 `dbPathOf sd i`, which `OpenSnapshotBackend` calls: verify-round, A8 provability F5, the bridge from
 `os.Rename` to this model); the crash laws `snapDbs_crash`, `snapSaving_crash` (verify-round, A8
-provability F9).
+provability F9); `snapRen_timeless`, `snapRen_excl`.
 
 ## Crashes
 
@@ -67,6 +74,36 @@ destination's previous file to its revert state (`revertSt dst os`: every file a
 back, 4a's `beCrash`), and the next `SaveDBFrom`'s directory fsync, of the directory holding `dst`
 (`inDir`), empties it (last pass, backend-schema's request; re-review N3 and the crash pass: the
 list form, 4a's `beRevs`).
+
+**The install's rename crashes as one** (third crash pass, F2-crash N1). The rename of
+`<sd>/<i>.snap.db` onto `<sd>/db` changes two entries of one directory, and a crash keeps it whole
+or loses it whole: the destination is the renamed file and the source gone, or the destination is
+the previous file and the source back. Stated as two independent laws (the directory's
+`snapDbs_crash` choosing `F' i = none`, 4a's `beFile_crash`/`beCrash` choosing a previous file), the
+model admitted "old backend back, source gone", which no disk can reach and on which Go's restart
+**panics**: the WAL holds the snapshot record at `i` (durable before the install), the old
+backend's consistent index is below it, `RecoverSnapshotBackend` calls `OpenSnapshotBackend`,
+`DBFilePath(i)` fails and `bootstrap.go:481-482` panics. (`verify/repair2-crash.md`, decision 7,
+said this only made the model's restart fail where Go's succeeds: false, Go panics there too.) So
+the directory's crash laws also take the newest rename's record (`snapRen sd r`) and, for it, the
+destination's revert list (`renRevs r os`, 4a's `beRevs dst os`), and resolve the rename's fate
+with the directory's (`renCrashed r F' os os'`): **kept**, the revert list becomes `[]` (the
+destination cannot come back to any file before it: the rename is the newest change of that entry)
+and 4a's law then gives the current file; or **lost**, the list is unchanged and the source is back
+(`F' i ≠ none`: some image it had, which `snapGone` recorded at the rename). They hand the list
+back at the crashed generation, so the frame applies them **before** 4a's `beFile_crash`/`beCrash`
+(and after `Backend.beDetached_crash`, which folds a renamed-over open file into the list). Only the
+newest rename is tied: an older one's destination was replaced by a later rename, so whether its
+source is back matters to no restart (the WAL's newest snapshot record is at or above the newest
+install's index), and `snapGone` already says it may be. **Why it is true**: a rename within one
+directory is one metadata operation, committed in one journal transaction by ext4 and xfs (the
+physical premise these laws rest on; POSIX does not promise crash atomicity of `rename`). A stale
+record (a `SaveDBFrom` synced the directory since) is harmless: the rename is then durable, so the
+"kept" case is the true one, and `renRevs` is then `[]` or holds only entries that cannot come back
+(a detached file closed after the sync). Realization: the trusted meaning of `snapDbs`/`snapRen`
+with 4a's revert record, whose authority is in 4a's file invariant (`Backend.beFileN`, hence the
+laws' `|={⊤}=>`); over OsFs, the recorded `rename` gap with a crash case atomic over both entries
+(`notes/perennial-changes.md`).
 
 ## Requirement snippets
 
@@ -124,6 +161,16 @@ def snapCrashed (F : Nat → Option BeImage) (H : Nat → BeImage → Prop) (F' 
     Prop :=
   ∀ j, F' j = F j ∨ (F j = none ∧ (F' j = none ∨ ∃ img, F' j = some img ∧ H j img))
 
+/-- **What a crash leaves of the newest rename `r` and its destination's revert list `os`** (third
+crash pass, F2-crash N1; the header's "The install's rename crashes as one"): the rename kept (the
+list becomes `[]`: the destination is the current file) or lost (the list unchanged, and the source
+`i` back in the crashed directory `F'`). With no rename recorded, the list is untouched. -/
+def renCrashed (r : Option (Nat × GoString)) (F' : Nat → Option BeImage)
+    (os os' : List (Option BeImage)) : Prop :=
+  match r with
+  | none => os' = os
+  | some (i, _) => os' = [] ∨ (os' = os ∧ F' i ≠ none)
+
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [go_gctx : GoGlobalContext]
@@ -139,6 +186,16 @@ opaque snapDbs [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 
 /-- **A save of `img` at `i` is between its rename and its directory fsync, over `F`** (exclusive). -/
 opaque snapSaving [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sd : GoString) (F : Nat → Option BeImage) (i : Nat) (img : BeImage) : IProp GF := iprop(True)
+
+/-- **The newest rename of a db file of `sd`: its index and destination** (exclusive; third crash
+pass, F2-crash N1; see the header). -/
+opaque snapRen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sd : GoString) (r : Option (Nat × GoString)) : IProp GF := iprop(True)
+
+/-- The revert list `os` of the newest rename's destination (none recorded: nothing). -/
+def renRevs (r : Option (Nat × GoString)) (os : List (Option BeImage)) : IProp GF :=
+  match r with
+  | none => iprop(emp)
+  | some (_, dst) => Backend.beRevs dst os
 
 /-- **The images removed from `sd`'s db files that a crash may bring back** (exclusive). -/
 opaque snapGone [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (sd : GoString) (H : Nat → BeImage → Prop) : IProp GF := iprop(True)
@@ -181,23 +238,42 @@ def snapGone_timeless.spec : Prop := ∀ sd H, Timeless (snapGone (GF := GF) sd 
 def snapGone_excl.spec : Prop := ∀ sd H H',
   snapGone (GF := GF) sd H ∗ snapGone sd H' ⊢ iprop(False)
 
+def snapRen_timeless.spec : Prop := ∀ sd r, Timeless (snapRen (GF := GF) sd r)
+
+def snapRen_excl.spec : Prop := ∀ sd r r',
+  snapRen (GF := GF) sd r ∗ snapRen sd r' ⊢ iprop(False)
+
 def isMessage_persistent.spec : Prop := ∀ p to sz, Persistent (isMessage (GF := GF) p to sz)
 
-/-- **A crash of the directory at rest** (trusted; see the header, "Crashes"): the next generation
-`L'` finds a directory `snapCrashed` allows. -/
+/-- **A crash of the directory at rest** (trusted; see the header, "Crashes" and "The install's
+rename crashes as one"): the next generation `L'` finds a directory `snapCrashed` allows, no rename
+recorded; the newest rename's destination gets its revert list back, at the crashed generation, as
+`renCrashed` resolves it (for 4a's `beFile_crash`/`beCrash`, applied next). Changes (third crash
+pass, F2-crash N1): takes the rename record `snapRen sd r` and the destination's revert list
+(`renRevs r os`), and gives `renCrashed`'s joint outcome (was independent of 4a's, which admitted
+"old backend back, source gone", where Go's restart panics); `|={⊤}=>` (4a's revert record is in
+`Backend.beFileN`). -/
 def snapDbs_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (sd : GoString)
-    (F : Nat → Option BeImage) (H : Nat → BeImage → Prop),
-  snapDbs (GF := GF) sd F ∗ snapGone sd H ∗ crashed ⊢
-    |==> ∃ F', ⌜snapCrashed F H F'⌝ ∗ @snapDbs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ sd F' ∗
-      @snapGone _ _ _ GF ⟨hG.goose_globalGS, L'⟩ sd H
-
-/-- **A crash during a save** (trusted): as at rest, the file at `i` possibly the new image. -/
-def snapSaving_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (sd : GoString)
-    (F : Nat → Option BeImage) (i : Nat) (img : BeImage) (H : Nat → BeImage → Prop),
-  snapSaving (GF := GF) sd F i img ∗ snapGone sd H ∗ crashed ⊢
-    |==> ∃ F', ⌜snapCrashed F H F' ∨ snapCrashed (saveAt F i img) H F'⌝ ∗
+    (F : Nat → Option BeImage) (H : Nat → BeImage → Prop) (r : Option (Nat × GoString))
+    (os : List (Option BeImage)),
+  snapDbs (GF := GF) sd F ∗ snapGone sd H ∗ snapRen sd r ∗ renRevs r os ∗ crashed ⊢
+    |={⊤}=> ∃ F' os', ⌜snapCrashed F H F' ∧ renCrashed r F' os os'⌝ ∗
       @snapDbs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ sd F' ∗
-      @snapGone _ _ _ GF ⟨hG.goose_globalGS, L'⟩ sd H
+      @snapGone _ _ _ GF ⟨hG.goose_globalGS, L'⟩ sd H ∗
+      @snapRen _ _ _ GF ⟨hG.goose_globalGS, L'⟩ sd none ∗ renRevs r os'
+
+/-- **A crash during a save** (trusted): as at rest, the file at `i` possibly the new image.
+Changes (third crash pass, F2-crash N1): as `snapDbs_crash` (the save's own rename, of a temporary
+file onto `i`, is independent of the install's: either may be kept). -/
+def snapSaving_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (sd : GoString)
+    (F : Nat → Option BeImage) (i : Nat) (img : BeImage) (H : Nat → BeImage → Prop)
+    (r : Option (Nat × GoString)) (os : List (Option BeImage)),
+  snapSaving (GF := GF) sd F i img ∗ snapGone sd H ∗ snapRen sd r ∗ renRevs r os ∗ crashed ⊢
+    |={⊤}=> ∃ F' os', ⌜(snapCrashed F H F' ∨ snapCrashed (saveAt F i img) H F') ∧
+        renCrashed r F' os os'⌝ ∗
+      @snapDbs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ sd F' ∗
+      @snapGone _ _ _ GF ⟨hG.goose_globalGS, L'⟩ sd H ∗
+      @snapRen _ _ _ GF ⟨hG.goose_globalGS, L'⟩ sd none ∗ renRevs r os'
 
 end res
 
@@ -233,17 +309,23 @@ then gives the old backend's history back with `Backend.beDetached γ dst`
 (`Backend.beRenamedOver`), whose entry joins the revert list at its close or at a crash. And the
 renamed file `beFile dst (some img)` goes into the caller's state at the rename, not into the post
 (it was in the post, while `OpenSnapshotBackend`'s update, since repair3-boot, puts it in its
-client's state at the commit: a crash between the rename and the return found it in neither). -/
+client's state at the commit: a crash between the rename and the return found it in neither).
+Changes (third crash pass, F2-crash N1): the update also takes the directory's rename record
+`snapRen sd r` and, at a rename, sets it to `some (i, dst)`, so that the crash laws resolve the
+rename's two entries together (the header's "The install's rename crashes as one"); a missing file
+leaves it. -/
 def dbFile_rename.spec : Prop :=
   ∀ (sd : GoString) (i : Nat) (dst : GoString) (Q : Option BeImage → IProp GF),
   {{ ⌜ServerStorage.diskOk⌝ ∗
       (AU <{ ∃∃ (F : Nat → Option BeImage) (H : Nat → BeImage → Prop) (d : Backend.FileSt)
-                (os : List (Option BeImage)),
-              snapDbs sd F ∗ snapGone sd H ∗ Backend.beAt dst d ∗ revertSt dst os }> @ ⊤, ∅
+                (os : List (Option BeImage)) (r : Option (Nat × GoString)),
+              snapDbs sd F ∗ snapGone sd H ∗ snapRen sd r ∗ Backend.beAt dst d ∗
+                revertSt dst os }> @ ⊤, ∅
         <{ snapDbs sd (releaseAt F i) ∗ snapGone sd (goneAdd H F (releaseAt F i)) ∗
             (match F i with
-             | some img => beFile dst (some img) ∗ Backend.beRenamedOver dst os d
-             | none => Backend.beAt dst d ∗ revertSt dst os), COMM Q (F i) }>) }}
+             | some img => snapRen sd (some (i, dst)) ∗ beFile dst (some img) ∗
+                 Backend.beRenamedOver dst os d
+             | none => snapRen sd r ∗ Backend.beAt dst d ∗ revertSt dst os), COMM Q (F i) }>) }}
     (App (App (Val (@! os.Rename)) (Val #(dbPathOf sd i))) (Val #dst))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ img, Q (some img)) ∨

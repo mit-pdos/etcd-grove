@@ -185,8 +185,10 @@ write that is not atomic on disk has two updates with the in-flight state betwee
 
 **Realization** (`diskState`, per kind):
 * `.boot ms m`: `memberBoot γ ms m`, the backend file (absent, closed `Backend.beFile p o`, or open
-  `beDurInv γb p ∗ beSynced γb ∗ beHist γb L`) with its revert state `beRevs p os`, no WAL;
-* `.join urls`: `memberJoin γ urls`, the same backend file states, no WAL;
+  `beDurInv γb p ∗ beSynced γb ∗ beHist γb L`) with its revert state `beRevs p os`, no WAL, or,
+  inside `wal.Create` between its rename and its parent's fsync, `Wal.walCreating (walDirOf ds) md`
+  of the member's metadata (third crash pass, F2-crash N2);
+* `.join urls`: `memberJoin γ urls`, the same backend file states, no WAL or `Wal.walCreating`;
 * `.member id`: the WAL (`Wal.walRecs (walDirOf ds) R`, or `walWriting R w` while a write is in
   flight), raft's `raftState γ.raft id D` with `walHolds R D` and, while a batch is in flight, its
   unfired `readyEnter` (deposited before `Save`, fired at its synced write: the raft loop's), the
@@ -195,8 +197,9 @@ write that is not atomic on disk has two updates with the in-flight state betwee
   created has no durable name: 4a's `beOpenUpd`, second crash pass G-a), during an install the old
   backend renamed over while open (its history and `Backend.beDetached`, until its `Close`: second
   crash pass G-b), the snapshot dbs' deletion right.
-The snapshot directory's invariant (`snapDbs`/`snapSaving` with `snapGone`, allocated from
-`dataDirFresh`, keyed per generation) is beside it; `disk_crash` opens it. The record behind 2f's
+The snapshot directory's invariant (`snapDbs`/`snapSaving` with `snapGone` and the rename record
+`snapRen` (at `none`), allocated from `dataDirFresh`, keyed per generation) is beside it;
+`disk_crash` opens it. The record behind 2f's
 `ν.dbIn id i` (the directory's history of saves) is not keyed per generation (second crash pass,
 F-server-boot F4: `ν` is the same at every generation, so its meaning must be too): a save's record
 is made at `SaveDBFrom`'s directory fsync (durable), its authority moves with the invariant across
@@ -208,13 +211,25 @@ The crossing: the WAL by `Wal.walRecs_crash`/`walWriting_crash` (records `R'`, m
 the restart view of `R'`: `R.crashedDuring w R'`'s cases are `D.crashOk b D'`'s, and
 `R'.confAboveOk` gives `D'.confAboveOk`), each giving `raftState` and `nodeVacant` at `L'`; the
 backend by 4a's `Backend.beFile_crash` (closed) or `beCrash` (open), each taking the file out of
-`crashRest`, after a detached old backend is folded into the revert list (`Backend.beDetached_crash`); the snapshot directory by `Snap.snapDbs_crash`/`snapSaving_crash`; `memberBoot` and
+`crashRest`, after a detached old backend is folded into the revert list (`Backend.beDetached_crash`)
+and after the snapshot directory's crash, `Snap.snapDbs_crash`/`snapSaving_crash`, which also
+resolve the newest install's rename with the backend's revert list (third crash pass, F2-crash N1:
+kept, the list emptied; or lost, the source back in the directory), so that 4a's law, applied with
+the list they give back, never brings the old backend back with the snapshot file gone (Go's
+restart panics on that disk, `bootstrap.go:481-482`; the restart's file "at the WAL's newest
+snapshot index, when `ci` is below it" is the source the lost case keeps); `memberBoot` and
 `memberJoin` by their crash laws (raft's crossing of the reserved durable state and vacancy,
 `Raft.global` for their persistent facts, 2f's `Rafthttp.peerAddr_gen` for the addresses); then
 `diskState` and `diskIdle` at `L'` (with `nodeVacant` in `diskIdle` for a member's files). **The kind
-changes** only from `.boot`/`.join` to `.member id`, at the WAL's creation (`wal.Create` writes a
-temporary directory, renames it onto the WAL's path and fsyncs the parent before returning: a crash
-before the rename's fsync leaves no WAL, nothing of raft started, the kind unchanged).
+changes** only from `.boot`/`.join` to `.member id`, at the WAL's creation, **at the parent's
+fsync** (third crash pass, F2-crash N2; the two texts disagreed): `wal.Create` writes a temporary
+directory, renames it onto the WAL's path (`wal.go:185`) and fsyncs the parent (`:225`). A crash
+before the rename leaves no WAL, the kind unchanged; between the rename and the fsync the disk
+(still `.boot`/`.join`) holds `Wal.walCreating`, whose crash law gives the WAL at `Recs.init md`
+(then `k' = .member id`: raft's reserved state crosses at `Durable.init`, `walHolds (Recs.init md)
+Durable.init`, the backend at index `0`, and the restart takes `bootstrap`'s WAL path, `RestartNode`
+with no peers) or no WAL (`k' = k`); after the fsync the kind is `.member id`. `disk_crash`'s post
+admits both.
 
 **Scope** (second crash pass, F-server-boot F2; R-A8 N2 before it). The covered crashes are those
 after which **the WAL a restart reads** (2e's trusted `walRecs`: what `Open` + `ReadAll` return)
@@ -749,7 +764,13 @@ a local snapshot `bootstrap` panics (`recoverSnapshot`, `bootstrap.go:482`:
 `nonissues/etcd-backend-name-lost-restart-panic.md`), so for such a disk no restartable `diskState`
 exists and this law is not realizable there until the user picks a premise (a created file's name
 durable at its first sync, ext4's and xfs's behavior), a scope restriction or a fork fix
-(`verify/repair5-crash.md`, New decisions). -/
+(`verify/repair5-crash.md`, New decisions). Changes (third crash pass, F2-crash N1, N2): statement
+unchanged; its realization now applies `Snap.snapDbs_crash`/`snapSaving_crash` (which take the
+rename record and resolve the install's rename with the backend's revert list) before 4a's laws, so
+the disk after a crash in an install's window (until the next `SaveDBFrom`) is restartable (the old
+backend back only with its source back); and a crash inside `wal.Create` between its rename and the
+parent's fsync goes through `Wal.walCreating_crash` (the WAL at `Recs.init`, `k' = .member id`, or
+none, `k' = k`). -/
 def disk_crash.spec : Prop := ∀ [HasExt osFsExt] (L' : GooseLocalGS GF) (γ : Cluster)
     (ds : Config.Dirs) (k : DiskKind) (Ps : List GoString),
   ServerStorage.diskOk → Wal.crashInScope →

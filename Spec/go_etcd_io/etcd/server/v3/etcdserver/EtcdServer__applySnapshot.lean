@@ -61,6 +61,14 @@ Changes: verify-round (repair3-boot: the crash pass's text request; R-A8 N3's li
 
 Changes: verify-round (second crash pass, G-b of `verify/F-server-boot.md`): **fixed in the callees, statement unchanged.** The rename's update (`OpenSnapshotBackend`, `Snap.dbFile_rename`) takes the destination in the open form, `Backend.beAt p (.opened γold L)` (`beDurInv γold p ∗ beHist γold L`, fired inside `diskAcc` from the disk's open crash state), and leaves the renamed file `beFile p (some img)` with the old history and `Backend.beDetached γold p` in the disk (`beRenamedOver`): the old backend keeps committing (a scheduled compaction's batch, its `Close`'s final commit) through the history the disk still holds. The raw `go oldbe.Close()` goroutine passes `beCloseUpd γold p`'s detached form (`d = some os`, from the disk): the final image joins the revert list (`some I :: os`), no `beFile p` (the file is unlinked). A crash before that close: the frame folds the detached file into the revert list first (`Durable.beDetached_crash`), then the new file's law (`beFile_crash`, or `beCrash` once `New` opened it). The revert entry's realization is the OsFs rename gap, as every revert entry.
 
+Changes: verify-round (third crash pass, F2-crash N1): **fixed in the callees, statement
+unchanged.** `OpenSnapshotBackend`'s rename update also sets the snapshot directory's rename record
+(`Snap.snapRen sd (some (sn.index, p))`, from the disk's invariant), so a crash before the next
+`SaveDBFrom` resolves the install's two directory entries together (`Snap.snapDbs_crash`): the old
+backend comes back only with the `.snap.db` of `sn.index` back too, which the restart's
+`RecoverSnapshotBackend` then installs again (Go panics at `bootstrap.go:481-482` on the other
+combination, which the independent laws admitted).
+
 Changes: re-review (RR1): takes `srvStarted s γ id` (persistent; its callers `applyAll`, `apply`, `snapshotIfNeededAndCompactRaftLog` hold it): `s.r.transport` (`server.go:1157,1166`) is `srvMember`'s (`srvNode_member`), `Logger` over `srvFields` (`srvNode_fields`).
 -/
 module

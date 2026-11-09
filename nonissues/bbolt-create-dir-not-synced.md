@@ -16,8 +16,10 @@ file may be gone, with every commit acknowledged before the crash: a first boot'
 **Why not an issue:** behavior etcd does not observe in practice: on journaled ext4
 (`data=ordered`, the default) and on xfs, an `fsync`/`fdatasync` of a newly created file commits
 the journal transaction that created its directory entry, so the name survives with the file's
-first synced commit; etcd's data directory is also created and synced by `fileutil.TouchDirAll`
-(`server/etcdserver/bootstrap.go:64-68, 211`), though not after the database file is added to it.
+first synced commit. etcd's directories are created by `fileutil.TouchDirAll`
+(`server/etcdserver/bootstrap.go:64-68, 211`), which syncs nothing (`os.MkdirAll` and a written and
+removed `.touch` file, `client/pkg/v3/fileutil/fileutil.go:36-68`), so etcd relies on the same file
+system behavior for its member directory too (`etcd-member-dir-not-synced.md`, found 2026-11-09).
 Other file systems (and POSIX as written) do not promise it. No test here: it needs a crash
 simulation of the directory (found by reading OsFs's model, D4 of `notes/osfs-ext-plan.md`, where
 a created file's name is not durable until its directory is synced). A first boot whose database

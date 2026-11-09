@@ -39,6 +39,14 @@ here can check.
   loop's write moves `walRecs wd R` to it when it begins writing and on to `walRecs wd (w.apply R)`
   when it is done (`storage.Save.spec`, `storage.SaveSnap.spec`: two updates); the server's disk
   invariant holds whichever of the two is current.
+* `walCreating wd md` (exclusive, timeless; third crash pass, F2-crash N2): **`wal.Create` of `wd`
+  with metadata `md` is between its rename and its parent's fsync**. `Create` writes a temporary
+  directory `wd.tmp` (the metadata, the zero snapshot record, fsynced by `SaveSnapshot`), renames it
+  onto `wd` (`renameWAL`, `wal.go:185`) and only then fsyncs the parent directory (`:225`): in
+  between, a crash may keep the rename (the WAL at `Recs.init md`) or lose it (no WAL; the next
+  `Create` removes the leftover `wd.tmp`). Held by 2e's `diskState` of a new member's or a joiner's
+  directory in that window (`bootstrap`'s trusted contract fires the disk's access at the rename and
+  at the fsync), which becomes `walRecs wd (Recs.init md)` at the fsync.
 * `walPurgeRight wd` (exclusive): **the right to purge `wd`'s unlocked files**
   (`fileutil.PurgeFileWithDoneNotify` in `EtcdServer.purgeFile`). `Close` releases every lock, so
   the records survive a close only once the purge has stopped: `Close` takes this right; the purge
@@ -47,7 +55,8 @@ here can check.
 ## Laws
 
 `walRecs_timeless`, `walRecs_excl`, `walOpen_excl`, `walPurgeRight_excl`, `walWriting_timeless`,
-`walWriting_excl`, `walWriting_recs_excl`, and the crash laws `walRecs_crash`, `walWriting_crash`;
+`walWriting_excl`, `walWriting_recs_excl`, `walCreating_timeless`, `walCreating_excl`, and the crash
+laws `walRecs_crash`, `walWriting_crash`, `walCreating_crash` (third crash pass, F2-crash N2);
 the crash scope `Recs.crashScopeOk` (transparent, verify round crash pass) and its environment
 premise `crashInScope` (an opaque `Prop`, second crash pass: F-server-boot F2).
 
@@ -74,6 +83,15 @@ CRC-chained, and a restart's `ReadAll` stops at a torn tail (`io.ErrUnexpectedEO
 corrupts a record behind a later surviving one (or leaves garbage passing the CRC) makes `ReadAll`
 fail with `ErrCRCMismatch`, which `bootstrap` treats as fatal: excluded by `ServerStorage.diskOk`
 (its docstring lists it), which the crash laws take.
+
+**A crash inside `wal.Create`** (third crash pass, F2-crash N2): before the rename nothing is at
+`wd` (no law: the directory holds no WAL); between the rename and the parent's fsync,
+`walCreating_crash` gives the WAL at `Recs.init md` or none; after the fsync, `walRecs wd (Recs.init
+md)` and `walRecs_crash`. **Why it is true**: the rename of a directory is one entry of the parent,
+kept or lost whole by a crash (ext4, xfs), and the temporary directory's file was fsynced before it
+(`SaveSnapshot`); a lost rename leaves `wd` absent (`renameWAL` removed any `wd` first) or without
+`.wal` files, which `wal.Exist` reads as no WAL. `Recs.init md` meets `crashScopeOk` (no entries, the
+zero snapshot record at the zero commit), so the law needs no `crashInScope`.
 
 **The crash scope** (second crash pass, F-server-boot F2): `crashInScope` (an opaque `Prop`, like
 `ServerStorage.diskOk`) is W0's environment premise "every crash of the run leaves each WAL
@@ -279,6 +297,10 @@ opaque walOpen [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 /-- **The write `w` is in progress on `wd`, whose records were `R`** (exclusive, timeless). -/
 opaque walWriting [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wd : GoString) (R : Recs) (w : WalWrite) : IProp GF := iprop(True)
 
+/-- **`wal.Create` of `wd` with metadata `md` is between its rename and its parent's fsync**
+(exclusive, timeless; third crash pass, F2-crash N2; see the header). -/
+opaque walCreating [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wd : GoString) (md : List w8) : IProp GF := iprop(True)
+
 /-- **The right to purge `wd`'s unlocked files** (exclusive). -/
 opaque walPurgeRight [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (wd : GoString) : IProp GF := iprop(True)
 
@@ -302,6 +324,14 @@ def walWriting_excl.spec : Prop := ∀ wd R R' w w',
 def walWriting_recs_excl.spec : Prop := ∀ wd R R' w,
   walWriting (GF := GF) wd R w ∗ walRecs wd R' ⊢ iprop(False)
 
+def walCreating_timeless.spec : Prop := ∀ wd md, Timeless (walCreating (GF := GF) wd md)
+
+/-- One directory state: being created, or at rest or written. -/
+def walCreating_excl.spec : Prop :=
+  (∀ wd md md', walCreating (GF := GF) wd md ∗ walCreating wd md' ⊢ iprop(False)) ∧
+  (∀ wd md R, walCreating (GF := GF) wd md ∗ walRecs wd R ⊢ iprop(False)) ∧
+  (∀ wd md R w, walCreating (GF := GF) wd md ∗ walWriting wd R w ⊢ iprop(False))
+
 /-- **A crash of records at rest** (trusted; see the header): the next generation `L'` finds the
 records `R` with a commit-only state possibly lost, in the crash scope. Changes (second crash pass,
 F-server-boot F2): takes the environment premise `crashInScope` and gives `⌜R'.crashScopeOk⌝` (true
@@ -321,6 +351,14 @@ def walWriting_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (wd : GoString) (
   walWriting (GF := GF) wd R w ∗ crashed ⊢
     |==> ∃ R' : Recs, ⌜R.crashedDuring w R' ∧ R'.crashScopeOk⌝ ∗
       @walRecs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ wd R'
+
+/-- **A crash inside `wal.Create`, between its rename and its parent's fsync** (trusted; third crash
+pass, F2-crash N2; see the header, "A crash inside `wal.Create`"): the next generation `L'` finds the
+new WAL (`Recs.init md`, in the crash scope) or no WAL at `wd` (nothing). -/
+def walCreating_crash.spec : Prop := ∀ (L' : GooseLocalGS GF) (wd : GoString) (md : List w8),
+  ServerStorage.diskOk →
+  walCreating (GF := GF) wd md ∗ crashed ⊢
+    |==> @walRecs _ _ _ GF ⟨hG.goose_globalGS, L'⟩ wd (Recs.init md) ∨ iprop(emp)
 
 end res
 

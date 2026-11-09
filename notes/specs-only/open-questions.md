@@ -1115,6 +1115,18 @@ D7. **Pending: a first boot's backend file may vanish at a crash, and the restar
    that never received a snapshot); **(c)** a fork fix, `fileutil.Fsync(cfg.SnapDir())` after
    `OpenBackend` creates the file (smallest; what the WAL does). The repair recommends (c), with (a)
    as what etcd relies on in practice. (`repair5-crash.md` G-a, decision 3.)
+
+   **Wider than the backend file** (`verify/F2-crash.md` N3, `repair6-crash.md`): etcd never fsyncs
+   the data directory after creating `member/` (`fileutil.TouchDirAll` is `MkdirAll` plus a written
+   and removed `.touch` file, no fsync; the only fsync above the WAL is `wal.Create`'s of `member/`
+   itself), so under the same POSIX model a crash may lose all of `member/`: the WAL, the backend
+   and the snapshots (`nonissues/etcd-member-dir-not-synced.md`, blocks-proof: yes pending this
+   decision), and the WAL's trusted crash laws already assume it does not. So **option (c) alone is
+   insufficient**: it would also need fsyncs of the data directory after `member/` (and of the data
+   directory's parent), and of the WAL directory after `wal.Create`'s rename (its first segment's
+   entry). **Option (a), stated for directory entries generally** ("a directory entry on the path of
+   a file is durable once that file is fsynced", true of ext4 `data=ordered` and xfs), settles both:
+   the backend file's name at bbolt's first sync and `member/` at the WAL's first fsync.
 D8. **leaseexpiry needs a starter serving `s.LeaseHandler()` on the peer address.**
    `examples/lib/etcdstart` serves only `s.RaftHandler()`; a sole member asked before its first
    election forwards `TimeToLive` to its own peer URL, gets rafthttp's `404`, and answers
@@ -1126,6 +1138,25 @@ D8. **leaseexpiry needs a starter serving `s.LeaseHandler()` on the peer address
    `leasePeerURL` (3.2, C24); or have leaseexpiry use a starter that does. Not done: the harness is
    shared. The rejected alternative, the row under `soleMember` alone, left a trusted contract false
    as stated. (`repair3-boot.md` decision 1; `repair4-lease.md` decision 1.)
+
+D31. **First boot: `member/` itself is not synced (F2-crash N3; widens D7).** etcd never fsyncs
+   the data directory after creating `member/` (`fileutil.TouchDirAll` does no fsync,
+   `client/pkg/v3/fileutil/fileutil.go:49-68`), nor the WAL's first segment's directory entry, so
+   under POSIX crash semantics a crash can lose all of `member/`
+   (`nonissues/etcd-member-dir-not-synced.md`, `blocks-proof: yes` pending D7). D7's option (c)
+   (a fork fsync of `member/snap`) is therefore not enough by itself; option (a), a premise that a
+   created directory entry is durable at the first sync of its file (ext4/xfs), settles both.
+
+D32. **`Snap.snapRen`: a snapshot install's rename crashes whole (F2-crash N1).** New trusted
+   snapshotter vocabulary `Snap.snapRen sd r` (the newest install's rename); `snapDbs_crash` and
+   `snapSaving_crash` take the destination's revert list and resolve it jointly: kept (list `[]`)
+   or lost (list unchanged, source file back), excluding "old backend back, snapshot file gone",
+   which panics at `bootstrap.go:481-482`. It rests on a physical premise: a rename within one
+   directory is atomic across a crash (ext4, xfs; POSIX does not promise it). Alternatives
+   rejected: the rename's source in 4a's revert entries (4a cannot name the snapshotter's
+   vocabulary), four combined laws. Also `Wal.walCreating` (trusted WAL vocabulary, F2-crash N2):
+   `wal.Create`'s window between the rename and the parent fsync crashes to the WAL at
+   `Recs.init` or no WAL; the disk's kind moves at the fsync (`repair6-crash.md`).
 
 ### Other decisions
 
@@ -1190,9 +1221,10 @@ D21. **One disk crash law, `disk_crash`.** `crashGone`, `crashGone_intro`, `disk
    running server's invariant. (`repair2-crash.md` decision 5.) See 2.7.
 D22. **`ReqCrashRecover` narrowed by the window inside `backend.New`** (`repair2-crash.md` decision 6):
    **closed** by D24, the window exclusion removed.
-D23. **The rename's joint crash (R-A8 S1) left open**: the model may fail a restart Go completes
-   (backend reverted and source gone); fixing it needs a joint crash law across 4a and the
-   snapshotter. (`repair2-crash.md` decision 7.)
+D23. **The rename's joint crash (R-A8 S1) left open** — **superseded, fixed (D32)**: the claim that
+   "the model may fail a restart Go completes" was false (Go panics there, `bootstrap.go:481-482`;
+   F2-crash N1); the joint crash law is `Snap.snapRen` (`repair6-crash.md`). (`repair2-crash.md`
+   decision 7.)
 D24. **The backend file moves through updates at open and close.** New `beOpenUpd p o ns R` (an AU
    from `beFile p o` to `beDurInv ∗ beSynced? ∗ beHist γ [I]`, fired at the ghost step before
    `bolt.Open`) in `New`, `newBackend`, `OpenBackend`, `OpenSnapshotBackend`; `beNew` no longer holds
