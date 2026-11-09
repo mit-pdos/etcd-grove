@@ -930,6 +930,84 @@ theorem isQuorum_ackedBy (C : List w64) (hnd : C.Nodup) (s : PState) (n : w64) (
         exact ⟨x, by simp only [Option.filter_some, decide_eq_true_eq]; simp only [hle, ↓reduceIte]⟩
   rw [hset, GMap.size_list_to_set _ hnd, GMap.size_list_to_set _ (hnd.filter _)]
 
+/-- At a leader related to its server, the specification's quorum test at index `k` (`1 ≤ k ≤`
+the log's length) is raft's `ackedBy` quorum. -/
+theorem specQuorum_iff (C : List w64) (hnd : C.Nodup) (bl : Nat) (s : PState) (a : Etcdraft.Server)
+    (hR : SimServerR C bl s a) (hl : s.role = .leader) (k : Nat) (hk1 : 1 ≤ k) (hk : k < 2 ^ 64) :
+    Etcdraft.isQuorum (a.config.incoming.filter (fun x => decide (a.matchIndex x ≥ (k : Int))))
+        a.config.incoming = true ↔
+      IsQuorum (GMap.listToSet C) (ackedBy s (W64 k)) := by
+  obtain ⟨-, -, -, -, -, -, -, h8, -, -, h11⟩ := hR
+  rw [h8]; simp only
+  rw [isQuorum_filter_confAbs C hnd, decide_eq_true_iff]
+  have hkz : uint.Z (W64 k) = k := by word
+  rw [isQuorum_ackedBy C hnd s (W64 k) (by omega), hkz]
+  have : C.filter (fun j => decide (a.matchIndex (idAbs j) ≥ (k : Int))) =
+      C.filter (fun j => decide ((k : Int) ≤ uint.Z (matchOf s j))) := by
+    apply List.filter_congr; intro j hj
+    rw [h11 hl j hj]; rfl
+  rw [this]; omega
+
+/-- **The leader's commit** (the rule `commit`, at the quorum index: `n` acknowledged by a quorum,
+no larger index of the log is, `n`'s term the leader's): the specification's
+`AdvanceCommitIndex(i)` commits `n`. -/
+theorem advanceCommitIndex_eq (st : Etcdraft.State) (i : Etcdraft.ID) (C : List w64) (hnd : C.Nodup)
+    (bl : Nat) (s : PState) (hR : SimServerR C bl (s) (st.s i)) (hl : s.role = .leader)
+    (hs : LogShapeOk bl s) (n : w64) (hc : uint.Z s.commit < uint.Z n) (hn : uint.Z n ≤ s.log.length)
+    (ht : plogTermAt s.base s.log n = some s.term)
+    (hq : IsQuorum (GMap.listToSet C) (ackedBy s n))
+    (hmax : ∀ k : Nat, uint.Z n < k → k ≤ s.log.length → ¬ IsQuorum (GMap.listToSet C) (ackedBy s (W64 k))) :
+    st.advanceCommitIndex i = some (st.commitTo i (uint.Z n)) := by
+  have hR' := hR
+  obtain ⟨h1, h2, -, -, h5, h6, h7, -, -, -, -⟩ := hR'
+  have hlen : (st.s i).log.length = s.log.length := by rw [h6, logAbs_length]
+  have hlen64 : s.log.length < 2 ^ 64 := by
+    have := lastIndex_plogLast bl s hs; have := uint_Z_lt (plogLast s.base s.log).index'; omega
+  have hn0 : 0 < uint.Z n := by have := uint_Z_nonneg s.commit; omega
+  have hnn : (uint.nat n : Int) = uint.Z n := by word
+  unfold Etcdraft.State.advanceCommitIndex
+  have hlead : ((st.s i).state != Etcdraft.leader) = false := by rw [h2, hl]; rfl
+  simp only [hlead, Bool.false_eq_true, ↓reduceIte]
+  rw [hlen]
+  have hma := maxAgree_eq
+    (fun index => Etcdraft.isQuorum ((st.getConfig i).filter
+      (fun k => decide ((st.s i).matchIndex k ≥ (index : Int)))) (st.getConfig i))
+    s.log.length (uint.nat n) (by omega) (by omega)
+    (by
+      show Etcdraft.isQuorum (List.filter _ (st.s i).config.incoming) (st.s i).config.incoming = true
+      rw [specQuorum_iff C hnd bl s _ hR hl _ (by omega) (by word)]
+      have : W64 (uint.nat n) = n := by word
+      rw [this]; exact hq)
+    (by
+      intro k hk1 hk2
+      show Etcdraft.isQuorum (List.filter _ (st.s i).config.incoming) (st.s i).config.incoming = false
+      cases h : Etcdraft.isQuorum _ _
+      · rfl
+      · exfalso
+        rw [specQuorum_iff C hnd bl s _ hR hl _ (by omega) (by omega)] at h
+        exact hmax k (by omega) hk2 h)
+  rw [hma]
+  have hgt : uint.nat n > 0 := by omega
+  -- the term at `n` is the leader's
+  obtain ⟨hb0, -, hboot⟩ := hs
+  rw [hb0] at ht
+  rw [plogTermAt_base0 s.log n hn0] at ht
+  obtain ⟨e, he⟩ : ∃ e, s.log[uint.nat n - 1]? = some e := by
+    cases hh : s.log[uint.nat n - 1]? with
+    | none => rw [hh] at ht; cases ht
+    | some e => exact ⟨e, rfl⟩
+  rw [he] at ht; simp only [Option.map_some, Option.some.injEq] at ht
+  have hterm : ((st.s i).log[uint.nat n - 1]?).map Etcdraft.Entry.term = some (st.s i).currentTerm := by
+    rw [h6, logAbs_getElem?, he, h1]
+    simp only [Option.map_some, Option.some.injEq]
+    unfold entAbs
+    split
+    · rename_i hkb
+      have h1' := hboot (uint.nat n - 1) e (by omega) he
+      rw [ht] at h1'; rw [h1']; rfl
+    · simp only; rw [ht]
+  simp only [hgt, decide_true, Bool.true_and, hterm, beq_self_eq_true, ↓reduceIte]
+
 end TraceSim
 
 end EtcdGrove
