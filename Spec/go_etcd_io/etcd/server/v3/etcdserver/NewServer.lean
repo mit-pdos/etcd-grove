@@ -20,7 +20,13 @@ existing`), each with or without an auto-compactor. Snippets: `etcdserverboot/bo
 2. `NewServerStats`, `NewLeaderStats` (`V2stats`), the struct literal: `b.raft.newRaftNode(…)`
    (`bootstrappedRaft.newRaftNode.spec`: `bootOk`'s raft record, the snapshotter, the opened WAL,
    the cluster: `raftNodeBuilt rn γ id st` with `st` the WAL's storage), `idutil.NewGenerator`
-   (2c's), `notify.NewNotifier` (2c's).
+   (2c's), `notify.NewNotifier` (2c's). Right after it, `srvFields s γ id` (re-review RR2: `memberID`, `lgMu`/`lg`,
+   `cluster`, `readych`, `Cfg` but its two fields `start` defaults, made persistent), over which
+   the getters below run (`srv.Logger()` at `server.go:343,363,366`, `srv.FeatureEnabled` at
+   `:387`, `newCorruptionChecker` needs nothing of `s`); after `restoreAlarms`, the fields `s.kv`,
+   `s.lessor`, `s.authStore`, `s.alarmStore`, `s.be`/`s.beHooks` set, 2d's `srvNode` (for
+   `NewUberApplier`: `KV()` at the persistent `s.kv ↦□`, `srvNode_kv`), from which `tr.Start()`
+   on the transport may call `Process`.
 3. `addFeatureGateMetrics` (`Features.serverGate`), the cluster's notifier (`SetVersionChangedNotifier`).
 4. `lease.NewLessor` (3c, at `leaseBootRes cfg ecfg`), `auth.NewTokenProvider` (3d, at
    `authBootRes`: an error is returned), `mvcc.New` (3e, at `mvccBootCfg`; the store restores the
@@ -43,8 +49,14 @@ existing`), each with or without an auto-compactor. Snippets: `etcdserverboot/bo
 **Round 2 (crash restart).** The start right is `memberStart_disk`'s: the disk's persistent access
 `diskAcc` (the durable state stays the program's, in its crash invariant; the server fires the
 access at each durable write, with the raft loop's in-flight batch deposited before each `Save`) and
-its idle token, at any kind (a new member's, a joiner's, a member's files after a stop or a crash,
-`disk_crash` or `crashOutOfScope`); `UnsafeNoFsync` false (`diskCfgOk`).
+its idle token, at any kind (a new member's, a joiner's, a member's files after a stop or a crash:
+`disk_crash`); `UnsafeNoFsync` false (`diskCfgOk`). Verify round, crash pass (R-A8 N4): a crash
+**inside** `NewServer` is `disk_crash`'s too: every durable write of the call (in `bootstrap`: the
+WAL's creation, a torn tail's repair, a snapshot backend's recovery; the backend's open) goes through
+`diskAcc` at its atomic point, so `diskState` describes the directories at every step; the files
+are not moved into the server's invariant (`srvBuilt`'s realization). The one window left is inside
+the backend's `New` (its precondition takes the file: requested of backend-schema, recorded in
+`verify/repair2-crash.md`). Statement unchanged.
 
 **Round 1** (provability F3/F4/F7, completeness F1/F5; 2d's request): the start right carries
 the reserved peer addresses (`cluster_alloc`, `urls_reserve`: 2f's `protoAt`/`peerAddr`, so two
@@ -101,11 +113,19 @@ share (back by `leaseBeOk_elim` before `Close`, at the shutdown); `Lease.beHook`
 after `beVis_drop` of the lease part to `beNoVis γ leaseFp`; the deleter's `rdOk` premise
 (`mvccDeleter_rdOk`) by `leaseTxHeld_intro`, with the `mvccOn γ B` that `keyBackend_intro` gives (at `m = true`: `meta`'s existence cell in mvcc's footprint, the store creating the bucket; verify round, backend-schema's request).
 
-Changes: verify-round (lease-auth's requests): `lease.NewLessor` takes the caller's `threadTok` (the lessor's `Stop` in `Cleanup` gives it back); the checkpointer closure's `ckptOk cp R` is at `context.Background()` with a `threadTok`, discharged with `reqCtxOk` (4b's and otel's `_background` laws) and `reqPrin` (`ctxNoIncoming_background`, `reqPrin_noIncoming`), `R := srvStarted s γ id` giving `isServer` (`srvStarted_isServer`) for `raftRequest` and `ensureLeadership`; `auth.NewTokenProvider` takes `waiterOk iw R` at `R := srvStarted s γ id`; `auth.NewAuthStore`'s `authGate γa R` and `authBeCur γa be` are kept in the server's state (`srvNode`'s realization: the gate persistent, `authBeCur` in the apply thread's `srvStores`); the lessor's `clusterOk (iface cluster)` from 2e's `RaftCluster.Version` triple (requested of server-boot). The store's `keyBackend_intro` at `m = true` (backend-schema's request).
+Changes: verify-round (lease-auth's requests): `lease.NewLessor` takes the caller's `threadTok` (superseded by re-review RR4: it gives it back); the checkpointer closure's `ckptOk cp R` is at `context.Background()` with a `threadTok`, discharged with `reqCtxOk` (4b's and otel's `_background` laws) and `reqPrin` (`ctxNoIncoming_background`, `reqPrin_noIncoming`), `R := srvStarted s γ id` giving `isServer` (`srvStarted_isServer`) for `raftRequest` and `ensureLeadership`; `auth.NewTokenProvider` takes `waiterOk iw R` at `R := srvStarted s γ id`; `auth.NewAuthStore`'s `authGate γa R` and `authBeCur γa be` are kept in the server's state (`srvNode`'s realization: the gate persistent, `authBeCur` in the apply thread's `srvStores`); the lessor's `clusterOk (iface cluster)` from 2e's `RaftCluster.Version` triple (requested of server-boot). The store's `keyBackend_intro` at `m = true` (backend-schema's request).
 
 Changes: verify-round (server-boot's requests): allocates `Membership.clusterVerInv γc` and, with `RaftCluster.Version.spec`, gives 3c's `Lease.clusterOk` at `server.go:344`; builds the compactor's `compactable c R` at `R := srvStarted s γ id` (a resource `start` publishes: `srvStarted_isServer` gives `Compact`'s `isServer`; the compactor's context a child of `Background`, `phys = false`, no `srvGate`), and `start` passes `□ R` to the compactor's `Run`; the backend through `bootstrap`'s `OpenBackend` (4a's `isBackend`, `beClosable` for the error path).
 
 Changes: verify-round (apply-txn's request): `NewUberApplier`'s grown premises: `hooksOk` (the lessor's half from 4a's `leaseBeHook_intro`, the auth half from 4a's `authBeHook` introduction), `authSt`'s `authBeCur` at the auth backend wrapping `s.be` (`NewAuthStore`'s post), `lessorSt`'s `leasesLive` (an empty store), `ls.be = s.be`, `ls.rd ≠ nil` and `kvDelOk` (`srvStores_kv`: `NewStore` sets the deleter), `clusterVerInv`, the backend's version (`beVer`).
+
+Changes: re-review (RR-server-core RR4): takes the caller's `threadTok` and gives it back on both
+paths. The callees that need one take it and return it: the getters, `NewUberApplier`,
+`lease.NewLessor` (re-review RR4: its run loop, `go l.runLoop()` at `lessor.go:245`,
+runs on its fork's own token, so `NewLessor` returns the caller's and `lessor.Stop` gives none
+back), `auth.NewTokenProvider` (requested of lease-auth: its success branch keeps the token for
+the TTL keeper, which `enable` starts with `go`, a fork of its own; until then this return is not
+provable on the success path). Re-review (RR2): the getters over `srvFields` (step 2).
 
 Changes: re-review (R-A7 N1): the compactor's `revGetter` (the store's `Rev`) returns a revision `≥ 1` (3e's store starts at `currentRev = 1` and never lowers it: its `Rev` contract), which `compactable`'s contract now asks (`rev ≠ 0`, server-boot's).
 -/
@@ -145,12 +165,12 @@ def NewServer.spec : Prop :=
       ⌜V3compactor.bootCfg cfg.AutoCompactionMode' cfg.AutoCompactionRetention' ecfg.autoCompact⌝ ∗
       ⌜raftNodeBootCfg cfg ∧ v3rpcBootCfg cfg ∧ mvccBootCfg cfg⌝ ∗
       backendBootRes cfg ∗ leaseBootRes cfg ecfg ∗ authBootRes cfg γ ∗
-      envUpd γ ecfg ∗ memberStart γ cfg c oid }}
+      envUpd γ ecfg ∗ memberStart γ cfg c oid ∗ threadTok }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.NewServer)) (Val #cfg))
-  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
+  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err); threadTok ∗ (
       ⌜s = null ∧ err ≠ GoInterface.nil⌝ ∨
       ⌜err = GoInterface.nil⌝ ∗ ∃ id : Nat, ⌜0 < id ∧ id < 2 ^ 64 ∧ ∀ i, oid = some i → id = i⌝ ∗
-        srvMember s γ id ∗ srvBuilt s γ id cfg }}
+        srvMember s γ id ∗ srvBuilt s γ id cfg) }}
 
 end spec
 

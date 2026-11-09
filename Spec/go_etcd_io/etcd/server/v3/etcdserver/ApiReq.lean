@@ -83,7 +83,7 @@ holds.
 * `rangeStreamOk r` (pure): the default order and no revision filters (`checkRangeStreamRequest`).
 * `alarmReqOwn p dq ir` (3h's), `rsSink rs γ p r ms` (2a's laws: a range stream's send end),
   `srvWatchable s γ w` (2d's and 3f's) with `srvWatchable_persistent`, `srvWatchable_mvcc`,
-  `srvWatchable_hist`.
+  `srvWatchable_hist`, `isServer_kv` (re-review RR2).
 * `replyHdrOwn p b` (exclusive, opaque): a reply message whose header the server set (non-`nil`):
   the lease methods' replies (`srvHdrReply`), whose gRPC handlers call `hdr.fill(resp.Header)`,
   which panics on a `nil` header (verify round, A6-provability F1); `replyHdrOwn_replyOwn`,
@@ -91,7 +91,9 @@ holds.
   checks.)
 * `reqPrin_root`: the principal of the lessor's revocations' `WithRoot(s.ctx)` (verify round,
   A7-completeness F5).
-* `SrvCallTriple e P B γ p tls rq rep reply`: the three-outcome call shape.
+* `SrvCallTriple e P B γ p tls rq rep reply`: the three-outcome call shape. `SrvCallTripleF … F` with a fact `F σ σ' res` in
+  outcome 1; `srvAt s γ ep` (member `s` serves endpoint `ep`), `srvLeaseFact` (2a's `leaseFact`),
+  `srvLeaseLbOpt` (recheck RR-1, client-core's request 2).
 * `txnMsgDepth` (3h's).
 
 ## Intended realization
@@ -366,6 +368,13 @@ history is 2d's (`req/`). Re-review (R-A7 N2): with the store's persistent `Rev`
 def srvWatchable_mvcc.spec : Prop := ∀ s γ w,
   srvWatchable (GF := GF) s γ w ⊢ ∃ γs, Mvcc.watchableAt w γs ∗ Mvcc.mvccRevTok γs
 
+/-- **A started server's KV field is its watchable store** (re-review RR2: `KV.spec` takes the
+field's points-to, which `NewServer`'s and the apply thread's callers have before `isServer`): the
+read-only `s.kv` holds the store `srvWatchable` names. -/
+def isServer_kv.spec : Prop := ∀ (s : Loc) (γ : Cluster), isServer (GF := GF) s γ ⊢
+  ∃ w : GoInterface, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"kv" s ↦□ w ∗
+    srvWatchable s γ w
+
 /-- **The watchable store is the member's mvcc store, its history the cluster's** (3f's bridge,
 `req/`, "from 3f", item 3; integration I4): every `mvccLb` of it is a view of a state the cluster
 has been in (the apply thread fires `End`'s notification only for a committed entry, `Restore` only
@@ -534,21 +543,73 @@ def srvStep_step.spec : Prop := ∀ (p tls : Principal) (rq : Req) σ σ' res lo
 `rep`; the caller's auth-table bound `lo`), `P` the caller's resources, `B` given back, `reply` the
 success reply: outcome 1 (fired, with its reply), 2 (not fired: the update given back) or 3
 (unsettled); every error with its shape. Outcome 1 fires no token or learner refusal
-(`srvFiredAns`). -/
-def SrvCallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p tls : Principal) (rq : Req)
-    (rep : Bool) (reply : Resp → Loc → GoInterface → IProp GF) : Prop :=
+(`srvFiredAns`). Outcome 1 also gives the fact `F σ σ' res` at the update's states and answer
+(the lease requests' `srvLeaseFact`; `SrvCallTriple` is the instance with none). -/
+def SrvCallTripleF (e : Expr) (P B : IProp GF) (γ : Cluster) (p tls : Principal) (rq : Req)
+    (rep : Bool) (reply : Resp → Loc → GoInterface → IProp GF)
+    (F : State → State → Resp → IProp GF) : Prop :=
   ∀ (lo : Nat) (Q : State → State → Resp → IProp GF),
   {{ P ∗ authLb γ lo ∗ □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
         <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls rq σ σ' res lo⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }> }}
     e
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); B ∗
-      ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ Q σ σ' res ∗ srvReply reply res resp err) ∨
+      ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ Q σ σ' res ∗ F σ σ' res ∗ srvReply reply res resp err) ∨
        (⌜resp = null⌝ ∗ srvUnfired err ∗ srvErrShape err ∗
           □?rep AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
             <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls rq σ σ' res lo⌝ ∗ etcdState γ σ',
                COMM Q σ σ' res }>) ∨
        (⌜resp = null⌝ ∗ srvIndef err ∗ srvErrShape err)) }}
+
+/-- **A server call** `e` for request `rq` by the principals `p`, `tls`: `SrvCallTripleF` with no
+fact (see it). -/
+def SrvCallTriple (e : Expr) (P B : IProp GF) (γ : Cluster) (p tls : Principal) (rq : Req)
+    (rep : Bool) (reply : Resp → Loc → GoInterface → IProp GF) : Prop :=
+  SrvCallTripleF e P B γ p tls rq rep reply (fun _ _ _ => iprop(True))
+
+/-! ## The lease requests' member view (recheck RR-1, client-core's request 2) -/
+
+/-- **Member `s` of `γ` answers the clients at endpoint `ep`** (persistent; provisional: introduced
+where the member's gRPC server is bound to `ep`, requested of 2a/2e). The bridge between 2c's
+member and W0's per-endpoint `leaseViewLb γ ep`. Intended realization: `leaseViewLb γ ep j` is
+`∃ s, srvAt s γ ep ∗` (member `s`'s lessor has reflected lease table `j`: its applied index past
+the `j`-th grant or revocation, from 2d's `srvApplied`, its lessor only moving forward), one member
+per endpoint (`srvAt_agree`). -/
+opaque srvAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Cluster) (ep : GoString) : IProp GF := iprop(True)
+
+def srvAt_persistent.spec : Prop := ∀ s γ ep, Persistent (srvAt (GF := GF) s γ ep)
+
+def srvAt_agree.spec : Prop := ∀ s s' γ γ' ep,
+  srvAt (GF := GF) s γ ep ∗ srvAt s' γ' ep ⊢ ⌜s = s' ∧ γ = γ'⌝
+
+/-- The caller's lease-view bound, if any (`vi`). -/
+def srvLeaseLbOpt (γ : Cluster) (ep : GoString) (vi : Option Nat) : IProp GF :=
+  match vi with | some i => leaseViewLb γ ep i | none => iprop(True)
+
+/-- **The lease requests' fact** (2a's `leaseFact`, the same body: identified, requested of
+grpc-v3rpc): a grant's success gives the member's view of the table after it; `Leases` (with the
+caller's bound `i`) an answer read from a table `j ≥ i` of the member's, and the view of `j`;
+`TimeToLive` the same, gated on W0's `soleMember γ` (a follower forwards to the leader,
+`v3_server.go:671-686`; in a cluster that never had another member the leader is the member itself,
+`:636-669`, or its own peer URLs' `leasehttp` handler, which reads the same lessor). -/
+def srvLeaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ σ' : State)
+    (res : Resp) : IProp GF :=
+  match rq with
+  | .leaseGrant .. =>
+      match res with
+      | .ok _ => leaseViewLb γ ep (σ'.leaseTables.length - 1)
+      | _ => iprop(True)
+  | .leaseLeases =>
+      match vi with
+      | some i => iprop(⌜¬ ClientV3.leaseAnsRes res⌝ ∨
+          ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j)
+      | none => iprop(True)
+  | .leaseTimeToLive .. =>
+      match vi with
+      | some i => iprop(⌜¬ ClientV3.leaseAnsRes res⌝ ∨
+          (soleMember γ -∗ ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j))
+      | none => iprop(True)
+  | _ => iprop(True)
 
 end vocab
 

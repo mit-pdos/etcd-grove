@@ -20,6 +20,13 @@ step `Pk`/`K`, the buckets `Bs`, the hooks' footprint `Fh`, `isBackend`, the cra
 `beSynced`), the file 4a's `beFile`; the provisional `ServerStorage.beOpen`/`Snap.emptyImage` gone
 from this spec. **Margin.** None.
 
+Verify round, crash pass (R-A8 N4): a crash **inside** the call finds the backend file in neither
+the caller's disk state nor the file's crash invariant: `New` (4a) takes `beFile` in its
+precondition and allocates `beDurInv` inside the call. Not fixed here (the statement passes `New`'s
+premises on): requested of backend-schema (`New` taking the file through an update at bbolt's open,
+with `beDurInv` given to the allocation step), recorded in `verify/repair2-crash.md`; until then
+`ReqCrashRecover`'s "at any point" excludes this window.
+
 The client's allocation step's `Backend.hookOk γ (hooksIface h) Fh (Pk γ)` for etcd's hooks is
 `BackendHooks.OnPreCommitUnsafe.spec` (last pass), at `Fh := hookFp`, from `hooksPkOk`.
 -/

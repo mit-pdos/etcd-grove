@@ -668,11 +668,17 @@ def raftOpen_trk.spec : Prop :=
     ∃ T : Tracker.TrackerV, Tracker.progressTracker (structFieldRef go_etcd_io.raft.v3.raft go!"trk" r) T ∗
       ⌜T.conf = o.conf ∧ T.prs = o.view.prs ∧ T.votes = o.votes⌝ ∗ raftTrkOpen r γ id o
 
-/-- (internal) **An idle struct's floor is at most its applied index** (what `hup`'s
-`hasUnappliedConfChanges` scan needs: no compaction above `applied`). -/
+/-- (internal) **An idle struct's floor is at most its applied index, and so is its base when no
+snapshot is pending** (what `hup`'s `hasUnappliedConfChanges` scan needs: no compaction above
+`applied`, i.e. `compactFloor ≤ applied`). The second conjunct is true of Go at every step boundary:
+`newLogWithSize` sets `applied = firstIndex - 1`, the base (`log.go:96`); `appliedTo` only grows
+`applied`; a restored snapshot raises the base only while pending (`us.snap = some s`), and
+`appliedSnap` clears it and sets `applied = s.index` together (`raft.go:768-769`), which runs inside
+a step, with the invariant open. (Verify-round, RR-raft-core S-e.) -/
 def coreIdle_floor.spec : Prop :=
   ∀ r γ id o, raftOpen (GF := GF) r γ id o ∗ coreInv r γ id o ∗ coreIdle r ⊢
-    raftOpen r γ id o ∗ coreInv r γ id o ∗ coreIdle r ∗ ⌜o.log.floor ≤ o.log.applied⌝
+    raftOpen r γ id o ∗ coreInv r γ id o ∗ coreIdle r ∗
+      ⌜o.log.floor ≤ o.log.applied ∧ (o.log.us.snap = none → o.log.base ≤ o.log.applied)⌝
 
 /-- (internal) A read-only share of an opened struct. -/
 def raftOpen_ro.spec : Prop :=

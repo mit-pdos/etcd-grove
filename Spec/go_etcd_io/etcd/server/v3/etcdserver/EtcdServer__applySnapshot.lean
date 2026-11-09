@@ -47,7 +47,7 @@ install (a fractional census like `srvGate`'s). `s.lessor.Recover(newbe, rd)` ta
 apply thread re-establishes from 3e's `mvccDeleter_rdOk` (3c, "from 3c (round 1)", item 1). The
 auth store's `Recover` takes 3d's `authReached γ a'`, `recordsFit a'` of the image's auth state.
 
-Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). (Superseded by re-review RR1, below.)
 
 Changes: verify-round (lease-auth's request): `authStore.Recover` takes `authBeCur γa be0` (the apply thread's, in `srvStores`) and gives back `authBeCur γa be` with `authBackendAt be0 _`. Scope (A10-completeness O1, open decision A8): `kv.Restore` takes mvcc's whole `mvccRestoreGate`, and the server's hashers (`maintenanceServer.Hash`, `HashKV`, the corruption checker's `HashByRev`, `monitorKVHash`, `monitorCompactHash`) are not synchronized with the apply thread: a run is in scope only if no hash runs during a snapshot install, a scope restriction on the server's run (the repair report's New decisions) until the user decides A8.
 
@@ -56,6 +56,8 @@ Changes: verify-round (server-boot's request): `OpenSnapshotBackend` returns 4a'
 Changes: verify-round (apply-txn's request): the new `NewUberApplier` (`EtcdServer.NewUberApplier.spec` over `srvStores`) gets `lessorSt`'s `ls.be = newbe` and the deleter from `lessor.Recover(newbe, rd)`, `kvDelOk` by `srvStores_kv`, `authBeCur` from `authStore.Recover`.
 
 Changes: verify-round, last relay (server-boot's request): `OpenSnapshotBackend` takes the backend file's `Backend.beNoRevert` and returns `Backend.beRevert path o` (the renamed-over file may come back at a crash); the apply thread keeps it in the disk's state (`diskState`'s realization, reached through `diskAcc`) until the next `SaveDBFrom`'s directory fsync gives `beNoRevert` back.
+
+Changes: re-review (RR1): takes `srvStarted s γ id` (persistent; its callers `applyAll`, `apply`, `snapshotIfNeededAndCompactRaftLog` hold it): `s.r.transport` (`server.go:1157,1166`) is `srvMember`'s (`srvNode_member`), `Logger` over `srvFields` (`srvNode_fields`).
 -/
 module
 
@@ -87,7 +89,7 @@ def EtcdServer.applySnapshot.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (ep ap : Loc)
     (apv : go_etcd_io.etcd.server.v3.etcdserver.toApply) (p : Progress) (B : ApplyBatch),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ applyThread s γ ep p ∗ ap ↦□ apv ∗
+      srvNode s γ id ∗ srvStarted s γ id ∗ applyThread s γ ep p ∗ ap ↦□ apv ∗
       applyBatch (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) γ apv B
         false ∗
       ⌜uint.nat p.appliedi = B.prev⌝ ∗ threadTok }}

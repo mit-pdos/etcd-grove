@@ -8,6 +8,10 @@ apply's `*InternalRaftStringer`. `String()` reads the message, so a stringer hol
 one (`stringerAt_msg`, the share given back when the stringer is); a read-only message gives a
 persistent one (`stringerAt_discard`). Re-review (R-A6, second tier): each law takes the depth bound
 `depth c < depthMax` (protobuf's text marshaling recurses per level, as `Marshal` does).
+Recheck (RR4), where callers get it: a non-transaction request from `holds_depth` (at most `3`); a
+transaction from `holds_depth_txn` (`depth c ≤ txnMsgDepth t`) and the caller's bound on
+`txnMsgDepth t` (the gRPC checks, `V3rpc.txnCheck_checked`; `t.readonly`: at most `3`); a decoded
+message from `Proto.Unmarshal.spec`'s success case (the apply's entry: `Apply.irrMsgAt_msg`).
 
 Replaces txn's provisional persistent `Txn.stringerOk` ("3h's", `txn/Api.lean`), which no law could
 introduce soundly: the request path's `Range` logs a request its caller holds only a fraction of and

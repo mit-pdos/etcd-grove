@@ -6,7 +6,8 @@
 `pipeline.go`, `snapshot_sender`'s receiver `http.go`: batch 2f), through the `rafthttp.Raft`
 interface. Snippet `raftnode.go` (`ReqProcess`).
 
-**Proof sketch**: `s.cluster.IsIDRemoved(from)` (2e's `Membership`: any answer); `MemberID() != to`:
+**Proof sketch**: `s.Logger()`, `s.MemberID()` over `srvFields` (`srvNode_fields`: re-review RR2,
+no `srvMember`, which needs the transport set after `tr.Start()`); `s.cluster.IsIDRemoved(from)` (2e's `Membership`: any answer); `MemberID() != to`:
 an error (`httptypes.NewHTTPError`, 2e's); a `MsgApp`'s size (`proto.Size`, 2a's) into the stats
 (2e's `v2stats`); `s.r.Step(ctx, m)` (`raftNode.Step.spec`, with `m.to = id` now known). The message
 comes with 2f's `recvd ν m` for the server's network (2e's `srvNet γ.etcd ν`, whose `img` is 2d's `imgAt γ`): `msgSent`, `msgCredit`, and for a

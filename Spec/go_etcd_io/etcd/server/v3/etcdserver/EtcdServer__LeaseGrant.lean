@@ -21,6 +21,8 @@ facts) restated over W0's `leaseStep` and the three outcomes.
 id is the answer's).
 
 Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
+
+Changes: recheck RR-1 (client-core's request 2): over `SrvCallTripleF` with `srvLeaseFact`, at the endpoint `ep` the member serves (`srvAt s γ ep`): a grant answered gives W0's `leaseViewLb γ ep` of the table after it (2a's `leaseFact` row). Proof: `raftRequest` returns after this member applied the grant's entry (its `applyWait`, 2c's `srvApplied` of the entry's index), whose lessor then reflects the grant's table; `srvAt`'s realization of `leaseViewLb`.
 -/
 module
 
@@ -47,11 +49,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.LeaseGrant(ctx, r)`**: the grant of lease `id` (`0`: the server chooses one) for `ttl`, as `Put` (through raft); the request's `ID` is set to the id proposed. -/
 def EtcdServer.LeaseGrant.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (id ttl : Int),
-  SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseGrant")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
+  ∀ (s : Loc) (γ : Cluster) (ep : GoString) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc)
+    (id ttl : Int),
+  SrvCallTripleF (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseGrant")) (Val #ctx)) (Val #r))
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvAt s γ ep ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.leaseGrant id ttl))
     iprop(srvGate s q ∗ threadTok ∗ ∃ id', ClientV3.reqOwn r (DFrac.own 1) (.leaseGrant id' ttl)) γ p tls (.leaseGrant id ttl) false srvHdrReply
+    (srvLeaseFact γ ep (.leaseGrant id ttl) none)
 
 end spec
 end EtcdServer

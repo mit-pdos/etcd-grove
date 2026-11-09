@@ -90,9 +90,9 @@ they are built (the client) or accepted (the server's `checkTxnRequest` and `--m
 `msgAt_persist`, `encodes_fun`, `encodes_norm`, `encodes_marshalOk`, `norm_facts`.
 
 Changes: verify-round (A6 F2): `Content` holds Go values (not up to `proto.Equal`), `norm` and
-canonical contents added, `decodedAt` removed (its users take `⌜norm c = c⌝`, or 3h's
-`EtcdServerPb.endsDecoded`, now tied to a share of the message), `msgAt_split` added (3h's
-`endsDecoded` keeps a share); `noFloats` for `Equal` (NaN).
+canonical contents added, `decodedAt` removed (its users take `⌜norm c = c⌝`; 3h's
+`EtcdServerPb.endsDecoded`, tied to a share of the message, was retired at the recheck, RR3:
+the request predicates carry `endsOk`), `msgAt_split` added; `noFloats` for `Equal` (NaN).
 -/
 module
 

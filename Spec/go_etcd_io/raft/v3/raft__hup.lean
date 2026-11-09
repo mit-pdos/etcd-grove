@@ -7,6 +7,9 @@ transfer). **Proof sketch.** Not a leader, promotable, no unapplied conf entry (
 next term: a receipt) keeps the cluster invariant; else nothing. **Changes** (from `specs-ref`'s
 `raft__hup.lean`): over `raftCore` (was `HupGuard`/`HupFact` over `NState`). **Margin.** Says nothing
 of the new view. Verify-round (A4 P3): takes and gives the struct's idle token `coreIdle` (it may campaign: `hup`'s scan of `(applied, committed]` needs the published floor at most `applied`, `coreIdle_floor`).
+Verify-round (RR-raft-core N3, S-e): `hasUnappliedConfChanges`'s premise `us.snap = none ∧
+compactFloor ≤ applied`: `us.snap = none` from `promotable`'s result (`raft.go:1949`); then
+`coreIdle_floor` gives `floor ≤ applied` and `base ≤ applied`.
 -/
 module
 

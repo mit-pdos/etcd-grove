@@ -23,6 +23,8 @@ one-shot update fired at the return.
 member's auth state, which W0's step allows at any state.
 
 Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
+
+Changes: recheck RR-1 (client-core's request 2): over `SrvCallTripleF` with `srvLeaseFact`, at the endpoint `ep` the member serves (`srvAt s γ ep`) and the caller's optional bound (`srvLeaseLbOpt`): the answer's row is gated on W0's `soleMember γ`. Under it this member is the cluster's only voter: as leader it answers from its own lessor after `waitAppliedIndex` (`v3_server.go:636-669`), at a table `j ≥ i`; otherwise `waitLeader` returns itself and `leasehttp.TimeToLiveHTTP` reaches its own peer URLs, whose handler (`leasehttp/http.go:109-160`, 4b's `leasehttp` spec over the same lessor: requested of lease-auth, a per-member view in its contract) looks the lease up in the same lessor, again at `j ≥ i`. `Demoted` (`ErrLeaderChanged`), timeouts and the HTTP errors are not `leaseAnsRes`. Without `soleMember` the answer may be another member's lessor's: no row.
 -/
 module
 
@@ -49,11 +51,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.LeaseTimeToLive(ctx, r)`**: lease `id`'s remaining and granted TTL (and its keys), from the leader's lessor (forwarded if this member is not the leader); the update fired at the return. -/
 def EtcdServer.LeaseTimeToLive.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (id : Int) (keys : Bool),
-  SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseTimeToLive")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
+  ∀ (s : Loc) (γ : Cluster) (ep : GoString) (vi : Option Nat) (q : Qp) (ctx : GoInterface)
+    (p tls : Principal) (r : Loc) (dq : DFrac) (id : Int) (keys : Bool),
+  SrvCallTripleF (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseTimeToLive")) (Val #ctx)) (Val #r))
+    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvAt s γ ep ∗ srvLeaseLbOpt γ ep vi ∗ srvGate s q ∗
         Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys))
     iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys)) γ p tls (.leaseTimeToLive id keys) false srvHdrReply
+    (srvLeaseFact γ ep (.leaseTimeToLive id keys) vi)
 
 end spec
 end EtcdServer

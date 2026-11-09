@@ -149,10 +149,11 @@ def revGetter_intro.spec : Prop := ∀ i : GoInterfaceOk,
 
 /-- **Elimination of `isCompactor`** (round 1, provability F7: the calls through the `Compactor`
 interface, `start`'s `Run`, the ready handler's `Pause`/`Resume`, `Cleanup`'s `Stop`): each method
-safe at any time (`Run` with the caller's thread token, which the loop keeps). -/
+safe at any time (`Run` with the caller's thread token, given back: the loop runs on its fork's own
+token; re-review RR-server-core RR3, by server-core). -/
 def isCompactor_methods.spec : Prop := ∀ (i : GoInterfaceOk) (R : IProp GF),
   isCompactor (GF := GF) (interface.ok i) R ⊢
-    □ ((threadTok -∗ □ R -∗ WP (App (Val #(methods i.ty go!"Run" i.v)) (Val #())) {{ fun _ => iprop(True) }}) ∗
+    □ ((threadTok -∗ □ R -∗ WP (App (Val #(methods i.ty go!"Run" i.v)) (Val #())) {{ fun _ => iprop(threadTok) }}) ∗
        WP (App (Val #(methods i.ty go!"Stop" i.v)) (Val #())) {{ fun _ => iprop(True) }} ∗
        WP (App (Val #(methods i.ty go!"Pause" i.v)) (Val #())) {{ fun _ => iprop(True) }} ∗
        WP (App (Val #(methods i.ty go!"Resume" i.v)) (Val #())) {{ fun _ => iprop(True) }})

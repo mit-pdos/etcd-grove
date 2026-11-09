@@ -173,11 +173,20 @@ def indefMsg (msg : GoString) : Prop :=
   ∀ e : EtcdErr, Rpctypes.mapped e = true → msg = Rpctypes.desc e → e.indefinite = true
 
 /-- **The administrator check's denial** (`AuthAdmin.isPermitted`, over 3d's `IsAdminPermitted`'s
-`adminPost`; verify-round, A6 F5): **W0's `State.adminDenied`** (re-review R-A6 N3: one definition;
-it now admits the principal the check actually read: the request's `who`, or, when
-`AuthInfoFromCtx` read the flag off, no user or the certificate's, an `AuthEnable` racing the two
-reads, `nonissues/etcd-admin-check-authenable-race.md`). -/
-abbrev adminDenied (σ : State) (who : Principal) (e : EtcdErr) : Prop := σ.adminDenied who e
+`adminPost`; verify-round, A6 F5) of a request whose context has the principals `who` and `tls`
+(2c's `reqPrin ctx who tls`): W0's `State.adminDenied who` (a denial as `who`, or as no principal:
+`AuthInfoFromCtx` read the flag off, an `AuthEnable` racing the two reads,
+`nonissues/etcd-admin-check-authenable-race.md`), or a denial as the certificate's name `tls`
+(with the flag read off, `EtcdServer.AuthInfoFromCtx` falls back to `AuthInfoFromTLS` under
+`--client-cert-auth`, `v3_server.go:1206-1215`; `tls` is none without it). Recheck RR2: was
+W0's denial at any principal once some table had auth off, which the initial table always has. -/
+def adminDenied (σ : State) (who tls : Principal) (e : EtcdErr) : Prop :=
+  σ.adminDenied who e ∨ σ.adminDeniedAs tls e
+
+/-- **The denial is W0's** when the certificate names the principal or nothing (`reqPrin_of_md`'s
+scope; as 2c's `srvStep_step`): what `kvServer.Compact` fires as W0's compact denial. -/
+def adminDenied_of.spec : Prop := ∀ (σ : State) (who tls : Principal) (e : EtcdErr),
+  (tls = none ∨ tls = who) → adminDenied σ who tls e → σ.adminDenied who e
 
 /-- The content `c` of a request of method `m` models `rq` (3h's `EtcdServerPb.reqModels`). -/
 def reqModels (m : GoString) (c : Content) (rq : Req) : Prop := EtcdServerPb.reqModels m c rq
@@ -323,12 +332,20 @@ def leaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ σ
       match res with
       | .ok _ => leaseViewLb γ ep (σ'.leaseTables.length - 1)
       | _ => iprop(True)
-  -- re-review (R-A2 N1): no per-member clause for `LeaseTimeToLive`: a follower forwards it to the
-  -- leader (`v3_server.go:636-676`), so the answer is not `ep`'s own lessor view; `Leases`
-  -- answers from the member's own table (`:737-738`)
+  -- `Leases` answers from the member's own table (`:737-738`); a refusal (`checkLeaseLeases`'s
+  -- permission error) tells nothing (recheck RR-1: as 1c's `viaFact`)
   | .leaseLeases =>
       match vi with
-      | some i => iprop(∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j)
+      | some i => iprop(⌜¬ leaseAnsRes res⌝ ∨ ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j)
+      | none => iprop(True)
+  -- re-review (R-A2 N1): a follower forwards `LeaseTimeToLive` to the leader (`v3_server.go:636-676`),
+  -- so the answer is `ep`'s own lessor's only in a cluster that never had another member (recheck
+  -- RR-1, a gated row: W0's `soleMember γ`; the member then leads, or forwards to its own peer URLs,
+  -- whose `leasehttp` handler reads the same lessor, `leasehttp/http.go:109-160`)
+  | .leaseTimeToLive .. =>
+      match vi with
+      | some i => iprop(⌜¬ leaseAnsRes res⌝ ∨
+          (soleMember γ -∗ ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j))
       | none => iprop(True)
   | _ => iprop(True)
 
@@ -710,8 +727,9 @@ handler's decoding, 3h). `T` is what the run holds besides its thread's token an
 lends each run (`Grpc.unaryOk`'s run resource; `Server.spec` registers for any share), the others
 nothing (`True`; framed with the run's resource where they are registered). The request is a
 decoded one: canonical (`⌜norm c = c⌝`, grpc's `decOk_call`), so its range ends are `nil` or
-non-empty (3h's `endsOk_canon`), and a share of it is 3h's `EtcdServerPb.endsDecoded`, what 2c's
-`Range`/`RangeStream`/`Txn` take (verify-round, A6 F2: was the persistent `Proto.decodedAt`). A
+non-empty (3h's `endsOk_canon`), which W0's owned request predicates (`rangeReqOwn`/`txnReqOwn`)
+carry for 2c's `Range`/`RangeStream`/`Txn` (verify-round, A6 F2: was the persistent
+`Proto.decodedAt`; the separate `endsDecoded` share was retired at the recheck, RR3). A
 share of the request comes back (`reqBack`, A6 F4). -/
 def HandlerTriple (f : val) (P : IProp GF) (S : UnarySpec (GF := GF)) (reqT repT : go.GoType)
     (T : IProp GF := iprop(True)) : Prop :=

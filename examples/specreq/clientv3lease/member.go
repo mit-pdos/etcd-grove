@@ -74,7 +74,8 @@ func ReqGoneNotListed(ctx context.Context, cli *clientv3.Client, ttl int64) {
 // lease unknown, a later Leases does not list it (unless its id is granted again).
 // Users: examples/etcd/leaseexpiry/leaseexpiry.go:79-102 ("Leases listed the lease after TimeToLive
 // found it gone"; one member).
-// Assumes: as above; the cluster has one member, at ep, for good (soleMember γ ep); no principal
+// Assumes: as above; the cluster has only ever had one member (soleMember γ, from ApiBoot's
+// soleMember_intro: one initial member, no URL set reserved); no principal
 // grants the id again.
 // Specs: lessor.TimeToLive.spec, lessor.Leases.spec (LeaseRead.Triple's viaFact: TimeToLive's answer
 // at ep's table i given soleMember; Leases answers at j ≥ i); model: State.leaseAnsAt.

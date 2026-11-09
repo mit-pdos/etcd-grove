@@ -16,7 +16,9 @@ applied index is in the log), so `lg.Panic` is unreachable. This is the fork's f
 **Changes** from `specs-ref`'s spec (the storage's key `nk`, `memStorInv`, `nodeAppliedLb`): over
 `nodeAdvanced`/`nodeSnapLb`; no apply-thread token needed. **Margin**: none.
 
-Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). (Superseded by re-review RR1, below.)
+
+Changes: re-review (RR1): takes `srvStarted s γ id` (persistent; its callers `applyAll`, `apply`, `snapshotIfNeededAndCompactRaftLog` hold it): `s.Cfg.SnapshotCatchUpEntries` (`server.go:2177-2178`), which `start` defaults, is read-only from then on (`srvStarted`'s), `Logger` over `srvFields` (`srvNode_fields`).
 -/
 module
 
@@ -46,7 +48,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **Compact the raft log below a snapshot** at an index raft has applied. -/
 def EtcdServer.compactRaftLog.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (snapi : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvNode s γ id ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvNode s γ id ∗ srvStarted s γ id ∗
       nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
         (uint.nat snapi) ∗
       nodeSnapLb (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)

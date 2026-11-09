@@ -17,6 +17,15 @@ stop escrow deposits `memberDisk` in `s.done`'s closing, which `srvRunning` read
 **Margin.** As `Start`.
 
 Changes: verify-round (server-boot's request): the compactor's `Run` takes `□ R` with `R := srvStarted s γ id` (`compactable c R`: A7-completeness F2).
+
+Changes: re-review (RR3): takes `srvMember s γ id` (`NewServer`'s, persistent: `srvMember_node` gives
+2d's `srvNode` for `run`'s precondition and `srvStarted_isServer`, `srvMember_fields` the getters'
+`srvFields`) and the caller's `threadTok`, given back: `Logger` (`server.go:548`), `ClusterVersion`
+(`server.go:575`, twice at most), `MemberID`, `Cluster` run on it and return it; the compactor's
+`Run` returns it (its loop is a goroutine of its own, `periodic.go:105`, `revision.go:67`, with its
+fork's token: `isCompactor_methods`); `go s.run()` runs on its fork's fresh token
+(`wp_fork_tok_body`). The two `Cfg` fields defaulted (`server.go:550-565`) are `srvBuilt`'s,
+read-only from then on in `srvStarted`.
 -/
 module
 
@@ -42,9 +51,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`start`**: the request path's fields built, the compactor and the apply loop started. -/
 def EtcdServer.start.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (id : Nat) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvBuilt s γ id cfg }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id ∗
+      srvBuilt s γ id cfg ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"start")) (Val #()))
-  {{ RET #(); isServer s γ ∗ srvGate s 1 ∗ srvRunning s γ id (Config.dirsOf cfg) ∗ srvPublish s ∗
+  {{ RET #(); threadTok ∗ isServer s γ ∗ srvGate s 1 ∗ srvRunning s γ id (Config.dirsOf cfg) ∗ srvPublish s ∗
       srvPurge s }}
 
 end spec

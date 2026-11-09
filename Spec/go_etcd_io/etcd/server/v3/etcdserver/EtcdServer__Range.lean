@@ -30,7 +30,9 @@ permission: checked at the auth table of `kp`, at or after the call's `lo` (the 
 `authLb`): W0's `deniedSince`/`permittedSince` (round 6: the check at a recorded auth state at
 or after the call's bound; 3d's `checkPost`, with 2d's store-index to cluster-index link,
 `req/`), not the revision re-check (an auth change bumps the revision before readers see it). A serializable read skips the read index and is answered at
-the member's view (`KVHist.IsView`), fired at the cluster's current state.
+the member's view (`KVHist.IsView`), fired at the cluster's current state. The deferred
+`txn.WarnOfExpensiveReadOnlyRangeRequest` logs the request through 3h's `stringerAt_msg` at a share
+of it (`rangeReqOwn_msgAt`), its depth premise from 3h's `holds_depth` (a range request: at most `3`).
 
 **Integration (I4): the read slot realized.** `srvApplied s γ k` gives 2d's `srvReadAt s γ k`
 (`srvApplied_read`; the names from `isServer_names`, the stores' from `srvStores_agree`). `txn.Range`

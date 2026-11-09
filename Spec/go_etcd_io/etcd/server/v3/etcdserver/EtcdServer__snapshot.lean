@@ -28,7 +28,9 @@ the WAL's token): over `applyThread`, `nodeAdvanced`, `nodeSnapLb`; any applied 
 `σ.b = 0` scope). **Margin**: the snapshot indices move (`memSnap := appliedi`, and `diskSnap` when
 to disk); the post states only `nodeSnapLb`.
 
-Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). (Superseded by re-review RR1, below.)
+
+Changes: re-review (RR1): takes `srvStarted s γ id` (persistent; its callers `applyAll`, `apply`, `snapshotIfNeededAndCompactRaftLog` hold it): `s.Cfg.SnapshotCount` (`server.go:2116`), which `start` defaults, is read-only from then on (`srvStarted`'s), `Logger` over `srvFields` (`srvNode_fields`).
 -/
 module
 
@@ -59,7 +61,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 def EtcdServer.snapshot.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (ep : Loc) (p : Progress) (toDisk : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ applyThread s γ ep p ∗
+      srvNode s γ id ∗ srvStarted s γ id ∗ applyThread s γ ep p ∗
       nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
         (uint.nat p.appliedi) ∗
       ⌜0 < uint.nat p.appliedi⌝ ∗ threadTok }}

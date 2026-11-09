@@ -9,8 +9,9 @@ close it twice and panic); `<-le.doneC` (closed by the run loop when it returns:
 meanwhile in the checkpointer, partial correctness). The lessor's other methods keep working after
 it (`specs-ref`'s axiom review, attack 11).
 
-**The run loop's thread token** (verify round, A9 3c F2): the run loop deposits the `threadTok`
-`NewLessor`'s caller lent it when it returns (before closing `doneC`), so `Stop` gives it back.
+**The run loop's thread token** (verify round, A9 3c F2; superseded by re-review RR-server-core
+RR4): the run loop runs on its fork's own token, `NewLessor` gives its caller's back at once, and
+`Stop` gives none.
 
 **Changes** (from `specs-ref`'s `lessor__Stop.lean`, `lessorStopTok`): renamed `lessorStop`; verify
 round: the run loop's `threadTok` given back.
@@ -46,7 +47,7 @@ def lessor.Stop.spec : Prop :=
       lessorStop le }}
     (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
       go!"Stop")) (Val #()))
-  {{ RET #(); threadTok }}
+  {{ RET #(); True }}
 
 end spec
 end Lease

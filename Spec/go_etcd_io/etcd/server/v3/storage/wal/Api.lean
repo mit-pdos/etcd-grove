@@ -47,7 +47,8 @@ here can check.
 ## Laws
 
 `walRecs_timeless`, `walRecs_excl`, `walOpen_excl`, `walPurgeRight_excl`, `walWriting_timeless`,
-`walWriting_excl`, `walWriting_recs_excl`, and the crash laws `walRecs_crash`, `walWriting_crash`.
+`walWriting_excl`, `walWriting_recs_excl`, and the crash laws `walRecs_crash`, `walWriting_crash`;
+the crash scope `Recs.crashScopeOk` (transparent, verify round crash pass).
 
 ## Crashes (verify-round, A8 provability F1.2-3)
 
@@ -213,6 +214,29 @@ def Recs.readable (R : Recs) : Prop :=
 /-- The entries a restart opened at record `s` reads (`ReadAll`): those after `s`'s index. -/
 def Recs.entsAfter (R : Recs) (s : WalSnap) : List Raft.LogEntry :=
   R.log.drop (uint.nat s.index - R.floor)
+
+/-- **At most one conf-change entry above the last state record's commit** in the records a
+restart reads (R1's `Durable.confAboveOk` of the restart view: the entries above the commit are the
+same in both). -/
+def Recs.confAboveOk (R : Recs) : Prop :=
+  ((R.log.zipIdx (R.floor + 1)).filter
+    (fun p => uint.nat R.hs.commit < p.2 ∧ p.1.isConfChange)).length ≤ 1
+
+/-- **The crash restarts the covered executions handle** (verify round, crash pass: R-A8 N2; the
+scope the user chose, `batch-2e.md` Q2 and open question 2.8, stated over what a restart reads, so
+that it has a physical meaning): the records a restart reads after the crash (a) keep at most one
+conf-change entry above the commit (`confAboveOk`: a crash between the entries' records and the
+state record of a batch catching up across several member changes breaks it,
+`issues/raft-commit-lost-with-entries-kept.md`), and (b) hold no snapshot record above the commit
+(a crash after a received snapshot's record, which `SaveSnapshot` fsyncs, and before the state
+record of its batch reaches the disk: the restart ignores the record, `ValidSnapshotEntries`, and
+`Recs.saveSnap`'s truncation is not the replay's then). Every other crash point is covered (R1's
+`raftState_crash` covers a snapshot batch with nothing or all of it written). Outside the WAL's
+records, the crash is never out of scope. W0's adequacy theorem takes "every crash leaves each
+member's WAL so that `Open` + `ReadAll` returns records meeting `crashScopeOk`" as its
+environment premise (`walRecs`'s trusted meaning makes it a statement about the run). -/
+def Recs.crashScopeOk (R : Recs) : Prop :=
+  R.confAboveOk ∧ ∀ s ∈ R.snaps, uint.nat s.index ≤ uint.nat R.hs.commit
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]

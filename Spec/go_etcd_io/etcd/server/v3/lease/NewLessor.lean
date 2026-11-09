@@ -38,6 +38,12 @@ checkpointer, whose contract `ckptOk` now takes one, as the server's closure's `
 goroutine of the program, it is counted by adequacy), given back by `Stop`. `clusterOk` is
 transparent (F3): the caller proves the `Version()` triple of its own cluster type.
 
+**Re-review (RR-server-core RR4, by server-core).** The caller's `threadTok` is given back: the run
+loop is a goroutine of its own (`go l.runLoop()`, `lessor.go:245`) and runs on its fork's fresh
+token (`wp_fork_tok_body`), which serves its checkpointer calls; `initAndRecover` runs on the
+caller's. `lessor.Stop` gives none back (supersedes the verify round's loan). So `NewServer` returns
+its caller's token.
+
 **Integration (I5).** `beOk b` is an open share (4a: not persistent), kept in the writer's token
 (`lessorState_beOk` lends it back for the backend's close).
 **Margin.** `MinLeaseTTL`, the intervals and `CheckpointPersist` are any values (no premise: the
@@ -82,7 +88,7 @@ def NewLessor.spec : Prop :=
       isLessor le γ { minTTL := sint.Z cfg.MinLeaseTTL', expiry := exp } ∗
       lessorState γ 0 (LessorState.loaded { minTTL := sint.Z cfg.MinLeaseTTL', expiry := exp } b
         func.nil B objs (fun _ _ => False)) ∗
-      lessorStop le ∗ lessorCkptTok le ∗ lessorReaders γ lessorTokN }}
+      lessorStop le ∗ lessorCkptTok le ∗ lessorReaders γ lessorTokN ∗ threadTok }}
 
 end spec
 end Lease

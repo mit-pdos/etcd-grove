@@ -944,10 +944,14 @@ def smAt_unfold.spec : Prop :=
 /-- (provisional with `irrMsgAt`, 3h's) **The entry's decoded request is a read-only message**
 (`irrMsgAt`'s realization: `Unmarshal`'s `*InternalRaftRequest`, never written after): what 3h's
 `EtcdServerPb.stringerAt_irr` needs for `dispatch`'s `&pb.InternalRaftStringer{Request: r}`
-(`uber_applier.go:99,101`). Second pass (grpc-v3rpc's `stringerAt_irr`). -/
+(`uber_applier.go:99,101`). Second pass (grpc-v3rpc's `stringerAt_irr`). Recheck (RR4): with its
+nesting below `Proto.depthMax`, which `stringerAt_irr` takes: the realization's content is
+`MustUnmarshalMessage`'s, which the bytes encode (`irrDecodes`: protobuf's limits included, so some
+content of depth below `depthMax` encodes them), hence of that depth (`encodes_fun`, `norm_facts`). -/
 def irrMsgAt_msg.spec : Prop := ∀ p ir,
   irrMsgAt (GF := GF) p ir ⊢
-    ∃ c, Proto.msgAt go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty p DFrac.discard c
+    ∃ c, Proto.msgAt go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty p DFrac.discard c ∗
+      ⌜Proto.depth c < Proto.depthMax⌝
 
 def aiAt_excl.spec : Prop := ∀ aa u u' r r', aiAt (GF := GF) aa u r ∗ aiAt aa u' r' ⊢ iprop(False)
 

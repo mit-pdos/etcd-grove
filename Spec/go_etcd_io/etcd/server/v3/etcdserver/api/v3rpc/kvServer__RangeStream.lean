@@ -18,7 +18,8 @@ which `rsSink_out` turns into the run's `streamOut`; the error through `togRPCEr
 Changes: new.
 verify-round (A6 F2): the received request is canonical (`⌜norm c = c⌝`, grpc's `srvRecv_recv`; was
 `Proto.decodedAt`); the proof splits the message (`msgAt_split`) into W0's `rangeReqOwn` (via
-`rangeReqOwn_msgAt`) and 3h's `endsDecoded` (`endsDecoded_of_canon`) for 2c's `RangeStream`.
+`rangeReqOwn_msgAt`) for 2c's `RangeStream` (recheck, RR3: the separate 3h `endsDecoded` share is
+retired; `rangeReqOwn` carries `endsOk`).
 
 Margin: none.
 -/

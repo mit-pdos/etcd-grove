@@ -5,7 +5,10 @@
 
 **Proof sketch.** A struct literal (`lg`, `hasherAdapter{s, storage}`), read-only for good.
 
-**Changes**: from `specs-ref`'s `newCorruptionChecker.lean`: its handle named.
+**Changes**: from `specs-ref`'s `newCorruptionChecker.lean`: its handle named. Re-review (RR2):
+no `srvMember` premise: `NewServer` calls it (`server.go:365`) before `srvMember` exists, and the
+body reads nothing of `s` (it stores it in the `hasherAdapter`); the checker's users bring
+`isServer`.
 
 **Margin.** The checker's checks (`InitialCheck`, `PeriodicCheck`, `CompactHashCheck`) are not
 specified: their only effect on the model is a `CORRUPT` alarm (`EnvStep.alarm`, any time), which
@@ -35,8 +38,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Builds the corruption checker** of `s` over the hash storage. -/
 def newCorruptionChecker.spec : Prop :=
-  ∀ (lg s : Loc) (γ : Cluster) (id : Nat) (hs : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ Zap.isLogger lg ∗ srvMember s γ id }}
+  ∀ (lg s : Loc) (hs : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ Zap.isLogger lg }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.newCorruptionChecker)) (Val #lg)) (Val #s)) (Val #hs))
   {{ (cc : Loc), RET #cc; isCorruptionChecker cc s hs }}
 

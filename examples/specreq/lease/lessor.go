@@ -300,8 +300,8 @@ func (noCluster) Version() *semver.Version { return nil }
 // examples/mvccrand/mvccrand.go:810 (zap.NewNop(), noCluster{}).
 // Assumes: be's lease bucket holds exactly lease id with TTL ttl (beLeases); a real logger.
 // Specs: NewLessor.spec (Zap.isLogger of NewNop's, clusterOk of noCluster: the transparent
-// Version() triple, proved from its body; leaseRevokeRate 0; the caller's threadTok, which Stop
-// gives back), lessor.Lookup.spec, Lease.TTL.spec, Lease.Keys.spec, lessor.Stop.spec; laws:
+// Version() triple, proved from its body; leaseRevokeRate 0; the caller's threadTok, given back:
+// the run loop has its fork's own), lessor.Lookup.spec, Lease.TTL.spec, Lease.Keys.spec, lessor.Stop.spec; laws:
 // lessorAt_minTTL.
 func ReqNewLessor(be backend.Backend, id lease.LeaseID, ttl, minTTL int64) {
 	le := lease.NewLessor(zap.NewNop(), be, noCluster{}, lease.LessorConfig{MinLeaseTTL: minTTL})

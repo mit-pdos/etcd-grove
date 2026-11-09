@@ -65,7 +65,8 @@ take the old generation's crash token (`crashed`) and give the next generation's
 destination, which an unsynced rename may also revert, is 4a's: `dbFile_rename`'s update adds the
 destination's previous file to its revert state (`revertSt dst os`: every file a crash may bring
 back, 4a's `beCrash`), and the next `SaveDBFrom`'s directory fsync, of the directory holding `dst`
-(`inDir`), empties it (last pass, backend-schema's request; re-review N3: the list form).
+(`inDir`), empties it (last pass, backend-schema's request; re-review N3 and the crash pass: the
+list form, 4a's `beRevs`).
 
 ## Requirement snippets
 
@@ -206,15 +207,12 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **The revert state of `p`, as the list of the files a crash may bring back** (re-review N3: two
 installs with no directory sync between are reachable, `raft.go:284,307`, and a journaling file
-system may then keep either rename or neither: every previous file is a candidate). `[]`: no rename
-pending (4a's `beNoRevert`); `[o]`: one (4a's `beRevert p o`). **Transitional:** longer lists need
-4a's list form `beRevert p (os : List (Option Image))` (requested of backend-schema, the repair
-report's "Re-review"); until it lands they are `False`, so a second install before a directory sync
-is not yet provable (a recorded gap, not a claim). -/
-def revertSt (p : GoString) : List (Option BeImage) → IProp GF
-  | [] => Backend.beNoRevert p
-  | [o] => Backend.beRevert p o
-  | _ => iprop(False)
+system may then keep either rename or neither: every previous file is a candidate): 4a's
+`Backend.beRevs p os` (`[]`: no rename pending, `beNoRevert`; else `beRevertL p os`). Verify round,
+crash pass: the list form landed in 4a (`Durable.lean`'s `beRevs`, `beCrash`'s `o ∈ os`), so a
+second install before a directory sync is provable (the transitional `False` for two or more is
+gone). -/
+abbrev revertSt (p : GoString) (os : List (Option BeImage)) : IProp GF := Backend.beRevs p os
 
 /-- **Renaming a db file onto a backend path** (re-review N3: the destination's file and revert
 state are taken inside the atomic update, so the install holds nothing across the call, a
@@ -225,7 +223,7 @@ proof needs: verify-round, A8 provability F5). At the rename the file at `i` lea
 (the update reads it: `none` if it is not there, then `ENOENT` and nothing changes) and its image
 is the destination's file; the removal is recorded in `snapGone`; the rename is not durable until
 the directory is fsynced: the destination's previous file `o` may come back after a crash
-(`Backend.beRevert dst o`, 4a's `beCrash`), until `SaveDBFrom`'s directory fsync. A failure other
+(`revertSt dst (o :: os)`, 4a's `beCrash`/`beFile_crash`), until `SaveDBFrom`'s directory fsync. A failure other
 than a missing file is `ServerStorage.diskOk`'s (`applySnapshot` panics on it, `bootstrap` fails). -/
 def dbFile_rename.spec : Prop :=
   ∀ (sd : GoString) (i : Nat) (dst : GoString) (Q : Option BeImage → IProp GF),

@@ -207,8 +207,11 @@ opaque errChanOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFuncto
 its meaning is the client's, `ν.img`). -/
 def snapImg (ν : Net GF) (i : w64) (img : Snap.BeImage) : IProp GF := iprop(□ ν.img i img)
 
-/-- **rafthttp's HTTP protocol** for the paths under `/raft` (see the header). -/
-opaque raftProto (ν : Net GF) : Http.Proto GF :=
+/-- **rafthttp's HTTP protocol** for the paths under `/raft` (see the header). Verify round, crash
+pass: the heap binders are explicit (they were missing, so the realization, which names raft's
+`msgSent`/`msgCredit` at the heap, could not be written); `raftProto_gen` says it is the same at
+every local generation. -/
+opaque raftProto [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ν : Net GF) : Http.Proto GF :=
   ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ _ => iprop(True),
     fun _ _ _ _ _ => iprop(True)⟩
 
@@ -226,6 +229,22 @@ compatible with `raftProto ν`. -/
 def peerAddr (ν : Net GF) (a : GoString) : IProp GF :=
   iprop(∃ P : Http.Proto GF, Http.protoAt a P ∗ ⌜raftCompat ν P⌝)
 
+/-- **rafthttp's protocol does not depend on the local generation** (verify round, crash pass: R-A8
+N1): the protocol at the next generation's heap `⟨hG.goose_globalGS, L'⟩` is the same value, so an
+address reserved for it before a crash serves it after. Realization: its parts are built from raft's
+global vocabulary (`msgSent`, `msgCredit`: `Raft.global`), `ν`'s fields, invariants and ticket and
+token names (`GooseGlobalGS`), never a heap or thread resource. -/
+def raftProto_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (ν : Net GF),
+  raftProto (hG := ⟨hG.goose_globalGS, L'⟩) ν = raftProto ν
+
+/-- **A peer address crosses a crash** (verify round, crash pass: R-A8 N1): the program serves the
+member's raft handler at the same reserved address after a restart. Realization: `peerAddr` is
+transparent over net/http's `protoAt` (whose generation-independence is requested of its owner: the
+address's reservation is the run's, `Http.reserve`) and `raftCompat` (pure over `raftProto`:
+`raftProto_gen`). -/
+def peerAddr_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (ν : Net GF) (a : GoString),
+  peerAddr ν a ⊣⊢ peerAddr (hG := ⟨hG.goose_globalGS, L'⟩) ν a
+
 /-- **What a received message carries** (to a receiver of network `ν`): raft's facts, and for a
 `MsgSnap` the client's `dbIn` of its snapshot's index (round 1, F5 and completeness F3: given by
 the client's own save update, which `SaveDBFrom` fired over 2e's `snapDbs` with an image the sender
@@ -240,18 +259,20 @@ def recvd (ν : Net GF) (m : Msg) : IProp GF :=
 sender certified for index `i`, the two updates `SaveDBFrom` fires (2e's): the first at the rename
 (`snapDbs sd F` to `snapSaving sd F i img`), whose commit is the second, at the directory's fsync
 (to `snapDbs sd (saveAt F i img)`: kept if a file of `i` is there), which also takes the revert
-state of an entry `p` of `sd` the client chose (`Backend.beRev p rv`, made `beNoRevert p`: the
-fsync makes a pending rename onto `p` durable; for etcd's server `p` is the backend file
-`<snap dir>/db`, `Config.backendPath_entry`), and whose commit gives `ν.dbIn i`. (Final relay
-round: server-boot moved `beRev` into `SaveDBFrom`'s second update, so the client supplies it at the
-fsync from its invariant; no loan across the call.) -/
+state of an entry `p` of `sd` the client chose (`Backend.beRevs p os`, any number of pending
+renames, made `beNoRevert p`: the fsync makes the pending renames onto `p` durable; for etcd's
+server `p` is the backend file `<snap dir>/db`, `Config.backendPath_entry`), and whose commit gives
+`ν.dbIn i`. (Final relay round: server-boot moved the revert state into `SaveDBFrom`'s second
+update, so the client supplies it at the fsync from its invariant; no loan across the call. Verify
+round, crash pass: the list form `beRevs` in place of the one-file `beRev`, R-A8 N3: two installs
+before a sync leave two pending renames, which the server's invariant must be able to hand over.) -/
 def saveOk (ν : Net GF) (sd : GoString) : IProp GF :=
   iprop(∃ p : GoString, ⌜Snap.inDir sd p⌝ ∗
     □ ∀ (i : w64) (img : Snap.BeImage), □ ν.img i img -∗
       AU <{ ∃∃ (F : Nat → Option Snap.BeImage), Snap.snapDbs sd F }> @ ⊤, ∅
         <{ Snap.snapSaving sd F (uint.nat i) img, COMM
-           AU <{ ∃∃ (rv : Option (Option Snap.BeImage)), Snap.snapSaving sd F (uint.nat i) img ∗
-                   Backend.beRev p rv }> @ ⊤, ∅
+           AU <{ ∃∃ (os : List (Option Snap.BeImage)), Snap.snapSaving sd F (uint.nat i) img ∗
+                   Backend.beRevs p os }> @ ⊤, ∅
              <{ Snap.snapDbs sd (Snap.saveAt F (uint.nat i) img) ∗ Backend.beNoRevert p,
                 COMM ν.dbIn i }> }>)
 

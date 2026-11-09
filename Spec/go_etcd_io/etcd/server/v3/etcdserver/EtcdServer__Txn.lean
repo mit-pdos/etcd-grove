@@ -9,8 +9,11 @@ grpc-proxy's adapter. Snippets: `examples/specreq/etcdserverreq/kv.go` (`ReqTxnR
 **Proof sketch.** `txn.IsTxnReadonly(r)` (3b: `t.readonly`). Read-only: as `Range.spec` (the
 registry's ticket; the read index unless `txn.IsTxnSerializable(r)`, 3b: `t.serializable`; then
 `doSerialize` with `chk` = `apply.CheckTxnAuth` (3a: the permission of `RequestOp.txn`'s
-`perms` and `leases` at the auth store's state) and `get` = `txn.Txn(...)` (3b: `TxnRun` at the
-member's store; a read-only run commits nothing). A write: as `Put.spec` (`raftRequest` at `.req
+`perms` and `leases` at the auth store's state; it takes and gives back `txnReqOwn r dq' t` at a
+share `dq'` the proof splits off this one's `dq` and rejoins, the range ends' `endsOk` inside it) and
+`get` = `txn.Txn(...)` (3b: `TxnRun` at the member's store; a read-only run commits nothing); the
+deferred `txn.WarnOfExpensiveReadOnlyTxnRequest` (3b) at the request's share, its depth premise
+`txnMsgDepth t < Proto.depthMax` from `t.readonly` (only ranges: `txnMsgDepth t ≤ 3`). A write: as `Put.spec` (`raftRequest` at `.req
 (.txn t)`, its depth premise from this one's; the type assertion `resp.(*pb.TxnResponse)`).
 
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__Txn.lean`: `txnPermit`, a depth premise of a
@@ -26,6 +29,10 @@ builds its range request, by 3h's `endsOk_range_intro`).
 stale store (`issues/etcd-txn-empty-serializable.md`: W0's model has it).
 
 Changes: verify-round, second pass (grpc-v3rpc's request): `endsDecoded` is now a share of the request message with the pure `endsOk` fact; 2a's handler gets it by `endsDecoded_of_canon` (`Proto.norm c = c` of a decoded message), a builder by `endsDecoded_range_intro`.
+
+Changes: recheck (RR3, RR4): `CheckTxnAuth` takes no separate `endsDecoded` share any more (3h
+retired it), so the read path gives back `txnReqOwn r dq t` whole; the read-only warning's depth
+bound comes from `t.readonly`, so the depth premise stays a write's only.
 
 Changes: re-review (R-A6 N2): no separate `endsDecoded` share: the request's owned predicate (W0's `rangeReqOwn`/`txnReqOwn`) already carries `endsOk` of its content (3h's `*ReqOwn_msgAt`), and a share beside full ownership asked for more than the message (`kvServer.RangeStream` writes `r.Limit`, `r.Revision`, `r.Key`). `Proto.decodedAt`, `endsDecoded_of_decoded` and `endsDecoded_range_intro` no longer exist: 3h's `endsOk_canon` and `endsOk_range_intro`.
 -/

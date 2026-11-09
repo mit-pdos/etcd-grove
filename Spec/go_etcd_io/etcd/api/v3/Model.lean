@@ -851,23 +851,30 @@ def RequestOp.leasesL : List RequestOp → List Int
   | op :: ops => op.leases ++ RequestOp.leasesL ops
 end
 
-/-- **An administrator check refused, its two views** (`IsAdminPermitted`: the enabled flag read
-at one auth table, the user at another; second pass, grpc-v3rpc's P-F5, the shape of 2a's
-`V3rpc.adminDenied` and 3d's `adminPost`): the flag on at `jf`; no principal, or the empty user
-(`ErrUserEmpty`), a user absent at `jx` (`ErrUserNotFound`), or present and not of the root role
-(`ErrPermissionDenied`). The principal checked is the request's `who`, or no principal
-(`AuthInfoFromCtx` reads the flag on its own: with auth off then it gives no user from the token,
-or the client certificate's, which W0's scope makes `who`'s or none (`ctxPrin`, one identity per
-client): an `AuthEnable` racing the two reads; re-review of A6, N3). Recheck RR2: an earlier form
-admitted any principal once some table had auth off, which the initial table always has. -/
-def State.adminDenied (σ : State) (who : Principal) (e : EtcdErr) : Prop :=
-  ∃ (jf jx : Nat) (af ax : AuthState) (who' : Principal),
+/-- **An administrator check refused, as the principal `who'` it read** (`IsAdminPermitted`: the
+enabled flag read at one auth table, the user at another; second pass, grpc-v3rpc's P-F5, the shape
+of 3d's `adminPost`): the flag on at `jf`; no principal, or the empty user (`ErrUserEmpty`), a user
+absent at `jx` (`ErrUserNotFound`), or present and not of the root role (`ErrPermissionDenied`). -/
+def State.adminDeniedAs (σ : State) (who' : Principal) (e : EtcdErr) : Prop :=
+  ∃ (jf jx : Nat) (af ax : AuthState),
     σ.authTables[jf]? = some af ∧ σ.authTables[jx]? = some ax ∧ af.enabled = true ∧
-    (who' = who ∨ who' = none) ∧
     match who' with
     | none => e = .userEmpty
     | some u => (u = [] ∧ e = .userEmpty) ∨ (u ≠ [] ∧ ax.users u = none ∧ e = .userNotFound) ∨
         (u ≠ [] ∧ ax.users u ≠ none ∧ ¬ ax.isRoot u ∧ e = .permissionDenied)
+
+/-- **The compact step's administrator denial** of a request by `who`: a denial as `who`, or as no
+principal. The second is an `AuthEnable` racing the check's two reads of the flag
+(`nonissues/etcd-admin-check-authenable-race.md`): `AuthInfoFromCtx` reads it off and gives no user
+from the token, `IsAdminPermitted` reads it on; it is admissible whenever some table has auth on
+(the initial table has it off, and a lagging member may apply the enable between the reads), and
+gives only `ErrUserEmpty`. With the flag read off, the server falls back to the client
+certificate's name under `--client-cert-auth` (`v3_server.go:1206-1215`); W0's scope makes that
+name `who`'s or none (`ctxPrin`, one identity per client), so it adds nothing here; 2a's
+`V3rpc.adminDenied` keeps it as its own disjunct, `adminDenied_of` converts. Recheck RR2: an earlier
+form admitted any principal once some table had auth off, which the initial table always has. -/
+def State.adminDenied (σ : State) (who : Principal) (e : EtcdErr) : Prop :=
+  σ.adminDeniedAs who e ∨ σ.adminDeniedAs none e
 
 /-- An administrator's request (`IsAdminPermitted`): auth off or a user of the root role. -/
 def AuthState.admin (a : AuthState) (who : Principal) : Prop :=

@@ -18,7 +18,7 @@ Re-review (R-A6 N1): that `mdAt` of the `nil` map was contradictory (`mdAt_ownMa
 either case.
 Recheck (RR1): a gated row, `ctxNoMeta ctx -∗ ⌜ok = false⌝`: a context whose
 `Value(mdOutgoingKey{})` is `nil` has no metadata attached, and grpc returns `nil, false` exactly
-then (`metadata.go:325-328`); `outMD ctx []` alone cannot tell it from an attached empty `MD`, for
+then (`metadata.go:331-335`); `outMD ctx []` alone cannot tell it from an attached empty `MD`, for
 which `ok` is `true`.
 
 Margin: `ok` is `false` exactly when no metadata was attached; the spec says only `md = []` then.

@@ -37,6 +37,18 @@ cannot open it: `diskOk`), and then by the WAL directory's existence (`wal.Exist
   state `memberDisk` holds), raft's record with no peers.
 The result `bootOk b γ id cfg` has one sealed part per subsystem (`ApiBoot.lean`).
 
+**Crashes inside `bootstrap`** (verify round, crash pass: R-A8 N4; trusted, as the rest): every
+durable change is made through `memberStart`'s `diskAcc`, at its atomic point, so that `diskState`
+describes the directories at every step and `disk_crash` holds of a crash at any point: the
+directories' creation (nothing of `diskState`'s), the backend's open (4a's `New`: the file closed
+until the open, then the open file's history; the window inside `New` is the recorded gap of
+`OpenBackend`), `RecoverSnapshotBackend`'s rename (`Snap.dbFile_rename`'s update, the revert list),
+`wal.Create` (a temporary directory renamed onto the WAL's path, the parent fsynced before it returns:
+the kind moves from `.boot`/`.join` to `.member id` at the rename, and a crash before the parent's
+fsync may undo it, leaving no WAL and nothing of raft started), `wal.Repair` (a torn tail
+truncated: `walRecs` is what `ReadAll` returns, which the tail never was part of). The WAL replay
+reads only.
+
 **Changes** (from the old `bootstrapContract`/`bootOk`/`bootOkR`, a premise of `NewServer.spec`
 until R1-4: the whole-`bootOk` review): one trusted triple for the three starts (the old one covered
 a new cluster's first start only, `bootOkR` a restart at `σ.b = 0`: R2d'a); no write-back budget

@@ -16,7 +16,9 @@ appliedi`; `compactRaftLog.spec` at `appliedi`.
 `nodeAdvanced`/`nodeSnapLb`. **Margin**: the snapshot indices move; the post says only that the
 applied index and term do not.
 
-Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). (Superseded by re-review RR1, below.)
+
+Changes: re-review (RR1): takes `srvStarted s γ id` (persistent; its callers `applyAll`, `apply`, `snapshotIfNeededAndCompactRaftLog` hold it): its callees `snapshot`, `compactRaftLog` and `shouldSnapshotToDisk` take it.
 -/
 module
 
@@ -46,7 +48,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 def EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (ep : Loc) (p : Progress),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ applyThread s γ ep p ∗
+      srvNode s γ id ∗ srvStarted s γ id ∗ applyThread s γ ep p ∗
       nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
         (uint.nat p.appliedi) ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!

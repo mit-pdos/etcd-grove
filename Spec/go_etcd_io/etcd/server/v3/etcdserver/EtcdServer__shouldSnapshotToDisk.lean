@@ -5,6 +5,8 @@ snapshot, or past it by more than `SnapshotCount`. Internal (`snapshotIfNeededAn
 **Proof sketch**: reads `s.forceDiskSnapshot` (the thread's `forceSnapW`), `s.Cfg.SnapshotCount`
 (read-only, `srvNode`), `ep`'s indices. **Changes**: over `applyThread`. **Margin**: the result's
 formula is not stated (its caller's spec holds either way); a `true` implies `appliedi ≠ diskSnap`.
+
+Changes: re-review (RR1): takes `srvStarted s γ id` (persistent; its callers `applyAll`, `apply`, `snapshotIfNeededAndCompactRaftLog` hold it): `s.Cfg.SnapshotCount` (`server.go:1252`), which `start` defaults, is read-only from then on (`srvStarted`'s).
 -/
 module
 
@@ -34,7 +36,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 def EtcdServer.shouldSnapshotToDisk.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (ep : Loc) (p : Progress),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ applyThread s γ ep p }}
+      srvNode s γ id ∗ srvStarted s γ id ∗ applyThread s γ ep p }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"shouldSnapshotToDisk")) (Val #ep))
   {{ (b : Bool), RET #b; applyThread s γ ep p ∗ ⌜b = true → p.appliedi ≠ p.diskSnap⌝ }}

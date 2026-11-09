@@ -69,9 +69,9 @@ func get(s *etcdserver.EtcdServer, k string) (*pb.RangeResponse, error) {
 // Assumes: the program allocated the cluster (cluster_alloc: the member computed from this
 // configuration, Membership.initialMembers; peerAddr's address reserved), made the disk of the fresh
 // directory name+".etcd" (disk_new) and keeps its diskState in its crash invariant (diskAcc); a
-// thread token for Start.
+// thread token for NewServer and Start (each gives it back).
 // Specs: NewServer.spec (disk_new, memberStart_disk; its post's 0 < id < 2^64, srvMember_id),
-// EtcdServer.Start.spec, EtcdServer.MemberID.spec.
+// EtcdServer.Start.spec (with NewServer's srvMember), EtcdServer.MemberID.spec (srvMember_fields).
 func ReqStartOne(name, peerAddr, clientAddr string, lg *zap.Logger) *etcdserver.EtcdServer {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
 	s, err := etcdserver.NewServer(memberConfig(name, peer, clientAddr, types.URLsMap{name: peer},
@@ -305,17 +305,22 @@ func ReqStopDrained(s *etcdserver.EtcdServer) {
 	s.HardStop()
 }
 
-// REQ etcdserverboot/crash-restart: after a crash of the process at any point (outside the scope
-// crashOutOfScope names), the member restarted on its directory continues the cluster's history: a
-// write acknowledged before the crash is read after the restart. Not runnable in-process (a crash is
-// the adequacy theorem's crash rule: the restart below is the recovery procedure's body).
+// REQ etcdserverboot/crash-restart: after a crash of the process at any point of the member's life
+// (inside NewServer or bootstrap, before Start, while serving, inside HardStop or Cleanup, after
+// Cleanup), outside the scope crashOutOfScope names, the member restarted on its directory
+// continues the cluster's history: a write acknowledged before the crash is read after the restart.
+// Not runnable in-process (a crash is the adequacy theorem's crash rule: the restart below is the
+// next generation's boot program).
 // Users: every etcd deployment (systemd restarts after a kill); examples/etcd/restart's crash variant.
-// Assumes: the recovery runs after a crash of the process that ran the member on name+".etcd" (the
-// crash rule's crashGone), unless crashOutOfScope (R1's confAboveOk at the crash, no crash during a
-// snapshot-carrying write: batch-2e.md Q2), and the program's crash invariant holds diskState; k was
-// put before the crash by a client that got an answer.
+// Assumes: the program keeps the member's diskState (and etcdState) in its crash invariant and its
+// crash frame applies disk_crash with the old generation's crashed and the OS's crash rest; the
+// WAL a restart reads meets Wal.Recs.crashScopeOk (W0's environment premise: at most one conf
+// change above the stored commit, no snapshot record above it); the crash is not inside the
+// backend's open (backend.New takes the file in its precondition: a recorded gap,
+// verify/repair2-crash.md); k was put before the crash by a client that got an answer.
 // Specs: disk_crash, diskIdle_agree, memberStart_disk, NewServer.spec, EtcdServer.Start.spec, the
-// request path's Range (2c).
+// request path's Range (2c); across the crash: EtcdModel.etcdState_gen, etcdLb_gen, envUpd_gen,
+// srvNet_gen, Rafthttp.peerAddr_gen (the program serves the raft handler again).
 func ReqCrashRecover(name, peerAddr, clientAddr string, lg *zap.Logger) {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
 	s, err := etcdserver.NewServer(memberConfig(name, peer, clientAddr, types.URLsMap{name: peer},

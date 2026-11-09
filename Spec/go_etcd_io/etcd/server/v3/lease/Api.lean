@@ -113,9 +113,8 @@ lock and `ForceCommit`) and one of the reader tokens. Each `*Lease`'s `mu` invar
 (by a ghost map `γ.keys`, object to set, its authority in an invariant opened by holders of `le.mu`
 and `l.mu` together: `Keys()` reads under `l.mu` alone); `leaseObj γ l id ttl`: `l.ID ↦□ id`,
 `l.ttl ↦□ ttl`, the locks' invariants. `lessorReaders γ n`: `n` reader slots of each `RWMutex`.
-The run loop: holds `isLessor`, its own reader token and the `threadTok` `NewLessor`'s caller lent it
-(what the checkpointer it calls needs; deposited at `doneC`'s close, which `Stop` waits for, and
-given back there); it sends live objects on `expiredC` only
+The run loop: holds `isLessor`, its own reader token and its fork's `threadTok` (what the
+checkpointer it calls needs; re-review RR4: not the caller's, which `NewLessor` gives back); it sends live objects on `expiredC` only
 with `c.expiry = true` (with `false`, an expiry found would contradict `leasesOutliveRun`: the run
 loop's time reasoning is the trusted part, `runLoop` being untranslated).
 

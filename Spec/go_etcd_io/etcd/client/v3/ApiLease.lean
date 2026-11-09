@@ -28,7 +28,7 @@ context carries (`ctxPrin who ctx p`).
   of the table after it, and a `Leases` holding `leaseViewLb γ ep i` is answered from `ep`'s table
   `j ≥ i` and gives `leaseViewLb γ ep j` (`Lease.GrantTriple`'s and `LeaseRead.Triple`'s `via`,
   `viaFact`): what `examples/etcd/{leasegrant,leaseexpiry,leasecatchup}` rely on. A `TimeToLive`
-  gives the same fact only in a single-member cluster (`soleMember γ ep`: a follower forwards it to
+  gives the same fact only in a single-member cluster (`soleMember γ`: a follower forwards it to
   the leader, `v3_server.go:636-676`; re-review N1, recheck RR-1): what `leaseexpiry`'s "gone by
   `TimeToLive`, so not listed" rests on.
 * **`KeepAlive(ctx, id)`**: no update. **A keep-alive tells nothing about the lease's state**: the
@@ -250,7 +250,7 @@ def Lease.GrantTriple (m : GoString → val) (v : GoInterface) (P : IProp GF) (�
 member `ep` with `leaseViewLb γ ep i` (`via = some (ep, i)`), a `Leases` answer from the lessor
 (`leaseAnsRes`: not a refusal) is from `ep`'s table `j ≥ i`, whose lower bound it gives (`viaFact`;
 verify round: a refusal tells nothing; re-review N1, recheck RR-1: a `TimeToLive` tells it only
-given `soleMember γ ep`, the leader answers it). -/
+given `soleMember γ`, the leader answers it). -/
 def LeaseRead.Triple (e : Expr) (v : GoInterface) (P B : IProp GF) (γ : Cluster) (p : Principal)
     (rq : Req) (reply : Resp → Loc → GoInterface → IProp GF) : Prop :=
   ∀ (via : Option (GoString × Nat)) (Q : State → State → Resp → IProp GF),

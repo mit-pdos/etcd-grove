@@ -26,6 +26,11 @@ invariant holds them, the update moves the previous file into the revert list
 concurrent `SaveDBFrom` can settle the revert state meanwhile; two installs in a row extend the list;
 a crash inside the call finds the file and the revert state in the invariant.
 
+Verify round, crash pass: `Snap.revertSt` is 4a's list form `Backend.beRevs` (the transitional
+`False` for two or more pending renames is gone), so a second install before a directory sync is
+provable (R-A8 N3's list form). The one crash window left is inside `New` (`OpenBackend`'s recorded
+gap). Statement unchanged.
+
 **Margin.** The error's cause is not stated.
 -/
 module

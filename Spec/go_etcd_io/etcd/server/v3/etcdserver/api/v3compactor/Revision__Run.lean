@@ -7,6 +7,7 @@
 no run token (any number of calls is safe). **Margin.** None.
 Changes: verify-round (A7 completeness F2): the compactor's handles carry the gate `R` of its `Compactable`
 (`compactable c R`: `Compact` is safe once `□ R`, the server's start); `Run` takes `□ R`.
+Changes: re-review (RR-server-core RR3, by server-core): `Run` gives the caller's `threadTok` back: the loop is a goroutine of its own (`go func()`, `revision.go:67`) and runs on its fork's fresh token (`wp_fork_tok_body`); `Run`'s own body before the `go` does nothing else. (`start` must return its caller's token: `Start.spec`.)
 -/
 module
 
@@ -35,7 +36,7 @@ def Revision.Run.spec : Prop :=
   ∀ (R : IProp GF) (p : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isRevision p R ∗ threadTok ∗ □ R }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision.ty @!! go!"Run")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 

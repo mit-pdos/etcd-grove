@@ -11,6 +11,8 @@ verify-round (A6 F1, with server-core's fix): 2c's success reply is `srvHdrReply
 
 Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
 
+Recheck RR-1: `leaseFact`'s `TimeToLive` row is gated on W0's `soleMember γ` (the cluster never had a member but `ep`'s): an answer of the lessor then gives `leaseViewLb γ ep j` at the table `j ≥ i` it was read from, from 2c's `EtcdServer.LeaseTimeToLive` (requested of server-core: 2c's lease specs give no per-member view yet, for `Grant` and `Leases` either).
+
 Margin: none.
 -/
 module

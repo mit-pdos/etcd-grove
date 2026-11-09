@@ -27,10 +27,12 @@ auth flag on its own (`server/auth/store.go:1072-1074`, `916-918`).
 
 ## Proof
 
-No: the specs state the behavior. W0's `State.adminDenied` (`api/v3/Model.lean`), which
-`V3rpc.adminDenied` abbreviates, admits a denial of the principal the check read. That is the
-request's own, or, when the flag was read off at some auth table, no user or any certificate user.
-`AuthAdmin.isPermitted.spec` returns that denial, and `kvServer.Compact` fires it as the model's
+No: the specs state the behavior. W0's `State.adminDenied who` (`api/v3/Model.lean`) admits a
+denial as the request's own principal `who`, or, when the flag was read off at some auth table, as
+no user (`ErrUserEmpty`) only. 2a's `V3rpc.adminDenied σ who tls` also admits the TLS
+certificate's principal (under `--client-cert-auth`), and its law `adminDenied_of` gives W0's
+denial when `tls` is none or `who` (RR-grpc-auth RR2). `AuthAdmin.isPermitted.spec` returns that
+denial, and `kvServer.Compact` fires it as the model's
 compact answer.
 
 ## Notes

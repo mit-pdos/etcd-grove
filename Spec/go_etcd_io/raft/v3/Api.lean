@@ -62,8 +62,11 @@ is the client's: its methods' updates fire on `memStor ms σ` directly.
   commit invariant), the configuration map `k ↦ m` (persistent points-to's: `confAt`), the decision
   map (`confDecisions` the authority, `confDecided` the fragments), the snapshot set, the read-context
   registry (saved predicates of the read updates), the per-id durable state and vacancy tokens (ghost
-  vars), the fresh-id authority; the proposals' and reads' updates are deposited in raft's invariant
-  (`inv γ.ns`) when a node appends the entry or confirms the read.
+  vars; the durable state with a per-id generation record and the vacancy per generation, so that a
+  crash's crossing mints the next generation's once: "Crashes and generations" below), the fresh-id
+  authority; the proposals' and reads' updates are deposited in raft's invariant
+  (`inv γ.ns`) when a node appends the entry or confirms the read. All of it is global ghost state
+  (`global.spec`).
 - `msgSent`: the persistent record of messages sent (a ghost set of `Msg` with each one's protocol
   facts: the sender's term, log, votes, commit knowledge); `msgCredit`: the message's deposited
   proposal updates (a `£`-backed token per proposal, or their persistent copies when `γ.dup`).
@@ -883,44 +886,107 @@ prefix). -/
 def appliedLb_storedLb.spec : Prop :=
   ∀ n (i : Nat), appliedLb (GF := GF) n i ⊢ storedLb n i
 
-/-- **A crash during a batch's durable write** (round 3, 2e's request): with no node of `id` running
-(the crashed process gone: `nodeVacant`, which the crash rule of the adequacy theorem gives back)
-and the batch's enter update not fired (the evidence that `b` is the batch raft handed out at the
-durable state `D`), the client may move its `raftState` to any state the crash left:
-`D.crashed b j hs` for a prefix `j` of the batch's entries and a hard state that is **one record
-whole** (verify-round, A4 P2(a): etcd's WAL and kvdurable's file write the state record whole, after
-the entries): either the old one (`D`'s term and vote, a commit between `D.wcommit` and `D.commit`:
-the last state record synced, or a later commit-only record) or the batch's (its term and vote, a
-commit between `D.wcommit` and the batch's, **with all of the batch's entries written**: the state
-record follows the entries in the write, and with fewer entries the batch's commit may cover an old
-entry the batch replaces; re-review N1), within the written log -- provided the result has at
-most one conf-change entry above its commit (`confAboveOk`). (Round 3's statement allowed the old
-term with the batch's commit, which no storage writes and which breaks `BatchOk`'s term clause at
-the restart: committed entries of the batch's newer term reported with the old term.)
-Raft's safety argument: nothing of the batch was acknowledged (acknowledgements and votes are sent
-only after the enter update, at `Advance`, or by a leader whose term and vote the batch does not
-change: `readyCheck`), so the node may lose any suffix of it. With the old record kept, the durable
-log may hold entries of a term above the durable term (the batch's, from a newer leader); raft's
-invariant covers this case (`ApiCore.lean`'s realization, item 1: such a node cannot win an election
-before that term). The condition on conf entries is what a restart needs (`Durable.confAboveOk`):
-without it the law is false, by a real raft bug (`issues/raft-commit-lost-with-entries-kept.md`,
-reproduced against the pinned raft: two conf changes kept above a lost commit let the restarted node
-win in its old configuration and commit a different entry at an index already committed). Whether
-etcd may take it as a scope restriction or the bug blocks etcd's crash restarts is an open question
-for the user (R1's question 10). Not covered: a batch with a snapshot. -/
-def raftState_crash.spec : Prop :=
-  ∀ (n : Loc) γ (id : w64) (st : Driver) (b : Batch) (dl : List LogEntry) (j : Nat)
-    (hs : HardState),
-    b.snap = none → j ≤ b.ents.length →
-    uint.nat st.durable.wcommit ≤ uint.nat hs.commit →
-    ((hs.term = st.durable.term ∧ hs.vote = st.durable.vote ∧
-        uint.nat hs.commit ≤ uint.nat st.durable.commit) ∨
+/-! ### Crashes and generations (verify round, crash pass: R-A8 N1)
+
+Perennial's crash rule (`CrashAdequacy.lean`) hands the next generation `L'` only invariants and
+the crash frame, from the old generation's `crashed`; every opaque predicate here takes the heap
+`hG`, so what crosses must say how. The cluster's vocabulary is of the global ghost state (`global`:
+the same at every local generation). A node's durable state crosses by `raftState_gen` (at rest) or
+`raftState_crash` (a batch handed out and not entered), which give the next generation's
+`raftState` and **its vacancy**: the crashed process is gone, so no node of `id` runs in `L'`. (A
+law `isNode n γ id ∗ crashed ⊢ |={⊤}=> nodeVacant γ id` in the old generation, as R-A8 N1 proposed,
+is false: both premises are persistent, so it would give two vacancies, which `exclusive` refutes.
+The vacancy comes with the exclusive `raftState`, which the crossing consumes.)
+
+Realization: `raftState γ id D` at `hG` is the client's half of `id`'s durable ghost variable at `D`
+**and** the client's half of `id`'s generation record at the name of `hG`'s crash token
+(`hG.goose_localGS.goose_crashGS`); `nodeVacant γ id` at `hG` is `id`'s vacancy token for that
+generation (a ghost map keyed by `(id, generation name)` in raft's invariant, an entry inserted
+once). The crossing, given the old generation's `crashed`, opens raft's invariant (`γ.ns`), moves the
+record to `L'`'s name and inserts `L'`'s vacancy; the old incarnation's node invariant is dead with
+its threads (its steps are refuted by `crashed` against its generation's `notCrashed`, which a step
+owns through the state interpretation: `CrashToken.lean`). -/
+
+/-- **What a crash during the write of batch `b` from the durable state `D` may leave**
+(transparent; verify round, crash pass): a hard state that is **one record whole**, either the old
+one (`D`'s term and vote, a commit between `D.wcommit` and `D.commit`) with a prefix `j` of the
+batch's entries (none if the batch carries a snapshot: its snapshot record and entries are written
+after the snapshot file, and a crash after the snapshot record but before the state record is out
+of the covered executions, `Wal.Recs.crashScopeOk`), or the batch's (its term and vote, a commit
+between `D.wcommit` and the batch's, at or above its snapshot's index) with **all of the batch
+written**: `D.next b` at that commit. Within the written log. For a batch without a snapshot this is
+round 3's pair of cases (`D.crashed b j hs`; the second equals `D.next b` at the commit). -/
+def Durable.crashOk (D : Durable) (b : Batch) (D' : Durable) : Prop :=
+  ∃ (j : Nat) (hs : HardState),
+    uint.nat D.wcommit ≤ uint.nat hs.commit ∧ uint.nat hs.commit ≤ D'.last ∧
+    ((hs.term = D.term ∧ hs.vote = D.vote ∧ uint.nat hs.commit ≤ uint.nat D.commit ∧
+        j ≤ b.ents.length ∧ (b.snap = none ∨ j = 0) ∧ D' = D.crashed b j hs) ∨
       (∃ h, b.hs = some h ∧ hs.term = h.term ∧ hs.vote = h.vote ∧
-        uint.nat hs.commit ≤ uint.nat h.commit ∧ j = b.ents.length)) →
-    uint.nat hs.commit ≤ (st.durable.crashed b j hs).last →
-    (st.durable.crashed b j hs).confAboveOk →
-    readyEnter (GF := GF) n γ id st b dl ∗ raftState γ id st.durable ∗ nodeVacant γ id ⊢ |==>
-      raftState γ id (st.durable.crashed b j hs) ∗ nodeVacant γ id
+        uint.nat hs.commit ≤ uint.nat h.commit ∧
+        (∀ s, b.snap = some s → uint.nat s.index ≤ uint.nat hs.commit) ∧
+        D' = { D.next b with commit := hs.commit, wcommit := hs.commit }))
+
+/-- **The cluster's vocabulary does not depend on the local generation** (verify round, crash
+pass: R-A8 N1): each of these predicates at the next generation's heap `⟨hG.goose_globalGS, L'⟩` is
+the same as at this one, so a client's invariants over them, its `committedOps`, `confDecisions`,
+`snapsMade`, `readCtxs`, `freshIds` and its persistent facts serve every generation. Realization:
+each is built from the global ghost state only (`own` of `GF`'s ghost names, raft's invariants at
+`γ.ns`, later credits for the deposits: `GooseGlobalGS`), never from a heap, thread or crash token. -/
+def global.spec : Prop := ∀ L' : GooseLocalGS GF,
+  (∀ γ l, committedLb (GF := GF) γ l ⊣⊢ committedLb (hG := ⟨hG.goose_globalGS, L'⟩) γ l) ∧
+  (∀ γ ops, committedOps (GF := GF) γ ops ⊣⊢ committedOps (hG := ⟨hG.goose_globalGS, L'⟩) γ ops) ∧
+  (∀ γ k m, confAt (GF := GF) γ k m ⊣⊢ confAt (hG := ⟨hG.goose_globalGS, L'⟩) γ k m) ∧
+  (∀ γ D, confDecisions (GF := GF) γ D ⊣⊢ confDecisions (hG := ⟨hG.goose_globalGS, L'⟩) γ D) ∧
+  (∀ γ k d, confDecided (GF := GF) γ k d ⊣⊢ confDecided (hG := ⟨hG.goose_globalGS, L'⟩) γ k d) ∧
+  (∀ γ S, snapsMade (GF := GF) γ S ⊣⊢ snapsMade (hG := ⟨hG.goose_globalGS, L'⟩) γ S) ∧
+  (∀ γ s, snapValid (GF := GF) γ s ⊣⊢ snapValid (hG := ⟨hG.goose_globalGS, L'⟩) γ s) ∧
+  (∀ γ U, readCtxs (GF := GF) γ U ⊣⊢ readCtxs (hG := ⟨hG.goose_globalGS, L'⟩) γ U) ∧
+  (∀ γ c Q, readCtx (GF := GF) γ c Q ⊣⊢ readCtx (hG := ⟨hG.goose_globalGS, L'⟩) γ c Q) ∧
+  (∀ γ c i, readState (GF := GF) γ c i ⊣⊢ readState (hG := ⟨hG.goose_globalGS, L'⟩) γ c i) ∧
+  (∀ γ m, msgSent (GF := GF) γ m ⊣⊢ msgSent (hG := ⟨hG.goose_globalGS, L'⟩) γ m) ∧
+  (∀ γ m, msgCredit (GF := GF) γ m ⊣⊢ msgCredit (hG := ⟨hG.goose_globalGS, L'⟩) γ m) ∧
+  (∀ γ U, freshIds (GF := GF) γ U ⊣⊢ freshIds (hG := ⟨hG.goose_globalGS, L'⟩) γ U) ∧
+  (∀ γ b, bootLog (GF := GF) γ b ⊣⊢ bootLog (hG := ⟨hG.goose_globalGS, L'⟩) γ b)
+
+/-- **A node's durable state crosses a crash at rest** (verify round, crash pass: R-A8 N1): no batch
+of `id` handed out and not entered (or one the client chooses to drop: nothing of it was
+acknowledged), the next generation `L'` has the same durable state and its vacancy (see the
+section's header). A restart may still find a lower stored commit, down to `D.wcommit`
+(`StorageHolds`): a commit-only state record lost is not a change of `D`. -/
+def raftState_gen.spec : Prop :=
+  ∀ (L' : GooseLocalGS GF) γ (id : w64) (D : Durable),
+    raftState (GF := GF) γ id D ∗ crashed ⊢ |={⊤}=>
+      raftState (hG := ⟨hG.goose_globalGS, L'⟩) γ id D ∗
+      nodeVacant (hG := ⟨hG.goose_globalGS, L'⟩) γ id
+
+/-- **A crash during a batch's durable write** (round 3, 2e's request; verify round, crash pass:
+across generations, and batches with a snapshot): with the batch's enter update not fired (the
+evidence that `b` is the batch raft handed out at the durable state `D`) and the old generation
+crashed, the next generation `L'` has any durable state the crash may leave (`Durable.crashOk`) and
+its vacancy (see the section's header). Raft's safety argument: nothing of the batch was
+acknowledged (acknowledgements and votes are sent only after the enter update, at `Advance`, or by a
+leader whose term and vote the batch does not change: `readyCheck`), so the node may lose any suffix
+of it, or keep it whole. With the old record kept, the durable log may hold entries of a term above
+the durable term (the batch's, from a newer leader); raft's invariant covers this case
+(`ApiCore.lean`'s realization, item 1: such a node cannot win an election before that term). The
+condition on conf entries is what a restart needs (`Durable.confAboveOk`): without it the law is
+false, by a real raft bug (`issues/raft-commit-lost-with-entries-kept.md`, reproduced against the
+pinned raft: two conf changes kept above a lost commit let the restarted node win in its old
+configuration and commit a different entry at an index already committed). Whether etcd may take it
+as a scope restriction or the bug blocks etcd's crash restarts is an open question for the user (R1's
+question 10; 2e's `Wal.Recs.crashScopeOk` states the scope over the WAL's records). (Round 3's
+statement allowed the old term with the batch's commit, which no storage writes; verify round A4
+P2(a): one record whole; re-review N1: the batch's record only with all of its entries.) Changes
+(crash pass): `crashed` in place of the old generation's `nodeVacant`, which no producer gave after a
+crash (R-A8 N1), the result at `L'`; a batch with a snapshot is covered when nothing of it or all of
+it is written (round 3 excluded it). -/
+def raftState_crash.spec : Prop :=
+  ∀ (L' : GooseLocalGS GF) (n : Loc) γ (id : w64) (st : Driver) (b : Batch) (dl : List LogEntry)
+    (D' : Durable),
+    st.durable.crashOk b D' → D'.confAboveOk →
+    readyEnter (GF := GF) n γ id st b dl ∗ raftState γ id st.durable ∗ crashed ⊢ |={⊤}=>
+      raftState (hG := ⟨hG.goose_globalGS, L'⟩) γ id D' ∗
+      nodeVacant (hG := ⟨hG.goose_globalGS, L'⟩) γ id
 
 /-- Dropping a `RawNode` (it has no `Stop`): its id is vacant again. -/
 def rawNode_drop.spec : Prop :=

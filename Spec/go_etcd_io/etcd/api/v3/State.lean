@@ -42,7 +42,8 @@ and the server batches that must produce it (the cluster contract, `notes/specs-
 
 `etcdState_timeless`, `etcdState_excl`, `etcdLb_persistent`, `etcdLb_timeless`, `etcdState_lb`,
 `etcdLb_reach`, `etcdLb_ord`, `etcdLb_init`, `etcdState_revFits` (with one to spare),
-`etcdState_sizeFits`, `errVal_inj`, `errVal_ty`. Shared shapes: `etcdPerm γ T`, `etcdPeek γ`.
+`etcdState_sizeFits`, `errVal_inj`, `errVal_ty`; across a crash (verify round, crash pass)
+`etcdState_gen`, `etcdLb_gen`, `urlsRight_gen`, `urlsReserve_gen`, `soleMember_gen`, `envUpd_gen`. Shared shapes: `etcdPerm γ T`, `etcdPeek γ`.
 
 `etcdState_revFits`, `etcdState_sizeFits`: the current revision and the number of events fit an
 `int64` (a reply's header, `Count`, `Version`, `Deleted` carry them). etcd itself never refuses at
@@ -187,13 +188,32 @@ opaque leaseViewLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunc
 
 def leaseViewLb_persistent.spec : Prop := ∀ γ ep i, Persistent (leaseViewLb (GF := GF) γ ep i)
 
-/-- **The cluster `γ` has one member, serving at `ep`, for good** (persistent; open question A4's
-single-member alternative, recheck RR-1): its leader is that member, so a `TimeToLive` answered
-through `ep` is `ep`'s own lessor's (`ClientV3.viaFact`). Introduced by whoever starts a
-single-member cluster and never adds a member (`examples/etcd/leaseexpiry`; a server-boot law). -/
-opaque soleMember [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (ep : GoString) : IProp GF := iprop(True)
+/-- **The cluster `γ` never has a member but its one initial member** (persistent; open question
+A4's single-member alternative, recheck RR-1): so whichever member serves an endpoint is the
+cluster's only voter, its leader whenever it has one, and a `TimeToLive` answered through it is its
+own lessor's (`ClientV3.viaFact`, 2a's `leaseFact`: the leader answers from its lessor
+(`v3_server.go:636-669`); before an election the member forwards to the leader's peer URLs, its
+own, whose `leasehttp` handler looks the lease up in the same lessor (`:671-676`,
+`leasehttp/http.go:109-160`)). Introduced by 2e's `soleMember_intro` (`etcdserver/ApiBoot.lean`)
+from the boot token of a one-member cluster and the whole `urlsReserve γ 1`: every member addition
+(`MemberAdd`, `MemberAddAsLearner`, hence every promotion) takes a `urlsRight`, which only
+`urls_reserve` mints, from a share of `urlsReserve`; so no URL set was reserved before and none can
+be after, and no reconfiguration adds a member while it is held (a removal of the only member
+leaves no voter, and so no answer: raft refuses or panics, `nonissues/raft-remove-last-voter-panic.md`).
+Intended realization: an invariant holding `urlsReserve γ 1`, with the cluster's initial member
+list (2d's cluster invariant: every member is an initial one or added under a reserved URL set). -/
+opaque soleMember [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) : IProp GF := iprop(True)
 
-def soleMember_persistent.spec : Prop := ∀ γ ep, Persistent (soleMember (GF := GF) γ ep)
+def soleMember_persistent.spec : Prop := ∀ γ, Persistent (soleMember (GF := GF) γ)
+
+/-- **A share `q` of the right to reserve new peer-URL sets for `γ`** (fractional; recheck RR-1):
+`cluster_alloc` gives it whole and `urls_reserve` spends a share (2e, `etcdserver/ApiBoot.lean`;
+requested of server-boot): a program that has reserved no URL set keeps it whole and may give it
+up for `soleMember γ`. -/
+opaque urlsReserve [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Cluster) (q : Qp) : IProp GF := iprop(True)
+
+def urlsReserve_fractional.spec : Prop := ∀ (γ : Cluster) (q₁ q₂ : Qp),
+  urlsReserve (GF := GF) γ (q₁ + q₂) ⊣⊢ urlsReserve γ q₁ ∗ urlsReserve γ q₂
 
 /-- A member's lessor is at a table the cluster has had. -/
 def leaseViewLb_le.spec : Prop := ∀ (γ : Cluster) (ep : GoString) (i : Nat) (σ : State),
@@ -241,6 +261,44 @@ configured as `cfg`, at any time. -/
 def envUpd (γ : Cluster) (cfg : EnvCfg) : IProp GF :=
   iprop(□ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
     <{ ∀∀ (σ' : State), ⌜EnvStep cfg σ σ'⌝ ∗ etcdState γ σ', COMM True }>)
+
+/-! ### Across a crash (verify round, crash pass: R-A8 N1)
+
+Perennial's crash rule hands the next generation `L'` (a new local ghost state: heap, threads,
+crash token) only invariants and the crash frame; every opaque predicate takes the heap `hG`. The
+cluster's state is the committed log's, durable on a quorum (K6), and its resources are of the
+global ghost state: **the same at the next generation's heap `⟨hG.goose_globalGS, L'⟩`**, so the
+program's invariant over `etcdState`, a client's `etcdLb`s and the permissions it handed out serve
+every generation. Realization: `etcdState`'s ghost variable half, `etcdLb`'s history fragment and
+`urlsRight`'s token are `own`s of `GF`'s ghost names (and pure facts), the cluster's invariants are
+at `etcdN` (`GooseGlobalGS`'s invariants); nothing is of a heap, a thread or a crash token. -/
+
+/-- **`etcdState` does not depend on the local generation.** -/
+def etcdState_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (σ : State),
+  etcdState (GF := GF) γ σ ⊣⊢ etcdState (hG := ⟨hG.goose_globalGS, L'⟩) γ σ
+
+/-- **`etcdLb` does not depend on the local generation.** -/
+def etcdLb_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (σ : State),
+  etcdLb (GF := GF) γ σ ⊣⊢ etcdLb (hG := ⟨hG.goose_globalGS, L'⟩) γ σ
+
+/-- **`urlsRight` does not depend on the local generation** (a joiner's right reserved before a
+crash is spent after it). -/
+def urlsRight_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (urls : List GoString),
+  urlsRight (GF := GF) γ urls ⊣⊢ urlsRight (hG := ⟨hG.goose_globalGS, L'⟩) γ urls
+
+/-- **`urlsReserve` and `soleMember` do not depend on the local generation** (recheck RR-1's
+resources: a program that reserved no URL set before a crash still holds the whole right after). -/
+def urlsReserve_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (q : Qp),
+  urlsReserve (GF := GF) γ q ⊣⊢ urlsReserve (hG := ⟨hG.goose_globalGS, L'⟩) γ q
+
+def soleMember_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster),
+  soleMember (GF := GF) γ ⊣⊢ soleMember (hG := ⟨hG.goose_globalGS, L'⟩) γ
+
+/-- **The environment's permission serves the next generation** (`NewServer`'s premise after a
+restart; transparent over `etcdState`, so a consequence of `etcdState_gen`, stated so that no
+client unfolds the atomic update: the update's masks are the global invariants'). -/
+def envUpd_gen.spec : Prop := ∀ (L' : GooseLocalGS GF) (γ : Cluster) (cfg : EnvCfg),
+  envUpd (GF := GF) γ cfg ⊢ envUpd (hG := ⟨hG.goose_globalGS, L'⟩) γ cfg
 
 end res
 

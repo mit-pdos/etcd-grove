@@ -41,7 +41,9 @@ the ghost log): over `applyAt`; the decision is R1's `confDecide` (was etcd's ow
 so. A refusal's error is the membership's (2e's `ErrIDRemoved`, `ErrIDExists`, ...): the post says
 only that it is not `nil`.
 
-Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
+Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). (Superseded by re-review RR1, below.)
+
+Changes: re-review (RR1): takes `srvStarted s γ id` (persistent; its callers `applyAll`, `apply`, `snapshotIfNeededAndCompactRaftLog` hold it): `s.r.transport` (`server.go:2075,2085,2101`) is `srvMember`'s (`srvNode_member`), `Logger` over `srvFields` (`srvNode_fields`).
 -/
 module
 
@@ -73,7 +75,7 @@ def EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (ccp ep : Loc) (cc : Raft.ConfChangeV1) (p : Progress)
     (c ai k : Nat) (e : Raft.LogEntry) (l : List Raft.LogEntry) (v3 : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ applyAt s γ ep p (k - 1) c ai ∗
+      srvNode s γ id ∗ srvStarted s γ id ∗ applyAt s γ ep p (k - 1) c ai ∗
       Raft.confChangePts (interface.mkOk
         (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.ConfChange.ty) #ccp) (DFrac.own 1) (.v1 cc) ∗
       Raft.committedLb γ.raft l ∗

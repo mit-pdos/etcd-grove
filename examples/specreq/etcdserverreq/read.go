@@ -17,10 +17,12 @@ import (
 // handler (server.go:688).
 // Assumes: the put's reply was received before the call.
 // Specs: EtcdServer.Put.spec, EtcdServer.LinearizableReadNotify.spec (verify round: a nil return
-// gives a committed log extending the put's, with srvApplied of its length), EtcdServer.KV.spec; 2d's
-// readReg_register/readReg_get (the put's answer fired before the read point), srvApplied_read,
-// srvReadAt_mvcc, srvWatchable_mvcc (the Rev token), histAt; 3e's KV.Rev contract (the store's revision at a history
-// point at or past the read point: assumed of 3e, not checked against its statement here).
+// gives a committed log extending the put's, with srvApplied of its length), EtcdServer.KV.spec (at
+// isServer_kv's s.kv, with srvWatchable of it); 2d's readReg_register (the ticket's update from the
+// put's etcdLb, W0's etcdLb_reach)/readReg_get (the put's answer fired before the read point),
+// srvApplied_read, srvReadAt_mvcc, srvWatchable_hist, srvWatchable_mvcc (the Rev token), histAt;
+// 3e's KV.Rev contract at revRd true (watchableAt_isMvcc): the store's revision at a history point
+// at or past the read point.
 func ReqReadAfterWrite(ctx context.Context, s *etcdserver.EtcdServer, k, v []byte) {
 	presp, err := s.Put(ctx, &pb.PutRequest{Key: k, Value: v})
 	if err != nil {

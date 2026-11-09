@@ -37,6 +37,11 @@ The laws that tie 4a's file vocabulary to 4c's (`Spec/go_etcd_io/bbolt/Api.lean`
   restart finds a committed image, whose meaning the server's invariant attached at its commit),
   2e's `memberDisk`, 3c's item 4 (a session's writes land in one commit).
 
+* `beFile_crash` (verify round, crash pass: R-A8 N4): **a closed file at rest crosses a crash**
+  unchanged (a bbolt file's last commit was fsynced before `Close`), or reverted to a previous file
+  of a pending rename; 2e's `disk_crash` uses it for a member whose backend is closed (before
+  `OpenBackend`, after `Close`), `beCrash` for an open one.
+
 The next generation's `beFile` is at the next generation's heap (`⟨hG.goose_globalGS, L'⟩`), as
 `Bbolt.boltCrash`'s `fileHolds` (verify-round, A10-provability B2: it was stated at the crashed
 generation's heap, which `boltCrash` does not give and a restart cannot use). This needs the heap
@@ -131,18 +136,44 @@ def beCrash.spec : Prop :=
       @beNoRevert _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p ∗
       crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) (p :: Ps)
 
+/-- **A closed file crosses a crash** (verify round, crash pass: R-A8 N4; server-boot's): the
+backend's file at rest (`beFile p o`: closed, so no commit in flight; a member before `OpenBackend`,
+or after `Close`), with its revert state, gives the next generation `L'` the same file or, with
+renames onto `p` pending (`os`), one of the previous files; the revert state comes back
+`beNoRevert`. Taken out of the OS's crash rest `crashRest`. Realization: `beFile p (some I)` is 4c's
+`fileHolds p D` (`imgOf D = I`): every byte clean and durable to the file's size and its name durable
+(`fileHolds`' premise), so OsFs's crash relation keeps the file as it is (`crashRest_take` with
+`osMeta`'s fragment, then `fileHolds` at `L'`); `beFile p none` is `osMeta p none` or an empty file,
+which a crash leaves absent or empty (`beFile_none` at `L'`); the revert case is `beRevertL`'s (the
+unsynced rename's old entry back), the same OsFs gap as `beCrash`'s (the header). True of the Go: a
+bbolt file is written only while open (`Open` with `NoFreelistSync`, commits, `Close`), and each
+commit fsyncs its pages and meta before `Close` returns (`UnsafeNoFsync` off: `beSynced`; a file
+`OpenBackend` closed with `UnsafeNoFsync` on is not at rest in this sense, and 2e's `diskCfgOk`
+excludes it). -/
+def beFile_crash.spec : Prop :=
+  ∀ [HasExt osFsExt] (L' : GooseLocalGS GF) (p : GoString) (o : Option Image)
+    (os : List (Option Image)) (Ps : List GoString),
+    p ∉ Ps →
+    beFile (GF := GF) p o ∗ beRevs p os ∗ crashed ∗
+      crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) Ps ⊢
+    |={⊤}=> ∃ o' : Option Image, ⌜o' = o ∨ o' ∈ os⌝ ∗
+      @beFile _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p o' ∗
+      @beNoRevert _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p ∗
+      crashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) (p :: Ps)
+
 /-- **The package's bbolt options** (second pass, 4c's A11 F7: no keyed-literal spec in bbolt; the
 initializer `&bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}`,
 `config_linux.go:29-32`, is untranslated, `boltOpenOptions.init`): **assumed**, as this package's own
 `PkgInit` fact. The global holds a pointer to options read-only for good, `MmapFlags` =
-`MAP_POPULATE`, every tracked field else at `bolt.Options{}`'s (`NoFreelistSync` is not tracked by
-4c's `OptsM`: the model reads no freelist-sync choice). `newBackend` loads it (`*bopts =
+`MAP_POPULATE`, `NoFreelistSync` = `true` (tracked by 4c's `OptsM` since its re-review N1: with it,
+`Open`'s internal freelist commit is skipped, so `Open` takes `emp` for that update; RR-raftlog-bbolt
+NR2), every tracked field else at `bolt.Options{}`'s. `newBackend` loads it (`*bopts =
 *boltOpenOptions`, 4c's `optsLoad`/`optsStore`). True of the Go: the literal above, never written
 after initialization. -/
 def boltOpenOptions_init.spec [HasExt osFsExt] : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ⊢
     ∃ l : Loc, globalAddr go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions ↦□ l ∗
-      Bbolt.optsAt l DFrac.discard { Bbolt.OptsM.dflt with mmapFlags := W64 Bbolt.mapPopulate }
+      Bbolt.optsAt l DFrac.discard { Bbolt.OptsM.dflt with mmapFlags := W64 Bbolt.mapPopulate, noFreelistSync := true }
 
 end laws
 

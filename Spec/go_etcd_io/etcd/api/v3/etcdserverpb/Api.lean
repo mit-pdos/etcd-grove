@@ -481,23 +481,21 @@ def sortNames_init.spec : Prop :=
         mp DFrac.discard ∗ ownMap mp DFrac.discard m ∗
       ⌜∀ k : w32, (m !! k).isSome ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 4⌝)
 
-/-! ### Decoded range ends (integration X; I5's `endsDecoded`/`opsDecoded`, 3h's to give)
+/-! ### Range ends that are `nil` or non-empty (`endsOk`)
 
 A `RangeEnd` that is a non-`nil` empty slice is read by the auth checks as the key alone and by mvcc
 as every key from it on (`nonissues/etcd-auth-empty-range-end-point-check.md`); a request decoded
-by protobuf never has one (its content is canonical, `Proto.norm c = c`, and `endsOk_canon`). The
-request path's checks take `endsDecoded` as a scope premise; grpc's decoder gives it, and so does
-the apply's `Unmarshal`.
+by protobuf never has one (its content is canonical, `Proto.norm c = c`, and `endsOk_canon`). Every
+request predicate of W0's carries `endsOk` of its content (the relation laws above), so the request
+path's checks need no separate premise.
 
-**verify-round (A6 F2).** `endsDecoded t p` was an opaque persistent fact keyed by the address,
-read against the *current* field (`endsDecoded_range`): a holder could create it from a `nil` end,
-rewrite the end to a non-`nil` empty slice and derive `False` (A6-provability F2's counterexample).
-It is now **tied to a share of the message**: `∃ dq c, msgAt t p dq c ∗ ⌜endsOk c⌝`, a pure fact
-about the content (Go-level since the same round, `Proto/Api.lean`) that the share pins: while it
-is held nobody can write the fields, and the laws give it back. It is no longer persistent; it is
-at `DFrac.discard` (`endsDecoded_ro`: the apply thread's read-only entries). The arity is unchanged,
-so its users' statements (2c's `Range`, `RangeStream`, `Txn`) stand; their proofs hand it back to
-nobody (the share is lost with it, which only the handler's `reqBack` notices: any share will do). -/
+**Recheck (RR3).** `endsDecoded t p` (a share of the message with `endsOk` of its content, its
+fraction hidden), `opsDecoded`, `cmpsDecoded` and their laws (`endsDecoded_of_canon`,
+`endsDecoded_ro`, `endsDecoded_range`/`_delete`/`_compare`/`_txn`/`_op`) are retired: their last
+users (apply's `CheckTxnAuth`, `checkTxnPermission`, `checkTxnReqsPermission`) took a share beside
+the request's own `txnReqOwn r dq t`, which 2c's read-only `Txn` could not rejoin (the share's
+fraction was hidden); they now read the ends from `txnReqOwn`'s and `requestOpOwn`'s own `endsOk`
+(W0's unfolds: `⌜es = slice.nil ∨ ebs ≠ []⌝` per `RangeEnd`). -/
 
 /-- A canonical content (a decoded message's) has its ends `nil` or non-empty: proto3 never encodes
 an empty `bytes` field, and `norm` makes an unset one `nil`. -/
@@ -507,81 +505,6 @@ def endsOk_canon.spec : Prop := ∀ c, Proto.norm c = c → endsOk c
 to `"\x00"`) has its end `nil` or non-empty: the health checks' requests (a `nil` end). -/
 def endsOk_range_intro.spec : Prop := ∀ c (r : RangeReq),
   reqHolds c (.range r) → r.rangeEnd ≠ [W8 0] → endsOk c
-
-/-- **The range ends of the request message `*t` at `p` are `nil` or non-empty**: a share of the
-message whose content has `endsOk`. Exclusive (a share), persistent at `DFrac.discard`
-(`endsDecoded_ro`). Read through the laws below, which give it back. -/
-def endsDecoded (t : go.GoType) (p : Loc) : IProp GF :=
-  iprop(∃ (dq : DFrac) (c : Proto.Content), Proto.msgAt t p dq c ∗ ⌜endsOk c⌝)
-
-/-- A decoded (canonical) message's share is one (grpc's `decOk_call`, `srvRecv_recv`; `Unmarshal`). -/
-def endsDecoded_of_canon.spec : Prop := ∀ t p dq c,
-  Proto.msgAt (GF := GF) t p dq c ∗ ⌜Proto.norm c = c⌝ ⊢ endsDecoded t p
-
-/-- At `DFrac.discard` it is persistent (the apply thread's entries, read-only: apply's provisional
-`endsDecoded rt`, `reqMsgAt_endsDecoded`, is this at `TxnRequest`). -/
-def endsDecoded_ro.spec : Prop := ∀ t p c,
-  Proto.msgAt (GF := GF) t p DFrac.discard c ∗ ⌜endsOk c⌝ ⊢ □ endsDecoded t p
-
-/-- **Every operation of the slice `sl` was decoded** (a share of the slice and of each operation). -/
-def opsDecoded (sl : GoSlice) : IProp GF :=
-  iprop(∃ (dq : DFrac) (ps : List Loc), sl ↦*{dq} ps ∗
-    [∗list] op ∈ ps, endsDecoded etcdserverpb.RequestOp.ty op)
-
-/-- **Every comparison of the slice `sl` was decoded.** -/
-def cmpsDecoded (sl : GoSlice) : IProp GF :=
-  iprop(∃ (dq : DFrac) (ps : List Loc), sl ↦*{dq} ps ∗
-    [∗list] cp ∈ ps, endsDecoded etcdserverpb.Compare.ty cp)
-
-/-- A decoded request's range end is `nil` or non-empty (the field read at any share, given back
-with the fact). -/
-def endsDecoded_range.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
-  endsDecoded (GF := GF) etcdserverpb.RangeRequest.ty p ∗
-    p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ⊢
-  endsDecoded etcdserverpb.RangeRequest.ty p ∗
-    p.[etcdserverpb.RangeRequest, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
-def endsDecoded_delete.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
-  endsDecoded (GF := GF) etcdserverpb.DeleteRangeRequest.ty p ∗
-    p.[etcdserverpb.DeleteRangeRequest, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ⊢
-  endsDecoded etcdserverpb.DeleteRangeRequest.ty p ∗
-    p.[etcdserverpb.DeleteRangeRequest, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
-def endsDecoded_compare.spec : Prop := ∀ (p : Loc) (dq : DFrac) (es : GoSlice) (ebs : GoString),
-  endsDecoded (GF := GF) etcdserverpb.Compare.ty p ∗
-    p.[etcdserverpb.Compare, go!"RangeEnd"] ↦{dq} es ∗ es ↦*□ ebs ⊢
-  endsDecoded etcdserverpb.Compare.ty p ∗
-    p.[etcdserverpb.Compare, go!"RangeEnd"] ↦{dq} es ∗ ⌜es = slice.nil ∨ ebs ≠ []⌝
-
-/-- **The split laws** (I5's request): a decoded transaction's branches and compares are decoded,
-and a decoded operation's request (range, delete, nested transaction) is; the parts join back. -/
-def endsDecoded_txn.spec : Prop := ∀ (p : Loc) (dq : DFrac) (cs ss fs : GoSlice),
-  endsDecoded (GF := GF) etcdserverpb.TxnRequest.ty p ∗
-    p.[etcdserverpb.TxnRequest, go!"Compare"] ↦{dq} cs ∗
-    p.[etcdserverpb.TxnRequest, go!"Success"] ↦{dq} ss ∗
-    p.[etcdserverpb.TxnRequest, go!"Failure"] ↦{dq} fs ⊢
-  p.[etcdserverpb.TxnRequest, go!"Compare"] ↦{dq} cs ∗
-    p.[etcdserverpb.TxnRequest, go!"Success"] ↦{dq} ss ∗
-    p.[etcdserverpb.TxnRequest, go!"Failure"] ↦{dq} fs ∗
-    opsDecoded ss ∗ opsDecoded fs ∗ cmpsDecoded cs ∗
-    (opsDecoded ss -∗ opsDecoded fs -∗ cmpsDecoded cs -∗ endsDecoded etcdserverpb.TxnRequest.ty p)
-def endsDecoded_op.spec : Prop := ∀ (p : Loc) (dq : DFrac) (iv : GoInterface) (w q : Loc),
-  endsDecoded (GF := GF) etcdserverpb.RequestOp.ty p ∗ p.[etcdserverpb.RequestOp, go!"Request"] ↦{dq} iv ⊢
-  p.[etcdserverpb.RequestOp, go!"Request"] ↦{dq} iv ∗
-    ((⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w⌝ -∗
-      w.[etcdserverpb.RequestOp_RequestRange, go!"RequestRange"] ↦{dq} q -∗
-      w.[etcdserverpb.RequestOp_RequestRange, go!"RequestRange"] ↦{dq} q ∗
-        endsDecoded etcdserverpb.RangeRequest.ty q ∗
-        (endsDecoded etcdserverpb.RangeRequest.ty q -∗ endsDecoded etcdserverpb.RequestOp.ty p)) ∧
-    (⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w⌝ -∗
-      w.[etcdserverpb.RequestOp_RequestDeleteRange, go!"RequestDeleteRange"] ↦{dq} q -∗
-      w.[etcdserverpb.RequestOp_RequestDeleteRange, go!"RequestDeleteRange"] ↦{dq} q ∗
-        endsDecoded etcdserverpb.DeleteRangeRequest.ty q ∗
-        (endsDecoded etcdserverpb.DeleteRangeRequest.ty q -∗ endsDecoded etcdserverpb.RequestOp.ty p)) ∧
-    (⌜iv = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w⌝ -∗
-      w.[etcdserverpb.RequestOp_RequestTxn, go!"RequestTxn"] ↦{dq} q -∗
-      w.[etcdserverpb.RequestOp_RequestTxn, go!"RequestTxn"] ↦{dq} q ∗
-        endsDecoded etcdserverpb.TxnRequest.ty q ∗
-        (endsDecoded etcdserverpb.TxnRequest.ty q -∗ endsDecoded etcdserverpb.RequestOp.ty p)) ∧
-    endsDecoded etcdserverpb.RequestOp.ty p)
 
 end laws
 

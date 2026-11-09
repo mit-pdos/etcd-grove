@@ -4,7 +4,8 @@
 **Users.** The gRPC watch server (`api/v3rpc/watch.go`, `NewWatchServer`: `s.Watchable()`, 2b).
 Snippet: none of its own (2b's watch snippets go through it).
 
-**Proof sketch.** `s.KV()` (`s.kv`, read-only after `start`: `isServer`'s), as a `WatchableKV`.
+**Proof sketch.** `isServer_kv` (the read-only `s.kv` with `srvWatchable` of its value), then
+`s.KV()` (`KV.spec` at that points-to: re-review RR2), as a `WatchableKV`.
 
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__Watchable.lean`, the watch slice's W-S) restated
 over the provisional slot `srvWatchable` (3f's watchable store at the member's applied history,

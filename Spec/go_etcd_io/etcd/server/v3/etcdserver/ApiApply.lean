@@ -82,9 +82,11 @@ in it on a quorum.
   (the fillers below `k`, which raft's `opsOf` drops, change nothing). The invariant also holds the
   cluster's half of `etcdState γ.etcd (last hist)`, raft's `confDecisions`/`snapsMade`/`readCtxs`,
   each made snapshot's point (`snapPoint`), and the read registry (`readTicket`).
-* `srvNode s γ id`: the server's read-only fields (`s.r`, `s.w`, `s.applyWait`, `s.consistIndex`,
-  `s.cluster`, `s.kv`, `s.lessor`, `s.authStore`, `s.alarmStore`, `s.beHooks`, `s.snapshotter`,
-  `s.Cfg`, the channels) as persistent points-to's, the invariants of the atomics (`appliedIndex`
+* `srvNode s γ id`: 2e's `srvFields s γ.etcd id` (the literal's fields: `memberID`, `lgMu`/`lg`,
+  `cluster`, `Cfg` but the two fields `start` defaults), the server's other read-only fields (`s.r`
+  but `r.transport`, `s.consistIndex`, `s.kv`, `s.lessor`, `s.authStore`, `s.alarmStore`,
+  `s.beHooks`, `s.snapshotter`, `s.uberApply`'s cell, the channels; `s.w`, `s.applyWait` are
+  `srvStarted`'s) as persistent points-to's, the invariants of the atomics (`appliedIndex`
   with `srvApplied` of its value, `committedIndex` with a committed prefix at least that long,
   `term`, `lead`: any value), the `bemu` lock's invariant (the current backend, whose state machine
   is the apply thread's), `inflightSnapshots`, `envUpd γ.etcd γ.cfg` (persistent), and the cluster's
@@ -108,7 +110,7 @@ K7's realization), `histAt_committed`, `histAt_of_committed`, `answered_agree`, 
 `readCtx_register`, `readReg_register`, `readReg_get`; the member: `srvApplied_mono`,
 `srvApplied_zero`, `srvApplied_hist`, `srvApplied_read`, `srvReadAt_mono`, `srvNode_raftNode`,
 `srvNode_agree`, `srvNode_cfg`, `srvCfg_agree`, `srvNode_errorc`, `isServer_names`, `srvNode_raftNames`,
-`srvMember_node`, `srvNode_member`, `srvStarted_isServer`, `isServer_member`, `applyLent_opts` (verify round), `srvRunTok_intro`, `srvNode_raftOk`, `srvStores_agree`, `srvWatchable_hist`, `srvReadAt_mvcc`,
+`srvMember_node`, `srvNode_member`, `srvNode_fields`, `srvNode_kv` (re-review RR2), `srvStarted_isServer`, `isServer_member`, `applyLent_opts` (verify round), `srvRunTok_intro`, `srvNode_raftOk`, `srvStores_agree`, `srvWatchable_hist`, `srvReadAt_mvcc`,
 `srvReader_mvcc`, `srvReadAt_lessor`, `srvReader_lessor`, `srvReadAt_auth`,
 `applyInit_ep`, `srvStopped_disk`, `isRaftNode_node`, `isRaftNode_storage`, `nodeSnapLb_stor`,
 `nodeAdvanced_applied`, `rnInit_place`, `applyThread_at`, `applyThread_applied`, `applyBatch_terms`,
@@ -280,7 +282,8 @@ opaque srvNode [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors
 
 /-- **`s` is started** (persistent): the fields `start` sets (`s.w` with the request path's
 registration predicate, 2c's; `s.applyWait` over `srvApplied s γ`; `s.stop`, `s.stopping`,
-`s.done`; `s.ctx`; `s.read`; `s.leaderChanged`; the wait group behind `GoAttach`), read-only. -/
+`s.done`; `s.ctx`; `s.read`; `s.leaderChanged`; the wait group behind `GoAttach`; `s.Cfg`'s
+`SnapshotCount` and `SnapshotCatchUpEntries`, which `start` defaults: re-review RR1), read-only. -/
 opaque srvStarted [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (id : Nat) : IProp GF := iprop(True)
 
 /-- (provisional, 2e's `etcdhttp/types`) `err` is the `*httptypes.HTTPError` with status 403 that
@@ -622,6 +625,18 @@ def srvNode_member.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ∗ srvStarted s γ id ⊢
     srvMember s γ.etcd id
 
+/-- **A member's literal fields** (re-review RR2): `srvNode` includes 2e's `srvFields` (the getters
+`Logger`, `MemberID`, `FeatureEnabled`, `RequestTimeout`, `Cluster`, `ClusterVersion` take it), so
+`Process`, `NewServer`'s own calls and the apply thread call them without `srvMember`. -/
+def srvNode_fields.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ⊢ srvFields s γ.etcd id
+
+/-- **A member's KV field** (re-review RR2): `s.kv` is read-only from `NewServer`'s
+`srv.kv = mvcc.New(...)` on (`KV.spec` takes the points-to: `NewUberApplier`, the snapshot path). -/
+def srvNode_kv.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ⊢
+    ∃ kv : GoInterface, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"kv" s ↦□ kv
+
 /-- **A started member serves its cluster** (verify round, A7-provability F1, completeness F1):
 `start` makes `isServer` before `go s.run()` from the fields `srvStarted` names, so the server's own
 goroutines (`run`, the lessor's revocations, the `NOSPACE` alarm, the merged snapshot, the
@@ -664,7 +679,10 @@ stores at `σ` hold its `kvSt` at `σ.kv` (lent out and back). Re-review N2: the
 and function are the lessor's own (`ls.be`, `ls.rd`), at the member's current backend: the stores
 give 3a's whole `lessorSt` (which carries `kvDelOk kv γl ls.be ls.rd` with `ls.be = be`, `ls.rd ≠
 nil`, `leasesLive`) at `s.be`'s value `be` (`srvCurBe`), so `NewServer`/`applySnapshot` build
-`NewUberApplier`'s `optsSt` from it. -/
+`NewUberApplier`'s `optsSt` from it. The closing wand gives `srvStores` back at the same `be` and
+`σ` only (re-review RR-server-core, second tier): a move to another backend or state
+(`applySnapshot`'s install of `newbe` at the image's state) rebuilds `srvStores` from its
+realization inside the package's proof, not through this law. -/
 def srvStores_kv.spec : Prop :=
   ∀ (s : Loc) (γ : Names) (id : Nat) (σ : EtcdModel.State), srvNode (GF := GF) s γ id ∗ srvStores s σ ⊢
     ∃ (kv le be : GoInterface),

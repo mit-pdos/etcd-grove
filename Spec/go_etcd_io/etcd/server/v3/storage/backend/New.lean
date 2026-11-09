@@ -7,7 +7,7 @@ waiting): `bootstrapBackend` (`bootstrap.go:240`), `OpenSnapshotBackend` (2d's `
 `ReqHookWrites`), every snippet's setup (`openBackend`).
 
 **Proof sketch.** `newBackend`: the options (`boltOpenOptions`, the package's initialized global:
-`MAP_POPULATE`, `Durable.lean`'s assumed `boltOpenOptions_init`; 4c's `OptsM.ok` with `Mlock` off), the logger (`nil`: `zap.NewNop()`;
+`MAP_POPULATE` and `NoFreelistSync` on, `Durable.lean`'s assumed `boltOpenOptions_init`; 4c's `OptsM.ok` with `Mlock` off; `Open`'s freelist-commit update is then `emp`), the logger (`nil`: `zap.NewNop()`;
 `newBoltLoggerZap`, a pointer-typed logger: 4c's logger contract), bbolt's `Open` of `cfg.Path`
 (4c's `Open.spec` from `fileHolds` (the realization of `beFile p (some I)`; for
 `beFile p none`, the names from 4c's `boltFresh_alloc`, state `BoltSt.fresh`), `dbOpenOk` excluding its error,

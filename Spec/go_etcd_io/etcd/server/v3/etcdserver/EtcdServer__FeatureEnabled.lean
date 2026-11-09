@@ -3,12 +3,13 @@
 
 **Users**: v3rpc's health server (`health.go:39`), `NewServer`'s feature checks.
 
-**Proof sketch**: the read-only `s.Cfg` (`srvMember`'s realization: its feature gate, read-only after `NewServer`); the gate's `Enabled` (`features`' spec: a lookup under its own lock; a known feature, any answer).
+**Proof sketch**: the read-only `s.Cfg` (`srvFields`' realization: its feature gate, read-only after `NewServer`); the gate's `Enabled` (`features`' spec: a lookup under its own lock; a known feature, any answer).
 
 **Changes**: verify round (A7-completeness F3): new here (the old tree's
 `EtcdServer__FeatureEnabled.lean`).
 
 **Margin**: the answer is any boolean.
+Changes: re-review (RR2): over 2e's `srvFields` (the server literal's read-only fields), not `srvMember`: callable before the transport is set (`NewServer`'s own calls, `Process` from `tr.Start()` on, `start`); a caller holding `srvMember` uses `srvMember_fields`, one holding 2d's `srvNode` `srvNode_fields`.
 -/
 module
 
@@ -34,7 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`FeatureEnabled(f)`**: a boolean (any). -/
 def EtcdServer.FeatureEnabled.spec : Prop :=
   ∀ (s : Loc) (γ : Cluster) (id : Nat) (f : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id ∗ threadTok }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvFields s γ id ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
       go!"FeatureEnabled")) (Val #f))
   {{ (b : Bool), RET #b; threadTok }}
