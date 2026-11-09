@@ -27,7 +27,7 @@ theorem raft.becomeCandidate.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
     (wp_traceBecomeCandidate : traceBecomeCandidate.spec (GF := GF) (hG := hG)) :
     raft.becomeCandidate.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hrole Hnw Hcfg
+  intro c r id s Hrole Hnw Hcfg Htr
   wp_start as Hphys
   wp_auto
   -- `becomeCandidate` panics on a leader; by assumption we are not one.

@@ -84,7 +84,7 @@ theorem stepLeader.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack
+  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Htr
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc⟩ HΦ
   -- (2026-10-25, T-M M2c) a leader need not be a voter (removed without `StepDownOnRemoval`); until
   -- then `ownRaftPhys`'s `Hvoter` said it was, and the proposal, heartbeat-response and
@@ -98,7 +98,7 @@ theorem stepLeader.wp_proof
       wp_UnmarshalConfChange wp_UnmarshalConfChangeV2 wp_ConfChange_AsV2 wp_ConfChangeV2_AsV2
       wp_fmt_Sprintf wp_traceChangeConfEvent wp_GetType wp_Entry_GetType
       wp_Entry_GetData wp_EntryType_Enum wp_DescribeConfChange r id s ml m ents sn ctx rs cs k0 Hp
-      Hne Hsmall Hnz Hlead $$ [Hphys Hm]
+      Hne Hsmall Hnz Hlead Htr $$ [Hphys Hm]
     · iframe
       iframe Hinit Hcc Hrc
     inext
@@ -151,12 +151,12 @@ theorem stepLeader.wp_proof
     iexact Hinit
   · iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
       wp_raftLog_lastIndex wp_raft_abortLeaderTransfer wp_GetType wp_GetFrom
-      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) $$ [Hphys Hm] HΦ'
+      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) Htr $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · -- (2026-10-17) `MsgCheckQuorum`
     iapply wp_stepLeader_checkQuorum c wp_ProgressTracker_QuorumActive wp_ProgressTracker_Visit
-      wp_raft_becomeFollower wp_GetType r id s ml m ents ctx sn rs _ _ _ Hty $$ [Hphys Hm] HΦ'
+      wp_raft_becomeFollower wp_GetType r id s ml m ents ctx sn rs _ _ _ Hty Htr $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
@@ -164,7 +164,7 @@ theorem stepLeader.wp_proof
     iframe
     iexact Hinit
   · iapply wp_stepLeader_beat c wp_raft_bcastHeartbeat wp_GetType r id s ml m ents ctx sn rs
-      _ _ _ Hty Hlead (Htz (Or.inl Hty)) $$ [Hphys Hm] HΦ'
+      _ _ _ Hty Hlead (Htz (Or.inl Hty)) Htr $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · obtain ⟨Hclen, Hcb, Hvne⟩ := Hhr Hty
@@ -172,7 +172,7 @@ theorem stepLeader.wp_proof
       wp_readOnly_maybeAdvance wp_raft_responseToReadIndexReq wp_raft_send wp_GetType wp_GetFrom
       wp_GetContext wp_GetTo r id s ml m ents ctx sn rs _ _ _ Hty Hlead
       (Hrdnz (Or.inl Hty)).2
-      (Hself (Or.inl Hty)) Hvne (Hrdnz (Or.inl Hty)).1 Hclen Hcb $$ [Hphys Hm] HΦ'
+      (Hself (Or.inl Hty)) Hvne (Hrdnz (Or.inl Hty)).1 Hclen Hcb Htr $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · iapply wp_stepLeader_appresp c wp_raft_sendAppend wp_raft_maybeSendAppend
@@ -182,7 +182,7 @@ theorem stepLeader.wp_proof
       wp_raftLog_findConflictByTerm wp_raftLog_lastIndex wp_raftLog_firstIndex
       wp_raft_sendTimeoutNow wp_GetType wp_GetFrom wp_GetReject wp_GetIndex wp_GetRejectHint
       wp_GetLogTerm r id s ml m Hty Hlead (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
-      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty).1 (fun h => (Hack h).2) ents ctx sn rs _ _ _
+      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty).1 (fun h => (Hack h).2) ents ctx sn rs _ _ _ Htr
       $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
@@ -202,7 +202,7 @@ theorem stepLeader.wp_proof
   · iapply wp_stepLeader_readindex c
       wp_raft_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse wp_GetType
       r id s ml m ents ctx sn rs _ _ _ Hty Hlead
-      (Hrdnz (Or.inr (Or.inr Hty))).2 (Hri Hty) $$ [Hphys Hm] HΦ'
+      (Hrdnz (Or.inr (Or.inr Hty))).2 (Hri Hty) Htr $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
 

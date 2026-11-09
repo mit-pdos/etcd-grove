@@ -114,7 +114,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     (wp_MustSync : MustSync.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hsteps0 Hunp0
+  intro γ rn id rs Hsteps0 Hunp0 HtrG
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -148,7 +148,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hcw := ownRaftGhost_commitWit _ _ _ $$ Hghost
   -- (durability stage II (i)) what the `Ready` cuts from
   icases ownRaftPhysC_persistCut cf rnv.raft' id s $$ Hphys with ⟨%Hpst, Hphys⟩
-  icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   ihave #Hf_traceLogger : iprop(∃ tl, rnv.raft'.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOk tl⌝)
     $$ []
   · iexists tl; iframe Htl; ipureintro; exact Htlok
@@ -743,7 +743,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       Hrs_unst, Hrs_clb,
       ⟨Hrnfl.1, Int.not_lt.1 fun h => by
         obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
-      HceOk, fun _ => Hcepre, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs⟩
+      HceOk, fun _ => Hcepre, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs, Hgtr⟩
   isplitr
   · iexact Hce
   isplitr

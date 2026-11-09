@@ -762,7 +762,10 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
     -- what puts a snapshot `Ready` past `boot` (`readySnap_bootLen`)
     ⌜γ.raft.cl.bootLen = γ.raft.boot.length⌝ ∗
     -- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs (`bootURLsOk`)
-    ⌜bootURLsOk γ.raft.boot⌝)
+    ⌜bootURLsOk γ.raft.boot⌝ ∗
+    -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced cluster
+    -- (`cluster_alloc`'s): `StartNode`'s/`RestartNode`'s premise
+    ⌜Cluster.trace γ.raft.cl = none⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance

@@ -67,7 +67,7 @@ theorem stepCandidate.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetReject : raftpb.Message.GetReject.spec (GF := GF) (hG := hG)) :
     stepCandidate.spec (GF := GF) (hG := hG) := by
-  intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap
+  intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap Htr
   wp_start as H
   iNamed H
   -- a candidate is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
@@ -147,12 +147,12 @@ theorem stepCandidate.wp_proof
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
       wp_apply wp_raft_becomeLeader _ _ _ _ (by simp only [Hrole]; decide) (by simp only [Hrole]; decide)
-          (by exact Hterm' ▸ Hmnz) $$ [$Hphys]
+          (by exact Hterm' ▸ Hmnz) (by tr_none) $$ [$Hphys]
         as %pvs1 ⟨Hphys, %Hmb⟩
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
       wp_apply wp_raft_bcastAppend c r id _ (by rfl)
-        (by first | exact Hterm' ▸ Hmnz | (simp only [becomeLeader, resetTo, resetTo0]; exact Hterm' ▸ Hmnz) | simp_all) $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+        (by first | exact Hterm' ▸ Hmnz | (simp only [becomeLeader, resetTo, resetTo0]; exact Hterm' ▸ Hmnz) | simp_all) (by tr_none) $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -173,7 +173,7 @@ theorem stepCandidate.wp_proof
       wp_auto
       -- the `r.Term` the code passes is `s1`'s term
       wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-      wp_apply wp_raft_becomeFollower _ _ _ _ _ _ (by exact Int.le_refl _) $$ [$Hphys] as %pvs Hphys
+      wp_apply wp_raft_becomeFollower _ _ _ _ _ _ (by exact Int.le_refl _) (by tr_none) $$ [$Hphys] as %pvs Hphys
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -230,11 +230,11 @@ theorem stepCandidate.wp_proof
     wp_apply wp_GetTerm.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_raft_becomeFollower _ _ _ _ _ _
-      (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
+      (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) (by tr_none) $$ [$Hphys]
       as %pvs Hphys
     wp_apply wp_raft_handleAppendEntries _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
       ml m ents sn cl rs Hwf Hnw Hconf Hfid Hty (fun h => by simp [becomeFollower] at h)
-      (by simp only [becomeFollower, resetTo, resetTo0]; first | exact (Hterm (Or.inr (Or.inl Hty))).2 | exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2 | exact (Hterm (Or.inr (Or.inr (Or.inr Hty)))).2) $$ [$Hphys $Hm]
+      (by simp only [becomeFollower, resetTo, resetTo0]; first | exact (Hterm (Or.inr (Or.inl Hty))).2 | exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2 | exact (Hterm (Or.inr (Or.inr (Or.inr Hty)))).2) (by tr_none) $$ [$Hphys $Hm]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
@@ -255,10 +255,10 @@ theorem stepCandidate.wp_proof
     wp_apply wp_GetTerm.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_raft_becomeFollower _ _ _ _ _ _
-      (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
+      (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) (by tr_none) $$ [$Hphys]
       as %pvs Hphys
     wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-      ml _ _ _ m ents sn cl rs Hcommit Hfrom (by simp only [becomeFollower, resetTo, resetTo0]; first | exact (Hterm (Or.inr (Or.inl Hty))).2 | exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2 | exact (Hterm (Or.inr (Or.inr (Or.inr Hty)))).2) $$ [$Hphys $Hm] as ⟨Hphys, -⟩
+      ml _ _ _ m ents sn cl rs Hcommit Hfrom (by simp only [becomeFollower, resetTo, resetTo0]; first | exact (Hterm (Or.inr (Or.inl Hty))).2 | exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2 | exact (Hterm (Or.inr (Or.inr (Or.inr Hty)))).2) (by tr_none) $$ [$Hphys $Hm] as ⟨Hphys, -⟩
     iapply HΦ $$ %GoInterface.nil %_ %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -307,7 +307,7 @@ theorem stepCandidate.wp_proof
     wp_apply wp_GetTerm.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_raft_becomeFollower _ _ _ _ _ _
-      (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
+      (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) (by tr_none) $$ [$Hphys]
       as %pvs Hphys
     -- (2026-10-14) at any configuration: `handleSnapshot` on the struct at `c`
     ihave #Hcs : ksnCert (GF := GF) ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.sn
@@ -321,7 +321,7 @@ theorem stepCandidate.wp_proof
         iexact Hc
     wp_apply wp_raft_handleSnapshot c _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
         ml m ents sn cl rs sv scfg rfl rfl Hsn Hscfg Hscope Hfid Hns
-        (by simp only [becomeFollower, resetTo, resetTo0]; first | exact (Hterm (Or.inr (Or.inl Hty))).2 | exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2 | exact (Hterm (Or.inr (Or.inr (Or.inr Hty)))).2) $$ [$Hphys $Hm $Hcs]
+        (by simp only [becomeFollower, resetTo, resetTo0]; first | exact (Hterm (Or.inr (Or.inl Hty))).2 | exact (Hterm (Or.inr (Or.inr (Or.inl Hty)))).2 | exact (Hterm (Or.inr (Or.inr (Or.inr Hty)))).2) (by tr_none) $$ [$Hphys $Hm $Hcs]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
@@ -393,7 +393,7 @@ theorem stepCandidate.wp_proof
             (fun h => by
               have := congrArg List.length h
               simp [campaignElection, campaignPreElection] at this)
-            $$ [$Hphys]
+            (by tr_none) $$ [$Hphys]
           as %peers %pvs ⟨%Hpeers, Hphys⟩
         iapply HΦ $$ %GoInterface.nil %_ %false %c
         iframe Hphys
@@ -410,7 +410,7 @@ theorem stepCandidate.wp_proof
         simp only [VoteLost]
         wp_auto
         wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-        wp_apply wp_raft_becomeFollower _ _ _ _ _ _ (by exact Int.le_refl _) $$ [$Hphys]
+        wp_apply wp_raft_becomeFollower _ _ _ _ _ _ (by exact Int.le_refl _) (by tr_none) $$ [$Hphys]
           as %pvs Hphys
         iapply HΦ $$ %GoInterface.nil %_ %false %c
         iframe Hphys

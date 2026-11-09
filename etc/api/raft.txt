@@ -138,6 +138,12 @@ importable Proof.go_etcd_io.raft.v3.InvReadylog
 importable Proof.go_etcd_io.raft.v3.InvRestore
 importable Proof.go_etcd_io.raft.v3.InvBig
 
+## Trace validation (gated: a traced cluster only; `notes/trace-validation-plan.md`)
+# (2026-11-09) the trace-check example's recorder and converter: the trace mode's ghost state
+# (`InvTrace`) and the simulation of the TLA spec by raft's events (`TraceSim`)
+importable Proof.go_etcd_io.raft.v3.InvTrace
+importable Proof.go_etcd_io.raft.v3.TraceSim
+
 ## Debt: proof internals clients reach today (take them out of the list)
 # tactics and lemma files the server, the examples or other packages' specs import
 importable Proof.go_etcd_io.raft.v3.FrameH

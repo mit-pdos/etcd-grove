@@ -53,7 +53,8 @@ theorem wp_stepLeader_checkQuorum
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
-    (Hty : m.Type' = MsgCheckQuorum) :
+    (Hty : m.Type' = MsgCheckQuorum)
+    (Htr : s.gh.tr = none) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
@@ -81,7 +82,7 @@ theorem wp_stepLeader_checkQuorum
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
       wp_raft_logC
       wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-      wp_apply wp_becomeFollower c r id s s.term (W64 0) (Int.le_refl _) $$ [$Hphys]
+      wp_apply wp_becomeFollower c r id s s.term (W64 0) (Int.le_refl _) (by tr_none) $$ [$Hphys]
         as %pvs Hphys
       wp_join_done
       iexists _

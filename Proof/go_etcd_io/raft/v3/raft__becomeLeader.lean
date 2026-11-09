@@ -54,7 +54,7 @@ theorem raft.becomeLeader.wp_proof
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate : tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hrole Hnl Hnz
+  intro c r id s Hrole Hnl Hnz Htr
   wp_start as Hphys
   -- (2026-10-19, D21 M3) in the no-snapshot mode the log is not empty (it holds the bootstrap
   -- log, committed), so `reset`'s `Next = lastIndex + 1` is at least `2` (`PrLo`)
@@ -166,7 +166,7 @@ theorem raft.becomeLeader.wp_proof
   imod (preceipt_zero (GF := GF)) with #Hrc0
   wp_apply wp_raft_appendEntry c r id _ _ [zero_val EntryM] (DFrac.own 1) 0
       (by simp) (by subst hs1; exact Hnz)
-      $$ [$Hphys $Hes $Hrc0]
+      (by tr_none) $$ [$Hphys $Hes $Hrc0]
     as %accepted ⟨-, %Hacc, Hes, Hphys⟩
   -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it
   have Hacc' : accepted = true := Hacc (by intro e He; simp at He; subst He; rfl)

@@ -56,6 +56,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- (no conflict premise: a stale message never reaches `maybeAppend`)
     -- this file: the incoming term is stale: logged and dropped
     uint.Z m.Term' < uint.Z s.term →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -70,7 +71,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
         "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hlt
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hlt Htr
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -129,7 +130,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, (by intro h; rw [h] at Hlt; word), fun h => absurd h Hfid, rfl⟩)))
     wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (Or.inl rfl) Hok
       (fun h => absurd h (by simp only [ack]; w32_ne)) (fun h => absurd h (by simp only [ack]; w32_ne))
-      rfl $$ [$Hphys $Hack] as Hphys
+      rfl (by tr_none) $$ [$Hphys $Hack] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys

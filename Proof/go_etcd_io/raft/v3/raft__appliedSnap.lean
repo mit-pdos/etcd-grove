@@ -58,7 +58,7 @@ theorem raft.appliedSnap.wp_proof
     (wp_SnapshotMetadata_GetConfState :
       raftpb.SnapshotMetadata.GetConfState.spec (GF := GF) (hG := hG)) :
     raft.appliedSnap.spec (GF := GF) (hG := hG) := by
-  intro c r id s sp sv cl Hiff Haps Hle Hrole Hvotes Hcl Hscope Hun Hns Hsx Hkx
+  intro c r id s sp sv cl Hiff Haps Hle Hrole Hvotes Hcl Hscope Hun Hns Hsx Hkx Htr
   subst Hcl
   obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, -⟩ := Hscope
   wp_start as H
@@ -141,7 +141,7 @@ theorem raft.appliedSnap.wp_proof
   wp_apply wp_raft_appliedTo c r id { s with logst := logStableSnap s.logst sv.Metadata'.Index' }
       sv.Metadata'.Index' (W64 0) 0 (by simp only; omega) (fun _ => by simp only; omega)
       Hnl Hnl Hnl Hsa1 Haps1
-      Hsx1 Hsp1 (fun _ k hk => Hkx k hk) $$ [$Hphys $Hrc0] as %s2' %B %recv ⟨Hphys, %Hls, -⟩
+      Hsx1 Hsp1 (fun _ k hk => Hkx k hk) (by tr_none) $$ [$Hphys $Hrc0] as %s2' %B %recv ⟨Hphys, %Hls, -⟩
   rcases Hls with ⟨rfl, -⟩ | ⟨-, Hl, -⟩
   case inr => exact absurd (Hrole.symm.trans Hl) (by decide)
   -- (U0) `cs := pb.EnsureConfState(snap.GetMetadata().GetConfState())`: the set snapshot's conf
@@ -212,7 +212,7 @@ theorem raft.appliedSnap.wp_proof
   have Hrole1 : s1.role = .follower := by rw [← HS1]; exact Hrole2
   -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
   wp_apply raft.wp_load_loggerC $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩
-  icases ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   icases ownRaftPhysCV_reconfig _ (snapCfg sv sv.Metadata'.ConfState'.lists) ((snapCfg sv sv.Metadata'.ConfState'.lists).voters ∪ {[id]}) r id s1
       (fun h => absurd Hrole1 h) $$ Hphys with ⟨%tv1, Htrkf, Hold, Hback2⟩
   icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1⟩
@@ -221,7 +221,7 @@ theorem raft.appliedSnap.wp_proof
       (fun h => absurd (Hrole1.symm.trans h) (by decide))
       (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
       (fun h => absurd (Hrole1.symm.trans h) (by decide))
-    $$ [$Htrkf $Hback2 $Hvotes $Hnew $Htl]
+    (by tr_none) $$ [$Htrkf $Hback2 $Hvotes $Hnew $Htl]
     as %cs2 %xs2 %os2 %ls2 %lns2 %s2 ⟨Hphys, Hcs2v, %Hcs2, %Hsw⟩
   · ipureintro; exact ⟨Hmi1, Htlok⟩
   obtain ⟨Hxs2, Hos2, Hls2, Hlns2⟩ := Hcs2

@@ -37,13 +37,15 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
-  intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 Rns
+  intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 Rns HtrG
   wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
   obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg, Hdtk0'⟩ := Hlog
   obtain ⟨Ht0, Hv0, Hr, Ho, Hrst, Hrpd⟩ := Hterm0
+  -- (Q8 stage 0) the fresh node is untraced (`newRaft` sets no trace mode)
+  have Htr : s.gh.tr = none := by rw [Hgh]
   ihave %Hplen := ownSlice_len $$ Hpeers
   have Hpslen : ps.length = pv.length := by rw [R1, List.length_map]
   obtain ⟨HbLen, HbBnd, HbEnt⟩ := R9
@@ -95,7 +97,7 @@ theorem RawNode.Bootstrap.wp_proof
   -- `rn.raft.becomeFollower(1, None)`
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   wp_apply wp_raft_becomeFollower _ rnv.raft' id s (W64 1) (W64 0) (by rw [Ht0]; word)
-    $$ [$Hphys] as %pvs1 Hphys
+    Htr $$ [$Hphys] as %pvs1 Hphys
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
   -- the state after `becomeFollower(1, None)`, as a variable (`s1`): term `1`, no vote, no leader
   generalize Hs1 : ({ becomeFollower s (W64 1) (W64 0) with prvals := pvs1 } : NState) = s1
@@ -381,7 +383,7 @@ theorem RawNode.Bootstrap.wp_proof
         (bootCC_apply _ _ Hp0) Hsz (by intro h; rw [Hskr] at h; cases h)
         (by intro h; rcases h with h | h <;> rw [Hskr] at h <;> cases h)
         (by intro _ h; rw [Hskr] at h; cases h)
-      $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩
+      (by tr_none) $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩
     obtain ⟨prs', pvs', Hsk'⟩ := applyCCOkC_nonleader _ _ _ _ Hok (by rw [Hskr]; decide)
     wp_for_post
     iframe
@@ -529,6 +531,7 @@ theorem RawNode.Bootstrap.wp_proof
         (by exact Hsvr.1.symm)
         -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the zero hard state
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
+        (by show sk.gh.tr = γ.reTrace; rw [HNgh, HtrG])
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
@@ -600,6 +603,7 @@ theorem RawNode.Bootstrap.wp_proof
         (by exact Hsvr.1.symm)
         -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the zero hard state
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
+        (by show sk.gh.tr = γ.reTrace; rw [HNgh, HtrG])
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h

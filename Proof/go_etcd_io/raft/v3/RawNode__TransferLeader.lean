@@ -41,7 +41,7 @@ theorem RawNode.TransferLeader.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.TransferLeader.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs transferee
+  intro γ rn id rs transferee HtrG
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -66,7 +66,7 @@ theorem RawNode.TransferLeader.wp_proof
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (⟨fun h => absurd h (by msg_ne), fun h => absurd h (by msg_ne), fun _ => ⟨rfl, rfl⟩⟩ : RestMsgOk s _ [] []) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
-    $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
+    (by tr_none) $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
   · -- the message: no entries, no `Context`, no snapshot
     have hP : (W32 13 : w32) ≠ MsgProp := by simp [MsgProp]
     simp only [hP, ↓reduceIte, named]
@@ -130,7 +130,8 @@ theorem RawNode.TransferLeader.wp_proof
           simp only [Bool.or_false] at H
           exact H)
       (Hsdt.ofRec Hsn Hsd) Hrole
-        (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (.inl (Hip4 (by msg_ne)))) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
+        (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hsn (.inl (Hip4 (by msg_ne))))
+        (by rw [Hgx]; exact Hgtr) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur]
     · -- (durability stage II (i)) the step keeps `durTie`'s fields
       iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hsn Hpv (logStoreRec_stored Hsd) $$ Hdur
     

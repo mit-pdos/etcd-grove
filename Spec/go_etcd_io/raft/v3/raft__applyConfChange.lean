@@ -204,6 +204,10 @@ abbrev raft.applyConfChange.spec : Prop :=
   -- entry after the bootstrap log), so a peer it starts tracking probes at `Next ≥ 2` (`PrLo`)
   (s.gh.ns = true → s.role = .leader →
     2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hcc" ∷ ownConfChangeV2 cc dq ccm }}
@@ -232,6 +236,10 @@ abbrev raft.applyConfChange.specS : Prop :=
   -- (2026-10-25, T-M M2c) the node a voter (until then read off `ownRaftPhys` for a leader, which
   -- now need not be one)
   id ∈ cfg →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hcc" ∷ ownConfChangeV2 cc dq ccm }}
@@ -250,7 +258,7 @@ open Iris.ProofMode in
 theorem raft.applyConfChange.spec_simple
     (H : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hltz Hli2 Hin
+  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hltz Hli2 Hin Htr
   iintro %Φ ⟨#Hpkg, Hphys, Hccs⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   have Hv' : (cfgState cfg lrn').cfg.voters = cfg := CfgM.voters_simple cfg lrn'
@@ -259,7 +267,7 @@ theorem raft.applyConfChange.spec_simple
     unfold CfgM.ids; rw [CfgM.voters_simple]; rfl
   iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
       (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz') Hltz
-      (fun _ => by rw [Hv']; exact Hin) Hli2
+      (fun _ => by rw [Hv']; exact Hin) Hli2 Htr
     $$ [$Hpkg $Hphys $Hccs]
   inext
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩

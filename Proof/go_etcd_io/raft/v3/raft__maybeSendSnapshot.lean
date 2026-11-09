@@ -98,7 +98,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendSnapshot.spec (GF := GF) (hG := hG) := by
-  intro c r id s to pr Hto Hprto Htz
+  intro c r id s to pr Hto Hprto Htz Htr
   wp_start as H
   iNamed H
   -- (U8 v2) the no-snapshot mode is off at raft's level, and the log's storage names are the ghost
@@ -249,7 +249,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, Hto, Hns, Htz⟩)))
     wp_apply wp_raft_send c r id _ «$a0_ptr» mm [] (some sv) [] []
         [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] (Or.inl rfl) Hok
-        (fun _ => ⟨sv, rfl, rfl⟩) (fun h => absurd h (by simp [mm, MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
+        (fun _ => ⟨sv, rfl, rfl⟩) (fun h => absurd h (by simp [mm, MsgApp])) rfl (by tr_none) $$ [$Hphys $Hm] as Hphys
     · -- (D22 S-b′3) the snapshot's certificate, from `raftLog.snapshot`
       iapply Hcert
     iapply HΦ $$ %true %([absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] : List Msg)

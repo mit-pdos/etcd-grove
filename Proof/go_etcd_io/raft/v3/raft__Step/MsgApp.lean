@@ -79,6 +79,7 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `padoptLeader` clears `votes`; the Go code's `r.lead = m.From` does not touch
     -- `r.trk.Votes`, so the two agree only when the tally already is empty.
     (s.role = .follower → s.votes = ∅) →
+    s.gh.tr = none →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -93,16 +94,16 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
         "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hvotes Htr
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgApp_gt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
-      (Hconf (by omega)) Hgt
+      (Hconf (by omega)) Hgt Htr
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · exact wp_Step_MsgApp_lt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
-        Hlt
+        Hlt Htr
     · have Hteq : m.Term' = s.term := by word
       exact wp_Step_MsgApp_eq _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
-        (Hconf (by omega)) Hteq Hvotes
+        (Hconf (by omega)) Hteq Hvotes Htr
 
 end StepProof
 

@@ -104,7 +104,7 @@ theorem node.run.wp_proof
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_getStatus : getStatus.spec (GF := GF) (hG := hG)) :
     node.run.spec (GF := GF) (hG := hG) := by
-  intro γ id n
+  intro γ id n HtrG
   wp_start as ⟨#Hnode, Hpre⟩
   ihave #Hnode' := Hnode
   open_node Hnode'
@@ -168,7 +168,7 @@ theorem node.run.wp_proof
       wp_apply wp_RawNode_HasReady γ.raft nv.rn' id rs $$ [$Hrn] as %b Hb
       icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, Hrn⟩) <;> subst Hb
       · wp_auto
-        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp $$ [$Hrn]
+        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp HtrG $$ [$Hrn]
           as %rd' %ce %es %ms %sts %hrd %L H
         iNamed H
         -- (D22 S-d4) with its snapshot, if any (`rdSnapOut`, the loan `L`)
@@ -302,7 +302,7 @@ theorem node.run.wp_proof
       ihave #Hm1 := isMessage_propose_from γ.raft propMsgM [propEntryM d] id $$ Hm0
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
         ⟨{ propMsgM with From' := id }, [propEntryM d], none, [], []⟩ rfl rfl rfl
-        $$ [$Hrn $Hrnraft $Hm $Hm1 Htk $Hlc1] as %err ⟨Hrn, #Hstep⟩
+        HtrG $$ [$Hrn $Hrnraft $Hm $Hm1 Htk $Hlc1] as %err ⟨Hrn, #Hstep⟩
       · iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
         iexact Htk
       ihave %Hrnn := isChan_not_null $$ [Hho]
@@ -339,7 +339,7 @@ theorem node.run.wp_proof
       ihave #Hm1 := isMessage_propose_from γ.raft st.msg st.ents id $$ Hm0
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
         { st with msg := { st.msg with From' := id } } Hty.1 rfl Hty.2
-        $$ [$Hrn $Hrnraft $Hm $Hm1 $Htk $Hlc1] as %err ⟨Hrn, -⟩
+        HtrG $$ [$Hrn $Hrnraft $Hm $Hm1 $Htk $Hlc1] as %err ⟨Hrn, -⟩
       rw [Hres]
       wp_if_destruct
       rotate_left
@@ -421,7 +421,7 @@ theorem node.run.wp_proof
         icases ownRawNode_term_tc γ.raft nv.rn' id rs $$ Hrn with ⟨%Htt, Hrn⟩
         ihave Hrn := ownRawNode_raise_tc γ.raft nv.rn' id rs (rs.tc + W64 1) (by word) $$ Hrn
         wp_apply wp_rn_raft_Step_hup wp_raft_Step γ.raft nv.rn' id { rs with tc := rs.tc + W64 1 }
-          r ml st Hst.symm (by simp only; word) Hflw $$ [Hrn Hm Hlc1] as %err %t ⟨Hrn, %Ht⟩
+          r ml st Hst.symm (by simp only; word) Hflw HtrG $$ [Hrn Hm Hlc1] as %err %t ⟨Hrn, %Ht⟩
         · iframe Hrn Hm Hrnraft Hlc1
         ihave Hrest := headRest_term γ nv rs ac rc' rdv' t (rs.tc + W64 1) $$ Hrest Hlb1
         try wp_auto
@@ -491,7 +491,7 @@ theorem node.run.wp_proof
       wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id { rs with tc := tb } r ml st Hok
         (by simp only; omega)
         (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hflw
-        $$ [Hrn Hm Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
+        HtrG $$ [Hrn Hm Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
       · iframe Hrn Hm Hrnraft Hxf Hmsg Hsnap Hcred Hlc1
       ihave Hrest := headRest_step γ nv rs ac rc' rdv' t tb (decide (st.msg.Type' = MsgSnap))
         $$ Hrest Hlbtb
@@ -553,7 +553,7 @@ theorem node.run.wp_proof
       -- `cs := r.applyConfChange(cc)`
       wp_apply wp_rn_raft_applyConfChange wp_raft_applyConfChange γ.raft nv.rn' id rs r cc ccs
         Hstatic Hn
-        $$ [$Hrn $Hrnraft $Hccs $Hlc1] as %cs %xs %ls ⟨Hrn, -, Hcsp, %Hcs⟩
+        HtrG $$ [$Hrn $Hrnraft $Hccs $Hlc1] as %cs %xs %ls ⟨Hrn, -, Hcsp, %Hcs⟩
       -- `_, okAfter := r.trk.Progress[r.id]`: still a voter
       icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic $$ Hrn Hrnraft
         with ⟨%s2, %Hin2, Hphys, Hback⟩
@@ -638,7 +638,7 @@ theorem node.run.wp_proof
     -- `cs := r.applyConfChange(cc)`
     wp_apply wp_rn_raft_applyConfChange_dyn wp_raft_applyConfChange γ.raft nv.rn' id rs r cc ccs
       dec c0 h0 h1 hm k e cs' Mr Hp'
-      $$ [$Hrn $Hrnraft $Hccs $Hlc1 $HMr] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcsp, %Hcs⟩
+      HtrG $$ [$Hrn $Hrnraft $Hccs $Hlc1 $HMr] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcsp, %Hcs⟩
     -- `_, okAfter := r.trk.Progress[r.id]`
     icases ownRawNode_borrow γ.raft nv.rn' id _ r $$ Hrn Hrnraft with ⟨%cf2, %s2, Hphys, Hback⟩
     try wp_auto
@@ -833,7 +833,7 @@ theorem node.run.wp_proof
     icases ownRawNode_term_tc γ.raft nv.rn' id rs $$ Hrn with ⟨%Htt, Hrn⟩
     ihave Hrn := ownRawNode_raise_tc γ.raft nv.rn' id rs (rs.tc + W64 1) (by word) $$ Hrn
     wp_apply wp_RawNode_Tick γ.raft nv.rn' id { rs with tc := rs.tc + W64 1 } (by simp only; word)
-      Hflw $$ [$Hrn] as %t H
+      Hflw HtrG $$ [$Hrn] as %t H
     iNamed H
     ihave Hrest := headRest_term γ nv rs ac rc' rdv' t (rs.tc + W64 1) $$ Hrest Hlb1
     wp_for_post
@@ -910,7 +910,7 @@ theorem node.run.wp_proof
         -- (D22l) its hard state's witness, for `prevHardSt`
         ihave #Hrdw := phsWit_of_hsWit_next γ.raft rs.phs hrd _ $$ Hhsw
         ihave Hrn := ownRawNodeIdle_ready γ.raft nv.rn' id rs rdv' ce sts hrd Hsteps Hunp Hrdz
-          Hce_ok Hhlb Hphl $$ Hrdsoft Hrdh Hrdw Hce Hce_cap Hents Hcommitted Hrs Hrn
+          Hce_ok Hhlb Hphl HtrG $$ Hrdsoft Hrdh Hrdw Hce Hce_cap Hents Hcommitted Hrs Hrn
         iexists ce, [], [], none
         iframe Hrn Hce Hcommitted Hents
         isplitl []
@@ -1075,7 +1075,7 @@ theorem node.run.wp_proof
     iintro -
     wp_auto
     wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L
-      $$ [$Hrn $Hhh] as %steps %ss2 ⟨#Hss2, %Hssn2, Hrn⟩
+      HtrG $$ [$Hrn $Hhh] as %steps %ss2 ⟨#Hss2, %Hssn2, Hrn⟩
     ihave %Hsse := softStateIs_agree rdv'.SoftState' ss ss2 Hssn1 Hssn2 $$ [$Hss1 $Hss2]
     subst Hsse
     icases ownRawNode_async γ.raft nv.rn' id _ $$ Hrn with ⟨%rnv, Hrnown, %Hasync, Hrnback⟩
@@ -1156,7 +1156,7 @@ theorem node.run.wp_proof
     ihave #Hfr' : durFrags γ.raft id rs1.bw $$ []
     · rw [← Hgid]; iexact Hfr
     wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1
-      $$ [$Hrn $Hlr $HA1 $Hfr'] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
+      HtrG $$ [$Hrn $Hlr $HA1 $Hfr'] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
     ihave Hcfg := runCfg_advance γ rs1 t ca Hca $$ HA1 Hcfg
     -- (D22 S-d4) the node after `Advance` (`advRS`): nothing queued, unpersisted or lent, the
     -- committed log handed out the driver's

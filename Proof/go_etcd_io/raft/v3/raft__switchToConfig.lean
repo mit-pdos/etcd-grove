@@ -61,7 +61,7 @@ theorem raft.switchToConfig.wp_proof
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
-  intro c r id s tv0 cfgv prsm prs pvs tl Hlead Hltz Hcand Hpok
+  intro c r id s tv0 cfgv prsm prs pvs tl Hlead Hltz Hcand Hpok Htr
   wp_start as H
   iNamed H
   wp_auto
@@ -144,6 +144,7 @@ theorem raft.switchToConfig.wp_proof
       ihave Hphys := ownRaftPhysCV_widen c c.voters r id _ (fun _ _ _ => Hin) $$ Hphys
       wp_apply raft.wp_load_isLearnerC $$ Hphys as Hphys
       generalize Hs1 : ({ s0 with isLearner := learnerOfC c id } : NState) = s1
+      have Htr1 : s1.gh.tr = none := by rw [← Hs1, ← Hs0]; exact Htr
       have Hs1l : s1.isLearner = false := by rw [← Hs1]; exact HLf
       rw [Hs1l]
       have Hrole1 : s1.role = s.role := by rw [← Hs1, ← Hs0]
@@ -179,7 +180,7 @@ theorem raft.switchToConfig.wp_proof
           by cases s1; simp [sendMsgs]⟩
       try wp_auto
       -- `if r.maybeCommit() { r.bcastAppend() } else { r.trk.Visit(...maybeSendAppend...) }`
-      wp_apply wp_raft_maybeCommit c r id s1 Hl1 $$ [$Hphys] as %b %N ⟨Hphys, %HN⟩
+      wp_apply wp_raft_maybeCommit c r id s1 Hl1 (by rw [← Hs1, ← Hs0]; exact Htr) $$ [$Hphys] as %b %N ⟨Hphys, %HN⟩
       -- after the broadcast, the state is `s2` with sends `ms` and values `pvs2`
       wp_join iprop(∃ (ms : List Msg) (pvs2 : GMap w64 Progress),
           "Hphys" ∷ ownRaftPhysCV c c.voters r id
@@ -262,7 +263,7 @@ theorem raft.switchToConfig.wp_proof
               wp_auto
               wp_apply wp_raft_maybeSendAppend _ _ _ _ i false Hii (by exact Hicfg) (by exact Hl1)
                 (by first | (simp only [sendMsgs]; rw [Ht1]; exact Hltz Hl) | (rw [Ht1]; exact Hltz Hl) | simp_all)
-                $$ [$Hphys]
+                (by tr_none) $$ [$Hphys]
                 as %b' %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
               try wp_auto
               icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
@@ -302,7 +303,7 @@ theorem raft.switchToConfig.wp_proof
           simp only [↓reduceIte]
           wp_auto
           wp_apply wp_raft_bcastAppend c r id _ (by exact Hl1)
-            (by first | (simp only [sendMsgs]; rw [Ht1]; exact Hltz Hl) | (rw [Ht1]; exact Hltz Hl) | simp_all) $$ [$Hphys]
+            (by first | (simp only [sendMsgs]; rw [Ht1]; exact Hltz Hl) | (rw [Ht1]; exact Hltz Hl) | simp_all) (by tr_none) $$ [$Hphys]
             as %ms %pvs2 ⟨Hphys, %Hms, %Hmm⟩
           wp_join_done
           iexists ms, pvs2
@@ -419,7 +420,7 @@ theorem raft.switchToConfig.wp_proof
           rfl
         try wp_auto
         wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-        wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) $$ [$Hphys]
+        wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) (by rw [← He]; exact Htr) $$ [$Hphys]
           as %pvs' Hphys
         ihave Hphys := ownRaftPhysCV_widen c c.voters r id _
           (fun _ h => absurd (show PRole.follower = PRole.follower from rfl) h) $$ Hphys
@@ -473,7 +474,7 @@ theorem raft.switchToConfig.wp_proof
           rfl
         try wp_auto
         wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-        wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) $$ [$Hphys]
+        wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) (by rw [← He]; exact Htr) $$ [$Hphys]
           as %pvs' Hphys
         ihave Hphys := ownRaftPhysCV_widen c c.voters r id _
           (fun _ h => absurd (show PRole.follower = PRole.follower from rfl) h) $$ Hphys

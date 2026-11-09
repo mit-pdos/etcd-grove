@@ -9,24 +9,25 @@ theorem raft.tickHeartbeat.wp_proof [package_sem : Assumptions] (wp_raft_Step : 
   ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
     NStateWf s →
       md.Guard s →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "Hghost" ∷ ownStepGhost γ md c id s -∗
-              (▷
-                  ∀ s',
-                    "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-                        "Hghost" ∷ ownStepGhost γ md c id s' ∗
-                          "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-                            "%Hcm" ∷
-                                ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
-                                    PVoteLe (toPState s) (toPState s')⌝ ∗
-                              "%Htick" ∷ ⌜TickStep s s'⌝ -∗
-                      Φ (intoVal ())) -∗
-                WP
-                  ((intoVal
-                      (methods raft.ty.PointerType
-                        go!"tickHeartbeat"
-                        (intoVal r)))
-                    (intoVal ()))
-                  {{ Φ }}
+        s.gh.tr = none →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "Hghost" ∷ ownStepGhost γ md c id s -∗
+                (▷
+                    ∀ s',
+                      "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+                          "Hghost" ∷ ownStepGhost γ md c id s' ∗
+                            "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+                              "%Hcm" ∷
+                                  ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
+                                      PVoteLe (toPState s) (toPState s')⌝ ∗
+                                "%Htick" ∷ ⌜TickStep s s'⌝ -∗
+                        Φ (intoVal ())) -∗
+                  WP
+                    ((intoVal
+                        (methods raft.ty.PointerType
+                          go!"tickHeartbeat"
+                          (intoVal r)))
+                      (intoVal ()))
+                    {{ Φ }}

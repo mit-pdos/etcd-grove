@@ -81,6 +81,10 @@ abbrev setupNode.spec : Prop :=
   -- (2026-11-08, Draft S3 of `notes/trace-validation-plan.md`, Q1: taken by the agent pending the
   -- user's veto) the trace logger: none (`TraceLoggerOk_nil`); S4 widens it to a logger
   TraceLoggerOk cv.TraceLogger' →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
       -- `NewRawNode`'s boot bundle
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))

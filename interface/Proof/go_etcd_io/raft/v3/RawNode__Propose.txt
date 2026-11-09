@@ -6,19 +6,20 @@ theorem RawNode.Propose.wp_proof [package_sem : Assumptions] (wp_raft_Step : raf
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) : RawNode.Propose.spec
   -- `Perennial.EtcdGrove.RawNode.Propose.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (data_sl : GoSlice) (data : List w8),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hrn" ∷ ownRawNode γ rn id rs ∗
-              "#Hdata" ∷ ownSlice data_sl data DFrac.discard ∗
-                "#Hent" ∷ propData γ (propEntryM data) ∗ "Htk" ∷ entTk γ (propEntryM data) -∗
-          (▷
-              ∀ err,
-                "Hrn" ∷ ownRawNode γ rn id rs ∗
-                    "Herr" ∷
-                      (⌜err = GoInterface.nil⌝ ∨ typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard) -∗
-                  Φ (intoVal err)) -∗
-            WP
-              ((intoVal (methods RawNode.ty.PointerType go!"Propose" (intoVal rn)))
-                (intoVal data_sl))
-              {{ Φ }}
+    γ.reTrace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              "Hrn" ∷ ownRawNode γ rn id rs ∗
+                "#Hdata" ∷ ownSlice data_sl data DFrac.discard ∗
+                  "#Hent" ∷ propData γ (propEntryM data) ∗ "Htk" ∷ entTk γ (propEntryM data) -∗
+            (▷
+                ∀ err,
+                  "Hrn" ∷ ownRawNode γ rn id rs ∗
+                      "Herr" ∷
+                        (⌜err = GoInterface.nil⌝ ∨ typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard) -∗
+                    Φ (intoVal err)) -∗
+              WP
+                ((intoVal (methods RawNode.ty.PointerType go!"Propose" (intoVal rn)))
+                  (intoVal data_sl))
+                {{ Φ }}

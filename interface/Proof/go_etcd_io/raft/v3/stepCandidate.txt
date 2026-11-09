@@ -44,19 +44,21 @@ theorem stepCandidate.wp_proof [package_sem : Assumptions] (wp_raft_poll : raft.
                 (m.Type' = MsgSnap →
                     sn = some sv ∧
                       scfg = sv.Metadata'.ConfState'.lists ∧ SnapScopeIf id sv scfg ∧ m.From' ≠ id ∧ s.gh.ns = false) →
-                  ⊢
-                    ∀ Φ,
-                      isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                          "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-                            "Hm" ∷
-                                msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
-                                  { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } ∗
-                              "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn -∗
-                        (▷
-                            ∀ err s' dropped c',
-                              (ownRaftPhysCV c' c'.voters r id s' ∗
-                                  ⌜CandidateStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
-                                    if dropped = true then typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard
-                                    else ⌜err = GoInterface.nil⌝) -∗
-                                Φ (intoVal err)) -∗
-                          WP (((intoVal (functions stepCandidate [])) (intoVal r)) (intoVal ml)) {{ Φ }}
+                  s.gh.tr = none →
+                    ⊢
+                      ∀ Φ,
+                        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                            "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                              "Hm" ∷
+                                  msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+                                    { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } ∗
+                                "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn -∗
+                          (▷
+                              ∀ err s' dropped c',
+                                (ownRaftPhysCV c' c'.voters r id s' ∗
+                                    ⌜CandidateStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
+                                      if dropped = true then
+                                        typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard
+                                      else ⌜err = GoInterface.nil⌝) -∗
+                                  Φ (intoVal err)) -∗
+                            WP (((intoVal (functions stepCandidate [])) (intoVal r)) (intoVal ml)) {{ Φ }}

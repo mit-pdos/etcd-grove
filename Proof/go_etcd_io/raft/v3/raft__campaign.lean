@@ -54,6 +54,11 @@ def vrespW32 (pre : Bool) : w32 := if pre then MsgPreVoteResp else MsgVoteResp
 def campRoleState (id : w64) (s : NState) (pre : Bool) : NState :=
   if pre then becomePrecandidate s else becomeCandidate id s
 
+/-- (Q8 stage 0) The campaign's role change keeps the ghost (the trace mode). -/
+theorem campRoleState_gh (id : w64) (s : NState) (pre : Bool) :
+    (campRoleState id s pre).gh = s.gh := by
+  cases pre <;> rfl
+
 theorem campRoleState_logst (id : w64) (s : NState) (pre : Bool) :
     (campRoleState id s pre).logst = s.logst := by
   cases pre <;> rfl
@@ -145,7 +150,7 @@ theorem raft.campaign.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.campaign.spec (GF := GF) (hG := hG) := by
-  intro c r id s t Hrole Hid_cfg Hnowrap Hpv
+  intro c r id s t Hrole Hid_cfg Hnowrap Hpv Htr
   -- the voters of either half, named: everything below is about that set
   obtain ⟨cfg, hV⟩ : ∃ cfg, c.voters = cfg := ⟨_, rfl⟩
   -- every `send` below carries `Term + 1`; `send` panics on a zero term,
@@ -181,7 +186,7 @@ theorem raft.campaign.wp_proof
     iexists s.prvals
     simp only [campaignPreElection, decide_true, campRoleState, vreqW32, ↓reduceIte]
     iframe
-  · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole Hnowrap Hid_cfg $$ [$Hphys] as %pvs Hphys
+  · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole Hnowrap Hid_cfg (by tr_none) $$ [$Hphys] as %pvs Hphys
     try wp_auto
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     isplitr
@@ -359,7 +364,7 @@ theorem raft.campaign.wp_proof
             by cases pre <;> rfl⟩)
           (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
           (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgApp, MsgVoteResp, MsgPreVoteResp]))
-        rfl $$ [$Hphys $Hm]
+        rfl (by rw [campRoleState_gh]; exact Htr) $$ [$Hphys $Hm]
       · iapply tsSrc_ne; exact (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r y
@@ -435,7 +440,7 @@ theorem raft.campaign.wp_proof
             by cases pre <;> rfl⟩)
           (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
           (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgApp, MsgVote, MsgPreVote]))
-        rfl $$ [$Hphys $Hm]
+        rfl (by rw [campRoleState_gh]; exact Htr) $$ [$Hphys $Hm]
       · iapply tsSrc_ne; exact (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r id

@@ -11,9 +11,19 @@ def logMethods : List GoString :=
   [go!"Infof", go!"Debugf",
     go!"Warningf", go!"Errorf"]
 
+theorem TraceLoggerOkS_none (tl : GoInterface) : TraceLoggerOkS none tl ↔ TraceLoggerOk tl
+
 theorem Logger.wp_logf (l : GoInterfaceOk) (meth format : GoString) (args : GoSlice) (Hmeth : meth ∈
     logMethods) : ⊢ ∀ Φ, isLogger l -∗ ▷ (True -∗ Φ (intoVal ())) -∗ WP (((intoVal (methods l.ty
     meth l.v)) (intoVal format)) (intoVal args)) {{ Φ }}
+
+theorem TraceLoggerOkS.untraced {tr : Option GName} {tl : GoInterface} (h : tr = none) (H :
+    TraceLoggerOkS tr tl) : TraceLoggerOk tl
+
+def TraceLoggerOkS (tr : Option GName) (tl : GoInterface) : Prop :=
+  match tr with
+  | none => TraceLoggerOk tl
+  | some val => True
 
 def isLogger (l : GoInterfaceOk) : IProp GF :=
   iprop(∀ meth x format args,
@@ -24,3 +34,6 @@ def isLogger (l : GoInterfaceOk) : IProp GF :=
               WP (((intoVal (methods l.ty meth l.v)) (intoVal format)) (intoVal args)) {{ Φ }})
 
 theorem isLogger_persistent (l : GoInterfaceOk) : Persistent (isLogger l)
+
+theorem TraceLoggerOkS.of_ok (tr : Option GName) {tl : GoInterface} (H : TraceLoggerOk tl) :
+    TraceLoggerOkS tr tl

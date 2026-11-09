@@ -64,7 +64,7 @@ theorem raft.appliedTo.wp_proof
      wp_Message_GetIndex, wp_Message_GetLogTerm, wp_Message_GetCommit, wp_Message_GetReject,
      wp_Message_GetEntries, wp_Message_GetSnapshot, wp_Message_GetContext, wp_Entry_GetIndex,
      wp_MessageType_Enum⟩
-  intro c r id s index size k0 Hidx Hipo Hwf Hlnz HL Hsa Hapsb Hsx Hsp Hkx
+  intro c r id s index size k0 Hidx Hipo Hwf Hlnz HL Hsa Hapsb Hsx Hsp Hkx Htr
   wp_start as H
   iNamed H
   wp_auto
@@ -152,7 +152,7 @@ theorem raft.appliedTo.wp_proof
               [some (.v2 ConfChangeV2M.empty)] k0 rfl rfl (.inl rfl) (by simp) (by simp)
               (fun h => absurd (h.symm.trans Hrl) (by decide))
               (fun _ => by rw [Hs1term]; exact Hlnz (Hs1role ▸ Hrl)) (Hwf1 (Hs1role ▸ Hrl))
-              (by rw [Hs1ps]; exact HL (Hs1role ▸ Hrl)) rfl)
+              (by rw [Hs1ps]; exact HL (Hs1role ▸ Hrl)) rfl (by tr_none))
             $$ [$Hphys Hm $Hcc $Hrc]
             as %err %s' %B ⟨Hphys, %HBb, Hrcb, %Hwf', %Hfr, %Happl, %Hpk, %Hst, Herr⟩
           · rw [show leaveMsgM = propMsgM from rfl, show leaveEntM = ccEntryM none [] from rfl]

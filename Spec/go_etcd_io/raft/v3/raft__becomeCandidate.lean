@@ -34,6 +34,10 @@ abbrev raft.becomeCandidate.spec : Prop :=
   uint.Z s.term + 1 < 2 ^ 64 →
   -- (2026-10-13) only a voter campaigns (`ownRaftPhys`'s `Hvoter`)
   id ∈ c.voters →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeCandidate")) (Val #()))
   {{ (pvs : GMap w64 Progress), RET #();

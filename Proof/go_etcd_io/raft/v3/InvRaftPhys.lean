@@ -1085,8 +1085,9 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF)
 
   -- logging, tracing, and everything else
   "%Hlok" ∷ ⌜rv.logger' = interface.ok lok⌝ ∗
-  -- (2026-11-08) the trace logger's contract (`TraceLoggerOk`, `InvLogger.lean`)
-  "%Htl" ∷ ⌜TraceLoggerOk rv.traceLogger'⌝ ∗
+  -- (2026-11-08) the trace logger's contract (`TraceLoggerOk`, `InvLogger.lean`); (2026-11-09, Q8
+  -- stage 0) at the node's trace mode `s.gh.tr` (`TraceLoggerOkS`: nil when untraced)
+  "%Htl" ∷ ⌜TraceLoggerOkS s.gh.tr rv.traceLogger'⌝ ∗
   "#Hlogger" ∷ isLogger lok ∗
   "Hmisc" ∷ ownRaftMisc rv.readStates' rv.readOnly' rv.pendingReadIndexMessages' s.rd)
 
@@ -1148,7 +1149,7 @@ theorem ownRaftPhysCV_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : 
     id ≠ W64 0 →
     0 < sint.Z rv.electionTimeout' →
     rv.logger' = interface.ok lok →
-    TraceLoggerOk rv.traceLogger' →
+    TraceLoggerOkS s.gh.tr rv.traceLogger' →
     rv.raftLog' = s.log →
     (s.ticking = true → TickFnOk r rv.tick') →
     QOk id s.term msgs msgsAA →
@@ -1224,7 +1225,7 @@ theorem ownRaftPhysCVW_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s :
     id ≠ W64 0 →
     0 < sint.Z rv.electionTimeout' →
     rv.logger' = interface.ok lok →
-    TraceLoggerOk rv.traceLogger' →
+    TraceLoggerOkS s.gh.tr rv.traceLogger' →
     rv.raftLog' = s.log →
     (s.ticking = true → TickFnOk r rv.tick') →
     QOk id s.term msgs msgsAA →
@@ -1833,9 +1834,10 @@ theorem ownRaftPhysC_shared (r : Loc) (id : w64) (s : NState) :
   resealC c s
 
 /-- The trace logger (2026-11-08, `notes/trace-validation-hooks.md`): the field, persistent,
-and its contract, handed out before a caller opens the struct (the trace hooks read the field where
+and its contract (nil: an untraced node's, `htr`, stage 0 of Q8's, to be replaced by the traced
+capability in stage 1), handed out before a caller opens the struct (the trace hooks read the field where
 `send`, `switchToConfig` and `acceptReady` hold the struct open). -/
-theorem ownRaftPhysC_traceLogger (r : Loc) (id : w64) (s : NState) :
+theorem ownRaftPhysC_traceLogger (r : Loc) (id : w64) (s : NState) (htr : s.gh.tr = none) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
       ∃ tl : GoInterface, r.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOk tl⌝ ∗
         ownRaftPhysCV c V r id s := by
@@ -1845,7 +1847,7 @@ theorem ownRaftPhysC_traceLogger (r : Loc) (id : w64) (s : NState) :
   iexists rv.traceLogger'
   iframe Hftl
   isplitr
-  · ipureintro; exact Htl
+  · ipureintro; exact Htl.untraced htr
   resealC c s
 
 theorem raft.wp_load_checkQuorumC (r : Loc) (id : w64) (s : NState) :
@@ -2832,6 +2834,8 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
             -- (2026-10-19, D21 M2r) the modes' facts of the new queues
             ⌜XfOk id { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
             qSrcs g.sn (ms1' ++ ms2') -∗
+            -- (2026-11-09, Q8 stage 0) the trace mode kept
+            ⌜g.tr = s.gh.tr⌝ -∗
             ownRaftLog s.log ls' -∗
             ownRaftPhysCV c V r id { s with outbox := o, logst := ls', gh := g, rd := rd' })) := by
   iintro H
@@ -2875,7 +2879,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
   iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrs'_cap
     %Hrd' Hflog Hfst Hfld Hfm Hmsgs
     Hmsgs_cap Hfma HmsgsAA HmsgsAA_cap Houtbox' %HmsgsAA_ok' %Hout_term' %Hg1 %Hg2 %Hgns %Hle' %Hxf'
-    #Hscert' Hlog
+    #Hscert' %Hgtr Hlog
   have Hgk : LogNsKeep s ls' := Hgns.2.1
   ihave #Hnscap : NsCap (GF := GF) g.ns ls'.storage $$ [Hnscap]
   · rw [Hgns.1]; iapply NsCap.of_keep Hgk $$ Hnscap
@@ -2903,7 +2907,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhysCV_intro c _ _ _ { s with outbox := o, logst := ls', gh := g, rd := rd' }
       { rv with msgs' := sl1', msgsAfterAppend' := sl2', readStates' := rs' } ms1' ms2' lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Htl Hlogp Htick HmsgsAA_ok' Hout_term' Hg1 Hg2 Hvoter
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok (by simp only; rw [Hgtr]; exact Htl) Hlogp Htick HmsgsAA_ok' Hout_term' Hg1 Hg2 Hvoter
     ((Hprok.mono_log Hle').of_fields rfl rfl rfl Hgns.1) Hnsl Hxf'
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox' Hnscap Hscert'
 
@@ -3237,7 +3241,7 @@ theorem ownRaftPhys_intro_trk (r : Loc) (id : w64) (s : NState) (rv : raft)
     id ≠ W64 0 →
     0 < sint.Z rv.electionTimeout' →
     rv.logger' = interface.ok lok →
-    TraceLoggerOk rv.traceLogger' →
+    TraceLoggerOkS s.gh.tr rv.traceLogger' →
     rv.raftLog' = s.log →
     (s.ticking = true → TickFnOk r rv.tick') →
     QOk id s.term msgs msgsAA →
@@ -3315,12 +3319,45 @@ macro "wp_raft_logC" : tactic => `(tactic| (
   iclear Hlg
   try wp_auto))
 
+/-- (2026-11-09, Q8 stage 0) The node is untraced at the state at hand, `s'.gh.tr = none`, from the
+spec's premise `s.gh.tr = none` for a state `s'` that keeps `s`'s ghost (a record update of `s`, a
+step's frame, ...). -/
+syntax "tr_none" : tactic
+
+set_option hygiene false in
+macro_rules | `(tactic| tr_none) => `(tactic| first
+  | rfl
+  | assumption
+  | (simp only [*]; done)
+  | (subst_vars; assumption)
+  | (subst_vars; simp only [*]; done)
+  | simp_all
+  | (subst_vars; simp_all)
+  | (rw [Perennial.EtcdGrove.LocalFrame.ns ‹Perennial.EtcdGrove.LocalFrame _ _›]; tr_none)
+  | (rw [Perennial.EtcdGrove.NetFrame.ns ‹Perennial.EtcdGrove.NetFrame _ _›]; tr_none))
+
+/-- (2026-11-09, Q8 stage 0) The trace mode kept, `s'.gh.tr = X` from `s.gh.tr = X` for a state `s'`
+that keeps `s`'s ghost (as `tr_none`): the `RawNode` predicate's `s.gh.tr = γ.reTrace`. -/
+syntax "tr_keep" : tactic
+
+set_option hygiene false in
+macro_rules | `(tactic| tr_keep) => `(tactic| first
+  | rfl
+  | assumption
+  | (simp only [*]; done)
+  | (subst_vars; assumption)
+  | (subst_vars; simp only [*]; done)
+  | simp_all
+  | (subst_vars; simp_all)
+  | (rw [Perennial.EtcdGrove.LocalFrame.ns ‹Perennial.EtcdGrove.LocalFrame _ _›]; tr_keep)
+  | (rw [Perennial.EtcdGrove.NetFrame.ns ‹Perennial.EtcdGrove.NetFrame _ _›]; tr_keep))
+
 set_option hygiene false in
 /-- A trace hook's call where `Hphys : ownRaftPhysCV c V r id s` is held whole (2026-11-08,
 `notes/trace-validation-hooks.md`): the logger field and its contract read from it
 (`ownRaftPhysC_traceLogger`), the hook's spec applied. -/
 macro "wp_trace_hookC " h:term:max : tactic => `(tactic| (
-  icases Perennial.EtcdGrove.ownRaftPhysC_traceLogger _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  icases Perennial.EtcdGrove.ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   wp_apply ($h) $$ [Htl]
   · isplitr
     · iexact Htl

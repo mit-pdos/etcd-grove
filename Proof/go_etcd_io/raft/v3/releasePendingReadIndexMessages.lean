@@ -94,7 +94,7 @@ theorem releasePendingReadIndexMessages.wp_proof
       raft.committedEntryInCurrentTerm.spec (GF := GF) (hG := hG))
     (wp_sendMsgReadIndexResponse : sendMsgReadIndexResponse.spec (GF := GF) (hG := hG)) :
     releasePendingReadIndexMessages.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hlead Hterm Hcit Hpne
+  intro c r id s Hlead Hterm Hcit Hpne Htr
   wp_start as Hpre
   iNamed Hpre
   wp_auto
@@ -208,7 +208,7 @@ theorem releasePendingReadIndexMessages.wp_proof
           ((pendReqs s).take (sint.nat n))) l p.1 p.2 psn pctx prs (by rw [Hcf.2.1]; exact Hlead)
         (by first | exact Hterm | simpa using Hterm | simp_all)
         (Hpne p (List.mem_of_getElem? Hp))
-        $$ [$Hphys $Hpl] as %s' ⟨Hphys, %Hres⟩
+        (by rw [readRespondAll_gh]; exact Htr) $$ [$Hphys $Hpl] as %s' ⟨Hphys, %Hres⟩
       obtain ⟨-, rfl⟩ := Hres.resolve_right (fun h => h.1 Hsg)
       wp_for_post
       iframe HΦ r
@@ -270,7 +270,7 @@ theorem releasePendingReadIndexMessages.wp_proof
       { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } l p.1 p.2 psn pctx prs Hlead
       (by first | exact Hterm | simpa using Hterm | simp_all)
       (Hpne p (List.mem_of_getElem? Hp))
-      $$ [$Hphys $Hpl] as %s1 ⟨Hphys, %Hres⟩
+      (by tr_none) $$ [$Hphys $Hpl] as %s1 ⟨Hphys, %Hres⟩
     rcases Hres with ⟨Hs1, -⟩ | ⟨-, ms', pvs', rfl, Hms', Hmm'⟩
     · exact absurd Hs1 Hsg
     wp_for_post
