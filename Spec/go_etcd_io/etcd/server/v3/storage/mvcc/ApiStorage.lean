@@ -54,14 +54,16 @@ says nothing of them.
   the key alone), but the entries compaction removes: with `u = false`, all those a compaction at
   `h.compacted` removes, the finished key `h.compacted` (absent at `0`), the scheduled one at most
   it; with `u = true`, all those the finished key's compaction removes and any subset of those the
-  scheduled one's (`h.compacted`, above the finished) removes; every key
+  scheduled one's (`h.compacted`, above the finished) removes **that is, per key, a prefix of the
+  revisions it removes** (the job deletes in revision order, `kvstore_compaction.go:58-92`; two jobs'
+  prefixes are a prefix: `restoreIntoIndex` counts versions from the first surviving entry); every key
   of the bucket is well formed (`BytesToRev` does not panic: `hashByRev` and `restore` parse each).
 * `mvccStorageFor B Pk h u` (transparent): **the storage `B`, its batch lock's invariant `Pk`, holds
   an image of `h`, ready for a store**: what `NewStore`, `New` (3f) and `Restore` take. The contract,
   the visible data at an image of `h` (fresh: `KeyData.empty` at the empty history,
   `mvccImage_empty`), the history's receipt `⧖ (evCount h)` (mvcc's bound on its revisions: an
   execution's receipts bound every history the cluster makes, the sender's too, round 16 of the mvcc
-  API), the delete right and the store's reader slots (`mvccReaderN`, sealed).
+  API; the sender's `mvccImage_obs`/`Restore`/shutdown give it, `req/..._etcdserver.md`, "from 3e"), the delete right and the store's reader slots (`mvccReaderN`, sealed).
 * `storageRest B` (transparent): what a store gives back of a storage it no longer uses (its reader
   slots, the delete right, the data): `Restore`'s old storage, and the shutdown law
   (`Api.lean`, `mvccClosed_rest`).
@@ -111,9 +113,17 @@ structure KeyData where
   keys : GoString → Option GoString
   sched : Option GoString
   fin : Option GoString
+  /-- `true`: the storage's read buffer holds none of `Key`'s entries (all of them committed); a
+  lower bound of what the storage knows: a commit keeps it, a put of `Key` clears it -/
+  clean : Bool
 
 /-- A fresh storage's: no bucket, nothing in it. -/
-def KeyData.empty : KeyData := ⟨false, false, fun _ => none, none, none⟩
+def KeyData.empty : KeyData := ⟨false, false, fun _ => none, none, none, true⟩
+
+/-- An empty storage but for whether its buckets exist (a fresh member's backend: `bootstrap`
+creates `Meta` before `mvcc.New`, `bootstrap.go:266`). -/
+def KeyData.IsEmpty (D : KeyData) : Prop :=
+  D.keys = (fun _ => none) ∧ D.sched = none ∧ D.fin = none ∧ D.clean = true
 
 def KeyData.made (D : KeyData) : MBucket → Bool
   | .keyB => D.keyMade
@@ -124,7 +134,7 @@ def KeyData.create (D : KeyData) : MBucket → KeyData
   | .metaB => { D with metaMade := true }
 
 def KeyData.putKey (D : KeyData) (k v : GoString) : KeyData :=
-  { D with keys := fun k' => if k' = k then some v else D.keys k' }
+  { D with keys := fun k' => if k' = k then some v else D.keys k', clean := false }
 
 def KeyData.delKey (D : KeyData) (k : GoString) : KeyData :=
   { D with keys := fun k' => if k' = k then none else D.keys k' }
@@ -155,20 +165,47 @@ def bkRange (m : GoString → Option GoString) (k e : GoString) (limit : Int)
     (∀ x, x ∈ all ↔ (go.GoStringLe k x.1 ∧ go.GoStringLt x.1 e ∧ m x.1 = some x.2)) ∧
     l = (if 0 < limit ∧ limit < all.length then all.take limit.toNat else all)
 
-/-- What a range of mvcc's bucket `b` reads of `D` (in `Meta`, only the compaction keys are
-mvcc's: a read of `Meta` asks for one of them, `metaKey`). -/
+/-- mvcc's part of `Meta` as a map. -/
+def KeyData.metaMap (D : KeyData) (x : GoString) : Option GoString :=
+  if x = metaKey .sched then D.sched else if x = metaKey .fin then D.fin else none
+
+/-- **What a range of mvcc's bucket `b` reads of `D` through the batch transaction** (bbolt's write
+transaction holds every write: the entries in key order, cut at the limit). -/
 def KeyData.range (D : KeyData) (b : MBucket) (k e : GoString) (limit : Int)
     (l : List (GoString × GoString)) : Prop :=
   match b with
   | .keyB => bkRange D.keys k e limit l
-  | .metaB => bkRange (fun x => if x = metaKey .sched then D.sched
-      else if x = metaKey .fin then D.fin else none) k e limit l
+  | .metaB => bkRange D.metaMap k e limit l
+
+open Classical in
+/-- **What a range reads of `D` through a read transaction** (`baseReadTx.UnsafeRange`,
+`read_tx.go:75-121`): the read buffer's entries of the range (`bs`, in key order, cut at the limit),
+and, if they do not fill it, the committed entries (`cs`, cut at the limit less `bs`'s length)
+followed by them: `cs.take ... ++ bs`. The buffer holds the entries put since the last commit,
+above every committed one (`Key`'s keys are revisions put in increasing order: the put row's
+premise), so `cs ++ bs` is the range in key order; the cut is not a prefix of it when the buffer is
+not empty (bbolt's part is cut first). With `D.clean` the buffer holds none: the plain cut range.
+A single-key read (`nil` end: `limit` is `1`) finds the key in either part. `Meta`'s compaction keys
+are read one at a time (a `nil` end; a longer range of `Meta` panics, `read_tx.go:86`). -/
+def KeyData.rtRange (D : KeyData) (b : MBucket) (k e : GoString) (limit : Int)
+    (l : List (GoString × GoString)) : Prop :=
+  match b with
+  | .metaB => bkRange D.metaMap k e limit l
+  | .keyB =>
+    if e = [] then bkRange D.keys k e limit l
+    else ∃ cs bs : List (GoString × GoString), bkRange D.keys k e 0 (cs ++ bs) ∧
+      (D.clean = true → bs = []) ∧
+      let lim : Int := if limit ≤ 0 then 2 ^ 63 - 1 else limit
+      l = (if (bs.length : Int) ≥ lim then bs.take lim.toNat
+           else cs.take (lim - bs.length).toNat ++ bs)
 
 /-- **`D` is an image of the history `h`** (mvcc's meaning; see the header): opaque. -/
 opaque mvccImage (D : KeyData) (h : KVHist) (u : Bool) : Prop
 
 /-- **The store's reader slots** (sealed constant): how many of the storage's reader slots a store
-takes (each reader of the store: a client's reader token, its own goroutines'). -/
+takes (each reader of the store: a client's reader token, its own goroutines'). Its value against
+the client's tokens is `Api.lean`'s `mvccReaderN_eq`; the storage's opener (4a) hands this many
+over (`req/..._backend.md`, "from 3e"). -/
 opaque mvccReaderN : Nat
 
 end pure
@@ -215,6 +252,14 @@ unsafe writes under the lock take (the lessor's lease-bucket delete inside a sto
 transaction, `lessor.Revoke`: 3c's provisional `beTxHeld`); `kbLocked_held` lends it. -/
 opaque kbHeld (B : MvccStorage) : IProp GF := iprop(True)
 
+/-- **A reader slot kept for lock-only reads** (exclusive): the shared read transaction's
+`RLock`/`RUnlock` with no snapshot, at any time, also after the storage's close (`kbRdToks_bare`
+makes one; the opener's close takes the slots but these). -/
+opaque kbBareSlot (B : MvccStorage) : IProp GF := iprop(True)
+
+/-- The shared read transaction locked for reading, nothing read (exclusive). -/
+opaque kbBare (B : MvccStorage) : IProp GF := iprop(True)
+
 /-- mvcc's bucket `b` exists (persistent). -/
 opaque kbMade (B : MvccStorage) (b : MBucket) : IProp GF := iprop(True)
 
@@ -242,13 +287,18 @@ def kbObs (B : MvccStorage) (Φ : KeyData → IProp GF) : IProp GF :=
   iprop(AU <{ ∃∃ (D : KeyData), kbData B D }> @ ⊤, ∅ <{ kbData B D, COMM Φ D }>)
 
 /-- **`UnsafeRange(bk, k, e, limit)`'s triple** on a transaction `t` seeing `D` through the
-resource `R` (kept). -/
-def rangeOk (t : GoInterfaceOk) (R : IProp GF) (D : KeyData) : IProp GF :=
+resource `R` (kept), its result by `rg` (`KeyData.range` of a batch, `KeyData.rtRange` of a read
+transaction). An empty end is a `nil` slice (a non-`nil` empty one with no limit panics on `Meta`
+and may return a `Key` entry twice, `read_tx.go:79-88`); a range of `Meta` is of one key. -/
+def rangeOk (t : GoInterfaceOk) (R : IProp GF) (D : KeyData)
+    (rg : KeyData → MBucket → GoString → GoString → Int → List (GoString × GoString) → Prop) :
+    IProp GF :=
   iprop(□ ∀ (b : MBucket) (ks es : GoSlice) (k e : GoString) (dk de : DFrac) (limit : w64)
       (Φ : val → IProp GF),
     R -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜D.made b = true⌝ -∗
+    ⌜(e = [] → es = slice.nil) ∧ (b = .metaB → es = slice.nil)⌝ -∗
     ▷ (∀ (kl vl : GoSlice) (l : List (GoString × GoString)),
-        R -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜D.range b k e (sint.Z limit) l⌝ -∗
+        R -∗ ks ↦*{dk} k -∗ es ↦*{de} e -∗ ⌜rg D b k e (sint.Z limit) l⌝ -∗
         bytesListAt kl (l.map Prod.fst) -∗ bytesListAt vl (l.map Prod.snd) -∗
         Φ (PairV #kl #vl)) -∗
     WP (App (App (App (App (Val #(methods t.ty go!"UnsafeRange" t.v)) (Val #(bucketVal b)))
@@ -282,8 +332,14 @@ def keyBackend (B : MvccStorage) (Pk : IProp GF) : IProp GF :=
     (□ ∀ (rt : GoInterfaceOk) (D : KeyData) (Φ : val → IProp GF),
       kbRead B rt D -∗ ▷ (kbRdToks B 1 -∗ Φ #()) -∗
       WP (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ Φ }}) ∗
-    -- ReadTx.UnsafeRange: of the snapshot
-    (□ ∀ (rt : GoInterfaceOk) (D : KeyData), rangeOk rt (kbRead B rt D) D) ∗
+    -- ReadTx.UnsafeRange: of the snapshot (the read buffer's entries after bbolt's)
+    (□ ∀ (rt : GoInterfaceOk) (D : KeyData), rangeOk rt (kbRead B rt D) D KeyData.rtRange) ∗
+    -- the shared ReadTx's RLock()/RUnlock() alone, with a slot kept for it (`kbBareSlot`): no
+    -- snapshot, also after the storage's close (a mutex: the store's `Rev()`, `kv_view.go:31-35`)
+    (□ ∀ Φ : val → IProp GF, kbBareSlot B -∗ ▷ (kbBare B -∗ Φ #()) -∗
+      WP (App (Val #(methods (kbReadTx B).ty go!"RLock" (kbReadTx B).v)) (Val #())) {{ Φ }}) ∗
+    (□ ∀ Φ : val → IProp GF, kbBare B -∗ ▷ (kbBareSlot B -∗ Φ #()) -∗
+      WP (App (Val #(methods (kbReadTx B).ty go!"RUnlock" (kbReadTx B).v)) (Val #())) {{ Φ }}) ∗
     -- BatchTx.LockInsideApply(): the batch lock, the hook run under it
     (□ ∀ (dq : DFrac) (f : GoFunc) (Pre Q : IProp GF) (Ψ : KeyData → IProp GF)
         (Φ : val → IProp GF),
@@ -307,7 +363,8 @@ def keyBackend (B : MvccStorage) (Pk : IProp GF) : IProp GF :=
     -- BatchTx.UnsafePut / UnsafeSeqPut of `Key` (read-only bytes: the storage may keep them)
     (□ ∀ (m : GoString) (D : KeyData) (ks vs : GoSlice) (k v : GoString) (Φ : val → IProp GF),
       ⌜m = go!"UnsafePut" ∨ m = go!"UnsafeSeqPut"⌝ -∗
-      kbLocked B D -∗ ⌜D.keyMade = true⌝ -∗ ks ↦*□ k -∗ vs ↦*□ v -∗
+      kbLocked B D -∗ ⌜D.keyMade = true ∧ ∀ k' v', D.keys k' = some v' → go.GoStringLt k' k⌝ -∗
+      ks ↦*□ k -∗ vs ↦*□ v -∗
       ▷ (kbLocked B (D.putKey k v) -∗ Φ #()) -∗
       WP (App (App (App (Val #(methods tx.ty m tx.v)) (Val #(bucketVal .keyB))) (Val #ks)) (Val #vs))
         {{ Φ }}) ∗
@@ -324,7 +381,7 @@ def keyBackend (B : MvccStorage) (Pk : IProp GF) : IProp GF :=
       WP (App (App (Val #(methods tx.ty go!"UnsafeDelete" tx.v)) (Val #(bucketVal .keyB))) (Val #ks))
         {{ Φ }}) ∗
     -- BatchTx.UnsafeRange: of the batch's data
-    (□ ∀ D : KeyData, rangeOk tx (kbLocked B D) D) ∗
+    (□ ∀ D : KeyData, rangeOk tx (kbLocked B D) D KeyData.range) ∗
     -- Backend.ForceCommit(): the client's commit request
     (□ ∀ (X Y : IProp GF) (Φ : val → IProp GF),
       X -∗ storageReq B Pk X Y -∗ ▷ (Y -∗ Φ #()) -∗
@@ -340,15 +397,18 @@ def keyBackend (B : MvccStorage) (Pk : IProp GF) : IProp GF :=
         m = go!"OpenReadTxN"⌝ -∗ ▷ (∀ n : w64, Φ #n) -∗
       WP (App (Val #(methods bk.ty m bk.v)) (Val #())) {{ Φ }}))
 
-/-- **The storage `B` holds an image of `h`, ready for a store** (see the header). -/
+/-- **The storage `B` holds an image of `h`, ready for a store** (see the header): its read buffer
+holds none of `Key`'s entries (`D.clean`: an opened storage's, and `NewStore`'s own commit before
+`restore`'s chunked scan); each bucket that exists, known to. -/
 def mvccStorageFor (B : MvccStorage) (Pk : IProp GF) (h : KVHist) (u : Bool) : IProp GF :=
-  iprop(keyBackend B Pk ∗ (∃ D : KeyData, kbData B D ∗ ⌜mvccImage D h u⌝ ∗
-      (⌜D = KeyData.empty⌝ ∨ (kbMade B .keyB ∗ kbMade B .metaB ∗ ⌜D.keyMade ∧ D.metaMade⌝))) ∗
+  iprop(keyBackend B Pk ∗ (∃ D : KeyData, kbData B D ∗ ⌜mvccImage D h u ∧ D.clean = true⌝ ∗
+      (⌜D.keyMade = true⌝ -∗ kbMade B .keyB) ∗ (⌜D.metaMade = true⌝ -∗ kbMade B .metaB)) ∗
     ⧖ (evCount h) ∗ kbSafe B ∗ kbRdToks B mvccReaderN)
 
-/-- **What a store gives back of a storage it no longer uses.** -/
-def storageRest (B : MvccStorage) : IProp GF :=
-  iprop((∃ D : KeyData, kbData B D) ∗ kbSafe B ∗ kbRdToks B mvccReaderN)
+/-- **What a store gives back of a storage it no longer uses**: its data, the delete right and `n`
+reader slots (all of them, `mvccReaderN`, but those kept for lock-only reads). -/
+def storageRest (B : MvccStorage) (n : Nat) : IProp GF :=
+  iprop((∃ D : KeyData, kbData B D) ∗ kbSafe B ∗ kbRdToks B n)
 
 end vocab
 
@@ -375,6 +435,9 @@ def kbRdToks_split.spec : Prop := ∀ B n m,
 
 def kbMade_persistent.spec : Prop := ∀ B b, Persistent (kbMade (GF := GF) B b)
 
+/-- A reader slot kept for lock-only reads (the opener's close then waits only for its mutex). -/
+def kbRdToks_bare.spec : Prop := ∀ B, kbRdToks (GF := GF) B 1 ={⊤}=∗ kbBareSlot B
+
 def storageReq_persistent.spec : Prop := ∀ B (Pk X Y : IProp GF), Persistent (storageReq B Pk X Y)
 
 /-- A commit asking nothing. -/
@@ -391,9 +454,13 @@ def storageHook_agree.spec : Prop := ∀ B dq dq' f f',
 
 def keyBackend_persistent.spec : Prop := ∀ B (Pk : IProp GF), Persistent (keyBackend B Pk)
 
-/-- **A fresh storage is an image of the empty history** (mvcc's: no bucket, nothing in it, no
-compaction). -/
-def mvccImage_empty.spec : Prop := mvccImage KeyData.empty ⟨[], 0⟩ false
+/-- **An empty storage is an image of the empty history** (whichever of mvcc's buckets exist: a
+fresh member's backend has `Meta` already, `bootstrap.go:266`). -/
+def mvccImage_empty.spec : Prop := ∀ D : KeyData, D.IsEmpty → mvccImage D ⟨[], 0⟩ false
+
+/-- **An image's history is reachable** (a history a store went through: the image facts that travel
+with a snapshot or a disk carry it, in place of a premise no caller could establish). -/
+def mvccImage_reachable.spec : Prop := ∀ D h u, mvccImage D h u → MvccReachable ⟨h, []⟩
 
 end laws
 

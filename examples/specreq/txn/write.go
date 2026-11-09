@@ -18,7 +18,7 @@ import (
 // sees the value at that mod revision.
 // Users: apply/backend.go:51,59 (applierV3backend.Put then Range, as consecutive entries).
 // Assumes: the sole writer (no other write between the calls).
-// Specs: Put.spec, Range.spec; laws: putAns, putHist (W0's PutReq.record), mvccState_excl.
+// Specs: Put.spec, Range.spec; laws: putAns, putHist (W0's PutReq.record).
 func ReqApplyPutThenRange(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k, v []byte) {
 	presp, _, err := txn.Put(context.TODO(), lg, le, kv, &pb.PutRequest{Key: k, Value: v})
 	if err != nil {
@@ -40,7 +40,8 @@ func ReqApplyPutThenRange(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k, v []by
 // ErrKeyNotFound and writes nothing; of a present key it keeps the value.
 // Users: apply/backend.go:51 (a client's put WithIgnoreValue: clientv3 op.go).
 // Assumes: the sole writer.
-// Specs: Put.spec, Range.spec; laws: errIs_agree.
+// Specs: Put.spec, Range.spec (errIs: ErrKeyNotFound's global, so errors.Is evaluates); laws:
+// errIs_agree.
 func ReqApplyPutIgnoreValue(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k []byte) {
 	before, _, err := txn.Range(context.TODO(), lg, kv, &pb.RangeRequest{Key: k}, true)
 	if err != nil {
@@ -66,7 +67,8 @@ func ReqApplyPutIgnoreValue(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k []byt
 // ErrLeaseNotFound, before any write.
 // Users: apply/backend.go:51 (a put WithLease of a revoked or expired lease).
 // Assumes: the sole writer; id is not a live lease of le (its Lease.lessorState), id != 0.
-// Specs: Put.spec (putAns: W0's PutReq.check, the lease first); 3c's Lookup, 3e's Rev (req/, "from 3b").
+// Specs: Put.spec (putAns: W0's PutReq.check, the lease first; errIs: ErrLeaseNotFound's global);
+// 3c's lessor.Lookup.spec, 3e's KV.Rev.contract.
 func ReqApplyPutLeaseCheck(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k, v []byte, id int64) {
 	if le.Lookup(lease.LeaseID(id)) != nil {
 		return
@@ -115,7 +117,8 @@ func ReqApplyDeleteRange(lg *zap.Logger, kv mvcc.KV, k, end []byte) {
 // comparison holds at the transaction's start, and its put is at the header's revision.
 // Users: apply/backend.go:63 (a client's STM or lock: concurrency/stm.go, mutex.go), skip false.
 // Assumes: the sole writer; the transaction passed checkTxnRequest/checkIntervals (txnSafe).
-// Specs: Range.spec, Txn.spec (run, runRev); laws: run_txnRun.
+// Specs: Range.spec, Txn.spec (run, runRev); laws: run_txnRun; 3e's Mvcc.mvccState_reachable (a
+// present key's mod revision is not 0).
 func ReqApplyTxnCAS(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k, v []byte) {
 	before, _, err := txn.Range(context.TODO(), lg, kv, &pb.RangeRequest{Key: k}, true)
 	if err != nil {
@@ -150,7 +153,8 @@ func ReqApplyTxnCAS(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k, v []byte) {
 // not run, their responses carry the transaction's revision only; the writes still happen.
 // Users: apply/backend.go:63, apply/apply.go:43 (SkipRangeExecution when the proposer is not here).
 // Assumes: the sole writer.
-// Specs: Txn.spec (run at skip; run_txnRun: the events do not depend on skip); 3e's Rev.
+// Specs: Txn.spec (run at skip; run_txnRun: the events do not depend on skip); 3e's
+// KV.Rev.contract.
 func ReqApplyTxnSkip(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k, v []byte) {
 	rev := kv.Rev()
 	rt := &pb.TxnRequest{Success: []*pb.RequestOp{
@@ -167,5 +171,57 @@ func ReqApplyTxnSkip(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k, v []byte) {
 	}
 	if kv.Rev() != rev+1 {
 		panic("apply-txn-skip: the put was not written")
+	}
+}
+
+// REQ txn/apply-delete-prevkv: a delete with PrevKv returns the deleted key-values, in key order,
+// as they were.
+// Users: apply/backend.go:55 (a client's Delete WithPrevKV: client/v3/op.go; the leasing cache's
+// and the STM's deletes).
+// Assumes: the sole writer; context.TODO() (never done, so no context error).
+// Specs: Range.spec, DeleteRange.spec.
+func ReqApplyDeletePrevKv(lg *zap.Logger, kv mvcc.KV, k, end []byte) {
+	before, _, err := txn.Range(context.TODO(), lg, kv, &pb.RangeRequest{Key: k, RangeEnd: end}, true)
+	if err != nil {
+		panic("apply-delete-prevkv: a current range failed")
+	}
+	dresp, _, err := txn.DeleteRange(context.TODO(), lg, kv, &pb.DeleteRangeRequest{Key: k, RangeEnd: end, PrevKv: true})
+	if err != nil {
+		panic("apply-delete-prevkv: the context is never done")
+	}
+	if len(dresp.PrevKvs) != len(before.Kvs) || dresp.Deleted != int64(len(before.Kvs)) {
+		panic("apply-delete-prevkv: wrong count")
+	}
+	for i := range before.Kvs {
+		if !bytes.Equal(dresp.PrevKvs[i].Key, before.Kvs[i].Key) ||
+			!bytes.Equal(dresp.PrevKvs[i].Value, before.Kvs[i].Value) ||
+			dresp.PrevKvs[i].ModRevision != before.Kvs[i].ModRevision {
+			panic("apply-delete-prevkv: a previous key-value differs")
+		}
+	}
+}
+
+// REQ txn/apply-txn-check-fails: a transaction whose check fails (a put on a lease not live, or a
+// range below the compaction) returns the sentinel, no response, and writes nothing, not even its
+// other operations.
+// Users: apply/backend.go:63 (3a's error results: ErrLeaseNotFound, ErrCompacted, ErrFutureRev
+// mapped by togRPCError).
+// Assumes: the sole writer; id != 0 is not a live lease of le.
+// Specs: Txn.spec (run: opsCheck; errIs), 3c's lessor.Lookup.spec, 3e's KV.Rev.contract.
+func ReqApplyTxnCheckFails(lg *zap.Logger, le lease.Lessor, kv mvcc.KV, k, v []byte, id int64) {
+	if le.Lookup(lease.LeaseID(id)) != nil {
+		return
+	}
+	rev := kv.Rev()
+	rt := &pb.TxnRequest{Success: []*pb.RequestOp{
+		{Request: &pb.RequestOp_RequestPut{RequestPut: &pb.PutRequest{Key: k, Value: v}}},
+		{Request: &pb.RequestOp_RequestPut{RequestPut: &pb.PutRequest{Key: append(append([]byte{}, k...), 'x'), Value: v, Lease: id}}},
+	}}
+	resp, _, err := txn.Txn(context.TODO(), lg, rt, false, kv, le, false)
+	if !errors.Is(err, lease.ErrLeaseNotFound) || resp != nil {
+		panic("apply-txn-check-fails: a dead lease accepted")
+	}
+	if kv.Rev() != rev {
+		panic("apply-txn-check-fails: written anyway")
 	}
 }

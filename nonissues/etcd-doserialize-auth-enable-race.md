@@ -27,8 +27,9 @@ promote it: a failpoint (or a sleep injected in `doSerialize` after `chk`), an u
 
 no: the client's model covers it (round 4 of the specs-only W0 batch): a linearizable read's
 permission is checked at some auth state the cluster had from the call's start on
-(`Spec/go_etcd_io/etcd/api/v3/Model.lean`, `State.authOffSince`, `State.deniedSince`, `Step`'s
-`lo`), so a read whose check saw auth off is answered whatever the auth state at the answer, as
+(`Spec/go_etcd_io/etcd/api/v3/Model.lean`, `State.permittedSince`, `State.deniedSince`, `Step`'s
+`lo`; round 6 widened it to any auth state since the call's start, which also covers an auth change
+whose revision is bumped before readers see it), so a read whose check saw auth off is answered whatever the auth state at the answer, as
 etcd does. Clients see it: an unauthenticated read that started before `AuthEnable` may succeed.
 
 ## Notes

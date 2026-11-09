@@ -387,3 +387,20 @@ The coordinator's decision (`ErrNoSpace` indefinite), the requests after round 4
 - **3a's item 4 (members' TTLs alike)**: the same; a user decision if wanted (`batch-3a.md`).
 - **2e's adequacy resources** (`dataDirFresh`, `addrFree`, `backendEnvOk`) and the join by peer-URL
   rights: 2e's vocabulary, stated in its specs; K1/K2 in `top.md` refer to 2e for them.
+
+## Round 6 repairs (2026-11-09)
+
+3d's review F4: an auth change bumps the auth revision before its batch is published to readers,
+so `doSerialize`'s post-read check passes and a read is checked against the old auth state.
+
+| name | change |
+|---|---|
+| `EtcdModel.State.permittedSince σ lo who ps` | **new**: the read is permitted at some auth state from index `lo` on (subsumes `authOffSince`) |
+| `kvStep .range`, `.txn` (read-only) | a linearizable read succeeds if permitted at `σ`, or `σ.permittedSince lo` (was `σ.authOffSince lo`); denials unchanged (`deniedSince`) |
+| `EtcdModel.State.authOffSince` | kept (no longer used by `kvStep`); it implies `permittedSince` |
+
+What it admits: a read whose check saw an auth state since its start (auth off there, or the user
+permitted there before a change not yet visible to readers) and whose data is the linearization
+state's. Margin: it also admits a read permitted only at a state whose change was already visible
+to the reader (etcd then answers `ErrAuthOldRevision`, a refusal); the model does not record which
+auth changes a member's readers saw.

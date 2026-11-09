@@ -12,3 +12,10 @@ inside `Apply.smAt`) and calls `Get` (`restoreAlarms`, the backend's `GET`), `Ac
    updates fired at the current view), or a law from 2d's invariant; 3a's `smAt` owns the writer's
    part.
 Used by: `applierV3backend.Alarm.spec`, `uberApplier.restoreAlarms.spec`.
+
+
+## from 3a (round 1)
+
+3. W0's `AlarmKind` now has `other n`: `kindOf` should map every type but `NONE` (so `Activate` of an
+   unknown type, which an administrator can propose and Go stores, has a spec and 3a's `IrrOp.ok`
+   can drop its known-kind premise).

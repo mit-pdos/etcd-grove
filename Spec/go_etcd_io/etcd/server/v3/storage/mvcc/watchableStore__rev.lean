@@ -25,10 +25,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 def watchableStore.rev.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsInv s γ ∗ mvccReaders γ 1 }}
+  ∀ (s : Loc) (γ : MvccName) (Q : MvccState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsInv s γ ∗ mvccReaders γ 1 ∗
+      AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"rev")) (Val #()))
-  {{ (r : w64), RET #r; mvccReaders γ 1 ∗ ∃ h : KVHist, mvccLb γ h ∗ ⌜sint.Z r = h.rev⌝ }}
+  {{ (r : w64), RET #r; mvccReaders γ 1 ∗ ∃ σ : MvccState, Q σ ∗ ⌜r = W64 σ.rev⌝ }}
 
 end spec
 

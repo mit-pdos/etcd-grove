@@ -244,13 +244,19 @@ structure WatchPos where
   once the member's responses carry it, for good; a client's channel keeps it (a reconnect
   re-registers the watch, which reopens the window) -/
   prevLoose : Bool
+  /-- the revision up to which the watch is known complete by its **events** alone (the last
+  event's revision, or the start's - 1; `none` for a watch from the current revision before its
+  first event): a progress notification never raises it, as it never raises the member's
+  `minRev`, which a compaction is compared against (`watcher_group.go:255`; a `Restore` keeps
+  `minRev`, `watchable_store.go:215-219`) -/
+  evDone : Option Nat
 
 /-- A new watch from the revision `rev`; `r0` a revision the cluster had reached when `Watch`
 returned (the floor of a watch from the current revision: every event above it is delivered). -/
 def WatchPos.init (rev : Int) (r0 : Nat) : WatchPos :=
   { done := if 0 < rev then some (rev.toNat - 1) else none,
     floor := if 0 < rev then none else some r0, started := false, ended := false,
-    prevLoose := true }
+    prevLoose := true, evDone := if 0 < rev then some (rev.toNat - 1) else none }
 
 /-- A watch whose channel delivers at most one error response, then closes (`Watch` on a closed
 watcher, a done context, a stream that ended). -/
@@ -265,8 +271,10 @@ cluster reached, a lagging member's included):
 * every response's header revision has been reached; the floor never changes;
 * after an error, only `closeErr` responses (header `0`, no compaction, no events);
 * an **error** (`Err() != nil`) ends the watch; a `closeErr` one has header `0` and no compaction;
-  a compaction (`CompactRevision` set, then no `closeErr`) says the next revision the watch needs
-  is below a compaction of the cluster;
+  a compaction (`CompactRevision` set, then no `closeErr`) says the revision after the watch's last
+  event (or its start) is below a compaction of the cluster (not the one after a progress
+  notification: after a member restores a snapshot, a watch told "nothing up to `P`" may be
+  canceled at a compaction revision at most `P`);
 * a **`Created`** response only first, and only with `WithCreatedNotify`;
 * a response **with events**: its last event's revision reached and past `p`'s; and, under the
   compaction condition (`exactFrom` from the first revision it covers), exactly the watch's events
@@ -281,6 +289,7 @@ def watchStep (who : Principal) (w : WatchReq) (σ σa : State) (p : WatchPos) (
     (p' : WatchPos) : Prop :=
   sint.Z m.hdr.revision ≤ (σ.kv.rev : Int) ∧ p'.started = true ∧ p'.floor = p.floor ∧
   (p'.prevLoose = true → p.prevLoose = true) ∧
+  p'.evDone = (if m.events = [] then p.evDone else p'.done) ∧
   if p.ended = true then
     m.closeErr ≠ none ∧ m.compactRev = W64 0 ∧ m.hdr.revision = W64 0 ∧ m.events = [] ∧
     m.canceled = true ∧ p'.done = p.done ∧ p'.ended = true
@@ -288,7 +297,7 @@ def watchStep (who : Principal) (w : WatchReq) (σ σa : State) (p : WatchPos) (
     m.events = [] ∧ m.canceled = true ∧ m.created = false ∧ p'.done = p.done ∧ p'.ended = true ∧
     (m.closeErr ≠ none → m.compactRev = W64 0 ∧ m.hdr.revision = W64 0) ∧
     (m.compactRev ≠ W64 0 → m.closeErr = none ∧ ∃ cr : Nat, sint.Z m.compactRev = cr ∧
-      cr ≤ σ.kv.compacted ∧ ∀ c, p.done = some c → c + 1 < cr)
+      cr ≤ σ.kv.compacted ∧ ∀ c, p.evDone = some c → c + 1 < cr)
   else if m.created = true then
     p.started = false ∧ w.createdNotify = true ∧ m.events = [] ∧ m.canceled = false ∧
     p'.done = p.done ∧ p'.ended = false

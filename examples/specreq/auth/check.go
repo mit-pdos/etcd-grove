@@ -51,13 +51,13 @@ func ReqNoUser(as etcdauth.AuthStore, key []byte) {
 // check of a key and the administrator check agree with W0's permits and admin there.
 // Users: apply/auth.go:53,74,104,215,223,235 (the auth applier's checks, HasRole).
 // Assumes: called by the apply thread between two admin steps (it holds authCur).
-// Specs: authStore.IsPutPermitted.spec, IsAdminPermitted.spec, HasRole.spec; laws: authCur_at,
-// authAt_le, authAt_agree.
+// Specs: authStore.IsPutPermitted.spec (checkPost's ErrAuthOldRevision: rev below the store's),
+// IsAdminPermitted.spec, HasRole.spec, Revision.spec; laws: authCur_at, authAt_le, authAt_agree.
 func ReqWriterCheck(as etcdauth.AuthStore, user string, rev uint64, key []byte) {
 	ai := &etcdauth.AuthInfo{Username: user, Revision: rev}
 	admin := as.IsAdminPermitted(ai) == nil
 	put := as.IsPutPermitted(ai, key)
-	if admin && as.IsAuthEnabled() && rev != 0 && put != nil && !errors.Is(put, etcdauth.ErrAuthOldRevision) {
+	if admin && as.IsAuthEnabled() && rev != 0 && rev >= as.Revision() && put != nil {
 		panic("writer-check: an administrator refused a write at the same state")
 	}
 	_ = as.HasRole(user, "root")

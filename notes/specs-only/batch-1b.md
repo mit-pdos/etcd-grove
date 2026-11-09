@@ -220,3 +220,14 @@ package comment adds the condition to the owner's invariant (a workload with no 
 puts and deletes one key, or no compaction); `order`, `filter`, `select`, `rewrite` and the history
 snippets cite it; `compacted`, `ends`, `created-first`, `close`, `share`, `options`,
 `request-progress` need none. 3f may replace its `exactFrom` by this one (same body).
+
+## Round 4 (compaction after restore) (2026-11-09)
+
+3f's review F1: the member compares a compaction against the watcher's `minRev`, which a progress
+never raises and a snapshot `Restore` keeps (`watchable_store.go:483-503, 528-554, 215-219`), so
+after a restore a watch told "nothing up to `P`" may be canceled at `cr ≤ P`. `WatchPos` gains
+`evDone` (the last event's revision, or the start's - 1; raised by event responses only, kept by
+progress, errors and `Created`); the compaction clause of `watchStep` (hence `wireStep`'s per-id
+case) is now `∀ c, p.evDone = some c → c + 1 < cr`. On the client a resumed registration starts at
+`nextRev ≥ evDone + 1`, so the member's `minRev` is still above `evDone`. `ReqWatchCompacted`
+(`cr > rev`) still follows (`evDone ≥ rev - 1`); no snippet relied on a progress there.

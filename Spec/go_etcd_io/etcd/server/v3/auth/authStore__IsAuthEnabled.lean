@@ -3,7 +3,7 @@
 
 **Users.** `isOpPermitted`, `IsAdminPermitted`, `Authenticate`, `CheckPassword`, `AuthInfoFromCtx`,
 `WithRoot` (this package); `EtcdServer.requireAuthInfo` and the lease checks (`v3_server.go:576,609,
-719,754,1278`, 2c); `AuthAdmin.requireAuthInfo` (`api/v3rpc/auth.go:192`, 2a); `applierV3backend.
+719,754,1278`, 2c); the gateway's certificate guard (`embed/serve.go:465`); `AuthAdmin.requireAuthInfo` (`api/v3rpc/auth.go:192`, 2a); `applierV3backend.
 AuthStatus` (`apply/backend.go:152`, 3a, the writer). Snippet: `examples/specreq/auth/check.go`
 (`ReqEnabledFlag`).
 

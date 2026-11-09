@@ -2,7 +2,8 @@
 ## `(*authStore).WithRoot(ctx)`
 
 **Users.** The lessor's expiry loop (`server.go:881`, 2d's `revokeExpiredLeases`):
-`s.LeaseRevoke(s.authStore.WithRoot(s.ctx), ...)`, whose principal must be `root` when auth is on.
+`s.LeaseRevoke(s.authStore.WithRoot(s.ctx), ...)`, whose principal must be `root` when auth is on;
+the health checks (`api/etcdhttp/health.go:222,434`: a `Range` as root).
 Snippet: `examples/specreq/auth/token.go` (`ReqWithRoot`).
 
 **Proof sketch.** The flag (off: `ctx` unchanged). The simple provider (a type assertion on the
@@ -17,7 +18,9 @@ include them: `req/go_etcd_io_etcd_api_v3.md`).
 **Changes.** The old spec was proved with auth off only; it now holds at every mode, with the
 premise `rootTokOk` (**decision for the user**: the simple provider, etcd's default, does not give
 it, `nonissues/etcd-auth-withroot-token-collision-panic.md`; a fix on the fork, or a probabilistic
-premise).
+premise). Round 1 (review F5): kept; the fork fix (`assignSimpleTokenToUser` returning an error,
+which `WithRoot` already maps to `ctx`) is an open question for the user; with it `rootTokOk`
+goes.
 
 **Margin.** None.
 -/

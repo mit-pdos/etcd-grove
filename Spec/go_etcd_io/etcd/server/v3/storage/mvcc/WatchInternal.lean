@@ -13,9 +13,11 @@ are over `ApiWatch.lean`'s. Internal helpers' specs mirror their code (PRINCIPLE
   watcher's record (`wRecAt`: `minRev`, `victim`, `compacted`, `restore`, `ch`) and its stream's
   send right; the store's notified history (`mvccLb`'s authority, 3e's half of `mvccState`'s
   agreement) moves only under it. The relations it keeps: a synced watcher's events of the
-  revisions below its `minRev` are all sent (its `minRev` is past the notified revision, or its start
-  is in the future), an unsynced one's below its `minRev` too and its `minRev` at most the current
-  revision (but with `restore`), a victim's are sent but its batch's, which `moveVictims` resends;
+  revisions below its `minRev` are all sent and it has no event between its `minRev` and the notified
+  revision (its `minRev` may stay at its registration's while it gets no event: a progress does not
+  raise it), an unsynced one's below its `minRev` too and its `minRev` at most the current revision
+  (but with `restore`); the events position of every watcher (`posEvOf` of its sent responses) is
+  below its `minRev`, a victim's are sent but its batch's, which `moveVictims` resends;
   every sent response carries `wsRespOk`.
 * `wsMu s γ` (exclusive): **the lock's contents, held** (`s.mu.Lock` gives it, `Unlock` takes it):
   what `notify`, `addVictim`, `chooseAll`/`choose` and the loops' locked sections read and write.
@@ -166,7 +168,8 @@ batch carries for `moveVictims`. -/
 opaque wsSendable (w : Loc) (r : WResp) : IProp GF := iprop(True)
 
 /-- **The compaction response at `cr` of the watcher `w` may be sent now** (exclusive): `cr` is the
-store's compaction revision (at most the notified history's) and above `w`'s position + 1. -/
+store's compaction revision (at most the notified history's) and above `w`'s `minRev`, so above its
+events position + 1. -/
 opaque wsCmpSendable (w : Loc) (cr : w64) : IProp GF := iprop(True)
 
 /-- **The caller holds `s.mu` and a reader of the store's storage `b`**, whose image is of the

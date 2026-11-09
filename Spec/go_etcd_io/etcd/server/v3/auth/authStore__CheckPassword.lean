@@ -8,16 +8,15 @@
 `lockedReadTx` (at `jx`): the user (absent: `ErrAuthFailed`), password-less
 (`Options.NoPassword`: `ErrNoPasswordUser`), the stored revision `ax.rev` (the backend's, the same
 view as the user: what makes 2c's "checked revision equals `Revision()` later" mean "the user's
-record has not changed since"); `RUnlock`; then `Bcrypt.CompareHashAndPassword` of the stored hash
-(`authBackendAt`'s realization: a hash of the model's password, `Bcrypt.hashOf`) with `password`:
-`nil` for the user's password (the boundary's correctness), any answer otherwise.
+record has not changed since"); `RUnlock`; then `Bcrypt.CompareHashAndPassword` of the stored credential `c` (`authBackendAt`'s
+realization: W0's `UserRec.password`) with `password`: `nil` exactly when `pwMatch c password`
+(the boundary).
 
 **Changes.** New statement over W0's state (the old one was an axiom: bcrypt untranslated); the
-revision is the backend view's, not the atomic's.
+revision is the backend view's, not the atomic's. Round 1 (review S14): over W0's round-5
+`pwMatch` (the stored credential, not the password).
 
-**Margin.** A wrong password may pass (bcrypt reads 72 bytes, hashes collide: the boundary assumes
-no rejection), so success does not say the password is the user's; W0's `authenticate` step must
-allow that (`req/go_etcd_io_etcd_api_v3.md`, "from 3d").
+**Margin.** None (`pwMatch` is bcrypt's verdict; W0's `authenticate` uses the same).
 -/
 module
 
@@ -43,9 +42,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **`as.CheckPassword(name, pw)`**: auth off at a recorded state (`0`, `ErrAuthNotEnabled`); or,
-auth on at the flag's state `af` and the backend's `ax`: the user absent or `pw` not its password
-(`ErrAuthFailed`), password-less (`ErrNoPasswordUser`), or the user with a password and the backend
-state's revision (`nil`). `pw` the user's password never fails with auth on. -/
+auth on at the flag's state `af` and the backend's `ax`: the user absent or `pw` not matching its
+credential (`ErrAuthFailed`), password-less (`ErrNoPasswordUser`), or `pw` matching it and the
+backend state's revision (`nil`). -/
 def authStore.CheckPassword.spec : Prop :=
   ∀ (st : Loc) (γ : Cluster) (γa : AuthNames) (i0 : Nat) (name pw : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authLb γa i0 ∗ threadTok }}
@@ -54,11 +53,11 @@ def authStore.CheckPassword.spec : Prop :=
       ∃ (jf jx : Nat) (af ax : AuthState), ⌜i0 ≤ jf ∧ i0 ≤ jx⌝ ∗ authAt γa jf af ∗ authAt γa jx ax ∗
       ⌜(af.enabled = false ∧ r = W64 0 ∧ err = errOf .authNotEnabled) ∨
        (af.enabled = true ∧ r = W64 0 ∧ err = errOf .authFailed ∧
-          (ax.users name = none ∨ ∃ ur p, ax.users name = some ur ∧ ur.password = some p ∧ p ≠ pw)) ∨
+          (ax.users name = none ∨ ∃ ur c, ax.users name = some ur ∧ ur.password = some c ∧ ¬ pwMatch c pw)) ∨
        (af.enabled = true ∧ r = W64 0 ∧ err = errOf .noPasswordUser ∧
           ∃ ur, ax.users name = some ur ∧ ur.password = none) ∨
        (af.enabled = true ∧ err = GoInterface.nil ∧ uint.nat r = ax.rev ∧
-          ∃ ur p, ax.users name = some ur ∧ ur.password = some p)⌝ }}
+          ∃ ur c, ax.users name = some ur ∧ ur.password = some c ∧ pwMatch c pw)⌝ }}
 
 end spec
 end Auth

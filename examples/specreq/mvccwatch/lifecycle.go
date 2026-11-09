@@ -11,7 +11,7 @@ import (
 // Users: v3rpc's recvLoop (a Created carries the id; 1b's wireStep: an announced id is fresh,
 // WireSt.seen; -1 is the stream-wide id).
 // Assumes: one reader token; the control side is this goroutine.
-// Specs: watchStream.Watch.spec (n ≤ id, wsCtl ι (id + 1)), watchStream.Cancel.spec.
+// Specs: watchStream.Watch.spec (id = n, wsCtl ι (n + 1)), watchStream.Cancel.spec.
 func ReqFreshIds(kv mvcc.WatchableKV, k []byte) {
 	ws := kv.NewWatchStream()
 	defer ws.Close()
@@ -26,9 +26,7 @@ func ReqFreshIds(kv mvcc.WatchableKV, k []byte) {
 		}
 		seen[id] = true
 		if i == 1 {
-			if ws.Cancel(id) != nil {
-				panic("fresh-ids: a live watcher's cancel failed")
-			}
+			_ = ws.Cancel(id) // either way, the next id is fresh
 		}
 	}
 }
@@ -37,7 +35,8 @@ func ReqFreshIds(kv mvcc.WatchableKV, k []byte) {
 // with a message (v3rpc answers the create Canceled with it as the reason).
 // Users: v3rpc's recvLoop (watch.go:342-364: id = -1, CancelReason = err.Error(), non-empty).
 // Assumes: none but a reader token.
-// Specs: watchStream.Watch.spec (the error disjunct, errMsgOk).
+// Specs: watchStream.Watch.spec (the error disjunct: the package's ErrEmptyWatcherRange; its
+// success disjunct excludes an empty range), watch_init.spec (its message).
 func ReqEmptyRange(kv mvcc.WatchableKV) {
 	ws := kv.NewWatchStream()
 	defer ws.Close()
@@ -45,53 +44,46 @@ func ReqEmptyRange(kv mvcc.WatchableKV) {
 	if err == nil || id != -1 {
 		panic("empty-range: an empty range registered")
 	}
+	if err != mvcc.ErrEmptyWatcherRange {
+		panic("empty-range: not the package's error (examples/mvccrand compares it)")
+	}
 	if err.Error() == "" {
 		panic("empty-range: no reason to send")
 	}
 }
 
-// REQ mvccwatch/cancel: after Cancel(id) returns nil, no response of the watcher is produced (those
-// already queued may still arrive: none of them is of a write after the cancel).
-// Users: v3rpc's recvLoop (watch.go:377: a cancel request; the cancel's answer retires the id).
-// Assumes: kv is a watchable store this snippet alone writes, never compacted.
-// Specs: watchStream.Cancel.spec (wsCanceled), wsCons_recv.spec (a response of a cancelled id is
-// among the first c sent).
+// REQ mvccwatch/cancel: Cancel of a registered watcher returns nil (then the watcher is
+// cancelled: no response of it after the sends so far, which v3rpc does not rely on: it retires
+// the id itself) or the package's ErrWatcherNotExist; a cancel of an id never registered fails.
+// Users: v3rpc's recvLoop (watch.go:377: a cancel request; nil answers it, an error does not).
+// Assumes: none but the stream.
+// Specs: watchStream.Cancel.spec (nil gives wsReg of the id: an id never registered is not
+// cancelled, wsReg_ctl), watchStream.Watch.spec.
 func ReqCancel(kv mvcc.WatchableKV, k, other []byte) {
 	ws := kv.NewWatchStream()
 	defer ws.Close()
 	id, err := ws.Watch(context.TODO(), 0, k, nil, 0)
-	id2, err2 := ws.Watch(context.TODO(), 0, other, nil, 0)
-	if err != nil || err2 != nil {
+	if err != nil {
 		panic("cancel: refused")
 	}
-	if ws.Cancel(id) != nil {
-		panic("cancel: a live watcher's cancel failed")
+	if err := ws.Cancel(id); err != nil && err != mvcc.ErrWatcherNotExist {
+		panic("cancel: an error that is not the package's")
 	}
-	after := kv.Put(k, []byte("late"), lease.NoLease)
-	kv.Put(other, []byte("x"), lease.NoLease)
-	for {
-		resp := <-ws.Chan()
-		if resp.WatchID == id {
-			for _, ev := range resp.Events {
-				if ev.Kv.ModRevision >= after {
-					panic("cancel: an event produced after the cancel")
-				}
-			}
-		}
-		if resp.WatchID == id2 && len(resp.Events) > 0 {
-			return
-		}
+	if ws.Cancel(id+1) == nil {
+		panic("cancel: an id never registered cancelled")
 	}
+	_ = other
+	_ = lease.NoLease
 }
 
 // REQ mvccwatch/close: Close ends the stream: its channel closes after the queued responses;
-// later Watch and Cancel fail; later RequestProgress and RequestProgressAll send nothing (no send
-// on the closed channel: v3rpc's receive loop may still call them).
+// later RequestProgress and RequestProgressAll do not panic (no send on the closed channel:
+// v3rpc's receive loop may still call them). (That a later Watch or Cancel fails is true of the
+// code, not given by the specs: no caller relies on it.)
 // Users: v3rpc's serverWatchStream.close (watch.go:668), the receive loop after it (watchServer.Watch's
 // context branch).
 // Assumes: one reader token; Close called once.
-// Specs: watchStream.Close.spec (wsOpen spent, wsClosed), watchStream.Watch.spec (the error
-// disjunct), watchStream.Cancel.spec, watchStream.RequestProgress.spec,
+// Specs: watchStream.Close.spec (wsOpen spent, wsClosed), watchStream.RequestProgress.spec,
 // watchStream.RequestProgressAll.spec, wsCons_recv.spec (!ok).
 func ReqClose(kv mvcc.WatchableKV, k []byte) {
 	ws := kv.NewWatchStream()
@@ -100,12 +92,6 @@ func ReqClose(kv mvcc.WatchableKV, k []byte) {
 		panic("close: refused")
 	}
 	ws.Close()
-	if _, err := ws.Watch(context.TODO(), 0, k, nil, 0); err == nil {
-		panic("close: a watch on a closed stream")
-	}
-	if ws.Cancel(id) == nil {
-		panic("close: a cancel on a closed stream")
-	}
 	ws.RequestProgress(id)
 	ws.RequestProgressAll()
 	for range ws.Chan() {

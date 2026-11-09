@@ -5,29 +5,34 @@
 `doSerialize`, `skip` false, the request's context); the apply thread's `applierV3backend.Txn`
 (`apply/backend.go:63`, every committed transaction, `context.TODO()`, `skip` when no one waits for
 the result: `apply/apply.go:43`). Snippets: `examples/specreq/txn/read.go` (`ReqTxnReadOnly`),
-`write.go` (`ReqApplyTxnCAS`, `ReqApplyTxnSkip`).
+`write.go` (`ReqApplyTxnCAS`, `ReqApplyTxnSkip`, `ReqApplyTxnCheckFails`).
 
-**Proof sketch.** `IsTxnReadonly` (its spec: `t.readonly`). `kv.Read(mode, trace)` (3e, either
-mode): the read transaction at the state `h` (a read-only transaction: the caller's update fires
-here, `runHist_readonly` gives `runHist t h ls = h`; a write: a peek, `h = h0` by the pin, and
-`attached`). `compareToPath` (its spec: `txnPathOf t h.store`). `checkTxn` (its spec, at the lessor's
-writer token for a write): `opsCheck h ls ops`; an error ends the call (`txnRead.End()`; a write's update is
-fired at `h`, unchanged: `runHist` is `h` when `run` fails). Else, a write: `txnRead.End()`,
-`kv.Write(trace)` (3e: `mvccWriter γ`; the state is still `h0`: the pin, as the sole writer), a
-read-only one `mvcc.NewReadOnlyTxnWrite(txnRead)` (3e: kind `.roWrite`). `txn` (its spec: the
-responses of `execOps`, the header's revision `runRev`; a write's error is excluded by the context
-never done and `txnSafe`, a read-only one's is the context's). `txnWrite.End()` (3e: a write
-commits its events, firing the caller's update: the new state `runHist t h0 ls`).
+**Proof sketch.** `EnsureTrace` (4b's `EnsureTrace.spec`: the context's non-empty trace, whose ownership the caller
+lends through `ctxTraceOwn o`, or a fresh one: `traceBack o tr` after). `IsTxnReadonly` (`t.readonly`). `kv.Read(mode, trace)` (3e's
+`KV.Read.contract`, either mode): a read-only transaction fires the caller's update here, at `σ`
+(`runEvs_readonly`); a write peeks at its pinned update (`σ = σ₀`). `compareToPath` (its spec:
+`txnPathOf t σ.kv.store`). `checkTxn` (its spec, at the read transaction; for a write, at the
+lessor's writer token): `opsCheck`; an error ends the call (`txnRead.End()`: the reader token back;
+a write's update, writer resources and token given back). Else, a write: `txnRead.End()`,
+`kv.Write(trace)` (3e's `KV.Write.contract`: the reader token, the
+storage's share and `txnWriter`'s hook run under the batch lock; its update a peek at the caller's,
+pinned at `σ₀`, `σ₀.pending = []`; `mvccTxn tw γ tr (.write σ₀ [])`) (still `σ₀`: the pin); a read-only one `mvcc.NewReadOnlyTxnWrite(txnRead)` (3e: still
+`.read σ`). `txn` (its spec: the responses of `execOps`, the header's revision `runRev`; a write's
+error is excluded by the context never done and `txnSafe`, a read-only one's is the context's).
+`txnWrite.End()`: for a write, 3e's two steps of the caller's update with the run's events, then
+`Q σ₀`.
 
-**Changes.** The old spec (`specs-ref`'s `Txn.lean`: two triples by caller, `specSole` with the
-read update, a wand to the write updates and the pin `σ.log = log`, `PathsIgnOk`, `leasesKnown`,
-`csA`; `specRead`) merged into one: one update, pinned only for a write (`t.readonly ∨ h = h0` in its
-precondition), fired once, over W0's history, the run a function (`run`, related to W0's `TxnRun` by
-`run_txnRun`); the paths' premises a state-free `txnSafe` (the gRPC layer's checks give it); the
-backend share and hook contract in 3e's `mvccWriter`; the lessor 3c's writer token, `attached` kept.
+**Changes.** The old spec (`specs-ref`'s `Txn.lean`: two triples by caller, `specSole` with a wand
+from the read update to the write updates, `PathsIgnOk`, `leasesKnown`, `csA`; `specRead`) merged
+into one, a case split on the input: a read-only transaction's update is a read's; a writing one's
+is pinned at `σ₀` and nested as 3e's commit. The run a function (`run`, related to W0's `TxnRun` by
+`run_txnRun`); the paths' premises a state-free `txnSafe`. Round 1 (F4): 3e's API (`MvccState`,
+reader tokens, the trace, the storage's share and `txnWriter`, the lessor's state after by
+`evsLs`).
 
-**Margin.** A nested transaction's header revision is `0` (W0 does not model it). The read-only
-transaction's response after a context error is partly filled (`roTxnResp`: what the warning reads).
+**Margin.** A nested transaction's header revision is `0` (W0 does not model it). `txnSafe` is
+stricter than the code needs (its docstring). A read-only transaction's response after a context
+error is partly filled (`roTxnResp`: what the warning reads).
 -/
 module
 
@@ -53,35 +58,45 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 open Classical in
-/-- **`Txn(ctx, lg, rt, shared, kv, lessor, skip)`**: at the state `h` the caller's update fires at
-(a write: the state `h0` it is pinned at, the store's sole writer), `run`: `checkTxn`'s error
-(nothing written, no response or trace), or the run's responses (`skip`: ranges unexecuted) with
-header revision `runRev`, its events committed at one revision; or, for a read-only transaction
-whose context is done, the context's error. -/
+/-- **`Txn(ctx, lg, rt, shared, kv, lessor, skip)`**: `run` at the state the caller's update fires at
+(a read-only transaction: any, `σ`; a writing one: `σ₀`, its update pinned there and nested as
+mvcc's commit): `checkTxn`'s error (nothing written, no response or trace, a writing transaction's
+update given back), or the run's responses (`skip`: ranges unexecuted) with header revision
+`runRev`, a writing one's events committed at one revision; or, for a read-only transaction whose
+context is done, the context's error. -/
 def Txn.spec : Prop :=
-  ∀ (ctx : GoInterface) (lg rt : Loc) (dq : DFrac) (t : TxnReq) (shared : Bool) (kv le : GoInterface)
-    (skip : Bool) (γ : MvccName) (h0 : KVHist) (leL : Loc) (γl : Lease.Names) (c : Lease.Cfg)
-    (n : Nat) (ls : Lease.LessorState) (Q : KVHist → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ Zap.isLogger lg ∗ mvccKV kv γ ∗ threadTok ∗
-      txnReqOwn rt dq t ∗ ⌜txnSafe t⌝ ∗
-      (if t.readonly then iprop(True)
-       else iprop(⌜le = Lease.lessorIface leL⌝ ∗ Lease.isLessor leL γl c ∗ mvccLessor γ γl ∗
-         mvccWriter γ ∗ Lease.lessorState γl n ls ∗ (Context.ctxDone ctx -∗ False))) ∗
-      AU <{ ∃∃ (h : KVHist), ⌜t.readonly ∨ (h = h0 ∧ attached h.store ls)⌝ ∗ mvccState γ h }>
-          @ ⊤ \ ↑mvccN, ∅
-        <{ mvccState γ (runHist t h ls.table), COMM Q h }> }}
+  ∀ (ctx : GoInterface) (o : Option Loc) (lg rt : Loc) (dq : DFrac) (t : TxnReq) (shared : Bool)
+    (kv le : GoInterface) (skip : Bool) (γ : Mvcc.MvccName) (σ₀ : Mvcc.MvccState) (leL : Loc)
+    (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState) (q : Qp)
+    (B : Mvcc.MvccStorage) (Pk Post : IProp GF) (Q : Mvcc.MvccState → IProp GF),
+  let au : IProp GF := iprop(AU <{ Mvcc.mvccState γ σ₀ }> @ ⊤ \ ↑Mvcc.mvccN, ∅
+    <{ Mvcc.mvccState γ (σ₀.notify (runEvs t σ₀.kv ls.table)) ∗ ⧖ (Mvcc.evCount (σ₀.kv.commit (runEvs t σ₀.kv ls.table))), COMM
+       AU <{ Mvcc.mvccState γ (σ₀.notify (runEvs t σ₀.kv ls.table)) }> @ ⊤ \ ↑Mvcc.mvccN, ∅
+         <{ Mvcc.mvccState γ (σ₀.notify (runEvs t σ₀.kv ls.table)).commitPending, COMM Q σ₀ }> }>)
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ TraceUtil.ctxTraceIs ctx o ∗ ctxTraceOwn o ∗ Zap.isLogger lg ∗
+      Mvcc.isMvcc kv γ ∗ Mvcc.mvccReaders γ 1 ∗ txnReqOwn rt dq t ∗ ⌜txnSafe t⌝ ∗
+      (if t.readonly then iprop(AU <{ ∃∃ (σ : Mvcc.MvccState), Mvcc.mvccState γ σ }> @ ⊤ \ ↑Mvcc.mvccN, ∅
+        <{ Mvcc.mvccState γ σ, COMM Q σ }>)
+       else iprop(⌜le = Lease.lessorIface leL ∧ σ₀.pending = [] ∧ leasesLive σ₀.kv.store ls⌝ ∗
+         Lease.isLessor leL γl c ∗ Mvcc.mvccLessorIs γ γl ∗ Lease.lessorState γl n ls ∗
+         Mvcc.mvccBackend γ q B Pk ∗ txnWriter B Pk Post ∗ (Context.ctxDone ctx -∗ False) ∗ au)) }}
     (App (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Txn)) (Val #ctx)) (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp tr : Loc) (err : GoInterface), RET (PairV (PairV #resp #tr) #err);
-      threadTok ∗ txnReqOwn rt dq t ∗
-      ∃ h : KVHist, Q h ∗ ⌜t.readonly ∨ h = h0⌝ ∗
-      (if t.readonly then iprop(True)
-       else iprop(mvccWriter γ ∗ ∃ (n' : Nat) (ls' : Lease.LessorState), Lease.lessorState γl n' ls' ∗
-         ⌜sameLeases ls ls' ∧ attached (runHist t h ls.table).store ls'⌝)) ∗
-      (match run t h ls.table skip with
-       | .error e => iprop(⌜resp = null ∧ tr = null⌝ ∗ errIs err e)
-       | .ok x => iprop(traceAt tr ∗
-           ((⌜err = GoInterface.nil⌝ ∗ txnOk resp (runRev h x.1) x.2.1 x.2.2) ∨
-            (⌜t.readonly⌝ ∗ Context.ctxDone ctx ∗ ctxErr err ∗ roTxnResp resp)))) }}
+      Mvcc.mvccReaders γ 1 ∗ txnReqOwn rt dq t ∗
+      (if t.readonly then
+         iprop(∃ σ : Mvcc.MvccState, Q σ ∗
+           match run t σ.kv ls.table skip with
+           | .error e => iprop(⌜resp = null ∧ tr = null⌝ ∗ errIs err e ∗ ctxTraceOwn o)
+           | .ok x => iprop(traceBack o tr ∗
+               ((⌜err = GoInterface.nil⌝ ∗ txnOk resp (runRev σ.kv x.1) x.2.1 x.2.2) ∨
+                (Context.ctxDone ctx ∗ ctxErr err ∗ roTxnResp resp))))
+       else iprop(Mvcc.mvccBackend γ q B Pk ∗
+           match run t σ₀.kv ls.table skip with
+           | .error e => iprop(⌜resp = null ∧ tr = null⌝ ∗ errIs err e ∗ ctxTraceOwn o ∗ au ∗
+               Lease.lessorState γl n ls ∗ txnWriter B Pk Post)
+           | .ok x => iprop(⌜err = GoInterface.nil⌝ ∗ traceBack o tr ∗
+               txnOk resp (runRev σ₀.kv x.1) x.2.1 x.2.2 ∗ Q σ₀ ∗ Post ∗
+               ∃ n' : Nat, Lease.lessorState γl n' (evsLs ls σ₀.kv.store x.1)))) }}
 
 end spec
 end Txn

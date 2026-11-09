@@ -96,6 +96,17 @@ def boltVersion : w32 := W32 2
 /-- `PgidNoFreelist`: the meta's `freelist` when the freelist is not synced. -/
 def pgidNoFreelist : w64 := W64 (-1)
 
+/-- One page kind's flags exactly (`IsValidPage`). -/
+def pageFlagValid (f : w16) : Bool :=
+  decide (f = branchPageFlag ∨ f = leafPageFlag ∨ f = metaPageFlag ∨ f = freelistPageFlag)
+
+/-- Page ids in increasing order (unsigned; repeats allowed). -/
+def pgidsSorted (xs : List Pgid) : Prop := xs.Pairwise fun a b => a.toNat ≤ b.toNat
+
+/-- The ids sorted increasing: the unique sorted permutation (`Pgids.Merge`'s, `Mergepgids`'s
+result). -/
+def sortPgids (xs : List Pgid) : List Pgid := xs.mergeSort fun a b => decide (a.toNat ≤ b.toNat)
+
 /-! ## Reading bytes -/
 
 /-- The `n` bytes at `off` (fewer past the end). -/

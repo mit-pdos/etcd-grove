@@ -1,7 +1,7 @@
 /-
 `checkPut(trace, rv, lessor, p)` (`put.go`), internal (`checkTxn`): `checkLease`, then
-`checkAndGetPrevKV` (its error only); W0's `PutReq.check` at the view's pending store. Old spec: over
-the log.
+`checkAndGetPrevKV` (its error only); W0's `PutReq.check` at the view's current store. Old spec:
+over the log. Round 1: 3e's API (F4).
 -/
 module
 
@@ -26,18 +26,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `checkPut(trace, rv, le, p)`: W0's `PutReq.check` at the view's pending store and the writer's
-live leases. -/
+/-- `checkPut(trace, rv, le, p)` on an open transaction `k`: W0's `PutReq.check` at its current store
+and the writer's live leases. -/
 def checkPut.spec : Prop :=
-  ∀ (trace : Loc) (rv : GoInterface) (γ : MvccName) (k : TxKind) (h : KVHist) (evs : List Event)
-    (p : Loc) (dq : DFrac) (pm : PutReq) (leL : Loc) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat)
-    (ls : Lease.LessorState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ traceAt trace ∗ mvccTxn rv γ k h evs ∗ Lease.isLessor leL γl c ∗
+  ∀ (trace : Loc) (rv : GoInterface) (γ : Mvcc.MvccName) (k : Mvcc.MTxn) (p : Loc) (dq : DFrac)
+    (pm : PutReq) (leL : Loc) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ TraceUtil.traceOwn trace ∗ Mvcc.mvccTxn rv γ trace k ∗ Lease.isLessor leL γl c ∗
       Lease.lessorState γl n ls ∗ putReqOwn p dq pm }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.checkPut)) (Val #trace)) (Val #rv)) (Val #(Lease.lessorIface leL))) (Val #p))
-  {{ (err : GoInterface), RET #err; mvccTxn rv γ k h evs ∗ Lease.lessorState γl n ls ∗
-      putReqOwn p dq pm ∗
-      (match pm.check (h.store.applyEvents evs) ls.table with
+  {{ (err : GoInterface), RET #err; TraceUtil.traceOwn trace ∗ Mvcc.mvccTxn rv γ trace k ∗
+      Lease.lessorState γl n ls ∗ putReqOwn p dq pm ∗
+      (match pm.check k.readHist.store ls.table with
        | none => iprop(⌜err = GoInterface.nil⌝)
        | some e => errIs err e) }}
 

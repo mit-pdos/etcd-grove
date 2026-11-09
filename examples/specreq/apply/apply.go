@@ -35,7 +35,7 @@ func ReqNewUber(opts apply.ApplierOptions) apply.UberApplier {
 // Users: server/etcdserver/server.go:1994 (applyEntryNormal), its waiter v3_server.go:1019
 // (`resp.(*pb.PutResponse)`).
 // Assumes: e is a committed normal entry whose data is the marshalled InternalRaftRequest of a valid
-// put with id `id` (the request path's), registered in w; auth is disabled; no alarm is raised;
+// put with id `id` (the request path's), its lease (if any) live; auth is disabled; no alarm is raised;
 // this goroutine is the apply thread.
 // Specs: Apply.spec, isUber_apply (uberApplier.Apply.spec); laws: irrStep_step, applyStep_fun.
 func ReqApplyWrite(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait.Wait, id uint64) {

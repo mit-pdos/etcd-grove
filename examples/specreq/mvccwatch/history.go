@@ -13,8 +13,25 @@ import (
 )
 
 // recvEvents receives from the stream until n events of the watcher id arrived; any other
-// response of id is a progress (no events) or a compaction (which the snippets' assumptions rule
-// out).
+// response of id is a progress (no events: skipped; mvcc may send one unrequested only through a
+// RequestProgress, but the specs admit it at any time) or a compaction (which the snippets'
+// assumptions rule out). The stream's only watcher is id (wsReg_ctl: a registered id is one Watch
+// returned).
+
+// nextNonProgress receives the next response that is not a progress of a watcher.
+func nextNonProgress(ws mvcc.WatchStream) mvcc.WatchResponse {
+	for {
+		resp, ok := <-ws.Chan()
+		if !ok {
+			panic("history: channel closed while the stream is open")
+		}
+		if len(resp.Events) == 0 && resp.CompactRevision == 0 {
+			continue
+		}
+		return resp
+	}
+}
+
 func recvEvents(ws mvcc.WatchStream, id mvcc.WatchID, n int) []*mvccpb.Event {
 	var got []*mvccpb.Event
 	for len(got) < n {
@@ -45,7 +62,8 @@ func recvEvents(ws mvcc.WatchStream, id mvcc.WatchID, n int) []*mvccpb.Event {
 // revision), watch.go:516 (sendLoop forwards each response).
 // Assumes: kv is a watchable store this snippet alone writes (the server's apply thread is the
 // only writer: its invariant holds mvccState) and never compacts; one reader token.
-// Specs: watchableStore.Rev.spec, watchableStore.NewWatchStream.spec, watchStream.Watch.spec,
+// Specs: watchableStore.Rev.spec, watchableStore.NewWatchStream.spec, watchStream.Watch.spec (id = n,
+// the read update), wsReg_ctl,
 // watchableStore.Put.spec, watchableStore.DeleteRange.spec, watchStream.Close.spec; laws:
 // wsCons_recv.spec (wStep's events: wEvents of the range from the position), mvccLb_le.spec.
 func ReqFromStart(kv mvcc.WatchableKV, k []byte) {
@@ -78,7 +96,8 @@ func ReqFromStart(kv mvcc.WatchableKV, k []byte) {
 // revision at its registration, which is at most a revision Rev() reports after Watch returned.
 // Users: v3rpc's recvLoop (a create with start revision 0, its Created header from Rev()).
 // Assumes: as ReqFromStart.
-// Specs: watchStream.Watch.spec (W.pos = h.rev at registration), watchStream.Rev.spec;
+// Specs: watchStream.Watch.spec (W.pos = σ.rev at the state its read update fired),
+// watchStream.Rev.spec (its read update at a later state: the snippet's state only grows);
 // wsCons_recv.spec.
 func ReqFromCurrent(kv mvcc.WatchableKV, k []byte) {
 	ws := kv.NewWatchStream()
@@ -115,7 +134,7 @@ func ReqWholeRevision(kv mvcc.WatchableKV) {
 	txn.Put([]byte("a1"), []byte("x"), lease.NoLease)
 	txn.Put([]byte("a2"), []byte("y"), lease.NoLease)
 	txn.End()
-	resp := <-ws.Chan()
+	resp := nextNonProgress(ws)
 	if resp.WatchID != id || len(resp.Events) != 2 {
 		panic("whole-revision: a revision split across responses")
 	}
@@ -136,7 +155,7 @@ func ReqFilters(kv mvcc.WatchableKV, k []byte) {
 	}
 	kv.Put(k, []byte("v"), lease.NoLease)
 	_, rev := kv.DeleteRange(k, nil)
-	resp := <-ws.Chan()
+	resp := nextNonProgress(ws)
 	if resp.WatchID != id || len(resp.Events) != 1 || resp.Events[0].Type != mvccpb.DELETE ||
 		resp.Events[0].Kv.ModRevision != rev {
 		panic("filters: a filtered put delivered, or an empty response sent")
@@ -150,7 +169,7 @@ func ReqFilters(kv mvcc.WatchableKV, k []byte) {
 // Assumes: kv is written and compacted by this snippet alone; at least two revisions written
 // before (so that the compaction revision exceeds the start 1).
 // Specs: watchableStore.Compact.spec, watchStream.Watch.spec; wsCons_recv.spec (wStep's
-// compaction case, respShape).
+// compaction case against posEvOf, respShape).
 func ReqCompaction(kv mvcc.WatchableKV, k []byte) {
 	kv.Put(k, []byte("a"), lease.NoLease)
 	rev := kv.Put(k, []byte("b"), lease.NoLease)
@@ -163,7 +182,7 @@ func ReqCompaction(kv mvcc.WatchableKV, k []byte) {
 	if err != nil {
 		panic("compaction: refused")
 	}
-	resp := <-ws.Chan()
+	resp := nextNonProgress(ws)
 	if resp.WatchID != id || resp.CompactRevision == 0 || len(resp.Events) != 0 || resp.Revision != 0 {
 		panic("compaction: events from below the compaction")
 	}

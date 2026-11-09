@@ -9,13 +9,15 @@ blocks-proof: yes
 # auth: two internal root tokens with the same random prefix make the member panic
 
 With auth enabled and the simple token provider (the default `--auth-token`), every lease-revocation
-batch of the leader asks `WithRoot` for a root token `prefix.0`, with a fresh random 16-letter
+batch of the leader and every health check (`/health`, `/livez`, `/readyz`:
+`api/etcdhttp/health.go:222,434`) asks `WithRoot` for a root token `prefix.0`, with a fresh random 16-letter
 prefix and the index `0`. If a prefix repeats while the earlier token is still in the provider's map
 (its TTL, 300 seconds by default), `assignSimpleTokenToUser` calls `lg.Panic("failed to assign
 already-used simple token to a user")` and the member exits.
 
 **Why not an issue:** no test; found by code reading (the auth store's specs, 2026-11-09). The
-probability is negligible (52^-16 per pair of root tokens alive together), but it is not zero: no
+probability is negligible (52^-16 per pair of root tokens alive together; health probes every few
+seconds keep about a hundred alive), but it is not zero: no
 code excludes it.
 
 ## Proof

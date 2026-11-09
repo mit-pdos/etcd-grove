@@ -27,8 +27,8 @@ watcherSetByKey`, batch 3f), the auth store's permission cache (byte keys: `Inse
 * **`ivt c t L dq`** (opaque; fractional): the tree at `t` (a `*intervalTree`, the dynamic type of
   `NewIntervalTree`'s result) holds the entries `L` over keys of kind `c`, at `dq` (the writes,
   `Insert`/`Delete`/`Union`'s receiver, take it whole; the reads any fraction or `DFrac.discard`).
-  Intended realization: the tree struct, the sentinel, the nodes from the root holding a red-black
-  tree (`Internal.lean`'s `RbT`) whose in-order list is `L`, each node's `max` the largest end of its
+  Intended realization: the tree struct, the sentinel (`Internal.lean`'s `ownSentinel`), the nodes
+  from the root (`ownNode`) holding a red-black tree (`RbT`, `RbOk`) whose in-order list is `L`, each node's `max` the largest end of its
   subtree, the count `L.length` (below `ivtCountMax`, so `count++` does not wrap: `Stab` reads
   `count == 0` as empty). Laws: `ivt_fractional`, `ivt_agree`, `ivt_persist` (a built tree made
   read-only: the auth store's caches are never modified), `ivt_sorted` (the entries are in the
@@ -159,16 +159,16 @@ opaque ivt (c : Cmp) (t : Loc) (L : List Entry) (dq : DFrac) : IProp GF := iprop
 
 /-- **The contract of a `Visit` callback `ivv`** over the visited entries `Q` (the stabbed entries
 in order) with the client's loop state: `I acc` after visiting `acc` and continuing, `J acc` after
-stopping at its last. Called once per visited entry, in order, with the entry lent at the tree's
-`dq`; `ok`: the visit is exact (`IvlS.queryOk`), else the visited entries are only a sublist. -/
+stopping at its last. Called once per visited entry, in order, with the entry's `IntervalValue`
+lent at the tree's `dq` and kept in the state (`Stab` keeps the pointers; `Visit` gives the tree
+back for them); `ok`: the visit is exact (`IvlS.queryOk`), else the visited entries are only a sublist. -/
 def ivVisitorOk (c : Cmp) (dq : DFrac) (Q : List Entry) (ok : Prop) (ivv : GoFunc)
     (I J : List (Loc × Entry) → IProp GF) : IProp GF :=
   iprop(□ ∀ (acc : List (Loc × Entry)) (p : Loc) (z : Entry),
     ⌜List.Sublist (acc.map Prod.snd ++ [z]) Q ∧ (ok → acc.map Prod.snd ++ [z] <+: Q)⌝ -∗
     {{ I acc ∗ ivAt c p dq z }}
       (App (Val #ivv) (Val #p))
-    {{ (b : Bool), RET #b; ivAt c p dq z ∗
-        (if b then I (acc ++ [(p, z)]) else J (acc ++ [(p, z)])) }})
+    {{ (b : Bool), RET #b; if b then I (acc ++ [(p, z)]) else J (acc ++ [(p, z)]) }})
 
 /-! ## Laws -/
 

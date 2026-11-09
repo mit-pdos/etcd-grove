@@ -70,7 +70,7 @@ def NewStore.spec : Prop :=
     (ls : Lease.LessorState) (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ ⌜storeCfgOk cfg⌝ ∗
-      mvccStorageFor B Pk h u ∗ ⌜MvccReachable ⟨h, []⟩⌝ ∗
+      mvccStorageFor B Pk h u ∗
       storageHook B dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
       Pre ∗ hookRun Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗
       Lease.isLessor le γl c ∗ Lease.lessorState γl n ls }}
@@ -79,6 +79,7 @@ def NewStore.spec : Prop :=
   {{ (s : Loc), RET #s; ∃ γ : MvccName,
       isMvcc (interface.mkOk (go.GoType.PointerType store.ty) #s) γ ∗ mvccLessorIs γ γl ∗
       mvccState γ ⟨h, []⟩ ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗ mvccReaders γ mvccTokN ∗
+      mvccRevLent γ 0 ∗ mvccRestoreGate γ 1 ∗
       storageHook B dq f ∗ (if u then iprop(Post ∗ Y) else iprop(Pre ∗ X)) ∗
       ∃ (rd : GoFunc) (n' : Nat) (ls' : Lease.LessorState), mvccDeleter rd γ ∗
         ⌜RestoreLs { ls with rd := rd } h.store ls'⌝ ∗ Lease.lessorState γl n' ls' }}

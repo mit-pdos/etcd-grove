@@ -214,14 +214,15 @@ keep-alive's permission error are at any auth state the cluster has had.
 
 ## from 3b
 
-1. **An empty range end is `nil`** in the request predicates (`rangeReqOwn`, `deleteReqOwn`,
-   `compareOwn`, and so in `txnReqOwn`'s operations): `r.rangeEnd = [] → es = slice.nil` in their
-   unfold laws (protobuf-go decodes a present empty `bytes` field as `nil`; a client builds none
-   other). mvcc reads a non-`nil` empty end as unbounded (`treeIndex.unsafeVisit`), so without it
-   txn's ranges, deletes and comparisons would not be W0's `KeyRange.mem` (`specs-ref`'s
-   `notes/decisions.md`, "The range end as the check sees it"). Used by: `Range.spec`, `DeleteRange.spec`,
-   `Txn.spec` (`executeRange`, `deleteRange`, `applyCompare`).
-
+(Round 1, the review's F1: the earlier request, that an empty range end be the `nil` slice, is
+**withdrawn**: `clientv3.WithRange("")` builds a non-`nil` empty end, and an embedded server's
+`v3client` passes it to the server.) Needed instead: **the request predicates read the end slice as
+mvcc does**: in `rangeReqOwn`, `deleteReqOwn`, `compareOwn` (and so `txnReqOwn`'s operations), a
+`nil` end slice is the model's `[]` (the key alone) and a non-`nil` empty one is `[0#8]` ("every key
+from the key on", what `mkGteRange` makes of `"\x00"` and mvcc's index reads an empty end as), any
+other end its bytes. Then W0's `KeyRange.mem` is mvcc's `MRange.mem` of the slice actually passed, and
+txn's `Range`, `DeleteRange`, `Txn` (through `applyCompare`, `executeRange`, `deleteRange`, `txnSafe`)
+need no premise. Used by: those specs; `Count.spec` reads its raw slice the same way (`Txn.endOf`).
 
 ## from 3a
 
@@ -367,3 +368,28 @@ checked against `server/auth/store.go` (W0's item 2 asked for it):
    subset of the keys attached at the snapshot's revision (`Demoted()` does not always catch it: a
    `Renew` refreshes a loaded object). The relaxation should admit it too
    (`nonissues/etcd-lease-keys-mid-apply.md`).
+
+
+## from 3a (round 1)
+
+5. **An inverted range** (`Auth.rngInverted`: a proper `rangeEnd` at or below a non-empty key) is
+   refused by etcd's permission cache for a non-root user (`ErrPermissionDenied`), while
+   `AuthState.covers` holds of it vacuously, so `State.permits` grants it. 3a's `irrStep_step`
+   excludes such requests (`checksSane`) until the model agrees (e.g. `covers` false of an
+   inverted range, or `permits` refusing it).
+6. 3a's refinement laws take `reachable σ` (`∃ ms, Reach (State.init ms) σ`, which `etcdLb_init`
+   gives): lease `0` never live, every key's lease live, no user `""` are pure consequences; laws
+   stating them (or 3a proves them) close `irrStep_step`.
+
+## from 3d, round 1
+
+Rounds 5 and 6 answer items 1-4 and 6 of "from 3d" (`pwHash`/`pwMatch`, `tokenUser_agree`,
+`validPerm`, `invertedDeny`, `roleGet "root"`, `permittedSince`); 3d's specs now use them. Open:
+- **`roleGrantPermission` with a nil or unknown-typed `Perm`** (review S4): a client's request reaches
+  the store unchanged (`ErrPermissionNotGiven`; an unknown type is stored and ignored by the checks);
+  `Req.roleGrantPermission name perm` cannot express it, so 3a cannot apply the store's spec to it.
+  Needed: an `Option Perm` (or a raw type) with the deterministic errors.
+- **Answer orders** (review S5): the store answers `UserList`/`RoleList` in key order, `UserGet`'s
+  roles sorted, `RoleGet`'s permissions sorted by key (unstable). W0's lists are "any permutation"
+  (fine for 3d); if 2d/3a need the apply's answer equal to the committed one, the model must fix an
+  order.

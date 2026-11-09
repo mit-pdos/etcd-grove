@@ -14,7 +14,7 @@ import (
 // (etcdstart.CompactRev reads CompactRevision).
 // Assumes: none.
 // Specs: Client.Watch.spec, WithRev.spec, WatchResponse.Err.spec; watchStep's error case
-// (cr ≤ compacted, position + 1 < cr), closeErrOk.
+// (cr ≤ compacted, last event's revision (or start - 1) + 1 < cr; not a progress's), closeErrOk.
 func ReqWatchCompacted(ctx context.Context, cli *clientv3.Client, k string, rev int64) {
 	if rev <= 0 {
 		return

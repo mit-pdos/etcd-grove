@@ -18,8 +18,11 @@ state when they coincide (the writer's check: `authCur_at`, `authAt_le`), not in
 header of `Api.lean`). The key-length premise is the old one (`adt.NewBytesAffine*`'s `make` of
 `len + 1`).
 
+Round 1 (review F6): `ErrAuthOldRevision` says the request's revision is below the store's at a
+recorded state `jr` (so the writer's refusal is exactly 3a's `rev < a.rev`).
+
 **Margin.** An inverted range may be refused although the model's `covers` holds of it vacuously
-(`rngInverted`); `ErrAuthOldRevision`'s state (the revision read) is not named; the order of the
+(`rngInverted`, W0's `invertedDeny`); the order of the
 views (the backend and the cache are at or after the flag: the flag moves last in `AuthEnable`,
 `AuthDisable` and `Recover`, the cache before the backend's publication) is not stated, as no
 caller uses it.

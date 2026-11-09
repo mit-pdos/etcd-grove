@@ -182,3 +182,65 @@ proofs are written.
   `IsAuthEnabled`, bcrypt (`Bcrypt.*`, `hashedPw`).
 - 2b round 1 (client certificates): the store side is `AuthInfoFromTLS.spec`; the principal's
   definition is 2a's/W0's (`req/google_golang_org_grpc.md`, item 2).
+
+## Round 1 repairs (2026-11-09; `reviews/3d-review-1.md`)
+
+First tier:
+- **F1** (unsound `admStep`: W0's changing steps append to `authHist`): `admStep rq a a' res` is now
+  `∀ who σ, σ.auth = a → mayCall → ∃ σ', authStep who rq σ σ' res ∧ σ'.auth = a'` (W0's step lifted
+  by its auth part). `AuthReach`, the admin specs, `AuthEnable`/`AuthDisable`, `Recover` follow.
+- **F2** (one next state): new pure function **`storeNext rq cred a`** (the store's next state as the
+  code computes it), with the law `storeNext_adm` (some answer makes it an `admStep`, given the
+  credential is a hash of the password). `admNext` is gone; `AdminTriple e P st rq cred` takes
+  `authReached γ (storeNext rq cred a) ∗ ⌜recordsFit (storeNext …)⌝` and gives
+  `authCur γa (i+1) (storeNext …)` with an `admStep` answer. The credential comes from the request:
+  `authReqAt r rq cred` (`HashedPassword = b64 cred`, W0's `pwHash pw cred`); `hashedPw` and
+  `hashedPw_intro` removed; the pre-3.5 plain-password form is out of scope (rehashed with a fresh
+  salt, no one next state; also closes S3). `selectPassword.spec` decodes `b64 cred` to `cred`.
+  The bcrypt boundary is restated over W0's `pwHash`/`pwMatch` (`Bcrypt.hashOf` removed;
+  `CompareHashAndPassword`: `nil ↔ pwMatch`); `CheckPassword`'s arms over `pwMatch` (S14).
+- **F3** (`RoleGet "root"`): sound against W0's round 5; the sketch's caveat removed.
+- **F4** (the revision race): W0's round 6 (`State.permittedSince`) admits it for linearizable reads;
+  cited in `Api.lean`'s header and the nonissue (now: linearizable reads only, covered by the
+  model's weakening; the fork fix would let the model drop it). 2c's sketch must cite
+  `permittedSince` and needs the store-index to cluster-index link from 2d (S1, in 2c/2d's `req/`).
+- **F5** (`WithRoot`): `rootTokOk` kept; the fork fix is the open question below. Users list adds the
+  health checks (S9).
+- **F6**: `checkPost`'s `ErrAuthOldRevision` arm names the revision read: `uint.nat rev < ar.rev` at a
+  recorded state `jr ≥ i0`. `ReqWriterCheck` no longer escapes it (it tests `rev >= Revision()`).
+
+Per (type, method) (S6) and the bundle (S7): 21 new spec files, `tokenSimple__{info, assign,
+assignSimpleTokenToUser, enable, disable, invalidateUser, isValidSimpleToken}`,
+`simpleTokenTTLKeeper__{run, stop, addSimpleToken, resetSimpleToken, deleteSimpleToken}`,
+`tokenNop__{enable, disable, invalidateUser, genTokenPrefix, info, assign}`, `permSlice__{Len,
+Less, Swap}`. The `TokenProvider` bundle is stated in Lean in `Internal.lean`: `tpOpen`, `tpFrom`,
+`tpRoot`, `tpAuthn` with laws `tokenProviderAt_open`, `tp_info`, `tp_assign`, `tp_assignRoot`,
+`tp_enable`, `tp_disable`, `tp_invalidateUser`, `tp_genTokenPrefix`, and the instances
+`simple_provider`, `nop_provider` (JWT: assumed in `newTokenProviderJWT.spec`); the simple
+provider's internals `simpleAt`, `simpleFrom`, `simpleFresh` (law `simpleFrom_fresh`),
+`simpleAuthn`, `simpleTok`; the keeper's `keeperAt`, `keeperTokens`, `keeperRun`, `keeperStop`;
+`permKeysAt`.
+
+Second tier done: S2 (`Recover` takes `recordsFit a'`), S3 (legacy form dropped), S8 (nonissue
+wording: linearizable only; a 71-byte password also accepts `pw ++ "\x00" ++ s`; the health checks'
+root tokens), S9 (Users lists), S10 (`authRespAt_ne_null`, `authnRespAt_ne_null`; the `Header` field
+law requested of 3h), S11 (`Authenticate`: an absent or password-less user is `ErrAuthFailed`
+exactly), S12 (`ctxCertUser` requires incoming metadata), S14. Not done: S1 (requested of 2d: the
+store-index to cluster-index link), S4/S5 (requested of W0: a nil or unknown-typed `Perm`; answer
+orders), S13 (a provider not disabled by `Recover` to an auth-off state: noted in `Recover.spec`'s
+Margin, no nonissue file).
+
+Open questions for the user, as of round 1:
+1. **`WithRoot` with the simple provider** (F5): a fork fix (`assignSimpleTokenToUser` returns an
+   error on an existing token; `WithRoot` already maps an `assign` error to `ctx`) would remove
+   `rootTokOk`; without it, auth-on members with the default `--auth-token` have no usable
+   `WithRoot` spec (the lessor's revocations, the health checks).
+2. The revision race is now admitted by W0's round 6 (the coordinator's decision); the fork fix
+   (bump the atomic after the batch's `Unlock`) remains an option that would let the model tighten.
+
+`req/` sections added: "from 3d, round 1" in `go_etcd_io_etcd_server_v3_etcdserver.md`,
+`go_etcd_io_etcd_server_v3_etcdserver_apply.md`, `go_etcd_io_etcd_api_v3.md`,
+`go_etcd_io_etcd_api_v3_etcdserverpb.md`.
+
+Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/auth Spec/golang_org/x/crypto/bcrypt`
+OK (80 modules); `go vet ./specreq/auth/` and gofmt clean.

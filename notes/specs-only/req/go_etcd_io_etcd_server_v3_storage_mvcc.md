@@ -165,63 +165,25 @@ item set, the bucket, the backend, the deleter). What 3c needs of mvcc:
 
 ## from 3b
 
-What the txn package (3b: `Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/`, namespace `Txn`) needs of
-mvcc's API. Its `Api.lean` declares these provisionally, to be replaced by 3e's names: `MvccName`,
-`mvccN`, `mvccKV kv γ` (persistent: `kv` is a store, an `mvcc.KV` value: `*store` or
-`*watchableStore`), `mvccState γ h` (client-owned, exclusive), `mvccWriter γ` (exclusive), `mvccTxn tx
-γ k h evs` (an open transaction), `mvccLessor γ γl` (persistent: the store's lessor is 3c's `γl`).
-**The state is W0's `KVHist`** (the events of every revision and the compaction revision, `Model.lean`):
-txn's answers are W0's functions of it (`Txn.putAns`, `Txn.run`, `Txn.rangeOut`), so 3e's state
-should be it, or project to it by a function.
+(Round 1: rewritten against 3e's written API, `storage/mvcc/{Model,Api}.lean`, which txn's specs now
+cite: `isMvcc`, `mvccState`/`MvccState`, `mvccReaders`, `mvccTxn`/`MTxn`, `mvccLessorIs`,
+`mvccBackend` with `hookIs`/`hookRun`, `KV.Read`/`KV.Write`/`Txn.*` contracts, `putLs`/`delLs`/
+`delsLs`, `txnStore`, `storeItems`, `kvsFit`, `keysOnlyM`.) What txn (3b) still needs:
 
-1. **`Read(mode, trace)`** (either mode, `ConcurrentReadTxMode` or `SharedBufReadTxMode`): with a
-   thread token (the store's reader lock), the caller's update `AU <{ ∃∃ h, mvccState γ h }> @ ⊤ \
-   ↑mvccN, ∅ <{ mvccState γ h, COMM R h }>` fired at the begin; returns `R h` and `mvccTxn tx γ .read
-   h []` (the revision and the compaction are fixed for the transaction: `Compact` waits on `s.mu`).
-   Used by: `Range.spec`, `Count.spec`, `Txn.spec`.
-   ```go
-   txnRead := kv.Read(mvcc.ConcurrentReadTxMode, trace)   // txn/range.go:53, txn.go:43
-   ```
-2. **`Write(trace)`**: with `mvccWriter γ` (whatever a write transaction needs: the backend's share,
-   the post-lock hook's contract that sets the consistent index, 2d) and a thread token; the state
-   `h` learned by a peek at the caller's update (opened and closed unchanged); returns `mvccTxn tw γ
-   .write h []`, and **no other write commits until its `End`** (the batch transaction's lock and
-   `s.mu`). Used by: `Put.spec`, `DeleteRange.spec`, `Txn.spec` (a write).
-3. **A transaction's view** (`Txn.viewRev`, `viewStore`, `viewErr` in txn's `Api.lean`): on `mvccTxn
-   tx γ k h evs` (any kind), `Rev()` is `h.rev`, `FirstRev()` the compaction revision (`-1` before
-   any: W0's `txnRevErr`), `Changes()` has `evs.length` entries; **`Range(ctx, key, end, ro)`**:
-   `viewErr h evs ro.Rev`'s error (mvcc's `ErrCompacted`/`ErrFutureRev`, `Txn.errIs`), or an owned
-   `*RangeResult` (`Txn.rrOwn rr kvs (viewRev h evs) count`: each `KeyValue` fresh and owned, the key
-   bytes read-only (`↦*□`: the index's on the keys-only path), its numbers fitting `int64`,
-   `Txn.kvFits`) of the present keys of `viewStore h evs ro.Rev` in the range (`end == nil`: the key
-   alone; `[]byte{}`: from the key on; else `[key, end)`), in key order, cut at a positive
-   `ro.Limit`; `FastKeysOnly`: lease `0` and no value; `Count` every key of the range if `CountOnly`,
-   `WithTotalCount` or no limit, else at most the limit; **at most `2 ^ 62` key-values** (Perennial's
-   `sort.Sort` limit, local to the sort: `sortRangeResults.spec`); or, only once the context is done
-   and not for `CountOnly`, `fmt.Errorf`'s error (`Txn.ctxErr`, with `Context.ctxDone ctx`). Used by:
-   `executeRange.spec`, `getPrevKV.spec`, `applyCompare.spec`, `deleteRange.spec`, `checkRange.spec`.
-   ```go
-   rr, err := txnRead.Range(ctx, r.Key, mkGteRange(r.RangeEnd), ro)   // txn/range.go:71
-   ```
-4. **`Put(key, value, lease)` on a `.write` transaction**: appends `.put key (record)` with W0's
-   `PutReq.record` at revision `h.rev + 1` over the key's record in the pending store
-   (`h.store.applyEvents evs`), returns `h.rev + 1`; with the lessor's writer token `Lease.lessorState
-   γl n ls` (3c), the lease `0` or live in `ls` (else `Attach` errs and mvcc panics), returning it
-   with only the attachments changed (`Txn.sameLeases`) and **`Txn.attached` kept** for the new pending
-   store. **`DeleteRange(key, end)`**: the present keys `l` of the pending store deleted
-   (`Txn.delEvents l`), returns `(len l, viewRev h (evs ++ delEvents l))`, the lessor's token likewise
-   (detaching). Used by: `put.spec`, `deleteRange.spec`.
-5. **`End()`**: a read transaction's gives the thread token back; a write's commits `evs` at one
-   revision (`h.commit evs`), firing the caller's update there (txn passes the update its caller
-   gave: `AU <{ ∃∃ h, … mvccState γ h }> … <{ mvccState γ (h.commit evs), COMM … }>`; with nothing
-   pending, the update may be closed unfired), and gives back `mvccWriter γ` and the thread token.
-6. **`NewReadOnlyTxnWrite(tr)`**: from `mvccTxn tr γ .read h []` to `mvccTxn tw γ .roWrite h []` (the
-   same view; its `End` ends the read; its `Put`/`DeleteRange` panic, never called on a read-only
-   transaction). The view's methods take the transaction at any interface type (`TxnRead`,
-   `ReadView`, `TxnWrite`: the same dynamic value).
-7. **Revisions fit**: `mvccState γ h ⊢ ⌜h.rev + 1 < 2 ^ 63⌝` (as W0's `etcdState_revFits`, from the
-   same budget at the owner), so a write's revision and every record's numbers fit `int64`.
-
+1. **A context error is none of the sentinels**: `rangeResOwn`'s `.ctxErr` case gives only
+   `err ≠ nil`; txn's `ctxErr err` (and 2c's `srvIndef`) need it to be neither `ErrCompacted`'s nor
+   `ErrFutureRev`'s value (it is `fmt.Errorf`'s fresh value, `kvstore_txn.go:122`). Used by:
+   `Range.spec`, `executeRange.spec` (`ctxErr_not_errIs`).
+2. **A record's lease fits `int64`**: `kvsFit`/`kvSortOk` bound the revisions and the version; txn's
+   `compareKV` compares `Lease` as an `int64` (`kvFits`). A law of reachable states (every record's
+   lease is some `sint.Z lid`) suffices. Used by: `compareKV.spec`, `rrOwn`.
+3. **The trace**: txn passes the trace `EnsureTrace` returned (4b's `TraceUtil.traceOwn`) as mvcc's
+   `traceOwn`; identify 3e's provisional `Mvcc.traceOwn` with 4b's.
+4. **The write's pin** (noted, no change asked): `Txn.End.contract`'s `⌜σ = σ₀⌝` makes every write
+   through `Write`/`End` pinned at the state its transaction began at; txn's `Put`, `DeleteRange` and
+   writing `Txn` take their caller's update pinned there (`AU <{ mvccState γ σ₀ }> …`). If 3e gives
+   a way to discharge it from the open transaction instead (the writer's lock keeps the state), the
+   two single-transaction writes could take an unpinned update, as `KV.Put.contract` does.
 
 ## from 3a
 

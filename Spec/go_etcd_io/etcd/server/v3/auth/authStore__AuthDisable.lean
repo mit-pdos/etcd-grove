@@ -9,7 +9,8 @@ check. Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
 `Unlock`, `ForceCommit`, `as.enabled = false`, the provider's `disable()` (the keeper stopped and
 waited for, every simple token dropped), `enabledMu.Unlock()`.
 
-**Changes.** The old per-mode spec restated over `admStep`.
+**Changes.** The old per-mode spec restated over `admStep`; round 1: the one next state
+`storeNext` (review F1, F2).
 
 **Margin.** None.
 -/
@@ -39,10 +40,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- **`as.AuthDisable()`** by the writer: W0's `authDisable` effect, recorded. -/
 def authStore.AuthDisable.spec : Prop :=
   ∀ (st : Loc) (γ : Cluster) (γa : AuthNames) (i : Nat) (a : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authCur γa i a ∗ admNext γ .authDisable a }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authCur γa i a ∗ authReached γ (storeNext .authDisable [] a) }}
     (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"AuthDisable")) (Val #()))
-  {{ RET #(); ∃ (a' : AuthState) (res : Resp), ⌜admStep .authDisable a a' res⌝ ∗
-      authCur γa (i + 1) a' }}
+  {{ RET #(); ∃ res : Resp, ⌜admStep .authDisable a (storeNext .authDisable [] a) res⌝ ∗
+      authCur γa (i + 1) (storeNext .authDisable [] a) }}
 
 end spec
 end Auth

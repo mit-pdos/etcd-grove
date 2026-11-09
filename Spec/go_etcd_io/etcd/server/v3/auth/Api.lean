@@ -34,7 +34,8 @@ views may straddle an `AuthDisable` and a role revocation: the guarantee is exac
 views). **This is the timing of `nonissues/etcd-doserialize-auth-enable-race.md` and of
 `nonissues/etcd-auth-revision-before-visible.md`**: a reader's revision (the atomic) may be one step
 ahead of its backend and cache views, so "the revision did not change" does not mean "the check's
-state is the read's state".
+state is the read's state". W0's round 6 admits it for linearizable reads (`State.permittedSince`:
+a permission at some auth state since the call started).
 
 **Tokens** name users as the cluster issued them: W0's `tokenUser γ tok u`. A token the store
 accepts (`AuthInfoFromCtx`) maps to a user `u` with `tokenUser γ tok u`; a token it assigns
@@ -44,9 +45,10 @@ right is the once-only `tokFrom γa n` (no index above `n` assigned yet), and `W
 token needs `rootTokOk γa` (`nonissues/etcd-auth-withroot-token-collision-panic.md`: two random
 prefixes may collide; the simple provider does not give it).
 
-**Passwords**: the model keeps a user's password; the store keeps a bcrypt hash of it
-(`Bcrypt.hashOf`), which the proposer computed and base64-encoded into the request
-(`hashedPw hp pw`). `CheckPassword` passes for the user's password and may pass for others (bcrypt's
+**Passwords**: W0's model keeps a user's stored credential (`UserRec.password`, the hash the
+proposer computed, `pwHash pw cred`) and checks a password with `pwMatch cred pw` (bcrypt's
+`CompareHashAndPassword`: the boundary `Spec/golang_org/x/crypto/bcrypt/`). The request carries the
+credential base64-encoded (`b64 cred`, `authReqAt`). `CheckPassword` passes for the user's password and may pass for others (bcrypt's
 72-byte limit and collisions: the boundary assumes no rejection).
 
 **Mode.** Auth on and off are values of `a.enabled`, not two specs (`auth-component.md`).
@@ -56,8 +58,9 @@ prefixes may collide; the simple provider does not give it).
 Pure: `AuthErr` (the package's error variables) with `AuthErr.etcd` (`togRPCError`'s table),
 `rngInverted`, `validPerms`, `recordsFit` (opaque, provisional: 4a's
 bbolt limits), `admStep rq a a' res` (W0's `authStep` effect of an admin request at an authorized
-caller), `AuthReach`, `checkOk`/`checkDenied`, `mdToken`, `trimBearer`, `hashedPw` (opaque),
-`b64` (opaque, provisional: `encoding/base64`'s boundary).
+caller), `storeNext rq cred a` (the store's next state, a function), `AuthReach`,
+`checkOk`/`checkDenied`, `mdToken`, `trimBearer`, `b64` (opaque, provisional: `encoding/base64`'s
+boundary).
 
 Resources: `AuthNames` (opaque ghost names); `authStoreAt st γ γa` (persistent: `st` is a member's
 store over cluster `γ`); `authCur γa i a` (exclusive: the writer); `authAt γa i a`, `authLb γa i`
@@ -100,7 +103,7 @@ transparent over them); `errOf e` (the error variables' values).
 `ctxInMD_persistent`, `ctxCertUser_persistent`, `authReqAt_persistent`; `authCur_excl`,
 `authCur_at`, `authAt_agree`, `authAt_le`, `authLb_le`, `authLb_mono`, `authAt_reach`,
 `authAt_reached`, `authAt_valid`, `tokFrom_excl`; `errOf_ne_nil`, `errOf_inj`, `init`;
-`hashedPw_intro`.
+`storeNext_adm`, `authRespAt_ne_null`, `authnRespAt_ne_null`.
 
 ## Requirement snippets
 
@@ -191,7 +194,76 @@ a state where nobody may (none is reachable: `AuthEnable` needs `root` with the 
 nothing removes while auth is on). -/
 def admStep (rq : Req) (a a' : AuthState) (res : Resp) : Prop :=
   ∀ (who : Principal) (σ : State), σ.auth = a → a.mayCall who rq →
-    authStep who rq σ { σ with auth := a' } res
+    ∃ σ' : State, authStep who rq σ σ' res ∧ σ'.auth = a'
+
+open Classical in
+/-- **The store's next state for the admin request `rq` at `a`**, as the code computes it (a
+function: the one next state the cluster's history fixed at the commit, which the apply thread can
+name; review round 1, F2). `cred` is the request's stored credential (the hash the proposer put in
+`HashedPassword`, decoded: `authReqAt`'s); unused by the other requests. Lists as W0 keeps them
+(appended; the store keeps them sorted, the same up to order). Agrees with `admStep` (a law the
+proof gives: `storeNext_adm`). -/
+def storeNext (rq : Req) (cred : Bytes) (a : AuthState) : AuthState :=
+  let bump (a' : AuthState) : AuthState := { a' with rev := a.rev + 1 }
+  match rq with
+  | .authEnable =>
+      if a.enabled = false ∧ a.isRoot rootUser then { a with enabled := true } else a
+  | .authDisable => if a.enabled = true then bump { a with enabled := false } else a
+  | .userAdd name _ noPw =>
+      if name ≠ [] ∧ a.users name = none then
+        bump (a.setUser name (some ⟨if noPw then none else some cred, []⟩))
+      else a
+  | .userDelete name =>
+      if ¬ (a.enabled = true ∧ name = rootUser) ∧ a.users name ≠ none then bump (a.setUser name none)
+      else a
+  | .userChangePassword name _ =>
+      match a.users name with
+      | some ur => bump (a.setUser name (some { ur with password := ur.password.map (fun _ => cred) }))
+      | none => a
+  | .userGrantRole user role =>
+      match a.users user with
+      | some ur =>
+          if (role = rootRole ∨ a.roles role ≠ none) ∧ role ∉ ur.roles then
+            bump (a.setUser user (some { ur with roles := ur.roles ++ [role] }))
+          else a
+      | none => a
+  | .userRevokeRole user role =>
+      if a.enabled = true ∧ user = rootUser ∧ role = rootRole then a
+      else match a.users user with
+        | some ur =>
+            if role ∈ ur.roles then
+              bump (a.setUser user (some { ur with roles := ur.roles.filter (· ≠ role) }))
+            else a
+        | none => a
+  | .roleAdd name =>
+      if name ≠ [] ∧ a.roles name = none then bump (a.setRole name (some [])) else a
+  | .roleDelete name =>
+      if ¬ (a.enabled = true ∧ name = rootRole) ∧ a.roles name ≠ none then
+        bump (AuthState.dropRole (a.setRole name none) name)
+      else a
+  | .roleGrantPermission name perm =>
+      match a.roles name with
+      | some ps =>
+          if perm.range.validPerm then
+            bump (a.setRole name (some (Perm.dropRange ps perm.range.key perm.range.rangeEnd ++ [perm])))
+          else a
+      | none => a
+  | .roleRevokePermission role key rangeEnd =>
+      match a.roles role with
+      | some ps =>
+          if ∃ q ∈ ps, q.range.key = key ∧ q.range.rangeEnd = rangeEnd then
+            bump (a.setRole role (some (Perm.dropRange ps key rangeEnd)))
+          else a
+      | none => a
+  | _ => a
+
+/-- **The store's step is one of W0's** (an obligation of the store's proof): from a state where the
+request's credential is a hash of its password, some answer `res` makes `storeNext` an `admStep`;
+`storeNext_adm` is what `AdminTriple`'s post states per call. -/
+def storeNext_adm.spec : Prop := ∀ (rq : Req) (cred : Bytes) (a : AuthState),
+  (∀ name pw noPw, rq = .userAdd name pw noPw → noPw = false → pwHash pw cred) →
+  (∀ name pw, rq = .userChangePassword name pw → pwHash pw cred) →
+  ∃ res, admStep rq a (storeNext rq cred a) res
 
 /-- **`a'` follows `a` by admin steps** (the store's history, and a snapshot's state: `Recover`). -/
 inductive AuthReach : AuthState → AuthState → Prop
@@ -237,15 +309,10 @@ def mdToken (md : MD) : Option GoString :=
     | t :: _ => some (trimBearer t)
     | [] => none
 
-/-- (provisional, the `encoding/base64` boundary's) `base64.StdEncoding.EncodeToString(h)`. -/
+/-- (provisional, the `encoding/base64` boundary's) `base64.StdEncoding.EncodeToString(h)`: what
+`EtcdServer.UserAdd`/`UserChangePassword` put in `HashedPassword` (2c), and what `selectPassword`
+decodes (`DecodeString (b64 h) = h`). -/
 opaque b64 (h : List w8) : GoString
-
-/-- **`hp` carries a bcrypt hash of the password `pw`**: `b64 h` for some `h` with
-`Bcrypt.hashOf h pw` (what `EtcdServer.UserAdd`/`UserChangePassword` put in `HashedPassword`). -/
-opaque hashedPw (hp : GoString) (pw : Bytes) : Prop
-
-/-- Introduction (2c's proposals): the base64 of a bcrypt hash of `pw`. -/
-def hashedPw_intro.spec : Prop := ∀ (h : List w8) (pw : Bytes), Bcrypt.hashOf h pw → hashedPw (b64 h) pw
 
 /-! ## Resources -/
 
@@ -286,12 +353,13 @@ root tokens without a collision if `rt`. Its methods' contract (a bundle over th
 interface, PRINCIPLES "an interface value gets a bundle"): `info(ctx, tok, rev)` returns `(ai,
 true)` only for a token of a user `u` with `tokenUser γ tok u`, `ai` naming `u`; `assign(ctx, name,
 rev)` from an `authnCtx` returns a token of `name` or an error; `enable`, `disable`,
-`invalidateUser`, `genTokenPrefix` do not panic. -/
+`invalidateUser`, `genTokenPrefix` do not panic. Stated in Lean as `Internal.lean`'s laws
+(`tokenProviderAt_open`, `tp_info`, `tp_assign`, `tp_assignRoot`, `tp_enable`, ...), proved from the
+concrete providers' method specs (`simple_provider`, `nop_provider`). -/
 opaque tokenProviderAt (tp : GoInterface) (γ : Cluster) (rt : Bool) : IProp GF := iprop(True)
 
 /-- (provisional, 4b's `schema.AuthBackend`) **`be` is an auth backend whose buckets hold the auth
-state `a`** (exclusive: the store's share of the backend; users' passwords as bcrypt hashes of
-`a`'s, roles' and permissions' lists up to order, users' roles sorted), with the contracts of its
+state `a`** (exclusive: the store's share of the backend; users' passwords `a`'s credentials, roles' and permissions' lists up to order, users' roles sorted), with the contracts of its
 `BatchTx`, `ReadTx`, `GetUser`, ... . -/
 opaque authBackendAt (be : GoInterface) (a : AuthState) : IProp GF := iprop(True)
 
@@ -307,16 +375,21 @@ def ctxToken (ctx : GoInterface) (o : Option GoString) : IProp GF :=
 
 /-- (provisional, 2a's grpc `peer`/`credentials` boundary) **The TLS client identity of `ctx`**
 (persistent): `some cn`, the common name of the first verified chain's leaf of a TLS peer, for a
-request without a `grpcgateway-accept` header; `none` otherwise (no peer, not TLS, no verified
-chain, a gateway request). What `AuthInfoFromTLS` reads. -/
+request whose incoming metadata is present (`metadata.FromIncomingContext` succeeds) and has no
+`grpcgateway-accept` key; `none` otherwise (no peer, not TLS, no verified chain, no incoming
+metadata, a gateway request). What `AuthInfoFromTLS` reads. -/
 opaque ctxCertUser (ctx : GoInterface) (c : Option GoString) : IProp GF := iprop(True)
 
-/-- **The request message `r` asks `rq`** (persistent: read-only; `*pb.Auth<Kind>Request`). For
-`userAdd name pw noPw` and `userChangePassword name pw`: `Name = name`, `Options.NoPassword = noPw`
-(nil options: `false`), and either `HashedPassword = hp` with `hashedPw hp pw` and `Password = ""`
-(the server's form) or `HashedPassword = ""` and `Password = pw`, at most 72 bytes (a pre-3.5
-entry). For `roleGrantPermission name perm`: `Perm` non-nil, of `perm`'s type, key and range end. -/
-opaque authReqAt (r : Loc) (rq : Req) : IProp GF := iprop(True)
+/-- **The request message `r` asks `rq`, with the credential `cred`** (persistent: read-only;
+`*pb.Auth<Kind>Request`). For `userAdd name pw noPw` and `userChangePassword name pw`: `Name = name`,
+`Options.NoPassword = noPw` (nil options: `false`), and, with a password, `HashedPassword = b64
+cred` (non-empty) with W0's `pwHash pw cred` (the server's form: the proposer hashed it). A pre-3.5
+entry's plain `Password` with an empty `HashedPassword` (rehashed at the apply with a fresh salt, so
+no one next state) is out of scope (a scope restriction: this server never proposes it). For
+`roleGrantPermission name perm`: `Perm` non-nil, of `perm`'s type (one of the three), key and range
+end (a nil or unknown-typed `Perm` from a client has no `Req`: `req/go_etcd_io_etcd_api_v3.md`, "from
+3d, round 1"). `cred` is `[]` for the other requests. -/
+opaque authReqAt (r : Loc) (rq : Req) (cred : Bytes) : IProp GF := iprop(True)
 
 /-- **`p` is a fresh `*pb.<Kind>Response` for the answer `res` to `rq`** (owned; its `Header` nil,
 which the applier sets): `UserGet`'s roles, `RoleGet`'s permissions, the lists, in the store's order
@@ -347,7 +420,11 @@ def rootTokOk_persistent.spec : Prop := ∀ γa, Persistent (rootTokOk (GF := GF
 def authnCtx_persistent.spec : Prop := ∀ γa ctx name idx, Persistent (authnCtx (GF := GF) γa ctx name idx)
 def ctxInMD_persistent.spec : Prop := ∀ ctx o, Persistent (ctxInMD (GF := GF) ctx o)
 def ctxCertUser_persistent.spec : Prop := ∀ ctx c, Persistent (ctxCertUser (GF := GF) ctx c)
-def authReqAt_persistent.spec : Prop := ∀ r rq, Persistent (authReqAt (GF := GF) r rq)
+def authReqAt_persistent.spec : Prop := ∀ r rq c, Persistent (authReqAt (GF := GF) r rq c)
+
+/-- A response is a real pointer (the applier sets its `Header`: the field law is 3h's). -/
+def authRespAt_ne_null.spec : Prop := ∀ rq res p, authRespAt (GF := GF) rq res p ⊢ ⌜p ≠ null⌝
+def authnRespAt_ne_null.spec : Prop := ∀ p tok, authnRespAt (GF := GF) p tok ⊢ ⌜p ≠ null⌝
 def authCur_timeless.spec : Prop := ∀ γa i a, Timeless (authCur (GF := GF) γa i a)
 def authAt_timeless.spec : Prop := ∀ γa i a, Timeless (authAt (GF := GF) γa i a)
 def authLb_timeless.spec : Prop := ∀ γa i, Timeless (authLb (GF := GF) γa i)
@@ -437,36 +514,32 @@ def admReply (rq : Req) (res : Resp) (resp : Loc) (err : GoInterface) : IProp GF
 
 /-! ## Shapes shared by the specs -/
 
-/-- **The writer's premise for an admin step**: each state the step may move to (other than `a`)
-is one the cluster reached, and its records fit bbolt (`recordsFit`). The apply thread has it from
-the committed entry it applies (2d: the history's next state is fixed at the commit). -/
-def admNext (γ : Cluster) (rq : Req) (a : AuthState) : IProp GF :=
-  iprop(□ ∀ (a' : AuthState) (res : Resp), ⌜admStep rq a a' res ∧ a' ≠ a⌝ -∗
-    authReached γ a' ∗ ⌜recordsFit a'⌝)
-
-/-- **An admin method** `e` of the store `st` for the request `rq` (its message described by `P`):
-from the writer's state, the step `admStep` (W0's effect) to `a'`, recorded as the next state, and
-the reply. -/
-def AdminTriple (e : Expr) (P : IProp GF) (st : Loc) (rq : Req) : Prop :=
+/-- **An admin method** `e` of the store `st` for the request `rq` with the credential `cred` (its
+message described by `P`): the writer supplies that the one next state, `storeNext rq cred a`, is
+reached and fits bbolt (2d: the committed entry's next state; `recordsFit` is the scope
+restriction of `issues/etcd-auth-useradd-long-name-fatal.md`); the store moves there (recorded as
+its `(i+1)`-th state) with an answer W0's step allows there, and replies. -/
+def AdminTriple (e : Expr) (P : IProp GF) (st : Loc) (rq : Req) (cred : Bytes) : Prop :=
   ∀ (γ : Cluster) (γa : AuthNames) (i : Nat) (a : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ P ∗
-      authStoreAt st γ γa ∗ authCur γa i a ∗ admNext γ rq a }}
+      authStoreAt st γ γa ∗ authCur γa i a ∗ authReached γ (storeNext rq cred a) ∗
+      ⌜recordsFit (storeNext rq cred a)⌝ }}
     e
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); P ∗
-      ∃ (a' : AuthState) (res : Resp), ⌜admStep rq a a' res⌝ ∗ authCur γa (i + 1) a' ∗
-        admReply rq res resp err }}
+      ∃ res : Resp, ⌜admStep rq a (storeNext rq cred a) res⌝ ∗
+        authCur γa (i + 1) (storeNext rq cred a) ∗ admReply rq res resp err }}
 
 /-- **What a permission check of `u` (revision `rev`) on `t` over `rng` returns**, from the lower
 bound `i0`: its three views' recorded states (the flag at `jf`, the backend at `jx`, the cache at
 `jc`, each at or after `i0`), and `nil` (`checkOk`), `ErrUserEmpty` (no user: revision `0`),
-`ErrAuthOldRevision` (a revision below the store's), or `ErrPermissionDenied` (`checkDenied`). -/
+`ErrAuthOldRevision` (the request's revision below the store's, read at `jr`), or `ErrPermissionDenied` (`checkDenied`). -/
 def checkPost (γa : AuthNames) (i0 : Nat) (u : GoString) (rev : w64) (t : PermType)
     (rng : KeyRange) (err : GoInterface) : IProp GF :=
-  iprop(∃ (jf jx jc : Nat) (af ax ac : AuthState), ⌜i0 ≤ jf ∧ i0 ≤ jx ∧ i0 ≤ jc⌝ ∗
-    authAt γa jf af ∗ authAt γa jx ax ∗ authAt γa jc ac ∗
+  iprop(∃ (jf jx jc jr : Nat) (af ax ac ar : AuthState), ⌜i0 ≤ jf ∧ i0 ≤ jx ∧ i0 ≤ jc ∧ i0 ≤ jr⌝ ∗
+    authAt γa jf af ∗ authAt γa jx ax ∗ authAt γa jc ac ∗ authAt γa jr ar ∗
     ⌜(err = GoInterface.nil ∧ checkOk u rev t rng af ax ac) ∨
      (err = errOf .userEmpty ∧ af.enabled = true ∧ rev = W64 0) ∨
-     (err = errOf .authOldRevision ∧ af.enabled = true ∧ rev ≠ W64 0) ∨
+     (err = errOf .authOldRevision ∧ af.enabled = true ∧ rev ≠ W64 0 ∧ uint.nat rev < ar.rev) ∨
      (err = errOf .permissionDenied ∧ checkDenied u rev t rng af ax ac)⌝)
 
 /-- **What `IsAdminPermitted` returns** for the user `u` (`""` for none), from the lower bound

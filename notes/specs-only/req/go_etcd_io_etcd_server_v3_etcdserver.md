@@ -961,3 +961,46 @@ Changes to the lessor's API since "from 3c" above, and what they ask of 2c, 2d, 
    `Keys` may answer a strict subset of the keys at the snapshot's revision, and `Demoted()` may be
    `false` (a primary lessor's `Renew` refreshes a loaded object): `nonissues/etcd-lease-keys-mid-apply.md`,
    asked of W0.
+
+
+## from 3a (round 1)
+
+11. `Apply.spec` now takes `Wait.waitWasReg γw id ∨ Wait.waitNever γw id` and gives back
+    `waitDone γw id` for a skipped transaction and on the `nil` path (2d).
+12. An alarm activation's reply: `irrReply` of `.alarmActivate` is `True`; a client's `Alarm(ACTIVATE)`
+    reads the `AlarmResponse` (`[⟨member, kind⟩]`). W0 now has `Req.alarmActivate`: 3a's `opBody`
+    could map an activation to `.req (.alarmActivate al)` once 2c's `irrReply` covers it.
+13. (F9) `ErrNoSpace` is indefinite in W0's model (the coordinator's decision): 2d's
+    `applyEntryNormal` sketch should say a `.noSpace` result may come from a write that applied
+    (`resMatch`'s quota case), not only from the capped refusal.
+
+## from 3b
+
+For 2c's error mapping (the review of 3b, F5): txn's errors are **the values of the sentinels'
+package variables** (`Txn.errIs err e`, transparent: `globalAddr mvcc.ErrCompacted ↦□ err` for
+`.compacted`, `mvcc.ErrFutureRev` for `.futureRev`, `lease.ErrLeaseNotFound` for `.leaseNotFound`,
+`errors.ErrKeyNotFound` for `.keyNotFound`), as 3e's `rangeResOwn` states its own; so `togRPCError`'s
+map (by identity with the same globals) gives `srvErrOf err e` from `errIs err e`, and `errors.Is`
+evaluates. A context's error (`Txn.ctxErr err`) is none of them (`ctxErr_not_errIs`): unmapped,
+indefinite (`srvIndef`).
+
+## from 3d, round 1 (changes to "from 3d")
+
+- Item 1 (the revision race): now covered by W0's round 6 (`State.permittedSince`) for linearizable
+  reads; 2c's sketch should cite it ("the check is at a recorded state at or after the call's
+  bound", `checkPost`), not the revision re-check. That needs **the store-index to cluster-index
+  link** (review S1): 2d's invariant should keep, for the store's history index `i` (`authAt γa i a`),
+  the cluster's auth-table index `k` with `σ.authTables[k]? = some a`, monotone in `i`, and give
+  2c an `authLb γa i` whose `k` is at least the call's `lo` (from `srvApplied`). 3d gives
+  `authAt_reached` (unordered) only.
+- Item 8 (the writer's premise) **replaced**: there is no `admNext`. Each admin method
+  (`Auth.AdminTriple`) takes `authReached γ (Auth.storeNext rq cred a)` and `recordsFit` of that one
+  state: `storeNext` is the store's next state as the code computes it (a function of the request,
+  its credential `cred` and `a`), the state the committed entry's history fixed; `AuthEnable`/
+  `AuthDisable` likewise with `cred = []`. `Recover` now also takes `recordsFit a'`.
+- Item 6 (the hash form): `authReqAt r rq cred` carries the request's credential (`HashedPassword =
+  b64 cred`, W0's `pwHash pw cred`); `hashedPw` is gone. A pre-3.5 plain-password entry is out of
+  scope (rehashed at the apply with a fresh salt: no one next state).
+- `Authenticate` (store): an absent or password-less user is `ErrAuthFailed` exactly.
+- `WithRoot`'s users include the health checks (`api/etcdhttp/health.go:222,434`); `rootTokOk`
+  stays its premise (the fork fix is the user's decision, `batch-3d.md`).

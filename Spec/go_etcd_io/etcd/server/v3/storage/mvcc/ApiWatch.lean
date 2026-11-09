@@ -32,11 +32,12 @@ fired: a watch reports the past. This is the server-side mirror of 1b's `watchSt
   before: the last event's revision of its last response with events, or the revision of its last
   progress (its own, or a stream-wide one after its stamp).
 * **What a response says** (`wsRespOk`): a response of a watcher `W` at its position `p`
-  (`wStep`): with events, **exactly the events of `W` of the revisions `p + 1` to the last event's**
+  and its events position (`posEvOf`, events only: a compaction is checked against it) (`wStep`): with events, **exactly the events of `W` of the revisions `p + 1` to the last event's**
   (`wEvents`: whole revisions, in order, filtered), the response's revision at least that and
   reached; a progress, no event of `W` from `p + 1` up to its revision, which is reached and not
-  below `W`'s start revision (`progStep`); a compaction, the next revision `W` needs is below a
-  compaction revision of the store. A stream-wide progress (id `-1`): `progStep` for every watcher
+  below `W`'s start revision (`progStep`); a compaction, the revision after `W`'s last event is
+  below a compaction revision of the store (a progress does not move that: after a `Restore`, a
+  compaction may come at or below a progress's revision). A stream-wide progress (id `-1`): `progStep` for every watcher
   registered before it (by stamp) and not cancelled before it. No response of a watcher after its
   cancel (`wsCanceled`), none after its compaction response but a resent compaction response
   (`issues/etcd-watch-compacted-resent.md`).
@@ -61,7 +62,10 @@ fired: a watch reports the past. This is the server-side mirror of 1b's `watchSt
   store's invariant beside 3e's half of `mvccState` (the two agree: the authority is
   `σ.notified`); it grows at a commit's first step and at a `Restore` (whose update shows the new
   history extends the committed one, which is the notified one under `s.mu`), never otherwise (a
-  compaction raises only its compaction revision).
+  compaction raises only its compaction revision). **A constraint on 3e's realization** (round 1,
+  S1): `mvccLb_le` and `mvccLb_get` are plain entailments over `mvccState` alone, so the authority (or
+  a fractional half of it) must be part of `mvccState`'s own realization, not only of the store's
+  invariant.
 * `wsAt w γ ι` (persistent): **`w` (a `*watchStream`) is a watch stream of `γ`, named `ι`**: its
   channel `wsChanOf ι`, its lock over `nextID`, `closed`, `cancels`, `watchers`. Intended
   realization: the stream's invariant: the channel's sends (all of them by the store's code, under
@@ -69,9 +73,10 @@ fired: a watch reports the past. This is the server-side mirror of 1b's `watchSt
   of them (`wsCons` its consumer half, `wsSentLb` its lower bounds); the registrations (a ghost map
   id ↦ watcher, persistent entries: `wsReg`), the cancelled ids with the send count at their removal
   (`wsCanceled`).
-* `wsCtl ι n` (exclusive): **the stream's control side**: every id `Watch` returned so far is
-  below `n` (the stream's auto ids only grow). One goroutine registers watchers (v3rpc's receive
-  loop).
+* `wsCtl ι n` (exclusive): **the stream's control side**: the stream's next id is `n`, every
+  registered id below it (`wsReg_ctl`; the auto ids are consecutive). One goroutine registers
+  watchers (v3rpc's receive loop). The counter cannot wrap: `Watch` takes a time receipt bounded by
+  the adequacy theorem's receipt bound (`ReceiptBoundLe`), which the stream's invariant counts.
 * `wsOpen ι` (exclusive): the right to close the stream (`Close` closes its channel: a second
   `Close` panics).
 * `wsCons ι rs` (exclusive): **the consumer has received the responses `rs`**, in order.
@@ -164,7 +169,9 @@ def wEvents (W : WatcherM) (h : KVHist) (lo hi : Nat) : List (Nat × Event) :=
     (fun x => decide (W.keeps x.1 x.2))
 
 /-- **The compaction condition**: every revision from `lo` up to `h`'s compaction revision changes
-each key at most once (vacuous when `h.compacted < lo`). -/
+each key at most once (vacuous when `h.compacted < lo`). The same statement as 1b's
+`ClientV3.exactFrom` (`evKey` is its `Event.key`), which mvcc cannot import; both should move to
+W0's model (`req/go_etcd_io_etcd_api_v3.md`, "from 3f"). -/
 def exactFrom (h : KVHist) (lo : Nat) : Prop :=
   ∀ r : Nat, lo ≤ r → r ≤ h.compacted → ((h.eventsAt r).map evKey).Nodup
 
@@ -185,6 +192,19 @@ def posOf (W : WatcherM) (id : w64) (rs : List WResp) : Nat :=
     else if xi.1.id = W64 (-1) ∧ W.stamp ≤ xi.2 then (sint.Z xi.1.rev).toNat
     else p) W.pos
 
+/-- **The events position** of the watcher `W` (id `id`) after `rs`: as `posOf`, counting only its
+responses with events (a progress does not move it): what the store's `minRev - 1` bounds, so what a
+compaction response is checked against (round 1, F1: after a snapshot `Restore` a watcher told by a
+progress that nothing changed up to `P` may still be sent a compaction at or below `P`,
+`nonissues/etcd-mvcc-watch-compacted-after-progress-restore.md`). -/
+def posEvOf (W : WatcherM) (id : w64) (rs : List WResp) : Nat :=
+  rs.foldl (fun p x =>
+    if x.id = id ∧ x.compactRev = W64 0 then
+      match x.evs.getLast? with
+      | some e => (sint.Z e.kv.modRevision).toNat
+      | none => p
+    else p) W.pos
+
 /-- The shape of every response: a compaction response is a watcher's, without events, at revision
 `0`; a stream-wide one (`-1`) a progress. -/
 def respShape (r : WResp) : Prop :=
@@ -198,14 +218,16 @@ def progStep (W : WatcherM) (h : KVHist) (p : Nat) (rev : w64) : Prop :=
   ∃ P : Nat, sint.Z rev = P ∧ p ≤ P ∧ P ≤ h.rev ∧ W.startRev ≤ P ∧
     (exactFrom h (p + 1) → wEvents W h (p + 1) P = [])
 
-/-- **What a response `r` of the watcher `W` says**, at its position `p`, against the reached
-history `h`: a compaction (the next revision `W` needs, `p + 1`, below a compaction revision of
-the store); a progress (`progStep`); events: up to the last event's revision `c'` (above `p`, at
-most the response's revision, which is reached), and (under the compaction condition) exactly
-`W`'s events of the revisions `p + 1 .. c'`. -/
-def wStep (W : WatcherM) (h : KVHist) (p : Nat) (r : WResp) : Prop :=
+/-- **What a response `r` of the watcher `W` says**, at its position `p` and its events position
+`pe` (`posEvOf`), against the reached history `h`: a compaction (the revision after `W`'s last
+event, `pe + 1`, is below a compaction revision of the store: not `p + 1`, a progress does not
+protect a watcher from a compaction); a progress (`progStep`); events: up to the last event's
+revision `c'` (above `p`, at most the response's revision, which is reached), and (under the
+compaction condition) exactly `W`'s events of the revisions `p + 1 .. c'`. (Margin of the
+condition: only the compaction revision itself can lose a key's earlier change in it.) -/
+def wStep (W : WatcherM) (h : KVHist) (p pe : Nat) (r : WResp) : Prop :=
   if r.compactRev ≠ W64 0 then
-    ∃ cr : Nat, sint.Z r.compactRev = cr ∧ p + 1 < cr ∧ cr ≤ h.compacted
+    ∃ cr : Nat, sint.Z r.compactRev = cr ∧ pe + 1 < cr ∧ cr ≤ h.compacted
   else if r.evs = [] then progStep W h p r.rev
   else ∃ c' : Nat, p < c' ∧ (c' : Int) ≤ sint.Z r.rev ∧ sint.Z r.rev ≤ h.rev ∧
     r.evs.getLast?.map (fun e => e.kv.modRevision) = some (W64 c') ∧
@@ -238,7 +260,8 @@ opaque watchableAt (kv : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
 /-- **`w` is a watch stream of `γ`, named `ι`** (persistent). -/
 opaque wsAt (w : Loc) (γ : MvccName) (ι : WsNames) : IProp GF := iprop(True)
 
-/-- **The stream's control side**: the ids returned so far are below `n` (exclusive). -/
+/-- **The stream's control side**: the stream's next id is `n`; every id registered so far is
+below it (exclusive; `wsReg_ctl`). -/
 opaque wsCtl (ι : WsNames) (n : Int) : IProp GF := iprop(True)
 
 /-- The right to close the stream (exclusive). -/
@@ -295,7 +318,7 @@ def wsRespOk (γ : MvccName) (ι : WsNames) (rs : List WResp) (r : WResp) : IPro
       □ ∀ (id : w64) (W : WatcherM), wsReg ι id W -∗ ⌜W.stamp ≤ rs.length⌝ -∗
         (∃ c, wsCanceled ι id c ∗ ⌜c ≤ rs.length⌝) ∨ ⌜progStep W h (posOf W id rs) r.rev⌝
     else ∃ W : WatcherM, wsReg ι r.id W ∗
-      ⌜W.stamp ≤ rs.length ∧ wStep W h (posOf W r.id rs) r ∧
+      ⌜W.stamp ≤ rs.length ∧ wStep W h (posOf W r.id rs) (posEvOf W r.id rs) r ∧
         (r.compactRev = W64 0 → ∀ x ∈ rs, x.id = r.id → x.compactRev = W64 0)⌝)
 
 /-- What a receive on the stream's channel gives: a response with its facts, or (`!ok`) the end of
@@ -324,6 +347,11 @@ def mvccLb_le.spec : Prop := ∀ γ σ h,
 receive: the watchers' registrations and responses are at or past it). -/
 def mvccLb_get.spec : Prop := ∀ γ σ,
   mvccState (GF := GF) γ σ ⊢ |==> mvccState γ σ ∗ mvccLb γ σ.notified
+
+/-- **Registered ids are below the control side's next id** (and not negative): an id the control
+side did not get from `Watch` is not registered. -/
+def wsReg_ctl.spec : Prop := ∀ ι id W n,
+  wsReg (GF := GF) ι id W ∗ wsCtl ι n ⊢ ⌜0 ≤ sint.Z id ∧ sint.Z id < n⌝
 
 /-- One registration per id (the stream's ids are fresh). -/
 def wsReg_agree.spec : Prop := ∀ ι id W W',

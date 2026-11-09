@@ -50,7 +50,8 @@ func ReqRangeLimitCount(ctx context.Context, lg *zap.Logger, kv mvcc.KV, k, end 
 // the store's revision, at least the pinned one.
 // Users: v3_server.go:223 (rangeStream pins the first page's revision), the client's WithRev gets.
 // Assumes: rev > 0.
-// Specs: Range.spec; laws: errIs_agree (the sentinels), W0's revErr.
+// Specs: Range.spec (errIs: the sentinels' globals, so errors.Is evaluates); laws: errIs_agree,
+// W0's revErr; 3e's Mvcc.mvccState_reachable (a record of storeAt rev has modRev <= rev).
 func ReqRangePinnedRev(ctx context.Context, lg *zap.Logger, kv mvcc.KV, k []byte, rev int64) {
 	resp, _, err := txn.Range(ctx, lg, kv, &pb.RangeRequest{Key: k, Revision: rev}, true)
 	if errors.Is(err, mvcc.ErrCompacted) || errors.Is(err, mvcc.ErrFutureRev) {
@@ -133,7 +134,7 @@ func ReqCountOnly(ctx context.Context, lg *zap.Logger, kv mvcc.KV, k, end []byte
 // header's, and it has one response per operation of the taken branch.
 // Users: v3_server.go:366 (EtcdServer.Txn's read-only transactions, skip false).
 // Assumes: none (le is unused by a read-only transaction).
-// Specs: IsTxnReadonly.spec, Txn.spec; laws: runHist_readonly.
+// Specs: IsTxnReadonly.spec, Txn.spec; laws: runEvs_readonly.
 func ReqTxnReadOnly(ctx context.Context, lg *zap.Logger, kv mvcc.KV, le lease.Lessor, a, b []byte) {
 	rt := &pb.TxnRequest{Success: []*pb.RequestOp{
 		{Request: &pb.RequestOp_RequestRange{RequestRange: &pb.RangeRequest{Key: a}}},
@@ -153,6 +154,37 @@ func ReqTxnReadOnly(ctx context.Context, lg *zap.Logger, kv mvcc.KV, le lease.Le
 		rr := ro.GetResponseRange()
 		if rr == nil || rr.Header.Revision != resp.Header.Revision {
 			panic("txn-read-only: a range at another revision")
+		}
+	}
+}
+
+// REQ txn/range-sorted-keys-only: a keys-only range sorted by descending mod revision with a filter
+// returns the filtered keys in that order, with no value and lease 0 (the fast keys-only path:
+// issues/etcd-range-keys-only-lease.md), at most the limit.
+// Users: v3_server.go:149 (etcdctl get --prefix --keys-only --sort-by=MODIFY --order=DESCEND, a
+// client's WithSort/WithMinModRev); the answer 2c's read registry and 3a's kvStep rely on.
+// Assumes: none.
+// Specs: Range.spec (rangeOut: the fast path's value and lease cleared before the sort);
+// laws: goSort_sorted, rangeOut_answers.
+func ReqRangeSortedKeysOnly(ctx context.Context, lg *zap.Logger, kv mvcc.KV, k, end []byte, minMod int64) {
+	r := &pb.RangeRequest{Key: k, RangeEnd: end, KeysOnly: true, Limit: 3, MinModRevision: minMod,
+		SortTarget: pb.RangeRequest_MOD, SortOrder: pb.RangeRequest_DESCEND}
+	resp, _, err := txn.Range(ctx, lg, kv, r, true)
+	if err != nil {
+		return
+	}
+	if len(resp.Kvs) > 3 {
+		panic("range-sorted-keys-only: over the limit")
+	}
+	for i, x := range resp.Kvs {
+		if len(x.Value) != 0 || x.Lease != 0 {
+			panic("range-sorted-keys-only: a value or a lease")
+		}
+		if x.ModRevision < minMod {
+			panic("range-sorted-keys-only: the filter missed")
+		}
+		if i > 0 && resp.Kvs[i-1].ModRevision < x.ModRevision {
+			panic("range-sorted-keys-only: out of order")
 		}
 	}
 }

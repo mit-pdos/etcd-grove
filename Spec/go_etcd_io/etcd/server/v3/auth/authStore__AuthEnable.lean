@@ -7,13 +7,14 @@ Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
 **Proof sketch.** `enabledMu.Lock()` (the flag's other half: readers of `IsAuthEnabled` wait);
 already enabled: no change, `nil`. The batch transaction (4b): `root` read; absent:
 `ErrRootUserNotExist`; without the root role (`hasRootRole`): `ErrRootRoleNotExist`; else the flag
-saved, `as.enabled = true` (the linearization point: the next state, enabled, recorded; `admNext`),
+saved, `as.enabled = true` (the linearization point: `storeNext .authEnable [] a`, enabled, recorded, with the writer's `authReached`),
 the provider's `enable()` (the simple provider's keeper started, on the token the provider holds),
 the cache refreshed, `setRevision` of the stored revision (the same value: `AuthEnable` keeps the
 revision, W0's model), the deferred `Unlock` and `ForceCommit`, then `enabledMu.Unlock()` (the flag
 view moves last).
 
-**Changes.** The old per-mode spec restated over `admStep`.
+**Changes.** The old per-mode spec restated over `admStep`; round 1: the one next state
+`storeNext` (review F1, F2).
 
 **Margin.** None.
 -/
@@ -44,10 +45,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 package's error of the answer. -/
 def authStore.AuthEnable.spec : Prop :=
   ∀ (st : Loc) (γ : Cluster) (γa : AuthNames) (i : Nat) (a : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authCur γa i a ∗ admNext γ .authEnable a }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authCur γa i a ∗ authReached γ (storeNext .authEnable [] a) }}
     (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"AuthEnable")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      ∃ (a' : AuthState) (res : Resp), ⌜admStep .authEnable a a' res⌝ ∗ authCur γa (i + 1) a' ∗
+      ∃ res : Resp, ⌜admStep .authEnable a (storeNext .authEnable [] a) res⌝ ∗
+        authCur γa (i + 1) (storeNext .authEnable [] a) ∗
         ⌜(res = .ok .authEnable ∧ err = GoInterface.nil) ∨
          (∃ e ae, res = .err e ∧ ae.etcd = some e ∧ err = errOf ae)⌝ }}
 

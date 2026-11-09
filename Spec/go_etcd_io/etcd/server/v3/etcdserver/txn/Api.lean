@@ -4,91 +4,87 @@
 `Range`, `Count`, `Put`, `DeleteRange` and `Txn` run one request over a member's mvcc store (and,
 for a write, its lessor): the apply thread (3a's `applierV3backend`, every member, for a committed
 request) and the request path (2c: `EtcdServer.Range`, `RangeStream`, a read-only `Txn`) call them.
-This file is the vocabulary their specs share.
+This file is the vocabulary their specs share; the store's is 3e's (`storage/mvcc/{Model,Api}.lean`,
+namespace `Mvcc`), the lessor's 3c's (`Lease`), the trace's 4b's (`TraceUtil`).
 
 ## The shape, in words
 
-**The state a request acts on** is the member store's **history** `h : KVHist` (W0's: the events of
-every revision and the compaction revision), held in mvcc's client-owned `mvccState γ h` (3e's), and
-for a write the lessor's state `ls` (3c's `Lease.LessorState`, through the apply thread's writer
-token `Lease.lessorState γl n ls`): its live leases (`ls.table`, W0's lease table) decide a put's
-check, and its attachments follow the store (`attached`), which mvcc's put and delete keep.
+**The state a request acts on** is the store's `Mvcc.MvccState` (its history `σ.kv : KVHist`, W0's,
+and a pending revision), in 3e's client-owned `Mvcc.mvccState γ σ`; for a write also the lessor's
+state `ls` (3c's writer token `Lease.lessorState γl n ls`): its live leases (`ls.table`, W0's lease
+table) decide a put's check, and mvcc's put and delete move its attachments (`evsLs`, 3e's steps).
 
 * **A read** (`Range`, `Count`, a read-only `Txn`) takes the caller's atomic update over
-  `mvccState`, the state unchanged, fired once when mvcc's read transaction begins (`kv.Read`: the
-  store's revision and compaction are fixed for the transaction); the answer is computed from that
-  state. Concurrent writers are allowed (the request path's reads run beside the apply thread).
-* **A write** (`Put`, `DeleteRange`) is one mvcc write transaction, atomic by mvcc's writer lock:
-  its update fires once, at the transaction's `End` (or at the check that fails), moving `h` to the
-  model's next history. **A writing `Txn`** reads, checks, then writes in two mvcc transactions and
-  relies on no write in between (`txn.go:60-63`): its update is **pinned** at the history `h0` it
-  begins at (`⌜h = h0⌝` in the update's precondition: the caller asserts the state is `h0` whenever
-  the update is opened, which the apply thread can, being the store's only writer).
+  `mvccState`, the state unchanged, fired once when mvcc's read transaction begins; the answer is
+  computed from `σ.kv`. Concurrent writers are allowed.
+* **A write** (`Put`, `DeleteRange`, a `Txn` that is not read-only) takes the caller's update
+  **pinned at `σ₀`** (nothing pending) and **nested as 3e's commit**: notify with the request's
+  events, then the bump. 3e's `Txn.End` asks the state to still be the one its transaction began at,
+  which only the store's sole writer (the apply thread) can assert; a writing `Txn` also reads, checks,
+  then writes in two mvcc transactions (`txn.go:60-63`). An error after the write transaction began
+  commits nothing and gives the update back; one before it (a dead lease, a failed check) too.
+* The caller lends its context's trace (4b's `ctxTraceIs`, `ctxTraceOwn`: `EnsureTrace` keeps a
+  context's non-empty trace) and gets back the trace returned (`traceBack`); a write lends the
+  storage's share and `txnWriter` (3e's `Write` premises: the post-lock hook's run, the way back to
+  the batch lock's invariant `Pk` and the caller's `Post`).
 
 **The answers are functions of the state** (`putAns`, `rangeOut`, `run`): `goSort` names the
-permutation Go's `sort.Sort` (pdqsort, deterministic: its pivot "randomness" is seeded by the
-length) produces, so a range's answer is unique although the model's `RangeReq.answers` allows any
-order among ties. This is what 2d's commit-time answers (`applyStep_fun`) and 2c's read registry
-need. The laws `rangeOut_answers`, `run_txnRun` relate them to W0's relations (`RangeReq.answers`,
-`TxnRun`), so 2c and 3a reach W0's `kvStep` without unfolding.
+permutation Go's `sort.Sort` (pdqsort, deterministic) produces, so a range's answer is unique
+although W0's `RangeReq.answers` allows any order among ties. The laws `rangeOut_answers`,
+`run_txnRun` relate them to W0's relations (`RangeReq.answers`, `TxnRun`).
 
-**Errors** are the Go values the package returns: `errIs err e` (mvcc's `ErrCompacted` and
-`ErrFutureRev`, lease's `ErrLeaseNotFound`, etcdserver/errors' `ErrKeyNotFound`, for W0's `e`), and a
+**Range ends** are W0's `KeyRange` of the request predicates, which read the end slice as mvcc does
+(W0's unfold laws, round 1 of 3b's review: `nil` the key alone, a non-`nil` empty slice `"\x00"`,
+every key from the key on); `Count` reads its raw slice the same way (`endOf`).
+
+**Errors** are the values of the sentinels' package variables (`errIs err e`: mvcc's
+`ErrCompacted`/`ErrFutureRev`, lease's `ErrLeaseNotFound`, etcdserver/errors' `ErrKeyNotFound`), and a
 context's error inside mvcc's range (`ctxErr err`, only once the context is done).
 
 ## Vocabulary
 
-Pure (transparent): `targetOk`, `countReq`, `rangeLimitZ`, `sortOut`, `assemble`, `rangeOut`,
-`rangeAll`, `kvFits`, `hdrAt`, `ignores`, `needsPrev`, `putEvents`, `putPrev`, `putAns`, `putHist`,
-`delEvents`, `attached`, `sameLeases`, `cmpsHold`, `opCheck`/`opsCheck`, `execOp`/`execOps`,
-`opPath`/`opsPath`, `txnPathOf`, `run`, `runHist`, `runRev`, `opIgnTaken`/`opsIgnTaken`,
-`opIgnKeys`/`opsIgnKeys`, `opDelRanges`/`opsDelRanges`, `opSafe`/`opsSafe`, `txnSafe`, `TxKind`,
-`viewRev`, `viewStore`, `viewErr`. Pure (opaque): `goSort` (Go's sort; law `goSort_sorted`).
+Pure (transparent): `targetOk`, `endOf`, `countReq`, `rangeLimitZ`, `sortOut`, `assemble`,
+`rangeOut`, `rangeAll`, `kvFits`, `hdrAt`, `ignores`, `needsPrev`, `putEvents`, `putPrev`, `putAns`,
+`putHist`, `delEvents`, `leasesLive`, `attached`, `evsLs`, `cmpsHold`, `opCheck`/`opsCheck`,
+`execOp`/`execOps`, `opPath`/`opsPath`, `txnPathOf`, `run`, `runEvs`, `runRev`,
+`opIgnTaken`/`opsIgnTaken`, `opIgnKeys`/`opsIgnKeys`, `opDelRanges`/`opsDelRanges`,
+`opSafe`/`opsSafe`, `txnSafe`, `txnK`, `viewRev`, `viewStore`, `viewErr` (over 3e's `MTxn`). Pure
+(opaque): `goSort` (Go's sort; law `goSort_sorted`).
 
-Resources: `errIs err e`, `ctxErr err` (opaque, persistent); the reply predicates `rangeOk`, `putOk`,
-`delOk`, `txnOk` (transparent, over W0's `Wire.lean`), `rrOwn` (mvcc's `*RangeResult`, owned,
-transparent), `msgOpt` (a message the warnings may size, transparent); `roTxnResp` (opaque: a
-read-only transaction's partly filled response) and `respSkel` (opaque, internal: the response tree
-`newTxnResp` allocates).
+Resources: `errIs err e` (transparent: the sentinel's global), `ctxErr err` (opaque, persistent);
+`txnWriter B Pk Post`, `ctxTraceOwn o`, `traceBack o tr` (transparent, over 3e's and 4b's); the
+reply predicates `rangeOk`, `putOk`, `delOk`, `txnOk` (transparent, over W0's `Wire.lean`), `rrOwn`
+(mvcc's `*RangeResult`, owned), `msgOpt` (a message the warnings may size); `roTxnResp` (opaque: a
+read-only transaction's partly filled response) and `respSkel` (opaque, internal: the response
+tree `newTxnResp` allocates).
 
-**Provisional, the callees' slots** (to be replaced by their names at integration;
-`notes/specs-only/req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, `..._lease.md`,
-`..._etcdserverpb.md`, `..._traceutil.md`, "from 3b"):
-
-* 3e: `MvccName`, `mvccN`; `mvccKV kv γ` (persistent: `kv` is a store, an `mvcc.KV` interface value:
-  `*store` or `*watchableStore`); `mvccState γ h` (the store's history, client-owned, exclusive);
-  `mvccWriter γ` (exclusive: what mvcc's `Write` needs of its caller and gives back at `End`: the
-  backend's share, the post-lock hook's contract that sets the consistent index); `mvccTxn tx γ k h
-  evs` (exclusive: an open transaction of kind `k` begun at `h`, its pending events `evs`);
-  `mvccLessor γ γl` (persistent: the store attaches keys to 3c's lessor `γl`).
-* 3h: `stringerOk s` (persistent: a `fmt.Stringer` whose `String()` returns).
-* 4b: `traceAt tr` (persistent; 2c's `EtcdServer.traceAt`).
+**Provisional**, 3h's: `stringerOk s` (persistent: a `fmt.Stringer` whose `String()` returns).
 
 ## Intended realization
 
 txn allocates no ghost state and keeps no invariant: each entry point passes the caller's update to
-mvcc's transaction contracts (3e: `Read`'s update fired at the begin, `End`'s at the commit), reads
-the lessor through `Lookup` (3c, at the writer's token), and builds the reply. `goSort` is realized
-by a functional model of Go's `sort.Sort` (a Perennial change: its spec today gives a sorted
-permutation, not which one; `notes/specs-only/batch-3b.md`). `errIs` by the owners' package
-initializations (each sentinel an `errors.New` value, a distinct pointer), `ctxErr` by `fmt.Errorf`'s
-fresh value, `roTxnResp` and `respSkel` by the response trees as `newTxnResp` builds them.
+mvcc's transaction contracts (3e: `Read`'s update fired at the begin, `Write`'s a peek, `End`'s two
+steps at the commit), reads the lessor through `Lookup` (3c, at the writer's token), and builds the
+reply. `goSort` is realized by a functional model of Go's `sort.Sort` (a Perennial change: its spec
+today gives a sorted permutation, not which one; `notes/specs-only/batch-3b.md`). `ctxErr` by
+`fmt.Errorf`'s fresh value (3e's context outcome, asked to say it is none of the sentinels),
+`roTxnResp` and `respSkel` by the response trees as `newTxnResp` builds them.
 
 ## Laws
 
-`goSort_sorted`, `rangeAll_eq`, `rangeOut_answers`, `run_txnRun`, `runHist_readonly`,
-`errIs_persistent`, `errIs_ne_nil`, `errIs_agree`, `ctxErr_persistent`, `ctxErr_ne_nil`,
-`ctxErr_not_errIs`, `traceAt_persistent`, `stringerOk_persistent`, `mvccKV_persistent`,
-`mvccLessor_persistent`, `mvccState_excl`.
+`goSort_sorted`, `rangeAll_eq`, `rangeOut_answers`, `run_txnRun`, `runEvs_readonly`,
+`attached_evsLs`, `errIs_ne_nil`, `errIs_agree`, `ctxErr_persistent`, `ctxErr_ne_nil`,
+`ctxErr_not_errIs`, `stringerOk_persistent`.
 
 ## Requirement snippets
 
 `examples/specreq/txn/`: `read.go` (a limited range's count and `More`, a pinned revision and its
-compaction error, `RangeStream`'s paging with `Count`, a count-only range, a read-only `Txn`),
-`write.go` (the apply thread as the sole writer: a put then a range sees it, `IgnoreValue`, the lease
-check, a range delete, a CAS `Txn`, a `Txn` with `skipRangeExecution`), `helpers.go`
-(`IsTxnReadonly`, `IsTxnSerializable`, `IsDefaultOrdering`, `HasRevisionFilters` as 2a and 2c use
-them).
+compaction error, `RangeStream`'s paging with `Count`, a count-only range, a sorted keys-only
+filtered range, a read-only `Txn`), `write.go` (the apply thread as the sole writer: a put then a
+range sees it, `IgnoreValue`, the lease check, a range delete, a delete with `PrevKv`, a CAS `Txn`, a
+`Txn` with `skipRangeExecution`, a `Txn` whose check fails), `helpers.go` (`IsTxnReadonly`,
+`IsTxnSerializable`, `IsDefaultOrdering`, `HasRevisionFilters` as 2a and 2c use them), `warn.go`
+(the warnings as the request path and the uber applier call them).
 -/
 module
 
@@ -97,6 +93,9 @@ public import Spec.context.Api
 public import Spec.go_uber_org.zap.Api
 public import Spec.google_golang_org.protobuf.proto.Api
 public import Spec.go_etcd_io.etcd.server.v3.lease.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
+public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
@@ -157,16 +156,23 @@ def assemble (r : RangeReq) (l : List KV) : List KV × Bool :=
 key order: mvcc's limited fetch (`rangeLimit`; keys-only from the index, lease `0`), the revision
 filters, the sort, the response's cut. `Count` is every key of the range (`withTotalCount`, or no
 pushed-down limit, or count-only), else at most the pushed-down limit (`treeIndex.Revisions` stops
-counting there). -/
+counting there). The fast keys-only path's key-values come from the index: no value and lease `0`
+(mvcc's `keysOnlyM`), sorted as such. -/
 def rangeOut (r : RangeReq) (wtc : Bool) (all : List KV) : RangeAns :=
   if r.countOnly then { kvs := [], more := false, count := all.length }
   else
     let L := r.pushdownLimit
     let fetched := if L = 0 then all else all.take L
-    let fetched := if r.fastKeysOnly then fetched.map (fun kv => { kv with lease := 0 }) else fetched
+    let fetched := if r.fastKeysOnly then fetched.map (fun kv => { kv with value := [], lease := 0 })
+      else fetched
     let a := assemble r (sortOut r (fetched.filter r.keeps))
     { kvs := a.1, more := a.2,
       count := if wtc ∨ L = 0 then all.length else min all.length L }
+
+/-- **The range end a slice names** (W0's reading, as mvcc reads the slice: `nil` the key alone, a
+non-`nil` empty slice every key from the key on, `"\x00"`'s reading; else the bytes). -/
+def endOf (sl : GoSlice) (e : Bytes) : Bytes :=
+  if sl = slice.nil then [] else if e = [] then [0#8] else e
 
 /-- `Count`'s request: a count-only range of `[key, rangeEnd)` at revision `rev`. -/
 def countReq (key rangeEnd : Key) (rev : Int) : RangeReq :=
@@ -174,8 +180,8 @@ def countReq (key rangeEnd : Key) (rev : Int) : RangeReq :=
     serializable := false, keysOnly := false, countOnly := true, minModRevision := 0,
     maxModRevision := 0, minCreateRevision := 0, maxCreateRevision := 0 }
 
-/-- The present keys of `s` in `rg`, in key order (the unique such list; `[]` if none exists, which
-no store of a reached history is). -/
+/-- The present keys of `s` in `rg`, in key order (the unique such list; every store of a `KVHist`
+has finite support, so it exists). -/
 def rangeAll (s : EtcdModel.Store) (rg : KeyRange) : List KV :=
   if h : ∃ l, s.rangeKVs rg l then Classical.choose h else []
 
@@ -231,21 +237,34 @@ def delEvents (l : List KV) : List Event := l.map (fun kv => .delete kv.key)
 section lessor
 variable [GooseExts]
 
-/-- **The store `s` and the lessor's state `ls` agree** (3c's attachment invariant,
-`req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, "from 3c"): every key's lease is live (or `0`) and
-is its `itemMap` entry, and each live lease's item set is exactly its keys (`0` never live). What a
-put with `IgnoreLease` needs (mvcc's `Attach` of a dead lease panics), and what mvcc's put and
-delete keep (detaching the old lease, attaching the new). True of every reached state. -/
+/-- **Every key of the store `s` holds a live lease of `ls`, or none**: what a put with
+`IgnoreLease` needs (mvcc's `Attach` of a dead lease panics: the code's own need). True of every
+reached state (a revocation deletes the lease's keys, a put checks its lease). -/
+def leasesLive (s : EtcdModel.Store) (ls : Lease.LessorState) : Prop :=
+  ∀ (k : Key) (r : KeyRec), s k = some r → r.lease = 0 ∨ ls.leases r.lease ≠ none
+
+/-- **The store `s` and the lessor's state `ls` agree** (3c's attachment invariant, which the
+store's caller keeps: `req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, "from 3c"): every key's
+lease is live (or `0`) and is its `itemMap` entry (3e's `storeItems`), and each live lease's item
+set is exactly its keys (`0` never live). Not a premise of txn's specs (they take `leasesLive`):
+the law `attached_evsLs` says txn's writes keep it. -/
 def attached (s : EtcdModel.Store) (ls : Lease.LessorState) : Prop :=
-  (∀ k, ls.items k = ((s k).map (·.lease)).getD 0) ∧
-  (∀ (k : Key) (r : KeyRec), s k = some r → r.lease = 0 ∨ ls.leases r.lease ≠ none) ∧
+  (∀ k, ls.items k = Mvcc.storeItems s k) ∧ leasesLive s ls ∧
   (∀ (id : Int) (e : Lease.LeaseEnt), ls.leases id = some e →
     id ≠ 0 ∧ ∀ k, (ls.keys e.obj k ↔ ls.items k = id))
 
-/-- **The lessor's writes by a KV request**: only the attachments change (the live leases, the
-bucket, the backend and the range deleter are kept). -/
-def sameLeases (ls ls' : Lease.LessorState) : Prop :=
-  ls'.leases = ls.leases ∧ ls'.bkt = ls.bkt ∧ ls'.be = ls.be ∧ ls'.rd = ls.rd
+/-- **The lessor's state after a request's events `evs` over the store `s`**: mvcc's steps (3e's
+`putLs` for each put, `delLs` for each delete), in order. -/
+def evsLs : Lease.LessorState → EtcdModel.Store → List Event → Lease.LessorState
+  | ls, _, [] => ls
+  | ls, s, .put k r :: es => evsLs (Mvcc.putLs ls (s k).isSome k r.lease) (s.applyEvent (.put k r)) es
+  | ls, s, .delete k :: es => evsLs (Mvcc.delLs ls k) (s.applyEvent (.delete k)) es
+
+/-- **txn's writes keep the attachment invariant** (each put's lease live, as `PutReq.check`
+ensures). -/
+def attached_evsLs.spec : Prop := ∀ (s : EtcdModel.Store) (ls : Lease.LessorState) (evs : List Event),
+  attached s ls → (∀ k r, Event.put k r ∈ evs → r.lease = 0 ∨ ls.leases r.lease ≠ none) →
+  attached (s.applyEvents evs) (evsLs ls s evs)
 
 end lessor
 
@@ -334,11 +353,11 @@ def run (t : TxnReq) (h : KVHist) (ls : Int → Option LeaseRec) (skip : Bool) :
       let x := execOps h skip (h.store, []) ops
       .ok (x.1.2, ok, x.2)
 
-/-- **`Txn`'s next history** (a failed check writes nothing). -/
-def runHist (t : TxnReq) (h : KVHist) (ls : Int → Option LeaseRec) : KVHist :=
+/-- **`Txn`'s events** (a failed check writes none). -/
+def runEvs (t : TxnReq) (h : KVHist) (ls : Int → Option LeaseRec) : List Event :=
   match run t h ls false with
-  | .ok x => h.commit x.1
-  | .error _ => h
+  | .ok x => x.1
+  | .error _ => []
 
 /-- The response header's revision of a run that wrote `evs`. -/
 def runRev (h : KVHist) (evs : List Event) : Nat := if evs = [] then h.rev else h.rev + 1
@@ -356,8 +375,8 @@ def run_txnRun.spec : Prop := ∀ (t : TxnReq) (h : KVHist) (ls : Int → Option
   (∀ skip, (run t h ls skip).map (fun x => x.1) = (run t h ls false).map (fun x => x.1))
 
 /-- A read-only transaction writes nothing. -/
-def runHist_readonly.spec : Prop := ∀ (t : TxnReq) (h : KVHist) (ls : Int → Option LeaseRec),
-  t.readonly → runHist t h ls = h ∧ ∀ skip x, run t h ls skip = .ok x → x.1 = []
+def runEvs_readonly.spec : Prop := ∀ (t : TxnReq) (h : KVHist) (ls : Int → Option LeaseRec),
+  t.readonly → runEvs t h ls = [] ∧ ∀ skip x, run t h ls skip = .ok x → x.1 = []
 
 mutual
 /-- The keys of the puts with an ignore flag on the path taken at the read store `s` (each nested
@@ -410,33 +429,33 @@ def opsSafe : List RequestOp → Prop
       ∀ rg ∈ opDelRanges op, ∀ k ∈ opsIgnKeys ops, ¬ rg.mem k
 end
 
-/-- **A transaction `Txn` runs without a panic** at every state (both branches `opsSafe`). The gRPC
-layer's checks give it (2a's law: `checkTxnRequest` and `checkIntervals`, with the fork's fix of
+/-- **A state-free sufficient condition for `Txn` to run without a panic** (both branches
+`opsSafe`): stricter than the code's need, which is about the taken path at the read state only
+(no empty operation and a known sort target on it, each ignore-put's key present in the
+in-transaction store when it runs: `executeTxn.spec`'s premise, the margin). The gRPC layer's
+checks give it (2a's law: `checkTxnRequest` and `checkIntervals`, with the fork's fix of
 `issues/etcd-txn-delete-then-ignore-put.md`). -/
 def txnSafe (t : TxnReq) : Prop := opsSafe t.success ∧ opsSafe t.failure
 
-/-! ## An open mvcc transaction's view (3e's, provisional) -/
+/-! ## An open mvcc transaction's view (over 3e's `MTxn`) -/
 
-/-- An mvcc transaction's kind: a read transaction (`kv.Read`), the read-only wrapper over one
-(`NewReadOnlyTxnWrite`: a `TxnWrite` whose `Put`/`DeleteRange` panic), a write transaction
-(`kv.Write`). -/
-inductive TxKind where
-  | read
-  | roWrite
-  | write
+/-- The transaction `txn` works on: a write one begun at `σ` with the events `pend`, or a read one
+(`.read σ`: also the read-only wrapper, 3e's `mvccTxn_readOnly`). -/
+def txnK (w : Bool) (σ : Mvcc.MvccState) (pend : List Event) : Mvcc.MTxn :=
+  if w then .write σ pend else .read σ
 
-/-- A transaction's current revision (`Range`'s `Rev`): one more once it wrote. -/
-def viewRev (h : KVHist) (evs : List Event) : Nat := if evs = [] then h.rev else h.rev + 1
+/-- A transaction's current revision (`RangeResult.Rev`): one more once it wrote. -/
+def viewRev (k : Mvcc.MTxn) : Nat := k.readHist.rev
 
-/-- The store a transaction's range at revision `rev` reads: its pending store at `rev ≤ 0` or
-above the begin revision, else the history's. -/
-def viewStore (h : KVHist) (evs : List Event) (rev : Int) : EtcdModel.Store :=
-  if rev ≤ 0 ∨ (h.rev : Int) < rev then h.store.applyEvents evs else h.storeAt rev.toNat
+/-- The store a transaction's range at revision `rev` reads (the current one at `rev ≤ 0`). -/
+def viewStore (k : Mvcc.MTxn) (rev : Int) : EtcdModel.Store :=
+  k.readHist.storeAt (if rev ≤ 0 then k.readHist.rev else rev.toNat)
 
-/-- The error of a transaction's range at revision `rev` (mvcc's `rangeKeys`). -/
-def viewErr (h : KVHist) (evs : List Event) (rev : Int) : Option EtcdErr :=
-  if (viewRev h evs : Int) < rev then some .futureRev
-  else if 0 < rev ∧ rev < (h.compacted : Int) then some .compacted
+/-- The error of a transaction's range at revision `rev` (3e's `rangeOut`: above the current
+revision `ErrFutureRev`, below the store's compaction `ErrCompacted`). -/
+def viewErr (k : Mvcc.MTxn) (rev : Int) : Option EtcdErr :=
+  if (k.readHist.rev : Int) < rev then some .futureRev
+  else if (if rev ≤ 0 then (k.readHist.rev : Int) else rev) < k.state.crev then some .compacted
   else none
 
 section res
@@ -445,31 +464,40 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-! ## Errors and traces -/
 
-/-- **`err` is the Go value the package returns for W0's error `e`** (persistent): mvcc's
-`ErrCompacted`/`ErrFutureRev`, lease's `ErrLeaseNotFound`, etcdserver/errors' `ErrKeyNotFound`. -/
-opaque errIs (err : GoInterface) (e : EtcdErr) : IProp GF := iprop(True)
+/-- **`err` is the Go value the package returns for W0's error `e`**: the value of the sentinel's
+package variable (mvcc's `ErrCompacted`/`ErrFutureRev`, lease's `ErrLeaseNotFound`,
+etcdserver/errors' `ErrKeyNotFound`; read-only after the packages' initialization), so a caller's
+`err == mvcc.ErrCompacted` or `errors.Is` evaluates; `False` for any other error. -/
+def errIs (err : GoInterface) : EtcdErr → IProp GF
+  | .compacted => iprop(globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ err)
+  | .futureRev => iprop(globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ err)
+  | .leaseNotFound => iprop(globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ err)
+  | .keyNotFound => iprop(globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound ↦□ err)
+  | _ => iprop(False)
 
 /-- **`err` is mvcc's range error after its context was done** (`fmt.Errorf("rangeKeys: context
 cancelled: %w", …)`, wrapped again by `executeTxn`): persistent. -/
 opaque ctxErr (err : GoInterface) : IProp GF := iprop(True)
 
-/-- (provisional, 4b's; `EtcdServer.traceAt`) **`tr` is a trace** (`*traceutil.Trace`, possibly
-`nil`): its methods are safe to call. -/
-opaque traceAt (tr : Loc) : IProp GF := iprop(True)
-
 /-- (provisional, 3h's) **`s` is a `fmt.Stringer` whose `String()` returns** (persistent): a request
 message (protobuf's `String`), `pb.NewLoggableTxnRequest`'s, `*pb.InternalRaftStringer` of a request. -/
 opaque stringerOk (s : GoInterface) : IProp GF := iprop(True)
 
-def errIs_persistent.spec : Prop := ∀ err e, Persistent (errIs (GF := GF) err e)
-def errIs_ne_nil.spec : Prop := ∀ err e, errIs (GF := GF) err e ⊢ ⌜err ≠ GoInterface.nil⌝
-/-- One value, one error (distinct sentinels are distinct `errors.New` pointers). -/
-def errIs_agree.spec : Prop := ∀ err e e', errIs (GF := GF) err e ∗ errIs err e' ⊢ ⌜e = e'⌝
+/-- With the packages initialized, the sentinels are non-`nil` and distinct (each an `errors.New`
+pointer with its own message: the owners' `init` laws, 3e's `Mvcc.init`). -/
+def errIs_ne_nil.spec : Prop := ∀ err e,
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ errIs err e ⊢
+    ⌜err ≠ GoInterface.nil⌝
+/-- One value, one error. -/
+def errIs_agree.spec : Prop := ∀ err e e',
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ errIs err e ∗
+    errIs err e' ⊢ ⌜e = e'⌝
 def ctxErr_persistent.spec : Prop := ∀ err, Persistent (ctxErr (GF := GF) err)
 def ctxErr_ne_nil.spec : Prop := ∀ err, ctxErr (GF := GF) err ⊢ ⌜err ≠ GoInterface.nil⌝
 /-- A context's error is none of the sentinels (a fresh value). -/
-def ctxErr_not_errIs.spec : Prop := ∀ err e, ctxErr (GF := GF) err ∗ errIs err e ⊢ False
-def traceAt_persistent.spec : Prop := ∀ tr, Persistent (traceAt (GF := GF) tr)
+def ctxErr_not_errIs.spec : Prop := ∀ err e,
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ctxErr err ∗
+    errIs err e ⊢ False
 def stringerOk_persistent.spec : Prop := ∀ s, Persistent (stringerOk (GF := GF) s)
 
 /-- **The response tree `newTxnResp` allocates** for the operations `ops` of a transaction whose
@@ -493,36 +521,30 @@ def msgOpt (msg : GoInterface) : Option (DFrac × Proto.Content) → IProp GF
   | some (dq, c) => iprop(∃ (t : go.GoType) (p : Loc), ⌜msg = Proto.msgVal t p ∧ Proto.depth c < Proto.depthMax⌝ ∗
       Proto.msgAt t p dq c)
 
-/-! ## The callees' slots (3e's and 3c's, provisional) -/
+/-! ## The writer's resources and the request's trace (over 3e's and 4b's vocabulary) -/
 
-/-- (provisional, 3e's) A store's ghost names. -/
-opaque MvccName : Type := Unit
+/-- **What a write transaction needs of its caller beside the storage's share** (3e's `KV.Write`):
+the storage's post-lock hook `f` (the server's: it sets the consistent index), run once under the
+batch lock from `Pre` to `Q'`, and the caller's way from `Q'` back to the lock's invariant `Pk` and
+its own `Post`. The caller gets `Post` once the write transaction ended; this, unused, when the
+request failed before opening one. -/
+def txnWriter (B : Mvcc.MvccStorage) (Pk Post : IProp GF) : IProp GF :=
+  iprop(∃ (Pre Q' : IProp GF) (f : GoFunc), Mvcc.hookIs B f ∗ Pre ∗ Mvcc.hookRun Pk f Pre Q' ∗
+    (Q' ={⊤}=∗ Pk ∗ Post))
 
-/-- (provisional, 3e's) The namespace of mvcc's invariants (the masks of the updates it takes). -/
-def mvccN : Namespace := nroot .@ "mvcc"
+/-- **The caller's part of its context's trace** (4b's `ctxTraceIs ctx o`): with a non-empty trace
+`t0` in the context (which `EnsureTrace` keeps), its ownership. -/
+def ctxTraceOwn (o : Option Loc) : IProp GF :=
+  match o with
+  | some t0 => iprop(∃ e : Bool, TraceUtil.traceEmpty t0 e ∗ if e then iprop(True) else TraceUtil.traceOwn t0)
+  | none => iprop(True)
 
-/-- (provisional, 3e's) **`kv` is the store `γ`** (an `mvcc.KV` interface value; persistent). -/
-opaque mvccKV (kv : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
-
-/-- (provisional, 3e's) **The store `γ`'s history is `h`** (client-owned, exclusive). -/
-opaque mvccState (γ : MvccName) (h : KVHist) : IProp GF := iprop(True)
-
-/-- (provisional, 3e's) **The right to open a write transaction on `γ`** (exclusive; what `Write`
-takes and `End` gives back: the backend's share, the post-lock hook's contract). -/
-opaque mvccWriter (γ : MvccName) : IProp GF := iprop(True)
-
-/-- (provisional, 3e's) **An open transaction `tx` on `γ`** of kind `k`, begun at the history `h`,
-with the pending events `evs` (`[]` but for a write). Exclusive; `End` consumes it. -/
-opaque mvccTxn (tx : GoInterface) (γ : MvccName) (k : TxKind) (h : KVHist) (evs : List Event) :
-  IProp GF := iprop(True)
-
-/-- (provisional, 3e's) **The store `γ` attaches keys to the lessor `γl`** (persistent: its `le`
-field, fixed by `NewStore`). -/
-opaque mvccLessor (γ : MvccName) (γl : Lease.Names) : IProp GF := iprop(True)
-
-def mvccKV_persistent.spec : Prop := ∀ kv γ, Persistent (mvccKV (GF := GF) kv γ)
-def mvccLessor_persistent.spec : Prop := ∀ γ γl, Persistent (mvccLessor (GF := GF) γ γl)
-def mvccState_excl.spec : Prop := ∀ γ h h', mvccState (GF := GF) γ h ∗ mvccState γ h' ⊢ False
+/-- **The trace a request returns, the caller's**: the context's (non-empty) one, or a fresh one. -/
+def traceBack (o : Option Loc) (tr : Loc) : IProp GF :=
+  iprop(TraceUtil.traceOwn tr ∗
+    match o with
+    | some t0 => iprop(⌜tr = t0⌝ ∨ TraceUtil.traceEmpty t0 true)
+    | none => iprop(True))
 
 /-! ## The replies (over W0's `Wire.lean`) -/
 

@@ -11,7 +11,8 @@ one is among the sends so far, `wsCanceled`; `span.End()`, otel); under `ws.mu` 
 entries deleted (if not replaced). No reader token (`s.mu` taken as a writer).
 
 **Changes** from `specs-ref`'s file: the atomic update over the stream's state replaced by the
-persistent `wsCanceled` (with the registration it cancels).
+persistent `wsCanceled` (with the registration it cancels); (round 1, F6) the error is the
+package's `ErrWatcherNotExist` (its message by `watch_init.spec`).
 
 **Margin.** An error is not stated to mean the id was not live (it does: a live watcher of an open
 stream is always cancelled).
@@ -46,7 +47,7 @@ def watchStream.Cancel.spec : Prop :=
     (App (Val (w @!! go.GoType.PointerType watchStream.ty @!! go!"Cancel")) (Val #id))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ (W : WatcherM) (c : Nat), wsReg ι id W ∗ wsCanceled ι id c) ∨
-      errMsgOk err go!"mvcc: watcher does not exist" }}
+      globalAddr ErrWatcherNotExist ↦□ err }}
 
 end spec
 

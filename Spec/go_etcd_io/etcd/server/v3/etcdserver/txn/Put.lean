@@ -3,28 +3,30 @@
 
 **Users.** The apply thread's `applierV3backend.Put` (`apply/backend.go:51`, under the quota and
 auth appliers), for a committed `PutRequest`, with `context.TODO()`, the server's lessor and store.
-Snippet: `examples/specreq/txn/write.go` (`ReqApplyPutThenRange`, `ReqApplyPutIgnoreValue`,
+Snippets: `examples/specreq/txn/write.go` (`ReqApplyPutThenRange`, `ReqApplyPutIgnoreValue`,
 `ReqApplyPutLeaseCheck`).
 
-**Proof sketch.** `EnsureTrace` (4b), `proto.Size(p)` (2a's `Proto.Size.spec`: `putReqOwn`'s
-content by 3h's relation law, depth 2). `checkLease` (its spec, at the writer's token `Lease.lessorState γl n ls`): a
-dead lease is `ErrLeaseNotFound`, independent of the store: the caller's update is opened and
-committed at once (`putHist` is `h`, ghost step), no transaction. Else `kv.Write(trace)` (3e:
-`mvccWriter γ` and the thread token, `mvccTxn tw γ .write h []`, where `h` is learned by peeking
-at the caller's update, which also gives `attached h.store ls`; mvcc's writer lock keeps `h` until
-`End`). `checkAndGetPrevKV` (its spec at `evs = []`): `ErrKeyNotFound` for an ignore flag on a
-missing key (`p.check`'s second case), else the key's record. `put` (its spec: the lease to attach
-is `p.Lease`, live by `checkLease`, or the previous record's, live by `attached`; mvcc's
-`GetLease`/`Detach`/`Attach` at the writer's token keep `attached`, 3c/3e). The deferred
-`txnWrite.End()` (3e: commits the pending event, firing the caller's update at `h`, the new state
-`putHist pr h ls`; on the `ErrKeyNotFound` path, nothing pending: `putHist` is `h`).
+**Proof sketch.** `EnsureTrace` (4b's `EnsureTrace.spec`: the context's non-empty trace, whose ownership the caller
+lends through `ctxTraceOwn o`, or a fresh one: `traceBack o tr` after); `proto.Size(p)` (2a's `Proto.Size.spec`: `putReqOwn`'s content by
+3h's relation law, depth 2). `checkLease` (its spec, at the lessor's writer token): a dead lease is
+`ErrLeaseNotFound` before any transaction (the update, the writer's resources and the token given
+back). Else `kv.Write(trace)` (3e's `KV.Write.contract`: the reader token, the
+storage's share and `txnWriter`'s hook run under the batch lock; its update a peek at the caller's,
+pinned at `σ₀`, `σ₀.pending = []`; `mvccTxn tw γ tr (.write σ₀ [])`). `checkAndGetPrevKV` (its spec at `.write σ₀ []`): `ErrKeyNotFound` for an
+ignore flag on a missing key, else the key's record. `put` (its spec: the lease to attach is
+`p.Lease`, live by `checkLease`, or the previous record's, live by `leasesLive`; the lessor's token
+moved by 3e's `putLs`, which is `evsLs` of the one event). The deferred `txnWrite.End()` (3e's `Txn.End.contract`: the
+storage's share and `Pk`, from `txnWriter`'s `Q' ={⊤}=∗ Pk ∗ Post`; its two nested updates are the
+caller's, at `σ₀`: notify with the events, then the bump, `Q`; with no events (an error after the
+begin), both opened and closed unchanged, the caller's update given back).
 
 **Changes.** The old spec (`specs-ref`'s `Put.lean`: the begin and commit updates `putAU` over the
-log, the batch lock's critical section `csA`, the lessor's item map `I`, a premise "the caller gives
-its updates only for a live lease") restated: one update, fired once, over W0's history, the answer
-W0's (`putAns`); the backend and hook contract folded into 3e's `mvccWriter`; the lessor 3c's
-writer token, its attachments following the store (`attached`, kept); no pin of the store (one write
-transaction is atomic by mvcc's writer lock).
+log, the batch lock's critical section `csA`, the lessor's item map) restated over W0's history and
+answer (`putAns`). Round 1 (`3b-review-1.md`, F4): 3e's two-step commit, the update pinned at `σ₀`
+(3e's `Txn.End` needs `σ = σ₀` at the commit, which the store's sole writer gives); `MvccState`;
+reader tokens; the caller's trace; the storage's share and `txnWriter` for the provisional writer
+slot; the lessor's state after, exactly (`evsLs`, 3e's steps), from `leasesLive` (the code's need)
+in place of the attachment invariant (S3).
 
 **Margin.** None (the reply's header carries only the revision).
 -/
@@ -51,26 +53,32 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- **`Put(ctx, lg, lessor, kv, p)`**: at the state `h` the caller's update fires at and the live
-leases of the lessor's state `ls` (the writer's token), W0's put: `ErrLeaseNotFound` or `ErrKeyNotFound` (nothing written), or the
-key written at revision `h.rev + 1`, its previous key-value if asked. -/
+open Classical in
+/-- **`Put(ctx, lg, lessor, kv, p)`**: at the state `σ₀` the caller's update is pinned at and the live
+leases of the lessor's state `ls`, W0's put (`putAns`): the key written at revision `σ₀.rev + 1`
+(the update fired in its two steps, the lessor's attachments moved), its previous key-value if
+asked; or `ErrLeaseNotFound`/`ErrKeyNotFound`, nothing written, the update given back. -/
 def Put.spec : Prop :=
-  ∀ (ctx : GoInterface) (lg : Loc) (leL : Loc) (kv : GoInterface) (γ : MvccName) (γl : Lease.Names)
-    (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState) (p : Loc) (dq : DFrac) (pr : PutReq)
-    (Q : KVHist → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ Zap.isLogger lg ∗ mvccKV kv γ ∗ Lease.isLessor leL γl c ∗
-      mvccLessor γ γl ∗ threadTok ∗ mvccWriter γ ∗ Lease.lessorState γl n ls ∗ putReqOwn p dq pr ∗
-      AU <{ ∃∃ (h : KVHist), ⌜attached h.store ls⌝ ∗ mvccState γ h }> @ ⊤ \ ↑mvccN, ∅
-        <{ mvccState γ (putHist pr h ls.table), COMM Q h }> }}
+  ∀ (ctx : GoInterface) (o : Option Loc) (lg : Loc) (leL : Loc) (kv : GoInterface)
+    (γ : Mvcc.MvccName) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState)
+    (p : Loc) (dq : DFrac) (pr : PutReq) (σ₀ : Mvcc.MvccState) (q : Qp) (B : Mvcc.MvccStorage)
+    (Pk Post Q : IProp GF),
+  let au : IProp GF := iprop(AU <{ Mvcc.mvccState γ σ₀ }> @ ⊤ \ ↑Mvcc.mvccN, ∅
+    <{ Mvcc.mvccState γ (σ₀.notify (putEvents pr σ₀.kv)) ∗ ⧖ (Mvcc.evCount (σ₀.kv.commit (putEvents pr σ₀.kv))), COMM
+       AU <{ Mvcc.mvccState γ (σ₀.notify (putEvents pr σ₀.kv)) }> @ ⊤ \ ↑Mvcc.mvccN, ∅
+         <{ Mvcc.mvccState γ (σ₀.notify (putEvents pr σ₀.kv)).commitPending, COMM Q }> }>)
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ TraceUtil.ctxTraceIs ctx o ∗ ctxTraceOwn o ∗ Zap.isLogger lg ∗
+      Mvcc.isMvcc kv γ ∗ Mvcc.mvccLessorIs γ γl ∗ Lease.isLessor leL γl c ∗ Mvcc.mvccReaders γ 1 ∗
+      Lease.lessorState γl n ls ∗ putReqOwn p dq pr ∗ Mvcc.mvccBackend γ q B Pk ∗ txnWriter B Pk Post ∗
+      ⌜σ₀.pending = [] ∧ leasesLive σ₀.kv.store ls⌝ ∗ au }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Put)) (Val #ctx)) (Val #lg)) (Val #(Lease.lessorIface leL))) (Val #kv)) (Val #p))
   {{ (resp tr : Loc) (err : GoInterface), RET (PairV (PairV #resp #tr) #err);
-      threadTok ∗ mvccWriter γ ∗ putReqOwn p dq pr ∗ traceAt tr ∗
-      ∃ h : KVHist, Q h ∗
-      (∃ (n' : Nat) (ls' : Lease.LessorState), Lease.lessorState γl n' ls' ∗
-        ⌜sameLeases ls ls' ∧ attached (putHist pr h ls.table).store ls'⌝) ∗
-      (match putAns pr h ls.table with
-       | .ok (.put rev prev) => iprop(⌜err = GoInterface.nil⌝ ∗ putOk resp rev prev)
-       | .err e => iprop(⌜resp = null⌝ ∗ errIs err e)
+      Mvcc.mvccReaders γ 1 ∗ Mvcc.mvccBackend γ q B Pk ∗ putReqOwn p dq pr ∗ traceBack o tr ∗
+      (match putAns pr σ₀.kv ls.table with
+       | .ok (.put rev prev) => iprop(⌜err = GoInterface.nil⌝ ∗ putOk resp rev prev ∗ Q ∗ Post ∗
+           ∃ n' : Nat, Lease.lessorState γl n' (evsLs ls σ₀.kv.store (putEvents pr σ₀.kv)))
+       | .err e => iprop(⌜resp = null⌝ ∗ errIs err e ∗ au ∗ Lease.lessorState γl n ls ∗
+           (if e = .leaseNotFound then txnWriter B Pk Post else Post))
        | _ => iprop(False)) }}
 
 end spec

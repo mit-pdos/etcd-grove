@@ -856,6 +856,15 @@ the auth state when the call started (`authLb`). -/
 def State.authOffSince (σ : State) (lo : Nat) : Prop :=
   ∃ j a, lo ≤ j ∧ σ.authTables[j]? = some a ∧ a.enabled = false
 
+/-- **A read permitted at an auth state since `lo`** (`doSerialize`'s check at the member's auth
+state, which may be older than the answer's: auth off at the check, `authOffSince`, the round-4
+race; or an auth change applied but not yet published to readers, its revision already bumped
+(`auth/store.go`: `commitRevision` before the batch's unlock), so the post-read revision check
+passes: 3d's review F4). Subsumes `authOffSince`. -/
+def State.permittedSince (σ : State) (lo : Nat) (who : Principal) (ps : List (PermType × KeyRange)) :
+    Prop :=
+  ∃ j a, lo ≤ j ∧ σ.authTables[j]? = some a ∧ ({ σ with auth := a } : State).permits who ps []
+
 /-- **A read denied at an auth state since `lo`** (the check fails at the auth state it saw, which
 may be older than the answer's). -/
 def State.deniedSince (σ : State) (lo : Nat) (who : Principal) (ps : List (PermType × KeyRange)) :
@@ -934,7 +943,8 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat 
              σ.invertedDeny who [(.read, r.range)] ∨
              σ.deniedSince lo who [(.read, r.range)]) ∧
             res = .err (AuthState.permErr who) ∨
-          (σ.permits who [(.read, r.range)] [] ∨ r.serializable = true ∨ σ.authOffSince lo) ∧
+          (σ.permits who [(.read, r.range)] [] ∨ r.serializable = true ∨
+            σ.permittedSince lo who [(.read, r.range)]) ∧
           ((∃ e, r.revErr v = some e ∧ res = .err e) ∨
            r.revErr v = none ∧ ∃ a, r.answers (v.storeAt (r.readRev v)) a ∧
              res = .ok (.range v.rev a))))
@@ -976,7 +986,7 @@ def kvStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) (lo : Nat 
       t.valid ∧
       (σ.permits who (RequestOp.txn t.compare t.success t.failure).perms
           (RequestOp.txn t.compare t.success t.failure).leases ∨ (t.readonly ∧ t.serializable) ∨
-          (t.readonly ∧ σ.authOffSince lo)) ∧
+          (t.readonly ∧ σ.permittedSince lo who (RequestOp.txn t.compare t.success t.failure).perms)) ∧
       -- a read-only serializable transaction (the empty one included) is answered at the view
       -- of a member that may be behind (`issues/etcd-txn-empty-serializable.md`)
       ∃ v, (if t.readonly ∧ t.serializable then σ.kv.IsView v else v = σ.kv) ∧
@@ -1261,7 +1271,7 @@ def clusterStep (who : Principal) (rq : Req) (σ σ' : State) (res : Resp) : Pro
 /-- **One request's linearized effect**: a refusal (any request, the state unchanged, an error of
 `EtcdErr.refusal`), or the request's own step. `lo` (default `0`: any auth state the cluster has had)
 is the index of the auth state when the call started: a linearizable read's permission is checked
-at an auth state from `lo` on (`State.authOffSince`, `State.deniedSince`); the client's read specs
+at an auth state from `lo` on (`State.permittedSince`, `State.deniedSince`); the client's read specs
 pass the `lo` the caller knows (`authLb`). The principal `who` is the one the server uses with auth
 on (the token's user, else the client certificate's common name); with auth off no check depends
 on it, so the certificate's name used then (`AuthInfoFromTLS`) is covered by every `who`. -/

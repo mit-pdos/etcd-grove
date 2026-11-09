@@ -17,7 +17,8 @@ here (the proposer's `CheckPassword` did).
 **Changes.** The old token binding (`S5`, per mode) restated over W0's `tokenUser`; the simple
 provider's right to issue as `tokFrom`.
 
-**Margin.** The provider's error is not named.
+**Margin.** The provider's error is not named (the no-op provider's is `ErrAuthFailed`). Round 1
+(review S11): an absent or password-less user is `ErrAuthFailed` exactly (3a's need).
 -/
 module
 
@@ -55,7 +56,10 @@ def authStore.Authenticate.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authCur γa i a ∗ threadTok ∗
       tokFrom γa idx ∗
       (⌜resp = null ∧ err = errOf .authNotEnabled ∧ a.enabled = false⌝ ∨
-       ⌜resp = null ∧ err ≠ GoInterface.nil ∧ a.enabled = true⌝ ∨
+       ⌜resp = null ∧ err = errOf .authFailed ∧ a.enabled = true ∧
+          ∀ ur, a.users name = some ur → ur.password = none⌝ ∨
+       ⌜resp = null ∧ err ≠ GoInterface.nil ∧ a.enabled = true ∧
+          ∃ ur c, a.users name = some ur ∧ ur.password = some c⌝ ∨
        (⌜err = GoInterface.nil ∧ a.enabled = true ∧
           ∃ ur p, a.users name = some ur ∧ ur.password = some p⌝ ∗
         ∃ tok : GoString, authnRespAt resp tok ∗

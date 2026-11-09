@@ -10,7 +10,7 @@ pre-3.5 log entries that carry a plain password). Snippet: `examples/specreq/aut
 (`ErrPasswordTooLong`); a cost below `MinCost` is replaced by `DefaultCost`, one above `MaxCost`
 (`31`) refused (`InvalidCostError`); the salt is read with `io.ReadFull(rand.Reader, ...)`, which
 never fails (Go 1.24's `crypto/rand`: `Read` "never returns an error"); the result is a fresh slice,
-a hash of the password (`hashOf`). No panic.
+a hash of the password (`EtcdModel.pwHash`). No panic.
 
 **Changes.** New (the old tree had no bcrypt spec: `selectPassword` and `CheckPassword`'s compare
 were axioms of the auth store).
@@ -44,7 +44,7 @@ def GenerateFromPassword.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.golang_org.x.crypto.bcrypt ∗ pwsl ↦*{dq} pw }}
     (App (App (Val (@! golang_org.x.crypto.bcrypt.GenerateFromPassword)) (Val #pwsl)) (Val #cost))
   {{ (h : GoSlice) (err : GoInterface), RET (PairV #h #err); pwsl ↦*{dq} pw ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ hb : List w8, h ↦* hb ∗ ⌜hashOf hb pw⌝) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ hb : List w8, h ↦* hb ∗ ⌜EtcdModel.pwHash pw hb⌝) ∨
        ⌜err ≠ GoInterface.nil ∧ (72 < pw.length ∨ 31 < sint.Z cost)⌝) }}
 
 end spec

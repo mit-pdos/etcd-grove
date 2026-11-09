@@ -353,6 +353,39 @@ def isMvcc_store.spec : Prop :=
 
 end laws
 
+/-! ## What an image holds (the store's and the watchable store's catch-up reads) -/
+
+section image
+variable [GooseExts]
+
+/-- **The bytes `bs` encode the key-value `m`** (opaque; 3h's content relation over the proto
+boundary, `req/go_etcd_io_etcd_api_v3_mvccpb.md`). -/
+opaque kvBytes (m : KeyValueM) (bs : GoString) : Prop
+
+/-- A change's stored key-value: a put's record, a delete's key alone (`storeTxnWrite.delete`). -/
+def evM : Event → KeyValueM
+  | .put k r => KeyValueM.ofKV (KV.ofRec k r)
+  | .delete k => { key := k, createRevision := W64 0, modRevision := W64 0, version := W64 0,
+                   value := [], lease := W64 0 }
+
+def evIsDel : Event → Bool
+  | .put .. => false
+  | .delete _ => true
+
+/-- **An image's entries above its compaction revision are exactly its history's events there**
+(3f's `rangeEvents` reads them; `store.restore` rebuilds the index from them): each event of a
+revision `r` above `h.compacted`, at position `i`, is at `revBytes ⟨r, i⟩` encoding its key-value;
+every key of the bucket parses (`revOfBytes`), and one above `h.compacted` is such an event's. -/
+def mvccImage_above.spec : Prop := ∀ (D : KeyData) (h : KVHist) (u : Bool), mvccImage D h u →
+  (∀ (r i : Nat) (ev : Event), h.compacted < r → (h.eventsAt r)[i]? = some ev →
+    ∃ bs, D.keys (revBytes ⟨W64 r, W64 i⟩ (evIsDel ev)) = some bs ∧ kvBytes (evM ev) bs) ∧
+  (∀ kb bs, D.keys kb = some bs → ∃ (rt : Rev) (tomb : Bool), revOfBytes kb = some (rt, tomb) ∧
+    ((h.compacted : Int) < sint.Z rt.main →
+      ∃ ev, (h.eventsAt (uint.nat rt.main))[uint.nat rt.sub]? = some ev ∧ tomb = evIsDel ev ∧
+        kvBytes (evM ev) bs))
+
+end image
+
 end Mvcc
 end EtcdGrove
 end Perennial

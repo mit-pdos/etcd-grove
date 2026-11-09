@@ -205,3 +205,11 @@ for the answer `res`, its `Header` nil: `UserGet`'s `Roles`, `RoleGet`'s `Perm` 
 with `Token = tok`). The appliers (3a) read the decoded `InternalRaftRequest`'s field into
 `authReqAt` and pass the reply on (`newHeader`). Used by: every `authStore.<Admin>.spec`
 (`AdminTriple`), `authStore.Authenticate.spec`.
+
+## from 3d, round 1
+
+- `Auth.authReqAt r rq cred` gains the credential (`HashedPassword = b64 cred`, W0's `pwHash pw
+  cred`; `[]` for the other requests); the pre-3.5 plain form is out of scope.
+- Laws needed of the realization (review S10): `authRespAt_ne_null`, `authnRespAt_ne_null` (stated in
+  3d's `Api.lean`) and the `Header` field of a response (3a's `resp.Header = a.newHeader()`,
+  `apply/backend.go:160-162`): a points-to of `Header` (nil) that the applier may write.

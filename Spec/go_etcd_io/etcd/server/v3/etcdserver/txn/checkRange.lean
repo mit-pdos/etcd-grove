@@ -1,7 +1,8 @@
 /-
-`checkRange(rv, req)` (`range.go`), internal (`checkTxn`): mirrors the code against the view's `Rev()`
-(the begin revision) and `FirstRev()` (the compaction revision, `-1` before any: W0's `txnRevErr`).
-Old spec: same over the old model.
+`checkRange(rv, req)` (`range.go`), internal (`checkTxn`): mirrors the code against the read
+transaction's `Rev()` and `FirstRev()` (3e: `σ.rev`, `σ.crev`, `-1` before any compaction: W0's
+`txnRevErr`). Only a read transaction, the one Go passes (`txn.go:54`): a write transaction's
+`FirstRev()` is `0` (round 1, F3). Old spec: same over the old model.
 -/
 module
 
@@ -26,14 +27,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `checkRange(rv, r)`: W0's `txnRevErr` at the view's history. -/
+/-- `checkRange(rv, r)` at a read transaction at `σ`: W0's `txnRevErr` at `σ.kv`. -/
 def checkRange.spec : Prop :=
-  ∀ (rv : GoInterface) (γ : MvccName) (k : TxKind) (h : KVHist) (evs : List Event) (r : Loc)
-    (dq : DFrac) (rm : RangeReq),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvccTxn rv γ k h evs ∗ rangeReqOwn r dq rm }}
+  ∀ (rv : GoInterface) (γ : Mvcc.MvccName) (tr : Loc) (σ : Mvcc.MvccState) (r : Loc) (dq : DFrac)
+    (rm : RangeReq),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Mvcc.mvccTxn rv γ tr (.read σ) ∗ rangeReqOwn r dq rm }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.checkRange)) (Val #rv)) (Val #r))
-  {{ (err : GoInterface), RET #err; mvccTxn rv γ k h evs ∗ rangeReqOwn r dq rm ∗
-      (match rm.txnRevErr h with
+  {{ (err : GoInterface), RET #err; Mvcc.mvccTxn rv γ tr (.read σ) ∗ rangeReqOwn r dq rm ∗
+      (match rm.txnRevErr σ.kv with
        | none => iprop(⌜err = GoInterface.nil⌝)
        | some e => errIs err e) }}
 

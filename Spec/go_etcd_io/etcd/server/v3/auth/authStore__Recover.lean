@@ -15,6 +15,8 @@ the provider's `enable()` if on.
 restated over W0's state at every mode: the snapshot's state follows the store's (`AuthReach`,
 which 2d has from the cluster's history: the snapshot is at a later index).
 
+Round 1 (review S2): `recordsFit a'` (the revision fits the atomic).
+
 **Margin.** The provider is not disabled when the snapshot's state has auth off (its tokens stay
 valid in it; `AuthInfoFromCtx` reads the flag first).
 -/
@@ -46,7 +48,7 @@ store's, recorded as its next state; the replaced backend's share given back. -/
 def authStore.Recover.spec : Prop :=
   ∀ (st : Loc) (be : GoInterface) (γ : Cluster) (γa : AuthNames) (i : Nat) (a a' : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authCur γa i a ∗ threadTok ∗ authBackendAt be a' ∗
-      authReached γ a' ∗ ⌜AuthReach a a' ∧ validPerms a'⌝ }}
+      authReached γ a' ∗ ⌜AuthReach a a' ∧ validPerms a' ∧ recordsFit a'⌝ }}
     (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"Recover")) (Val #be))
   {{ RET #(); authCur γa (i + 1) a' ∗ threadTok ∗
       ∃ (be0 : GoInterface) (a0 : AuthState), authBackendAt be0 a0 }}

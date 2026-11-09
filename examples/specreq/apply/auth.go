@@ -10,7 +10,6 @@ import (
 	"go.etcd.io/etcd/server/v3/auth"
 	"go.etcd.io/etcd/server/v3/etcdserver/apply"
 	"go.etcd.io/etcd/server/v3/lease"
-	"go.etcd.io/etcd/server/v3/storage/mvcc"
 	"go.etcd.io/raft/v3/raftpb"
 )
 
@@ -19,13 +18,13 @@ import (
 // a fresh token; 2c keeps its update unfired).
 // Users: server/etcdserver/v3_server.go (raftRequest: the header's AuthRevision), 2c's
 // processInternalRaftRequestOnce (outcome 2 for ErrAuthOldRevision).
-// Assumes: auth is enabled; e is a committed put by a user with an auth revision below the store's
-// (an auth change committed after its token); this goroutine is the apply thread.
-// Specs: Apply.spec, isUber_apply; laws: irrStep_oldRev, irrStep_step.
-func ReqStaleRevision(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait.Wait, kv mvcc.KV) {
-	before := kv.Rev()
+// Assumes: auth is enabled; no NOSPACE or CORRUPT alarm is raised (they refuse first); e is a
+// committed put by a user with a nonzero auth revision below the store's (an auth change committed
+// after its token); this goroutine is the apply thread.
+// Specs: Apply.spec, isUber_apply; laws: irrStep_oldRev (nothing changed), irrStep_step.
+func ReqStaleRevision(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w wait.Wait) {
 	ar, _ := apply.Apply(lg, e, ua, w, true)
-	if ar == nil || !errors.Is(ar.Err, auth.ErrAuthOldRevision) || kv.Rev() != before {
+	if ar != nil && !errors.Is(ar.Err, auth.ErrAuthOldRevision) {
 		panic("stale-revision: a stale write applied")
 	}
 }

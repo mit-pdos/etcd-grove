@@ -118,7 +118,9 @@ invariant is `∃ ai, aa.authInfo ↦ ai`).
 the laws above): `irrStep_fun`, `applyStep_fun`, `applyStep_total`, `irrStep_step` (a client request's
 apply is a `Step` of W0 by its principal), `irrStep_env` (an alarm or a publication is an `EnvStep`
 or nothing), `irrStep_quiet` (a checkpoint, a token, a version, a downgrade: nothing),
-`irrStep_noV3`, `irrStep_oldRev` (a stale auth revision changes nothing), `irrStep_ttl`.
+`irrStep_noV3`, `irrStep_oldRev` (a stale auth revision changes nothing), `irrStep_ttl`; round 1:
+`reachable`, `checksSane`, `irrStep_alarm`, `irrStep_read`, `applyStep_reach`, `applyStep_ttl_same`,
+`opStep_noOldRev`, `opStep_read`, `uberOpts` with `smAt_optsSt`, `smAt_alarms`.
 
 ## Requirement snippets
 

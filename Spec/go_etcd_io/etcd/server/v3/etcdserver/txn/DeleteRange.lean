@@ -2,18 +2,25 @@
 ## `DeleteRange(ctx, lg, kv, dr)` (`delete.go`)
 
 **Users.** The apply thread's `applierV3backend.DeleteRange` (`apply/backend.go:55`, `context.TODO()`).
-(The lessor's revocation deletes through mvcc's `TxnDelete`, not this function: `lease/lessor.go:350`.)
-Snippet: `examples/specreq/txn/write.go` (`ReqApplyDeleteRange`).
+(The lessor's revocation deletes through mvcc's range deleter, not this function.) Snippets:
+`examples/specreq/txn/write.go` (`ReqApplyDeleteRange`, `ReqApplyDeletePrevKv`).
 
-**Proof sketch.** `EnsureTrace` (4b). `kv.Write(trace)` (3e: `mvccWriter γ`, the thread token; the
-state `h` learned by peeking at the caller's update). `deleteRange` (its spec at `evs = []`): the
-range's present keys `l` at `h.store`, deleted (`delEvents l`), the reply at `viewRev h (delEvents l)`
-(`= (h.commit (delEvents l)).rev`); or, with `PrevKv`, the context's error before any delete. The
-deferred `End()` (3e: commits the pending events, firing the caller's update with `l`; with nothing
-pending after the context's error, the update is closed unfired, given back).
+**Proof sketch.** `EnsureTrace` (4b's `EnsureTrace.spec`: the context's non-empty trace, whose ownership the caller
+lends through `ctxTraceOwn o`, or a fresh one: `traceBack o tr` after). `kv.Write(trace)` (3e's `KV.Write.contract`: the reader token, the
+storage's share and `txnWriter`'s hook run under the batch lock; its update a peek at the caller's,
+pinned at `σ₀`, `σ₀.pending = []`; `mvccTxn tw γ tr (.write σ₀ [])`). `deleteRange` (its spec at `.write σ₀ []`): the
+range's present keys `l` at `σ₀.kv.store` (`rangeAll`, `rangeAll_eq`), deleted (3e's
+`Txn.DeleteRange`: the lessor's token by `delsLs`, which is `evsLs` of the deletes), the reply at
+the transaction's revision after; or, with `PrevKv`, the context's error before any delete.
+The deferred `txnWrite.End()` (3e's `Txn.End.contract`: the
+storage's share and `Pk`, from `txnWriter`'s `Q' ={⊤}=∗ Pk ∗ Post`; its two nested updates are the
+caller's, at `σ₀`: notify with the events, then the bump, `Q`; with no events (an error after the
+begin), both opened and closed unchanged, the caller's update given back).
 
-**Changes.** The old spec (`specs-ref`'s `DeleteRange.lean`: `delAU` over the log, `delPend … ok`)
-restated over W0's history; the context's error an outcome with the update given back.
+**Changes.** The old spec (`specs-ref`'s `DeleteRange.lean`: `delAU` over the log) restated over W0's
+history. Round 1 (F4): 3e's two-step commit pinned at `σ₀`, `MvccState`, reader tokens, the trace,
+`txnWriter`; the lessor's state after exactly (`evsLs`); the lessor's handle dropped (S4: the store's
+own, in `isMvcc`).
 
 **Margin.** None.
 -/
@@ -40,32 +47,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- **`DeleteRange(ctx, lg, kv, dr)`**: at the state `h` the caller's update fires at, the range's
-present keys `l` deleted at one revision (none if `l` is empty), the reply counting them (and
-listing them with `PrevKv`); or, with `PrevKv` and the context done, its error, nothing written and
-the update given back. -/
+/-- **`DeleteRange(ctx, lg, kv, dr)`**: at the state `σ₀` the caller's update is pinned at, the range's
+present keys deleted at one revision (none if there are none), the reply counting them (and listing
+them with `PrevKv`); or, with `PrevKv` and the context done, its error, nothing written and the
+update given back. -/
 def DeleteRange.spec : Prop :=
-  ∀ (ctx : GoInterface) (lg : Loc) (kv : GoInterface) (γ : MvccName) (leL : Loc)
-    (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState) (d : Loc) (dq : DFrac)
-    (dm : DeleteReq) (Q : KVHist → List KV → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ Zap.isLogger lg ∗ mvccKV kv γ ∗ Lease.isLessor leL γl c ∗
-      mvccLessor γ γl ∗ threadTok ∗ mvccWriter γ ∗ Lease.lessorState γl n ls ∗ deleteReqOwn d dq dm ∗
-      AU <{ ∃∃ (h : KVHist), ⌜attached h.store ls⌝ ∗ mvccState γ h }> @ ⊤ \ ↑mvccN, ∅
-        <{ ∀∀ (l : List KV), ⌜h.store.rangeKVs dm.range l⌝ ∗ mvccState γ (h.commit (delEvents l)),
-           COMM Q h l }> }}
+  ∀ (ctx : GoInterface) (o : Option Loc) (lg : Loc) (kv : GoInterface) (γ : Mvcc.MvccName)
+    (γl : Lease.Names) (n : Nat) (ls : Lease.LessorState) (d : Loc) (dq : DFrac) (dm : DeleteReq)
+    (σ₀ : Mvcc.MvccState) (q : Qp) (B : Mvcc.MvccStorage) (Pk Post Q : IProp GF),
+  let au : IProp GF := iprop(AU <{ Mvcc.mvccState γ σ₀ }> @ ⊤ \ ↑Mvcc.mvccN, ∅
+    <{ Mvcc.mvccState γ (σ₀.notify (delEvents (rangeAll σ₀.kv.store dm.range))) ∗ ⧖ (Mvcc.evCount (σ₀.kv.commit (delEvents (rangeAll σ₀.kv.store dm.range)))), COMM
+       AU <{ Mvcc.mvccState γ (σ₀.notify (delEvents (rangeAll σ₀.kv.store dm.range))) }> @ ⊤ \ ↑Mvcc.mvccN, ∅
+         <{ Mvcc.mvccState γ (σ₀.notify (delEvents (rangeAll σ₀.kv.store dm.range))).commitPending, COMM Q }> }>)
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ TraceUtil.ctxTraceIs ctx o ∗ ctxTraceOwn o ∗ Zap.isLogger lg ∗
+      Mvcc.isMvcc kv γ ∗ Mvcc.mvccLessorIs γ γl ∗ Mvcc.mvccReaders γ 1 ∗ Lease.lessorState γl n ls ∗
+      deleteReqOwn d dq dm ∗ Mvcc.mvccBackend γ q B Pk ∗ txnWriter B Pk Post ∗
+      ⌜σ₀.pending = []⌝ ∗ au }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange)) (Val #ctx)) (Val #lg)) (Val #kv)) (Val #d))
   {{ (resp tr : Loc) (err : GoInterface), RET (PairV (PairV #resp #tr) #err);
-      threadTok ∗ mvccWriter γ ∗ deleteReqOwn d dq dm ∗ traceAt tr ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ (h : KVHist) (l : List KV), Q h l ∗
-          ⌜h.store.rangeKVs dm.range l⌝ ∗
-          (∃ (n' : Nat) (ls' : Lease.LessorState), Lease.lessorState γl n' ls' ∗
-            ⌜sameLeases ls ls' ∧ attached (h.commit (delEvents l)).store ls'⌝) ∗
-          delOk resp (h.commit (delEvents l)).rev l.length (if dm.prevKv then l else [])) ∨
+      Mvcc.mvccReaders γ 1 ∗ Mvcc.mvccBackend γ q B Pk ∗ deleteReqOwn d dq dm ∗ traceBack o tr ∗ Post ∗
+      ((⌜err = GoInterface.nil⌝ ∗ Q ∗
+          (∃ n' : Nat, Lease.lessorState γl n' (evsLs ls σ₀.kv.store (delEvents (rangeAll σ₀.kv.store dm.range)))) ∗
+          delOk resp (σ₀.kv.commit (delEvents (rangeAll σ₀.kv.store dm.range))).rev (rangeAll σ₀.kv.store dm.range).length
+            (if dm.prevKv then rangeAll σ₀.kv.store dm.range else [])) ∨
        (⌜resp = null ∧ dm.prevKv = true⌝ ∗ Context.ctxDone ctx ∗ ctxErr err ∗
-          Lease.lessorState γl n ls ∗
-          AU <{ ∃∃ (h : KVHist), ⌜attached h.store ls⌝ ∗ mvccState γ h }> @ ⊤ \ ↑mvccN, ∅
-            <{ ∀∀ (l : List KV), ⌜h.store.rangeKVs dm.range l⌝ ∗ mvccState γ (h.commit (delEvents l)),
-               COMM Q h l }>)) }}
+          Lease.lessorState γl n ls ∗ au)) }}
 
 end spec
 end Txn

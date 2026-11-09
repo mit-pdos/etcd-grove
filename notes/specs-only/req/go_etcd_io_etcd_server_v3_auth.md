@@ -126,3 +126,11 @@ Used by: `applierV3backend.*` (auth methods), `authApplierV3.*`, the `check*` sp
 
 `authBootRes_intro` (provisional): at `AuthToken = "simple"` (etcd's default; this repository's
 starters set it).
+
+
+## from 3a (round 1)
+
+5. `CheckTxnAuth.spec` now rests on `authStoreAt`, `authLb`, `checkPost` (thanks). For one state for
+   all of a request's passing checks, `checkPost`'s pass should also report the store's revision
+   against the info's (`isOpPermitted` passes only at `as.Revision() ≤ rev`: with a token's
+   revision, every passing check sees the same users and roles).

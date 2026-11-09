@@ -149,3 +149,27 @@ the answer the commit fixed, 2d needs, beyond `irrStep_ttl` (different configura
    the bucket (a grant; a persisted checkpoint) and `Pre` otherwise, as mvcc's `Put`.
 3. **`Revoke`'s keys fit Perennial's sort bound** (`2^62`, `GoSort.StringSlice.Sort.spec`): a proof
    matter, open (batch-3c.md); no premise added.
+
+## from 3b
+
+For 3a's error mapping (the review of 3b, F5): txn's errors are **the values of the sentinels'
+package variables** (`Txn.errIs err e`, transparent: `globalAddr mvcc.ErrCompacted ↦□ err` for
+`.compacted`, `mvcc.ErrFutureRev` for `.futureRev`, `lease.ErrLeaseNotFound` for `.leaseNotFound`,
+`errors.ErrKeyNotFound` for `.keyNotFound`), as 3e's `rangeResOwn` states its own; so `togRPCError`'s
+map (by identity with the same globals) gives `srvErrOf err e` from `errIs err e`, and `errors.Is`
+evaluates. A context's error (`Txn.ctxErr err`) is none of them (`ctxErr_not_errIs`): unmapped,
+indefinite (`srvIndef`).
+
+## from 3d, round 1 (changes to "from 3d")
+
+- Item 2 **replaced**: no `admNext`. Each admin method is `Auth.AdminTriple e P st rq cred`: the
+  writer gives `authReached γ (Auth.storeNext rq cred a) ∗ ⌜recordsFit (storeNext rq cred a)⌝` for
+  the one next state (2d's committed entry), and gets `authCur γa (i+1) (storeNext rq cred a)` with
+  an answer `res` such that `Auth.admStep rq a (storeNext rq cred a) res` (W0's `authStep`, lifted
+  by its auth part: the review's F1). `storeNext` is a function, so 3a's `applyStep_fun` can name it.
+- Item 3: `authReqAt r rq cred` (the credential decoded from `HashedPassword`, W0's
+  `pwHash pw cred`; `[]` for the other requests). A nil or unknown-typed `Perm` has no `Req` (W0).
+- `checkPost`'s `ErrAuthOldRevision` arm now says the request's revision is below the store's (at a
+  recorded state): at the writer, exactly 3a's `rev < a.rev` (`opErr`).
+- `authStore.Authenticate`: an absent or password-less user is `errOf .authFailed` exactly; otherwise
+  the provider's error (no-op: `ErrAuthFailed`) or a token.

@@ -188,3 +188,41 @@ Go functions.
 | `req/go_etcd_io_etcd_server_v3_storage.md` (2e) | `Cost` exact |
 | `req/go_etcd_io_etcd_api_v3_etcdserverpb.md` (3h) | `irrDecodes`, `irrMsgAt`, `reqMsgAt` |
 | `req/go_etcd_io_etcd_pkg_v3_pbutil.md` (4b, new) | `MustUnmarshalMessage` |
+
+## Round 1 repairs (review `reviews/3a-review-1.md`)
+
+- **F1**: `Apply.spec` takes 2c's `waitWasReg γw id ∨ waitNever γw id` (so `IsRegistered` can be
+  called) and gives back `waitDone γw id` for a skipped transaction and on the `nil` path (the
+  approved example's `G ot id`); the stale margin is gone.
+- **F2**: `Irr.who` is `none` only for user `""` at revision `0`; `hdrOk` dropped (a client
+  certificate with an empty CN is `some ""`, Go's `ErrPermissionDenied`).
+- **F3**: `irrStep_step`/`opStep_step` take `reachable σ` (`∃ ms, Reach (State.init ms) σ`, from W0's
+  `etcdLb_init`: lease `0` never live, keys name live leases, no user `""`) in place of `users [] =
+  none`. Found while checking against 3d: Go refuses an **inverted range** that W0's `covers` grants
+  vacuously; `opErr` now refuses it (`Auth.rngInverted`) and the law excludes such requests
+  (`checksSane`) until W0 aligns (W0's round-1 item 5).
+- **F4**: `opStep_ttl` gives equal answers at one configuration; new `applyStep_ttl_same` (2d's
+  round-1b item 1), `applyStep_reach` (item 2), `irrStep_alarm` (GET of every type is
+  `alarmList`, DEACTIVATE/ACTIVATE of a known kind `alarmDisarm`/`alarmActivate`: W0 now has it),
+  `irrStep_read`, `opStep_noOldRev`, `opStep_read` (S3).
+- **F5**: `NewUberApplier` also gives `uberOpts ua opts` (persistent); `smAt_optsSt` (the stores back
+  for `applySnapshot`), `smAt_alarms` (the alarm view lent for `applyEntryNormal`'s `Get`).
+- **F6**: `CheckTxnAuth.spec` over 3d's `authStoreAt`, `authLb γa i0`, `authInfoAt`, and per check
+  3d's `checkPost` (a pass at recorded states `≥ i0`; the first failure with the states it failed
+  at), through `chkPost` (`ApiResult.lean`). One state for all passing checks needs 3d's
+  `checkPost` to report the revision bound (requested of 3d).
+- **F7**: snippets restated: no `kv.Rev()`; `ReqApplyWrite` treats `ErrNoSpace` as unsettled and a
+  `nil` result as the requester gone; `ReqApplyReplay` is provable from the uber-applier's new
+  replay clause (`v3 = false`, not membership, administrator passed → `ar = null`, also in
+  `dispatch`'s post); `ReqNoSpaceCapped` no longer reads the activation's reply (requested of 2c);
+  `ReqCorrupt` allows `nil`; `ReqStaleRevision` assumes no alarm. `go vet` clean.
+- **F8**: `authApplierV3.UserGet`/`RoleGet` give back `∃ u' rv', aiAt aa u' rv'` (the reset);
+  `checkLeasePutsKeys` takes 3c's `Lease.leaseObj γl l id ttl`.
+- **F9**: kept `resMatch`'s quota case (the coordinator: `ErrNoSpace` indefinite in W0); 2d is asked to
+  say a `.noSpace` result may come from an applied write (`req/..._etcdserver.md`, item 13).
+- Second tier done: S1 (`opBody` of a typed GET is `.noop`), S3, S9 (`irrDecodes`: exactly one
+  field), and `IrrOp.ok` bounds alarm member ids. Open: S2 (an unknown alarm type: W0 now has
+  `AlarmKind.other`, 2e's `kindOf` asked to map it), S4 (the bridge from 2c's `IrrBody.wf` to
+  `IrrOp.ok`; `authRecordFits` for non-auth requests), S5 (2e's shared `ApplyCfg`), S6, S7 (`R` for
+  the alarm and membership writes: depends on 2e's/4a's hook), S8 (3d's `admNext`, `authnCtx`
+  threading), S10 (moving the internal vocabulary to an `Internal` module).

@@ -3,11 +3,14 @@
 
 **Users.** `applierV3backend.RoleGrantPermission` (`apply/backend.go:223`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
 
-**Proof sketch.** A nil `Perm`: `ErrPermissionNotGiven`; `isValidPermissionRange` false: `ErrInvalidAuthMgmt` (so every recorded state keeps `validPerms`); the role read (absent: `ErrRoleNotFound`); every permission of the same range replaced by the new one, `sort.Sort(permSlice)`, put, `commitRevision`, refresh. The admin step's state is recorded at index `i + 1` (`authCur`), every
-view at it when the call returns.
+**Proof sketch.** A nil `Perm`: `ErrPermissionNotGiven`; `isValidPermissionRange` false: `ErrInvalidAuthMgmt` (so every recorded state keeps `validPerms`); the role read (absent: `ErrRoleNotFound`); every permission of the same range replaced by the new one, `sort.Sort(permSlice)`, put, `commitRevision`, refresh. The step's state, `storeNext` (the code's function of the request, its
+credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
+returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
 
 **Changes.** Restated over `admStep`; the old premise on `Permission_Type_name` is the package's initialization (`isPkgInit`). The old per-mode verdicts (`adminOut M hs`) are W0's `authStep` effect at
-the writer's state (`admStep`), with no mode index.
+the writer's state (`admStep`), with no mode index. Round 1 (review F1, F2): `admStep` lifts W0's
+step (which appends to `authHist`) by its auth part; the writer's premise is about the one next
+state `storeNext rq cred a` (was: every state the model allows).
 
 **Margin.** Which of the two validation errors, and when, is exact in the code (`authReqAt`'s `Perm` non-nil rules out the first); W0's model allows either at any state.
 -/
@@ -34,11 +37,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.RoleGrantPermission(r)`** by the writer, for a request `r` asking `.roleGrantPermission name perm`: W0's effect of
-the request at the store's state (`admStep`), recorded as the next state, and the reply. -/
+/-- **`as.RoleGrantPermission(r)`** by the writer, for a request `r` asking `.roleGrantPermission name perm`: the store moves
+to `storeNext` (the code's next state, which the writer shows reached), an answer of W0's step
+(`admStep`) there, and the reply. -/
 def authStore.RoleGrantPermission.spec : Prop :=
   ∀ (st r : Loc) (name : GoString) (perm : Perm),
-    AdminTriple (GF := GF) (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"RoleGrantPermission")) (Val #r)) (authReqAt r (.roleGrantPermission name perm)) st (.roleGrantPermission name perm)
+    AdminTriple (GF := GF) (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"RoleGrantPermission")) (Val #r)) (authReqAt r (.roleGrantPermission name perm) []) st (.roleGrantPermission name perm) []
 
 end spec
 end Auth

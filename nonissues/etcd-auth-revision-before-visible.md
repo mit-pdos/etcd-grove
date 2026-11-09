@@ -8,8 +8,8 @@ blocks-proof: yes
 
 # auth: a read can return data written after the reader's permission was revoked, because the auth revision moves before the change is visible
 
-With the simple token provider (etcd's default) or a client certificate, a serializable or
-linearizable `Range` (and a read-only `Txn`, a `RangeStream`) can pass its permission check against
+With the simple token provider (etcd's default) or a client certificate, a linearizable `Range`
+(and a read-only `Txn`, a `RangeStream`) can pass its permission check against
 the users and roles as they were *before* an administrator's change (a revoked role, a revoked
 permission, a deleted user), and then return a key written after that change, without
 `ErrAuthOldRevision`.
@@ -33,12 +33,14 @@ A JWT's revision is the token's, older than `r`, so it is refused (`ErrAuthOldRe
 
 ## Proof
 
-yes: the client's model checks a read's permission at the state it answers from (W0's `kvStep`);
-here the check is at the state before the change and the answer after it. The auth store's specs
-state the exact timing (`Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`, `checkPost`: the views'
-states; `Revision.spec`'s Changes); the request path (2c's `Range`, `Txn`, `RangeStream`) needs a fix
-on the fork or a disjunct in `srvStep`, as for `nonissues/etcd-doserialize-auth-enable-race.md`
-(decision for the user, `notes/specs-only/batch-3d.md`).
+yes, for linearizable reads only (a serializable read is unconstrained by the client's model, and a
+watch create needs only a reached state that permits, which the check's state is). The proof
+sidesteps it with a weaker client model: W0's round 6 (`notes/specs-only/batch-W0.md`, "Round 6
+repairs") lets a linearizable read succeed when permitted at some auth state since the call started
+(`State.permittedSince`, in place of `authOffSince`), which admits this race; the model now covers
+it. The auth store's specs state the exact timing (`Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`,
+`checkPost`: each view at a recorded state at or after the reader's bound; `Revision.spec`'s
+Changes). The fork fix below would let the model drop the weakening.
 
 ## Notes
 

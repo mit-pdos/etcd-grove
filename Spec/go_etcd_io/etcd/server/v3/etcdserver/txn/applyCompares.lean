@@ -1,5 +1,6 @@
 /-
 `applyCompares(rv, cmps)` (`txn.go`), internal: mirrors the code (`cmpsHold`). Old spec: same.
+Round 1: 3e's API.
 -/
 module
 
@@ -24,13 +25,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `applyCompares(rv, cmps)`: every comparison holds at the view's pending store. -/
+/-- `applyCompares(rv, cmps)`: every comparison holds at the transaction's current store. -/
 def applyCompares.spec : Prop :=
-  ∀ (rv : GoInterface) (γ : MvccName) (k : TxKind) (h : KVHist) (evs : List Event) (cs : GoSlice)
-    (dq : DFrac) (cl : List EtcdModel.Compare),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvccTxn rv γ k h evs ∗ msgsOwn compareOwn cs dq cl }}
+  ∀ (rv : GoInterface) (γ : Mvcc.MvccName) (tr : Loc) (k : Mvcc.MTxn) (cs : GoSlice) (dq : DFrac)
+    (cl : List EtcdModel.Compare),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ TraceUtil.traceOwn tr ∗ Mvcc.mvccTxn rv γ tr k ∗ msgsOwn compareOwn cs dq cl }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompares)) (Val #rv)) (Val #cs))
-  {{ RET #(cmpsHold cl (h.store.applyEvents evs)); mvccTxn rv γ k h evs ∗
+  {{ RET #(cmpsHold cl k.readHist.store); TraceUtil.traceOwn tr ∗ Mvcc.mvccTxn rv γ tr k ∗
       msgsOwn compareOwn cs dq cl }}
 
 end spec

@@ -26,6 +26,9 @@ Left out: the sorters' promoted `Swap`/`Len` wrappers (`kvSortByKey.Swap`, ...: 
 
 ## The design, in short
 
+(The draft's; round 1 restated it over 3e's API: see "Round 1 repairs" at the end, which wins where
+they differ.)
+
 - **State**: the member store's history `h : KVHist` (W0's), in mvcc's client-owned `mvccState γ h`;
   for writes, 3c's lessor writer token `Lease.lessorState γl n ls` (its `ls.table` is W0's lease table
   for `PutReq.check`).
@@ -191,3 +194,77 @@ Laws:
 - `go_etcd_io_etcd_server_v3_etcdserver_api_v3rpc.md` (2a): the checks give `Txn.txnSafe`.
 - `go_etcd_io_etcd_api_v3_etcdserverpb.md` (3h): stringers, sizes, getters.
 - `go_etcd_io_etcd_pkg_v3_traceutil.md` (4b): `traceAt` from `EnsureTrace`/`Get`.
+
+## Round 1 repairs (`reviews/3b-review-1.md`)
+
+All 48 modules build; the snippets pass `go vet` and `gofmt`.
+
+**F1, an empty `RangeEnd`.**
+- The `nil`-slice request to W0 is withdrawn. W0 is now asked for the review's option (a): the
+  request predicates read the end slice as mvcc does. A `nil` end is `[]` (the key alone); a
+  non-`nil` empty end is `[0#8]` (from the key on). This is `req/..._api_v3.md`, "from 3b",
+  rewritten.
+- The specs keep W0's `KeyRange`.
+- `Count.spec`'s premise is gone: its raw slice is read the same way (`endOf`).
+
+**F2, keys-only sorting.** `rangeOut`'s fast keys-only path now clears values as well as leases
+before the filter and the sort, which is 3e's `keysOnlyM`. `assemble` clears values anyway, so the
+answer and `rangeOut_answers` are unchanged.
+
+**F3, `checkRange`/`checkTxn`.** Both are now stated only at a read transaction (`.read σ`), the
+only kind Go passes. Their errors are `txnRevErr σ.kv`.
+
+**F4, 3e's API.** My provisional mvcc slots are gone. The specs now cite:
+- 3e's `Mvcc.isMvcc`, `mvccState` over `MvccState` (answers at `σ.kv`), `mvccReaders γ 1` (in place
+  of the thread token), `mvccTxn tx γ tr k` with `MTxn`, `mvccLessorIs`, `mvccBackend`;
+- 3e's `txnStore`, `putLs`, `delsLs`.
+
+Writes:
+- They take their caller's update **pinned at `σ₀`** (`σ₀.pending = []`) and nested as 3e's commit:
+  notify with the request's events, plus the history receipt `⧖`, then the bump, then `Q`.
+- 3e's `Txn.End` asks `σ = σ₀`, which only the store's sole writer can assert, so `Put` and
+  `DeleteRange` are pinned too; this is noted to 3e.
+- An error (before or after the write transaction began) commits nothing and gives the update back.
+
+The writer's resources are the storage's share plus a transparent bundle, `txnWriter B Pk Post`:
+3e's hook run and the way back to `Pk`.
+- On success the caller gets `Post`.
+- On an error before the write transaction, it gets the bundle back.
+
+The trace follows 4b's API:
+- the caller lends its context's trace (`TraceUtil.ctxTraceIs ctx o` and `ctxTraceOwn o`);
+- `EnsureTrace` keeps a non-empty trace;
+- the caller gets back the returned one (`traceBack o tr`);
+- internal specs take `ctxTraceIs ctx (some tr) ∗ traceOwn tr`.
+
+**F5, `errIs`.** `errIs` is now transparent: the value of the sentinel's package variable
+(`globalAddr <sentinel> ↦□ err`), `False` for other errors. `errIs_ne_nil`/`errIs_agree` follow from
+the packages' initializations. The same mapping is given to 2c and 3a in `req/` (etcdserver's and
+apply's files, "from 3b"), and 3e is asked that its context error be none of the sentinels.
+
+**Second tier:**
+- S1: the snippets cite 3e's `mvccState_reachable`.
+- S2: new snippets:
+  - `ReqRangeSortedKeysOnly`: a keys-only range sorted by descending mod revision, with a filter;
+  - `ReqApplyDeletePrevKv`;
+  - `ReqApplyTxnCheckFails`: a dead lease in a transaction, so nothing is written and the sentinel
+    is returned;
+  - `warn.go` (`ReqWarnReadOnly`, `ReqWarnApply`): the warning calls as the request path and the
+    uber applier make them.
+- S3: the lessor's state after a write is exact, by `evsLs` (3e's steps). `sameLeases` is gone.
+  The premise is the code's need, `leasesLive`. The attachment invariant `attached` stays as 3a's,
+  with the law `attached_evsLs`.
+- S4: `DeleteRange` no longer takes the lessor handle.
+- S5: `txnSafe`'s docstring says it is a state-free sufficient condition, and names the exact one
+  as the margin.
+- S7: `rangeAll`'s docstring is fixed.
+
+**Open after round 1:**
+- S6, for 3a/2d: the pin needs the apply thread to hold an authority over the store's state, while
+  2c's reads fire their updates over the same `mvccState` concurrently. 3a's draft holds the store's
+  state exclusively (`kvSt kv h`), which would leave 2c's readers no update to fire. That
+  composition is 3a's and 2d's.
+- S8: zap's `Error` of any error value is W0's (`zap/Api.lean`).
+- From 3e (`req/..._storage_mvcc.md`, "from 3b"):
+  - a record's lease fits `int64` (`kvFits` for `compareKV`);
+  - `Mvcc.traceOwn` is to be identified with 4b's `TraceUtil.traceOwn`.

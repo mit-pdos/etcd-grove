@@ -17,11 +17,11 @@ import (
 // cannot be deleted while auth is on.
 // Users: apply/backend.go:139-263 (applierV3backend's auth methods), behind apply/auth.go:52.
 // Assumes: the apply thread, the store's only writer (authCur); each step is the committed
-// entry's (admNext: its state reached, its records fit); no user "u" or role "r" before; name
-// "nobody" never added.
+// entry's (its one next state, storeNext, reached; its records fit); hashed is b64 of a hash of
+// some password (W0's pwHash); no user "u" or role "r" before; name "nobody" never added.
 // Specs: authStore.{RoleAdd,UserAdd,UserGrantRole,UserGet,HasRole,UserDelete,RoleGrantPermission,
 // AuthEnable,AuthDisable,IsAuthEnabled}.spec
-// (AdminTriple, admStep); laws: authCur_at.
+// (AdminTriple, storeNext, admStep); laws: authCur_at.
 func ReqAdminSteps(as etcdauth.AuthStore, hashed string) {
 	if _, err := as.RoleAdd(&pb.AuthRoleAddRequest{Name: "r"}); err != nil {
 		panic("admin-steps: adding a new role failed")
@@ -60,7 +60,7 @@ func ReqAdminSteps(as etcdauth.AuthStore, hashed string) {
 // CheckPassword); apply/backend.go:167.
 // Assumes: the apply thread adds the user (no user "v" before); auth is on and stays on, and no
 // other step changes "v" (the caller's workload); pw at most 72 bytes.
-// Specs: bcrypt GenerateFromPassword.spec, CompareHashAndPassword.spec; hashedPw_intro;
+// Specs: bcrypt GenerateFromPassword.spec, CompareHashAndPassword.spec; W0's pwHash_match;
 // authStore.BcryptCost.spec, UserAdd.spec, CheckPassword.spec.
 func ReqUserAddThenCheck(as etcdauth.AuthStore, pw string) {
 	h, err := bcrypt.GenerateFromPassword([]byte(pw), as.BcryptCost())

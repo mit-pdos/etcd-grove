@@ -3,25 +3,25 @@
 
 **Users.** The request path: `EtcdServer.Range` (`v3_server.go:149`, `withTotalCount` true, inside
 `doSerialize`), `rangeStream` (`v3_server.go:199` count-only, `:223` each page, `false`); the apply
-thread's `applierV3backend.Range` (`apply/backend.go:59`, `true`, a context never done). Snippets:
-`examples/specreq/txn/read.go` (`ReqRangeAtRev`, `ReqRangePinnedCompacted`, `ReqRangeStreamPages`).
+thread's `applierV3backend.Range` (`apply/backend.go:59`, `true`, `context.TODO()`). Snippets:
+`examples/specreq/txn/read.go` (`ReqRangeLimitCount`, `ReqRangePinnedRev`, `ReqRangeStreamPages`,
+`ReqRangeSortedKeysOnly`).
 
-**Proof sketch.** `EnsureTrace` (4b: a trace, `traceAt`). `kv.Read(ConcurrentReadTxMode, trace)`
-(3e's `Read`: takes the thread token for the store's reader lock, fires the caller's update at the
-state `h` it begins at, gives `mvccTxn tx γ .read h []`; `Q h` is kept for the post).
-`executeRange` (its spec at kind `.read`, `evs = []`: `viewErr h [] rm.revision` is `rm.revErr h`,
-`viewRev h [] = h.rev`, `viewStore h [] rm.revision` is `h.storeAt (rm.readRev h)` below the
-revision and the current store at or above it; the error cases are the same). `txnRead.End()` (3e:
-the thread token back). The deferred `RangeSecObserve` (its spec: returns).
+**Proof sketch.** `EnsureTrace` (4b's `EnsureTrace.spec`: the context's non-empty trace, whose ownership the caller
+lends through `ctxTraceOwn o`, or a fresh one: `traceBack o tr` after). `kv.Read(ConcurrentReadTxMode, trace)` (3e's `KV.Read.contract`,
+through `isMvcc`'s `shapes`: the reader token, the trace; the caller's update fired at the state `σ`
+the transaction begins at, `Q σ` kept; `mvccTxn tx γ tr (.read σ)`). `executeRange` (its spec at
+`.read σ`: `viewErr (.read σ) rm.revision` is `rm.revErr σ.kv` and `viewStore` is
+`σ.kv.storeAt (rm.readRev σ.kv)`, by 3e's `mvccTxn_state`: `σ.kv.compacted ≤ σ.rev`). `txnRead.End()`
+(3e: the reader token back). The deferred `RangeSecObserve` (returns).
 
-**Changes.** The old spec (`specs-ref`'s `Range.lean`: `readAU` over mvcc's `MvccState` log,
-`rangeResult` over the log, `mvccReaders γ 1`, a never-done context premise `nd` for one
-conclusion) restated over W0's history (`KVHist`) and W0's answer, made a function (`rangeOut`:
-unique, `goSort`), with the context's error an outcome (any context: the request path's may be
-cancelled), the reader slot a thread token (bounds plan), the trace a `traceAt`.
+**Changes.** The old spec (`specs-ref`'s `Range.lean`: `readAU` over mvcc's log, `rangeResult`, a
+never-done context premise `nd`) restated over W0's history and answer, made a function
+(`rangeOut`, `goSort`), the context's error an outcome. Round 1 (review `3b-review-1.md`): over 3e's API (`MvccState`, `isMvcc`, `mvccReaders γ 1` for the
+thread token, the caller's trace lent and given back: F4), the answer at `σ.kv`.
 
-**Margin.** The response's header carries only the revision (the gRPC layer fills the rest). A
-cancelled context is reported only if mvcc's per-key loop sees it (the non-keys-only path).
+**Margin.** The response's header carries only the revision. A cancelled context is reported only
+if mvcc's per-key loop sees it (a full read).
 -/
 module
 
@@ -47,23 +47,24 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 /-- **`Range(ctx, lg, kv, r, withTotalCount)`**: one read transaction of the store `γ`, at the state
-`h` the caller's update fires at (when the read begins): mvcc's revision error (`revErr`), or the
-answer `rangeOut` from the range's present keys at the revision read, header revision `h.rev`;
-or, once the context is done, its error. -/
+`σ` the caller's update fires at (when the read begins): mvcc's revision error (`revErr`), or the
+answer `rangeOut` from the range's present keys at the revision read, header revision `σ.rev`; or,
+once the context is done, its error. -/
 def Range.spec : Prop :=
-  ∀ (ctx : GoInterface) (lg : Loc) (kv : GoInterface) (γ : MvccName) (r : Loc) (dq : DFrac)
-    (rm : RangeReq) (wtc : Bool) (Q : KVHist → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ Zap.isLogger lg ∗ mvccKV kv γ ∗ threadTok ∗
-      rangeReqOwn r dq rm ∗ ⌜targetOk rm⌝ ∗
-      AU <{ ∃∃ (h : KVHist), mvccState γ h }> @ ⊤ \ ↑mvccN, ∅
-        <{ mvccState γ h, COMM Q h }> }}
+  ∀ (ctx : GoInterface) (o : Option Loc) (lg : Loc) (kv : GoInterface) (γ : Mvcc.MvccName) (r : Loc)
+    (dq : DFrac) (rm : RangeReq) (wtc : Bool) (Q : Mvcc.MvccState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ TraceUtil.ctxTraceIs ctx o ∗ ctxTraceOwn o ∗ Zap.isLogger lg ∗
+      Mvcc.isMvcc kv γ ∗ Mvcc.mvccReaders γ 1 ∗ rangeReqOwn r dq rm ∗ ⌜targetOk rm⌝ ∗
+      AU <{ ∃∃ (σ : Mvcc.MvccState), Mvcc.mvccState γ σ }> @ ⊤ \ ↑Mvcc.mvccN, ∅
+        <{ Mvcc.mvccState γ σ, COMM Q σ }> }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Range)) (Val #ctx)) (Val #lg)) (Val #kv)) (Val #r)) (Val #wtc))
   {{ (resp tr : Loc) (err : GoInterface), RET (PairV (PairV #resp #tr) #err);
-      threadTok ∗ rangeReqOwn r dq rm ∗ traceAt tr ∗ ∃ h : KVHist, Q h ∗
-      ((∃ e : EtcdErr, ⌜rm.revErr h = some e ∧ resp = null⌝ ∗ errIs err e) ∨
-       (⌜rm.revErr h = none ∧ err = GoInterface.nil⌝ ∗ ∃ all : List KV,
-          ⌜(h.storeAt (rm.readRev h)).rangeKVs rm.range all⌝ ∗ rangeOk resp h.rev (rangeOut rm wtc all)) ∨
-       (⌜rm.revErr h = none ∧ resp = null⌝ ∗ Context.ctxDone ctx ∗ ctxErr err)) }}
+      Mvcc.mvccReaders γ 1 ∗ rangeReqOwn r dq rm ∗ traceBack o tr ∗ ∃ σ : Mvcc.MvccState, Q σ ∗
+      ((∃ e : EtcdErr, ⌜rm.revErr σ.kv = some e ∧ resp = null⌝ ∗ errIs err e) ∨
+       (⌜rm.revErr σ.kv = none ∧ err = GoInterface.nil⌝ ∗ ∃ all : List KV,
+          ⌜(σ.kv.storeAt (rm.readRev σ.kv)).rangeKVs rm.range all⌝ ∗
+          rangeOk resp σ.kv.rev (rangeOut rm wtc all)) ∨
+       (⌜rm.revErr σ.kv = none ∧ resp = null⌝ ∗ Context.ctxDone ctx ∗ ctxErr err)) }}
 
 end spec
 end Txn
