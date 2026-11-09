@@ -6,6 +6,7 @@ counterpart).
   proved (through the registry's list of entries).
 - `watcherOk_stamp`: marking a watcher stamped keeps `watcherOk` when its `k` is at most the
   responses received (`recvOne`'s default branch, after `stamp_ok`).
+- `streamCtx_persistent`: a stream's handles are persistent (given mvcc's `persistent.law`).
 - `regs_sentLb`: the poll's bound out of the lock's watchers: some `n` at least every
   registration's `k`, with `wsSentLb ws n` (`wsSentLb_zero.law` for an empty registry).
 -/
@@ -77,6 +78,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- **A stream's handles are persistent** (given mvcc's `persistent.law`). -/
+theorem streamCtx_persistent (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (T : Strm) :
+    Persistent (streamCtx (GF := GF) T) := by
+  haveI : ∀ kv γ, Persistent (isMvcc (GF := GF) kv γ) := hpers.1
+  haveI : ∀ ws γ ι, Persistent (isMvccWatchStream (GF := GF) ws γ ι) := hpers.2.1
+  unfold streamCtx epCtx rnCtx isInc ctrInv runnerKeys runnerH
+  infer_instance
 
 /-- **The poll's bound** (`recvOne`): out of the lock's watchers, some `n` at least every
 registration's `k`, with `wsSentLb ws n` (the largest registration's, or `wsSentLb_zero.law`'s). -/
