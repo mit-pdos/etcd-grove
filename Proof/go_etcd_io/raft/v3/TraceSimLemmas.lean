@@ -1732,6 +1732,87 @@ theorem stepRound_out_l (t : Etcdraft.Trace) (l0 : Nat) (inv : Bool) (frontier :
           cases v <;> simp [hvi, pure, Except.pure] at hst <;> subst hst <;> exact key
       · simp only [pure, Except.pure, Except.ok.injEq] at hst; subst hst; exact key
 
+/-- `StepLine`'s loop from states on line `l0` is the same in traces that agree up to it, and its
+states found are on line `l0 + 1`. -/
+theorem stepLoop_congr (t t' : Etcdraft.Trace) (l0 : Nat) (inv : Bool) (ha : AgreeTo t t' l0) :
+    ∀ frontier st r, t.StepLoop l0 inv frontier st r → (∀ f ∈ frontier, f.l = l0) →
+      (∀ x ∈ st.1, x.l = l0 + 1) →
+      t'.StepLoop l0 inv frontier st r ∧ ∀ out info, r = .ok (out, info) → ∀ x ∈ out, x.l = l0 + 1 := by
+  intro frontier st r h
+  induction h with
+  | done st =>
+    intro _ hst
+    refine ⟨.done st, ?_⟩
+    intro out info hr; simp only [Except.ok.injEq, Prod.mk.injEq] at hr; obtain ⟨rfl, -⟩ := hr; exact hst
+  | error frontier st e hne hr =>
+    intro hf _
+    refine ⟨.error frontier st e hne (by rw [stepRound_congr t t' l0 inv frontier st ha hf]; exact hr), ?_⟩
+    intro out info h; cases h
+  | violation frontier st out visited next info hne hr hv =>
+    intro hf hst
+    refine ⟨.violation frontier st out visited next info hne
+      (by rw [stepRound_congr t t' l0 inv frontier st ha hf]; exact hr) hv, ?_⟩
+    intro out' info' h; simp only [Except.ok.injEq, Prod.mk.injEq] at h; obtain ⟨rfl, -⟩ := h
+    exact stepRound_out_l t l0 inv frontier st out visited next info hf hst hr
+  | round frontier st out visited next info r hne hr hv _ ih =>
+    intro hf hst
+    have hnl := stepRound_next_l t l0 inv frontier st out visited next info hf hr
+    have hol := stepRound_out_l t l0 inv frontier st out visited next info hf hst hr
+    obtain ⟨ih1, ih2⟩ := ih hnl hol
+    exact ⟨.round frontier st out visited next info r hne
+      (by rw [stepRound_congr t t' l0 inv frontier st ha hf]; exact hr) hv ih1, ih2⟩
+
+/-- `checkLine` from states on line `l0`, likewise. -/
+theorem checkLine_congr (t t' : Etcdraft.Trace) (l0 : Nat) (inv : Bool) (ha : AgreeTo t t' l0) :
+    ∀ tss acc r, t.CheckLineRel inv tss acc r → (∀ ts ∈ tss, ts.l = l0) → (∀ x ∈ acc.1, x.l = l0 + 1) →
+      t'.CheckLineRel inv tss acc r ∧ ∀ out info, r = .ok (out, info) → ∀ x ∈ out, x.l = l0 + 1 := by
+  intro tss acc r h
+  induction h with
+  | nil acc =>
+    intro _ hacc
+    refine ⟨.nil acc, ?_⟩
+    intro out info hr; simp only [Except.ok.injEq] at hr; subst hr; exact hacc
+  | skip ts rest acc r hv _ ih =>
+    intro hts hacc
+    obtain ⟨ih1, ih2⟩ := ih (fun x hx => hts x (by simp [hx])) hacc
+    exact ⟨.skip ts rest acc r hv ih1, ih2⟩
+  | error ts rest acc e hv hs =>
+    intro hts _
+    have hl := hts ts (by simp)
+    unfold Etcdraft.Trace.StepLineRel at hs
+    rw [hl] at hs
+    obtain ⟨h1, -⟩ := stepLoop_congr t t' l0 inv ha [ts] _ _ hs (by simpa using hl) (by simp)
+    refine ⟨.error ts rest acc e hv (by unfold Etcdraft.Trace.StepLineRel; rw [hl]; exact h1), ?_⟩
+    intro out info h; cases h
+  | step ts rest acc succ i2 r hv hs _ ih =>
+    intro hts hacc
+    have hl := hts ts (by simp)
+    unfold Etcdraft.Trace.StepLineRel at hs
+    rw [hl] at hs
+    obtain ⟨h1, h2⟩ := stepLoop_congr t t' l0 inv ha [ts] _ _ hs (by simpa using hl) (by simp)
+    have hsucc := h2 succ i2 rfl
+    have hacc' : ∀ x ∈ (succ.foldl (fun nx s2 => if Etcdraft.memEq nx s2 then nx else nx ++ [s2]) acc.1),
+        x.l = l0 + 1 := by
+      suffices ∀ (l : List Etcdraft.TState) (a : List Etcdraft.TState), (∀ x ∈ a, x.l = l0 + 1) →
+          (∀ x ∈ l, x.l = l0 + 1) →
+          ∀ x ∈ l.foldl (fun nx s2 => if Etcdraft.memEq nx s2 then nx else nx ++ [s2]) a, x.l = l0 + 1 from
+        this succ acc.1 hacc hsucc
+      intro l
+      induction l with
+      | nil => intro a ha _; exact ha
+      | cons y l ihl =>
+        intro a ha hl'
+        simp only [List.foldl_cons]
+        apply ihl _ _ (fun x hx => hl' x (by simp [hx]))
+        split
+        · exact ha
+        · intro x hx; simp only [List.mem_append, List.mem_singleton] at hx
+          rcases hx with hx | rfl
+          · exact ha x hx
+          · exact hl' x (by simp)
+    obtain ⟨ih1, ih2⟩ := ih (fun x hx => hts x (by simp [hx])) hacc'
+    exact ⟨.step ts rest acc succ i2 r hv (by unfold Etcdraft.Trace.StepLineRel; rw [hl]; exact h1) ih1, ih2⟩
+
 end TraceSim
 
 end EtcdGrove
