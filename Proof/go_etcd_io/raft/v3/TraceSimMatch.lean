@@ -3689,6 +3689,83 @@ theorem lineEffect_commit (C : List w64) (e : TraceEv) (id : w64) (s : NState) (
     · simp only [Etcdraft.State.commitTo, Etcdraft.State.upd]; rw [hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
   · rw [hline]; simp only [nodeLine, evConv, hrl, hrole]; rfl
   · simp only; rw [hσi]; exact hlead
+
+/-- **A `BecomeLeader` line's effect**: the candidate with a quorum of votes becomes leader. -/
+theorem lineEffect_becomeLeader (C : List w64) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (a : Etcdraft.Server) (Mid : Etcdraft.Server → Prop)
+    (hev : NodeEvOf (W64 3) id s cfg e) (hin : (elements cfg.incoming).Perm C) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hcand : a.state = Etcdraft.candidate) (hcfg : a.config.incoming = confAbs C)
+    (hq : Etcdraft.isQuorum a.votesGranted (confAbs C) = true)
+    (hR : SimServerR C C.length (toPState s) (leaderOf (idAbs id) a))
+    (hs : LogShapeOk C.length (toPState s)) (hrole : s.role = .leader)
+    (bt : uint.Z s.term < 2 ^ 63) (bc : uint.Z s.logst.committed < 2 ^ 63)
+    (bl : uint.Z (plastIndex (toPState s)) < 2 ^ 63) :
+    LineEffect C false e (idAbs id) a (leaderOf (idAbs id) a) none _root_.id _root_.id Mid := by
+  obtain ⟨hname, hnid, hterm, hvote, hcommit, hrl, hlog, ⟨xs, ys, hxs, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "BecomeLeader" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"BecomeLeader" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  apply lineEffect_nr C false e (idAbs id) a _ _root_.id Mid (nodeLine e id s.vote xs)
+    (parseLine_node 0 e id s.vote xs [] hnid hvote hconf hmsg (by rw [hname']; rfl) (by rw [hname']; decide)) rfl
+    (by simp [nodeLine, evConv, hname']; rfl)
+  intro t l pl σ hline hl hts _ hsrv hσi _ _
+  have hbl : σ.becomeLeader (idAbs id) = some (σ.upd (idAbs id) (leaderOf (idAbs id))) := by
+    unfold Etcdraft.State.becomeLeader Etcdraft.State.getConfig
+    rw [hσi]; simp only [hcand, hcfg, hq, beq_self_eq_true, Bool.and_self, ↓reduceIte]
+    rfl
+  have hF : withNode σ (idAbs id) (leaderOf (idAbs id) a) _root_.id _root_.id = σ.upd (idAbs id) (leaderOf (idAbs id)) := by
+    rw [upd_eq_withNode, hσi]
+  rw [hF]
+  apply nonReceive_becomeLeader _ _ (idAbs id) _ hl
+  · rw [hline]; simp [nodeLine, evConv, hname']
+  · rw [hline]; rfl
+  · rw [hts]; exact confAbs_nodup C
+  · rw [hts, mem_confAbs]; exact hC
+  · exact hbl
+  · rw [hline]
+    apply stateMatches_node C s _ e id xs hR hs (by rw [hrole]; decide) hterm hcommit hrl hlog
+      (hxs.trans hin) bt bc bl
+    · rw [upd_self, hσi]
+    · rw [upd_server, hsrv, List.contains_iff_mem, mem_confAbs]; exact hC
+  · rw [hline]; simp only [nodeLine, evConv, hrl, hrole]; rfl
+  · rw [upd_self]; rfl
+
+/-- **A `Replicate` line's effect**: the leader's `ClientRequest`, an entry of its term appended. -/
+theorem lineEffect_replicate (C : List w64) (e : TraceEv) (id : w64) (s : NState) (cfg : CfgM)
+    (a : Etcdraft.Server) (Mid : Etcdraft.Server → Prop)
+    (hev : NodeEvOf (W64 5) id s cfg e) (hout : cfg.outgoing = ∅)
+    (hC : id ∈ C) (hlead : a.state = Etcdraft.leader) :
+    LineEffect C false e (idAbs id) a
+      { a with log := a.log ++ [{ term := a.currentTerm, type := .value, value := .val 0 }] }
+      none _root_.id _root_.id Mid := by
+  obtain ⟨hname, hnid, -, hvote, -, -, -, ⟨xs, ys, -, hys, hconf⟩, hmsg, -, -, -, -⟩ := hev
+  rw [hout, elements_empty_nil] at hys
+  have hys0 := List.Perm.eq_nil hys
+  subst hys0
+  have hname' : gsStr e.name = "Replicate" := by
+    simp only [evtNames] at hname
+    have : e.name = go!"Replicate" := by have := hname; simp at this; exact this.symm
+    rw [this]; rfl
+  apply lineEffect_nr C false e (idAbs id) a _ _root_.id Mid (nodeLine e id s.vote xs)
+    (parseLine_node 0 e id s.vote xs [] hnid hvote hconf hmsg (by rw [hname']; rfl) (by rw [hname']; decide)) rfl
+    (by simp [nodeLine, evConv, hname']; rfl)
+  intro t l pl σ hline hl hts _ hsrv hσi _ _
+  have hcr : σ.clientRequest (idAbs id) 0 = some (σ.replicate (idAbs id) (.val 0) .value) := by
+    unfold Etcdraft.State.clientRequest; simp [hσi, hlead]
+  have hF : withNode σ (idAbs id) { a with log := a.log ++ [{ term := a.currentTerm, type := .value, value := .val 0 }] }
+      _root_.id _root_.id = σ.replicate (idAbs id) (.val 0) .value := by
+    rw [Etcdraft.State.replicate, upd_eq_withNode, hσi]
+  rw [hF]
+  apply nonReceive_replicate _ _ (idAbs id) _ hl
+  · rw [hline]; simp [nodeLine, evConv, hname']
+  · rw [hline]; rfl
+  · rw [hts]; exact confAbs_nodup C
+  · rw [hts, mem_confAbs]; exact hC
+  · exact hcr
 end TraceSim
 
 end EtcdGrove
