@@ -159,6 +159,7 @@ def reqRpc : Req → GoString
   | .memberList _ => go!"MemberList"
   | .alarmList => go!"Alarm"
   | .alarmDisarm _ => go!"Alarm"
+  | .alarmActivate _ => go!"Alarm"
   | .range _ => go!"Range"
   | .put _ => go!"Put"
   | .deleteRange _ => go!"DeleteRange"
@@ -170,6 +171,7 @@ the interceptor resends after an `Unavailable` error (possibly after an applied 
 def reqRetryRep : Req → Bool
   | .leaseGrant .. | .leaseRevoke _ | .leaseKeepAlive _ | .leaseTimeToLive .. | .leaseLeases
   | .userGet _ | .userList | .roleGet _ | .roleList | .memberList _ | .alarmList | .alarmDisarm _
+  | .alarmActivate _
   | .range _ => true
   | _ => false
 
@@ -192,9 +194,10 @@ def permTypeM (t : w32) : Option PermType :=
   if t = W32 0 then some .read else if t = W32 1 then some .write
   else if t = W32 2 then some .readwrite else none
 
-/-- `etcdserverpb.AlarmType`'s values `NOSPACE`, `CORRUPT` (`NONE` is not an alarm). -/
-def alarmKindM (t : w32) : Option AlarmKind :=
-  if t = W32 1 then some .nospace else if t = W32 2 then some .corrupt else none
+/-- `etcdserverpb.AlarmType`'s values: `NOSPACE`, `CORRUPT`, any other (`NONE` included) as the
+model's `other` (W0's round 5). -/
+def alarmKindOf (t : w32) : AlarmKind :=
+  if t = W32 1 then .nospace else if t = W32 2 then .corrupt else .other (sint.Z t)
 
 
 /-! ## Resources -/
@@ -531,16 +534,16 @@ opaque statusRespOwn (p : Loc) : IProp GF := iprop(True)
 caller's remote, no dial). -/
 opaque maintOf (v : GoInterface) (c : Loc) : IProp GF := iprop(True)
 
-/-- `AlarmDisarm` of one model alarm (`alarmKindM`). -/
+/-- `AlarmDisarm` of one alarm (not `(0, NONE)`, which disarms every alarm one by one). -/
 def Maint.AlarmDisarmTriple (m : GoString → val) (P : IProp GF) (γ : Cluster) (who : Principal) :
     Prop :=
-  ∀ (ctx : GoInterface) (p : Principal) (am : Loc) (mid : w64) (t : w32) (k : AlarmKind),
-  alarmKindM t = some k →
+  ∀ (ctx : GoInterface) (p : Principal) (am : Loc) (mid : w64) (t : w32),
+  ¬ (mid = W64 0 ∧ t = W32 0) →
   CallTriple (App (App (Val (m go!"AlarmDisarm")) (Val #ctx)) (Val #am))
     iprop(P ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
       am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"MemberID"] ↦□ mid ∗
       am.[go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember, go!"Alarm"] ↦□ t)
-    iprop(True) γ p (.alarmDisarm { memberId := uint.nat mid, kind := k }) true ansReply
+    iprop(True) γ p (.alarmDisarm { memberId := uint.nat mid, kind := alarmKindOf t }) true ansReply
 
 /-- `Status(ctx, ep)` of a maintenance value dialing through `c`: a fraction of `c`'s endpoints
 token at a non-empty list (`Client.dial` reads `c.endpoints[0]` unlocked); member-local reply. -/
@@ -589,7 +592,7 @@ def reqIsCluster : Req → Prop
   | _ => False
 
 def reqIsMaint : Req → Prop
-  | .alarmList | .alarmDisarm _ => True
+  | .alarmList | .alarmDisarm _ | .alarmActivate _ => True
   | _ => False
 
 /-! ## Laws -/

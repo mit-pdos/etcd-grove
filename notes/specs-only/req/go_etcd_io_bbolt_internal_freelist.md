@@ -28,3 +28,19 @@ invariants: `flOwn db.freelist F` under `rwlock` (the writer's), `flReaders db.f
    `EstimatedWritePageSize` with any result (no precondition but `flOwn`).
 6. **The id bound** `flMaxIds = 2^59`: bbolt meets it from the high-water mark (`hwm ≤ 2^36` pages
    of 4096 bytes in a mapping of at most `2^48` bytes), as 4d's header says.
+
+## from 4d (round 1: what 4c must keep)
+
+`Interface.Init`, `Read`, `Reload` and `NoSyncReload` take the premise **"the new free pages are
+not empty, or no page is free"** (`F.free = GMap.empty`): the hash map's `Init` with no ids returns
+before rebuilding its cache (`nonissues/bbolt-hashmap-init-empty-stale-cache.md`). For
+`NoSyncReload(ids)` it is `ids.filter (· ∉ F.pending) ≠ [] ∨ F.free = ∅`; for `Read`/`Reload(p)`,
+`freelistIdsOf bs ≠ [] ∨ F.free = ∅`. 4c meets it with the invariant **"the in-memory free pages
+are among the last commit's freelist ids (a synced freelist) or the pages no committed tree reaches
+(`freepages`)"**: a free page is never in a committed tree, so it is in the reload's ids; ids that
+are empty (or all pending) then mean no page is free. `loadFreelist` meets it trivially (a new
+freelist). The freelist's constructors now return `arrayIface l` / `hashMapIface l`
+(`flOwn_dyn`); the interface specs are unchanged in shape (`Interface.<M>.spec`). Also: `Reload`
+no longer takes `F.count < flMaxIds`; `freelistPage_read` (common) takes `Write`'s own room
+(`estimatedSize`), so `Write`'s post composes with it directly; `DefaultPageSize` is 4096
+(`BboltCommon.init.spec`); `BboltCommon.meta_in_sector` is your item 1's `16 + 64 ≤ 512`.

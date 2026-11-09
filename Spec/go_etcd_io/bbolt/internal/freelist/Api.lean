@@ -66,6 +66,7 @@ the high-water mark, at most `MaxMapSize / pageSize = 2^36`.
 
 ## Requirement snippets (`examples/specreq/bboltinternal/freelist.go`, `//go:build ignore`)
 
+`ReqReloadEmpty` (a reload or re-`Init` with no new free pages, allowed only when none is free),
 `ReqAllocFree` (an allocated run is no longer free; a freed page is pending, not free),
 `ReqReleaseSafe` (a page pending while a reader that sees it is open stays unallocatable; once it is
 gone, it is released), `ReqRollback` (a rolled-back transaction's frees are undone),

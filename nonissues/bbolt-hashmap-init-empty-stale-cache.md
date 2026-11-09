@@ -20,9 +20,12 @@ unreachable from the committed tree). `Open` initializes a fresh freelist, whose
 
 ## Proof
 
-no: the freelist's `Reload`/`NoSyncReload` specs take the premise that the new ids are not empty
-or no id was free (`Spec/go_etcd_io/bbolt/internal/freelist/Interface__Reload.lean`,
-`Interface__NoSyncReload.lean`), which the commit's rollback paths meet as above.
+no: the freelist's `Init`, `Read`, `Reload` and `NoSyncReload` specs take the premise that the new
+free pages are not empty or no page was free (`Spec/go_etcd_io/bbolt/internal/freelist/Interface__{Init,Read,Reload,NoSyncReload}.lean`,
+the `Interface.<M>.contract`s, and the `array`/`hashMap` instances), which the commit's rollback
+paths meet as above (bbolt's invariant: the in-memory free pages are among the last commit's
+freelist ids or the pages no committed tree reaches; `req/go_etcd_io_bbolt_internal_freelist.md`)
+and `loadFreelist` meets trivially (a new freelist).
 
 ## Notes
 

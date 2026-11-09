@@ -64,7 +64,9 @@ func ReqNodeRoundTrip(leaf bool, id Pgid, items Inodes, buf []byte) {
 // Users: cursor.go:326-336 (searchPage), cursor.go:362-366 (nsearch), cursor.go:385-386
 // (keyValue), cursor.go:182,203 (first, last), tx.go:665-668 (forEachPageInternal),
 // bucket.go:638-639 (stats: Pos, Ksize, Vsize), tx_check.go:103-118.
-// Assumes: p's bytes are a node page written with items (as in node-round-trip), read-only.
+// Assumes: p's bytes are a node page written with items (as in node-round-trip), read-only; id
+// is that page's id; the items' key and value bytes are held (they are the page's, lent by
+// pageKV_access).
 // Specs: Page.FastCheck, Page.IsLeafPage, Page.Count, Page.LeafPageElements,
 // Page.BranchPageElements, Page.LeafPageElement, Page.BranchPageElement,
 // leafPageElement.Key/Value/Flags, branchPageElement.Key/Pgid; laws: elemsSlice_index,
@@ -140,6 +142,83 @@ func ReqMetaRoundTrip(m *Meta, buf []byte, pageSize uint32) {
 	if n.Validate() == nil {
 		panic("meta-round-trip: bad magic validates")
 	}
+}
+
+// REQ bboltinternal/write-to-meta: Tx.WriteTo builds both metas in one page buffer, in place: the
+// meta at slot txid % 2 is the transaction's, the other one txid - 1; each validates.
+// Users: tx.go:443-459 (WriteTo).
+// Assumes: m is a valid meta (bbolt's magic and version) with txid at least 1; buf is one page
+// (at least 80 bytes).
+// Specs: Page.SetFlags, Page.SetId, Page.Meta, Meta.DecTxid, Meta.Sum64, Meta.SetChecksum,
+// Meta.Validate, Meta.Txid; laws: meta_view, meta_withHdr, metaValid_summed.
+func ReqWriteToMeta(m *Meta, buf []byte) {
+	page := (*Page)(unsafe.Pointer(&buf[0]))
+	page.SetFlags(MetaPageFlag)
+	for id := Pgid(0); id <= 1; id++ {
+		mm := *m
+		*page.Meta() = mm
+		page.SetId(id)
+		if Pgid(mm.Txid()%2) != id {
+			page.Meta().DecTxid()
+		}
+		page.Meta().SetChecksum(page.Meta().Sum64())
+		if page.Meta().Validate() != nil {
+			panic("write-to-meta: invalid meta")
+		}
+		if want := m.Txid(); Pgid(want%2) != id && page.Meta().Txid() != want-1 {
+			panic("write-to-meta: other slot's txid")
+		}
+	}
+}
+
+// REQ bboltinternal/page-sort-write: Tx.write sorts its dirty pages by id, then hands each page's
+// bytes to the file in chunks of at most MaxAllocSize-1 bytes, covering its extent.
+// Users: tx.go:527-560 (write), tx.go:584-590 (the page pool's buffers zeroed).
+// Assumes: the pages are distinct buffers, each (overflow+1)*pageSize bytes, pageSize positive.
+// Specs: Pages.Len/Less/Swap (Perennial's sort.Sort), Page.Id, Page.Overflow, UnsafeByteSlice.
+func ReqPageSortWrite(m map[Pgid]*Page, pageSize int) {
+	pages := make(Pages, 0, len(m))
+	for _, p := range m {
+		pages = append(pages, p)
+	}
+	sort.Sort(pages)
+	for i := 1; i < len(pages); i++ {
+		if pages[i-1].Id() > pages[i].Id() {
+			panic("page-sort-write: unsorted")
+		}
+	}
+	for _, p := range pages {
+		rem := (uint64(p.Overflow()) + 1) * uint64(pageSize)
+		var written uintptr
+		for {
+			sz := rem
+			if sz > MaxAllocSize-1 {
+				sz = MaxAllocSize - 1
+			}
+			buf := UnsafeByteSlice(unsafe.Pointer(p), written, 0, int(sz))
+			out := make([]byte, sz)
+			if copy(out, buf) != int(sz) {
+				panic("page-sort-write: short chunk")
+			}
+			rem -= sz
+			if rem == 0 {
+				break
+			}
+			written += uintptr(sz)
+		}
+	}
+}
+
+// REQ bboltinternal/verify: an optional check around a closure returns, whether or not it runs.
+// Users: bucket.go:889 (Bucket.free's inline-page check), freelist Free and mergeSpans.
+// Assumes: the closure's check holds (pgId is 0 for an inline bucket).
+// Specs: Verify.
+func ReqVerify(pgId Pgid) {
+	Verify(func() {
+		if pgId != 0 {
+			panic("verify: check failed")
+		}
+	})
 }
 
 // REQ bboltinternal/inline-bucket: a bucket value holds the bucket header, then the inline

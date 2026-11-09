@@ -57,8 +57,9 @@ func ReqAllocFree(txid common.Txid, buf []byte) {
 // readers is released.
 // Users: db.go:896 (beginTx: AddReadonlyTXID), db.go:957 (removeTx: RemoveReadonlyTXID),
 // db.go:944 (beginRWTx: ReleasePendingPages, then the writer allocates).
-// Assumes: f has no reader and no pending page; page id is in use (neither free nor pending),
-// allocated by a transaction at or before 4 (or before the freelist was loaded).
+// Assumes: f has no reader and no pending page; page id is at least 2 and in use (neither free
+// nor pending), allocated by a transaction at or before 4 (or before the freelist was loaded);
+// buf is at least a page header.
 // Specs: Interface.AddReadonlyTXID, Interface.RemoveReadonlyTXID, Interface.Free,
 // Interface.ReleasePendingPages, Interface.Allocate, Interface.PendingCount; laws: flOwn_wf,
 // flReaders_perm.
@@ -85,7 +86,8 @@ func ReqReleaseSafe(f Interface, id common.Pgid, buf []byte) {
 // REQ bboltinternal/rollback: a rolled-back transaction's frees are undone (the pages are in use
 // again, not pending) and the free pages are unchanged.
 // Users: tx.go:318 (nonPhysicalRollback), tx.go:336-347 (rollback, then NoSyncReload or Reload).
-// Assumes: page id is in use and not allocated by txid 7.
+// Assumes: page id is at least 2, in use (neither free nor pending) and not allocated by txid 7;
+// txid 7 has freed nothing yet; buf is at least a page header.
 // Specs: Interface.Free, Interface.Rollback, Interface.Freed, Interface.FreeCount.
 func ReqRollback(f Interface, id common.Pgid, buf []byte) {
 	n := f.FreeCount()
@@ -96,6 +98,21 @@ func ReqRollback(f Interface, id common.Pgid, buf []byte) {
 	}
 	if f.FreeCount() != n {
 		panic("rollback: free pages changed")
+	}
+}
+
+// REQ bboltinternal/reload-empty: a reload whose ids are all pending, or a re-Init with no ids,
+// is allowed only when no page is free (the hash map's Init with no ids keeps its old cache):
+// bbolt's reloads list every in-memory free page (the last commit's freelist page, or the pages no
+// committed tree reaches), so their ids are empty only when nothing is free.
+// Users: tx.go:336-347 (rollback), db.go:454-461 (loadFreelist).
+// Assumes: f has no free page (every page it ever had free was allocated or is pending).
+// Specs: Interface.Init, Interface.NoSyncReload, Interface.Freed.
+func ReqReloadEmpty(f Interface) {
+	f.NoSyncReload(nil)
+	f.Init([]common.Pgid{})
+	if f.FreeCount() != 0 {
+		panic("reload-empty: free pages appeared")
 	}
 }
 

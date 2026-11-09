@@ -23,6 +23,7 @@ and freezes it (`beMade`), so mvcc's view has it. `keyDataOf V`: mvcc's `KeyData
   (`storageReq B Pk X Y` from `beReq γ Pk X Y`), the lent lock (`kbHeld B`: the session, for the
   lessor's untracked writes), and the way back (`storageRest B n` to the visible tracker and the
   delete right, which the backend's `Close` takes).
+* `beReaderN_mvcc`: the slot stock covers mvcc's `mvccReaderN` with room for the other clients.
 * Intended realization: `kbData B D := ∃ V, beVis γ mvccFp V ∗ ⌜D = keyDataOf V⌝`, `kbLocked B D :=
   ∃ q S, beSess γ q Fp.none S ∗ beCur γ mvccFp C ∗ ...` (mvcc's session widened to `mvccFp` at its
   `Unlock`), `kbRead B rt D := ∃ V, beRd γ rt mvccFp V ∗ ...`, `kbRdToks B n := beRdToks γ n`,
@@ -73,6 +74,12 @@ def keyDataOf (V : Image) : Mvcc.KeyData :=
     clean := V.clean keyBkt }
 
 end model
+
+/-- **The backend's reader slots cover mvcc's and leave room for its other clients** (auth, the
+server's): an obligation on the two sealed constants (`beReaderN ≤ 2^30 - 2`, Go's `RWMutex`
+reader bound, in the backend's realization; mvcc's `mvccReaderN = mvccTokN + mvccOwnN` with
+`mvccTokN ≥ 2^28`, so mvcc's must stay below `2^30 - 2^28`). -/
+def beReaderN_mvcc.spec : Prop := Mvcc.mvccReaderN + 2 ^ 27 ≤ beReaderN
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]

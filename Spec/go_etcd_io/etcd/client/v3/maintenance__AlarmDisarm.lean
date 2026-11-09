@@ -10,8 +10,8 @@ Proof sketch: `am`'s fields read (read-only); not `(0, NONE)`: the request `Alar
 Changes: new (no old spec).
 
 Margin: the "disarm every alarm" call (`MemberID = 0`, `Alarm = NONE`) is a list then one disarm per
-alarm, several requests: not specified (no user in scope); a `NONE` alarm with a member is not a
-model alarm (`alarmKindM`): a scope restriction.
+alarm, several requests: not specified (no user in scope). Round 5: any other type is the model's
+`AlarmKind.other` (`alarmKindOf`), no longer a scope restriction.
 
 Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
 ready (`clientReady`).

@@ -5,7 +5,9 @@
 1. `os.Getenv(key)` returns some string, without panicking (`internal/common/verify.go:20`,
    `getEnvVerify`: `strings.ToLower(os.Getenv("BBOLT_VERIFY"))`). Any string: `Verify.spec` proves
    both of its branches. Used by: `Verify.spec`.
-2. `os.Getpagesize()` returns the OS page size, at least 4096 and at most 65536 (Linux: 4 KiB on
-   amd64, 4/16/64 KiB on arm64, ppc64, loong64). `internal/common/types.go:31`:
-   `var DefaultPageSize = os.Getpagesize()`. Used by: `BboltCommon.init.spec` (bbolt's `Open`
-   takes it as a new file's page size, db.go:268).
+2. `os.Getpagesize()` returns 4096: the page size of the target the models assume (linux/amd64,
+   where `syscall.Getpagesize` is the constant 4096), as the old development trusted
+   (`specs-ref/Spec/os/Getpagesize.lean`). Coordinator's decision, round 1 of 4d (F2): 4c's
+   `fileHolds`, `DB.Info`, `Tx.Size` and `Open` (D13) are written at 4096.
+   `internal/common/types.go:31`: `var DefaultPageSize = os.Getpagesize()`. Used by:
+   `BboltCommon.init.spec` (bbolt's `Open` takes it as a new file's page size, db.go:268).
