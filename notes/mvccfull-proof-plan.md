@@ -782,3 +782,48 @@ and S7 (a header line). `buildall` builds every mvccfull module and the candidat
   parameter (`apply`, `txn`, `compact`, `checkLeases`, `checkAll`, `end`, `open`, `newMember`'s
   specs lose it), and `startEpoch` takes the `kv` field at the writer's share `qw` (it had the whole
   field, which the streams' shares now exclude).
+
+# Probe (F1, 2026-11-09)
+
+The Probe set (named in "R. Readers"): B3 at the writer's `restart`, the stamp (`recvOne`), the
+builder → `Restore` handoff (`restore`). Three agents, one worktree; details in
+`notes/mvccfull-probe-{r1,stamp,writer}.md`.
+
+**B3, R1/R2 (about 3 h): settled by restatement, no backend change.**
+- The first probe proved R1's bridge lemma over a backend fact, `rtHeldDlsLaw` (a held reader misses,
+  of the clean view, only entries deleted since the open). True of the Go code, but not provable over
+  today's `rtHeld`/`dlsOwn`: a strengthening (`dlsOwn` a half of a ghost map, `dlCov` in `rtCore`) is
+  prototyped in `backend/RtHeldDls.lean` and kept only as the recorded alternative: it changes
+  client-visible ghost state (the user's) and rebuilds backend and mvcc.
+- The cause was a wrong claim in `NewR.lean`'s outline (step 4): `NewStore`'s batch session needs
+  no fixed registration (`batchTxInitSpec`, `ForceCommit`; neither names `NC` or `Del`). So
+  `NewStore.specR`, `newWatchableStore.specR`, `New.specR` are restated on `store.Restore`'s
+  pattern: the session contract `storeSessT` (any `Del`), `restoreRegM d` (unfixed),
+  `restoreFixM -∗ storeBackendTR`, the clean read lent `storeRT ∗ restoreRegM d`, i.e. the proved
+  `keyCleanRead_of_backendC`; `RC` gone. `ApiNewRestoring.lean` (the API candidate) unchanged.
+  Proved: `NewStoreSess.lean`, `NewStoreSessReal.lean` (`storeSessT_of_backendC`),
+  `NewStoreLineup.lean` (session → `restore()`'s inputs → the fix). `NewCleanRead.lean` deleted.
+- R2 holds under today's contract (the session never takes the client's clean view).
+- **For B3's proof:** the fresh proof registers the writer at the session's `Unlock` at `[[],[]]`,
+  impossible over an image; B3 leaves the registration pending (`kbRegRight ∗ writerRes`) and builds
+  `writerRes` at the restored log after `restore()`, as `store.Restore` does.
+
+**The stamp (about 1.5 h): proved, invariants sufficient.** `stream.recvOne` and the easy companion
+`stream.complete`, no `sorry`, no spec or invariant change, no cross-package unfold. Added:
+`streamCtx_persistent`. Cleanups for the next edit of shared files: `Persistent` instances for
+`isInc`, `ctrInv`, `runnerKeys`, `runnerH`; drop `Streams.lean`'s `maxK_attained` (`maxK_attained'`).
+
+**The writer (round 1): `runner.restart` proved (both members); `restore` two-thirds.** Laws proved:
+`memberState_split`, `inc_retire`, `inc_census`, `inc_stop_image`, `inc_alloc`; `RestoreLemmas.lean`
+(`restore_au` at the follower's live incarnation, `bnd_acc`), `WriterShares.lean` (`shares_join`,
+`shares_split`, the prefix lemmas). Found and fixed (mvccfull files only):
+1. mvccrand's duplicate `Countable` instances for `MvccState`/`Change` broke `ghostVar_agree`
+   (`attribute [local instance high]`; to do: remove mvccrand's duplicates);
+2. `lessorW` could not follow `Recover` to the snapshot's backend: it holds `lessorApplyOk lp` too
+   (given by `NewLessor.specR`);
+3. `runner.restore.spec` gains `ops.length ≤ Ops`, `Ops < 2^38`;
+4. the receipt bound `2^48` → `2^38` in `open`, `newMember`, `restart`, `restore`, `write`
+   (`inc_open_backend` needs `receiptBound + k + 4 ≤ 2^40 - 1`).
+Cross-package unfolds (each a missing law, the Freeze needs them gone or justified):
+`apply.bkRT` (`inc_census`), `backend.bStopView`/`rbOwn` (`inc_stop_image`).
+Round 2 (in progress): the rest of `restore` (`Recover`, `KV.Restore`, the old backend's close).
