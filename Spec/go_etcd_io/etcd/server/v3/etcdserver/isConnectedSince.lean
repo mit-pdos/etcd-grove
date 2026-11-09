@@ -32,8 +32,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`isConnectedSince`**: some answer. -/
 def isConnectedSince.spec : Prop :=
-  ∀ (tp : GoInterface) (since : time.Time) (remote : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ transporterOk tp ∗ threadTok }}
+  ∀ (tp : GoInterface) (ν : Rafthttp.Net GF) (lid : w64) (since : time.Time) (remote : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ Rafthttp.transporterOk tp ν lid ∗ threadTok }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince)) (Val #tp)) (Val #since)) (Val #remote))
   {{ (b : Bool), RET #b; threadTok }}
 

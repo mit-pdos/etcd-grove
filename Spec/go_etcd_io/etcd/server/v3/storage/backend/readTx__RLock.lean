@@ -41,7 +41,7 @@ def readTx.RLock.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beRdToks γ 1 ∗
       (AU <{ ∃∃ (V : Image), beVis γ F V }> @ ⊤, ∅ <{ beVis γ F V, COMM Ψ V }>) }}
     (App (Val ((rtLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty @!! go!"RLock")) (Val #()))
-  {{ RET #(); ∃ V : Image, beRd γ (rtLoc γ) F V ∗ Ψ V }}
+  {{ RET #(); ∃ V : Image, beRd γ (rtLoc γ) F V ∗ beLive γ (rtLoc γ) 1 ∗ Ψ V }}
 
 end spec
 

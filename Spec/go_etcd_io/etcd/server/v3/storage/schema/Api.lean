@@ -18,8 +18,8 @@ abstractions it builds on"), as mvcc states its store over its storage contract:
   view `V` of the buckets in its scope `S`): a single-key `UnsafeRange` (a `nil` end) returns the
   key's entry, `UnsafeForEach` calls its function on each entry once (in some order: a read
   transaction visits bolt's entries, then its buffer's). The bytes are bbolt's, **lent against
-  `R V`** (`rangeK`, `lentIn`, given back with the result's two outer slices; the visitor's for its
-  call), never readable after it (4c's `txBytes`).
+  `R V`** (`rangeK`, `lentIn`; the outer slices owned; the visitor's until `R V` is taken back,
+  `lentKVs`), never readable after it (4c's `txBytes`).
 * `txRange tx S R`: an interval `UnsafeRange` of a whole bucket, in key order (a batch transaction,
   or a read transaction of `key` only).
 * `txWr tx S R` (transparent, persistent): **writing through `tx`**: `UnsafePut` (an entry bbolt
@@ -362,6 +362,17 @@ def memberBktsAt (V : View) (cb : Option ClusterBkts) : Prop :=
   | some cb => ∃ mem rem cl, V .members = some mem ∧ V .membersRemoved = some rem ∧
       V .cluster = some cl ∧ memberEnts mem rem cl cb
 
+/-- **An entry lent to an `UnsafeForEach` visitor**: its key and value, the slices holding them
+and the fraction (bbolt's memory, or the read buffer's). -/
+structure LentKV where
+  k : GoString
+  v : GoString
+  ks : GoSlice
+  vs : GoSlice
+  dq : DFrac
+
+def LentKV.ent (x : LentKV) : GoString × GoString := (x.k, x.v)
+
 end model
 
 /-! ## Values and resources -/
@@ -403,23 +414,27 @@ def lentIn (dq : DFrac) (l : List GoString) (ps : List GoSlice) : IProp GF :=
   iprop([∗list] p; b ∈ ps; l, p ↦*{dq} b)
 
 /-- **`UnsafeRange`'s continuation**: the answer `l` (`rangeOf`), its keys and values lent against
-the view `R V`: given back with them **and with the two outer slices** (the backend's `rangeRes`
-takes the whole result back, `bytesListAt`; the schema's readers only index the slices). -/
+the view `R V` (given back with them; the outer slices owned, as the backend's `rangeRes`). -/
 def rangeK (R : View → IProp GF) (V : View) (m : BData) (k e : GoString) (limit : w64)
     (Ψ : val → IProp GF) : IProp GF :=
   iprop(∀ (kl vl : GoSlice) (l : List (GoString × GoString)) (dq : DFrac) (ps qs : List GoSlice),
     ⌜rangeOf m k e (sint.Z limit) l⌝ -∗ kl ↦* ps -∗ vl ↦* qs -∗
     lentIn dq (l.map Prod.fst) ps -∗ lentIn dq (l.map Prod.snd) qs -∗
-    (kl ↦* ps -∗ vl ↦* qs -∗ lentIn dq (l.map Prod.fst) ps -∗ lentIn dq (l.map Prod.snd) qs -∗
-      R V) -∗
+    (lentIn dq (l.map Prod.fst) ps -∗ lentIn dq (l.map Prod.snd) qs -∗ R V) -∗
     Ψ (PairV #kl #vl))
+
+/-- **The bytes lent to the visitor so far**, given back for the view. -/
+def lentKVs (l : List LentKV) : IProp GF :=
+  iprop([∗list] x ∈ l, x.ks ↦*{x.dq} x.k ∗ x.vs ↦*{x.dq} x.v)
 
 /-- **Reading through `tx`** with the caller's view `R V` of its scope `S` (see the header):
 `UnsafeRange(b, k, nil, 0)` of a key of the caller's, of an existing bucket (a `nil` end: a
 non-`nil` empty end makes etcd's read transaction range the bucket, which panics outside `key`), and
 `UnsafeForEach` of a whole bucket of `S`, calling `f(k, v)` on each entry once (a read
-transaction: bolt's entries, then its buffer's; not sorted as a whole), the bytes lent for the call,
-until `f` returns an error, which it returns. The bytes are bbolt's: lent against `R V`, never
+transaction: bolt's entries, then its buffer's; not sorted as a whole), until `f` returns an error,
+which it returns; the bytes are lent to the visitor, which may keep them (`unsafeGetAllUsers`
+appends the value slices and unmarshals them after the loop) until it gives them back for `R V`
+(`lentKVs`; also after an error, `J` over the entries visited). The bytes are bbolt's: lent against `R V`, never
 readable after it (4c's `txBytes`). -/
 def txRd (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
   iprop(∃ i : GoInterfaceOk, ⌜tx = GoInterface.ok i⌝ ∗
@@ -430,18 +445,18 @@ def txRd (tx : GoInterface) (S : Scope) (R : View → IProp GF) : IProp GF :=
       WP (App (App (App (App (Val #(methods i.ty go!"UnsafeRange" i.v)) (Val #bv)) (Val #ks))
         (Val #slice.nil)) (Val #limit)) {{ Φ }}) ∗
     (□ ∀ (b : Bkt) (bv : GoInterface) (V : View) (m : BData) (f : GoFunc)
-        (I : List (GoString × GoString) → IProp GF) (J : GoInterface → IProp GF)
+        (I : List LentKV → IProp GF) (J : List LentKV → GoInterface → IProp GF)
         (Φ : val → IProp GF),
       bucketAt b bv -∗ R V -∗ ⌜V b = some m ∧ S.whole b⌝ -∗ I [] -∗
-      (□ ∀ (pre : List (GoString × GoString)) (k v : GoString) (ks vs : GoSlice) (dq : DFrac),
+      (□ ∀ (pre : List LentKV) (k v : GoString) (ks vs : GoSlice) (dq : DFrac),
         I pre -∗ ks ↦*{dq} k -∗ vs ↦*{dq} v -∗
         WP (App (App (Val #f) (Val #ks)) (Val #vs)) {{ r, ∃ err : GoInterface, ⌜r = #err⌝ ∗
-          ks ↦*{dq} k ∗ vs ↦*{dq} v ∗
-          ((⌜err = GoInterface.nil⌝ ∗ I (pre ++ [(k, v)])) ∨
-           (⌜err ≠ GoInterface.nil⌝ ∗ J err)) }}) -∗
-      ▷ (∀ err : GoInterface, R V -∗
-          ((⌜err = GoInterface.nil⌝ ∗ ∃ l, ⌜entsAny m l⌝ ∗ I l) ∨
-           (⌜err ≠ GoInterface.nil⌝ ∗ J err)) -∗ Φ #err) -∗
+          ((⌜err = GoInterface.nil⌝ ∗ I (pre ++ [⟨k, v, ks, vs, dq⟩])) ∨
+           (⌜err ≠ GoInterface.nil⌝ ∗ J pre err)) }}) -∗
+      ▷ (∀ err : GoInterface,
+          ((⌜err = GoInterface.nil⌝ ∗ ∃ l, ⌜entsAny m (l.map LentKV.ent)⌝ ∗ I l ∗
+              (lentKVs l -∗ R V)) ∨
+           (⌜err ≠ GoInterface.nil⌝ ∗ ∃ l, J l err ∗ (lentKVs l -∗ R V))) -∗ Φ #err) -∗
       WP (App (App (Val #(methods i.ty go!"UnsafeForEach" i.v)) (Val #bv)) (Val #f)) {{ Φ }}))
 
 /-- **Ranges through `tx`** of a whole bucket of the caller's, in key order (`UnsafeRange` with an

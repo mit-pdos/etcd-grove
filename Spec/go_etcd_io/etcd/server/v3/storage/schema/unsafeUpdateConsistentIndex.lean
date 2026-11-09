@@ -2,7 +2,9 @@
 ## `schema.unsafeUpdateConsistentIndex(tx, index, term, allowDecreasing)` (internal)
 
 **Users.** `UnsafeUpdateConsistentIndex`, `UnsafeUpdateConsistentIndexForce`. **Proof sketch.** See
-`UnsafeUpdateConsistentIndex`; with `allowDecreasing` no read. **Changes.** From `specs-ref`'s
+`UnsafeUpdateConsistentIndex`; with `allowDecreasing` no read, and with `ETCD_VERIFY` off
+`verify.Verify` does not run its closure (no read either: integration, the wrapper's
+`verifyOff` branch has no `txRd` to give). **Changes.** From `specs-ref`'s
 `unsafeUpdateConsistentIndex.lean`.
 -/
 module
@@ -35,7 +37,7 @@ def unsafeUpdateConsistentIndex.spec : Prop :=
     (allow : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.has .metaB ciKey ∧ S.has .metaB termKey⌝ ∗
       ⌜i ≠ W64 0 → V .metaB = some m⌝ ∗
-      (⌜allow = true⌝ ∨ (txRd tx S R ∗ ⌜i ≠ W64 0 → ciWf m⌝ ∗ (Verify.verifyOff ∨ ⌜i = W64 0 ∨ uint.Z (ciOf m).1 ≤ uint.Z i⌝))) }}
+      (⌜allow = true⌝ ∨ Verify.verifyOff ∨ (txRd tx S R ∗ ⌜i ≠ W64 0 → ciWf m⌝ ∗ ⌜i = W64 0 ∨ uint.Z (ciOf m).1 ≤ uint.Z i⌝)) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex)) (Val #tx)) (Val #i)) (Val #t)) (Val #allow))
   {{ RET #(); R (if i = W64 0 then V else V.set .metaB (ciPut m i t)) }}
 

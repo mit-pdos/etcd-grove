@@ -17,7 +17,8 @@ together the visible image `V` (`rdRange`). A pre-commit hook's puts linger in t
 reach the read buffer at a later write-back, at their committed values (the hooks' leftovers): a
 single key reads its value either way, but a range of a safe-range bucket would return such a key
 twice, so a safe-range range needs a bucket with no hook cell (`beHookFp`; etcd's hooks write `meta`
-only). The bytes are lent while the read lasts (4c's `txBytes`; `rangeRes`).
+only). The bytes are lent while the read lasts (4c's `txBytes`): against a share of its liveness
+(`beLive`, integration I6), the read transaction kept, so several ranges' bytes may be out at once.
 
 **Changes** (from `specs-ref`'s): the hidden split stated (`rdRange`: the buffer's part cut first),
 in place of a plain cut range (false with a non-empty buffer and a limit); round 1: the bytes lent
@@ -49,15 +50,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 (`rdRange`), within the reader's footprint. -/
 def readTx.UnsafeRange.spec : Prop :=
   ∀ (γ : BeNames) (F : Fp) (V : Image) (bk : GoInterface) (bi : BktInfo) (ks es : GoSlice)
-    (dk de : DFrac) (k e : GoString) (limit : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
+    (dk de : DFrac) (k e : GoString) (limit : w64) (pl : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ beLive γ (rtLoc γ) pl ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
       ⌜covers F bi.name k e⌝ ∗ ⌜bi.safe = true ∨ es = slice.nil ∨ sint.Z limit = 1⌝ ∗
       (⌜bi.safe = false ∨ e = []⌝ ∨ ∃ Fh, beHookFp γ Fh ∗ ⌜∀ x, ¬ Fh (.key bi.name x)⌝) }}
     (App (App (App (App (Val ((rtLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #ks))
       (Val #es)) (Val #limit))
   {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗
       ∃ l, ⌜rdRange (V.ents bi.name) bi.safe (V.clean bi.name) k e (sint.Z limit) l⌝ ∗
-        rangeRes kl vl l (beRd γ (rtLoc γ) F V) }}
+        beRd γ (rtLoc γ) F V ∗ rangeRes kl vl l (beLive γ (rtLoc γ) pl) }}
 
 end spec
 

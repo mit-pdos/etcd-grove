@@ -8,7 +8,8 @@ consistent index in the hooks' tests). Snippet `ranges.go`.
 **Proof sketch.** `t.tx.Bucket(name)` (nil: `lg.Fatal`), `unsafeRange` over bbolt's cursor of the
 write transaction (4c's `Cursor.Seek`/`Next`: the batch image's bucket in key order; an empty end
 the key alone, else cut at a positive limit). The slices are bbolt's: lent while the session lives
-(4c's `txBytes`), back for the session (`rangeRes`).
+(4c's `txBytes`): lent against a share of the session's liveness (`beLive`, `rangeRes`; integration
+I6), the session kept: it may write while they are out (mvcc's compaction deletes the keys it read).
 
 **Changes** (from `specs-ref`'s): over the session; the bytes lent (round 1, T3). **Margin.** None.
 -/
@@ -35,13 +36,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **`t.UnsafeRange(bk, k, e, limit)`**: the batch image's range (`btRange`). -/
 def batchTxBuffered.UnsafeRange.spec : Prop :=
-  ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (bk : GoInterface) (bi : BktInfo)
+  ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (pl : Qp) (bk : GoInterface) (bi : BktInfo)
     (ks es : GoSlice) (dk de : DFrac) (k e : GoString) (limit : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ beLive γ (btLoc γ) pl ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e }}
     (App (App (App (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #ks))
       (Val #es)) (Val #limit))
   {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ∃ l, ⌜btRange (S.cur.ents bi.name) k e (sint.Z limit) l⌝ ∗ rangeRes kl vl l (beSess γ q F S) }}
+      ∃ l, ⌜btRange (S.cur.ents bi.name) k e (sint.Z limit) l⌝ ∗ beSess γ q F S ∗ rangeRes kl vl l (beLive γ (btLoc γ) pl) }}
 
 end spec
 

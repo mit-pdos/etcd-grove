@@ -38,8 +38,9 @@ it (its raft node driver, membership, consistent indexer, stores, atomics, and t
 log's first `k` entries, so its KV store (and lessor, auth store, membership) is at least at
 `histAt γ k` (2c's linearizable reads wait for it: `applyWait`). `srvRunTok s γ id` (exclusive):
 what `start` hands `run` (2e builds it at `NewServer`/`start`). `srvStopped s γ id` (exclusive):
-what a stopped member leaves (`run`'s `close(done)` announces it): the durable halves a restart
-takes (the WAL's `raftState`, the backend's image, raft's `nodeVacant`), which 2e's restart consumes.
+what a stopped member leaves (`run`'s `close(done)` announces it): with 2e's `srvClosed`, the disk's
+idle token (`memberDisk`, 2e's round 2: the files' content, `raftState` included, stays in the
+program's `diskState`; raft's `nodeVacant` comes back into it once the node's goroutine exits).
 
 **The apply thread.** `applyThread s γ ep p` (exclusive): the apply thread's state, with the
 `etcdProgress` record `ep` at `p : Progress` (applied index and term, the disk and memory snapshot
@@ -64,8 +65,9 @@ its snapshot, if any, not installed yet). `nodeAdvanced r k`, `nodeSnapLb r k` (
 snapshot and compaction.
 
 **Durability (K5) is the loop's order of writes**: the leader sends before its write (R1's
-`readyCheck`), every member fires the batch's `readyEnter` at the WAL's `Save` (2e's: the update fires
-at the write's sync, moving the WAL-held `raftState γ.raft id D`), and only then sends (followers)
+`readyCheck`), every member deposits the batch's `readyEnter` in its disk (2e's `diskAcc`, round 2:
+the durable state, `raftState γ.raft id D` with the WAL's records, is the program's `diskState`) and
+fires it at the WAL's `Save` (at the write's sync), and only then sends (followers)
 and `Advance`s; an entry is applied only after raft committed it, which needs a quorum's durable
 acknowledgements. A crash loses nothing raft's durable state has, and every answered step's entry is
 in it on a quorum.
@@ -106,7 +108,7 @@ K7's realization), `histAt_committed`, `histAt_of_committed`, `answered_agree`, 
 `readCtx_register`, `readReg_register`, `readReg_get`; the member: `srvApplied_mono`,
 `srvApplied_zero`, `srvApplied_hist`, `srvApplied_read`, `srvReadAt_mono`, `srvNode_raftNode`,
 `srvNode_agree`, `srvNode_cfg`, `srvCfg_agree`, `srvNode_errorc`, `isServer_names`, `srvNode_raftNames`,
-`srvMember_node`, `srvRunTok_intro`, `srvStores_agree`, `srvWatchable_hist`, `srvReadAt_mvcc`,
+`srvMember_node`, `srvRunTok_intro`, `srvNode_raftOk`, `srvStores_agree`, `srvWatchable_hist`, `srvReadAt_mvcc`,
 `srvReader_mvcc`, `srvReadAt_lessor`, `srvReader_lessor`, `srvReadAt_auth`,
 `applyInit_ep`, `srvStopped_disk`, `isRaftNode_node`, `isRaftNode_storage`, `nodeSnapLb_stor`,
 `nodeAdvanced_applied`, `rnInit_place`, `applyThread_at`, `applyThread_applied`, `applyBatch_terms`,
@@ -297,9 +299,10 @@ Exclusive. -/
 opaque srvRunTok (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-- **What a stopped member's apply side and driver leave** (`run`'s deferred shutdown, before
-`Cleanup`): the WAL's durable half with `raftState`, the node's vacancy, the snapshot directory, the
-history point of the backend's last commit. With 2e's `srvClosed ds`, the member's `memberDisk`
-(`srvStopped_disk`). Exclusive. -/
+`Cleanup`): the release of the disk's access (no server writes `ds` any more: the node stopped, its
+vacancy back in the disk's state), the snapshot directory's deletion right. With 2e's `srvClosed ds`,
+the member's `memberDisk` (`srvStopped_disk`: 2e's idle token; integration I4, after 2e's round 2).
+Exclusive. -/
 opaque srvStopped (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
 
 /-- **The apply thread's initial state, without its `etcdProgress`** (`run` allocates `ep`): progress
@@ -353,8 +356,9 @@ opaque rnInit (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (γ : Names) (
 fills, `ApiBoot`'s `raftNodeBootCfg` being its configuration part): its `Node` is raft node `n` of
 `γ.raft` with id `id` (R1's `isNode`, `nodeRunning`, `nodeDriver` at the start's driver state, the
 apply side's `nodeConf`), its `raftStorage` that node's attached `MemoryStorage` (`nodeStorage n
-γ.raft (memStor ms)`), its `storage` the member's WAL and snapshotter (2e's: holding `raftState
-γ.raft id D` in its durable invariant, with `StorageHolds D` of the storage's contents), its
+γ.raft (memStor ms)`), its `storage` the member's WAL and snapshotter (2e's) with the disk's access
+`diskAcc γ.etcd ds` (whose `diskState` holds `raftState γ.raft id D` with `StorageHolds D` of the
+WAL's records: 2e's round 2), its
 `transport` the member's (2f's), its `isIDRemoved` the membership's query, its logger. Exclusive. -/
 opaque rnCfgOk (cv : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (γ : Names) (id : w64)
     (n : Loc) : IProp GF := iprop(True)
@@ -367,7 +371,7 @@ opaque rnStopper (r : Loc) : IProp GF := iprop(True)
 
 /-- **What a stopped driver leaves**: the raft node stopped (R1's `nodeStopped`, the id vacant again
 once the node's run goroutine has exited), the ticker stopped, the transport stopped, the WAL closed
-with its durable half (2e's: the `raftState γ.raft id D` the WAL holds). Exclusive. -/
+(its records and `raftState` stay in the program's `diskState`, 2e's round 2). Exclusive. -/
 opaque rnStopped (r : Loc) (γ : Names) (id : w64) : IProp GF := iprop(True)
 
 /-- **The ready handler `rh` of server `s`** (`raftReadyHandler`: `getLead`, `updateLead`,
@@ -414,9 +418,8 @@ opaque beSnap (bs : GoInterface) (γ : Names) (k : Nat) : IProp GF := iprop(True
 database image** of the state machine at committed point `k`. Exclusive. -/
 opaque dbReader (rc : GoInterface) (γ : Names) (k : Nat) : IProp GF := iprop(True)
 
-/-- (provisional, the lessor's, 3c) **`sl` lists expired leases `ids`** (`[]*lease.Lease`, from
-`ExpiredLeasesC`), read-only. Persistent. -/
-opaque expiredLeases (sl : GoSlice) (ids : List Int) : IProp GF := iprop(True)
+-- (integration I4) The provisional `expiredLeases sl ids` is 3c's `Lease.expiredSl γl sl ids` at the
+-- member's lessor (`srvLessor s γl`).
 
 /-- **`mg` is a merged snapshot message** (a `*snap.Message`): raft message `m` (a `MsgSnap` the
 member may send: `msgSent`, its snapshot with `snapImage`) with the database reader of that image.
@@ -463,8 +466,7 @@ def persistent.spec : Prop :=
   (∀ r ch, Persistent (rnApplyc (GF := GF) r ch)) ∧
   (∀ r ch, Persistent (rnReadStateC (GF := GF) r ch)) ∧
   (∀ p k e, Persistent (entryAt (GF := GF) p k e)) ∧
-  (∀ r rac k, Persistent (advancedAt (GF := GF) r rac k)) ∧
-  (∀ sl ids, Persistent (expiredLeases (GF := GF) sl ids))
+  (∀ r rac k, Persistent (advancedAt (GF := GF) r rac k))
 
 def timeless.spec : Prop :=
   (∀ γ k σ, Timeless (histAt (GF := GF) γ k σ)) ∧
@@ -628,20 +630,25 @@ introduction). -/
 def srvApplied_read.spec : Prop :=
   ∀ s γ (id k : Nat), srvNode (GF := GF) s γ id ∗ srvApplied s γ k ⊢ srvReadAt s γ k
 
-/-- **The stores' names of a member** (one each; `NewServer` fixes them), and the watchable store
-2c's `srvWatchable` names is the member's mvcc store (3f's bridge, `req/`, "from 3f", item 3: the
-notified history is a view of the history at an applied point). -/
+/-- **The server is the transport's `Raft`** (2f's `raftOk`, needed from `tr.Start()` in
+`NewServer` on, which `srvNode` covers: it holds from the server literal; integration I4, 2f's
+round-1 F4): `Process` (`Process.spec`: `procErr`, via `procErr_forbidden` for its `403`),
+`IsIDRemoved` (`IsIDRemoved.spec`, with the caller's thread token), `ReportUnreachable`,
+`ReportSnapshot` (their specs) meet the receiver's contract at the member's id. -/
+def srvNode_raftOk.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ν : Rafthttp.Net GF),
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+    srvNode s γ id ∗ srvNet γ.etcd ν ⊢
+      Rafthttp.raftOk ν (W64 id)
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) #s)
+
+/-- **The stores' names of a member** (one each; `NewServer` fixes them). -/
 def srvStores_agree.spec : Prop :=
   (∀ s γm γm', srvMvcc (GF := GF) s γm ∗ srvMvcc s γm' ⊢ ⌜γm = γm'⌝) ∧
   (∀ s γl γl', srvLessor (GF := GF) s γl ∗ srvLessor s γl' ⊢ ⌜γl = γl'⌝) ∧
   (∀ s γa γa', srvAuth (GF := GF) s γa ∗ srvAuth s γa' ⊢ ⌜γa = γa'⌝) ∧
   (∀ s γ id, srvNode (GF := GF) s γ id ⊢
     (∃ γm, srvMvcc s γm) ∗ (∃ γl, srvLessor s γl) ∗ (∃ γa, srvAuth s γa))
-
-def srvWatchable_hist.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat) (w : GoInterface) (γm : Mvcc.MvccName) (h : KVHist),
-    srvNode (GF := GF) s γ id ∗ srvWatchable s γ.etcd w ∗ Mvcc.watchableAt w γm ∗ Mvcc.mvccLb γm h ⊢
-      srvMvcc s γm ∗ |={⊤}=> ∃ σ, EtcdModel.etcdLb γ.etcd σ ∗ ⌜KVHist.IsView σ.kv h⌝
 
 /-- **The member's mvcc reads at or past `k`** (realization of `srvReadAt`, 3e's vocabulary): a
 persistent atomic accessor of the store's state, at which the store's history is the cluster's at a
@@ -671,7 +678,7 @@ def srvReadAt_lessor.spec : Prop :=
     srvReadAt (GF := GF) s γ k ∗ srvLessor s γl ⊢
       ∃ n σk, histAt γ k σk ∗ Lease.lessorLb γl n ∗
         □ (∀ j ls, ⌜n ≤ j⌝ -∗ Lease.lessorAt γl j ls -∗
-            ∃ (k' : Nat) (σ : EtcdModel.State) (t : Nat) tb, histAt γ k' σ ∗
+            ∃ (k' : Nat) (σ : EtcdModel.State) (t : Nat) (tb : Int → Option EtcdModel.LeaseRec), histAt γ k' σ ∗
               ⌜k ≤ k' ∧ σk.leaseTables.length ≤ t + 1 ∧ σ.leaseTables[t]? = some tb ∧
                 ∀ id, (ls.table id).isSome = (tb id).isSome⌝)
 

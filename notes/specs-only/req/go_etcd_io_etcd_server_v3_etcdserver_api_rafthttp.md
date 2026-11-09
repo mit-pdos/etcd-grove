@@ -63,3 +63,20 @@ Answers to 2f's items in `req/go_etcd_io_etcd_server_v3_etcdserver.md` ("from 2f
 2. The URL hosts are your provisional `urlsHosts` (1c's): keep it or tell 2e.
 3. `transporterOk` (provisional in `ApiBoot`) is the `Transporter` bundle with token-taking
    `ActiveSince`/`ActivePeers`: please export it.
+
+## from I2 (integration, raft; the coordinator's decision on the `MsgApp` entries' capacity)
+
+raft's `node.Step.spec` (and `RawNode.Step.spec`) now take **`msgRecv ml m`** (raftpb's,
+`Spec/go_etcd_io/raft/v3/raftpb/Api.lean`) in place of `msgPts ml (DFrac.own 1) m`: an owned message
+whose `Entries` slice's spare capacity is owned too (`msgRecv_unfold`), because raft's `unstable`
+may adopt a `MsgApp`'s slice and append into it (`nonissues/raft-msgapp-inprocess-aliasing.md`).
+Every message rafthttp delivers has it (protobuf's unmarshalling allocates the slice fresh):
+**please make `recvd` (and the decoders' posts, `messageDecoder.decodeLimit`,
+`msgAppV2Decoder.decode`, the pipeline handler) give `msgRecv` of the decoded message**, from 2a's
+`Unmarshal` (requested in `req/google_golang_org_protobuf_proto.md`, "from I2"). The msgappv2
+decoder builds `Entries` with `make([]*pb.Entry, n)` (len = cap: capacity trivially owned).
+```go
+if err := r.Node.Step(ctx, m); err != nil { ... }   // etcdserver Process, via rafthttp's recvc/propc
+```
+Used by: `node.Step.spec`, `raft.handleAppendEntries.spec` (through `raft.Step`'s `stepMsg`), 2d's
+`EtcdServer.Process`/`raftNode.Step` (which pass rafthttp's message to `node.Step`).

@@ -376,17 +376,25 @@ def evIsDel : Event → Bool
   | .put .. => false
   | .delete _ => true
 
-/-- **An image's entries above its compaction revision are exactly its history's events there**
-(3f's `rangeEvents` reads them; `store.restore` rebuilds the index from them): each event of a
-revision `r` above `h.compacted`, at position `i`, is at `revBytes ⟨r, i⟩` encoding its key-value;
-every key of the bucket parses (`revOfBytes`), and one above `h.compacted` is such an event's. -/
+/-- **An image's entries from its compaction revision on are its history's events there**
+(3f's `rangeEvents` reads them, from a watcher's `minRev` that may be the compaction revision itself;
+`store.restore` rebuilds the index from them): each event of a revision `r` above `h.compacted`, at
+position `i`, is at `revBytes ⟨r, i⟩` encoding its key-value; at `h.compacted` itself, each event that
+is its key's last change in that revision (what a compaction at `h.compacted` keeps, a tombstone
+included: the pinned fork carries etcd-io/etcd#19188); every key of the bucket parses
+(`revOfBytes`), and one at or above `h.compacted` is such an event's. -/
 def mvccImage_above.spec : Prop := ∀ (D : KeyData) (h : KVHist) (u : Bool), mvccImage D h u →
   (∀ (r i : Nat) (ev : Event), h.compacted < r → (h.eventsAt r)[i]? = some ev →
     ∃ bs, D.keys (revBytes ⟨W64 r, W64 i⟩ (evIsDel ev)) = some bs ∧ kvBytes (evM ev) bs) ∧
+  (∀ (i : Nat) (ev : Event), (h.eventsAt h.compacted)[i]? = some ev →
+    (∀ j ev', i < j → (h.eventsAt h.compacted)[j]? = some ev' → ev'.key ≠ ev.key) →
+    ∃ bs, D.keys (revBytes ⟨W64 h.compacted, W64 i⟩ (evIsDel ev)) = some bs ∧
+      kvBytes (evM ev) bs) ∧
   (∀ kb bs, D.keys kb = some bs → ∃ (rt : Rev) (tomb : Bool), revOfBytes kb = some (rt, tomb) ∧
-    ((h.compacted : Int) < sint.Z rt.main →
+    ((h.compacted : Int) ≤ sint.Z rt.main →
       ∃ ev, (h.eventsAt (uint.nat rt.main))[uint.nat rt.sub]? = some ev ∧ tomb = evIsDel ev ∧
         kvBytes (evM ev) bs))
+
 
 end image
 

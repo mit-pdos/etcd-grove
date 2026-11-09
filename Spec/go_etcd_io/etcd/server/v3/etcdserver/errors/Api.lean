@@ -34,13 +34,14 @@ with their message. Namespace `EtcdServer`.
 ## Laws
 
 `srvErrOf_ne_nil`, `srvErrOf_fun`, `srvErrOf_val`, `srvErrOf_inj`, `srvErrVal_leaf`,
-`srvErrOf_notCtx`, `raftStoppedErr_unmapped`, `raftStoppedErr_shape`.
+`srvErrOf_notCtx`, `raftStoppedErr_unmapped`, `raftStoppedErr_shape`, `errors_init` (integration I4).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.api.v3.Model
 public import Spec.google_golang_org.grpc.Api
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Api
+public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.errors
 
 set_option autoImplicit false
 
@@ -150,6 +151,39 @@ def raftStoppedErr_shape.spec : Prop := ⊢ srvErrShape (GF := GF) raftStoppedEr
 def srvErrVal_shape.spec : Prop := ∀ e, srvErrMapped e = true → ⊢ srvErrShape (GF := GF) (srvErrVal e)
 
 end shape
+
+section init
+variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
+
+/-- **`etcdserver/errors`' sentinels hold the server error values** (integration I4; 3a's and I5's
+request): each mapped package variable is `srvErrVal` of its `EtcdErr` (`toGRPCErrorMap`'s keys).
+`ErrUnknownMethod` and `ErrTimeoutLeaderTransfer` are unmapped (not stated: no server spec returns
+them to a caller that maps them). -/
+def errors_init.spec : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors ⊢
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped ↦□ srvErrVal .stopped ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled ↦□ srvErrVal .canceled ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout ↦□ srvErrVal .timeout ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail ↦□ srvErrVal .timeoutDueToLeaderFail ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost ↦□ srvErrVal .timeoutDueToConnectionLost ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutWaitAppliedIndex ↦□ srvErrVal .timeoutWaitAppliedIndex ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged ↦□ srvErrVal .leaderChanged ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotEnoughStartedMembers ↦□ srvErrVal .memberNotEnoughStarted ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLearnerNotReady ↦□ srvErrVal .memberLearnerNotReady ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoLeader ↦□ srvErrVal .noLeader ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotLeader ↦□ srvErrVal .notLeader ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge ↦□ srvErrVal .requestTooLarge ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace ↦□ srvErrVal .noSpace ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests ↦□ srvErrVal .tooManyRequests ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrUnhealthy ↦□ srvErrVal .unhealthy ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt ↦□ srvErrVal .corrupt ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrBadLeaderTransferee ↦□ srvErrVal .badLeaderTransferee ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrClusterVersionUnavailable ↦□ srvErrVal .clusterVersionUnavailable ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrWrongDowngradeVersionFormat ↦□ srvErrVal .wrongDowngradeVersionFormat ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound ↦□ srvErrVal .keyNotFound
+
+end init
 
 end EtcdServer
 end EtcdGrove

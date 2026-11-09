@@ -31,7 +31,7 @@ def NewLeaderStats.spec : Prop :=
   ∀ (lg : Loc) (id : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats ∗ Zap.isLogger lg }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewLeaderStats)) (Val #lg)) (Val #id))
-  {{ (p : Loc), RET #p; isLeaderStats p }}
+  {{ (p : Loc), RET #p; leaderStatsOwn p }}
 
 end spec
 

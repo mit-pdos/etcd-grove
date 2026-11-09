@@ -17,7 +17,10 @@ predicate opaque, the pure model W0's history (`Model.lean`), the storage a cont
   transaction's `End` fires two (notify, then commit); `Compact` and `Restore` one each. So the
   client's own invariant decides what the state may be (2d ties it to the cluster's history at the
   member's applied point: `req/..._etcdserver.md`, 2c's item 6). Intended realization: a ghost
-  variable's half, the other in the store's invariant (`s.mu`/`s.revMu`'s, with the index, the
+  variable's half, the other in the store's invariant, **and a half of the authority of a monotone
+  record of `σ.notified`** (ordered by `histLe`; every update `mvccState` makes extends it), whose
+  fragments are 3f's `mvccLb` (so `mvccLb_le`/`mvccLb_get` are entailments over `mvccState` alone:
+  3f's round-1 request 1); the store's invariant holds the other halves (`s.mu`/`s.revMu`'s, with the index, the
   current revision, the compaction revision and the storage's data at the image of `σ`).
 * `isMvcc kv γ` (persistent): **`kv` (the `KV` interface value `NewStore` or `New` returned) serves
   the store `γ`**. Intended realization: the store's fields (read-only after `NewStore`), its locks'
@@ -211,6 +214,14 @@ opaque mvccBackend (γ : MvccName) (q : Qp) (B : MvccStorage) (Pk : IProp GF) : 
 
 /-- **`t` is a transaction of `γ`, begun with `trace`, at `k`** (exclusive). -/
 opaque mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
+
+/-- **A write transaction whose change records were taken** (exclusive; `InternalTxn.lean`'s
+`mvccTxn_changes`, the watchable store's `End`): only `End` may follow. -/
+opaque mvccTxnNC (t : GoInterface) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Event) :
+    IProp GF := iprop(True)
+
+/-- **`sl` is the transaction `t`'s change slice** (persistent; `Changes()`'s result). -/
+opaque mvccTxnChs (t : GoInterface) (sl : GoSlice) : IProp GF := iprop(True)
 
 /-- `h` is the store's hash storage (persistent). -/
 opaque isHashStorage (h : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
@@ -521,18 +532,24 @@ abbrev Txn.Changes.contract (ty : go.GoType) (v : val) : Prop :=
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace k }}
     (App (Val #(methods ty go!"Changes" v)) (Val #()))
   {{ (chs : GoSlice), RET #chs; mvccTxn (interface.mkOk ty v) γ trace k ∗
+      mvccTxnChs (interface.mkOk ty v) chs ∗
       ⌜uint.nat chs.len = k.pend.length ∧ 0 ≤ sint.Z chs.len⌝ }}
 
 /-- `End()`: a read transaction gives the reader token back; a write transaction too, committing
-in two steps of the caller's updates at the state it began at (`σ₀`): notify, then the bump; the batch lock's invariant `Pk` back to the lock. -/
+in two steps of the caller's updates at the state it began at (`σ₀`): notify (at `σ₀`, or already
+notified: `notify` is idempotent, so the watchable store may fire its caller's first update itself
+and hand this one over), then the bump; the batch lock's invariant `Pk` back to the lock. A write
+transaction whose records were taken (`mvccTxnNC`) may end too. -/
 abbrev Txn.End.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (k : MTxn) (q : Qp) (B : MvccStorage) (Pk Q : IProp GF),
-  {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace k ∗
+  {{ pkgInit ∗
+      (mvccTxn (interface.mkOk ty v) γ trace k ∨
+        ∃ σ₀ pend, ⌜k = .write σ₀ pend⌝ ∗ mvccTxnNC (interface.mkOk ty v) γ trace σ₀ pend) ∗
       match k with
       | .read _ => iprop(True)
       | .write σ₀ pend => iprop(mvccBackend γ q B Pk ∗ Pk ∗
           AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
-            <{ ⌜σ = σ₀⌝ ∗ mvccState γ (σ.notify pend), COMM
+            <{ ⌜σ = σ₀ ∨ σ = σ₀.notify pend⌝ ∗ mvccState γ (σ.notify pend), COMM
                 AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
                   <{ ⌜σ' = σ₀.notify pend⌝ ∗ mvccState γ σ'.commitPending, COMM Q }> }>) }}
     (App (Val #(methods ty go!"End" v)) (Val #()))
@@ -640,6 +657,8 @@ def init.spec : Prop :=
       ⌜x1 ≠ x2⌝
 
 /-- **The reader tokens split and join.** -/
+def mvccTxnChs_persistent.spec : Prop := ∀ t sl, Persistent (mvccTxnChs (GF := GF) t sl)
+
 def mvccReaders_split.spec : Prop :=
   ∀ γ n m, mvccReaders (GF := GF) γ (n + m) ⊣⊢ mvccReaders γ n ∗ mvccReaders γ m
 

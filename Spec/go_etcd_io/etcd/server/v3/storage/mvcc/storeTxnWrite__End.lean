@@ -10,8 +10,12 @@ atomic precondition admits the state at `σ₀` (the plain store: nothing notifi
 `Txn.End` update) or already notified (`σ₀.notify pend`: the watchable store, which fired its
 caller's first update itself and hands this one over trivially, `notify` being idempotent). Its
 commit gives the second update (the bump), fired when `currentRev` is bumped under `s.revMu` and the
-batch written back (`Unlock`'s update over `kbData`, in the same critical section: a read that sees
-the new revision sees the new data). With no change, both fire with nothing changed (no bump: the
+batch written back (`Unlock`'s first update over `kbData`, at the write-back, in the same critical
+section: a read that sees the new revision sees the new data; a write transaction only puts to
+`Key` (a delete is a tombstone's put), so `KeyData.mid D0 D = D` and the second update, at the
+commit `Unlock` may make, changes nothing: the store's invariant gives it again). The session's
+liveness `kbLive` is whole again (every range's bytes were given back inside the range) and the open
+share comes back to the reader token's part. With no change, both fire with nothing changed (no bump: the
 state's history `commit []` is itself). The receipt is the store's (its invariant counts its events).
 
 **Changes** from `specs-ref`'s file: over `storeTxnWNC`, the client's state (`mvccState`) and the two

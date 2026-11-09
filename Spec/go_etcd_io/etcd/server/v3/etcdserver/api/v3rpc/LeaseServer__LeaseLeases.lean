@@ -4,11 +4,11 @@
 Users: grpc's run of `/etcdserverpb.Lease/LeaseLeases` (the generated `_Lease_LeaseLeases_Handler`, 3h,
 registered by `v3rpc.Server`); 1c's `RemoteCallTriple` for the lease RPCs through grpc and the stub (`examples/specreq/clientv3lease/`, `examples/specreq/v3rpc/lease.go`).
 
-Proof sketch: `ls.le.LeaseLeases(ctx, r)` (2c's `EtcdServer.LeaseLeases.spec`, the update passed on, the principal from the contract's `mdPrin`); `ErrLeaseNotFound` (never an answer of the model's `leaseLeases`; an unfired outcome of 2c if any) becomes an empty list, a status that settles nothing is not needed. errors through `togRPCError`; `hdr.fill`.
+Proof sketch: `ls.le.LeaseLeases(ctx, r)` (2c's `EtcdServer.LeaseLeases.spec`, the update passed on, the principal `reqPrin ctx who tls` from the contract's `mdPrin` (`reqPrin_of_md`)); `ErrLeaseNotFound` (never an answer of the model's `leaseLeases`; an unfired outcome of 2c if any) becomes an empty list, a status that settles nothing is not needed. errors through `togRPCError`; `hdr.fill`.
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/LeaseServer__LeaseLeases.lean`: over the contract (was the lease rows' `leaseServerAt` with its own answers).
 
-Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` once W0's round 4 makes `srvStep` `Step` (a read's permission checked at an auth state between the call's start and its answer).
+Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
 
 Margin: none.
 -/

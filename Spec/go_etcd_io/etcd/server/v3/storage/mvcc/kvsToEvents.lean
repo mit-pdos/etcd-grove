@@ -4,9 +4,8 @@ premise excludes it), keeps those whose key `c` contains, as events (a tombstone
 revision patched in).
 
 **Proof sketch.** `proto.Unmarshal` (2a's `Proto.Unmarshal.spec`: an encoding decodes to its
-message, fresh; from 3e's `kvBytes m bs`, which must give `encodes` at a depth below `depthMax`:
-3e's two relations `kvBytes` (`Internal.lean`, the image law's) and `kvDecodes`
-(`InternalStore.lean`, `restoreChunk`'s) are to be one, requested at integration),
+message, fresh; from 3e's `kvBytes m bs` through `InternalStore.kvBytes_decodes`: `kvDecodes`,
+`restoreChunk`'s relation, whose realization is that `encodes` at a depth below `depthMax`),
 `c.contains` (`watcherGroup.contains.spec`), `isTombstone`, `BytesToRev` (3e's `isTombstone.spec`,
 `BytesToRev.spec` over `revOfBytes`), `append`. The storage's bytes are read at any fraction and
 given back (the storage lends them until `tx.RUnlock()`: 3e's `rangeLent`); the events own fresh

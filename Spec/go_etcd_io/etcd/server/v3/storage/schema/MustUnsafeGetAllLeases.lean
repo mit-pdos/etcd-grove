@@ -4,7 +4,7 @@
 **Users.** `lessor.initAndRecover` (`lease/lessor.go:813`, after `UnsafeCreateLeaseBucket`, the batch
 lock held). Snippet: `examples/specreq/schema/schema.go` (`ReqLeaseRecover`).
 
-**Assumed** (`lease.go:31-46`): `tx.UnsafeForEach(Lease, f)` (`txRd`: every entry, in key order),
+**Assumed** (`lease.go:31-46`): `tx.UnsafeForEach(Lease, f)` (`txRd`: every entry once, in some order),
 `f` (each entry once) unmarshals each value, inside the call, into a fresh `leasepb.Lease` (`Proto.Unmarshal.spec`: each value is a
 record's encoding, `leaseBktIs`, so no error and no panic; `Unmarshal` copies the lent bytes) and
 appends its pointer. On the batch transaction the order is the ids' (big-endian keys); the spec says

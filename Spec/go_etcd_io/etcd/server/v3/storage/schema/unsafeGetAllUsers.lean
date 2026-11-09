@@ -2,7 +2,7 @@
 ## `schema.unsafeGetAllUsers(...)` (internal)
 
 **Users.** The `authBatchTx`/`authReadTx` methods of the same name (for `UserList`, `RoleDelete`'s user scan (`auth/store.go`)).
-**Proof sketch.** `tx.UnsafeForEach(AuthUsers, f)` (`txRd`, `f` never fails), then `proto.Unmarshal` of each value (`recsWf`). **Changes.** From `specs-ref`'s `unsafeGetAllUsers.lean` (where it had one: the read
+**Proof sketch.** `tx.UnsafeForEach(AuthUsers, f)` (`txRd`, `f` never fails; `I l` holds the slice `vs` of the value slices appended, keeping the lent bytes, `lentKVs l`), then a fresh `authpb.User` per value (`Proto.msgAt … zero`: a law 3h/Proto owe, see the integration report) and `proto.Unmarshal` of each value (`recsWf`), then `lentKVs l` given back for `R V`. **Changes.** From `specs-ref`'s `unsafeGetAllUsers.lean` (where it had one: the read
 transaction's state): over the contract.
 -/
 module

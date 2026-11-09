@@ -600,10 +600,8 @@ shared read-only, or held without capacity: a `MsgApp`'s entries, a snapshot's c
 `RangeResponse`'s `Kvs`). The one destination etcd uses is the client's streamed-range accumulator
 (`GetStreamToGetResponse`: `&pb.RangeResponse{}`, then `Merge` per chunk): `rangeRespDst`. -/
 
-/-- (provisional, 2a's) **`proto.Merge` may write into the message `p` of type `t` holding `c`**:
-every submessage and repeated field it reaches owned, with its capacity. A premise 2a's restated
-`Merge.spec` takes and gives back (`req/google_golang_org_protobuf_proto.md`, "from 3h, round 1"). -/
-opaque mergeDstOk (t : go.GoType) (p : Loc) (c : Proto.Content) : IProp GF := iprop(True)
+-- (integration I3) 3h's provisional `mergeDstOk t p c` is 2a's `Proto.mergeDst t p c` (which holds
+-- the message's `msgAt` too): `rangeRespDst_msgAt` is stated over it.
 
 /-- **A `RangeResponse` merge destination** holding `m`: owned, its `Kvs` slice with its capacity,
 its header and key-values owned. -/
@@ -614,11 +612,10 @@ def rangeRespDst_fresh.spec : Prop := ∀ (p : Loc),
   typedPointsto p (zero_val etcdserverpb.RangeResponse) (DFrac.own 1) ⊢
     rangeRespDst (GF := GF) p ⟨none, [], false, W64 0⟩
 
-/-- A destination is its content with `mergeDstOk` (what `Merge` takes and returns). -/
+/-- A destination is 2a's merge destination (`Proto.mergeDst`: what `Merge` takes and returns) of its content. -/
 def rangeRespDst_msgAt.spec : Prop := ∀ (p : Loc) (m : RangeRespM),
   rangeRespDst (GF := GF) p m ⊣⊢
-    ∃ c, Proto.msgAt etcdserverpb.RangeResponse.ty p (DFrac.own 1) c ∗
-      mergeDstOk etcdserverpb.RangeResponse.ty p c ∗ ⌜rangeRespHolds c m⌝
+    ∃ c, Proto.mergeDst etcdserverpb.RangeResponse.ty p c ∗ ⌜rangeRespHolds c m⌝
 
 /-- A destination is, forgetting the capacity, an owned reply (the client returns it). -/
 def rangeRespDst_own.spec : Prop := ∀ (p : Loc) (m : RangeRespM),

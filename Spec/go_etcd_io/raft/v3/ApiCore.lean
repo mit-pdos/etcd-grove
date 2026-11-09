@@ -347,6 +347,13 @@ opaque ackOk (rn : Loc) (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
 `rawNodeAt_advance`'s closing takes. -/
 opaque ackDone (rn : Loc) (γ : Cluster) (m : Msg) : IProp GF := iprop(True)
 
+/-- **The message `raft.Step` takes** (`ml`, holding `m`): a received message (`msgRecv`: its
+`Entries` slice's capacity owned, which `handleAppendEntries` hands to the log, whose `unstable`
+may adopt the slice), or an owned message that is no `MsgApp` (raft's own: local proposals, reads,
+reports, acknowledgements). (Integration I2, the coordinator's decision on the `MsgApp` capacity.) -/
+def stepMsg (ml : Loc) (m : Msg) : IProp GF :=
+  iprop(msgRecv ml m ∨ (msgPts ml (DFrac.own 1) m ∗ ⌜m.type ≠ MsgApp⌝))
+
 /-- `raft.Step`'s precondition by source (`r` the raft struct). -/
 def stepPre (r : Loc) (γ : Cluster) (id : w64) (m : Msg) : StepSrc → IProp GF
   | .outside => stepIn γ id m

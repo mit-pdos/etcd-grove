@@ -14,6 +14,9 @@ bbolt's limits).
 (round 1, F9: the struct points-to was claimed unchanged by `Marshal`'s write); the record's value is
 any encoding of its fields (`leaseEnc`), so `leaseBktIs` moves to the table updated at the id.
 
+**Integration.** Takes `c.fits ∧ marshalOk c` (what `leaseMsg_of_struct` gives the lessor's
+fresh record): a content with unknown fields could fail to marshal or exceed `putFits`.
+
 **Margin.** None.
 -/
 module
@@ -44,7 +47,7 @@ def MustUnsafePutLease.spec : Prop :=
   ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData) (lpb : Loc)
     (dq : DFrac) (c : Proto.Content),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.whole .lease ∧ V .lease = some m⌝ ∗
-      Proto.msgAt go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty lpb dq c }}
+      Proto.msgAt go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty lpb dq c ∗ ⌜c.fits ∧ Proto.marshalOk c⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease)) (Val #tx)) (Val #lpb))
   {{ RET #(); Proto.msgAt go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty lpb dq c ∗
       ∃ bs : GoString, ⌜leaseEnc (leaseModel c) bs⌝ ∗ R (V.put .lease (beU64 (leaseModel c).1) bs) }}

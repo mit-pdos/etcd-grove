@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- (internal) The step of `m` at a candidate or pre-candidate of its term (after `raft.Step`'s term handling). -/
 def stepCandidate.spec : Prop :=
   ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) (ml : Loc) (m : Msg) (src : StepSrc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ msgPts ml (DFrac.own 1) m ∗ stepPre r γ id m src ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ stepMsg ml m ∗ stepPre r γ id m src ∗
       ⌜(ρ.role = StateCandidate ∨ ρ.role = StatePreCandidate) ∧ m.type ∉ [MsgHup, MsgVote, MsgPreVote, MsgStorageAppendResp, MsgStorageApplyResp] ∧
         (m.term = W64 0 ∨ m.term = ρ.hs.term ∨
         (m.type = MsgPreVoteResp ∧ m.reject = false ∧ uint.nat ρ.hs.term < uint.nat m.term))⌝ }}

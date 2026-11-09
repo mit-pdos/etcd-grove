@@ -5,7 +5,8 @@ Imported by mvcc's own spec files only.
 
 * `txnCommon c γ trace k` (exclusive): `c` is a `*storeTxnCommon` (the embedded part of a
   `storeTxnRead` or `storeTxnWrite`) of a transaction at `k`: its `s` (an `isStore`), its `tx` (a
-  read transaction's snapshot `kbRead`, or the batch's `kbLocked`), its `firstRev`/`rev` fields
+  read transaction's snapshot `kbRead`, or the batch's `kbLocked`, with its liveness `kbLive`, a share
+  of which each range lends), its `firstRev`/`rev` fields
   (`MTxn`'s compaction and current revision for a read transaction, `0`/`0` for a write one), its
   `trace`; and, in the realization, `s.mu` held for reading and the index and the storage's data at
   the image of `k.readHist` (so `rangeKeys` never reaches its `lg.Fatal`: every revision the index
@@ -88,6 +89,17 @@ def storeTxnW_common.spec : Prop :=
 def storeTxnW_changes.spec : Prop :=
   ∀ (t : Loc) γ trace σ pend sl, storeTxnW (GF := GF) t γ trace σ pend ∗ changesSl t sl ⊢
     storeTxnWNC t γ trace σ pend ∗ msgsOwn keyValueOwn sl (DFrac.own 1) (changesM pend)
+
+/-- **The change records of a plain write transaction taken** (3f's `watchableStoreTxnWrite.End`:
+`tw.Changes()`, the records, which it rewrites, then `tw.TxnWrite.End()`): only of the
+`*metricsTxnWrite` handle `store.Write` returns (the watchable one's `End` reads the records itself). -/
+def mvccTxn_changes.spec : Prop :=
+  ∀ (mw : Loc) γ trace σ pend sl,
+    mvccTxn (GF := GF) (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace
+        (.write σ pend) ∗
+      mvccTxnChs (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) sl ⊢
+      mvccTxnNC (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) γ trace σ pend ∗
+        msgsOwn keyValueOwn sl (DFrac.own 1) (changesM pend)
 
 /-- Dropping the change records. -/
 def storeTxnW_nc.spec : Prop :=

@@ -31,8 +31,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`numConnectedSince`**: at most the number of members. -/
 def numConnectedSince.spec : Prop :=
-  ∀ (tp : GoInterface) (since : time.Time) (self : w64) (sl : GoSlice) (ms : List Member),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ transporterOk tp ∗ Membership.membersOwn sl ms ∗ threadTok }}
+  ∀ (tp : GoInterface) (ν : Rafthttp.Net GF) (lid : w64) (since : time.Time) (self : w64) (sl : GoSlice) (ms : List Member),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ Rafthttp.transporterOk tp ν lid ∗ Membership.membersOwn sl ms ∗ threadTok }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.numConnectedSince)) (Val #tp)) (Val #since)) (Val #self)) (Val #sl))
   {{ (k : w64), RET #k; Membership.membersOwn sl ms ∗ threadTok ∗ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ ms.length⌝ }}
 

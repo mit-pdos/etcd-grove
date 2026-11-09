@@ -4,10 +4,11 @@
 `handleAppendEntries`. Mirrors the code: the message's term, previous entry id and entries (the
 message's slice: for a `MsgApp`, read-only entries from `Index + 1`, raftpb's `msgPts_unfold` and
 `msgEnts_app`, which `raftLog.maybeAppend` takes). **Changes.** (Integration I2) the entries named
-(R3's request, `req/go_etcd_io_raft_v3.md`, "from R3, round 1", item 5). **Margin.** No capacity of
-the slice is given: raftpb's `msgPts` owns none (3h: a `MsgApp`'s slice is a sub-slice of the
-leader's log, `limitSize`'s `ents[:limit]` keeping the leader's capacity), so `maybeAppend`'s
-capacity premise cannot be met from here (`raft.handleAppendEntries`'s gap, recorded there).
+(R3's request, `req/go_etcd_io_raft_v3.md`, "from R3, round 1", item 5); from a received message
+(`rc`: `msgRecv`, the coordinator's decision) the slice's capacity too, split off the message (which
+stays `msgPts` at `own 1`), for `maybeAppend`, whose `unstable` may adopt the slice. **Margin.** From
+a `msgPts` alone no capacity is given (`msgPts` is shared read-only; a `MsgApp` raft builds has
+none to give: `raftLog.slice` clips, log.go:510).
 -/
 module
 
@@ -34,10 +35,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (internal) The appended slice an `MsgApp` describes. -/
 def logSliceFromMsgApp.spec : Prop :=
-  ∀ (ml : Loc) (dq : DFrac) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ msgPts ml dq m }}
+  ∀ (ml : Loc) (dq : DFrac) (m : Msg) (rc : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      (if rc then msgRecv ml m else msgPts ml dq m) }}
     (App (Val (@! go_etcd_io.raft.v3.logSliceFromMsgApp)) (Val #ml))
-  {{ (ls : go_etcd_io.raft.v3.logSlice), RET #ls; msgPts ml dq m ∗
+  {{ (ls : go_etcd_io.raft.v3.logSlice), RET #ls; msgPts ml (if rc then DFrac.own 1 else dq) m ∗
+      (if rc then ownSliceCap Loc ls.entries' (DFrac.own 1) else iprop(True)) ∗
       ⌜ls.term' = m.term ∧ ls.prev'.term' = m.logTerm ∧ ls.prev'.index' = m.index⌝ ∗
       (⌜m.type = MsgApp⌝ -∗ entriesRO ls.entries' (uint.nat m.index + 1) m.entries) }}
 

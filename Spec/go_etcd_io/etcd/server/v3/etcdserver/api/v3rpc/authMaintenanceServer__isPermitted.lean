@@ -3,7 +3,7 @@
 
 Users: the maintenance wrappers (the promoted method of the embedded `*AuthAdmin`).
 
-Proof sketch: `AuthInfoFromCtx(ctx)` (2c/3d, over `reqPrin ctx who`), `AuthStore()` and its `IsAdminPermitted`/`IsAuthEnabled` (3d), at the member's local auth state (no linearization: the callers fire their updates with the refusal, which the model allows at any state, or answer locally).
+Proof sketch: `AuthInfoFromCtx(ctx)` (2c/3d, over `reqPrin ctx who tls`, `reqPrin_of_md`), `AuthStore()` and its `IsAdminPermitted`/`IsAuthEnabled` (3d), at the member's local auth state (no linearization: the callers fire their updates with the refusal, which the model allows at any state, or answer locally).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/authMaintenanceServer__isPermitted.lean`: over 2c's `reqPrin` and `srvErrOf` (was the auth plan's `authOn` modes: one spec for both).
 

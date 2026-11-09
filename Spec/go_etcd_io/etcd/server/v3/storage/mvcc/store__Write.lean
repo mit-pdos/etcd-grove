@@ -8,7 +8,8 @@ tester's writer (`mvccrand.go:419, 438, 488`). Snippets `ReqSoleWriter`, `ReqPut
 `ReqDeleteRange`, `ReqRangeDeleter` (`examples/specreq/mvcc/{store,lease}.go`).
 
 **Proof sketch**: `s.mu.RLock()` (the reader token's slot); `s.b.BatchTx()`, `LockInsideApply()`
-(`keyBackend`: the hook from `Pre` to `Q` under `Pk`, `kbLocked B D`; `B` the store's by
+(`keyBackend`: on the reader token's part of the open share `kbOpen`, the hook from `Pre` to `Q` under
+`Pk`, `kbLocked B q D D` and the session's liveness; `B` the store's by
 `mvccBackend`'s agreement); with the batch lock held no other writer, compaction or restore runs, so
 the store's invariant's state `σ` is fixed (nothing pending: a watchable store's `End` finishes both
 steps under the lock); fire the caller's update at `σ` where `beginRev := s.currentRev` is read (the

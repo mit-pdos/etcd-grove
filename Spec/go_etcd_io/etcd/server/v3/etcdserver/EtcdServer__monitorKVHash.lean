@@ -12,6 +12,9 @@ apply fires nothing observable or `envUpd`'s step.
 reader slot of `lgMu`): over `isServer`.
 
 **Margin.** None for safety.
+
+**Integration (I4).** Its `Hash` calls take a share of 3e's `mvccRestoreGate` from the server's
+invariant (the snapshot install takes it whole: `applySnapshot`).
 -/
 module
 

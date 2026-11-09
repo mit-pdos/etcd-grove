@@ -42,7 +42,7 @@ therefore `srvStep p tls rq`: W0's `Step p rq`, or, for a write, `Step tls rq`; 
 more disjunct, `emptyRangeStep`: a range of the empty key (the health checks), which the server
 reads as the key `""` where W0's model answers the gRPC layer's `ErrEmptyKey`. The `doSerialize`
 race of round 0 is gone: W0's `Step` checks a read's permission at an auth table at or after the
-call's `lo` (`deniedSince`, `authOffSince`), which is what the code does; so is `LeaseRenew`'s
+call's `lo` (`deniedSince`, `permittedSince`: W0's round 6), which is what the code does; so is `LeaseRenew`'s
 permission error (W0's `leaseKeepAlive` has it).
 
 **Internal requests** (`raftRequest`'s other callers) are modelled by 3h's `EtcdServerPb.IrrBody`
@@ -99,6 +99,8 @@ read update, fired at every history point from its registration on).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
 public import Spec.go_etcd_io.etcd.client.v3.ApiClient
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.Api
@@ -177,6 +179,11 @@ def irrBackOk (ir : IrrBody) (res : Resp) : Prop :=
 written twice, `checkIntervals`). 2a's law gives it from `checkTxnRequest`'s `nil`;
 `txnChecked_small` for the simplest transactions. -/
 opaque txnChecked (t : TxnReq) : Prop
+
+/-- **The gRPC layer's checks make a transaction safe for the apply** (3b's `Txn.txnSafe`: no key
+written twice on a path, the fork's fix of `issues/etcd-txn-delete-then-ignore-put.md`; 3b's
+request, integration I3 item (e)). -/
+def txnChecked_safe.spec : Prop := ∀ (t : TxnReq), txnChecked t → Txn.txnSafe t
 
 /-- A flat valid operation: a range, put or delete W0's `RequestOp.valid` accepts. -/
 def opFlatValid : RequestOp → Prop
@@ -269,8 +276,10 @@ enabled, `tls` (the client certificate's name) with auth disabled. -/
 opaque reqPrin (ctx : GoInterface) (p tls : Principal) : IProp GF := iprop(True)
 
 /-- **`ctx` carries no incoming gRPC metadata and no peer** (persistent): what the server's internal
-requesters' contexts are (`s.ctx`, `context.Background()`, their children). -/
-opaque ctxNoIncoming (ctx : GoInterface) : IProp GF := iprop(True)
+requesters' contexts are (`s.ctx`, `context.Background()`, their children). Integration I3/I4: 2a's
+`Grpc.ctxInMD`/`ctxPeerCN` at `none` (their background/child/value laws give this file's). -/
+def ctxNoIncoming (ctx : GoInterface) : IProp GF :=
+  iprop(Grpc.ctxInMD ctx none ∗ Grpc.ctxPeerCN ctx none)
 
 def reqPrin_persistent.spec : Prop := ∀ ctx p tls, Persistent (reqPrin (GF := GF) ctx p tls)
 def ctxNoIncoming_persistent.spec : Prop := ∀ ctx, Persistent (ctxNoIncoming (GF := GF) ctx)
@@ -330,6 +339,15 @@ def srvWatchable_persistent.spec : Prop := ∀ s γ w, Persistent (srvWatchable 
 history is 2d's (`req/`). -/
 def srvWatchable_mvcc.spec : Prop := ∀ s γ w,
   srvWatchable (GF := GF) s γ w ⊢ ∃ γs, Mvcc.watchableAt w γs
+
+/-- **The watchable store is the member's mvcc store, its history the cluster's** (3f's bridge,
+`req/`, "from 3f", item 3; integration I4): every `mvccLb` of it is a view of a state the cluster
+has been in (the apply thread fires `End`'s notification only for a committed entry, `Restore` only
+for a committed point's image). -/
+def srvWatchable_hist.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (w : GoInterface) (γm : Mvcc.MvccName) (h : KVHist),
+    srvNode (GF := GF) s γ id ∗ srvWatchable s γ.etcd w ∗ Mvcc.watchableAt w γm ∗ Mvcc.mvccLb γm h ⊢
+      srvMvcc s γm ∗ |={⊤}=> ∃ σ, EtcdModel.etcdLb γ.etcd σ ∗ ⌜KVHist.IsView σ.kv h⌝
 
 /-- **The request context's tracing** (4b's, otel's): no `traceutil` trace in it (each method
 installs its own: `EnsureTrace`), and its otel span usable (`Tracer.Start`, `SpanFromContext`).

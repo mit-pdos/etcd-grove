@@ -11,9 +11,9 @@ back), `tx.RUnlock()` after it (the values are copied by the unmarshal). What th
 `mvccImage_above.spec` (`Internal.lean`): above `h.compacted` exactly the history's events, each
 at `revBytes ⟨r, i⟩` encoding `evM` (`kvBytes`), and every entry parses (`revOfBytes`). **At
 `h.compacted` itself** (`lo = h.compacted`: `chooseAll` keeps a watcher whose `minRev` equals the
-compaction revision) the law says nothing yet: needed of 3e (requested at integration) that an
-entry of main revision `h.compacted` is that revision's event at its sub-revision, and that each
-event of it that is its key's last change in it is present (the fork keeps a tombstone at the
+compaction revision) the law's second and third conjuncts (added at integration, I6): an entry of
+main revision `h.compacted` is that revision's event at its sub-revision, and each event of it that
+is its key's last change in it is present (the fork keeps a tombstone at the
 compaction revision, etcd-io/etcd#19188); under the compaction condition (`exactFrom h lo`: each
 key once in it) that is every event of it. Below `h.compacted` nothing is read (the premise:
 `syncWatchers`' `minRev` is `chooseAll`'s, at least the compaction revision).

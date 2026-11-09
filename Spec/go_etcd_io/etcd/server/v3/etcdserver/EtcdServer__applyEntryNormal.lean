@@ -30,6 +30,14 @@ applier's contract covers KV, leases, auth, alarms, membership attributes, compa
 
 **Margin**: the waiter's answer and the alarm's proposal are effects on 2c's registry and the cluster
 (the post states only the thread's position).
+
+**Integration (I4).** The lessor's `Promote` (on a leader change) takes 3c's `ckptGate le R ∗ □ R`
+with `R := srvStarted s γ id` (the gate `NewServer`'s `SetCheckpointer` set: the checkpointer's
+`ensureLeadership` reads `s.ctx`/`s.read`, which `start` sets), which this spec's `srvStarted` gives.
+Every `LeaseRevoke` the apply makes after a snapshot install needs 3c's `rdOk` of the server's
+deleter closure (`func() lease.TxnDelete { return s.kv.Write(traceutil.TODO()) }`): the apply
+thread's invariant keeps it, from 3e's `mvccDeleter_rdOk` at `s.kv`'s `isMvcc`. The quota's
+`ErrNoSpace` (3a's `resMatch`) may come from a write that applied (W0's round 5: indefinite).
 -/
 module
 

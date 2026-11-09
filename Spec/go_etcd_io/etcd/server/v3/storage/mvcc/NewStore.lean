@@ -13,8 +13,13 @@ unfinished compaction resumed), `examples/specreq/mvcc/lease.go` (`ReqRangeDelet
 lessor's `SetRangeDeleter` (3c's `lessor.SetRangeDeleter.spec`: the writer token to
 `{ls with rd := rd}`; `rd`'s triple is `KV.Write.contract`'s at `*store`, `mvccDeleter`, proved by
 Löb once the handle exists).
-`b.BatchTx()`, `LockOutsideApply` (`keyBackend`: `Pk`, `kbLocked B D` at the image), two
-`UnsafeCreateBucket`s (`kbMade` of both buckets; a fresh `D` gets them, an existing one has them),
+`b.BatchTx()`, `LockOutsideApply` (`keyBackend`, on `mvccStorageFor`'s open share: `Pk`, `kbLocked B q D D` at
+the image), two
+`UnsafeCreateBucket(Key)` and `schema.UnsafeCreateMetaBucket(tx)` (4b's spec over `Schema.txWr` at
+the scope `⟨fun _ => some [], fun b => b = .metaB⟩` (no key, the right to create `Meta`) and `R V :=
+∃ D', kbLocked B q D D' ∗ ⌜(V .metaB).isSome = D'.metaMade⌝`: the bundle's put and delete rows are
+vacuous (no key in scope), its create row `keyBackend`'s `UnsafeCreateBucket` of `.metaB`; `kbMade`
+of both buckets; a fresh `D` gets them, an existing one has them),
 `Unlock` (`Pk` back; `kbData B D'`), `ForceCommit` (`storageReq_true`). `s.mu.Lock()`;
 `s.restore()`: `setupMetricsReporter`; a shared `ReadTx` read (one of the store's reader slots,
 `kbRdToks B mvccReaderN`) of the compaction keys and of the `Key` bucket in chunks

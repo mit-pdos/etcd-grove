@@ -43,7 +43,7 @@ def batchTxBuffered.LockInsideApply.spec : Prop :=
     (Pre Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q ∗ beHook γ dq f ∗ Pre ∗ hookRun γ q Pk f Pre Q }}
     (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"LockInsideApply")) (Val #()))
-  {{ RET #(); ∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beHook γ dq f ∗ Q }}
+  {{ RET #(); ∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beLive γ (btLoc γ) 1 ∗ beHook γ dq f ∗ Q }}
 
 end spec
 

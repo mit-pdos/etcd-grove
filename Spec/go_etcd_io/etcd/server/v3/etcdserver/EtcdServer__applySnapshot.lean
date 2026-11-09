@@ -37,6 +37,15 @@ compaction mode, auth mode and leases are inside the state machine (3a, 3e, 3c, 
 ahead of the snapshot's index (`nonissues/etcd-replay-snapshot-confstate-ahead.md`'s case).
 
 **Margin**: none beyond the applied index.
+
+**Integration (I4).** The install holds the store's whole `Mvcc.mvccRestoreGate γm 1` for
+`s.kv.Restore` (3e: no `Hash`/`HashByRev` runs concurrently, `issues/etcd-mvcc-hash-currentrev-race.md`):
+the server's invariant lends the hash checkers (`monitorKVHash`, `monitorCompactHash`, the
+maintenance handlers through `isServer`) shares of it, and the apply thread takes it whole for the
+install (a fractional census like `srvGate`'s). `s.lessor.Recover(newbe, rd)` takes 3c's `beOk newbe`
+(4a's open share of the new backend) and installs the server's deleter closure, whose `rdOk` the
+apply thread re-establishes from 3e's `mvccDeleter_rdOk` (3c, "from 3c (round 1)", item 1). The
+auth store's `Recover` takes 3d's `authReached γ a'`, `recordsFit a'` of the image's auth state.
 -/
 module
 

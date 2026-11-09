@@ -32,7 +32,7 @@ def batchTxBuffered.Lock.spec : Prop :=
   ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q }}
     (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"Lock")) (Val #()))
-  {{ RET #(); ∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ Pk }}
+  {{ RET #(); ∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beLive γ (btLoc γ) 1 ∗ Pk }}
 
 end spec
 

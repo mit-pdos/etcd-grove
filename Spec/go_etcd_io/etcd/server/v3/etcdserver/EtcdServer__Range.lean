@@ -32,6 +32,14 @@ or after the call's bound; 3d's `checkPost`, with 2d's store-index to cluster-in
 `req/`), not the revision re-check (an auth change bumps the revision before readers see it). A serializable read skips the read index and is answered at
 the member's view (`KVHist.IsView`), fired at the cluster's current state.
 
+**Integration (I4): the read slot realized.** `srvApplied s γ k` gives 2d's `srvReadAt s γ k`
+(`srvApplied_read`; the names from `isServer_names`, the stores' from `srvStores_agree`). `txn.Range`
+(3b) takes an atomic update over 3e's `mvccState`: 2d's `srvReadAt_mvcc` gives a persistent accessor
+whose commit names a history point `kr ≥ k` with the same KV history, and `srvReader_mvcc` lends
+the reader token for the call's thread token. The permission check reads 3d's store at a state
+`srvReadAt_auth` links to a cluster auth table at or after `k`'s, hence at or after the call's `lo`
+(W0's `permittedSince`/`deniedSince`). The call holds a share of 2e's `srvGate` throughout.
+
 **Changes.** The old spec (`specs-ref`'s `EtcdServer__Range.lean`; the approved candidate of
 `.claude/skills/spec/examples/range.md`: `□ AU` over `kvState`, `σr.PastOf σ`, a trace context)
 restated over W0's state and `Step` (whose serializable case is the old `PastOf`), with auth
@@ -40,7 +48,7 @@ restated over W0's state and `Step` (whose serializable case is the old `PastOf`
 Premises kept: a valid sort (`checkRangeRequest`'s), and an empty key only with an empty range end
 (the health checks' form). Round 1: the non-empty key dropped (health checks); the `AuthEnable` race
 disjunct dropped (W0's round 4: a read's permission is checked at an auth table at or after the
-call's `lo`, `State.deniedSince`/`authOffSince`, which is what `doSerialize` does); the principal
+call's `lo`, `State.deniedSince`/`permittedSince` (W0's round 6), which is what `doSerialize` does); the principal
 pair (`reqPrin ctx p tls`).
 
 **Margin.** A linearizable read is answered at a state at or after the read index, which may be

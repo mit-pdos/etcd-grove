@@ -91,3 +91,14 @@ Done in `Spec/google_golang_org/protobuf/proto/Api.lean`:
   - `Size` and `Marshal` write only `sizeCache`, inside `msgAt`.
 - Item 3 (one `protoRest`) is left to integration: W0's is indexed by a Lean type, `msgAt` by a Go
   type.
+
+## from I2 (integration, raft)
+
+**Fresh repeated fields after `Unmarshal` and `Clone`.** raft's `Step` keeps a received `MsgApp`'s
+`Entries` slice and may append into its spare capacity (`nonissues/raft-msgapp-inprocess-aliasing.md`),
+so raftpb's `msgRecv p m` (a message owning that capacity) must come from the decode or clone that
+made it. Wanted: a way for raftpb to state, of a message `Unmarshal` filled or `Clone` returned,
+that its repeated fields' slices are fresh and their capacity owned (e.g. a post `msgAtFresh t p c`
+with an owner's law per type, so that raftpb proves `msgAtFresh Message.ty p c ∗ ⌜msgIs c m⌝ ⊢
+msgRecv p m`). Used by: rafthttp's decoders (2f) and the in-process transports' `proto.Clone`
+before `node.Step` (`examples/specreq/raftnode/transport.go`, `ReqDeliver`).

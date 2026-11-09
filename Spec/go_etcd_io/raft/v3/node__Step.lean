@@ -17,6 +17,14 @@ the credit's proposal updates join the leader's log or are forwarded again). `St
 per-node snapshot directory the examples no longer use).
 
 **Margin.** The error says only how the hand-off ended.
+
+**Received messages own their entries' capacity (integration I2, the coordinator's decision).** The
+message is `msgRecv` (`msgPts` at `own 1` with its `Entries` slice's spare capacity): raft's
+`unstable` may adopt a `MsgApp`'s slice and append into it. rafthttp's decoders deliver fresh
+slices (protobuf's unmarshalling; requested of 2f's `recvd` and 2a's `Unmarshal`/`Clone`); an
+in-process transport must `proto.Clone` a message another node sent before stepping it
+(`nonissues/raft-msgapp-inprocess-aliasing.md`; snippet `ReqDeliver`). Alternative (open for the
+user): the fork clips the slice in `logSliceFromMsgApp`, and this premise goes back to `msgPts`.
 -/
 module
 
@@ -47,7 +55,7 @@ def node.Step.spec : Prop :=
 
   ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
     (ml : Loc) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ msgPts ml (DFrac.own 1) m ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ msgRecv ml m ∗
       msgSent γ m ∗ msgCredit γ m ∗ ⌜m.to = id⌝ }}
     (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"Step")) (Val #ctx)) (Val #ml))
   {{ (err : GoInterface), RET #err; nodeErr n ctx err }}

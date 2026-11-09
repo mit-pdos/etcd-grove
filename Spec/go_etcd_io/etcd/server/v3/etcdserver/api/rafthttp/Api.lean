@@ -93,6 +93,7 @@ public import Spec.go_etcd_io.raft.v3.Api
 public import Spec.net.http.Api
 public import Spec.go_uber_org.zap.Api
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Api
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Api
 
 set_option autoImplicit false
 
@@ -169,16 +170,18 @@ The statements below need predicates of packages whose batches state them alongs
 stand for them until they exist (`notes/specs-only/req/*.md`, "from 2f"): at integration they are
 replaced by those batches' names, over the same meaning. -/
 
-/-- (v2stats, 2e) The server's `*ServerStats` (persistent; its methods lock). -/
-opaque serverStatsOk (s : Loc) : IProp GF := iprop(True)
+/-- (v2stats, 2e; integration I4: 2e's `V2stats.isServerStats`) The server's `*ServerStats`
+(persistent; its methods lock). -/
+abbrev serverStatsOk (s : Loc) : IProp GF := V2stats.isServerStats s
 
-/-- (v2stats, 2e) The leader's `*LeaderStats` (exclusive to the transport: it adds followers and
-deletes them from the map under its own lock, `nonissues/etcd-rafthttp-leaderstats-followers-race`).
--/
-opaque leaderStatsOwn (s : Loc) : IProp GF := iprop(True)
+/-- (v2stats, 2e; integration I4: 2e's `V2stats.leaderStatsOwn`, which `NewLeaderStats` gives) The
+leader's `*LeaderStats` (exclusive to the transport: it adds followers and deletes them from the map
+under its own lock, `nonissues/etcd-rafthttp-leaderstats-followers-race`). -/
+abbrev leaderStatsOwn (s : Loc) : IProp GF := V2stats.leaderStatsOwn s
 
-/-- (v2stats, 2e) A follower's `*FollowerStats` from `LeaderStats.Follower` (persistent). -/
-opaque followerStatsOk (s : Loc) : IProp GF := iprop(True)
+/-- (v2stats, 2e; integration I4: 2e's `V2stats.isFollowerStats`) A follower's `*FollowerStats`
+from `LeaderStats.Follower` (persistent). -/
+abbrev followerStatsOk (s : Loc) : IProp GF := V2stats.isFollowerStats s
 
 -- (integration I4) `urlsHosts`, `urlsAt` were provisional here: now 1c's `Types.urlsHosts`,
 -- `Types.urlsAt` (`client/pkg/v3/types/Api.lean`).

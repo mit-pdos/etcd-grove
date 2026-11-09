@@ -26,9 +26,12 @@ WAL's write half, the delivered log `st.delivered`, the ready handler's `readyHa
    term bound `applyBatch_terms`; for a batch with conf changes, R1's `nodeConf`, lent: round 1, F3).
 5. **Leader, before the write**: `readyCheck` gives `msgSent` of every message (the batch leaves the
    node leader); `processMessages.spec`; `transport.Send` (2f's: takes `sendable`).
-6. **The write**: `SaveSnap` (2e's WAL+snapshotter: the snapshot record), `Save(hs, ents)`: 2e's
-   storage fires the batch's `readyEnter` at its synced write (the WAL's durable invariant holds
-   `raftState γ.raft id D`; the update moves it to `D.next b`, R1), giving the driver back
+6. **The write**: `SaveSnap` (2e's WAL+snapshotter: the snapshot record), `Save(hs, ents)`: before
+   it the loop **deposits the batch's `readyEnter` in the disk** through 2e's `diskAcc γ.etcd ds` (the
+   program's `diskState`, which holds `raftState γ.raft id D` with the WAL's records: 2e, "from 2e,
+   round 2"), and `Save`'s update over `Wal.walRecs` (opened inside `diskAcc`'s, mask `⊤ \ diskN`)
+   fires it at the synced write (moving `D` to `D.next b`, R1; a crash in between is `disk_crash`'s,
+   by R1's `raftState_crash` of the deposited batch, within `crashScope`), giving the driver back
    (`nodeDriver n γ.raft (st.after b dl)`), `msgSent` of every message and the read states. No
    error: 2e's disk premise (`lg.Fatal` unreachable). With a snapshot: `Sync`, `notifyc <- {}` (the
    apply thread may now open the snapshot's db and `Release` the WAL below it),

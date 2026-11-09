@@ -15,7 +15,10 @@ import (
 // handlers), server/etcdserver/server.go:726 (ReportUnreachable, from rafthttp's peers),
 // examples/raft/kvdurable/cluster.go:387-394.
 // Assumes: m was handed out in a Ready of a node of the cluster whose update permitted sending it
-// (msgSent), with its credit; dst is the node m.To names; ok says the network delivered it.
+// (msgSent), with its credit; dst is the node m.To names; ok says the network delivered it. The
+// copy owns its entries' capacity (msgRecv, node.Step's premise): an in-process transport must
+// clone, never step the sender's own message
+// (nonissues/raft-msgapp-inprocess-aliasing.md).
 // Specs: node.Step.spec, node.ReportUnreachable.spec; laws: msgCredit_intro.spec, msgCredit_dup.spec.
 func ReqDeliver(ctx context.Context, src, dst raft.Node, m *pb.Message, ok bool) {
 	if !ok {

@@ -91,19 +91,32 @@ one definition. R1's helpers on raftpb's types are declared in the `RaftPb` name
 7. **`logSliceFromMsgApp`** now gives the entries (`⌜m.type = MsgApp⌝ -∗ entriesRO ls.entries'
    (m.index + 1) m.entries`: raftpb's `msgPts_unfold` and `msgEnts_app`), as R3's `maybeAppend`
    takes them.
-8. **The `MsgApp` entries' capacity: not fixable in the specs (a gap, recorded).** R3's
-   `maybeAppend`/`append`/`truncateAndAppend` take the slice with `len = cap` or its capacity owned
-   (Go's `truncateAndAppend` adopts it, `u.entries = ents`, and a later `append` writes into its
-   capacity), and 3h decided `msgPts` grants no capacity (a `MsgApp` raft builds carries
-   `limitSize`'s `ents[:limit]`, whose spare capacity is the leader's own log). Nothing in Go clips
-   or copies the slice before the adoption, so `raft.handleAppendEntries` is not provable from the
-   cited specs; its docstring records it. The fix is outside the specs, one of: (a) the fork clips in
-   `logSliceFromMsgApp` (`slices.Clip(m.GetEntries())`: behavior-preserving, after which `len = cap`
-   holds); (b) a received message's predicate owns its fresh capacity (2a's `Unmarshal`/`Clone`, a
-   raftpb predicate for it, and every transport delivering a decoded or cloned copy: the old proof's
-   `msgPtsC … cap`). A decision for the user. (Side note: in one process, a follower stepping a
-   leader's `MsgApp` without a copy would adopt a slice whose capacity is the leader's unstable
-   array; etcd always serializes, raft's own tests pass pointers. Not filed: no failing test.)
+8. **The `MsgApp` entries' capacity** (resolved by the coordinator's decision, after this report's
+   first version recorded it as a gap). R3's `maybeAppend`/`append`/`truncateAndAppend` take the
+   slice with `len = cap` or its capacity owned (Go's `truncateAndAppend` adopts it, `u.entries =
+   ents`, and a later `append` writes into its capacity). Now: a message stepped into raft from
+   outside owns its entries' capacity, raftpb's new **`msgRecv p m`** (`msgPts` at `own 1` with the
+   `Entries` slice's `ownSliceCap`; `msgRecv_unfold`, over a new helper `msgFields`, which
+   `msgPts_unfold` now uses too). `node.Step`, `RawNode.Step` take `msgRecv`; `node.step`,
+   `stepWait`, `stepWithWaitOption` take it or an owned non-`MsgApp` message; R2's new `stepMsg ml m`
+   (`msgRecv` or `msgPts own 1` of a non-`MsgApp`) replaces `msgPts` in `raft.Step`, `stepLeader`,
+   `stepFollower`, `stepCandidate`; `handleAppendEntries` takes `msgRecv`; `logSliceFromMsgApp`
+   (with `rc = true`) splits the capacity off with the entries, which `maybeAppend` takes. Sources:
+   rafthttp's decoders (requested of 2f's `recvd`, `req/go_etcd_io_etcd_server_v3_etcdserver_api_rafthttp.md`,
+   "from I2") and 2a's `Unmarshal`/`Clone` (`req/google_golang_org_protobuf_proto.md`, "from I2");
+   in-process transports clone (`ReqDeliver`'s Assumes, `raftcore/step.go`'s `ReqStepReceived`).
+   **Alternative, open for the user:** the fork clips in `logSliceFromMsgApp`
+   (`slices.Clip(m.GetEntries())`), and the premise goes back to `msgPts`. Filed
+   `nonissues/raft-msgapp-inprocess-aliasing.md` (blocks-proof: no; etcd meets it through rafthttp).
+   **Correction to the hazard as first described** (here, and 3h's reason for granting no capacity):
+   raft's own `MsgApp`s carry **no** spare capacity: `raftLog.slice` clips what it returns
+   (`log.go:510`; the mixed path allocates exactly in `extend`), and `Storage.Entries`' documented
+   contract (which `MemoryStorage` meets, `storage.go:165`; R1's `isStorage` states it as `len =
+   cap`) protects the storage's array. So an in-process follower stepping a leader's `MsgApp`
+   without copying is safe in practice; the hazard needs a `Storage` breaking that contract or a
+   hand-built `MsgApp` with spare capacity. The nonissue says so. (Consequence for the proof: a
+   raft-built message has `len = cap`, but `msgPts`, shared read-only, does not record it; hence
+   `msgRecv` for what is stepped.)
 9. `confchange/Restore.lean`, `toConfChangeSingle.lean`, `tracker/ProgressTracker__ConfState.lean`,
    `pbEntryID.lean`, `assertConfStatesEquivalent.lean`: stale "provisional"/"requested" citations
    replaced by the real names.
@@ -150,13 +163,14 @@ Not done (with why):
   guards a real raft bug (`issues/raft-commit-lost-with-entries-kept.md`, reproduced), and that
   whether etcd takes it as a scope restriction is the user's question.
 - **`MarshalConfChange`'s size premise** (3h Q3): as above.
-- **`MsgApp` capacity**: item 8 above (new).
+- **`MsgApp` capacity**: decided by the coordinator (`msgRecv`, item 8); the fork clip stays the
+  user's alternative.
 
 ## What I need from directories I don't own
 
-Nothing for the build. For provability, outside the specs: item 8's choice (the fork's
-`logSliceFromMsgApp`, or 2a's `Unmarshal`/`Clone` granting fresh capacity of repeated fields, with
-2f's decoders and `examples/`' in-process transports delivering such copies).
+Nothing for the build. For provability: 2f's `recvd` and decoders giving `msgRecv`, and 2a's
+`Unmarshal`/`Clone` giving fresh repeated fields (requests filed, "from I2"); 2d's
+`EtcdServer.Process`/`raftNode.Step` then pass `msgRecv` to `node.Step`.
 
 ## Files changed
 
@@ -164,6 +178,11 @@ Nothing for the build. For provability, outside the specs: item 8's choice (the 
 `RawNode__HasReady.lean`, `RawNode__Ready.lean` (an unused binder), `RawNode__ProposeConfChange.lean`,
 `node__ProposeConfChange.lean`, `confChangeToMsg.lean`, `raft__switchToConfig.lean`,
 `raft__applyConfChange.lean`, `raft__handleAppendEntries.lean`, `logSliceFromMsgApp.lean`,
-`readOnly__maybeAdvance.lean`, `pbEntryID.lean`, `assertConfStatesEquivalent.lean`;
+`readOnly__maybeAdvance.lean`, `pbEntryID.lean`, `assertConfStatesEquivalent.lean`, `raft__Step.lean`,
+`stepLeader.lean`, `stepFollower.lean`, `stepCandidate.lean`, `node__Step.lean`, `RawNode__Step.lean`,
+`node__step.lean`, `node__stepWait.lean`, `node__stepWithWaitOption.lean`; `raftpb/Api.lean`;
 `confchange/{Model,Api,Restore,toConfChangeSingle}.lean`; `tracker/ProgressTracker__ConfState.lean`.
-`examples/specreq/raftnode/confchange.go` (an Assumes line).
+`examples/specreq/raftnode/{confchange,transport}.go`, `examples/specreq/raftcore/step.go` (Assumes
+lines). `nonissues/raft-msgapp-inprocess-aliasing.md` (+ regenerated `nonissues/INDEX.md`); requests
+appended to `req/go_etcd_io_etcd_server_v3_etcdserver_api_rafthttp.md` and
+`req/google_golang_org_protobuf_proto.md`.

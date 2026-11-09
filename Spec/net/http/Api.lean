@@ -235,6 +235,15 @@ opaque readerAt (rd : GoInterface) (Pre Φ : List w8 → IProp GF) (r : List w8)
 support a `Close` concurrent with a `Read`, which then fails). -/
 opaque readerCloser (rd : GoInterface) : IProp GF := iprop(True)
 
+/-- **`w` reads through `rd`** (persistent; integration I3, 4b's request): every `Read(p)` of `w` is
+one `Read` of `rd` on a prefix of `p` (`p[:k]`, `k ≤ len(p)`), returning its result (`n`, `err`).
+Introduced by the wrappers' owners (4b's `IoUtil.NewLimitedBufferReader.spec`,
+`IoUtil.ReaderAndCloser_reader`). -/
+opaque readsThrough (w rd : GoInterface) : IProp GF := iprop(True)
+
+/-- **`w` closes through `rd`** (persistent): `w`'s `Close()` is `rd`'s. -/
+opaque closesThrough (w rd : GoInterface) : IProp GF := iprop(True)
+
 /-- **A client's response** `*http.Response` at `resp`: status `st`, headers `hc` (readable for
 good), body `rd`. Persistent (the fields are never written by the client). -/
 opaque respAt (resp : Loc) (st : w64) (hc : List (GoString × GoString)) (rd : GoInterface) :
@@ -533,6 +542,19 @@ def mux_handlerOk.spec : Prop :=
     muxAt (GF := GF) m L ∗ ([∗list] ph ∈ L, handlerOk ph.2 P ph.1) ⊢
       handlerOk (interface.mkOk (go.GoType.PointerType _root_.Perennial.net.http.ServeMux.ty) #m)
         P pfx
+
+/-- **A wrapper of a body reader is a body reader** with the same knowledge (integration I3, 4b's
+request `req/net_http.md`, "from 4b, round 1", item 1): `readerAt_read` of `w` is `readerAt_read` of
+`rd` on a prefix of the buffer. -/
+def readerAt_wrap.spec : Prop := ∀ (w rd : GoInterface) (Pre Φ : List w8 → IProp GF) (r : List w8),
+  readerAt (GF := GF) rd Pre Φ r ∗ readsThrough w rd ⊢ readerAt w Pre Φ r
+
+/-- A wrapper closing through a reader that may be closed concurrently may be too. -/
+def readerCloser_wrap.spec : Prop := ∀ (w rd : GoInterface),
+  readerCloser (GF := GF) rd ∗ closesThrough w rd ⊢ readerCloser w
+
+def wrap_persistent.spec : Prop :=
+  (∀ w rd, Persistent (readsThrough (GF := GF) w rd)) ∧ (∀ w rd, Persistent (closesThrough (GF := GF) w rd))
 
 end laws
 

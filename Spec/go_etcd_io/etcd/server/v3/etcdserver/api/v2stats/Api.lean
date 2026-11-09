@@ -38,6 +38,14 @@ opaque isLeaderStats (p : Loc) : IProp GF := iprop(True)
 /-- `p` is a `*FollowerStats` (persistent). -/
 opaque isFollowerStats (p : Loc) : IProp GF := iprop(True)
 
+/-- `p` is a `*LeaderStats` whose follower map only its holder deletes from (exclusive: the
+transport, 2f's `leaderStatsOwn`; `removePeer` deletes without the stats' lock,
+`nonissues/etcd-rafthttp-leaderstats-followers-race`). Integration I4. -/
+opaque leaderStatsOwn (p : Loc) : IProp GF := iprop(True)
+
+/-- The holder may call the lock-taking methods (`Follower`). -/
+def leaderStatsOwn_is.spec : Prop := ∀ p, leaderStatsOwn (GF := GF) p ⊢ isLeaderStats p
+
 def isServerStats_persistent.spec : Prop := ∀ p, Persistent (isServerStats (GF := GF) p)
 def isLeaderStats_persistent.spec : Prop := ∀ p, Persistent (isLeaderStats (GF := GF) p)
 def isFollowerStats_persistent.spec : Prop := ∀ p, Persistent (isFollowerStats (GF := GF) p)

@@ -81,7 +81,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **Steps message `m`** at node `id`'s raft struct, from any source: the struct stays raft's; the error is `nil`, or `ErrProposalDropped` for a proposal. -/
 def raft.Step.spec : Prop :=
   ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) (ml : Loc) (m : Msg) (src : StepSrc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ msgPts ml (DFrac.own 1) m ∗ stepPre r γ id m src }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ stepMsg ml m ∗ stepPre r γ id m src }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface), RET #err; ∃ ρ', raftCore r γ id ρ' ∗ stepPost γ m src ∗
       (⌜err = interface.nil⌝ ∨

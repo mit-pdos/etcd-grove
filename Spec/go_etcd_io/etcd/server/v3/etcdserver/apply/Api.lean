@@ -140,6 +140,11 @@ or nothing), `irrStep_quiet` (a checkpoint, a token, a version, a downgrade: not
 * Left provisional (owners have no such predicate yet): `kvOk`, `kvSt` (3e/2d: the apply thread's
   authority over `Mvcc.mvccState`, 3b's S6), `statusOk`, `snapSrvOk`, `ciOk`, `authnIdx` (2d),
   `irrDecodes`, `irrMsgAt`, `reqMsgAt` (3h), `clusterVerOk` (2e), `invRefused` (3d).
+* The coordinator's decisions (after the batch passes): a token provider's error (no-op provider
+  always, JWT on signing) is admitted as the member's result for a token assignment the step
+  answered (`IrrOp.isAuthn`, `provErrResult`, `replyAt_result`); a non-`nil` empty range end is out of
+  the permission checks' scope (`endsDecoded`, `opsDecoded`, provisional W0/3h, with
+  `reqMsgAt_endsDecoded`; `nonissues/etcd-auth-empty-range-end-point-check.md`).
 
 ## Requirement snippets
 
@@ -279,6 +284,12 @@ def IrrOp.isMembership : IrrOp → Bool
 
 def IrrOp.isTxn : IrrOp → Bool
   | .req (.txn _) => true
+  | _ => false
+
+/-- A token assignment (`Authenticate`'s apply), whose token provider may fail after the step
+(`provErrResult`, `ApiResult.lean`). -/
+def IrrOp.isAuthn : IrrOp → Bool
+  | .authenticate .. => true
   | _ => false
 
 /-! ## The gates -/
@@ -771,6 +782,20 @@ opaque irrMsgAt (p : Loc) (ir : Irr) : IProp GF := iprop(True)
 `*membershippb.ClusterVersionSetRequest`), read-only. Persistent. -/
 opaque reqMsgAt (p : Loc) (op : IrrOp) : IProp GF := iprop(True)
 
+/-- (provisional, W0's/3h's) **Every range end in the transaction message `rt` is as protobuf
+decodes it**: each `RangeEnd` slice of its compares and (nested) range and delete operations is
+`nil` or non-empty (`Unmarshal` of a gRPC request gives it: proto3 omits an empty `bytes` field, so
+it decodes as `nil`). Excludes a non-`nil` empty end, which the auth check reads as the key alone
+and mvcc as every key from it on (`nonissues/etcd-auth-empty-range-end-point-check.md`): a scope
+premise of the request path's checks, false only for an in-process adapter request. Persistent. -/
+opaque endsDecoded (rt : Loc) : IProp GF := iprop(True)
+
+/-- (provisional, W0's/3h's) **`endsDecoded` of a slice of `*pb.RequestOp`** (each operation's
+range end, nested transactions included, `nil` or non-empty). Persistent. The helpers' proofs need
+W0's split laws with the realization (`endsDecoded rt` gives `opsDecoded` of its branches; an
+operation's nested transaction is `endsDecoded`): requested, `integration-I5.md`. -/
+opaque opsDecoded (sl : GoSlice) : IProp GF := iprop(True)
+
 /-- **A wrapper of `ir`** (`*InternalRaftRequestWrapper`), skipping the ranges if `sk`. -/
 def wrapperAt (r : Loc) (ir : Irr) (sk : Bool) : IProp GF :=
   iprop(∃ p : Loc,
@@ -802,9 +827,17 @@ def persistent.spec : Prop :=
   (∀ ast le u rev A L C, Persistent (permReads (GF := GF) ast le u rev A L C)) ∧
   (∀ R γ n t, Persistent (authnIdx (GF := GF) R γ n t)) ∧
   (∀ p ir, Persistent (irrMsgAt (GF := GF) p ir)) ∧
-  (∀ p op, Persistent (reqMsgAt (GF := GF) p op))
+  (∀ p op, Persistent (reqMsgAt (GF := GF) p op)) ∧
+  (∀ rt, Persistent (endsDecoded (GF := GF) rt)) ∧
+  (∀ sl, Persistent (opsDecoded (GF := GF) sl))
 
 def smAt_timeless.spec : Prop := ∀ ua σ, Timeless (smAt (GF := GF) ua σ)
+
+/-- (provisional, 3h's) **A decoded transaction message's ends are decoded**: the apply thread's
+requests come from `Unmarshal` of the entry (`reqMsgAt`), so the empty-end gap does not reach its
+checks. -/
+def reqMsgAt_endsDecoded.spec : Prop := ∀ p t,
+  reqMsgAt (GF := GF) p (.req (.txn t)) ⊢ endsDecoded p
 
 /-- **The stores back out of the state machine** (giving up the applier: `applySnapshot` recovers
 them, then builds a new one with `NewUberApplier`). -/
@@ -856,7 +889,9 @@ def opStep_step.spec : Prop :=
     opStep mc σ (.req rq) σ' res → Step ir.who rq σ σ' res
 
 /-- A token assignment changes nothing: the token, or `ErrAuthNotEnabled`, `ErrAuthFailed` (no such
-user, or one without a password). -/
+user, or one without a password). The answer is the model's: the token provider's own failure (the
+no-op provider always, JWT on a signing error) is not a step's answer but the member's result's
+(`provErrResult`, `replyAt_result`; the coordinator's decision, integration I5), at the same state. -/
 def opStep_authenticate.spec : Prop :=
   ∀ mc σ name pw tok σ' res, opStep mc σ (.authenticate name pw tok) σ' res →
     σ' = σ ∧ (σ.auth.enabled = false ∧ res = .err .authNotEnabled ∨

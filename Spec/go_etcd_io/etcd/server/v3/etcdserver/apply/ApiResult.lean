@@ -15,7 +15,8 @@ does not depend on the request path's vocabulary.
 * `resultAt γ ar ir sk res` (transparent): **`ar` is the result of applying `ir` with the step's
   answer `res`**: `nil` with the placeholder answer (the replay), or 2c's `applyResult` of an answer
   `res'` with `resMatch` (`Api.lean`: the answer itself, an alarm list in another order, a skipped
-  transaction's ranges empty, the quota's `ErrNoSpace` after a write it applied).
+  transaction's ranges empty, the quota's `ErrNoSpace` after a write it applied), or, for a token
+  assignment, the token provider's error (`provErrResult`: the coordinator's decision, I5).
 * `checksOut C cs err`, `chkExact`, `chkPost` (internal): the permission checks' outcome, each
   check reported by `C` (the writer's exact `checkErr`, or 3d's `checkPost` for the request path);
   the laws `permReads_writer`, `permReads_reader` give `permReads`' two instances.
@@ -62,11 +63,26 @@ section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
   [hG : HeapGS HasLC.hasLC GF] [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
+/-- **A result carrying a token provider's error** (`Authenticate`'s apply, whose step answered
+`.ok .authenticate`; the coordinator's decision, integration I5): 2c's `applyResult`'s fields with a
+non-`nil` `Err` that need be no etcd error: the no-op provider's `assign` always fails
+(`ErrAuthFailed`), JWT's on a signing error (any error, `jwt.go:107-115`) or `ErrVerifyOnly`. The
+state is unchanged and no token is assigned. -/
+def provErrResult (ar : Loc) : IProp GF :=
+  iprop(⌜ar ≠ null⌝ ∗ ∃ (resp : GoInterface) (err : GoInterface) (ph : Loc) (tr : Loc),
+    ar.[go_etcd_io.etcd.server.v3.etcdserver.apply.Result, go!"Resp"] ↦□ resp ∗
+    ar.[go_etcd_io.etcd.server.v3.etcdserver.apply.Result, go!"Err"] ↦□ err ∗
+    ar.[go_etcd_io.etcd.server.v3.etcdserver.apply.Result, go!"Physc"] ↦□ ph ∗
+    ar.[go_etcd_io.etcd.server.v3.etcdserver.apply.Result, go!"Trace"] ↦□ tr ∗
+    TraceUtil.traceOpt tr ∗ (⌜ph = null⌝ ∨ Read.recvAny ph) ∗ ⌜err ≠ GoInterface.nil⌝)
+
 /-- **`ar` is the result of applying `ir`** (skipping its ranges if `sk`), whose step answered
-`res`. -/
+`res`: `nil` (the replay), 2c's `applyResult` of an answer `resMatch`ing `res`, or, for a token
+assignment the step answered, the token provider's error (`provErrResult`). -/
 def resultAt (γ : Cluster) (ar : Loc) (ir : Irr) (sk : Bool) (res : Resp) : IProp GF :=
   iprop(⌜ar = null ∧ res = noAns⌝ ∨
-    ∃ res' b, ⌜resMatch ir.op sk res res' ∧ opBody ir.op b⌝ ∗ EtcdServer.applyResult γ ar b res')
+    (∃ res' b, ⌜resMatch ir.op sk res res' ∧ opBody ir.op b⌝ ∗ EtcdServer.applyResult γ ar b res') ∨
+    (⌜ir.op.isAuthn = true ∧ res = .ok .authenticate⌝ ∗ provErrResult ar))
 
 /-- **The outcome of the permission checks `cs`**, each check's answer reported by `C`
 (`permReads`): `nil` and every check passing, or the error of a failing check `cs[i]` after the
@@ -99,12 +115,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors}
   [hG : HeapGS HasLC.hasLC GF] [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 /-- **A method's reply is a result's `Resp` and `Err`** (`dispatch` stores them): the reply of the
-answer (`nil` error), or the answer's server-side error. -/
+answer (`nil` error), or the answer's server-side error; for a token assignment answered
+`.ok .authenticate`, also the token provider's error (any non-`nil` error: `provErrResult`). -/
 def replyAt_result.spec : Prop :=
   ∀ (γ : Cluster) (op : IrrOp) (res : Resp) (resp err : GoInterface),
     replyAt (GF := GF) γ op res resp err ⊢
       match res with
-      | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ ∃ b, ⌜opBody op b⌝ ∗ EtcdServer.irrReply γ b res resp)
+      | .ok _ => iprop((⌜err = GoInterface.nil⌝ ∗ ∃ b, ⌜opBody op b⌝ ∗ EtcdServer.irrReply γ b res resp) ∨
+          ⌜op.isAuthn = true ∧ res = .ok .authenticate ∧ err ≠ GoInterface.nil⌝)
       | .err e => iprop(⌜EtcdServer.srvErrOf err e⌝ ∗ EtcdServer.srvErrShape err)
 
 /-- **The apply thread's permission checks** (internal): through the options' auth store and

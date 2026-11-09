@@ -29,6 +29,12 @@ not claimed (`nonissues/etcd-auth-revision-before-visible.md`: W0's `permittedSi
 lessor, which a reader could only call with a reader token of 3c's, `lessorReaders`); the sketch
 goes through `checkTxnPermission.spec` at `permReads_reader` (per-check reports).
 
+**Integration (I5), the empty end** (the coordinator's decision): premise `endsDecoded rt`: every
+range end of the message is `nil` or non-empty, as gRPC's decoding gives (2c discharges it from the
+handler's unmarshalled request). A non-`nil` empty end (the in-process adapter only) is checked as
+the key alone but read from the key on (`nonissues/etcd-auth-empty-range-end-point-check.md`), so
+the post is false there; the premise excludes it.
+
 **Round 1.** Restated over 3d's `authStoreAt`/`authLb`/`checkPost` (W0's read rule: a lower bound,
 the states a pass or a denial was made at), in place of the provisional `authRead` and the
 reached-`authTables` summary.
@@ -65,7 +71,7 @@ def CheckTxnAuth.spec : Prop :=
   let cs := RequestOp.checks (RequestOp.txn t.compare t.success t.failure)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       Auth.authStoreAt st γ γa ∗ Auth.authLb γa i0 ∗ ⌜t.readonly⌝ ∗
-      Auth.authInfoAt ai dq u rev ∗ EtcdWire.txnReqOwn rt dq' t ∗ threadTok }}
+      Auth.authInfoAt ai dq u rev ∗ EtcdWire.txnReqOwn rt dq' t ∗ endsDecoded rt ∗ threadTok }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty) #st)))
       (Val #ai)) (Val #le)) (Val #rt))

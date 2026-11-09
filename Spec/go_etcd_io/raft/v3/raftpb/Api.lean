@@ -20,6 +20,7 @@ One opaque **ownership predicate per message type**, over the model of `Model.le
 | `snapshotPts p dq s` | `*Snapshot`, full (`Ensure*` would write nothing) | (R1) `snapshotPts` |
 | `snapshotRaw p dq s` | `*Snapshot`, any presence | (none: what `EnsureSnapshot` takes) |
 | `msgPts p dq m` | `*Message`, well-formed | (R1) `msgPts` |
+| `msgRecv p m` | `*Message` received: `msgPts` at `own 1`, its `Entries` capacity owned | (I2; the old `msgPtsC … cap`) |
 | `confChangeV1Pts p dq c`, `confChangeV2Pts p dq c`, `singlePts p dq s` | `*ConfChange`, `*ConfChangeV2`, `*ConfChangeSingle` | |
 
 and transparent definitions over them: `entryRO p k e`, `entriesRO sl k es` (R1's, R3's: a slice of
@@ -138,6 +139,14 @@ opaque snapshotRaw (p : Loc) (dq : DFrac) (s : Snapshot) : IProp GF := iprop(Tru
 entries numbered from `Index + 1`. -/
 opaque msgPts (p : Loc) (dq : DFrac) (m : Msg) : IProp GF := iprop(True)
 
+/-- **A received `*Message`** (one stepped into raft from outside: what rafthttp's decoders and a
+`proto.Clone` deliver): `msgPts` at `own 1` with the spare capacity of its `Entries` slice owned
+(fresh, as protobuf's unmarshalling and cloning allocate it). A message raft built has no spare
+capacity (`raftLog.slice` clips, given the `Storage` contract), but `msgPts`, shared read-only, does
+not record it; an in-process transport must clone it (`nonissues/raft-msgapp-inprocess-aliasing.md`). (Integration I2, the coordinator's
+decision; the old proof's `msgPtsC … cap`.) -/
+opaque msgRecv (p : Loc) (m : Msg) : IProp GF := iprop(True)
+
 /-- **A `*ConfChange`.** -/
 opaque confChangeV1Pts (p : Loc) (dq : DFrac) (c : ConfChangeV1) : IProp GF := iprop(True)
 
@@ -211,6 +220,29 @@ def snapshotGo (p : Loc) (dq : DFrac) (s : Snapshot) (full : Bool) : IProp GF :=
     if full then snapMetaGo mp dq s.meta true
     else ⌜mp = null ∧ s.meta = Snapshot.empty.meta⌝ ∨ snapMetaGo mp dq s.meta false)
 
+/-- A `*Message`'s fields, its `Entries` slice `es` (what `msgPts_unfold` and `msgRecv_unfold`
+open to). -/
+def msgFields (p : Loc) (dq : DFrac) (m : Msg) (es : GoSlice) : IProp GF :=
+  iprop(∃ (yp tp fp trp ltp ip cp vp sp rp rhp : Loc) (cs rs : GoSlice),
+    pbRest raftpb.Message p dq ∗
+    p.[raftpb.Message, go!"Type"] ↦{dq} yp ∗ optCell yp m.type (W32 0) ∗
+    p.[raftpb.Message, go!"To"] ↦{dq} tp ∗ optCell tp m.to (W64 0) ∗
+    p.[raftpb.Message, go!"From"] ↦{dq} fp ∗ optCell fp m.src (W64 0) ∗
+    p.[raftpb.Message, go!"Term"] ↦{dq} trp ∗ optCell trp m.term (W64 0) ∗
+    p.[raftpb.Message, go!"LogTerm"] ↦{dq} ltp ∗ optCell ltp m.logTerm (W64 0) ∗
+    p.[raftpb.Message, go!"Index"] ↦{dq} ip ∗ optCell ip m.index (W64 0) ∗
+    p.[raftpb.Message, go!"Entries"] ↦{dq} es ∗ msgEnts es m ∗
+    p.[raftpb.Message, go!"Commit"] ↦{dq} cp ∗ optCell cp m.commit (W64 0) ∗
+    p.[raftpb.Message, go!"Vote"] ↦{dq} vp ∗ optCell vp m.vote (W64 0) ∗
+    p.[raftpb.Message, go!"Snapshot"] ↦{dq} sp ∗
+    (match m.snapshot with
+     | none => ⌜sp = null⌝
+     | some s => snapshotPts sp DFrac.discard s) ∗
+    p.[raftpb.Message, go!"Reject"] ↦{dq} rp ∗ optCell rp m.reject false ∗
+    p.[raftpb.Message, go!"RejectHint"] ↦{dq} rhp ∗ optCell rhp m.rejectHint (W64 0) ∗
+    p.[raftpb.Message, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
+    p.[raftpb.Message, go!"Responses"] ↦{dq} rs ∗ rs ↦*□ ([] : List Loc))
+
 end vocab
 
 /-! ## Laws -/
@@ -243,6 +275,7 @@ def raftpb_timeless.spec : Prop :=
   (∀ p dq s, Timeless (snapshotPts (GF := GF) p dq s)) ∧
   (∀ p dq s, Timeless (snapshotRaw (GF := GF) p dq s)) ∧
   (∀ p dq m, Timeless (msgPts (GF := GF) p dq m)) ∧
+  (∀ p m, Timeless (msgRecv (GF := GF) p m)) ∧
   (∀ p dq c, Timeless (confChangeV1Pts (GF := GF) p dq c)) ∧
   (∀ p dq c, Timeless (confChangeV2Pts (GF := GF) p dq c)) ∧
   (∀ p dq s, Timeless (singlePts (GF := GF) p dq s)) ∧
@@ -316,29 +349,16 @@ def snapshotRaw_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (s : Snapshot),
 
 /-- **A message's fields.** Its entries and snapshot read-only for good; a `MsgApp`'s entries at
 `Index + 1, Index + 2, ...` (R3's `maybeAppend`: `entriesRO sl (m.index + 1) m.entries`), any other
-type's at any index; `Responses` empty. No capacity of the `Entries` slice is owned: a `MsgApp`'s
-slice is a sub-slice of the leader's log. -/
+type's at any index; `Responses` empty. No capacity of the `Entries` slice is owned (a `MsgApp`'s
+entries are the leader's log's, shared read-only; a received message's capacity: `msgRecv`). -/
 def msgPts_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (m : Msg),
-  msgPts (GF := GF) p dq m ⊣⊢
-    ∃ (yp tp fp trp ltp ip cp vp sp rp rhp : Loc) (es cs rs : GoSlice),
-    pbRest raftpb.Message p dq ∗
-    p.[raftpb.Message, go!"Type"] ↦{dq} yp ∗ optCell yp m.type (W32 0) ∗
-    p.[raftpb.Message, go!"To"] ↦{dq} tp ∗ optCell tp m.to (W64 0) ∗
-    p.[raftpb.Message, go!"From"] ↦{dq} fp ∗ optCell fp m.src (W64 0) ∗
-    p.[raftpb.Message, go!"Term"] ↦{dq} trp ∗ optCell trp m.term (W64 0) ∗
-    p.[raftpb.Message, go!"LogTerm"] ↦{dq} ltp ∗ optCell ltp m.logTerm (W64 0) ∗
-    p.[raftpb.Message, go!"Index"] ↦{dq} ip ∗ optCell ip m.index (W64 0) ∗
-    p.[raftpb.Message, go!"Entries"] ↦{dq} es ∗ msgEnts es m ∗
-    p.[raftpb.Message, go!"Commit"] ↦{dq} cp ∗ optCell cp m.commit (W64 0) ∗
-    p.[raftpb.Message, go!"Vote"] ↦{dq} vp ∗ optCell vp m.vote (W64 0) ∗
-    p.[raftpb.Message, go!"Snapshot"] ↦{dq} sp ∗
-    (match m.snapshot with
-     | none => ⌜sp = null⌝
-     | some s => snapshotPts sp DFrac.discard s) ∗
-    p.[raftpb.Message, go!"Reject"] ↦{dq} rp ∗ optCell rp m.reject false ∗
-    p.[raftpb.Message, go!"RejectHint"] ↦{dq} rhp ∗ optCell rhp m.rejectHint (W64 0) ∗
-    p.[raftpb.Message, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
-    p.[raftpb.Message, go!"Responses"] ↦{dq} rs ∗ rs ↦*□ ([] : List Loc)
+  msgPts (GF := GF) p dq m ⊣⊢ ∃ es : GoSlice, msgFields p dq m es
+
+/-- **A received message** (`msgRecv`): its fields at `own 1`, and the spare capacity of its
+`Entries` slice owned (raft's `unstable` may adopt the slice and append into it). -/
+def msgRecv_unfold.spec : Prop := ∀ (p : Loc) (m : Msg),
+  msgRecv (GF := GF) p m ⊣⊢ ∃ es : GoSlice, msgFields p (DFrac.own 1) m es ∗
+    ownSliceCap Loc es (DFrac.own 1)
 
 def confChangeV1Pts_unfold.spec : Prop := ∀ (p : Loc) (dq : DFrac) (c : ConfChangeV1),
   confChangeV1Pts (GF := GF) p dq c ⊣⊢

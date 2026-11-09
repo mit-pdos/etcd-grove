@@ -57,7 +57,7 @@ always makes); a commit runs the hooks and the client's commit step. -/
 def batchTxBuffered.Unlock.spec : Prop :=
   ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp) (F : Fp) (S : Sess)
     (Ψ1 Ψ2 : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beSess γ q F S ∗ Pk ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beSess γ q F S ∗ beLive γ (btLoc γ) 1 ∗ Pk ∗
       (AU <{ ∃∃ (V : Image), beVis γ F V }> @ ⊤, ∅ <{ beVis γ F S.mid, COMM Ψ1 }>) ∗
       (Ψ1 -∗ AU <{ ∃∃ (V : Image), beVis γ F V }> @ ⊤, ∅ <{ beVis γ F S.fin, COMM Ψ2 }>) }}
     (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"Unlock")) (Val #()))

@@ -743,8 +743,11 @@ def regsOk (B : SrvCfg) (C : AddrContract (GF := GF)) : IProp GF :=
       ⌜C.stream r.1 = some (reqT, repT, S)⌝ ∗ □ ∀ sic, icChain B.sics sic -∗
         streamOk r.2.1 r.2.2 (if B.sics = [] then none else some sic) reqT repT S))
 
-/-- `grpcOver` fixes its contracts (two bindings of one string then agree, by 2f's `protoAt`
-agreement, asked in `req/net_http.md`). -/
+/-- `grpcOver` fixes its contracts. (Integration I3: 2a's round-1 request of 2f's
+`protoAt_agree : protoAt a P ∗ protoAt a P' ⊢ ⌜P = P'⌝` is withdrawn: a protocol holds `IProp`s, so
+a ghost agreement on it gives at most a later equivalence, and no client composes two bindings of
+one address; that a member's server and its clients see one contract per address is part of this
+boundary's assumed realization, `addrAt`'s.) -/
 def grpcOver_inj.spec : Prop := ∀ (C C' : AddrContract (GF := GF)) (P P' : Http.Proto GF),
   grpcOver C P = grpcOver C' P' → C = C' ∧ P = P'
 

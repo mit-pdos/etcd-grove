@@ -181,6 +181,10 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
 public import Spec.go_etcd_io.raft.v3.Model
 public import Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Spec.go_etcd_io.etcd.server.v3.lease.Api
+public import Spec.go_etcd_io.etcd.server.v3.auth.Api
 
 @[expose] public section
 
@@ -191,6 +195,8 @@ namespace EtcdGrove
 namespace EtcdServer
 
 open Iris Iris.BI EtcdModel
+
+export EtcdServerPb (irrIsRevoke)
 
 /-- **What a member's directories hold** (round 2): a fresh directory with an initial member's
 start token, a fresh one with a joiner's (its peer URLs), or member `id`'s files (a WAL). -/
@@ -262,7 +268,7 @@ def memberDisk (γ : Cluster) (id : Nat) (ds : Config.Dirs) : IProp GF :=
   diskIdle γ ds (.member id)
 
 /-- **The right to start a member of `γ` with configuration `cfg`** (heap parts `c`), member
-`oid` when known: exclusive; introduced by `memberStart_new`, `_join`, `_restart`. -/
+`oid` when known: exclusive; introduced by `memberStart_disk` (round 2). -/
 opaque memberStart (γ : Cluster) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (c : Config.Model) (oid : Option Nat) : IProp GF := iprop(True)
 
@@ -332,22 +338,17 @@ opaque srvClosed (ds : Config.Dirs) : IProp GF := iprop(True)
 storage `st`. Exclusive. -/
 opaque raftNodeBuilt (rn : Loc) (γ : Cluster) (id : Nat) (st : Loc) : IProp GF := iprop(True)
 
-/-- **Provisional (2f):** `tp` is a `rafthttp.Transporter` (the `Transporter` bundle of a
-transport's interface value: `ActiveSince`/`ActivePeers` each taking and giving back a
-`threadTok`). Persistent. -/
-opaque transporterOk (tp : GoInterface) : IProp GF := iprop(True)
+-- (integration I4) The provisional `transporterOk tp` is 2f's `Rafthttp.transporterOk tp ν id`.
 
-/-- **Provisional (3h):** `r` is `nil` (`b = false`) or a readable `*InternalRaftRequest` whose
-`LeaseRevoke` is set exactly when `b`. Persistent. -/
-opaque irrIsRevoke (r : Loc) (b : Bool) : IProp GF := iprop(True)
+-- (integration I4) `irrIsRevoke r b` is 3h's `EtcdServerPb.irrIsRevoke` (exported below).
 
 /-- **Provisional (W0's metrics boundary):** `gv` is a usable `*prometheus.GaugeVec`. -/
 opaque gaugeVecOk (gv : Loc) : IProp GF := iprop(True)
 
-/-- **Provisional (4a; a program-start fact W0's adequacy lists):** `ETCD_VERIFY` is unset for
-the whole run (the backend's verification hooks panic otherwise: the axiom sweep's batch 1).
-Persistent. -/
-opaque backendEnvOk : IProp GF := iprop(True)
+/-- **`ETCD_VERIFY` is unset for the whole run** (a program-start fact W0's adequacy lists; the
+backend's verification hooks panic otherwise: the axiom sweep's batch 1): 4a's
+`Backend.etcdVerifyUnset` (integration I4). Persistent. -/
+def backendEnvOk : IProp GF := iprop(⌜Backend.etcdVerifyUnset⌝)
 
 /-! ## Provisional slots (see the header) -/
 
@@ -357,19 +358,26 @@ opaque raftNodeBootCfg (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : P
 /-- **Provisional slot (2a):** K8's scope restrictions. -/
 opaque v3rpcBootCfg (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop
 
-/-- **Provisional slot (3e):** the store's configuration. -/
-opaque mvccBootCfg (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop
+/-- **Slot (3e):** the store's configuration: 3e's `Mvcc.storeCfgOk` of the configuration's
+compaction batch limit (integration I4). -/
+def mvccBootCfg (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
+  0 ≤ sint.Z cfg.CompactionBatchLimit'
 
 /-- **Provisional slot (4a):** the backend's configuration and program-start facts. -/
 opaque backendBootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
   iprop(True)
 
-/-- **Provisional slot (3c):** the lessor's configuration against the environment's lease mode. -/
-opaque leaseBootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ecfg : EnvCfg) :
-    IProp GF := iprop(True)
+/-- **Slot (3c):** the lessor's configuration against the environment's lease mode: without lease
+expiry in the environment, 3c's trusted deployment premise `Lease.leasesOutliveRun` (W0's K2; "from
+3c", item 6; integration I4). The server's `LessorConfig` leaves the revoke rate `0` (3c's
+`0 ≤ leaseRevokeRate`). -/
+def leaseBootRes (_cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ecfg : EnvCfg) :
+    IProp GF := iprop(⌜ecfg.leaseExpiry = false → Lease.leasesOutliveRun⌝)
 
-/-- **Provisional slot (3d):** the token provider's configuration. -/
-opaque authBootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF := iprop(True)
+/-- **Slot (3d):** the token provider's configuration: the simple provider, or 3d's `jwtTokOk` of
+the JWT options ("from 3d", item 11; integration I4: it takes the cluster). -/
+def authBootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : Cluster) : IProp GF :=
+  iprop(⌜cfg.AuthToken' = go!"simple"⌝ ∨ Auth.jwtTokOk γ cfg.AuthToken')
 
 /-! ## The slots' introductions (what their owners must keep) -/
 
@@ -398,8 +406,8 @@ def leaseBootRes_intro.spec : Prop := ∀ (cfg : go_etcd_io.etcd.server.v3.confi
     (ecfg : EnvCfg), ecfg.leaseExpiry = true → ⊢ leaseBootRes (GF := GF) cfg ecfg
 
 /-- Auth: the simple token provider (etcd's default). -/
-def authBootRes_intro.spec : Prop := ∀ cfg : go_etcd_io.etcd.server.v3.config.ServerConfig,
-  cfg.AuthToken' = go!"simple" → ⊢ authBootRes (GF := GF) cfg
+def authBootRes_intro.spec : Prop := ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (γ : Cluster), cfg.AuthToken' = go!"simple" → ⊢ authBootRes (GF := GF) cfg γ
 
 /-! ## Laws -/
 

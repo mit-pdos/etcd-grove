@@ -74,6 +74,8 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
 * **The request's right** (I1's `reqRight γ rq`: W0's `urlsRight γ urls` for `MemberAdd`/
   `MemberUpdate`, `True` otherwise) travels with the request in `etcdUnary` to the member op (2e's
   `AddMember`/`UpdateMember` take it); it is spent whatever the outcome (not given back).
+* A `Compact` request's revision is not `0` (2c's round-1 item 4: W0's client contract carries it;
+  a raw gRPC client must too: the server's `Compact` would otherwise propose a compaction to `0`).
 * `kaSpec`: a response's lease id is one the client sent (`kaReq`, `kaLog`: 1c's `kaSent`).
 * `watchSpec` is a contract: the requests recorded (`wsReq`), each response a `wireStep` (1b) from
   the state the earlier ones made (`wsSt`), the stream's principal fixed (`wsWho`); 2b's server
@@ -299,7 +301,8 @@ lease requests carry the member's lease view (`leaseFact`, W0's `leaseViewLb γ 
 def etcdUnary (γ : Cluster) (ep : GoString) (m : GoString) : UnarySpec (GF := GF) :=
   fun md c Φ => iprop(∃ (who : Principal) (rq : Req) (rep : Bool) (Q : State → State → Resp → IProp GF)
       (vi : Option Nat) (lo : Nat),
-    ⌜reqModels m c rq ∧ (rq.isRead = true → rep = true)⌝ ∗ mdPrin γ md who ∗ authLb γ lo ∗
+    ⌜reqModels m c rq ∧ (rq.isRead = true → rep = true) ∧ (∀ r ph, rq = .compact r ph → r ≠ 0)⌝ ∗
+    mdPrin γ md who ∗ authLb γ lo ∗
     reqRight γ rq ∗ etcdAU γ who rq rep lo Q ∗
     (match vi with | some i => leaseViewLb γ ep i | none => iprop(True)) ∗
     ((∀ (σ σ' : State) (res : Resp) (o : Outcome), ⌜firedAns res ∧ ansOutcome m rq res o⌝ -∗
@@ -407,7 +410,7 @@ records above (`srvWatchRecv_recv` from `srvRecv_recv` and `up`, `srvWatchSend_s
 `fin` with 2b's error shape (`WatchServer.WatchTriple`). -/
 def watchRun_open.spec : Prop := ∀ (γ : Cluster) (x : Loc) (ctx st : GoInterface) (md : MD)
     (g : StreamName),
-  genSrvAt x st go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty
+  genSrvAt (GF := GF) x st go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty
       go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty ∗
     rpcCtx ctx md ∗ srvCtxOf st ctx md ∗ srvRecv st g (watchSpec γ) md 0 ∗ srvSend st g (watchSpec γ) md 0 ⊢
   |==> ∃ (who : Principal) (gw : WatchStreamNames),

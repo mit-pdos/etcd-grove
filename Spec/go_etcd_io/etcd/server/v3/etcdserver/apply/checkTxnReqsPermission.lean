@@ -12,6 +12,9 @@
 **Integration (I5).** `permReads` takes the auth info and a per-check report `C` in place of a
 set of states `S` (3d's reader check names three views, not one state), and `L` (lease checks
 allowed: the request path holds no lessor reader token).
+
+**Integration (I5), the empty end.** Premise `opsDecoded sl` (as `checkTxnPermission`'s
+`endsDecoded`; a nested transaction's `endsDecoded` from it by W0's split law, requested).
 -/
 module
 
@@ -42,7 +45,7 @@ def checkTxnReqsPermission.spec : Prop :=
     (L : Bool)
     (C : Check → GoInterface → IProp GF) (sl : GoSlice) (ops : List RequestOp) (dq' : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ permReads ast le u rev A L C ∗ A ∗ ⌜L = false → ∀ c ∈ (RequestOp.checksL ops), c.isLease = false⌝ ∗  ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
-      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ EtcdWire.msgsOwn EtcdWire.requestOpOwn sl dq' ops ∗ threadTok }}
+      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ EtcdWire.msgsOwn EtcdWire.requestOpOwn sl dq' ops ∗ opsDecoded sl ∗ threadTok }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission)) (Val #ast)) (Val #ai)) (Val #le)) (Val #sl))
   {{ (err : GoInterface), RET #err; A ∗ ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
       ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ threadTok ∗ EtcdWire.msgsOwn EtcdWire.requestOpOwn sl dq' ops ∗

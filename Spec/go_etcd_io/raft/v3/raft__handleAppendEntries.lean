@@ -5,17 +5,16 @@
 
 **Proof sketch.** Below the commit index: acknowledge the commit index. Else R3's `maybeAppend` (the sender led the term, `msgSent_leaderOf`; its `msgSent` says its log holds the entries after the matching `(index, logTerm)`: by log matching, a conflict is past the commit index, so no panic; the new commit `min(commit, last new)` is committed) and an acknowledgement of the last new index (queued after the append: its `msgSent` once durable), or a rejection with a hint (R3's `findConflictByTerm`).
 
-**Gap (integration I2): the entries' capacity.** `raftLog.maybeAppend` (R3) takes the slice with
-no spare capacity or with its capacity owned (`unstable.truncateAndAppend` may adopt it, `u.entries
-= ents`, and a later append writes into its capacity), and raftpb's `msgPts` grants neither (3h's
-decision: a `MsgApp` raft builds carries `limitSize`'s `ents[:limit]`, whose spare capacity is the
-leader's own log; a decoded message's capacity is fresh, but protobuf's specs do not hand it out).
-`logSliceFromMsgApp` names the entries (`entriesRO`), not their capacity, so this step is not
-provable from the cited specs as they are. The fix is outside the specs: the fork clips the slice
-in `logSliceFromMsgApp` (`slices.Clip(m.GetEntries())`, behavior-preserving: an adopted slice then
-reallocates on append), after which `⌜len = cap⌝` holds; or a received message's predicate owns its
-fresh capacity (2a's `Unmarshal`/`Clone`, 3h, and every transport delivering a decoded or cloned
-copy). Recorded in `notes/specs-only/integration-I2.md`.
+**The entries' capacity (integration I2, the coordinator's decision).** `raftLog.maybeAppend` (R3)
+takes the slice with no spare capacity or with its capacity owned (`unstable.truncateAndAppend`
+may adopt it, `u.entries = ents`, and a later append writes into its capacity). The message is a
+received one (`msgRecv`: rafthttp's decoders give fresh slices; raft's own `MsgApp`s have none, `raftLog.slice`
+clipping them; an in-process transport clones,
+`nonissues/raft-msgapp-inprocess-aliasing.md`), so `logSliceFromMsgApp` (with `rc = true`) splits
+its capacity off with the entries (`entriesRO … (index + 1)`), and the suffix `a.entries[ci -
+offset:]` that `maybeAppend` appends keeps the rest of it. **Alternative, open for the user:** the
+fork clips the slice in `logSliceFromMsgApp` (`slices.Clip(m.GetEntries())`, behavior-preserving),
+after which `len = cap` and no message needs its capacity.
 
 **Changes** (from `specs-ref`'s `raft__handleAppendEntries.lean`): over `raftCore` and `msgSent`.
 
@@ -47,7 +46,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- (internal) Handles a `MsgApp` of the follower's term. -/
 def raft.handleAppendEntries.spec : Prop :=
   ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) (ml : Loc) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ msgPts ml (DFrac.own 1) m ∗ msgSent γ m ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ msgRecv ml m ∗ msgSent γ m ∗
       ⌜m.type = MsgApp ∧ m.to = id ∧ m.term = ρ.hs.term ∧ ρ.role = StateFollower⌝ }}
     (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"handleAppendEntries")) (Val #ml))
   {{ RET #(); ∃ ρ', raftCore r γ id ρ' ∗ ⌜ρ'.hs.term = ρ.hs.term ∧ ρ'.hs.vote = ρ.hs.vote ∧ ρ'.lead = ρ.lead ∧ ρ'.role = ρ.role⌝ }}

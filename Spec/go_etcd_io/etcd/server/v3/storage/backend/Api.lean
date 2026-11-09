@@ -72,6 +72,14 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
 * `beRd γ rt F V` (exclusive): a begun read transaction `rt` (a `*concurrentReadTx`, or the shared
   `*readTx` while read-locked) seeing `V` on `F`; the shared one exactly, a concurrent one up to
   lingering deletes (its buffer copy may predate the last commit: `lingerSingle`, `rdOrderL`).
+* `beLive γ t p` (fractional): **a share of the transaction `t`'s liveness** (`btLoc γ`: the batch
+  session, from a `Lock*` to its `Unlock`; `rtLoc γ` or a concurrent one's `l`: from its begin to
+  its `RUnlock`). A range's key and value bytes are bbolt's memory (or the read buffer's), valid
+  while the transaction lives (4c's `txBytes`): **lent against a share of it** (`rangeRes`), the
+  transaction's own resource (`beSess`, `beRd`) kept, so several ranges' bytes may be out at once
+  and the session may write meanwhile (mvcc's compaction deletes the very keys its range returned;
+  its `restore` hands a chunk's keys to a goroutine while reading the next); all come back before
+  the end (`Unlock`, `RUnlock` take the whole).
 * `beHook γ dq f` (fractional; `discard` persistent): the post-lock hook is `f` (`nil`: none).
 * `beDel γ`, `beDelHeld γ` (exclusive): the right to delete from a safe-range bucket, idle or
   held (`LockForSafeRangeDelete`: excludes a non-blocking defragmentation, which would otherwise
@@ -103,8 +111,8 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
   `HookFunc`), `commitOk γ Pk` (the
   client's commit step), `beReq γ Pk X Y` (a forced commit's per-call step), `hookRun γ q Pk f Pre Q`
   (the post-lock hook's triple), `visitOk` (a `ForEach` visitor), `writeOk` (an `io.Writer`),
-  `ignOk` (`Hash`'s filter); `bytesListAt`/`rangeRes` (a range's bytes, lent back to the
-  transaction), `lingerSingle`/`rdOrderL` (a concurrent read's), `covers`, `writable`, `beNew` (what `New` hands its
+  `ignOk` (`Hash`'s filter); `lentIn`/`rangeRes` (a range's bytes, lent against a share of
+  the transaction's liveness `beLive`), `lingerSingle`/`rdOrderL` (a concurrent read's), `covers`, `writable`, `beNew` (what `New` hands its
   client's allocation step).
 
 ## Laws
@@ -114,7 +122,7 @@ membership, alarms, the schema's version. So the vocabulary is **one image, owne
 `beNoVis_mono`, `beNoVis_excl`, `beSess_excl`, `beSess_widen`, `beSess_cur`, `beSess_vis`, `beSess_rd`,
 `beCurIs_cur`, `beCurIs_vis`, `beCurIs_flush`, `beHist_timeless`,
 `beHist_mem`, `beHist_final`, `beCommitted_persistent`, `beFinal_persistent`, `beFinal_cur`,
-`beRdToks_split`, `beReaderN_ge`, `beHook_fractional`, `beHook_agree`, `beHook_persistent`, `beDel_excl`,
+`beRdToks_split`, `beLive_fractional`, `beReaderN_ge`, `beHook_fractional`, `beHook_agree`, `beHook_persistent`, `beDel_excl`,
 `beCur_freeze`, `beMade_persistent`, `beMade_cur`, `beFile_timeless`, `beFile_excl`,
 `beBkt_{persistent, inj}`, `beHookFp_persistent`, `beSynced_persistent`, `beDurInv_persistent`,
 `safeRegOk_persistent`, `envOk_{persistent, intro}`, `imgBytes_size`, `beReq_true`, `beReq_persistent`.
@@ -405,6 +413,9 @@ opaque beRdToks (γ : BeNames) (n : Nat) : IProp GF := iprop(True)
 /-- A begun read transaction `rt` seeing `V` on `F` (exclusive). -/
 opaque beRd (γ : BeNames) (rt : Loc) (F : Fp) (V : Image) : IProp GF := iprop(True)
 
+/-- **A share `p` of the transaction `t`'s liveness** (fractional; see the header). -/
+opaque beLive (γ : BeNames) (t : Loc) (p : Qp) : IProp GF := iprop(True)
+
 /-- A share `dq` of the post-lock hook, at `f` (`nil`: none). -/
 opaque beHook (γ : BeNames) (dq : DFrac) (f : GoFunc) : IProp GF := iprop(True)
 
@@ -463,16 +474,23 @@ opaque safeRegOk : IProp GF := iprop(True)
 /-- **The program-start environment** (persistent; see the header). -/
 opaque envOk : IProp GF := iprop(True)
 
-/-- **A slice of byte slices holding `l`**, each at the fraction `dq` (a range's result: the outer
-slice is fresh; the byte slices are bbolt's, lent while the transaction lives). -/
+/-- **Byte slices lent at the fraction `dq`**: the slices `ps` holding `l` (4b's `Schema.lentIn`). -/
+def lentIn (dq : DFrac) (l : List GoString) (ps : List GoSlice) : IProp GF :=
+  iprop([∗list] p; b ∈ ps; l, p ↦*{dq} b)
+
+/-- **A slice of byte slices holding `l`**, each at the fraction `dq` (the read buffer's internal
+ranges: the session's put bytes, read-only for good). -/
 def bytesListAt (sl : GoSlice) (l : List GoString) (dq : DFrac) : IProp GF :=
   iprop(∃ ps : List GoSlice, sl ↦* ps ∗ [∗list] p; b ∈ ps; l, p ↦*{dq} b)
 
-/-- **A range's result `l`, lent against the transaction resource `R`**: the key and value slices,
-and the wand giving `R` back for them (4c's `txBytes`: readable while the transaction lives). -/
-def rangeRes (kl vl : GoSlice) (l : List (GoString × GoString)) (R : IProp GF) : IProp GF :=
-  iprop(∃ dq : DFrac, bytesListAt kl (l.map Prod.fst) dq ∗ bytesListAt vl (l.map Prod.snd) dq ∗
-    (bytesListAt kl (l.map Prod.fst) dq ∗ bytesListAt vl (l.map Prod.snd) dq -∗ R))
+/-- **A range's result `l`, lent against `L`** (a share of the transaction's liveness,
+`beLive`): the key and value slices (owned: fresh `append`s) of byte slices holding `l` at a
+fraction `dq` (bbolt's, or the read buffer's: 4c's `txBytes`, readable while the transaction
+lives), and the wand giving `L` back for the inner slices. -/
+def rangeRes (kl vl : GoSlice) (l : List (GoString × GoString)) (L : IProp GF) : IProp GF :=
+  iprop(∃ (dq : DFrac) (ps qs : List GoSlice), kl ↦* ps ∗ vl ↦* qs ∗
+    lentIn dq (l.map Prod.fst) ps ∗ lentIn dq (l.map Prod.snd) qs ∗
+    (lentIn dq (l.map Prod.fst) ps -∗ lentIn dq (l.map Prod.snd) qs -∗ L))
 
 /-- **A cell set a session may write**: published by the session (`F`), or tracked by no one. -/
 def writable (γ : BeNames) (F G : Fp) : IProp GF :=
@@ -590,6 +608,11 @@ variable [go_gctx : GoGlobalContext] [sem : go.Semantics]
 
 def isBackend_persistent.spec : Prop := ∀ γ b p (Pk : IProp GF), Persistent (isBackend γ b p Pk)
 
+/-- One backend has one name and one file (the schema's wrappers hide `γ`: 4b's `alarmBkt`,
+`memberBkts`, `applyHook` are over the `Backend` value only). -/
+def isBackend_agree.spec : Prop := ∀ γ γ' b p p' (Pk Pk' : IProp GF),
+  isBackend γ b p Pk ∗ isBackend γ' b p' Pk' ⊢ ⌜γ = γ' ∧ p = p'⌝
+
 def beOpen_fractional.spec : Prop := ∀ γ (q₁ q₂ : Qp),
   beOpen (GF := GF) γ (q₁ + q₂) ⊣⊢ beOpen γ q₁ ∗ beOpen γ q₂
 
@@ -649,7 +672,8 @@ def beSess_vis.spec : Prop := ∀ γ q F S G V,
 write-back, the commit), so the session lends a read of the visible image, with no slot. -/
 def beSess_rd.spec : Prop := ∀ γ q F S G V,
   beSess (GF := GF) γ q F S ∗ beVis γ G V ⊢
-    beRd γ (rtLoc γ) G V ∗ (beRd γ (rtLoc γ) G V -∗ beSess γ q F S ∗ beVis γ G V)
+    beRd γ (rtLoc γ) G V ∗ beLive γ (rtLoc γ) 1 ∗
+    (beRd γ (rtLoc γ) G V -∗ beLive γ (rtLoc γ) 1 -∗ beSess γ q F S ∗ beVis γ G V)
 
 def beCurIs_cur.spec : Prop := ∀ γ I G C,
   beCurIs (GF := GF) γ I ∗ beCur γ G C ⊢ ⌜Image.agree G I C⌝
@@ -676,6 +700,8 @@ def beFinal_persistent.spec : Prop := ∀ γ I, Persistent (beFinal (GF := GF) �
 /-- A closed backend's last image is every part's batch image. -/
 def beFinal_cur.spec : Prop := ∀ γ I G C,
   beFinal (GF := GF) γ I ∗ beCur γ G C ⊢ ⌜Image.agree G I C⌝
+
+def beLive_fractional.spec : Prop := ∀ γ t, Fractional (fun p => beLive (GF := GF) γ t p)
 
 def beRdToks_split.spec : Prop := ∀ γ n m,
   beRdToks (GF := GF) γ (n + m) ⊣⊢ beRdToks γ n ∗ beRdToks γ m

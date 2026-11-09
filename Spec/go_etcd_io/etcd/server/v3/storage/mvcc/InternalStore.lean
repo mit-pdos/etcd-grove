@@ -222,6 +222,11 @@ def rkvSend.spec : Prop :=
     ▷ (rkvProducer c ents (n + 1) iprop(L ∗ v.key' ↦*{dq} e.bk) -∗ Φ #()) -∗
     WP (App (App (Val (chan.send revKeyValue.ty)) (Val #c)) (Val #v)) {{ Φ }}
 
+/-- **One decoding relation** (3f's `kvsToEvents` unmarshals what the image law, `mvccImage_above`,
+calls `kvBytes`): an image's encoding of a key-value is what `proto.Unmarshal` decodes to it
+(`kvDecodes`, which `restoreChunk` uses). -/
+def kvBytes_decodes.spec : Prop := ∀ (m : KeyValueM) (bs : GoString), kvBytes m bs → kvDecodes bs m
+
 /-- The loans the producer holds may be weakened (regrouped: a chunk's keys as one `lentIn`). -/
 def rkvProducer_mono.spec : Prop :=
   ∀ (c : Loc) ents n (L L' : IProp GF),

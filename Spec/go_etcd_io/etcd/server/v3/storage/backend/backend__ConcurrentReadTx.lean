@@ -57,7 +57,7 @@ def backend.ConcurrentReadTx.spec : Prop :=
       (AU <{ ∃∃ (V : Image), beVis γ F V }> @ ⊤, ∅ <{ beVis γ F V, COMM Ψ V }>) }}
     (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"ConcurrentReadTx")) (Val #()))
   {{ (r : GoInterface), RET #r; ∃ (l : Loc) (V : Image), ⌜r = crtIface l ∧ l ≠ rtLoc γ⌝ ∗
-      beRd γ l F V ∗ Ψ V }}
+      beRd γ l F V ∗ beLive γ l 1 ∗ Ψ V }}
 
 end spec
 

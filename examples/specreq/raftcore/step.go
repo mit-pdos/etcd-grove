@@ -13,7 +13,8 @@ import (
 // REQ raftcore/step-received: a received message steps without panic; only a forwarded proposal
 // may be refused, with ErrProposalDropped.
 // Users: node.go:394-399 (run's recvc arm), rawnode.go:116-125 (RawNode.Step).
-// Assumes: m was sent by a node of the cluster to r's node (msgSent, its credit, To = id).
+// Assumes: m was sent by a node of the cluster to r's node (msgSent, its credit, To = id), and
+// is a received copy (decoded or cloned: msgRecv, its entries' capacity owned; stepMsg).
 // Specs: raft.Step.spec (stepIn's first case).
 func ReqStepReceived(r *raft, m *pb.Message) {
 	if err := r.Step(m); err != nil {

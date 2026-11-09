@@ -144,12 +144,14 @@ while they were provisional (integration I2): `entriesRO sl k es` (a slice of re
 the first at index `k`), `msgPts p dq m` (a well-formed `*Message`), `hardStatePts`, `snapshotPts`
 (a **full** `*Snapshot`: metadata, its `ConfState`, `Index`, `Term` and `AutoLeave` set, as raft's
 and `MemoryStorage`'s are), `confStatePts` (a `*ConfState`, any presence), `confChangePts v dq c`
-(a `ConfChangeI` interface value), `entryRO`, `entryPtrs`. Their persistence, unfold and relation
+(a `ConfChangeI` interface value), `entryRO`, `entryPtrs`, and `msgRecv p m` (a **received**
+message: `msgPts` at `own 1` with its `Entries` slice's capacity, which a stepped message must
+have: integration I2). Their persistence, unfold and relation
 laws are raftpb's (`RaftPb.raftpb_persistent`, `msgPts_unfold`, ...). -/
 
 end vocab
 
-export RaftPb (entriesRO msgPts hardStatePts snapshotPts confStatePts confChangePts entryRO
+export RaftPb (entriesRO msgPts msgRecv hardStatePts snapshotPts confStatePts confChangePts entryRO
   entryPtrs)
 
 section vocab

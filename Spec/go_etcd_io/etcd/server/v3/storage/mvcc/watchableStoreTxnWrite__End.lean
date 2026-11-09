@@ -19,13 +19,10 @@ history; the records then shared read-only, `keyValueOwn _ DFrac.discard`), the 
 `metricsTxnWrite.End` to 3e's `storeTxnWrite.End.spec`, whose first update admits the state already
 notified, `σ = σ₀.notify pend`, handed over trivially: **the second update fires** at the bump,
 `commitPending`; the reader token back), `s.mu.Unlock`.
-**Gap (3e, requested at integration).** From the client's handle `mvccTxn (*metricsTxnWrite) γ trace
-(.write σ₀ pend)` no law reaches the inner `storeTxnW` (for the records of `Changes()`: the contract
-`Txn.Changes` gives only their count), and `metricsTxnWrite.End`'s canonical spec is
-`Txn.End.contract`, whose first update requires `σ = σ₀` (not `storeTxnWrite.End`'s either-state
-form): this proof needs an internal law opening the `*metricsTxnWrite` handle to its `storeTxnW`
-(and closing `storeTxnWNC` back for `End`), and `Txn.End.contract`'s first premise widened to
-`σ = σ₀ ∨ σ = σ₀.notify pend` (a weaker obligation on every caller's update).
+The records come from the handle by 3e's `InternalTxn.mvccTxn_changes` (with `Txn.Changes`'
+`mvccTxnChs`): `mvccTxnNC` and the records; `metricsTxnWrite.End` (`Txn.End.contract`) takes
+`mvccTxnNC`, and its first update admits the already-notified state (`σ = σ₀ ∨ σ = σ₀.notify pend`;
+both added at integration, I6).
 
 **Changes** from `specs-ref`'s file: the canonical instance of 3e's restated contract.
 

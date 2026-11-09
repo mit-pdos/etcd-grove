@@ -5,7 +5,7 @@ Users: every handler of this package (after a server call), 2b's watch handler.
 
 Proof sketch: `errors.Is` against the context's errors (Go's `errors`, Perennial's); the lookup in `toGRPCErrorMap` (the package's initialized map: its keys the server errors `srvErrOf` names, each to `e`'s `ErrGRPC*`, or for `.tooManyRequests`/`.memberNotEnoughStarted` to `errVal e`, `nonissues/etcd-v3rpc-togrpcerror-etcderror-unknown-code.md`; a law of the package's initialization); a miss: `status.Error(codes.Unknown, err.Error())` (`errMsg`).
 
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/togRPCError.lean`: over 2c's `srvErrOf` and grpc's `sentStatus` (it was the client-facing `srvErrOk`). Round 1 (provability F6): the pre is `srvErrOk` (comparable, a stable message; an unmapped error's message settles nothing), which 2c's error outcomes give.
+Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/togRPCError.lean`: over 2c's `srvErrOf` and grpc's `sentStatus` (it was the client-facing `srvErrOk`). Round 1 (provability F6): the pre is `srvErrOk` (comparable, a stable message; an unmapped error's message settles nothing), which 2c's error outcomes give. Integration I3: `srvErrOk` is 2c's `srvErrShape` (one predicate); the lookup's comparability and an unmapped message's `indefMsg` are two strengthenings of `srvErrShape` requested of I4 (until then this sketch's lookup and third disjunct rest on them).
 
 Margin: the code is `e`'s gRPC code except for the two errors mapped to `EtcdError`s (sent `Unknown`); the spec says some code. A wrapped context error (`errors.Is` true for a non-context value) is not specified: no caller returns one.
 -/

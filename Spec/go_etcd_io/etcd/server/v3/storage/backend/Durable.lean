@@ -19,13 +19,25 @@ The laws that tie 4a's file vocabulary to 4c's (`Spec/go_etcd_io/bbolt/Api.lean`
   restart finds a committed image, whose meaning the server's invariant attached at its commit),
   2e's `memberDisk`, 3c's item 4 (a session's writes land in one commit).
 
-The next generation's `beFile` is the same opaque predicate (it takes no heap); its realization
-over 4c's `fileHolds` at the new generation is part of the gap below.
+The next generation's `beFile` must be at the next generation's heap; see the gap below.
 
-Recorded gap: the realizations of `beFile`, `beHist`, `isBackend` and the sessions hold 4c's
-resources, which carry `[HasExt osFsExt]`; at integration those predicates and the specs over them
-gain the binder inside their statements (PRINCIPLES, "An instance binder a statement must carry goes
-inside the statement"), as here.
+Recorded gap (integration, 2026-11-09; checked with `#check`): the gap is wider than the
+extension binder. `Api.lean`'s opaque predicates are declared under section variables their
+`iprop(True)` bodies do not use, so Lean drops them: `#check @beFile` is `{GF} → GoString → Option
+Image → IProp GF`, with **no `HeapGS` and no `HasExt osFsExt`** (likewise `isBackend`, `beHist`,
+`beCur`, `beSess`, ...). None of them can be realized over the heap (a points-to needs `hG`) or over
+4c's predicates, and `beCrash`'s conclusion cannot name the next generation's heap. Not fixable in
+this file (the predicates are `Api.lean`'s). The fix, in `Api.lean`:
+1. every opaque resource predicate takes `[GooseSemantics] [GooseInterp] [hG : HeapGS HasLC.hasLC
+   GF]` in its own signature (as 4c's `Bbolt.Api`; `GooseExts` is kept already);
+2. `HasExt osFsExt` need **not** be a binder of the backend's predicates or triples: it is a `Prop`
+   class (`Perennial/GooseLang/Lifting.lean`), so a realization over 4c's predicates holds it as
+   `∃ _ : HasExt osFsExt, …` (proof-irrelevant: every instance is the same). Every triple's
+   predicates come from `New`, whose premise `beFile` carries it; only the three laws here, which
+   build `beFile` from bbolt's or OsFs's resources, take the binder (they do);
+3. then `beCrash`'s conclusion becomes `@beFile _ _ _ GF ⟨hG.goose_globalGS, L'⟩ p (some I)` (the
+   next generation's heap, as `Bbolt.boltCrash`'s `fileHolds`), and `beFile_of`/`beFile_none` are
+   unchanged.
 -/
 module
 

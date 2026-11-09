@@ -45,12 +45,12 @@ its view, or, for a key the view lacks, nothing or a value it had before a delet
 (`lingerSingle`). -/
 def concurrentReadTx.UnsafeRange.spec : Prop :=
   ∀ (γ : BeNames) (l : Loc) (F : Fp) (V : Image) (bk : GoInterface) (bi : BktInfo)
-    (ks : GoSlice) (dk : DFrac) (k : GoString) (limit : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ l F V ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ ⌜F (.key bi.name k)⌝ }}
+    (ks : GoSlice) (dk : DFrac) (k : GoString) (limit : w64) (pl : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ l F V ∗ beLive γ l pl ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ ⌜F (.key bi.name k)⌝ }}
     (App (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #ks))
       (Val #slice.nil)) (Val #limit))
   {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗
-      ∃ r, ⌜lingerSingle (V.ents bi.name) k r⌝ ∗ rangeRes kl vl r (beRd γ l F V) }}
+      ∃ r, ⌜lingerSingle (V.ents bi.name) k r⌝ ∗ beRd γ l F V ∗ rangeRes kl vl r (beLive γ l pl) }}
 
 end spec
 

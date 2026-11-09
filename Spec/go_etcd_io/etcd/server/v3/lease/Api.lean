@@ -117,7 +117,7 @@ loop's time reasoning is the trusted part, `runLoop` being untranslated).
 
 ## Laws
 
-`persistent`, `timeless`, `exclusive`; `isLessor_ne_null`; `lessorState_at`, `lessorAt_agree`, `lessorState_le`,
+`persistent`, `timeless`, `exclusive`; `isLessor_ne_null`, `isLessor_agree`; `lessorState_at`, `lessorAt_agree`, `lessorState_le`,
 `lessorAt_obj`, `lessorAt_minTTL`, `leaseObj_id`, `leaseObj_live`, `leaseObj_agree`,
 `lessorState_bkt`, `lessorState_beOk`, `lessorState_reader`, `lessorReaders_split`, `lessorCkptTok_gate`,
 `expiredCh_recv`, `init`.
@@ -420,6 +420,14 @@ def exclusive.spec : Prop :=
 `restore` dereferences it: 3e's item 1, `req/..._lease.md`, "from 3e"). -/
 def isLessor_ne_null.spec : Prop := ∀ le γ c,
   isLessor (GF := GF) le γ c ⊢ ⌜le ≠ null⌝
+
+/-- One lessor has one ghost name and one configuration (3a's request, integration I5: the
+apply's `lessorOk` and `lessorSt` each name the lessor's `γ`; the realization's `isLessor`
+includes the configuration's fields read-only (`le.minLeaseTTL ↦□ …`, so `c` agrees) and a
+persistent ghost record `le ↦ γ` in a global ghost map from lessors to their names, so `γ`
+agrees). -/
+def isLessor_agree.spec : Prop := ∀ le γ γ' c c',
+  isLessor (GF := GF) le γ c ∗ isLessor le γ' c' ⊢ ⌜γ = γ' ∧ c = c'⌝
 
 /-- The current state is in the history. -/
 def lessorState_at.spec : Prop := ∀ γ n ls,

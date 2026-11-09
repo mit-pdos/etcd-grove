@@ -78,6 +78,15 @@ backend file, a WAL with only its metadata, or nothing new, and a raft node star
 A program that wants to retry must keep its own copy of the right (it cannot: one token per start).
 Not covered: `--force-new-cluster` (`diskCfgOk`'s premise at a member's files), discovery (`bootstrap`'s
 contract: no `DiscoveryCfg`; a scope restriction of `bootstrap.spec`).
+
+**Integration (I4).** The lessor's checkpointer: `SetCheckpointer` takes 3c's `lessorCkptTok le`
+with `ckptOk cp R` at `R := srvStarted s γ id` (the closure's `ensureLeadership` reads fields `start`
+sets) and gives `ckptGate le R`, kept for the apply thread's `Promote`. The compactor's `RevGetter`
+is the store: 3e's `mvccRevTok_of` turns one of the store's reader tokens into the compactor's `Rev`
+token for good (its loop outlives the store); **gap**: `V3compactor.revGetter` is persistent while
+3e's `mvccRevTok` is exclusive (a compactor whose `Run` is called twice runs two loops): requested of
+3e (a persistent `Rev` right once lent: `Rev` reads no storage). The lessor's backend share is 4a's
+open token's (`Lease.beOk`); the stores' names are recorded (`srvMvcc`, `srvLessor`, `srvAuth`).
 -/
 module
 
@@ -114,7 +123,7 @@ def NewServer.spec : Prop :=
       Features.serverGate cfg.ServerFeatureGate' ∗ ⌜ServerStorage.diskOk⌝ ∗
       ⌜V3compactor.bootCfg cfg.AutoCompactionMode' cfg.AutoCompactionRetention' ecfg.autoCompact⌝ ∗
       ⌜raftNodeBootCfg cfg ∧ v3rpcBootCfg cfg ∧ mvccBootCfg cfg⌝ ∗
-      backendBootRes cfg ∗ leaseBootRes cfg ecfg ∗ authBootRes cfg ∗
+      backendBootRes cfg ∗ leaseBootRes cfg ecfg ∗ authBootRes cfg γ ∗
       envUpd γ ecfg ∗ memberStart γ cfg c oid }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.NewServer)) (Val #cfg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);

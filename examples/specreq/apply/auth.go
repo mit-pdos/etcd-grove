@@ -33,7 +33,8 @@ func ReqStaleRevision(lg *zap.Logger, e *raftpb.Entry, ua apply.UberApplier, w w
 // REQ apply/check-txn-auth: the request path's check of a serializable read-only transaction passes
 // with auth disabled, and its error is a permission error otherwise.
 // Users: server/etcdserver/v3_server.go:355 (Txn's doSerialize check).
-// Assumes: as is the member's auth store, read concurrently with the apply thread.
+// Assumes: as is the member's auth store, read concurrently with the apply thread; rt is decoded
+// from gRPC (every RangeEnd nil or non-empty: endsDecoded).
 // Specs: CheckTxnAuth.spec (its premise: a read-only transaction, as 2c's only call), txn's
 // IsTxnReadonly.spec.
 func ReqCheckTxnAuth(as auth.AuthStore, le lease.Lessor, ai *auth.AuthInfo, rt *pb.TxnRequest) {
