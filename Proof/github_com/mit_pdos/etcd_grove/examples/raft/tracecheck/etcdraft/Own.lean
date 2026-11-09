@@ -74,6 +74,15 @@ theorem ownSlice_fullSlice_len {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) 
     iframe H
     ipureintro; exact Int.le_refl _
 
+/-- The empty log, nil (a new message's `Entries`). -/
+theorem logRO_nil : ⊢ logRO (GF := GF) slice.nil [] := by
+  iunfold logRO
+  iexists []
+  ihave #H := ownSlice_nil (V := G.Entry) (GF := GF) DfracDiscarded
+  iframe H
+  iapply BigSepL2.bigSepL2_nil.2
+  ipureintro; trivial
+
 /-- A `*Server` copy being written: `serverRO`'s, with the struct and the `MatchIndex` map owned. -/
 def serverOwn (p : Loc) (v : Server) : IProp GF :=
   iprop(∃ (g : G.Server) (mm : GMap w64 w64), p ↦ g ∗
