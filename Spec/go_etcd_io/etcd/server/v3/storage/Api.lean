@@ -16,8 +16,11 @@ the WAL's model (`storage/wal/Api.lean`) and the snapshotter's (`etcdserver/api/
     segment, `Sync`, `Close`'s fsync (an error is returned and the raft loop or `bootstrap` exits);
   - **after a crash**, the WAL's files hold a prefix of the records written, each record whole or
     torn only at the tail (no record behind a surviving one corrupted, no garbage passing the CRC
-    chain): otherwise `ReadAll` fails with `ErrCRCMismatch` and `bootstrap` exits. The WAL's crash
-    laws (`Wal.walRecs_crash`, `walWriting_crash`) take it;
+    chain): otherwise `ReadAll` fails with `ErrCRCMismatch` and `bootstrap` exits. Among them
+    (verify round, crash pass: R-A8 S2) **a torn tail with no all-zero sector**: OsFs's power loss
+    leaves a dirty byte arbitrary, and `decoder.go`'s `isTornEntry` recognizes a torn tail only by
+    a zeroed sector, reporting `ErrCRCMismatch` otherwise. The WAL's crash laws
+    (`Wal.walRecs_crash`, `walWriting_crash`) take it;
   - the snapshot directory's: creating it; `DBFilePath`'s `ReadDir`; `ReleaseSnapDBs`' `os.Open`
     and `Readdirnames` of it and each `os.Remove` of a db file below the index (a failure other than
     a missing file is only logged); `SaveDBFrom`'s fsync of the directory after its rename, or when

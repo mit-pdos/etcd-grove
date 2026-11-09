@@ -42,13 +42,14 @@ store's invariant of `Api.lean`'s header.
   `newTokenProviderJWT.spec`); the instances `simple_provider`, `nop_provider`.
 * The simple provider: `simpleAt t γ R` (persistent; its waiter gated on `R`: its lock `simpleTokensMu` and invariant: the map
   `simpleTokens`, each token `tok ↦ u` with `tokenUser γ tok u`, its index part at most the bound
-  of `simpleFrom`; the keeper field, `nil` with the provider's reserved `threadTok`, or a running
-  keeper with its stop right), `simpleFrom t n` (exclusive), `simpleFresh t tok` (exclusive: `tok`
+  of `simpleFrom`; the keeper field, `nil`, or a running
+  keeper with its stop right; verify-round: no reserved `threadTok`, the keeper goroutine runs on
+  its fork's own), `simpleFrom t n` (exclusive), `simpleFresh t tok` (exclusive: `tok`
   is not in the map and no one else may add it).
 * The TTL keeper: `keeperAt tm t` (persistent: `tm`'s channels and ticker resolution, its `mu` is
   `&t.simpleTokensMu`, its delete function `t`'s), `keeperTokens tm S` (exclusive, held under that
-  lock: the `tokens` map's keys are `S`), `keeperRun tm` (exclusive: the goroutine's right, with
-  the provider's `threadTok`, given back through `donec`'s close), `keeperStop tm` (exclusive: the
+  lock: the `tokens` map's keys are `S`), `keeperRun tm` (exclusive: the goroutine's right; `donec`'s
+  close carries no token, verify-round), `keeperStop tm` (exclusive: the
   right to stop it once).
 * `permKeysAt ps ks` (persistent): the `*authpb.Permission`s `ps` have the keys `ks`, read-only.
 -/

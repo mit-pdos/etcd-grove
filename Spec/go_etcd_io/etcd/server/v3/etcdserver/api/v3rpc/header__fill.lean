@@ -3,9 +3,10 @@
 
 Users: every handler of this package (`hdr.fill(resp.Header)`), `headerFillingRangeStream.Send`, the maintenance snapshots.
 
-Proof sketch: the getters of the server (2d: `Term`, `Leader`; 3e: `KV().Rev()`), field writes; a `nil` header panics (excluded: `respHeaderOwn` is of a non-nil pointer).
+Proof sketch: the getters of the server (2d: `Term`, `Leader`; 3e: `KV().Rev()`, `KV()` through `isServer_kv`'s `s.kv ↦□ w` and `EtcdServer.KV.spec` at it), field writes; a `nil` header panics (excluded: `respHeaderOwn` is of a non-nil pointer).
 
 Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/header__fill.lean`: over W0's `respHeaderOwn`.
+verify-round relay (server-core's RR request 3): `KV()` through `isServer_kv` (2c's `KV.spec` now takes the points-to).
 
 Margin: the ids, term and leader are not modelled (W0's replies relate only the revision).
 -/

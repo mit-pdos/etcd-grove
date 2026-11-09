@@ -3,9 +3,10 @@
 
 **Users.** `tp_enable`, through `AuthEnable`, `Recover`, `NewAuthStore`.
 
-**Proof sketch.** `simpleTokensMu.Lock()`; a keeper: nothing; a non-positive TTL replaced by `simpleTokenTTLDefault` (the package's, `isPkgInit`); a fresh keeper (`keeperAt`, its tokens empty) and `go keeper.run()` (its spec, with `keeperRun`: the provider's reserved `threadTok`, from the invariant); `Unlock`.
+**Proof sketch.** `simpleTokensMu.Lock()`; a keeper: nothing; a non-positive TTL replaced by `simpleTokenTTLDefault` (the package's, `isPkgInit`); a fresh keeper (`keeperAt`, its tokens empty) and `go keeper.run()` (`wp_fork`: the goroutine on its fork's own token; its spec, with `keeperRun`); `Unlock`.
 
 **Changes.** New (round 1, review S6: per (type, method); the old proofs' lemmas in `Proof/.../auth/TokenSimple*.lean`, `TokenKeeperRun.lean`, `TokenNop.lean`, `PermSorter.lean`).
+Verify-round (server-core's RR4 request): no reserved provider token for the keeper; the fork's own.
 
 **Margin.** None.
 -/

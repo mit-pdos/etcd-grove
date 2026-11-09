@@ -123,9 +123,9 @@ Changes: re-review (RR-server-core RR4): takes the caller's `threadTok` and give
 paths. The callees that need one take it and return it: the getters, `NewUberApplier`,
 `lease.NewLessor` (re-review RR4: its run loop, `go l.runLoop()` at `lessor.go:245`,
 runs on its fork's own token, so `NewLessor` returns the caller's and `lessor.Stop` gives none
-back), `auth.NewTokenProvider` (requested of lease-auth: its success branch keeps the token for
-the TTL keeper, which `enable` starts with `go`, a fork of its own; until then this return is not
-provable on the success path). Re-review (RR2): the getters over `srvFields` (step 2).
+back). `auth.NewTokenProvider` takes no token (verify-round, lease-auth's relay: the TTL keeper,
+which `enable` starts with `go`, runs on its fork's own), so the caller's stays with `NewServer` on
+every path. Re-review (RR2): the getters over `srvFields` (step 2).
 
 Changes: re-review (R-A7 N1): the compactor's `revGetter` (the store's `Rev`) returns a revision `≥ 1` (3e's store starts at `currentRev = 1` and never lowers it: its `Rev` contract), which `compactable`'s contract now asks (`rev ≠ 0`, server-boot's).
 -/

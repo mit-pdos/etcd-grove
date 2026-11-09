@@ -2089,6 +2089,23 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   and a directory fsync.
 - **Status.** Recorded only.
 
+## The crash frame cannot take client-owned durable state out of an invariant opened inside atomic updates (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's crash frame (`CrashAdequacy.lean`) is proved at boot and gets only invariants
+  and its own closure. A program keeps its durable resources (etcd's `EtcdServer.diskState`; 4a's
+  `beHist`, 4c's `boltState`, the WAL's and the snapshotter's) in an invariant that the running code
+  opens inside callees' atomic updates (the WAL's `Save`, `SaveDBFrom`, bbolt commits). To apply a crash
+  law, the frame must take those resources out of the invariant; an accessor fired inside a callee's
+  atomic update cannot rule out that the frame already took them, since that needs the generation's
+  `notCrashed`, which only a thread's step owns (through the state interpretation).
+- **Local workaround.** The specs-only branch states the crash laws (`disk_crash`, `beCrash`,
+  `boltCrash`, ...) over resources held in the invariant and records the extraction as a gap
+  (`notes/specs-only/verify/repair2-crash.md`, decision 1; `top.md` K6).
+- **Proposed (general; record only, nothing changed in Perennial).** A crash-aware invariant: opened only
+  at a thread's step (which refutes `crashed`), and handed whole to the crash frame. Alternative: durable
+  extension operations whose atomic updates admit a `crashed` answer, refuted at their own step.
+- **Status.** Recorded only.
+
 ## No specs of `fmt.Fprintf` / `strings.Builder` (2026-11-09, branch `specs-only`)
 
 - **The gap.** raft's `DescribeConfChange` and raftpb's `ConfChangesToString` build strings with a

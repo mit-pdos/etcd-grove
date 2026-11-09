@@ -8,6 +8,7 @@ Proof sketch: reads the member's raft status, backend sizes, configuration, vers
 
 Changes: new (the inner method; the old specs were of the wrapper's: `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/authMaintenanceServer__Status.lean`).
 verify-round (server-core's request): the server's getters and methods through 2c's `EtcdServer.{CommittedIndex,Backend,Config,ClusterVersion}.spec`.
+verify-round relay (server-core's RR request 3): `Config.spec` is over `isServer s γ` (re-review RR2: `start` writes two `Cfg` fields), which `maintAt` holds.
 
 Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
 

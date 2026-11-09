@@ -6,7 +6,7 @@
 `bootstrappedStorage` → `bootstrappedBackend` → `backend.Close`.
 
 **Proof sketch.** The record's read-only path to the backend (`bootBackendAt`), then the backend's
-`Close` (4a) with its whole open token (`ServerStorage.beOpen`): the file at rest.
+`Close` (4a) with its whole open token (`beClosable`): the file at rest.
 
 **Changes** (from `specs-ref`'s `bootstrappedServer__Close.lean`, R-D1: `bOpen γ 1`): the backend's token by its
 provisional name; the closed file given back (a closer gives back: PRINCIPLES).

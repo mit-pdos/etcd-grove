@@ -3,9 +3,10 @@
 
 **Users.** `tp_disable`, through `AuthDisable`, `Close`.
 
-**Proof sketch.** `simpleTokensMu.Lock()`; the keeper taken (with its stop right) and set `nil`, the map replaced by an empty one (every token dropped); `Unlock`; a keeper: `stop()` (its spec: the goroutine done, its `threadTok` back into the invariant).
+**Proof sketch.** `simpleTokensMu.Lock()`; the keeper taken (with its stop right) and set `nil`, the map replaced by an empty one (every token dropped); `Unlock`; a keeper: `stop()` (its spec: the goroutine done).
 
 **Changes.** New (round 1, review S6: per (type, method); the old proofs' lemmas in `Proof/.../auth/TokenSimple*.lean`, `TokenKeeperRun.lean`, `TokenNop.lean`, `PermSorter.lean`).
+Verify-round (server-core's RR4 request): no token goes back into the invariant (`stop` returns none).
 
 **Margin.** None.
 -/

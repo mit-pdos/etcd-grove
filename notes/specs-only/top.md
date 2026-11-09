@@ -140,9 +140,19 @@ configured), an alarm's activation, a member's publication. Nothing else changes
 
 **K6 — the history is the committed log's**: snapshots, restores, restarts and membership changes
 continue the same `σ`; an answered step is durable on a quorum (no crash transition in the model).
-After a crash too, under the adequacy theorem's crash rule (`EtcdServer.crashGone`, `diskState`) and
-its environment premise `crashScope` (2e's; the user's decision): until raft's crash transition
-exists, K6 is proved for graceful stops (`HardStop`/`Stop`) only.
+After a crash too, at any point of a member's life: the program keeps each member's
+`EtcdServer.diskState` in its crash invariant and its crash frame applies `EtcdServer.disk_crash`
+(2e's one crash law per disk, from the old generation's `crashed` and OsFs's `crashRest`, over R1's
+`Raft.raftState_gen`/`raftState_crash`, the WAL's, the snapshotter's and 4a's crash laws), and the
+cluster's resources serve every generation (`EtcdModel.etcdState_gen`, `etcdLb_gen`, `envUpd_gen`,
+`Raft.global`, `EtcdServer.srvNet_gen`, `Rafthttp.peerAddr_gen`). Its environment premise (the
+user's decision, open question 2.8): every crash leaves each member's WAL so that `Open` + `ReadAll`
+returns records meeting `Wal.Recs.crashScopeOk` (at most one conf-change entry above the stored
+commit, `issues/raft-commit-lost-with-entries-kept.md`; no snapshot record above it), the case
+`disk_crash`'s `crashOutOfScope` names. Two recorded gaps: a crash inside the backend's open
+(`backend.New` takes the file in its precondition), and how the crash frame takes `diskState` out
+of an invariant the running server opens inside callees' atomic updates (Perennial: a crash-aware
+invariant, `notes/perennial-changes.md`).
 
 **K7 — the resource's laws** (2c/2d realize `etcdState` and `etcdLb` from the committed log's
 states): `etcdState_timeless`, `etcdState_excl`, `etcdLb_persistent`, `etcdLb_timeless`,

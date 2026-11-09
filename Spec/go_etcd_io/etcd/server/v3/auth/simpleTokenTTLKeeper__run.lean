@@ -3,9 +3,10 @@
 
 **Users.** `tokenSimple.enable` (`go tm.run()`).
 
-**Proof sketch.** `time.NewTicker(simpleTokenTTLResolution)` (the package's, positive: `isPkgInit`); the loop: a tick: `time.Now()`, under `tm.mu` (`&t.simpleTokensMu`: `keeperTokens` and the provider's map) every expired token deleted (`deleteTokenFunc`, the provider's map; the keeper's map); `stopc`: return; the deferred `Stop` and `close(donec)` (its payload: the goroutine's `threadTok`, which `stop` gives back to the provider).
+**Proof sketch.** `time.NewTicker(simpleTokenTTLResolution)` (the package's, positive: `isPkgInit`); the loop: a tick: `time.Now()`, under `tm.mu` (`&t.simpleTokensMu`: `keeperTokens` and the provider's map) every expired token deleted (`deleteTokenFunc`, the provider's map; the keeper's map); `stopc`: return; the deferred `Stop` and `close(donec)` (no payload: the goroutine ends with the fork's own token, framed by `wp_fork`).
 
 **Changes.** New (round 1, review S6: per (type, method); the old proofs' lemmas in `Proof/.../auth/TokenSimple*.lean`, `TokenKeeperRun.lean`, `TokenNop.lean`, `PermSorter.lean`).
+Verify-round (server-core's RR4 request): `donec`'s close carries no `threadTok`.
 
 **Margin.** None.
 -/

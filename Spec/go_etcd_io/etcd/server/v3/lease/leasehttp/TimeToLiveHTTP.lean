@@ -30,8 +30,19 @@ members'"), hence by the server's top-level specs that reach the forwarded `Leas
 deriving it would need the peer port's protocol to fix the lease path too: requested of
 server-boot (`raftCompat`, or a `leaseCompat` beside it, in the report).
 
+**The handler's view** (`ltlView url id found`, on the `200` and the `404` replies). The handler
+waits for its server's `ApplyWait` (`h.waitch()`, `http.go:115-120`), then looks the lease up in
+its lessor (`:124`): `404` if absent, else a `200` (or `500` if demoted: another error). So the
+answer is the lessor's table at the moment of the lookup, at or past any view the member gave
+before. Stated per member through `leaseURLOf` (the URL is that member's handler), with no premise
+here: a client that cannot show `leaseURLOf` gets nothing from it.
+
 **Changes.** New (second pass, server-core's request): the old tree had no spec (2c's
 `leaseTimeToLive` was names-only).
+Changes: verify-round (server-core's RR request 2): the success and `ErrLeaseNotFound` replies also
+give `ltlView url (sint.Z id) found` (found: `true`, `false`), the serving member's lessor view,
+which 2c's `leaseTimeToLive` needs for `srvLeaseFact`'s gated row (under `soleMember`, the leader's
+URL is the member's own: `leaseURLOf`).
 **Margin.** The TTLs and keys (any); the other errors' kinds.
 -/
 module
@@ -56,7 +67,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.leasehttp.Assumptions]
 
 /-- **Asks the leader for lease `id`'s TTL**: the decoded reply (owned, canonical, of lease `id`,
-its header set), the lessor's `ErrLeaseNotFound`, or another error. -/
+its header set), the lessor's `ErrLeaseNotFound`, or another error; the first two with the
+handler's view (`ltlView`). -/
 def TimeToLiveHTTP.spec : Prop :=
   ∀ (ctx : GoInterface) (id : w64) (keys : Bool) (url : GoString) (rt : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp ∗
@@ -66,8 +78,9 @@ def TimeToLiveHTTP.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ c : Proto.Content,
           Proto.msgAt go_etcd_io.etcd.server.v3.lease.leasepb.LeaseInternalResponse.ty resp
-            (DFrac.own 1) c ∗ ⌜Proto.norm c = c ∧ ltlReply c (sint.Z id)⌝) ∨
-       (⌜resp = null⌝ ∗ Lease.errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err) ∨
+            (DFrac.own 1) c ∗ ⌜Proto.norm c = c ∧ ltlReply c (sint.Z id)⌝ ∗ ltlView url (sint.Z id) true) ∨
+       (⌜resp = null⌝ ∗ Lease.errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗
+          ltlView url (sint.Z id) false) ∨
        (⌜resp = null⌝ ∗ ∃ t, Lease.errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound t ∗
           errIsNot err t)) }}
 

@@ -39,7 +39,10 @@ Streams: `rangeStreamSpec γ` (this file), `kaSpec γ` (keep-alives: nothing mod
 ## Round 1 repairs (in brief)
 
 * The contract is per member (`etcdContract γ ep`): the lease requests carry and give W0's
-  `leaseViewLb γ ep` (`leaseFact`); `servesAt_addr` at `ep`.
+  `leaseViewLb γ ep` (`leaseFact`); `servesAt_addr` at `ep`. Verify-round relay: `leaseFact` is 2c's
+  `srvLeaseFact` (an abbreviation) and the caller's bound 2c's `srvLeaseLbOpt`; the lease handlers
+  and `Server.spec` meet the contract only for the endpoint `ep` the member serves (2c's
+  `srvAt s γ ep`, which `Server.spec` takes: introduced by the serving start, requested of 2e).
 * The first way fires only answers that are not a token or learner refusal (`firedAns`): those go
   back unfired (1c's `AttemptTriple`); 2c must not fire them at apply.
 * A definite error's code is pinned (`code e`, or `Unknown` for the two `EtcdError`s).
@@ -324,30 +327,17 @@ def etcdAU (γ : Cluster) (p : Principal) (rq : Req) (rep : Bool) (lo : Nat)
         <{ ∀∀ (σ' : State) (res : Resp), ⌜Step p rq σ σ' res lo⌝ ∗ etcdState γ σ',
            COMM Q σ σ' res }>)
 
-/-- **The contract of etcd's unary method `m`** (see the header). -/
-def leaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ σ' : State) (res : Resp) :
-    IProp GF :=
-  match rq with
-  | .leaseGrant .. =>
-      match res with
-      | .ok _ => leaseViewLb γ ep (σ'.leaseTables.length - 1)
-      | _ => iprop(True)
-  -- `Leases` answers from the member's own table (`:737-738`); a refusal (`checkLeaseLeases`'s
-  -- permission error) tells nothing (recheck RR-1: as 1c's `viaFact`)
-  | .leaseLeases =>
-      match vi with
-      | some i => iprop(⌜¬ leaseAnsRes res⌝ ∨ ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j)
-      | none => iprop(True)
-  -- re-review (R-A2 N1): a follower forwards `LeaseTimeToLive` to the leader (`v3_server.go:636-676`),
-  -- so the answer is `ep`'s own lessor's only in a cluster that never had another member (recheck
-  -- RR-1, a gated row: W0's `soleMember γ`; the member then leads, or forwards to its own peer URLs,
-  -- whose `leasehttp` handler reads the same lessor, `leasehttp/http.go:109-160`)
-  | .leaseTimeToLive .. =>
-      match vi with
-      | some i => iprop(⌜¬ leaseAnsRes res⌝ ∨
-          (soleMember γ -∗ ∃ j, ⌜i ≤ j ∧ σ.leaseAnsAt j rq res⌝ ∗ leaseViewLb γ ep j))
-      | none => iprop(True)
-  | _ => iprop(True)
+/-- **The lease requests' fact** (the lease view a member's answer gives): 2c's
+`EtcdServer.srvLeaseFact`, identified (verify-round relay, server-core's RR request: one definition,
+as `firedAns` is `srvFiredAns`). Its rows: a grant's success gives `ep`'s view of the table after
+it; `Leases` (`:737-738`, the member's own table) an answer read from a table `j ≥ i` with its view,
+or a refusal that tells nothing (`checkLeaseLeases`' permission error); `TimeToLive` the same gated
+on W0's `soleMember γ` (re-review R-A2 N1, recheck RR-1: a follower forwards to the leader,
+`v3_server.go:636-676`, which in a cluster that never had another member is the member itself, or
+its own peer URLs' `leasehttp` handler over the same lessor, `leasehttp/http.go:109-160`). -/
+abbrev leaseFact (γ : Cluster) (ep : GoString) (rq : Req) (vi : Option Nat) (σ σ' : State)
+    (res : Resp) : IProp GF :=
+  srvLeaseFact γ ep rq vi σ σ' res
 
 /-- The answers a member sends fired (the first way): not a token refusal nor the learner's (which
 1c's `AttemptTriple` needs back unfired, the second way). 2c's `srvFiredAns` (integration X: the same
@@ -362,7 +352,7 @@ def etcdUnary (γ : Cluster) (ep : GoString) (m : GoString) : UnarySpec (GF := G
     ⌜reqModels m c rq ∧ (rq.isRead = true → rep = true) ∧ (∀ r ph, rq = .compact r ph → r ≠ 0)⌝ ∗
     mdPrin γ md who ∗ authLb γ lo ∗
     reqRight γ rq ∗ etcdAU γ who rq rep lo Q ∗
-    (match vi with | some i => leaseViewLb γ ep i | none => iprop(True)) ∗
+    srvLeaseLbOpt γ ep vi ∗
     ((∀ (σ σ' : State) (res : Resp) (o : Outcome), ⌜firedAns res ∧ ansOutcome m rq res o⌝ -∗
         Q σ σ' res -∗ leaseFact γ ep rq vi σ σ' res -∗ Φ o) ∧
      (etcdAU γ who rq rep lo Q -∗ reqRight γ rq -∗ ∀ (e : EtcdErr) (code : w32),
