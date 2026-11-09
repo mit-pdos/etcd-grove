@@ -831,6 +831,35 @@ theorem sim_appResp (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server)
     simp only [hne, ↓reduceIte]
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hjs), hold j hj]
 
+/-! ### Quorums -/
+
+theorem setIds_mk_perm (l : List Etcdraft.ID) (h : l.Nodup) : (Etcdraft.SetIds.mk l).Perm l := by
+  apply (List.perm_ext_iff_of_nodup ?_ h).2
+  · intro x; exact setIds_mk_mem l x
+  · exact (setIds_mk_sorted l).imp (fun h => Nat.ne_of_lt h)
+
+theorem confAbs_perm (C : List w64) (h : C.Nodup) : (confAbs C).Perm (C.map idAbs) :=
+  setIds_mk_perm _ (h.map (f := idAbs) (fun _ _ hab e => hab (idAbs_inj.1 e)))
+
+theorem confAbs_length (C : List w64) (h : C.Nodup) : (confAbs C).length = C.length := by
+  rw [(confAbs_perm C h).length_eq, List.length_map]
+
+theorem confAbs_filter_length (C : List w64) (h : C.Nodup) (P : Etcdraft.ID → Bool) :
+    ((confAbs C).filter P).length = (C.filter (fun j => P (idAbs j))).length := by
+  rw [((confAbs_perm C h).filter P).length_eq, List.filter_map, List.length_map]
+  rfl
+
+/-- The specification's `isQuorum` of a part of the bootstrap configuration: a majority. -/
+theorem isQuorum_filter_confAbs (C : List w64) (h : C.Nodup) (P : Etcdraft.ID → Bool) :
+    Etcdraft.isQuorum ((confAbs C).filter P) (confAbs C) =
+      decide ((C.filter (fun j => P (idAbs j))).length * 2 > C.length) := by
+  unfold Etcdraft.isQuorum Etcdraft.SetIds.subset
+  rw [confAbs_filter_length C h, confAbs_length C h]
+  have : ((confAbs C).filter P).all (fun id => (confAbs C).contains id) = true := by
+    rw [List.all_eq_true]; intro x hx
+    exact List.elem_iff.2 (List.mem_filter.1 hx).1
+  rw [this, Bool.true_and]
+
 end TraceSim
 
 end EtcdGrove
