@@ -485,6 +485,32 @@ theorem bootClause_step (C : List w64) (L : List TraceEv) (e : TraceEv) (ln : Et
       exact hiff
     · exact lastOf_snoc_other L e _ o (by rw [hnid]; exact fun h => hii (decStr_inj h).symm) hlo
 
+/-- (Q13) A node that has logged no non-bootstrap line is `Unbooted`. -/
+theorem unbooted_of_not_booted (L : List TraceEv) (i : Etcdraft.ID) (h : ¬ booted L i) : Unbooted L i := by
+  intro x hx ln hp hn
+  cases hb : Etcdraft.isBootstrapName ln.ev.name
+  · exact absurd ⟨x, hx, ln, hp, hn, hb⟩ h
+  · rfl
+
+/-- (Q13) A booted node's line allocates no log (`NewTrace` flags no line of it as a bootstrap
+line). -/
+theorem evBootLogOk_of_booted (L : List TraceEv) (e : TraceEv) (id : w64) (hnid : e.nid = decStr id)
+    (hb : booted L (idAbs id)) : EvBootLogOk L e := by
+  intro _ hun
+  exfalso
+  have hu := hun (idAbs id) (by rw [hnid]; exact parseID_decStr id)
+  obtain ⟨x, hx, ln, hp, hn, hbl⟩ := hb
+  have := hu x hx ln hp hn
+  rw [hbl] at this; cases this
+
+/-- (Q13) An unbooted node's line, by its id's string. -/
+theorem unbooted_nid (L : List TraceEv) (e : TraceEv) (id : w64) (hnid : e.nid = decStr id)
+    (hb : ¬ booted L (idAbs id)) : ∀ i, Etcdraft.parseID (gsStr e.nid) = some i → Unbooted L i := by
+  intro i hi
+  rw [hnid, parseID_decStr id] at hi
+  cases hi
+  exact unbooted_of_not_booted L _ hb
+
 end pure
 
 end EtcdGrove
@@ -508,7 +534,7 @@ theorem keep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ P ∗ 
 
 /-- **The global step's law** (`trCap_fire.statement`). -/
 theorem trCap_fire : trCap_fire.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Φ' Λ Λ' R' hps hΛ hAsc
+  intro γd γ r id c tl K E Φ Φ' Λ Λ' R' hps hΛ hK hOk
   iintro ⟨Hcap, #Htl, Hfx⟩
   iunfold FxPresU at Hfx
   iunfold trCap at Hcap
@@ -598,7 +624,8 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
       iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq, hsrc',
-        bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC, ascii_snoc L e hasc (hAsc e HE)⟩
+        bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC,
+        simEvents_snoc K hK L e hasc (hOk e HE) (evBootLogOk_of_name L e hname)⟩
     imodintro
     isplitr [HR]
     rotate_left
@@ -677,7 +704,7 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
 
 /-- **The global step's law for a `Ready` line** (`trCap_fire_ready.statement`). -/
 theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Φ' Λ Λ' hps hΛ hAsc
+  intro γd γ r id c tl K E Φ Φ' Λ Λ' hps hΛ hK hOk
   iintro ⟨Hcap, #Htl⟩
   ihave Hfx := fxPresReady (GF := GF) γ id E Φ
   iunfold FxPresReady at Hfx
@@ -772,7 +799,8 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
       iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc',
-        bootClause_step C L e _ id Bt hpl rfl hnid1 (booted_snoc_self L e _ _ hpl rfl (by simp [evConv, hname1']; rfl)) hbtC, ascii_snoc L e hasc (hAsc e HE)⟩
+        bootClause_step C L e _ id Bt hpl rfl hnid1 (booted_snoc_self L e _ _ hpl rfl (by simp [evConv, hname1']; rfl)) hbtC,
+        simEvents_snoc K hK L e hasc (hOk e HE) (evBootLogOk_of_name L e (by rw [hname1']; rfl))⟩
     imodintro
     isplitl [Hnode Hbt]
     · iunfold trCapB
@@ -796,7 +824,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
 
 /-- **The global step's law for a receive line** (`trCap_fire_recv.statement`). -/
 theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
-  intro γd γ r id c tl E k m Mid Φ Φ' Λ Λ' hps hΛ hAsc
+  intro γd γ r id c tl K E k m Mid Φ Φ' Λ Λ' hps hΛ hK hOk
   iintro ⟨Hcap, #Htl, Hfx, ⟨%tn0, #Hdir0, Htok⟩⟩
   iunfold FxPresR at Hfx
   icases Hfx with #Hfx
@@ -907,7 +935,8 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
         A.insert id (toC σ.server a', P ++ P'), B.delete k, phP ++ Pph, phM, Bt.insert id (true, some e)
       iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
-      exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc', bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC, ascii_snoc L e hasc (hAsc e HE)⟩
+      exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc', bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC,
+        simEvents_snoc K hK L e hasc (hOk e HE) (evBootLogOk_of_name L e hname)⟩
     imodintro
     iunfold trCapB
     iexists tn, C, tl, toC σ.server a', P ++ P'
@@ -921,7 +950,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
 
 /-- **The global step's law for a bootstrap line** (`trCap_fire_boot.statement`). -/
 theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Λ Λ' hE hΛ hAsc
+  intro γd γ r id c tl K E Φ Λ Λ' hE hΛ hK hOk
   iintro ⟨Hcap, #Htl⟩
   iunfold trCapB at Hcap
   icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
@@ -993,7 +1022,9 @@ theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
       iexists L ++ [e], σ, A, B, phP, phM, Bt.insert id (false, some e)
       iunfold traceFrag; iframe HL HA HB HBt Hfσ
       ipureintro
-      exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbt', ascii_snoc L e hasc (hAsc e HE)⟩
+      exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbt',
+        simEvents_snoc_boot K hK L e hasc (hOk e HE) (by rw [parseLine_ev _ _ _ hpl] at hbl; exact hbl)
+          (unbooted_nid L e id hnid hnb)⟩
     imodintro
     iunfold trCapB
     iexists tn, C, tl, cs, P
@@ -1013,8 +1044,7 @@ theorem booted_snoc_mono (L : List TraceEv) (e : TraceEv) (j : Etcdraft.ID) (h :
 
 /-- **The law of a `BecomeFollower` line after the node's segment** (`trCap_fire_bf.statement`). -/
 theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
-  intro γd γ r id c tl s Φ Φ' Λ Λ' hps hΛ
-  have hAsc : ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.Ascii e := fun e he => nodeEvOf_ascii _ _ _ _ e he
+  intro γd γ r id c tl K s Φ Φ' Λ Λ' hps hΛ hK hOk
   iintro ⟨Hcap, #Htl, Hfx⟩
   iunfold FxPresBF at Hfx
   icases Hfx with #Hfx
@@ -1108,7 +1138,8 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
         iexists L ++ [e], σ, A, B, phP, phM, Bt.insert id (true, some e)
         iunfold traceFrag; iframe HL HA HB HBt Hfσ
         ipureintro
-        exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hBt', ascii_snoc L e hasc (hAsc e HE)⟩
+        exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hBt',
+          simEvents_snoc K hK L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid1 hbooted)⟩
       imodintro
       iunfold trCapB
       iexists tn, C, tl, cs, P
@@ -1146,7 +1177,8 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
           A.insert id (toC σ.server (bfSrv (σ.s (idAbs id))), P ++ []), B, phP, phM, Bt.insert id (true, some e)
         iunfold traceFrag; iframe HL HA HB HBt Hfσ'
         ipureintro
-        exact ⟨hrun', hsrvN, hA', hAn', hPb', hMb, hpv, hcq, hsrc', hBt', ascii_snoc L e hasc (hAsc e HE)⟩
+        exact ⟨hrun', hsrvN, hA', hAn', hPb', hMb, hpv, hcq, hsrc', hBt',
+          simEvents_snoc K hK L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid1 hbooted)⟩
       imodintro
       iunfold trCapB
       iexists tn, C, tl, toC σ.server (bfSrv (σ.s (idAbs id))), P ++ []
@@ -1160,7 +1192,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
 
 /-- **The law of a booted node's line** (`trCap_fire_booted.statement`). -/
 theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Φ' Λ Λ' R' hps hΛ hAsc
+  intro γd γ r id c tl K E Φ Φ' Λ Λ' R' hps hΛ hK hOk
   iintro ⟨Hcap, #Htl, Hfx⟩
   iunfold FxPresU at Hfx
   iunfold trCapB at Hcap
@@ -1252,7 +1284,8 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
       iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq, hsrc',
-        bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_mono L e _ hbooted) hbtC, ascii_snoc L e hasc (hAsc e HE)⟩
+        bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_mono L e _ hbooted) hbtC,
+        simEvents_snoc K hK L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid hbooted)⟩
     imodintro
     isplitr [HR]
     rotate_left
@@ -1270,15 +1303,15 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
 
 /-- **The unified law** (`trCap_fire_any.statement`): by the flag, `trCap_fire` or `trCap_fire_booted`. -/
 theorem trCap_fire_any : trCap_fire_any.statement (GF := GF) := by
-  intro γd γ r id c tl E b Φ Φ' Λ Λ' R' hps hnb hΛ hAsc
+  intro γd γ r id c tl K E b Φ Φ' Λ Λ' R' hps hnb hΛ hK hOk
   cases b with
-  | true => exact trCap_fire_booted γd γ r id c tl E Φ Φ' Λ Λ' R' hps hΛ hAsc
+  | true => exact trCap_fire_booted γd γ r id c tl K E Φ Φ' Λ Λ' R' hps hΛ hK hOk
   | false =>
     have hps' : PhaseStep id c E Φ Φ' := by
       intro C cs P hΦ hc e he
       obtain ⟨hnid, -, hall⟩ := hps C cs P hΦ hc e he
       exact ⟨hnid, hnb rfl e he, hall⟩
-    refine Entails.trans ?_ (trCap_fire γd γ r id c tl E Φ Φ' Λ Λ' R' hps' hΛ hAsc)
+    refine Entails.trans ?_ (trCap_fire γd γ r id c tl K E Φ Φ' Λ Λ' R' hps' hΛ hK hOk)
     iintro ⟨H, #Hl, Hfx⟩
     iframe Hl Hfx
     iapply trCapB_trCap
@@ -1374,7 +1407,8 @@ theorem trCapB_hookGate (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64
     (tl0 : GoInterface) (E : TraceEv → Prop) (b : Bool)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop) (R' : IProp GF)
     (hps : PhaseStepB id c E Φ Φ') (hnb : b = false → ∀ e, E e → Etcdraft.isBootstrapName (gsStr e.name) = false)
-    (hΛ : ∀ e, E e → Λ' (some e)) (hAsc : ∀ e, E e → TraceEv.Ascii e) (hok : tr = none → TraceLoggerOk tl0) :
+    (hΛ : ∀ e, E e → Λ' (some e)) (K : Nat) (hOk : tr.isSome → K ≤ 2 ^ 61 ∧ ∀ e, E e → TraceEv.Ok K e)
+    (hok : tr = none → TraceLoggerOk tl0) :
     (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id c b Φ Λ ∗ FxPresUT tr γ id E Φ Φ' R' : IProp GF) ⊢
       HookGate tr r E iprop(trCapB tr γ r id c true Φ' Λ' ∗ R') := by
   cases tr with
@@ -1402,7 +1436,8 @@ theorem trCapB_hookGate (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64
     iexists tl
     isplitr
     · iexact Htl
-    iapply trCap_fire_any γd γ r id c tl E b Φ Φ' Λ Λ' R' hps hnb hΛ hAsc
+    obtain ⟨hK, hOk'⟩ := hOk rfl
+    iapply trCap_fire_any γd γ r id c tl K E b Φ Φ' Λ Λ' R' hps hnb hΛ hK hOk'
     iframe Hcap Htl Hfx
 
 /-- The facts a line keeps, without a ghost update, as the update's form (`fxPres_upd`, either mode). -/
@@ -1453,7 +1488,10 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
     (tl0 : GoInterface) (s : NState) (b : Bool)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop)
     (hbf : b = true → PhaseStepBF id c s Φ Φ' Λ) (hb0 : b = false → ∀ C cs P, Φ C cs P → Φ' C cs P)
-    (hΛ : ∀ e, NodeEvOf (W64 2) id s c e → Λ' (some e)) (hok : tr = none → TraceLoggerOk tl0) :
+    (hΛ : ∀ e, NodeEvOf (W64 2) id s c e → Λ' (some e)) (K : Nat)
+    (hOk : tr.isSome → K ≤ 2 ^ 61 ∧ (b = true → ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.Ok K e) ∧
+      (b = false → ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.OkBoot K e))
+    (hok : tr = none → TraceLoggerOk tl0) :
     (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id c b Φ Λ ∗
         trOwn tr (if b then FxPresBF γ id Φ else iprop(emp)) : IProp GF) ⊢
       HookGate tr r (NodeEvOf (W64 2) id s c) (trCapB tr γ r id c b Φ' Λ') := by
@@ -1474,6 +1512,7 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
     simp only [trOwn]
     iintro ⟨-, Hcap, Hfx⟩
     icases trCapB_logger γd γ r id c b Φ Λ $$ Hcap with ⟨%tl, #Htl, Hcap⟩
+    obtain ⟨hK, hOkT, hOkF⟩ := hOk rfl
     iunfold HookGate
     imodintro
     iexists tl
@@ -1482,7 +1521,7 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
     cases b with
     | true =>
       simp only [↓reduceIte]
-      iapply trCap_fire_bf γd γ r id c tl s Φ Φ' Λ Λ' (hbf rfl) hΛ
+      iapply trCap_fire_bf γd γ r id c tl K s Φ Φ' Λ Λ' (hbf rfl) hΛ hK (hOkT rfl)
       iframe Hcap Htl Hfx
     | false =>
       iclear Hfx
@@ -1491,8 +1530,8 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
       isplitr
       · iintro H
         iapply trCapB_mono (some γd) γ r id c false Φ Φ' Λ' (hb0 rfl) $$ H
-      iapply trCap_fire_boot γd γ r id c tl _ Φ Λ Λ' (fun e he => nodeEvOf_bf_boot id s c e hout he) hΛ
-        (fun e he => nodeEvOf_ascii _ _ _ _ e he)
+      iapply trCap_fire_boot γd γ r id c tl K _ Φ Λ Λ' (fun e he => nodeEvOf_bf_boot id s c e hout he) hΛ
+        hK (hOkF rfl)
       iframe Hcap Htl
 
 end ghost

@@ -10,11 +10,12 @@ bootstrap clause, once every voter's are logged), a run through every line of th
 (`TraceSimGhost.lean`) is its corollary for `TraceAccepts`.
 
 Layer B's exports (2026-11-09): `simInv_end`, what `simInv`'s body gives at the end of a run with the
-recorder's half of the trace (the run `SimRun` of the recorder's `L`, the events ASCII), and
-`simRun_runAccepted`, `mainPure`'s `RunAccepted L` from it and the bootstrap facts. `mainPure`'s other
-hypotheses on the events (`ScopeOk`, `NumsBelow`, `ConfsWithin`, `BootLogsOk`, the event count) are
-not `simInv` clauses: the frozen laws' events give none of them (`notes/trace-validation-plan.md`,
-layer B, "Layer B's exports").
+recorder's half of the trace (the run `SimRun` of the recorder's `L`, and (Q13) `SimEvents L`: the
+events ASCII, in scope (`ScopeOk`), the bootstrap lines' logs (`BootLogsOk`), their numbers below
+`2^61`, their configuration lists within three), and `simRun_runAccepted`, `mainPure`'s
+`RunAccepted L` from it and the bootstrap facts. `tracecheck/MainSim.lean` combines them with
+`mainPure`. Not here: the event count (`L.length < numBound`), bounded by the run's steps
+(the recorder's, outside the simulation), and the bootstrap facts (layer B's bootstrap clause).
 -/
 module
 
@@ -82,12 +83,12 @@ theorem trace_agree_keep (γt : GName) (L1 L2 : List TraceEv) :
 open Iris.BI Iris.ProofMode in
 /-- **The simulation's invariant at the end of a run** (its body, as `Main` holds it once the run is
 over, with the recorder's half of the trace): the trace the simulation ran is the recorder's `L`,
-it runs from `simInit C` (`SimRun`, for `simRun_runAccepted`), and its events are ASCII
-(`ConvertEvents`' premise). -/
+it runs from `simInit C` (`SimRun`, for `simRun_runAccepted`), and its events have `Main`'s facts
+(`SimEvents`: `ConvertEvents`' premise and `mainPure`'s hypotheses on them). -/
 theorem simInv_end (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) (L : List TraceEv) :
     traceAuth tn.tr L ∗ simInv C tn Fx ⊢
       traceAuth tn.tr L ∗ simInv C tn Fx ∗
-        ⌜∃ σ, SimRun C L σ ∧ σ.server = confAbs C ∧ ∀ x ∈ L, TraceEv.Ascii x⌝ := by
+        ⌜∃ σ, SimRun C L σ ∧ σ.server = confAbs C ∧ SimEvents L⌝ := by
   iintro ⟨Ha, Hi⟩
   iunfold simInv at Hi
   icases Hi with ⟨%L', %σ, %A, %B, %phP, %phM, %Bt, HL, HA, HB, HBt, Hfx, %Hp⟩

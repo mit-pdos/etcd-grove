@@ -146,6 +146,12 @@ importable Proof.go_etcd_io.raft.v3.InvBig
 # (`InvTrace`) and the simulation of the TLA spec by raft's events (`TraceSim`)
 importable Proof.go_etcd_io.raft.v3.InvTrace
 importable Proof.go_etcd_io.raft.v3.TraceSim
+# (Q13, 2026-11-09) the simulation's invariant at the end of the run (`simInv_end`), for `Main`'s
+# pure obligations (`tracecheck/MainSim.lean`), with the modules it publicly imports
+importable Proof.go_etcd_io.raft.v3.TraceSimEnd
+importable Proof.go_etcd_io.raft.v3.TraceSimGhost
+importable Proof.go_etcd_io.raft.v3.TraceSimBag
+importable Proof.go_etcd_io.raft.v3.TraceSimLemmas
 
 ## Debt: proof internals clients reach today (take them out of the list)
 # tactics and lemma files the server, the examples or other packages' specs import

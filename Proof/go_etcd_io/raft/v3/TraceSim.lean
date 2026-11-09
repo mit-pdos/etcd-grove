@@ -155,6 +155,160 @@ def TraceEv.Ascii (e : TraceEv) : Prop :=
 
 end ascii
 
+/-! ## The events' facts `Main` needs (Q13, 2026-11-09)
+
+`Main`'s pure obligations (`tracecheck/MainPure.lean`, `mainPure`) take, of raft's events `L`, the
+facts below; `simInv` keeps them all (`SimEvents`, `TraceSimGhost.lean`), each law of the
+simulation's capability from its premise `TraceEv.Ok K e` (`TraceEv.OkBoot K e` for a bootstrap
+line) on the events it may log (`TracedCap.lean`). Moved here from `MainPure.lean` (where they were
+stated first, 2026-11-09) so that raft's simulation can state them. -/
+
+section facts
+variable [GooseExts]
+
+/-- An event of a kind the workload logs outside a node's bootstrap (`Line.InScope` of its line):
+not a configuration change (`ChangeConf`, P3), a restart (`InitState`, P1) or a snapshot sent
+(`MsgSnap`, P2). -/
+def TraceEv.InScope (e : TraceEv) : Prop :=
+  TraceSim.gsStr e.name ≠ "ChangeConf" ∧ TraceSim.gsStr e.name ≠ "InitState" ∧
+  (TraceSim.gsStr e.name = "SendAppendEntriesRequest" → ∀ m, e.msg = some m → TraceSim.gsStr m.typ ≠ "MsgSnap")
+
+/-- An event's numbers below `K` (the time receipts bound terms and indices). -/
+def TraceEv.NumsBelow (K : Nat) (e : TraceEv) : Prop :=
+  uint.nat e.term < K ∧ uint.nat e.commit < K ∧ uint.nat e.logSize < K ∧
+  ∀ m, e.msg = some m →
+    uint.nat m.term < K ∧ uint.nat m.entries < K ∧ uint.nat m.logTerm < K ∧ uint.nat m.index < K ∧
+    uint.nat m.commit < K ∧ uint.nat m.rejectHint < K
+
+/-- An event's configuration lists within `n` (raft's: its configuration's voters, and an
+`ApplyConfChange`'s new configuration's). -/
+def TraceEv.ConfsWithin (n : Nat) (e : TraceEv) : Prop :=
+  e.conf.1.length ≤ n ∧ ∀ c, e.propCC = some c → c.newconf.length ≤ n
+
+/-- **What a law of the simulation's capability takes of an event it may log** (Q13): ASCII
+(`ConvertEvents`' premise), in scope, its numbers below `K` (`K ≤ 2^61`, the laws' premise), its
+configuration lists within the three voters. -/
+def TraceEv.Ok (K : Nat) (e : TraceEv) : Prop :=
+  e.Ascii ∧ e.InScope ∧ e.NumsBelow K ∧ e.ConfsWithin 3
+
+/-- **What the bootstrap lines' law takes of an event** (Q13): as `TraceEv.Ok`, but not in scope
+(raft's `InitState` is a bootstrap line), its log within the three voters' bootstrap entries
+(`NewTrace` allocates a bootstrap line's log: `BootLogsOk`). -/
+def TraceEv.OkBoot (K : Nat) (e : TraceEv) : Prop :=
+  e.Ascii ∧ e.NumsBelow K ∧ e.ConfsWithin 3 ∧ uint.nat e.logSize ≤ 3
+
+theorem TraceEv.numsBelow_mono {K K' : Nat} {e : TraceEv} (hK : K ≤ K') (h : e.NumsBelow K) :
+    e.NumsBelow K' := by
+  obtain ⟨h1, h2, h3, h4⟩ := h
+  refine ⟨by omega, by omega, by omega, fun m hm => ?_⟩
+  obtain ⟨a1, a2, a3, a4, a5, a6⟩ := h4 m hm
+  exact ⟨by omega, by omega, by omega, by omega, by omega, by omega⟩
+
+namespace TraceSim
+
+/-- Node `i` has logged only bootstrap-named lines in `L1` (`¬ TraceSim.booted L1 i`). -/
+def Unbooted (L1 : List TraceEv) (i : Etcdraft.ID) : Prop :=
+  ∀ x ∈ L1, ∀ ln, Etcdraft.parseLine 0 (evConv x) = .ok ln → ln.nid = i →
+    Etcdraft.isBootstrapName ln.ev.name = true
+
+/-- Event `e`, logged after `L1`, is in scope, or a bootstrap-named line of a node still in its
+bootstrap segment (raft's `InitState` at `StartNode`, the only one in the workload). -/
+def EvScopeOk (L1 : List TraceEv) (e : TraceEv) : Prop :=
+  e.InScope ∨ (Etcdraft.isBootstrapName (gsStr e.name) = true ∧
+    ∀ i, Etcdraft.parseID (gsStr e.nid) = some i → Unbooted L1 i)
+
+/-- Every event of `L` is `EvScopeOk` after the events before it. -/
+def ScopeOk (L : List TraceEv) : Prop := ∀ k (hk : k < L.length), EvScopeOk (L.take k) L[k]
+
+theorem scopeOk_nil : ScopeOk [] := fun _ hk => absurd hk (Nat.not_lt_zero _)
+
+/-- `ScopeOk` is kept event by event (a `simInv` clause). -/
+theorem scopeOk_snoc (L : List TraceEv) (e : TraceEv) (h : ScopeOk L) (he : EvScopeOk L e) :
+    ScopeOk (L ++ [e]) := by
+  intro k hk
+  rw [List.length_append, List.length_singleton] at hk
+  rcases Nat.lt_or_ge k L.length with hl | hl
+  · rw [List.take_append_of_le_length (Nat.le_of_lt hl), List.getElem_append_left hl]
+    exact h k hl
+  · have hk' : k = L.length := by omega
+    subst hk'
+    rw [List.take_left' rfl, List.getElem_append_right (Nat.le_refl _)]
+    simpa using he
+
+/-- Event `e`, logged after `L1`: if it is bootstrap-named and its node unbooted (a line `bootstrapOf`
+may flag, the last of which `NewTrace` allocates the log of), its log size is below `2^40`
+(`Etcdraft.bootLogBound`). -/
+def EvBootLogOk (L1 : List TraceEv) (e : TraceEv) : Prop :=
+  Etcdraft.isBootstrapName (gsStr e.name) = true →
+    (∀ i, Etcdraft.parseID (gsStr e.nid) = some i → Unbooted L1 i) → uint.nat e.logSize < 2 ^ 40
+
+/-- Every event of `L` is `EvBootLogOk` after the events before it. -/
+def BootLogsOk (L : List TraceEv) : Prop := ∀ k (hk : k < L.length), EvBootLogOk (L.take k) L[k]
+
+theorem bootLogsOk_nil : BootLogsOk [] := fun _ hk => absurd hk (Nat.not_lt_zero _)
+
+/-- `BootLogsOk` is kept event by event (a `simInv` clause). -/
+theorem bootLogsOk_snoc (L : List TraceEv) (e : TraceEv) (h : BootLogsOk L) (he : EvBootLogOk L e) :
+    BootLogsOk (L ++ [e]) := by
+  intro k hk
+  rw [List.length_append, List.length_singleton] at hk
+  rcases Nat.lt_or_ge k L.length with hl | hl
+  · rw [List.take_append_of_le_length (Nat.le_of_lt hl), List.getElem_append_left hl]
+    exact h k hl
+  · have hk' : k = L.length := by omega
+    subst hk'
+    rw [List.take_left' rfl, List.getElem_append_right (Nat.le_refl _)]
+    simpa using he
+
+/-- A line not bootstrap-named allocates no log. -/
+theorem evBootLogOk_of_name (L1 : List TraceEv) (e : TraceEv)
+    (h : Etcdraft.isBootstrapName (gsStr e.name) = false) : EvBootLogOk L1 e := by
+  intro hb; rw [h] at hb; cases hb
+
+/-- **The facts `simInv` keeps of its events** (Q13; `Main`'s hypotheses on them, `mainPure`): ASCII
+(`ConvertEvents`' premise), in scope or a node's bootstrap line (`ScopeOk`), the bootstrap lines'
+logs below `2^40` (`BootLogsOk`), their numbers below `2^61` (`Etcdraft.numBound`) and their
+configuration lists within the three voters. (Their count, `L.length`, is not a clause: it is
+bounded by the run's steps, outside the simulation.) -/
+def SimEvents (L : List TraceEv) : Prop :=
+  (∀ x ∈ L, x.Ascii) ∧ ScopeOk L ∧ BootLogsOk L ∧ (∀ x ∈ L, x.NumsBelow (2 ^ 61)) ∧
+  (∀ x ∈ L, x.ConfsWithin 3)
+
+theorem simEvents_nil : SimEvents [] :=
+  ⟨by simp, scopeOk_nil, bootLogsOk_nil, by simp, by simp⟩
+
+theorem forall_mem_snoc {P : TraceEv → Prop} (L : List TraceEv) (e : TraceEv) (h : ∀ x ∈ L, P x)
+    (he : P e) : ∀ x ∈ L ++ [e], P x := by
+  intro x hx
+  rcases List.mem_append.1 hx with hx | hx
+  · exact h x hx
+  · simp at hx; subst hx; exact he
+
+/-- **`SimEvents` after a line of a law's events** (`TraceEv.Ok`), given its bootstrap log's
+condition (a line not bootstrap-named: `evBootLogOk_of_name`; of a booted node:
+`evBootLogOk_of_booted`). -/
+theorem simEvents_snoc (K : Nat) (hK : K ≤ 2 ^ 61) (L : List TraceEv) (e : TraceEv) (h : SimEvents L)
+    (he : e.Ok K) (hb : EvBootLogOk L e) : SimEvents (L ++ [e]) := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  obtain ⟨e1, e2, e3, e4⟩ := he
+  exact ⟨forall_mem_snoc L e h1 e1, scopeOk_snoc L e h2 (Or.inl e2), bootLogsOk_snoc L e h3 hb,
+    forall_mem_snoc L e h4 (TraceEv.numsBelow_mono hK e3), forall_mem_snoc L e h5 e4⟩
+
+/-- **`SimEvents` after a node's bootstrap line** (`TraceEv.OkBoot`): bootstrap-named, its node
+unbooted. -/
+theorem simEvents_snoc_boot (K : Nat) (hK : K ≤ 2 ^ 61) (L : List TraceEv) (e : TraceEv) (h : SimEvents L)
+    (he : e.OkBoot K) (hbn : Etcdraft.isBootstrapName (gsStr e.name) = true)
+    (hun : ∀ i, Etcdraft.parseID (gsStr e.nid) = some i → Unbooted L i) : SimEvents (L ++ [e]) := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  obtain ⟨e1, e2, e3, e4⟩ := he
+  exact ⟨forall_mem_snoc L e h1 e1, scopeOk_snoc L e h2 (Or.inr ⟨hbn, hun⟩),
+    bootLogsOk_snoc L e h3 (fun _ _ => by omega),
+    forall_mem_snoc L e h4 (TraceEv.numsBelow_mono hK e2), forall_mem_snoc L e h5 e3⟩
+
+end TraceSim
+
+end facts
+
 
 end EtcdGrove
 end Perennial
