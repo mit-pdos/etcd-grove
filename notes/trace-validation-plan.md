@@ -639,6 +639,18 @@ not a pre-vote one), restarts (`Restart`), configuration changes (`applyConfigUp
 `reconfigure`, `AddNewServer`, `AddLearner`, `DeleteServer`, `ApplySimpleConfChange`),
 `DuplicateMessage`, `DropMessage`, the `Next*` relations, `Init`. No disagreement between the Go and
 the transcription was found on the functions proved.
+**`invariants.go` proved, but for two (2026-11-09, branch `trace-check-layerc-inv`).** Specs and
+complete proofs of `State.Committed`, `MessageTermsLtCurrentTerm`, `LogInv`, `MoreThanOneLeaderInv`,
+`maxIndexOfTerm`, `ElectionSafetyInv`, `LogMatchingInv`, `QuorumLogInv`, `MoreUpToDateCorrectInv`,
+`CommittedIsDurableInv`, each returning its `Tla/Invariants.lean` definition (read-only, `stateRO`);
+the loops' shared laws in `StateRead.lean` (`servers_at`, `all`/`allM` loop steps). Premises the
+caller (S6's loop invariant) supplies: the `EvalM` ones (`Committed`, `LogInv`, `QuorumLogInv`,
+`MoreUpToDateCorrectInv`) take `… = .ok b`, as `SubSeq`; every server's log shorter than `2^63 - 1`
+(`maxIndexOfTerm`, `ElectionSafetyInv`, `LogMatchingInv`: the Go's index runs to the length plus
+one); every server's configuration smaller than `2^62` (`QuorumLogInv`, `IsQuorum`'s). Skipped:
+`LeaderCompletenessInv` (it calls `CurrentLeaders`, `spec.go`'s, whose spec is on
+`trace-check-layerc-spec`) and so `Violated` (also needs the package fact to give `Invariants`'
+closures, `Base.lean`'s `True` until S6). No disagreement between the Go and the transcription.
 
 ### D. The harness and Main (the workload)
 
