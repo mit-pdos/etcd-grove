@@ -837,6 +837,72 @@ transcription); and `NewTraceWith`/`NewTrace` (not started: its closures, the `l
 bootstrap loops against `newTraceWith`'s `mapM`s; compared by reading, no disagreement found:
 the same checks in an order that changes only which error, `TraceServer`'s ids in another order
 before `SetIds.mk`). No disagreement between the Go and the transcription.
+**`trace.go`'s search proved; `CheckTrace` blocked (2026-11-09, branch `trace-check-layerc-top`).** Specs
+and complete proofs (no `sorry`, no axiom) of the remaining `IfLogged` actions, `nonReceive`, `Next` and
+`StepLine`. The actions outside the workload, as the task allowed (the choice): pre-vote and check-quorum
+by their flag, which `NewTrace` sets off and every action keeps: `RequestPreVote`, `PreTimeout` and
+`IgnoreInLease` specified where the flag is off (`nil`), so `requestVoteIfLogged`, `preTimeoutIfLogged`
+and `ignoreInLeaseIfLogged` take `ts.s.preVote = false`/`checkQuorum = false`; snapshots, configuration
+changes and restarts by the line (P2, P3, P1 of `notes/trace-validation-sim.md`): `sendSnapshotIfLogged`
+at a line whose message is not a `MsgSnap`, `changeConfIfLogged` at a line not a `ChangeConf`,
+`restartIfLogged` at a line not an `InitState` (no successor), so `SendSnapshot`, `AddNewServer`,
+`AddLearner`, `DeleteServer`, `reconfigure`, `Restart` and `HandleSnapshotRequest` stay without spec.
+`applySimpleConfChangeIfLogged` is proved in full (the workload's `ApplyConfChange` lines after the
+bootstrap, `AccIdle`), over new specs of `ApplySimpleConfChange` (where the Lean evaluates; its log below
+`2^62`, the reconfiguration count below `2^63 - 1`; its `for range` deleting from `MatchIndex` through
+`wp_map_for_range_mut_keys`) and `applyConfigUpdate`. `StepOk.lean` gathers the premises: `State.ActOk`
+(the flags off, the pending bag `Bag.Ok`, the bags' total counts below `2^63`, the reconfiguration count,
+every server's log below `2^62 - 1`, granted votes and configuration below `2^62`, term below `2^63 - 1`,
+progress in `[0, 2^62 - 1)`), `Line.InScope` (no `ChangeConf`, `InitState` or `MsgSnap` send),
+`State.MsgsOk` (`receive`'s), `TState.NextOk` (a position, the trace's servers, those, `InScope` where
+the line is not a bootstrap line), `Trace.LineReach` (the states `StepLine`'s search expands: `ts` and
+the same-line successors of expanded states), `Trace.StepLineOk` (every expanded state `NextOk`, every
+reached state `State.ViolOk` when checked); and the search's steps as named functions (`stepInnerF`,
+`stepOuterF`, `stepRound_eq` by `rfl`) with their laws. Specs: `nonReceive` (`NextOk`'s parts at a
+non-bootstrap line, `tr.nonReceive ts = .ok sts`), `Next` (`ts.NextOk tr ∧ tr.next ts = .ok tss`),
+`StepLine` (`tr.StepLineOk ts invariants` and no `StepLineRel ts invariants (.error e)`; it returns the
+`StepLineRel` result, `Branched`/`Violation` related, `Bad` unconstrained; partial correctness, its loop
+needs no fuel). `TraceError.Error` is not specified: no function of the checker or `Main` calls it
+(`Main` only tests `err != nil`). `Result.TLCOK` was done. `NewTraceWith` and `NewTrace` proved
+(`NewTrace.spec` unchanged): `NewTraceWith`'s spec is `NewTrace`'s for any flags, its post the heap part of
+`traceRO` (`traceHeapRO`, `TraceBuild.lean`, with `traceRO_of_heap`), `NewTrace` adding `Trace.Valid`;
+`ParseRole` specified (`RET #s`). The differences read as harmless are proved so (`TraceBuild.lean`):
+`SetIds.mk` depends only on membership (`SetIds.mk_congr`: the Go collects the servers interleaved),
+the per-server bootstrap ranges OR-ed are `bootstrapOf`'s flags (`bootFlags_*`), the Go's
+`bootstrapConfs` filter on the global flag and `nid = i` is the server's own flag (`global_flag`), the
+checks' order changes only which error. No disagreement. Not done: `CheckTrace`.
+
+`CheckTrace`'s loop invariant, line `l` with frontier `F` (Lean `frontier`, Go slice of `TState`s) and
+result so far `r`: `1 ≤ l ≤ len + 1`; `∀ r', tr.CheckFromRel inv (len + 1 - l) l F r r' →
+CheckTraceRel tr inv r'` (as `RunRel.from_init`); `F` deduplicated (`memEq`); every `ts ∈ F` at line
+`l` with `tr.StepLineOk ts inv` and no `StepLineRel ts inv (.error _)`; and the Go's `r.Branched` the
+Lean's. Its premises are not maintainable from what `CheckTrace.spec` assumes (`traceRO t tr`, so
+`Trace.Valid tr` only), for three reasons, each with a counterexample:
+- **evaluation errors**: `CheckTrace.spec` covers the traces whose search fails (`CheckTraceRel`'s
+  `evalError` results), where the Go panics with an `EvalError` and recovers; every callee's spec takes
+  `= .ok` (or `.error _ => False`), since a Hoare triple names a returned value. Counterexample: the
+  one-line trace `InitState` of node `"1"`, `log 0`, `commit 1`, `conf [["1"], []]` is `Valid` and
+  `checkTrace … true`'s initial `violated` is an `EvalError` (`LogInv`'s `Committed`, `SubSeq(log, 1, 1)`
+  of an empty log): `Violated`'s spec does not apply. Proving the spec needs panic-aware specs (a
+  postcondition at `PanicV` of the `EvalError`) of `Violated`, `SubSeq`, the `EvalM` invariants and
+  actions, `Next`, `nonReceive`, `StepLine`; or a premise that the search does not fail (`∀ r',
+  CheckTraceRel tr inv r' → r'.evalError = none`, which `Main`'s accepted run gives).
+- **lines outside the workload**: a `Valid` trace may hold a `ChangeConf`, a non-bootstrap
+  `InitState` or a `MsgSnap` send (`NewTrace` accepts them); `nonReceive`'s `Line.InScope` fails there.
+  Needs either a premise on the trace (every non-bootstrap line `InScope`: layer B's P1-P3 give it of the
+  workload's trace) or specs of the seven actions left out, and then `HandleSnapshotRequest` in
+  `Receive`'s.
+- **bounds**: `StepLineOk`'s bounds hold of every reachable state only through an invariant of the
+  whole specification (logs, terms, counts and progress grow by at most a bounded amount per step, from
+  the trace's `numBound`): a pure proof over every action, not done. One bound has no such proof:
+  the configurations' sizes below `2^62` (`IsQuorum`'s), which come from the events' `conf` lists, which
+  `Event.Bounded` does not bound (a `Valid` trace whose bootstrap line lists `2^62` distinct ids is not
+  excluded in the model); `Event.Bounded` would need the lists below `numBound`.
+So `CheckTrace` is not proved. The options for the user: (a) a premise `CheckTrace.spec` takes, stating
+what the search needs (no evaluation error, the search's states `StepLineOk`, the lines in scope), which
+`Main`'s proof discharges from layer B (the run's states are raft's, bounded by the time receipts); or
+(b) the panic-aware callee specs, the seven actions and the reachability bound, with `Event.Bounded`
+strengthened.
 
 ### D. The harness and Main (the workload)
 
