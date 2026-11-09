@@ -152,6 +152,54 @@ theorem simRun_snoc_chain (C : List w64) (L : List TraceEv) (σ σ' : Etcdraft.S
   have := simRun_snoc C L e ln ts tsF _ lines hl hr he (checkLine_of_chain _ ts tsF hc) rfl rfl
   rw [hF] at this; exact this
 
+/-- **A line past its node's bootstrap segment is no bootstrap line**: line `k` (from 0) of node `i`,
+with a line of `i` at or before it whose name is not a bootstrap name. -/
+theorem bootstrapOf_past (lines : List Etcdraft.Line) (j : Etcdraft.ID) (k k' : Nat) (hk : k < lines.length)
+    (hk' : k' ≤ k) (hn' : (lines.getD k' default).nid = (lines.getD k default).nid)
+    (hb' : Etcdraft.isBootstrapName (lines.getD k' default).ev.name = false) :
+    ((Etcdraft.bootstrapOf lines j).1).getD k false = false := by
+  unfold Etcdraft.bootstrapOf
+  simp only [List.getD_eq_getElem?_getD] at hn' hb' ⊢
+  simp only [List.getElem?_map, List.getElem?_range hk, Option.map_some, Option.getD_some]
+  by_cases hj : (lines[k]?.getD default).nid = j
+  · -- the node's first non-bootstrap line is at or before `k'`
+    generalize hI : (List.range lines.length).map (fun k => (k + 1, lines[k]?.getD default)) = I
+    have hIl : I.length = lines.length := by rw [← hI]; simp
+    have hfst : ∀ m (h : m < I.length), I[m].1 = m + 1 := by intro m h; subst hI; simp
+    have hIk' : I[k']'(by omega) = (k' + 1, lines[k']?.getD default) := by subst hI; simp
+    cases hf : I.find? (fun p => p.2.nid == j && !Etcdraft.isBootstrapName p.2.ev.name) with
+    | none =>
+      have := List.find?_eq_none.1 hf (I[k']'(by omega)) (List.getElem_mem _)
+      rw [hIk'] at this; simp [hn', hj, hb'] at this
+    | some q =>
+      have hle := find_first_le I hfst _ q hf k' (by omega) (by rw [hIk']; simp [hn', hj, hb'])
+      have hq0 : q.1 ≠ 0 := by
+        obtain ⟨-, xs1, ys1, hI', -⟩ := List.find?_eq_some_iff_append.1 hf
+        have : I[xs1.length]'(by rw [hI']; simp) = q := by simp [hI']
+        rw [← this, hfst]; omega
+      simp only [Option.map_some, Option.getD_some, bne_iff_ne, ne_eq, hq0, not_false_eq_true, ↓reduceIte,
+        Bool.and_eq_false_iff, decide_eq_false_iff_not]
+      left; right; omega
+  · simp [hj]
+
+theorem bootFlags_past (srv : Etcdraft.SetIds) (lines : List Etcdraft.Line) (k k' : Nat) (hk : k < lines.length)
+    (hk' : k' ≤ k) (hn' : (lines.getD k' default).nid = (lines.getD k default).nid)
+    (hb' : Etcdraft.isBootstrapName (lines.getD k' default).ev.name = false) :
+    (bootFlags srv lines).getD k false = false := by
+  unfold bootFlags
+  simp only [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hk, Option.map_some,
+    Option.getD_some, List.any_eq_false, List.mem_map]
+  rintro _ ⟨j, -, rfl⟩
+  have := bootstrapOf_past lines j k k' hk hk' hn' hb'
+  simpa [List.getD_eq_getElem?_getD] using this
+
+/-- **A non-bootstrap-named line is no bootstrap line.** -/
+theorem bootFlags_nonBoot (srv : Etcdraft.SetIds) (lines : List Etcdraft.Line) (ln : Etcdraft.Line)
+    (hb : Etcdraft.isBootstrapName ln.ev.name = false) :
+    (bootFlags srv (lines ++ [ln])).getD lines.length false = false :=
+  bootFlags_past srv (lines ++ [ln]) lines.length lines.length (by simp) (Nat.le_refl _) rfl
+    (by simpa [List.getD_eq_getElem?_getD] using hb)
+
 end TraceSim
 
 end EtcdGrove
