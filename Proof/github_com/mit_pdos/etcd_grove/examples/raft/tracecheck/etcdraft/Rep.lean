@@ -395,6 +395,32 @@ instance lineRO_persistent (g : G.line) (x : Line) : Persistent (lineRO (GF := G
 instance traceRO_persistent (t : Loc) (tr : Trace) : Persistent (traceRO (GF := GF) t tr) := by
   unfold traceRO; infer_instance
 
+/-- A big separating conjunction over two lists of the same length holds over their sublists
+`[lo, hi)` (layer C's `IsPrefix`, `SubSeq`, 2026-11-09). -/
+theorem bigSepL2_subslice {A B : Type} (Φ : A → B → IProp GF) (l1 : List A) (l2 : List B)
+    (lo hi : Nat) (hlen : l1.length = l2.length) :
+    ([∗list] x;y ∈ l1;l2, Φ x y) ⊢ [∗list] x;y ∈ subslice lo hi l1;subslice lo hi l2, Φ x y := by
+  conv => lhs; rw [← List.take_append_drop hi l1, ← List.take_append_drop hi l2]
+  refine (BigSepL2.bigSepL2_append (Or.inl (by simp [hlen]))).1.trans (sep_elim_left.trans ?_)
+  unfold subslice
+  conv => lhs; rw [← List.take_append_drop lo (l1.take hi), ← List.take_append_drop lo (l2.take hi)]
+  exact (BigSepL2.bigSepL2_append (Or.inl (by simp [hlen]))).1.trans sep_elim_right
+
+/-- A log's sub-slice `sl[lo:hi]` holds the log's elements `[lo, hi)`. -/
+theorem logRO_subslice (sl : GoSlice) (l : List Entry) (lo hi : w64)
+    (hb : 0 ≤ sint.Z lo ∧ sint.Z lo ≤ sint.Z hi ∧ sint.Z hi ≤ sint.Z sl.len) :
+    logRO (GF := GF) sl l ⊢
+      logRO (slice.slice sl G.Entry lo hi) (subslice (sint.nat lo) (sint.nat hi) l) := by
+  unfold logRO
+  iintro ⟨%es, #Hes, #Hb⟩
+  ihave %Hl := BigSepL2.bigSepL2_length $$ Hb
+  icases (ownSlice_slice lo hi sl _ es hb).1 $$ Hes with ⟨-, #H2, -⟩
+  iexists (subslice (sint.nat lo) (sint.nat hi) es)
+  isplitr
+  · iexact H2
+  iapply bigSepL2_subslice (fun e x => entryRO (GF := GF) e x) es l _ _ Hl
+  iexact Hb
+
 end defs
 
 end Etcdraft
